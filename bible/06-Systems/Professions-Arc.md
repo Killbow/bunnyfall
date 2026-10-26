@@ -5589,24 +5589,37 @@ and the jeweller ACCEPTS EVERY GRADE of gem.
 
 - **The law** - `recipeLaw.js`: `counterMade` names the recipes S1 judges (made wholly of `COUNTER_ONLY`'s goods - the
   152, every one the loom's); `firstCraftPays(r, own)` pays every other recipe's first as before, and a judged one's only
-  where `own` - its units the character's own, no bought and no loose one among them. Unasked, a judged recipe pays none
+  where `own` - WOVEN-PAYS (`01-Overview/bugs/Field-Bugs-2026-10-26b.md`; the owner: "Woven cloth pays"): no unit BOUGHT
+  WITH SILVER among the units the craft spends (the Weavers', the furnisher's, the Drakes market's); a loose unit pays,
+  the loom's own cloth of looted or shop-bought Root Tendrils among them. It was "no bought and no loose one among them",
+  and fogs's woven Linen of looted Root Tendrils never paid. Unasked, a judged recipe pays none
   (a station that cannot see the units says the rule). FACT, pinned: every Outfitting first-craft key at tiers 1-2 (171)
   is reachable with the character's own goods, and no key of the 332 can never pay.
-- **The service** - `server-account/src/professions.js` `craftAtAnvil`: the decision's `p` - for a judged recipe, none of
-  its inputs held as loose or bought (a station spends those first, so one held is one spent) - the very test AUDIT
-  PROF-541 B7's `bought_with` reads in the same batch; `f * p * ?13` lays the 500 on. The answer says `firstPaid` (read off
-  the piece as it stands - a repeat asked after a sale reads the sale's). A disenchant (`alchemy.js`) pays a piece wholly
+- **The service** - `server-account/src/professions.js` `craftAtAnvil`: the decision's `p` - WOVEN-PAYS: for a judged
+  recipe, no bought unit SPENT (`boughtSpent`: a station spends an input's loose units first, then its bought - `bagLaw.js`
+  `stationSpend` - so a bought one is spent where one is held and the loose ones do not cover the craft's units); `f * p *
+  ?13` lays the share on. WOVEN-PAYS: A JUDGED PATTERN IS MADE BY THE CRAFT THAT LAID ITS FIRST ON (`patternMade`,
+  `prof_crafts.first_paid`, migration 0176) - a craft of silver-bought cloth before it lays none on and takes nothing, so
+  the next craft of it that can pay still pays; a row from before the column made its pattern where it was the first and
+  its XP holds the share (`FIRST_MAKE_FLOOR`, pinned above every judged craft's own XP). Every other pattern is made by
+  any craft of it. The answer says `firstPaid` off `first_paid` (a row from before it read off the piece, as CLOTH-GEMS
+  read it). A disenchant (`alchemy.js`) pays a piece wholly
   of cloth its Enchanting XP only where the piece is its maker's own and never sold (`alchemyLaw.js` `disenchantXp`'s
   `own`: `products.bought_with` none) - AUDIT PROF12 E2's wall, judged by the units too.
 - DECIDED: S1 stays the cloth's. A recipe partly of cloth (a boot, a bed, the Cloth Amulet) was never judged and is not;
   the smith's stock stays outside it (every one of its goods is gathered too); and a brew keeps its own rule
   (`alchemyLaw.js` `brewFirstPays` - the Apothecaries' sixteen have no world source, so a brew of them is bought or loose,
   never own).
-- **The words** - `ui/craftXpWords.js`: the loom's box says the made cloth's 500 (`prof.page.craft.xpFirstOwn`) where
-  `profPages.js` `ownSpend` reads no bought or loose cloth in the Stores and none bought carried, and otherwise that such
-  cloth goes first and earns none (`prof.page.craft.xpBought`); the craft's word reads the answer's `firstPaid`
-  (`prof.craft.xpFirstBought`, an older service's answer read by the recipe); the Enchanting Station says an own piece's
-  figure and, once, the rule (`prof.page.enchant.cloth`); the loom lists its spins (`Spin`) and says where Linen and Wool
+- **The words** - `ui/craftXpWords.js`: the loom's box says the share "from cloth not bought with silver"
+  (`prof.page.craft.xpFirstOwn`) where `profPages.js` `ownSpend` reads no bought unit among those the press would spend
+  (WOVEN-PAYS: the book's `spendOf` - the shortfall's put-in foreseen, the pack's uncounted units loose - where it read
+  the Stores and the bought units carried, and promised fogs a share his loose cloth was refused), and otherwise that
+  cloth bought with silver would be used and earns none (`prof.page.craft.xpBought`); the craft's word reads the answer's
+  `firstPaid` (`prof.craft.xpFirstBought`: cloth bought with silver, the piece's first still owed; an older service's
+  answer read by the recipe); the Enchanting Station says an own piece's figure and, once, the rule
+  (`prof.page.enchant.cloth` - WOVEN-PAYS: "woven or spun from goods you gathered": the disenchant's own is unchanged,
+  never loose, for its Enchanting XP comes again with every piece and loose cloth of shop-bought Root Tendrils would buy
+  it with gold); the loom lists its spins (`Spin`) and says where Linen and Wool
   come from where it holds none of their goods (`prof.page.loom.noCloth`); the Outfitting how-to says it all
   (`prof.page.how.outfitting`).
 

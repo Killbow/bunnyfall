@@ -48,7 +48,7 @@
 // The pages draw with the menu's own kit (its `el`, divider and meter,
 // handed in), so they are the sheet's pages and not a second window.
 // ═══════════════════════════════════════════════════════════════════
-import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, LOOSE_ORIGIN } from '../../net/bagLaw.js';   // BAG1: what a character carries; CLOTH-GEMS: a station's loose units, spent first
+import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, stationSpend } from '../../net/bagLaw.js';   // BAG1: what a character carries; WOVEN-PAYS: what a station spends
 import {
   PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
@@ -602,7 +602,7 @@ const alchemyHow = () => t('prof.page.how.alchemy', ALCHEMY_HOW);
 export const CRAFT_HOW = Object.freeze({
   smithing: () => t('prof.page.how.smithing', 'Smithing is done at a forge: a Weaponsmith\'s, an Armorer\'s or one in your own home. Open the Stores page there (Holdings > Stores). The Forge smelts the ore you mine into ingots, and the Anvil makes weapons, armor and tools from them, or from raw ore by smelting it first. Jewelry is made at a jeweler\'s bench: a Pawn Shop\'s, a Gem Store\'s or one in your own home. Smelting and every piece you make earn Smithing experience.'),
   building: () => t('prof.page.how.building', 'Carpentry is done at a workbench: a Furniture Store\'s, a joinery\'s or one in your own home; Masonry at a mason\'s bench: a General Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The workbench saws the logs you fell into planks and makes staves, bows, arrows and furniture; the mason\'s bench cuts the stone you quarry and mixes Mortar. Every piece, cut and mix earns Building experience; sawing earns none.'),
-  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but only cloth you make yourself earns a first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
+  outfitting: () => t('prof.page.how.outfitting', 'Outfitting is done at a loom: a Clothing Store\'s or one in your own home. Open the Stores page there (Holdings > Stores). The loom\'s tanning rack cures the hides you skin into leather, the loom weaves Root Tendrils into Linen and spins furs into Wool, and it makes leather armor, clothing, rugs, tapestries and the Fishing-Net. The Weavers sell Linen and Wool too, at a Clothing Store\'s loom or a Notice Board\'s Market, but cloth bought with silver earns no first-time bonus. Every piece earns Outfitting experience; curing, weaving and spinning earn none.'),
   provisioning: () => t('prof.page.how.cooking', 'Cook at any lit fire, such as a campfire, a hearth or a brazier: stand close to its flame and open the Stores page (Holdings > Stores). Dishes are made from the meat you skin, the fish you net, herbs and the food a Basket finds, and go to your pack. Brewing and cooking both earn Provisioning experience.'),   // beside ALCHEMY_HOW: Provisioning's cooking (CRAFT3)
 });
 /**
@@ -659,14 +659,15 @@ export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).le
  *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
 export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: xpPct(firmamentStats(), trackOf(id)) });
 /** CLOTH-GEMS (AUDIT 32 S1, judged by the units - bible/06-Systems/Professions-Arc.md 50): WHETHER A CRAFT OF `r` WOULD
- *  SPEND THE CHARACTER'S OWN UNITS ALONE, as the book reads them. A station spends loose units first, then bought ones
- *  (bagLaw STATION_ORIGINS), so none of either may stand in the Stores, nor a bought one among what the bag and the pack
- *  carry counted (a station's shortfall puts those in before the own ones). What the pack holds past the service's count
- *  goes in loose, after the counted - the service's decision is the word, and its answer says it (`firstPaid`). */
-export const ownSpend = (book, r) => !!r && r.inputs.every((/** @type {{ key: string }} */ i) => {
-  const s = book?.store?.(i.key) ?? {};
-  return !((s.bought | 0) > 0) && !((s[LOOSE_ORIGIN] | 0) > 0) && !((book?.carried?.(i.key)?.bought | 0) > 0);
-});
+ *  SPEND NO UNIT BOUGHT WITH SILVER, as the book reads them - WOVEN-PAYS (FIELD BUGS 2026-10-26b): the units the press
+ *  would spend (the book's spendOf - its shortfall put in from the bag and the pack, the pack's uncounted units as loose,
+ *  then the Stores loose first: bagLaw.js stationSpend), not the Stores alone. It read the Stores and the bought units
+ *  carried, so cloth the loom wove of looted goods, carried out to the pack and put back in loose, was promised its 511
+ *  and refused it (fogs's report). The service's decision is the word, and its answer says it (`firstPaid`). */
+export const ownSpend = (book, r) => !!r && r.inputs.every((/** @type {{ key: string, n: number }} */ i) => !(spendOf(book, i.key, i.n).bought > 0));
+/** WOVEN-PAYS: what a station's press would spend of `n` of a material, by origin - the book's own (net/profBook.js
+ *  spendOf: the count cut to what the pack holds), or, from a book without it, the law over its Stores and its count. */
+const spendOf = (/** @type {any} */ book, /** @type {string} */ k, /** @type {number} */ n) => (typeof book?.spendOf === 'function' ? book.spendOf(k, n) : stationSpend(book?.store?.(k), book?.carried?.(k), n));
 
 /**
  * THE PROFESSIONS PAGE.
@@ -3003,7 +3004,7 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
   const ownXp = (/** @type {any} */ pc) => disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points), true);
   const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct }))));
   if (capped) detail.append(el('p', 'px-note', capped));
-  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if its maker wove or spun that cloth and it was never sold.')));
+  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if its cloth was woven or spun from goods you gathered and the piece was never sold.')));
   for (const pc of pieces) {
     // DISENCHANT-SAID (the owner: "List them greyed with the reason"): a piece under one Essence - greyed, its reason, its
     // Disenchant never pressed (the service would refuse it: prof-no-essence)

@@ -448,7 +448,9 @@ test('AUDIT PROF12 E2 client: the Enchanting Station says a piece\'s XP by its r
   // PIN MOVED (CLOTH-GEMS, Professions-Arc 50): a piece wholly of cloth gives its XP where its maker's own cloth made it and
   // it was never sold - the station says that figure (tier 1: 35), and the rule once
   assert.match(page.text(), /Linen Plain Robes700 points: 7 Arcane Essence, \+35 Enchanting experience/);
-  assert.ok(page.text().includes('A piece made only of cloth gives Enchanting experience only if its maker wove or spun that cloth and it was never sold.'));
+  // PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): the rule as the disenchant keeps it - cloth of gathered goods, never
+  // loose (a looted Root Tendril's Linen pays a first-time bonus now, never an Enchanting XP that comes again with every piece)
+  assert.ok(page.text().includes('A piece made only of cloth gives Enchanting experience only if its cloth was woven or spun from goods you gathered and the piece was never sold.'));
   assert.match(page.text(), /Iron Longsword600 points: 6 Arcane Essence, \+30 Enchanting experience/);
   page.done();
   // PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): the quarter at an Expert's 90 - the same top tier, 7, as a Master's,

@@ -105,32 +105,27 @@
     ]
   },
   {
-    "name": "CLOTHGEMS-svc-loose-pays",
-    "file": "server-account/src/professions.js",
-    "old": "CASE WHEN ${heldAs(LOOSE_ORIGIN)} OR ${heldAs('bought')} THEN 0",
-    "new": "CASE WHEN ${heldAs('bought')} THEN 0",
-    "tests": [
-      "test/net/clothgems_service.test.js"
-    ]
-  },
-  {
     "name": "CLOTHGEMS-svc-bought-pays",
     "file": "server-account/src/professions.js",
-    "old": "CASE WHEN ${heldAs(LOOSE_ORIGIN)} OR ${heldAs('bought')} THEN 0",
-    "new": "CASE WHEN ${heldAs(LOOSE_ORIGIN)} THEN 0",
+    "old": "(${unitsAs(i, 'bought')} > 0 AND ${unitsAs(i, LOOSE_ORIGIN)} < ?${18 + 2 * i})",
+    "new": "(${unitsAs(i, LOOSE_ORIGIN)} > 0)",
     "tests": [
       "test/net/clothgems_service.test.js",
-      "test/net/audit32_service.test.js"
-    ]
+      "test/net/audit32_service.test.js",
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-svc-keys-misread",
     "file": "server-account/src/professions.js",
-    "old": "  const keysAt = inputs.map((_, i) => `?${17 + 2 * i}`);",
-    "new": "  const keysAt = inputs.map((_, i) => `?${18 + 2 * i}`);",
+    "old": "AND char_id = ?2 AND material = ?${17 + 2 * i} AND origin = '${origin}'), 0)`;",
+    "new": "AND char_id = ?2 AND material = ?${18 + 2 * i} AND origin = '${origin}'), 0)`;",
     "tests": [
-      "test/net/clothgems_service.test.js"
-    ]
+      "test/net/clothgems_service.test.js",
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-svc-p-unread",
@@ -144,11 +139,13 @@
   {
     "name": "CLOTHGEMS-svc-answer-paid-always",
     "file": "server-account/src/professions.js",
-    "old": "    firstPaid: Number(row.first) === 1 && firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null),",
+    "old": "    firstPaid: row.first_paid == null ? Number(row.first) === 1 && firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null) : Number(row.first_paid) === 1,",
     "new": "    firstPaid: Number(row.first) === 1,",
     "tests": [
-      "test/net/clothgems_service.test.js"
-    ]
+      "test/net/clothgems_service.test.js",
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-svc-answer-by-recipe",
@@ -156,8 +153,10 @@
     "old": "firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null)",
     "new": "firstCraftPays(r)",
     "tests": [
-      "test/net/clothgems_service.test.js"
-    ]
+      "test/net/clothgems_service.test.js",
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-dis-own-unread",
@@ -228,29 +227,23 @@
   {
     "name": "CLOTHGEMS-pages-bought-unread",
     "file": "src/ui/professions/profPages.js",
-    "old": "  return !((s.bought | 0) > 0) && ",
-    "new": "  return ",
+    "old": "!(spendOf(book, i.key, i.n).bought > 0)",
+    "new": "true",
     "tests": [
       "test/systems/clothgems_client.test.js"
-    ]
-  },
-  {
-    "name": "CLOTHGEMS-pages-loose-unread",
-    "file": "src/ui/professions/profPages.js",
-    "old": "!((s[LOOSE_ORIGIN] | 0) > 0) && ",
-    "new": "",
-    "tests": [
-      "test/systems/clothgems_client.test.js"
-    ]
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-pages-carried-unread",
-    "file": "src/ui/professions/profPages.js",
-    "old": " && !((book?.carried?.(i.key)?.bought | 0) > 0);",
-    "new": ";",
+    "file": "src/net/bagLaw.js",
+    "old": "  const b = Math.min(short, Math.max(0, carried?.bought | 0)), o = Math.min(short - b, Math.max(0, carried?.own | 0));",
+    "new": "  const b = 0, o = 0;",
     "tests": [
-      "test/systems/clothgems_client.test.js"
-    ]
+      "test/systems/clothgems_client.test.js",
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the wall is silver (a loose unit pays; a bought unit is spent only past the loose ones: the decision's `boughtSpent`), and a judged pattern is made by the craft that laid its first on (`patternMade`, prof_crafts.first_paid)."
   },
   {
     "name": "CLOTHGEMS-pages-spins-unlisted",

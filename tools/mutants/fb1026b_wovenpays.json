@@ -1,0 +1,97 @@
+[
+  {
+    "name": "WOVEN-PAYS-svc-loose-walled-again",
+    "file": "server-account/src/professions.js",
+    "old": "(${unitsAs(i, 'bought')} > 0 AND ${unitsAs(i, LOOSE_ORIGIN)} < ?${18 + 2 * i})",
+    "new": "(${unitsAs(i, 'bought')} > 0 OR ${unitsAs(i, LOOSE_ORIGIN)} > 0)",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js",
+      "test/net/clothgems_service.test.js"
+    ],
+    "note": "The report's law turned back: loose cloth (the loom's own of looted goods) walled from its first again - CLOTHGEMS-svc-loose-pays's inverse, retired with the law it killed."
+  },
+  {
+    "name": "WOVEN-PAYS-svc-bought-held-read-as-spent",
+    "file": "server-account/src/professions.js",
+    "old": " AND ${unitsAs(i, LOOSE_ORIGIN)} < ?${18 + 2 * i})",
+    "new": ")",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-svc-any-craft-makes-the-pattern",
+    "file": "server-account/src/professions.js",
+    "old": "  const patternMade = counterMade(r) ? `${madeBefore} AND (first_paid = 1 OR (first_paid IS NULL AND first = 1 AND xp >= ${FIRST_MAKE_FLOOR}))` : madeBefore;",
+    "new": "  const patternMade = madeBefore;",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-svc-old-row-made-whatever-its-xp",
+    "file": "server-account/src/professions.js",
+    "old": "(first_paid IS NULL AND first = 1 AND xp >= ${FIRST_MAKE_FLOOR})",
+    "new": "(first_paid IS NULL)",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-svc-old-row-owed-whatever-its-xp",
+    "file": "server-account/src/professions.js",
+    "old": "first_paid = 1 OR (first_paid IS NULL AND first = 1",
+    "new": "first_paid = 1 OR (0 AND first = 1",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-svc-first-paid-unwritten",
+    "file": "server-account/src/professions.js",
+    "old": "        f, ?11, ?12, ?15, ?16, f * p\n",
+    "new": "        f, ?11, ?12, ?15, ?16, NULL\n",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js",
+      "test/net/clothgems_service.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-svc-answer-old-reading-gone",
+    "file": "server-account/src/professions.js",
+    "old": "    firstPaid: row.first_paid == null ? Number(row.first) === 1 && firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null) : Number(row.first_paid) === 1,",
+    "new": "    firstPaid: Number(row.first_paid) === 1,",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-law-order-turned",
+    "file": "src/net/bagLaw.js",
+    "old": "  const loose = Math.min(want, s.loose), bought = Math.min(want - loose, s.bought);",
+    "new": "  const bought = Math.min(want, s.bought), loose = Math.min(want - bought, s.loose);",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js",
+      "test/systems/clothgems_client.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-law-count-own-put-in-first",
+    "file": "src/net/bagLaw.js",
+    "old": "  const b = Math.min(short, Math.max(0, carried?.bought | 0)), o = Math.min(short - b, Math.max(0, carried?.own | 0));",
+    "new": "  const o = Math.min(short, Math.max(0, carried?.own | 0)), b = Math.min(short - o, Math.max(0, carried?.bought | 0));",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ]
+  },
+  {
+    "name": "WOVEN-PAYS-box-reads-the-stores-alone",
+    "file": "src/ui/professions/profPages.js",
+    "old": "(typeof book?.spendOf === 'function' ? book.spendOf(k, n) : stationSpend(book?.store?.(k), book?.carried?.(k), n))",
+    "new": "({ bought: book?.store?.(k)?.bought | 0 })",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js",
+      "test/systems/clothgems_client.test.js"
+    ]
+  }
+]

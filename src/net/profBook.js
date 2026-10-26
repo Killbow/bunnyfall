@@ -56,7 +56,7 @@
 // the pins drive it without a network.
 // ═══════════════════════════════════════════════════════════════════
 import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
-import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
+import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried, stationSpend } from './bagLaw.js';   // BAG1: what a character carries, counted; WOVEN-PAYS: what a station spends
 import { recipeById, recipeInputs, recipeOpen } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
 import { chainPlan, chainNeeded, storesRoom } from './chainLaw.js';   // CRAFT1: the works a craft's inputs want first
@@ -470,6 +470,11 @@ export function createProfBook({ door, storage = null, character = () => null, n
     carriedUsable(material) { return carry ? carriedUsable(this.carried(material), carry.held(material)) : 0; },
     /** BAG-CRAFT: what of what the character carries a station may work - every unit held but gold's, counted or not. */
     carriedWorkable(material) { return carry ? carriedWorkable(this.carried(material), heldAll(material)) : 0; },   // AUDIT TOWN-ECON 2 PRICE-2: a counter's pieces a station's
+    /** WOVEN-PAYS (FIELD BUGS 2026-10-26b): what a station's act would spend of `n` units of a material, by origin - its
+     *  shortfall put in first (ensureInStores's `work`: the count as the put-in cuts it to what is held, then the pack's
+     *  uncounted units as loose), then the Stores loose first (bagLaw.js stationSpend). A station's words read it before the
+     *  press: a cloth piece's first-time bonus is the service's where no bought unit is among them (ui/professions/profPages.js ownSpend). */
+    spendOf(material, n) { return stationSpend(this.store(material), carry ? clampCarried(this.carried(material), heldAll(material)) : null, n); },
     /** BAG1: whether one more unit of a material has nowhere to go - neither the bag nor the pack has room, or the
      *  service's count of it is at its bound (professionLaw.js storesFullIn asks it of a carrying book). */
     carryFull(material) { return !carry || carry.room(material) < 1 || carriedTotal(clampedCarried(material)) >= CARRIED_MAX; },

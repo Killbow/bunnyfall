@@ -64,7 +64,7 @@ import {
 import {
   recipeById, recipeOpen, qualityOdds, rollQuality, qualitySteps, craftQuality, rollsQuality, craftXp, craftCount,
   makerMark, firstCraftPays, counterMade, firstCraftKin, recipeInputs, takesHeartwood, carriesMark, dyeOk,   // CLOTH-GEMS: S1 judged by the units
-  firstCraftXp, workFirstXp,   // FIRST-BUDGET: its track's first-make share (Professions-Arc 52)
+  firstCraftXp, workFirstXp, FIRST_MAKE_FLOOR,   // FIRST-BUDGET: its track's first-make share (Professions-Arc 52); WOVEN-PAYS: an old row's paid first
   masonXp,   // PROF11: the mason's bench's XP
   cookXp, dishHand,   // PROF9: a dish's XP and its cook's hand
   jewelHand, takesCracked, masterworkSpec, LAPIDARY,   // PROF10: the jeweller's hand, a Lapidary's cracked gem, the Master Jeweller's points
@@ -1287,10 +1287,10 @@ async function craftAnswer(db, player, row, nowS, extra = {}) {
   return {
     ok: true, ...extra, recipe: row.recipe, quality: Number(row.quality), count: Number(row.count), seed: Number(row.seed),
     maker: by.get(row.provenance)?.maker ?? null, marked: Number(by.get(row.provenance)?.marked ?? 0) === 1, xp: Number(row.xp), first: Number(row.first) === 1,
-    // CLOTH-GEMS: whether that first laid its share on (AUDIT 32 S1, judged by the units) - a recipe S1 judges only where its
-    // piece is own, B7's `bought_with` none: the decision's own test, read off the piece as it stands (a repeat asked after
-    // a sale reads the sale's)
-    firstPaid: Number(row.first) === 1 && firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null),
+    // CLOTH-GEMS: whether that first laid its share on (AUDIT 32 S1, judged by the units) - WOVEN-PAYS: the decision's own
+    // word (`first_paid`, migration 0176); a row from before it read off the piece as it stands, as CLOTH-GEMS read it (B7's
+    // `bought_with` none - a repeat asked after a sale reads the sale's)
+    firstPaid: row.first_paid == null ? Number(row.first) === 1 && firstCraftPays(r, !!r && !siege && by.get(row.provenance)?.bought_with == null) : Number(row.first_paid) === 1,
     heartwood: Number(row.heartwood) === 1, dye: row.dye == null ? null : Number(row.dye),   // PROF7: a garment's dye
     ...(r?.kind === 'dish' || r?.kind === 'jewel' ? { hand: by.get(row.provenance)?.hand == null ? null : Number(by.get(row.provenance).hand) } : {}),   // PROF9: a dish's cook's hand; PROF10: a piece's jeweller's
     pieces: ids.map((p) => ({ provenance: p, record: by.get(p)?.record ?? null })),
@@ -1411,6 +1411,13 @@ export async function craftAtAnvil(ctx, player, env, { character, recipe: id, cl
   const kin = firstCraftKin(r);
   const madeBefore = `recipe IN (SELECT value FROM json_each(?${binds.length + 1}))`;
   binds.push(JSON.stringify(kin));
+  // WOVEN-PAYS (FIELD BUGS 2026-10-26b): A PATTERN S1 JUDGES IS MADE BY THE CRAFT THAT LAID ITS FIRST ON (`first_paid`,
+  // migration 0176) - a craft of silver-bought cloth before it lays none on and takes nothing, so the first is still owed
+  // to the next craft of it that can pay. A row from before the column (`first_paid` NULL) laid it on where it was the
+  // first and its XP holds the share (FIRST_MAKE_FLOOR: no share is under it, and no judged craft's own XP reaches it -
+  // tiers 1-2, pinned). Every other recipe's pattern is made by any craft of it, as before (FACT, pinned: no pattern at a
+  // tier holds both)
+  const patternMade = counterMade(r) ? `${madeBefore} AND (first_paid = 1 OR (first_paid IS NULL AND first = 1 AND xp >= ${FIRST_MAKE_FLOOR}))` : madeBefore;
   const decided = 'EXISTS (SELECT 1 FROM prof_crafts WHERE player = ?1 AND rid = ?5 AND n = ?6)';
   // AUDIT PROF-541 B7: A PIECE MADE OF BOUGHT GOODS IS BOUGHT - 'marks' (GOLD-MARKET's Drakes, products.bought_with) where
   // any input held a bought unit as the pieces are minted, BEFORE the spends (bought first - the smelt's rule, professionLaw
@@ -1427,23 +1434,24 @@ export async function craftAtAnvil(ctx, player, env, { character, recipe: id, cl
   // never "bought with gold"
   const looseWall = `CASE WHEN ${anySql(13, LOOSE_ORIGIN)} THEN 1 ELSE 0 END`;
   // AUDIT 32 S1, JUDGED BY THE UNITS (CLOTH-GEMS, Professions-Arc 50): a recipe wholly of the goods a counter sells without
-  // end (recipeLaw counterMade - the Weavers' Linen and Wool) lays its first's share on (FIRST-BUDGET) only where the piece is the
-  // character's own - none of its inputs held as loose or bought (spent first, so one held is one spent): B7's
-  // `boughtWith` none, read in the decision against the same rows (the inputs' keys at ?17 on, two a one). Every other
-  // recipe's first pays (firstCraftPays): the loom's own Linen and Wool pay, the Weavers' never do
-  const keysAt = inputs.map((_, i) => `?${17 + 2 * i}`);
-  const heldAs = (/** @type {string} */ origin) => keysAt.map((k) => `COALESCE((SELECT qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ${k} AND origin = '${origin}'), 0) > 0`).join(' OR ') || '0';
-  const pays = counterMade(r) ? `CASE WHEN ${heldAs(LOOSE_ORIGIN)} OR ${heldAs('bought')} THEN 0 ELSE 1 END` : '1';
+  // end (recipeLaw counterMade - the Weavers' Linen and Wool) lays its first's share on (FIRST-BUDGET) only where no unit
+  // BOUGHT WITH SILVER is spent - WOVEN-PAYS (FIELD BUGS 2026-10-26b, the owner: "Woven cloth pays"): a loose unit pays, the
+  // loom's own cloth of looted or shop-bought goods. A station spends an input's loose units first, then its bought
+  // (bagLaw stationSpend), so a bought one is spent where one is held and the loose do not cover the craft's units (the
+  // inputs' keys at ?17 on, their units at ?18 on). Every other recipe's first pays (firstCraftPays)
+  const unitsAs = (/** @type {number} */ i, /** @type {string} */ origin) => `COALESCE((SELECT qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?${17 + 2 * i} AND origin = '${origin}'), 0)`;
+  const boughtSpent = inputs.map((_, i) => `(${unitsAs(i, 'bought')} > 0 AND ${unitsAs(i, LOOSE_ORIGIN)} < ?${18 + 2 * i})`).join(' OR ') || '0';
+  const pays = counterMade(r) ? `CASE WHEN ${boughtSpent} THEN 0 ELSE 1 END` : '1';
   if (siege) held.push(`COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = '${RAM_KIT.key}'), 0) + ?6 <= ${STORES_MAX}`);   // SEAT2b part two: the kit's room
   await db.batch([
     // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first craft's
     // share (FIRST-BUDGET, ?13) laid on when the character has made none of the recipe's pattern at its tier and its units pay it (`p` - AUDIT
-    // 32 S1, judged by the units: CLOTH-GEMS)
-    db.prepare(`INSERT OR IGNORE INTO prof_crafts (player, rid, char_id, recipe, quality, count, provenance, provenance2, seed, xp, first, at, n, heartwood, dye)
+    // 32 S1, judged by the units: CLOTH-GEMS; WOVEN-PAYS: `patternMade`, and whether it laid it on, `first_paid`)
+    db.prepare(`INSERT OR IGNORE INTO prof_crafts (player, rid, char_id, recipe, quality, count, provenance, provenance2, seed, xp, first, at, n, heartwood, dye, first_paid)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9,
         MAX(0, MIN(?10 + f * p * ?13, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?14), 0))),
-        f, ?11, ?12, ?15, ?16
-      FROM (SELECT CASE WHEN EXISTS (SELECT 1 FROM prof_crafts WHERE player = ?1 AND char_id = ?2 AND ${madeBefore}) THEN 0 ELSE 1 END AS f, ${pays} AS p)
+        f, ?11, ?12, ?15, ?16, f * p
+      FROM (SELECT CASE WHEN EXISTS (SELECT 1 FROM prof_crafts WHERE player = ?1 AND char_id = ?2 AND ${patternMade}) THEN 0 ELSE 1 END AS f, ${pays} AS p)
       WHERE ${held.join(' AND ')}`).bind(...binds),
     // the pieces, each its provenance id, its owner (this account), its signed record, its mark and (PROF7) its dye -
     // AUDIT PROF-541 B7: and bought where its inputs were, minted BEFORE the inputs go (their bought units read as they stand) -

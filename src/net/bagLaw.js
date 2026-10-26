@@ -149,6 +149,27 @@ export const carriedUsable = (c, held) => carriedSpendable(clampCarried(c, held)
  *  and the wagon hold (`held`), counted or not, but the gold-bought ones the count still names once cut to them
  *  (GOLD-MARKET's wall: a unit the pack no longer holds is gone, and gold's go first, CLAMP_ORDER). */
 export const carriedWorkable = (c, held) => Math.max(0, Math.max(0, held | 0) - clampCarried(c, held).gold);
+/**
+ * WOVEN-PAYS (FIELD BUGS 2026-10-26b): WHAT A STATION SPENDS OF ONE MATERIAL, BY ORIGIN - `n` units. What the Stores
+ * (`store`, `{ own, bought, loose }`) lack is put in first from what is carried (`carried`, the count as the put-in cuts
+ * it to what is held - clampCarried): its bought units, then its own, then units the count does not hold, as loose
+ * (DEPOSIT_ORDERS.work, looseOrder - professions.js depositStores). Then the Stores are spent by STATION_ORIGINS, loose
+ * first (professions.js workStatements). `{ loose, bought, own }`. A station's word reads it before the press
+ * (net/profBook.js spendOf): the craft's decision reads the same order in SQL (professions.js craftAtAnvil `pays`).
+ * @param {{ own?: number, bought?: number, loose?: number }|null|undefined} store
+ * @param {{ own?: number, bought?: number }|null|undefined} carried @param {number} n
+ */
+export function stationSpend(store, carried, n) {
+  const want = Math.max(0, n | 0);
+  const s = { own: Math.max(0, store?.own | 0), bought: Math.max(0, store?.bought | 0), loose: Math.max(0, store?.[LOOSE_ORIGIN] | 0) };
+  const short = Math.max(0, want - s.own - s.bought - s.loose);
+  const b = Math.min(short, Math.max(0, carried?.bought | 0)), o = Math.min(short - b, Math.max(0, carried?.own | 0));
+  s.bought += b;
+  s.own += o;
+  s.loose += short - b - o;
+  const loose = Math.min(want, s.loose), bought = Math.min(want - loose, s.bought);
+  return { loose, bought, own: want - loose - bought };
+}
 
 /** WHERE A HARVEST'S GOODS WENT, in the words its line ends on (scenes/gatherHost.js storesLine, fishHost.js haulLine) -
  *  the Stores (an older book's harvest), else the bag, the pack or both as the mint put them (net/profBook.js `put`),

@@ -752,6 +752,13 @@ export const counterMade = (r) => !!r && r.inputs.length > 0 && r.inputs.every((
  * every recipe of them and 152 of the loom's 332 first-make keys could never pay; the loom weaves and spins them now
  * (professionLaw WEAVE_RECIPES, SPIN_RECIPES), so the character's own cloth pays and the Weavers' cloth - bought - never
  * does. Unasked (`own` false), a judged recipe pays none: a station that cannot see the units says the rule.
+ * WOVEN-PAYS (FIELD BUGS 2026-10-26b; fogs, "First time XP bonus from the Loom still isn't working"; the owner: "Woven
+ * cloth pays"): `own` is NO UNIT BOUGHT WITH SILVER AMONG THE UNITS THE CRAFT SPENDS - the Weavers' counter's, the
+ * furnisher's and the Drakes market's (the Stores' `bought`). A LOOSE unit pays: cloth the loom wove of looted or
+ * shop-bought Root Tendrils, carried out to the pack and put back in at the station, is the character's weaving. The
+ * station spends loose units first (bagLaw.js STATION_ORIGINS), so a bought unit held beside them is spent only past
+ * them (bagLaw.js stationSpend; the decision's `p`). The disenchant's own (alchemyLaw.js disenchantXp) is unchanged:
+ * its Enchanting XP comes again with every piece, so a piece pays it only where its cloth was of gathered goods.
  * @param {Recipe|null} r @param {boolean} [own]
  */
 export const firstCraftPays = (r, own = false) => !!r && (!counterMade(r) || own === true);
@@ -830,8 +837,8 @@ export const firstMakesOf = (track) => Object.freeze([...(FIRST_MAKES.get(trackO
 /** What a first-make pays on `track` (a discipline its craft's), by its key - 0 for a key that is none of the track's. */
 export const firstMakeXp = (track, key) => FIRST_XP.get(`${trackOf(track)} ${key}`) ?? 0;
 /** A recipe's first time's XP: its track's first-make share (its pattern at its tier the key), where its first pays - CLOTH-GEMS: a
- *  recipe S1 judges (counterMade) only where `own`, its units the character's own (firstCraftPays). The service binds the
- *  share asked as own (`own` true) and its decision says whether the units are (its `p`). */
+ *  recipe S1 judges (counterMade) only where `own`, no unit bought with silver among its units (firstCraftPays - WOVEN-PAYS).
+ *  The service binds the share asked as own (`own` true) and its decision says whether the units are (its `p`). */
 export const firstCraftXp = (r, own = false) => (!r || !firstCraftPays(r, own) ? 0 : firstMakeXp(r.profession, firstCraftKey(r)));
 /** A mason's work's first time's XP (a cut, a mix - smeltAtForge keys it by the work): Building's first-make share -
  *  0 for every other work of the forge's table (a smelt, a burn, a saw, a cure, a weave, a transmutation pays no first). */
