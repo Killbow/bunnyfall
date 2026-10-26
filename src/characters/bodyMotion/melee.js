@@ -105,7 +105,11 @@ export const MELEE = Object.freeze({
     ],
     thrust: [
       k(0, STANCE_TWO),
-      k(0.3, { grip: [0.44, -0.2, -0.36], blade: [-0.05, 1, 0.14], edge: [0, 0, -1], chest: [-22, 0, -2], hip: -12, shift: -0.06, drop: 0.02, step: 0 }),   // MELEE-2: drawn back beside the hip, clear of the belly on the way out
+      // THRUST-CHAMBER (feature-feedback via Mac, 2026-10-26: "Two-handed sword (claymore) forward pierce attack animation
+      // causes character's hands to clip through his back"): chambered BEFORE the right hip, the point raised at the target -
+      // the draw is the trunk's coil, not the hands'. Drawn back beside the hip (grip -0.2 forward), the left hand closed on
+      // the hilt toward the pommel 0.31 to 0.38 of an arm behind the shoulders, and the left arm crossed behind the back.
+      k(0.3, { grip: [0.3, 0.5, -0.4], blade: [-0.2, 0.96, 0.2], edge: [0, 0, -1], chest: [-24, 0, -2], hip: -12, shift: -0.06, drop: 0.02, step: 0 }),
       k(0.5, { grip: [0.06, 0.88, -0.04], blade: [0, 1, 0.02], edge: [0, 0, -1], chest: [14, 0, 12], hip: 10, shift: 0.12, drop: 0.07, step: 0.3 }),
       k(0.7, { grip: [0.1, 0.72, -0.1], blade: [-0.05, 1, -0.05], edge: [0, 0, -1], chest: [10, 0, 10], hip: 8, shift: 0.1, drop: 0.06, step: 0.3 }),
       k(0.88, { grip: [0.1, 0.45, -0.6], blade: [-0.2, 0.85, -0.5], edge: [0, 0.3, -1], chest: [3, 0, 4], hip: 2, shift: 0.03, drop: 0.02, step: 0.08 }),

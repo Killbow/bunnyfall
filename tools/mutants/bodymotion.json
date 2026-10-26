@@ -254,8 +254,8 @@
   {
     "name": "BODY-MOTION-one-run-blade",
     "file": "src/characters/bodyMotion/carry.js",
-    "old": "    run: { R: row(16, -3, 46, -42, 0.35, { blade: dir(0.54, -0.51, -0.67),",
-    "new": "    run: { R: row(16, -3, 46, -42, 0.35, { blade: dir(0.54, 0.51, -0.67),",
+    "old": "    run: { R: row(8, 21, 16, -4, 0.35, { blade: dir(0.2, 0.97, -0.14), edge: dir(-0.15, -0.11, -0.98) }),",
+    "new": "    run: { R: row(8, 21, 16, -4, 0.35, { blade: dir(0.2, -0.97, -0.14), edge: dir(-0.15, -0.11, -0.98) }),",
     "tests": [
       "test/characters/bodyMotion/bodymotion_carry.test.js"
     ]

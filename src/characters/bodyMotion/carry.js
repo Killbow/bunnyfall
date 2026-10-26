@@ -15,7 +15,7 @@
 // curl is relative), driving a closed hand's fingers into its palm. So the layer turns the hand and leaves its fingers.
 //
 // THE CLASSES (carryClassOf): 'free' (nothing in hand - the gait's own swing), 'one' (a one-hander, held down and away
-// from the side, Mac's stance; run "in the same format" - the arm low and out, the blade trailing), 'two' (a two-hander
+// from the side, Mac's stance; run "in the same format" - the arm low and out, the blade forward - ONE-RUN), 'two' (a two-hander
 // in a low guard with both hands; run with it at the hip in both hands, the blade trailing behind - TWO-RUN), 'wide' (a
 // staff, both hands across the body), 'spear' (a spear, both hands, the point forward), 'dual' (a pair, held down and
 // away from both sides; run with both swept behind), 'fists' (bare-handed with the fists up: a guard), and 'clip' (a
@@ -85,10 +85,15 @@ export const CARRY = Object.freeze({
   one: Object.freeze({
     idle: { R: row(5, 21, 8, -7, 0, { blade: dir(0.26, 0.74, -0.62), edge: dir(-0.26, -0.56, -0.78) }), L: row(3, 8, 12, 4, 0) },
     walk: { R: row(5, 22, 3, -1, 0.3, { blade: dir(0.23, 0.81, -0.53), edge: dir(-0.39, -0.42, -0.82) }), L: row(2, 8, 12, 6, 1, { gaitElbow: 1 }) },
-    run: { R: row(16, -3, 46, -42, 0.35, { blade: dir(0.54, -0.51, -0.67), edge: dir(-0.21, 0.69, -0.69) }), L: row(8, 18, 0, -4, 1, { gaitElbow: 1 }) },
+    // ONE-RUN (feature-feedback via Mac, 2026-10-26: "Running and sprinting with one-handed weapon looks off, because hand
+    // is in twisted position pointing weapon to the side unnaturally"): the stand's own format at a run - the arm low and
+    // out, nearly straight, swinging with the stride, the blade forward and a little down. The blade had trailed behind,
+    // down and out to the right, the forearm turned 64 to 74 degrees off its elbow's hinge to hold it there; a bent elbow
+    // with the blade still forward and down asked the wrist for 40 to 95 degrees of ulnar deviation. And no `via`: the
+    // trailing blade's way round, back and up, swung the new one 11 degrees a frame between a stand and a run.
+    run: { R: row(8, 21, 16, -4, 0.35, { blade: dir(0.2, 0.97, -0.14), edge: dir(-0.15, -0.11, -0.98) }), L: row(8, 18, 0, -4, 1, { gaitElbow: 1 }) },
     sneak: { R: row(21, 29, 54, -44, 0.2, { blade: dir(0.12, 0.98, -0.18), edge: dir(0.8, -0.2, -0.56) }), L: row(14, 16, 40, 10, 0.6) },
     stand: { feet: { L: [0, 0.05], R: [0.02, -0.03] }, hipYaw: -6 },
-    via: dir(0, -0.643, 0.766),
   }),
   two: Object.freeze({
     idle: { R: row(29, 7, 10, 42, 0, { blade: dir(-0.3, 0.89, -0.35), edge: dir(-0.08, -0.39, -0.92) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
