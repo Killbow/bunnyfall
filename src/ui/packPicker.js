@@ -149,7 +149,7 @@ export function packPickerNode(o) {
   }
   const top = sift.top;
   refill(false);
-  if (top > 0) queueMicrotask(() => { grid.scrollTop = top; });
+  if (top > 0) Promise.resolve().then(() => { grid.scrollTop = top; });   // once the window has drawn it (marketTab.js toTop's way)
   return box;
 }
 

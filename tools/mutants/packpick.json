@@ -103,7 +103,7 @@
   {
     "name": "PACK-PICK-scroll-unkept",
     "file": "src/ui/packPicker.js",
-    "old": "  if (top > 0) queueMicrotask(() => { grid.scrollTop = top; });",
+    "old": "  if (top > 0) Promise.resolve().then(() => { grid.scrollTop = top; });   // once the window has drawn it (marketTab.js toTop's way)",
     "new": "",
     "tests": ["test/ui/packpick.test.js"],
     "note": "a press throws the tiles back to the first - the 20th piece pressed and gone from sight"
