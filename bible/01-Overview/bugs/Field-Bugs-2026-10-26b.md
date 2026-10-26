@@ -74,6 +74,11 @@ FIXED. `MASTERY_SLOTS` 3 / 2 / 1: every primary skill may be mastered. A charact
 third slot now. Every Master Skills box and the skill screen say 3. A martial or arcane path whose pair is two weapons
 or two schools among the primaries is reachable where it was not; the Growth guide reads the slots, so it follows.
 
+THE WORKERS. `masterSkills.js` is in both Workers' bundles (reached through the skills' law), so its bytes moved both
+versions: the relay's RELAY_VERSION world269 (no relay code reads the slots - nothing it does moved) and the account
+service's acct195 (taken with JEWEL-KIN). Neither needs the other deployed first. Every pin of the two versions moved
+with a PIN MOVED note (61 test files), and the two records that name the relay's line re-aimed.
+
 Pinned by `test/systems/fb1026b_masterthree.test.js`. Pins moved by intent - each fixture that spent "the primary slots"
 on two now spends a group still at its cap (the majors' two, or a career whose third primary is a weapon):
 `audit_martial`, `fb1019b_audit`, `growth1_tab`, `specreset` (an AUDIT SPEC-RESET mutant had survived the first move -
