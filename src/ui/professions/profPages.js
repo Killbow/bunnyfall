@@ -48,7 +48,7 @@
 // The pages draw with the menu's own kit (its `el`, divider and meter,
 // handed in), so they are the sheet's pages and not a second window.
 // ═══════════════════════════════════════════════════════════════════
-import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS, stationSpend } from '../../net/bagLaw.js';   // BAG1: what a character carries; WOVEN-PAYS: what a station spends
+import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS } from '../../net/bagLaw.js';   // BAG1: what a character carries
 import {
   PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
   JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
@@ -658,16 +658,12 @@ export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).le
  *  craftXpCap of the same ranks), and the Firmament's percent on its XP (FIRM1: the stars in force; the service scales by
  *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
 export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: xpPct(firmamentStats(), trackOf(id)) });
-/** CLOTH-GEMS (AUDIT 32 S1, judged by the units - bible/06-Systems/Professions-Arc.md 50): WHETHER A CRAFT OF `r` WOULD
- *  SPEND NO UNIT BOUGHT WITH SILVER, as the book reads them - WOVEN-PAYS (FIELD BUGS 2026-10-26b): the units the press
- *  would spend (the book's spendOf - its shortfall put in from the bag and the pack, the pack's uncounted units as loose,
- *  then the Stores loose first: bagLaw.js stationSpend), not the Stores alone. It read the Stores and the bought units
- *  carried, so cloth the loom wove of looted goods, carried out to the pack and put back in loose, was promised its 511
- *  and refused it (fogs's report). The service's decision is the word, and its answer says it (`firstPaid`). */
-export const ownSpend = (book, r) => !!r && r.inputs.every((/** @type {{ key: string, n: number }} */ i) => !(spendOf(book, i.key, i.n).bought > 0));
-/** WOVEN-PAYS: what a station's press would spend of `n` of a material, by origin - the book's own (net/profBook.js
- *  spendOf: the count cut to what the pack holds), or, from a book without it, the law over its Stores and its count. */
-const spendOf = (/** @type {any} */ book, /** @type {string} */ k, /** @type {number} */ n) => (typeof book?.spendOf === 'function' ? book.spendOf(k, n) : stationSpend(book?.store?.(k), book?.carried?.(k), n));
+/** CLOTH-GEMS (AUDIT 32 S1 - bible/06-Systems/Professions-Arc.md 50): WHAT KEEPS A CRAFT OF `r` FROM ITS FIRST, as the book
+ *  reads it - WOVEN-PAYS (AUDIT WOVEN-PAYS): the silver count of its cloth (net/profBook.js silver - the bolts bought with
+ *  silver its stations have not used since; the most of its inputs'), 0 where none stands, whatever the units' origins.
+ *  The service's decision reads the same count, and its answer says what it did (`firstPaid`). A book without the count
+ *  (an older book) reads none. */
+export const silverOf = (book, r) => (!r ? 0 : Math.max(0, ...r.inputs.map((/** @type {{ key: string }} */ i) => (typeof book?.silver === 'function' ? book.silver(i.key) | 0 : 0))));
 
 /**
  * THE PROFESSIONS PAGE.
@@ -2051,9 +2047,9 @@ function drawLoom(detail, rerender, { el, divider }) {
         : specs[50] === 'leatherworker' && r.family === 'leather' ? t('prof.page.loom.oddsLeather', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality. Being a Leatherworker raises leather one more.', a)
           : t('prof.page.loom.odds', 'Quality chances: {odds}. They get better the further your rank ({rank}) is above the recipe\'s ({need}). Press every stitch on the beat to raise the result one quality.', a)));
     }
-    // CRAFT-FIRST-SHOWN: its XP and its first's - CLOTH-GEMS: wholly of cloth, its first the made cloth's alone (AUDIT 32
-    // S1, judged by the units: ownSpend)
-    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r))));   // CRAFT-LIMIT-SAID
+    // CRAFT-FIRST-SHOWN: its XP and its first's - CLOTH-GEMS: wholly of cloth, its first where no bolt counts as bought
+    // with silver (AUDIT 32 S1 - WOVEN-PAYS: silverOf)
+    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), silverOf(book, r))));   // CRAFT-LIMIT-SAID
     const gentle = getPref('gentleActs') === true;
     const dye = r.kind === 'garment' && r.dyes === true ? _loom.dye : null;
     const elsewhere = handsAt(_loom);   // AUDIT 32 P2
@@ -3004,7 +3000,7 @@ function drawEnchantingStation(detail, rerender, { el, divider }) {
   const ownXp = (/** @type {any} */ pc) => disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points), true);
   const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct }))));
   if (capped) detail.append(el('p', 'px-note', capped));
-  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if its cloth was woven or spun from goods you gathered and the piece was never sold.')));
+  if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if nothing bought or looted went into it and it was never sold.')));
   for (const pc of pieces) {
     // DISENCHANT-SAID (the owner: "List them greyed with the reason"): a piece under one Essence - greyed, its reason, its
     // Disenchant never pressed (the service would refuse it: prof-no-essence)

@@ -26,16 +26,18 @@
 // CLOTH-GEMS (2026-10-25; the player SaberGGaming's "Profession oversights", the owner: "No band aids"): S1 JUDGES THE
 // UNITS. The loom weaves Linen and spins Wool of the world's goods now (net/professionLaw.js WEAVE_RECIPES, SPIN_RECIPES),
 // and a piece made wholly of cloth pays its first where its cloth is the character's own (recipeLaw firstCraftPays's
-// `own`); the Weavers' - bought - never does, and a station spends bought units first. So a box says which way its
-// units stand (`own`, the page's read of the Stores and the bag: ui/professions/profPages.js ownSpend), and the craft's
-// word says what the service decided (its answer's `firstPaid`). bible/06-Systems/Professions-Arc.md 50.
+// `own`); the Weavers' - bought - never does. So a box says which way its units stand, and the craft's word says what
+// the service decided (its answer's `firstPaid`). bible/06-Systems/Professions-Arc.md 50.
 //
 // WOVEN-PAYS (FIELD BUGS 2026-10-26b; fogs, #feature-feedback: "First time XP bonus from the Loom still isn't working";
 // the owner: "Woven cloth pays"): THE WALL IS SILVER. fogs wove Linen of Root Tendrils the service never counted (looted,
-// or bought at a shop): loose cloth, which S1 withheld from - and the box, reading the Stores alone, promised the 511 and
-// the word said "only cloth you wove or spun yourself", of cloth fogs had woven. Now a cloth piece's first pays wherever
-// no unit bought with silver is spent (the Weavers', the furnisher's, the Drakes market's), the box reads what the press
-// would spend (`own`: profPages.js ownSpend over the book's spendOf), and every line names the wall as silver.
+// or bought at a shop): loose cloth, which S1 withheld from. The box read the Stores and the carried count, saw none of
+// the bolts the loom had carried out to the bag, and promised the 511; the craft put one back in loose and paid none,
+// and its word said "only cloth you wove or spun yourself", of cloth fogs had woven. Now a cloth piece's first pays
+// unless a bolt it uses counts as bought with silver - AUDIT WOVEN-PAYS: by the cloth's SILVER COUNT, the bolts bought
+// with silver (the Weavers', the furnisher's, the Drakes market's) that the character's stations have not used since,
+// whatever the units' origins (recipeLaw firstCraftPays). The box reads that count (`silver`: profPages.js silverOf),
+// and every line names the wall as silver.
 //
 // FIRST-BUDGET (SaberGGaming's report, 2026-10-25: Provisioning is slow; the owner, asked: "Match Smithing's pace"): A
 // FIRST-MAKE'S XP IS ITS TRACK'S SHARE (net/recipeLaw.js FIRST_MAKE_SHARE - firstCraftXp, workFirstXp), no longer a flat
@@ -98,23 +100,24 @@ export const limitRuleLine = (past) => t('prof.page.limit.rule', 'Only {max} cra
  * A station box's XP line for its picked recipe at `rank` (the craft's track's rank): its craft's XP (craftXp - a quarter
  * more than two tiers below the rank's top), and what its first time lays on - the first of its PATTERN AT ITS TIER
  * (firstCraftKey). Every recipe of RECIPES that S1 judges is made wholly of cloth (FACT, pinned), so the line names it:
- * CLOTH-GEMS - its first pays where `own` (WOVEN-PAYS: no unit the craft would spend was bought with silver), and where
- * the craft would spend cloth bought with silver (the Weavers', the Drakes market's), it says that one lays on none.
- * CRAFT-LIMIT-SAID: the XP
+ * CLOTH-GEMS - its first pays where no bolt it uses counts as bought with silver, and the line says that condition; AUDIT
+ * WOVEN-PAYS: where the cloth's silver count stands (`silver`, the bolts bought with silver not yet used), it says the
+ * count and that no piece of the cloth earns its first until that many are used. CRAFT-LIMIT-SAID: the XP
  * the service's own (craftAtAnvil's ?10, the Firmament's percent on it, and its ?13 whole), and the limit's line in its
  * place where the track cannot take it (capLine).
  * @param {any} r a recipe of net/recipeLaw.js RECIPES @param {number} rank @param {string} profession the track's name
- * @param {CraftPay} [pay] @param {boolean} [own] whether the units it would spend hold none bought with silver
+ * @param {CraftPay} [pay] @param {number} [silver] the cloth's silver count (net/profBook.js silver), 0 where none stands
  */
-export function craftXpLine(r, rank, profession, pay = {}, own = false) {
+export function craftXpLine(r, rank, profession, pay = {}, silver = 0) {
   const xp = scaleXp(craftXp(r.tier, rank), pay.pct ?? 0);
-  const more = firstCraftXp(r, own);   // FIRST-BUDGET: its track's first-make share; CLOTH-GEMS: a cloth piece's where its cloth is own
+  const walled = counterMade(r) && silver > 0;   // WOVEN-PAYS: a cloth piece's first, while its cloth's silver count stands
+  const more = walled ? 0 : firstCraftXp(r, true);   // FIRST-BUDGET: its track's first-make share
   if (!counterMade(r)) {
     return capLine(profession, pay, xp + more) || t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.', { xp, profession, more });
   }
-  return capLine(profession, pay, xp + more) || (more
-    ? t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth not bought with silver.', { xp, profession, more })
-    : t('prof.page.craft.xpBought', '{xp} {profession} experience. This would use cloth bought with silver, which earns no first-time bonus.', { xp, profession }));
+  return capLine(profession, pay, xp + more) || (walled
+    ? t('prof.page.craft.xpBought', '{xp} {profession} experience. Bolts of this cloth bought with silver and not yet used: {silver, number}. Until you have used that many, no piece of it earns a first-time bonus.', { xp, profession, silver })
+    : t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth not bought with silver.', { xp, profession, more }));
 }
 
 /**

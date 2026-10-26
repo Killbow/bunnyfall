@@ -74,9 +74,13 @@ test('CLOTH-GEMS service: AUDIT 32 S1 JUDGES THE UNITS - Linen Straps of the loo
   setXp('outfitting', xpForRank(10));
   give('hide:boar', 'own', 12);
   assert.equal((await work('spin:boar', 6)).status, 200);
-  give('cloth:wool', 'bought', 1);
+  // PIN MOVED (WOVEN-PAYS, AUDIT WOVEN-PAYS): the bolt bought at the Weavers' counter - counted against the cloth's firsts
+  // (`prof_silver_cloth`); a bought row written by hand is no silver
+  const wool = await s.call('/v1/prof/stock', { character: mac.character, material: 'cloth:wool', qty: 1, rid: rid() }, mac.secret);
+  assert.deepEqual([wool.status, wool.body.store.silver], [200, 1], 'the Stores\' count says the silver count beside it');
   const rug = await craft('rug-237:wool');
   assert.deepEqual([rug.body.xp, rug.body.first, rug.body.firstPaid, stores('cloth:wool')], [40, true, false, [['own', 4]]], 'the bought bolt went first');
+  assert.equal(rug.body.stores.find((x) => x.material === 'cloth:wool').silver, 0, 'used: the silver count spent');
   const tapestry = await craft('tapestry-243:wool');
   assert.deepEqual([tapestry.body.xp, tapestry.body.first, tapestry.body.firstPaid, stores('cloth:wool')], [40 + FIRST_CRAFT_XP, true, true, []], 'own cloth alone: the 500');
   // a pack's cloth the service never handed out - put in at the station as loose - PIN MOVED (WOVEN-PAYS): pays, as the

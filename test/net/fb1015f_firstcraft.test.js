@@ -58,11 +58,16 @@ test('CRAFT-FIRST-SHOWN the law the words say: the patterns whose first lays on 
   assert.deepEqual(COOKING_RECIPES.filter((r) => !firstCraftPays(r)).map((r) => r.id), [], 'the fire\'s line stands for every dish');
   // the box's line, at the rank the craft is read at. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): S1 judges the units -
   // the cloth's line says bought cloth goes first and earns none (`own` unsaid or false), and the made cloth's 500 (`own`).
-  // PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): the wall named silver - cloth bought with it, never "cloth you did not weave"
-  assert.equal(craftXpLine(recipeById('garment-165:linen'), 0, 'Outfitting'), '20 Outfitting experience. This would use cloth bought with silver, which earns no first-time bonus.');
-  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting'), '20 Outfitting experience. This would use cloth bought with silver, which earns no first-time bonus.');
-  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting', {}, true), '20 Outfitting experience, and 511 more the first time you make this piece at this grade from cloth not bought with silver.');   // PIN MOVED (FIRST-BUDGET): Outfitting's share
-  assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting', {}, false), '20 Outfitting experience, and 511 more the first time you make this piece at this grade.', 'a boot is never judged');
+  // PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): the wall named silver - cloth bought with it, never "cloth you did not
+  // weave"; AUDIT WOVEN-PAYS: by the cloth's silver count (`silver`) - none standing, the condition said; one standing, the
+  // count said, and no first
+  const COUNTED = (n) => `20 Outfitting experience. Bolts of this cloth bought with silver and not yet used: ${n}. Until you have used that many, no piece of it earns a first-time bonus.`;
+  const CONDITION = '20 Outfitting experience, and 511 more the first time you make this piece at this grade from cloth not bought with silver.';   // PIN MOVED (FIRST-BUDGET): Outfitting's share
+  assert.equal(craftXpLine(recipeById('garment-165:linen'), 0, 'Outfitting'), CONDITION, 'no count said: the condition');
+  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting', {}, 0), CONDITION);
+  assert.equal(craftXpLine(recipeById('fishingnet:linen'), 0, 'Outfitting', {}, 1), COUNTED(1));
+  assert.equal(craftXpLine(recipeById('garment-165:linen'), 0, 'Outfitting', {}, 12), COUNTED(12));
+  assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting', {}, 3), '20 Outfitting experience, and 511 more the first time you make this piece at this grade.', 'a boot is never judged, whatever the count');
   assert.equal(craftXpLine(recipeById('garment-149:linen'), 0, 'Outfitting'), '20 Outfitting experience, and 511 more the first time you make this piece at this grade.', 'a bolt and a Cured Leather: Outfitting\'s share');
   assert.equal(craftXpLine(recipeById('longsword:daedric'), 90, 'Smithing'), '140 Smithing experience, and 500 more the first time you make this piece at this grade.');
   assert.equal(craftXpLine(recipeById('dagger:iron'), 70, 'Smithing'), '5 Smithing experience, and 500 more the first time you make this piece at this grade.', 'tier 1 at rank 70: a quarter; the 500 whole - Smithing\'s share, unchanged');
@@ -72,10 +77,14 @@ test('CRAFT-FIRST-SHOWN the law the words say: the patterns whose first lays on 
 
 test('CRAFT-FIRST-SHOWN the craft\'s word, from the real Worker\'s answer through the book: Linen Straps\' first says it was a first and that the Weavers\' cloth earns no first-time bonus; Linen Boots\' first (a bolt and a Cured Leather) says the bonus came with it; the Boots\' second its XP alone, the Straps\' second the first still owed (WOVEN-PAYS); in French the French; world.js says it with one call (mutants: the first unread; the cloth\'s why on every first or on none; the host\'s old word)', async (t) => {
   t.mock.method(Date, 'now', () => NOON * 1000);
-  const { give, book } = await standBook();
-  give('cloth:linen', 'bought', 10);
+  const { give, book, raw, mac } = await standBook();
+  // PIN MOVED (WOVEN-PAYS, AUDIT WOVEN-PAYS): the Weavers' Linen bought at their counter, through the book - counted against
+  // the cloth's firsts (a bought row written by hand is no silver)
+  raw.prepare('INSERT INTO marks (account, balance) VALUES (?, 100)').run(mac.id);
   give('leather:cured', 'own', 5);
   assert.equal((await book.refresh()).ok, true);
+  assert.equal((await book.stock('cloth:linen', 10)).ok, true);
+  assert.equal(book.silver('cloth:linen'), 10, 'the book heard the count');
   const word = async (id) => {
     const r = await book.craft(id, { clean: false, name: 'Mac' }, () => {});
     assert.equal(r.ok, true, JSON.stringify(r));
