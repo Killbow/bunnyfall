@@ -1,0 +1,34 @@
+[
+  {
+    "name": "HULL-PASS-zone-unread",
+    "file": "src/scenes/comeSailAway/peerHulls.js",
+    "old": "export const peerHullsMeet = () => wildHere();",
+    "new": "export const peerHullsMeet = () => true;",
+    "tests": ["test/scenes/fb1001b_peerboats.test.js"],
+    "note": "the report: another player's hull a rock to my helm everywhere, the serpent's waters among it"
+  },
+  {
+    "name": "HULL-PASS-my-own-dropped-with-hers",
+    "file": "src/scenes/comeSailAway/peerHulls.js",
+    "old": "return hits.filter((h) => !h.root || !peers.some((b) => b.GameObject === h.root));",
+    "new": "return hits.filter((h) => !h.root);",
+    "tests": ["test/scenes/fb1001b_peerboats.test.js"],
+    "note": "my own boats pass through each other too"
+  },
+  {
+    "name": "HULL-PASS-host-unwired",
+    "file": "src/scenes/world.js",
+    "old": "    sphereCastAll: peerHullSweep(csaSphereCastAll, csa),",
+    "new": "    sphereCastAll: csaSphereCastAll,",
+    "tests": ["test/scenes/fb1001b_peerboats.test.js"],
+    "note": "the law stands and the helm never asks it"
+  },
+  {
+    "name": "HULL-PASS-bumpers-back",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "    drift: (boat) => (enabled ? deps.serpent?.drift?.(boat) ?? null : null),",
+    "new": "    drift: (boat) => (enabled ? withBumpers(boat, deps.serpent?.drift?.(boat) ?? null) : null),",
+    "tests": ["test/net/serpent/serpent4.test.js"],
+    "note": "the serpent fight's shove returned"
+  }
+]

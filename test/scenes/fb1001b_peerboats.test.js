@@ -31,6 +31,8 @@ import { colliderPoses, invertAffine, boxColliderTriangles, raycastColliders, BU
 import { quatAngleAxis } from '../../src/world/quat.js';
 import { Collider } from '../../src/player/collider.js';
 import { PlayerMotor, FIXED_DT, CAPSULE_HEIGHT } from '../../src/player/motor.js';
+import { peerHullSweep, peerHullsMeet } from '../../src/scenes/comeSailAway/peerHulls.js';   // HULL-PASS
+import { setWildHere } from '../../src/systems/wild/wildZone.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const WORLD = src('src/scenes/world.js');
@@ -148,7 +150,7 @@ test('FB1001b PEER-HULL: ANOTHER PLAYER\'S HULL TAKES ME WHERE MY OWN TAKES ME -
   }
 });
 
-test('FB1001b PEER-HULL: HER DECK\'S FURNITURE AND HER HULL ARE MET AS MINE ARE - a ray across her deck at chest height meets her mainmast where the same ray meets mine, and the helm\'s sweep (world.js csaSphereCastAll, CheckCollision\'s) meets her hull at the distance it meets my boat\'s, so a boat of mine backs off hers as it backs off my own', async () => {
+test('FB1001b PEER-HULL: HER DECK\'S FURNITURE AND HER HULL ARE MET AS MINE ARE - a ray across her deck at chest height meets her mainmast where the same ray meets mine, and the helm\'s sweep (world.js csaSphereCastAll, CheckCollision\'s) meets her hull at the distance it meets my boat\'s, so a boat of mine backs off hers as it backs off my own (HULL-PASS: the host hands Come Sail Away this sweep through peerHulls.js, which drops her outside a PvP zone - the next pin)', async () => {
   const r = await rig({ hull: SMALL_SHIP });
   for (let i = 0; i < 2; i++) r.frame();
   // PIN MOVED (GALLEON, 2026-10-01): the new galleon's mainmast (MainMast, Mac's), stepped 0.12 m abaft her middle
@@ -172,6 +174,27 @@ test('FB1001b PEER-HULL: HER DECK\'S FURNITURE AND HER HULL ARE MET AS MINE ARE 
   assert.ok(sMine.length > 0, 'the sweep meets my boat');
   assert.ok(sHers.length > 0, 'the sweep meets her boat - a boat of mine sailed at hers backs off it');
   assert.ok(Math.abs(Math.min(...sHers.map((h) => h.distance)) - Math.min(...sMine.map((h) => h.distance))) < 1e-3, 'at the distance it meets mine');
+});
+
+test('HULL-PASS (Field-Bugs-2026-10-26b, "Player boat collision needs to be off outside of PVP zone or just during the Sethrakul fight"): THE HELM\'S SWEEP AS THE HOST WIRES IT (peerHulls.js peerHullSweep over world.js csaSphereCastAll) passes through her hull outside a PvP zone and meets it inside one, as it meets my own boat either way; her hull stays in my collider to be walked, stood on and swum against (mutants: the zone unread; my own boat dropped with hers)', async () => {
+  assert.ok(WORLD.includes('    sphereCastAll: peerHullSweep(csaSphereCastAll, csa),'), 'the host hands Come Sail Away the wrapped sweep');
+  const r = await rig({ hull: SMALL_SHIP });
+  for (let i = 0; i < 2; i++) r.frame();
+  const helm = peerHullSweep(r.w.sweep, r.pool);
+  assert.ok(r.pool.peerBoats.includes(r.hers), 'she is among the pool\'s other players\' ships, where the peers stood her');
+  const swept = (boat) => helm([boat.GameObject.position[0] - 25, SEA + 1, boat.GameObject.position[2]], 1, [1, 0, 0], 40, { boat: null }).filter((h) => h.root === boat.GameObject);
+  try {
+    setWildHere(false);
+    assert.equal(peerHullsMeet(), false);
+    assert.equal(swept(r.hers).length, 0, 'outside a PvP zone: her hull is no rock to my helm');
+    assert.ok(swept(r.own).length > 0, 'my own boat is met as before');
+    assert.ok(r.stands(r.colliders.exterior, r.hers), 'her hull still stands in my collider - her deck walked, her side swum against');
+    setWildHere(true, 1, 'ether');
+    assert.equal(peerHullsMeet(), true);
+    assert.ok(swept(r.hers).length > 0, 'in a PvP zone: her hull meets my helm');
+  } finally {
+    setWildHere(false);
+  }
 });
 
 test('FB1001b PEER-DECK: I STAND ON HER DECK AS ON MINE AND SHE CARRIES ME AS SHE SAILS - set down on the Small Ship\'s deck at her ladder\'s place I stand on her own collider from the first step (never falling into it), standing on her is aboard her, and with her owner at her helm sailing her north and turning, every step stands on her deck at the place I took on it while she sails twelve metres; my place aboard is said in her frame', async () => {

@@ -901,3 +901,28 @@ frame hears the Resurrect under them (`modes?.deathUp?.()`), their resets ask `l
 `test/systems/legacy/fb1016b_rezbloodline.test.js` (5, over the real death door, host, realm session and the line's realm copy on the
 real account Worker and its minute's clock, party wire, caster's cast, death screen and world.js's own statements);
 `tools/mutants/fb1016b_rezbloodline.json` (all dead - the record's count in the Field Bugs section).
+
+## COURT-DEEDS - a compliment, a gift, a hug, a kiss (FIELD BUGS 2026-10-26b)
+
+Discord #feature-feedback "Better Courtship" - lumin: "There should be specific interactions with NPC for courtship.
+Compliments, giving gifts, hugging, kissing ... Right now it's confusing on what exactly you're supposed to use to improve
+relationships"; Revy: "the only thing that seems to work is to have 1 conversation per day with an NPC, with specific
+attitude (blunt etc), to raise their disposition by 1 point". (The talk's +3 is noted before the window opens, so the
+panel showed only the tone's +1 move; a friend took about ten days of talk, and a courtship about seven more.)
+
+- **The rows** (`systems/legacy/courtDeeds.js`, offered by `scenes/legacyHost.js` topicRows after the courtship's own):
+  Pay a compliment, Give a gift (50 gold), Hug, Kiss - to every courtable townsperson (section 8's `courtable`) and to the
+  member's spouse; a member wed to another offers no kiss to anyone else.
+- **Each once a day per resident**, stamped on the Living World's regard record and saved with it (`relations.js`
+  DEED_STAMPS, `deedDay`): regard +2, +8, +3, +4 (`EVENTS` - LW1's gift +8, which no door had paid, is the gift's); and
+  while a courtship is begun and not betrothed, affection +3 (+1 more in a tone taken kindly), +6, +5, +8
+  (`marriage.js` warmCourtship). A compliment in a tone taken ill falls flat.
+- **A hug waits on a friend** (FRIEND_AT) or a courtship; **a kiss on a courtship at 34** (KISS_AT, MARRIAGE_TEXT.courted's
+  second tier), a betrothal or a marriage. Refused, each says what it waits on and costs nothing.
+- **Every answer says what it moved**: "(Regard +2, now +14. Courtship +4, now 41 of 100.)" - the courtship's number was
+  never shown anywhere before. The regard badge and the Family page's "Marriage and children" name the deeds.
+- With them a friend comes in about three days of play and a courtship reaches Marriage in about four.
+
+Pinned by `test/systems/legacy/fb1026b_courtdeeds.test.js` (the real host over the real relations); pins moved by
+intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the gift). `tools/mutants/fb1026b_courtdeeds.json`.
+

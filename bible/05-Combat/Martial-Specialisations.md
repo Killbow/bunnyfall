@@ -23,7 +23,7 @@ Measured first (section 2), then four questions put to the owner, and the owner 
   key whenever the weapon in hand is one of its pair's and carries no technique line of its own; a loot line on the
   weapon wins. No new key: every letter and digit is already bound (`systems/inputActions.js`, TECH1's own note).
 - **Both paths:** *yes, one of each* - a spellsword who masters two schools and two weapons holds an arcane path and a
-  martial path together; the masteries they need come from the one 2 / 2 / 1 (`masterSkills.js` MASTERY_SLOTS).
+  martial path together; the masteries they need come from the one 3 / 2 / 1 (`masterSkills.js` MASTERY_SLOTS; 2 / 2 / 1 until MASTER-THREE, `01-Overview/bugs/Field-Bugs-2026-10-26b.md`).
 - **The balance pass:** *all four* - every weapon past 100 in its own dimension (section 4); the fists' missing blow
   modifiers, the short blades' handling and the Firmament's weapon notables (BAL10, `Balance-Arc.md` section 16).
 
@@ -61,7 +61,7 @@ nothing a player could see. That is where the identity goes.
 
 - **Who.** A player with Master Skills in force (online always; offline the switch - SOFTCAP3) and at least two of the
   six weapon skills mastered. A class that can never master two of them never meets a path (`martialPossible`, by
-  `masterSkills.js` masterableCount - the ones mastered and as many more as each career group's 2/2/1 slots leave; the
+  `masterSkills.js` masterableCount - the ones mastered and as many more as each career group's 3/2/1 slots leave; the
   Growth tab's guide says so in its headline, and the Master Skills page draws no specialisation line for it - GROWTH2,
   AUDIT GROWTH LANE5-6). AUDIT MARTIAL L4 L3: it counted the career's weapon skills alone, so two that were both minor
   skills - one minor slot between them - showed the card for good; the arcane `pathPossible` the same, and both now read

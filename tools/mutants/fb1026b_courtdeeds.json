@@ -1,0 +1,66 @@
+[
+  {
+    "name": "COURT-DEEDS-deeds-unoffered",
+    "file": "src/scenes/legacyHost.js",
+    "old": "    ...(deps.regards?.() ? deedsFor(family, me, res) : []).map((k) => ({",
+    "new": "    ...[].map((k) => ({",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "the report: only a day's talk moves anyone"
+  },
+  {
+    "name": "COURT-DEEDS-a-deed-twice-a-day",
+    "file": "src/systems/livingWorld/relations.js",
+    "old": "export const DEED_STAMPS = Object.freeze({ compliment: 'compl', gift: 'gift', embrace: 'hug', kiss: 'kiss' });",
+    "new": "export const DEED_STAMPS = Object.freeze({ gift: 'gift', embrace: 'hug', kiss: 'kiss' });",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "a compliment paid over and over in one sitting"
+  },
+  {
+    "name": "COURT-DEEDS-stamps-unsaved",
+    "file": "src/systems/livingWorld/relations.js",
+    "old": "        for (const k of Object.values(DEED_STAMPS)) if (/** @type {any} */ (e)[k] != null) /** @type {any} */ (people[id])[k] = /** @type {any} */ (e)[k];",
+    "new": "",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "a reload hands the day's deeds again"
+  },
+  {
+    "name": "COURT-DEEDS-gift-free",
+    "file": "src/scenes/legacyHost.js",
+    "old": "      deductGold(deps.entity, GIFT_GOLD);\n",
+    "new": "",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "a gift costs nothing"
+  },
+  {
+    "name": "COURT-DEEDS-kiss-gate-unread",
+    "file": "src/systems/legacy/courtDeeds.js",
+    "old": "  if (kind === 'kiss' && !(courtship && (courtship.betrothed || courtship.affection >= KISS_AT))) return 'court';",
+    "new": "",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "a stranger kissed"
+  },
+  {
+    "name": "COURT-DEEDS-courtship-unwarmed",
+    "file": "src/scenes/legacyHost.js",
+    "old": "const warm = courtship && !courtship.betrothed ? warmCourtship(me, res.id, deedAffection(kind, taste)) : null;",
+    "new": "const warm = null;",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "the deeds raise a regard and never a courtship"
+  },
+  {
+    "name": "COURT-DEEDS-tally-unsaid",
+    "file": "src/scenes/legacyHost.js",
+    "old": "    return `${line} ${deedTally({",
+    "new": "    return line || `${line} ${deedTally({",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "the report's confusion: nothing says what moved"
+  },
+  {
+    "name": "COURT-DEEDS-spouse-kiss-refused",
+    "file": "src/systems/legacy/courtDeeds.js",
+    "old": "  if (spouse?.residentId === res.id) return [...DEEDS];",
+    "new": "  if (spouse?.residentId === res.id) return DEEDS.filter((k) => k !== 'kiss');",
+    "tests": ["test/systems/legacy/fb1026b_courtdeeds.test.js"],
+    "note": "a spouse never kissed"
+  }
+]

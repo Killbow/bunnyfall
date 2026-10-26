@@ -125,6 +125,17 @@ export function court(member, res, o) {
   return { gained, affection: c.affection, again: false, cooled: gain < 0 };
 }
 
+/** COURT-DEEDS (systems/legacy/courtDeeds.js): a deed's affection added to a courtship begun and not yet betrothed, held
+ *  to AFFECTION_MAX. Answers `{ warmed, affection }`, or null for no such courtship. Not a day's Courtship: that keeps its
+ *  own day (court). @param {any} member @param {string} residentId @param {number} n */
+export function warmCourtship(member, residentId, n) {
+  const c = member?.courting?.[residentId];
+  if (!c || c.betrothed) return null;
+  const warmed = Math.max(0, Math.min(AFFECTION_MAX - c.affection, Math.trunc(Number(n) || 0)));
+  c.affection += warmed;
+  return { warmed, affection: c.affection };
+}
+
 /** A PROPOSAL, heard at full affection: the two are betrothed. Answers whether it was taken. */
 export function propose(member, residentId) {
   const c = member?.courting?.[residentId];

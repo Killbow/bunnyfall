@@ -698,14 +698,23 @@ const BODY_KIN = Object.freeze([S.ShortBlade, S.LongBlade, S.HandToHand, S.Axe, 
   S.Dodging, S.Running, S.Jumping, S.Climbing, S.Swimming]);
 const MIND_KIN = Object.freeze([...MAGIC_SKILLS, S.Etiquette, S.Streetwise, S.Mercantile, S.Lockpicking, S.Pickpocket,
   S.Stealth, S.Medical]);
+/** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted
+ *  around 100 rare rings ... and h2h or critical not roll on them"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
+ *  JEWELLERY'S LEAN IS THE MIND'S THIRTEEN AND THE BARE HAND'S TWO - Hand-to-Hand and Critical Strike. Neither is any
+ *  weapon's own, so a fist fighter's or a striker's line had nowhere to lean but armour's twelve: on a ring each was one of
+ *  the open share's thirty-five, about 0.4% of its skill lines against a mind skill's 7%, and a hundred Rare rings seldom
+ *  showed one. Each of the fifteen now takes its even share of the 85. A crafted piece's record before MINT_V_JEWEL_KIN
+ *  (net/productRecord.js) mints on the mind's alone (`fists` false), so a ring already made keeps its lines. */
+const JEWEL_KIN = Object.freeze([...MIND_KIN, S.HandToHand, S.CriticalStrike]);
 /** LOOT14: a garment's - the street's seven, and the feet's five for what is worn on them. */
 const STREET_KIN = Object.freeze([S.Etiquette, S.Streetwise, S.Mercantile, S.Stealth, S.Pickpocket, S.Lockpicking, S.Medical]);
 const FEET_KIN = Object.freeze([S.Running, S.Jumping, S.Climbing, S.Swimming, S.Stealth]);
-/** The skills an item leans to: `{ own, kin }` - a weapon's own skill (null for one with none) and its kin. */
-export function skillKin(item) {
+/** The skills an item leans to: `{ own, kin }` - a weapon's own skill (null for one with none) and its kin. `fists` false:
+ *  jewellery's lean before JEWEL-KIN, a crafted record's old law (applyRarity). */
+export function skillKin(item, { fists = true } = {}) {
   if (item?.group === 'Weapons') return { own: weaponSkillUsed(item.templateIndex), kin: STRIKE_KIN };
   if (item?.group === 'Armor') return { own: null, kin: BODY_KIN };
-  if (item?.group === 'Jewellery') return { own: null, kin: MIND_KIN };
+  if (item?.group === 'Jewellery') return { own: null, kin: fists ? JEWEL_KIN : MIND_KIN };   // JEWEL-KIN
   if (isGarment(item)) return { own: null, kin: garmentOnFeet(item) ? FEET_KIN : STREET_KIN };   // LOOT14
   return { own: null, kin: Object.freeze([]) };
 }
@@ -732,9 +741,9 @@ export const _pickStandingForTests = pickStanding;
  *  skill within it, each step's interval spread evenly over its list. Every seeded mint - the gate's spoils, a town's
  *  thanks, the Sigil Broker's day, a Masterwork's roll - draws exactly as many rolls as it did, so what it mints after
  *  a skill affix (the next piece, the Regalia's roll, the gold) is still its seed's; only the skill itself moved. */
-function pickSkill(item, free, rolls) {
+function pickSkill(item, free, rolls, fists = true) {
   const r = rolls();
-  const { own, kin } = skillKin(item);
+  const { own, kin } = skillKin(item, { fists });
   const ownFree = own != null && free.includes(own);
   if (ownFree && r < SKILL_OWN_SHARE) return own;
   const near = kin.filter((s) => free.includes(s));
@@ -785,7 +794,7 @@ export const affixWord = (a, tier) => (validAffix(a) ? AFFIX_KINDS[a.id].word(BA
  *  mintPiece): each pick even over the KINDS, and a Rare's last pick held
  *  to whichever name slot its lines left empty - so a record made before
  *  mints the piece it always did. */
-export function rollAffixes(item, tier, rolls = Math.random, { byLines = true } = {}) {
+export function rollAffixes(item, tier, rolls = Math.random, { byLines = true, fists = true } = {}) {   // JEWEL-KIN: `fists` false a record's old lean (skillKin)
   const kinds = AFFIX_IDS.filter((id) => AFFIX_KINDS[id].groups.includes(item.group) && !AFFIX_KINDS[id].proc);   // LOOT4: the numbers alone - a door's last pass adds a kind that does something
   const [min, max] = AFFIX_COUNTS[tier] ?? [0, 0];
   const count = rangeInt(min, max, rolls);
@@ -798,7 +807,7 @@ export function rollAffixes(item, tier, rolls = Math.random, { byLines = true } 
     if (!k.params) { taken.add(id); return { id, value }; }
     const free = kindParams(id, item).filter((p) => !taken.has(`${id}:${p}`));   // LOOT14: a garment's attribute is Personality alone
     if (id === 'standing') { const g = pickStanding(item, free, rolls); taken.add(`${id}:${g}`); return { id, param: g, value }; }   // LOOT14: a garment's standing leans to its dress
-    const param = id === 'skill' ? pickSkill(item, free, rolls) : pick(free, rolls);   // LOOT1: a skill leans to the item's own
+    const param = id === 'skill' ? pickSkill(item, free, rolls, fists) : pick(free, rolls);   // LOOT1: a skill leans to the item's own
     taken.add(`${id}:${param}`);
     return { id, param, value };
   };
@@ -1391,20 +1400,20 @@ export const affixesWorth = (affixes, item = null) => Math.round((affixes ?? [])
  *  enchantment. Common leaves the item as DFU minted it; so does any
  *  tier the ladder does not roll (SET6: an Aetheric piece is a fixed
  *  record, minted whole by systems/aetheric.js - never a roll). */
-export function applyRarity(item, tier, rolls = Math.random, legendaryPool = null, { family = null, fits = null, byLines = true } = {}) {   // AFFIX-LINES: `byLines` false a product record's old law (rollAffixes)
+export function applyRarity(item, tier, rolls = Math.random, legendaryPool = null, { family = null, fits = null, byLines = true, fists = true } = {}) {   // AFFIX-LINES: `byLines` false a product record's old law (rollAffixes); JEWEL-KIN: `fists` false its old lean
   if (!item || !ROLLED_TIERS.includes(tier)) return item;
   let affixes;
   let enchantment = null;
   if (tier === 'legendary') {
     const pool = legendaryPool ?? legendariesFor(item);
-    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines });   // no record for this item: the tier below
+    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines, fists });   // no record for this item: the tier below
     const rec = pickLegendary(pool, family, rolls);   // LOOT6: a source's family weighs its own records
     affixes = rec.affixes.map((a) => ({ ...a }));
     enchantment = rec.enchantment;
     item.legendary = rec.id;
     item.name = rec.name;
   } else {
-    affixes = rollAffixes(item, tier, rolls, { byLines });
+    affixes = rollAffixes(item, tier, rolls, { byLines, fists });
     item.name = rarityName(item, tier, affixes);
     if (tier === 'rare') enchantment = rareFlavour(RARE_FLAVOURS[item.group] ?? RARE_FLAVOURS.Jewellery, rolls, fits);
   }

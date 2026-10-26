@@ -1,0 +1,50 @@
+[
+  {
+    "name": "MAIN-SPINE-check-never-run",
+    "file": "src/systems/quest/machine.js",
+    "old": "    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();",
+    "new": "",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "the report: a backbone lost at the birth's reload, and no royal letter ever"
+  },
+  {
+    "name": "MAIN-SPINE-opener-start-unread",
+    "file": "src/systems/quest/mainSpine.js",
+    "old": "      if (String(a.questName ?? '').toUpperCase() === SPINE || a.questIndex1 === 999) return true;",
+    "new": "",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "a game that has not met Brisienna is never owed its backbone"
+  },
+  {
+    "name": "MAIN-SPINE-owed-with-a-story-begun",
+    "file": "src/systems/quest/mainSpine.js",
+    "old": "  if (m.storyLegacy || m.storyStarted.size > 0) return false;",
+    "new": "  if (m.storyLegacy) return false;",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "a backbone that ended is started over, and the courts' quests with it"
+  },
+  {
+    "name": "MAIN-SPINE-owed-to-a-legacy-save",
+    "file": "src/systems/quest/mainSpine.js",
+    "old": "  if (m.storyLegacy || m.storyStarted.size > 0) return false;",
+    "new": "  if (m.storyStarted.size > 0) return false;",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "a save whose story is not known is given a second backbone"
+  },
+  {
+    "name": "MAIN-SPINE-a-second-backbone",
+    "file": "src/systems/quest/mainSpine.js",
+    "old": "  for (const q of m.quests.values()) if (named(q, SPINE)) return false;",
+    "new": "",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "a standing backbone started again every check"
+  },
+  {
+    "name": "MAIN-SPINE-scheduled-unread",
+    "file": "src/systems/quest/mainSpine.js",
+    "old": "  if (m.questsToInvoke.some((q) => named(q, SPINE))) return false;",
+    "new": "",
+    "tests": ["test/systems/quest/fb1026b_mainspine.test.js"],
+    "note": "a backbone a tick from starting started twice"
+  }
+]

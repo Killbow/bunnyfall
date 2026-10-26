@@ -292,6 +292,7 @@
 
 import { Parser } from './parser.js';
 import { globalVarsTable } from './tables.js';   // STORY-AGAIN (AUDIT QA3): a step's globals, by name
+import { spineOwed, SPINE, SPINE_CHECK_TICKS } from './mainSpine.js';   // MAIN-SPINE: the main quest's backbone kept
 import { defaultActionTemplates, heldPromptPlaces } from './actions.js';   // AUDIT QA3 A1: a box up here, asked in the envelope
 import { receivedState, mergeSharedState, freshState, QL_STAMP } from '../questlines/qlState.js';   // QL1: a shared copy's questline state (decision 7); AUDIT QUESTLINES BRANCH-14: a restart's stamp
 import { QuestResourceBehaviour } from './resourceBehaviour.js';
@@ -1793,6 +1794,7 @@ export class QuestMachine {
   /** One machine tick (QuestMachine.cs Tick). */
   tick() {
     this.beat++;   // AUDIT STAR8 S1 (questFoeStands)
+    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();   // MAIN-SPINE: before the invoke loop, so a start lands this tick
     // Invoke scheduled quests (QuestMachine.cs StartQuest:719-725):
     // Start, then the talk-topic registration, then the live table.
     // The questor-behaviour relink that follows in C# is scene work
@@ -1842,6 +1844,14 @@ export class QuestMachine {
 
     for (const quest of questsToTombstone) this.tombstoneQuest(quest);
     for (const quest of questsToRemove) this.removeQuest(quest);
+  }
+
+  /** MAIN-SPINE (systems/quest/mainSpine.js): a game owed its backbone has it started - a parse that fails again (the
+   *  world's faction records still away) is asked again at the next check. Answers whether one was scheduled. */
+  keepSpine() {
+    if (!spineOwed(this)) return false;
+    console.warn(`[quest] ${SPINE} (the main quest's backbone) is not standing - started again`);
+    return !!this.scheduleQuestByName(SPINE);
   }
 
   /**

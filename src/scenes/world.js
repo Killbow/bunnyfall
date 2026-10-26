@@ -638,6 +638,7 @@ import { packCapacityKg } from '../systems/naval/crewCompanions.js';   // COMPAN
 import { createComeSailAwayPool, CULL_DETAIL_PX, FADE_FLATS as CSA_FADE_FLATS } from './comeSailAway/comeSailAwayPool.js';   // CSA-B: Come Sail Away's boats, drawn
 import { createShipPortraits } from './shipPortraits.js';   // MENU-ORDER: a ship's own picture on the shipmaster's card
 import { createComeSailAwayPeers } from './comeSailAway/comeSailAwayPeers.js';   // CSA-J: another player's boats, seen
+import { peerHullSweep } from './comeSailAway/peerHulls.js';   // HULL-PASS: another player's hull meets my helm only in a PvP zone
 import { createComeSailAwayAboard, CSA_ABOARD_GRACE, deckPose as csaDeckPose, helmWord as csaHelmWordOf, localOf as csaLocalOf, worldOf as csaWorldOf } from './comeSailAway/comeSailAwayAboard.js';   // CSA-K: another player's boat, boarded; FIELD BUGS 2026-09-29 (the sea) #1: the deck's frame, the helmsman's place
 import { csaWireRecord, csaRecordKey } from '../systems/comeSailAway/comeSailAwayWire.js';   // CSA-J: my boats, said
 import { boatTriggers, boatMenuRows, boatMenuStart, pressBoatVerb, BOAT_VERB } from '../systems/comeSailAway/csaBoatMenu.js';   // BOAT-MENU: a boat of mine's verbs on the plaque
@@ -8448,7 +8449,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       decreaseFatigue: (n) => { if (!modes?.drainPlayerFatigue?.(n)) playerTicker.sinks.drainFatigue(n); surfacePlayer(); },   // PlayerEntity.DecreaseFatigue: the one fatigue door, its collapse at 0 with it - CSA-J (the audit): the mode's own, so a collapse indoors is the mode's (its enemies, its rest)
     },
     cargoWeight: (items) => totalWeight(items ?? []),
-    sphereCastAll: csaSphereCastAll,
+    sphereCastAll: peerHullSweep(csaSphereCastAll, csa),   // HULL-PASS (Field-Bugs-2026-10-26b): peers' hulls dropped outside a PvP zone
     enemies: csaEnemies,
     // CSA-G: GameManager.AreEnemiesNearby(false, false) over the mode's foes; Travel Options' isTravelActive (null
     // without the mod, as HCC asks it); Time.timeScale, which the helm's keys now set (the motor reads the one number)

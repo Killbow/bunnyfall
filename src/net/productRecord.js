@@ -46,8 +46,13 @@ export const MINT_V_LAST_PASS = 1;
  *  held to an empty name slot (systems/loot/lootRarity.js rollAffixes `byLines`). A record of 1 or none mints as it
  *  always did. */
 export const MINT_V_LINES = 2;
+/** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)";
+ *  bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): the first mint version whose jewellery's skill lines lean to
+ *  Hand-to-Hand and Critical Strike beside the mind's thirteen (systems/loot/lootRarity.js skillKin `fists`). A record
+ *  of 2 or less mints as it always did. */
+export const MINT_V_JEWEL_KIN = 3;
 /** The mint version a craft stamps on its record now (`v`) - the service's (server-account/src/professions.js). */
-export const MINT_VERSION = MINT_V_LINES;
+export const MINT_VERSION = MINT_V_JEWEL_KIN;
 /** A character id's shape (the account service's CHAR_ID_RE). */
 const CHAR_RE = /^[A-Za-z0-9_-]{4,64}$/;
 

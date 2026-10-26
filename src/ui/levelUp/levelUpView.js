@@ -74,6 +74,7 @@ import { mustDistributeBonusPointsText } from '../charsheet.js';
 import { REMAINING_POINTS_ERROR, remainingPointsLabel, TAKE_ONE_BACK_HINT } from '../virtueLevelUp.js';
 import { attributeOffset, canRaiseAttribute, canLowerAttribute, LEVELUP_TOTAL, levelBarProgress, levelingSettings, usesVirtueLeveling } from '../../systems/oblivionLeveling.js';   // ASCEND-ANYTIME: a mod-law view still needs the mod's own prices to draw a row
 import { LEVELUP_SKILL_SUM_PER_LEVEL, skillRecentlyIncreased } from '../../systems/advancement.js';
+import { atLevelCap } from '../../systems/levelCap.js';   // LEVEL-45: the bar at the cap
 import { SKILL_NAMES, displaySkillValue } from '../../systems/skills.js';
 import { liveStat } from '../../systems/statMods.js';   // ASCEND-LIVE: what a star IS, beside what the rollout spends
 import { sheetModel } from '../enhanced/enhancedCharSheet.js';
@@ -569,6 +570,8 @@ export function levelUpCrown(entity, screen) {
  */
 export function levelProgress(entity, screen) {
   const e = entity ?? {};
+  // LEVEL-45 (systems/levelCap.js): at the cap no level is next - the bar is full and says so, on either lane
+  if (atLevelCap(e)) return { now: 1, max: 1, carried: 0, label: t('levelup.progress.cap', 'Highest level reached') };
   if (levelUpLane(screen) === LANE_VIRTUE || usesVirtueLeveling(e)) {
     return {
       now: levelBarProgress(e),

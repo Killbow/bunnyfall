@@ -29,7 +29,7 @@
   {
     "name": "LOOT1-the-lean-bypassed",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "const param = id === 'skill' ? pickSkill(item, free, rolls) : pick(free, rolls);",
+    "old": "const param = id === 'skill' ? pickSkill(item, free, rolls, fists) : pick(free, rolls);",
     "new": "const param = pick(free, rolls);",
     "tests": [
       "test/systems/loot1_kin.test.js"

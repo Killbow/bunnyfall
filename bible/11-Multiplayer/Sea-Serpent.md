@@ -354,8 +354,8 @@ under the pins. Its job:
 - **Come Sail Away's seams:**
   - `warp`, which QUAYS gave the harbour: the naval host's warp answers the coil's hold first.
   - `drift`, new: a world-space velocity added to the sea's current under her, which carries the whirl's pull and a
-    blow's throw (`systems/comeSailAway/comeSailAway.js` `lateUpdateSailing`) - SERPENT4: and in its waters, the ships' bumpers
-    (`scenes/naval/navalHost.js` `bumperDrift`).
+    blow's throw (`systems/comeSailAway/comeSailAway.js` `lateUpdateSailing`). SERPENT4's bumpers rode it until HULL-PASS
+    retired them (2026-10-26, below).
   - `gale`, SERPENT4's: its gale about my ship at her helm in its waters (`SERPENT_GALE`, section 16).
 - **Leaving**: going offline forgets the fight and lets my ship go (`leave`), and the omen stands nothing - no ring,
   no compass mark - until it is ready again (L4). A new serpent day forgets the last fight's attacks, numbered from one
@@ -823,12 +823,13 @@ What each came to, in the code:
   swing's resolution is the host's own work.
 - **"Ships colliding and phasing through each other with the lag."** A peer's hull met mine only as Come Sail Away met
   a rock (`CheckCollision`): at its own size, a frame stale, never while I lay still - with a wire's lag two hulls met
-  and passed through. **The ships' bumpers**: in its waters my ship's hull and every other player's at her helm are met
-  `BUMPER_M` (10 m) out from each, and my ship is pushed off along the shallowest way out at `BUMPER_GAIN` (1.5) a
-  second of how deep the bumpers meet, `BUMPER_V_MAX` (30 m/s) at most, on the drift seam (`navalHost.js`
-  `bumperDrift`, `withBumpers`; `flatHull` and `hullOverlap` moved to the module's top to be read by both). Each machine
-  pushes its own ship, so two meeting are pushed apart by both - two closing at 30 m/s hold 10 m inside the bumpers' 20,
-  short of the hulls - and drift apart as their helms let go.
+  and passed through. SERPENT4 answered with the ships' bumpers (10 m out from each hull, my ship pushed off at up to
+  30 m/s). **RETIRED by HULL-PASS (2026-10-26, Discord #feature-feedback "Boat Player Collision": "Player boat
+  collision needs to be off outside of PVP zone or just during the Sethrakul fight - too many people out there bumping
+  into each other ruining their shots"; `01-Overview/bugs/Field-Bugs-2026-10-26b.md`):** another player's hull meets my
+  helm only inside a PvP zone (`scenes/comeSailAway/peerHulls.js`), and the serpent's waters are never one - so in its
+  fight the ships pass through each other, and the bumpers, which pushed only there, are gone with `withBumpers` and
+  `bumperDrift`.
 - **"Getting nothing from it if your not near the snake when it dies."** Where she was at the kill never counted (the
   hub hands a far earner her receipt - AUDIT SERPENT S5); the bars did. **A part dealt earns** (`SERPENT_PART_SHARE` 2.5%
   of her share - several volleys landed, never one: a stander's hoard), **a dealer's at `SERPENT_RECEIPT_SHARE` 6%** (it
