@@ -1556,6 +1556,77 @@ NOT CHANGED, named:
 - **The Work tab's forty at a time is the client's**: the service still sends a region's Court and chapter writs whole,
   and fifty guild writs and fifty commissions, soonest to end (PROF6's WRIT_SHOWN).
 
+### 10.14 PACK-PICK - a piece chosen from its picture (2026-10-26)
+
+The owner's screenshot of a thread in the Discord's #feature-feedback, "SELLING ITEMS ON THE MARKET IS A PAIN!", Cl3arSky:
+**"When selling items from backpack for GOLD, you get a dropdown with just the name of the item.. no description or icon,
+you gotta memorize the item names before you wanna sell, it's a PAIN. Which means, you gotta open backpack, then open the
+notice board, go through all the menus, already forgotten the item names by then lol"**. The owner: **"This needs a
+comprehensive detailed overhaul"**.
+
+FACT, read off the code before anything moved:
+
+- **A name and nothing else.** The List form chose a piece from the pack (MARKET-ANY) from a `<select>` of names - no
+  picture, no tier, no stats - so two Dwynnen Surcoats were two like options and a Rare piece stood as a Common one. A
+  crafted piece and a Masterwork to auction were chosen the same way (MARKET-AUDIT U2 had run the quality and wear on
+  after the name), and so was a trader's "Put up a piece from your pack" (HOME-VENDOR).
+- **A piece was always chosen**: the list's first, so List listed whatever stood first in the pack.
+- **What could not go was one sentence** under the form: the first eight and "and N more".
+- **The way there was four choices deep** - Market, My listings, a What list and "A piece from your pack (gold)", then
+  the piece's list - and the What list stood on "From the Stores" every time a board was opened.
+- **The look was already on the board**: a trader's row picked shows the piece's stats and magic (`scenes/vendorHost.js`
+  vendorItemStats - the look panel's rows and the trade window's magic). The List form never asked it.
+
+What changed:
+
+- **One picker** (`ui/packPicker.js`, THE ONE CONSTRUCTION SEAM): the pack's pieces as tiles, each its picture (the host's
+  `itemPicture`, MENU-ORDER's), its name, and a line under it - its tier while the loot ladder is on, its wear; a crafted
+  piece's quality and "your home" - its frame in its tier's colour (RARITY-UI's `data-rarity`). Over them a bar sifts them
+  as the pack's own stores are sifted (`ui/storeFilter.js` - WAGON-FILTER's pages, LOOT-BULK's tiers, MAT-FILTER's
+  metals, each with its count, a menu shown only where it has a choice to make) and a search of the names the tiles wear;
+  the tiles refill in place, so the field typed in is never redrawn under the keys, and a composed word is read once
+  whole (`ui/workSift.js` typedField). Under them, folded, "Not for the market (N)": every piece that may not go, each
+  pictured with why, never a press. The piece chosen is LOOKED AT over its price (`packCardNode`): its picture at twice a
+  tile's, its name in its tier's colour, the look panel's rows and its magic - the trader's look, moved to
+  `systems/item/itemLook.js` so the board's two forms and the stall read one presenter (`vendorItemStats` is it).
+- **Nothing chosen until a tile is pressed** - a sale takes the piece out of the pack. A press again lets it go; List
+  and "Put up for sale" wait for one ("Press a piece above to look at it and set its price.").
+- **The kinds are presses** (`ui/marketTab.js` LIST_KINDS): From your pack (a realm character's, first), From the Stores,
+  A crafted piece, An auction (Masterworks). A realm character's form opens on the pack; the kind pressed is kept for the
+  market book's session (KIND_KEPT), so the next board opens where the last was left.
+- **The Goods view holds the way to sell**: beside its filters, a realm character's "Sell from your pack" opens My
+  listings' form on the pack.
+- **A crafted piece and a Masterwork** are chosen from the same picker; a trader's stall puts up a piece from it too,
+  with the stall's own pictures and look.
+- **The dress** (`ui/enhanced/enhancedPlusStyle.js` PROF_CSS): the tiers' colours laid inside the List form
+  (`rarityVarsCss`) - the board stands on either skin, and the Plus sheet's own are laid only with the Plus skin; a
+  phone's tiles two across and its kinds two by two; a finger's press on a coarse pointer.
+- **Words**: 20 keys through the text core (`market.list.*`, `market.goods.sell`, `pack.pick.*`, `vendor.put.refused`),
+  the English catalog regenerated (`tools/l10nExtract.mjs`) and drafted in-session for the thirteen whole languages
+  (`tools/l10nInSession.mjs`), each in the words its rows already use for the pack, the market and a Masterwork; the
+  twelve still drafting owe them with the rest. `ui/marketTab.js`'s hard-coded prose 151 -> 146, `ui/vendor/vendorTab.js`'s
+  28 -> 27 (`test/systems/l10n4_hardcoded.test.js`).
+
+Not changed: the service, the wire, the market book and the request a listing sends. No price is suggested: the only
+number a client could put beside a pack's piece is its base value, and `systems/item/itemInfo.js` itemStatRows says why
+that is no shop's price - it is no market's either.
+
+DFU has no member here - Daggerfall has no market (NOTICE1, PROF5, MARKET-ANY) - and no ledger row moves. THE FOUR HOSTS:
+none is touched. The world host's market deps are as they were (bootWorld stands at its ceiling, HOST-SPLIT): the picker
+reads the host's own `itemPicture`, `goods` and `goodName`, and the stall's own `picture` and `stats`.
+
+Pins: `test/ui/packpick.test.js` (7). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
+(the kinds as presses, the pack's first; the tiles and the refused tiles; a tile pressed before List),
+`test/net/goldmarket_client.test.js` (each refused piece its own tile), `test/net/prof5b_client.test.js` (the
+Masterwork a tile, pressed), `test/net/marketaudit.test.js` (U2: the quality and wear on the tile's line),
+`test/ui/audit657_board.test.js` (B3: the stall's fields its price and press, the picker over them),
+`test/ui/homevendor_ui.test.js` (what may not go folded, never pressable). Mutants: `tools/mutants/packpick.json`, 20, all
+dead; four records over the code moved re-aimed by content, all dead (`audit657.json` AUDIT657-B3-the-stalls-controls-loose,
+`fb1001_market.json` MARKET-ANY-tab-the-option-without-gold and MARKET-ANY-tab-the-refused-unsaid, `marketaudit.json`
+MARKET-AUDIT-U2-labels-bare). Measured in Chromium (`tools/noticeBoardProbe.mjs`, its market-goods, market-sell and
+market-sell-refused shots, a desktop's width and a phone's): a pack the producers fill, its pictures from the player's
+own ARENA2, each view inside the viewport with nothing spilling sideways.
+
 ## 11. Writs - the Work tab
 
 - **Court writs** (the faucet): every region with a seat or hub posts **6 x max(1, ceil(active / 100)) a UTC day** (a
