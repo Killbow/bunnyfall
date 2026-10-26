@@ -5,7 +5,7 @@
 --   npx wrangler d1 migrations apply daggerfall-accounts --remote
 --
 -- Applied exactly once through the `d1_migrations` ledger, which the deploy runs (ACC1-CI), before the Worker that
--- reads it (acct195).
+-- reads it (acct196; acct195 and 0176 on its branch, renumbered past LOCKPICK and AUDIT GATHER on main).
 --
 -- A piece made wholly of Linen or Wool (AUDIT 32 S1's 152 recipes) pays its pattern's first-make share wherever it
 -- uses no bolt bought with silver - whatever goods the character wove or spun its cloth of. A unit's origin cannot say

@@ -745,7 +745,7 @@ export function craftXp(tier, rank) {
 export const counterMade = (r) => !!r && r.inputs.length > 0 && r.inputs.every((i) => COUNTER_ONLY.includes(i.key));
 /** WOVEN-PAYS (AUDIT WOVEN-PAYS, FIELD BUGS 2026-10-26b): THE CLOTH S1 COUNTS WHEN IT IS BOUGHT WITH SILVER - every key the
  *  judged recipes are made of (counterMade: Linen and Wool), so the service counts each bolt of them a character buys
- *  with silver (server-account/src/professions.js `prof_silver_cloth`, migration 0176). */
+ *  with silver (server-account/src/professions.js `prof_silver_cloth`, migration 0177). */
 export const JUDGED_CLOTH = Object.freeze([...new Set(RECIPES.filter(counterMade).flatMap((r) => r.inputs.map((i) => i.key)))]);
 /**
  * AUDIT 32 S1 (CLOTH-GEMS, 2026-10-25; the player SaberGGaming's "Profession oversights", the owner: "No band aids"):

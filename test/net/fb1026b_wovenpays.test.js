@@ -10,7 +10,7 @@
 // walled (A2, B1, C1), a guildmate's cloth out of the guild Stores too (B2). So the service counts the bolts of Linen and
 // Wool a character buys with silver (the Weavers' and the furnisher's counters, the Drakes market) and takes off every
 // bolt its stations use: while the count stands, a piece made wholly of cloth lays no first on (`prof_silver_cloth`,
-// migration 0176; server-account/src/professions.js craftAtAnvil `pays`); the box reads the count (net/profBook.js
+// migration 0177; server-account/src/professions.js craftAtAnvil `pays`); the box reads the count (net/profBook.js
 // silver, ui/professions/profPages.js silverOf); and a pattern is made by the craft that laid its first on (`first_paid`).
 // bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md.
 import '../chargenDom.mjs';

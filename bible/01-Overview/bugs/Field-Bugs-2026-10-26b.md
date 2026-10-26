@@ -37,7 +37,7 @@ FIXED.
   Stores, and `loose` is also a Weavers' bolt set down and picked up again. So the service COUNTS: every bolt of Linen
   and Wool (`recipeLaw.js` JUDGED_CLOTH) a character buys with silver - the Weavers' and the furnisher's counters
   (`professions.js` buyStock) and the Drakes market (`market.js`: a buy, a courier's load as it lands, a buy order
-  filled; never a gold buy) - is one on its SILVER COUNT (`prof_silver_cloth`, migration `0176_woven_pays.sql`), and
+  filled; never a gold buy) - is one on its SILVER COUNT (`prof_silver_cloth`, migration `0177_woven_pays.sql`), and
   every bolt of it the character's stations use (a craft of any recipe, a temper) takes one off. While the count stands,
   the bolts a craft uses are those, and a piece made wholly of cloth lays no first on (`recipeLaw.js` firstCraftPays's
   `own`; `professions.js` craftAtAnvil's `silverHeld`). Whatever the units' origins: the loom's own cloth of looted,
@@ -83,10 +83,10 @@ cloth not bought with silver") and `prof.page.craft.xpBought` ("Bolts of this cl
 earn"), the Outfitting how-to's `prof.page.how.outfitting` and the disenchant's `prof.page.enchant.cloth` ("only if
 nothing bought or looted went into it and it was never sold").
 
-THE SERVICE. ACCOUNT_VERSION acct195, migration 0176 (the count's table, filled from the bought cloth held; a column,
+THE SERVICE. ACCOUNT_VERSION acct196, migration 0177 (acct195 and 0176 on the branch, renumbered past LOCKPICK and AUDIT GATHER at the merge; the count's table, filled from the bought cloth held; a column,
 NULL for every row before it). No relay change.
 
-PINS: `test/net/fb1026b_wovenpays.test.js` (9: the law twice; the report through the real book and Worker; A1/B3's
+PINS: `test/net/fb1026b_wovenpays.test.js` (10: the law twice; the loom's line under the crafter's limit; the report through the real book and Worker; A1/B3's
 bolt set down and picked up; A2/B1's cloth of silver-bought goods by the chain and by hand, and B2's guild cloth; the
 count's every add and take; the Drakes market's three paths and a gold buy's none; the pattern made by the craft that
 paid; the rows from before the column). PIN MOVED: `clothgems_service`, `clothgems_client`, `fb1015f_firstcraft`,
@@ -112,7 +112,7 @@ tests, pins, mutants, docs and words. Every finding was reproduced on the tree b
 | C2 | The report's pin claimed to kill "the box reads the Stores alone", which its flow - the Stores empty - could not; the narrative said the box read the Stores alone | C | FIXED: the narrative says what the box read; the box's pins are the count's |
 | C5 | The cost put to the owner priced the 152 keys in Root Tendrils: they buy the 73 Linen keys alone | C | SAID above, and to the owner |
 | C6 | The old-row fixtures were shapes no service before the column wrote (a piece's `bought_with` cleared by hand; a Boots row at exactly 20 XP) | C | FIXED: rows as the old service wrote them, the old answers by their own ids |
-| C7, A3 | A pre-0176 first whose share the crafter's limit cut reads as owed; harmless, for the limit pays the track nothing again - and new rows mark such a first paid | A, C | SAID, in the migration's header |
+| C7, A3 | A pre-0177 first whose share the crafter's limit cut reads as owed; harmless, for the limit pays the track nothing again - and new rows mark such a first paid | A, C | SAID, in the migration's header |
 | C8 | The floor's `>=` edge and `first = 1` survived as mutants | C | FIXED: an old row at the floor pins the edge; `first = 1` stands as the row's own word, a non-first old row never holding a share |
 | C9 | The record's "the floor moved" mutant was never written; the retired box record had no inverse; the re-aimed records shared one note | C | FIXED: each written, each note its own |
 
@@ -120,10 +120,15 @@ SAID, NOT CHANGED.
 - A1b: a modified client's fabricated loose cloth pays (KNOWN, above).
 - The count is a character's (KNOWN, above) - the owner's word asked on counting an account's characters together.
 
-MUTANTS: `tools/mutants/fb1026b_wovenpays.json` (29, one of them an equivalent recorded - the slice's, rewritten with the count). Retired, the law they
+MUTANTS: `tools/mutants/fb1026b_wovenpays.json` (30, one of them an equivalent recorded - the slice's, rewritten with the count). Retired, the law they
 killed gone: `clothgems.json`'s CLOTHGEMS-svc-loose-pays, CLOTHGEMS-pages-loose-unread (loose walled - their inverse
 WOVEN-PAYS-svc-loose-walled-again), CLOTHGEMS-svc-bought-pays (the origin wall - WOVEN-PAYS-svc-bought-units-read-as-silver),
 CLOTHGEMS-pages-bought-unread and CLOTHGEMS-pages-carried-unread (the box's put-in reading - WOVEN-PAYS-pages-count-unread).
 Re-aimed by content, each its note: `clothgems.json` (5), `audit32.json` (2), `fb1015f_firstcraft.json` (5),
 `fb1018f_craftlimit.json` (3), `gatherspeed.json` (1), `prof3.json` (1), `fb1018d_crafthowto.json` (1). The lists the
-slice touched, judged again: MUTANT_RESULT.
+slice touched, judged again (`node tools/mutate.mjs --jobs 4`, eight lists, 366 records): 363 dead, 0 survived, 3
+equivalent as recorded (PROF3's `NO_PACK_FORM` pair, WOVEN-PAYS-svc-old-row-first-unread), 0 stale. The run found two
+survivors, each pinned and judged again dead: WOVEN-PAYS-svc-answer-old-row-read-off-its-piece (A4's answer, its fixture
+no S1-era row - an S1-era row now stands, its piece written with `bought_with` NULL), and CRAFT-LIMIT-SAID-words-line-most-plain,
+older than this slice (no pin held a cloth piece at a room between its own XP and its share under the crafter's limit -
+now "the loom's line under the crafter's limit", with its inverse WOVEN-PAYS-words-share-beside-count).

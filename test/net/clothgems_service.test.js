@@ -90,7 +90,7 @@ test('CLOTH-GEMS service: AUDIT 32 S1 JUDGES THE UNITS - Linen Straps of the loo
   const net = await craft('fishingnet:linen');
   assert.deepEqual([net.status, net.body.xp, net.body.first, net.body.firstPaid], [200, 20 + FIRST_CRAFT_XP, true, true], 'loose cloth: its first');
   // the record: each first recorded, the 500 where it paid
-  // WOVEN-PAYS: and whether it laid it on (`first_paid`, migration 0176)
+  // WOVEN-PAYS: and whether it laid it on (`first_paid`, migration 0177)
   const rows = s.env.DB._raw.prepare('SELECT recipe, xp, first, first_paid FROM prof_crafts WHERE player = ? ORDER BY at, rowid').all(mac.id).map((r) => [r.recipe, Number(r.xp), Number(r.first), r.first_paid]);
   assert.deepEqual(rows, [['garment-141:linen', 20 + FIRST_CRAFT_XP, 1, 1], ['garment-142:linen', 20, 1, 0], ['rug-237:wool', 40, 1, 0], ['tapestry-243:wool', 40 + FIRST_CRAFT_XP, 1, 1], ['fishingnet:linen', 20 + FIRST_CRAFT_XP, 1, 1]]);   // PIN MOVED (FIRST-BUDGET): Outfitting's share; (WOVEN-PAYS): the net's loose cloth paid
 });
