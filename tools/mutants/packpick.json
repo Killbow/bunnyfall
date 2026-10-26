@@ -133,7 +133,7 @@
   {
     "name": "PACK-PICK-trader-look-a-copy",
     "file": "src/scenes/vendorHost.js",
-    "old": "  const vendorItemStats = itemLook;",
+    "old": "  const vendorItemStats = itemLookRows;",
     "new": "  const vendorItemStats = (it) => (it && typeof it === 'object' ? { rows: [], magic: [] } : null);",
     "tests": ["test/ui/packpick.test.js"],
     "note": "the trader's look its own presenter again - the board and the stall would say two things of one piece"

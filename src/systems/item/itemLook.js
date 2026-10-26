@@ -18,7 +18,7 @@ import { magicPowersLines } from './itemPowers.js';
  * @param {any} it
  * @returns {{ rows: string[], magic: string[] } | null}
  */
-export function itemLook(it) {
+export function itemLookRows(it) {
   if (!it || typeof it !== 'object') return null;
   let rows = [], magic = [];
   try { rows = itemStatRows(it).map((r) => (r.label ? `${r.label}: ${r.text}` : r.text)); } catch { rows = []; }

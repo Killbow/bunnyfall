@@ -82,8 +82,8 @@ import { t, currentLocale } from '../systems/textManager.js';   // BOARD-SIFT: t
 import { mintPiece, asMinted } from '../systems/smithItems.js';   // AUDIT BOARD-SIFT: a recipe's piece minted as its row mints it; AUDIT MAKER-RARE B2: and whether a piece still is
 import { itemLongName } from '../systems/item/itemInfo.js';
 import { typedField } from './workSift.js';   // AUDIT BOARD-SIFT: a search read once its word is whole
-import { packPickerNode, packCardNode, freshPackSift, tierWord } from './packPicker.js';   // PACK-PICK: a piece chosen from its picture
-import { itemLook } from '../systems/item/itemLook.js';   // PACK-PICK: and looked at before it is listed
+import { packPickerNode, packCardNode, freshPackSift, packTierWord } from './packPicker.js';   // PACK-PICK: a piece chosen from its picture
+import { itemLookRows } from '../systems/item/itemLook.js';   // PACK-PICK: and looked at before it is listed
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -801,7 +801,7 @@ export function createMarketTab(m, ui) {
     return row;
   }
   /** PACK-PICK: a pack piece's tile line - its tier and its wear (its stack is its name's, "x12"). */
-  const goodSub = (it) => [tierWord(it), wearText(wearOf(it))].filter(Boolean).join(' · ') || null;
+  const goodSub = (it) => [packTierWord(it), wearText(wearOf(it))].filter(Boolean).join(' · ') || null;
   function listForm() {
     const box = el('div', 'market-listform');
     box.append(el('h4', null, 'List on the market'));
@@ -864,7 +864,7 @@ export function createMarketTab(m, ui) {
       above.push(packPickerNode({ entries, chosen: st.list.good, sift: st.list.sifts.item, pick: (it) => { st.list.good = st.list.good === it ? null : it; ui.rerender(); },
         picture: m.itemPicture ?? null, wake, label: t('market.list.packLabel', 'The pieces in your pack'), focus: 'list-good',
         empty: t('market.list.packEmpty', 'Nothing in your pack can go on the market.'), refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
-      packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLook,
+      packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLookRows,
         none: t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
       fields.append(field('Price in gold', price));
       worth = () => st.list.price;
@@ -888,13 +888,13 @@ export function createMarketTab(m, ui) {
       const chosen = pieces.find((p) => p.item.provenance === st.list.piece) ?? null;
       // MARKET-AUDIT U2: each its quality (an auction's are all Masterworks) and wear - a Crude, a Fine and a worn piece of one
       // name were three like options. PACK-PICK: on its tile's line, under its picture and name
-      const pieceSub = (p) => [tierWord(p.item), auction ? null : QUALITY_NAMES[p.item.quality] ?? null, wearText(wearOf(p.item)), p.where === 'home' ? 'your home' : null].filter(Boolean).join(' · ') || null;
+      const pieceSub = (p) => [packTierWord(p.item), auction ? null : QUALITY_NAMES[p.item.quality] ?? null, wearText(wearOf(p.item)), p.where === 'home' ? 'your home' : null].filter(Boolean).join(' · ') || null;
       const entries = pieces.map((p) => ({ key: `piece|${p.item.provenance}`, item: p.item, name: p.name, sub: pieceSub(p), why: null }));
       above.push(packPickerNode({ entries, chosen: chosen?.item ?? null, sift: st.list.sifts[auction ? 'auction' : 'piece'],
         pick: (it) => { st.list.piece = st.list.piece === it.provenance ? '' : it.provenance; ui.rerender(); },
         picture: m.itemPicture ?? null, wake, label: auction ? t('market.list.mwLabel', 'Your Masterworks') : t('market.list.craftedLabel', 'Your crafted pieces'), focus: auction ? 'list-mw' : 'list-piece',
         empty: auction ? 'You carry no Masterwork to auction.' : 'You carry no crafted piece to sell.', refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
-      packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLook,
+      packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLookRows,
         none: auction ? t('market.list.pickMw', 'Press a Masterwork above to look at it and set its opening bid.') : t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
       fields.append(field(auction ? 'Opening bid (silver)' : `Price in ${unitWord}`, price));
       const them = (n) => (n === 1 ? 'it' : 'them');

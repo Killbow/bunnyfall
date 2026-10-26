@@ -8,8 +8,8 @@ import '../chargenDom.mjs';
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { packPickerNode, packCardNode, freshPackSift, siftEntries, tierWord } from '../../src/ui/packPicker.js';
-import { itemLook } from '../../src/systems/item/itemLook.js';
+import { packPickerNode, packCardNode, freshPackSift, siftEntries, packTierWord } from '../../src/ui/packPicker.js';
+import { itemLookRows } from '../../src/systems/item/itemLook.js';
 import { createMarketTab, LIST_KINDS } from '../../src/ui/marketTab.js';
 import { createVendorTab } from '../../src/ui/vendor/vendorTab.js';
 import { createMarketGoods } from '../../src/systems/tradePack.js';
@@ -41,7 +41,7 @@ function pack() {
   const owner = { items: [...gear, gold, quest] };
   return { owner, gear, gold, quest, goods: createMarketGoods(owner) };
 }
-const entriesOf = (goods) => goods.goods().map((g, i) => ({ key: `t|${i}`, item: g.item, name: g.name, sub: tierWord(g.item), why: g.why }));
+const entriesOf = (goods) => goods.goods().map((g, i) => ({ key: `t|${i}`, item: g.item, name: g.name, sub: packTierWord(g.item), why: g.why }));
 
 test('PACK-PICK the sift: the pack\'s own pages, tiers and metals (ui/storeFilter.js) and a search of the names the tiles wear - every piece while nothing is asked; a shape the laws cannot read is left out, never thrown on (mutants: the search unread; the page unread)', () => {
   setPref(LOOT_RARITY_KEY, true);
@@ -63,8 +63,8 @@ test('PACK-PICK the sift: the pack\'s own pages, tiers and metals (ui/storeFilte
   const byMetal = siftEntries(all, { ...freshPackSift(), material: metal });
   assert.ok(byMetal.length > 0 && byMetal.every((e) => storeMaterialOf(e.item) === metal), `the metal ${metal}`);
   assert.deepEqual(siftEntries([{ key: 'x', item: 'a word, no item', name: 'a word' }], { ...freshPackSift(), cat: 'weapons' }), []);
-  assert.equal(tierWord(gear[0]), 'Rare');
-  assert.equal(tierWord(gear[1]), null, 'Common says nothing');
+  assert.equal(packTierWord(gear[0]), 'Rare');
+  assert.equal(packTierWord(gear[1]), null, 'Common says nothing');
 });
 
 test('PACK-PICK the picker: a pictured tile for each piece that may go, none pressed; what may not go folded under them with why and never pressable; the search refills the tiles in place (the field never redrawn) and the menus too; nothing matching offers "Show everything"; a tile pressed is handed back (mutants: typing redraws the window; the refused pressable; the why unsaid; the tier unmarked; the menus gone)', async () => {
@@ -156,17 +156,17 @@ test('PACK-PICK the piece looked at: its name and line, the look panel\'s rows a
   applyRarity(weapon, 'rare', seededRng(4));
   const none = packCardNode(null, { none: 'Press a piece.' });
   assert.deepEqual([none.className, none.textContent], ['notice-tip packpick-cardnone', 'Press a piece.']);
-  const card = packCardNode({ key: 'k', item: weapon, name: 'My Blade', sub: 'Rare' }, { look: itemLook, none: '' });
+  const card = packCardNode({ key: 'k', item: weapon, name: 'My Blade', sub: 'Rare' }, { look: itemLookRows, none: '' });
   assert.equal(card.getAttribute('data-rarity'), 'rare');
   assert.deepEqual([word(card, 'packpick-name'), word(card, 'packpick-sub')], ['My Blade', 'Rare']);
-  const look = itemLook(weapon);
+  const look = itemLookRows(weapon);
   assert.deepEqual([...byClass(card, 'packpick-stat')].map((n) => n.textContent), look.rows);
   assert.ok(look.rows.some((r) => /^Damage: \d+ - \d+$/.test(r)) && look.rows.some((r) => /^Weight: /.test(r)), look.rows.join(' | '));
   assert.ok(look.magic.length > 0, 'a Rare piece says its tier and its lines');
   assert.deepEqual([...byClass(card, 'packpick-magic')[0].children].map((n) => n.textContent), look.magic);
-  assert.equal(itemLook(null), null);
-  assert.equal(itemLook('a word'), null);
-  assert.match(src('src/scenes/vendorHost.js'), /const vendorItemStats = itemLook;/, 'the trader\'s look is this one');
+  assert.equal(itemLookRows(null), null);
+  assert.equal(itemLookRows('a word'), null);
+  assert.match(src('src/scenes/vendorHost.js'), /const vendorItemStats = itemLookRows;/, 'the trader\'s look is this one');
 });
 
 /** A market book as the tab reads it - `goldOk` a realm character's - and the listings it is asked for. */
@@ -256,7 +256,7 @@ test('PACK-PICK the stall: a trader\'s "Put up a piece from your pack" is the sa
   const { gear, goods, quest } = pack();
   const put = [];
   const tab = createVendorTab({ mode: 'stall', own: true, read: async () => ({ ok: true, data: { rows: [] } }), nameOf: (it) => goods.goodName(it), purse: () => 100,
-    stats: itemLook, goods: () => goods.goods(), put: async (it, p) => { put.push([it, p]); return { ok: true }; } },
+    stats: itemLookRows, goods: () => goods.goods(), put: async (it, p) => { put.push([it, p]); return { ok: true }; } },
   { busy: () => false, run: async (start) => start(), rerender: () => {}, nowS: () => 0, alive: () => true });
   await tab.open();
   let b = tab.body();
@@ -266,7 +266,7 @@ test('PACK-PICK the stall: a trader\'s "Put up a piece from your pack" is the sa
   const armour = gear.find((it) => it.group === 'Armor');
   tilesOf(b).find((x) => word(x, 'packpick-name') === goods.goodName(armour)).onclick();
   b = tab.body();
-  assert.deepEqual([...byClass(b, 'packpick-stat')].map((n) => n.textContent), itemLook(armour).rows, 'the stall\'s own look');
+  assert.deepEqual([...byClass(b, 'packpick-stat')].map((n) => n.textContent), itemLookRows(armour).rows, 'the stall\'s own look');
   press().onclick();
   await tick();
   assert.deepEqual(put, [[armour, 100]]);

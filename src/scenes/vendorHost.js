@@ -5,7 +5,7 @@
 import { accountRefusalText } from '../net/accountClient.js';
 import { clearVendorWaypoint, isVendorWaypoint, setVendorWaypoint, vendorWaypointKey } from '../systems/vendorWaypoint.js';
 import { itemPicture } from '../ui/menu/menuPicture.js';
-import { itemLook } from '../systems/item/itemLook.js';   // PACK-PICK: the look the Market's List form reads too
+import { itemLookRows } from '../systems/item/itemLook.js';   // PACK-PICK: the look the Market's List form reads too
 import { REGION_NAMES } from '../formats/mapsFile.js';
 import { homeMayEnter as vendorDoorOpen } from '../net/homeLaw.js';
 import { goldText as vendorGoldText } from '../net/marketLaw.js';
@@ -21,9 +21,9 @@ export function createVendorHost(host) {
   const vendorRegionHere = () => { const p = playerTravelPixel(); try { const r = p ? maps.getRegionIndexAt(p.x, p.y) : null; return Number.isInteger(r) && r >= 0 ? r : null; } catch { return null; } };
   const vendorTownOf = (map) => _townOfMapId.get(Number(map) >>> 0)?.name || 'a town';
   const vendorNameOf = (it) => { try { return marketGoods.goodName(it); } catch { return 'a piece'; } };
-  /** A trader's piece LOOKED AT - `{ rows, magic }` (systems/item/itemLook.js itemLook: the look panel's stat rows and the
+  /** A trader's piece LOOKED AT - `{ rows, magic }` (systems/item/itemLook.js itemLookRows: the look panel's stat rows and the
    *  trade window's magic); PACK-PICK moved it there, so the Market's List form reads the same. Null for no piece. */
-  const vendorItemStats = itemLook;
+  const vendorItemStats = itemLookRows;
   const vendorSaid = (r, ok) => (r?.ok ? { ok: true, text: ok } : { ok: false, text: accountRefusalText(r?.error) });
   /** A trader's piece BOUGHT at its stall: off the purse at its own price, its delivery collected into the pack at once. */
   const vendorBuy = async (vendor, row) => {

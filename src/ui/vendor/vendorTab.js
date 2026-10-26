@@ -18,7 +18,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 import { goldText, wearOf, wearText, MARKET_PRICE_MAX } from '../../net/marketLaw.js';
 import { vendorSearch, VENDOR_LISTING_S } from '../../net/vendorLaw.js';
 import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a piece's picture, the host's
-import { packPickerNode, packCardNode, freshPackSift, tierWord } from '../packPicker.js';   // PACK-PICK: the piece put up chosen from its picture
+import { packPickerNode, packCardNode, freshPackSift, packTierWord } from '../packPicker.js';   // PACK-PICK: the piece put up chosen from its picture
 import { t } from '../../systems/textManager.js';
 
 const el = (tag, cls = null, text = null) => {
@@ -218,7 +218,7 @@ export function createVendorTab(v, ui) {
     const goods = all.filter((g) => !g.why);
     if (!goods.some((g) => g.item === st.good)) st.good = null;
     if (!all.length) { box.append(el('p', 'notice-tip', VENDOR_TEXT.packEmpty)); return box; }
-    const entries = all.map((g, i) => ({ key: `stall|${i}`, item: g.item, name: nameOf(g.item), sub: [tierWord(g.item), wearText(wearOf(g.item))].filter(Boolean).join(' · ') || null, why: g.why ?? null }));
+    const entries = all.map((g, i) => ({ key: `stall|${i}`, item: g.item, name: nameOf(g.item), sub: [packTierWord(g.item), wearText(wearOf(g.item))].filter(Boolean).join(' · ') || null, why: g.why ?? null }));
     box.append(packPickerNode({ entries, chosen: st.good, sift: st.sift, pick: (it) => { st.good = st.good === it ? null : it; ui.rerender(); },
       picture: v.picture ?? null, wake, label: t('market.list.packLabel', 'The pieces in your pack'), focus: 'vendor-good', empty: VENDOR_TEXT.packEmpty,
       refusedWhat: t('vendor.put.refused', 'Stays in your pack'), redraw: () => ui.rerender() }),

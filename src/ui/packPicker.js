@@ -59,7 +59,7 @@ export function siftEntries(/** @type {PackEntry[]} */ entries, /** @type {PackS
 }
 
 /** A piece's tier in words for its tile's line - "Rare" - while the loot ladder is on; null for Common. */
-export const tierWord = (/** @type {any} */ item) => { const r = safe(() => rarityAttr(item)); return r ? (RARITIES[/** @type {keyof typeof RARITIES} */ (r)]?.label ?? null) : null; };
+export const packTierWord = (/** @type {any} */ item) => { const r = safe(() => rarityAttr(item)); return r ? (RARITIES[/** @type {keyof typeof RARITIES} */ (r)]?.label ?? null) : null; };
 
 /** A node marked with the piece's tier (the sheet colours its frame by it). */
 const marked = (/** @type {HTMLElement} */ n, /** @type {any} */ item) => { const r = safe(() => rarityAttr(item)); if (r) n.setAttribute('data-rarity', r); return n; };
