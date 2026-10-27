@@ -555,7 +555,7 @@ export const FISHER_WORDS = Object.freeze({
 /** FISH-BOATS: a fishing boat's name off `r`, her name's own stream - "The Lucky Herring", "The Herring Lass". */
 export function fisherNameOf(r) {
   const W = NAME_WORDS, F = FISHER_WORDS;
-  const pick = (list) => list[Math.floor(r() * list.length) % list.length];
+  const pick = (words) => words[Math.floor(r() * words.length) % words.length];
   /** @type {[number, () => string][]} */
   const forms = [
     [5, () => `The ${pick(W.fair)} ${pick(F.catches)}`],
@@ -564,7 +564,7 @@ export function fisherNameOf(r) {
     [3, () => `The ${pick(W.fair)} ${pick(F.gear)}`],
   ];
   let x = r() * 15;
-  for (const [w, make] of forms) { if ((x -= w) < 0) return make(); }
+  for (const [weight, make] of forms) { if ((x -= weight) < 0) return make(); }
   return forms[forms.length - 1][1]();
 }
 /**

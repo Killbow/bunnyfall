@@ -189,8 +189,9 @@ export function boxesMeet(a, b) {
  * `isWater(x, z, hull)`. Answers `{ berths: [{ pos: [x, z], yaw, normal: [x, z], approach: [x, z] }], mouth: [x, z],
  * hull }`, the berths nearest the town first - or null where the town has no shore to berth at or no way out to sea.
  * AUDIT GN2-GN1: sounded for `hull`'s footprint in `deep`'s water too - the deepest keel that berths (BERTH_HULLS).
+ * ALDBRUGH-QUAY: `square` reads `reach` off the rect along each axis (a square), where it is read round by default.
  */
-export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deepestBerther(), max = HARBOUR_BERTHS, reach = HARBOUR_REACH }) {
+export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deepestBerther(), max = HARBOUR_BERTHS, reach = HARBOUR_REACH, square = false }) {
   const { length, halfWidth } = berthSize(hull);   // SHIPS-2: the berths' template's
   const isWater = (x, z, h) => !!own(x, z, h) && (h === deep || !!own(x, z, deep));
   const water = (x, z) => isWater(x, z, hull);
@@ -214,7 +215,7 @@ export function findHarbour({ rect, isWater: own, hull = BERTH_HULL, deep = deep
       const off = halfWidth + BERTH_MARGIN;
       const pos = [x + nx * off, z + nz * off];
       const dx = Math.max(rect.minX - pos[0], 0, pos[0] - rect.maxX), dz = Math.max(rect.minZ - pos[1], 0, pos[1] - rect.maxZ);
-      if (Math.hypot(dx, dz) > reach) continue;
+      if ((square ? Math.max(dx, dz) : Math.hypot(dx, dz)) > reach) continue;   // ALDBRUGH-QUAY: `square`, the port law's own ring of pixels, corners and all
       cands.push({ pos, normal: [nx, nz], d: Math.hypot(pos[0] - cx, pos[1] - cz) });
     }
   }

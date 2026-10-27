@@ -38,8 +38,8 @@ are ports by their data stand them, and the harbour board's ports are the same 1
 PORTS). A seat's members' harbour (`hasPortFor`) is one guild's word, so it stands no shipyard: every client stands the
 same one. Its harbour - the quays and the DOCKS below - is sounded out to that same ring when the town's own shore
 gives no berth within HARBOUR_REACH (FB1020c HARBOUR-REACH, `03-World/Holdings.md` section 7): 37 of the 106 stood a
-shipyard and a lighthouse and no quay until then (Daggerfall, Sentinel and Wayrest among them); 105 stand one now,
-Aldbrugh none (open).
+shipyard and a lighthouse and no quay until then (Daggerfall, Sentinel and Wayrest among them); all 106 stand one now,
+Aldbrugh's in its ring's corner (ALDBRUGH-QUAY, `03-World/Holdings.md` section 7).
 
 **The ground** is the yards' (`world/merchantYards/merchantYardSites.js` `townGroundOf`): the town's navgrid on the enhanced lane's
 water table, its buildings `BUILDING_CLEAR_M` off, its props, flats, palace blocks and the monument - with the Stable and

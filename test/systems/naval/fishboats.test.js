@@ -76,20 +76,27 @@ test('FISH-BOATS the classes: a Fishing Skiff (Come Sail Away\'s Rowboat, two at
     assert.ok(words.every((w) => [...FISHER_WORDS.catches, ...FISHER_WORDS.gear, ...NAME_WORDS.fair, ...NAME_WORDS.callings, ...NAME_WORDS.ports].includes(w)), n);
   }
   assert.equal(fisherNameOf(mulberry32(3)), fisherNameOf(mulberry32(3)));
-  // a skiff pulled: the same way in every wind, and none with the oars shipped
-  const ways = [];
-  for (const wind of [[0, 0, WIND_RATED], [WIND_RATED, 0, 0], [0, 0, -WIND_RATED], [0, 0, 0]]) {
-    const ship = createSeaShip({ id: 's', seed: 3, classId: 'fishingSkiff', pos: [0, 0, -400], yaw: 0 });
-    ship.errand = { kind: 'fish', harbour: 'port:1', to: [0, 172], at: [0, -900], yaw: 0, path: [[0, -400], [0, -900]], i: 1, ringing: false };
+  // a skiff pulled: out to her ground and round her ring, the same way and the same course in every wind - a gale before
+  // her or in her teeth, a calm - never tacked, never a sail's way (WIND_SHARE lets a gale double a sail's)
+  const ride = (wind, errand, seconds) => {
+    const ship = createSeaShip({ id: 's', seed: 3, classId: 'fishingSkiff', pos: [0, 0, -400], yaw: Math.PI });
+    ship.errand = errand();
     const life = { harbour: () => harbour, grid, free: () => true, harbours: () => [], lights: false };
-    for (let t = 0; t < 30; t += 0.1) stepCaptain(ship, { now: t, dt: 0.1, seaY: 0, wind, isWater: () => true, contacts: [], random: () => 0.5, life });
-    ways.push(+ship.speed.toFixed(3), +ship.pos[2].toFixed(1));
-  }
-  assert.ok(ways[0] > 1 && ways[0] <= Math.max(SWEEP_WAY, FISH_OAR_MPS) + 1e-6, `her way ${ways[0]}`);
-  assert.deepEqual(ways.slice(2, 4), ways.slice(0, 2)); assert.deepEqual(ways.slice(4, 6), ways.slice(0, 2)); assert.deepEqual(ways.slice(6, 8), ways.slice(0, 2));
+    for (let t = 0; t < seconds; t += 0.1) stepCaptain(ship, { now: t, dt: 0.1, seaY: 0, wind, isWater: () => true, contacts: [], random: () => 0.5, life });
+    return [+ship.speed.toFixed(3), ...ship.pos.map((v) => +v.toFixed(1))];
+  };
+  const out = () => ({ kind: 'fish', harbour: 'port:1', to: [0, 172], at: [0, -900], yaw: 0, path: [[0, -400], [0, -900]], i: 1, ringing: false });
+  const ring = () => ({ kind: 'fish', harbour: 'port:1', to: [0, 172], at: [0, -420], yaw: 0, path: null, i: 0, ringing: false });
+  const winds = [[0, 0, 2 * WIND_RATED], [0, 0, -2 * WIND_RATED], [2 * WIND_RATED, 0, 0], [0, 0, 0]];
+  const outs = winds.map((w) => ride(w, out, 30)), rings = winds.map((w) => ride(w, ring, 90));
+  assert.ok(outs[0][0] > 1 && outs[0][0] <= Math.max(SWEEP_WAY, FISH_OAR_MPS * 0.8) + 1e-6, `her way out ${outs[0][0]}`);
+  for (const o of outs) assert.deepEqual(o, outs[0], 'out: every wind the same');
+  assert.ok(rings[0][0] > 0.5 && rings[0][0] <= FISH_OAR_MPS * FISH_STROKE + 1e-6, `on her ring at her stroke: ${rings[0][0]}`);
+  for (const o of rings) assert.deepEqual(o, rings[0], 'on her ring: every wind the same');
 });
 
 test('FISH-BOATS the water each keeps: her ANCHORAGE past the berths\' ends along the shore, a side a slot and FISH_SPACING on, FISH_BERTH_CLEAR off every berth\'s ship and her way in, her hull afloat and the water\'s way from the mouth to it; her GROUND off the mouth within FISH_GROUND_M, bearing within FISH_GROUND_SPREAD of the harbour\'s outward way, the open water from the mouth to it; none where the harbour keeps no room (mutants: the berths\' clearance, the side, the spacing, the ground\'s spread, the ground\'s reach)', () => {
+  assert.equal(FISH_BERTH_CLEAR, 25);
   const n = outwardOf(harbour), u = [n[1], -n[0]];
   const length = berthSize(harbour.hull).bowZ - berthSize(harbour.hull).aftZ;
   const span = berthSpan(harbour, n, u, length);

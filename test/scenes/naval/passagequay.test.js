@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { sea } from '../../navalSea.mjs';
 import { findHarbour, alongside } from '../../../src/systems/naval/shipLife.js';
-import { FAST_M, FAST_DEG } from '../../../src/systems/naval/quays.js';
+import { FAST_M, FAST_DEG, DOCK_REACH_M, DOCK_ANGLE } from '../../../src/systems/naval/quays.js';
 import { quatOfYaw } from '../../../src/systems/naval/navalAI.js';
 import { hullBuild } from '../../../src/systems/naval/navalShips.js';
 import { Boat } from '../../../src/systems/comeSailAway/comeSailAwayBoat.js';
@@ -49,15 +49,16 @@ function warpFor(h, seconds, seen = { land: 0, path: [], steps: 0 }, untilFast =
     h.view.feet = [...h.boat.GameObject.position];
     const p = h.boat.GameObject.position, y = yawOf(w.rotation), b = hullBuild(h.boat.hull);
     for (const z of [b.bowZ, 0, b.aftZ]) if (!coast(p[0] + Math.sin(y) * z, p[2] + Math.cos(y) * z)) seen.land++;
-    seen.path.push([p[0], p[2]]);
+    seen.path.push([p[0], p[2], y]);
     if (untilFast && h.host.berthing(h.boat) === 'fast') return seen;
   }
   return seen;
 }
 
 test('PASSAGE-QUAY THE TOW, by the real naval host: a booked ship within BRING_IN_M of her port\'s harbour, a berth free there - brought in along the water\'s way to the berth\'s approach and in along the shore, never her stem nor her stern over land, at no more than TOW_WAY; made fast alongside the quay by QUAYS\' own warp, her gangway run out (mutants: the reach, the way unplanned, the way\'s pace, the dock not asked, the quay\'s gangway)', async () => {
-  for (const hull of [2, 1, 4]) {
-    const h = await tow({ hull });
+  // from off the harbour's mouth, three hulls; and from east of the headland (x 300-400, out to z -300), the water's way round it
+  for (const [hull, start] of [[2, null], [1, null], [4, null], [2, [600, 0, -100]]]) {
+    const h = await tow({ hull, ...(start ? { at: start } : {}) });
     assert.equal(h.host.bringIn(h.boat), true, `hull ${hull}: brought in`);
     assert.equal(h.host.berthing(h.boat), 'in');
     const seen = warpFor(h, 900);
@@ -68,6 +69,13 @@ test('PASSAGE-QUAY THE TOW, by the real naval host: a booked ship within BRING_I
     const p = h.boat.GameObject.position, y = yawOf(h.boat.GameObject.rotation);
     const at = HARBOUR.berths.map((b, i) => ({ i, b, d: Math.hypot(alongside(b, hull, HARBOUR.hull)[0] - p[0], alongside(b, hull, HARBOUR.hull)[1] - p[2]) })).sort((a, b) => a.d - b.d)[0];
     assert.ok(at.d <= FAST_M, `alongside her berth: ${at.d.toFixed(2)} m`);
+    // she comes in along the shore: within the dock's reach of her place she never lies past DOCK_ANGLE of its line
+    const side = alongside(at.b, hull, HARBOUR.hull);
+    for (const [x, z, yy] of seen.path) {
+      if (Math.hypot(x - side[0], z - side[1]) > DOCK_REACH_M) continue;
+      const off = Math.min(Math.abs(wrap(yy - at.b.yaw)), Math.abs(wrap(yy - at.b.yaw - Math.PI)));
+      assert.ok(off <= (DOCK_ANGLE + 1) * DEG, `hull ${hull}: ${(off / DEG).toFixed(0)} deg off her berth's line within the dock's reach`);
+    }
     assert.ok(Math.min(Math.abs(wrap(y - at.b.yaw)), Math.abs(wrap(y - at.b.yaw - Math.PI))) <= FAST_DEG * DEG, 'along its line');
     const g = h.host.gangways().find((x) => x.boat === h.boat);
     assert.ok(g, `hull ${hull}: her gangway run out to the quay`);
@@ -82,7 +90,7 @@ test('PASSAGE-QUAY THE TOW, by the real naval host: a booked ship within BRING_I
   }
 });
 
-test('PASSAGE-QUAY NEVER: a boat of mine (no charter), a passage to another port, her port\'s harbour past BRING_IN_M, the sea fight switched off - none is brought in, and the warp seam is QUAYS\' own for them (mutants: the charter unread, the port unmatched, the reach unread, the switch unread)', async () => {
+test('PASSAGE-QUAY NEVER: a boat of mine (no charter), a passage to another port, her port\'s harbour past BRING_IN_M, the sea fight switched off - none is brought in, and the warp seam is QUAYS\' own for them (mutants: the charter unread, the port unmatched, the reach unread)', async () => {
   const mine = await tow({ record: null });
   mine.boat.charter = undefined;
   assert.equal(mine.host.bringIn(mine.boat), false, 'a boat of mine');
