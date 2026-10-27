@@ -59,7 +59,7 @@ test('LOOT-DOOR THE NUMBER READS WHAT IT SAYS: 1 is a Master\'s work and a Mount
   assert.deepEqual(heard.s.map((it) => [it.rarity ?? null, it.templateIndex]), [['legendary', work.templateIndex], [null, trophy.templateIndex]]);
 });
 
-test('LOOT-DOOR THE RELAY\'S DOOR, through real Rooms: off, main\'s build is let in; a developer turns it on at the hub (on and off alone); the hub lets anyone in; a cold cell lets the current build in without asking, asks before its first older hello and refuses it with the words every build shows, nothing written - a dungeon\'s and a building\'s room too; a later build is let in; turned off, a cell lets it in again inside a TTL (mutants: the room unread; the law unread; the cold ask unawaited; the setting unread; the door not shut)', async () => {
+test('LOOT-DOOR THE RELAY\'S DOOR, through real Rooms: off, the current build and main\'s are let in; a developer turns it on at the hub (on and off alone); the hub lets anyone in; a cold cell lets the current build in without asking, asks before its first older hello and refuses it with the words every build shows, nothing written - a dungeon\'s and a building\'s room too; a later build is let in; turned off, a cell lets it in again inside a TTL (mutants: the room unread; the law unread; the cold ask unawaited; the setting unread; the door not shut)', async () => {
   const realNow = Date.now;
   let clock = 1_800_000_000_000;
   Date.now = () => clock;
@@ -70,7 +70,8 @@ test('LOOT-DOOR THE RELAY\'S DOOR, through real Rooms: off, main\'s build is let
       const join = async (R, id, extra = {}) => { const ws = R.connect(); clock += 300; await R.hello(ws, id, null, extra); return ws; };
       const roster = (R) => R.sockets.filter((s) => s.att?.id).map((s) => s.att.id);
       const A = W.room('world:9,9');
-      assert.equal((await join(A, 'old-0001', OLDER)).closed, null, 'off: main\'s build stands in the cell');
+      assert.equal((await join(A, 'new-0000', CURRENT)).closed, null, 'off: the current build stands in the cell');
+      assert.equal((await join(A, 'old-0001', OLDER)).closed, null, 'off: and main\'s build beside it');
       const dev = await join(H, 'dev-0001', { glyphs: ['dev'] });
       const say = async (k, v) => { clock += 5000; await H.raw(dev, JSON.stringify({ t: 'cfg', k, v })); return dev.sent.filter((f) => f.t === 'cfg').at(-1); };
       assert.match((await say('lootDoor', 'yes')).error, /lootDoor is on .* or off/);
