@@ -283,10 +283,35 @@ beasts slain and the account's way to its next hunt title (statsHunt). Offline n
 From Stalker, every board posts its reader the week's named beast, first in its list. It is one beast of the reader's
 tier, the same at every board for the week (huntMarkOf: the beast and one of sixteen names off the week's hash), on
 one of the board's own sites. Taken, it stands at its pixel through the board's pack stand: one elite, named over its
-head (`raidLeader`), with two boss traits off the week's seed (`05-Combat/Boss-Traits.md`). Slain, it pays three full
+head (`raidLeader`), with the week's two boss traits (`05-Combat/Boss-Traits.md`) in place of any its stand drew as an
+elite (HUNTERS-MARK-II, a raid's leader's law). Slain, it pays three full
 packs' purse of its tier (huntMarkGold) and a mounted trophy under its name, never kit. Its clear is reported as a
 board's; the service takes one a week a character, and only from the rung (`hunt-rung`). One is held at a time, Give
 up asks twice, and a mark held past the seats' Turning lapses.
+
+**A mate sees it named** (HUNTERS-MARK-II, 2026-10-27; it closes 12.8's FLAGGED line). A mark is a pure function of the
+week and the tier, so a mate's machine reads it off what the hunter's foe record already carries (`net/wire.js`
+validFoeRecord): an elite (`z`) and a leader (`rl`) that no raid tags (the frame's `rz`), of a kind that is its tier's
+mark this week or last, with that week's traits' mask (`bt`). That copy stands under the hunter's own title, with the
+same two traits at the same size (`systems/hunt/namedMark.js` huntMarkSeen, read where `scenes/exteriorFoes.js` names a
+puppet's leader, on the event clock). Last week's still reads because a mark stood before the Turning still stands after
+it: its hunt lapses, the beast stays. This week's is read first. The wire, the relay and the service are unchanged.
+
+**DECIDED**: anyone who sees the mark reads its name, a passer-by as well as a mate. The cell's stream reaches the
+whole cell, the elite and its traits were everyone's to see already, and the name is the week's own, posted on every
+board. An Unquiet mark is its hunter's alone, as on any special foe (`06-Systems/Revenants.md` section 46).
+
+**What a mate gets** (kept, not changed). The mark rides no pose: `bq` carries a bounty's id alone (`wire.js`
+BOUNTY_POSE_ID_RE), so no mate holds a share of it. The hunter's machine counts the kill, whoever lands it: only the
+hunter is paid (the purse and the trophy), and only the hunter's clear is reported. A mate who fought it gets what
+fighting a party mate's bounty beast gives one who does not hold the hunt: the kill's Renown if a blow of theirs
+landed in its last half minute, the party bonus counting who fought it (`net/renownTracker.js`), and a claim on its
+body as on any peer's foe (OUTDOOR-LOOT). No purse, no trophy, no clear, no rank.
+
+**NOT CHANGED, named**: two mates who took the same week's mark at one board each stand their own copy at its lair, and
+each is paid for their own; a board's one-pack law (section 6) is not the mark's. A stand that rolled the mark an elite
+lays an elite's drop on its body beside its kind's: the stand's own roll, which `world.js` `_standBountyPack` has no
+way to refuse, and bootWorld has no room to add one.
 
 ### 12.5 The mounted trophy
 
@@ -322,8 +347,11 @@ serpent names no seat's region, and a port's trade the Watch vouches for already
 **The streaming world** (`scenes/world.js`) wires it: the hunt's online deps (`huntersMark.js` huntOnline), the trophy
 door for the hunt's kind (`trophies.js` trophyDoor), and the gather host hands its entity to a kind's answer; bootWorld
 does not grow. **The fixed city** (`scenes/exterior.js`) keeps DFU's board: no rank and no marks there, **FLAGGED**.
-**The standalone dungeon** and **the interior viewer** have no boards. A mark is its hunter's own: a mate sees an elite
-without its name (the name is not on the party wire), **FLAGGED**. Offline none of it shows.
+**The standalone dungeon** and **the interior viewer** have no boards. A mate sees the hunter's mark under its name
+(HUNTERS-MARK-II, 12.4): the foe pool the hosts share reads it (`scenes/exteriorFoes.js`), so the streaming world
+carries it and bootWorld wires nothing; an interior's pool (`scenes/worldModes.js`) reads alike, and no mark stands
+indoors; a dungeon's own stream (`scenes/dungeonContext.js`) has none to read, as no mark stands below; the fixed city
+streams no peer's foes. Offline none of it shows.
 
 ### 12.9 Pins
 
@@ -331,6 +359,11 @@ without its name (the name is not on the party wire), **FLAGGED**. Offline none 
 `test/systems/huntersmark_trophies.test.js` (5); `tools/mutants/huntersmark.json`. PIN MOVED: TITLES' positions read
 from its end (sixteen joined last), the catalogue's rows, the Collections parts' lists, the l10n ratchet's badge words,
 the Trophy Hunter's spec (no longer waiting). Fifteen mutant records of other slices re-aimed by content.
+
+HUNTERS-MARK-II: `test/scenes/huntersmark2_wire.test.js` (2) - the law, and the whole way between two real pools (the
+real bounty host's mark crowned, its frame read, only the hunter paid, the mate's Renown); `tools/mutants/huntersmark2.json`,
+10 dead. No pin moved. `auditwe_cover.json`'s puppet-leader record re-aimed by content (the line now reads a mark too),
+dead. No version moves.
 
 **The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct201, its migrations 0180 and 0181
 (0178 and 0179 on its branch). RELAY_VERSION world271: the token's TITLES gained sixteen, the bundle's files unchanged.
