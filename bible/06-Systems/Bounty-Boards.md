@@ -431,5 +431,5 @@ the reader's language (Intl.ListFormat, as `gambitTableWords.js` lists); `hunt.m
 
 Pins: the tests and mutant records above, each named for its finding (`AUDIT-F*`, `AUDIT-G*` in
 `tools/mutants/huntersmark.json`). PIN MOVED: the ceiling's 48 (the law's test), the traits' line (the window's test),
-nine records of this slice re-aimed by content; `mail1.test.js`'s D1 harness gained D1's own `batch`. The account service changed (ACCOUNT_VERSION at the merge); the relay
+six records of this slice re-aimed by content; `mail1.test.js`'s D1 harness gained D1's own `batch`. The account service changed (ACCOUNT_VERSION at the merge); the relay
 and the wire did not.
