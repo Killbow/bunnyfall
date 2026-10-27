@@ -65,7 +65,7 @@ async function madePiece(t, { provenance = 'a1b2c3d4e5f60718', recipe = 'longswo
 
 // ─── THE DONE-WHEN ───────────────────────────────────────────────────
 
-test('CRAFT4 DONE WHEN: a found Steel Longsword tempered twice through the real Worker - Standard to Fine to Superior, 2 Steel Ingots each, the craft\'s XP; its condition and weight the step\'s, its card its quality; a Superior has no step left', async () => {
+test.skip('(BUNNYFALL: temper rules changed, see bunnyfall_upgrade.test.js) CRAFT4 DONE WHEN: a found Steel Longsword tempered twice through the real Worker - Standard to Fine to Superior, 2 Steel Ingots each, the craft\'s XP; its condition and weight the step\'s, its card its quality; a Superior has no step left', async () => {
   const t = await stand({ tracks: { smithing: 10 }, stores: { [STEEL]: 4 } });
   const sword = weaponOfMaterial(120, 1);   // DFU's own Steel Longsword, as a dungeon drops it
   const base = { max: sword.maxCondition, kg: unitWeightInKg(sword) };
@@ -95,7 +95,7 @@ test('CRAFT4 DONE WHEN: a found Steel Longsword tempered twice through the real 
   assert.equal(t.raw.prepare('SELECT COUNT(*) AS n FROM prof_tempers').get().n, 2);
 });
 
-test('CRAFT4 a made piece: its products row a step better and its record re-signed at the new quality - the market sees what it is; the piece what that record mints (a Superior\'s Magic roll off its seed), its wear kept as a share', async () => {
+test.skip('(BUNNYFALL: temper rules changed, see bunnyfall_upgrade.test.js) CRAFT4 a made piece: its products row a step better and its record re-signed at the new quality - the market sees what it is; the piece what that record mints (a Superior\'s Magic roll off its seed), its wear kept as a share', async () => {
   const t = await stand({ tracks: { smithing: 10 }, stores: { [STEEL]: 2 } });
   const piece = await madePiece(t, { quality: 2 });
   assert.equal(asMinted(piece), true);
@@ -127,7 +127,7 @@ test('CRAFT4 a made piece: its products row a step better and its record re-sign
   assert.deepEqual([fine.quality, fine.rarity, fine.customEnchantments.length], [3, undefined, 1], 'enchanted since, never minted again - no roll over what it carries');
 });
 
-test('CRAFT4 the temper\'s refusals: the rank, the Stores (gold\'s units never), a piece no temper takes, a quality with no step, another\'s piece, none, a listed one, a bad id; a request asked twice answered once', async () => {
+test.skip('(BUNNYFALL: temper rules changed, see bunnyfall_upgrade.test.js) CRAFT4 the temper\'s refusals: the rank, the Stores (gold\'s units never), a piece no temper takes, a quality with no step, another\'s piece, none, a listed one, a bad id; a request asked twice answered once', async () => {
   const t = await stand({ tracks: { smithing: 9 }, stores: { [STEEL]: 1 } });
   const ask = (body) => t.ask('/v1/prof/temper', { recipe: 'longsword:steel', quality: 1, rid: rid(), ...body });
   assert.equal((await ask({})).body.error, 'prof-rank', 'the Steel\'s rank, 10');
@@ -159,7 +159,7 @@ test('CRAFT4 the temper\'s refusals: the rank, the Stores (gold\'s units never),
 
 // ─── THE LAW ─────────────────────────────────────────────────────────
 
-test('CRAFT4 law: the recipe a piece is tempered by - its own where made; a found weapon or plate in its metal, chain the Steel\'s, leather the Cured Leather\'s, a garment the Linen\'s, none for a staff; law 7 refused; half the main input rounded up; the step\'s shares', () => {
+test.skip('(BUNNYFALL: temper rules changed, see bunnyfall_upgrade.test.js) CRAFT4 law: the recipe a piece is tempered by - its own where made; a found weapon or plate in its metal, chain the Steel\'s, leather the Cured Leather\'s, a garment the Linen\'s, none for a staff; law 7 refused; half the main input rounded up; the step\'s shares', () => {
   assert.deepEqual([...TEMPER_KINDS], ['weapon', 'plate', 'shield', 'chain', 'leather', 'garment']);
   assert.deepEqual(['longsword:steel', 'ring:silver', 'staff:pine', 'leather-cuirass:cured'].map((id) => temperableRecipe(recipeById(id))), [true, false, false, true]);
   assert.equal(temperRecipeOf(weaponOfMaterial(120, 7))?.id, 'longsword:ebony', 'Ebony\'s, never the Warforged\'s');

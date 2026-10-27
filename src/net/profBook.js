@@ -55,6 +55,7 @@
 // Pure - the door, the storage, the clock and the ids are handed in - so
 // the pins drive it without a network.
 // ═══════════════════════════════════════════════════════════════════
+import { upgradeCost } from './upgradeLaw.js';   // BUNNYFALL: the material upgrade's spend
 import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
 import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
 import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
@@ -985,6 +986,28 @@ export function createProfBook({ door, storage = null, character = () => null, n
       })();
       return m.promise;
     },
+    /** BUNNYFALL: A MATERIAL UPGRADE - a found piece into `recipe`, one metal up (upgradeLaw.js), its cost from the
+     *  Stores (the bag and the pack first, as a craft's). Kept as a temper is. */
+    async upgrade(recipe, itemKey) {
+      const c = character();
+      if (!c) return { ok: false, error: 'prof-character' };
+      const origin = slot();
+      const key = `upgrade|${origin}|${recipe}|${itemKey ?? ''}`;
+      const m = idFor(key, PROF_QUEUE_MS);
+      if (m.promise) return m.promise;
+      m.promise = (async () => {
+        const next = recipeById(recipe);
+        const ready = next ? await book.ensureInStores([upgradeCost(next)], { work: true }) : { ok: true };
+        if (!ready.ok) { m.promise = null; ids.delete(key); return { ok: false, error: ready.error ?? 'materials-short', material: ready.material, moved: ready.moved ?? 0 }; }
+        const r = await ask(() => door.upgrade(c, recipe, m.id), origin);
+        m.promise = null;
+        if (!keptAnswer(r) && r?.error !== 'elsewhere') ids.delete(key);
+        if (origin !== slot()) return { ...r, elsewhere: true };
+        if (r?.ok) { for (const s of r.data?.stores ?? []) applyStore(s); applyTrack(r.data?.track); } else shutBy(r);
+        return r;
+      })();
+      return m.promise;
+    },
     /** CRAFT4: A TEMPER (Professions-Arc 41.7) - a piece of `recipe` a quality step better than `quality`, half the
      *  recipe's main input from the Stores; a made piece names its `provenance` (its record re-signed - the answer's
      *  `record`). The id is the ask's own until an answer comes, so a press after a lost answer is the same temper, and
@@ -999,7 +1022,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       m.promise = (async () => {
         // BAG1: what the Stores lack, from the bag and the pack first - as a craft's
         const r0 = recipeById(recipe);
-        const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0)], { work: true }) : { ok: true };   // BAG-CRAFT
+        const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0, quality)], { work: true }) : { ok: true };   // BAG-CRAFT
         if (!ready.ok) { m.promise = null; ids.delete(key); return { ok: false, error: ready.error ?? 'materials-short', material: ready.material, moved: ready.moved ?? 0 }; }
         const r = await ask(() => door.temper(c, recipe, quality, provenance, m.id), origin);
         m.promise = null;

@@ -75,7 +75,7 @@ import {
   PROVENANCE_RE,   // CRAFT4: a tempered piece's id
 } from '../../src/net/recipeLaw.js';
 import { mintProductRecord, readProductRecord, craftMintVersion } from '../../src/net/productRecord.js';   // CRAFT4: a tempered piece's record re-signed; CRAFT-PROCS: the mint's version (AUDIT FB1026d C3: the client's, at most ours)
-import { temperableRecipe, temperFrom, temperCost, temperXp } from '../../src/net/temperLaw.js';   // CRAFT4: the temper
+import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '../../src/net/temperLaw.js';   // CRAFT4: the temper
 import { signingKey } from './signing.js';
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
@@ -1601,6 +1601,7 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
   const craft = trackOf(r.profession);   // Smithing's or Outfitting's
   const rank = ranks[craft] ?? 0;
   if (rank < r.rank) return { error: 'prof-rank' };
+  if (quality + 1 > temperCap(r, rank)) return { error: 'prof-temper-rank' };   // BUNNYFALL: the rank caps the quality reached
   let record = null;
   if (provenance !== null) {
     const p = await db.prepare('SELECT * FROM products WHERE provenance = ?1').bind(provenance).first();
@@ -1612,7 +1613,7 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
     if (!c) return { error: 'prof-temper' };
     record = await mintProductRecord({ p: c.p, s: c.s, h: c.h, r: c.r, q: quality + 1, m: c.m, c: c.c, a: c.a === 1, u: c.u ?? null, f: c.f ?? null, v: c.v ?? null }, await signingKey(env, subtle), { subtle, nowS });   // CRAFT-PROCS: the craft's mint version kept - a piece made before mints as it was
   }
-  const cost = temperCost(r);
+  const cost = temperCost(r, quality);   // BUNNYFALL: by the quality reached
   const cap = craftCapSql('?1', '?2', craft);   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
   const xp = scaleXp(temperXp(r, rank), xpPct(await firmStatsOf(db, player, env, character), craft));   // AUDIT UICALM-FIRM1 L2 L3: the Firmament's hand on a temper's XP, as on the anvil's
   const nonce = mintId(rand);

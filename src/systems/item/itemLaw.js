@@ -277,7 +277,7 @@ export function itemFindings(v, opts = {}) {
   // ── the craft's marks ───────────────────────────────────────────────
   if (has(item, 'provenance') && !PROVENANCE_RE.test(item.provenance)) out.add('provenance');
   if (has(item, 'uid') && !ITEM_UID_RE.test(item.uid)) out.add('uid');
-  if (has(item, 'quality') && !has(item, 'provenance') && item.quality !== 2 && item.quality !== 3) out.add('crafted');   // a found piece tempered reaches 3 (temperLaw TEMPER_TOP)
+  if (has(item, 'quality') && !has(item, 'provenance') && !(item.quality >= 2 && item.quality <= 4)) out.add('crafted');   // a found piece tempered reaches 4 (temperLaw TEMPER_TOP, BUNNYFALL)
   if ((has(item, 'kitMetal') || item.fieldKit === true) && item.templateIndex !== REPAIR_KIT_TEMPLATE) out.add('crafted');
   if (has(item, 'hand') && !(item.group === 'Jewellery' && has(item, 'provenance'))) out.add('crafted');
   if (has(item, 'potent') && !(item.templateIndex === GLASS_BOTTLE_TEMPLATE && POTENT_SHARES.includes(item.potent))) out.add('crafted');

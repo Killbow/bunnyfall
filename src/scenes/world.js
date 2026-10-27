@@ -615,7 +615,7 @@ import { heatBand, planeBand, stitchBand, chiselBand, recipeById } from '../net/
 import { COOK_KEPT_TEXT } from '../systems/smithItems.js';   // PROF9: the fire's word, a dish whose answer did not come
 import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jeweller's bench's word, a piece whose answer did not come
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
-import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
+import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence, withTemperGold } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
 import { QUALITY_NAMES } from '../net/recipeLaw.js';   // CRAFT4: a temper's word
 import { reforgeableLines, affixLine, reforgeCount } from '../systems/loot/lootRarity.js';   // CRAFT4: the lines an Enchanter reforges; REFORGE-REPLACE: the reforges a piece has taken
 import { trackOf } from '../net/professionLaw.js';   // CRAFT4: the craft a piece's temper is
@@ -11848,7 +11848,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         temper: async (offer) => {
           const r0 = recipeById(offer?.recipe);
           const loom = trackOf(r0?.profession) === 'outfitting';
-          const f = (loom ? modes?.loomHere?.() : modes?.forgeHere?.()) ?? null;
+          const f = withTemperGold((loom ? modes?.loomHere?.() : modes?.forgeHere?.()) ?? null, offer?.quality);   // BUNNYFALL: the upgrade's gold on the fee
           if (!f) return { ok: false, text: loom ? 'You are not at a loom.' : 'You are not at an anvil.' };
           const who = loom ? 'tailor' : 'smith';
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The ${who} asks ${f.fee} gold for a temper.` };

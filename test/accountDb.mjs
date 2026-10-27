@@ -149,7 +149,9 @@ export async function standService(extra = {}) {
   /** Marks struck to an account by hand - a line, so the balances move as the ledger's triggers move them. */
   const seedMarks = (who, n, tag = 'seed') => env.DB._raw.prepare(`INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)
     VALUES ('mint', NULL, 'account', ?, 'test', ?, 1, 1, ?, NULL, ?)`).run(who.id, n, who.id, `${tag}-${who.handle}-${n}`);
-  const fetch = (u, i) => worker.fetch(new Request(u, i), env);
+  // BUNNYFALL: the client's service sits under /accounts on its own domain (src/net/selfHost.js); the Worker answers at /v1
+  const unprefixed = (u) => { const url = new URL(typeof u === 'string' ? u : u.url); url.pathname = url.pathname.replace(/^\/accounts(?=\/)/, ''); return url.href; };
+  const fetch = (u, i) => worker.fetch(new Request(typeof u === 'string' ? unprefixed(u) : new Request(unprefixed(u), u), i), env);
   /** MERGE 2: A GUILD FOUNDED - main's AUDIT REALM2 S2 made a founding a realm character's, paid on its record: `who` is
    *  seated as one (test/realmSeat.mjs, the realm pins' one home) and plays it from here (`who.character` is its id),
    *  and the founding asks the real route with where its record stands. Answers the route's `{ status, body }`. */

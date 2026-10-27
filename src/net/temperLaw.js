@@ -58,11 +58,11 @@
 // one: a static roll is its record's to the last number.
 // ═══════════════════════════════════════════════════════════════════
 
-import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN } from './recipeLaw.js';
+import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN, qualityOdds } from './recipeLaw.js';
 import { REFORGES_MAX } from '../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the most reforges a piece counts - the ladder's one bound (the service loads the ladder already, through the item law)
 
 /** The highest quality a temper reaches: Superior (QUALITY_NAMES[3]). */
-export const TEMPER_TOP = 3;
+export const TEMPER_TOP = 4;   // BUNNYFALL: a temper reaches Masterwork (was Superior)
 /** The recipes' kinds a temper takes: the smith's weapons and metal armour, the tailor's leather and cloth. */
 export const TEMPER_KINDS = Object.freeze(['weapon', 'plate', 'shield', 'chain', 'leather', 'garment']);
 /** Whether a recipe's piece takes a temper. */
@@ -96,7 +96,23 @@ export function temperRecipeOf(item) {
 
 /** What a temper spends: half the recipe's main input (its metal's ingots, its leather, its bolts), rounded up.
  *  @param {any} r */
-export const temperCost = (r) => ({ key: r.inputs[0].key, n: Math.ceil(r.inputs[0].n / 2) });
+export const temperCost = (r, from = 1) => ({ key: r.inputs[0].key, n: Math.max(1, Math.ceil(r.inputs[0].n * (TEMPER_SHARE[from + 1] ?? 0.5))) });
+/** BUNNYFALL: what a step to each quality takes of the recipe's main input (Crude, Standard, Fine, Superior, Masterwork):
+ *  40% to Standard or Fine, 80% to Superior, 150% to Masterwork. Upgrades never fail, so the price is in materials. */
+export const TEMPER_SHARE = Object.freeze([0, 0.4, 0.4, 0.8, 1.5]);
+/** BUNNYFALL: the gold a step to each quality costs, paid at the station beside its fee. */
+export const TEMPER_GOLD = Object.freeze([0, 100, 100, 300, 1000]);
+/** BUNNYFALL: the gold a step from quality `from` costs. */
+export const temperGold = (from) => TEMPER_GOLD[from + 1] ?? 0;
+/** BUNNYFALL: a station's fee with a temper's gold laid on it (null where there is no station). */
+export const withTemperGold = (f, from) => (f ? { ...f, fee: (f.fee > 0 ? f.fee : 0) + temperGold(from) } : null);
+/** BUNNYFALL: the highest quality a crafter's rank reaches on a recipe - the best its craft could roll at that margin. */
+export function temperCap(r, rank) {
+  const odds = qualityOdds((Number(rank) || 0) - (r?.rank ?? 0));
+  let top = 0;
+  for (let q = 0; q < odds.length; q++) if (odds[q] > 0) top = q;
+  return top;
+}
 /** A temper's XP: the craft's, at the recipe's tier (a quarter more than two tiers below the rank's top), no first.
  *  @param {any} r @param {number} rank */
 export const temperXp = (r, rank) => craftXp(r.tier, rank);
@@ -113,8 +129,7 @@ export function temperRefusal(item) {
   if (item.sigil != null) return 'sigil';
   if (TEMPER_SHUT.includes(item.rarity) || item.artifact) return 'rarity';
   const q = pieceQuality(item);
-  if (q === MASTERWORK) return 'masterwork';
-  if (q >= TEMPER_TOP) return 'top';
+  if (q >= TEMPER_TOP) return q === MASTERWORK ? 'masterwork' : 'top';
   return null;
 }
 

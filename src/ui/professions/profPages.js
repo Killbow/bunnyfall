@@ -87,7 +87,7 @@ import {
   STATION_TRACKS, CRAFT_TRACKS, trackBar, toNextWords, firstStanding, firstsLine, firstBadge, recipeFirstOwed, workFirstOwed, brewFirstOwed,
   owedOpenFirsts, owedName, xpSources, gradeNote, madeShown,
 } from './craftHall.js';   // CRAFT-HALL
-import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
+import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence, temperCap } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
 import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
 import { drawMasterBox, resetMasterBoxes } from './masterBox.js';   // MASTER-ART: a Master's work, in the craft box at Master
 import { createStitchAct } from '../../systems/stitchAct.js';
@@ -3380,8 +3380,8 @@ function drawTemper(detail, rerender, { el, divider }, where) {
   for (const pc of pieces) {
     const r = recipeById(pc.recipe);
     if (!temperableRecipe(r)) continue;
-    const cost = temperCost(r);
-    const open = rank >= r.rank, have = workOf(book, cost.key) >= cost.n;
+    const cost = temperCost(r, pc.quality);   // BUNNYFALL: by the quality reached, capped by the rank
+    const open = rank >= r.rank && pc.quality + 1 <= temperCap(r, rank), have = workOf(book, cost.key) >= cost.n;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[pc.quality + 1]} - ${cost.n} ${p.name(cost.key)}, +${paidXp(temperXp(r, rank), pay)} ${professionName(craft)} XP`));
     if (open && !have) row.append(el('span', 'prof-short', `Needs ${cost.n} ${p.name(cost.key)}.`));

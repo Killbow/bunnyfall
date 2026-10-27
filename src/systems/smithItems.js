@@ -92,6 +92,7 @@ import { itemLongName } from './item/itemInfo.js';
 import './professions/profTemplates.js';   // the Repair Kit's row (692), registered with the ores and ingots
 import { applyRarity, rarityEligible, RARE_FLAVOURS, reforgeAffix, reforgeableLines, lastPass, rarityName, affixesWorth } from './loot/lootRarity.js';   // CRAFT4: and the Reforge with Essence's roll; CRAFT-PROCS: the last pass; MASTER-ART: a Master's work's name and worth
 import { pieceQuality, temperRefusal, temperStep, reforgeEssence } from '../net/temperLaw.js';   // CRAFT4: the temper
+import { upgradeRecipeOf, upgradeRefusal } from '../net/upgradeLaw.js';   // BUNNYFALL: the material upgrade
 import { readProductRecord, mintVersionOf, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_ARMOR_LEAN, MINT_V_JEWEL_KIN, MINT_V_MASTER, masterLinesOf } from '../net/productRecord.js';   // CRAFT4: a tempered piece's record, re-signed; CRAFT-PROCS: the mint's version; AFFIX-LINES: its lines' law; MASTER-ART: a Master's lines
 import { masterLinesOfRecord } from '../net/masterLaw.js';   // MASTER-ART: a Master's work's lines, as its record signs them
 import { itemIsIdentified } from './tradeModes.js';   // CRAFT4: a line the Reforge sees, known
@@ -303,7 +304,7 @@ const TEMPER_MINTED = Object.freeze(['maxCondition', 'weightInKg', 'quality', 'r
  * another step, or a record of another piece, changes nothing).
  * @param {any} item @param {{ quality?: number, record?: string|null }} answer
  */
-export function temperItem(item, { quality, record = null } = {}) {
+export function temperItem(item, { quality, record = null } = {}, rolls = Math.random) {
   const from = pieceQuality(item);
   if (!item || temperRefusal(item) || quality !== from + 1) return false;
   const share = item.maxCondition > 0 ? conditionShare(item) : 1, oldMax = item.maxCondition;
@@ -317,11 +318,32 @@ export function temperItem(item, { quality, record = null } = {}) {
     item.maxCondition = Math.max(1, Math.round(item.maxCondition * step.condition));
     if (step.weight !== 1) item.weightInKg = Math.round(unitWeightInKg(item) * step.weight * 100) / 100;
     item.quality = quality;
+    // BUNNYFALL: a plain found piece raised to Superior takes a Magic roll, to Masterwork a Rare one - a crafted piece's
+    // own (mintPiece), so the anvil is a road to magic gear while drops are rare
+    if (quality >= 3 && rarityEligible(item)) applyRarity(item, quality >= 4 ? 'rare' : 'magic', rolls);
   }
   item.currentCondition = Math.max(0, Math.min(item.maxCondition, Math.round(item.maxCondition * share)));
   // AUDIT MEND-THIRD L1-6 (L2-6, L3-5): a found piece's mark, and its owner's mends past it, the same share of the new
   // maximum - left where they stood, the mark fell as a share and the temper's kept share read as a mend, so a Daedric
   // cuirass found at 47% sold at 43% for the gold its temper cost
+  scaleFoundMark(item, oldMax, item.maxCondition);
+  return true;
+}
+/** BUNNYFALL: A MATERIAL UPGRADE, ON THE PIECE: its metal set to `next`'s (upgradeLaw.js upgradeRecipeOf), and every
+ *  number the metal sets scaled by the new metal's base over the old (value, condition) - its magic lines, sockets,
+ *  quality, name and wear kept. Answers true, or false for a piece that is not the one `next` upgrades. */
+export function upgradeMaterialItem(item, next) {
+  if (!item || !next || upgradeRefusal(item) || upgradeRecipeOf(item)?.id !== next.id) return false;
+  const isWeapon = item.group === 'Weapons';
+  const old = isWeapon ? weaponOfMaterial(item.templateIndex, item.material) : armorOfMaterial(item.templateIndex, item.material);
+  const fresh = isWeapon ? weaponOfMaterial(next.templateIndex, next.material) : armorOfMaterial(next.templateIndex, next.material);
+  if (!old || !fresh) return false;
+  const share = item.maxCondition > 0 ? conditionShare(item) : 1, oldMax = item.maxCondition;
+  item.material = next.material;
+  if (old.value > 0 && Number.isFinite(item.value)) item.value = Math.max(1, Math.round(item.value * (fresh.value / old.value)));
+  if (old.maxCondition > 0 && item.maxCondition > 0) item.maxCondition = Math.max(1, Math.round(item.maxCondition * (fresh.maxCondition / old.maxCondition)));
+  if (isWeapon) { item.minDamage = fresh.minDamage; item.maxDamage = fresh.maxDamage; }
+  item.currentCondition = Math.max(0, Math.min(item.maxCondition, Math.round(item.maxCondition * share)));
   scaleFoundMark(item, oldMax, item.maxCondition);
   return true;
 }
