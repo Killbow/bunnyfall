@@ -299,7 +299,7 @@ it: its hunt lapses, the beast stays. This week's is read first. The wire, the r
 
 **DECIDED**: anyone who sees the mark reads its name, a passer-by as well as a mate. The cell's stream reaches the
 whole cell, the elite and its traits were everyone's to see already, and the name is the week's own, posted on every
-board. An Unquiet mark is its hunter's alone, as on any special foe (`06-Systems/Revenants.md` section 46).
+board. Only "Unquiet" before its title stays the hunter's own, as on any special foe (`06-Systems/Revenants.md` section 46).
 
 **What a mate gets** (kept, not changed). The mark rides no pose: `bq` carries a bounty's id alone (`wire.js`
 BOUNTY_POSE_ID_RE), so no mate holds a share of it. The hunter's machine counts the kill, whoever lands it: only the
