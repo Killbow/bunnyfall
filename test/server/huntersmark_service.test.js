@@ -21,16 +21,16 @@ import { progressSpentOf, PROGRESS_ROUTES } from '../../server-account/src/progr
 import { ROUTES } from '../../server-account/src/service.js';
 import { titlesHeld } from '../../server-account/src/titles.js';
 import { creditHunt, standingsOf } from '../../server-account/src/seatInfluence.js';
-import { withMasteryMarksAll, withMasteryMarks } from '../../server-account/src/hunts.js';
+import { withMasteryMarksAll, withMasteryMarks, masteryCountsRead, masteryCountsAll } from '../../server-account/src/hunts.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 
 const { subtle } = globalThis.crypto;
 const NOON = utcDay(T0) * 86_400 + 12 * 3600;
 
-async function stand(t) {
+async function stand(t, env = { SEATS_OPEN: 'on' }) {
   let clock = NOON * 1000;
   t.mock.method(Date, 'now', () => clock);
-  const s = await standService({ SEATS_OPEN: 'on' });
+  const s = await standService(env);
   const raw = s.env.DB._raw;
   const mac = await s.seated('Mac');
   const day = huntGameDayAt(clock);
@@ -39,11 +39,13 @@ async function stand(t) {
   return { s, raw, mac, day, clear, state, at: (ms) => { clock = ms; }, now: () => clock };
 }
 
-test('HUNTERS-MARK THE LAW: a board clear inside the event clock\'s window, a mark of this week or the last, the level within reach of the trusted one; the day\'s ceiling is four held a game day, twelve game days a UTC day (mutants: the window\'s edges; the ceiling; the tier\'s reach)', () => {
+test('HUNTERS-MARK THE LAW: a board clear inside the event clock\'s window, a mark of this week or the last, the level within reach of the trusted one; the day\'s ceiling measured, above any honest day (mutants: the window\'s edges; the ceiling; the tier\'s reach)', () => {
   const now = NOON * 1000;
   const today = huntGameDayAt(now);
   assert.equal(GAME_DAYS_PER_UTC_DAY, 12, 'a game day every two real hours');
-  assert.equal(HUNT_CLEARS_DAY_MAX, 48);
+  // PIN MOVED (AUDIT HORIZONTAL F3): 48 was four held a game day - four held is not four cleared; the ceiling is measured
+  // (tools/huntPace.mjs, test/tooling/huntpace.test.js on the game's map)
+  assert.equal(HUNT_CLEARS_DAY_MAX, 750);
   assert.deepEqual(huntClearOf(bountyId(today, 300, 200, 1, 7), now), { kind: 'board', id: bountyId(today, 300, 200, 1, 7), key: bountySlotKey(today, 300, 200, 1), level: 7, tier: 2 });
   assert.equal(huntClearOf(bountyId(today - HUNT_CLEAR_LATE_DAYS, 300, 200, 1, 7), now).kind, 'board', 'a real day late: still taken');
   assert.deepEqual(huntClearOf(bountyId(today - HUNT_CLEAR_LATE_DAYS - 1, 300, 200, 1, 7), now), { why: 'late' });
@@ -144,6 +146,7 @@ test('HUNTERS-MARK THE DAY\'S CEILING AND THE MARK\'S RUNG: the account\'s UTC d
   const full = await clear(mac, bountyId(day, 300, 200, 1, 3));
   assert.equal(full.body.recorded, false);
   assert.equal(full.body.why, 'day-full');
+  assert.equal(full.body.account.day, today, 'AUDIT HORIZONTAL F3: the service\'s UTC day, the one a kept report waits out');
   assert.deepEqual(progressSpentOf('/v1/hunt/clear', full.body), [], 'a clear the day took no more of spends nothing');
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM hunt_clears WHERE player = ? AND day = ?').get(mac.id, today).n, HUNT_CLEARS_DAY_MAX);
 });
@@ -188,6 +191,9 @@ test('MARKS-OF-MASTERY THE TITLES ARE DERIVED: the hunt\'s off the account\'s bo
 });
 
 test('HUNTERS-MARK A SEAT\'S INFLUENCE: a recorded clear on a board of a region where the hunter\'s war-guild pledged counts HUNT_INFLUENCE as the `hunt` source, once a clear, at most HUNT_WEEK_CAP an account a week; the standings read it, under the account\'s whole cap (mutants: the source; the week\'s cap; the standings\' arm)', async (t) => {
+  // AUDIT HORIZONTAL G9: the numbers the record and the patch notes state, pinned as they are said
+  assert.equal(HUNT_INFLUENCE, 25, 'a clear counts 25');
+  assert.equal(HUNT_WEEK_CAP, 250, 'at most 250 an account a week');
   assert.equal(accountSeatInfluence({ hunt: HUNT_INFLUENCE * 3 }), 75);
   assert.equal(accountSeatInfluence({ hunt: 10_000 }), HUNT_WEEK_CAP, 'the week\'s cap');
   assert.equal(accountSeatInfluence({ hunt: 10_000, watch: 10_000 }), ACCOUNT_SEAT_WEEK_CAP);
@@ -223,4 +229,36 @@ test('HUNTERS-MARK A SEAT\'S INFLUENCE: a recorded clear on a board of a region 
   const [g] = standingsOf({ guilds: ['g1'], rows, renown: [], homes: [], binds: new Map([[mac.id, 'g1']]), agreed: new Map(), weekStartS: 0, nowS });
   assert.equal(g.total, HUNT_WEEK_CAP);
   assert.equal(g.accounts, 1);
+});
+
+test('AUDIT HORIZONTAL F5 AND LANE F\'S SUSPECTED: a worn Mark of Mastery on a letter (the inbox\'s head and the letter opened) and on a notice-board note; a Master only off a realm character alive - a track no realm row stands for holds none; the clears read stops at the top title\'s count, alone and in a batch (mutants: the inbox\'s, the letter\'s and the board\'s marks unread; a track with no realm row a Master, alone and batched; the read unbounded, alone and batched)', async (t) => {
+  const { s, raw, mac } = await stand(t, { SEATS_OPEN: 'on', BOARD_OPEN: 'on' });
+  const bob = await s.registered('Bob');
+  const seed = (n, from = 0) => { for (let i = from; i < from + n; i++) raw.prepare("INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, ?, 'board', ?, 'x', 0, NULL, 1, 1)").run(mac.id, mac.character, `k${i}`); };
+  seed(HUNT_TITLES[0][1]);
+  assert.equal((await s.call('/v1/account/title', { title: 'bloodhound' }, mac.secret)).status, 200, 'worn');
+  // F5: the letter's sender and the note's author wear it, as the token and the boards' names do
+  assert.equal((await s.call('/v1/mail/send', { to: 'Bob', subject: 'Hi', body: 'A letter.' }, mac.secret)).status, 200);
+  const inbox = await (await s.fetch('https://accounts.invalid/v1/mail/inbox', { headers: { authorization: `Bearer ${bob.secret}` } })).json();
+  assert.equal(inbox.letters[0].title, 'bloodhound', 'the inbox\'s head');
+  assert.equal((await s.call('/v1/mail/read', { id: inbox.letters[0].id }, bob.secret)).body.letter.title, 'bloodhound', 'the letter opened');
+  assert.equal((await s.call('/v1/board/pin', { map: 1234, subject: 'Hunters wanted', body: 'Meet at the gate.', days: 1, rid: 'r1234567890abcdef' }, mac.secret)).status, 200);
+  const board = await s.call('/v1/board/read', { map: 1234 }, bob.secret);
+  assert.equal(board.body.notes[0].title, 'bloodhound', 'the note on the board');
+  // SUSPECTED, REPRODUCED: a Master's track whose character no realm row stands for (a track written before the seat
+  // law, an id no realm holds) is no living Master - the realm row alive is, as the crafting writs read it
+  raw.prepare('INSERT OR REPLACE INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, ?, ?, 1)').run(mac.id, 'offline-character-1', 'mining', PROF_XP_MAX);
+  const wardrobe = async () => (await (await s.fetch('https://accounts.invalid/v1/account', { headers: { authorization: `Bearer ${mac.secret}` } })).json()).wardrobe;
+  assert.ok(!(await wardrobe()).titles.includes('mastermining'), 'no realm row: no Master');
+  assert.deepEqual((await masteryCountsAll({ db: s.env.DB }, [mac.id])).get(mac.id).masters, [], 'nor in a batch');
+  raw.prepare('INSERT OR REPLACE INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, ?, ?, 1)').run(mac.id, mac.character, 'mining', PROF_XP_MAX);
+  assert.ok((await wardrobe()).titles.includes('mastermining'), 'the seated character\'s: a Master');
+  assert.deepEqual((await masteryCountsAll({ db: s.env.DB }, [mac.id])).get(mac.id).masters, ['mining']);
+  // SUSPECTED, MEASURED: the read stops at the top title's count - past it, a year's clears read as a week's
+  const top = HUNT_TITLES[HUNT_TITLES.length - 1][1];
+  seed(top + 50 - HUNT_TITLES[0][1], HUNT_TITLES[0][1]);
+  assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM hunt_clears WHERE player = ?').get(mac.id).n, top + 50);
+  assert.equal((await masteryCountsRead(s.env.DB, mac.id)).clears, top, 'the count stops at the top title\'s');
+  assert.equal((await masteryCountsAll({ db: s.env.DB }, [mac.id, bob.id])).get(mac.id).clears, top, 'and in a batch');
+  assert.ok((await wardrobe()).titles.includes('huntlegend'), 'every hunt title still held');
 });

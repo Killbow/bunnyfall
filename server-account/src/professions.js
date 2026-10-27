@@ -673,7 +673,7 @@ export async function harvestNode(ctx, player, env, body = {}) {
     gem = finds.part;
     extra = finds.meat;
     extraQty = finds.meatQty || 1;
-    // HUNTERS-MARK (Professions-Arc 57): a Trophy Hunter's clean pelt of a tier 5+ body mounts its beast - written on the
+    // HUNTERS-MARK (Professions-Arc 58): a Trophy Hunter's clean pelt of a tier 5+ body mounts its beast - written on the
     // row the rare hides' day decides, so it is bounded by their three
     trophy = trophyHunted({ spec100: specs[100], tier, clean }) ? 1 : 0;
   } else if (n.kind === 'tree') {

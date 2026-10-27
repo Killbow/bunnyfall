@@ -239,7 +239,7 @@ The bounty boards' progression (`06-Systems/Bounty-Boards.md` section 12) added 
 
 **The catalogue.** Two sources after the questlines: **The Hunt** (Bloodhound, Beastbane, Grand Huntsman, Legend of the
 Hunt, at 25, 100, 300 and 750 of the account's board clears) and **Marks of Mastery** (a profession's Master, ten, while a
-living character of the account holds the track at rank 100). Serpent Hunter and Bane of the Deep stand under the Sea
+living realm character of the account holds the track at rank 100). Serpent Hunter and Bane of the Deep stand under the Sea
 Serpent's source (10 and 40 serpents the account helped slay). All sixteen are open, derived by the service at every
 ask; their paint is `playerBadge.js` TITLE_RGBA, each more than 40 apart from every other title's.
 
@@ -256,3 +256,8 @@ list of coats would forget a coat sold or lost.
 
 Pins: `test/systems/huntersmark_trophies.test.js` (the log and the parts), `test/ui/collections2.test.js` and
 `test/systems/auditcards5_ui.test.js` (PIN MOVED: the parts' lists).
+
+**AUDIT HORIZONTAL F5 and lane F's suspected Master.** A worn Mark of Mastery shows on a letter's sender (the inbox and
+the letter opened) and a notice-board note's author, as on the boards' names. A Master is held off a realm character
+alive: a track whose character no realm row stands for holds none. Seat and chapter titles stay blank on letters, notes
+and boards, named (`06-Systems/Bounty-Boards.md` 12.10).

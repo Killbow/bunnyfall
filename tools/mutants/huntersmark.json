@@ -121,7 +121,7 @@
   {
     "name": "MARKS-OF-MASTERY-dead-character-master",
     "file": "server-account/src/hunts.js",
-    "old": "AND NOT EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NOT NULL)) AS masters",
+    "old": "AND EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NULL)) AS masters",
     "new": "AND 1) AS masters",
     "tests": [
       "test/server/huntersmark_service.test.js"
@@ -139,8 +139,8 @@
   {
     "name": "MARKS-OF-MASTERY-clears-marks-counted",
     "file": "server-account/src/hunts.js",
-    "old": "(SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND kind = 'board') AS clears,",
-    "new": "(SELECT COUNT(*) FROM hunt_clears WHERE player = ?1) AS clears,",
+    "old": "(SELECT 1 FROM hunt_clears WHERE player = ?1 AND kind = 'board' LIMIT ?3)) AS clears,",
+    "new": "(SELECT 1 FROM hunt_clears WHERE player = ?1 LIMIT ?3)) AS clears,",
     "tests": [
       "test/server/huntersmark_service.test.js"
     ]
@@ -157,8 +157,8 @@
   {
     "name": "MARKS-OF-MASTERY-board-batch-masters",
     "file": "server-account/src/hunts.js",
-    "old": "masters: ms.get(r.id) }) } : r));",
-    "new": "masters: null }) } : r));",
+    "old": "masters: ms.get(id) })]));",
+    "new": "masters: null })]));",
     "tests": [
       "test/server/huntersmark_service.test.js"
     ]
@@ -256,8 +256,8 @@
   {
     "name": "HUNTERS-MARK-book-late-kept",
     "file": "src/net/huntBook.js",
-    "old": "if (!door || !character?.() || 'why' in huntClearOf(id, now())) return false;",
-    "new": "if (!door || !character?.()) return false;",
+    "old": "|| !character?.() || 'why' in huntClearOf(id, now())) return false;",
+    "new": "|| !character?.()) return false;",
     "tests": [
       "test/scenes/huntersmark_client.test.js"
     ]
@@ -283,8 +283,8 @@
   {
     "name": "HUNTERS-MARK-book-state-unadopted",
     "file": "src/net/huntBook.js",
-    "old": "      if (r?.ok) adopt(r.data);\n      stateAt = now();",
-    "new": "      stateAt = now();",
+    "old": "if (r?.ok) { adopt(r.data); closed = false; }",
+    "new": "if (r?.ok) { closed = false; }",
     "tests": [
       "test/scenes/huntersmark_client.test.js"
     ]
@@ -673,6 +673,250 @@
     "file": "server-account/src/hunts.js",
     "old": "AND kind = 'board' AND at < ?5) AS board",
     "new": "AND kind = 'board') AS board",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F-living-master-no-realm-row",
+    "file": "server-account/src/hunts.js",
+    "old": "AND EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NULL)) AS masters",
+    "new": "AND NOT EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NOT NULL)) AS masters",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F-living-master-no-realm-row-batched",
+    "file": "server-account/src/hunts.js",
+    "old": "AND EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = t.player AND r.dead_at IS NULL) GROUP BY t.player",
+    "new": "AND NOT EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = t.player AND r.dead_at IS NOT NULL) GROUP BY t.player",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F-mastery-read-unbounded",
+    "file": "server-account/src/hunts.js",
+    "old": "AND kind = 'board' LIMIT ?3)) AS clears",
+    "new": "AND kind = 'board' LIMIT -1)) AS clears",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F-mastery-batch-unbounded",
+    "file": "server-account/src/hunts.js",
+    "old": "AND h.kind = 'board' LIMIT ?1)) AS n FROM v",
+    "new": "AND h.kind = 'board' LIMIT -1)) AS n FROM v",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F5-inbox-marks-unread",
+    "file": "server-account/src/letters.js",
+    "old": "    for (const p of await withMasteryMarksAll({ db }, [...rows.values()])) rows.set(p.id, p);   // AUDIT HORIZONTAL F5: a worn Mark of Mastery (reads alone)\n",
+    "new": "",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F5-letter-marks-unread",
+    "file": "server-account/src/letters.js",
+    "old": "badgeOf(await withMasteryMarks({ db }, await withGambitHonours(",
+    "new": "badgeOf(await ((_c, p) => p)({ db }, await withGambitHonours(",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F5-note-marks-unread",
+    "file": "server-account/src/board.js",
+    "old": "    for (const p of await withMasteryMarksAll({ db }, [...rows.values()])) rows.set(p.id, p);   // AUDIT HORIZONTAL F5: a worn Mark of Mastery (reads alone)\n",
+    "new": "",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-day-full-let-go",
+    "file": "src/net/huntBook.js",
+    "old": "if (r?.ok && r.data?.why === 'day-full') {",
+    "new": "if (false) {",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-held-asked-same-day",
+    "file": "src/net/huntBook.js",
+    "old": "Number.isSafeInteger(k.full) && k.full >= today()",
+    "new": "Number.isSafeInteger(k.full) && k.full > today()",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-new-report-asked-on-a-full-day",
+    "file": "src/net/huntBook.js",
+    "old": "const full = list.find(waitsDay)?.full;",
+    "new": "const full = undefined;",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-service-day-unsaid",
+    "file": "server-account/src/hunts.js",
+    "old": "max: HUNT_CLEARS_DAY_MAX, day: utcDay(nowS) }",
+    "new": "max: HUNT_CLEARS_DAY_MAX }",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-guest-asked-each-beat",
+    "file": "src/net/huntBook.js",
+    "old": "t - stateAt >= (closed ? HUNT_CLOSED_MS : HUNT_STATE_MS)",
+    "new": "t - stateAt >= HUNT_STATE_MS",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-closed-never-heard",
+    "file": "src/net/huntBook.js",
+    "old": "if (r?.error === 'hunt-need-account') { closed = true; state = null; }",
+    "new": "",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-guest-report-kept",
+    "file": "src/net/huntBook.js",
+    "old": "if (closed || !door || !character?.()",
+    "new": "if (!door || !character?.()",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-board-closed-reads-forever",
+    "file": "src/scenes/huntersMark.js",
+    "old": "return book ? (book.closed ? { closed: true } : { reading: true }) : null;",
+    "new": "return book ? { reading: true } : null;",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-rank-closed-unsaid",
+    "file": "src/ui/bounty/huntRank.js",
+    "old": "  if (rank?.closed) return { head: accountRefusalText('hunt-need-account'), region: '', next: '' };\n",
+    "new": "",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-standing-guest-reading",
+    "file": "src/ui/bounty/huntRank.js",
+    "old": "  if (book.closed) { detail.append(el('p', 'px-note', accountRefusalText('hunt-need-account'))); return; }\n",
+    "new": "",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F4-standing-asks-each-draw",
+    "file": "src/ui/bounty/huntRank.js",
+    "old": "if (!s) { book.tick();",
+    "new": "if (!s) { void book.refresh();",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F7-no-session-dropped",
+    "file": "src/net/huntBook.js",
+    "old": "'trade-held', 'auth', 'not-found', 'frozen', 'no-session']",
+    "new": "'trade-held', 'auth', 'not-found', 'frozen']",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-ceiling-four-held",
+    "file": "src/net/huntLaw.js",
+    "old": "export const HUNT_CLEARS_DAY_MAX = 750;",
+    "new": "export const HUNT_CLEARS_DAY_MAX = 48;",
+    "tests": [
+      "test/server/huntersmark_service.test.js",
+      "test/tooling/huntpace.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-pace-far-edge",
+    "file": "tools/huntPace.mjs",
+    "old": "const nx = Math.max(x, Math.min(x + 1, at[0]))",
+    "new": "const nx = Math.max(x + 1, Math.min(x + 1, at[0]))",
+    "tests": [
+      "test/tooling/huntpace.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-pace-pack-ride",
+    "file": "tools/huntPace.mjs",
+    "old": "export const HUNT_PACE_PACK_M = 60;",
+    "new": "export const HUNT_PACE_PACK_M = 0;",
+    "tests": [
+      "test/tooling/huntpace.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-pace-order-not-shortest",
+    "file": "tools/huntPace.mjs",
+    "old": "if (!best || s < best.s) best = { s, at: pos, legs };",
+    "new": "if (!best) best = { s, at: pos, legs };",
+    "tests": [
+      "test/tooling/huntpace.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-F3-pace-carriage-never",
+    "file": "tools/huntPace.mjs",
+    "old": "if (gate && best) {",
+    "new": "if (false) {",
+    "tests": [
+      "test/tooling/huntpace.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-G6-traits-glued",
+    "file": "src/ui/bounty/bountyWindow.js",
+    "old": "{ traits: traitList(traits) }",
+    "new": "{ traits: traits.join(', ') }",
+    "tests": [
+      "test/scenes/huntersmark_client.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-G9-week-cap-literal",
+    "file": "src/net/townSeatLaw.js",
+    "old": "export const HUNT_WEEK_CAP = 250;",
+    "new": "export const HUNT_WEEK_CAP = 275;",
+    "tests": [
+      "test/server/huntersmark_service.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-G9-influence-literal",
+    "file": "src/net/townSeatLaw.js",
+    "old": "export const HUNT_INFLUENCE = 25;",
+    "new": "export const HUNT_INFLUENCE = 30;",
     "tests": [
       "test/server/huntersmark_service.test.js"
     ]

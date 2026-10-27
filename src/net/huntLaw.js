@@ -3,7 +3,7 @@
 // please!"; bible/06-Systems/Bounty-Boards.md section 12): THE HUNT'S LAW, both ends'. A paid bounty is reported to the
 // account service and kept in its ledger; the hunter's rank is read off a character's clears, and its rewards are
 // sideways - titles, a weekly named beast, a trophy, a little seat influence - never gear. Pure: no clock, no DOM.
-import { BOUNTY_ACTIVE_MAX, BOUNTY_TIERS, BOUNTY_FULL_PURSE, BOUNTY_LEVEL_MAX, bountyTierIndex, parseBountyId, bountyHash, MINUTES_PER_DAY } from '../systems/bounty/bountyBoard.js';
+import { BOUNTY_TIERS, BOUNTY_FULL_PURSE, BOUNTY_LEVEL_MAX, bountyTierIndex, parseBountyId, bountyHash, MINUTES_PER_DAY } from '../systems/bounty/bountyBoard.js';
 import { sharedClassicMinutes, ONLINE_MINUTES_PER_MS } from './wire.js';
 import { seatWeekOf } from './townSeatLaw.js';
 import { PROFESSIONS } from './professionLaw.js';
@@ -32,8 +32,10 @@ export const huntMarksOpen = (clears) => huntRungOf(clears) >= HUNT_MARK_RUNG;
 
 /** Game days the event clock turns in a UTC day - a day every two real hours (wire.js ONLINE_MINUTES_PER_MS). */
 export const GAME_DAYS_PER_UTC_DAY = Math.round((86_400_000 * ONLINE_MINUTES_PER_MS) / MINUTES_PER_DAY);
-/** An account's clears a UTC day: what an honest hunter can hold and clear - four held, the boards new every game day. */
-export const HUNT_CLEARS_DAY_MAX = BOUNTY_ACTIVE_MAX * GAME_DAYS_PER_UTC_DAY;
+/** An account's clears a UTC day, every character's together. AUDIT HORIZONTAL F3: MEASURED, not four held a game day - a
+ *  hunter clears, takes four more at the next of 410 boards, by horse or carriage. tools/huntPace.mjs walks the game's
+ *  map at the fastest legal ride, no time fighting: its best of fourteen UTC days was 706, rounded up to the next fifty. */
+export const HUNT_CLEARS_DAY_MAX = 750;
 /** A clear reported later than this many game days after its notice was posted is refused (a real day's). */
 export const HUNT_CLEAR_LATE_DAYS = GAME_DAYS_PER_UTC_DAY;
 /** The event clock's game day at a wall instant - the day a board posts on online. */

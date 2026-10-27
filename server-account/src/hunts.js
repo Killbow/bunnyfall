@@ -12,7 +12,7 @@ import { creditHunt } from './seatInfluence.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { seatRegionOk, seatWeekStartMs } from '../../src/net/townSeatLaw.js';
 import { PROF_XP_MAX } from '../../src/net/professionLaw.js';
-import { huntClearOf, huntTierFits, huntWeekAt, masteryMarksOf, HUNT_CLEARS_DAY_MAX, HUNT_RUNGS, HUNT_MARK_RUNG } from '../../src/net/huntLaw.js';
+import { huntClearOf, huntTierFits, huntWeekAt, masteryMarksOf, HUNT_CLEARS_DAY_MAX, HUNT_RUNGS, HUNT_MARK_RUNG, HUNT_TITLES } from '../../src/net/huntLaw.js';
 
 /** Asks an account may make of the ledger an hour - a reader's page and a hunter's reports, never a script's. */
 export const HUNT_OPS_HOUR = 240;
@@ -38,7 +38,8 @@ async function huntStateOf(db, playerId, character, nowS) {
   return {
     clears: int(m.clears), marks: int(m.marks), markDone: int(m.done) === 1,
     regions: Object.fromEntries((regions?.results ?? []).map((r) => [int(r.region), int(r.n)])),
-    account: { clears: int(a.clears), marks: int(a.marks), today: int(a.today), max: HUNT_CLEARS_DAY_MAX },
+    // AUDIT HORIZONTAL F3: and the service's UTC day, so a book holds a day-full report until this day has turned
+    account: { clears: int(a.clears), marks: int(a.marks), today: int(a.today), max: HUNT_CLEARS_DAY_MAX, day: utcDay(nowS) },
   };
 }
 
@@ -106,19 +107,26 @@ export async function huntClear(ctx, player, env, body) {
 
 // ─── MARKS-OF-MASTERY: THE TITLES, DERIVED ───────────────────────────
 
-/** An account's counts the titles are read off (`?1` the account, `?2` a Master's XP): its board clears, the serpents it
- *  helped slay (serpents.js, the relay's receipts), and each profession a living character of it holds at Master. */
+/** The most clears a hunt title asks (huntLaw.js HUNT_TITLES' last): a count stops there, as the titles do. */
+const CLEARS_READ = HUNT_TITLES[HUNT_TITLES.length - 1][1];
+/** An account's counts the titles are read off (`?1` the account, `?2` a Master's XP, `?3` CLEARS_READ): its board clears,
+ *  the serpents it helped slay (serpents.js, the relay's receipts), and each profession a living realm character of it
+ *  holds at Master. AUDIT HORIZONTAL (lane F): the clears read stops at the top title's count - a mint, a wardrobe and a
+ *  board row read as many rows at a year's clears as at a week's; and a Master is a realm character alive, never a track
+ *  no realm row stands for (craftWrits.js ranksOf's join). */
 const MASTERY_SQL = `SELECT
-  (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND kind = 'board') AS clears,
+  (SELECT COUNT(*) FROM (SELECT 1 FROM hunt_clears WHERE player = ?1 AND kind = 'board' LIMIT ?3)) AS clears,
   (SELECT COUNT(*) FROM serpent_kills WHERE account = ?1) AS serpents,
   (SELECT GROUP_CONCAT(profession, ' ') FROM prof_tracks t WHERE t.player = ?1 AND t.xp >= ?2
-    AND NOT EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NOT NULL)) AS masters`;
-const marksOfRow = (/** @type {any} */ r) => masteryMarksOf({
-  clears: int(r?.clears), serpents: int(r?.serpents), masters: String(r?.masters ?? '').split(' ').filter(Boolean),
-});
+    AND EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = ?1 AND r.dead_at IS NULL)) AS masters`;
+const countsOfRow = (/** @type {any} */ r) => ({ clears: int(r?.clears), serpents: int(r?.serpents), masters: String(r?.masters ?? '').split(' ').filter(Boolean) });
+/** The counts an account's Marks of Mastery are read off - `{ clears, serpents, masters }`, one statement. */
+export async function masteryCountsRead(/** @type {any} */ db, /** @type {string} */ playerId) {
+  return countsOfRow(await db.prepare(MASTERY_SQL).bind(playerId, PROF_XP_MAX, CLEARS_READ).first());
+}
 /** The Marks of Mastery an account holds (huntLaw.js MASTERY_MARKS), off its rows - one statement. */
 export async function masteryMarksRead(/** @type {any} */ db, /** @type {string} */ playerId) {
-  return marksOfRow(await db.prepare(MASTERY_SQL).bind(playerId, PROF_XP_MAX).first());
+  return masteryMarksOf(await masteryCountsRead(db, playerId));
 }
 /** The row with its Marks of Mastery laid on it (`masteryMarks`, titles.js titlesHeld), for this request alone - a
  *  registered account's alone: a guest's clears and tracks earn it nothing. */
@@ -126,18 +134,26 @@ export async function withMasteryMarks(/** @type {any} */ ctx, /** @type {any} *
   if (!(typeof player?.handle === 'string' && player.handle)) return player;
   return { ...player, masteryMarks: await masteryMarksRead(ctx.db, player.id) };
 }
-/** The same for a board's rows (boardNames.js), in one batch of grouped reads - at most fifty ids a call. */
-export async function withMasteryMarksAll(/** @type {any} */ ctx, /** @type {any[]} */ rows) {
-  const ids = rows.filter((r) => typeof r?.handle === 'string' && r.handle).map((r) => r.id);
-  if (!ids.length) return rows;
+/** The same counts for many accounts (a board's rows, a letter's senders), by id, in one batch - at most fifty ids a
+ *  call; the clears read stops at CLEARS_READ an account, as masteryCountsRead's does. */
+export async function masteryCountsAll(/** @type {any} */ ctx, /** @type {string[]} */ ids) {
+  if (!ids.length) return new Map();
   const list = (/** @type {number} */ from) => ids.map((_, k) => `?${k + from}`).join(', ');
   const [h, s, m] = await ctx.db.batch([
-    ctx.db.prepare(`SELECT player AS id, COUNT(*) AS n FROM hunt_clears WHERE kind = 'board' AND player IN (${list(1)}) GROUP BY player`).bind(...ids),
+    ctx.db.prepare(`WITH v(id) AS (VALUES ${ids.map((_, k) => `(?${k + 2})`).join(', ')}) SELECT v.id AS id,
+      (SELECT COUNT(*) FROM (SELECT 1 FROM hunt_clears h WHERE h.player = v.id AND h.kind = 'board' LIMIT ?1)) AS n FROM v`).bind(CLEARS_READ, ...ids),
     ctx.db.prepare(`SELECT account AS id, COUNT(*) AS n FROM serpent_kills WHERE account IN (${list(1)}) GROUP BY account`).bind(...ids),
     ctx.db.prepare(`SELECT t.player AS id, GROUP_CONCAT(t.profession, ' ') AS p FROM prof_tracks t WHERE t.xp >= ?1 AND t.player IN (${list(2)})
-      AND NOT EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = t.player AND r.dead_at IS NOT NULL) GROUP BY t.player`).bind(PROF_XP_MAX, ...ids),
+      AND EXISTS (SELECT 1 FROM realm_characters r WHERE r.id = t.char_id AND r.player = t.player AND r.dead_at IS NULL) GROUP BY t.player`).bind(PROF_XP_MAX, ...ids),
   ]);
   const by = (/** @type {any} */ res, /** @type {string} */ col) => new Map((res?.results ?? []).map((/** @type {any} */ r) => [r.id, r[col]]));
   const [hs, ss, ms] = [by(h, 'n'), by(s, 'n'), by(m, 'p')];
-  return rows.map((r) => (ids.includes(r.id) ? { ...r, masteryMarks: marksOfRow({ clears: hs.get(r.id), serpents: ss.get(r.id), masters: ms.get(r.id) }) } : r));
+  return new Map(ids.map((id) => [id, countsOfRow({ clears: hs.get(id), serpents: ss.get(id), masters: ms.get(id) })]));
+}
+/** The same marks for a board's rows (boardNames.js) and a letter's or a note's senders (letters.js, board.js). */
+export async function withMasteryMarksAll(/** @type {any} */ ctx, /** @type {any[]} */ rows) {
+  const ids = rows.filter((r) => typeof r?.handle === 'string' && r.handle).map((r) => r.id);
+  if (!ids.length) return rows;
+  const counts = await masteryCountsAll(ctx, ids);
+  return rows.map((r) => (counts.has(r.id) ? { ...r, masteryMarks: masteryMarksOf(counts.get(r.id)) } : r));
 }
