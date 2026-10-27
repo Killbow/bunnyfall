@@ -523,20 +523,13 @@ export const rollSetJoin = (rolls = Math.random) => (rolls() * SET_WEAPON_JOIN_I
 
 /** A set's own rank: its lowest piece's (0..4), whatever the Renown. */
 const lowestRank = (pieces) => pieces.reduce((low, p) => Math.min(low, sigilRank(p.sigil)), SET_STAGE_MAX);
-/** SET-CATCHUP: the ranks of every set piece an entity carries (worn or in the pack), by set. */
-export function carriedSetRanks(entity) {
-  /** @type {Map<string, number[]>} */
-  const out = new Map();
-  for (const it of entity?.items ?? []) {
-    const id = setIdOf(it);
-    if (!id) continue;
-    if (!out.has(id)) out.set(id, []);
-    out.get(id).push(sigilRank(it.sigil));
-  }
-  return out;
+/** SET-CATCHUP: the ranks of the set pieces an entity WEARS, by set. AUDIT HORIZONTAL D1: a piece in the pack never
+ *  counts - two lent pieces carried for one kill made a reach the set never stood at, for good. */
+export function wornSetRanks(entity) {
+  return new Map([...wornSetPieces(entity)].map(([id, pieces]) => [id, pieces.map((p) => sigilRank(p.sigil))]));
 }
-/** SET-CATCHUP: the highest stage a set has stood at for this entity - what it carries, or what the save recorded. */
-export const setReachOf = (entity, id) => Math.max(recordedReach(id), reachOfRanks(carriedSetRanks(entity).get(id) ?? []));
+/** SET-CATCHUP: the highest stage a set has stood at for this entity - what it wears, or what the save recorded. */
+export const setReachOf = (entity, id) => Math.max(recordedReach(id), reachOfRanks(wornSetRanks(entity).get(id) ?? []));
 /** What the page says when a set I wear rises to `rank`: its stage, and what my Renown holds it at when that is lower
  *  (SIGIL1's line, for a set). */
 export function setRiseLine(id, rank) {
@@ -562,13 +555,13 @@ export function drinkWorn(entity, held, xp, nameOf = (it) => String(it?.name ?? 
   const worn = awake ? wornSetPieces(entity) : new Map();
   const was = new Map([...worn].map(([id, pieces]) => [id, lowestRank(pieces)]));
   // SET-CATCHUP: each set's reach, recorded as the drink finds it; a piece below it drinks faster until it gets there
-  const reach = awake ? noteReach(carriedSetRanks(entity)) : new Map();
+  const reach = awake ? noteReach(wornSetRanks(entity)) : new Map();
   const drink = (p) => { const id = setIdOf(p); return id ? catchUpXp(xp, p.sigil?.xp, reach.get(id) ?? -1) : xp; };
   // AUDIT SET D8: a set's weapon sleeps with its set in a duel (section 2: "no piece drinks"); a plain sigil weapon
   // drinks as SIGIL1 says
   const rank = setIdOf(held) && sigilDueling() ? null : drinkSigil(held, drink(held));
   for (const pieces of worn.values()) for (const p of pieces) if (p !== held) drinkSigil(p, drink(p));
-  if (awake) noteReach(carriedSetRanks(entity));   // SET-CATCHUP: a rise this drink made is the set's reach from now on
+  if (awake) noteReach(wornSetRanks(entity));   // SET-CATCHUP: a rise this drink made is the set's reach from now on
   const risen = [];
   for (const [id, pieces] of worn) { const now = lowestRank(pieces); if (now > was.get(id)) risen.push([id, now]); }
   const lines = [];

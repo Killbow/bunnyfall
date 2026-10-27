@@ -7,7 +7,7 @@ import '../../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SIGIL_STAGES, SIGIL_XP_MAX, sigilRank, setSigilOnline, setSigilRenown, _resetSigilForTests } from '../../../src/systems/sigil/sigil.js';
-import { drinkWorn, setCardView, setLines, setReachOf, carriedSetRanks, setSetsDueling, catchUpText, _resetSigilSetsForTests } from '../../../src/systems/sigil/sigilSets.js';
+import { drinkWorn, setCardView, setLines, setReachOf, wornSetRanks, setSetsDueling, catchUpText, _resetSigilSetsForTests } from '../../../src/systems/sigil/sigilSets.js';
 import { CATCH_UP_MULT, REACH_PIECES, catchUpXp, reachOfRanks, recordedReach, noteReach, validReachRecord, SET_REACH_SAVE_VENDOR } from '../../../src/systems/sigil/setReach.js';
 import { modSaveRecords, restoreModSaveRecords, newGameModSaveRecords } from '../../../src/systems/modSaveData.js';
 import { setStageText } from '../../../src/ui/setCard.js';
@@ -47,7 +47,7 @@ test('SET-CATCHUP THE LAW: a piece below its set\'s reach drinks three times the
   assert.equal(catchUpXp(-5, 0, 4), 0);
 });
 
-test('SET-CATCHUP THE REACH: the second-best rank among a set\'s carried pieces - worn or packed - and never lower than the save\'s record of it (mutants: the best rank taken; one piece a reach; the record lowered)', () => {
+test('SET-CATCHUP THE REACH: the second-best rank among a set\'s WORN pieces - a piece in the pack counts for nothing - and never lower than the save\'s record of it (mutants: the best rank taken; one piece a reach; the record lowered; the pack counted)', () => {
   fresh();
   assert.equal(reachOfRanks([4]), -1, 'one piece is no set standing');
   assert.equal(reachOfRanks([4, 0]), 0, 'an Ascendant piece and a fresh one stood at Faint together');
@@ -55,10 +55,16 @@ test('SET-CATCHUP THE REACH: the second-best rank among a set\'s carried pieces 
   const e = player();
   wear(e, piece(107, 'dagon', XP[3]), piece(106, 'dagon', XP[1]));
   e.items.push(piece(105, 'dagon', XP[4]), piece(102, 'mora', XP[2]));
-  assert.deepEqual([...carriedSetRanks(e)], [['dagon', [3, 1, 4]], ['mora', [2]]], 'the pack counts, by set');
-  assert.equal(setReachOf(e, 'dagon'), 3, 'the Ascendant one in the pack and the Radiant one worn');
+  // PIN MOVED (AUDIT HORIZONTAL D1): the pack counted - a lent Ascendant pair carried for one kill made a reach for good
+  assert.deepEqual([...wornSetRanks(e)], [['dagon', [3, 1]]], 'the worn pieces, by set - the pack\'s never');
+  assert.equal(setReachOf(e, 'dagon'), 1, 'the Radiant one and the Bright one worn: Bright - the Ascendant one in the pack is no part of it');
   assert.equal(setReachOf(e, 'mora'), -1);
-  assert.deepEqual([...noteReach(carriedSetRanks(e))], [['dagon', 3]], 'recorded');
+  const lent = player();
+  lent.items.push(piece(107, 'dagon', XP[4]), piece(106, 'dagon', XP[4]));
+  drinkWorn(lent, null, 10);
+  assert.equal(recordedReach('dagon'), -1, 'a lent pair carried, never worn: no reach');
+  wear(e, piece(105, 'dagon', XP[3]));
+  assert.deepEqual([...noteReach(wornSetRanks(e))], [['dagon', 3]], 'recorded');
   assert.equal(recordedReach('dagon'), 3);
   noteReach(new Map([['dagon', [0, 0]]]));
   assert.equal(recordedReach('dagon'), 3, 'never lowered');

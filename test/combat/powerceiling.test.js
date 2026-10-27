@@ -218,33 +218,59 @@ test('POWER-CEILING THE SETS\' OTHER GUARDS: Hold the Line and Gearward take the
   } finally { registerPlayerDamageMod('powerceiling-spend', null); }
 });
 
-test('POWER-CEILING THE SOURCE: every blow modifier the tree registers asks blowRoom, and every damage modifier but the three that land no blow at all asks guardRoom - a new power cannot step round the product (mutant: one registry\'s room call taken out)', () => {
+test('POWER-CEILING THE SOURCE: every blow modifier the tree registers asks blowRoom, and every damage modifier but the three that land no blow at all asks guardRoom - a new power cannot step round the product, inline or named (mutants: a power that never asks; AUDIT HORIZONTAL D2: an inline blow power, a share added to a veto)', () => {
   const root = new URL('../../', import.meta.url).pathname;
   const files = readdirSync(join(root, 'src'), { recursive: true }).filter((f) => f.endsWith('.js')).map((f) => join('src', f));
   const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+  // AUDIT HORIZONTAL D2: every call by its name, its arguments read to the closing paren - a pattern on the arguments' shape
+  // let an inline arrow and a `const f = () => expr` step round the sweep
+  const calls = (src, fn) => {
+    const out = [];
+    for (const m of src.matchAll(new RegExp(`(?<![\\w$.])(?<!function )${fn}\\(`, 'g'))) {
+      let depth = 0, i = m.index + m[0].length - 1, cut = [], from = i + 1;
+      for (; i < src.length; i++) {
+        const c = src[i];
+        if ('([{'.includes(c)) depth++;
+        else if (')]}'.includes(c) && --depth === 0) break;
+        else if (c === ',' && depth === 1) { cut.push(src.slice(from, i)); from = i + 1; }
+      }
+      cut.push(src.slice(from, i));
+      out.push(cut.map((a) => a.trim()));
+    }
+    return out;
+  };
+  /** A named function's braced body - `function name(` or `const name = (...) => {` - or null (an expression body is none). */
   const body = (src, name) => {
-    const at = src.search(new RegExp(`(function ${name}\\s*\\(|const ${name}\\s*=)`));
-    if (at < 0) return null;
-    let i = src.indexOf('{', at), depth = 0;
+    const decl = src.match(new RegExp(`function ${name}\\s*\\(|const ${name}\\s*=\\s*(?:async\\s*)?(?:\\([^)]*\\)|[\\w$]+)\\s*=>\\s*\\{`));
+    if (!decl) return null;
+    let i = src.indexOf('{', decl.index + (decl[0].endsWith('{') ? decl[0].length - 1 : 0)), depth = 0;
     for (let j = i; j < src.length; j++) { if (src[j] === '{') depth++; else if (src[j] === '}' && --depth === 0) return src.slice(i, j + 1); }
     return null;
   };
   const VETOES = Object.freeze(['eg-witness', 'poi-editor', 'kt-down']);   // a witness, an editor's body, a body lying down: no blow lands at all
+  /** A veto lands nothing or the blow whole: `(e, d) => (<cond> ? 0 : d)` - a share in it would step round the product. */
+  const veto = (fn) => /^\(\s*[\w$]+\s*,\s*([\w$]+)\s*\)\s*=>\s*\(?.+\?\s*0\s*:\s*([\w$]+)\s*\)?$/.exec(fn);
   const seen = { blow: [], guard: [] };
   for (const f of files) {
     const src = strip(readFileSync(join(root, f), 'utf8'));
-    for (const m of src.matchAll(/(?<!function )registerWeaponBlowMod\(\s*([^,]+?)\s*,\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
-      const b = body(src, m[2]);
-      assert.ok(b, `${f}: ${m[2]}'s body`);
-      assert.match(b, /blowRoom\(/, `${f}: the blow modifier ${m[2]} never asks blowRoom - ${RULE}`);
-      seen.blow.push(m[2]);
+    for (const [, fn] of calls(src, 'registerWeaponBlowMod')) {
+      assert.match(fn ?? '', /^[A-Za-z_$][\w$]*$/, `${f}: a blow modifier is a named function (${String(fn).slice(0, 40)}) - ${RULE}`);
+      const b = body(src, fn);
+      assert.ok(b, `${f}: ${fn}'s body, a function or an arrow with braces`);
+      assert.match(b, /blowRoom\(/, `${f}: the blow modifier ${fn} never asks blowRoom - ${RULE}`);
+      seen.blow.push(fn);
     }
-    for (const m of src.matchAll(/(?<!function )registerPlayerDamageMod\(\s*([^,]+?)\s*,\s*(?:([A-Za-z_$][\w$]*)\s*\))?/g)) {
-      const name = m[1].replace(/['"]/g, '');
-      if (VETOES.includes(name)) { seen.guard.push(name); continue; }
-      const fn = m[2] ?? '(inline)';
-      const b = m[2] ? body(src, fn) : null;
-      assert.ok(b, `${f}: the damage modifier ${name} is a named function (an inline one is a veto, named in VETOES)`);
+    for (const [id, fn] of calls(src, 'registerPlayerDamageMod')) {
+      const name = String(id).replace(/['"`]/g, '');
+      if (VETOES.includes(name)) {
+        const v = veto(fn ?? '');
+        assert.ok(v && v[1] === v[2], `${f}: the veto ${name} lands nothing or the blow whole - (e, d) => (cond ? 0 : d) - ${RULE}`);
+        seen.guard.push(name);
+        continue;
+      }
+      assert.match(fn ?? '', /^[A-Za-z_$][\w$]*$/, `${f}: the damage modifier ${name} is a named function (an inline one is a veto, named in VETOES)`);
+      const b = body(src, fn);
+      assert.ok(b, `${f}: ${fn}'s body, a function or an arrow with braces`);
       assert.match(b, /guardRoom\(/, `${f}: the damage modifier ${fn} never asks guardRoom - ${RULE}`);
       seen.guard.push(fn);
     }
