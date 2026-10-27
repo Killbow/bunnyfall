@@ -63,12 +63,17 @@ on (the table in the test). A number with no role, or a role the table does not 
 
 ## 5. The composite ceilings
 
-`src/systems/powerCeiling.js` holds two products. Each registry asks it for its room before it adds its share, and
-the runners (`systems/entityMods.js:"export function weaponBlowMods(weapon, damage, attacker, target, info = NO_BLOW_INFO) {"`,
+`src/systems/powerCeiling.js` holds two products. Each registry asks it for its room, under its own name, before it
+adds its share, and the runners (`systems/entityMods.js:"export function weaponBlowMods(weapon, damage, attacker, target, info = NO_BLOW_INFO) {"`,
 `characters/playerEntity.js:"export function playerDamageMods(entity, dmg) {"`) open the product for each blow and each
-hurt. Each ceiling is the product of every registry's own top, measured from the records and laws the code reads, so
-no blow or hurt today is cut. A power added later that would stack past it is cut, and the last registry in the
-order of import is the one cut.
+hurt. Each registry is held at its own top, and each ceiling is the product of the tops, measured from the records and
+laws the code reads, so no blow or hurt today is cut.
+
+AUDIT HORIZONTAL D4: a power added later that would take its registry past its top is cut at that top, and no other
+registry loses anything for it. The product alone cut whichever registry the import graph asked last: a loot power
+past 240 took the martial path from 40 to 8 in `world.js`, and the sky from 50 to 16 in `exterior.js`
+(`test/combat/powerceiling.test.js`, THE CUT LANDS WHERE THE POWER GREW). A room asked without a registry's name, or
+under a name with no top, fails the source sweep.
 
 **The blow** - per cent onto one blow, each registry at its best:
 

@@ -277,4 +277,47 @@ test('POWER-CEILING THE SOURCE: every blow modifier the tree registers asks blow
   }
   assert.deepEqual(seen.blow.sort(), ['firmamentBlow', 'lootBlow', 'martialBlow', 'setBlow', 'sigilBlow', 'weaponMasteryBlow']);
   assert.deepEqual(seen.guard.sort(), ['eg-witness', 'firmamentDamage', 'kt-down', 'lootDamageMod', 'martialDamageMod', 'pathDamageMod', 'poi-editor', 'setDamageMod']);
+  // AUDIT HORIZONTAL D4: every room asked names its registry, a registry the tops know - one asked unnamed is held by the
+  // product alone, and cuts whoever asks after it
+  const named = { blowRoom: new Set(), guardRoom: new Set() };
+  for (const f of files.filter((x) => !x.endsWith('powerCeiling.js'))) {
+    const src = strip(readFileSync(join(root, f), 'utf8'));
+    for (const [fn, tops] of [['blowRoom', BLOW_TOPS], ['guardRoom', GUARD_TOPS]]) {
+      for (const args of calls(src, fn)) {
+        const m = /^'([a-z]+)'$/.exec(args[1] ?? '');
+        assert.ok(args.length === 2 && m && Object.hasOwn(tops, m[1]), `${f}: ${fn}(${args.join(', ').slice(0, 60)}) names no registry of ${Object.keys(tops).join(', ')} - ${RULE}`);
+        named[fn].add(m[1]);
+      }
+    }
+  }
+  assert.deepEqual([...named.blowRoom].sort(), Object.keys(BLOW_TOPS).sort(), 'every blow registry asks under its own name');
+  assert.deepEqual([...named.guardRoom].sort(), Object.keys(GUARD_TOPS).sort(), 'every guard registry asks under its own name');
+});
+
+test('POWER-CEILING THE CUT LANDS WHERE THE POWER GREW (AUDIT HORIZONTAL D4): a registry past its own top is cut at that top, in any order of asking, and every other registry keeps its whole - the product alone cut the last one asked, a player\'s martial path 40 to 8 for a loot power past 240 (mutants: a registry\'s own top not read; its own product not kept)', () => {
+  const WORLD = ['sigil', 'sets', 'loot', 'firmament', 'mastery', 'martial'];   // world.js's import graph
+  const EXTERIOR = ['sigil', 'mastery', 'sets', 'loot', 'martial', 'firmament'];   // exterior.js's
+  for (const order of [WORLD, EXTERIOR, [...WORLD].reverse()]) {
+    const was = openBlowCeiling();
+    const got = Object.fromEntries(order.map((k) => [k, blowRoom(k === 'loot' ? 340 : BLOW_TOPS[k], k)]));
+    closeBlowCeiling(was);
+    assert.deepEqual(got, { ...BLOW_TOPS }, `${order.join(' ')}: the loot cut at its 240, every other whole - ${RULE}`);
+  }
+  const was = openBlowCeiling();
+  assert.equal(blowRoom(30, 'sets'), 30);
+  close(blowRoom(200, 'sets'), (3 / 1.3 - 1) * 100, 'a registry asked twice: its own product kept, x3 in all');
+  closeBlowCeiling(was);
+  close(blowRoom(1e9, 'sigil'), 12, 'alone, at its own top');
+  assert.equal(blowRoom(5, 'nobody'), 0, 'a registry with no measured top has no room');
+  for (const order of [['loot', 'sets', 'firmament', 'martial', 'arcane'], ['arcane', 'martial', 'firmament', 'sets', 'loot']]) {
+    const g = openGuardCeiling();
+    const got = {};
+    for (const k of order) {
+      got[k] = k === 'loot' ? [25, 20, 25, 10].map((l) => +guardRoom(l, 'loot').toFixed(9)) : guardRoom(GUARD_TOPS[k], k);
+    }
+    closeGuardCeiling(g);
+    assert.deepEqual(got.loot, [25, 20, 25, 0], `${order.join(' ')}: the Hex, Bedrock and the Last Stand whole, a fourth share past the loot's 55 cut`);
+    for (const k of order.filter((x) => x !== 'loot')) assert.equal(got[k], GUARD_TOPS[k], `${order.join(' ')}: ${k} whole - ${RULE}`);
+  }
+  close(guardRoom(99, 'arcane'), 20, 'alone, at its own top');
 });

@@ -93,7 +93,7 @@ let _carry = new WeakMap();
 /** THE BLOW: my blow at a foe, its skill past 100 - the fraction carried, never past the blow's whole. */
 export function weaponMasteryBlow(weapon, damage, attacker, target, info = null) {
   if (!(damage > 0) || !attacker?.isPlayer || attacker.peer || !target || target.isPlayer || target.warded || sigilDueling()) return damage;
-  const pct = blowRoom(weaponPastPct(weapon, attacker, target));   // POWER-CEILING
+  const pct = blowRoom(weaponPastPct(weapon, attacker, target), 'mastery');   // POWER-CEILING
   if (!(pct > 0)) return damage;
   const key = weapon ?? attacker;
   const exact = (damage * pct) / 100 + (_carry.get(key) ?? 0);
