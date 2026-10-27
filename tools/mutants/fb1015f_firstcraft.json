@@ -54,8 +54,10 @@
     "old": "      { more: workFirstXp(MASON_RECIPES[0]), profession }));",
     "new": "      { more: masonXp(1, rank) + workFirstXp(MASON_RECIPES[0]), profession }));",
     "tests": [
-      "test/net/fb1015f_firstcraft.test.js"
-    ]
+      "test/net/fb1015f_firstcraft.test.js",
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "CRAFT-HALL (PIN MOVED): the station read off the real Worker says each work owed or made now; the rule's line, where nothing is known, is crafthall.test.js's"
   },
   {
     "name": "FB1015C-word-first-unread",

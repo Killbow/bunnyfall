@@ -12674,11 +12674,6 @@
   "tr": "ca28884c8b42",
   "by": "claude-in-session"
  },
- "prof.page.alchemy.brew": {
-  "en": "b8dc79528235",
-  "tr": "d7de6b6baa9a",
-  "by": "claude-in-session"
- },
  "prof.page.alchemy.brewing": {
   "en": "77a09de39c43",
   "tr": "abff63f047ed",
@@ -13092,11 +13087,6 @@
  "prof.page.enchant.none": {
   "en": "913a1ddd3a6d",
   "tr": "708a79ee30bb",
-  "by": "claude-in-session"
- },
- "prof.page.enchant.rankPct": {
-  "en": "45ebd08acf93",
-  "tr": "aea784f18711",
   "by": "claude-in-session"
  },
  "prof.page.enchant.shop": {

@@ -11399,11 +11399,6 @@
   "tr": "a5b22b4e4682",
   "by": "claude-in-session"
  },
- "prof.page.alchemy.brew": {
-  "en": "b8dc79528235",
-  "tr": "1a43f67c870e",
-  "by": "claude-in-session"
- },
  "prof.page.alchemy.brewing": {
   "en": "77a09de39c43",
   "tr": "f63dacb10d35",
@@ -11817,11 +11812,6 @@
  "prof.page.enchant.none": {
   "en": "913a1ddd3a6d",
   "tr": "1540d724b9de",
-  "by": "claude-in-session"
- },
- "prof.page.enchant.rankPct": {
-  "en": "45ebd08acf93",
-  "tr": "25ac1675eddf",
   "by": "claude-in-session"
  },
  "prof.page.enchant.shop": {
@@ -12537,11 +12527,6 @@
  "prof.page.rail.stores": {
   "en": "983fd7bc323e",
   "tr": "d40a7c13a374",
-  "by": "claude-in-session"
- },
- "prof.page.rankLine": {
-  "en": "ba46c997ebad",
-  "tr": "ba46c997ebad",
   "by": "claude-in-session"
  },
  "prof.page.rankN": {
