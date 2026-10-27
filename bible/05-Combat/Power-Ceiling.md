@@ -55,6 +55,9 @@ sweep (`test/honestItems.mjs`: every loot door, shelf, spoils, the Broker, every
 tens of thousands of items). A crafted Legendary of MASTER-ART's shape, every line its piece may carry at the band's very top,
 passes; one point more fails. Every failure names this page.
 
+AUDIT HORIZONTAL D3: a minted piece's rung is its own `rarity`, as its readers take it (`it.rarity === 'gilded'`). The
+walk asked `rarityOf`, which reads an unknown rung as Common or Magic, so a piece minted on an eighth rung passed it.
+
 Every number a power or a set tier carries (149 today, `tools/powerCeiling.mjs:"export function powerNumbers() {"`)
 has a role (`tools/powerCeiling.mjs:"export const FIELD_ROLES = Object.freeze({"`). A line's role is held to its band's
 top: a set's Strength at most 15, Ruhn's fire at most 50. Every other role is held to today's strongest: a blow's

@@ -621,5 +621,14 @@
     "tests": [
       "test/combat/powerceiling_rooms.test.js"
     ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D3-an-eighth-rung-minted",
+    "file": "src/systems/questlines/qlRewards.js",
+    "old": "    if (isNamed) { item.name = named.name; item.qlNamed = true; }",
+    "new": "    if (isNamed) { item.name = named.name; item.qlNamed = true; item.rarity = 'mythic'; }",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
   }
 ]

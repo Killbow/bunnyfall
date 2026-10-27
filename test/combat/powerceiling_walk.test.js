@@ -165,7 +165,7 @@ test('POWER-CEILING THE SETS AND THE POWERS: every number at Ascendant and in ev
   assert.deepEqual(now, STRONGEST, 'the strongest of each role, as recorded (a lower one is lowered here and in the page)');
 });
 
-test('POWER-CEILING EVERY ITEM MINTED: the honest producers\' sweep (every loot door, shelf, spoils, the Broker, the crafted pieces, gifts and keepsakes) - a rung of the seven, no line past its top, no sigil past the band (mutant: a Rare\'s band raised past the top)', () => {
+test('POWER-CEILING EVERY ITEM MINTED: the honest producers\' sweep (every loot door, shelf, spoils, the Broker, the crafted pieces, gifts and keepsakes) - a rung of the seven by the piece\'s own word, no line past its top, no sigil past the band (mutants: a Rare\'s band raised past the top; AUDIT HORIZONTAL D3: a named reward minted on an eighth rung)', () => {
   const items = honestItems({ seeds: 2 });
   assert.deepEqual(honestItemsSkipped, [], 'every producer ran');
   assert.ok(items.length > 10000, `the sweep minted ${items.length}`);
@@ -173,7 +173,9 @@ test('POWER-CEILING EVERY ITEM MINTED: the honest producers\' sweep (every loot 
   const tiers = new Set();
   for (const { source, item } of items) {
     tiers.add(rarityOf(item));
-    assert.ok(RARITY_ORDER.includes(rarityOf(item)), `${source}: ${item.rarity} is no rung - ${RULE}`);
+    // AUDIT HORIZONTAL D3: the piece's own word, as its readers take it (`it.rarity === 'gilded'`) - rarityOf reads an
+    // unknown rung as Common or Magic, so asking it could never fail
+    assert.ok(item.rarity == null || RARITY_ORDER.includes(item.rarity), `${source}: ${item.rarity} is no rung - ${RULE}`);
     if (item.affixes?.length) { lines += item.affixes.length; past(`${source}: ${item.name}`, item); }
     if (item.sigil?.power !== undefined) assert.ok(item.sigil.power <= SIGIL_POWER_MAX, `${source}: sigil ${item.sigil.power} - ${RULE}`);
   }
