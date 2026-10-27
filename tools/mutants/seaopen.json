@@ -743,8 +743,8 @@
   {
     "name": "VEIL-the-missed-unsaid",
     "file": "src/scenes/naval/veilParty.js",
-    "old": "      if (!went) deps.say(VEIL_TEXT.missed(name));",
-    "new": "      if (false) deps.say(VEIL_TEXT.missed(name));",
+    "old": "      if (!went) deps.say(VEIL_PARTY_TEXT.missed(name));",
+    "new": "      if (false) deps.say(VEIL_PARTY_TEXT.missed(name));",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]

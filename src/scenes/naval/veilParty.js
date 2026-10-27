@@ -13,7 +13,7 @@ import { t } from '../../systems/textManager.js';
  *  and her first pose there. */
 export const VEIL_FOLLOW_MS = 60_000;
 /** The words. */
-export const VEIL_TEXT = Object.freeze({
+export const VEIL_PARTY_TEXT = Object.freeze({
   follow: (name) => t('veil.party.follow', '{name} sails across the Veil. You cross with the ship.', { name }),
   landed: (name) => t('veil.party.landed', 'You cross the Veil with {name}.', { name }),
   missed: (name) => t('veil.party.missed', 'You could not cross the Veil with {name}.', { name }),
@@ -26,7 +26,7 @@ export function veilJourney(to, name, row) {
     pick: {
       pixel: { x: to.x, y: to.y }, name, veil: true,
       besideAt: () => { const r = row(); return r && memberPresent(r) ? besideTargetOf(r.p, to.x, to.y) : null; },
-      besideText: VEIL_TEXT.landed(name),
+      besideText: VEIL_PARTY_TEXT.landed(name),
     },
     opts: { speedCautious: false, travelShip: true, sleepModeInn: false },
     computed: { minutes: CROSS_DAYS * 1440, totalCost: 0, piecesCost: 0, oceanPixels: 0 },
@@ -63,11 +63,11 @@ export function createVeilParty(deps) {
     const to = { x: row.p.px, y: row.p.py };
     following = true;
     rode = null;
-    deps.say(VEIL_TEXT.follow(name));
+    deps.say(VEIL_PARTY_TEXT.follow(name));
     const j = veilJourney(to, name, () => rowOf(acctNow));
     Promise.resolve(deps.travel(j.pick, j.opts, j.computed)).catch(() => false).then((went) => {
       following = false;
-      if (!went) deps.say(VEIL_TEXT.missed(name));
+      if (!went) deps.say(VEIL_PARTY_TEXT.missed(name));
     });
   }
 

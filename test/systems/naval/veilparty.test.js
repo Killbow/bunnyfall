@@ -4,7 +4,7 @@
 // journey, landing beside her captain. The picture is net/social.js's own SocialState. tools/mutants/seaopen.json (VEIL-).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createVeilParty, veilJourney, VEIL_FOLLOW_MS, VEIL_TEXT } from '../../../src/scenes/naval/veilParty.js';
+import { createVeilParty, veilJourney, VEIL_FOLLOW_MS, VEIL_PARTY_TEXT } from '../../../src/scenes/naval/veilParty.js';
 import { createComeSailAwayAboard } from '../../../src/scenes/comeSailAway/comeSailAwayAboard.js';
 import { CROSS_DAYS, CROSS_REFUSED, crossingTarget } from '../../../src/systems/naval/etherCrossing.js';
 import { inEther } from '../../../src/world/ethericSea.js';
@@ -48,8 +48,8 @@ test('VEIL-PARTY the passenger: aboard a party member\'s ship when her captain c
   assert.deepEqual(computed, { minutes: CROSS_DAYS * 1440, totalCost: 0, piecesCost: 0, oceanPixels: 0 });
   assert.equal(opts.speedCautious, false);
   assert.deepEqual(pick.besideAt(), { x: (LAND.px + 0.5) * 32768, y: 2, z: (499 - LAND.py + 0.5) * 32768 }, 'beside her captain, as the far end reads them');
-  assert.equal(pick.besideText, VEIL_TEXT.landed('Wren'));
-  assert.deepEqual(r.w.said, [VEIL_TEXT.follow('Wren')]);
+  assert.equal(pick.besideText, VEIL_PARTY_TEXT.landed('Wren'));
+  assert.deepEqual(r.w.said, [VEIL_PARTY_TEXT.follow('Wren')]);
   r.step(); r.step();
   assert.equal(r.w.trips.length, 1, 'once');
   await settle();
@@ -78,7 +78,7 @@ test('VEIL-PARTY the passenger\'s refusals: a stranger\'s ship is no party\'s; h
   fail.w.went = false;
   fail.step(); fail.cross(); fail.step();
   await settle();
-  assert.deepEqual(fail.w.said, [VEIL_TEXT.follow('Wren'), VEIL_TEXT.missed('Wren')]);
+  assert.deepEqual(fail.w.said, [VEIL_PARTY_TEXT.follow('Wren'), VEIL_PARTY_TEXT.missed('Wren')]);
 });
 
 test('VEIL-PARTY the captain: a rider of her party is not counted against her crossing, a stranger still is - the aboard book\'s count with the party left out, and the world host\'s refusal asks it so (mutants: the skip unread, the kin unread)', () => {
