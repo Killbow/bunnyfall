@@ -448,6 +448,8 @@ export const ROUTES = new Set([
   '/v1/renown/xp',
   // FIRM1: the Firmament - a character's passive tree, read and changed whole (firmament.js)
   '/v1/firmament/state', '/v1/firmament/set', '/v1/firmament/respec',
+  // HUNTERS-MARK: the hunt's ledger - a character's clears read, a paid bounty reported (hunts.js). Behind a session.
+  '/v1/hunt/state', '/v1/hunt/clear',
   // CHAP1: the Roll - a realm character's standing with Daggerfall's guilds, read (seeded once) and claimed under the
   // playing tab's lease (npcRoll.js). Behind a session and CHAPTERS_OPEN.
   '/v1/chapters/roll', '/v1/chapters/claim',

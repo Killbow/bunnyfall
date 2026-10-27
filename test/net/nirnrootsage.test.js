@@ -93,7 +93,7 @@ const find = (n, cls) => {
 // ── THE VOCABULARY AND ITS FACE ─────────────────────────────────────
 
 test('NIRNROOT-SAGE vocabulary: the title and the glyph join the closed lists last, the aura joins AURAS last; "Nirnroot Sage" and "Sage\'s Smoke" in words, the glyph named on the account card; the title a gradient - the leaf into the glow into the haze, #2e9e57, #7affb0, #e2f0e8 - edged in black, its one colour the glow, apart from every title\'s; the glyph in the glow, filled; `Y` on the classic face; the smoke\'s button in the Sage\'s paint; the wire keeps all three (mutants: the gradient\'s stops, its order, the edge, the one colour, the glyph\'s colour, the mark, the fill, the button\'s paint, the words)', () => {
-  assert.equal(TITLES.at(-1), 'nirnrootsage', 'the vocabulary\'s newest');
+  assert.equal(TITLES.at(-17) /* PIN MOVED (HUNTERS-MARK): the Marks of Mastery's sixteen joined the list last */, 'nirnrootsage', 'the vocabulary\'s newest');
   assert.equal(GLYPHS.at(-1), 'nirnrootsage');
   assert.equal(AURAS.at(-1), 'sagesmoke');
   assert.equal(TITLE_TEXT.nirnrootsage, 'Nirnroot Sage', 'the owner\'s word for it');

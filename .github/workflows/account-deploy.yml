@@ -99,6 +99,8 @@ on:
       - "src/net/firmament/firmamentLaw.js"
       - "src/net/firmament/firmamentTree.js"
       - "src/net/questlineClaims.js"
+      - "src/net/huntLaw.js"
+      - "src/systems/bounty/bountyBoard.js"
       - "src/net/nodeLaw.js"
       - "src/world/ethericSea.js"
       - "src/world/jungle/banthaArea.js"
