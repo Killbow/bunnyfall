@@ -88,9 +88,9 @@ or two schools among the primaries can now stand beside a third primary mastered
 the third primary left at 100); the Growth guide reads the slots, so it follows.
 
 THE WORKERS. `masterSkills.js` is in both Workers' bundles (reached through the skills' law), so its bytes moved both
-versions: the relay's RELAY_VERSION world270 (no relay code reads the slots - nothing it does moved) and the account
-service's acct197 (taken with JEWEL-KIN; world269 and acct195, then acct196, on this branch, each renumbered past main's
-own at a merge). Neither needs the other deployed first. Every pin of the two versions moved
+versions: the relay's RELAY_VERSION world271 (no relay code reads the slots - nothing it does moved) and the account
+service's acct197 (taken with JEWEL-KIN; world269, then world270, and acct195, then acct196, on this branch, each
+renumbered past main's own at a merge). Neither needs the other deployed first. Every pin of the two versions moved
 with a PIN MOVED note (61 test files), and the two records that name the relay's line re-aimed.
 
 Pinned by `test/systems/fb1026d_masterthree.test.js`. Pins moved by intent - each fixture that spent "the primary slots"
@@ -224,7 +224,8 @@ ARROW_FLIGHT_SPEED and left six mutant records (`audit_martial`, `techfx1` x3, `
 test reading the constant the shafts fly at.
 
 THE LATER MERGES. `main` took acct196 (WOVEN-PAYS), world269 (BOW-TOPS) and mint version 3 (ARMOR-LEAN, an armour's
-lines on its family's leans) while this branch was open: JEWEL-KIN is acct197, world270 and `MINT_V_JEWEL_KIN` 4 - a
+lines on its family's leans) while this branch was open, and then world270 (CHAT-POST): JEWEL-KIN is acct197, MASTER-THREE world271 and
+`MINT_V_JEWEL_KIN` 4 - a
 record of 3 keeps the jewel's old lean, pinned - and the record moved from 26b to 26c, the name main gave WOVEN-PAYS, then to 26d, past
 #1327's 26c.
 
