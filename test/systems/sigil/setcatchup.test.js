@@ -64,6 +64,10 @@ test('SET-CATCHUP THE REACH: the second-best rank among a set\'s carried pieces 
   assert.equal(recordedReach('dagon'), 3, 'never lowered');
   e.items.length = 0;
   assert.equal(setReachOf(e, 'dagon'), 3, 'the pieces gone, the record keeps it');
+  const m = wear(player(), piece(107, 'mora', XP[1] - 10), piece(106, 'mora', XP[1] - 10));
+  drinkWorn(m, null, 10);
+  m.items.length = 0;
+  assert.equal(recordedReach('mora'), 1, 'a rise the drink made is recorded after it, the pieces gone or not');
 });
 
 test('SET-CATCHUP THE DRINK: a full Dagon\'s Brand at Radiant, a fresh helm swapped in - the set falls to Faint (grow together, as ever), and the fresh helm drinks three times the kill\'s XP until Radiant while the rest drink it whole; the old helm sold, the record keeps the pace; a duel or offline, nothing drinks (mutants: the fresh piece drinking whole; every piece drinking fast; the record never written)', () => {
@@ -109,7 +113,7 @@ test('SET-CATCHUP THE SAVE: the reach rides the character\'s save under its own 
   fresh();
   noteReach(new Map([['dagon', [3, 3]], ['panoply', [4, 2]]]));
   assert.deepEqual(modSaveRecords()[SET_REACH_SAVE_VENDOR], { reach: { dagon: 3, panoply: 2 } });
-  restoreModSaveRecords({ [SET_REACH_SAVE_VENDOR]: { reach: { dagon: 4, mora: 9, sheogorath: 2, nocturnal: 1.5, ruhn: 0 } } });
+  restoreModSaveRecords({ [SET_REACH_SAVE_VENDOR]: { reach: { dagon: 4, mora: 5, sheogorath: 2, nocturnal: 1.5, ruhn: 0 } } });
   assert.deepEqual(modSaveRecords()[SET_REACH_SAVE_VENDOR], { reach: { dagon: 4, ruhn: 0 } }, 'a stage 0..4 of a set that is one');
   restoreModSaveRecords({});
   assert.deepEqual(modSaveRecords()[SET_REACH_SAVE_VENDOR], { reach: {} }, 'a save from before: none');

@@ -658,14 +658,22 @@ every set, the techniques, a Legendary's own power but these two.
 
 RECORDED, NOT CHANGED:
 
-- **The guards** compose with no overall ceiling (all eight about x0.49 of what lands; past their avoidance about 96%
+- **The guards** composed with no overall ceiling (all eight about x0.49 of what lands; past their avoidance about 96%
   off a blow at the extreme). A 50% ceiling at the door barely bound (7.22 -> 7.28 a blow) once the heals above were
-  answered, so the heals were the cause and the guards stand.
+  answered, so the heals were the cause and the guards stand. CHANGED by POWER-CEILING (below).
 - **Skill lines past the softcap** (gear's Critical Strike to 110 in the kit, x2.1 a crit): -6% in the measured kit;
   a ceiling on them is a watch item, not a cause.
-- **The blow powers** multiply across their three registries (sigil, sets, loot) with no ceiling; they bind only in a
-  stacked burst on a cooldown.
+- **The blow powers** multiplied across their registries (sigil, sets, loot) with no ceiling; they bind only in a
+  stacked burst on a cooldown. CHANGED by POWER-CEILING (below).
 - **Gortwog's Cleaver** keeps its record's Vampiric Effect: one named Legendary, never a random draw.
+
+CHANGED, POWER-CEILING (2026-10-27, `Power-Ceiling.md` section 5). The guards' shares now compose under one ceiling: a
+hurt keeps at least 10.71% of what reaches them (the loot 55% off, the sets 50%, the sky 15%, the martial path 30%,
+the arcane path 20%, each at its strongest). Points, pools, avoidance and a cap by health stand outside it, as they
+stood outside the 96% above. The blow powers, six registries now, multiply under one ceiling of x43.18 - the sigil
++12%, the sets +200%, the loot +240%, the Firmament +50%, weapon mastery +80%, the martial paths +40%, each at its own
+top. Each ceiling is the product of today's tops, so nothing a player has is cut, and a power added later that would
+stack past it is.
 
 FIELD BUGS 2026-10-18f VAMPIRIC-WARD: the heal is the damage a blow DEALS, and a blow a referee's ward turns whole deals
 none. The stand-in says so (`warded`: the Warden's ward, the Brass Remnant shut, the Spire's turned blows - Elite-Gates.md

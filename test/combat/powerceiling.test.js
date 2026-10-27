@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import * as LR from '../../src/systems/loot/lootRarity.js';
 import * as LP from '../../src/systems/loot/lootPowers.js';
-import { setStruck, setBlow, setStrike, _resetSetPowersForTests, _setSetPowersClockForTests } from '../../src/systems/sigil/sigilSetPowers.js';
+import { setStruck, setBlow, setStrike, setDamageMod, SIGIL_SETS_POWER, _resetSetPowersForTests, _setSetPowersClockForTests } from '../../src/systems/sigil/sigilSetPowers.js';
 import { SIGIL_SETS, _resetSigilSetsForTests } from '../../src/systems/sigil/sigilSets.js';
 import { SIGIL_XP_MAX, setSigilOnline, setSigilRenown, sigilBlow, _resetSigilForTests } from '../../src/systems/sigil/sigil.js';
 import '../../src/systems/firmamentPowers.js';
@@ -22,7 +22,7 @@ import '../../src/systems/martialPowers.js';
 import '../../src/systems/arcanePowers.js';
 import '../../src/systems/thunderlock.js';
 import { GILDED_RECORDS } from '../../src/systems/gilded.js';
-import { STARSPUN_SET_PIECES, mintAetheric } from '../../src/systems/aetheric.js';
+import { STARSPUN_SET_PIECES, RAID_SET_PIECES, NUMIDIUM_SET_PIECES, mintAetheric } from '../../src/systems/aetheric.js';
 import { weaponBlowMods, registerWeaponBlowMod } from '../../src/systems/entityMods.js';
 import { hurtPlayer, registerPlayerDamageMod } from '../../src/characters/playerEntity.js';
 import { setPlayerDoor } from '../../src/systems/playerDoor.js';
@@ -146,6 +146,7 @@ test('POWER-CEILING THE BLOW, BY EXECUTION: the sigil\'s +12%, the sets\' +200% 
   assert.equal(setBlow(nw, 1000, me, foe, unaware), 3000, 'the sets: +60% and +140%');
   assert.equal(LP.lootBlow(nw, 1000, me, foe, unaware), 3400, 'the loot: +100%, +50%, +60%, +30%');
   assert.equal(weaponBlowMods(nw, 1000, me, foe, unaware), 11424, 'together, whole: 1.12 x 3 x 3.4');
+  assert.deepEqual(ceilingProducts(), { blow: null, guard: null }, 'the runner closes its product');
   registerWeaponBlowMod('powerceiling-test', (w, d) => d + Math.floor((d * blowRoom(1e6)) / 100));
   try {
     assert.equal(weaponBlowMods(nw, 1000, me, foe, unaware), Math.floor(1000 * BLOW_MOST), `a power past the product is cut to x${BLOW_MOST.toFixed(2)}`);
@@ -175,6 +176,7 @@ test('POWER-CEILING THE GUARDS, BY EXECUTION: the loot\'s three (a hexed foe, Be
   me.health = 2000;   // under a quarter: the Last Stand
   blow(1000);
   assert.equal(2000 - me.health, 225, '1000 x 0.75 x 0.8 x 0.75 x 0.5');
+  assert.deepEqual(ceilingProducts(), { blow: null, guard: null }, 'the door closes its share');
   registerPlayerDamageMod('powerceiling-test', (_e, d) => Math.round(d * (1 - guardRoom(99) / 100)));
   try {
     me.health = 2000;
@@ -189,6 +191,31 @@ test('POWER-CEILING THE GUARDS, BY EXECUTION: the loot\'s three (a hexed foe, Be
   const d = LP.lootDamageMod(me, 1000);
   closeGuardCeiling(g);
   assert.equal(d, 1000, 'no room: the loot\'s guards take nothing more');
+});
+
+test('POWER-CEILING THE SETS\' OTHER GUARDS: Hold the Line and Gearward take their share whole while there is room, and nothing once a guard before them spent it (mutants: either not asking its room)', () => {
+  fresh();
+  const RAID = RAID_SET_PIECES.filter((r) => r.set === 'oath' && r.group === 'Armor').slice(0, 6);
+  const me = wear(player(), ...RAID.map((r) => ascendant(mintAetheric(r), 'oath')));
+  const orc = { careerIndex: 7, career: {}, health: 100, maxHealth: 100, level: 10 };
+  const blow = (n) => { const was = me.health; setStruck(orc, me, n); hurtPlayer(me, n); return was - me.health; };
+  me.health = 4000;   // under half: the Line holds
+  assert.equal(blow(1000), 750, 'Hold the Line at Ascendant: a quarter off');
+  const brass = wear(player(), ...NUMIDIUM_SET_PIECES.filter((r) => r.group === 'Armor').slice(0, 4).map((r) => ascendant(mintAetheric(r), 'numidium')));
+  const gear = (n) => { const was = brass.health; setStruck(orc, brass, n); hurtPlayer(brass, n); return was - brass.health; };
+  brass.health = 4000;
+  assert.equal(gear(1000), 700, 'Gearward at Ascendant: the wound blow 30% lighter');
+  // a guard before them spends the whole share: they take nothing more
+  registerPlayerDamageMod('powerceiling-spend', (_e, d) => { guardRoom(100); return d; });
+  registerPlayerDamageMod(SIGIL_SETS_POWER, null);
+  registerPlayerDamageMod(SIGIL_SETS_POWER, setDamageMod);   // registered again: now after the spender
+  try {
+    me.health = 4000;
+    assert.equal(blow(1000), 1000, 'no room: the Line takes nothing');
+    T = 100;   // the gear wound again
+    brass.health = 4000;
+    assert.equal(gear(1000), 1000, 'no room: the gear takes nothing');
+  } finally { registerPlayerDamageMod('powerceiling-spend', null); }
 });
 
 test('POWER-CEILING THE SOURCE: every blow modifier the tree registers asks blowRoom, and every damage modifier but the three that land no blow at all asks guardRoom - a new power cannot step round the product (mutant: one registry\'s room call taken out)', () => {

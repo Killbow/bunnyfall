@@ -31,6 +31,12 @@ Five tiers, three of which Daggerfall already had:
 | Legendary | a fixed record: a name a player learns, a set affix signature, its own DFU enchantment, a line of lore | a roll, from `LEGENDARIES` (ten records over the three groups; thirty since LOOT3, `Loot-Arc.md`) |
 | Artifact | DFU's artifacts, untouched | DFU's own; the ceiling |
 
+THE CEILING HOLDS (POWER-CEILING, 2026-10-27; `05-Combat/Power-Ceiling.md`). The ladder
+is seven rungs now - Aetheric (SET6) and Gilded (GILDED1) came above the Legendary - and
+it stays seven: a new rung, a band above the Legendary, or a line past the Legendary
+band's top needs the owner's word, quoted on that page. `validAffix` is the per-line law;
+`test/combat/powerceiling_walk.test.js` walks every record and minted item against it.
+
 REPLACE, DON'T LAYER (decided, 2026-09-14). With the switch on there is
 one ladder: `rarityOf(item)` answers a rolled item's own field, an
 artifact as the ceiling, any enchanted item (a MAGIC.DEF drop, a made
