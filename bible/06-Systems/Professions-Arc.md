@@ -598,12 +598,11 @@ laid out for the phone's touch layer as for the desktop.
 - **The Professions tab** (character sheet): a left column in two groups (Gathering, Crafting) - each row the icon,
   name, rank, rank's name and a thin bar; the right pane for the chosen one - XP to the next rank, the specialisation
   cards (choose one), the unlocks by rank (tiers, recipes), today's harvests, and "Crafts above Journeyman: 1 of 2".
-  CRAFT-HALL (section 56): the chosen one's bar under its name, **What raises it** (every act's figure at the rank,
-  reckoned by the laws), and a craft's **First-time bonuses** (made of all, the owed ones the rank opens).
+  CRAFT-HALL (section 56) adds its bar, **What raises it** and a craft's **First-time bonuses**.
   **How it is done** (TOOL-SAID, FIELD BUGS 2026-09-30b; CRAFT-HOWTO, FIELD BUGS 2026-10-18d): under the XP line, a
   paragraph says how the chosen profession is practised. A gatherer says how it gathers (`ui/professions/profPages.js`
   `GATHER_HOW` for Herbalism, Mining and Logging, Hunting's own line, `FISHING_HOW`, and Mining's ground line under its
-  own). A craft says where its stations stand, that they are worked from the Crafting page (CRAFT-HALL, section 56 - the Professions key lands on it at a station; the Stores page, Holdings > Stores, until then), what
+  own). A craft says where its stations stand, that they are worked from the Crafting page (section 56), what
   they make of the gathered goods and what earns its XP (`CRAFT_HOW`: Smithing, Building, Outfitting, and Provisioning's
   cooking after its brew, `ALCHEMY_HOW`; Enchanting's is `ENCHANTING_HOW`). Each paragraph is read in the player's
   language when the page is drawn. Until CRAFT-HOWTO, Smithing, Building and Outfitting showed their specialisation
@@ -623,10 +622,8 @@ laid out for the phone's touch layer as for the desktop.
 - **A station**: left, the recipe list (filters: Can make now, All known, by tier); centre, the recipe - its inputs
   (have / need, from the Stores), the product as an item card, a bar of its quality odds (9.2); buttons **Craft**
   (plays the act, 9.4), **Quick craft**, **Craft x N** (quick, up to 10); right, the act's panel while it plays.
-  CRAFT-HALL (section 56, BUILT 2026-10-26): the stations' own page is **Crafting**, beside Professions on the Stats
-  rail, where the Professions key lands at a station; each station worked carries its track's bar; the shows (All, Can
-  make now, First-time bonus - "by tier" is CRAFT2's material row) and **Craft x N** built; a pattern says its first-time
-  bonus owed or made.
+  CRAFT-HALL (section 56) built the stations' own page, **Crafting**, the filters over the anvil's, workbench's,
+  loom's and fire's patterns, and **Craft x N**.
 - **The held map** marks the patches and veins a character has worked before, and a Prospector's veins.
 - **Keys** from KB1's registry, under a Professions group in Controls: Interact (E), attack, Esc, and an **act
   choice** key, chosen from the free keys at PROF1 (KB1's rule: one key, one action; Mac's four calls stand): at a
@@ -6485,6 +6482,9 @@ drawn; and 56.5's five. `tools/mutants/crafthall.json` (53, all dead).
   it laid the older answer over the book: the craft's first showed owed again, its spent goods held and its XP gone,
   until the next read. Every answer laid on the state moves `profBook.js` `stateGen`, and a read one overtook is read
   again, `PROF_STATE_READS` times in all at most, as the writs' `writGen` does.
+
+- **AUDIT HORIZONTAL PT1's growth, taken back.** CRAFT-HALL's three insertions into section 8 retold 56.2 and grew its
+  long paragraph by 116 words unseen. They point to this section now, 80 words fewer.
 
 - **Pins moved:** the standing's `closed` (two), the stars' row and Smithing's note, the host's option
   (`crafthall.test.js`); the chooser's names (`fb1011f_stationdoor.test.js`); the key's row
