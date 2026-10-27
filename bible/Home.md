@@ -255,7 +255,9 @@ Everything written from now on:
   you change follows this rule, and no file or page gets worse.
   `test/tooling/plaintext.test.js` holds all three to
   `tools/plainTextBaseline.json`, which only goes down
-  (`node tools/plainText.mjs --lower` after a cleanup).
+  (`node tools/plainText.mjs --lower` after a cleanup). Until this rule is
+  on main, a merge from main admits main's own counts and no more
+  (`node tools/plainText.mjs --seed origin/main`).
 
 THE HOSTS DO NOT GROW (HOST-SPLIT, 2026-10-15). bootWorld, createWorldModes,
 buildDungeonContext, bootExterior, navalHost's createNavalHost and Come Sail Away's

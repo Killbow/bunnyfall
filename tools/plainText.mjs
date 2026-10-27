@@ -5,7 +5,9 @@
 //
 //   node tools/plainText.mjs              report what breaks the law, against the baseline
 //   node tools/plainText.mjs --lower      rewrite the baseline to today's counts (never raises one)
+//   node tools/plainText.mjs --seed REF   at a merge from a base without the law: admit REF's own counts, no more
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseStringTableCsv } from '../src/systems/textManager.js';
@@ -70,23 +72,55 @@ const walk = (root, dir, ext, out = []) => {
   return out;
 };
 
+/** The tree on disk, as measure() reads it. */
+const diskTree = (root) => ({ list: (dir, ext) => walk(root, dir, ext), read: (f) => readFileSync(join(root, f), 'utf8') });
+/** The tree at a git ref, read in one `git cat-file --batch`. */
+export function gitTree(ref, root = ROOT) {
+  const git = (args, input) => execFileSync('git', args, { cwd: root, input, maxBuffer: 1 << 30 });
+  const paths = String(git(['ls-tree', '-r', '--name-only', ref, '--', ...SOURCE_DIRS, 'bible', 'locales/en'])).split('\n').filter(Boolean);
+  const out = git(['cat-file', '--batch'], paths.map((p) => `${ref}:${p}`).join('\n'));
+  const files = new Map();
+  let at = 0;
+  for (const p of paths) {
+    const nl = out.indexOf(10, at);
+    const size = Number(String(out.subarray(at, nl)).split(' ')[2]);
+    files.set(p, out.subarray(nl + 1, nl + 1 + size).toString('utf8'));
+    at = nl + 1 + size + 1;
+  }
+  return { list: (dir, ext) => paths.filter((p) => p.startsWith(`${dir}/`) && ext.test(p)), read: (f) => files.get(f) ?? '' };
+}
+
 /** Today's counts: the catalog's breaching keys and their word counts, the long comment blocks a file, the long
- *  paragraphs a page. */
-export function measure(root = ROOT) {
-  const rows = parseStringTableCsv(readFileSync(join(root, 'locales/en/Port_Strings.csv'), 'utf8'));
+ *  paragraphs a page. `tree` the files read (the disk's, or gitTree's). */
+export function measure(root = ROOT, tree = diskTree(root)) {
+  const rows = parseStringTableCsv(tree.read('locales/en/Port_Strings.csv'));
   const strings = {};
   for (const [k, v] of rows) { const b = stringBreach(v); if (b) strings[k] = b.words; }
   const comments = {};
-  for (const f of SOURCE_DIRS.flatMap((d) => walk(root, d, /\.(m?js)$/))) {
-    const n = longCommentBlocks(readFileSync(join(root, f), 'utf8'));
+  for (const f of SOURCE_DIRS.flatMap((d) => tree.list(d, /\.(m?js)$/))) {
+    const n = longCommentBlocks(tree.read(f));
     if (n) comments[f] = n;
   }
   const bible = {};
-  for (const f of walk(root, 'bible', /\.md$/)) {
-    const n = longParagraphs(readFileSync(join(root, f), 'utf8'));
+  for (const f of tree.list('bible', /\.md$/)) {
+    const n = longParagraphs(tree.read(f));
     if (n) bible[f] = n;
   }
   return { strings, comments, bible };
+}
+
+/** A merge from a base that does not hold the law yet: each count past the baseline is admitted up to the base's own
+ *  count for it, never past it - what the base wrote before the law stands, what this branch adds does not. */
+export function seeded(base, now, at) {
+  const out = {};
+  for (const part of ['strings', 'comments', 'bible']) {
+    out[part] = { ...(base[part] ?? {}) };
+    for (const [k, n] of Object.entries(now[part])) {
+      const allow = Math.min(n, at[part]?.[k] ?? 0);
+      if (allow > (out[part][k] ?? 0)) out[part][k] = allow;
+    }
+  }
+  return out;
 }
 
 /** What breaks the law against `base`: a string, a file or a page past its baseline (none for one not listed), and a
@@ -105,7 +139,15 @@ if (isMain(import.meta.url)) {
   const now = measure();
   const path = join(ROOT, BASELINE);
   const base = existsSync(path) ? JSON.parse(readFileSync(path, 'utf8')) : { strings: {}, comments: {}, bible: {} };
-  if (process.argv.includes('--lower')) {
+  const seedAt = process.argv.indexOf('--seed');
+  if (seedAt > 0) {
+    const seed = seeded(base, now, measure(ROOT, gitTree(process.argv[seedAt + 1])));
+    for (const part of ['strings', 'comments', 'bible']) {
+      for (const [k, n] of Object.entries(seed[part])) if (n !== (base[part]?.[k] ?? 0)) console.log(`SEED  ${part} ${k}: ${base[part]?.[k] ?? 0} -> ${n}`);
+      seed[part] = Object.fromEntries(Object.entries(seed[part]).sort(([a], [b]) => a.localeCompare(b)));
+    }
+    writeFileSync(path, `${JSON.stringify(seed, null, 1)}\n`);
+  } else if (process.argv.includes('--lower')) {
     const low = {};
     for (const part of ['strings', 'comments', 'bible']) {
       low[part] = Object.fromEntries(Object.entries(base[part] ?? {}).map(([k, n]) => [k, Math.min(n, now[part][k] ?? 0)]).filter(([, n]) => n > 0).sort(([a], [b]) => a.localeCompare(b)));

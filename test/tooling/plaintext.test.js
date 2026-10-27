@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  measure, verdict, stringBreach, longCommentBlocks, longParagraphs, BASELINE, ROOT,
+  measure, verdict, seeded, stringBreach, longCommentBlocks, longParagraphs, BASELINE, ROOT,
   STRING_WORDS_MAX, SENTENCE_WORDS_MAX, COMMENT_LINES_MAX, PARAGRAPH_WORDS_MAX,
 } from '../../tools/plainText.mjs';
 
@@ -33,6 +33,7 @@ test('PLAIN-TEXT a comment block past 8 lines counts, a block of 8 does not; a b
   assert.equal(longCommentBlocks(block(9)), 1);
   assert.equal(longCommentBlocks(`/*\n${Array(8).fill(' * a line').join('\n')}\n */\nconst x = 1;\n`), 1);
   assert.equal(longCommentBlocks(`${block(9)}${block(9)}`), 2);
+  assert.equal(longCommentBlocks(Array(9).fill('// a line').join('\n')), 1, 'a block that ends the file counts');
   assert.equal(longParagraphs(Array(150).fill('w').join(' ')), 0);
   assert.equal(longParagraphs(`${Array(151).fill('w').join(' ')}\n\n${Array(151).fill('w').join(' ')}`), 2);
   assert.equal(longParagraphs(`| ${Array(200).fill('w').join(' ')} |`), 0);
@@ -48,4 +49,18 @@ test('PLAIN-TEXT the baseline only lists what breaks the law, and only ever with
   for (const part of ['strings', 'comments', 'bible']) {
     for (const [k, n] of Object.entries(base[part])) assert.ok(Number.isSafeInteger(n) && n > 0, `${part} ${k}`);
   }
+});
+
+test('PLAIN-TEXT a merge from a base without the law admits the base\'s own counts and no more: past the baseline up to the base\'s figure, never past it, never an entry the base does not have, and never lower than written (mutants: the base\'s cap unread; an absent entry admitted)', () => {
+  const base = { strings: {}, comments: { 'a.js': 2 }, bible: { 'p.md': 5 } };
+  const now = { strings: { k: 44 }, comments: { 'a.js': 4, 'b.js': 1 }, bible: { 'p.md': 3 } };
+  const at = { strings: {}, comments: { 'a.js': 3 }, bible: { 'p.md': 9 } };
+  assert.deepEqual(seeded(base, now, at), { strings: {}, comments: { 'a.js': 3 }, bible: { 'p.md': 5 } });
+});
+
+test('PLAIN-TEXT the verdict: an entry the baseline does not list is over at its first breach; one the baseline lists higher than today is stale until lowered (mutants: an unlisted entry let through)', () => {
+  const none = { strings: {}, comments: {}, bible: {} };
+  assert.deepEqual(verdict({ ...none, strings: { k: 41 } }, none), { over: ['strings k: 41 (allowed 0)'], stale: [] });
+  assert.deepEqual(verdict(none, { ...none, bible: { 'p.md': 2 } }), { over: [], stale: ['bible p.md: 0 (baseline 2)'] });
+  assert.deepEqual(verdict({ ...none, comments: { 'a.js': 2 } }, { ...none, comments: { 'a.js': 2 } }), { over: [], stale: [] });
 });

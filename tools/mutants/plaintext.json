@@ -1,0 +1,112 @@
+[
+  {
+    "name": "PLAIN-TEXT-string-limit-raised",
+    "file": "tools/plainText.mjs",
+    "old": "export const STRING_WORDS_MAX = 40;",
+    "new": "export const STRING_WORDS_MAX = 41;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "the string's limit loosened by one word"
+  },
+  {
+    "name": "PLAIN-TEXT-sentence-unread",
+    "file": "tools/plainText.mjs",
+    "old": "  if (w <= STRING_WORDS_MAX && s <= SENTENCE_WORDS_MAX && !padding.length) return null;",
+    "new": "  if (w <= STRING_WORDS_MAX && !padding.length) return null;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "a sentence past 25 words passes"
+  },
+  {
+    "name": "PLAIN-TEXT-padding-unread",
+    "file": "tools/plainText.mjs",
+    "old": "  const padding = PADDING.filter((re) => re.test(text)).map(String);",
+    "new": "  const padding = [];",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "padding words pass"
+  },
+  {
+    "name": "PLAIN-TEXT-argument-counted-as-words",
+    "file": "tools/plainText.mjs",
+    "old": "const words = (s) => String(s).replace(/\\{[^{}]*\\}/g, 'X').split(/\\s+/).filter(Boolean).length;",
+    "new": "const words = (s) => String(s).split(/\\s+/).filter(Boolean).length;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "an ICU argument counted as its words"
+  },
+  {
+    "name": "PLAIN-TEXT-comment-block-off-by-one",
+    "file": "tools/plainText.mjs",
+    "old": "    else { if (run > COMMENT_LINES_MAX) n++; run = 0; }",
+    "new": "    else { if (run >= COMMENT_LINES_MAX) n++; run = 0; }",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "a block of exactly 8 lines counted"
+  },
+  {
+    "name": "PLAIN-TEXT-block-comment-unread",
+    "file": "tools/plainText.mjs",
+    "old": "    else if (t.startsWith('/*')) { c = true; if (!t.includes('*/')) inBlock = true; }",
+    "new": "    else if (t.startsWith('/*')) { c = true; }",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "a /* */ block's inner lines not counted"
+  },
+  {
+    "name": "PLAIN-TEXT-last-block-dropped",
+    "file": "tools/plainText.mjs",
+    "old": "  return n + (run > COMMENT_LINES_MAX ? 1 : 0);",
+    "new": "  return n;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "a long block at the end of a file not counted"
+  },
+  {
+    "name": "PLAIN-TEXT-table-counted",
+    "file": "tools/plainText.mjs",
+    "old": "  return String(text).split(/\\n\\s*\\n/).filter((p) => !/^\\s*(\\||```)/.test(p) && words(p) > PARAGRAPH_WORDS_MAX).length;",
+    "new": "  return String(text).split(/\\n\\s*\\n/).filter((p) => words(p) > PARAGRAPH_WORDS_MAX).length;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "a table counted as a paragraph"
+  },
+  {
+    "name": "PLAIN-TEXT-over-unread",
+    "file": "tools/plainText.mjs",
+    "old": "    for (const [k, n] of Object.entries(now[part])) if (n > (b[k] ?? 0)) over.push(",
+    "new": "    for (const [k, n] of Object.entries(now[part])) if (n > (b[k] ?? Infinity)) over.push(",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "an entry the baseline does not list passes"
+  },
+  {
+    "name": "PLAIN-TEXT-seed-uncapped",
+    "file": "tools/plainText.mjs",
+    "old": "      const allow = Math.min(n, at[part]?.[k] ?? 0);",
+    "new": "      const allow = n;",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "the seed admits past the base's own count"
+  },
+  {
+    "name": "PLAIN-TEXT-seed-absent-admitted",
+    "file": "tools/plainText.mjs",
+    "old": "      const allow = Math.min(n, at[part]?.[k] ?? 0);",
+    "new": "      const allow = Math.min(n, at[part]?.[k] ?? n);",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "the seed admits an entry the base does not have"
+  }
+]
