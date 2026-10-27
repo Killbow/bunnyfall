@@ -8,9 +8,11 @@
 // 100 - a character made with a sum of 156 tops out at 31 (Field-Bugs-2026-10-20g, SWAP-CYCLE). The port's skills
 // climb past 100 where they are mastered (masterSkills.js), each point a quarter of one in the sum (skillSoftcap.js
 // effectiveSkill: 200 reads 140), so the ceiling moved with the masteries: 44 at 2/2/1 every mastered skill at 200, 47
-// at MASTER-THREE's 3/2/1. The cap is the ceiling named: 45 on either lane, reached at the end of the long climb past 100
-// by a career as made with Master Skills on (any starting sum up to 193; AUDIT FB1026d C7: a skill swap that raises the
-// class's sum lowers the ceiling a level for every 15, and with Master Skills off it is 29 to 32), and never passed. A
+// at MASTER-THREE's 3/2/1. The cap is the ceiling named: 45 on either lane, and never passed. On Daggerfall's sum it is
+// reached at the end of the long climb past 100 by a career as made with Master Skills on (any starting sum up to 193;
+// AUDIT FB1026d C7: a skill swap that raises the class's sum lowers the ceiling a level for every 15, and with Master
+// Skills off it is 29 to 32); the virtue bar takes nothing from a skill at 100 (oblivionLeveling.js addSkillProgress),
+// and fills to 45 well below it - the class's twelve skills at 100 carry it some twenty levels past (AUDIT FB1026d II C1). A
 // DEPARTURE from CheckForLevelUp, offline and online.
 //
 // A character already past it (a level earned before the cap, SWAP-CYCLE's ladder) keeps its level: nothing lowers a

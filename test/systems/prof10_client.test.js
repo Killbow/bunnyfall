@@ -497,7 +497,7 @@ test('PROF10 wiring: the jeweller\'s bench a Pawn Shop\'s or a Gem Store\'s (ope
   assert.match(svc, /qualityOdds\(rank - r\.rank, \{ masterwright: masterworkSpec\(specs\[100\], r\) \}\)/);   // PIN MOVED (CRAFT3): the Master Jeweler's points asked of the recipe (a jewel's alone)
   const idx = src('server-account/src/index.js');
   assert.match(idx, /'prof-lapidary': 403,/);
-  assert.match(idx, /POST \/v1\/prof\/craft \{ character, recipe, clean, name\?, heartwood\?, dye\?, cracked\?, rid \}/);
+  assert.match(idx, /POST \/v1\/prof\/craft \{ character, recipe, clean, name\?, heartwood\?, dye\?, cracked\?, mint\?, rid \}/);   // PIN MOVED (AUDIT FB1026d II D5): JEWEL-KIN's `mint` in the route's contract
   const p = src('src/ui/professions/profPages.js');
   assert.match(p, /\['fire', \(d\) => drawCookFire\(d, rerender, kit\)\],   \/\/ PROF9\n\s*\['jeweller', \(d\) => drawJewellerBench\(d, rerender, kit\)\],   \/\/ PROF10/);   // PIN MOVED (MENU-ORDER): the stations a list of tiles
   assert.match(src('src/ui/enhanced/enhancedPlusStyle.js'), /\.prof-heatbar\.prof-facetbar \{/);

@@ -32,12 +32,12 @@
   {
     "name": "COURT-DEEDS-gift-free",
     "file": "src/scenes/legacyHost.js",
-    "old": "      deductGold(deps.entity, GIFT_GOLD);\n",
-    "new": "",
+    "old": "    if (kind === 'gift') deductGold(deps.entity, GIFT_GOLD);",
+    "new": "    if (kind === 'gift') void 0;",
     "tests": [
       "test/systems/legacy/fb1026d_courtdeeds.test.js"
     ],
-    "note": "a gift costs nothing"
+    "note": "a gift costs nothing (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "COURT-DEEDS-kiss-gate-unread",
@@ -52,12 +52,12 @@
   {
     "name": "COURT-DEEDS-courtship-unwarmed",
     "file": "src/scenes/legacyHost.js",
-    "old": "const warm = courtship && !courtship.betrothed ? warmCourtship(me, res.id, deedAffection(kind, taste), { deed: kind, day }) : null;",
+    "old": "const warm = warmable ? warmCourtship(me, res.id, deedAffection(kind, taste), { deed: kind, day }) : null;",
     "new": "const warm = null;",
     "tests": [
       "test/systems/legacy/fb1026d_courtdeeds.test.js"
     ],
-    "note": "the deeds raise a regard and never a courtship"
+    "note": "the deeds raise a regard and never a courtship (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "COURT-DEEDS-tally-unsaid",
@@ -82,12 +82,12 @@
   {
     "name": "COURT-DEEDS-day-off-the-courtship",
     "file": "src/scenes/legacyHost.js",
-    "old": "    if (rel.deedDay?.(res.id, kind) === day || deedDoneOn(courtship, kind, day)) return DEED_TEXT.again(first);",
-    "new": "    if (rel.deedDay?.(res.id, kind) === day) return DEED_TEXT.again(first);",
+    "old": "    const warmable = courtship && !courtship.betrothed && !deedDoneOn(courtship, kind, day);",
+    "new": "    const warmable = courtship && !courtship.betrothed;",
     "tests": [
       "test/systems/legacy/fb1026d_courtdeeds.test.js"
     ],
-    "note": "AUDIT FB1026d B1: a reload hands every deed's affection again, for gold the reload gives back"
+    "note": "AUDIT FB1026d B1: a reload hands every deed's affection again, for gold the reload gives back (re-aimed by content: AUDIT FB1026d II B1 - the courtship's stamp gates its warm alone, the day's refusal the save's)"
   },
   {
     "name": "COURT-DEEDS-day-unstamped",
@@ -130,24 +130,14 @@
     "note": "AUDIT FB1026d B6: a warm of nothing writes the realm line for nothing"
   },
   {
-    "name": "COURT-DEEDS-regard-before-the-tone",
-    "file": "src/scenes/legacyHost.js",
-    "old": "    const why = deedRefusal(kind, { regard: before, courtship, spouse });",
-    "new": "    const why = deedRefusal(kind, { regard: was, courtship, spouse });",
-    "tests": [
-      "test/systems/legacy/fb1026d_courtdeeds.test.js"
-    ],
-    "note": "AUDIT FB1026d B2: the hug's gate reads a regard the tone has already moved"
-  },
-  {
     "name": "COURT-DEEDS-tone-unheard",
     "file": "src/scenes/legacyHost.js",
-    "old": "    heard?.();\n",
+    "old": "    heard?.();   // AUDIT FB1026d II B2: the tone, heard as the deed lands - a refused one costs nothing\n",
     "new": "",
     "tests": [
       "test/systems/legacy/fb1026d_courtdeeds.test.js"
     ],
-    "note": "AUDIT FB1026d B3: a deed's tone never heard - LW7's law lost on the deed rows"
+    "note": "AUDIT FB1026d B3: a deed's tone never heard - LW7's law lost on the deed rows (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "COURT-DEEDS-tone-uncounted",
@@ -252,12 +242,12 @@
   {
     "name": "COURT-DEEDS-badge-promises",
     "file": "src/systems/livingWorld/people.js",
-    "old": "raise it; so do the deeds Tell me about offers a townsperson you could court - a compliment, a gift, and a hug once you are friends - each once a day.",
+    "old": "raise it; with Project Legacy, so do the deeds Tell me about offers a townsperson you could court - a compliment, a gift, and a hug once you are friends - each once a day.",
     "new": "raise it, and so do a compliment, a gift, and a hug once you are friends - each once a day, under Tell me about.",
     "tests": [
       "test/systems/legacy/fb1026d_courtdeeds.test.js",
       "test/systems/legacy/plainui.test.js"
     ],
-    "note": "AUDIT FB1026d B4: the badge promises deeds to the watch, a traveller and kin"
+    "note": "AUDIT FB1026d B4: the badge promises deeds to the watch, a traveller and kin (re-aimed by content: AUDIT FB1026d II moved the line)"
   }
 ]

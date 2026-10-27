@@ -18,26 +18,35 @@
 // THE LAW NOW, a departure from StartQuest.cs's one try: A LOST BACKBONE IS STARTED AGAIN (spineOwed, machine.js
 // keepSpine), checked every SPINE_CHECK_TICKS - a parse that fails again (the records still away) is asked again at the
 // next check. The machine RECORDS the two facts the law reads, saved with the game (machine.js `spine`): `opened`, this
-// game's opener began (its start, or a saved table or journal archive naming it), and `ran`, its backbone began (its
+// game's opener began (its start, or a saved table or journal archive naming it - or a saved table naming the Curse,
+// below), and `ran`, its backbone began (its
 // start, or a saved table naming it - one dropped at a load because it would not rebuild ran all the same). A game is
 // owed its backbone when its opener began - and, while the opener stands, has run its `start quest` - and no backbone
 // has begun or stands (running, ended, or scheduled), and no step of the story has begun.
 //
-// THE EXCEPTIONS, named (AUDIT FB1026d A1/A2/A5/E2):
+// THE CURSE IS THE OPENER'S TRACE (AUDIT FB1026d II A1). A save from before the record whose opener has failed, ended and
+// been removed (some two months of played game time, Brisienna never met - a failed opener files nothing in the journal
+// - or met and its journal entry cleared) keeps no trace of the opener. It keeps the Curse: every game born in the port
+// starts S0000977 beside _BRISIEN (scenes/quest/questBridge.js GAME_START_QUESTS), nothing else starts it (the retired
+// _TUTOR__ did), and it stands until the curse is lifted, long past the courts' first quests (storyStarted then).
+//
+// THE EXCEPTIONS, named (AUDIT FB1026d A1/A2/A5/E2, II A2):
 //   - A CLASSIC IMPORT IS OWED NOTHING. It starts no quests (world.js classicLoadBoot - the port's own departure), so it
-//     has no opener of its own, only the classic game's globals (MetLadyBrisienna among them) - which are not read here:
-//     read alone, they started a backbone in every imported game, and one whose classic main quest was over ended at
-//     once and was owed again every game week.
-//   - A save from before this law whose opener never met Brisienna and has since failed, ended and been removed (some two
-//     months of played game time) keeps no trace of it - a failed opener files nothing in the journal - and is not repaired.
-//   - A save from before this law that once dropped a backbone at a load (a rebuild that failed) and was saved without
-//     it is owed it again, and its royal letters come again.
+//     has no opener of its own and no Curse, only the classic game's globals (MetLadyBrisienna among them) - which are
+//     not read here: read alone, they started a backbone in every imported game, and one whose classic main quest was
+//     over ended at once and was owed again every game week.
+//   - A backbone this record saw begin and a load then dropped (a rebuild that failed) is not owed again: it ran, and a
+//     restart could send its letters twice - so a letter it had not yet sent is lost with it, as it was before the law.
+//   - A save from before this law that once dropped a backbone at a load and was saved without it is owed it again
+//     (nothing says it ran), and its royal letters come again.
 // The story's own record (storyStarted) is the guard for a save from before the record: a backbone that ended ended
 // the main quest, and a main quest ends only past the courts' first quests.
 
 /** The backbone, and the quest that starts it. */
 export const SPINE = 'S0000999';
 export const SPINE_OPENER = '_BRISIEN';
+/** The Curse of Daggerfall, started beside the opener in every game born in the port (AUDIT FB1026d II A1). */
+export const SPINE_CURSE = 'S0000977';
 /** Quest ticks between the checks. */
 export const SPINE_CHECK_TICKS = 30;
 
@@ -54,11 +63,11 @@ function openerStartedSpine(quest) {
   return false;
 }
 
-/** The record as a load finds it: the saved one, and what the saved table (`names`, the quests' file names) says of it.
- *  @param {any} saved @param {string[]} names */
+/** The record as a load finds it: the saved one, and what the saved table (`names`, the quests' file names) says of it -
+ *  the opener, or the Curse begun beside it (AUDIT FB1026d II A1). @param {any} saved @param {string[]} names */
 export function spineRecord(saved, names) {
   const has = (n) => names.some((x) => String(x ?? '').toUpperCase() === n);
-  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true || has(SPINE) };
+  return { opened: saved?.opened === true || has(SPINE_OPENER) || has(SPINE_CURSE), ran: saved?.ran === true || has(SPINE) };
 }
 
 /**

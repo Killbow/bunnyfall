@@ -24,7 +24,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createComeSailAwayPool } from '../../src/scenes/comeSailAway/comeSailAwayPool.js';
 import { createComeSailAwayPeers } from '../../src/scenes/comeSailAway/comeSailAwayPeers.js';
-import { createComeSailAwayAboard, localOf } from '../../src/scenes/comeSailAway/comeSailAwayAboard.js';
+import { createComeSailAwayAboard, localOf, CSA_ABOARD_GRACE } from '../../src/scenes/comeSailAway/comeSailAwayAboard.js';
 import { Boat, HULL_NAMES } from '../../src/systems/comeSailAway/comeSailAwayBoat.js';
 import { boardPlaceOf } from '../../src/systems/comeSailAway/comeSailAway.js';
 import { colliderPoses, invertAffine, boxColliderTriangles, raycastColliders, BUILTIN_COLLIDER_MESHES } from '../../src/world/prefabColliders.js';
@@ -32,7 +32,7 @@ import { quatAngleAxis, quatRotate } from '../../src/world/quat.js';
 import { meshLocalBounds, colliderBounds } from '../../src/systems/comeSailAway/comeSailAwayBoat.js';
 import { Collider } from '../../src/player/collider.js';
 import { PlayerMotor, FIXED_DT, CAPSULE_HEIGHT } from '../../src/player/motor.js';
-import { peerHullSweep, peerHullsMeet, hullsStood, resetHullLatch, hullPassesMyDeck } from '../../src/scenes/comeSailAway/peerHulls.js';   // HULL-PASS
+import { peerHullSweep, peerHullsMeet, hullsStood, resetHullLatch, hullPassesMyDeck, hullPlan, deckPressed } from '../../src/scenes/comeSailAway/peerHulls.js';   // HULL-PASS
 import { setWildHere } from '../../src/systems/wild/wildZone.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
@@ -322,6 +322,39 @@ test('HULL-PASS WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026d D1): outside a
   setWildHere(false);
 });
 
+test('HULL-PASS A LADDER PRESSED IS THE DECK I STAND ON (AUDIT FB1026d II E2): aboard hers with my ship overlapping hers, my own ladder sets me on my deck and I stand there - my ship in my collider, aboard none - where I fell through my deck onto her hull; and her ladder after sets me aboard her again (mutants: the ladder unsaid; the press kept past the host\'s word)', async () => {
+  setWildHere(false);
+  assert.match(cut(CSA_SRC, '  function BoardBoat(hit) {'), /deckPressed\(boat\);/, 'Come Sail Away\'s BoardBoat says the deck it set me on');
+  const r = await rig({ hull: SMALL_SHIP });
+  r.own.GameObject.position = [10, SEA, 0];   // mine moored overlapping hers, at the origin
+  for (let i = 0; i < 3; i++) r.frame();
+  standOn(r, r.hers);
+  assert.equal(r.aboard.aboard?.owner, 'ann', 'aboard hers');
+  assert.equal(r.stands(r.colliders.exterior, r.own), false, 'and my ship passes - her deck carries me through it');
+  const placeIn = (boat, over) => { const P = hullPlan(over, r.geometry); return boat.BoardTriggers.map((t) => boardPlaceOf(t)).find((at) => Math.abs(at.position[0] - P.c[0]) <= P.hw && Math.abs(at.position[2] - P.c[1]) <= P.hl); };
+  const deckAt = (boat, at) => raycastColliders(boat.GameObject, [at.position[0], at.position[1] + 1.2, at.position[2]], [0, -1, 0], 4, { triggers: false, geometry: r.geometry }).point;
+  const mine = placeIn(r.own, r.hers);
+  assert.ok(mine, 'a ladder of mine over her deck');
+  const myDeck = deckAt(r.own, mine);
+  r.player.spawn(mine.position[0], myDeck[1] + 0.02, mine.position[2]); deckPressed(r.own);   // BoardBoat: set down at my ladder, aligned, the deck said
+  for (let i = 0; i < 180; i++) r.frame();
+  assert.ok(Math.abs(r.player.pos[1] - myDeck[1]) < 0.3, `on my deck (${r.player.pos[1].toFixed(2)}, my deck ${myDeck[1].toFixed(2)})`);
+  assert.equal(r.aboard.aboard, null, 'aboard none');
+  assert.equal(r.stands(r.colliders.exterior, r.own), true, 'my ship stands in my collider');
+  assert.ok(String(r.player.groundKey).startsWith(r.keyOf(r.own)), 'standing on my own');
+  // her ladder over my deck (world.js csaBoardPeer: set down, aboard her at once, synced)
+  const hers = placeIn(r.hers, r.own);
+  assert.ok(hers, 'a ladder of hers over my deck');
+  const herDeck = deckAt(r.hers, hers);
+  r.player.spawn(hers.position[0], herDeck[1] + 0.02, hers.position[2]);   // her ladder says no deck of mine: the host's word does (csaAboard.board)
+  assert.equal(r.aboard.board(r.hers, CSA_ABOARD_GRACE), true);
+  r.w.sync();
+  for (let i = 0; i < 180; i++) r.frame();
+  assert.equal(r.aboard.aboard?.owner, 'ann', 'aboard her again');
+  assert.ok(Math.abs(r.player.pos[1] - herDeck[1]) < 0.3, `on her deck (${r.player.pos[1].toFixed(2)}, her deck ${herDeck[1].toFixed(2)})`);
+});
+
+const CSA_SRC = src('src/systems/comeSailAway/comeSailAway.js');
 const CSA = readFileSync(new URL('../../src/systems/comeSailAway/comeSailAway.js', import.meta.url), 'utf8');
 /** Come Sail Away's own CheckCollision, CanTurnLeft and CanTurnRight, lifted from source over `deps` and `state`. */
 function liftHelm(deps, state) {
@@ -365,6 +398,40 @@ test('HULL-PASS THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026d D2): my ship a
   assert.ok(met.contacts > 0, `clear of me and back: she meets my helm (${met.contacts} contacts)`);
   assert.equal(r.stands(r.colliders.exterior, r.hers), true, 'and stands in my collider');
   setWildHere(false);
+});
+
+test('HULL-PASS ONE OWNER\'S HULLS MEET (AUDIT FB1026d II E1): outside a PvP zone, at my helm, my own other ship moored 3 m inside mine stands in my collider and meets my sweep - only another owner\'s hull passes (mutant: the owner unread)', async () => {
+  setWildHere(false);
+  const r = await rig({ hull: SMALL_SHIP, mine: true });
+  r.peers.applyOwner('ann', annWord(SMALL_SHIP, [-300, SEA, 0]), (p) => p, 0);   // hers far off
+  const other = r.pool.spawnNow(new Boat(SMALL_SHIP, 0), { position: [0, 0, 0], rotation: Q0 });
+  other.GameObject.position = [MINE_X + 3, SEA, 0];
+  r.helm.boat = r.own;
+  for (let i = 0; i < 40; i++) r.frame();
+  assert.equal(r.stands(r.colliders.exterior, other), true, 'my other ship stands in my collider');
+  const state = { collisionDirections: [], CollisionVector: [0, 0, 0], timeScaleIndex: 0 };
+  const csa = liftHelm({ pool: r.pool, sphereCastAll: peerHullSweep(r.w.sweep, r.pool) }, state);
+  csa.CheckCollision(r.own);
+  assert.ok(state.collisionDirections.length > 0, `and meets my helm (${state.collisionDirections.length} contacts)`);
+  // hers in the same place passes, as before
+  other.GameObject.position = [MINE_X + 300, SEA, 0];
+  r.peers.applyOwner('ann', annWord(SMALL_SHIP, [MINE_X + 3, SEA, 0]), (p) => p, 2000);
+  for (let i = 0; i < 40; i++) r.frame();
+  state.collisionDirections.length = 0;
+  csa.CheckCollision(r.own);
+  assert.equal(state.collisionDirections.length, 0, 'another owner\'s hull passes');
+  assert.equal(r.stands(r.colliders.exterior, r.hers), false);
+});
+
+test('HULL-PASS A BOAT THE POOL LET GO IS NO DECK (AUDIT FB1026d II, lane E\'s suspicion): the deck I stood on, removed from the pool (a peer gone, a boat packed) while my feet stay over its plan, keeps no other player\'s hull out of my collider (mutant: the pool unread)', async () => {
+  setWildHere(false);
+  const r = await rig({ hull: SMALL_SHIP });
+  standOn(r, r.own);
+  r.peers.applyOwner('ann', annWord(SMALL_SHIP, [MINE_X + 3, SEA, 0]), (p) => p, 0);
+  for (let i = 0; i < 4; i++) r.frame();
+  assert.equal(r.stands(r.colliders.exterior, r.hers), false, 'through my deck: she passes');
+  const boats = [r.hers];
+  assert.deepEqual(hullsStood(boats, null, r.player.pos, { boats: [], peerBoats: [r.hers] }, r.geometry), boats, 'my deck gone from the pool: no deck, and she stands');
 });
 
 test('FB1001b FOUR-HOSTS: HER BOAT STANDS ON THE STREET ALONE - the world host stands her in the street\'s collider (and with no mode named, the street is the mode, as csaModeCollider reads it); a building\'s and a dungeon\'s frames stand none of hers (mine stand in the mode\'s, CSA-D\'s law), and back on the street she stands again; the other three hosts name no peer\'s boat', async () => {
@@ -438,9 +505,9 @@ test('Both ladder activation paths finish placement after aligning to the deck',
   } };
   motor._airVelX = 8;
   // eslint-disable-next-line no-new-func
-  const own = new Function('deps', 'boatOfHit', 'boardPlaceOf', `${cut(src('src/systems/comeSailAway/comeSailAway.js'), '  function BoardBoat(hit) {')} return BoardBoat;`)(deps, () => ({}), () => ({ position: [1, 2, 3], yaw: 0 }));
+  const own = new Function('deps', 'boatOfHit', 'boardPlaceOf', 'deckPressed', `${cut(src('src/systems/comeSailAway/comeSailAway.js'), '  function BoardBoat(hit) {')} return BoardBoat;`)(deps, () => ({}), () => ({ position: [1, 2, 3], yaw: 0 }), () => calls.push('said'));
   own({ node: {} });
-  assert.deepEqual(calls, ['place', 'align', 'finish']);
+  assert.deepEqual(calls, ['place', 'align', 'finish', 'said']);   // AUDIT FB1026d II E2: and the deck said
   assert.equal(motor._airVelX, 0);
   assert.deepEqual([...motor.pos], [1, 3, 3]);
   const peer = cut(WORLD, '  function csaBoardPeer(pick) {');

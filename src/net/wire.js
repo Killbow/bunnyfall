@@ -3657,7 +3657,9 @@ export const CAST_HZ_MAX = 4;
  *  and the relay cannot tell a mate from a stranger. A mate's cast now waits only on the mate's own spamming. */
 export const CAST_DEST_SENDERS_MAX = 8;
 export const CAST_IN_HZ_MAX = CAST_HZ_MAX * 2;
-/** AUDIT ALLY-CAST B3/C3: the honest ceilings. A player is level 30 at most (classic's cap), SPELLS.STD's components
+/** AUDIT ALLY-CAST B3/C3: the honest ceilings. A cast's level is 30 at most - the frame's bound, not a player's level
+ *  (LEVEL-45 caps that at 45, systems/levelCap.js; AUDIT FB1026d II C4: this said classic's cap): the sender clamps to it
+ *  (PEER-CAST, systems/allyCast.js), so a caster past 30 casts at 30, and raising it is a larger crafted gift, Mac's call; SPELLS.STD's components
  *  are bytes (formats/spellsStd.js) and the maker's spinners stop under 100 (spellMaker.js SPINNER_RANGES) - the
  *  first cut's 60 and 1000 let a crafted mate grant a 61,000-point Shield for 42 game days. Nothing on the wire can
  *  vouch for the level (no pose carries one); the bound is what the receiver can refuse. */

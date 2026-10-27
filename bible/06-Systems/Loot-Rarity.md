@@ -572,7 +572,10 @@ THE NUMBERS, 20,000 seeded Rare cuirasses a row (share of all lines; the attribu
 | Chain | 51% | 15% | 2% | 13% | 16% | 55% | 25% | 29% |
 | Plate | 67% | 20% | 3% | 16% | 6% | 55% | 8% | 54% |
 
-THE RECORDS (`net/productRecord.js` MINT_V_ARMOR_LEAN): a craft stamps mint version 3; a record of 2 or less mints the
+THE RECORDS (`net/productRecord.js` MINT_V_ARMOR_LEAN): a craft stamped mint version 3 (JEWEL-KIN, FIELD BUGS
+2026-10-26d: a craft is stamped with the version its client names, 4 from that build - and a client that names none,
+this release's among them, 2, the newest law every build reads alike, so its armour leaves the family lean until it
+updates - `craftMintVersion`, AUDIT FB1026d II D3); a record of 2 or less mints the
 piece it always did (`rollAffixes` `lean` false), so no crafted piece changes when the market or a temper mints it
 again. Pinned: `test/systems/loot/armorlean.test.js`; `affixlines_reforge` (the lines' law measured with the lean off,
 the first pick's share at the family's, versions 2 and 3); `tools/mutants/armorlean.json` (7, all dead).

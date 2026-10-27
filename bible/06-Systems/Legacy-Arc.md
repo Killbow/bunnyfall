@@ -921,12 +921,20 @@ panel showed only the tone's +1 move; a friend took about twelve days of talk, a
   one never hands the other again (AUDIT FB1026d B1). A compliment in a tone taken ill falls flat.
 - **A hug waits on a friend** (FRIEND_AT) or a courtship; **a kiss on a courtship at 34** (KISS_AT, MARRIAGE_TEXT.courted's
   second tier), a betrothal or a marriage - read against the regard as it stands when the row is answered, never as
-  the page opened (AUDIT FB1026d B2). Refused, each says what it waits on and costs nothing.
+  the page opened (AUDIT FB1026d B2). Refused, each says what it waits on and costs nothing - no gold, and no tone
+  heard (AUDIT FB1026d II B2).
 - **Every answer says what it moved**: "(Regard +2, now +14. Courtship +4, now 41 of 100.)" - the courtship's number was
   never shown anywhere before. The regard's move is the whole answer's: a deed row hears the talk's tone itself
-  (`townTalk.js` `hearsTone`), between its two reads (AUDIT FB1026d B3). The regard badge names the deeds as they are
-  offered, to a townsperson one could court (B4), and the Family page's "Marriage and children" names them.
-- With them a friend comes in about three days of play and a courtship reaches Marriage in about four.
+  (`townTalk.js` `hearsTone`), as the deed lands (AUDIT FB1026d B3, II B2). The regard badge names the deeds as they
+  are offered, to a townsperson one could court with Project Legacy (B4, II B4), and the Family page's "Marriage and
+  children" names them.
+- **Once a day, on the save's own day**: the regard's stamp refuses a deed again that day; the courtship's stamp only
+  keeps its warm - a save loaded on a deed's day, or from days before later deeds, gives the regard as the save stands
+  and warms nothing until the courtship's own day for it is past (AUDIT FB1026d II B1: it had refused the whole deed for
+  every day rewound). The deeds' day is the Living World's, which turns at 4 in the morning (`regardClock.js`
+  regardDayOf); Courtship's own talk turns at midnight (`marriage.js` dayOf) - two laws older than the deeds (II B5).
+- With the talk, a compliment and a gift each day a friend comes in about three days of play (eight with the
+  compliment alone, twelve with the talk alone), and a courtship reaches Marriage in about four (AUDIT FB1026d II F3).
 
 Pinned by `test/systems/legacy/fb1026d_courtdeeds.test.js` (the real host over the real relations); pins moved by
 intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the deeds as offered). `tools/mutants/fb1026d_courtdeeds.json`.

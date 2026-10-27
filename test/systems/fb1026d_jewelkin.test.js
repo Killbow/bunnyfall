@@ -112,8 +112,10 @@ test('JEWEL-KIN THE LEGENDARY\'S FALLBACK KEEPS THE CALLER\'S LEAN (AUDIT FB1026
 
 test('JEWEL-KIN THE RECORD IS STAMPED WITH THE VERSION ITS CLIENT MINTS (AUDIT FB1026d C3): the craft names it, the service stamps it at most its own, and a client from before the ask is stamped MINT_V_LINES - so a stale tab\'s ring is the same ring in its pack and in every other reader\'s (mutants: the service stamps its own; the client names none; the ask unbounded)', async () => {
   on();
-  assert.deepEqual([craftMintVersion(MINT_VERSION), craftMintVersion(undefined), craftMintVersion(null), craftMintVersion(MINT_VERSION + 5), craftMintVersion(MINT_V_LAST_PASS), craftMintVersion('3'), craftMintVersion(0)],
-    [MINT_VERSION, MINT_V_LINES, MINT_V_LINES, MINT_VERSION, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_LINES]);
+  assert.deepEqual([craftMintVersion(MINT_VERSION), craftMintVersion(undefined), craftMintVersion(null), craftMintVersion(MINT_VERSION + 5), craftMintVersion('3'), craftMintVersion(0)],
+    [MINT_VERSION, MINT_V_LINES, MINT_V_LINES, MINT_VERSION, MINT_V_LINES, MINT_V_LINES]);
+  // AUDIT FB1026d II D1: a name below MINT_V_JEWEL_KIN is no build's - stamped as none, never the retired laws it names
+  assert.deepEqual([craftMintVersion(MINT_V_LAST_PASS), craftMintVersion(MINT_V_ARMOR_LEAN), craftMintVersion(MINT_V_JEWEL_KIN)], [MINT_V_LINES, MINT_V_LINES, MINT_V_JEWEL_KIN]);
   // the client's craft names this build's version (net/accountClient.js accountProf, through its own post)
   const m = new Map([[SESSION_KEY, JSON.stringify({ secret: 's'.repeat(43), handle: 'Mac' })], [SERVICE_KEY, 'https://x.test']]);
   const sent = [];
@@ -136,9 +138,11 @@ test('JEWEL-KIN THE RECORD IS STAMPED WITH THE VERSION ITS CLIENT MINTS (AUDIT F
   const stale = await craft({});
   assert.equal(readProductRecord(stale.pieces[0].record).v, MINT_V_LINES, 'a client that names none: the last law before the ask');
   const [piece] = mintPieces(stale);
-  assert.deepEqual(piece, mintPiece({ ...stale, version: mintVersionOf(stale.pieces[0].record) }, stale.pieces[0].provenance), 'the reader re-mints the ring its maker minted');
+  assert.deepEqual(piece, mintPiece({ ...stale, version: MINT_V_LINES }, stale.pieces[0].provenance), 'the reader re-mints the ring at its stale maker\'s own law, MINT_V_LINES (AUDIT FB1026d II D5: never the record read against itself)');
   const fresh = await craft({ mint: MINT_VERSION });
   assert.equal(readProductRecord(fresh.pieces[0].record).v, MINT_VERSION);
   const ahead = await craft({ mint: MINT_VERSION + 1 });
   assert.equal(readProductRecord(ahead.pieces[0].record).v, MINT_VERSION, 'never past the service\'s own');
+  const forged = await craft({ mint: MINT_V_LAST_PASS });
+  assert.equal(readProductRecord(forged.pieces[0].record).v, MINT_V_LINES, 'AUDIT FB1026d II D1: a forged old version is stamped as none');
 });

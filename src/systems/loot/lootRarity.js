@@ -705,10 +705,11 @@ const MIND_KIN = Object.freeze([...MAGIC_SKILLS, S.Etiquette, S.Streetwise, S.Me
   S.Stealth, S.Medical]);
 /** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted
  *  around 100 rare rings ... and h2h or critical not roll on them"; bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md):
- *  JEWELLERY'S LEAN IS THE MIND'S THIRTEEN AND THE BARE HAND'S TWO - Hand-to-Hand and Critical Strike. Neither is any
- *  weapon's own, so a fist fighter's or a striker's line had nowhere to lean but armour's twelve: on a ring each was one of
- *  the open share's thirty-five, about 0.4% of its skill lines against a mind skill's 7%, and a hundred Rare rings seldom
- *  showed one. Each of the fifteen now takes its even share of the 85. A crafted piece's record before MINT_V_JEWEL_KIN
+ *  JEWELLERY'S LEAN IS THE MIND'S THIRTEEN AND THE BARE HAND'S TWO - Hand-to-Hand and Critical Strike. Hand-to-Hand is
+ *  no weapon's own and leaned on armour's twelve alone, Critical Strike on a weapon's strike and armour's (AUDIT FB1026d
+ *  II D5); on a ring each was one of the open share's thirty-five, about 0.43% of its skill lines against a mind skill's
+ *  7%, and a hundred Rare rings held no Hand-to-Hand line a third of the time. Each of the fifteen now takes its even
+ *  share of the 85. A crafted piece's record before MINT_V_JEWEL_KIN
  *  (net/productRecord.js) mints on the mind's alone (`fists` false), so a ring already made keeps its lines. */
 const JEWEL_KIN = Object.freeze([...MIND_KIN, S.HandToHand, S.CriticalStrike]);
 /** LOOT14: a garment's - the street's seven, and the feet's five for what is worn on them. */

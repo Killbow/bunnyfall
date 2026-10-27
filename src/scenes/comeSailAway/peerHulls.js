@@ -20,6 +20,13 @@
 // my body stands on a deck (my helm's, another's I am aboard, or the one under my feet, kept through a jump while my feet
 // stay over it), every player's hull that overlaps that deck's - hers through mine, mine through hers, one peer's through
 // another's - leaves my collider until they part (hullsStood); the sea's ships and everything else stand as they did.
+// One owner's hulls never pass each other (AUDIT FB1026d II E1): her helm meets her own boats as mine meets mine, so at
+// my helm my own moored ship is a rock to my sweep, and aboard hers, her other boats stand.
+//
+// A LADDER PRESSED IS THE DECK I STAND ON (AUDIT FB1026d II E2). Aboard hers with my ship overlapping, my ship passes -
+// her deck carries me through it - and the host's word stays hers after my own ladder set me on my deck, so I fell
+// through mine onto her hull. The ladder says it (deckPressed, world.js csaFinishBoarding, Come Sail Away's BoardBoat):
+// the boat it set me on is my deck while my feet stay over it.
 //
 // THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026d D2). Two hulls overlapping when the zone turns PvP - a party's ships
 // leaving Veilhaven's peace together, one moored over another - met as rocks from that frame, each refusing the other's
@@ -81,21 +88,35 @@ const within = (h, p) => {
 
 /** The latch: the deck my body stands on, and the players' hulls passing through it. */
 let _latch = { deck: /** @type {any} */ (null), passing: /** @type {Set<any>} */ (new Set()) };
+/** The boat a ladder last set me on (AUDIT FB1026d II E2) and the host's word for my deck as it set me there: my deck
+ *  while my feet stay over it and the host's word stands (another ladder, a helm taken, a landing - the host's again). */
+let _pressed = /** @type {{ boat: any, word: any } | null} */ (null);
 /** For a test: the latch let go. */
-export const resetHullLatch = () => { _latch = { deck: null, passing: new Set() }; };
+export const resetHullLatch = () => { _latch = { deck: null, passing: new Set() }; _pressed = null; };
+/** A ladder set me on `boat`'s deck (world.js csaFinishBoarding) - none: a ladder of no boat said. @param {any} boat */
+export const deckPressed = (boat) => { _pressed = boat ? { boat, word: undefined } : null; };
 /** Whether `boat` is passing through the deck my body stands on (the last sync's word) - the aboard door never boards
  *  it from the air (world.js deckGround: a jump over my deck as she sails under it lands on mine, never on hers). */
 export const hullPassesMyDeck = (boat) => _latch.passing.has(boat);
 
+/** Whose hull `b` is (AUDIT FB1026d II E1): `mine` my own boats (Come Sail Away's), else her key's owner
+ *  (comeSailAwayPeers.js `${owner}:${slot}`) - a boat with no key its own. @param {any} b @param {Set<any>} mine */
+const ownerOf = (b, mine) => { if (mine.has(b)) return mine; const k = b?.peerKey; return typeof k === 'string' && k.includes(':') ? k.slice(0, k.lastIndexOf(':')) : b; };
+
 /**
  * The players' hulls passing through `deck` now (AUDIT FB1026d D1/D2): outside a PvP zone every one of `hulls` that
  * overlaps it; inside one, those already passing on this deck as hulls began to meet, while they still overlap it.
- * @param {any} deck @param {any[]} hulls @param {(c: any) => any} geometry
+ * Never one of the deck's own owner's (`whose`, AUDIT FB1026d II E1): her helm meets them.
+ * @param {any} deck @param {any[]} hulls @param {(c: any) => any} geometry @param {((b: any) => any) | null} [whose]
  */
-export function hullsPassing(deck, hulls, geometry) {
+export function hullsPassing(deck, hulls, geometry, whose = null) {
   const D = deck ? hullPlan(deck, geometry) : null;
   const over = new Set();
-  if (D) for (const b of hulls) { if (b === deck) continue; const P = hullPlan(b, geometry); if (P && hullOverlap(D, P)) over.add(b); }
+  if (D) for (const b of hulls) {
+    if (b === deck || (whose && whose(b) === whose(deck))) continue;
+    const P = hullPlan(b, geometry);
+    if (P && hullOverlap(D, P)) over.add(b);
+  }
   const passing = !peerHullsMeet() ? over : deck !== _latch.deck ? new Set() : new Set([..._latch.passing].filter((b) => over.has(b)));
   _latch = { deck, passing };
   return passing;
@@ -104,14 +125,18 @@ export function hullsPassing(deck, hulls, geometry) {
 /**
  * The boats that stand in my collider (world.js csaSyncColliders): `boats` less every player's hull passing through the
  * deck my body stands on. `deck` the host's word for it (my helm's boat, the one I am aboard, the one under my feet) -
- * none, the last deck while `feet` stay over it (a jump, a stumble). `pool` Come Sail Away's (its boats and its peers'
- * are the players' hulls; the sea's ships are never among them).
+ * a ladder's boat before it while `feet` stay over it (deckPressed), none the last deck while they do (a jump, a
+ * stumble); a boat the pool no longer holds is no deck. `pool` Come Sail Away's (its boats and its peers' are the
+ * players' hulls; the sea's ships are never among them).
  * @param {any[]} boats @param {any} deck @param {number[] | null} feet @param {any} pool @param {(c: any) => any} geometry
  */
 export function hullsStood(boats, deck, feet, pool, geometry) {
-  const kept = !deck && _latch.deck && feet ? hullPlan(_latch.deck, geometry) : null;
-  const on = deck ?? (kept && within(kept, [feet[0], feet[2]]) ? _latch.deck : null);
-  const passing = hullsPassing(on, [...(pool?.boats ?? []), ...(pool?.peerBoats ?? [])], geometry);
+  const mine = new Set(pool?.boats ?? []), hulls = [...mine, ...(pool?.peerBoats ?? [])];
+  const over = (b) => { const P = b && feet && hulls.includes(b) ? hullPlan(b, geometry) : null; return !!P && within(P, [feet[0], feet[2]]); };
+  if (_pressed && _pressed.word === undefined) _pressed.word = deck;
+  if (_pressed && (deck !== _pressed.word || !over(_pressed.boat))) _pressed = null;
+  const on = _pressed?.boat ?? deck ?? (over(_latch.deck) ? _latch.deck : null);
+  const passing = hullsPassing(on, hulls, geometry, (b) => ownerOf(b, mine));
   return passing.size ? boats.filter((b) => !passing.has(b)) : boats;
 }
 

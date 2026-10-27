@@ -93,12 +93,12 @@
   {
     "name": "JEWEL-KIN-silent-client-stamped-new",
     "file": "src/net/productRecord.js",
-    "old": "asked >= MINT_V_LAST_PASS ? Math.min(asked, MINT_VERSION) : MINT_V_LINES);",
-    "new": "asked >= MINT_V_LAST_PASS ? Math.min(asked, MINT_VERSION) : MINT_VERSION);",
+    "old": "asked >= MINT_V_JEWEL_KIN ? Math.min(asked, MINT_VERSION) : MINT_V_LINES);",
+    "new": "asked >= MINT_V_JEWEL_KIN ? Math.min(asked, MINT_VERSION) : MINT_VERSION);",
     "tests": [
       "test/systems/fb1026d_jewelkin.test.js"
     ],
-    "note": "AUDIT FB1026d C3: a client from before the ask stamped with the new law it does not mint"
+    "note": "AUDIT FB1026d C3: a client from before the ask stamped with the new law it does not mint (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "JEWEL-KIN-fallback-drops-the-flag",

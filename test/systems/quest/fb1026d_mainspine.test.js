@@ -17,7 +17,7 @@ import { loadQuestTables } from '../../../src/systems/quest/tables.js';
 import { resetUid } from '../../../src/systems/quest/quest.js';
 import { PLAYED_STEP_MAX_SECONDS } from '../../../src/systems/quest/clock.js';
 import * as A from '../../../src/systems/quest/actions.js';
-import { SPINE, SPINE_OPENER, SPINE_CHECK_TICKS, spineOwed } from '../../../src/systems/quest/mainSpine.js';
+import { SPINE, SPINE_OPENER, SPINE_CURSE, SPINE_CHECK_TICKS, spineOwed } from '../../../src/systems/quest/mainSpine.js';
 import { globalVarsTable } from '../../../src/systems/quest/tables.js';
 import { FactionFile } from '../../../src/formats/factionFile.js';
 
@@ -98,7 +98,7 @@ test('MAIN-SPINE THE REPORT: the page an online birth reloads into parses the ba
     const spineSaid = said.filter((l) => l.includes(`${SPINE} (the main quest's backbone)`));
     assert.equal(spineSaid.length, 2, spineSaid.join(' | '));
     assert.match(spineSaid[0], /is owed and did not start \(Could not find faction data.*\) - asked again every 30 quest ticks$/);
-    assert.match(spineSaid[1], /was owed - started \(try 4\)$/);
+    assert.match(spineSaid[1], /was owed - scheduled \(try 4\)$/);   // AUDIT FB1026d II A3: scheduled - the invoke loop starts it
     if (meetFirst) quest(S, SPINE_OPENER).startTask({ name: 'meetladyb' });
     S.level = 3;
     assert.equal(toLetter(S), true, `Morgiah's letter (${meetFirst ? 'Brisienna met first' : 'level 3 first'})`);
@@ -193,7 +193,7 @@ test('MAIN-SPINE THE OPENER GONE: an opener met and ended (the journal files it)
   assert.equal(spineOwed(U.b.machine), true, 'the saved table named it');
 });
 
-test('MAIN-SPINE A BACKBONE THAT WOULD NOT REBUILD RAN: one the load drops (an action it cannot rebuild) is not owed again - its letters were sent (mutant: the saved table\'s backbone unread)', () => {
+test('MAIN-SPINE A BACKBONE THAT WOULD NOT REBUILD RAN: one the load drops (an action it cannot rebuild) is not owed again - it ran, and a restart could send its letters twice, so a letter it had not sent is lost with it (AUDIT FB1026d II A2: the exception named in mainSpine.js) (mutant: the saved table\'s backbone unread)', () => {
   const S = fresh();
   begin(S); tick(S, 3);
   assert.equal(has(S, SPINE), true);
@@ -204,6 +204,36 @@ test('MAIN-SPINE A BACKBONE THAT WOULD NOT REBUILD RAN: one the load drops (an a
   });
   assert.equal(has(S, SPINE), false, 'dropped at the load');
   assert.equal(spineOwed(S.b.machine), false, 'it ran');
+});
+
+test('MAIN-SPINE THE CURSE IS THE OPENER\'S TRACE (AUDIT FB1026d II A1): a save from before the record whose opener left nothing - never met and gone, or met and its journal entry cleared - still holds the Curse every port birth starts beside it, so it is owed, and Morgiah\'s letter comes at level 3; a classic import holds no Curse and is owed nothing (mutant: the Curse unread)', () => {
+  const curse = (S) => { const m = S.b.machine; m.startQuestImmediate(m.parseQuestForLists(m.deps.getQuestSourceLines(SPINE_CURSE), 0, { headless: true })); };
+  for (const met of [false, true]) {
+    const S = fresh();
+    curse(S);   // questBridge.js GAME_START_QUESTS: the Curse beside the opener
+    lost(S);
+    const opener = quest(S, SPINE_OPENER);
+    if (met) { opener.startTask({ name: 'meetladyb' }); silently(() => tick(S, 2)); }
+    else { opener.startTask({ name: 'pcfailed' }); silently(() => tick(S, 2)); }
+    quest(S, SPINE_OPENER).startTask({ name: 'oneday' }); silently(() => tick(S, 3));
+    S.b.machine.removeQuest(quest(S, SPINE_OPENER));
+    if (met) assert.ok(S.b.journalClean.clearFinished() > 0, 'met: the journal filed her, and the player cleared it (JOURNAL-CLEAN)');
+    else assert.equal(S.b.notebook.getFinishedQuests().length, 0, 'never met: a failed opener files nothing');
+    reload(S, true, olderSave);
+    assert.equal(has(S, SPINE_OPENER), false, 'no opener on the table');
+    assert.equal(has(S, SPINE_CURSE), true, 'the Curse stands');
+    assert.equal(spineOwed(S.b.machine), true, `owed (${met ? 'met, the entry cleared' : 'never met'})`);
+    silently(() => tick(S, SPINE_CHECK_TICKS + 1));
+    assert.equal(has(S, SPINE), true, 'started again');
+    S.level = 3;
+    assert.equal(silently(() => toLetter(S)), true, 'and Morgiah\'s letter comes');
+  }
+  // a classic import: no quest of its own, the Curse among none
+  const I = fresh();
+  for (const g of ['MetLadyBrisienna']) I.b.machine.globalVars.set(globalId(g), true);
+  reload(I, true, olderSave);
+  assert.equal(has(I, SPINE_CURSE), false);
+  assert.equal(spineOwed(I.b.machine), false, 'an import is owed nothing');
 });
 
 test('MAIN-SPINE THE GAME\'S OWN FACTION.TXT (ARENA2): lost on the cold page, back once the records load, Morgiah\'s letter at level 3 either order', { skip: !FACTIONS && 'ARENA2_PATH not set (sh tools/fetch-data.sh)' }, () => {

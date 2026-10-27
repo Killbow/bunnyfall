@@ -1239,27 +1239,27 @@ export function createLegacyHost(deps) {
   }
   /** COURT-DEEDS: a deed done - refused (and what it waits on), once a day, a gift's gold taken; the regard noted on the
    *  Living World's relations, a courtship's affection warmed, and what it moved said after the answer. `heard` the
-   *  talk's tone, heard between the regard's two reads (AUDIT FB1026d B3: the tally counts it). */
+   *  talk's tone, heard once the deed lands (AUDIT FB1026d B3: the tally counts it; II B2: a refusal costs nothing). */
   function answerDeed(kind, res, taste, heard = null) {
     const me = current(), rel = deps.regards?.();
     const day = rel?.today?.() ?? deps.regardDay?.() ?? 0;
-    const was = rel ? rel.regard(res.id, day) : 0;
-    heard?.();
     if (!me || !rel) return '';
+    const was = rel.regard(res.id, day);
     const first = splitName(res.name)[0];
     const spouse = spouseOf(family, me)?.residentId === res.id;
     const courtship = spouse ? null : me.courting?.[res.id] ?? null;
-    const before = rel.regard(res.id, day);
-    const why = deedRefusal(kind, { regard: before, courtship, spouse });   // AUDIT FB1026d B2: the regard as it stands, never the page's
+    const why = deedRefusal(kind, { regard: was, courtship, spouse });   // AUDIT FB1026d B2: the regard as it stands, never the page's
     if (why) return why === 'friend' ? DEED_TEXT.notFriend(first) : DEED_TEXT.notCourting(first);
-    // AUDIT FB1026d B1: the courtship's own stamp too - a load hands the regard's day back, never the affection's
-    if (rel.deedDay?.(res.id, kind) === day || deedDoneOn(courtship, kind, day)) return DEED_TEXT.again(first);
-    if (kind === 'gift') {
-      if (!(totalGoldAmount(deps.entity) >= GIFT_GOLD)) return DEED_TEXT.poor(first);
-      deductGold(deps.entity, GIFT_GOLD);
-    }
+    if (rel.deedDay?.(res.id, kind) === day) return DEED_TEXT.again(first);   // once a day, on the save's own stamp
+    if (kind === 'gift' && !(totalGoldAmount(deps.entity) >= GIFT_GOLD)) return DEED_TEXT.poor(first);
+    heard?.();   // AUDIT FB1026d II B2: the tone, heard as the deed lands - a refused one costs nothing
+    if (kind === 'gift') deductGold(deps.entity, GIFT_GOLD);
     const after = rel.note(res.id, kind, day, deedRegard(kind, taste));
-    const warm = courtship && !courtship.betrothed ? warmCourtship(me, res.id, deedAffection(kind, taste), { deed: kind, day }) : null;
+    // AUDIT FB1026d B1, II B1: the courtship's own stamp gates its warm alone - a load hands the regard's day back, never
+    // the affection's: a save loaded on a deed's day, or from before later deeds, gives the regard as the save stands
+    // and warms nothing until the courtship's day for it is past (it refused the whole deed for every day rewound)
+    const warmable = courtship && !courtship.betrothed && !deedDoneOn(courtship, kind, day);
+    const warm = warmable ? warmCourtship(me, res.id, deedAffection(kind, taste), { deed: kind, day }) : null;
     if (warm?.warmed) { touch(family); store(); }   // AUDIT FB1026d B6: a warm of nothing writes nothing
     const line = kind === 'compliment' && taste < 0 ? DEED_TEXT.flat(first) : DEED_TEXT[/** @type {'compliment'|'gift'|'embrace'|'kiss'} */ (kind)](first);
     return `${line} ${deedTally({ regard: after, gained: after - was, affection: warm ? warm.affection : null, warmed: warm?.warmed ?? 0 })}`;

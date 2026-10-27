@@ -18,9 +18,11 @@ import { checkForLevelUp, applyLevelUp, raiseSkills, calculatePlayerLevel } from
 import { initVirtueLeveling, LEVELING_VIRTUE, LEVELUP_TOTAL, checkForVirtueLevelUp, commitVirtueLevelUp } from '../../src/systems/oblivionLeveling.js';
 import { masterSkill } from '../../src/systems/masterSkills.js';
 import { levelProgressPercent } from '../../src/ui/charsheet.js';
-import { levelProgress } from '../../src/ui/levelUp/levelUpView.js';
+import { levelProgress, riseRibbon } from '../../src/ui/levelUp/levelUpView.js';
+import { readFileSync } from 'node:fs';
 import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
 
+const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const seq = (...v) => { let i = 0; return () => v[Math.min(i++, v.length - 1)]; };
 const career = {
   name: 'W', hitPointsPerLevel: 12, advancementMultiplier: 1.0,
@@ -85,10 +87,15 @@ test('LEVEL-45 THE READOUTS: the Level box and the level-up bar read whole at th
   p.level = 45;
   p.currentLevelUpSkillSum = p.startingLevelUpSkillSum + 7;
   assert.equal(levelProgressPercent(p), 100);
-  assert.deepEqual(levelProgress(p, null), { now: 1, max: 1, carried: 0, label: 'Highest level reached' });
+  assert.deepEqual(levelProgress(p, null), { now: 1, max: 1, carried: 0, label: 'Highest level reached', cap: true });
+  // AUDIT FB1026d II C3: the window's bar says the label alone, no skill row counts toward a next level, and the Level page's lead says the cap
+  assert.ok(riseRibbon(p).length > 0 && riseRibbon(p).every((r) => r.note === ''), 'no row\'s note at the cap');
+  assert.match(src('src/ui/enhanced/enhancedLevelUp.js'), /levelNote\.textContent = m\.progress\.cap \? m\.progress\.label/);
+  assert.match(src('src/ui/growth/growthTab.js'), /: atLevelCap\(entity\) \? t\('charsheet\.levelCap'/);
   p.level = 44;
   assert.notEqual(levelProgressPercent(p), 100);
   assert.equal(levelProgress(p, null).label, 'Skill progress to next level');
+  assert.ok(riseRibbon(p).some((r) => r.note !== ''), 'below it the rows say what counts');
 });
 
 const statSum = (e) => Object.values(e.stats).reduce((a, b) => a + b, 0);
@@ -129,6 +136,23 @@ test('LEVEL-45 A LEVEL LATCHED PAST THE CAP IS LET GO (AUDIT FB1026d C1): the lo
   assert.equal(releaseCapLatch(book), false);
   assert.equal(checkForLevelUp(book), false);
   assert.equal(book.readyToLevelUp, true, 'the book\'s latch stands');
+});
+
+test('LEVEL-45 THE BOOK\'S LATCH ENDS AT A LOAD (AUDIT FB1026d II C2): restored in place over a game whose Oghma Infinium was read and left unspent, a save owing a level past the cap is let go, and one below it owes an ordinary level - never the book\'s thirty points with the book back in the pack (mutant: the latch kept across the load)', () => {
+  const read = (e) => { e.readyToLevelUp = true; e.oghmaLevelUp = true; return e; };   // artifactEffects.js: the book read, the sheet left unspent
+  const past = read(made());
+  past.level = 45;
+  restorePlayer(past, JSON.parse(JSON.stringify(snapshotPlayer(latchedVirtue()))));
+  assert.deepEqual([past.oghmaLevelUp, past.readyToLevelUp], [false, false], 'past the cap: the save\'s latch let go, the book\'s gone');
+  assert.equal(levelUpScreenFor(past), null, 'and no rollout');
+  const below = read(made());
+  const saved = made();
+  saved.level = 10;
+  restorePlayer(below, JSON.parse(JSON.stringify(snapshotPlayer(saved))));
+  assert.equal(below.oghmaLevelUp, false, 'below it: the book\'s latch gone with the game that read it');
+  below.readyToLevelUp = true;
+  assert.equal(checkForLevelUp(below) || below.readyToLevelUp, true);
+  assert.notEqual(levelUpScreenFor(below)?.oghma, true, 'the next level is an ordinary one');
 });
 
 test('LEVEL-45 THE CLASSIC SHEET HANDS OUT NO POOL AT THE CAP, AND A LEVEL OWED OFFLINE CROSSES AS NONE (AUDIT FB1026d C2): the rollout never mounts for a level latched past the cap, and an Oblivion character at the cap brought online owes nothing (mutants: the rollout unguarded; the crossing\'s release)', () => {

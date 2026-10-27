@@ -68,9 +68,11 @@ export const MINT_VERSION = MINT_V_JEWEL_KIN;
  * the ask, which mints MINT_V_LINES. The service deploys before the site, and a tab left open or a desktop install keeps
  * its own build: stamped with the service's version, a stale client's ring was minted in its pack with the old lean and
  * re-minted by every other reader - the market, a listing's picture, a later temper - with the new, one piece with two
- * sets of lines. @param {unknown} asked
+ * sets of lines. AUDIT FB1026d II D1: only a build from the ask names one, and it names MINT_V_JEWEL_KIN or later - a
+ * name below it is no build's, and is stamped as a client that names none (a forged `mint: 1` had bought the law the
+ * owner retired, a damage line on every blade). @param {unknown} asked
  */
-export const craftMintVersion = (asked) => (typeof asked === 'number' && Number.isSafeInteger(asked) && asked >= MINT_V_LAST_PASS ? Math.min(asked, MINT_VERSION) : MINT_V_LINES);
+export const craftMintVersion = (asked) => (typeof asked === 'number' && Number.isSafeInteger(asked) && asked >= MINT_V_JEWEL_KIN ? Math.min(asked, MINT_VERSION) : MINT_V_LINES);
 /** A character id's shape (the account service's CHAR_ID_RE). */
 const CHAR_RE = /^[A-Za-z0-9_-]{4,64}$/;
 

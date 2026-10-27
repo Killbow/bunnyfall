@@ -46,7 +46,11 @@ test('MASTER-THREE A MARTIAL CLASS: a warrior with two primary weapons and a thi
   assert.equal(rows.at(-2), 'Primary skills: you can master 3.');
   assert.equal(rows.at(-1), 'This would be your last primary mastery.');
   assert.equal(masterSkill(p, AR).ok, true, 'Dodging and Long Blade mastered, Archery still can be');
-  assert.equal(MP.martialPossible(p), true);
+  // AUDIT FB1026d II C5: the path the third mastery opens - Long Blade and Archery, the two primary weapons (martialPossible
+  // alone held under 2/2/1 too: Blunt Weapon and Axe kept a path possible)
+  const both = MP.martialOfPair(LB, AR);
+  assert.ok(both, 'Long Blade and Archery are a path');
+  assert.ok(MP.martialChoices(p).includes(both), `and it is offered (${MP.martialChoices(p).map((x) => x.id)})`);
 });
 
 test('MASTER-THREE THE WORDS: every Master Skills text says 3 primary (mutant: a box left saying 2)', () => {

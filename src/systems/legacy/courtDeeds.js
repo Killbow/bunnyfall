@@ -17,9 +17,10 @@
 //    betrothal, or a marriage. Regard +4; affection +8.
 //
 // A hug or a kiss not yet welcome is refused kindly and SAYS what it waits on - nothing lost, nothing counted. A spouse
-// takes every deed (regard alone: a marriage has no affection to fill). With Courtship's own day, the deeds bring a
-// friend in about three days of play where the talk alone took twelve, and a courtship to Marriage in about four where
-// Courtship alone took eight to ten (AUDIT FB1026d B6: measured over the real relations and courtGain).
+// takes every deed (regard alone: a marriage has no affection to fill). A friend comes in about three days of play with
+// the talk in a tone they like, a compliment and a gift each day (eight without the gift) where the talk alone took
+// twelve, and, with Courtship's own day, a courtship to Marriage in about four where Courtship
+// alone took eight to ten (AUDIT FB1026d B6, II F3: measured over the real relations and courtGain).
 //
 // PURE: the law and the words. The host (scenes/legacyHost.js topicRows) offers the rows, notes the regard on the
 // Living World's relations, takes the gold and keeps the affection in the house's record (marriage.js warmCourtship).

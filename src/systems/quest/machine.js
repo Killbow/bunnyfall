@@ -1860,7 +1860,7 @@ export class QuestMachine {
     let quest = null, why = 'no source';
     if (lines) try { quest = this.scheduleQuest(lines); } catch (ex) { why = ex?.message ?? String(ex); }
     this.spineTries = (this.spineTries ?? 0) + 1;
-    if (quest) console.warn(`[quest] ${SPINE} (the main quest's backbone) was owed - started (try ${this.spineTries})`);
+    if (quest && !this.spineSaid) { this.spineSaid = true; console.warn(`[quest] ${SPINE} (the main quest's backbone) was owed - scheduled (try ${this.spineTries})`); }   // AUDIT FB1026d II A3: scheduled - its start is the invoke loop's - and said once
     else if (this.spineTries === 1) console.warn(`[quest] ${SPINE} (the main quest's backbone) is owed and did not start (${why}) - asked again every ${SPINE_CHECK_TICKS} quest ticks`);
     return !!quest;
   }

@@ -52,22 +52,22 @@
   {
     "name": "HULL-PASS-deck-kept-through-no-jump",
     "file": "src/scenes/comeSailAway/peerHulls.js",
-    "old": "  const on = deck ?? (kept && within(kept, [feet[0], feet[2]]) ? _latch.deck : null);",
-    "new": "  const on = deck;",
+    "old": "  const on = _pressed?.boat ?? deck ?? (over(_latch.deck) ? _latch.deck : null);",
+    "new": "  const on = _pressed?.boat ?? deck;",
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026d D1: a jump off my deck stands her hull again under my falling feet"
+    "note": "AUDIT FB1026d D1: a jump off my deck stands her hull again under my falling feet (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "HULL-PASS-my-own-through-hers-standing",
     "file": "src/scenes/comeSailAway/peerHulls.js",
-    "old": "  const passing = hullsPassing(on, [...(pool?.boats ?? []), ...(pool?.peerBoats ?? [])], geometry);",
-    "new": "  const passing = hullsPassing(on, [...(pool?.peerBoats ?? [])], geometry);",
+    "old": "  const mine = new Set(pool?.boats ?? []), hulls = [...mine, ...(pool?.peerBoats ?? [])];",
+    "new": "  const mine = new Set(pool?.boats ?? []), hulls = [...(pool?.peerBoats ?? [])];",
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026d D1: aboard hers, my own moored ship knocks me off her deck as she sails through it"
+    "note": "AUDIT FB1026d D1: aboard hers, my own moored ship knocks me off her deck as she sails through it (re-aimed by content: AUDIT FB1026d II moved the line)"
   },
   {
     "name": "HULL-PASS-latch-dropped",
