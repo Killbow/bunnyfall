@@ -1274,6 +1274,26 @@
   "tr": "a46aeeacf1a1",
   "by": "claude-in-session"
  },
+ "account.refusal.crewBad": {
+  "en": "4a964de9d243",
+  "tr": "942346534c5d",
+  "by": "claude-in-session"
+ },
+ "account.refusal.crewDay": {
+  "en": "3ec4c3fc9a07",
+  "tr": "3e2d6eee2485",
+  "by": "claude-in-session"
+ },
+ "account.refusal.crewMany": {
+  "en": "de9581a0d775",
+  "tr": "164bfb0e6fb2",
+  "by": "claude-in-session"
+ },
+ "account.refusal.crewTaken": {
+  "en": "b922b4cfb812",
+  "tr": "34ae6a1d9aa0",
+  "by": "claude-in-session"
+ },
  "account.refusal.customsAllowance": {
   "en": "793153fc9b40",
   "tr": "c4eff5c80cc4",
@@ -9119,6 +9139,21 @@
   "tr": "26f13b3859a7",
   "by": "claude-in-session"
  },
+ "crewHall.asking": {
+  "en": "71c47b5b400c",
+  "tr": "b40977340b6a",
+  "by": "claude-in-session"
+ },
+ "crewHall.many": {
+  "en": "de9581a0d775",
+  "tr": "164bfb0e6fb2",
+  "by": "claude-in-session"
+ },
+ "crewHall.unread": {
+  "en": "713e23d9d0da",
+  "tr": "8fe075fb174c",
+  "by": "claude-in-session"
+ },
  "death.goldLoss": {
   "en": "e50b68fd3fd3",
   "tr": "532eae2a3102",
@@ -10142,6 +10177,11 @@
  "eg.witness.watchingName": {
   "en": "ff0d32bced69",
   "tr": "d5ab6f56a260",
+  "by": "claude-in-session"
+ },
+ "ether.cross.passengers": {
+  "en": "9241a531dc96",
+  "tr": "51a96ba254e9",
   "by": "claude-in-session"
  },
  "events.board.left": {
@@ -21529,6 +21569,16 @@
   "tr": "226792b6f8e0",
   "by": "claude-in-session"
  },
+ "naval.class.fishingSkiff": {
+  "en": "7038dbd7a355",
+  "tr": "344a2e6b9971",
+  "by": "claude-in-session"
+ },
+ "naval.class.fishingSmack": {
+  "en": "e82b98e56bb1",
+  "tr": "5718897c813a",
+  "by": "claude-in-session"
+ },
  "naval.deck.bad": {
   "en": "120ff8546e22",
   "tr": "78c4917904d0",
@@ -23614,6 +23664,11 @@
   "tr": "9e890bbd62d6",
   "by": "claude-in-session"
  },
+ "passage.comesIn": {
+  "en": "ffcb7a25b8b8",
+  "tr": "f64b2b05f82c",
+  "by": "claude-in-session"
+ },
  "passage.ended": {
   "en": "d56b66005e39",
   "tr": "127271e55de5",
@@ -23654,6 +23709,11 @@
   "tr": "b73efb7ff61b",
   "by": "claude-in-session"
  },
+ "passage.madeFast": {
+  "en": "508916b194fd",
+  "tr": "98abbafc4394",
+  "by": "claude-in-session"
+ },
  "passage.noSail": {
   "en": "0436c56c8944",
   "tr": "ff19bdc4a5f2",
@@ -23672,6 +23732,11 @@
  "passage.poor": {
   "en": "61b76095f8d1",
   "tr": "e78e0415bc90",
+  "by": "claude-in-session"
+ },
+ "passage.quayFoul": {
+  "en": "be61b63aabc7",
+  "tr": "243dea5ee865",
   "by": "claude-in-session"
  },
  "passage.row": {
@@ -36372,6 +36437,26 @@
  "tutorials.wildZone.body2": {
   "en": "3c759d3b73f2",
   "tr": "a6d37c0c52c5",
+  "by": "claude-in-session"
+ },
+ "veil.party.captain": {
+  "en": "697f930c5af1",
+  "tr": "39af4b1cd6e9",
+  "by": "claude-in-session"
+ },
+ "veil.party.follow": {
+  "en": "54d87d25b9ec",
+  "tr": "12043d50aee7",
+  "by": "claude-in-session"
+ },
+ "veil.party.landed": {
+  "en": "84ef5f0fd8a6",
+  "tr": "fd59b16ce7ac",
+  "by": "claude-in-session"
+ },
+ "veil.party.missed": {
+  "en": "14bccbcb5631",
+  "tr": "5f98f996f4ae",
   "by": "claude-in-session"
  },
  "vendor.put.refused": {
