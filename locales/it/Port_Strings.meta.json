@@ -17299,6 +17299,31 @@
   "tr": "6f0db08cb35a",
   "by": "claude-in-session"
  },
+ "menu.intro.narration1": {
+  "en": "6cdda13c60fe",
+  "tr": "2c83a8b715be",
+  "by": "claude-in-session"
+ },
+ "menu.intro.narration2": {
+  "en": "a73d722e6148",
+  "tr": "1fb1aaa4ac7a",
+  "by": "claude-in-session"
+ },
+ "menu.intro.narration3": {
+  "en": "b0db5c7d2264",
+  "tr": "06c55d76898e",
+  "by": "claude-in-session"
+ },
+ "menu.intro.narration4": {
+  "en": "02e54d9b7bf2",
+  "tr": "23aa41f04f4e",
+  "by": "claude-in-session"
+ },
+ "menu.intro.narration5": {
+  "en": "bb1aec630851",
+  "tr": "61eaefea0ea0",
+  "by": "claude-in-session"
+ },
  "menu.intro.opening": {
   "en": "b1b8530bbd68",
   "tr": "ffb3dd414ae2",
@@ -26450,8 +26475,8 @@
   "by": "claude-in-session"
  },
  "prof.craft.xpFirstBought": {
-  "en": "09224e528df1",
-  "tr": "5bb14cdfb9f5",
+  "en": "75f0476f9180",
+  "tr": "2990528ecde7",
   "by": "claude-in-session"
  },
  "prof.craft.xpLimit": {
@@ -26895,8 +26920,8 @@
   "by": "claude-in-session"
  },
  "prof.page.craft.xpBought": {
-  "en": "796b3cae733a",
-  "tr": "d60e4ad23f8b",
+  "en": "64d819c83da0",
+  "tr": "7cb32673ac7f",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirst": {
@@ -26905,8 +26930,8 @@
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirstOwn": {
-  "en": "0cd6f1e210c1",
-  "tr": "83fec6ca901a",
+  "en": "6db8f28ac0da",
+  "tr": "b9be25bed0bb",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpLimit": {
@@ -26995,8 +27020,8 @@
   "by": "claude-in-session"
  },
  "prof.page.enchant.cloth": {
-  "en": "5e3a1c7c87e4",
-  "tr": "109ddd7491a7",
+  "en": "b93d723d0f31",
+  "tr": "212590369175",
   "by": "claude-in-session"
  },
  "prof.page.enchant.full": {
@@ -27325,8 +27350,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.outfitting": {
-  "en": "ac56dd54d5ac",
-  "tr": "7bbc69e647cc",
+  "en": "85dc68e23b5f",
+  "tr": "83b33b8e9451",
   "by": "claude-in-session"
  },
  "prof.page.how.smithing": {
