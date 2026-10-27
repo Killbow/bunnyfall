@@ -5,7 +5,7 @@
 // nothing. The look is the piece's `appearance` field - the wearer's mark, stripped when the piece changes hands
 // (net/realm/realmTradeLaw.js RECEIVER_MARKS). Cosmetic: the client's word is enough, and nothing rides the service.
 import {
-  ALL_LOOKS, KIND_ORDER, lookKey, lookOfKey, lookOfPiece, appearanceOf, pieceKind, lookVariants, groupOfTemplate,
+  ALL_LOOKS, LOOK_KIND_ORDER, lookCode, lookOfKey, lookOfPiece, appearanceOf, pieceKind, lookVariants, groupOfTemplate,
 } from '../net/appearanceLaw.js';
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { itemBaseValue } from './item/itemTemplates.js';
@@ -41,7 +41,7 @@ export function appearancesOf(entity) {
   return set;
 }
 /** Whether the character holds a look. */
-export const holdsLook = (entity, /** @type {{ t: number, m: number, v: number }} */ look) => !!look && appearancesOf(entity).has(lookKey(look));
+export const holdsLook = (entity, /** @type {{ t: number, m: number, v: number }} */ look) => !!look && appearancesOf(entity).has(lookCode(look));
 
 /** What a piece last read as - so a frame's sweep reads each record once until it changes. @type {WeakMap<object, string>} */
 const _read = new WeakMap();
@@ -64,7 +64,7 @@ export function noteHeldLooks(entity) {
       if (_read.get(it) === sig) continue;
       _read.set(it, sig);
       const look = lookOfPiece(it);
-      if (look) fresh.push(lookKey(look));
+      if (look) fresh.push(lookCode(look));
     }
   }
   if (!fresh.length) return 0;
@@ -72,15 +72,15 @@ export function noteHeldLooks(entity) {
   const add = fresh.filter((k) => !have.has(k));
   if (!add.length) return 0;
   const all = new Set([...have, ...add]);
-  entity.appearances = ALL_LOOKS.map(lookKey).filter((k) => all.has(k));
+  entity.appearances = ALL_LOOKS.map(lookCode).filter((k) => all.has(k));
   return new Set(add).size;
 }
 
 /** A kind's looks: `{ kind, held, total, looks }`, the looks in the catalogue's order, each `{ look, held }`. */
 export function lookGroups(entity) {
   const have = appearancesOf(entity);
-  return KIND_ORDER.map((kind) => {
-    const looks = ALL_LOOKS.filter((a) => a.kind === kind).map((look) => ({ look, held: have.has(lookKey(look)) }));
+  return LOOK_KIND_ORDER.map((kind) => {
+    const looks = ALL_LOOKS.filter((a) => a.kind === kind).map((look) => ({ look, held: have.has(lookCode(look)) }));
     return { kind, held: looks.filter((l) => l.held).length, total: looks.length, looks };
   });
 }
@@ -145,7 +145,7 @@ export function wardrobePieces(entity) {
     const kind = item ? pieceKind(item) : null;
     if (kind) out.push({ slot, item, kind });
   }
-  return out.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.slot - b.slot);
+  return out.sort((a, b) => LOOK_KIND_ORDER.indexOf(a.kind) - LOOK_KIND_ORDER.indexOf(b.kind) || a.slot - b.slot);
 }
 /** The looks a piece can take: every collected look of its kind but its own. */
 export function looksForPiece(entity, item) {
@@ -153,14 +153,14 @@ export function looksForPiece(entity, item) {
   if (!kind) return [];
   const own = lookOfPiece(item);
   const have = appearancesOf(entity);
-  return ALL_LOOKS.filter((a) => a.kind === kind && a !== own && have.has(lookKey(a)));
+  return ALL_LOOKS.filter((a) => a.kind === kind && a !== own && have.has(lookCode(a)));
 }
 /** Whether a piece is worn by the character now. */
 const isWorn = (entity, item) => { try { return (equipTableOf(entity) ?? []).includes(item); } catch { return false; } };
 
 /** Why a look cannot be laid over a piece now, by its word - or null. */
 export function wearRefusal(entity, item, look) {
-  const a = look ? lookOfKey(lookKey(look)) : null;
+  const a = look ? lookOfKey(lookCode(look)) : null;
   if (!a) return 'look';
   if (!isWorn(entity, item)) return 'worn';
   if (pieceKind(item) !== a.kind) return 'kind';
@@ -174,7 +174,7 @@ export function wearRefusal(entity, item, look) {
 export function wearAppearance(entity, item, look) {
   const reason = wearRefusal(entity, item, look);
   if (reason) return { ok: false, reason, fee: 0 };
-  const a = /** @type {{ t: number, m: number, v: number }} */ (lookOfKey(lookKey(look)));
+  const a = /** @type {{ t: number, m: number, v: number }} */ (lookOfKey(lookCode(look)));
   const fee = wardrobeFee(a);
   deductGold(entity, fee);
   item.appearance = { t: a.t, m: a.m, v: a.v };

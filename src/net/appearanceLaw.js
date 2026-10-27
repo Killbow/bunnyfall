@@ -22,7 +22,7 @@ export const APPEARANCE_KINDS = Object.freeze({
   520: 'chest', 521: 'legs', 522: 'head', 523: 'feet', 524: 'hands', 525: 'leftArm', 526: 'rightArm',
 });
 /** The kinds in the order a page lists them: head to foot, the shield, then the weapons. */
-export const KIND_ORDER = Object.freeze(['head', 'rightArm', 'leftArm', 'chest', 'hands', 'legs', 'feet', 'shield',
+export const LOOK_KIND_ORDER = Object.freeze(['head', 'rightArm', 'leftArm', 'chest', 'hands', 'legs', 'feet', 'shield',
   'dagger', 'shortBlade', 'longBlade', 'greatBlade', 'axe', 'greatAxe', 'mace', 'flail', 'warhammer', 'staff', 'bow']);
 /** The templates whose looks are collected: DFU's own armour, shields and weapons (an arrow is no look). */
 export const LOOK_TEMPLATES = Object.freeze(Object.keys(APPEARANCE_KINDS).map(Number).filter((t) => t >= 102 && t <= 130));
@@ -52,16 +52,16 @@ export function lookVariant(t, m, v) {
 export const lookVariants = (t, m) => [...new Set(Array.from({ length: Math.max(1, LOOK_VARIANTS[/** @type {keyof typeof LOOK_VARIANTS} */ (t)] ?? 0) }, (_, v) => lookVariant(t, m, v)))];
 
 /** A look's key: `t.m.v`. */
-export const lookKey = (/** @type {{ t: number, m: number, v: number }} */ a) => `${a.t}.${a.m}.${a.v}`;
-/** EVERY LOOK there is, in KIND_ORDER, each template's materials in order and each material's styles. */
-export const ALL_LOOKS = Object.freeze(KIND_ORDER.flatMap((kind) => LOOK_TEMPLATES.filter((t) => APPEARANCE_KINDS[t] === kind)
+export const lookCode = (/** @type {{ t: number, m: number, v: number }} */ a) => `${a.t}.${a.m}.${a.v}`;
+/** EVERY LOOK there is, in LOOK_KIND_ORDER, each template's materials in order and each material's styles. */
+export const ALL_LOOKS = Object.freeze(LOOK_KIND_ORDER.flatMap((kind) => LOOK_TEMPLATES.filter((t) => APPEARANCE_KINDS[t] === kind)
   .flatMap((t) => (groupOfTemplate(t) === 'Armor' ? ARMOR_LOOK_MATERIALS : WEAPON_LOOK_MATERIALS)
     .flatMap((m) => lookVariants(t, m).map((v) => Object.freeze({ t, m, v, kind }))))));
-const LOOK_BY_KEY = new Map(ALL_LOOKS.map((a) => [lookKey(a), a]));
+const LOOK_BY_KEY = new Map(ALL_LOOKS.map((a) => [lookCode(a), a]));
 /** The look of a key, or null for a key that names none. */
 export const lookOfKey = (/** @type {unknown} */ key) => (typeof key === 'string' ? LOOK_BY_KEY.get(key) ?? null : null);
 /** Whether `{ t, m, v }` is a look there is, exactly as written. */
-export const isLook = (/** @type {any} */ a) => !!a && Number.isInteger(a.t) && Number.isInteger(a.m) && Number.isInteger(a.v) && LOOK_BY_KEY.has(lookKey(a));
+export const isLook = (/** @type {any} */ a) => !!a && Number.isInteger(a.t) && Number.isInteger(a.m) && Number.isInteger(a.v) && LOOK_BY_KEY.has(lookCode(a));
 
 /** THE LOOK A PIECE IS, as a character collects it - or null: no look template, a material no look is of, or a piece
  *  that draws its own art (an artifact's record, a Gilded piece's gold), which no other piece can take. */
@@ -70,7 +70,7 @@ export function lookOfPiece(item) {
   if (item.artifact === true || item.rarity === 'gilded') return null;
   const t = item.templateIndex, m = lookMaterial(t, item.material ?? 0);
   const a = { t, m, v: lookVariant(t, m, item.variant ?? 0) };
-  return LOOK_BY_KEY.get(lookKey(a)) ?? null;
+  return LOOK_BY_KEY.get(lookCode(a)) ?? null;
 }
 
 /** The look a piece wears over its own - its `appearance` (`{ t, m, v }`), or a look item's `ap` off the wire
@@ -79,7 +79,7 @@ export function appearanceOf(item) {
   if (!item || typeof item !== 'object') return null;
   const raw = item.appearance ?? (Array.isArray(item.ap) ? { t: item.ap[0], m: item.ap[1], v: item.ap[2] } : null);
   if (!isLook(raw)) return null;
-  const look = /** @type {{ t: number, m: number, v: number, kind: string }} */ (LOOK_BY_KEY.get(lookKey(raw)));
+  const look = /** @type {{ t: number, m: number, v: number, kind: string }} */ (LOOK_BY_KEY.get(lookCode(raw)));
   const kind = pieceKind(item);
   return kind && kind === look.kind ? look : null;
 }
@@ -120,4 +120,4 @@ function sameWatch(src, item) {
   return true;
 }
 /** A worn piece's look as a key for a cache, '' for its own: a drawing that caches by the piece learns of a change. */
-export const appearanceSig = (item) => { const a = appearanceOf(item); return a ? lookKey(a) : ''; };
+export const appearanceSig = (item) => { const a = appearanceOf(item); return a ? lookCode(a) : ''; };

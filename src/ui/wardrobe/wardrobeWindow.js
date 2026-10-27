@@ -6,7 +6,7 @@
 // (enhancedPlusStyle.js WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/
 // wardrobeDoor.js) mounts it; everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
 import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../systems/appearances.js';
-import { appearanceOf, lookOfPiece, lookKey } from '../../net/appearanceLaw.js';
+import { appearanceOf, lookOfPiece, lookCode } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
 import { totalGoldAmount } from '../../systems/court.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
@@ -163,7 +163,7 @@ export function mountWardrobeWindow(host, deps) {
       list.append(empty);
     }
     for (const p of pieces) {
-      const row = el('li', `broker-offer wardrobe-piece${p.item === picked ? ' on' : ''}`);
+      const row = el('li', p.item === picked ? 'broker-offer wardrobe-piece on' : 'broker-offer wardrobe-piece');
       row.setAttribute('aria-pressed', p.item === picked ? 'true' : 'false');
       row.setAttribute('data-focus', `wardrobe-piece-${p.slot}`);
       const text = el('div', 'broker-offer-body');
@@ -209,7 +209,7 @@ export function mountWardrobeWindow(host, deps) {
       const why = on ? null : wearRefusal(entity, item, look);
       const press = el('button', 'act broker-buy wardrobe-press', on ? WARDROBE_WORDS.worn() : why === 'gold' ? WARDROBE_WORDS.need(fee - Math.trunc(gold)) : WARDROBE_WORDS.wear());
       press.setAttribute('type', 'button');
-      press.setAttribute('data-focus', `wardrobe-look-${lookKey(look)}`);
+      press.setAttribute('data-focus', `wardrobe-look-${lookCode(look)}`);
       press.setAttribute('aria-label', on ? `${WARDROBE_WORDS.worn()} - ${name}` : WARDROBE_WORDS.wearAria(name, fee));
       if (on) press.setAttribute('aria-current', 'true');
       else {

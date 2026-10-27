@@ -7,7 +7,7 @@
 // parts are: a filter a tile, a row a list line, a row opened a panel, a tag a chip.
 import { t } from '../../systems/textManager.js';
 import { lookGroups, looksCount, lookName, kindName, lookStub, wardrobeFee, wardrobePieces } from '../../systems/appearances.js';
-import { appearanceOf, lookKey } from '../../net/appearanceLaw.js';
+import { appearanceOf, lookCode } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
 import { SLOT_BOX, screenDpr } from '../iconFit.js';
@@ -83,7 +83,7 @@ export function drawAppearancesPart(detail, rerender, kit) {
 
 /** One look's row, and - pressed - the look whole under it. */
 function lookRow(/** @type {Function} */ el, /** @type {any} */ look, /** @type {boolean} */ held, /** @type {boolean} */ worn, /** @type {string} */ kind, /** @type {(look: any) => any} */ picture, /** @type {() => void} */ rerender) {
-  const key = lookKey(look), open = _open === key, name = lookName(look);
+  const key = lookCode(look), open = _open === key, name = lookName(look);
   const row = el('button', `coll-row${held ? ' held' : ''}${open ? ' on' : ''}`);
   row.type = 'button';
   row.setAttribute('data-focus', `look-${key}`);

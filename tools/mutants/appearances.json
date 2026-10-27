@@ -230,8 +230,8 @@
   {
     "name": "APPEARANCES-the-list-pushed",
     "file": "src/systems/appearances.js",
-    "old": "  entity.appearances = ALL_LOOKS.map(lookKey).filter((k) => all.has(k));",
-    "new": "  if (Array.isArray(entity.appearances)) entity.appearances.push(...add); else entity.appearances = ALL_LOOKS.map(lookKey).filter((k) => all.has(k));",
+    "old": "  entity.appearances = ALL_LOOKS.map(lookCode).filter((k) => all.has(k));",
+    "new": "  if (Array.isArray(entity.appearances)) entity.appearances.push(...add); else entity.appearances = ALL_LOOKS.map(lookCode).filter((k) => all.has(k));",
     "tests": [
       "test/systems/appearances.test.js"
     ]

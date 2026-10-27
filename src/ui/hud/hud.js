@@ -692,11 +692,11 @@ export function drawHud(renderer, canvas, art, vitals, heading01, dt = 0,
   drawQuestHerald({ hidden: cursorActive || !hudRenderEnabled(), dt });
   drawQuestTracker({ hidden: cursorActive || !hudRenderEnabled() });   // GUIDE4: the tracker's card, the same gate and the same hide door
   drawRevenantCards({ hidden: cursorActive || !hudRenderEnabled(), dt });   // REVENANT-CARD: the same gate, its clock the frame's - no card stands on the classic skin, so this is outside its gate as the herald is
+  try { noteHeldLooks(vitals); } catch { /* a look missed this frame is read the next */ }   // APPEARANCES (bible/04-Characters/Wardrobe.md): every look held is collected, on every skin and in every host
   // LOOT-BANNER: the same gate and clock, outside the skin's gate for a reason of its own - the watcher reads and marks the
   // pack on EVERY skin (the four hosts hand drawHud the player entity as `vitals`), so a piece found on the classic skin
   // is not announced when the player switches to Enhanced Plus; only Plus draws a banner
   drawLootBanners({ entity: vitals, hidden: cursorActive || !hudRenderEnabled(), dt });
-  try { noteHeldLooks(vitals); } catch { /* a look missed this frame is read the next */ }   // APPEARANCES (bible/04-Characters/Wardrobe.md): every look held is collected, on every skin and in every host
   if (isEnhanced() && typeof document !== 'undefined') {
     drawLevelNotices({ hidden: cursorActive || !hudRenderEnabled() });
     drawEnhancedHud(vitals, heading01, dt, {

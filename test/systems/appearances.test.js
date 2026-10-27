@@ -71,7 +71,7 @@ test('APPEARANCES THE KINDS ARE WHAT THE RENDERERS DRAW: two armour templates sh
   }
   assert.equal(new Set(ts.filter((t) => L.APPEARANCE_KINDS[t] === 'shield')).size, 4, 'the four shields one kind');
   assert.deepEqual(L.LOOK_TEMPLATES, [102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130], 'DFU\'s own armour and weapons, no arrow, no mod\'s');
-  assert.deepEqual([...new Set(Object.values(L.APPEARANCE_KINDS))].filter((k) => k !== 'lightFlail').sort(), [...L.KIND_ORDER].sort(), 'every kind a look is of is listed once');
+  assert.deepEqual([...new Set(Object.values(L.APPEARANCE_KINDS))].filter((k) => k !== 'lightFlail').sort(), [...L.LOOK_KIND_ORDER].sort(), 'every kind a look is of is listed once');
   for (const t of [102, 103, 104, 105, 106, 107, 108]) assert.equal(L.LOOK_VARIANTS[t], templateRow(t).variants, `${t}'s styles are its template's`);
   for (const t of L.LOOK_TEMPLATES.filter((x) => !(x in L.LOOK_VARIANTS))) assert.equal(templateRow(t).variants ?? 0, 0, `${t} has one style`);
 });
@@ -81,7 +81,7 @@ test('APPEARANCES THE CATALOGUE: every look there is - each template\'s material
   for (const a of L.ALL_LOOKS) byKind[a.kind] = (byKind[a.kind] ?? 0) + 1;
   assert.deepEqual(byKind, { head: 72, rightArm: 32, leftArm: 32, chest: 32, hands: 12, legs: 43, feet: 23, shield: 48, dagger: 10, shortBlade: 30, longBlade: 40, greatBlade: 20, axe: 10, greatAxe: 10, mace: 10, flail: 10, warhammer: 10, staff: 10, bow: 20 });
   assert.equal(L.ALL_LOOKS.length, 474);
-  assert.equal(new Set(L.ALL_LOOKS.map(L.lookKey)).size, 474, 'no look twice');
+  assert.equal(new Set(L.ALL_LOOKS.map(L.lookCode)).size, 474, 'no look twice');
   assert.deepEqual(L.lookVariants(102, ARMOR_MATERIAL.Daedric), [1, 2, 3], 'a plate cuirass: three styles');
   assert.deepEqual(L.lookVariants(102, ARMOR_MATERIAL.Leather), [0]);
   assert.deepEqual(L.lookVariants(104, ARMOR_MATERIAL.Leather), [0, 1], 'leather greaves: two');
@@ -132,7 +132,7 @@ test('APPEARANCES THE SWEEP: every look in the pack, the wagon and the Materials
   restorePlayer(back, JSON.parse(JSON.stringify(snap)));
   assert.deepEqual(back.appearances, ['120.1.0', '107.521.2'], 'and a load restores them');
   assert.match(readFileSync(new URL('../../src/systems/save/save.js', import.meta.url), 'utf8'), /\n {2}'appearances',\n\];/, 'a field of ENTITY_FIELDS, copied both ways');
-  assert.match(readFileSync(new URL('../../src/ui/hud/hud.js', import.meta.url), 'utf8'), /drawLootBanners\(\{ entity: vitals[^\n]*\n\s*try \{ noteHeldLooks\(vitals\); \}/, 'swept once a frame on the HUD\'s one call, beside the loot watcher - every host, every skin');
+  assert.match(readFileSync(new URL('../../src/ui/hud/hud.js', import.meta.url), 'utf8'), /drawRevenantCards\(\{ hidden: cursorActive[^\n]*\n {2}try \{ noteHeldLooks\(vitals\); \}[^\n]*\n {2}\/\/ LOOT-BANNER:/, 'swept once a frame on the HUD\'s one call, outside the skin\'s gate as the loot watcher is - every host, every skin');
 });
 
 test('APPEARANCES A LOOK WORN: of its kind only, off the item or the wire; the piece drawn as it - one copy a piece and look, made again when the slot or the look changes - its dye its metal\'s, an artifact\'s and a Gilded piece\'s own art dropped, its enchantments kept (mutants: the kind unchecked; the memo never kept; the memo never renewed; the dye kept; the artifact kept)', () => {
@@ -172,7 +172,7 @@ test('APPEARANCES A LOOK WORN: of its kind only, off the item or the wire; the p
 });
 
 test('APPEARANCES A LOOK NEVER CHANGES A NUMBER: a weapon wearing any look of its kind keeps its damage, its skill, its hands, its value and its swing\'s sheet; a piece of armour its armour value and its value; and the drawn copy swings as the piece does - every look of every weapon kind (mutants: the kinds\' table moved a template; a number read off the drawn copy)', () => {
-  for (const kind of L.KIND_ORDER) {
+  for (const kind of L.LOOK_KIND_ORDER) {
     const looks = L.ALL_LOOKS.filter((a) => a.kind === kind);
     for (const t of new Set(looks.map((a) => a.t))) {
       const piece = L.groupOfTemplate(t) === 'Weapons' ? createWeapon(t, 1) : armour(t, ARMOR_MATERIAL.Steel, 2);
@@ -184,10 +184,10 @@ test('APPEARANCES A LOOK NEVER CHANGES A NUMBER: a weapon wearing any look of it
         const after = piece.group === 'Weapons'
           ? [weaponMinDamage(piece), weaponMaxDamage(piece), weaponSkillUsed(piece.templateIndex), getItemHands(piece), itemBaseValue(piece), weaponTypeForItem(piece)]
           : [itemArmorValue(piece), itemBaseValue(piece)];
-        assert.deepEqual(after, before, `${t} wearing ${L.lookKey(look)}`);
+        assert.deepEqual(after, before, `${t} wearing ${L.lookCode(look)}`);
         const drawn = L.drawnPiece(piece);
         if (piece.group === 'Weapons') {
-          assert.equal(weaponTypeForItem(drawn), weaponTypeForItem(piece), `${t} as ${L.lookKey(look)}: the same sheet`);
+          assert.equal(weaponTypeForItem(drawn), weaponTypeForItem(piece), `${t} as ${L.lookCode(look)}: the same sheet`);
           assert.equal(getItemHands(drawn), getItemHands(piece), 'the same hands');
           assert.equal(dfWeaponToMw(drawn, WEAPONS), dfWeaponToMw(piece, WEAPONS), 'the same Morrowind group');
         }
@@ -248,7 +248,7 @@ test('APPEARANCES THE WORDS: a look named by its metal (past the helm and shield
   assert.equal(A.kindName('greatBlade'), 'Two-handed blades');
   assert.equal(A.slotName(EQUIP_SLOTS.LeftHand), 'Left hand');
   const groups = A.lookGroups(who([]));
-  assert.deepEqual(groups.map((g) => g.kind), [...L.KIND_ORDER]);
+  assert.deepEqual(groups.map((g) => g.kind), [...L.LOOK_KIND_ORDER]);
   assert.equal(groups.reduce((n, g) => n + g.total, 0), 474);
 });
 
