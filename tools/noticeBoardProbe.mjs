@@ -38,6 +38,7 @@ const SHOTS = [
   ['market-goods', 'Market', 'view:goods'],   // PACK-PICK: the way to sell from the pack, beside the Goods' filters
   ['market-sell', 'Market', 'sell'],   // PACK-PICK: the List form on the pack - its pictured tiles, a piece chosen and looked at
   ['market-sell-refused', 'Market', 'sell-refused'],   // PACK-PICK: what may not go, unfolded with why
+  ['market-sell-stores', 'Market', 'sell-stores'],   // AUDIT PACK-PICK: the Stores' form beside the kinds, drawn as chips
   ['vendors', 'Vendors', null],
   ['guilds', 'Guilds', null],
   ['seat', 'Seat', null],
@@ -62,7 +63,8 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     const { createMarketGoods } = await import('/src/systems/tradePack.js');
     const { itemPicture } = await import('/src/ui/menu/menuPicture.js');
     setPref(LOOT_RARITY_KEY, true);
-    const loot = [11, 12, 13, 14, 15].flatMap((s) => generateRandomLoot({ ...LOOT_MATRICES['-'], MinGold: 0, MaxGold: 0, WP: 100, AM: 100, MI: 100, CL: 60, C1: 60, P1: 40 }, { level: 12, gender: 'male' }, seededRng(s)))
+    // AUDIT PACK-PICK: twelve bodies' loot, enough that a desktop's tiles scroll too
+    const loot = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22].flatMap((s) => generateRandomLoot({ ...LOOT_MATRICES['-'], MinGold: 0, MaxGold: 0, WP: 100, AM: 100, MI: 100, CL: 60, C1: 60, P1: 40 }, { level: 12, gender: 'male' }, seededRng(s)))
       .filter((it) => it.group !== 'Currency');
     const gear = loot.filter((it) => it.group === 'Weapons' || it.group === 'Armor');
     if (gear[0]) applyRarity(gear[0], 'rare', seededRng(4));
@@ -153,7 +155,7 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
       weavers: WEAVERS_STOCK, apothecaries: APOTHECARY_STOCK.slice(0, 4), stock: async () => ({ ok: true, text: 'Bought.' }),
       carried: () => new Map(), board: [402, 151], tithe: () => 6,
       goods: () => packGoods.goods(), good: (it) => packGoods.good(it), goodName: (rec) => packGoods.goodName(rec),   // PACK-PICK
-      itemPicture: (it, wake) => itemPicture(it, { onReady: wake }),
+      itemPicture: (it, wake, box) => itemPicture(it, { onReady: wake, box }),   // the world host's, a picker's box handed through
     };
     // VENDORS
     const vendors = {
@@ -235,6 +237,13 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
           document.querySelector('.packpick-refused')?.scrollIntoView({ block: 'start' });
         } else document.querySelector('.market-listform')?.scrollIntoView({ block: 'start' });
       }
+      if (step === 'sell-stores') {   // AUDIT PACK-PICK: the Stores' kind pressed
+        [...document.querySelectorAll('.market-view')].find((b) => b.textContent.trim().startsWith('My listings'))?.click();
+        await new Promise((r) => setTimeout(r, 250));
+        document.querySelector('.market-kind[data-kind="material"]')?.click();
+        await new Promise((r) => setTimeout(r, 60));
+        document.querySelector('.market-listform')?.scrollIntoView({ block: 'start' });
+      }
       if (step?.startsWith('view:')) {
         const v = step.slice(5);
         const want = { mine: 'My listings', orders: 'Orders', goods: 'Goods' }[v] ?? v;
@@ -257,7 +266,8 @@ for (const [W, H, width] of [[1280, 800, 'desktop'], [390, 760, 'phone']]) for (
     check(`${width}/${skin} ${name}: inside the viewport, nothing spilling sideways`, m.inside && !m.wide && !m.scrollX, JSON.stringify(m));
     if (step === 'sell' || step === 'sell-refused') {   // PACK-PICK: a tile pressed far down its list keeps the list where it was
       const k = await page.evaluate(() => window.__kept);
-      check(`${width}/${skin} ${name}: a press keeps the tiles' scroll (where they scroll)`, k && !!k.chosen && (!k.scrolls || (k.before > 0 && Math.abs(k.after - k.before) <= 1)), JSON.stringify(k));
+      // AUDIT PACK-PICK: the pack is made big enough that the tiles scroll at every width - a pack that did not was a pass with nothing checked
+      check(`${width}/${skin} ${name}: a press keeps the tiles' scroll`, k && !!k.chosen && k.scrolls && k.before > 0 && Math.abs(k.after - k.before) <= 1, JSON.stringify(k));
     }
     await page.screenshot({ path: `${OUT}/notice-${width}-${skin}-${name}.png` });
   }

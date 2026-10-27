@@ -1589,9 +1589,12 @@ What changed:
   metals, each with its count, a menu shown only where it has a choice to make) and a search of the names the tiles wear;
   the tiles refill in place, so the field typed in is never redrawn under the keys, and a composed word is read once
   whole (`ui/workSift.js` typedField). Under them, folded, "Not for the market (N)": every piece that may not go, each
-  pictured with why, never a press. The piece chosen is LOOKED AT over its price (`packCardNode`): its picture at twice a
-  tile's, its name in its tier's colour, the look panel's rows and its magic - the trader's look, moved to
+  pictured with why, never a press. The piece chosen is LOOKED AT over its price (`packCardNode`): its picture fitted to
+  the pack grid's box (AUDIT PACK-PICK A10: it was a tile's stretched twice over), its name in its tier's colour, the look panel's rows and its magic - the trader's look, moved to
   `systems/item/itemLook.js` so the board's two forms and the stall read one presenter (`vendorItemStats` is it).
+- **The tiles keep their scroll**: a press redraws the window, which gives back its body's scroll and not a list's inside
+  it - the twentieth piece pressed threw the tiles back to the first (Chromium: 418 -> 0). The sift keeps it, given back
+  once the window has drawn the picker, and lets it go when the sift changes what the tiles are.
 - **Nothing chosen until a tile is pressed** - a sale takes the piece out of the pack. A press again lets it go; List
   and "Put up for sale" wait for one ("Press a piece above to look at it and set its price.").
 - **The kinds are presses** (`ui/marketTab.js` LIST_KINDS): From your pack (a realm character's, first), From the Stores,
@@ -1618,17 +1621,18 @@ DFU has no member here - Daggerfall has no market (NOTICE1, PROF5, MARKET-ANY) -
 none is touched. The world host's market deps are as they were (bootWorld stands at its ceiling, HOST-SPLIT): the picker
 reads the host's own `itemPicture`, `goods` and `goodName`, and the stall's own `picture` and `stats`.
 
-Pins: `test/ui/packpick.test.js` (7). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
+Pins: `test/ui/packpick.test.js` (8; 24 with AUDIT PACK-PICK's, below). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
 (the kinds as presses, the pack's first; the tiles and the refused tiles; a tile pressed before List),
 `test/net/goldmarket_client.test.js` (each refused piece its own tile), `test/net/prof5b_client.test.js` (the
 Masterwork a tile, pressed), `test/net/marketaudit.test.js` (U2: the quality and wear on the tile's line),
 `test/ui/audit657_board.test.js` (B3: the stall's fields its price and press, the picker over them),
-`test/ui/homevendor_ui.test.js` (what may not go folded, never pressable). Mutants: `tools/mutants/packpick.json`, 20, all
+`test/ui/homevendor_ui.test.js` (what may not go folded, never pressable). Mutants: `tools/mutants/packpick.json`, 22, all
 dead; four records over the code moved re-aimed by content, all dead (`audit657.json` AUDIT657-B3-the-stalls-controls-loose,
 `fb1001_market.json` MARKET-ANY-tab-the-option-without-gold and MARKET-ANY-tab-the-refused-unsaid, `marketaudit.json`
-MARKET-AUDIT-U2-labels-bare). Measured in Chromium (`tools/noticeBoardProbe.mjs`, its market-goods, market-sell and
-market-sell-refused shots, a desktop's width and a phone's): a pack the producers fill, its pictures from the player's
-own ARENA2, each view inside the viewport with nothing spilling sideways.
+MARKET-AUDIT-U2-labels-bare). Measured in Chromium (`tools/noticeBoardProbe.mjs`, its market-goods, market-sell,
+market-sell-refused and (the audit's) market-sell-stores shots, a desktop's width and a phone's): a pack the producers
+fill, its pictures from the player's own ARENA2, each view inside the viewport with nothing spilling sideways, and a
+press far down the tiles keeping their scroll.
 
 ## 11. Writs - the Work tab
 

@@ -88,7 +88,7 @@ export function createVendorHost(host) {
           return r;
         },
         nameOf: vendorNameOf, stats: vendorItemStats, purse: () => marketBook.purse(vendorRegionHere() ?? 0),
-        picture: (it, wake) => itemPicture(it, { onReady: wake }),   // MENU-ORDER
+        picture: (it, wake, box) => itemPicture(it, { onReady: wake, box }),   // MENU-ORDER; PACK-PICK: at the picker's box
         buy: (row) => vendorBuy(vendor, row), take: (row) => vendorTake(row),
         goods: () => marketGoods.goods(), put: (item, price) => vendorPut(vendor, item, price),
         settle: () => marketBook.settle(marketMint, marketPutBack, marketDrop),   // VENDOR-LOST: a kept buy's piece collected as the stall opens

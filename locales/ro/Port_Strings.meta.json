@@ -15829,14 +15829,44 @@
   "tr": "d0837279093b",
   "by": "claude-in-session"
  },
+ "market.list.craftedEmpty": {
+  "en": "8c65b17166cc",
+  "tr": "26295e296b79",
+  "by": "claude-in-session"
+ },
  "market.list.craftedLabel": {
   "en": "28f64ab188cf",
-  "tr": "3959815205fe",
+  "tr": "9c4b476d5598",
+  "by": "claude-in-session"
+ },
+ "market.list.kindAuction": {
+  "en": "0774b0c33e43",
+  "tr": "ec1872829ed2",
+  "by": "claude-in-session"
+ },
+ "market.list.kindCrafted": {
+  "en": "42e1236ebb3b",
+  "tr": "b0d54663203f",
   "by": "claude-in-session"
  },
  "market.list.kindPack": {
   "en": "33a51b3312f4",
   "tr": "fe39839c2799",
+  "by": "claude-in-session"
+ },
+ "market.list.kindStores": {
+  "en": "561569fc83c4",
+  "tr": "4618f65e8291",
+  "by": "claude-in-session"
+ },
+ "market.list.kinds": {
+  "en": "fa2e5cff35aa",
+  "tr": "995df8f17ac7",
+  "by": "claude-in-session"
+ },
+ "market.list.mwEmpty": {
+  "en": "8eac23d4e384",
+  "tr": "a361d29e910d",
   "by": "claude-in-session"
  },
  "market.list.mwLabel": {

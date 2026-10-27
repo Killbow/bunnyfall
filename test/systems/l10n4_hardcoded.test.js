@@ -689,7 +689,7 @@ const HARDCODED = {
   'src/ui/localeFaces.js': 27,
   'src/ui/lootBanner.js': 3,
   'src/ui/map/mapStrip.js': 1,
-  'src/ui/marketTab.js': 146,   // PACK-PICK: the List form's piece and pack words through the text core
+  'src/ui/marketTab.js': 140,   // PACK-PICK: the List form's piece and pack words through the text core; AUDIT PACK-PICK: its kinds' and empty forms' too
   'src/ui/merchant/merchantRepairDoor.js': 2,
   'src/ui/mouseControlsWindow.js': 2,
   'src/ui/native/nativeInventory.js': 5,

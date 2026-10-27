@@ -28,6 +28,7 @@
 import { storeFilterAccepts, storeRarityAccepts, storeMaterialAccepts, storeQuery, storeFilterOptions, storeRarityOptions, storeMaterialOptions } from './storeFilter.js';
 import { RARITIES, rarityAttr, lootRarityOn } from '../systems/loot/lootRarity.js';
 import { pictureNode } from './menu/menuGlyphs.js';
+import { SLOT_BOX } from './iconFit.js';
 import { typedField } from './workSift.js';
 import { t } from '../systems/textManager.js';
 
@@ -42,10 +43,10 @@ const el = (tag, cls = null, text = null) => {
 const safe = (/** @type {() => any} */ f, /** @type {any} */ or = null) => { try { return f(); } catch { return or; } };
 
 /** The sift a picker opens on - the search, the page, the tier, the metal, whether the refused are unfolded, and how far
- *  its tiles are scrolled (`top`). */
-export const freshPackSift = () => ({ query: '', cat: 'all', rarity: 'all', material: 'all', refusedOpen: false, top: 0 });
+ *  its tiles and the refused are scrolled (`top`, `offTop`). */
+export const freshPackSift = () => ({ query: '', cat: 'all', rarity: 'all', material: 'all', refusedOpen: false, top: 0, offTop: 0 });
 /** @typedef {ReturnType<typeof freshPackSift>} PackSift */
-/** @typedef {{ key: string, item: any, name: string, sub?: string|null, why?: string|null }} PackEntry */
+/** @typedef {{ key?: string|null, item: any, name: string, sub?: string|null, why?: string|null }} PackEntry */
 
 /** Whether a sift leaves every piece in. */
 const siftIsAll = (/** @type {PackSift} */ s) => !storeQuery(s.query) && s.cat === 'all' && s.rarity === 'all' && s.material === 'all';
@@ -64,11 +65,26 @@ export const packTierWord = (/** @type {any} */ item) => { const r = safe(() => 
 /** A node marked with the piece's tier (the sheet colours its frame by it). */
 const marked = (/** @type {HTMLElement} */ n, /** @type {any} */ item) => { const r = safe(() => rarityAttr(item)); if (r) n.setAttribute('data-rarity', r); return n; };
 
-/** A picture of the piece, or an empty frame the size of one (the tiles line up while the pictures are made). */
-function picOf(/** @type {any} */ item, /** @type {any} */ o, scale = 1) {
-  const pic = safe(() => o.picture?.(item, o.wake ?? (() => {})) ?? null);
-  const shown = pic && scale !== 1 ? { ...pic, w: pic.w * scale, h: pic.h * scale } : pic;
-  return pictureNode(shown, el, 'packpick-pic') ?? el('span', 'packpick-pic packpick-nopic');
+/** A picture of the piece in a frame of `box` - the host's, fitted to that box (AUDIT PACK-PICK A10: the card's was the
+ *  tile's stretched twice over a whole-number fit, UI1) and drawn at its own size, as the market's rows draw theirs - or
+ *  the frame empty while it is made or when `ask` is false (the tiles line up meanwhile). */
+function picOf(/** @type {any} */ item, /** @type {any} */ o, /** @type {number} */ box = SLOT_BOX.row, ask = true) {
+  const frame = el('span', `packpick-pic${box === SLOT_BOX.row ? '' : ' packpick-bigpic'}`);
+  const pic = ask ? safe(() => o.picture?.(item, o.wake ?? (() => {}), box) ?? null) : null;
+  const img = pictureNode(pic, el, 'packpick-img');
+  if (img) frame.append(img);
+  else frame.className += ' packpick-nopic';
+  return frame;
+}
+/** AUDIT PACK-PICK A8: each tile's focus key - the caller's, or its name and which of that name it is, so a piece that
+ *  comes into the pack ahead of it never hands its focus to another piece. */
+function focusKeys(/** @type {PackEntry[]} */ entries) {
+  const seen = new Map();
+  return new Map(entries.map((e) => {
+    const n = (seen.get(e.name) ?? 0) + 1;
+    seen.set(e.name, n);
+    return [e, e.key ?? `${e.name}#${n}`];
+  }));
 }
 /** A tile's name and the line under it. */
 function wordsOf(/** @type {PackEntry} */ e, why = false) {
@@ -83,7 +99,7 @@ function wordsOf(/** @type {PackEntry} */ e, why = false) {
  * THE PICKER: the sift's bar, the tiles of what may go, and what may not, folded.
  * @param {{
  *   entries: PackEntry[], chosen: any, sift: PackSift, pick: (item: any) => void,
- *   picture?: ((item: any, wake: () => void) => ({ src: string, w: number, h: number }|null)) | null, wake?: () => void,
+ *   picture?: ((item: any, wake: () => void, box?: number) => ({ src: string, w: number, h: number }|null)) | null, wake?: () => void,
  *   label: string, focus: string, empty: string, refusedWhat: string, redraw: () => void,
  * }} o `entries` in the pack's order, each with why it may not go (null: it may); `chosen` the chosen entry's item;
  *   `sift` the caller's, kept across its redraws; `label` the picker's name; `focus` the prefix of its fields' focus keys;
@@ -92,6 +108,7 @@ function wordsOf(/** @type {PackEntry} */ e, why = false) {
 export function packPickerNode(o) {
   const { sift } = o;
   const ok = o.entries.filter((e) => !e.why), refused = o.entries.filter((e) => e.why);
+  const keys = focusKeys(o.entries);
   const box = el('div', 'packpick');
   box.setAttribute('role', 'group');
   box.setAttribute('aria-label', o.label);
@@ -103,22 +120,25 @@ export function packPickerNode(o) {
     const b = /** @type {HTMLButtonElement} */ (marked(el('button', `packpick-tile${e.item === o.chosen ? ' on' : ''}`), e.item));
     b.setAttribute('type', 'button');
     b.setAttribute('aria-pressed', e.item === o.chosen ? 'true' : 'false');
-    b.setAttribute('data-focus', `${o.focus}|${e.key}`);
+    b.setAttribute('data-focus', `${o.focus}|${keys.get(e)}`);
     b.setAttribute('title', e.name);
     b.append(picOf(e.item, o), wordsOf(e));
-    b.onclick = (ev) => { ev?.stopPropagation?.(); o.pick(e.item); };
+    // AUDIT PACK-PICK A4: a double press is one - its second lands on the tile the first redrew, and let the piece go
+    b.onclick = (ev) => { ev?.stopPropagation?.(); if ((ev?.detail ?? 0) > 1) return; o.pick(e.item); };
     return b;
   };
+  // AUDIT PACK-PICK A1: the folded are pictured only once unfolded - each picture landing redraws the window
   const offTile = (/** @type {PackEntry} */ e) => {
     const d = marked(el('div', 'packpick-tile off'), e.item);
     d.setAttribute('aria-disabled', 'true');
-    d.append(picOf(e.item, o), wordsOf(e, true));
+    d.append(picOf(e.item, o, SLOT_BOX.row, sift.refusedOpen === true), wordsOf(e, true));
     return d;
   };
   const none = () => {
     const p = el('p', 'notice-tip packpick-none', t('pack.pick.none', 'Nothing in your pack matches.'));
     const all = el('button', 'act packpick-all', t('pack.pick.all', 'Show everything'));
     all.setAttribute('type', 'button');
+    all.setAttribute('data-focus', `${o.focus}|all`);
     all.onclick = (ev) => { ev?.stopPropagation?.(); Object.assign(sift, { ...freshPackSift(), refusedOpen: sift.refusedOpen }); o.redraw(); };
     p.append(' ', all);
     return p;
@@ -127,13 +147,24 @@ export function packPickerNode(o) {
   // - the 20th piece pressed threw the tiles back to the first. Kept in the sift, given back once the window is drawn
   // (a node scrolls only in the document), and let go when the sift changes what the tiles are.
   grid.addEventListener?.('scroll', () => { sift.top = grid.scrollTop; });
+  offList.addEventListener?.('scroll', () => { sift.offTop = offList.scrollTop; });   // AUDIT PACK-PICK B: the folded scroll too
+  // AUDIT PACK-PICK A3: the folded are sifted only while the bar that sifts them stands (a sift left over from a pack that
+  // had a piece to sell hid them, with no field to clear it), and the fold counts what it holds
+  const offShown = () => (ok.length ? siftEntries(refused, sift) : refused);
+  const said = el('summary', null);
+  said.setAttribute('data-focus', `${o.focus}|refused`);
+  const fillOff = () => {
+    const off = offShown();
+    offList.replaceChildren(...off.map(offTile));
+    said.textContent = t('pack.pick.refused', '{what} ({n, number})', { what: o.refusedWhat, n: off.length });
+  };
   const refill = (/** @type {boolean} */ moved = true) => {
-    if (moved) { sift.top = 0; grid.scrollTop = 0; }
+    if (moved) { sift.top = 0; grid.scrollTop = 0; sift.offTop = 0; offList.scrollTop = 0; }
     const shown = siftEntries(ok, sift);
     grid.replaceChildren(...(shown.length ? shown.map(tile) : [none()]));
     count.textContent = siftIsAll(sift) ? t('pack.pick.many', '{n, plural, one {# piece} other {# pieces}}', { n: ok.length })
       : t('pack.pick.some', '{shown, number} of {n, number}', { shown: shown.length, n: ok.length });
-    offList.replaceChildren(...siftEntries(refused, sift).map(offTile));
+    fillOff();
   };
   if (!ok.length) box.append(el('p', 'notice-tip packpick-empty', o.empty));
   else {
@@ -143,13 +174,17 @@ export function packPickerNode(o) {
   if (refused.length) {
     const fold = /** @type {any} */ (el('details', 'packpick-refused'));
     fold.open = sift.refusedOpen === true;
-    fold.addEventListener?.('toggle', () => { sift.refusedOpen = !!fold.open; });
-    fold.append(el('summary', null, t('pack.pick.refused', '{what} ({n, number})', { what: o.refusedWhat, n: refused.length })), offList);
+    fold.addEventListener?.('toggle', () => {
+      const opened = !!fold.open && sift.refusedOpen !== true;
+      sift.refusedOpen = !!fold.open;
+      if (opened) fillOff();   // now pictured
+    });
+    fold.append(said, offList);
     box.append(fold);
   }
-  const top = sift.top;
+  const top = sift.top, offTop = sift.offTop ?? 0;
   refill(false);
-  if (top > 0) Promise.resolve().then(() => { grid.scrollTop = top; });   // once the window has drawn it (marketTab.js toTop's way)
+  if (top > 0 || offTop > 0) Promise.resolve().then(() => { grid.scrollTop = top; offList.scrollTop = offTop; });   // once the window has drawn it (marketTab.js toTop's way)
   return box;
 }
 
@@ -179,7 +214,9 @@ function siftBar(/** @type {any} */ o, /** @type {any[]} */ items, /** @type {()
       s.append(opt);
     }
     s.value = sift[key];
-    s.onchange = () => { sift[key] = s.value; refill(); };
+    // AUDIT PACK-PICK A2: the choice made - a window that holds its redraw while a list is open (marketTab.js redraw) lets
+    // this one go
+    s.onchange = () => { s.setAttribute('data-chosen', '1'); sift[key] = s.value; refill(); };
     bar.append(s);
   };
   const pages = safe(() => storeFilterOptions(items, sift.cat), []);
@@ -193,7 +230,7 @@ function siftBar(/** @type {any} */ o, /** @type {any[]} */ items, /** @type {()
 }
 
 /**
- * THE PIECE CHOSEN, LOOKED AT: its picture at twice a tile's, its name in its tier's colour and its tile's line, then the
+ * THE PIECE CHOSEN, LOOKED AT: its picture at the pack grid's size, its name in its tier's colour and its tile's line, then the
  * look's rows and its magic. `none` stands in its place while nothing is chosen.
  * @param {PackEntry|null} e
  * @param {{ picture?: any, wake?: () => void, look?: ((item: any) => ({ rows: string[], magic: string[] }|null)) | null, none: string }} o
@@ -201,12 +238,11 @@ function siftBar(/** @type {any} */ o, /** @type {any[]} */ items, /** @type {()
 export function packCardNode(e, o) {
   if (!e) return el('p', 'notice-tip packpick-cardnone', o.none);
   const card = marked(el('div', 'packpick-card'), e.item);
-  card.setAttribute('aria-live', 'polite');
   const head = el('div', 'packpick-cardhead');
   const words = el('div', 'packpick-words');
   words.append(el('b', 'packpick-name', e.name));
   if (e.sub) words.append(el('span', 'packpick-sub', e.sub));
-  head.append(picOf(e.item, o, 2), words);
+  head.append(picOf(e.item, o, SLOT_BOX.grid), words);
   card.append(head);
   const look = safe(() => o.look?.(e.item) ?? null);
   if (look?.rows?.length) {

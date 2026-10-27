@@ -39,8 +39,8 @@
   {
     "name": "PACK-PICK-pack-not-first",
     "file": "src/ui/marketTab.js",
-    "old": "    if (!st.list.kind || (st.list.kind === 'item' && !packOk)) st.list.kind = packOk ? 'item' : 'material';",
-    "new": "    if (!st.list.kind || (st.list.kind === 'item' && !packOk)) st.list.kind = 'material';",
+    "old": "    if (!st.list.kind) st.list.kind = packOk && (m.goods?.() ?? []).some((g) => !(g.why ?? craftedWhy(g.item))) ? 'item' : 'material';",
+    "new": "    if (!st.list.kind) st.list.kind = 'material';",
     "tests": ["test/ui/packpick.test.js", "test/systems/fb1001_market_goods.test.js"]
   },
   {
@@ -103,7 +103,7 @@
   {
     "name": "PACK-PICK-scroll-unkept",
     "file": "src/ui/packPicker.js",
-    "old": "  if (top > 0) Promise.resolve().then(() => { grid.scrollTop = top; });   // once the window has drawn it (marketTab.js toTop's way)",
+    "old": "  if (top > 0 || offTop > 0) Promise.resolve().then(() => { grid.scrollTop = top; offList.scrollTop = offTop; });   // once the window has drawn it (marketTab.js toTop's way)",
     "new": "",
     "tests": ["test/ui/packpick.test.js"],
     "note": "a press throws the tiles back to the first - the 20th piece pressed and gone from sight"
@@ -111,7 +111,7 @@
   {
     "name": "PACK-PICK-scroll-over-new-sift",
     "file": "src/ui/packPicker.js",
-    "old": "    if (moved) { sift.top = 0; grid.scrollTop = 0; }",
+    "old": "    if (moved) { sift.top = 0; grid.scrollTop = 0; sift.offTop = 0; offList.scrollTop = 0; }",
     "new": "",
     "tests": ["test/ui/packpick.test.js"]
   },

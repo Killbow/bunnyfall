@@ -10,17 +10,23 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { packPickerNode, packCardNode, freshPackSift, siftEntries, packTierWord } from '../../src/ui/packPicker.js';
 import { itemLookRows } from '../../src/systems/item/itemLook.js';
+import { magicPowersLines } from '../../src/systems/item/itemPowers.js';
 import { createMarketTab, LIST_KINDS } from '../../src/ui/marketTab.js';
 import { createVendorTab } from '../../src/ui/vendor/vendorTab.js';
 import { createMarketGoods } from '../../src/systems/tradePack.js';
-import { generateRandomLoot, LOOT_MATRICES } from '../../src/systems/loot/loot.js';
+import { generateRandomLoot, LOOT_MATRICES, setMagicItemTemplates, getMagicItemTemplates } from '../../src/systems/loot/loot.js';
 import { applyRarity, LOOT_RARITY_KEY } from '../../src/systems/loot/lootRarity.js';
+import { mintPiece } from '../../src/systems/smithItems.js';
+import { wearCondition } from '../../src/net/marketLaw.js';
+import { createVendorHost } from '../../src/scenes/vendorHost.js';
 import { storeMaterialOf } from '../../src/ui/storeFilter.js';
 import { pageOf } from '../../src/ui/packPages.js';
 import { seededRng } from '../../src/systems/wind/wind.js';
 import { setPref, _resetForTests as resetPrefs } from '../../src/systems/uiPrefs.js';
 import { ARROW_TEMPLATE } from '../../src/systems/inventory.js';
 import { PROF_CSS } from '../../src/ui/enhanced/enhancedPlusStyle.js';
+import { SLOT_BOX } from '../../src/ui/iconFit.js';
+import { frameWake } from '../../src/ui/menu/menuGlyphs.js';
 
 afterEach(() => resetPrefs());
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
@@ -149,6 +155,27 @@ test('PACK-PICK the tiles keep their scroll: a press redraws the window, and the
   assert.deepEqual([sift.top, byClass(box, 'packpick-grid')[0].scrollTop], [0, 0], 'a new sift starts at the top');
 });
 
+test('AUDIT PACK-PICK the folded keep their scroll as the tiles do - unfolded, scrolled, and a press redraws the window - and a new sift lets it go (mutants: B the folded scroll unkept; unrestored; kept over a new sift)', async () => {
+  const { goods } = pack();
+  const entries = entriesOf(goods);
+  const sift = { ...freshPackSift(), refusedOpen: true };
+  const draw = () => pickerOf(entries, sift);
+  const offOf = (box) => byClass(box, 'packpick-offgrid')[0];
+  let off = offOf(draw());
+  off.scrollTop = 90;
+  off.dispatch('scroll', {});
+  assert.equal(sift.offTop, 90);
+  off = offOf(draw());
+  await tick();
+  assert.equal(off.scrollTop, 90, 'given back');
+  const box = draw();
+  await tick();
+  const page = [...byClass(box, 'packpick-menu')].find((s) => s.getAttribute('aria-label') === 'Kind of piece');
+  page.value = 'weapons';
+  page.onchange();
+  assert.deepEqual([sift.offTop, offOf(box).scrollTop], [0, 0]);
+});
+
 test('PACK-PICK the piece looked at: its name and line, the look panel\'s rows and its magic (systems/item/itemLook.js) - the trader\'s look, moved, one presenter; the words that stand in while nothing is chosen (mutants: the look unread; the stall\'s look a second copy)', () => {
   setPref(LOOT_RARITY_KEY, true);
   const { gear } = pack();
@@ -170,25 +197,25 @@ test('PACK-PICK the piece looked at: its name and line, the look panel\'s rows a
 });
 
 /** A market book as the tab reads it - `goldOk` a realm character's - and the listings it is asked for. */
-function bookOf(goldOk) {
+function bookOf(goldOk, ways = {}) {
   const listed = [];
   return {
     listed, state: { open: true, balance: 1000, road: [], counts: {}, goldHeld: 0 }, pending: 0, cached: () => null, goldOk, purse: () => 500,
-    read: async (view) => ({ ok: true, data: view === 'mine' ? { rows: [], ways: {} } : { rows: [] } }), settle: async () => ({ ok: true, settled: 0 }),
+    read: async (view) => ({ ok: true, data: view === 'mine' ? { rows: [], ways } : { rows: [] } }), settle: async () => ({ ok: true, settled: 0 }),
     list: async (req) => { listed.push(req); return { ok: true, data: {} }; },
   };
 }
-function tabOf(book, goods) {
-  let root = null;
+function tabOf(book, goods, extra = {}) {
+  let root = null, draws = 0;
   const said = [];
   const m = {
     book, stores: () => new Map(), region: 17, regionName: 'Daggerfall', regionNameOf: () => 'Daggerfall', hubs: { 17: [207, 212] }, name: (k) => k, countName: (k) => k,
     pieces: () => [], take: () => true, putBack: () => {}, mint: () => {}, pieceName: () => 'a piece', weavers: [], stock: async () => ({ ok: true }),
-    goods: () => goods.goods(), good: (it) => goods.good(it), goodName: (r) => goods.goodName(r),
+    goods: () => goods.goods(), good: (it) => goods.good(it), goodName: (r) => goods.goodName(r), ...extra,
   };
   const tab = createMarketTab(m, { busy: () => false, run: async (start) => { const r = await start(); said.push(r?.text); }, rerender: () => draw(), nowS: () => 0, alive: () => true });
-  function draw() { root = tab.body(); }
-  return { tab, said, root: () => root, draw, press: (k) => [...root.querySelectorAll('button')].find((b) => b.getAttribute('data-kind') === k) };
+  function draw() { draws++; root = tab.body(); }
+  return { tab, said, root: () => root, draw, draws: () => draws, press: (k) => [...root.querySelectorAll('button')].find((b) => b.getAttribute('data-kind') === k) };
 }
 const mine = async (t) => { t.tab.state.view = 'mine'; await t.tab.load(true); t.draw(); };
 
@@ -276,4 +303,338 @@ test('PACK-PICK the dress: the tiers\' colours laid inside the List form (the bo
   assert.match(PROF_CSS, /\.market-listform \[data-rarity="rare"\] \{ --rar: #e4c34f;/);
   assert.match(PROF_CSS, /\.packpick-tile\[data-rarity\] \{ border-color: var\(--rar-hi\) var\(--rar-lo\) var\(--rar-lo\) var\(--rar-hi\);/);
   assert.match(PROF_CSS, /\.market-kinds \{ display: grid; grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\); \}/);
+});
+
+test('AUDIT PACK-PICK the dress\'s own rules: the card\'s name in its tier\'s colour as a tile\'s is; two tiles across inside the phone\'s rule alone; a press a finger\'s height on a touch screen (mutants: C17 the card\'s name uncoloured; C18 the phone\'s rule on a desktop; C19 a touch press small)', () => {
+  assert.match(PROF_CSS, /\.packpick-card\[data-rarity\] \.packpick-name[^{]*\{ color: var\(--rar-hi\); \}/);
+  assert.match(PROF_CSS, /@media \(max-width: 640px\) \{ \.packpick-grid \{ grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\);/);
+  assert.match(PROF_CSS, /@media \(pointer: coarse\) \{ \.packpick-tile, \.market-kinds \.market-kind, \.market-filters \.market-sellpack \{ min-height: 44px; \} \}/);
+});
+
+// ─── AUDIT PACK-PICK (2026-10-27): the pins the cold lanes found missing ───────────────────────────────────────────────
+
+/** A bare picker over `entries` on `sift`. */
+const pickerOf = (entries, sift, extra = {}) => packPickerNode({ entries, chosen: null, sift, pick: () => {}, label: 'x', focus: 'f', empty: 'none', refusedWhat: 'Not for the market', redraw: () => {}, ...extra });
+/** A picture as the host's itemPicture hands it back - fitted to the box it is asked for (the market's rows ask none). */
+const picture = (item, _wake, box = 26) => ({ src: `pic:${item.name}`, w: box - 2, h: box - 4 });
+const srcOf = (n) => byClass(n, 'packpick-img')[0]?.getAttribute('src') ?? null;
+
+test('AUDIT PACK-PICK what a redraw keeps: the fold opened stays open, and "Show everything" leaves it so; the words searched for stand in the field and the page chosen shows in its menu; the field its focus key, each tile its name on hover (mutants: C01 the fold shut on a redraw; C02 its toggle unkept; C03 "Show everything" shuts it; C10 the words lost; C49 the choice lost; C39 the title gone; C41 the field\'s focus key gone)', async () => {
+  setPref(LOOT_RARITY_KEY, true);
+  const { goods } = pack();
+  const entries = entriesOf(goods);
+  const sift = freshPackSift();
+  let box = pickerOf(entries, sift);
+  assert.deepEqual(tilesOf(box).map((b) => b.getAttribute('title')), entries.filter((e) => !e.why).map((e) => e.name), 'a long name whole on hover');
+  const fold = byClass(box, 'packpick-refused')[0];
+  assert.equal(fold.open, false, 'folded at first');
+  fold.open = true;
+  fold.dispatch('toggle', {});
+  assert.equal(sift.refusedOpen, true);
+  box = pickerOf(entries, sift);
+  assert.equal(byClass(box, 'packpick-refused')[0].open, true, 'open after the redraw');
+  const find = byClass(box, 'packpick-find')[0];
+  find.value = 'no such piece anywhere';
+  find.oninput();
+  await tick(160);
+  [...box.querySelectorAll('button')].find((b) => b.textContent === 'Show everything').onclick();
+  assert.deepEqual([sift.query, sift.refusedOpen], ['', true], 'the sift let go, the fold left open');
+  Object.assign(sift, { query: 'sword', cat: 'weapons' });
+  box = pickerOf(entries, sift);
+  const again = byClass(box, 'packpick-find')[0];
+  assert.deepEqual([again.value, again.getAttribute('data-focus')], ['sword', 'f|find']);
+  const page = [...byClass(box, 'packpick-menu')].find((s) => s.getAttribute('aria-label') === 'Kind of piece');
+  assert.ok(page.value === 'weapons' || [...page.children].find((o) => o.value === 'weapons')?.selected === true, 'the page chosen, shown');
+});
+
+test('AUDIT PACK-PICK the sift bar offers a choice or nothing: each page, tier and metal says its count; a page menu only where the pieces lie on two pages, a tier menu only while the ladder is on and they hold two tiers, a metal menu where a metal narrows them - and a menu chosen stays while its choice is all there is, so it can be let go; the search reads a capital as its small letter, and narrows the folded too (mutants: C04 the counts unsaid; C05 the search case-bound; C06 the folded unsifted; C07 a page menu with no choice; C08 a tier menu with the ladder off; C51 a tier menu at one tier; C09 and C50 the metal menu gone; C52 a chosen page\'s menu dropped)', () => {
+  setPref(LOOT_RARITY_KEY, true);
+  const { gear, goods, quest } = pack();
+  applyRarity(gear[0], 'rare', seededRng(4));
+  const entries = entriesOf(goods);
+  const ok = entries.filter((e) => !e.why);
+  const menusOf = (box) => Object.fromEntries([...byClass(box, 'packpick-menu')].map((s) => [s.getAttribute('aria-label'), [...s.children].map((o) => o.textContent)]));
+  const menus = menusOf(pickerOf(entries, freshPackSift()));
+  const pages = menus['Kind of piece'];
+  assert.equal(pages[0], 'All', 'All\'s count is the pack\'s');
+  for (const [id, label] of [['weapons', 'Weapons'], ['armor', 'Armor']]) assert.ok(pages.includes(`${label} (${ok.filter((e) => pageOf(e.item) === id).length})`), pages.join(' | '));
+  assert.deepEqual(menus.Rarity, ['Rarity', `Common (${ok.length - 1})`, 'Rare (1)']);
+  // the search: the first word of a name, capital and all, found by its small letters
+  const first = ok[0].name.split(' ')[0];
+  assert.match(first, /^[A-Z]/);
+  const found = siftEntries(ok, { ...freshPackSift(), query: first.toLowerCase() });
+  assert.ok(found.length > 0 && found.every((e) => e.name.toLowerCase().includes(first.toLowerCase())), first);
+  // the folded, narrowed by the same search: the quest's piece by its name, the gold not
+  const questWord = goods.goodName(quest).split(' ')[0].toLowerCase();
+  const folded = [...byClass(byClass(pickerOf(entries, { ...freshPackSift(), query: questWord }), 'packpick-refused')[0], 'packpick-tile')].map((n) => word(n, 'packpick-name'));
+  assert.ok(folded.includes(goods.goodName(quest)) && folded.length < entries.filter((e) => e.why).length, folded.join(' | '));
+  // a page menu needs two pages; a chosen page keeps its menu while the pieces are all on it
+  const weaponsOnly = ok.filter((e) => pageOf(e.item) === 'weapons');
+  assert.equal(menusOf(pickerOf(weaponsOnly, freshPackSift()))['Kind of piece'], undefined, 'one page: no choice');
+  const armourOnly = ok.filter((e) => pageOf(e.item) === 'armor');
+  assert.deepEqual(menusOf(pickerOf(armourOnly, { ...freshPackSift(), cat: 'armor' }))['Kind of piece'], ['All', `Armor (${armourOnly.length})`], 'the choice there to let go');
+  // a tier menu needs two tiers, and the ladder on
+  assert.equal(menusOf(pickerOf(ok.filter((e) => e.item !== gear[0]), freshPackSift())).Rarity, undefined, 'all Common: no choice');
+  setPref(LOOT_RARITY_KEY, false);
+  assert.equal(menusOf(pickerOf(entries, freshPackSift())).Rarity, undefined, 'the ladder off: no tiers to pick');
+  // a metal menu where one metal narrows the pieces - a weapon's metal beside a piece of clothing, which has none
+  const cloth = generateRandomLoot({ ...LOOT_MATRICES['-'], CL: 100 }, { level: 10, gender: 'male' }, seededRng(5)).find((it) => it.group === 'MensClothing' || it.group === 'WomensClothing');
+  const metalled = gear.find((it) => storeMaterialOf(it));
+  assert.ok(cloth && metalled && !storeMaterialOf(cloth));
+  const two = entriesOf(createMarketGoods({ items: [metalled, cloth] }));
+  assert.deepEqual(menusOf(pickerOf(two, freshPackSift())).Material, ['Material', `${storeMaterialOf(metalled)} (1)`]);
+});
+
+test('AUDIT PACK-PICK the pictures: each tile the host\'s picture of its piece fitted to a row\'s box, the card\'s fitted to the pack grid\'s (never a row\'s stretched - UI1) and drawn at its own size in its frame; the folded pictured only once unfolded, each landing a redraw - in the List form from the market\'s own itemPicture and at a stall from the stall\'s (mutants: C13 the pictures never drawn; C14 the card\'s at a row\'s box; C15 the market\'s unread; C16 the stall\'s unread; A1 the folded asked while folded; A1 the folded never asked)', async () => {
+  const { gear, goods } = pack();
+  const entries = entriesOf(goods);
+  const asked = [];
+  const sift = freshPackSift();
+  const box = pickerOf(entries, sift, { picture: (item, wake, b) => { asked.push([item, b]); return picture(item, wake, b); } });
+  const ok = entries.filter((e) => !e.why), refused = entries.filter((e) => e.why);
+  assert.deepEqual(tilesOf(box).map(srcOf), ok.map((e) => `pic:${e.item.name}`));
+  assert.deepEqual(asked, ok.map((e) => [e.item, SLOT_BOX.row]), 'a row\'s box, and the folded not asked');
+  const tileImg = byClass(tilesOf(box)[0], 'packpick-img')[0];
+  assert.deepEqual([tileImg.getAttribute('width'), tileImg.getAttribute('height')], [String(SLOT_BOX.row - 2), String(SLOT_BOX.row - 4)], 'its own fitted size');
+  const fold = byClass(box, 'packpick-refused')[0];
+  const offSrcs = () => [...byClass(fold, 'packpick-tile')].map(srcOf);
+  assert.deepEqual(offSrcs(), refused.map(() => null), 'folded: frames alone');
+  fold.open = true;
+  fold.dispatch('toggle', {});
+  assert.deepEqual(offSrcs(), refused.map((e) => `pic:${e.item.name}`), 'unfolded: pictured');
+  const card = packCardNode(entries[0], { picture, none: '' });
+  const pic = byClass(card, 'packpick-img')[0];
+  assert.deepEqual([pic.getAttribute('src'), pic.getAttribute('width'), pic.getAttribute('height')], [`pic:${entries[0].item.name}`, String(SLOT_BOX.grid - 2), String(SLOT_BOX.grid - 4)]);
+  assert.ok(byClass(card, 'packpick-pic')[0].className.split(' ').includes('packpick-bigpic'), 'its frame the card\'s');
+  assert.equal(byClass(pickerOf(entries, freshPackSift()), 'packpick-nopic').length, entries.length, 'no picture: a frame its size');
+  const t = tabOf(bookOf(true), goods, { itemPicture: picture });
+  await mine(t);
+  const weapon = gear.find((it) => it.group === 'Weapons');
+  const tile = tilesOf(t.root()).find((b) => word(b, 'packpick-name') === goods.goodName(weapon));
+  assert.equal(srcOf(tile), `pic:${weapon.name}`, 'the market\'s');
+  const stall = createVendorTab({ mode: 'stall', own: true, read: async () => ({ ok: true, data: { rows: [] } }), nameOf: (it) => goods.goodName(it), purse: () => 100,
+    picture, goods: () => goods.goods(), put: async () => ({ ok: true }) }, { busy: () => false, run: async (start) => start(), rerender: () => {}, nowS: () => 0, alive: () => true });
+  await stall.open();
+  assert.equal(srcOf(tilesOf(stall.body())[0]), `pic:${goods.goods().find((g) => !g.why).item.name}`, 'the stall\'s');
+});
+
+test('AUDIT PACK-PICK the List form\'s kinds, lines and presses: the four kinds in their order with their icons and focus keys; a pack piece\'s line its tier and wear; a crafted piece\'s its tier, quality, wear and "your home", looked at when pressed and let go when pressed again; the crafted and the auction each their own search; an auction asks for its opening bid; "Sell from your pack" keeps the pack for the book (mutants: C30 the kinds reordered; C31 their icons swapped; C40 a kind\'s focus key gone; C20 the wear unsaid; C21 a crafted piece\'s tier unsaid; C22 "your home" unsaid; C23 a crafted press that never lets go; C25 the crafted card unlooked; C26 one search for both; C27 the auction asked a price; C28 the Sell press unkept)', async () => {
+  setPref(LOOT_RARITY_KEY, true);
+  const { gear, goods } = pack();
+  const weapon = gear.find((it) => it.group === 'Weapons');
+  applyRarity(weapon, 'rare', seededRng(4));
+  weapon.currentCondition = wearCondition(weapon.maxCondition, 500);
+  const mw = mintPiece({ recipe: 'longsword:mithril', quality: 4, seed: 77, maker: 'Me' }, 'aaaaaaaaaaaaaaaa');
+  mw.currentCondition = wearCondition(mw.maxCondition, 900);
+  const fine = mintPiece({ recipe: 'longsword:mithril', quality: 2, seed: 78, maker: 'Me' }, 'bbbbbbbbbbbbbbbb');
+  const book = bookOf(true, { aaaaaaaaaaaaaaaa: 'yours', bbbbbbbbbbbbbbbb: 'yours' });
+  const t = tabOf(book, goods, { pieces: () => [{ item: mw, where: 'home', name: 'Me\'s Longsword' }, { item: fine, where: 'pack', name: 'Fine Longsword' }] });
+  await mine(t);
+  const kinds = [...t.root().querySelectorAll('button')].filter((b) => b.getAttribute('data-kind'));
+  assert.deepEqual(kinds.map((b) => [b.getAttribute('data-kind'), b.getAttribute('data-dficon'), b.getAttribute('data-focus')]),
+    [['item', 'own', 'list-kind|item'], ['material', 'ore', 'list-kind|material'], ['piece', 'station', 'list-kind|piece'], ['auction', 'gavel', 'list-kind|auction']]);
+  assert.equal(word(tilesOf(t.root()).find((b) => word(b, 'packpick-name') === goods.goodName(weapon)), 'packpick-sub'), 'Rare · worn to 50%');
+  t.press('piece').onclick();
+  const subOf = (name) => word(tilesOf(t.root()).find((b) => word(b, 'packpick-name') === name), 'packpick-sub');
+  assert.deepEqual([subOf('Me\'s Longsword'), subOf('Fine Longsword')], ['Rare · Masterwork · worn to 90% · your home', 'Fine']);
+  const mwTile = () => tilesOf(t.root()).find((b) => word(b, 'packpick-name') === 'Me\'s Longsword');
+  mwTile().onclick();
+  assert.deepEqual([...byClass(t.root(), 'packpick-stat')].map((n) => n.textContent), itemLookRows(mw).rows, 'looked at');
+  mwTile().onclick();
+  assert.equal(byClass(t.root(), 'packpick-card').length, 0, 'pressed again: let go');
+  const find = byClass(t.root(), 'packpick-find')[0];
+  find.value = 'fine';
+  find.oninput();
+  await tick(160);
+  t.press('auction').onclick();
+  assert.equal(byClass(t.root(), 'packpick-find')[0].value, '', 'the auction\'s own search');
+  assert.deepEqual(tilesOf(t.root()).map((b) => [word(b, 'packpick-name'), word(b, 'packpick-sub')]), [['Me\'s Longsword', 'Rare · worn to 90% · your home']], 'its Masterworks, no quality said');
+  assert.equal(word(t.root(), 'packpick-cardnone'), 'Press a Masterwork above to look at it and set its opening bid.');
+  t.press('piece').onclick();
+  assert.equal(byClass(t.root(), 'packpick-find')[0].value, 'fine', 'the crafted search where it was left');
+  // the Goods' press: the pack kept for the book, so the board opened again opens there
+  t.tab.state.view = 'goods';
+  await t.tab.load(true);
+  t.draw();
+  byClass(t.root(), 'market-sellpack')[0].onclick();
+  const again = tabOf(book, goods);
+  await mine(again);
+  assert.equal(again.press('item').getAttribute('aria-pressed'), 'true');
+});
+
+test('AUDIT PACK-PICK the stall\'s own words and presses: what stays folded under "Stays in your pack"; a piece\'s line its tier and wear; a press again lets it go; a pack of nothing it may take still shows what stays, and why (mutants: C32 the fold named as the market\'s; C33 the line unsaid; C24 a press that never lets go; C34 a refused pack said empty)', async () => {
+  setPref(LOOT_RARITY_KEY, true);
+  const { gear, goods, gold, quest } = pack();
+  const armour = gear.find((it) => it.group === 'Armor');
+  applyRarity(armour, 'rare', seededRng(4));
+  armour.currentCondition = wearCondition(armour.maxCondition, 500);
+  const stallOf = (g) => createVendorTab({ mode: 'stall', own: true, read: async () => ({ ok: true, data: { rows: [] } }), nameOf: (it) => g.goodName(it), purse: () => 100,
+    stats: itemLookRows, goods: () => g.goods(), put: async () => ({ ok: true }) }, { busy: () => false, run: async (start) => start(), rerender: () => {}, nowS: () => 0, alive: () => true });
+  const tab = stallOf(goods);
+  await tab.open();
+  let b = tab.body();
+  const refused = goods.goods().filter((g) => g.why).length;
+  assert.equal(byClass(b, 'packpick-refused')[0].children[0].textContent, `Stays in your pack (${refused})`);
+  const tile = () => tilesOf(b).find((x) => word(x, 'packpick-name') === goods.goodName(armour));
+  assert.equal(word(tile(), 'packpick-sub'), 'Rare · worn to 50%');
+  tile().onclick();
+  b = tab.body();
+  assert.equal(byClass(b, 'packpick-card').length, 1);
+  tile().onclick();
+  b = tab.body();
+  assert.equal(byClass(b, 'packpick-card').length, 0, 'pressed again: let go');
+  const bare = stallOf(createMarketGoods({ items: [gold, quest] }));
+  await bare.open();
+  const nothing = bare.body();
+  assert.equal(byClass(nothing, 'packpick-refused').length, 1, 'what stays, and why');
+  assert.ok([...byClass(nothing, 'packpick-tile')].some((n) => word(n, 'packpick-why') === 'a quest\'s'));
+});
+
+test('AUDIT PACK-PICK the look\'s magic: an enchanted piece the loot mints says "Powers unknown." until it is identified, then its powers as the trade window says them (systems/item/itemPowers.js magicPowersLines) (mutants: C35 the powers unsaid; C36 the powers said unidentified)', () => {
+  setPref(LOOT_RARITY_KEY, false);
+  const prev = getMagicItemTemplates();
+  try {
+    setMagicItemTemplates([{ type: 0, group: 2, groupIndex: 0, enchantments: [{ type: 1, param: 0 }], uses: 100, value: 500 }]);
+    const piece = generateRandomLoot({ ...LOOT_MATRICES['-'], MI: 100 }, { level: 10, gender: 'male' }, seededRng(3)).find((it) => it.enchantments?.length);
+    assert.ok(piece && piece.isIdentified !== true, 'the loot\'s magic comes unidentified');
+    const lines = magicPowersLines(piece, { identified: true });
+    assert.ok(lines.length && lines[0] !== 'Powers unknown.');
+    let look = itemLookRows(piece);
+    assert.ok(look.magic.includes('Powers unknown.') && !look.magic.includes(lines[0]), look.magic.join(' | '));
+    piece.isIdentified = true;
+    look = itemLookRows(piece);
+    assert.ok(lines.every((l) => look.magic.includes(l)) && !look.magic.includes('Powers unknown.'), look.magic.join(' | '));
+  } finally { setMagicItemTemplates(prev); }
+});
+
+test('AUDIT PACK-PICK the stall opened through the vendor host looks at a piece with the one look (mutant: C53 the host\'s stall unlooked)', () => {
+  const { gear } = pack();
+  let host = null;
+  const { openHomeVendorWindow } = createVendorHost({
+    marketBook: { settle: async () => ({ ok: true, settled: 0, refused: [] }), purse: () => 0 }, marketMint: () => {}, marketPutBack: () => {}, marketDrop: () => {},
+    profBook: { state: { open: true } }, marksBook: { state: { open: true } }, noticeBook: {},
+    showNoticeWindow: (window) => { host = window.vendors; return true; },
+  });
+  assert.equal(openHomeVendorWindow({ vendor: { map: 1001, id: 'trader1' }, owner: 'Eve' }), true);
+  assert.equal(host.mode, 'stall');
+  const armour = gear.find((it) => it.group === 'Armor');
+  assert.deepEqual(host.stats(armour), itemLookRows(armour));
+});
+
+test('AUDIT PACK-PICK the pictures that land in one frame redraw the window once (ui/menu/menuGlyphs.js frameWake) - fifty were fifty redraws, and swallowed the presses made under them (mutant: A1 each landing a redraw)', () => {
+  const was = globalThis.requestAnimationFrame;
+  const frames = [];
+  globalThis.requestAnimationFrame = (f) => { frames.push(f); return frames.length; };
+  try {
+    let draws = 0;
+    const wake = frameWake(() => { draws++; });
+    for (let i = 0; i < 50; i++) wake();
+    assert.deepEqual([draws, frames.length], [0, 1], 'one frame asked for');
+    frames.shift()();
+    assert.equal(draws, 1);
+    wake();
+    frames.shift()();
+    assert.equal(draws, 2, 'a picture after it, its own');
+  } finally { globalThis.requestAnimationFrame = was; }
+});
+
+test('AUDIT PACK-PICK the List form and the stall hand the host that one wake: the pictures their tiles ask for, landing together, redraw once (mutants: A1 the market\'s wake raw; A1 the stall\'s wake raw)', async () => {
+  const { goods } = pack();
+  const wakes = new Set();
+  const asking = (item, wake) => { wakes.add(wake); return null; };
+  const t = tabOf(bookOf(true), goods, { itemPicture: asking });
+  await mine(t);
+  let draws = 0;
+  const stall = createVendorTab({ mode: 'stall', own: true, read: async () => ({ ok: true, data: { rows: [] } }), nameOf: (it) => goods.goodName(it), purse: () => 100,
+    picture: asking, goods: () => goods.goods(), put: async () => ({ ok: true }) }, { busy: () => false, run: async (start) => start(), rerender: () => { draws++; }, nowS: () => 0, alive: () => true });
+  await stall.open();
+  stall.body();
+  assert.equal(wakes.size, 2, 'one wake a tab, asked by every tile');
+  const was = globalThis.requestAnimationFrame;
+  const frames = [];
+  globalThis.requestAnimationFrame = (f) => { frames.push(f); return frames.length; };
+  try {
+    const before = [t.draws(), draws];
+    for (const w of wakes) for (let i = 0; i < 20; i++) w();
+    assert.deepEqual([t.draws(), draws, frames.length], [...before, 2], 'nothing drawn yet, a frame asked for each');
+    while (frames.length) frames.shift()();
+    assert.deepEqual([t.draws(), draws], [before[0] + 1, before[1] + 1]);
+  } finally { globalThis.requestAnimationFrame = was; }
+});
+
+test('AUDIT PACK-PICK the List form\'s menus hold an answer\'s redraw while one is open, as the tab\'s own lists do, and let it go once a choice is made in it (mutants: A2 the picker\'s lists unheld; A2 the choice unmarked)', async () => {
+  const { goods } = pack();
+  const t = tabOf(bookOf(true), goods);
+  await mine(t);
+  const menu = [...byClass(t.root(), 'packpick-menu')].find((s) => s.getAttribute('aria-label') === 'Kind of piece');
+  assert.ok(menu);
+  const doc = globalThis.document;
+  const was = doc.activeElement;
+  doc.activeElement = menu;
+  try {
+    let before = t.draws();
+    await t.tab.load(true);
+    assert.equal(t.draws(), before + 1, 'the read began drawn; its answer waits for the list');
+    menu.dispatch('blur', {});
+    assert.equal(t.draws(), before + 2, 'let go: drawn');
+    menu.value = 'armor';
+    menu.onchange();
+    before = t.draws();
+    await t.tab.load(true);
+    assert.equal(t.draws(), before + 2, 'a choice made in it: no hold');
+  } finally { doc.activeElement = was; }
+});
+
+test('AUDIT PACK-PICK the fold counts what it holds - a search narrows it, and its count with it; a sift left over once nothing may go is let go there, so what stays is never hidden behind a field that is gone (mutants: A3 the fold counts the unsifted; A3 the leftover sift hides the fold)', () => {
+  const { goods, quest } = pack();
+  const entries = entriesOf(goods);
+  const refused = entries.filter((e) => e.why);
+  const questWord = goods.goodName(quest).split(' ')[0].toLowerCase();
+  const narrowed = siftEntries(refused, { ...freshPackSift(), query: questWord });
+  assert.ok(narrowed.length > 0 && narrowed.length < refused.length);
+  const sift = { ...freshPackSift(), query: questWord };
+  const said = (box) => byClass(box, 'packpick-refused')[0].children[0].textContent;
+  assert.equal(said(pickerOf(entries, sift)), `Not for the market (${narrowed.length})`);
+  const left = pickerOf(refused, { ...freshPackSift(), query: 'no such piece anywhere' });
+  assert.equal(said(left), `Not for the market (${refused.length})`);
+  assert.equal(byClass(left, 'packpick-refused')[0].children[1].children.length, refused.length, 'each one there');
+});
+
+test('AUDIT PACK-PICK the presses keep their place: a double press chooses (its second lands on the tile the first redrew); each tile\'s focus key its name and which of that name, so a piece come into the pack ahead of it never takes its focus; "Show everything" and the fold keyed too; the card no live region, rebuilt with every redraw (mutants: A4 a double press lets go; A8 a tile keyed by its place; A8 "Show everything" unkeyed; A8 the fold unkeyed; A9 the card a live region)', () => {
+  const { goods } = pack();
+  const entries = entriesOf(goods).map(({ key, ...e }) => e);
+  const picked = [];
+  const box = pickerOf(entries, freshPackSift(), { pick: (it) => picked.push(it) });
+  const tiles = tilesOf(box);
+  tiles[0].onclick({ detail: 1, stopPropagation() {} });
+  tiles[0].onclick({ detail: 2, stopPropagation() {} });
+  assert.equal(picked.length, 1, 'the second of a double press is not a second press');
+  const ok = entries.filter((e) => !e.why);
+  const nth = (i) => ok.slice(0, i + 1).filter((e) => e.name === ok[i].name).length;
+  assert.deepEqual(tiles.map((b) => b.getAttribute('data-focus')), ok.map((e, i) => `f|${e.name}#${nth(i)}`));
+  const ahead = [{ item: { name: 'a newcomer' }, name: 'A Newcomer' }, ...entries];
+  assert.deepEqual(tilesOf(pickerOf(ahead, freshPackSift())).slice(1).map((b) => b.getAttribute('data-focus')), tiles.map((b) => b.getAttribute('data-focus')), 'the same keys behind a newcomer');
+  assert.equal(byClass(box, 'packpick-refused')[0].children[0].getAttribute('data-focus'), 'f|refused');
+  const none = pickerOf(entries, { ...freshPackSift(), query: 'no such piece anywhere' });
+  assert.equal([...none.querySelectorAll('button')].find((b) => b.textContent === 'Show everything').getAttribute('data-focus'), 'f|all');
+  assert.equal(packCardNode(entries[0], { none: '' }).getAttribute('aria-live'), undefined);
+});
+
+test('AUDIT PACK-PICK the kinds and "Sell from your pack" are chips as the views are (never the frame\'s .act, whose rules outranked theirs), a tier\'s tile answers the pointer; a realm character whose pack holds nothing that may go opens on the Stores (mutants: A5 the kinds as .act; A6 a tier\'s tile deaf to the pointer; the pack opened with nothing to sell)', async () => {
+  const { goods, gold, quest } = pack();
+  const t = tabOf(bookOf(true), goods);
+  await mine(t);
+  assert.deepEqual(LIST_KINDS.map(([k]) => t.press(k).className.split(' ').slice(0, 2)), LIST_KINDS.map(() => ['notice-tab', 'market-kind']));
+  assert.ok(!t.press('item').className.split(' ').includes('act'));
+  t.tab.state.view = 'goods';
+  await t.tab.load(true);
+  t.draw();
+  assert.deepEqual(byClass(t.root(), 'market-sellpack')[0].className.split(' '), ['notice-tab', 'market-sellpack']);
+  assert.match(PROF_CSS, /\.packpick-tile\[data-rarity\]:hover \{ border-color: var\(--rar\);/);
+  assert.ok(PROF_CSS.indexOf('.packpick-tile[data-rarity]:hover') > PROF_CSS.indexOf('.packpick-tile[data-rarity] {'), 'after the frame it answers over');
+  const bare = tabOf(bookOf(true), createMarketGoods({ items: [gold, quest] }));
+  await mine(bare);
+  assert.equal(bare.press('material').getAttribute('aria-pressed'), 'true', 'the Stores');
+  bare.press('item').onclick();
+  assert.equal(word(bare.root(), 'packpick-empty'), 'Nothing in your pack can go on the market.', 'the pack still one press away, and why');
 });

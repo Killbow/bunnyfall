@@ -15829,14 +15829,44 @@
   "tr": "2c9b2ddf18fc",
   "by": "claude-in-session"
  },
+ "market.list.craftedEmpty": {
+  "en": "8c65b17166cc",
+  "tr": "4b3eaad7fbcd",
+  "by": "claude-in-session"
+ },
  "market.list.craftedLabel": {
   "en": "28f64ab188cf",
   "tr": "23e41e5b8934",
   "by": "claude-in-session"
  },
+ "market.list.kindAuction": {
+  "en": "0774b0c33e43",
+  "tr": "25ba8b1d162a",
+  "by": "claude-in-session"
+ },
+ "market.list.kindCrafted": {
+  "en": "42e1236ebb3b",
+  "tr": "b4c83202f035",
+  "by": "claude-in-session"
+ },
  "market.list.kindPack": {
   "en": "33a51b3312f4",
   "tr": "e7e51623f445",
+  "by": "claude-in-session"
+ },
+ "market.list.kindStores": {
+  "en": "561569fc83c4",
+  "tr": "06195d0895d5",
+  "by": "claude-in-session"
+ },
+ "market.list.kinds": {
+  "en": "fa2e5cff35aa",
+  "tr": "be64037457af",
+  "by": "claude-in-session"
+ },
+ "market.list.mwEmpty": {
+  "en": "8eac23d4e384",
+  "tr": "d946ee70a599",
   "by": "claude-in-session"
  },
  "market.list.mwLabel": {
@@ -15856,12 +15886,12 @@
  },
  "market.list.pickMw": {
   "en": "8b7b5de5ff87",
-  "tr": "781b0014827c",
+  "tr": "edd4f22a0ab3",
   "by": "claude-in-session"
  },
  "market.list.pickPack": {
   "en": "7a7312e38b17",
-  "tr": "89f1f6ada103",
+  "tr": "59763b1852a2",
   "by": "claude-in-session"
  },
  "market.list.refused": {

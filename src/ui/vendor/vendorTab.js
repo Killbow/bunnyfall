@@ -17,7 +17,7 @@
 import { accountRefusalText } from '../../net/accountClient.js';
 import { goldText, wearOf, wearText, MARKET_PRICE_MAX } from '../../net/marketLaw.js';
 import { vendorSearch, VENDOR_LISTING_S } from '../../net/vendorLaw.js';
-import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a piece's picture, the host's
+import { pictureNode, frameWake } from '../menu/menuGlyphs.js';   // MENU-ORDER: a piece's picture, the host's
 import { packPickerNode, packCardNode, freshPackSift, packTierWord } from '../packPicker.js';   // PACK-PICK: the piece put up chosen from its picture
 import { t } from '../../systems/textManager.js';
 
@@ -148,8 +148,9 @@ export function createVendorTab(v, ui) {
   });
 
   /** MENU-ORDER (AUDIT MENU-ORDER C5): the one wake every row's picture is asked with - a picture that lands wakes the
-   *  board once (textureCanvas.js hears a wake once), never once a row */
-  const wake = () => ui.rerender();
+   *  board once (textureCanvas.js hears a wake once), never once a row - and (AUDIT PACK-PICK A1) the pictures that land in
+   *  one frame, once */
+  const wake = frameWake(() => ui.rerender());
   /** A row as the Market tab draws one (its `.market-row`, its picked `.market-bar` straight under it in the list - the
    *  Plus dress's own rules, no wrapper of this tab's): the row, and its bar when picked. */
   function rowNodes(row, { buy = false, take = false, where = false } = {}) {
@@ -218,7 +219,7 @@ export function createVendorTab(v, ui) {
     const goods = all.filter((g) => !g.why);
     if (!goods.some((g) => g.item === st.good)) st.good = null;
     if (!all.length) { box.append(el('p', 'notice-tip', VENDOR_TEXT.packEmpty)); return box; }
-    const entries = all.map((g, i) => ({ key: `stall|${i}`, item: g.item, name: nameOf(g.item), sub: [packTierWord(g.item), wearText(wearOf(g.item))].filter(Boolean).join(' · ') || null, why: g.why ?? null }));
+    const entries = all.map((g) => ({ item: g.item, name: nameOf(g.item), sub: [packTierWord(g.item), wearText(wearOf(g.item))].filter(Boolean).join(' · ') || null, why: g.why ?? null }));
     box.append(packPickerNode({ entries, chosen: st.good, sift: st.sift, pick: (it) => { st.good = st.good === it ? null : it; ui.rerender(); },
       picture: v.picture ?? null, wake, label: t('market.list.packLabel', 'The pieces in your pack'), focus: 'vendor-good', empty: VENDOR_TEXT.packEmpty,
       refusedWhat: t('vendor.put.refused', 'Stays in your pack'), redraw: () => ui.rerender() }),

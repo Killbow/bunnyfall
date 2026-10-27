@@ -77,7 +77,7 @@ import {
 } from '../net/marketLaw.js';
 import { QUALITY_NAMES, MASTERWORK } from '../net/recipeLaw.js';
 import { marksText, MARK_WORTH_GOLD } from '../net/marksLaw.js';
-import { pictureNode } from './menu/menuGlyphs.js';   // MENU-ORDER: a row's picture, the host's
+import { pictureNode, frameWake } from './menu/menuGlyphs.js';   // MENU-ORDER: a row's picture, the host's
 import { t, currentLocale } from '../systems/textManager.js';   // BOARD-SIFT: the pages' and the orders' words in the player's language
 import { mintPiece, asMinted } from '../systems/smithItems.js';   // AUDIT BOARD-SIFT: a recipe's piece minted as its row mints it; AUDIT MAKER-RARE B2: and whether a piece still is
 import { itemLongName } from '../systems/item/itemInfo.js';
@@ -94,6 +94,14 @@ const el = (tag, cls = null, text = null) => {
 };
 const button = (cls, text, onPress) => {
   const b = /** @type {HTMLButtonElement} */ (el('button', `act ${cls}`, text));
+  b.setAttribute('type', 'button');
+  b.onclick = (e) => { e?.stopPropagation?.(); return onPress(); };
+  return b;
+};
+/** AUDIT PACK-PICK A5: a press drawn as the views' chips (`notice-tab`) - never the frame's `.act`, whose rules outrank a
+ *  chip's own (the kinds' pressed look never showed). */
+const chipButton = (cls, text, onPress) => {
+  const b = /** @type {HTMLButtonElement} */ (el('button', `notice-tab ${cls}`, text));
   b.setAttribute('type', 'button');
   b.onclick = (e) => { e?.stopPropagation?.(); return onPress(); };
   return b;
@@ -119,7 +127,8 @@ const PICK_UNITS = 20;
 /** PACK-PICK: the List form's kinds, each one press - [kind, its icon (ui/menu/menuGlyphs.js)]; the pack's first, where it
  *  is offered (a realm character's, for gold). Their words are `listKindWord`'s. */
 export const LIST_KINDS = Object.freeze([['item', 'own'], ['material', 'ore'], ['piece', 'station'], ['auction', 'gavel']].map((k) => Object.freeze(k)));
-const listKindWord = (k) => (k === 'item' ? t('market.list.kindPack', 'From your pack') : k === 'material' ? 'From the Stores' : k === 'piece' ? 'A crafted piece' : 'An auction (Masterworks)');
+const listKindWord = (k) => (k === 'item' ? t('market.list.kindPack', 'From your pack') : k === 'material' ? t('market.list.kindStores', 'From the Stores')
+  : k === 'piece' ? t('market.list.kindCrafted', 'A crafted piece') : t('market.list.kindAuction', 'An auction (Masterworks)'));
 /** PACK-PICK: the kind the List form was last left on, the market book's for the session - a board opened again opens
  *  its form there (a seller of the pack's pieces pressed "A piece from your pack" at every board). */
 const KIND_KEPT = new WeakMap();
@@ -340,7 +349,8 @@ export function createMarketTab(m, ui) {
    *  answer the minute's cache gave stood behind the old rows until the reader clicked elsewhere. */
   function redraw() {
     const a = /** @type {any} */ (globalThis.document?.activeElement);
-    if (a?.tagName === 'SELECT' && a.classList?.contains?.('market-select') && a.getAttribute?.('data-chosen') !== '1') {
+    // AUDIT PACK-PICK A2: and a pack picker's (ui/packPicker.js), whose lists close under the pointer as the tab's own did
+    if (a?.tagName === 'SELECT' && (a.classList?.contains?.('market-select') || a.classList?.contains?.('packpick-menu')) && a.getAttribute?.('data-chosen') !== '1') {
       a.addEventListener?.('blur', () => { if (ui.alive()) ui.rerender(); }, { once: true });
       return;
     }
@@ -392,7 +402,7 @@ export function createMarketTab(m, ui) {
   };   // MARKET-AUDIT U6: the last act's word is its view's
   /** PACK-PICK: from the Goods to the List form opened on the pack - a press where the way was a view, a list and a choice. */
   const sellPackButton = () => {
-    const b = button('market-sellpack', t('market.goods.sell', 'Sell from your pack'), () => { st.list.kind = 'item'; KIND_KEPT.set(m.book, 'item'); go('mine'); });
+    const b = chipButton('market-sellpack', t('market.goods.sell', 'Sell from your pack'), () => { st.list.kind = 'item'; KIND_KEPT.set(m.book, 'item'); go('mine'); });
     b.setAttribute('data-dficon', 'own');
     return b;
   };
@@ -570,7 +580,7 @@ export function createMarketTab(m, ui) {
   const pick = (row) => { st.picked = st.picked === row.id ? null : row.id; st.qty = pickOf(row); ui.rerender(); };
   /** MENU-ORDER: a row's name with its picture before it - a material's (the item the Stores withdraw it as) or a piece's
    *  own, the host's to make (`m.picture`, `m.itemPicture`); none (no data, or not made yet) is the name alone. */
-  const wake = () => ui.rerender();
+  const wake = frameWake(() => ui.rerender());   // AUDIT PACK-PICK A1: once a frame, however many land in it
   const named = (text, pic) => { const n = el('b', null, text); if (pic) { if (n.prepend) n.prepend(pic); else n.append(pic); } return n; };
   const matPic = (key) => pictureNode(m.picture?.(key, wake) ?? null, el, 'market-pic');
   const itemPic = (it) => pictureNode(m.itemPicture?.(it, wake) ?? null, el, 'market-pic');
@@ -786,9 +796,9 @@ export function createMarketTab(m, ui) {
   function kindsNode(kinds) {
     const row = el('div', 'market-kinds');
     row.setAttribute('role', 'group');
-    row.setAttribute('aria-label', 'What to list');
+    row.setAttribute('aria-label', t('market.list.kinds', 'What to list'));
     for (const [k, icon] of kinds) {
-      const b = button(`market-kind${st.list.kind === k ? ' on' : ''}`, listKindWord(k), () => {
+      const b = chipButton(`market-kind${st.list.kind === k ? ' on' : ''}`, listKindWord(k), () => {
         KIND_KEPT.set(m.book, k);
         if (st.list.kind !== k) { st.list.kind = k; ui.rerender(); }
       });
@@ -810,8 +820,10 @@ export function createMarketTab(m, ui) {
     const above = [];
     // MARKET-ANY: a realm character lists a piece from its pack too - for gold alone. PACK-PICK: and its form opens there
     // until another kind is pressed
+    // (AUDIT PACK-PICK: a pack that holds nothing that may go opens the Stores' form instead - the pack's said only why not)
     const packOk = goldOk() && !!m.goods;
-    if (!st.list.kind || (st.list.kind === 'item' && !packOk)) st.list.kind = packOk ? 'item' : 'material';
+    if (st.list.kind === 'item' && !packOk) st.list.kind = null;
+    if (!st.list.kind) st.list.kind = packOk && (m.goods?.() ?? []).some((g) => !(g.why ?? craftedWhy(g.item))) ? 'item' : 'material';
     box.append(kindsNode(LIST_KINDS.filter(([k]) => k !== 'item' || packOk)));
     // GOLD-MARKET: a realm character prices a Stores material or a piece in Drakes or gold (an auction stays Drakes')
     const gold = goldOk() && st.list.kind !== 'auction' && (st.list.currency === 'gold' || st.list.kind === 'item');
@@ -860,7 +872,7 @@ export function createMarketTab(m, ui) {
       const goods = all.filter((g) => !g.why);
       if (!goods.some((g) => g.item === st.list.good)) st.list.good = null;
       const chosen = goods.find((g) => g.item === st.list.good) ?? null;
-      const entries = all.map((g, i) => ({ key: `good|${i}`, item: g.item, name: goodName(g.item), sub: goodSub(g.item), why: g.why }));
+      const entries = all.map((g) => ({ item: g.item, name: goodName(g.item), sub: goodSub(g.item), why: g.why }));   // keyed by name (AUDIT PACK-PICK A8)
       above.push(packPickerNode({ entries, chosen: st.list.good, sift: st.list.sifts.item, pick: (it) => { st.list.good = st.list.good === it ? null : it; ui.rerender(); },
         picture: m.itemPicture ?? null, wake, label: t('market.list.packLabel', 'The pieces in your pack'), focus: 'list-good',
         empty: t('market.list.packEmpty', 'Nothing in your pack can go on the market.'), refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
@@ -893,7 +905,7 @@ export function createMarketTab(m, ui) {
       above.push(packPickerNode({ entries, chosen: chosen?.item ?? null, sift: st.list.sifts[auction ? 'auction' : 'piece'],
         pick: (it) => { st.list.piece = st.list.piece === it.provenance ? '' : it.provenance; ui.rerender(); },
         picture: m.itemPicture ?? null, wake, label: auction ? t('market.list.mwLabel', 'Your Masterworks') : t('market.list.craftedLabel', 'Your crafted pieces'), focus: auction ? 'list-mw' : 'list-piece',
-        empty: auction ? 'You carry no Masterwork to auction.' : 'You carry no crafted piece to sell.', refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
+        empty: auction ? t('market.list.mwEmpty', 'You carry no Masterwork to auction.') : t('market.list.craftedEmpty', 'You carry no crafted piece to sell.'), refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
       packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLookRows,
         none: auction ? t('market.list.pickMw', 'Press a Masterwork above to look at it and set its opening bid.') : t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
       fields.append(field(auction ? 'Opening bid (silver)' : `Price in ${unitWord}`, price));

@@ -15829,9 +15829,24 @@
   "tr": "bdbfda1950ab",
   "by": "claude-in-session"
  },
+ "market.list.craftedEmpty": {
+  "en": "8c65b17166cc",
+  "tr": "031db821b825",
+  "by": "claude-in-session"
+ },
  "market.list.craftedLabel": {
   "en": "28f64ab188cf",
-  "tr": "733e60849982",
+  "tr": "b87b76053bce",
+  "by": "claude-in-session"
+ },
+ "market.list.kindAuction": {
+  "en": "0774b0c33e43",
+  "tr": "77c844cc2af4",
+  "by": "claude-in-session"
+ },
+ "market.list.kindCrafted": {
+  "en": "42e1236ebb3b",
+  "tr": "6458d58a610c",
   "by": "claude-in-session"
  },
  "market.list.kindPack": {
@@ -15839,9 +15854,24 @@
   "tr": "0aa609aaa715",
   "by": "claude-in-session"
  },
+ "market.list.kindStores": {
+  "en": "561569fc83c4",
+  "tr": "2852d93412fb",
+  "by": "claude-in-session"
+ },
+ "market.list.kinds": {
+  "en": "fa2e5cff35aa",
+  "tr": "d06128ef13e3",
+  "by": "claude-in-session"
+ },
+ "market.list.mwEmpty": {
+  "en": "8eac23d4e384",
+  "tr": "25ea383cb357",
+  "by": "claude-in-session"
+ },
  "market.list.mwLabel": {
   "en": "44e952a4a519",
-  "tr": "04ece8aa833d",
+  "tr": "2fad5813a73f",
   "by": "claude-in-session"
  },
  "market.list.packEmpty": {
@@ -15856,7 +15886,7 @@
  },
  "market.list.pickMw": {
   "en": "8b7b5de5ff87",
-  "tr": "3017ac0e46e1",
+  "tr": "303516b6ac66",
   "by": "claude-in-session"
  },
  "market.list.pickPack": {

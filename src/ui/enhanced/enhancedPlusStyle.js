@@ -1930,11 +1930,12 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
    them, the refused folded under them, and the piece chosen looked at over its price */
 ${rarityVarsCss('.market-listform ')}
 .market-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
-.market-kinds .market-kind, .market-sellpack { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 13px;
-  letter-spacing: 0.04em; border: 1px solid rgba(192,138,62,0.22); background: rgba(10,8,6,0.4); }
-.market-kinds .market-kind[data-dficon]::before, .market-sellpack[data-dficon]::before { width: 16px; height: 16px; margin: 0; }
-.market-kinds .market-kind.on { color: #f3cf86; border-color: var(--brass, #c08a3e); background: rgba(192,138,62,0.16); }
-.market-sellpack { margin-left: auto; color: #f3cf86; border-color: rgba(192,138,62,0.5); }
+/* AUDIT PACK-PICK A5: chips (notice-tab) as the views' are - as the frame's .act they lost every rule below to its own */
+.market-kinds .market-kind, .market-filters .market-sellpack { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; font-size: 13px;
+  letter-spacing: 0.06em; border: 1px solid rgba(192,138,62,0.22); background: rgba(10,8,6,0.4); }
+.market-kinds .market-kind[data-dficon]::before, .market-filters .market-sellpack[data-dficon]::before { width: 16px; height: 16px; margin: 0; }
+.market-kinds .market-kind.on { color: #f3cf86; border-color: var(--brass, #c08a3e); background: rgba(192,138,62,0.16); box-shadow: none; }
+.market-filters .market-sellpack { margin-left: auto; color: #f3cf86; border-color: rgba(192,138,62,0.5); }
 .packpick { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .packpick-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .packpick-find { flex: 1 1 160px; min-width: 0; }
@@ -1948,9 +1949,15 @@ ${rarityVarsCss('.market-listform ')}
 .packpick-tile[data-rarity] { border-color: var(--rar-hi) var(--rar-lo) var(--rar-lo) var(--rar-hi);
   background-image: radial-gradient(ellipse at 0% 50%, rgba(var(--rar-rgb),0.2), transparent 60%); }
 .packpick-tile.on[data-rarity] { box-shadow: inset 0 0 0 1px var(--rar), 0 0 6px rgba(var(--rar-rgb),0.4); }
+/* AUDIT PACK-PICK A6: a tier's tile answers the pointer and the keys too - its frame outranked the plain tile's hover */
+.packpick-tile[data-rarity]:hover { border-color: var(--rar); background-color: rgba(var(--rar-rgb),0.12); }
+.packpick-tile:focus-visible { outline: 2px solid #f3cf86; outline-offset: -2px; }
 .packpick-tile[data-rarity] .packpick-name, .packpick-card[data-rarity] .packpick-name { color: var(--rar-hi); }
 .packpick-tile.off { cursor: default; opacity: 0.62; }
-.packpick-pic { flex: none; width: 26px; height: 26px; object-fit: contain; image-rendering: pixelated; }
+/* AUDIT PACK-PICK A10: a frame the size of its box, the picture in it at its own fitted size (UI1), as a market row's */
+.packpick-pic { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; }
+.packpick-bigpic { width: 48px; height: 48px; }
+.packpick-img { image-rendering: pixelated; }
 .packpick-nopic { display: inline-block; background: rgba(5,6,8,0.5); box-shadow: inset 0 0 0 1px rgba(192,138,62,0.18); }
 .packpick-words { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .packpick-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; color: #f3ead8; }
@@ -1962,16 +1969,15 @@ ${rarityVarsCss('.market-listform ')}
 .packpick-card { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: rgba(12,10,8,0.78);
   border: 1px solid rgba(192,138,62,0.4); border-left: 3px solid var(--rar, var(--brass, #c08a3e)); }
 .packpick-cardhead { display: flex; align-items: center; gap: 10px; }
-.packpick-cardhead .packpick-pic { width: 52px; height: 52px; }
 .packpick-card .packpick-name { font-size: 14px; font-weight: normal; -webkit-line-clamp: 3; }
 .packpick-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: #d9cfbd; }
 .packpick-stat { white-space: nowrap; }
 .packpick-magic { margin: 0; padding: 0 0 0 14px; font-size: 12px; color: #f3cf86; }
 .packpick-magic li { margin: 1px 0; }
 .packpick-cardnone { margin: 0; font-style: italic; }
-@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-sellpack { min-height: 44px; } }
+@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-filters .market-sellpack { min-height: 44px; } }
 @media (max-width: 640px) { .packpick-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-height: 240px; } .packpick-count { margin-left: 0; }
-  .market-sellpack { margin-left: 0; }
+  .market-filters .market-sellpack { margin-left: 0; }
   /* a phone's four kinds two by two - one a row stood them three rows deep over the pack */
   .market-kinds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .market-kinds .market-kind { min-width: 0; text-align: left; white-space: normal; font-size: 12px; } }
