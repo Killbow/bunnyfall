@@ -101,6 +101,7 @@ export class MerchantRepairWindow {
   _act(fn) { audio.playOneShot(SOUND.ButtonClick, 1); this._close(); fn?.(); }
 
   input(code, e = null) {
+    if (e?.repeat) return;   // AUDIT HORIZONTAL E7: a key held as the popup opened is no press (merchantServiceWindow.js input)
     // Escape/Enter are the port host's close keys, not DFU buttons.
     if (code === 'Escape' || code === 'Enter') { this._act(null); return; }
     if (code === PORTAL_ROW_KEY && this.hooks.portal) { this._act(this.hooks.portal.onBuy); return; }   // PORTAL1

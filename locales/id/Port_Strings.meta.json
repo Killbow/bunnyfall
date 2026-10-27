@@ -8499,9 +8499,14 @@
   "tr": "e0f307ca4e88",
   "by": "claude-in-session"
  },
- "coll.looks.howHad": {
-  "en": "3bb23f642258",
-  "tr": "8e20e1ae7c40",
+ "coll.looks.howBuy": {
+  "en": "b22d688a777d",
+  "tr": "24f7359aa128",
+  "by": "claude-in-session"
+ },
+ "coll.looks.howGet": {
+  "en": "d9278ee1fc22",
+  "tr": "86d1a95eab84",
   "by": "claude-in-session"
  },
  "coll.looks.howHead": {
@@ -22969,6 +22974,11 @@
   "tr": "371af20926f2",
   "by": "claude-in-session"
  },
+ "net.chat.linkItem": {
+  "en": "10bc470a62de",
+  "tr": "10bc470a62de",
+  "by": "claude-in-session"
+ },
  "net.chat.mailRefused": {
   "en": "48089c6da62c",
   "tr": "4e1133a5d5a1",
@@ -23077,6 +23087,11 @@
  "net.chat.wait": {
   "en": "eb01c7bc0bae",
   "tr": "270e79cdf641",
+  "by": "claude-in-session"
+ },
+ "net.chat.worn": {
+  "en": "cafe5884febc",
+  "tr": "cafe5884febc",
   "by": "claude-in-session"
  },
  "net.conduct.agree": {
@@ -37169,6 +37184,16 @@
   "tr": "d70f955180f8",
   "by": "claude-in-session"
  },
+ "wardrobe.preview": {
+  "en": "f1fbb2b43dca",
+  "tr": "b062be87ba1e",
+  "by": "claude-in-session"
+ },
+ "wardrobe.previewOf": {
+  "en": "351e78ed19cd",
+  "tr": "ff8b895dcdec",
+  "by": "claude-in-session"
+ },
  "wardrobe.purse": {
   "en": "e323a39e618d",
   "tr": "02affedeebf2",
@@ -37212,6 +37237,16 @@
  "wardrobe.title": {
   "en": "5da5f57d195b",
   "tr": "1818406fb2fd",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOn": {
+  "en": "e70f92c879c4",
+  "tr": "ce0eb7d85f1b",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOwn": {
+  "en": "588e0b9e697d",
+  "tr": "515fa45ee2ad",
   "by": "claude-in-session"
  },
  "wardrobe.wear": {
@@ -37352,16 +37387,6 @@
  "wild.zone.unstuckOut": {
   "en": "23aa54c8359e",
   "tr": "381767071e47",
-  "by": "claude-in-session"
- },
- "net.chat.linkItem": {
-  "en": "10bc470a62de",
-  "tr": "10bc470a62de",
-  "by": "claude-in-session"
- },
- "net.chat.worn": {
-  "en": "cafe5884febc",
-  "tr": "cafe5884febc",
   "by": "claude-in-session"
  }
 }

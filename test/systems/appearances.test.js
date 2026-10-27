@@ -76,18 +76,19 @@ test('APPEARANCES THE KINDS ARE WHAT THE RENDERERS DRAW: two armour templates sh
   for (const t of L.LOOK_TEMPLATES.filter((x) => !(x in L.LOOK_VARIANTS))) assert.equal(templateRow(t).variants ?? 0, 0, `${t} has one style`);
 });
 
-test('APPEARANCES THE CATALOGUE: every look there is - each template\'s materials (leather, chain and ten plates; ten metals for a weapon) and the styles SetVariant\'s clamp draws, a look twice never; 474 in all (mutants: Chain2 a look of its own; a helm\'s styles clamped; a shield given styles; the dagger a short blade)', () => {
+test('APPEARANCES THE CATALOGUE: every look there is - each template\'s materials (leather, chain and ten plates; ten metals for a weapon) and the styles SetVariant\'s clamp draws, a look twice never; 473 in all (mutants: Chain2 a look of its own; a helm\'s styles clamped; a shield given styles; the dagger a short blade)', () => {
   const byKind = {};
   for (const a of L.ALL_LOOKS) byKind[a.kind] = (byKind[a.kind] ?? 0) + 1;
-  assert.deepEqual(byKind, { head: 72, rightArm: 32, leftArm: 32, chest: 32, hands: 12, legs: 43, feet: 23, shield: 48, dagger: 10, shortBlade: 30, longBlade: 40, greatBlade: 20, axe: 10, greatAxe: 10, mace: 10, flail: 10, warhammer: 10, staff: 10, bow: 20 });
-  assert.equal(L.ALL_LOOKS.length, 474);
-  assert.equal(new Set(L.ALL_LOOKS.map(L.lookCode)).size, 474, 'no look twice');
+  // PIN MOVED (AUDIT HORIZONTAL E3): 474 -> 473 - chain boots' second style, which no mint makes, is no look (feet 23 -> 22)
+  assert.deepEqual(byKind, { head: 72, rightArm: 32, leftArm: 32, chest: 32, hands: 12, legs: 43, feet: 22, shield: 48, dagger: 10, shortBlade: 30, longBlade: 40, greatBlade: 20, axe: 10, greatAxe: 10, mace: 10, flail: 10, warhammer: 10, staff: 10, bow: 20 });
+  assert.equal(L.ALL_LOOKS.length, 473);
+  assert.equal(new Set(L.ALL_LOOKS.map(L.lookCode)).size, 473, 'no look twice');
   assert.deepEqual(L.lookVariants(102, ARMOR_MATERIAL.Daedric), [1, 2, 3], 'a plate cuirass: three styles');
   assert.deepEqual(L.lookVariants(102, ARMOR_MATERIAL.Leather), [0]);
   assert.deepEqual(L.lookVariants(104, ARMOR_MATERIAL.Leather), [0, 1], 'leather greaves: two');
   assert.deepEqual(L.lookVariants(104, ARMOR_MATERIAL.Iron), [2, 3, 4, 5]);
   assert.deepEqual(L.lookVariants(107, ARMOR_MATERIAL.Chain), [0, 1, 2, 3, 4, 5], 'a helm: six, whatever its metal');
-  assert.deepEqual(L.lookVariants(108, ARMOR_MATERIAL.Chain), [1, 2]);
+  assert.deepEqual(L.lookVariants(108, ARMOR_MATERIAL.Chain), [1], 'chain boots: the one style a mint makes (AUDIT HORIZONTAL E3)');
   assert.deepEqual(L.lookVariants(112, ARMOR_MATERIAL.Ebony), [0]);
   assert.equal(L.lookOfKey('102.259.4'), null, 'Chain2 is no look of its own');
   assert.equal(L.lookOfKey('131.0.0'), null, 'an arrow is none');
@@ -121,7 +122,7 @@ test('APPEARANCES THE SWEEP: every look in the pack, the wagon and the Materials
   assert.notEqual(me.appearances, was, 'a new list');
   assert.deepEqual(was, ['107.521.2', '112.0.0', '120.1.0', '130.5.0'], 'the old one untouched - a save\'s copy may share it');
   assert.deepEqual(me.appearances, ['107.521.2', '112.0.0', '120.1.0', '120.9.0', '130.5.0']);
-  assert.deepEqual(A.looksCount(me), { held: 5, total: 474 });
+  assert.deepEqual(A.looksCount(me), { held: 5, total: 473 });   // PIN MOVED (AUDIT HORIZONTAL E3): 473 looks
   me.appearances = ['120.1.0', 'nonsense', '999.0.0', 7];
   assert.deepEqual([...A.appearancesOf(me)], ['120.1.0'], 'a save\'s list read as looks there are');
   // the save
@@ -249,7 +250,7 @@ test('APPEARANCES THE WORDS: a look named by its metal (past the helm and shield
   assert.equal(A.slotName(EQUIP_SLOTS.LeftHand), 'Left hand');
   const groups = A.lookGroups(who([]));
   assert.deepEqual(groups.map((g) => g.kind), [...L.LOOK_KIND_ORDER]);
-  assert.equal(groups.reduce((n, g) => n + g.total, 0), 474);
+  assert.equal(groups.reduce((n, g) => n + g.total, 0), 473);   // PIN MOVED (AUDIT HORIZONTAL E3)
 });
 
 test('APPEARANCES THE FIELD AND THE MARK: `appearance` a declared item field, `{ t, m, v }` a look there is; the wearer\'s mark - a piece off the wire, a realm trade\'s record or a wild death\'s arrives in its own look (mutants: the field undeclared; a stray key passed; the mark not stripped)', () => {

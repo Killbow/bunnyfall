@@ -1433,6 +1433,22 @@ export function validFoeRecord(r) {
     }
     out.lw = lw;
   }
+  // APPEARANCES-II (bible/04-Characters/Wardrobe.md section 6): `la` the looks the kit's pieces wear - [its index in `lw`,
+  // t, m, v], each piece once, in order - and only beside `lw`. A look kept is one there is and of its piece's kind (net/
+  // appearanceLaw.js validWireAppearance, validLookItem's law); any other is dropped and its piece stands in its own
+  if (r.la !== undefined) {
+    if (!out.lw || !Array.isArray(r.la) || r.la.length > out.lw.length) return null;
+    const la = [];
+    let last = -1;
+    for (const it of r.la) {
+      if (!Array.isArray(it) || it.length !== 4 || !it.every(Number.isInteger) || it[0] <= last || it[0] >= out.lw.length) return null;
+      last = it[0];
+      const piece = out.lw[it[0]];
+      const ap = validWireAppearance({ templateIndex: piece[2], group: LOOK_GROUPS[piece[1]] }, it.slice(1));
+      if (ap) la.push([it[0], ...ap]);
+    }
+    if (la.length) out.la = la;
+  }
   // TELL8 (bible/12-Enhanced-AI/Feud-Arc.md 10.1): THE WIND-UP - `wk` its shape (0-6, ai/puppetBlows.js WIRE_KINDS) +8
   // iron +16 a feint (AUDIT TELL O2: +32 its landing, said after it; FEUD WIRE: +64 a revenant's signature), `wy` its yaw, `wl` ms to its landing
   // (0..FOE_WINDUP_MS - relative, each client's own clock), `wo` its origin (bounded as `f`), `wn` its serial (0-255),
@@ -1650,7 +1666,7 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world271';   // world271: APPEARANCES and HUNTERS-MARK, one release (2026-10-27; bible/04-Characters/Wardrobe.md section 6, bible/06-Systems/Bounty-Boards.md section 12; NOT YET DEPLOYED - world270 and world271 on the branch, renumbered past main's CHAT-POST world270 at the merge): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look; and net/identityToken.js's TITLES gains the hunt's four, the ten Marks of Mastery and the sea's two, last - the relay reads a token's title as every badge; the bundle's files unchanged
+export const RELAY_VERSION = 'world271';   // world271: APPEARANCES and HUNTERS-MARK, one release (2026-10-27; bible/04-Characters/Wardrobe.md section 6, bible/06-Systems/Bounty-Boards.md section 12; NOT YET DEPLOYED - world270 and world271 on the branch, renumbered past main's CHAT-POST world270 at the merge): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look; and net/identityToken.js's TITLES gains the hunt's four, the ten Marks of Mastery and the sea's two, last - the relay reads a token's title as every badge; the bundle's files unchanged; and APPEARANCES-II's sworn revenant's kit carries its look (validFoeRecord's `la`, each of its piece's kind - an older relay drops it and the piece is drawn in its own)
 // world270: CHAT-POST (2026-10-27; bible/06-Systems/Online-Arc.md CHAT-POST; NOT YET DEPLOYED): a chat frame may carry linked item records (`items`, and a legacy `item`) beside the words - the relay fans them with the line; before it, world269: BOW-TOPS (2026-10-26; bible/05-Combat/Balance-Arc.md section 18 BAL-ARCHERY, BOW-TOPS): the arena's and the siege's weapon tops take BAL-ARCHERY's bows - a Short Bow 17, a Long Bow 19 (net/arena/arenaLaw.js ARENA_WEAPON_MAX, net/siege/siegeRef.js SIEGE_WEAPON_MAX)
 // world267: KETCH-WORDS (2026-10-26, the owner: "Please rework the texts of the raid and the books/quest. Remove the \"her\" mentions and make it not ai-like and non overexplanstory"; bible/11-Multiplayer/Sky-Ketch.md section 21; NOT YET DEPLOYED) - net/ketch/ketchHerald.js: the Sky-Ketch's three Discord cards reworded, plain, the ship no longer she.
 // world266: AUDIT KETCH II (2026-10-26, world265 on its branch, renumbered past GATE-COURTS' world265 at the merge; the owner: "Can you audit the airship raid. Its a buggy mess"; bible/01-Overview/audits/Audit-Ketch-II.md; NOT YET DEPLOYED) - the `st` word's wave to KT_WATCH_WAVES, a ship's own sweep said `sw` on its `dn`, KT_VOYAGE_N_MAX a receipt's bound, her crews' last minutes forty-five (ketchLaw.js KT_LAST_MS), a Warden's fight lost after two minutes empty (ketchWarden.js KW_LOST_MS), the crew counted by its kept places (ketchBrain.js aboard), six Sentry posts, a Sentry that shoots when chased, the bow's and the hold's floors, her fall's receipts told before her record goes, a raised member's dying pose forgotten.
