@@ -6442,10 +6442,53 @@ bonus (or what already has)." The owner: "No exceptions and no band aids."
 
 ### 56.4 Pinned
 
-`test/ui/professions/crafthall.test.js` (11), through the real Worker: the state's `made`; an Ebony Longsword spending
+`test/ui/professions/crafthall.test.js` (16), through the real Worker: the state's `made`; an Ebony Longsword spending
 tier 6's first for its kin on the service and in the law; the book's record; `xpSources` against every law; the bar;
 the owed list; the station lines; the landings and the doors; the Crafting page, the Professions page and the anvil
-drawn. `tools/mutants/crafthall.json` (28, all dead).
+drawn; and 56.5's five. `tools/mutants/crafthall.json` (53, all dead).
+
+### 56.5 AUDIT HORIZONTAL (2026-10-27, the owner: "Audit this")
+
+- **AUDIT HORIZONTAL A1: What raises names a grade its act is worked at.** Each row was reckoned at the rank's top
+  grade, which no vein, tree or hide reaches past 6 and no loom piece past 5: rank 90 Outfitting read "140 XP at grade
+  7" where its best is 100 at grade 5. A gathering row is capped at its table's top (`craftHall.js` `GATHER_TOPS`: every
+  climate's veins, a dungeon's, a signature ore and a Motherlode; every wood; every hide), a station's at the highest
+  pattern the rank opens (`benchTop`). Below rank 10 the herb row offers no clean work, as a common herb has none. A
+  Court writ asks ore or stone, never a gem (`nodeLaw.js` regionWritTable). The stars' row says they raise no writ.
+  Smithing's note gives an ingot's 10 a grade beside a piece's 20.
+
+- **AUDIT HORIZONTAL A2: a craft that takes no more XP offers no first-time bonus.** Held by the crafter's limit with no
+  room left, or at Master, a craft still read "Still to earn at your rank: 133", and a first made there paid 0 XP and
+  was spent. The pages read `made` through `craftHall.js` `madeShown` (`profPages.js` `madeOf`), which names such crafts
+  `closed`: no owed list, badge, star or First-time bonus show, and its line says "This craft can rise no further, so
+  they pay nothing." Its list row's bar is full, as its header's. A craft with room left is not closed.
+
+- **The service's rule, left, and the owner's question.** `craftAtAnvil` writes `first_paid` as `f * p` whatever XP it
+  credited, so a held craft's first is spent at 0 XP (pinned as it stands). Nothing is lost while the limit holds for
+  good ("A craft never loses rank"): that first could never pay. Were the limit ever lifted, the service should spend a
+  first only where its share was credited - a WOVEN-PAYS and FIRST-BUDGET rule, for the owner, not changed here.
+
+- **AUDIT HORIZONTAL A3: `made` is one character's**, now pinned: a second character of the account crafts, cuts stone
+  and brews through the Worker, and the first's state lists none of it (`madeStatement`'s `char_id`, three mutants).
+
+- **AUDIT HORIZONTAL A4: Craft x N's button says the count typed** (`profPages.js` `craftTimes`). It said x2 and made
+  five.
+
+- **AUDIT HORIZONTAL A6:** 56.4 counted 28 mutants where the list held 30; it is counted again above.
+
+- **AUDIT HORIZONTAL A7: the Professions key's row says where it lands**: "Open your Professions page, or the Crafting
+  page at a station (online)" (`inputActions.js`, through `t()`). The alchemy and enchanting chooser's option is
+  `profPages.js` `stationActLabel`, through `t()`, where `worldModes.js` glued English. The chooser stands in the
+  interior host alone; `world.js`, `exterior.js` and `dungeonContext.js` hold none, and no host grew.
+
+- **A read a craft overtook (the lane's suspected item, proved).** A state read answered before a craft and heard after
+  it laid the older answer over the book: the craft's first showed owed again, its spent goods held and its XP gone,
+  until the next read. Every answer laid on the state moves `profBook.js` `stateGen`, and a read one overtook is read
+  again, `PROF_STATE_READS` times in all at most, as the writs' `writGen` does.
+
+- **Pins moved:** the standing's `closed` (two), the stars' row and Smithing's note, the host's option
+  (`crafthall.test.js`); the chooser's names (`fb1011f_stationdoor.test.js`); the key's row
+  (`fb1018d_crafthowto.test.js`).
 
 ## 57. MASTER-ART - a Master's work: a Legendary of the crafter's chosen lines (BUILT 2026-10-27)
 

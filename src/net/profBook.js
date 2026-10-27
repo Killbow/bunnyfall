@@ -91,6 +91,9 @@ export const PROF_DUNGEONS_MAX = 4;
  *  read answered for another UTC day than this device's (the two clocks either side of midnight) is not stale again
  *  before it either. */
 export const PROF_REFRESH_BACKOFF_MS = 30_000;
+/** AUDIT HORIZONTAL A (the read held across a craft): a state read an act's answer overtook is read again, at most this
+ *  many times in all - then applied as it stands. */
+export const PROF_STATE_READS = 3;
 /** AUDIT 29 C8: a shut switch is asked again this often - it opens without a reload. */
 export const PROF_CLOSED_RECHECK_MS = 300_000;
 /** The answers an act is asked again after: the network, the service's own fault, the account's minute spent; GATHER-SAID:
@@ -268,11 +271,15 @@ export function createProfBook({ door, storage = null, character = () => null, n
   const shutBy = (r) => { if (SHUT.includes(r?.error)) { state.open = false; state.account = account(); } };
 
   // ─── WHAT THE SERVICE SAID ─────────────────────────────────────────
-  const applyTrack = (t) => { if (t && typeof t.profession === 'string') state.tracks.set(t.profession, t); };
+  /** AUDIT HORIZONTAL A: moved on by every answer laid on the state, so a state read begun before one is read again - a
+   *  read answered before a craft and heard after it put back the goods it spent, its XP and its first (writGen's way). */
+  let stateGen = 0;
+  const applyTrack = (t) => { if (t && typeof t.profession === 'string') { stateGen++; state.tracks.set(t.profession, t); } };
   // GOLD-MARKET: and what gold bought, where there is any - to the pack or back on the market for gold, nowhere else.
   // AUDIT BAG-CRAFT A1: and what a station's put-in brought loose from the pack - to a station or back to the pack
   const applyStore = (s) => {
     if (!s || typeof s.material !== 'string') return;
+    stateGen++;
     // WOVEN-PAYS: a cloth's count says its silver count beside it (professions.js storeOf); a count without it leaves it standing
     if (Number.isSafeInteger(s.silver)) { if (s.silver > 0) state.silver.set(s.material, s.silver); else state.silver.delete(s.material); }
     const gold = s.gold | 0, loose = s[LOOSE_ORIGIN] | 0;
@@ -283,6 +290,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
   /** BAG1: a carried count as the service said it, in the Stores' shape. */
   const applyCarried = (c) => {
     if (!c || typeof c.material !== 'string') return;
+    stateGen++;
     const gold = c.gold | 0;
     if ((c.own | 0) + (c.bought | 0) + gold > 0) state.carried.set(c.material, { material: c.material, own: c.own | 0, bought: c.bought | 0, ...(gold > 0 ? { gold } : {}) });
     else state.carried.delete(c.material);
@@ -318,12 +326,12 @@ export function createProfBook({ door, storage = null, character = () => null, n
     return { crafts: ids(m.crafts), works: ids(m.works), brews: ids(m.brews) };
   }
   /** CRAFT-HALL: records a made act as soon as the service confirms it, so its first-time bonus shows as spent. */
-  const noteMade = (/** @type {'crafts'|'works'|'brews'} */ kind, /** @type {string} */ id) => { if (state.made && typeof id === 'string') state.made[kind].add(id); };
+  const noteMade = (/** @type {'crafts'|'works'|'brews'} */ kind, /** @type {string} */ id) => { if (state.made && typeof id === 'string') { stateGen++; state.made[kind].add(id); } };
   /** PROF7: the account's hides today, as the state or a skinning answered them. */
   /** PROF8: the account's hauls today, as the service counted them. */
-  function applyHauls(n) { if (Number.isSafeInteger(n) && n >= 0) state.hauls = n; }
+  function applyHauls(n) { if (Number.isSafeInteger(n) && n >= 0) { stateGen++; state.hauls = n; } }
   function applyHunt(h) {
-    if (h && typeof h === 'object') state.hunt = { hides: Math.max(0, h.hides | 0), high: Math.max(0, h.high | 0) };
+    if (h && typeof h === 'object') { stateGen++; state.hunt = { hides: Math.max(0, h.hides | 0), high: Math.max(0, h.high | 0) }; }
   }
 
   /** The pixels' states, as the service last said them this UTC day: 'x,y' -> { day, state, climate?, region?, stale? }. */
@@ -420,8 +428,13 @@ export function createProfBook({ door, storage = null, character = () => null, n
       const read = { key, promise: null };
       _refresh = read;
       read.promise = (async () => {
-        const r = await ask(() => door.state(c), key);
-        if (key !== slot()) return { ok: false, error: 'elsewhere', elsewhere: true };
+        let r = null;
+        for (let i = 0; i < PROF_STATE_READS; i++) {
+          const gen = stateGen;
+          r = await ask(() => door.state(c), key);
+          if (key !== slot()) return { ok: false, error: 'elsewhere', elsewhere: true };
+          if (!r?.ok || gen === stateGen) break;   // AUDIT HORIZONTAL A: an act answered while it was read - read again
+        }
         if (r?.ok) apply(r.data);
         else shutBy(r);
         state.readAt = now();
