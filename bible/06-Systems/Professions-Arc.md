@@ -6603,11 +6603,12 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   (`server/src/index.js:"async _lootDoorRefusal(key, m, now) {"`).
 
 - **The door's rooms and its deploy.** A world room (its containers) and a cell (a body's pile): the relay routes acts,
-  foes and hits nowhere else (`wire.js:"export const lootRoom = (key) => streamsFoes(key);"`). GROUND-GATE's battles
-  and owned rooms carry none, so they are no loot rooms. The number moves, and RELAY_VERSION with it, when the item law
-  takes a piece an older law refuses. Deploy the relay first (world271, re-hashed in place); turn `lootDoor` on
-  (`/relay lootDoor on`, or the var LOOT_DOOR) once the site serves this build. An older desktop copy is then told to
-  update in those rooms.
+  foes and hits nowhere else (`wire.js:"export const lootRoom = (key) => streamsFoes(key);"`). The loss is a seat's; a
+  cell's body is its owner's, where an older reader only hides the piece, and the door keeps one law for both.
+  GROUND-GATE's battles and owned rooms carry none, so they are no loot rooms. The number moves, and RELAY_VERSION with
+  it, when the item law takes a piece an older law refuses. Deploy the relay first (world271, re-hashed in place); turn
+  `lootDoor` on (`/relay lootDoor on`, or the var LOOT_DOOR) once the site serves this build. An older desktop copy is
+  then told to update in those rooms.
 
 - **Every piece this PR makes, probed** with each peer on its own tree's law (main at 9471513f8): a Master's work is
   dropped silently; a Mounted Trophy is unreadable (AUDIT SETS M2's word, but lost as above); a named mark's drops, a
