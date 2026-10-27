@@ -180,17 +180,17 @@ export function clearAppearance(entity, item) {
   delete item.appearance;
   return { ok: true, reason: null };
 }
-/** The slot a piece is worn in, as a page names it (systems/equip.js EQUIP_SLOTS). */
+/** The slot a piece is worn in, as a page names it (systems/equip.js EQUIP_SLOTS) - an armour slot its kind's word. */
 export function slotName(/** @type {number} */ slot) {
   const S = EQUIP_SLOTS;
   switch (slot) {
-    case S.Head: return t('looks.slot.head', 'Head');
-    case S.RightArm: return t('looks.slot.rightArm', 'Right arm');
-    case S.LeftArm: return t('looks.slot.leftArm', 'Left arm');
-    case S.ChestArmor: return t('looks.slot.chest', 'Chest');
-    case S.Gloves: return t('looks.slot.hands', 'Hands');
-    case S.LegsArmor: return t('looks.slot.legs', 'Legs');
-    case S.Feet: return t('looks.slot.feet', 'Feet');
+    case S.Head: return kindName('head');
+    case S.RightArm: return kindName('rightArm');
+    case S.LeftArm: return kindName('leftArm');
+    case S.ChestArmor: return kindName('chest');
+    case S.Gloves: return kindName('hands');
+    case S.LegsArmor: return kindName('legs');
+    case S.Feet: return kindName('feet');
     case S.RightHand: return t('looks.slot.rightHand', 'Right hand');
     case S.LeftHand: return t('looks.slot.leftHand', 'Left hand');
     default: return '';

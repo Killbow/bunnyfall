@@ -86,8 +86,7 @@ const inRect = ([rx, ry, rw, rh], x, y) => x >= rx + REPAIR_PANEL_X && y >= ry +
  *   onTalk()    TalkManager.TalkToStaticNPC(merchantNPC) (:147)
  *   onSell()    WindowModes.Sell (:169)
  *   onClose()
- *   portal?: { label, onBuy() }   PORTAL1: the Portal Stone's row (merchantServiceWindow.js portalRowRect)
- *   wardrobe?: { label, onOpen() }   APPEARANCES: the Wardrobe's row, under it (merchantServiceWindow.js shopRowRect)
+ *   portal?: { label, onBuy() }, wardrobe?: { label, onOpen() }   PORTAL1, APPEARANCES: their rows (merchantServiceWindow.js shopRowRect)
  */
 export class MerchantRepairWindow {
   constructor(hooks) {
