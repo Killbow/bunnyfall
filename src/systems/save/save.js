@@ -812,8 +812,8 @@ export function restorePlayer(entity, snap, spellsByIndex = null) {
   defineLiveMaxMagicka(entity);
   defineLiveMaxHealth(entity);   // DISC10-E L4: the same law for MaxHealth - the setter below writes the RAW value
   for (const k of ENTITY_FIELDS) entity[k] = snap[k];
-  releaseCapLatch(entity);   // LEVEL-45 (AUDIT FB1026b C1): a level owed past the cap, saved before it, is no window to open
   resetBlowEffects(entity);   // AUDIT TELL L2: the last game's landings - a bleed, a knockdown, a push queued - are nobody's in this one
+  releaseCapLatch(entity);   // LEVEL-45 (AUDIT FB1026b C1): a level owed past the cap, saved before it, is no window to open
   // CHARID1: A LEGACY SAVE IS ADOPTED HERE. An envelope written before
   // the id existed carries none; its character gets one now, and every
   // card of that name that has none is stamped with it - so the next
