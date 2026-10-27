@@ -155,7 +155,7 @@ test('CRAFT3 law: ten tracks - the five that gather, the five that craft; eight 
   assert.deepEqual(['gemcutter', 'sculptor', 'chef', 'tailor', 'prospector', 'nobody'].map(specDiscipline), ['jewelcrafting', 'masonry', 'cooking', 'outfitting', 'mining', null]);
   assert.deepEqual([specOk('jewelcrafting', 50, 'weaponsmith'), specOk('smithing', 100, 'lapidary'), specOk('building', 50, 'sculptor'), specOf('masonry', 100, 'sculptor')?.name], [true, true, false, 'Sculptor']);
   // a choice whose slice is to come is named, never chosen (AUDIT 29 A17) - the Couturier, the Saddler; PIN MOVED
-  // (HUNTERS-MARK): the Trophy Hunter is chosen since its trophy was built (Professions-Arc 57)
+  // (HUNTERS-MARK): the Trophy Hunter is chosen since its trophy was built (Professions-Arc 58)
   assert.deepEqual([specOk('hunting', 100, 'trophy-hunter'), specOk('outfitting', 100, 'couturier'), specOk('outfitting', 100, 'saddler'), specOk('hunting', 100, 'butcher')], [true, false, false, true]);
   for (const p of PROFESSIONS) for (const r of SPEC_RANKS) assert.equal(SPECIALISATIONS[p.id][r].length, disciplinesOf(p.id).length > 1 ? 4 : 2, `${p.id} ${r}`);
 });

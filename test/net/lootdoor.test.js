@@ -26,7 +26,7 @@ const prefix = await privateInteriorPrefix('acct-0001', 'char-0001');
 const OWNED = [privateInteriorRoom(prefix, 123456, 7), privateBoatRoom(prefix, 9)];
 const BATTLES = [siegeRoomKey(1234, 7), royalRoomKey(1234, 7)];
 
-test('LOOT-DOOR THE WIRE: a hello says `ll` 1 to LOOT_HELLO_LAW_WIRE_MAX, any other value read as none (never refused for it); the loot rooms are a world room and a cell - not a battle, an owned room or a boat, which ride the ground but carry no shared list; the setting is `lootDoor`, a relay of world271 or later takes it; the reason fits a close (mutants: the field dropped; the range; the rooms)', () => {
+test('LOOT-DOOR THE WIRE: a hello says `ll` 1 to LOOT_HELLO_LAW_WIRE_MAX, any other value read as none (never refused for it); the loot rooms are a world room and a cell - not a battle, an owned room or a boat, which ride the ground but carry no shared list; the setting is `lootDoor`, a relay of world272 or later takes it - main\'s MASTER-THREE world271 does not; the reason fits a close (mutants: the field dropped; the range; the rooms)', () => {
   const hello = (ll) => parseClient(JSON.stringify({ t: 'hello', id: 'mac-0001', secret: 'secret-of-mac-0001', name: 'Mac', look: { race: 'Nord', gender: 'male', faceIndex: 0, items: [] }, pose: null, ...(ll === undefined ? {} : { ll }) }), { hasHello: false });
   assert.equal(hello(LOOT_HELLO_LAW).ll, LOOT_HELLO_LAW);
   assert.equal(hello(LOOT_HELLO_LAW_WIRE_MAX).ll, LOOT_HELLO_LAW_WIRE_MAX, 'a later build\'s number, read');
@@ -42,8 +42,8 @@ test('LOOT-DOOR THE WIRE: a hello says `ll` 1 to LOOT_HELLO_LAW_WIRE_MAX, any ot
   assert.ok(RELAY_CFG_KEYS.includes('lootDoor'));
   assert.equal(RELAY_CFG_VARS.lootDoor, 'LOOT_DOOR');
   assert.deepEqual(parseRelayCfgCommand('lootdoor on'), { cmd: 'relay', k: 'lootDoor', v: 'on' });
-  assert.equal(RELAY_CFG_KEY_MIN.lootDoor, 271);
-  assert.deepEqual([relayCfgSupported('world270', 'lootDoor'), relayCfgSupported('world271', 'lootDoor'), relayCfgSupported(RELAY_VERSION, 'lootDoor')], [false, true, true]);
+  assert.equal(RELAY_CFG_KEY_MIN.lootDoor, 272);
+  assert.deepEqual([relayCfgSupported('world271', 'lootDoor'), relayCfgSupported('world272', 'lootDoor'), relayCfgSupported(RELAY_VERSION, 'lootDoor')], [false, true, true]);
 });
 
 test('LOOT-DOOR THE NUMBER READS WHAT IT SAYS: 1 is a Master\'s work and a Mounted Trophy, each minted by its producer - both ride a room\'s stored word whole at this build, where main\'s law drops the one and cannot read the other', () => {

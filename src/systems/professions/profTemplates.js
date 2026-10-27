@@ -230,7 +230,7 @@ registerCustomTemplates(DISH_TEMPLATE_ROWS);
 export const DISH_FOOD_ROWS = Object.freeze(Object.fromEntries(DISHES.map((d) => [d.templateIndex, Object.freeze({ ...FOOD[DISH_FOODS[d.id]], name: d.name })])));
 registerFoods(DISH_FOOD_ROWS);
 
-// ─── HUNTERS-MARK: THE MOUNTED TROPHY (601; Bounty-Boards.md 12.5, Professions-Arc 57) ───
+// ─── HUNTERS-MARK: THE MOUNTED TROPHY (601; Bounty-Boards.md 12.5, Professions-Arc 58) ───
 /** A named mark's payday and a Trophy Hunter's clean pelt: one plaque template, its beast on the item (net/trophyLaw.js) -
  *  registered here, so the save and the item law know it in any scene, as the rows above. */
 registerCustomTemplates([TROPHY_ROW]);

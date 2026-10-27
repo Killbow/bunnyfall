@@ -11,7 +11,11 @@ import '../src/systems/thunderlock.js';   // registers The Last Lock, a Legendar
 import { GILDED_RECORDS } from '../src/systems/gilded.js';
 import { SIGIL_POWER_MAX, SIGIL_STAGES } from '../src/systems/sigil/sigil.js';
 import { SIGIL_SETS, tierValues, SET_STAGE_MAX, RAMPAGE_STACKS, BLOOD_STACKS, COIL_STACKS, UNBROKEN_LESS } from '../src/systems/sigil/sigilSets.js';
-import { STAT_DEFS, BLOW_TOTAL_CAP, blowPct } from '../src/net/firmament/firmamentLaw.js';
+import {
+  STAT_DEFS, BLOW_CAP, BLOW_TOTAL_CAP, CAST_COST_CAP, blowPct, statDef, ATTRIBUTES, COMBAT_SKILLS, LIFE_SKILLS, FIRM_ELEMENTS, SCHOOLS, GATHERING,
+  CRAFTING, ACTS,
+} from '../src/net/firmament/firmamentLaw.js';
+import { FIRM_NODES } from '../src/net/firmament/firmamentTree.js';
 import { WEAPON_POTENCY_PER_POINT, WEAPON_HALF_PER_POINT } from '../src/systems/weaponMastery.js';
 import { EFFECTIVE_SKILL_MAX, SKILL_SOFT_CAP } from '../src/systems/skillSoftcap.js';
 import { MARTIAL_BLOW_MOST } from '../src/systems/martialPowers.js';
@@ -222,15 +226,66 @@ export function powerNumbers() {
   for (const s of Object.values(SIGIL_SETS)) for (const t of s.tiers) add(`${s.id} ${t.at} (${t.name})`, t.key, ascendant(t));
   return out;
 }
-/** Today's strongest number of each role (lines aside: a line's top is the band's). */
-export function roleTops(numbers = powerNumbers()) {
+/** Today's strongest number of each role (lines aside: a line's top is the band's). `lower`: the roles where less is more. */
+export function roleTops(numbers = powerNumbers(), lower = LOWER_IS_STRONGER) {
   const tops = {};
   for (const n of numbers) {
     if (!n.role || n.role === 'id' || n.role.startsWith('line:')) continue;
-    const low = LOWER_IS_STRONGER.includes(n.role);
+    const low = lower.includes(n.role);
     if (!(n.role in tops) || (low ? n.value < tops[n.role] : n.value > tops[n.role])) tops[n.role] = n.value;
   }
   return Object.fromEntries(Object.entries(tops).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+// ── the paths and the sky (AUDIT HORIZONTAL D8): their own numbers, each held to today's strongest of its role ──────
+/** A path number's role by its field's name (martialPaths.js MARTIAL_NUMBERS, arcanePaths.js PATH_NUMBERS - shares as
+ *  fractions, so the paths keep a table of their own); `entry.field` where one name means two things. */
+export const PATH_FIELD_ROLES = Object.freeze({
+  pct: 'blow', lighter: 'guard', stacks: 'stacks', seconds: 'seconds', rounds: 'rounds', recover: 'recover', oneIn: 'oneIn',
+  below: 'below', heal: 'heal', health: 'killHeal', magicka: 'killMana', trapped: 'killMana', fatigue: 'fatigue', pace: 'pace',
+  share: 'extra', burn: 'extra', back: 'refund', leech: 'leech', foes: 'foes', times: 'times', metres: 'reach', points: 'pierce',
+  perMissing: 'perMissing', chance: 'chance', agility: 'line:stat', speed: 'line:stat', personality: 'line:stat',
+  dodging: 'line:skill', running: 'line:skill', jumping: 'line:skill', etiquette: 'line:skill', streetwise: 'line:skill',
+  'flowingSteel.pct': 'blowStack', 'conflux.pct': 'spellStack', 'warRhythm.pct': 'pace', 'grit.health': 'regen', 'grit.fatigue': 'regen',
+  'steadfast.pct': 'regen', 'spellsteel.pct': 'spell', 'unseenStrike.pct': 'spell', 'dawnsWard.pct': 'spell', 'sanguine.most': 'spell',
+  'betweenMoments.pct': 'castSpeed', 'attunedWards.pct': 'cost', 'aegisBolt.most': 'shieldCap', 'dawnbolt.heal': 'leechShare',
+  'siphonLife.share': 'leechShare', 'soulLance.share': 'manaShare',
+});
+/** The paths' roles where the smaller number is the stronger one. */
+export const PATH_LOWER_IS_STRONGER = Object.freeze(['recover', 'oneIn', 'perMissing']);
+/** Every number of every martial and arcane path: `{ where, field, value, role }`. */
+export function pathNumbers() {
+  const out = [];
+  for (const [table, numbers] of [['martial', MARTIAL_NUMBERS], ['arcane', PATH_NUMBERS]]) {
+    for (const [id, p] of Object.entries(numbers)) {
+      for (const [field, value] of Object.entries(p)) out.push({ where: `${table} ${id}`, field, value, role: PATH_FIELD_ROLES[`${id}.${field}`] ?? PATH_FIELD_ROLES[field] ?? null });
+    }
+  }
+  return out;
+}
+/** The sky's family channels (firmamentLaw.js statDef's `fam.arg` keys), each by its own args. */
+const SKY_FAMILIES = Object.freeze({
+  skill: [...COMBAT_SKILLS, ...LIFE_SKILLS], skillPct: [...COMBAT_SKILLS, ...LIFE_SKILLS], pct: ATTRIBUTES, resist: FIRM_ELEMENTS,
+  castCost: SCHOOLS, yield: GATHERING, xp: [...GATHERING, ...CRAFTING], act: ACTS,
+});
+/** A channel that takes off what lands on me: its strength is how far below nothing it may go. */
+const SKY_TAKEN = Object.freeze(['blowTaken', 'spellTaken']);
+/** Every channel the sky can carry - its fixed ones, its families' and every key a star names - at its cap (the most the
+ *  whole sky gives), with the blow's and the spell's group caps: `{ where, field, value, role }`. A role is the channel
+ *  (`fam:kind` for a family's, every attribute one), so a new channel fails until it is measured. */
+export function skyNumbers() {
+  const keys = new Set([...Object.keys(STAT_DEFS), ...Object.entries(SKY_FAMILIES).flatMap(([f, args]) => args.map((a) => `${f}.${a}`))]);
+  for (const n of FIRM_NODES.values()) for (const k of Object.keys(n.stats ?? {})) keys.add(k);
+  const out = [];
+  for (const key of keys) {
+    const d = statDef(key);
+    const fam = key.includes('.') ? key.slice(0, key.indexOf('.')) : null;
+    const role = !d ? null : fam ? `${fam}:${d.kind}` : ATTRIBUTES.includes(key) ? 'attribute' : key;
+    out.push({ where: `the sky ${key}`, field: SKY_TAKEN.includes(key) ? 'min' : 'max', value: d ? (SKY_TAKEN.includes(key) ? -d.min : d.max) : null, role });
+  }
+  out.push({ where: 'the sky BLOW_CAP', field: 'cap', value: BLOW_CAP, role: 'blowCap' }, { where: 'the sky BLOW_TOTAL_CAP', field: 'cap', value: BLOW_TOTAL_CAP, role: 'blowTotal' },
+    { where: 'the sky CAST_COST_CAP', field: 'cap', value: CAST_COST_CAP, role: 'castCostCap' });
+  return out;
 }
 
 /** A line's kind's top: the Legendary band's last number (lootRarity.js AFFIX_RANGES - validAffix's own `max`). */
@@ -265,4 +320,8 @@ if (isMain(import.meta.url)) {
   console.log(`  ${JSON.stringify(roleTops())}`);
   const loose = powerNumbers().filter((n) => !n.role);
   if (loose.length) console.log(`  NO ROLE: ${loose.map((n) => `${n.where}.${n.field}`).join(', ')}`);
+  console.log('THE PATHS\' NUMBERS, today\'s strongest by role:');
+  console.log(`  ${JSON.stringify(roleTops(pathNumbers(), PATH_LOWER_IS_STRONGER))}`);
+  console.log('THE SKY\'S CHANNELS, each at its cap:');
+  console.log(`  ${JSON.stringify(roleTops(skyNumbers(), []))}`);
 }

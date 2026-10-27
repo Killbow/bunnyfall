@@ -59,7 +59,7 @@ test('ETHER-CROSSING the voyage: three days; out to the open water off Veilhaven
   assert.match(crossingRows('out', { days: 1 }).join(' '), /\(1 day\. Your ship/);
   assert.match(crossingWords('out'), /You have crossed into the Eltheric Ocean\. Veilhaven lies ahead\.$/);   // PIN MOVED (ELTHERIC): the Etheric Sea's
   assert.match(crossingWords('home'), /The Iliac Bay, and home\.$/);   // PIN MOVED (VOICE2, in PLAIN-SWEEP's words): no dash aside (Voice.md rule 5)
-  assert.match(CROSS_REFUSED.passengers, /no one else is aboard/); assert.match(CROSS_REFUSED.hostile, /enemy/);
+  assert.match(CROSS_REFUSED.passengers, /until only your party is aboard/); assert.match(CROSS_REFUSED.hostile, /enemy/);   // PIN MOVED (AUDIT HORIZONTAL C7): her party may stay aboard
 });
 
 test('ETHER-CROSSING by source: asked at a helm in the exterior with no window up, an enemy near or another player aboard said instead; sailed - the helm let go first, the jump a travel of CROSS_DAYS whose arrival brings her round onto the landfall\'s middle, her helm taken after, the clock\'s days, the haven charted, the way home leaving the gate asked; the ship held while she crosses (mutants: each step and its order)', () => {
@@ -90,7 +90,7 @@ test('ETHER-CROSSING by source: asked at a helm in the exterior with no window u
   assert.match(cross, /finally \{\n      _etherCrossing = false;\n      hudFade\.fadeHUDFromBlack\(\);/);
   assert.match(src, /let _etherCrossing = false;   \/\/ ETHER-CROSSING: a voyage under way/);
   assert.ok(src.indexOf('let _etherCrossing = false;') < src.indexOf('const paused = gamePaused() || _loading || _partyArrivalPending || _etherCrossing;'), 'declared before any frame reads it');
-  assert.match(src, /if \(!gamePaused\(\) && !_loading\) \{ etherCrossStep\(dt\); veilParty\.step\(\); \}/);   // PIN MOVED (VEIL-PARTY): her party's passage stepped beside it
+  assert.match(src, /if \(!gamePaused\(\) && !_loading\) \{ etherCrossStep\(dt\); veilParty\.step\(dt\); \}/);   // PIN MOVED (VEIL-PARTY): her party's passage stepped beside it - PIN MOVED (AUDIT HORIZONTAL C5): with the frame's dt, its window in stepped time
   // PIN MOVED (HOST-SPLIT, SEA VENTURES 2026-10-22): the distance to land out of bootWorld (etherCrossing.js createCrossLand),
   // over the map's one water law - asked of it here by behaviour
   assert.match(src, /const crossLandPx = createCrossLand\(seaPixel\);/);

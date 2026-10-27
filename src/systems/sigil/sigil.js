@@ -243,7 +243,7 @@ let _carry = new WeakMap();
  */
 export function sigilBlow(weapon, damage, attacker, target, info = null) {
   if (!(damage > 0) || !weapon || !attacker?.isPlayer || attacker.peer || !target || target.isPlayer || _dueling) return damage;
-  const pct = blowRoom(sigilPercent(weapon.sigil, _renown));   // POWER-CEILING: its room under the blow's one product
+  const pct = blowRoom(sigilPercent(weapon.sigil, _renown), 'sigil');   // POWER-CEILING: its room under the blow's one product
   if (!(pct > 0)) return damage;
   const exact = (damage * pct) / 100 + (_carry.get(weapon) ?? 0);
   const more = Math.floor(exact + 1e-9);

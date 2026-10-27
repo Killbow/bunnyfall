@@ -4,7 +4,7 @@
 // journey, landing beside her captain. The picture is net/social.js's own SocialState. tools/mutants/seaopen.json (VEIL-).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createVeilParty, veilJourney, VEIL_FOLLOW_MS, VEIL_PARTY_TEXT } from '../../../src/scenes/naval/veilParty.js';
+import { createVeilParty, veilJourney, VEIL_FOLLOW_MS, VEIL_STAY_PX, VEIL_PARTY_TEXT } from '../../../src/scenes/naval/veilParty.js';
 import { createComeSailAwayAboard } from '../../../src/scenes/comeSailAway/comeSailAwayAboard.js';
 import { CROSS_DAYS, CROSS_REFUSED, crossingTarget } from '../../../src/systems/naval/etherCrossing.js';
 import { SocialState } from '../../../src/net/social.js';
@@ -27,10 +27,11 @@ function rig({ aboard = 'peer-capt', ready = true } = {}) {
   let social = picture(w.capt);
   const vp = createVeilParty({
     social: () => social, aboard: () => (w.aboard ? { owner: w.aboard } : null), here: () => w.here,   // `across` left out: the module's own Veil law (world/ethericSea.js inEther) - PIN MOVED (the host's ceiling)
-    ready: () => w.ready, now: () => w.now, say: (l) => w.said.push(l),
+    ready: () => w.ready, now: () => w.now, say: (l) => w.said.push(l),   // `now` the page's wall clock: AUDIT HORIZONTAL C5, the window never reads it
     travel: (pick, opts, computed) => { w.trips.push({ pick, opts, computed }); return Promise.resolve(w.went); },
   });
-  return { w, vp, cross: (to = { x: LAND.px, y: LAND.py }) => { w.capt = to; w.aboard = null; social = picture(to); }, step: (ms = 100) => { w.now += ms; vp.step(); } };
+  // PIN MOVED (AUDIT HORIZONTAL C5): a step is a frame the world steps, `ms` long - the wall clock and the window both
+  return { w, vp, cross: (to = { x: LAND.px, y: LAND.py }) => { w.capt = to; w.aboard = null; social = picture(to); }, step: (ms = 100) => { w.now += ms; vp.step(ms / 1000); } };
 }
 const settle = () => new Promise((res) => setImmediate(res));
 
@@ -88,7 +89,7 @@ test('VEIL-PARTY the captain: a rider of her party is not counted against her cr
   const r = rig();
   assert.equal(r.vp.kin('peer-capt'), true);
   assert.equal(r.vp.kin('peer-x'), false);
-  assert.match(CROSS_REFUSED.passengers, /Only your party/);
+  assert.equal(CROSS_REFUSED.passengers, 'Only your party can cross the Veil with you. The crossing waits until only your party is aboard.', 'AUDIT HORIZONTAL C7: it waits for strangers alone');
   const w = hostText('src/scenes/world.js');
   assert.match(w, /const crossRefusal = \(\) => \(navalHostileNear\(\) \? 'hostile' : csaPassengersOn\(csaRuntime\?\.state\?\.CurrentBoat, veilParty\.kin\) > 0 \? 'passengers' : null\);/);
   assert.match(w, /if \(pick\?\.besideAt && \(wildTeleportRefused\(pick\.pixel \?\? null\) \|\| \(!pick\.veil && veilRefused\(pick\.pixel \?\? null\)\)\)\) return Promise\.resolve\(false\);/);
@@ -103,4 +104,56 @@ test('VEIL-PARTY the journey: veilJourney\'s pick lands beside the captain\'s ro
   assert.equal(j.pick.besideAt(), null);
   row = null;
   assert.equal(j.pick.besideAt(), null);
+});
+
+test('AUDIT HORIZONTAL C1: a member who LEFT her ship is never pulled across when she crosses - a journey of their own (a fast travel, a temple after a death: past VEIL_STAY_PX of where her deck last carried them) or another\'s deck; a swimmer drifted into the next pixel still follows, two pixels off does not (mutants: the place unkept, the next pixel refused, another\'s deck)', () => {
+  const town = rig();
+  town.step();
+  town.w.aboard = null; town.w.here = { x: 1000, y: 200 };   // fast travelled to a Bay town, 25 s on
+  town.step(25_000);
+  town.cross(); town.step(1000);
+  assert.deepEqual(town.w.trips, [], 'a journey of my own: she left nobody aboard');
+  const deck = rig();
+  deck.step();
+  deck.w.aboard = 'peer-x';   // stepped onto a stranger's deck alongside
+  deck.step(); deck.cross(); deck.w.aboard = 'peer-x'; deck.step();
+  assert.deepEqual(deck.w.trips, [], 'another\'s deck');
+  assert.equal(VEIL_STAY_PX, 1);
+  for (const [dx, follows] of [[1, true], [2, false]]) {
+    const swim = rig();
+    swim.step();
+    swim.w.aboard = null; swim.w.here = { x: 150 + dx, y: 300 };
+    swim.step(); swim.cross(); swim.step();
+    assert.equal(swim.w.trips.length, follows ? 1 : 0, `${dx} pixel(s) from where her deck last carried me`);
+  }
+});
+
+test('AUDIT HORIZONTAL C5: the window is the frames the world steps - a window open (nothing stepped) for minutes while she crosses spends none of it, and I follow once it shuts; frames stepped past VEIL_FOLLOW_MS end it (mutants: the window unrun)', () => {
+  const r = rig();
+  r.step();
+  r.cross();
+  r.w.now += 10 * 60_000;   // ten minutes of the wall clock, a window open: the host steps nothing (world.js gamePaused)
+  r.step();
+  assert.equal(r.w.trips.length, 1, 'followed once the world steps again');
+  const ran = rig();
+  ran.step();
+  ran.w.aboard = null;
+  for (let t = 0; t <= VEIL_FOLLOW_MS; t += 5000) ran.step(5000);
+  ran.cross(); ran.step();
+  assert.deepEqual(ran.w.trips, [], 'swimming past the window, then she crosses');
+});
+
+test('AUDIT HORIZONTAL C1 (the suspected landing): a follow sent back because she sailed on from the pixel it aimed at follows her to the pixel she stands in now, within the window; the pixel that failed is not asked again (mutants: sent back forgotten, the failed landing asked again)', async () => {
+  const r = rig();
+  r.w.went = false;
+  r.step(); r.cross(); r.step();
+  assert.equal(r.w.trips.length, 1);
+  await settle();
+  r.step(); r.step();
+  assert.equal(r.w.trips.length, 1, 'the landing that failed, not asked again while she stands there');
+  r.cross({ x: LAND.px - 1, y: LAND.py });   // she sailed on west
+  r.w.went = true;
+  r.step();
+  assert.equal(r.w.trips.length, 2);
+  assert.deepEqual(r.w.trips[1].pick.pixel, { x: LAND.px - 1, y: LAND.py }, 'to where she stands now');
 });

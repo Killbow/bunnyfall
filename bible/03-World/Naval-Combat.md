@@ -1317,10 +1317,23 @@ The naval host stands them (`scenes/naval/fishingFleet.js` createFishingFleet, w
 who rolls the port stands them where the day finds them; every other player meets them on the wire, as the moored
 ships are met. One sunk or taken today is not stood again that day, and the director never counts them. Her hold is
 fish (`food:fish`, FISH_CATCH: a skiff 2-6, a smack 5-12). The naval word names a class by its place in SHIP_CLASSES:
-the two are rows 15 and 16, appended, so an older client drops their word and sees no fishing boat. No relay change.
+the two are rows 15 and 16, appended. No relay change.
+
+AUDIT HORIZONTAL C4: an older build's door refuses a class row it does not know, and with it the whole word, so an
+older-build player near a port saw none of a newer peer's ships, volleys, barrels or casks. A fishing boat rides a key
+of her own now (`navalWire.js` `h`), and her casks `j`; `s`, `f` and `w` carry only the rows every build knows
+(NAVAL_WIRE_OLD_CLASSES, 15). An older client passes the word and sees no fishing boat, as `k` and `l` are passed. The
+ships of both keys share NAVAL_WIRE_SHIPS, and the casks of a kind their NAVAL_WIRE_CASKS. Proven with the older
+build's own door (844ccc064^1): the snapshot's word with a skiff read null there; this one reads the pirate and her
+wreckage.
+
+AUDIT HORIZONTAL C6: a fleeing fishing boat's target is the pirate she runs from, and the host counted every engaged
+ship's target as in a fight, so that pirate was kept from the director while she ran. The director's ships are made
+whole in `navalDirector.js` directorShips now (AUDIT NAV2 F27's chase and the fleet's keep), out of createNavalHost,
+and a fishing boat's target marks no pursuer.
 
 THE FOUR HOSTS: `navalHost.js` (in `world.js`) stands them; `worldModes.js` and `dungeonContext.js` have no sea, and
-`exterior.js` stands no harbour. Pins: `test/systems/naval/fishboats.test.js` (8). Mutants: `tools/mutants/seaopen.json`
+`exterior.js` stands no harbour. Pins: `test/systems/naval/fishboats.test.js` (9). Mutants: `tools/mutants/seaopen.json`
 (FISH-, all dead). PINS MOVED: `shiplife.test.js` (the open sea's ships and the errand kinds leave the fishers out),
 `nav_c_ships.test.js` (17 classes), `crewhold.test.js` (a skiff has no battery), `tougherships.test.js` (a skiff's
 salvage), `auditshiplife_host.test.js` (the moored ships alone).

@@ -30,8 +30,8 @@
 //     canCarry(item) -> whether the pack takes `item` (the counter's carry gate)    ashore(uid) -> her hands at the
 //     player's side, by her number, whatever the sea fight's switch    forgetBoat(uid) -> her sea-fight record let go,
 //     whatever the switch (AUDIT SHIPYARDS L1-4, L1-6)
-//     online() -> in the shared world (CREW-SIGNED: a hire asks the service first)    signs -> the hall's book (its own
-//     off `online` when none is given - scenes/crewSignBook.js)
+//     online() -> the character's id while in the shared world, else falsy (CREW-SIGNED: a hire asks the service first,
+//     as that character)    signs -> the hall's book (its own off `online` when none is given - scenes/crewSignBook.js)
 //   }
 //
 // Not a DFU member. Ledger A (SHIPYARDS).
@@ -59,7 +59,7 @@ export function createShipyardHost(deps) {
   const csa = () => deps.csa?.() ?? null;
   const gold = () => Math.max(0, Math.floor(Number(deps.gold?.() ?? 0) || 0));
   const skills = () => deps.skills?.() ?? { mercantile: 0, personality: 50 };
-  const signs = deps.signs ?? createCrewSignBook({ live: () => !!deps.online?.() });
+  const signs = deps.signs ?? createCrewSignBook({ live: () => !!deps.online?.(), character: () => deps.online?.() || null });
   /** CREW-SIGNED: the recruit ids a hire holds at the service while its act is asked again. */
   const held = new Set();
   /** CREW-SIGNED: a hand who leaves a ship of the player's goes back to the hall for every player. */

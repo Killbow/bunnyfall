@@ -166,6 +166,7 @@ import { noteFirstUse } from '../tutorials.js';   // TUT1: the first touch of a 
 import { BOAT_ACTIONS } from './comeSailAwayActions.js';   // HUD-HELM: the helm keys' table, a leaf the HUD's helm panel reads
 import { peaceShare } from './peaceWay.js';   // PEACE-WAY: her way out of a fight
 import { createBoatLives } from '../../scenes/comeSailAway/farLife.js';   // BOAT-OWN: her Animators and particle systems by her range, the far law
+import { deckPressed } from '../../scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026d II E2: the deck a ladder set me on
 import { windStaleOutdoors } from './csaLoadWind.js';   // SAIL-WIND: a load outdoors never keeps the indoors' none
 
 export const COME_SAIL_AWAY_VENDOR = 'come-sail-away';
@@ -1047,6 +1048,7 @@ export function createComeSailAwayRuntime(deps) {
   /** StopSailing past its head: the player set down at the helm, the freeze lifted, OnUpdateSailing(false). */
   function stopSailingTail(currentBoat) {
     state.CurrentBoat = null;
+    currentBoat.way = 0;   // PASSAGE-PACE - AUDIT HORIZONTAL C9: off her helm she makes none, and the leads read none
     state.gale = null;   // SERPENT4: off her helm, no gale is hers
     state.oarThrottle = 0;   // HELM-LADDER: the oars shipped with the helm left
     unparentPlayer();
@@ -1613,6 +1615,7 @@ export function createComeSailAwayRuntime(deps) {
       UpdateBoatNodes(boat);
       if (!IsBeached(boat)) CheckCollision(boat);
     }
+    boat.way = 0;   // PASSAGE-PACE: none of her own unless laid below - warped, or (AUDIT HORIZONTAL C9) beached
     if (!IsBeached(boat)) {
       // QUAYS (the port's own - systems/naval/quays.js; the mod has no quays): her hands warping her in alongside a
       // harbour's quay - her sails struck and no oar pulling - take her way off and lay her this step where the host
@@ -1622,7 +1625,6 @@ export function createComeSailAwayRuntime(deps) {
         state.MoveVectorCurrent = [0, 0, 0];
         state.velocityCurrent = [0, 0, 0];
         state.TurnCurrent = 0;
-        boat.way = 0;   // PASSAGE-PACE: warped, no way of her own
         const before = t.worldMatrix();
         setPositionChecked(t, [f(w.pos[0]), t.position[1], f(w.pos[1])], log);
         setLocalRotationChecked(t, normalizeQ(w.rotation), log);
@@ -1879,6 +1881,7 @@ export function createComeSailAwayRuntime(deps) {
     deps.helm.setFacing(at.yaw, 0);   // SetHorizontalFacing(child.forward)
     deps.helm.alignToGround?.(3);   // GameObjectHelper.AlignControllerToGround(controller, 3f)
     deps.helm.finishBoarding?.();   // The ladder must not carry incoming fall or air momentum onto the deck.
+    deckPressed(boat);   // AUDIT FB1026d II E2 (the port's own - the mod has no other players' hulls): the deck I stand on now, whatever deck I stood on before (scenes/comeSailAway/peerHulls.js)
   }
   /** TriggerDoor (5542-5572): the door the trigger hangs under, its Animator's Opened turned over. */
   function TriggerDoor(hit) {

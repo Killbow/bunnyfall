@@ -82,8 +82,8 @@
   {
     "name": "LOOT-DOOR-the-floor",
     "file": "src/net/relayCfg.js",
-    "old": "cellSeed: 260, lootDoor: 271 }",
-    "new": "cellSeed: 260, lootDoor: 270 }",
+    "old": "cellSeed: 260, lootDoor: 272 }",
+    "new": "cellSeed: 260, lootDoor: 271 }",
     "why": "the client says lootDoor to a relay that closes the hub link on it",
     "tests": [
       "test/net/lootdoor.test.js",
