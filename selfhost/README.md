@@ -26,8 +26,32 @@ Useful commands:
 ```sh
 docker compose logs -f server      # relay and account service output
 docker compose down                # stop
-git pull && docker compose up -d --build   # update after a change
 ```
+
+## Updating from GitHub
+
+Changes go to GitHub first (edit with Claude, it pushes to `main`), then the box pulls them:
+
+```sh
+sh selfhost/update.sh
+```
+
+It pulls `main`, and only if something changed it rebuilds and restarts. The old server keeps running during the
+build, so players only see a short reconnect. Your `data/` folder is never touched.
+
+**Automatic updates**: let cron check every 5 minutes. Run `crontab -e` and add this line (fix the path):
+
+```
+*/5 * * * * cd /path/to/bunnyfall && sh selfhost/update.sh >> data/update.log 2>&1
+```
+
+Then pushing to GitHub is all it takes: the server is on the new version within about 5 minutes plus the build time.
+`tail data/update.log` shows what happened.
+
+**Do not edit files directly on the box.** The script refuses to pull while there are local edits, so it never
+overwrites your work. Make changes on GitHub instead (or run `git checkout -- .` on the box to throw local edits away).
+
+On Windows, `selfhost\windows-update.cmd` pulls the latest version for the local test.
 
 ## Windows local test
 

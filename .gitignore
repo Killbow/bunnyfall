@@ -114,3 +114,4 @@ desktop.ini
 # BUNNYFALL self-host: server state and wrangler scratch
 /data/
 selfhost/.wrangler/
+.update.lock
