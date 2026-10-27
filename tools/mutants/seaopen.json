@@ -680,8 +680,8 @@
   {
     "name": "VEIL-the-window",
     "file": "src/scenes/naval/veilParty.js",
-    "old": "    if (now - rode.at > VEIL_FOLLOW_MS ||",
-    "new": "    if (now - rode.at > VEIL_FOLLOW_MS * 100 ||",
+    "old": "rode.off > VEIL_FOLLOW_MS ||",
+    "new": "rode.off > VEIL_FOLLOW_MS * 100 ||",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]
@@ -743,8 +743,8 @@
   {
     "name": "VEIL-the-missed-unsaid",
     "file": "src/scenes/naval/veilParty.js",
-    "old": "      if (!went) deps.say(VEIL_PARTY_TEXT.missed(name));",
-    "new": "      if (false) deps.say(VEIL_PARTY_TEXT.missed(name));",
+    "old": "      deps.say(VEIL_PARTY_TEXT.missed(name));\n",
+    "new": "",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]
@@ -789,7 +789,7 @@
   {
     "name": "VEIL-the-step-unwired",
     "file": "src/scenes/world.js",
-    "old": "{ etherCrossStep(dt); veilParty.step(); }",
+    "old": "{ etherCrossStep(dt); veilParty.step(dt); }",
     "new": "{ etherCrossStep(dt); }",
     "tests": [
       "test/systems/naval/ethercross.test.js"
@@ -800,6 +800,69 @@
     "file": "src/scenes/naval/veilParty.js",
     "old": "  const across = deps.across ?? inEther;",
     "new": "  const across = deps.across;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C1-the-place-unkept",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "const moved = Math.max(Math.abs(here.x - rode.x), Math.abs(here.y - rode.y)) > VEIL_STAY_PX;",
+    "new": "const moved = false;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C1-the-next-pixel-refused",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "export const VEIL_STAY_PX = 1;",
+    "new": "export const VEIL_STAY_PX = 0;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C1-anothers-deck",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "if (owner || moved ||",
+    "new": "if (moved ||",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C5-the-window-unrun",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "rode.off += Math.max(0, Number(dt) || 0) * 1000;",
+    "new": "rode.off += 0;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C5-the-frames-dt-unhanded",
+    "file": "src/scenes/world.js",
+    "old": "{ etherCrossStep(dt); veilParty.step(dt); }",
+    "new": "{ etherCrossStep(dt); veilParty.step(); }",
+    "tests": [
+      "test/systems/naval/ethercross.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C1-sent-back-forgotten",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "      rode = { ...left, tried: to };\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C1-the-failed-landing-asked-again",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "if (rode.tried && rode.tried.x === row.p.px && rode.tried.y === row.p.py) return;",
+    "new": "if (false) return;",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]

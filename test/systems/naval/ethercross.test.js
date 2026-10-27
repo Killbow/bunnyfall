@@ -90,7 +90,7 @@ test('ETHER-CROSSING by source: asked at a helm in the exterior with no window u
   assert.match(cross, /finally \{\n      _etherCrossing = false;\n      hudFade\.fadeHUDFromBlack\(\);/);
   assert.match(src, /let _etherCrossing = false;   \/\/ ETHER-CROSSING: a voyage under way/);
   assert.ok(src.indexOf('let _etherCrossing = false;') < src.indexOf('const paused = gamePaused() || _loading || _partyArrivalPending || _etherCrossing;'), 'declared before any frame reads it');
-  assert.match(src, /if \(!gamePaused\(\) && !_loading\) \{ etherCrossStep\(dt\); veilParty\.step\(\); \}/);   // PIN MOVED (VEIL-PARTY): her party's passage stepped beside it
+  assert.match(src, /if \(!gamePaused\(\) && !_loading\) \{ etherCrossStep\(dt\); veilParty\.step\(dt\); \}/);   // PIN MOVED (VEIL-PARTY): her party's passage stepped beside it - PIN MOVED (AUDIT HORIZONTAL C5): with the frame's dt, its window in stepped time
   // PIN MOVED (HOST-SPLIT, SEA VENTURES 2026-10-22): the distance to land out of bootWorld (etherCrossing.js createCrossLand),
   // over the map's one water law - asked of it here by behaviour
   assert.match(src, /const crossLandPx = createCrossLand\(seaPixel\);/);

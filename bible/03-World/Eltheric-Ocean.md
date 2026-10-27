@@ -355,6 +355,15 @@ VEIL_FOLLOW_MS (60 s) of their last frame aboard, the captain's party pose stand
 member takes the party's own journey to the captain's pixel, landing beside the captain on her deck, with no fare and
 CROSS_DAYS on their own clock; that journey alone passes the Veil's refusal (`pick.veil`).
 
+AUDIT HORIZONTAL C1: a member who had left her - a journey of their own, a temple after a death - was pulled across
+when she crossed within the minute. A follow is now held to where her deck last carried them: within VEIL_STAY_PX (1)
+map pixel of it, and on no other's deck. C5: the minute was the wall clock's, and the world steps nothing while a
+window is open, so a member who shut one after she crossed was left in open water. It counts the frames stepped now
+(`step(dt)`). The audit's suspected landing: a follow sent back because she sailed on from the pixel it aimed at
+follows her to the pixel she stands in now, within the window, and the pixel that failed is not asked again.
+
+Named, not closed: a member aboard on an older build does not follow, and her party no longer holds her crossing back.
+
 Nothing new rides the wire. A journey that finds no landing sends the member back and says so. Pins: `test/systems/naval/veilparty.test.js`.
 Mutants: `tools/mutants/seaopen.json` (VEIL-, all dead). PINS MOVED: `ethercross.test.js`, `auditcaptsea.test.js`
 X2 and P6, `csa_together.test.js` (the count's `skip`). THE FOUR HOSTS: `world.js` builds it and steps it beside the

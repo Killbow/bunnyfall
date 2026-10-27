@@ -9938,7 +9938,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _officeTickT = 2; harbourOffice.tick(); captainSay();   // CAPT-BOARD: a term run out
       if (etherSea && _mode() === 'exterior') { const p = playerTravelPixel(); if (inEther(p.x, p.y)) { etherHost.sight(p.x, p.y); captainSay(); } }   // ETHER-SEA: the isles in sight charted, the depth kept
     }
-    if (!gamePaused() && !_loading) { etherCrossStep(dt); veilParty.step(); }   // ETHER-CROSSING: the helm's waters asked - VEIL-PARTY: and her party's passage with her
+    if (!gamePaused() && !_loading) { etherCrossStep(dt); veilParty.step(dt); }   // ETHER-CROSSING: the helm's waters asked - VEIL-PARTY: and her party's passage with her, its window in the frames stepped (AUDIT HORIZONTAL C5)
     passage.frame(dt, gamePaused() || _loading);   // PASSAGE: a booked ship's voyage sailed on, and over when I step off her - whatever the sea fight's switch
     const on = navalOn();
     if (on !== _navalWasOn) { _navalWasOn = on; naval.setEnabled(on); if (!on) { navalFlames.clear(); closeNavalPlunder(); closeNavalYard(); drawNavalHud(null); drawNavalTags([]); } }
