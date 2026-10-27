@@ -22089,6 +22089,21 @@
   "tr": "d2e7bdcf3a4a",
   "by": "claude-in-session"
  },
+ "naval.ram.galley": {
+  "en": "c694cf410e22",
+  "tr": "284ea8935398",
+  "by": "claude-in-session"
+ },
+ "naval.ram.mine": {
+  "en": "78dda9b26926",
+  "tr": "90cdd27d8a41",
+  "by": "claude-in-session"
+ },
+ "naval.ram.taken": {
+  "en": "54db41abdb97",
+  "tr": "736c91e446bd",
+  "by": "claude-in-session"
+ },
  "naval.refit.asks": {
   "en": "e5b6b89f62b2",
   "tr": "96693ab2f372",
