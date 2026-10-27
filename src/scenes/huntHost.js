@@ -34,8 +34,10 @@
 import { bodyKey, utcDayOfMs } from '../net/nodeLaw.js';
 import {
   hideOfFoe, tierOpen, TIER_RANKS, knifeBand, SKINNING_KNIFE, KNIFE_CHECKS, KNIFE_REFUSALS, HIGH_HIDES_PER_DAY,
-  HIGH_HIDE_TIER, TRACKER_M, KNIFE_WHERE, KNIFE_WHERE_WORDS, TRACE_ACT, storesFullIn, goneIn, fullWordsIn,
+  HIGH_HIDE_TIER, TRACKER_M, KNIFE_WHERE, KNIFE_WHERE_WORDS, TRACE_ACT, storesFullIn, goneIn, fullWordsIn, HIDES,
 } from '../net/professionLaw.js';
+import { trophyBeastName } from '../systems/hunt/trophies.js';   // HUNTERS-MARK: a Trophy Hunter's trophy, named
+import { t } from '../systems/textManager.js';
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';
 import { createTraceAct } from '../systems/traceAct.js';
 import { actChecksRefusal, foragingToolIn } from '../systems/foraging/foragingInstall.js';
@@ -178,9 +180,16 @@ export function huntPlan({ body, taken, counting, rank, storesFull, high, loot =
  *   corpse's box, and E opened nothing); without it the press is passed on, AUDIT 29 C1's way
  * @returns {import('./gatherHost.js').GatherKind}
  */
-export function huntKind({ book, bodies, openLoot = null }) {
+/** HUNTERS-MARK: the line a Trophy Hunter's trophy is told in. */
+export const trophyLine = (/** @type {number} */ foe) => t('hunt.trophy.hunted', 'A trophy of the {beast}. It is in your pack.', { beast: trophyBeastName(foe) });
+
+export function huntKind({ book, bodies, openLoot = null, trophy = null }) {
   /** Whether a body may be searched: its loot's key, where the world opens loot by key (an emptied body none). */
   const searchable = (b) => !openLoot || !!b?.lootKey?.();
+  /** HUNTERS-MARK: the foe each skinned body was, by its key - a Trophy Hunter's trophy is that beast's; and the bodies
+   *  whose trophy is given (every answer to the harvest says it, the trophy is minted once) */
+  const skinned = new Map();
+  const mounted = new Set();
   return {
     id: 'body',
     professions: Object.freeze(['hunting']),
@@ -230,13 +239,21 @@ export function huntKind({ book, bodies, openLoot = null }) {
         // hand (the crosshair drawn by the mouse, the right stick or a finger's swipe, no key held)
         harvest: plan.harvest, tool: foragingToolIn(entity, SKINNING_KNIFE.templateIndex), profession: 'hunting', label: used ? '' : keyLabel('Interact'),
         heldByUse: !!used,
-        ask: { foe: b.foe },   // the harvest names the foe the body is (PROF0 6: the tier is the client's claim)
+        ask: (skinned.set(b.key, b.foe), { foe: b.foe }),   // the harvest names the foe the body is (PROF0 6: the tier is the client's claim)
         material: b.hide,   // AUDIT BAG1 B4: the hide the foe gives, for the held count
         hand: (a) => (a.tool ? KNIFE_HAND : null),
       };
     },
     /** The account's day, as the chip says it: its hides today (CAP-OFF: against no cap). */
     tally: () => ({ n: book.state.hunt?.hides ?? 0 }),
+    /** HUNTERS-MARK (Professions-Arc 57): a Trophy Hunter's trophy, the service's word on a clean pelt of a tier 5+ body -
+     *  the beast skinned (a reloaded page's kept harvest: its hide's first foe), into the pack once. */
+    answered(/** @type {any} */ d, /** @type {(t: string) => void} */ toast) {
+      if (!d?.trophy || !d.node || mounted.has(d.node) || typeof trophy !== 'function') return;
+      mounted.add(d.node);
+      const foe = skinned.get(d.node) ?? HIDES.find((h) => h.key === d.material)?.foes?.[0];
+      if (Number.isSafeInteger(foe) && trophy(foe)) toast(trophyLine(foe));
+    },
     cleanNote: () => ' (a clean pelt)',
     /** AUDIT 32 P10: the trace's end said - a clean pelt, a torn one (its part lost), or a true line drawn too quick or
      *  too slow to be clean; a torn pelt and a mistimed one went unsaid. */

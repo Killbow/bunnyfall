@@ -1182,6 +1182,15 @@ export const BOUNTY_CSS = `/* ── BOUNTY1: THE BOUNTY BOARD ── */
 .bounty-noticebody .bounty-story { font-size: 14px; }
 .bounty-rewardbox { display: flex; flex-direction: column; gap: 3px; align-self: stretch; }
 .bounty-rewarditem { font-size: 15px; text-shadow: 1px 1px 0 #050608; }
+/* HUNTERS-MARK: the hunter's rank under the title and its bar to the next rung; the week's named mark in the list */
+.bounty-rank { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 6px 0 0; font-size: 12px; color: #d8ccb6; }
+.bounty-rank b { font-weight: normal; letter-spacing: 0.08em; text-transform: uppercase; color: #f3cf86; }
+.bounty-rankbar { flex: 1 1 100px; max-width: 200px; height: 6px; border: 1px solid rgba(243,207,134,0.45); background: rgba(0,0,0,0.35); }
+.bounty-rankbar i { display: block; height: 100%; background: #c08a3e; }
+.bounty-ranknext, .bounty-rankwait { color: #b9ab93; }
+.bounty-post.bounty-mark { border-color: rgba(213,183,135,0.5); background: linear-gradient(90deg, rgba(135,30,45,0.24), transparent 90%); }
+.bounty-post.bounty-mark .bounty-post-title { color: #f0d9a8; }
+.bounty-marktraits { margin: 0 0 8px; font-size: 12px; color: #e59a8e; }
 @media (max-width: 720px) {
   .bounty-shell { padding: 8px; }
   .bounty-body { flex-direction: column; padding: 10px 12px 12px; }

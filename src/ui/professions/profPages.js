@@ -188,8 +188,7 @@ export function setProfessionsPages(p) { _provider = p ?? null; }
 /** What a locked specialisation's card says it waits for (professionLaw.js `later`). */
 const LATER_WORDS = Object.freeze({
   get SEAT2() { return t('prof.page.later.seat2', 'Comes with the sieges'); }, get SEAT2b() { return t('prof.page.later.seat2b', 'Comes with the fortifications'); },   // PROF11: the Builder's and the Fortifier's
-  // PROF7 (Professions-Arc.md 29): what DFU gives these nothing to stand as - for Mac
-  get trophy() { return t('prof.page.later.trophy', 'Comes when trophies are added'); },
+  // PROF7 (Professions-Arc.md 29): what DFU gives these nothing to stand as - for Mac (HUNTERS-MARK built the trophy)
   get 'two-colour'() { return t('prof.page.later.twoColour', 'Comes when cloth can take a second dye'); },   // AUDIT 32 R11: never "DFU" where a player reads it; BR5: nor the game's name - the original game, the classic
   get wagon() { return t('prof.page.later.wagon', 'Comes when wagons can be upgraded'); },
 });
