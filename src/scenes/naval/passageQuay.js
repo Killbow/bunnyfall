@@ -1,0 +1,135 @@
+// @ts-check
+// PASSAGE-QUAY (2026-10-27; bible/03-World/Passage.md, PASSAGE-QUAY) - A BOOKED SHIP COMES IN TO HER PORT'S QUAY.
+// Passage.md left it "the passage's own next slice": the voyage ended at OWS2's landfall, run in on her oars to any
+// shore within VOYAGE_LANDFALL_PX of her port, and the passenger walked into the town. Now, within BRING_IN_M of her
+// port's harbour with a free berth there, her master brings her in: the journey ends (she is at her port), her crew
+// warp her along the water's own way to the berth's approach and in along the shore (shipLife.js's arriving ship's
+// way), and QUAYS' docking makes her fast; the passenger takes the gangway ashore.
+//
+// Her place is laid by Come Sail Away's `warp` seam, as QUAYS' docking lays it (navalHost.js warp): her way off, her
+// place and her head this step's. A hull lying across her way holds her; held TOW_FOUL_S, her master gives the quay up
+// and the landfall stands, as before. The naval host builds it once over its own doors (passageBerths.js's shape).
+//
+//   host = { harbours, grid(hull), dockFree(key, i, boat), putOff(key, i), boatPose(boat), along(p, dx, dz, far),
+//            enabled(), yawOf(rotation), now() }
+//
+// Not a DFU member. Ledger A (PASSAGE).
+import { dockFor, madeFast, warpStep } from '../../systems/naval/quays.js';
+import { alongside } from '../../systems/naval/shipLife.js';
+import { charterRecord } from '../../systems/naval/passage.js';
+import { wrapAngle } from '../../world/mat4.js';
+import { hullBuild } from '../../systems/naval/navalShips.js';   // her stem, where the look for a hull foul of her way begins
+
+/** Within this of her port's harbour mouth (m), a free berth known there: her master brings her in. */
+export const BRING_IN_M = 700;
+/** Her way coming in (m/s), down to TOW_SLOW within TOW_EASE_M of her berth; her head comes round at TOW_TURN (rad/s). */
+export const TOW_WAY = 4;
+export const TOW_SLOW = 1.5;
+export const TOW_EASE_M = 60;
+export const TOW_TURN = 14 * (Math.PI / 180);
+/** A point of her way reached within this (m). */
+export const TOW_REACH_M = 10;
+/** Her way's last point: this far out from her place alongside (m), inside QUAYS' DOCK_REACH_M, so the slant in from the
+ *  berth's approach meets it within DOCK_ANGLE of the berth's line and the dock's warp lays her alongside from there. */
+export const TOW_LEAD_M = 20;
+/** A hull this near ahead (m) holds her; held this long (s), the quay is given up for her passage. */
+export const TOW_FOUL_M = 25;
+export const TOW_FOUL_S = 40;
+/** A harbour whose berth the water gives her no way to is asked again only after this (s) - a way is a bounded search. */
+export const TOW_RETRY_S = 10;
+
+/** @param {any} host */
+export function createPassageQuay(host) {
+  /** @type {{ boat: any, key: string, i: number, path: number[][], idx: number, foul: number, fast: boolean, gaveUp?: boolean } | null} */
+  let tow = null;
+  /** Her passage's quays given up (a way foul past TOW_FOUL_S) - never asked again for her; and the harbours with no way
+   *  to a berth found, by when they were asked. */
+  const refused = new Set(), noWay = new Map();
+
+  /** Her port's harbour near her: the book's by her record's port name, its mouth within BRING_IN_M, and the first of
+   *  its berths (the town's nearest first) free for her - `{ h, i }` or null. */
+  function berthFor(boat, rec, at) {
+    for (const h of host.harbours.values()) {
+      const hb = h.harbour;
+      if (!hb?.berths?.length || h.name !== rec.to.name || refused.has(h.key)) continue;
+      if (host.now() - (noWay.get(h.key) ?? -Infinity) < TOW_RETRY_S) continue;
+      if (Math.hypot(hb.mouth[0] - at[0], hb.mouth[1] - at[2]) > BRING_IN_M) continue;
+      const i = hb.berths.findIndex((_, k) => host.dockFree(h.key, k, boat));
+      if (i >= 0) return { h, i };
+    }
+    return null;
+  }
+
+  /** A voyage under way within reach of her port's harbour: her way in planned - the water's to the berth's approach,
+   *  then in to TOW_LEAD_M off her place alongside it - the berth taken for her, and the tow begun. True when it began. */
+  function begin(boat) {
+    const rec = charterRecord(boat?.charter);
+    if (!host.enabled() || !rec || !boat?.GameObject || tow?.boat === boat) return false;
+    const at = boat.GameObject.position;
+    const found = berthFor(boat, rec, at);
+    if (!found) return false;
+    const { h, i } = found, b = h.harbour.berths[i], grid = host.grid(boat.hull);
+    const side = alongside(b, boat.hull, h.harbour.hull), end = [side[0] + b.normal[0] * TOW_LEAD_M, side[1] + b.normal[1] * TOW_LEAD_M];
+    const a = grid.path([at[0], at[2]], b.approach), c = a ? grid.path(b.approach, end) : null;
+    if (!a || !c) { noWay.set(h.key, host.now()); return false; }
+    tow = { boat, key: h.key, i, path: [...a, ...c.slice(1)].map((q) => [q[0], q[1]]), idx: 0, foul: 0, fast: false };
+    host.putOff(h.key, i);   // a ship coming in to it goes to another berth (QUAYS' own)
+    return true;
+  }
+
+  /** THE TOW, one step of Come Sail Away's warp seam: her place and head `{ pos: [x, z], yaw }` - eased onto her berth by
+   *  QUAYS' warp once it is in reach, else along her way in - or null where she is not the boat I bring in (the seam's
+   *  own law then). A hull foul of her way holds her where she lies. */
+  function step(boat, dt) {
+    if (!tow || tow.boat !== boat || !host.enabled()) return null;
+    const pose = host.boatPose(boat), p = pose.position, yaw = host.yawOf(pose.rotation);
+    const h = host.harbours.get(tow.key), b = h?.harbour?.berths?.[tow.i];
+    if (!b) { tow = null; return null; }
+    const dock = dockFor({ pos: p, yaw, hull: boat.hull }, [{ key: tow.key, index: tow.i, berth: b, hull: h.harbour.hull, name: h.name ?? null, free: true }]);
+    if (dock && (tow.fast || tow.idx >= tow.path.length - 1)) {
+      if (madeFast({ pos: p, yaw }, dock)) tow.fast = true;
+      const st = warpStep([p[0], p[2]], yaw, dock, dt);
+      return { pos: st.pos, yaw: st.yaw };
+    }
+    if (tow.fast) { tow = null; return null; }   // moved off her berth: the quay's work is done
+    while (tow.idx < tow.path.length - 1 && Math.hypot(tow.path[tow.idx][0] - p[0], tow.path[tow.idx][1] - p[2]) <= TOW_REACH_M) tow.idx++;
+    const q = tow.path[tow.idx], dx = q[0] - p[0], dz = q[1] - p[2], d = Math.hypot(dx, dz);
+    // her way's end reached and the dock not yet in reach of her head: she is warped round onto the berth's line where she lies
+    const there = tow.idx >= tow.path.length - 1 && d <= TOW_REACH_M;
+    const line = Math.abs(wrapAngle(b.yaw - yaw)) <= Math.PI / 2 ? b.yaw : wrapAngle(b.yaw + Math.PI);
+    const want = there ? line : d > 1e-6 ? Math.atan2(dx, dz) : yaw;
+    const turn = Math.max(-TOW_TURN * dt, Math.min(TOW_TURN * dt, wrapAngle(want - yaw)));
+    const head = wrapAngle(yaw + turn), fx = Math.sin(head), fz = Math.cos(head);
+    const bow = hullBuild(boat.hull).bowZ;
+    if (host.along([p[0] + fx * bow, p[1], p[2] + fz * bow], fx, fz, TOW_FOUL_M) < TOW_FOUL_M) {
+      tow.foul += dt;
+      if (tow.foul >= TOW_FOUL_S) { refused.add(tow.key); tow = { ...tow, gaveUp: true }; return null; }
+      return { pos: [p[0], p[2]], yaw: head };
+    }
+    tow.foul = 0;
+    const left = Math.hypot(b.pos[0] - p[0], b.pos[1] - p[2]);
+    const way = left > TOW_EASE_M ? TOW_WAY : TOW_SLOW + (TOW_WAY - TOW_SLOW) * (left / TOW_EASE_M);
+    if (there) {   // the last metres warped onto her way's end, square to it, as she comes round
+      const k = d > 1e-6 ? Math.min(d, TOW_SLOW * dt) / d : 0;
+      return { pos: [p[0] + dx * k, p[2] + dz * k], yaw: head };
+    }
+    const s = Math.min(d, way * dt);
+    return { pos: [p[0] + fx * s, p[2] + fz * s], yaw: head };
+  }
+
+  /** Where my passage's boat stands with her quay: 'in' while she is brought in, 'fast' made fast at it, 'foul' her way
+   *  in given up (said once, then null: the landfall's), else null. */
+  function state(boat) {
+    if (!tow || tow.boat !== boat) return null;
+    if (tow.gaveUp) { tow = null; return 'foul'; }
+    return tow.fast ? 'fast' : 'in';
+  }
+  /** The world moved (the floating origin): her way with it. */
+  function offset(o) { for (const q of tow?.path ?? []) { q[0] += o[0]; q[1] += o[2]; } }
+  /** Her passage over (her boat, or its uid), or the sea cleared (nothing named): no tow. */
+  function forget(boat = null) {
+    if (boat != null && tow?.boat !== boat && !(tow?.boat?.uid != null && tow.boat.uid === boat)) return;
+    tow = null; refused.clear(); noWay.clear();
+  }
+  return { begin, step, state, offset, forget };
+}

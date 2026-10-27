@@ -515,7 +515,7 @@ import { travelPathMode, travelPathUsesRoads, pickTakesPlace, pickNearPlaceMiddl
 import { groundHit, canvasPoint, classifyPick } from '../player/travelPick.js';   // TV2: the click's ground
 import { planRoute, routeLegs, roadShare, crossesWater, dryLine, SEA_KINDS } from '../systems/travel/travelRoute.js';   // TV2: the way by the roads; OWS2: and over the water
 import { createSeaHelm, seaHelmStep, seaHelmLook, headingOf as seaHeadingOf, squareOnly as seaSquareOnly } from '../systems/seaHelm.js';   // OWS2: the journey's hand on the helm
-import { createLoadGovernor, unbuiltAround, unbuiltCount } from '../systems/travel/travelGovernor.js';   // TV2: "Cap it to what loads cleanly"
+import { createLoadGovernor, unbuiltAround, unbuiltCount, travellerPace } from '../systems/travel/travelGovernor.js';   // TV2: "Cap it to what loads cleanly"
 import { createWildAlert, noticeRoll, WILD_MARK_S } from '../systems/wild/wildAlert.js';   // WILD-ALERT: the wilderness notices a fast traveller on a stealth check
 import { drawWildMarks, WILD_MARK_RANGE } from '../ui/wild/wildMarks.js';   // WILD-ALERT: the "!" over an alerted foe
 import { playerOnPathAt, pathsDataPoint } from '../systems/travel/travelPaths.js';   // RATE-LAW: the traveller on a road's lane or off it
@@ -32111,7 +32111,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
    *  THREAT_WARN_S of real time. */
   function journeyThreatCap(up, keys = false) {
     const yaw = _travelDrive ? (_travelDrive.yaw * Math.PI) / 180 : keys ? _tvWalkYaw : null;
-    const r = threatCap({ threats: journeyThreats(up), heading: yaw == null ? null : { x: Math.sin(yaw), z: Math.cos(yaw) }, speedMps: player?.speed ?? 0 });
+    const r = threatCap({ threats: journeyThreats(up), heading: yaw == null ? null : { x: Math.sin(yaw), z: Math.cos(yaw) }, speedMps: travellerPace(player, csaBoatUnderMe()) });   // PASSAGE-PACE: the boat's way at her helm
     // PVPNEAR (the owner: \"near a stranger 300m 10x, 200m 5x speed\", then STRANGER-PACE): the nearest stranger's own pace, whatever the foe dial says
     let sr = 0;
     for (const g of _wildStrangers) {
@@ -32222,7 +32222,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     const unbuilt = uc.n;
     const want = journey ? travelAsked : walk;   // AUDIT TV A2: what the mod asked - its ground's rate under its own cap (RATE-LAW); TV-WASD: or the keys' travel
-    const load = travelGovernor.step(dt, { unbuilt, requested: want, owed: uc.owed, feet: unbuilt ? state.worldCoords(player.feetAt()) : null, speedMps: player?.speed ?? 0 });   // OW-LEAD: held by how near the nearest owed pixel is, at the traveller's own pace
+    const load = travelGovernor.step(dt, { unbuilt, requested: want, owed: uc.owed, feet: unbuilt ? state.worldCoords(player.feetAt()) : null, speedMps: travellerPace(player, csaBoatUnderMe()) });   // OW-LEAD: held by how near the nearest owed pixel is, at the traveller's own pace - PASSAGE-PACE: a boat's at her helm
     const foeCap = foes.strangerRate ? Math.min(foeRate(foes, want), foes.strangerRate) : foeRate(foes, want);   // ENEMY-PACE: the enemies' cap, never under the near-enemy pace (RATE-LAW: fixed)
     const town = tvInTown() ? TOWN_PACE_MAX : Infinity;   // OW-TOWN-WALK: in a town, a town's pace - a journey's own streets ask it already, the keys' travel is held to it
     const rate = Math.min(load, foeCap, town);   // OW6: the ground's cap and the enemies', the lower

@@ -37,6 +37,7 @@
 import { hash32 } from '../../world/spawnedDungeons.js';
 import { mulberry32 } from '../../combat/blood/bloodArt.js';
 import { hullBuild, MOD_CARRACK_BUILD } from './navalShips.js';
+import { stepFishing, fishingHeld } from './fishingBoats.js';   // FISH-BOATS: a fishing boat's day, an errand of her own
 
 /** How far past the town's rect a berth may lie (m), the shore scan's grid (m), the water kept between a berth's hull
  *  and the shore (m), a berth's spacing (her lengths), and the most berths a harbour holds. */
@@ -455,7 +456,7 @@ export function stepErrand(ship, dt, ctx) {
   const here = flat(ship.pos);
   const plan = (goal, sails = 1) => ({ want: heading(here, goal), goal: [goal[0], 0, goal[1]], sails });
   // a stall: no way under sail for STALL_S - a detour abeam into open water, then her way planned anew past what held her
-  if (e.kind !== 'moored') {
+  if (e.kind !== 'moored' && !fishingHeld(e)) {   // FISH-BOATS: at anchor or working her ground, she is where she means to be
     // AUDIT SHIP-LIFE A1: whatever sail she carries - the last of a berthing's way and a captain boxed in by the land
     // both shorten it, and a hulk across either held her there for good
     e.stall = ship.speed < STALL_WAY ? (e.stall ?? 0) + dt : 0;
@@ -592,6 +593,8 @@ export function stepErrand(ship, dt, ctx) {
       if (dist2(here, e.path[e.i]) <= REACH_M) e.i = (e.i + 1) % e.path.length;
       return plan(e.path[e.i], dist2(here, at) > LURK_R * 0.5 ? 1 : LURK_SAILS);
     }
+    case 'anchor': case 'fish': case 'home':   // FISH-BOATS (fishingBoats.js): her anchorage, her ground and her way home
+      return stepFishing(ship, dt, ctx, { here, plan, way });
     default:
       ship.errand = null;
       return null;
