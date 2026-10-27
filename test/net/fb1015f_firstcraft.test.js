@@ -150,7 +150,9 @@ test('CRAFT-FIRST-SHOWN the stations say it, read off the real book: the loom\'s
   const box = (title) => {
     const b = station(title).querySelector('.prof-craft');
     assert.ok(b, `${title}: a box`);
-    return [b.children[0].textContent, [...b.querySelectorAll('p')].map((p) => p.textContent)];
+    // PIN MOVED (MASTER-ART): the craft's own lines - a Master's work section, its own at Master, aside
+    const master = new Set(b.querySelector('.prof-master')?.querySelectorAll('p') ?? []);
+    return [b.children[0].textContent, [...b.querySelectorAll('p')].filter((p) => !master.has(p)).map((p) => p.textContent)];
   };
   // PIN MOVED (FIRST-BUDGET, Professions-Arc 52): the first's XP its track's share - Smithing's 500, Outfitting's 511,
   // Building's 1,823 (each the least that brings its track to Master in Smithing's crafts)

@@ -548,6 +548,10 @@ const REFUSAL_WORDS = {
   'prof-temper-stale': () => t('account.refusal.profTemperStale', 'That piece\'s quality has changed. Check your Stores again.'),
   'prof-reforge': () => t('account.refusal.profReforge', 'Arcane Essence can reforge a line on a Magic or Rare piece, but never on a Legendary, Aetheric or artifact piece.'),
   'prof-no-essence': () => t('account.refusal.profNoEssence', 'That piece carries too little enchantment to give any Arcane Essence.'),
+  // MASTER-ART: a Master's work's refusals (server-account/src/masterWork.js)
+  'prof-master': () => t('account.refusal.profMaster', 'A Master\'s work is a weapon, armor, clothing or jewelry piece that can wear a tier.'),
+  'prof-master-lines': () => t('account.refusal.profMasterLines', 'Choose three different lines this piece can carry, with at most one effect.'),
+  'prof-master-day': () => t('account.refusal.profMasterDay', 'You have made today\'s Master\'s work. The next can be made after midnight UTC.'),
   'bad-qty': () => t('account.refusal.badQty', 'Take 1 to {max} at a time.', { max: WITHDRAW_MAX }),
   'bad-pixels': () => t('account.refusal.badPixels', 'That land could not be read.'),
   'bad-region': () => t('account.refusal.badRegion', 'That region could not be read.'),
@@ -2327,6 +2331,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     stock: (character, material, qty, rid) => post('/v1/prof/stock', { character, material, qty, rid }),   // PROF3: the smith's stock
     brew: (character, potion, keys, rid, seat = null) => post('/v1/prof/brew', { character, potion, keys, rid, ...(seat == null ? {} : { seat }) }),   // PROF12: the alchemy station's brew - `keys` the cauldron as the Stores hold it, `seat` the held town it stands in
     temper: (character, recipe, quality, provenance, rid) => post('/v1/prof/temper', { character, recipe, quality, rid, ...(provenance ? { provenance } : {}) }),   // CRAFT4: a piece a quality step better
+    master: (character, recipe, lines, name, rid, dye = null) => post('/v1/prof/master', { character, recipe, lines, name, rid, ...(dye == null ? {} : { dye }) }),   // MASTER-ART: a Master's work, its three lines chosen
     reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
     writs: (character, region) => post('/v1/writs/list', { character, region }),

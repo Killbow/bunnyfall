@@ -11711,7 +11711,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // PROF3 (bible/06-Systems/Professions-Arc.md 24): THE ANVIL beside it - a craft through the book, its pieces into
         // the pack (kept until minted), the smith's fee a craft on the service's answer, as a smelt's; the smith's stock;
         // the heat's band, Smithing's attribute pair
-        craft: async (recipe, { clean, heartwood = false, dye = null, cracked = false }) => {
+        craft: async (recipe, { clean, heartwood = false, dye = null, cracked = false, ...more }) => {   // MASTER-ART: `more` the page's other asks (a Master's work's lines), handed on
           // PROF4: the station is the recipe's - the anvil for Smithing's, the workbench for Carpentry's; PROF7: the loom
           // for Outfitting's
           const st = craftStation(recipeById(recipe)?.profession);
@@ -11723,7 +11723,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           // SEAT2b part two (Seats-Arc 7.5): the town the station stands in, where my guild holds it and its crafting halls
           // step this craft (fortLaw.js hallStepsFor) - the service asks the Charter again (professions.js seatStepsFor)
           const { seat } = myHall(recipeById(recipe)?.profession);
-          const r = await profBook.craft(recipe, { clean, heartwood, dye, cracked, fee: f.fee > 0 ? f.fee : 0, name: typeof playerEntity?.name === 'string' ? playerEntity.name : null, seat }, profMintCraft);   // PROF10: a Lapidary's cracked gem
+          const r = await profBook.craft(recipe, { clean, heartwood, dye, cracked, fee: f.fee > 0 ? f.fee : 0, name: typeof playerEntity?.name === 'string' ? playerEntity.name : null, seat, ...more }, profMintCraft);   // PROF10: a Lapidary's cracked gem
           // CRAFT1 (bible/06-Systems/Professions-Arc.md 41): the chain's works the craft ran first - said, made or refused
           // AUDIT CRAFT1 F3: a kept craft says it too; F4: and a refused one where the chain stopped
           const chain = [refinedText(r?.refined, materialLabel, (prof) => profBook.track(prof)), r?.ok ? '' : chainStopText(r?.stopped, r?.material, materialLabel)].filter(Boolean).join(' ');

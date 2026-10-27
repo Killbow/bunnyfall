@@ -187,7 +187,7 @@ export const silverClothIn = (db, select, binds) => db.prepare(`INSERT INTO prof
 /** WOVEN-PAYS: A STATION'S USE OF A CLOTH TAKES ITS BOLTS OFF THE SILVER COUNT - `qtySql` units of `materialSql` where `guard`
  *  holds (the act's own row; ?1 the player, ?2 the character, `binds` from ?3), a row at nought deleted. A craft's and a
  *  temper's, whatever the recipe: a bolt used is a bolt used. */
-const silverClothOut = (db, { player, character, materialSql, qtySql, guard, binds }) => [
+export const silverClothOut = (db, { player, character, materialSql, qtySql, guard, binds }) => [
   db.prepare(`UPDATE prof_silver_cloth SET qty = qty - MIN(qty, ${qtySql}) WHERE player = ?1 AND char_id = ?2 AND material = ${materialSql} AND ${guard}`).bind(player, character, ...binds),
   db.prepare('DELETE FROM prof_silver_cloth WHERE player = ?1 AND char_id = ?2 AND qty = 0').bind(player, character),
 ];
@@ -318,8 +318,8 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
   const day = utcDay(nowS);
   // GATHER-SPEED: the state's reads in ONE round trip - the tracks, the Stores, the day's nodes, the carried count,
   // the day's harvests, the Court's writs and the hides and hauls - where they were eight trips in a row (WOVEN-PAYS adds
-  // the cloth's silver counts, CRAFT-HALL `made`)
-  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made] = await readAll(db, [
+  // the cloth's silver counts, CRAFT-HALL `made`; MASTER-ART today's Master's work)
+  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made, master] = await readAll(db, [
     db.prepare('SELECT * FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character),
     db.prepare('SELECT material, origin, qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND qty > 0 ORDER BY material').bind(player.id, character),
     db.prepare('SELECT node, kind FROM node_harvests WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day),
@@ -332,6 +332,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     // WOVEN-PAYS: the silver counts of its cloth (the loom's first-time line reads them)
     db.prepare('SELECT material, qty FROM prof_silver_cloth WHERE player = ?1 AND char_id = ?2 AND qty > 0').bind(player.id, character),
     madeStatement(db, player.id, character),   // CRAFT-HALL
+    db.prepare('SELECT 1 FROM prof_masters WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day),   // MASTER-ART: one a day
   ]);
   const byProf = new Map(rows.map((r) => [r.profession, r]));
   const held = new Map();
@@ -359,6 +360,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     caps: { stores: STORES_MAX, withdraw: WITHDRAW_MAX, highHides: HIGH_HIDES_PER_DAY },   // CAP-OFF: no day's harvests, hides or hauls
     silver: Object.fromEntries(silverRows.map((r) => [r.material, Number(r.qty)])),   // WOVEN-PAYS: the cloth's silver counts standing
     made: madeFrom(made),   // CRAFT-HALL
+    master: { made: master.length > 0 },   // MASTER-ART (Professions-Arc 57): whether today's Master's work is made
   };
 }
 
@@ -1330,8 +1332,8 @@ async function emberPurse(db, id) {
 
 // ─── A CRAFT AT THE ANVIL (PROF0 9, 24) ──────────────────────────────
 
-/** A provenance id: 16 hex digits from the service's CSPRNG (PROF0 9.1). */
-function provenanceId(rand) {
+/** A provenance id: 16 hex digits from the service's CSPRNG (PROF0 9.1). MASTER-ART: a Master's work's too (masterWork.js). */
+export function provenanceId(rand) {
   const b = new Uint8Array(8);
   rand(b);
   return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');

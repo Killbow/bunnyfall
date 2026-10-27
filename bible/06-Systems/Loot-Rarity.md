@@ -582,3 +582,11 @@ gear - weapons, plate and shields - at `tradeModes.js` counterValueOf, the one v
 in the piece sells whole, and what a shop ASKS stands. A patron at a hired trader is no counter: patronWorth
 (`net/patronLaw.js`) reads the piece's whole worth and is untouched. A departure from DFU's Sell arms (Port-Ledger A,
 A COUNTER PAYS HALF FOR DAEDRIC GEAR).
+
+## MASTER-ART (2026-10-27) - A CRAFTED LEGENDARY
+
+A crafter at Master makes a Legendary of no record: three lines of its group's pool, chosen, their values rolled in the
+Legendary band by the account service (`AFFIX_RANGES`' `legendary` column, never past its top). It carries no record's
+name, no DFU enchantment and no power, so the codex and the powers stay the drops'. The item law knows it by its
+provenance and its shape; the judge holds its lines to its record. The item maker refuses every Legendary now, this one
+too. The record is `06-Systems/Professions-Arc.md` section 57.

@@ -167,6 +167,7 @@ export const masonWorksFirstLine = (rank, profession, pay = {}, owed = null) => 
  * @param {{ room: number, by: string[], rank: number }|null} [limit]
  */
 export function craftXpText(r, data, profession, limit = null) {
+  if (data?.master === true) return t('prof.craft.master', '(a Master\'s work)');   // MASTER-ART: no experience past Master to say
   const xp = Number(data?.xp) || 0;
   if (limit?.room === 0) {
     return limit.by?.length

@@ -89,6 +89,7 @@ import {
 } from './craftHall.js';   // CRAFT-HALL
 import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
 import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
+import { drawMasterBox, resetMasterBoxes } from './masterBox.js';   // MASTER-ART: a Master's work, in the craft box at Master
 import { createStitchAct } from '../../systems/stitchAct.js';
 import { createChiselAct } from '../../systems/chiselAct.js';   // PROF11
 import { createPanAct } from '../../systems/panAct.js';   // PROF9
@@ -119,7 +120,7 @@ import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../..
  * @property {(recipe: string, count: number, opts?: { clean?: boolean }) => Promise<{ ok: boolean, text: string }>} [smelt]   PROF2: a
  *   smelt, its fee paid; PROF11: or a mason's work, `clean` the chisel's report
  * @property {() => Promise<any>} [settle]   AUDIT 29 C4: the kept withdrawals asked again (the Stores page opened)
- * @property {(recipe: string, opts: { clean: boolean, heartwood?: boolean, dye?: number|null, cracked?: boolean }) => Promise<{ ok: boolean, text: string }>} [craft]
+ * @property {(recipe: string, opts: { clean: boolean, heartwood?: boolean, dye?: number|null, cracked?: boolean, master?: string[] }) => Promise<{ ok: boolean, text: string }>} [craft]
  *   PROF3: a craft at the anvil (PROF4: or the workbench, by the recipe's profession; PROF7: or the loom, a garment's
  *   `dye`; PROF10: or the jeweller's bench, a Lapidary's `cracked` gem), its pieces made and its fee paid
  * @property {(material: string, qty: number, counter?: string) => Promise<{ ok: boolean, text: string }>} [stock]   PROF3: the
@@ -504,6 +505,7 @@ export function resetProfPages() {
   endFacet(); _jewel.word = null; _jewel.piece = 'ring'; _jewel.base = 'silver'; _jewel.grade = 'plain'; _jewel.picked = null; _jewel.crafting = false; _jewel.heartwood = false; _jewel.cracked = false;   // PROF10
   _alchemy.word = null; _alchemy.picked = null; _alchemy.crafting = false; _alchemy.counts = {};   // PROF12
   _enchant.word = null; _enchant.armed = null;   // PROF12
+  resetMasterBoxes();   // MASTER-ART
 }
 
 /** What the Professions page says a harvest earns for each profession PROF1 gathers, by tier - and a craft's
@@ -1880,6 +1882,7 @@ function drawAnvil(detail, rerender, kit) {
       // CRAFT-HALL: Craft x N
       const wood = _anvil.heartwood && takesHeartwood(r);
       craftTimes(box, el, _anvil, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(forge, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });
+      drawMasterBox(box, kit, r, { station: 'anvil', book, state: _anvil, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }
@@ -2097,6 +2100,7 @@ function drawWorkbench(detail, rerender, kit) {
       box.append(go, quick);
       const wood = _bench.heartwood && takesHeartwood(r);
       craftTimes(box, el, _bench, rerender, { ready, most: !r.later && recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });   // CRAFT-HALL
+      drawMasterBox(box, kit, r, { station: 'workbench', book, state: _bench, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }
@@ -2347,6 +2351,7 @@ function drawLoom(detail, rerender, kit) {
       quick.onclick = () => { void finish(false); };
       box.append(go, quick);
       craftTimes(box, el, _loom, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(loom, craftsHeld(r.inputs, book)) : 0, once: () => p.craft(r.id, { clean: false, dye }) });   // CRAFT-HALL: in the dye chosen
+      drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });   // MASTER-ART: in the dye chosen
     }
     detail.append(box);
   }
@@ -3069,6 +3074,7 @@ function drawJewellerBench(detail, rerender, kit) {
       quick.onclick = () => { if (!quick.disabled) void finishFor(r.id, wood, crack)(false); };
       box.append(go, quick);
       craftTimes(box, el, _jewel, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood, cracked: crack }) });   // CRAFT-HALL
+      drawMasterBox(box, kit, r, { station: 'jeweller', book, state: _jewel, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }

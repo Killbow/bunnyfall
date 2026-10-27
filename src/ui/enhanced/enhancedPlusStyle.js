@@ -1753,6 +1753,20 @@ button.prof-track:hover, button.prof-track:focus-visible { border-color: var(--b
 .prof-times { display: flex; align-items: center; gap: 6px; }
 .prof-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
 @media (pointer: coarse) { .prof-show, button.prof-track { min-height: 40px; } }
+/* MASTER-ART: a Master's work in a craft box - its three line pickers and its press 40px for a finger and a key, the
+   catalysts as inputs, the last work's card in the Legendary orange (lootRarity.js RARITIES.legendary.colour) */
+.prof-master { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px solid rgba(224,122,46,0.45); }
+.prof-master-head { color: #e07a2e; font-weight: normal; letter-spacing: 0.06em; }
+.prof-master-lines { display: flex; flex-direction: column; gap: 6px; }
+.prof-master-line { display: grid; grid-template-columns: 56px minmax(0, 1fr); align-items: center; gap: 8px; color: #d9cfbd; }
+.prof-master-pick { min-height: 40px; min-width: 0; padding: 4px 8px; font: inherit; font-size: 13px; color: var(--bone, #e9e4d9);
+  background: rgba(10,8,6,0.75); border: 1px solid rgba(192,138,62,0.35); }
+.prof-master-pick:focus-visible, .prof-master-go:focus-visible { outline: 2px solid #e07a2e; outline-offset: 1px; }
+.prof-master-go { min-height: 40px; align-self: flex-start; }
+.prof-master-card { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 8px; border: 1px solid #e07a2e; background: rgba(224,122,46,0.1); }
+.prof-master-name { color: #e07a2e; font-weight: normal; }
+.prof-master-tier { font-size: 11px; color: #e8b872; letter-spacing: 0.08em; text-transform: uppercase; }
+.prof-master-got { flex: 1 1 100%; margin: 0; padding-left: 16px; color: #efe0b8; }
 /* Existing readable text roles follow the active theme rather than one hard-coded Stone palette. */
 .px-qdetail.prof-detail .px-note { color: var(--bone); }
 .prof-matbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 4px; font-size: 12px; color: #d9cfbd; }

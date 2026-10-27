@@ -70,7 +70,8 @@ src/net/nodeLaw.js (the nodes). Appendix B lists them in one place.
    law 5).
 7. **CRAFTING DOES NOT RETIRE LOOT.** FACT: Loot Rarity's tiers are Common, Magic, Rare, Legendary, Aetheric, Artifact
    (`src/systems/loot/lootRarity.js`); Sigil Sets are online set gear (`11-Multiplayer/Sigil-Sets.md`). DECIDED: a craft
-   reaches **Rare** at most (a Masterwork); Legendary, Aetheric, Artifact and Sigil pieces are never craftable.
+   reaches **Rare** (a Masterwork); a Master's work alone reaches **Legendary** - its lines chosen, rolled in the band,
+   no record and no power (MASTER-ART, section 57); Aetheric, Artifact and Sigil pieces are never craftable.
 8. **MARKS, NOT GOLD** - DECIDED (Mac: "New currency"). Everything this arc prices between players is in Marks
    (10.5), which only the server holds and only server-witnessed acts mint - SILVER-FINDS (10.5, Mac: "Silver should be
    more accessible"): a harvest's find and a loot find aside, two faucets BOUNDED BY THE DAY instead, since neither act
@@ -4263,7 +4264,10 @@ slice is built and pinned on its own (Home's "one feature at a time").
   Pine, smelt the Steel, cure the hide) at two stations, before the anvil - for DFU's own Steel Longsword, which every
   Weaponsmith shelves and every dungeon drops.
 - **The ceiling.** Law 7: a craft reaches Rare at most (a Masterwork, 8% at the best margin - 13 with a Masterwright's points, 9.2); loot reaches
-  Legendary, Aetheric, Artifact and Sigil. A crafted piece is never the best a slot holds.
+  Legendary, Aetheric, Artifact and Sigil. A crafted piece was never the best a slot holds. MASTER-ART (2026-10-27,
+  section 57; the owner: "build all of it with autonomy and be as detailed as possible. No exceptions and no band aids"):
+  a Master's work is a Legendary of the lines its crafter chose - the build a slot wants, never past the Legendary band,
+  never a Legendary's power.
 - **What already works**: what wears out or is eaten - the tools (a Standard tool's 50 harvests, `TOOL_LIFE`), Repair Kits, arrows, dishes and the
   party's Feast, Potent potions, Ram Kits and the fortifications' stone, decor. Loot does not flood them.
 
@@ -5566,6 +5570,9 @@ gives, arrows, a Standard tool's harvests); **the seats' works** (a fortificatio
 market** (a Masterwork with your name, commissions, regional prices); and the **Renown** a writ pays. POT-THIN is the first
 change that took a consumable back from the loot so the crafter could supply it; the next ones are 48.4's.
 
+MASTER-ART (section 57) adds the top end, sideways: at Master, a Master's work - a Legendary whose three lines the crafter
+chooses, for catalysts from three pursuits, one a day. Loot keeps the powers; crafting gives the build you want.
+
 ### 48.4 Open, for the owner (DECIDED nothing here)
 
 - **Crafting writs** - BUILT the next day, at the owner's word: section 49 (CRAFT-WRITS).
@@ -6438,6 +6445,137 @@ bonus (or what already has)." The owner: "No exceptions and no band aids."
 tier 6's first for its kin on the service and in the law; the book's record; `xpSources` against every law; the bar;
 the owed list; the station lines; the landings and the doors; the Crafting page, the Professions page and the anvil
 drawn. `tools/mutants/crafthall.json` (28, all dead).
+
+## 57. MASTER-ART - a Master's work: a Legendary of the crafter's chosen lines (BUILT 2026-10-27)
+
+A player's feedback: "The horizontal MMO approach was working really well imo ... I would hate hate hate to see go down
+the path of Retail WoW, with stupid expansions that constantly overwrite your gear every single patch keeping you on a
+tread mill. Add more horizontal progression please!" The owner: "build all of it with autonomy and be as detailed as
+possible. No exceptions and no band aids." The decisions below are the record's, under that autonomy.
+
+### 57.1 What stood
+
+- Crafting stopped at Rare: a Superior rolled Magic, a Masterwork Rare (`recipeLaw.js:"Object.freeze({ condition: 1.3, weight: 0.9, rarity: 'rare' }),"`).
+  Tempering and the Reforge with Essence are shut for Legendary and above (`temperLaw.js:"export const TEMPER_SHUT = Object.freeze(['legendary', 'aetheric', 'artifact', 'gilded']);"`).
+
+- Law 7 (section 1) and 41.1 said it outright: a crafted piece is never the best a slot holds. The Legendary band came
+  only from drops.
+
+### 57.2 What was decided
+
+- **A Master's work.** A character at Master (rank 100) in a craft makes a Legendary piece of that craft's kinds: the
+  smith's weapons and armour and the jeweller's pieces (Smithing), the loom's leather and garments (Outfitting), the
+  workbench's staves and bows (Building) - every recipe whose piece wears a tier, the Wand aside (no slot takes it).
+
+- **Chosen, not gambled.** The crafter chooses its three lines - a Legendary's count (34 of the 39 records carry three) -
+  from the lines the ladder rolls for the piece's group, one that does something at most. The service rolls their values
+  in the Legendary band, never past its top (POWER-CEILING). No record, no Legendary power, no enchantment: the codex's
+  powers stay the drops'. It is the build you want, not a higher number.
+
+- **A Masterwork with the maker's mark**, its quality fixed. No XP: a Master's track is at its top.
+
+### 57.3 The price, and its bound
+
+- **The recipe's own goods**, as its craft spends them (a station's: loose units too), and the station's fee.
+
+- **Catalysts from three pursuits**, one table (`masterLaw.js:"export const MASTER_CATALYSTS = Object.freeze(["`): 2
+  Heartwood (Logging's rarest find, 2% a Clean Cut on witnessed ground), 3 Pearls (the sea's own - a net hauled at sea on
+  witnessed ground; no river or lake gives one) and 10 Arcane Essence (Enchanting). Spent only from what the service
+  counted - own or bought, never loose and never bought with gold - so a looted Pearl is no catalyst. A later material
+  (HUNTERS-MARK's trophies) is one row; the station names it by the material registry.
+
+- **One a character a UTC day**, decided by the work's own row (`prof_masters`, UNIQUE on the day).
+
+### 57.4 As built
+
+- **The law** - `src/net/masterLaw.js`, pure: `masterRecipe`, `masterOptions` (the ladder's lines for the piece's
+  group, numbers then effects, each param the kind names on the piece - a garment's attribute Personality alone; never a
+  technique), `masterChoiceRefusal` (`recipe`, `count`, `line`, `twice`, `procs`), `rollMasterLines`
+  (`masterLaw.js:"export function rollMasterLines("`: lo to hi, the ladder's own draw, off the seed), `isMasterWork`.
+
+- **The record** - `productRecord.js:"export const MINT_V_MASTER = 4;"`: a Master's record stamps mint version 4 (3 is
+  main's ARMOR-LEAN, taken first) and
+  carries its lines (`l`, `kind` or `kind:param`); their values come off its seed (`c`), so the market and every client
+  mint the same piece. The bound is `productRecord.js:"export const PRODUCT_RECORD_MAX = 640;"` (it was 512: the law's
+  widest Master's record runs to 537).
+
+- **The service** - `masterWork.js:"export async function masterWork("`, `/v1/prof/master`: one batch, as the anvil's -
+  the rank read, the day's row, every good and catalyst held as it is spent (a Pearl jewel's own Pearl beside its three),
+  the products row and signed record, the goods out a station's way, the catalysts bought first. A progression claim of
+  the seated character (`progress.js` PROGRESS_ROUTES). Migration `0178_master_work.sql`. The state says whether today's
+  is made (`profState`'s `master`).
+
+- **The mint** - `smithItems.js:"function applyMasterWork(item, r, keys, seed) {"`: Legendary, the record's lines at their
+  values, its name its lines' (the mark's over it), its worth its lines'; laid whatever the switch, as the last pass is.
+  The market's piece carries the lines (`market.js` pieceOf).
+
+### 57.5 The law of the piece
+
+- **The item law** - `itemLaw.js:"function masterFindings(item, body, procs, techs, gems) {"`: a made Legendary of no
+  record is a Master's work - a Masterwork, three lines in the band, one effect at most, no technique, gem, Exalted line,
+  curse, reforge, hone or enchantment. `ITEM_LAW_VERSION` stays 14: no Master's work existed before the service that
+  makes it, whose judge is this law, so no finding of 14 is one to ask again.
+
+- **The judge** - `judge.js:"const recordLines = (record) => {"`: a piece showing a Master's lines holds a record that
+  names them, at the values its seed rolls. A piece edited within the band passes the item law and fails here.
+
+- **The item maker** refuses every Legendary (`enchanting.js:"if (item?.rarity === 'legendary') return null;"`): a
+  Master's work carries no rows, and DFU's refusal of an enchanted item never reached it.
+
+- Law 7's tiers keep it from the temper and the Reforge (TEMPER_SHUT); it salvages to nothing, as every made piece.
+
+### 57.6 The station
+
+- In the craft box of the anvil, the workbench, the loom and the jeweller's bench, at Master in the recipe's craft
+  (`masterBox.js:"export function drawMasterBox(box, kit, r, { station, book, state, ready, rerender, name, go }) {"`):
+  three line pickers - native selects, a key's and a finger's, 40px under Enhanced Plus - each line shown at its band's
+  two ends ("+20 to 40% damage"), a chosen line and a second effect greyed in the others; the catalysts held of what is
+  asked, a short one marked; one a day, or today's made; the press; and the last work's card (its name as the pack names
+  it, Legendary, its three lines rolled).
+
+- The press is the station's own craft door with the lines: the fee, the chain of works, the kept act and its mint are a
+  craft's. world.js's door hands the page's other asks to the book
+  (`world.js:"craft: async (recipe, { clean, heartwood = false, dye = null, cracked = false, ...more }) => {"`) - a
+  spread, no logical line in bootWorld (HOST-SPLIT). The book asks `/v1/prof/master` for a kept craft with lines
+  (`profBook.js:"const lines = Array.isArray(master) ? master.filter((x) => typeof x === 'string') : null;"`), its
+  catalysts put in from the counted bag first, and keeps the day and the card (`state.master`).
+
+### 57.7 Hosts, service, wire, words
+
+- **The four hosts**: `world.js` wired (the craft door's spread, above); `worldModes.js`, `exterior.js` and
+  `dungeonContext.js` build no station page and no craft door - none to wire.
+
+- **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
+  the state's `master`, the judge's lines. `ACCOUNT_VERSION` is the merge's to move. The relay is unchanged. The wire's
+  change is the product record's (`l`, MINT_V_MASTER, the bound at 640); a client older than it mints a Master's record
+  as the Masterwork's Rare roll.
+
+- **Words**: the station's (`prof.master.*`), the craft's word (`prof.craft.master`) and three refusals - new keys, drafted
+  with the merge.
+
+- **A departure**: Port-Ledger A, MASTER-ART. DFU crafts no piece of a rarity, and its item maker lists any unenchanted
+  piece; a Master's work is refused there.
+
+### 57.8 Not changed, named
+
+- A Master's work fills no commission and no crafting writ: both ask a piece of `prof_crafts`, and a Master's work is
+  its own row. Disenchanted, it gives its template's Essence; its catalysts are spent.
+
+- The bound is a character's: an account with three Masters makes three a day.
+
+- POWER-CEILING's rule (no line of any piece past the Legendary band) is another slice's; this roll keeps it by its own
+  draw, pinned over four thousand seeds.
+
+### 57.9 Pinned
+
+`test/net/masterart_law.test.js` (8), `test/net/masterart_service.test.js` (3, through the real Worker),
+`test/ui/professions/masterart_ui.test.js` (3). `tools/mutants/masterart.json` (42: 41 dead, one recorded equivalent - the
+Rare roll's guard, which LR4's one roll a piece keeps as well). Re-aimed by content, each dead: `bag1`, `crafthall`,
+`fb1013e_craftprocs` (3), `gatherspeed`, `int_audit`, `seat2b_peace`, `prof7`. PIN MOVED: `test/net/audit30_laws.test.js`
+(a record past 640 now, with a Master's lines), `test/systems/prof10_client.test.js` (the craft door's spread),
+`test/server/accountworker.test.js` (`prof_masters`), `test/net/fb1015f_firstcraft.test.js` (a box's own lines read with a
+Master's work section beside them - its Building is at Master), `test/ui/seat2b_peace_client.test.js` (the door's spread
+after the seat).
 
 ## Appendix A - a day of a gatherer
 

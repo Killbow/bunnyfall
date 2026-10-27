@@ -31,7 +31,8 @@ import { busyRead, BUSY_SHED_MS } from '../../src/net/busyLaw.js';   // BUSY-GAT
  *  reason: a deploy that did not happen looks exactly like one that
  *  did. Kept in step with ACCOUNT_VERSION in wrangler.toml, which
  *  test/server/accountworker.test.js holds. */
-export const ACCOUNT_VERSION = 'acct197';   // acct197: CRAFT-HALL (acct196 on its branch, renumbered past main's WOVEN-PAYS acct196 at the merge) - profState says what the character has made; either side may deploy first.
+export const ACCOUNT_VERSION = 'acct198';   // acct198: MASTER-ART - /v1/prof/master, a Master's work (migration 0178, prof_masters): a Legendary of chosen lines rolled in the band, its record's `l` and mint version 4; the judge reads its lines against its record; profState says `master.made`. Deploy the account service before the site.
+// acct197: CRAFT-HALL (acct196 on its branch, renumbered past main's WOVEN-PAYS acct196 at the merge) - profState says what the character has made; either side may deploy first.
 // acct196: WOVEN-PAYS and AUDIT WOVEN-PAYS (FIELD BUGS 2026-10-26b, acct195 on its branch, renumbered past main's LOCKPICK and AUDIT GATHER acct195 at the merge; fogs, #feature-feedback: "First time XP bonus from the Loom still isn't working"; the owner: "Woven cloth pays", then "Audit this"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md) - a piece of cloth the character wove or spun pays its first-make share whatever its goods, and cloth bought with silver never does, counted: the bolts of Linen and Wool a character buys with silver (buyStock; market.js a Drakes buy, a courier's load, a buy order filled) against the bolts its stations use (craftAtAnvil, temperPiece) - prof_silver_cloth, migration 0177_woven_pays, filled from the bought cloth held; a judged pattern is made by the craft that laid its first on (prof_crafts.first_paid); a cloth's Stores count and the state say the count (`silver`); the answer's `firstPaid` reads first_paid
 // acct195: LOCKPICK and AUDIT GATHER (2026-10-26, the owner: "I want to build a detailed lock picking minigame and introduce a lockpick item"; "Audit the harvesting and gathering systems"; bible/06-Systems/Lockpicking.md 2, Professions-Arc.md 55) - the item law knows the Lockpick (template 584, src/systems/lockpick/lockpickRow.js: deploy the account service before the site, or an honest Lockpick reads as a forgery in the gap); a Motherlode struck only once risen on the service's clock (AUDIT GATHER F2); a haul's school counted on an account's first forty hauls of the day (F3)
 // acct194: NIRNROOT-SAGE (2026-10-26, for Blob-Marley, an Immortal backer: "billowing smoke, circling nirn roots around midsection, small glowing green runes encircling feet"; bible/06-Systems/Accounts-And-Cloud-Saves-Arc.md NIRNROOT-SAGE) - NIRNROOT_SAGE_HANDLES grants the Nirnroot Sage title, its glyph and Sage's Smoke together (titles.js TIER_LISTS, TIER_GLYPH, TIER_AURA). Deploy the relay first (world268): this service signs the new glyph into Blob-Marley's every token, which a relay before world268 refuses whole
@@ -614,6 +615,8 @@ export const ROUTES = new Set([
   '/v1/prof/brew', '/v1/prof/disenchant',
   // CRAFT4: a temper (professions.js) and an Enchanter's Reforge with Essence (alchemy.js) - the same doors
   '/v1/prof/temper', '/v1/prof/reforge',
+  // MASTER-ART: a Master's work (masterWork.js) - the same doors
+  '/v1/prof/master',
   // BAG1: a deposit - carried units into the Stores (professions.js depositStores), the same door
   '/v1/stores/deposit',
   // PROF2b: today's Motherlodes (a strike rides /v1/prof/harvest, its node naming it)
