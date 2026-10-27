@@ -50,6 +50,8 @@ import { isShieldTemplate } from '../armorMaterials.js';
 import { isAmmunition } from '../item/itemTemplates.js';
 import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
 import { ETHER_WORD } from '../../world/ethericSea.js';   // SEA-SET: the sea's name in the Undertow's words (ELTHERIC: one word's home)
+import { noteReach, catchUpXp, recordedReach, reachOfRanks, CATCH_UP_MULT, _resetSetReachForTests } from './setReach.js';   // SET-CATCHUP: a set's reach, and the faster drink below it
+import { t } from '../textManager.js';
 
 /** The pieces a set's tiers wake at. */
 export const SET_TIERS = Object.freeze([2, 4, 6]);
@@ -68,6 +70,9 @@ export const SET_PLACES = Object.freeze(['head', 'right arm', 'left arm', 'chest
 /** Dagon's Brand (6): a Rampage stack lasts this long, a kill refreshing every one, and no more than this many stand. */
 export const RAMPAGE_SECONDS = 12;
 export const RAMPAGE_STACKS = 3;
+/** Malacath's Bulwark (6): Unbroken's half, the share it takes off every hurt while its window holds (POWER-CEILING
+ *  names it so the guards' ceiling can count it). */
+export const UNBROKEN_LESS = 50;
 /** Nocturnal's Shroud (6): Eventide's shadow is a Chameleon of whole magic rounds, and online a round is five seconds
  *  of the shared clock (net/wire.js: a classic minute every five real seconds). */
 export const ROUND_SECONDS = 5;
@@ -518,6 +523,20 @@ export const rollSetJoin = (rolls = Math.random) => (rolls() * SET_WEAPON_JOIN_I
 
 /** A set's own rank: its lowest piece's (0..4), whatever the Renown. */
 const lowestRank = (pieces) => pieces.reduce((low, p) => Math.min(low, sigilRank(p.sigil)), SET_STAGE_MAX);
+/** SET-CATCHUP: the ranks of every set piece an entity carries (worn or in the pack), by set. */
+export function carriedSetRanks(entity) {
+  /** @type {Map<string, number[]>} */
+  const out = new Map();
+  for (const it of entity?.items ?? []) {
+    const id = setIdOf(it);
+    if (!id) continue;
+    if (!out.has(id)) out.set(id, []);
+    out.get(id).push(sigilRank(it.sigil));
+  }
+  return out;
+}
+/** SET-CATCHUP: the highest stage a set has stood at for this entity - what it carries, or what the save recorded. */
+export const setReachOf = (entity, id) => Math.max(recordedReach(id), reachOfRanks(carriedSetRanks(entity).get(id) ?? []));
 /** What the page says when a set I wear rises to `rank`: its stage, and what my Renown holds it at when that is lower
  *  (SIGIL1's line, for a set). */
 export function setRiseLine(id, rank) {
@@ -539,12 +558,17 @@ export function setRiseLine(id, rank) {
  * @returns {{ lines: string[], rose: boolean }}
  */
 export function drinkWorn(entity, held, xp, nameOf = (it) => String(it?.name ?? 'weapon')) {
-  const worn = setsAwake() ? wornSetPieces(entity) : new Map();
+  const awake = setsAwake();
+  const worn = awake ? wornSetPieces(entity) : new Map();
   const was = new Map([...worn].map(([id, pieces]) => [id, lowestRank(pieces)]));
+  // SET-CATCHUP: each set's reach, recorded as the drink finds it; a piece below it drinks faster until it gets there
+  const reach = awake ? noteReach(carriedSetRanks(entity)) : new Map();
+  const drink = (p) => { const id = setIdOf(p); return id ? catchUpXp(xp, p.sigil?.xp, reach.get(id) ?? -1) : xp; };
   // AUDIT SET D8: a set's weapon sleeps with its set in a duel (section 2: "no piece drinks"); a plain sigil weapon
   // drinks as SIGIL1 says
-  const rank = setIdOf(held) && sigilDueling() ? null : drinkSigil(held, xp);
-  for (const pieces of worn.values()) for (const p of pieces) if (p !== held) drinkSigil(p, xp);
+  const rank = setIdOf(held) && sigilDueling() ? null : drinkSigil(held, drink(held));
+  for (const pieces of worn.values()) for (const p of pieces) if (p !== held) drinkSigil(p, drink(p));
+  if (awake) noteReach(carriedSetRanks(entity));   // SET-CATCHUP: a rise this drink made is the set's reach from now on
   const risen = [];
   for (const [id, pieces] of worn) { const now = lowestRank(pieces); if (now > was.get(id)) risen.push([id, now]); }
   const lines = [];
@@ -596,13 +620,19 @@ export function setCardView(item, wearer = setsWearer()) {
   const pieces = wornSetPieces(wearer).get(id) ?? [];
   const sleep = setsSleep();
   const st = setState(id, pieces, sigilRenown(), sleep == null);
+  // SET-CATCHUP: the piece holding the set back is below the set's reach - it drinks faster until it gets there
+  const reach = st.heldPiece ? setReachOf(wearer, id) : -1;
+  const catchUp = st.heldPiece && sigilRank(st.heldPiece.sigil) < reach ? { stage: reach, name: SIGIL_STAGES[reach].name, mult: CATCH_UP_MULT } : null;
   return {
     id, name: set.name, prince: set.prince, role: set.role, colour: set.colour, aetheric: set.aetheric,
     count: st.count, of: SET_PLACES.length, places: setPlacesWorn(wearer, id), worn: pieces.includes(item),
     stage: st.stage, stageName: st.stage < 0 ? null : st.stageName, heldPiece: st.heldPiece, renownNext: st.renownNext,
-    sleep, tiers: st.tiers,
+    sleep, tiers: st.tiers, catchUp,
   };
 }
+/** SET-CATCHUP: the card's word for the faster drink - "3x XP to Radiant", or "3x XP" beside the stage it leads to. */
+export const catchUpText = (c, next = null) => (!c ? '' : c.name === next ? t('sets.catchUp', '{mult}x XP', { mult: c.mult })
+  : t('sets.catchUpTo', '{mult}x XP to {stage}', { mult: c.mult, stage: c.name }));
 const SLEEP_WORDS = Object.freeze({ offline: 'sets only work online', renown: 'waiting for your Renown', duel: "sets don't work in duels" });
 /** Why the sets sleep, in the page's words, or null. */
 export const setSleepText = (sleep) => SLEEP_WORDS[sleep] ?? null;
@@ -621,9 +651,9 @@ export function setLines(item, wearer = setsWearer()) {
   const v = setCardView(item, wearer);
   if (!v) return [];
   const why = setSleepText(v.sleep);
-  const head = `${v.name}: ${v.count} of ${v.of} worn${v.stageName ? `, ${v.stageName}` : ''}${why ? ` (${why})` : ''}`;
+  const head = `${v.name}: ${v.count} of ${v.of} worn${v.stageName ? `, ${v.stageName}` : ''}${why ? ` (${why})` : ''}${v.catchUp ? `, ${catchUpText(v.catchUp)}` : ''}`;   // SET-CATCHUP
   return [head, ...v.tiers.map((t) => `${t.at} pieces - ${t.name}: ${t.brief}${t.recover != null ? `, every ${t.recover}s` : ''}${t.awake ? '' : v.count < t.at ? ` (${t.at - v.count} more)` : ' (inactive)'}`)];
 }
 
-/** Tests only: forget the duel and the wearer. */
-export function _resetSigilSetsForTests() { setSigilDueling(false); _wearer = () => null; }
+/** Tests only: forget the duel, the wearer and every set's reach (SET-CATCHUP). */
+export function _resetSigilSetsForTests() { setSigilDueling(false); _wearer = () => null; _resetSetReachForTests(); }

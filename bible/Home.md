@@ -259,6 +259,19 @@ Everything written from now on:
   on main, a merge from main admits main's own counts and no more
   (`node tools/plainText.mjs --seed origin/main`).
 
+THE CEILING HOLDS (POWER-CEILING, 2026-10-27; a player: "I would hate hate
+hate to see go down the path of Retail WoW ... keeping you on a tread mill";
+the owner: "No exceptions and no band aids"). No line of any piece goes past
+the Legendary band's top, and the rarity ladder is the seven rungs it has.
+New content adds sideways - a set for another build, a power that changes
+how you play, a look, a way in - and never higher numbers: a new power's
+numbers stay at or under today's strongest of their kind, and a blow's
+powers and a hurt's guards stay inside the two composite ceilings
+(`src/systems/powerCeiling.js`). A new rung, a higher band or a stronger
+number needs the owner's explicit approval, quoted in
+`05-Combat/Power-Ceiling.md` before it merges. `test/combat/powerceiling_walk.test.js`
+walks every record and every minted item against it.
+
 THE HOSTS DO NOT GROW (HOST-SPLIT, 2026-10-15). bootWorld, createWorldModes,
 buildDungeonContext, bootExterior, navalHost's createNavalHost and Come Sail Away's
 createComeSailAwayRuntime each keep their whole state in one

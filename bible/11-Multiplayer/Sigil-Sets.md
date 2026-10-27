@@ -130,6 +130,13 @@ party's bonus, never past the last stage (`SIGIL_XP_MAX`). A rise is said once f
 Dagon's Brand brightens: Kindled."), and the card names the piece holding the set back. A piece swapped in fresh
 pulls the set down to its stage until it catches up - the price of a new piece, and the reason to keep one.
 
+SET-CATCHUP (POWER-CEILING, 2026-10-27; a player: "Add more horizontal progression please!"): the price is paid
+faster. A set's REACH is the highest stage it has stood at for this character - two of its pieces at that stage,
+worn or in the pack, or the save's record of it. A piece below its set's reach drinks three times the XP until it
+reaches that stage, and the rest of the drink that gets it there is paid whole; at or past the reach it drinks as
+before. Grow together stands: the set's stage is still its lowest piece's. The card says the pace beside the piece:
+"Kindled: grow your Helm (3x XP to Radiant)". The record is the SET-CATCHUP section below.
+
 ## 6. Aetheric, and Ruhn's Regalia (SET6)
 
 **Aetheric** is the ladder's new top rung under Artifact: a colour of its own (the aether's pale blue-white,
@@ -1181,3 +1188,26 @@ names through the text core); every chip's tier, which the HUD's card reads; the
 (section 6f); the Wyrd's Raiment given its section (6g) and the Weave its right heading and count. Pinned by
 `test/systems/starfall/auditstar.test.js`, and the chips' pins of SET5 and RAID4b moved for the tier. Mutants in
 `tools/mutants/auditstar.json`.
+
+### SET-CATCHUP - going sideways costs less (2026-10-27)
+
+POWER-CEILING's fourth decision (`05-Combat/Power-Ceiling.md` section 6). `systems/sigil/setReach.js` holds the law
+and its save slot: `CATCH_UP_MULT` 3, a set's reach from its carried ranks (`reachOfRanks`: the second best,
+`REACH_PIECES` 2 - the first tier's count), the record kept at every drink and never lowered (`noteReach`), and the
+drink a piece below its reach takes (`catchUpXp`). The record is the save's mod record `SigilSetReach`, a forged or
+unknown entry dropped, a new game empty.
+
+`drinkWorn` reads the reach before the drink and records it after, so a rise the drink made counts even when its
+pieces are sold later. `setCardView` gives the card a `catchUp` (the reach, its name, the pace) when the piece holding
+the set is below the reach; the card's stage line and the classic tooltip's head say it (`catchUpText`, the text
+core's `sets.catchUp` and `sets.catchUpTo`).
+
+Four hosts: none edited - world.js's `sigilDrinks` calls `drinkWorn` for every kill and quest the streamed world,
+an interior and a dungeon pay; `exterior.js`, the offline bench, earns no Renown and drinks nothing (FLAGGED as before).
+No service, relay or wire change.
+
+Pinned by `test/systems/sigil/setcatchup.test.js` (5). PIN MOVED (SET-CATCHUP): `set4_drops_growth`'s rise (with a and
+b at Bright, c catches up to Bright, not Kindled) and `set5_ui`'s stage line (the helm below three Bright pieces says
+"(3x XP)"). `_resetSigilSetsForTests` forgets the reach too, so no test's reach leaks into the next. The SET4 and SET3
+mutant records that quoted the drink and Unbroken's halving are re-aimed by content (`set4.json`, `set3.json`).
+Mutants in `tools/mutants/power-ceiling.json` (the `SET-CATCHUP-` records).

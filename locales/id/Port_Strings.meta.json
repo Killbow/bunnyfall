@@ -34804,6 +34804,16 @@
   "tr": "21c0a01fdef5",
   "by": "claude-in-session"
  },
+ "sets.catchUp": {
+  "en": "f526ea3223fb",
+  "tr": "f526ea3223fb",
+  "by": "claude-in-session"
+ },
+ "sets.catchUpTo": {
+  "en": "4c1c32c00eac",
+  "tr": "14cf0f9596fd",
+  "by": "claude-in-session"
+ },
  "settings.language.machine": {
   "en": "048283a78ca3",
   "tr": "5c05b252675e",
