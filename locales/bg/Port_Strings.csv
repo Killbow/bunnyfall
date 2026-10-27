@@ -2075,7 +2075,7 @@ eg.vote.respiteHow,"Отговори на отдих с R или /breach respite
 eg.vote.respiteNone,"Никой не е поискал отдих."
 eg.witness.watching,"Наблюдаваш {who} - здраве {pct}%."
 eg.witness.watchingName,"Наблюдаваш {who}."
-ether.cross.passengers,"Само групата ви може да прекоси Завесата с вас. Прекосяването чака, докато на борда не остане никой друг."
+ether.cross.passengers,"Само групата ви може да прекоси Завесата с вас. Прекосяването чака, докато на борда не останат само хората от групата ви."
 events.board.left,"Остава {time}"
 events.board.more,"{n, plural, one {още # в Timers} other {още # в Timers}}"
 events.board.starts,"след {time}"

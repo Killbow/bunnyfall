@@ -352,10 +352,10 @@ test('CREW-SIGNED THE HALL ONLINE (through the real account service): a sailor a
   const day = crewDayAt(Date.now());
   const r = rig();
   r.st.day = day;
-  const host = createShipyardHost({ ...r.deps, signs: createCrewSignBook({ live: () => true, door: doorOf(me) }) });
+  const host = createShipyardHost({ ...r.deps, signs: createCrewSignBook({ live: () => true, character: () => me.character, door: doorOf(me) }) });   // PIN MOVED (AUDIT HORIZONTAL C8): the book asks as the character, as every direct ask below
   own(r, 702, 4, 'laidup');
   const all = recruitsOf({ mapId: SITE.mapId, day, regionIndex: SITE.regionIndex });
-  assert.equal((await theirs.sign({ id: all[0].id })).ok, true, 'another player holds the first');
+  assert.equal((await theirs.sign({ id: all[0].id, character: them.character })).ok, true, 'another player holds the first');
   let m = host.model(SITE, { page: 'crew' });
   assert.ok(m.wait, 'the hall\'s read asked');
   assert.equal(m.recruits.length, all.length, 'not yet read');
@@ -368,35 +368,35 @@ test('CREW-SIGNED THE HALL ONLINE (through the real account service): a sailor a
   assert.deepEqual(r.log.enlisted, [], 'nobody signed before it does');
   const hired = await p;
   assert.deepEqual([hired.ok, r.log.enlisted.length, r.log.paid.length], [true, 1, 1]);
-  assert.equal((await theirs.sign({ id: all[1].id })).error, 'crew-taken', 'held for me');
+  assert.equal((await theirs.sign({ id: all[1].id, character: them.character })).error, 'crew-taken', 'held for me');
   const stale = await host.act(SITE, 'hire', 702, all[0].id);
   assert.deepEqual([stale.ok, stale.text, r.log.enlisted.length, r.log.paid.length], [false, CREW_HALL_TEXT.gone, 1, 1], 'another holds him: refused, nothing paid');
   // paid off: back at the hall
   assert.equal(host.act(SITE, 'payoff', 702, all[1].name).ok, true);
   await settle();
-  assert.equal((await theirs.sign({ id: all[1].id })).ok, true, 'paid off: theirs to sign');
-  assert.equal((await theirs.release({ id: all[1].id })).ok, true);
+  assert.equal((await theirs.sign({ id: all[1].id, character: them.character })).ok, true, 'paid off: theirs to sign');
+  assert.equal((await theirs.release({ id: all[1].id, character: them.character })).ok, true);
   // the world moved while the service answered: the hire refused, the hold this ask took let go
   const gold = r.st.gold;
   const q = host.act(SITE, 'hire', 702, all[2].id);
   r.st.gold = 0;
   assert.deepEqual([(await q).ok, r.log.enlisted.length], [false, 1]);
   await settle();
-  assert.equal((await theirs.sign({ id: all[2].id })).ok, true, 'the hold let go');
-  assert.equal((await theirs.release({ id: all[2].id })).ok, true);
+  assert.equal((await theirs.sign({ id: all[2].id, character: them.character })).ok, true, 'the hold let go');
+  assert.equal((await theirs.release({ id: all[2].id, character: them.character })).ok, true);
   r.st.gold = gold;
   // swapped out: back at the hall
   own(r, 703, 2, 'here', { hands: ['Odo'] });
   r.st.hands.get(703)[0].hall = all[3].id;
-  assert.equal((await doorOf(me).sign({ id: all[3].id })).ok, true, 'Odo signed online, a hall man');
+  assert.equal((await doorOf(me).sign({ id: all[3].id, character: me.character })).ok, true, 'Odo signed online, a hall man');
   assert.equal((await host.act(SITE, 'hire', 703, { id: all[4].id, replace: 'Odo' })).ok, true);
   await settle();
-  assert.equal((await theirs.sign({ id: all[3].id })).ok, true, 'swapped out: theirs to sign');
+  assert.equal((await theirs.sign({ id: all[3].id, character: them.character })).ok, true, 'swapped out: theirs to sign');
   // her ship sold: her hands back at the hall
-  assert.equal((await theirs.sign({ id: all[4].id })).error, 'crew-taken', 'the swap held him');
+  assert.equal((await theirs.sign({ id: all[4].id, character: them.character })).error, 'crew-taken', 'the swap held him');
   assert.equal(host.act(SITE, 'sell', 703).ok, true);
   await settle();
-  assert.equal((await theirs.sign({ id: all[4].id })).ok, true, 'her ship sold: theirs to sign');
+  assert.equal((await theirs.sign({ id: all[4].id, character: them.character })).ok, true, 'her ship sold: theirs to sign');
 });
 
 test('CREW-SIGNED THE BOOK\'S REFUSALS: a service that keeps no hall (not-found) hires as before and is never asked again; a service unread refuses the hire, nothing paid; the day turned and the cap said in the hall\'s words; offline nothing is asked (mutants: the old service read as a refusal, the unread hired)', async () => {

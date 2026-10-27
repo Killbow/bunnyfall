@@ -12,7 +12,7 @@ import { FAST_M, FAST_DEG, DOCK_REACH_M, DOCK_ANGLE } from '../../../src/systems
 import { quatOfYaw } from '../../../src/systems/naval/navalAI.js';
 import { hullBuild } from '../../../src/systems/naval/navalShips.js';
 import { Boat } from '../../../src/systems/comeSailAway/comeSailAwayBoat.js';
-import { BRING_IN_M, TOW_WAY, TOW_FOUL_S, TOW_FOUL_M } from '../../../src/scenes/naval/passageQuay.js';
+import { BRING_IN_M, TOW_WAY, TOW_FOUL_S, TOW_FOUL_M, TOW_SWING, TOW_CLEAR_M } from '../../../src/scenes/naval/passageQuay.js';
 import { createPassageHost } from '../../../src/scenes/naval/passageHost.js';
 import { PASSAGE_TEXT, PASSAGE_RESUME_S } from '../../../src/systems/naval/passage.js';
 
@@ -26,17 +26,25 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 const yawOf = (q) => { const x = 2 * (q[0] * q[2] + q[3] * q[1]), z = 1 - 2 * (q[0] * q[0] + q[1] * q[1]); return Math.atan2(x, z); };
 const RECORD = { to: { name: 'Holwych', px: 1, py: 1 }, ship: 'The Fair Silk', captain: 'Ana Rhea', fare: 50 };
 
-/** The real naval host over the coast, my booked ship (`hull`) at the helm `at` off the mouth, the port near. */
+/** The real naval host over the coast, my booked ship (`hull`) at the helm `at` off the mouth heading `yaw`, the port near. */
 async function tow(o = {}) {
   const h = await sea({ hull: o.hull ?? 2, water: coast, settings: { ShipsAtSea: 'off' } });
   h.deps.harbourNear = () => ({ key: 'port:1', name: o.port ?? 'Holwych', rect: TOWN });
   h.deps.shipName = () => 'The Fair Silk';
   h.boat.charter = o.record ?? RECORD;
   h.boat.GameObject.position = o.at ?? [HARBOUR.mouth[0], 0, HARBOUR.mouth[1] - 400];
-  h.boat.GameObject.rotation = quatOfYaw(0);
+  h.boat.GameObject.rotation = quatOfYaw(o.yaw ?? 0);
   h.view.feet = [...h.boat.GameObject.position];
   h.run(0.2);
   return h;
+}
+/** Whether any of her hull at `p` heading `y` - bow, waist and stern, at her centreline and both sides - lies over land. */
+function overLand(p, y, hull) {
+  const b = hullBuild(hull);
+  for (const z of [b.bowZ, b.bowZ / 2, 0, b.aftZ / 2, b.aftZ]) for (const x of [-b.halfWidth, 0, b.halfWidth]) {
+    if (!coast(p[0] + Math.sin(y) * z + Math.cos(y) * x, p[2] + Math.cos(y) * z - Math.sin(y) * x)) return true;
+  }
+  return false;
 }
 /** Come Sail Away's half: the host's warp laid on her for `seconds` (quays.test.js's warpFor), what she passed through kept. */
 function warpFor(h, seconds, seen = { land: 0, path: [], steps: 0 }, untilFast = true) {
@@ -47,8 +55,8 @@ function warpFor(h, seconds, seen = { land: 0, path: [], steps: 0 }, untilFast =
     h.boat.GameObject.position = [w.pos[0], h.boat.GameObject.position[1], w.pos[1]];
     h.boat.GameObject.rotation = w.rotation;
     h.view.feet = [...h.boat.GameObject.position];
-    const p = h.boat.GameObject.position, y = yawOf(w.rotation), b = hullBuild(h.boat.hull);
-    for (const z of [b.bowZ, 0, b.aftZ]) if (!coast(p[0] + Math.sin(y) * z, p[2] + Math.cos(y) * z)) seen.land++;
+    const p = h.boat.GameObject.position, y = yawOf(w.rotation);
+    if (overLand(p, y, h.boat.hull)) seen.land++;   // PIN MOVED (AUDIT HORIZONTAL C3): her stem, waist and stern at both sides too
     seen.path.push([p[0], p[2], y]);
     if (untilFast && h.host.berthing(h.boat) === 'fast') return seen;
   }
@@ -96,6 +104,7 @@ test('PASSAGE-QUAY NEVER: a boat of mine (no charter), a passage to another port
   assert.equal(mine.host.bringIn(mine.boat), false, 'a boat of mine');
   const other = await tow({ record: { ...RECORD, to: { ...RECORD.to, name: 'Wayrest' } } });
   assert.equal(other.host.bringIn(other.boat), false, 'another port\'s passage');
+  assert.equal(BRING_IN_M, 700, 'AUDIT HORIZONTAL G9: the record\'s 700 m');
   const far = await tow({ at: [HARBOUR.mouth[0], 0, HARBOUR.mouth[1] - BRING_IN_M - 50] });
   assert.equal(far.host.bringIn(far.boat), false, 'past BRING_IN_M');
   const near = await tow({ at: [HARBOUR.mouth[0], 0, HARBOUR.mouth[1] - BRING_IN_M + 50] });
@@ -119,6 +128,7 @@ test('PASSAGE-QUAY A FOUL WAY: a hull lying across her way within TOW_FOUL_M of 
   warpFor(h, 5);
   assert.ok(Math.hypot(h.boat.GameObject.position[0] - before[0], h.boat.GameObject.position[2] - before[2]) < 1, 'held where she lies');
   assert.equal(h.host.berthing(h.boat), 'in');
+  assert.equal(TOW_FOUL_S, 40, 'AUDIT HORIZONTAL G9: the record\'s and the patch note\'s forty seconds');
   warpFor(h, TOW_FOUL_S);
   assert.equal(h.host.berthing(h.boat), 'foul', 'given up - said once');
   assert.equal(h.host.berthing(h.boat), null);
@@ -179,4 +189,64 @@ test('PASSAGE-QUAY THE PASSAGE\'S HALF: under way, her port\'s quay in reach - t
   assert.match(host, /const towed = enabled && boat \? quay\.step\(boat, dt\) : null;/);
   assert.match(host, /bringIn: quay\.begin, berthing: quay\.state,/);
   assert.match(host, /quay\.offset\(o\);/);
+});
+
+test('AUDIT HORIZONTAL C3 THE TOW NEVER LAYS HER OVER LAND: from ten places about the headland and the roads, each at eight headings - facing the land 30 m off it among them - the Small Ship and the Carrack are brought in and made fast with no part of her hull (bow, waist, stern; her centreline and both sides) ever over land; her way is planned TOW_CLEAR_M past her beam, and she makes way only with her head within TOW_SWING of it (mutants: the way planned on her centreline, the beam unread, warped along her head, way made while she swings, the land unread)', async () => {
+  assert.equal(TOW_CLEAR_M, 3);
+  assert.equal(TOW_SWING, 10 * DEG);
+  const places = [[255, -100], [255, 0], [255, 100], [270, -250], [350, -340], [430, -250], [445, -100], [445, 100], [200, 150], [-150, 150]];
+  const bad = [];
+  let runs = 0;
+  for (const hull of [2, 4]) {
+    for (const [x, z] of places) {
+      for (let k = 0; k < 8; k++) {
+        const yaw = (k / 8) * 2 * Math.PI - Math.PI;
+        if (overLand([x, 0, z], yaw, hull)) continue;   // a start no ship could lie at
+        const h = await tow({ hull, at: [x, 0, z], yaw });
+        if (!h.host.bringIn(h.boat)) { bad.push(`hull ${hull} ${x},${z} ${Math.round(yaw / DEG)}: not brought in`); continue; }
+        runs++;
+        const seen = warpFor(h, 900);
+        if (seen.land || h.host.berthing(h.boat) !== 'fast') bad.push(`hull ${hull} ${x},${z} ${Math.round(yaw / DEG)}: ${seen.land} steps over land, ${h.host.berthing(h.boat)}`);
+      }
+    }
+  }
+  assert.ok(runs >= 150, `swept ${runs}`);
+  assert.deepEqual(bad, []);
+});
+
+test('AUDIT HORIZONTAL C3 A STEP OVER LAND IS NEVER LAID: land risen across her way after it was planned (a rock the way never saw) holds her where she lies, as a foul hull does - held TOW_FOUL_S, the quay is given up (mutants: the land unread)', async () => {
+  const h = await tow();
+  assert.equal(h.host.bringIn(h.boat), true);
+  const p0 = [...h.boat.GameObject.position];
+  const rock = (x, z) => Math.hypot(x - p0[0], z - (p0[2] + 45)) < 15;   // dead ahead, a little past her bow
+  h.deps.isWater = (x, z) => coast(x, z) && !rock(x, z);
+  let over = 0;
+  for (let t = 0; t < TOW_FOUL_S + 5 && h.host.berthing(h.boat) === 'in'; t += 0.1) {
+    const w = h.host.warp(h.boat, { struck: true, oars: false, dt: 0.1 });
+    if (!w) break;
+    h.boat.GameObject.position = [w.pos[0], h.boat.GameObject.position[1], w.pos[1]];
+    h.boat.GameObject.rotation = w.rotation;
+    const p = h.boat.GameObject.position, y = yawOf(w.rotation), b = hullBuild(2);
+    for (const zz of [b.bowZ, 0, b.aftZ]) for (const xx of [-b.halfWidth, 0, b.halfWidth]) if (rock(p[0] + Math.sin(y) * zz + Math.cos(y) * xx, p[2] + Math.cos(y) * zz - Math.sin(y) * xx)) over++;
+  }
+  assert.equal(over, 0, 'never laid on the rock');
+  assert.equal(h.host.berthing(h.boat), 'foul', 'held TOW_FOUL_S, given up');
+});
+
+test('AUDIT HORIZONTAL C3 ALONG HER WAY, NEVER HER HEAD: her head 30 degrees off her way in, she is first warped round where she lies; then she makes way along the way\'s straight leg - one line, whatever her head - while her head is still coming round to it (mutants: warped along her head, way made while she swings)', async () => {
+  const h = await tow({ yaw: 30 * DEG });
+  assert.equal(h.host.bringIn(h.boat), true);
+  const moves = [];
+  for (let i = 0; i < 12; i++) {
+    const p = [...h.boat.GameObject.position];
+    const w = h.host.warp(h.boat, { struck: true, oars: false, dt: 0.5 });
+    const dx = w.pos[0] - p[0], dz = w.pos[1] - p[2];
+    if (i === 0) assert.ok(Math.hypot(dx, dz) < 1e-3, 'her head far off her way: warped round where she lies');
+    if (Math.hypot(dx, dz) > 0.5) moves.push({ dir: Math.atan2(dx, dz), head: yawOf(w.rotation) });
+    h.boat.GameObject.position = [w.pos[0], p[1], w.pos[1]];
+    h.boat.GameObject.rotation = w.rotation;
+  }
+  assert.ok(moves.length >= 3, `under way: ${moves.length} steps`);
+  for (const m of moves) assert.ok(Math.abs(wrap(m.dir - moves[0].dir)) < 0.05 * DEG, `one line: ${(wrap(m.dir - moves[0].dir) / DEG).toFixed(3)} deg`);
+  assert.ok(moves.some((m) => Math.abs(wrap(m.head - m.dir)) > 1 * DEG), 'way made while her head still came round - along her way, not her head');
 });

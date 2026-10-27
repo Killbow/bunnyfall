@@ -9767,7 +9767,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     cabinHolds: (uid) => modes?.cabinHolds?.(uid) ?? 0,
     cabinSold: (uid, region) => modes?.cabinSold?.(uid, region),
     passengersAboard: (boat) => csaPassengersOn(boat),
-    online: () => _onlineWorldSession(),   // CREW-SIGNED: in the shared world a hire asks the service first
+    online: () => _onlineWorldSession() && characterIdOf(playerEntity),   // CREW-SIGNED: in the shared world a hire asks the service first - AUDIT HORIZONTAL C8: as this character
   }) : null;
   /** SHIPYARDS: THE SHIPMASTER'S WINDOW (ui/shipyardWindow.js, through ui/naval/navalPlunderDoor.js) over the street, on `page`
    *  for the shipyard pressed (scenes/portHost.js); a summons that wants the water clicked runs once the window is down
@@ -9938,7 +9938,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       _officeTickT = 2; harbourOffice.tick(); captainSay();   // CAPT-BOARD: a term run out
       if (etherSea && _mode() === 'exterior') { const p = playerTravelPixel(); if (inEther(p.x, p.y)) { etherHost.sight(p.x, p.y); captainSay(); } }   // ETHER-SEA: the isles in sight charted, the depth kept
     }
-    if (!gamePaused() && !_loading) { etherCrossStep(dt); veilParty.step(); }   // ETHER-CROSSING: the helm's waters asked - VEIL-PARTY: and her party's passage with her
+    if (!gamePaused() && !_loading) { etherCrossStep(dt); veilParty.step(dt); }   // ETHER-CROSSING: the helm's waters asked - VEIL-PARTY: and her party's passage with her, its window in the frames stepped (AUDIT HORIZONTAL C5)
     passage.frame(dt, gamePaused() || _loading);   // PASSAGE: a booked ship's voyage sailed on, and over when I step off her - whatever the sea fight's switch
     const on = navalOn();
     if (on !== _navalWasOn) { _navalWasOn = on; naval.setEnabled(on); if (!on) { navalFlames.clear(); closeNavalPlunder(); closeNavalYard(); drawNavalHud(null); drawNavalTags([]); } }

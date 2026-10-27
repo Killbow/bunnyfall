@@ -151,6 +151,20 @@ export function factionWeights({ nearPort = false, notoriety = 0, deep = false }
 }
 
 /**
+ * The host's ships made whole for the director (`entryOf(id)` the sea's entry). AUDIT NAV2 F27: a ship is in a fight
+ * while an engaged ship of mine targets her - SEA-PEACE's prize her taker comes for or takes, and a quarry running.
+ * FISH-BOATS: a port's boats are its fleet's to let go - berthed, and kept while mine. AUDIT HORIZONTAL C6: a fishing
+ * boat's target is the pirate she flees, never a fight, so it marks no pursuer. Answers `ships`.
+ * @param {any[]} ships @param {(id: any) => any} entryOf
+ */
+export function directorShips(ships, entryOf) {
+  for (const x of ships) { const f = entryOf(x.id); if (f?.ship.cls.fisher) { x.berthed = true; x.engaged ||= !!f.fisher && !x.theirs; } }
+  const chased = new Set(ships.filter((y) => y.engaged && !y.theirs && !entryOf(y.id)?.ship.cls.fisher).map((y) => entryOf(y.id)?.ship.target));
+  for (const x of ships) if (!x.theirs && chased.has(x.id)) x.engaged = true;
+  return ships;
+}
+
+/**
  * The director. `step(dt, ctx)` answers `{ spawn: spec | null, despawn: id[] }`:
  *   ctx = { density, player: [x, y, z], players: [x, y, z][] (every player the host places - itself included),
  *           level, ships: [{ id, pos, classId, engaged, afloat, theirs, berthed }], isOpenWater(x, z, hull), nearPort, notoriety,
