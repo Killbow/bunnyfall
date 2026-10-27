@@ -488,8 +488,8 @@
   {
     "name": "CREW-the-holder-unread",
     "file": "server-account/src/crewSigns.js",
-    "old": "  if (held) return held.player === player.id ? { signed: true, fresh: false } : { error: 'crew-taken' };",
-    "new": "  if (held) return { signed: true, fresh: false };",
+    "old": "    if (held?.holder != null) return held.holder === who ? { signed: true, fresh: false } : { error: 'crew-taken' };",
+    "new": "    if (held?.holder != null) return { signed: true, fresh: false };",
     "tests": [
       "test/server/crewsigned.test.js"
     ]
@@ -506,8 +506,8 @@
   {
     "name": "CREW-the-cap",
     "file": "server-account/src/crewSigns.js",
-    "old": "  if (Number(n?.n ?? 0) >= CREW_SIGN_DAY_MAX) return { error: 'crew-many' };",
-    "new": "  if (Number(n?.n ?? 0) > CREW_SIGN_DAY_MAX) return { error: 'crew-many' };",
+    "old": "AND day = ?2) < ?8`)",
+    "new": "AND day = ?2) <= ?8`)",
     "tests": [
       "test/server/crewsigned.test.js"
     ]
@@ -534,8 +534,8 @@
   {
     "name": "CREW-mine-read-as-taken",
     "file": "server-account/src/crewSigns.js",
-    "old": "(r.player === player.id ? mine : taken)",
-    "new": "(r.player !== player.id ? mine : taken)",
+    "old": "(r.player === who ? mine : taken)",
+    "new": "(r.player !== who ? mine : taken)",
     "tests": [
       "test/server/crewsigned.test.js",
       "test/systems/shipyards1_host.test.js"
@@ -675,6 +675,87 @@
     "new": "    if (false) {",
     "tests": [
       "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C2-the-cap-unwritten",
+    "file": "server-account/src/crewSigns.js",
+    "old": "      WHERE (SELECT COUNT(*) FROM crew_signed WHERE player >= ?6 AND player < ?7 AND day = ?2) < ?8`)",
+    "new": "      WHERE ?6 <> ?7 OR ?8`)",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C2-the-cap-unsaid",
+    "file": "server-account/src/crewSigns.js",
+    "old": "    if (Number(held?.n ?? 0) >= CREW_SIGN_DAY_MAX) return { error: 'crew-many' };",
+    "new": "    if (false) return { error: 'crew-many' };",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-holder-an-account",
+    "file": "server-account/src/crewSigns.js",
+    "old": "const holderOf = (player, character) => (renownCharacterOk(character) ? `${player.id}:${character}` : null);",
+    "new": "const holderOf = (player, character) => (renownCharacterOk(character) ? `${player.id}:` : null);",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-cap-a-characters",
+    "file": "server-account/src/crewSigns.js",
+    "old": "WHERE (SELECT COUNT(*) FROM crew_signed WHERE player >= ?6 AND player < ?7 AND day = ?2) < ?8`)",
+    "new": "WHERE (SELECT COUNT(*) FROM crew_signed WHERE player = ?4 AND ?6 <> ?7 AND day = ?2) < ?8`)",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-no-character-asked",
+    "file": "server-account/src/crewSigns.js",
+    "old": "  if (!who) return { error: 'crew-bad' };",
+    "new": "  if (false) return { error: 'crew-bad' };",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-release-the-accounts",
+    "file": "server-account/src/crewSigns.js",
+    "old": "'DELETE FROM crew_signed WHERE town = ?1 AND day = ?2 AND slot = ?3 AND player = ?4'",
+    "new": "'DELETE FROM crew_signed WHERE town = ?1 AND day = ?2 AND slot = ?3 AND substr(player, 1, instr(player, \\':\\')) = substr(?4, 1, instr(?4, \\':\\'))'",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-books-character-unread",
+    "file": "src/scenes/crewSignBook.js",
+    "old": "  const character = () => deps.character?.() ?? null;",
+    "new": "  const character = () => null;",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-character-unhanded",
+    "file": "src/scenes/world.js",
+    "old": "    online: () => _onlineWorldSession() && characterIdOf(playerEntity),",
+    "new": "    online: () => _onlineWorldSession(),",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-C8-the-hosts-book-unaimed",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "character: () => deps.online?.() || null });",
+    "new": "character: () => null });",
+    "tests": [
+      "test/server/crewsigned.test.js"
     ]
   },
   {

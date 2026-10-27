@@ -222,14 +222,21 @@ he or she is spoken of as the hand is (L7-9).
 **Signed once online** (CREW-SIGNED, 2026-10-27). Every client draws a town's hall alike, so online two players
 could sign one named sailor (L2-10, L7-8). Now a hire in the shared world asks the account service first
 (`server-account/src/crewSigns.js`, migration 0179; `/v1/crew/hall`, `/v1/crew/sign`, `/v1/crew/release`). The first
-account to sign a recruit holds him for his day; another is told he has signed on elsewhere, and nothing is paid. Paid
+character to sign a recruit holds him for his day; another is told he has signed on elsewhere, and nothing is paid. Paid
 off, swapped out or his ship sold, he is let go to the hall for every player. The hall hides the sailors other players
-hold (`scenes/crewSignBook.js`, read again after CREW_HALL_FRESH_MS), and the window takes no second press while the
-service answers.
+and the account's other characters hold (`scenes/crewSignBook.js`, read again after CREW_HALL_FRESH_MS), and the window
+takes no second press while the service answers.
 
-One account holds CREW_SIGN_DAY_MAX (24) a day. The day is the shared clock's, a day either side
+One account holds CREW_SIGN_DAY_MAX (24) a day, across its characters. The day is the shared clock's, a day either side
 asked. A service without the routes leaves the hall the client's own, as before; offline nothing is asked. No gold
 moves at the service. A hand lost with his ship stays held until his day ends.
+
+AUDIT HORIZONTAL C2: the cap was a count, then a write, two round trips apart, so 36 asks at once held 36. The count
+and the hold are one statement now (`INSERT ... SELECT ... WHERE` the account's count is under the cap); a refused ask
+reads the row back to say `crew-taken` or `crew-many`. C8: the hold was the account's, so two of its characters hired
+one man and the first to pay him off let him go from under the other. Every ask names the character (`character`, the
+save's id: `world.js` hands it as the shipmaster's `online()`), and a row's holder is `<account>:<character>`. No
+migration: the cap counts the account's holders by their prefix.
 
 The departure is the port's own (DFU has no crew hall). THE FOUR HOSTS: `world.js` tells the shipmaster's host whether
 the game is in the shared world; `worldModes.js`, `dungeonContext.js` and `exterior.js` stand no shipyard. Pins:
@@ -448,7 +455,7 @@ are.
 | L2-7 LOW: a Bard's posts, the hands drawn over the hall's header, "Small Ship 'I''s Deckhand" | CONFIRMED | the Fleet's own post line; the order; "signs on to X as her Y" |
 | L2-8 LOW: a day turned mid-visit said "signed on elsewhere" | CONFIRMED | "a new day's roster" |
 | L2-9 LOW: a name hid another man | CONFIRMED (0.3% of days) | the hand carries the recruit's id; a same-ship name clash refused |
-| L2-10, L7-8 LOW: online, a hire is the hiring client's | CONFIRMED | CREW-SIGNED: the account service holds a recruit for the first account to sign him |
+| L2-10, L7-8 LOW: online, a hire is the hiring client's | CONFIRMED | CREW-SIGNED: the account service holds a recruit for the first character to sign him (AUDIT HORIZONTAL C8) |
 | L2-11 LOW: hire and pay-off while she fights | CONFIRMED | refused, as a sale is |
 | L3-1 HIGH: on a bearing the light stood beside the yard | CONFIRMED | `LIGHT_APART_K` 0.5 (THE LIGHT STANDS OFF THE YARD ON A BEARING: 30+ cells, was 14.5) |
 | L3-2 LOW: the docks row waited on the shipyard's test | CONFIRMED | the harbour book's own (`csaIsPortTown`) |

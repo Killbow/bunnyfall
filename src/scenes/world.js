@@ -9767,7 +9767,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     cabinHolds: (uid) => modes?.cabinHolds?.(uid) ?? 0,
     cabinSold: (uid, region) => modes?.cabinSold?.(uid, region),
     passengersAboard: (boat) => csaPassengersOn(boat),
-    online: () => _onlineWorldSession(),   // CREW-SIGNED: in the shared world a hire asks the service first
+    online: () => _onlineWorldSession() && characterIdOf(playerEntity),   // CREW-SIGNED: in the shared world a hire asks the service first - AUDIT HORIZONTAL C8: as this character
   }) : null;
   /** SHIPYARDS: THE SHIPMASTER'S WINDOW (ui/shipyardWindow.js, through ui/naval/navalPlunderDoor.js) over the street, on `page`
    *  for the shipyard pressed (scenes/portHost.js); a summons that wants the water clicked runs once the window is down
