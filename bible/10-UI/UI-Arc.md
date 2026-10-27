@@ -1792,6 +1792,16 @@ frame in 2 to 9 s, and the frame-polled wait let more than a second of score pas
 INTRO4's run and on this PR's first). `tools/introCapture.mjs` shoots each frame past the landing as the title stands (a
 seek past it draws nothing). NOT SEEN: a hardware GPU (SwiftShader, as INTRO4).
 
+MAIN'S RED, MENDED AT THE MERGE (the owner: "Every single deploy has been red so far"). From CHAT-POST (#1342) on, every
+deploy of main stopped at its tests: the change re-wrote the chat's send (`world.js` chatSend's `{ me, item, items }`,
+onSend's `opts`) and the pack's bag, and left pins and mutant records on the old text. Mended here, none of it the title's:
+the four chat-send pins re-aimed (`chatchan`, `guild1c`, `mod1`, `partytravel`, each marked PIN MOVED); MAC-C's sheet
+door read from its pack's own `createInventoryWindow({`, not a 1600-character window the longer line pushed it out of;
+the suggest list's Worn tag up to the FONT3 floor (`chatPanel.js` `.dfchat-suggest-worn`, 10px to 11px); twelve mutant
+records re-aimed by content (`chat_find`, `chatchan`, `emote1`, `mod1`, `staff-chat-red` - 12 dead); and the hosts'
+ceilings raised to the hosts CHAT-POST left (bootWorld 36,240, createWorldModes 11,027, `hostsplit.json` with them) -
+the pull-request gate the deploy does not run.
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac
