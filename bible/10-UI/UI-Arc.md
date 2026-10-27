@@ -1734,6 +1734,60 @@ reached by the page that starts it. NOT SEEN: the film on a hardware GPU - every
 here was SwiftShader's, which draws one in 3 to 7 s at 1280 x 720 (INTRO2's in about 0.45 s); the probes wait for it
 accordingly (three minutes a wait).
 
+#### TITLE-DOOR (2026-10-27): the held title is the front door
+
+The owner: *"People really love the start game intro screen. I think instead.of this leading to the online/offline
+options. We use the intro title screen as the landing pad itself with these options"*. The film's last frame - the map
+of Tamriel with its words, the mark at rest - said Tap to continue and led to the menu's home on its own pixel sky.
+Now the menu's home stands ON the held title, and Tap to continue is retired (its node, its rules and its catalog key,
+`menu.intro.tapContinue`, dropped from every language by `tools/l10nInSession.mjs`). DFU's own start is its title and
+then DaggerfallStartWindow (Load, Start, Exit); this door was already the port's own design (FD1, UI-CALM), and this
+record is the design record the native-window rule asks of it.
+
+THE LANDING (`ui/intro/introScreen.js:"const land = (how) => {"`). When the mark comes to rest the film lands: it
+holds its title (the frame at `TITLE_HELD_TIME`, the mark's impact spent), steps under the menu (`#intro.intro-landed`
+at z 11, the menu's host at 12), marks the page (`<html data-intro-title="held">`, `ui/intro/titleHeld.js` - one small
+module so the menu, which a running game mounts too, never imports the film), and mounts the menu over itself. The menu
+is inert while it fades in (650 ms, the retired prompt's own fade), then its first door takes the focus the prompt had.
+The film draws only when something changes its picture - a resize, its map arriving - never every frame while the player
+looks (`ui/intro/introScreen.js:"function requestDraw() {"`). It is let go with the menu: the front door's `release` runs
+before the scene boots, so the world never shares the GPU with it (`ui/intro/introScreen.js:"release?.();"`).
+
+THE MENU ON IT (`ui/enhanced/enhancedMenu.js:"const onTitle = () =>"`). The boot home on a held title draws no sky
+and no masthead - the map is the ground, the film's mark is the wordmark - and its host goes see-through there
+(`#enhanced-menu[data-over-title]`); every section keeps its own opaque ground over the held film, and its way home is
+the title again. The pause face never wears it. The doors stand in a row in the band between the mark and the foot,
+where Tap to continue stood (`ui/enhanced/enhancedStyle.js` TITLE-DOOR): Online and Offline side by side, the offline
+level's four games and the way back in one row. The landed mark rises a little and narrows to make that band (41% of
+the height, at most 37vw, 535px or 64% of the height; on a short screen, a phone and a short phone their own values),
+and the band starts at the mark's foot - its centre plus half its height, .42 of its width for the 1232 x 1034 file
+(`--intro-doors-top`, held to the PNG's own IHDR by the test). On a phone the two questions stand one over the other and
+the games two to a row; on a short screen the offline word and line are left to the rail and the diamonds put away, so
+the five fit one row. DFO Grimoire stands neither its desk nor its book on the title: the doors are its one page held up
+over the map, as its map backdrop holds them (`ui/grimoireDress.js` TITLE-DOOR), the games and the way back one size.
+
+THE SCORE. A title the film carried in keeps the score at its own level while the player looks; the first press on the
+menu takes it down to the menu's (MENU_THEME_GAIN), as the retired tap did. SKIP INTRO AND ESCAPE LAND ON THE TITLE, not
+past it: the title held at once, the score unlocked in the press and started at the menu's level (the old Skip's audio).
+Skipped at the gate, before the map was built, the title stands on the film's own ground and the map fades in under it
+when it is drawn (`introLandscape.js`'s `mapReady`: the programs and the continent, not the city). The player's SKIP
+START VIDEO (UXB1-A) opens on the title too - no gate, no film, nothing asked of the score until the front door's first
+gesture starts it at the menu's level. A score that cannot load lands the title with its message, now at the top under
+the corner marks. `?nointro` (the probes') builds no film and the menu stands on its own sky, as it always has; a film
+that breaks before it lands is let go and the menu opens on its sky the same way.
+
+PINS: `test/ui/titledoor.test.js` (7: the band from the logo file's own size and the film under the menu once landed;
+the home on the title, a section over it and home to it, the pause face and an unheld page without it; Skip start video
+on the title at once; Skip intro and Escape landing on it; the carried title's duck at the first press and its draws
+only on a change; a broken film let go; the front door letting the title go with the menu), on `test/introDom.mjs` (a
+page small enough to hold the film, its frames and timers turned by hand). Moved, as deliberate changes edit their pins:
+`test/systems/uxb1a_startvideo.test.js` (the pref lands on the title), `test/ui/audit_font3.test.js` (the prompt's phone
+size retired), `test/ui/grim1_dress.test.js` (the desk's rule names the title's home it leaves). Mutants:
+`tools/mutants/titledoor.json` (14, all dead). `tools/introProbe.mjs` reads it live: the landing, the held title
+drawing nothing while it waits, the duck at the first press, a section and home again, a game letting the title go, the
+mark and the doors fitting their band at every size for both questions and the offline row, the missing score, Skip at
+the gate with the map fading in, and Skip start video. NOT SEEN: a hardware GPU (SwiftShader, as INTRO4).
+
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
 Built through five versions in one day (U65, c, d, e: generated Iliac
