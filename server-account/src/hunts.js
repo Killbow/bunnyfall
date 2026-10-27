@@ -10,7 +10,7 @@ import { accountKind, overRate } from './accounts.js';
 import { renownCharacterOk } from './renownTracks.js';
 import { creditHunt } from './seatInfluence.js';
 import { utcDay } from '../../src/net/marksLaw.js';
-import { seatRegionOk } from '../../src/net/townSeatLaw.js';
+import { seatRegionOk, seatWeekStartMs } from '../../src/net/townSeatLaw.js';
 import { PROF_XP_MAX } from '../../src/net/professionLaw.js';
 import { huntClearOf, huntTierFits, huntWeekAt, masteryMarksOf, HUNT_CLEARS_DAY_MAX, HUNT_RUNGS, HUNT_MARK_RUNG } from '../../src/net/huntLaw.js';
 
@@ -76,19 +76,22 @@ export async function huntClear(ctx, player, env, body) {
   const seen = await db.prepare('SELECT level_seen AS lv FROM realm_characters WHERE id = ?1 AND player = ?2').bind(character, player.id).first();
   if (!huntTierFits(c.level, seen?.lv == null ? null : int(seen.lv))) return { error: 'hunt-tier' };
   const day = utcDay(nowS);
+  // AUDIT HORIZONTAL F10: a mark's rung is the board clears recorded before its week ended - last week's mark is a
+  // Stalker's of last week, never a character's that became one since (a board clear's end: none, every row counts)
+  const until = c.kind === 'mark' ? seatWeekStartMs(/** @type {number} */ (c.week) + 1) / 1000 : nowS + 1;
   // THE DECISION, in the write: the account's day under its ceiling, a mark only from its rung - the row once a key
   const [ins] = await db.batch([
     db.prepare(`INSERT OR IGNORE INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at)
       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
       WHERE (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND day = ?8) < ?10
-        AND (?3 <> 'mark' OR (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board') >= ?11)
-      RETURNING key`).bind(player.id, character, c.kind, c.key, c.id, c.tier, region, day, nowS, HUNT_CLEARS_DAY_MAX, MARK_CLEARS),
+        AND (?3 <> 'mark' OR (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board' AND at < ?12) >= ?11)
+      RETURNING key`).bind(player.id, character, c.kind, c.key, c.id, c.tier, region, day, nowS, HUNT_CLEARS_DAY_MAX, MARK_CLEARS, until),
   ]);
   const recorded = (ins?.results?.length ?? 0) > 0;
   let why = null;
   if (!recorded) {
     const had = await db.prepare(`SELECT EXISTS (SELECT 1 FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = ?3 AND key = ?4) AS had,
-      (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board') AS board`).bind(player.id, character, c.kind, c.key).first();
+      (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board' AND at < ?5) AS board`).bind(player.id, character, c.kind, c.key, until).first();
     if (int(had?.had) === 1) why = 'repeat';
     else if (c.kind === 'mark' && int(had?.board) < MARK_CLEARS) return { error: 'hunt-rung' };
     else why = 'day-full';

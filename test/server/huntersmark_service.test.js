@@ -16,7 +16,7 @@ import {
   HUNT_RUNGS, HUNT_MARK_RUNG, HUNT_TITLES, MASTERY_TITLES, SEA_TITLES, MASTERY_MARKS, GAME_DAYS_PER_UTC_DAY,
 } from '../../src/net/huntLaw.js';
 import { PROF_XP_MAX } from '../../src/net/professionLaw.js';
-import { HUNT_INFLUENCE, HUNT_WEEK_CAP, accountSeatInfluence, ACCOUNT_SEAT_WEEK_CAP, seatWeekOf } from '../../src/net/townSeatLaw.js';
+import { HUNT_INFLUENCE, HUNT_WEEK_CAP, accountSeatInfluence, ACCOUNT_SEAT_WEEK_CAP, seatWeekOf, seatWeekStartMs } from '../../src/net/townSeatLaw.js';
 import { progressSpentOf, PROGRESS_ROUTES } from '../../server-account/src/progress.js';
 import { ROUTES } from '../../server-account/src/service.js';
 import { titlesHeld } from '../../server-account/src/titles.js';
@@ -112,22 +112,34 @@ test('HUNTERS-MARK THE DAY\'S CEILING AND THE MARK\'S RUNG: the account\'s UTC d
   const { raw, mac, day, clear, state } = await stand(t);
   const today = utcDay(NOON);
   let seeded = 0;
-  const seed = (n, kind = 'board', d = today) => { for (let i = 0; i < n; i++) raw.prepare('INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)').run(mac.id, mac.character, kind, `seed.${seeded++}`, 'x', d, NOON); };
   const week = huntWeekAt(NOON * 1000);
+  const lastWeekS = seatWeekStartMs(week) / 1000 - 3600;   // an hour before this week's Turning
+  const seed = (n, kind = 'board', d = today, at = lastWeekS) => { for (let i = 0; i < n; i++) raw.prepare('INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, ?, ?, ?, ?, 0, NULL, ?, ?)').run(mac.id, mac.character, kind, `seed.${seeded++}`, 'x', d, at); };
   const mark = huntMarkId(week, 300, 200, 3);
   seed(HUNT_RUNGS[HUNT_MARK_RUNG].at - 1, 'board', today - 1);
   const early = await clear(mac, mark);
   assert.equal(early.status, 409);
   assert.equal(early.body.error, 'hunt-rung', 'a rung short');
+  // AUDIT HORIZONTAL F10: a Stalker since this week's Turning is no Stalker of last week - last week's mark is refused
+  seed(1, 'board', today - 1, NOON);
+  const since = await clear(mac, huntMarkId(week - 1, 300, 200, 3));
+  assert.equal(since.status, 409, JSON.stringify(since.body));
+  assert.equal(since.body.error, 'hunt-rung', 'the rung read as the mark\'s week ended');
   seed(1, 'board', today - 1);
+  // AUDIT HORIZONTAL F2: last week's mark is no answer for this week's (markDone is the week's key, never any mark)
+  const last = await clear(mac, huntMarkId(week - 1, 300, 200, 3));
+  assert.equal(last.body.recorded, true, 'last week\'s mark, a Stalker\'s of last week, reported after the Turning');
+  assert.equal(last.body.markDone, false, 'this week\'s is still to hunt');
   const got = await clear(mac, mark);
   assert.equal(got.body.recorded, true, 'a Stalker: the week\'s mark');
-  assert.equal(got.body.marks, 1);
+  assert.equal(got.body.marks, 2);
   assert.equal(got.body.markDone, true);
   assert.equal((await clear(mac, huntMarkId(week, 310, 210, 3))).body.repeat, true, 'one mark a week, wherever it was taken');
   assert.equal((await state(mac)).body.markDone, true);
-  // THE DAY: the account's recorded rows today, under the ceiling
-  seed(HUNT_CLEARS_DAY_MAX - 2);
+  // THE DAY: the account's recorded rows today, under the ceiling - AUDIT HORIZONTAL F1: every character's, so the day's
+  // rows on another character of the account leave the seat no more (a seat changed is no second day)
+  const today0 = raw.prepare('SELECT COUNT(*) AS n FROM hunt_clears WHERE player = ? AND day = ?').get(mac.id, today).n;
+  for (let i = 0; i < HUNT_CLEARS_DAY_MAX - 1 - today0; i++) raw.prepare("INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, 'r22222222222222222222', 'board', ?, 'x', 0, NULL, ?, ?)").run(mac.id, `alt.${i}`, today, NOON);
   assert.equal((await clear(mac, bountyId(day, 300, 200, 0, 3))).body.recorded, true, 'the last of the day');
   const full = await clear(mac, bountyId(day, 300, 200, 1, 3));
   assert.equal(full.body.recorded, false);
@@ -194,6 +206,10 @@ test('HUNTERS-MARK A SEAT\'S INFLUENCE: a recorded clear on a board of a region 
   // through the ledger's route: a recorded clear in the pledged region answers the seat it counted at
   const routed = await s.call('/v1/hunt/clear', { character: mac.character, id: bountyId(huntGameDayAt(NOON * 1000), 300, 200, 0, 1), region: 17 }, mac.secret);
   assert.deepEqual(routed.body.influence, { counted: true, key: 4242 }, JSON.stringify(routed.body));
+  // AUDIT HORIZONTAL F6: once a CLEAR, never once a character - the character's next clear in the region counts too
+  const again = await s.call('/v1/hunt/clear', { character: mac.character, id: bountyId(huntGameDayAt(NOON * 1000), 300, 200, 2, 1), region: 17 }, mac.secret);
+  assert.deepEqual(again.body.influence, { counted: true, key: 4242 }, JSON.stringify(again.body));
+  assert.equal(raw.prepare("SELECT SUM(amount) AS n FROM town_seat_influence WHERE account = ? AND source = 'hunt'").get(mac.id).n, 2 * HUNT_INFLUENCE, 'two clears, two counts');
   assert.equal((await s.call('/v1/hunt/clear', { character: mac.character, id: bountyId(huntGameDayAt(NOON * 1000), 300, 200, 1, 1) }, mac.secret)).body.influence, undefined, 'no region: no influence');
   const got = await creditHunt(ctx, player, env, { character: mac.character, region: 17, ref: 'b' });
   assert.deepEqual(got, { counted: true, key: 4242 });

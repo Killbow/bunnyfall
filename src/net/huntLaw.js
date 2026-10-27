@@ -56,7 +56,7 @@ export function parseHuntMarkId(id) {
 
 /**
  * A REPORTED CLEAR, read against the clock: `{ kind, id, key, level, tier }` (`key` what one character clears once - a
- * board notice's slot, a mark's week), or `{ why }`: 'id' (no bounty's shape), 'late' or 'early' (out of the clock's
+ * board notice's slot, a mark's week; a mark's `week` too), or `{ why }`: 'id' (no bounty's shape), 'late' or 'early' (out of the clock's
  * window - a board's notice of a day the boards no longer post, a mark of a week gone).
  * @param {unknown} id @param {number} nowMs
  */
@@ -73,7 +73,7 @@ export function huntClearOf(id, nowMs) {
   const week = huntWeekAt(nowMs);
   if (m.week < week - 1) return { why: 'late' };
   if (m.week > week) return { why: 'early' };
-  return { kind: 'mark', id: String(id), key: `m.${m.week}`, level: m.level, tier: bountyTierIndex(m.level) };
+  return { kind: 'mark', id: String(id), key: `m.${m.week}`, level: m.level, tier: bountyTierIndex(m.level), week: m.week };
 }
 
 /** HOW FAR A CLEAR'S LEVEL MAY STAND FROM THE CHARACTER'S: a level the realm trusts (`seen` - realm_characters
