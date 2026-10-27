@@ -134,7 +134,9 @@ No host is wired. The two runners sit under the formulas every host calls (`comb
 already calls for every kill and quest in the streamed world, indoors and underground (SET4). `exterior.js` is
 FLAGGED as it was: the offline bench earns no Renown, so nothing drinks there.
 
-The account service, the relay and the wire are not changed. The save gains one mod record, `SigilSetReach`
+The account service's routes and tables, the relay and the wire are not changed. The account Worker bundles
+`lootRarity.js`, and through it the two new leaves (`powerCeiling.js`, `sigil/setReach.js`); neither runs there, and
+`account-deploy.yml`'s path filter names both (ACC4, `accountdeploy.test.js`). The save gains one mod record, `SigilSetReach`
 (`systems/modSaveData.js`), additive: `SAVE_VERSION` does not move, and a save without it reads as no reach.
 
 ## 9. Approvals
