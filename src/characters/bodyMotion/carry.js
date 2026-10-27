@@ -96,10 +96,14 @@ export const CARRY = Object.freeze({
     stand: { feet: { L: [0, 0.05], R: [0.02, -0.03] }, hipYaw: -6 },
   }),
   two: Object.freeze({
-    idle: { R: row(29, 7, 10, 42, 0, { blade: dir(-0.3, 0.89, -0.35), edge: dir(-0.08, -0.39, -0.92) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
-    walk: { R: row(40, -5, 7, 56, 0.12, { blade: dir(-0.52, 0.84, -0.15), edge: dir(0.13, -0.1, -0.99) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
+    // TWO-CLEAR (feature-feedback via Mac, 2026-10-26: the claymore's hands through the body): the guard's hands before the
+    // belly, a little right of the middle - the low guard's blade still forward and down. Held at the right hip, the left
+    // hand closed a third of an arm down the grip reached across the body at its full length, and the left arm ran
+    // through the chest - 4.5 to 6.3 units into the audit's trunk at rest, at a walk and sneaking.
+    idle: { R: row(36, -3, 10, 52, 0, { blade: dir(-0.34, 0.89, -0.29), edge: dir(-0.41, -0.42, -0.81) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
+    walk: { R: row(40, -7, 11, 11, 0.12, { blade: dir(-0.34, 0.94, -0.1), edge: dir(-0.35, -0.22, -0.91) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
     run: { R: row(43, 10, 0, -31, 0, { blade: dir(0.8, -0.23, -0.55), edge: dir(-0.31, 0.62, -0.72) }), L: row(0, 0, 0, 0, 0, { grip: true }) },
-    sneak: { R: row(51, 2, 7, 22, 0.1, { blade: dir(-0.34, 0.94, 0.09), edge: dir(-0.1, 0.06, -0.99) }), L: row(0, 0, 0, 0, 0, { grip: true }) },   // AUDIT BODY-MOTION CARRY-3: the guard raised to level - the chest's lean tipped the low guard's blade into the ground and the right thigh
+    sneak: { R: row(52, -2, 11, 52, 0.1, { blade: dir(-0.26, 0.95, 0.17), edge: dir(-0.21, 0.12, -0.97) }), L: row(0, 0, 0, 0, 0, { grip: true }) },   // AUDIT BODY-MOTION CARRY-3: the guard raised to level - the chest's lean tipped the low guard's blade into the ground and the right thigh
     stand: { feet: { L: [-0.02, 0.15], R: [0.04, -0.09] }, hipYaw: -16, lean: 3 },
     via: dir(0, -0.259, 0.966),
     runTurn: -32, runLean: 10,
@@ -307,6 +311,18 @@ export function hafHand(rightReq, rightGrip, Rblade, along, arm, slide = null) {
   return { ...req, at: add(req.at, scale(b, a * arm)), along: a };
 }
 
+/** TWO-CLEAR: how far along `fwd` the haft hand's wrist `at` must move to stand `clear` off the trunk's line (`a` the
+ *  pelvis, `c` the neck) - 0 where it already does. */
+export function trunkPush(at, a, c, fwd, clear) {
+  const ab = sub(c, a), u = norm(ab);
+  const t = Math.max(0, Math.min(1, dot(sub(at, a), ab) / dot(ab, ab)));
+  const v = sub(at, add(a, scale(ab, t)));
+  if (len(v) >= clear) return 0;
+  const f = sub(fwd, scale(u, dot(fwd, u))), ff = dot(f, f), vf = dot(v, f);
+  if (ff < 1e-9) return 0;
+  return Math.max(0, (-vf + Math.sqrt(Math.max(0, vf * vf - ff * (dot(v, v) - clear * clear)))) / ff);
+}
+
 /**
  * THE CARRY'S HANDS this frame: { L, R } climb hand requests (or null where the clip keeps the arm), for the class
  * `cls` at the gait `gp`, on the frame the trunk now stands in (`ctx` - bodySolve.js's: body, mats, frames). `wb`,
@@ -365,7 +381,7 @@ export function carryHands(cls, gp, ctx, { armW = { L: 1, R: 1 }, shares: given 
     const haf = hafHand(out.R, out.grip.R, out.R.frame, TWO_HAND_GRIP[cls], body.arm, { shoulder: frames.shoulder.L, reach: body.arms.L, range: TWO_HAND_HAFT[cls] });
     if (haf) {
       haf.w = armW.L;
-      haf.pole = norm(add(scale(F.right, -0.55), add(scale(F.up, -0.75), scale(F.fwd, -0.2))));
+      haf.pole = norm(add(scale(F.right, -0.55), add(scale(F.up, -0.75), scale(F.fwd, 0.45))));   // TWO-CLEAR: the elbow before the chest (back, it folded into it)
       // closed on the haft by the haft's own share, eased off the free arm the other rows give it
       const k = clamp01(lRow.grip);
       out.L = k >= 1 - 1e-9 || !out.L ? haf : blendHand(out.L, haf, k * k * (3 - 2 * k));

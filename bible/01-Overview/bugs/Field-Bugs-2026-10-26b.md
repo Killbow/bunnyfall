@@ -5,9 +5,9 @@ models + weapon animations need a little tweaking" ("Beside that, third person +
 experience"). Read on main's `d5a4c9c6a`. No Morrowind data is in this container (it is not freeware, and ARENA2 plays
 no part here), so every pose below was measured on the vendored retail biped (`test/fixtures/mw/retailRig.mjs`, the
 skeleton `vendor/weapon-sheathing` ships) through `tools/bodyMotionSheet.mjs`'s contact sheets and the pins' own
-measures. The pins are named under each fix; the mutants are `tools/mutants/fb1026b.json` (38, all dead), and two
+measures. The pins are named under each fix; the mutants are `tools/mutants/fb1026b.json` (52, all dead), and two
 records of BODY-MOTION's were re-aimed by content (`bodymotion.json` BODY-MOTION-one-run-blade, `bodymotion_audit.json`
-AUDIT-BODY-MOTION-run-supinated).
+AUDIT-BODY-MOTION-run-supinated). The fifth row is the owner's "Continue" on what THRUST-CHAMBER saw in passing.
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -15,6 +15,7 @@ AUDIT-BODY-MOTION-run-supinated).
 | 2 | "Running and sprinting with one-handed weapon looks off, because hand is in twisted position pointing weapon to the side unnaturally (I guess it uses the same animation as two-handed variant but with only one hand)." | Proven, and the guess is close: the one-hander's run row (`carry.js` CARRY.one.run) trailed the blade behind, down and out to the right - the two-hander's trailing carry in one hand. Holding it there turned the forearm 64 to 74 degrees off its elbow's hinge (the walk's: within 9); the blade pointed 0.54 out to the side. | ONE-RUN |
 | 3 | "Bow, while being drawn, is pointed upwards too much." | A reference law never ported. OpenMW pitches the third-person upper body with the look while a ranged weapon is in use - two RotateControllers, on `bip01 spine1` and `bip01 spine2`, half the pitch each (Morrowind-Rules.md [C], "The ranged aim pitch is TWO RotateControllers"). The port had none, so the drawn bow kept the clip's own angle whatever the aim: looking down at a target from behind the body, it pointed over it. Porting it found a second fault, in the law the first-person neck already used. | BOW-AIM, ROOT-TURN |
 | 4 | "Please, add an option to move camera a bit to the side (like in the "eye of the beholder" mod) for morrowind 3rd person models (that mod doesn't adjust camera position with those models enabled), because crosshair is located on top of character's head and it is inconvenient to target something with ranged attacks." | A feature. The Morrowind body's camera (`player/mwCamera.js`) is vanilla's, centred behind the actor, so the crosshair's ray passes through the head. Eye Of The Beholder's offsets are its own sprite camera's (`eyeOfTheBeholder/eotbCamera.js`), not this one's. | MW-SHOULDER |
+| 5 | (the owner, on the chop's and the slash's left arm seen behind the back in passing: "Continue") | Proven, and wider than seen. Measured against the audit's own trunk (`bodymotion_audit.test.js` MELEE-1: 9 units about the pelvis-to-neck line, under 3 in) with BOTH arms - the audit read the striking arm's alone, CARRY-1 the weapon's - the hand on the haft went into the trunk in the two-hander's guard (4.5 to 6.3 units at rest, walking and sneaking) and through every blow of a two-hander's, a staff's and a spear's (5.8 to 8.5). One-handers, pairs and fists stood clear (2.5 at most). | TWO-CLEAR |
 
 ## THRUST-CHAMBER (1) - `src/characters/bodyMotion/melee.js`
 
@@ -22,7 +23,8 @@ No DFU member: Daggerfall Unity draws no third-person body. The body motion is t
 clips (`04-Characters/Body-Motion.md`, Port-Ledger A BODY-MOTION).
 
 THE CHANGE. The thrust's wind-up key (u 0.3) chambers the hilt BEFORE the right hip, the point raised at the target -
-grip [0.3, 0.5, -0.4] in arm lengths off the shoulders' middle in the body's frame, blade [-0.2, 0.96, 0.2] - and the
+grip [0.3, 0.5, -0.4] in arm lengths off the shoulders' middle in the body's frame, blade [-0.2, 0.96, 0.2] (TWO-CLEAR
+moved it 0.07 further out and right, [0.37, 0.57, -0.4], and its follow's key 0.12 further out) - and the
 draw is the trunk's coil (the chest turned 24 degrees right, the hips 12, the weight back), not the hands'. The release
 and the follow are unchanged. Through the whole blow, standing and walking, both wrists now stand in front of the
 shoulders' plane in the chest's frame (the left at 0.056 of an arm at its least standing, the guard's own, and 0.15
@@ -32,9 +34,10 @@ PINS: `test/characters/bodyMotion/fb1026b_mwbody.test.js` THRUST-CHAMBER - every
 walking, each wrist ahead of the shoulders' plane; the wind-up still coils the chest past 15 degrees; the release still
 drives the grip 0.75 of an arm ahead. Mutants THRUST-CHAMBER-drawn-behind (the old key), THRUST-CHAMBER-chest-square.
 
-SEEN IN PASSING, NOT CHANGED: the two-hander's chop and slash put the left arm behind the back for two or three frames
-mid-release (up to 15.6 units in the chop, 13.6 in the slash, measured on the same biped at the audit machine's pace),
-where the spline carries the hilt from over the shoulder to the front. Not what the report named; put to the owner.
+SEEN IN PASSING: the two-hander's chop and slash put the left arm behind the back for two or three frames mid-release
+(up to 15.6 units in the chop, 13.6 in the slash, measured on the same biped at the audit machine's pace), where the
+spline carries the hilt from over the shoulder to the front. Not what the report named; put to the owner, who said
+"Continue" - TWO-CLEAR (5).
 
 ## ONE-RUN (2) - `src/characters/bodyMotion/carry.js`
 
@@ -141,3 +144,61 @@ PINS: `test/player/fb1026b_shoulder.test.js` - the reference's numbers; the tran
 (the shoulder, combat, the water, at once on entry and on the option's change); the offset in the frame (the strafe's
 right, 10 down, the left the mirror, combat 15 over the head); the guard; off is the vanilla camera to the bit; the
 wiring. `test/systems/features.test.js` (the row and the notes' budget, 205 chars). Mutants MW-SHOULDER-*.
+
+## TWO-CLEAR (5) - `src/characters/bodyMotion/carry.js`, `melee.js`, `bodyMotion.js`
+
+No DFU member (as THRUST-CHAMBER). The measure is the audit's own trunk (`bodymotion_audit.test.js` MELEE-1: the
+pelvis-to-neck segment, 9 units round it, a sample under 3 in clear), read for BOTH arms - each elbow, wrist and the
+middles of each upper arm and forearm - where the audit read the striking arm's hand and forearm alone. Before, on the
+retail biped: the two-hander's guard 6.3 units in at rest, 4.5 walking, 5.5 sneaking (the left elbow); every two-hander
+blow 6.5 to 8.5 standing or walking (the left wrist and forearm); the staff's and the spear's chop, slash and backhand 5.8
+to 6.9 (the left upper arm, and the striking right upper arm in the backhand). One-handers, pairs and fists: 2.5 at most,
+unchanged.
+
+THE GUARD (`CARRY.two` idle, walk, sneak). Held by the right hip, the left hand - closed a third of an arm down the grip,
+behind the right (`TWO_HAND_GRIP`) - reached across the body at the arm's full length, and the arm ran straight through
+the chest; no elbow could take it out. The hands now stand before the belly, a little right of the middle (the left
+0.26 of an arm before the shoulders; it stood 0.08), and the guard is still the low guard Mac's pin holds - the blade
+forward and down (`bodymotion_carry.test.js`). The rows were fitted on the biped against CARRY-1's own limits: the wrists
+34 to 38 degrees ulnar (under 40), the weapon over the ground and out of the thighs and the trunk, the left hand on its
+haft. The left arm stands 0.2 to 0.4 units into the trunk's 9 - the upper arm against the ribs.
+
+THE HAFT HAND'S ELBOW points out and forward of the chest, in the carry and in a blow (`carry.js` carryHands,
+`bodyMotion.js` blowHands): it pointed back a fifth, and the blow's was a fixed way in the rig's frame that the chest's
+turn left behind.
+
+THE BLOWS (`MELEE.two` - the two-hander's, the staff's and the spear's, one table for three left hands: the pommel's
+side for a two-hander, the point's for a staff and a spear). The hands LEAD. Each wind-up gathers the hilt in front first
+- the chop raised before the face with its blade upright (keys at u 0.08 and 0.18), the slash swung out to the right
+(0.12) and RAISED at the right shoulder (0.3: it was drawn back behind it), the backhand at the left shoulder (0.3: it
+reached across behind it) - and each release passes its blade upright or across with the grip out before the face or
+the chest (keys at 0.4). The chop, the slash and the backhand land two thirds of an arm out (0.68 to 0.73 along the
+facing; 0.55 to 0.58 before, where the left hand on a claymore's grip stood in the chest); the thrust's chamber and
+follow sit a little further out. The new keys take the trunk's channels (chest, hips, weight, step) from the old spline
+at their u, so the body's wind is the one it was. Kept, each read on the biped: the blade under 48 degrees a frame (the
+audit's 60), the grip meeting its target at 85 per cent of its top speed and more (MELEE-10's 75), a slash begun at a run
+turning its blade 20 degrees a frame at most in its ease-in (MELEE-1's 25).
+
+THE PAIR HELD BEFORE THE TRUNK. Where a blow's haft hand would close nearer the trunk's line than `TRUNK_CLEAR` (0.29 of
+an arm: the audit's 9 units and a forearm), both hands go forward along the chest's way by as much as it takes
+(`carry.js` trunkPush). The keys keep it near nothing: by their keys alone (`createBodyMotion({ trunkClear: 0 })`) every
+blow of the three, standing and walking, stands under 2.5 units in. It holds what the keys cannot: a claymore blow begun
+sneaking or at a run, or cut by the next, closed the left hand 0.2 to 3 units in by its keys alone; held before the trunk
+it never enters it.
+
+AFTER, as struck: every blow of the three, standing, walking and strafing, 2.1 units in at most; the guards 0.4 at most
+(a spear's sneak 1.8, as it stood). Contact sheets: `node tools/bodyMotionSheet.mjs <dir> two two-chop two-slash
+two-back two-thrust`.
+
+NOT FIXED, NAMED. A staff's or a spear's blow begun AT A RUN: the run carries that left arm free (`CARRY.wide.run` and
+`CARRY.spear.run`), and the blow's first three or four frames blend it onto the haft along the straight line between,
+which passes through the body (the staff's backhand 6.8 units in, its thrust 5.8, the spear's thrust 3.0; 8.5, 6.3 and
+3.5 before). The cure is the blend's - the hand carried round the trunk, not through it - and every class's arm takes
+that blend. And a claymore's chop begun sneaking: 3.3, its left upper arm passing the throat, where the audit's trunk
+is a 9-unit sphere about the neck joint, wider than a neck (8.2 before).
+
+PINS: `test/characters/bodyMotion/fb1026b_mwbody.test.js` TWO-CLEAR - the guard (every class and gait under 3 in; the
+two-hander's hands before the belly, its blade forward and down); every blow (each of the four, each class, standing,
+walking and strafing, under 3 in - and by its keys alone; the two-hander's landing two thirds of an arm out); the pair
+held before the trunk (the claymore's left wrist through every blow at every gait); the push's own law. Mutants
+TWO-CLEAR-* (14), and two THRUST-CHAMBER records re-aimed by content to the moved wind-up key.

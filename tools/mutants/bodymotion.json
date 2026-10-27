@@ -407,8 +407,8 @@
   {
     "name": "BODY-MOTION-two-blow-haft-dropped",
     "file": "src/characters/bodyMotion/bodyMotion.js",
-    "old": "    if (haf) out.L = { ...haf, w: armW.L, pole: norm([-0.55, -0.2, -0.75]) };",
-    "new": "    if (haf && false) out.L = { ...haf, w: armW.L, pole: norm([-0.55, -0.2, -0.75]) };",
+    "old": "    if (haf) out.L = { ...haf, w: armW.L, pole: norm(add(scale(frames.right, -0.55), add(scale(frames.up, -0.75), scale(frames.fwd, 0.45)))) };",
+    "new": "    if (haf && false) out.L = { ...haf, w: armW.L, pole: norm(add(scale(frames.right, -0.55), add(scale(frames.up, -0.75), scale(frames.fwd, 0.45)))) };",
     "tests": [
       "test/characters/bodyMotion/bodymotion_carry.test.js"
     ]

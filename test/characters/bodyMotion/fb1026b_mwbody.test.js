@@ -12,6 +12,11 @@
 // turned 64 to 74 degrees off its elbow's hinge to hold it there. It runs in the stand's own format now (Mac's "Running
 // with it using the same format"): the arm low and out, the blade forward and a little down, the forearm untwisted, and
 // the blade's way between a stand and a run no longer swung round the back (the old row's `via`).
+//
+// TWO-CLEAR (Mac: "Continue" - the chop's and the slash's left arm seen behind the back in passing, then every arm of the
+// family measured): the two-handed family's arms against the audit's own trunk (bodymotion_audit.test.js MELEE-1: 9 units
+// about the pelvis-to-neck line, under 3 in), BOTH arms - the audit read the striking arm's alone, and the hand on the
+// haft went 4.5 to 8.5 units into the trunk at rest and through every blow of a claymore, a staff's and a spear's.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseNif } from '../../../src/formats/morrowind/mwNifFile.js';
@@ -22,7 +27,7 @@ import { handFrame } from '../../../src/combat/climbRig.js';
 import { bodyOf, RAD } from '../../../src/characters/bodyMotion/bodyKit.js';
 import { bodyFrames } from '../../../src/characters/bodyMotion/bodySolve.js';
 import { createBodyMotion, sceneInput } from '../../../src/characters/bodyMotion/bodyMotion.js';
-import { CARRY } from '../../../src/characters/bodyMotion/carry.js';
+import { CARRY, trunkPush } from '../../../src/characters/bodyMotion/carry.js';
 import { retailSkeleton } from '../../fixtures/mw/retailRig.mjs';
 
 const sm = (s, pose, root) => skeletonSpaceMatrices(s, pose, root);
@@ -123,4 +128,86 @@ test('ONE-RUN THE WAY BETWEEN A STAND AND A RUN: the blade turns under 3 degrees
     });
     assert.ok(turn < 3, `the blade turned ${turn.toFixed(1)} degrees in a frame`);
   }
+});
+
+/** How far each arm's elbow, wrist and the middles of its upper arm and forearm go into the audit's trunk (units). */
+function intoTrunk(m) {
+  const a = pt(m, 'bip01 pelvis'), c = pt(m, 'bip01 neck'), ab = sub(c, a);
+  const toSeg = (p) => { const t = Math.max(0, Math.min(1, dot(sub(p, a), ab) / dot(ab, ab))); return len(sub(p, [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t])); };
+  let worst = -Infinity, where = '';
+  for (const s of ['l', 'r']) {
+    const sh = pt(m, `bip01 ${s} upperarm`), el = pt(m, `bip01 ${s} forearm`), wr = pt(m, `bip01 ${s} hand`);
+    const mid = (x, y) => [(x[0] + y[0]) / 2, (x[1] + y[1]) / 2, (x[2] + y[2]) / 2];
+    for (const [n, p] of [['upper arm', mid(sh, el)], ['elbow', el], ['forearm', mid(el, wr)], ['wrist', wr]]) { const d = 9 - toSeg(p); if (d > worst) { worst = d; where = `${s === 'l' ? 'left' : 'right'} ${n}`; } }
+  }
+  return { depth: worst, where };
+}
+const FAMILY = { claymore: W.LongBladeTwoHand, staff: W.BluntTwoWide, spear: W.SpearTwoWide };
+const GAITS = { 'at rest': {}, walking: { forward: 1, speed: 4.43 }, running: { forward: 1, speed: 8.1, running: true }, sneaking: { forward: 1, speed: 1.9, sneaking: true }, strafing: { strafe: 1, speed: 4.43 } };
+
+test('TWO-CLEAR THE TWO-HANDED GUARD BEFORE THE BODY: a claymore\'s, a staff\'s and a spear\'s guard at rest, walking, running and sneaking keeps both arms out of the audit\'s trunk, under 3 units in (the claymore\'s left arm, its hand by the right hip at its full length, ran through the chest 4.5 to 6.3 in); and the claymore\'s is still a low guard, its hands before the belly and its blade forward and down (mutants: TWO-CLEAR-guard-at-the-hip, TWO-CLEAR-haft-elbow-back)', () => {
+  const bad = [];
+  for (const [name, weapon] of Object.entries(FAMILY)) for (const g of ['at rest', 'walking', 'running', 'sneaking']) {
+    let worst = { depth: -Infinity };
+    play({ weapon, hands: 'single', ...GAITS[g] }, 2, (m, t) => { if (t >= 1.4) { const d = intoTrunk(m); if (d.depth > worst.depth) worst = d; } });
+    if (worst.depth >= 3) bad.push(`${name} ${g}: the ${worst.where} ${worst.depth.toFixed(1)} units into the trunk`);
+  }
+  assert.deepEqual(bad, []);
+  play({ weapon: W.LongBladeTwoHand, hands: 'single' }, 1.5, (m, t) => {
+    if (t < 1.4) return;
+    const b = bladeOf(m), F = bodyFrames(body, m);
+    const C = [(F.shoulder.L[0] + F.shoulder.R[0]) / 2, (F.shoulder.L[1] + F.shoulder.R[1]) / 2, (F.shoulder.L[2] + F.shoulder.R[2]) / 2];
+    // the left hand 0.26 of an arm before the shoulders (it stood 0.08 - beside the right hip)
+    for (const s of ['l', 'r']) assert.ok(dot(sub(pt(m, `bip01 ${s} hand`), C), F.fwd) / A > 0.18, `the ${s} hand before the belly`);
+    assert.ok(b[1] > 0.5 && b[2] < -0.3, 'a low guard: the blade forward and down');
+  });
+});
+
+test('TWO-CLEAR EVERY BLOW OF THE FAMILY BEFORE THE BODY: each of the four blows of a claymore, a staff and a spear - the chop, the slash, the backhand and the thrust - struck standing, walking and strafing keeps both arms out of the audit\'s trunk, under 3 units in (they went 5.8 to 8.5 in: the hand on the haft through the chest as the blade passed upright or across beside the body); and the claymore\'s chop, slash and backhand land with the grip two thirds of an arm out - each by its keys alone too, no pair pushed (mutants: TWO-CLEAR-chop-old, TWO-CLEAR-chop-raised-beside, TWO-CLEAR-slash-old, TWO-CLEAR-slash-drawn-behind, TWO-CLEAR-back-old, TWO-CLEAR-back-across-beside, TWO-CLEAR-blow-elbow-back, TWO-CLEAR-the-hit-near)', () => {
+  const bad = [];
+  // as the game strikes them, and by their keys alone - no pair pushed before the trunk (createBodyMotion's trunkClear 0)
+  for (const [alone, gaits] of [[false, ['at rest', 'walking', 'strafing']], [true, ['at rest', 'walking']]]) for (const [name, weapon] of Object.entries(FAMILY)) for (const g of gaits) for (const [type, reversed] of [['chop', false], ['slash', false], ['slash', true], ['thrust', false]]) {
+    const scene = { weapon, hands: 'single', ...GAITS[g] };
+    const motion = play(scene, 1.5, null, createBodyMotion(alone ? { trunkClear: 0 } : {}));
+    let worst = { depth: -Infinity };
+    for (const f of sections()) play({ ...scene, blow: { type, reversed, hand: 'R', ...f, strength: 1 } }, 1 / 60, (m) => { const d = intoTrunk(m); if (d.depth > worst.depth) worst = d; }, motion);
+    if (worst.depth >= 3) bad.push(`${name} ${g} ${reversed ? 'backhand' : type}${alone ? ' (its keys alone)' : ''}: the ${worst.where} ${worst.depth.toFixed(1)} units into the trunk`);
+  }
+  assert.deepEqual(bad, []);
+  for (const [type, reversed] of [['chop', false], ['slash', false], ['slash', true]]) {
+    const scene = { weapon: W.LongBladeTwoHand, hands: 'single' };
+    const motion = play(scene, 1.5);
+    let reach = -Infinity;
+    for (const f of sections()) play({ ...scene, blow: { type, reversed, hand: 'R', ...f, strength: 1 } }, 1 / 60, (m) => {
+      if (f.section !== 'release' || f.progress < 0.99) return;
+      const F = bodyFrames(body, m);
+      reach = (pt(m, 'weapon bone')[1] - (F.shoulder.L[1] + F.shoulder.R[1]) / 2) / A;   // along the facing: 0.68 to 0.73 (it was 0.55 to 0.58)
+    }, motion);
+    assert.ok(reach > 0.65, `the claymore's ${reversed ? 'backhand' : type} lands ${reach.toFixed(2)} of an arm out`);
+  }
+});
+
+test('TWO-CLEAR THE PAIR HELD BEFORE THE TRUNK: through each of a claymore\'s four blows begun at rest, walking, sneaking, running and strafing, the hand on the haft - the left, a third of an arm down the grip behind the right - never closes inside the audit\'s trunk, its wrist under half a unit in; by the keys alone it closed 0.2 to 3 units in, most of all in a slash begun sneaking or at a run (mutants: TWO-CLEAR-the-pair-unpushed)', () => {
+  const bad = [];
+  for (const g of ['at rest', 'walking', 'sneaking', 'running', 'strafing']) for (const [type, reversed] of [['chop', false], ['slash', false], ['slash', true], ['thrust', false]]) {
+    const scene = { weapon: W.LongBladeTwoHand, hands: 'single', ...GAITS[g] };
+    const motion = play(scene, 1.5);
+    let worst = -Infinity;
+    for (const f of sections()) play({ ...scene, blow: { type, reversed, hand: 'R', ...f, strength: 1 } }, 1 / 60, (m) => {
+      const a = pt(m, 'bip01 pelvis'), c = pt(m, 'bip01 neck'), ab = sub(c, a), p = pt(m, 'bip01 l hand');
+      const t = Math.max(0, Math.min(1, dot(sub(p, a), ab) / dot(ab, ab)));
+      worst = Math.max(worst, 9 - len(sub(p, [a[0] + ab[0] * t, a[1] + ab[1] * t, a[2] + ab[2] * t])));
+    }, motion);
+    if (worst >= 0.5) bad.push(`${g} ${reversed ? 'backhand' : type}: the left wrist ${worst.toFixed(1)} units into the trunk`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('TWO-CLEAR THE PUSH: how far forward a haft hand must go to stand clear of the trunk\'s line - nothing where it stands clear, to the clearance from on the line, and through to the front from behind it; never along the line (mutants: TWO-CLEAR-push-backward)', () => {
+  const a = [0, 0, 0], c = [0, 0, 20], fwd = [0, 1, 0];
+  assert.equal(trunkPush([0, 12, 10], a, c, fwd, 10), 0);
+  assert.ok(Math.abs(trunkPush([0, 0, 10], a, c, fwd, 10) - 10) < 1e-9);
+  assert.ok(Math.abs(trunkPush([0, -3, 10], a, c, fwd, 10) - 13) < 1e-9, 'from 3 behind the line to 10 before it');
+  assert.ok(Math.abs(trunkPush([6, 0, 10], a, c, fwd, 10) - 8) < 1e-9, 'beside it, out to the clearance\'s circle');
+  assert.equal(trunkPush([0, 0, 10], a, c, [0, 0, 1], 10), 0, 'a way along the line moves nothing off it');
 });
