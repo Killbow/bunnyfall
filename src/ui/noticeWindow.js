@@ -1119,10 +1119,29 @@ export function mountNoticeBoard(host, deps) {
     }
     return true;
   }
+  /** AUDIT PACK-PICK (lane B M1): A PAINT WAITS ON A PRESS HELD DOWN in the window - a paint between the pointer going
+   *  down and coming up took the pressed node out from under it, and the browser's click found no tile (a pack's pictures
+   *  landing dropped a phone's taps). It paints once the press is let go - after the press's own click, which follows the
+   *  pointer's coming up in the same input's task (so a timer, never a microtask) - or once it has been held two seconds. */
+  let pressAt = 0, pressWait = false;
+  const pressDown = () => { pressAt = Date.now(); };
+  const pressUp = () => {
+    if (!pressAt) return;
+    pressAt = 0;
+    if (pressWait) { pressWait = false; setTimeout(() => render(), 0); }
+  };
+  shell.addEventListener('pointerdown', pressDown, true);
+  globalThis.addEventListener('pointerup', pressUp, true);
+  globalThis.addEventListener('pointercancel', pressUp, true);
+  const pressing = () => {
+    if (!pressAt || Date.now() - pressAt > 2000) return false;
+    pressWait = true;
+    return true;
+  };
   function render() {
     if (!alive) return;
     if (painting) { paintAgain = true; return; }
-    if (composing()) return;
+    if (composing() || pressing()) return;
     painting = true;
     try {
       do { paintAgain = false; paint(); } while (paintAgain && alive);
@@ -1152,6 +1171,8 @@ export function mountNoticeBoard(host, deps) {
       if (!alive) return;
       alive = false;
       globalThis.removeEventListener('keydown', onKey, { capture: true });
+      globalThis.removeEventListener('pointerup', pressUp, true);
+      globalThis.removeEventListener('pointercancel', pressUp, true);
       offOutside();
       shell.remove();
     },

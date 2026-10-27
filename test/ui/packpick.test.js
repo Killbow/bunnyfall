@@ -27,6 +27,7 @@ import { ARROW_TEMPLATE } from '../../src/systems/inventory.js';
 import { PROF_CSS } from '../../src/ui/enhanced/enhancedPlusStyle.js';
 import { SLOT_BOX } from '../../src/ui/iconFit.js';
 import { frameWake } from '../../src/ui/menu/menuGlyphs.js';
+import { mountNoticeBoard } from '../../src/ui/noticeWindow.js';
 
 afterEach(() => resetPrefs());
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
@@ -308,7 +309,7 @@ test('PACK-PICK the dress: the tiers\' colours laid inside the List form (the bo
 test('AUDIT PACK-PICK the dress\'s own rules: the card\'s name in its tier\'s colour as a tile\'s is; two tiles across inside the phone\'s rule alone; a press a finger\'s height on a touch screen (mutants: C17 the card\'s name uncoloured; C18 the phone\'s rule on a desktop; C19 a touch press small)', () => {
   assert.match(PROF_CSS, /\.packpick-card\[data-rarity\] \.packpick-name[^{]*\{ color: var\(--rar-hi\); \}/);
   assert.match(PROF_CSS, /@media \(max-width: 640px\) \{ \.packpick-grid \{ grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\);/);
-  assert.match(PROF_CSS, /@media \(pointer: coarse\) \{ \.packpick-tile, \.market-kinds \.market-kind, \.market-filters \.market-sellpack \{ min-height: 44px; \} \}/);
+  assert.match(PROF_CSS, /@media \(pointer: coarse\) \{ \.packpick-tile, \.market-kinds \.market-kind, \.market-filters \.market-sellpack \{ min-height: 44px; \}/);
 });
 
 // ─── AUDIT PACK-PICK (2026-10-27): the pins the cold lanes found missing ───────────────────────────────────────────────
@@ -637,4 +638,108 @@ test('AUDIT PACK-PICK the kinds and "Sell from your pack" are chips as the views
   assert.equal(bare.press('material').getAttribute('aria-pressed'), 'true', 'the Stores');
   bare.press('item').onclick();
   assert.equal(word(bare.root(), 'packpick-empty'), 'Nothing in your pack can go on the market.', 'the pack still one press away, and why');
+});
+
+test('AUDIT PACK-PICK the window\'s paint waits on a press held down in it, and paints once it is let go - after the press\'s own click; a press held past two seconds holds it no more (mutants: B1 a paint under a press; B1 the paint after it a microtask; B1 never let go)', async () => {
+  const noticeBook = { seenAt: () => null, read: async () => ({ board: { notes: [], notices: [], me: {} } }), markSeen: () => {}, cached: () => null, draft: () => ({ subject: '', body: '', days: 7, button: '' }), noticeDraft: () => ({ subject: '', body: '', days: 3 }) };
+  const host = document.createElement('div');
+  const ups = [];
+  const add = globalThis.addEventListener;
+  globalThis.addEventListener = (t, f, o) => { if (t === 'pointerup') ups.push(f); return add(t, f, o); };
+  let v;
+  try { v = mountNoticeBoard(host, { town: { name: 'Daggerfall', mapId: 1 }, book: noticeBook }); } finally { globalThis.addEventListener = add; }
+  try {
+    await tick();
+    const shell = host.querySelector('.notice-shell'), win = host.querySelector('.notice-win');
+    const first = () => win.children[0];
+    let before = first();
+    shell.dispatch('pointerdown', {});
+    v.repaint();
+    assert.equal(first(), before, 'held: the pressed node stands');
+    for (const f of ups) f({ type: 'pointerup' });
+    await Promise.resolve();
+    assert.equal(first(), before, 'not before the click that follows the pointer up');
+    await tick();
+    assert.notEqual(first(), before, 'painted once let go');
+    before = first();
+    const now = Date.now;
+    shell.dispatch('pointerdown', {});
+    Date.now = () => now() + 2500;
+    try { v.repaint(); } finally { Date.now = now; }
+    assert.notEqual(first(), before, 'a press held past two seconds is no hold');
+    for (const f of ups) f({ type: 'pointerup' });
+  } finally { v.unmount(); }
+});
+
+test('AUDIT PACK-PICK the keys: the tiles are one stop of the Tab key (the chosen tile, or the first) and the arrows walk them; List, "Put up for sale" and the kind "Sell from your pack" opens keep the focus through a redraw (mutants: B2 every tile a Tab stop; B2 the arrows deaf; B2 List unkeyed; B2 the stall\'s press unkeyed; B2 the Sell press\'s focus dropped)', async () => {
+  const { goods } = pack();
+  const entries = entriesOf(goods);
+  const ok = entries.filter((e) => !e.why);
+  const box = pickerOf(entries, freshPackSift());
+  let tiles = tilesOf(box);
+  assert.deepEqual(tiles.map((b) => b.getAttribute('tabindex')), ok.map((_, i) => (i === 0 ? '0' : '-1')), 'one stop, the first');
+  const press = (b, key) => { const ev = { key, preventDefault() { this.prevented = true; }, stopPropagation() {} }; b.onkeydown(ev); return ev; };
+  globalThis.document.activeElement = tiles[0];
+  assert.ok(press(tiles[0], 'ArrowRight').prevented);
+  assert.equal(globalThis.document.activeElement, tiles[1]);
+  assert.deepEqual([tiles[0].getAttribute('tabindex'), tiles[1].getAttribute('tabindex')], ['-1', '0'], 'the stop walks with it');
+  press(tiles[1], 'End');
+  assert.equal(globalThis.document.activeElement, tiles.at(-1));
+  press(tiles.at(-1), 'ArrowDown');
+  assert.equal(globalThis.document.activeElement, tiles.at(-1), 'the last stays the last');
+  press(tiles.at(-1), 'Home');
+  assert.equal(globalThis.document.activeElement, tiles[0]);
+  assert.equal(press(tiles[0], 'a').prevented, undefined, 'a letter is not the tiles\'');
+  tiles = tilesOf(pickerOf(entries, freshPackSift(), { chosen: ok[3].item }));
+  assert.deepEqual(tiles.map((b, i) => [i, b.getAttribute('tabindex')]).filter(([, x]) => x === '0'), [[3, '0']], 'the chosen tile the stop');
+  const t = tabOf(bookOf(true), goods);
+  await mine(t);
+  assert.equal([...t.root().querySelectorAll('button')].find((b) => b.textContent === 'List').getAttribute('data-focus'), 'list-do');
+  t.tab.state.view = 'goods';
+  await t.tab.load(true);
+  t.draw();
+  assert.equal(byClass(t.root(), 'market-sellpack')[0].getAttribute('data-focus'), 'list-kind|item', 'the pack\'s kind\'s own key: the focus lands on it');
+  const stall = createVendorTab({ mode: 'stall', own: true, read: async () => ({ ok: true, data: { rows: [] } }), nameOf: (it) => goods.goodName(it), purse: () => 100,
+    goods: () => goods.goods(), put: async () => ({ ok: true }) }, { busy: () => false, run: async (start) => start(), rerender: () => {}, nowS: () => 0, alive: () => true });
+  await stall.open();
+  assert.equal([...stall.body().querySelectorAll('button')].find((b) => b.textContent === 'Put up for sale').getAttribute('data-focus'), 'vendor-post');
+});
+
+test('AUDIT PACK-PICK a crafted piece and a Masterwork to auction are each their kind\'s own choice - a look at the auction keeps the crafted choice, and a Masterwork chosen there is never carried into a sale at a price; their search speaks of no pack (mutants: B3 one choice for both; B6 the pack\'s words over pieces in a home)', async () => {
+  const { goods } = pack();
+  const mw = mintPiece({ recipe: 'longsword:mithril', quality: 4, seed: 77, maker: 'Me' }, 'aaaaaaaaaaaaaaaa');
+  const fine = mintPiece({ recipe: 'longsword:mithril', quality: 2, seed: 78, maker: 'Me' }, 'bbbbbbbbbbbbbbbb');
+  const t = tabOf(bookOf(true, { aaaaaaaaaaaaaaaa: 'yours', bbbbbbbbbbbbbbbb: 'yours' }), goods, { pieces: () => [{ item: mw, where: 'home', name: 'Me\'s Longsword' }, { item: fine, where: 'pack', name: 'Fine Longsword' }] });
+  await mine(t);
+  const tile = (name) => tilesOf(t.root()).find((b) => word(b, 'packpick-name') === name);
+  const chosen = () => word(byClass(t.root(), 'packpick-card')[0] ?? t.root(), 'packpick-name') ?? null;
+  t.press('piece').onclick();
+  const find = byClass(t.root(), 'packpick-find')[0];
+  assert.deepEqual([find.getAttribute('placeholder') ?? find.placeholder, find.getAttribute('aria-label')], ['Search by name', 'Search by name']);
+  tile('Fine Longsword').onclick();
+  t.press('auction').onclick();
+  assert.equal(byClass(t.root(), 'packpick-card').length, 0, 'the auction\'s own: none chosen there');
+  tile('Me\'s Longsword').onclick();
+  t.press('piece').onclick();
+  assert.equal(chosen(), 'Fine Longsword', 'the crafted choice where it was left');
+  t.press('auction').onclick();
+  assert.equal(chosen(), 'Me\'s Longsword');
+  t.press('piece').onclick();
+  const none = byClass(t.root(), 'packpick-find')[0];
+  none.value = 'no such piece anywhere';
+  none.oninput();
+  await tick(160);
+  assert.equal(word(t.root(), 'packpick-none'), 'Nothing matches. Show everything');
+});
+
+test('AUDIT PACK-PICK the dress for a finger and an eye: the search, the menus, the price and the fold\'s name a finger\'s height on a touch screen; the chosen tile a mark and a light line, never its colour alone; a refused tile no hover (mutants: B4 the form small to a finger; B5 the chosen by colour alone; B the refused hovered)', () => {
+  assert.match(PROF_CSS, /\.packpick-find, \.packpick-menu, \.market-listform \.market-num \{ min-height: 44px; \}/);
+  assert.match(PROF_CSS, /\.packpick-refused > summary \{ display: flex; align-items: center; min-height: 44px; \}/);
+  const coarse = PROF_CSS.indexOf('@media (pointer: coarse) { .packpick-tile');
+  assert.ok(coarse > 0 && PROF_CSS.indexOf('.packpick-refused > summary { display: flex') > coarse && PROF_CSS.indexOf('.packpick-refused > summary { display: flex') < PROF_CSS.indexOf('@media (max-width: 640px) { .packpick-grid'), 'inside the coarse pointer\'s rule');
+  assert.match(PROF_CSS, /\.packpick-tile\.on::after \{ content: '\\2713';/);
+  assert.match(PROF_CSS, /\.packpick-tile\.on \{ padding-right: 18px; box-shadow: inset 0 0 0 2px #f3ead8; \}/);
+  assert.match(PROF_CSS, /\.packpick-tile\.on\[data-rarity\] \{ box-shadow: inset 0 0 0 2px #f3ead8,/);
+  assert.match(PROF_CSS, /button\.packpick-tile:hover, \.packpick-tile:focus-visible \{/);
+  assert.ok(!/(^|[^n])\.packpick-tile:hover/.test(PROF_CSS.replace(/button\.packpick-tile:hover/g, '')), 'no hover for every tile');
 });

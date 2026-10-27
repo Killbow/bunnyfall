@@ -149,8 +149,8 @@
   {
     "name": "AUDIT-PACK-PICK-C19-coarse-press-small",
     "file": "src/ui/enhanced/enhancedPlusStyle.js",
-    "old": "@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-filters .market-sellpack { min-height: 44px; } }",
-    "new": "",
+    "old": "@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-filters .market-sellpack { min-height: 44px; }\n",
+    "new": "@media (pointer: coarse) {\n",
     "tests": [
       "test/ui/packpick.test.js"
     ]
@@ -193,8 +193,8 @@
   {
     "name": "AUDIT-PACK-PICK-C23-crafted-press-never-lets-go",
     "file": "src/ui/marketTab.js",
-    "old": "pick: (it) => { st.list.piece = st.list.piece === it.provenance ? '' : it.provenance; ui.rerender(); },",
-    "new": "pick: (it) => { st.list.piece = it.provenance; ui.rerender(); },",
+    "old": "pick: (it) => { st.list.pieces[pk] = st.list.pieces[pk] === it.provenance ? '' : it.provenance; ui.rerender(); },",
+    "new": "pick: (it) => { st.list.pieces[pk] = it.provenance; ui.rerender(); },",
     "tests": [
       "test/ui/packpick.test.js",
       "test/net/marketaudit.test.js",
@@ -700,5 +700,165 @@
       "test/ui/packpick.test.js"
     ],
     "note": "a new sift opens the folded part-way down"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B1-paint-under-a-press",
+    "file": "src/ui/noticeWindow.js",
+    "old": "    if (composing() || pressing()) return;",
+    "new": "    if (composing()) return;",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a picture landing under a tap takes the tile from under it"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B1-paint-after-a-microtask",
+    "file": "src/ui/noticeWindow.js",
+    "old": "if (pressWait) { pressWait = false; setTimeout(() => render(), 0); }",
+    "new": "if (pressWait) { pressWait = false; Promise.resolve().then(() => render()); }",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "the held paint runs between the pointer up and the click"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B1-never-let-go",
+    "file": "src/ui/noticeWindow.js",
+    "old": "    if (!pressAt || Date.now() - pressAt > 2000) return false;",
+    "new": "    if (!pressAt) return false;",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a press whose release never came holds the window for good"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-every-tile-a-stop",
+    "file": "src/ui/packPicker.js",
+    "old": "    b.setAttribute('tabindex', '-1');\n    b.onkeydown",
+    "new": "    b.onkeydown",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a hundred and forty Tabs to List"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-arrows-deaf",
+    "file": "src/ui/packPicker.js",
+    "old": "      walk(b, ev.key);\n",
+    "new": "\n",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "the arrows move nothing"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-the-stop-not-the-chosen",
+    "file": "src/ui/packPicker.js",
+    "old": "    const stop = tilesShown().find((n) => n.getAttribute('aria-pressed') === 'true') ?? tilesShown()[0];",
+    "new": "    const stop = tilesShown()[0];",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "Tab lands on the first tile, not the one chosen"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-list-unkeyed",
+    "file": "src/ui/marketTab.js",
+    "old": "    b.setAttribute('data-focus', 'list-do');",
+    "new": "",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a redraw drops the focus from List"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-stall-press-unkeyed",
+    "file": "src/ui/vendor/vendorTab.js",
+    "old": "    go.setAttribute('data-focus', 'vendor-post');",
+    "new": "",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a redraw drops the focus from Put up for sale"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B2-sell-focus-dropped",
+    "file": "src/ui/marketTab.js",
+    "old": "    b.setAttribute('data-focus', 'list-kind|item');",
+    "new": "",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "the focus falls to the page as the form opens"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B3-one-choice-for-both",
+    "file": "src/ui/marketTab.js",
+    "old": "      const pk = auction ? 'auction' : 'piece';",
+    "new": "      const pk = 'piece';",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a look at the auction loses the crafted choice; a Masterwork carried into a sale"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B6-pack-words-on-the-search",
+    "file": "src/ui/packPicker.js",
+    "old": "  find.placeholder = o.words?.find ?? t(",
+    "new": "  find.placeholder = t(",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "\"Search your pack\" over pieces in a home"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B6-pack-words-on-nothing",
+    "file": "src/ui/packPicker.js",
+    "old": "o.words?.none ?? t('pack.pick.none'",
+    "new": "t('pack.pick.none'",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "\"Nothing in your pack matches.\" over pieces in a home"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B4-form-small-to-a-finger",
+    "file": "src/ui/enhanced/enhancedPlusStyle.js",
+    "old": "  .packpick-find, .packpick-menu, .market-listform .market-num { min-height: 44px; }\n",
+    "new": "\n",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a 32px field and menus under a finger"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B4-fold-name-small",
+    "file": "src/ui/enhanced/enhancedPlusStyle.js",
+    "old": "  .packpick-refused > summary { display: flex; align-items: center; min-height: 44px; } }",
+    "new": " }",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "the fold's name 14px tall under a finger"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B5-chosen-by-colour-alone",
+    "file": "src/ui/enhanced/enhancedPlusStyle.js",
+    "old": ".packpick-tile.on::after { content: '\\\\2713';",
+    "new": ".packpick-tile.on::after { content: none;",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a chosen Common read as an unchosen Rare"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B-refused-hovered",
+    "file": "src/ui/enhanced/enhancedPlusStyle.js",
+    "old": "button.packpick-tile:hover, .packpick-tile:focus-visible {",
+    "new": ".packpick-tile:hover, .packpick-tile:focus-visible {",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a tile that is no press answers the pointer as one"
   }
 ]

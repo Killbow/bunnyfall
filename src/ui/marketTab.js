@@ -272,7 +272,7 @@ export function createMarketTab(m, ui) {
     view: 'materials', family: /** @type {string|null} */ (null), tier: 0, query: '', picked: /** @type {string|null} */ (null),
     qty: 1, data: /** @type {any} */ (null), error: /** @type {string|null} */ (null), stale: false, loading: false,
     // PACK-PICK: the kind the book kept (null: the form's own default), and each picker's sift
-    list: { kind: /** @type {string|null} */ (KIND_KEPT.get(m.book) ?? null), material: '', units: 1, price: 1, piece: '', currency: 'marks', good: /** @type {any} */ (null),
+    list: { kind: /** @type {string|null} */ (KIND_KEPT.get(m.book) ?? null), material: '', units: 1, price: 1, pieces: { piece: '', auction: '' }, currency: 'marks', good: /** @type {any} */ (null),
       sifts: { item: freshPackSift(), piece: freshPackSift(), auction: freshPackSift() } }, post: { material: '', units: 1, price: 1 },
     currency: 'marks',   // GOLD-MARKET: the currency the Materials, Crafted and History views show
     fills: /** @type {Record<string, number>} */ ({}), weave: /** @type {Record<string, number>} */ ({}),
@@ -404,6 +404,7 @@ export function createMarketTab(m, ui) {
   const sellPackButton = () => {
     const b = chipButton('market-sellpack', t('market.goods.sell', 'Sell from your pack'), () => { st.list.kind = 'item'; KIND_KEPT.set(m.book, 'item'); go('mine'); });
     b.setAttribute('data-dficon', 'own');
+    b.setAttribute('data-focus', 'list-kind|item');   // AUDIT PACK-PICK B2: the focus carried to the pack's kind it opens on
     return b;
   };
   /** BOARD-SIFT: a filter or an order changed - the first page of it read (the picked row let go). */
@@ -836,6 +837,7 @@ export function createMarketTab(m, ui) {
     const hint = el('p', 'notice-tip');
     const notes = el('div', 'market-formnotes');
     const b = button('primary market-dolist', 'List', () => send());   // BOARD-UI: never `market-list`, the lists' own class - its rule took the press's padding
+    b.setAttribute('data-focus', 'list-do');   // AUDIT PACK-PICK B2: a redraw keeps the focus on it
     const listingsMax = m.book.state.listingsMax ?? MARKET_LISTINGS_MAX;   // AUDIT SEATS-3 D2: the board's own cap, as the service says it
     const full = (m.book.state.counts?.listings ?? 0) >= listingsMax;
     let can = () => false, send = () => {}, worth = () => 0;
@@ -896,14 +898,19 @@ export function createMarketTab(m, ui) {
       const others = all.filter((p) => heldState(p.item.provenance) === 'other' || heldState(p.item.provenance) === 'none').length;
       const elsewhere = all.filter((p) => heldState(p.item.provenance) === 'elsewhere').length;
       // PACK-PICK: none chosen until one is pressed, as the pack's
-      if (!pieces.some((p) => p.item.provenance === st.list.piece)) st.list.piece = '';
-      const chosen = pieces.find((p) => p.item.provenance === st.list.piece) ?? null;
+      // AUDIT PACK-PICK B3: each kind its own choice, as its own sift - one shared, a look at the auction let the crafted
+      // choice go and carried a Masterwork chosen there into a sale at a price
+      const pk = auction ? 'auction' : 'piece';
+      if (!pieces.some((p) => p.item.provenance === st.list.pieces[pk])) st.list.pieces[pk] = '';
+      const chosen = pieces.find((p) => p.item.provenance === st.list.pieces[pk]) ?? null;
       // MARKET-AUDIT U2: each its quality (an auction's are all Masterworks) and wear - a Crude, a Fine and a worn piece of one
       // name were three like options. PACK-PICK: on its tile's line, under its picture and name
       const pieceSub = (p) => [packTierWord(p.item), auction ? null : QUALITY_NAMES[p.item.quality] ?? null, wearText(wearOf(p.item)), p.where === 'home' ? 'your home' : null].filter(Boolean).join(' · ') || null;
       const entries = pieces.map((p) => ({ key: `piece|${p.item.provenance}`, item: p.item, name: p.name, sub: pieceSub(p), why: null }));
       above.push(packPickerNode({ entries, chosen: chosen?.item ?? null, sift: st.list.sifts[auction ? 'auction' : 'piece'],
-        pick: (it) => { st.list.piece = st.list.piece === it.provenance ? '' : it.provenance; ui.rerender(); },
+        pick: (it) => { st.list.pieces[pk] = st.list.pieces[pk] === it.provenance ? '' : it.provenance; ui.rerender(); },
+        // AUDIT PACK-PICK B6: a crafted piece may lie in a home - the search is no pack's
+        words: { find: t('market.sift.find', 'Search by name'), findLabel: t('market.sift.find', 'Search by name'), none: t('pack.pick.noneAny', 'Nothing matches.') },
         picture: m.itemPicture ?? null, wake, label: auction ? t('market.list.mwLabel', 'Your Masterworks') : t('market.list.craftedLabel', 'Your crafted pieces'), focus: auction ? 'list-mw' : 'list-piece',
         empty: auction ? t('market.list.mwEmpty', 'You carry no Masterwork to auction.') : t('market.list.craftedEmpty', 'You carry no crafted piece to sell.'), refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
       packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLookRows,

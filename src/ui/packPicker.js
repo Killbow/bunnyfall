@@ -101,9 +101,11 @@ function wordsOf(/** @type {PackEntry} */ e, why = false) {
  *   entries: PackEntry[], chosen: any, sift: PackSift, pick: (item: any) => void,
  *   picture?: ((item: any, wake: () => void, box?: number) => ({ src: string, w: number, h: number }|null)) | null, wake?: () => void,
  *   label: string, focus: string, empty: string, refusedWhat: string, redraw: () => void,
+ *   words?: { find?: string, findLabel?: string, none?: string },
  * }} o `entries` in the pack's order, each with why it may not go (null: it may); `chosen` the chosen entry's item;
  *   `sift` the caller's, kept across its redraws; `label` the picker's name; `focus` the prefix of its fields' focus keys;
- *   `empty` the words when nothing may go; `refusedWhat` the fold's name ("Not for the market"); `redraw` the window's
+ *   `empty` the words when nothing may go; `refusedWhat` the fold's name ("Not for the market"); `redraw` the window's;
+ *   `words` the search's and a search's nothing (AUDIT PACK-PICK B6: the pack's, unless the pieces are not all the pack's)
  */
 export function packPickerNode(o) {
   const { sift } = o;
@@ -116,9 +118,29 @@ export function packPickerNode(o) {
   const count = el('span', 'packpick-count');
   count.setAttribute('aria-live', 'polite');
   const offList = el('div', 'packpick-grid packpick-offgrid');
+  // AUDIT PACK-PICK B2: THE TILES ONE STOP OF THE TAB KEY - the chosen tile's, or the first's - and the arrows walk them
+  // (a row across, a column down, Home and End); a hundred and forty Tabs stood between the search and List
+  const tilesShown = () => /** @type {HTMLElement[]} */ ([...grid.children].filter((n) => n.tagName === 'BUTTON'));
+  const across = () => Math.max(1, safe(() => globalThis.getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length, 1) || 1);
+  const walk = (/** @type {HTMLElement} */ from, /** @type {string} */ key) => {
+    const all = tilesShown(), i = all.indexOf(from);
+    const to = key === 'Home' ? 0 : key === 'End' ? all.length - 1
+      : Math.max(0, Math.min(all.length - 1, i + ({ ArrowRight: 1, ArrowLeft: -1, ArrowDown: across(), ArrowUp: -across() }[key] ?? 0)));
+    if (i < 0 || to === i) return;
+    from.setAttribute('tabindex', '-1');
+    all[to].setAttribute('tabindex', '0');
+    all[to].focus?.();
+  };
   const tile = (/** @type {PackEntry} */ e) => {
     const b = /** @type {HTMLButtonElement} */ (marked(el('button', `packpick-tile${e.item === o.chosen ? ' on' : ''}`), e.item));
     b.setAttribute('type', 'button');
+    b.setAttribute('tabindex', '-1');
+    b.onkeydown = (ev) => {
+      if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End'].includes(ev.key)) return;
+      ev.preventDefault?.();
+      ev.stopPropagation?.();
+      walk(b, ev.key);
+    };
     b.setAttribute('aria-pressed', e.item === o.chosen ? 'true' : 'false');
     b.setAttribute('data-focus', `${o.focus}|${keys.get(e)}`);
     b.setAttribute('title', e.name);
@@ -135,7 +157,7 @@ export function packPickerNode(o) {
     return d;
   };
   const none = () => {
-    const p = el('p', 'notice-tip packpick-none', t('pack.pick.none', 'Nothing in your pack matches.'));
+    const p = el('p', 'notice-tip packpick-none', o.words?.none ?? t('pack.pick.none', 'Nothing in your pack matches.'));
     const all = el('button', 'act packpick-all', t('pack.pick.all', 'Show everything'));
     all.setAttribute('type', 'button');
     all.setAttribute('data-focus', `${o.focus}|all`);
@@ -162,6 +184,8 @@ export function packPickerNode(o) {
     if (moved) { sift.top = 0; grid.scrollTop = 0; sift.offTop = 0; offList.scrollTop = 0; }
     const shown = siftEntries(ok, sift);
     grid.replaceChildren(...(shown.length ? shown.map(tile) : [none()]));
+    const stop = tilesShown().find((n) => n.getAttribute('aria-pressed') === 'true') ?? tilesShown()[0];
+    stop?.setAttribute('tabindex', '0');
     count.textContent = siftIsAll(sift) ? t('pack.pick.many', '{n, plural, one {# piece} other {# pieces}}', { n: ok.length })
       : t('pack.pick.some', '{shown, number} of {n, number}', { shown: shown.length, n: ok.length });
     fillOff();
@@ -196,8 +220,8 @@ function siftBar(/** @type {any} */ o, /** @type {any[]} */ items, /** @type {()
   const find = /** @type {HTMLInputElement} */ (el('input', 'notice-input packpick-find'));
   find.type = 'search';
   find.maxLength = 40;
-  find.placeholder = t('pack.pick.find', 'Search your pack');
-  find.setAttribute('aria-label', t('pack.pick.findLabel', 'Search your pack by name'));
+  find.placeholder = o.words?.find ?? t('pack.pick.find', 'Search your pack');
+  find.setAttribute('aria-label', o.words?.findLabel ?? t('pack.pick.findLabel', 'Search your pack by name'));
   find.setAttribute('data-focus', `${o.focus}|find`);
   find.value = sift.query;
   const typed = typedField(find, 120, refill);

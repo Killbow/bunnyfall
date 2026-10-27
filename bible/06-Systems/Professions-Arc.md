@@ -1623,7 +1623,7 @@ DFU has no member here - Daggerfall has no market (NOTICE1, PROF5, MARKET-ANY) -
 none is touched. The world host's market deps are as they were (bootWorld stands at its ceiling, HOST-SPLIT): the picker
 reads the host's own `itemPicture`, `goods` and `goodName`, and the stall's own `picture` and `stats`.
 
-Pins: `test/ui/packpick.test.js` (8; 24 with AUDIT PACK-PICK's, below). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
+Pins: `test/ui/packpick.test.js` (8; 27 with AUDIT PACK-PICK's, below). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
 (the kinds as presses, the pack's first; the tiles and the refused tiles; a tile pressed before List),
 `test/net/goldmarket_client.test.js` (each refused piece its own tile), `test/net/prof5b_client.test.js` (the
 Masterwork a tile, pressed), `test/net/marketaudit.test.js` (U2: the quality and wear on the tile's line),
@@ -1635,6 +1635,112 @@ MARKET-AUDIT-U2-labels-bare). Measured in Chromium (`tools/noticeBoardProbe.mjs`
 market-sell-refused and (the audit's) market-sell-stores shots, a desktop's width and a phone's): a pack the producers
 fill, its pictures from the player's own ARENA2, each view inside the viewport with nothing spilling sideways, and a
 press far down the tiles keeping their scroll.
+
+### AUDIT PACK-PICK (2026-10-27, the owner: "Audit this")
+
+The author's adversarial re-read, and three passes that read the commit cold on a copy of the tree (`b40ffc8a4`), so
+the fixes made beside them never moved what they read: the code, mounted in Chromium through vite over a pack the producers fill
+(lane A); the board as a player meets it, in Chromium at a desktop's and a phone's width with the player's own ARENA2
+pictures (lane B); the pins and the record, each claim tried with a mutant (lane C). No HIGH: the piece listed is always
+the one pressed, by identity, and a double press of List is the window's one act. FOUND, each fixed and pinned
+(`test/ui/packpick.test.js`, `tools/mutants/packpick_audit.json`):
+
+- **MEDIUM - every picture landing repainted the whole window** (lanes A and B). The picker asks the host's picture for
+  every tile, and the folded pieces' too, closed or not; each picture that lands calls the tab's wake, and the wake was
+  `ui.rerender` - every tile, the card, the pack's goods and the three menus built again. Measured: 52 repaints in the
+  first seconds of My listings over a 108-piece pack, 80 over 254 (235 pictures, more than half for the closed fold); a
+  press whose pointer went down before a repaint and up after it was swallowed, and an open list closed. FIXED: the
+  tab's wake is one a frame (`ui/menu/menuGlyphs.js` frameWake - the pictures that land in one frame redraw once), the
+  List form's and the stall's both; the folded ask for no picture until unfolded. Chromium: 5 repaints over 108 pieces,
+  4 over 254; the press made under them chosen.
+- **MEDIUM - the picker's lists were not held** (lane A, the author): MARKET-AUDIT holds an answer's redraw while one of
+  the tab's lists is open, by its class (`market-select`); the picker's (`packpick-menu`) closed under the pointer as the
+  Family list did before MARKET-AUDIT. FIXED: `redraw` holds for both, and a choice made in the picker's list marks it
+  (`data-chosen`, AUDIT BOARD-SIFT's rule).
+- **MEDIUM - pins that could not fail** (lane C: 44 of 54 candidate mutants survived). Nothing pinned that a redraw keeps
+  the fold open, the words searched for or the page chosen; the menus' counts, the rule that a menu shows only with a
+  choice to make (one page, one tier, the ladder off) and a chosen page's menu kept to let it go; the search's capitals;
+  the folded sifted; the pictures, the card's and the stall's; the tiles' lines (wear, a crafted piece's tier, quality
+  and "your home", the stall's); a crafted press and a stall press letting go; the crafted card's look; the crafted and
+  auction searches kept apart; the auction's prompt; the Sell press kept for the book; the kinds' order and icons; the
+  stall's fold name, and a stall whose pack holds only refused pieces; the look's magic for an enchanted piece; the stall
+  host's look; three rules of the dress. FIXED: 15 tests, each on the producers' shapes - an enchanted Battle Axe the loot
+  table mints from a MAGIC.DEF template (unidentified, then identified), crafted pieces from `mintPiece` worn by
+  `wearCondition`, the stall host built with `createVendorHost`. Lane C's 54 run against them: 51 dead; two equivalent in
+  a browser - `opt.selected` and `s.value` each select the option alone, so dropping either changes nothing (dropping
+  both is pinned), and the pack's own store menus write both, the house idiom kept; one left as it was (below).
+- **LOW** - the fold counted every refused piece while showing the sifted ("Not for the market (3)" over none), and once
+  the last piece that could go was gone the sift that hid them had no field to clear it (lane A): FIXED, the fold counts
+  what it holds, and the folded are sifted only while the bar stands. A double click chose and let go - its second
+  press lands on the tile the first redrew (lane A): FIXED, a press whose `detail` is past one is the first's. The kinds
+  and "Sell from your pack" were the frame's `.act`, whose rules outrank a chip's: the pressed kind wore the frame's
+  gradient (lane A, both skins): FIXED, `notice-tab` chips as the views are - Chromium reads the pressed kind and the
+  pressed view alike. A tier's tile never answered the pointer - its frame's colour outranked the plain tile's hover
+  (lane A): FIXED, its own hover after it and a focus ring for every tile. The focus fell to the page after "Show
+  everything", and a picture landing took it from the fold; tiles were keyed by their place, so a piece come into the
+  pack ahead handed its focus to another (lane A): FIXED, each keyed, a tile by its name and which of that name. The
+  card was a live region rebuilt with every repaint (lane A, the author): dropped - the count, refilled in place while
+  the search is typed, stays one. The card's picture was the tile's, fitted to a row's 26px box and stretched twice over
+  a whole-number fit (lane A, UI1): FIXED, the card asks the pack grid's own box (`SLOT_BOX.grid`) and the tiles a row's,
+  each drawn at its own size in a frame its box's, as the market's rows draw theirs - the hosts hand the box through
+  (`scenes/world.js`, `scenes/vendorHost.js`, the same lines). A realm character whose pack held nothing that may go
+  opened on the pack (the author): FIXED, the Stores' form, the pack one press away with why. Words in English beside
+  translated ones - three of the kinds, "What to list", the crafted and auction forms' empty words (lanes A and C):
+  FIXED, through the text core and drafted for the thirteen; and lane C's corrections to the first drafts, each against
+  the words its own catalog already uses - Masterwork a quality's name, capitalised (bg, cs, da, nb, ru), the catalog's
+  crafted piece (fr, pt-BR, da, nb, ro, id, ko, ru), its "Press" (cs, de, it, pt-BR) and bg's informal button. The
+  record's numbers (7 pins, 20 mutants, the card's picture twice a tile's) and the probe: corrected - the probe's pack is
+  twelve bodies' loot, so a desktop's tiles scroll and the scroll check is never a pass with nothing checked, and a shot
+  of the Stores' form is added.
+
+- **MEDIUM - a press with a paint between its down and its up was lost** (lane B; lane A's swallowed press): the tile
+  under the pointer was replaced, and the browser's click found none. A cold open at four times throttle painted every
+  112 ms (the median), and a phone's taps fell between; an answer or an act's paint can land under a press as well.
+  FIXED: the window's paint waits while a press is held in it (`ui/noticeWindow.js` render, beside BOARD-SIFT's wait on
+  a composed word) and paints once the press is let go - on a timer, so the press's own click, which follows the
+  pointer's coming up in the same task, lands first - or once it has been held two seconds. Chromium: a press with a
+  paint between its down and its up chooses its piece (none before), and ten taps under a cold open at four times
+  throttle each choose theirs.
+- **MEDIUM - the keys** (lane B): every tile a stop of the Tab key - 144 from the second tile to List over a 143-piece
+  pack - and no arrow moved between them; List and "Put up for sale" had no focus key, so any paint dropped the focus to
+  the page; "Sell from your pack" left it there as the form opened. FIXED: the tiles are one stop (the chosen tile, else
+  the first) and the arrows walk them - a tile across, a row down, Home and End; List and "Put up for sale" keyed; the
+  Sell press wears the pack kind's own key, so the focus lands on the kind it opens.
+- **LOW-MEDIUM - "A crafted piece" and "An auction" shared one choice** (lane B): a look at the auction let the crafted
+  choice go, and a Masterwork chosen there stood chosen in the sale at a price. FIXED: each kind its own (`st.list.pieces`),
+  as each already had its own search.
+- **LOW** (lane B) - presses under a finger's 44 px on a touch screen (the fold's name 14 px tall; the search, the menus
+  and the price 32): FIXED. A chosen tile told from a Rare one by its colour alone (a chosen Common's brass read as an
+  unchosen Rare's gold): FIXED, a check and a light inner line. The crafted and Masterwork pickers said "your pack" over
+  pieces in a home: FIXED, "Search by name" (the market's own words) and "Nothing matches." A refused tile answered the
+  pointer as a press does: FIXED. The fold's own list thrown back to its top by any paint (400 -> 0, both widths):
+  FIXED, kept with the tiles' scroll and let go with it.
+
+NOT CHANGED, named:
+- **The tier's word is English** (lane A): `packTierWord` reads `RARITIES[r].label`, as every window does - the pack's
+  own rarity menu (`storeRarityOptions`), the Broker's line. The ladder's names are untranslated house-wide; one window
+  translating them would name a tier two ways.
+- **The look says a line once** (lane C, C37): two identical powers on one piece read as one, where the trade window
+  lists both. The trader's look did so before PACK-PICK moved it (`vendorItemStats`, HOME-VENDOR); left as it was.
+- **The pictures' first paint** still asks every tile's picture: a cap with "Show more", as the Work tab's forty, would
+  hide pieces from the search's count; with one repaint a frame the cost measured 4-5 repaints.
+- **A press disabled while an act runs loses the focus** (lane B's List): the window's one door greys every press while
+  its act runs, and a browser takes the focus from a disabled press - as BOARD-SIFT's pager found and left it.
+- **"a piece - not an item the market knows"** on some refused tiles (lane B): the loot producers mint pieces whose
+  names ("Leather ", "Dwarven ") the market's own namer (`goodName`) does not read, and it names them so - the list it
+  replaced did the same. The producers' to mend, not the picker's.
+
+Pins: `test/ui/packpick.test.js` 27 tests (19 the audit's). Moved, each marked PIN MOVED (AUDIT PACK-PICK):
+`test/ui/menuorder.test.js` (the stall's one wake, once a frame; the market's and a stall's picture with a box).
+Mutants: `tools/mutants/packpick_audit.json` 86, all dead: lane C's 48 (its 54 less the two equivalent, the one
+left as it was, and three a fix replaced - C14 by A10, C43 by A3, C30b C30's twin), re-aimed where the fixes moved
+their lines, and 38 for lanes A's and B's findings; re-aimed by content, all dead: `packpick.json`
+PACK-PICK-pack-not-first, PACK-PICK-crafted-first-by-default, PACK-PICK-scroll-unkept and PACK-PICK-scroll-over-new-sift,
+`menuorder.json` MENUORDER-host-market-unpictured, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list, `boardsift.json`
+BOARD-SIFT-window-the-paint-over-a-composed-word. In Chromium over the tree as
+fixed (lanes A's and B's harnesses and `tools/noticeBoardProbe.mjs`): the numbers above, the kinds' and views' chips alike, a
+tier's tile answering the pointer, a double click choosing, every view inside the viewport at a desktop's and a phone's
+width, and the tiles' scroll kept at both.
 
 ## 11. Writs - the Work tab
 

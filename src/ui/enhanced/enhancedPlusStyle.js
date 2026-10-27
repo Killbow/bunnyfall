@@ -1944,13 +1944,19 @@ ${rarityVarsCss('.market-listform ')}
 .packpick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; max-height: 300px; overflow-y: auto; padding: 1px; }
 .packpick-tile { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 8px 4px 4px; text-align: left; font: inherit; font-size: 12px;
   color: var(--bone, #e9e4d9); background: rgba(10,8,6,0.62); border: 1px solid rgba(192,138,62,0.25); cursor: pointer; }
-.packpick-tile:hover, .packpick-tile:focus-visible { border-color: rgba(192,138,62,0.65); }
+button.packpick-tile:hover, .packpick-tile:focus-visible { border-color: rgba(192,138,62,0.65); }   /* AUDIT PACK-PICK B: a refused tile is no press */
 .packpick-tile.on { border-color: var(--brass, #c08a3e); background-color: rgba(192,138,62,0.2); box-shadow: inset 0 0 0 1px rgba(243,207,134,0.4); }
 .packpick-tile[data-rarity] { border-color: var(--rar-hi) var(--rar-lo) var(--rar-lo) var(--rar-hi);
   background-image: radial-gradient(ellipse at 0% 50%, rgba(var(--rar-rgb),0.2), transparent 60%); }
 .packpick-tile.on[data-rarity] { box-shadow: inset 0 0 0 1px var(--rar), 0 0 6px rgba(var(--rar-rgb),0.4); }
 /* AUDIT PACK-PICK A6: a tier's tile answers the pointer and the keys too - its frame outranked the plain tile's hover */
-.packpick-tile[data-rarity]:hover { border-color: var(--rar); background-color: rgba(var(--rar-rgb),0.12); }
+button.packpick-tile[data-rarity]:hover { border-color: var(--rar); background-color: rgba(var(--rar-rgb),0.12); }
+/* AUDIT PACK-PICK B5: the chosen tile marked past its colour - a mark and a light inner line, never brass alone (a
+   chosen Common read as an unchosen Rare) */
+.packpick-tile { position: relative; }
+.packpick-tile.on::after { content: '\\2713'; position: absolute; top: 2px; right: 5px; font-size: 12px; line-height: 1; color: #f3ead8; }
+.packpick-tile.on { padding-right: 18px; box-shadow: inset 0 0 0 2px #f3ead8; }
+.packpick-tile.on[data-rarity] { box-shadow: inset 0 0 0 2px #f3ead8, 0 0 6px rgba(var(--rar-rgb),0.4); }
 .packpick-tile:focus-visible { outline: 2px solid #f3cf86; outline-offset: -2px; }
 .packpick-tile[data-rarity] .packpick-name, .packpick-card[data-rarity] .packpick-name { color: var(--rar-hi); }
 .packpick-tile.off { cursor: default; opacity: 0.62; }
@@ -1975,7 +1981,10 @@ ${rarityVarsCss('.market-listform ')}
 .packpick-magic { margin: 0; padding: 0 0 0 14px; font-size: 12px; color: #f3cf86; }
 .packpick-magic li { margin: 1px 0; }
 .packpick-cardnone { margin: 0; font-style: italic; }
-@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-filters .market-sellpack { min-height: 44px; } }
+@media (pointer: coarse) { .packpick-tile, .market-kinds .market-kind, .market-filters .market-sellpack { min-height: 44px; }
+  /* AUDIT PACK-PICK B4: the rest of the form a finger's too - the fold's name was 14px tall */
+  .packpick-find, .packpick-menu, .market-listform .market-num { min-height: 44px; }
+  .packpick-refused > summary { display: flex; align-items: center; min-height: 44px; } }
 @media (max-width: 640px) { .packpick-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); max-height: 240px; } .packpick-count { margin-left: 0; }
   .market-filters .market-sellpack { margin-left: 0; }
   /* a phone's four kinds two by two - one a row stood them three rows deep over the pack */

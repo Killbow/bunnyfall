@@ -17,8 +17,8 @@
   {
     "name": "PACK-PICK-crafted-first-by-default",
     "file": "src/ui/marketTab.js",
-    "old": "      if (!pieces.some((p) => p.item.provenance === st.list.piece)) st.list.piece = '';",
-    "new": "      if (!pieces.some((p) => p.item.provenance === st.list.piece)) st.list.piece = pieces[0]?.item.provenance ?? '';",
+    "old": "      if (!pieces.some((p) => p.item.provenance === st.list.pieces[pk])) st.list.pieces[pk] = '';",
+    "new": "      if (!pieces.some((p) => p.item.provenance === st.list.pieces[pk])) st.list.pieces[pk] = pieces[0]?.item.provenance ?? '';",
     "tests": ["test/net/prof5b_client.test.js"]
   },
   {

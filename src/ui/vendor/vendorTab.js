@@ -232,6 +232,7 @@ export function createVendorTab(v, ui) {
     price.oninput = () => { st.price = intOf(price.value, 1, MARKET_PRICE_MAX); };
     const chosen = st.good;
     const go = button('primary market-post', ui.busy() ? 'Putting up...' : 'Put up for sale', () => act(() => v.put(chosen, st.price)));
+    go.setAttribute('data-focus', 'vendor-post');   // AUDIT PACK-PICK B2: a redraw keeps the focus on it
     go.disabled = ui.busy() || !chosen;
     // AUDIT 657 B3: its fields under their names, as the List form's (marketTab.js field) - BOARD-UI stood that form's
     // fields in a column, and this form, in its dress, stood its select and its press each the window's width
