@@ -6538,8 +6538,8 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   (`masterLaw.js:"export function rollMasterLines("`: lo to hi, the ladder's own draw, off the seed - the service's
   alone, once), `isMasterWork`.
 
-- **The record** - `productRecord.js:"export const MINT_V_MASTER = 4;"`: a Master's record stamps mint version 4 (3 is
-  main's ARMOR-LEAN, taken first) and signs its lines at the values the service rolled
+- **The record** - `productRecord.js:"export const MINT_V_MASTER = 5;"`: a Master's record stamps mint version 5 (4 on its
+  branch, renumbered past JEWEL-KIN's 4 at the merge) and signs its lines at the values the service rolled
   (`masterLaw.js:"export const masterRecordLines = (lines) =>"`: `[kind, value]` or `[kind, value, param]`), so the
   market and every client mint the piece the service made. The bound is
   `productRecord.js:"export const PRODUCT_RECORD_MAX = 704;"` (it was 512): the widest record the law signs runs to 649.
