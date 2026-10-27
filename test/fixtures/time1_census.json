@@ -38,6 +38,12 @@
    "why": "HUNTERS-MARK: the day a bounty board posts on online - the window a reported clear is judged in (Bounty-Boards.md 12.1)"
   },
   {
+   "file": "src/scenes/exteriorFoes.js",
+   "has": "huntMarkSeen(f.mobileType, r.bt, wallMsForClassicMinutes(worldMinutes()))",
+   "clock": "event",
+   "why": "a hunter's named mark on a mate's screen (HUNTERS-MARK-II) - the week its name and traits are off, the same week for every player"
+  },
+  {
    "file": "src/scenes/huntersMark.js",
    "has": "const wallNow = () => deps.wallNow?.() ?? wallMsForClassicMinutes(deps.now());",
    "clock": "event",

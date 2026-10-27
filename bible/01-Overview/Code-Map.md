@@ -314,7 +314,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/systems/grammar/` | Language grammar for the translations (`06-Systems/Localization-Arc.md`). |
 | `src/systems/guild/` | The guilds' law: their factions and variants, services and how a service flows, the hall's reveal. |
 | `src/systems/horse/` | The horse and cart, the horses' coats, a horse that follows - the law. |
-| `src/systems/hunt/` | HUNTERS-MARK (`06-Systems/Bounty-Boards.md` section 12): the Mounted Trophy minted, and the fish and trophies a character has gathered. |
+| `src/systems/hunt/` | HUNTERS-MARK (`06-Systems/Bounty-Boards.md` section 12): the Mounted Trophy minted, the fish and trophies a character has gathered, and the week's named mark read off a peer's foe (`namedMark.js`, HUNTERS-MARK-II). |
 | `src/systems/iliac/` | Iliac Hand, the tavern's other card game - the law. |
 | `src/systems/item/` | Items: templates, the item law, ids, kinds, fields, powers, binding, locks, the lists a character holds, dye, junk and transfer. |
 | `src/systems/ketch/` | The Sky-Ketch's own systems (`11-Multiplayer/Sky-Ketch.md`, `Sky-Ketch-Look.md`): the Ketchmaster's hold's spoils, and every line of hers in the player's language. |
