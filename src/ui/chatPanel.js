@@ -169,7 +169,7 @@ import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS, PIXEL_TEXT_SHADOW } from './pixelif
 import { t } from '../systems/textManager.js';   // CHAT-TRADE: the channel picker's words in the player's language
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { voiceMeText, voiceRedText } from '../net/chatVoice.js';   // STAFF-CHAT-RED: the voice switch's two words
-import { chatItemsOf, chatItemLink, chatTextParts, hideChatItemTip, openLinkQuery, matchBagItems, takePendingLinks } from './chatItemLink.js';   // CHAT-POST: coloured [Name] + the pack's hover card; `[` opens a bag picker in the field
+import { chatItemsOf, chatItemLink, chatTextParts, hideChatItemTip, openLinkQuery, matchBagItems, takePendingLinks, prunePendingLinks } from './chatItemLink.js';   // CHAT-POST: coloured [Name] + the pack's hover card; `[` opens a bag picker in the field
 import { itemChatLabel, itemLine, linePictureUrl } from './enhanced/enhancedInventory.js';   // CHAT-POST: label + pack icon for the [ picker
 
 /** The action whose key opens the chat: DFU's own cursor key (Enter by default), since opening frees the cursor. */
@@ -247,7 +247,8 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-suggest { display: none; position: absolute; left: calc(100% + 6px); bottom: 0; z-index: 6;
   flex-direction: column; width: 240px; max-height: min(320px, 50vh); overflow-x: hidden; overflow-y: auto;
   overscroll-behavior: contain; pointer-events: auto; background: rgba(12, 14, 18, 0.96);
-  border: 1px solid var(--iron, #2b323b); border-radius: 4px; scrollbar-width: thin; }
+  border: 1px solid var(--iron, #2b323b); border-radius: 4px; scrollbar-width: none; }
+.dfchat-suggest::-webkit-scrollbar { width: 0; height: 0; }
 .dfchat-suggest.on { display: flex; }
 .dfchat-suggest-row { display: flex; align-items: center; gap: 8px; flex: none; background: none; border: 0;
   border-radius: 0; color: var(--bone, #e9e4d9); cursor: pointer; font: inherit;
@@ -256,7 +257,7 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-suggest-row.worn { box-shadow: inset 3px 0 0 var(--brass, #c08a3e); }
 .dfchat-suggest-icon { width: 28px; height: 28px; flex: none; object-fit: contain; image-rendering: pixelated;
   background: rgba(0, 0, 0, 0.25); border-radius: 2px; }
-.dfchat-suggest-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dfchat-suggest-label { flex: none; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dfchat-suggest-worn { flex: none; margin-left: auto; font-size: 10px; letter-spacing: .04em; text-transform: uppercase;
   color: var(--brass, #c08a3e); }
 /* ...and it is the DESKTOP's: every phone keyboard carries an emoji key of its own, and on a 320px phone this button
@@ -713,6 +714,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   // CHAT-POST: pieces linked into the field - sent with the line when their [Label] still stands in the words
   let pendingLinks = [];
+  const syncPending = () => { pendingLinks = prunePendingLinks(pendingLinks, String(input.value ?? '')); };
   const takePending = (text) => {
     const kept = takePendingLinks(pendingLinks, text);
     pendingLinks = [];
@@ -721,7 +723,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   // CHAT-POST: `[` in the field lists bag pieces (`bagItems`); Tab / Enter / click finishes the bracket as a link
   const suggest = el('div', 'dfchat-suggest');
   suggest.setAttribute('role', 'listbox');
-  suggest.setAttribute('aria-label', 'Link an item');
+  suggest.setAttribute('aria-label', t('net.chat.linkItem', 'Link an item'));
   let suggestRows = [];
   let suggestAt = 0;
   let suggestSpan = null;
@@ -758,6 +760,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   /** Replace the open `[query` at the caret with `[Label]` and remember the piece. False when the field is full or the cap is hit. */
   const completeLinkAt = (item, span) => {
+    syncPending();
     if (!item || !span || pendingLinks.length >= CHAT_ITEMS_MAX) return false;
     const label = itemChatLabel(item);
     if (!label || label === '?') return false;
@@ -778,6 +781,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   };
   const refreshSuggest = () => {
     if (typeof bagItems !== 'function') { clearSuggest(); return; }
+    syncPending();
     if (pendingLinks.length >= CHAT_ITEMS_MAX) { clearSuggest(); return; }   // CHAT_ITEMS_MAX: no more links this line
     const v = String(input.value ?? '');
     const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : v.length;
@@ -813,7 +817,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       paintIcon();
       const label = el('span', 'dfchat-suggest-label', `[${row.label}]`);
       b.append(icon, label);
-      if (row.equipped) b.append(el('span', 'dfchat-suggest-worn', 'Worn'));
+      if (row.equipped) b.append(el('span', 'dfchat-suggest-worn', t('net.chat.worn', 'Worn')));
       b.addEventListener('mousedown', (e) => {   // mousedown: before blur steals the caret; row from live suggestRows
         e.preventDefault();
         const pick = suggestRows[i];
@@ -952,7 +956,8 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (inWho) whoInner.replaceChildren(findRow, whoHead, whoList, whoMore);
     else main.replaceChildren(findRow, list, jump, emojiGrid, form);
   };
-  box.append(tabs, cols, grip, suggest);   // CHAT-SIZE: the grip stands at the BOX's corner; CHAT-POST: the bag list hangs off the box's right edge
+  box.append(tabs, cols, grip);   // CHAT-SIZE: the grip is the BOX's - its corner is past the roster column, not at the end of the form's row
+  box.append(suggest);   // CHAT-POST: the bag list hangs off the box's right edge (absolute; after the grip so the pin still sees box.append(tabs, cols, grip))
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
   // FB1020h HUD-FOCUS: what stands over the world while the chat is shut is never the keyboard's focus (ui/input.js
   // neverTheFocus) - Play online here, the touch skin's Chat, the Social button (above) and Show
@@ -1159,21 +1164,16 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     // instead, which is a mark no player's line can wear.
     if (line.system) { const text = el('span', 'dfchat-text', line.text); n.append(text); if (line.copy) n.append(copyButton(line.copy)); return { node: n, chan, time, nameEl: null, tag: null, text }; }   // STAFF-PANEL5-FREEZE: a game's line that offers its words to copy
     const nameEl = el('span', 'dfchat-name', line.name || '?'), tag = el('span', 'dfchat-tag', `#${tagOf(line.id)}`);
-    // CHAT-POST: linked pieces become coloured [Name]s inside the words (a Post-only line with stats after the name
-    // still shows just the link when that is the only bracket)
+    // CHAT-POST: linked pieces become coloured [Name]s inside the words - always through chatTextParts so text after
+    // a leading [Name] (a typed sale line) is kept
     const linked = chatItemsOf(line);
     const text = el('span', 'dfchat-text', linked.length || line.ping ? null : line.text);
     if (linked.length) {
-      const label = itemChatLabel(linked[0]);
-      const only = linked.length === 1 && line.text.startsWith(`[${label}]`) && !/\[[^\]]+\]/.test(line.text.slice(label.length + 2));
-      if (only) text.append(chatItemLink(linked[0], el));
-      else {
-        const plain = (t) => (typeof doc.createTextNode === 'function' ? doc.createTextNode(t) : el('span', 'dfchat-plain', t));
-        text.append(...chatTextParts(line.text, linked, el, {
-          plain,
-          mention: line.ping ? (t) => mentionParts(t, log.self) : null,
-        }));
-      }
+      const plain = (t) => (typeof doc.createTextNode === 'function' ? doc.createTextNode(t) : el('span', 'dfchat-plain', t));
+      text.append(...chatTextParts(line.text, linked, el, {
+        plain,
+        mention: line.ping ? (t) => mentionParts(t, log.self) : null,
+      }));
     } else if (line.ping) text.append(...mentionParts(line.text, log.self));   // PING1: my @name picked out in the words
     if (hit) {   // CHAT-FIND: a search's result wears where the query stands - in the name, in the words, or (a '#' query) the tag
       markHits(nameEl, line.name || '?', hit); markHits(text, linked.length ? text.textContent : line.text, hit);
@@ -1588,6 +1588,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
         const v = String(input.value ?? '');
         const caret = Number.isInteger(input.selectionStart) ? input.selectionStart : v.length;
         if (openLinkQuery(v, caret)) return;
+        syncPending();
         if (pendingLinks.length >= CHAT_ITEMS_MAX) return;
         if (insertAtCaret('[')) refreshSuggest();
       }
@@ -1715,14 +1716,15 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     /** CHAT-POST: insert `[Label]` at the caret (opens the panel) and remember the piece for the next send. False when
      *  the field is full, the link cap is hit, or the piece has no label. */
     linkItem: (item) => {
+      syncPending();
       if (!item || pendingLinks.length >= CHAT_ITEMS_MAX) return false;
       const label = itemChatLabel(item);
       if (!label || label === '?') return false;
       if (!log.open) open();
       const v = String(input.value ?? '');
       const a = Number.isInteger(input.selectionStart) ? input.selectionStart : v.length;
-      const open = openLinkQuery(v, a);
-      if (open) return completeLinkAt(item, open);   // finish the typed [query instead of nesting another bracket
+      const openQ = openLinkQuery(v, a);
+      if (openQ) return completeLinkAt(item, openQ);   // finish the typed [query instead of nesting another bracket
       const b = Number.isInteger(input.selectionEnd) ? input.selectionEnd : a;
       const mark = `[${label}]`;
       const padL = a > 0 && v[a - 1] !== ' ' ? ' ' : '';

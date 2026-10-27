@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { itemChatText, itemChatLabel, itemPowerLines, POSTED_TEXT, NOT_POSTED_TEXT, LINKED_TEXT, NOT_LINKED_TEXT } from '../../src/ui/enhanced/enhancedInventory.js';
-import { chatItemOf, chatItemLink, chatTextParts, openLinkQuery, matchBagItems, takePendingLinks } from '../../src/ui/chatItemLink.js';
+import { chatItemOf, chatItemLink, chatTextParts, openLinkQuery, matchBagItems, takePendingLinks, prunePendingLinks } from '../../src/ui/chatItemLink.js';
 import { setPref } from '../../src/systems/uiPrefs.js';
 import { LOOT_RARITY_KEY, RARITIES } from '../../src/systems/loot/lootRarity.js';
 import { CHAT_MAX, sanitizeChat, validChatItem, validChatItems, parseClient } from '../../src/net/wire.js';
@@ -84,8 +84,10 @@ test('CHAT-POST `[` autocomplete: openLinkQuery finds an unfinished bracket; mat
   assert.deepEqual(takePendingLinks([{ label: 'Ruby x10', item: a }, { label: 'Ruby x10', item: b }], '[Ruby x10]'), [a], 'one bracket keeps one pending');
   assert.deepEqual(takePendingLinks([{ label: 'Ruby x10', item: a }, { label: 'Ruby x10', item: b }], '[Ruby x10] [Ruby x10]'), [a, b]);
   assert.deepEqual(takePendingLinks([{ label: 'Ruby x10', item: a }], 'no link'), []);
+  assert.deepEqual(prunePendingLinks([{ label: 'Ruby x10', item: a }, { label: 'Ruby x10', item: b }], ''), [], 'a deleted bracket frees its pending slot');
   assert.match(src('src/ui/chatPanel.js'), /if \(openLinkQuery\(v, caret\)\) return;/);
-  assert.match(src('src/ui/chatPanel.js'), /if \(open\) return completeLinkAt\(item, open\);/);
+  assert.match(src('src/ui/chatPanel.js'), /const openQ = openLinkQuery\(v, a\);/);
+  assert.match(src('src/ui/chatPanel.js'), /if \(openQ\) return completeLinkAt\(item, openQ\);/);
 });
 
 test('CHAT-POST the wire carries items beside the words; the panel draws coloured [Name]s whose hover is the pack\'s card (mutants: item dropped on parse; link not drawn; card not the pack\'s)', () => {

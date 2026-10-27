@@ -29,7 +29,7 @@
   {
     "name": "CHAT-POST-cut-mid-word",
     "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), line.name.length + 2)).replace(/[\\s·]+$/, '')}...`;",
+    "old": "  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), label.length + 2)).replace(/[\\s·]+$/, '')}...`;",
     "new": "  return `${cut}...`;",
     "tests": [
       "test/systems/chatpost.test.js"
@@ -138,8 +138,8 @@
   {
     "name": "CHAT-POST-pending-includes-all",
     "file": "src/ui/chatItemLink.js",
-    "old": "    const taken = used.get(label) ?? 0;\n    if (taken >= count) continue;\n    kept.push(item);\n    used.set(label, taken + 1);",
-    "new": "    if (count < 1) continue;\n    kept.push(item);",
+    "old": "    const taken = used.get(label) ?? 0;\n    if (taken >= count) continue;\n    kept.push(row);\n    used.set(label, taken + 1);",
+    "new": "    if (count < 1) continue;\n    kept.push(row);",
     "tests": [
       "test/systems/chatpost.test.js"
     ]

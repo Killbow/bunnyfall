@@ -101,10 +101,10 @@ export function matchBagItems(items, query, { limit = Infinity } = {}) {
 }
 
 /**
- * CHAT-POST: pending links that still have a matching `[Label]` in `text`, at most one keep per text occurrence
- * (same label twice in pending needs the bracket twice). Caps at `max` (CHAT_ITEMS_MAX).
+ * CHAT-POST: pending `{ label, item }` rows still matched by a `[Label]` in `text`, at most one keep per text
+ * occurrence. Caps at `max` (CHAT_ITEMS_MAX). Use after the player edits the field so a deleted bracket frees a slot.
  */
-export function takePendingLinks(pending, text, { max = CHAT_ITEMS_MAX } = {}) {
+export function prunePendingLinks(pending, text, { max = CHAT_ITEMS_MAX } = {}) {
   const words = String(text ?? '');
   const used = new Map();
   const kept = [];
@@ -118,8 +118,13 @@ export function takePendingLinks(pending, text, { max = CHAT_ITEMS_MAX } = {}) {
     for (let i = 0; (i = words.indexOf(needle, i)) >= 0; i += needle.length) count++;
     const taken = used.get(label) ?? 0;
     if (taken >= count) continue;
-    kept.push(item);
+    kept.push(row);
     used.set(label, taken + 1);
   }
   return kept;
+}
+
+/** CHAT-POST: the item records from prunePendingLinks, for the wire. */
+export function takePendingLinks(pending, text, opts) {
+  return prunePendingLinks(pending, text, opts).map((row) => row.item);
 }
