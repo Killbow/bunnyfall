@@ -202,7 +202,7 @@ test('AUDIT L3-3: an unmastered 100 a mastery is open to says to master it; a lo
   p.skills[SKILLS.Axe] = 100;
   assert.equal(skillAdvanceProgress(p, SKILLS.Axe).held, 'master');
   assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe)), 'At 100 - master it to climb further');
-  // MASTER-THREE (Field-Bugs-2026-10-26c): three primary slots, so the spent group is the majors' two
+  // MASTER-THREE (Field-Bugs-2026-10-26d): three primary slots, so the spent group is the majors' two
   p.skills[SKILLS.BluntWeapon] = 100; p.skills[SKILLS.Dodging] = 100;
   assert.equal(masterSkill(p, SKILLS.BluntWeapon).ok, true); assert.equal(masterSkill(p, SKILLS.Dodging).ok, true);
   p.skills[SKILLS.Jumping] = 100;

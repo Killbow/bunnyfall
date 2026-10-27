@@ -1,6 +1,6 @@
 // @ts-check
 // MAIN-SPINE (2026-10-26, Discord #feature-feedback "Main quest borked" - Blu3cak3: "Level 8 and still no letter from
-// Morgiah ... Other people having issues too"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): THE MAIN QUEST'S
+// Morgiah ... Other people having issues too"; bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md): THE MAIN QUEST'S
 // BACKBONE IS KEPT. S0000999 ("Main Quest Backbone") sends every royal letter of the opening - Morgiah's at level 3
 // (`_S.46_ when _S.11_ and _S.18_`), Lhotun's at 5 - and starts each court's first quest. Nothing else starts it: the
 // main quest's opener, _BRISIEN, does once, `start quest 999 999` in its `until _exitstarter_ performed` block, on the
@@ -23,7 +23,7 @@
 // owed its backbone when its opener began - and, while the opener stands, has run its `start quest` - and no backbone
 // has begun or stands (running, ended, or scheduled), and no step of the story has begun.
 //
-// THE EXCEPTIONS, named (AUDIT FB1026c A1/A2/A5/E2):
+// THE EXCEPTIONS, named (AUDIT FB1026d A1/A2/A5/E2):
 //   - A CLASSIC IMPORT IS OWED NOTHING. It starts no quests (world.js classicLoadBoot - the port's own departure), so it
 //     has no opener of its own, only the classic game's globals (MetLadyBrisienna among them) - which are not read here:
 //     read alone, they started a backbone in every imported game, and one whose classic main quest was over ended at

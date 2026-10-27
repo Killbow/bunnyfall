@@ -1,11 +1,11 @@
 // JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted
 // around 100 rare rings (gold and platinum, handcraft not auto) and h2h or critical not roll on them";
-// bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): jewellery's skill lines lean to Hand-to-Hand and Critical Strike
+// bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md): jewellery's skill lines lean to Hand-to-Hand and Critical Strike
 // beside the mind's thirteen. Measured through the real mint (systems/smithItems.js mintPiece) the report's own rings
 // went through - a record of MINT_V_JEWEL_KIN (4), as the service stamps for this build, and ones of 2 and 3 (ARMOR-LEAN's), as every ring made before.
-// AUDIT FB1026c (C3, C6, E9, E10, E11): the record is stamped with the version its client mints (a stale tab's ring is
+// AUDIT FB1026d (C3, C6, E9, E10, E11): the record is stamped with the version its client mints (a stale tab's ring is
 // minted alike in its pack and in every other reader's), the odds measured per ring, the fallback's lean, and a loot
-// door's jewellery as the loot list makes it. Mutants: tools/mutants/fb1026c_jewelkin.json.
+// door's jewellery as the loot list makes it. Mutants: tools/mutants/fb1026d_jewelkin.json.
 import '../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -45,7 +45,7 @@ test('JEWEL-KIN THE REPORT\'S RINGS: a Masterwork gold or platinum ring made now
   assert.ok(h2h > 0.045 && h2h < 0.08, `Hand-to-Hand ${(h2h * 100).toFixed(2)}% of skill lines`);
   assert.ok(crit > 0.045 && crit < 0.08, `Critical Strike ${(crit * 100).toFixed(2)}%`);
   assert.ok(Math.abs(h2h - mind) < 0.02 && Math.abs(crit - mind) < 0.02, `each about a mind skill's (Illusion ${(mind * 100).toFixed(2)}%)`);
-  // a hundred Rare rings: a Hand-to-Hand line among them all but certainly (the report saw none) - AUDIT FB1026c C6/E9:
+  // a hundred Rare rings: a Hand-to-Hand line among them all but certainly (the report saw none) - AUDIT FB1026d C6/E9:
   // measured per ring, never by a line's share raised to a guess at the lines a ring holds
   let bare = 0;
   for (let i = 0; i < 1500; i++) {
@@ -92,7 +92,7 @@ test('JEWEL-KIN A FOUND RING LEANS THE SAME: a loot door\'s jewellery, made as t
   assert.ok(share(lines, SKILLS.HandToHand) > 0.045 && share(lines, SKILLS.CriticalStrike) > 0.045, `${(share(lines, SKILLS.HandToHand) * 100).toFixed(2)}%, ${(share(lines, SKILLS.CriticalStrike) * 100).toFixed(2)}%`);
 });
 
-test('JEWEL-KIN THE LEGENDARY\'S FALLBACK KEEPS THE CALLER\'S LEAN (AUDIT FB1026c E10): a piece with no Legendary record falls to Rare on the lean it was asked for (mutant: the fallback drops the flag)', () => {
+test('JEWEL-KIN THE LEGENDARY\'S FALLBACK KEEPS THE CALLER\'S LEAN (AUDIT FB1026d E10): a piece with no Legendary record falls to Rare on the lean it was asked for (mutant: the fallback drops the flag)', () => {
   on();
   let rolls = 777;
   const rng = () => { rolls = (rolls * 1103515245 + 12345) & 0x7fffffff; return (rolls >>> 8) / 0x800000; };
@@ -110,7 +110,7 @@ test('JEWEL-KIN THE LEGENDARY\'S FALLBACK KEEPS THE CALLER\'S LEAN (AUDIT FB1026
   assert.ok(share(lines.now, SKILLS.HandToHand) > 0.045, `the new: ${(share(lines.now, SKILLS.HandToHand) * 100).toFixed(2)}%`);
 });
 
-test('JEWEL-KIN THE RECORD IS STAMPED WITH THE VERSION ITS CLIENT MINTS (AUDIT FB1026c C3): the craft names it, the service stamps it at most its own, and a client from before the ask is stamped MINT_V_LINES - so a stale tab\'s ring is the same ring in its pack and in every other reader\'s (mutants: the service stamps its own; the client names none; the ask unbounded)', async () => {
+test('JEWEL-KIN THE RECORD IS STAMPED WITH THE VERSION ITS CLIENT MINTS (AUDIT FB1026d C3): the craft names it, the service stamps it at most its own, and a client from before the ask is stamped MINT_V_LINES - so a stale tab\'s ring is the same ring in its pack and in every other reader\'s (mutants: the service stamps its own; the client names none; the ask unbounded)', async () => {
   on();
   assert.deepEqual([craftMintVersion(MINT_VERSION), craftMintVersion(undefined), craftMintVersion(null), craftMintVersion(MINT_VERSION + 5), craftMintVersion(MINT_V_LAST_PASS), craftMintVersion('3'), craftMintVersion(0)],
     [MINT_VERSION, MINT_V_LINES, MINT_V_LINES, MINT_VERSION, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_LINES]);

@@ -1,10 +1,10 @@
 // COURT-DEEDS (2026-10-26, Discord #feature-feedback "Better Courtship": "Compliments, giving gifts, hugging, kissing ...
 // Right now it's confusing on what exactly you're supposed to use to improve relationships";
-// bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): a compliment, a gift, a hug and a kiss on the Tell me about page,
+// bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md): a compliment, a gift, a hug and a kiss on the Tell me about page,
 // each once a day, each saying what it moved. Through the real host (scenes/legacyHost.js topicRows) over the real
 // relations (systems/livingWorld/regardClock.js characterRelations - the one construction point world.js uses).
-// AUDIT FB1026c (B1-B6, E4, E10): a reload through the real mod-save registry, the regard read as it stands, the tone
-// counted, and who is offered what. Mutants: tools/mutants/fb1026c_courtdeeds.json.
+// AUDIT FB1026d (B1-B6, E4, E10): a reload through the real mod-save registry, the regard read as it stands, the tone
+// counted, and who is offered what. Mutants: tools/mutants/fb1026d_courtdeeds.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -127,7 +127,7 @@ test('COURT-DEEDS WHO IS OFFERED WHAT: a spouse every deed, a kiss welcome witho
   assert.deepEqual(deedsFor(null, w.me, RES), []);
 });
 
-test('COURT-DEEDS A RELOAD HANDS NOTHING AGAIN (AUDIT FB1026c B1/E4): each deed\'s day rides the courtship it warmed and the house\'s record keeps it - a load that hands the regard, its days and the purse back never hands the affection again (mutants: a deed\'s day off the courtship; the day dropped at load; the warm unsaved)', () => {
+test('COURT-DEEDS A RELOAD HANDS NOTHING AGAIN (AUDIT FB1026d B1/E4): each deed\'s day rides the courtship it warmed and the house\'s record keeps it - a load that hands the regard, its days and the purse back never hands the affection again (mutants: a deed\'s day off the courtship; the day dropped at load; the warm unsaved)', () => {
   const w = world();
   // world.js's LIVING_WORLD_VENDOR as it stands: the relations ride the character's save
   registerModSaveData('LivingWorld', { newSaveData: () => null, getSaveData: () => w.rel.snapshot(), restoreSaveData: (rec) => { w.rel = characterRelations(rec, () => w.own, false); } });
@@ -151,7 +151,7 @@ test('COURT-DEEDS A RELOAD HANDS NOTHING AGAIN (AUDIT FB1026c B1/E4): each deed\
   assert.deepEqual(COURT_DEEDS, DEEDS, 'the loader keeps the days of every deed');
 });
 
-test('COURT-DEEDS THE REGARD AS IT STANDS, AND THE TONE COUNTED (AUDIT FB1026c B2/B3): a hug on the same page as the gift that made them a friend is welcome, one after a tone that cost the friendship is not, and the tally says what the whole answer moved, the tone\'s cost with it (mutants: the page\'s regard read; the tone unheard; the tone uncounted)', () => {
+test('COURT-DEEDS THE REGARD AS IT STANDS, AND THE TONE COUNTED (AUDIT FB1026d B2/B3): a hug on the same page as the gift that made them a friend is welcome, one after a tone that cost the friendship is not, and the tally says what the whole answer moved, the tone\'s cost with it (mutants: the page\'s regard read; the tone unheard; the tone uncounted)', () => {
   const w = world();
   w.rel.note(RES.id, 'talk', 0, FRIEND_AT - 7);
   const rows = w.rows();   // the page, built once as Tell me about opens
@@ -173,7 +173,7 @@ test('COURT-DEEDS THE REGARD AS IT STANDS, AND THE TONE COUNTED (AUDIT FB1026c B
   assert.ok(rows.filter((r) => r.topic.startsWith('deed:')).every((r) => r.legacy.hearsTone === true));
 });
 
-test('COURT-DEEDS WHO IS OFFERED NONE (AUDIT FB1026c B5/E10): one of the house, one betrothed to another member, and a host with no Living World offer no deed; a member wed offers anyone else no kiss; and the badge and the Family page say the deeds as they are offered (mutants: the house\'s own offered; another\'s betrothed offered; the Living World unread; a kiss offered past a marriage; the page\'s deeds unsaid)', () => {
+test('COURT-DEEDS WHO IS OFFERED NONE (AUDIT FB1026d B5/E10): one of the house, one betrothed to another member, and a host with no Living World offer no deed; a member wed offers anyone else no kiss; and the badge and the Family page say the deeds as they are offered (mutants: the house\'s own offered; another\'s betrothed offered; the Living World unread; a kiss offered past a marriage; the page\'s deeds unsaid)', () => {
   const w = world();
   // a resident who married into the house (a sibling's spouse): one of the house
   const kin = { id: 'p-kin', kind: 'resident', residentId: RES.id, given: 'Aldo', surname: 'Marane', died: null };
@@ -192,7 +192,7 @@ test('COURT-DEEDS WHO IS OFFERED NONE (AUDIT FB1026c B5/E10): one of the house, 
   assert.match(guide, new RegExp(`Paying a compliment and giving a gift \\(${GIFT_GOLD} gold\\) raise it faster, each once a day under Tell me about\\..* a compliment, a gift, a hug, and from ${KISS_AT} affection a kiss, each once a day, warm the courtship too\\.`));
 });
 
-test('COURT-DEEDS A COURTSHIP\'S DEEDS (AUDIT FB1026c B5/B6): a hug is welcome from one courting them though no longer a friend; a gift adds its affection; a compliment taken ill adds none and writes nothing (mutants: the hug\'s courtship arm unread; the gift\'s affection; a compliment taken ill warming; a warm of nothing written)', () => {
+test('COURT-DEEDS A COURTSHIP\'S DEEDS (AUDIT FB1026d B5/B6): a hug is welcome from one courting them though no longer a friend; a gift adds its affection; a compliment taken ill adds none and writes nothing (mutants: the hug\'s courtship arm unread; the gift\'s affection; a compliment taken ill warming; a warm of nothing written)', () => {
   const w = world();
   const c = w.court();
   w.rel.note(RES.id, 'struck', 0);   // a blow: far below a friend, and still courted

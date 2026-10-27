@@ -1855,7 +1855,7 @@ export class QuestMachine {
    *  world's faction records still away) is asked again at the next check. Answers whether one was scheduled. */
   keepSpine() {
     if (!spineOwed(this)) return false;
-    // AUDIT FB1026c A6: said once a page that it is owed and failed, and once that it started - never every check
+    // AUDIT FB1026d A6: said once a page that it is owed and failed, and once that it started - never every check
     const lines = this.deps.getQuestSourceLines?.(SPINE);
     let quest = null, why = 'no source';
     if (lines) try { quest = this.scheduleQuest(lines); } catch (ex) { why = ex?.message ?? String(ex); }

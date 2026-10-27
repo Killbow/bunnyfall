@@ -1,6 +1,6 @@
 // MASTER-THREE (2026-10-26, Discord #feature-feedback "Let us master all three primary skills";
-// bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): every primary skill may be mastered - 3 primary, 2 major, 1 minor.
-// Mutants: tools/mutants/fb1026c_masterthree.json.
+// bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md): every primary skill may be mastered - 3 primary, 2 major, 1 minor.
+// Mutants: tools/mutants/fb1026d_masterthree.json.
 import '../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

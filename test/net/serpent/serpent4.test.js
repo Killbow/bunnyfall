@@ -200,7 +200,7 @@ test('SERPENT4 its gale ("make the wind go crazy where the serpent stands so we 
 
 // ═══ THE SHIPS' BUMPERS ═══════════════════════════════════════════════════════════════════════════
 
-test('SERPENT4\'s bumpers RETIRED by HULL-PASS (Field-Bugs-2026-10-26c, "too many people out there bumping into each other ruining their shots"): the naval host adds nothing to the serpent\'s own drift and no bumper is left in its code - the source read, as these laws are (AUDIT FB1026c E11: that the serpent\'s waters, on the Bay\'s packet lanes, are never a PvP zone is Sea-Serpent.md\'s word, run against the world\'s lanes nowhere here)', () => {
+test('SERPENT4\'s bumpers RETIRED by HULL-PASS (Field-Bugs-2026-10-26d, "too many people out there bumping into each other ruining their shots"): the naval host adds nothing to the serpent\'s own drift and no bumper is left in its code - the source read, as these laws are (AUDIT FB1026d E11: that the serpent\'s waters, on the Bay\'s packet lanes, are never a PvP zone is Sea-Serpent.md\'s word, run against the world\'s lanes nowhere here)', () => {
   const naval = src('scenes/naval/navalHost.js');
   assert.ok(naval.includes('drift: (boat) => (enabled ? deps.serpent?.drift?.(boat) ?? null : null),'), 'the serpent\'s drift alone');
   assert.equal(/withBumpers|bumperDrift|BUMPER_GAIN/.test(naval.replace(/\/\*[\s\S]*?\*\//g, '')), false, 'no bumper in the code');

@@ -902,7 +902,7 @@ frame hears the Resurrect under them (`modes?.deathUp?.()`), their resets ask `l
 real account Worker and its minute's clock, party wire, caster's cast, death screen and world.js's own statements);
 `tools/mutants/fb1016b_rezbloodline.json` (all dead - the record's count in the Field Bugs section).
 
-## COURT-DEEDS - a compliment, a gift, a hug, a kiss (FIELD BUGS 2026-10-26c)
+## COURT-DEEDS - a compliment, a gift, a hug, a kiss (FIELD BUGS 2026-10-26d)
 
 Discord #feature-feedback "Better Courtship" - lumin: "There should be specific interactions with NPC for courtship.
 Compliments, giving gifts, hugging, kissing ... Right now it's confusing on what exactly you're supposed to use to improve
@@ -918,16 +918,16 @@ panel showed only the tone's +1 move; a friend took about twelve days of talk, a
   while a courtship is begun and not betrothed, affection +3 (+1 more in a tone taken kindly), +6, +5, +8
   (`marriage.js` warmCourtship), the deed's day stamped on the courtship it warmed too, and kept by the house's loader
   (`family.js`) - the affection rides the house's record, the regard the character's save, and a load that hands back the
-  one never hands the other again (AUDIT FB1026c B1). A compliment in a tone taken ill falls flat.
+  one never hands the other again (AUDIT FB1026d B1). A compliment in a tone taken ill falls flat.
 - **A hug waits on a friend** (FRIEND_AT) or a courtship; **a kiss on a courtship at 34** (KISS_AT, MARRIAGE_TEXT.courted's
   second tier), a betrothal or a marriage - read against the regard as it stands when the row is answered, never as
-  the page opened (AUDIT FB1026c B2). Refused, each says what it waits on and costs nothing.
+  the page opened (AUDIT FB1026d B2). Refused, each says what it waits on and costs nothing.
 - **Every answer says what it moved**: "(Regard +2, now +14. Courtship +4, now 41 of 100.)" - the courtship's number was
   never shown anywhere before. The regard's move is the whole answer's: a deed row hears the talk's tone itself
-  (`townTalk.js` `hearsTone`), between its two reads (AUDIT FB1026c B3). The regard badge names the deeds as they are
+  (`townTalk.js` `hearsTone`), between its two reads (AUDIT FB1026d B3). The regard badge names the deeds as they are
   offered, to a townsperson one could court (B4), and the Family page's "Marriage and children" names them.
 - With them a friend comes in about three days of play and a courtship reaches Marriage in about four.
 
-Pinned by `test/systems/legacy/fb1026c_courtdeeds.test.js` (the real host over the real relations); pins moved by
-intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the deeds as offered). `tools/mutants/fb1026c_courtdeeds.json`.
+Pinned by `test/systems/legacy/fb1026d_courtdeeds.test.js` (the real host over the real relations); pins moved by
+intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the deeds as offered). `tools/mutants/fb1026d_courtdeeds.json`.
 

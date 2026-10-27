@@ -1,9 +1,9 @@
-# FIELD BUGS 2026-10-26c - five #feature-feedback threads, and the owner's level cap
+# FIELD BUGS 2026-10-26d - five #feature-feedback threads, and the owner's level cap
 
 Five threads from the Discord's #feature-feedback, handed over by the owner as phone screenshots, with one line of their
 own: "Also bring the level cap to 45." Read on main's `d5a4c9c6a`, with the freeware's data (`tools/fetch-data.sh`); the
 main quest's thread and the boats' and the courtship's were each read by a reader of its own beside this one. The pins
-are named under each fix, the mutants `tools/mutants/fb1026c_*.json` - all dead.
+are named under each fix, the mutants `tools/mutants/fb1026d_*.json` - all dead.
 
 | | Report | What it was | Done |
 |---|---|---|---|
@@ -42,16 +42,16 @@ backbone when its opener began (and, while the opener stands, has run its `start
 or is scheduled, and no step of the story has begun. A parse that fails again (the records still away) is asked again
 at the next check, said once a page; a character who lost theirs before this law, its opener standing or filed in the
 journal, gets it back on its next session, at once owed every letter its level has earned. Named, not repaired (AUDIT
-FB1026c below): a classic import, which starts no quests and so has no opener of its own - the classic game's
+FB1026d below): a classic import, which starts no quests and so has no opener of its own - the classic game's
 MetLadyBrisienna is not read; a save from before this law whose opener never met Brisienna and has failed, ended and
 gone (some two months of played game time), which files nothing; and a save from before it that dropped its backbone at
 a load and was saved without one, which is owed it again.
 
-Pinned by `test/systems/quest/fb1026c_mainspine.test.js` (the real bridge over the vendored quests, a cold page's
+Pinned by `test/systems/quest/fb1026d_mainspine.test.js` (the real bridge over the vendored quests, a cold page's
 missing faction records, both orders, and the game's own FACTION.TXT where ARENA2 is fetched; a save that already lost
 it; a classic import's globals; an opener met and gone, filed in the journal; the record saved and loaded; a backbone a
 load drops; owed never with a story begun, a backbone begun or scheduled, or an opener whose start is still to run).
-Mutants `tools/mutants/fb1026c_mainspine.json` (15, dead).
+Mutants `tools/mutants/fb1026d_mainspine.json` (15, dead).
 
 ## JEWEL-KIN (2) - `src/systems/loot/lootRarity.js`, `src/net/productRecord.js`, `src/systems/smithItems.js`
 
@@ -64,7 +64,7 @@ Strike 0.40-0.43%, Illusion 7.07%. A hundred Rare rings held no Hand-to-Hand lin
 
 FIXED. Jewellery leans to the bare hand's two besides the mind's thirteen (`JEWEL_KIN`): neither is any weapon's own,
 and a ring is where a fist or a striker's line has to come from. Each of the fifteen takes about one skill line in
-sixteen; a hundred rings without a Hand-to-Hand line is a chance of one in millions (a ring lacks one about 85 times in a hundred, measured per ring - AUDIT FB1026c C6). A found ring takes the lean at once.
+sixteen; a hundred rings without a Hand-to-Hand line is a chance of one in millions (a ring lacks one about 85 times in a hundred, measured per ring - AUDIT FB1026d C6). A found ring takes the lean at once.
 A crafted piece is minted again from its signed record on every client, so the lean rides a new mint version:
 `MINT_V_JEWEL_KIN` 4 (3 on this branch, renumbered past main's ARMOR-LEAN, `MINT_V_ARMOR_LEAN` 3, at the merge). A craft
 names the version its client mints (`accountClient.js` craft's `mint`) and the account service stamps that, never past
@@ -73,10 +73,10 @@ stamped `MINT_V_LINES` - the service deploys before the site, and a tab left ope
 so a stale client's ring is the same ring in its pack and in every other reader's. A record of 3 or less mints on the
 mind's thirteen (`skillKin`'s `fists` false) and a ring already made keeps its lines.
 
-Pinned by `test/systems/fb1026c_jewelkin.test.js` (the report's rings through `mintPiece` at 3 and at 2, the odds per
+Pinned by `test/systems/fb1026d_jewelkin.test.js` (the report's rings through `mintPiece` at 3 and at 2, the odds per
 ring; a found ring as the loot list makes it; the Legendary's fallback; the craft's version through the real client and
 Worker); pins moved by intent: `loot1_kin` (the kin), `fb1013e_craftprocs` and `affixlines_reforge` (the version 3),
-`prof10_client` (the craft's shape). Mutants `tools/mutants/fb1026c_jewelkin.json` (12, dead).
+`prof10_client` (the craft's shape). Mutants `tools/mutants/fb1026d_jewelkin.json` (12, dead).
 
 ## MASTER-THREE (3) - `src/systems/masterSkills.js`
 
@@ -93,11 +93,11 @@ service's acct197 (taken with JEWEL-KIN; world269 and acct195, then acct196, on 
 own at a merge). Neither needs the other deployed first. Every pin of the two versions moved
 with a PIN MOVED note (61 test files), and the two records that name the relay's line re-aimed.
 
-Pinned by `test/systems/fb1026c_masterthree.test.js`. Pins moved by intent - each fixture that spent "the primary slots"
+Pinned by `test/systems/fb1026d_masterthree.test.js`. Pins moved by intent - each fixture that spent "the primary slots"
 on two now spends a group still at its cap (the majors' two, or a career whose third primary is a weapon):
 `audit_martial`, `fb1019b_audit`, `growth1_tab`, `specreset` (an AUDIT SPEC-RESET mutant had survived the first move -
 Destruction's third slot reached a path on its own - and the fixture was re-aimed until it died). Mutants
-`tools/mutants/fb1026c_masterthree.json` (5, dead).
+`tools/mutants/fb1026d_masterthree.json` (5, dead).
 
 ## HULL-PASS (4) - `src/scenes/comeSailAway/peerHulls.js`, `src/scenes/naval/navalHost.js`
 
@@ -128,7 +128,7 @@ Pinned by `test/scenes/fb1001b_peerboats.test.js` (HULL-PASS: the sweep as wired
 sailed through the deck I stand on, both ways, jumping; the zone turning PvP over two overlapping hulls through Come
 Sail Away's own CheckCollision - all over the real pool, peers, aboard machine, collider and motor); pins moved by
 intent: `serpent4` (the bumpers' test now pins them gone) and `serpent1_client` (the drift line); SERPENT4's four bumper
-mutants retired with the code. Mutants `tools/mutants/fb1026c_hullpass.json` (10, dead).
+mutants retired with the code. Mutants `tools/mutants/fb1026d_hullpass.json` (10, dead).
 
 ## COURT-DEEDS (5) - `src/systems/legacy/courtDeeds.js`, `src/scenes/legacyHost.js`, `src/systems/livingWorld/relations.js`
 
@@ -142,9 +142,9 @@ on, read against the regard as it stands, and costs nothing. Each deed's day is 
 warmCourtship), so a load that hands back the one never hands the affection again. The regard badge names the deeds as
 they are offered, and the Family page names them.
 
-Pinned by `test/systems/legacy/fb1026c_courtdeeds.test.js` (a reload through the real mod-save registry among them);
+Pinned by `test/systems/legacy/fb1026d_courtdeeds.test.js` (a reload through the real mod-save registry among them);
 pins moved by intent: `lw1_livingWorld` (EVENTS: a compliment, a hug, a kiss), `plainui` (the badge names the deeds as
-offered). Mutants `tools/mutants/fb1026c_courtdeeds.json` (26, dead).
+offered). Mutants `tools/mutants/fb1026d_courtdeeds.json` (26, dead).
 
 ## LEVEL-45 (6) - `src/systems/levelCap.js`
 
@@ -163,10 +163,10 @@ largest a character can be made with is 169 (184 with a Legacy heir's hearth). A
 every 15 points (a primary at 30 swapped for a skill at 100 leaves a 156-start character 42), and with Master Skills off
 the ceiling is 29 to 32. A level already past it is kept.
 
-Pinned by `test/systems/fb1026c_levelcap.test.js` (the windows driven: the door, the virtue screen, the classic sheet;
-the load and the crossing). Mutants `tools/mutants/fb1026c_levelcap.json` (18, dead).
+Pinned by `test/systems/fb1026d_levelcap.test.js` (the windows driven: the door, the virtue screen, the classic sheet;
+the load and the crossing). Mutants `tools/mutants/fb1026d_levelcap.json` (18, dead).
 
-## AUDIT FB1026c (2026-10-26, the owner: "Audit this")
+## AUDIT FB1026d (2026-10-26, the owner: "Audit this")
 
 Five cold lanes, each read-only over the pull request at `a7d8888c9` against `d5a4c9c6a`, given the files and the
 reports and never this record's conclusions: A the main quest's backbone, B the courtship's deeds, C the level cap,
@@ -215,7 +215,8 @@ would hide the piece, so nothing is refused. The Oghma Infinium's latch is not s
 and loaded, reads as a level owed and is let go - as it was already lost there). Two mutant records survive on `main`
 as on this branch, neither this change's: `audit30.json` AUDIT30-S5-a-piece-listed-off-the-road (`market.js`) and
 `csa_together.json` CSAL-pad-bare-dpad (`gamepadInput.js`). This record was
-`Field-Bugs-2026-10-26b.md` on its branch; `main` gave that name to WOVEN-PAYS first, so it is 26c (and its tags FB1026c).
+`Field-Bugs-2026-10-26b.md` on its branch, then 26c; `main` gave those names to WOVEN-PAYS and to the Morrowind body
+(#1327) first, so it is 26d (and its tags FB1026d).
 
 THE MERGE. `main` at `829fc148d` was red on its own: BAL-ARCHERY (`2814b512c`) renamed the arrows' flight to
 ARROW_FLIGHT_SPEED and left six mutant records (`audit_martial`, `techfx1` x3, `tell6d` x2) quoting the old lines and
@@ -224,11 +225,12 @@ test reading the constant the shafts fly at.
 
 THE LATER MERGES. `main` took acct196 (WOVEN-PAYS), world269 (BOW-TOPS) and mint version 3 (ARMOR-LEAN, an armour's
 lines on its family's leans) while this branch was open: JEWEL-KIN is acct197, world270 and `MINT_V_JEWEL_KIN` 4 - a
-record of 3 keeps the jewel's old lean, pinned - and the record moved from 26b to 26c, the name main gave WOVEN-PAYS.
+record of 3 keeps the jewel's old lean, pinned - and the record moved from 26b to 26c, the name main gave WOVEN-PAYS, then to 26d, past
+#1327's 26c.
 
-PINS. The six `fb1026c_*` tests and `fb1001b_peerboats`; mutants `tools/mutants/fb1026c_mainspine.json` (15),
-`fb1026c_courtdeeds.json` (26), `fb1026c_levelcap.json` (18), `fb1026c_jewelkin.json` (12), `fb1026c_hullpass.json`
-(10), `fb1026c_masterthree.json` (5) - all dead. Pins moved by intent, each with its note: `fb1013e_craftprocs` and
+PINS. The six `fb1026d_*` tests and `fb1001b_peerboats`; mutants `tools/mutants/fb1026d_mainspine.json` (15),
+`fb1026d_courtdeeds.json` (26), `fb1026d_levelcap.json` (18), `fb1026d_jewelkin.json` (12), `fb1026d_hullpass.json`
+(10), `fb1026d_masterthree.json` (5) - all dead. Pins moved by intent, each with its note: `fb1013e_craftprocs` and
 `prof10_client` (the craft names its version), `plainui` (the badge as offered), `csa_together` (the boats' loop and
 `deckGround`), `serpent4` (its title), `techfx1` (the merge). Records re-aimed: `audit30`, `csa_together`,
 `fb1001b_peerboats`, `fb1013e_craftprocs`, `prof10`, `prof9` (the lines this moved) - all dead.

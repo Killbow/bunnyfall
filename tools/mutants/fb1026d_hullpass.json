@@ -37,7 +37,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D1: a ship let through my hull sails her deck through the body on mine - shoved off, or carried away aboard her"
+    "note": "AUDIT FB1026d D1: a ship let through my hull sails her deck through the body on mine - shoved off, or carried away aboard her"
   },
   {
     "name": "HULL-PASS-deck-under-feet-unread",
@@ -47,7 +47,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D1: the moored deck I stand on is no deck - only a helm's or one aboard a peer's covers harbours"
+    "note": "AUDIT FB1026d D1: the moored deck I stand on is no deck - only a helm's or one aboard a peer's covers harbours"
   },
   {
     "name": "HULL-PASS-deck-kept-through-no-jump",
@@ -57,7 +57,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D1: a jump off my deck stands her hull again under my falling feet"
+    "note": "AUDIT FB1026d D1: a jump off my deck stands her hull again under my falling feet"
   },
   {
     "name": "HULL-PASS-my-own-through-hers-standing",
@@ -67,7 +67,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D1: aboard hers, my own moored ship knocks me off her deck as she sails through it"
+    "note": "AUDIT FB1026d D1: aboard hers, my own moored ship knocks me off her deck as she sails through it"
   },
   {
     "name": "HULL-PASS-latch-dropped",
@@ -77,7 +77,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D2: hulls overlapping when the zone turns PvP are jammed together - each refusing the other's way and turn"
+    "note": "AUDIT FB1026d D2: hulls overlapping when the zone turns PvP are jammed together - each refusing the other's way and turn"
   },
   {
     "name": "HULL-PASS-latch-never-let-go",
@@ -87,7 +87,7 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D2: a ship once through mine passes through it in a PvP zone for ever"
+    "note": "AUDIT FB1026d D2: a ship once through mine passes through it in a PvP zone for ever"
   },
   {
     "name": "HULL-PASS-door-lands-on-a-passing-hull",
@@ -97,6 +97,6 @@
     "tests": [
       "test/scenes/fb1001b_peerboats.test.js"
     ],
-    "note": "AUDIT FB1026c D1: a jump on my deck as she sails under it lands me aboard hers, and I am carried away"
+    "note": "AUDIT FB1026d D1: a jump on my deck as she sails under it lands me aboard hers, and I am carried away"
   }
 ]

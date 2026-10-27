@@ -27,7 +27,7 @@
 // skills a character MASTERS may pass it: all 3 primary, 2 of the 3 major, 1 of the 6 minor - six in all
 // (MASTERY_SLOTS). MASTER-THREE (2026-10-26, Discord #feature-feedback "Let us master all three primary skills": "1
 // minor, 2 major, 3 primary master skills ... helps alleviate the issue of trying to cram in two mastered weapon
-// skills"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md) gave the primaries their third; it was 2/2/1 before.
+// skills"; bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md) gave the primaries their third; it was 2/2/1 before.
 // A character who chose two primaries keeps them and gains the third slot. Miscellaneous skills never pass 100. The choice is offered the first quiet pass after a skill
 // reaches 100 while its group has a slot (and any time after from the skill screen), says how many that group
 // allows and how many remain, and is PERMANENT (entity.masteredSkills, saved). A skill not mastered simply stays at

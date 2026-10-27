@@ -38,7 +38,7 @@ import { firstRestorable } from './save/saveSlots.js';   // RESTORE: the offline
 import { deductGold } from './court.js';
 import { LEVELING_CLASSIC, newCharacterLevelingSystem } from './oblivionLeveling.js';   // LEVEL-ONLINE-2: a character crossing levels the classic way
 import { levelUpSkillSumAnchor } from './advancement.js';   // LEVEL-ONLINE-2: ...from the start of the level it has
-import { releaseCapLatch } from './levelCap.js';   // AUDIT FB1026c C2: a level owed past the cap crosses as none
+import { releaseCapLatch } from './levelCap.js';   // AUDIT FB1026d C2: a level owed past the cap crosses as none
 import { isGoldPieces } from './inventory.js';
 import { crossFleetData } from './fleet.js';   // AUDIT SHIPYARDS L1-2: Come Sail Away's ships cross as a DFU deed does - kept, never sold
 import { COME_SAIL_AWAY_VENDOR } from './comeSailAway/comeSailAway.js';   // ...her placed boats' record, by its vendor

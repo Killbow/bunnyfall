@@ -16,7 +16,7 @@ import { colliderPoses, invertAffine, boxColliderTriangles, raycastColliders, BU
 import { quatAngleAxis } from '../../src/world/quat.js';
 import { Collider } from '../../src/player/collider.js';
 import { PlayerMotor, FIXED_DT, CAPSULE_HEIGHT } from '../../src/player/motor.js';
-import { hullsStood, hullPassesMyDeck } from '../../src/scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026c D1: the deck's hulls, as world.js reads them
+import { hullsStood, hullPassesMyDeck } from '../../src/scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026d D1: the deck's hulls, as world.js reads them
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const WORLD = src('src/scenes/world.js');

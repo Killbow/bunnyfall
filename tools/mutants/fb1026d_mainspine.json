@@ -5,7 +5,7 @@
     "old": "    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();",
     "new": "",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "the report: a backbone lost at the birth's reload, and no royal letter ever"
   },
@@ -15,9 +15,9 @@
     "old": "    else if (this.spineTries === 1) console.warn(",
     "new": "    else console.warn(",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c A6: two warnings every 30 quest ticks for as long as the records stay away"
+    "note": "AUDIT FB1026d A6: two warnings every 30 quest ticks for as long as the records stay away"
   },
   {
     "name": "MAIN-SPINE-opener-start-unread",
@@ -25,7 +25,7 @@
     "old": "      if (String(a.questName ?? '').toUpperCase() === SPINE || a.questIndex1 === 999) return true;",
     "new": "",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "a standing opener's start never read: the lost backbone unrepaired"
   },
@@ -35,9 +35,9 @@
     "old": "      if (a?.constructor?.typeName !== 'StartQuest' || !a.isComplete) continue;",
     "new": "      if (a?.constructor?.typeName !== 'StartQuest') continue;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c E10: an opener whose start is still to run is owed - and starts a second backbone"
+    "note": "AUDIT FB1026d E10: an opener whose start is still to run is owed - and starts a second backbone"
   },
   {
     "name": "MAIN-SPINE-owed-with-a-story-begun",
@@ -45,7 +45,7 @@
     "old": "  if (m.spine.ran || m.storyStarted.size > 0) return false;",
     "new": "  if (m.spine.ran) return false;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "a backbone that ended is started over, and the courts' quests with it"
   },
@@ -55,9 +55,9 @@
     "old": "  if (m.spine.ran || m.storyStarted.size > 0) return false;",
     "new": "  if (m.storyStarted.size > 0) return false;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c A1: a backbone that ran and ended is owed again - every game week, for ever"
+    "note": "AUDIT FB1026d A1: a backbone that ran and ended is owed again - every game week, for ever"
   },
   {
     "name": "MAIN-SPINE-scheduled-unread",
@@ -65,7 +65,7 @@
     "old": "  if (m.questsToInvoke.some((q) => named(q, SPINE))) return false;",
     "new": "",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "a backbone a tick from starting started twice"
   },
@@ -75,9 +75,9 @@
     "old": "  return m.spine.opened;",
     "new": "  return m.spine.opened || m.globalVars?.get(31) === true;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c A1: the classic game's MetLadyBrisienna (global 31) read alone - every classic import handed a backbone"
+    "note": "AUDIT FB1026d A1: the classic game's MetLadyBrisienna (global 31) read alone - every classic import handed a backbone"
   },
   {
     "name": "MAIN-SPINE-archive-unread",
@@ -85,9 +85,9 @@
     "old": "    if ((entries ?? []).some((e) => e?.kind === 'quest' && questNameIn([SPINE_OPENER], String(e.quest ?? '')))) this.spine.opened = true;",
     "new": "",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c E1/A3: a save from before the record whose opener was met and has gone is never repaired"
+    "note": "AUDIT FB1026d E1/A3: a save from before the record whose opener was met and has gone is never repaired"
   },
   {
     "name": "MAIN-SPINE-start-unrecorded",
@@ -95,7 +95,7 @@
     "old": "    if (questNameIn([SPINE], quest.questName)) this.spine.ran = true; else if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;   // MAIN-SPINE: the record the law reads",
     "new": "    if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "a backbone begun unrecorded: one standing owed again, and a second started"
   },
@@ -105,9 +105,9 @@
     "old": "    if (questNameIn([SPINE], quest.questName)) this.spine.ran = true; else if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;   // MAIN-SPINE: the record the law reads",
     "new": "    if (questNameIn([SPINE], quest.questName)) this.spine.ran = true;",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c A2/E2: an opener begun unrecorded - gone, it leaves its lost backbone unrepaired"
+    "note": "AUDIT FB1026d A2/E2: an opener begun unrecorded - gone, it leaves its lost backbone unrepaired"
   },
   {
     "name": "MAIN-SPINE-record-unsaved",
@@ -115,7 +115,7 @@
     "old": "      ...this._spineData(),   // MAIN-SPINE: written once the opener begins",
     "new": "",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "the record lost at every save"
   },
@@ -125,7 +125,7 @@
     "old": "  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true || has(SPINE) };",
     "new": "  return { opened: has(SPINE_OPENER), ran: has(SPINE) };",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "the record saved and never read back"
   },
@@ -135,7 +135,7 @@
     "old": "  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true || has(SPINE) };",
     "new": "  return { opened: saved?.opened === true, ran: saved?.ran === true || has(SPINE) };",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
     "note": "a save from before the record: its standing opener forgotten once it goes"
   },
@@ -145,8 +145,8 @@
     "old": "  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true || has(SPINE) };",
     "new": "  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true };",
     "tests": [
-      "test/systems/quest/fb1026c_mainspine.test.js"
+      "test/systems/quest/fb1026d_mainspine.test.js"
     ],
-    "note": "AUDIT FB1026c A5: a backbone a load drops (it would not rebuild) owed again, its letters sent again"
+    "note": "AUDIT FB1026d A5: a backbone a load drops (it would not rebuild) owed again, its letters sent again"
   }
 ]

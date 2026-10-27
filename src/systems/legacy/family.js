@@ -545,7 +545,7 @@ export function readFamily(rec) {
           // AUDIT LEGACY III A4/P2: who the courtship is with, for the wedding that needs no town loaded (marriage.js
           // court) - dropped here, every wedding after a load was a male Breton with no face
           sex: c.sex === 'female' ? 'female' : 'male', race: RACE_KEYS.includes(c.race) ? c.race : '', face: Number.isInteger(c.face) && c.face >= 0 ? c.face : 0,
-          // AUDIT FB1026c B1: the days a deed warmed it (marriage.js warmCourtship) - dropped here, a load handed every deed again
+          // AUDIT FB1026d B1: the days a deed warmed it (marriage.js warmCourtship) - dropped here, a load handed every deed again
           ...(c.deeds && typeof c.deeds === 'object' ? { deeds: Object.fromEntries(Object.entries(c.deeds).filter(([k, d]) => COURT_DEEDS.includes(k) && Number.isInteger(d))) } : {}),
         }]))
       : {};

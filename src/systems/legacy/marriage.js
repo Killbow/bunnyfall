@@ -127,7 +127,7 @@ export function court(member, res, o) {
 
 /** COURT-DEEDS (systems/legacy/courtDeeds.js): a deed's affection added to a courtship begun and not yet betrothed, held
  *  to AFFECTION_MAX. Answers `{ warmed, affection }`, or null for no such courtship. Not a day's Courtship: that keeps its
- *  own day (court). AUDIT FB1026c B1: the deed's `day` (the regard's own day) is stamped on the courtship it warmed, as
+ *  own day (court). AUDIT FB1026d B1: the deed's `day` (the regard's own day) is stamped on the courtship it warmed, as
  *  court's is - the affection rides the house's record, and a load that hands the regard's day back must not hand the
  *  affection again (deedDoneOn). @param {any} member @param {string} residentId @param {number} n
  *  @param {{ deed?: string | null, day?: number | null }} [o] */

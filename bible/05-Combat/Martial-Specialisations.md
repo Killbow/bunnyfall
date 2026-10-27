@@ -23,7 +23,7 @@ Measured first (section 2), then four questions put to the owner, and the owner 
   key whenever the weapon in hand is one of its pair's and carries no technique line of its own; a loot line on the
   weapon wins. No new key: every letter and digit is already bound (`systems/inputActions.js`, TECH1's own note).
 - **Both paths:** *yes, one of each* - a spellsword who masters two schools and two weapons holds an arcane path and a
-  martial path together; the masteries they need come from the one 3 / 2 / 1 (`masterSkills.js` MASTERY_SLOTS; 2 / 2 / 1 until MASTER-THREE, `01-Overview/bugs/Field-Bugs-2026-10-26c.md`).
+  martial path together; the masteries they need come from the one 3 / 2 / 1 (`masterSkills.js` MASTERY_SLOTS; 2 / 2 / 1 until MASTER-THREE, `01-Overview/bugs/Field-Bugs-2026-10-26d.md`).
 - **The balance pass:** *all four* - every weapon past 100 in its own dimension (section 4); the fists' missing blow
   modifiers, the short blades' handling and the Firmament's weapon notables (BAL10, `Balance-Arc.md` section 16).
 
