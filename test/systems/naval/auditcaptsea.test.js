@@ -640,7 +640,7 @@ test('AUDIT CAPTAIN\'S SEA P4/P6/P8/P9/P10: a death past the Veil rises at the n
   assert.equal(veilRefused({ x: 8068, y: -5185 }), true, 'out to the sea from the Bay');
   assert.equal(veilRefused(), false, 'a teleport map in the Bay');
   assert.equal(said.length, 3);
-  for (const door of ["wildTeleportRefused(plan.anchor?.pixel ?? null) || veilRefused(plan.anchor?.pixel ?? null)", 'wildTeleportRefused(pick.pixel) || veilRefused(pick.pixel)', 'wildTeleportRefused(pick.pixel ?? null) || veilRefused(pick.pixel ?? null)', 'if (veilRefused()) return null;', 'if (veilRefused()) return false;', 'if (veilRefused(pick.pixel)) return;']) assert.ok(w.includes(door), door);
+  for (const door of ["wildTeleportRefused(plan.anchor?.pixel ?? null) || veilRefused(plan.anchor?.pixel ?? null)", 'wildTeleportRefused(pick.pixel) || veilRefused(pick.pixel)', 'wildTeleportRefused(pick.pixel ?? null) || (!pick.veil && veilRefused(pick.pixel ?? null))', 'if (veilRefused()) return null;', 'if (veilRefused()) return false;', 'if (veilRefused(pick.pixel)) return;']) assert.ok(w.includes(door), door);
   assert.match(w, /\?\? \(etherSea \? \[\.\.\.locationIndex\.values\(\)\]\.find\(\(l\) => l\?\.ether && l\.name === locationName && l\.regionName === regionName\) \?\? null : null\);/);
   assert.match(w, /regionName: REGION_NAMES\[ETHER_REGION\] \?\? ETHER_REGION_NAME/);
   const m = rd('src/scenes/worldModes.js');
@@ -705,6 +705,7 @@ async function crossingWorld(over = {}) {
     gamePaused: () => w.paused, get _loading() { return w.loading; }, townTalk, modes: { get transitioning() { return w.transitioning; } }, _mode: () => w.mode,
     worldMoveBusy: () => w.busy, get _partyArrivalPending() { return w.arriving; },
     playerTravelPixel: () => ({ x: w.px, y: w.py }), crossingWayAt: EC.crossingWayAt, CROSS_X: ES.CROSS_X, inEther: ES.inEther,
+    veilParty: { kin: () => false },   // PIN MOVED (VEIL-PARTY): the crossing's count leaves her party out - none here
     navalHostileNear: () => w.hostile, CROSS_REFUSED: EC.CROSS_REFUSED, CROSS_STALE: EC.CROSS_STALE, CROSS_FAILED: EC.CROSS_FAILED, csaPassengersOn: () => w.passengers, YesNoBoxWindow,
     crossingRows: EC.crossingRows, captainLedger: ledger, crossingTarget: EC.crossingTarget, CROSS_DAYS: EC.CROSS_DAYS,
     _onlineWorldSession: () => !!w.online, get online() { return w.online ?? null; },   // ETHER-WILD: the question's warning is online's (offline here, as these pins were written)
@@ -760,7 +761,7 @@ test('AUDIT CAPTAIN\'S SEA X2/X9: Yes is the question as it stands NOW (a load, 
   c.w.px = 150; c.w.py = 300; c.step();
   assert.equal(c.log.at(-1), 'asked', 'asked afresh in its own waters');
   c.w.passengers = 1; c.w.overlay.answer(true);
-  assert.match(c.log.at(-1), /Passengers can't cross the Veil/, 'a guest aboard since: refused');
+  assert.match(c.log.at(-1), /Only your party can cross the Veil/, 'a guest aboard since: refused');   // PIN MOVED (VEIL-PARTY): the refusal a stranger's
   c.w.passengers = 0;
   // another helm, no helm, the world moving, a party's arrival: each a stale question
   const { CROSS_STALE } = await import('../../../src/systems/naval/etherCrossing.js');

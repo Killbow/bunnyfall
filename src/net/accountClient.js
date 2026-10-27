@@ -2419,6 +2419,18 @@ export function accountSeaSeason({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS 
   return { board: (req) => post('/v1/sea/season/board', req) };
 }
 
+/** CREW-SIGNED: A CREW HALL'S DOOR (server-account/src/crewSigns.js) - a town's hall on a day (`hall`: `{ town, day }` -
+ *  the slots others hold and the asker's), a recruit held (`sign`: `{ id }`) and let go (`release`: `{ id }`). Every
+ *  answer is `call`'s shape. */
+export function accountCrewSigns({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    hall: (req) => post('/v1/crew/hall', req),
+    sign: (req) => post('/v1/crew/sign', req),
+    release: (req) => post('/v1/crew/release', req),
+  };
+}
+
 /** CARDS10: ILIAC HAND'S DOOR (server-account/src/iliac.js) - a ranked seat's deck vouched for (`deck`: `{ character,
  *  realm, deck }` - the service's order the relay seats it ranked on), a ranked game's receipt the relay signed, carried
  *  here by an account it names (`claim`), and the season board (`board`). Every answer is `call`'s shape. */

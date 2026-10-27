@@ -484,5 +484,315 @@
     "tests": [
       "test/systems/naval/fb1020c_harbourreach.test.js"
     ]
+  },
+  {
+    "name": "CREW-the-holder-unread",
+    "file": "server-account/src/crewSigns.js",
+    "old": "  if (held) return held.player === player.id ? { signed: true, fresh: false } : { error: 'crew-taken' };",
+    "new": "  if (held) return { signed: true, fresh: false };",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-release-unowned",
+    "file": "server-account/src/crewSigns.js",
+    "old": "'DELETE FROM crew_signed WHERE town = ?1 AND day = ?2 AND slot = ?3 AND player = ?4'",
+    "new": "'DELETE FROM crew_signed WHERE town = ?1 AND day = ?2 AND slot = ?3 AND (player = ?4 OR 1)'",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-cap",
+    "file": "server-account/src/crewSigns.js",
+    "old": "  if (Number(n?.n ?? 0) >= CREW_SIGN_DAY_MAX) return { error: 'crew-many' };",
+    "new": "  if (Number(n?.n ?? 0) > CREW_SIGN_DAY_MAX) return { error: 'crew-many' };",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-day-unread",
+    "file": "server-account/src/crewSigns.js",
+    "old": "  if (!crewDayOk(s.day, ctx.nowS * 1000)) return { error: 'crew-day' };",
+    "new": "  if (false) return { error: 'crew-day' };",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-fresh-unsaid",
+    "file": "server-account/src/crewSigns.js",
+    "old": "  if (Number(r?.meta?.changes ?? 0) > 0) return { signed: true, fresh: true };",
+    "new": "  if (Number(r?.meta?.changes ?? 0) > 0) return { signed: true, fresh: false };",
+    "tests": [
+      "test/server/crewsigned.test.js",
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-mine-read-as-taken",
+    "file": "server-account/src/crewSigns.js",
+    "old": "(r.player === player.id ? mine : taken)",
+    "new": "(r.player !== player.id ? mine : taken)",
+    "tests": [
+      "test/server/crewsigned.test.js",
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-keep",
+    "file": "server-account/src/crewSigns.js",
+    "old": "crewDayAt(nowS * 1000) - CREW_SIGN_KEEP_DAYS,",
+    "new": "crewDayAt(nowS * 1000) - CREW_SIGN_KEEP_DAYS + 1,",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-span",
+    "file": "src/net/crewSignLaw.js",
+    "old": "Math.abs(day - crewDayAt(nowMs)) <= CREW_SIGN_DAY_SPAN;",
+    "new": "Math.abs(day - crewDayAt(nowMs)) < CREW_SIGN_DAY_SPAN;",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-slots",
+    "file": "src/net/crewSignLaw.js",
+    "old": "  if (town > 0xffffffff || slot >= CREW_SIGN_SLOTS) return null;",
+    "new": "  if (town > 0xffffffff || slot > CREW_SIGN_SLOTS) return null;",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-shared-day",
+    "file": "src/net/crewSignLaw.js",
+    "old": "Math.floor(sharedClassicMinutes(nowMs) / 1440);",
+    "new": "Math.floor(sharedClassicMinutes(nowMs) / 1441);",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-door-route",
+    "file": "src/net/accountClient.js",
+    "old": "    sign: (req) => post('/v1/crew/sign', req),",
+    "new": "    sign: (req) => post('/v1/crew/hall', req),",
+    "tests": [
+      "test/server/crewsigned.test.js",
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-hall-unread",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "      .filter((r) => !signed.slots.has(crewSignOf(r.id)?.slot ?? -1));",
+    "new": "      .filter(() => true);",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-unasked",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "      if (!signs.live() || held.has(plan.recruit.id)) return plan.go();",
+    "new": "      if (true) return plan.go();",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-hold-kept",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "        if (!r?.ok && k.fresh) signs.release(id);",
+    "new": "        if (false) signs.release(id);",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-pay-offs",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "        letGo(r.hand);\n",
+    "new": "",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-swaps",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "        letGo(r.out);\n",
+    "new": "",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-sales",
+    "file": "src/scenes/shipyardHost.js",
+    "old": "      if (s.at.boat) for (const h of naval()?.crewHands?.(s.at.boat) ?? []) letGo(h);",
+    "new": "      if (false) for (const h of naval()?.crewHands?.(s.at.boat) ?? []) letGo(h);",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-old-service-a-refusal",
+    "file": "src/scenes/crewSignBook.js",
+    "old": "    if (r?.error === 'not-found') { off = true; return { ok: true, fresh: false }; }",
+    "new": "    if (r?.error === 'not-found') { off = true; return { ok: false, text: CREW_SIGN_TEXT.unread }; }",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-unread-hired",
+    "file": "src/scenes/crewSignBook.js",
+    "old": "    return { ok: false, text: r?.error === 'crew-many' ? CREW_SIGN_TEXT.many : CREW_SIGN_TEXT.unread };",
+    "new": "    return { ok: true, fresh: false };",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-second-press-taken",
+    "file": "src/ui/shipyardWindow.js",
+    "old": "    if (asking) return;",
+    "new": "    if (false) return;",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "CREW-the-read-never-painted",
+    "file": "src/ui/shipyardWindow.js",
+    "old": "    if (m.wait && m.wait !== waited) {",
+    "new": "    if (false) {",
+    "tests": [
+      "test/systems/shipyards1_host.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-window",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "    if (now - rode.at > VEIL_FOLLOW_MS ||",
+    "new": "    if (now - rode.at > VEIL_FOLLOW_MS * 100 ||",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-captain-this-side",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "    if (!row || !memberPresent(row) || !!deps.across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
+    "new": "    if (!row || !memberPresent(row) || !deps.ready()) return;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-wait",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "!!deps.across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
+    "new": "!!deps.across(row.p.px, row.p.py) === rode.side) return;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-days",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "    computed: { minutes: CROSS_DAYS * 1440, totalCost: 0,",
+    "new": "    computed: { minutes: 1440, totalCost: 0,",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-fare",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "minutes: CROSS_DAYS * 1440, totalCost: 0, piecesCost: 0,",
+    "new": "minutes: CROSS_DAYS * 1440, totalCost: 100, piecesCost: 0,",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-veil-unsaid",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "      pixel: { x: to.x, y: to.y }, name, veil: true,",
+    "new": "      pixel: { x: to.x, y: to.y }, name, veil: false,",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-beside-unread",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "besideTargetOf(r.p, to.x, to.y) : null;",
+    "new": "besideTargetOf(r.p, to.x + 1, to.y) : null;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-missed-unsaid",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "      if (!went) deps.say(VEIL_TEXT.missed(name));",
+    "new": "      if (false) deps.say(VEIL_TEXT.missed(name));",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-kin-unread",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "  const kin = (id) => !!deps.social?.()?.isPartyPeer?.(id);",
+    "new": "  const kin = (id) => false;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-skip-unread",
+    "file": "src/scenes/comeSailAway/comeSailAwayAboard.js",
+    "old": "r.slot === slot && !skip?.(id)) n++;",
+    "new": "r.slot === slot) n++;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-host-kin",
+    "file": "src/scenes/world.js",
+    "old": "csaPassengersOn(csaRuntime?.state?.CurrentBoat, veilParty.kin) > 0",
+    "new": "csaPassengersOn(csaRuntime?.state?.CurrentBoat) > 0",
+    "tests": [
+      "test/systems/naval/veilparty.test.js",
+      "test/systems/naval/ethercross.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-veil-door",
+    "file": "src/scenes/world.js",
+    "old": "(!pick.veil && veilRefused(pick.pixel ?? null))",
+    "new": "veilRefused(pick.pixel ?? null)",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-the-step-unwired",
+    "file": "src/scenes/world.js",
+    "old": "{ etherCrossStep(dt); veilParty.step(); }",
+    "new": "{ etherCrossStep(dt); }",
+    "tests": [
+      "test/systems/naval/ethercross.test.js"
+    ]
   }
 ]

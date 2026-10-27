@@ -251,6 +251,7 @@ import { takeReactionFeed, REACTION_FEED_PATH } from './staffReactions.js';   //
 import { STAFF_FEED_SIG_HEADER, STAFF_FEED_MAX_BYTES } from '../../server/src/staffFeedLaw.js';
 import { stakeCards, cashoutCards } from './cards.js';   // CARDS6: a card table's stakes, escrowed
 import { seaBountyBoard, seaBountyPost, seaBountyCollect } from './seaBounty.js';   // SEA-BOUNTY: a freeport's bounty board on the open sea's killers
+import { crewHall, crewSign, crewRelease, CREW_STATUS } from './crewSigns.js';   // CREW-SIGNED: a crew hall's recruit signed once online
 import { seaSeasonBoard } from './seaSeason.js';   // SEA-SEASON: the sea's season boards
 import { seaWreck, seaPrizeCollect, seaPrizeReclaim } from './seaWreck.js';   // SHIP-PVP: a wreck at sea, and its prize
 import { deckOrderOf, claimIliac, iliacBoardOf } from './iliac.js';
@@ -2086,6 +2087,17 @@ const service = {
         const r = await act();
         if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);   // the record moved under the act, as a checkpoint's
         if ('error' in r) return json({ error: r.error }, REALM_STATUS[r.error] ?? JUDGE_STATUS[r.error] ?? 400, origin);
+        return json(r, 200, origin);
+      }
+
+      // CREW-SIGNED (2026-10-27, bible/03-World/Shipyards.md CREW-SIGNED): a crew hall's recruit held by the first account
+      // to sign him for his day, let go when he is paid off (crewSigns.js) - no gold moves here
+      if (path.startsWith('/v1/crew/')) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const act = { '/v1/crew/hall': crewHall, '/v1/crew/sign': crewSign, '/v1/crew/release': crewRelease }[path];
+        if (!act) return no('not-found', 404, origin);
+        const r = await act(ctx, who.player, body);
+        if ('error' in r) return json({ error: r.error }, CREW_STATUS[r.error] ?? 400, origin);
         return json(r, 200, origin);
       }
 
