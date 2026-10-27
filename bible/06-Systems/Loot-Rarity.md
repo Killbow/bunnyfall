@@ -579,4 +579,6 @@ the first pick's share at the family's, versions 2 and 3); `tools/mutants/armorl
 
 DAEDRIC-SALE (2026-10-26, the same player: "tune down daedric selling price by 50%"): a counter pays half for Daedric
 gear - weapons, plate and shields - at `tradeModes.js` counterValueOf, the one value every selling arm reads; a gem set
-in the piece sells whole, and what a shop ASKS stands.
+in the piece sells whole, and what a shop ASKS stands. A patron at a hired trader is no counter: patronWorth
+(`net/patronLaw.js`) reads the piece's whole worth and is untouched. A departure from DFU's Sell arms (Port-Ledger A,
+A COUNTER PAYS HALF FOR DAEDRIC GEAR).
