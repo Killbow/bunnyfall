@@ -40,7 +40,7 @@ export function createWardrobePreview({ entity, arm = fpArm, renderer = armRende
   /** @type {any} */
   let rig = null;
   let building = false;
-  /** @type {{ key: string, opts: any, onReady?: () => void } | null} */
+  /** @type {{ key: string, stand: any, onReady?: () => void } | null} */
   let want = null;
   const keep = (/** @type {string} */ key, /** @type {any} */ v) => {
     memo.delete(key);
@@ -57,7 +57,7 @@ export function createWardrobePreview({ entity, arm = fpArm, renderer = armRende
     try {
       rig ??= createRig();
       rig.attach(renderer(), null);
-      const res = await rig.build(job.opts);
+      const res = await rig.build(buildOpts(job.stand));
       if (alive && res?.ok) px = rig.figure({ yaw: 0, height: PREVIEW_FIGURE_H });
     } catch { px = null; }
     building = false;
@@ -70,7 +70,7 @@ export function createWardrobePreview({ entity, arm = fpArm, renderer = armRende
     if (memo.has(key)) return memo.get(key);
     if (want && want.key !== key) memo.delete(want.key);   // passed over before it was built
     memo.set(key, null);
-    want = { key, opts: buildOpts(stand), onReady };
+    want = { key, stand, onReady };
     pump();
     return null;
   }
