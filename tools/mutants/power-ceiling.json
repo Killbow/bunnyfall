@@ -558,5 +558,68 @@
     "tests": [
       "test/combat/powerceiling.test.js"
     ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-the-sky-spends-its-raw-blow",
+    "file": "src/systems/firmamentPowers.js",
+    "old": "  const pct = blowRoom(blowPct(c, { skill, group: foeGroup(target), unaware: !!info?.unaware, wounded }), 'firmament');",
+    "new": "  const pct = blowPct(c, { skill, group: foeGroup(target), unaware: !!info?.unaware, wounded }); blowRoom(pct, 'firmament');",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-the-sky-spends-its-raw-guard",
+    "file": "src/systems/firmamentPowers.js",
+    "old": "  const pct = -guardRoom(-(ch === 'blow' ? (c.blowTaken ?? 0) : (c.spellTaken ?? 0)), 'firmament');",
+    "new": "  const pct = ch === 'blow' ? (c.blowTaken ?? 0) : (c.spellTaken ?? 0); guardRoom(-pct, 'firmament');",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-mastery-spends-its-raw-blow",
+    "file": "src/systems/weaponMastery.js",
+    "old": "  const pct = blowRoom(weaponPastPct(weapon, attacker, target), 'mastery');",
+    "new": "  const pct = weaponPastPct(weapon, attacker, target); blowRoom(pct, 'mastery');",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-the-paths-spend-their-raw-blow",
+    "file": "src/systems/martialPowers.js",
+    "old": "  const pct = blowRoom(martialBlowPct(attacker, target, info), 'martial');",
+    "new": "  const pct = martialBlowPct(attacker, target, info); blowRoom(pct, 'martial');",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-the-paths-spend-their-raw-guard",
+    "file": "src/systems/martialPowers.js",
+    "old": "  const owed = (dmg * guardRoom(pct, 'martial')) / 100 + _s.guardOwed;",
+    "new": "  guardRoom(pct, 'martial'); const owed = (dmg * pct) / 100 + _s.guardOwed;",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-the-aegis-spends-its-raw-guard",
+    "file": "src/systems/arcanePowers.js",
+    "old": "  const owed = (dmg * guardRoom(N.livingAegis.lighter, 'arcane')) / 100 + _s.guardOwed;",
+    "new": "  guardRoom(N.livingAegis.lighter, 'arcane'); const owed = (dmg * N.livingAegis.lighter) / 100 + _s.guardOwed;",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D2-unbroken-spends-its-raw-half",
+    "file": "src/systems/sigil/sigilSetPowers.js",
+    "old": "Math.floor((dmg * (100 - guardRoom(UNBROKEN_LESS, 'sets'))) / 100)",
+    "new": "Math.floor((dmg * (100 - UNBROKEN_LESS + 0 * guardRoom(UNBROKEN_LESS, 'sets'))) / 100)",
+    "tests": [
+      "test/combat/powerceiling_rooms.test.js"
+    ]
   }
 ]

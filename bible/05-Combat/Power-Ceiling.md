@@ -160,3 +160,10 @@ modifier asks `blowRoom`, every damage modifier but the three vetoes (`eg-witnes
 The mutant records that quoted the lines the room calls now sit in are re-aimed by content and judged dead again:
 `audit_schools.json` (the Living Aegis's carry), `loot5.json` (the Last Stand), `set3.json` (Unbroken's half, two) and
 `set4.json` (the drink, five).
+
+AUDIT HORIZONTAL D2: the sweep proved each registry asks for its room, not that it spends what it is given - one that
+asked and then added its raw per cent passed every pin. `test/combat/powerceiling_rooms.test.js` (4) runs the sky's,
+mastery's and the martial path's blows, and the sky's, the martial path's, the Living Aegis's and Unbroken's guards,
+each power awake and minted by its own producers: whole with room, nothing once the product is spent. The sweep reads
+every registration to its closing paren, takes only a named function with a braced body, and holds each veto to
+`(e, d) => (cond ? 0 : d)`.
