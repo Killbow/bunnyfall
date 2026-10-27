@@ -367,7 +367,7 @@ the Trophy Hunter's spec (no longer waiting). Fifteen mutant records of other sl
 
 HUNTERS-MARK-II: `test/scenes/huntersmark2_wire.test.js` (3) - the law, and the whole way between two real pools (the
 real bounty host's mark crowned, its frame read, only the hunter paid, the mate's Renown); `tools/mutants/huntersmark2.json`,
-13 records. No pin moved. `auditwe_cover.json`'s puppet-leader record re-aimed by content (the line now reads a mark too),
+13, dead. No pin moved. `auditwe_cover.json`'s puppet-leader record re-aimed by content (the line now reads a mark too),
 dead. No version moves.
 
 **The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct201, its migrations 0180 and 0181
