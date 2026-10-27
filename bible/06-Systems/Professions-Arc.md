@@ -6573,9 +6573,10 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   `dungeonContext.js` build no station page and no craft door - none to wire.
 
 - **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
-  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct198. The relay is unchanged. The wire's
-  change is the product record's (`l` its signed lines, MINT_V_MASTER, the bound at 704); a client older than it mints a
-  Master's record as the Masterwork's Rare roll - at version 0's law where the record is past its 512.
+  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct198. The relay's one change is AUDIT HORIZONTAL B7's
+  loot door (57.8). The wire's change is the product record's (`l` its signed lines, MINT_V_MASTER, the bound at 704); a
+  client older than it mints a Master's record as the Masterwork's Rare roll - at version 0's law where the record is
+  past its 512.
 
 - **Words**: the station's (`prof.master.*`), the craft's word (`prof.craft.master`) and three refusals - new keys, drafted
   with the merge.
@@ -6593,11 +6594,24 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 - POWER-CEILING's rule (no line of any piece past the Legendary band) is another slice's; this roll keeps it by its own
   draw, pinned over four thousand seeds.
 
-- **An older build drops a Master's work it holds in a room's container** (AUDIT HORIZONTAL B, the lane's suspected
-  item, proven with each peer on its own tree's law). An older law reads it as a Legendary of no record, and its wire
-  reads the shape, so the piece goes silently, not as AUDIT SETS M2's newer word. A put to an older host is refused and
-  comes back; but once an older build holds the seat, its word says the container without it, and every peer lands
-  that. Named, not closed: the cure is a hello gate for rooms that hold loot, GROUND-GATE's kind - a relay change.
+- **AUDIT HORIZONTAL B7: an older build holds no room's loot (LOOT-DOOR, closed).** Main's item law reads a Master's
+  work as a Legendary of no record and drops it silently, so once an older build held a room's seat, its word said the
+  container without the piece and every peer landed that. A Mounted Trophy (HUNTERS-MARK) goes the same way: main cannot
+  read the word, but a seat that read the container before the put says its older list. Now a loot room's hello says the
+  loot its build reads (`wire.js:"export const LOOT_HELLO_LAW = 1;"`, `ll`), and while the relay setting `lootDoor` is on
+  the relay refuses one that says less or none, with GROUND-GATE's words
+  (`server/src/index.js:"async _lootDoorRefusal(key, m, now) {"`).
+
+- **The door's rooms and its deploy.** A world room (its containers) and a cell (a body's pile): the relay routes acts,
+  foes and hits nowhere else (`wire.js:"export const lootRoom = (key) => streamsFoes(key);"`). GROUND-GATE's battles
+  and owned rooms carry none, so they are no loot rooms. The number moves, and RELAY_VERSION with it, when the item law
+  takes a piece an older law refuses. Deploy the relay first (world271, re-hashed in place); turn `lootDoor` on
+  (`/relay lootDoor on`, or the var LOOT_DOOR) once the site serves this build. An older desktop copy is then told to
+  update in those rooms.
+
+- **Every piece this PR makes, probed** with each peer on its own tree's law (main at 9471513f8): a Master's work is
+  dropped silently; a Mounted Trophy is unreadable (AUDIT SETS M2's word, but lost as above); a named mark's drops, a
+  piece wearing a look (the look never rides), a fishing boat's Raw Fish and the crafting window's pieces read whole.
 
 ### 57.9 Pinned
 
@@ -6614,6 +6628,12 @@ Re-aimed by content at the slice, each dead: `bag1`, `crafthall`,
 `test/server/accountworker.test.js` (`prof_masters`), `test/net/fb1015f_firstcraft.test.js` (a box's own lines read with a
 Master's work section beside them - its Building is at Master), `test/ui/seat2b_peace_client.test.js` (the door's spread
 after the seat).
+
+AUDIT HORIZONTAL B7: `test/net/lootdoor.test.js` (4 - the hello's `ll`, the rooms, the setting and its floor, the
+relay's door through real Rooms, the client's hello). `tools/mutants/lootdoor.json` (17, each dead); the floor records of
+`cost2b`, `heraldcards` and `ketch_herald` re-aimed by content (dead). PIN MOVED: a current build's hello says `ll` in
+`fb1017f_groundgate`, `grantdoor_relay` and `lease1` (one without it asks the hub for the loot door); `scale5b`'s
+settings and vars, `heraldcards`' floors (lootDoor is world271's), `relayversion`'s world271 row.
 
 ## 58. HUNTERS-MARK - the Trophy Hunter built (BUILT 2026-10-27)
 
