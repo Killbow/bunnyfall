@@ -309,7 +309,7 @@ test('COLLECTIONS-II THE PAGE: six tiles, each its part\'s name over its count a
   const p = page({ flow, player: me });
   await settle();
   const tiles = cls(p.root, 'coll-part');
-  assert.deepEqual(tiles.map((b) => b.attrs['data-focus']), ['titles', 'auras', 'icons', 'glyphs', 'codex', 'cards'].map((id) => `coll-part-${id}`));
+  assert.deepEqual(tiles.map((b) => b.attrs['data-focus']), ['titles', 'auras', 'icons', 'glyphs', 'appearances', 'codex', 'cards'].map((id) => `coll-part-${id}`));   // PIN MOVED (APPEARANCES): the looks' part, first of the character's
   assert.equal(tiles[0].children[1].textContent, `3 / ${TITLES.length - 1}`);
   assert.equal(cls(tiles[0], 'px-meter')[0].textContent, `3/${TITLES.length - 1}`, 'the meter, held of all');
   assert.equal(tiles[0].attrs['aria-pressed'], 'true');
