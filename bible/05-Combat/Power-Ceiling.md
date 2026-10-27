@@ -94,10 +94,14 @@ under a name with no top, fails the source sweep.
 | the sets | +200% | Nocturnal's Shroud 4 (Nightfall, +60% on an unaware foe) and the Starspun Weave 4 (Bound in Silk, +140% on the fourth blow) |
 | the loot | +240% | Nightwhisper's Silent Death +100%, the Night Mother's Embrace +50%, the Duelist's Vambrace +60%, an Exalted slayer's line +30% |
 | the sky | +50% | the Firmament's whole blow, its own cap (`BLOW_TOTAL_CAP`) |
-| mastery | +80% | an axe or a hammer at a skill of 200, 2% a point past 100 |
+| mastery | +80% | an axe or a hammer at a skill of 200, which reads as 140 effective: 2% an effective point past 100 |
 | the paths | +40% | a martial path's own cap (`MARTIAL_BLOW_MOST`) |
 
 Together, x43.18 (`systems/powerCeiling.js:"export const BLOW_MOST = Object.values(BLOW_TOPS).reduce((k, p) => k * (1 + p / 100), 1);"`).
+
+AUDIT HORIZONTAL D7: mastery's row read as 200%. The skill pays through the soft cap, so a raw 200 is 140 effective
+and pays 40 points (`tools/powerCeiling.mjs:"export const masteryBlowTop = () =>"`; a measure that read the raw skill
+fails the measured tops).
 
 **The guards** - the share each registry's guards take off one hurt, at their strongest:
 
@@ -123,6 +127,12 @@ legal kit, minted by its own producers. No one blow meets every registry's best 
 foe's first blow, Bound in Silk its fourth), so no blow today reaches x43.18. By execution, the sigil, the sets and
 the loot together reach x11.42 through the real runner, whole (`test/combat/powerceiling.test.js`). The ceiling is a
 ratio, so BOW-TOPS' new bow tops (17 and 19, `Balance-Arc.md` section 18) move the blow it multiplies, not the ceiling.
+
+**Each top is a blow in play** (AUDIT HORIZONTAL, the lane's suspected item: a foe struck three times is likely aware).
+The sets' +200% wants a foe still unaware at the web's fourth blow. True Invisibility gives it: a struck foe that
+cannot see me stays unaware, and a True concealment outlasts the blow where a Normal one ends with it (pinned, THE
+SETS' TOP IS A BLOW IN PLAY). The loot's +240% wants a foe I have never struck, under the Night Mother's line and
+unaware - a spell cast first under True Invisibility gives it (reasoned, not pinned). Neither top is loosened.
 
 ## 6. Going sideways costs less (SET-CATCHUP)
 
@@ -163,11 +173,13 @@ with its date, before the change that uses it merges. None has been given; the c
 
 ## 10. Pins
 
-`test/combat/powerceiling.test.js` (7): the measured tops and the law's tables, every tier and power kind measured,
-the room, the blow and the guards by execution, the sets' other guards, and a sweep of the source - every blow
-modifier asks `blowRoom`, every damage modifier but the three vetoes (`eg-witness`, `poi-editor`, `kt-down`) asks
-`guardRoom`. `test/combat/powerceiling_walk.test.js` (8): section 4. `test/systems/sigil/setcatchup.test.js` (5): section
-6. `tools/mutants/power-ceiling.json` (55, all dead). PIN MOVED: none of the ceiling's - it cuts nothing a player has.
+`test/combat/powerceiling.test.js` (9): the measured tops and the law's tables, every tier and power kind measured,
+the room, the blow and the guards by execution, the sets' top as a blow in play, the sets' other guards, a sweep of
+the source - every blow modifier asks `blowRoom`, every damage modifier but the three vetoes (`eg-witness`,
+`poi-editor`, `kt-down`) asks `guardRoom`, each under its registry's name - and the cut landing on the registry past
+its top. `test/combat/powerceiling_walk.test.js` (9): section 4. `test/combat/powerceiling_rooms.test.js` (4): below.
+`test/systems/sigil/setcatchup.test.js` (6): section 6. `tools/mutants/power-ceiling.json` (79, all dead). PIN MOVED:
+none of the ceiling's - it cuts nothing a player has.
 The mutant records that quoted the lines the room calls now sit in are re-aimed by content and judged dead again:
 `audit_schools.json` (the Living Aegis's carry), `loot5.json` (the Last Stand), `set3.json` (Unbroken's half, two) and
 `set4.json` (the drink, five).

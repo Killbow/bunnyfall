@@ -693,5 +693,23 @@
     "tests": [
       "test/systems/sigil/setcatchup.test.js"
     ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D7-mastery-read-at-the-raw-skill",
+    "file": "tools/powerCeiling.mjs",
+    "old": "Math.round((EFFECTIVE_SKILL_MAX - SKILL_SOFT_CAP) *",
+    "new": "Math.round((200 - SKILL_SOFT_CAP) *",
+    "tests": [
+      "test/combat/powerceiling.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D-the-sets-top-a-true-concealment-broken-by-a-blow",
+    "file": "src/systems/concealment.js",
+    "old": "export const NORMAL_POWER_CONCEALMENTS = Object.freeze(['chameleonNormal', 'invisNormal', 'shadeNormal']);",
+    "new": "export const NORMAL_POWER_CONCEALMENTS = Object.freeze(['chameleonNormal', 'invisNormal', 'shadeNormal', 'invisTrue']);",
+    "tests": [
+      "test/combat/powerceiling.test.js"
+    ]
   }
 ]

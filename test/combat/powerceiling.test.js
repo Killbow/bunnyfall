@@ -30,6 +30,11 @@ import { equipItem } from '../../src/systems/equip.js';
 import { mintCondition } from '../../src/systems/item/itemTemplates.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
+import { EnemyAI } from '../../src/characters/enemy/enemyMotor.js';
+import { Collider } from '../../src/player/collider.js';
+import { sensesContext } from '../../src/scenes/shared.js';
+import { foeUnaware } from '../../src/combat/playerWeapon.js';
+import { handleAttackFromSource } from '../../src/systems/concealment.js';
 import {
   BLOW_TOPS, GUARD_TOPS, BLOW_MOST, GUARD_LEAST, blowRoom, guardRoom, openBlowCeiling, closeBlowCeiling, openGuardCeiling,
   closeGuardCeiling, ceilingProducts,
@@ -158,6 +163,34 @@ test('POWER-CEILING THE BLOW, BY EXECUTION: the sigil\'s +12%, the sets\' +200% 
       assert.equal(d, 1000, `${fill}: no room, no more`);
     }
   } finally { registerWeaponBlowMod('powerceiling-test', null); }
+});
+
+test('POWER-CEILING THE SETS\' TOP IS A BLOW IN PLAY: Nightfall and Bound in Silk\'s fourth blow land on one blow when the foe the web holds is still unaware - under True Invisibility a foe struck three times never sees me (a Normal concealment breaks on the first blow), so the host\'s own reading hands the fourth blow `unaware` and the sets\' +200% is reached, not only measured (mutant: a True concealment broken by a blow)', () => {
+  fresh();
+  setPref('enhancedAI', false);
+  const me = player();
+  me.activeEffects = [{ kind: 'invisTrue', roundsRemaining: 30 }];
+  const nw = ascendant(nightwhisperExalted(), 'nocturnal', 12);
+  const spun = ['starspun-cowl', 'starspun-right-pauldron', 'starspun-left-pauldron', 'starspun-greaves'].map((id) => ascendant(mintAetheric(STARSPUN_SET_PIECES.find((r) => r.id === id)), 'starspun'));
+  wear(me, nw, ascendant(legendary('night-mothers-embrace'), 'nocturnal'), ascendant(rareArmor(103), 'nocturnal'), ascendant(rareArmor(108), 'nocturnal'), ...spun);
+  const entity = { affinity: 'Human', careerIndex: 0, career: {}, health: 100, maxHealth: 100, level: 10 };
+  const foe = { entity, ai: new EnemyAI(new Collider(() => -100), [0, 0, 0], 0, {}) };
+  const senses = () => sensesContext(me, 2, { movingLessThanHalfSpeed: false });
+  const tick = () => { for (let i = 0; i < 4; i++) foe.ai.update(1 / 60, [0, 0, 1.5], senses()); };   // I stand at arm's length, in front of it
+  tick();
+  assert.equal(foeUnaware(foe), true, 'invisible: unseen at arm\'s length');
+  for (let i = 0; i < 3; i++) {
+    setStrike(me, entity, 10, nw, { unaware: foeUnaware(foe) });   // a strand laid
+    handleAttackFromSource(me);   // the blow's tail: a Normal concealment ends here, a True one stands
+    foe.ai.makeEnemyHostileToAttacker({ isPlayer: true }, [0, 0, 1.5]);
+    tick();
+  }
+  assert.equal(foeUnaware(foe), true, 'struck three times, still blind to me');
+  assert.equal(setBlow(nw, 1000, me, entity, { unaware: foeUnaware(foe) }), 3000, 'the fourth blow: Nightfall\'s +60% and the web\'s +140%');
+  me.activeEffects = [{ kind: 'invisNormal', roundsRemaining: 30 }];
+  handleAttackFromSource(me);
+  tick();
+  assert.equal(foeUnaware(foe), false, 'a Normal invisibility ends with the blow, and the foe sees me');
 });
 
 test('POWER-CEILING THE GUARDS, BY EXECUTION: the loot\'s three (a hexed foe, Bedrock\'s five stacks, the Last Stand) leave 45 of a hundred and Unbroken half of that, through the real door - 225 of 1000, whole - and a guard past the share is held at GUARD_LEAST (mutants: a guard not asking its room; the runner not opening the share)', () => {
