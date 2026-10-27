@@ -93,7 +93,7 @@ import './professions/profTemplates.js';   // the Repair Kit's row (692), regist
 import { applyRarity, rarityEligible, RARE_FLAVOURS, reforgeAffix, reforgeableLines, lastPass, rarityName, affixesWorth } from './loot/lootRarity.js';   // CRAFT4: and the Reforge with Essence's roll; CRAFT-PROCS: the last pass; MASTER-ART: a Master's work's name and worth
 import { pieceQuality, temperRefusal, temperStep, reforgeEssence } from '../net/temperLaw.js';   // CRAFT4: the temper
 import { readProductRecord, mintVersionOf, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_ARMOR_LEAN, MINT_V_MASTER, masterLinesOf } from '../net/productRecord.js';   // CRAFT4: a tempered piece's record, re-signed; CRAFT-PROCS: the mint's version; AFFIX-LINES: its lines' law; MASTER-ART: a Master's lines
-import { rollMasterLines } from '../net/masterLaw.js';   // MASTER-ART: a Master's work's lines, off its record's seed
+import { masterLinesOfRecord } from '../net/masterLaw.js';   // MASTER-ART: a Master's work's lines, as its record signs them
 import { itemIsIdentified } from './tradeModes.js';   // CRAFT4: a line the Reforge sees, known
 import { isEquipped } from './equip.js';   // CRAFT4: and never on a worn piece
 import { unitWeightInKg, ARROW_TEMPLATE } from './inventory.js';   // MEND-AIM: the arrow, never mended
@@ -148,13 +148,14 @@ function setJewel(item, r, hand) {
 }
 
 /**
- * MASTER-ART (Professions-Arc 57): A MASTER'S WORK laid on its piece - Legendary, its chosen lines at the values its seed
- * rolls (net/masterLaw.js rollMasterLines), its name its lines' (a mark's name over it), its worth its lines'. No record,
- * no enchantment and no power: a drop's Legendary keeps those. Answers whether the lines were the law's.
- * @param {any} item @param {any} r @param {unknown} keys @param {number} seed
+ * MASTER-ART (Professions-Arc 57): A MASTER'S WORK laid on its piece - Legendary, its lines at the values its record signs
+ * (AUDIT HORIZONTAL B1: net/masterLaw.js masterLinesOfRecord, never rolled again), its name its lines' (a mark's name over
+ * it), its worth its lines'. No record, no enchantment and no power: a drop's Legendary keeps those. Answers whether the
+ * lines were a record's.
+ * @param {any} item @param {unknown} lines
  */
-function applyMasterWork(item, r, keys, seed) {
-  const affixes = rollMasterLines(r, keys, seed >>> 0);
+function applyMasterWork(item, lines) {
+  const affixes = masterLinesOfRecord(lines);
   if (!affixes) return false;
   item.rarity = 'legendary';
   item.affixes = affixes;
@@ -168,8 +169,8 @@ function applyMasterWork(item, r, keys, seed) {
  * One piece of a craft's answer - `{ recipe, quality, seed, maker, marked, dye }` and the piece's `provenance` - as the
  * pack (or, furniture, the home's things) holds it, or null for a recipe this client does not know. CRAFT-PROCS:
  * `version` the mint's version its record names (net/productRecord.js `v`, mintVersionOf) - 0 for a record made before.
- * MASTER-ART: `lines` a Master's work's chosen lines (its record's `l`, masterLinesOf), minted at MINT_V_MASTER.
- * @param {{ recipe: string, quality: number, seed: number, maker?: string|null, marked?: boolean, dye?: number|null, hand?: number|null, version?: number, lines?: string[]|null }} made
+ * MASTER-ART: `lines` a Master's work's lines as its record signs them (its `l`, masterLinesOf), minted at MINT_V_MASTER.
+ * @param {{ recipe: string, quality: number, seed: number, maker?: string|null, marked?: boolean, dye?: number|null, hand?: number|null, version?: number, lines?: any[]|null }} made
  * @param {string} provenance
  */
 export function mintPiece({ recipe, quality, seed, maker = null, marked = false, dye = null, hand = null, version = 0, lines = null }, provenance) {
@@ -225,7 +226,7 @@ export function mintPiece({ recipe, quality, seed, maker = null, marked = false,
     // AUDIT PROF-541 J4: a jewel's Rare roll one its points hold (a Cloth Amulet's 660 never carries Tongues' 1,590)
     const fits = r.kind === 'jewel' ? ((f) => (enchantmentRowCost(f) ?? Infinity) <= jewelPoints(r, templateByIndex(r.templateIndex)?.enchantmentPoints ?? 0, hand)) : null;
     // MASTER-ART: a Master's work's record names its lines - laid on whatever the switch, as the last pass is below
-    const master = q === MASTERWORK && Number.isSafeInteger(version) && version >= MINT_V_MASTER && Array.isArray(lines) && applyMasterWork(item, r, lines, seed);
+    const master = q === MASTERWORK && Number.isSafeInteger(version) && version >= MINT_V_MASTER && Array.isArray(lines) && applyMasterWork(item, lines);
     if (!master && eff.rarity && rarityEligible(item)) {
       const rolls = seededRng(seed >>> 0);
       // AFFIX-LINES: a record of MINT_V_LINES on draws its lines over the lines and names the piece by them; one made

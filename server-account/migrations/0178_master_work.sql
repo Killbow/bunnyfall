@@ -7,10 +7,11 @@
 -- reads it.
 --
 -- A MASTER'S WORK (`prof_masters`, masterWork.js): its row decides and answers a request asked twice ((player, rid)),
--- and holds a character to one a UTC day ((player, char_id, day) - the decision's INSERT OR IGNORE). `lines` the chosen
--- lines as the record names them (src/net/masterLaw.js: a JSON list of `kind` or `kind:param`), `seed` the roll their
--- values come off, `provenance` the piece's products row, written in the same batch. Kept when the character is deleted,
--- as prof_crafts is: a request asked again is answered, never made twice.
+-- and holds a character to one a UTC day ((player, char_id, day) - the decision's INSERT OR IGNORE). `lines` the lines
+-- as the record signs them (src/net/masterLaw.js masterRecordLines: a JSON list of `[kind, value]` or `[kind, value,
+-- param]`, the values the service rolled - AUDIT HORIZONTAL B1), `seed` the record's, `provenance` the piece's products
+-- row, written in the same batch. Kept when the character is deleted, as prof_crafts is: a request asked again is
+-- answered, never made twice.
 CREATE TABLE IF NOT EXISTS prof_masters (
   player     TEXT NOT NULL,
   rid        TEXT NOT NULL,
