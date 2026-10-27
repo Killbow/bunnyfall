@@ -48,6 +48,7 @@ test('APPEARANCES THE ROW: the port\'s rows stack under the popup\'s art - the P
   none.click(...inside([MERCHANT_PANEL_X, MERCHANT_PANEL_Y], shopRowRect(MERCHANT_PANEL_H, 1)));
   none.input(WARDROBE_ROW_KEY);
   assert.equal(opened, 3, 'no Wardrobe: no row');
+  assert.equal(none.done, false, 'and its key and its place do nothing - the popup stays');
   const rep = new MerchantRepairWindow({ onRepair() {}, onTalk() {}, onSell() {}, ...hooks() });
   rep.click(...inside([REPAIR_PANEL_X, REPAIR_PANEL_Y], shopRowRect(REPAIR_PANEL_H, 1)));
   assert.deepEqual([opened, rep.done], [4, true], 'the repair shop\'s popup');

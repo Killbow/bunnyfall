@@ -21,7 +21,7 @@ had no way to see what else exists or how it is had.
 
 ## 2. The page now
 
-The Collections page shows for every player (`collectionsPageShown`), in six parts, a switch of tiles at the top:
+The Collections page shows for every player (`collectionsPageShown`), in seven parts (APPEARANCES added the seventh, section 9), a switch of tiles at the top:
 
 | Part | What it lists | Whose |
 | --- | --- | --- |
@@ -29,6 +29,7 @@ The Collections page shows for every player (`collectionsPageShown`), in six par
 | Auras | every aura (`AURAS`) | the account's |
 | Icons | every profile icon (`ICONS`) | the account's |
 | Glyphs | every glyph (`GLYPHS`) | the account's - the seats' four the character's (section 3) |
+| Appearances | every look a piece can be drawn as (section 9) | the character's |
 | Codex | LOOT10's codex, as before - shown while Loot rarity is on | the character's |
 | Cards | the Card Binder's collection and decks, as before - shown while a binder is carried | the character's |
 
@@ -210,3 +211,21 @@ frames go to a scratch directory, never the tree. Run after the audit's fixes: 3
 The mutants: `tools/mutants/collections2.json` (78 records, all dead), the re-aimed records of `auditcards5.json`,
 `cardsplus.json`, and the account version's own (`bal9`, `br5`, `crafthold`, `fb1004d_knight_house`, `gatekeys`,
 `hackedgold`, `nameas`, `tech1`, `wb14g`), all dead.
+
+## 9. Appearances (APPEARANCES, 2026-10-27)
+
+The page's seventh part, after the account's four: **Appearances**, every look a piece can be drawn as
+(`04-Characters/Wardrobe.md`, `src/ui/collections/appearancesPart.js`). It is the character's, in the save, so it shows
+for every player and reads no account. Its tile is its name over the looks held of the 474 there are, and the kit's
+meter of them (`partCount('appearances')`).
+
+The part opens on **Held**; **All** and **Not held** list the rest. Under one line saying how a look is had and where it
+is worn, each kind is a group - head to foot, the shield, then the weapons, as the Wardrobe matches them - under its
+divider with its own count of the whole kind (`Chest - 3 / 32`) and the kit's meter. A row is the look's picture (its
+classic icon), its name with its style, and a chip: Worn over a piece now, Held, or none - a look not held is dimmed,
+the wardrobe part's law.
+
+A row opened says how it is had ("Hold a Steel Cuirass, style 2: buy it, find it, or make it.",
+or Collected.) and where it is worn ("Over any piece of its kind (Chest), at a Clothing Store, an Armorer or a
+Weaponsmith, for 25 gold."). Its roles are the kit's (a filter a tile, a row a list line, a row opened a panel, a chip a
+tag); its sheet (`LOOKS_PART_CSS`) writes the meter's geometry alone. Pinned: `test/ui/appearances_part.test.js`.

@@ -41,6 +41,7 @@ test('APPEARANCES A LOOK SAYS IT: a piece wearing a look carries `ap` [t, m, v] 
   assert.deepEqual(kept.items.find((i) => i.equipSlot === EQUIP_SLOTS.RightHand).ap, [121, 7, 0], 'the relay keeps it');
   assert.equal('ap' in validLookItem({ ...s, ap: [122, 7, 0] }), false, 'a claymore\'s look on a longsword: dropped');
   assert.equal('ap' in validLookItem({ ...s, ap: [121, 7] }), false, 'malformed: dropped');
+  assert.equal('ap' in validLookItem({ ...s, ap: [121, 7, 0, 0] }), false, 'four numbers: dropped');
   assert.equal('ap' in validLookItem({ ...s, ap: [121, 7, 1] }), false, 'a style a weapon never draws: dropped');
   assert.equal('ap' in validLookItem({ ...s, ap: { t: 121, m: 7, v: 0 } }), false, 'the item field\'s shape is not the wire\'s');
   assert.ok(validLookItem({ ...s, ap: [122, 7, 0] }), 'the piece itself is never refused for it');

@@ -12,7 +12,7 @@ import { setItemFields, itemBaseValue, mintCondition } from '../../src/systems/i
 import { equipItem, unequipSlot, EQUIP_SLOTS, getItemHands, itemArmorValue } from '../../src/systems/equip.js';
 import { weaponTypeForItem, plainWeaponType, WEAPON_TYPES } from '../../src/combat/fpsWeapon.js';
 import { dfWeaponToMw } from '../../src/formats/morrowind/mwFirstPerson.js';
-import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed } from '../../src/characters/weapons.js';
+import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed, buildWeapon } from '../../src/characters/weapons.js';
 import { SLOT_RULES } from '../../src/characters/equipRules.js';
 import { RRI_CLASSES } from '../../src/systems/roleplayRealismItems/rriItems.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
@@ -129,10 +129,12 @@ test('APPEARANCES THE SWEEP: every look in the pack, the wagon and the Materials
   restorePlayer(back, JSON.parse(JSON.stringify(snap)));
   assert.deepEqual(back.appearances, ['120.1.0', '107.521.2'], 'and a load restores them');
   assert.match(readFileSync(new URL('../../src/systems/save/save.js', import.meta.url), 'utf8'), /\n {2}'appearances',\n\];/, 'a field of ENTITY_FIELDS, copied both ways');
+  assert.match(readFileSync(new URL('../../src/ui/hud/hud.js', import.meta.url), 'utf8'), /drawLootBanners\(\{ entity: vitals[^\n]*\n\s*try \{ noteHeldLooks\(vitals\); \}/, 'swept once a frame on the HUD\'s one call, beside the loot watcher - every host, every skin');
 });
 
 test('APPEARANCES A LOOK WORN: of its kind only, off the item or the wire; the piece drawn as it - one copy a piece and look, made again when the slot or the look changes - its dye its metal\'s, an artifact\'s and a Gilded piece\'s own art dropped, its enchantments kept (mutants: the kind unchecked; the memo never kept; the memo never renewed; the dye kept; the artifact kept)', () => {
-  const sword = createWeapon(WEAPONS.Longsword, 1);
+  // a weapon carrying its metal's dyeColor - the shape itemDye.js reads first where a piece has one (characters/weapons.js buildWeapon's)
+  const sword = Object.assign(createWeapon(WEAPONS.Longsword, 1), { dyeColor: buildWeapon(WEAPONS.Longsword, 1).dyeColor });
   assert.equal(L.drawnPiece(sword), sword, 'a piece in its own look is itself');
   sword.appearance = { t: WEAPONS.Claymore, m: 9, v: 0 };
   assert.equal(L.appearanceOf(sword), null, 'a two-handed blade is not a longsword\'s look');
