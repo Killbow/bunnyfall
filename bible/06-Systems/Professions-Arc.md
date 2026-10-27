@@ -598,12 +598,11 @@ laid out for the phone's touch layer as for the desktop.
 - **The Professions tab** (character sheet): a left column in two groups (Gathering, Crafting) - each row the icon,
   name, rank, rank's name and a thin bar; the right pane for the chosen one - XP to the next rank, the specialisation
   cards (choose one), the unlocks by rank (tiers, recipes), today's harvests, and "Crafts above Journeyman: 1 of 2".
-  CRAFT-HALL (section 56): the chosen one's bar under its name, **What raises it** (every act's figure at the rank,
-  reckoned by the laws), and a craft's **First-time bonuses** (made of all, the owed ones the rank opens).
+  CRAFT-HALL (section 56) adds its bar, **What raises it** and a craft's **First-time bonuses**.
   **How it is done** (TOOL-SAID, FIELD BUGS 2026-09-30b; CRAFT-HOWTO, FIELD BUGS 2026-10-18d): under the XP line, a
   paragraph says how the chosen profession is practised. A gatherer says how it gathers (`ui/professions/profPages.js`
   `GATHER_HOW` for Herbalism, Mining and Logging, Hunting's own line, `FISHING_HOW`, and Mining's ground line under its
-  own). A craft says where its stations stand, that they are worked from the Crafting page (CRAFT-HALL, section 56 - the Professions key lands on it at a station; the Stores page, Holdings > Stores, until then), what
+  own). A craft says where its stations stand, that they are worked from the Crafting page (section 56), what
   they make of the gathered goods and what earns its XP (`CRAFT_HOW`: Smithing, Building, Outfitting, and Provisioning's
   cooking after its brew, `ALCHEMY_HOW`; Enchanting's is `ENCHANTING_HOW`). Each paragraph is read in the player's
   language when the page is drawn. Until CRAFT-HOWTO, Smithing, Building and Outfitting showed their specialisation
@@ -623,10 +622,8 @@ laid out for the phone's touch layer as for the desktop.
 - **A station**: left, the recipe list (filters: Can make now, All known, by tier); centre, the recipe - its inputs
   (have / need, from the Stores), the product as an item card, a bar of its quality odds (9.2); buttons **Craft**
   (plays the act, 9.4), **Quick craft**, **Craft x N** (quick, up to 10); right, the act's panel while it plays.
-  CRAFT-HALL (section 56, BUILT 2026-10-26): the stations' own page is **Crafting**, beside Professions on the Stats
-  rail, where the Professions key lands at a station; each station worked carries its track's bar; the shows (All, Can
-  make now, First-time bonus - "by tier" is CRAFT2's material row) and **Craft x N** built; a pattern says its first-time
-  bonus owed or made.
+  CRAFT-HALL (section 56) built the stations' own page, **Crafting**, the filters over the anvil's, workbench's,
+  loom's and fire's patterns, and **Craft x N**.
 - **The held map** marks the patches and veins a character has worked before, and a Prospector's veins.
 - **Keys** from KB1's registry, under a Professions group in Controls: Interact (E), attack, Esc, and an **act
   choice** key, chosen from the free keys at PROF1 (KB1's rule: one key, one action; Mac's four calls stand): at a
@@ -6442,10 +6439,56 @@ bonus (or what already has)." The owner: "No exceptions and no band aids."
 
 ### 56.4 Pinned
 
-`test/ui/professions/crafthall.test.js` (11), through the real Worker: the state's `made`; an Ebony Longsword spending
+`test/ui/professions/crafthall.test.js` (16), through the real Worker: the state's `made`; an Ebony Longsword spending
 tier 6's first for its kin on the service and in the law; the book's record; `xpSources` against every law; the bar;
 the owed list; the station lines; the landings and the doors; the Crafting page, the Professions page and the anvil
-drawn. `tools/mutants/crafthall.json` (28, all dead).
+drawn; and 56.5's five. `tools/mutants/crafthall.json` (53, all dead).
+
+### 56.5 AUDIT HORIZONTAL (2026-10-27, the owner: "Audit this")
+
+- **AUDIT HORIZONTAL A1: What raises names a grade its act is worked at.** Each row was reckoned at the rank's top
+  grade, which no vein, tree or hide reaches past 6 and no loom piece past 5: rank 90 Outfitting read "140 XP at grade
+  7" where its best is 100 at grade 5. A gathering row is capped at its table's top (`craftHall.js` `GATHER_TOPS`: every
+  climate's veins, a dungeon's, a signature ore and a Motherlode; every wood; every hide), a station's at the highest
+  pattern the rank opens (`benchTop`). Below rank 10 the herb row offers no clean work, as a common herb has none. A
+  Court writ asks ore or stone, never a gem (`nodeLaw.js` regionWritTable). The stars' row says they raise no writ.
+  Smithing's note gives an ingot's 10 a grade beside a piece's 20.
+
+- **AUDIT HORIZONTAL A2: a craft that takes no more XP offers no first-time bonus.** Held by the crafter's limit with no
+  room left, or at Master, a craft still read "Still to earn at your rank: 133", and a first made there paid 0 XP and
+  was spent. The pages read `made` through `craftHall.js` `madeShown` (`profPages.js` `madeOf`), which names such crafts
+  `closed`: no owed list, badge, star or First-time bonus show, and its line says "This craft can rise no further, so
+  they pay nothing." Its list row's bar is full, as its header's. A craft with room left is not closed.
+
+- **The service's rule, left, and the owner's question.** `craftAtAnvil` writes `first_paid` as `f * p` whatever XP it
+  credited, so a held craft's first is spent at 0 XP (pinned as it stands). Nothing is lost while the limit holds for
+  good ("A craft never loses rank"): that first could never pay. Were the limit ever lifted, the service should spend a
+  first only where its share was credited - a WOVEN-PAYS and FIRST-BUDGET rule, for the owner, not changed here.
+
+- **AUDIT HORIZONTAL A3: `made` is one character's**, now pinned: a second character of the account crafts, cuts stone
+  and brews through the Worker, and the first's state lists none of it (`madeStatement`'s `char_id`, three mutants).
+
+- **AUDIT HORIZONTAL A4: Craft x N's button says the count typed** (`profPages.js` `craftTimes`). It said x2 and made
+  five.
+
+- **AUDIT HORIZONTAL A6:** 56.4 counted 28 mutants where the list held 30; it is counted again above.
+
+- **AUDIT HORIZONTAL A7: the Professions key's row says where it lands**: "Open your Professions page, or the Crafting
+  page at a station (online)" (`inputActions.js`, through `t()`). The alchemy and enchanting chooser's option is
+  `profPages.js` `stationActLabel`, through `t()`, where `worldModes.js` glued English. The chooser stands in the
+  interior host alone; `world.js`, `exterior.js` and `dungeonContext.js` hold none, and no host grew.
+
+- **A read a craft overtook (the lane's suspected item, proved).** A state read answered before a craft and heard after
+  it laid the older answer over the book: the craft's first showed owed again, its spent goods held and its XP gone,
+  until the next read. Every answer laid on the state moves `profBook.js` `stateGen`, and a read one overtook is read
+  again, `PROF_STATE_READS` times in all at most, as the writs' `writGen` does.
+
+- **AUDIT HORIZONTAL PT1's growth, taken back.** CRAFT-HALL's three insertions into section 8 retold 56.2 and grew its
+  long paragraph by 116 words unseen. They point to this section now, 80 words fewer.
+
+- **Pins moved:** the standing's `closed` (two), the stars' row and Smithing's note, the host's option
+  (`crafthall.test.js`); the chooser's names (`fb1011f_stationdoor.test.js`); the key's row
+  (`fb1018d_crafthowto.test.js`).
 
 ## 57. MASTER-ART - a Master's work: a Legendary of the crafter's chosen lines (BUILT 2026-10-27)
 

@@ -15,7 +15,7 @@ import { SERVICE_LABEL, SERVICE_DESTINATION, isServiceBox } from '../../src/syst
 import { DECOR_STATIONS, DECOR_STATION_SERVICES, DECOR_STATION_NAMES } from '../../src/net/decorLaw.js';
 import { xpForRank, trackOf } from '../../src/net/professionLaw.js';
 import {
-  STORES_ACT_STATIONS, PROF_STATIONS, focusStoresStation, setProfessionsPages, drawStoresPage, resetProfPages, stationDoorAt,
+  STORES_ACT_STATIONS, PROF_STATIONS, focusStoresStation, setProfessionsPages, drawStoresPage, resetProfPages, stationDoorAt, stationActLabel,
   ENCHANTING_HOW, ALCHEMY_HOW,
 } from '../../src/ui/professions/profPages.js';
 
@@ -49,6 +49,7 @@ function rig(opts) {
     PROF_STATIONS, forgeOffered: () => opts?.online ?? true, stationColdLine: (k) => `cold ${k}`,
     interiorKeyCtx: { togglePause: (o) => { log.pauses.push({ ...o, slotWas: host.slot }); host.slot = { pause: true }; } },
     STORES_ACT_STATIONS, stationDoorAt: (k) => { log.focus.push(k); return stationDoorAt(k); },   // PIN MOVED (CRAFT-HALL): the door hands its station to stationDoorAt, which lands on the Crafting page
+    stationActLabel,   // PIN MOVED (AUDIT HORIZONTAL A7): the chooser's option is profPages.js's, in the player's language
     townTalk: null, DECOR_STATION_SERVICES, DECOR_STATION_NAMES, SERVICE_LABEL, SERVICE_DESTINATION, isServiceBox, ChoiceWindow,
     openServiceFlow: (dest) => { log.flows.push(dest); if (opts?.makerOpens ?? true) host.slot = { maker: dest }; return null; },
     DECOR_STATION_REFUSED: 'refused', DECOR_STATION_NOT_READY: 'not ready',

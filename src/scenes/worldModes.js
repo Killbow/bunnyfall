@@ -395,7 +395,7 @@ import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAME
 import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest, openOwnChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
 import { openHomeTransfer, answerHomeTransfer } from '../ui/homeTransferWindow.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
-import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, stationDoorAt } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
+import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, stationDoorAt, stationActLabel } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's
 /** HOME-STATIONS: a station pressed whose maker's art has not landed yet. */
 const DECOR_STATION_NOT_READY = 'The station is not ready yet. Try again in a moment.';
@@ -5132,7 +5132,7 @@ export function createWorldModes(host) {
       lines: [DECOR_STATION_NAMES[kind]],
       options: [
         { code: 'Digit1', label: `1 - ${SERVICE_LABEL[maker]}`, action: () => { leave(); openStationMaker(piece); } },
-        { code: 'Digit2', label: `2 - ${STORES_ACT_STATIONS[kind]} (Crafting page)`, action: () => { leave(); interiorKeyCtx.togglePause({ at: stationDoorAt(kind) }); } },
+        { code: 'Digit2', label: stationActLabel(kind), action: () => { leave(); interiorKeyCtx.togglePause({ at: stationDoorAt(kind) }); } },   // AUDIT HORIZONTAL A7: in the player's language
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     });

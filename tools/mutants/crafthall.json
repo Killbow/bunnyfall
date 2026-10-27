@@ -270,5 +270,235 @@
       "test/net/fb1026b_wovenpays.test.js"
     ],
     "note": "WOVEN-PAYS at the merge: the state's `made` lists a judged pattern whose first was never laid on"
+  },
+  {
+    "name": "CRAFT-HALL-A1-vein-at-rank-top",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "gathered(GATHER_TOPS.mining)",
+    "new": "harvest(top)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a vein named at the rank's top grade - \"105 XP at grade 7\" at rank 90"
+  },
+  {
+    "name": "CRAFT-HALL-A1-tree-at-rank-top",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "gathered(GATHER_TOPS.logging)",
+    "new": "harvest(top)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a tree at grade 7"
+  },
+  {
+    "name": "CRAFT-HALL-A1-hide-at-rank-top",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "gathered(GATHER_TOPS.hunting)",
+    "new": "harvest(top)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a hide at grade 7"
+  },
+  {
+    "name": "CRAFT-HALL-A1-loom-at-rank-top",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "piece(['outfitting'])",
+    "new": "at(craftXp(top, rank), top)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a loom piece at grade 7 - \"140 XP at grade 7\""
+  },
+  {
+    "name": "CRAFT-HALL-A1-bench-at-rank-top",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "piece(['carpentry'])",
+    "new": "at(craftXp(top, rank), top)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a workbench piece at grade 7"
+  },
+  {
+    "name": "CRAFT-HALL-A1-patterns-rank-unread",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "professions.includes(r.profession) && recipeOpen(r, rank)",
+    "new": "professions.includes(r.profession)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: every pattern counted, open or not"
+  },
+  {
+    "name": "CRAFT-HALL-A1-common-herb-clean",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "tierOpen(rank, 2) ? harvest(herbXpTier(rank))",
+    "new": "true ? harvest(herbXpTier(rank))",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: clean work offered below 10, where only common herbs open"
+  },
+  {
+    "name": "CRAFT-HALL-A1-court-gems",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "'Court writ for ore or stone'",
+    "new": "'Court writ for ore, stone or gems'",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: a Court said to ask gems"
+  },
+  {
+    "name": "CRAFT-HALL-A1-stars-on-writs",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "not on writs or first-time bonuses",
+    "new": "not on first-time bonuses",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: the stars said to raise a writ"
+  },
+  {
+    "name": "CRAFT-HALL-A1-smelt-note-gone",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "if (id === 'smithing') return t(",
+    "new": "if (false) return t(",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A1: Smithing's note says 20 a grade and nothing of the smelt's 10"
+  },
+  {
+    "name": "CRAFT-HALL-A2-closed-badge-offered",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "|| closedTo(made, track)) return null;",
+    "new": ") return null;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: a closed craft's firsts marked owed on its cards and its show"
+  },
+  {
+    "name": "CRAFT-HALL-A2-closed-owed-listed",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "if (!spent || closedTo(made, track)) return [];",
+    "new": "if (!spent) return [];",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: a closed craft's owed list drawn - \"Still to earn at your rank: 133.\""
+  },
+  {
+    "name": "CRAFT-HALL-A2-room-misread",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "craftLimitOf(list, id).room <= 0",
+    "new": "craftLimitOf(list, id).room < 0",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: no craft ever closed"
+  },
+  {
+    "name": "CRAFT-HALL-A2-closed-line-gone",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "if (standing.closed) return t(",
+    "new": "if (false) return t(",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: a closed craft's line still says +500 XP each"
+  },
+  {
+    "name": "CRAFT-HALL-A2-pages-read-the-book",
+    "file": "src/ui/professions/profPages.js",
+    "old": "madeShown(book?.state?.made ?? null, book?.state?.tracks?.values?.() ?? [])",
+    "new": "(book?.state?.made ?? null)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: the pages read the book's made, no craft closed"
+  },
+  {
+    "name": "CRAFT-HALL-A2-owed-note-shown",
+    "file": "src/ui/professions/profPages.js",
+    "old": "if (!standing.closed) pane.append(",
+    "new": "if (true) pane.append(",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: a closed craft told \"All made at your rank\""
+  },
+  {
+    "name": "CRAFT-HALL-A2-row-bar-unlimited",
+    "file": "src/ui/professions/profPages.js",
+    "old": "const bar = trackBar(tr, craftLimitOf(book.state?.tracks?.values?.() ?? [], prof.id));",
+    "new": "const bar = trackBar(tr, null);",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A2: a held craft's list row crawls where its header is full"
+  },
+  {
+    "name": "CRAFT-HALL-A3-made-crafts-account",
+    "file": "server-account/src/professions.js",
+    "old": "recipe AS key FROM prof_crafts WHERE player = ?1 AND char_id = ?2",
+    "new": "recipe AS key FROM prof_crafts WHERE player = ?1",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A3: another character's crafts listed as made"
+  },
+  {
+    "name": "CRAFT-HALL-A3-made-works-account",
+    "file": "server-account/src/professions.js",
+    "old": "SELECT 'work', recipe FROM prof_smelts WHERE player = ?1 AND char_id = ?2",
+    "new": "SELECT 'work', recipe FROM prof_smelts WHERE player = ?1",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A3: another character's cut listed as made"
+  },
+  {
+    "name": "CRAFT-HALL-A3-made-brews-account",
+    "file": "server-account/src/professions.js",
+    "old": "potion FROM prof_brews WHERE player = ?1 AND char_id = ?2 GROUP BY potion",
+    "new": "potion FROM prof_brews WHERE player = ?1 GROUP BY potion",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A3: another character's brew listed as made"
+  },
+  {
+    "name": "CRAFT-HALL-A4-label-stale",
+    "file": "src/ui/professions/profPages.js",
+    "old": " go.textContent = t('prof.page.times.go', 'Craft x{n}', { n: state.times }); };",
+    "new": " };",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A4: typed 5, the button says x2"
+  },
+  {
+    "name": "CRAFT-HALL-read-overtaken-applied",
+    "file": "src/net/profBook.js",
+    "old": "if (!r?.ok || gen === stateGen) break;",
+    "new": "if (!r?.ok || true) break;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL (the lane's suspected read): a read a craft overtook applied - the craft's first, goods and XP put back"
+  },
+  {
+    "name": "CRAFT-HALL-A7-glued-option",
+    "file": "src/scenes/worldModes.js",
+    "old": "label: stationActLabel(kind)",
+    "new": "label: `2 - ${STORES_ACT_STATIONS[kind]} (Crafting page)`",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL A7: the option's English glued in the host, outside t()"
   }
 ]
