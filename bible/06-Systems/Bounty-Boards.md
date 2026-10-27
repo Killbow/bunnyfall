@@ -370,8 +370,9 @@ real bounty host's mark crowned, its frame read, only the hunter paid, the mate'
 13, dead. No pin moved. `auditwe_cover.json`'s puppet-leader record re-aimed by content (the line now reads a mark too),
 dead. No version moves.
 
-**The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct201, its migrations 0180 and 0181
-(0178 and 0179 on its branch). RELAY_VERSION world271: the token's TITLES gained sixteen, the bundle's files unchanged.
+**The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct202 (acct201 before main's
+JEWEL-KIN), its migrations 0180 and 0181 (0178 and 0179 on its branch). RELAY_VERSION world272 (world271 before main's
+MASTER-THREE): the token's TITLES gained sixteen, the bundle's files unchanged.
 Either side may deploy first: a service without the routes leaves the book keeping its clears.
 
 ### 12.10 AUDIT HORIZONTAL, lane F (2026-10-27, the owner: "Audit this")

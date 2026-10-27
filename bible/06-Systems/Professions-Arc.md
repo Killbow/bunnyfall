@@ -6431,7 +6431,7 @@ bonus (or what already has)." The owner: "No exceptions and no band aids."
 
 - The station doors changed in place in `worldModes.js` and `world.js` (no host grew). `exterior.js` and
   `dungeonContext.js` hold no station. Not a DFU member (Port-Ledger A, the professions' row).
-- The service change is acct197 (acct196 on its branch, renumbered past WOVEN-PAYS at the merge). Either side may deploy
+- The service change is acct198 (acct196, then acct197, on its branch, renumbered past WOVEN-PAYS and JEWEL-KIN at the merges). Either side may deploy
   first. A judged cloth pattern is made only by the craft that laid its first on, as WOVEN-PAYS decides (`madeStatement`).
 - New and changed text follows PLAIN-TEXT (`Home.md`). Each craft's how-to (`CRAFT_HOW`, `ALCHEMY_HOW`,
   `ENCHANTING_HOW`) says where its stations stand and what they do, in 40 words or fewer. What pays XP is said once, in
@@ -6616,7 +6616,7 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   `dungeonContext.js` build no station page and no craft door - none to wire.
 
 - **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
-  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct198. The relay is unchanged. The wire's
+  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct199 (acct198 before main's JEWEL-KIN). The relay is unchanged. The wire's
   change is the product record's (`l` its signed lines, MINT_V_MASTER, the bound at 704); a client older than it mints a
   Master's record as the Masterwork's Rare roll - at version 0's law where the record is past its 512.
 
