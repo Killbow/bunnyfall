@@ -51,7 +51,6 @@ import { isAmmunition } from '../item/itemTemplates.js';
 import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
 import { ETHER_WORD } from '../../world/ethericSea.js';   // SEA-SET: the sea's name in the Undertow's words (ELTHERIC: one word's home)
 import { noteReach, catchUpXp, recordedReach, reachOfRanks, CATCH_UP_MULT, _resetSetReachForTests } from './setReach.js';   // SET-CATCHUP: a set's reach, and the faster drink below it
-import { t } from '../textManager.js';
 
 /** The pieces a set's tiers wake at. */
 export const SET_TIERS = Object.freeze([2, 4, 6]);
@@ -623,9 +622,11 @@ export function setCardView(item, wearer = setsWearer()) {
     sleep, tiers: st.tiers, catchUp,
   };
 }
-/** SET-CATCHUP: the card's word for the faster drink - "3x XP to Radiant", or "3x XP" beside the stage it leads to. */
-export const catchUpText = (c, next = null) => (!c ? '' : c.name === next ? t('sets.catchUp', '{mult}x XP', { mult: c.mult })
-  : t('sets.catchUpTo', '{mult}x XP to {stage}', { mult: c.mult, stage: c.name }));
+/** SET-CATCHUP: the card's word for the faster drink - "3x XP to Radiant", or "3x XP" beside the stage it leads to.
+ *  AUDIT HORIZONTAL D6: English, as the line it sits in - the sets' words are not routed yet (the stage names have no
+ *  keys), and a translated pace inside an English line read "grow your Helm (3x EP bis Radiant)". The sets' batch routes
+ *  the stage line and the tooltip's head whole, this with them (Sigil-Sets.md SET-CATCHUP). */
+export const catchUpText = (c, next = null) => (!c ? '' : c.name === next ? `${c.mult}x XP` : `${c.mult}x XP to ${c.name}`);
 const SLEEP_WORDS = Object.freeze({ offline: 'sets only work online', renown: 'waiting for your Renown', duel: "sets don't work in duels" });
 /** Why the sets sleep, in the page's words, or null. */
 export const setSleepText = (sleep) => SLEEP_WORDS[sleep] ?? null;

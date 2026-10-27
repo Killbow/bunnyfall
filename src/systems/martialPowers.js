@@ -166,7 +166,7 @@ export function martialBlowPct(attacker, target, info = null) {
 /** THE BLOW (entityMods.js registerWeaponBlowMod): my blow at a foe, the fraction carried. */
 export function martialBlow(weapon, damage, attacker, target, info) {
   if (!(damage > 0) || !attacker?.isPlayer || attacker.peer || !foeOf(target)) return damage;
-  const pct = blowRoom(martialBlowPct(attacker, target, info));   // POWER-CEILING
+  const pct = blowRoom(martialBlowPct(attacker, target, info), 'martial');   // POWER-CEILING
   if (!(pct > 0)) return damage;
   const key = weapon ?? attacker;
   const exact = (damage * pct) / 100 + (_carry.get(key) ?? 0);
@@ -224,7 +224,7 @@ export function martialGuardPct(entity) {
 export function martialDamageMod(entity, dmg) {
   const pct = martialGuardPct(entity);
   if (!(pct > 0) || !(dmg > 0)) return dmg;
-  const owed = (dmg * guardRoom(pct)) / 100 + _s.guardOwed;   // POWER-CEILING
+  const owed = (dmg * guardRoom(pct, 'martial')) / 100 + _s.guardOwed;   // POWER-CEILING
   const cut = Math.floor(owed + 1e-9);
   _s.guardOwed = owed - cut;
   return Math.max(0, dmg - cut);

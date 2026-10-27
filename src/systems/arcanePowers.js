@@ -176,7 +176,7 @@ export function pathEvade(entity) {
  *  L1 M2: a raw share left health fractional - 183.2 after three 7-point blows - as Hold the Line's carry does not). */
 export function pathDamageMod(entity, dmg) {
   if (awakePathId(entity) !== 'warden' || !pendingPlayerBlow() || !(_now() < _s.guardUntil)) return dmg;
-  const owed = (dmg * guardRoom(N.livingAegis.lighter)) / 100 + _s.guardOwed;   // POWER-CEILING: its room under the guards' one share
+  const owed = (dmg * guardRoom(N.livingAegis.lighter, 'arcane')) / 100 + _s.guardOwed;   // POWER-CEILING: its room under the guards' one share
   const cut = Math.floor(owed + 1e-9);
   _s.guardOwed = owed - cut;
   return Math.max(0, dmg - cut);
