@@ -50,7 +50,7 @@ function hero({ primary, major, minor, mastered = [] }) {
  *  and Short Blade minor - so with the two primaries and two majors mastered, the one minor slot left still reaches a
  *  second path of each family (Restoration and Mysticism; Long Blade and Short Blade). */
 const spellsword = (o = {}) => hero({ primary: [LB, AR, DES], major: [RES, ALT, AX], minor: [MYS, ILL, SB], ...o });
-/** MASTER-THREE (Field-Bugs-2026-10-26b): three primary masteries, so a spellsword whose every slot can be spent away
+/** MASTER-THREE (Field-Bugs-2026-10-26c): three primary masteries, so a spellsword whose every slot can be spent away
  *  from the schools takes Axe as its third primary and Destruction as a major. */
 const swapped = { primary: [LB, AR, AX], major: [RES, ALT, DES], minor: [MYS, ILL, SB] };
 const letter = (value) => letterOfCredit(value);   // the game's own maker (inventory.js)
@@ -256,7 +256,7 @@ test('SPEC-RESET THE GUIDE\'S MODEL: a held path\'s Reset - none with nothing he
   assert.equal(family(specGuideModel(held(250000, { mastered: [LB, AR, RES, ALT, MYS] })), 'martial').reset.refusal,
     'No other martial path can open for you, so a reset would only let you choose Ranger again.');
   // AUDIT SPEC-RESET L5-2: a skill at 100 with a slot left ('ready', a Master Skills press away) is within reach
-  // MASTER-THREE (Field-Bugs-2026-10-26b): every primary and major slot spent, so Mysticism's 'ready' is the only way on
+  // MASTER-THREE (Field-Bugs-2026-10-26c): every primary and major slot spent, so Mysticism's 'ready' is the only way on
   const ready = hero({ primary: [LB, AR, AX], major: [RES, ALT, DES], minor: [MYS, SB, HH], mastered: [LB, AR, AX, RES, ALT] });
   assert.equal(AP.choosePath(ready, 'warden').ok, true);
   ready.skills[MYS] = 100; ready.goldPieces = 250000; ready.items = [];

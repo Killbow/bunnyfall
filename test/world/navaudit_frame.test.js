@@ -26,7 +26,7 @@ import {
 } from '../../src/render/navalRender.js';
 import { createNavalEffects, PARTICLE_BUDGET, EVICT_RANK } from '../../src/systems/naval/navalEffects.js';
 import { seeded } from '../navalSea.mjs';
-import { hullsStood } from '../../src/scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026b D1: the deck's hulls, as world.js reads them
+import { hullsStood } from '../../src/scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026c D1: the deck's hulls, as world.js reads them
 
 const WORLD = readFileSync(new URL('../../src/scenes/world.js', import.meta.url), 'utf8');
 const cut = (src, start, end = '\n  }\n') => { const i = src.indexOf(start); assert.ok(i >= 0, `lifted: ${start}`); return src.slice(i, src.indexOf(end, i) + end.length); };
@@ -365,7 +365,7 @@ test('AUDIT NAV1 (#11/#12) A NODE\'S MATRIX AND ROTATION KEPT WHILE THEY READ TH
 /** world.js's own sync, lifted: csaSyncColliders over a stand-in scene (a real Collider, the boats given). */
 function liftedSync(scope) {
   const body = `
-    let { colliderPoses, invertAffine, boxColliderTriangles, csaModeCollider, csaAboard, csaColliderBoats, csaColliderMesh, _csaBoatIds, _csaBoatSerial, csa, modes, hullsStood, csaRuntime, player = { pos: [0, 0, 0] } } = s;   // AUDIT FB1026b D1: the deck's hulls (no body on a deck here)
+    let { colliderPoses, invertAffine, boxColliderTriangles, csaModeCollider, csaAboard, csaColliderBoats, csaColliderMesh, _csaBoatIds, _csaBoatSerial, csa, modes, hullsStood, csaRuntime, player = { pos: [0, 0, 0] } } = s;   // AUDIT FB1026c D1: the deck's hulls (no body on a deck here)
     ${cutLine(WORLD, '  const _csaBuckets = new Map();')}${cutLine(WORLD, '  const csaBoatId = (boat) =>')}
     ${cut(WORLD, '  const csaShapeOf = (c) =>', ');\n')}${cutLine(WORLD, '  const CSA_RIGID_EPS =')}${cut(WORLD, '  function csaCarry(b, m) {')}
     ${cutLine(WORLD, '  const csaBoatUnderMe = () =>')}${cut(WORLD, '  function csaSyncColliders() {')}

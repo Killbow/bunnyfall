@@ -625,7 +625,7 @@ const isMine = (id) => typeof id === 'string' && id.startsWith(`${MY_BOAT}:`);
 const shipShot = (shooter) => !(typeof shooter === 'string' && (shooter.startsWith('peer:') || isMine(shooter)));
 /**
  * SERPENT4 (2026-10-11)'s BUMPERS ARE GONE (HULL-PASS, 2026-10-26, Discord #feature-feedback "Boat Player Collision": "too
- * many people out there bumping into each other ruining their shots"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md).
+ * many people out there bumping into each other ruining their shots"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md).
  * In the sea serpent's waters every other player's ship at her helm was met BUMPER_M (10 m) out and mine pushed off it
  * at up to 30 m/s - the players' answer then to hulls phasing through each other. Another player's hull no longer meets
  * my helm outside a PvP zone (scenes/comeSailAway/peerHulls.js), and the serpent's waters are never one, so there is

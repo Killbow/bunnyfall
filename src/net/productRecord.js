@@ -47,7 +47,7 @@ export const MINT_V_LAST_PASS = 1;
  *  always did. */
 export const MINT_V_LINES = 2;
 /** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)";
- *  bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): the first mint version whose jewellery's skill lines lean to
+ *  bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): the first mint version whose jewellery's skill lines lean to
  *  Hand-to-Hand and Critical Strike beside the mind's thirteen (systems/loot/lootRarity.js skillKin `fists`). A record
  *  of 2 or less mints as it always did. */
 export const MINT_V_JEWEL_KIN = 3;
@@ -55,7 +55,7 @@ export const MINT_V_JEWEL_KIN = 3;
  *  server-account/src/professions.js, at most this; craftMintVersion). */
 export const MINT_VERSION = MINT_V_JEWEL_KIN;
 /**
- * AUDIT FB1026b C3: THE VERSION A CRAFT'S RECORD IS STAMPED WITH - the one its client says it mints (`mint` on the craft,
+ * AUDIT FB1026c C3: THE VERSION A CRAFT'S RECORD IS STAMPED WITH - the one its client says it mints (`mint` on the craft,
  * net/accountClient.js craft), and never past this service's MINT_VERSION; a client that says none is one from before
  * the ask, which mints MINT_V_LINES. The service deploys before the site, and a tab left open or a desktop install keeps
  * its own build: stamped with the service's version, a stale client's ring was minted in its pack with the old lean and

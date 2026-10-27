@@ -63,13 +63,13 @@ own combat skills would be a tuning slice, not a fix". A skill affix's skill is 
 | jewellery | - | the mind's thirteen: the six schools, Etiquette, Streetwise, Mercantile, Lockpicking, Pickpocket, Stealth, Medical - and, since JEWEL-KIN, the bare hand's two: Hand-to-Hand and Critical Strike | any skill |
 
 JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted
-around 100 rare rings ... and h2h or critical not roll on them"; `01-Overview/bugs/Field-Bugs-2026-10-26b.md`): neither
+around 100 rare rings ... and h2h or critical not roll on them"; `01-Overview/bugs/Field-Bugs-2026-10-26c.md`): neither
 Hand-to-Hand nor Critical Strike is any weapon's own, so on a ring each was one of the open share's thirty-five - about
 0.4% of its skill lines against a mind skill's 7%. Jewellery's kin is fifteen now (`lootRarity.js` JEWEL_KIN), each
 about one skill line in sixteen. A crafted piece re-mints from its record, so a record before MINT_V_JEWEL_KIN (3,
 `net/productRecord.js`) keeps the mind's thirteen (`skillKin`'s `fists` false) and a ring already made keeps its lines.
 A craft's record is stamped with the version its client mints, never past the service's (craftMintVersion; a client
-that names none, MINT_V_LINES - AUDIT FB1026b C3), so a ring is minted alike by its maker and by every other reader.
+that names none, MINT_V_LINES - AUDIT FB1026c C3), so a ring is minted alike by its maker and by every other reader.
 
 A WEIGHTING, NEVER A FENCE: a language was a skill affix 9 times in 35; now about 1 in 30. A step with no free skill
 (a kind with a param never repeats one on a piece) gives way to the next, so the draw never comes back empty. The

@@ -700,7 +700,7 @@ const BODY_KIN = Object.freeze([S.ShortBlade, S.LongBlade, S.HandToHand, S.Axe, 
 const MIND_KIN = Object.freeze([...MAGIC_SKILLS, S.Etiquette, S.Streetwise, S.Mercantile, S.Lockpicking, S.Pickpocket,
   S.Stealth, S.Medical]);
 /** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted
- *  around 100 rare rings ... and h2h or critical not roll on them"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
+ *  around 100 rare rings ... and h2h or critical not roll on them"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md):
  *  JEWELLERY'S LEAN IS THE MIND'S THIRTEEN AND THE BARE HAND'S TWO - Hand-to-Hand and Critical Strike. Neither is any
  *  weapon's own, so a fist fighter's or a striker's line had nowhere to lean but armour's twelve: on a ring each was one of
  *  the open share's thirty-five, about 0.4% of its skill lines against a mind skill's 7%, and a hundred Rare rings seldom

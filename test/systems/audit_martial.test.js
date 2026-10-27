@@ -478,7 +478,7 @@ test('AUDIT MARTIAL L4 L3: a card shows only to a character that can EVER meet a
   assert.equal(AP.pathPossible(p), false, 'Destruction and Restoration both minor: the same');
   const f = fighter([], 50);
   assert.equal(MP.martialPossible(f), true);
-  // MASTER-THREE (Field-Bugs-2026-10-26b): three primary slots, so the slots Long Blade needs are spent among the MAJORS - every
+  // MASTER-THREE (Field-Bugs-2026-10-26c): three primary slots, so the slots Long Blade needs are spent among the MAJORS - every
   // primary on others too, so nothing else of the class's opens a second weapon skill
   const spent = fighter([SKILLS.Dodging, SKILLS.CriticalStrike, SKILLS.Running, SKILLS.Jumping, SKILLS.Climbing], 100, buildCustomCareer({ name: 'Rogue', hp: 10, stats: STATS,
     skills: [SKILLS.Dodging, SKILLS.CriticalStrike, SKILLS.Running, SKILLS.Jumping, SKILLS.Climbing, LB, SB, SKILLS.Swimming, SKILLS.Medical, SKILLS.Etiquette, SKILLS.Streetwise, SKILLS.Lockpicking] }));

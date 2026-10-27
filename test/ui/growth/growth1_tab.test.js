@@ -87,7 +87,7 @@ test('GROWTH1 THE RAIL: the Captain\'s Stars where the host hands a captain\'s s
 
 test('GROWTH2 THE GUIDE: every path of both families, each in its state on THIS character - open (both mastered), ready (both at 100, one to master), within reach, closed (the family\'s other path held), never (a skill this class cannot master) - in that order, the nearest first (mutants: a state misread; the order the table\'s; the nearest last)', () => {
   // Long Blade and Archery mastered (primary: 2 of 3), Destruction primary unmastered - a slot left (MASTER-THREE,
-  // Field-Bugs-2026-10-26b); Restoration at 100
+  // Field-Bugs-2026-10-26c); Restoration at 100
   const e = spellsword({ mastered: [LB, AR], raised: { [RES]: 100, [ALT]: 76, [AX]: 64 } });
   const m = specGuideModel(e);
   assert.equal(m.masterOn, true);
@@ -130,7 +130,7 @@ test('GROWTH2 THE GUIDE: every path of both families, each in its state on THIS 
 test('GROWTH2 WHAT OPENS IT: each skill of a pair in its own words - mastered, ready to master, its climb to 100, its group\'s masteries spent, or no skill of the class (mutants: a state\'s words swapped; the climb\'s count wrong)', () => {
   const e = spellsword({ mastered: [LB, AR], raised: { [RES]: 100, [ALT]: 76 } });
   const s = (id) => skillStand(e, id);
-  // MASTER-THREE (Field-Bugs-2026-10-26b): the full group is the majors' - two masteries chosen, Axe left at 100
+  // MASTER-THREE (Field-Bugs-2026-10-26c): the full group is the majors' - two masteries chosen, Axe left at 100
   const full = spellsword({ mastered: [LB, AR, RES, ALT], raised: { [AX]: 100 } });
   assert.deepEqual([s(LB).state, s(RES).state, s(ALT).state, skillStand(full, AX).state, s(SB).state], ['mastered', 'ready', 'climb', 'full', 'misc']);
   assert.equal(skillStandText(s(LB)), 'Long Blade: mastered (100)');
@@ -196,7 +196,7 @@ test('AUDIT GROWTH LANE1-1/4 THE SLOTS: a pair the slots left can never hold is 
   const st = (id) => ma.paths.find((p) => p.id === id).state;
   assert.deepEqual([st('blademaster'), st('warblade'), st('bloodletter')], ['slots', 'ready', 'ready']);
   // a group the player's own masteries filled: the skill's own line, no shared one; the class's own refusal is 'never'
-  // MASTER-THREE (Field-Bugs-2026-10-26b): Destruction a major, both major masteries chosen
+  // MASTER-THREE (Field-Bugs-2026-10-26c): Destruction a major, both major masteries chosen
   const s = spellsword({ mastered: [LB, AR] });
   const full = hero({ primary: [LB, AR, AX], major: [DES, ALT, SB], minor: [RES, MYS, ILL], mastered: [ALT, SB] });
   const blood = family(specGuideModel(full), 'arcane').paths.find((p) => p.id === 'bloodmage');
@@ -213,7 +213,7 @@ test('AUDIT GROWTH LANE1-1/4 THE SLOTS: a pair the slots left can never hold is 
 test('AUDIT GROWTH LANE1-4 THE HEADLINE: no path for the family says whether the class never could or the player\'s masteries spent the slots (mutants: the spent read as the class\'s)', () => {
   const never = hero({ primary: [LB, AR, DES], major: [AX, SB, SKILLS.BluntWeapon], minor: [SKILLS.Stealth, SKILLS.Running, SKILLS.Swimming] });
   assert.equal(familyLine(family(specGuideModel(never), 'arcane')), 'Your class can\'t master two schools of magic, so no arcane path is available.');
-  // MASTER-THREE (Field-Bugs-2026-10-26b): Destruction a major, both major masteries spent on weapons
+  // MASTER-THREE (Field-Bugs-2026-10-26c): Destruction a major, both major masteries spent on weapons
   const spent = hero({ primary: [LB, AR, AX], major: [DES, SB, SKILLS.BluntWeapon], minor: [RES, SKILLS.Stealth, SKILLS.Running], mastered: [SB, SKILLS.BluntWeapon] });
   const f = family(specGuideModel(spent), 'arcane');
   assert.deepEqual([f.possible, f.classPossible], [false, true]);

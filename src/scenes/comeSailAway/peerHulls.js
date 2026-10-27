@@ -1,27 +1,27 @@
 // @ts-check
 // HULL-PASS (2026-10-26, Discord #feature-feedback "Boat Player Collision": "Player boat collision needs to be off outside
 // of PVP zone or just during the Sethrakul fight - too many people out there bumping into each other ruining their
-// shots"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): ANOTHER PLAYER'S SHIP IS NO ROCK TO MY HELM OUTSIDE A PVP ZONE.
+// shots"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): ANOTHER PLAYER'S SHIP IS NO ROCK TO MY HELM OUTSIDE A PVP ZONE.
 //
 // FIELD BUGS 2026-10-01b (Mac: "Players aren't colliding with other players' boats and can't stand on board") stood every
 // peer's ship in my collider as my own boats stand (world.js csaSyncColliders), and so her hull met my helm's sweep as a
 // rock (Come Sail Away's CheckCollision: the way into her cancelled, the turn toward her refused) - at sea, in a harbour,
 // and in Sethrakul's waters, where a dozen ships close on one serpent and every shot was lined up against a neighbour's
 // shove. Now the sweep drops another player's hull outside a PvP zone (wildZone.js wildHere: the Eltheric Ocean past
-// Veilhaven's peace, the Wrothgarian Mountains), and inside one she is a rock as before - AUDIT FB1026b D3: the zone
+// Veilhaven's peace, the Wrothgarian Mountains), and inside one she is a rock as before - AUDIT FB1026c D3: the zone
 // alone, as the report asked ("off outside of PVP zone"); a ship may be one the broadsides spare (a party's, a guild's,
 // a relay without sea PvP) and still meet mine there. Sethrakul's site stands on the Bay's lanes, never in the ether's
 // box, so the serpent fight is always outside one (SERPENT4's bumpers, which pushed ships apart there alone, went with
 // it - navalHost.js).
 //
-// WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026b D1). Her hull stays in my collider, so I walk her deck, stand on it,
+// WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026c D1). Her hull stays in my collider, so I walk her deck, stand on it,
 // climb aboard her, and a swimmer meets her side (comeSailAwayAboard.js) - but a ship let through my hull would then
 // sail her deck through the body standing on mine and shove it off, or carry it away aboard her. So outside a zone, while
 // my body stands on a deck (my helm's, another's I am aboard, or the one under my feet, kept through a jump while my feet
 // stay over it), every player's hull that overlaps that deck's - hers through mine, mine through hers, one peer's through
 // another's - leaves my collider until they part (hullsStood); the sea's ships and everything else stand as they did.
 //
-// THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026b D2). Two hulls overlapping when the zone turns PvP - a party's ships
+// THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026c D2). Two hulls overlapping when the zone turns PvP - a party's ships
 // leaving Veilhaven's peace together, one moored over another - met as rocks from that frame, each refusing the other's
 // way and turn. A hull already through my deck as hulls start to meet goes on passing, the sweep's and the collider's
 // alike (hullsStood keeps it out of the collider the helm's sweep sweeps), until it is clear of my deck (the latch); one
@@ -88,7 +88,7 @@ export const resetHullLatch = () => { _latch = { deck: null, passing: new Set() 
 export const hullPassesMyDeck = (boat) => _latch.passing.has(boat);
 
 /**
- * The players' hulls passing through `deck` now (AUDIT FB1026b D1/D2): outside a PvP zone every one of `hulls` that
+ * The players' hulls passing through `deck` now (AUDIT FB1026c D1/D2): outside a PvP zone every one of `hulls` that
  * overlaps it; inside one, those already passing on this deck as hulls began to meet, while they still overlap it.
  * @param {any} deck @param {any[]} hulls @param {(c: any) => any} geometry
  */

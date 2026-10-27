@@ -129,7 +129,7 @@ test('AFFIX-LINES: one roll a pick, as `pick` took (LOOT1) - the roll\'s place l
 });
 
 test('AFFIX-LINES: the mint version - a record of 0 or 1 mints the old law\'s piece, one of 2 the new; a loot door the new; the old law\'s Rare names both parts', () => {
-  assert.deepEqual([MINT_V_LAST_PASS, MINT_V_LINES, MINT_VERSION], [1, 2, 3], 'the craft stamps the lines\' law - PIN MOVED (JEWEL-KIN, Field-Bugs-2026-10-26b): and the jewel kin\'s, 3');
+  assert.deepEqual([MINT_V_LAST_PASS, MINT_V_LINES, MINT_VERSION], [1, 2, 3], 'the craft stamps the lines\' law - PIN MOVED (JEWEL-KIN, Field-Bugs-2026-10-26c): and the jewel kin\'s, 3');
   const weapons = RECIPES.filter((r) => ['weapon', 'plate', 'shield'].includes(r.kind));
   let moved = 0;
   for (let i = 0; i < 300; i++) {

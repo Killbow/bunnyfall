@@ -826,11 +826,11 @@ What each came to, in the code:
   and passed through. SERPENT4 answered with the ships' bumpers (10 m out from each hull, my ship pushed off at up to
   30 m/s). **RETIRED by HULL-PASS (2026-10-26, Discord #feature-feedback "Boat Player Collision": "Player boat
   collision needs to be off outside of PVP zone or just during the Sethrakul fight - too many people out there bumping
-  into each other ruining their shots"; `01-Overview/bugs/Field-Bugs-2026-10-26b.md`):** another player's hull meets my
+  into each other ruining their shots"; `01-Overview/bugs/Field-Bugs-2026-10-26c.md`):** another player's hull meets my
   helm only inside a PvP zone (`scenes/comeSailAway/peerHulls.js`), and the serpent's waters are never one - so in its
   fight the ships pass through each other, and the bumpers, which pushed only there, are gone with `withBumpers` and
   `bumperDrift`. A hull let through mine passes the deck I stand on too, so a ship sailed through the fight's crowd
-  never shoves a hand off the deck it fights from (AUDIT FB1026b D1, `peerHulls.js` hullsStood).
+  never shoves a hand off the deck it fights from (AUDIT FB1026c D1, `peerHulls.js` hullsStood).
 - **"Getting nothing from it if your not near the snake when it dies."** Where she was at the kill never counted (the
   hub hands a far earner her receipt - AUDIT SERPENT S5); the bars did. **A part dealt earns** (`SERPENT_PART_SHARE` 2.5%
   of her share - several volleys landed, never one: a stander's hoard), **a dealer's at `SERPENT_RECEIPT_SHARE` 6%** (it

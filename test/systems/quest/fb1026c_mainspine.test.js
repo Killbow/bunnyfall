@@ -1,12 +1,12 @@
 // MAIN-SPINE (2026-10-26, Discord #feature-feedback "Main quest borked": "Level 8 and still no letter from Morgiah ...
-// Other people having issues too"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): the main quest's backbone
+// Other people having issues too"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): the main quest's backbone
 // (S0000999, which sends Morgiah's letter at level 3) is started again when its one start failed to parse - the world's
 // faction records not yet loaded on the page an online birth reloads into - and a game that already lost it gets it back.
 // The real quest bridge over the vendored DFU quests; the world's faction records a stand-in (every royal an individual
 // at regard 0, as FACTION.TXT has Morgiah), withheld for the ticks a cold page has none - and, where ARENA2 is fetched
-// (tools/fetch-data.sh), the game's own FACTION.TXT. AUDIT FB1026b (A1-A6, E1, E2, E10, E11): the law reads the
+// (tools/fetch-data.sh), the game's own FACTION.TXT. AUDIT FB1026c (A1-A6, E1, E2, E10, E11): the law reads the
 // machine's own record of the opener and the backbone (`spine`), never the classic game's globals. Mutants:
-// tools/mutants/fb1026b_mainspine.json.
+// tools/mutants/fb1026c_mainspine.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -94,7 +94,7 @@ test('MAIN-SPINE THE REPORT: the page an online birth reloads into parses the ba
     S.ready = true;
     silently(() => tick(S, SPINE_CHECK_TICKS + 1), said);
     assert.equal(has(S, SPINE), true, 'started again: the backbone stands');
-    // AUDIT FB1026b A6: three checks failed, one started - said once each, never every check
+    // AUDIT FB1026c A6: three checks failed, one started - said once each, never every check
     const spineSaid = said.filter((l) => l.includes(`${SPINE} (the main quest's backbone)`));
     assert.equal(spineSaid.length, 2, spineSaid.join(' | '));
     assert.match(spineSaid[0], /is owed and did not start \(Could not find faction data.*\) - asked again every 30 quest ticks$/);

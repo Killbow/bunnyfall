@@ -50,7 +50,7 @@ test('LOOT1: the kin - a weapon\'s own skill and the strike\'s three, the body\'
   for (const s of [SKILLS.ShortBlade, SKILLS.LongBlade, SKILLS.HandToHand, SKILLS.Axe, SKILLS.BluntWeapon, SKILLS.Archery, SKILLS.CriticalStrike,
     SKILLS.Dodging, SKILLS.Running, SKILLS.Jumping, SKILLS.Climbing, SKILLS.Swimming]) assert.ok(body.includes(s), `the body's: ${s}`);
   assert.equal(body.length, 12);
-  const mind = LR.skillKin(jewel(), { fists: false }).kin;   // PIN MOVED (JEWEL-KIN, Field-Bugs-2026-10-26b): the mind's alone is a crafted record's old lean
+  const mind = LR.skillKin(jewel(), { fists: false }).kin;   // PIN MOVED (JEWEL-KIN, Field-Bugs-2026-10-26c): the mind's alone is a crafted record's old lean
   for (const s of [...MAGIC_SKILLS, SKILLS.Etiquette, SKILLS.Streetwise, SKILLS.Mercantile, SKILLS.Lockpicking, SKILLS.Pickpocket, SKILLS.Stealth,
     SKILLS.Medical]) assert.ok(mind.includes(s), `the mind's: ${s}`);
   assert.equal(mind.length, 13);

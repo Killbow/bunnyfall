@@ -416,7 +416,7 @@ export class CharSheet {
    *  PlayerEntity.Stats at CLOSE (:448), not at mount. */
   _mountStatsRollout(rolls) {
     const e = this.entity;
-    releaseCapLatch(e);   // LEVEL-45 (AUDIT FB1026b C2): no pool handed out with no level to go with it
+    releaseCapLatch(e);   // LEVEL-45 (AUDIT FB1026c C2): no pool handed out with no level to go with it
     if (!e?.readyToLevelUp) return;
     // ORL1: ...and the sheet does NOT level a character who levels by
     // the mod's law. ui/charSheetDoor.js hands that character

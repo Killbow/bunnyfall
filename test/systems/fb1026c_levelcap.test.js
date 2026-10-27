@@ -1,8 +1,8 @@
-// LEVEL-45 (2026-10-26, the owner: "Also bring the level cap to 45"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
+// LEVEL-45 (2026-10-26, the owner: "Also bring the level cap to 45"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md):
 // the character's level stops at 45, on Daggerfall's sum and on the virtue bar alike, and every readout says so.
-// AUDIT FB1026b (C1, C2, C4, C5, E3): a level latched before the cap is let go at it - the load, the crossing online,
+// AUDIT FB1026c (C1, C2, C4, C5, E3): a level latched before the cap is let go at it - the load, the crossing online,
 // both checks, the sheet's door and its rollout - and the windows are driven, not just the law.
-// Mutants: tools/mutants/fb1026b_levelcap.json.
+// Mutants: tools/mutants/fb1026c_levelcap.json.
 import '../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -95,7 +95,7 @@ const statSum = (e) => Object.values(e.stats).reduce((a, b) => a + b, 0);
 /** An offline Oblivion-bar character at `level`, its save from before the cap owing the next (the old check latched it). */
 const latchedVirtue = (level = 50) => { const e = made(); initVirtueLeveling(e, LEVELING_VIRTUE); e.level = level; e.levelProgress = LEVELUP_TOTAL; e.readyToLevelUp = true; e.pendingLevel = level + 1; return e; };
 
-test('LEVEL-45 A LEVEL LATCHED PAST THE CAP IS LET GO (AUDIT FB1026b C1): the load lets it go, F5 opens the sheet and never a level-up window that cannot close, and the virtue screen\'s Ascend closes it if one is open; the Oghma Infinium\'s latch is kept (mutants: the load\'s release; the door\'s; the rollout door\'s; both checks\'; the confirm\'s backstop; the book\'s latch let go)', () => {
+test('LEVEL-45 A LEVEL LATCHED PAST THE CAP IS LET GO (AUDIT FB1026c C1): the load lets it go, F5 opens the sheet and never a level-up window that cannot close, and the virtue screen\'s Ascend closes it if one is open; the Oghma Infinium\'s latch is kept (mutants: the load\'s release; the door\'s; the rollout door\'s; both checks\'; the confirm\'s backstop; the book\'s latch let go)', () => {
   // the load: a save that owes level 51
   const saved = JSON.parse(JSON.stringify(snapshotPlayer(latchedVirtue())));
   assert.equal(saved.readyToLevelUp, true, 'the save carries the latch');
@@ -131,7 +131,7 @@ test('LEVEL-45 A LEVEL LATCHED PAST THE CAP IS LET GO (AUDIT FB1026b C1): the lo
   assert.equal(book.readyToLevelUp, true, 'the book\'s latch stands');
 });
 
-test('LEVEL-45 THE CLASSIC SHEET HANDS OUT NO POOL AT THE CAP, AND A LEVEL OWED OFFLINE CROSSES AS NONE (AUDIT FB1026b C2): the rollout never mounts for a level latched past the cap, and an Oblivion character at the cap brought online owes nothing (mutants: the rollout unguarded; the crossing\'s release)', () => {
+test('LEVEL-45 THE CLASSIC SHEET HANDS OUT NO POOL AT THE CAP, AND A LEVEL OWED OFFLINE CROSSES AS NONE (AUDIT FB1026c C2): the rollout never mounts for a level latched past the cap, and an Oblivion character at the cap brought online owes nothing (mutants: the rollout unguarded; the crossing\'s release)', () => {
   const e = made();
   e.level = 45; e.readyToLevelUp = true; e.pendingLevel = 46; e.pendingBonusPool = 6;
   const before = statSum(e);
@@ -148,7 +148,7 @@ test('LEVEL-45 THE CLASSIC SHEET HANDS OUT NO POOL AT THE CAP, AND A LEVEL OWED 
   assert.equal(anchored, 50, `anchored at the level it has (${anchored}), never the one past it`);
 });
 
-test('LEVEL-45 PAST THE CAP (AUDIT FB1026b C5): a character kept above 45 owes no level on either lane, and its Level box says the cap as the cap (mutants: the cap read as one level; the box\'s cap text dropped)', () => {
+test('LEVEL-45 PAST THE CAP (AUDIT FB1026c C5): a character kept above 45 owes no level on either lane, and its Level box says the cap as the cap (mutants: the cap read as one level; the box\'s cap text dropped)', () => {
   const v = made();
   initVirtueLeveling(v, LEVELING_VIRTUE);
   v.level = 46; v.levelProgress = LEVELUP_TOTAL;

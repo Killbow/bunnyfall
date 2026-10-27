@@ -1,5 +1,5 @@
 // @ts-check
-// LEVEL-45 (2026-10-26, the owner: "Also bring the level cap to 45"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
+// LEVEL-45 (2026-10-26, the owner: "Also bring the level cap to 45"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md):
 // THE CHARACTER'S LEVEL STOPS AT 45. A LEAF, read by advancement.js (Daggerfall's sum) and oblivionLeveling.js (the
 // virtue bar), which import each other's neighbours, so neither grows a cycle.
 //
@@ -9,7 +9,7 @@
 // climb past 100 where they are mastered (masterSkills.js), each point a quarter of one in the sum (skillSoftcap.js
 // effectiveSkill: 200 reads 140), so the ceiling moved with the masteries: 44 at 2/2/1 every mastered skill at 200, 47
 // at MASTER-THREE's 3/2/1. The cap is the ceiling named: 45 on either lane, reached at the end of the long climb past 100
-// by a career as made with Master Skills on (any starting sum up to 193; AUDIT FB1026b C7: a skill swap that raises the
+// by a career as made with Master Skills on (any starting sum up to 193; AUDIT FB1026c C7: a skill swap that raises the
 // class's sum lowers the ceiling a level for every 15, and with Master Skills off it is 29 to 32), and never passed. A
 // DEPARTURE from CheckForLevelUp, offline and online.
 //
@@ -23,7 +23,7 @@ export const LEVEL_CAP = 45;
 export const atLevelCap = (entity) => (entity?.level ?? 1) >= LEVEL_CAP;
 
 /**
- * AUDIT FB1026b C1/C2: A LEVEL LATCHED BEFORE THE CAP IS LET GO AT IT. A save from before the cap can hold a level owed
+ * AUDIT FB1026c C1/C2: A LEVEL LATCHED BEFORE THE CAP IS LET GO AT IT. A save from before the cap can hold a level owed
  * past it (`readyToLevelUp` rides the save), and so can an offline Oblivion character brought online (realmCustoms.js
  * crossLeveling) - and the window it opened had no level to give: the virtue screen's Ascend never closed it, the
  * classic sheet handed out the pool with no level. So the latch is let go where it is read - the load, both checks, the

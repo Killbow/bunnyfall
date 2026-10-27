@@ -98,7 +98,7 @@ export const EVENTS = Object.freeze({
   embrace: 3,     // COURT-DEEDS: a hug, from one they count a friend (once a day)
   kiss: 4,        // COURT-DEEDS: a kiss, in a courtship well begun (once a day)
 });
-/** COURT-DEEDS (2026-10-26, Discord #feature-feedback "Better Courtship"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
+/** COURT-DEEDS (2026-10-26, Discord #feature-feedback "Better Courtship"; bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md):
  *  each deed's day stamp on a record - a compliment, a gift, a hug or a kiss counts once a day per resident, as a tone. */
 export const DEED_STAMPS = Object.freeze({ compliment: 'compl', gift: 'gift', embrace: 'hug', kiss: 'kiss' });
 const STAMPED = Object.freeze(['polite', 'blunt', 'poach', ...Object.values(DEED_STAMPS)]);

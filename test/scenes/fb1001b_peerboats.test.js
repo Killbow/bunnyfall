@@ -119,7 +119,7 @@ async function rig({ hull = SMALL_SHIP, mine = true, modes = { mode: 'exterior' 
     csa: pool, csaPeers: peers, csaOn: () => true, online: { id: 'me' }, walkMode: true, playerSpawned: true, _teleporting: false, _traveling: false,
     modes, playerEntity: { health: 100 }, player, cam, CAPSULE_HEIGHT, _csaMovedPlayer: false,
     surfaceAt: () => -Infinity, csaPixelAt: () => null, state: null, deepWaters: null,   // the sweep's ground: none (a sea of the anchorage's own)
-    hullsStood, hullPassesMyDeck, csaRuntime: { isSailing: () => !!helm.boat, state: { get CurrentBoat() { return helm.boat; } } },   // AUDIT FB1026b D1: the deck my body stands on - my helm's (`helm.boat`), hers aboard, the one under my feet
+    hullsStood, hullPassesMyDeck, csaRuntime: { isSailing: () => !!helm.boat, state: { get CurrentBoat() { return helm.boat; } } },   // AUDIT FB1026c D1: the deck my body stands on - my helm's (`helm.boat`), hers aboard, the one under my feet
   });
   const frame = (input = IDLE, yaw = 0) => { player.update(FIXED_DT, input, yaw); w.sync(); w.peersFrame(FIXED_DT); w.rearm(); };
   /** A boat's buckets' key head (csaSyncColliders' `csaBoat:<id>:`). */
@@ -180,7 +180,7 @@ test('FB1001b PEER-HULL: HER DECK\'S FURNITURE AND HER HULL ARE MET AS MINE ARE 
   assert.ok(Math.abs(Math.min(...sHers.map((h) => h.distance)) - Math.min(...sMine.map((h) => h.distance))) < 1e-3, 'at the distance it meets mine');
 });
 
-test('HULL-PASS (Field-Bugs-2026-10-26b, "Player boat collision needs to be off outside of PVP zone or just during the Sethrakul fight"): THE HELM\'S SWEEP AS THE HOST WIRES IT (peerHulls.js peerHullSweep over world.js csaSphereCastAll) passes through her hull outside a PvP zone and meets it inside one, as it meets my own boat either way; her hull stays in my collider to be walked, stood on and swum against (mutants: the zone unread; my own boat dropped with hers)', async () => {
+test('HULL-PASS (Field-Bugs-2026-10-26c, "Player boat collision needs to be off outside of PVP zone or just during the Sethrakul fight"): THE HELM\'S SWEEP AS THE HOST WIRES IT (peerHulls.js peerHullSweep over world.js csaSphereCastAll) passes through her hull outside a PvP zone and meets it inside one, as it meets my own boat either way; her hull stays in my collider to be walked, stood on and swum against (mutants: the zone unread; my own boat dropped with hers)', async () => {
   assert.ok(WORLD.includes('    sphereCastAll: peerHullSweep(csaSphereCastAll, csa),'), 'the host hands Come Sail Away the wrapped sweep');
   const r = await rig({ hull: SMALL_SHIP });
   for (let i = 0; i < 2; i++) r.frame();
@@ -272,7 +272,7 @@ function standOn(r, boat) {
   return localOf(poseOf(boat), r.player.pos);
 }
 
-test('HULL-PASS WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026b D1): outside a PvP zone a ship sailed through the deck I stand on - hers through my moored one, or hers carrying me through mine - neither shoves me off my place nor carries me away aboard another; and inside a zone her hull stands again (mutants: the deck\'s hulls left standing; the deck under my feet unread; the deck kept through no jump)', async () => {
+test('HULL-PASS WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026c D1): outside a PvP zone a ship sailed through the deck I stand on - hers through my moored one, or hers carrying me through mine - neither shoves me off my place nor carries me away aboard another; and inside a zone her hull stands again (mutants: the deck\'s hulls left standing; the deck under my feet unread; the deck kept through no jump)', async () => {
   setWildHere(false);
   for (const along of [[1, 0], [0, 1]]) {
     // A: on my own moored deck, Ann sails her Small Ship through it at 4 m/s
@@ -341,7 +341,7 @@ function liftHelm(deps, state) {
   return new Function('deps', 'state', 'meshLocalBounds', 'colliderBounds', 'quatRotate', body)(deps, state, meshLocalBounds, colliderBounds, quatRotate);
 }
 
-test('HULL-PASS THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026b D2): my ship at my helm inside hers when hulls start to meet goes on passing through her - no contact, both turns free - until she is clear of me, and a ship that comes into mine after meets it as a rock (mutants: the latch dropped; the latch never let go)', async () => {
+test('HULL-PASS THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026c D2): my ship at my helm inside hers when hulls start to meet goes on passing through her - no contact, both turns free - until she is clear of me, and a ship that comes into mine after meets it as a rock (mutants: the latch dropped; the latch never let go)', async () => {
   setWildHere(false);
   const r = await rig({ hull: SMALL_SHIP, mine: true });
   r.own.GameObject.position = [3, SEA, 0];   // mine 3 m abeam inside hers, at the origin
