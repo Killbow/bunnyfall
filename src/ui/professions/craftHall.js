@@ -135,7 +135,7 @@ export function xpSources(track, rank, { pct = 0 } = {}) {
       break;
     case 'outfitting':
       rows.push([t('prof.hall.src.loom', 'A piece at the loom'), at(craftXp(top, rank), top)]);
-      rows.push([t('prof.hall.src.firstCloth', 'Your first piece at each grade (cloth pieces from your own cloth)'), first()]);
+      rows.push([t('prof.hall.src.firstCloth', 'Your first piece at each grade (not of cloth bought with silver)'), first()]);
       rows.push([t('prof.hall.src.temperLoom', 'Tempering at the loom'), t('prof.hall.src.temper', 'The piece\'s craft XP')]);
       rows.push([t('prof.hall.src.cure', 'Curing, weaving and spinning'), none()]);
       break;

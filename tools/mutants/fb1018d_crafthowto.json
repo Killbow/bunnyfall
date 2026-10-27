@@ -28,7 +28,7 @@
       "test/ui/professions/fb1018d_crafthowto.test.js"
     ],
     "why": "Outfitting's pane says nothing",
-    "note": "CRAFT-HALL (PIN MOVED): re-aimed by content - the page's line took the first-time bonus's `owed` (2026-10-26). PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (WOVEN-PAYS, FIELD BUGS 2026-10-26b): re-aimed by content - the how-to's first-time clause names cloth bought with silver. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "CRAFT-HOWTO-cooking-undrawn",

@@ -52,12 +52,12 @@
  {
   "name": "GATHER-SPEED-state-apart",
   "file": "server-account/src/professions.js",
-  "old": "  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, made] = await readAll(db, [",
-  "new": "  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, made] = await ((sts) => Promise.all(sts.map(async (st) => (await st.all()).results ?? [])))([",
+  "old": "  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made] = await readAll(db, [",
+  "new": "  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made] = await ((sts) => Promise.all(sts.map(async (st) => (await st.all()).results ?? [])))([",
   "tests": [
    "test/net/gatherspeed.test.js"
   ],
-  "note": "CRAFT-HALL (PIN MOVED): re-aimed by content - the page's line took the first-time bonus's `owed` (2026-10-26). the professions' state read one trip each"
+  "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the state's ninth read, the cloth's silver counts. the professions' state read one trip each"
  },
  {
   "name": "GATHER-SPEED-pixels-apart",

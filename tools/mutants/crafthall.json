@@ -29,7 +29,7 @@
   {
     "name": "CRAFT-HALL-book-note-gone",
     "file": "src/net/profBook.js",
-    "old": "      noteMade(w.brew === true ? 'brews' : 'crafts', w.recipe);",
+    "old": "      if (w.brew === true) noteMade('brews', w.recipe);\n      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
     "new": "      void 0;",
     "tests": [
       "test/ui/professions/crafthall.test.js"
@@ -250,5 +250,25 @@
     "tests": [
       "test/ui/professions/crafthall.test.js"
     ]
+  },
+  {
+    "name": "CRAFT-HALL-book-unpaid-cloth-noted",
+    "file": "src/net/profBook.js",
+    "old": "|| r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
+    "new": "|| true) noteMade('crafts', w.recipe);",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "WOVEN-PAYS at the merge: a craft of silver-bought cloth noted made, its first shown spent while still owed"
+  },
+  {
+    "name": "CRAFT-HALL-state-judged-unread",
+    "file": "server-account/src/professions.js",
+    "old": "    AND (recipe NOT IN (${JUDGED_SQL}) OR ${PAID_FIRST_SQL}) GROUP BY recipe",
+    "new": "    GROUP BY recipe",
+    "tests": [
+      "test/net/fb1026b_wovenpays.test.js"
+    ],
+    "note": "WOVEN-PAYS at the merge: the state's `made` lists a judged pattern whose first was never laid on"
   }
 ]

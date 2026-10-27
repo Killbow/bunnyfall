@@ -57,7 +57,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
 import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
-import { recipeById, recipeInputs, recipeOpen } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
+import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
 import { chainPlan, chainNeeded, storesRoom } from './chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { temperableRecipe, temperCost } from './temperLaw.js';   // CRAFT4: a temper's input, moved in from the bag first
@@ -166,6 +166,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
     stores: new Map(),
     /** BAG1: the service's carried count, by material - every unit it handed to the bag or the pack (bagLaw.js) */
     carried: new Map(),
+    /** WOVEN-PAYS (AUDIT WOVEN-PAYS): a cloth's silver count, by material - the bolts bought with silver its stations have
+     *  not used since (professions.js `prof_silver_cloth`) */
+    silver: new Map(),
     writs: { today: 0, max: 3 },
     /** BOARD-SIFT: the Work tab's filter and order (ui/workSift.js), kept for the session - null until the board opens */
     workSift: /** @type {any} */ (null),
@@ -267,6 +270,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
   // AUDIT BAG-CRAFT A1: and what a station's put-in brought loose from the pack - to a station or back to the pack
   const applyStore = (s) => {
     if (!s || typeof s.material !== 'string') return;
+    // WOVEN-PAYS: a cloth's count says its silver count beside it (professions.js storeOf); a count without it leaves it standing
+    if (Number.isSafeInteger(s.silver)) { if (s.silver > 0) state.silver.set(s.material, s.silver); else state.silver.delete(s.material); }
     const gold = s.gold | 0, loose = s[LOOSE_ORIGIN] | 0;
     if ((s.own | 0) + (s.bought | 0) + gold + loose > 0) {
       state.stores.set(s.material, { material: s.material, own: s.own | 0, bought: s.bought | 0, ...(gold > 0 ? { gold } : {}), ...(loose > 0 ? { [LOOSE_ORIGIN]: loose } : {}) });
@@ -293,6 +298,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     for (const s of data?.stores ?? []) applyStore(s);
     state.carried = new Map();
     for (const c of data?.carried ?? []) applyCarried(c);   // BAG1
+    state.silver = new Map(Object.entries(data?.silver && typeof data.silver === 'object' ? data.silver : {}).filter(([, n]) => Number.isSafeInteger(n) && n > 0));   // WOVEN-PAYS
     if (data?.writs) state.writs = { today: data.writs.today | 0, max: data.writs.max | 0 };
     state.caps = data?.caps ?? null;
     applyHunt(data?.hunt);
@@ -490,6 +496,10 @@ export function createProfBook({ door, storage = null, character = () => null, n
     carriedUsable(material) { return carry ? carriedUsable(this.carried(material), carry.held(material)) : 0; },
     /** BAG-CRAFT: what of what the character carries a station may work - every unit held but gold's, counted or not. */
     carriedWorkable(material) { return carry ? carriedWorkable(this.carried(material), heldAll(material)) : 0; },   // AUDIT TOWN-ECON 2 PRICE-2: a counter's pieces a station's
+    /** WOVEN-PAYS (AUDIT WOVEN-PAYS): a cloth's silver count as the service last said it - the bolts bought with silver its
+     *  stations have not used since; while it stands, a piece made wholly of cloth lays no first on (recipeLaw firstCraftPays).
+     *  The loom's first-time line reads it (ui/professions/profPages.js silverOf). */
+    silver(material) { return state.silver.get(material) ?? 0; },
     /** BAG1: whether one more unit of a material has nowhere to go - neither the bag nor the pack has room, or the
      *  service's count of it is at its bound (professionLaw.js storesFullIn asks it of a carrying book). */
     carryFull(material) { return !carry || carry.room(material) < 1 || carriedTotal(clampedCarried(material)) >= CARRIED_MAX; },
@@ -1297,7 +1307,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       writeKept(kept, key);   // let go BEFORE the pieces are made: a mint that threw is never a second mint
       for (const st of r.data?.stores ?? []) applyStore(st);
       applyTrack(r.data?.track);
-      noteMade(w.brew === true ? 'brews' : 'crafts', w.recipe);   // CRAFT-HALL
+      // CRAFT-HALL: what it made; a judged cloth pattern only by the craft that laid its first on (WOVEN-PAYS, `firstPaid`)
+      if (w.brew === true) noteMade('brews', w.recipe);
+      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);
       // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
       const made = w.brew === true ? null : recipeById(w.recipe);
       if (w.brew === true || made?.kind === 'dish' || made?.product === 'kit') { writCache.clear(); writGen++; }

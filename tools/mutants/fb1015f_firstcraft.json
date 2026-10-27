@@ -2,22 +2,22 @@
   {
     "name": "FB1015C-line-shop-never",
     "file": "src/ui/craftXpWords.js",
-    "old": "  const more = firstCraftXp(r, own);",
-    "new": "  const more = firstCraftXp(r, true);",
+    "old": "  return capLine(profession, pay, xp + more) || (walled\n",
+    "new": "  return capLine(profession, pay, xp + more) || (false\n",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the counted line's branch, its count standing. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-line-shop-always",
     "file": "src/ui/craftXpWords.js",
-    "old": "  const more = firstCraftXp(r, own);",
-    "new": "  const more = 0;",
+    "old": "  return capLine(profession, pay, xp + more) || (walled\n",
+    "new": "  return capLine(profession, pay, xp + more) || (true\n",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the counted line's branch, its count standing. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-line-no-quarter",
@@ -32,12 +32,12 @@
   {
     "name": "FB1015C-line-more-whole",
     "file": "src/ui/craftXpWords.js",
-    "old": "{ xp, profession, more })\n    : t('prof.page.craft.xpBought'",
-    "new": "{ xp, profession, more: xp + more })\n    : t('prof.page.craft.xpBought'",
+    "old": "from cloth not bought with silver.', { xp, profession, more })",
+    "new": "from cloth not bought with silver.', { xp, profession, more: xp + more })",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the condition's line now the second branch. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-dish-never",
@@ -100,7 +100,7 @@
   {
     "name": "FB1015C-anvil-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), false, first(r))));   // CRAFT-FIRST-SHOWN; CRAFT-LIMIT-SAID: as the service credits it; CRAFT-HALL: owed or made\n",
+    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), 0, first(r))));   // CRAFT-FIRST-SHOWN; CRAFT-LIMIT-SAID: as the service credits it; CRAFT-HALL: owed or made\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
@@ -110,8 +110,8 @@
   {
     "name": "FB1015C-anvil-past-rank",
     "file": "src/ui/professions/profPages.js",
-    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), false, first(r))));",
-    "new": "    box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), false, first(r))));",
+    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), 0, first(r))));",
+    "new": "    box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'smithing'), 0, first(r))));",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
@@ -120,7 +120,7 @@
   {
     "name": "FB1015C-bench-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "    if (!r.later && recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('carpentry'), craftPayOf(book, 'carpentry'), false, first(r))));   // CRAFT-FIRST-SHOWN: Building's; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
+    "old": "    if (!r.later && recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('carpentry'), craftPayOf(book, 'carpentry'), 0, first(r))));   // CRAFT-FIRST-SHOWN: Building's; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
@@ -130,22 +130,22 @@
   {
     "name": "FB1015C-loom-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r), first(r))));   // CRAFT-LIMIT-SAID; CRAFT-HALL\n",
+    "old": "    if (recipeOpen(r, rank)) box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), silverOf(book, r), first(r))));   // CRAFT-LIMIT-SAID; CRAFT-HALL\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "CRAFT-HALL (PIN MOVED): re-aimed by content - the page's line took the first-time bonus's `owed` (2026-10-26). PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the loom passes silverOf. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-loom-named-smithing",
     "file": "src/ui/professions/profPages.js",
-    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), ownSpend(book, r), first(r))",
-    "new": "craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'outfitting'), ownSpend(book, r), first(r))",
+    "old": "craftXpLine(r, rank, professionName('outfitting'), craftPayOf(book, 'outfitting'), silverOf(book, r), first(r))",
+    "new": "craftXpLine(r, rank, professionName('smithing'), craftPayOf(book, 'outfitting'), silverOf(book, r), first(r))",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
     ],
-    "note": "CRAFT-HALL (PIN MOVED): re-aimed by content - the page's line took the first-time bonus's `owed` (2026-10-26). PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
+    "note": "PIN MOVED (AUDIT WOVEN-PAYS): re-aimed by content - the loom passes silverOf. PIN MOVED (CLOTH-GEMS, Professions-Arc 50): re-aimed by content - AUDIT 32 S1 judges the units (recipeLaw counterMade, firstCraftPays's `own`; the service's decision `p`), and the loom weaves Linen and spins Wool (professionLaw WEAVE_RECIPES, SPIN_RECIPES)."
   },
   {
     "name": "FB1015C-mason-works-unsaid",
@@ -160,7 +160,7 @@
   {
     "name": "FB1015C-mason-carving-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "      box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('masonry'), craftPayOf(book, 'masonry'), false, recipeFirstOwed(made, r))));   // CRAFT-FIRST-SHOWN; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
+    "old": "      box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('masonry'), craftPayOf(book, 'masonry'), 0, recipeFirstOwed(made, r))));   // CRAFT-FIRST-SHOWN; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
@@ -179,7 +179,7 @@
   {
     "name": "FB1015C-jewel-unsaid",
     "file": "src/ui/professions/profPages.js",
-    "old": "      box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('jewelcrafting'), craftPayOf(book, 'jewelcrafting'), false, recipeFirstOwed(made, r))));   // CRAFT-FIRST-SHOWN: its XP moved here, beside its first's; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
+    "old": "      box.append(el('p', 'px-note', craftXpLine(r, rank, professionName('jewelcrafting'), craftPayOf(book, 'jewelcrafting'), 0, recipeFirstOwed(made, r))));   // CRAFT-FIRST-SHOWN: its XP moved here, beside its first's; CRAFT-LIMIT-SAID; CRAFT-HALL\n",
     "new": "",
     "tests": [
       "test/net/fb1015f_firstcraft.test.js"
