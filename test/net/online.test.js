@@ -103,7 +103,7 @@ test('ONLINE1: the pose - changed past a hair, eased between two with the yaw by
   assert.match(rd('src/systems/appStorage.js'), /export function tabStorage\(\) \{\s*\n\s*try \{ return globalThis\.sessionStorage \?\? null; \} catch \{ return null; \}/);
   assert.equal(relayUrl('wss://daggerfall-online.example.workers.dev/'), 'wss://daggerfall-online.example.workers.dev'); assert.equal(relayUrl('ws://localhost:8787'), 'ws://localhost:8787');
   for (const bad of ['http://relay.test', 'ws://relay.test', 'wss://relay.test/x?y=1', 'javascript:alert(1)', '']) assert.equal(relayUrl(bad), null, `${bad || 'empty'} is no relay`);
-  assert.match(DEFAULT_SERVER, /^wss:\/\/daggerfall-online\./, 'the relay this port hosts');
+  assert.match(DEFAULT_SERVER, /^wss:\/\/dagg\.campfirerp\.com\/relay$/, 'the relay this port hosts');
 });
 
 test('ONLINE1: the session over a fake socket, on its own clock - hello on open, a pose at most POSE_HZ when moved and a heartbeat when someone is here, the welcome merged, join, pose, leave, a walk eased and a jump snapped, the silent peer hidden not dropped, the relay\'s frames checked (mutants: tick fed the frame\'s clock, a pose every frame, the welcome wiping the peers, a peer dropped for standing still)', () => {

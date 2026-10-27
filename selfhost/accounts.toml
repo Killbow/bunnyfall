@@ -1,0 +1,74 @@
+# BUNNYFALL account service, run locally by selfhost/start.mjs (wrangler dev, no Cloudflare account).
+# Staff titles: put your in-game handles in the *_HANDLES lines (comma separated).
+name = "daggerfall-accounts"
+main = "../server-account/src/index.js"
+compatibility_date = "2026-09-01"
+[observability]
+enabled = true
+[[analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "daggerfall_accounts"
+[triggers]
+crons = ["* * * * *", "41 * * * *"]
+[vars]
+ACCOUNT_VERSION = "acct203"
+ALLOWED_ORIGIN = "*"
+DEVELOPER_HANDLES = "Killbunny"
+OWNER_HANDLES = "Killbunny"
+OWNER_KEYS = ""
+BUILDER_HANDLES = ""
+APPROVER_HANDLES = "Killbunny"
+REPORT_READER_HANDLES = "Killbunny"
+MODERATOR_HANDLES = ""
+RELAY_LAW_URL = "https://relay.internal/v1/law"
+MOD_AI = "off"
+MOD_AI_MODEL = ""
+MOD_AI_DAILY_MAX = ""
+DISCORD_MOD_CHANNEL = ""
+DISCORD_PUBLIC_KEY = ""
+DISCORD_MODERATORS = ""
+DISCORD_INVITE_URL = ""
+FOUNDER_HANDLES = ""
+HOURS_FIRST_HANDLES = ""
+EG_FIRST_HANDLES = ""
+DUNGEON_MASTER_HANDLES = ""
+DISCIPLE_HANDLES = ""
+APOSTLE_HANDLES = ""
+HIEROPHANT_HANDLES = ""
+SHADOW_FANG_HANDLES = ""
+MARKS_OPEN = "on"
+BOARD_OPEN = "on"
+PROFESSIONS_OPEN = "on"
+SEATS_OPEN = "on"
+CHAPTERS_OPEN = "on"
+FIRMAMENT_OPEN = "on"
+QUESTLINES_OPEN = "on"
+FESTIVAL_OPEN = "on"
+CHAPTER_TITLES = "off"
+SEASON_ZERO_WEEK = "2"
+PENITENT_HANDLES = ""
+HERALD_HANDLES = ""
+AEGIS_HANDLES = ""
+PRIMARCH_HANDLES = ""
+CRYSTAL_FIST_HANDLES = ""
+WIKIMAID_HANDLES = ""
+NIRNROOT_SAGE_HANDLES = ""
+PATREON_CLIENT_ID = ""
+PATREON_TIERS = ""
+[[d1_databases]]
+binding = "DB"
+database_name = "daggerfall-accounts"
+migrations_dir = "../server-account/migrations"
+database_id = "local"
+[[r2_buckets]]
+binding = "SAVES"
+bucket_name = "daggerfall-saves"
+[[durable_objects.bindings]]
+name = "ADMIT"
+class_name = "AdmitGate"
+[[services]]
+binding = "RELAY"
+service = "daggerfall-online"
+[[migrations]]
+tag = "admit1"
+new_sqlite_classes = ["AdmitGate"]

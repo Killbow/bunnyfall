@@ -58,8 +58,8 @@ export const LEGAL_VERSION_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Where each document is read. The site serves terms/index.html and
  *  privacy/index.html (vite.config.js) at these paths. */
-export const TERMS_URL = 'https://daggerfalljs.dev/terms/';
-export const PRIVACY_URL = 'https://daggerfalljs.dev/privacy/';
+export const TERMS_URL = 'https://dagg.campfirerp.com/terms/';
+export const PRIVACY_URL = 'https://dagg.campfirerp.com/privacy/';
 
 /** What a request that makes an account carries: the versions ticked. */
 export const ACCEPTED = Object.freeze({ terms: TERMS_VERSION, privacy: PRIVACY_VERSION });

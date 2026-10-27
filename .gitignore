@@ -110,3 +110,7 @@ weapon-glow-probe/
 ._*
 Thumbs.db
 desktop.ini
+
+# BUNNYFALL self-host: server state and wrangler scratch
+/data/
+selfhost/.wrangler/

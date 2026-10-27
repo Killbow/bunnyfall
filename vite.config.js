@@ -115,6 +115,13 @@ function buildTagMeta() {
 // custom domain (daggerfalljs.dev, U64) without a rebuild.
 export default defineConfig({
   base: './',
+  // BUNNYFALL: the local test (selfhost/start.mjs) answers here as the box's Caddy does in production.
+  server: {
+    proxy: {
+      '/relay': { target: 'http://127.0.0.1:8787', ws: true, rewrite: (p) => p.replace(/^\/relay/, '') },
+      '/accounts': { target: 'http://127.0.0.1:8788', rewrite: (p) => p.replace(/^\/accounts/, '') },
+    },
+  },
   build: {
     target: 'es2022',
     // AUDIT DEPS1 (the review): Vite 8 minifies CSS with Lightning CSS -

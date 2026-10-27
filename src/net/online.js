@@ -1,4 +1,5 @@
 // @ts-check
+import { selfRelayUrl } from './selfHost.js';
 import { validStaffEventIn, validStaffEventOut, relaySupportsStaffEvents } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT
 import { relaySupportsFoeInventory } from './wire.js';
 // ONLINE1 (2026-09-12, Mac: "the basic bones of multiplayer. The goal is
@@ -233,7 +234,7 @@ const TRADE_IN_SENDERS_MAX = 64;
 /** AUDIT 68 S14-quest-inbound-ungated: the quest shares one room passes a second - an honest hub's worst case, every
  *  other seat of my party sharing at the hub's own per-socket cooldown (QUEST_HUB_MIN_MS), with all of them at once for its burst. */
 const QUEST_IN_ROOM_HZ = ((PARTY_MAX - 1) * 1000) / QUEST_HUB_MIN_MS;
-export const DEFAULT_SERVER = 'wss://daggerfall-online.mackcothran.workers.dev';
+export const DEFAULT_SERVER = selfRelayUrl();   // BUNNYFALL: this copy's own relay (net/selfHost.js)
 /** A peer silent this long is HIDDEN (out of range, or its socket is
  *  gone and the leave is on its way); only the room's leave removes it. */
 // RELAY-H1: DERIVED from the heartbeat, never a literal beside it. The silence law hides a peer this long after its

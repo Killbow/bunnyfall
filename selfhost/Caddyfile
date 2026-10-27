@@ -1,0 +1,19 @@
+# BUNNYFALL: the public front door. Caddy fetches and renews the HTTPS certificate on its own.
+{$DOMAIN:dagg.campfirerp.com} {
+	encode zstd gzip
+
+	# the account service's local cron door, never public
+	@sched path /accounts/__scheduled*
+	respond @sched 404
+
+	handle_path /relay/* {
+		reverse_proxy server:8787
+	}
+	handle_path /accounts/* {
+		reverse_proxy server:8788
+	}
+	handle {
+		root * /srv
+		file_server
+	}
+}

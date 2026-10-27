@@ -38,6 +38,7 @@
 // once" a sentence rather than a fact.
 // ═══════════════════════════════════════════════════════════════════
 
+import { selfAccountUrl } from './selfHost.js';
 import { HANDLE_RE } from './handleShape.js';
 import { SESSION_PASS_HEADER } from './sessionPassLaw.js';   // SESSION-SIGN: the pass's one name on the wire
 import { AURAS, ICONS } from './identityToken.js';   // WB9g: the auras that exist - a stored one is one of them, or none; WITCH1: and the icons
@@ -77,7 +78,7 @@ import { MINT_VERSION } from './productRecord.js';   // AUDIT FB1026d C3: a craf
  *  DEFAULT_SERVER (net/online.js), because they are two Workers and
  *  ACC0's whole argument is that they deploy apart - a player pointing
  *  at a test relay has not moved their account. */
-export const DEFAULT_ACCOUNT_SERVICE = 'https://daggerfall-accounts.mackcothran.workers.dev';
+export const DEFAULT_ACCOUNT_SERVICE = selfAccountUrl();   // BUNNYFALL: this copy's own account service (net/selfHost.js)
 
 /** The bounds the SERVICE enforces, restated here for the field caps
  *  alone. `password.js` PASSWORD_MIN/MAX and `guestName.js` HANDLE_RE

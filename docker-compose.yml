@@ -1,0 +1,33 @@
+# BUNNYFALL: the whole server. `docker compose up -d --build` on the Linux box.
+# Needs: DNS A record dagg.campfirerp.com -> your public IP, router forwarding TCP 80 and 443 (and UDP 443) to this box.
+services:
+  server:
+    build:
+      context: .
+      dockerfile: selfhost/Dockerfile
+      target: server
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+
+  web:
+    build:
+      context: .
+      dockerfile: selfhost/Dockerfile
+      target: web
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      DOMAIN: ${DOMAIN:-dagg.campfirerp.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,44 @@
+# BUNNYFALL relay, run locally by selfhost/start.mjs (wrangler dev, no Cloudflare account).
+# Keys are not here: start.mjs mints them into data/ on first run.
+# Feed URLs below travel over the service binding, so their host is never looked up.
+name = "daggerfall-online"
+main = "../server/src/index.js"
+compatibility_date = "2026-09-01"
+[vars]
+IDENTITY_PUBLIC_KEY = "2ZbUhjpY80Hne60_ucjzCZMF0i5DsarfaWW9SDU5ei4"
+IDENTITY_MAX_TTL_S = "300"
+RAID_TOWNS_SHA256 = ""
+REGION_SHARDS = ""
+GATE_DISCORD_ROLE = ""
+SERPENT_DISCORD_ROLE = ""
+SD_DISCORD_ROLE = ""
+KT_DISCORD_ROLE = ""
+GATE_DISCORD_THREAD = ""
+SERPENT_DISCORD_THREAD = ""
+SD_DISCORD_THREAD = ""
+EG_DISCORD_THREAD = ""
+KT_DISCORD_THREAD = ""
+MOD_FEED_URL = "https://accounts.internal/v1/mod/feed"
+GRANT_FEED_URL = "https://accounts.internal/v1/mod/grant-feed"
+CELL_SPLIT_AT = "150"
+CELL_SPLIT_DWELL_MS = "60000"
+CELL_MERGE_AT = "40"
+CELL_MERGE_DWELL_MS = "600000"
+HIDDEN_SEEN_URL = "https://accounts.internal/v1/mod/hidden-seen"
+STAFF_NET_FEED_URL = "https://accounts.internal/v1/staff/net-feed"
+REACTION_FEED_URL = "https://accounts.internal/v1/mod/reaction-feed"
+BOSS_BODY = ""
+[observability]
+enabled = true
+[[analytics_engine_datasets]]
+binding = "METRICS"
+dataset = "daggerfall_relay"
+[[services]]
+binding = "ACCOUNTS"
+service = "daggerfall-accounts"
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
