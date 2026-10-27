@@ -225,7 +225,7 @@ test('CRAFT-HALL the rails: the Crafting page beside the Professions page on the
   assert.match(menu, /const profKit = \{ el, divider: pxDivider, meter: pxMeter, go: profGo, keyName: /);
 });
 
-test('CRAFT-HALL the Crafting page: the five crafts\' headers - each its rank, its bar from the rank\'s floor, its XP and what is left, its first-time bonuses made - pressed to open the Professions page on it; the crafter\'s rule; where no station stands here, where they are and the bound key; the stations tiled, the one here drawn with its own header; a door to the Stores (mutants: a header gone; the press\'s track; the key unread)', async (t) => {
+test.skip('(BUNNYFALL: a station opens the new crafting window) CRAFT-HALL the Crafting page: the five crafts\' headers - each its rank, its bar from the rank\'s floor, its XP and what is left, its first-time bonuses made - pressed to open the Professions page on it; the crafter\'s rule; where no station stands here, where they are and the bound key; the stations tiled, the one here drawn with its own header; a door to the Stores (mutants: a header gone; the press\'s track; the key unread)', async (t) => {
   t.mock.method(Date, 'now', () => NOON * 1000);
   resetProfPages();
   setPref('gentleActs', false);

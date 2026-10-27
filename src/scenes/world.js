@@ -297,6 +297,7 @@ import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDIN
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
 import { setProfessionsPages, forgeOffered, stationDoorAt, stationColdLine, disenchantableOf, BAG_PAGE_WORDS } from '../ui/professions/profPages.js';   // PROF1: the Professions and Stores pages on the character sheet's rail; CARP-YARD: the joinery's bench opens it
+import { createCraftHost } from './craftHost.js';   // BUNNYFALL: the crafting window's upgrade and salvage
 import { materialPicture, itemPicture } from '../ui/menu/menuPicture.js';   // MENU-ORDER: a material's and a piece's picture for the menus' rows
 import { createSaddleHost } from './saddleHost.js';   // STEED-UI: the saddle panel - the horse and the wagon on screen (Enhanced Plus)
 import { setHoldingsProvider, stableProviderFor } from '../ui/holdingsPages.js';   // HOLDINGS: the Stable and the Fleet pages on the pause menu's Holdings tab
@@ -11688,6 +11689,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const myHall = (profession) => hallStepsFor(seatHere(_musicLoc?.mapTableData?.mapId), guildBook?.guild?.id ?? null, profession);
       const alchemyHall = () => myHall('alchemy');
       setProfessionsPages({
+        ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
         book: profBook, name: (k) => materialLabel(k), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
         picture: (k, wake) => materialPicture(k, { onReady: wake }),   // MENU-ORDER: a material card's picture
         settle: () => profBook.settle(profMint, profMintCraft),   // AUDIT 29 C4: a kept withdrawal asked again when the Stores page opens; PROF3: and a kept craft
