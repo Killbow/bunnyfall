@@ -794,5 +794,14 @@
     "tests": [
       "test/systems/naval/ethercross.test.js"
     ]
+  },
+  {
+    "name": "VEIL-the-veil-law-default",
+    "file": "src/scenes/naval/veilParty.js",
+    "old": "  const across = deps.across ?? inEther;",
+    "new": "  const across = deps.across;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
   }
 ]
