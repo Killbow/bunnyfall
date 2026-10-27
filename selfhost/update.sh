@@ -2,11 +2,20 @@
 # BUNNYFALL: pull the latest main from GitHub and rebuild the server, only when something changed.
 #   sh selfhost/update.sh          update now
 #   sh selfhost/update.sh --force  rebuild even if nothing changed
-# For automatic updates, run it from cron (see selfhost/README.md).
+#   sh selfhost/update.sh --if-requested  update only if the owner pressed the in-game button (cron, every minute)
+# Output also goes to updates/update.log, which the in-game button shows.
 set -eu
 cd "$(dirname "$0")/.."
 
 BRANCH=main
+mkdir -p updates
+LOG=updates/update.log
+if [ "${1:-}" = "--if-requested" ]; then
+  [ -f updates/update-requested ] || exit 0
+  rm -f updates/update-requested
+  exec >>"$LOG" 2>&1
+  echo "[bunnyfall-update] requested from the game"
+fi
 LOG_TAG="[bunnyfall-update $(date '+%Y-%m-%d %H:%M:%S')]"
 
 # One update at a time (cron and a manual run can overlap).

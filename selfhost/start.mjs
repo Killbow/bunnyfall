@@ -7,6 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startUpdater } from './updater.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -14,6 +15,8 @@ const DATA = resolve(process.env.BUNNYFALL_DATA || join(root, 'data'));
 const BIND = process.env.BIND || '127.0.0.1';
 const RELAY_PORT = process.env.RELAY_PORT || '8787';
 const ACCOUNT_PORT = process.env.ACCOUNT_PORT || '8788';
+const UPDATER_PORT = process.env.UPDATER_PORT || '8789';
+const UPDATES = resolve(process.env.BUNNYFALL_UPDATES || join(root, 'updates'));
 const wrangler = join(root, 'server', 'node_modules', 'wrangler', 'bin', 'wrangler.js');
 const relayToml = join(here, 'relay.toml');
 const accountToml = join(here, 'accounts.toml');
@@ -74,10 +77,14 @@ setInterval(async () => {
   }
 }, 60_000);
 
+// The owner's update button (selfhost/updater.mjs): leaves a request the host's cron acts on.
+const updater = startUpdater({ port: UPDATER_PORT, bind: BIND, accountBase, accountToml, dir: UPDATES });
+
 let stopping = false;
 function stop(code = 0) {
   if (stopping) return;
   stopping = true;
+  try { updater.close(); } catch { /* gone */ }
   for (const c of children) { try { c.kill('SIGTERM'); } catch { /* gone */ } }
   setTimeout(() => process.exit(code), 3000).unref();
 }

@@ -23,3 +23,8 @@ export function selfAccountUrl() {
   const o = webOrigin();
   return o ? `${o.origin}/accounts` : `https://${SELF_HOST_DOMAIN}/accounts`;
 }
+
+/** The owner's update door (selfhost/updater.mjs), beside the account service. */
+export function selfUpdaterUrl() {
+  return selfAccountUrl().replace(/\/accounts$/, '/updater');
+}

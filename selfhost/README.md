@@ -39,14 +39,23 @@ sh selfhost/update.sh
 It pulls `main`, and only if something changed it rebuilds and restarts. The old server keeps running during the
 build, so players only see a short reconnect. Your `data/` folder is never touched.
 
-**Automatic updates**: let cron check every 5 minutes. Run `crontab -e` and add this line (fix the path):
+**The in-game button**: signed in as `Killbunny`, the main menu shows a small **↻** button top-left (nobody else
+sees it). Pressing it asks the server to update. For it to work, add this line once with `crontab -e`, as the user
+that owns the repo folder (fix the path):
 
 ```
-*/5 * * * * cd /path/to/bunnyfall && sh selfhost/update.sh >> data/update.log 2>&1
+* * * * * cd /path/to/bunnyfall && sh selfhost/update.sh --if-requested
 ```
 
-Then pushing to GitHub is all it takes: the server is on the new version within about 5 minutes plus the build time.
-`tail data/update.log` shows what happened.
+Cron checks every minute, and runs the update only after you pressed the button. The button shows the progress,
+and the full log is in `updates/update.log`. The game server never gets Docker or GitHub access: it only leaves a
+request file in `updates/`.
+
+**Fully automatic updates** (optional, instead of the button): this line pulls every 5 minutes on its own:
+
+```
+*/5 * * * * cd /path/to/bunnyfall && sh selfhost/update.sh >> updates/update.log 2>&1
+```
 
 **Do not edit files directly on the box.** The script refuses to pull while there are local edits, so it never
 overwrites your work. Make changes on GitHub instead (or run `git checkout -- .` on the box to throw local edits away).

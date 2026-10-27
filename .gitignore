@@ -115,3 +115,4 @@ desktop.ini
 /data/
 selfhost/.wrangler/
 .update.lock
+/updates/

@@ -14,9 +14,9 @@ FROM base AS build
 RUN npx vite build
 
 FROM base AS server
-ENV BIND=0.0.0.0 BUNNYFALL_DATA=/data NODE_ENV=production
+ENV BIND=0.0.0.0 BUNNYFALL_DATA=/data BUNNYFALL_UPDATES=/updates NODE_ENV=production
 VOLUME /data
-EXPOSE 8787 8788
+EXPOSE 8787 8788 8789
 CMD ["node", "selfhost/start.mjs"]
 
 FROM caddy:2-alpine AS web

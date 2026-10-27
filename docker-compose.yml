@@ -9,6 +9,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/data
+      - ./updates:/updates   # the owner's update button leaves its request here for the host's cron
 
   web:
     build:

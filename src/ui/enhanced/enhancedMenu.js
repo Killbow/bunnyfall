@@ -210,6 +210,7 @@ import { keyCodeForDomCode, KEYCODE_NONE } from '../../systems/keyCodes.js';   /
 import { isOnlinePage, onlineForcedPref, onlineForcedModSetting, onlineForcedSetting, onlineWholeModKey, ONLINE_ROOM_MOD_KEYS } from '../../systems/online/onlineLane.js';   // OL1: online is the enhanced lane, whole - a forced switch is shown locked   // ROADS 24; DS1: the integer keys; UL1: the choice keys
 import { onlineSyncPlan, applyOnlineSync, lastOnlineSync, undoOnlineSync } from '../../systems/online/onlineSync.js';   // UXB1-E: the room's rules, copied home
 import { CREDITS, translationCredits } from '../credits.js';   // CR1: who made what the port carries
+import { ownerUpdateMark } from '../ownerUpdate.js';   // BUNNYFALL: the owner's update button
 import { SUPPORT_ASKS } from '../supportAsks.js';   // SUPPORT1: the project's asks - the website's corner and this door's
 import { t, tIn, currentLocale, localeInfo, localeTable, availableLocales, BASE_LOCALE, localizedText, formatText } from '../../systems/textManager.js';   // L10N1b: the port's own strings, the language row and the first-run offer; L10N3d: DFU's Internal_Strings
 import { localeForBrowser, catalogLocale } from '../../systems/localeCatalog.js';   // L10N1b
@@ -4588,6 +4589,8 @@ function renderHome() {
   // SUPPORT1: the asks, top-left - the front door's alone; PX4 keeps the
   // pause face to its window, so they are not drawn over a game.
   home.append(supportMarks());
+  // BUNNYFALL: the owner's update button, same corner, shown to the owner alone (ui/ownerUpdate.js)
+  home.append(ownerUpdateMark({ storage: appStorage() }));
   // L10N1b: the first-run language offer, in the top-left corner nothing else uses
   const offer = languageOffer();
   if (offer) home.append(offer);
