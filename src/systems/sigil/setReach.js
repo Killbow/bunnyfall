@@ -3,7 +3,7 @@
 // progression please!"): A SET'S REACH. Mac's "grow together" stands - a set's stage is its lowest worn piece's - but a
 // piece swapped in fresh no longer costs the whole climb again: a piece below the highest stage the set has stood at for
 // this character drinks CATCH_UP_MULT times the XP until it reaches that stage, and never faster past it. The reach is
-// the second-best rank among the set's pieces in the pack (two pieces at a stage are the set standing there), kept here
+// the second-best rank among the set's WORN pieces (two worn at a stage are the set standing there), kept here
 // at every drink so a piece sold later does not take it away. It rides the character's save (a mod record).
 
 import { SIGIL_STAGES, SIGIL_SET_IDS } from './sigil.js';
@@ -18,20 +18,20 @@ const STAGE_MAX = SIGIL_STAGES.length - 1;
 /** @type {Record<string, number>} the highest stage each set has stood at for this character */
 let _reach = {};
 
-/** A set's reach from the ranks of its pieces a character carries: the REACH_PIECES-th best, or -1 for fewer. */
+/** A set's reach from the ranks of its pieces a character wears: the REACH_PIECES-th best, or -1 for fewer. */
 export function reachOfRanks(ranks) {
   const sorted = [...ranks].filter(Number.isInteger).sort((a, b) => b - a);
   return sorted.length >= REACH_PIECES ? sorted[REACH_PIECES - 1] : -1;
 }
 /** The reach recorded for a set, or -1. */
 export const recordedReach = (id) => _reach[id] ?? -1;
-/** Record what a drink saw: each set's reach from the ranks carried (`Map<id, rank[]>`), never lowered. Answers the reach
- *  each set now has, recorded or carried. */
-export function noteReach(carried) {
+/** Record what a drink saw: each set's reach from the ranks worn (`Map<id, rank[]>`), never lowered. Answers the reach
+ *  each set now has, recorded or worn. */
+export function noteReach(worn) {
   /** @type {Map<string, number>} */
   const out = new Map();
   for (const id of SIGIL_SET_IDS) {
-    const now = Math.max(recordedReach(id), reachOfRanks(carried.get(id) ?? []));
+    const now = Math.max(recordedReach(id), reachOfRanks(worn.get(id) ?? []));
     if (now > recordedReach(id)) _reach[id] = now;
     if (now >= 0) out.set(id, now);
   }
