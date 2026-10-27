@@ -6,6 +6,7 @@ import { t } from '../../systems/textManager.js';
 import { huntBook } from '../../net/huntBook.js';
 import { HUNT_RUNGS, HUNT_MARK_RUNG, huntRungOf, huntNextRung, HUNT_TITLES } from '../../net/huntLaw.js';
 import { TITLE_TEXT } from '../playerBadge.js';
+import { accountRefusalText } from '../../net/accountClient.js';   // AUDIT HORIZONTAL F4: a guest's line, the refusal's own words
 
 /** Each rung's name, as a player reads it. */
 export const RUNG_WORDS = Object.freeze({
@@ -21,6 +22,7 @@ export const rungName = (/** @type {string} */ id) => RUNG_WORDS[/** @type {keyo
 /** The words of a rank: `head` "Stalker · 52 bounties", `region` "7 here", `next` "Slayer at 100". `rank` the bounty
  *  host's (scenes/huntersMark.js boardRank). */
 export function rankWords(/** @type {any} */ rank) {
+  if (rank?.closed) return { head: accountRefusalText('hunt-need-account'), region: '', next: '' };
   if (!rank || rank.reading) return { head: t('hunt.rank.reading', 'Reading your hunter\'s rank…'), region: '', next: '' };
   return {
     head: t('hunt.rank.head', '{rung} · {n, plural, one {# bounty} other {# bounties}}', { rung: rungName(rank.rung), n: rank.clears }),
@@ -38,7 +40,7 @@ export function rankLine(/** @type {(tag: string, cls?: string|null, text?: stri
   const box = el('div', 'bounty-rank');
   box.append(el('b', null, w.head));
   if (w.region) box.append(el('span', 'bounty-rankregion', w.region));
-  if (!rank.reading) {
+  if (!rank.reading && !rank.closed) {
     const bar = el('span', 'bounty-rankbar');
     const fill = el('i');
     fill.style.width = `${Math.round(rankShare(rank) * 100)}%`;
@@ -59,7 +61,9 @@ export function statsHunt(detail, { el, divider, meter }) {
   if (!book) return;
   detail.append(divider(t('hunt.standing.title', 'The Hunt')));
   const s = book.state;
-  if (!s) { void book.refresh(); detail.append(el('p', 'px-note', t('hunt.rank.reading', 'Reading your hunter\'s rank…'))); return; }
+  // AUDIT HORIZONTAL F4: a guest's account keeps no rank - said once; the book's own beat asks again, never each draw
+  if (book.closed) { detail.append(el('p', 'px-note', accountRefusalText('hunt-need-account'))); return; }
+  if (!s) { book.tick(); detail.append(el('p', 'px-note', t('hunt.rank.reading', 'Reading your hunter\'s rank…'))); return; }
   const i = huntRungOf(s.clears);
   const next = huntNextRung(s.clears);
   const row = el('div', 'px-stat px-hunt');

@@ -102,10 +102,11 @@ export function createHuntersMark(deps) {
     if (!posting) return null;
     return { posting, state: heldNow ? 'held' : doneThisWeek() ? 'paid' : 'open' };
   }
-  /** The board's header: the rung, the clears and this region's, the next rung, the reports still kept. */
+  /** The board's header: the rung, the clears and this region's, the next rung, the reports still kept - or, for an
+   *  account that keeps no rank (a guest's - AUDIT HORIZONTAL F4), that said once instead of a read that never ends. */
   function boardRank(/** @type {{ px: number, py: number }} */ town) {
     const n = clears();
-    if (n == null) return book ? { reading: true } : null;
+    if (n == null) return book ? (book.closed ? { closed: true } : { reading: true }) : null;
     const region = deps.regionAt?.(town.px, town.py);
     return {
       rung: HUNT_RUNGS[huntRungOf(n)].id, clears: n, next: huntNextRung(n), from: HUNT_RUNGS[huntRungOf(n)].at,
