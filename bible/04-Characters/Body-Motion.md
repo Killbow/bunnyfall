@@ -39,9 +39,9 @@ DUAL-RUN (the pair's run - both arms locked straight behind, swinging a tenth of
 128 degrees off its elbow's hinge, past the 85 to 90 AUDIT CARRY-7 holds every run's to); and RUN-EASE (RUN-STIFF's legs
 halfway back). The lantern at the waist, on the same report, is Handheld-Torches.md HT-WAIST-SIZE.
 
-**FIELD BUGS 2026-10-26b (one #feature-feedback thread through the owner, patriot_505: "Morrowind models + weapon
-animations need a little tweaking"; `01-Overview/bugs/Field-Bugs-2026-10-26b.md`)** - rows and keys moved, each measured on the
-retail biped and pinned (`test/characters/bodyMotion/fb1026b_mwbody.test.js`; `tools/mutants/fb1026b.json`), marked where
+**FIELD BUGS 2026-10-26c (one #feature-feedback thread through the owner, patriot_505: "Morrowind models + weapon
+animations need a little tweaking"; `01-Overview/bugs/Field-Bugs-2026-10-26c.md`)** - rows and keys moved, each measured on the
+retail biped and pinned (`test/characters/bodyMotion/fb1026c_mwbody.test.js`; `tools/mutants/fb1026c.json`), marked where
 they changed a row below. THRUST-CHAMBER ("Two-handed sword (claymore) forward pierce attack animation causes
 character's hands to clip through his back"): the two-hander's thrust winds up with its hilt chambered before the right
 hip, the point raised, the draw the trunk's coil - drawn back beside the hip, the left hand closed toward the pommel stood

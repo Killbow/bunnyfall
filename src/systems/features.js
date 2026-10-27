@@ -1321,7 +1321,7 @@ export const FEATURES = Object.freeze([
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBodyMotion', initial: true, online: 'player' }),
   }),
-  // MW-SHOULDER (FIELD BUGS 2026-10-26b, feature-feedback via Mac: "please, add an option to move camera a bit to the side
+  // MW-SHOULDER (FIELD BUGS 2026-10-26c, feature-feedback via Mac: "please, add an option to move camera a bit to the side
   // ... for morrowind 3rd person models ... because crosshair is located on top of character's head"): the reference's
   // view over the shoulder for the Morrowind body's camera (player/mwCamera.js) - behind the right or the left shoulder,
   // and with a weapon or a spell out centred over the head, so a shot lands where the crosshair is. Off by default, as the

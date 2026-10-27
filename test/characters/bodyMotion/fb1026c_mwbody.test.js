@@ -1,5 +1,5 @@
-// FIELD BUGS 2026-10-26b (feature-feedback via Mac, "Morrowind models + weapon animations need a little tweaking";
-// bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md) - THE BODY MOTION'S TWO FIXES, on the vendored retail biped with the
+// FIELD BUGS 2026-10-26c (feature-feedback via Mac, "Morrowind models + weapon animations need a little tweaking";
+// bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md) - THE BODY MOTION'S TWO FIXES, on the vendored retail biped with the
 // pair's Weapon Bone Left made as the build makes it.
 //
 // THRUST-CHAMBER: "Two-handed sword (claymore) forward pierce attack animation causes character's hands to clip through

@@ -2679,7 +2679,7 @@ export const rotNegX = (rad) => {
  * i.e. `rotate` is a turn in the OBJECT ROOT's frame, laid on the node's world orientation as the animation left it -
  * the node's world becomes `rotate * world`, its translation untouched.
  *
- * BOW-AIM (bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): THAT LINE IS OSG's, AND OSG MULTIPLIES ROW VECTORS. Its
+ * BOW-AIM (bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): THAT LINE IS OSG's, AND OSG MULTIPLIES ROW VECTORS. Its
  * matrices (and the quaternion product, `q1 * q2` = q1 then q2) are the transposes of this port's: here a world is
  * `parent * local` and a point is `M v` (mwNifMesh.js composeTransform). Written in this port's convention the line is
  *
@@ -2689,7 +2689,7 @@ export const rotNegX = (rad) => {
  * line's letters (`W * rotate * W^T * local`), which turns the world by `rotate` conjugated by parent*W instead: on
  * retail's third-person skeleton a "look down" of 0.3 tipped the chest BACK 0.3, about an axis 3 degrees off the
  * root's X, where the corrected line turns it exactly `rotate`. Measured on the vendored retail biped
- * (test/combat/fb1026b_bowaim.test.js); MW-D20's fixture (a file root turned Rz90) is the same law worked by hand.
+ * (test/combat/fb1026c_bowaim.test.js); MW-D20's fixture (a file root turned Rz90) is the same law worked by hand.
  */
 function rootSpaceTurn(local, w, rotate) {
   return mat33Mul(mat33Mul(mat33Mul(local, transpose33(w)), rotate), w);
@@ -2734,7 +2734,7 @@ export function applyFirstPersonNeck(skeleton, pose, rootRef, skelMats, pitch, a
 }
 
 /**
- * BOW-AIM (bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): RotateController's rotation alone on node `ref`
+ * BOW-AIM (bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): RotateController's rotation alone on node `ref`
  * (rootSpaceTurn; applyFirstPersonNeck's law with no offset) - `rotate`, a 3x3 in the OBJECT ROOT's space, laid on the
  * node's world rotation as the pose now stands it. Answers false where the skeleton has no such node.
  */

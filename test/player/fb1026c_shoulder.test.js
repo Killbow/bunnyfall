@@ -1,7 +1,7 @@
-// MW-SHOULDER (FIELD BUGS 2026-10-26b, feature-feedback via Mac: "please, add an option to move camera a bit to the side
+// MW-SHOULDER (FIELD BUGS 2026-10-26c, feature-feedback via Mac: "please, add an option to move camera a bit to the side
 // (like in the "eye of the beholder" mod) for morrowind 3rd person models ... because crosshair is located on top of
 // character's head and it is inconvenient to target something with ranged attacks"; bible/01-Overview/bugs/
-// Field-Bugs-2026-10-26b.md) - THE REFERENCE'S VIEW OVER THE SHOULDER, the player's option (player/mwCamera.js).
+// Field-Bugs-2026-10-26c.md) - THE REFERENCE'S VIEW OVER THE SHOULDER, the player's option (player/mwCamera.js).
 //
 // What is pinned: the reference's numbers (settings.lua:45-46, third_person.lua:27, :110-116); the focal transition,
 // camera.cpp:247-294 verbatim; the shoulder's state (third_person.lua:86-127) - the chosen shoulder, the combat offset

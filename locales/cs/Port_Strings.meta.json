@@ -26370,8 +26370,8 @@
   "by": "claude-in-session"
  },
  "prof.craft.xpFirstBought": {
-  "en": "09224e528df1",
-  "tr": "24f20428c936",
+  "en": "75f0476f9180",
+  "tr": "e848567c275a",
   "by": "claude-in-session"
  },
  "prof.craft.xpLimit": {
@@ -26815,8 +26815,8 @@
   "by": "claude-in-session"
  },
  "prof.page.craft.xpBought": {
-  "en": "796b3cae733a",
-  "tr": "b6146263b6f2",
+  "en": "64d819c83da0",
+  "tr": "28f0401d9b00",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirst": {
@@ -26825,8 +26825,8 @@
   "by": "claude-in-session"
  },
  "prof.page.craft.xpFirstOwn": {
-  "en": "0cd6f1e210c1",
-  "tr": "5359f0189d6d",
+  "en": "6db8f28ac0da",
+  "tr": "94f50713d5cf",
   "by": "claude-in-session"
  },
  "prof.page.craft.xpLimit": {
@@ -26915,8 +26915,8 @@
   "by": "claude-in-session"
  },
  "prof.page.enchant.cloth": {
-  "en": "5e3a1c7c87e4",
-  "tr": "889b6a287f72",
+  "en": "b93d723d0f31",
+  "tr": "94677c83d351",
   "by": "claude-in-session"
  },
  "prof.page.enchant.full": {
@@ -27245,8 +27245,8 @@
   "by": "claude-in-session"
  },
  "prof.page.how.outfitting": {
-  "en": "ac56dd54d5ac",
-  "tr": "641a98c31827",
+  "en": "85dc68e23b5f",
+  "tr": "53ce32fe8d2c",
   "by": "claude-in-session"
  },
  "prof.page.how.smithing": {
@@ -29164,14 +29164,29 @@
   "tr": "099a5f45550c",
   "by": "claude-in-session"
  },
+ "ql.journal.pieceChain": {
+  "en": "9fc9f25448a2",
+  "tr": "c9af8d7c4a5e",
+  "by": "claude-in-session"
+ },
  "ql.journal.pieceDamage": {
   "en": "8d28c6a569cd",
   "tr": "72687190d681",
   "by": "claude-in-session"
  },
+ "ql.journal.pieceLeather": {
+  "en": "14786dce4b74",
+  "tr": "725c053c6e30",
+  "by": "claude-in-session"
+ },
  "ql.journal.pieceOneHanded": {
   "en": "7ec4211fda0d",
   "tr": "e769debee3d3",
+  "by": "claude-in-session"
+ },
+ "ql.journal.piecePlate": {
+  "en": "71f27cb3d1c6",
+  "tr": "fad236cfae5e",
   "by": "claude-in-session"
  },
  "ql.journal.pieceTwoHanded": {

@@ -1,5 +1,5 @@
-// BOW-AIM (FIELD BUGS 2026-10-26b, feature-feedback via Mac: "Bow, while being drawn, is pointed upwards too much";
-// bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md) - THE THIRD-PERSON BODY AIMS A RANGED WEAPON WHERE ITS OWNER LOOKS
+// BOW-AIM (FIELD BUGS 2026-10-26c, feature-feedback via Mac: "Bow, while being drawn, is pointed upwards too much";
+// bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md) - THE THIRD-PERSON BODY AIMS A RANGED WEAPON WHERE ITS OWNER LOOKS
 // (combat/spineAim.js): the reference's two spine RotateControllers, half the pitch each, and its pitch factor. On the
 // vendored retail biped (test/fixtures/mw/retailRig.mjs).
 //

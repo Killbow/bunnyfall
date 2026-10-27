@@ -77,7 +77,7 @@ export const CAMERA_OBSTACLE_LIMIT = 5;
 export const FOCAL_OBSTACLE_LIMIT = 10;
 
 /**
- * MW-SHOULDER (FIELD BUGS 2026-10-26b; feature-feedback via Mac: "add an option to move camera a bit to the side ... for
+ * MW-SHOULDER (FIELD BUGS 2026-10-26c; feature-feedback via Mac: "add an option to move camera a bit to the side ... for
  * morrowind 3rd person models ... because crosshair is located on top of character's head and it is inconvenient to
  * target something with ranged attacks"): THE REFERENCE'S VIEW OVER THE SHOULDER, the player's option
  * (systems/features.js 'mw-shoulder-camera'). The focal point - the head the camera turns about - stands off the

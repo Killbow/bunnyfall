@@ -7400,7 +7400,7 @@ outfits (MW-FOLK1), which are drawn on the human races alone, and the first pers
 
 ## BOW-AIM (2026-10-26): the ranged aim pitch, ported - and RotateController in this port's convention
 
-FIELD BUGS 2026-10-26b (`01-Overview/bugs/Field-Bugs-2026-10-26b.md`; the Discord through the owner, "Bow, while being
+FIELD BUGS 2026-10-26c (`01-Overview/bugs/Field-Bugs-2026-10-26c.md`; the Discord through the owner, "Bow, while being
 drawn, is pointed upwards too much"). The three [C] rules above - "The ranged aim pitch is TWO RotateControllers", "The
 spine controllers are attached only in VM_Normal", "setPitchFactor" - are ported whole in `src/combat/spineAim.js`:
 `spinePitchFactor` is character.cpp:1868-1895, `applySpineAim` configureControllers (weaponanimation.cpp:175-211), half
@@ -7418,11 +7418,11 @@ had the letters, `W * R * W^T * local`, which turns the world by R conjugated by
 the identity (armfp.nif's, near enough), wrong on retail's turned bones: a "look down" of 0.3 tipped the third-person
 chest BACK about an axis up to 3 degrees off the root's X. The first-person neck (rule 30) turns through the same helper
 now, and MW-D20's pin holds the hand-worked answer (its local Ry(t), its world Rx(-t) * Rz90). Pinned on the vendored
-retail biped, four bones of four frames each (`test/combat/fb1026b_bowaim.test.js`).
+retail biped, four bones of four frames each (`test/combat/fb1026c_bowaim.test.js`).
 
 ## MW-SHOULDER (2026-10-26): the view over the shoulder, the player's option
 
-FIELD BUGS 2026-10-26b again ("add an option to move camera a bit to the side ... because crosshair is located on top
+FIELD BUGS 2026-10-26c again ("add an option to move camera a bit to the side ... because crosshair is located on top
 of character's head"). OpenMW's viewOverShoulder - off by default in the reference (settings.lua:44), named in
 `player/mwCamera.js`'s head as not here until now - is the player's option, Over the Shoulder (`systems/features.js`
 'mw-shoulder-camera': Off by default, Right, Left). The focal point stands at settings.lua:45-46's [30, -10] behind the

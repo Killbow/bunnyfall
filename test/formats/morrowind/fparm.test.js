@@ -211,7 +211,7 @@ test('MW-D10: the neck takes 0.75 of the look, and the port pitches the OTHER WA
   // OBJECT ROOT's frame and conjugates it into the node's own; with an
   // axis-aligned neck that is the identity, so armfp.nif TURNS its neck
   // 8 degrees and a port that rotates in the local frame moves the eye
-  // somewhere else. BOW-AIM (Field-Bugs-2026-10-26b.md): OSG's
+  // somewhere else. BOW-AIM (Field-Bugs-2026-10-26c.md): OSG's
   // `worldOrient * rotate * worldOrient^-1 * localRot` is a ROW-vector
   // product; in this port's column convention it is localRot * W^T *
   // rotate * W (mwFirstPerson.js rootSpaceTurn), the letters' copy turned
@@ -905,7 +905,7 @@ test('MW-D20: the neck conjugates in the OBJECT ROOT frame - the file root\'s ro
   //   local' = W^T . Rx(-t) . W = Ry(t) (Rz90 takes X to Y; W^T takes it
   //   back, to -Y)
   //   rows: [c,0,s],[0,1,0],[-s,0,c]  with t = pitch * (0.75+0.25*aim)
-  // BOW-AIM (Field-Bugs-2026-10-26b.md): this pin had W . Rx(-t) . W^T =
+  // BOW-AIM (Field-Bugs-2026-10-26c.md): this pin had W . Rx(-t) . W^T =
   // Ry(-t) - OSG's line read in this port's column convention - whose
   // world is Rx(+t) . W: the look's pitch the other way about the root.
   // Under the retired root-relative frame W was identity and the answer
