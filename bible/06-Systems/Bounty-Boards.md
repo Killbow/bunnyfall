@@ -129,6 +129,19 @@ clear of roads, the sea and towns and of any farm that already stands (AUDIT 28 
 farms in one another), and each model sits on the ground under itself. The first group waits in the
 farmyard, 10 to 18 metres from the farmhouse, and stands within 150 metres.
 
+- **The way to it is kept** (RPT1026-QUESTS BOUNTY-WAY, 2026-10-27, a private report of an orchard hunt whose rats
+  never showed). Driven in the real game on the freeware's data - a board's orchard hunt held, the hunter walked onto
+  its pixel: the farm stood 330 to 350 metres from where the hunter came onto the pixel, the way was said once on the
+  screen in the same few seconds as the arrival's own lines (the season, the needs, the family seat), and the four rats
+  stood once the hunter walked it. The way was kept in the journal for a split hunt alone (section 4's BOUNTY-TRAIL
+  lines), so on a hunt of one group a hunter who missed the line stood on the right pixel with nothing to go on and no
+  rat within 150 metres. Now the journal keeps the last way named for every hunt whose group waits at its spot - a
+  farm's first group as a split hunt's second (`scenes/bountyHost.js` questLogEntries). The tutorial's Bounties page said
+  to return for the gold, which no hunt asks (the last kill pays); it now says where a hunt is found - the middle of its
+  black circle, or the dungeon it names - and that the Quests tab keeps the way (`systems/tutorialCatalogue.js`; its
+  words English, as every page's - the old ones held "return", which `tools/l10nHardcoded.mjs` reads as code, so the
+  ratchet counts the page once more). The port's own, Ledger A (THE TOWN'S BOUNTY BOARDS).
+
 - **Seen by its holders and by every member of their party** - a mate's farm stands for the whole party, whether or
   not they took the notice (they may help), never for a passer-by. One farm a NOTICE. (AUDIT 28 corrected "seen by its
   holders", which understated it.) A split hunt's second group never waits among a standing farm's buildings.
@@ -218,6 +231,8 @@ payday, the party, the wire, the circle, the dungeons, the farms, the journal, t
 `test/systems/auditbounty1.test.js` (5) - B1 to B4, and the wiring (the press, the plaque, the host alone).
 `tools/mutants/bounty1.json` - 25 mutations (the bounties' 20 and DEATH-PENALTY's 5), 25 dead.
 `test/scenes/audit28_bounty.test.js` (12) - section 11; `tools/mutants/audit28.json` B1-B13, dead.
+`test/systems/quest/rpt1026_quests.test.js` (2, BOUNTY-WAY) - a farm hunt of one group, its way said once and kept in
+the journal, walked, stood and paid at the last kill; the tutorial's page. `tools/mutants/rpt1026_quests.json` - 2, dead.
 
 ## 11. AUDIT 28 (2026-09-28, Mac: "let's audit everything we have so far before we continue")
 
@@ -243,7 +258,7 @@ ledger of the hunt, a rank per character is read off it, and its rewards are sid
 mounted trophy and a little seat influence. The bounty's piece keeps Mac's ceiling ("Not more. And thats it till max
 level."). The port's own: DFU has no bounty boards (Port-Ledger section A, THE TOWN'S BOUNTY BOARDS).
 
-### 12.1 The ledger (`server-account/src/hunts.js`, migration 0180)
+### 12.1 The ledger (`server-account/src/hunts.js`, migration 0181)
 
 `/v1/hunt/clear` takes `{ character, id, region? }`; `/v1/hunt/state` answers `{ clears, marks, markDone, regions,
 account }`. A row is keyed by account, character, kind and key: a board notice's slot (`bountySlotKey`), so one notice
@@ -326,11 +341,11 @@ code, with that frame fitted on it and uploaded under its own key at runtime (`s
 ARENA2 is kept in the tree (Port-Doctrine's non-negotiables). A visitor reads its name off its numbers. Hunting 100's
 Trophy Hunter is built with it (`06-Systems/Professions-Arc.md` section 58).
 
-### 12.6 A seat's influence (migration 0181)
+### 12.6 A seat's influence (migration 0182)
 
 A recorded clear on a board of a region where the hunter's war-guild pledged counts 25 as the `hunt` source, at most 250
 an account a week (`townSeatLaw.js` HUNT_INFLUENCE, HUNT_WEEK_CAP; `seatInfluence.js` creditHunt), inside the account's
-whole weekly cap: an Orc Raid's camps' weight, modest and bounded like the clears. Migration 0181 widens
+whole weekly cap: an Orc Raid's camps' weight, modest and bounded like the clears. Migration 0182 widens
 `town_seat_influence`'s source check to take it. The table's row is `11-Multiplayer/Seats-Arc.md` section 4.2.
 
 ### 12.7 The Marks of Mastery
@@ -370,9 +385,9 @@ real bounty host's mark crowned, its frame read, only the hunter paid, the mate'
 13, dead. No pin moved. `auditwe_cover.json`'s puppet-leader record re-aimed by content (the line now reads a mark too),
 dead. No version moves.
 
-**The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct202 (acct201 before main's
-JEWEL-KIN), its migrations 0180 and 0181 (0178 and 0179 on its branch). RELAY_VERSION world272 (world271 before main's
-MASTER-THREE): the token's TITLES gained sixteen, the bundle's files unchanged.
+**The versions** (at the merge onto the wardrobe's branch): ACCOUNT_VERSION acct203 (acct201 before JEWEL-KIN,
+acct202 before FIELD BUGS 2026-10-26r), its migrations 0181 and 0182 (0178 and 0179, then 0180 and 0181, on its branch). RELAY_VERSION world273 (world271 before MASTER-THREE,
+world272 before FIELD BUGS 2026-10-26r): the token's TITLES gained sixteen, the bundle's files unchanged.
 Either side may deploy first: a service without the routes leaves the book keeping its clears.
 
 ### 12.10 AUDIT HORIZONTAL, lane F (2026-10-27, the owner: "Audit this")
@@ -421,7 +436,7 @@ the rows: 5,000 at 1,000 clears, 250,000 at 50,000). It stops at the top title's
 flat past it. NOT CHANGED, named: the hunter's own state read (`huntStateOf`, every two minutes on an open board and each
 clear) counts the character's and the account's rows whole; a counter is a migration this lane was not given.
 
-**F8 and G3: the record's numbers.** `11-Multiplayer/Seats-Arc.md` 4.2's row names migration 0181; the Trophy Hunter's
+**F8 and G3: the record's numbers.** `11-Multiplayer/Seats-Arc.md` 4.2's row names migration 0182; the Trophy Hunter's
 cites in the code name `Professions-Arc.md` section 58. **G4**: 12.9's HUNTERS-MARK-II counts; `accountworker.test.js`
 names `crew_signed` and `hunt_clears` beside the tables it pins. **G9**: HUNT_INFLUENCE 25 and HUNT_WEEK_CAP 250 are
 pinned as the record says them.

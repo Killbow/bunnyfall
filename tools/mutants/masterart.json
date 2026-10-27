@@ -206,7 +206,7 @@
   },
   {
     "name": "MASTER-ART-service-day-unbounded",
-    "file": "server-account/migrations/0178_master_work.sql",
+    "file": "server-account/migrations/0179_master_work.sql",
     "old": "  UNIQUE (player, char_id, day),",
     "new": "  UNIQUE (player, rid, day),",
     "tests": ["test/net/masterart_service.test.js"]

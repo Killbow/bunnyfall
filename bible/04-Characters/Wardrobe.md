@@ -81,7 +81,7 @@ the sweep reads the lists and not the doors (ACQUIRE1's law, `systems/acquireWat
 randomizeArmorVariant), so the other styles are bought.
 
 The collection is cosmetic, so the client's word is enough. Nothing rides the account service and nothing is paid from
-it: there is nothing to close, and no migration (0181 was not needed).
+it: there is nothing to close, and no migration (none was needed).
 
 ## 4. The Wardrobe at the counter
 
@@ -208,7 +208,7 @@ body's cache key all carry it.
 their own looks, where a longer piece would have refused the whole record. The wire keeps a look only of its piece's
 kind (`net/wire.js` validFoeRecord, through validWireAppearance); any other is dropped and its piece stands in its own.
 
-**The relay changes: RELAY_VERSION is `world272`** (`world270`, then `world271`, on the branch, renumbered past CHAT-POST and MASTER-THREE at the merges; the graph's hash moves - `net/wire.js` and
+**The relay changes: RELAY_VERSION is `world273`** (`world270`, `world271`, then `world272`, on the branch, renumbered past CHAT-POST, MASTER-THREE and FIELD BUGS 2026-10-26r at the merges; the graph's hash moves - `net/wire.js` and
 `net/appearanceLaw.js`, which joins the bundle with `systems/armorMaterials.js`). Either may deploy first: a relay
 before it drops `ap`, and the piece is seen in its own look. APPEARANCES-II: the relay forwards a foe frame unread
 (validFoeRecord is the door each reader runs), but `net/wire.js` and `net/appearanceLaw.js` are in its bundle, so the
@@ -222,14 +222,14 @@ declared item field (`systems/item/itemFields.js`, `{ t, m, v }`, a look there i
 forged shape as a finding as it reads any field's; and it is a RECEIVER's mark (`net/realm/realmTradeLaw.js`
 RECEIVER_MARKS), stripped by the wire's clamp (`systems/loot/loot.js` validLootItem), a realm trade's record and a wild
 death's - so a trade's offer and its checkpoint agree on a piece that wears a look (MARK-WIRE's lesson). **The account
-worker's bundle moves: ACCOUNT_VERSION is `acct201`** (`acct200` on the branch), and `src/net/appearanceLaw.js` is listed in
+worker's bundle moves: ACCOUNT_VERSION is `acct202`** (`acct200`, then `acct201`, on the branch), and `src/net/appearanceLaw.js` is listed in
 `account-deploy.yml`'s paths. APPEARANCES-II changes `appearanceLaw.js` (drawnPiece's copies are marked, isLookCopy)
 and `net/wire.js` (validFoeRecord's `la`), both in the worker's bundle, so it moves again; the service reads nothing new
 and pays nothing.
 
 **AUDIT HORIZONTAL E8: the account service deploys first.** The new site offers a piece without its look (a receiver's
-mark is stripped off an offer), and an `acct200` service still holds the look on the save's record, so it refuses the
-realm trade, the market listing and the vault deposit of a piece that wears one. `acct201` reads it as a receiver's
+mark is stripped off an offer), and an `acct201` service still holds the look on the save's record, so it refuses the
+realm trade, the market listing and the vault deposit of a piece that wears one. `acct202` reads it as a receiver's
 mark, as the site does. ACCOUNT_VERSION's note says so (`server-account/src/service.js`). The relay may go either side
 (section 6).
 

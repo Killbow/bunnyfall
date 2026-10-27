@@ -70,8 +70,7 @@ src/net/nodeLaw.js (the nodes). Appendix B lists them in one place.
    law 5).
 7. **CRAFTING DOES NOT RETIRE LOOT.** FACT: Loot Rarity's tiers are Common, Magic, Rare, Legendary, Aetheric, Artifact
    (`src/systems/loot/lootRarity.js`); Sigil Sets are online set gear (`11-Multiplayer/Sigil-Sets.md`). DECIDED: a craft
-   reaches **Rare** (a Masterwork); a Master's work alone reaches **Legendary** - its lines chosen, rolled in the band,
-   no record and no power (MASTER-ART, section 57); Aetheric, Artifact and Sigil pieces are never craftable.
+   reaches **Rare** (a Masterwork); a Master's work alone reaches **Legendary** (MASTER-ART, section 57); Aetheric, Artifact and Sigil pieces are never craftable.
 8. **MARKS, NOT GOLD** - DECIDED (Mac: "New currency"). Everything this arc prices between players is in Marks
    (10.5), which only the server holds and only server-witnessed acts mint - SILVER-FINDS (10.5, Mac: "Silver should be
    more accessible"): a harvest's find and a loot find aside, two faucets BOUNDED BY THE DAY instead, since neither act
@@ -558,7 +557,10 @@ GATHER-OW (2026-10-02, Mac: "allow them to appear in the overworld without being
   which goes to the pack or back on the market for gold and to nothing else - or, AUDIT BAG-CRAFT (`Materials-Bag.md`
   15), **loose**: a station's put-in from the pack that the service never handed out, which goes to a station (spent
   first) or back to the pack uncounted and to nothing else; a smelt's products of it are loose, a craft's piece of it
-  lists for gold alone. Own: this character's harvest (section 6), a craft whose every input
+  lists for gold alone. RPT1026-MARKET STORES-SAID (private reports 2026-10-26): the market's List form and the guild
+  Stores' Put in name the units of each origin they may not take, with their counts and why (`ui/storesWalled.js`) - they
+  offered only what may go, and Cured Leather and Arcane Essence made of looted or gold-bought goods read as lost. Own:
+  this character's harvest (section 6), a craft whose every input
   was own (section 9), Disenchanting's Essence from an own provenance item (one this character made, never sold), a
   Siege Honour's Spoils. Bought: a market purchase, a filled buy order, a counter's goods (4.5), a craft with any
   bought input, Essence from any other provenance item. A craft spends bought units first, so a character's own stay
@@ -598,7 +600,6 @@ laid out for the phone's touch layer as for the desktop.
 - **The Professions tab** (character sheet): a left column in two groups (Gathering, Crafting) - each row the icon,
   name, rank, rank's name and a thin bar; the right pane for the chosen one - XP to the next rank, the specialisation
   cards (choose one), the unlocks by rank (tiers, recipes), today's harvests, and "Crafts above Journeyman: 1 of 2".
-  CRAFT-HALL (section 56) adds its bar, **What raises it** and a craft's **First-time bonuses**.
   **How it is done** (TOOL-SAID, FIELD BUGS 2026-09-30b; CRAFT-HOWTO, FIELD BUGS 2026-10-18d): under the XP line, a
   paragraph says how the chosen profession is practised. A gatherer says how it gathers (`ui/professions/profPages.js`
   `GATHER_HOW` for Herbalism, Mining and Logging, Hunting's own line, `FISHING_HOW`, and Mining's ground line under its
@@ -622,8 +623,7 @@ laid out for the phone's touch layer as for the desktop.
 - **A station**: left, the recipe list (filters: Can make now, All known, by tier); centre, the recipe - its inputs
   (have / need, from the Stores), the product as an item card, a bar of its quality odds (9.2); buttons **Craft**
   (plays the act, 9.4), **Quick craft**, **Craft x N** (quick, up to 10); right, the act's panel while it plays.
-  CRAFT-HALL (section 56) built the stations' own page, **Crafting**, the filters over the anvil's, workbench's,
-  loom's and fire's patterns, and **Craft x N**.
+  CRAFT-HALL: section 56.
 - **The held map** marks the patches and veins a character has worked before, and a Prospector's veins.
 - **Keys** from KB1's registry, under a Professions group in Controls: Interact (E), attack, Esc, and an **act
   choice** key, chosen from the free keys at PROF1 (KB1's rule: one key, one action; Mac's four calls stand): at a
@@ -3850,7 +3850,9 @@ Mac: **"2 and 4"** (2026-10-02: the Apothecary waits on Alchemy, Cooking and Jew
   "worth one quality step in any recipe"); no family step (no jeweller's choice is a quality step).
 - **The specialisations** (3.3), all four chosen now. **Gemcutter** (50) - a set gem +20%, not +10%. **Goldsmith** (50) -
   DECIDED: "Silver counts as Gold" is the **piece's** - a Goldsmith's Silver piece holds Gold's +10% and so its worth; its
-  rank stays Silver's, the metal it was made of. **THE JEWELLER'S HAND** (`jewelHand`): what of the choice at 50 a piece
+  rank stays Silver's, the metal it was made of. (RPT1026-PROGRESS, 2026-10-26: the card's own words were the design's
+  shorthand, and a private report read them as Silver standing in for Gold in a recipe; they say what
+  it does now - "Silver jewelry you make has the enchantment points and worth of Gold." - `net/professionLaw.js`.) **THE JEWELLER'S HAND** (`jewelHand`): what of the choice at 50 a piece
   carries wherever it goes - 1 a Goldsmith's Silver piece, 2 a Gemcutter's gemmed piece - signed into its record (`f`,
   `net/productRecord.js`, `jewelHandOk`) and kept on it in **0069's `products.hand`** (the cook's column - its `CHECK (1,
   2)` holds both: **no migration**); so a Gemcutter's ring bought at the market holds its points in the buyer's hands.
@@ -4262,10 +4264,7 @@ slice is built and pinned on its own (Home's "one feature at a time").
   Pine, smelt the Steel, cure the hide) at two stations, before the anvil - for DFU's own Steel Longsword, which every
   Weaponsmith shelves and every dungeon drops.
 - **The ceiling.** Law 7: a craft reaches Rare at most (a Masterwork, 8% at the best margin - 13 with a Masterwright's points, 9.2); loot reaches
-  Legendary, Aetheric, Artifact and Sigil. A crafted piece was never the best a slot holds. MASTER-ART (2026-10-27,
-  section 57; the owner: "build all of it with autonomy and be as detailed as possible. No exceptions and no band aids"):
-  a Master's work is a Legendary of the lines its crafter chose - the build a slot wants, never past the Legendary band,
-  never a Legendary's power.
+  Legendary, Aetheric, Artifact and Sigil. A crafted piece was never the best a slot holds. MASTER-ART (section 57): a Master's work is a Legendary of the lines its crafter chose, never past the Legendary band.
 - **What already works**: what wears out or is eaten - the tools (a Standard tool's 50 harvests, `TOOL_LIFE`), Repair Kits, arrows, dishes and the
   party's Feast, Potent potions, Ram Kits and the fortifications' stone, decor. Loot does not flood them.
 
@@ -4526,8 +4525,7 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   the Essence short said. The station's fee is a temper's and a reforge's, as a craft's and a disenchant's.
   TEMPER-CARRIED (FIELD BUGS 2026-10-20c): the two temper sections stood in the station list of a book that carries
   nothing, and every live book carries since BAG1, whose page (`profPages.js` drawCarryStores) listed neither - the
-  temper was drawn nowhere in the game. The carrying page lists both beside the anvil and the loom - since CRAFT-HALL
-  (section 56) every page that draws the stations reads one list, the tempers in it
+  temper was drawn nowhere in the game. The carrying page lists both beside the anvil and the loom
   (`profPages.js:"    ['temper-loom', (d) => drawTemper(d, rerender, kit, 'loom')],   // CRAFT4: the tailor's"`).
   Pinned by `test/ui/fb1020c_tempercarried.test.js`; `tools/mutants/fb1020c_tempercarried.json`.
 - **The four hosts**: `scenes/world.js` wired (the pack's pieces - not worn, no market act kept on them - and the step and
@@ -6431,7 +6429,7 @@ bonus (or what already has)." The owner: "No exceptions and no band aids."
 
 - The station doors changed in place in `worldModes.js` and `world.js` (no host grew). `exterior.js` and
   `dungeonContext.js` hold no station. Not a DFU member (Port-Ledger A, the professions' row).
-- The service change is acct198 (acct196, then acct197, on its branch, renumbered past WOVEN-PAYS and JEWEL-KIN at the merges). Either side may deploy
+- The service change is acct199 (acct196, acct197, then acct198, on its branch, renumbered past WOVEN-PAYS, JEWEL-KIN and FIELD BUGS 2026-10-26r at the merges). Either side may deploy
   first. A judged cloth pattern is made only by the craft that laid its first on, as WOVEN-PAYS decides (`madeStatement`).
 - New and changed text follows PLAIN-TEXT (`Home.md`). Each craft's how-to (`CRAFT_HOW`, `ALCHEMY_HOW`,
   `ENCHANTING_HOW`) says where its stations stand and what they do, in 40 words or fewer. What pays XP is said once, in
@@ -6554,7 +6552,7 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 - **The service** - `masterWork.js:"export async function masterWork("`, `/v1/prof/master`: one batch, as the anvil's -
   the rank read, the day's row, every good and catalyst held as it is spent (a Pearl jewel's own Pearl beside its three),
   the products row and signed record, the goods out a station's way, the catalysts bought first. A progression claim of
-  the seated character (`progress.js` PROGRESS_ROUTES). Migration `0178_master_work.sql`. The state says whether today's
+  the seated character (`progress.js` PROGRESS_ROUTES). Migration `0179_master_work.sql`. The state says whether today's
   is made (`profState`'s `master`). AUDIT HORIZONTAL B3: the goods held and the recipe's own craft asked are pinned - the
   catalysts alone make nothing, and a Smith at Master makes no leather cuirass.
 
@@ -6615,8 +6613,8 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 - **The four hosts**: `world.js` wired (the craft door's spread, above); `worldModes.js`, `exterior.js` and
   `dungeonContext.js` build no station page and no craft door - none to wire.
 
-- **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
-  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct199 (acct198 before main's JEWEL-KIN). The relay is unchanged. The wire's
+- **The service** changes: a route, a table (0179), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
+  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct200 (acct198 before JEWEL-KIN, acct199 before FIELD BUGS 2026-10-26r). The relay is unchanged. The wire's
   change is the product record's (`l` its signed lines, MINT_V_MASTER, the bound at 704); a client older than it mints a
   Master's record as the Masterwork's Rare roll - at version 0's law where the record is past its 512.
 

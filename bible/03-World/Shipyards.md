@@ -221,7 +221,7 @@ he or she is spoken of as the hand is (L7-9).
 
 **Signed once online** (CREW-SIGNED, 2026-10-27). Every client draws a town's hall alike, so online two players
 could sign one named sailor (L2-10, L7-8). Now a hire in the shared world asks the account service first
-(`server-account/src/crewSigns.js`, migration 0179; `/v1/crew/hall`, `/v1/crew/sign`, `/v1/crew/release`). The first
+(`server-account/src/crewSigns.js`, migration 0180; `/v1/crew/hall`, `/v1/crew/sign`, `/v1/crew/release`). The first
 character to sign a recruit holds him for his day; another is told he has signed on elsewhere, and nothing is paid. Paid
 off, swapped out or his ship sold, he is let go to the hall for every player. The hall hides the sailors other players
 and the account's other characters hold (`scenes/crewSignBook.js`, read again after CREW_HALL_FRESH_MS), and the window

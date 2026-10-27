@@ -1,6 +1,6 @@
 // CREW-SIGNED (2026-10-27, the SEA-OPEN slice; bible/03-World/Shipyards.md CREW-SIGNED): a crew hall's recruit signed once
 // online - the law both ends read (src/net/crewSignLaw.js), the service's routes over the real Worker and its database
-// (server-account/src/crewSigns.js, migrations/0179), the clock's sweep (cron.js `crew-signs`) and the client's door
+// (server-account/src/crewSigns.js, migrations/0180), the clock's sweep (cron.js `crew-signs`) and the client's door
 // (net/accountClient.js accountCrewSigns) through the same Worker. tools/mutants/seaopen.json (CREW-).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

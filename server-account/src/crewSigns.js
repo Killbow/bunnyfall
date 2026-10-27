@@ -1,6 +1,6 @@
 // @ts-check
 // CREW-SIGNED (2026-10-27; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED ONCE ONLINE, the
-// service's half (the law src/net/crewSignLaw.js, the table migrations/0179's).
+// service's half (the law src/net/crewSignLaw.js, the table migrations/0180's).
 //   HALL (/v1/crew/hall): a town's hall on a day - the slots others hold, and the asking character's own.
 //   SIGN (/v1/crew/sign): held by the first character to ask, for his day; asked again by it, the same; else `crew-taken`.
 //   RELEASE (/v1/crew/release): a recruit the asker holds let go. An account holds CREW_SIGN_DAY_MAX a day.
