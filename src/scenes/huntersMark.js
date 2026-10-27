@@ -55,6 +55,7 @@ export const huntMarkTraits = (/** @type {number} */ week, /** @type {number} */
 export function createHuntersMark(deps) {
   const book = deps.hunt?.door ? createHuntBook({ door: deps.hunt.door, storage: deps.hunt.storage ?? null, character: deps.hunt.character ?? (() => characterIdOf(deps.entity())), now: () => wallNow() }) : null;
   setHuntBook(book);
+  book?.onChange(() => deps.repaint());   // the service's word redraws an open board's header
   /** The online world's wall clock: the event clock's own instant (a mark's week is the seats'). */
   const wallNow = () => deps.wallNow?.() ?? wallMsForClassicMinutes(deps.now());
   let held = /** @type {{ id: string, takenAt: number } | null} */ (null);

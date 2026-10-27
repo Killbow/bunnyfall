@@ -5375,8 +5375,8 @@ function statsStanding(detail) {
   statsDress(detail, playerEntity);
   statsLaw(detail, playerEntity);
   statsGuilds(detail, playerEntity);
-  statsHunt(detail, { el, divider: pxDivider, meter: pxMeter });   // HUNTERS-MARK: the hunter's rank, online
   if (getPref('standingAll')) statsEveryStanding(detail, playerEntity);   // EVERY-STANDING
+  statsHunt(detail, { el, divider: pxDivider, meter: pxMeter });   // HUNTERS-MARK: the hunter's rank, online
 }
 
 /** FIELD BUGS 2026-10-09e EVERY-STANDING ("Could we have a setting to see our reputation with every guild/kingdoms?" -
