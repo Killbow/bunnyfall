@@ -670,11 +670,13 @@ RECORDED, NOT CHANGED:
 CHANGED, POWER-CEILING (2026-10-27, `Power-Ceiling.md` section 5). The guards' shares now compose under one ceiling: a
 hurt keeps at least 10.71% of what reaches them (the loot 55% off, the sets 50%, the sky 15%, the martial path 30%,
 the arcane path 20%, each at its strongest). Points, pools, avoidance and a cap by health stand outside it, as they
-stood outside the 96% above. The blow powers, six registries now, multiply under one ceiling of x43.18 - the sigil
-+12%, the sets +200%, the loot +240%, the Firmament +50%, weapon mastery +80%, the martial paths +40%, each at its own
-top. Each registry is held at its own top and each ceiling is the product of the tops, so nothing a player has is cut.
-A power added later that would take its registry past its top is cut at that top, and no other registry for it (AUDIT
-HORIZONTAL D4: the product alone cut the last registry asked).
+stood outside the 96% above.
+
+The blow powers, six registries now, multiply under one ceiling of x43.18 - the sigil +12%, the sets +200%, the loot
++240%, the Firmament +50%, weapon mastery +80%, the martial paths +40%, each at its own top. Each registry is held at
+its own top and each ceiling is the product of the tops, so nothing a player has is cut. A power added later that
+would take its registry past its top is cut at that top, and no other registry for it (AUDIT HORIZONTAL D4: the
+product alone cut the last registry asked).
 
 FIELD BUGS 2026-10-18f VAMPIRIC-WARD: the heal is the damage a blow DEALS, and a blow a referee's ward turns whole deals
 none. The stand-in says so (`warded`: the Warden's ward, the Brass Remnant shut, the Spire's turned blows - Elite-Gates.md
