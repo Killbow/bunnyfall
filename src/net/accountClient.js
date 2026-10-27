@@ -816,6 +816,11 @@ const REFUSAL_WORDS = {
   // SHIP-PVP (server-account/src/seaWreck.js): a wreck's prizes
   'sea-prize-realm': () => t('account.refusal.seaPrizeRealm', 'Only an online character of the realm can take a prize from a wreck.'),
   'sea-prize-moved': () => t('account.refusal.seaPrizeMoved', 'Those goods were already taken. Look at the board again.'),
+  // CREW-SIGNED (server-account/src/crewSigns.js): a crew hall's recruit
+  'crew-bad': () => t('account.refusal.crewBad', 'The crewmaster does not know that sailor.'),
+  'crew-day': () => t('account.refusal.crewDay', 'The crewmaster has a new day\'s roster.'),
+  'crew-taken': () => t('account.refusal.crewTaken', 'That sailor has signed on elsewhere.'),
+  'crew-many': () => t('account.refusal.crewMany', 'You have signed on as many sailors as one day allows. Come back tomorrow.'),
   'cards-closed': () => t('account.refusal.cardsClosed', 'The realm is not holding stakes for card tables right now. Try again later.'),
   'cards-stake-paid': () => t('account.refusal.cardsStakePaid', 'That stake has already been settled.'),
   'bad-table': () => t('account.refusal.badTable', 'The account service could not read that card table.'),

@@ -252,7 +252,8 @@ the pack the player entity's own (`passageHost.js` reads `court.js` itself): at 
 logical-line ceiling found bootWorld 31 over with the first wiring, and the trim took it back under
 (`01-Overview/Host-Split.md`, PASSAGE's merge); `scenes/naval/navalHost.js` wires the sea's half
 (`passageBerths.js` - AUDIT PASSAGE D-M1: it grew createNavalHost's own scope, and moved out to its wiring; B5's word
-read and said, its roll and take-over asked, are lines of that wiring). `scenes/exterior.js`, the fixed-city bench, stands no
+read and said, its roll and take-over asked, are lines of that wiring); PASSAGE-QUAY's tow is built there too
+(`passageQuay.js`), and PASSAGE-PACE's two leads are `world.js`'s. `scenes/exterior.js`, the fixed-city bench, stands no
 harbour ships - no passage there. `scenes/worldModes.js` (interiors) and `scenes/dungeonContext.js` stand no sea.
 
 ## Pins

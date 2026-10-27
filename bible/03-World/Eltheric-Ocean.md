@@ -357,7 +357,8 @@ CROSS_DAYS on their own clock; that journey alone passes the Veil's refusal (`pi
 
 Nothing new rides the wire. A journey that finds no landing sends the member back and says so. Pins: `test/systems/naval/veilparty.test.js`.
 Mutants: `tools/mutants/seaopen.json` (VEIL-, all dead). PINS MOVED: `ethercross.test.js`, `auditcaptsea.test.js`
-X2 and P6, `csa_together.test.js` (the count's `skip`).
+X2 and P6, `csa_together.test.js` (the count's `skip`). THE FOUR HOSTS: `world.js` builds it and steps it beside the
+crossing; `worldModes.js`, `dungeonContext.js` and `exterior.js` sail no crossing.
 
 ## ETHER-CHART - the chart of the Eltheric Ocean
 
