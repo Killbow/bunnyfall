@@ -27,6 +27,9 @@ import { GATHERED_PARTS, gatheredCount, drawGatheredPart, annalsHeldOf } from '.
 import { partCount } from '../../src/ui/collectionsPage.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import '../../src/systems/professions/profTemplates.js';   // the Mounted Trophy's row, as the game registers it
+import { readFileSync } from 'node:fs';
+
+const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
 const MOB = { GrizzlyBear: 4, Harpy: 13, Gargoyle: 22, Dreugh: 41, Dragonling: 34 };
 const LAND_DREUGH = 279;   // Daggerfall Enemy Expansion's, no row of the classic game's own
@@ -110,21 +113,24 @@ test('HUNTERS-MARK THE TROPHY HUNTER on the real Worker: a clean pelt of a grade
   const s = await standService({ PROFESSIONS_OPEN: 'on', MARKS_OPEN: 'on', BOARD_OPEN: 'on' });
   const raw = s.env.DB._raw;
   const mac = await s.seated('Mac');
-  const spec = (spec100) => raw.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, spec50, spec100, updated_at) VALUES (?, ?, 'hunting', ?, NULL, ?, ?)
-    ON CONFLICT (player, char_id, profession) DO UPDATE SET spec100 = excluded.spec100`).run(mac.id, mac.character, xpForRank(100), spec100, NOON - 30 * 86_400);
+  const ann = await s.seated('Ann');
+  const spec = (who, spec100) => raw.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, spec50, spec100, updated_at) VALUES (?, ?, 'hunting', ?, NULL, ?, ?)
+    ON CONFLICT (player, char_id, profession) DO UPDATE SET spec100 = excluded.spec100`).run(who.id, who.character, xpForRank(100), spec100, NOON - 30 * 86_400);
   let n = 0;
-  const skin = (foe, clean) => s.call('/v1/prof/harvest', {
-    character: mac.character, node: bodyKey({ day: utcDay(NOON), id: (++n).toString(16).padStart(12, '0') }), kind: 'hide', foe,
-    act: { clean, torn: false }, at: NOON - 2, rid: `trophy-${String(n).padStart(6, '0')}`,
-  }, mac.secret);
-  spec(TROPHY_HUNTER);
-  const clean = await skin(MOB.Harpy, true);
-  assert.equal(clean.status, 200, JSON.stringify(clean.body));
-  assert.equal(clean.body.trophy, true, 'a clean pelt of a grade 5 body');
-  assert.equal((await skin(MOB.Harpy, false)).body.trophy, undefined, 'not clean');
-  assert.equal((await skin(MOB.GrizzlyBear, true)).body.trophy, undefined, 'a grade 2 body');
-  spec('butcher');
-  assert.equal((await skin(MOB.Dragonling, true)).body.trophy, undefined, 'another spec');
+  const skin = async (who, foe, clean) => {
+    const r = await s.call('/v1/prof/harvest', {
+      character: who.character, node: bodyKey({ day: utcDay(NOON), id: (++n).toString(16).padStart(12, '0') }), kind: 'hide', foe,
+      act: { clean, torn: false }, at: NOON - 2, rid: `trophy-${String(n).padStart(6, '0')}`,
+    }, who.secret);
+    assert.equal(r.body.ok, true, JSON.stringify(r.body));   // a harvest the service took - the rare hides' day not spent
+    return r.body;
+  };
+  spec(mac, TROPHY_HUNTER);
+  spec(ann, 'butcher');
+  assert.equal((await skin(mac, MOB.Harpy, true)).trophy, true, 'a clean pelt of a grade 5 body');
+  assert.equal((await skin(mac, MOB.GrizzlyBear, true)).trophy, undefined, 'a grade 2 body');
+  assert.equal((await skin(mac, MOB.Harpy, false)).trophy, undefined, 'not clean');
+  assert.equal((await skin(ann, MOB.Dragonling, true)).trophy, undefined, 'another spec');
   assert.deepEqual([trophyHunted({ spec100: TROPHY_HUNTER, tier: 6, clean: true }), trophyHunted({ spec100: TROPHY_HUNTER, tier: 4, clean: true })], [true, false]);
   // the kind: once a body, the beast skinned
   _resetGatheredForTests();
@@ -181,4 +187,13 @@ test('HUNTERS-MARK THE GATHERED LOG AND THE COLLECTIONS PAGE\'S PARTS: a fish lo
   assert.match(byClass(a, 'found')[0].textContent, new RegExp(`^${EG_ANNALS[0][0].replace(/[.*+?^${}()|[\]\\']/g, '.')}`));
   assert.match(byClass(a, 'codex-line')[EG_ANNALS_FOUND].textContent, /Given at a lord's first fall/);
   assert.match(draw('annals', null).textContent, /Sign in to your account/);
+});
+
+test('HUNTERS-MARK THE FOUR HOSTS\' WIRING (Bounty-Boards.md 12.8): the streaming world builds the hunt\'s online deps and the trophy door in their modules and hands them over - the gather host its entity to a kind\'s answer, the Standing page its hunt block, the deploy filter the trophy law the service now reads (mutants: the kind\'s answer told no entity; the host\'s hunt deps gone; the trophy door gone)', () => {
+  assert.match(src('src/scenes/gatherHost.js'), /k\?\.answered\?\.\(d, \(t\) => hud\.toast\(t\), \{ hauled, entity: deps\.entity\?\.\(\) \?\? null \}\)/);
+  const world = src('src/scenes/world.js');
+  assert.match(world, /    hunt: huntOnline\(params\.has\('online'\), saveSoon\),\n/);
+  assert.match(world, /huntKind\(\{ book: profBook, bodies: \(\) => huntBodies\(\), openLoot: openHuntLoot, trophy: trophyDoor\(saveSoon\) \}\)/);
+  assert.match(src('src/ui/enhanced/enhancedMenu.js'), /statsHunt\(detail, \{ el, divider: pxDivider, meter: pxMeter \}\);/);
+  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/trophyLaw\.js"/);
 });

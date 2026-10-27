@@ -2,7 +2,6 @@
 // HUNTERS-MARK and MARKS-OF-MASTERY (2026-10-27; a player, handed on by the owner: "Add more horizontal progression
 // please!"; bible/06-Systems/Bounty-Boards.md section 12) - THE HUNT'S LEDGER, as the service keeps it, and the titles
 // read off what it witnessed. The law is both ends' (src/net/huntLaw.js); the table migrations/0178_hunt_ledger.sql's.
-//
 // A CLEAR IS THE CLIENT'S WORD. The world runs on the player's machine and nothing here saw the beasts fall, so a clear
 // is BOUNDED, as Renown's report is (renownTracks.js): a bounty's own shape, its day inside the event clock's window, its
 // level within reach of the level the realm trusts, one row a character a notice (or a mark's week), and the account's

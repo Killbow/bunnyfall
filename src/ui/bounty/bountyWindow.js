@@ -107,8 +107,7 @@ function shellOf(host, label, exit) {
  * The board.
  * @param {HTMLElement} host
  * @param {{ town:{name:string}, rows:() => any[], held:() => any[], nextDayIn:() => number, inParty:() => boolean,
- *   take:(id:string) => {ok:boolean, text?:string}, drop:(id:string) => {ok:boolean},
- *   share:(id:string) => {ok:boolean, shut?:Array<{name:string, lv:number, low:boolean}>},
+ *   take:(id:string) => {ok:boolean, text?:string}, drop:(id:string) => {ok:boolean}, share:(id:string) => {ok:boolean, shut?:Array<{name:string, lv:number, low:boolean}>},
  *   hunt?: () => ({ rank: any, mark: any, takeMark: (id:string) => {ok:boolean, text?:string}, dropMark: (id:string) => {ok:boolean} } | null),
  *   onExit?: (() => void) | null }} deps
  */

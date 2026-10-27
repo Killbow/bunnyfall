@@ -71,7 +71,8 @@ ESCORTING FACES - the quest escorts' portrait column, FE1 - and the CREDITS TABL
 - and the BUILDING DOOR'S RING (`interiorLoadMark.js`: a ring over the hotbar while a building's door loads, the full loading screen stepped aside so the street stays visible - `10-UI/Loading-Screens.md`);
 - and LOCKPICK's TWO (`lockpickDoor.js` and `lockpickWindow.js`: the lock's window - its pin tumblers in cross-section, the pick, the Auto attempt and Leave - `06-Systems/Lockpicking.md` section 4);
 - and CRAFT-HALL's ONE (`professions/craftHall.js`: what a crafter reads at work - a track's bar, its first-time bonuses spent and owed, what raises it figure by figure from the laws - `06-Systems/Professions-Arc.md` section 56);
-427 modules
+- and HUNTERS-MARK's TWO (`bounty/huntRank.js`: the hunter's rank on the board's header and the Standing page; `collections/gatheredPart.js`: the Collections page's Trophies, Fish and Annals - `06-Systems/Bounty-Boards.md` section 12);
+429 modules
 live under `src/ui/`. Items still routed here are
 collected in `01-Overview/Port-Ledger.md` section C; scope in
 `01-Overview/Port-Doctrine.md` phase plan.

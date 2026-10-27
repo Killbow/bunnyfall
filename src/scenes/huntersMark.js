@@ -1,13 +1,11 @@
 // @ts-check
 // HUNTERS-MARK (2026-10-27; a player, handed on by the owner: "Add more horizontal progression please!"; bible/06-Systems/
-// Bounty-Boards.md section 12): THE HUNTER'S RANK AND THE WEEK'S NAMED MARK - the bounty host's half (scenes/bountyHost.js
-// wires it; the host itself only reports its clears and asks the board's view). Online alone: the rank is the account
-// service's, kept by the hunt's book (net/huntBook.js), and a named mark is posted to a hunter from its middle rung.
+// Bounty-Boards.md section 12): THE HUNTER'S RANK AND THE WEEK'S NAMED MARK, wired by scenes/bountyHost.js. Online alone:
+// the rank is the account service's, kept by the hunt's book (net/huntBook.js).
 //
-// A NAMED MARK: one beast of the reader's tier a week, the same at every board (huntLaw.js huntMarkOf), lairing on one of
-// each board's own sites. Stood through the board's own pack stand, alone, an elite under its name with two boss traits
-// (systems/bossTraits.js) drawn off the week's seed. Its payday is gold and a mounted trophy, never kit; its clear is
-// reported as the board's are, and the service takes one a week a character.
+// A NAMED MARK: one beast of the reader's tier a week, the same at every board (huntLaw.js huntMarkOf), on one of the
+// board's own sites - an elite under its name with two boss traits off the week's seed. It pays gold and a mounted
+// trophy, never kit; its clear is reported as a board's, one a week a character.
 import { createHuntBook, setHuntBook } from '../net/huntBook.js';
 import {
   huntWeekAt, huntMarkOf, huntMarkId, parseHuntMarkId, huntMarkSite, huntMarkGold, huntMarkSeed, huntMarksOpen, huntRungOf, huntNextRung,

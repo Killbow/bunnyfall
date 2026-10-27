@@ -21,6 +21,7 @@ import { progressSpentOf, PROGRESS_ROUTES } from '../../server-account/src/progr
 import { ROUTES } from '../../server-account/src/service.js';
 import { titlesHeld } from '../../server-account/src/titles.js';
 import { creditHunt, standingsOf } from '../../server-account/src/seatInfluence.js';
+import { withMasteryMarksAll, withMasteryMarks } from '../../server-account/src/hunts.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 
 const { subtle } = globalThis.crypto;
@@ -82,12 +83,13 @@ test('HUNTERS-MARK THE LEDGER through the real Worker: a clear recorded once a c
   const two = await clear(mac, bountyId(day, 300, 200, 2, 3), { region: 9 });
   assert.equal(two.body.recorded, true);
   assert.deepEqual(two.body.regions, { 9: 1, 17: 1 });
+  assert.deepEqual((await clear(mac, bountyId(day, 301, 200, 0, 3), { region: 17 })).body.regions, { 9: 1, 17: 2 }, 'the region tallied');
   assert.equal((await clear(mac, bountyId(day, 300, 200, 3, 3))).body.recorded, true, 'a board of no known region');
-  assert.equal((await state(mac)).body.account.clears, 3);
+  assert.equal((await state(mac)).body.account.clears, 4);
   assert.deepEqual(progressSpentOf('/v1/hunt/clear', one.body), [['bounty', 1]]);
   assert.deepEqual(progressSpentOf('/v1/hunt/clear', again.body), []);
   const spent = raw.prepare("SELECT SUM(claims) AS n FROM progress_hours WHERE player = ? AND stream = 'bounty'").get(mac.id);
-  assert.equal(spent.n, 3, 'three recorded, three spent');
+  assert.equal(spent.n, 4, 'four recorded, four spent');
   // REFUSED: no bounty's shape, a region out of law, a day the boards are past, the trusted level's reach
   assert.equal((await clear(mac, 'nothing')).body.error, 'hunt-id');
   assert.equal((await clear(mac, bountyId(day, 300, 200, 0, 3), { region: 999 })).body.error, 'hunt-id');
@@ -99,7 +101,7 @@ test('HUNTERS-MARK THE LEDGER through the real Worker: a clear recorded once a c
   assert.equal(far.body.error, 'hunt-tier');
   assert.equal((await clear(mac, bountyId(day, 300, 200, 0, 5))).body.recorded, true, 'two levels past: a level gained since the checkpoint');
   // ASKED OF THE SEAT: a body naming another character is no claim
-  const other = await s.call('/v1/hunt/clear', { character: 'r00000000000000000000', id: bountyId(day, 301, 200, 0, 3) }, mac.secret);
+  const other = await s.call('/v1/hunt/clear', { character: 'r00000000000000000000', id: bountyId(day, 302, 200, 0, 3) }, mac.secret);
   assert.equal(other.status, 403);
   assert.equal(other.body.error, 'progress-seat');
   const guest = await s.guest();
@@ -130,6 +132,7 @@ test('HUNTERS-MARK THE DAY\'S CEILING AND THE MARK\'S RUNG: the account\'s UTC d
   const full = await clear(mac, bountyId(day, 300, 200, 1, 3));
   assert.equal(full.body.recorded, false);
   assert.equal(full.body.why, 'day-full');
+  assert.deepEqual(progressSpentOf('/v1/hunt/clear', full.body), [], 'a clear the day took no more of spends nothing');
   assert.equal(raw.prepare('SELECT COUNT(*) AS n FROM hunt_clears WHERE player = ? AND day = ?').get(mac.id, today).n, HUNT_CLEARS_DAY_MAX);
 });
 
@@ -142,10 +145,12 @@ test('MARKS-OF-MASTERY THE TITLES ARE DERIVED: the hunt\'s off the account\'s bo
   assert.equal((await wardrobe()).annals, 0);
   raw.prepare('UPDATE players SET eg_annals = 5 WHERE id = ?').run(mac.id);
   assert.equal((await wardrobe()).annals, 5);
-  seed(20);
+  seed(19);
   seed(5, 'char-other');   // another character of the account: counted together
   raw.prepare("INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, ?, 'mark', 'm.1', 'x', 0, NULL, 1, 1)").run(mac.id, mac.character);
-  assert.deepEqual((await wardrobe()).titles.filter((x) => MASTERY_MARKS.includes(x)), ['bloodhound'], 'twenty-five board clears - a mark is no board clear');
+  assert.ok(!(await wardrobe()).titles.includes('bloodhound'), 'twenty-four board clears and a mark - a mark is no board clear');
+  seed(1, 'char-third');
+  assert.deepEqual((await wardrobe()).titles.filter((x) => MASTERY_MARKS.includes(x)), ['bloodhound'], 'twenty-five board clears');
   const track = (char, prof, xp) => raw.prepare('INSERT OR REPLACE INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, ?, ?, 1)').run(mac.id, char, prof, xp);
   track(mac.character, 'fishing', PROF_XP_MAX);
   track(mac.character, 'mining', PROF_XP_MAX - 1);
@@ -154,6 +159,11 @@ test('MARKS-OF-MASTERY THE TITLES ARE DERIVED: the hunt\'s off the account\'s bo
   for (let d = 0; d < SEA_TITLES[0][1]; d++) raw.prepare("INSERT INTO serpent_kills (day, account, boss, hull, char_id, xp, nonce, at) VALUES (?, ?, 'sethrakul', 1, ?, 1, ?, 1)").run(d, mac.id, mac.character, `n${d}`);
   const held = (await wardrobe()).titles.filter((x) => MASTERY_MARKS.includes(x));
   assert.deepEqual(held, ['bloodhound', 'masterfishing', 'serpenthunter'], 'a Master on the living alone; ten serpents');
+  // a board's rows read the same marks in one batch (boardNames.js), a guest's none
+  assert.equal((await withMasteryMarks({ db: s.env.DB }, { id: mac.id, handle: null })).masteryMarks, undefined, 'a guest\'s rows are not read');
+  const [board, guest] = await withMasteryMarksAll({ db: s.env.DB }, [raw.prepare('SELECT * FROM players WHERE id = ?').get(mac.id), { id: 'guest-1', handle: null }]);
+  assert.deepEqual(board.masteryMarks, held, 'the board\'s batch reads what the wardrobe reads');
+  assert.equal(guest.masteryMarks, undefined);
   assert.equal((await s.call('/v1/account/title', { title: 'masterfishing' }, mac.secret)).status, 200, 'worn');
   assert.equal((await s.call('/v1/account/title', { title: 'mastersmithing' }, mac.secret)).status, 403, 'a dead character\'s Master is no title');
   const tok = (await s.call('/v1/auth/token', { secret: mac.secret, character: mac.character })).body.token;
@@ -181,6 +191,10 @@ test('HUNTERS-MARK A SEAT\'S INFLUENCE: a recorded clear on a board of a region 
   raw.prepare("INSERT INTO guild_members (player, char_id, guild_id, rank, name, joined_at) VALUES (?, ?, 'g1', 0, 'Mac', 0)").run(mac.id, mac.character);
   const week = seatWeekOf(nowS * 1000);
   raw.prepare("INSERT INTO town_seat_pledges (week, guild_id, region, key, set_by, at) VALUES (?, 'g1', 17, 4242, 'Mac', 0)").run(week);
+  // through the ledger's route: a recorded clear in the pledged region answers the seat it counted at
+  const routed = await s.call('/v1/hunt/clear', { character: mac.character, id: bountyId(huntGameDayAt(NOON * 1000), 300, 200, 0, 1), region: 17 }, mac.secret);
+  assert.deepEqual(routed.body.influence, { counted: true, key: 4242 }, JSON.stringify(routed.body));
+  assert.equal((await s.call('/v1/hunt/clear', { character: mac.character, id: bountyId(huntGameDayAt(NOON * 1000), 300, 200, 1, 1) }, mac.secret)).body.influence, undefined, 'no region: no influence');
   const got = await creditHunt(ctx, player, env, { character: mac.character, region: 17, ref: 'b' });
   assert.deepEqual(got, { counted: true, key: 4242 });
   assert.deepEqual(await creditHunt(ctx, player, env, { character: mac.character, region: 17, ref: 'b' }), { counted: false, why: 'claimed' });
