@@ -1881,7 +1881,9 @@ function drawAnvil(detail, rerender, kit) {
       // CRAFT-HALL: Craft x N
       const wood = _anvil.heartwood && takesHeartwood(r);
       craftTimes(box, el, _anvil, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(forge, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });
-      drawMasterBox(box, kit, r, { station: 'anvil', book, state: _anvil, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
+      // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
+      const free = recipeOpen(r, rank) && !_anvil.busy && !_anvil.crafting && !_anvil.act && !elsewhere && !short;
+      drawMasterBox(box, kit, r, { station: 'anvil', book, state: _anvil, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }
@@ -2099,7 +2101,9 @@ function drawWorkbench(detail, rerender, kit) {
       box.append(go, quick);
       const wood = _bench.heartwood && takesHeartwood(r);
       craftTimes(box, el, _bench, rerender, { ready, most: !r.later && recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });   // CRAFT-HALL
-      drawMasterBox(box, kit, r, { station: 'workbench', book, state: _bench, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
+      // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
+      const free = !r.later && recipeOpen(r, rank) && !_bench.busy && !_bench.crafting && !_bench.act && !elsewhere && !short;
+      drawMasterBox(box, kit, r, { station: 'workbench', book, state: _bench, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }
@@ -2350,7 +2354,9 @@ function drawLoom(detail, rerender, kit) {
       quick.onclick = () => { void finish(false); };
       box.append(go, quick);
       craftTimes(box, el, _loom, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(loom, craftsHeld(r.inputs, book)) : 0, once: () => p.craft(r.id, { clean: false, dye }) });   // CRAFT-HALL: in the dye chosen
-      drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });   // MASTER-ART: in the dye chosen
+      // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
+      const free = recipeOpen(r, rank) && !_loom.busy && !_loom.crafting && !_loom.act && !elsewhere && !short;
+      drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });   // MASTER-ART: in the dye chosen
     }
     detail.append(box);
   }
@@ -3073,7 +3079,9 @@ function drawJewellerBench(detail, rerender, kit) {
       quick.onclick = () => { if (!quick.disabled) void finishFor(r.id, wood, crack)(false); };
       box.append(go, quick);
       craftTimes(box, el, _jewel, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood, cracked: crack }) });   // CRAFT-HALL
-      drawMasterBox(box, kit, r, { station: 'jeweller', book, state: _jewel, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
+      // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
+      const free = recipeOpen(r, rank) && !_jewel.crafting && !_jewel.act && !elsewhere && !short;
+      drawMasterBox(box, kit, r, { station: 'jeweller', book, state: _jewel, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
     }
     detail.append(box);
   }

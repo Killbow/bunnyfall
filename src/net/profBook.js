@@ -61,7 +61,7 @@ import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.j
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
 import { chainPlan, chainNeeded, storesRoom } from './chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { temperableRecipe, temperCost } from './temperLaw.js';   // CRAFT4: a temper's input, moved in from the bag first
-import { MASTER_CATALYSTS } from './masterLaw.js';   // MASTER-ART: a Master's work's catalysts, moved in from the bag first
+import { MASTER_CATALYSTS, masterDayOf } from './masterLaw.js';   // MASTER-ART: a Master's work's catalysts, moved in from the bag first; its day
 import { pixelKey, parseNodeKey } from './nodeLaw.js';
 import { accountRefusalText } from './accountClient.js';
 import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again spread out, and never at once into a minute's refusal
@@ -876,10 +876,14 @@ export function createProfBook({ door, storage = null, character = () => null, n
         const ready = r0 ? await book.ensureInStores(inputs, { work: true }) : { ok: true };   // BAG-CRAFT: the bag and the pack, counted or not
         // AUDIT2 BAG1 K5: never `kept` - no craft was kept; an unanswered put-in is said as such (`deposit-kept`)
         if (!ready.ok) return { ok: false, error: ready.error ?? 'materials-short', material: ready.material, moved: ready.moved ?? 0, ...(refined.length ? { refined } : {}) };
-        // MASTER-ART: a Master's work's catalysts, the counted units alone (a Pearl jewel's own Pearl with them)
+        // MASTER-ART: a Master's work's catalysts, the counted units alone. AUDIT HORIZONTAL B6: a key its goods ask too (a
+        // Pearl jewel's Pearl) held for both after, the goods' share loose or counted - as the service holds them (masterWork.js)
         const lines = Array.isArray(master) ? master.filter((x) => typeof x === 'string') : null;
-        const cats = lines ? await book.ensureInStores(MASTER_CATALYSTS.map((k) => ({ key: k.key, n: k.n + inputs.filter((i) => i.key === k.key).reduce((n, i) => n + i.n, 0) }))) : { ok: true };
-        if (!cats.ok) return { ok: false, error: cats.error ?? 'materials-short', material: cats.material, moved: (ready.moved ?? 0) + (cats.moved ?? 0), ...(refined.length ? { refined } : {}) };
+        const share = (/** @type {{ key: string }} */ k) => inputs.filter((i) => i.key === k.key).reduce((n, i) => n + i.n, 0);
+        const cats = lines ? await book.ensureInStores(MASTER_CATALYSTS.map((k) => ({ key: k.key, n: k.n }))) : { ok: true };
+        const both = lines && cats.ok ? await book.ensureInStores(MASTER_CATALYSTS.filter((k) => share(k) > 0).map((k) => ({ key: k.key, n: k.n + share(k) })), { work: true }) : { ok: true };
+        const fell = !cats.ok ? cats : both;
+        if (!fell.ok) return { ok: false, error: fell.error ?? 'materials-short', material: fell.material, moved: (ready.moved ?? 0) + (cats.moved ?? 0) + (both.moved ?? 0), ...(refined.length ? { refined } : {}) };
         const w = { rid: rid(), recipe, clean: clean === true, name: typeof name === 'string' ? name : null, character: c, heartwood: heartwood === true,   // PROF4: a Heartwood for a plank
           ...(lines ? { master: lines } : {}),   // MASTER-ART: a Master's work, its lines chosen
           fee: Number.isSafeInteger(fee) && fee > 0 ? fee : 0, ...(Number.isInteger(dye) ? { dye } : {}),   // PROF7: a garment's dye
@@ -1322,7 +1326,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       applyTrack(r.data?.track);
       // CRAFT-HALL: what it made; a judged cloth pattern only by the craft that laid its first on (WOVEN-PAYS, `firstPaid`)
       if (w.brew === true) noteMade('brews', w.recipe);
-      else if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card
+      // MASTER-ART: the work made, its card; AUDIT HORIZONTAL B5: today's made only by an answer of today's day - a kept work
+      // answered past midnight is the day before's
+      else if (Array.isArray(w.master)) state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };
       else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);
       // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
       const made = w.brew === true ? null : recipeById(w.recipe);

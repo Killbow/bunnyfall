@@ -6,6 +6,8 @@
 import {
   MASTER_RANK, MASTER_LINES, MASTER_PROCS_MAX, MASTER_CATALYSTS, masterRecipe, masterTrackOf, masterOptions, masterChoiceRefusal, masterBand,
 } from '../../net/masterLaw.js';
+import { recipeInputs } from '../../net/recipeLaw.js';   // AUDIT HORIZONTAL B4: the recipe's own goods, no stand-in
+import { chainPlan, chainNeeded, storesRoom } from '../../net/chainLaw.js';   // and the works that make them from raw, as the book runs them
 import { AFFIX_KINDS, affixLabel } from '../../systems/loot/lootRarity.js';
 import { mintPieces } from '../../systems/smithItems.js';
 import { itemLongName } from '../../systems/item/itemInfo.js';
@@ -35,23 +37,40 @@ export function masterOptionWords(o) {
   return band ? AFFIX_KINDS[o.id].label({ id: o.id, param: o.param, value: `${band[0]} to ${band[1]}` }) : o.id;
 }
 
-/** The catalysts a recipe's Master's work asks, each with what is held: `{ key, need, have, pursuit }` - a key the recipe
- *  spends too (a Pearl jewel's Pearl) needs its goods as well. @param {any} r @param {(k: string) => number} held */
-export function masterNeeds(r, held) {
-  return MASTER_CATALYSTS.map((c) => {
-    const need = c.n + r.inputs.filter((/** @type {any} */ i) => i.key === c.key).reduce((n, /** @type {any} */ i) => n + i.n, 0);
-    return { key: c.key, need, have: Math.max(0, held(c.key) | 0), pursuit: c.pursuit };
-  });
+/** The catalysts a Master's work asks, each against the units the service counted (`held`, own or bought - never loose):
+ *  `{ key, need, have, pursuit }`. AUDIT HORIZONTAL B6: a key the recipe spends too (a Pearl jewel's Pearl) shows its
+ *  goods' share among the goods (masterGoods), not here. @param {(k: string) => number} held */
+export function masterNeeds(held) {
+  return MASTER_CATALYSTS.map((c) => ({ key: c.key, need: c.n, have: Math.max(0, held(c.key) | 0), pursuit: c.pursuit }));
+}
+
+/** What a station may work of a key: everything held, counted or loose (profBook.js workable). */
+const workOf = (/** @type {any} */ book, /** @type {string} */ k) => Math.max(0, (typeof book?.workable === 'function' ? book.workable(k) : book?.held?.(k)) | 0);
+/** AUDIT HORIZONTAL B4, B6: THE GOODS A MASTER'S WORK SPENDS - its recipe's own (recipeInputs: no Heartwood, Joiner's or
+ *  cracked gem), each against what the station may work of it once the catalysts' share of a key both ask is set aside.
+ *  The service holds every unit to both and the counted ones to the catalysts (masterWork.js), so this and masterNeeds
+ *  are its law. @param {any} r @param {any} book @returns {{ key: string, n: number, have: number }[]} */
+export function masterGoods(r, book) {
+  const cat = (/** @type {string} */ k) => MASTER_CATALYSTS.filter((c) => c.key === k).reduce((n, c) => n + c.n, 0);
+  return recipeInputs(r).map((/** @type {any} */ i) => ({ key: i.key, n: i.n, have: Math.max(0, workOf(book, i.key) - cat(i.key)) }));
+}
+/** Whether the works the book runs first (CRAFT1's chain) make the goods it lacks from raw - a good at what masterGoods
+ *  leaves it. @param {any} r @param {any} book @param {{ key: string, have: number }[]} goods */
+function goodsFromRaw(r, book, goods) {
+  const inputs = recipeInputs(r), held = (/** @type {string} */ k) => goods.find((g) => g.key === k)?.have ?? workOf(book, k);
+  if (typeof book?.track !== 'function' || typeof book?.store !== 'function' || !chainNeeded(inputs, held)) return false;
+  return chainPlan(inputs, held, { track: (p) => book.track(p), room: (k) => storesRoom(book.store(k)) }).ok === true;
 }
 
 /**
  * THE BOX: drawn into a station's craft box where the recipe takes a Master's work and its craft is at Master. `station`
- * the station's name (its choice kept by it), `state` its page state (`crafting`, `word` - handsAt reads them), `ready`
- * whether the craft itself could be pressed now (goods, fee, hands), `go(lines)` the craft door with the lines.
+ * the station's name (its choice kept by it), `state` its page state (`crafting`, `word` - handsAt reads them), `free`
+ * whether the station could press now, its goods aside (the rank, the fee, the hands - AUDIT HORIZONTAL B4: the box
+ * reads its own goods), `go(lines)` the craft door with the lines.
  * @param {HTMLElement} box @param {any} kit @param {any} r
- * @param {{ station: string, book: any, state: any, ready: boolean, rerender: () => void, name: (k: string) => string, go: (lines: string[]) => Promise<any> }} o
+ * @param {{ station: string, book: any, state: any, free: boolean, rerender: () => void, name: (k: string) => string, go: (lines: string[]) => Promise<any> }} o
  */
-export function drawMasterBox(box, kit, r, { station, book, state, ready, rerender, name, go }) {
+export function drawMasterBox(box, kit, r, { station, book, state, free, rerender, name, go }) {
   const { el } = kit;
   if (!masterRecipe(r) || (book?.track?.(masterTrackOf(r))?.rank ?? 0) < MASTER_RANK) return null;
   const sec = el('section', 'prof-master');
@@ -88,8 +107,13 @@ export function drawMasterBox(box, kit, r, { station, book, state, ready, rerend
     lines.append(lab);
   });
   sec.append(lines);
-  sec.append(el('p', 'px-note', t('prof.master.takes', 'It takes the goods above, the station\'s fee and these catalysts:')));
-  const needs = masterNeeds(r, (k) => (typeof book?.held === 'function' ? book.held(k) : 0));
+  sec.append(el('p', 'px-note', t('prof.master.takes', 'It takes these goods, the station\'s fee and these catalysts:')));
+  const goods = masterGoods(r, book);
+  for (const g of goods) {
+    const words = t('prof.page.craft.input', '{name} {have} / {need} ({held} stored)', { name: name(g.key), have: Math.min(g.have, g.n), need: g.n, held: g.have });
+    sec.append(el('div', `prof-input prof-master-good${g.have >= g.n ? '' : ' prof-short'}`, words));
+  }
+  const needs = masterNeeds((k) => (typeof book?.held === 'function' ? book.held(k) : 0));
   for (const c of needs) {
     const where = pursuitWord(c.pursuit);
     const words = where ? t('prof.master.catalyst', '{name} {have} / {need} ({where})', { name: name(c.key), have: c.have, need: c.need, where })
@@ -100,7 +124,8 @@ export function drawMasterBox(box, kit, r, { station, book, state, ready, rerend
   const made = book?.state?.master?.made === true;
   sec.append(el('p', `px-note${made ? ' prof-short' : ''}`, made ? t('prof.master.madeToday', 'Today\'s Master\'s work is made. The next can be made after midnight UTC.')
     : t('prof.master.oneADay', 'One Master\'s work a day.')));
-  const can = ready && !made && !busy && masterChoiceRefusal(r, picks) === null && needs.every((c) => c.have >= c.need);
+  const can = free && !made && !busy && masterChoiceRefusal(r, picks) === null && needs.every((c) => c.have >= c.need)
+    && (goods.every((g) => g.have >= g.n) || goodsFromRaw(r, book, goods));
   const btn = /** @type {HTMLButtonElement} */ (el('button', 'act primary prof-master-go', busy ? t('prof.master.making', 'Making...') : t('prof.master.go', 'Make the Master\'s work')));
   btn.type = 'button';
   btn.disabled = !can;

@@ -23,6 +23,9 @@ import { masterSpends } from '../../server-account/src/masterWork.js';
 import { signingKey } from '../../server-account/src/signing.js';
 import { craftXpText } from '../../src/ui/craftXpWords.js';
 import { utcDay } from '../../src/net/marksLaw.js';
+import { BAG_TEMPLATE } from '../../src/net/bagLaw.js';
+import { heldOf, roomFor, mintCarried, takeCarried, giveCarried, bagTakesOf } from '../../src/systems/materialsBag.js';
+import { setItemFields } from '../../src/systems/item/itemTemplates.js';
 
 const { subtle } = webcrypto;
 const noWait = () => Promise.resolve();
@@ -230,4 +233,68 @@ test('AUDIT HORIZONTAL B3 THE DECISION HOLDS THE RECIPE\'S GOODS AND ASKS THE RE
   const made = await smith.ask({ rid: 'mastr-000303', recipe: LEATHER, lines, name: 'Mac' });
   assert.equal(made.body.ok, true, JSON.stringify(made.body));
   assert.equal(made.body.track.profession, 'outfitting', 'the work answers its own craft\'s track');
+});
+
+test('AUDIT HORIZONTAL B5 A KEPT WORK ANSWERED PAST MIDNIGHT IS THE DAY BEFORE\'S: pressed at 23:59:50 and its answer lost, the book asks again after midnight - that answer leaves today\'s unmade, its card kept, and today\'s is made (mutant: any answer marks today made)', async (t) => {
+  let now = utcDay(NOON) * 86_400 + 86_390;
+  t.mock.method(Date, 'now', () => now * 1000);
+  const s = await standService({ PROFESSIONS_OPEN: 'on', MARKS_OPEN: 'on' });
+  const raw = s.env.DB._raw;
+  const mac = await s.seated('Mac');
+  raw.prepare('INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, ?, ?, 1)').run(mac.id, mac.character, 'smithing', xpForRank(100));
+  for (const [k, n] of Object.entries({ ...swordGoods(), ...CATS })) raw.prepare('INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, ?, ?, ?)').run(mac.id, mac.character, k, 'own', n * 2);
+  let lose = false;
+  const fetch = async (...a) => { const r = await s.fetch(...a); if (lose && String(a[0]).includes('/v1/prof/master')) throw new TypeError('Failed to fetch'); return r; };
+  const door = accountProf({ fetch, storage: sessionStorageOf(SESSION_KEY, mac), waitMs: 0 });
+  const book = createProfBook({ door, storage: memStorage(), character: () => mac.character, now: () => now * 1000, sleep: noWait });
+  assert.equal((await book.refresh()).ok, true);
+  lose = true;
+  const kept = await book.craft(SWORD, { clean: false, name: 'Mac', master: LINES }, () => {});
+  assert.deepEqual([kept.ok, kept.kept], [false, true], 'made, its answer lost: kept');
+  lose = false;
+  now += 20;
+  assert.equal((await book.refresh({ force: true })).ok, true);
+  assert.equal(book.state.master.made, false, 'a new day');
+  const out = await book.settle(() => {}, (data) => mintPieces(data));
+  assert.deepEqual(out.map((x) => [x.ok, x.data?.repeat, x.data?.day]), [[true, true, utcDay(now) - 1]], 'the day before\'s work, answered');
+  assert.equal(book.state.master.made, false, 'today\'s still to make');
+  assert.equal(book.state.master.last?.recipe, SWORD, 'its card kept');
+  const today = await book.craft(SWORD, { clean: false, name: 'Mac', master: LINES }, () => {});
+  assert.equal(today.ok, true, JSON.stringify(today));
+  assert.equal(book.state.master.made, true, 'today\'s made');
+});
+
+test('AUDIT HORIZONTAL B6 THE BOOK PUTS A PEARL JEWEL\'S PEARLS IN AS THE SERVICE HOLDS THEM: a carrying book, the Stores 3 counted Pearls and 1 loose - its catalysts asked of the counted units, the ring\'s own Pearl of any - asks the service, which makes it; 3 counted alone are short before any ask (mutant: four counted Pearls asked)', async (t) => {
+  t.mock.method(Date, 'now', () => NOON * 1000);
+  const ring = 'ring:gold:pearl';
+  const ringLines = ['stat:intelligence', 'resist:magic', 'focus'];
+  /** Mac at Smithing 100, the Stores given, and the real book carrying for a bag in an empty pack (scenes/world.js carryHands' shape). */
+  const carrying = async (pearls) => {
+    const s = await standService({ PROFESSIONS_OPEN: 'on', MARKS_OPEN: 'on' });
+    const raw = s.env.DB._raw;
+    const mac = await s.seated('Mac');
+    raw.prepare('INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, ?, ?, 1)').run(mac.id, mac.character, 'smithing', xpForRank(100));
+    for (const [k, n, o = 'own'] of [['metal:gold', 1], [HEARTWOOD.key, 2], [ARCANE_ESSENCE.key, 10], ...pearls]) raw.prepare('INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, ?, ?, ?)').run(mac.id, mac.character, k, o, n);
+    const e = { stats: { strength: 50 }, items: [setItemFields({ group: 'UselessItems2', templateIndex: BAG_TEMPLATE })], bagItems: [], goldPieces: 0 };
+    const hands = {
+      held: (k) => heldOf(e, k, { counter: false }), heldAll: (k) => heldOf(e, k), room: (k) => roomFor(e, k), mint: (k, n) => mintCarried(e, k, n),
+      take: (k, n, id, order, counter = false) => takeCarried(e, k, n, id, order, { counter }), give: (k, n) => giveCarried(e, k, n),
+      stamped: (id) => Object.hasOwn(bagTakesOf(e), id), unstamp: (id) => { delete e.bagTakes?.[id]; },
+      stamps: () => Object.entries(bagTakesOf(e)).map(([id, x]) => ({ id, ...x })),
+    };
+    const book = createProfBook({ door: accountProf({ fetch: s.fetch, storage: sessionStorageOf(SESSION_KEY, mac) }), storage: memStorage(), character: () => mac.character, now: () => NOON * 1000, sleep: noWait, carry: hands });
+    assert.equal((await book.refresh()).ok, true);
+    assert.equal(book.carrying(), true);
+    const pearlsLeft = () => Number(raw.prepare('SELECT COALESCE(SUM(qty), 0) AS n FROM prof_stores WHERE player = ? AND material = ?').get(mac.id, PEARL.key).n);
+    return { raw, book, pearlsLeft };
+  };
+  const loose = await carrying([[PEARL.key, 3], [PEARL.key, 1, 'loose']]);
+  const made = await loose.book.craft(ring, { clean: false, name: 'Mac', master: ringLines }, () => {});
+  assert.equal(made.ok, true, JSON.stringify(made));
+  assert.equal(loose.pearlsLeft(), 0, 'the loose one the ring\'s, the three counted the catalysts');
+  const counted = await carrying([[PEARL.key, 3]]);
+  const short = await counted.book.craft(ring, { clean: false, name: 'Mac', master: ringLines }, () => {});
+  assert.deepEqual([short.ok, short.error, short.material], [false, 'materials-short', PEARL.key], 'short before any ask');
+  assert.equal(counted.raw.prepare('SELECT COUNT(*) AS n FROM prof_masters').get().n, 0);
+  assert.equal(counted.pearlsLeft(), 3);
 });
