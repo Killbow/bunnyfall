@@ -50,9 +50,8 @@ import { MAX_STAT_VALUE } from '../../src/systems/statMods.js';
 import { SKILL_HARD_CAP } from '../../src/systems/skillSoftcap.js';
 import { STAT_KEYS_ORDER } from '../../src/systems/statMods.js';
 import { pathFindings } from '../../src/systems/arcanePaths.js';   // SCHOOLS5: a save's specialisation
-import { isMasterWork, masterSignature, rollMasterLines } from '../../src/net/masterLaw.js';   // MASTER-ART: a Master's work's lines, its record's
+import { isMasterWork, masterSignature, masterLinesOfRecord } from '../../src/net/masterLaw.js';   // MASTER-ART: a Master's work's lines, its record's
 import { readProductRecord } from '../../src/net/productRecord.js';
-import { recipeById } from '../../src/net/recipeLaw.js';
 
 /** The judge's version: the item law's, and its own character law beside it. */
 export const JUDGE_VERSION = ITEM_LAW_VERSION;
@@ -230,11 +229,12 @@ export function ledgerPieces(/** @type {any} */ save) {
   return out;
 }
 
-/** MASTER-ART: the lines a record's Master's work mints (masterLaw.js rollMasterLines), as one string - '' for a record
- *  that names none, so no piece claims a Master's lines on another craft's provenance. @param {unknown} record */
+/** MASTER-ART: the lines a record's Master's work mints, as one string - '' for a record that names none, so no piece
+ *  claims a Master's lines on another craft's provenance. AUDIT HORIZONTAL B1: the values the record signs
+ *  (masterLaw.js masterLinesOfRecord), never a roll of today's bands. @param {unknown} record */
 const recordLines = (record) => {
   const c = readProductRecord(record);
-  return c?.l ? masterSignature(rollMasterLines(recipeById(c.r), c.l, c.c) ?? []) : '';
+  return c?.l ? masterSignature(masterLinesOfRecord(c.l) ?? []) : '';
 };
 /** How many provenances one statement asks about - D1 binds at most 100 a statement. */
 const PROVENANCE_CHUNK = 90;
@@ -246,7 +246,7 @@ const PROVENANCE_CHUNK = 90;
  * for another template or material, or holds lower than the piece claims, is no craft - a finding (AUDIT INT: a
  * Crude Iron Dagger's provenance on a Masterwork Daedric one passed, five of them at once). A piece disenchanted is gone
  * from the table and from the save together (alchemy.js), so no honest piece is left behind.
- * MASTER-ART: a Master's work (`l`, its lines) holds a record that names a Master's lines, and the lines its seed rolls.
+ * MASTER-ART: a Master's work (`l`, its lines) holds a record that names a Master's lines, at the values it signs.
  * Answers `{ findings, arrived }` - `arrived` the lawful pieces `player`'s account owns that the service has not yet
  * witnessed arriving (`products.credited` 0: made, or bought at the market, since), each with its worth: the budget's
  * witness for a piece the service minted and the client's pack took (AUDIT INT: a crafted or market-bought piece was
