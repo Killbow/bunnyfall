@@ -12,7 +12,7 @@ import { FAST_M, FAST_DEG, DOCK_REACH_M, DOCK_ANGLE } from '../../../src/systems
 import { quatOfYaw } from '../../../src/systems/naval/navalAI.js';
 import { hullBuild } from '../../../src/systems/naval/navalShips.js';
 import { Boat } from '../../../src/systems/comeSailAway/comeSailAwayBoat.js';
-import { BRING_IN_M, TOW_WAY, TOW_FOUL_S, TOW_FOUL_M, TOW_SWING, TOW_CLEAR_M } from '../../../src/scenes/naval/passageQuay.js';
+import { BRING_IN_M, TOW_WAY, TOW_FOUL_S, TOW_FOUL_M, TOW_SWING, TOW_CLEAR_M, TOW_WAIT_S } from '../../../src/scenes/naval/passageQuay.js';
 import { createPassageHost } from '../../../src/scenes/naval/passageHost.js';
 import { PASSAGE_TEXT, PASSAGE_RESUME_S } from '../../../src/systems/naval/passage.js';
 
@@ -249,4 +249,51 @@ test('AUDIT HORIZONTAL C3 ALONG HER WAY, NEVER HER HEAD: her head 30 degrees off
   assert.ok(moves.length >= 3, `under way: ${moves.length} steps`);
   for (const m of moves) assert.ok(Math.abs(wrap(m.dir - moves[0].dir)) < 0.05 * DEG, `one line: ${(wrap(m.dir - moves[0].dir) / DEG).toFixed(3)} deg`);
   assert.ok(moves.some((m) => Math.abs(wrap(m.head - m.dir)) > 1 * DEG), 'way made while her head still came round - along her way, not her head');
+});
+
+/** AUDIT HORIZONTAL C10: a peer's galleon across her way a hull's length ahead of her stem, making `way` (m/s) as her word
+ *  says - where she lies kept by the test, so a hull under way that never clears is one. Answers her mover. */
+function peerAhead(h, way) {
+  const peer = h.pool.spawnPeerNow(new Boat(2, 0));
+  const put = () => {
+    const p = h.boat.GameObject.position, y = yawOf(h.boat.GameObject.rotation), r = hullBuild(2).bowZ + TOW_FOUL_M * 0.6;
+    peer.GameObject.position = [p[0] + Math.sin(y) * r, 0, p[2] + Math.cos(y) * r];
+    peer.GameObject.rotation = quatOfYaw(y + Math.PI / 2);
+  };
+  put();
+  let there = true;
+  h.deps.peerBoats = () => (there ? [{ id: 'p', pos: [...peer.GameObject.position], vel: [way, 0, 0], speed: way, hull: 2, yaw: 0, boat: peer }] : []);
+  return { put, clear: () => { there = false; }, back: () => { there = true; put(); } };
+}
+
+test('AUDIT HORIZONTAL C10 A HULL UNDER WAY IS WAITED ON: a ship making way across hers (a navy cutter leaving the next berth at 0.5 m/s held her the 40 s on one day in six) holds her without running TOW_FOUL_S down; the wait is bounded at TOW_WAIT_S (120 s) in all, so one that never clears still ends in the landfall; a way made between two waits starts the wait again; a still hull keeps its 40 s (mutants: the way unread, the wait unbounded, the 120, the wait never started again, a still hull waited on)', async () => {
+  assert.equal(TOW_WAIT_S, 120, 'the record\'s two minutes');
+  // never clears: waited on past TOW_FOUL_S, given up at TOW_WAIT_S
+  const h = await tow();
+  assert.equal(h.host.bringIn(h.boat), true);
+  peerAhead(h, 0.6);
+  const before = [...h.boat.GameObject.position];
+  warpFor(h, TOW_FOUL_S + 10);
+  assert.ok(Math.hypot(h.boat.GameObject.position[0] - before[0], h.boat.GameObject.position[2] - before[2]) < 1, 'held where she lies');
+  assert.equal(h.host.berthing(h.boat), 'in', 'past TOW_FOUL_S: still waiting on a ship under way');
+  warpFor(h, TOW_WAIT_S - TOW_FOUL_S - 15);
+  assert.equal(h.host.berthing(h.boat), 'in', 'within TOW_WAIT_S');
+  warpFor(h, 10);
+  assert.equal(h.host.berthing(h.boat), 'foul', 'TOW_WAIT_S in all: given up, the landfall stands');
+  // two waits with a way made between: each its own
+  const g = await tow();
+  assert.equal(g.host.bringIn(g.boat), true);
+  const ship = peerAhead(g, 0.6);
+  warpFor(g, TOW_WAIT_S - 20);
+  ship.clear();
+  const at = [...g.boat.GameObject.position];
+  warpFor(g, 8, undefined, false);
+  assert.ok(Math.hypot(g.boat.GameObject.position[0] - at[0], g.boat.GameObject.position[2] - at[2]) > 5, 'she made way');
+  ship.back();
+  warpFor(g, 40);
+  assert.equal(g.host.berthing(g.boat), 'in', 'the second wait its own');
+  // her way cleared: made fast
+  ship.clear();
+  warpFor(g, 900);
+  assert.equal(g.host.berthing(g.boat), 'fast');
 });

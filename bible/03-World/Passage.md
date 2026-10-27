@@ -217,8 +217,9 @@ port's harbour mouth with a free berth there, her master brings her in (`scenes/
 `navalHost.js`). The journey ends, and her crew warp her along the water's own way (the harbour grid's path) to the
 berth's approach and in along the shore at TOW_WAY (4 m/s), easing to TOW_SLOW in the last TOW_EASE_M. QUAYS'
 docking makes her fast, and the passenger is told to take the gangway ashore. Her place is laid by Come Sail Away's
-`warp` seam, as QUAYS' docking lays it. A hull within TOW_FOUL_M ahead of her stem holds her; held TOW_FOUL_S (40 s),
-her master gives that quay up for this passage, says so, and the landfall sails on as before.
+`warp` seam, as QUAYS' docking lays it. A hull within TOW_FOUL_M ahead of her stem holds her; held TOW_FOUL_S (40 s)
+by one lying still, or TOW_WAIT_S (120 s) by one under way, her master gives that quay up for this passage, says so,
+and the landfall sails on.
 
 The words (`passage.js` PASSAGE_TEXT): `comesIn`, `madeFast`, `quayFoul`. While she comes in no try of her master's is
 made. A boat of mine, a passage to another port, a harbour past BRING_IN_M, or the sea fight switched off: none is
@@ -232,13 +233,23 @@ She is warped along that way, never along her head, and makes way only with her 
 of it; further off, she is warped round where she lies. A step whose footprint (`shipLife.js` footprintClear) would
 lie over land is held, as for a foul hull.
 
-Pins: `test/scenes/naval/passagequay.test.js` (7, over the real naval host and pool: three hulls, a start behind a
+AUDIT HORIZONTAL C10: every hull ahead ran TOW_FOUL_S down, a ship clearing her way as well as one lying across it.
+On one day in six a navy cutter leaving the next berth at 0.5 m/s, after a galleon put out, held her the 40 s, and the
+quay was given up some 30 m from her berth. The naval host's look now says the first hull's way too (`seaClearance.js`
+`ahead`). A hull making HULL_LEAD_MIN_MPS (0.5 m/s) or more is waited on without running TOW_FOUL_S down; a still
+hull, or land, keeps its 40 s.
+
+The wait is bounded at TOW_WAIT_S (120 s) in all, so a hull that never clears still ends in the landfall: a ship leaving her berth at that slowest way clears a Carrack's length and the hand's clearance
+(some 60 m) in two minutes, and the cutter's measured wait was 68 s. A step laid starts both clocks again. That day's
+tow is made fast at 401 s now.
+
+Pins: `test/scenes/naval/passagequay.test.js` (8, over the real naval host and pool: three hulls, a start behind a
 headland, and C3's sweep - ten starts about the headland at eight headings for the Small Ship and the Carrack, her
 bow, waist and stern at both sides never over land, each made fast - a rock risen across her way after it was
-planned, and her way made along one line while her head still comes round). The stated values are pinned as stated (G9: TOW_FOUL_S 40, BRING_IN_M 700). Mutants:
-`tools/mutants/seaopen.json` (QUAY-, all dead). The naval host hands the tow the water (`isWater`) where it handed the
-errands' grid. Left to the author (the audit's suspected item): a ship under way across her way still counts toward
-TOW_FOUL_S - a navy cutter leaving the next berth at 0.5 m/s held her the 40 s on one day in six.
+planned, her way made along one line while her head still comes round, and C10's wait). The stated values are pinned
+as stated (G9: TOW_FOUL_S 40, BRING_IN_M 700; C10: TOW_WAIT_S 120). Mutants: `tools/mutants/seaopen.json` (QUAY-, all
+dead). The naval host hands the tow the water (`isWater`) where it handed the errands' grid, and `ahead` where it
+handed `along`.
 
 ## The journey's leads at her pace (PASSAGE-PACE, 2026-10-27)
 
