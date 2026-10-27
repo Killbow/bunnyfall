@@ -220,6 +220,7 @@ import { GATE_COURTS_MAX } from './gate/gateCourts.js';   // GATE-COURTS: a cour
 import { validGateMods, GATE_FEEDS_MAX, validGatePortents } from './gate/gateMods.js';   // WB8b: the Warden's marks on a gate's state - gateMods.js imports nothing, so the worker's graph stays flat
 import { egStampOk } from './eliteGates/egShape.js';   // EG-FULL: a Spire blow's FULL shape stamp, checked as the wire carries it - egShape.js imports nothing, so the worker's graph stays flat
 import { KT_WATCH_WAVES } from './ketch/ketchLaw.js';   // AUDIT KETCH II L2-2: the Watch's waves, one number for the `wave` and the `st` words (the `st`'s stood at three) - ketchLaw.js imports instanceRoom.js alone, which the relay walks already
+import { validWireAppearance } from './appearanceLaw.js';   // APPEARANCES: a worn piece's look on a look's item - appearanceLaw.js imports systems/armorMaterials.js alone, a leaf, so the worker's graph stays flat
 export { validRollSpec, validRoll, rollDice, ROLL_DICE_MAX, ROLL_SIDES_MAX, ROLL_MOD_MAX };
 export { validHoldemIn, validHoldemOut };
 export { validIliacIn, validIliacOut };
@@ -1615,7 +1616,8 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world269';   // world269: BOW-TOPS (2026-10-26; bible/05-Combat/Balance-Arc.md section 18 BAL-ARCHERY, BOW-TOPS; NOT YET DEPLOYED): the arena's and the siege's weapon tops take BAL-ARCHERY's bows - a Short Bow 17, a Long Bow 19 (net/arena/arenaLaw.js ARENA_WEAPON_MAX, net/siege/siegeRef.js SIEGE_WEAPON_MAX) - so neither referee caps a bow's top blow one short of the game's; nothing else in the law moved
+export const RELAY_VERSION = 'world270';   // world270: APPEARANCES (2026-10-27; bible/04-Characters/Wardrobe.md section 6; NOT YET DEPLOYED): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look
+// world269: BOW-TOPS (2026-10-26; bible/05-Combat/Balance-Arc.md section 18 BAL-ARCHERY, BOW-TOPS; NOT YET DEPLOYED): the arena's and the siege's weapon tops take BAL-ARCHERY's bows - a Short Bow 17, a Long Bow 19 (net/arena/arenaLaw.js ARENA_WEAPON_MAX, net/siege/siegeRef.js SIEGE_WEAPON_MAX) - so neither referee caps a bow's top blow one short of the game's; nothing else in the law moved
 // world267: KETCH-WORDS (2026-10-26, the owner: "Please rework the texts of the raid and the books/quest. Remove the \"her\" mentions and make it not ai-like and non overexplanstory"; bible/11-Multiplayer/Sky-Ketch.md section 21; NOT YET DEPLOYED) - net/ketch/ketchHerald.js: the Sky-Ketch's three Discord cards reworded, plain, the ship no longer she.
 // world266: AUDIT KETCH II (2026-10-26, world265 on its branch, renumbered past GATE-COURTS' world265 at the merge; the owner: "Can you audit the airship raid. Its a buggy mess"; bible/01-Overview/audits/Audit-Ketch-II.md; NOT YET DEPLOYED) - the `st` word's wave to KT_WATCH_WAVES, a ship's own sweep said `sw` on its `dn`, KT_VOYAGE_N_MAX a receipt's bound, her crews' last minutes forty-five (ketchLaw.js KT_LAST_MS), a Warden's fight lost after two minutes empty (ketchWarden.js KW_LOST_MS), the crew counted by its kept places (ketchBrain.js aboard), six Sentry posts, a Sentry that shoots when chased, the bow's and the hold's floors, her fall's receipts told before her record goes, a raised member's dying pose forgotten.
 // world265: GATE-COURTS (2026-10-26, the owner: "We need to develop instances for oblivion gate. The player counts are becoming too large for one instance"; bible/11-Multiplayer/World-Bosses.md section 29; NOT YET DEPLOYED) - a gate's night holds up to GATE_COURTS_MAX courts of GATE_COURT_FIGHTERS, each its own fight (`gate:<day>.<k>` past the first, net/gate/gateLaw.js gateRoomKey); the first court keeps the night's book of seats (net/gate/gateCourts.js placeSeat; GATE_INTERNAL_SEAT, GATE_INTERNAL_COURT, and the hub's GATE_INTERNAL_PARTY) and answers `go` with another court; a court's kill is said to everyone online as `cf`, and the night's `fell` (the gate's collapse, `w` and `cs`) once every court is done; GATE_BRAIN_V and GATE_BRAIN_MIN 7 (a game from before is told to reload).
@@ -2109,7 +2111,7 @@ const rideOf = (rd, rv, hs, rc) => {
   return r ? { rd: r, rv: uint(rv, POSE_RIDE_SPRITES - 1) ?? 0, ...(uint(hs, 1) ? { hs: 1 } : {}), ...(c ? { rc: c } : {}) } : {};   // AUDIT DISC7 B8: uint's law, as rd and rv
 };
 
-/** One equipped item as the look carries it - the six fields, clamped, and a weapon's glow - or null. */
+/** One equipped item as the look carries it - the six fields, clamped, a weapon's glow and a look worn over it - or null. */
 export function validLookItem(it) {
   if (!it || typeof it !== 'object') return null;
   const templateIndex = uint(it.templateIndex, 65535), equipSlot = uint(it.equipSlot, 1e6);
@@ -2117,6 +2119,8 @@ export function validLookItem(it) {
   const out = { templateIndex, group: it.group, equipSlot };
   for (const k of ['material', 'dye', 'variant']) { const v = uint(it[k], 4095); if (v != null) out[k] = v; }
   if (lookGlowOk({ ...out, glow: it.glow })) out.glow = it.glow;   // WEAPON-GLOW1: a weapon's in a hand, read off the clamped slot
+  const ap = validWireAppearance(out, it.ap);   // APPEARANCES (bible/04-Characters/Wardrobe.md): the look it is drawn in, a look of its kind - OMITTED when none, `class`'s law; a relay before this one drops it, and the piece is seen in its own
+  if (ap) out.ap = ap;
   return out;
 }
 

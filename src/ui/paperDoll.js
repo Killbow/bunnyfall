@@ -55,6 +55,7 @@ import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';  
 import { ownItemImage } from '../systems/item/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
 import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { raceArt, FACES_PER_RACE, raceByKey } from '../systems/races.js';   // S3c/U9: all eight races
+import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
 
 export const PAPERDOLL_W = 110;
 export const PAPERDOLL_H = 184;
@@ -133,7 +134,8 @@ export { clampArmorVariant };
 
 /** GetItemImage(forPaperDoll) resolution: {archive, record, dye,
  *  target} or null for groups with no paperdoll layer. */
-export function paperdollItemImage(item, { gender = 'male', race = 'Breton' } = {}) {
+export function paperdollItemImage(worn, { gender = 'male', race = 'Breton' } = {}) {
+  const item = drawnPiece(worn);   // APPEARANCES (bible/04-Characters/Wardrobe.md): a piece wearing a look is drawn as the look - the player's doll and every peer's
   const morph = raceByKey(race)?.morphologyIndex ?? HUMAN_MORPHOLOGY;
   const t = getTemplate(item.templateIndex);
   if (!t) return null;
