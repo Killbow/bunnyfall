@@ -1,19 +1,10 @@
 // @ts-check
-// PASSAGE-QUAY (2026-10-27; bible/03-World/Passage.md, PASSAGE-QUAY) - A BOOKED SHIP COMES IN TO HER PORT'S QUAY.
-// Passage.md left it "the passage's own next slice": the voyage ended at OWS2's landfall, run in on her oars to any
-// shore within VOYAGE_LANDFALL_PX of her port, and the passenger walked into the town. Now, within BRING_IN_M of her
-// port's harbour with a free berth there, her master brings her in: the journey ends (she is at her port), her crew
-// warp her along the water's own way to the berth's approach and in along the shore (shipLife.js's arriving ship's
-// way), and QUAYS' docking makes her fast; the passenger takes the gangway ashore.
-//
-// Her place is laid by Come Sail Away's `warp` seam, as QUAYS' docking lays it (navalHost.js warp): her way off, her
-// place and her head this step's. A hull lying across her way holds her; held TOW_FOUL_S, her master gives the quay up
-// and the landfall stands, as before. The naval host builds it once over its own doors (passageBerths.js's shape).
-//
+// PASSAGE-QUAY (2026-10-27; bible/03-World/Passage.md PASSAGE-QUAY) - A BOOKED SHIP COMES IN TO HER PORT'S QUAY. Within
+// BRING_IN_M of her port's harbour, a berth free, her master ends the journey and her crew warp her along the water's
+// way to the berth, where QUAYS' docking makes her fast. Come Sail Away's `warp` seam lays her place, as QUAYS' does. A
+// hull across her way holds her; held TOW_FOUL_S, the quay is given up and the landfall stands. Ledger A (PASSAGE).
 //   host = { harbours, grid(hull), dockFree(key, i, boat), putOff(key, i), boatPose(boat), along(p, dx, dz, far),
 //            enabled(), yawOf(rotation), now() }
-//
-// Not a DFU member. Ledger A (PASSAGE).
 import { dockFor, madeFast, warpStep } from '../../systems/naval/quays.js';
 import { alongside } from '../../systems/naval/shipLife.js';
 import { charterRecord } from '../../systems/naval/passage.js';

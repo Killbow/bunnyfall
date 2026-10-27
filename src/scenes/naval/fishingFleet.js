@@ -1,11 +1,8 @@
 // @ts-check
-// FISH-BOATS (2026-10-27; bible/03-World/Naval-Combat.md, FISH-BOATS) - A PORT'S FISHING BOATS, STOOD. The law is
-// systems/naval/fishingBoats.js; this module is the naval host's half (scenes/naval/navalHost.js wires it, as it wires
-// passageBerths.js - HOST-SPLIT): the day's boats of each harbour near the player stood where the day finds them, at
-// anchor or on their ground, by the one player who rolls the port (navalHost.js rollsHarbour) - every other player
-// meets that player's boats on the wire, as the harbour's moored ships are met. Gone past HARBOUR_LEAVE, they fade and
-// are stood again the same on the player's return; one sunk or taken today is not.
-//
+// FISH-BOATS (2026-10-27; bible/03-World/Naval-Combat.md FISH-BOATS) - A PORT'S FISHING BOATS, STOOD: the naval host's
+// half of systems/naval/fishingBoats.js (navalHost.js wires it). The player who rolls the port stands its day's boats
+// where the day finds them; every other player meets them on the wire. Past HARBOUR_LEAVE they fade, stood again the
+// same on return; one sunk or taken today is not.
 //   h = { sea, harbours, launch(spec), retire(e), adopt(e), grid(hull), isWater(x, z, hull), where(), rolls(mouth),
 //         feet(), seaStates, reach: { stand, leave } }
 import { classById } from '../../systems/naval/navalShips.js';

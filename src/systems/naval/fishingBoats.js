@@ -1,17 +1,10 @@
 // @ts-check
-// FISH-BOATS (2026-10-27; bible/03-World/Naval-Combat.md, FISH-BOATS) - A PORT'S FISHING BOATS. Naval-Combat's SHIP-LIFE
-// left them unbuilt ("no fishing class exists"). Pure: the day's fleet of a harbour, the water each boat lies and works
-// in, her day's errand, and her catch; the naval host stands them (scenes/naval/fishingFleet.js).
-//
-// THE WORLD'S OWN BOATS: Come Sail Away's Rowboat pulled by two (a Fishing Skiff) and the Large Boat under sail (a Fishing
-// Smack) - navalShips.js `fisher` classes, lawful merchantmen to the law and the captains, never drawn by level or weight.
-//
-// THE FLEET is drawn off the harbour's key and the day (FISH_SALT), so every player in the port sees the same boats in
-// the same water. Each lies at ANCHOR in the roads beside the fairway inside the mouth, and works her GROUND off the
-// mouth on the open water - her slot and bearing off her seed. Her day is the lanterns' (navalHost.js where's cityLights,
-// 17:00 to 08:00): she puts out when the town's lanterns go out and comes home when they are lit.
-//
-// Not a DFU member: Daggerfall has no sea traffic. Ledger A (FISH-BOATS).
+// FISH-BOATS (2026-10-27; bible/03-World/Naval-Combat.md FISH-BOATS) - A PORT'S FISHING BOATS. Pure: a harbour's day's
+// fleet, the water each lies and works in, her day's errand and her catch; scenes/naval/fishingFleet.js stands them.
+// The boats are Come Sail Away's Rowboat pulled by two (a Fishing Skiff) and its Large Boat under sail (a Fishing Smack).
+// The fleet is drawn off the harbour's key and the day, so every player in the port sees the same boats. Each lies at
+// ANCHOR in the roads inside the mouth and works her GROUND off it. She puts out when the town's lanterns go out and
+// comes home when they are lit. Not a DFU member: Daggerfall has no sea traffic. Ledger A (FISH-BOATS).
 import { hash32 } from '../../world/spawnedDungeons.js';
 import { mulberry32 } from '../../combat/blood/bloodArt.js';
 import { keyHash } from './quays.js';
@@ -105,12 +98,10 @@ export function berthSpan(harbour, n, u, length) {
 }
 
 /**
- * THE WATER SHE KEEPS: her ANCHORAGE in the roads past the berths' ends along the shore (slot `i`: a side each, the next
- * FISH_SPACING on), FISH_BERTH_CLEAR off every berth's ship and her way in, at a depth FISH_ROADS_IN tries in turn
- * (shares of the berths' own depth in from the mouth), her whole hull afloat and the water's way from the mouth to it
- * (`grid.path`); and her GROUND off the mouth, its bearing within FISH_GROUND_SPREAD of the harbour's outward one off
- * her seed, the water from the mouth open to it (`grid.clear` - LEG_MARGIN either side). `{ anchor: [x, z], yaw,
- * ground: [x, z] }`, or null where the harbour keeps no room.
+ * THE WATER SHE KEEPS: her ANCHORAGE past the berths' ends along the shore (slot `i`, a side each, FISH_SPACING on),
+ * FISH_BERTH_CLEAR off every berth and its lane, at the depths FISH_ROADS_IN tries, afloat and reached from the mouth
+ * (`grid.path`); and her GROUND off the mouth within FISH_GROUND_SPREAD of its outward bearing, open water to it
+ * (`grid.clear`). `{ anchor: [x, z], yaw, ground: [x, z] }`, or null where the harbour keeps no room.
  * @param {{ harbour: any, i: number, seed: number, hull: number, isWater: (x: number, z: number, hull: number) => boolean,
  *   grid: { clear: (a: number[], b: number[]) => boolean, path: (a: number[], b: number[]) => any } }} q
  */
@@ -155,14 +146,12 @@ export function fishingErrand({ key, waters, lights }) {
 export const fishingHeld = (e) => e?.kind === 'anchor' || (e?.kind === 'fish' && !!e.ringing);
 
 /**
- * HER DAY, stepped (shipLife.js stepErrand's arm for FISH_KINDS): `tools` its own helpers - `here` her plan point,
- * `plan(goal, sails)`, `way(to)` her way through the water (null: none). `ctx.lights` the lanterns lit.
+ * HER DAY, stepped (shipLife.js stepErrand's arm for FISH_KINDS); `ctx.lights` the lanterns lit.
  *   anchor - held at her anchorage; the lanterns out, she puts out ('fish').
  *   fish   - to her ground, then round its ring at FISH_STROKE; the lanterns lit, she makes for home.
- *   home   - to her anchorage, her way shortened as she comes in; there, 'anchor'. The lanterns out again, she turns back.
- * Out and home her sweeps are out and her course is straight (SWEEP_WAY): a smack becalmed or headed rows, as a
- * merchantman warps into a harbour (navalAI.js stepCaptain).
- * A way the water cannot give hands the errand up (null), as every errand does.
+ *   home   - to her anchorage, slowing as she comes in; there, 'anchor'.
+ * Out and home her sweeps are out (SWEEP_WAY), so a smack becalmed or headed rows. A way the water cannot give hands
+ * the errand up (null), as every errand does.
  */
 export function stepFishing(ship, dt, ctx, { here, plan, way }) {
   const e = ship.errand;

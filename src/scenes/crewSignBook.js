@@ -1,15 +1,10 @@
 // @ts-check
-// CREW-SIGNED (2026-10-27, the SEA-OPEN slice; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED
-// ONCE ONLINE, the client's half. Every client draws a town's hall alike (systems/crewHall.js recruitsOf), so online a
-// hire asks the account service first (server-account/src/crewSigns.js, net/accountClient.js accountCrewSigns): the
-// first account to sign a recruit holds him for his day. Built by the shipmaster's host (scenes/shipyardHost.js).
-//
-//   taken(town, day) - the slots other players hold, as last read, and the read in flight (`wait`) when one is asked;
-//   sign(id)         - the recruit held: `{ ok, fresh }`, or `{ ok: false, text }` (another holds him, the day turned,
-//                      the service unread). A service that keeps no hall (`not-found`) is never asked again: the hall
-//                      is the client's own, as before;
-//   release(id)      - a recruit this account holds let go (a hand paid off, a ship sold).
-// Offline, or a game not in the shared world: nothing is asked, every sign is the client's own.
+// CREW-SIGNED (2026-10-27; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED ONCE ONLINE, the
+// client's half: a hire asks the account service first (server-account/src/crewSigns.js), and the first account to sign
+// a recruit holds him for his day. Built by scenes/shipyardHost.js.
+//   taken(town, day) - the slots others hold, as last read, and the read in flight (`wait`);
+//   sign(id) - `{ ok, fresh }`, or `{ ok: false, text }`; a service with no hall (`not-found`) is not asked again;
+//   release(id) - a recruit this account holds let go. Offline, nothing is asked.
 import { accountCrewSigns } from '../net/accountClient.js';
 import { crewSignOf } from '../net/crewSignLaw.js';
 import { appStorage } from '../systems/appStorage.js';

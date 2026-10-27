@@ -1,15 +1,10 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// CREW-SIGNED (2026-10-27, the SEA-OPEN slice; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED
-// ONCE ONLINE, the service's half. The law is both ends' (src/net/crewSignLaw.js); the table migrations/0182's.
-//
-//   HALL (/v1/crew/hall): a town's hall on a day - the slots other accounts hold, and the asker's own.
-//   SIGN (/v1/crew/sign): a recruit held by the asking account for his day, the first to ask it - asked again by the
-//     same account, the same answer; held by another, `crew-taken`. An account holds CREW_SIGN_DAY_MAX a day at most.
-//   RELEASE (/v1/crew/release): a recruit the asking account holds let go - a hand paid off, a ship sold.
-//
+// CREW-SIGNED (2026-10-27; bible/03-World/Shipyards.md CREW-SIGNED) - A CREW HALL'S RECRUIT SIGNED ONCE ONLINE, the
+// service's half (the law src/net/crewSignLaw.js, the table migrations/0182's).
+//   HALL (/v1/crew/hall): a town's hall on a day - the slots others hold, and the asker's own.
+//   SIGN (/v1/crew/sign): held by the first account to ask, for his day; asked again by it, the same; else `crew-taken`.
+//   RELEASE (/v1/crew/release): a recruit the asker holds let go. An account holds CREW_SIGN_DAY_MAX a day.
 // No gold moves here: the fee is the client's purse's, as every hire's was. Not a DFU member.
-// ═══════════════════════════════════════════════════════════════════
 import { crewSignOf, crewDayOk, CREW_SIGN_DAY_MAX, CREW_SIGN_SLOTS, CREW_SIGN_KEEP_DAYS, crewDayAt } from '../../src/net/crewSignLaw.js';
 
 /** A refusal's HTTP status. */

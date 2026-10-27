@@ -1,15 +1,9 @@
 // @ts-check
-// VEIL-PARTY (2026-10-27, the SEA-OPEN slice; bible/03-World/Eltheric-Ocean.md VEIL-PARTY) - A PARTY CROSSES THE VEIL
-// TOGETHER. The crossing is the captain's (scenes/world.js etherCross): her helm, her landfall, her days. Before this a
-// player aboard held it back, so a party crossed one ship at a time.
-//
-//   THE CAPTAIN: a member of her party aboard never holds the crossing back (`kin`); a stranger aboard still does.
-//   THE PASSENGER (`step`, each frame): aboard a party member's ship (CSA-K's aboard, by her owner's tab), I keep her
-//   captain and my side of the Veil. When the captain's party pose next stands across the Veil, within VEIL_FOLLOW_MS of
-//   my last frame aboard, I follow: the party's own journey to the captain's pixel (systems/party/partyTravel.js's,
-//   landing beside the captain - on her deck), no fare, the crossing's CROSS_DAYS on my clock. Nothing new rides the
-//   wire: the captain's pose is the word.
-// Offline there is no party, and nothing is asked. Built by the world host. Not a DFU member: DFU has no Veil.
+// VEIL-PARTY (2026-10-27; bible/03-World/Eltheric-Ocean.md VEIL-PARTY) - A PARTY CROSSES THE VEIL TOGETHER. The
+// crossing is the captain's (world.js etherCross). Her party aboard never holds it back (`kin`); a stranger still does.
+// A member aboard her (`step`) keeps her captain and their side of the Veil; when the captain's party pose stands across
+// it within VEIL_FOLLOW_MS, the member follows by the party's own journey, landing beside the captain, no fare, the
+// crossing's CROSS_DAYS. Nothing new rides the wire. Built by the world host. Not a DFU member: DFU has no Veil.
 import { memberPresent } from '../../systems/party/partyRestLaw.js';
 import { besideTargetOf } from '../../systems/party/partyTravelLaw.js';
 import { CROSS_DAYS } from '../../systems/naval/etherCrossing.js';
