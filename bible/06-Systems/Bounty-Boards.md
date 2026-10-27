@@ -378,12 +378,11 @@ Either side may deploy first: a service without the routes leaves the book keepi
 
 **AUDIT HORIZONTAL F3: the day's ceiling, measured.** It was 48, "four held, twelve game days a real day". Four held is
 not four cleared: a hunter clears, rides on and takes four more, and all 410 cities carry a bounty board. `tools/huntPace.mjs`
-walks the game's own map (ARENA2): each board's notices where it posts them, cleared in their shortest order at the fastest
-legal ride (the motor's gallop at Speed 100 and Running's top with every buff, the swiftest horse, Fleetfoot III: 34.6
-m/s), no time spent fighting, the next board the cheapest a clear - ridden to, or by the carriage at the nearest city's
-gate (Immersive Travel's driver stands at every one; online a fast travel to any city). MEASURED, fourteen UTC days from
-2026-10-27: the best day 677 to 706 clears (about 29 an hour); without the carriage 380 to 394. HUNT_CLEARS_DAY_MAX is
-706 rounded up to the next fifty, 750.
+walks the game's map (ARENA2): each board's notices where it posts them, in their shortest order, at the fastest legal ride
+(Speed 100, Running's top with every buff, the swiftest horse, Fleetfoot III: 34.6 m/s), no time fighting, the next board
+the cheapest a clear - ridden to, or by the carriage at the nearest city's gate (Immersive Travel's driver stands at every
+one). MEASURED over fourteen UTC days from 2026-10-27: the best day 677 to 706 clears; without the carriage 380 to 394.
+HUNT_CLEARS_DAY_MAX is 706 rounded up to the next fifty, 750.
 
 **What it still bounds (named, not closed).** No honest day reaches 750, so the ceiling bounds a modified client alone:
 it can report 750 a day - Huntmaster's 250 and Legend of the Hunt's 750 in one. The play-hour line's `bounty`
@@ -432,5 +431,5 @@ the reader's language (Intl.ListFormat, as `gambitTableWords.js` lists); `hunt.m
 
 Pins: the tests and mutant records above, each named for its finding (`AUDIT-F*`, `AUDIT-G*` in
 `tools/mutants/huntersmark.json`). PIN MOVED: the ceiling's 48 (the law's test), the traits' line (the window's test),
-eight records of this slice re-aimed by content. The account service changed (ACCOUNT_VERSION at the merge); the relay
+nine records of this slice re-aimed by content; `mail1.test.js`'s D1 harness gained D1's own `batch`. The account service changed (ACCOUNT_VERSION at the merge); the relay
 and the wire did not.

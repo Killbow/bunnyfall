@@ -75,7 +75,7 @@
   {
     "name": "HUNTERS-MARK-service-mark-rung",
     "file": "server-account/src/hunts.js",
-    "old": "AND (?3 <> 'mark' OR (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board') >= ?11)",
+    "old": "AND (?3 <> 'mark' OR (SELECT COUNT(*) FROM hunt_clears WHERE player = ?1 AND char_id = ?2 AND kind = 'board' AND at < ?12) >= ?11)",
     "new": "AND (?3 <> 'mark' OR 1)",
     "tests": [
       "test/server/huntersmark_service.test.js"

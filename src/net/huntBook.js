@@ -8,7 +8,7 @@ import { utcDay } from './marksLaw.js';
 
 /** Where the kept reports live (the device's storage), by `account:character`. */
 export const HUNT_KEPT_KEY = 'hunt1.kept';
-/** The most reports one slot keeps - two hours of the fastest hunt (tools/huntPace.mjs); the oldest goes first. */
+/** The most reports one slot keeps - over an hour of the fastest hunt (tools/huntPace.mjs); the oldest goes first. */
 export const HUNT_KEPT_MAX = 32;
 /** How often the pump asks the kept reports again, and how long a read of the state stands (ms). */
 export const HUNT_PUMP_MS = 20_000;
