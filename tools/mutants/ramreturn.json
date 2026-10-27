@@ -18,10 +18,10 @@
     ]
   },
   {
-    "name": "RR-the-angle-unread",
+    "name": "RR-the-face-unread",
     "file": "src/systems/naval/navalRam.js",
-    "old": "const angle = RAM_GLANCE + (1 - RAM_GLANCE) * clamp(Number(square) || 0, 0, 1);",
-    "new": "const angle = 1;",
+    "old": "* lesser * pace * (side ? 1 : RAM_GLANCE));",
+    "new": "* lesser * pace);",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -29,8 +29,8 @@
   {
     "name": "RR-the-galley-share-plain",
     "file": "src/systems/naval/navalRam.js",
-    "old": "return Math.round((galley ? GALLEY_SHARE : RAM_SHARE) * lesser * pace * angle);",
-    "new": "return Math.round(RAM_SHARE * lesser * pace * angle);",
+    "old": "return Math.round((galley ? GALLEY_SHARE : RAM_SHARE) * lesser",
+    "new": "return Math.round(RAM_SHARE * lesser",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -45,10 +45,55 @@
     ]
   },
   {
-    "name": "RR-the-room-under-the-strike",
+    "name": "RR-the-face-by-the-wrong-margin",
     "file": "src/systems/naval/navalRam.js",
-    "old": "export const ramRoom = (damage) => Math.max(0, Math.ceil(damage.hull - damage.maxHull * STRUCK_AT));",
-    "new": "export const ramRoom = (damage) => Math.max(0, Math.ceil(damage.hull));",
+    "old": "  const side = mx >= mz;",
+    "new": "  const side = mx <= mz;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-normal-inward",
+    "file": "src/systems/naval/navalRam.js",
+    "old": "const a = side ? box.ax : box.az, s = (side ? x : z) < 0 ? -1 : 1;",
+    "new": "const a = side ? box.ax : box.az, s = (side ? x : z) < 0 ? 1 : -1;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-reach-unbounded",
+    "file": "src/systems/naval/navalRam.js",
+    "old": "  if (mx > reach || mz > reach) return null;",
+    "new": "  if (mx > 1e9 || mz > 1e9) return null;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-her-way-ignored",
+    "file": "src/systems/naval/navalRam.js",
+    "old": "most = Math.max(most, -((w[0] - her[0]) * normal[0] + (w[2] - her[2]) * normal[2]));",
+    "new": "most = Math.max(most, -(w[0] * normal[0] + w[2] * normal[2]));",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-line-a-sinking",
+    "file": "src/systems/naval/navalRam.js",
+    "old": "export const ramLine = (damage) => damage.maxHull * STRUCK_AT;",
+    "new": "export const ramLine = (damage) => 0 * damage.maxHull * STRUCK_AT;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-room-whole",
+    "file": "src/systems/naval/navalRam.js",
+    "old": "export const ramRoom = (damage) => Math.max(0, damage.hull - ramLine(damage));",
+    "new": "export const ramRoom = (damage) => Math.max(0, damage.hull);",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -56,8 +101,8 @@
   {
     "name": "RR-the-recoil-to-her-own-strike",
     "file": "src/systems/naval/navalRam.js",
-    "old": "export const recoilRoom = (damage) => Math.max(0, ramRoom(damage) - 1);",
-    "new": "export const recoilRoom = (damage) => Math.max(0, ramRoom(damage));",
+    "old": "export const recoilRoom = (damage) => Math.max(0, Math.floor(ramRoom(damage) - 1));",
+    "new": "export const recoilRoom = (damage) => Math.max(0, Math.ceil(ramRoom(damage)));",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -65,17 +110,17 @@
   {
     "name": "RR-the-recoil-plain-for-a-galley",
     "file": "src/systems/naval/navalRam.js",
-    "old": "export const ramRecoil = (blow, galley = false) => Math.round(blow * RAM_RECOIL * (galley ? 1 / GALLEY_RAM : BOW_RECOIL));",
-    "new": "export const ramRecoil = (blow, galley = false) => Math.round(blow * RAM_RECOIL * BOW_RECOIL);",
+    "old": "export const recoilShare = (galley = false) => RAM_RECOIL * (galley ? 1 / GALLEY_RAM : BOW_RECOIL);",
+    "new": "export const recoilShare = (galley = false) => RAM_RECOIL * BOW_RECOIL;",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
   },
   {
-    "name": "RR-the-square-unbounded",
+    "name": "RR-the-price-unpaid",
     "file": "src/systems/naval/navalRam.js",
-    "old": "export const ramSquare = (stem, keel) => clamp(Math.abs(stem[0] * keel[2] - stem[2] * keel[0]), 0, 1);",
-    "new": "export const ramSquare = (stem, keel) => clamp(Math.abs(stem[0] * keel[0] + stem[2] * keel[2]), 0, 1);",
+    "old": "export const ramPaid = (blow, room, k) => (k > 0 ? Math.min(blow, Math.floor(room / k)) : blow);",
+    "new": "export const ramPaid = (blow, room, k) => blow;",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -99,6 +144,24 @@
     ]
   },
   {
+    "name": "RR-the-fair-gate-open",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "    fair: (e) => hostileToMe(e) || !NAVAL_FACTIONS[e.ship.cls.faction]?.lawful,",
+    "new": "    fair: (e) => !!e,",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-fair-gate-dropped",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "      if (!at || !deps.fair(e)) continue;",
+    "new": "      if (!at) continue;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
     "name": "RR-the-charter-rams",
     "file": "src/scenes/naval/navalRams.js",
     "old": "if (!boat || boat.charter) { wayIn = []; return null; }",
@@ -110,17 +173,8 @@
   {
     "name": "RR-the-way-forgotten",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const way = wayIn.reduce((m, w) => Math.max(m, w.v), 0);",
-    "new": "const way = wayIn.at(-1)?.v ?? 0;",
-    "tests": [
-      "test/systems/naval/ramreturn.test.js"
-    ]
-  },
-  {
-    "name": "RR-her-way-ignored",
-    "file": "src/scenes/naval/navalRams.js",
-    "old": "const closing = way - (her[0] * fwd[0] + her[2] * fwd[2]);",
-    "new": "const closing = way;",
+    "old": "while (wayIn.length && now - wayIn[0].t > RAM_MEMORY_S) wayIn.shift();",
+    "new": "while (wayIn.length > 1) wayIn.shift();",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -137,8 +191,8 @@
   {
     "name": "RR-the-cooldown-dropped",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "if (!fighting(e) || now - (rammedAt.get(e) ?? -Infinity) < RAM_COOLDOWN_S) continue;",
-    "new": "if (!fighting(e)) continue;",
+    "old": "if (!e.boat || !fighting(e) || now - (rammedAt.get(e) ?? -Infinity) < RAM_COOLDOWN_S) continue;",
+    "new": "if (!e.boat || !fighting(e)) continue;",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -146,17 +200,80 @@
   {
     "name": "RR-a-struck-ship-rammed",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const fighting = (e) => !!e.boat && e.ship.damage.state === SHIP_STATES.afloat &&",
-    "new": "const fighting = (e) => !!e.boat && e.ship.damage.state !== SHIP_STATES.sunk &&",
+    "old": "const fighting = (e) => e.ship.damage.state === SHIP_STATES.afloat &&",
+    "new": "const fighting = (e) => e.ship.damage.state !== SHIP_STATES.sunk &&",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
   },
   {
-    "name": "RR-the-helm-room-dropped",
+    "name": "RR-the-ship-i-board-rammed",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const dealt = Math.min(blow, ramRoom(e.ship.damage));   // to her strike, never under it",
-    "new": "const dealt = blow;   // to her strike, never under it",
+    "old": "&& !e.ship.boarded && deps.boarding()?.shipId !== e.id;",
+    "new": "&& !e.ship.boarded;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-a-wreck-rams",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "    if (st.damage.state !== SHIP_STATES.afloat) return null;   // a wreck rams nothing\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-helm-floor-dropped",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "crew: ramMen(dealt, deps.random()), floor: ramLine(e.ship.damage) }, deps.myId());",
+    "new": "crew: ramMen(dealt, deps.random()) }, deps.myId());",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-helm-recoil-past-the-room",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "st.damage.apply({ hull: Math.min(Math.round(blow * k), recoilRoom(st.damage)), sail: 0, crew: 0 }, now);",
+    "new": "st.damage.apply({ hull: Math.round(blow * k) + 1, sail: 0, crew: 0 }, now);",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-recoil-untaken",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "      st.damage.apply({ hull: Math.min(Math.round(blow * k), recoilRoom(st.damage)), sail: 0, crew: 0 }, now);\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-helm-brace-unread",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "const k = recoilShare(galley) * (st.guns.braced ? BRACE_TAKEN : 1) * due();",
+    "new": "const k = recoilShare(galley) * due();",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-helm-due-unread",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "const k = recoilShare(galley) * (st.guns.braced ? BRACE_TAKEN : 1) * due();",
+    "new": "const k = recoilShare(galley) * (st.guns.braced ? BRACE_TAKEN : 1);",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-helm-price-unpaid",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "mine: st.damage.maxHull, hers: e.ship.damage.maxHull, galley }), recoilRoom(st.damage), k);",
+    "new": "mine: st.damage.maxHull, hers: e.ship.damage.maxHull, galley }), Infinity, k);",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -171,37 +288,28 @@
     ]
   },
   {
-    "name": "RR-the-recoil-untaken",
-    "file": "src/scenes/naval/navalRams.js",
-    "old": "      st.damage.apply({ hull: Math.min(back, recoilRoom(st.damage)), sail: 0, crew: 0 }, now);\n",
-    "new": "",
-    "tests": [
-      "test/systems/naval/ramreturn.test.js"
-    ]
-  },
-  {
-    "name": "RR-the-helm-brace-unread",
-    "file": "src/scenes/naval/navalRams.js",
-    "old": "const back = Math.round(ramRecoil(blow, galley) * (st.guns.braced ? BRACE_TAKEN : 1));",
-    "new": "const back = Math.round(ramRecoil(blow, galley));",
-    "tests": [
-      "test/systems/naval/ramreturn.test.js"
-    ]
-  },
-  {
     "name": "RR-the-peer-blow-unbounded",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "hull: Math.min(NAVAL_HIT_MAX, dealt), crew: ramMenSaid(dealt)",
-    "new": "hull: Math.min(NAVAL_HIT_MAX, blow), crew: ramMenSaid(dealt)",
+    "old": "hull: Math.min(NAVAL_HIT_MAX, Math.ceil(dealt)), crew: ramMenSaid(dealt), zone: 'holed', ram: true }",
+    "new": "hull: Math.min(NAVAL_HIT_MAX, blow), crew: ramMenSaid(dealt), zone: 'holed', ram: true }",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
   },
   {
-    "name": "RR-the-helm-angle-square",
+    "name": "RR-the-ram-unsaid",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const blow = ramBlow({ closing, square: ramSquare(fwd, forwardOfYaw(e.ship.yaw)), mine: st.damage.maxHull,",
-    "new": "const blow = ramBlow({ closing, square: 1, mine: st.damage.maxHull,",
+    "old": "zone: 'holed', ram: true }));",
+    "new": "zone: 'holed' }));",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-closing-along-my-keel",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "const closing = ramClosing(wayIn.map((w) => w.v), velocityOf(e.ship), at.normal);",
+    "new": "const closing = ramClosing(wayIn.map((w) => w.v), velocityOf(e.ship), [-fwd[0], 0, -fwd[2]]);",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -225,10 +333,19 @@
     ]
   },
   {
+    "name": "RR-a-friend-rammed",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "      const x = deps.get(s.target);\n",
+    "new": "      const x = [...deps.ships()].find((y) => y !== e && y.boat && deps.hullBox(y.boat) && ramContact(deps.hullBox(y.boat), bow)) ?? deps.get(s.target);\n",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
     "name": "RR-a-wreck-rammed",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "if (st.damage.state !== SHIP_STATES.afloat || !box || !flatInside(box, bow, RAM_REACH)) return false;",
-    "new": "if (!box || !flatInside(box, bow, RAM_REACH)) return false;",
+    "old": "const at = box && st.damage.state === SHIP_STATES.afloat ? ramContact(box, bow) : null;",
+    "new": "const at = box ? ramContact(box, bow) : null;",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -236,17 +353,44 @@
   {
     "name": "RR-the-galley-brace-unread",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const hurt = dueOnHull({ hull: blow * (st.guns.braced ? BRACE_TAKEN : 1), sail: 0 });",
-    "new": "const hurt = dueOnHull({ hull: blow, sail: 0 });",
+    "old": "const hurt = Math.round(blow * (st.guns.braced ? BRACE_TAKEN : 1) * due());",
+    "new": "const hurt = Math.round(blow * due());",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
   },
   {
-    "name": "RR-the-galley-room-dropped",
+    "name": "RR-the-galley-due-unread",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "    const dealt = Math.min(blow, ramRoom(x.ship.damage));\n",
-    "new": "    const dealt = blow;\n",
+    "old": "const hurt = Math.round(blow * (st.guns.braced ? BRACE_TAKEN : 1) * due());",
+    "new": "const hurt = Math.round(blow * (st.guns.braced ? BRACE_TAKEN : 1));",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-floor-on-mine-dropped",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "crew: ramMen(dealt, deps.random(), PLAYER_CREW_TOUGHNESS) }, now, { floor: ramLine(st.damage) });",
+    "new": "crew: ramMen(dealt, deps.random(), PLAYER_CREW_TOUGHNESS) }, now);",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-a-bump-at-my-line-rams",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "    if (blow < 1 || !(dealt > 0)) return false;   // a bump - or a hull at its line\n",
+    "new": "    if (blow < 1) return false;   // a bump - or a hull at its line\n",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-galley-floor-dropped",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "    deps.strike(x, { hull: blow, sail: 0, crew: ramMen(dealt, deps.random()), floor: ramLine(x.ship.damage) }, e.id);",
+    "new": "    deps.strike(x, { hull: blow, sail: 0, crew: ramMen(dealt, deps.random()) }, e.id);",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -254,8 +398,17 @@
   {
     "name": "RR-the-galley-recoil-past-her-strike",
     "file": "src/scenes/naval/navalRams.js",
-    "old": "const recoil = (e, blow, now) => e.ship.damage.apply({ hull: Math.min(ramRecoil(blow, true), recoilRoom(e.ship.damage)), sail: 0, crew: 0 }, now);",
-    "new": "const recoil = (e, blow, now) => e.ship.damage.apply({ hull: ramRecoil(blow, true), sail: 0, crew: 0 }, now);",
+    "old": "const recoil = (e, blow, now) => e.ship.damage.apply({ hull: Math.min(Math.round(blow * recoilShare(true)), recoilRoom(e.ship.damage)), sail: 0, crew: 0 }, now);",
+    "new": "const recoil = (e, blow, now) => e.ship.damage.apply({ hull: Math.round(blow * recoilShare(true)) + 50, sail: 0, crew: 0 }, now);",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-galley-price-unpaid",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "galley: true }), recoilRoom(e.ship.damage), recoilShare(true));",
+    "new": "galley: true }), Infinity, recoilShare(true));",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]
@@ -274,6 +427,60 @@
     "file": "src/scenes/naval/navalRams.js",
     "old": "if (e.owner || !hullBuild(s.hull).ram || s.damage.state !== SHIP_STATES.afloat || s.boarded || s.speed < RAM_SPEED) continue;",
     "new": "if (e.owner || !hullBuild(s.hull).ram || s.damage.state !== SHIP_STATES.afloat || s.speed < RAM_SPEED) continue;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-stander-line-unread",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "      hurt.floor = ramLine(e.ship.damage);\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-a-struck-ship-rammed-by-a-word",
+    "file": "src/scenes/naval/navalRams.js",
+    "old": "    peer(e, hurt) {\n      if (!fighting(e)) return false;",
+    "new": "    peer(e, hurt) {\n      if (!e) return false;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-stander-reads-no-ram",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "    if (hit.ram && !rams.peer(entry, hurt)) return true;",
+    "new": "    if (hit.ram && !entry) return true;",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-floor-unread-by-strike",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "    const floor = Math.max(hurt.floor ?? 0, entry.struck",
+    "new": "    const floor = Math.max(0, entry.struck",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-wire-drops-the-ram",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "  if (ram && !grapple && cask == null) nv.r = 1;\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/ramreturn.test.js"
+    ]
+  },
+  {
+    "name": "RR-the-reader-drops-the-ram",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "cask: nv.k ?? null, answer: nv.a === 1, ram: nv.r === 1,",
+    "new": "cask: nv.k ?? null, answer: nv.a === 1, ram: false,",
     "tests": [
       "test/systems/naval/ramreturn.test.js"
     ]

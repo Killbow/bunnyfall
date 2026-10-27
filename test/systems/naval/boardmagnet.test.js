@@ -143,6 +143,7 @@ test('BOARD-MAGNET AUDIT THE HAUL KEPT CLEAR: from every start in reach of every
 
 test('BOARD-MAGNET NO FOUL: my stem driven into a sound ship\'s side at a ram\'s way fouls nothing and offers no boarding - RAM-RETURN (2026-10-26) brought the ram back as a blow alone, bounded (ramreturn.test.js); a ship is boarded once her colours are down, never as she stands (RAM-BOARD\'s foul gone)', async () => {
   const h = await helm();
+  h.e.ship.provoked.set('local', Infinity);   // RAM-RETURN (AUDIT A1): fair game for my stem - she has had my fire
   frames(h, [[h.e, { pos: [0, 0, 90], yaw: Math.PI / 2 }]]);
   const full = h.e.ship.damage.hull;
   const touching = { pos: [0, 0, hullBuild(HULL.SmallShip).bowZ + hullBuild(h.e.ship.hull).halfWidth + 0.2], yaw: Math.PI / 2 };
@@ -304,7 +305,7 @@ test('BOARD-MAGNET a sound ship being boarded - a pirate\'s repel, the one way a
 test('BOARD-MAGNET online: a blow never says a foul (`u`) - and an older build\'s ram blow that still says one is taken as the blow alone: her hull holed, nothing fouled, and she is no boarding of anyone\'s while her colours fly', async () => {
   assert.equal('u' in navalHitData('b', { n: 3, hull: 40, crew: 1, zone: 'holed' }).nv, false);
   const old = { to: 'local', nv: { n: 0, h: 40, s: 0, c: 1, f: 0, z: 2, u: 20 } };
-  assert.deepEqual(validNavalHit(old), { n: 0, hull: 40, sail: 0, crew: 1, fire: false, zone: 'holed', grapple: false, cask: null, answer: false });
+  assert.deepEqual(validNavalHit(old), { n: 0, hull: 40, sail: 0, crew: 1, fire: false, zone: 'holed', grapple: false, cask: null, answer: false, ram: false });   // RAM-RETURN (AUDIT): no `r` - a blow alone
   const h = await helm();
   const at = abeam(h, 4);
   frames(h, [[h.e, at]]);
