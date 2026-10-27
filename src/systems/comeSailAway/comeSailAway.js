@@ -1622,6 +1622,7 @@ export function createComeSailAwayRuntime(deps) {
         state.MoveVectorCurrent = [0, 0, 0];
         state.velocityCurrent = [0, 0, 0];
         state.TurnCurrent = 0;
+        boat.way = 0;   // PASSAGE-PACE: warped, no way of her own
         const before = t.worldMatrix();
         setPositionChecked(t, [f(w.pos[0]), t.position[1], f(w.pos[1])], log);
         setLocalRotationChecked(t, normalizeQ(w.rotation), log);
@@ -1641,6 +1642,7 @@ export function createComeSailAwayRuntime(deps) {
         if (vDot(val, state.CollisionVector) < 0) val = vProjectOnPlane(val, state.CollisionVector);
       }
       state.velocityCurrent = vAdd(state.MoveVectorCurrent, val);
+      boat.way = vMagnitude(state.velocityCurrent);   // PASSAGE-PACE (the port's own): her way, laid on her for the journey's leads (travelGovernor.js travellerPace)
       const before = t.worldMatrix();
       // Transform.Translate(velocityCurrent * dt) in the boat's own space, then Rotate(up * TurnCurrent * dt)
       const step = vScale(state.velocityCurrent, dt());

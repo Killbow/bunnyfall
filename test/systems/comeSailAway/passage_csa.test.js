@@ -46,3 +46,18 @@ test('PASSAGE csa: a booked ship is never packed into parts - her master\'s, not
   assert.equal(s.rt.PackBoat(mine, true), true, 'mine packs');
   assert.equal(packed.length, 1);
 });
+
+test('PASSAGE-PACE csa: at her helm Come Sail Away lays her way on her each step - her velocity\'s length, the journey\'s leads\' pace (travelGovernor.js travellerPace); warped in by a quay, none (mutants: the way unlaid, laid as her target, the warp\'s left standing)', () => {
+  const s = scene({ held: ['MoveForwards'] });
+  const boat = s.place(1, 0);
+  assert.equal(boat.way, 0, 'a boat placed: none');
+  s.rt.StartSailing(boat);
+  for (let i = 0; i < 4; i++) s.frame();
+  const v = s.rt.state.velocityCurrent;
+  assert.ok(boat.way > 0, 'pulling ahead');
+  assert.equal(boat.way, Math.fround(Math.hypot(v[0], v[1], v[2])), 'her velocity\'s length');
+  assert.ok(boat.way < 2, 'her way as it gathers, never her target\'s');
+  s.deps.warp = () => ({ pos: [boat.GameObject.position[0], boat.GameObject.position[2]], rotation: boat.GameObject.rotation });
+  s.frame();
+  assert.equal(boat.way, 0, 'warped: no way of her own');
+});

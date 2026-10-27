@@ -445,7 +445,7 @@ const HARDCODED = {
   'src/systems/naval/captainLedger.js': 15,
   'src/systems/naval/crewCompanions.js': 3,
   'src/systems/naval/crewLife.js': 124,
-  'src/systems/naval/etherCrossing.js': 13,
+  'src/systems/naval/etherCrossing.js': 12,   // VEIL-PARTY: the crossing's refusal through t()
   'src/systems/naval/etherShips.js': 22,
   'src/systems/naval/harbourBoard.js': 24,
   'src/systems/naval/navalPlunder.js': 17,

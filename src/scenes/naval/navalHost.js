@@ -87,6 +87,8 @@ import { drawHold, flotsamKeys, choiceEffect, choiceOffer, holdTier, CHOICES, pr
 import { mintStores } from '../../systems/naval/navalStores.js';   // SALVAGE: a wreck's stores, minted as the yard's are
 import { mintDeed } from '../../systems/comeSailAway/comeSailAwayItems.js';   // SHIP-CLAIM: a claimed prize's deed, the shelf's own mint
 import { createPassageBerths } from './passageBerths.js';   // PASSAGE: a berth's ship to book, and her boat made the voyage's
+import { createFishingFleet } from './fishingFleet.js';   // FISH-BOATS: a port's fishing boats, stood
+import { createPassageQuay } from './passageQuay.js';   // PASSAGE-QUAY: a booked ship brought in to her port's quay
 import { yardOffer, yardAll, fieldMend, FIELD_QUIET_S, FIELD_REFLOAT, YARD_PRICE, provisionOffer, seaRepair, wantsRepair, paidDamage, STORE_POINTS, STORES_STOCK, storesToWhole, SEA_REPAIR_UNDER_FIRE, FIELD_MEND_CAP } from '../../systems/naval/navalYard.js';
 import { createCompanions, companionRows, heldAtSide, packStaysAshore } from '../../systems/naval/crewCompanions.js';   // CREW-COMPANIONS - COMPANION-DROP: the zone keeps him at my side
 import { createShipCrew, reloadScaleOf, mendScaleOf, handsBonusOf, crewCard, CREW_ORDERS, ORDER_TEXT, spiritsOf, LOOKOUT_ROLE, FIRST_MATE, crewWorth, NO_WORTH, SEASONED_HIRE } from '../../systems/naval/shipCrew.js';   // SHIP-CREW; CAPT-CREW: what her posts are worth
@@ -1857,7 +1859,7 @@ export function createNavalHost(deps) {
     if (spec.deep) ship.temper = temperOf(cls, spec.seed, { bold: DEEP_BOLD });   // CAPT-WATERS: the deep waters' pirates bolder
     else if (ether && cls.faction === 'pirate') ship.temper = temperOf(cls, spec.seed, { bold: etherBold(ether) });   // ETHER-SEA: the deeper the band, the bolder its corsairs
     if (legend) ship.temper = TEMPERS.bold;   // ETHER-LEGENDS: a legend fears nothing that sails
-    const entry = { id, n: num, owner, gen: Math.max(0, Math.min(NAVAL_GEN_MAX, spec.gen | 0)), region, deep: !!spec.deep, ether, legend: legend?.id ?? null, orphan: null, ship, boat: null, fires: null, fireLoop: null, sinkLoop: null, target: null, seen: clock, charged: null, myBlowAt: -Infinity, grappleAt: -Infinity, hunter: !!spec.hunter, phase: random() * 6.28, lifeDt: 0, lifeN: num % FAR_LIFE_EVERY, list: null, wake: false, deck: null, prize: null, lost: false, sinkUnder: null, colours: null, fade: 0, retiring: false };   // SHIP-FADE: she comes into the world
+    const entry = { id, n: num, owner, gen: Math.max(0, Math.min(NAVAL_GEN_MAX, spec.gen | 0)), region, deep: !!spec.deep, ether, legend: legend?.id ?? null, orphan: null, ship, boat: null, fires: null, fireLoop: null, sinkLoop: null, target: null, seen: clock, charged: null, myBlowAt: -Infinity, grappleAt: -Infinity, hunter: !!spec.hunter, phase: spec.phase ?? random() * 6.28, lifeDt: 0, lifeN: num % FAR_LIFE_EVERY, list: null, wake: false, deck: null, prize: null, lost: false, sinkUnder: null, colours: null, fade: 0, retiring: false };   // SHIP-FADE: she comes into the world
     // ETHER-LEGENDS: she comes, said - AUDIT CAPTAIN'S SEA D12: to every captain whose sea she comes into (a party's other
     // captain stands another's copy of her, and never heard her come), once while she is in it
     const heard = legend && [...sea.values()].some((x) => x.legend === legend.id && x.ship.damage.state !== SHIP_STATES.sunk);
@@ -1954,6 +1956,7 @@ export function createNavalHost(deps) {
     // packet's her lane's)
     e.ship.errand = e.liner ? laneErrand(errandHere(e.ship)) : errandHere(e.ship);
     if (e.ship.errand?.kind === 'moored') e.fromHarbour = e.ship.errand.harbour;   // AUDIT SHIP-LIFE B5: the harbour's still - dropped past HARBOUR_LEAVE, her sailing noted
+    if (e.ship.cls.fisher) e.fisher = e.ship.errand?.harbour ?? null;   // FISH-BOATS: her harbour's still, as a moored ship's (fishingFleet.js frame lets her go)
     return e;
   }
   /** AUDIT NAV1 (online): a ship of mine a stronger claim holds now - hers to sail from here, mine to draw. A boarding of
@@ -3028,6 +3031,7 @@ export function createNavalHost(deps) {
    *  number. */
   function forgetBoat(uid) {
     if (!uid) return;
+    quay.forget(uid);   // PASSAGE-QUAY: her passage over
     boatState.delete(uid);
     pendingBoats.delete(uid);
   }
@@ -3593,7 +3597,7 @@ export function createNavalHost(deps) {
     deps.mid?.(`${entry.ship.names?.name ?? 'It'} is yours!`, 3);
     if (yielded) deps.say?.('The rest of the enemy crew surrenders.', 3);
     // the prize: her hold drawn once (whoever opens it again finds what is left), the boat that took her
-    entry.prize = { hold: drawHold(entry.ship.cls, entry.ship.seed, (key, tier) => deps.hold?.(key, tier + (entry.deep ? DEEP_TIER : 0) + etherTier(entry)) ?? []), boat: b.boat ?? nearestBoat(entry.ship.pos), peerOrigin: b.peerOrigin ?? null, chosen: null, fate: null };   // CAPT-WATERS: a deep ship's hold the richer
+    entry.prize = { hold: holdOf(entry.ship.cls, entry.ship.seed, (key, tier) => deps.hold?.(key, tier + (entry.deep ? DEEP_TIER : 0) + etherTier(entry)) ?? []), boat: b.boat ?? nearestBoat(entry.ship.pos), peerOrigin: b.peerOrigin ?? null, chosen: null, fate: null };   // CAPT-WATERS: a deep ship's hold the richer
     entry.prize.drawn = drawnPlunder(entry.prize.hold);   // AUDIT CAPTAIN'S SEA L12: her own, counted once each as they leave her
     // STOLEN-GOODS AUDIT (2026-10-16, S4): A LAWFUL SHIP'S HOLD IS HER OWNER'S GOODS. Her boarding is Piracy (chargePlayer
     // above: navalLaw.js lawOf's 'board'), so what she carried is taken from someone else's keeping - marked as her hold
@@ -3929,7 +3933,7 @@ export function createNavalHost(deps) {
     const cls = classById(deps.level?.() >= 4 ? 'pirateBrig' : 'pirateSloop');
     const seed = u32();
     const names = shipNames(cls, seed, { regionIndex: where().region ?? 17 });
-    const items = drawHold(cls, seed, (key, tier) => deps.hold?.(key, tier) ?? []);
+    const items = holdOf(cls, seed, (key, tier) => deps.hold?.(key, tier) ?? []);
     const drawn = drawnPlunder(items);   // AUDIT CAPTAIN'S SEA L12
     const opened = deps.board?.openPlunder?.({
       name: names.name, captain: names.captain, classLine: classLine(cls), faction: 'pirate', items, raid: true,
@@ -4213,6 +4217,8 @@ export function createNavalHost(deps) {
     // SERPENT1: in the sea serpent's coil she is held where it took her, her way off and her helm dead
     const held = enabled && boat ? deps.serpent?.hold?.(boat) ?? null : null;
     if (held) { warping = null; return { pos: held.pos, rotation: quatOfYaw(held.yaw) }; }
+    const towed = enabled && boat ? quay.step(boat, dt) : null;   // PASSAGE-QUAY: her master brings her in, whatever the helm says
+    if (towed) { warping = null; return { pos: towed.pos, rotation: quatOfYaw(towed.yaw) }; }
     const pose = boat ? boatPose(boat) : null;
     if (!enabled || !pose || !struck || oars || boarding || Math.hypot(pose.velocity[0], pose.velocity[2]) > DOCK_WAY || hostileNearMe()) { warping = null; return null; }
     const yaw = yawOfRot(pose.rotation);
@@ -4302,6 +4308,15 @@ export function createNavalHost(deps) {
   // ── PASSAGE (2026-10-19; bible/03-World/Passage.md): a harbour's own friendly ship, booked from her quay - the sea's half
   // in scenes/naval/passageBerths.js (AUDIT PASSAGE D-M1: out of this scope), the voyage scenes/naval/passageHost.js's ──
   const { passageShip, passageHint, charter, charterSailed, goneSeed, goneSaid, hearGone } = createPassageBerths({ sea, harbours, enabled: () => enabled, boarding: () => boarding, myBoat, csa, stanceOf, drop, adopt, retire, departedOf, day: () => where().day ?? 0, hullBox }, deps);
+  // FISH-BOATS (scenes/naval/fishingFleet.js): each harbour's fishing boats, at anchor or on their ground by the day's light
+  const fishers = createFishingFleet({ sea, harbours, launch, retire, adopt, grid: gridOf, isWater: (x, z, hull) => deps.isWater(x, z, hull), where, rolls: rollsHarbour,
+    feet: () => deps.feet(), seaStates: SHIP_STATES, reach: { stand: HARBOUR_STAND, leave: HARBOUR_LEAVE } });
+  /** A taken ship's hold: a fishing boat's catch, any other's lots (navalPlunder.js drawHold). */
+  const holdOf = (cls, seed, generate) => (cls.fisher ? fishers.catchOf(cls, seed) : drawHold(cls, seed, generate));
+  // PASSAGE-QUAY (scenes/naval/passageQuay.js): a booked ship brought in to a free berth of her port's harbour, laid by the
+  // warp seam below as QUAYS' docking lays a ship of mine
+  const quay = createPassageQuay({ harbours, grid: gridOf, dockFree, putOff, boatPose, enabled: () => enabled, yawOf: yawOfRot,
+    along: (p, dx, dz, far) => seaHulls.along(p, dx, dz, far), now: () => clock });
   let dockPortsAt = -Infinity;
   /** The Fleet's word of where each boat of mine lies made fast (`deps.dockedPort(boat, name | null)`), once a second -
    *  AUDIT HOLDINGS Q8: "nowhere" said only where it is known - a known harbour's mouth within HARBOUR_STAND of her, or
@@ -4328,6 +4343,7 @@ export function createNavalHost(deps) {
   /** A ship's errand drawn where she is (shipLife.js errandFor) - none while no harbour is known: the sea's traffic far
    *  from a port keeps its cruise. */
   function errandHere(ship) {
+    if (ship.cls.fisher) return fishers.errandOf(ship);   // FISH-BOATS: her day's own errand, off her seed and her harbour
     const hs = knownHarbours();
     return hs.length ? errandFor({ seed: ship.seed, faction: ship.cls.faction, hull: ship.hull, pos: ship.pos, speed: ship.speed, clock: ship.clock, harbours: hs, clear: gridOf(ship.hull).clear }) : null;
   }
@@ -4428,6 +4444,7 @@ export function createNavalHost(deps) {
     }
     heardReady(boat);
     harbourFrame(seaY);   // SHIP-LIFE: the port near the player - ashore too
+    fishers.frame(seaY);   // FISH-BOATS: and its fishing boats
     dockPorts(); gangwayHint(); passageHint();   // QUAYS: where my boats lie made fast, the Fleet's word of it, and the gangway's; PASSAGE: a berth's ship to book
 
     // the sea's traffic, when this player is on the water: new ships the stander's alone to launch - AUDIT NAV1
@@ -4452,6 +4469,7 @@ export function createNavalHost(deps) {
       }
       // AUDIT NAV2 F27: and a ship is in a fight while an engaged ship of mine targets her - SEA-PEACE's prize her taker
       // comes for or takes, and a quarry running (let go from under the pursuer kept for her)
+      for (const x of ships) { const f = sea.get(x.id); if (f?.ship.cls.fisher) { x.berthed = true; x.engaged ||= !!f.fisher && !x.theirs; } }   // FISH-BOATS: a port's own boats, never the sea's traffic - its fleet's to let go
       const chased = new Set(ships.filter((y) => y.engaged && !y.theirs).map((y) => sea.get(y.id)?.ship.target));
       for (const x of ships) if (!x.theirs && chased.has(x.id)) x.engaged = true;
       const relieving = [...sea.values()].some((e) => e.relief && !e.owner && e.ship.damage.state === SHIP_STATES.afloat);   // SEA-EASE
@@ -4486,6 +4504,7 @@ export function createNavalHost(deps) {
       night,   // SHIP-WATCH: the dark hours - a lit ship seen far, a dark one close
     };
     life.night = night;   // SHIP-WATCH: a merchantman waits at her berth for the morning; a pirate lurks nearer the mouth
+    life.lights = !!where().cityLights;   // FISH-BOATS: the fishing boats' day is the lanterns' - out when they go out, home as they are lit
     // NAV-FAR-AI: the eye the far captains are measured from, and the ships a fight targets
     const watchEye = deps.look?.()?.origin ?? deps.feet();
     let fought = null;
@@ -5126,6 +5145,7 @@ export function createNavalHost(deps) {
     shots.offsetAll(o);
     effects.offsetAll(o);
     if (ownBook) harbours.offsetAll(o);   // SHIP-LIFE: the harbours with the world (HARBOUR-BOOK: the world's moves its own) - and the grids made again in it
+    quay.offset(o);   // PASSAGE-QUAY: her way in with it
     grids = new Map();
   }
   /** A transition, a fast travel, a load, a room change: the sea empties (its ships were never a save's). */
@@ -5137,6 +5157,7 @@ export function createNavalHost(deps) {
     gunfire = [];   // AUDIT NAV2 F8: the guns heard go with the sea they were fired on
     if (ownBook) harbours.clear();   // SHIP-LIFE: found again where the world is next (HARBOUR-BOOK: the world empties its own at a transition)
     rolled = new WeakSet(); grids = new Map();   // and their ships stood again
+    fishers.clear(); quay.forget();   // FISH-BOATS: and their boats; PASSAGE-QUAY: no tow across a clear
     warping = null; gangwaySaid = null;   // AUDIT HOLDINGS Q9: no warp nor gangway word carried across
     claims.clear(); granted.clear();
     myCasks.clear();   // KEEP-PLUNDER
@@ -5248,6 +5269,7 @@ export function createNavalHost(deps) {
     pvp,
     fleetStatus, repairAway, refitBoat, openYard, freeBerth, crewHands, assignRole,   // HOLDINGS: the Fleet page's (scenes/fleetHost.js) - with giveOrder and hostileNear, below
     passageShip, charter, charterSailed,   // PASSAGE: a berth's ship to book, and her boat made the voyage's (scenes/naval/passageHost.js)
+    bringIn: quay.begin, berthing: quay.state,   // PASSAGE-QUAY: her master brings her in to her port's quay, and where she stands with it
     enlistHand, swapHand, releaseHand, forgetBoat, handsAshore,   // SHIPYARDS: the crew hall's recruits signed on (in a hand's place, AUDIT SHIPYARDS) and paid off, a ship sold, her hands ashore
     /** SHIPYARDS: the shipwright's model of a boat of mine (ui/naval/navalYardWindow.js's - its rows, its presses), for the
      *  shipmaster's window's Shipwright page (ui/shipyardWindow.js) - the one the yard's own window reads. */

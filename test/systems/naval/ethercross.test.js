@@ -73,7 +73,8 @@ test('ETHER-CROSSING by source: asked at a helm in the exterior with no window u
   assert.match(src, /return crossingWayAt\(p\.x, p\.y, etherOut && p\.x < CROSS_X && !inEther\(p\.x, p\.y\) \? crossLandPx\(p\.x, p\.y\) : 0\);/);
   // PIN MOVED (AUDIT CAPTAIN'S SEA X1): a refusal said once in those waters and the way not marked asked - asked as soon as the deck is clear
   assert.match(step, /if \(!crossGate\.offer\(way\)\) return;\n    const why = crossRefusal\(\);\n    if \(why\) \{ if \(_crossSaid !== way\) \{ _crossSaid = way; townTalk\.say\(CROSS_REFUSED\[why\], 4\); \} return; \}\n    crossGate\.asked\(way\);/);
-  assert.match(src, /const crossRefusal = \(\) => \(navalHostileNear\(\) \? 'hostile' : csaPassengersOn\(csaRuntime\?\.state\?\.CurrentBoat\) > 0 \? 'passengers' : null\);/);
+  // PIN MOVED (VEIL-PARTY): her party aboard is left out of the count (test/systems/naval/veilparty.test.js)
+  assert.match(src, /const crossRefusal = \(\) => \(navalHostileNear\(\) \? 'hostile' : csaPassengersOn\(csaRuntime\?\.state\?\.CurrentBoat, veilParty\.kin\) > 0 \? 'passengers' : null\);/);
   const cross = src.slice(src.indexOf('async function etherCross(way) {'), src.indexOf('  let _navalWasOn = null;'));
   // PIN MOVED (AUDIT CAPTAIN'S SEA X9): the success's path read past the failure's (a voyage that could not be made brings her back)
   const order = ['captainLedger.setCrossedFrom', 'hudFade.smashHUDToBlack()', 'csaRuntime.StopSailing()', 'await _teleportToPixel(to.px, to.py', 'csaRuntime.RepositionBoat(boat, [x, tvSeaY(), z], dir', 'setSyntheticTimeIncrease(true); playerTicker.advance(minutes)', 'captainLedger.crossed()'];
@@ -89,7 +90,7 @@ test('ETHER-CROSSING by source: asked at a helm in the exterior with no window u
   assert.match(cross, /finally \{\n      _etherCrossing = false;\n      hudFade\.fadeHUDFromBlack\(\);/);
   assert.match(src, /let _etherCrossing = false;   \/\/ ETHER-CROSSING: a voyage under way/);
   assert.ok(src.indexOf('let _etherCrossing = false;') < src.indexOf('const paused = gamePaused() || _loading || _partyArrivalPending || _etherCrossing;'), 'declared before any frame reads it');
-  assert.match(src, /if \(!gamePaused\(\) && !_loading\) etherCrossStep\(dt\);/);
+  assert.match(src, /if \(!gamePaused\(\) && !_loading\) \{ etherCrossStep\(dt\); veilParty\.step\(\); \}/);   // PIN MOVED (VEIL-PARTY): her party's passage stepped beside it
   // PIN MOVED (HOST-SPLIT, SEA VENTURES 2026-10-22): the distance to land out of bootWorld (etherCrossing.js createCrossLand),
   // over the map's one water law - asked of it here by behaviour
   assert.match(src, /const crossLandPx = createCrossLand\(seaPixel\);/);
