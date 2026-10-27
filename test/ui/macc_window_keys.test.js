@@ -119,14 +119,13 @@ test('MAC-C: every host hands the pack a sheet door, beside the spellbook one it
     // it stands with openSpellbook, which is the hook it is modelled on -
     // a door added anywhere else is a second bag by another name.
     const at = s.indexOf('openCharSheet: () =>');
-    // UI2: the spellbook's door rides the pack's door bag (`packDoors`, shared with a hotbar slot's Use) where a host has one.
-    // PIN MOVED (CHAT-POST x HORIZONTAL, the merge of main: #1342's long chat-link line in the bag carried it past a fixed 1,600
-    // characters - main red): the SAME BAG is read, not a distance - the nearest door before it, no brace closing between
-    const door = Math.max(s.lastIndexOf('openSpellbook:', at), s.lastIndexOf('...packDoors,', at));
-    let depth = 0, sameBag = door >= 0;
-    for (let i = door; sameBag && i < at; i++) { const c = s[i]; if ('{[('.includes(c)) depth++; else if ('}])'.includes(c) && --depth < 0) sameBag = false; }
-    assert.ok(sameBag, `${f}: it belongs in the ONE builder's bag`);
-    const near = s.slice(door, at);
+    // PIN MOVED (CHAT-POST's longer line pushed the bag's head past a 1600-character window): the pack's own
+    // construction, from its createInventoryWindow({ to the sheet's door - however many lines the bag grows
+    const bag = s.lastIndexOf('createInventoryWindow({', at);
+    assert.ok(bag >= 0, `${f}: the sheet's door is in a pack's bag`);
+    const near = s.slice(bag, at);
+    // UI2: the spellbook's door rides the pack's door bag (`packDoors`, shared with a hotbar slot's Use) where a host has one
+    assert.match(near, /openSpellbook:|\.\.\.packDoors,/, `${f}: it belongs in the ONE builder's bag`);
     if (near.includes('...packDoors,')) assert.match(s, /const packDoors = \{[\s\S]{0,900}?openSpellbook: \(\) =>/, `${f}: and the bag holds the spellbook's door`);
   }
   // ...and the dungeon's sheet has ONE construction, which the toggle and
