@@ -18,6 +18,8 @@ import { itemDyeColor } from '../../src/systems/item/itemDye.js';
 import { NativeInventoryWindow, INV_RECTS, TABS } from '../../src/ui/native/nativeInventory.js';
 import { CELL_X, SLOT_H } from '../../src/ui/item/itemScroller.js';
 import { equipOf } from '../../src/systems/equip.js';
+import { setItemFields, mintCondition } from '../../src/systems/item/itemTemplates.js';
+import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
 import { itemInfoBoxes } from '../../src/ui/enhanced/enhancedInventory.js';
 
 function craft(records) {
@@ -105,5 +107,9 @@ test('APPEARANCES-II THE CLASSIC INFO BOX SAYS THE LOOK: a piece wearing a look 
   const art = infoOf(razor);
   assert.equal(art[0].rows.at(-1).text, 'Looks like Steel Dagger');
   assert.equal(art.length, 2, 'an artifact\'s powers chained behind, as ever');
+  // a record laid out to the left: the line keeps its alignment (RSC's other ids here are left-aligned)
+  const chest = mintCondition(setItemFields({ group: 'Armor', templateIndex: 102, material: ARMOR_MATERIAL.Iron, variant: 1 }));
+  chest.appearance = { t: 102, m: ARMOR_MATERIAL.Daedric, v: 3 };
+  assert.deepEqual(infoOf(chest)[0].rows.at(-1), { text: 'Looks like Daedric Cuirass, style 3', center: false });
   assert.ok(itemInfoBoxes(sword, { rows: RSC }).flat().some((r) => r.text === 'Looks like Ebony Katana'), 'the Plus pack\'s Info box says the same words');
 });

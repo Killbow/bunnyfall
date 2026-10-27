@@ -75,7 +75,8 @@ ESCORTING FACES - the quest escorts' portrait column, FE1 - and the CREDITS TABL
 - and MASTER-ART's ONE (`professions/masterBox.js`: a Master's work in a craft box - three line pickers, the catalysts held and asked, the day's bound, the result card - `06-Systems/Professions-Arc.md` section 57);
 - and APPEARANCES' THREE (`wardrobe/wardrobeDoor.js` and `wardrobe/wardrobeWindow.js`: the Wardrobe at a Clothing Store, an Armorer or a Weaponsmith - a worn piece given a collected look of its kind for gold; `collections/appearancesPart.js`: Collections' Appearances part - `04-Characters/Wardrobe.md`);
 - and HUNTERS-MARK's TWO (`bounty/huntRank.js`: the hunter's rank on the board's header and the Standing page; `collections/gatheredPart.js`: the Collections page's Trophies, Fish and Annals - `06-Systems/Bounty-Boards.md` section 12);
-434 modules
+- and APPEARANCES-II's ONE (`wardrobe/wardrobePreview.js`: the character wearing a look tried in the Wardrobe, before Wear is paid - the doll, or the Morrowind body on Enhanced Plus - `04-Characters/Wardrobe.md` section 4);
+435 modules
 live under `src/ui/`. Items still routed here are
 collected in `01-Overview/Port-Ledger.md` section C; scope in
 `01-Overview/Port-Doctrine.md` phase plan.

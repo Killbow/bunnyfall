@@ -12,8 +12,9 @@ import { previewWearer, noteHeldLooks, wearAppearance, clearAppearance } from '.
 import { createWardrobePreview, PREVIEW_FIGURE_H } from '../../src/ui/wardrobe/wardrobePreview.js';
 import { mountWardrobeWindow } from '../../src/ui/wardrobe/wardrobeWindow.js';
 import { drawnPiece, lookOfKey } from '../../src/net/appearanceLaw.js';
-import { armBuildOptsOf } from '../../src/combat/weapon/weaponRig.js';
-import { createFpArm } from '../../src/combat/fpArm.js';
+import { armBuildOptsOf, armRenderer, createWeaponRig } from '../../src/combat/weapon/weaponRig.js';
+import { appearanceOf } from '../../src/net/appearanceLaw.js';
+import { createFpArm, fpArm } from '../../src/combat/fpArm.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { setItemFields, mintCondition } from '../../src/systems/item/itemTemplates.js';
 import { equipItem, equipTableOf, EQUIP_SLOTS } from '../../src/systems/equip.js';
@@ -167,14 +168,31 @@ test('APPEARANCES-II THE BODY, BUILT: the preview\'s own rig on the fixture data
   preview.figure(sword, lookOfKey(SABER), () => { told++; });   // passed over while the katana builds...
   preview.figure(sword, null, () => { told++; });   // ...by its own look
   for (let i = 0; i < 50 && told < 2; i++) await settle();
+  assert.equal(told, 2);
   assert.equal(rigs.length, 1, 'one rig');
   assert.deepEqual(opts.map((o) => o.weapon.appearance ?? null), [{ t: 121, m: 7, v: 0 }, null], 'the katana, then its own look - the saber never built');
   const fig = preview.figure(sword, null);
   assert.equal(fig.kind, 'body');
   assert.equal(fig.height, PREVIEW_FIGURE_H);
   assert.ok(shots.length >= 2 && shots.every(([, h]) => h === PREVIEW_FIGURE_H), 'its portrait');
+  // the look passed over is built when it is asked again - never left drawing
+  preview.figure(sword, lookOfKey(SABER), () => { told++; });
+  for (let i = 0; i < 50 && told < 3; i++) await settle();
+  assert.ok(preview.figure(sword, lookOfKey(SABER)).data, 'drawn');
+  assert.deepEqual(opts.at(-1).weapon.appearance, { t: 119, m: 9, v: 0 });
   preview.dispose();
   assert.equal(rigs[0].status().reason, 'unloaded');
+  // the renderer it draws with: the one every host's weapon rig binds the player's arm to, the last binding's
+  const CANVAS = { clientWidth: 800, clientHeight: 600 };
+  const mkRig = (r) => createWeaponRig({ renderer: r, canvas: CANVAS, fetchBytes: () => { throw new Error('no art in tests'); }, palette: null, audio: { playOneShot() {} }, entity: { items: [] }, camera: () => null });
+  const exterior = { id: 'exterior' }, dungeon = { id: 'dungeon' };
+  const outside = mkRig(exterior);
+  assert.equal(armRenderer(), exterior);
+  mkRig(dungeon);
+  assert.equal(armRenderer(), dungeon);
+  outside.frame(0.016);
+  assert.equal(armRenderer(), exterior, 'the stepping rig\'s');
+  fpArm.attach(null, null);
 });
 
 const kids = (n, cls) => (n?.children ?? []).flatMap((c) => [...(c.classList?.contains(cls) ? [c] : []), ...kids(c, cls)]);
@@ -218,8 +236,11 @@ test('APPEARANCES-II THE WINDOW TRIES IT ON: a look\'s name and picture is a pre
       card = one(shell, 'wardrobe-card');
       assert.deepEqual(sword.appearance, { t: 121, m: 7, v: 0 }, 'Wear pays and dresses');
       assert.equal(one(card, 'wardrobe-preview-name').textContent, 'Ebony Katana', 'the preview shows what is worn');
+      kids(one(shell, 'wardrobe-card'), 'wardrobe-try')[1].onclick({ stopPropagation() {} });   // the saber tried
       kids(shell, 'wardrobe-piece')[0].onclick();
       assert.equal(asked.at(-1)[1], null, 'another piece: what it wears');
+      kids(shell, 'wardrobe-piece')[1].onclick();
+      assert.equal(asked.at(-1)[1], appearanceOf(sword), 'and back again: what it wears, not the look last tried');
       fig = { kind: 'body', data: null };
       view.repaint();
       assert.equal(one(one(shell, 'wardrobe-card'), 'wardrobe-figure').className, 'wardrobe-figure body busy', 'drawing: its frame');

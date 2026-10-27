@@ -1,12 +1,11 @@
 // @ts-check
 // APPEARANCES (2026-10-27; bible/04-Characters/Wardrobe.md): THE WARDROBE'S WINDOW - the worn pieces that can take a look
-// in a list, the one pressed beside it with every look of its kind the character has collected: its own look first (for
-// nothing), then each look with its fee and a Wear press. A port window, not DFU's (it has none): the Reforge's shape
-// (ui/reforgeWindow.js) in the Broker's classes, so both skins dress it - the Plus sheet carries its rules
-// (enhancedPlusStyle.js WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/
-// wardrobeDoor.js) mounts it; everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
-// APPEARANCES-II: a look's name is a press of its own that tries it on - the preview over the list shows the character
-// wearing it (ui/wardrobe/wardrobePreview.js) before Wear is paid.
+// in a list, the one pressed beside it with its own look (for nothing) and every look of its kind collected, each with its
+// fee and a Wear press; APPEARANCES-II: a look's name tries it on, and the preview at the card's head shows the character
+// wearing it (ui/wardrobe/wardrobePreview.js) before Wear is paid. A port window, not DFU's (it has none): the Reforge's
+// shape in the Broker's classes, so both skins dress it - the Plus sheet carries its rules (enhancedPlusStyle.js
+// WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/wardrobeDoor.js) mounts it;
+// everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
 import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../systems/appearances.js';
 import { appearanceOf, lookOfPiece, lookCode } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
@@ -100,12 +99,11 @@ function paintFigure(/** @type {any} */ cv, /** @type {{ width: number, height: 
 }
 
 /**
- * Mount the window in the door's host.
+ * Mount the window in the door's host. `preview` the character in a look (wardrobePreview.js's by default; null none).
  * @param {HTMLElement} host
  * @param {{ entity: any, wear: (item: any, look: any) => { ok: boolean, reason?: string|null }, clear: (item: any) => { ok: boolean, reason?: string|null },
  *   nameOf?: (item: any) => string, picture?: ((item: any) => any) | null, onExit?: (() => void) | null,
  *   preview?: { figure: (item: any, look: any, onReady?: () => void) => any, dispose?: () => void } | null }} deps
- *   `preview` the character in a look (APPEARANCES-II: wardrobePreview.js's, by default; null shows none)
  * @returns {{ repaint: () => void, unmount: () => void }}
  */
 export function mountWardrobeWindow(host, deps) {

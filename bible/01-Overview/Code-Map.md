@@ -402,7 +402,7 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/ui/town/` | A town on screen: its sheet, its quarters, its marks and the door to its map. |
 | `src/ui/travel/` | Travel's windows: the travel map, its options, paths and junctions, pace, the pop-up and the HUD. |
 | `src/ui/vendor/` | A vendor's page, tab and map mark - its windows. |
-| `src/ui/wardrobe/` | The Wardrobe at a clothier's, armourer's or weaponsmith's counter: its window and its door (`04-Characters/Wardrobe.md`). |
+| `src/ui/wardrobe/` | The Wardrobe at a clothier's, armourer's or weaponsmith's counter: its window, its door and its preview (`04-Characters/Wardrobe.md`). |
 | `src/ui/wild/` | The open zone on screen: its map, ink and marks. |
 
 #### `src/world/`
