@@ -120,7 +120,10 @@ export class MerchantServiceWindow {
   _portal() { this._click(); this._close(); this.hooks.portal?.onBuy?.(); }   // PORTAL1: closes first, as the three do
   _wardrobe() { this._click(); this._close(); this.hooks.wardrobe?.onOpen?.(); }   // APPEARANCES: the same
 
-  input(code) {
+  input(code, e = null) {
+    // AUDIT HORIZONTAL E7 (bible/04-Characters/Wardrobe.md section 4): a key's repeat is no press here - W, S and E move
+    // the player too, and one held as the popup opened ran its row (Unity's GetKeyDown: a press once, never its repeats)
+    if (e?.repeat) return;
     // ROAD-G G7: these three letters ARE the port's own, and the
     // reason written here was wrong. DFU does not "read its keybinds"
     // for this window - it binds NOTHING: unlike its guild sibling,

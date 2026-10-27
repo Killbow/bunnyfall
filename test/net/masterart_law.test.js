@@ -9,8 +9,9 @@ import { webcrypto } from 'node:crypto';
 import {
   MASTER_RANK, MASTER_LINES, MASTER_PROCS_MAX, MASTER_KINDS, MASTER_CATALYSTS, masterRecipe, masterOptions, masterLineOf, masterChoiceRefusal,
   masterBand, rollMasterLines, isMasterWork, masterSignature, masterGroupOf, masterTrackOf, masterDayOf,
+  masterRecordLines, masterRecordLinesValid, masterLinesOfRecord, masterKeyOf,
 } from '../../src/net/masterLaw.js';
-import { RECIPES, recipeById, MASTERWORK, MAKER_MAX } from '../../src/net/recipeLaw.js';
+import { RECIPES, recipeById, MASTERWORK, makerMark } from '../../src/net/recipeLaw.js';
 import { HEARTWOOD, PEARL, ARCANE_ESSENCE, PROF_RANK_MAX, minedMaterial, NO_PACK_FORM } from '../../src/net/professionLaw.js';
 import { haulFinds, treeFinds } from '../../src/net/nodeLaw.js';
 import { mintProductRecord, readProductRecord, productRecordValid, PRODUCT_RECORD_MAX, MINT_V_MASTER, MINT_VERSION, masterLinesOf } from '../../src/net/productRecord.js';
@@ -26,6 +27,8 @@ import { salvageShards } from '../../src/systems/reforge.js';
 const { subtle } = webcrypto;
 const SWORD = recipeById('longsword:daedric');
 const LINES = ['damage', 'stat:strength', 'elemental:fire'];
+/** The lines as the service signs them at seed 4242 (AUDIT HORIZONTAL B1: rolled once, the values in the record). */
+const SIGNED = masterRecordLines(rollMasterLines(SWORD, LINES, 4242));
 
 test('MASTER-ART WHICH PIECES: every recipe of the nine kinds that wear a tier - the smith\'s weapons and armour, the workbench\'s staves and bows, the loom\'s leather and garments, the jeweller\'s pieces - but the Wand, which no slot takes; never a tool, kit, arrow, furniture, dish or siege work; at Master in its craft\'s track (mutants: a kind dropped; the Wand let in; the rank below Master)', () => {
   assert.deepEqual(MASTER_KINDS, ['weapon', 'staff', 'bow', 'plate', 'shield', 'chain', 'leather', 'garment', 'jewel']);
@@ -105,36 +108,60 @@ test('MASTER-ART THE CATALYSTS ARE ONE TABLE, three pursuits: Logging\'s rarest 
   assert.ok(NO_PACK_FORM.includes(ARCANE_ESSENCE.key), 'the Essence stays in the Stores - its count is the service\'s alone');
 });
 
-test('MASTER-ART THE RECORD names the lines (`l`) only for a Masterwork at the master\'s mint version, and only lines its recipe may carry; the widest the law allows still fits its bound (mutants: `l` on a Superior; on the craft\'s version; the bound back at 512)', async () => {
-  const base = { p: 'a1b2c3d4e5f60718', s: 'acct-0001', h: 'char-0001', r: SWORD.id, q: MASTERWORK, m: 'Mac', c: 4242, i: 1, v: MINT_V_MASTER, l: LINES };
+test('MASTER-ART THE RECORD names the lines (`l`) only for a Masterwork at the master\'s mint version; AUDIT HORIZONTAL B1: it signs their values, `[kind, value]` or `[kind, value, param]`, held to their shape and never to today\'s pool; the widest the law signs still fits its bound (mutants: `l` on a Superior; on the craft\'s version; the bound back at 512 or 640; two lines let through; a line twice let through)', async () => {
+  const base = { p: 'a1b2c3d4e5f60718', s: 'acct-0001', h: 'char-0001', r: SWORD.id, q: MASTERWORK, m: 'Mac', c: 4242, i: 1, v: MINT_V_MASTER, l: SIGNED };
+  assert.deepEqual(SIGNED, [['damage', SIGNED[0][1]], ['stat', SIGNED[1][1], 'strength'], ['elemental', SIGNED[2][1], 'fire']]);
   assert.equal(productRecordValid(base), true);
   assert.equal(MINT_V_MASTER, MINT_VERSION + 1, 'the next mint version');
   assert.equal(productRecordValid({ ...base, q: 3 }), false);
   assert.equal(productRecordValid({ ...base, v: MINT_VERSION }), false);
   assert.equal(productRecordValid({ ...base, v: undefined }), false);
-  assert.equal(productRecordValid({ ...base, l: ['damage', 'armor', 'stat:strength'] }), false);
   assert.equal(productRecordValid({ ...base, l: undefined }), true, 'a Masterwork of the master\'s version without lines is the old shape');
+  // the shape: three lines, each a kind's word, a whole value and a param (a word or a whole number) or none, none twice
+  for (const l of [LINES, SIGNED.slice(0, 2), [...SIGNED, ['leech', 8]], [SIGNED[0], SIGNED[1], SIGNED[1]], [['damage', 31.5], SIGNED[1], SIGNED[2]],
+    [['damage', '31'], SIGNED[1], SIGNED[2]], [['damage'], SIGNED[1], SIGNED[2]], [SIGNED[0], ['stat', 12, 'Str ength'], SIGNED[2]],
+    [SIGNED[0], ['skill', 22, -1], SIGNED[2]], [SIGNED[0], ['stat', 12, 'strength', 1], SIGNED[2]], 'damage']) {
+    assert.equal(productRecordValid({ ...base, l }), false, JSON.stringify(l));
+  }
+  assert.equal(masterRecordLinesValid([['damage', 31], ['skill', 22, 29], ['slayer', 25, 'undead']]), true, 'a skill\'s param a number');
+  // the law of the day it was made was the service's: a line today's pool gives no sword is still the record's word
+  assert.equal(masterChoiceRefusal(SWORD, ['armor', 'stat:strength', 'elemental:fire']), 'line');
+  assert.equal(productRecordValid({ ...base, l: [['armor', 15], SIGNED[1], SIGNED[2]] }), true, 'history, not today\'s pool');
   const rec = await mintProductRecord({ ...base, i: undefined }, null, { subtle, nowS: 1 });
-  assert.deepEqual(masterLinesOf(rec), LINES);
+  assert.deepEqual(masterLinesOf(rec), SIGNED);
+  assert.deepEqual(masterLinesOfRecord(masterLinesOf(rec)), rollMasterLines(SWORD, LINES, 4242), 'read back as the piece carries them');
+  assert.deepEqual(masterLinesOfRecord(masterLinesOf(rec)).map(masterKeyOf), LINES, 'and the keys the station chose');
   assert.equal(masterLinesOf(await mintProductRecord({ ...base, l: null, i: undefined }, null, { subtle, nowS: 1 })), null);
-  // the widest: the longest master recipe, its longest three lines, the law's longest ids and mark
+  // the widest: the longest master recipe, its three widest lines at their bands' tops, the longest ids, and a mark of 32
+  // three-byte letters (makerMark keeps them; it strips a control character)
   let worst = null;
+  const wide = (o) => JSON.stringify(masterRecordLines([{ id: o.id, param: o.param, value: masterBand(o.id)[1] }])[0]).length;
   for (const r of RECIPES.filter(masterRecipe)) {
-    const nums = masterOptions(r).filter((o) => !o.proc).map((o) => o.key).sort((a, b) => b.length - a.length).slice(0, 3);
-    const len = r.id.length + nums.join('').length;
+    const nums = masterOptions(r).filter((o) => !o.proc).sort((a, b) => wide(b) - wide(a)).slice(0, 3);
+    const len = r.id.length + nums.reduce((n, o) => n + wide(o), 0);
     if (!worst || len > worst.len) worst = { len, r, nums };
   }
+  assert.equal(masterChoiceRefusal(worst.r, worst.nums.map((o) => o.key)), null);
+  const l = masterRecordLines(worst.nums.map((o) => ({ id: o.id, param: o.param, value: masterBand(o.id)[1] })));
   const kp = await subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify']);
-  const wide = await mintProductRecord({ p: 'f'.repeat(16), s: 'S'.repeat(40), h: 'H'.repeat(64), r: worst.r.id, q: MASTERWORK, m: 'M'.repeat(MAKER_MAX), c: 0xffffffff, a: true, u: worst.r.kind === 'garment' ? 9 : null, v: MINT_V_MASTER, l: worst.nums }, kp.privateKey, { subtle, nowS: 9_999_999_999 });
-  assert.ok(wide.length > 512 && wide.length <= PRODUCT_RECORD_MAX, `${wide.length}`);
-  assert.equal(PRODUCT_RECORD_MAX, 640);
+  const widest = await mintProductRecord({ p: 'f'.repeat(16), s: 'S'.repeat(40), h: 'H'.repeat(64), r: worst.r.id, q: MASTERWORK, m: makerMark('中'.repeat(40)), c: 0xffffffff, a: true,
+    u: worst.r.kind === 'garment' ? 9 : null, v: MINT_V_MASTER, l }, kp.privateKey, { subtle, nowS: 9_999_999_999 });
+  assert.ok(widest.length > 640 && widest.length <= PRODUCT_RECORD_MAX, `${widest.length}`);
+  assert.deepEqual(readProductRecord(widest).l, l, 'and read back whole');
+  assert.equal(PRODUCT_RECORD_MAX, 704);
 });
 
-test('MASTER-ART THE MINT: a Master\'s record makes a Legendary of exactly its lines at its seed\'s values - its maker\'s mark its name, no record, no enchantment, its worth its lines\'; the same record without its lines makes the Masterwork it always did; the market takes it as minted; no temper, no Reforge, no item maker (mutants: the lines laid at another version; the Rare roll laid over them; a Legendary let into the item maker)', () => {
-  const made = { recipe: SWORD.id, quality: MASTERWORK, seed: 4242, maker: 'Mac', marked: true, version: MINT_V_MASTER, lines: LINES };
+test('MASTER-ART THE MINT: a Master\'s record makes a Legendary of exactly its lines at the values it signs - its maker\'s mark its name, no record, no enchantment, its worth its lines\'; the same record without its lines makes the Masterwork it always did; the market takes it as minted; no temper, no Reforge, no item maker (mutants: the lines laid at another version; the Rare roll laid over them; a Legendary let into the item maker; AUDIT HORIZONTAL B1: the values read at today\'s band)', () => {
+  const made = { recipe: SWORD.id, quality: MASTERWORK, seed: 4242, maker: 'Mac', marked: true, version: MINT_V_MASTER, lines: SIGNED };
   const sword = mintPiece(made, 'a1b2c3d4e5f60718');
   const lines = rollMasterLines(SWORD, LINES, 4242);
   assert.deepEqual([sword.rarity, sword.affixes, sword.legendary, sword.enchantments ?? [], sword.isIdentified], ['legendary', lines, undefined, [], true]);
+  // AUDIT HORIZONTAL B1: the values are the record's, never the seed's roll under today's bands - a record signed under
+  // another band (its values not what this seed rolls now) mints what it signed
+  const signedElsewhere = [['damage', 23], ['stat', 11, 'strength'], ['elemental', 7, 'fire']];
+  assert.notDeepEqual(masterLinesOfRecord(signedElsewhere), lines);
+  assert.deepEqual(mintPiece({ ...made, lines: signedElsewhere }, 'a1b2c3d4e5f60718').affixes, [{ id: 'damage', value: 23 }, { id: 'stat', param: 'strength', value: 11 }, { id: 'elemental', param: 'fire', value: 7 }]);
+  assert.equal(mintPiece({ ...made, lines: LINES }, 'a1b2c3d4e5f60718').rarity, 'rare', 'keys of no value are no Master\'s record: the Masterwork\'s Rare roll');
   assert.equal(sword.name, 'Longsword', 'a Masterwork\'s mark is its name (itemNameParts)');
   assert.equal(sword.value, itemBaseValue(sword) + affixesWorth(lines, sword));
   assert.equal(isMasterWork(sword), true);
@@ -146,7 +173,8 @@ test('MASTER-ART THE MINT: a Master\'s record makes a Legendary of exactly its l
   assert.equal(before.rarity, 'rare', 'lines on a record of the craft\'s version are not laid');
   const unmarked = mintPiece({ ...made, maker: null }, 'a1b2c3d4e5f60718');
   assert.match(unmarked.name, /^Slayer's Longsword of the Titan$/, 'no mark: the name its lines give, at the Legendary band');
-  const garment = mintPiece({ recipe: 'garment-141:linen', quality: MASTERWORK, seed: 9, maker: 'Mac', version: MINT_V_MASTER, lines: ['standing:nobility', 'warmth', 'dry'], dye: 3 }, 'b1b2c3d4e5f60718');
+  const gl = masterRecordLines(rollMasterLines(recipeById('garment-141:linen'), ['standing:nobility', 'warmth', 'dry'], 9));
+  const garment = mintPiece({ recipe: 'garment-141:linen', quality: MASTERWORK, seed: 9, maker: 'Mac', version: MINT_V_MASTER, lines: gl, dye: 3 }, 'b1b2c3d4e5f60718');
   assert.deepEqual([garment.rarity, garment.affixes.map((a) => a.id), garment.dye], ['legendary', ['standing', 'warmth', 'dry'], 3], 'a garment\'s too, whatever the switch');
   assert.equal(temperRefusal(sword), 'rarity', 'no temper - law 7\'s tiers');
   assert.equal(salvageShards(sword), 0, 'no shards - a made piece breaks at the Enchanting Station alone');
@@ -157,7 +185,7 @@ test('MASTER-ART THE MINT: a Master\'s record makes a Legendary of exactly its l
 });
 
 test('MASTER-ART THE ITEM LAW holds a Master\'s work to its shape - a made Legendary of no record, a Masterwork, three lines in the Legendary band, one effect at most, nothing laid on after; a found Legendary keeps its record\'s law (mutants: the count unread; a line past the band let through; an enchantment let through; the quality unread)', () => {
-  const sword = mintPiece({ recipe: SWORD.id, quality: MASTERWORK, seed: 4242, maker: 'Mac', marked: true, version: MINT_V_MASTER, lines: LINES }, 'a1b2c3d4e5f60718');
+  const sword = mintPiece({ recipe: SWORD.id, quality: MASTERWORK, seed: 4242, maker: 'Mac', marked: true, version: MINT_V_MASTER, lines: SIGNED }, 'a1b2c3d4e5f60718');
   const top = AFFIX_RANGES.damage.legendary[1];
   const cases = [
     [{}, []],

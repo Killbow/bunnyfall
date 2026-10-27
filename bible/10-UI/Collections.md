@@ -217,10 +217,11 @@ The mutants: `tools/mutants/collections2.json` (78 records, all dead), the re-ai
 
 ## 9. Appearances (APPEARANCES, 2026-10-27)
 
-The page's seventh part, after the account's four: **Appearances**, every look a piece can be drawn as
+The page's fifth part, after the account's four: **Appearances**, every look a piece can be drawn as
 (`04-Characters/Wardrobe.md`, `src/ui/collections/appearancesPart.js`). It is the character's, in the save, so it shows
-for every player and reads no account. Its tile is its name over the looks held of the 474 there are, and the kit's
-meter of them (`partCount('appearances')`).
+for every player and reads no account. Its tile is its name over the looks held of the 473 there are, and the kit's
+meter of them (`partCount('appearances')`). AUDIT HORIZONTAL E10: this page said seventh (`COLLECTION_PARTS` puts it
+fifth). AUDIT HORIZONTAL E3: it said 474, one of them a look no mint makes (Wardrobe.md section 2).
 
 The part opens on **Held**; **All** and **Not held** list the rest. Under one line saying how a look is had and where it
 is worn, each kind is a group - head to foot, the shield, then the weapons, as the Wardrobe matches them - under its
@@ -228,10 +229,17 @@ divider with its own count of the whole kind (`Chest - 3 / 32`) and the kit's me
 classic icon), its name with its style, and a chip: Worn over a piece now, Held, or none - a look not held is dimmed,
 the wardrobe part's law.
 
-A row opened says how it is had ("Hold a Steel Cuirass, style 2: buy it, find it, or make it.",
-or Collected.) and where it is worn ("Over any piece of its kind (Chest), at a Clothing Store, an Armorer or a
+A row opened says how it is had ("To collect Steel Cuirass, style 2: buy it at a shop.", or Collected.) and where it is
+worn ("Over any piece of its kind (Chest), at a Clothing Store, an Armorer or a
 Weaponsmith, for 25 gold."). Its roles are the kit's (a filter a tile, a row a list line, a row opened a panel, a chip a
 tag); its sheet (`LOOKS_PART_CSS`) writes the meter's geometry alone. Pinned: `test/ui/appearances_part.test.js`.
+
+**AUDIT HORIZONTAL E4: the words a look not held says.** They were "Hold a {name}: buy it, find it, or make it." for
+every look - "Hold a Iron Helm", and false past a look's first style, which loot, a corpse and the smith never make. A
+style a piece minted with none draws says "To collect {name}: buy it, find it or make it."; any other, "To collect
+{name}: buy it at a shop." (`appearancesPart.js` everyMintMakes). Pinned: `test/systems/appearances_audit.test.js`.
+AUDIT HORIZONTAL E10's other half - Wardrobe.md section 11's line that the words were English - went with
+APPEARANCES-II: they were drafted at the slice's merge.
 
 ## 10. HUNTERS-MARK and MARKS-OF-MASTERY (2026-10-27)
 
@@ -239,7 +247,7 @@ The bounty boards' progression (`06-Systems/Bounty-Boards.md` section 12) added 
 
 **The catalogue.** Two sources after the questlines: **The Hunt** (Bloodhound, Beastbane, Grand Huntsman, Legend of the
 Hunt, at 25, 100, 300 and 750 of the account's board clears) and **Marks of Mastery** (a profession's Master, ten, while a
-living character of the account holds the track at rank 100). Serpent Hunter and Bane of the Deep stand under the Sea
+living realm character of the account holds the track at rank 100). Serpent Hunter and Bane of the Deep stand under the Sea
 Serpent's source (10 and 40 serpents the account helped slay). All sixteen are open, derived by the service at every
 ask; their paint is `playerBadge.js` TITLE_RGBA, each more than 40 apart from every other title's.
 
@@ -256,3 +264,8 @@ list of coats would forget a coat sold or lost.
 
 Pins: `test/systems/huntersmark_trophies.test.js` (the log and the parts), `test/ui/collections2.test.js` and
 `test/systems/auditcards5_ui.test.js` (PIN MOVED: the parts' lists).
+
+**AUDIT HORIZONTAL F5 and lane F's suspected Master.** A worn Mark of Mastery shows on a letter's sender (the inbox and
+the letter opened) and a notice-board note's author, as on the boards' names. A Master is held off a realm character
+alive: a track whose character no realm row stands for holds none. Seat and chapter titles stay blank on letters, notes
+and boards, named (`06-Systems/Bounty-Boards.md` 12.10).

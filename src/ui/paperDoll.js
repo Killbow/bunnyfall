@@ -616,7 +616,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1 
   for (const it of ordered) {
     const res = paperdollItemImage(it, { gender: deps.gender, race: deps.race });
     if (!res) continue;
-    const img = await loadRecord(res.archive, res.record, deps.getTexture, itemDyeColor(it), S);   // DW3: the import ask is by item.dyeColor (an artifact's is Unchanged); the remap below stays res.dye
+    const img = await loadRecord(res.archive, res.record, deps.getTexture, itemDyeColor(drawnPiece(it)), S);   // DW3: the import ask is by item.dyeColor (an artifact's is Unchanged); the remap below stays res.dye. APPEARANCES-II: the drawn piece's - a look's record asked in the piece's metal drew Diverse Weapons' picture of it in the wrong one
     if (!img) continue;
     // FIELD-GUN4: a vendor-only archive has no indexed bitmap to blit
     // through the palette - it hands back RGBA instead, and it is the
@@ -781,6 +781,19 @@ export function slotAtPaperDoll(px, py) {
  */
 export const paperDollPixels = () => _pixels;
 
+
+/** APPEARANCES-II (bible/04-Characters/Wardrobe.md section 4): THE PLAYER'S DOLL ON A STAND-IN - the Wardrobe's preview
+ *  of a look not yet worn (systems/appearances.js previewWearer). The inventory's own art set and deps, composed PURE of
+ *  the singleton: its composite, click mask and identity are untouched. `{ width, height, rgba }`, or null before a host
+ *  has loaded the art; a stand-in of another identity takes the peers' door. */
+export async function composeDollFor(entity) {
+  if (!_art || !_deps) return null;
+  if (paperDollIdentityDrift(entity)) return composePaperDollPixels(_deps, entity, { context: _ident?.context ?? 'town' });
+  try {
+    const { out, width, height } = await composeDoll(_art, _deps, entity, { scale: composeScale() });
+    return { width, height, rgba: out };
+  } catch { return null; }
+}
 
 /**
  * ONLINE1 (AUDIT ONLINE C1-C4, C8, C9): A DOLL FOR SOMEONE ELSE. The

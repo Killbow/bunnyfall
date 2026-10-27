@@ -8499,9 +8499,14 @@
   "tr": "bb9ffb270e93",
   "by": "claude-in-session"
  },
- "coll.looks.howHad": {
-  "en": "3bb23f642258",
-  "tr": "5de87d6d351b",
+ "coll.looks.howBuy": {
+  "en": "b22d688a777d",
+  "tr": "a3c5b4ef61ae",
+  "by": "claude-in-session"
+ },
+ "coll.looks.howGet": {
+  "en": "d9278ee1fc22",
+  "tr": "4a3d8adfe91c",
   "by": "claude-in-session"
  },
  "coll.looks.howHead": {
@@ -22969,6 +22974,11 @@
   "tr": "3403252c96af",
   "by": "claude-in-session"
  },
+ "net.chat.linkItem": {
+  "en": "10bc470a62de",
+  "tr": "10bc470a62de",
+  "by": "claude-in-session"
+ },
  "net.chat.mailRefused": {
   "en": "48089c6da62c",
   "tr": "f546971fb56d",
@@ -23077,6 +23087,11 @@
  "net.chat.wait": {
   "en": "eb01c7bc0bae",
   "tr": "800431b173ba",
+  "by": "claude-in-session"
+ },
+ "net.chat.worn": {
+  "en": "cafe5884febc",
+  "tr": "cafe5884febc",
   "by": "claude-in-session"
  },
  "net.conduct.agree": {
@@ -27640,8 +27655,8 @@
   "by": "claude-in-session"
  },
  "prof.master.takes": {
-  "en": "6774f69ec07d",
-  "tr": "908c57ef487a",
+  "en": "e34a0b2474b5",
+  "tr": "471591d5a046",
   "by": "claude-in-session"
  },
  "prof.page.act.strike": {
@@ -35429,16 +35444,6 @@
   "tr": "eacc38c54831",
   "by": "claude-in-session"
  },
- "sets.catchUp": {
-  "en": "f526ea3223fb",
-  "tr": "9248142b6b4a",
-  "by": "claude-in-session"
- },
- "sets.catchUpTo": {
-  "en": "4c1c32c00eac",
-  "tr": "8cb5f0b4978f",
-  "by": "claude-in-session"
- },
  "settings.language.machine": {
   "en": "048283a78ca3",
   "tr": "c844d63468f7",
@@ -37169,6 +37174,16 @@
   "tr": "d47fc16b5385",
   "by": "claude-in-session"
  },
+ "wardrobe.preview": {
+  "en": "f1fbb2b43dca",
+  "tr": "4a8b648c4afe",
+  "by": "claude-in-session"
+ },
+ "wardrobe.previewOf": {
+  "en": "351e78ed19cd",
+  "tr": "cae47fa7d549",
+  "by": "claude-in-session"
+ },
  "wardrobe.purse": {
   "en": "e323a39e618d",
   "tr": "a1f502f5de48",
@@ -37212,6 +37227,16 @@
  "wardrobe.title": {
   "en": "5da5f57d195b",
   "tr": "f441ff27a156",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOn": {
+  "en": "e70f92c879c4",
+  "tr": "3812a23744eb",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOwn": {
+  "en": "588e0b9e697d",
+  "tr": "8a20fbd40920",
   "by": "claude-in-session"
  },
  "wardrobe.wear": {
@@ -37352,16 +37377,6 @@
  "wild.zone.unstuckOut": {
   "en": "23aa54c8359e",
   "tr": "8c57285e1aab",
-  "by": "claude-in-session"
- },
- "net.chat.linkItem": {
-  "en": "10bc470a62de",
-  "tr": "10bc470a62de",
-  "by": "claude-in-session"
- },
- "net.chat.worn": {
-  "en": "cafe5884febc",
-  "tr": "cafe5884febc",
   "by": "claude-in-session"
  }
 }

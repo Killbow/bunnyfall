@@ -246,7 +246,7 @@ export function huntKind({ book, bodies, openLoot = null, trophy = null }) {
     },
     /** The account's day, as the chip says it: its hides today (CAP-OFF: against no cap). */
     tally: () => ({ n: book.state.hunt?.hides ?? 0 }),
-    /** HUNTERS-MARK (Professions-Arc 57): a Trophy Hunter's trophy, the service's word on a clean pelt of a tier 5+ body -
+    /** HUNTERS-MARK (Professions-Arc 58): a Trophy Hunter's trophy, the service's word on a clean pelt of a tier 5+ body -
      *  the beast skinned (a reloaded page's kept harvest: its hide's first foe), into the pack once - the gather host's
      *  `entity`'s. */
     answered(/** @type {any} */ d, /** @type {(t: string) => void} */ toast, /** @type {any} */ o = null) {

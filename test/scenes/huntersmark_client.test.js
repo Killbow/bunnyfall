@@ -11,15 +11,17 @@ import assert from 'node:assert/strict';
 import { byClass } from '../chargenDom.mjs';
 import { standService, T0, sessionStorageOf } from '../accountDb.mjs';
 import { accountHunt, SESSION_KEY } from '../../src/net/accountClient.js';
-import { createHuntBook, HUNT_KEEP, HUNT_STATE_MS, huntBook } from '../../src/net/huntBook.js';
+import { createHuntBook, HUNT_KEEP, HUNT_STATE_MS, HUNT_CLOSED_MS, huntBook } from '../../src/net/huntBook.js';
 import {
-  huntGameDayAt, huntWeekAt, huntMarkId, huntMarkOf, huntMarkGold, HUNT_MARK_NAMES, HUNT_RUNGS, HUNT_MARK_RUNG,
+  HUNT_CLEARS_DAY_MAX, huntGameDayAt, huntWeekAt, huntMarkId, huntMarkOf, huntMarkGold, HUNT_MARK_NAMES, HUNT_RUNGS, HUNT_MARK_RUNG,
 } from '../../src/net/huntLaw.js';
 import { bountyId, bountySites, boardPostings } from '../../src/systems/bounty/bountyBoard.js';
 import { createHuntersMark, huntMarkTraits, huntOnline, HUNT_MARK_TRAITS } from '../../src/scenes/huntersMark.js';
 import { createBountyHost } from '../../src/scenes/bountyHost.js';
 import { mountBountyBoard, markStateWord } from '../../src/ui/bounty/bountyWindow.js';
-import { rankWords, rankShare } from '../../src/ui/bounty/huntRank.js';
+import { rankWords, rankShare, statsHunt } from '../../src/ui/bounty/huntRank.js';
+import { seatRealm } from '../realmSeat.mjs';
+import { accountRefusalText } from '../../src/net/accountClient.js';
 import { TROPHY_TEMPLATE } from '../../src/net/trophyLaw.js';
 import { trophyTitle } from '../../src/systems/hunt/trophies.js';
 import { sharedClassicMinutes } from '../../src/net/wire.js';
@@ -83,6 +85,76 @@ test('HUNTERS-MARK THE BOOK over the real Worker: a paid bounty kept, reported a
   beat.tick(); await flush();
   assert.equal(asked, 2, 'stale: asked again');
   assert.equal(beat.state.clears, 5);
+});
+
+test('AUDIT HORIZONTAL F3, F4, F7 THE BOOK\'S WAITS over the real Worker: a clear the account\'s day was full for is kept, never asked again that day, and counted once the service\'s UTC day turns - one whose notice leaves the clock\'s window first let go; a guest\'s book says the account keeps no rank, keeps nothing and asks again only rarely; a device signed out keeps its reports (mutants: day-full let go; held asked again the same day; the guest asked each beat; no-session dropped)', async (t) => {
+  let clock = NOON * 1000;
+  t.mock.method(Date, 'now', () => clock);
+  const s = await standService({ SEATS_OPEN: 'on' });
+  const raw = s.env.DB._raw;
+  const mac = await s.seated('Mac');
+  const day = huntGameDayAt(clock);
+  let asked = 0;
+  const real = accountHunt({ fetch: s.fetch, storage: sessionStorageOf(SESSION_KEY, mac) });
+  const door = { ...real, clear: (...a) => { asked++; return real.clear(...a); } };
+  const storage = memStorage();
+  const book = createHuntBook({ door, storage, character: () => mac.character, now: () => clock });
+  // F3: the account's UTC day full (another character's rows - the day is the account's)
+  for (let i = 0; i < HUNT_CLEARS_DAY_MAX; i++) raw.prepare("INSERT INTO hunt_clears (player, char_id, kind, key, id, tier, region, day, at) VALUES (?, 'r22222222222222222222', 'board', ?, 'x', 0, NULL, ?, ?)").run(mac.id, `full.${i}`, utcDay(NOON), NOON);
+  const kept = bountyId(day, 300, 200, 1, 1);
+  const lapsing = bountyId(day - 8, 301, 200, 1, 1);   // posted 16 real hours ago: out of the window by midnight
+  book.report(kept, 17);
+  await until(() => asked === 1 && book.state != null);
+  assert.deepEqual(book.kept(), [kept], 'the day was full: kept for the next, never let go');
+  assert.equal(book.waitingDay(), 1);
+  book.report(lapsing, 17);
+  await flush();
+  assert.equal(asked, 1, 'a report made while the day is full waits with the rest, unasked');
+  assert.equal(book.waitingDay(), 2);
+  clock += 6 * 3600_000;
+  book.tick(); await flush();
+  assert.equal(asked, 1, 'the same UTC day: not asked again');
+  clock = (utcDay(NOON) + 1) * 86_400_000 + 60_000;   // a minute past the service's midnight
+  assert.deepEqual(book.kept(), [kept], 'the notice that left the clock\'s window first is let go');
+  book.tick();
+  await until(() => book.kept().length === 0);
+  assert.equal(asked, 2, 'asked once the day turned');
+  assert.equal(book.state.clears, 1, 'and counted');
+  assert.equal(raw.prepare("SELECT COUNT(*) AS n FROM hunt_clears WHERE player = ? AND char_id = ? AND key LIKE ?").get(mac.id, mac.character, `${day}.300.200.1`).n, 1);
+  // F4: a guest seated in the realm - the account keeps no rank; said once, kept nothing, asked again rarely
+  clock = NOON * 1000;
+  const g = await s.guest();
+  const R = await seatRealm(s.env, g.secret, 'Gus', null);
+  let states = 0;
+  const gdoor = accountHunt({ fetch: s.fetch, storage: sessionStorageOf(SESSION_KEY, g) });
+  const guest = createHuntersMark({ hunt: { door: { ...gdoor, state: (c) => { states++; return gdoor.state(c); } }, storage: memStorage(), character: () => R.id }, now: () => 0, wallNow: () => clock,
+    level: () => 5, entity: () => ({ items: [] }), townName: () => 'Daggerfall', regionAt: () => 5, sitesFor: () => [[302, 203]], playerPixel: () => null, canStand: () => true,
+    standPack: () => null, say: () => {}, notice: () => {}, repaint: () => {} });
+  guest.tick(0.5);
+  await until(() => guest.book.closed);
+  assert.deepEqual(guest.boardRank(TOWN), { closed: true });
+  assert.equal(rankWords(guest.boardRank(TOWN)).head, accountRefusalText('hunt-need-account'), 'the board says why, never "reading"');
+  const el = (tag, cls = null, text = null) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const kit = { el, divider: (x) => el('h4', null, x), meter: () => el('i') };
+  for (let i = 0; i < 5; i++) { const d = el('div'); statsHunt(d, kit); assert.match(d.textContent, /Only a registered account/); }
+  clock += HUNT_CLOSED_MS - 1000; guest.tick(0.5); await flush();
+  assert.equal(states, 1, 'five Standing draws and a beat: one ask');
+  clock += 2000; guest.tick(0.5);
+  await until(() => states === 2);
+  assert.equal(guest.book.report(bountyId(day, 300, 200, 2, 1), 5), false, 'a guest\'s clear is not kept');
+  // and a service not answering: the Standing page reads on the book's beat, never once a draw
+  let offlineAsks = 0;
+  const lost = createHuntersMark({ hunt: { door: { account: () => 'a', state: async () => { offlineAsks++; return { ok: false, error: 'offline' }; }, clear: async () => ({ ok: false, error: 'offline' }) }, storage: memStorage(), character: () => 'c' },
+    now: () => 0, wallNow: () => clock, level: () => 5, entity: () => ({ items: [] }), townName: () => 'X', sitesFor: () => [], playerPixel: () => null, canStand: () => true,
+    standPack: () => null, say: () => {}, notice: () => {}, repaint: () => {} });
+  for (let i = 0; i < 5; i++) { const d = el('div'); statsHunt(d, kit); await flush(); assert.match(d.textContent, /Reading your hunter/); }
+  assert.equal(offlineAsks, 1, 'five draws: one ask');
+  assert.deepEqual(lost.boardRank(TOWN), { reading: true }, 'not answered is not closed');
+  // F7: signed out on this device - kept, the service never asked
+  const out = createHuntBook({ door: accountHunt({ fetch: s.fetch, storage: memStorage() }), storage: memStorage(), character: () => mac.character, now: () => clock });
+  out.report(bountyId(day, 302, 200, 1, 1), null);
+  await flush(); await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(out.kept(), [bountyId(day, 302, 200, 1, 1)], 'no session: kept for the sign-in');
 });
 
 // ─── THE NAMED MARK ──────────────────────────────────────────────────
@@ -233,7 +305,7 @@ test('HUNTERS-MARK THE BOUNTY HOST reports every board bounty it pays, with the 
 test('HUNTERS-MARK THE BOARD\'S WINDOW: the rank under its title - the rung and the clears, this region\'s, a bar to the next rung, the reports still to count; the week\'s mark first in the list, its card its traits, purse and trophy, Take handing its id; no header offline (mutants: the rank line never drawn; the bar backwards; the mark row not first; Take not handed the id)', () => {
   const posting = {
     id: 'm.2900.300.200.16', title: 'Scarneck the Gargoyle', tier: 5, gold: 600, tierLabel: 'Tier 5', story: 'It has killed hunters before.',
-    poster: 'the hunters of Daggerfall', mapLine: 'Marked on your map.', traits: ['berserker', 'warded'],
+    poster: 'the hunters of Daggerfall', mapLine: 'Marked on your map.', traits: ['flameproof', 'warded'],
   };
   const took = [];
   const rank = { rung: 'stalker', clears: 52, next: { id: 'slayer', at: 100 }, from: 40, region: 7, waiting: 1 };
@@ -258,7 +330,8 @@ test('HUNTERS-MARK THE BOARD\'S WINDOW: the rank under its title - the rung and 
   rows[0].onclick();
   const card = byClass(host, 'bounty-markcard')[0];
   assert.ok(card, 'its card');
-  assert.match(card.textContent, /It is .+ and .+\./);
+  // PIN MOVED (AUDIT HORIZONTAL G6): the traits named (the trait ids the law draws), listed in the reader's language
+  assert.match(card.textContent, /Its traits: Flameproof and Warded\./);
   assert.match(card.textContent, /600 gold pieces/);
   byClass(card, 'bounty-take')[0].onclick({ stopPropagation() {}, preventDefault() {} });
   assert.deepEqual(took, [posting.id]);

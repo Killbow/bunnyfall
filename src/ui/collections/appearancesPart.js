@@ -7,7 +7,7 @@
 // parts are: a filter a tile, a row a list line, a row opened a panel, a tag a chip.
 import { t } from '../../systems/textManager.js';
 import { lookGroups, looksCount, lookName, kindName, lookStub, wardrobeFee, wardrobePieces } from '../../systems/appearances.js';
-import { appearanceOf, lookCode } from '../../net/appearanceLaw.js';
+import { appearanceOf, lookCode, lookVariant } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
 import { requestFittedIcon, fittedImg } from '../textureCanvas.js';
 import { SLOT_BOX, screenDpr } from '../iconFit.js';
@@ -27,7 +27,9 @@ export const LOOK_WORDS = Object.freeze({
   held: () => t('coll.looks.tag.held', 'Held'),
   worn: () => t('coll.looks.tag.worn', 'Worn'),
   howHead: () => t('coll.looks.howHead', 'How to get it'),
-  howHad: (/** @type {string} */ name) => t('coll.looks.howHad', 'Hold a {name}: buy it, find it, or make it.', { name }),
+  // AUDIT HORIZONTAL E4: no article before a name that starts with a vowel or a material; past style 1 a shop's roll alone
+  howGet: (/** @type {string} */ name) => t('coll.looks.howGet', 'To collect {name}: buy it, find it or make it.', { name }),
+  howBuy: (/** @type {string} */ name) => t('coll.looks.howBuy', 'To collect {name}: buy it at a shop.', { name }),
   wearHead: () => t('coll.looks.wearHead', 'Wearing it'),
   wearAt: (/** @type {string} */ kind, /** @type {number} */ gold) => t('coll.looks.wearAt', 'Over any piece of its kind ({kind}), at a Clothing Store, an Armorer or a Weaponsmith, for {gold, number} gold.', { kind, gold }),
   heldLine: () => t('coll.looks.heldLine', 'Collected.'),
@@ -81,6 +83,10 @@ export function drawAppearancesPart(detail, rerender, kit) {
   if (_filter === 'held' && !looksCount(player).held) detail.append(el('p', 'coll-acct', LOOK_WORDS.none()));
 }
 
+/** AUDIT HORIZONTAL E4: whether loot, a corpse and the smith make a look too - its style the one a piece minted with none
+ *  draws (SetVariant's clamp of 0); any other style is a shop's roll (systems/shopStock.js randomizeArmorVariant). */
+export const everyMintMakes = (/** @type {{ t: number, m: number, v: number }} */ look) => look.v === lookVariant(look.t, look.m, 0);
+
 /** One look's row, and - pressed - the look whole under it. */
 function lookRow(/** @type {Function} */ el, /** @type {any} */ look, /** @type {boolean} */ held, /** @type {boolean} */ worn, /** @type {string} */ kind, /** @type {(look: any) => any} */ picture, /** @type {() => void} */ rerender) {
   const key = lookCode(look), open = _open === key, name = lookName(look);
@@ -100,7 +106,7 @@ function lookRow(/** @type {Function} */ el, /** @type {any} */ look, /** @type 
   const whole = el('div', 'coll-whole nopic');
   const text = el('div', 'coll-text');
   text.append(el('p', 'coll-bigword', name));
-  text.append(el('h5', null, LOOK_WORDS.howHead()), el('p', null, held ? LOOK_WORDS.heldLine() : LOOK_WORDS.howHad(name)));
+  text.append(el('h5', null, LOOK_WORDS.howHead()), el('p', null, held ? LOOK_WORDS.heldLine() : everyMintMakes(look) ? LOOK_WORDS.howGet(name) : LOOK_WORDS.howBuy(name)));
   text.append(el('h5', null, LOOK_WORDS.wearHead()), el('p', null, LOOK_WORDS.wearAt(kindName(kind), wardrobeFee(look))));
   whole.append(text);
   return [row, whole];

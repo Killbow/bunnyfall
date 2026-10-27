@@ -189,7 +189,7 @@ const OWN_CHOICES = Object.freeze({
   hunting: Object.freeze({
     50: pair(spec('tracker', 'Tracker', 'Animals within 100 m are marked.'),
       spec('tanner', 'Tanner', 'Hides cure 1:1, not 2:1.')),
-    // HUNTERS-MARK (Professions-Arc 57): the Mounted Trophy built - a clean pelt of a tier 5+ body mounts its beast
+    // HUNTERS-MARK (Professions-Arc 58): the Mounted Trophy built - a clean pelt of a tier 5+ body mounts its beast
     100: pair(spec('trophy-hunter', 'Trophy Hunter', 'A clean pelt of a grade 5 or 6 body gives a mounted trophy of the beast.'),
       spec('butcher', 'Butcher', 'Meat x2, and it spoils half as fast.')),
   }),
@@ -644,7 +644,7 @@ export const HIGH_HIDES_PER_DAY = 3;
 export const HIGH_HIDE_TIER = 5;
 /** A body's DFU part (4.4): one body in four, lost with a torn pelt (PROF0 29). */
 export const PART_CHANCE = 0.25;
-/** HUNTERS-MARK (Professions-Arc 57): a Trophy Hunter's trophy - a CLEAN pelt of a body of HIGH_HIDE_TIER or past it, so
+/** HUNTERS-MARK (Professions-Arc 58): a Trophy Hunter's trophy - a CLEAN pelt of a body of HIGH_HIDE_TIER or past it, so
  *  inside the account's HIGH_HIDES_PER_DAY, its rare hides' own bound. */
 export const TROPHY_HUNTER = 'trophy-hunter';
 export const trophyHunted = ({ spec100, tier, clean }) => spec100 === TROPHY_HUNTER && clean === true && tier >= HIGH_HIDE_TIER;

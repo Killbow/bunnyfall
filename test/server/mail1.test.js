@@ -67,6 +67,8 @@ function d1() {
       };
       return api;
     },
+    // AUDIT HORIZONTAL F5: D1's batch - the senders' Marks of Mastery are read in one (hunts.js masteryCountsAll)
+    async batch(list) { return Promise.all(list.map((s) => s.all())); },
   };
 }
 

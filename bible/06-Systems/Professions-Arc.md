@@ -6492,33 +6492,46 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 - **The law** - `src/net/masterLaw.js`, pure: `masterRecipe`, `masterOptions` (the ladder's lines for the piece's
   group, numbers then effects, each param the kind names on the piece - a garment's attribute Personality alone; never a
   technique), `masterChoiceRefusal` (`recipe`, `count`, `line`, `twice`, `procs`), `rollMasterLines`
-  (`masterLaw.js:"export function rollMasterLines("`: lo to hi, the ladder's own draw, off the seed), `isMasterWork`.
+  (`masterLaw.js:"export function rollMasterLines("`: lo to hi, the ladder's own draw, off the seed - the service's
+  alone, once), `isMasterWork`.
 
 - **The record** - `productRecord.js:"export const MINT_V_MASTER = 4;"`: a Master's record stamps mint version 4 (3 is
-  main's ARMOR-LEAN, taken first) and
-  carries its lines (`l`, `kind` or `kind:param`); their values come off its seed (`c`), so the market and every client
-  mint the same piece. The bound is `productRecord.js:"export const PRODUCT_RECORD_MAX = 640;"` (it was 512: the law's
-  widest Master's record runs to 537).
+  main's ARMOR-LEAN, taken first) and signs its lines at the values the service rolled
+  (`masterLaw.js:"export const masterRecordLines = (lines) =>"`: `[kind, value]` or `[kind, value, param]`), so the
+  market and every client mint the piece the service made. The bound is
+  `productRecord.js:"export const PRODUCT_RECORD_MAX = 704;"` (it was 512): the widest record the law signs runs to 649.
+
+- **AUDIT HORIZONTAL B1: the values are signed, never rolled again.** The record named the keys and seed, and every
+  reader rolled the values from today's bands, so a band moved (even widened) made every honest Master's work a
+  `provenance` finding. The service now rolls once and signs the values; `prof_masters.lines` keeps them, and the mint,
+  the judge and a request asked again read them. The record's `l` is held to its shape
+  (`masterLaw.js:"export function masterRecordLinesValid(l) {"`), never to today's pool: the law of the day it was made
+  was the service's. MINT_V_MASTER stays 4: no deployed service ever signed the old shape, so no record needs reading.
 
 - **The service** - `masterWork.js:"export async function masterWork("`, `/v1/prof/master`: one batch, as the anvil's -
   the rank read, the day's row, every good and catalyst held as it is spent (a Pearl jewel's own Pearl beside its three),
   the products row and signed record, the goods out a station's way, the catalysts bought first. A progression claim of
   the seated character (`progress.js` PROGRESS_ROUTES). Migration `0178_master_work.sql`. The state says whether today's
-  is made (`profState`'s `master`).
+  is made (`profState`'s `master`). AUDIT HORIZONTAL B3: the goods held and the recipe's own craft asked are pinned - the
+  catalysts alone make nothing, and a Smith at Master makes no leather cuirass.
 
-- **The mint** - `smithItems.js:"function applyMasterWork(item, r, keys, seed) {"`: Legendary, the record's lines at their
-  values, its name its lines' (the mark's over it), its worth its lines'; laid whatever the switch, as the last pass is.
-  The market's piece carries the lines (`market.js` pieceOf).
+- **The mint** - `smithItems.js:"function applyMasterWork(item, lines) {"`: Legendary, the record's lines at their
+  signed values, its name its lines' (the mark's over it), its worth its lines'; laid whatever the switch, as the last
+  pass is. The market's piece carries the lines (`market.js` pieceOf).
 
 ### 57.5 The law of the piece
 
 - **The item law** - `itemLaw.js:"function masterFindings(item, body, procs, techs, gems) {"`: a made Legendary of no
   record is a Master's work - a Masterwork, three lines in the band, one effect at most, no technique, gem, Exalted line,
   curse, reforge, hone or enchantment. `ITEM_LAW_VERSION` stays 14: no Master's work existed before the service that
-  makes it, whose judge is this law, so no finding of 14 is one to ask again.
+  makes it, whose judge is this law, so no finding of 14 is one to ask again. The item law is today's, for every piece:
+  a band narrowed past a made value, or a line taken from a group's pool, is a change of the law (its version), as for a
+  drop's lines.
 
 - **The judge** - `judge.js:"const recordLines = (record) => {"`: a piece showing a Master's lines holds a record that
-  names them, at the values its seed rolls. A piece edited within the band passes the item law and fails here.
+  names them, at the values it signs. A piece edited within the band passes the item law and fails here. AUDIT
+  HORIZONTAL B2: so does a plain craft's Masterwork reshaped to a Legendary of three band-top lines - its record names no
+  lines, and this clause alone finds it (pinned).
 
 - **The item maker** refuses every Legendary (`enchanting.js:"if (item?.rarity === 'legendary') return null;"`): a
   Master's work carries no rows, and DFU's refusal of an enchanted item never reached it.
@@ -6528,18 +6541,31 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 ### 57.6 The station
 
 - In the craft box of the anvil, the workbench, the loom and the jeweller's bench, at Master in the recipe's craft
-  (`masterBox.js:"export function drawMasterBox(box, kit, r, { station, book, state, ready, rerender, name, go }) {"`):
+  (`masterBox.js:"export function drawMasterBox(box, kit, r, { station, book, state, free, rerender, name, go }) {"`):
   three line pickers - native selects, a key's and a finger's, 40px under Enhanced Plus - each line shown at its band's
-  two ends ("+20 to 40% damage"), a chosen line and a second effect greyed in the others; the catalysts held of what is
-  asked, a short one marked; one a day, or today's made; the press; and the last work's card (its name as the pack names
-  it, Legendary, its three lines rolled).
+  two ends ("+20 to 40% damage"), a chosen line and a second effect greyed in the others; its goods and catalysts held of
+  what is asked, a short one marked; one a day, or today's made; the press; and the last work's card (its name as the
+  pack names it, Legendary, its three lines rolled).
+
+- **AUDIT HORIZONTAL B4: the box reads its own goods.** It said "the goods above", but with the Heartwood or the cracked
+  gem ticked those were the stand-in's, and its press read the station's readiness for them: a Pine Staff with 2 Planks
+  and a Heartwood pressed, and the service refused it. The station now hands the box `free` (rank, fee, hands), and the
+  box lists the recipe's own goods (`masterBox.js:"export function masterGoods(r, book) {"`) and the chain that makes
+  them from raw.
+
+- **AUDIT HORIZONTAL B6: a Pearl jewel's Pearls, as the service holds them.** The catalysts are asked of the counted
+  units alone; the jewel's own Pearl is a good, held against what the station may spend once the catalysts' share is set
+  aside. Three counted and one loose make it, as the service does; the box asked four counted. The book puts the
+  catalysts in counted, then both of a shared key.
 
 - The press is the station's own craft door with the lines: the fee, the chain of works, the kept act and its mint are a
   craft's. world.js's door hands the page's other asks to the book
   (`world.js:"craft: async (recipe, { clean, heartwood = false, dye = null, cracked = false, ...more }) => {"`) - a
   spread, no logical line in bootWorld (HOST-SPLIT). The book asks `/v1/prof/master` for a kept craft with lines
   (`profBook.js:"const lines = Array.isArray(master) ? master.filter((x) => typeof x === 'string') : null;"`), its
-  catalysts put in from the counted bag first, and keeps the day and the card (`state.master`).
+  catalysts put in from the counted bag first, and keeps the day and the card (`state.master`). AUDIT HORIZONTAL B5:
+  today's is made only by an answer of today's day - a kept work answered past midnight is the day before's, and no
+  longer shuts the box until a forced read.
 
 ### 57.7 Hosts, service, wire, words
 
@@ -6548,8 +6574,8 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 
 - **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
   the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct198. The relay is unchanged. The wire's
-  change is the product record's (`l`, MINT_V_MASTER, the bound at 640); a client older than it mints a Master's record
-  as the Masterwork's Rare roll.
+  change is the product record's (`l` its signed lines, MINT_V_MASTER, the bound at 704); a client older than it mints a
+  Master's record as the Masterwork's Rare roll - at version 0's law where the record is past its 512.
 
 - **Words**: the station's (`prof.master.*`), the craft's word (`prof.craft.master`) and three refusals - new keys, drafted
   with the merge.
@@ -6567,11 +6593,22 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 - POWER-CEILING's rule (no line of any piece past the Legendary band) is another slice's; this roll keeps it by its own
   draw, pinned over four thousand seeds.
 
+- **An older build drops a Master's work it holds in a room's container** (AUDIT HORIZONTAL B, the lane's suspected
+  item, proven with each peer on its own tree's law). An older law reads it as a Legendary of no record, and its wire
+  reads the shape, so the piece goes silently, not as AUDIT SETS M2's newer word. A put to an older host is refused and
+  comes back; but once an older build holds the seat, its word says the container without it, and every peer lands
+  that. Named, not closed: the cure is a hello gate for rooms that hold loot, GROUND-GATE's kind - a relay change.
+
 ### 57.9 Pinned
 
-`test/net/masterart_law.test.js` (8), `test/net/masterart_service.test.js` (3, through the real Worker),
-`test/ui/professions/masterart_ui.test.js` (3). `tools/mutants/masterart.json` (42: 41 dead, one recorded equivalent - the
-Rare roll's guard, which LR4's one roll a piece keeps as well). Re-aimed by content, each dead: `bag1`, `crafthall`,
+`test/net/masterart_law.test.js` (8), `test/net/masterart_service.test.js` (8, through the real Worker - AUDIT
+HORIZONTAL B1, B2, B3, B5 and the book's B6 among them), `test/ui/professions/masterart_ui.test.js` (5 - the box's B4 and
+B6). `tools/mutants/masterart.json` (59: 58 dead, one recorded equivalent - the Rare roll's guard, which LR4's one roll a
+piece keeps as well; AUDIT HORIZONTAL B's 17 named `AUDIT-HB*`, and nine of the slice's re-aimed by content, each dead).
+AUDIT HORIZONTAL B re-aimed `crafthall`'s book-note record (dead) and moved its own pins: `audit30_laws` (the bound 704,
+`l` signed), `masterart_ui` (a Pearl jewel's catalysts three, the box handed `free`).
+
+Re-aimed by content at the slice, each dead: `bag1`, `crafthall`,
 `fb1013e_craftprocs` (3), `gatherspeed`, `int_audit`, `seat2b_peace`, `prof7`. PIN MOVED: `test/net/audit30_laws.test.js`
 (a record past 640 now, with a Master's lines), `test/systems/prof10_client.test.js` (the craft door's spread),
 `test/server/accountworker.test.js` (`prof_masters`), `test/net/fb1015f_firstcraft.test.js` (a box's own lines read with a
@@ -6593,6 +6630,9 @@ is gone.
 
 Pins: `test/systems/huntersmark_trophies.test.js` (the Worker's answer and the kind's mint); PIN MOVED in
 `test/net/prof7_law.test.js`, `test/net/craft3_five.test.js` and `test/systems/prof7_client.test.js`.
+
+AUDIT HORIZONTAL F8: the code names this section for the Trophy Hunter (`professionLaw.js` trophyHunted and its spec,
+`huntHost.js`, `profTemplates.js`, `professions.js`, the two tests above); section 57 is MASTER-ART's.
 
 ## Appendix A - a day of a gatherer
 

@@ -99,6 +99,7 @@ export const masterBand = (id) => AFFIX_RANGES[id]?.legendary ?? null;
 /**
  * THE ROLL: each chosen line's value in the Legendary band, off the service's seed, in the order chosen - lo to hi, the
  * ladder's own draw (lootRarity.js rangeInt), so no value passes the band's top. Null for a choice the law refuses.
+ * The service's alone, once: the record signs what it rolled (masterRecordLines - AUDIT HORIZONTAL B1).
  * @param {any} r @param {unknown} keys @param {number} seed
  * @returns {{ id: string, param?: any, value: number }[] | null}
  */
@@ -111,6 +112,32 @@ export function rollMasterLines(r, keys, seed) {
     const value = lo + Math.floor(rolls() * (hi + 1 - lo));
     return o.param === undefined ? { id: o.id, value } : { id: o.id, param: o.param, value };
   });
+}
+
+/** AUDIT HORIZONTAL B1: a line's wire key, as the station chose it - `kind` or `kind:param`. @param {{ id: string, param?: any }} a */
+export const masterKeyOf = (a) => (a.param === undefined ? a.id : `${a.id}:${a.param}`);
+/** AUDIT HORIZONTAL B1: THE LINES AS THE RECORD SIGNS THEM (`l`) - the service's roll, each `[kind, value]` or `[kind,
+ *  value, param]`. Every reader takes the values from here, never a roll of today's tables: a band moved, or a line gone
+ *  from a group's pool, leaves a made piece the piece its record names. @param {{ id: string, param?: any, value: number }[]} lines */
+export const masterRecordLines = (lines) => lines.map((a) => (a.param === undefined ? [a.id, a.value] : [a.id, a.value, a.param]));
+const LINE_WORD_RE = /^[a-z][A-Za-z]{0,23}$/;
+/** Whether a record's `l` is a Master's lines in shape: MASTER_LINES of them, each a kind's word, a whole value and a param
+ *  (a word or a whole number) or none, no line twice. The shape alone - the law of the day it was made was the service's. @param {unknown} l */
+export function masterRecordLinesValid(l) {
+  if (!Array.isArray(l) || l.length !== MASTER_LINES) return false;
+  const seen = new Set();
+  for (const x of l) {
+    if (!Array.isArray(x) || x.length < 2 || x.length > 3 || typeof x[0] !== 'string' || !LINE_WORD_RE.test(x[0]) || !Number.isSafeInteger(x[1])) return false;
+    if (x.length === 3 && !(typeof x[2] === 'string' ? LINE_WORD_RE.test(x[2]) : Number.isSafeInteger(x[2]) && x[2] >= 0)) return false;
+    seen.add(x.length === 3 ? `${x[0]}:${x[2]}` : x[0]);
+  }
+  return seen.size === l.length;
+}
+/** A record's `l` as the piece carries its lines (`{ id, param?, value }`, lootRarity's affix), or null for one of no shape.
+ *  @param {unknown} l @returns {{ id: string, param?: any, value: number }[] | null} */
+export function masterLinesOfRecord(l) {
+  if (!masterRecordLinesValid(l)) return null;
+  return /** @type {any[][]} */ (l).map(([id, value, ...p]) => (p.length ? { id, param: p[0], value } : { id, value }));
 }
 
 /** Whether a piece is a Master's work: a Legendary of no record, made (its provenance the service's). @param {any} item */

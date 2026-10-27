@@ -143,7 +143,7 @@ export function wardrobePieces(entity) {
   const out = [];
   for (const [slot, item] of table.entries()) {
     const kind = item ? pieceKind(item) : null;
-    if (kind) out.push({ slot, item, kind });
+    if (kind && LOOK_KIND_ORDER.includes(kind)) out.push({ slot, item, kind });   // AUDIT HORIZONTAL E5: a kind no look is of (a Light Flail's) offers none
   }
   return out.sort((a, b) => LOOK_KIND_ORDER.indexOf(a.kind) - LOOK_KIND_ORDER.indexOf(b.kind) || a.slot - b.slot);
 }
@@ -179,6 +179,23 @@ export function wearAppearance(entity, item, look) {
   deductGold(entity, fee);
   item.appearance = { t: a.t, m: a.m, v: a.v };
   return { ok: true, reason: null, fee };
+}
+/**
+ * APPEARANCES-II: THE PREVIEW'S WEARER - the character as it would look with `look` over a worn piece (its own look for
+ * null), before Wear is paid. A stand-in that reads as the character in everything but its equip table, whose slot holds
+ * a copy of the piece wearing the look; every renderer draws the copy through net/appearanceLaw.js drawnPiece. Neither the
+ * piece nor the character is touched, and nothing but a drawing reads it (ui/wardrobe/wardrobePreview.js).
+ */
+export function previewWearer(entity, item, look) {
+  let table = [];
+  try { table = equipTableOf(entity) ?? []; } catch { table = []; }
+  const slots = table.map((it) => (it && it === item ? previewPiece(item, look) : it));
+  return Object.create(entity, { equip: { value: { slots }, enumerable: true } });
+}
+function previewPiece(item, look) {
+  const { appearance, ...own } = item;
+  void appearance;
+  return look ? { ...own, appearance: { t: look.t, m: look.m, v: look.v } } : own;
 }
 /** A WORN PIECE'S OWN LOOK BACK, for nothing. `{ ok, reason }`. */
 export function clearAppearance(entity, item) {

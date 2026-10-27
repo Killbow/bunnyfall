@@ -296,7 +296,7 @@ test('PROF7 law: the stitch - the needle\'s beat every 0.75 s, a band 0.2 of it 
 
 test('PROF7 law: Couturier and Saddler are named and never chosen - DFU gives them nothing to stand as (For Mac); the Trophy Hunter chosen since HUNTERS-MARK built its trophy; the loom\'s pieces list on the market; a home\'s loom a sixth station at a workbench\'s licence; a Butcher\'s meat spoils half as fast', () => {
   const later = (p, r, id) => SPECIALISATIONS[p][r].find((s) => s.id === id)?.later ?? null;
-  // PIN MOVED (HUNTERS-MARK, Professions-Arc 57): the Trophy Hunter waits on nothing - its Mounted Trophy is built, chosen as any
+  // PIN MOVED (HUNTERS-MARK, Professions-Arc 58): the Trophy Hunter waits on nothing - its Mounted Trophy is built, chosen as any
   assert.deepEqual([later('hunting', 100, 'trophy-hunter'), later('outfitting', 100, 'couturier'), later('outfitting', 100, 'saddler')], [null, 'two-colour', 'wagon']);
   assert.deepEqual([specOk('hunting', 100, 'trophy-hunter'), specOk('hunting', 100, 'butcher'), specOk('hunting', 50, 'tanner'), specOk('outfitting', 50, 'tailor'), specOk('outfitting', 100, 'couturier')], [true, true, true, true, false]);
   assert.deepEqual(CRAFTED_FAMILIES.slice(-6, -3).map(([f]) => f), ['leather', 'clothing', 'furnishings']);   // PIN MOVED (PROF11): the mason's stonework lists after the loom's three; PIN MOVED (PROF9): and the fire's dishes after it; PIN MOVED (PROF10): and the jeweller's pieces after them

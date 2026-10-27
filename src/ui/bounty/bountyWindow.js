@@ -25,7 +25,7 @@ import { scopeRules } from '../brokerWindow.js';
 import { bountyTimeText, BOUNTY_ACTIVE_MAX } from '../../systems/bounty/bountyBoard.js';
 import { rankLine } from './huntRank.js';   // HUNTERS-MARK: the hunter's rank in the board's header
 import { BOSS_TRAIT_WORDS } from '../../systems/bossTraits.js';   // HUNTERS-MARK: a named mark's traits, named on its card
-import { t } from '../../systems/textManager.js';
+import { t, intlLocale } from '../../systems/textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
 const el = (tag, cls = null, text = null) => {
@@ -263,6 +263,11 @@ export function mountBountyBoard(host, deps) {
     li.onkeydown = (e) => { if (e.target === li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault?.(); pick(); } };
     return li;
   }
+  /** AUDIT HORIZONTAL G6: the traits are names (boss-title words), listed in the reader's language, never glued with an
+   *  English " and " into an adjective's sentence. */
+  const traitList = (/** @type {string[]} */ names) => {
+    try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(names); } catch { return names.join(', '); }
+  };
   /** HUNTERS-MARK: the named mark's card - its notice, its traits, its purse and trophy, Take or Give up (twice). */
   function markCard(/** @type {any} */ mk, /** @type {any} */ hv) {
     const p = mk.posting;
@@ -270,7 +275,7 @@ export function mountBountyBoard(host, deps) {
     const page = el('div', 'bounty-cardpage');
     page.append(el('h3', null, p.title), el('p', 'bounty-tier', p.tierLabel), el('p', 'bounty-story', p.story));
     const traits = (p.traits ?? []).map((id) => BOSS_TRAIT_WORDS[/** @type {keyof typeof BOSS_TRAIT_WORDS} */ (id)]?.() ?? id);
-    if (traits.length) page.append(el('p', 'bounty-marktraits', t('hunt.mark.traits', 'It is {traits}.', { traits: traits.join(t('hunt.mark.and', ' and ')) })));
+    if (traits.length) page.append(el('p', 'bounty-marktraits', t('hunt.mark.traitsList', 'Its traits: {traits}.', { traits: traitList(traits) })));
     page.append(el('p', 'bounty-poster', `- ${t('hunt.mark.postedBy', 'posted by {poster}', { poster: p.poster })}`), el('p', 'bounty-mapline', p.mapLine));
     const reward = el('div', 'bounty-reward');
     reward.append(el('span', 'bounty-reward-head', t('hunt.mark.rewardHead', 'Reward')), el('span', 'bounty-gold', t('hunt.mark.gold', '{gold} gold pieces', { gold: p.gold })), el('span', 'bounty-itemhint', t('hunt.mark.rewardHint', 'a mounted trophy of the beast, to hang in your home')));
