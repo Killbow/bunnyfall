@@ -2,6 +2,12 @@
  "_": "TIME1 (bible/06-Systems/Online-Time-Arc.md section 8): every line in src/ that reads a shared clock, the clock it means and why. test/scenes/time1_census.test.js holds src/ to it both ways.",
  "rows": [
   {
+   "file": "src/net/crewSignLaw.js",
+   "has": "export const crewDayAt = (/** @type {number} */ nowMs) => Math.floor(sharedClassicMinutes(nowMs) / 1440);",
+   "clock": "event",
+   "why": "the crew hall's day (CREW-SIGNED) - a recruit signed online is held until it turns, the same day for every player and the service"
+  },
+  {
    "file": "src/net/gate/gateLaw.js",
    "has": "export const gameDayAt = (nowMs) => Math.floor(sharedClassicMinutes(nowMs) / GATE_DAY_MINUTES);",
    "clock": "event",
