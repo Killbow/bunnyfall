@@ -172,9 +172,14 @@ try {
   });
   await pausedPage.waitForFunction(() => window.__intro.state.phase === 'paused' && performance.now() - window.__pause.wall > 250);
   check('audio suspension freezes the film', await pausedPage.evaluate(() => window.__intro.theme.time() === window.__pause.time));
+  // TITLE-DOOR: the resume is read against the wall time since its own press, not a fixed second - a software GPU draws a
+  // frame in 2 to 9 s, so the frame-polled wait below can let more than a second of score pass before the read (the check
+  // failed so on INTRO4's run, before this change). A jump by wall time adds the whole pause, which is held over 250 ms.
+  const resumedAt = await pausedPage.evaluate(() => performance.now());
   await pausedPage.locator('.intro-begin').click();
   await pausedPage.waitForFunction(() => window.__intro.state.phase === 'playing' && window.__intro.theme.time() > window.__pause.time + 0.05);
-  check('resuming continues the score instead of jumping by wall time', await pausedPage.evaluate(() => window.__intro.theme.time() < window.__pause.time + 1));
+  const resumed = await pausedPage.evaluate((at) => ({ advanced: window.__intro.theme.time() - window.__pause.time, sinceResume: (performance.now() - at) / 1000, paused: (at - window.__pause.wall) / 1000 }), resumedAt);
+  check('resuming continues the score instead of jumping by wall time', resumed.paused > 0.25 && resumed.advanced <= resumed.sinceResume + 0.15, resumed);
   await pausedContext.close();
 
   // INTRO2b (Mac): a phone player taps the SCREEN, and a browser grants audio

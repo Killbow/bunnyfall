@@ -1786,7 +1786,11 @@ size retired), `test/ui/grim1_dress.test.js` (the desk's rule names the title's 
 `tools/mutants/titledoor.json` (14, all dead). `tools/introProbe.mjs` reads it live: the landing, the held title
 drawing nothing while it waits, the duck at the first press, a section and home again, a game letting the title go, the
 mark and the doors fitting their band at every size for both questions and the offline row, the missing score, Skip at
-the gate with the map fading in, and Skip start video. NOT SEEN: a hardware GPU (SwiftShader, as INTRO4).
+the gate with the map fading in, and Skip start video. Its resume check (INTRO2's: the score continues, it does not jump
+by wall time) is read against the wall time since the resume's own press, not a fixed second - a software GPU draws a
+frame in 2 to 9 s, and the frame-polled wait let more than a second of score pass before the read (it failed so on
+INTRO4's run and on this PR's first). `tools/introCapture.mjs` shoots each frame past the landing as the title stands (a
+seek past it draws nothing). NOT SEEN: a hardware GPU (SwiftShader, as INTRO4).
 
 ## U65 THE INTRO (2026-08-30) - HISTORICAL REMOVAL
 
