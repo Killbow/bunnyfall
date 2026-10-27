@@ -58,11 +58,19 @@ passes; one point more fails. Every failure names this page.
 AUDIT HORIZONTAL D3: a minted piece's rung is its own `rarity`, as its readers take it (`it.rarity === 'gilded'`). The
 walk asked `rarityOf`, which reads an unknown rung as Common or Magic, so a piece minted on an eighth rung passed it.
 
-Every number a power or a set tier carries (149 today, `tools/powerCeiling.mjs:"export function powerNumbers() {"`)
+Every number a Legendary, Gilded or set power carries (149 today, `tools/powerCeiling.mjs:"export function powerNumbers() {"`)
 has a role (`tools/powerCeiling.mjs:"export const FIELD_ROLES = Object.freeze({"`). A line's role is held to its band's
-top: a set's Strength at most 15, Ruhn's fire at most 50. Every other role is held to today's strongest: a blow's
-share 140 (Bound in Silk), a guard's 30, a heal 30, a chance 30, a splash 60, a recovery no shorter than 10 s, and so
-on (the table in the test). A number with no role, or a role the table does not know, fails until it is measured.
+top: a set's Strength at most 15, Ruhn's fire at most 50. Every other role is held to today's strongest of those
+powers: a blow's share 140 (Bound in Silk), a guard's 30, a heal 30, a chance 30, a splash 60, a recovery no shorter
+than 10 s, and so on (the table in the test). A number with no role, or a role the table does not know, fails until
+it is measured.
+
+AUDIT HORIZONTAL D8: that walk read no path and no star, and Prismatic Ward's chance of 40 already stood past its
+chance of 30. The paths' numbers (100 today, `tools/powerCeiling.mjs:"export function pathNumbers() {"`) have roles of
+their own, their shares being fractions, each held to today's strongest path number: a blow 30 (Opening Strike), a
+guard 30, a chance 40 (Prismatic Ward), a heal 25, a recovery no shorter than 120 s. Every channel the sky can carry -
+its fixed ones, its families' and every key a star names (`tools/powerCeiling.mjs:"export function skyNumbers() {"`) -
+is held at today's cap: a weapon channel 30, the blow's whole 50, a blow taken 15% lighter.
 
 ## 5. The composite ceilings
 

@@ -27,7 +27,7 @@ import { setPref } from '../../src/systems/uiPrefs.js';
 import { DFU_MAGIC_ITEMS } from '../dfuMagicItems.mjs';
 import { honestItems, honestItemsSkipped } from '../honestItems.mjs';
 import {
-  linesPastCeiling, lineTop, powerNumbers, roleTops, LOWER_IS_STRONGER,
+  linesPastCeiling, lineTop, powerNumbers, roleTops, LOWER_IS_STRONGER, pathNumbers, PATH_LOWER_IS_STRONGER, skyNumbers,
 } from '../../tools/powerCeiling.mjs';
 
 /** Every failure names the rule it breaks. */
@@ -141,28 +141,52 @@ test('POWER-CEILING THE GEMS: every gem\'s line at every grade under its kind\'s
 });
 
 test('POWER-CEILING THE SETS AND THE POWERS: every number at Ascendant and in every power has a role; a line\'s under the Legendary band\'s top of its kind; every other at or under today\'s strongest of its role (mutants: Ruhn\'s fire past 50; Bound in Silk past 140; a recovery made shorter than any today)', () => {
-  const numbers = powerNumbers();
-  assert.ok(numbers.length >= 149, `the walk reads ${numbers.length} numbers - the records moved`);
-  assert.deepEqual(numbers.filter((n) => !n.role).map((n) => `${n.where}.${n.field}`), [], `a number with no role (tools/powerCeiling.mjs FIELD_ROLES) - measure it first. ${RULE}`);
-  for (const n of numbers.filter((x) => x.role.startsWith('line:'))) {
-    const kind = n.role.slice(5);
-    assert.ok(n.value <= TOPS[kind], `${n.where}.${n.field} = ${n.value}: a ${kind} past the Legendary band's ${TOPS[kind]} - ${RULE}`);
-  }
   // today's strongest of each role - a record past one moves it, and fails here with its name
   const STRONGEST = {
     above: 75, below: 33, blow: 140, buff: 20, burst: 40, cadence: 3, chance: 30, climate: 20, cost: 30, find: 1.5, flat: 8, flatGuard: 5,
     gold: 5, guard: 30, heal: 30, hitCap: 25, magicka: 30, mana: 15, manaFlat: 3, pierce: 15, reach: 6, recover: 10, regen: 2, road: 50,
     rounds: 4, seconds: 8, shield: 40, ship: 30, spell: 25, splash: 60, stacks: 5, thorns: 30, ward: 40,
   };
-  const now = roleTops(numbers);
+  holdRoles(powerNumbers(), 149, STRONGEST, LOWER_IS_STRONGER, 'FIELD_ROLES');
+});
+/** THE ROLES HELD: every number has a role; a line's under its kind's Legendary top; every other at or under today's
+ *  strongest of its role (`strongest`, as written down - a lower one is lowered there and in the page). */
+function holdRoles(numbers, least, strongest, lower, table) {
+  assert.ok(numbers.length >= least, `the walk reads ${numbers.length} numbers - the records moved`);
+  assert.deepEqual(numbers.filter((n) => !n.role).map((n) => `${n.where}.${n.field}`), [], `a number with no role (tools/powerCeiling.mjs ${table}) - measure it first. ${RULE}`);
+  for (const n of numbers.filter((x) => x.role.startsWith('line:'))) {
+    const kind = n.role.slice(5);
+    assert.ok(n.value <= TOPS[kind], `${n.where}.${n.field} = ${n.value}: a ${kind} past the Legendary band's ${TOPS[kind]} - ${RULE}`);
+  }
+  const now = roleTops(numbers, lower);
   for (const [role, top] of Object.entries(now)) {
-    const was = STRONGEST[role];
-    const low = LOWER_IS_STRONGER.includes(role);
+    const was = strongest[role];
+    const low = lower.includes(role);
     const holder = numbers.filter((n) => n.role === role && n.value === top).map((n) => `${n.where}.${n.field}`).join(', ');
     assert.ok(was !== undefined, `a new role, ${role} (${holder}) - measure it into Power-Ceiling.md first. ${RULE}`);
     assert.ok(low ? top >= was : top <= was, `${role}: ${holder} at ${top}, past today's strongest ${was} - ${RULE}`);
   }
-  assert.deepEqual(now, STRONGEST, 'the strongest of each role, as recorded (a lower one is lowered here and in the page)');
+  assert.deepEqual(now, strongest, 'the strongest of each role, as recorded (a lower one is lowered here and in the page)');
+}
+
+test('POWER-CEILING THE PATHS AND THE SKY (AUDIT HORIZONTAL D8): every number of every martial and arcane path has a role, a line\'s under the Legendary band\'s top, every other at or under today\'s strongest path number of its role; every channel the sky can carry at or under today\'s cap - a new path, star or channel fails until it is measured (mutants: Prismatic Ward past 40; Opening Strike past 30; Absolution sooner; a path number with no role; a weapon channel raised; the blow\'s whole raised)', () => {
+  // the paths keep their shares as fractions, so their strongest are their own (the loot's chance is 30, Prismatic Ward's 40)
+  const PATH_STRONGEST = {
+    below: 0.5, blow: 30, blowStack: 3, castSpeed: 20, chance: 40, cost: 20, extra: 0.5, fatigue: 15, foes: 3, guard: 30, heal: 25,
+    killHeal: 5, killMana: 20, leech: 10, leechShare: 0.5, manaShare: 0.25, oneIn: 3, pace: 20, perMissing: 2, pierce: 20, reach: 8,
+    recover: 120, refund: 1 / 3, regen: 2, rounds: 8, seconds: 30, shieldCap: 20, spell: 25, spellStack: 3, stacks: 5, times: 2,
+  };
+  holdRoles(pathNumbers(), 100, PATH_STRONGEST, PATH_LOWER_IS_STRONGER, 'PATH_FIELD_ROLES');
+  // the sky's channels, each at its cap: the most the whole tree gives, whatever its stars add up to
+  const SKY_STRONGEST = {
+    absorb: 15, 'act:life': 40, armor: 10, attribute: 15, axeDmg: 30, beastDmg: 30, blowCap: 30, blowTaken: 15, blowTotal: 50, bluntDmg: 30,
+    bowDmg: 30, carry: 40, castCost: 25, 'castCost:combat': 20, castCostCap: 25, castSpeed: 15, coldDegrees: 10, daedraDmg: 30, dry: 40,
+    evade: 10, fallLess: 40, fatigueLess: 40, fistDmg: 30, heatDegrees: 10, hp: 75, hpPct: 15, hpRegen: 10, killHeal: 6, killMana: 6,
+    longDmg: 30, meleeDmg: 30, mp: 75, mpPct: 15, mpRegen: 10, 'pct:combat': 15, 'pct:life': 15, rageDmg: 25, 'resist:combat': 20,
+    sailSpeed: 15, shortDmg: 30, 'skill:combat': 15, 'skill:life': 20, 'skillPct:combat': 20, 'skillPct:life': 25, spellPierce: 10,
+    spellPower: 30, spellTaken: 15, standing: 10, unawareDmg: 40, undeadDmg: 30, warmth: 6, weaponDmg: 30, 'xp:life': 35, 'yield:life': 30,
+  };
+  holdRoles(skyNumbers(), 130, SKY_STRONGEST, [], 'skyNumbers');
 });
 
 test('POWER-CEILING EVERY ITEM MINTED: the honest producers\' sweep (every loot door, shelf, spoils, the Broker, the crafted pieces, gifts and keepsakes) - a rung of the seven by the piece\'s own word, no line past its top, no sigil past the band (mutants: a Rare\'s band raised past the top; AUDIT HORIZONTAL D3: a named reward minted on an eighth rung)', () => {

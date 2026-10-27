@@ -630,5 +630,59 @@
     "tests": [
       "test/combat/powerceiling_walk.test.js"
     ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-prismatic-ward-past-40",
+    "file": "src/systems/arcanePaths.js",
+    "old": "  prismaticWard: Object.freeze({ seconds: 30, chance: 40 }),",
+    "new": "  prismaticWard: Object.freeze({ seconds: 30, chance: 45 }),",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-opening-strike-past-30",
+    "file": "src/systems/martialPaths.js",
+    "old": "  openingStrike: Object.freeze({ pct: 30 }),",
+    "new": "  openingStrike: Object.freeze({ pct: 35 }),",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-absolution-sooner-than-any-today",
+    "file": "src/systems/arcanePaths.js",
+    "old": "  absolution: Object.freeze({ below: 0.3, heal: 25, recover: 180 }),",
+    "new": "  absolution: Object.freeze({ below: 0.3, heal: 25, recover: 60 }),",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-a-path-number-with-no-role",
+    "file": "src/systems/arcanePaths.js",
+    "old": "  bloodBoil: Object.freeze({ below: 0.3 }),",
+    "new": "  bloodBoil: Object.freeze({ below: 0.3, surge: 9 }),",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-a-weapon-channel-raised",
+    "file": "src/net/firmament/firmamentLaw.js",
+    "old": "  weaponDmg: def('combat', 30,",
+    "new": "  weaponDmg: def('combat', 35,",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D8-the-skys-whole-blow-raised",
+    "file": "src/net/firmament/firmamentLaw.js",
+    "old": "export const BLOW_TOTAL_CAP = 50;",
+    "new": "export const BLOW_TOTAL_CAP = 60;",
+    "tests": [
+      "test/combat/powerceiling_walk.test.js"
+    ]
   }
 ]
