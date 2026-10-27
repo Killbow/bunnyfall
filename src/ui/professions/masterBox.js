@@ -94,7 +94,8 @@ export function drawMasterBox(box, kit, r, { station, book, state, ready, rerend
     const where = pursuitWord(c.pursuit);
     const words = where ? t('prof.master.catalyst', '{name} {have} / {need} ({where})', { name: name(c.key), have: c.have, need: c.need, where })
       : t('prof.master.catalystBare', '{name} {have} / {need}', { name: name(c.key), have: c.have, need: c.need });
-    sec.append(el('div', `prof-input prof-master-cat${c.have >= c.need ? '' : ' prof-short'}`, words));
+    const cls = ['prof-input', 'prof-master-cat', ...(c.have >= c.need ? [] : ['prof-short'])];
+    sec.append(el('div', cls.join(' '), words));
   }
   const made = book?.state?.master?.made === true;
   sec.append(el('p', `px-note${made ? ' prof-short' : ''}`, made ? t('prof.master.madeToday', 'Today\'s Master\'s work is made. The next can be made after midnight UTC.')
