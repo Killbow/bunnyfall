@@ -59,7 +59,7 @@ test('ETHER-CROSSING the voyage: three days; out to the open water off Veilhaven
   assert.match(crossingRows('out', { days: 1 }).join(' '), /\(1 day\. Your ship/);
   assert.match(crossingWords('out'), /You have crossed into the Eltheric Ocean\. Veilhaven lies ahead\.$/);   // PIN MOVED (ELTHERIC): the Etheric Sea's
   assert.match(crossingWords('home'), /The Iliac Bay, and home\.$/);   // PIN MOVED (VOICE2, in PLAIN-SWEEP's words): no dash aside (Voice.md rule 5)
-  assert.match(CROSS_REFUSED.passengers, /no one else is aboard/); assert.match(CROSS_REFUSED.hostile, /enemy/);
+  assert.match(CROSS_REFUSED.passengers, /until only your party is aboard/); assert.match(CROSS_REFUSED.hostile, /enemy/);   // PIN MOVED (AUDIT HORIZONTAL C7): her party may stay aboard
 });
 
 test('ETHER-CROSSING by source: asked at a helm in the exterior with no window up, an enemy near or another player aboard said instead; sailed - the helm let go first, the jump a travel of CROSS_DAYS whose arrival brings her round onto the landfall\'s middle, her helm taken after, the clock\'s days, the haven charted, the way home leaving the gate asked; the ship held while she crosses (mutants: each step and its order)', () => {

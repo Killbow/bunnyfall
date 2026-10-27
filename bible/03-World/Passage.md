@@ -232,10 +232,10 @@ She is warped along that way, never along her head, and makes way only with her 
 of it; further off, she is warped round where she lies. A step whose footprint (`shipLife.js` footprintClear) would
 lie over land is held, as for a foul hull.
 
-Pins: `test/scenes/naval/passagequay.test.js` (6, over the real naval host and pool: three hulls, a start behind a
+Pins: `test/scenes/naval/passagequay.test.js` (7, over the real naval host and pool: three hulls, a start behind a
 headland, and C3's sweep - ten starts about the headland at eight headings for the Small Ship and the Carrack, her
-bow, waist and stern at both sides never over land, each made fast - and a rock risen across her way after it was
-planned). The stated values are pinned as stated (G9: TOW_FOUL_S 40, BRING_IN_M 700). Mutants:
+bow, waist and stern at both sides never over land, each made fast - a rock risen across her way after it was
+planned, and her way made along one line while her head still comes round). The stated values are pinned as stated (G9: TOW_FOUL_S 40, BRING_IN_M 700). Mutants:
 `tools/mutants/seaopen.json` (QUAY-, all dead). The naval host hands the tow the water (`isWater`) where it handed the
 errands' grid. Left to the author (the audit's suspected item): a ship under way across her way still counts toward
 TOW_FOUL_S - a navy cutter leaving the next berth at 0.5 m/s held her the 40 s on one day in six.

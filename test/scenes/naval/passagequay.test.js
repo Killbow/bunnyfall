@@ -232,3 +232,21 @@ test('AUDIT HORIZONTAL C3 A STEP OVER LAND IS NEVER LAID: land risen across her 
   assert.equal(over, 0, 'never laid on the rock');
   assert.equal(h.host.berthing(h.boat), 'foul', 'held TOW_FOUL_S, given up');
 });
+
+test('AUDIT HORIZONTAL C3 ALONG HER WAY, NEVER HER HEAD: her head 30 degrees off her way in, she is first warped round where she lies; then she makes way along the way\'s straight leg - one line, whatever her head - while her head is still coming round to it (mutants: warped along her head, way made while she swings)', async () => {
+  const h = await tow({ yaw: 30 * DEG });
+  assert.equal(h.host.bringIn(h.boat), true);
+  const moves = [];
+  for (let i = 0; i < 12; i++) {
+    const p = [...h.boat.GameObject.position];
+    const w = h.host.warp(h.boat, { struck: true, oars: false, dt: 0.5 });
+    const dx = w.pos[0] - p[0], dz = w.pos[1] - p[2];
+    if (i === 0) assert.ok(Math.hypot(dx, dz) < 1e-3, 'her head far off her way: warped round where she lies');
+    if (Math.hypot(dx, dz) > 0.5) moves.push({ dir: Math.atan2(dx, dz), head: yawOf(w.rotation) });
+    h.boat.GameObject.position = [w.pos[0], p[1], w.pos[1]];
+    h.boat.GameObject.rotation = w.rotation;
+  }
+  assert.ok(moves.length >= 3, `under way: ${moves.length} steps`);
+  for (const m of moves) assert.ok(Math.abs(wrap(m.dir - moves[0].dir)) < 0.05 * DEG, `one line: ${(wrap(m.dir - moves[0].dir) / DEG).toFixed(3)} deg`);
+  assert.ok(moves.some((m) => Math.abs(wrap(m.head - m.dir)) > 1 * DEG), 'way made while her head still came round - along her way, not her head');
+});
