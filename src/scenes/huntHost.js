@@ -177,7 +177,7 @@ export const trophyLine = (/** @type {number} */ foe) => t('hunt.trophy.hunted',
 
 /**
  * HUNTING'S KIND in the gathering host (scenes/gatherHost.js): the stamped bodies as loose nodes, the plan, the act.
- * @param {{ book: any, bodies: () => any[], openLoot?: ((key: string) => void)|null }} deps `bodies` the stamped bodies where
+ * @param {{ book: any, bodies: () => any[], openLoot?: ((key: string) => void)|null, trophy?: ((foe: number, entity: any) => boolean)|null }} deps `bodies` the stamped bodies where
  *   the player is (bodiesOf over the street's pool or the dungeon's); `openLoot(key)` - AUDIT 32 H8: the pool's own door to
  *   a body's loot by its key, which the choice key's search opens (never the ray's: at the edge of the look it missed the
  *   corpse's box, and E opened nothing); without it the press is passed on, AUDIT 29 C1's way
