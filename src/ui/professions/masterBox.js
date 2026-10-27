@@ -111,7 +111,7 @@ export function drawMasterBox(box, kit, r, { station, book, state, free, rerende
   const goods = masterGoods(r, book);
   for (const g of goods) {
     const words = t('prof.page.craft.input', '{name} {have} / {need} ({held} stored)', { name: name(g.key), have: Math.min(g.have, g.n), need: g.n, held: g.have });
-    sec.append(el('div', `prof-input prof-master-good${g.have >= g.n ? '' : ' prof-short'}`, words));
+    sec.append(el('div', ['prof-input', 'prof-master-good', ...(g.have >= g.n ? [] : ['prof-short'])].join(' '), words));
   }
   const needs = masterNeeds((k) => (typeof book?.held === 'function' ? book.held(k) : 0));
   for (const c of needs) {

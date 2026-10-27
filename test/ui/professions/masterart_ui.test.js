@@ -177,7 +177,7 @@ async function standAt(track, stores) {
   return { s, raw, mac, book, give, pack, held };
 }
 
-test('AUDIT HORIZONTAL B4 THE BOX LISTS ITS OWN GOODS: a Pine Staff at the workbench, its Heartwood option ticked - the plain craft\'s goods are 2 Planks and a Heartwood, a Master\'s work\'s the recipe\'s own 3 Planks; with 2 held the box marks them short and holds its press, with 3 it makes it (mutants: the box ready on the stand-in\'s goods; its goods unread)', async (t) => {
+test('AUDIT HORIZONTAL B4 THE BOX LISTS ITS OWN GOODS: a Pine Staff at the workbench, its Heartwood option ticked - the plain craft\'s goods are 2 Planks and a Heartwood, a Master\'s work\'s the recipe\'s own 3 Planks; with 2 held the box marks them short and holds its press; a Pine Log the chain saws readies it, and it is made (mutants: the box ready on the stand-in\'s goods; its goods unread; the chain unread)', async (t) => {
   t.mock.method(Date, 'now', () => NOON * 1000);
   resetProfPages();
   setPref('gentleActs', true);
@@ -199,14 +199,14 @@ test('AUDIT HORIZONTAL B4 THE BOX LISTS ITS OWN GOODS: a Pine Staff at the workb
     for (const [i, key] of ['damage', 'stat:intelligence', 'potency'].entries()) { const sel = [...box().querySelectorAll('select')][i]; sel.value = key; sel.onchange(); }
     const go = () => box().querySelector('.prof-master-go');
     assert.equal(go().disabled, true, 'two Planks: the service would refuse');
-    m.give('plank:pine', 3);
+    m.give('log:pine', 1);
     assert.equal((await m.book.refresh({ force: true })).ok, true);
     draw();
-    assert.deepEqual([...box().querySelectorAll('.prof-master-good')].map((g) => g.textContent), ['plank:pine 3 / 3 (3 stored)']);
-    assert.equal(go().disabled, false, 'three Planks, the Heartwood option still ticked');
+    assert.deepEqual([...box().querySelectorAll('.prof-master-good')].map((g) => g.textContent), ['plank:pine 2 / 3 (2 stored)']);
+    assert.equal(go().disabled, false, 'the chain saws the third, the Heartwood option still ticked');
     await go().onclick();
     assert.equal(m.pack.length, 1, 'made');
-    assert.deepEqual([m.pack[0].rarity, m.held('plank:pine'), m.held(HEARTWOOD.key)], ['legendary', 0, 1], 'its own goods spent, two Heartwood the catalysts');
+    assert.deepEqual([m.pack[0].rarity, m.held('log:pine'), m.held(HEARTWOOD.key)], ['legendary', 0, 1], 'the log sawn, two Heartwood the catalysts - none a stand-in');
   } finally {
     setProfessionsPages(null);
     resetProfPages();

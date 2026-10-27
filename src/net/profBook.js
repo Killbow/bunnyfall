@@ -1326,9 +1326,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       applyTrack(r.data?.track);
       // CRAFT-HALL: what it made; a judged cloth pattern only by the craft that laid its first on (WOVEN-PAYS, `firstPaid`)
       if (w.brew === true) noteMade('brews', w.recipe);
-      // MASTER-ART: the work made, its card; AUDIT HORIZONTAL B5: today's made only by an answer of today's day - a kept work
-      // answered past midnight is the day before's
-      else if (Array.isArray(w.master)) state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };
+      else if (Array.isArray(w.master)) state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };   // MASTER-ART: the work made, its card; AUDIT HORIZONTAL B5: today's by an answer of today's day alone
       else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);
       // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
       const made = w.brew === true ? null : recipeById(w.recipe);

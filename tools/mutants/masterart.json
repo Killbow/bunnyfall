@@ -72,21 +72,21 @@
   {
     "name": "MASTER-ART-record-lines-any-version",
     "file": "src/net/productRecord.js",
-    "old": "if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterChoiceRefusal(r, c.l) === null)) return false;",
-    "new": "if (c.l !== undefined && !(c.q === MASTERWORK && masterChoiceRefusal(r, c.l) === null)) return false;",
+    "old": "if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterRecordLinesValid(c.l))) return false;",
+    "new": "if (c.l !== undefined && !(c.q === MASTERWORK && masterRecordLinesValid(c.l))) return false;",
     "tests": ["test/net/masterart_law.test.js"]
   },
   {
     "name": "MASTER-ART-record-lines-any-quality",
     "file": "src/net/productRecord.js",
-    "old": "if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterChoiceRefusal(r, c.l) === null)) return false;",
-    "new": "if (c.l !== undefined && !(c.v >= MINT_V_MASTER && masterChoiceRefusal(r, c.l) === null)) return false;",
+    "old": "if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterRecordLinesValid(c.l))) return false;",
+    "new": "if (c.l !== undefined && !(c.v >= MINT_V_MASTER && masterRecordLinesValid(c.l))) return false;",
     "tests": ["test/net/masterart_law.test.js"]
   },
   {
     "name": "MASTER-ART-record-bound-512",
     "file": "src/net/productRecord.js",
-    "old": "export const PRODUCT_RECORD_MAX = 640;",
+    "old": "export const PRODUCT_RECORD_MAX = 704;",
     "new": "export const PRODUCT_RECORD_MAX = 512;",
     "tests": ["test/net/masterart_law.test.js", "test/net/audit30_laws.test.js"]
   },
@@ -100,8 +100,8 @@
   {
     "name": "MASTER-ART-mint-any-version",
     "file": "src/systems/smithItems.js",
-    "old": "&& version >= MINT_V_MASTER && Array.isArray(lines) && applyMasterWork(item, r, lines, seed);",
-    "new": "&& version >= MINT_V_LINES && Array.isArray(lines) && applyMasterWork(item, r, lines, seed);",
+    "old": "&& version >= MINT_V_MASTER && Array.isArray(lines) && applyMasterWork(item, lines);",
+    "new": "&& version >= MINT_V_LINES && Array.isArray(lines) && applyMasterWork(item, lines);",
     "tests": ["test/net/masterart_law.test.js"]
   },
   {
@@ -200,7 +200,7 @@
   {
     "name": "MASTER-ART-service-record-without-lines",
     "file": "server-account/src/masterWork.js",
-    "old": "u: dye ?? null, v: MINT_V_MASTER, l: chosen }",
+    "old": "u: dye ?? null, v: MINT_V_MASTER, l: signed }",
     "new": "u: dye ?? null, v: MINT_V_MASTER }",
     "tests": ["test/net/masterart_service.test.js"]
   },
@@ -228,8 +228,8 @@
   {
     "name": "MASTER-ART-book-day-unnoted",
     "file": "src/net/profBook.js",
-    "old": "else if (Array.isArray(w.master)) state.master = { made: true, last: r.data };",
-    "new": "else if (Array.isArray(w.master)) state.master = { made: false, last: r.data };",
+    "old": "state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };",
+    "new": "state.master = { made: false, last: r.data };",
     "tests": ["test/net/masterart_service.test.js", "test/ui/professions/masterart_ui.test.js"]
   },
   {
@@ -256,15 +256,15 @@
   {
     "name": "MASTER-ART-box-catalysts-unread",
     "file": "src/ui/professions/masterBox.js",
-    "old": "needs.every((c) => c.have >= c.need);",
-    "new": "needs.every((c) => c.have >= 0);",
+    "old": "needs.every((c) => c.have >= c.need)",
+    "new": "needs.every((c) => c.have >= 0)",
     "tests": ["test/ui/professions/masterart_ui.test.js"]
   },
   {
     "name": "MASTER-ART-box-shared-key-unread",
     "file": "src/ui/professions/masterBox.js",
-    "old": "const need = c.n + r.inputs.filter(",
-    "new": "const need = c.n + 0 * r.inputs.filter(",
+    "old": "have: Math.max(0, workOf(book, i.key) - cat(i.key))",
+    "new": "have: Math.max(0, workOf(book, i.key) - 0 * cat(i.key))",
     "tests": ["test/ui/professions/masterart_ui.test.js"]
   },
   {
@@ -284,7 +284,7 @@
   {
     "name": "MASTER-ART-loom-unwired",
     "file": "src/ui/professions/profPages.js",
-    "old": "drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, ready, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });",
+    "old": "drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });",
     "new": "void 0;",
     "tests": ["test/ui/professions/masterart_ui.test.js"]
   },
@@ -294,5 +294,124 @@
     "old": "if (data?.master === true) return t('prof.craft.master', '(a Master\\'s work)');",
     "new": "if (data?.master === 1) return t('prof.craft.master', '(a Master\\'s work)');",
     "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-values-read-at-the-band",
+    "file": "src/net/masterLaw.js",
+    "old": "(l).map(([id, value, ...p]) => (p.length ? { id, param: p[0], value } : { id, value }));",
+    "new": "(l).map(([id, value, ...p]) => (p.length ? { id, param: p[0], value: masterBand(id)?.[1] ?? value } : { id, value: masterBand(id)?.[1] ?? value }));",
+    "tests": ["test/net/masterart_law.test.js", "test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-record-signs-the-keys",
+    "file": "server-account/src/masterWork.js",
+    "old": "u: dye ?? null, v: MINT_V_MASTER, l: signed }",
+    "new": "u: dye ?? null, v: MINT_V_MASTER, l: lines }",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-row-keeps-the-keys",
+    "file": "server-account/src/masterWork.js",
+    "old": "JSON.stringify(signed), seed, nowS, nonce];",
+    "new": "JSON.stringify(lines), seed, nowS, nonce];",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-record-two-lines",
+    "file": "src/net/masterLaw.js",
+    "old": "if (!Array.isArray(l) || l.length !== MASTER_LINES) return false;",
+    "new": "if (!Array.isArray(l) || l.length > MASTER_LINES) return false;",
+    "tests": ["test/net/masterart_law.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-record-line-twice",
+    "file": "src/net/masterLaw.js",
+    "old": "return seen.size === l.length;",
+    "new": "return seen.size > 0;",
+    "tests": ["test/net/masterart_law.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-record-value-any",
+    "file": "src/net/masterLaw.js",
+    "old": "!LINE_WORD_RE.test(x[0]) || !Number.isSafeInteger(x[1])) return false;",
+    "new": "!LINE_WORD_RE.test(x[0]) || x[1] === undefined) return false;",
+    "tests": ["test/net/masterart_law.test.js"]
+  },
+  {
+    "name": "AUDIT-HB1-bound-640",
+    "file": "src/net/productRecord.js",
+    "old": "export const PRODUCT_RECORD_MAX = 704;",
+    "new": "export const PRODUCT_RECORD_MAX = 640;",
+    "tests": ["test/net/masterart_law.test.js"]
+  },
+  {
+    "name": "AUDIT-HB2-plain-record-let-through",
+    "file": "server-account/src/judge.js",
+    "old": "&& (piece.l === undefined || piece.l === recordLines(row.record));",
+    "new": "&& (piece.l === undefined || recordLines(row.record) === '' || piece.l === recordLines(row.record));",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB3-goods-unheld",
+    "file": "server-account/src/masterWork.js",
+    "old": "const held = spends.map((s, i) => {",
+    "new": "const held = spends.filter((s) => s.cat > 0).map((s, i) => {",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB3-rank-off-smithing",
+    "file": "server-account/src/masterWork.js",
+    "old": "const track = await trackRow(db, player.id, character, craft);",
+    "new": "const track = await trackRow(db, player.id, character, 'smithing');",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB4-box-goods-unread",
+    "file": "src/ui/professions/masterBox.js",
+    "old": "    && (goods.every((g) => g.have >= g.n) || goodsFromRaw(r, book, goods));",
+    "new": "    && (true || goodsFromRaw(r, book, goods));",
+    "tests": ["test/ui/professions/masterart_ui.test.js"]
+  },
+  {
+    "name": "AUDIT-HB4-box-stand-in-goods",
+    "file": "src/ui/professions/masterBox.js",
+    "old": "return recipeInputs(r).map((/** @type {any} */ i) => ({ key: i.key, n: i.n,",
+    "new": "return recipeInputs(r, { heartwood: true }).map((/** @type {any} */ i) => ({ key: i.key, n: i.n,",
+    "tests": ["test/ui/professions/masterart_ui.test.js"]
+  },
+  {
+    "name": "AUDIT-HB4-box-chain-unread",
+    "file": "src/ui/professions/masterBox.js",
+    "old": "  return chainPlan(inputs, held, { track: (p) => book.track(p), room: (k) => storesRoom(book.store(k)) }).ok === true;",
+    "new": "  return chainPlan(inputs, held, { track: (p) => book.track(p), room: (k) => storesRoom(book.store(k)) }).ok === 'yes';",
+    "tests": ["test/ui/professions/masterart_ui.test.js"]
+  },
+  {
+    "name": "AUDIT-HB5-any-answer-today",
+    "file": "src/net/profBook.js",
+    "old": "state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };",
+    "new": "state.master = { made: true, last: r.data };",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB6-book-four-counted",
+    "file": "src/net/profBook.js",
+    "old": "const cats = lines ? await book.ensureInStores(MASTER_CATALYSTS.map((k) => ({ key: k.key, n: k.n }))) : { ok: true };",
+    "new": "const cats = lines ? await book.ensureInStores(MASTER_CATALYSTS.map((k) => ({ key: k.key, n: k.n + share(k) }))) : { ok: true };",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB6-book-shared-unheld",
+    "file": "src/net/profBook.js",
+    "old": "const both = lines && cats.ok ? await book.ensureInStores(",
+    "new": "const both = lines && false ? await book.ensureInStores(",
+    "tests": ["test/net/masterart_service.test.js"]
+  },
+  {
+    "name": "AUDIT-HB6-box-catalyst-asks-the-good",
+    "file": "src/ui/professions/masterBox.js",
+    "old": "need: c.n, have: Math.max(0, held(c.key) | 0), pursuit: c.pursuit }));",
+    "new": "need: c.n + (c.key === 'gem:pearl' ? 1 : 0), have: Math.max(0, held(c.key) | 0), pursuit: c.pursuit }));",
+    "tests": ["test/ui/professions/masterart_ui.test.js"]
   }
 ]

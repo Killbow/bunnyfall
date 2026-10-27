@@ -29,8 +29,8 @@
   {
     "name": "CRAFT-HALL-book-note-gone",
     "file": "src/net/profBook.js",
-    "old": "      if (w.brew === true) noteMade('brews', w.recipe);\n      else if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card\n      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
-    "new": "      if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card",
+    "old": "      if (w.brew === true) noteMade('brews', w.recipe);\n      else if (Array.isArray(w.master)) state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };   // MASTER-ART: the work made, its card; AUDIT HORIZONTAL B5: today's by an answer of today's day alone\n      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
+    "new": "      if (Array.isArray(w.master)) state.master = { made: state.master.made === true || Number(r.data?.day) === masterDayOf(now() / 1000), last: r.data };   // MASTER-ART: the work made, its card; AUDIT HORIZONTAL B5: today's by an answer of today's day alone",
     "tests": [
       "test/ui/professions/crafthall.test.js"
     ]
