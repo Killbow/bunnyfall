@@ -98,6 +98,9 @@ test('APPEARANCES A PIECE IS ITS LOOK: the producers\' own pieces - a weapon, a 
   assert.deepEqual(L.lookOfPiece(armour(102, ARMOR_MATERIAL.Iron, 0)), { t: 102, m: 0x200, v: 1, kind: 'chest' }, 'loot\'s variant 0 draws style 1 (SetVariant)');
   assert.deepEqual(L.lookOfPiece(armour(102, ARMOR_MATERIAL.Chain2, 2)), { t: 102, m: 0x100, v: 4, kind: 'chest' }, 'Chain2 draws as chain');
   assert.deepEqual(L.lookOfPiece(armour(107, ARMOR_MATERIAL.Steel, 5)), { t: 107, m: 0x201, v: 5, kind: 'head' });
+  const past = armour(107, ARMOR_MATERIAL.Steel, 0); past.variant = 9;   // a style past the helm's six (a classic save's byte, a peer's word)
+  assert.deepEqual(L.lookOfPiece(past), { t: 107, m: 0x201, v: 5, kind: 'head' }, 'drawn as its last style');
+  assert.equal(L.lookVariant(107, ARMOR_MATERIAL.Steel, 9), 5);
   assert.equal(L.lookOfPiece(artifact('The Mehrunes Razor')), null, 'an artifact wears its own record');
   assert.equal(L.lookOfPiece(mintGilded(DRAGONFIRE_OATH)), null, 'a Gilded piece its own gold');
   assert.equal(L.lookOfPiece(createThunderlock()), null, 'a gun has one look');

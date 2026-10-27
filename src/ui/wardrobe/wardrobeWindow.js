@@ -5,7 +5,7 @@
 // (ui/reforgeWindow.js) in the Broker's classes, so both skins dress it - the Plus sheet carries its rules
 // (enhancedPlusStyle.js WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/
 // wardrobeDoor.js) mounts it; everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
-import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName } from '../../systems/appearances.js';
+import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../systems/appearances.js';
 import { appearanceOf, lookOfPiece, lookKey } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
 import { totalGoldAmount } from '../../systems/court.js';
@@ -36,7 +36,6 @@ export const WARDROBE_WORDS = Object.freeze({
   close: () => t('wardrobe.close', 'Close'),
   own: () => t('wardrobe.own', 'Its own look'),
   ownNow: () => t('wardrobe.ownNow', 'Own look'),
-  wearing: (/** @type {string} */ name) => t('wardrobe.wearing', 'Looks like {name}', { name }),
   wear: () => t('wardrobe.wear', 'Wear'),
   worn: () => t('wardrobe.worn', 'Worn'),
   free: () => t('wardrobe.free', 'Free'),
@@ -144,7 +143,7 @@ export function mountWardrobeWindow(host, deps) {
   };
   const refused = (/** @type {string} */ reason) => { note = { ok: false, text: reason }; drawNote(); };
   /** What a piece is drawn as now: its look's name, or its own. */
-  const lookNow = (/** @type {any} */ item) => { const a = appearanceOf(item); return a ? WARDROBE_WORDS.wearing(lookName(a)) : WARDROBE_WORDS.ownNow(); };
+  const lookNow = (/** @type {any} */ item) => lookLine(item) || WARDROBE_WORDS.ownNow();
   /** A piece's look drawn, for its picture: the stub of its look, else the piece. */
   const drawnStub = (/** @type {any} */ item) => { const a = appearanceOf(item); return a ? lookStub(a) : item; };
 

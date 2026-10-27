@@ -174,5 +174,5 @@ test('APPEARANCES THE WORDS: every word the window says goes through the text co
   assert.equal(wardrobeRefusal('same'), 'It already wears that look');
   assert.equal(WARDROBE_WORDS.sub(), 'Give a piece you wear any look of its kind you have collected. Only how it looks changes.');
   const src = read('src/ui/wardrobe/wardrobeWindow.js');
-  assert.equal((src.match(/t\('wardrobe\./g) ?? []).length, 24, 'its words, each a key of its own');
+  assert.equal((src.match(/t\('wardrobe\./g) ?? []).length, 23, 'its words, each a key of its own - "Looks like" the pack\'s too (systems/appearances.js lookLine)');
 });

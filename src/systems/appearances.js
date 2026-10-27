@@ -127,6 +127,13 @@ export function lookName(/** @type {{ t: number, m: number, v: number }} */ look
   return style ? t('looks.styled', '{name}, style {n}', { name: whole, n: style }) : whole;
 }
 
+/** What a worn piece looks like, said - "Looks like Ebony Katana" - or '' in its own: the Wardrobe's list and the pack's
+ *  Info box say it, so a piece whose picture is its own is never a surprise on the body. */
+export function lookLine(item) {
+  const a = appearanceOf(item);
+  return a ? t('wardrobe.wearing', 'Looks like {name}', { name: lookName(a) }) : '';
+}
+
 // ── THE WARDROBE ────────────────────────────────────────────────────
 
 /** The worn pieces a look can be laid over, head to foot then the hands: `{ slot, item, kind }`. */

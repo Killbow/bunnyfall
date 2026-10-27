@@ -16,6 +16,7 @@ import { equipItem, equipTableOf, EQUIP_SLOTS } from '../../src/systems/equip.js
 import { WEAPONS } from '../../src/characters/weapons.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
 import { drawnPiece } from '../../src/net/appearanceLaw.js';
+import { itemInfoBoxes } from '../../src/ui/enhanced/enhancedInventory.js';
 import { createArtifact } from '../../src/systems/loot/loot.js';
 import { readMagicDef, MAGIC_ITEM_RECORD_SIZE } from '../../src/formats/magicDef.js';
 import { DFU_MAGIC_ITEMS } from '../dfuMagicItems.mjs';
@@ -62,6 +63,9 @@ test('APPEARANCES THE DOLL: a piece wearing a look draws the look\'s layer - its
   assert.equal(paperdollItemImage(sword).record, 9 + 1, 'an Either-hand weapon in the right hand: its record and one');
   assert.notDeepEqual(look(paperdollItemImage(sword)), ownSword);
   assert.deepEqual(inventoryItemImage(sword), inventoryItemImage(createWeapon(WEAPONS.Longsword, 1)), 'the pack\'s picture is the piece\'s own');
+  const said = (it) => itemInfoBoxes(it, { rows: () => [] }).flat().map((r) => r.text);
+  assert.ok(said(sword).includes('Looks like Ebony Katana'), 'the Info box says the look it wears');
+  assert.ok(!said(createWeapon(WEAPONS.Longsword, 1)).some((x) => x.startsWith('Looks like')), 'a piece in its own says nothing');
   const razor = createArtifact(MAGIC, ARTIFACTS.findIndex((t) => t.name === 'The Mehrunes Razor'));
   equipItem({}, razor);
   const ownRazor = paperdollItemImage(razor);

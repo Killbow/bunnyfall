@@ -118,7 +118,8 @@ compares its weapon by identity, and a new copy every frame would reset a swing.
 | The Morrowind head portrait's helm | `characters/headPortraits.js` playerHeadKey |
 
 **Decided and said:** the pack's pictures (the grid, the worn panel, the hotbar, a hand's plaque) stay the piece's own -
-they say what the piece is, and the body says what it looks like. A weapon's glow is the piece's enchantment and is laid
+they say what the piece is, and the body says what it looks like; the Enhanced Plus pack's Info box says the look a piece
+wears ("Looks like Ebony Katana", `systems/appearances.js` lookLine), as the Wardrobe's list does. A weapon's glow is the piece's enchantment and is laid
 on the look. Sounds (the draw, a swing, a footstep) stay the piece's. The profile card names the pieces as they are.
 
 ## 6. Online

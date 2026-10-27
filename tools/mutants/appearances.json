@@ -81,10 +81,10 @@
     ]
   },
   {
-    "name": "APPEARANCES-an-arrow-a-look",
+    "name": "APPEARANCES-a-mods-piece-a-look",
     "file": "src/net/appearanceLaw.js",
     "old": ".filter((t) => t >= 102 && t <= 130));",
-    "new": ".filter((t) => t >= 102 && t <= 131));",
+    "new": ".filter((t) => t >= 102 && t <= 600));",
     "tests": [
       "test/systems/appearances.test.js"
     ]
@@ -626,6 +626,24 @@
     "new": "WARDROBE_WORDS.worn());",
     "tests": [
       "test/ui/wardrobe_window.test.js"
+    ]
+  },
+  {
+    "name": "APPEARANCES-the-info-box-silent",
+    "file": "src/ui/enhanced/enhancedInventory.js",
+    "old": "  { const look = lookLine(item); if (look) boxes.push([{ text: look, center: true }]); }",
+    "new": "  { const look = lookLine(item); void look; }",
+    "tests": [
+      "test/ui/appearances_render.test.js"
+    ]
+  },
+  {
+    "name": "APPEARANCES-the-line-of-every-piece",
+    "file": "src/systems/appearances.js",
+    "old": "  return a ? t('wardrobe.wearing',",
+    "new": "  return item ? t('wardrobe.wearing',",
+    "tests": [
+      "test/ui/appearances_render.test.js"
     ]
   },
   {
