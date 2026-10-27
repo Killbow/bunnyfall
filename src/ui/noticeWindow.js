@@ -1092,8 +1092,9 @@ export function mountNoticeBoard(host, deps) {
     const b = /** @type {any} */ (win.querySelector?.('.notice-cork'));
     if (b && k.top && k.where === `${tab}|${view}`) b.scrollTop = k.top;
     if (!k.key) return;
-    // AUDIT BOARD-SIFT (lane B L5): and a press that keys its focus (the market's pages) - the focus fell to the page
-    const n = /** @type {any} */ ([...(win.querySelectorAll?.('input, select, textarea, button') ?? [])].find((x) => x.getAttribute?.('data-focus') === k.key));
+    // AUDIT BOARD-SIFT (lane B L5): and a press that keys its focus (the market's pages) - the focus fell to the page.
+    // AUDIT PACK-PICK (lane B): and a fold's name (a pack picker's refused) - a picture landing took the focus from it
+    const n = /** @type {any} */ ([...(win.querySelectorAll?.('input, select, textarea, button, summary') ?? [])].find((x) => x.getAttribute?.('data-focus') === k.key));
     if (!n) return;
     try { n.focus?.({ preventScroll: true }); } catch { n.focus?.(); }
     if (k.at && k.at[0] != null) { try { n.setSelectionRange(k.at[0], k.at[1]); } catch { /* none to set */ } }

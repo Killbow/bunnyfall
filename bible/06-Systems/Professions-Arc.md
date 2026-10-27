@@ -1623,7 +1623,7 @@ DFU has no member here - Daggerfall has no market (NOTICE1, PROF5, MARKET-ANY) -
 none is touched. The world host's market deps are as they were (bootWorld stands at its ceiling, HOST-SPLIT): the picker
 reads the host's own `itemPicture`, `goods` and `goodName`, and the stall's own `picture` and `stats`.
 
-Pins: `test/ui/packpick.test.js` (8; 27 with AUDIT PACK-PICK's, below). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
+Pins: `test/ui/packpick.test.js` (8; 28 with AUDIT PACK-PICK's, below). Six moved, each marked PIN MOVED (PACK-PICK): `test/systems/fb1001_market_goods.test.js`
 (the kinds as presses, the pack's first; the tiles and the refused tiles; a tile pressed before List),
 `test/net/goldmarket_client.test.js` (each refused piece its own tile), `test/net/prof5b_client.test.js` (the
 Masterwork a tile, pressed), `test/net/marketaudit.test.js` (U2: the quality and wear on the tile's line),
@@ -1678,7 +1678,9 @@ the one pressed, by identity, and a double press of List is the window's one act
   pressed view alike. A tier's tile never answered the pointer - its frame's colour outranked the plain tile's hover
   (lane A): FIXED, its own hover after it and a focus ring for every tile. The focus fell to the page after "Show
   everything", and a picture landing took it from the fold; tiles were keyed by their place, so a piece come into the
-  pack ahead handed its focus to another (lane A): FIXED, each keyed, a tile by its name and which of that name. The
+  pack ahead handed its focus to another (lane A): FIXED, each keyed, a tile by its name and which of that name, and the
+  window gives a keyed fold's name its focus back (`ui/noticeWindow.js` giveBack read presses and fields alone - lane B
+  measured the fold's name still losing it). The
   card was a live region rebuilt with every repaint (lane A, the author): dropped - the count, refilled in place while
   the search is typed, stays one. The card's picture was the tile's, fitted to a row's 26px box and stretched twice over
   a whole-number fit (lane A, UI1): FIXED, the card asks the pack grid's own box (`SLOT_BOX.grid`) and the tiles a row's,
@@ -1730,17 +1732,19 @@ NOT CHANGED, named:
   names ("Leather ", "Dwarven ") the market's own namer (`goodName`) does not read, and it names them so - the list it
   replaced did the same. The producers' to mend, not the picker's.
 
-Pins: `test/ui/packpick.test.js` 27 tests (19 the audit's). Moved, each marked PIN MOVED (AUDIT PACK-PICK):
+Pins: `test/ui/packpick.test.js` 28 tests (20 the audit's). Moved, each marked PIN MOVED (AUDIT PACK-PICK):
 `test/ui/menuorder.test.js` (the stall's one wake, once a frame; the market's and a stall's picture with a box).
-Mutants: `tools/mutants/packpick_audit.json` 86, all dead: lane C's 48 (its 54 less the two equivalent, the one
+Mutants: `tools/mutants/packpick_audit.json` 87, all dead: lane C's 48 (its 54 less the two equivalent, the one
 left as it was, and three a fix replaced - C14 by A10, C43 by A3, C30b C30's twin), re-aimed where the fixes moved
-their lines, and 38 for lanes A's and B's findings; re-aimed by content, all dead: `packpick.json`
+their lines, and 39 for lanes A's and B's findings; re-aimed by content, all dead: `packpick.json`
 PACK-PICK-pack-not-first, PACK-PICK-crafted-first-by-default, PACK-PICK-scroll-unkept and PACK-PICK-scroll-over-new-sift,
 `menuorder.json` MENUORDER-host-market-unpictured, `marketaudit2.json` MARKET-AUDIT2-redraw-under-list, `boardsift.json`
-BOARD-SIFT-window-the-paint-over-a-composed-word. In Chromium over the tree as
+BOARD-SIFT-window-the-paint-over-a-composed-word and BOARD-SIFT-window-the-pages-unkeyed. In Chromium over the tree as
 fixed (lanes A's and B's harnesses and `tools/noticeBoardProbe.mjs`): the numbers above, the kinds' and views' chips alike, a
-tier's tile answering the pointer, a double click choosing, every view inside the viewport at a desktop's and a phone's
-width, and the tiles' scroll kept at both.
+tier's tile answering the pointer, a double click choosing, a Tab from the search to the tiles and two more to the
+price, the arrows walking the tiles, the focus kept through a paint on the fold's name, List, the price, the kind and
+the menus, no press under 44 px on a touch screen, every view inside the viewport at a desktop's and a phone's width,
+and the tiles' and the fold's scroll kept at both.
 
 ## 11. Writs - the Work tab
 

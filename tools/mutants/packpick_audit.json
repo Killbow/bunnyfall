@@ -860,5 +860,15 @@
       "test/ui/packpick.test.js"
     ],
     "note": "a tile that is no press answers the pointer as one"
+  },
+  {
+    "name": "AUDIT-PACK-PICK-B-fold-name-never-given-back",
+    "file": "src/ui/noticeWindow.js",
+    "old": "win.querySelectorAll?.('input, select, textarea, button, summary')",
+    "new": "win.querySelectorAll?.('input, select, textarea, button')",
+    "tests": [
+      "test/ui/packpick.test.js"
+    ],
+    "note": "a picture landing takes the focus from the fold's name to the page"
   }
 ]

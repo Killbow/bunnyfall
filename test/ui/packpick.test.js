@@ -206,14 +206,16 @@ function bookOf(goldOk, ways = {}) {
     list: async (req) => { listed.push(req); return { ok: true, data: {} }; },
   };
 }
+/** The market's host as the tab reads it, over a pack's goods. */
+const marketHostOf = (book, goods, extra = {}) => ({
+  book, stores: () => new Map(), region: 17, regionName: 'Daggerfall', regionNameOf: () => 'Daggerfall', hubs: { 17: [207, 212] }, name: (k) => k, countName: (k) => k,
+  pieces: () => [], take: () => true, putBack: () => {}, mint: () => {}, pieceName: () => 'a piece', weavers: [], stock: async () => ({ ok: true }),
+  goods: () => goods.goods(), good: (it) => goods.good(it), goodName: (r) => goods.goodName(r), ...extra,
+});
 function tabOf(book, goods, extra = {}) {
   let root = null, draws = 0;
   const said = [];
-  const m = {
-    book, stores: () => new Map(), region: 17, regionName: 'Daggerfall', regionNameOf: () => 'Daggerfall', hubs: { 17: [207, 212] }, name: (k) => k, countName: (k) => k,
-    pieces: () => [], take: () => true, putBack: () => {}, mint: () => {}, pieceName: () => 'a piece', weavers: [], stock: async () => ({ ok: true }),
-    goods: () => goods.goods(), good: (it) => goods.good(it), goodName: (r) => goods.goodName(r), ...extra,
-  };
+  const m = marketHostOf(book, goods, extra);
   const tab = createMarketTab(m, { busy: () => false, run: async (start) => { const r = await start(); said.push(r?.text); }, rerender: () => draw(), nowS: () => 0, alive: () => true });
   function draw() { draws++; root = tab.body(); }
   return { tab, said, root: () => root, draw, draws: () => draws, press: (k) => [...root.querySelectorAll('button')].find((b) => b.getAttribute('data-kind') === k) };
@@ -742,4 +744,24 @@ test('AUDIT PACK-PICK the dress for a finger and an eye: the search, the menus, 
   assert.match(PROF_CSS, /\.packpick-tile\.on\[data-rarity\] \{ box-shadow: inset 0 0 0 2px #f3ead8,/);
   assert.match(PROF_CSS, /button\.packpick-tile:hover, \.packpick-tile:focus-visible \{/);
   assert.ok(!/(^|[^n])\.packpick-tile:hover/.test(PROF_CSS.replace(/button\.packpick-tile:hover/g, '')), 'no hover for every tile');
+});
+
+test('AUDIT PACK-PICK the window gives the focus back to the fold\'s name, keyed, after a paint - a picture landing took it to the page (mutant: B the fold\'s name never given back)', async () => {
+  const { goods } = pack();
+  const noticeBook = { seenAt: () => null, read: async () => ({ board: { notes: [], notices: [], me: {} } }), markSeen: () => {}, cached: () => null, draft: () => ({ subject: '', body: '', days: 7, button: '' }), noticeDraft: () => ({ subject: '', body: '', days: 3 }) };
+  const host = document.createElement('div');
+  document.body.append(host);
+  const v = mountNoticeBoard(host, { town: { name: 'Daggerfall', mapId: 1 }, book: noticeBook, market: marketHostOf(bookOf(true), goods) });
+  try {
+    await tick();
+    [...host.querySelectorAll('.notice-tab')].find((b) => b.textContent.startsWith('Market')).onclick();
+    await tick();
+    [...host.querySelectorAll('.market-view')].find((b) => b.textContent.startsWith('My listings')).onclick();
+    await tick();
+    const summary = () => host.querySelector('.packpick-refused').children[0];
+    summary().focus();
+    v.repaint();
+    assert.equal(globalThis.document.activeElement, summary(), 'the new fold\'s name has it');
+    assert.equal(summary().getAttribute('data-focus'), 'list-good|refused');
+  } finally { v.unmount(); host.remove(); }
 });
