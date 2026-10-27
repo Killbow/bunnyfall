@@ -125,10 +125,10 @@ import '../naval/treasureCharts.js';   // CAPT-CHARTS: the treasure chart
  *  it on, so a finding a law of 12 made against either is a finding to ask again. AFFIX-LINES and REFORGE-REPLACE moved it
  *  to 14 (2026-10-25): the Reforge's count (`reforges`, systems/loot/lootRarity.js reforgeCount) is a mark of the tiers
  *  the Reforge takes alone - on a Legendary no Exalted, or a piece of no tier, a finding from it on (a law of 13 knew no
- *  such field). Nothing a law of 13 found is lawful now. MASTER-ART moved it to 15: a Master's work - a Legendary of no
- *  record, made, its three chosen lines in the Legendary band (net/masterLaw.js) - is lawful from it on; a law of 14
- *  found every one 'legendary'. */
-export const ITEM_LAW_VERSION = 15;
+ *  such field). Nothing a law of 13 found is lawful now. MASTER-ART left it at 14: a Master's work (net/masterLaw.js) is a
+ *  shape no earlier law met honestly - none was made before the service that makes it, whose judge is this law - so no
+ *  finding of 14 is one to ask again. */
+export const ITEM_LAW_VERSION = 14;
 
 const T = ENCHANTMENT_TYPES;
 const TYPE_KEY = Object.freeze(Object.fromEntries(Object.entries(T).map(([k, v]) => [v, k])));

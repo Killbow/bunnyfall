@@ -38,8 +38,9 @@ import { masterChoiceRefusal } from './masterLaw.js';   // MASTER-ART: a Master'
 
 /** The only version this file reads or writes. */
 export const PRODUCT_RECORD_V = 'p1';
-/** The bound on a record's length. */
-export const PRODUCT_RECORD_MAX = 512;
+/** The bound on a record's length. MASTER-ART: 640, it was 512 - a Master's work's record carries its three lines (`l`),
+ *  and one wearing the law's longest ids, mark and lines ran to 537 (test/net/masterart_law.test.js). */
+export const PRODUCT_RECORD_MAX = 640;
 /** CRAFT-PROCS (FIELD BUGS 2026-10-13e, a player: "Added potency and cast speed, cast cost affixes are not rolling on
  *  crafted jewelry"): the first mint version whose Superior and Masterwork take the ladder's last pass - a line that does
  *  something, as a loot door's Magic and Rare take one (systems/smithItems.js mintPiece). */

@@ -486,7 +486,7 @@ test('PROF10 wiring: the jeweller\'s bench a Pawn Shop\'s or a Gem Store\'s (ope
   assert.match(w, /: profession === 'jewelcrafting'[^\n]*\n\s*\? \{ here: \(\) => modes\?\.jewellerHere\?\.\(\) \?\? null, a: 'a jeweller\\'s bench', who: 'jeweller', noun: 'jeweller\\'s bench', kept: JEWEL_KEPT_TEXT, xp: professionName\('jewelcrafting'\) \}/);   // PIN MOVED (AUDIT PROF-541 R2-C2): no station's own busy word; PIN MOVED (CRAFT3): the XP word the craft's track's
   assert.match(w, /jeweller: \(\) => modes\?\.jewellerHere\?\.\(\) \?\? null,/);
   assert.match(w, /facetBand: \(\) => facetBand\(\{ willpower: liveStat\(playerEntity, 'willpower'\), luck: liveStat\(playerEntity, 'luck'\) \}\),/);
-  assert.match(w, /craft: async \(recipe, \{ clean, heartwood = false, dye = null, cracked = false \}\) => \{/);
+  assert.match(w, /craft: async \(recipe, \{ clean, heartwood = false, dye = null, cracked = false, \.\.\.more \}\) => \{/);   // PIN MOVED (MASTER-ART): the door hands the page's other asks (a Master's work's lines) on
   assert.match(w, /const r = await profBook\.craft\(recipe, \{ clean, heartwood, dye, cracked, fee: /);
   const b = src('src/net/profBook.js');
   assert.match(b, /\.\.\.\(cracked === true \? \{ cracked: true \} : \{\}\) \};/);
