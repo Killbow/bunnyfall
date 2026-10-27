@@ -622,6 +622,8 @@ export const ROUTES = new Set([
   '/v1/prof/brew', '/v1/prof/disenchant',
   // CRAFT4: a temper (professions.js) and an Enchanter's Reforge with Essence (alchemy.js) - the same doors
   '/v1/prof/temper', '/v1/prof/reforge',
+  // BUNNYFALL: salvage anything (salvage.js) - the same doors
+  '/v1/prof/salvage',
   // MASTER-ART: a Master's work (masterWork.js) - the same doors
   '/v1/prof/master',
   // BAG1: a deposit - carried units into the Stores (professions.js depositStores), the same door

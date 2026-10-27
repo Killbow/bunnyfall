@@ -165,7 +165,8 @@ import { landingTiles } from './landingTiles.js';   // VIRT: a picture into its 
 import { overlayAction, eventActions } from '../input.js';   // MAC-C: and the REGISTRY's answer for the two window keys
 import { audio } from '../../systems/audio.js';   // MAC-O6: the pack's own transfer cue - this window carried none at all
 import { dismantleStones, dismantleRefusal, dismantleWare, dismantleAsk, DISMANTLED, DISMANTLE_WORN, wareName } from '../../systems/sigil/sigilBroker.js';   // SS5: a Broker ware back into stones
-import { salvageShards, salvageRefusal, salvagePiece, salvageMany, salvageable, shardsText } from '../../systems/reforge.js';   // LOOT9: a laddered piece broken into Welkynd Shards
+import { salvageShards, salvageRefusal, salvagePiece, salvageMany, shardsText } from '../../systems/reforge.js';   // LOOT9: a laddered piece broken into Welkynd Shards
+import { salvagesToMaterials, anySalvageRefusal, materialsText, yieldsText, salvageForMaterials } from '../salvageMaterials.js';   // BUNNYFALL: salvage anything, into materials
 import { gemsHeld, setGemPiece, unsetGemPiece } from '../../systems/reforge.js';   // GEM1: a gem set in a socket from the pack, and shattered out of one
 import { ALL_GEM_IDS, SOCKET_EMPTY, emptySockets, gemKindOf } from '../../systems/loot/lootRarity.js';   // GEM1: the socket list and the gems
 import { mintGem } from '../../systems/gems.js';   // GEM3: a set gem's picture, as its own item draws it
@@ -2839,7 +2840,7 @@ function itemRow(item, from = 'local') {
   const line = lineOf(item);   // VIRT: once a pass
   const choosing = !!salvageSel && from === 'local';   // BATCH-SALVAGE: a pack row is a tick while the pack chooses
   const chosen = choosing && salvageSel.has(item);
-  const row = el('button', `itemrow${picked === item && side === from ? ' on' : ''}${chosen ? ' salvpick' : choosing && salvageRefusal(item) ? ' salvno' : ''}`);
+  const row = el('button', `itemrow${picked === item && side === from ? ' on' : ''}${chosen ? ' salvpick' : choosing && anySalvageRefusal(item) ? ' salvno' : ''}`);
   if (choosing) row.setAttribute('aria-pressed', String(chosen));
   markItemFrame(row, item);   // LR1: the tier colours the name (enhancedStyle's [data-rarity] rules); RARITY-UI: and the icon's frame; SIGIL-UI: the rune
   const wasPicked = picked === item && side === from;
@@ -3697,7 +3698,7 @@ function itemActs(picked, side, { qty = true } = {}) {
   // LOOT9 (the Loot arc): a laddered piece SALVAGED into Welkynd Shards (systems/reforge.js) - the Reforge's coin - asked
   // first, as the dismantle is; never a worn one (taken off first), and a piece that will never break shows no button -
   // but one that wears Magic and never will (FB1012d SALVAGE-CLASSIC: DFU's own magic) shows it, and its press says why
-  if (side === 'local' && !line.equipped && (salvageShards(picked) > 0 || salvageRefusal(picked) === 'classic') && !['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'].includes(salvageRefusal(picked) ?? '')) {
+  if (side === 'local' && !line.equipped && (salvagesToMaterials(picked) || ((salvageShards(picked) > 0 || salvageRefusal(picked) === 'classic') && !['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'].includes(salvageRefusal(picked) ?? '')))) {   // BUNNYFALL: any found gear, online
     const v = el('button', 'act', 'Salvage');
     v.onclick = () => askSalvage(picked);
     acts.append(v);
@@ -3806,6 +3807,10 @@ function askDismantle(item) {
  *  or a press outside keep it. A locked piece is refused in words before any question is asked. */
 export const SALVAGE_ASK = (name, n) => [`Salvage ${name}?`, `It is gone for good, and you get ${shardsText(n)}.`];
 export const SALVAGED_LINE = (name, n) => `Salvaged: ${name}, for ${shardsText(n)}.`;
+/** BUNNYFALL: the salvage into materials - asked with the average it gives, said with what it gave. */
+export const SALVAGE_MATS_ASK = (name, mats, n) => [`Salvage ${name}?`, `It is gone for good. You get ${mats}${n > 0 ? `, and ${shardsText(n)}` : ''}.`];
+export const SALVAGED_MATS_LINE = (name, got, n) => `Salvaged: ${name}, for ${got}${n > 0 ? ` and ${shardsText(n)}` : ''}. The materials are in your Stores.`;
+export const SALVAGE_FAILED = (name) => `${name} could not be salvaged right now. It is still in your pack.`;
 /** AUDIT GEM: a piece holding a set gem is never salvaged with it (systems/reforge.js salvageRefusal 'gems'). */
 export const SALVAGE_GEMS = (name) => `${name} holds a gem. Extract it at the Reforge or unset it first.`;
 /** FB1012d SALVAGE-CLASSIC: a piece that wears Magic the ladder never graded (systems/reforge.js salvageRefusal 'classic'). */
@@ -3815,21 +3820,31 @@ function askSalvage(item) {
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
   const name = itemLongName(item, { getQuest: deps.getQuest ?? null });
   const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
-  const why = salvageRefusal(item);
+  const why = anySalvageRefusal(item);   // BUNNYFALL: materials first, then the shard law
   if (why) { refusedFor(why); return; }
   const n = salvageShards(item);
+  const mats = salvagesToMaterials(item) ? materialsText([item]) : '';
   dismantleEl = el('div', 'inv-info inv-dismantle inv-salvage');
   dismantleEl.setAttribute('role', 'alertdialog');
   dismantleEl.setAttribute('aria-label', 'Salvage'); dismantleEl.setAttribute('aria-modal', 'true');
   const card = el('div', 'card');
   const sec = el('div', 'inv-info-box');
-  for (const t of SALVAGE_ASK(name, n)) sec.append(el('p', 'center', t));
+  for (const t of mats ? SALVAGE_MATS_ASK(name, mats, n) : SALVAGE_ASK(name, n)) sec.append(el('p', 'center', t));
   card.append(sec);
   const row = el('div', 'acts');
   const ok = el('button', 'act primary', 'Salvage');
   ok.onclick = (e) => {
     e?.stopPropagation?.();
     closeDismantle();
+    if (mats) {   // BUNNYFALL: into materials, through the account service
+      notice = 'Salvaging...'; render();
+      salvageForMaterials([item], { items: deps.items?.() ?? [] }).then((m) => {
+        if (picked === item && m.ok) picked = null;
+        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name);
+        refresh(); render();
+      });
+      return;
+    }
     const r = salvagePiece(item, { items: deps.items?.() ?? [] });
     if (!r.ok) return void refusedFor(r.reason);   // worn or locked since the question was asked - said
     if (picked === item) picked = null;
@@ -3874,7 +3889,10 @@ export const BATCH_SWEEPS = Object.freeze([
   [() => t('inventory.batch.allMagic', 'All Magic'), (it) => it.rarity === 'magic'],
   [() => t('inventory.batch.allRare', 'All Rare'), (it) => it.rarity === 'rare'],
   [() => t('inventory.batch.allJunk', 'All junk'), (it) => isJunk(it)],
+  [() => t('inventory.batch.allPlain', 'All plain gear'), (it) => (!it.rarity || it.rarity === 'common') && salvagesToMaterials(it)],   // BUNNYFALL
 ]);
+/** BUNNYFALL: the pack's pieces that would break now, into materials or shards. */
+const salvageableAny = (items) => (Array.isArray(items) ? items : []).filter((it) => !anySalvageRefusal(it));
 export const BATCH_ASK = (n, shards) => [
   t('inventory.batch.ask', 'Salvage {n, plural, one {# piece} other {# pieces}}?', { n }),
   t('inventory.batch.askShards', 'They are gone for good, and you get {shards}.', { shards: shardsText(shards) }),
@@ -3899,11 +3917,11 @@ export function batchRefusal(name, why) {
 /** The chosen that still stand: a piece gone from the pack, or one that would no longer break (worn, locked since), is
  *  let go of the choosing. */
 function pruneSalvage(pack) {
-  for (const it of [...salvageSel]) if (!pack.includes(it) || salvageRefusal(it)) salvageSel.delete(it);
+  for (const it of [...salvageSel]) if (!pack.includes(it) || anySalvageRefusal(it)) salvageSel.delete(it);
 }
 function chooseSalvage(item) {
   hideTip();
-  const why = salvageRefusal(item);
+  const why = anySalvageRefusal(item);   // BUNNYFALL: any found gear
   if (why) notice = batchRefusal(itemLongName(item, { getQuest: deps.getQuest ?? null }), why);
   else { if (salvageSel.has(item)) salvageSel.delete(item); else salvageSel.add(item); notice = null; }
   render();
@@ -3917,7 +3935,7 @@ function salvageFoot() {
   foot.setAttribute('role', 'toolbar');
   foot.setAttribute('aria-label', t('inventory.batch.label', BATCH_LABEL));
   foot.append(el('span', 'salvagecount', chosen.length ? BATCH_COUNT(chosen.length, shards) : t('inventory.batch.hint', BATCH_HINT)));
-  const open = salvageable(pack);
+  const open = salvageableAny(pack);
   for (const [label, sweeps] of BATCH_SWEEPS) {
     const these = open.filter((it) => sweeps(it) && !sweepSpares(it));
     if (!these.length) continue;
@@ -3958,6 +3976,7 @@ function askSalvageMany() {
   const card = el('div', 'card');
   const sec = el('div', 'inv-info-box');
   for (const t of BATCH_ASK(chosen.length, shards)) sec.append(el('p', 'center', t));
+  { const mats = materialsText(chosen); if (mats) sec.append(el('p', 'center', `Materials into your Stores: ${mats}.`)); }   // BUNNYFALL
   const names = chosen.slice(0, BATCH_NAMES_SHOWN).map((it) => itemLongName(it, { getQuest: deps.getQuest ?? null }));
   if (chosen.length > BATCH_NAMES_SHOWN) names.push(t('inventory.batch.more', 'and {n} more', { n: chosen.length - BATCH_NAMES_SHOWN }));
   sec.append(el('p', 'center salvagenames', names.join(', ')));
@@ -3968,11 +3987,20 @@ function askSalvageMany() {
     e?.stopPropagation?.();
     closeDismantle();
     const pack = deps.items?.() ?? [];
-    const r = salvageMany(chosen, { items: pack });
     salvageSel = null;   // (no card is open while the pack chooses: a press ticks, never picks)
-    notice = BATCH_DONE(r.count, r.shards, r.refused.length);
-    refresh();
-    render();
+    if (!chosen.some(salvagesToMaterials)) {   // shards only (offline, or no recipe makes them): at once, as ever
+      const r = salvageMany(chosen, { items: pack });
+      notice = BATCH_DONE(r.count, r.shards, r.refused.length);
+      refresh();
+      render();
+      return;
+    }
+    notice = 'Salvaging...'; render();
+    salvageForMaterials(chosen, { items: pack }).then((r) => {   // BUNNYFALL: materials through the service, shards as before
+      notice = r.ok ? `${BATCH_DONE(r.count, r.shards, chosen.length - r.count)}${r.data ? ` Into your Stores: ${yieldsText(r.data)}.` : ''}` : 'The salvage could not reach the server. Nothing was broken.';
+      refresh();
+      render();
+    });
   };
   const no = el('button', 'act', t('inventory.batch.keep', 'Keep'));
   no.onclick = (e) => { e?.stopPropagation?.(); closeDismantle(); };   // every piece kept, the ticks with them
@@ -4320,7 +4348,7 @@ function render() {
       codex.onclick = () => { createReforgeOverlay({ pages: ['codex'], page: 'codex', items: () => deps.items?.() ?? [], payer: () => deps.entity ?? {}, gold: () => 0, reforge: () => ({ ok: false }), salvage: () => ({ ok: false }), nameOf: (it) => itemLongName(it) }); };
       head.append(codex);
       // BATCH-SALVAGE: the pack chooses what to break - shown while a piece would break, or while it chooses
-      if (salvageSel || salvageable(deps.items?.() ?? []).length) {
+      if (salvageSel || salvageableAny(deps.items?.() ?? []).length) {
         const many = el('button', 'act salvagebtn', t('inventory.batch.label', BATCH_LABEL));
         if (salvageSel) many.classList.add('primary');
         many.type = 'button';

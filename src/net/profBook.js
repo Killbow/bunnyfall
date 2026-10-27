@@ -965,6 +965,26 @@ export function createProfBook({ door, storage = null, character = () => null, n
       })();
       return m.promise;
     },
+    /** BUNNYFALL: A SALVAGE - found pieces (salvageLaw.js descriptors) broken into their recipes' materials, into the
+     *  Stores. The id is the ask's own until an answer comes, so a press after a lost answer is the same salvage.
+     *  Answers the service's answer; the Stores and the tracks moved with it - the caller takes the pieces out of the pack. */
+    async salvage(pieces) {
+      const c = character();
+      if (!c) return { ok: false, error: 'prof-character' };
+      const origin = slot();
+      const key = `salvage|${origin}|${JSON.stringify(pieces)}`;
+      const m = idFor(key, PROF_QUEUE_MS);
+      if (m.promise) return m.promise;
+      m.promise = (async () => {
+        const r = await ask(() => door.salvage(c, pieces, m.id), origin);
+        m.promise = null;
+        if (!keptAnswer(r) && r?.error !== 'elsewhere') ids.delete(key);
+        if (origin !== slot()) return { ...r, elsewhere: true };
+        if (r?.ok) { for (const s of r.data?.stores ?? []) applyStore(s); for (const t of r.data?.tracks ?? []) applyTrack(t); } else shutBy(r);
+        return r;
+      })();
+      return m.promise;
+    },
     /** CRAFT4: A TEMPER (Professions-Arc 41.7) - a piece of `recipe` a quality step better than `quality`, half the
      *  recipe's main input from the Stores; a made piece names its `provenance` (its record re-signed - the answer's
      *  `record`). The id is the ask's own until an answer comes, so a press after a lost answer is the same temper, and

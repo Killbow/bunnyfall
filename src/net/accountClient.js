@@ -2358,6 +2358,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     master: (character, recipe, lines, name, rid, dye = null) => post('/v1/prof/master', { character, recipe, lines, name, rid, ...(dye == null ? {} : { dye }) }),   // MASTER-ART: a Master's work, its three lines chosen
     reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
+    salvage: (character, pieces, rid) => post('/v1/prof/salvage', { character, pieces, rid }),   // BUNNYFALL: found gear into materials
     writs: (character, region) => post('/v1/writs/list', { character, region }),
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),
     craftWrit: (character, id, rid, realm, pieces = null) => post('/v1/writs/craft', { character, id, rid, realm, ...(pieces ? { pieces } : {}) }),   // CRAFT-WRITS: a crafting writ filled - its goods out of the realm record where it stands

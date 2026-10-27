@@ -55,7 +55,7 @@ test('BATCH-SALVAGE: the refusals in words - the card\'s own where it has them, 
   assert.equal(batchRefusal('Ring', 'classic'), SALVAGE_CLASSIC('Ring'));
   for (const why of ['worn', 'bound', 'quest', 'aetheric', 'gilded', 'artifact', 'not', 'off']) assert.ok(batchRefusal('Ring', why).startsWith('Ring '), why);
   assert.notEqual(batchRefusal('Ring', 'worn'), batchRefusal('Ring', 'bound'));
-  assert.deepEqual(BATCH_SWEEPS.map(([label]) => label()), ['All Magic', 'All Rare', 'All junk'], 'never a Legendary sweep');
+  assert.deepEqual(BATCH_SWEEPS.map(([label]) => label()), ['All Magic', 'All Rare', 'All junk', 'All plain gear'], 'never a Legendary sweep');
   assert.equal(BATCH_ASK(1, 3)[0], 'Salvage 1 piece?');
   assert.equal(BATCH_DONE(2, 4, 1), 'Salvaged 2 pieces, for 4 Welkynd Shards. 1 would not break and was kept.');
 });

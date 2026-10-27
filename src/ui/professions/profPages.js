@@ -187,6 +187,8 @@ let _provider = /** @type {ProfPagesProvider|null} */ (null);
 const workOf = (/** @type {any} */ book, /** @type {string} */ k) => (typeof book?.workable === 'function' ? book.workable(k) : book.held(k));
 /** The host's book, or null to take the pages down (offline, a closed switch, the host gone). */
 export function setProfessionsPages(p) { _provider = p ?? null; }
+/** BUNNYFALL: the host's profession book, or null offline (the pack's salvage asks it). */
+export const profBookNow = () => (_provider?.book?.state?.open === true ? _provider.book : null);
 /** What a locked specialisation's card says it waits for (professionLaw.js `later`). */
 const LATER_WORDS = Object.freeze({
   get SEAT2() { return t('prof.page.later.seat2', 'Comes with the sieges'); }, get SEAT2b() { return t('prof.page.later.seat2b', 'Comes with the fortifications'); },   // PROF11: the Builder's and the Fortifier's
