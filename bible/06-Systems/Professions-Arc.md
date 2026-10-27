@@ -6633,8 +6633,9 @@ after the seat).
 AUDIT HORIZONTAL B7: `test/net/lootdoor.test.js` (4 - the hello's `ll`, the rooms, the setting and its floor, the
 relay's door through real Rooms, the client's hello). `tools/mutants/lootdoor.json` (17, each dead); the floor records of
 `cost2b`, `heraldcards` and `ketch_herald` re-aimed by content (dead). PIN MOVED: a current build's hello says `ll` in
-`fb1017f_groundgate`, `grantdoor_relay` and `lease1` (one without it asks the hub for the loot door); `scale5b`'s
-settings and vars, `heraldcards`' floors (lootDoor is world271's), `relayversion`'s world271 row.
+`fb1017f_groundgate`, `grantdoor_relay` and `lease1` (one without it asks the hub for the loot door), and in the hellos
+`online` and `world6biiib` hold key for key; `scale5b`'s settings and vars, `heraldcards`' floors (lootDoor is
+world271's), `relayversion`'s world271 row.
 
 ## 58. HUNTERS-MARK - the Trophy Hunter built (BUILT 2026-10-27)
 
