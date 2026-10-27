@@ -129,6 +129,11 @@ export function isMwWerewolf(entity) {
   return !!entity && isTransformedLycanthrope(entity) && ((liveLycanthropy(entity)?.infectionType | 0) === 1);
 }
 
+/** APPEARANCES-II: the renderer the player's arm and body were last bound to (bindArm, where every host's rig attaches
+ *  the singleton) - the Wardrobe's preview body draws with it (ui/wardrobe/wardrobePreview.js). Null before a rig. */
+let _armRenderer = null;
+export const armRenderer = () => _armRenderer;
+
 export function armBuildOptsOf(entity) {
   // the ammunition question is asked OF THE WEAPON, and the weapon this
   // function has is the worn one - there is no live rig here
@@ -758,6 +763,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
   // writes, so the rig that is stepping the arm re-claims it first.
   const bindArm = () => {
     fpArm.attach(renderer, camera);
+    _armRenderer = renderer ?? null;   // APPEARANCES-II: the preview body's
     // BEAST-SELF: the Morrowind arm and body stand aside while they are not the form the curse holds (combat/fpArm.js
     // setStandIn). SHADOW-FANG (the merge): Bloodmoon's wolf IS a Morrowind beast (WEREWOLF1), so a werewolf whose wolf
     // stands keeps them; a wolf refused or still building, a wereboar (Morrowind has none), and the wolf still standing

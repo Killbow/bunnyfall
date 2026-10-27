@@ -1125,21 +1125,35 @@ export const REFORGE_CSS = `/* ── LOOT9/LOOT10: THE REFORGE'S WINDOW (ui/ref
 .reforge-shell .broker-name { white-space: normal; line-height: 1.25; }`;
 /** APPEARANCES (bible/04-Characters/Wardrobe.md): THE WARDROBE'S WINDOW (ui/wardrobe/wardrobeWindow.js) - the Broker's shape,
  *  so his sheet lays it; these are its own rules: a worn piece's row with no price, and the card's looks, a line each.
- *  Geometry and the words' colours alone - the kit dresses the rest. */
+ *  Geometry and the words' colours alone - the kit dresses the rest. APPEARANCES-II: the preview at the card's head (the
+ *  figure beside its name, a doll's pixels kept square) and a look's picture and name as one press that tries it on. */
 export const WARDROBE_CSS = `/* ── APPEARANCES: THE WARDROBE ── */
 .wardrobe-shell .broker-offer.wardrobe-piece { grid-template-columns: 48px minmax(0, 1fr); }
 .wardrobe-shell .broker-offer.wardrobe-piece .broker-set { white-space: normal; }
 .wardrobe-shell .wardrobe-count { margin: 0 0 8px; font-size: 12px; color: #b9ab93; }
 .wardrobe-shell .wardrobe-looks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.wardrobe-shell .wardrobe-look { display: grid; grid-template-columns: 48px minmax(0, 1fr) max-content minmax(96px, max-content); align-items: center; gap: 8px; padding: 4px 6px; }
+.wardrobe-shell .wardrobe-look { display: grid; grid-template-columns: minmax(0, 1fr) max-content minmax(96px, max-content); align-items: center; gap: 8px; padding: 4px 6px; }
+.wardrobe-shell .wardrobe-try { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; margin: 0; padding: 2px;
+  appearance: none; background: transparent; border: 1px solid transparent; box-shadow: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.wardrobe-shell .wardrobe-try[aria-pressed="true"] { border-color: rgba(243,207,134,0.55); background: linear-gradient(90deg, rgba(243,207,134,0.12), transparent 85%); }
+.wardrobe-shell .wardrobe-try:focus-visible { outline: 2px solid #f3cf86; outline-offset: 2px; }
 .wardrobe-shell .wardrobe-name { min-width: 0; font-size: 13px; color: #e6dccb; overflow-wrap: anywhere; }
 .wardrobe-shell .wardrobe-look.on .wardrobe-name, .wardrobe-shell .wardrobe-look.own .wardrobe-name { color: #f3cf86; }
 .wardrobe-shell .wardrobe-press { width: auto; }
-@media (pointer: coarse) { .wardrobe-shell .wardrobe-press, .wardrobe-shell .wardrobe-piece { min-height: 40px; } }
+.wardrobe-shell .wardrobe-preview { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; padding: 8px; border: 1px solid rgba(243,207,134,0.25); background: rgba(0,0,0,0.35); }
+.wardrobe-shell .wardrobe-figure { flex: 0 0 auto; width: auto; height: 220px; max-width: 50%; object-fit: contain; }
+.wardrobe-shell .wardrobe-figure.doll { image-rendering: pixelated; }
+.wardrobe-shell .wardrobe-figure.busy { width: 120px; }
+.wardrobe-shell .wardrobe-preview-said { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wardrobe-shell .wardrobe-preview-head { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: #b9ab93; }
+.wardrobe-shell .wardrobe-preview-name { font-size: 14px; color: #f3cf86; overflow-wrap: anywhere; }
+@media (pointer: coarse) { .wardrobe-shell .wardrobe-press, .wardrobe-shell .wardrobe-piece, .wardrobe-shell .wardrobe-try { min-height: 40px; } }
 @media (max-width: 720px) {
-  .wardrobe-shell .wardrobe-look { grid-template-columns: 44px minmax(0, 1fr) minmax(96px, max-content); }
-  .wardrobe-shell .wardrobe-look .broker-price { grid-column: 2; grid-row: 2; }
-  .wardrobe-shell .wardrobe-look .wardrobe-press { grid-column: 3; grid-row: 1 / span 2; }
+  .wardrobe-shell .wardrobe-look { grid-template-columns: minmax(0, 1fr) minmax(96px, max-content); }
+  .wardrobe-shell .wardrobe-try { grid-template-columns: 44px minmax(0, 1fr); }
+  .wardrobe-shell .wardrobe-look .broker-price { grid-column: 1; grid-row: 2; padding-left: 54px; }
+  .wardrobe-shell .wardrobe-look .wardrobe-press { grid-column: 2; grid-row: 1 / span 2; }
+  .wardrobe-shell .wardrobe-figure { height: 160px; }
 }`;
 /** BOUNTY1 (2026-09-28): THE BOUNTY BOARD'S WINDOW and the payday notice (ui/bounty/bountyWindow.js) - the Broker's kind: a
  *  stone window over the world, the town's notices in a list, the one pressed read whole beside it (under it on a

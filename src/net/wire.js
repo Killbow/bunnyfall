@@ -1399,6 +1399,22 @@ export function validFoeRecord(r) {
     }
     out.lw = lw;
   }
+  // APPEARANCES-II (bible/04-Characters/Wardrobe.md section 6): `la` the looks the kit's pieces wear - [its index in `lw`,
+  // t, m, v], each piece once, in order - with `lw` alone. A look kept is one there is and of its piece's kind (net/
+  // appearanceLaw.js validWireAppearance, validLookItem's law); any other is dropped and its piece stands in its own
+  if (r.la !== undefined) {
+    if (!out.lw || !Array.isArray(r.la) || r.la.length > out.lw.length) return null;
+    const la = [];
+    let last = -1;
+    for (const it of r.la) {
+      if (!Array.isArray(it) || it.length !== 4 || !it.every(Number.isInteger) || it[0] <= last || it[0] >= out.lw.length) return null;
+      last = it[0];
+      const piece = out.lw[it[0]];
+      const ap = validWireAppearance({ templateIndex: piece[2], group: LOOK_GROUPS[piece[1]] }, it.slice(1));
+      if (ap) la.push([it[0], ...ap]);
+    }
+    if (la.length) out.la = la;
+  }
   // TELL8 (bible/12-Enhanced-AI/Feud-Arc.md 10.1): THE WIND-UP - `wk` its shape (0-6, ai/puppetBlows.js WIRE_KINDS) +8
   // iron +16 a feint (AUDIT TELL O2: +32 its landing, said after it; FEUD WIRE: +64 a revenant's signature), `wy` its yaw, `wl` ms to its landing
   // (0..FOE_WINDUP_MS - relative, each client's own clock), `wo` its origin (bounded as `f`), `wn` its serial (0-255),
