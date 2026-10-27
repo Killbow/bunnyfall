@@ -81,10 +81,12 @@ the tailor and the two smiths. Any of the three re-dresses any worn piece, as DF
   so the row is the port's own, drawn under the art in the parchment's dark, the Portal Stone's law (PORTAL1). The rows
   stack (`shopRowRect`): the Portal Stone's first, the Wardrobe's 12 px under it; its key is W. THE NATIVE-WINDOW RULE:
   the art and DFU's four rects are unchanged; the row is a port element and cites this page.
-- **Enhanced Plus** (`merchantServiceDoor.js`, `merchantRepairDoor.js`): a press after the Portal Stone's, its picture
-  the clothing glyph.
-- **The host** (`scenes/worldModes.js`): one construction (`createWardrobeCounter`) and one row a popup, in a building
-  and nowhere else; the counter, the window and the acts live in `scenes/wardrobeCounter.js`.
+- **Enhanced Plus** (`merchantServiceDoor.js`, `merchantRepairDoor.js`): a press above the Portal Stone's (which stays
+  above Exit), its picture the clothing glyph.
+- **The host** (`scenes/worldModes.js`): one construction (`scenes/shopRows.js` createShopRows) and one spread of its
+  rows into each popup, in a building and nowhere else. The Portal Stone's row and counter moved there with the
+  Wardrobe's, so the host is 7 logical lines shorter (11,025 -> 11,018, its ceiling lowered with it); the Wardrobe's
+  counter, window and acts live in `scenes/wardrobeCounter.js`.
 
 **The window** (`ui/wardrobe/wardrobeWindow.js`, its door `wardrobeDoor.js`) is the port's own, in the Reforge's shape
 and the Broker's classes, so both skins dress it: the Plus sheet carries its rules (`enhancedPlusStyle.js`

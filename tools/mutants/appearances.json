@@ -451,8 +451,8 @@
   {
     "name": "APPEARANCES-the-build-holds-the-piece",
     "file": "src/combat/fpArm.js",
-    "old": "      const opts = drawnOpts(given);",
-    "new": "      const opts = given;",
+    "old": "      opts = drawnOpts(opts);   // APPEARANCES",
+    "new": "      void opts;   // APPEARANCES",
     "tests": [
       "test/ui/appearances_render.test.js"
     ]
@@ -460,8 +460,8 @@
   {
     "name": "APPEARANCES-setweapon-holds-the-piece",
     "file": "src/combat/fpArm.js",
-    "old": "      const item = drawnPiece(held);   // APPEARANCES: a weapon wearing a look",
-    "new": "      const item = held;   // APPEARANCES: a weapon wearing a look",
+    "old": "      item = drawnPiece(item);   // APPEARANCES: a weapon wearing a look",
+    "new": "      void item;   // APPEARANCES: a weapon wearing a look",
     "tests": [
       "test/ui/appearances_render.test.js"
     ]
@@ -469,8 +469,8 @@
   {
     "name": "APPEARANCES-the-glow-of-the-piece",
     "file": "src/combat/fpArm.js",
-    "old": "      const item = drawnPiece(held);   // APPEARANCES: the weapon it is OF",
-    "new": "      const item = held;   // APPEARANCES: the weapon it is OF",
+    "old": "      item = drawnPiece(item);   // APPEARANCES: the weapon it is OF",
+    "new": "      void item;   // APPEARANCES: the weapon it is OF",
     "tests": [
       "test/ui/appearances_render.test.js"
     ]
@@ -575,10 +575,28 @@
     ]
   },
   {
+    "name": "APPEARANCES-the-shops-rows-no-wardrobe",
+    "file": "src/scenes/shopRows.js",
+    "old": "      ...(wardrobe ? { wardrobe } : {}),",
+    "new": "      ...({}),",
+    "tests": [
+      "test/ui/wardrobe_window.test.js"
+    ]
+  },
+  {
     "name": "APPEARANCES-the-repair-popup-has-none",
     "file": "src/scenes/worldModes.js",
-    "old": "          wardrobe: wardrobeRow(),   // APPEARANCES: an Armorer's",
-    "new": "          wardrobe: undefined,   // APPEARANCES: an Armorer's",
+    "old": "          ...shopRows.of(interiorBuilding?.buildingType),   // PORTAL1",
+    "new": "          ...shopRows.of(null),   // PORTAL1",
+    "tests": [
+      "test/ui/wardrobe_window.test.js"
+    ]
+  },
+  {
+    "name": "APPEARANCES-the-plain-popup-has-none",
+    "file": "src/scenes/worldModes.js",
+    "old": "...(banking || custom ? {} : shopRows.of(interiorBuilding?.buildingType)),",
+    "new": "...(banking || custom ? {} : shopRows.of(null)),",
     "tests": [
       "test/ui/wardrobe_window.test.js"
     ]

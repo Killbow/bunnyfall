@@ -11,6 +11,7 @@ import {
 } from '../../src/ui/merchant/merchantServiceWindow.js';
 import { MerchantRepairWindow, REPAIR_PANEL_X, REPAIR_PANEL_Y, REPAIR_PANEL_H } from '../../src/ui/merchant/merchantRepairWindow.js';
 import { createWardrobeCounter, WARDROBE_ROW } from '../../src/scenes/wardrobeCounter.js';
+import { createShopRows } from '../../src/scenes/shopRows.js';
 import { mountWardrobeWindow, WARDROBE_WORDS, wardrobeRefusal } from '../../src/ui/wardrobe/wardrobeWindow.js';
 import { noteHeldLooks, wardrobeFee, wearAppearance, clearAppearance } from '../../src/systems/appearances.js';
 import { lookOfKey } from '../../src/net/appearanceLaw.js';
@@ -54,7 +55,7 @@ test('APPEARANCES THE ROW: the port\'s rows stack under the popup\'s art - the P
   assert.deepEqual([opened, rep.done], [4, true], 'the repair shop\'s popup');
   new MerchantRepairWindow({ onRepair() {}, onTalk() {}, onSell() {}, ...hooks() }).input(WARDROBE_ROW_KEY);
   assert.equal(opened, 5);
-  // the Enhanced Plus panels list it as a press of its own, after the Portal Stone's
+  // the Enhanced Plus panels list it as a press of its own, above the Portal Stone's (which stays above Exit)
   for (const f of ['src/ui/merchant/merchantServiceDoor.js', 'src/ui/merchant/merchantRepairDoor.js']) {
     assert.match(read(f), /\.\.\.\(hooks\.wardrobe \? \[\{ label: hooks\.wardrobe\.label, icon: 'clothing', onClick: \(\) => \{ close\(\); hooks\.wardrobe\.onOpen\?\.\(\); \} \}\] : \[\]\),/, f);
   }
@@ -87,11 +88,19 @@ test('APPEARANCES THE COUNTER: the interior host builds it once and hands its ro
     o.dispose();
     assert.equal(o.done, true);
   });
+  // the shop popups' rows, one door (scenes/shopRows.js): the Wardrobe at its three shops beside the Portal Stone, neither
+  // where no shop stands; the host builds it once and spreads its rows into both popups
+  const rows = createShopRows({ say: () => {}, mountInterior: () => {}, mountService: (w) => w });
+  assert.deepEqual(Object.keys(rows.of(BUILDING_TYPES.Armorer)), ['portal', 'wardrobe']);
+  assert.deepEqual(Object.keys(rows.of(BUILDING_TYPES.ClothingStore)), ['portal', 'wardrobe']);
+  assert.deepEqual(Object.keys(rows.of(BUILDING_TYPES.GeneralStore)), ['portal'], 'a General Store: the Portal Stone alone');
+  assert.deepEqual(Object.keys(rows.of(BUILDING_TYPES.Bank)), [], 'a bank: neither');
+  assert.deepEqual(Object.keys(rows.of(null)), [], 'outside a building: neither');
+  assert.equal(rows.of(BUILDING_TYPES.WeaponSmith).wardrobe.label, 'Wardrobe');
   const modes = read('src/scenes/worldModes.js');
-  assert.match(modes, /const wardrobeCounter = createWardrobeCounter\(\{ mount: \(w\) => mountServiceWindow\(w\) \}\);/, 'built once');
-  assert.match(modes, /const wardrobeRow = \(\) => \(mode === 'interior' \? wardrobeCounter\.row\(interiorBuilding\?\.buildingType\) : undefined\);/, 'in a building and nowhere else');
-  assert.match(modes, /portal: portalRow\(\),[^\n]*\n\s*wardrobe: wardrobeRow\(\),/, 'the repair shop\'s popup');
-  assert.match(modes, /wardrobe: banking \|\| custom \? undefined : wardrobeRow\(\),/, 'the merchant\'s - never a teller\'s, never a mod\'s service');
+  assert.match(modes, /const shopRows = createShopRows\(\{ say: \(l\) => say\(l\), mountInterior: \(w\) => mountInterior\(w\), mountService: mountServiceWindow \}\);/, 'built once');
+  assert.match(modes, /onSell: \(\) => openMerchantSell\(\),\n\s+\.\.\.shopRows\.of\(interiorBuilding\?\.buildingType\),/, 'the repair shop\'s popup');
+  assert.match(modes, /\.\.\.\(banking \|\| custom \? \{\} : shopRows\.of\(interiorBuilding\?\.buildingType\)\),/, 'the merchant\'s - never a teller\'s, never a mod\'s service');
 });
 
 test('APPEARANCES THE WINDOW: the worn pieces that can take a look, each with what it looks like now; the piece picked shows its own look (free, Worn while it wears no other) and every collected look of its kind with its fee - Wear lays it on and says so, a short purse says how much more, pressed it says why and takes nothing, and the own look\'s press gives it back (mutants: the fee unsaid; a refused press that wears; the own look not offered back; a piece that cannot take a look listed)', () => {

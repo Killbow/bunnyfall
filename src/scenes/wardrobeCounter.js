@@ -3,7 +3,7 @@
 // Armorer's or a Weaponsmith's keeper puts on their popup (either skin's: ui/merchant/merchantServiceWindow.js shopRowRect,
 // the Enhanced Plus panel's press), the window it opens (ui/wardrobe/wardrobeDoor.js), and the wear and the clear it asks
 // for - the law's (systems/appearances.js), on the player's own worn pieces and purse.
-// HOST-SPLIT: the interior host (scenes/worldModes.js createWorldModes) builds this once and hands `row` to both popups.
+// HOST-SPLIT: built once by the shop popups' rows (scenes/shopRows.js), which the interior host (scenes/worldModes.js) builds.
 // THE FOUR HOSTS: scenes/worldModes.js WIRED (its interiors are the streaming world's, scenes/world.js, and the fixed
 // city's, scenes/exterior.js - both build it); scenes/dungeonContext.js stands no shop and no keeper, so no wardrobe.
 import { createWardrobeOverlay } from '../ui/wardrobe/wardrobeDoor.js';
