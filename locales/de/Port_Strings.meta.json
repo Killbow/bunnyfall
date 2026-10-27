@@ -8499,9 +8499,14 @@
   "tr": "e02b4b5e82e1",
   "by": "claude-in-session"
  },
- "coll.looks.howHad": {
-  "en": "3bb23f642258",
-  "tr": "ef500b9cdbfa",
+ "coll.looks.howBuy": {
+  "en": "b22d688a777d",
+  "tr": "651502cb3d63",
+  "by": "claude-in-session"
+ },
+ "coll.looks.howGet": {
+  "en": "d9278ee1fc22",
+  "tr": "621694ed2fff",
   "by": "claude-in-session"
  },
  "coll.looks.howHead": {
@@ -22969,6 +22974,11 @@
   "tr": "ee386387dbd7",
   "by": "claude-in-session"
  },
+ "net.chat.linkItem": {
+  "en": "10bc470a62de",
+  "tr": "10bc470a62de",
+  "by": "claude-in-session"
+ },
  "net.chat.mailRefused": {
   "en": "48089c6da62c",
   "tr": "068ad5cf51ca",
@@ -23077,6 +23087,11 @@
  "net.chat.wait": {
   "en": "eb01c7bc0bae",
   "tr": "5a0110868a87",
+  "by": "claude-in-session"
+ },
+ "net.chat.worn": {
+  "en": "cafe5884febc",
+  "tr": "cafe5884febc",
   "by": "claude-in-session"
  },
  "net.conduct.agree": {
@@ -27640,8 +27655,8 @@
   "by": "claude-in-session"
  },
  "prof.master.takes": {
-  "en": "6774f69ec07d",
-  "tr": "c58f3bab45f5",
+  "en": "e34a0b2474b5",
+  "tr": "3ff22426630b",
   "by": "claude-in-session"
  },
  "prof.page.act.strike": {
@@ -37169,6 +37184,16 @@
   "tr": "cfd810c8336d",
   "by": "claude-in-session"
  },
+ "wardrobe.preview": {
+  "en": "f1fbb2b43dca",
+  "tr": "df9685615f3d",
+  "by": "claude-in-session"
+ },
+ "wardrobe.previewOf": {
+  "en": "351e78ed19cd",
+  "tr": "8bd95b02f420",
+  "by": "claude-in-session"
+ },
  "wardrobe.purse": {
   "en": "e323a39e618d",
   "tr": "23e191b1b741",
@@ -37212,6 +37237,16 @@
  "wardrobe.title": {
   "en": "5da5f57d195b",
   "tr": "e0ddeb4072c0",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOn": {
+  "en": "e70f92c879c4",
+  "tr": "a158f7bc595d",
+  "by": "claude-in-session"
+ },
+ "wardrobe.tryOwn": {
+  "en": "588e0b9e697d",
+  "tr": "b780c25dab32",
   "by": "claude-in-session"
  },
  "wardrobe.wear": {
@@ -37352,16 +37387,6 @@
  "wild.zone.unstuckOut": {
   "en": "23aa54c8359e",
   "tr": "80c895a52dcd",
-  "by": "claude-in-session"
- },
- "net.chat.linkItem": {
-  "en": "10bc470a62de",
-  "tr": "10bc470a62de",
-  "by": "claude-in-session"
- },
- "net.chat.worn": {
-  "en": "cafe5884febc",
-  "tr": "cafe5884febc",
   "by": "claude-in-session"
  }
 }

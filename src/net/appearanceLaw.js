@@ -48,8 +48,12 @@ export function lookVariant(t, m, v) {
   if (!n) return 0;
   return Math.max(0, Math.min(n - 1, clampArmorVariant(t, m, Number.isInteger(v) ? v : 0)));
 }
-/** Every style a template draws in one material, in order. */
-export const lookVariants = (t, m) => [...new Set(Array.from({ length: Math.max(1, LOOK_VARIANTS[/** @type {keyof typeof LOOK_VARIANTS} */ (t)] ?? 0) }, (_, v) => lookVariant(t, m, v)))];
+/** AUDIT HORIZONTAL E3: a style the clamp draws and no mint makes - chain boots' second. A shop rolls a pair of boots'
+ *  style for plate alone (systems/shopStock.js randomizeArmorVariant, DFU's RandomizeArmorVariant) and loot, a corpse and
+ *  the smith roll none, so no character could ever hold it. */
+const neverMinted = (/** @type {number} */ t, /** @type {number} */ m, /** @type {number} */ v) => t === 108 && lookMaterial(t, m) === ARMOR_MATERIAL.Chain && v !== 1;
+/** Every style a template draws in one material and a mint makes, in order. */
+export const lookVariants = (t, m) => [...new Set(Array.from({ length: Math.max(1, LOOK_VARIANTS[/** @type {keyof typeof LOOK_VARIANTS} */ (t)] ?? 0) }, (_, v) => lookVariant(t, m, v)))].filter((v) => !neverMinted(t, m, v));
 
 /** A look's key: `t.m.v`. */
 export const lookCode = (/** @type {{ t: number, m: number, v: number }} */ a) => `${a.t}.${a.m}.${a.v}`;
@@ -99,6 +103,8 @@ const DRAWN_DROPS = Object.freeze(['appearance', 'ap', 'dyeColor', 'artifact', '
 const DRAWN_WATCH = Object.freeze(['templateIndex', 'group', 'material', 'variant', 'equipSlot', 'rarity', 'artifact', 'enchantments', 'customEnchantments', 'glow']);
 /** @type {WeakMap<object, { look: any, src: any[], drawn: any }>} */
 const _drawn = new WeakMap();
+/** APPEARANCES-II: every copy drawnPiece made - a piece drawn in a look. @type {WeakSet<object>} */
+const _copies = new WeakSet();
 /**
  * THE PIECE AS IT IS DRAWN: the piece itself, or - wearing a look - a copy of it in the look's template, material and
  * style. ONE copy a piece and look, kept while nothing it read changes: renderers compare a held weapon by identity
@@ -113,8 +119,13 @@ export function drawnPiece(item) {
   for (const k of DRAWN_DROPS) delete drawn[k];
   if (drawn.rarity === 'gilded') delete drawn.rarity;
   _drawn.set(item, { look, src: DRAWN_WATCH.map((k) => item[k]), drawn });
+  _copies.add(drawn);
   return drawn;
 }
+/** APPEARANCES-II: whether an item is a piece drawn in a look (drawnPiece's copy). A look is never an artifact (lookOfPiece),
+ *  so art chosen off the copy is the look's, though it keeps the piece's enchantments for its glow - Diverse Weapons'
+ *  per-template sheet (combat/diverseWeapons/diverseWeapons.js) reads this. */
+export const isLookCopy = (/** @type {unknown} */ item) => !!item && typeof item === 'object' && _copies.has(item);
 function sameWatch(src, item) {
   for (let i = 0; i < DRAWN_WATCH.length; i++) if (src[i] !== item[DRAWN_WATCH[i]]) return false;
   return true;

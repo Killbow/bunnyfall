@@ -14,7 +14,7 @@ import {
 import { rankOfXp, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { recipeById, recipeOpen, makerMark, dyeOk, MASTERWORK, JUDGED_CLOTH } from '../../src/net/recipeLaw.js';
 import { mintProductRecord, MINT_V_MASTER } from '../../src/net/productRecord.js';
-import { MASTER_RANK, MASTER_CATALYSTS, masterChoiceRefusal, masterTrackOf, masterDayOf, rollMasterLines } from '../../src/net/masterLaw.js';
+import { MASTER_RANK, MASTER_CATALYSTS, masterChoiceRefusal, masterTrackOf, masterDayOf, rollMasterLines, masterRecordLines, masterLinesOfRecord, masterKeyOf } from '../../src/net/masterLaw.js';
 import { LOOSE_ORIGIN } from '../../src/net/bagLaw.js';
 
 /** Every key a Master's work of `r` spends, and how many of each: `{ key, in, cat }` - the recipe's goods (`in`) and the
@@ -31,17 +31,19 @@ export function masterSpends(r) {
 }
 
 /** A Master's work's answer, read back from its row: the piece (none where it is gone - disenchanted since), its lines
- *  at the values the seed rolls, and the Stores of what it spent. */
+ *  at the values the service rolled (AUDIT HORIZONTAL B1: the row keeps them as the record signs them), and the Stores of
+ *  what it spent. */
 async function masterAnswer(db, player, row, nowS, extra = {}) {
   const r = recipeById(row.recipe);
   const piece = await db.prepare('SELECT provenance, record, maker, marked, dye FROM products WHERE provenance = ?1').bind(row.provenance).first();
-  let keys = null;
-  try { keys = JSON.parse(row.lines); } catch { keys = null; }
+  let kept = null;
+  try { kept = JSON.parse(row.lines); } catch { kept = null; }
+  const lines = masterLinesOfRecord(kept);
   const craft = masterTrackOf(r);
   return {
     ok: true, ...extra, master: true, recipe: row.recipe, quality: MASTERWORK, count: 1, seed: Number(row.seed), day: Number(row.day),
     maker: piece?.maker ?? null, marked: Number(piece?.marked ?? 0) === 1, dye: piece?.dye == null ? null : Number(piece.dye),
-    xp: 0, first: false, chosen: keys, lines: r ? rollMasterLines(r, keys, Number(row.seed)) : null,
+    xp: 0, first: false, chosen: lines ? lines.map(masterKeyOf) : null, lines,
     pieces: piece ? [{ provenance: piece.provenance, record: piece.record }] : [],
     track: trackView(await trackRow(db, player.id, row.char_id, craft), craft, nowS),
     stores: r ? await Promise.all(masterSpends(r).map((s) => storeOf(db, player.id, row.char_id, s.key))) : [],
@@ -79,16 +81,19 @@ export async function masterWork(ctx, player, env, { character, recipe: id, line
   const maker = makerMark(name);
   const seed = Math.floor(dice(rand) * 4294967296);
   const provenance = provenanceId(rand);
-  const chosen = /** @type {string[]} */ (lines);
+  // AUDIT HORIZONTAL B1: THE ROLL, ONCE - the record and the row keep its values, so no reader rolls today's bands again
+  const rolled = rollMasterLines(r, lines, seed);
+  if (!rolled) return { error: 'prof-master-lines' };
+  const signed = masterRecordLines(rolled);
   const record = await mintProductRecord({ p: provenance, s: player.id, h: character, r: r.id, q: MASTERWORK, m: maker, c: seed, a: maker !== null,
-    u: dye ?? null, v: MINT_V_MASTER, l: chosen }, await signingKey(env, subtle), { subtle, nowS });
+    u: dye ?? null, v: MINT_V_MASTER, l: signed }, await signingKey(env, subtle), { subtle, nowS });
   const nonce = mintId(rand);
   const spends = masterSpends(r);
   const decided = 'EXISTS (SELECT 1 FROM prof_masters WHERE player = ?1 AND rid = ?5 AND n = ?6)';
-  // ?1 player ?2 character ?3 rid ?4 day ?5 recipe ?6 provenance ?7 the lines ?8 seed ?9 now ?10 nonce; from ?11 each
+  // ?1 player ?2 character ?3 rid ?4 day ?5 recipe ?6 provenance ?7 the lines, signed ?8 seed ?9 now ?10 nonce; from ?11 each
   // key, its goods and its catalysts. A key's goods spend its loose units first (a station's), its catalysts only what
   // the service counted, so the counted units must cover the catalysts and whatever goods the loose ones cannot
-  const binds = [player.id, character, rid, day, r.id, provenance, JSON.stringify(chosen), seed, nowS, nonce];
+  const binds = [player.id, character, rid, day, r.id, provenance, JSON.stringify(signed), seed, nowS, nonce];
   const held = spends.map((s, i) => {
     const [k, n, c] = [`?${11 + 3 * i}`, `?${12 + 3 * i}`, `?${13 + 3 * i}`];
     binds.push(s.key, s.in, s.cat);

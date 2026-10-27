@@ -1,10 +1,11 @@
 // @ts-check
 // APPEARANCES (2026-10-27; bible/04-Characters/Wardrobe.md): THE WARDROBE'S WINDOW - the worn pieces that can take a look
-// in a list, the one pressed beside it with every look of its kind the character has collected: its own look first (for
-// nothing), then each look with its fee and a Wear press. A port window, not DFU's (it has none): the Reforge's shape
-// (ui/reforgeWindow.js) in the Broker's classes, so both skins dress it - the Plus sheet carries its rules
-// (enhancedPlusStyle.js WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/
-// wardrobeDoor.js) mounts it; everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
+// in a list, the one pressed beside it with its own look (for nothing) and every look of its kind collected, each with its
+// fee and a Wear press; APPEARANCES-II: a look's name tries it on, and the preview at the card's head shows the character
+// wearing it (ui/wardrobe/wardrobePreview.js) before Wear is paid. A port window, not DFU's (it has none): the Reforge's
+// shape in the Broker's classes, so both skins dress it - the Plus sheet carries its rules (enhancedPlusStyle.js
+// WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The door (ui/wardrobe/wardrobeDoor.js) mounts it;
+// everything it does to the world is handed in (`wear`, `clear`), so it draws and asks.
 import { wardrobePieces, looksForPiece, wearRefusal, wardrobeFee, lookName, slotName, lookStub, lookGroups, kindName, lookLine } from '../../systems/appearances.js';
 import { appearanceOf, lookOfPiece, lookCode } from '../../net/appearanceLaw.js';
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
@@ -18,6 +19,7 @@ import { brokerSkinCss, BROKER_SKIN_STYLE_ID, refusePress } from '../brokerWindo
 import { WARDROBE_CSS } from '../enhanced/enhancedPlusStyle.js';
 import { isEnhancedPlus } from '../../systems/uiSkin.js';
 import { repaintKeepingScroll } from '../domRepaint.js';
+import { createWardrobePreview } from './wardrobePreview.js';   // APPEARANCES-II: the character in a look before it is paid
 import { t } from '../../systems/textManager.js';
 
 /** @param {string} tag @param {string|null} [cls] @param {string|null} [text] */
@@ -48,6 +50,10 @@ export const WARDROBE_WORDS = Object.freeze({
   cleared: (/** @type {string} */ piece) => t('wardrobe.cleared', '{piece} has its own look again.', { piece }),
   wearAria: (/** @type {string} */ look, /** @type {number} */ gold) => t('wardrobe.wearAria', 'Wear {look} for {gold, number} gold', { look, gold }),
   clearAria: (/** @type {string} */ piece) => t('wardrobe.clearAria', 'Give {piece} its own look back', { piece }),
+  preview: () => t('wardrobe.preview', 'Preview'),
+  previewOf: (/** @type {string} */ look) => t('wardrobe.previewOf', 'Preview of {look}', { look }),
+  tryOn: (/** @type {string} */ look) => t('wardrobe.tryOn', 'Try {look}', { look }),
+  tryOwn: () => t('wardrobe.tryOwn', 'Try its own look'),
 });
 /** Why a Wear is refused, by the law's word (systems/appearances.js wearRefusal) - its reason, read when said. */
 export function wardrobeRefusal(/** @type {string|null} */ why) {
@@ -82,11 +88,22 @@ function pictureOf(/** @type {any} */ drawn, /** @type {any} */ wearer, /** @typ
   return img?.archive ? requestFittedIcon(img.archive, img.record, { box: SLOT_BOX.broker, dpr: screenDpr(), dye: img.dye, dyeTarget: img.dyeTarget, onReady }) : null;
 }
 
+/** APPEARANCES-II: a preview's pixels onto its canvas - a frame that will not paint (no 2D context) stays empty. */
+function paintFigure(/** @type {any} */ cv, /** @type {{ width: number, height: number, data: any }} */ fig) {
+  try {
+    cv.width = fig.width;
+    cv.height = fig.height;
+    const ctx = cv.getContext?.('2d');
+    if (ctx && typeof ImageData === 'function') ctx.putImageData(new ImageData(fig.data, fig.width, fig.height), 0, 0);
+  } catch { /* the frame stands empty */ }
+}
+
 /**
- * Mount the window in the door's host.
+ * Mount the window in the door's host. `preview` the character in a look (wardrobePreview.js's by default; null none).
  * @param {HTMLElement} host
  * @param {{ entity: any, wear: (item: any, look: any) => { ok: boolean, reason?: string|null }, clear: (item: any) => { ok: boolean, reason?: string|null },
- *   nameOf?: (item: any) => string, picture?: ((item: any) => any) | null, onExit?: (() => void) | null }} deps
+ *   nameOf?: (item: any) => string, picture?: ((item: any) => any) | null, onExit?: (() => void) | null,
+ *   preview?: { figure: (item: any, look: any, onReady?: () => void) => any, dispose?: () => void } | null }} deps
  * @returns {{ repaint: () => void, unmount: () => void }}
  */
 export function mountWardrobeWindow(host, deps) {
@@ -99,7 +116,11 @@ export function mountWardrobeWindow(host, deps) {
   let picked = null;
   /** @type {{ ok: boolean, text: string } | null} */
   let note = null;
+  /** APPEARANCES-II: the look tried on the piece picked (null its own), until another piece is picked or a press lands. */
+  /** @type {{ item: any, look: any } | null} */
+  let tried = null;
   let alive = true;
+  const preview = deps.preview !== undefined ? deps.preview : createWardrobePreview({ entity: deps.entity });
   const shell = el('div', 'broker-shell wardrobe-shell');
   shell.id = 'wardrobe';
   shell.setAttribute('role', 'dialog');
@@ -146,6 +167,36 @@ export function mountWardrobeWindow(host, deps) {
   const lookNow = (/** @type {any} */ item) => lookLine(item) || WARDROBE_WORDS.ownNow();
   /** A piece's look drawn, for its picture: the stub of its look, else the piece. */
   const drawnStub = (/** @type {any} */ item) => { const a = appearanceOf(item); return a ? lookStub(a) : item; };
+  /** APPEARANCES-II: the look the preview shows on a piece - the one tried, else the one it wears (null its own). */
+  const triedOn = (/** @type {any} */ item) => (tried && tried.item === item ? tried.look : appearanceOf(item));
+  /** A look's name and picture as a press that tries it on (`look` null: the piece's own). */
+  const tryPress = (/** @type {any} */ item, /** @type {any} */ look, /** @type {any} */ frame, /** @type {string} */ name) => {
+    const b = el('button', 'wardrobe-try');
+    b.setAttribute('type', 'button');
+    b.setAttribute('data-focus', `wardrobe-try-${look ? lookCode(look) : 'own'}`);
+    b.setAttribute('aria-pressed', triedOn(item) === look ? 'true' : 'false');
+    b.setAttribute('aria-label', look ? WARDROBE_WORDS.tryOn(name) : WARDROBE_WORDS.tryOwn());
+    b.append(frame, el('span', 'wardrobe-name', name));
+    b.onclick = (/** @type {any} */ e) => { e?.stopPropagation?.(); tried = { item, look }; repaint(); };
+    return b;
+  };
+  /** The character wearing what the piece is tried in, or nothing with no figure to draw (no art, no body). */
+  function previewBox(/** @type {any} */ item) {
+    const look = triedOn(item);
+    const fig = preview?.figure(item, look, () => repaint()) ?? null;
+    if (!fig) return null;
+    const own = lookOfPiece(item);
+    const name = look ? lookName(look) : own ? lookName(own) : nameOf(item);
+    const wrap = el('div', 'wardrobe-preview');
+    const cv = el('canvas', `wardrobe-figure ${fig.kind}${fig.data ? '' : ' busy'}`);
+    cv.setAttribute('role', 'img');
+    cv.setAttribute('aria-label', WARDROBE_WORDS.previewOf(name));
+    if (fig.data) paintFigure(cv, fig);
+    const said = el('div', 'wardrobe-preview-said');
+    said.append(el('span', 'wardrobe-preview-head', WARDROBE_WORDS.preview()), el('span', 'wardrobe-preview-name', name));
+    wrap.append(cv, said);
+    return wrap;
+  }
 
   function draw() {
     const entity = deps.entity;
@@ -169,7 +220,7 @@ export function mountWardrobeWindow(host, deps) {
       const text = el('div', 'broker-offer-body');
       text.append(el('span', 'broker-name', nameOf(p.item)), el('span', 'broker-set', `${slotName(p.slot)} · ${lookNow(p.item)}`));
       row.append(frameOf(drawnStub(p.item), nameOf(p.item)), text);
-      pressable(row, () => { picked = p.item; note = null; repaint(); });
+      pressable(row, () => { picked = p.item; note = null; tried = null; repaint(); });
       list.append(row);
     }
     body.append(list);
@@ -179,6 +230,8 @@ export function mountWardrobeWindow(host, deps) {
   function card(/** @type {any} */ entity, /** @type {any} */ item, /** @type {number} */ gold) {
     const box = el('div', 'card broker-card wardrobe-card');
     box.append(el('h3', null, nameOf(item)));
+    const shown = previewBox(item);
+    if (shown) box.append(shown);
     const kind = wardrobePieces(entity).find((p) => p.item === item)?.kind ?? '';
     const group = lookGroups(entity).find((g) => g.kind === kind);
     if (group) box.append(el('p', 'wardrobe-count', WARDROBE_WORDS.kindCount(kindName(kind), group.held, group.total)));
@@ -197,10 +250,11 @@ export function mountWardrobeWindow(host, deps) {
         e?.stopPropagation?.();
         const done = deps.clear(item);
         note = done.ok ? { ok: true, text: WARDROBE_WORDS.cleared(nameOf(item)) } : { ok: false, text: wardrobeRefusal(done.reason ?? null) };
+        if (done.ok) tried = null;
         repaint();
       };
     } else ownPress.setAttribute('aria-current', 'true');
-    ownRow.append(frameOf(own ? lookStub(own) : item, nameOf(item)), el('span', 'wardrobe-name', WARDROBE_WORDS.own()), el('span', 'broker-price', WARDROBE_WORDS.free()), ownPress);
+    ownRow.append(tryPress(item, null, frameOf(own ? lookStub(own) : item, nameOf(item)), WARDROBE_WORDS.own()), el('span', 'broker-price', WARDROBE_WORDS.free()), ownPress);
     ul.append(ownRow);
     const looks = looksForPiece(entity, item);
     for (const look of looks) {
@@ -217,11 +271,12 @@ export function mountWardrobeWindow(host, deps) {
           e?.stopPropagation?.();
           const done = deps.wear(item, look);
           note = done.ok ? { ok: true, text: WARDROBE_WORDS.done(nameOf(item), name) } : { ok: false, text: wardrobeRefusal(done.reason ?? null) };
+          if (done.ok) tried = null;
           repaint();
         };
         if (why) refusePress(press, wardrobeRefusal(why), refused);   // MENU-ORDER: a refused press says why, pressed
       }
-      row.append(frameOf(lookStub(look), name), el('span', 'wardrobe-name', name), el('span', 'broker-price', WARDROBE_WORDS.fee(fee)), press);
+      row.append(tryPress(item, look, frameOf(lookStub(look), name), name), el('span', 'broker-price', WARDROBE_WORDS.fee(fee)), press);
       ul.append(row);
     }
     box.append(ul);
@@ -245,6 +300,7 @@ export function mountWardrobeWindow(host, deps) {
       alive = false;
       globalThis.removeEventListener('keydown', onKey, { capture: true });
       offOutside();
+      preview?.dispose?.();   // APPEARANCES-II: the preview body's rig goes with the window
       shell.remove();
     },
   };
