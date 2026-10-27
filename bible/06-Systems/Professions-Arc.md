@@ -6653,7 +6653,7 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   `lootDoor` on (`/relay lootDoor on`, or the var LOOT_DOOR) once the site serves this build. An older desktop copy is
   then told to update in those rooms.
 
-- **Every piece this PR makes, probed** with each peer on its own tree's law (main at 9471513f8): a Master's work is
+- **Every piece this PR makes, probed** with each peer on its own tree's law (main at 4c696da8d): a Master's work is
   dropped silently; a Mounted Trophy is unreadable (AUDIT SETS M2's word, but lost as above); a named mark's drops, a
   piece wearing a look (the look never rides), a fishing boat's Raw Fish and the crafting window's pieces read whole.
 

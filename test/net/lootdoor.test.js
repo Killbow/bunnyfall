@@ -19,7 +19,7 @@ import { mintTrophy, TROPHY_BEASTS } from '../../src/systems/hunt/trophies.js';
 import { OnlineSession } from '../../src/net/online.js';
 
 const quiet = async (fn) => { const w = console.warn, l = console.log; console.warn = () => {}; console.log = () => {}; try { return await fn(); } finally { console.warn = w; console.log = l; } };
-/** Main's build (9471513f8): it says its ground, its grants and its lease - and no loot law. */
+/** Main's build (4c696da8d): it says its ground, its grants and its lease - and no loot law. */
 const OLDER = { gl: GROUND_LAW, gv: GRANT_HELLO_LAW, ls: 1 };
 const CURRENT = { ...OLDER, ll: LOOT_HELLO_LAW };
 const prefix = await privateInteriorPrefix('acct-0001', 'char-0001');
