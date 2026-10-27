@@ -73,9 +73,6 @@
 //       seed (navalHost.js harbourFrame's: her port's, the day's, her berth's), the last NAVAL_WIRE_GONE, said on by
 //       every reader: no player stands her at her berth again that day, nor holds a copy of her (an older build's word
 //       says none, and its reader ignores this one)
-//   h - AUDIT HORIZONTAL C4: the ships of a class past NAVAL_WIRE_OLD_CLASSES (FISH-BOATS' skiff and smack), each as
-//       `s`'s entry, sharing its NAVAL_WIRE_SHIPS; `j` their casks, each as `w`'s (five fields) or `f`'s (six). An
-//       older build's door refuses a class row it does not know, and with it the whole word
 //   `k`, `m` and `l` are keys of their own because an older build's door checks every field of `s` and `p` by count: it
 //   passes a word with them whole and reads none of them, and a newer door reads an older build's word as saying none.
 //   Nor are theirs counted: a newer build's longer entry reads as its first fields, never the whole word refused.
@@ -109,7 +106,9 @@ import { TEMPERS } from './navalAI.js';
 import { SHOT_CODES, SHOT_ORDER } from './shotKinds.js';
 
 /** AUDIT HORIZONTAL C4: the class rows every build's door reads in `s`, `f` and `w` - SHIP_CLASSES before FISH-BOATS'.
- *  A ship or cask of a later row rides `h` or `j`. */
+ *  An older door refuses a row it does not know, and the whole word with it, so the word's two keys of their own:
+ *  `h` the ships of a later row (FISH-BOATS' skiff and smack), each as `s`'s entry and sharing its NAVAL_WIRE_SHIPS;
+ *  `j` their casks, each as `w`'s (five fields) or `f`'s (six), sharing their kinds' NAVAL_WIRE_CASKS. */
 export const NAVAL_WIRE_OLD_CLASSES = 15;
 /** The radius within which players stand one sea between them (m): a ship's fighting reach and then some. */
 export const NAVAL_SHARE_RADIUS = 1200;
