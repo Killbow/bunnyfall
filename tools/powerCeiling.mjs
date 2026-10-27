@@ -181,6 +181,71 @@ export function measureGuardKeeps() {
     arcane: 1 - lighterTop(PATH_NUMBERS) / 100,
   };
 }
+// ── every number a power or a set tier carries, and the role it plays ────────────────────────────────────────────
+/** Set tiers and Legendary/Gilded power kinds that neither add to a blow nor take a share off a hurt - each named, so a
+ *  new one has to be measured before the walk passes it. */
+export const SET_TIER_OTHER = Object.freeze(['orc-hide', 'spite', 'ravager', 'shadows-grace', 'eventide', 'forbidden-lore', 'waters', 'eye',
+  'burning-gate', 'cleave', 'watch-oath', 'keen-eyed', 'thick-skinned', 'iron-hide', 'sea-scale', 'shed-skin', 'dwemer-brass', 'hour-turns',
+  'battlemages-bearing', 'battlemages-reprieve', 'wyrd-sight', 'soul-harvest', 'spinners-thread', 'mephalas-veil', 'stormwrack', 'captains-due']);
+export const POWER_OTHER = Object.freeze(['chain', 'unyielding', 'dawnward', 'fortune', 'tribute', 'mastery', 'venom', 'quake', 'conduit', 'siphon',
+  'echo', 'vigil', 'haste', 'fists', 'evade', 'bulwark', 'grace', 'regen', 'absorb', 'climate', 'school', 'longroad', 'bearing', 'hood',
+  'pierce', 'attune', 'surge', 'dragonfire', 'hammerfall']);
+/** A number's role by its field's name; `kind.field` (a power's kind, a tier's key) where one name means two things. A
+ *  `line:` role is a line's kind, held to the Legendary band's top; `id` names a thing, not an amount. */
+export const FIELD_ROLES = Object.freeze({
+  more: 'blow', stack: 'blow', armed: 'blow', pct: 'blow', beast: 'blow', less: 'guard', lighter: 'guard',
+  armor: 'line:armor', strength: 'line:stat', endurance: 'line:stat', agility: 'line:stat', intelligence: 'line:stat', willpower: 'line:stat',
+  speed: 'line:stat', critical: 'line:skill', stealth: 'line:skill', schools: 'line:skill', archery: 'line:skill', blunt: 'line:skill',
+  fire: 'line:resist', frost: 'line:resist', shock: 'line:resist', poison: 'line:resist', magic: 'line:resist', resist: 'line:resist',
+  heal: 'heal', absorb: 'chance', chance: 'chance', share: 'splash', back: 'thorns', sear: 'flat', flat: 'flat', nova: 'burst', ward: 'ward',
+  shield: 'shield', magicka: 'magicka', refund: 'mana', mana: 'manaFlat', recover: 'recover', halved: 'seconds', seconds: 'seconds', rounds: 'rounds',
+  below: 'below', above: 'above', max: 'stacks', charges: 'cadence', every: 'cadence', most: 'hitCap', metres: 'reach', mult: 'find', gold: 'gold',
+  heat: 'climate', cold: 'climate', fatigue: 'road', fall: 'road', points: 'pierce', guns: 'ship', hull: 'ship',
+  foes: 'id', school: 'id', skill: 'id', standing: 'line:standing',
+  'siphon.pct': 'mana', 'regen.pct': 'regen', 'regen.low': 'regen', 'attune.pct': 'regen', 'attune.low': 'regen', 'surge.pct': 'spell',
+  'mastery.less': 'cost', 'mastery.low': 'cost', 'conduit.less': 'cost', 'school.less': 'cost', 'waters.less': 'cost', 'bulwark.less': 'flatGuard',
+  'haste.speed': 'buff', 'hood.more': 'line:skill',
+});
+/** Roles where the smaller number is the stronger one (a shorter recovery, a trigger on fewer hits, a lower cap). */
+export const LOWER_IS_STRONGER = Object.freeze(['recover', 'above', 'cadence', 'hitCap']);
+/** Every number of every power and every set tier at Ascendant: `{ where, field, value, role }`. */
+export function powerNumbers() {
+  const out = [];
+  const add = (where, kind, p) => {
+    for (const [field, value] of Object.entries(p)) {
+      if (typeof value !== 'number' && !Array.isArray(value)) continue;
+      out.push({ where, field, value, role: FIELD_ROLES[`${kind}.${field}`] ?? FIELD_ROLES[field] ?? null });
+    }
+  };
+  for (const r of allLegendaries()) { const p = powerOf(r.id); if (p) add(`${r.id} (${p.name})`, p.kind, p); }
+  for (const r of GILDED_RECORDS) add(`${r.id} (${r.power.name})`, r.power.kind, r.power);
+  for (const s of Object.values(SIGIL_SETS)) for (const t of s.tiers) add(`${s.id} ${t.at} (${t.name})`, t.key, ascendant(t));
+  return out;
+}
+/** Today's strongest number of each role (lines aside: a line's top is the band's). */
+export function roleTops(numbers = powerNumbers()) {
+  const tops = {};
+  for (const n of numbers) {
+    if (!n.role || n.role === 'id' || n.role.startsWith('line:')) continue;
+    const low = LOWER_IS_STRONGER.includes(n.role);
+    if (!(n.role in tops) || (low ? n.value < tops[n.role] : n.value > tops[n.role])) tops[n.role] = n.value;
+  }
+  return Object.fromEntries(Object.entries(tops).sort(([a], [b]) => a.localeCompare(b)));
+}
+
+/** A line's kind's top: the Legendary band's last number (lootRarity.js AFFIX_RANGES - validAffix's own `max`). */
+export const lineTop = (id) => AFFIX_RANGES[id]?.legendary?.[1] ?? null;
+/** THE LINE LAW, as a list: every line of `item` past its kind's top (or of no kind at all), in words. */
+export function linesPastCeiling(item) {
+  const out = [];
+  for (const a of Array.isArray(item?.affixes) ? item.affixes : []) {
+    const top = lineTop(a?.id);
+    if (top == null) out.push(`a line of no kind (${JSON.stringify(a)})`);
+    else if (!(Number.isInteger(a.value) && a.value <= top)) out.push(`${a.id}${a.param != null ? `:${a.param}` : ''} ${a.value} past ${top}`);
+  }
+  return out;
+}
+
 export const productOf = (tops) => Object.values(tops).reduce((k, p) => k * (1 + p / 100), 1);
 export const keepOf = (keeps) => Object.values(keeps).reduce((k, s) => k * s, 1);
 export { BLOW_TOTAL_CAP };
@@ -196,4 +261,8 @@ if (isMain(import.meta.url)) {
   for (const [k, v] of Object.entries(guard)) console.log(`  ${k.padEnd(10)} x${v.toFixed(4)}`);
   console.log(`  composite x${keepOf(guard).toFixed(6)} kept (${(100 - keepOf(guard) * 100).toFixed(2)}% off)`);
   console.log(`  sets kit: ${setsGuardKeep().kit.join(', ')}; loot kit: ${lootGuardKeep().kit.join(', ')}`);
+  console.log('EVERY OTHER NUMBER, today\'s strongest by role:');
+  console.log(`  ${JSON.stringify(roleTops())}`);
+  const loose = powerNumbers().filter((n) => !n.role);
+  if (loose.length) console.log(`  NO ROLE: ${loose.map((n) => `${n.where}.${n.field}`).join(', ')}`);
 }
