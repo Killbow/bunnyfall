@@ -55,20 +55,36 @@ sweep (`test/honestItems.mjs`: every loot door, shelf, spoils, the Broker, every
 tens of thousands of items). A crafted Legendary of MASTER-ART's shape, every line its piece may carry at the band's very top,
 passes; one point more fails. Every failure names this page.
 
-Every number a power or a set tier carries (149 today, `tools/powerCeiling.mjs:"export function powerNumbers() {"`)
+AUDIT HORIZONTAL D3: a minted piece's rung is its own `rarity`, as its readers take it (`it.rarity === 'gilded'`). The
+walk asked `rarityOf`, which reads an unknown rung as Common or Magic, so a piece minted on an eighth rung passed it.
+
+Every number a Legendary, Gilded or set power carries (149 today, `tools/powerCeiling.mjs:"export function powerNumbers() {"`)
 has a role (`tools/powerCeiling.mjs:"export const FIELD_ROLES = Object.freeze({"`). A line's role is held to its band's
-top: a set's Strength at most 15, Ruhn's fire at most 50. Every other role is held to today's strongest: a blow's
-share 140 (Bound in Silk), a guard's 30, a heal 30, a chance 30, a splash 60, a recovery no shorter than 10 s, and so
-on (the table in the test). A number with no role, or a role the table does not know, fails until it is measured.
+top: a set's Strength at most 15, Ruhn's fire at most 50. Every other role is held to today's strongest of those
+powers: a blow's share 140 (Bound in Silk), a guard's 30, a heal 30, a chance 30, a splash 60, a recovery no shorter
+than 10 s, and so on (the table in the test). A number with no role, or a role the table does not know, fails until
+it is measured.
+
+AUDIT HORIZONTAL D8: that walk read no path and no star, and Prismatic Ward's chance of 40 already stood past its
+chance of 30. The paths' numbers (100 today, `tools/powerCeiling.mjs:"export function pathNumbers() {"`) have roles of
+their own, their shares being fractions, each held to today's strongest path number: a blow 30 (Opening Strike), a
+guard 30, a chance 40 (Prismatic Ward), a heal 25, a recovery no shorter than 120 s. Every channel the sky can carry -
+its fixed ones, its families' and every key a star names (`tools/powerCeiling.mjs:"export function skyNumbers() {"`) -
+is held at today's cap: a weapon channel 30, the blow's whole 50, a blow taken 15% lighter.
 
 ## 5. The composite ceilings
 
-`src/systems/powerCeiling.js` holds two products. Each registry asks it for its room before it adds its share, and
-the runners (`systems/entityMods.js:"export function weaponBlowMods(weapon, damage, attacker, target, info = NO_BLOW_INFO) {"`,
+`src/systems/powerCeiling.js` holds two products. Each registry asks it for its room, under its own name, before it
+adds its share, and the runners (`systems/entityMods.js:"export function weaponBlowMods(weapon, damage, attacker, target, info = NO_BLOW_INFO) {"`,
 `characters/playerEntity.js:"export function playerDamageMods(entity, dmg) {"`) open the product for each blow and each
-hurt. Each ceiling is the product of every registry's own top, measured from the records and laws the code reads, so
-no blow or hurt today is cut. A power added later that would stack past it is cut, and the last registry in the
-order of import is the one cut.
+hurt. Each registry is held at its own top, and each ceiling is the product of the tops, measured from the records and
+laws the code reads, so no blow or hurt today is cut.
+
+AUDIT HORIZONTAL D4: a power added later that would take its registry past its top is cut at that top, and no other
+registry loses anything for it. The product alone cut whichever registry the import graph asked last: a loot power
+past 240 took the martial path from 40 to 8 in `world.js`, and the sky from 50 to 16 in `exterior.js`
+(`test/combat/powerceiling.test.js`, THE CUT LANDS WHERE THE POWER GREW). A room asked without a registry's name, or
+under a name with no top, fails the source sweep.
 
 **The blow** - per cent onto one blow, each registry at its best:
 
@@ -78,10 +94,14 @@ order of import is the one cut.
 | the sets | +200% | Nocturnal's Shroud 4 (Nightfall, +60% on an unaware foe) and the Starspun Weave 4 (Bound in Silk, +140% on the fourth blow) |
 | the loot | +240% | Nightwhisper's Silent Death +100%, the Night Mother's Embrace +50%, the Duelist's Vambrace +60%, an Exalted slayer's line +30% |
 | the sky | +50% | the Firmament's whole blow, its own cap (`BLOW_TOTAL_CAP`) |
-| mastery | +80% | an axe or a hammer at a skill of 200, 2% a point past 100 |
+| mastery | +80% | an axe or a hammer at a skill of 200, which reads as 140 effective: 2% an effective point past 100 |
 | the paths | +40% | a martial path's own cap (`MARTIAL_BLOW_MOST`) |
 
 Together, x43.18 (`systems/powerCeiling.js:"export const BLOW_MOST = Object.values(BLOW_TOPS).reduce((k, p) => k * (1 + p / 100), 1);"`).
+
+AUDIT HORIZONTAL D7: mastery's row read as 200%. The skill pays through the soft cap, so a raw 200 is 140 effective
+and pays 40 points (`tools/powerCeiling.mjs:"export const masteryBlowTop = () =>"`; a measure that read the raw skill
+fails the measured tops).
 
 **The guards** - the share each registry's guards take off one hurt, at their strongest:
 
@@ -107,6 +127,12 @@ legal kit, minted by its own producers. No one blow meets every registry's best 
 foe's first blow, Bound in Silk its fourth), so no blow today reaches x43.18. By execution, the sigil, the sets and
 the loot together reach x11.42 through the real runner, whole (`test/combat/powerceiling.test.js`). The ceiling is a
 ratio, so BOW-TOPS' new bow tops (17 and 19, `Balance-Arc.md` section 18) move the blow it multiplies, not the ceiling.
+
+**Each top is a blow in play** (AUDIT HORIZONTAL, the lane's suspected item: a foe struck three times is likely aware).
+The sets' +200% wants a foe still unaware at the web's fourth blow. True Invisibility gives it: a struck foe that
+cannot see me stays unaware, and a True concealment outlasts the blow where a Normal one ends with it (pinned, THE
+SETS' TOP IS A BLOW IN PLAY). The loot's +240% wants a foe I have never struck, under the Night Mother's line and
+unaware - a spell cast first under True Invisibility gives it (reasoned, not pinned). Neither top is loosened.
 
 ## 6. Going sideways costs less (SET-CATCHUP)
 
@@ -147,11 +173,20 @@ with its date, before the change that uses it merges. None has been given; the c
 
 ## 10. Pins
 
-`test/combat/powerceiling.test.js` (7): the measured tops and the law's tables, every tier and power kind measured,
-the room, the blow and the guards by execution, the sets' other guards, and a sweep of the source - every blow
-modifier asks `blowRoom`, every damage modifier but the three vetoes (`eg-witness`, `poi-editor`, `kt-down`) asks
-`guardRoom`. `test/combat/powerceiling_walk.test.js` (8): section 4. `test/systems/sigil/setcatchup.test.js` (5): section
-6. `tools/mutants/power-ceiling.json` (55, all dead). PIN MOVED: none of the ceiling's - it cuts nothing a player has.
+`test/combat/powerceiling.test.js` (9): the measured tops and the law's tables, every tier and power kind measured,
+the room, the blow and the guards by execution, the sets' top as a blow in play, the sets' other guards, a sweep of
+the source - every blow modifier asks `blowRoom`, every damage modifier but the three vetoes (`eg-witness`,
+`poi-editor`, `kt-down`) asks `guardRoom`, each under its registry's name - and the cut landing on the registry past
+its top. `test/combat/powerceiling_walk.test.js` (9): section 4. `test/combat/powerceiling_rooms.test.js` (4): below.
+`test/systems/sigil/setcatchup.test.js` (6): section 6. `tools/mutants/power-ceiling.json` (79, all dead). PIN MOVED:
+none of the ceiling's - it cuts nothing a player has.
 The mutant records that quoted the lines the room calls now sit in are re-aimed by content and judged dead again:
 `audit_schools.json` (the Living Aegis's carry), `loot5.json` (the Last Stand), `set3.json` (Unbroken's half, two) and
 `set4.json` (the drink, five).
+
+AUDIT HORIZONTAL D2: the sweep proved each registry asks for its room, not that it spends what it is given - one that
+asked and then added its raw per cent passed every pin. `test/combat/powerceiling_rooms.test.js` (4) runs the sky's,
+mastery's and the martial path's blows, and the sky's, the martial path's, the Living Aegis's and Unbroken's guards,
+each power awake and minted by its own producers: whole with room, nothing once the product is spent. The sweep reads
+every registration to its closing paren, takes only a named function with a braced body, and holds each veto to
+`(e, d) => (cond ? 0 : d)`.

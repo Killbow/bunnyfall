@@ -1,7 +1,7 @@
 // SET-CATCHUP (POWER-CEILING, 2026-10-27; bible/11-Multiplayer/Sigil-Sets.md section 5, bible/05-Combat/Power-Ceiling.md;
 // the player: "Add more horizontal progression please!"): GOING SIDEWAYS COSTS LESS. Mac's "grow together" stands - a
 // set's stage is its lowest worn piece's - but a piece below the highest stage the set has stood at for this character
-// (two of its pieces carried at that stage, or the save's record of it) drinks three times the XP until it gets there,
+// (two of its pieces worn at that stage, or the save's record of it) drinks three times the XP until it gets there,
 // and never faster past it. Pinned through the real drink (sigilSets.js drinkWorn), the save's own slot and the card.
 import '../../modsOff.js';
 import { test } from 'node:test';
@@ -16,6 +16,7 @@ import { mintCondition } from '../../../src/systems/item/itemTemplates.js';
 import { createWeapon } from '../../../src/combat/enemyEquipment.js';
 import { ARMOR_MATERIAL } from '../../../src/systems/armorMaterials.js';
 import { setPref } from '../../../src/systems/uiPrefs.js';
+import { registerLocale, patchLocaleTable, setLocale, runtimeCollectionName, TextCollections } from '../../../src/systems/textManager.js';
 
 const XP = SIGIL_STAGES.map((s) => s.xp);   // 0, 5000, 12500, 22500, 37500
 const RADIANT = 3;
@@ -153,4 +154,24 @@ test('SET-CATCHUP THE CARD: the set\'s stage line names the piece holding it and
   assert.equal(v.catchUp, null, 'caught up');
   assert.equal(catchUpText(null), '');
   assert.equal(sigilRank({ set: 'dagon', party: 1, xp: SIGIL_XP_MAX }), 4);
+});
+
+test('SET-CATCHUP ONE LANGUAGE A LINE (AUDIT HORIZONTAL D6): the pace is English, as the stage line and the tooltip\'s head it sits in - a catalogue that drafted the pace alone (German\'s rows, "{mult}x EP bis {stage}") made "grow your Helm (3x EP bis Radiant)"; the sets\' batch routes the line whole (mutant: a German pace in the English line)', () => {
+  fresh();
+  registerLocale({ code: 'de', name: 'Deutsch' });
+  patchLocaleTable('de', runtimeCollectionName(TextCollections.Port), [['sets.catchUp', '{mult}x EP'], ['sets.catchUpTo', '{mult}x EP bis {stage}']]);   // the drafted rows the pace had
+  setLocale('de');
+  try {
+    const e = player();
+    const set = BODY.map((t) => piece(t, 'dagon', XP[RADIANT]));
+    wear(e, ...set);
+    const fresher = piece(107, 'dagon', 0, 'Helm');
+    unequipItem(e, set[0]);
+    wear(e, fresher);
+    const v = setCardView(fresher, e);
+    assert.equal(setStageText(v, (it) => it.name), 'Faint · Kindled: grow your Helm (3x XP to Radiant)', 'the card\'s line, whole');
+    assert.equal(setLines(fresher, e)[0], 'Dagon\'s Brand: 6 of 9 worn, Faint, 3x XP to Radiant', 'the tooltip\'s head, whole');
+    fresher.sigil = { ...fresher.sigil, xp: XP[2] };
+    assert.equal(setStageText(setCardView(fresher, e), (it) => it.name, { compact: true }), 'Radiant: grow your Helm (3x XP)');
+  } finally { setLocale('en'); }
 });

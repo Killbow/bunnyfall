@@ -30,6 +30,11 @@ import { equipItem } from '../../src/systems/equip.js';
 import { mintCondition } from '../../src/systems/item/itemTemplates.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
+import { EnemyAI } from '../../src/characters/enemy/enemyMotor.js';
+import { Collider } from '../../src/player/collider.js';
+import { sensesContext } from '../../src/scenes/shared.js';
+import { foeUnaware } from '../../src/combat/playerWeapon.js';
+import { handleAttackFromSource } from '../../src/systems/concealment.js';
 import {
   BLOW_TOPS, GUARD_TOPS, BLOW_MOST, GUARD_LEAST, blowRoom, guardRoom, openBlowCeiling, closeBlowCeiling, openGuardCeiling,
   closeGuardCeiling, ceilingProducts,
@@ -160,6 +165,34 @@ test('POWER-CEILING THE BLOW, BY EXECUTION: the sigil\'s +12%, the sets\' +200% 
   } finally { registerWeaponBlowMod('powerceiling-test', null); }
 });
 
+test('POWER-CEILING THE SETS\' TOP IS A BLOW IN PLAY: Nightfall and Bound in Silk\'s fourth blow land on one blow when the foe the web holds is still unaware - under True Invisibility a foe struck three times never sees me (a Normal concealment breaks on the first blow), so the host\'s own reading hands the fourth blow `unaware` and the sets\' +200% is reached, not only measured (mutant: a True concealment broken by a blow)', () => {
+  fresh();
+  setPref('enhancedAI', false);
+  const me = player();
+  me.activeEffects = [{ kind: 'invisTrue', roundsRemaining: 30 }];
+  const nw = ascendant(nightwhisperExalted(), 'nocturnal', 12);
+  const spun = ['starspun-cowl', 'starspun-right-pauldron', 'starspun-left-pauldron', 'starspun-greaves'].map((id) => ascendant(mintAetheric(STARSPUN_SET_PIECES.find((r) => r.id === id)), 'starspun'));
+  wear(me, nw, ascendant(legendary('night-mothers-embrace'), 'nocturnal'), ascendant(rareArmor(103), 'nocturnal'), ascendant(rareArmor(108), 'nocturnal'), ...spun);
+  const entity = { affinity: 'Human', careerIndex: 0, career: {}, health: 100, maxHealth: 100, level: 10 };
+  const foe = { entity, ai: new EnemyAI(new Collider(() => -100), [0, 0, 0], 0, {}) };
+  const senses = () => sensesContext(me, 2, { movingLessThanHalfSpeed: false });
+  const tick = () => { for (let i = 0; i < 4; i++) foe.ai.update(1 / 60, [0, 0, 1.5], senses()); };   // I stand at arm's length, in front of it
+  tick();
+  assert.equal(foeUnaware(foe), true, 'invisible: unseen at arm\'s length');
+  for (let i = 0; i < 3; i++) {
+    setStrike(me, entity, 10, nw, { unaware: foeUnaware(foe) });   // a strand laid
+    handleAttackFromSource(me);   // the blow's tail: a Normal concealment ends here, a True one stands
+    foe.ai.makeEnemyHostileToAttacker({ isPlayer: true }, [0, 0, 1.5]);
+    tick();
+  }
+  assert.equal(foeUnaware(foe), true, 'struck three times, still blind to me');
+  assert.equal(setBlow(nw, 1000, me, entity, { unaware: foeUnaware(foe) }), 3000, 'the fourth blow: Nightfall\'s +60% and the web\'s +140%');
+  me.activeEffects = [{ kind: 'invisNormal', roundsRemaining: 30 }];
+  handleAttackFromSource(me);
+  tick();
+  assert.equal(foeUnaware(foe), false, 'a Normal invisibility ends with the blow, and the foe sees me');
+});
+
 test('POWER-CEILING THE GUARDS, BY EXECUTION: the loot\'s three (a hexed foe, Bedrock\'s five stacks, the Last Stand) leave 45 of a hundred and Unbroken half of that, through the real door - 225 of 1000, whole - and a guard past the share is held at GUARD_LEAST (mutants: a guard not asking its room; the runner not opening the share)', () => {
   fresh();
   const me = player();
@@ -277,4 +310,47 @@ test('POWER-CEILING THE SOURCE: every blow modifier the tree registers asks blow
   }
   assert.deepEqual(seen.blow.sort(), ['firmamentBlow', 'lootBlow', 'martialBlow', 'setBlow', 'sigilBlow', 'weaponMasteryBlow']);
   assert.deepEqual(seen.guard.sort(), ['eg-witness', 'firmamentDamage', 'kt-down', 'lootDamageMod', 'martialDamageMod', 'pathDamageMod', 'poi-editor', 'setDamageMod']);
+  // AUDIT HORIZONTAL D4: every room asked names its registry, a registry the tops know - one asked unnamed is held by the
+  // product alone, and cuts whoever asks after it
+  const named = { blowRoom: new Set(), guardRoom: new Set() };
+  for (const f of files.filter((x) => !x.endsWith('powerCeiling.js'))) {
+    const src = strip(readFileSync(join(root, f), 'utf8'));
+    for (const [fn, tops] of [['blowRoom', BLOW_TOPS], ['guardRoom', GUARD_TOPS]]) {
+      for (const args of calls(src, fn)) {
+        const m = /^'([a-z]+)'$/.exec(args[1] ?? '');
+        assert.ok(args.length === 2 && m && Object.hasOwn(tops, m[1]), `${f}: ${fn}(${args.join(', ').slice(0, 60)}) names no registry of ${Object.keys(tops).join(', ')} - ${RULE}`);
+        named[fn].add(m[1]);
+      }
+    }
+  }
+  assert.deepEqual([...named.blowRoom].sort(), Object.keys(BLOW_TOPS).sort(), 'every blow registry asks under its own name');
+  assert.deepEqual([...named.guardRoom].sort(), Object.keys(GUARD_TOPS).sort(), 'every guard registry asks under its own name');
+});
+
+test('POWER-CEILING THE CUT LANDS WHERE THE POWER GREW (AUDIT HORIZONTAL D4): a registry past its own top is cut at that top, in any order of asking, and every other registry keeps its whole - the product alone cut the last one asked, a player\'s martial path 40 to 8 for a loot power past 240 (mutants: a registry\'s own top not read; its own product not kept)', () => {
+  const WORLD = ['sigil', 'sets', 'loot', 'firmament', 'mastery', 'martial'];   // world.js's import graph
+  const EXTERIOR = ['sigil', 'mastery', 'sets', 'loot', 'martial', 'firmament'];   // exterior.js's
+  for (const order of [WORLD, EXTERIOR, [...WORLD].reverse()]) {
+    const was = openBlowCeiling();
+    const got = Object.fromEntries(order.map((k) => [k, blowRoom(k === 'loot' ? 340 : BLOW_TOPS[k], k)]));
+    closeBlowCeiling(was);
+    assert.deepEqual(got, { ...BLOW_TOPS }, `${order.join(' ')}: the loot cut at its 240, every other whole - ${RULE}`);
+  }
+  const was = openBlowCeiling();
+  assert.equal(blowRoom(30, 'sets'), 30);
+  close(blowRoom(200, 'sets'), (3 / 1.3 - 1) * 100, 'a registry asked twice: its own product kept, x3 in all');
+  closeBlowCeiling(was);
+  close(blowRoom(1e9, 'sigil'), 12, 'alone, at its own top');
+  assert.equal(blowRoom(5, 'nobody'), 0, 'a registry with no measured top has no room');
+  for (const order of [['loot', 'sets', 'firmament', 'martial', 'arcane'], ['arcane', 'martial', 'firmament', 'sets', 'loot']]) {
+    const g = openGuardCeiling();
+    const got = {};
+    for (const k of order) {
+      got[k] = k === 'loot' ? [25, 20, 25, 10].map((l) => +guardRoom(l, 'loot').toFixed(9)) : guardRoom(GUARD_TOPS[k], k);
+    }
+    closeGuardCeiling(g);
+    assert.deepEqual(got.loot, [25, 20, 25, 0], `${order.join(' ')}: the Hex, Bedrock and the Last Stand whole, a fourth share past the loot's 55 cut`);
+    for (const k of order.filter((x) => x !== 'loot')) assert.equal(got[k], GUARD_TOPS[k], `${order.join(' ')}: ${k} whole - ${RULE}`);
+  }
+  close(guardRoom(99, 'arcane'), 20, 'alone, at its own top');
 });

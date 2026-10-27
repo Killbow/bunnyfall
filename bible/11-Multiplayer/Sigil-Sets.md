@@ -1200,14 +1200,18 @@ unknown entry dropped, a new game empty.
 
 `drinkWorn` reads the reach before the drink and records it after, so a rise the drink made counts even when its
 pieces are sold later. `setCardView` gives the card a `catchUp` (the reach, its name, the pace) when the piece holding
-the set is below the reach; the card's stage line and the classic tooltip's head say it (`catchUpText`, the text
-core's `sets.catchUp` and `sets.catchUpTo`).
+the set is below the reach; the card's stage line and the classic tooltip's head say it (`catchUpText`).
+
+AUDIT HORIZONTAL D6: the pace is English, as the line it sits in. It went through the text core alone (`sets.catchUp`,
+`sets.catchUpTo`), and a German card read "Kindled: grow your Helm (3x EP bis Radiant)". No other word of the sets'
+lines is routed - the stage names have no keys - so the two keys are gone and the merge's catalogue drops them. The
+sets' routing batch owes the stage line and the tooltip's head as whole patterns, the stage names keyed with them.
 
 Four hosts: none edited - world.js's `sigilDrinks` calls `drinkWorn` for every kill and quest the streamed world,
 an interior and a dungeon pay; `exterior.js`, the offline bench, earns no Renown and drinks nothing (FLAGGED as before).
 No service, relay or wire change.
 
-Pinned by `test/systems/sigil/setcatchup.test.js` (5). PIN MOVED (SET-CATCHUP): `set4_drops_growth`'s rise (with a and
+Pinned by `test/systems/sigil/setcatchup.test.js` (6). PIN MOVED (SET-CATCHUP): `set4_drops_growth`'s rise (with a and
 b at Bright, c catches up to Bright, not Kindled) and `set5_ui`'s stage line (the helm below three Bright pieces says
 "(3x XP)"). `_resetSigilSetsForTests` forgets the reach too, so no test's reach leaks into the next. The SET4 and SET3
 mutant records that quoted the drink and Unbroken's halving are re-aimed by content (`set4.json`, `set3.json`).
