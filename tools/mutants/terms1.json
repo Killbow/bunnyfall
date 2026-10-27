@@ -186,8 +186,8 @@
   {
     "name": "TERMS1-a-word-changed",
     "file": "terms/index.html",
-    "old": "DFO Online is an experimental community multiplayer project.",
-    "new": "DFO Online is a community multiplayer project.",
+    "old": "Bunnyfall is an experimental community multiplayer project.",
+    "new": "Bunnyfall is a community multiplayer project.",
     "tests": ["test/ui/enhanced/terms1.test.js"],
     "note": "Words that change under a version they keep are words nobody agreed to. BR5 (re-aimed by content): the name and its file form moved; the date moved and was put back (AUDIT BR5: a rename is not a new version)."
   },

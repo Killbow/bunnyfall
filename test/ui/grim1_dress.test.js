@@ -25,11 +25,11 @@ beforeEach(() => _resetForTests());
 /** [r, g, b, a] of an `hsl(H S% L% / A)` the ink writes. */
 const hslOf = (s) => { const m = /hsl\((\d+) (\d+)% (\d+)%(?: \/ ([\d.]+))?\)/.exec(s); return m && { h: +m[1], s: +m[2] / 100, l: +m[3] / 100, a: m[4] == null ? 1 : +m[4] }; };
 
-test('GRIM1: DFO Grimoire is the UI panel\'s fourth look - the ENHANCED skin with the grimoire dress; wearing it lands both on the shelf and reloads, Enhanced Plus takes the dress off again, and each reads as the look in use only with its own dress (mutants: the dress not written; Enhanced Plus reading as in use under the dress)', () => {
+test('GRIM1: Bunnyfall Grimoire is the UI panel\'s fourth look - the ENHANCED skin with the grimoire dress; wearing it lands both on the shelf and reloads, Enhanced Plus takes the dress off again, and each reads as the look in use only with its own dress (mutants: the dress not written; Enhanced Plus reading as in use under the dress)', () => {
   const ui = OVERHAUL_PANELS.find((p) => p.id === 'ui');
   const grim = ui.options.find((o) => o.id === 'dfo-grimoire');
   const plusLook = ui.options.find((o) => o.id === 'enhanced-plus');
-  assert.equal(grim.name, 'DFO Grimoire');
+  assert.equal(grim.name, 'Bunnyfall Grimoire');
   assert.equal(grim.skin, 'enhanced');
   assert.equal(grim.dress, 'grimoire');
   assert.equal(grim.vendor, 'grimoire-ui', 'the art is GrimoireUI\'s: the credits reach the pack through the look');
@@ -386,7 +386,7 @@ test('DESK-HD: the front door stands on the detailed desk (public/art/grimoire-d
   assert.ok(!/radial-gradient|linear-gradient/.test(rule), 'its own dark edges, never a second vignette');
 });
 
-// WOOD-HD (2026-10-10, Mac: "can every board wood background in DFO Grimoire UI in ALL windows and frames look like this
+// WOOD-HD (2026-10-10, Mac: "can every board wood background in Bunnyfall Grimoire UI in ALL windows and frames look like this
 // that has that blurred wood?").
 test('WOOD-HD: every board of the dress - a window\'s body and bars, a pane, a chip, a tab plate, a plank and the frame\'s rim - is the one `wood` tile, now the soft desk wood (public/art/grimoire-wood.jpg) at 100 x 189 of the game\'s pixels, built at the screen\'s own device pixels so it is laid one to one (mutants: the pack\'s pixel planks back; the tile at its old size; the frame keeping the old wood)', async () => {
   const { GRIMOIRE_WOOD_FILE, WOOD_TILE, nativeSize } = await import('../../src/ui/grimoireArt.js');
@@ -446,7 +446,7 @@ test('FOE-PLATE / VIAL-LONG (2026-10-11: the foe\'s and the boss\'s bars, the lo
   assert.match(art, /\[`\$\{name\}UpHead`\]: v\.upHead/, 'the upright vial\'s own pieces are cut');
 });
 
-test('GRIM-FIELD (2026-10-11, the DFO Grimoire bug thread): the Controls head sticks as ONE line over the book\'s short scroll; a chosen chip says so over its shelf-box picture; a setting\'s words are a scroll BESIDE the book in game (out of the page column\'s clip, slid in only as far as the screen asks) and the held-out scroll in the front door\'s column; Find me off the dungeon\'s sheet alone (mutants: the head\'s sentence kept, the inset shadow trusted, the sheet left in the column)', () => {
+test('GRIM-FIELD (2026-10-11, the Bunnyfall Grimoire bug thread): the Controls head sticks as ONE line over the book\'s short scroll; a chosen chip says so over its shelf-box picture; a setting\'s words are a scroll BESIDE the book in game (out of the page column\'s clip, slid in only as far as the screen asks) and the held-out scroll in the front door\'s column; Find me off the dungeon\'s sheet alone (mutants: the head\'s sentence kept, the inset shadow trusted, the sheet left in the column)', () => {
   const css = rosterCss();
   assert.match(css, /\.ctl-head:not\(\.ctl-asking\) > p\.meta \{ display: none !important; \}/, 'the head\'s sentence is the intro\'s own law - said there');
   assert.match(readFileSync(new URL('../../src/ui/enhanced/enhancedControls.js', import.meta.url), 'utf8'), /ctl-intro-law/, '...and the intro still says it');

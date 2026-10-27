@@ -34,7 +34,7 @@ test('OVH1: three panels, Texture, Sound and UI in that order; Texture stood EMP
   assert.equal(tex.options[1].vendor, 'vanilla-enhanced', 'the credits find the pack through its look');
   assert.equal('needsFiles' in tex.options[1], false, 'VE3\'s file pick is gone with the attach');
   assert.deepEqual(snd.options.map((o) => o.id), ['classic', 'enhanced']);
-  assert.deepEqual(ui.options.map((o) => o.name), ['Classic', 'Enhanced Plus', 'GrimoireUI', 'DFO Grimoire'], 'PIN MOVED (GRIM1): DFO Grimoire, the enhanced skin in GrimoireUI\'s dress, the fourth');
+  assert.deepEqual(ui.options.map((o) => o.name), ['Classic', 'Enhanced Plus', 'GrimoireUI', 'Bunnyfall Grimoire'], 'PIN MOVED (GRIM1): Bunnyfall Grimoire, the enhanced skin in GrimoireUI\'s dress, the fourth');
   assert.match(ui.options[2].by, /LordSquacquerone, version 1\.2/, 'the pack wears its author and version');
 });
 

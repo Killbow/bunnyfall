@@ -1,6 +1,6 @@
 // @ts-check
 // UI-CALM (2026-10-14) - THE QUIET PASS: one sheet laid after Enhanced Plus's (enhancedStyle.js injectEnhancedStyle),
-// so its rules win by order where they say the same thing, and DFO Grimoire inks it as it inks every other sheet.
+// so its rules win by order where they say the same thing, and Bunnyfall Grimoire inks it as it inks every other sheet.
 //
 // The report it answers, a player's, in six points: the first screen should ask ONLINE or OFFLINE and nothing else;
 // character creation looks like a placeholder of text and buttons; the menus are cluttered and lack hierarchy ("Why are
@@ -28,15 +28,15 @@ export const UI_CALM_STYLE_ID = 'dagger-ui-calm';
 export const CALM_TYPE = Object.freeze({ label: 12, line: 14, name: 16, head: 18 });
 /** The reading colours on the dark ground: the line (bone) and its quieter twin (no darker than 7:1 on #11141a). */
 export const CALM_INK = Object.freeze({ line: '#ddd5bd', quiet: '#bdb4a0' });
-/** The prefix a colour rule wears: Plus's alone - DFO Grimoire inks every sheet into its own pages' colours
+/** The prefix a colour rule wears: Plus's alone - Bunnyfall Grimoire inks every sheet into its own pages' colours
  *  (grimoireDress.js inkCss), and a colour said here for the dark ground would be inked onto the paper. */
 export const P = ':root:not([data-plus-dress="grimoire"])';
 
 // ── THE FRONT DOOR: TWO QUESTIONS ────────────────────────────────────────────────────────────────────────────────────
 const DOOR_CSS = `
 /* UI-CALM: THE FRONT DOOR'S TWO QUESTIONS (ui/enhanced/enhancedMenu.js drawDoors). Under Plus a level's two pages stand in one
-   column; the page heads are the book's (DFO Grimoire), so Plus shows only the offline level's - as a caption. A colour
-   is Plus's alone (${P}): DFO Grimoire inks the door its own way. */
+   column; the page heads are the book's (Bunnyfall Grimoire), so Plus shows only the offline level's - as a caption. A colour
+   is Plus's alone (${P}): Bunnyfall Grimoire inks the door its own way. */
 .px-menu .px-page { display: contents; }
 .px-menu .px-pagehead { display: none; }
 .px-menu .px-pagenote { display: none; }

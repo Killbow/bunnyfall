@@ -81,7 +81,7 @@ export function uiChoiceUrl(skin, pack, href = globalThis.location?.href ?? 'htt
   if (skin === 'classic' && setUiPack(pack) === false) url.searchParams.set('uipack', pack);
   return url.toString();
 }
-/** GRIM1: the dress an enhanced look wears over the skin - 'none' (Enhanced Plus) or 'grimoire' (DFO Grimoire,
+/** GRIM1: the dress an enhanced look wears over the skin - 'none' (Enhanced Plus) or 'grimoire' (Bunnyfall Grimoire,
  *  ui/grimoireDress.js). Read off the shelf here rather than through the dress's module, which carries a stylesheet. */
 const dressWorn = (search = globalThis.location?.search ?? '') => {
   const url = pageParam('dress', search);
@@ -138,7 +138,7 @@ export const OVERHAUL_PANELS = Object.freeze([
     online: null,
     options: Object.freeze([
       preset('classic', 'Classic', 'classic', SOUND_ROWS, { by: 'The original game', blurb: 'The original game\u2019s own sounds, for a retro feel.' }),
-      preset('enhanced', 'Enhanced', 'enhanced', SOUND_ROWS, { by: 'DFO Online and Immersive Footsteps', blurb: 'New and improved sounds and ambience.' }),
+      preset('enhanced', 'Enhanced', 'enhanced', SOUND_ROWS, { by: 'Bunnyfall and Immersive Footsteps', blurb: 'New and improved sounds and ambience.' }),
     ]),
   }),
   Object.freeze({
@@ -149,12 +149,12 @@ export const OVERHAUL_PANELS = Object.freeze([
       uiOption('classic', SKIN_NAMES.classic, 'classic', UI_PACK_NONE, { by: 'The original game', blurb: 'The original game\u2019s own interface, for the classic feel.' }),
       // PLUS1 (2026-09-25): the enhanced screens in the refreshed dress. PLUS-ONLY (2026-09-26): and the only enhanced
       // option - plain Enhanced, which stood beside it, is retired (systems/uiSkin.js isEnhancedPlus).
-      uiOption('enhanced-plus', SKIN_NAMES.enhanced, 'enhanced', UI_PACK_NONE, { by: 'DFO Online', blurb: 'A modern interface built for mouse and keyboard, controller or phone. You can adjust some settings and the controller bindings.' }),
+      uiOption('enhanced-plus', SKIN_NAMES.enhanced, 'enhanced', UI_PACK_NONE, { by: 'Bunnyfall', blurb: 'A modern interface built for mouse and keyboard, controller or phone. You can adjust some settings and the controller bindings.' }),
       uiOption(G.id, G.title, 'classic', G.id, { by: `${G.author}, version ${G.version}`, blurb: 'The classic interface with improvements: 3 times the detail, a new font, a spellbook for all your spells, and parchment and wood in place of the original stone.' }),
       // GRIM1 (2026-10-09, Discord: "I want some of the features of enhanced+ just not the overall look of it"): DFO
       // GRIMOIRE - the enhanced skin, every window and feature it carries, dressed in GrimoireUI's own parchment, wood,
       // red presses, glass vials and lettering (ui/grimoireDress.js). Its art is the pack's, so it names the pack.
-      uiOption('dfo-grimoire', 'DFO Grimoire', 'enhanced', UI_PACK_NONE, { dress: 'grimoire', vendor: G.vendor, by: `DFO Online, in ${G.author}'s GrimoireUI ${G.version}`, blurb: 'GrimoireUI\u2019s parchment, wood and red-and-gold buttons on every window, with everything Enhanced Plus has: the hotbar, camps and tents, resting, the maps, trading and every online panel. Your vitals show as glass vials.' }),
+      uiOption('dfo-grimoire', 'Bunnyfall Grimoire', 'enhanced', UI_PACK_NONE, { dress: 'grimoire', vendor: G.vendor, by: `Bunnyfall, in ${G.author}'s GrimoireUI ${G.version}`, blurb: 'GrimoireUI\u2019s parchment, wood and red-and-gold buttons on every window, with everything Enhanced Plus has: the hotbar, camps and tents, resting, the maps, trading and every online panel. Your vitals show as glass vials.' }),
     ]),
   }),
 ]);

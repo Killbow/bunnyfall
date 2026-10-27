@@ -4,7 +4,7 @@
 // structure and then attach everything you can do in daggerfall online to it, Magic, Phys based attacks and skills,
 // trading, gathering, hunting, ship controls/ocean stuff in general ... So ppl can be a awesome trader, or a better
 // gatherer crafter etc ... guilds will also benefit from it ... make sure the tree looks awesome and investing points in
-// there feels rewarding. Must suit DFO Grimoire and Enhanced plus ui"). bible/06-Systems/Firmament.md is the record.
+// there feels rewarding. Must suit Bunnyfall Grimoire and Enhanced plus ui"). bible/06-Systems/Firmament.md is the record.
 //
 // THE FIRMAMENT - THE TREE ITSELF: every star (node), where it stands and what it is joined to. Path of Exile's shape,
 // one for one, laid on Tamriel's sky:

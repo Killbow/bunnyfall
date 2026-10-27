@@ -59,7 +59,7 @@ const page = (p) => {
 export const TUTORIALS = Object.freeze([
   // ── GETTING STARTED ──────────────────────────────────────────
   page({
-    id: 'welcome', group: 'basics', title: 'Welcome to DFO', trigger: TOUR,
+    id: 'welcome', group: 'basics', title: 'Welcome to Bunnyfall', trigger: TOUR,
     body: [
       'You awaken in a small cave. Take what you need from your pack, find the way out and make for the nearest town.',
       'When you meet something new, a short note like this one explains it. All of them can be read again under Menu > Tutorials.',

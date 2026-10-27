@@ -46,7 +46,7 @@ export const TRANSFER_SHOT_FILES = Object.freeze([
   ['Screenshot.dataurl', null],
 ]);
 /** the download's name */
-export const TRANSFER_ZIP_NAME = 'DFO-Online-Saves.zip';
+export const TRANSFER_ZIP_NAME = 'Bunnyfall-Saves.zip';
 
 // ── the slots a store holds ──────────────────────────────────────
 

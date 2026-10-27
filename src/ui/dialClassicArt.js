@@ -1,7 +1,7 @@
 // DIAL-CLASSIC (2026-10-12, Mac: "do you remember the compass inventory, skills, magic and map selector here the arena2
 // files look for those symbols green should be the skills based on the face of your character youve choosen, blue magic,
 // yellow inventory and red map, make the icons fit to each other sizewise"): THE TAB DIAL'S FOUR DOORS IN DAGGERFALL'S
-// OWN ART. Under DFO Grimoire the dial's doors were pieces of the pack's paintings (GRIM4: the Empire's helm, the
+// OWN ART. Under Bunnyfall Grimoire the dial's doors were pieces of the pack's paintings (GRIM4: the Empire's helm, the
 // spellmaker's book, the map of Tamriel, a chest); they are now the classic HUD bar's own buttons and the player's own
 // face, read out of the player's ARENA2 when the dial is raised - nothing of the game's art ships with the port:
 //   SKILLS  the character's face - the head the large HUD and the sheet wear (the race's FACE??I0.CIF at the chosen

@@ -77,7 +77,7 @@ const SEARCH_DEPTH = 4;
 const SEARCH_DIRS_MAX = 400;
 
 const DAGGERFALL_DIR_RE = /daggerfall/i;
-/** A macOS bundle is an app, never an install folder - "DFO Online.app" is this one. */
+/** A macOS bundle is an app, never an install folder - "Bunnyfall.app" is this one. */
 const BUNDLE_RE = /\.app$/i;
 
 /** name UPPERCASE -> on-disk name, or null when the folder is unreadable. */
@@ -325,7 +325,7 @@ function steamRoots({ platform, home, env }, regQuery) {
 
 /** Where GOG puts games, to look for a Daggerfall folder in. GOG sells
  *  Daggerfall for Windows only: a Mac has no GOG copy to find (and its
- *  /Applications holds "DFO Online.app", this app - lane 4 #10). */
+ *  /Applications holds "Bunnyfall.app", this app - lane 4 #10). */
 function gogRoots({ platform, home, env }) {
   if (platform === 'win32') {
     const pf = [env['ProgramFiles(x86)'], env.ProgramFiles].filter(Boolean);

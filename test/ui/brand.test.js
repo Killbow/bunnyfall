@@ -39,10 +39,10 @@
 // BR5 - DFO ONLINE (2026-10-11, Mac: "So next up I want to replace the current
 // daggerfall online logo anywhere it's present with this logo. I want to
 // comprehensively scan the repo, ingame, etc for any mentions of
-// daggerfall/daggerfall online and change it to DFO Online/DFO. We are
+// daggerfall/daggerfall online and change it to Bunnyfall/DFO. We are
 // rebranding for our own sake and I want to do this right"; asked how far, he
 // chose to MINIMIZE the original game's name too). Three laws now, each
-// pinned below: the PRODUCT is DFO Online (DFO where a label is short); the
+// pinned below: the PRODUCT is Bunnyfall (DFO where a label is short); the
 // ORIGINAL GAME is named only where it must be - the files a player brings,
 // the credits and the licence, the trademark notice, and the world's own
 // places, which are the game's and not the product's; everywhere else a
@@ -64,9 +64,9 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 
 /** The name, its short form, its form in a file name, and the one sentence
  *  that says what it is - which names no other game (BR5). */
-const NAME = 'DFO Online';
+const NAME = 'Bunnyfall';
 const SHORT_NAME = 'DFO';
-const FILE_NAME = 'DFO-Online';
+const FILE_NAME = 'Bunnyfall';
 const TAGLINE = 'An open-source reimplementation of a classic 1996 RPG';
 
 test('BR1: every surface the player reads carries the one name', () => {
@@ -78,7 +78,7 @@ test('BR1: every surface the player reads carries the one name', () => {
   // AUDIT BR5 (Mac, 2026-10-11: "Use the new logo"): it is the product's
   // logo again, the game's own file, named by its alt.
   // BR6 (Mac, 2026-10-26): the dragon mark, at its own 1232 x 1034.
-  assert.ok(landing.includes(`<h1 class="wordmark"><img src="./src/assets/branding/dfo-online.png" alt="${NAME}" width="1232" height="1034" /></h1>`), 'the wordmark');
+  assert.ok(landing.includes(`<h1 class="wordmark"><img src="./src/assets/branding/bunnyfall.png" alt="${NAME}" width="1232" height="1034" /></h1>`), 'the wordmark');
   assert.equal((landing.match(/<img\s/g) ?? []).length, 1, 'and it is the one image on the page');
   // THE WORDMARK SPLITS THE NAME ACROSS TWO ELEMENTS, so no adjacency
   // sweep can ever see it whole: the front door rendered DAGGERFALL over
@@ -230,7 +230,7 @@ test('BR4: the logo is Mac’s transparent cut, and nothing blends it away - BR5
   // ratio - worked here from the file's own IHDR, so the next logo's size
   // reddens this, not a layout. BR6's dragon mark (Mac, 2026-10-26) is the
   // next logo: 1232 x 1034, 1.19:1, so every box below narrowed to its height.
-  const png = readFileSync(join(root, 'src/assets/branding/dfo-online.png'));
+  const png = readFileSync(join(root, 'src/assets/branding/bunnyfall.png'));
   const ratio = png.readUInt32BE(16) / png.readUInt32BE(20);
   // AUDIT BR5: the site's and the launcher's logo reserve the file's own size, so neither page moves as it loads
   for (const page of ['index.html', 'app/launcher/index.html']) {
@@ -340,7 +340,7 @@ test('BR5: no surface still says Daggerfall Online - whole, split across a wordm
   assert.equal(split, '', `a wordmark still spells the old name across two elements:\n${split}`);
   assert.match(read('src/ui/enhanced/enhancedChargen.js'), new RegExp(`brand\\.append\\(el\\('div', 'sub', '${NAME}'\\)\\);`), 'the new character\'s masthead');
   // AUDIT BR5: the launcher wears the logo too, the game's own file, named by its alt
-  assert.ok(read('app/launcher/index.html').includes(`<h1 class="wordmark"><img src="dfo-online.png" alt="${NAME}" width="1232" height="1034"></h1>`), 'and the desktop launcher\'s');
+  assert.ok(read('app/launcher/index.html').includes(`<h1 class="wordmark"><img src="bunnyfall.png" alt="${NAME}" width="1232" height="1034"></h1>`), 'and the desktop launcher\'s');
   assert.match(read('src/ui/screenshot.js'), /return `dfo-\$\{d\.getFullYear\(\)\}/, 'a screenshot is named for the product');
   assert.match(read('src/ui/shotsPane.js'), /a\.download = `dfo-shot-\$\{s\.id\}\.jpg`;/, 'and so is a saved loading shot');
   assert.match(read('server-account/src/patreon.js'), new RegExp(`<title>\\$\\{esc\\(heading\\)\\} - ${NAME}</title>`), 'and the Patreon link\'s page');
@@ -486,7 +486,7 @@ test('LOGO-CENTRE: the mark stands on its letters\' centre, not its box\'s - mea
   // (its red) to the O's outline (the last paint); their centre, against the file's, is the shift.
   const { readPng } = await import('../../tools/pngIO.mjs');
   const { BRAND_LOGO_OPTICAL_SHIFT } = await import('../../src/ui/brandMark.js');
-  const { width, height, data } = readPng(readFileSync(join(root, 'src/assets/branding/dfo-online.png')));
+  const { width, height, data } = readPng(readFileSync(join(root, 'src/assets/branding/bunnyfall.png')));
   let left = width, right = 0;
   for (let y = Math.round(height * 0.4); y < Math.round(height * 0.5); y++) {
     for (let x = 0; x < width; x++) {

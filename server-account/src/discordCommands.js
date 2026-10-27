@@ -20,7 +20,7 @@
 /** The command, as Discord's API takes it: /mod lookup|mute|unmute|ban|unban, each naming a player by name or account id. */
 export const MOD_COMMAND = Object.freeze({
   name: 'mod',
-  description: 'DFO Online moderation',
+  description: 'Bunnyfall moderation',
   type: 1,
   default_member_permissions: String(1 << 13),   // Manage Messages
   contexts: [0],   // AUDIT SAFE DISCORD-13: the server alone (GUILD) - `dm_permission` is deprecated for `contexts`

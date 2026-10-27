@@ -447,7 +447,7 @@ export function patreonPage({ heading, lines = [], form = null }) {
   ].join('');
   return '<!doctype html><html lang="en"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">'
-    + `<title>${esc(heading)} - DFO Online</title><style>`   // BR5: the product's name on the page a player is sent back to
+    + `<title>${esc(heading)} - Bunnyfall</title><style>`   // BR5: the product's name on the page a player is sent back to
     + 'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f0d0b;color:#e8dcc4;'
     + 'font:16px/1.5 Georgia,"Times New Roman",serif}main{max-width:30rem;margin:16px;padding:28px;border:1px solid #4a4036;'
     + 'background:#17130f}h1{margin:0 0 14px;font-size:22px;color:#c9a45c;letter-spacing:.04em}p{margin:0 0 10px;color:#b8ab93}'

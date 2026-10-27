@@ -608,7 +608,7 @@ test('AUDIT2 GOLD-DROP 2: ONE FLOATER AT A TIME - the field opening puts an item
 // with stow all i mean the money amount"): THE WHOLE PURSE IN ONE PRESS. The field's verb stands over its "all" - Stow
 // and Stow all over the wagon, Store and Store all over storage, Drop and Drop all on the ground - and the "all" moves
 // every coin the purse holds, clamped by the wagon's room as a typed amount is, and said; an empty purse's "all" is
-// greyed. Both presses are the kit's `.act` in one stack (`.goldacts`), so Enhanced Plus and the DFO Grimoire dress
+// greyed. Both presses are the kit's `.act` in one stack (`.goldacts`), so Enhanced Plus and the Bunnyfall Grimoire dress
 // paint them as every press.
 test('GOLD-ALL: the field stacks its verb over "<verb> all", and the "all" moves the whole purse - into the wagon, the chest or onto the ground - clamped by the wagon\'s room and said; an empty purse greys it (mutants: the typed amount moved; no clamp; the "all" on an empty purse)', () => {
   const chest = [];
@@ -645,7 +645,7 @@ test('GOLD-ALL: the field stacks its verb over "<verb> all", and the "all" moves
   }, { gold: 1 });
 });
 
-test('GOLD-ALL: by the sheets - the two presses one column of two equal rows inside the box\'s 44px (the field grows by nothing), each the kit\'s press at the Gold button\'s 12px; the DFO Grimoire dress writes them in its face at no height of their own', async () => {
+test('GOLD-ALL: by the sheets - the two presses one column of two equal rows inside the box\'s 44px (the field grows by nothing), each the kit\'s press at the Gold button\'s 12px; the Bunnyfall Grimoire dress writes them in its face at no height of their own', async () => {
   const s = src('src/ui/enhanced/enhancedStyle.js');
   assert.match(s, /\.goldfield \.goldacts \{ display: grid; grid-template-columns: max-content; grid-template-rows: 1fr 1fr; gap: 4px;\n\s*flex: 0 0 auto; height: 44px; \}/);
   assert.match(s, /\.goldfield \.goldacts \.act \{ min-height: 0; height: auto; margin: 0; padding: 0 12px;[^}]*font-size: 12px;/);

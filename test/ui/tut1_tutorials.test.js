@@ -119,7 +119,7 @@ test('TUT1: the popup\'s rows - the title first (centred, its own face), the wor
   assert.equal(rows.at(-1), 'don\'t need.', 'the last row is the page\'s own last words - no foot (TUT1 audit), and no word alone on it');
   assert.ok(rows.every((r, i) => i === 0 || typeof r === 'string'), 'only the title is a record');
   assert.match(tutorialById('welcome').body.join(' '), /Menu > Tutorials/, 'the welcome page says where every page is read again');
-  assert.equal(tutorialRows(tutorialById('welcome'), { page: 2, pages: 5 })[0].text, 'Welcome to DFO  (2 of 5)');
+  assert.equal(tutorialRows(tutorialById('welcome'), { page: 2, pages: 5 })[0].text, 'Welcome to Bunnyfall  (2 of 5)');
   // points are dashed, their second lines indented
   const pts = tutorialRows(tutorialById('combat'), { keyName: () => 'K' }).filter((r) => typeof r === 'string' && /^(- | {2})/.test(r));
   assert.ok(pts[0].startsWith('- ') && pts.some((r) => r.startsWith('  ')));
@@ -401,7 +401,7 @@ test('TUT1: the welcome tour is ONE box of its unread pages, numbered, first in 
   assert.equal(startTutorialTour(), false, 'once');
   r.advance(SHOW_DELAY_MS);
   const box = r.mounted[0];
-  assert.equal(box.lines[0].text, 'Welcome to DFO  (1 of 4)', 'the tour goes before the combat page, without the page already read');
+  assert.equal(box.lines[0].text, 'Welcome to Bunnyfall  (1 of 4)', 'the tour goes before the combat page, without the page already read');
   for (let i = 0; i < 3; i++) { r.read(box); assert.equal(box.done, false); }
   assert.match(box.lines[0].text, /\(4 of 4\)$/);
   assert.equal(isTutorialSeen('welcome'), false);

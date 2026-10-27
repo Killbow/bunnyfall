@@ -229,7 +229,7 @@ import { plusTheme, setPlusTheme } from './enhancedPlusStyle.js';
 import { plusCursorOn, setPlusCursor } from '../plus/plusCursor.js';   // OVH1: the three looks
 import { CHAT_LANGS } from '../../net/wire.js';   // CHAT-LANG: the language channels, for the Chat rows
 import { TEXT_FONTS, textFont, textFontSystem, setTextFont, setTextFontSystem, cleanFamily, canListFonts, installedFamilies, fontMatches } from '../textFont.js';   // TEXT-FONT: the words' face
-import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial } from '../grimoireDress.js';   // GRIM1: DFO Grimoire's own rows; GRIM3: and its spellbook
+import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
 import { UI_PACKS, packUrl } from '../../systems/uiPack.js';   // OVH2: a pack's own picture on its card
 import { FEATURES, KINDS, KIND_ORDER, featureForControl, resolveControl, modModules, modDials, featureSearchText } from '../../systems/features.js';   // FT14: each mod's curated keys (ORG2: the map places the rows, ui/settings/settingsMap.js)
 import '../../world/landView.js';   // RF4: the land-view lane registers itself with the registry
@@ -3965,7 +3965,7 @@ const ovhAt = {};   // panel id -> the option index being shown
 function overhaulPicture(p, o, inUse) {
   const pic = el('div', 'look-pic');
   pic.dataset.look = o.id;
-  // GRIM1: DFO Grimoire wears the pack's art too - shown by its desk, where GrimoireUI is shown by its inventory
+  // GRIM1: Bunnyfall Grimoire wears the pack's art too - shown by its desk, where GrimoireUI is shown by its inventory
   const grim = p.id === 'ui' && o.dress === 'grimoire';
   const pack = p.id === 'ui' ? UI_PACKS[o.pack] ?? (grim ? UI_PACKS.grimoire : null) : null;
   if (pack) {
@@ -4126,7 +4126,7 @@ function overhaulPanel(p) {
   card.append(nav, el('p', 'look-blurb', o.blurb));
   // PLUS2: ENHANCED PLUS'S COLOURS - offered on its own card while it is the look in use (they are its surfaces, and
   // they change at once, no reload). One swatch per stone; the chosen one is pressed.
-  // GRIM1: DFO Grimoire is the same enhanced skin, so it offers the same rows (the cursor, the hover card, the
+  // GRIM1: Bunnyfall Grimoire is the same enhanced skin, so it offers the same rows (the cursor, the hover card, the
   // controller) - and in place of the stones, its own two: the page the windows are written on and what the front door
   // stands on. Both are worn at once.
   if (p.id === 'ui' && (o.id === 'enhanced-plus' || o.id === 'dfo-grimoire') && o === cur) {
@@ -4346,7 +4346,7 @@ function featureRow(f) {
 // ── ABOUT ────────────────────────────────────────────────────────
 function paneAbout(body) {
   const c = el('div', 'card');
-  c.append(el('h3', null, 'DFO Online'));   // the public name (BR1, BR4, BR5); project-dagger is the repo
+  c.append(el('h3', null, 'Bunnyfall'));   // the public name (BR1, BR4, BR5); project-dagger is the repo
   c.append(el('p', 'meta', t('menu.about.tagline', 'An open-source reimplementation of a classic 1996 RPG.')));
   c.append(stats([
     [t('menu.about.update', 'Update'), UPDATE ?? t('menu.about.devBuild', 'a development build')],   // REL8: the player's update number (scripts/updateNumber.mjs)
@@ -4645,7 +4645,7 @@ function doorBtn(id, label, sub, onClick) {
  * UI-CALM: THE TWO QUESTIONS, then the games. The top level is two doors - ONLINE first, then OFFLINE - each saying in a
  * line what lies behind it, and Settings and Overhauls as two small doors under them (a player may want either before
  * choosing). OFFLINE opens the offline doors (HOME_OFFLINE) where Continue, New Game and Load Game always stood, and a
- * way back. Each level is two PAGES - DFO Grimoire writes them on the open book's two leaves under their own heads; Plus
+ * way back. Each level is two PAGES - Bunnyfall Grimoire writes them on the open book's two leaves under their own heads; Plus
  * stands them in one column, the offline doors under the word Offline.
  */
 function drawDoors(menu) {
@@ -6097,7 +6097,7 @@ function renderInto() {
   // (onKey); this is the one a finger can see.
   const homeMark = el('button', 'brand-home');
   homeMark.type = 'button';
-  homeMark.setAttribute('aria-label', t('menu.home.homeAria', 'DFO Online — main menu'));
+  homeMark.setAttribute('aria-label', t('menu.home.homeAria', 'Bunnyfall — main menu'));
   homeMark.append(brandMark());
   homeMark.onclick = () => go('home');
   h1.append(homeMark);
@@ -6105,7 +6105,7 @@ function renderInto() {
   side.append(brand);
 
   const rail = el('nav', 'rail');
-  // UI-CALM (2026-10-14, a player on DFO Grimoire's rail: "here back to main menu is missing"): THE WAY HOME, SAID. The
+  // UI-CALM (2026-10-14, a player on Bunnyfall Grimoire's rail: "here back to main menu is missing"): THE WAY HOME, SAID. The
   // wordmark above has always been it (PX1/PX2), and Escape - but a wordmark is not a door a player reads as one; the
   // rail's first row is, at the door the Main menu and over a game the window it came from
   const homeRow = el('button', 'railbtn railhome');

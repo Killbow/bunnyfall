@@ -472,7 +472,7 @@ test('UI1 AUDIT UI A2/A3/A4: a tiered worn panel keeps its glow under a textured
   assert.ok(keys.includes(`auditA4_${FIT_CACHE_MAX + 19}@10x1c4`), 'the newest stays');
 });
 
-test('HOTBAR-LAG (2026-10-11, Mac: "spamming or just pressing the hotbar buttons makes the game lag"): a press PLAYS the caption\'s fade - the browser\'s animation, cancelled and played again - never a class off, a forced layout and the class back (two full restyles a press: ~10 ms on the main thread under DFO Grimoire, whose ground for the caption is a picture held in a custom property); the class stays the door where there is no animate() (mutants: the forced layout before the animation, the keyframes drifting from the sheet\'s)', async () => {
+test('HOTBAR-LAG (2026-10-11, Mac: "spamming or just pressing the hotbar buttons makes the game lag"): a press PLAYS the caption\'s fade - the browser\'s animation, cancelled and played again - never a class off, a forced layout and the class back (two full restyles a press: ~10 ms on the main thread under Bunnyfall Grimoire, whose ground for the caption is a picture held in a custom property); the class stays the door where there is no animate() (mutants: the forced layout before the animation, the keyframes drifting from the sheet\'s)', async () => {
   const src = read('src/ui/enhanced/enhancedHotbar.js');
   const fn = src.slice(src.indexOf('function showCaption('), src.indexOf('/** The modifiers an event carries'));
   const anim = fn.indexOf("if (typeof caption.animate === 'function') {");

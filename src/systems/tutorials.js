@@ -1,6 +1,6 @@
 // @ts-check
 // TUT1 (2026-10-11, Mac: "replace the current DFU tutorial with our own custom tutorial that not only explains how to
-// play, but has popups for whenever you are interacting with a new system ... We are also now DFO Online/DFO, so dont
+// play, but has popups for whenever you are interacting with a new system ... We are also now Bunnyfall/DFO, so dont
 // mention daggerfall. We also need a menu section where tutorials can be revisited. This needs to be comprehensive"):
 // THE TUTORIALS' LAW - which page a player has read, whether the popups are on, and how a page becomes the rows a box
 // shows. No DOM and no window here: the box is ui/tutorialPopup.js's, the menu's pane is ui/tutorialsPane.js's, the

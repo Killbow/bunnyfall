@@ -1,14 +1,14 @@
 {
-  "name": "daggerfall-js-app",
-  "productName": "DFO Online",
+  "name": "bunnyfall-app",
+  "productName": "Bunnyfall",
   "private": true,
   "version": "0.1.0",
-  "description": "DFO Online - the downloadable desktop shell. Loads the same dist/ the website deploys; adds ARENA2-from-disk and file-backed saves.",
-  "author": "Lattymoy",
-  "homepage": "https://daggerfalljs.dev/",
+  "description": "Bunnyfall - the downloadable desktop shell. Loads the same dist/ the website deploys; adds ARENA2-from-disk and file-backed saves.",
+  "author": "Killbunny",
+  "homepage": "https://dagg.campfirerp.com/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Lattymoy/daggerfall-js-source.git"
+    "url": "https://github.com/Killbow/bunnyfall.git"
   },
   "main": "main.cjs",
   "scripts": {
@@ -21,19 +21,19 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "dev.daggerfalljs.app",
-    "productName": "DFO Online",
+    "appId": "com.campfirerp.bunnyfall",
+    "productName": "Bunnyfall",
     "icon": "../public/icons/icon-512.png",
     "afterPack": "./afterPack.cjs",
-    "artifactName": "DFO-Online-${os}-${arch}.${ext}",
+    "artifactName": "Bunnyfall-${os}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
     "publish": [
       {
         "provider": "github",
-        "owner": "Lattymoy",
-        "repo": "daggerfall-js-source"
+        "owner": "Killbow",
+        "repo": "bunnyfall"
       }
     ],
     "files": [
@@ -52,7 +52,7 @@
         "from": "../src/assets/branding",
         "to": "launcher",
         "filter": [
-          "dfo-online.png"
+          "bunnyfall.png"
         ]
       },
       "lib/**",
@@ -75,13 +75,13 @@
       ]
     },
     "nsis": {
-      "artifactName": "DFO-Online-win-${arch}-setup.${ext}",
+      "artifactName": "Bunnyfall-win-${arch}-setup.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "perMachine": false
     },
     "portable": {
-      "artifactName": "DFO-Online-win-${arch}-portable.${ext}"
+      "artifactName": "Bunnyfall-win-${arch}-portable.${ext}"
     },
     "mac": {
       "target": [
@@ -89,9 +89,9 @@
       ],
       "category": "public.app-category.games",
       "extendInfo": {
-        "NSDownloadsFolderUsageDescription": "DFO Online looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded.",
-        "NSDesktopFolderUsageDescription": "DFO Online looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded.",
-        "NSDocumentsFolderUsageDescription": "DFO Online looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded."
+        "NSDownloadsFolderUsageDescription": "Bunnyfall looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded.",
+        "NSDesktopFolderUsageDescription": "Bunnyfall looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded.",
+        "NSDocumentsFolderUsageDescription": "Bunnyfall looks here for the Daggerfall game files you unpacked, only when it found none elsewhere. Nothing is copied or uploaded."
       }
     }
   },

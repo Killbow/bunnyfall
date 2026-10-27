@@ -317,7 +317,7 @@ test('RECOVERY-SET: a recovery that leaves the set\'s others standing lands sign
 test('RECOVERY-SET: the saved file - whose codes, the rule, a code a line numbered as the card numbers them; a name per account, nothing a path could hold (mutants: unnumbered; the name unsanitised)', () => {
   const text = recoveryCodesText('Nystul', SET);
   const lines = text.split('\n');
-  assert.equal(lines[0], 'DFO Online recovery codes for Nystul');
+  assert.equal(lines[0], 'Bunnyfall recovery codes for Nystul');
   assert.match(lines[1], /works once/);
   assert.deepEqual(lines.slice(3, 6), ['1. AAAAA-AAAAA-AAAAA-AAAA1', '2. AAAAA-AAAAA-AAAAA-AAAA2', '3. AAAAA-AAAAA-AAAAA-AAAA3']);
   assert.equal(recoveryCodesFileName('Nystul'), 'dfo-recovery-codes-nystul.txt');

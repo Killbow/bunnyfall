@@ -118,7 +118,7 @@ export const TABLE_CHAMPION_FLOOR = Object.freeze({ iliacchampion: Object.freeze
 
 // ── the words of how ──────────────────────────────────────────────────────────────────────────────────────────────────
 const bestowed = () => t('coll.how.bestowed', 'Made for one player and granted to them by name.');
-const patron = (/** @type {string} */ tier) => () => t('coll.how.patron', 'Support DFO Online on Patreon at the {tier} tier, then link Patreon from your profile - or be granted it by name.', { tier: TITLE_TEXT[/** @type {keyof typeof TITLE_TEXT} */ (tier)] });
+const patron = (/** @type {string} */ tier) => () => t('coll.how.patron', 'Support Bunnyfall on Patreon at the {tier} tier, then link Patreon from your profile - or be granted it by name.', { tier: TITLE_TEXT[/** @type {keyof typeof TITLE_TEXT} */ (tier)] });
 /** Apostle: a Patreon tier's title no pledge maps yet (server-account/wrangler.toml PATREON_TIERS), held by name alone. */
 const apostle = () => t('coll.how.apostle', 'A Patreon reward with no tier to pledge yet - for now it is granted by name.');
 const developer = () => t('coll.how.developer', 'The game’s developers.');

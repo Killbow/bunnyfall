@@ -83,7 +83,7 @@ export const AI_REASON_MAX = 300;
 
 /** THE REVIEWER'S BRIEF - the code's rules as players read them (conduct.js), and how to weigh a line against them. */
 export const reviewerPrompt = () => [
-  'You review chat lines from DFO Online, an online fantasy role-playing game, for its human moderators. You never talk to players and nothing you say is shown to them.',
+  'You review chat lines from Bunnyfall, an online fantasy role-playing game, for its human moderators. You never talk to players and nothing you say is shown to them.',
   '',
   'Every player agreed to this Code of Conduct:',
   ...conductRules().map((r, i) => `${i + 1}. ${r}`),

@@ -48,8 +48,8 @@
   {
     "name": "DA7-7-the-release-drops-the-updater-metadata",
     "file": ".github/workflows/release-desktop.yml",
-    "old": "            app/release/latest*.yml\n            app/release/*.blockmap\n            app/release/DFO-Online-game.*\n          if-no-files-found: error\n",
-    "new": "            app/release/DFO-Online-game.*\n          if-no-files-found: error\n",
+    "old": "            app/release/latest*.yml\n            app/release/*.blockmap\n            app/release/Bunnyfall-game.*\n          if-no-files-found: error\n",
+    "new": "            app/release/Bunnyfall-game.*\n          if-no-files-found: error\n",
     "tests": ["test/tooling/autoupdate.test.js"],
     "note": "Without latest.yml on the release the updater finds nothing and every copy silently stays where it is. REL4: re-aimed by content at the legs' hand-on step, whose files are what the one publish job attaches."
   },

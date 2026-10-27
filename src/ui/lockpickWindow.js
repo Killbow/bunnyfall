@@ -21,7 +21,7 @@
 //
 // AUDIT LOCKPICK C1-C12 (2026-10-26, the owner: "Also ensure this is enhanced ui plus"): THE KIT'S WINDOW. Its frame,
 // header, well, presses and readouts are the stone-and-brass kit's roles (ui/enhanced/enhancedFrame.js FRAME_ROLES), its
-// layout the Plus sheet's LOCK_CSS, so a Plus colour and the DFO Grimoire dress repaint it; on the classic skin it lays the
+// layout the Plus sheet's LOCK_CSS, so a Plus colour and the Bunnyfall Grimoire dress repaint it; on the classic skin it lays the
 // layout and the kit cut to its own selectors (`lockSkinCss`), the Broker's AUDIT SET U1 way. The pad has an arm of its own
 // (ui/plus/plusPad.js registerLockArm), a refused press says why, and a phone on its side holds the whole of it.
 import { t } from '../systems/textManager.js';

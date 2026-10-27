@@ -17,12 +17,12 @@ const INTRO2_THEME_SHA256 = '6954cf4c01f2a32e098a08c4ae4edb81b00823573076fd1c74c
 test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; timing cannot drift behind a replacement track', () => {
   // BR4 (2026-09-27) shipped Mac's earlier cut as he supplied it
   // (real alpha; INTRO2's JPEG had a black backing to screen away). BR5
-  // (2026-10-11): his DFO Online logo, its 800 x 600 file cut to the 526 x 322
+  // (2026-10-11): his Bunnyfall logo, its 800 x 600 file cut to the 526 x 322
   // its paint covers - every pixel inside his, unchanged, and none outside
   // with any alpha. BR6 (2026-10-26): his dragon mark - its 2000 x 1434
   // file cut to the 1680 x 1410 its paint covers, then scaled to 1232 x 1034
   // at his word (the same 56:47; 785 KB where the cut was 1.28 MB).
-  assert.equal(createHash('sha256').update(read('src/assets/branding/dfo-online.png')).digest('hex'), 'bf7a6bca77b6f29f31738a85545cd7fb51c3e91dce4df985a93c7874804b57a7');
+  assert.equal(createHash('sha256').update(read('src/assets/branding/bunnyfall.png')).digest('hex'), 'bf7a6bca77b6f29f31738a85545cd7fb51c3e91dce4df985a93c7874804b57a7');
   const track = read('src/assets/intro/theme.mp3');
   assert.equal(createHash('sha256').update(track).digest('hex'), 'c8eb0eccf3265244c0f4424d26efee835d40cccf4e11a66744ec4b284d8392e3');
 
@@ -35,7 +35,7 @@ test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; 
   const tag = 10 + ((track[6] & 0x7f) << 21 | (track[7] & 0x7f) << 14 | (track[8] & 0x7f) << 7 | (track[9] & 0x7f));
   assert.equal(createHash('sha256').update(track.subarray(tag)).digest('hex'), '3a1bc066e12951a6450b04649a2ffaa0b614c0848b520d033c2448b155bf56d7');
   const header = track.subarray(0, tag).toString('latin1');
-  assert.ok(header.includes('DFO Online Main Theme'), 'the track titles itself by the product\u2019s name');
+  assert.ok(header.includes('Bunnyfall Main Theme'), 'the track titles itself by the product\u2019s name');
   // Spelled in parts, so this assertion is not itself a surface BR1 or BR4 must sweep.
   const gone = ['Daggerfall', 'JS', 'JavaScript', 'Enhanced', 'Online'];
   for (const name of [`${gone[0]} ${gone[1]}`, `${gone[0]}${gone[1]}`, `${gone[0]} ${gone[2]}`, `${gone[0]} ${gone[3]}`, `${gone[0]} ${gone[4]}`, gone[0]]) {
@@ -225,11 +225,11 @@ test('INTRO2: disposing during fetch prevents late audio and releases the loadin
 
 test('INTRO2: the shared logo has accessible text and its exact natural aspect ratio', () => {
   const logo = brandMark({ createElement: (tag) => ({ tag }) });
-  assert.equal(logo.tag, 'img'); assert.equal(logo.alt, 'DFO Online');   // BR5: the product's name alone - the mark names no other game
+  assert.equal(logo.tag, 'img'); assert.equal(logo.alt, 'Bunnyfall');   // BR5: the product's name alone - the mark names no other game
   // BR4: the element's size is the FILE's, read from its own IHDR - a new
   // logo dropped in without its dimensions reddens here, not in a layout
   // (BR5's did: 2112 x 850 to 526 x 322; BR6's: to 1232 x 1034).
-  const png = read('src/assets/branding/dfo-online.png');
+  const png = read('src/assets/branding/bunnyfall.png');
   assert.equal(png.toString('latin1', 12, 16), 'IHDR');
   assert.deepEqual([logo.width, logo.height], [png.readUInt32BE(16), png.readUInt32BE(20)]);
   assert.equal(logo.draggable, false);

@@ -8,7 +8,7 @@
 //   - EVERY HAND COPY IS THE TABLE'S: the breathing frame, the big picture's glow, the codex's found row, the quick
 //     loot's gem - each in the table's crimson, and the old gold nowhere in the sheets.
 //   - ON STONE'S GROUND: the post's win line lifts the crimson to its own light, as the audit lifted the darkest three.
-//   - THE PAGE'S INK: DFO Grimoire deepens the crimson into an ink that reads on both its grounds.
+//   - THE PAGE'S INK: Bunnyfall Grimoire deepens the crimson into an ink that reads on both its grounds.
 //   - THE GOLD KEPT: the pieces' own art is still gold leaf - the ramp the sprite and the list pictures take.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -89,7 +89,7 @@ test('GILDED-RED ON STONE\'S GROUND: the post\'s win line lifts the crimson to i
   assert.ok(r === 255 && b >= g, 'the crimson\'s light - its blue over its green, as the crimson\'s');
 });
 
-test('GILDED-RED THE PAGE\'S INK: DFO Grimoire writes the rung in the crimson deepened - a red of the crimson\'s own hue that reads at 4.5:1 or better on the cream and on the page; the plaque\'s row wears it (mutants: the old amber; the pale crimson; the plaque\'s copy left amber)', () => {
+test('GILDED-RED THE PAGE\'S INK: Bunnyfall Grimoire writes the rung in the crimson deepened - a red of the crimson\'s own hue that reads at 4.5:1 or better on the cream and on the page; the plaque\'s row wears it (mutants: the old amber; the pale crimson; the plaque\'s copy left amber)', () => {
   const ink = RARITY_INK.gilded;
   assert.equal(ink, '#a3122e');
   for (const ground of ['#efdcae', '#e3c995']) assert.ok(contrast(ink, ground) >= 4.5, `${ink} on ${ground}: ${contrast(ink, ground).toFixed(2)}:1`);

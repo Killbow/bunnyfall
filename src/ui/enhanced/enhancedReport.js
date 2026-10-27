@@ -30,7 +30,7 @@ export const myReportStateText = (/** @type {{ read: boolean, state: string }} *
 /** The build a report came from, in the pause window's own words (pauseWindow.js REL8's version line). */
 export function reportBuildText(/** @type {any} */ ctx) {
   if (!ctx?.update && !ctx?.build) return t('report.build.unknown', 'an unknown build');
-  const name = ctx.update ? t('report.build.update', 'DFO Online {update}', { update: ctx.update }) : t('report.build.name', 'DFO Online');
+  const name = ctx.update ? t('report.build.update', 'Bunnyfall {update}', { update: ctx.update }) : t('report.build.name', 'Bunnyfall');
   const where = ctx.app === 'desktop' ? t('report.build.desktop', 'desktop app') : ctx.app === 'browser' ? t('report.build.browser', 'in a browser') : null;
   return [name, ctx.build ? `(${ctx.build})` : null, where].filter(Boolean).join(' ');
 }

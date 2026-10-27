@@ -1,7 +1,7 @@
 // TEXT-FONT (2026-10-11). A player: "A Sans font, a Monospace font and a Dyslexic compatible font would be nice. But
 // allowing selection from system fonts would be most ideal".
 //
-// THE WORDS. The enhanced skin (Enhanced Plus, and DFO Grimoire over it) writes every word in its own game face - the
+// THE WORDS. The enhanced skin (Enhanced Plus, and Bunnyfall Grimoire over it) writes every word in its own game face - the
 // pixel stack, or the pack's Alagard. The player may write them instead in a plain sans, a monospace, OpenDyslexic
 // (shipped under public/fonts/opendyslexic/, SIL OFL - it is fetched only when chosen), or any font installed on
 // their own machine, named or picked from the list the browser gives (the Local Font Access API, where there is one).

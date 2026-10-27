@@ -25,7 +25,7 @@ test('TITLE-DOOR: the landed mark makes room for the doors - the band starts at 
   const sheet = /const STYLE = `[\s\S]*?`;/.exec(intro)[0];
   // the doors' band begins where the landed mark ends: its centre plus half its height - the file's own height over width,
   // halved, read off the PNG's IHDR so a new logo reddens this and not a layout
-  const png = readFileSync(new URL('../../src/assets/branding/dfo-online.png', import.meta.url));
+  const png = readFileSync(new URL('../../src/assets/branding/bunnyfall.png', import.meta.url));
   const half = png.readUInt32BE(20) / png.readUInt32BE(16) / 2;
   const band = sheet.match(/--intro-doors-top:calc\(var\(--intro-title-y\) \+ var\(--intro-title-w\) \* ([\d.]+)\)/);
   assert.ok(band, 'the band is the landed mark\'s centre plus a share of its width');

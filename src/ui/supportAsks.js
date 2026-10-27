@@ -63,10 +63,7 @@ const KOFI_ART = Object.freeze([
 ]);
 
 /** @type {readonly SupportAsk[]} The asks, in the order both doors show them - Patreon first, as it was the only one. */
-export const SUPPORT_ASKS = Object.freeze([
-  Object.freeze({ id: 'patreon', name: 'Patreon', label: 'Support on Patreon', url: 'https://www.patreon.com/c/dfenhanced', art: PATREON_ART }),
-  Object.freeze({ id: 'kofi', name: 'Ko-fi', label: 'Support on Ko-fi', url: 'https://ko-fi.com/daggerfallonline', art: KOFI_ART }),
-]);
+export const SUPPORT_ASKS = Object.freeze([]);   // BUNNYFALL: no donation links
 
 /**
  * One mark's rules: a box the size of its whole drawing, and a ::before one art pixel square at the box's top-left

@@ -2,7 +2,7 @@
   {
     "name": "BR4-landing-title-old-name",
     "file": "index.html",
-    "old": "<title>DFO Online</title>",
+    "old": "<title>Bunnyfall</title>",
     "new": "<title>Daggerfall Enhanced</title>",
     "tests": [
       "test/ui/brand.test.js"
@@ -49,7 +49,7 @@
   {
     "name": "BR4-intro-aria-old-name",
     "file": "src/ui/intro/introScreen.js",
-    "old": "host.setAttribute('aria-label', t('menu.intro.aria', 'DFO Online introduction'));",
+    "old": "host.setAttribute('aria-label', t('menu.intro.aria', 'Bunnyfall introduction'));",
     "new": "host.setAttribute('aria-label', t('menu.intro.aria', 'Daggerfall Enhanced introduction'));",
     "tests": [
       "test/ui/brand.test.js"
@@ -69,7 +69,7 @@
   {
     "name": "BR4-zip-old-name",
     "file": "src/systems/save/saveTransfer.js",
-    "old": "export const TRANSFER_ZIP_NAME = 'DFO-Online-Saves.zip';",
+    "old": "export const TRANSFER_ZIP_NAME = 'Bunnyfall-Saves.zip';",
     "new": "export const TRANSFER_ZIP_NAME = 'DaggerfallEnhanced-Saves.zip';",
     "tests": [
       "test/ui/brand.test.js",

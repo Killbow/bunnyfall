@@ -1149,7 +1149,7 @@ export function drawEnhancedHud(vitals, heading01, dt = 0, opts = {}) {
   // law, and one off the span is hidden rather than clamped to an edge
   // - a marker pinned to the rim says "north is exactly there", which
   // is a lie the classic compass takes care not to tell either.
-  // GRIM3: the heading said on the compass too, so a dress that draws the strip as one picture (DFO Grimoire's - the
+  // GRIM3: the heading said on the compass too, so a dress that draws the strip as one picture (Bunnyfall Grimoire's - the
   // pack's own COMPASS strip in its COMPBOX dome) slides it by the same law
   const hv = (((heading01 % 1) + 1) % 1).toFixed(4);
   if (last.heading !== hv) { last.heading = hv; parts.compass.style.setProperty('--hud-heading', hv); }

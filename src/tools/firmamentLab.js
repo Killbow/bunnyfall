@@ -36,7 +36,7 @@ function lanes() {
   for (const r of [1, 10, 25, 50]) b(`Renown ${r}`, lab.renown === r, () => { lab.renown = r; write(lab); mount(); });
   for (const k of [0, 160, 600, 1000]) b(`${k} ranks`, lab.ranks === k, () => { lab.ranks = k; write(lab); mount(); });
   const grim = params.get('dress') === 'grimoire';
-  b(grim ? 'Enhanced Plus' : 'DFO Grimoire', false, () => { const u = new URL(location.href); u.searchParams.set('dress', grim ? 'none' : 'grimoire'); location.href = u.toString(); });
+  b(grim ? 'Enhanced Plus' : 'Bunnyfall Grimoire', false, () => { const u = new URL(location.href); u.searchParams.set('dress', grim ? 'none' : 'grimoire'); location.href = u.toString(); });
   b('Clear sky', false, () => { lab.tree = ''; write(lab); mount(); });
 }
 mount();

@@ -1,4 +1,4 @@
-# The studio: DFO Online's own art
+# The studio: Bunnyfall's own art
 
 This folder is where the game's artists put their pictures. Drop a PNG in your folder, named for the picture it
 replaces, and the game wears it: on the next load of the dev server, and on the site and the desktop app after the

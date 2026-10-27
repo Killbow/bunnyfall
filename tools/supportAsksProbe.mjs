@@ -36,7 +36,7 @@ import { SUPPORT_ASKS } from '../src/ui/supportAsks.js';
 const BASE = process.env.PROBE_BASE ?? 'http://127.0.0.1:5199';
 const LONG_NAME = 'Wolfgangheimer';   // fourteen letters, the name's own 14ch
 const LONG_LINE = 'Wolfgangheimer the Nightblade · level 30';   // past the 140px the door bounds a caption line at
-const logo = PNG.sync.read(readFileSync(new URL('../src/assets/branding/dfo-online.png', import.meta.url)));
+const logo = PNG.sync.read(readFileSync(new URL('../src/assets/branding/bunnyfall.png', import.meta.url)));
 const opaque = (x, y) => logo.data[(y * logo.width + x) * 4 + 3] > 40;
 
 const results = [];

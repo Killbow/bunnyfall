@@ -1,6 +1,6 @@
 // DIAL-CLASSIC (2026-10-12, Mac: "the arena2 files look for those symbols green should be the skills based on the face of
 // your character youve choosen, blue magic, yellow inventory and red map, make the icons fit to each other sizewise"):
-// under DFO Grimoire the Tab dial's doors wear Daggerfall's own art, read off the player's ARENA2 when the dial rises -
+// under Bunnyfall Grimoire the Tab dial's doors wear Daggerfall's own art, read off the player's ARENA2 when the dial rises -
 // the face the player wears, and the HUD bar's star, sack and scroll cut off their stone (ui/dialClassicArt.js).
 // Photographed at the change over a real ARENA2: every door 76-80 px tall, for each of three Breton faces.
 import { test } from 'node:test';

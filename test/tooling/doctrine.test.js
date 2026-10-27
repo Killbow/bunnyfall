@@ -54,7 +54,7 @@ const PUBLIC_ALLOWLIST = new Map([
   ['src/assets/intro/interkarma.webp', 'U65 credit artwork identifying Interkarma / Daggerfall Unity; recovered unchanged'],
   ['src/assets/intro/nexus.webp', 'U65 credit artwork identifying Nexus Mods; recovered unchanged'],
   ['src/assets/intro/theme.mp3', 'U65 original theme recording; recovered unchanged at Mac\'s request'],
-  ['src/assets/branding/dfo-online.png', 'BR6: Mac\'s supplied DFO Online dragon logo, 2026-10-26 (BR5\'s mark before it), his own file with alpha, cut to its painted bounds and scaled to 1232 x 1034 at his word; no ARENA2 data'],
+  ['src/assets/branding/bunnyfall.png', 'BR6: Mac\'s supplied Bunnyfall dragon logo, 2026-10-26 (BR5\'s mark before it), his own file with alpha, cut to its painted bounds and scaled to 1232 x 1034 at his word; no ARENA2 data'],
   // THE SITE'S PICTURES (U60c) WERE RETIRED with the DA site cleanup
   // (Mac, 2026-08-31): the landing page carries no raster at all now -
   // landing.test.js pins <img> absent - so the three menu screens,
@@ -79,9 +79,9 @@ const PUBLIC_ALLOWLIST = new Map([
   // the GrimoireUI pack ("The screenshot of the parchment is a spritesheet to be used for the loot menu (grimoire
   // UI)"), 106x180, cut at its two gold rules by ui/classicLootPanel.js.
   ['public/art/grimoire-loot-parchment.png', "OURS - Mac's own parchment for the GrimoireUI loot panel (DISC22-C, 2026-09-24); no ARENA2 pixel in it"],
-  ['public/art/grimoire-wood.jpg', "WOOD-HD (2026-10-10): the DFO Grimoire boards' wood, cut from the empty desk beside the book in Mac's own screenshot of the DFO Grimoire character sheet, its light flattened and made seamless; [Mac: record where that build's desk painting came from and its permission here]"],
-  ['public/art/grimoire-desk.jpg', "DESK-HD (2026-10-10): the DFO Grimoire front door's desk as an earlier build drew it, lifted from Mac's own screenshot of that build (\"it looks way better use this one\"), its doors' words and the wordmark taken off; [Mac: record where that build's desk painting came from and its permission here]"],
-  ['public/art/grimoire-dial-chest.png', "GRIM7 (2026-10-10): the treasure chest Dudey supplied for the DFO Grimoire dial's Items door (made with ChatGPT, handed over in the GRIM pass), cut from its dark ground along its outline; no ARENA2 pixel in it"],
+  ['public/art/grimoire-wood.jpg', "WOOD-HD (2026-10-10): the Bunnyfall Grimoire boards' wood, cut from the empty desk beside the book in Mac's own screenshot of the Bunnyfall Grimoire character sheet, its light flattened and made seamless; [Mac: record where that build's desk painting came from and its permission here]"],
+  ['public/art/grimoire-desk.jpg', "DESK-HD (2026-10-10): the Bunnyfall Grimoire front door's desk as an earlier build drew it, lifted from Mac's own screenshot of that build (\"it looks way better use this one\"), its doors' words and the wordmark taken off; [Mac: record where that build's desk painting came from and its permission here]"],
+  ['public/art/grimoire-dial-chest.png', "GRIM7 (2026-10-10): the treasure chest Dudey supplied for the Bunnyfall Grimoire dial's Items door (made with ChatGPT, handed over in the GRIM pass), cut from its dark ground along its outline; no ARENA2 pixel in it"],
   // TEXT-FONT (2026-10-11): the Dyslexic choice of the enhanced skin's Text font (ui/textFont.js) - not art, a typeface
   ['public/fonts/opendyslexic/opendyslexic-latin-400-normal.woff2', "TEXT-FONT: OpenDyslexic (Abbie Gonzalez), SIL Open Font License 1.1 - its latin regular, as @fontsource/opendyslexic 5.3.0 ships it; no ARENA2 pixel in it"],
   ['public/fonts/opendyslexic/opendyslexic-latin-700-normal.woff2', "TEXT-FONT: OpenDyslexic's latin bold, the same package and licence"],

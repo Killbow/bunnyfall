@@ -1,5 +1,5 @@
 // INTRO2: one asset for the title, the front door and its section masthead.
-// BR5 (Mac, 2026-10-11): DFO Online's logo - his own file, with real alpha,
+// BR5 (Mac, 2026-10-11): Bunnyfall's logo - his own file, with real alpha,
 // cut to its painted bounds and nothing else (every pixel inside is his,
 // unchanged; no pixel outside them had any alpha). It draws as it is: no
 // blend mode, because its dark outlines and shadow are the art.
@@ -9,7 +9,7 @@
 // page stays light; it is drawn no wider than 595px.
 import { t } from '../systems/textManager.js';   // L10N4: the mark's alt text in the player's language
 
-export const BRAND_LOGO_URL = new URL('../assets/branding/dfo-online.png', import.meta.url).href;
+export const BRAND_LOGO_URL = new URL('../assets/branding/bunnyfall.png', import.meta.url).href;
 // LOGO-CENTRE (Mac, 2026-10-26: "The main logo is off center"): the file is cut to its paint, and the dragon's wing
 // and tail reach far left of the letters, so a box centred on the page put the WORDMARK right of centre - at 1280 x 720
 // the Online scroll sat about 100 px right of the Tap to continue box under it. The letters at mid-height (the D's bowl
@@ -18,7 +18,7 @@ export const BRAND_LOGO_URL = new URL('../assets/branding/dfo-online.png', impor
 // centre line and the dragon hangs to its left. test/ui/brand.test.js measures it from the file, so the next logo
 // reddens there rather than in a layout. The launcher sets the mark at its left edge and is not moved.
 export const BRAND_LOGO_OPTICAL_SHIFT = 0.1;
-export const BRAND_LOGO_ALT = 'DFO Online';
+export const BRAND_LOGO_ALT = 'Bunnyfall';
 /** L10N4: the alt text a screen reader hears, in the player's language (BRAND_LOGO_ALT stays the English). */
 export const brandLogoAlt = () => t('menu.brand.alt', BRAND_LOGO_ALT);
 

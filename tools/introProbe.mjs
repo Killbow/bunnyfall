@@ -11,7 +11,7 @@ import { MENU_THEME_GAIN } from '../src/systems/introTheme.js';
 
 const out = process.argv[2] ?? 'test-harness/intro';
 // BR5: the logo's own size, off its IHDR - this probe wrote BR4's 2112 x 850 in, and a new mark failed it for that alone
-const LOGO_PNG = readFileSync(new URL('../src/assets/branding/dfo-online.png', import.meta.url));
+const LOGO_PNG = readFileSync(new URL('../src/assets/branding/bunnyfall.png', import.meta.url));
 const LOGO_W = LOGO_PNG.readUInt32BE(16), LOGO_H = LOGO_PNG.readUInt32BE(20);
 mkdirSync(out, { recursive: true });
 const server = await createServer({ server: { port: 5201, strictPort: true }, logLevel: 'error' });

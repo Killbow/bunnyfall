@@ -557,7 +557,7 @@ test('RVN-STARS THE WINDOW: the captain\'s sky window (ui/skyWindow.js) drawing 
     const g = mountRevenantStarsWindow(/** @type {any} */ (gh), { id: r.id, doc: /** @type {any} */ (f.doc) });
     g.hoverAt('g_pact');
     const gtip = gh.children[0].children.find((c) => c.className.includes('fmt-tip'));
-    assert.deepEqual([gtip.children[0].className, gtip.children[0].style.color], ['nm', '#6b3f8f'], 'the mulberry ink under DFO Grimoire');
+    assert.deepEqual([gtip.children[0].className, gtip.children[0].style.color], ['nm', '#6b3f8f'], 'the mulberry ink under Bunnyfall Grimoire');
     f.doc.documentElement.dataset.plusDress = undefined;
     g.unmount();
     // a record no longer sworn: nothing to set

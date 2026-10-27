@@ -1,6 +1,6 @@
 // LOOT-MARKS (2026-10-12, Mac with a player's video: "seeing rarity in the quickloot is quite hard can you make em more
 // visible"): A TIER YOU SEE AT A GLANCE. The quick loot's plaque told a tier only by its name's colour - on Enhanced Plus's
-// dark stone the Aetheric's pale blue stood beside a common's bone, the Rare's gold beside the Gilded's; on DFO Grimoire's
+// dark stone the Aetheric's pale blue stood beside a common's bone, the Rare's gold beside the Gilded's; on Bunnyfall Grimoire's
 // page every tier is deepened into the ink (RARITY_INK) and the Rare, the Legendary and the Gilded read as three browns.
 // Each rolled row now carries its tier twice more: a GEM before its name - a square of the tier's own bright colour
 // (systems/loot/lootRarity.js RARITIES, test/ui/lootmarks1.test.js holds the two tables equal), edged dark so it stands on stone

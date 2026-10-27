@@ -32,7 +32,7 @@ test('DA11 the built site is packed into app.asar, never shipped beside it as lo
   const sets = b.files.filter((f) => typeof f === 'object');
   // DA12: and the game's pad loop, one module beside the launcher's page - into the archive too
   // PIN MOVED: AUDIT BR5 - and the product's logo beside it, the game's own file, which the launcher wears
-  assert.deepEqual(sets, [{ from: '../src/ui/menu', to: 'launcher', filter: ['menuPad.js'] }, { from: '../src/assets/branding', to: 'launcher', filter: ['dfo-online.png'] }, { from: '../dist', to: 'dist' }], 'dist/ rides the app\'s own files - into the archive');
+  assert.deepEqual(sets, [{ from: '../src/ui/menu', to: 'launcher', filter: ['menuPad.js'] }, { from: '../src/assets/branding', to: 'launcher', filter: ['bunnyfall.png'] }, { from: '../dist', to: 'dist' }], 'dist/ rides the app\'s own files - into the archive');
   assert.notEqual(b.asar, false, 'the archive is what makes it one file');
   assert.equal(b.asarUnpack, undefined, 'and nothing is unpacked back out beside it');
   const extra = [b.extraResources, b.extraFiles, b.win?.extraResources, b.linux?.extraResources, b.mac?.extraResources]

@@ -28,14 +28,14 @@
 // before a single dead link goes live.
 'use strict';
 
-const RELEASES_URL = 'https://github.com/Lattymoy/daggerfall-js-source/releases';
+const RELEASES_URL = 'https://github.com/Killbow/bunnyfall/releases';
 
 /** The four files a player downloads, one per way to run the app. */
 const DOWNLOAD_FILES = Object.freeze({
-  winSetup: 'DFO-Online-win-x64-setup.exe',
-  winPortable: 'DFO-Online-win-x64-portable.exe',
-  mac: 'DFO-Online-mac-arm64.dmg',
-  linux: 'DFO-Online-linux-x86_64.AppImage',
+  winSetup: 'Bunnyfall-win-x64-setup.exe',
+  winPortable: 'Bunnyfall-win-x64-portable.exe',
+  mac: 'Bunnyfall-mac-arm64.dmg',
+  linux: 'Bunnyfall-linux-x86_64.AppImage',
 });
 
 /** BR5 (2026-10-11): THE NAMES BEFORE THE RENAME. Every copy built

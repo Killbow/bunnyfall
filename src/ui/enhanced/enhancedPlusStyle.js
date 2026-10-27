@@ -18,7 +18,7 @@ import { CURSOR_CSS } from '../plus/plusCursor.js';   // PLUS7: the gauntlet poi
 import { SIGIL_RUNE_TILE_URL } from '../sigilRune.js';   // SIGIL-UI: the rune in a sigil weapon's tile corner (AUDIT MERGE-PLUS D5: a picture, its outline drawn in)
 import { PROF_ACT_CSS } from '../professions/profActStyle.js';   // PROF-RETICLE: the acts on the crosshair, dressed
 import { PROF_STATION_CSS } from '../professions/profStationStyle.js';   // PROF-STATIONS: the stations' acts, dressed
-import { plusDress, GRIMOIRE_DRESS, mountGrimoireDress } from '../grimoireDress.js';   // GRIM1: the DFO Grimoire dress over the kit
+import { plusDress, GRIMOIRE_DRESS, mountGrimoireDress } from '../grimoireDress.js';   // GRIM1: the Bunnyfall Grimoire dress over the kit
 import { mountTextFont } from '../textFont.js';   // TEXT-FONT: the words' face and the names'
 
 export const PLUS_STYLE_ID = 'enhanced-plus-style';
@@ -944,7 +944,7 @@ export const TECH_BLOCK_CSS = `.techbox { --tech: #59c7ff; --tech-hi: #c4ecff; -
 .inv-tip.tip-tight .techbox.compact p.tech-effect, .pack-shell .packtip.packdetail .card.card-tight .techbox.compact p.tech-effect { margin: 0; }`;
 /** AUDIT LOCKPICK C1 (bible/06-Systems/Lockpicking.md section 4): THE LOCK'S WINDOW (ui/lockpickWindow.js) - the layout
  *  alone; the kit dresses its frame, header, well, presses and chips by role (ui/enhanced/enhancedFrame.js FRAME_ROLES), so a
- *  Plus colour and the DFO Grimoire dress repaint it as they repaint the Broker. The classic skin lays it with the kit cut
+ *  Plus colour and the Bunnyfall Grimoire dress repaint it as they repaint the Broker. The classic skin lays it with the kit cut
  *  to its own selectors (lockpickWindow.js lockSkinCss), as AUDIT SET U1 laid the Broker's. */
 export const LOCK_CSS = `/* ── LOCKPICK: THE LOCK'S WINDOW (ui/lockpickWindow.js) - the tumblers in cross-section over a stone window; the kit
    dresses it (FRAME_ROLES), this is the layout and the words' ink ── */

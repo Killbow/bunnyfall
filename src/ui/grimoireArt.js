@@ -13,7 +13,7 @@
 // repeats, its seam is crossed by an ordered dither (each pixel is the picture's or its shifted twin's, never a blend of
 // the two), so a repeat is as hard-edged as the picture itself.
 //
-// DFO Grimoire is the enhanced skin (every Plus window and feature: the hotbar, the camps and their tents, the rest, the
+// Bunnyfall Grimoire is the enhanced skin (every Plus window and feature: the hotbar, the camps and their tents, the rest, the
 // sounds) dressed in GrimoireUI's own parchment, wood and red - and those materials are the PACK'S, cut at run time out
 // of the very pictures it shipped (public/art/grimoire-ui/, vendor/grimoire-ui/). Nothing new is committed: no raster
 // of ours, no re-saved crop - a crop table here, a canvas in the browser, and data URLs on the page's root as custom
@@ -105,7 +105,7 @@ export const GRIMOIRE_SIZES = Object.freeze({
   MAP100I0: [1200, 750], OPTN00I0: [572, 322],
 });
 /** A crop's size on the game's grid - what the dress multiplies by `--gp`. */
-/** WOOD-HD (2026-10-10, Mac: "can every board wood background in DFO Grimoire UI in ALL windows and frames look like
+/** WOOD-HD (2026-10-10, Mac: "can every board wood background in Bunnyfall Grimoire UI in ALL windows and frames look like
  *  this that has that blurred wood?"): the boards' wood is the Ascend's own soft desk wood - even planks, no pixel
  *  blocks - cut from Mac's screenshot of that sheet, its light flattened and made seamless (public/art/grimoire-wood.jpg,
  *  301 x 567; its doctrine row in test/tooling/doctrine.test.js). On the game's grid it is 100 x 189: at the usual three screen

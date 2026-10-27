@@ -21,7 +21,7 @@ const L = require('../../app/lib/launcherState.cjs');
 const rd = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
 test('DA12: --play goes past the launcher only when there is nothing to ask', () => {
-  const exe = ['C:\\Games\\DFO Online\\DFO Online.exe'];
+  const exe = ['C:\\Games\\Bunnyfall\\Bunnyfall.exe'];
   const play = [...exe, '--play'];
   assert.equal(L.PLAY_SWITCH, '--play');
   // no switch: the launcher, whatever is configured

@@ -493,7 +493,7 @@
   {
     "name": "DA13-50-not-measured",
     "file": ".github/workflows/release-desktop.yml",
-    "old": "            node scripts/desktopRelease.mjs delta previous/DFO-Online-game.json.gz release/DFO-Online-game.json.gz \"$PREV\"\n",
+    "old": "            node scripts/desktopRelease.mjs delta previous/Bunnyfall-game.json.gz release/Bunnyfall-game.json.gz \"$PREV\"\n",
     "new": "",
     "tests": [
       "test/tooling/da13_gamechannel.test.js"

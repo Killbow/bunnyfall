@@ -1,7 +1,7 @@
 {
-  "name": "DFO Online",
-  "short_name": "DFO",
-  "description": "An open-source reimplementation of a classic 1996 RPG, played from your own copy of The Elder Scrolls II: Daggerfall.",
+  "name": "Bunnyfall",
+  "short_name": "Bunnyfall",
+  "description": "Daggerfall online with friends, in your browser.",
   "start_url": "./play/",
   "scope": "./",
   "display": "fullscreen",

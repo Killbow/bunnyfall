@@ -3,7 +3,7 @@
 // Grimoire dress), and draws each window through its REAL painter and model - the breach's panel at a rest (a Vestige offer,
 // a decree's choice and a respite open), its recap, the boards, the start window in a company of three, and the call's
 // tracker - at a desktop and an upright phone, and reads what a fake document cannot:
-//   - the FACE: every window's words in the game's pixel face (the dress's own under DFO Grimoire), never the serif the
+//   - the FACE: every window's words in the game's pixel face (the dress's own under Bunnyfall Grimoire), never the serif the
 //     breach's sheets wrote before;
 //   - the KIT: each window's carved frame (the kit's border-image) on Plus and on the classic skin;
 //   - the FIT: each window on the screen, nothing in it wider than it;

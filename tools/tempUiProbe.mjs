@@ -3,7 +3,7 @@
 // The REAL HUD (ui/enhanced/enhancedHud.js over the real sheets, the enhanced skin) under a character reading freezing, then
 // comfortable, then scorching, beside the quest card (.qtrack, the right edge 92px down), a foe's bar under the compass
 // and the status widget at the left edge - at a desktop, two laptops, HUD scales 1.5 and 2, and a phone both ways up -
-// in Enhanced Plus and in the DFO Grimoire dress. For each it reads:
+// in Enhanced Plus and in the Bunnyfall Grimoire dress. For each it reads:
 //   - THE PLATE STANDS: shown, wholly on the screen, (UI-CALM) in the bottom-left corner - the quick block's caption;
 //   - NOTHING MET: it meets none of the quest card, the foe's bar, the status widget or the compass's own strip;
 //   - IT SAYS IT: the number and the word the reading has (the phone the number alone, and a screen where the whole

@@ -57,11 +57,11 @@ test('U60: the root document is a page about the game, and the game is at /play/
   // wordmark, under a whitelist of one; BR3 (Mac, 2026-09-14: "revert the
   // logo to the original Daggerfall Enhanced text") took it out again.
   // AUDIT BR5 (Mac, 2026-10-11: "Use the new logo") brings the whitelist of
-  // one back for the product's own logo, DFO Online's: the wordmark is that
+  // one back for the product's own logo, Bunnyfall's: the wordmark is that
   // picture and nothing else is one. It is the GAME's own file, which the
   // build carries for the front door already - one copy, so public/brand/
   // stays untracked and the site cannot show a logo the game does not.
-  const LOGO = '<h1 class="wordmark"><img src="./src/assets/branding/dfo-online.png" alt="DFO Online" width="1232" height="1034" /></h1>';
+  const LOGO = '<h1 class="wordmark"><img src="./src/assets/branding/bunnyfall.png" alt="Bunnyfall" width="1232" height="1034" /></h1>';
   assert.equal(landing.split(LOGO).length, 2, 'the wordmark is the product\'s logo, once');
   const drawn = landing.replace(LOGO, '').replace(/url\(data:font\/woff2;base64,[A-Za-z0-9+/=]+\)/g, '');
   assert.doesNotMatch(drawn, /<img\s|<canvas|<video|<picture|url\(/i, 'beyond the logo, the landing page draws nothing but CSS');

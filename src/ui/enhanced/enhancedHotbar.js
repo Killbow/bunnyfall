@@ -1130,7 +1130,7 @@ const CROSSBAR_CSS = `
  *  from .hud-quick (smaller on phones), and the phone size under a window.
  *  Rim colours come from variables a dress sets on .hb, the way it dressed the old diamond's rim: --gem-rim,
  *  --gem-rim-empty, --gem-rim-active, --gem-rim-strike (ui/enhanced/enhancedFrame.js for Plus, ui/grimoireDress.js
- *  for DFO Grimoire). A rarity tier uses the old diamond's tier gradient. */
+ *  for Bunnyfall Grimoire). A rarity tier uses the old diamond's tier gradient. */
 const GEM_RING = 'polygon(evenodd, 50% 0, 100% 50%, 50% 100%, 0 50%, 50% 0, 50% 3px, 3px 50%, 50% calc(100% - 3px), calc(100% - 3px) 50%, 50% 3px)';
 const GEM_CSS = `
 .hb.hb-gem .hb-slot { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); box-shadow: none; }

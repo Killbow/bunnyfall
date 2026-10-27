@@ -14,7 +14,7 @@
 //   Drag pans, the wheel (or a pinch) zooms, F finds your sign, the search lights every star whose words match.
 //
 // TWO DRESSES, ONE WINDOW. Its frames are the stone-and-brass kit's roles (ui/enhanced/enhancedFrame.js FRAME_ROLES: the bar a
-// window, the tip and the side panels, the presses buttons), so Enhanced Plus carves them and DFO Grimoire turns them into
+// window, the tip and the side panels, the presses buttons), so Enhanced Plus carves them and Bunnyfall Grimoire turns them into
 // its pages and planks with no rule of this file's. The SKY is a canvas, and reads the dress itself: on Plus a night of
 // brass and gold over a dithered dark; under the Grimoire a star-chart inked on the page - brown ink, red for what is held,
 // gold leaf on a held star's rim - drawn at half resolution and laid pixelated, as every surface of the dress is.
@@ -60,7 +60,7 @@ export const PLUS_SKY = Object.freeze({
   text: '#e9e4d9', textDim: '#9a9486', textLit: F.brassHi, search: '#72f0d8', refuse: '#cf4a3a', figure: 'rgba(194,183,154,0.11)',
   plate: 'rgba(233,228,217,0.3)', halo: 'rgba(6,8,12,0.92)',
 });
-/** ...and under DFO Grimoire: a chart inked on the page. */
+/** ...and under Bunnyfall Grimoire: a chart inked on the page. */
 export const GRIM_SKY = Object.freeze({
   ground0: G.cream, ground1: G.tan, haze: 'rgba(91,59,31,0.06)', star: G.inkFaint,
   edge: 'rgba(91,59,31,0.55)', edgeLit: G.red, edgePath: 'rgba(181,36,24,0.45)', edgeLife: 'rgba(44,90,42,0.5)', edgeLifeLit: G.red,
@@ -70,7 +70,7 @@ export const GRIM_SKY = Object.freeze({
   text: G.ink, textDim: G.inkSoft, textLit: G.redDeep, search: '#1f4f9e', refuse: G.redHi, figure: 'rgba(91,59,31,0.16)',
   plate: 'rgba(43,26,12,0.4)', halo: 'rgba(239,220,174,0.95)',
 });
-/** Whether the page wears DFO Grimoire. */
+/** Whether the page wears Bunnyfall Grimoire. */
 const grimoireWorn = (doc) => doc?.documentElement?.dataset?.plusDress === 'grimoire';
 
 /** A star's drawn radius, in tree units, by kind. */
@@ -156,7 +156,7 @@ export const FIRM_CSS = `
   .fmt-bar h2 { font-size: 20px; }
   .fmt-find { width: 110px; }
 }
-/* DFO Grimoire: the words in its face and ink - the frames are the kit's, which the dress repaints */
+/* Bunnyfall Grimoire: the words in its face and ink - the frames are the kit's, which the dress repaints */
 :root[data-plus-dress="grimoire"] .fmt-root { font-family: ${GRIMOIRE_STACK}; }
 :root[data-plus-dress="grimoire"] .fmt-bar h2 { font-family: ${GRIMOIRE_STACK}; color: ${G.redDeep}; font-size: 32px; }
 :root[data-plus-dress="grimoire"] .fmt-tip .nm, :root[data-plus-dress="grimoire"] .fmt-side h3, :root[data-plus-dress="grimoire"] .fmt-confirmbox h3 { color: ${G.red}; font-family: ${GRIMOIRE_STACK}; }
@@ -170,7 +170,7 @@ export const FIRM_CSS = `
 :root[data-plus-dress="grimoire"] .fmt-tip li.neg, :root[data-plus-dress="grimoire"] .fmt-side li.neg, :root[data-plus-dress="grimoire"] .fmt-tip .ft.no { color: ${G.redHi}; }
 :root[data-plus-dress="grimoire"] .fmt-say { font-family: ${GRIMOIRE_STACK}; }
 /* THE SCROLLS (the lead dev, 2026-10-13: "give the tooltips when hovering a scroll look the upper message also a scroll
-   look"; "dont use a scroll tooltip for enhanced plus"): under the DFO Grimoire a star's card and the word under the bar
+   look"; "dont use a scroll tooltip for enhanced plus"): under the Bunnyfall Grimoire a star's card and the word under the bar
    are written on a little scroll, its wooden rods down the sides - once its art is read, the pack's own (REPR01I0, the
    item scroll the shelves hold out - grimoireDress.js THE ITEM SCROLLS); until then, this one. Enhanced Plus keeps its
    stone panels. */

@@ -139,7 +139,7 @@ export function codesOf(d) {
  *  numbered as the card numbers them. */
 export function recoveryCodesText(handle, codes) {
   return [
-    t('account.codes.fileHead', 'DFO Online recovery codes for {name}', { name: handle || '?' }),
+    t('account.codes.fileHead', 'Bunnyfall recovery codes for {name}', { name: handle || '?' }),
     t('account.codes.fileNote', 'Each code works once, if you forget your password. Keep this file somewhere safe.'),
     '',
     ...codes.map((c, i) => `${i + 1}. ${c}`),

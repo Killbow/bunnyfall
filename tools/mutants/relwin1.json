@@ -2,8 +2,8 @@
   {
     "name": "REL2-portable-shares-the-installer-name",
     "file": "app/package.json",
-    "old": "      \"artifactName\": \"DFO-Online-win-${arch}-portable.${ext}\"",
-    "new": "      \"artifactName\": \"DFO-Online-win-${arch}-setup.${ext}\"",
+    "old": "      \"artifactName\": \"Bunnyfall-win-${arch}-portable.${ext}\"",
+    "new": "      \"artifactName\": \"Bunnyfall-win-${arch}-setup.${ext}\"",
     "tests": [
       "test/tooling/relwin1.test.js"
     ],
@@ -12,7 +12,7 @@
   {
     "name": "REL2-portable-falls-back-to-the-one-name",
     "file": "app/package.json",
-    "old": "    \"portable\": {\n      \"artifactName\": \"DFO-Online-win-${arch}-portable.${ext}\"\n    },",
+    "old": "    \"portable\": {\n      \"artifactName\": \"Bunnyfall-win-${arch}-portable.${ext}\"\n    },",
     "new": "    \"portable\": {},",
     "tests": [
       "test/tooling/relwin1.test.js"

@@ -6,7 +6,7 @@
 //
 // WHAT WAS WRONG. Each laid a sheet of its own in Cormorant or Georgia, with hand-picked browns and rounded corners - the
 // look CARDS-PLUS took off the card tables (ui/card/cardPanelKit.js) - so the kit (ui/enhanced/enhancedFrame.js
-// FRAME_ROLES) named none of their surfaces, the Plus themes and DFO Grimoire never reached them, the pixel face never
+// FRAME_ROLES) named none of their surfaces, the Plus themes and Bunnyfall Grimoire never reached them, the pixel face never
 // reached a word, and the start window was a bare list of text rows with its party's marks spelt "[+x]".
 //
 // THE DRESS NOW, the card tables' own:
@@ -19,7 +19,7 @@
 //     brass, a choice a tile (the one taken brass), a readout a chip, a board's line an engraved row;
 //   - on Enhanced Plus the kit is on the page already; on the classic skin `dressEgKit` lays the kit's rules cut to these
 //     selectors (scopeRules - the Broker's, the naval readout's and the card tables' answer) and asks for the face, so a
-//     breach reads the same whichever UI Overhaul is worn; under DFO Grimoire the roles are what the dress repaints and
+//     breach reads the same whichever UI Overhaul is worn; under Bunnyfall Grimoire the roles are what the dress repaints and
 //     inks (ui/grimoireDress.js INK_ROOTS, WOOD_ROOTS).
 //
 // Not a DFU member: Daggerfall Unity has no Elite Breach. Ledger A (ELITE-GATES).

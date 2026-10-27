@@ -76,24 +76,24 @@
   {
     "name": "REL5-1-the-version-is-back-in-the-installer-name",
     "file": "app/package.json",
-    "old": "      \"artifactName\": \"DFO-Online-win-${arch}-setup.${ext}\",\n",
-    "new": "      \"artifactName\": \"DFO-Online-${version}-win-${arch}-setup.${ext}\",\n",
+    "old": "      \"artifactName\": \"Bunnyfall-win-${arch}-setup.${ext}\",\n",
+    "new": "      \"artifactName\": \"Bunnyfall-${version}-win-${arch}-setup.${ext}\",\n",
     "tests": ["test/tooling/rel4_release.test.js", "test/tooling/relwin1.test.js"],
     "note": "Every releases/latest/download link to the installer would 404 from the next release on. BR5 (re-aimed by content): the name, its file form and the legal date moved."
   },
   {
     "name": "REL5-2-the-promise-and-the-build-disagree",
     "file": "app/lib/downloads.cjs",
-    "old": "  mac: 'DFO-Online-mac-arm64.dmg',\n",
-    "new": "  mac: 'DFO-Online-mac-x64.dmg',\n",
+    "old": "  mac: 'Bunnyfall-mac-arm64.dmg',\n",
+    "new": "  mac: 'Bunnyfall-mac-x64.dmg',\n",
     "tests": ["test/tooling/rel4_release.test.js"],
     "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
   },
   {
     "name": "REL5-3-the-site-links-a-name-the-release-does-not-carry",
     "file": "index.html",
-    "old": "releases/latest/download/DFO-Online-mac-arm64.dmg\">macOS",
-    "new": "releases/latest/download/DFO-Online-0.1.4684-mac-arm64.dmg\">macOS",
+    "old": "releases/latest/download/Bunnyfall-mac-arm64.dmg\">macOS",
+    "new": "releases/latest/download/Bunnyfall-0.1.4684-mac-arm64.dmg\">macOS",
     "tests": ["test/tooling/rel4_release.test.js"],
     "note": "A dead Download on the front page from the next release on. BR5 (re-aimed by content): the name, its file form and the legal date moved."
   },

@@ -33,7 +33,7 @@ export const SNAP_PX = 8;
 export const HUD_PIECES = Object.freeze([
   // the gameplay HUD
   // TURN1 (Dudey: "let the players rotate the compass with alt + u"): `turn` - the piece can be turned over in the editor
-  // (its own press, beside the X); a dress that draws a compass with a top and a bottom (DFO Grimoire's, hung from the
+  // (its own press, beside the X); a dress that draws a compass with a top and a bottom (Bunnyfall Grimoire's, hung from the
   // screen's top) stands it up again when it is turned. The flag rides the piece's layout and Reset clears it
   { id: 'compass', sel: '.hud .hud-compass', name: 'Compass', len: true, turn: true },
   // AUDIT C&C S3: the temperature plate stands INSIDE another piece in the page but is its own piece, as the status

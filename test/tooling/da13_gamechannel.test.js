@@ -431,7 +431,7 @@ test('DA13: the launcher - the game\'s download held before play like an install
   // and the game's HUD says what to do with one: it plays from the next start - true of the installer's update as well
   return import('../../src/systems/shellUpdates.js').then(({ updateReadyText }) => {
     assert.equal(updateReadyText({ version: '0.1.11', manual: false }),
-      'DFO Online 0.1.11 is ready. It runs the next time you start, or now from File > Restart to Update. Save first.');
+      'Bunnyfall 0.1.11 is ready. It runs the next time you start, or now from File > Restart to Update. Save first.');
     assert.doesNotMatch(updateReadyText({ version: '0.1.11', manual: false }), /installs/, 'nothing installs when the channel brought it');
   });
 });
@@ -508,7 +508,7 @@ test('DA13: a readied version is switched to only by a navigation that can commi
 
 test('DA13: the release pipeline - one shell id, the bundled game indexed in every installer, the pack cut once beside them, and the publish step that fails an update that is no longer per file', () => {
   // the shell is app/ and what its build takes from outside it - derived from the build config, never a list to forget
-  assert.deepEqual(shellInputs(), ['app', 'public/icons/icon-512.png', 'src/ui/menu/menuPad.js', 'src/assets/branding/dfo-online.png']);
+  assert.deepEqual(shellInputs(), ['app', 'public/icons/icon-512.png', 'src/ui/menu/menuPad.js', 'src/assets/branding/bunnyfall.png']);
   assert.deepEqual(shellInputs({ build: { files: [{ from: '../src/x', to: 'y', filter: ['a.js'] }, { from: '../dist', to: 'dist', filter: ['x.js'] }, 'lib/**'] } }), ['app', 'src/x/a.js'], 'the game is the channel\'s, never the shell\'s');
   const objects = { 'HEAD:app': 't1', 'HEAD:src/x/a.js': 'b1' };
   const id = shellId((args) => objects[args[1]], 'HEAD', ['app', 'src/x/a.js']);
@@ -527,10 +527,10 @@ test('DA13: the release pipeline - one shell id, the bundled game indexed in eve
   assert.ok(JSON.parse(rd('app/package.json')).build.files.includes('game-seed.json'), 'and electron-builder packs it into the shell');
   assert.match(rd('.gitignore'), /\napp\/game-seed\.json\n/, 'never committed');
   assert.match(build, /- name: Pack the game\n\s+if: needs\.version\.outputs\.tag != '' && matrix\.os == 'ubuntu-latest'\n\s+shell: bash\n[\s\S]*?run: node scripts\/desktopRelease\.mjs pack dist app\/release\n/, 'cut once, by one leg');
-  assert.match(build, /app\/release\/DFO-Online-game\.\*\n/, 'and handed on with the installers');
+  assert.match(build, /app\/release\/Bunnyfall-game\.\*\n/, 'and handed on with the installers');
   const publish = wf.slice(wf.indexOf('\n  publish:\n'));
   const delta = publish.slice(publish.indexOf('- name: The game\'s update is the files that changed'), publish.indexOf('- name: Write the notes'));
-  assert.match(delta, /node scripts\/desktopRelease\.mjs delta previous\/DFO-Online-game\.json\.gz release\/DFO-Online-game\.json\.gz "\$PREV"/);
+  assert.match(delta, /node scripts\/desktopRelease\.mjs delta previous\/Bunnyfall-game\.json\.gz release\/Bunnyfall-game\.json\.gz "\$PREV"/);
   assert.ok(publish.indexOf('- name: The set is whole') < publish.indexOf('- name: The game\'s update is the files that changed')
     && publish.indexOf('- name: The game\'s update is the files that changed') < publish.indexOf('- name: Stage the release as a draft'), 'measured before anything is staged');
   // the judgement: most of the game again, or a shell id that moved with no shell file changed, fails the release

@@ -92,7 +92,7 @@ test('UI-CALM the corner and the quiet HUD: the temperature plate the bottom-lef
   assert.deepEqual([row.group, row.control.key, row.control.initial, row.control.online], ['interface', 'hudCalm', true, 'player']);
 });
 
-test('UI-CALM the windows read: the quiet ink a step lighter and the type floor at 12px under Plus, every colour Plus\'s alone (DFO Grimoire inks its own pages); the sheet laid after Plus\'s; the Stable\'s look a selector, behind a small press; Begin your life the wizard\'s action bar\'s; the class list in Daggerfall\'s three ways with each class\'s profile (mutants: UICALM-sheet-not-laid, UICALM-coat-presses)', () => {
+test('UI-CALM the windows read: the quiet ink a step lighter and the type floor at 12px under Plus, every colour Plus\'s alone (Bunnyfall Grimoire inks its own pages); the sheet laid after Plus\'s; the Stable\'s look a selector, behind a small press; Begin your life the wizard\'s action bar\'s; the class list in Daggerfall\'s three ways with each class\'s profile (mutants: UICALM-sheet-not-laid, UICALM-coat-presses)', () => {
   assert.equal(P, ':root:not([data-plus-dress="grimoire"])');
   assert.match(UI_CALM_CSS, new RegExp(`\\${P.replace(/[[\]().]/g, (c) => `\\${c}`)} \\{ --dim: #b9b2a1; \\}`));
   assert.equal(CALM_INK.quiet, '#bdb4a0');
@@ -132,7 +132,7 @@ test('UI-CALM the windows read: the quiet ink a step lighter and the type floor 
   assert.match(rd('src/ui/enhanced/enhancedChargen.js'), /stageSecondary = \{ label: 'Start over',/);
 });
 
-test('UI-CALM II the walk polished (a player: "cheap letters, overlapping, dotted lines everywhere, the highlighting of words is bad, the summary board looks cut off"): the map\'s names are plates over it, moved off one another, the unchoosable one first; a confirm card scrolls its words and keeps its presses; no dotted rule left in DFO Grimoire; Settings and Overhauls in the foot\'s box; a refused Firmament read says so (mutants: UICALM-labels-stay-crossed, UICALM-inert-holds-its-place, UICALM-links-back-on-the-book, UICALM-firm-silent, UICALM-list-scrolls-again)', () => {
+test('UI-CALM II the walk polished (a player: "cheap letters, overlapping, dotted lines everywhere, the highlighting of words is bad, the summary board looks cut off"): the map\'s names are plates over it, moved off one another, the unchoosable one first; a confirm card scrolls its words and keeps its presses; no dotted rule left in Bunnyfall Grimoire; Settings and Overhauls in the foot\'s box; a refused Firmament read says so (mutants: UICALM-labels-stay-crossed, UICALM-inert-holds-its-place, UICALM-links-back-on-the-book, UICALM-firm-silent, UICALM-list-scrolls-again)', () => {
   // two names over one point: moved apart, up and down, the same way they lean, and inside the map
   const a = untangleLabels([{ x: 100, y: 50, w: 80, h: 20 }, { x: 110, y: 52, w: 80, h: 20 }], { width: 400, height: 200 });
   assert.ok(Math.abs(a[0].y - a[1].y) >= 24 - 1e-9, 'apart by their heights and the gap');
@@ -156,7 +156,7 @@ test('UI-CALM II the walk polished (a player: "cheap letters, overlapping, dotte
   assert.match(css, /\.wizard \.stagebody > \.list \{ align-self: start; max-height: none; overflow: visible; \}/, 'no scroll bar of a list that fits');
   assert.match(css, /border: 2px solid transparent; border-image: url\("data:image\/svg\+xml,/, 'the list wears the windows\' frame under Plus');
   assert.match(css, /\.wizard \.list \.row\.on, \.wizard \.skillpane \.row\.on \{ outline: none; \}/);
-  // DFO Grimoire: no dotted rule, and the heading's rule a plain line
+  // Bunnyfall Grimoire: no dotted rule, and the heading's rule a plain line
   const grim = rd('src/ui/grimoireDress.js');
   assert.doesNotMatch(grim, /\dpx dotted |-style: dotted/, 'no dotted rule');
   assert.doesNotMatch(grim, /border-image: \$\{v\('rule'\)\}/, 'the stroke with dotted ends is not drawn');

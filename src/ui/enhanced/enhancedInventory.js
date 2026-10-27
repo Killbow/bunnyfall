@@ -3230,7 +3230,7 @@ function goldField() {
   form.append(input);
   // GOLD-ALL: the verb stacked over its "all" - the typed amount's press made small, and under it the press that
   // moves the whole purse (planDropGold clamps it to what the wagon or the pack beside it can still hold, and says
-  // so). Both are the kit's `.act`, so Enhanced Plus and the DFO Grimoire dress paint them as every other press.
+  // so). Both are the kit's `.act`, so Enhanced Plus and the Bunnyfall Grimoire dress paint them as every other press.
   const verb = GOLD_VERB[remote?.kind] ?? 'Drop';
   const acts = el('div', 'goldacts');
   const go = el('button', 'act primary goldgo', verb);   // GOLD-DROP: named for where it goes

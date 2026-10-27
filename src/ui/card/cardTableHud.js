@@ -207,7 +207,7 @@ const SLIDER_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 
  *  role it stands in. AUDIT CARDS-PLUS C3/C4: an edge here is a width and a style, never a colour (the pot's
  *  `border:2px solid` outweighed the kit's chip and painted it brass); the board wraps its pot under the river's five
  *  cards on a phone; the panel scrolls inside the screen's height - the chrome's, both panels' (six seats and a log, or a
- *  landscape phone's touch-sized presses, stood its title and its fold off the top - B2). A theme or the DFO Grimoire
+ *  landscape phone's touch-sized presses, stood its title and its fold off the top - B2). A theme or the Bunnyfall Grimoire
  *  dress that repaints a seat's role re-says its states in its own colours (B1, B7). */
 export const CARD_TABLE_CSS = `
 ${PIXELIFY_FIVE_FACE}

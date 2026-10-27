@@ -51,7 +51,7 @@ export const plusDress = (search) => {
   const id = url === GRIMOIRE_DRESS || url === 'none' ? url : getPref('plusDress');
   return id === GRIMOIRE_DRESS ? GRIMOIRE_DRESS : 'none';
 };
-/** The DFO Grimoire card's own choices - the page the windows are written on and what the front door stands on. */
+/** The Bunnyfall Grimoire card's own choices - the page the windows are written on and what the front door stands on. */
 export const GRIMOIRE_PAGES = Object.freeze({ cream: 'Cream page', scroll: 'Tan scroll' });
 export const GRIMOIRE_BACKDROPS = Object.freeze({ desk: 'The desk', map: 'The map' });
 /** The vitals: the pack's three vials standing in the corner as Daggerfall stands its bars, or lying in a row under

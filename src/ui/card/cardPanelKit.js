@@ -24,7 +24,7 @@
 //   - on Enhanced Plus the kit is on the page already (the Plus sheet, its colours with it); on the classic skin
 //     `dressCardPanel` lays the kit's rules cut to the panels' selectors (scopeRules - AUDIT SET U1's answer, the
 //     Broker's and the naval readout's) and asks for the face, so a table reads the same whichever UI Overhaul is worn;
-//     under the DFO Grimoire dress the roles are what the dress repaints and the face is re-said in its own.
+//     under the Bunnyfall Grimoire dress the roles are what the dress repaints and the face is re-said in its own.
 //
 // Not a DFU member: Daggerfall Unity has no card games. Ledger A row (TAVERN CARDS).
 import { frameCss, scopeRules, FRAME_TONES } from '../enhanced/enhancedFrame.js';

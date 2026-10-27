@@ -98,7 +98,7 @@ async function landing(label, ctxOpts) {
     alt: e.alt, inWordmark: !!e.closest('h1.wordmark'), loaded: e.complete && e.naturalWidth > 0 && e.naturalWidth === Number(e.getAttribute('width')),
   })));
   check(`${label}: the page's one picture is the logo, as its wordmark, loaded`,
-    pics.length === 1 && pics[0].inWordmark && pics[0].loaded && pics[0].alt === 'DFO Online', JSON.stringify(pics));
+    pics.length === 1 && pics[0].inWordmark && pics[0].loaded && pics[0].alt === 'Bunnyfall', JSON.stringify(pics));
   const strip = await page.locator('.foot .stat').evaluateAll((els) => els.map((e) => e.textContent));
   check(`${label}: the foot carries two figures`, strip.length === 2 && strip.every((t) => /^[\d,]{4,}$/.test(t)), strip.join(' / '));
   // The door's three: Play into the browser, Install onto the desk, Discord for the people (DISC1).
@@ -109,7 +109,7 @@ async function landing(label, ctxOpts) {
     && plaques[1][0] === 'Install' && plaques[1][1] === '#desktop' && plaques[2][0] === 'Discord', JSON.stringify(plaques));
   const downloads = await page.locator('#desktop + dd .dl a').evaluateAll((els) => els.map((e) => [e.textContent, e.getAttribute('href')]));
   check(`${label}: Install lands on three direct downloads`,
-    downloads.length === 3 && downloads.every(([, h]) => /\/releases\/latest\/download\/DFO-Online-[\w-]+\.(exe|dmg|AppImage)$/.test(h)), JSON.stringify(downloads));
+    downloads.length === 3 && downloads.every(([, h]) => /\/releases\/latest\/download\/Bunnyfall-[\w-]+\.(exe|dmg|AppImage)$/.test(h)), JSON.stringify(downloads));
   // SUPPORT1: the asks - the addresses, the order, the marks the game draws, a thumb's target, gold under the pointer
   const asks = await page.locator('.asks a.ask').evaluateAll((els) => els.map((e) => {
     const mark = e.querySelector('.supmark'), b = e.getBoundingClientRect(), m = mark?.getBoundingClientRect();

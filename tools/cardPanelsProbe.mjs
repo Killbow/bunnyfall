@@ -3,7 +3,7 @@
 // Iliac Hand's (ui/iliacTableHud.js) through their REAL painters with their real models - Iliac Hand's setup (a friendly
 // game), a turn with a card picked and one staged, a game's end; Hold'em's buy-in at a gold table, a hand at the flop
 // with four chairs, a full table's river and its showdown - on the three looks a player can wear (Enhanced Plus, the
-// classic skin, the DFO Grimoire dress) at a desktop, a short window, two upright phones and a phone on its side under
+// classic skin, the Bunnyfall Grimoire dress) at a desktop, a short window, two upright phones and a phone on its side under
 // a finger (AUDIT CARDS-PLUS C5), and reads what a fake document cannot:
 //   - the FACE: the panel's words, its title and its presses in the game's pixel face (the dress's own under the
 //     Grimoire dress) - CARDS4 and CARDS10 wrote Georgia, serif over them;

@@ -363,13 +363,13 @@ const LAUNCHER_URL = 'dagger://launcher/index.html';
 // launcher's page (package.json build.files) and read from the source tree when the shell runs unpacked.
 const MENU_PAD = app.isPackaged ? path.join(LAUNCHER_DIR, 'menuPad.js') : path.join(__dirname, '..', 'src', 'ui', 'menu', 'menuPad.js');
 // AUDIT BR5: the launcher's wordmark is the product's logo, and the logo is the GAME's own file
-// (src/assets/branding/dfo-online.png, BR5) - packed beside the launcher's page as the pad module is and read from
+// (src/assets/branding/bunnyfall.png, BR5) - packed beside the launcher's page as the pad module is and read from
 // the source tree unpacked, so the launcher can never draw a logo the game does not.
-const LAUNCHER_LOGO = app.isPackaged ? path.join(LAUNCHER_DIR, 'dfo-online.png') : path.join(__dirname, '..', 'src', 'assets', 'branding', 'dfo-online.png');
+const LAUNCHER_LOGO = app.isPackaged ? path.join(LAUNCHER_DIR, 'bunnyfall.png') : path.join(__dirname, '..', 'src', 'assets', 'branding', 'bunnyfall.png');
 async function serveLauncherFile(parts) {
   const p = parts.length === 1 && parts[0] === 'menuPad.js'
     ? MENU_PAD
-    : parts.length === 1 && parts[0] === 'dfo-online.png'
+    : parts.length === 1 && parts[0] === 'bunnyfall.png'
       ? LAUNCHER_LOGO
       : path.normalize(path.join(LAUNCHER_DIR, parts.length ? parts.join('/') : 'index.html'));
   if (p !== MENU_PAD && p !== LAUNCHER_LOGO && !p.startsWith(LAUNCHER_DIR + path.sep)) return new Response('forbidden', { status: 403 });
@@ -467,9 +467,9 @@ function handleDagger(req) {
 // check's own request - asked beside it at launch, under its two gates -
 // and its answer is kept in news.json, so the panel is never empty while
 // the next one is asked for, or when GitHub does not answer.
-const RELEASES_LATEST_API = 'https://api.github.com/repos/Lattymoy/daggerfall-js-source/releases/latest';
-const RELEASES_LIST_API = 'https://api.github.com/repos/Lattymoy/daggerfall-js-source/releases?per_page=20';
-const RELEASES_PAGE = 'https://github.com/Lattymoy/daggerfall-js-source/releases/latest';
+const RELEASES_LATEST_API = 'https://api.github.com/repos/Killbow/bunnyfall/releases/latest';
+const RELEASES_LIST_API = 'https://api.github.com/repos/Killbow/bunnyfall/releases?per_page=20';
+const RELEASES_PAGE = 'https://github.com/Killbow/bunnyfall/releases/latest';
 const { isNewerRelease } = require('./lib/updateCheck.cjs');
 const { updateTransport } = require('./lib/autoUpdate.cjs');
 const { UNLOAD_ASK, leaves, restartAsk, reinstallAsk, installFailedAsk, goesAhead } = require('./lib/shellDialogs.cjs');
@@ -812,7 +812,7 @@ async function checkForUpdatesViaUpdater() {
   tellBox({
     type: 'info',
     message: `You're up to date`,
-    detail: `DFO Online v${app.getVersion()} is the latest release.`,
+    detail: `Bunnyfall v${app.getVersion()} is the latest release.`,
   });
 }
 
@@ -882,7 +882,7 @@ async function checkForUpdates() {
     tellBox({
       type: 'info',
       message: `You're up to date`,
-      detail: `DFO Online v${app.getVersion()} is the latest release.`,
+      detail: `Bunnyfall v${app.getVersion()} is the latest release.`,
     });
     return;
   }
@@ -1062,7 +1062,7 @@ async function checkForUpdatesLoudly() {
   if (g === 'installer') return currentUpdateTransport() === 'updater' ? checkForUpdatesViaUpdater() : checkForUpdates();
   const stays = 'your saves, settings and ARENA2 path all stay where they are.';
   if (g === 'offline') tellBox({ type: 'warning', message: 'Could not check for updates', detail: `GitHub was unreachable. The releases page is ${RELEASES_PAGE}.` });
-  else if (g === 'current') tellBox({ type: 'info', message: `You're up to date`, detail: `DFO Online v${gameVersion()} is the latest release.` });
+  else if (g === 'current') tellBox({ type: 'info', message: `You're up to date`, detail: `Bunnyfall v${gameVersion()} is the latest release.` });
   else if (gameJob) tellBox({ type: 'info', message: `Version ${gameJob.version} is downloading`, detail: `You have v${gameVersion()}. Only the files that changed come down, and it plays the next time the game starts - ${stays}` });
   else if (updateReady?.game) tellBox({ type: 'info', message: `Version ${updateReady.version} is ready`, detail: `It plays the next time the game starts, or now from File > Restart to Update - ${stays}` });
   else tellBox({ type: 'info', message: `Updated to v${gameVersion()}`, detail: `Only the files that changed came down; Play runs it - ${stays}` });
@@ -1300,7 +1300,7 @@ async function createWindow({ onShown = null } = {}) {
     width: 1280,
     height: 800,
     backgroundColor: '#111111',
-    title: 'DFO Online',
+    title: 'Bunnyfall',
     show: !onShown,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -1424,7 +1424,7 @@ async function createWindow({ onShown = null } = {}) {
 const LAUNCHER_LINKS = Object.freeze({
   steam: 'https://store.steampowered.com/app/1812390/',
   gog: 'https://www.gog.com/game/the_elder_scrolls_chapter_ii_daggerfall',
-  site: 'https://daggerfalljs.dev/',
+  site: 'https://dagg.campfirerp.com/',
   discord: 'https://discord.gg/jM2JdwSM8w',
   // the landing page's own link for the game files a Mac player can get (L5-3)
   zip: 'https://forums.dfworkshop.net/viewtopic.php?t=2360',
@@ -1457,7 +1457,7 @@ function openLauncherWindow() {
     fullscreenable: false,
     show: false,
     backgroundColor: '#0a0c11',
-    title: 'DFO Online',
+    title: 'Bunnyfall',
     webPreferences: {
       preload: path.join(__dirname, 'launcherPreload.cjs'),
       contextIsolation: true,

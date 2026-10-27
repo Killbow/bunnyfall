@@ -305,7 +305,7 @@ const LANE_W = cardW(ILIAC_LANE_CARD_H), HAND_W = cardW(ILIAC_HAND_CARD_H), PLAC
  *  (ui/enhanced/enhancedFrame.js FRAME_ROLES: the window, a holding a panel, the tray and the season's board wells, a choice a
  *  tile, a power a chip, the deal and the commit primary, a concession warn). A state the kit does not know - a holding
  *  held, one a picked card can go to - is said with a leading body, to outweigh the role it stands in; a theme or the
- *  DFO Grimoire dress that repaints the role re-says it in its own colours (ui/enhanced/enhancedFrame.js themeCss,
+ *  Bunnyfall Grimoire dress that repaints the role re-says it in its own colours (ui/enhanced/enhancedFrame.js themeCss,
  *  ui/grimoireDress.js kitCss - AUDIT CARDS-PLUS B1). A target is a ring outside the plate, so the plate's top edge
  *  still says who holds it (B5); a word in red is --cp-red, lifted on Stone (B3). Nothing overlaps
  *  (AUDIT CARDS-PLUS A2: overlapped on a phone, each card covered the power of the one before it): a lane is a grid as
