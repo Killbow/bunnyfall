@@ -6383,10 +6383,13 @@ possible. No exceptions and no band aids." The decisions below are the record's,
 ### 57.9 Pinned
 
 `test/net/masterart_law.test.js` (8), `test/net/masterart_service.test.js` (3, through the real Worker),
-`test/ui/professions/masterart_ui.test.js` (3). `tools/mutants/masterart.json`. PIN MOVED: `test/net/audit30_laws.test.js`
+`test/ui/professions/masterart_ui.test.js` (3). `tools/mutants/masterart.json` (42: 41 dead, one recorded equivalent - the
+Rare roll's guard, which LR4's one roll a piece keeps as well). Re-aimed by content, each dead: `bag1`, `crafthall`,
+`fb1013e_craftprocs` (3), `gatherspeed`, `int_audit`, `seat2b_peace`, `prof7`. PIN MOVED: `test/net/audit30_laws.test.js`
 (a record past 640 now, with a Master's lines), `test/systems/prof10_client.test.js` (the craft door's spread),
 `test/server/accountworker.test.js` (`prof_masters`), `test/net/fb1015f_firstcraft.test.js` (a box's own lines read with a
-Master's work section beside them - its Building is at Master).
+Master's work section beside them - its Building is at Master), `test/ui/seat2b_peace_client.test.js` (the door's spread
+after the seat).
 
 ## Appendix A - a day of a gatherer
 
