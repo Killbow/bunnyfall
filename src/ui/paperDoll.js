@@ -782,6 +782,19 @@ export function slotAtPaperDoll(px, py) {
 export const paperDollPixels = () => _pixels;
 
 
+/** APPEARANCES-II (bible/04-Characters/Wardrobe.md section 4): THE PLAYER'S DOLL ON A STAND-IN - the Wardrobe's preview
+ *  of a look not yet worn (systems/appearances.js previewWearer). The inventory's own art set and deps, composed PURE of
+ *  the singleton: its composite, click mask and identity are untouched. `{ width, height, rgba }`, or null before a host
+ *  has loaded the art; a stand-in of another identity takes the peers' door. */
+export async function composeDollFor(entity) {
+  if (!_art || !_deps) return null;
+  if (paperDollIdentityDrift(entity)) return composePaperDollPixels(_deps, entity, { context: _ident?.context ?? 'town' });
+  try {
+    const { out, width, height } = await composeDoll(_art, _deps, entity, { scale: composeScale() });
+    return { width, height, rgba: out };
+  } catch { return null; }
+}
+
 /**
  * ONLINE1 (AUDIT ONLINE C1-C4, C8, C9): A DOLL FOR SOMEONE ELSE. The
  * art set for the entity's own identity (a small cache, the peers'
@@ -804,19 +817,6 @@ export async function composePaperDollPixels(deps, entity, { context = 'town', b
     }
     const { out } = await composeDoll(art, { ...deps, gender: ident.gender, race: ident.race }, entity, { background });
     return { width: PAPERDOLL_W, height: PAPERDOLL_H, rgba: out };
-  } catch { return null; }
-}
-
-/** APPEARANCES-II (bible/04-Characters/Wardrobe.md section 4): THE PLAYER'S DOLL ON A STAND-IN - the Wardrobe's preview
- *  of a look not yet worn (systems/appearances.js previewWearer). The inventory's own art set and deps, composed PURE of
- *  the singleton: its composite, click mask and identity are untouched. `{ width, height, rgba }`, or null before a host
- *  has loaded the art; a stand-in of another identity takes the peers' door. */
-export async function composeDollFor(entity) {
-  if (!_art || !_deps) return null;
-  if (paperDollIdentityDrift(entity)) return composePaperDollPixels(_deps, entity, { context: _ident?.context ?? 'town' });
-  try {
-    const { out, width, height } = await composeDoll(_art, _deps, entity, { scale: composeScale() });
-    return { width, height, rgba: out };
   } catch { return null; }
 }
 

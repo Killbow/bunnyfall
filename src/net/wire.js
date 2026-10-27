@@ -1400,7 +1400,7 @@ export function validFoeRecord(r) {
     out.lw = lw;
   }
   // APPEARANCES-II (bible/04-Characters/Wardrobe.md section 6): `la` the looks the kit's pieces wear - [its index in `lw`,
-  // t, m, v], each piece once, in order - with `lw` alone. A look kept is one there is and of its piece's kind (net/
+  // t, m, v], each piece once, in order - and only beside `lw`. A look kept is one there is and of its piece's kind (net/
   // appearanceLaw.js validWireAppearance, validLookItem's law); any other is dropped and its piece stands in its own
   if (r.la !== undefined) {
     if (!out.lw || !Array.isArray(r.la) || r.la.length > out.lw.length) return null;

@@ -112,7 +112,7 @@ no preview; a body that cannot be built shows the doll.
 **The preview's body** is a rig of the preview's own, built off the stand-in as the player's is (`combat/weapon/
 weaponRig.js` armBuildOptsOf), drawn with the renderer the player's arm was last bound to (armRenderer, set where every
 host's weapon rig attaches the arm) and unloaded when the window shuts. One build at a time, the newest asked last: a look
-passed over while one builds is never built. A figure is kept per look and per worn table (24 a window), so a Wear on
+passed over while one builds is never built. A figure is kept per look and per worn table (the last 8), so a Wear on
 another piece is in every later figure.
 
 **The fee** is a twentieth of what a piece of the look is minted at (`itemBaseValue`), at least 25 gold: an Iron look
@@ -194,8 +194,9 @@ forged shape as a finding as it reads any field's; and it is a RECEIVER's mark (
 RECEIVER_MARKS), stripped by the wire's clamp (`systems/loot/loot.js` validLootItem), a realm trade's record and a wild
 death's - so a trade's offer and its checkpoint agree on a piece that wears a look (MARK-WIRE's lesson). **The account
 worker's bundle moves: ACCOUNT_VERSION is `acct200`**, and `src/net/appearanceLaw.js` is listed in
-`account-deploy.yml`'s paths. APPEARANCES-II changes `appearanceLaw.js` again (drawnPiece's copies are marked,
-isLookCopy), so the worker's bundle moves with it; the service reads nothing new and pays nothing.
+`account-deploy.yml`'s paths. APPEARANCES-II changes `appearanceLaw.js` (drawnPiece's copies are marked, isLookCopy)
+and `net/wire.js` (validFoeRecord's `la`), both in the worker's bundle, so it moves again; the service reads nothing new
+and pays nothing.
 
 ## 8. Collections - the Appearances part
 

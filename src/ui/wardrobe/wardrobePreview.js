@@ -14,8 +14,8 @@ import { equipTableOf } from '../../systems/equip.js';
 
 /** The body's figure height in pixels - the pack's own (enhancedInventory.js modelFigureImage). */
 export const PREVIEW_FIGURE_H = 384;
-/** The figures a window keeps: a piece's looks tried, and back again, without drawing one twice. */
-export const PREVIEW_KEEP = 24;
+/** The figures a window keeps, so a look tried again is not drawn twice - few, since a texture mod's doll is 1.3 MB. */
+export const PREVIEW_KEEP = 8;
 
 /** What a stand-in draws as - its identity and every worn piece's fields and look - so a figure is drawn again when any
  *  of it changes (a Wear on another piece is in every later figure). */
