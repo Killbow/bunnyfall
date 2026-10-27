@@ -273,8 +273,8 @@
   {
     "name": "CRAFT-HOWTO-menu-path",
     "file": "src/systems/tutorialCatalogue.js",
-    "old": "stand at one and press {Professions}, and the Crafting page opens on it.",
-    "new": "stand at one and open Menu > Holdings > Stores.",
+    "old": "stand at a station and press {Professions}: the Crafting page opens on it.",
+    "new": "stand at a station and open Menu > Holdings > Stores.",
     "why": "AUDIT FB1018D L1-6: a path the Classic skin has not - its Escape is DFU's pause, no tabs",
     "tests": [
       "test/ui/professions/fb1018d_crafthowto.test.js"

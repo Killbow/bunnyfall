@@ -476,7 +476,7 @@ export const TUTORIALS = Object.freeze([
     id: 'crafting', group: 'livelihood',
     get title() { return t('tutorials.crafting.title', 'Crafting'); },
     get trigger() { return t('tutorials.crafting.trigger', 'When you first gather something.'); },
-    get body() { return [t('tutorials.crafting.body', 'Online, craft at a station: stand at one and press {Professions}, and the Crafting page opens on it. Cook at any fire.')]; },
+    get body() { return [t('tutorials.crafting.body', 'Online, stand at a station and press {Professions}: the Crafting page opens on it. Cook at any fire.')]; },
     get points() {
       return [
         t('tutorials.crafting.shops1', 'Forge: Weaponsmiths, Armorers. Loom: Clothing Stores. Workbench: Furniture Stores, joineries.'),

@@ -202,7 +202,7 @@ test('CRAFT-HOWTO THE TUTORIAL: a Crafting page among Professions & Survival, af
   const words = [...body, ...points].join(' ');
   // AUDIT FB1018D L1-6: by the key - "Menu > Holdings" is the Enhanced menu's alone (the Classic skin's Escape is DFU's
   // pause, no tabs), and the key opens the pages on either skin (ui/pauseDoor.js profPageAt)
-  assert.match(body[0], /stand at one and press \[DOWN\], and the Crafting page opens on it\. Cook at any fire\.$/);   // PIN MOVED (CRAFT-HALL)
+  assert.match(body[0], /stand at a station and press \[DOWN\]: the Crafting page opens on it\. Cook at any fire\.$/);   // PIN MOVED (CRAFT-HALL); the page within TUT1's sixty words
   assert.doesNotMatch(words, /Menu >/);
   // every shop a station question answers, as the list names them
   const qs = stationQuestions();
