@@ -22,6 +22,8 @@ import { WEAPONS } from '../../src/characters/weapons.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
 import { fixtureBodyDeps, countingRenderer } from '../fixtures/mw/bodyRig.mjs';
 import { withDom } from '../invdrag.mjs';
+import { addVendorTextures, clearVendorTextures, setTextureDeriveContext } from '../../src/systems/textureReplacement.js';
+import { DYE_COLORS } from '../../src/characters/dyes.js';
 
 const KATANA = '121.7.0', SABER = '119.9.0', DAEDRIC_CHEST = `102.${ARMOR_MATERIAL.Daedric}.3`;
 const armour = (templateIndex, material, variant = 0) => mintCondition(setItemFields({ group: 'Armor', templateIndex, material, variant }));
@@ -88,7 +90,8 @@ const fetchBytes = async (name) => {
 const RECORD_INDEX = (record) => 140 + record;
 const getTexture = async () => ({
   recordCount: 64,
-  getOffset: () => ({ x: 230, y: 40 }),
+  getOffset: (record) => ({ x: 205 + (record % 8) * 13, y: 30 + Math.floor(record / 8) * 13 }),   // each record its own place, so no layer hides another
+  getSize: () => ({ width: 12, height: 12 }),
   getDFBitmap: (record) => ({ width: 12, height: 12, data: new Uint8Array(144).fill(RECORD_INDEX(record)) }),
 });
 const indices = (px) => { const seen = new Set(); for (let i = 0; i < px.rgba.length; i += 4) if (px.rgba[i + 3]) seen.add(px.rgba[i]); return seen; };
@@ -112,6 +115,23 @@ test('APPEARANCES-II THE DOLL TRIED ON: the player\'s doll composed for the stan
   assert.equal(paperDollPixels().version, version);
   assert.ok(indices(inventory).has(RECORD_INDEX(ownRecord)) && !indices(inventory).has(RECORD_INDEX(lookRecord)), 'and still the longsword');
   assert.equal(sword.appearance, undefined);
+});
+
+test('AUDIT HORIZONTAL E6: the doll asks a texture pack for a layer in the look\'s metal - an Iron cuirass dressed as a Daedric one draws the pack\'s Daedric picture, never its Iron one (mutant: the ask by the piece\'s own dye)', async () => {
+  const { me, chest } = wearer();
+  await preloadPaperDollArt({ renderer: { uploadTexture: () => ({}), releaseTexture: () => {} }, palette, fetchBytes, getTexture }, {});
+  wearAppearance(me, chest, lookOfKey(DAEDRIC_CHEST));
+  const { archive, record } = paperdollItemImage({ ...chest });
+  // a dyed pack's two pictures of that record (DW3's names: <archive>_<record>-0_<Dye>), each one flat colour
+  const flat = (v) => () => ({ width: 12, height: 12, data: new Uint8Array(12 * 12 * 4).map((_, i) => (i % 4 === 3 ? 255 : v)) });
+  setTextureDeriveContext({});
+  addVendorTextures([{ archive, record, dye: DYE_COLORS.Daedric, build: flat(77) }, { archive, record, dye: DYE_COLORS.Iron, build: flat(88) }]);
+  try {
+    await refreshPaperDoll(me);
+    const seen = indices(paperDollPixels());
+    assert.ok(seen.has(77), 'the pack\'s Daedric cuirass');
+    assert.ok(!seen.has(88), 'never its Iron one, the piece\'s own metal');
+  } finally { clearVendorTextures(); setTextureDeriveContext(null); }
 });
 
 test('APPEARANCES-II THE PREVIEW: it draws the figure the pack shows on this skin - the doll, or on Enhanced Plus the Morrowind body where one stands for the player - and says it is drawing until it lands; a figure is drawn once a look and again when anything worn changes; with no art, none; shut, it draws nothing more (mutants: the body on the classic skin; the doll\'s memo blind to the worn table; the drawing never told; no art drawing anyway)', async () => {

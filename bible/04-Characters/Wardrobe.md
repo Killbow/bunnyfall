@@ -34,7 +34,14 @@ pieces drawn alike are one look: Chain2 draws as chain, and a style past its mat
 
 **The catalogue** (`ALL_LOOKS`) is every look there is: each of DFU's armour, shield and weapon templates (102-130, no
 arrow), in leather, chain and the ten plates (armour) or the ten metals (weapons), in every style the clamp draws - a
-plate cuirass three, a helm six in any metal, a shield one. 474 in all. A look's key is `t.m.v`.
+plate cuirass three, a helm six in any metal, a shield one - and only a style a mint makes. 473 in all. A look's key is
+`t.m.v`.
+
+**AUDIT HORIZONTAL E3: a style no mint makes is no look.** The clamp draws chain boots in two styles, but a shop rolls a
+pair of boots' style in plate alone (`systems/shopStock.js` randomizeArmorVariant, DFU's RandomizeArmorVariant) and
+loot, a corpse and the smith roll none, so no character could hold the second (`108.256.2`). The catalogue counted it:
+474 looks, one no one could collect, and a tile that could never fill. It is the 473 a mint makes now (`appearanceLaw.js`
+lookVariants).
 
 **The kinds.** A piece takes a look of its own kind only, and the kind is read off what the renderers draw:
 
@@ -92,6 +99,9 @@ the tailor and the two smiths. Any of the three re-dresses any worn piece, as DF
   Wardrobe's, so the host is 7 logical lines shorter (11,025 -> 11,018, its ceiling lowered with it); the Wardrobe's
   counter, window and acts live in `scenes/wardrobeCounter.js`.
 
+**AUDIT HORIZONTAL E7: a key's repeat is no press** on either classic popup. W, S and E move the player too, and a W
+held as the popup opened ran the Wardrobe's row. A press is read once, as Unity's GetKeyDown reads one.
+
 **The window** (`ui/wardrobe/wardrobeWindow.js`, its door `wardrobeDoor.js`) is the port's own, in the Reforge's shape
 and the Broker's classes, so both skins dress it: the Plus sheet carries its rules (`enhancedPlusStyle.js`
 WARDROBE_CSS), the classic skin lays the Broker's sheet and them. The worn pieces that can take a look stand in a list,
@@ -99,6 +109,9 @@ each with what it looks like now; the one picked shows its own look first (Free,
 collected look of its kind with its fee and a Wear press. A short purse says how much more; pressed, a refused press
 says why and takes nothing. The last word sits in a live region; Escape and a tap outside close it; the keyboard starts
 on the piece picked and keeps its place across a press (`ui/domRepaint.js` repaintKeepingScroll).
+
+**AUDIT HORIZONTAL E5: only a piece of a look's kind is listed** (`systems/appearances.js` wardrobePieces). A worn
+Light Flail (Roleplay & Realism's, a kind no look is of) stood in the list, its card promising looks there are none of.
 
 **The preview** (APPEARANCES-II). A look's picture and name in the card are one press, **Try**, that shows the
 character wearing that look on the piece picked, in the preview at the card's head. Nothing is changed or paid until
@@ -134,7 +147,14 @@ compares its weapon by identity, and a new copy every frame would reset a swing.
 | Layered Gearing - my body and every peer walker | `player/eyeOfTheBeholder/layeredArmor.js` pieceCode |
 | The classic first-person sheet (Diverse Weapons' per-template art too - the copy is no artifact, APPEARANCES-II) | `combat/weapon/weaponRig.js` artFor, `combat/diverseWeapons/diverseWeapons.js` moddedWeaponFilename |
 | The Weapon Widget's clone | `combat/weapon/weaponRig.js` cloneFrame |
+| The Shield Widget's first-person shield - its sprite (AUDIT HORIZONTAL E2) | `combat/weapon/weaponRig.js` shieldItem |
 | The Morrowind head portrait's helm | `characters/headPortraits.js` playerHeadKey |
+
+**AUDIT HORIZONTAL E2: the first-person shield draws the look.** The Shield Widget (on by default with the classic arms)
+picked its sprite from the shield itself, so an Iron Buckler dressed as a Daedric Tower Shield showed a buckler. The rig
+hands it the drawn piece's template and metal now, and the piece's own template beside them (`coverTemplate`, read by
+`combat/shieldWidget.js` isPartShielded): the parts a shield covers are its numbers (DFU's GetShieldProtectedBodyParts),
+and a look moves no number.
 
 **Diverse Weapons draws the look** (APPEARANCES-II). Under the mod a weapon swings its template's own sheet, and an
 artifact its own by its enchantment (`combat/diverseWeapons/diverseWeapons.js` moddedWeaponFilename,
@@ -145,6 +165,9 @@ one while its element shows, as the classic sheet does with the mod off. The dol
 metal (`ui/paperDoll.js` composeDoll reads the drawn piece's dye): asked in the piece's own, a Steel longsword dressed as
 an Ebony Katana drew the mod's katana in steel. A departure from GetModdedWeaponFilename for a drawn copy (Port-Ledger
 section A, APPEARANCES-II).
+
+**AUDIT HORIZONTAL E6** found the same ask in a dyed texture pack: an Iron cuirass dressed as a Daedric one drew the
+pack's Iron layer. It is the one line above, and its pin is a pack's layer too.
 
 **Decided and said:** the pack's pictures (the grid, the worn panel, the hotbar, a hand's plaque) stay the piece's own -
 they say what the piece is, and the body says what it looks like. A weapon's glow is the piece's enchantment and is laid
@@ -164,6 +187,12 @@ A look's item carries `ap` - `[t, m, v]` - beside the piece's own six fields whe
 validLookItem, through `appearanceLaw.js` validWireAppearance), so no client can show a dagger as a claymore. The
 peer's stand-in wears it as its own field (`peerStubEntity`), and every renderer above draws it; the look's cache key
 counts it (`lookKey`), so a peer re-dressed is drawn again, and a look without one keeps its key.
+
+**AUDIT HORIZONTAL E1: a weapon re-dressed in hand.** My Morrowind copy of a peer's body changed the weapon in its hand
+when the template or the hand changed, and a look changes neither: a peer who re-dressed the weapon they held kept the
+old one in my copy, and its glow went out (the glow is laid on the look). The hand reads the weapon's template, metal,
+hand and look now (`net/peer/peerBodies.js` heldWeaponKey) - the metal too, since a twin in another metal was the same
+gap.
 
 The piece's own fields never change on the wire: the siege's and the royal tourney's referee (`net/siege/siegeRef.js`
 siegeHeld) still finds the weapon a blow claims.
@@ -198,10 +227,23 @@ worker's bundle moves: ACCOUNT_VERSION is `acct200`**, and `src/net/appearanceLa
 and `net/wire.js` (validFoeRecord's `la`), both in the worker's bundle, so it moves again; the service reads nothing new
 and pays nothing.
 
+**AUDIT HORIZONTAL E8: the account service deploys first.** The new site offers a piece without its look (a receiver's
+mark is stripped off an offer), and an `acct199` service still holds the look on the save's record, so it refuses the
+realm trade, the market listing and the vault deposit of a piece that wears one. `acct200` reads it as a receiver's
+mark, as the site does. ACCOUNT_VERSION's note says so (`server-account/src/service.js`). The relay may go either side
+(section 6).
+
+**AUDIT HORIZONTAL E9, LEFT: where a paid look drops.** The look is the wearer's mark, and every hand-over strips it,
+the owner's own round trips too: the wire's clamp, a realm trade, a wild death, a market listing or auction that comes
+back unsold or withdrawn, and the guild vault (`takeTradeGoods` takes every receiver's mark off a record that leaves a
+save). The collection keeps the look, so only the fee is lost, and the look is worn again for it. Kept on the seller's
+stored copy, it would be the one mark the market and the vault hold and strip at a buyer's delivery, a mark whose fee
+the service never saw (section 3). Left, and said here.
+
 ## 8. Collections - the Appearances part
 
 `10-UI/Collections.md` section 9: a tile after the account's four, every character's, its count the character's looks
-over the 474 and the kit's meter; the part opens on what is held, by kind, each kind under its divider with its count
+over the 473 and the kit's meter; the part opens on what is held, by kind, each kind under its divider with its count
 and meter; Not held and All list the rest dimmed; a row opened says how the look is had and where it is worn for its fee.
 
 ## 9. The four hosts
@@ -256,6 +298,13 @@ Stone's row is built in `scenes/shopRows.js`, and its Enhanced press stands unde
 (`itemDyeColor(drawnPiece(it))`); `test/ui/wardrobe_window.test.js` - the window's words are 27 (the preview's two, a
 look's Try and its own look's). Re-aimed by content, all dead: `auditmwnpc2.json` (the pending build's look, the heir's
 kit) and `watch1.json` (a pending build's species) - the kit's merge and the heir's read moved.
+
+AUDIT HORIZONTAL E's pins: `test/systems/appearances_audit.test.js` - a peer's weapon re-dressed in hand (E1), the
+Shield Widget's sprite and cover (E2), the 473 (E3), the part's words (E4), a Light Flail at the Wardrobe (E5) and a
+key's repeat at either popup (E7); `test/ui/appearances2_preview.test.js` - a dyed pack's layer (E6). Mutants: twelve
+in `tools/mutants/appearances.json`, all dead. **PIN MOVED (AUDIT HORIZONTAL E3, E4):** `test/systems/appearances.test.js`
+and `test/ui/appearances_part.test.js` - 473 looks, the feet's 22, chain boots' one style, and the words a look not held
+says.
 
 ## 11. Not done, named
 

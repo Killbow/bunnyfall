@@ -48,8 +48,12 @@ export function lookVariant(t, m, v) {
   if (!n) return 0;
   return Math.max(0, Math.min(n - 1, clampArmorVariant(t, m, Number.isInteger(v) ? v : 0)));
 }
-/** Every style a template draws in one material, in order. */
-export const lookVariants = (t, m) => [...new Set(Array.from({ length: Math.max(1, LOOK_VARIANTS[/** @type {keyof typeof LOOK_VARIANTS} */ (t)] ?? 0) }, (_, v) => lookVariant(t, m, v)))];
+/** AUDIT HORIZONTAL E3: a style the clamp draws and no mint makes - chain boots' second. A shop rolls a pair of boots'
+ *  style for plate alone (systems/shopStock.js randomizeArmorVariant, DFU's RandomizeArmorVariant) and loot, a corpse and
+ *  the smith roll none, so no character could ever hold it. */
+const neverMinted = (/** @type {number} */ t, /** @type {number} */ m, /** @type {number} */ v) => t === 108 && lookMaterial(t, m) === ARMOR_MATERIAL.Chain && v !== 1;
+/** Every style a template draws in one material and a mint makes, in order. */
+export const lookVariants = (t, m) => [...new Set(Array.from({ length: Math.max(1, LOOK_VARIANTS[/** @type {keyof typeof LOOK_VARIANTS} */ (t)] ?? 0) }, (_, v) => lookVariant(t, m, v)))].filter((v) => !neverMinted(t, m, v));
 
 /** A look's key: `t.m.v`. */
 export const lookCode = (/** @type {{ t: number, m: number, v: number }} */ a) => `${a.t}.${a.m}.${a.v}`;

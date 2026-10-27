@@ -143,7 +143,7 @@ export function wardrobePieces(entity) {
   const out = [];
   for (const [slot, item] of table.entries()) {
     const kind = item ? pieceKind(item) : null;
-    if (kind) out.push({ slot, item, kind });
+    if (kind && LOOK_KIND_ORDER.includes(kind)) out.push({ slot, item, kind });   // AUDIT HORIZONTAL E5: a kind no look is of (a Light Flail's) offers none
   }
   return out.sort((a, b) => LOOK_KIND_ORDER.indexOf(a.kind) - LOOK_KIND_ORDER.indexOf(b.kind) || a.slot - b.slot);
 }

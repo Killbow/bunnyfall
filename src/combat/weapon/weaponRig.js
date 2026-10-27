@@ -697,9 +697,12 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
   const shieldItem = () => {
     const item = entity?.equip?.slots?.[EQUIP_SLOTS.LeftHand] ?? null;
     if (!item) return null;
+    // AUDIT HORIZONTAL E2 (bible/04-Characters/Wardrobe.md section 5): the sprite is the shield as it is drawn - a look worn
+    // over it - while the parts it covers stay the piece's own (`coverTemplate`: a Buckler covers less than a Tower Shield)
+    const drawn = drawnPiece(item);
     return {
       // AUDIT 68 S09-v-shield-material-ignored: minted armor carries NativeMaterialValue in `material`, not `nativeMaterialValue`
-      templateIndex: item.templateIndex, nativeMaterialValue: rriNativeMaterialValue(item),
+      templateIndex: drawn.templateIndex, nativeMaterialValue: rriNativeMaterialValue(drawn), coverTemplate: item.templateIndex,
       conditionPercentage: conditionPercentage(item), isShield: isShieldTemplate(item.templateIndex),
     };
   };

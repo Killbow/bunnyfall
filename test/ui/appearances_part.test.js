@@ -44,7 +44,7 @@ function page(player) {
 }
 const armour = (templateIndex, material, variant = 0) => mintCondition(setItemFields({ group: 'Armor', templateIndex, material, variant }));
 
-test('APPEARANCES THE PART: a tile of its own after the account\'s four, every character\'s, its count the character\'s looks over the 474 there are and the kit\'s meter of it; it opens on what is held, by kind, each group its count and meter; Not held and All list the rest; a look worn says so; a row opened says how it is had and where it is worn for its fee (mutants: the tile missing; the count the account\'s; a group\'s count the filter\'s; the fee unsaid; the dimming lost)', () => {
+test('APPEARANCES THE PART: a tile of its own after the account\'s four, every character\'s, its count the character\'s looks over the 473 there are and the kit\'s meter of it; it opens on what is held, by kind, each group its count and meter; Not held and All list the rest; a look worn says so; a row opened says how it is had and where it is worn for its fee (mutants: the tile missing; the count the account\'s; a group\'s count the filter\'s; the fee unsaid; the dimming lost)', () => {
   _resetForTests(); setPref('lootRarity', false);
   resetCollectionsPage();
   const sword = createWeapon(WEAPONS.Longsword, 1), katana = createWeapon(WEAPONS.Katana, 7), chest = armour(102, ARMOR_MATERIAL.Steel, 2);
@@ -53,13 +53,14 @@ test('APPEARANCES THE PART: a tile of its own after the account\'s four, every c
   noteHeldLooks(me);
   wearAppearance(me, sword, lookOfKey('121.7.0'));
   assert.deepEqual(collectionParts(me).map(([id]) => id), ['titles', 'auras', 'icons', 'glyphs', 'appearances', 'trophies', 'fish', 'annals'], 'every character\'s, after the account\'s four');   // PIN MOVED (HUNTERS-MARK, at the merge): the gathered parts after it, always shown
-  assert.deepEqual(partCount('appearances', null, me), { held: 3, total: 474 }, 'the character\'s - no account read');
+  // PIN MOVED (AUDIT HORIZONTAL E3): 473 looks - chain boots' second style is none
+  assert.deepEqual(partCount('appearances', null, me), { held: 3, total: 473 }, 'the character\'s - no account read');
   setCollectionsPart('appearances');
   let p = page(me);
   const tile = focus(p.root, 'coll-part-appearances');
   assert.equal(tile.attrs['aria-pressed'], 'true');
-  assert.equal(cls(tile, 'coll-pcount')[0].textContent, '3 / 474');
-  assert.equal(cls(tile, 'px-meter')[0].textContent, '3/474', 'the kit\'s meter, held of all');
+  assert.equal(cls(tile, 'coll-pcount')[0].textContent, '3 / 473');
+  assert.equal(cls(tile, 'px-meter')[0].textContent, '3/473', 'the kit\'s meter, held of all');
   assert.equal(cls(p.root, 'coll-looks-how')[0].textContent, LOOK_WORDS.how());
   assert.deepEqual(heads(p.root), ['Chest - 1 / 32', 'Long blades - 2 / 40'], 'Held: the groups with a look held, each its whole count');
   assert.deepEqual(cls(p.root, 'coll-looks-meter').map((m) => m.textContent), ['1/32', '2/40']);
@@ -78,16 +79,17 @@ test('APPEARANCES THE PART: a tile of its own after the account\'s four, every c
   focus(p.root, 'looks-filter-missing').onclick();
   p = page(me);
   const missing = cls(p.root, 'coll-row');
-  assert.equal(missing.length, 471, 'every look not held');
+  assert.equal(missing.length, 470, 'every look not held');   // PIN MOVED (AUDIT HORIZONTAL E3): of 473
   assert.ok(missing.every((r) => !r.classList.contains('held')), 'each dimmed');
   assert.equal(heads(p.root).length, 19, 'every kind, its whole count');
   assert.equal(heads(p.root)[0], 'Head - 0 / 72');
   missing[0].onclick();
   p = page(me);
-  assert.equal(all(cls(p.root, 'coll-whole')[0], (x) => x.tag === 'p')[1].textContent, 'Hold a Leather Helm, style 1: buy it, find it, or make it.');
+  // PIN MOVED (AUDIT HORIZONTAL E4): no "Hold a" before a name, and a shop's style said as the shop's
+  assert.equal(all(cls(p.root, 'coll-whole')[0], (x) => x.tag === 'p')[1].textContent, 'To collect Leather Helm, style 1: buy it, find it or make it.');
   focus(p.root, 'looks-filter-all').onclick();
   p = page(me);
-  assert.equal(cls(p.root, 'coll-row').length, 474);
+  assert.equal(cls(p.root, 'coll-row').length, 473);
   resetCollectionsPage();
   setCollectionsPart('appearances');
   p = page({ items: [] });
