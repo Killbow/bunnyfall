@@ -116,9 +116,10 @@ test('BAL11 the reader: the level the world is built around and the page\'s Reno
     online(30);
     close(heroThreatOf({ level: 20 }).damage, 2.2838, 'online: the level and the Renown');
     close(heroThreatOf({ level: 10 }).damage, 1.01 ** 15, 'online at level 10: the Renown alone');
-    // mentoring: the group's level (mentorMode.js effectiveLevel), and the Firmament asleep - no Renown
-    close(heroThreatOf({ level: 30, _mentor: { level: 15 } }).damage, 1.07 ** 5, 'a mentor: the group\'s level, no Renown');
-    assert.equal(heroThreatOf({ level: 30, _mentor: { level: 8 } }), null, 'a mentor of a level-8 group: nothing');
+    // BUNNYFALL: in a party the world reads the party's average level (mentorMode.js effectiveLevel)
+    const party = heroThreatOf({ level: 30, _partyLevel: 8 });
+    assert.equal(party.level, 0, 'a party averaging level 8: no level threat');
+    assert.equal(party.renown, 15, 'and the Renown still counts: nothing sleeps in a party');
     // a puppet: my threat's blows, its health its owner's word
     const p = heroThreatOf({ level: 20 }, { puppet: true });
     close(p.damage, 2.2838, 'a puppet\'s blows at me: mine'); assert.equal(p.health, 1, 'a puppet\'s health: its owner\'s');

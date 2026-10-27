@@ -68,6 +68,8 @@ import { itemNameParts } from '../../src/systems/item/itemInfo.js';   // LR6: wh
 import { templateByIndex } from '../../src/systems/item/itemTemplates.js';   // LR6: the bare-template reading an unidentified item falls back to
 import { snapshotPlayer, restorePlayer } from '../../src/systems/save/save.js';
 
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
 

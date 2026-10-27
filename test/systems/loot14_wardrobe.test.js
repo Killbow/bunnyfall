@@ -33,6 +33,8 @@ import { POTION_TEMPLATE_INDEX, validLootItem } from '../../src/systems/loot/loo
 import { goldStack, isGoldPieces } from '../../src/systems/inventory.js';
 import { mintPiece } from '../../src/systems/smithItems.js';
 import { isWelkyndStone, isVarlaStone } from '../../src/systems/ayleidStones.js';   // LOOT21: imported, the late finds are registered - as the game's worldTick.js has them
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 
 // PIN MOVED (PELLETS-SCARCE, 2026-10-24): the Dwemer Pellet's final find is the door's draw after every pass these laws
 // read - held off here (test/systems/pelletsscarce.test.js holds it the door's very last)

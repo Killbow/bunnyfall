@@ -16,6 +16,8 @@ import * as LR from '../../src/systems/loot/lootRarity.js';
 import { PLAIN_FOE_RARITY_WEIGHTS } from '../../src/systems/foeLootCap.js';
 import { createWeapon } from '../../src/combat/enemyEquipment.js';
 
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 const on = () => { _resetForTests(); setPref('lootRarity', true); };
 const near = (a, b) => Math.abs(a - b) < 1e-9;
 

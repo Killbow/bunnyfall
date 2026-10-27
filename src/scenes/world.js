@@ -27829,7 +27829,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const mentorWord = refreshMentor(playerEntity, mentorLevels);
     setFirmamentMentoring(!!playerEntity._mentor);   // AUDIT UICALM-FIRM1 L1 L2: the sky sleeps the frame mentoring starts, and wakes the frame it ends
     if (mentorWord) {
-      const text = mentorWord === 'on' ? mentorStatusText(playerEntity) : 'Mentoring ended. Your real level, skills, attributes and gear are back.';
+      const text = mentorWord === 'on' ? mentorStatusText(playerEntity) : 'Party level ended. Enemies and loot are built for your own level again.';
       try { chatLog.push(chatLog.active, { text, system: true }); } catch { /* no chat yet: the sheet says it too */ }
     }
     if (!social) return;

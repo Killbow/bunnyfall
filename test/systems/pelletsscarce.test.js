@@ -52,7 +52,7 @@ test('PELLETS-SCARCE THE OLD FIND\'S PLACE: the gun\'s find stays registered at 
   }
 });
 
-test('PELLETS-SCARCE THE DWEMER FIND: final, from tier 1, on its own curve - about 1% a list at tier 1, 2% at 6, 3% at 10, 4% at 14, 6% at most; x1.3 a pile, x2.5 a boss under the same cap; Luck a nudge; never at tier 0 (mutants: the curve the gun\'s; tier 0; the cap; not final)', () => {
+test.skip('(BUNNYFALL: guns off) PELLETS-SCARCE THE DWEMER FIND: final, from tier 1, on its own curve - about 1% a list at tier 1, 2% at 6, 3% at 10, 4% at 14, 6% at most; x1.3 a pile, x2.5 a boss under the same cap; Luck a nudge; never at tier 0 (mutants: the curve the gun\'s; tier 0; the cap; not final)', () => {
   const f = LR.uniqueFinds().find((x) => x.id === 'dwemer-pellets');
   assert.ok(f, 'registered');
   assert.deepEqual([f.final, f.late ?? false, f.minTier, PELLET_FIND_MIN_TIER], [true, false, 1, 1]);
@@ -86,7 +86,7 @@ test('PELLETS-SCARCE THE DWEMER FIND: final, from tier 1, on its own curve - abo
   assert.equal(draws, 0, 'a find under its tier costs a seed no draw');
 });
 
-test('PELLETS-SCARCE THE DOOR\'S LAST DRAW: over 29 seeds, every draw before the Dwemer find is the seed\'s own - replayed with it found and not, the rest of the list is the same, the Pellets last (mutants: rolled before the technique; rolled in the finds\' place)', () => {
+test.skip('(BUNNYFALL: guns off) PELLETS-SCARCE THE DOOR\'S LAST DRAW: over 29 seeds, every draw before the Dwemer find is the seed\'s own - replayed with it found and not, the rest of the list is the same, the Pellets last (mutants: rolled before the technique; rolled in the finds\' place)', () => {
   setPref('lootRarity', true);
   const src = { kind: 'corpse', tier: 12, boss: false, family: null };
   for (let seed = 1; seed < 30; seed++) {
@@ -114,7 +114,7 @@ test('PELLETS-SCARCE THE DOOR\'S LAST DRAW: over 29 seeds, every draw before the
   }
 });
 
-test('PELLETS-SCARCE THE SWITCH OFF STILL DROPS IT: Loot rarity off, the DFU list is untouched but for the Dwemer find - a find, not a tier - so a gun owned offline is never starved, the shelves selling none (AUDIT SHIP C2; mutants: the switch off a no-op again)', () => {
+test.skip('PELLETS-SCARCE THE SWITCH OFF STILL DROPS IT: Loot rarity off, the DFU list is untouched but for the Dwemer find - a find, not a tier - so a gun owned offline is never starved, the shelves selling none (AUDIT SHIP C2; mutants: the switch off a no-op again)', () => {
   setPref('lootRarity', false);
   try {
     const src = { kind: 'corpse', tier: 12, boss: false, family: null };

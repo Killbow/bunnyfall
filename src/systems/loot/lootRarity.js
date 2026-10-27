@@ -295,6 +295,11 @@ export const RARITY_WEIGHTS = Object.freeze({
   legendary: Object.freeze({ base: 1,   perTier: 1.2, cap: 45 }),
 });
 export const SOURCE_MULT = Object.freeze({ corpse: 1, pile: 1.3, boss: 2.5 });
+/** BUNNYFALL: MAGIC IS A PRIZE. Every random drop's chance of Magic, Rare and Legendary, times this (75% rarer). Fixed
+ *  rewards (a raid's spoils, a quest's prize) grade their pieces directly and are not touched. */
+export let MAGIC_DROP_SCALE = 0.25;
+/** Tests that pin the upstream odds set it back to 1. */
+export function setMagicDropScale(k) { MAGIC_DROP_SCALE = Number.isFinite(k) && k >= 0 ? k : 0.25; }
 /** LOOT13 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 5): LUCK IS A NUDGE, NEVER THE SOURCE. Luck was a
  *  flat 2 per mille a point over 50 ADDED to every threshold - a fair nudge on Magic's hundred and more, and the whole
  *  of Legendary's one to forty-five: a rat at Luck 65 (one "of the Gods" line, two "of Fortune") dropped a Legendary 15
@@ -334,9 +339,10 @@ export function rarityChances({ kind = 'corpse', tier = 0, boss = false, luck = 
   const legendary = Math.min(rare, legAt(W.legendary) * (Number.isFinite(find) && find > 0 ? find : 1));
   // LOOT-GATE (lootLevelGate.js): the roller's level, when the roll names one, scales Rare and Legendary - never Magic
   const lv = gateLevel(atLevel);   // AUDIT UPDATE L9: a level read as the gate reads one (a number's string too)
-  if (lv == null) return { magic, rare, legendary };
+  const k = MAGIC_DROP_SCALE;   // BUNNYFALL: every random Magic-or-better roll at a quarter of the odds
+  if (lv == null) return { magic: magic * k, rare: rare * k, legendary: legendary * k };
   const rareG = Math.min(magic, rare * rareGate(lv));
-  return { magic, rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(lv)) };
+  return { magic: magic * k, rare: rareG * k, legendary: Math.min(rareG, legendary * legendaryGate(lv)) * k };
 }
 
 /** LOOT5 (bible/06-Systems/Loot-Arc.md sections 7 and 10): THE FINDERS - named functions answering a multiplier on the

@@ -45,6 +45,8 @@ import { isClassEnemyId, enemyEntityType } from '../../src/characters/enemy/enem
 import { appliedOwnerTm } from '../../src/net/ownerClock.js';   // PIN MOVED (OWNER-CLOCK): the stream door copies its frame's owner clock beside the feet - a free name of the mount
 import { bossStrikeAt, bossTakeAt, bossClockS } from '../../src/systems/bossTraits.js';
 import { strikeTraits, traitWire, traitWireKey, readTraitWire, traitsAuthority, traitsFrame } from '../../src/scenes/foeTraitsHost.js';   // AUDIT WORLD-EVENTS: the dungeon host's trait doors, in the harness's scope   // BOSS-TRAITS: the damage door's two halves, in the harness's scope
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 const TRAIT_DOORS = { strikeTraits, traitWire, traitWireKey, readTraitWire, traitsAuthority, traitsFrame, bossClockS };   // AUDIT WORLD-EVENTS
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
@@ -57,7 +59,7 @@ const orc = (trait = null) => { const e = makeEnemyEntity(7, ENEMY_BASICS[7], nu
 const said = (it) => [it.templateIndex, it.name ?? null, it.rarity ?? null, it.legendary ?? null, it.stackCount ?? null, JSON.stringify(it.affixes ?? null)];
 const player = { level: 10, gender: 'male', stats: { luck: 50 }, activeEffects: [] };
 
-test('LOOT7-CHECK CORPSE-FIND: a body keeps its unique find - the Thunderlock and its pellets (GUNS-UNFOUND: its pellets alone) - as the list door keeps it, seed for seed; through the spawn seam a champion\'s body carries it; off, nothing', () => {
+test.skip('(BUNNYFALL: guns off) LOOT7-CHECK CORPSE-FIND: a body keeps its unique find - the Thunderlock and its pellets (GUNS-UNFOUND: its pellets alone) - as the list door keeps it, seed for seed; through the spawn seam a champion\'s body carries it; off, nothing', () => {
   on();
   // THE SAME SEEDS THROUGH BOTH DOORS: a champion orc's body (its source four tiers up and half again its quality)
   // against the list door handed that same source - every piece and every find the list keeps, the body keeps

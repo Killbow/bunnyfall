@@ -29,6 +29,7 @@ import { rareOrBetter } from '../superDungeon/sdSpoils.js';
 import { createThunderlock, createPellets } from '../thunderlock.js';
 import { createPistolet } from '../pistolet.js';
 import { rollKetchGilded } from '../gilded.js';
+import { GUNS_OFF } from '../gunsOff.js';   // BUNNYFALL: guns switched off
 import { RANDOM_TREASURE_ICONS } from '../loot/loot.js';
 import { t } from '../textManager.js';
 
@@ -70,6 +71,7 @@ export function ketchPelletsDue(kind, rolled, given) {
 }
 /** KETCH-PELLETS: how many Pellets construct `kind` drops on one roll source (0 for none, or an unknown kind). Pure. */
 export function ketchConstructPellets(kind, rolls = Math.random) {
+  if (GUNS_OFF) return 0;   // BUNNYFALL: no Pellets
   const D = KT_CONSTRUCT_PELLETS[kind];
   if (!D || !(rolls() < D.p)) return 0;
   return D.min + Math.floor(rolls() * (D.max - D.min + 1));
@@ -121,12 +123,12 @@ export function rollKetchSpoils(seed, level) {
   const P = KT_SPOILS_PELLETS;
   const pellets = P.min + Math.min(P.max - P.min, Math.floor(rolls() * (P.max - P.min + 1)));
   const guns = [];
-  if (rolls() < KT_THUNDERLOCK_CHANCE) guns.push(createThunderlock());
-  if (rolls() < KT_PISTOLET_CHANCE) guns.push(createPistolet());
+  if (rolls() < KT_THUNDERLOCK_CHANCE && !GUNS_OFF) guns.push(createThunderlock());   // BUNNYFALL: drawn, never minted
+  if (rolls() < KT_PISTOLET_CHANCE && !GUNS_OFF) guns.push(createPistolet());
   socketPass(pieces.map((p) => p.item), rolls);
   weaponSocketPass(pieces.map((p) => p.item), rolls);
   techniquePass(pieces.map((p) => p.item), rolls);
-  const gilded = rollKetchGilded(rolls);   // LAST OF ALL
+  const gilded = rollKetchGilded(rolls).filter(() => !GUNS_OFF);   // LAST OF ALL (BUNNYFALL: both are guns)
   return { gold, pieces, pellets, guns, gilded };
 }
 
@@ -140,7 +142,7 @@ export function ketchSpoilsList(seed, level) {
     ...s.pieces.map((p) => ({ kind: 'item', item: p.item, tier: p.tier, record: flat() })),
     ...s.guns.map((g) => ({ kind: 'item', item: g, tier: 'common', record: flat() })),
     ...s.gilded.map((g) => ({ kind: 'item', item: g, tier: g.rarity ?? 'gilded', record: flat() })),
-    { kind: 'item', item: createPellets(s.pellets), tier: 'common', record: flat() },
+    ...(GUNS_OFF ? [] : [{ kind: 'item', item: createPellets(s.pellets), tier: 'common', record: flat() }]),
     { kind: 'gold', gold: s.gold, tier: 'common', record: flat() },
   ];
 }

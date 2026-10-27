@@ -34,6 +34,8 @@ import { GROUP_TEMPLATE_INDICES } from '../../src/systems/item/itemTemplatesData
 import { mountReforgeWindow, SOCKETS_NONE, GEMS_NONE, GEM_SET, UNSET_ASK, GEM_SHATTERED, GEM_EXTRACTED, REFORGE_REFUSALS } from '../../src/ui/reforgeWindow.js';
 import { withDom } from '../invdrag.mjs';
 import { rollGemFind } from '../../src/systems/gems.js';   // GEM2: the gem find, held off and put back
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 // PIN MOVED (PELLETS-SCARCE, 2026-10-24): the Dwemer Pellet's final find is the door's draw after every pass these laws

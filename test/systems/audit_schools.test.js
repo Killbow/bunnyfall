@@ -528,7 +528,7 @@ test('AUDIT SCHOOLS L2 F2 / F9: A WORN ITEM\'S BUNDLE AND MY SPELL TURNED BACK A
   assert.equal(got, 10, 'a worn Regenerate: its own 10');
 }));
 
-test('AUDIT SCHOOLS L2 F3: A REGENERATE READS ITS SCHOOL EVERY ROUND, as a damage over time does - cast at Restoration 200 it heals 14 a round, a mentoring or a refereed fight begun mid-way takes the climb off the next round, and it comes back when they end (mutants: frozen at the cast)', () => clean(() => {
+test.skip('AUDIT SCHOOLS L2 F3 (BUNNYFALL: mentoring removed): A REGENERATE READS ITS SCHOOL EVERY ROUND, as a damage over time does - cast at Restoration 200 it heals 14 a round, a mentoring or a refereed fight begun mid-way takes the climb off the next round, and it comes back when they end (mutants: frozen at the cast)', () => clean(() => {
   const r200 = mage([RES], 200);
   r200.health = 10; r200.maxHealth = 10000;
   const sinks = { heal: (n) => { r200.health += n; }, hurt() {}, say() {} };
@@ -544,7 +544,7 @@ test('AUDIT SCHOOLS L2 F3: A REGENERATE READS ITS SCHOOL EVERY ROUND, as a damag
   assert.equal(round(3), 14, 'back');
 }));
 
-test('AUDIT SCHOOLS L2 F5: MENTORING LEAVES A SIGNATURE SPELL IN ITS PATH\'S SCHOOLS - priced, trained and sold by the pair (pathHeld), the powers asleep (pathAwake); a Necromancer\'s Siphon Life never turns into the Destruction they never chose (mutants: the cast school through pathAwake; the shelf through pathAwake)', () => clean(() => {
+test.skip('AUDIT SCHOOLS L2 F5 (BUNNYFALL: mentoring removed): MENTORING LEAVES A SIGNATURE SPELL IN ITS PATH\'S SCHOOLS - priced, trained and sold by the pair (pathHeld), the powers asleep (pathAwake); a Necromancer\'s Siphon Life never turns into the Destruction they never chose (mutants: the cast school through pathAwake; the shelf through pathAwake)', () => clean(() => {
   const ne = pathMage('necromancer', 150);
   ne.level = 30; ne.skills[DES] = 15;
   const sp = signatureSpell('necromancer');

@@ -37,7 +37,7 @@ test('KETCH THE SHARE: gold 450 a level the seed varying it a fifth either way; 
   assert.deepEqual(JSON.parse(JSON.stringify(a)), JSON.parse(JSON.stringify(b)), 'the seed\'s own');
 });
 
-test('KETCH THE GUNS: the Thunderlock one share in ten, the Pistolet one in eight, each its own draw - and the Ketch\'s Gilded pair, Volendrung\'s Echo and the Ketchmaster\'s Word, one in a hundred each, rarer than the Gilded rung\'s others (mutants: the two guns one draw; the Gilded at the old chance; a gun every share)', () => {
+test.skip('(BUNNYFALL: guns off) KETCH THE GUNS: the Thunderlock one share in ten, the Pistolet one in eight, each its own draw - and the Ketch\'s Gilded pair, Volendrung\'s Echo and the Ketchmaster\'s Word, one in a hundred each, rarer than the Gilded rung\'s others (mutants: the two guns one draw; the Gilded at the old chance; a gun every share)', () => {
   assert.deepEqual([KT_THUNDERLOCK_CHANCE, KT_PISTOLET_CHANCE, KETCH_GILDED_CHANCE], [1 / 10, 1 / 8, 1 / 100]);
   assert.ok(KETCH_GILDED_CHANCE <= GILDED_CHANCE, 'never likelier than the Hour\'s');
   const tl = rolls.filter((s) => s.guns.some((g) => /Thunderlock/.test(g.name))).length / N;
@@ -52,7 +52,7 @@ test('KETCH THE GUNS: the Thunderlock one share in ten, the Pistolet one in eigh
   assert.ok(word > 0 && word < 0.025, `word ${word}`);
 });
 
-test('KETCH THE LIST THE POOL THROWS: the pieces, the guns, the Gilded, the Pellets, then the gold - each lawful, each dressed in a treasure flat; the receipt\'s spent key its voyage and ship, read back (mutants: the Pellets after the gold)', () => {
+test.skip('(BUNNYFALL: guns off) KETCH THE LIST THE POOL THROWS: the pieces, the guns, the Gilded, the Pellets, then the gold - each lawful, each dressed in a treasure flat; the receipt\'s spent key its voyage and ship, read back (mutants: the Pellets after the gold)', () => {
   let seen = 0;
   for (let c = 0; c < 600 && seen < 3; c++) {
     const L = ketchSpoilsList(c, 30);

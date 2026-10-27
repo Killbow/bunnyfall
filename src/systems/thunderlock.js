@@ -35,6 +35,7 @@ import { addVendorTextures, vendorTextureCount } from './textureReplacement.js';
 import { registerUniqueFind, registerLegendary, FOE_FAMILIES } from './loot/lootRarity.js';
 import { SKILLS } from './skills.js';
 import { APP_ROOT } from './appRoot.js';   // AUDIT-THUNDERLOCK F7
+import { GUNS_OFF } from './gunsOff.js';   // BUNNYFALL: guns switched off
 import { GUN_FEEL } from '../combat/gun/gunFeel.js';   // FIELD-GUN13: the flash's reach, from the one home the feel lives in (a leaf - no imports of its own)
 // The indices live in a LEAF (characters/thunderlockIds.js) because
 // characters/weapons.js needs them too and importing this file from
@@ -381,7 +382,7 @@ export const pelletFindStack = (rolls = Math.random) => PELLET_FIND_STACK.min
   + Math.min(PELLET_FIND_STACK.max - PELLET_FIND_STACK.min, Math.floor(rolls() * (PELLET_FIND_STACK.max - PELLET_FIND_STACK.min + 1)));
 registerUniqueFind({
   id: 'dwemer-pellets', final: true, minTier: PELLET_FIND_MIN_TIER, weights: PELLET_FIND_WEIGHTS,
-  mint: (rolls = Math.random) => [createPellets(pelletFindStack(rolls))],
+  mint: (rolls = Math.random) => { const n = pelletFindStack(rolls); return GUNS_OFF ? [] : [createPellets(n)]; },   // BUNNYFALL: drawn, never minted
 });
 
 /** And its LEGENDARY record, for the roll that finds one and then

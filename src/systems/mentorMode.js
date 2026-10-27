@@ -1,4 +1,6 @@
 // SOFTCAP1 (2026-09-29): MENTOR MODE - playing with lower-level friends.
+// BUNNYFALL: the scaling below is no longer applied (refreshMentor never sets `_mentor`). Kept for reference; the
+// party level is the one thing left.
 //
 // AUTOMATIC (Mac, 2026-09-29: "higher level players will be automatically a mentor for lower level players
 // when partying up"): there is no switch. Join a party whose level is well below yours and you mentor it; leave, or
@@ -114,26 +116,34 @@ export function mentorProfile(entity, partnerLevels) {
   };
 }
 
+/** BUNNYFALL: THE PARTY LEVEL. The plain average of every member's level, me included, so all of a party agrees. */
+export function partyLevel(ownLevel, partnerLevels) {
+  const ls = [ownLevel, ...(partnerLevels ?? [])].map(Number).filter((l) => Number.isFinite(l) && l >= 1);
+  if (ls.length < 2) return null;
+  return Math.max(1, Math.round(ls.reduce((a, l) => a + l, 0) / ls.length));
+}
+
 /**
- * The host's per-frame door (scenes/world.js partyFrame). `partnerLevels` are
- * the party's other members' levels; mentoring is automatic, so `enabled`
- * exists only for a host that must hold it off (none does today). Returns
- * 'on' / 'off' on a change (for the chat line), null otherwise.
+ * The host's per-frame door (scenes/world.js partyFrame).
+ * BUNNYFALL: MENTORING IS GONE. Nobody is scaled down any more: no skill, attribute, health or gear cut, and none of
+ * the powers that slept while mentoring (spell power, firmament, paths, mastery) sleep now, since `_mentor` is never
+ * set. What stays is the shared world: in a party, enemies and loot are built for the party's average level
+ * (`_partyLevel`, read by effectiveLevel). Returns 'on' when that level starts or changes, 'off' when it ends.
  */
 export function refreshMentor(entity, partnerLevels, enabled = true) {
   if (!entity) return null;
-  const was = entity._mentor ?? null;
-  const next = enabled ? mentorProfile(entity, partnerLevels) : null;
-  entity._mentor = next;
-  if (!was && next) return 'on';
-  if (was && !next) return 'off';
-  if (was && next && was.level !== next.level) return 'on';
+  entity._mentor = null;
+  const was = entity._partyLevel ?? null;
+  const next = enabled ? partyLevel(entity.level ?? 1, partnerLevels) : null;
+  entity._partyLevel = next;
+  if (next != null && was !== next) return 'on';
+  if (was != null && next == null) return 'off';
   return null;
 }
 
 export const isMentored = (entity) => !!entity?._mentor;
-/** The level the WORLD should build around (spawns): mentored, else real. */
-export const effectiveLevel = (entity) => entity?._mentor?.level ?? entity?.level ?? 1;
+/** The level the WORLD should build around (spawns, loot): the party's average in a party, else my own. */
+export const effectiveLevel = (entity) => entity?._partyLevel ?? entity?.level ?? 1;
 
 /** A permanent skill value, as the mentored character holds it. */
 export function mentoredSkill(entity, raw) {
@@ -162,7 +172,7 @@ export const mentorDamageTakenMult = (entity) => entity?._mentor?.damageTakenMul
 
 /** One line for the chat and the sheet. */
 export function mentorStatusText(entity) {
-  const m = entity?._mentor;
-  if (!m) return `Not mentoring. You mentor automatically in a party at least ${MENTOR_MIN_GAP} levels below you.`;
-  return `Mentoring: you fight as level ${m.level} (really ${m.realLevel}). Your real progress is kept.`;
+  const p = entity?._partyLevel;
+  if (p == null) return 'No party level. Enemies and loot are built for your own level.';
+  return `Party level ${p}: enemies and loot are built for the party's average level. Your own character is unchanged.`;
 }

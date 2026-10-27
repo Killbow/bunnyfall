@@ -31,6 +31,7 @@ import { ONLINE_BONUS_POOL } from './levelEven.js';   // LEVEL-EVEN: online, eve
 import { refreshOnlineLayer } from './renownLayer.js';   // LEVEL-EVEN: the online health floor read again over the level's new maximum
 import { isOnlinePage } from './online/onlineLane.js';
 import { LEVEL_CAP, atLevelCap, releaseCapLatch } from './levelCap.js';   // LEVEL-45: the level stops at 45
+import { earnedLevel } from './earnedLevel.js';   // BUNNYFALL: a raise's cost reads the level earned, not the level taken
 // ORL1: the ONE question this file asks the vendored mod - whose law
 // levels this character. Everything DFU below is untouched by the
 // answer; the two arms simply do not both run.
@@ -148,7 +149,7 @@ export function raiseSkills(entity, classicTimeMinutes, rolls = Math.random, onL
   const raised = [];
   for (let i = 0; i < entity.skillUses.length; i++) {
     const needed = skillUsesForAdvancement(
-      entity.skills[i], SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career.advancementMultiplier, entity.level);
+      entity.skills[i], SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career.advancementMultiplier, earnedLevel(entity));
     const reflexesMod = 0x10000 - ((entity.reflexes - 2) << 13);
     const calcUses = (entity.skillUses[i] * reflexesMod) >> 16;
     // SOFTCAP1: PAST 100 the ladder's cost can exceed the 20000 tally clamp
@@ -169,7 +170,7 @@ export function raiseSkills(entity, classicTimeMinutes, rolls = Math.random, onL
       prog[i] = (prog[i] ?? 0) + uses / cost;
       entity.skillUses[i] = 0;
       if (!(prog[i] >= 1)) continue;
-      const nextCost = softcapUsesForAdvancement(entity.skills[i] + 1, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career.advancementMultiplier, entity.level);
+      const nextCost = softcapUsesForAdvancement(entity.skills[i] + 1, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career.advancementMultiplier, earnedLevel(entity));
       prog[i] = (prog[i] - 1) * cost / nextCost;   // 0 at the hard cap (the next point costs Infinity)
       entity.skills[i] += 1;
       setSkillRecentlyIncreased(entity, i);
@@ -255,7 +256,7 @@ export function raiseSkills(entity, classicTimeMinutes, rolls = Math.random, onL
 export function skillAdvanceProgress(entity, i, { now = null } = {}) {
   const wait = skillCheckWait(entity, now);
   const value = entity.skills?.[i] ?? 0;
-  const needed = skillUsesForAdvancement(value, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career?.advancementMultiplier ?? 1, entity.level ?? 1);
+  const needed = skillUsesForAdvancement(value, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career?.advancementMultiplier ?? 1, earnedLevel(entity));
   const reflexesMod = 0x10000 - (((entity.reflexes ?? 2) - 2) << 13);
   const tally = entity.skillUses?.[i] ?? 0;
   if (value >= SKILL_SOFT_CAP && skillCanPassCap(entity, i)) {
@@ -277,7 +278,7 @@ export function skillCheckWait(entity, now = null) {
 }
 /** The pass's raise of skill `i` below 100: its uses reach the requirement (the uses as Reflexes scales them). */
 const meetsBelowCap = (entity, i) => ((((entity.skillUses?.[i] ?? 0) * (0x10000 - (((entity.reflexes ?? 2) - 2) << 13))) >> 16)
-  >= skillUsesForAdvancement(entity.skills?.[i] ?? 0, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career?.advancementMultiplier ?? 1, entity.level ?? 1));
+  >= skillUsesForAdvancement(entity.skills?.[i] ?? 0, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career?.advancementMultiplier ?? 1, earnedLevel(entity)));
 /** AUDIT SUGGESTIONS-1019 L3-2: whether DFU's 95 lock stands for skill `i` when the pass reaches it - a primary at 100
  *  already, or a primary before it in the pass at 99 that the pass raises to 100 (its own lock not standing). */
 function lockedBy(entity, i) {

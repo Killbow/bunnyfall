@@ -35,7 +35,7 @@ import { wearableItem } from '../equip.js';   // HELD-BASE: whether any slot cou
 import { validItemField, validItemFields, itemFieldsOfKind, ITEM_STR_MAX } from '../item/itemFields.js';   // RF5: the one declaration of every item field's kind (LR4's affix check rides it)
 import { validSetMarks } from '../aetheric.js';   // AUDIT SET D6: the wire's cross-checks of a sigil and an Aetheric piece
 import { validGildedMarks } from '../gilded.js';   // GILDED1: and a Gilded piece's - its record's exactly
-import { validImprint, validCurse, validSocket } from './lootRarity.js';   // LOOT10: and of a Rare's imprint; LOOT16: and of a curse; LOOT20: and of a socket
+import { validImprint, validCurse, validSocket, MAGIC_DROP_SCALE } from './lootRarity.js';   // LOOT10: and of a Rare's imprint; LOOT16: and of a curse; LOOT20: and of a socket
 import { createRandomBook, BOOK_TEMPLATE, bookValue } from '../books.js';   // IM1: CreateRandomBook whole (A2: + its book-file price); AUDIT LW-II-2 S9: the wire's floor of a book
 import { potionRecipeByKey, POTION_DEFAULT_TEXTURE_RECORD } from '../potions.js';   // F103: PotionRecipeKey's price side effect; AUDIT 63 F20: and its texture-record half
 import { RANDOM_TREASURE_ARCHIVE, RANDOM_TREASURE_ICONS, DROP_ICON_ARCHIVES, DROP_ICON_IDXS } from './lootDataTables.js';   // G5: DaggerfallLootDataTables.cs, its own file again
@@ -250,7 +250,7 @@ export function generateRandomLoot(matrix, who, rolls = Math.random, { itemChanc
   // MI (S4c): real when MAGIC.DEF templates are registered (context
   // build); absent -> the category still skips, loudly interim.
   if (_magicItemTemplates) {
-    halving(matrix.MI, () => createRegularMagicItem(_magicItemTemplates, level, who.gender, rolls));
+    halving(matrix.MI * MAGIC_DROP_SCALE, () => createRegularMagicItem(_magicItemTemplates, level, who.gender, rolls));   // BUNNYFALL: a quarter as often
   }
   halving(matrix.CL, () => createRandomClothing(who.gender, rolls));
   // CreateRandomBook: message = GetRandomBookID() FIRST (IM1 - the

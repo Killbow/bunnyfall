@@ -32,6 +32,8 @@ import { GuildServiceWindow, REFORGE_RECT, LIFT_ROW, LIFT_KEY, PANEL_X, PANEL_Y,
 import { mountReforgeWindow, LIFT_TITLE, LIFT_NONE, LIFTED, REFORGE_GUILD_PAGES, LIFT_REFUSALS } from '../../src/ui/reforgeWindow.js';
 import { withDom } from '../invdrag.mjs';
 import { rollGemFind } from '../../src/systems/gems.js';   // GEM2: the gem find, held off and put back
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's quarter is MAGIC_DROP_SCALE
 
 const T = ENCHANTMENT_TYPES;
 const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
