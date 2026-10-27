@@ -19,7 +19,7 @@ const { huntMarkSeen, huntMarkTraits, HUNT_MARK_TRAITS } = await import('../../s
 const { huntWeekAt, huntMarkOf, HUNT_MARK_NAMES, HUNT_RUNGS, HUNT_MARK_RUNG } = await import('../../src/net/huntLaw.js');
 const { BOUNTY_TIERS } = await import('../../src/systems/bounty/bountyBoard.js');
 const { bossTraitMask, giveBossTraits } = await import('../../src/systems/bossTraits.js');
-const { promoteRaidLeader, eliteSize } = await import('../../src/systems/eliteFoes.js');
+const { promoteRaidLeader, eliteSize, promoteEliteFoe, grantEliteLoot, withdrawEliteLoot } = await import('../../src/systems/eliteFoes.js');
 const { raidLeaderNameOf } = await import('../../src/systems/raidKinds.js');
 const { foeTitle } = await import('../../src/systems/foeTitle.js');
 const { trophyTitle } = await import('../../src/systems/hunt/trophies.js');
@@ -146,6 +146,8 @@ test('HUNTERS-MARK-II THE WIRE, between two real pools: the hunter\'s mark - sto
   assert.ok(beast, 'the mark stood in the hunter\'s pool');
   assert.deepEqual([...beast.entity.bossTraits].sort(), [...p.traits].sort(), 'the week\'s two, never the one its stand drew as an elite');
   assert.equal(beast.entity.raidLeader?.name, p.title);
+  assert.equal(beast.entity._eliteLoot, true, 'its stand laid an elite\'s drop on it');
+  assert.equal(withdrawEliteLoot(beast.entity), 0, 'and the mark took it back: its drop is its kind\'s own, never kit');
   // the mate's pool reads the hunter's frame
   B.applyFoes('mac-0001', A.foesFrame(true)); await settle();
   const copy = B.foes.find((f) => f.puppet === 'mac-0001' && f.seq === beast.seq);
@@ -190,4 +192,19 @@ test('HUNTERS-MARK-II THE WIRE, between two real pools: the hunter\'s mark - sto
   assert.equal(mate.host.hunt._done().size, 0, 'no mark done');
   assert.deepEqual(mate.host._ledger().paid, [], 'no bounty paid');
   assert.deepEqual(renowned, [copy], 'the kill\'s Renown, as from any shared foe');
+});
+
+test('HUNTERS-MARK-II AN ELITE\'S PIECES TAKEN BACK: withdrawEliteLoot takes off exactly what the elite roll laid - the kind\'s own pieces stay, a foe no roll laid on loses nothing, and a second ask takes nothing (mutants: the record never kept; every piece taken)', () => {
+  const own = [{ templateIndex: 1, own: true }, { templateIndex: 2, own: true }];
+  const e = { eliteFoe: false, level: 12, items: [...own] };
+  promoteEliteFoe(e, { own: false });
+  grantEliteLoot(e, 12, () => 0.5);
+  assert.ok(e.items.length > own.length, 'the roll laid its pieces');
+  const laid = e.items.length - own.length;
+  assert.equal(withdrawEliteLoot(e), laid, 'as many as it laid');
+  assert.deepEqual(e.items, own, 'the kind\'s own stay, in order');
+  assert.equal(withdrawEliteLoot(e), 0, 'nothing twice');
+  const plain = { items: [{ templateIndex: 3 }] };
+  assert.equal(withdrawEliteLoot(plain), 0);
+  assert.equal(plain.items.length, 1);
 });

@@ -16,7 +16,7 @@ import { seatWeekStartMs, SEAT_WEEK_MS } from '../net/townSeatLaw.js';
 import { compassWord, distanceWord, bountyTierLabel, bountyTierIndex, BOUNTY_MAP_LINE } from '../systems/bounty/bountyBoard.js';
 import { BOUNTY_QUEST_PREFIX } from '../systems/bounty/bountyJournal.js';
 import { giveBossTraits } from '../systems/bossTraits.js';
-import { promoteEliteFoe } from '../systems/eliteFoes.js';
+import { promoteEliteFoe, withdrawEliteLoot } from '../systems/eliteFoes.js';
 import { huntMarkTraits } from '../systems/hunt/namedMark.js';   // HUNTERS-MARK-II: the week's traits, one home - a mate reads the mark off them
 import { addGoldPieces } from '../systems/inventory.js';
 import { registerModSaveData } from '../systems/modSaveData.js';
@@ -142,6 +142,7 @@ export function createHuntersMark(deps) {
     if (!e) return;
     promoteEliteFoe(e, { own: true, checkLevel: false });
     e.raidLeader = { name: p.title };   // its name over it (systems/foeTitle.js) and a leader's size
+    withdrawEliteLoot(e);   // HUNTERS-MARK-II: an elite its stand rolled keeps no elite's pieces - a mark is never kit
     e.bossTraits = undefined; e.bossWard = undefined;   // HUNTERS-MARK-II: the week's two in place of any its stand drew as an elite (RAID5's leader's law) - a mate's screen reads the mark off them
     giveBossTraits(e, p.traits);
     f.huntMark = p.id;

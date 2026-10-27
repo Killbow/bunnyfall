@@ -88,5 +88,32 @@
     "tests": [
       "test/scenes/huntersmark2_wire.test.js"
     ]
+  },
+  {
+    "name": "HUNTERS-MARK-II-the-mark-keeps-the-elite-kit",
+    "file": "src/scenes/huntersMark.js",
+    "old": "    withdrawEliteLoot(e);   // HUNTERS-MARK-II: an elite its stand rolled keeps no elite's pieces - a mark is never kit",
+    "new": "    ;",
+    "tests": [
+      "test/scenes/huntersmark2_wire.test.js"
+    ]
+  },
+  {
+    "name": "HUNTERS-MARK-II-the-record-never-kept",
+    "file": "src/systems/eliteFoes.js",
+    "old": "  _eliteLaid.set(entity, laid);",
+    "new": "  ;",
+    "tests": [
+      "test/scenes/huntersmark2_wire.test.js"
+    ]
+  },
+  {
+    "name": "HUNTERS-MARK-II-every-piece-taken",
+    "file": "src/systems/eliteFoes.js",
+    "old": "  entity.items = entity.items.filter((it) => !laid.includes(it));",
+    "new": "  entity.items = [];",
+    "tests": [
+      "test/scenes/huntersmark2_wire.test.js"
+    ]
   }
 ]

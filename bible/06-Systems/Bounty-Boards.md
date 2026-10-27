@@ -308,10 +308,13 @@ fighting a party mate's bounty beast gives one who does not hold the hunt: the k
 landed in its last half minute, the party bonus counting who fought it (`net/renownTracker.js`), and a claim on its
 body as on any peer's foe (OUTDOOR-LOOT). No purse, no trophy, no clear, no rank.
 
+**A mark is never kit, held** (at the merge): a stand that rolled the mark an elite had laid an elite's drop on its
+body beside its kind's. `systems/eliteFoes.js` grantEliteLoot keeps what each elite roll laid, and the mark's crown takes
+exactly that back (`huntersMark.js` crown, `eliteFoes.js` withdrawEliteLoot) - bootWorld's stand untouched. Pinned in
+`huntersmark2_wire.test.js`.
+
 **NOT CHANGED, named**: two mates who took the same week's mark at one board each stand their own copy at its lair, and
-each is paid for their own; a board's one-pack law (section 6) is not the mark's. A stand that rolled the mark an elite
-lays an elite's drop on its body beside its kind's: the stand's own roll, which `world.js` `_standBountyPack` has no
-way to refuse, and bootWorld has no room to add one.
+each is paid for their own; a board's one-pack law (section 6) is not the mark's.
 
 ### 12.5 The mounted trophy
 
