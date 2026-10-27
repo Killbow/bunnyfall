@@ -29,8 +29,8 @@
   {
     "name": "CRAFT-PROCS-the-roll-on-a-stream-of-its-own",
     "file": "src/systems/smithItems.js",
-    "old": "      applyRarity(item, eff.rarity, rolls, null, { fits, byLines: at(MINT_V_LINES), fists: at(MINT_V_JEWEL_KIN) });\n",
-    "new": "      applyRarity(item, eff.rarity, seededRng(seed >>> 0), null, { fits, byLines: at(MINT_V_LINES), fists: at(MINT_V_JEWEL_KIN) });\n",
+    "old": "      applyRarity(item, eff.rarity, rolls, null, { fits, byLines: at(MINT_V_LINES), lean: at(MINT_V_ARMOR_LEAN), fists: at(MINT_V_JEWEL_KIN) });\n",
+    "new": "      applyRarity(item, eff.rarity, seededRng(seed >>> 0), null, { fits, byLines: at(MINT_V_LINES), lean: at(MINT_V_ARMOR_LEAN), fists: at(MINT_V_JEWEL_KIN) });\n",
     "tests": [
       "test/systems/fb1013e_craftprocs.test.js"
     ],

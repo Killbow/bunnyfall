@@ -18,7 +18,10 @@
 //         v CRAFT-PROCS (FIELD BUGS 2026-10-13e): the mint's version, stamped at the craft and kept by a temper's re-sign
 //           - the law the piece is minted under (systems/smithItems.js mintPiece): 1 its quality's roll and the ladder's
 //           last pass (MINT_V_LAST_PASS); 2 its roll's lines drawn over the lines and its name following them
-//           (MINT_V_LINES, AFFIX-LINES); absent on every record made before, which mints as it always did
+//           (MINT_V_LINES, AFFIX-LINES); 3 a piece of armour's lines on its family's leans (MINT_V_ARMOR_LEAN,
+//           ARMOR-LEAN); 4 a jewel's skill lines leaning to the bare hand's two as well (MINT_V_JEWEL_KIN, JEWEL-KIN); stamped
+//           with the version the craft's client mints (craftMintVersion); absent on every record made before, which mints as
+//           it always did
 //
 // ONE KEY, SEVERAL THINGS, NEVER CONFUSED: the identity key signs tokens (`v1`) and orders; this is `p1`, the version
 // inside the signed bytes and read before a byte of the body is, and the claim shapes are disjoint besides - a record
@@ -46,11 +49,16 @@ export const MINT_V_LAST_PASS = 1;
  *  held to an empty name slot (systems/loot/lootRarity.js rollAffixes `byLines`). A record of 1 or none mints as it
  *  always did. */
 export const MINT_V_LINES = 2;
+/** ARMOR-LEAN (2026-10-26, a player: "can we make differences regarding stat distribution for all types"): the first
+ *  mint version whose piece of armour draws its lines on its family's leans - leather to Agility and Speed, chain to
+ *  resistances, plate to its armour and Strength (systems/loot/lootRarity.js ARMOR_LEAN, rollAffixes `lean`). A record
+ *  of 2 or less mints as it always did, so no piece crafted before changes when the market or a temper mints it again. */
+export const MINT_V_ARMOR_LEAN = 3;
 /** JEWEL-KIN (2026-10-26, Discord #feature-feedback "jewelcrafting, roll chances not equal (h2h, critical)";
  *  bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): the first mint version whose jewellery's skill lines lean to
  *  Hand-to-Hand and Critical Strike beside the mind's thirteen (systems/loot/lootRarity.js skillKin `fists`). A record
- *  of 2 or less mints as it always did. */
-export const MINT_V_JEWEL_KIN = 3;
+ *  of 3 or less mints as it always did (3 on this branch, renumbered past ARMOR-LEAN's 3 at the merge). */
+export const MINT_V_JEWEL_KIN = 4;
 /** The mint version this build mints a craft at, and asks its record be stamped with (`v` - the service's,
  *  server-account/src/professions.js, at most this; craftMintVersion). */
 export const MINT_VERSION = MINT_V_JEWEL_KIN;

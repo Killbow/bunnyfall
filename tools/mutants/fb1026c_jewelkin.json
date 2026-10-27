@@ -53,8 +53,8 @@
   {
     "name": "JEWEL-KIN-rollAffixes-drops-the-flag",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "    affixes = rollAffixes(item, tier, rolls, { byLines, fists });",
-    "new": "    affixes = rollAffixes(item, tier, rolls, { byLines });",
+    "old": "    affixes = rollAffixes(item, tier, rolls, { byLines, lean, fists });",
+    "new": "    affixes = rollAffixes(item, tier, rolls, { byLines, lean });",
     "tests": [
       "test/systems/fb1026c_jewelkin.test.js"
     ],
@@ -64,7 +64,7 @@
     "name": "JEWEL-KIN-service-stamps-its-own",
     "file": "server-account/src/professions.js",
     "old": "v: craftMintVersion(mint) }",
-    "new": "v: craftMintVersion(3) }",
+    "new": "v: craftMintVersion(4) }",
     "tests": [
       "test/systems/fb1026c_jewelkin.test.js"
     ],
@@ -103,11 +103,21 @@
   {
     "name": "JEWEL-KIN-fallback-drops-the-flag",
     "file": "src/systems/loot/lootRarity.js",
-    "old": "    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines, fists });",
-    "new": "    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines });",
+    "old": "    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines, lean, fists });",
+    "new": "    if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines, lean });",
     "tests": [
       "test/systems/fb1026c_jewelkin.test.js"
     ],
     "note": "AUDIT FB1026c E10: a Legendary with no record falls to Rare on the new lean whatever it was asked"
+  },
+  {
+    "name": "JEWEL-KIN-armour-version-read",
+    "file": "src/systems/smithItems.js",
+    "old": "fists: at(MINT_V_JEWEL_KIN) });",
+    "new": "fists: at(MINT_V_ARMOR_LEAN) });",
+    "tests": [
+      "test/systems/fb1026c_jewelkin.test.js"
+    ],
+    "note": "the merge: a record of 3 - ARMOR-LEAN's, stamped by main's service before this one - reads as the jewel kin's, and a ring made there changes its lines"
   }
 ]

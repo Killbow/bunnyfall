@@ -2,7 +2,7 @@
 // around 100 rare rings (gold and platinum, handcraft not auto) and h2h or critical not roll on them";
 // bible/01-Overview/bugs/Field-Bugs-2026-10-26c.md): jewellery's skill lines lean to Hand-to-Hand and Critical Strike
 // beside the mind's thirteen. Measured through the real mint (systems/smithItems.js mintPiece) the report's own rings
-// went through - a record of MINT_V_JEWEL_KIN, as the service stamps now, and one of 2, as every ring made before.
+// went through - a record of MINT_V_JEWEL_KIN (4), as the service stamps for this build, and ones of 2 and 3 (ARMOR-LEAN's), as every ring made before.
 // AUDIT FB1026c (C3, C6, E9, E10, E11): the record is stamped with the version its client mints (a stale tab's ring is
 // minted alike in its pack and in every other reader's), the odds measured per ring, the fallback's lean, and a loot
 // door's jewellery as the loot list makes it. Mutants: tools/mutants/fb1026c_jewelkin.json.
@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import * as LR from '../../src/systems/loot/lootRarity.js';
-import { MINT_VERSION, MINT_V_JEWEL_KIN, MINT_V_LINES, MINT_V_LAST_PASS, craftMintVersion, readProductRecord, mintVersionOf } from '../../src/net/productRecord.js';
+import { MINT_VERSION, MINT_V_JEWEL_KIN, MINT_V_ARMOR_LEAN, MINT_V_LINES, MINT_V_LAST_PASS, craftMintVersion, readProductRecord, mintVersionOf } from '../../src/net/productRecord.js';
 import { mintPiece, mintPieces } from '../../src/systems/smithItems.js';
 import { SKILLS } from '../../src/systems/skills.js';
 import { createRandomJewellery } from '../../src/systems/loot/loot.js';
@@ -57,10 +57,14 @@ test('JEWEL-KIN THE REPORT\'S RINGS: a Masterwork gold or platinum ring made now
   assert.ok(none ** 100 < 1e-5, `none in a hundred rings: ${none ** 100} - one in millions now`);
 });
 
-test('JEWEL-KIN A RING ALREADY MADE KEEPS ITS LINES: a record of 2 mints on the mind\'s lean as it always did - the bare hand\'s two at the open share alone (mutant: the version unread)', () => {
+test('JEWEL-KIN A RING ALREADY MADE KEEPS ITS LINES: a record of 2 or 3 mints on the mind\'s lean as it always did - the bare hand\'s two at the open share alone (mutant: the version unread)', () => {
   on();
   const old = ringSkills(MINT_V_LINES, 1500);
   assert.ok(share(old, SKILLS.HandToHand) < 0.012 && share(old, SKILLS.CriticalStrike) < 0.012, `the old lean (${(share(old, SKILLS.HandToHand) * 100).toFixed(2)}%, ${(share(old, SKILLS.CriticalStrike) * 100).toFixed(2)}%)`);
+  // and a record of 3, ARMOR-LEAN's (main's version 3 - an armour's lines on its family's), keeps the jewel's old lean too
+  assert.deepEqual([MINT_V_ARMOR_LEAN, MINT_V_JEWEL_KIN], [3, 4]);
+  const armour = ringSkills(MINT_V_ARMOR_LEAN, 1500);
+  assert.ok(share(armour, SKILLS.HandToHand) < 0.012 && share(armour, SKILLS.CriticalStrike) < 0.012, `a record of 3: the old lean (${(share(armour, SKILLS.HandToHand) * 100).toFixed(2)}%)`);
   // and the version is the only thing that moved it: a record's ring of 2 and of 3 differ only where a skill line's skill does
   let moved = 0;
   for (let i = 0; i < 200; i++) {

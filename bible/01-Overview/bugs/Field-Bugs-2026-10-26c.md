@@ -66,16 +66,17 @@ FIXED. Jewellery leans to the bare hand's two besides the mind's thirteen (`JEWE
 and a ring is where a fist or a striker's line has to come from. Each of the fifteen takes about one skill line in
 sixteen; a hundred rings without a Hand-to-Hand line is a chance of one in millions (a ring lacks one about 85 times in a hundred, measured per ring - AUDIT FB1026c C6). A found ring takes the lean at once.
 A crafted piece is minted again from its signed record on every client, so the lean rides a new mint version:
-`MINT_V_JEWEL_KIN` 3. A craft names the version its client mints (`accountClient.js` craft's `mint`) and the account
-service stamps that, never past its own (`productRecord.js` craftMintVersion, acct196); a client from before the ask is
+`MINT_V_JEWEL_KIN` 4 (3 on this branch, renumbered past main's ARMOR-LEAN, `MINT_V_ARMOR_LEAN` 3, at the merge). A craft
+names the version its client mints (`accountClient.js` craft's `mint`) and the account service stamps that, never past
+its own (`productRecord.js` craftMintVersion, acct197); a client from before the ask is
 stamped `MINT_V_LINES` - the service deploys before the site, and a tab left open or a desktop install keeps its build,
-so a stale client's ring is the same ring in its pack and in every other reader's. A record of 2 or less mints on the
+so a stale client's ring is the same ring in its pack and in every other reader's. A record of 3 or less mints on the
 mind's thirteen (`skillKin`'s `fists` false) and a ring already made keeps its lines.
 
 Pinned by `test/systems/fb1026c_jewelkin.test.js` (the report's rings through `mintPiece` at 3 and at 2, the odds per
 ring; a found ring as the loot list makes it; the Legendary's fallback; the craft's version through the real client and
 Worker); pins moved by intent: `loot1_kin` (the kin), `fb1013e_craftprocs` and `affixlines_reforge` (the version 3),
-`prof10_client` (the craft's shape). Mutants `tools/mutants/fb1026c_jewelkin.json` (11, dead).
+`prof10_client` (the craft's shape). Mutants `tools/mutants/fb1026c_jewelkin.json` (12, dead).
 
 ## MASTER-THREE (3) - `src/systems/masterSkills.js`
 
@@ -87,8 +88,9 @@ or two schools among the primaries can now stand beside a third primary mastered
 the third primary left at 100); the Growth guide reads the slots, so it follows.
 
 THE WORKERS. `masterSkills.js` is in both Workers' bundles (reached through the skills' law), so its bytes moved both
-versions: the relay's RELAY_VERSION world269 (no relay code reads the slots - nothing it does moved) and the account
-service's acct195 (taken with JEWEL-KIN). Neither needs the other deployed first. Every pin of the two versions moved
+versions: the relay's RELAY_VERSION world270 (no relay code reads the slots - nothing it does moved) and the account
+service's acct197 (taken with JEWEL-KIN; world269 and acct195, then acct196, on this branch, each renumbered past main's
+own at a merge). Neither needs the other deployed first. Every pin of the two versions moved
 with a PIN MOVED note (61 test files), and the two records that name the relay's line re-aimed.
 
 Pinned by `test/systems/fb1026c_masterthree.test.js`. Pins moved by intent - each fixture that spent "the primary slots"
@@ -187,7 +189,7 @@ before anything moved; the sections above say the law as it stands now.
 | B6 | Ten days of talk (measured 12), seven of Courtship (8-10); the tally's comment; a warm of nothing written | B | FIXED |
 | C1 | HIGH. A virtue level-up latched past the cap was a window that never closed | C | FIXED: `releaseCapLatch` at the load, both checks, the door and the rollout, the virtue screen's confirm a backstop - the door driven (pinned); the Oghma latch kept |
 | C2 | MEDIUM. The classic sheet handed out a pool with no level; crossLeveling carried the latch online | C | FIXED (pinned) |
-| C3 | MEDIUM. A stale client minted v3 records on the old lean - one piece, two sets of lines | C | FIXED: the craft names the version its client mints, the service stamps at most its own, a client that names none MINT_V_LINES (`craftMintVersion`, acct196) - through the real client and Worker (pinned) |
+| C3 | MEDIUM. A stale client minted v3 records on the old lean - one piece, two sets of lines | C | FIXED: the craft names the version its client mints, the service stamps at most its own, a client that names none MINT_V_LINES (`craftMintVersion`, acct197; JEWEL-KIN is version 4 since main's ARMOR-LEAN took 3) - through the real client and Worker (pinned) |
 | C4 | LOW. The Level box said "45" to a character kept past it | C | FIXED: "The highest level is 45: no more levels are gained.", in all 25 languages |
 | C5 | LOW. `>=` read as `===` and the Level box's text lived | C | FIXED (pinned past the cap) |
 | C6, E9 | "One in a thousand" for a hundred rings without Hand-to-Hand (measured: one in millions); "reachable where it was not" | C, E | FIXED, measured per ring in the pin |
@@ -220,8 +222,12 @@ ARROW_FLIGHT_SPEED and left six mutant records (`audit_martial`, `techfx1` x3, `
 `techfx1.test.js`'s Volley timing reading MISSILE_SPEED. Ported here: the records re-aimed by content (227 dead) and the
 test reading the constant the shafts fly at.
 
+THE LATER MERGES. `main` took acct196 (WOVEN-PAYS), world269 (BOW-TOPS) and mint version 3 (ARMOR-LEAN, an armour's
+lines on its family's leans) while this branch was open: JEWEL-KIN is acct197, world270 and `MINT_V_JEWEL_KIN` 4 - a
+record of 3 keeps the jewel's old lean, pinned - and the record moved from 26b to 26c, the name main gave WOVEN-PAYS.
+
 PINS. The six `fb1026c_*` tests and `fb1001b_peerboats`; mutants `tools/mutants/fb1026c_mainspine.json` (15),
-`fb1026c_courtdeeds.json` (26), `fb1026c_levelcap.json` (18), `fb1026c_jewelkin.json` (11), `fb1026c_hullpass.json`
+`fb1026c_courtdeeds.json` (26), `fb1026c_levelcap.json` (18), `fb1026c_jewelkin.json` (12), `fb1026c_hullpass.json`
 (10), `fb1026c_masterthree.json` (5) - all dead. Pins moved by intent, each with its note: `fb1013e_craftprocs` and
 `prof10_client` (the craft names its version), `plainui` (the badge as offered), `csa_together` (the boats' loop and
 `deckGround`), `serpent4` (its title), `techfx1` (the merge). Records re-aimed: `audit30`, `csa_together`,
