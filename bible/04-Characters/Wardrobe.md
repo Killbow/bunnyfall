@@ -176,8 +176,8 @@ as `scenes/wardrobeCounter.js`'s header says. The collection's sweep and every r
 
 **PIN MOVED (APPEARANCES):** `test/systems/auditcards5_ui.test.js` and `test/ui/collections2.test.js` - the
 Collections page's parts list the looks' part; `test/systems/weaponglow1.test.js` - the rig's art reads the held piece
-(`held`) and the clone's metal the look's; `test/net/realm4.test.js` and `test/systems/fb1009b_markwire.test.js` - the
-receiver's marks and the realm's volatile fields name `appearance`; `test/systems/portal1_stone.test.js` - the Portal
+(`held`) and the clone's metal the look's; `test/net/realm4.test.js`, `test/systems/auditrealm2_service.test.js` and
+`test/systems/fb1009b_markwire.test.js` - the receiver's marks and the realm's volatile fields name `appearance`; `test/systems/portal1_stone.test.js` - the Portal
 Stone's row is built in `scenes/shopRows.js`, and its Enhanced press stands under the Wardrobe's;
 `test/scenes/hostceiling.test.js` - `worldModes.js` seven logical lines shorter. Re-aimed by content: `auditcards5.json`, `collections2.json`,
 `fb1009b_markwire.json`, `fb1016b_stolengoods.json`, `steed1.json`, `wagons2_visit.json`.
