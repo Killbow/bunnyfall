@@ -64,6 +64,7 @@ function enhancedMerchantServiceOverlay(hooks) {
           // draws it - Immersive Travel's driver said "Sell" here, the default skin's only road to a carriage
           { label: hooks.label ?? merchantServiceLabel(hooks.service), onClick: () => { close(); hooks.onService?.(); } },
           ...(hooks.portal ? [{ label: hooks.portal.label, onClick: () => { close(); hooks.portal.onBuy?.(); } }] : []),   // PORTAL1: the Portal Stone, for shards
+          ...(hooks.wardrobe ? [{ label: hooks.wardrobe.label, icon: 'clothing', onClick: () => { close(); hooks.wardrobe.onOpen?.(); } }] : []),   // APPEARANCES: the Wardrobe, at a tailor's and the smiths'
           { label: 'Exit', onClick: close },
         ],
         onExit: close,

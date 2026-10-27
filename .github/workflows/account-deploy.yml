@@ -169,6 +169,7 @@ on:
       - "src/systems/mathf.js"
       - "src/net/card/cardWorthLaw.js"
       - "src/net/realm/realmTradeLaw.js"
+      - "src/net/appearanceLaw.js"
       - "src/net/bagLaw.js"
       - "src/net/guild/guildVaultLaw.js"
       - "src/net/canon.js"

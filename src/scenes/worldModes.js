@@ -443,7 +443,7 @@ import { setPassiveSpecialsHost, FIGHTER_TRAINERS_FACTION } from '../systems/pas
 import { DaedraSummonedWindow, REFUSAL_FOE_COUNT, COVEN_FAIL_FOE_COUNT } from '../ui/daedraSummonedWindow.js';   // G7b: the summoning's own film window
 import { orderOf } from '../systems/guild/guildVariants.js';
 import { joinedGuildOfGroup } from '../systems/guild/guilds.js';
-import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { PORTAL_TEXT } from '../systems/portalStone.js'; import { createPortalCounter } from './portalCounter.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
+import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { PORTAL_TEXT } from '../systems/portalStone.js'; import { createPortalCounter } from './portalCounter.js'; import { createWardrobeCounter } from './wardrobeCounter.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
 import { liftCurse } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
 import { setJunk } from '../systems/item/itemJunk.js';   // AUDIT LOOT II C5: a sold piece's mark ends at the shelf
 import { scryPlace } from '../systems/loot/lootScry.js';   // LOOT19: the guild's scryers
@@ -4477,6 +4477,7 @@ export function createWorldModes(host) {
           onTalk: () => openStaticNpc(pn, { forceTalk: true }),
           onSell: () => openMerchantSell(),
           portal: portalRow(),   // PORTAL1: the Portal Stone's row, for shards
+          wardrobe: wardrobeRow(),   // APPEARANCES: an Armorer's or a Weaponsmith's Wardrobe (scenes/wardrobeCounter.js)
           // The U24 identity guard: a window that dispatches to another
           // must not be nulled by its OWN onClose.
           onClose: () => { if (interiorOverlay === win) interiorOverlay = null; },
@@ -4516,6 +4517,7 @@ export function createWorldModes(host) {
         onTalk: () => openStaticNpc(pn, { forceTalk: true }),
         onService: () => { if (custom) openCustomMerchantService(custom); else if (banking) openBank(); else openMerchantSell(); },
         portal: banking || custom ? undefined : portalRow(),   // PORTAL1: a shop's keeper sells the Portal Stone for shards - a teller and a mod's service never
+        wardrobe: banking || custom ? undefined : wardrobeRow(),   // APPEARANCES: a Clothing Store's Wardrobe (scenes/wardrobeCounter.js)
         // AUDIT PORTAL1 C1: the U24 identity guard the repair popup's has - a popup that dispatches (the Portal Stone's
         // question pushed over it) is out of the slot, not left in it done under the box the question is. The popup is
         // the one holding THESE hooks: both skins keep them as `hooks` and call onClose on them
@@ -6229,6 +6231,10 @@ export function createWorldModes(host) {
   /** PORTAL-BULK: a press asks HOW MANY, then the offer, and Yes is the sale - or, with none to be had, says why at once
    *  (AUDIT PORTAL1 C4) - in the counter's own module (scenes/portalCounter.js); the slot's door handed live. */
   const portalCounter = createPortalCounter({ say: (l) => say(l), mount: (w) => mountInterior(w) });
+  /** APPEARANCES (bible/04-Characters/Wardrobe.md): THE WARDROBE - a Clothing Store's, an Armorer's or a Weaponsmith's
+   *  keeper's row on their popup, in a building and nowhere else; the counter and its window are scenes/wardrobeCounter.js. */
+  const wardrobeCounter = createWardrobeCounter({ mount: (w) => mountServiceWindow(w) });
+  const wardrobeRow = () => (mode === 'interior' ? wardrobeCounter.row(interiorBuilding?.buildingType) : undefined);
 
   /** U42: the CLASSIC spellbook in CAST mode - the interior host's
    *  Backspace window, ONE construction. The player's own array is

@@ -1468,6 +1468,8 @@ export function wornEquipKeyOf(pieces) {
   return (pieces ?? []).map((p) => `${p.kind || 'armor'}:${p.templateIndex ?? p.id}:${p.material ?? ''}:${p.dye ?? ''}`).join('|');   // MW-FOLK1: an outfit by its id
 }
 
+/** APPEARANCES: a build's hands as they are drawn - its opts themselves where neither hand wears a look. */
+const drawnOpts = (o) => (o && (drawnPiece(o.weapon) !== o.weapon || drawnPiece(o.offWeapon) !== o.offWeapon) ? { ...o, weapon: drawnPiece(o.weapon), offWeapon: drawnPiece(o.offWeapon) } : o);
 export function fpWeaponKey(item, hasAmmo) {
   // MW-D38: the MATERIAL IS READ, at last. `item.materialName` was a
   // field no item ever carried - the name lives behind itemInfo's
@@ -1739,6 +1741,7 @@ export const archiveHas = (archives) => (p) => (archives ?? []).some((a) => a.ha
 import { ammoCountFor } from '../systems/inventory.js';   // AUDIT 68 S27-ammoCount-dup: the ammunition count's one home, beside the spend law
 import { ownWeaponModelFor } from '../characters/ownModels/ownWeaponModels.js';   // FIELD-GUN-MW2: the weapons Morrowind does not have - a leaf too
 import { glowUnit } from '../render/weaponGlowGlsl.js';   // WEAPON-GLOW1: the glow's unit off the lens's rows - a leaf
+import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look - a leaf
 
 const saidArrow = new Set();
 function sayNoArrow(notes) {
@@ -5228,7 +5231,8 @@ export function createFpArm() {
     },
     get frames() { return frames; },
 
-    async build(opts) {
+    async build(given) {
+      const opts = drawnOpts(given);   // APPEARANCES (bible/04-Characters/Wardrobe.md): the hands hold what their pieces are drawn as
       // AUDIT MW-TORCH F6: A BUILD THAT ARRIVES MID-BUILD IS QUEUED, the
       // law PX25/PX26 gave the worn table and the hand. autoBuildArms's
       // door is reached by a load landing while the last load's build
@@ -5504,7 +5508,8 @@ export function createFpArm() {
       if (want === !!lastBuildOpts.vampire) return false;
       return this.build({ ...lastBuildOpts, vampire: want });
     },
-    setWeapon(item, { hasAmmo = false, ammoCount = null } = {}) {
+    setWeapon(held, { hasAmmo = false, ammoCount = null } = {}) {
+      const item = drawnPiece(held);   // APPEARANCES: a weapon wearing a look is held as the look - the player's arms, the pack's figure, every peer's body
       if (!built || !built.ok) return false;
       // PX26 F3: A SWAP DURING A BUILD IS NOT DROPPED, the same law
       // PX25 gave the worn table. The pack now hands the hand over on
@@ -5946,7 +5951,8 @@ export function createFpArm() {
      * drawn and sheathed by the right hand's stance, and the left shows exactly while it is drawn (offShown). A request
      * that arrives mid-build waits and goes when the build settles; a new rig binds afresh (build() clears the key).
      */
-    setOffWeapon(item) {
+    setOffWeapon(held) {
+      const item = drawnPiece(held);   // APPEARANCES: the left blade's look, as setWeapon's
       if (!built || !built.ok) return false;
       if (busy) { pendingOff = item ?? null; return false; }
       if (built.werewolf) return false;   // WEREWOLF1: the wolf holds nothing
@@ -6005,14 +6011,16 @@ export function createFpArm() {
     },
     /** WEAPON-GLOW1: the held weapon's glow (systems/weaponGlow.js meshGlow / glowFromWord), or null - a value read at
      *  the next draw, so its fast path is the assignment. */
-    setWeaponGlow(spec, item = null) {
+    setWeaponGlow(spec, held = null) {
+      const item = drawnPiece(held);   // APPEARANCES: the weapon it is OF is the one the hand holds - its look (one copy a look, so the key below is asked once)
       weaponGlowSpec = spec ?? null;
       if (item !== glowItem) { glowItem = item; glowKey = fpWeaponKey(item, false); }   // AUDIT WEAPON-GLOW NET-1: the weapon it is OF
     },
     /** WEAPON-GLOW1: the glow the next draw lays on the weapon, for a pin. */
     weaponGlow() { return glowShown(); },
     /** TWO-HANDS: a pair's left blade's glow (setWeaponGlow's shape for the second hand), or null with no pair. */
-    setOffWeaponGlow(spec, item = null) {
+    setOffWeaponGlow(spec, held = null) {
+      const item = drawnPiece(held);   // APPEARANCES: setWeaponGlow's
       offGlowSpec = item ? spec ?? null : null;
       if (item !== offGlowItem) { offGlowItem = item; offGlowKey = item ? fpWeaponKey(item, false) : null; }
     },

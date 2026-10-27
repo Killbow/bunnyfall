@@ -1123,6 +1123,24 @@ export const REFORGE_CSS = `/* ── LOOT9/LOOT10: THE REFORGE'S WINDOW (ui/ref
    no press of its own gives that column to its name */
 .reforge-shell .broker-offer:not(.codex-row):not(.codex-set):not(.codex-gilded):not(.scry-row):not(:has(> button)) { grid-template-columns: 48px minmax(0, 1fr) max-content; }
 .reforge-shell .broker-name { white-space: normal; line-height: 1.25; }`;
+/** APPEARANCES (bible/04-Characters/Wardrobe.md): THE WARDROBE'S WINDOW (ui/wardrobe/wardrobeWindow.js) - the Broker's shape,
+ *  so his sheet lays it; these are its own rules: a worn piece's row with no price, and the card's looks, a line each.
+ *  Geometry and the words' colours alone - the kit dresses the rest. */
+export const WARDROBE_CSS = `/* ── APPEARANCES: THE WARDROBE ── */
+.wardrobe-shell .broker-offer.wardrobe-piece { grid-template-columns: 48px minmax(0, 1fr); }
+.wardrobe-shell .broker-offer.wardrobe-piece .broker-set { white-space: normal; }
+.wardrobe-shell .wardrobe-count { margin: 0 0 8px; font-size: 12px; color: #b9ab93; }
+.wardrobe-shell .wardrobe-looks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.wardrobe-shell .wardrobe-look { display: grid; grid-template-columns: 48px minmax(0, 1fr) max-content minmax(96px, max-content); align-items: center; gap: 8px; padding: 4px 6px; }
+.wardrobe-shell .wardrobe-name { min-width: 0; font-size: 13px; color: #e6dccb; overflow-wrap: anywhere; }
+.wardrobe-shell .wardrobe-look.on .wardrobe-name, .wardrobe-shell .wardrobe-look.own .wardrobe-name { color: #f3cf86; }
+.wardrobe-shell .wardrobe-press { width: auto; }
+@media (pointer: coarse) { .wardrobe-shell .wardrobe-press, .wardrobe-shell .wardrobe-piece { min-height: 40px; } }
+@media (max-width: 720px) {
+  .wardrobe-shell .wardrobe-look { grid-template-columns: 44px minmax(0, 1fr) minmax(96px, max-content); }
+  .wardrobe-shell .wardrobe-look .broker-price { grid-column: 2; grid-row: 2; }
+  .wardrobe-shell .wardrobe-look .wardrobe-press { grid-column: 3; grid-row: 1 / span 2; }
+}`;
 /** BOUNTY1 (2026-09-28): THE BOUNTY BOARD'S WINDOW and the payday notice (ui/bounty/bountyWindow.js) - the Broker's kind: a
  *  stone window over the world, the town's notices in a list, the one pressed read whole beside it (under it on a
  *  phone). The kit dresses the window, the card, the rows, the header and the presses (ui/enhanced/enhancedFrame.js); this is
@@ -2219,6 +2237,7 @@ ${TECH_BLOCK_CSS}
 @media (pointer: coarse) { .setline { min-height: 40px; } .setstrip { max-height: 216px; } }   /* AUDIT SET U14: a line a thumb presses, as every other press on a touch screen */
 ${BROKER_CSS}
 ${REFORGE_CSS}
+${WARDROBE_CSS}
 ${BOUNTY_CSS}
 ${LOCK_CSS}
 ${NOTICE_CSS}

@@ -220,6 +220,7 @@ import { GATE_COURTS_MAX } from './gate/gateCourts.js';   // GATE-COURTS: a cour
 import { validGateMods, GATE_FEEDS_MAX, validGatePortents } from './gate/gateMods.js';   // WB8b: the Warden's marks on a gate's state - gateMods.js imports nothing, so the worker's graph stays flat
 import { egStampOk } from './eliteGates/egShape.js';   // EG-FULL: a Spire blow's FULL shape stamp, checked as the wire carries it - egShape.js imports nothing, so the worker's graph stays flat
 import { KT_WATCH_WAVES } from './ketch/ketchLaw.js';   // AUDIT KETCH II L2-2: the Watch's waves, one number for the `wave` and the `st` words (the `st`'s stood at three) - ketchLaw.js imports instanceRoom.js alone, which the relay walks already
+import { validWireAppearance } from './appearanceLaw.js';   // APPEARANCES: a worn piece's look on a look's item - appearanceLaw.js imports systems/armorMaterials.js alone, a leaf, so the worker's graph stays flat
 export { validRollSpec, validRoll, rollDice, ROLL_DICE_MAX, ROLL_SIDES_MAX, ROLL_MOD_MAX };
 export { validHoldemIn, validHoldemOut };
 export { validIliacIn, validIliacOut };
@@ -2109,7 +2110,7 @@ const rideOf = (rd, rv, hs, rc) => {
   return r ? { rd: r, rv: uint(rv, POSE_RIDE_SPRITES - 1) ?? 0, ...(uint(hs, 1) ? { hs: 1 } : {}), ...(c ? { rc: c } : {}) } : {};   // AUDIT DISC7 B8: uint's law, as rd and rv
 };
 
-/** One equipped item as the look carries it - the six fields, clamped, and a weapon's glow - or null. */
+/** One equipped item as the look carries it - the six fields, clamped, a weapon's glow and a look worn over it - or null. */
 export function validLookItem(it) {
   if (!it || typeof it !== 'object') return null;
   const templateIndex = uint(it.templateIndex, 65535), equipSlot = uint(it.equipSlot, 1e6);
@@ -2117,6 +2118,8 @@ export function validLookItem(it) {
   const out = { templateIndex, group: it.group, equipSlot };
   for (const k of ['material', 'dye', 'variant']) { const v = uint(it[k], 4095); if (v != null) out[k] = v; }
   if (lookGlowOk({ ...out, glow: it.glow })) out.glow = it.glow;   // WEAPON-GLOW1: a weapon's in a hand, read off the clamped slot
+  const ap = validWireAppearance(out, it.ap);   // APPEARANCES (bible/04-Characters/Wardrobe.md): the look it is drawn in, a look of its kind - OMITTED when none, `class`'s law; a relay before this one drops it, and the piece is seen in its own
+  if (ap) out.ap = ap;
   return out;
 }
 
