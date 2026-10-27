@@ -428,7 +428,7 @@ test('PROF2 hosts: the streaming world stands every kind through the one host, i
   const m = src('src/scenes/worldModes.js');
   assert.match(m, /\n\s*dungeonLoc = dfLocation;\n\s*host\.profDungeonEntered\?\.\(ctx\);/, 'after the flip and its lock, once the dungeon is the one stood in');
   assert.match(m, /if \(interact && !pressCast && host\.profPress\?\.\(\)\) return true;/, 'AUDIT 29: Interact alone, above QG1');
-  assert.match(m, /if \(PROF_STATIONS\.includes\(piece\.station\)\) \{ if \(forgeOffered\(\)\) interiorKeyCtx\.togglePause\(\{ at: 'stores' \}\); else say\(stationColdLine\(piece\.station\)\); return; \}/, 'AUDIT 29 B2: a cold forge says so');
+  assert.match(m, /if \(PROF_STATIONS\.includes\(piece\.station\)\) \{ if \(forgeOffered\(\)\) interiorKeyCtx\.togglePause\(\{ at: stationDoorAt\(piece\.station\) \}\); else say\(stationColdLine\(piece\.station\)\); return; \}/, 'AUDIT 29 B2: a cold forge says so');   // PIN MOVED (CRAFT-HALL): the station's own door, the Crafting page at it
   assert.match(m, /if \(t === BUILDING_TYPES\.WeaponSmith \|\| t === BUILDING_TYPES\.Armorer\) return interiorBuilding\.insideOpenShop === false \? null : \{ kind: 'shop', fee: FORGE_FEE \};/, 'AUDIT 29 D4: open for trade');
   const d = src('src/scenes/dungeonContext.js');
   assert.match(d, /actTool: \(\) => opts\.actTool\?\.\(\) \?\? null,/);

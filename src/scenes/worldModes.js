@@ -395,7 +395,7 @@ import { decorPieceOf, decorSaleBack, DECOR_STATION_SERVICES, DECOR_STATION_NAME
 import { noteDecorGrants, decorMayStorage, decorMayStation, decorIsShared, decorStationShut, bindDecorHouseFrom, openSharedChest, openDecorChest, openOwnChest } from '../systems/decor/decorGrants.js';   // DECOR-ACCESS
 import { openHomeTransfer, answerHomeTransfer } from '../ui/homeTransferWindow.js';
 import { VENDOR_STATION, VENDOR_COLD_LINE } from '../net/vendorLaw.js';   // HOME-VENDOR: a trader, and its word where none can trade
-import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, focusStoresStation } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
+import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_ACT_STATIONS, stationDoorAt } from '../ui/professions/profPages.js';   // AUDIT 29 B2: a Forge worked only where the Stores page is; PROF4: a Workbench
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's
 /** HOME-STATIONS: a station pressed whose maker's art has not landed yet. */
 const DECOR_STATION_NOT_READY = 'The station is not ready yet. Try again in a moment.';
@@ -5066,7 +5066,7 @@ export function createWorldModes(host) {
   function activateDecor(id) {
     const piece = interiorDecor.pieceOf(id);
     if (piece?.station === VENDOR_STATION) { openHomeVendor(piece, id); return; }   // HOME-VENDOR: anyone may trade with it
-    if (useDecorPiece(piece, interiorCamps, getInteractionMode, restFromInteriorBed, () => forgeOffered() && (focusStoresStation('fire'), interiorKeyCtx.togglePause({ at: 'stores' }), true))) return;   // DECOR-USE (systems/decor/decorUse.js): a placed fire or the cooking station opens what a brazier opens (a fire is nobody's), a placed bed is slept in as the room's own are (the rest window says who may)
+    if (useDecorPiece(piece, interiorCamps, getInteractionMode, restFromInteriorBed, () => forgeOffered() && (interiorKeyCtx.togglePause({ at: stationDoorAt('fire') }), true))) return;   // DECOR-USE (systems/decor/decorUse.js): a placed fire or the cooking station opens what a brazier opens (a fire is nobody's), a placed bed is slept in as the room's own are (the rest window says who may)
     if (piece?.station) { useDecorStation(piece); return; }   // HOME-STATIONS
     if (piece?.storage && caravanGuestHere()) { say(homeBelongsLine({ owner: privateVisitOwner })); return; }   // WAGONS2-VISIT: a caravan's storage is its owner's, as a home's cupboards are - shut to its visitor, in its owner's name
     if (isHallBoard(piece)) { openHallBoard(); return; }   // GUILD1e: the board in a guild's hall
@@ -5104,7 +5104,7 @@ export function createWorldModes(host) {
     // PROF2 (bible/06-Systems/Professions-Arc.md 23): a forge is no guild's maker - it opens the Stores' own forge, where
     // the player's smelting is done; where the Stores page is not (offline, the switch shut, the classic skin) it says
     // so (AUDIT 29 B2 - it landed on the Character page without a word)
-    if (PROF_STATIONS.includes(piece.station)) { if (forgeOffered()) interiorKeyCtx.togglePause({ at: 'stores' }); else say(stationColdLine(piece.station)); return; }   // PROF4: the workbench too; PROF7: the loom; PROF11: the mason's bench
+    if (PROF_STATIONS.includes(piece.station)) { if (forgeOffered()) interiorKeyCtx.togglePause({ at: stationDoorAt(piece.station) }); else say(stationColdLine(piece.station)); return; }   // PROF4: the workbench too; PROF7: the loom; PROF11: the mason's bench
     // STATION-DOOR (bible/01-Overview/bugs/Field-Bugs-2026-10-11f.md): an alchemy or enchanting station is Daggerfall's maker
     // AND its profession's act, which is the Stores page's (the brew, Disenchanting) - online the press offers both; the
     // maker alone where the page is not
@@ -5132,7 +5132,7 @@ export function createWorldModes(host) {
       lines: [DECOR_STATION_NAMES[kind]],
       options: [
         { code: 'Digit1', label: `1 - ${SERVICE_LABEL[maker]}`, action: () => { leave(); openStationMaker(piece); } },
-        { code: 'Digit2', label: `2 - ${STORES_ACT_STATIONS[kind]} (Stores page)`, action: () => { leave(); focusStoresStation(kind); interiorKeyCtx.togglePause({ at: 'stores' }); } },
+        { code: 'Digit2', label: `2 - ${STORES_ACT_STATIONS[kind]} (Crafting page)`, action: () => { leave(); interiorKeyCtx.togglePause({ at: stationDoorAt(kind) }); } },
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     });

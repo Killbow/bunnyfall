@@ -61,6 +61,7 @@ import {
   workSpecOk,   // PROF12: a Transmuter's transmutation asks its choice
   workEmbers,   // DAEDRIC-SMELT: the Deadlands Embers a work spends out of the account's purse
   SCHOOL_HAULS_DAY,   // AUDIT GATHER F3: the school's fish bounded as the day's forty bound them
+  WORK_RECIPES,   // CRAFT-HALL: the works whose first pays, read with the state
 } from '../../src/net/professionLaw.js';
 import {
   recipeById, recipeOpen, qualityOdds, rollQuality, qualitySteps, craftQuality, rollsQuality, craftXp, craftCount,
@@ -260,16 +261,33 @@ export async function sweepHarvests(db, nowS, limit = 500) {
 }
 
 /**
+ * CRAFT-HALL: what the character has made, read the way the first-make decisions read it - crafted recipes, works that
+ * pay a first (the mason's cut and mix) and brewed potions. One statement on the tables' existing indexes, in the
+ * state's batch, so the client can show which first-time bonuses are spent.
+ */
+const FIRST_WORKS_SQL = WORK_RECIPES.filter((w) => workFirstXp(w) > 0).map((w) => `'${w.id}'`).join(', ') || "''";
+const madeStatement = (db, player, character) => db.prepare(`SELECT 'craft' AS kind, recipe AS key FROM prof_crafts WHERE player = ?1 AND char_id = ?2 GROUP BY recipe
+  UNION ALL SELECT 'work', recipe FROM prof_smelts WHERE player = ?1 AND char_id = ?2 AND recipe IN (${FIRST_WORKS_SQL}) GROUP BY recipe
+  UNION ALL SELECT 'brew', potion FROM prof_brews WHERE player = ?1 AND char_id = ?2 GROUP BY potion`).bind(player, character);
+/** CRAFT-HALL: madeStatement's rows as `{ crafts, works, brews }`. */
+const madeFrom = (/** @type {any[]} */ results) => {
+  const out = { crafts: /** @type {string[]} */ ([]), works: /** @type {string[]} */ ([]), brews: /** @type {string[]} */ ([]) };
+  for (const r of results) (r.kind === 'craft' ? out.crafts : r.kind === 'work' ? out.works : out.brews).push(String(r.key));
+  return out;
+};
+
+/**
  * A CHARACTER'S PROFESSIONS, as the Professions and Stores tabs and the nodes read them: every track, today's harvests
- * and the nodes taken, the Stores, today's writs filled (the Court's and the halls', CHAP2a), and the bounds.
+ * and the nodes taken, the Stores, today's writs filled (the Court's and the halls', CHAP2a), the bounds, and (CRAFT-HALL)
+ * what it has made.
  */
 export async function profState({ db, nowS }, player, env, { character } = {}) {
   const refused = asks(player, { character, needRid: false }) ?? shut(player, env);
   if (refused) return refused;
   const day = utcDay(nowS);
-  // GATHER-SPEED: the state's eight reads in ONE round trip - the tracks, the Stores, the day's nodes, the carried count,
-  // the day's harvests, the Court's writs and the hides and hauls - where they were eight trips in a row
-  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls] = await readAll(db, [
+  // GATHER-SPEED: the state's reads in ONE round trip - the tracks, the Stores, the day's nodes, the carried count,
+  // the day's harvests, the Court's writs and the hides and hauls - where they were eight trips in a row (CRAFT-HALL adds `made`)
+  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, made] = await readAll(db, [
     db.prepare('SELECT * FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character),
     db.prepare('SELECT material, origin, qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND qty > 0 ORDER BY material').bind(player.id, character),
     db.prepare('SELECT node, kind FROM node_harvests WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day),
@@ -279,6 +297,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     writsStatement(db, player.id, day),
     huntStatement(db, player.id, day),
     haulsStatement(db, player.id, day),
+    madeStatement(db, player.id, character),   // CRAFT-HALL
   ]);
   const byProf = new Map(rows.map((r) => [r.profession, r]));
   const held = new Map();
@@ -304,6 +323,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     hunt: huntFrom(hunt[0]),   // PROF7: the account's hides today (PROF0 6)
     hauls: Number(hauls[0]?.n ?? 0),   // PROF8: the account's hauls today (PROF0 6)
     caps: { stores: STORES_MAX, withdraw: WITHDRAW_MAX, highHides: HIGH_HIDES_PER_DAY },   // CAP-OFF: no day's harvests, hides or hauls
+    made: madeFrom(made),   // CRAFT-HALL
   };
 }
 

@@ -594,10 +594,12 @@ laid out for the phone's touch layer as for the desktop.
 - **The Professions tab** (character sheet): a left column in two groups (Gathering, Crafting) - each row the icon,
   name, rank, rank's name and a thin bar; the right pane for the chosen one - XP to the next rank, the specialisation
   cards (choose one), the unlocks by rank (tiers, recipes), today's harvests, and "Crafts above Journeyman: 1 of 2".
+  CRAFT-HALL (section 56): the chosen one's bar under its name, **What raises it** (every act's figure at the rank,
+  reckoned by the laws), and a craft's **First-time bonuses** (made of all, the owed ones the rank opens).
   **How it is done** (TOOL-SAID, FIELD BUGS 2026-09-30b; CRAFT-HOWTO, FIELD BUGS 2026-10-18d): under the XP line, a
   paragraph says how the chosen profession is practised. A gatherer says how it gathers (`ui/professions/profPages.js`
   `GATHER_HOW` for Herbalism, Mining and Logging, Hunting's own line, `FISHING_HOW`, and Mining's ground line under its
-  own). A craft says where its stations stand, that they are worked from the Stores page (Holdings > Stores), what
+  own). A craft says where its stations stand, that they are worked from the Crafting page (CRAFT-HALL, section 56 - the Professions key lands on it at a station; the Stores page, Holdings > Stores, until then), what
   they make of the gathered goods and what earns its XP (`CRAFT_HOW`: Smithing, Building, Outfitting, and Provisioning's
   cooking after its brew, `ALCHEMY_HOW`; Enchanting's is `ENCHANTING_HOW`). Each paragraph is read in the player's
   language when the page is drawn. Until CRAFT-HOWTO, Smithing, Building and Outfitting showed their specialisation
@@ -617,6 +619,10 @@ laid out for the phone's touch layer as for the desktop.
 - **A station**: left, the recipe list (filters: Can make now, All known, by tier); centre, the recipe - its inputs
   (have / need, from the Stores), the product as an item card, a bar of its quality odds (9.2); buttons **Craft**
   (plays the act, 9.4), **Quick craft**, **Craft x N** (quick, up to 10); right, the act's panel while it plays.
+  CRAFT-HALL (section 56, BUILT 2026-10-26): the stations' own page is **Crafting**, beside Professions on the Stats
+  rail, where the Professions key lands at a station; each station worked carries its track's bar; the shows (All, Can
+  make now, First-time bonus - "by tier" is CRAFT2's material row) and **Craft x N** built; a pattern says its first-time
+  bonus owed or made.
 - **The held map** marks the patches and veins a character has worked before, and a Prospector's veins.
 - **Keys** from KB1's registry, under a Professions group in Controls: Interact (E), attack, Esc, and an **act
   choice** key, chosen from the free keys at PROF1 (KB1's rule: one key, one action; Mac's four calls stand): at a
@@ -4331,8 +4337,9 @@ A4, `prof12_client` R2-C2, `prof3_client` wiring. Re-aimed by content, each stil
   the Essence short said. The station's fee is a temper's and a reforge's, as a craft's and a disenchant's.
   TEMPER-CARRIED (FIELD BUGS 2026-10-20c): the two temper sections stood in the station list of a book that carries
   nothing, and every live book carries since BAG1, whose page (`profPages.js` drawCarryStores) listed neither - the
-  temper was drawn nowhere in the game. The carrying page lists both beside the anvil and the loom
-  (`profPages.js:"    ['temper-loom', (d) => drawTemper(d, rerender, kit, 'loom')],   // FB1020c TEMPER-CARRIED: the tailor's"`).
+  temper was drawn nowhere in the game. The carrying page lists both beside the anvil and the loom - since CRAFT-HALL
+  (section 56) every page that draws the stations reads one list, the tempers in it
+  (`profPages.js:"    ['temper-loom', (d) => drawTemper(d, rerender, kit, 'loom')],   // CRAFT4: the tailor's"`).
   Pinned by `test/ui/fb1020c_tempercarried.test.js`; `tools/mutants/fb1020c_tempercarried.json`.
 - **The four hosts**: `scenes/world.js` wired (the pack's pieces - not worn, no market act kept on them - and the step and
   the line laid on the answer); `worldModes.js` holds the stations the pages read and no piece of its own; `exterior.js`
@@ -6169,6 +6176,66 @@ own tests: 171, 131 and 133, all passing. No HIGH; one MEDIUM; nine LOW. Every o
   R7's floor (`test/systems/audit_gatherfeel.test.js`, `0.75 * 1000 / POSE_HZ`), PROF8's tug (`test/world/terrain/prof8_client.test.js`,
   x the band), PROF1's steady window (`test/systems/foraging/prof1_law.test.js`, `HERB_ACT`'s `wet`). Mutants:
   `tools/mutants/auditgather.json` (17 - 16 dead, the insert's guard equivalent as recorded).
+
+## 56. CRAFT-HALL - the Crafting page (BUILT 2026-10-26)
+
+A player's feedback, passed on by the owner: "The UI is poor. It's hidden behind 2 tabs. There's a lack of necessary
+information on the page regarding your level, what gives progress, progression bars, what gives a first time crafting
+bonus (or what already has)." The owner: "No exceptions and no band aids."
+
+### 56.1 What stood
+
+- Progress was on Stats > Professions; the stations were on Holdings > Stores, below the materials grid, with no link
+  between them. The tutorial told players to take that route.
+- A station gave its rank as a sentence. The Professions page showed XP as text, with no bar.
+- Nothing said what each act pays.
+- The client did not know which first-time bonuses were spent, so every box said what a first craft pays, never
+  whether it was still owed (41.9).
+- Section 8's recipe filters and Craft x N were designed but never built.
+
+### 56.2 What changed
+
+
+- **A Crafting page** on the Stats rail, beside Professions. At a station the Professions key opens it on that station
+  (`profPages.js` `professionsKeyAt`, asked by `pauseDoor.js`). Every station's own door lands there too
+  (`stationDoorAt`). The Stores page keeps its stations under the goods; both pages draw one list (`drawStations`).
+
+- **Bars.** Each station in use shows its track's header: name, rank, a bar to the next rank, XP and first-time
+  bonuses (`trackHeader`). The forge and the anvil share one Smithing header, on the anvil. The bar is full at Master,
+  and when the crafter's limit holds the track (41.10). The Crafting page opens with all five crafts' headers; each
+  opens that craft on the Professions page. The Professions page has a bar under the track's name.
+
+- **What raises a track.** The Professions page lists each act and what it pays at the player's rank, computed from
+  the same laws the service pays by (`craftHall.js` `xpSources`), plus the Firmament's bonus where there is one.
+
+- **First-time bonuses, known.** `profState` now returns what the character has made (`made`: crafted recipes, the
+  mason's two works, brewed potions). The book keeps it and records each act the service confirms. `recipeLaw.js`
+  `firstMakesSpent` keys it the way the service decides. A first made from bought cloth counts as spent, as the
+  service counts it. Unknown (an older service) shows the old wording.
+
+- **Where they show.** The Professions page: "12 of 221 made", a meter, and the owed ones the rank can make, eight at
+  first. Stations: each pattern card says First-time bonus or Made before; a material, a jewel's piece and base, a
+  mason's work and a potion carry the same mark; the craft box says the bonus is still to earn or already made.
+
+- **Section 8, finished.** Filters over every pattern grid: All, Can make now, First-time bonus. "By tier" is the
+  material row since CRAFT2. Craft x N repeats Quick craft up to 10 times, within what the held goods (and the chain)
+  cover and what the purse pays in fees, and stops at the first refusal.
+
+### 56.3 Hosts, service, words
+
+- The station doors changed in place in `worldModes.js` and `world.js` (no host grew). `exterior.js` and
+  `dungeonContext.js` hold no station. Not a DFU member (Port-Ledger A, the professions' row).
+- The service change is acct196. Either side may deploy first.
+- New and changed text follows PLAIN-TEXT (`Home.md`). Each craft's how-to (`CRAFT_HOW`, `ALCHEMY_HOW`,
+  `ENCHANTING_HOW`) says where its stations stand and what they do, in 40 words or fewer. What pays XP is said once, in
+  What raises; the how-tos no longer repeat it (`fb1018d_crafthowto.test.js` pins it there).
+
+### 56.4 Pinned
+
+`test/ui/professions/crafthall.test.js` (11), through the real Worker: the state's `made`; an Ebony Longsword spending
+tier 6's first for its kin on the service and in the law; the book's record; `xpSources` against every law; the bar;
+the owed list; the station lines; the landings and the doors; the Crafting page, the Professions page and the anvil
+drawn. `tools/mutants/crafthall.json` (28, all dead).
 
 ## Appendix A - a day of a gatherer
 

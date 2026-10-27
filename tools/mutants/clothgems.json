@@ -218,8 +218,8 @@
   {
     "name": "CLOTHGEMS-pages-own-unpassed",
     "file": "src/ui/professions/profPages.js",
-    "old": "craftPayOf(book, 'outfitting'), ownSpend(book, r))));",
-    "new": "craftPayOf(book, 'outfitting'))));",
+    "old": "craftPayOf(book, 'outfitting'), ownSpend(book, r), first(r))));",
+    "new": "craftPayOf(book, 'outfitting'), false, first(r))));",
     "tests": [
       "test/systems/clothgems_client.test.js",
       "test/net/fb1015f_firstcraft.test.js"

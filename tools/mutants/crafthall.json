@@ -1,0 +1,254 @@
+[
+  {
+    "name": "CRAFT-HALL-state-without-made",
+    "file": "server-account/src/professions.js",
+    "old": "    made: madeFrom(made),   // CRAFT-HALL",
+    "new": "    made: undefined,   // CRAFT-HALL",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-work-paying-none-listed",
+    "file": "server-account/src/professions.js",
+    "old": "const FIRST_WORKS_SQL = WORK_RECIPES.filter((w) => workFirstXp(w) > 0)",
+    "new": "const FIRST_WORKS_SQL = WORK_RECIPES.filter((w) => workFirstXp(w) >= 0)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-kin-read-as-recipe",
+    "file": "src/net/recipeLaw.js",
+    "old": "for (const id of made.crafts ?? []) { const k = firstCraftKey(recipeById(id));",
+    "new": "for (const id of made.crafts ?? []) { const k = id;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-book-note-gone",
+    "file": "src/net/profBook.js",
+    "old": "      noteMade(w.brew === true ? 'brews' : 'crafts', w.recipe);",
+    "new": "      void 0;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-null-read-as-empty",
+    "file": "src/net/recipeLaw.js",
+    "old": "  if (!made) return null;\n  const mine = new Set(firstMakesOf(track));",
+    "new": "  if (!made) made = {};\n  const mine = new Set(firstMakesOf(track));",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-track-filter-gone",
+    "file": "src/net/recipeLaw.js",
+    "old": "if (k && mine.has(k)) out.add(k); }",
+    "new": "if (k) out.add(k); }",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-clean-unread",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "clean(harvestXp(tier, rank, false), harvestXp(tier, rank, true), tier)",
+    "new": "clean(harvestXp(tier, rank, false), harvestXp(tier, rank, false), tier)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-share-another-track",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "const share = /** @type {Record<string, number>} */ (FIRST_MAKE_SHARE)[id] ?? 0;",
+    "new": "const share = FIRST_MAKE_SHARE.smithing;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-bar-floor-nought",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "  const floor = xpForRank(track.rank), next = xpForRank(track.rank + 1);",
+    "new": "  const floor = 0, next = xpForRank(track.rank + 1);",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-bar-limit-unread",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "const barFull = (track, limit) => track.rank >= PROF_RANK_MAX || !!(limit?.by?.length && track.rank >= limit.rank);",
+    "new": "const barFull = (track, limit) => track.rank >= PROF_RANK_MAX;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-owed-spent-listed",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "    if (spent.has(key)) continue;\n    const kin",
+    "new": "    const kin",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-owed-locked-listed",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "      const open = kin.filter((r) => recipeOpen(r, rank, specs));",
+    "new": "      const open = kin;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-owed-order",
+    "file": "src/ui/professions/craftHall.js",
+    "old": "return out.sort((a, b) => b.tier - a.tier || a.name.localeCompare(b.name));",
+    "new": "return out.sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-spent-line-where-unknown",
+    "file": "src/ui/craftXpWords.js",
+    "old": "  if (owed === false) return capLine(profession, pay, xp) ||",
+    "new": "  if (owed !== true) return capLine(profession, pay, xp) ||",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-owed-line-where-unknown",
+    "file": "src/ui/craftXpWords.js",
+    "old": "    return capLine(profession, pay, xp + more) || (owed === true\n",
+    "new": "    return capLine(profession, pay, xp + more) || (owed !== false\n",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-key-landing-unread",
+    "file": "src/ui/pauseDoor.js",
+    "old": "enhancedPauseOverlay(show, hooks.at === 'professions' ? { ...hooks, at: professionsKeyAt() } : hooks)",
+    "new": "enhancedPauseOverlay(show, hooks)",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-forge-focus",
+    "file": "src/ui/professions/profPages.js",
+    "old": "const STATION_FOCUS = Object.freeze([['forge', 'anvil'],",
+    "new": "const STATION_FOCUS = Object.freeze([['forge', 'forge'],",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-a-header-gone",
+    "file": "src/ui/professions/profPages.js",
+    "old": "  for (const id of CRAFT_TRACKS) strip.append(",
+    "new": "  for (const id of CRAFT_TRACKS.slice(1)) strip.append(",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-press-track",
+    "file": "src/ui/professions/profPages.js",
+    "old": "{ onOpen: kit.go ? () => { selectProfession(id); kit.go?.('professions'); } : null }",
+    "new": "{ onOpen: kit.go ? () => { kit.go?.('professions'); } : null }",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-key-unread",
+    "file": "src/ui/professions/profPages.js",
+    "old": "  const key = kit.keyName?.('Professions') ?? null;",
+    "new": "  const key = null;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-owed-cut",
+    "file": "src/ui/professions/profPages.js",
+    "old": "_owedAll ? owed : owed.slice(0, OWED_SHOWN)",
+    "new": "_owedAll ? owed : owed",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-show-all-press",
+    "file": "src/ui/professions/profPages.js",
+    "old": "more.onclick = () => { _owedAll = !_owedAll; kit.rerender?.(); };",
+    "new": "more.onclick = () => { _owedAll = false; kit.rerender?.(); };",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-show-unread",
+    "file": "src/ui/professions/profPages.js",
+    "old": "  const show = state.show === 'first' && !known ? 'all' : state.show ?? 'all';",
+    "new": "  const show = 'all';",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-made-card-starred",
+    "file": "src/ui/professions/profPages.js",
+    "old": "return !open.length ? null : open.includes(true) ? 'owed' : 'made';",
+    "new": "return !open.length ? null : 'owed';",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-repeat-not-stopping",
+    "file": "src/ui/professions/profPages.js",
+    "old": "      if (!res?.ok) break;\n      state.repeat = { done: i + 1, of: want }; rerender();",
+    "new": "      state.repeat = { done: i + 1, of: want }; rerender();",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-count-past-held",
+    "file": "src/ui/professions/profPages.js",
+    "old": "    if (want.every((i) => held(i.key) >= i.n) || chainOf(want, book)?.ok === true) n = k;",
+    "new": "    if (true) n = k;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-station-header-gone",
+    "file": "src/ui/professions/profPages.js",
+    "old": "  stationTrack(detail, kit, book, 'anvil');",
+    "new": "  void 0;",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  },
+  {
+    "name": "CRAFT-HALL-metal-star",
+    "file": "src/ui/professions/profPages.js",
+    "old": "    const star = s.open && first?.(x) === true ? ` ${FIRST_STAR}` : '';",
+    "new": "    const star = '';",
+    "tests": [
+      "test/ui/professions/crafthall.test.js"
+    ]
+  }
+]

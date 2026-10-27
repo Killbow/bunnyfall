@@ -170,6 +170,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BOARD-SIFT: the Work tab's filter and order (ui/workSift.js), kept for the session - null until the board opens */
     workSift: /** @type {any} */ (null),
     caps: /** @type {any} */ (null),
+    /** CRAFT-HALL: what the service says the character has made, or null from an older service */
+    made: /** @type {{ crafts: Set<string>, works: Set<string>, brews: Set<string> }|null} */ (null),
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -295,7 +297,16 @@ export function createProfBook({ door, storage = null, character = () => null, n
     state.caps = data?.caps ?? null;
     applyHunt(data?.hunt);
     applyHauls(data?.hauls);
+    state.made = madeOf(data?.made);   // CRAFT-HALL
   }
+  /** CRAFT-HALL: the state's `made` as Sets, or null when the service sent none. */
+  function madeOf(m) {
+    if (!m || typeof m !== 'object') return null;
+    const ids = (/** @type {unknown} */ l) => new Set(Array.isArray(l) ? l.filter((x) => typeof x === 'string') : []);
+    return { crafts: ids(m.crafts), works: ids(m.works), brews: ids(m.brews) };
+  }
+  /** CRAFT-HALL: records a made act as soon as the service confirms it, so its first-time bonus shows as spent. */
+  const noteMade = (/** @type {'crafts'|'works'|'brews'} */ kind, /** @type {string} */ id) => { if (state.made && typeof id === 'string') state.made[kind].add(id); };
   /** PROF7: the account's hides today, as the state or a skinning answered them. */
   /** PROF8: the account's hauls today, as the service counted them. */
   function applyHauls(n) { if (Number.isSafeInteger(n) && n >= 0) state.hauls = n; }
@@ -1117,7 +1128,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
         m.promise = null;
         if (!keptAnswer(r)) ids.delete(key);
         if (owner !== slot()) return { ok: false, error: 'elsewhere', elsewhere: true };
-        if (r?.ok) { for (const s of r.data?.stores ?? []) applyStore(s); applyTrack(r.data?.track); } else shutBy(r);
+        if (r?.ok) { for (const s of r.data?.stores ?? []) applyStore(s); applyTrack(r.data?.track); noteMade('works', recipe); } else shutBy(r);   // CRAFT-HALL
         // BAG1: AND WHAT IT MADE INTO THE BAG OR THE PACK - as much as fits; the rest stays in the Stores, said
         if (r?.ok && carry && work && stay !== true) r.data.put = await carryOut(work.out, (Number(r.data.own) || 0) + (Number(r.data.bought) || 0) + (Number(r.data.loose) || 0));   // AUDIT BAG-CRAFT A1: its loose products too
         return r;
@@ -1286,6 +1297,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       writeKept(kept, key);   // let go BEFORE the pieces are made: a mint that threw is never a second mint
       for (const st of r.data?.stores ?? []) applyStore(st);
       applyTrack(r.data?.track);
+      noteMade(w.brew === true ? 'brews' : 'crafts', w.recipe);   // CRAFT-HALL
       // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
       const made = w.brew === true ? null : recipeById(w.recipe);
       if (w.brew === true || made?.kind === 'dish' || made?.product === 'kit') { writCache.clear(); writGen++; }

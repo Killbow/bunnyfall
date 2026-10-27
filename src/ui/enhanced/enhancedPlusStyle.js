@@ -1722,6 +1722,37 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
 .prof-works > .prof-smelt.prof-locked { border-color: rgba(192,138,62,0.1); }
 .prof-recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 6px; margin: 4px 0 10px; }
 .prof-recipes > .prof-recipe { margin: 0; grid-template-columns: minmax(0, 1fr); align-content: center; min-height: 46px; }
+/* CRAFT-HALL (2026-10-26): a track's header - its name and rank, its bar, its XP and its first-time bonuses - over every
+   station worked and in the Crafting page's strip (a button there, opening it on the Professions page); a station's
+   shows (All, Can make now, First-time bonus); a card's or a row's first-time bonus, owed (lit) or made (quiet); the
+   owed list; Craft x N */
+.prof-track { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 8px; padding: 6px 8px; text-align: left; font: inherit; font-size: 12px;
+  color: var(--bone, #e9e4d9); background: rgba(10,8,6,0.5); border: 1px solid rgba(192,138,62,0.25); }
+button.prof-track { width: 100%; cursor: pointer; }
+button.prof-track:hover, button.prof-track:focus-visible { border-color: var(--brass, #c08a3e); outline: none; }
+.prof-track-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.prof-track-top b { color: #efe0b8; font-weight: normal; letter-spacing: 0.06em; }
+.prof-track .px-meter { height: 6px; }
+.prof-track-xp { font-size: 11px; color: #b9ab93; font-variant-numeric: tabular-nums; }
+.prof-track-firsts, .prof-firsts { font-size: 11px; color: #e8b872; }
+.prof-firsts { margin: 4px 0; font-size: 12px; }
+.prof-trackstrip { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; margin: 4px 0 8px; }
+.prof-trackstrip > .prof-track { margin: 0; }
+.prof-shows { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 6px; }
+.prof-show { font: inherit; font-size: 12px; padding: 4px 9px; color: #b9ab93; background: rgba(10,8,6,0.55); border: 1px solid rgba(192,138,62,0.25); cursor: pointer; }
+.prof-show.on { color: #f3cf86; border-color: var(--brass, #c08a3e); }
+.prof-first { font-size: 11px; color: #f3cf86; }
+.prof-first::before { content: '★ '; }
+.prof-first.made { color: #8f8574; }
+.prof-first.made::before { content: '✓ '; }
+.prof-raise { align-items: baseline; }
+.prof-raise .k { font-size: 13px; letter-spacing: 0.02em; text-transform: none; color: #d9cfbd; }   /* an act's sentence reads as one, not a label */
+.prof-raise .v { font-size: 14px; text-align: right; white-space: normal; color: #f3cf86; }
+.prof-owed { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; font-size: 12px; color: #d9cfbd; }
+.prof-owed-row::before { content: '★ '; color: #f3cf86; }
+.prof-times { display: flex; align-items: center; gap: 6px; }
+.prof-doors { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+@media (pointer: coarse) { .prof-show, button.prof-track { min-height: 40px; } }
 /* Existing readable text roles follow the active theme rather than one hard-coded Stone palette. */
 .px-qdetail.prof-detail .px-note { color: var(--bone); }
 .prof-matbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 4px; font-size: 12px; color: #d9cfbd; }

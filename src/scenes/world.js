@@ -296,7 +296,7 @@ import { createSeasonBook } from './seasonBookHost.js';   // SEASON-BOOK: the la
 import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDING-WORDS: what the Roll's tracker says
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
-import { setProfessionsPages, forgeOffered, focusStoresStation, stationColdLine, disenchantableOf, BAG_PAGE_WORDS } from '../ui/professions/profPages.js';   // PROF1: the Professions and Stores pages on the character sheet's rail; CARP-YARD: the joinery's bench opens it
+import { setProfessionsPages, forgeOffered, stationDoorAt, stationColdLine, disenchantableOf, BAG_PAGE_WORDS } from '../ui/professions/profPages.js';   // PROF1: the Professions and Stores pages on the character sheet's rail; CARP-YARD: the joinery's bench opens it
 import { materialPicture, itemPicture } from '../ui/menu/menuPicture.js';   // MENU-ORDER: a material's and a piece's picture for the menus' rows
 import { createSaddleHost } from './saddleHost.js';   // STEED-UI: the saddle panel - the horse and the wagon on screen (Enhanced Plus)
 import { setHoldingsProvider, stableProviderFor } from '../ui/holdingsPages.js';   // HOLDINGS: the Stable and the Fleet pages on the pause menu's Holdings tab
@@ -25595,14 +25595,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     mend: () => mendAtYard(),   // WAGONS4: the Wagon Yard's wright
     bench: () => openYardBench(),   // CARP-YARD: the joinery's workbench
   });
-  /** CARP-YARD (bible/03-World/Merchant-Yards.md CARP-YARD): THE JOINERY'S WORKBENCH PRESSED - the Stores page, landed on
-   *  the workbench's section, as a home's workbench opens it (worldModes useDecorStation: the page's own gate,
-   *  forgeOffered); where the page is not (offline, the switch shut) the bench says so, as a home's does. Answers true
-   *  (the press handled). */
+  /** CARP-YARD (bible/03-World/Merchant-Yards.md CARP-YARD): THE JOINERY'S WORKBENCH PRESSED - the Crafting page (CRAFT-HALL;
+   *  the Stores page until then), landed on the workbench's section, as a home's workbench opens it (worldModes
+   *  useDecorStation: the page's own gate, forgeOffered); where the page is not (offline, the switch shut) the bench says
+   *  so, as a home's does. Answers true (the press handled). */
   function openYardBench() {
     if (!forgeOffered()) { townTalk.say(stationColdLine('workbench')); return true; }   // L10N4: the bench's cold line, read in the player's language
-    focusStoresStation('workbench');
-    hudCtx.togglePause({ at: 'stores' });
+    hudCtx.togglePause({ at: stationDoorAt('workbench') });
     return true;
   }
   /** WAGONS4 (bible/06-Systems/Wagon-Upkeep.md): THE WAGON YARD'S MEND - the wagon driven made whole for the wright's

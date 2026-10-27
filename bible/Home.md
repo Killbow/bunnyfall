@@ -224,6 +224,28 @@ version (`app-v0.1.<count>`, which the updater compares): the release is
 named `Update <n>` and the game shows it beside the commit
 (`01-Overview/Desktop-App.md` REL8).
 
+SAY IT ONCE, PLAINLY (PLAIN-TEXT, 2026-10-26; the owner: "We need a law to
+reduce over explanatory text + reduce the amount of ai-like crafted text").
+Everything written from now on:
+
+- Player text says what the player needs, once. One job a line; never
+  what the screen already shows beside it. At most 40 words a string and
+  25 a sentence - longer help is a page or a fold the player opens. No
+  padding or sales words (`tools/plainText.mjs` PADDING).
+
+- A comment says why, in a few lines. Not what the next line does, not
+  the line's history (git and the bible keep that), not a capitalised
+  heading over every function, not a chain of tags. No block past 8 lines.
+
+- A bible record says what changed, why, where and what pins it, in plain
+  sentences. It does not retell the code. No paragraph past 150 words.
+
+- Older text is history: it is not rewritten for style alone, but a line
+  you change follows this rule, and no file or page gets worse.
+  `test/tooling/plaintext.test.js` holds all three to
+  `tools/plainTextBaseline.json`, which only goes down
+  (`node tools/plainText.mjs --lower` after a cleanup).
+
 THE HOSTS DO NOT GROW (HOST-SPLIT, 2026-10-15). bootWorld, createWorldModes,
 buildDungeonContext, bootExterior, navalHost's createNavalHost and Come Sail Away's
 createComeSailAwayRuntime each keep their whole state in one
