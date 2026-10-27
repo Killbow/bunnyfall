@@ -490,8 +490,8 @@
   {
     "name": "SET-CATCHUP-the-pace-said-wrong",
     "file": "src/systems/sigil/sigilSets.js",
-    "old": "c.name === next ? t('sets.catchUp'",
-    "new": "c.name !== next ? t('sets.catchUp'",
+    "old": "c.name === next ? `${c.mult}x XP`",
+    "new": "c.name !== next ? `${c.mult}x XP`",
     "tests": [
       "test/systems/sigil/setcatchup.test.js"
     ]
@@ -683,6 +683,15 @@
     "new": "export const BLOW_TOTAL_CAP = 60;",
     "tests": [
       "test/combat/powerceiling_walk.test.js"
+    ]
+  },
+  {
+    "name": "AUDIT-HORIZONTAL-D6-a-german-pace-in-the-english-line",
+    "file": "src/systems/sigil/sigilSets.js",
+    "old": "`${c.mult}x XP to ${c.name}`",
+    "new": "`${c.mult}x EP bis ${c.name}`",
+    "tests": [
+      "test/systems/sigil/setcatchup.test.js"
     ]
   }
 ]
