@@ -61,6 +61,7 @@ import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.j
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
 import { chainPlan, chainNeeded, storesRoom } from './chainLaw.js';   // CRAFT1: the works a craft's inputs want first
 import { temperableRecipe, temperCost } from './temperLaw.js';   // CRAFT4: a temper's input, moved in from the bag first
+import { MASTER_CATALYSTS } from './masterLaw.js';   // MASTER-ART: a Master's work's catalysts, moved in from the bag first
 import { pixelKey, parseNodeKey } from './nodeLaw.js';
 import { accountRefusalText } from './accountClient.js';
 import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again spread out, and never at once into a minute's refusal
@@ -175,6 +176,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     caps: /** @type {any} */ (null),
     /** CRAFT-HALL: what the service says the character has made, or null from an older service */
     made: /** @type {{ crafts: Set<string>, works: Set<string>, brews: Set<string> }|null} */ (null),
+    /** MASTER-ART: whether today's Master's work is made (null unknown - an older service), and the last one's answer */
+    master: /** @type {{ made: boolean|null, last: any }} */ ({ made: null, last: null }),
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -285,6 +288,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     else state.carried.delete(c.material);
   };
   function apply(data) {
+    const was = state.character;
     state.open = true;
     state.reread = false;   // REFUSALS-LEARNED: read
     state.account = account();
@@ -304,6 +308,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     applyHunt(data?.hunt);
     applyHauls(data?.hauls);
     state.made = madeOf(data?.made);   // CRAFT-HALL
+    // MASTER-ART: the day's work as the service says it; the last one's card kept for its own character alone
+    state.master = { made: typeof data?.master?.made === 'boolean' ? data.master.made : null, last: was === state.character ? state.master.last : null };
   }
   /** CRAFT-HALL: the state's `made` as Sets, or null when the service sent none. */
   function madeOf(m) {
@@ -837,7 +843,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
      * works before it done (`refined`). `chain: false` asks none.
      * @returns {Promise<{ ok: boolean, data?: any, error?: string, kept?: boolean, elsewhere?: boolean, refined?: { id: string, count: number, xp: number, made: number }[] }>}
      */
-    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true } = {}, mint) {
+    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true, master = null } = {}, mint) {
       if (_craftBusy) return { ok: false, error: 'prof-busy' };
       const key = slot();
       const c = character();
@@ -845,7 +851,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
       _craftBusy = (async () => {
         // BAG1: what the Stores lack, from the bag and the pack first - the anvil's route spends the Stores
         const r0 = recipeById(recipe);
-        const inputs = r0 ? recipeInputs(r0, { heartwood: heartwood === true, joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true }) : [];
+        const inputs = !r0 ? [] : Array.isArray(master) ? recipeInputs(r0)   // MASTER-ART: a Master's work spends its recipe's own goods, no stand-in
+          : recipeInputs(r0, { heartwood: heartwood === true, joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true });
         // CRAFT1: the chain's works first, their products kept in the Stores for the craft
         /** @type {{ id: string, count: number, xp: number, made: number }[]} */
         const refined = [];
@@ -869,7 +876,12 @@ export function createProfBook({ door, storage = null, character = () => null, n
         const ready = r0 ? await book.ensureInStores(inputs, { work: true }) : { ok: true };   // BAG-CRAFT: the bag and the pack, counted or not
         // AUDIT2 BAG1 K5: never `kept` - no craft was kept; an unanswered put-in is said as such (`deposit-kept`)
         if (!ready.ok) return { ok: false, error: ready.error ?? 'materials-short', material: ready.material, moved: ready.moved ?? 0, ...(refined.length ? { refined } : {}) };
+        // MASTER-ART: a Master's work's catalysts, the counted units alone (a Pearl jewel's own Pearl with them)
+        const lines = Array.isArray(master) ? master.filter((x) => typeof x === 'string') : null;
+        const cats = lines ? await book.ensureInStores(MASTER_CATALYSTS.map((k) => ({ key: k.key, n: k.n + inputs.filter((i) => i.key === k.key).reduce((n, i) => n + i.n, 0) }))) : { ok: true };
+        if (!cats.ok) return { ok: false, error: cats.error ?? 'materials-short', material: cats.material, moved: (ready.moved ?? 0) + (cats.moved ?? 0), ...(refined.length ? { refined } : {}) };
         const w = { rid: rid(), recipe, clean: clean === true, name: typeof name === 'string' ? name : null, character: c, heartwood: heartwood === true,   // PROF4: a Heartwood for a plank
+          ...(lines ? { master: lines } : {}),   // MASTER-ART: a Master's work, its lines chosen
           fee: Number.isSafeInteger(fee) && fee > 0 ? fee : 0, ...(Number.isInteger(dye) ? { dye } : {}),   // PROF7: a garment's dye
           ...(Number.isSafeInteger(seat) && seat >= 0 ? { seat } : {}),   // SEAT2b part two: the held town the station stands in (its crafting halls' steps)
           ...(cracked === true ? { cracked: true } : {}) };   // PROF10: a Lapidary's Siege-cracked Gem for the piece's gem
@@ -1296,6 +1308,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
   async function craftOne(w, key, mint) {
     const r = await ask(() => (w.brew === true   // PROF12: a brew kept as a craft is
       ? door.brew(w.character, w.recipe, w.keys, w.rid, Number.isSafeInteger(w.seat) ? w.seat : null)
+      : Array.isArray(w.master) ? door.master(w.character, w.recipe, w.master, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null)   // MASTER-ART
       : door.craft(w.character, w.recipe, w.clean, w.name, w.rid, w.heartwood === true, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true)), key);   // PROF10: the cracked gem
     // AUDIT 32 B5: heard after a switch, the craft waits kept for its own character's settle - asked again there, the
     // service's row answers the same pieces into the right pack
@@ -1309,6 +1322,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       applyTrack(r.data?.track);
       // CRAFT-HALL: what it made; a judged cloth pattern only by the craft that laid its first on (WOVEN-PAYS, `firstPaid`)
       if (w.brew === true) noteMade('brews', w.recipe);
+      else if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card
       else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);
       // AUDIT CRAFT-WRITS C7: a brew, a dish or a kit moves what a crafting writ's card holds (its `brewed`, its `pieces`)
       const made = w.brew === true ? null : recipeById(w.recipe);
@@ -1323,6 +1337,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     if (keptAnswer(r)) return { ok: false, error: r?.error ?? 'offline', kept: true };
     kept.crafts = kept.crafts.filter((x) => x.rid !== w.rid);
     writeKept(kept, key);
+    if (r?.error === 'prof-master-day') state.master = { ...state.master, made: true };   // MASTER-ART: made elsewhere today
     shutBy(r);
     return { ok: false, error: r?.error ?? 'server' };
   }

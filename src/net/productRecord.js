@@ -18,7 +18,10 @@
 //         v CRAFT-PROCS (FIELD BUGS 2026-10-13e): the mint's version, stamped at the craft and kept by a temper's re-sign
 //           - the law the piece is minted under (systems/smithItems.js mintPiece): 1 its quality's roll and the ladder's
 //           last pass (MINT_V_LAST_PASS); 2 its roll's lines drawn over the lines and its name following them
-//           (MINT_V_LINES, AFFIX-LINES); absent on every record made before, which mints as it always did
+//           (MINT_V_LINES, AFFIX-LINES); absent on every record made before, which mints as it always did. MASTER-ART:
+//           3 a Master's work (MINT_V_MASTER), its record's `l` the lines it mints
+//         l MASTER-ART: a Master's work's three chosen lines (net/masterLaw.js, `kind` or `kind:param`) - their values
+//           come off the seed in the Legendary band (rollMasterLines); absent on every other record
 //
 // ONE KEY, SEVERAL THINGS, NEVER CONFUSED: the identity key signs tokens (`v1`) and orders; this is `p1`, the version
 // inside the signed bytes and read before a byte of the body is, and the claim shapes are disjoint besides - a record
@@ -31,6 +34,7 @@
 // PURE; the account service mints, the client reads. Not a DFU member. Ledger A (the professions' row).
 import { _b64url, SIG_BYTES, ID_RE } from './identityToken.js';
 import { PROVENANCE_RE, MAKER_MAX, recipeById, MASTERWORK, rollsQuality, dyeOk, HAND_CHEF, HAND_PROVISIONER, dishOf, jewelHandOk } from './recipeLaw.js';
+import { masterChoiceRefusal } from './masterLaw.js';   // MASTER-ART: a Master's work's chosen lines
 
 /** The only version this file reads or writes. */
 export const PRODUCT_RECORD_V = 'p1';
@@ -48,6 +52,9 @@ export const MINT_V_LAST_PASS = 1;
 export const MINT_V_LINES = 2;
 /** The mint version a craft stamps on its record now (`v`) - the service's (server-account/src/professions.js). */
 export const MINT_VERSION = MINT_V_LINES;
+/** MASTER-ART (Professions-Arc 57): the mint version a Master's work stamps - its record carries its chosen lines (`l`),
+ *  their values off its seed (net/masterLaw.js rollMasterLines). Every other craft's law is MINT_VERSION's. */
+export const MINT_V_MASTER = 3;
 /** A character id's shape (the account service's CHAR_ID_RE). */
 const CHAR_RE = /^[A-Za-z0-9_-]{4,64}$/;
 
@@ -71,6 +78,7 @@ export function productRecordValid(c) {
   if (c.u !== undefined && (c.u === null || !dyeOk(r, c.u))) return false;   // PROF7: a garment's dye, of its ten
   if (c.f !== undefined && !handOk(r, c.f)) return false;   // PROF9: a dish's cook's hand; PROF10: a jeweller's
   if (c.v !== undefined && !(Number.isSafeInteger(c.v) && c.v >= MINT_V_LAST_PASS)) return false;   // CRAFT-PROCS: the mint's version
+  if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterChoiceRefusal(r, c.l) === null)) return false;   // MASTER-ART: a Master's lines
   return true;
 }
 /** PROF9: whether `f` is a hand recipe `r`'s piece may carry - a Provisioner's on any dish, a Chef's on a feast alone.
@@ -83,13 +91,13 @@ function handOk(r, f) {
 
 /**
  * MINT - the account service's half. With no key the record goes out unsigned (`p1.<body>.`).
- * @param {{p: string, s: string, h: string, r: string, q: number, m: string|null, c: number, a?: boolean, u?: number|null, f?: number|null, v?: number|null}} what
+ * @param {{p: string, s: string, h: string, r: string, q: number, m: string|null, c: number, a?: boolean, u?: number|null, f?: number|null, v?: number|null, l?: string[]|null}} what
  * @param {CryptoKey|null} privateKey the service's Ed25519 identity key (server-account/src/signing.js), or null
  * @param {{subtle: SubtleCrypto, nowS: number}} env
  * @returns {Promise<string>}
  */
-export async function mintProductRecord({ p, s, h, r, q, m, c, a = false, u = null, f = null, v = null }, privateKey, { subtle, nowS }) {
-  const claims = { p, s, h, r, q, m, c, i: nowS, ...(a ? { a: 1 } : {}), ...(u == null ? {} : { u }), ...(f == null ? {} : { f }), ...(v == null ? {} : { v }) };   // PROF9: a dish's hand; CRAFT-PROCS: the mint's version
+export async function mintProductRecord({ p, s, h, r, q, m, c, a = false, u = null, f = null, v = null, l = null }, privateKey, { subtle, nowS }) {
+  const claims = { p, s, h, r, q, m, c, i: nowS, ...(a ? { a: 1 } : {}), ...(u == null ? {} : { u }), ...(f == null ? {} : { f }), ...(v == null ? {} : { v }), ...(l == null ? {} : { l }) };   // PROF9: a dish's hand; CRAFT-PROCS: the mint's version; MASTER-ART: a Master's lines
   if (!productRecordValid(claims)) throw new TypeError('mintProductRecord refused a claim set it could not verify');
   const body = _b64url.encode(enc.encode(JSON.stringify(claims)));
   if (!privateKey) return `${PRODUCT_RECORD_V}.${body}.`;
@@ -114,6 +122,9 @@ export function readProductRecord(rec) {
 /** CRAFT-PROCS: the mint version a record names (`v`) - 0 for one made before the stamp, or for anything not a record.
  *  The client's craft mint and the market's piece (server-account/src/market.js pieceOf) read it here. @param {unknown} rec */
 export const mintVersionOf = (rec) => readProductRecord(rec)?.v ?? 0;
+/** MASTER-ART: a Master's work's chosen lines as its record names them (`l`), or null - the mint's and the market's piece
+ *  read them here, as they read the version. @param {unknown} rec */
+export const masterLinesOf = (rec) => readProductRecord(rec)?.l ?? null;
 
 /**
  * VERIFY - `{ ok: true, claims }` or `{ ok: false, why }`, never a throw: the version first, the signature before the

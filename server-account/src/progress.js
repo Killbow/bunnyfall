@@ -81,6 +81,7 @@ export const PROGRESS_ROUTES = Object.freeze({
   '/v1/prof/brew': Object.freeze(['prof', true]),
   '/v1/prof/disenchant': Object.freeze(['prof', true]),
   '/v1/prof/temper': Object.freeze(['prof', true]),
+  '/v1/prof/master': Object.freeze(['prof', true]),   // MASTER-ART: a Master's work - a piece of the seated character's
   '/v1/writs/deliver': Object.freeze(['prof', true]),
   '/v1/writs/craft': Object.freeze(['prof', true]),   // CRAFT-WRITS: a crafting writ's XP and Renown
 });

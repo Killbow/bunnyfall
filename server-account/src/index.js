@@ -326,6 +326,7 @@ import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrik
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
+import { masterWork } from './masterWork.js';   // MASTER-ART: a Master's work (bible/06-Systems/Professions-Arc.md section 57)
 import { brewAtStation, disenchantPiece, reforgeWithEssence } from './alchemy.js';   // PROF12: Alchemy's brew, Enchanting's disenchant
 import {
   writBoard, postGuildWrit, supplyGuildWrit, withdrawGuildWrit, setWritBudget, postCommission, fulfilCommission, cancelCommission, declineCommission,
@@ -611,6 +612,7 @@ const PROF_STATUS = Object.freeze({
   'prof-later': 409,   // PROF4: a recipe whose slice is to come - the Ram Kit (PROF0 25)
   'prof-hunt-high': 409, 'prof-foe': 400, 'prof-dye': 400,   // PROF7: Hunting's rare hides (3 of tiers 5-6 a day - CAP-OFF: no `prof-hunt-cap`, nor PROF8's `prof-fish-cap`), a body no knife skins, a dye asked of what takes none
   'prof-sculptor': 403,   // PROF11: the stone decor is a Sculptor's - a skill's door, as the rank's
+  'prof-master': 400, 'prof-master-lines': 400, 'prof-master-day': 409,   // MASTER-ART: no tier, lines the piece may not carry, the day's work made
   'prof-lapidary': 403,   // PROF10: a Siege-cracked Gem is set as a gem by a Lapidary alone - a skill's door, as the Sculptor's
   // PROF12: a transmutation is a Transmuter's (a skill's door); a cauldron DFU's law answers with no such potion, a bad piece's id;
   // no such piece, another's; one listed, on the road or set down; one that makes no Essence
@@ -2034,6 +2036,7 @@ const service = {
           '/v1/prof/stock': () => buyStock(ctx, who.player, env, body),   // PROF3: the smith's stock; PROF4: the furnisher's
           '/v1/prof/temper': () => temperPiece(ctx, who.player, env, body),   // CRAFT4: a piece a quality step better
           '/v1/prof/reforge': () => reforgeWithEssence(ctx, who.player, env, body),   // CRAFT4: a line rolled again for Arcane Essence
+          '/v1/prof/master': () => masterWork(ctx, who.player, env, body),   // MASTER-ART: a Master's work, its lines chosen
           '/v1/stores/withdraw': () => withdrawStores(ctx, who.player, env, body),
           '/v1/stores/deposit': () => depositStores(ctx, who.player, env, body),   // BAG1: what is carried, into the Stores
           // PROF6: the Court's writs, and beside them this board's guild writs and commissions (writs.js writBoard)

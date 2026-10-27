@@ -107,6 +107,7 @@ on:
       - "src/net/busyLaw.js"
       - "src/net/recipeLaw.js"
       - "src/net/productRecord.js"
+      - "src/net/masterLaw.js"
       - "src/net/marketLaw.js"
       - "src/net/vendorLaw.js"
       - "src/net/patronLaw.js"
