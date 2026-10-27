@@ -68,6 +68,9 @@ export const SET_PLACES = Object.freeze(['head', 'right arm', 'left arm', 'chest
 /** Dagon's Brand (6): a Rampage stack lasts this long, a kill refreshing every one, and no more than this many stand. */
 export const RAMPAGE_SECONDS = 12;
 export const RAMPAGE_STACKS = 3;
+/** Malacath's Bulwark (6): Unbroken's half, the share it takes off every hurt while its window holds (POWER-CEILING
+ *  names it so the guards' ceiling can count it). */
+export const UNBROKEN_LESS = 50;
 /** Nocturnal's Shroud (6): Eventide's shadow is a Chameleon of whole magic rounds, and online a round is five seconds
  *  of the shared clock (net/wire.js: a classic minute every five real seconds). */
 export const ROUND_SECONDS = 5;
