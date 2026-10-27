@@ -14209,11 +14209,6 @@
   "tr": "35ff3e47e259",
   "by": "claude-in-session"
  },
- "hunt.mark.and": {
-  "en": "4f413364b490",
-  "tr": "7b721e1a35e3",
-  "by": "claude-in-session"
- },
  "hunt.mark.cannot": {
   "en": "cdda01f4ed8a",
   "tr": "dfc80404f64e",
@@ -14374,9 +14369,9 @@
   "tr": "74509a51398e",
   "by": "claude-in-session"
  },
- "hunt.mark.traits": {
-  "en": "fc3ba26f6ac7",
-  "tr": "1381c4cc3367",
+ "hunt.mark.traitsList": {
+  "en": "0c00f266d213",
+  "tr": "284b56501654",
   "by": "claude-in-session"
  },
  "hunt.mark.trophy": {
@@ -14497,6 +14492,11 @@
  "input.action.decorate": {
   "en": "2d5e538afa16",
   "tr": "e8ca19ab642c",
+  "by": "claude-in-session"
+ },
+ "input.action.professions": {
+  "en": "17158d478b21",
+  "tr": "a93a8c967846",
   "by": "claude-in-session"
  },
  "instance.door.holdLine": {
@@ -27309,6 +27309,11 @@
   "tr": "07f4ca25d6f2",
   "by": "claude-in-session"
  },
+ "prof.hall.firsts.closed": {
+  "en": "363246657643",
+  "tr": "c896444c019f",
+  "by": "claude-in-session"
+ },
  "prof.hall.firsts.line": {
   "en": "669ef6a10c3b",
   "tr": "10b496ecf079",
@@ -27365,8 +27370,8 @@
   "by": "claude-in-session"
  },
  "prof.hall.src.courtOre": {
-  "en": "5f278532d02c",
-  "tr": "7c8f18f6a069",
+  "en": "91fb18e26421",
+  "tr": "bc292d6fc451",
   "by": "claude-in-session"
  },
  "prof.hall.src.courtWood": {
@@ -27427,6 +27432,11 @@
  "prof.hall.src.gradeNote": {
   "en": "daac280358fa",
   "tr": "81c43eb29218",
+  "by": "claude-in-session"
+ },
+ "prof.hall.src.gradeNoteSmith": {
+  "en": "dccd82b05748",
+  "tr": "6a09624144eb",
   "by": "claude-in-session"
  },
  "prof.hall.src.haul": {
@@ -27500,8 +27510,8 @@
   "by": "claude-in-session"
  },
  "prof.hall.src.starsPct": {
-  "en": "fc074e96189f",
-  "tr": "c9af5522eeaf",
+  "en": "505ecdf14374",
+  "tr": "4aaf85f53609",
   "by": "claude-in-session"
  },
  "prof.hall.src.temper": {
@@ -29057,6 +29067,16 @@
  "prof.page.specs.respecTrial": {
   "en": "426a695c9785",
   "tr": "c32257f30bb1",
+  "by": "claude-in-session"
+ },
+ "prof.page.stationAct.brew": {
+  "en": "d76c385d59fa",
+  "tr": "fec0708384b2",
+  "by": "claude-in-session"
+ },
+ "prof.page.stationAct.disenchant": {
+  "en": "ecb61a980385",
+  "tr": "27b89b91673f",
   "by": "claude-in-session"
  },
  "prof.page.stores.bought": {

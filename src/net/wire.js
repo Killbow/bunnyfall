@@ -1657,14 +1657,11 @@ export const foesFrameHandsOn = (data) => Array.isArray(data?.f) && data.f.some(
  *  second. The standing margin SLAM8 asserted holds: the whole fan still comes at every heartbeat. */
 export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
 
-/** AUDIT WORLD34 D4: the relay names itself in /health - the deploy is by hand (`npx wrangler deploy`), nothing in
- *  CI does it, and until now nothing said which relay was live. Bump it with every relay-changing slice; since SLAM8
- *  test/net/relayversion.test.js binds each version to the bytes of the law and fails until the bump is made.
- *
- *  SLAM13 (2026-09-16, AUDIT SLAM A5): moved here from server/src/index.js so BOTH ENDS know the name. The welcome
- *  carries it (`v`), and a client whose wire.js was built against another version says so on the console: the client
- *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
- *  now nothing on either end could see it. */
+/** AUDIT WORLD34 D4: the relay names itself in /health - the deploy is by hand (`npx wrangler deploy`). Bump it with
+ *  every relay-changing slice: test/net/relayversion.test.js binds each version to the bytes of the law (SLAM8).
+ *  SLAM13 (AUDIT SLAM A5): both ends know the name. The welcome carries it (`v`), and a client built against another
+ *  version says so on the console - the client is deployed by CI and the relay by hand, so a skew between them is the
+ *  ordinary state of a release day. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
 export const RELAY_VERSION = 'world271';   // world271: APPEARANCES and HUNTERS-MARK, one release (2026-10-27; bible/04-Characters/Wardrobe.md section 6, bible/06-Systems/Bounty-Boards.md section 12; NOT YET DEPLOYED - world270 and world271 on the branch, renumbered past main's CHAT-POST world270 at the merge): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look; and net/identityToken.js's TITLES gains the hunt's four, the ten Marks of Mastery and the sea's two, last - the relay reads a token's title as every badge; the bundle's files unchanged; and APPEARANCES-II's sworn revenant's kit carries its look (validFoeRecord's `la`, each of its piece's kind - an older relay drops it and the piece is drawn in its own)
 // world270: CHAT-POST (2026-10-27; bible/06-Systems/Online-Arc.md CHAT-POST; NOT YET DEPLOYED): a chat frame may carry linked item records (`items`, and a legacy `item`) beside the words - the relay fans them with the line; before it, world269: BOW-TOPS (2026-10-26; bible/05-Combat/Balance-Arc.md section 18 BAL-ARCHERY, BOW-TOPS): the arena's and the siege's weapon tops take BAL-ARCHERY's bows - a Short Bow 17, a Long Bow 19 (net/arena/arenaLaw.js ARENA_WEAPON_MAX, net/siege/siegeRef.js SIEGE_WEAPON_MAX)

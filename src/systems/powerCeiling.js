@@ -1,11 +1,9 @@
 // @ts-check
-// POWER-CEILING (2026-10-27, bible/05-Combat/Power-Ceiling.md; a player: "I would hate hate hate to see go down the path
-// of Retail WoW ... keeping you on a tread mill"): THE TWO COMPOSITE CEILINGS. A blow's powers multiply (the sigil, the
+// POWER-CEILING (bible/05-Combat/Power-Ceiling.md): THE TWO COMPOSITE CEILINGS. A blow's powers multiply (the sigil, the
 // sets, the loot, the sky, mastery, the paths) and a hurt's guards compose, so each registry asks this leaf for its room:
-// its own measured top first, then the product of every top (tools/powerCeiling.mjs measures them). AUDIT HORIZONTAL D4:
-// the product alone cut whichever registry the import graph asked last - a loot power past 240 took a player's martial
-// path from 40 to 8 - so the registry that passes its own top is the one cut, and no other. A leaf: the runners
-// (entityMods.js, playerEntity.js) and the registries import it.
+// its own measured top first, then the product of every top (tools/powerCeiling.mjs). AUDIT HORIZONTAL D4: the product
+// alone cut whichever registry the import graph asked last (a loot power past 240 took a martial path from 40 to 8), so
+// the registry past its own top is the one cut. The runners (entityMods.js, playerEntity.js) and registries import it.
 
 /** THE BLOW POWERS' TOPS: each registry's most onto one blow (per cent), measured from today's records and laws. */
 export const BLOW_TOPS = Object.freeze({ sigil: 12, sets: 200, loot: 240, firmament: 50, mastery: 80, martial: 40 });

@@ -293,8 +293,8 @@
   {
     "name": "CRAFT-HOWTO-controls-row-stores",
     "file": "src/systems/inputActions.js",
-    "old": "['Professions', 'Open your Professions page (online)']",
-    "new": "['Professions', 'Open your Professions and Stores (online)']",
+    "old": "['Professions', t('input.action.professions', 'Open your Professions page, or the Crafting page at a station (online)')]",
+    "new": "['Professions', t('input.action.professions', 'Open your Professions and Stores (online)')]",
     "why": "AUDIT FB1018D L1-7: the key's Controls row keeps the claim the tutorial dropped - it lands on the Professions page",
     "tests": [
       "test/ui/professions/fb1018d_crafthowto.test.js"

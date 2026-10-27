@@ -85,7 +85,7 @@ import {
 import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
 import {
   STATION_TRACKS, CRAFT_TRACKS, trackBar, toNextWords, firstStanding, firstsLine, firstBadge, recipeFirstOwed, workFirstOwed, brewFirstOwed,
-  owedOpenFirsts, owedName, xpSources, gradeNote,
+  owedOpenFirsts, owedName, xpSources, gradeNote, madeShown,
 } from './craftHall.js';   // CRAFT-HALL
 import { temperableRecipe, temperCost, temperXp, REFORGE_RANK, REFORGE_ESSENCE, reforgeEssence } from '../../net/temperLaw.js';   // CRAFT4: the temper and the Reforge with Essence
 import { reforgeCount } from '../../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the reforges a piece has taken - its next price
@@ -225,6 +225,9 @@ const wordRow = (id, label) => {
  *  200,000-gold enchanting station opened the item maker alone, and Disenchanting stood at the foot of this page with no
  *  door from the station to it. */
 export const STORES_ACT_STATIONS = Object.freeze({ alchemy: 'Brew', enchant: 'Disenchant' });
+/** AUDIT HORIZONTAL A7: the press's chooser's option for that act, in the player's language ('' for any other station). */
+export const stationActLabel = (/** @type {string} */ kind) => (kind === 'alchemy' ? t('prof.page.stationAct.brew', '2 - Brew (Crafting page)')
+  : kind === 'enchant' ? t('prof.page.stationAct.disenchant', '2 - Disenchant (Crafting page)') : '');
 /** STATION-DOOR: the station whose section the next draw of this page scrolls to - set by a station's press, read once. */
 let _storesFocus = /** @type {string|null} */ (null);
 export function focusStoresStation(kind) { _storesFocus = typeof kind === 'string' ? kind : null; }
@@ -697,10 +700,13 @@ export function trackHeader(kit, book, track, { onOpen = null } = {}) {
   if (meter) head.append(meter(bar.now, bar.max, ''));
   const next = toNextWords(tr, limit);
   head.append(el('span', 'prof-track-xp', next ? `${xpLine(tr, limit)} · ${next}` : xpLine(tr, limit)));
-  const firsts = firstsLine(firstStanding(book.state?.made ?? null, track));
+  const firsts = firstsLine(firstStanding(madeOf(book), track));
   if (firsts && PROFESSIONS.find((x) => x.id === trackOf(track))?.kind === 'crafting') head.append(el('span', 'prof-track-firsts', firsts));
   return head;
 }
+/** AUDIT HORIZONTAL A2: what the character has made as every page reads it - a craft that takes no more XP named
+ *  closed (craftHall.js madeShown), so none of its first-time bonuses is offered. */
+export const madeOf = (/** @type {any} */ book) => madeShown(book?.state?.made ?? null, book?.state?.tracks?.values?.() ?? []);
 /** CRAFT-HALL: a station's header, under its heading. */
 const stationTrack = (detail, kit, book, station) => { if (kit?.el) detail.append(trackHeader(kit, book, STATION_TRACKS[station])); };
 
@@ -736,8 +742,9 @@ function craftTimes(box, el, state, rerender, { ready, most, once }) {
   const qty = el('input', 'prof-qty');
   qty.type = 'number'; qty.min = '2'; qty.max = String(Math.max(2, most)); qty.value = String(n);
   qty.disabled = !ready;
-  qty.oninput = () => { state.times = Math.max(2, Math.min(Math.max(2, most), Math.floor(Number(qty.value) || 2))); };
   const go = el('button', 'act', state.repeat ? t('prof.page.times.going', 'Crafting {done} of {of}...', state.repeat) : t('prof.page.times.go', 'Craft x{n}', { n }));
+  // AUDIT HORIZONTAL A4: the button says the count typed - it said x2 and crafted five
+  qty.oninput = () => { state.times = Math.max(2, Math.min(Math.max(2, most), Math.floor(Number(qty.value) || 2))); go.textContent = t('prof.page.times.go', 'Craft x{n}', { n: state.times }); };
   go.type = 'button';
   go.disabled = !ready || most < 2;
   go.onclick = async () => {
@@ -806,8 +813,8 @@ export function drawProfessionsPage(detail, rerender, kit) {
       const row = el('button', `prof-row${prof.id === _sel ? ' on' : ''}`);
       row.type = 'button';
       row.append(el('span', 'prof-name', prof.name), el('span', 'prof-rank', t('prof.page.rankOf', '{rankName} {rank}', { rankName: rankName(tr.rank), rank: tr.rank })));
-      const floor = xpForRank(tr.rank), next = xpForRank(Math.min(PROF_RANK_MAX, tr.rank + 1));
-      row.append(meter(tr.rank >= PROF_RANK_MAX ? 1 : tr.xp - floor, tr.rank >= PROF_RANK_MAX ? 1 : next - floor, ''));
+      const bar = trackBar(tr, craftLimitOf(book.state?.tracks?.values?.() ?? [], prof.id));   // AUDIT HORIZONTAL A2: full where the limit holds it, as its header's
+      row.append(meter(bar.now, bar.max, ''));
       row.onclick = () => { _sel = prof.id; _armed = null; rerender(); };
       list.append(row);
     }
@@ -947,14 +954,15 @@ function drawRaises(pane, kit, book, id, tr) {
   const note = gradeNote(id, tr.rank);
   if (note) pane.append(el('p', 'px-note', note));
   if (PROFESSIONS.find((x) => x.id === id)?.kind !== 'crafting') return;
-  const standing = firstStanding(book.state?.made ?? null, id);
+  const made = madeOf(book);
+  const standing = firstStanding(made, id);
   if (!standing?.all) return;
   pane.append(divider(t('prof.page.firsts', 'First-time bonuses')));
   pane.append(el('p', 'prof-firsts', firstsLine(standing)));
   if (kit.meter) pane.append(kit.meter(standing.spent, standing.all, ''));
-  const owed = owedOpenFirsts(book.state.made, id, tr.rank, tr.specs ?? null, _provider?.name ?? ((k) => k));
+  const owed = owedOpenFirsts(made, id, tr.rank, tr.specs ?? null, _provider?.name ?? ((k) => k));
   const left = standing.all - standing.spent;
-  pane.append(el('p', 'px-note', owed.length
+  if (!standing.closed) pane.append(el('p', 'px-note', owed.length
     ? t('prof.page.firsts.owed', 'Still to earn at your rank: {n, number}.', { n: owed.length })
     : left > 0 ? t('prof.page.firsts.higher', 'All made at your rank. {n, number} more at higher ranks.', { n: left })
       : t('prof.page.firsts.all', 'All made.')));
@@ -1806,7 +1814,7 @@ function drawAnvil(detail, rerender, kit) {
     const open = recipeOpen(x, rank), can = open && craftable(x, held, sp);
     return { open, can, raw: open && !can && fromRaw(sp, book), share: heldShare(sp, held) };   // CRAFT1: made from raw
   });
-  const first = (/** @type {any} */ x) => recipeFirstOwed(book.state?.made ?? null, x);   // CRAFT-HALL
+  const made = madeOf(book), first = (/** @type {any} */ x) => recipeFirstOwed(made, x);   // CRAFT-HALL
   patternRows(detail, el, list, _anvil, rerender, { stand, word: (x, s) => (s.open ? makeWord(s.can, s.raw) : rankWord(x.rank)), locked: striking, first });
   const r = pickedIn(list, _anvil);
   if (r) {
@@ -2031,7 +2039,7 @@ function drawWorkbench(detail, rerender, kit) {
     const open = !x.later && recipeOpen(x, rank), can = open && craftable(x, held, sp);
     return { open, can, raw: open && !can && fromRaw(sp, book), share: heldShare(sp, held) };   // CRAFT1: made from raw (a log sawn first)
   });
-  const first = (/** @type {any} */ x) => recipeFirstOwed(book.state?.made ?? null, x);   // CRAFT-HALL
+  const made = madeOf(book), first = (/** @type {any} */ x) => recipeFirstOwed(made, x);   // CRAFT-HALL
   patternRows(detail, el, list, _bench, rerender, { stand, word: (x, s) => (x.later ? LATER_WORDS.SEAT2 : s.open ? makeWord(s.can, s.raw) : rankWord(x.rank)), locked: planing, first });
   const r = pickedIn(list, _bench);
   if (r) {
@@ -2250,7 +2258,7 @@ function drawLoom(detail, rerender, kit) {
     const open = recipeOpen(x, rank), can = open && craftable(x, held);
     return { open, can, raw: open && !can && fromRaw(x.inputs, book), share: heldShare(x.inputs, held) };   // CRAFT1: made from raw
   });
-  const first = (/** @type {any} */ x) => recipeFirstOwed(book.state?.made ?? null, x);   // CRAFT-HALL
+  const made = madeOf(book), first = (/** @type {any} */ x) => recipeFirstOwed(made, x);   // CRAFT-HALL
   patternRows(detail, el, list, _loom, rerender, { stand, word: (x, s) => (s.open ? makeWord(s.can, s.raw) : rankWord(x.rank)), locked: sewing, first });
   const r = pickedIn(list, _loom);
   if (r) {
@@ -2469,7 +2477,7 @@ function drawMasonBench(detail, rerender, kit) {
   const specs = track?.specs ?? {};
   stationTrack(detail, kit, book, 'mason');   // CRAFT-HALL
   detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.mason.shop', 'The mason\'s bench - {fee} gold a cut, a mix or a carving.', { fee: bench.fee }) : t('prof.page.mason.home', 'Your mason\'s bench.')));
-  const made = book.state?.made ?? null;   // CRAFT-HALL
+  const made = madeOf(book);   // CRAFT-HALL
   const short = purseShort(bench, 'mason');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   // AUDIT 30 A2's law: Gentle acts switched on under the chisel sets it down - nothing spent, the work a plain one
@@ -2758,7 +2766,7 @@ function drawCookFire(detail, rerender, kit) {
     const open = recipeOpen(x, rank, specs), can = open && craftable(x, held);   // the rank the dish asks, and its inputs held
     return { open, can, raw: false, share: heldShare(x.inputs, held) };
   });
-  const first = (/** @type {any} */ x) => recipeFirstOwed(book.state?.made ?? null, x);   // CRAFT-HALL
+  const made = madeOf(book), first = (/** @type {any} */ x) => recipeFirstOwed(made, x);   // CRAFT-HALL
   patternRows(detail, el, COOKING_RECIPES, _cook, rerender, { stand, word: (x, s) => (s.open ? (s.can ? t('prof.page.fire.canCook', 'can cook now') : t('prof.page.craft.wants', 'needs materials')) : rankWord(x.rank)), locked: !!_cook.act, first });
   const r = pickedIn(COOKING_RECIPES, _cook);
   if (r) {
@@ -2926,7 +2934,7 @@ function drawJewellerBench(detail, rerender, kit) {
   stationTrack(detail, kit, book, 'jeweller');   // CRAFT-HALL
   detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.jewel.shop', 'The jeweler\'s bench - {fee} gold a piece.', { fee: bench.fee }) : t('prof.page.jewel.home', 'Your jeweler\'s bench.')));
   // CRAFT-HALL: a jewel's first-time bonus is per piece and base (AUDIT PROF-541 J7), so the stars go on those, not gems
-  const made = book.state?.made ?? null;
+  const made = madeOf(book);
   const owedIn = (/** @type {readonly any[]} */ rs) => rs.some((x) => recipeOpen(x, rank) && recipeFirstOwed(made, x) === true);
   const short = purseShort(bench, 'jeweller');
   if (short) detail.append(el('p', 'px-note prof-short', short));
@@ -3149,7 +3157,7 @@ function drawAlchemyStation(detail, rerender, kit) {
     const row = el('button', `prof-recipe${_alchemy.picked === potion.id ? ' on' : ''}${can ? '' : ' prof-locked'}`);
     row.type = 'button';
     row.append(el('b', null, potion.name), el('span', 'prof-split', open ? (can ? t('prof.page.alchemy.canBrew', 'can brew now') : t('prof.page.alchemy.wants', 'needs ingredients')) : rankWord(potion.rank)));
-    const owed = open ? brewFirstOwed(book.state?.made ?? null, potion) : null;   // CRAFT-HALL
+    const owed = open ? brewFirstOwed(madeOf(book), potion) : null;   // CRAFT-HALL
     if (owed !== null) row.append(el('span', `prof-first${owed ? '' : ' made'}`, firstBadge(owed)));
     row.onclick = () => { _alchemy.picked = potion.id; rerender(); };
     detail.append(row);
@@ -3175,7 +3183,7 @@ function drawAlchemyStation(detail, rerender, kit) {
     // whole - FIRST-BUDGET: Provisioning's first-make share, brewFirstXp), and the limit's line in its
     // place where the track cannot take it
     const pay = craftPayOf(book, 'alchemy'), profession = professionName('alchemy');   // CRAFT3: the craft's own name
-    const xp = paidXp(brewXp(potion, rank), { pct: pay.pct }), owed = brewFirstOwed(book.state?.made ?? null, potion);   // CRAFT-HALL
+    const xp = paidXp(brewXp(potion, rank), { pct: pay.pct }), owed = brewFirstOwed(madeOf(book), potion);   // CRAFT-HALL
     const more = owed === false ? 0 : brewFirstXp(potion);
     box.append(el('p', 'px-note', [
       t('prof.page.alchemy.made', '{n, plural, one {A potion} other {# potions}} a brew.', { n: made }),
