@@ -44,6 +44,7 @@ and in `01-Overview/Port-Ledger.md` section A.
 | CARGO-ANYWHERE | 1 | a ship's hold opened from anywhere - the hold's key (F4), the helm's Hold, the Fleet page's Hold - at hand, last helmed or the fleet's first, wherever she lies; the hold two-way on the Enhanced skins | `scenes/holdDoor.js`, `systems/comeSailAway/comeSailAwayItems.js` (`cargoLootTarget`), `ui/enhanced/enhancedInventory.js` (`remoteModel`), `scenes/fleetHost.js` (`hold`), `ui/fleetPage.js`, `ui/enhanced/enhancedHelm.js` (`helmButtons`), `systems/inputActions.js` (`ShipHold`), `scenes/world.js` |
 | RAM-BOARD | 5 | RETIRED by BOARD-MAGNET (2026-10-26) with the ram: a ram fouled her - for FOUL_S her way was held and she was boarded as she stood, her whole crew against me | `systems/naval/navalFoul.js`, `scenes/naval/navalHost.js` (`checkRams`, `boardingGap`, `footReach`, `stepHeaveTo`, `crewShips`, `word`, `targetCardOf`), `systems/naval/navalAI.js` (`stepCaptain`), `ui/naval/navalHud.js` (`cardState`) |
 | BOARD-MAGNET | 5 | (2026-10-26) the ram retired - mine and a galley's, and RAM-BOARD's foul; a struck ship in the grapples' reach is "E: board" at any way, and the haul draws her alongside my ship as it lies each frame while my way comes off, side by side where I come to rest; the captain's ram stars reach farther | `systems/naval/navalBoarding.js` (`boardableState`, `berthHull`, `berthPose`, `haulBrake`, `haul`), `scenes/naval/navalHost.js` (`boardingGap`, `brake`, `wayScale`, `berthFor`, `startBoarding`, `stepBoarding`), `systems/naval/captainTree.js` (`reach`), `ui/naval/navalHud.js` (`cardState`, `navalPadPrompts`, the hint), `ui/captainTreeWindow.js`, `ui/shipyardWindow.js` |
+| RAM-RETURN | 5 | (2026-10-26) the ram back as a blow alone, bounded: a share of the lesser hull by the closing way and the angle, never taking a fighting ship under her strike, never on a struck ship; the recoil never to the rammer's own strike; a galley's ram on the ship she fights alone; no foul | `systems/naval/navalRam.js` (`ramBlow`, `ramSquare`, `ramRoom`, `recoilRoom`, `ramRecoil`, `ramMen`), `scenes/naval/navalRams.js` (`helm`, `galleys`), `scenes/naval/navalHost.js` (`frame`, `stepSea`), `systems/naval/navalShips.js` (`ram`), `systems/shipyards.js` (`shipSpec`), `ui/shipyardWindow.js` (`shipCardText`) |
 | RAID-ASHORE | 2 | a voyage's raid fought where the player stands ends there: its crew and last raiders withdrawn, the quest ended; one raid at a time on the fast travel | `scenes/raidAshore.js`, `systems/warmAshesShips.js` (`LeaveShip`, `onPreFastTravel`), `scenes/world.js` (`raidAshore`, Warm Ashes' host, the quest's end) |
 | SHIP-COLOURS | 9 | a ship flies a flag of her captain's design - its shape, its field and division, its border, its device and that device's colour, or the captain's guild's arms - as cloth at her masthead, in her pennant's place, seen by every player | `systems/naval/shipFlag.js`, `ui/flagArt.js`, `render/shipFlagPass.js`, `scenes/shipFlagHost.js`, `systems/fleet.js` (`colours`, `setShipColours`), `scenes/fleetHost.js` (`colours`), `ui/fleetPage.js` (`coloursPanel`), `systems/comeSailAway/comeSailAwayWire.js` (`f`), `scenes/comeSailAway/comeSailAwayPeers.js` (`flagged`), `ui/heraldryArt.js` (its device painter shared), `scenes/world.js` |
 | CAPTAIN-TREE | 10 | a captain's level, earned at sea off the captain's log, buys a point a level for a sky of stars in the Firmament's dress - the Master's seamanship to the left, the Commander's war to the right - each star a share of a ship's own number read where that number is read: her way, oars, helm, hold, hull, repairs, trade, guns' harm, reload and aim, the shot locker's grape, chain and heated shot, her boarders, her ram and its foul | `systems/naval/captainTree.js`, `systems/naval/captainLedger.js` (`captain`, `tree`, `setTree`, `stats`, the save's `tree`), `ui/captainTreeWindow.js` (drawn by `ui/skyWindow.js` since RVN-STARS), `ui/captainPage.js` (the stars' card), `ui/naval/navalPlunderDoor.js` (`createCaptainStarsOverlay`), `ui/enhanced/enhancedMenu.js` (the Captain page's door), `scenes/fleetHost.js` (`refit`), `systems/comeSailAway/comeSailAway.js` (`rigOf`'s `oars`, `turn`), `scenes/naval/navalHost.js` (`crewStep`'s worth, `crewSkill`, `loadedGun`, `landHit`, `checkRams`), `systems/naval/shotKinds.js` (`shotFireChance`'s `k`), `systems/naval/navalFoul.js` (`foul`'s `more`), `systems/naval/tradeGoods.js` (`exchangeOf`'s `edge`), `scenes/harbourOffice.js`, `scenes/world.js` |
@@ -925,6 +926,69 @@ turning helm, a throw from rest, a ship across my bow, a berth too far for HAUL_
 and phases on `drawHaul` (the long way round, the haul that waits); `tools/mutants/boardmagnet.json` (25, all dead) and
 `nav_d.json`'s side and short-way records re-aimed (dead).
 
+## RAM-RETURN - the ram back, bounded (2026-10-26)
+
+The owner, 2026-10-26: *"So players are complaining about ship ramming being removed. So I would like to reintegrate it
+in a thoughtful way. The major issue was that you could easily instability ships just by ramming"* - read as one ram
+taking a ship outright.
+
+FOUND (the ram BOARD-MAGNET retired, read off its last commit):
+- **No bound on a blow.** A ram dealt RAM_DAMAGE (14) a metre a second of closing way, a galley's GALLEY_RAM (3) times
+  that, whatever the hulls: a Large Galley at 7 m/s dealt 294, past a Pirate Sloop's whole hull (264); a plain stem at a
+  storm's 38.9 m/s dealt 545. Only one captain's galley on another's sound ship stopped at her strike (AUDIT NAV2 F26);
+  the player's ram and a galley's on the player's boat did not, nor did the recoil.
+- **A rowboat struck a Carrack as hard as a galleon did** - the blow knew the way and nothing of the hulls.
+- **A sound ship boarded at a touch** (RAM-BOARD's foul): a stem in her side made her boardable as she stood.
+- **A galley rammed whatever her stem met** - a ship of her own trade, a crown's ship that was no enemy - and a struck
+  ship rammed was a prize sunk.
+
+CHANGED (`systems/naval/navalRam.js`, the law; `scenes/naval/navalRams.js` finds the stems and lands the blows - HOST-SPLIT,
+wired by `createNavalHost` in two calls and one construction):
+- **A share of the lesser hull** (`ramBlow`): RAM_SHARE (0.15) from a plain stem, GALLEY_SHARE (0.3) from a galley's
+  ram, of the smaller of the two whole hulls - a big stem takes a share of the small ship it strikes, a small one strikes
+  with no more than its own weight (a rowboat into a Carrack: 14) - times the PACE (the closing way over RAM_FULL_SPEED,
+  8 m/s: whole at a fighting way, and no more past it - a storm rams no harder than a fair day) and the ANGLE
+  (`ramSquare`: all of it square into her side, RAM_GLANCE (0.4) of it along her keel or bow to bow). A galleon into a
+  merchant galleon at 8 m/s, square: 81 of her 538. A galley into a Pirate Sloop at 7 m/s: 69, where the old ram dealt 294.
+- **To her strike, never under it** (`ramRoom`): a ram takes a fighting ship to STRUCK_AT of her hull and no further -
+  AUDIT NAV2 F26's law, every ram's now. Brought there she strikes her colours, and BOARD-MAGNET's grapples are the way
+  aboard: rammed and boarded, the order the owner's item 5 asked for, with her battered first. A ship whose colours are down
+  is not rammed (`fighting`: afloat, not being boarded) - her sinking is the guns'.
+- **The recoil** (`ramRecoil`, AUDIT NAV1's): RAM_RECOIL of the blow as it struck, BOW_RECOIL times it on a plain stem, a
+  GALLEY_RAM-th of it on a galley's, half braced - never to the rammer's own strike (`recoilRoom`, a point short of her
+  room): a galley is not brought to strike by her own ram.
+- **My helm** (`helm`, once a frame on the hulls as the frame poses them): AUDIT NAV1 H6's finding kept whole - the stem at
+  her `bowZ` within RAM_REACH of her box, the way I came in with over RAM_MEMORY_S, hers along my course taken off, the
+  way spent on the first ship, one ram a ship a RAM_COOLDOWN_S; an act of fire as a ball is (piracy on a lawful ship, her
+  sinking mine to answer for); on a ship another player stands, a blow said to her stander (`navalHitData`, holed, its
+  men) bounded by her room as her word has her - her hull to the hundredth, so within a hundredth of her line. A booked
+  ship's master never rams (FERRY-CLEAR). Said: "You ram the ship!", a galley's "Your ram smashes into the hull!"
+  (`naval.ram.*`, drafted in the thirteen whole languages).
+- **A galley's ram** (`galleys`, each step of the sea's clock): a captain's galley rams the ship SHE FIGHTS alone -
+  engaged on her or closing to board her, her stem in that ship's hull at RAM_SPEED or more - a boat of mine (braced,
+  half; SEA-SET's Captain's Due on it; my crew's toughness; "A galley rams you!") or a ship of my sea, by the same law. A
+  galley fleeing, one another player stands, one being boarded and one under RAM_SPEED rams nothing; a wreck of mine is
+  not rammed; a ship she does not fight is bumped, never rammed (the hulls are kept apart as ever).
+- **The galley sold with her ram** (`navalShips.js` `ram`, `shipyards.js` `shipSpec`, the shipwright's card's "a ram").
+- **Left retired**: RAM-BOARD's foul (a sound ship is boarded once she has struck - BOARD-MAGNET), and the captain's ram
+  stars (`c_ram1` and `c_irons` reach farther, as BOARD-MAGNET made them; the stars name no `ram` stat).
+
+MEASURED (`ramreturn.test.js` THE BOUND): over all 20 hulls (every class and every player's build) against each other,
+closing ways from RAM_SPEED to 40 m/s, three angles, plain and galley stems - 55,200 runs of rams from whole, 54,799 of
+which strike her (the rest are blows of nothing, a rowboat's stem into a legend at a crawl) - one ram took a hair over
+GALLEY_SHARE of a hull at the most (a rowboat's rounding), none took a ship under her line or sank her, the fewest rams
+to strike were three, and no recoil brought the rammer to her own line.
+
+LEFT, and why:
+- **A galley's grapples from her bow**: BOARD_RANGE is reckoned from the helm's root (BOARD-MAGNET's `boardingGap`), and
+  a Large Galley's stem stands 51 m forward of it - a Coasting Trader she rams to strike across her bow lies 44 m of water
+  past the two beams, where the grapples reach 32: she closes before "E: board". A galleon's stem (22 m) boards where it rams. The reach is BOARD-MAGNET's
+  law, not this slice's.
+- **Ramming another player's own boat** (the peers' boats at their helms): never rammed before, nor now - the sea's ships
+  alone.
+
+The port's own, as the sea fight is: Daggerfall and Daggerfall Unity have no sea and no ram.
+
 ## THE FOUR HOSTS RULE
 
 
@@ -971,6 +1035,10 @@ and phases on `drawHaul` (the long way round, the haul that waits); `tools/mutan
 - BOARD-MAGNET: the naval host's, the same (its haul `scenes/naval/navalHaul.js`, the module it wires) - the world host
   hands Come Sail Away the haul's brake (`brake: () => naval?.brake()`) beside the runtime it stands; `worldModes.js` (interiors) and `dungeonContext.js` (a dungeon's water) -
   FLAGGED: no sea fight is fought there, so no grapples are thrown; `exterior.js` (the bench) - FLAGGED: no naval host.
+- RAM-RETURN: the naval host's, the same (its stems `scenes/naval/navalRams.js`, the module it wires); the world host's
+  collider stands the sea's ships for the ram as for the grapples (`world.js` NAV-H's boats); `worldModes.js` (interiors)
+  and `dungeonContext.js` (a dungeon's water) - FLAGGED: no sea ship sails there; `exterior.js` (the bench) - FLAGGED: no
+  naval host.
 - RAID-ASHORE's withdraw reads the world host's two pools - the street's and, through `worldModes.js`'s `interiorPool`,
   the sailing cabin's room; `dungeonContext.js` - FLAGGED: no voyage's raid is fought below ground.
 
@@ -994,6 +1062,11 @@ and phases on `drawHaul` (the long way round, the haul that waits); `tools/mutan
   `navaudit_captains` G9; `auditnav2_captains` F26; `auditrefit` the rammer's foul; `auditrefit2` the blow before the
   foul; `ferryclear`'s booked stem; `crewhold`, `tougherships`, `captaintree`, `seaset` and `helmway`'s ram and brake
   lines); the records left standing re-aimed by content (`nav_d`, `nav_f`, `navaudit_helm`, `ships2_carrack`, all dead).
+- RAM-RETURN: `test/systems/naval/ramreturn.test.js` (9) - the law, THE BOUND over every hull, my helm's ram on the real
+  naval host and pool (H11's finding kept), the angle, a ship rammed to her strike then boarded, a galley's ram on the
+  real host and on the module alone, online, FERRY-CLEAR's booked stem - and `tools/mutants/ramreturn.json` (34, all
+  dead); BOARD-MAGNET's "no stem rams" pin now its "no foul" (`boardmagnet.test.js`), the shipyard's two pins the
+  galley's ram again (`shipyards1`, `shipyards1_host`).
 - `test/systems/naval/shipcolours.test.js` (9) on the law, the art, the cloth's vertex law run in JS (`test/glsl.mjs`), the
   host over Come Sail Away's real runtime, the ledger and its save, the Fleet's act and page, the wire and the world's
   wiring, and `tools/mutants/shipcolours.json` (42, all dead); the cloth also seen drawn in headless Chromium in a fair
