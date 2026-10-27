@@ -72,8 +72,8 @@
   {
     "name": "PLAIN-TEXT-comment-block-off-by-one",
     "file": "tools/plainText.mjs",
-    "old": "    else { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; }",
-    "new": "    else { n += Math.max(0, run - COMMENT_LINES_MAX + 1); run = 0; }",
+    "old": "  const end = () => { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; };",
+    "new": "  const end = () => { n += Math.max(0, run - COMMENT_LINES_MAX + 1); run = 0; };",
     "tests": [
       "test/tooling/plaintext.test.js"
     ],
@@ -82,8 +82,8 @@
   {
     "name": "PLAIN-TEXT-PT1-excess-a-count",
     "file": "tools/plainText.mjs",
-    "old": "    else { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; }",
-    "new": "    else { n += run > COMMENT_LINES_MAX ? 1 : 0; run = 0; }",
+    "old": "  const end = () => { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; };",
+    "new": "  const end = () => { n += run > COMMENT_LINES_MAX ? 1 : 0; run = 0; };",
     "tests": [
       "test/tooling/plaintext.test.js"
     ],
@@ -218,5 +218,15 @@
       "test/tooling/plaintext.test.js"
     ],
     "note": "AUDIT HORIZONTAL PT5: an index page's list measured as one paragraph - its next entry its last one grown"
+  },
+  {
+    "name": "PLAIN-TEXT-PT6-log-entry-counted",
+    "file": "tools/plainText.mjs",
+    "old": "    if (c && !inBlock && VERSION_LOG_LINE.test(t)) { end(); continue; }",
+    "new": "    if (false) { end(); continue; }",
+    "tests": [
+      "test/tooling/plaintext.test.js"
+    ],
+    "note": "AUDIT HORIZONTAL PT6: a version log measured as one comment block - every bump grows it"
   }
 ]

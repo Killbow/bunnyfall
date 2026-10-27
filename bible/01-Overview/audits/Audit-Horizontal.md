@@ -49,8 +49,7 @@ asked last (D4). Each is FIXED below, or LEFT and said.
   words; section 56.5 takes 80 back). FIXED: the baseline holds each entry's excess. **PT2-PT4 LOW** - a blank line ended
   a comment block; a plural's branches were miscounted; `--seed` took a ref that already held the law. FIXED.
 - **PT5 (at the merge) - an index page is one list**, so under PT1 its next entry read as its last one grown. FIXED: a
-  top-level list item is a paragraph of its own (`plainText.mjs` paragraphExcess). A version log in a comment drops its
-  oldest line when a bump moves a note into it (Home.md).
+  top-level list item is a paragraph of its own (`plainText.mjs` paragraphExcess). PT6: a version log's entry (`// world271:`) is a comment block of its own, so a bump grows nothing. Dropping the log's oldest lines instead had cut text that older pins read (`chap3a_merit`, `chap3b_strength`: red on CI), and those lines are back as main has them.
 - **LEFT, named:** Building's grade note implies a quarter rate for mason's cuts that `masonXp` does not apply; "Esc -
   close" is still glued English across `worldModes.js` (before this change).
 

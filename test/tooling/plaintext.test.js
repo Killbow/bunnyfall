@@ -55,6 +55,8 @@ test('PLAIN-TEXT AUDIT HORIZONTAL PT1, PT2: a comment block\'s lines past 8 and 
   assert.equal(paragraphExcess(`${Array(151).fill('w').join(' ')}\n\n${Array(151).fill('w').join(' ')}`), 2);
   assert.equal(paragraphExcess(Array(551).fill('w').join(' ')), 401, 'a long paragraph grown by 400 words is 400 more');
   assert.equal(paragraphExcess(`| ${Array(200).fill('w').join(' ')} |`), 0);
+  assert.equal(commentExcess(`${block(8).replace('const x = 1;\n', '')}// world271: a note\n// acct198: another\n${block(8)}`), 0, 'PT6: a version log\'s entry is a block of its own - a bump grows nothing');
+  assert.equal(commentExcess(`${Array(9).fill('// world271 is no entry').join('\n')}\nconst x = 1;\n`), 1, 'a line that only names a version is a comment');
   const item = (n) => `- ${Array(n).fill('w').join(' ')}`;
   assert.equal(paragraphExcess([item(140), item(140), item(151)].join('\n')), 2, 'a top-level list item is its own paragraph - an index\'s next entry is not its last grown');
   assert.equal(paragraphExcess(`${item(99)}\n  ${Array(60).fill('w').join(' ')}`), 10, 'an item\'s indented lines are its own');

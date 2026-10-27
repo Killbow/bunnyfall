@@ -87,17 +87,21 @@ export function stringBreach(text) {
 }
 
 /** A source file's comment lines past COMMENT_LINES_MAX, summed over its blocks. AUDIT HORIZONTAL PT2: a block is a run
- *  of comment lines no code line breaks - a blank line ends none. */
+ *  of comment lines no code line breaks - a blank line ends none. PT6: a version log's entry (`// world271:`,
+ *  `// acct198:`) is a block of its own, as PT5's list item is - a bump's note moved into the log grows no block. */
+export const VERSION_LOG_LINE = /^\/\/\s*(?:world|acct)\d+:/;
 export function commentExcess(text) {
   let run = 0, inBlock = false, n = 0;
+  const end = () => { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; };
   for (const line of String(text).split('\n')) {
     const t = line.trim();
     if (!t && !inBlock) continue;
     let c = false;
     if (inBlock) { c = true; if (t.includes('*/')) inBlock = false; } else if (t.startsWith('//')) c = true;
     else if (t.startsWith('/*')) { c = true; if (!t.includes('*/')) inBlock = true; }
+    if (c && !inBlock && VERSION_LOG_LINE.test(t)) { end(); continue; }
     if (c) run++;
-    else { n += Math.max(0, run - COMMENT_LINES_MAX); run = 0; }
+    else end();
   }
   return n + Math.max(0, run - COMMENT_LINES_MAX);
 }
