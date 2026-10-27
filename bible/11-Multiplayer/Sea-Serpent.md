@@ -565,7 +565,7 @@ After the kill the bar holds a moment and fades.
   card's source and the embers' tier) and the AUDIT 625 records of `tools/mutants/audit625.json`, all dead.
 - SERPENT3's: `test/net/serpent/serpent3.test.js` (12 - section 15) and `tools/mutants/serpent3.json` (46), all dead; five records of
   `serpent1.json` and `serpent1_audit.json` re-aimed by content (the stray's once is the resume's now).
-- SERPENT4's: `test/net/serpent/serpent4.test.js` (9 - section 16) and `tools/mutants/serpent4.json` (36), all dead; seventeen records
+- SERPENT4's: `test/net/serpent/serpent4.test.js` (9 - section 16) and `tools/mutants/serpent4.json` (36, 32 since HULL-PASS retired the four bumper records), all dead; seventeen records
   of `sailfree.json`, `serpent1.json`, `serpent1_audit.json`, `serpent2.json`, `serpent3.json` and `soc1.json` re-aimed by
   content (the storm's three records the dive's and the hunt's now, and the relay's version world193).
 
@@ -829,7 +829,8 @@ What each came to, in the code:
   into each other ruining their shots"; `01-Overview/bugs/Field-Bugs-2026-10-26b.md`):** another player's hull meets my
   helm only inside a PvP zone (`scenes/comeSailAway/peerHulls.js`), and the serpent's waters are never one - so in its
   fight the ships pass through each other, and the bumpers, which pushed only there, are gone with `withBumpers` and
-  `bumperDrift`.
+  `bumperDrift`. A hull let through mine passes the deck I stand on too, so a ship sailed through the fight's crowd
+  never shoves a hand off the deck it fights from (AUDIT FB1026b D1, `peerHulls.js` hullsStood).
 - **"Getting nothing from it if your not near the snake when it dies."** Where she was at the kill never counted (the
   hub hands a far earner her receipt - AUDIT SERPENT S5); the bars did. **A part dealt earns** (`SERPENT_PART_SHARE` 2.5%
   of her share - several volleys landed, never one: a stander's hoard), **a dealer's at `SERPENT_RECEIPT_SHARE` 6%** (it
@@ -839,8 +840,8 @@ What each came to, in the code:
   it admitted her at), and the hub, which keeps the parties, mints a stander's receipt for each whose party - as it
   stands now - holds a dealer's receipt of this kill (`server/src/index.js` `_serpentKinShare`), kept and handed as the
   cell's own are. A party with no dealer shares nothing, and one with no party nothing.
-- **"It was super laggy."** Not reproduced in Node, and nothing here measured a frame: the bumpers stand in for the lag
-  the players saw between hulls, and its girth for the lag between a ball and its hide. A frame of the fight was never
+- **"It was super laggy."** Not reproduced in Node, and nothing here measured a frame: the bumpers stood in for the lag
+  the players saw between hulls (until HULL-PASS let the ships pass through each other there and retired them), and its girth for the lag between a ball and its hide. A frame of the fight was never
   profiled on a live relay - the next look, not this slice's.
 
 THE FOUR HOSTS RULE: `scenes/world.js` wires the gale (Come Sail Away's `gale` beside its `drift`), the hand's shaft
@@ -849,7 +850,7 @@ THE FOUR HOSTS RULE: `scenes/world.js` wires the gale (Come Sail Away's `gale` b
 missiles ask seams they are not handed, and answer as before.
 
 **The relay:** `world193` (section 11). **Pins:** `test/net/serpent/serpent4.test.js` (9) and the SERPENT1, AUDIT SERPENT, SERPENT2,
-SERPENT3 and AUDIT SHIPS pins its laws moved; `tools/mutants/serpent4.json` (36, all dead).
+SERPENT3 and AUDIT SHIPS pins its laws moved; `tools/mutants/serpent4.json` (36, all dead; 32 since HULL-PASS retired the four bumper records).
 
 ## 17. The Old Coil's rewards - the Sunken Sovereign, Coilbreaker and The Maelstrom (SERPENT5, 2026-10-15)
 

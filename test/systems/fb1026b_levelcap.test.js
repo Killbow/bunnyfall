@@ -1,12 +1,19 @@
 // LEVEL-45 (2026-10-26, the owner: "Also bring the level cap to 45"; bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md):
 // the character's level stops at 45, on Daggerfall's sum and on the virtue bar alike, and every readout says so.
+// AUDIT FB1026b (C1, C2, C4, C5, E3): a level latched before the cap is let go at it - the load, the crossing online,
+// both checks, the sheet's door and its rollout - and the windows are driven, not just the law.
 // Mutants: tools/mutants/fb1026b_levelcap.json.
 import '../modsOff.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter } from '../../src/systems/chargen.js';
 import { SKILLS, levelUpSkillSum } from '../../src/systems/skills.js';
-import { LEVEL_CAP, atLevelCap } from '../../src/systems/levelCap.js';
+import { LEVEL_CAP, atLevelCap, releaseCapLatch } from '../../src/systems/levelCap.js';
+import { snapshotPlayer, restorePlayer } from '../../src/systems/save/save.js';
+import { crossLeveling } from '../../src/systems/realmCustoms.js';
+import { createCharSheetWindow, levelUpScreenFor } from '../../src/ui/charSheetDoor.js';
+import { CharSheet } from '../../src/ui/charsheet.js';
+import { VirtueLevelUpScreen } from '../../src/ui/virtueLevelUp.js';
 import { checkForLevelUp, applyLevelUp, raiseSkills, calculatePlayerLevel } from '../../src/systems/advancement.js';
 import { initVirtueLeveling, LEVELING_VIRTUE, LEVELUP_TOTAL, checkForVirtueLevelUp, commitVirtueLevelUp } from '../../src/systems/oblivionLeveling.js';
 import { masterSkill } from '../../src/systems/masterSkills.js';
@@ -82,4 +89,77 @@ test('LEVEL-45 THE READOUTS: the Level box and the level-up bar read whole at th
   p.level = 44;
   assert.notEqual(levelProgressPercent(p), 100);
   assert.equal(levelProgress(p, null).label, 'Skill progress to next level');
+});
+
+const statSum = (e) => Object.values(e.stats).reduce((a, b) => a + b, 0);
+/** An offline Oblivion-bar character at `level`, its save from before the cap owing the next (the old check latched it). */
+const latchedVirtue = (level = 50) => { const e = made(); initVirtueLeveling(e, LEVELING_VIRTUE); e.level = level; e.levelProgress = LEVELUP_TOTAL; e.readyToLevelUp = true; e.pendingLevel = level + 1; return e; };
+
+test('LEVEL-45 A LEVEL LATCHED PAST THE CAP IS LET GO (AUDIT FB1026b C1): the load lets it go, F5 opens the sheet and never a level-up window that cannot close, and the virtue screen\'s Ascend closes it if one is open; the Oghma Infinium\'s latch is kept (mutants: the load\'s release; the door\'s; the rollout door\'s; both checks\'; the confirm\'s backstop; the book\'s latch let go)', () => {
+  // the load: a save that owes level 51
+  const saved = JSON.parse(JSON.stringify(snapshotPlayer(latchedVirtue())));
+  assert.equal(saved.readyToLevelUp, true, 'the save carries the latch');
+  const back = made();
+  restorePlayer(back, saved);
+  assert.deepEqual([back.level, back.readyToLevelUp, back.pendingLevel], [50, false, null], 'let go at the load');
+  // the door, the latch set some other way (a page that loaded before this law): F5 opens the ordinary sheet
+  const e = latchedVirtue();
+  const w = createCharSheetWindow({ entity: e });
+  assert.ok(w instanceof CharSheet, `F5 opens the sheet (${w?.constructor?.name})`);
+  assert.equal(e.readyToLevelUp, false);
+  assert.equal(levelUpScreenFor(latchedVirtue()), null, 'the Growth tab\'s and the enhanced face\'s door: nothing to roll out');
+  // both checks let it go too
+  const cv = latchedVirtue(45);
+  assert.equal(checkForVirtueLevelUp(cv), false);
+  assert.equal(cv.readyToLevelUp, false, 'the virtue check');
+  const cc = made();
+  cc.level = 45; cc.readyToLevelUp = true; cc.pendingLevel = 46;
+  assert.equal(checkForLevelUp(cc), false);
+  assert.deepEqual([cc.readyToLevelUp, cc.pendingLevel], [false, null], 'the sum\'s check');
+  // a virtue screen already open (built before the latch was let go): its Ascend closes it
+  const v = latchedVirtue();
+  const screen = new VirtueLevelUpScreen(v);
+  for (let n = 0; n < 200 && screen.purse > 0; n++) for (const k of STAT_KEYS_ORDER) if (screen.purse > 0) screen.raise(k);
+  assert.equal(screen.confirm(), false, 'no level to commit');
+  assert.equal(screen.done, true, 'and the window closes');
+  assert.equal(v.level, 50);
+  // the book: thirty points and no level, at the cap too
+  const book = made();
+  book.level = 45; book.readyToLevelUp = true; book.oghmaLevelUp = true;
+  assert.equal(releaseCapLatch(book), false);
+  assert.equal(checkForLevelUp(book), false);
+  assert.equal(book.readyToLevelUp, true, 'the book\'s latch stands');
+});
+
+test('LEVEL-45 THE CLASSIC SHEET HANDS OUT NO POOL AT THE CAP, AND A LEVEL OWED OFFLINE CROSSES AS NONE (AUDIT FB1026b C2): the rollout never mounts for a level latched past the cap, and an Oblivion character at the cap brought online owes nothing (mutants: the rollout unguarded; the crossing\'s release)', () => {
+  const e = made();
+  e.level = 45; e.readyToLevelUp = true; e.pendingLevel = 46; e.pendingBonusPool = 6;
+  const before = statSum(e);
+  const sheet = new CharSheet(e, {}, seq(0.5));
+  assert.equal(sheet.leveling, false, 'no rollout');
+  for (let i = 0; i < 10; i++) sheet.input('plus');
+  sheet.input('Escape');
+  assert.deepEqual([statSum(e), e.level, e.readyToLevelUp], [before, 45, false], 'no free points, no level');
+  // the Bring online door: an offline Oblivion character at 50 with a level owed
+  const snap = JSON.parse(JSON.stringify(snapshotPlayer(latchedVirtue())));
+  assert.equal(crossLeveling(snap), true);
+  assert.equal(snap.readyToLevelUp, false, 'no level owed online');
+  const anchored = calculatePlayerLevel(snap.startingLevelUpSkillSum, snap.currentLevelUpSkillSum);
+  assert.equal(anchored, 50, `anchored at the level it has (${anchored}), never the one past it`);
+});
+
+test('LEVEL-45 PAST THE CAP (AUDIT FB1026b C5): a character kept above 45 owes no level on either lane, and its Level box says the cap as the cap (mutants: the cap read as one level; the box\'s cap text dropped)', () => {
+  const v = made();
+  initVirtueLeveling(v, LEVELING_VIRTUE);
+  v.level = 46; v.levelProgress = LEVELUP_TOTAL;
+  assert.equal(checkForVirtueLevelUp(v), false, 'past the cap, the bar full: nothing owed');
+  const c = made();
+  c.level = 50; c.currentLevelUpSkillSum = c.startingLevelUpSkillSum + 2000;
+  assert.equal(checkForLevelUp(c), false);
+  const box = (e) => { const s = new CharSheet(e, {}, seq(0.5)); s._showLevel(); return s.child.lines.join(' '); };
+  assert.equal(box(c), 'The highest level is 45: no more levels are gained.');
+  c.level = 45;
+  assert.equal(box(c), 'The highest level is 45: no more levels are gained.');
+  c.level = 44;
+  assert.match(box(c), /^Progress made to the next level: \d+%$/);
 });

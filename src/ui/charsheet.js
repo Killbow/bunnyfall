@@ -37,7 +37,7 @@ import { SKILLS, SKILL_NAMES, skillValue, skillValueText, getSkillRecentlyIncrea
 import { applyLevelUp, bonusPoolFor, LEVELUP_SKILL_SUM_PER_LEVEL } from '../systems/advancement.js';
 import { refreshOnlineLayer } from '../systems/renownLayer.js';   // AUDIT LEVEL-EVEN L2-2: the rollout's points reach the online floor
 import { usesVirtueLeveling, levelBarProgress, LEVELUP_TOTAL } from '../systems/oblivionLeveling.js';   // ORL1: whose law levels this character
-import { LEVEL_CAP, atLevelCap } from '../systems/levelCap.js';   // LEVEL-45: the Level box at the cap
+import { LEVEL_CAP, atLevelCap, releaseCapLatch } from '../systems/levelCap.js';   // LEVEL-45: the Level box at the cap
 import { ActionTextBox } from './actionText.js';   // the mustDistributeBonusPoints refusal, ClickAnywhereToClose
 import { OGHMA_BONUS_POOL } from '../systems/artifactEffects.js';   // AUDIT 39: the sheet's oghmaBonusPool (:44)
 import { drawText, measureText } from './text.js';
@@ -416,6 +416,7 @@ export class CharSheet {
    *  PlayerEntity.Stats at CLOSE (:448), not at mount. */
   _mountStatsRollout(rolls) {
     const e = this.entity;
+    releaseCapLatch(e);   // LEVEL-45 (AUDIT FB1026b C2): no pool handed out with no level to go with it
     if (!e?.readyToLevelUp) return;
     // ORL1: ...and the sheet does NOT level a character who levels by
     // the mod's law. ui/charSheetDoor.js hands that character
@@ -501,7 +502,7 @@ export class CharSheet {
   _showLevel() {
     audio.playOneShot(SOUND.ButtonClick, 1);
     // LEVEL-45 (systems/levelCap.js): at the cap there is no next level to measure - the box says the cap
-    this.child = new ActionTextBox([atLevelCap(this.entity) ? t('charsheet.levelCap', 'You have reached the highest level, {level, number}.', { level: LEVEL_CAP })
+    this.child = new ActionTextBox([atLevelCap(this.entity) ? t('charsheet.levelCap', 'The highest level is {level, number}: no more levels are gained.', { level: LEVEL_CAP })
       : formatText(localizedText('levelProgress', 'Progress made to the next level: {0}%'), levelProgressPercent(this.entity))]);
   }
 

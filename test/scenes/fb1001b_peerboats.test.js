@@ -28,10 +28,11 @@ import { createComeSailAwayAboard, localOf } from '../../src/scenes/comeSailAway
 import { Boat, HULL_NAMES } from '../../src/systems/comeSailAway/comeSailAwayBoat.js';
 import { boardPlaceOf } from '../../src/systems/comeSailAway/comeSailAway.js';
 import { colliderPoses, invertAffine, boxColliderTriangles, raycastColliders, BUILTIN_COLLIDER_MESHES } from '../../src/world/prefabColliders.js';
-import { quatAngleAxis } from '../../src/world/quat.js';
+import { quatAngleAxis, quatRotate } from '../../src/world/quat.js';
+import { meshLocalBounds, colliderBounds } from '../../src/systems/comeSailAway/comeSailAwayBoat.js';
 import { Collider } from '../../src/player/collider.js';
 import { PlayerMotor, FIXED_DT, CAPSULE_HEIGHT } from '../../src/player/motor.js';
-import { peerHullSweep, peerHullsMeet } from '../../src/scenes/comeSailAway/peerHulls.js';   // HULL-PASS
+import { peerHullSweep, peerHullsMeet, hullsStood, resetHullLatch, hullPassesMyDeck } from '../../src/scenes/comeSailAway/peerHulls.js';   // HULL-PASS
 import { setWildHere } from '../../src/systems/wild/wildZone.js';
 
 const src = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
@@ -78,12 +79,12 @@ function liftWorld(s) {
   const body = `
     let { colliderPoses, invertAffine, boxColliderTriangles, csaModeCollider, csaAboard, csaColliderBoats, csaColliderMesh, _csaBoatIds, _csaBoatSerial,
           csa, csaPeers, csaOn, online, walkMode, playerSpawned, _teleporting, _traveling, modes, playerEntity, player, cam, CAPSULE_HEIGHT, _csaMovedPlayer,
-          surfaceAt, csaPixelAt, state, deepWaters } = s;
+          surfaceAt, csaPixelAt, state, deepWaters, hullsStood, csaRuntime, hullPassesMyDeck } = s;
     ${cutLine(WORLD, '  const _csaBuckets = new Map();')}${cutLine(WORLD, '  const csaBoatId = (boat) =>')}
     ${cut(WORLD, '  const csaShapeOf = (c) =>', ');\n')}${cutLine(WORLD, '  const CSA_RIGID_EPS =')}${cut(WORLD, '  function csaCarry(b, m) {')}
     ${cut(WORLD, '  function csaSyncColliders() {')}${cutLine(WORLD, '  const _csaSlab = [0, 0, 0]')}
     ${cut(WORLD, '  function csaSphereCastAll(')}
-    ${cutLine(WORLD, '  let _csaPeersPosed = false;')}${cutLine(WORLD, '  const deckMayCarry = ')}${cutLine(WORLD, '  const deckGround = ')}${cutLine(WORLD, '  const deckCarry = ')}${cut(WORLD, '  function csaPeersFrame(dt) {')}
+    ${cutLine(WORLD, '  const csaBoatUnderMe = () =>')}${cutLine(WORLD, '  let _csaPeersPosed = false;')}${cutLine(WORLD, '  const deckMayCarry = ')}${cutLine(WORLD, '  const deckGround = ')}${cutLine(WORLD, '  const deckCarry = ')}${cut(WORLD, '  function csaPeersFrame(dt) {')}
     return { sync: csaSyncColliders, sweep: csaSphereCastAll, peersFrame: csaPeersFrame, rearm: () => { _csaPeersPosed = false; }, buckets: _csaBuckets, boatId: csaBoatId };`;
   // eslint-disable-next-line no-new-func
   return new Function('s', body)(s);
@@ -110,19 +111,22 @@ async function rig({ hull = SMALL_SHIP, mine = true, modes = { mode: 'exterior' 
   const colliders = { exterior: new Collider(() => FLOOR), interior: new Collider(() => -Infinity), dungeon: new Collider(() => -Infinity) };
   const player = new PlayerMotor(colliders.exterior);
   const cam = { yaw: 0, pitch: 0 };
+  const helm = { boat: null };
+  resetHullLatch();
   const w = liftWorld({
     colliderPoses, invertAffine, boxColliderTriangles, csaModeCollider: () => colliders[modes?.mode ?? 'exterior'], csaAboard: aboard,
     csaColliderBoats: () => pool.boats, csaColliderMesh: geometry, _csaBoatIds: new WeakMap(), _csaBoatSerial: 0,
     csa: pool, csaPeers: peers, csaOn: () => true, online: { id: 'me' }, walkMode: true, playerSpawned: true, _teleporting: false, _traveling: false,
     modes, playerEntity: { health: 100 }, player, cam, CAPSULE_HEIGHT, _csaMovedPlayer: false,
     surfaceAt: () => -Infinity, csaPixelAt: () => null, state: null, deepWaters: null,   // the sweep's ground: none (a sea of the anchorage's own)
+    hullsStood, hullPassesMyDeck, csaRuntime: { isSailing: () => !!helm.boat, state: { get CurrentBoat() { return helm.boat; } } },   // AUDIT FB1026b D1: the deck my body stands on - my helm's (`helm.boat`), hers aboard, the one under my feet
   });
   const frame = (input = IDLE, yaw = 0) => { player.update(FIXED_DT, input, yaw); w.sync(); w.peersFrame(FIXED_DT); w.rearm(); };
   /** A boat's buckets' key head (csaSyncColliders' `csaBoat:<id>:`). */
   const keyOf = (boat) => `csaBoat:${w.boatId(boat)}:`;
   /** Whether any bucket of `boat` stands in a collider. */
   const stands = (col, boat) => [...col._buckets.keys()].some((k) => k.startsWith(keyOf(boat)));
-  return { pool, peers, aboard, own, hers, colliders, player, cam, w, frame, keyOf, stands, modes, geometry };
+  return { pool, peers, aboard, own, hers, colliders, player, cam, w, frame, keyOf, stands, modes, geometry, helm };
 }
 /** A boat's root pose, as the aboard machine reads it. */
 const poseOf = (boat) => ({ position: [...boat.GameObject.position], rotation: [...boat.GameObject.rotation] });
@@ -254,6 +258,113 @@ test('FB1001b PEER-DECK: THE ABOARD DOOR - a body standing on her own colliders 
   me.feet = [...deck];
   assert.ok(r.aboard.frame(view()) === r.hers, 'standing on her own colliders: aboard her');
   assert.deepEqual([r.aboard.aboard?.owner, r.aboard.aboard?.slot], ['ann', 0], 'whose, and which of her boats');
+});
+
+/** Ann's word, sailing her `hull` along flat `dir` at `speed` from `from` (x, z), `t` seconds on. */
+const sailing = (hull, from, dir, speed, t) => annWord(hull, [from[0] + dir[0] * speed * t, SEA, from[1] + dir[1] * speed * t], undefined, [dir[0] * speed, dir[1] * speed, 0]);
+/** A body set down on `boat`'s deck at her first ladder's place, settled. */
+function standOn(r, boat) {
+  const at = boardPlaceOf(boat.BoardTriggers[0]);
+  const deck = raycastColliders(boat.GameObject, [at.position[0], at.position[1] + 1, at.position[2]], [0, -1, 0], 6, { triggers: false, geometry: r.geometry });
+  r.frame();
+  r.player.spawn(deck.point[0], deck.point[1] + 0.02, deck.point[2]);
+  for (let i = 0; i < 30; i++) r.frame();
+  return localOf(poseOf(boat), r.player.pos);
+}
+
+test('HULL-PASS WHAT PASSES MY HELM PASSES MY DECK (AUDIT FB1026b D1): outside a PvP zone a ship sailed through the deck I stand on - hers through my moored one, or hers carrying me through mine - neither shoves me off my place nor carries me away aboard another; and inside a zone her hull stands again (mutants: the deck\'s hulls left standing; the deck under my feet unread; the deck kept through no jump)', async () => {
+  setWildHere(false);
+  for (const along of [[1, 0], [0, 1]]) {
+    // A: on my own moored deck, Ann sails her Small Ship through it at 4 m/s
+    const r = await rig({ hull: SMALL_SHIP });
+    const place = standOn(r, r.own);
+    assert.equal(r.aboard.aboard, null, 'on my own deck');
+    const me = r.own.GameObject.position, from = [me[0] - along[0] * 40, me[2] - along[1] * 40];
+    r.peers.applyOwner('ann', annWord(SMALL_SHIP, [from[0], SEA, from[1]]), (p) => p, 0);
+    for (let i = 0; i < 10; i++) r.frame();
+    let worst = 0, carried = false, t = 0;
+    for (let i = 0; i < Math.ceil(20 / FIXED_DT); i++) {
+      if (i % 12 === 0) r.peers.applyOwner('ann', sailing(SMALL_SHIP, from, along, 4, t), (p) => p, 1000 + t * 1000);
+      r.frame(i % 90 === 45 ? { forward: 0, strafe: 0, jump: true } : IDLE); t += FIXED_DT;   // a jump every second and a half: the deck kept while my feet are off it
+      const now = localOf(poseOf(r.own), r.player.pos);
+      worst = Math.max(worst, Math.hypot(now[0] - place[0], now[2] - place[2]));
+      carried ||= r.aboard.aboard?.owner === 'ann';
+    }
+    assert.ok(worst < 0.5, `A ${along}: my place on my deck held, jumping (${worst.toFixed(2)} m)`);
+    assert.ok(Math.abs(localOf(poseOf(r.own), r.player.pos)[1] - place[1]) < 0.3, 'and I stand on my deck at the end');
+    assert.equal(carried, false, `A ${along}: never carried off aboard hers`);
+    // B: aboard Ann's, she sails me through my own moored ship
+    const q = await rig({ hull: SMALL_SHIP });
+    const onHers = standOn(q, q.hers);
+    assert.equal(q.aboard.aboard?.owner, 'ann');
+    q.own.GameObject.position = along[0] ? [MINE_X, SEA, 0] : [0, SEA, 60];
+    let worstB = 0, lost = false; t = 0;
+    for (let i = 0; i < Math.ceil((along[0] ? MINE_X + 40 : 100) / 4 / FIXED_DT); i++) {
+      if (i % 12 === 0) q.peers.applyOwner('ann', sailing(SMALL_SHIP, [0, 0], along, 4, t), (p) => p, 1000 + t * 1000);
+      q.frame(); t += FIXED_DT;
+      const now = localOf(poseOf(q.hers), q.player.pos);
+      worstB = Math.max(worstB, Math.hypot(now[0] - onHers[0], now[1] - onHers[1], now[2] - onHers[2]));
+      lost ||= q.aboard.aboard?.owner !== 'ann';
+    }
+    assert.ok(worstB < 0.5, `B ${along}: my place on her deck held through my own ship (${worstB.toFixed(2)} m)`);
+    assert.equal(lost, false, `B ${along}: aboard her all the way`);
+  }
+  // and inside a zone her hull stands in my collider over my deck, as a rock
+  const z = await rig({ hull: SMALL_SHIP });
+  standOn(z, z.own);
+  z.peers.applyOwner('ann', annWord(SMALL_SHIP, [MINE_X + 3, SEA, 0]), (p) => p, 0);
+  for (let i = 0; i < 4; i++) z.frame();
+  assert.equal(z.stands(z.colliders.exterior, z.hers), false, 'outside: through my deck, out of my collider');
+  setWildHere(true, 1, 'ether');
+  resetHullLatch();   // a deck first stood on inside the zone - nothing passing to latch
+  for (let i = 0; i < 4; i++) z.frame();
+  assert.equal(z.stands(z.colliders.exterior, z.hers), true, 'inside a zone: she stands');
+  setWildHere(false);
+});
+
+const CSA = readFileSync(new URL('../../src/systems/comeSailAway/comeSailAway.js', import.meta.url), 'utf8');
+/** Come Sail Away's own CheckCollision, CanTurnLeft and CanTurnRight, lifted from source over `deps` and `state`. */
+function liftHelm(deps, state) {
+  const helpers = CSA.slice(CSA.indexOf('const K_EPSILON = '), CSA.indexOf('const vCross')).replace(/export function/g, 'function').replace(/export const/g, 'const');
+  const body = `
+    const f = Math.fround; const V_UP = [0, 1, 0];
+    ${helpers}
+    const conj = (q) => [-q[0], -q[1], -q[2], q[3]];
+    const inverseTransformDirection = (node, v) => quatRotate(conj(node.rotation), v).map(f);
+    const log = () => {}; const ResetTimeScale = () => {};
+    ${cut(CSA, '  function combinedCollisionDirection() {')}
+    ${cut(CSA, '  function CanTurnLeft(boat) {')}
+    ${cut(CSA, '  function CanTurnRight(boat) {')}
+    ${cut(CSA, '  function CheckCollision(boat) {')}
+    return { CheckCollision, CanTurnLeft, CanTurnRight };`;
+  // eslint-disable-next-line no-new-func
+  return new Function('deps', 'state', 'meshLocalBounds', 'colliderBounds', 'quatRotate', body)(deps, state, meshLocalBounds, colliderBounds, quatRotate);
+}
+
+test('HULL-PASS THE ZONE TURNING DOES NOT JAM THEM (AUDIT FB1026b D2): my ship at my helm inside hers when hulls start to meet goes on passing through her - no contact, both turns free - until she is clear of me, and a ship that comes into mine after meets it as a rock (mutants: the latch dropped; the latch never let go)', async () => {
+  setWildHere(false);
+  const r = await rig({ hull: SMALL_SHIP, mine: true });
+  r.own.GameObject.position = [3, SEA, 0];   // mine 3 m abeam inside hers, at the origin
+  r.helm.boat = r.own;
+  for (let i = 0; i < 3; i++) r.frame();
+  const state = { collisionDirections: [], CollisionVector: [0, 0, 0], timeScaleIndex: 0 };
+  const csa = liftHelm({ pool: r.pool, sphereCastAll: peerHullSweep(r.w.sweep, r.pool) }, state);
+  const look = () => { csa.CheckCollision(r.own); return { contacts: state.collisionDirections.length, left: csa.CanTurnLeft(r.own), right: csa.CanTurnRight(r.own) }; };
+  assert.deepEqual(look(), { contacts: 0, left: true, right: true }, 'outside a zone: she passes');
+  setWildHere(true, 1, 'ether');
+  for (let i = 0; i < 2; i++) r.frame();
+  assert.deepEqual(look(), { contacts: 0, left: true, right: true }, 'the zone turned: already through me, she goes on passing');
+  assert.equal(r.stands(r.colliders.exterior, r.hers), false, 'and my collider lets her pass too');
+  // she sails clear, then back into me: a rock now
+  r.peers.applyOwner('ann', annWord(SMALL_SHIP, [-60, SEA, 0]), (p) => p, 2000);
+  for (let i = 0; i < 40; i++) r.frame();
+  look();
+  r.peers.applyOwner('ann', annWord(SMALL_SHIP, [0, SEA, 0]), (p) => p, 4000);
+  for (let i = 0; i < 40; i++) r.frame();
+  const met = look();
+  assert.ok(met.contacts > 0, `clear of me and back: she meets my helm (${met.contacts} contacts)`);
+  assert.equal(r.stands(r.colliders.exterior, r.hers), true, 'and stands in my collider');
+  setWildHere(false);
 });
 
 test('FB1001b FOUR-HOSTS: HER BOAT STANDS ON THE STREET ALONE - the world host stands her in the street\'s collider (and with no mode named, the street is the mode, as csaModeCollider reads it); a building\'s and a dungeon\'s frames stand none of hers (mine stand in the mode\'s, CSA-D\'s law), and back on the street she stands again; the other three hosts name no peer\'s boat', async () => {

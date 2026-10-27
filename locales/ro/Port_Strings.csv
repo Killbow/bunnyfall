@@ -1550,7 +1550,7 @@ chapters.standing.paid,"{name}: ai primit {paid} din ce ți se datora (acum {now
 chapters.standing.paidOwed,"{name}: ai primit {paid} din ce ți se datora (acum {now}, încă {owed} pe drum)"
 chargen.class.skills.major,"{m1}, {m2} și {m3}."
 chargen.class.skills.primary,"{p1}, {p2}, {p3},"
-charsheet.levelCap,"Ai atins nivelul maxim, {level, number}."
+charsheet.levelCap,"Nivelul maxim este {level, number}: nu se mai câștigă niveluri."
 chat.help.breach,"/breach - Breșa de elită: răspunde la chemarea companiei tale sau deschide fereastra de început (/breach help îi enumeră comenzile)"
 chronicle.quests.abandon,"Abandonează"
 chronicle.quests.abandonArmed,"Dă clic din nou"

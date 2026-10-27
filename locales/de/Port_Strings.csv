@@ -1550,7 +1550,7 @@ chapters.standing.paid,"{name}: {paid} vom Geschuldeten eingegangen (jetzt {now}
 chapters.standing.paidOwed,"{name}: {paid} vom Geschuldeten eingegangen (jetzt {now}, noch {owed} ausstehend)"
 chargen.class.skills.major,"{m1}, {m2} und {m3}."
 chargen.class.skills.primary,"{p1}, {p2}, {p3},"
-charsheet.levelCap,"Du hast die höchste Stufe erreicht: {level, number}."
+charsheet.levelCap,"Die höchste Stufe ist {level, number}: Weitere Stufen gibt es nicht."
 chat.help.breach,"/breach - der Elite-Riss: antworte auf den Ruf deiner Gefährten oder öffne das Startfenster (/breach help listet seine Befehle auf)"
 chronicle.quests.abandon,"Aufgeben"
 chronicle.quests.abandonArmed,"Erneut klicken"

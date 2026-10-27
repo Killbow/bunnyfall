@@ -149,7 +149,8 @@ test('CRAFT-PROCS: the record says the law - the service stamps the mint version
   const lined = { 3: [], 4: [] };
   let n = 0;
   for (let b = 0x60; b < 0x100; b += 2) {   // PIN MOVED (AFFIX-LINES): every second byte - version 2's roll moved the stream, and the fourth bytes' Masterworks drew no line
-    const res = await steered(b, () => s.call('/v1/prof/craft', { character: mac.character, recipe: r.id, clean: false, name: 'Silverthorn', rid: `craftprocs-${String(++n).padStart(6, '0')}` }, mac.secret));
+    // PIN MOVED (AUDIT FB1026b C3): the craft names the version its client mints, as net/accountClient.js craft does
+    const res = await steered(b, () => s.call('/v1/prof/craft', { character: mac.character, recipe: r.id, clean: false, name: 'Silverthorn', rid: `craftprocs-${String(++n).padStart(6, '0')}`, mint: MINT_VERSION }, mac.secret));
     assert.equal(res.status, 200, JSON.stringify(res.body));
     const [{ record, provenance }] = res.body.pieces;
     assert.equal(readProductRecord(record).v, MINT_VERSION, 'stamped at the craft');

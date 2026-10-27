@@ -9,7 +9,7 @@
 //
 //  - PAY A COMPLIMENT: anyone courtable. Regard +2 (relations.js EVENTS.compliment); a courtship's affection +3, +1
 //    more in a tone they take kindly. In a tone they take ill it falls flat - nothing gained, and the tone's own cost
-//    stands (townTalk.js _toneHeard).
+//    stands and is said with it (the row hears the tone itself: townTalk.js `hearsTone`, AUDIT FB1026b B3).
 //  - GIVE A GIFT: anyone courtable, GIFT_GOLD from the purse (court.js deductGold - coin, then letters of credit).
 //    Regard +8 (EVENTS.gift, which LW1 named and no door ever paid); affection +6.
 //  - HUG: from one they count a FRIEND (FRIEND_AT), one courting them, or their spouse. Regard +3; affection +5.
@@ -18,7 +18,8 @@
 //
 // A hug or a kiss not yet welcome is refused kindly and SAYS what it waits on - nothing lost, nothing counted. A spouse
 // takes every deed (regard alone: a marriage has no affection to fill). With Courtship's own day, the deeds bring a
-// friend in about three days of play where the talk alone took ten, and a courtship to Marriage in about four.
+// friend in about three days of play where the talk alone took twelve, and a courtship to Marriage in about four where
+// Courtship alone took eight to ten (AUDIT FB1026b B6: measured over the real relations and courtGain).
 //
 // PURE: the law and the words. The host (scenes/legacyHost.js topicRows) offers the rows, notes the regard on the
 // Living World's relations, takes the gold and keeps the affection in the house's record (marriage.js warmCourtship).
@@ -92,8 +93,9 @@ export function deedAffection(kind, taste = 0) {
 /** The regard a deed adds (relations.js EVENTS), 0 for a compliment taken ill. @param {string} kind @param {number} taste */
 export const deedRegard = (kind, taste = 0) => (kind === 'compliment' && taste < 0 ? 0 : EVENTS[/** @type {keyof typeof EVENTS} */ (kind)] ?? 0);
 
-/** What the deed moved, said after the answer: "(Regard +2, now 14. Courtship 41 of 100.)" - the courtship only while one
- *  is begun and not yet full. @param {{ regard: number, gained: number, affection?: number | null, warmed?: number }} o */
+/** What the deed moved, said after the answer: "(Regard +2, now 14. Courtship +4, now 41 of 100.)" - `gained` the whole
+ *  answer's, the tone's with it; the courtship while one is begun and not yet betrothed (at the full mark it says so: a
+ *  proposal waits). @param {{ regard: number, gained: number, affection?: number | null, warmed?: number }} o */
 export function deedTally({ regard, gained, affection = null, warmed = 0 }) {
   const r = Math.trunc(regard);
   const said = t('legacy.deed.tallyRegard', 'Regard {gained}, now {regard}.', { gained: `${gained >= 0 ? '+' : ''}${Math.trunc(gained)}`, regard: `${r > 0 ? '+' : ''}${r}` });

@@ -68,6 +68,8 @@ Hand-to-Hand nor Critical Strike is any weapon's own, so on a ring each was one 
 0.4% of its skill lines against a mind skill's 7%. Jewellery's kin is fifteen now (`lootRarity.js` JEWEL_KIN), each
 about one skill line in sixteen. A crafted piece re-mints from its record, so a record before MINT_V_JEWEL_KIN (3,
 `net/productRecord.js`) keeps the mind's thirteen (`skillKin`'s `fists` false) and a ring already made keeps its lines.
+A craft's record is stamped with the version its client mints, never past the service's (craftMintVersion; a client
+that names none, MINT_V_LINES - AUDIT FB1026b C3), so a ring is minted alike by its maker and by every other reader.
 
 A WEIGHTING, NEVER A FENCE: a language was a skill affix 9 times in 35; now about 1 in 30. A step with no free skill
 (a kind with a param never repeats one on a piece) gives way to the next, so the draw never comes back empty. The

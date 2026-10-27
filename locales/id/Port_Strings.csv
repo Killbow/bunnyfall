@@ -1550,7 +1550,7 @@ chapters.standing.paid,"{name}: {paid} dari yang terutang telah tiba (sekarang {
 chapters.standing.paidOwed,"{name}: {paid} dari yang terutang telah tiba (sekarang {now}, masih {owed} menyusul)"
 chargen.class.skills.major,"{m1}, {m2}, dan {m3}."
 chargen.class.skills.primary,"{p1}, {p2}, {p3},"
-charsheet.levelCap,"Kamu telah mencapai tingkat tertinggi, {level, number}."
+charsheet.levelCap,"Level tertinggi adalah {level, number}: tidak ada level lagi yang bisa didapat."
 chat.help.breach,"/breach - Celah Elit: jawab panggilan rombonganmu atau buka jendela awal (/breach help menampilkan perintahnya)"
 chronicle.quests.abandon,"Tinggalkan"
 chronicle.quests.abandonArmed,"Klik lagi"

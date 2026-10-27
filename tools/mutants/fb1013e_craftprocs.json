@@ -138,7 +138,7 @@
   {
     "name": "CRAFT-PROCS-the-service-stamps-nothing",
     "file": "server-account/src/professions.js",
-    "old": "u, f: hand, v: MINT_VERSION }",
+    "old": "u, f: hand, v: craftMintVersion(mint) }",
     "new": "u, f: hand }",
     "tests": [
       "test/systems/fb1013e_craftprocs.test.js"

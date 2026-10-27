@@ -40,7 +40,7 @@ Three facts, each in the code before this arc:
    Master Skills lifts DFU's 95 lock (`masterSkills.js` SOFTCAP3), so nothing stops a mage at 95 in the schools they did
    not master. The Mages Guild trains all six to 50 (`guildServices.js` trainingMax). Reaching 100 in all six is a
    matter of casting.
-2. **A mastered school bought one thing: its price.** Five masteries (2 primary, 2 major, 1 minor - SOFTCAP4) let a
+2. **A mastered school bought one thing: its price.** Five masteries (2 primary, 2 major, 1 minor - SOFTCAP4; six, 3/2/1, since MASTER-THREE) let a
    school climb past 100, and past 100 the climb priced the school's spells cheaper (SPELL-COST-PAST) and raised the
    foes (`skillSoftcap.js` combatEdge). Only Destruction's climb did anything else (BAL9b, its damage). Balance-Arc
    section 15 says it outright: *"a school's read in nothing but its price"*, and left the other five as a call of

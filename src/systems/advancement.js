@@ -30,7 +30,7 @@ import { hitPointsPerLevelUp, spendPoolLowest } from './chargen.js';
 import { ONLINE_BONUS_POOL } from './levelEven.js';   // LEVEL-EVEN: online, every level's pool is 5
 import { refreshOnlineLayer } from './renownLayer.js';   // LEVEL-EVEN: the online health floor read again over the level's new maximum
 import { isOnlinePage } from './online/onlineLane.js';
-import { LEVEL_CAP, atLevelCap } from './levelCap.js';   // LEVEL-45: the level stops at 45
+import { LEVEL_CAP, atLevelCap, releaseCapLatch } from './levelCap.js';   // LEVEL-45: the level stops at 45
 // ORL1: the ONE question this file asks the vendored mod - whose law
 // levels this character. Everything DFU below is untouched by the
 // answer; the two arms simply do not both run.
@@ -311,7 +311,8 @@ export const skillsReadyToImprove = (entity) => {
  *  Level++ against). pendingLevel is the port's display convenience
  *  for the U3 banner (DFU's sheet prints Level after the ++). */
 export function checkForLevelUp(entity) {
-  // LEVEL-45 (systems/levelCap.js): no level is owed past the cap, however far the sum climbs
+  // LEVEL-45 (systems/levelCap.js): no level is owed past the cap, however far the sum climbs - and one latched before it is let go
+  releaseCapLatch(entity);
   const calculated = Math.min(LEVEL_CAP, calculatePlayerLevel(entity.startingLevelUpSkillSum, entity.currentLevelUpSkillSum));
   const levelUp = entity.level < calculated;
   if (levelUp) {

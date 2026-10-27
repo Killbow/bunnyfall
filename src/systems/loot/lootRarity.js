@@ -687,7 +687,8 @@ export const drawWeight = (id, item, held = []) => { const n = kindLines(id, ite
  *  weighting toward the group's own combat skills would be a tuning slice"): A SKILL AFFIX LEANS TO THE ITEM'S OWN
  *  SKILLS. A weapon's to the hand that swings it - half the time its own weapon skill, then the strike's kin (Critical
  *  Strike, Backstabbing, Dodging); a piece of armour's to the body (the seven ways of fighting and the five of moving);
- *  jewellery's to the mind (the six schools and the skills of talk and the shadows) - in all, 85 times in a hundred.
+ *  jewellery's to the mind (the six schools and the skills of talk and the shadows) and, JEWEL-KIN below, the bare hand's
+ *  two (Hand-to-Hand, Critical Strike) - in all, 85 times in a hundred.
  *  The rest of the time any skill at all, the languages among them (a skill affix was a language 9 times in 35; now
  *  about 1 in 30) - a weighting, never a fence: an amulet of tongues is still a find. */
 export const SKILL_OWN_SHARE = 0.5;

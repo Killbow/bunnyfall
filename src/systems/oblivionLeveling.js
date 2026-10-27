@@ -63,7 +63,7 @@
 import { modSetting } from './modSettings.js';
 import { STAT_KEYS_ORDER, hitPointsPerLevelUp } from './chargen.js';
 import { refreshOnlineLayer } from './renownLayer.js';   // LEVEL-EVEN (systems/levelEven.js)
-import { atLevelCap } from './levelCap.js';   // LEVEL-45: the level stops at 45 on this lane too
+import { atLevelCap, releaseCapLatch } from './levelCap.js';   // LEVEL-45: the level stops at 45 on this lane too
 
 /** The vendor key - the registry row, the Mods pane and the store. */
 export const ORL_VENDOR = 'oblivion-remaster-leveling';
@@ -241,7 +241,7 @@ export function checkForVirtueLevelUp(entity) {
   // still full afterwards, so the level it owes is offered on the next pass.
   // (ORL1's fix review.)
   if (entity.oghmaLevelUp) return false;
-  if (atLevelCap(entity)) return false;   // LEVEL-45 (systems/levelCap.js): the bar fills and holds, no level owed
+  if (atLevelCap(entity)) { releaseCapLatch(entity); return false; }   // LEVEL-45 (systems/levelCap.js): the bar fills and holds, no level owed - one latched before it let go
   if ((entity.levelProgress ?? 0) < LEVELUP_TOTAL) return false;
   entity.readyToLevelUp = true;
   entity.pendingLevel = entity.level + 1;

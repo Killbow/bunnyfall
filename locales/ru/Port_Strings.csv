@@ -1550,7 +1550,7 @@ chapters.standing.paid,"{name}: выплачено {paid} из причитав�
 chapters.standing.paidOwed,"{name}: выплачено {paid} из причитавшегося (теперь {now}, причитается ещё {owed})"
 chargen.class.skills.major,"{m1}, {m2} и {m3}."
 chargen.class.skills.primary,"{p1}, {p2}, {p3},"
-charsheet.levelCap,"Вы достигли наивысшего уровня – {level, number}."
+charsheet.levelCap,"Наивысший уровень – {level, number}: новых уровней больше не будет."
 chat.help.breach,"/breach — Элитный прорыв: ответить на зов своего отряда или открыть окно начала (/breach help — список команд)"
 chronicle.quests.abandon,"Бросить"
 chronicle.quests.abandonArmed,"Нажмите ещё раз"

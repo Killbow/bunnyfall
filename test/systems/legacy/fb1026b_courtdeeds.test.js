@@ -3,13 +3,18 @@
 // bible/01-Overview/bugs/Field-Bugs-2026-10-26b.md): a compliment, a gift, a hug and a kiss on the Tell me about page,
 // each once a day, each saying what it moved. Through the real host (scenes/legacyHost.js topicRows) over the real
 // relations (systems/livingWorld/regardClock.js characterRelations - the one construction point world.js uses).
-// Mutants: tools/mutants/fb1026b_courtdeeds.json.
+// AUDIT FB1026b (B1-B6, E4, E10): a reload through the real mod-save registry, the regard read as it stands, the tone
+// counted, and who is offered what. Mutants: tools/mutants/fb1026b_courtdeeds.json.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { court, wed, AFFECTION_MAX } from '../../../src/systems/legacy/marriage.js';
 import { FRIEND_AT, EVENTS, createRelations } from '../../../src/systems/livingWorld/relations.js';
+import { registerModSaveData, modSaveRecords, restoreModSaveRecords } from '../../../src/systems/modSaveData.js';
+import { familyGuide } from '../../../src/ui/familyPages.js';
+import { regardBadge } from '../../../src/systems/livingWorld/people.js';
 import { characterRelations, regardDayOf } from '../../../src/systems/livingWorld/regardClock.js';
-import { personOf, MODELS } from '../../../src/systems/legacy/family.js';
+import { personOf, MODELS, COURT_DEEDS } from '../../../src/systems/legacy/family.js';
 import { createLegacyHost } from '../../../src/scenes/legacyHost.js';
 import { DEEDS, GIFT_GOLD, KISS_AT, DEED_AFFECTION, deedsFor } from '../../../src/systems/legacy/courtDeeds.js';
 
@@ -17,10 +22,10 @@ const RES = Object.freeze({ id: 'L120.4', name: 'Aldo Marane', sex: 'male', race
 const DAY = 1440;
 
 /** The host over a made member, a purse of `gold`, and the Living World's relations on the member's own clock. */
-function world({ gold = 200 } = {}) {
+function world({ gold = 200, regards = true } = {}) {
   const store = new Map();
-  const storage = { get length() { return store.size; }, key: (i) => [...store.keys()][i] ?? null, getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
-  const w = { own: 10 * DAY, said: [] };
+  const w = { own: 10 * DAY, said: [], writes: 0 };
+  const storage = { get length() { return store.size; }, key: (i) => [...store.keys()][i] ?? null, getItem: (k) => store.get(k) ?? null, setItem: (k, v) => { w.writes++; store.set(k, String(v)); }, removeItem: (k) => store.delete(k) };
   w.e = {
     name: 'Ysolde Hlaalu', race: 'DarkElf', gender: 'female', faceIndex: 2, level: 4, chargenDone: true, characterId: 'c1', goldPieces: gold, items: [],
     stats: { Strength: 50, Intelligence: 60, Willpower: 50, Agility: 55, Endurance: 50, Personality: 70, Speed: 50, Luck: 50 },
@@ -33,14 +38,15 @@ function world({ gold = 200 } = {}) {
     here: () => ({ pixel: { x: 1, y: 1 }, region: 'Daggerfall', mode: 'exterior', loc: 'Ashbury', locationType: 0 }), town: () => null,
     nearestTown: () => ({ region: 'Daggerfall', loc: 'Ashbury' }), gold: () => w.e.goldPieces, say: (l) => w.said.push(l), boot: () => {}, search: () => '?world',
     loadCharacter: () => false, saveNow: () => true, inFight: () => false, rng: () => 0, livingWorld: () => true,
-    regards: () => w.rel, regardDay: () => w.rel.today(),
+    regards: () => (regards ? w.rel : null), regardDay: () => w.rel.today(),
   });
   w.host.found(MODELS.enduring);
   w.host.family.people = w.host.family.people.slice(0, 1);
   w.me = personOf(w.host.family, w.host.family.currentId);
   w.ctx = () => ({ regard: w.rel.regard(RES.id), personality: 70, etiquette: 40, townName: 'Ashbury' });
   w.rows = () => w.host.topicRows(RES, w.ctx());
-  w.deed = (kind, taste = 0) => w.rows().find((r) => r.topic === `deed:${kind}`).legacy.answer(1, taste);
+  w.deed = (kind, taste = 0, heard = null) => w.rows().find((r) => r.topic === `deed:${kind}`).legacy.answer(1, taste, heard);
+  w.court = (at = FRIEND_AT) => { w.rel.note(RES.id, 'talk', 0, at); court(w.me, RES, { day: 0, townName: 'Ashbury', personality: 70, etiquette: 40, taste: 0, roll: 0 }); return w.me.courting[RES.id]; };
   return w;
 }
 
@@ -119,4 +125,83 @@ test('COURT-DEEDS WHO IS OFFERED WHAT: a spouse every deed, a kiss welcome witho
   const other = { ...RES, id: 'L120.5', name: 'Bena Toll' };
   assert.deepEqual(deedsFor(w.host.family, w.me, other), ['compliment', 'gift', 'embrace']);
   assert.deepEqual(deedsFor(null, w.me, RES), []);
+});
+
+test('COURT-DEEDS A RELOAD HANDS NOTHING AGAIN (AUDIT FB1026b B1/E4): each deed\'s day rides the courtship it warmed and the house\'s record keeps it - a load that hands the regard, its days and the purse back never hands the affection again (mutants: a deed\'s day off the courtship; the day dropped at load; the warm unsaved)', () => {
+  const w = world();
+  // world.js's LIVING_WORLD_VENDOR as it stands: the relations ride the character's save
+  registerModSaveData('LivingWorld', { newSaveData: () => null, getSaveData: () => w.rel.snapshot(), restoreSaveData: (rec) => { w.rel = characterRelations(rec, () => w.own, false); } });
+  w.court().affection = KISS_AT;
+  const save = () => JSON.parse(JSON.stringify({ gold: w.e.goldPieces, mod: modSaveRecords() }));
+  const load = (s0) => { w.e.goldPieces = s0.gold; restoreModSaveRecords(JSON.parse(JSON.stringify(s0.mod))); w.me = personOf(w.host.family, w.host.family.currentId); };
+  const s0 = save();
+  for (const k of DEEDS) assert.doesNotMatch(w.deed(k, 1), /Once a day/, k);
+  const warmed = w.me.courting[RES.id].affection;
+  assert.equal(warmed, KISS_AT + DEED_AFFECTION.compliment + 1 + DEED_AFFECTION.gift + DEED_AFFECTION.embrace + DEED_AFFECTION.kiss);
+  load(s0);
+  assert.equal(w.e.goldPieces, 200, 'the save\'s purse');
+  assert.equal(w.rel.deedDay(RES.id, 'gift'), null, 'the save\'s regard: no deed today');
+  assert.equal(w.me.courting[RES.id].affection, warmed, 'the house\'s record kept the affection');
+  assert.deepEqual(w.me.courting[RES.id].deeds, Object.fromEntries(DEEDS.map((k) => [k, w.rel.today()])), 'and each deed\'s day with it');
+  for (const k of DEEDS) assert.match(w.deed(k, 1), /Once a day is plenty/, `${k}: not again`);
+  assert.equal(w.me.courting[RES.id].affection, warmed, 'nothing more');
+  assert.equal(w.e.goldPieces, 200, 'no gift bought twice');
+  w.own += DAY;
+  assert.match(w.deed('compliment', 1), /Courtship \+4/, 'the next day');
+  assert.deepEqual(COURT_DEEDS, DEEDS, 'the loader keeps the days of every deed');
+});
+
+test('COURT-DEEDS THE REGARD AS IT STANDS, AND THE TONE COUNTED (AUDIT FB1026b B2/B3): a hug on the same page as the gift that made them a friend is welcome, one after a tone that cost the friendship is not, and the tally says what the whole answer moved, the tone\'s cost with it (mutants: the page\'s regard read; the tone unheard; the tone uncounted)', () => {
+  const w = world();
+  w.rel.note(RES.id, 'talk', 0, FRIEND_AT - 7);
+  const rows = w.rows();   // the page, built once as Tell me about opens
+  const on = (k) => rows.find((r) => r.topic === `deed:${k}`).legacy;
+  assert.match(on('gift').answer(1, 0), /\(Regard \+8, now \+41\.\)$/);
+  assert.match(on('embrace').answer(1, 0), /holds you close.*\(Regard \+3, now \+44\.\)$/, 'a friend now, on the same page');
+  // Polite to a townsperson: taken ill - the tone's -6 heard in the same answer as the deed
+  const insulted = (x) => () => x.rel.note(RES.id, 'insulted', x.rel.today());
+  const T = world();
+  T.rel.note(RES.id, 'talk', 0, FRIEND_AT + 1);
+  const page = T.rows();
+  assert.match(page.find((r) => r.topic === 'deed:embrace').legacy.answer(0, -1, insulted(T)), /We hardly know each other/, 'the tone cost the friendship: no hug - the regard as it stands');
+  const U = world();
+  U.rel.note(RES.id, 'talk', 0, FRIEND_AT + 1);
+  assert.match(U.deed('compliment', -1, insulted(U)), /Is that meant to be a compliment\?.*\(Regard -6, now \+35\.\)$/, 'the tone\'s cost said with the flat compliment');
+  // the talk window hands a deed row its tone (and every other row hears it first, as LW7 laid down)
+  const talk = readFileSync(new URL('../../../src/scenes/townTalk.js', import.meta.url), 'utf8');
+  assert.match(talk, /if \(row\.legacy\?\.hearsTone\) return row\.legacy\.answer\(tone, _toneTaste\(\), _toneHeard\);\n\s*_toneHeard\(\);   \/\/ LW7/);
+  assert.ok(rows.filter((r) => r.topic.startsWith('deed:')).every((r) => r.legacy.hearsTone === true));
+});
+
+test('COURT-DEEDS WHO IS OFFERED NONE (AUDIT FB1026b B5/E10): one of the house, one betrothed to another member, and a host with no Living World offer no deed; a member wed offers anyone else no kiss; and the badge and the Family page say the deeds as they are offered (mutants: the house\'s own offered; another\'s betrothed offered; the Living World unread; a kiss offered past a marriage; the page\'s deeds unsaid)', () => {
+  const w = world();
+  // a resident who married into the house (a sibling's spouse): one of the house
+  const kin = { id: 'p-kin', kind: 'resident', residentId: RES.id, given: 'Aldo', surname: 'Marane', died: null };
+  w.host.family.people.push(kin);
+  assert.deepEqual(deedsFor(w.host.family, w.me, RES), []);
+  w.host.family.people.pop();
+  // betrothed to another member
+  const sister = { id: 'p-sister', kind: 'blood', given: 'Ilsa', surname: 'Hlaalu', died: null, courting: { [RES.id]: { affection: AFFECTION_MAX, betrothed: true } } };
+  w.host.family.people.push(sister);
+  assert.deepEqual(deedsFor(w.host.family, w.me, RES), []);
+  w.host.family.people.pop();
+  assert.deepEqual(deedsFor(w.host.family, w.me, RES), [...DEEDS]);
+  assert.deepEqual(world({ regards: false }).rows().filter((r) => r.topic.startsWith('deed:')), [], 'no Living World: no deeds');
+  assert.match(regardBadge({ regard: 12, standing: 'neutral' }).words, /so do the deeds Tell me about offers a townsperson you could court - a compliment, a gift, and a hug once you are friends - each once a day\./);
+  const guide = familyGuide(MODELS.enduring, 0.06).find(([k]) => k === 'Marriage and children')[1];
+  assert.match(guide, new RegExp(`Paying a compliment and giving a gift \\(${GIFT_GOLD} gold\\) raise it faster, each once a day under Tell me about\\..* a compliment, a gift, a hug, and from ${KISS_AT} affection a kiss, each once a day, warm the courtship too\\.`));
+});
+
+test('COURT-DEEDS A COURTSHIP\'S DEEDS (AUDIT FB1026b B5/B6): a hug is welcome from one courting them though no longer a friend; a gift adds its affection; a compliment taken ill adds none and writes nothing (mutants: the hug\'s courtship arm unread; the gift\'s affection; a compliment taken ill warming; a warm of nothing written)', () => {
+  const w = world();
+  const c = w.court();
+  w.rel.note(RES.id, 'struck', 0);   // a blow: far below a friend, and still courted
+  assert.ok(w.rel.regard(RES.id) < FRIEND_AT);
+  const a0 = c.affection;
+  assert.match(w.deed('embrace'), /holds you close.*Courtship \+5/);
+  assert.match(w.deed('gift'), new RegExp(`Courtship \\+${DEED_AFFECTION.gift}, now ${a0 + DEED_AFFECTION.embrace + DEED_AFFECTION.gift} of`));
+  const writes = w.writes, a1 = c.affection;
+  assert.match(w.deed('compliment', -1), /Is that meant to be a compliment\?.*Courtship \+0, now /);
+  assert.equal(c.affection, a1, 'none added');
+  assert.equal(w.writes, writes, 'and nothing written');
 });

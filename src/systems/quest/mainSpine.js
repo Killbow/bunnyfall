@@ -16,13 +16,24 @@
 // Measured with the real bridge and FACTION.TXT, either order of meeting Brisienna and reaching level 3.
 //
 // THE LAW NOW, a departure from StartQuest.cs's one try: A LOST BACKBONE IS STARTED AGAIN (spineOwed, machine.js
-// keepSpine). A game whose opener has run its `start quest 999 999` (or met Brisienna - MetLadyBrisienna) with no
-// S0000999 standing (running, ended, or scheduled) and no step of the story begun is owed it: a backbone that ever ran
-// starts the courts' quests, so none begun is a backbone that never ran, and every letter it sends is still owed. Checked
-// every SPINE_CHECK_TICKS - a parse that fails again (the records still away) is asked again at the next check, and a
-// character who lost theirs before this law gets it back on their next session. A save from before the story was
-// recorded (storyLegacy) is left as it is: its story's steps are not known.
-import { globalVarsTable } from './tables.js';
+// keepSpine), checked every SPINE_CHECK_TICKS - a parse that fails again (the records still away) is asked again at the
+// next check. The machine RECORDS the two facts the law reads, saved with the game (machine.js `spine`): `opened`, this
+// game's opener began (its start, or a saved table or journal archive naming it), and `ran`, its backbone began (its
+// start, or a saved table naming it - one dropped at a load because it would not rebuild ran all the same). A game is
+// owed its backbone when its opener began - and, while the opener stands, has run its `start quest` - and no backbone
+// has begun or stands (running, ended, or scheduled), and no step of the story has begun.
+//
+// THE EXCEPTIONS, named (AUDIT FB1026b A1/A2/A5/E2):
+//   - A CLASSIC IMPORT IS OWED NOTHING. It starts no quests (world.js classicLoadBoot - the port's own departure), so it
+//     has no opener of its own, only the classic game's globals (MetLadyBrisienna among them) - which are not read here:
+//     read alone, they started a backbone in every imported game, and one whose classic main quest was over ended at
+//     once and was owed again every game week.
+//   - A save from before this law whose opener never met Brisienna and has since failed, ended and been removed (some two
+//     months of played game time) keeps no trace of it - a failed opener files nothing in the journal - and is not repaired.
+//   - A save from before this law that once dropped a backbone at a load (a rebuild that failed) and was saved without
+//     it is owed it again, and its royal letters come again.
+// The story's own record (storyStarted) is the guard for a save from before the record: a backbone that ended ended
+// the main quest, and a main quest ends only past the courts' first quests.
 
 /** The backbone, and the quest that starts it. */
 export const SPINE = 'S0000999';
@@ -31,8 +42,6 @@ export const SPINE_OPENER = '_BRISIEN';
 export const SPINE_CHECK_TICKS = 30;
 
 const named = (q, name) => String(q?.questName ?? '').toUpperCase() === name;
-/** A global's id by its table name (Quests-GlobalVars), or -1. @param {string} name */
-const globalId = (name) => { try { const t = globalVarsTable(); return t.hasValue(name) ? parseInt(t.getValue('id', name)) : -1; } catch { return -1; } };
 
 /** Whether the opener has run its backbone start: its StartQuest of S0000999 done. @param {any} quest */
 function openerStartedSpine(quest) {
@@ -45,17 +54,21 @@ function openerStartedSpine(quest) {
   return false;
 }
 
+/** The record as a load finds it: the saved one, and what the saved table (`names`, the quests' file names) says of it.
+ *  @param {any} saved @param {string[]} names */
+export function spineRecord(saved, names) {
+  const has = (n) => names.some((x) => String(x ?? '').toUpperCase() === n);
+  return { opened: saved?.opened === true || has(SPINE_OPENER), ran: saved?.ran === true || has(SPINE) };
+}
+
 /**
- * Whether this machine's game is owed its backbone: none standing (running, tombstoned or scheduled), the opener's start
- * of it done (or Brisienna met), no story step begun, and a story record of its own (not a legacy save's).
- * @param {{ quests: Map<any, any>, questsToInvoke: any[], globalVars: Map<number, boolean>, storyStarted: Set<string>, storyLegacy?: boolean }} m
+ * Whether this machine's game is owed its backbone: its opener begun (on the table, it has run its start), no backbone
+ * begun (one on the table, running or ended, began: the record has it) or scheduled, and no story step begun.
+ * @param {{ quests: Map<any, any>, questsToInvoke: any[], storyStarted: Set<string>, spine: { opened: boolean, ran: boolean } }} m
  */
 export function spineOwed(m) {
-  if (m.storyLegacy || m.storyStarted.size > 0) return false;
-  for (const q of m.quests.values()) if (named(q, SPINE)) return false;
+  if (m.spine.ran || m.storyStarted.size > 0) return false;
   if (m.questsToInvoke.some((q) => named(q, SPINE))) return false;
-  const met = globalId('MetLadyBrisienna');
-  if (met >= 0 && m.globalVars.get(met)) return true;
-  for (const q of m.quests.values()) if (named(q, SPINE_OPENER) && openerStartedSpine(q)) return true;
-  return false;
+  for (const q of m.quests.values()) if (named(q, SPINE_OPENER)) return openerStartedSpine(q);
+  return m.spine.opened;
 }

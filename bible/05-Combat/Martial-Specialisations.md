@@ -226,7 +226,7 @@ field (`systems/save/save.js` martialPath, martialPrompted; an id no table holds
 
 AUDIT MARTIAL L3 F5 - OPEN, the owner's (SCHOOLS L3 F3's question, which MARTIAL2 makes pay on every weapon): a forged
 save listing every weapon skill mastered at 200 judges clean and takes every weapon's past-100 bonus in PvE (never a
-player: every PvP strike is the referee's stub). A judge check that the masteries obey their own 2/2/1 law would cap a
+player: every PvP strike is the referee's stub). A judge check that the masteries obey their own 3/2/1 law (MASTER-THREE; 2/2/1 when this was found) would cap a
 forgery at the honest most, not stop it, and move the account version.
 
 AUDIT MARTIAL L3 F1: an OLDER build drops `martialPath` (a key it never knew), and the new build, finding none, asked

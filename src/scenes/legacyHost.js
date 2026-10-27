@@ -56,11 +56,10 @@ import { syncHouses, householdOf, residentOf, familyResOf, kinGreeting, setFamil
 import { goldStack } from '../systems/inventory.js';
 import {
   topicsFor, topicLabel, topicQuestion, court, propose, betrothalOf, wed, childStep, childLine, spouseOf, childrenTogether,
-  splitName, dayOf as courtDayOf, MARRIAGE_TEXT, TOPIC, wedPlayer, unionSpouse, playerSpouseLost, residentInHouse, forgetCourtship, warmCourtship,
+  splitName, dayOf as courtDayOf, MARRIAGE_TEXT, TOPIC, wedPlayer, unionSpouse, playerSpouseLost, residentInHouse, forgetCourtship, warmCourtship, deedDoneOn,
 } from '../systems/legacy/marriage.js';
 import { deedsFor, deedLabel, deedQuestion, deedRefusal, deedRegard, deedAffection, deedTally, DEED_TEXT, GIFT_GOLD } from '../systems/legacy/courtDeeds.js';   // COURT-DEEDS
 import { deductGold, totalGoldAmount } from '../systems/court.js';   // COURT-DEEDS: a gift's gold, coin then letters
-import { surfacePlayer } from '../characters/playerEntity.js';   // COURT-DEEDS: the purse said again after a gift
 import { memberStanding, inheritStanding, inheritRegards, noteNews, newsFor as houseNewsFor, hearNews } from '../systems/legacy/influence.js';
 
 /** The reflexes a born member starts with - the wizard's own default (ui/chargenArt.js PLAYER_REFLEXES.Average). */
@@ -1234,32 +1233,36 @@ export function createLegacyHost(deps) {
     // COURT-DEEDS (systems/legacy/courtDeeds.js): a compliment, a gift, a hug, a kiss - after the courtship's own rows
     ...(deps.regards?.() ? deedsFor(family, me, res) : []).map((k) => ({
       topic: `deed:${k}`, label: deedLabel(k),
-      legacy: { question: (tone) => deedQuestion(k, tone), answer: (_tone, taste) => answerDeed(k, res, taste, ctx) },
+      // AUDIT FB1026b B3: a deed hears the talk's tone itself (townTalk.js `hearsTone`), so its tally says what the whole answer moved
+      legacy: { hearsTone: true, question: (tone) => deedQuestion(k, tone), answer: (_tone, taste, heard) => answerDeed(k, res, taste, heard) },
     }))];
   }
   /** COURT-DEEDS: a deed done - refused (and what it waits on), once a day, a gift's gold taken; the regard noted on the
-   *  Living World's relations, a courtship's affection warmed, and what it moved said after the answer. */
-  function answerDeed(kind, res, taste, ctx) {
+   *  Living World's relations, a courtship's affection warmed, and what it moved said after the answer. `heard` the
+   *  talk's tone, heard between the regard's two reads (AUDIT FB1026b B3: the tally counts it). */
+  function answerDeed(kind, res, taste, heard = null) {
     const me = current(), rel = deps.regards?.();
+    const day = rel?.today?.() ?? deps.regardDay?.() ?? 0;
+    const was = rel ? rel.regard(res.id, day) : 0;
+    heard?.();
     if (!me || !rel) return '';
     const first = splitName(res.name)[0];
     const spouse = spouseOf(family, me)?.residentId === res.id;
     const courtship = spouse ? null : me.courting?.[res.id] ?? null;
-    const why = deedRefusal(kind, { regard: ctx.regard, courtship, spouse });
+    const before = rel.regard(res.id, day);
+    const why = deedRefusal(kind, { regard: before, courtship, spouse });   // AUDIT FB1026b B2: the regard as it stands, never the page's
     if (why) return why === 'friend' ? DEED_TEXT.notFriend(first) : DEED_TEXT.notCourting(first);
-    const day = rel.today?.() ?? deps.regardDay?.() ?? 0;
-    if (rel.deedDay?.(res.id, kind) === day) return DEED_TEXT.again(first);
+    // AUDIT FB1026b B1: the courtship's own stamp too - a load hands the regard's day back, never the affection's
+    if (rel.deedDay?.(res.id, kind) === day || deedDoneOn(courtship, kind, day)) return DEED_TEXT.again(first);
     if (kind === 'gift') {
       if (!(totalGoldAmount(deps.entity) >= GIFT_GOLD)) return DEED_TEXT.poor(first);
       deductGold(deps.entity, GIFT_GOLD);
-      surfacePlayer();
     }
-    const before = rel.regard(res.id, day);
     const after = rel.note(res.id, kind, day, deedRegard(kind, taste));
-    const warm = courtship && !courtship.betrothed ? warmCourtship(me, res.id, deedAffection(kind, taste)) : null;
-    if (warm) { touch(family); store(); }
+    const warm = courtship && !courtship.betrothed ? warmCourtship(me, res.id, deedAffection(kind, taste), { deed: kind, day }) : null;
+    if (warm?.warmed) { touch(family); store(); }   // AUDIT FB1026b B6: a warm of nothing writes nothing
     const line = kind === 'compliment' && taste < 0 ? DEED_TEXT.flat(first) : DEED_TEXT[/** @type {'compliment'|'gift'|'embrace'|'kiss'} */ (kind)](first);
-    return `${line} ${deedTally({ regard: after, gained: after - before, affection: warm ? warm.affection : null, warmed: warm?.warmed ?? 0 })}`;
+    return `${line} ${deedTally({ regard: after, gained: after - was, affection: warm ? warm.affection : null, warmed: warm?.warmed ?? 0 })}`;
   }
   function answerTopic(t, res, taste, ctx) {
     const me = current();

@@ -11,7 +11,7 @@ are named under each fix, the mutants `tools/mutants/fb1026b_*.json` - all dead.
 | 2 | Ony4an, "jewelcrafting, roll chances not equal (h2h, critical)": "i crafted around 100 rare rings (gold and platinum, handcraft not auto) and h2h or critical not roll on them" | LOOT1's lean, as built: jewellery's skill lines lean to the mind's thirteen, and Hand-to-Hand and Critical Strike were two of the open share's thirty-five - about 0.4% of a ring's skill lines each, against a mind skill's 7% | JEWEL-KIN |
 | 3 | Wheyrest, "Let us master all three primary skills" (11 votes): "1 minor, 2 major, 3 primary master skills ... helps alleviate the issue of trying to cram in two mastered weapon skills" | SOFTCAP4's 2/2/1, as decided (Mac, 2026-09-29) | MASTER-THREE |
 | 4 | "Boat Player Collision": "Player boat collision needs to be off outside of PVP zone or just during the Sethrakul fight too many people out there bumping into each other ruining their shots" | FIELD BUGS 2026-10-01b stood every peer's ship in my collider, so her hull met my helm's sweep as a rock everywhere; in Sethrakul's waters SERPENT4's bumpers shoved ships apart at up to 30 m/s besides | HULL-PASS |
-| 5 | lumin, "Better Courtship" (5 votes): "Compliments, giving gifts, hugging, kissing ... Right now it's confusing on what exactly you're supposed to use"; Revy: "the only thing that seems to work is to have 1 conversation per day ... to raise their disposition by 1 point" | The talk's +3 is noted as the window opens, so the panel only ever showed the tone's +1 move; a friend was about ten days of talk, a courtship seven more, and the courtship's number was shown nowhere | COURT-DEEDS |
+| 5 | lumin, "Better Courtship" (5 votes): "Compliments, giving gifts, hugging, kissing ... Right now it's confusing on what exactly you're supposed to use"; Revy: "the only thing that seems to work is to have 1 conversation per day ... to raise their disposition by 1 point" | The talk's +3 is noted as the window opens, so the panel only ever showed the tone's +1 move; a friend was about twelve days of talk, a courtship eight to ten more, and the courtship's number was shown nowhere | COURT-DEEDS |
 | 6 | The owner: "Also bring the level cap to 45" | No cap stood: the level stopped where the sum did - 31 with the class's skills at 100, 44 with every 2/2/1 mastery at 200 | LEVEL-45 |
 
 ## MAIN-SPINE (1) - `src/systems/quest/mainSpine.js`, `src/systems/quest/machine.js`
@@ -35,15 +35,23 @@ lose it alike; every later save point, a faction store missing for a tick mid-wa
 deliver. The report's correlation with Brisienna is the second character's luck, not her: its page won the race.
 
 FIXED - A DEPARTURE (`Port-Ledger.md` section A). A LOST BACKBONE IS STARTED AGAIN (`mainSpine.js` spineOwed,
-`machine.js` keepSpine from `tick`, every SPINE_CHECK_TICKS = 30): a game whose opener has run its `start quest 999 999`
-(or met Brisienna) with no S0000999 running, ended or scheduled, and no step of the story begun - a backbone that ran
-starts the courts' quests, so none begun is one that never ran. A parse that fails again (the records still away) is
-asked again at the next check, and a character who lost theirs before this law gets it back on their next session, at
-once owed every letter its level has earned. A legacy save (its story never recorded) is left as it is.
+`machine.js` keepSpine from `tick`, every SPINE_CHECK_TICKS = 30). The machine records, and saves with the game, the
+two facts the law reads (`machine.spine`): `opened`, this game's opener began - its start, or a saved table or the
+journal's archive naming it - and `ran`, its backbone began - its start, or a saved table naming it. A game is owed its
+backbone when its opener began (and, while the opener stands, has run its `start quest 999 999`), no backbone has begun
+or is scheduled, and no step of the story has begun. A parse that fails again (the records still away) is asked again
+at the next check, said once a page; a character who lost theirs before this law, its opener standing or filed in the
+journal, gets it back on its next session, at once owed every letter its level has earned. Named, not repaired (AUDIT
+FB1026b below): a classic import, which starts no quests and so has no opener of its own - the classic game's
+MetLadyBrisienna is not read; a save from before this law whose opener never met Brisienna and has failed, ended and
+gone (some two months of played game time), which files nothing; and a save from before it that dropped its backbone at
+a load and was saved without one, which is owed it again.
 
 Pinned by `test/systems/quest/fb1026b_mainspine.test.js` (the real bridge over the vendored quests, a cold page's
-missing faction records, both orders; a save that already lost it; owed never with a story begun, a legacy save, a
-backbone standing or scheduled). Mutants `tools/mutants/fb1026b_mainspine.json` (6, dead).
+missing faction records, both orders, and the game's own FACTION.TXT where ARENA2 is fetched; a save that already lost
+it; a classic import's globals; an opener met and gone, filed in the journal; the record saved and loaded; a backbone a
+load drops; owed never with a story begun, a backbone begun or scheduled, or an opener whose start is still to run).
+Mutants `tools/mutants/fb1026b_mainspine.json` (15, dead).
 
 ## JEWEL-KIN (2) - `src/systems/loot/lootRarity.js`, `src/net/productRecord.js`, `src/systems/smithItems.js`
 
@@ -56,15 +64,18 @@ Strike 0.40-0.43%, Illusion 7.07%. A hundred Rare rings held no Hand-to-Hand lin
 
 FIXED. Jewellery leans to the bare hand's two besides the mind's thirteen (`JEWEL_KIN`): neither is any weapon's own,
 and a ring is where a fist or a striker's line has to come from. Each of the fifteen takes about one skill line in
-sixteen; a hundred rings without a Hand-to-Hand line is a one-in-a-thousand chance. A found ring takes the lean at once.
+sixteen; a hundred rings without a Hand-to-Hand line is a chance of one in millions (a ring lacks one about 85 times in a hundred, measured per ring - AUDIT FB1026b C6). A found ring takes the lean at once.
 A crafted piece is minted again from its signed record on every client, so the lean rides a new mint version:
-`MINT_V_JEWEL_KIN` 3, stamped by the account service (acct195); a record of 2 or less mints on the mind's thirteen
-(`skillKin`'s `fists` false) and a ring already made keeps its lines.
+`MINT_V_JEWEL_KIN` 3. A craft names the version its client mints (`accountClient.js` craft's `mint`) and the account
+service stamps that, never past its own (`productRecord.js` craftMintVersion, acct196); a client from before the ask is
+stamped `MINT_V_LINES` - the service deploys before the site, and a tab left open or a desktop install keeps its build,
+so a stale client's ring is the same ring in its pack and in every other reader's. A record of 2 or less mints on the
+mind's thirteen (`skillKin`'s `fists` false) and a ring already made keeps its lines.
 
-Pinned by `test/systems/fb1026b_jewelkin.test.js` (the report's rings through `mintPiece` at 3 and at 2; a found
-ring); pins moved by intent: `loot1_kin` (the kin), `fb1013e_craftprocs` and `affixlines_reforge` (the version 3).
-Mutants `tools/mutants/fb1026b_jewelkin.json` (6, dead); eighteen records of other lists re-aimed by content at the lines
-this moved (the account version, the mint's call, the charsheet's Level box, the virtue commit, the lean's door).
+Pinned by `test/systems/fb1026b_jewelkin.test.js` (the report's rings through `mintPiece` at 3 and at 2, the odds per
+ring; a found ring as the loot list makes it; the Legendary's fallback; the craft's version through the real client and
+Worker); pins moved by intent: `loot1_kin` (the kin), `fb1013e_craftprocs` and `affixlines_reforge` (the version 3),
+`prof10_client` (the craft's shape). Mutants `tools/mutants/fb1026b_jewelkin.json` (11, dead).
 
 ## MASTER-THREE (3) - `src/systems/masterSkills.js`
 
@@ -72,7 +83,8 @@ WHAT DFU DOES. Nothing past 100: Master Skills is the port's own (SOFTCAP3).
 
 FIXED. `MASTERY_SLOTS` 3 / 2 / 1: every primary skill may be mastered. A character who chose two keeps them and has the
 third slot now. Every Master Skills box and the skill screen say 3. A martial or arcane path whose pair is two weapons
-or two schools among the primaries is reachable where it was not; the Growth guide reads the slots, so it follows.
+or two schools among the primaries can now stand beside a third primary mastered (it was reachable under 2/2/1, with
+the third primary left at 100); the Growth guide reads the slots, so it follows.
 
 THE WORKERS. `masterSkills.js` is in both Workers' bundles (reached through the skills' law), so its bytes moved both
 versions: the relay's RELAY_VERSION world269 (no relay code reads the slots - nothing it does moved) and the account
@@ -95,30 +107,42 @@ with other players' boats") - so her hull cancelled my way into her and refused 
 serpent's waters SERPENT4's bumpers pushed my ship off every peer's at up to 30 m/s besides.
 
 FIXED. Another player's hull meets my helm only inside a PvP zone (`peerHullsMeet`: `wildZone.js` wildHere - the
-Eltheric Ocean past Veilhaven's peace, the Wrothgarian Mountains), the host handing Come Sail Away the sweep through
-`peerHullSweep` (one entry swapped, bootWorld unchanged). Her hull stays in my collider: her deck is walked and stood on,
-a swimmer meets her side, and my own boats, a sea ship, a rock and the ground are swept as before. Sethrakul's site
-stands on the Bay's lanes, never in the ether's box, so the fight is always outside a PvP zone - and the bumpers,
-which ran only there, are retired (`withBumpers`, `bumperDrift`, `BUMPER_*` gone; createNavalHost 10 logical lines out,
-its ceiling 6,259 -> 6,249). THE FOUR HOSTS: `scenes/world.js` wires it; `worldModes.js` (a building) and
+Eltheric Ocean past Veilhaven's peace, the Wrothgarian Mountains; the zone alone, as the report asked - a ship the
+broadsides spare there still meets mine), the host handing Come Sail Away the sweep through `peerHullSweep`. WHAT
+PASSES MY HELM PASSES MY DECK: her hull stays in my collider - her deck walked and stood on, a swimmer meeting her side
+- but outside a zone, while my body stands on a deck (my helm's, another's I am aboard, the one under my feet, kept
+through a jump while my feet stay over it), every player's hull overlapping that deck's leaves my collider until they
+part, and the aboard door never boards one from the air (`hullsStood`, `hullPassesMyDeck`: each hull's plan an
+oriented box off its own colliders, `navalShips.js` hullOverlap). THE ZONE TURNING DOES NOT JAM THEM: a hull already
+through my deck when hulls start to meet goes on passing until it is clear of it (the latch); one that comes into it
+after meets it. My own boats, a sea ship, a rock and the ground are swept as before. Sethrakul's site stands on the
+Bay's lanes, never in the ether's box, so the fight is always outside a PvP zone - and the bumpers, which ran only
+there, are retired (`withBumpers`, `bumperDrift`, `BUMPER_*` gone; createNavalHost 10 logical lines out, its ceiling
+6,259 -> 6,249). The host's three seams are three lines changed in place (the sweep's entry, csaSyncColliders' boats,
+`deckGround`) - bootWorld does not grow. THE FOUR HOSTS: `scenes/world.js` wires it; `worldModes.js` (a building) and
 `dungeonContext.js` (a dungeon) stand no one's boat, and `exterior.js` (the fixed city) has no peers.
 
-Pinned by `test/scenes/fb1001b_peerboats.test.js` (HULL-PASS: the sweep as wired, outside a zone and in one, over the
-real pool, peers, aboard machine and collider); pins moved by intent: `serpent4` (the bumpers' test now pins them gone)
-and `serpent1_client` (the drift line); SERPENT4's four bumper mutants retired with the code. Mutants
-`tools/mutants/fb1026b_hullpass.json` (4, dead).
+Pinned by `test/scenes/fb1001b_peerboats.test.js` (HULL-PASS: the sweep as wired, outside a zone and in one; a ship
+sailed through the deck I stand on, both ways, jumping; the zone turning PvP over two overlapping hulls through Come
+Sail Away's own CheckCollision - all over the real pool, peers, aboard machine, collider and motor); pins moved by
+intent: `serpent4` (the bumpers' test now pins them gone) and `serpent1_client` (the drift line); SERPENT4's four bumper
+mutants retired with the code. Mutants `tools/mutants/fb1026b_hullpass.json` (10, dead).
 
 ## COURT-DEEDS (5) - `src/systems/legacy/courtDeeds.js`, `src/scenes/legacyHost.js`, `src/systems/livingWorld/relations.js`
 
 FIXED - the law is `06-Systems/Legacy-Arc.md` COURT-DEEDS. Four rows on the Tell me about page beside Courtship: Pay a
 compliment, Give a gift (50 gold), Hug (a friend's, or a courtship's), Kiss (a courtship at 34, a betrothal or a
 marriage) - each once a day per resident, each raising the regard (+2, +8, +3, +4) and a courtship's affection (+3, +6,
-+5, +8), and each answer saying what it moved: "(Regard +2, now +14. Courtship +4, now 41 of 100.)". A hug or a kiss not
-yet welcome says what it waits on and costs nothing. The regard badge and the Family page name the deeds.
++5, +8), and each answer saying what it moved, the talk's tone with it (the row hears the tone itself, `townTalk.js`
+`hearsTone`): "(Regard +2, now +14. Courtship +4, now 41 of 100.)". A hug or a kiss not yet welcome says what it waits
+on, read against the regard as it stands, and costs nothing. Each deed's day is stamped on the Living World's regard
+(the character's save) and, where it warmed a courtship, on the courtship (the house's record, `marriage.js`
+warmCourtship), so a load that hands back the one never hands the affection again. The regard badge names the deeds as
+they are offered, and the Family page names them.
 
-Pinned by `test/systems/legacy/fb1026b_courtdeeds.test.js`; pins moved by intent: `lw1_livingWorld` (EVENTS: a
-compliment, a hug, a kiss), `plainui` (the badge names a gift - nothing had noted one). Mutants
-`tools/mutants/fb1026b_courtdeeds.json` (8, dead).
+Pinned by `test/systems/legacy/fb1026b_courtdeeds.test.js` (a reload through the real mod-save registry among them);
+pins moved by intent: `lw1_livingWorld` (EVENTS: a compliment, a hug, a kiss), `plainui` (the badge names the deeds as
+offered). Mutants `tools/mutants/fb1026b_courtdeeds.json` (26, dead).
 
 ## LEVEL-45 (6) - `src/systems/levelCap.js`
 
@@ -127,9 +151,78 @@ starting + 28) / 15) passes the level.
 
 FIXED - A DEPARTURE (`Port-Ledger.md` section A). `LEVEL_CAP` 45 on both lanes: Daggerfall's sum owes no level past it
 (`checkForLevelUp`), the virtue bar fills and holds (`checkForVirtueLevelUp`), a level latched before the cap is never
-spent at it (`applyLevelUp`, `commitVirtueLevelUp`), and the Level box ("You have reached the highest level, 45.") and the
-level-up bar ("Highest level reached") read whole. The ceiling it names: a class whose six counted skills reach 200 under
-the 3/2/1 masteries would climb to 47 for a starting sum of 156, so 45 is reached at the end of the long climb past 100,
-by every class. A level already past it is kept.
+spent at it (`applyLevelUp`, `commitVirtueLevelUp`) and is let go where it is read - the load, the crossing online
+(`realmCustoms.js` crossLeveling), both checks, the sheet's door and its rollout (`levelCap.js` releaseCapLatch; the
+Oghma Infinium's latch is the book's and is kept) - and the Level box ("The highest level is 45: no more levels are
+gained.") and the level-up bar ("Highest level reached") read whole. The ceiling it names: a class whose six counted
+skills reach 200 under the 3/2/1 masteries climbs to 47 for a starting sum of 156, so 45 is reached at the end of the
+long climb past 100 by a career as made, with Master Skills on - every starting sum up to 193 reaches it, and the
+largest a character can be made with is 169 (184 with a Legacy heir's hearth). A skill swap that raises the class's sum lowers its ceiling a level for
+every 15 points (a primary at 30 swapped for a skill at 100 leaves a 156-start character 42), and with Master Skills off
+the ceiling is 29 to 32. A level already past it is kept.
 
-Pinned by `test/systems/fb1026b_levelcap.test.js`. Mutants `tools/mutants/fb1026b_levelcap.json` (7, dead).
+Pinned by `test/systems/fb1026b_levelcap.test.js` (the windows driven: the door, the virtue screen, the classic sheet;
+the load and the crossing). Mutants `tools/mutants/fb1026b_levelcap.json` (18, dead).
+
+## AUDIT FB1026b (2026-10-26, the owner: "Audit this")
+
+Five cold lanes, each read-only over the pull request at `a7d8888c9` against `d5a4c9c6a`, given the files and the
+reports and never this record's conclusions: A the main quest's backbone, B the courtship's deeds, C the level cap,
+the masteries and the jewels, D the peers' hulls, E this record and its pins. Every finding was measured again here
+before anything moved; the sections above say the law as it stands now.
+
+| ID | Finding | Lane | Done |
+|---|---|---|---|
+| A1 | HIGH. A classic import was owed a backbone: MetLadyBrisienna alone counted, and an import starts no quests - one whose classic main quest was over had it end at once and restarted every game week, its royal letters sent again each time | A | FIXED: the machine records its own opener and backbone (`machine.spine`, saved); the classic global is not read |
+| A2 | MEDIUM. A save from before the law whose opener never met Brisienna and has failed, ended and gone is never repaired | A | SAID: a failed opener files nothing, and nothing else tells it from a classic import - named in `mainSpine.js` and above |
+| A3 | MEDIUM. The "met Brisienna" route, a tombstoned backbone, the start's `isComplete` and "any start" were unpinned | A | FIXED: the met route is the journal's archive now (pinned); a backbone on the table is `ran` (pinned); `isComplete` pinned. "Any start" is equivalent - _BRISIEN holds one StartQuest |
+| A4 | LOW. The `storyLegacy` guard never applied (seedStory clears it before any tick); three sentences claimed it | A | FIXED: the guard and the three sentences deleted |
+| A5 | "None begun is one that never ran" was false - a backbone runs for as long as the courts' quests wait on a click | A | FIXED: reworded around the record; a backbone a load drops reads `ran` off the saved table (pinned) |
+| A6 | LOW. Two warnings every 30 quest ticks while the records stayed away | A | FIXED: said once a page each - the failure and the start (pinned) |
+| B1 | HIGH. A reload handed every deed's affection again, for gold the reload gave back - the affection rides the house's record, the stamp the save | B | FIXED: each deed's day stamped on the courtship it warmed, kept by the house's loader (pinned through the real mod-save registry) |
+| B2 | MEDIUM. The hug's gate read the regard as the page opened | B | FIXED: the regard as it stands when answered (pinned) |
+| B3 | LOW. The tally left out the tone's cost in the same answer | B | FIXED: a deed row hears the tone itself (`townTalk.js` `hearsTone`) (pinned) |
+| B4 | LOW. The badge promised deeds to the watch, travellers and kin | B | FIXED: worded as offered, to a townsperson one could court |
+| B5 | LOW. Eight probe mutants lived (the house's own, another's betrothed, the hug's courtship arm, the gift's affection, an ill compliment, the save, the Living World guard, `surfacePlayer`) | B | FIXED: each pinned; `surfacePlayer` removed - it only exposes the entity to the screenshot page |
+| B6 | Ten days of talk (measured 12), seven of Courtship (8-10); the tally's comment; a warm of nothing written | B | FIXED |
+| C1 | HIGH. A virtue level-up latched past the cap was a window that never closed | C | FIXED: `releaseCapLatch` at the load, both checks, the door and the rollout, the virtue screen's confirm a backstop - the door driven (pinned); the Oghma latch kept |
+| C2 | MEDIUM. The classic sheet handed out a pool with no level; crossLeveling carried the latch online | C | FIXED (pinned) |
+| C3 | MEDIUM. A stale client minted v3 records on the old lean - one piece, two sets of lines | C | FIXED: the craft names the version its client mints, the service stamps at most its own, a client that names none MINT_V_LINES (`craftMintVersion`, acct196) - through the real client and Worker (pinned) |
+| C4 | LOW. The Level box said "45" to a character kept past it | C | FIXED: "The highest level is 45: no more levels are gained.", in all 25 languages |
+| C5 | LOW. `>=` read as `===` and the Level box's text lived | C | FIXED (pinned past the cap) |
+| C6, E9 | "One in a thousand" for a hundred rings without Hand-to-Hand (measured: one in millions); "reachable where it was not" | C, E | FIXED, measured per ring in the pin |
+| C7 | "45 for every character" too strong | C | FIXED: a career as made with Master Skills on; a swap lowers it; off, 29-32 |
+| C8 | LOOT1's header, Martial L3 F5, Arcane's five masteries, the account note | C | FIXED |
+| D1 | HIGH. A ship let through my hull sailed her deck through the body on mine - shoved off, or carried away aboard her | D | FIXED: outside a zone every player's hull overlapping my deck leaves my collider and is never boarded from the air (`hullsStood`, `hullPassesMyDeck`) - both ways, jumping, through the real motor (pinned) |
+| D2 | MEDIUM. Hulls overlapping as the zone turned PvP were jammed | D | FIXED: the latch, through Come Sail Away's own CheckCollision (pinned) |
+| D3 | LOW. "A ship you may fire on is one you may run against" - the gate is the zone alone | D | FIXED: the sentence says what the gate is, as the report asked |
+| D4, E5, E6 | The bumpers, the LOOT ARC's lean, the EVENTS list, 2/2/1 and the tally's parenthetical stated as current | D, E | FIXED |
+| D5 | LOW. The pins proved the wrapper; `HULL-PASS-bumpers-back` died only as a ReferenceError | D | FIXED: behavioural pins; that record retired |
+| E1, E2 | The met route unpinned; "gets it back on their next session" too broad | E | FIXED by A1-A3; the gap named (A2) |
+| E3, E4 | The Level box's text and the deeds' save unpinned | E | FIXED (C5, B1) |
+| E7 | The re-aim count: 24 records re-aimed (the 18 named, the 2 relay records, and COURT-DEEDS' 4 - `lw7` LW7-tone-twice, -tone-shared, -tone-unloaded, `lw14` LW14-poached-once) and 4 retired; 2 of the 18 (the Level box, the virtue commit) are LEVEL-45's; `546f53bb3`'s "22 re-aimed or retired" is 22 re-aimed and 4 retired; the cite shift (citedrift, faceuvresidue, probehygiene, `passiveSpecials.js`, `prepare.sh`, three bible pages) unsaid | E | SAID, here |
+| E8 | The account records' note chains | E | FIXED at the merge (and the wrangler record's, stopped at acct191 on main) |
+| E10 | The Family page's deeds, `isComplete`, the fallback's `fists`, a kiss past a marriage | E | FIXED (pinned and recorded) |
+| E11 | A hand-built ring, a stand-in FACTION.TXT, a serpent pin's title | E | FIXED: the loot list's own jewellery; the game's FACTION.TXT where ARENA2 is fetched; the title says what it checks |
+| E12 | `546f53bb3` red on its own; world269 below world268 | E | SAID (pushed history is not rewritten); the row order fixed at the merge |
+| E13 | fr `legacy.deed.poor` read "short by 50" | E | FIXED |
+
+SAID, NOT CHANGED. A2. A client older than MINT_V_LINES is stamped 2 (that law's own exposure, acct187); a client that
+reads a record past its own MINT_VERSION (a newer maker's, on the market) re-mints it on its own newest law - refusing it
+would hide the piece, so nothing is refused. The Oghma Infinium's latch is not saved (a pending book at the cap, saved
+and loaded, reads as a level owed and is let go - as it was already lost there). Two mutant records survive on `main`
+as on this branch, neither this change's: `audit30.json` AUDIT30-S5-a-piece-listed-off-the-road (`market.js`) and
+`csa_together.json` CSAL-pad-bare-dpad (`gamepadInput.js`). `Field-Bugs-2026-10-26b.md` is also the name pull request
+#1327 gives its own record; whichever merges second renames.
+
+THE MERGE. `main` at `829fc148d` was red on its own: BAL-ARCHERY (`2814b512c`) renamed the arrows' flight to
+ARROW_FLIGHT_SPEED and left six mutant records (`audit_martial`, `techfx1` x3, `tell6d` x2) quoting the old lines and
+`techfx1.test.js`'s Volley timing reading MISSILE_SPEED. Ported here: the records re-aimed by content (227 dead) and the
+test reading the constant the shafts fly at.
+
+PINS. The six `fb1026b_*` tests and `fb1001b_peerboats`; mutants `tools/mutants/fb1026b_mainspine.json` (15),
+`fb1026b_courtdeeds.json` (26), `fb1026b_levelcap.json` (18), `fb1026b_jewelkin.json` (11), `fb1026b_hullpass.json`
+(10), `fb1026b_masterthree.json` (5) - all dead. Pins moved by intent, each with its note: `fb1013e_craftprocs` and
+`prof10_client` (the craft names its version), `plainui` (the badge as offered), `csa_together` (the boats' loop and
+`deckGround`), `serpent4` (its title), `techfx1` (the merge). Records re-aimed: `audit30`, `csa_together`,
+`fb1001b_peerboats`, `fb1013e_craftprocs`, `prof10`, `prof9` (the lines this moved) - all dead.

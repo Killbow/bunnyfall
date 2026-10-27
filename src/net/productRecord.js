@@ -51,8 +51,18 @@ export const MINT_V_LINES = 2;
  *  Hand-to-Hand and Critical Strike beside the mind's thirteen (systems/loot/lootRarity.js skillKin `fists`). A record
  *  of 2 or less mints as it always did. */
 export const MINT_V_JEWEL_KIN = 3;
-/** The mint version a craft stamps on its record now (`v`) - the service's (server-account/src/professions.js). */
+/** The mint version this build mints a craft at, and asks its record be stamped with (`v` - the service's,
+ *  server-account/src/professions.js, at most this; craftMintVersion). */
 export const MINT_VERSION = MINT_V_JEWEL_KIN;
+/**
+ * AUDIT FB1026b C3: THE VERSION A CRAFT'S RECORD IS STAMPED WITH - the one its client says it mints (`mint` on the craft,
+ * net/accountClient.js craft), and never past this service's MINT_VERSION; a client that says none is one from before
+ * the ask, which mints MINT_V_LINES. The service deploys before the site, and a tab left open or a desktop install keeps
+ * its own build: stamped with the service's version, a stale client's ring was minted in its pack with the old lean and
+ * re-minted by every other reader - the market, a listing's picture, a later temper - with the new, one piece with two
+ * sets of lines. @param {unknown} asked
+ */
+export const craftMintVersion = (asked) => (typeof asked === 'number' && Number.isSafeInteger(asked) && asked >= MINT_V_LAST_PASS ? Math.min(asked, MINT_VERSION) : MINT_V_LINES);
 /** A character id's shape (the account service's CHAR_ID_RE). */
 const CHAR_RE = /^[A-Za-z0-9_-]{4,64}$/;
 

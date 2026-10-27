@@ -14,6 +14,7 @@
 
 import { readBankCabinLink } from '../../net/boatIdentity.js';
 import { clampLegalReputations } from '../court.js';   // AUDIT 23 (C4)
+import { releaseCapLatch } from '../levelCap.js';   // AUDIT FB1026b C1: a level a save owes past the cap let go at the load
 import { defineLiveMaxMagicka, defineLiveMaxHealth } from '../chargen.js';   // AUDIT 39: the live MaxMagicka accessor, on the LOAD arm too; DISC10-E L4: and MaxHealth's
 import { rebuildEquipState, isEquipped, unequipSlot } from '../equip.js';   // AUDIT 17e C1   // AUDIT 63 F28: RemoveItem takes an EQUIPPED item off the doll on its way out
 import { templateByIndex } from '../item/itemTemplates.js';   // AUDIT 63r F28: `shortName` is SetItem's template read, not an optional override
@@ -811,6 +812,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null) {
   defineLiveMaxMagicka(entity);
   defineLiveMaxHealth(entity);   // DISC10-E L4: the same law for MaxHealth - the setter below writes the RAW value
   for (const k of ENTITY_FIELDS) entity[k] = snap[k];
+  releaseCapLatch(entity);   // LEVEL-45 (AUDIT FB1026b C1): a level owed past the cap, saved before it, is no window to open
   resetBlowEffects(entity);   // AUDIT TELL L2: the last game's landings - a bleed, a knockdown, a push queued - are nobody's in this one
   // CHARID1: A LEGACY SAVE IS ADOPTED HERE. An envelope written before
   // the id existed carries none; its character gets one now, and every

@@ -530,8 +530,8 @@ export { AIM_CAM_OUT, AIM_CAM_UP, AIM_CAM_AFT, AIM_CAM_TAU, AIM_CAM_CLEAR, AIM_C
  *  AUDIT GN2-GN3: real seconds, as that frame is - on my sea's clock Come Sail Away's time scale made 2 s ten at x5. */
 export const PEER_LAY_S = 3;
 
-/** A hull on the flat and the push out of another (BOARD-MAGNET: one law, navalShips.js's, for the hulls kept apart, the
- *  serpent's bumpers and the grapples' haul). */
+/** A hull on the flat and the push out of another (BOARD-MAGNET: one law, navalShips.js's, for the hulls kept apart and
+ *  the grapples' haul - SERPENT4's bumpers were the third, retired by HULL-PASS). */
 export { flatHull, hullOverlap };
 /** A boat's hull as an oriented box in the world: its MeshCollider's own bounds through its MeshObject (null before
  *  its mesh is known) - the shots' target, the target card's, and the host's deck rays'. */

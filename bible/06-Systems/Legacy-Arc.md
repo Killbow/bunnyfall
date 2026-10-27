@@ -908,7 +908,7 @@ Discord #feature-feedback "Better Courtship" - lumin: "There should be specific 
 Compliments, giving gifts, hugging, kissing ... Right now it's confusing on what exactly you're supposed to use to improve
 relationships"; Revy: "the only thing that seems to work is to have 1 conversation per day with an NPC, with specific
 attitude (blunt etc), to raise their disposition by 1 point". (The talk's +3 is noted before the window opens, so the
-panel showed only the tone's +1 move; a friend took about ten days of talk, and a courtship about seven more.)
+panel showed only the tone's +1 move; a friend took about twelve days of talk, and a courtship eight to ten more.)
 
 - **The rows** (`systems/legacy/courtDeeds.js`, offered by `scenes/legacyHost.js` topicRows after the courtship's own):
   Pay a compliment, Give a gift (50 gold), Hug, Kiss - to every courtable townsperson (section 8's `courtable`) and to the
@@ -916,13 +916,18 @@ panel showed only the tone's +1 move; a friend took about ten days of talk, and 
 - **Each once a day per resident**, stamped on the Living World's regard record and saved with it (`relations.js`
   DEED_STAMPS, `deedDay`): regard +2, +8, +3, +4 (`EVENTS` - LW1's gift +8, which no door had paid, is the gift's); and
   while a courtship is begun and not betrothed, affection +3 (+1 more in a tone taken kindly), +6, +5, +8
-  (`marriage.js` warmCourtship). A compliment in a tone taken ill falls flat.
+  (`marriage.js` warmCourtship), the deed's day stamped on the courtship it warmed too, and kept by the house's loader
+  (`family.js`) - the affection rides the house's record, the regard the character's save, and a load that hands back the
+  one never hands the other again (AUDIT FB1026b B1). A compliment in a tone taken ill falls flat.
 - **A hug waits on a friend** (FRIEND_AT) or a courtship; **a kiss on a courtship at 34** (KISS_AT, MARRIAGE_TEXT.courted's
-  second tier), a betrothal or a marriage. Refused, each says what it waits on and costs nothing.
+  second tier), a betrothal or a marriage - read against the regard as it stands when the row is answered, never as
+  the page opened (AUDIT FB1026b B2). Refused, each says what it waits on and costs nothing.
 - **Every answer says what it moved**: "(Regard +2, now +14. Courtship +4, now 41 of 100.)" - the courtship's number was
-  never shown anywhere before. The regard badge and the Family page's "Marriage and children" name the deeds.
+  never shown anywhere before. The regard's move is the whole answer's: a deed row hears the talk's tone itself
+  (`townTalk.js` `hearsTone`), between its two reads (AUDIT FB1026b B3). The regard badge names the deeds as they are
+  offered, to a townsperson one could court (B4), and the Family page's "Marriage and children" names them.
 - With them a friend comes in about three days of play and a courtship reaches Marriage in about four.
 
 Pinned by `test/systems/legacy/fb1026b_courtdeeds.test.js` (the real host over the real relations); pins moved by
-intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the gift). `tools/mutants/fb1026b_courtdeeds.json`.
+intent: `lw1_livingWorld` (EVENTS), `plainui` (the badge names the deeds as offered). `tools/mutants/fb1026b_courtdeeds.json`.
 
