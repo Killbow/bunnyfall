@@ -8,15 +8,16 @@
 // trophy, never kit; its clear is reported as a board's, one a week a character.
 import { createHuntBook, setHuntBook } from '../net/huntBook.js';
 import {
-  huntWeekAt, huntMarkOf, huntMarkId, parseHuntMarkId, huntMarkSite, huntMarkGold, huntMarkSeed, huntMarksOpen, huntRungOf, huntNextRung,
+  huntWeekAt, huntMarkOf, huntMarkId, parseHuntMarkId, huntMarkSite, huntMarkGold, huntMarksOpen, huntRungOf, huntNextRung,
   HUNT_RUNGS, HUNT_MARK_NAMES,
 } from '../net/huntLaw.js';
 import { wallMsForClassicMinutes } from '../net/wire.js';
 import { seatWeekStartMs, SEAT_WEEK_MS } from '../net/townSeatLaw.js';
 import { compassWord, distanceWord, bountyTierLabel, bountyTierIndex, BOUNTY_MAP_LINE } from '../systems/bounty/bountyBoard.js';
 import { BOUNTY_QUEST_PREFIX } from '../systems/bounty/bountyJournal.js';
-import { rollBossTraits, giveBossTraits } from '../systems/bossTraits.js';
-import { promoteEliteFoe, eliteRng } from '../systems/eliteFoes.js';
+import { giveBossTraits } from '../systems/bossTraits.js';
+import { promoteEliteFoe } from '../systems/eliteFoes.js';
+import { huntMarkTraits } from '../systems/hunt/namedMark.js';   // HUNTERS-MARK-II: the week's traits, one home - a mate reads the mark off them
 import { addGoldPieces } from '../systems/inventory.js';
 import { registerModSaveData } from '../systems/modSaveData.js';
 import { giveTrophy, trophyTitle, trophyItemName } from '../systems/hunt/trophies.js';
@@ -28,8 +29,7 @@ import { BOUNTY_RING_R } from '../ui/bounty/bountyMapMark.js';
 import { TITLE_RGBA, cssRgba } from '../ui/playerBadge.js';
 
 export const HUNT_MARK_VENDOR = 'huntersMark';
-/** A named mark's boss traits: two, as a raid's leader carries. */
-export const HUNT_MARK_TRAITS = 2;
+export { HUNT_MARK_TRAITS, huntMarkTraits } from '../systems/hunt/namedMark.js';
 /** How long after a failed stand the next try waits, and how often a far mark is asked again (s) - the board's own. */
 const RETRY_S = 4, FAR_S = 1.5;
 
@@ -39,9 +39,6 @@ export function huntOnline(/** @type {boolean} */ online, /** @type {{ changed: 
   if (!online) return null;
   return { door: accountHunt({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), storage: appStorage(), saved: () => saveSoon.changed() };
 }
-
-/** The week's two traits for a tier, the same on every client. */
-export const huntMarkTraits = (/** @type {number} */ week, /** @type {number} */ tier) => rollBossTraits(HUNT_MARK_TRAITS, eliteRng(huntMarkSeed(week, tier)));
 
 /**
  * @param {{ hunt?: { door: any, storage?: any, character?: () => (string|null), saved?: () => void } | null,
@@ -145,6 +142,7 @@ export function createHuntersMark(deps) {
     if (!e) return;
     promoteEliteFoe(e, { own: true, checkLevel: false });
     e.raidLeader = { name: p.title };   // its name over it (systems/foeTitle.js) and a leader's size
+    e.bossTraits = undefined; e.bossWard = undefined;   // HUNTERS-MARK-II: the week's two in place of any its stand drew as an elite (RAID5's leader's law) - a mate's screen reads the mark off them
     giveBossTraits(e, p.traits);
     f.huntMark = p.id;
   }
