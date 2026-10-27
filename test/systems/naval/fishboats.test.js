@@ -14,9 +14,10 @@ import {
 import { findHarbour, createWaterGrid, footprintClear, berthSize, REACH_M } from '../../../src/systems/naval/shipLife.js';
 import { createSeaShip, stepCaptain, WIND_RATED, rangeOfHull, SWEEP_WAY } from '../../../src/systems/naval/navalAI.js';
 import { SHIP_CLASSES, HULL, classById, classFor, batteriesOf, shipNames, classLine, fisherNameOf, FISHER_WORDS, NAME_WORDS, FISH_OAR_MPS, LEGEND_LEVEL, FISHER_LEVEL } from '../../../src/systems/naval/navalShips.js';
-import { encounterClasses } from '../../../src/systems/naval/navalDirector.js';
+import { encounterClasses, directorShips } from '../../../src/systems/naval/navalDirector.js';
 import { flotsamKeys } from '../../../src/systems/naval/navalPlunder.js';
-import { navalWireRecord, validNavalRecord } from '../../../src/systems/naval/navalWire.js';
+import { navalWireRecord, validNavalRecord, NAVAL_WIRE_OLD_CLASSES, NAVAL_WIRE_SHIPS, NAVAL_WIRE_CASKS } from '../../../src/systems/naval/navalWire.js';
+import { LOT_KEYS, SALVAGE_LOT } from '../../../src/systems/naval/navalPlunder.js';
 import { SHIP_STATES } from '../../../src/systems/naval/navalDamage.js';
 import { HARBOUR_LEAVE, OWNER_SWEEP_S, SHIP_FADE_S } from '../../../src/scenes/naval/navalHost.js';
 import { createFishingFleet } from '../../../src/scenes/naval/fishingFleet.js';
@@ -288,9 +289,9 @@ test('FISH-BOATS her hold is her catch: a fishing boat taken gives up fish - FIS
   assert.ok(flotsamKeys(classById('merchantCoaster'), 7).length > 0, 'a merchantman\'s still floats');
   assert.match(NAVAL_HOST, /const holdOf = \(cls, seed, generate\) => \(cls\.fisher \? fishers\.catchOf\(cls, seed\) : drawHold\(cls, seed, generate\)\);/);
   assert.match(NAVAL_HOST, /entry\.prize = \{ hold: holdOf\(entry\.ship\.cls, entry\.ship\.seed,/);
-  // the word: her class row the last two, read back
+  // the word: her class row the last two, read back - PIN MOVED (AUDIT HORIZONTAL C4): on `h`, the later classes' key
   const word = navalWireRecord({ ships: [{ n: 3, classId: 'fishingSmack', variant: 0, pos: [10, 0, 20], yaw: 0.5, speed: 1, sails: 0.4, hull: 1, sail: 1, crew: 1, state: 'afloat', heel: 0, seed: 77, fire: false, runOut: 0, gen: 0, region: 17 }] });
-  assert.equal(word.s[0][1], SHIP_CLASSES.length - 1);
+  assert.equal(word.h[0][1], SHIP_CLASSES.length - 1);
   assert.equal(validNavalRecord(JSON.parse(JSON.stringify(word))).ships[0].classId, 'fishingSmack');
 });
 
@@ -299,7 +300,58 @@ test('FISH-BOATS by source: the naval host wires the fleet - built once over its
   assert.match(NAVAL_HOST, /harbourFrame\(seaY\);[^\n]*\n {4}fishers\.frame\(seaY\);/);
   assert.match(NAVAL_HOST, /life\.lights = !!where\(\)\.cityLights;/);
   assert.match(NAVAL_HOST, /if \(ship\.cls\.fisher\) return fishers\.errandOf\(ship\);/);
-  assert.match(NAVAL_HOST, /for \(const x of ships\) \{ const f = sea\.get\(x\.id\); if \(f\?\.ship\.cls\.fisher\) \{ x\.berthed = true; x\.engaged \|\|= !!f\.fisher && !x\.theirs; \} \}/);
+  // PIN MOVED (AUDIT HORIZONTAL C6): the director's ships made whole in navalDirector.js directorShips, the host's call pinned below
+  assert.match(readFileSync(new URL('../../../src/systems/naval/navalDirector.js', import.meta.url), 'utf8'), /for \(const x of ships\) \{ const f = entryOf\(x\.id\); if \(f\?\.ship\.cls\.fisher\) \{ x\.berthed = true; x\.engaged \|\|= !!f\.fisher && !x\.theirs; \} \}/);
   assert.match(NAVAL_HOST, /if \(e\.ship\.cls\.fisher\) e\.fisher = e\.ship\.errand\?\.harbour \?\? null;/);
   assert.match(NAVAL_HOST, /rolled = new WeakSet\(\); grids = new Map\(\);[^\n]*\n {4}fishers\.clear\(\);/);
+});
+
+/** The classes an older build's door knows, as it listed them (SHIP_CLASSES before FISH-BOATS, 844ccc064^1). */
+const OLDER_CLASSES = ['pirateSloop', 'pirateBrig', 'pirateGalley', 'pirateFlagship', 'merchantCoaster', 'merchantGalleon', 'merchantCarrack', 'navyCutter',
+  'navyGalley', 'legendWake', 'legendQueen', 'legendHunger', 'legendLantern', 'legendRegent', 'legendStarless'];
+
+test('AUDIT HORIZONTAL C4: an older build\'s door still passes a word with fishing boats in it - `s`, `f` and `w` carry only the rows it knows (NAVAL_WIRE_OLD_CLASSES, its own list), a fishing boat and her casks ride `h` and `j`, and the newer door reads them back whole; the ships share NAVAL_WIRE_SHIPS and the casks their kinds\' NAVAL_WIRE_CASKS (mutants: a fisher on `s`, her wreckage on `w`, `h` unread, `j` unread, the shared budget)', () => {
+  assert.deepEqual(SHIP_CLASSES.slice(0, NAVAL_WIRE_OLD_CLASSES).map((c) => c.id), OLDER_CLASSES);
+  const ship = (n, classId) => ({ n, classId, variant: 0, pos: [10 * n, 0, 5], yaw: 0, speed: 2, sails: 1, hull: 1, sail: 1, crew: 1, state: 'afloat', heel: 0, seed: 100 + n, fire: false, runOut: 0, gen: 0, region: 17, temper: 'bold', mode: 'cruise' });
+  const casks = [{ id: 7, pos: [1, 0, 1], from: 'pirateSloop', lot: SALVAGE_LOT }, { id: 8, pos: [2, 0, 2], from: 'fishingSkiff', lot: SALVAGE_LOT },
+    { id: 9, pos: [3, 0, 3], from: 'pirateSloop', lot: LOT_KEYS[0] }, { id: 10, pos: [4, 0, 4], from: 'fishingSmack', lot: LOT_KEYS[0] }];
+  const word = JSON.parse(JSON.stringify(navalWireRecord({ ships: [ship(1, 'pirateSloop'), ship(2, 'fishingSkiff'), ship(3, 'fishingSmack')], casks })));
+  const older = (rows) => rows.every((x) => x[1] < OLDER_CLASSES.length);
+  assert.ok(older(word.s) && (word.f ?? []).every((x) => x[4] < OLDER_CLASSES.length) && (word.w ?? []).every((x) => x[4] < OLDER_CLASSES.length), 'nothing an older door refuses on its keys');
+  assert.deepEqual(word.s.map((x) => x[0]), [1]);
+  assert.deepEqual(word.h.map((x) => SHIP_CLASSES[x[1]].id), ['fishingSkiff', 'fishingSmack']);
+  assert.deepEqual(word.j.map((x) => [x[0], x.length]), [[8, 5], [10, 6]]);
+  const read = validNavalRecord(word);
+  assert.deepEqual(read.ships.map((x) => x.classId), ['pirateSloop', 'fishingSkiff', 'fishingSmack']);
+  assert.deepEqual(read.casks.map((c) => [c.id, c.from, c.lot]), [[9, 'pirateSloop', LOT_KEYS[0]], [7, 'pirateSloop', SALVAGE_LOT], [8, 'fishingSkiff', SALVAGE_LOT], [10, 'fishingSmack', LOT_KEYS[0]]]);
+  // the budgets: eight ships between the two keys, twelve casks of a kind between theirs
+  const many = navalWireRecord({ ships: Array.from({ length: 12 }, (_, i) => ship(i + 1, i % 2 ? 'fishingSkiff' : 'pirateSloop')),
+    casks: Array.from({ length: 30 }, (_, i) => ({ id: i + 1, pos: [i, 0, 0], from: i % 2 ? 'fishingSkiff' : 'pirateSloop', lot: SALVAGE_LOT })) });
+  assert.equal(many.s.length + many.h.length, NAVAL_WIRE_SHIPS);
+  assert.equal(many.w.length + many.j.length, NAVAL_WIRE_CASKS);
+  assert.equal(validNavalRecord({ ...many, h: [...many.h, many.h[0]] }), null, 'a ninth ship on `h`: the word refused');
+  assert.equal(validNavalRecord({ s: [], j: [[1, 0, 0, 0, SHIP_CLASSES.length]] }), null, 'a `j` cask of no class');
+  assert.equal(validNavalRecord({ s: [], w: [[1, 0, 0, 0, 0, 0]] }), null, '`w` holds the wreckage alone');
+});
+
+test('AUDIT HORIZONTAL C6: the director\'s ships - a fishing boat fleeing a pirate marks her no pursuer (she was kept as if in a fight while her quarry ran), where an engaged ship of mine still makes her target engaged (NAV2 F27), and a port\'s boat is still berthed and kept; the host hands its ships to it (mutants: a fisher\'s quarry chased, F27 lost, the host unwired)', async () => {
+  const h = await sea({ hull: null, water: coast, settings: { ShipsAtSea: 'few' }, where: { day: 1 } });
+  h.view.feet = [0, 0, 300];
+  h.deps.harbourNear = () => PORT;
+  h.run(1);
+  const fisher = [...h.host._sea.values()].find((e) => e.ship.cls.fisher);
+  assert.ok(fisher, 'a port\'s boat stood');
+  const pirate = h.host._sea.get(h.host.spawnShip('pirateSloop', { range: 2500, bearing: Math.PI }));
+  const quarry = h.host._sea.get(h.host.spawnShip('pirateBrig', { range: 2600, bearing: Math.PI }));
+  const navy = h.host._sea.get(h.host.spawnShip('navyCutter', { range: 2400, bearing: Math.PI }));
+  fisher.ship.mode = 'flee'; fisher.ship.target = pirate.id;   // she runs from the pirate (navalAI.js: a merchantman's flee)
+  navy.ship.mode = 'engage'; navy.ship.target = quarry.id;
+  const row = (e, engaged = false) => ({ id: e.id, engaged, afloat: true, berthed: false });
+  const ships = directorShips([row(fisher), row(pirate), row(quarry), row(navy, true)], (id) => h.host._sea.get(id));
+  const by = new Map(ships.map((x) => [x.id, x]));
+  assert.equal(by.get(pirate.id).engaged, false, 'the pirate she flees: no fight of hers - the director may let her go');
+  assert.equal(by.get(quarry.id).engaged, true, 'the navy\'s quarry: in a fight (F27)');
+  assert.deepEqual([by.get(fisher.id).berthed, by.get(fisher.id).engaged], [true, true], 'the port\'s boat: its fleet\'s, kept');
+  assert.match(NAVAL_HOST, /directorShips\(ships, \(id\) => sea\.get\(id\)\);/);
+  assert.ok(NAVAL_HOST.indexOf('directorShips(ships,') < NAVAL_HOST.indexOf('const out = director.step(d, {'), 'before the director steps');
 });

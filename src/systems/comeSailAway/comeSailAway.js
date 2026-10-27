@@ -1047,6 +1047,7 @@ export function createComeSailAwayRuntime(deps) {
   /** StopSailing past its head: the player set down at the helm, the freeze lifted, OnUpdateSailing(false). */
   function stopSailingTail(currentBoat) {
     state.CurrentBoat = null;
+    currentBoat.way = 0;   // PASSAGE-PACE - AUDIT HORIZONTAL C9: off her helm she makes none, and the leads read none
     state.gale = null;   // SERPENT4: off her helm, no gale is hers
     state.oarThrottle = 0;   // HELM-LADDER: the oars shipped with the helm left
     unparentPlayer();
@@ -1613,6 +1614,7 @@ export function createComeSailAwayRuntime(deps) {
       UpdateBoatNodes(boat);
       if (!IsBeached(boat)) CheckCollision(boat);
     }
+    boat.way = 0;   // PASSAGE-PACE: none of her own unless laid below - warped, or (AUDIT HORIZONTAL C9) beached
     if (!IsBeached(boat)) {
       // QUAYS (the port's own - systems/naval/quays.js; the mod has no quays): her hands warping her in alongside a
       // harbour's quay - her sails struck and no oar pulling - take her way off and lay her this step where the host
@@ -1622,7 +1624,6 @@ export function createComeSailAwayRuntime(deps) {
         state.MoveVectorCurrent = [0, 0, 0];
         state.velocityCurrent = [0, 0, 0];
         state.TurnCurrent = 0;
-        boat.way = 0;   // PASSAGE-PACE: warped, no way of her own
         const before = t.worldMatrix();
         setPositionChecked(t, [f(w.pos[0]), t.position[1], f(w.pos[1])], log);
         setLocalRotationChecked(t, normalizeQ(w.rotation), log);

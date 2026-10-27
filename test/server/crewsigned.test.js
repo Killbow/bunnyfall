@@ -12,6 +12,11 @@ import { sharedClassicMinutes } from '../../src/net/wire.js';
 import { runCron } from '../../server-account/src/cron.js';
 import { ROUTES } from '../../server-account/src/service.js';
 import { hostText } from '../hostText.mjs';
+
+/** AUDIT HORIZONTAL G5: the service's clock held at one instant - a crew day turns every two real hours, and a test that
+ *  read the wall clock and then asked the service across the turn found its day either side of the law. */
+const AT_MS = Date.UTC(2026, 9, 27, 12, 30);
+const atOneInstant = (t) => t.mock.method(Date, 'now', () => AT_MS);
 import { readFileSync } from 'node:fs';
 
 test('CREW-SIGNED the law: a recruit\'s id is his hall\'s town, day and slot - the hall\'s own ids read, nothing else; the day is the shared clock\'s, a day either side asked (mutants: the slots, the span, the shared day)', () => {
@@ -26,7 +31,8 @@ test('CREW-SIGNED the law: a recruit\'s id is his hall\'s town, day and slot - t
   assert.deepEqual([d - 2, d - 1, d, d + 1, d + 2].map((x) => crewDayOk(x, ms)), [false, true, true, true, false]);
 });
 
-test('CREW-SIGNED the service: the first account to sign a recruit holds him for his day - asked again, the same; another is refused `crew-taken`; the hall says whose; a release by another lets nothing go, by the holder frees him; a bad id, a far day, a squatter refused (mutants: the holder unread, the release unowned, the cap, the day)', async () => {
+test('CREW-SIGNED the service: the first account to sign a recruit holds him for his day - asked again, the same; another is refused `crew-taken`; the hall says whose; a release by another lets nothing go, by the holder frees him; a bad id, a far day, a squatter refused (mutants: the holder unread, the release unowned, the cap, the day)', async (t) => {
+  atOneInstant(t);   // PIN MOVED (AUDIT HORIZONTAL G5): one instant, the service's and the day's
   const S = await standService();
   const day = crewDayAt(Date.now());
   const a = await S.registered('Ashby'), b = await S.registered('Brannoc');
@@ -67,7 +73,8 @@ test('CREW-SIGNED the service: the first account to sign a recruit holds him for
   assert.equal((await sign(b, `999:${day}:0`)).status, 200, 'another account\'s day its own');
 });
 
-test('CREW-SIGNED the sweep: the clock lets a row go CREW_SIGN_KEEP_DAYS past its day, never sooner (mutants: the keep)', async () => {
+test('CREW-SIGNED the sweep: the clock lets a row go CREW_SIGN_KEEP_DAYS (3, the record\'s) past its day, never sooner (mutants: the keep, G9 the keep\'s 3)', async () => {
+  assert.equal(CREW_SIGN_KEEP_DAYS, 3, 'AUDIT HORIZONTAL G9: the record says three days');
   const S = await standService();
   const nowS = Math.floor(Date.now() / 1000), day = crewDayAt(nowS * 1000);
   const put = S.env.DB._raw.prepare('INSERT INTO crew_signed (town, day, slot, player, at) VALUES (?, ?, ?, ?, ?)');
@@ -80,7 +87,8 @@ test('CREW-SIGNED the sweep: the clock lets a row go CREW_SIGN_KEEP_DAYS past it
   assert.deepEqual(S.env.DB._raw.prepare('SELECT day FROM crew_signed ORDER BY day DESC').all().map((x) => x.day), [day, day - CREW_SIGN_KEEP_DAYS]);
 });
 
-test('CREW-SIGNED the door (accountClient.js accountCrewSigns): the hall, a sign and a release through the real Worker behind the device\'s session (mutants: the routes)', async () => {
+test('CREW-SIGNED the door (accountClient.js accountCrewSigns): the hall, a sign and a release through the real Worker behind the device\'s session (mutants: the routes)', async (t) => {
+  atOneInstant(t);
   const S = await standService();
   const a = await S.registered('Corwen'), b = await S.registered('Dalla');
   const day = crewDayAt(Date.now());
@@ -106,7 +114,8 @@ function latent(db) {
   };
 }
 
-test('AUDIT HORIZONTAL C2: asked in parallel through the real Worker, each statement a round trip, an account holds CREW_SIGN_DAY_MAX and no more - the cap and the hold one statement (mutants: the cap)', async () => {
+test('AUDIT HORIZONTAL C2: asked in parallel through the real Worker, each statement a round trip, an account holds CREW_SIGN_DAY_MAX and no more - the cap and the hold one statement (mutants: the cap)', async (t) => {
+  atOneInstant(t);
   const S = await standService();
   const a = await S.registered('Squire');
   latent(S.env.DB);
@@ -121,7 +130,8 @@ test('AUDIT HORIZONTAL C2: asked in parallel through the real Worker, each state
   assert.equal(S.env.DB._raw.prepare('SELECT COUNT(*) AS n FROM crew_signed WHERE day = ?').get(day).n, CREW_SIGN_DAY_MAX);
 });
 
-test('AUDIT HORIZONTAL C8: the hold is the CHARACTER\'s - an account\'s second character is refused a man its first holds and sees him taken; the holder\'s pay-off lets him go, the other\'s lets nothing go; the day\'s cap is the account\'s across its characters (mutants: the holder an account, the cap a character\'s)', async () => {
+test('AUDIT HORIZONTAL C8: the hold is the CHARACTER\'s - an account\'s second character is refused a man its first holds and sees him taken; the holder\'s pay-off lets him go, the other\'s lets nothing go; the day\'s cap is the account\'s across its characters (mutants: the holder an account, the cap a character\'s)', async (t) => {
+  atOneInstant(t);
   const S = await standService();
   const a = await S.registered('Hollis'), c = await S.registered('Merrow');
   const day = crewDayAt(Date.now());

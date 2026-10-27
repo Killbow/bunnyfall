@@ -240,8 +240,10 @@ migration: the cap counts the account's holders by their prefix.
 
 The departure is the port's own (DFU has no crew hall). THE FOUR HOSTS: `world.js` tells the shipmaster's host whether
 the game is in the shared world; `worldModes.js`, `dungeonContext.js` and `exterior.js` stand no shipyard. Pins:
-`test/server/crewsigned.test.js` (the real Worker), `test/systems/shipyards1_host.test.js` (CREW-SIGNED, through the
-real service). Mutants: `tools/mutants/seaopen.json` (CREW-, all dead).
+`test/server/crewsigned.test.js` (the real Worker; AUDIT HORIZONTAL G5: its service tests hold the clock at one
+instant, as a crew day turns every two real hours; G9: the three days' keep pinned as stated),
+`test/systems/shipyards1_host.test.js` (CREW-SIGNED, through the real service). Mutants: `tools/mutants/seaopen.json`
+(CREW-, all dead).
 
 ## The lighthouse
 

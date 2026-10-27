@@ -61,3 +61,22 @@ test('PASSAGE-PACE csa: at her helm Come Sail Away lays her way on her each step
   s.frame();
   assert.equal(boat.way, 0, 'warped: no way of her own');
 });
+
+test('AUDIT HORIZONTAL C9: a ship run ashore under way keeps no way, nor one whose helm is let go - the leads read none (mutants: the beach\'s way left standing, the helm\'s)', () => {
+  const s = scene({ held: ['MoveForwards'] });
+  const boat = s.place(1, 0);
+  s.rt.StartSailing(boat);
+  for (let i = 0; i < 4; i++) s.frame();
+  assert.ok(boat.way > 0, 'pulling ahead');
+  s.terrains[0].tileMap.fill(5 << 2);   // land all round: she runs ashore
+  s.frame();
+  assert.equal(s.rt.IsBeached(boat), true);
+  assert.equal(boat.way, 0, 'beached: no way');
+  const t = scene({ held: ['MoveForwards'] });
+  const b = t.place(1, 0);
+  t.rt.StartSailing(b);
+  for (let i = 0; i < 4; i++) t.frame();
+  assert.ok(b.way > 0);
+  t.rt.StopSailing();
+  assert.equal(b.way, 0, 'her helm let go: no way');
+});

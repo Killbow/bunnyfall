@@ -64,7 +64,7 @@
 import { createShotField, insideGrown } from '../../systems/naval/navalShots.js';
 import { createNavalEffects } from '../../systems/naval/navalEffects.js';
 import { createNavalFeel, MY_SMOKE_FROM } from './navalFeel.js';   // COMBAT-FEEL: the near miss, the drench, the blow's side, the magazine, my hull's smoke
-import { createNavalDirector, DENSITY, seedBaseOf, SEED_SALT, DESPAWN_BEYOND, DEEP_BOLD, DEEP_TIER } from '../../systems/naval/navalDirector.js';
+import { createNavalDirector, directorShips, DENSITY, seedBaseOf, SEED_SALT, DESPAWN_BEYOND, DEEP_BOLD, DEEP_TIER } from '../../systems/naval/navalDirector.js';
 import { createSeaShip, stepCaptain, quatOfYaw, forwardOfYaw, velocityOf, provoke, hostile, lookoutOf, fightingPower, TEMPERS, HEAR_S, RUN_OUT_S, RUN_OUT_DEG, BOW_RUN_OUT, SPARE_S, GUNS_SEEN_S, PROVOKED_S, NAVY_HUNTS, temperOf } from '../../systems/naval/navalAI.js';
 import { wrapAngle, multiply } from '../../world/mat4.js';   // ONCRASH1: the port's one angle wrap; AUDIT GN-R5: a rig box turned with its boom
 import { createShipDamage, shotDamage, shotMen, ballMen, playerMen, SHIP_STATES, SINK_SECONDS, SINK_CLEAR, sinkAngles, sinkDepth, BRACE_TAKEN, FIRE_CHANCE, WRECKED_OARS, repairCost, STRUCK_AT } from '../../systems/naval/navalDamage.js';
@@ -4315,7 +4315,7 @@ export function createNavalHost(deps) {
   const holdOf = (cls, seed, generate) => (cls.fisher ? fishers.catchOf(cls, seed) : drawHold(cls, seed, generate));
   // PASSAGE-QUAY (scenes/naval/passageQuay.js): a booked ship brought in to a free berth of her port's harbour, laid by the
   // warp seam below as QUAYS' docking lays a ship of mine
-  const quay = createPassageQuay({ harbours, grid: gridOf, dockFree, putOff, boatPose, enabled: () => enabled, yawOf: yawOfRot,
+  const quay = createPassageQuay({ harbours, isWater: (x, z, hull) => deps.isWater(x, z, hull), dockFree, putOff, boatPose, enabled: () => enabled, yawOf: yawOfRot,   // AUDIT HORIZONTAL C3: her way planned and laid over the water itself
     along: (p, dx, dz, far) => seaHulls.along(p, dx, dz, far), now: () => clock });
   let dockPortsAt = -Infinity;
   /** The Fleet's word of where each boat of mine lies made fast (`deps.dockedPort(boat, name | null)`), once a second -
@@ -4467,11 +4467,7 @@ export function createNavalHost(deps) {
         if (!e.owner) ships.push({ id: e.id, pos: e.ship.pos, classId: e.ship.cls.id, engaged: (afloat && (e.ship.mode === 'engage' || e.ship.mode === 'board')) || boarding?.shipId === e.id || !!e.raider || !!e.liner || !!e.takenBy || !!e.ship.lashed || (!!e.fromHarbour && e.ship.errand?.kind === 'moored'), afloat, berthed: e.ship.errand?.kind === 'moored' });   // SEA-LANES: a packet is her lane's to let go, and counts in the density   // AUDIT SHIP-LIFE B2: a harbour's moored ship is the harbour's to drop (past HARBOUR_LEAVE), never the director's   // SHIP-LIFE: a harbour's own, apart from the sea's density
         else if (e.orphan == null && dist2d(e.ship.pos, feet) <= DESPAWN_BEYOND) ships.push({ id: e.id, pos: e.ship.pos, classId: e.ship.cls.id, theirs: true, afloat, berthed: atBerth(e.ship) });   // AUDIT SHIP-LIFE B1: another's moored ship is no more the sea's traffic than mine
       }
-      // AUDIT NAV2 F27: and a ship is in a fight while an engaged ship of mine targets her - SEA-PEACE's prize her taker
-      // comes for or takes, and a quarry running (let go from under the pursuer kept for her)
-      for (const x of ships) { const f = sea.get(x.id); if (f?.ship.cls.fisher) { x.berthed = true; x.engaged ||= !!f.fisher && !x.theirs; } }   // FISH-BOATS: a port's own boats, never the sea's traffic - its fleet's to let go
-      const chased = new Set(ships.filter((y) => y.engaged && !y.theirs).map((y) => sea.get(y.id)?.ship.target));
-      for (const x of ships) if (!x.theirs && chased.has(x.id)) x.engaged = true;
+      directorShips(ships, (id) => sea.get(id));   // AUDIT NAV2 F27: a ship an engaged one of mine targets is in a fight; FISH-BOATS: a port's boats its fleet's
       const relieving = [...sea.values()].some((e) => e.relief && !e.owner && e.ship.damage.state === SHIP_STATES.afloat);   // SEA-EASE
       const distress = relieving || w.ether ? null : distressAt(crown.name);   // ETHER-SEA: no navy past the Veil
       const out = director.step(d, {

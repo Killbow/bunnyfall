@@ -363,6 +363,8 @@ window is open, so a member who shut one after she crossed was left in open wate
 follows her to the pixel she stands in now, within the window, and the pixel that failed is not asked again.
 
 Named, not closed: a member aboard on an older build does not follow, and her party no longer holds her crossing back.
+AUDIT HORIZONTAL C7: the refusal's second sentence said she waits until no one else is aboard; it says "until only your
+party is aboard" now (`ether.cross.passengers`).
 
 Nothing new rides the wire. A journey that finds no landing sends the member back and says so. Pins: `test/systems/naval/veilparty.test.js`.
 Mutants: `tools/mutants/seaopen.json` (VEIL-, all dead). PINS MOVED: `ethercross.test.js`, `auditcaptsea.test.js`

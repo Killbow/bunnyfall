@@ -222,8 +222,23 @@ her master gives that quay up for this passage, says so, and the landfall sails 
 
 The words (`passage.js` PASSAGE_TEXT): `comesIn`, `madeFast`, `quayFoul`. While she comes in no try of her master's is
 made. A boat of mine, a passage to another port, a harbour past BRING_IN_M, or the sea fight switched off: none is
-brought in, and the warp seam is QUAYS' own. Pins: `test/scenes/naval/passagequay.test.js` (4, over the real naval
-host and pool: three hulls and a start behind a headland). Mutants: `tools/mutants/seaopen.json` (QUAY-, all dead).
+brought in, and the warp seam is QUAYS' own.
+
+AUDIT HORIZONTAL C3: she was moved along her own head while it came round (a turn some 16 m wide), never along the
+water's way, and the pin sampled her centreline alone from four starts facing open water. A Small Ship 30 m off a
+headland and heading for it was laid 12.8 m into it, a Carrack 21.4 m, and every start behind the headland clipped its
+tip by 2 m of beam. Her way is planned now over water clear TOW_CLEAR_M (3 m) past her beam all round (`beamWater`).
+She is warped along that way, never along her head, and makes way only with her head within TOW_SWING (10 degrees)
+of it; further off, she is warped round where she lies. A step whose footprint (`shipLife.js` footprintClear) would
+lie over land is held, as for a foul hull.
+
+Pins: `test/scenes/naval/passagequay.test.js` (6, over the real naval host and pool: three hulls, a start behind a
+headland, and C3's sweep - ten starts about the headland at eight headings for the Small Ship and the Carrack, her
+bow, waist and stern at both sides never over land, each made fast - and a rock risen across her way after it was
+planned). The stated values are pinned as stated (G9: TOW_FOUL_S 40, BRING_IN_M 700). Mutants:
+`tools/mutants/seaopen.json` (QUAY-, all dead). The naval host hands the tow the water (`isWater`) where it handed the
+errands' grid. Left to the author (the audit's suspected item): a ship under way across her way still counts toward
+TOW_FOUL_S - a navy cutter leaving the next berth at 0.5 m/s held her the 40 s on one day in six.
 
 ## The journey's leads at her pace (PASSAGE-PACE, 2026-10-27)
 
@@ -234,6 +249,11 @@ or the way of the boat at the helm where it is more. Come Sail Away lays that wa
 velocity's length), and none while a quay warps her. Measured on the host run (a Small Ship at x100 making 12.5 m/s,
 every build two seconds): sized by the motor she sailed 44.6 s in owed pixels; sized by her way, none. The x60 is
 RATE-LAW's and stands.
+
+AUDIT HORIZONTAL C9: her way was laid only while she floated free, so a ship run ashore at 12.5 m/s kept 12.5, and so
+did one whose helm was let go; the leads were sized as if she sailed. Each step lays her way nought before it lays it
+again (beached or warped it stays nought), and StopSailing lays it nought. Come Sail Away's runtime takes one logical
+line for it (2,498 -> 2,499, inside its ceiling): the way is its own field, laid nowhere else.
 
 PINS MOVED: `ow6_slowdown.test.js`, `tv2_click_to_move.test.js` (the pace's name); the rigs of
 `ow_loadowed`, `ow_queueowed`, `ow_toggle` and `tv_wasd` given `travellerPace`. Pins: `ow_lead.test.js`, `passage_csa.test.js` (PASSAGE-PACE). Mutants:

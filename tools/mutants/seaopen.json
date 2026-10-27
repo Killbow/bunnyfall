@@ -199,7 +199,7 @@
   },
   {
     "name": "FISH-the-director-counting-them",
-    "file": "src/scenes/naval/navalHost.js",
+    "file": "src/systems/naval/navalDirector.js",
     "old": "if (f?.ship.cls.fisher) { x.berthed = true; x.engaged ||= !!f.fisher && !x.theirs; }",
     "new": "if (f?.ship.cls.fisher) { x.engaged ||= !!f.fisher && !x.theirs; }",
     "tests": [
@@ -256,6 +256,123 @@
     "file": "src/scenes/naval/navalHost.js",
     "old": "    if (e.ship.cls.fisher) e.fisher = e.ship.errand?.harbour ?? null;",
     "new": "    if (e.ship.cls.fisher) e.fisher = null;",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-a-fisher-on-s",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "(cls < NAVAL_WIRE_OLD_CLASSES ? s : h).push([sh.n | 0,",
+    "new": "(cls < NAVAL_WIRE_OLD_CLASSES + 2 ? s : h).push([sh.n | 0,",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-her-wreckage-on-w",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "const old = cls < NAVAL_WIRE_OLD_CLASSES;",
+    "new": "const old = cls <= NAVAL_WIRE_OLD_CLASSES;",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-the-older-rows",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "export const NAVAL_WIRE_OLD_CLASSES = 15;",
+    "new": "export const NAVAL_WIRE_OLD_CLASSES = 17;",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-h-unsaid",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "  if (h.length) out.h = h;\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-h-unread",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "b = raw.b ?? [], later = raw.h ?? [];",
+    "new": "b = raw.b ?? [], later = [];",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-j-unread",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "wrecks = raw.w ?? [], later2 = raw.j ?? [];",
+    "new": "wrecks = raw.w ?? [], later2 = [];",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-the-shared-ships",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "    if (s.length + h.length >= NAVAL_WIRE_SHIPS) break;",
+    "new": "    if (s.length >= NAVAL_WIRE_SHIPS) break;",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-the-doors-ships",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "if (s.length + later.length > NAVAL_WIRE_SHIPS ||",
+    "new": "if (s.length > NAVAL_WIRE_SHIPS ||",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-the-shared-casks",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "(salvage ? w : f).length + j.filter((x) => (x.length === 5) === salvage).length >= NAVAL_WIRE_CASKS",
+    "new": "(salvage ? w : f).length >= NAVAL_WIRE_CASKS",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C4-a-lot-on-w",
+    "file": "src/systems/naval/navalWire.js",
+    "old": "!wrecks.every((w) => w?.length === 5)",
+    "new": "!wrecks.every((w) => w?.length >= 5)",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C6-a-fishers-quarry-chased",
+    "file": "src/systems/naval/navalDirector.js",
+    "old": "y.engaged && !y.theirs && !entryOf(y.id)?.ship.cls.fisher",
+    "new": "y.engaged && !y.theirs",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C6-F27-lost",
+    "file": "src/systems/naval/navalDirector.js",
+    "old": "  for (const x of ships) if (!x.theirs && chased.has(x.id)) x.engaged = true;\n",
+    "new": "",
+    "tests": [
+      "test/systems/naval/fishboats.test.js"
+    ]
+  },
+  {
+    "name": "FISH-C6-the-host-unwired",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "      directorShips(ships, (id) => sea.get(id));",
+    "new": "      void directorShips;",
     "tests": [
       "test/systems/naval/fishboats.test.js"
     ]
@@ -326,8 +443,8 @@
   {
     "name": "QUAY-the-hull-unread",
     "file": "src/scenes/naval/passageQuay.js",
-    "old": "    if (host.along([p[0] + fx * bow, p[1], p[2] + fz * bow], fx, fz, TOW_FOUL_M) < TOW_FOUL_M) {",
-    "new": "    if (false) {",
+    "old": "    if (host.along([p[0] + fx * bow, p[1], p[2] + fz * bow], fx, fz, TOW_FOUL_M) < TOW_FOUL_M) return held(head);",
+    "new": "    if (false) return held(head);",
     "tests": [
       "test/scenes/naval/passagequay.test.js"
     ]
@@ -405,6 +522,87 @@
     ]
   },
   {
+    "name": "QUAY-C3-the-way-on-her-centreline",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "grid = createWaterGrid({ isWater: beamWater(host.isWater, boat.hull), hull: boat.hull });",
+    "new": "grid = createWaterGrid({ isWater: host.isWater, hull: boat.hull });",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-the-beam-unread",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "  const r = hullBuild(hull).halfWidth + TOW_CLEAR_M;",
+    "new": "  const r = 0;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-along-her-head",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "    const next = { pos: [p[0] + dx * k, p[2] + dz * k], yaw: head };",
+    "new": "    const next = { pos: [p[0] + fx * s, p[2] + fz * s], yaw: head };",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-way-while-she-swings",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "Math.abs(wrapAngle(want - head)) <= TOW_SWING ? Math.min(d, way * dt) : 0;",
+    "new": "Math.min(d, way * dt);",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-the-swing",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "export const TOW_SWING = 10 * (Math.PI / 180);",
+    "new": "export const TOW_SWING = 11 * (Math.PI / 180);",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-the-land-unread",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "    if (!fits(next.pos, head) && fits([p[0], p[2]], yaw)) return held(fits([p[0], p[2]], head) ? head : yaw);\n",
+    "new": "",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C3-the-host-water",
+    "file": "src/scenes/naval/navalHost.js",
+    "old": "createPassageQuay({ harbours, isWater: (x, z, hull) => deps.isWater(x, z, hull),",
+    "new": "createPassageQuay({ harbours, isWater: () => true,",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-G9-the-foul-40",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "export const TOW_FOUL_S = 40;",
+    "new": "export const TOW_FOUL_S = 60;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-G9-the-reach-700",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "export const BRING_IN_M = 700;",
+    "new": "export const BRING_IN_M = 900;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
     "name": "PACE-the-boat-unread",
     "file": "src/systems/travel/travelGovernor.js",
     "old": "export const travellerPace = (player, boat) => Math.max(player?.speed ?? 0, Number(boat?.way) || 0);",
@@ -443,7 +641,7 @@
   {
     "name": "PACE-the-warps-left-standing",
     "file": "src/systems/comeSailAway/comeSailAway.js",
-    "old": "        boat.way = 0;   // PASSAGE-PACE: warped, no way of her own\n",
+    "old": "    boat.way = 0;   // PASSAGE-PACE: none of her own unless laid below - warped, or (AUDIT HORIZONTAL C9) beached\n",
     "new": "",
     "tests": [
       "test/systems/comeSailAway/passage_csa.test.js"
@@ -456,6 +654,15 @@
     "new": "speedMps: player?.speed ?? 0 });   // OW-LEAD",
     "tests": [
       "test/systems/travel/ow_lead.test.js"
+    ]
+  },
+  {
+    "name": "PACE-C9-the-helms-way-left-standing",
+    "file": "src/systems/comeSailAway/comeSailAway.js",
+    "old": "    currentBoat.way = 0;   // PASSAGE-PACE - AUDIT HORIZONTAL C9: off her helm she makes none, and the leads read none\n",
+    "new": "",
+    "tests": [
+      "test/systems/comeSailAway/passage_csa.test.js"
     ]
   },
   {
@@ -759,6 +966,15 @@
     ]
   },
   {
+    "name": "CREW-G9-the-keep-3",
+    "file": "src/net/crewSignLaw.js",
+    "old": "export const CREW_SIGN_KEEP_DAYS = 3;",
+    "new": "export const CREW_SIGN_KEEP_DAYS = 4;",
+    "tests": [
+      "test/server/crewsigned.test.js"
+    ]
+  },
+  {
     "name": "VEIL-the-window",
     "file": "src/scenes/naval/veilParty.js",
     "old": "rode.off > VEIL_FOLLOW_MS ||",
@@ -944,6 +1160,15 @@
     "file": "src/scenes/naval/veilParty.js",
     "old": "if (rode.tried && rode.tried.x === row.p.px && rode.tried.y === row.p.py) return;",
     "new": "if (false) return;",
+    "tests": [
+      "test/systems/naval/veilparty.test.js"
+    ]
+  },
+  {
+    "name": "VEIL-C7-the-words",
+    "file": "src/systems/naval/etherCrossing.js",
+    "old": "The crossing waits until only your party is aboard.'",
+    "new": "The crossing waits until no one else is aboard.'",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]
