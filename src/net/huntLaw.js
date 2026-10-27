@@ -89,8 +89,8 @@ export function huntTierFits(level, seen) {
 
 /** The marks' given names - a beast is called "<name> the <beast>". The port's own, never translated (names). */
 export const HUNT_MARK_NAMES = Object.freeze([
-  'Grimtooth', 'Ashmaw', 'Old Scar', 'Bloodhide', 'Gorefang', 'Hollowgut', 'Nightclaw', 'Rotmaw',
-  'Stonehide', 'Grey Hunger', 'Mudjaw', 'Ironback', 'Blackmane', 'Hookclaw', 'Soot', 'Rimefang',
+  'Grimtooth', 'Ashmaw', 'Scarneck', 'Bloodhide', 'Gorefang', 'Hollowgut', 'Nightclaw', 'Rotmaw',
+  'Stonehide', 'Greymaw', 'Mudjaw', 'Ironback', 'Blackmane', 'Hookclaw', 'Soot', 'Rimefang',
 ]);
 const SALT = Object.freeze({ beast: 0x6d1, name: 0x6d2, site: 0x6d3, traits: 0x6d4 });
 /** The week's named beast of a level's tier: `{ tier, foe, name }` - one a tier a week, the same at every board. */

@@ -9,7 +9,8 @@ import { ENEMY_BASICS, enemyDisplayName } from '../../characters/enemy/enemyBasi
 import { getLocalizedEnemyName, t } from '../textManager.js';
 import { TROPHY_TEMPLATE, trophyFoeOf, trophyNameIndexOf } from '../../net/trophyLaw.js';
 import { HUNT_MARK_NAMES } from '../../net/huntLaw.js';
-import { hideOfFoe } from '../../net/professionLaw.js';
+import { hideOfFoe, HIDES, HIGH_HIDE_TIER } from '../../net/professionLaw.js';
+import { BOUNTY_TIERS } from '../bounty/bountyBoard.js';
 import { noteGathered } from './gatheredLog.js';
 import { addItem } from '../inventory.js';
 
@@ -24,6 +25,11 @@ export function trophyArchiveOf(/** @type {number} */ foe) {
   const kin = hideOfFoe(foe)?.foes?.find((f) => Number.isSafeInteger(/** @type {any} */ (ENEMY_BASICS)[f]?.maleTexture));
   return kin == null ? null : Number(/** @type {any} */ (ENEMY_BASICS)[kin].maleTexture);
 }
+/** Every beast a trophy can be of, in the boards' tiers' order then the high hides': a named mark is one of the boards'
+ *  beasts, a Trophy Hunter's a body of a hide of HIGH_HIDE_TIER or past it - the classic ones (a mod's beast is listed
+ *  once taken). The Collections page's Trophies part lists them (ui/collections/gatheredPart.js). */
+export const TROPHY_BEASTS = Object.freeze([...new Set([...BOUNTY_TIERS.flatMap((t) => t.foes),
+  ...HIDES.filter((h) => h.tier >= HIGH_HIDE_TIER).flatMap((h) => h.foes)])].filter((f) => /** @type {any} */ (ENEMY_BASICS)[f] && trophyArchiveOf(f) != null));
 /** A beast's name in the player's language. */
 export const trophyBeastName = (/** @type {number} */ foe) => getLocalizedEnemyName(foe, enemyDisplayName(foe) ?? '?');
 /** What a trophy is called: "Gorefang the Grizzly Bear" for a mark's, the beast's own name otherwise. */
@@ -66,3 +72,5 @@ export function giveTrophySaved(/** @type {any} */ entity, /** @type {number} */
   if (item) saved?.();
   return !!item;
 }
+/** The door a host hands the hunt's kind: `saveSoon` the save's; the entity the gather host's, at each trophy. */
+export const trophyDoor = (/** @type {{ changed: () => void }} */ saveSoon) => (/** @type {number} */ foe, /** @type {any} */ entity) => giveTrophySaved(entity, foe, () => saveSoon.changed());

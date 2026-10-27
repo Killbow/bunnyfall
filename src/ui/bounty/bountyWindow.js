@@ -252,13 +252,13 @@ export function mountBountyBoard(host, deps) {
   /** HUNTERS-MARK: the named mark's row - its title, tier, purse and trophy, and where the hunter stands with it. */
   function markRow(/** @type {any} */ mk) {
     const p = mk.posting;
-    const li = el('li', `bounty-post bounty-mark bounty-post-imark${picked === 'mark' ? ' on' : ''} st-${mk.state}`);
+    const li = el('li', ['bounty-post', 'bounty-mark', 'bounty-post-imark', picked === 'mark' ? 'on' : '', `st-${mk.state}`].filter(Boolean).join(' '));
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
     li.setAttribute('aria-pressed', picked === 'mark' ? 'true' : 'false');
     const main = el('div', 'bounty-post-body');
     main.append(el('span', 'bounty-post-title', p.title), el('span', 'bounty-post-meta', t('hunt.mark.meta', 'Named beast · Tier {tier} · {gold} gold · a trophy', { tier: p.tier, gold: p.gold })));
-    li.append(main, el('span', `bounty-state st-${mk.state}`, markStateWord(mk.state)));
+    li.append(main, el('span', ['bounty-state', `st-${mk.state}`].join(' '), markStateWord(mk.state)));
     const pick = () => { picked = 'mark'; word = null; armed = null; landed = null; render(); };
     li.onclick = pick;
     li.onkeydown = (e) => { if (e.target === li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault?.(); pick(); } };

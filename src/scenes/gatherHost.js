@@ -950,7 +950,7 @@ export function createGatherHost(deps) {
           if (at === 50 || at === 100) hud.toast('You can now choose a specialization on the Professions page (pause menu > Stats).');
         }
       }
-      try { k?.answered?.(d, (t) => hud.toast(t), { hauled }); } catch (e) { console.warn('[gather] an answer', e); }   // PROF8: a trophy into the pack; HAUL-CARDS: `hauled` - its card said the goods (a Motherlode's silver on it)
+      try { k?.answered?.(d, (t) => hud.toast(t), { hauled, entity: deps.entity?.() ?? null }); } catch (e) { console.warn('[gather] an answer', e); }   // PROF8: a trophy into the pack; HAUL-CARDS: `hauled` - its card said the goods (a Motherlode's silver on it)
       chipProfession = profession;
       chipLeft = CHIP_S;
       // PROF4: the node's fall (fell) - GATHER-SPEED: once, at the act's end where it went then (fallNow)

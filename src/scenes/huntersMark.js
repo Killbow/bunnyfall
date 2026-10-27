@@ -23,6 +23,9 @@ import { addGoldPieces } from '../systems/inventory.js';
 import { registerModSaveData } from '../systems/modSaveData.js';
 import { giveTrophy, trophyTitle, trophyItemName } from '../systems/hunt/trophies.js';
 import { t } from '../systems/textManager.js';
+import { accountHunt } from '../net/accountClient.js';
+import { appStorage } from '../systems/appStorage.js';
+import { characterIdOf } from '../systems/characterId.js';
 import { BOUNTY_RING_R } from '../ui/bounty/bountyMapMark.js';
 import { TITLE_RGBA, cssRgba } from '../ui/playerBadge.js';
 
@@ -32,18 +35,25 @@ export const HUNT_MARK_TRAITS = 2;
 /** How long after a failed stand the next try waits, and how often a far mark is asked again (s) - the board's own. */
 const RETRY_S = 4, FAR_S = 1.5;
 
+/** The online world's hunt deps, built here so the host's scope does not grow (HOST-SPLIT): the ledger's door and its
+ *  store, the save told. Null offline: the rank and the marks are the service's alone. */
+export function huntOnline(/** @type {boolean} */ online, /** @type {{ changed: () => void }} */ saveSoon) {
+  if (!online) return null;
+  return { door: accountHunt({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }), storage: appStorage(), saved: () => saveSoon.changed() };
+}
+
 /** The week's two traits for a tier, the same on every client. */
 export const huntMarkTraits = (/** @type {number} */ week, /** @type {number} */ tier) => rollBossTraits(HUNT_MARK_TRAITS, eliteRng(huntMarkSeed(week, tier)));
 
 /**
- * @param {{ hunt?: { door: any, storage?: any, character: () => (string|null), saved?: () => void } | null,
+ * @param {{ hunt?: { door: any, storage?: any, character?: () => (string|null), saved?: () => void } | null,
  *   now: () => number, level: () => number, entity: () => any, townName: (px: number, py: number) => string,
  *   regionAt?: (px: number, py: number) => number, sitesFor: (px: number, py: number) => Array<[number, number]>,
  *   playerPixel: () => ({x: number, y: number} | null), canStand: () => boolean, standPack: (o: any) => any,
  *   foePool?: () => any[], say: (line: string) => void, notice: (n: any) => void, repaint: () => void, wallNow?: () => number }} deps
  */
 export function createHuntersMark(deps) {
-  const book = deps.hunt?.door ? createHuntBook({ door: deps.hunt.door, storage: deps.hunt.storage ?? null, character: deps.hunt.character, now: () => wallNow() }) : null;
+  const book = deps.hunt?.door ? createHuntBook({ door: deps.hunt.door, storage: deps.hunt.storage ?? null, character: deps.hunt.character ?? (() => characterIdOf(deps.entity())), now: () => wallNow() }) : null;
   setHuntBook(book);
   /** The online world's wall clock: the event clock's own instant (a mark's week is the seats'). */
   const wallNow = () => deps.wallNow?.() ?? wallMsForClassicMinutes(deps.now());

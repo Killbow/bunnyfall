@@ -140,7 +140,7 @@ const PER_CHARACTER = Object.freeze({ scope: 'character' });
 
 /** HUNTERS-MARK, MARKS-OF-MASTERY: a title's count off the law both ends read (net/huntLaw.js) - the account's board
  *  clears, the serpents it helped slay - and a profession's Master. */
-const countOf = (/** @type {ReadonlyArray<readonly [string, number]>} */ list, /** @type {string} */ id) => list.find(([k]) => k === id)?.[1] ?? 0;
+const countOf = (/** @type {ReadonlyArray<ReadonlyArray<string | number>>} */ list, /** @type {string} */ id) => Number(list.find(([k]) => k === id)?.[1] ?? 0);
 const hunt = (/** @type {string} */ id) => () => t('coll.how.hunt', 'Clear {n} bounties from the towns’ bounty boards. Every character of your account counts.', { n: countOf(HUNT_TITLES, id) });
 const sea = (/** @type {string} */ id) => () => t('coll.how.sea', 'Help slay {n} Sea Serpents. One serpent a day counts.', { n: countOf(SEA_TITLES, id) });
 const master = (/** @type {string} */ prof) => () => t('coll.how.mastery', 'Reach Master in {profession} on a living character of your account.', { profession: professionName(prof) });

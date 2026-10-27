@@ -172,6 +172,9 @@ export function huntPlan({ body, taken, counting, rank, storesFull, high, loot =
   return { harvest, verb, rest: rankWord, ready: true };
 }
 
+/** HUNTERS-MARK: the line a Trophy Hunter's trophy is told in. */
+export const trophyLine = (/** @type {number} */ foe) => t('hunt.trophy.hunted', 'A trophy of the {beast}. It is in your pack.', { beast: trophyBeastName(foe) });
+
 /**
  * HUNTING'S KIND in the gathering host (scenes/gatherHost.js): the stamped bodies as loose nodes, the plan, the act.
  * @param {{ book: any, bodies: () => any[], openLoot?: ((key: string) => void)|null }} deps `bodies` the stamped bodies where
@@ -180,9 +183,6 @@ export function huntPlan({ body, taken, counting, rank, storesFull, high, loot =
  *   corpse's box, and E opened nothing); without it the press is passed on, AUDIT 29 C1's way
  * @returns {import('./gatherHost.js').GatherKind}
  */
-/** HUNTERS-MARK: the line a Trophy Hunter's trophy is told in. */
-export const trophyLine = (/** @type {number} */ foe) => t('hunt.trophy.hunted', 'A trophy of the {beast}. It is in your pack.', { beast: trophyBeastName(foe) });
-
 export function huntKind({ book, bodies, openLoot = null, trophy = null }) {
   /** Whether a body may be searched: its loot's key, where the world opens loot by key (an emptied body none). */
   const searchable = (b) => !openLoot || !!b?.lootKey?.();
@@ -247,12 +247,13 @@ export function huntKind({ book, bodies, openLoot = null, trophy = null }) {
     /** The account's day, as the chip says it: its hides today (CAP-OFF: against no cap). */
     tally: () => ({ n: book.state.hunt?.hides ?? 0 }),
     /** HUNTERS-MARK (Professions-Arc 57): a Trophy Hunter's trophy, the service's word on a clean pelt of a tier 5+ body -
-     *  the beast skinned (a reloaded page's kept harvest: its hide's first foe), into the pack once. */
-    answered(/** @type {any} */ d, /** @type {(t: string) => void} */ toast) {
+     *  the beast skinned (a reloaded page's kept harvest: its hide's first foe), into the pack once - the gather host's
+     *  `entity`'s. */
+    answered(/** @type {any} */ d, /** @type {(t: string) => void} */ toast, /** @type {any} */ o = null) {
       if (!d?.trophy || !d.node || mounted.has(d.node) || typeof trophy !== 'function') return;
       mounted.add(d.node);
       const foe = skinned.get(d.node) ?? HIDES.find((h) => h.key === d.material)?.foes?.[0];
-      if (Number.isSafeInteger(foe) && trophy(foe)) toast(trophyLine(foe));
+      if (Number.isSafeInteger(foe) && trophy(foe, o?.entity ?? null)) toast(trophyLine(foe));
     },
     cleanNote: () => ' (a clean pelt)',
     /** AUDIT 32 P10: the trace's end said - a clean pelt, a torn one (its part lost), or a true line drawn too quick or

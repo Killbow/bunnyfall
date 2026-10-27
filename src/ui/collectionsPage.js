@@ -34,6 +34,7 @@ import { cardsPartShown, drawCardsPart, resetCardsPart, disarmCardsPart, deckCar
 import { collectionOf } from '../systems/iliac/iliacItems.js';   // COLLECTIONS-II: the Cards tile's count
 import { t } from '../systems/textManager.js';
 import { wardrobeCount, wordPair } from './collections/wardrobeCatalogue.js';   // COLLECTIONS-II: the wardrobe's parts
+import { GATHERED_PARTS, isGatheredPart, gatheredCount, drawGatheredPart } from './collections/gatheredPart.js';   // HUNTERS-MARK: the Trophies, the Fish, the Annals
 import { drawWardrobePart, wardrobeAccount, wardrobeOfFlow, resetWardrobePart, rereadWardrobeAccount, WARDROBE_PART_CSS, WARDROBE_THEME_CSS } from './collections/wardrobePart.js';
 
 export const COLLECTION_PAGE_SECTIONS = Object.freeze([Object.freeze(['collections', 'Collections'])]);
@@ -47,6 +48,7 @@ export const COLLECTION_PARTS = Object.freeze([
   wordPair('glyphs', () => t('coll.part.glyphs', 'Glyphs')),
   wordPair('codex', () => t('coll.part.codex', 'Codex')),
   wordPair('cards', () => t('coll.part.cards', 'Cards')),
+  ...GATHERED_PARTS,   // HUNTERS-MARK (Collections.md section 9): what a character gathers, then the account's pages
 ]);
 /** COLLECTIONS-II: the wardrobe's parts and the kind each lists (ui/collections/wardrobeCatalogue.js WARDROBE_KINDS). */
 export const WARDROBE_PARTS = Object.freeze({ titles: 'title', auras: 'aura', icons: 'icon', glyphs: 'glyph' });
@@ -116,6 +118,7 @@ export function drawCollectionsPage(detail, rerender, kit) {
   const goTo = (/** @type {string} */ k) => { const id = partOfKind(k); if (id) { _part = id; disarmCardsPart(); } };
   if (kind) drawWardrobePart(detail, rerender, { ...kit, goTo }, kind, flow);
   else if (_part === 'codex') drawCodexPart(detail, rerender, kit);
+  else if (isGatheredPart(_part)) drawGatheredPart(detail, kit, _part, wardrobeOfFlow(flow));   // HUNTERS-MARK
   else drawCardsPart(detail, rerender, kit);
 }
 
@@ -125,6 +128,7 @@ export function drawCollectionsPage(detail, rerender, kit) {
 export function partCount(/** @type {string} */ id, /** @type {any} */ wardrobe, /** @type {any} */ player = null) {
   const kind = WARDROBE_PARTS[/** @type {keyof typeof WARDROBE_PARTS} */ (id)];
   if (kind) { const n = wardrobeCount(kind, wardrobe); return { held: wardrobe ? n.held : null, total: n.total }; }
+  if (isGatheredPart(id)) return gatheredCount(id, wardrobe);   // HUNTERS-MARK
   if (id === 'codex') { const n = codexCount(); return { held: n.gilded + n.legendary + n.aetheric, total: n.gildeds + n.legendaries + n.aetherics }; }
   const have = collectionOf(player?.items);
   const all = deckCards();
