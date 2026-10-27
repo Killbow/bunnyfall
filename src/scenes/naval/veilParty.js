@@ -7,6 +7,7 @@
 import { memberPresent } from '../../systems/party/partyRestLaw.js';
 import { besideTargetOf } from '../../systems/party/partyTravelLaw.js';
 import { CROSS_DAYS } from '../../systems/naval/etherCrossing.js';
+import { inEther } from '../../world/ethericSea.js';
 import { t } from '../../systems/textManager.js';
 
 /** How long after my last frame aboard her a crossing of her captain's is followed (ms): her jump, her landfall built
@@ -35,13 +36,15 @@ export function veilJourney(to, name, row) {
 
 /**
  * deps = { social() -> net/social.js's picture (others(), accountOfPeer, isPartyPeer) | null, aboard() -> CSA-K's aboard
- * ({ owner }) | null, here() -> my travel pixel, across(x, y) -> past the Veil, ready() -> outdoors, on my feet, nothing
- * moving me, now() -> ms (optional; the page's clock), travel(pick, opts, computed) -> Promise<boolean> (the party's journey), say(text) }
+ * ({ owner }) | null, here() -> my travel pixel, across(x, y) -> past the Veil (optional; world/ethericSea.js inEther),
+ * ready() -> outdoors, on my feet, nothing moving me, now() -> ms (optional; the page's clock),
+ * travel(pick, opts, computed) -> Promise<boolean> (the party's journey), say(text) }
  * @param {any} deps
  */
 export function createVeilParty(deps) {
   /** @type {{ acct: string, side: boolean, at: number } | null} */
   let rode = null;
+  const across = deps.across ?? inEther;
   let following = false;
   const rowOf = (acct) => deps.social?.()?.others?.().find((m) => m.acct === acct) ?? null;
 
@@ -54,11 +57,11 @@ export function createVeilParty(deps) {
     const here = deps.here();
     const owner = deps.aboard?.()?.owner ?? null;
     const acct = owner ? deps.social?.()?.accountOfPeer?.(owner) ?? null : null;
-    if (acct && rowOf(acct)) rode = { acct, side: !!deps.across(here.x, here.y), at: now };
+    if (acct && rowOf(acct)) rode = { acct, side: !!across(here.x, here.y), at: now };
     if (!rode) return;
-    if (now - rode.at > VEIL_FOLLOW_MS || !!deps.across(here.x, here.y) !== rode.side) { rode = null; return; }
+    if (now - rode.at > VEIL_FOLLOW_MS || !!across(here.x, here.y) !== rode.side) { rode = null; return; }
     const row = rowOf(rode.acct);
-    if (!row || !memberPresent(row) || !!deps.across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;
+    if (!row || !memberPresent(row) || !!across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;
     const acctNow = rode.acct, name = row.name || t('veil.party.captain', 'your captain');
     const to = { x: row.p.px, y: row.p.py };
     following = true;

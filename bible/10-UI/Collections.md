@@ -21,7 +21,7 @@ had no way to see what else exists or how it is had.
 
 ## 2. The page now
 
-The Collections page shows for every player (`collectionsPageShown`), in seven parts (APPEARANCES added the seventh, section 9), a switch of tiles at the top:
+The Collections page shows for every player (`collectionsPageShown`), in ten parts (APPEARANCES added the seventh, section 9; HUNTERS-MARK three more, section 10), a switch of tiles at the top:
 
 | Part | What it lists | Whose |
 | --- | --- | --- |
@@ -32,6 +32,9 @@ The Collections page shows for every player (`collectionsPageShown`), in seven p
 | Appearances | every look a piece can be drawn as (section 9) | the character's |
 | Codex | LOOT10's codex, as before - shown while Loot rarity is on | the character's |
 | Cards | the Card Binder's collection and decks, as before - shown while a binder is carried | the character's |
+| Trophies | every beast a mounted trophy can be of, and the ones taken (HUNTERS-MARK) | the character's |
+| Fish | every fish the net brings up, and the ones caught (HUNTERS-MARK) | the character's |
+| Annals | the thirty pages of the Annals of 3E 398, and the ones kept (HUNTERS-MARK) | the account's |
 
 Each tile is its part's name over its count (`3 / 52`) and the kit's meter of it, so the page opens on how much of
 everything is collected. A count the page cannot know - the account not read, nobody signed in - is a dash, and its meter
@@ -192,8 +195,8 @@ frames go to a scratch directory, never the tree. Run after the audit's fixes: 3
 - High Master follows Chapter Master's holding whatever the chapter's band; it is dormant while CHAPTER_TITLES is off,
   and is to be said exactly when that switch turns. A guild holding a palace and a crown wears the crown's title over
   Warden's (`townSeatLaw.js` seatTitleOf); the page does not say so.
-- Other things a player gathers - the Annals of 3E 398's pages, the fish caught, a horse's coats - could each be a
-  part of their own; none was asked for here.
+- Other things a player gathers: the Annals' pages, the fish caught and the trophies taken are parts since
+  HUNTERS-MARK (section 9). A horse's coats are not (section 9 says why).
 
 ## 8. The audit's changes to older records
 
@@ -229,3 +232,27 @@ A row opened says how it is had ("Hold a Steel Cuirass, style 2: buy it, find it
 or Collected.) and where it is worn ("Over any piece of its kind (Chest), at a Clothing Store, an Armorer or a
 Weaponsmith, for 25 gold."). Its roles are the kit's (a filter a tile, a row a list line, a row opened a panel, a chip a
 tag); its sheet (`LOOKS_PART_CSS`) writes the meter's geometry alone. Pinned: `test/ui/appearances_part.test.js`.
+
+## 10. HUNTERS-MARK and MARKS-OF-MASTERY (2026-10-27)
+
+The bounty boards' progression (`06-Systems/Bounty-Boards.md` section 12) added to the catalogue and the page.
+
+**The catalogue.** Two sources after the questlines: **The Hunt** (Bloodhound, Beastbane, Grand Huntsman, Legend of the
+Hunt, at 25, 100, 300 and 750 of the account's board clears) and **Marks of Mastery** (a profession's Master, ten, while a
+living character of the account holds the track at rank 100). Serpent Hunter and Bane of the Deep stand under the Sea
+Serpent's source (10 and 40 serpents the account helped slay). All sixteen are open, derived by the service at every
+ask; their paint is `playerBadge.js` TITLE_RGBA, each more than 40 apart from every other title's.
+
+**Three parts** (`src/ui/collections/gatheredPart.js`), shown always, after the Codex and the Cards. **Trophies**:
+every beast a trophy can be of (the boards' beasts and the hides of grade 5 and 6; a mod's beast once taken), and how
+many of each the character took and first when. **Fish**: Deep Waters' seven fish, each with its hauls and its first
+day. Both read the character's gathered log (`systems/hunt/gatheredLog.js`, its save): a haul is logged once on its key's
+UTC day (`fishHost.js`), a trophy as it is minted. **Annals**: the thirty pages, a kept page's title and text, an unkept
+one's way (the halls or a lord's first fall). The account read's wardrobe carries the pages kept
+(`players.eg_annals`, `server-account/src/index.js`); unread, the part asks a sign-in.
+
+**Not a part: a horse's coats.** The stable keeps the horses a character has now, never the coats it has owned, so a
+list of coats would forget a coat sold or lost.
+
+Pins: `test/systems/huntersmark_trophies.test.js` (the log and the parts), `test/ui/collections2.test.js` and
+`test/systems/auditcards5_ui.test.js` (PIN MOVED: the parts' lists).

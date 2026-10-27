@@ -689,7 +689,7 @@
   {
     "name": "VEIL-the-captain-this-side",
     "file": "src/scenes/naval/veilParty.js",
-    "old": "    if (!row || !memberPresent(row) || !!deps.across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
+    "old": "    if (!row || !memberPresent(row) || !!across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
     "new": "    if (!row || !memberPresent(row) || !deps.ready()) return;",
     "tests": [
       "test/systems/naval/veilparty.test.js"
@@ -698,8 +698,8 @@
   {
     "name": "VEIL-the-wait",
     "file": "src/scenes/naval/veilParty.js",
-    "old": "!!deps.across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
-    "new": "!!deps.across(row.p.px, row.p.py) === rode.side) return;",
+    "old": "!!across(row.p.px, row.p.py) === rode.side || !deps.ready()) return;",
+    "new": "!!across(row.p.px, row.p.py) === rode.side) return;",
     "tests": [
       "test/systems/naval/veilparty.test.js"
     ]

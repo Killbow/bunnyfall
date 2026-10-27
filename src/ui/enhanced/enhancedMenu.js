@@ -89,6 +89,7 @@
 // the pick is a zip upload.
 // ═══════════════════════════════════════════════════════════════════
 
+import { statsHunt } from '../bounty/huntRank.js';   // HUNTERS-MARK (Bounty-Boards.md 12.3)
 import { fpArm, hasDaggerfallArrows } from '../../combat/fpArm.js';
 import { dressStanding } from '../../systems/clothingStanding.js';   // DRESS1 (2026-09-30, Discord): the Standing page's Dress line
 import { questRail, shelvedRail, unloggedRail, journalLines, questTitleOf, QUEST_URGENT_SECONDS, remainWords } from '../quest/questRail.js';   // MAC-K2: the ONE quest walk, shared with the chronicle
@@ -5375,6 +5376,7 @@ function statsStanding(detail) {
   statsLaw(detail, playerEntity);
   statsGuilds(detail, playerEntity);
   if (getPref('standingAll')) statsEveryStanding(detail, playerEntity);   // EVERY-STANDING
+  statsHunt(detail, { el, divider: pxDivider, meter: pxMeter });   // HUNTERS-MARK: the hunter's rank, online
 }
 
 /** FIELD BUGS 2026-10-09e EVERY-STANDING ("Could we have a setting to see our reputation with every guild/kingdoms?" -

@@ -32,6 +32,18 @@
    "why": "the serpent's sighting, rising, storm and sounding as relay ms"
   },
   {
+   "file": "src/net/huntLaw.js",
+   "has": "export const huntGameDayAt = (nowMs) => Math.floor(sharedClassicMinutes(nowMs) / MINUTES_PER_DAY);",
+   "clock": "event",
+   "why": "HUNTERS-MARK: the day a bounty board posts on online - the window a reported clear is judged in (Bounty-Boards.md 12.1)"
+  },
+  {
+   "file": "src/scenes/huntersMark.js",
+   "has": "const wallNow = () => deps.wallNow?.() ?? wallMsForClassicMinutes(deps.now());",
+   "clock": "event",
+   "why": "HUNTERS-MARK: the event clock's instant as wall ms - a named mark's week and a report's window (Bounty-Boards.md 12.4)"
+  },
+  {
    "file": "src/systems/starfall/starfallNight.js",
    "has": "export const nightDayOfYear = (n) => dayOfYearFromMinutes(Math.floor(skyClassicMinutes(",
    "clock": "sky",

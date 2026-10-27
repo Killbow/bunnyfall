@@ -902,6 +902,15 @@ const REFUSAL_WORDS = {
   'fallen-frozen': () => t('account.refusal.fallenFrozen', 'That player is held by staff. Nothing can be taken from them.'),
   'bad-text': () => t('account.refusal.badText', 'Write something to send.'),
   'no-thread': () => t('account.refusal.noThread', 'There is no staff chat open for you right now.'),
+  // HUNTERS-MARK (server-account/src/hunts.js): the hunt's ledger - a clear the service will not record
+  'hunt-need-account': () => t('account.refusal.huntNeedAccount', 'Only a registered account keeps a hunter\'s rank.'),
+  'hunt-character': () => t('account.refusal.huntCharacter', 'That character keeps no hunter\'s rank.'),
+  'hunt-rate': () => t('account.refusal.huntRate', 'Too many bounty reports at once. Try again later.'),
+  'hunt-id': () => t('account.refusal.huntId', 'That bounty notice cannot be read.'),
+  'hunt-late': () => t('account.refusal.huntLate', 'That bounty is too old to count.'),
+  'hunt-early': () => t('account.refusal.huntEarly', 'That bounty has not been posted yet.'),
+  'hunt-tier': () => t('account.refusal.huntTier', 'That bounty is not for your level.'),
+  'hunt-rung': () => t('account.refusal.huntRung', 'Named beasts are posted to Stalkers and above.'),
 };
 /** AUDIT SAFE CLIENT-2 (2026-10-17): THE SERVICE'S LAST WORD ON A BAN - `{ until, reason }` off the newest `banned`
  *  refusal any door answered (`call`), or null. The service refuses a banned account on every door but signing out
@@ -2343,6 +2352,17 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),
     craftWrit: (character, id, rid, realm, pieces = null) => post('/v1/writs/craft', { character, id, rid, realm, ...(pieces ? { pieces } : {}) }),   // CRAFT-WRITS: a crafting writ filled - its goods out of the realm record where it stands
     motherlodes: (character) => post('/v1/prof/motherlodes', { character }),   // PROF2b: today's three (a strike rides `harvest`)
+  };
+}
+
+/** HUNTERS-MARK: THE HUNT'S DOOR (server-account/src/hunts.js) - a character's clears read, and a paid bounty reported
+ *  with its board's region (the seats' influence). Every answer is `call`'s shape, waited for ACCOUNT_ACT_WAIT_MS at most. */
+export function accountHunt({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
+  const post = waitedPost({ fetch, storage }, waitMs);
+  return {
+    account: () => storedSession(storage)?.id ?? null,
+    state: (character) => post('/v1/hunt/state', { character }),
+    clear: (character, id, region = null) => post('/v1/hunt/clear', { character, id, ...(Number.isSafeInteger(region) ? { region } : {}) }),
   };
 }
 

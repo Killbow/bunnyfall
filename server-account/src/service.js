@@ -31,7 +31,8 @@ import { busyRead, BUSY_SHED_MS } from '../../src/net/busyLaw.js';   // BUSY-GAT
  *  reason: a deploy that did not happen looks exactly like one that
  *  did. Kept in step with ACCOUNT_VERSION in wrangler.toml, which
  *  test/server/accountworker.test.js holds. */
-export const ACCOUNT_VERSION = 'acct200';   // acct200: APPEARANCES (bible/04-Characters/Wardrobe.md section 7): a piece's look (`appearance`, { t, m, v }) is a declared item field the judge reads and a receiver's mark the wire's clamp strips (systems/item/itemFields.js, net/realm/realmTradeLaw.js RECEIVER_MARKS, systems/loot/loot.js), so a trade's offer and its checkpoint agree on a piece that wears a look; and POWER-CEILING's two leaf modules (powerCeiling.js, sigil/setReach.js) join the bundle through lootRarity.js without running there. No route, table or migration; either side may deploy first.
+export const ACCOUNT_VERSION = 'acct201';   // acct201: HUNTERS-MARK and MARKS-OF-MASTERY (bible/06-Systems/Bounty-Boards.md section 12): /v1/hunt/state and /v1/hunt/clear (migration 0180, hunt_clears - 0178 on its branch, renumbered at the merge), a seat's influence from a bounty's clear (migration 0181, the hunt source - 0179 on its branch), the hunt's, the Masters' and the sea's sixteen titles derived at every ask, the account read's wardrobe carrying the Annals' pages kept, and the Trophy Hunter's harvest. A service without the routes leaves the client keeping its clears to send again, so either side may deploy first.
+// acct200: APPEARANCES (bible/04-Characters/Wardrobe.md section 7): a piece's look (`appearance`, { t, m, v }) is a declared item field the judge reads and a receiver's mark the wire's clamp strips (systems/item/itemFields.js, net/realm/realmTradeLaw.js RECEIVER_MARKS, systems/loot/loot.js), so a trade's offer and its checkpoint agree on a piece that wears a look; and POWER-CEILING's two leaf modules (powerCeiling.js, sigil/setReach.js) join the bundle through lootRarity.js without running there. No route, table or migration; either side may deploy first.
 // acct199: SEA-OPEN - CREW-SIGNED's /v1/crew/hall, /v1/crew/sign and /v1/crew/release (migration 0179, crew_signed; the hourly sweep): a crew hall's recruit held by the account that signed him for the day. A service without the routes leaves the client hiring as before, so either side may deploy first.
 // acct198: MASTER-ART - /v1/prof/master, a Master's work (migration 0178, prof_masters): a Legendary of chosen lines rolled in the band, its record's `l` and mint version 4; the judge reads its lines against its record; profState says `master.made`. Deploy the account service before the site.
 // acct197: CRAFT-HALL (acct196 on its branch, renumbered past main's WOVEN-PAYS acct196 at the merge) - profState says what the character has made; either side may deploy first.
@@ -451,6 +452,8 @@ export const ROUTES = new Set([
   '/v1/renown/xp',
   // FIRM1: the Firmament - a character's passive tree, read and changed whole (firmament.js)
   '/v1/firmament/state', '/v1/firmament/set', '/v1/firmament/respec',
+  // HUNTERS-MARK: the hunt's ledger - a character's clears read, a paid bounty reported (hunts.js). Behind a session.
+  '/v1/hunt/state', '/v1/hunt/clear',
   // CHAP1: the Roll - a realm character's standing with Daggerfall's guilds, read (seeded once) and claimed under the
   // playing tab's lease (npcRoll.js). Behind a session and CHAPTERS_OPEN.
   '/v1/chapters/roll', '/v1/chapters/claim',

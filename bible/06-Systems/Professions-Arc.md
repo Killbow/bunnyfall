@@ -339,13 +339,14 @@ So the crowns sit on the richest veins, the free lands hold what no crown can, a
 
 ### 4.8 The new templates (600-699)
 
-Icons are DFU's own, recoloured at runtime (law 6): each row names the DFU icon it borrows. **601, 602 and 604 are
-unused** (600 is the Materials Bag's since BAG1, `net/bagLaw.js` BAG_TEMPLATE - AUDIT FB1021 L4-10): the Pick, the Woodcutter's Axe, the Sickle and the Fishing Rod this table first held are Foraging's own
+Icons are DFU's own, recoloured at runtime (law 6): each row names the DFU icon it borrows. **602 and 604 are
+unused** (601 is the Mounted Trophy's since HUNTERS-MARK, section 58) (600 is the Materials Bag's since BAG1, `net/bagLaw.js` BAG_TEMPLATE - AUDIT FB1021 L4-10): the Pick, the Woodcutter's Axe, the Sickle and the Fishing Rod this table first held are Foraging's own
 Pick-Axe (1601), Wood-Axe (1600), Sickle (1602) and Fishing-Net (1603), and the Basket (1607) joined them (FORAGE0 14).
 The Basket's foods are Foraging's and C&C's own templates, not new ones (FORAGE0 14.6).
 
 | Id | Name | Stores / pack | Icon from |
 |---|---|---|---|
+| 601 | Mounted Trophy | pack (decor; 2 kg, 40 gold - `net/trophyLaw.js`, section 58) | its beast's own front frame |
 | 603 | Skinning Knife | pack (tool; 0.5 kg, 50 HP, 100 gold, online shelves only - FORAGE0 14.2) | DFU Dagger |
 | 610-615 | Moonstone Ore, Dwarven Scrap, Mithril Ore, Adamantium Ore, Ebony Ore, Orichalcum Ore | Stores | DFU Lodestone, tinted per ore |
 | 620-630 | Iron, Steel, Silver, Moonstone, Dwarven, Mithril, Adamantium, Ebony, Orichalcum, Daedric, Warforged Steel Ingot | Stores | DFU Iron, tinted per metal |
@@ -6546,7 +6547,7 @@ possible. No exceptions and no band aids." The decisions below are the record's,
   `dungeonContext.js` build no station page and no craft door - none to wire.
 
 - **The service** changes: a route, a table (0178), its refusals (`prof-master`, `prof-master-lines`, `prof-master-day`),
-  the state's `master`, the judge's lines. `ACCOUNT_VERSION` is the merge's to move. The relay is unchanged. The wire's
+  the state's `master`, the judge's lines. `ACCOUNT_VERSION` acct198. The relay is unchanged. The wire's
   change is the product record's (`l`, MINT_V_MASTER, the bound at 640); a client older than it mints a Master's record
   as the Masterwork's Rare roll.
 
@@ -6576,6 +6577,22 @@ Rare roll's guard, which LR4's one roll a piece keeps as well). Re-aimed by cont
 `test/server/accountworker.test.js` (`prof_masters`), `test/net/fb1015f_firstcraft.test.js` (a box's own lines read with a
 Master's work section beside them - its Building is at Master), `test/ui/seat2b_peace_client.test.js` (the door's spread
 after the seat).
+
+## 58. HUNTERS-MARK - the Trophy Hunter built (BUILT 2026-10-27)
+
+Hunting 100's **Trophy Hunter** waited on trophies that were never built (`later: 'trophy'`, section 29). The
+bounty boards' named marks built the Mounted Trophy (template 601, `06-Systems/Bounty-Boards.md` section 12.5), so the
+spec is choosable now: "A clean pelt of a grade 5 or 6 body gives a mounted trophy of the beast."
+
+**On the service**: a body skinned clean, of a hide of HIGH_HIDE_TIER or past it, by a character whose Hunting choice at
+100 is Trophy Hunter, answers `trophy: true` (`professionLaw.js` trophyHunted, `professions.js`). The flag rides the
+harvest's own row, so it is bounded by the rare hides' day: three an account a day. **On the client**: the hunt's kind mints
+the trophy once a body, of the beast skinned (the hide's first beast after a reload), into the pack, and says so
+(`scenes/huntHost.js` answered, `systems/hunt/trophies.js`). The Professions page's "comes when trophies are added" line
+is gone.
+
+Pins: `test/systems/huntersmark_trophies.test.js` (the Worker's answer and the kind's mint); PIN MOVED in
+`test/net/prof7_law.test.js`, `test/net/craft3_five.test.js` and `test/systems/prof7_client.test.js`.
 
 ## Appendix A - a day of a gatherer
 

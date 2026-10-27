@@ -725,6 +725,8 @@ import { goldPiecesOf as legacyGold, addItem as legacyAddItem, letterOfCredit } 
 import { tabStorage } from '../systems/appStorage.js';   // LEGACY1: a birth crosses the reload in the tab's own store
 import { monthNames } from '../systems/gameDate.js';   // L10N3e: the month's name in the player's language, read when asked
 import { createBountyHost } from './bountyHost.js';   // BOUNTY1: the town's bounty boards - the hunts, their packs, their purse
+import { trophyDoor } from '../systems/hunt/trophies.js';   // HUNTERS-MARK: a Trophy Hunter's trophy into the pack
+import { huntOnline } from './huntersMark.js';   // HUNTERS-MARK: the hunt's ledger, the bounty host's
 import { createWorldPartyPing } from './partyPingHost.js';   // PARTY-PING: a look's point for the party, and the floor route while one follows
 import { pingSubject, pingCrowd } from '../systems/party/partyPingCaption.js';   // PARTY-PING: the name under a look, a person and another player among them
 import { PING_TRAVEL_M } from '../systems/party/partyPing.js';   // PARTY-PING: how far the travel view's look reaches
@@ -9809,7 +9811,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const navalStow = () => { if (!_loading) naval?.stowPlunder?.(); };
   // VEIL-PARTY (scenes/naval/veilParty.js): a party member aboard a ship whose captain crosses the Veil follows her by the
   // party's own journey, and her party never holds her crossing back
-  const veilParty = createVeilParty({ social: () => social, aboard: () => csaAboard.aboard, here: playerTravelPixel, across: inEther,
+  const veilParty = createVeilParty({ social: () => social, aboard: () => csaAboard.aboard, here: playerTravelPixel,
     ready: () => walkMode && playerEntity.health > 0 && _mode() === 'exterior' && !worldMoveBusy() && !_partyArrivalPending,
     travel: (pick, opts, computed) => partyTravelJourney(pick, opts, computed), say: (l) => townTalk.say(l) });
   // ETHER-CROSSING (systems/naval/etherCrossing.js; bible/03-World/Eltheric-Ocean.md): THE CROSSING - asked at a helm in the
@@ -11625,7 +11627,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       gatherHost = createGatherHost({
         book: profBook, hud, kinds: [herbKind({ book: profBook }), mineKind({ book: profBook, lodes: motherlodeBook, marks: marksBook }),   // PROF2b: and the Motherlodes
           treeKind({ book: profBook, renderer, flatBatchAabb, getTexture, billboardSize, uploadRecord }),   // PROF4: Logging's trees
-          huntKind({ book: profBook, bodies: () => huntBodies(), openLoot: openHuntLoot }),   // PROF7: Hunting's bodies
+          huntKind({ book: profBook, bodies: () => huntBodies(), openLoot: openHuntLoot, trophy: trophyDoor(saveSoon) }),   // PROF7: Hunting's bodies; HUNTERS-MARK: a Trophy Hunter's trophy
           // PROF8: Fishing's casts - the net in its water, the pixel and its ground the player stands in, the game clock's
           // hour and a storm for the wait, a trophy into the pack (the species' own Deep Waters item)
           fishKind({ book: profBook, host: {
@@ -27131,6 +27133,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       mates: (social.others() ?? []).filter((m) => !!m.p).map((m) => ({ acct: m.acct, name: m.name, p: m.p, online: m.online !== false })),   // AUDIT 28 B3: a mate gone offline stands nothing
     } : null),
     posePixel: () => playerTravelPixel(),   // AUDIT 28 B8: the pixel my pose says (composePartyPose's)
+    // HUNTERS-MARK (Bounty-Boards.md 12): the hunt's ledger, online alone - its book and the named marks are the bounty host's
+    hunt: huntOnline(params.has('online'), saveSoon),
   });
   // LEGACY1-LEGACY3 (2026-10-05, bible/06-Systems/Legacy-Arc.md, Mac: "this is actually my DFU mod that I want to
   // integrate"): PROJECT LEGACY in the world - scenes/legacyHost.js. Every read it makes of the world is here; it
