@@ -29,8 +29,8 @@
   {
     "name": "CRAFT-HALL-book-note-gone",
     "file": "src/net/profBook.js",
-    "old": "      if (w.brew === true) noteMade('brews', w.recipe);\n      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
-    "new": "      void 0;",
+    "old": "      if (w.brew === true) noteMade('brews', w.recipe);\n      else if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card\n      else if (!counterMade(recipeById(w.recipe)) || r.data?.firstPaid === true) noteMade('crafts', w.recipe);",
+    "new": "      if (Array.isArray(w.master)) state.master = { made: true, last: r.data };   // MASTER-ART: the day's work made, its card",
     "tests": [
       "test/ui/professions/crafthall.test.js"
     ]

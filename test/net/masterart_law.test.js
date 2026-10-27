@@ -21,6 +21,7 @@ import { keptEnchantments } from '../../src/systems/enchanting.js';
 import { itemMakerFilter } from '../../src/ui/item/itemMakerWindow.js';
 import { temperRefusal, reforgeEssence } from '../../src/net/temperLaw.js';
 import { itemBaseValue } from '../../src/systems/item/itemTemplates.js';
+import { salvageShards } from '../../src/systems/reforge.js';
 
 const { subtle } = webcrypto;
 const SWORD = recipeById('longsword:daedric');
@@ -148,6 +149,7 @@ test('MASTER-ART THE MINT: a Master\'s record makes a Legendary of exactly its l
   const garment = mintPiece({ recipe: 'garment-141:linen', quality: MASTERWORK, seed: 9, maker: 'Mac', version: MINT_V_MASTER, lines: ['standing:nobility', 'warmth', 'dry'], dye: 3 }, 'b1b2c3d4e5f60718');
   assert.deepEqual([garment.rarity, garment.affixes.map((a) => a.id), garment.dye], ['legendary', ['standing', 'warmth', 'dry'], 3], 'a garment\'s too, whatever the switch');
   assert.equal(temperRefusal(sword), 'rarity', 'no temper - law 7\'s tiers');
+  assert.equal(salvageShards(sword), 0, 'no shards - a made piece breaks at the Enchanting Station alone');
   assert.equal(reforgeEssence(sword.rarity), null, 'no Reforge with Essence');
   assert.equal(keptEnchantments(sword), null, 'the item maker refuses a Legendary');
   assert.equal(itemMakerFilter(sword, 'WeaponsAndArmor'), false);

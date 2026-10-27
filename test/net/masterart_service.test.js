@@ -90,7 +90,7 @@ test('MASTER-ART DONE WHEN: a Smith at Master makes a Daedric Longsword her own 
   assert.deepEqual(m.book.state.master.made, true, 'and the service\'s state says it');
 });
 
-test('MASTER-ART THE SERVICE REFUSES what it was not asked for or cannot see: a craft below Master, a piece no tier takes, lines the piece may not carry, two effects, a dye on a sword; a second work the same day on another request (the next day\'s is made); a request asked again is answered, never made twice (mutants: the rank read below 100; the day\'s bound dropped; the repeat made again)', async (t) => {
+test('MASTER-ART THE SERVICE REFUSES what it was not asked for or cannot see: a craft below Master, a piece no tier takes, lines the piece may not carry, two effects, a dye on a sword; a second work the same day on another request (the next day\'s is made); a request asked again is answered, never made twice; a claim of the seated character alone (mutants: the rank read below 100; the day\'s bound dropped; the day\'s status; the route unseated)', async (t) => {
   let now = NOON;
   t.mock.method(Date, 'now', () => now * 1000);
   const m = await stand({ tracks: { smithing: 99 }, stores: { ...swordGoods(), ...CATS } });
@@ -110,13 +110,18 @@ test('MASTER-ART THE SERVICE REFUSES what it was not asked for or cannot see: a 
   assert.deepEqual([again.body.repeat, again.body.pieces], [true, one.body.pieces], 'the same work, answered');
   for (const [k, n] of Object.entries(swordGoods())) m.give(k, n);
   for (const [k, n] of Object.entries(CATS)) m.give(k, n);
-  assert.equal((await ask('mastr-000010')).body.error, 'prof-master-day', 'one a character a day');
+  const day = await ask('mastr-000010');
+  assert.deepEqual([day.status, day.body.error], [409, 'prof-master-day'], 'one a character a day');
   assert.equal(m.raw.prepare('SELECT COUNT(*) AS n FROM prof_masters').get().n, 1);
   assert.equal(m.held(PEARL.key), CATS[PEARL.key], 'nothing spent by the refusal');
   now = NOON + 86_400;
   const next = await ask('mastr-000011');
   assert.equal(next.body.ok, true, 'the next day\'s');
   assert.equal(accountRefusalText('prof-master-day').includes('midnight UTC'), true);
+  // a progression claim: asked of an account with no seated realm character, refused before the route reads a word
+  const bare = await m.s.registered('bare');
+  const unseated = await m.s.call('/v1/prof/master', { character: 'char-bare', rid: 'mastr-000012', recipe: SWORD, lines: LINES }, bare.secret);
+  assert.deepEqual([unseated.status, unseated.body.error], [403, 'progress-seat']);
 });
 
 test('MASTER-ART THE CATALYSTS ARE WHAT THE SERVICE COUNTED: own or bought, never loose (a looted Pearl the service never saw) nor bought with gold; a Pearl jewel\'s own Pearl spent beside its three (loose units cover the goods, never the catalysts) (mutants: a catalyst spent over the station\'s origins; the shared key read once)', async (t) => {

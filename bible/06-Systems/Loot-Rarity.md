@@ -539,3 +539,11 @@ and a Masterwork are DFU's off (AUDIT LOOT II A9). The temple's lift takes the c
 hold the drawback's very kind (`lootCurse.js` liftCurse; AUDIT MAKER-RARE A1). A departure (Port-Ledger A, THE ITEM MAKER
 TAKES A RARE); the record and its audit are `01-Overview/bugs/Field-Bugs-2026-10-26.md`.
 `test/systems/fb1026_makerrare.test.js`.
+
+## MASTER-ART (2026-10-27) - A CRAFTED LEGENDARY
+
+A crafter at Master makes a Legendary of no record: three lines of its group's pool, chosen, their values rolled in the
+Legendary band by the account service (`AFFIX_RANGES`' `legendary` column, never past its top). It carries no record's
+name, no DFU enchantment and no power, so the codex and the powers stay the drops'. The item law knows it by its
+provenance and its shape; the judge holds its lines to its record. The item maker refuses every Legendary now, this one
+too. The record is `06-Systems/Professions-Arc.md` section 57.
