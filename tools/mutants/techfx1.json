@@ -693,7 +693,7 @@
     "name": "TECHFX1-AUDIT-a-literal-speed",
     "file": "src/combat/techniques.js",
     "old": "h / ARROW_FLIGHT_SPEED + 0.2",
-    "new": "h / 25 + 0.2",
+    "new": "h / 33.75 + 0.2",
     "tests": [
       "test/systems/techfx1_audit.test.js"
     ]
