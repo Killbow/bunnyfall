@@ -73,9 +73,9 @@
 //       seed (navalHost.js harbourFrame's: her port's, the day's, her berth's), the last NAVAL_WIRE_GONE, said on by
 //       every reader: no player stands her at her berth again that day, nor holds a copy of her (an older build's word
 //       says none, and its reader ignores this one)
-//   h, j - AUDIT HORIZONTAL C4: a class past NAVAL_WIRE_OLD_CLASSES - its ships as `s`'s, its casks as `w`'s or `f`'s
-//   `k`, `m`, `l`, `h` and `j` are keys of their own: an older door checks `s` and `p` by count and refuses an unknown
-//   class, so it passes them whole, unread; a newer door reads none as none, a longer entry as its first fields.
+//   `k`, `m` and `l` are keys of their own because an older build's door checks every field of `s` and `p` by count: it
+//   passes a word with them whole and reads none of them, and a newer door reads an older build's word as saying none.
+//   Nor are theirs counted: a newer build's longer entry reads as its first fields, never the whole word refused.
 // A word passes the door whole or not at all (`validNavalRecord`): a known class and variant, bounded places, a state
 // the ship can be in, shares in 0..100, a side, a finite lay.
 //
@@ -106,8 +106,9 @@ import { TEMPERS } from './navalAI.js';
 import { SHOT_CODES, SHOT_ORDER } from './shotKinds.js';
 
 /** AUDIT HORIZONTAL C4: the class rows every build's door reads in `s`, `f` and `w` - SHIP_CLASSES before FISH-BOATS'.
- *  A ship or cask of a later row rides `h` or `j` (sharing NAVAL_WIRE_SHIPS and NAVAL_WIRE_CASKS): an older door refuses
- *  a class row it does not know, and with it the whole word. */
+ *  An older door refuses a row it does not know, and the whole word with it, so the word's two keys of their own:
+ *  `h` the ships of a later row (FISH-BOATS' skiff and smack), each as `s`'s entry and sharing its NAVAL_WIRE_SHIPS;
+ *  `j` their casks, each as `w`'s (five fields) or `f`'s (six), sharing their kinds' NAVAL_WIRE_CASKS. */
 export const NAVAL_WIRE_OLD_CLASSES = 15;
 /** The radius within which players stand one sea between them (m): a ship's fighting reach and then some. */
 export const NAVAL_SHARE_RADIUS = 1200;

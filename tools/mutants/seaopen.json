@@ -443,8 +443,8 @@
   {
     "name": "QUAY-the-hull-unread",
     "file": "src/scenes/naval/passageQuay.js",
-    "old": "    if (host.along([p[0] + fx * bow, p[1], p[2] + fz * bow], fx, fz, TOW_FOUL_M) < TOW_FOUL_M) return held(head);",
-    "new": "    if (false) return held(head);",
+    "old": "    if (hull.d < TOW_FOUL_M) return held(head, hull.way >= HULL_LEAD_MIN_MPS);",
+    "new": "    if (false) return held(head, hull.way >= HULL_LEAD_MIN_MPS);",
     "tests": [
       "test/scenes/naval/passagequay.test.js"
     ]
@@ -598,6 +598,69 @@
     "file": "src/scenes/naval/passageQuay.js",
     "old": "export const BRING_IN_M = 700;",
     "new": "export const BRING_IN_M = 900;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-way-unread",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "return held(head, hull.way >= HULL_LEAD_MIN_MPS);",
+    "new": "return held(head);",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-wait-unbounded",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "if (tow.foul >= TOW_FOUL_S || tow.held >= TOW_WAIT_S)",
+    "new": "if (tow.foul >= TOW_FOUL_S)",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-wait-120",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "export const TOW_WAIT_S = 120;",
+    "new": "export const TOW_WAIT_S = 180;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-wait-never-started-again",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "    tow.foul = 0; tow.held = 0;",
+    "new": "    tow.foul = 0;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-a-still-hull-waited-on",
+    "file": "src/scenes/naval/passageQuay.js",
+    "old": "      if (!clearing) tow.foul += dt;",
+    "new": "      if (false) tow.foul += dt;",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-hulls-way-unsaid",
+    "file": "src/systems/naval/seaClearance.js",
+    "old": "if (t < d) { d = t; way = Math.hypot(v?.[0] ?? 0, v?.[2] ?? 0); }",
+    "new": "if (t < d) { d = t; way = 0; }",
+    "tests": [
+      "test/scenes/naval/passagequay.test.js"
+    ]
+  },
+  {
+    "name": "QUAY-C10-the-host-look-unled",
+    "file": "src/systems/naval/seaClearance.js",
+    "old": "const t = hullAlong(p, dx, dz, far, ledHulls(box, v));",
+    "new": "const t = hullAlong(p, dx, dz, far, []);",
     "tests": [
       "test/scenes/naval/passagequay.test.js"
     ]

@@ -4329,7 +4329,7 @@ export function createNavalHost(deps) {
   // PASSAGE-QUAY (scenes/naval/passageQuay.js): a booked ship brought in to a free berth of her port's harbour, laid by the
   // warp seam below as QUAYS' docking lays a ship of mine
   const quay = createPassageQuay({ harbours, isWater: (x, z, hull) => deps.isWater(x, z, hull), dockFree, putOff, boatPose, enabled: () => enabled, yawOf: yawOfRot,   // AUDIT HORIZONTAL C3: her way planned and laid over the water itself
-    along: (p, dx, dz, far) => seaHulls.along(p, dx, dz, far), now: () => clock });
+    ahead: (p, dx, dz, far) => seaHulls.ahead(p, dx, dz, far), now: () => clock });   // AUDIT HORIZONTAL C10: and whether the hull is under way
   let dockPortsAt = -Infinity;
   /** The Fleet's word of where each boat of mine lies made fast (`deps.dockedPort(boat, name | null)`), once a second -
    *  AUDIT HOLDINGS Q8: "nowhere" said only where it is known - a known harbour's mouth within HARBOUR_STAND of her, or
