@@ -443,7 +443,7 @@ test('PX22: the timer PX5 designed is still there, and only when there is one', 
   // the detail. A quest with no clock gets neither.
   assert.match(src, /if \(q\.clockSeconds != null\) b\.append\(el\('span', 'px-qtimed', '\\u25c6'\)\);/);
   assert.match(src, /if \(sel\.clockSeconds != null\) \{/);
-  assert.match(src, /'Time remains: \{left\}', \{ left: remainWords\(sel\.clockSeconds\) \}/);
+  assert.match(src, /'Time left: \{left\}', \{ left: remainWords\(sel\.clockSeconds\) \}/);
   // URGENT below one GAME DAY - the threshold in seconds, not a guess.
   // GUIDE1: the number has one home (ui/quest/questRail.js), shared with the
   // quest lens's `urgent` news, so the gold line and the notice cannot

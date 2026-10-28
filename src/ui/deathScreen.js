@@ -238,7 +238,7 @@ export class DeathScreen {
       wy += 12 * s;
     }
     if (this.goldLoss > 0) {   // DEATH-PENALTY: the classic face says it too, one line under the hold
-      const loss = t('death.goldLoss', 'DEATH CLAIMS {gold} GOLD', { gold: this.goldLoss });
+      const loss = t('death.goldLoss', 'YOU LOSE {gold} GOLD', { gold: this.goldLoss });
       drawText(renderer, font, loss, (canvas.width - measureText(font.fnt, loss) * s) / 2, canvas.height / 2 + 22 * s, s, [0.9, 0.2, 0.15, 1]);
     }
   }

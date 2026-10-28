@@ -5145,7 +5145,7 @@ function statsEffects(detail) {
   detail.append(pxDivider(t('pause.effects.title', 'Active spells')));
   const bundles = liveBundles(playerEntity).filter((b) => b.showIcon);
   if (!bundles.length) {
-    detail.append(el('p', 'px-note', t('pause.effects.none', 'No spells are on you.')));
+    detail.append(el('p', 'px-note', t('pause.effects.none', 'No spells on you.')));
     return;
   }
   for (const b of bundles) {
@@ -5202,8 +5202,8 @@ function statsMaster(detail, m) {
   back.classList.add('px-master-back');
   detail.append(back, pxDivider(t('pause.master.title', 'Master Skills')));
   const lead = !ms.on
-    ? (ms.switchable ? t('pause.master.offClassic', 'Off \u2013 your skills stop at 100, as in the original game.') : t('pause.master.off', 'Off.'))
-    : t('pause.master.on', 'Choose the skills that may climb past 100, up to 200. A choice is permanent.');
+    ? (ms.switchable ? t('pause.master.offClassic', 'Off. Your skills stop at 100, as in the original game.') : t('pause.master.off', 'Off.'))
+    : t('pause.master.on', 'Pick the skills that can climb past 100, up to 200. Your picks are permanent.');
   detail.append(el('div', 'px-master-lead', lead));
   if (_masterNote) detail.append(el('div', 'px-master-note', _masterNote));
   // GROWTH2 (bible/10-UI/Growth.md section 5): the two specialisation cards (SCHOOLS1's, MARTIAL1's) moved to the Growth
@@ -5211,7 +5211,7 @@ function statsMaster(detail, m) {
   // AUDIT GROWTH LANE5-6: and only for a character with a family still to reach or one held (AUDIT SCHOOLS L4 8)
   if (ms.on && (ms.paths?.open || ms.paths?.held)) {
     const card = el('section', 'px-mgroup px-spec');
-    card.append(el('div', 'px-master-about', ms.paths.open ? t('pause.master.specMoved', 'Master two schools of magic or two weapon skills to unlock a specialization. See every path and what it needs on the Growth tab.')
+    card.append(el('div', 'px-master-about', ms.paths.open ? t('pause.master.specMoved', 'Master two schools of magic or two weapon skills to unlock a specialization. The Growth tab shows every path and what it needs.')
       : t('pause.master.specHeld', '{n, plural, one {Your specialization is on the Growth tab.} other {Your specializations are on the Growth tab.}}', { n: ms.paths.held })));
     const go = acts([{ label: t('pause.master.specGo', 'Specializations'), onClick: () => { setGrowthSection('specs'); pauseTab = 'growth'; render(); } }]);
     card.append(go);
@@ -5249,7 +5249,7 @@ function statsMaster(detail, m) {
       onClick: () => {
         if (ms.blocked) { _masterNote = ms.blocked; render(); return; }
         if (ms.on) { flip(); return; }
-        askCard([t('pause.master.askTitle', 'Activate Master Skills?'), '', ...t('pause.master.askBody', 'Dangerous dungeons will send stronger enemies,\nand points past 100 are slow to earn.\nYou can turn it off here at any time.').split('\n')], flip);
+        askCard([t('pause.master.askTitle', 'Activate Master Skills?'), '', ...t('pause.master.askBody', 'Dangerous dungeons send stronger enemies, and points past 100 are slow to earn. You can turn it off here any time.').split('\n')], flip);
       },
     }]);
     foot.classList.add('px-master-foot');
@@ -5315,13 +5315,13 @@ function askCard(lines, onYes) {
  *  point and the uses that point costs, or that the next rest or journey raises it, or why none will. */
 export function skillTickText(p) {
   if (!p) return '';
-  if (p.held === 'cap') return t('pause.skills.tickCap', 'At its limit - uses are not kept');
+  if (p.held === 'cap') return t('pause.skills.tickCap', 'At its limit. Uses aren’t counted');
   // AUDIT SUGGESTIONS-1019 L3-3: a 100 a mastery is still open to is not at its limit, and a locked skill above 95 is not "at 95"
-  if (p.held === 'master') return t('pause.skills.tickMaster', 'At 100 - master it to climb further');
-  if (p.held === 'lock') return t('pause.skills.tickLock', 'Held while a primary skill is at 100 - uses are not kept');
+  if (p.held === 'master') return t('pause.skills.tickMaster', 'At 100. Master it to go higher');
+  if (p.held === 'lock') return t('pause.skills.tickLock', 'On hold while a primary skill is at 100. Uses aren’t counted');
   // AUDIT SUGGESTIONS-1019 L3-1: ready, but the gate shut - a rest or a journey before it opens raises nothing
-  if (p.ready && p.wait > 0) return t('pause.skills.tickReadyLater', 'Ready - a rest or a trip raises it once {hours, plural, one {# more hour has} other {# more hours have}} passed', { hours: Math.ceil(p.wait / 60) });
-  if (p.ready) return t('pause.skills.tickReady', 'Ready - rest or travel to raise it');
+  if (p.ready && p.wait > 0) return t('pause.skills.tickReadyLater', 'Ready. A rest or a trip raises it once {hours, plural, one {# more hour has} other {# more hours have}} passed', { hours: Math.ceil(p.wait / 60) });
+  if (p.ready) return t('pause.skills.tickReady', 'Ready. Rest or travel to raise it');
   return t('pause.skills.tick', '{have} / {need} uses to the next point', { have: p.have, need: p.need });
 }
 function statsSkills(detail, m) {
@@ -5465,7 +5465,7 @@ export function statsLaw(detail, entity, { worldNow = trustedWorldMinutes() } = 
   detail.append(pxDivider(t('pause.law.title', 'The law')));
   for (const w of rows) {
     const r = el('div', 'px-stat px-law');
-    r.append(el('span', 'k', w.region), el('span', 'v px-rank', w.note ? t('pause.law.wordNote', '{word} - {note}', { word: w.word, note: w.note }) : w.word), signedRep(w.rep));
+    r.append(el('span', 'k', w.region), el('span', 'v px-rank', w.note ? t('pause.law.wordNote', '{word} ({note})', { word: w.word, note: w.note }) : w.word), signedRep(w.rep));
     detail.append(r);
   }
 }
@@ -5512,11 +5512,11 @@ export function statsGuilds(detail, entity) {
   }
   for (const a of book) {
     const r = el('div', 'px-stat px-guild');
-    r.append(el('span', 'k', a.affiliation), el('span', 'v px-rank', a.probation ? t('pause.guilds.probation', '{title} - on probation', { title: a.title }) : a.title), signedRep(a.rep));   // REP6
+    r.append(el('span', 'k', a.affiliation), el('span', 'v px-rank', a.probation ? t('pause.guilds.probation', '{title} (on probation)', { title: a.title }) : a.title), signedRep(a.rep));   // REP6
     detail.append(r);
     // STANDING-WORDS (Field-Bugs-2026-10-15g): a probation's stakes, and what the Roll still owes online
     for (const w of a.warnings) detail.append(el('p', 'px-note', w));   // AUDIT GUILD-WORDS L1-2: a probation's stakes, a demotion before it lands
-    if (a.owed > 0) detail.append(el('p', 'px-note', t('pause.guilds.owed', '{owed} more standing on the way, at most {max} a real day (days turn at midnight UTC).', { owed: a.owed, max: ROLL_GAIN_DAY_MAX })));   // AUDIT GUILD-WORDS L1-6: the owed's pace, not the standing's; II C-8: the UTC day
+    if (a.owed > 0) detail.append(el('p', 'px-note', t('pause.guilds.owed', '{owed} more standing to come, at most {max} per real day (days turn at midnight UTC).', { owed: a.owed, max: ROLL_GAIN_DAY_MAX })));   // AUDIT GUILD-WORDS L1-6: the owed's pace, not the standing's; II C-8: the UTC day
   }
 }
 
@@ -5560,7 +5560,7 @@ export function questTimerWords(log, key) {
   const r = questRail(log ?? { active: [], finished: [] });
   const q = [...r.active, ...r.hidden].find((row) => row.key === key);   // JOURNAL-CLEAN: a hidden quest shown is still timed
   if (!q || q.clockSeconds == null) return null;
-  return { text: t('pause.journal.timeRemains', 'Time remains: {left}', { left: remainWords(q.clockSeconds) }), urgent: q.clockSeconds < QUEST_URGENT_SECONDS };
+  return { text: t('pause.journal.timeRemains', 'Time left: {left}', { left: remainWords(q.clockSeconds) }), urgent: q.clockSeconds < QUEST_URGENT_SECONDS };
 }
 
 /** The journal rendered once when it opened and again on a click, so
@@ -5863,7 +5863,7 @@ function pauseQuests(body) {
       if (sel.clockSeconds != null) {
         // Under a game day the words go URGENT gold.
         const urgent = sel.clockSeconds < QUEST_URGENT_SECONDS;
-        const timer = el('span', `px-qtimer${urgent ? ' urgent' : ''}`, t('pause.journal.timeRemains', 'Time remains: {left}', { left: remainWords(sel.clockSeconds) }));
+        const timer = el('span', `px-qtimer${urgent ? ' urgent' : ''}`, t('pause.journal.timeRemains', 'Time left: {left}', { left: remainWords(sel.clockSeconds) }));
         meta.append(timer);
         armQuestTimer(timer, sel.key);
       }
@@ -5951,7 +5951,7 @@ function pauseQuests(body) {
       if (!isShelvedRow && sel.entries && sel.id != null && clean.restart && clean.canRestart?.(sel.id)) {
         const armed = journalCleanArmed === `rs:${sel.id}`;
         const rs = el('button', 'act', armed ? t('pause.journal.restartArmed', 'Click again to restart') : t('pause.journal.restart', 'Restart quest'));
-        rs.title = t('pause.journal.restartTitle', 'Start this quest again from the beginning. Anything it placed or gave you is taken back');
+        rs.title = t('pause.journal.restartTitle', 'Start this quest over from the beginning. Anything it placed or gave you is taken back');
         rs.onclick = () => {
           if (journalCleanArmed !== `rs:${sel.id}`) { journalCleanArmed = `rs:${sel.id}`; render(); return; }
           journalCleanArmed = null;

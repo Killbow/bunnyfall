@@ -194,7 +194,7 @@ test('QUEST-SHELF the journal: the walk hands the quests set aside, their clocks
   assert.deepEqual(shelvedRail({ shelved: [relogged] })[0].entries.map((e) => e.join(' ')), ['second', 'first']);
   assert.deepEqual(['gone', 'shelved', 'running', 'ending', 'protected', 'raid', 'twin', 'x'].map(shelfRefusalText), [
     'That quest is over.', 'That quest is already abandoned.', 'That quest is not abandoned.', 'That quest is ending.',
-    'That quest cannot be abandoned.', 'Not while the raid is on.', 'You have taken that quest up again. Finish or abandon it first.', 'That cannot be done now.']);
+    'That quest can’t be abandoned.', 'Not while the raid is on.', 'You’ve taken that quest up again. Finish or abandon it first.', 'You can’t do that right now.']);
   const bridge = src('src/scenes/quest/questBridge.js');
   assert.match(bridge, /return \{ active, finished: notebook\?\.getFinishedQuests\(\) \?\? \[\], ended, hidden: notebook\?\.getHiddenQuests\?\.\(\) \?\? \[\], shelved(?:, [^}]*)? \};/);
   assert.match(bridge, /const refuseRaid = \(q\) => \(WA_RAID_QUESTS\.includes\(q\.questName\) \? 'raid' : null\);/);

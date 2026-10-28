@@ -8,7 +8,7 @@ import { t } from '../systems/textManager.js';
 /** A room container's list, past which a close cannot be said (systems/loot/loot.js LOOT_LIST_MAX). */
 export const CONTAINER_LIST_CAP = LOOT_LIST_MAX;
 /** Said when Stash all stops because the next row would put a room container past that cap. */
-export const containerFull = () => t('inventory.store.containerFull', 'This container cannot hold any more.');
+export const containerFull = () => t('inventory.store.containerFull', 'This container is full.');
 
 const STOP = new Set(['cannotCarry', 'wagonFull', 'packFull', 'packGone']);
 

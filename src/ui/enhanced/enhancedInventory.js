@@ -3879,7 +3879,7 @@ function askSalvage(item) {
  *  question. Not a DFU member (Daggerfall has no salvage). */
 export const BATCH_LABEL = 'Batch salvage';
 export const BATCH_HINT = 'Choose the pieces to salvage.';
-export const BATCH_COUNT = (n, shards) => t('inventory.batch.count', '{n} chosen, for {shards}', { n, shards: shardsText(shards) });
+export const BATCH_COUNT = (n, shards) => t('inventory.batch.count', '{n} picked, for {shards}', { n, shards: shardsText(shards) });
 /** The foot's sweeps: a tier that breaks often, and the junk mark (LOOT18) - each adds what would break now; each its
  *  label (read in the player's language) and its test. */
 /** AUDIT BATCH C2: what no sweep takes, whatever its tier's or mark's - a Legendary (an Exalted one with it), chosen by
@@ -3895,23 +3895,23 @@ export const BATCH_SWEEPS = Object.freeze([
 const salvageableAny = (items) => (Array.isArray(items) ? items : []).filter((it) => !anySalvageRefusal(it));
 export const BATCH_ASK = (n, shards) => [
   t('inventory.batch.ask', 'Salvage {n, plural, one {# piece} other {# pieces}}?', { n }),
-  t('inventory.batch.askShards', 'They are gone for good, and you get {shards}.', { shards: shardsText(shards) }),
+  t('inventory.batch.askShards', 'They’re gone for good, and you get {shards}.', { shards: shardsText(shards) }),
 ];
 /** The names the question lists before "and n more". */
 export const BATCH_NAMES_SHOWN = 6;
 export const BATCH_DONE = (n, shards, kept = 0) => t('inventory.batch.done', 'Salvaged {n, plural, one {# piece} other {# pieces}}, for {shards}.', { n, shards: shardsText(shards) })
-  + (kept ? ` ${t('inventory.batch.kept', '{kept, plural, one {# would not break and was kept.} other {# would not break and were kept.}}', { kept })}` : '');
+  + (kept ? ` ${t('inventory.batch.kept', '{kept, plural, one {# couldn’t be broken down and was kept.} other {# couldn’t be broken down and were kept.}}', { kept })}` : '');
 /** Why a pressed piece takes no tick (systems/reforge.js salvageRefusal's reasons), in the card's own words where it has them. */
 export function batchRefusal(name, why) {
   if (why === 'locked') return lockedText(name);
   if (why === 'gems') return SALVAGE_GEMS(name);
   if (why === 'classic') return SALVAGE_CLASSIC(name);
-  if (why === 'worn') return t('inventory.batch.worn', '{name} is worn - take it off to salvage it.', { name });
-  if (why === 'bound') return t('inventory.batch.bound', '{name} is bound to you, and does not break.', { name });
+  if (why === 'worn') return t('inventory.batch.worn', '{name} is equipped. Take it off to salvage it.', { name });
+  if (why === 'bound') return t('inventory.batch.bound', '{name} is bound to you and can’t be salvaged.', { name });
   if (why === 'quest') return t('inventory.batch.quest', '{name} belongs to a quest.', { name });
-  if (why === 'aetheric') return t('inventory.batch.aetheric', '{name} is Aetheric - the Sigil Broker dismantles it, not the Reforge.', { name });
-  if (why === 'gilded') return t('inventory.batch.gilded', '{name} is Gilded - its roll is never broken down.', { name });
-  if (why === 'artifact') return t('inventory.batch.artifact', '{name} is an artifact, and never breaks.', { name });
+  if (why === 'aetheric') return t('inventory.batch.aetheric', '{name} is Aetheric. Only the Sigil Broker can dismantle it.', { name });
+  if (why === 'gilded') return t('inventory.batch.gilded', '{name} is Gilded and can’t be broken down.', { name });
+  if (why === 'artifact') return t('inventory.batch.artifact', '{name} is an artifact and can’t be salvaged.', { name });
   return t('inventory.batch.nothing', '{name} has nothing to salvage.', { name });
 }
 /** The chosen that still stand: a piece gone from the pack, or one that would no longer break (worn, locked since), is

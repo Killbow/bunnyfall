@@ -182,8 +182,8 @@ export const TUTORIALS = Object.freeze([
         // SKILL-TICK (systems/advancement.js skillAdvanceProgress): when a used skill goes up, and where to see how close -
         // AUDIT SUGGESTIONS-1019 L6-4: the Stats page's line is the enhanced skin's alone, so the classic skin is not sent to it
         isEnhanced()
-          ? t('tutorials.characterSheet.skillRaiseStats', 'A used skill goes up when you rest or travel, at most once every 6 hours. Your Stats page shows how close each skill is.')
-          : t('tutorials.characterSheet.skillRaise', 'A used skill goes up when you rest or travel, at most once every 6 hours.'),
+          ? t('tutorials.characterSheet.skillRaiseStats', 'A skill you’ve used goes up when you rest or travel, at most once every 6 hours. Your Stats page shows how close each one is.')
+          : t('tutorials.characterSheet.skillRaise', 'A skill you’ve used goes up when you rest or travel, at most once every 6 hours.'),
       ];
     },
   }),
@@ -321,13 +321,13 @@ export const TUTORIALS = Object.freeze([
     get trigger() { return t('tutorials.guilds.trigger', 'When you first visit a guild.'); },
     get body() {
       return [
-        t('tutorials.guilds.body1', 'Join a guild for its services and its work. Do that work and practice the skills it teaches to rise in rank.'),
-        t('tutorials.guilds.body2', 'You may join one temple, one knightly order, and as many guilds as will have you.'),
+        t('tutorials.guilds.body1', 'Join a guild for its services and its work. Do the work and train the skills it teaches to rise in rank.'),
+        t('tutorials.guilds.body2', 'You can join one temple, one knightly order, and as many guilds as will take you.'),
       ];
     },
     // SEAT-WORDS (Field-Bugs-2026-10-15g): online a review stops at 7 - the page said "to rank up, keep working for it";
     // AUDIT GUILD-WORDS II C-2: ranks 8 and 9 are chairs - a seat is a town's (GUILD3, ONE WORD ONE THING)
-    get points() { return [t('tutorials.guilds.online', 'Online, reviews promote you no further than rank {cap}. Ranks {officer} and {master} are chapter chairs; see Guild Chapters.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master })]; },
+    get points() { return [t('tutorials.guilds.online', 'Online, reviews only promote you up to rank {cap}. Ranks {officer} and {master} are chapter chairs (see Guild Chapters).', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master })]; },
   }),
   page({
     id: 'tavern', group: 'towns', title: 'Taverns', trigger: 'When you first visit a tavern.',
@@ -351,8 +351,8 @@ export const TUTORIALS = Object.freeze([
     get trigger() { return t('tutorials.kingsGambit.trigger', 'When you first sit down to The King\'s Gambit.'); },
     get body() {
       return [
-        t('tutorials.kingsGambit.body1', 'A game of armies and kings, played on a board laid across a tavern\'s card table. Choose a regular to play, set down your stake and raise your army.'),
-        t('tutorials.kingsGambit.body2', 'Each turn, move your pieces, strike and drink potions. Bring down the enemy king to win, and guard your own.'),
+        t('tutorials.kingsGambit.body1', 'A war game of armies and kings, played on a board laid over a tavern’s card table. Pick a regular to play against, put down your stake and raise your army.'),
+        t('tutorials.kingsGambit.body2', 'On your turn, move your pieces, attack and drink potions. Take the enemy king to win, and don’t lose yours.'),
       ];
     },
   }),
@@ -385,12 +385,12 @@ export const TUTORIALS = Object.freeze([
     get trigger() { return t('tutorials.questlines.trigger', 'When you first take a quest with objectives.'); },
     get body() {
       return [
-        t('tutorials.questlines.body1', 'The Quests tab lists what each quest asks of you and ticks off each step. Some quests make you choose, and end differently for each choice.'),
+        t('tutorials.questlines.body1', 'The Quests tab lists what each quest wants and ticks off each step. Some quests make you choose, and each choice ends differently.'),
         // AUDIT QUESTLINES UI-4 (REWARD-6): not every quest pays gear - 24 sheets' outcomes pay none - so the page promises it
         // only where the quest's own page does (ui/questlines/qlJournal.js qlObjectivesBlock, its row's `gear`). AUDIT
         // QUESTLINES VOICE-QL: "longer stories, quest after quest, listed in the same tab" said plainly (Voice.md rule 4),
         // in the questline page's own words (qlJournal.js ql.journal.lineWhat)
-        t('tutorials.questlines.gearBody', 'Some quests, once finished, let you pick one of three pieces of gear: the quest\u2019s page says so. Questlines are longer stories told in several quests, one after another. The same tab lists them.'),
+        t('tutorials.questlines.gearBody', 'Some quests let you pick a piece of gear when you finish them. The quest’s page says so. Questlines are longer stories told over several quests, and the same tab lists them.'),
       ];
     },
   }),
@@ -476,12 +476,12 @@ export const TUTORIALS = Object.freeze([
     id: 'crafting', group: 'livelihood',
     get title() { return t('tutorials.crafting.title', 'Crafting'); },
     get trigger() { return t('tutorials.crafting.trigger', 'When you first gather something.'); },
-    get body() { return [t('tutorials.crafting.body', 'Online, stand at a station and press {Professions}: the Crafting page opens on it. Cook at any fire.')]; },
+    get body() { return [t('tutorials.crafting.body', 'Online, stand at a station and press {Professions} to open its Crafting page. You can cook at any fire.')]; },
     get points() {
       return [
         t('tutorials.crafting.shops1', 'Forge: Weaponsmiths, Armorers. Loom: Clothing Stores. Workbench: Furniture Stores, joineries.'),
         t('tutorials.crafting.shops2', 'Jeweler\'s bench: Pawn Shops, Gem Stores. Mason\'s bench: General Stores. Alchemy: Alchemists, Mages Guilds. Enchanting: Mages Guild halls.'),
-        t('tutorials.crafting.more', 'Your home can hold stations too. Each crafting profession under {Professions} says more.'),
+        t('tutorials.crafting.more', 'Your home can have stations too. Each crafting profession under {Professions} explains more.'),
       ];
     },
   }),
@@ -554,8 +554,8 @@ export const TUTORIALS = Object.freeze([
     get trigger() { return t('tutorials.skyKetch.trigger', 'When you first ride the anchor-lift up to the Sky-Ketch.'); },
     get body() {
       return [
-        t('tutorials.skyKetch.body1', 'Every ten hours the Sky-Ketch stays over the fields east of the capital for seven hours. Ride its anchor-lift up with your party, eight players at most.'),
-        t('tutorials.skyKetch.body2', 'Carry aether cells to the engine. A hit makes you drop the cell. Nets catch a fall; only death wakes you in the fields below.'),
+        t('tutorials.skyKetch.body1', 'Every ten hours the Sky-Ketch hangs over the fields east of the capital for seven hours. Ride its anchor-lift up with your party, up to eight players.'),
+        t('tutorials.skyKetch.body2', 'Carry aether cells to the engine. If you’re hit, you drop the cell. Nets catch you if you fall, and only death sends you back to the fields below.'),
       ];
     },
   }),
@@ -626,8 +626,8 @@ export const TUTORIALS = Object.freeze([
     // there costs the usual tenth; through the text core (L10N4), read when shown
     get body() {
       return [
-        t('tutorials.wildZone.body1', 'Players may fight one another in the Wrothgarian Mountains and on the open {word} Ocean, where monsters are tougher and spoils richer.', { word: ETHER_WORD }),
-        t('tutorials.wildZone.body2', 'If another player kills you there, your bag drops (your cart too, if with you) with a tenth of your gold, and they may take one worn item. Any other death costs the usual tenth.'),
+        t('tutorials.wildZone.body1', 'Players can fight each other in the Wrothgarian Mountains and on the open {word} Ocean. Monsters there are tougher and the loot is better.', { word: ETHER_WORD }),
+        t('tutorials.wildZone.body2', 'If another player kills you there, you drop your bag with a tenth of your gold (and your cart, if it’s with you). They can also take one item you’re wearing. Any other death costs the usual tenth.'),
       ];
     },
   }),
@@ -642,8 +642,8 @@ export const TUTORIALS = Object.freeze([
         // AUDIT GUILD-WORDS L3-2, L3-4: the pace a quest's reward keeps (writs and receipts add beyond it - the guide says
         // so), the real day it counts by - II C-8: a UTC day, said; II C-3: no quest is free of its own guild's losses
         // (REPUTE-GATE gates the two that cost the most instead), so the page no longer says one is; II C-2: chairs
-        t('tutorials.chapters.body1', 'Online, quests raise your standing with each guild by at most {max} a real day (days start at midnight UTC). Any more is added on later days.', { max: ROLL_GAIN_DAY_MAX }),
-        t('tutorials.chapters.body2', 'Reviews promote you up to rank {cap}. Ranks {officer} and {master} are chapter chairs, won by Merit at each Sunday\'s Turning. A notice board explains chapters.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master }),
+        t('tutorials.chapters.body1', 'Online, quests raise your standing with each guild by at most {max} per real day (days start at midnight UTC). Anything over that is added on later days.', { max: ROLL_GAIN_DAY_MAX }),
+        t('tutorials.chapters.body2', 'Reviews promote you up to rank {cap}. Ranks {officer} and {master} are chapter chairs, won by Merit at each Sunday’s Turning. Any notice board explains chapters.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master }),
       ];
     },
   }),

@@ -332,7 +332,7 @@ export class PauseOptionsWindow {
       // nothing (or the note appearing to come from nowhere).
       if (this.hooks.loadingPrevented?.()) {
         this.top = 'note';
-        this._noteRows = [t('pause.loadOnlineLocked', 'Loading is disabled during online play.')];
+        this._noteRows = [t('pause.loadOnlineLocked', 'You can’t load a save while playing online.')];
         return true;
       }
       // SAV4: LOAD GAME opens the slot window too (:308); a host
@@ -393,7 +393,7 @@ export class PauseOptionsWindow {
         this.hooks.openControls();
       } else {
         this.top = 'note';
-        this._noteRows = [t('pause.controlsNoArt', 'The controls window needs its art loaded.')];
+        this._noteRows = [t('pause.controlsNoArt', 'The controls window’s art hasn’t loaded.')];
       }
       return true;
     }

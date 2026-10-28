@@ -87,7 +87,7 @@ export function crownTitle(crown) {
  *  AUDIT GROWTH LANE5-1: each read in the player's language when drawn, and said plainly. */
 export const askOne = () => t('levelup.ask.one', 'Spend your points');
 /** LV2: how the stars take a click, under the ask. */
-export const starHowto = () => t('levelup.howto', 'Click a star to choose it, click again to add a point, right-click to take one back');
+export const starHowto = () => t('levelup.howto', 'Click a star to pick it, click again to add a point, right-click to take one back');
 export const askDone = () => t('levelup.ask.done', 'All points spent');
 /** ASCEND-ANYTIME: ...and what it asks when it is asking nothing. The
  *  window is a VIEW here - the player opened their own sky to look at
@@ -257,7 +257,7 @@ export function mountEnhancedLevelUp(hostEl, d = {}) {
     // PLUS1: the select-then-spend stars (plain Enhanced's click-raises-at-once went with it, PLUS-DEAD)
     b.onclick = () => starPress(key, 1);
     b.oncontextmenu = (e) => { e.preventDefault(); starPress(key, -1); };
-    b.title = t('levelup.star.title', 'Click to choose, click again to add a point, right-click to take one back');
+    b.title = t('levelup.star.title', 'Click to pick, click again to add a point, right-click to take one back');
     figure.append(b);
     return { key, node: b, val, delta, gem };
   });

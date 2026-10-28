@@ -308,7 +308,7 @@ test('RESTART-PAID: a running quest that paid its player - a reward box\'s item,
   const paid = [...m.quests.values()].find((q) => q.questName === '__GIVE');
   assert.deepEqual(m.restartQuest(paid.uid), { ok: false, reason: 'paid' });
   assert.equal(m.getQuest(paid.uid), paid, 'it runs on to its end');
-  assert.equal(restartRefusalText('paid'), 'That quest has already paid you, so it cannot be started again.');
+  assert.equal(restartRefusalText('paid'), 'That quest already paid you, so it can’t be started again.');
   const letter = [...m.quests.values()].find((q) => q.questName === '__LETTER');
   const r = m.restartQuest(letter.uid);
   assert.equal(r.ok, true, 'a quest item handed over: the restart takes it back');

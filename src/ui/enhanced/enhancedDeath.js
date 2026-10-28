@@ -80,7 +80,7 @@ function build(screen) {
   // under it in a second face. A death that costs nothing (no respawn - BAL4: an offline Legacy rise pays - or a purse under ten coins) keeps its words.
   const lossLine = screen.goldLoss > 0 ? (screen.goldLossLine || deathPenaltyLine(screen.goldLoss)) : '';
   const line = el('p', `dth-line${lossLine ? ' dth-lossline' : ''}`, lossLine || (online || screen.rises
-    ? t('death.lineOnline', 'Your body falls. The Bay is not done with you yet.')
+    ? t('death.lineOnline', 'You fall. The Bay isn’t finished with you.')
     : t('death.line', 'Your tale in the Iliac Bay ends here.')));
   const keys = el('div', 'dth-keys');
   for (const k of deathKeys(screen.hint, online, !!screen.rises)) {

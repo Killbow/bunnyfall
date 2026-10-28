@@ -244,7 +244,7 @@ test('AUDIT QUESTLINES UI-4 (REWARD-6): the block promises a choice of gear only
   assert.equal(text(qlObjectivesBlock(doc, { ...open, gear: true }).querySelector('.px-qobj-reward')), rewardWords(2));
   const page = tutorialById('questlines');
   assert.doesNotMatch(page.body.join(' '), /A finished quest lets you pick/, 'no promise for every quest');
-  assert.match(page.body[1], /^Some quests, once finished, let you pick one of three pieces of gear: the quest.s page says so\./);
+  assert.match(page.body[1], /^Some quests let you pick a piece of gear when you finish them\. The quest.s page says so\./);
 });
 
 test('AUDIT QUESTLINES UI-10, UI-11: each Take carries its own key and says when it is armed; a card says what its piece IS - the pack card\'s own numbers, never a second law (mutants: the key dropped; the armed words; the stat line dropped)', () => {

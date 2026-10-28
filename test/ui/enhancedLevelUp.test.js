@@ -279,7 +279,7 @@ test('LV1: ALL-MAX IS THE OTHER TERM OF CheckIfDoneLeveling, and the first cut h
   assert.equal(canAscend(w), true, 'so the way out is open');
   // PIN MOVED (AUDIT GROWTH LANE5-1): the line is read when drawn (allMaxLine), and says it plainly
   assert.equal(corneredHint(w), allMaxLine(), 'and it says THAT, not "take a point back" - there is no elsewhere');
-  assert.equal(allMaxLine(), 'Every attribute is at its maximum. Leftover points can\'t be spent.');
+  assert.equal(allMaxLine(), 'Every attribute is maxed. Leftover points can’t be spent.');
   const level = p.level;
   assert.equal(ascend(w), true);
   assert.equal(p.level, level + 1, 'the level still lands');
@@ -395,7 +395,7 @@ test('LV1: the ribbon\'s roles RECONSTRUCT levelUpSkillSum exactly, over every s
   assert.deepEqual({ ...ROLE_NOTE }, {
     [ROLE_COUNTS]: 'Every point counts toward your next level.',
     [ROLE_DROPPED]: 'Your lowest major skill. It doesn\'t count toward your next level.',
-    [ROLE_BEST]: 'Your highest minor skill, the only minor skill that counts toward your next level.',   // PIN MOVED (VOICE2): no dash aside (Voice.md rule 5)
+    [ROLE_BEST]: 'Your highest minor skill, and the only minor skill that counts toward your next level.',   // PIN MOVED (VOICE2): no dash aside (Voice.md rule 5)
     [ROLE_IDLE]: 'Doesn\'t count toward your next level.',
   });
 });
@@ -407,9 +407,9 @@ test('AUDIT GROWTH LANE5-1: the window\'s words are read in the player\'s langua
   const w = new LevelUpScreen(p, seq(0));
   const english = [ATTRIBUTE_BLURB.luck, ROLE_NOTE[ROLE_IDLE], attributeLabel('luck'), poolLabel(w), allMaxLine(), askOne(), askDone(), askView(), starHowto(),
     crownTitle({ lane: LANE_OGHMA }), crownTitle({ lane: LANE_CLASSIC, from: 3, to: 4 }), levelProgress(p, w).label, levelUpVitals(p)[0].label];
-  assert.deepEqual(english, ['Helps you hit and avoid hits, as Agility does, and improves your loot.', 'Doesn\'t count toward your next level.', 'Luck',
-    'Bonus points left', 'Every attribute is at its maximum. Leftover points can\'t be spent.', 'Spend your points', 'All points spent', 'Your attributes',
-    'Click a star to choose it, click again to add a point, right-click to take one back', 'The Oghma Infinium', 'Level 3 → 4',
+  assert.deepEqual(english, ['Helps you hit and dodge, like Agility, and improves your loot.', 'Doesn\'t count toward your next level.', 'Luck',
+    'Bonus points left', 'Every attribute is maxed. Leftover points can’t be spent.', 'Spend your points', 'All points spent', 'Your attributes',
+    'Click a star to pick it, click again to add a point, right-click to take one back', 'The Oghma Infinium', 'Level 3 → 4',
     'Skill progress to next level', 'Health']);
   try {
     patchLocaleTable('fr', 'Port_Strings', [['levelup.blurb.luck', 'Chance'], ['levelup.role.idle', 'Ne compte pas'], ['levelup.attr.luck', 'Chance (attribut)'],

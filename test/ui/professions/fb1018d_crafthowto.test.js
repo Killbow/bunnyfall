@@ -202,7 +202,7 @@ test('CRAFT-HOWTO THE TUTORIAL: a Crafting page among Professions & Survival, af
   const words = [...body, ...points].join(' ');
   // AUDIT FB1018D L1-6: by the key - "Menu > Holdings" is the Enhanced menu's alone (the Classic skin's Escape is DFU's
   // pause, no tabs), and the key opens the pages on either skin (ui/pauseDoor.js profPageAt)
-  assert.match(body[0], /stand at a station and press \[DOWN\]: the Crafting page opens on it\. Cook at any fire\.$/);   // PIN MOVED (CRAFT-HALL); the page within TUT1's sixty words
+  assert.match(body[0], /stand at a station and press \[DOWN\] to open its Crafting page\. You can cook at any fire\.$/);   // PIN MOVED (CRAFT-HALL); the page within TUT1's sixty words
   assert.doesNotMatch(words, /Menu >/);
   // every shop a station question answers, as the list names them
   const qs = stationQuestions();
@@ -216,7 +216,7 @@ test('CRAFT-HOWTO THE TUTORIAL: a Crafting page among Professions & Survival, af
   }
   assert.match(words, /Workbench: Furniture Stores, joineries\./);
   assert.match(words, /Enchanting: Mages Guild halls\./);
-  assert.match(words, /Your home can hold stations too\. Each crafting profession under \[DOWN\] says more\.$/);
+  assert.match(words, /Your home can have stations too\. Each crafting profession under \[DOWN\] explains more\.$/);
   assert.deepEqual(tutorialsMatching('jeweler').map((p) => p.id), ['crafting'], 'PIN MOVED (VOICE2): the pane\'s search finds it, by its American spelling');
   // the Professions page: the key lands on the Professions page (input.js), the Stores page is Holdings'
   assert.match(src('src/ui/input.js'), /case 'Professions': return ctx\.togglePause && ctx\.sailing\?\.\(\) !== true \? \(ctx\.togglePause\(\{ at: 'professions', setPlayerPos \}\), true\)/);

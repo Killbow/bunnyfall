@@ -289,7 +289,7 @@ function questState(e) {
   }
   if (e.clockSeconds != null) {
     // QUEST-AUDIT III SHELF-WORDS: the pause tab's own words (pause.journal.timeRemains), in the player's language
-    const span = el('span', `cr-timer${e.clockSeconds < QUEST_URGENT_SECONDS ? ' urgent' : ''}`, t('pause.journal.timeRemains', 'Time remains: {left}', { left: remainWords(e.clockSeconds) }));
+    const span = el('span', `cr-timer${e.clockSeconds < QUEST_URGENT_SECONDS ? ' urgent' : ''}`, t('pause.journal.timeRemains', 'Time left: {left}', { left: remainWords(e.clockSeconds) }));
     clockSpans.set(String(e.uid), span);
     box.append(span);
   }
@@ -308,7 +308,7 @@ function armClocks() {
     for (const [id, span] of clockSpans) {
       const left = live.get(id);
       if (!Number.isFinite(left)) { render(); return; }
-      span.textContent = t('pause.journal.timeRemains', 'Time remains: {left}', { left: remainWords(left) });
+      span.textContent = t('pause.journal.timeRemains', 'Time left: {left}', { left: remainWords(left) });
       span.className = `cr-timer${left < QUEST_URGENT_SECONDS ? ' urgent' : ''}`;
     }
   }, 1000);

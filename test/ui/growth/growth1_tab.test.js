@@ -756,7 +756,7 @@ test('AUDIT GROWTH LANE3-9 / LANE5-6 THE YES/NO CARD AND THE MASTER SKILLS LINE,
     };
     open();
     const line = () => host.querySelectorAll('div').find((d) => String(d.className).includes('px-master-about'))?.textContent ?? null;
-    assert.equal(line(), 'Master two schools of magic or two weapon skills to unlock a specialization. See every path and what it needs on the Growth tab.');
+    assert.equal(line(), 'Master two schools of magic or two weapon skills to unlock a specialization. The Growth tab shows every path and what it needs.');
     host.querySelectorAll('button').find((b) => b.textContent === 'Master').onclick();
     assert.ok(card(), 'the card asks');
     dom.keydown('Escape', undefined, esc); dom.keyup('Escape', undefined, esc);

@@ -180,7 +180,7 @@ test('QA3 B1: a quest whose `start quest` has run refuses the journal\'s Restart
   assert.deepEqual(quiet(() => m.restartQuest(q.uid)), { ok: false, reason: 'started' });
   ticks(m, 6);
   assert.deepEqual([copies(), powers(), m.getQuest(q.uid) === q], [1, 16, true], 'nothing started twice, nothing paid twice');
-  assert.equal(restartRefusalText('started'), 'That quest has already started another, so starting it again would start that one twice.');
+  assert.equal(restartRefusalText('started'), 'That quest has already started another quest, so restarting it would start that one twice.');
 
   const more = {
     __KID: script('__KID', ['\tlog 1011 step 0']),

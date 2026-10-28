@@ -165,8 +165,8 @@ test('AUDIT L3-1: ready while the gate is shut says when a rest raises it, and t
   assert.equal(skillCheckWait(p, last + SKILL_RAISE_CHECK_INTERVAL + 1), 0);
   assert.equal(countReadyToImprove(p, { now: last + 60 }), 0, 'gated: no strip line');
   assert.equal(countReadyToImprove(p, { now: last + 361 }), 1);
-  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe, { now: last + 60 })), 'Ready - a rest or a trip raises it once 6 more hours have passed');
-  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe, { now: last + 361 })), 'Ready - rest or travel to raise it');
+  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe, { now: last + 60 })), 'Ready. A rest or a trip raises it once 6 more hours have passed');
+  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe, { now: last + 361 })), 'Ready. Rest or travel to raise it');
   assert.deepEqual(raiseSkills(p, last + SKILL_RAISE_CHECK_INTERVAL, seq(0), () => {}), [], 'the pass agrees: shut at 360');
 });
 
@@ -201,7 +201,7 @@ test('AUDIT L3-3: an unmastered 100 a mastery is open to says to master it; a lo
   p._online = true;
   p.skills[SKILLS.Axe] = 100;
   assert.equal(skillAdvanceProgress(p, SKILLS.Axe).held, 'master');
-  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe)), 'At 100 - master it to climb further');
+  assert.equal(skillTickText(skillAdvanceProgress(p, SKILLS.Axe)), 'At 100. Master it to go higher');
   // MASTER-THREE (Field-Bugs-2026-10-26d): three primary slots, so the spent group is the majors' two
   p.skills[SKILLS.BluntWeapon] = 100; p.skills[SKILLS.Dodging] = 100;
   assert.equal(masterSkill(p, SKILLS.BluntWeapon).ok, true); assert.equal(masterSkill(p, SKILLS.Dodging).ok, true);
@@ -290,7 +290,7 @@ test('AUDIT L6-4: the tutorial sends the classic skin to no Stats page line - it
   const had = isEnhanced();
   try {
     setUiSkin('enhanced');
-    assert.match(body(), /Your Stats page shows how close each skill is\./);
+    assert.match(body(), /Your Stats page shows how close each one is\./);
     setUiSkin('classic');
     assert.match(body(), /at most once every 6 hours\./);
     assert.doesNotMatch(body(), /Stats page/);

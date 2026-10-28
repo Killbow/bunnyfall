@@ -75,9 +75,9 @@ test('SKILL-TICK: held skills say why their uses go - 100 unmastered, the hard c
   p.skills[SKILLS.LongBlade] = 200;
   assert.equal(skillAdvanceProgress(p, SKILLS.LongBlade).held, 'cap', 'the hard cap');
   assert.equal(skillTickText({ have: 3, need: 40, ready: false, held: null }), '3 / 40 uses to the next point');
-  assert.equal(skillTickText({ have: 40, need: 40, ready: true, held: null }), 'Ready - rest or travel to raise it');
-  assert.equal(skillTickText({ have: 9, need: 4, ready: false, held: 'cap' }), 'At its limit - uses are not kept');
-  assert.equal(skillTickText({ have: 9, need: 4, ready: false, held: 'lock' }), 'Held while a primary skill is at 100 - uses are not kept');   // AUDIT SUGGESTIONS-1019 L3-3
+  assert.equal(skillTickText({ have: 40, need: 40, ready: true, held: null }), 'Ready. Rest or travel to raise it');
+  assert.equal(skillTickText({ have: 9, need: 4, ready: false, held: 'cap' }), 'At its limit. Uses aren’t counted');
+  assert.equal(skillTickText({ have: 9, need: 4, ready: false, held: 'lock' }), 'On hold while a primary skill is at 100. Uses aren’t counted');   // AUDIT SUGGESTIONS-1019 L3-3
   assert.deepEqual(skillsReadyToImprove({ ...p, chargenDone: false }), [], 'none before chargen is done');
 });
 

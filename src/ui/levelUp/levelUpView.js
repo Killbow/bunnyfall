@@ -145,15 +145,15 @@ export const ATTRIBUTE_BLURB = Object.freeze({
   // all; DFU draws the figure and never charges for it"). A window
   // that promises a penalty the game does not apply is teaching a
   // player to spend a point on nothing.
-  get strength() { return t('levelup.blurb.strength', 'Raises the damage of every hit you land and how much you can carry.'); },
+  get strength() { return t('levelup.blurb.strength', 'More damage with every hit, and more you can carry.'); },
   // systems/chargen.js:"const maxMagicka = spellPoints" - spellPoints(intelligence, multiplier) is the whole magicka pool.
-  get intelligence() { return t('levelup.blurb.intelligence', 'Sets your maximum magicka: Intelligence times your class\'s multiplier.'); },
+  get intelligence() { return t('levelup.blurb.intelligence', 'Your maximum magicka: Intelligence times your class’s multiplier.'); },
   // systems/spellcast.js:"saving += magicResist(liveStat(target, 'willpower'))" - `saving += magicResist(liveStat(target,
   // 'willpower'))`, the CONSUMER of DFU's MagicResist. The first cut
   // cited systems/quest/questMacros.js:"return 'BLANK';", which only PRINTS the same
   // figure for %mr, and a display is not evidence that a number does
   // anything (LV1's audit).
-  get willpower() { return t('levelup.blurb.willpower', 'Resists spells: a tenth of your Willpower is added to every saving throw.'); },
+  get willpower() { return t('levelup.blurb.willpower', 'Resists spells. A tenth of your Willpower is added to every saving throw.'); },
   // combat/formulas.js:"export const statsToHit" statsToHit = floor((your luck - theirs) / 10)
   // + floor((your agility - theirs) / 10), read INSIDE the hit roll - every attack's, so it is the
   // player's swing at a foe and a foe's at the player alike (calculateSuccessfulHit).
@@ -163,24 +163,24 @@ export const ATTRIBUTE_BLURB = Object.freeze({
   // display modifier - ui/chargen.js:"toHit: sign(toHitModifier(st.agility))" and the quest macros are its
   // only readers - so "a tenth of it, less five, rides on every swing"
   // named a number that rides nothing.
-  get agility() { return t('levelup.blurb.agility', 'Raises your chance to hit and lowers the enemy\'s chance to hit you.'); },
+  get agility() { return t('levelup.blurb.agility', 'You hit more often and get hit less.'); },
   // systems/chargen.js hitPointsPerLevelUp reads hitPointsModifier = floor(endurance / 10) - 5.
   // LEVEL-EVEN (systems/levelEven.js): online the health floor reads Endurance as it stands, so every level is lifted -
   // AUDIT SUGGESTIONS-1019 L6-5: for a body under the floor; a body that rolled above it keeps its rolls and gains nothing past
-  get endurance() { return isOnlinePage() ? t('levelup.blurb.enduranceOnline', 'Raises the health you gain each level. Online, your health is never below your class\'s average for your level at your current Endurance.') : t('levelup.blurb.endurance', 'Raises the health you gain each level from now on.'); },
+  get endurance() { return isOnlinePage() ? t('levelup.blurb.enduranceOnline', 'More health each level. Online, your health never drops below your class’s average for your level at your current Endurance.') : t('levelup.blurb.endurance', 'More health each level from now on.'); },
   // systems/shopStock.js:"export function calculateTradePrice" haggles Mercantile and Personality against the
   // merchant's; scenes/townTalk.js:"personality: playerEntity.stats?.personality != null ? liveStat(playerEntity, 'personality') : 50,"
   // is the talk reaction's personality / 5; systems/court.js:"let chance = legalRep" is the Not Guilty plea's.
   get personality() { return t('levelup.blurb.personality', 'Better prices, friendlier townspeople and better odds in court.'); },
   // player/motor.js:"this.speed = walkSpeed" walkSpeed(stats.speed) is how fast you move;
   // combat/weapon/weaponRig.js:"const playerWeapon = new PlayerWeapon" reads liveStat speed for the swing.
-  get speed() { return t('levelup.blurb.speed', 'Makes you move and swing your weapon faster.'); },
+  get speed() { return t('levelup.blurb.speed', 'You move and swing faster.'); },
   // combat/formulas.js:"export const statsToHit" again - the same term agility rides -
   // and systems/unleveledLoot.js:"const playerLuck", where the vendored ladder rolls
   // rarity against the player's luck, which is where a player actually
   // notices it. (AUDIT 28e: a line shorter - at 360 to 375 wide it was the one blurb that ran to a third line, and
   // the tallest sets the Ascension's band.)
-  get luck() { return t('levelup.blurb.luck', 'Helps you hit and avoid hits, as Agility does, and improves your loot.'); },
+  get luck() { return t('levelup.blurb.luck', 'Helps you hit and dodge, like Agility, and improves your loot.'); },
 });
 
 /**
@@ -385,7 +385,7 @@ export function rolloutRows(screen) {
 export function liveNote(row) {
   if (!row || row.live === row.value) return '';
   const said = row.live > row.value ? t('levelup.live.boosted', '{live} with its bonus', { live: row.live }) : t('levelup.live.lowered', 'Lowered to {live} for now', { live: row.live });
-  return row.capped ? t('levelup.live.capped', '{said} - a point here won\'t show', { said }) : said;
+  return row.capped ? t('levelup.live.capped', '{said} (a point here won’t show)', { said }) : said;
 }
 
 /** ASCEND-LIVE: the tint a star's figure and the pick line wear - the classic sheet's two, a live value above its
@@ -450,7 +450,7 @@ export const allMaxed = (screen) => typeof screen?.allMax === 'function' && scre
 /** ...and what the window SAYS on that branch, because a plate reading
  *  "5 bonus points left" over an enabled button is a screen that looks
  *  broken. The port's own words: DFU shows nothing here at all. AUDIT GROWTH LANE5-1: read when drawn, and plain. */
-export const allMaxLine = () => t('levelup.allMax', 'Every attribute is at its maximum. Leftover points can\'t be spent.');
+export const allMaxLine = () => t('levelup.allMax', 'Every attribute is maxed. Leftover points can’t be spent.');
 
 /** The refusal each lane already ships, so the window quotes rather
  *  than invents. */
@@ -620,7 +620,7 @@ export const ROLE_IDLE = 'idle';            // a minor that is not the best, or 
 export const ROLE_NOTE = Object.freeze({
   get [ROLE_COUNTS]() { return t('levelup.role.counts', 'Every point counts toward your next level.'); },
   get [ROLE_DROPPED]() { return t('levelup.role.dropped', 'Your lowest major skill. It doesn\'t count toward your next level.'); },
-  get [ROLE_BEST]() { return t('levelup.role.best', 'Your highest minor skill, the only minor skill that counts toward your next level.'); },
+  get [ROLE_BEST]() { return t('levelup.role.best', 'Your highest minor skill, and the only minor skill that counts toward your next level.'); },
   get [ROLE_IDLE]() { return t('levelup.role.idle', 'Doesn\'t count toward your next level.'); },
 });
 
