@@ -64,7 +64,7 @@ test('CROWN1 THE ROYAL HUD\'S WORDS: the tourney, its prize and its end; the rin
   assert.equal(royalHudModel(s, { ...t, endsMs: AT + 30 * 3_600_000 }, 'p1', AT, { name }).bar[0].endsWith('ends in 1d 6h'), true, 'a day and more in days');
   s = foldRoyal(s, { k: 'st', f: [['p1', 320, 320, 0], ['p2', 320, 320, 0], ['p3', 320, 320, 0]] }, AT);
   s = foldRoyal(s, { k: 'bout', a: 'p1', b: 'p2', n: 3, s: AT + 2500, e: AT + 302_500 }, AT);
-  assert.equal(royalHudModel(s, t, 'p1', AT, { name }).bar[1], 'BOUT 3: You against Bryn - begins in 3');
+  assert.equal(royalHudModel(s, t, 'p1', AT, { name }).bar[1], 'BOUT 3: You against Bryn, begins in 3');
   s = foldRoyal(s, { k: 'hp', id: 'p1', h: 160, m: 320 }, AT + 3000);
   m = royalHudModel(s, t, 'p1', AT + 62_500, { name });
   assert.equal(m.bar[1], 'BOUT 3: You against Bryn   4:00');

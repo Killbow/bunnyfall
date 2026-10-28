@@ -71,7 +71,7 @@ test('FOE-KEEPS THE WORDS (wildZone.js WILD_TEXT, etherWild.js ETHER_WILD_TEXT, 
   }
   assert.match(WILD_TEXT.enter, /^You enter the Wrothgarian Mountains, an open PvP zone\./);
   assert.ok(ZONE_RULES.some((l) => l.startsWith('If another player kills you, what you carry drops')), 'the zone map\'s legend');
-  assert.ok(rd('src/systems/tutorialCatalogue.js').includes("t('tutorials.wildZone.body2', 'If another player kills you there, you drop your bag"), 'the tutorial page');   // PIN MOVED (AUDIT FOE-KEEPS O4): both zones, the cart only while with you, the tenths
+  assert.ok(rd('src/systems/tutorialCatalogue.js').includes("t('tutorials.wildZone.body2', 'If a player kills you there, you drop a bag"), 'the tutorial page');   // PIN MOVED (AUDIT FOE-KEEPS O4): both zones, the cart only while with you, the tenths
   setWildDeath({ killer: null, dropped: 0 });
   assert.deepEqual(wildDeathLines(), ['Nothing dropped. Only another player\'s kill drops what you carry.', WILD_TEXT.deathHold], 'a foe\'s death: kept');   // PIN MOVED (AUDIT FOE-KEEPS O1, H5): "You keep what you carry" stood over the tenth the death claims
   setWildDeath({ killer: 'Borin', dropped: 3 });

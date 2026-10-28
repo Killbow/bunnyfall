@@ -780,7 +780,7 @@ test('AUDIT POI U13 THE WORDS: counts in their plurals; glTF\'s object names sai
   assert.equal(importPart({ name: 'Keep', vertices: 262144, triangles: 2, materials: 4 }), 'Keep: 262,144 vertices, 2 triangles, 4 materials');
   assert.match(src('src/ui/poi/poiEditorPanel.js'), /t\('poi\.editor\.importPart', '\{name\}: \{vertices, plural, one \{\{vertices, number\} vertex\}/);
   assert.match(src('src/ui/poi/poiEditorPanel.js'), /t\('poi\.editor\.speed', 'Eye \{speed, number\} m\/s'/);
-  assert.equal(problemText({ code: 'material-count', want: 1, have: 2 }), 'Its model has 1 material; the part has 2.');
+  assert.equal(problemText({ code: 'material-count', want: 1, have: 2 }), 'Its model has 1 material, but the part has 2.');
   assert.equal(gltfErrorText('missing', { what: 'accessor', index: 3 }), 'This model refers to an accessor that is not there.');
   assert.equal(gltfErrorText('missing', { what: 'bufferView', index: 0 }), 'This model refers to a buffer view that is not there.');
   assert.equal(gltfErrorText('past-end', { what: 'accessor' }), 'This model\'s data is cut short: an accessor runs past its end.');

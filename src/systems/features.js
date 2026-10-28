@@ -353,7 +353,7 @@ export const FEATURES = Object.freeze([
     id: 'smaller-dungeons',
     group: 'world',
     get title() { return t('features.smallerDungeons.title', 'Smaller dungeons'); },
-    get note() { return t('features.smallerDungeons.note', 'Dungeons bigger than five blocks are cut down to five: a center block with four around it, the same every visit. Main-story dungeons keep full size. A quest keeps the size it was set up at. Online, every dungeon has its own size.'); },
+    get note() { return t('features.smallerDungeons.note', 'Dungeons bigger than five blocks are cut down to five: a center block with four around it, the same every visit. Main-story dungeons keep full size. A quest keeps the size it was set up at. Online every dungeon has its own size instead.'); },
     get effect() { return t('features.smallerDungeons.effect', 'Takes effect on the next dungeon you enter. A save made at the other size puts you at the dungeon\u2019s start.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Experimental/SmallerDungeons' }),
@@ -671,7 +671,7 @@ export const FEATURES = Object.freeze([
     id: 'render-scale',
     group: 'sight',
     get title() { return t('features.renderScale.title', 'Render scale'); },
-    get note() { return t('features.renderScale.note', 'Draws the world at a lower resolution and scales it up to fit, while menus and the HUD stay sharp. Try 75% if the outdoors run slow on a big or high-resolution screen. Retro Picture Mode replaces this while it’s on.'); },
+    get note() { return t('features.renderScale.note', 'Draws the world at a lower resolution and scales it up to fit, but menus and the HUD stay sharp. Try 75% if the outdoors run slow on a big or high-resolution screen. Retro Picture Mode replaces this while it’s on.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     // AUDIT BRANCH-0925 PS-A1: `classic` - the row has no Off, and Daggerfall's own frame is the whole window
@@ -720,7 +720,7 @@ export const FEATURES = Object.freeze([
     id: 'resource-highlights',
     group: 'sight',
     get title() { return t('features.resourceHighlights.title', 'Resource highlights'); },
-    get note() { return t('features.resourceHighlights.note', 'How herbs, veins, trees and other gathering spots near you stand out. Glint makes them catch the light with sparkles. Outline rings each one in its profession’s color, easy to see day or night. Both does both.'); },
+    get note() { return t('features.resourceHighlights.note', 'How herbs, veins, trees and other gathering spots near you stand out. Glint makes them catch the light with sparkles. Outline rings each one in its profession’s color, plain to see day or night. Both does both.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'resourceHighlights', initial: 'glint', online: 'player', tiers: Object.freeze([tier('glint', () => t('features.resourceHighlights.glint', 'Glint')), tier('outline', () => t('features.resourceHighlights.outline', 'Outline')), tier('both', () => t('features.resourceHighlights.both', 'Both'))]) }),   // render/nodeGlint.js RESOURCE_HIGHLIGHT_PREF, RESOURCE_HIGHLIGHTS
@@ -1259,7 +1259,7 @@ export const FEATURES = Object.freeze([
     id: 'beast-helmets',
     group: 'combat',
     get title() { return t('features.beastHelm.title', 'Beast Helmets'); },
-    get note() { return t('features.beastHelm.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s helmets are drawn. Open only hides closed helmets but keeps open ones like the chain coif, as in Morrowind. Hidden hides them all.'); },
+    get note() { return t('features.beastHelm.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s helmets are drawn. Open only hides closed helmets but keeps open ones, like the chain coif, as in Morrowind. Hidden hides them all.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBeastHelm', initial: 'worn', online: 'player',
@@ -1486,7 +1486,7 @@ export const FEATURES = Object.freeze([
     id: 'dungeon-wall-style',
     group: 'sight',
     get title() { return t('features.dungeonWallStyle.title', 'Dungeon Wall Style'); },
-    get note() { return t('features.dungeonWallStyle.note', 'Which textures dungeon walls use: Classic, the region’s climate (Climate) or random (Random). Climate and Random keep main-story dungeons classic, while Climate Only and Random Only change them too. Daggerfall Unity defaults to Classic.'); },
+    get note() { return t('features.dungeonWallStyle.note', 'Which textures dungeon walls use: Classic, the region’s climate (Climate) or random (Random). Climate and Random keep main-story dungeons classic, while Climate Only and Random Only change them too. Classic by default in Daggerfall Unity.'); },
     get effect() { return t('features.effect.nextDungeon', 'Takes effect on the next dungeon you enter.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Video/RandomDungeonTextures', classic: 0 }),   // FT18: Classic, what All off sets - a choice with no Off
@@ -1732,7 +1732,7 @@ export const FEATURES = Object.freeze([
     id: 'blood',
     group: 'combat',
     get title() { return t('features.blood.title', 'Blood'); },
-    get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir. Off keeps the classic splash that fades away.'); },
+    get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir. Off keeps the classic fading splash.'); },
     get effect() { return t('features.blood.effect', 'Takes effect right away. How many marks stay changes when the game next loads or you enter a dungeon.'); },
     kinds: Object.freeze(['enhanced']),
     // FT18: BLOOD, ONE ROW. BLOOD1's marks, BLOOD1b's overkill, BLOOD2e's lens and BLOOD2g's gore were four tiles over
@@ -1758,7 +1758,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-climates-calories',   // a mod-row id: WM3's law reaches the credits' vendor through it
     group: 'character',
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'Climates & Calories', author: 'Ralzar' }); },   // AUDIT SURV E: the author's name, as every mod row carries it
-    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a campfire or in a bed. On Boons neglect costs nothing, and staying fed, watered and rested in a bed or by a fire gives bonuses; on Casual, unmet needs only drain some stamina (never more than half) and it comes back once you’ve seen to them; on Hard they cost attributes and health and can make you sick; Off is the classic game.'); },
+    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a campfire or in a bed. On Boons, neglect costs nothing, and staying fed, watered and rested gives bonuses. On Casual, unmet needs only drain some stamina (never more than half), and it comes back once you’ve seen to them. On Hard, they cost attributes and health and can make you sick. Off is the classic game.'); },
     get effect() { return t('features.mod.climatesCalories.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['mod', 'enhanced', 'classic']),   // AUDIT SURV E: a mod row, under the MOD AUTHORED filter
     // MODS-ONLINE-3 (2026-09-22, Mac): THIS IS A MOD ROW AND IT IS THE

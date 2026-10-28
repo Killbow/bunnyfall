@@ -183,7 +183,7 @@ test('AUDIT SEATS-3 C6: the Tithe refused says the cap the Market Hall raises - 
   const t = REFUSALS['bad-tithe'];
   assert.equal(accountRefusalText('bad-tithe'), t);
   assert.doesNotMatch(t, /at most 10% at a palace seat, 15% at a crown\.$/);
-  assert.match(t, /10% at a palace and 15% at a crown, and a point more for each stage of its Market Hall/);
+  assert.match(t, /10% at a palace, 15% at a crown, plus one point for each stage of its Market Hall/);
   assert.equal(seatTitheCap({ tier: 'palace', forts: { market: 3 } }), 13);
   assert.equal(seatTitheCap({ tier: 'crown', forts: { market: 3 } }), 18);
 });

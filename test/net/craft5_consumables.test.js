@@ -75,7 +75,7 @@ test('CRAFT5 law: a kit\'s craft rolls a quality, its reach - never a takesQuali
   assert.deepEqual([-1, 2].map((q) => productRecordValid({ ...what, r: 'longsword:steel', q })), [false, true]);
   // arrows a Building product (CRAFT3): the workbench's, Carpentry's work and Building's track
   const arrows = RECIPES.filter((r) => r.kind === 'arrows');
-  assert.ok(arrows.length >= 3);
+  assert.ok(arrows.length >= 2);   // BUNNYFALL: the Harpy Feathers arrows were removed
   assert.deepEqual([...new Set(arrows.map((r) => trackOf(r.profession)))], ['building']);
 });
 

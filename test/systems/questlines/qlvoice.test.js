@@ -110,7 +110,7 @@ test('AUDIT QUESTLINES VOICE-QL the t() lines: the share\'s refusals in two sent
   assert.match(note, /Off is the classic journal and its rewards, and online it is always on\.$/, 'the Features rows\' own way of saying Off');
   const page = tutorialById('questlines').body.join(' ');
   assert.doesNotMatch(page, /quest after quest/);
-  assert.match(page, /Questlines are longer stories told in several quests, one after another\. The same tab lists them\./);
+  assert.match(page, /Questlines are longer stories told over several quests, and the same tab lists them\./);
   for (const s of [SHARE_REFUSAL_TEXT.questline, RECEIVER_REFUSAL_TEXT.questline, REFUSALS['ql-closed'], note, page]) {
     assert.doesNotMatch(s, / - /, `a dash aside: ${s}`);
     assert.deepEqual(british(s), [], s);

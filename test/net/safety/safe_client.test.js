@@ -906,7 +906,7 @@ test('AUDIT SAFE DOC-4 THE REPORTS REACH A MODERATOR IN THE GAME: /cases lists t
   r.host.onSend('world', '/cases');
   await settle(); await settle();
   assert.deepEqual(r.asked.at(-1), { path: '/v1/mod/cases', body: {} });
-  assert.deepEqual(lines().slice(-2), ['1 open case, the most credible first:', 'Troll (#acct-tro): 3 reports, 2 credible - Hate or slurs. The reviewer says Hate or slurs, severity 3, confidence 95%.']);
+  assert.deepEqual(lines().slice(-2), ['1 open case, the most credible first:', 'Troll (#acct-tro): 3 reports, 2 credible. Hate or slurs. The reviewer says Hate or slurs, severity 3, confidence 95%.']);
   r.host.onSend('world', '/case #acct-tro');
   await settle(); await settle();
   assert.deepEqual(r.asked.at(-1), { path: '/v1/mod/case', body: { target: 'acct-tro' } });

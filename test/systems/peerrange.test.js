@@ -45,7 +45,7 @@ test('PEER-RANGE the default is past a shot\'s reach: another player\'s arrow or
   assert.equal(reach * BLOW.aimed.speed, 260, 'a foe archer\'s aimed shot - the only one sped up (hostCombat.js aimedArrowMeta)');
   assert.ok(PEER_RANGE_DEFAULT >= reach * BLOW.aimed.speed, `the default ${PEER_RANGE_DEFAULT} m reaches past either`);
   assert.ok(PEER_RANGE_TIERS[0] < reach, 'the near tier is inside a player\'s shot');
-  assert.match(read('src/ui/enhanced/enhancedMenu.js'), /choiceRow\('peerRange', t\('menu\.peers\.range', 'Draw distance'\),\n\s*t\('menu\.peers\.rangeNote', '[^']*150 m can hide an archer\.'/, 'and the row says so');
+  assert.match(read('src/ui/enhanced/enhancedMenu.js'), /choiceRow\('peerRange', t\('menu\.peers\.range', 'Draw distance'\),\n\s*t\('menu\.peers\.rangeNote', '[^']*150 m you might miss an archer\.'/, 'and the row says so');
   assert.match(read('src/scenes/hostCombat.js'), /export function aimedArrowMeta\(shot\) \{\n\s*return shot \? \{ aimed: true, speedScale: BLOW\.aimed\.speed \} : null;/, 'the aimed shot\'s speed');
 });
 
