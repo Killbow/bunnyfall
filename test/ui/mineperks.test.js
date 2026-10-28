@@ -142,8 +142,17 @@ test('AUDIT MINE-PERKS the Prospector\'s walk and count: the stood pixels within
     assert.ok(vs.length > NODE_MARK_MAX, 'past sixteen');
     // from the middle pixel's heart every neighbour's ground is 409 m off - past the 256 m walk - and its veins within
     // 500 m are the Prospector's all the same
-    const heart = new Float32Array([2.5 * TERRAIN_SIZE, 0, -1.5 * TERRAIN_SIZE]);
-    const far = all.filter((v) => Math.hypot(v.x - heart[0], v.z - heart[2]) <= PROSPECT_M && rectD(v.i, v.j, heart) > MARK_WALK_M);
+    // PIN MOVED (BUNNYFALL VEIN-CLUSTERS): the veins stand in groups now, so the heart is the middle pixel's point
+    // nearest its middle with a neighbour's group in reach, not the middle itself
+    const farOf = (h) => all.filter((v) => Math.hypot(v.x - h[0], v.z - h[2]) <= PROSPECT_M && rectD(v.i, v.j, h) > MARK_WALK_M);
+    let heart = new Float32Array([2.5 * TERRAIN_SIZE, 0, -1.5 * TERRAIN_SIZE]);
+    for (let r = 0; r <= 8 && !farOf(heart).length; r++) {
+      for (let a = -r; a <= r && !farOf(heart).length; a++) for (let b = -r; b <= r; b++) {
+        const h = new Float32Array([(2.5 + a / 20) * TERRAIN_SIZE, 0, (-1.5 + b / 20) * TERRAIN_SIZE]);
+        if (farOf(h).length) { heart = h; break; }
+      }
+    }
+    const far = farOf(heart);
     assert.ok(far.length > 0, 'a neighbour\'s vein within 500 m of the heart');
     const fromHeart = new Set(S.host.marks(heart).map((m) => m.key));
     assert.ok(far.every((v) => fromHeart.has(v.key)), 'each marked - its pixel walked');

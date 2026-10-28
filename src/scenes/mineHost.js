@@ -173,7 +173,7 @@ function footTargets(box, x, z) {
 }
 /** The stone tile nearest (tx, ty) within `reach` tiles where nature could stand, or null - VEIN-CLEAR: never a tile
  *  whose stand is inside a rock piece (`rocks`); VERGE1: nor one `clear` refuses (natureStandsAt's road question). */
-function nearestStone(samples, tilemap, locationRect, tx, ty, reach, rocks, clear = null, beach = null) {
+function nearestStone(samples, tilemap, locationRect, tx, ty, reach, rocks, clear = null, beach = null, taken = []) {
   let best = null, bestD = Infinity;
   for (let dy = -reach; dy <= reach; dy++) {
     for (let dx = -reach; dx <= reach; dx++) {
@@ -183,7 +183,7 @@ function nearestStone(samples, tilemap, locationRect, tx, ty, reach, rocks, clea
       if (x < 0 || y < 0 || x >= WORLD_MAP_TILE_DIM || y >= WORLD_MAP_TILE_DIM) continue;
       if ((tilemap[y * WORLD_MAP_TILE_DIM + x] & 0x3f) !== 3) continue;
       const at = natureStandsAt(samples, tilemap, locationRect, x, y, clear, beach);
-      if (at && !insideRocks(rocks, at.x, at.z)) { best = at; bestD = d; }
+      if (at && !insideRocks(rocks, at.x, at.z) && !taken.some((t) => Math.hypot(t[0] - at.x, t[1] - at.z) < NODE_SPACING_M / 2)) { best = at; bestD = d; }   // VEIN-CLUSTERS: never on a vein already stood
     }
   }
   return best;
@@ -249,14 +249,16 @@ export function standMineNodes({ px, py, day, climate, region = null, confirmed 
         local = [fx, groundAt(samples, fx, fz), fz];
       }
       if (!local) {
+        // BUNNYFALL VEIN-CLUSTERS: a group's veins stand near one another, so the stone tile nearest one may be another's
+        const apart = (a) => (a && !taken.some((t) => Math.hypot(t[0] - a.x, t[1] - a.z) < NODE_SPACING_M / 2) ? a : null);
         const tx = Math.min(WORLD_MAP_TILE_DIM - 1, Math.floor(v.u * WORLD_MAP_TILE_DIM));
         const ty = Math.min(WORLD_MAP_TILE_DIM - 1, Math.floor(v.v * WORLD_MAP_TILE_DIM));
         // VEIN-CLEAR (FIELD BUGS 2026-10-01): a rock field stands on stone, so the stone tile nearest could lie under a
         // piece of it - a vein stood inside the rock, glowing and marked, that no look could reach (the ray to it is the
         // rock's); it stands on the nearest stone outside every piece, as a rock's foot does (AUDIT 29 C11)
         const outside = (a) => (a && !insideRocks(solid, a.x, a.z) ? a : null);
-        const at = nearestStone(samples, tilemap, locationRect, tx, ty, VEIN_STONE_REACH, solid, clear, beach) ?? outside(natureStandsAt(samples, tilemap, locationRect, tx, ty, clear, beach));
-        if (at) local = [at.x, at.y, at.z];
+        const at = apart(nearestStone(samples, tilemap, locationRect, tx, ty, VEIN_STONE_REACH, solid, clear, beach, taken)) ?? apart(outside(natureStandsAt(samples, tilemap, locationRect, tx, ty, clear, beach)));
+        if (at) { local = [at.x, at.y, at.z]; taken.push([at.x, at.z]); }
       }
       if (!local) continue;
       out.push({ key: nodeKey({ kind: 'vein', x: px, y: py, day, slot: v.slot }), what: 'vein', slot: v.slot, tier: v.tier, material: v.material, signature: v.signature, local, rock: rock ?? null, lift: 0.5 });

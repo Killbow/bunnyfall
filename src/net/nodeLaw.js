@@ -305,6 +305,29 @@ export function veinSlots({ climate, region = null, confirmed = false }) {
   const sig = confirmed && region !== null ? regionSignature(region) : null;
   return nodeCount(climate, 'vein') + (sig?.slots ?? 0);
 }
+/** BUNNYFALL VEIN-CLUSTERS: a pixel's veins stand in groups of three or four (VEIN_GROUP_MAX at most), never scattered
+ *  one by one - each group round its own law point, a vein of it VEIN_RING from that point (a share of the pixel:
+ *  some 8 to 15 m), round the ring by its place in the group. The veins and what they hold are the law's as before. */
+export const VEIN_GROUP_MAX = 4;
+export const VEIN_RING = Object.freeze([0.01, 0.018]);
+/** Which group a slot stands in, of `slots`, and its place in it: `{ group, at, size }`. */
+export function veinGroupOf(slot, slots) {
+  const groups = Math.max(1, Math.ceil(slots / VEIN_GROUP_MAX));
+  const group = Math.min(groups - 1, Math.floor((slot * groups) / slots));
+  const first = Math.ceil((group * slots) / groups), next = Math.ceil(((group + 1) * slots) / groups);
+  return { group, at: slot - first, size: Math.max(1, next - first) };
+}
+/** A vein's law point: its group's centre (kept off the pixel's edge by the spread), and its place on the ring. */
+function veinPoint(x, y, day, slot, slots) {
+  const { group, at, size } = veinGroupOf(slot, slots);
+  const pad = 0.04 + VEIN_RING[1];
+  const cu = pad + (1 - 2 * pad) * unit('vein', x, y, day, 100 + group, 1);
+  const cv = pad + (1 - 2 * pad) * unit('vein', x, y, day, 100 + group, 2);
+  const turn = unit('vein', x, y, day, 100 + group, 3);
+  const a = 2 * Math.PI * (turn + at / size) + (unit('vein', x, y, day, slot, 5) - 0.5) * (Math.PI / size);
+  const r = VEIN_RING[0] + (VEIN_RING[1] - VEIN_RING[0]) * unit('vein', x, y, day, slot, 6);
+  return { u: cu + Math.cos(a) * r, v: cv + Math.sin(a) * r };
+}
 /**
  * ONE VEIN of a pixel's day: its law point (`u`, `v`), its tier and metal. A pixel not confirmed is held to
  * UNCONFIRMED_VEIN_TIER (3 - UNWITNESSED-ORE; it was 2) and takes no signature. A confirmed one of a signature region holds its signature ore BESIDE the climate's veins, in the
@@ -318,9 +341,9 @@ export function veinSlots({ climate, region = null, confirmed = false }) {
  */
 export function vein({ x, y, day, slot, climate, region = null, confirmed = false, surveyed = false }) {
   const table = VEIN_TABLES[climate];
-  if (!table || !Number.isSafeInteger(slot) || slot < 0 || slot >= veinSlots({ climate, region, confirmed })) return null;
-  const u = 0.04 + 0.92 * unit('vein', x, y, day, slot, 1);
-  const v = 0.04 + 0.92 * unit('vein', x, y, day, slot, 2);
+  const slots = veinSlots({ climate, region, confirmed });
+  if (!table || !Number.isSafeInteger(slot) || slot < 0 || slot >= slots) return null;
+  const { u, v } = veinPoint(x, y, day, slot, slots);
   if (slot >= nodeCount(climate, 'vein')) {
     const sig = /** @type {{ ore: string, slots: number }} */ (regionSignature(/** @type {number} */ (region)));
     return { slot, u, v, tier: tierOfKey(sig.ore), material: sig.ore, signature: true };
