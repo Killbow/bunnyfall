@@ -122,7 +122,7 @@ test('PROF11 DONE WHEN: Rough Stone cut with a clean chisel at a General Store\'
   const page = pageOf();
   try {
     assert.match(page.text(), /The Mason's Bench/);
-    assert.match(page.text(), /BuildingNovice 0[^]*?The mason's bench - 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     // THE CUT: five cuts, the chisel struck true four times
     const cutQty = page.qty(0);
     cutQty.value = '5';
@@ -153,7 +153,7 @@ test('PROF11 DONE WHEN: Rough Stone cut with a clean chisel at a General Store\'
     assert.equal((await book.refresh({ force: true })).ok, true);
     page.draw();
     page.buttons().find((b) => b.textContent.startsWith('Stone Column')).onclick();
-    assert.match(page.text(), /Stone Column - a Sculptor's/);
+    assert.match(page.text(), /Stone Column \(a Sculptor’s\)/);
     assert.match(page.text(), /Quality chances: Fine 40% \| Superior 52% \| Masterwork 8%\. They get better the further your rank \(100\) is above the recipe's \(10\)\. Hit the marked line with every strike to raise the result one quality\./);   // PIN MOVED (PLAIN-ODDS): the odds said in plain words
     page.button('Craft').onclick();
     assert.match(page.text(), /The chisel \(Stone Column\): strike the marked line 7 times/);
@@ -219,9 +219,9 @@ test('PROF11 pages: the Mason\'s Bench at a General Store - the cut and the mix 
     assert.deepEqual([...PROF_STATIONS], ['forge', 'workbench', 'loom', 'mason', 'jeweller']);   // PIN MOVED (PROF10): the jeweller's bench
     assert.equal(stationColdLine('mason'), MASON_COLD_LINE);
     assert.match(MASON_COLD_LINE, /Masonry is done online, from your Crafting page/);   // PIN MOVED (CRAFT-HALL): the stations are worked from the Crafting page
-    assert.match(page.text(), /BuildingNovice 0[^]*?The mason's bench - 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     assert.match(page.text(), /stone:cut2 stone:rough \(9\)/, 'the cut and its stone held');
-    assert.match(page.text(), /stone:mortar x101 metal:sulphur \(2\) \+ 1 metal:lead \(2\) \+ 5 stone:rough \(9\) - rank 10/, 'ten a mix, shut below rank 10');
+    assert.match(page.text(), /stone:mortar x101 metal:sulphur \(2\) \+ 1 metal:lead \(2\) \+ 5 stone:rough \(9\) · rank 10/, 'ten a mix, shut below rank 10');
     assert.deepEqual([masonVerb('cut:stone'), masonVerb('mix:mortar')], ['Cut', 'Mix']);
     assert.equal(page.button('Mix').disabled, true, 'Mortar shut at rank 0');
     // the chisel: four on the mark, clean
@@ -280,7 +280,7 @@ test('PROF11 pages: the Mason\'s Bench at a General Store - the cut and the mix 
   stubPages({ purse: 10 });
   const poor = pageOf();
   try {
-    assert.match(poor.text(), /The mason asks 50 gold a cut, a mix or a carving; you carry 10\./);
+    assert.match(poor.text(), /The mason asks 50 gold a cut, a mix or a carving\. You carry 10\./);
     assert.equal(poor.button('Cut').disabled, true);
   } finally { poor.done(); }
   // a home's bench: no fee
@@ -396,7 +396,7 @@ test('PROF11 pages: the Sculptor\'s stone decor - shut to all but a Sculptor ("a
       'Stone Columncan make now', 'Stone Benchcan make now', 'Stone Fontcan make now', 'Statue Plinthcan make now',
     ]);
     open.buttons().find((b) => b.textContent.startsWith('Stone Font')).onclick();
-    assert.match(open.text(), /Stone Font - a Sculptor'sstone:cut 10 \/ 10 \(20 stored\)stone:mortar 3 \/ 3 \(5 stored\)/);
+    assert.match(open.text(), /Stone Font \(a Sculptor’s\)stone:cut 10 \/ 10 \(20 stored\)stone:mortar 3 \/ 3 \(5 stored\)/);
     assert.match(open.text(), /Stone decor goes to your things\. Place it in a room of your own with Decorate\./);
     open.button('Craft').onclick();
     assert.equal(_masonForTests().act.state.need, 7, 'a carving\'s seven');

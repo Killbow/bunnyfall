@@ -246,7 +246,7 @@ test('SPEC-RESET THE GUIDE\'S MODEL: a held path\'s Reset - none with nothing he
   assert.equal(family(specGuideModel(e), 'arcane').reset.rows()[2], 'You lose its passive, and its signature spell is no longer sold to you.', 'another path\'s spell is not this one\'s');
   // the closed paths point to the Reset
   const closed = family(m, 'arcane').paths.find((p) => p.state === 'closed');
-  assert.equal(stateLine(family(m, 'arcane'), closed, true), 'You already chose Warden. You can have only one path of each kind; reset Warden to choose another.');
+  assert.equal(stateLine(family(m, 'arcane'), closed, true), 'You already chose Warden. You can only have one path of each kind, so reset Warden to choose another.');
   // AUDIT SPEC-RESET L5-1: the martial half whole
   assert.deepEqual(family(m, 'martial').reset.rows(), ['Reset Ranger for 200,000 gold?', '',
     'You lose its passive and its signature technique.', 'Your mastered skills stay mastered.', '',

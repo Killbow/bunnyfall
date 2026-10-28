@@ -511,7 +511,7 @@ export const FEATURES = Object.freeze([
       + 'ground: hit hard to stagger them or dodge. Red, hatched attacks can’t be stopped. Trees, rocks and crates block '
       + 'sight and missiles. Pathfinding works in dungeons only for now; towns, interiors and doors come later. Off keeps '
       + 'the classic behavior.'); },
-    get effect() { return t('features.enhancedAi.effect', 'Takes effect at once; pathfinding from the next dungeon you enter.'); },   // AUDIT TACT D7: the tactics, cover and blows read the switch live
+    get effect() { return t('features.enhancedAi.effect', 'Takes effect right away. Pathfinding changes from the next dungeon you enter.'); },   // AUDIT TACT D7: the tactics, cover and blows read the switch live
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
       store: 'prefs', key: 'enhancedAI', initial: true, online: true,   // BAL4: ON by default (it was off - DFU's classic motor the 1:1 law); the lane forces it on online as it always did; an unstamped shelf adopts it (uiPrefs.js PREF1_ADOPT_NEW_DEFAULT)
@@ -582,7 +582,7 @@ export const FEATURES = Object.freeze([
       + 'fog, shadows from the sun and your torch, darker corners, a glow on windows and flames, and rays of '
       + 'sunlight. Off is the classic flat lighting.'
       + ' Steady shadows stops shadows flickering, at some cost to frame rate; Calmer eye slows how fast your eyes adjust to light and dark.'); },
-    get effect() { return t('features.enhancedLighting.effect', 'Lighting takes effect when the world next loads; steady shadows and calmer eye at once.'); },
+    get effect() { return t('features.enhancedLighting.effect', 'Lighting changes when the world next loads. Steady shadows and calmer eye change right away.'); },
     kinds: Object.freeze(['enhanced']),
     // OL-LIGHT (2026-09-24, Mac: "Can we let people disable it online"): THE PLAYER'S, ONLINE TOO. It was forced on
     // with the rest of the enhanced lane, so a player it did not suit - the interior flicker DISC15 closed, a GPU
@@ -630,7 +630,7 @@ export const FEATURES = Object.freeze([
     get note() { return t('features.grass.note', 'How much grass grows in the enhanced outdoors. Grass is the heaviest thing outdoors, so try Half '
       + 'first if the game runs slow. Meadow is hand-drawn tufts, flowers and bushes; Pixel is finer, older '
       + 'tufts; Smooth is soft, shaded blades.'); },
-    get effect() { return t('features.grass.effect', 'The amount takes effect when the world next loads; the style at once.'); },
+    get effect() { return t('features.grass.effect', 'The amount changes when the world next loads. The style changes right away.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
       store: 'prefs', key: 'grassDensity', initial: 1, online: 'player', tiers: Object.freeze([tier(1, () => t('features.grass.full', 'Full')), tier(0.5, () => t('features.grass.half', 'Half')), tier(0.25, () => t('features.grass.quarter', 'Quarter')), tier(0, OFF)]),   // PERF1: a fraction of the lab's 1.2 million blades; a dial, the player's online; GRASS-ON (2026-10-07, Mac: "Can you please turn grass on by default"): Full by default again, where AUDIT MEADOW1 had it Off
@@ -803,7 +803,7 @@ export const FEATURES = Object.freeze([
       + 'and compare. The odds depend on what you killed, where, and your luck. Rare and Legendary gear is rarer '
       + 'early on and becomes more common as you grow. Rare and Legendary items drop unidentified. Off is the classic loot. Online, some weapons carry a '
       + 'sigil that grows with your Renown.'); },   // SIGIL1; AUDIT UPDATE L8: LOOT-GATE's own words, its numbers never (CLAUDE.md LOOT-GATE)
-    get effect() { return t('features.lootRarity.effect', 'Takes effect on the next drop; items you wear update within a few seconds.'); },
+    get effect() { return t('features.lootRarity.effect', 'Takes effect on the next drop. Items you’re wearing update within a few seconds.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'lootRarity', initial: true, online: true }),   // LR5: ON by default (Mac) - the ladder is the port's own game, not an opt-in; the lane forces it on online as it always did
   }),
@@ -1055,7 +1055,7 @@ export const FEATURES = Object.freeze([
     get note() { return t('features.questlines.note', 'Every quest shows its objectives, some let you choose how they end, some offer a piece of gear '
       + 'fitted to you when done, and questlines lead to the Breaches, the Battlespire and the Abyss. Off is the classic journal '
       + 'and its rewards, and online it is always on.'); },
-    get effect() { return t('features.questlines.effect', 'Takes effect on the next quest you take; quests you already have keep the rules they began with.'); },
+    get effect() { return t('features.questlines.effect', 'Takes effect on the next quest you take. Quests you already have keep their rules.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'questlines', initial: true, online: true }),   // systems/questlines/qlLaw.js QUESTLINES_PREF
   }),
@@ -1136,7 +1136,7 @@ export const FEATURES = Object.freeze([
   // IT1 (2026-10-04): IMMERSIVE TRAVEL - `world`, the carriages at the city gates. Its gate blocks and its two factions
   // are laid when the game loads (the world-data door latches its blocks, the faction dictionary is built at the load);
   // its fares and its rules are read as a driver's map opens.
-  modFeature('immersive-travel', () => t('features.mod.immersiveTravel.effect', 'Takes effect the next time you start the game; loading a save is not enough. Fares and rules change at the next map.'), 'world'),
+  modFeature('immersive-travel', () => t('features.mod.immersiveTravel.effect', 'Takes effect the next time you start the game. Loading a save isn’t enough. Fares and rules change at the next map.'), 'world'),
   // WOD1 (2026-09-23): WORLD OF DAGGERFALL - `world`, because it is the
   // wilderness itself. Read at the world's mount, like the roads it
   // consults: the loader's list is built once per world.
@@ -1151,8 +1151,8 @@ export const FEATURES = Object.freeze([
   // WD3 (2026-10-01): BEAUTIFUL VILLAGES and BEAUTIFUL CITIES - `world`, the towns themselves. The world-data
   // loader reads each switch once, when the game loads (scenes/modWorldData.js latches it), so a town never moves
   // under the player; online the room owns both.
-  modFeature('beautiful-villages', () => t('features.mod.beautifulTowns.effect', 'Takes effect the next time you start the game; loading a save is not enough. Offline it also needs Replace Game Artwork.'), 'world'),   // AUDIT WD3 B9
-  modFeature('beautiful-cities', () => t('features.mod.beautifulTowns.effect', 'Takes effect the next time you start the game; loading a save is not enough. Offline it also needs Replace Game Artwork.'), 'world'),   // AUDIT WD3 B9
+  modFeature('beautiful-villages', () => t('features.mod.beautifulTowns.effect', 'Takes effect the next time you start the game. Loading a save isn’t enough. Offline it also needs Replace Game Artwork.'), 'world'),   // AUDIT WD3 B9
+  modFeature('beautiful-cities', () => t('features.mod.beautifulTowns.effect', 'Takes effect the next time you start the game. Loading a save isn’t enough. Offline it also needs Replace Game Artwork.'), 'world'),   // AUDIT WD3 B9
   // WA1 (2026-09-25): WARM ASHES - SHIPS - `world`, the sea voyage. The travel
   // hook reads the switch as a journey starts; an ambush already at sea
   // finishes either way.
@@ -1179,7 +1179,7 @@ export const FEATURES = Object.freeze([
   // and a food read the switch as they are used; the quest pack is offered
   // while it is on. AUDIT 28 F4: the pack is read once, when the quest lists
   // are built (questLists.js) - so the row says the two halves apart.
-  modFeature('foraging', () => t('features.mod.foraging.effect', 'Takes effect at once; its quests when the game next loads.'), 'world'),
+  modFeature('foraging', () => t('features.mod.foraging.effect', 'Takes effect right away. Its quests change when the game next loads.'), 'world'),
   modFeature('meanerMonsters', () => t('features.mod.meanerMonsters.effect', 'Takes effect on monsters that appear after the change. With Daggerfall Enemy Expansion on, it takes effect when the game next loads.'), 'combat'),
   // DEX0: DAGGERFALL ENEMY EXPANSION - `combat`, beside the other bestiary mod. Loaded for the game or not, as DFU loads
   // a mod (its rows, its tables and its hooks written at its install - modSettings.js latchModLoaded), so a switch
@@ -1216,7 +1216,7 @@ export const FEATURES = Object.freeze([
   modFeature('world-tooltips', () => t('features.effect.atOnce', 'Takes effect at once.'), 'interface'),   // FT18: was world   // WORLD-HOVER: the hover reads the switch on the frame it draws
   // BA1 (2026-09-16): BETTER AMBIENCE - read every frame; the dungeon's fog
   // and light are rolled at the door, so those two land on the next dungeon.
-  modFeature('better-ambience', () => t('features.mod.betterAmbience.effect', 'Takes effect at once; a dungeon\u2019s fog and light from the next one you enter.'), 'world'),
+  modFeature('better-ambience', () => t('features.mod.betterAmbience.effect', 'Takes effect right away. A dungeon’s fog and light change from the next one you enter.'), 'world'),
   // HCC (2026-09-23): HORSE CART AND CARGO - `world`, because what it
   // changes is what stands in it: your horse and wagon as physical things.
   // The runtime reads its switches every frame (HandleSettingsChanged is
@@ -1225,7 +1225,7 @@ export const FEATURES = Object.freeze([
   // PI1 (2026-10-07): PHYSICAL ITEMS - `world`, as Horse Cart and Cargo: what it changes is what lies in it. The layer
   // reads its switch and its settings every frame (scenes/physicalItemsLayer.js); a size lands on the items that stand
   // after it (the mod's "Applies to newly created visuals").
-  modFeature('physical-items', () => t('features.mod.physicalItems.effect', 'Takes effect at once; a size change applies to items that drop after it.'), 'world'),
+  modFeature('physical-items', () => t('features.mod.physicalItems.effect', 'Takes effect right away. A size change applies to items that drop afterward.'), 'world'),
   // WS1 (2026-09-17): WEAPON SHEATHING - Greatness7's scabbards and the
   // OpenMW mechanism, on the port's Morrowind third-person body. The
   // switch is the port's own pref (the mod ships no settings of its own);
@@ -1411,11 +1411,11 @@ export const FEATURES = Object.freeze([
   // does not convert a character who is already levelling by virtues,
   // and saying so on the tile is the honest line - the alternative is a
   // player flipping the switch mid-game and wondering why nothing moved.
-  modFeature('oblivion-remaster-leveling', () => t('features.mod.oblivionRemasterLeveling.effect', 'Takes effect on the next character you make; a character keeps the system they were created with.'), 'character'),
+  modFeature('oblivion-remaster-leveling', () => t('features.mod.oblivionRemasterLeveling.effect', 'Takes effect on the next character you make. Existing characters keep the system they were created with.'), 'character'),
   // LEGACY1 (2026-10-05, bible/06-Systems/Legacy-Arc.md): PROJECT LEGACY - Mac's own mod. A family is founded around
   // the character played when the mod is on (at creation, or at the first load of a character made before it), and its
   // model is the family's for good - so the switch lands at once for the tree and the key, and a family keeps its model.
-  modFeature('project-legacy', () => t('features.mod.projectLegacy.effect', 'Takes effect at once; a family keeps the model it was founded with.'), 'character'),
+  modFeature('project-legacy', () => t('features.mod.projectLegacy.effect', 'Takes effect right away. A family keeps the model it was founded with.'), 'character'),
   // FT10 (2026-09-14): DFU'S OWN DUNGEON ENHANCEMENTS - three of the
   // Enhancements section's switches, each read by the port at the point
   // of use as DFU reads it. DFU Classic: Daggerfall Unity's departures
@@ -1448,7 +1448,7 @@ export const FEATURES = Object.freeze([
     get title() { return t('features.torchesFromItems.title', 'Torches Light Your Way'); },
     get note() { return t('features.torchesFromItems.note', 'Your light in dungeons comes from a torch, lantern or candle you carry, and it burns down, instead '
       + 'of a light you always have. Off by default in Daggerfall Unity.'); },
-    get effect() { return t('features.torchesFromItems.effect', 'Takes effect at once; new characters and shop stock follow it.'); },
+    get effect() { return t('features.torchesFromItems.effect', 'Takes effect right away. New characters and shop stock follow it.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Enhancements/PlayerTorchFromItems' }),
   }),
@@ -1766,7 +1766,7 @@ export const FEATURES = Object.freeze([
     get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy '
       + 'hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir; Off '
       + 'keeps the classic splash that fades away.'); },
-    get effect() { return t('features.blood.effect', 'Takes effect at once; the number of marks that stay changes when the game next loads or you enter a dungeon.'); },
+    get effect() { return t('features.blood.effect', 'Takes effect right away. How many marks stay changes when the game next loads or you enter a dungeon.'); },
     kinds: Object.freeze(['enhanced']),
     // FT18: BLOOD, ONE ROW. BLOOD1's marks, BLOOD1b's overkill, BLOOD2e's lens and BLOOD2g's gore were four tiles over
     // one system, and the gore dial had no Off: the one question a player asks - blood or no blood - took three
@@ -1858,7 +1858,7 @@ export const FEATURES = Object.freeze([
       + 'then let go to fire. Pirates, merchant ships and navies sail the Bay; batter a ship until it surrenders, board '
       + 'it, take its cargo, then sink it or let it go. Piracy is a crime, and pirates can board your ship and '
       + 'fight you on deck. Online, everyone in the room shares one sea.'); },
-    get effect() { return t('features.navalCombat.effect', 'Takes effect at once; Ship handling, the next time you take the helm. Online it is always on.'); },   // AUDIT NAV2 F14: the helm takes the handling once a session (comeSailAway.js responsive)
+    get effect() { return t('features.navalCombat.effect', 'Takes effect right away. Ship handling changes the next time you take the helm. Online it’s always on.'); },   // AUDIT NAV2 F14: the helm takes the handling once a session (comeSailAway.js responsive)
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
       store: 'prefs', key: 'naval', initial: true, online: true,   // scenes/world.js navalOn: the host stands down and empties the sea

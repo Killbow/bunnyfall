@@ -50,7 +50,7 @@ export function skillStand(entity, id) {
 export function skillStandText(s) {
   switch (s.state) {
     case 'mastered': return t('growth.spec.skill.mastered', '{skill}: mastered ({value})', { skill: s.name, value: s.value });
-    case 'ready': return t('growth.spec.skill.ready', '{skill}: {value} - ready to master in Master Skills', { skill: s.name, value: s.value });
+    case 'ready': return t('growth.spec.skill.ready', '{skill}: {value}, ready to master in Master Skills', { skill: s.name, value: s.value });
     case 'climb': return t('growth.spec.skill.climb', '{skill}: {value} of 100, then master it', { skill: s.name, value: s.value });
     case 'full': return t('growth.spec.skill.full', '{skill}: no {group} mastery slots left', { skill: s.name, group: groupWord(s.group) });
     default: return t('growth.spec.skill.misc', '{skill}: not one of your class skills, so it can\'t be mastered', { skill: s.name });
@@ -269,7 +269,7 @@ export function stateLine(fam, p, on) {
       if (climb.length < need.length) return t('growth.spec.why.reachThen', 'Raise {skill} to 100, then master both skills to unlock this path.', { skill: climb[0].name });
       return need.length === 1 ? t('growth.spec.why.reachOne', 'Raise {skill} to 100 and master it to unlock this path.', { skill: need[0].name })
         : t('growth.spec.why.reach', 'Raise both skills to 100 and master them to unlock this path.');
-    case 'closed': return t('growth.spec.why.closed', 'You already chose {name}. You can have only one path of each kind; reset {name} to choose another.', { name: fam.held?.name ?? '' });
+    case 'closed': return t('growth.spec.why.closed', 'You already chose {name}. You can only have one path of each kind, so reset {name} to choose another.', { name: fam.held?.name ?? '' });
     case 'slots': return t('growth.spec.why.slots', 'You don\'t have enough mastery slots left to master both of these skills.');
     default: return t('growth.spec.why.never', 'Your class can\'t master both of these skills.');
   }

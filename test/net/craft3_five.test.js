@@ -252,7 +252,7 @@ test('CRAFT3 page: the Professions tab lists the ten; Building\'s four cards a r
     assert.deepEqual(unlocksOf('building').map(([w, t]) => [w.split(':')[0], t]), [
       ['Carpentry', 1], ['Masonry', 1], ['Carpentry', 2], ['Masonry', 2], ['Carpentry', 3], ['Carpentry', 4], ['Carpentry', 5], ['Carpentry', 6],
     ], 'by tier, a tier\'s first discipline first');
-    assert.deepEqual([unlocksOf('outfitting')?.[0]?.[0], unlocksOf('enchanting')], ['Linen clothing; the Rat\'s skins; the Fishing-Net', null], 'one discipline its own lines');
+    assert.deepEqual([unlocksOf('outfitting')?.[0]?.[0], unlocksOf('enchanting')], ['Linen clothing, Rat skins and the Fishing-Net', null], 'one discipline its own lines');
     cards[0].onclick(); draw();
     const armed = [...root.querySelectorAll('button')].filter((b) => b.className.includes('prof-spec'))[0];
     assert.equal(armed.querySelector('.prof-cost').textContent, 'Press again: free, in effect at once');

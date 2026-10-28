@@ -73,7 +73,7 @@ export function oreMapTip({ climate, region = null, fact = null, surveyed = fals
   // Surveyor's word witnesses their surface veins alone - nodeLaw.js vein `surveyed`)
   const deep = deepClimateOres(climate).map(oreWord);
   const deepWord = deep.length ? t('ore.tip.deepWitnessed', DEEP_WITNESSED, { ores: orList(deep) }) : null;
-  const withDeep = (ground) => (deepWord ? t('ore.tip.both', '{ground}; {deep}', { ground, deep: deepWord }) : ground);
+  const withDeep = (ground) => (deepWord ? t('ore.tip.both', '{ground}. {deep}', { ground, deep: deepWord }) : ground);
   const rule = t('ore.tip.rule', WITNESS_RULE, { n: WITNESS.confirm });
   if (factConfirmed(fact)) lines.push(withDeep(t('ore.tip.witnessed', WITNESSED)));
   else if (!held.length) lines.push(...(deep.length ? [t('ore.tip.deepOnly', DEEP_ONLY, { ores: orList(deep) }), rule] : [t('ore.tip.none', NONE_HELD)]));

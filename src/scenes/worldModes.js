@@ -8270,7 +8270,7 @@ export function createWorldModes(host) {
         { code: 'KeyG', label: 'G - go in', action: homeOnward(hit, entries) },
         { code: 'KeyW', label: 'W - who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
         { code: 'KeyS', label: 'S - sell it', action: () => openHomeSale(bd) },
-        { code: 'KeyT', label: t('housing.transfer.transferIt', 'T - transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
+        { code: 'KeyT', label: t('housing.transfer.transferIt', 'T: transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     }));

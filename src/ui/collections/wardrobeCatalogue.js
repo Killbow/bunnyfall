@@ -90,13 +90,13 @@ export const AVAIL_TAG = Object.freeze({
 /** Each availability in a sentence (the row opened whole). `date` the open festival's last day, in words. */
 export const AVAIL_LINE = Object.freeze({
   open: () => t('coll.availLine.open', 'You can earn it now.'),
-  chance: () => t('coll.availLine.chance', 'You can earn it now, by chance - it may take many tries.'),
+  chance: () => t('coll.availLine.chance', 'You can earn it now, by chance. It may take a lot of tries.'),
   ranked: () => t('coll.availLine.ranked', 'Held only while you stay on top.'),   // AUDIT COLLECTIONS-II (lane 1): a #1 short of a board's floor holds nothing, so it passes to no one
-  seasonal: (/** @type {string} */ date) => t('coll.availLine.seasonal', 'Only during the Witches’ Festival - on now, until {date}.', { date }),
+  seasonal: (/** @type {string} */ date) => t('coll.availLine.seasonal', 'Only during the Witches’ Festival, which is on until {date}.', { date }),
   offseason: () => t('coll.availLine.offseason', 'Only during the Witches’ Festival, which is not on now.'),
   patron: () => t('coll.availLine.patron', 'Held while your pledge stands.'),
   dormant: () => t('coll.availLine.dormant', 'Not open to players yet.'),
-  auto: () => t('coll.availLine.auto', 'Given to every new account by itself - it cannot be earned later.'),
+  auto: () => t('coll.availLine.auto', 'Every new account gets this automatically. It can’t be earned later.'),
   staff: () => t('coll.availLine.staff', 'Held by the game’s staff alone.'),
   bestowed: () => t('coll.availLine.bestowed', 'It cannot be earned.'),
   closed: () => t('coll.availLine.closed', 'Closed to newcomers: only someone who played before it closed can still bring it to an account.'),
@@ -118,12 +118,12 @@ export const TABLE_CHAMPION_FLOOR = Object.freeze({ iliacchampion: Object.freeze
 
 // ── the words of how ──────────────────────────────────────────────────────────────────────────────────────────────────
 const bestowed = () => t('coll.how.bestowed', 'Made for one player and granted to them by name.');
-const patron = (/** @type {string} */ tier) => () => t('coll.how.patron', 'Support Bunnyfall on Patreon at the {tier} tier, then link Patreon from your profile - or be granted it by name.', { tier: TITLE_TEXT[/** @type {keyof typeof TITLE_TEXT} */ (tier)] });
+const patron = (/** @type {string} */ tier) => () => t('coll.how.patron', 'Support Bunnyfall on Patreon at the {tier} tier, then link Patreon from your profile. It can also be granted by name.', { tier: TITLE_TEXT[/** @type {keyof typeof TITLE_TEXT} */ (tier)] });
 /** Apostle: a Patreon tier's title no pledge maps yet (server-account/wrangler.toml PATREON_TIERS), held by name alone. */
-const apostle = () => t('coll.how.apostle', 'A Patreon reward with no tier to pledge yet - for now it is granted by name.');
+const apostle = () => t('coll.how.apostle', 'A Patreon reward with no tier to pledge yet. For now it’s granted by name.');
 const developer = () => t('coll.how.developer', 'The game’s developers.');
 const dungeonMaster = () => t('coll.how.dungeonmaster', 'The game’s Dungeon Master, who may speak to chat in orange with /dm.');
-const broker = (/** @type {string} */ id) => () => t('coll.how.broker', 'Buy it from the Sigil Broker for {price} Deadlands Embers - won closing Dagon’s Breaches, slaying Sea Serpents and taking Elite Breach Redoubts.', { price: insigniaById(id)?.price ?? 0 });   // AUDIT COLLECTIONS-II (lane 1): every ember the purse counts (accounts.js EMBERS_EARNED_SQL)
+const broker = (/** @type {string} */ id) => () => t('coll.how.broker', 'Buy it from the Sigil Broker for {price} Deadlands Embers. You earn Embers by closing Dagon’s Breaches, killing Sea Serpents and taking Elite Breach Redoubts.', { price: insigniaById(id)?.price ?? 0 });   // AUDIT COLLECTIONS-II (lane 1): every ember the purse counts (accounts.js EMBERS_EARNED_SQL)
 const wyrd = (/** @type {string} */ id) => () => t('coll.how.wyrdSister', 'Buy it from a Wyrd Sister for {price} Soul Cakes during the Witches’ Festival.', { price: wareById(id)?.price ?? 0 });
 const remnant = (/** @type {keyof typeof REMNANT_ODDS} */ k) => () => t('coll.how.remnant', 'A chance of one in {n} each time you help break the Brass Remnant in an Abyss Dungeon.', { n: REMNANT_ODDS[k] });
 const serpent = (/** @type {keyof typeof SERPENT_ODDS} */ k) => () => t('coll.how.serpent', 'A chance of one in {n} each time a Sea Serpent you fought is slain, if your own fire dealt a real share of your ship’s.', { n: SERPENT_ODDS[k] });   // AUDIT COLLECTIONS-II (lane 1): rolled a player, on a dealing claim alone (serpents.js)
@@ -188,7 +188,7 @@ export const WARDROBE = Object.freeze({
     protector: E('seats', 'open', () => t('coll.how.protector', 'Lead a guild that holds a kingdom’s crown seat. Your guildmaster character wears it as “Protector of” the kingdom.')),
     crowned: E('seats', 'open', () => t('coll.how.crowned', 'Lead a guild that holds a crown seat when a Season ends, from Season 1 on (Season 0, the beta, crowns no one). Kept for good, with the Season’s number.')),
     keeper: E('seats', 'open', () => t('coll.how.keeper', 'Lead a guild that holds a seat for a whole Season, from Season 1 on. Kept for good as “Keeper of” the town.')),
-    champion: E('seats', 'open', () => t('coll.how.champion', 'Win a kingdom’s Royal Tourney - the week-long duel ladder at its castle, held when its crown proclaims one. Kept for good as “Champion of” the kingdom.')),
+    champion: E('seats', 'open', () => t('coll.how.champion', 'Win a kingdom’s Royal Tourney, the week-long duel ladder held at its castle when its crown calls one. You keep it for good as “Champion of” that kingdom.')),
     grandchampion: E('ranked', 'open', () => t('coll.how.grandchampion', 'Beat the champion of the Arena’s tenth and highest tier.')),
     arenachampion: E('ranked', 'ranked', arenaTop, { with: ['glyph:laurel'] }),
     aegis: E('bestowed', 'bestowed', bestowed, { with: ['aura:oblivionward', 'glyph:aegis'] }),
@@ -222,7 +222,7 @@ export const WARDROBE = Object.freeze({
     masterwellhead: E('spire', 'open', () => t('coll.how.masterwellhead', 'Win every feat against the lords of the Wellhead in the Elite Breach (a Rehearsal does not count).')),
     // AUDIT COLLECTIONS-II (lane 1): the last season's Descent's top tens, read whole and held through the season after
     // (egHonours.js DESCENT_SQL: no Rehearsal, begun at Hall 1, no Wager) - nobody takes it mid-season
-    spirechampion: E('spire', 'ranked', () => t('coll.how.spirechampion', 'End a season in the top {n} companies of a Descent bracket on the Elite Breach’s boards - an unwagered breach begun at Hall 1, never a Rehearsal.', { n: SPIRE_CHAMPIONS_TOP }), { note: () => t('coll.availLine.spirechampion', 'Held through the whole season after the one you earned it in.') }),
+    spirechampion: E('spire', 'ranked', () => t('coll.how.spirechampion', 'End a season in the top {n} companies of a Descent bracket on the Elite Breach’s boards. It must be an unwagered breach started at Hall 1, not a Rehearsal.', { n: SPIRE_CHAMPIONS_TOP }), { note: () => t('coll.availLine.spirechampion', 'Held through the whole season after the one you earned it in.') }),
     spirefirst: E('spire', 'retired', spireFirst, { with: ['aura:firstlight'] }),
     wikimaid: E('bestowed', 'bestowed', bestowed, { with: ['aura:lilacwarren', 'glyph:wikimaid'] }),
     doorwarden: E('questlines', 'open', questline('doorwarden')),

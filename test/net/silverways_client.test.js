@@ -160,7 +160,7 @@ test('SILVER-WAYS the Work tab\'s contracts: each a card under its guild - what 
   // PIN MOVED (BOARD-SIFT): the work ends soonest first - C2's two days before C1's five
   const [c2, c1] = cards;
   assert.match(c1.textContent, /Guild contractThe Silver Hand \[SH\] pays the defenders of Daggerfall's towns against raiders/);
-  assert.match(c1.textContent, /40 silver each - 7 defenders left of 10/);
+  assert.match(c1.textContent, /40 silver each · 7 defenders left of 10/);
   assert.match(c1.textContent, /5 days left/);
   assert.match(c1.textContent, /Officers and the Guildmaster are not paid by their own guild's contracts\./, 'an Officer of the posting guild');   // BOARD-UI (PIN MOVED)
   assert.match(c2.textContent, new RegExp(`paid when the raid is counted, less ${marksText(saleTax(20))} tax`));
@@ -176,7 +176,7 @@ test('SILVER-WAYS the Work tab\'s contracts: each a card under its guild - what 
   open.click();
   await ticks();
   const form = byClass(host, 'work-form')[0];
-  assert.match(form.textContent, /Post a guild contract - The Silver Hand \[SH\]/);
+  assert.match(form.textContent, /Post a guild contract: The Silver Hand \[SH\]/);
   assert.match(form.textContent, /Holds 200 silver of the treasury's 5,000 silver for up to 7 days\./);   // BOARD-UI (PIN MOVED): the terms one line
   assert.match(form.textContent, /Your writ budget this week: 380 silver of 500 silver left\./);
   const deeds = form.querySelectorAll('input').find((i) => i.getAttribute('data-focus') === 'contract|deeds');

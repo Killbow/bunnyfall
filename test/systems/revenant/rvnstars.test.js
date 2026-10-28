@@ -398,7 +398,7 @@ test('RVN-STARS THE GRAVE: `art` more weight on every gift and strike, `haste` o
   const m = saved({ rank: 3, xp: 75, art: 'mending', stars: ['oath', 'g_pow1', 'g_hst1'] });   // level 2: one point and two for its rank
   const n = A.swornArtNumbers(m);
   assert.deepEqual([n.mendShare, n.mendCooldown, n.wardPoints, n.cryPoints, n.wardCooldown, n.weight, n.strikeCooldown], [0.18 * 1.05, 114, 16, 11, 85.5, 0.8 * 1.05, [15.2, 20.9]]);
-  assert.equal(A.artWords(m, { sworn: true }), 'Art: Mending - when you fall under 40% of your health it heals 19% of it (every 114 seconds).');
+  assert.equal(A.artWords(m, { sworn: true }), 'Art: Mending. When you drop under 40% of your health, it heals 19% of it (every 114 seconds).');
   me.health = 30; me.maxHealth = 100;
   assert.equal(A.swornMendStep(me, 30, [m], () => true), m);
   assert.equal(me.health, 30 + Math.floor(100 * 0.18 * 1.05), 'a share of my health, 1.05 times its rank\'s');
@@ -655,8 +655,8 @@ test('RVN-STARS THE PAGE: each sworn one\'s level and the stars it has to set (n
   buttons(d, 'Mission')[0].onclick();
   d = draw();
   const dests = byClass(d, 'cmp-dest');
-  assert.match(dests[0].textContent, /^High Rock - 20 hours, danger I/);
-  assert.match(dests[8].textContent, /^Black Marsh - 82 hours, danger V/);
+  assert.match(dests[0].textContent, /^High Rock · 20 hours, danger I/);
+  assert.match(dests[8].textContent, /^Black Marsh · 82 hours, danger V/);
   N.revenantCompanionUpdate(me, r.id, (c) => { c.xp = 485; });   // a star to set, then abroad
   buttons(d, 'Send')[0].onclick();
   d = draw();

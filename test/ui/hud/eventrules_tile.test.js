@@ -50,7 +50,7 @@ test('EVENT-RULES THE TIP: every rule the level holds, said off its own row - th
   assert.ok(!has(court, /Recall/));
   assert.ok(has(hour, /Mark and Recall/));
   assert.ok(has(court, /casts you out before the gate/));
-  assert.ok(has(hour, /final for this Abyss Dungeon - unless a party member raises you within 60 seconds/));   // PIN MOVED (AUDIT WORLD-EVENTS L1-5): the body's minute
+  assert.ok(has(hour, /final in this Abyss Dungeon, unless a party member raises you within 60 seconds/));   // PIN MOVED (AUDIT WORLD-EVENTS L1-5): the body's minute
   assert.ok(has(spire, /2 restoring potions a hall/));
   assert.ok(!has(hour, /potions/), 'the Hour counts none');
   assert.ok(has(spire, /No Levitate and no Slowfall/) && has(hour, /^No Levitate\.$/));
@@ -73,7 +73,7 @@ test('EVENT-RULES A REGENERATE\'S OWN TIP: "Restores health every round." outsid
     setCourtRules(false);
     assert.equal(ENTRY_WORDS.regenerate({}), 'Restores health every round.');
     setCourtRules(true, 0);
-    assert.equal(ENTRY_WORDS.regenerate({}), `Restores health every round - held here: half, and none for ${REGEN_HELD_HURT_MS / 1000} seconds after you are hurt.`);
+    assert.equal(ENTRY_WORDS.regenerate({}), `Restores health every round. Here: half as much, and none for ${REGEN_HELD_HURT_MS / 1000} seconds after you’re hurt.`);
     setCourtRules(true, 10); courtRulesHurt({ before: 50, after: 40 });
     assert.equal(regenPausedMs(), REGEN_HELD_HURT_MS);
   } finally { setCourtRules(false); }

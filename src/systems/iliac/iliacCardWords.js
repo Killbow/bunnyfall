@@ -61,7 +61,7 @@ const WORDS = Object.freeze({
   'sabretooth-tiger': [() => t('cards.iliacSet.sabretoothTiger.rules', 'Reveal: the strongest enemy unit here loses 1 power.'),
     () => t('cards.iliacSet.sabretoothTiger.flavor', 'It goes for the biggest throat in the hall.')],
   'spider': [() => t('cards.iliacSet.spider.rules', 'Ongoing: enemy units here that cost 1 or 2 have -1 power.'),
-    () => t('cards.iliacSet.spider.flavor', 'The small walk into its web; the large walk through it.')],
+    () => t('cards.iliacSet.spider.flavor', 'Small things walk into its web. Big things walk through it.')],
   'slaughterfish': [() => t('cards.iliacSet.slaughterfish.rules', 'End of turn: this loses 1 power.'),
     () => t('cards.iliacSet.slaughterfish.flavor', 'Out of the water, it has one good bite in it.')],
   // ── the dead that walk ──

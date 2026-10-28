@@ -38,10 +38,10 @@ const storeOf = (reps) => {
   return store;
 };
 const STANDING = 'Your standing here is -53. It takes members at 0 or more.';
-const QUESTS = (tail) => `As a stranger you may still ask its quest-giver for work: each quest done raises your standing 5${tail}.`;
+const QUESTS = (tail) => `As a stranger you can still ask its quest-giver for work. Each quest you finish raises your standing by 5${tail}.`;
 const DRIFT = 'Below 0 your standing also recovers a point every 7 days of your own time. Rests and journeys count.';
 const DRIFT_ONLINE = 'Below 0 your standing also recovers a point every 7 days of your own time. Rests and journeys count, and so does time logged off.';
-const PACE = (owed) => `Online, quests and the recovery raise it by at most 15 a real day (days start at midnight UTC)${owed}. On top of that, a chapter writ of the guild's on a notice board adds 2.`;
+const PACE = (owed) => `Online, quests and recovery raise it by at most 15 per real day (days start at midnight UTC)${owed}. On top of that, a guild chapter writ from a notice board adds 2.`;
 /** A character whose guild skills meet rank 0's bars (one at 22, a second at 4), as the join reads them - and one with none. */
 const skilled = (g) => ({ name: 'Glade', skills: Object.fromEntries(g.skills.map((sk) => [sk, 30])) });
 const UNSKILLED = { name: 'Glade', skills: {} };
@@ -49,31 +49,31 @@ afterEach(() => setStandingOwed(null));
 
 test('WAY-BACK: a stranger at -53 is told the standing the guild takes, the quests that reach it at DFU\'s +5 each, and REP4\'s week - online also time logged off, and the Roll\'s day with its chapter writs; what the Roll owes counts toward the line on both (mutants: the count floored, the owed not counted, the pace said offline, the log-off said offline, the week not the law\'s, the writ not the law\'s)', () => {
   const g = GUILDS.MagesGuild, store = storeOf({ [MAGES]: -53 });
-  assert.deepEqual(wayBackLines(g, skilled(g), {}, store), [STANDING, QUESTS(' - 11 more quests reach 0'), DRIFT]);
-  assert.deepEqual(wayBackLines(g, skilled(g), {}, store, { online: true, paced: true }), [STANDING, QUESTS(' - 11 more quests reach 0'), DRIFT_ONLINE, PACE('')]);
-  assert.deepEqual(wayBackLines(g, skilled(g), {}, store, { online: true }), [STANDING, QUESTS(' - 11 more quests reach 0'), DRIFT_ONLINE], 'online with the Roll stopped: no pace said');
+  assert.deepEqual(wayBackLines(g, skilled(g), {}, store), [STANDING, QUESTS(' (11 more quests reach 0)'), DRIFT]);
+  assert.deepEqual(wayBackLines(g, skilled(g), {}, store, { online: true, paced: true }), [STANDING, QUESTS(' (11 more quests reach 0)'), DRIFT_ONLINE, PACE('')]);
+  assert.deepEqual(wayBackLines(g, skilled(g), {}, store, { online: true }), [STANDING, QUESTS(' (11 more quests reach 0)'), DRIFT_ONLINE], 'online with the Roll stopped: no pace said');
   setStandingOwed({ [MAGES]: 10 });
   const owed = wayBackLines(g, skilled(g), {}, store, { online: true, paced: true });
-  assert.equal(owed[1], QUESTS(' - 9 more quests reach 0'), 'the 10 owed counts');
-  assert.equal(owed[3], PACE(', with 10 more standing on the way'));
+  assert.equal(owed[1], QUESTS(' (9 more quests reach 0)'), 'the 10 owed counts');
+  assert.equal(owed[3], PACE(', with 10 more standing to come'));
   // AUDIT WAY-BACK L2-3: a lease's stop keeps the owed and stops the pace - the count still reads it, as the page's does
-  assert.equal(wayBackLines(g, skilled(g), {}, store, { online: true })[1], QUESTS(' - 9 more quests reach 0'));
+  assert.equal(wayBackLines(g, skilled(g), {}, store, { online: true })[1], QUESTS(' (9 more quests reach 0)'));
   setStandingOwed({ [MAGES]: 60 });
   assert.equal(wayBackLines(g, skilled(g), {}, store, { paced: true })[1], QUESTS(''), 'the owed reaches 0 on its own');
   setStandingOwed(null);
-  assert.equal(wayBackLines(g, skilled(g), {}, storeOf({ [MAGES]: -1 }))[1], QUESTS(' - 1 more quest reaches 0'));
-  assert.equal(wayBackLines(g, skilled(g), {}, storeOf({ [MAGES]: -100 }))[1], QUESTS(' - 20 more quests reach 0'));
+  assert.equal(wayBackLines(g, skilled(g), {}, storeOf({ [MAGES]: -1 }))[1], QUESTS(' (1 more quest reaches 0)'));
+  assert.equal(wayBackLines(g, skilled(g), {}, storeOf({ [MAGES]: -100 }))[1], QUESTS(' (20 more quests reach 0)'));
 });
 
 test('WAY-BACK: the join\'s other bar is said with it - a stranger short of the guild skills is told the skills rank 0 asks, beside the standing (AUDIT WAY-BACK L1-4, L3-1); and a hall a Crackdown shut says its own Get Quest is closed and the guild\'s other halls are not (L1-3) (mutants: the skills never said, said to the skilled, the shut line dropped)', () => {
   const g = GUILDS.MagesGuild, store = storeOf({ [MAGES]: -53 });
   const SKILLS = 'It also asks one of its guild skills at 22 and a second at 4: Alteration, Destruction, Illusion, Mysticism, Restoration, Thaumaturgy.';
-  assert.deepEqual(wayBackLines(g, UNSKILLED, {}, store), [STANDING, SKILLS, QUESTS(' - 11 more quests reach 0'), DRIFT]);
+  assert.deepEqual(wayBackLines(g, UNSKILLED, {}, store), [STANDING, SKILLS, QUESTS(' (11 more quests reach 0)'), DRIFT]);
   const oneHigh = { name: 'Glade', skills: { [g.skills[0]]: 22 } };
   assert.equal(wayBackLines(g, oneHigh, {}, store)[1], SKILLS, 'one guild skill at the high bar is not two');
   assert.equal(wayBackLines(g, { name: 'Glade', skills: { [g.skills[0]]: 22, [g.skills[1]]: 4 } }, {}, store).includes(SKILLS), false, 'one at 22, a second at 4: the bars met');
   assert.deepEqual(wayBackLines(g, skilled(g), {}, store, { shut: true }),
-    [STANDING, QUESTS(' - 11 more quests reach 0'), 'This hall is shut this Season. The guild\'s halls in other regions still give work.', DRIFT]);
+    [STANDING, QUESTS(' (11 more quests reach 0)'), 'This hall is shut this Season. The guild\'s halls in other regions still give work.', DRIFT]);
 });
 
 test('WAY-BACK: said only where a join is offered and refused on the standing - not at 0, not to a member of the slot (this guild, or another temple or order in it), not for a guild joined by invitation, not without a store (mutants: the line at 0, the slot read as this guild alone, the invitation gate dropped)', () => {
@@ -92,7 +92,7 @@ test('WAY-BACK: said only where a join is offered and refused on the standing - 
   assert.equal(wayBackLines(GUILDS.ThievesGuild, UNSKILLED, {}, storeOf({ [GUILDS.ThievesGuild.factionId]: -30 })), null, 'joined by invitation alone');
   assert.equal(wayBackLines(GUILDS.DarkBrotherhood, UNSKILLED, {}, storeOf({ [GUILDS.DarkBrotherhood.factionId]: -30 })), null);
   assert.equal(wayBackLines(g, skilled(g), {}, null), null);
-  assert.equal(wayBackQuestLine(g, {}, storeOf({ [MAGES]: -53 })), QUESTS(' - 11 more quests reach 0'), 'the page\'s line is the hall\'s');
+  assert.equal(wayBackQuestLine(g, {}, storeOf({ [MAGES]: -53 })), QUESTS(' (11 more quests reach 0)'), 'the page\'s line is the hall\'s');
   assert.equal(wayBackQuestLine(g, book, storeOf({ [MAGES]: -53 })), null);
 });
 
@@ -170,14 +170,14 @@ test('WAY-BACK: the Standing page puts the hall\'s quest line under a guild, tem
     const rep = storeOf({ [GUILDS.FightersGuild.factionId]: 0, [MAGES]: -53, [DIVINES.Arkay]: -20, [ORDERS.Dragon]: 4, 201: -20 });
     rep.dict.get(201).type = FACTION_TYPES.Province;   // a kingdom below 0: listed, and no guild's way in under it
     const detail = notesOf({ name: 'x', factionRep: rep, guildMemberships: {} });
-    assert.deepEqual(notes(detail), [QUESTS(' - 11 more quests reach 0'), QUESTS(' - 4 more quests reach 0')]);
+    assert.deepEqual(notes(detail), [QUESTS(' (11 more quests reach 0)'), QUESTS(' (4 more quests reach 0)')]);
     const at = detail.children.findIndex((n) => n.className === 'px-note');
     assert.equal(detail.children[at - 1].children[0].textContent, 'F' + MAGES, 'under its own row');
     // the book the join reads (activeMemberships): Mara's member is offered no join at Arkay's, so no line under it
     const mara = { name: 'x', factionRep: rep };
     joinGuild(activeMemberships(mara), templeOf('Mara'), { year: 405, dayOfYear: 1 });
-    assert.deepEqual(notes(notesOf(mara)), [QUESTS(' - 11 more quests reach 0')]);
+    assert.deepEqual(notes(notesOf(mara)), [QUESTS(' (11 more quests reach 0)')]);
     setStandingOwed({ [MAGES]: 10 });
-    assert.deepEqual(notes(notesOf({ name: 'x', factionRep: rep, guildMemberships: {} }))[0], QUESTS(' - 9 more quests reach 0'), 'the owed, as the hall counts it');
+    assert.deepEqual(notes(notesOf({ name: 'x', factionRep: rep, guildMemberships: {} }))[0], QUESTS(' (9 more quests reach 0)'), 'the owed, as the hall counts it');
   } finally { delete globalThis.document; }
 });

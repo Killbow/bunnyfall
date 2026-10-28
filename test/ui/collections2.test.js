@@ -203,7 +203,7 @@ test('COLLECTIONS-II THE CATALOGUE IS THE SERVICE\'S LAW SAID, ENTRY BY ENTRY (A
   // Spire Champion: the last season's Descent, its rules, held through the next
   assert.equal(W.SPIRE_CHAMPIONS_TOP, EG_CHAMPIONS_TOP);
   assert.match(read('server-account/src/egHonours.js'), /rh = 0 AND ew = 0 AND wg = 0/, 'the Descent: no Rehearsal, begun at Hall 1, unwagered');
-  assert.match(how('title', 'spirechampion'), new RegExp(`top ${EG_CHAMPIONS_TOP} companies .* an unwagered breach begun at Hall 1, never a Rehearsal`));
+  assert.match(how('title', 'spirechampion'), new RegExp(`top ${EG_CHAMPIONS_TOP} companies .* an unwagered breach started at Hall 1, not a Rehearsal`));
   assert.equal(W.availLine(entry('title', 'spirechampion')), 'Held through the whole season after the one you earned it in.');
   // the boards' floors
   assert.match(how('title', 'arenachampion'), new RegExp(`at least ${ARENA_CHAMPION_MIN_BOUTS} rated bouts against ${ARENA_CHAMPION_MIN_FOES} different`));
@@ -235,7 +235,7 @@ test('COLLECTIONS-II THE CATALOGUE IS THE SERVICE\'S LAW SAID, ENTRY BY ENTRY (A
   assert.ok(seasonTitles({ n: 1, start: 3 }, [{ key: 1, guild: 'g', tier: 'crown', since: 3 }]).some((x) => x.title === 'crowned'));
   for (const t of ['crowned', 'keeper']) assert.match(how('title', t), /from Season 1 on/);
   for (const t of ['warden', 'protector']) assert.match(how('title', t), /Your guildmaster character wears it as/);
-  assert.match(how('title', 'champion'), /held when its crown proclaims one/);
+  assert.match(how('title', 'champion'), /when its crown calls one/);
   // the festival's cakes: the ones others take
   assert.match(read('server-account/src/festival.js'), /UPDATE players SET fest_given = fest_given \+ \?2 WHERE id = \?1/);
   assert.match(how('title', 'hearthkeeper'), new RegExp(`have other players take ${HEARTHKEEPER_GIVEN} Soul Cakes from it`));
@@ -245,7 +245,7 @@ test('COLLECTIONS-II THE CATALOGUE IS THE SERVICE\'S LAW SAID, ENTRY BY ENTRY (A
   for (const k of Object.keys(W.SERPENT_ODDS)) assert.match(how(k === 'maelstrom' ? 'aura' : 'title', k), /if your own fire dealt a real share of your ship’s/);
   // the embers: every purse
   for (const table of ['gate_kills', 'serpent_kills', 'eg_redoubts']) assert.ok(EMBERS_EARNED_SQL.includes(table), table);
-  for (const o of INSIGNIA) { const e = entry(o.kind, o.key); assert.equal(e.src, 'broker'); assert.match(e.how(), new RegExp(`\\b${o.price} Deadlands Embers - won closing Dagon’s Breaches, slaying Sea Serpents and taking Elite Breach Redoubts`)); }
+  for (const o of INSIGNIA) { const e = entry(o.kind, o.key); assert.equal(e.src, 'broker'); assert.match(e.how(), new RegExp(`\\b${o.price} Deadlands Embers\. You earn Embers by closing Dagon’s Breaches, killing Sea Serpents and taking Elite Breach Redoubts`)); }
   for (const w of FESTIVAL_WARES.filter((x) => ['title', 'aura', 'icon'].includes(x.kind))) { const e = entry(w.kind, w.key); assert.deepEqual([e.src, e.avail], ['festival', 'seasonal']); assert.match(e.how(), new RegExp(`\\b${w.price} Soul Cakes`)); }
   assert.deepEqual(FESTIVAL_ICONS.map((i) => entry('icon', i).src), FESTIVAL_ICONS.map(() => 'festival'));
   // the service's switches, each a claim the catalogue makes
@@ -356,7 +356,7 @@ test('COLLECTIONS-II THE PAGE: six tiles, each its part\'s name over its count a
   const out = page({ flow: fakeFlow(null, { stage: 'out' }) });
   assert.ok(cls(out.root, 'coll-part')[0].textContent.includes('– /'), 'unread: a dash');
   assert.equal(cls(cls(out.root, 'coll-part')[0], 'px-meter')[0].textContent, `0/${TITLES.length - 1}`, 'and an empty meter');
-  assert.ok(heads(out.root).includes('The Elite Breach - –/13'), 'a dash in a divider too, unread');
+  assert.ok(heads(out.root).includes('The Elite Breach · –/13'), 'a dash in a divider too, unread');
   assert.deepEqual(cls(out.root, 'coll-filter').map((b) => b.attrs['data-focus']), ['coll-filter-all', 'coll-filter-now'], 'Held and Not held only where the account is read');
   // Held chosen while read, then the read gone (signed out on the card): every row again, never "Nothing here."
   resetCollectionsPage();
@@ -416,7 +416,7 @@ test('COLLECTIONS-II A KIND\'S PART: every one of the kind a row under its sourc
   const flow = fakeFlow(w);
   let p = page({ flow });
   assert.equal(cls(p.root, 'coll-row').length, TITLES.length);
-  for (const h of ['The Sigil Broker - 1/1', 'The Elite Breach - 0/13', 'Your Account - 1/1', 'The Abyss Dungeons - 1/2', 'The Guild Chapters - 0/4']) assert.ok(heads(p.root).includes(h), `${h} in ${heads(p.root).join(' | ')}`);
+  for (const h of ['The Sigil Broker · 1/1', 'The Elite Breach · 0/13', 'Your Account · 1/1', 'The Abyss Dungeons · 1/2', 'The Guild Chapters · 0/4']) assert.ok(heads(p.root).includes(h), `${h} in ${heads(p.root).join(' | ')}`);
   const gate = rowOf(p.root, 'title', 'gatebreaker');
   assert.deepEqual(tags(gate), ['Worn', 'Obtainable']);
   assert.deepEqual(tags(rowOf(p.root, 'title', 'founder')), ['Held', 'Closed']);
@@ -427,7 +427,7 @@ test('COLLECTIONS-II A KIND\'S PART: every one of the kind a row under its sourc
   assert.equal(cls(p.root, 'coll-season').length, 1, 'the festival is on');
   // the Held filter: the dividers keep their own counts
   focus(p.root, 'coll-filter-held').onclick();
-  assert.ok(heads(p.root).includes('The Abyss Dungeons - 1/2') && heads(p.root).includes('Your Account - 1/1'), heads(p.root).join(' | '));
+  assert.ok(heads(p.root).includes('The Abyss Dungeons · 1/2') && heads(p.root).includes('Your Account · 1/1'), heads(p.root).join(' | '));
   focus(p.root, 'coll-filter-all').onclick();
   // opened whole, and worn off
   gate.onclick();
@@ -471,7 +471,7 @@ test('COLLECTIONS-II A KIND\'S PART: every one of the kind a row under its sourc
   assert.deepEqual(tags(tower), ['Per character', 'Obtainable']);
   assert.ok(tower.classList.contains('held'), 'never dimmed as not held');
   tower.onclick();
-  assert.match(cls(p.root, 'coll-whole')[0].textContent, /on that character - your account does not keep it\./);
+  assert.match(cls(p.root, 'coll-whole')[0].textContent, /on that character\. Your account doesn’t keep it\./);
   assert.equal(cls(p.root, 'coll-wear').length, 0);
   assert.equal(cls(p.root, 'coll-season').length, 0, 'no glyph is the festival\'s');
   // comes with: from the Kynbane title under the Held filter to its aura - the part, the row, All, the keyboard

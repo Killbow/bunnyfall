@@ -107,7 +107,7 @@ export const CHART_KEY = Object.freeze([
 ]);
 /** ETHER-WILD (2026-10-21): the key's row for Veilhaven's peace - shown while the chart's word says the open sea is an
  *  open PvP zone (`pvp`: online, at a relay that raises it), beside CHART_KEY's marks. */
-export const CHART_PEACE_KEY = keyRow('peace', () => t('sea.chart.key.peace', 'Veilhaven\'s peace - past it, open PvP'));
+export const CHART_PEACE_KEY = keyRow('peace', () => t('sea.chart.key.peace', 'Veilhaven’s peace. Past it, open PvP'));
 /** ETHER-WILD: the peace's colours - a safe harbour's green over the depths, apart from every isle's and haunt's. */
 export const PEACE_FILL = 'rgba(110,214,170,0.13)';
 export const PEACE_LINE = 'rgba(140,232,190,0.85)';
@@ -167,7 +167,7 @@ export function wayWords(from, to) {
   return t('sea.chart.way', '{n, plural, one {# league} other {# leagues}} {point}', { n: Math.max(1, Math.round(leagues)), point: etherWayWord(compassPoint(dx, dy)) });   // AUDIT SEA VENTURES F4: the point in the language of the moment
 }
 /** An isle in a line: "Port Pelleveth - a port - 12 leagues west-north-west" - its name's first letter raised (X17). */
-export const isleWords = (isle, ship) => t('sea.chart.isleLine', '{name} - {kind} - {way}', { name: capFirst(isle.name), kind: KIND_WORDS[isle.kind] ?? t('sea.chart.anIsle', 'an isle'), way: wayWords(ship, isle) });
+export const isleWords = (isle, ship) => t('sea.chart.isleLine', '{name} · {kind} · {way}', { name: capFirst(isle.name), kind: KIND_WORDS[isle.kind] ?? t('sea.chart.anIsle', 'an isle'), way: wayWords(ship, isle) });
 
 /** ETHER-CHART2: THE SCALE at a zoom - the longest of SCALE_LEAGUES whose bar is no longer than SCALE_MAX_PX - and its
  *  words; the grid's squares are its length. */
@@ -334,7 +334,7 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
   // before the lesser isles' (AUDIT ETHER-CHART2 C4: its plate, painted after them, covered one in six of the views where
   // she was off the chart)
   if (ship.edge) {
-    const e = ship.edge, words = t('sea.chart.shipWay', 'Your ship - {way}', { way: ship.way }), tw = width(words, CHART_FONT.small);
+    const e = ship.edge, words = t('sea.chart.shipWay', 'Your ship · {way}', { way: ship.way }), tw = width(words, CHART_FONT.small);
     const at = (lx, ly) => { const x = Math.max(CHART_MARGIN, Math.min(w - tw - CHART_MARGIN, lx)), y = Math.max(CHART_MARGIN + 9, Math.min(h - CHART_MARGIN - 9, ly)); return { x, y, words, box: [x - 6, y - 9, x + tw + 6, y + 9] }; };
     const ix = e.x - Math.cos(e.a) * 28 - tw / 2, iy = e.y - Math.sin(e.a) * 28;
     const ox = -Math.cos(e.a) * 40, oy = -Math.sin(e.a) * 40;
@@ -354,7 +354,7 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
     // ISLE-TRADE (2026-10-17): a port isle's card names the good of the Bay its exchange makes (tradeGoods.js isleGood, off
     // the key scenes/world.js etherPortOf gives its port - `"px,py"`), so a captain plans the Veil's own trade on the chart
     const made = named.kind === 'port' ? goodById(isleGood({ key: `${isle.px},${isle.py}` })) : null;
-    const title = capFirst(named.name), words = made ? t('sea.chart.cardPortLine', '{kind} - makes {good} - {way}', { kind, good: made.name.toLowerCase(), way }) : t('sea.chart.cardLine', '{kind} - {way}', { kind, way });
+    const title = capFirst(named.name), words = made ? t('sea.chart.cardPortLine', '{kind} · makes {good} · {way}', { kind, good: made.name.toLowerCase(), way }) : t('sea.chart.cardLine', '{kind} · {way}', { kind, way });
     const cw = Math.max(width(title), width(words, CHART_FONT.small)) + 16, ch = 36;
     const box = (x, y) => { const x0 = Math.max(4, Math.min(w - cw - 4, x)), y0 = Math.max(4, Math.min(h - ch - 4, y)); return [x0, y0, x0 + cw, y0 + ch]; };
     const o = named.r + 10;
@@ -386,7 +386,7 @@ export function chartModel(word, v, w, h, { measure = null, pick = null } = {}) 
     title: chartTitle(),   // the haunts' `r` the square's half side (X13)
     sub: st.legends
       ? t('sea.chart.statsLegends', '{charted, plural, one {# isle} other {# isles}} charted · deepest {deepest} leagues past the Veil · {crossings, plural, one {# crossing} other {# crossings}} · {legends, plural, one {# legend} other {# legends}} ended', { charted: st.charted ?? 0, deepest: st.deepest ?? 0, crossings: st.crossings ?? 0, legends: st.legends })
-      : t('sea.chart.stats', '{charted, plural, one {# isle} other {# isles}} charted - deepest {deepest} leagues past the Veil - {crossings, plural, one {# crossing} other {# crossings}}', { charted: st.charted ?? 0, deepest: st.deepest ?? 0, crossings: st.crossings ?? 0 }),
+      : t('sea.chart.stats', '{charted, plural, one {# isle} other {# isles}} charted · deepest {deepest} leagues past the Veil · {crossings, plural, one {# crossing} other {# crossings}}', { charted: st.charted ?? 0, deepest: st.deepest ?? 0, crossings: st.crossings ?? 0 }),
   };
 }
 

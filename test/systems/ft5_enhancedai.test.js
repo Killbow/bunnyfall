@@ -30,7 +30,7 @@ test('FT5: the registry row - Enhanced only, over the pref, on by default (BAL4)
   assert.deepEqual(f.control, { store: 'prefs', key: 'enhancedAI', initial: true, online: true,   // RF4: the row declares its default and the lane's answer
     also: [{ store: 'prefs', key: 'telegraphContrast', initial: false, online: 'player' }], parts: [{ key: 'telegraphContrast', label: 'Telegraph contrast' }] });
   assert.equal(PREF_DEFAULTS.enhancedAI, true, 'BAL4: on by default - the classic motor one choice away');
-  assert.equal(f.effect, 'Takes effect at once; pathfinding from the next dungeon you enter.');   // AUDIT TACT D7: the tactics, cover and blows read the switch live; only the navmesh waits
+  assert.equal(f.effect, 'Takes effect right away. Pathfinding changes from the next dungeon you enter.');   // AUDIT TACT D7: the tactics, cover and blows read the switch live; only the navmesh waits
   assert.deepEqual(checkFeature(f), []);
   assert.equal(featureForControl('prefs', 'enhancedAI'), f);
 });

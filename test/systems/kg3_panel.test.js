@@ -70,11 +70,11 @@ test('KG3 the regulars\' rows: the tier a word and a four-step mark, what makes 
   const m = setup({ regular: 0 });
   const [a, b, c] = m.setup.regulars;
   assert.deepEqual([a.tier, a.step, a.chosen], ['Amateur', 1, true]);
-  assert.equal(a.fields, `An army of ${AMATEUR.budget} points - ${AMATEUR.potions} potions - blunders ${Math.round(AMATEUR.blunder * 100)}% of the time`);
-  assert.equal(b.fields, `An army of ${SEASONED.budget} points - ${SEASONED.potions} potions - blunders ${Math.round(SEASONED.blunder * 100)}% of the time`);
-  assert.equal(c.fields, `An army of ${GRANDMASTER.budget} points - ${GRANDMASTER.potions} potions - never blunders`);
+  assert.equal(a.fields, `An army of ${AMATEUR.budget} points · ${AMATEUR.potions} potions · blunders ${Math.round(AMATEUR.blunder * 100)}% of the time`);
+  assert.equal(b.fields, `An army of ${SEASONED.budget} points · ${SEASONED.potions} potions · blunders ${Math.round(SEASONED.blunder * 100)}% of the time`);
+  assert.equal(c.fields, `An army of ${GRANDMASTER.budget} points · ${GRANDMASTER.potions} potions · never blunders`);
   // every count said with its noun goes through the plural - a language with more forms than English needs it
-  assert.equal(regularLines({ name: 'Ana', tier: { ...AMATEUR, budget: 1, potions: 1 }, nightLeft: 10, forFun: false }, false).fields, `An army of 1 point - 1 potion - blunders ${Math.round(AMATEUR.blunder * 100)}% of the time`);
+  assert.equal(regularLines({ name: 'Ana', tier: { ...AMATEUR, budget: 1, potions: 1 }, nightLeft: 10, forFun: false }, false).fields, `An army of 1 point · 1 potion · blunders ${Math.round(AMATEUR.blunder * 100)}% of the time`);
   assert.equal(c.least, 'Sits down for 1,000 gold or more');
   assert.equal(c.step, 4);
   assert.deepEqual(GAMBIT_TIERS.map((t) => tierStep(t.key)), [1, 2, 3, 4]);
@@ -89,7 +89,7 @@ test('KG3 the stake\'s picks: the tier\'s least times the mod\'s three, each ref
   const r = REGS[1];
   const picks = stakePicks(r, 5000, 2);
   assert.deepEqual(picks.map((p) => [p.m, p.gold, p.enabled, p.chosen]), GAMBIT_STAKE_MULTS.map((m) => [m, SEASONED.stake * m, true, m === 2]));
-  assert.equal(picks[0].label, '×1 - 50 gold');
+  assert.equal(picks[0].label, '×1 · 50 gold');
   const poor = stakePicks(r, 120, 5);
   assert.deepEqual(poor.map((p) => p.enabled), [true, true, false]);
   assert.equal(poor[2].why, 'You have 120 gold, which is not enough for a stake of 250.');
@@ -137,7 +137,7 @@ test('KG3 the army: the 46 units in the law\'s order - a cost\'s ties by the nam
   assert.ok(KG_ROSTER.every((u) => typeof unitCardId(u.id) === 'string'), 'every unit wears a card since KG-SET');
   const costs = m.army.rows.map((r) => rosterUnit(r.id).cost);
   assert.deepEqual(costs, costs.slice().sort((a, b) => b - a), 'dearest first');
-  assert.equal(m.army.unit.line, 'Level 1 - Health 12 - Attack 2 - Melee');
+  assert.equal(m.army.unit.line, 'Level 1 · Health 12 · Attack 2 · Melee');
   assert.equal(m.army.unit.cost, '6 points');
   assert.equal(m.army.kingLine, 'Your king: Camaron, King of Sentinel (free). If your king falls, you lose.');
   const start = m.actions.find((a) => a.id === 'start');
@@ -152,7 +152,7 @@ test('KG3 the army: the 46 units in the law\'s order - a cost\'s ties by the nam
 test('KG3 the turn: the title by whose turn, the chips (pips and words, both sides\' potions and fallen), the next step\'s arms, a chosen piece\'s reach, range and targets, Drink and its refusals, End turn refused on the regular\'s turn, Forfeit and Stand up in blood with the stake in their words and asked twice (mutants: the fallen; a pip; the next step; the drink\'s refusal; the armed words)', () => {
   const { st, dealtCounts } = dealt();
   const m = battle(st, { dealt: dealtCounts });
-  assert.equal(m.title, `Round ${st.round} - your turn`);
+  assert.equal(m.title, `Round ${st.round} · your turn`);
   assert.deepEqual(m.battle.chips.map((c) => c.text), [`${KG_ACTIONS_PER_TURN} of ${KG_ACTIONS_PER_TURN} actions left`, `Your potions ${KG_POTIONS_PER_SIDE}`, `Bors's potions ${SEASONED.potions}`, 'Your fallen 0', 'Bors\'s fallen 0']);
   assert.equal(m.battle.chips[0].pips, KG_ACTIONS_PER_TURN);
   assert.equal(m.next, nextStep('yourTurn', { n: KG_ACTIONS_PER_TURN }));
@@ -173,13 +173,13 @@ test('KG3 the turn: the title by whose turn, the chips (pips and words, both sid
   fell.pieces = fell.pieces.filter((p) => p.id !== mine.id);
   assert.equal(battle(fell, { dealt: dealtCounts }).battle.chips[3].text, 'Your fallen 1', 'a fallen piece counted against the deal');
   const forfeit = m.actions.find((a) => a.id === 'forfeit'), stand = m.actions.find((a) => a.id === 'stand');
-  assert.deepEqual([forfeit.label, forfeit.kind, stand.label, stand.kind], ['Forfeit - lose 100 gold', 'warn', 'Stand up and lose 100 gold', 'warn']);
+  assert.deepEqual([forfeit.label, forfeit.kind, stand.label, stand.kind], ['Forfeit (lose 100 gold)', 'warn', 'Stand up and lose 100 gold', 'warn']);
   assert.equal(battle(st, { armed: 'forfeit' }).actions.find((a) => a.id === 'forfeit').label, 'Press again to confirm');
   // the regular's turn
   const out = gambitAct(st, 0, { type: 'end' });
   const theirs = finishTurn(out.state, xorshift(1)).state;
   const t = battle(theirs);
-  assert.equal(t.title, `Round ${theirs.round} - Bors's turn`);
+  assert.equal(t.title, `Round ${theirs.round} · Bors's turn`);
   assert.equal(t.next, nextStep('theirTurn', { name: 'Bors' }));
   const end = t.actions.find((a) => a.id === 'end');
   assert.deepEqual([end.enabled, end.why], [false, refusalWords('turn')]);
@@ -219,10 +219,10 @@ test('KG3 the information box: a piece - its side, its numbers, its reach in wor
   const { st } = dealt(4);
   const king = st.pieces.find((p) => p.side === 0 && p.king);
   const box = infoBox(st, { piece: king.id }, ['daggerfall', 'orsinium'], 'Bors');
-  assert.deepEqual(box.lines, ['Gothryd, King of Daggerfall - yours', `Level ${KG_KING_LEVEL} - Attack ${KG_KINGS[0].atk} - Melee: strikes the cell next to it`, `Health ${KG_KING_HP} of ${KG_KING_HP}`, `Moves up to ${KG_MOVE_RANGE} cells a move.`, 'No foe in range now.', 'If this king falls, you lose.']);   // PIN MOVED (AUDIT KG II D21): range, a blow's word
+  assert.deepEqual(box.lines, ['Gothryd, King of Daggerfall (yours)', `Level ${KG_KING_LEVEL} · Attack ${KG_KINGS[0].atk} · Melee: hits the cell next to it`, `Health ${KG_KING_HP} of ${KG_KING_HP}`, `Moves up to ${KG_MOVE_RANGE} cells a move.`, 'No foe in range now.', 'If this king falls, you lose.']);   // PIN MOVED (AUDIT KG II D21): range, a blow's word
   const theirKing = st.pieces.find((p) => p.side === 1 && p.king);
   assert.equal(infoBox(st, { piece: theirKing.id }, ['daggerfall', 'orsinium'], 'Bors').lines.at(-1), 'If this king falls, Bors loses.');
-  assert.equal(infoBox(st, { piece: theirKing.id }, ['daggerfall', 'orsinium'], 'Bors').lines[0], 'Gortwog, King of Orsinium - Bors\'s');
+  assert.equal(infoBox(st, { piece: theirKing.id }, ['daggerfall', 'orsinium'], 'Bors').lines[0], 'Gortwog, King of Orsinium (Bors\'s)');
   const at = (tile) => { for (let i = 0; i < st.tiles.length; i++) if (st.tiles[i] === tile && !st.pieces.some((p) => cellIndex(p.col, p.row) === i) && !st.hazards.some((h) => cellIndex(h.col, h.row) === i)) return [i % KG_COLS, Math.floor(i / KG_COLS)]; return null; };
   assert.deepEqual(infoBox(st, { cell: at(KG_TILE.floor) }, ['daggerfall', 'orsinium'], 'Bors').lines, ['Open floor.']);
   const wall = at(KG_TILE.wall) ?? at(KG_TILE.pillar);
@@ -275,7 +275,7 @@ test('KG3 THE NUMBERS ARE THE LAW\'S (14.4): what it is, the guide\'s seven para
   const body = (i) => g[i].body;
   assert.equal(body(1), `Stake ${GAMBIT_STAKE_MULTS[0]}, ${GAMBIT_STAKE_MULTS[1]} or ${GAMBIT_STAKE_MULTS[2]} times the regular's minimum stake. If you win, you get back ${GAMBIT_WIN_PAYS} times your stake. If you lose, forfeit or stand up mid-game, the regular keeps it.`);
   assert.equal(body(2), `Up to ${KG_MAX_UNITS} units for ${KG_POINT_BUDGET} points. Stronger units cost more, and ranged units cost ${Math.round((KG_RANGED_COST_FACTOR - 1) * 100)}% extra. Your king joins for free.`);
-  assert.equal(body(3), `${KG_ACTIONS_PER_TURN} actions a turn: move a piece up to ${KG_MOVE_RANGE} cells, strike, or give one of your pieces a potion that heals ${KG_POTION_HEAL} health. You have ${KG_POTIONS_PER_SIDE} potions a game.`);
+  assert.equal(body(3), `You get ${KG_ACTIONS_PER_TURN} actions per turn. Move a piece up to ${KG_MOVE_RANGE} cells, attack, or give one of your pieces a potion that heals ${KG_POTION_HEAL} health. You have ${KG_POTIONS_PER_SIDE} potions per game.`);
   assert.equal(body(4), `A melee piece strikes the cell next to it. A ranged piece shoots up to ${KG_RANGED_RANGE} cells when nothing is in the way. A hit does ${Math.round(KG_BLOW_LOW * 100)}% to ${Math.round((KG_BLOW_LOW + KG_BLOW_SPREAD) * 100)}% of the attacker's attack.`);
   assert.equal(body(5), `Walls and pillars block movement and shots. Water blocks movement, but shots pass over it. Every ${KG_HAZARD_SPAWN_EVERY} rounds, warning cells turn into fire (${KG_HAZARD_DAMAGE.fire}), spikes (${KG_HAZARD_DAMAGE.spikes}) or poison (${KG_HAZARD_DAMAGE.poison}). A piece that ends its turn on one loses that much health.`);
   const w = gambitWords();

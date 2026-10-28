@@ -55,7 +55,7 @@ export function createStaffFollowBar({ doc = globalThis.document, onUnlock, onHi
     show({ following = false, name = '', hidden = false, asking = false, seeing = true } = {}) {
       if (!bar) make();
       hiddenNow = hidden;
-      const line = following && !seeing ? t('net.staffFollow.finding', 'Following - finding them…')
+      const line = following && !seeing ? t('net.staffFollow.finding', 'Following. Finding them…')
         : following ? (name ? t('net.staffFollow.following', 'Following {name}', { name }) : t('net.staffFollow.followingAnon', 'Following'))
         : hidden ? t('net.staffFollow.hidden', 'Hidden') : t('net.staffFollow.shown', 'Shown to players');
       put('line', line, (v) => { words.textContent = v; });

@@ -76,10 +76,10 @@ export const KT_LINK_TEXT = Object.freeze({
   forkBroken: (who, left) => (left > 0 ? t('ketch.link.forkBroken', '{who} breaks a fork. {left, plural, one {# stands} other {# stand}}.', { who: someone(who), left })
     : t('ketch.link.forkBrokenAll', '{who} breaks the last fork!', { who: someone(who) })),
   get stunned() { return t('ketch.link.stunned', 'The song breaks! The Warden reels!'); },
-  get sections() { return t('ketch.link.sections', 'The bridge\'s outer ring shudders - get onto the core!'); },
+  get sections() { return t('ketch.link.sections', 'The bridge’s outer ring shudders. Get onto the core!'); },
   get west() { return t('ketch.link.west', 'The Ketch turns west!'); },
   get lost() { return t('ketch.link.lost', 'The bridge is empty. The Warden returns to the helm.'); },
-  fell: (top) => (top?.length ? t('ketch.link.fell', 'The Tonal Warden falls - {top} struck the hardest. {open}', { top: top.join(', '), open: KT_WORDS.cabinOpen })
+  fell: (top) => (top?.length ? t('ketch.link.fell', 'The Tonal Warden falls. {top} hit it hardest. {open}', { top: top.join(', '), open: KT_WORDS.cabinOpen })
     : t('ketch.link.fellNone', 'The Tonal Warden falls. {open}', { open: KT_WORDS.cabinOpen })),
 });
 

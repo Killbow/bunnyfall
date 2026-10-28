@@ -114,5 +114,5 @@ export const DEED_TEXT = Object.freeze({
   kiss: (name) => t('legacy.deed.kissed', '{name} kisses you back.', { name }),
   again: (name) => t('legacy.deed.again', '{name} laughs. "Once a day is plenty. Tomorrow."', { name }),
   notFriend: (name) => t('legacy.deed.notFriend', '{name} steps back. "We hardly know each other." (A hug needs them to count you a friend: regard +{at, number}.)', { name, at: FRIEND_AT }),
-  notCourting: (name) => t('legacy.deed.notCourting', '{name} turns their cheek. "Not yet." (A kiss needs a courtship of {at, number} or more - ask about Courtship once you are friends.)', { name, at: KISS_AT }),
+  notCourting: (name) => t('legacy.deed.notCourting', '{name} turns their cheek. "Not yet." (A kiss needs a courtship of {at, number} or more. Ask about Courtship once you’re friends.)', { name, at: KISS_AT }),
 });

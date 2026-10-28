@@ -155,23 +155,23 @@ export function artWords(r, { sworn = !!r?.sworn } = {}) {
   if (sworn) {
     const A = swornArtNumbers(r);   // RVN-STARS: its rank's and its Grave's
     switch (art) {
-      case 'mending': return t('rvn.art.sworn.mendingSecs', 'Art: {n} - when you fall under {at} of your health it heals {share} of it (every {s} seconds).', { n, at: pct(ART_LAW.SWORN_MEND.AT), share: pct(A.mendShare), s: Math.round(A.mendCooldown) });   // AUDIT RVN-STARS S9: seconds, as the Ward's and the War Cry's - a minute and a half read as a minute
-      case 'warding': return t('rvn.art.sworn.warding', 'Art: {n} - as it goes into a fight it shields you for {points} (every {s} seconds).', { n, points: A.wardPoints, s: Math.round(A.wardCooldown) });
-      case 'warcry': return t('rvn.art.sworn.warcry', 'Art: {n} - as it goes into a fight your Strength rises by {points} (every {s} seconds).', { n, points: A.cryPoints, s: Math.round(A.cryCooldown) });
-      case 'siphon': return t('rvn.art.sworn.siphonShare', 'Art: {n} - now and then it draws its foe\'s life and gives you {share} of it.', { n, share: pct(ART_LAW.SWORN_STRIKE.SIPHON_HEAL) });   // AUDIT RVN D13: its share, its constant's
-      case 'barrage': return t('rvn.art.sworn.barrage', 'Art: {n} - now and then it looses a barrage on its foe.', { n });
-      default: return t('rvn.art.sworn.nova', 'Art: {n} - now and then it strikes every foe about it.', { n });
+      case 'mending': return t('rvn.art.sworn.mendingSecs', 'Art: {n}. When you drop under {at} of your health, it heals {share} of it (every {s} seconds).', { n, at: pct(ART_LAW.SWORN_MEND.AT), share: pct(A.mendShare), s: Math.round(A.mendCooldown) });   // AUDIT RVN-STARS S9: seconds, as the Ward's and the War Cry's - a minute and a half read as a minute
+      case 'warding': return t('rvn.art.sworn.warding', 'Art: {n}. As it goes into a fight, it shields you for {points} (every {s} seconds).', { n, points: A.wardPoints, s: Math.round(A.wardCooldown) });
+      case 'warcry': return t('rvn.art.sworn.warcry', 'Art: {n}. As it goes into a fight, your Strength rises by {points} (every {s} seconds).', { n, points: A.cryPoints, s: Math.round(A.cryCooldown) });
+      case 'siphon': return t('rvn.art.sworn.siphonShare', 'Art: {n}. Now and then it drains its foe’s life and gives you {share} of it.', { n, share: pct(ART_LAW.SWORN_STRIKE.SIPHON_HEAL) });   // AUDIT RVN D13: its share, its constant's
+      case 'barrage': return t('rvn.art.sworn.barrage', 'Art: {n}. Now and then it looses a barrage on its foe.', { n });
+      default: return t('rvn.art.sworn.nova', 'Art: {n}. Now and then it strikes every foe around it.', { n });
     }
   }
   const young = (r.rank | 0) < ART_RANK, on = tacticsSwitchOn(), from = ROMAN[ART_RANK];   // AUDIT RVN D13: the rank its constant's
   const below = young ? (on ? t('rvn.art.note.fromRank', ' (from Rank {rank})', { rank: from }) : t('rvn.art.note.fromRankSwitch', ' (from Rank {rank}, with Enhanced AI)', { rank: from })) : on ? '' : t('rvn.art.note.switch', ' (with Enhanced AI)');
   switch (art) {
-    case 'mending': return t('rvn.art.hunt.mending', 'Art: {n} - when hurt, it gathers itself to heal. Strike it to break the spell{below}.', { n, below });
-    case 'warding': return t('rvn.art.hunt.warding', 'Art: {n} - when hurt, it raises a ward against your blows. Strike it to break the spell{below}.', { n, below });
-    case 'warcry': return t('rvn.art.hunt.warcry', 'Art: {n} - it roars as the fight begins, and it and its band strike harder. Strike it to cut the roar short{below}.', { n, below });
-    case 'siphon': return t('rvn.art.hunt.siphon', 'Art: {n} - a beam that drains your life. Step out of its line{below}.', { n, below });
-    case 'barrage': return t('rvn.art.hunt.barrageCount', 'Art: {n} - {count} blasts at your feet, one after another. Keep moving{below}.', { n, count: ART_LAW.BARRAGE.COUNT, below });
-    default: return t('rvn.art.hunt.novaRing', 'Art: {n} - a ring bursts where it stands. Step out of it, or into its center{below}.', { n, below });
+    case 'mending': return t('rvn.art.hunt.mending', 'Art: {n}. When hurt, it gathers itself to heal. Strike it to break the spell{below}.', { n, below });
+    case 'warding': return t('rvn.art.hunt.warding', 'Art: {n}. When hurt, it raises a ward against your blows. Strike it to break the spell{below}.', { n, below });
+    case 'warcry': return t('rvn.art.hunt.warcry', 'Art: {n}. It roars as the fight begins, and it and its band hit harder. Strike it to cut the roar short{below}.', { n, below });
+    case 'siphon': return t('rvn.art.hunt.siphon', 'Art: {n}. A beam that drains your life. Step out of its line{below}.', { n, below });
+    case 'barrage': return t('rvn.art.hunt.barrageCount', 'Art: {n}. {count} blasts at your feet, one after another. Keep moving{below}.', { n, count: ART_LAW.BARRAGE.COUNT, below });
+    default: return t('rvn.art.hunt.novaRing', 'Art: {n}. A ring bursts where it stands. Step out of it, or into its center{below}.', { n, below });
   }
 }
 const pct = (x) => `${Math.round(x * 100)}%`;

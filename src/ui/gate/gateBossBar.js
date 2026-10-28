@@ -67,11 +67,11 @@ export const BOSS_BAR_TEXT = Object.freeze({
   bearers: (left, n) => `Ward-Bearers - ${n > left ? `${left} of ${n}` : left} ${left === 1 ? 'stands' : 'stand'}`,
   host: (n) => `His host: ${n}`,
   // WB14c: his Vanguard holding the approach - its platform and its wave (read through the text core - L10N4)
-  vanguard: (stage, w, of) => t('gate.bar.vanguard', 'The Vanguard - {stage}, wave {w} of {of}', { stage, w, of }),
-  vanguardHolds: (stage) => t('gate.bar.vanguardHolds', 'The Vanguard - {stage}', { stage }),   // AUDIT WB14 (TEXT-15): a platform before its first wave
+  vanguard: (stage, w, of) => t('gate.bar.vanguard', 'The Vanguard · {stage}, wave {w} of {of}', { stage, w, of }),
+  vanguardHolds: (stage) => t('gate.bar.vanguardHolds', 'The Vanguard · {stage}', { stage }),   // AUDIT WB14 (TEXT-15): a platform before its first wave
   stages: () => [t('gate.bar.bridgehead', 'Bridgehead'), t('gate.bar.muster', 'Muster')],
   // WB14d: a half's line on its own track - kneeling and its seconds, warded, or alone (and mending)
-  kneels: (secs) => t('gate.bar.kneels', 'Kneels - {secs}s', { secs }),
+  kneels: (secs) => t('gate.bar.kneels', 'Kneels · {secs}s', { secs }),
   halfWarded: () => t('gate.bar.halfWarded', 'Warded'),
   alone: () => t('gate.bar.alone', 'Alone'),
   // WB14f: the Captive's - his gaolers standing, then the Covenant's ward over the court until it takes a Reckoning

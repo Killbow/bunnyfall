@@ -30,8 +30,8 @@ export function openHomeTransfer(mapId, buildingKey, host, say, refusal, giving 
     mount(new ChoiceWindow({
       lines: [t('housing.transfer.offerOut', 'An offer for this house is already out.')],
       options: [
-        { code: 'KeyW', label: t('housing.transfer.withdraw', 'W - withdraw the offer'), action: () => { void send(host, { op: 'cancel', id: giving, mapId, buildingKey }, tell, word); } },
-        { code: 'Escape', label: t('housing.transfer.leaveIt', 'Esc - leave it'), action: () => {} },
+        { code: 'KeyW', label: t('housing.transfer.withdraw', 'W: withdraw the offer'), action: () => { void send(host, { op: 'cancel', id: giving, mapId, buildingKey }, tell, word); } },
+        { code: 'Escape', label: t('housing.transfer.leaveIt', 'Esc: leave it'), action: () => {} },
       ],
     }));
     return true;
@@ -55,7 +55,7 @@ export function answerHomeTransfer(mapId, buildingKey, home, accept, host, say, 
     lines: [line],
     options: [
       { code: 'KeyY', label: accept ? 'Y - accept' : 'Y - decline', action: () => { void send(host, { op, id: offer.id, mapId, buildingKey }, tell, word, accept ? { price, wallet } : null); } },
-      { code: 'Escape', label: t('housing.transfer.notNow', 'Esc - not now'), action: () => {} },
+      { code: 'Escape', label: t('housing.transfer.notNow', 'Esc: not now'), action: () => {} },
     ],
   }));
   return true;
@@ -91,8 +91,8 @@ function askKeep(mapId, buildingKey, host, tell, word, mount, to, price) {
   mount(new ChoiceWindow({
     lines: [t('housing.transfer.leaveFurnishings', 'Leave the furnishings with the house?')],
     options: [
-      { code: 'KeyY', label: t('housing.transfer.yesLeave', 'Y - leave them'), action: () => askGoods(mapId, buildingKey, host, tell, word, mount, to, price) },
-      { code: 'KeyN', label: t('housing.transfer.noTake', 'N - take them back'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, false, false) },
+      { code: 'KeyY', label: t('housing.transfer.yesLeave', 'Y: leave them'), action: () => askGoods(mapId, buildingKey, host, tell, word, mount, to, price) },
+      { code: 'KeyN', label: t('housing.transfer.noTake', 'N: take them back'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, false, false) },
       { code: 'Escape', label: 'Esc - cancel', action: () => {} },
     ],
   }));
@@ -102,8 +102,8 @@ function askGoods(mapId, buildingKey, host, tell, word, mount, to, price) {
   mount(new ChoiceWindow({
     lines: [t('housing.transfer.leaveGoods', 'Leave the goods in its chests and stalls?')],
     options: [
-      { code: 'KeyY', label: t('housing.transfer.yesGoods', 'Y - leave the goods'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, true) },
-      { code: 'KeyN', label: t('housing.transfer.noGoods', 'N - keep the goods'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, false) },
+      { code: 'KeyY', label: t('housing.transfer.yesGoods', 'Y: leave the goods'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, true) },
+      { code: 'KeyN', label: t('housing.transfer.noGoods', 'N: keep the goods'), action: () => confirm(mapId, buildingKey, host, tell, word, mount, to, price, true, false) },
       { code: 'Escape', label: 'Esc - cancel', action: () => {} },
     ],
   }));
@@ -114,7 +114,7 @@ function confirm(mapId, buildingKey, host, tell, word, mount, to, price, keepDec
   mount(new ChoiceWindow({
     lines: [t('housing.transfer.confirm', 'Offer this house to {to} for {price} gold. {kept}.', { to, price, kept })],
     options: [
-      { code: 'KeyY', label: t('housing.transfer.yesOffer', 'Y - offer it'), action: () => { void send(host, { op: 'offer', mapId, buildingKey, to, price, keepDecor, keepItems }, tell, word); } },
+      { code: 'KeyY', label: t('housing.transfer.yesOffer', 'Y: offer it'), action: () => { void send(host, { op: 'offer', mapId, buildingKey, to, price, keepDecor, keepItems }, tell, word); } },
       { code: 'Escape', label: 'Esc - cancel', action: () => {} },
     ],
   }));

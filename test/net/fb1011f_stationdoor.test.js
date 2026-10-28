@@ -67,7 +67,7 @@ test('STATION-DOOR: an enchanting station pressed online offers Daggerfall\'s it
   const c = host.slot;
   assert.equal(c?.isChoiceWindow, true, 'the chooser stands in the room\'s slot');
   assert.deepEqual(c.lines, ['Enchanting station']);
-  assert.deepEqual(c.options.map((o) => [o.code, o.label]), [['Digit1', '1 - Make Magic Items'], ['Digit2', '2 - Disenchant (Crafting page)'], ['Escape', 'Esc - close']]);
+  assert.deepEqual(c.options.map((o) => [o.code, o.label]), [['Digit1', '1 - Make Magic Items'], ['Digit2', '2: Disenchant (Crafting page)'], ['Escape', 'Esc - close']]);
   // offline (the Stores page is not), the press is the maker's, as it always was
   const off = rig({ online: false });
   off.host.press({ station: 'enchant' });
@@ -115,7 +115,7 @@ test('STATION-DOOR: the alchemy station offers Daggerfall\'s potion maker and th
   let { host, log } = rig();
   host.press({ station: 'alchemy' });
   assert.deepEqual(host.slot.lines, ['Alchemy station']);
-  assert.deepEqual(host.slot.options.map((o) => o.label), ['1 - Make Potions', '2 - Brew (Crafting page)', 'Esc - close']);
+  assert.deepEqual(host.slot.options.map((o) => o.label), ['1 - Make Potions', '2: Brew (Crafting page)', 'Esc - close']);
   host.slot.input('Digit2');
   assert.deepEqual([log.focus, log.pauses.map((p) => p.at)], [['alchemy'], ['crafting']]);   // PIN MOVED (CRAFT-HALL)
 

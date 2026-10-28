@@ -204,9 +204,9 @@ test('AUDIT WB14 TEXT-8 / TEXT-9 / TEXT-15 the words read in the player\'s langu
     assert.deepEqual([PHASE_NAMES[1], courtPhaseCard(2).main, courtPhaseCard(2).sub], ['Der Hof', 'Der Hof', 'Folge ihm.']);
   } finally { setLocale('en'); clearLocaleTables('xx'); }
   const s = { ...GATE_STATE_EMPTY, day: 7, boss: 'ruhn', phase: 1, hp: 900, max: 1000, wrathAt: 1e12, x: 0, z: 0, vg: [0, 0], pt: ['vanguard'] };
-  assert.equal(bossBarModel(s, T0, BOSS).host, 'The Vanguard - Bridgehead', 'no wave counted yet');
-  assert.equal(bossBarModel({ ...s, vg: [1, 0] }, T0, BOSS).host, 'The Vanguard - Muster');
-  assert.equal(bossBarModel({ ...s, vg: [0, 2] }, T0, BOSS).host, 'The Vanguard - Bridgehead, wave 2 of 3');
+  assert.equal(bossBarModel(s, T0, BOSS).host, 'The Vanguard · Bridgehead', 'no wave counted yet');
+  assert.equal(bossBarModel({ ...s, vg: [1, 0] }, T0, BOSS).host, 'The Vanguard · Muster');
+  assert.equal(bossBarModel({ ...s, vg: [0, 2] }, T0, BOSS).host, 'The Vanguard · Bridgehead, wave 2 of 3');
 });
 
 test('AUDIT WB14 WIRE-1 / SCREEN-8 a portent night\'s door refuses a relay from before the portents (its fight is fought plain - on floors the screen does not build); a new relay lets go unfallen a fight from before them it wakes on a portent night (mutants: the door open on an old relay; the old fight kept)', () => {

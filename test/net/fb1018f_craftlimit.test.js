@@ -154,7 +154,7 @@ test('CRAFT-LIMIT-SAID THE REPORT, end to end: Smithing 50 one XP short of 51 be
     page.press('The Anvil', 'Dagger');
     page.press('The Anvil', 'Silver', true);
     const [head, lines] = page.box('The Anvil');
-    assert.equal(head, 'Silver Dagger - rank 25');
+    assert.equal(head, 'Silver Dagger · rank 25');
     assert.equal(lines[0], 'Quality chances: Standard 20% | Fine 50% | Superior 28% | Masterwork 2%. They get better the further your rank (50) is above the recipe\'s (25). Land every strike while the glow is in the band to raise the result one quality.', 'the screenshot\'s odds line');   // PIN MOVED (PLAIN-ODDS): the odds said in plain words
     assert.equal(lines[1], LIMIT(0, 'Smithing', 'Building and Provisioning'), 'where the screenshot read "60 Smithing XP, and 500 more the first time you make this piece at this tier."');
     // the Worker: the craft made, its XP none - the first's 500 eaten by the cap as well
@@ -168,7 +168,7 @@ test('CRAFT-LIMIT-SAID THE REPORT, end to end: Smithing 50 one XP short of 51 be
   } finally { page.done(); }
   // the Professions tab: the ceiling, not "26,009 / 26,010 XP"; the two named, and that it is for good
   assert.deepEqual(tabOf(book, 'smithing'), {
-    xp: '26,009 / 26,009 XP - the crafter\'s limit holds it at rank 50',
+    xp: '26,009 / 26,009 XP. The crafter’s limit holds it at rank 50',
     limit: 'Crafts above Journeyman: 2 of 2',
     rule: 'Only 2 crafts can rise past Journeyman. Yours are Building and Provisioning, so your other crafts stop at rank 50. A craft never loses rank.',
   });
@@ -444,7 +444,7 @@ test('CRAFT-LIMIT-SAID the law: craftLimit is craftXpCap\'s ceiling with its roo
   const AT60 = 'Building and Provisioning are past Journeyman, so the crafter\'s limit holds Smithing at rank 60';
   assert.equal(words.capLine('Smithing', { limit: three }, 60), `No Smithing experience: ${AT60}.`, 'the station\'s line');   // PIN MOVED (VOICE2): experience, not XP; no dash aside (the craft-limit lines in the voice)
   assert.equal(words.craftXpText(recipeById('dagger:silver'), { xp: 0, first: true }, 'Smithing', three), `(+0 Smithing experience. ${AT60})`, 'the craft\'s word');   // PIN MOVED (VOICE2): experience, not XP; no dash aside (the craft-limit lines in the voice)
-  assert.equal(pages.xpLine({ xp: xpForRank(60), rank: 60 }, three), '36,000 / 36,000 XP - the crafter\'s limit holds it at rank 60', 'the tab: its own XP its ceiling, never "36,000 / 26,009 XP - ... at rank 50"');
+  assert.equal(pages.xpLine({ xp: xpForRank(60), rank: 60 }, three), '36,000 / 36,000 XP. The crafter’s limit holds it at rank 60', 'the tab: its own XP its ceiling, never "36,000 / 26,009 XP - ... at rank 50"');
   assert.deepEqual(L('herbalism', { smithing: 60, building: 60 }, 5), { cap: PROF_XP_MAX, room: PROF_XP_MAX - 5, by: [], rank: 100 }, 'a gathering track never held');
   for (const [p, ranks] of [['smithing', { provisioning: 55, building: 60 }], ['enchanting', { smithing: 51, building: 50 }], ['masonry', { smithing: 60, provisioning: 70 }]]) {
     assert.equal(L(p, ranks, 0)?.cap, law.craftXpCap(p, ranks), `${p}: craftXpCap's ceiling, the one the service binds`);
@@ -468,7 +468,7 @@ test('AUDIT FB1018f L5-3 the tab: a third craft below the rank it is held at kee
     assert.equal((await book.refresh({ force: true })).ok, true);
     return [pages.xpLine(book.track('smithing'), book.limit('smithing')), tabOf(book, 'smithing').xp];
   };
-  const HELD_AT = (xp, cap, rank) => `${xp} / ${cap} XP - the crafter's limit holds it at rank ${rank}`;
+  const HELD_AT = (xp, cap, rank) => `${xp} / ${cap} XP. The crafter’s limit holds it at rank ${rank}`;
   // PIN MOVED (CRAFT-HALL): the tab's line says what is left to the next rank, and nothing where the limit holds it
   assert.deepEqual(await at(xpForRank(10) + 5), ['1,005 / 1,210 XP', '1,005 / 1,210 XP · 205 XP to rank 11'], 'rank 10: its 11\'s figure');
   assert.deepEqual(await at(xpForRank(49) + 9), ['24,019 / 25,000 XP', '24,019 / 25,000 XP · 981 XP to rank 50'], 'rank 49: its 50 is still to reach');

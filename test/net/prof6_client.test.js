@@ -217,7 +217,7 @@ test('PROF6 the Work tab: this region\'s guild writs under the guild blue (Deliv
   const cards = byClass(host, 'notice-writ');
   assert.deepEqual(cards.map((c) => c.className.match(/seal-\w+/)[0]), ['seal-guild', 'seal-guild', 'seal-commission', 'seal-commission']);
   assert.match(cards[1].textContent, /Guild writThe Silver Hand \[SH\] needs 280 more Oak Logs/);   // PIN MOVED (BOARD-SIFT): the work ends soonest first - W2's two days before W1's five
-  assert.match(cards[1].textContent, /Pays 3 silver each - 520 \/ 800 delivered/);
+  assert.match(cards[1].textContent, /Pays 3 silver each · 520 \/ 800 delivered/);
   assert.match(cards[1].textContent, /5 days left/);
   assert.match(cards[1].textContent, /50 in your Stores/);
   assert.equal(byClass(cards[0], 'work-withdraw').length, 0, 'another guild\'s: no Withdraw');
@@ -236,7 +236,7 @@ test('PROF6 the Work tab: this region\'s guild writs under the guild blue (Deliv
   // the commission for me: Fill with the piece picked, and Decline
   const mineCard = byClass(host, 'notice-writ')[2];
   assert.match(mineCard.textContent, /For Silverthorn only: a Mithril Longsword, Fine or better/);
-  assert.match(mineCard.textContent, /Pays 900 silver - from Ann/);
+  assert.match(mineCard.textContent, /Pays 900 silver, from Ann/);
   byClass(mineCard, 'work-fill')[0].click();
   await ticks();
   assert.deepEqual(calls.at(-1), ['fulfil', { region: DF, commission: 'K1', provenance: PV, wear: 1000 }, 'Silverthorn\'s Mithril Longsword']);
@@ -256,7 +256,7 @@ test('PROF6 the Work tab: this region\'s guild writs under the guild blue (Deliv
   // Yours, every region
   const yours = byClass(host, 'work-yours')[0];
   assert.match(yours.textContent, /You commissioned Joiner: a Small Oak Table, Standard or better, 60 silver/);
-  assert.match(yours.textContent, /Wayrest · withdrawn - silver back/);
+  assert.match(yours.textContent, /Wayrest · withdrawn, silver back/);
   assert.match(yours.textContent, /The Silver Hand \[SH\]: 50 more Oak Logs, 2 silver each/);
   v.unmount();
   // a commission naming me elsewhere: in Yours, filled at its own region's boards (AUDIT 31 U4 - a card is always this
@@ -283,7 +283,7 @@ test('PROF6 the Work tab\'s forms: an Officer\'s guild writ - the escrow, the pa
   const open = (label) => byClass(host, 'work-open').find((b) => b.textContent === label);
   open('Post a guild writ').click();
   const form = () => byClass(host, 'work-form')[0];
-  assert.match(form().textContent, /Post a guild writ - The Silver Hand \[SH\]/);
+  assert.match(form().textContent, /Post a guild writ: The Silver Hand \[SH\]/);
   const field = (key) => form().querySelectorAll('input').find((i) => i.getAttribute('data-focus') === key);
   field('writ|units').value = '100'; field('writ|units').oninput();
   field('writ|pay').value = '3'; field('writ|pay').oninput();

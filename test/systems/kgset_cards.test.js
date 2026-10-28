@@ -31,7 +31,7 @@ const squash = (s) => String(s).replace(/\s+/g, ' ').trim();
 const NINE = {
   'grizzly-bear': ['Grizzly Bear', 3, 5, 'common', ['beast'], 'bear', 'GrizzlyBear', 'End of turn: this loses 1 power.', 'It comes down the Wrothgarian pass at a charge, and it does not charge twice.'],
   'sabretooth-tiger': ['Sabretooth Tiger', 3, 4, 'common', ['beast'], 'cat', 'SabertoothTiger', 'Reveal: the strongest enemy unit here loses 1 power.', 'It goes for the biggest throat in the hall.'],
-  spider: ['Spider', 2, 2, 'common', ['beast'], 'spider', 'Spider', 'Ongoing: enemy units here that cost 1 or 2 have -1 power.', 'The small walk into its web; the large walk through it.'],
+  spider: ['Spider', 2, 2, 'common', ['beast'], 'spider', 'Spider', 'Ongoing: enemy units here that cost 1 or 2 have -1 power.', 'Small things walk into its web. Big things walk through it.'],
   slaughterfish: ['Slaughterfish', 1, 3, 'common', ['beast', 'sea'], 'fish', 'Slaughterfish', 'End of turn: this loses 1 power.', 'Out of the water, it has one good bite in it.'],
   mummy: ['Mummy', 4, 4, 'magic', ['undead'], 'mummy', 'Mummy', 'End of turn: your weakest undead unit here gains +1 power.', 'Wrapped for the long dark, and patient in it.'],
   'frost-daedra': ['Frost Daedra', 5, 6, 'rare', ['daedra'], 'frost', 'FrostDaedra', 'Reveal: enemy units here lose 1 power.', 'Where it walks, the ale freezes in the cup.'],

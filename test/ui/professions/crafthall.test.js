@@ -498,6 +498,6 @@ test('CRAFT-HALL AUDIT HORIZONTAL (the lane\'s suspected read): a state read ans
 });
 
 test('CRAFT-HALL AUDIT HORIZONTAL A7: the chooser at an alchemy or enchanting station offers its act through t(), and the Professions key\'s row says where it lands (mutant: the option\'s words glued in the host)', () => {
-  assert.deepEqual(['alchemy', 'enchant', 'forge'].map(stationActLabel), ['2 - Brew (Crafting page)', '2 - Disenchant (Crafting page)', '']);
+  assert.deepEqual(['alchemy', 'enchant', 'forge'].map(stationActLabel), ['2: Brew (Crafting page)', '2: Disenchant (Crafting page)', '']);
   assert.doesNotMatch(hostText('src/scenes/worldModes.js'), /\(Crafting page\)`/, 'no English glued in the host');
 });

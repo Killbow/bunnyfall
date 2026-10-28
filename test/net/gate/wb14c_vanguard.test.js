@@ -307,8 +307,8 @@ test('WB14c on my screen: the Vanguard\'s words - its first wave, each clearing,
   assert.equal(waveLine({ vg: null }, HOST.brute, 'Ruhn', 'Daedroths'), null);
   const boss = { name: 'Valkynaz Ruhn', title: 'Warden of the Burning Gate' };
   const s = { ...GATE_STATE_EMPTY, day: 7, boss: 'ruhn', hp: 900, max: 1000, vg: [0, 2], lg: { ads: [{ i: 1, k: HOST.brute, h: 1, m: 1, x: 0, z: 0 }], gone: [] } };
-  assert.equal(bossBarModel(s, T0, boss).host, 'The Vanguard - Bridgehead, wave 2 of 3');
-  assert.equal(bossBarModel({ ...s, vg: [1, 3] }, T0, boss).host, 'The Vanguard - Muster, wave 3 of 3');
+  assert.equal(bossBarModel(s, T0, boss).host, 'The Vanguard · Bridgehead, wave 2 of 3');
+  assert.equal(bossBarModel({ ...s, vg: [1, 3] }, T0, boss).host, 'The Vanguard · Muster, wave 3 of 3');
   assert.equal(bossBarModel({ ...s, vg: [2, 0] }, T0, boss).host, 'His host: 1', 'broken: his host\'s line as ever');
   const gc = read('src/scenes/gate/gateCourt.js');
   assert.match(gc, /if \(k >= 0 && s\.lg\) for \(const T of host\.targets\(\)\) if \(nearestCourt\(T\.feet\[0\] - COURT_CENTRE\[0\], T\.feet\[2\] - COURT_CENTRE\[2\]\) === k\) _hostMine\.push\(T\);/);   // PIN MOVED (WB14f, AUDIT of WB14c): each body from the floor it stands on - the blow itself is pinned on the court, from a platform (test/net/gate/wb14f_captive.test.js)   // PIN MOVED (AUDIT WB14 SCREEN-1): beside his Flame, sundered

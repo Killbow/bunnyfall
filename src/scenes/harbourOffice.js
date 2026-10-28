@@ -51,7 +51,7 @@ import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the featur
 const gold = (n) => `${Math.round(n).toLocaleString('en-US')} gold`;
 const days = (n) => `${n} ${n === 1 ? 'day' : 'days'}`;
 /** FIELD BUGS 2026-10-13c PORT-TOWNS: a cargo voided - held for a place that is no port a cargo goes to (`unported`). */
-const cargoVoidWords = (c) => t('sea.board.cargoVoid', 'Contract void - {title}. No ship can make port there.', { title: c.title });
+const cargoVoidWords = (c) => t('sea.board.cargoVoid', 'Contract void: {title}. No ship can make port there.', { title: c.title });
 /** A held contract's progress, as the HUD says it when it moves. */
 const movedWords = (c) => (c.kind === 'hunt' ? `${c.done} of ${c.need} pirate ships ended` : c.kind === 'survey' ? `${c.done} of ${c.need} ships studied`
   : c.kind === 'salvage' ? `${c.done} of ${c.need} casks raised` : '');

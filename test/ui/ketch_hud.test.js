@@ -79,7 +79,7 @@ test('KETCH THE WARDEN\'S BAR: asleep, its turn counted; its phases\' marks at 6
   const b0 = wardenBarModel(wf.s.ws, wf.now);
   assert.equal(b0.name, KT_BAR_TEXT.name);
   assert.deepEqual(b0.marks, [...KW_PHASE_AT]);
-  assert.match(b0.callout.text, /^It turns from the helm - \d+s$/);
+  assert.match(b0.callout.text, /^It turns from the helm · \d+s$/);
   assert.equal(b0.warded, true);
   const d = at((f) => f.k === 'rs' && f.rs.every((v) => v === 0));
   const bd = wardenBarModel(d.s.ws, d.now + 3000);
@@ -87,11 +87,11 @@ test('KETCH THE WARDEN\'S BAR: asleep, its turn counted; its phases\' marks at 6
   assert.deepEqual(bd.spent, [true, false]);
   const fk = at((f) => f.k === 'fk');
   const bs = wardenBarModel(fk.s.ws, fk.now + 10);
-  assert.match(bs.callout.text, new RegExp(`^The Keel-Song - ${fk.s.ws.fk.c.length} of ${fk.s.ws.fk.c.length} forks - \\d+s$`));
+  assert.match(bs.callout.text, new RegExp(`^The Keel-Song · ${fk.s.ws.fk.c.length} of ${fk.s.ws.fk.c.length} forks · \\d+s$`));
   assert.equal(bs.hostNear, true);
   const st = at((f) => f.k === 'stun');
   const bt = wardenBarModel(st.s.ws, st.now + 10);
-  assert.match(bt.callout.text, /^Reeling - \d+s$/);
+  assert.match(bt.callout.text, /^Reeling · \d+s$/);
   const end = at(() => false);
   const bf = wardenBarModel(end.s.ws, end.now);
   assert.deepEqual([bf.fallen, bf.frac, bf.callout], [true, 0, null]);

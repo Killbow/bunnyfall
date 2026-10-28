@@ -156,7 +156,7 @@ export function createStaffFlatMap({ doc = globalThis.document, onPick, onRegion
       const s = JSON.stringify([v.region, v.name, v.hint, v.box, v.players, v.me, cv.clientWidth, cv.clientHeight]);
       if (s === sig) return;
       sig = s;
-      title.textContent = t('net.staffFlat.title', 'Region map - {name}', { name: v.name ?? '' });
+      title.textContent = t('net.staffFlat.title', 'Region map: {name}', { name: v.name ?? '' });
       hint.textContent = v.hint ?? '';
       draw(v);
       rows(v.players);

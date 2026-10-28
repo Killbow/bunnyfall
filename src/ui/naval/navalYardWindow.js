@@ -183,7 +183,7 @@ export function seasonText(s) {
     lastLegends ? t('sea.season.lastLegends', 'Last season\'s most legends ended: {who}.', { who: lastLegends }) : '',
   ].filter(Boolean).join(' ');
   return {
-    head: [t('sea.season.head', 'The season\'s captains'), s.asking || !s.season ? '' : t('sea.season.headSub', 'Season {n} - {days, plural, one {# day} other {# days}} left', { n: s.season, days: s.daysLeft })],
+    head: [t('sea.season.head', 'The season\'s captains'), s.asking || !s.season ? '' : t('sea.season.headSub', 'Season {n} · {days, plural, one {# day} other {# days}} left', { n: s.season, days: s.daysLeft })],
     lede: s.asking ? t('sea.season.asking', 'The harbormaster is reading the season\'s boards...') : [t('sea.season.lede', 'Every captain of the realm, this season: how far past the Veil they have sailed, and how many of the six legends they have sunk or taken.'), mine, last].filter(Boolean).join(' '),
     lists: s.asking ? [] : [
       { title: t('sea.season.deepTitle', 'Deepest voyages'), rows: rows(s.deep ?? [], leagues), none: t('sea.season.deepNone', 'No captain has sailed past the Veil this season.') },
@@ -205,7 +205,7 @@ export function wantedText(w) {
   const g = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
   const rows = (w.rows ?? []).map((r) => ({
     id: r.char, title: r.name,
-    words: t('sea.bounty.row', '{kills, plural, =0 {No kills at sea of late} one {# kill at sea} other {# kills at sea}} - {gold} gold on their head', { kills: r.kills, gold: g(r.bounty) }),
+    words: t('sea.bounty.row', '{kills, plural, =0 {No kills at sea of late} one {# kill at sea} other {# kills at sea}}, {gold} gold on their head', { kills: r.kills, gold: g(r.bounty) }),
     presses: (w.posts ?? []).map((n) => ({ label: t('sea.bounty.post', 'Post {gold}', { gold: g(n) }), can: !w.busy && !(w.purse < n), n })),   // AUDIT SEA VENTURES E7: greyed past the purse
   }));
   return {

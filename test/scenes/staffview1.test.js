@@ -319,11 +319,11 @@ test('STAFF-VIEW1 no account, no follow - never by name: no door knows them, no 
   let r = rig({ follow: fakeFollow({ room: [lonely()] }) });
   r.frame(); r.layer.onPick('p1');
   assert.deepEqual([r.follow.followed, r.posted, r.said.length], [[], [], 1], 'no link at all');
-  assert.match(r.said[0], /no account found for Bran - not followed/);
+  assert.match(r.said[0], /no account found for Bran, so not followed/);
   // a nameless player: no search can go
   r = rig({ follow: fakeFollow({ room: [peer('p1', 0, -20, { name: '' })] }), links: new Map([['world', { peers: new Map(), hubOnline: new Map(), askFind: () => assert.fail('no name, no search') }]]) });
   r.frame(); r.layer.onPick('p1');
-  assert.deepEqual([r.follow.followed, r.said], [[], ['Staff view: no account found for that player - not followed.']]);
+  assert.deepEqual([r.follow.followed, r.said], [[], ['Staff view: no account found for that player, so not followed.']]);
   // a no from before the ask is no answer; the one after it is
   const stale = { q: 'bran', l: [] };
   const hub = { peers: new Map(), hubOnline: new Map(), hubFound: stale, askFind: () => true };

@@ -99,7 +99,7 @@ export function mountDeckPlanWindow(host, { name, deck, fittings, footprint = ()
   root.setAttribute('aria-modal', 'true');
   const box = el(doc, 'div', 'dpw-box');
   box.setAttribute('data-grim', 'wood');
-  const title = el(doc, 'h2', null, t('naval.deck.title', 'Deck - {name}', { name }));
+  const title = el(doc, 'h2', null, t('naval.deck.title', 'Deck · {name}', { name }));
   const body = el(doc, 'div', 'dpw-body');
   const canvas = /** @type {HTMLCanvasElement} */ (el(doc, 'canvas', 'dpw-plan'));
   canvas.setAttribute('aria-label', t('naval.deck.planAria', 'Deck plan, top view'));

@@ -369,7 +369,7 @@ const NO_CLEARS = Object.freeze([]);
 export const EG_START_ASKING_TEXT = 'The start window is already open.';
 /** AUDIT EG V (c, L7-21): THE WORDS `/breach` takes, said whole - in the breach, and outside it (`/breach help` too). */
 export const egBreachUsage = () => t('eg.cmd.inside', 'In the breach: /breach pick N, vote yes|no|N, respite [no], cant N, tonic, buy cant|tonic|shard, surplus [reroll], use, bridge, annals [N], ping [danger|mine|cache], watch, bequest N, forsake, home, board.');
-export const egBreachUsageOut = () => t('eg.cmd.outside', 'Outside the breach: /breach answers your company\'s call, or opens the start window; /breach rehearse, /breach board, /breach annals [N].');
+export const egBreachUsageOut = () => t('eg.cmd.outside', 'Outside the breach, /breach answers your company’s call or opens the start window. Also: /breach rehearse, /breach board, /breach annals [N].');
 /** AUDIT EG V (c, L7-2): the company's word with nothing open; a yes or a no while only the respite asks - its word is its own. */
 const NO_CHOICE_TEXT = 'No choice is open.';
 /** AUDIT EG V (c, L7-3): the yes-or-no choices (their options No and Yes - net/egHud.js egAskText), which the pad's down
@@ -393,7 +393,7 @@ export const EG_GOT_TEXT = Object.freeze({ shard: 'You take a Vestige shard.', t
  *  Spire's law since my last island (net/eliteGates/egFair.js - its reason), or a crossing it saw too little of. A break clears on
  *  the last island stood on; a crossing seen too little is seen whole as I stand at the door (egStillGap). */
 export const EG_FAIR_TEXT = Object.freeze({
-  blind: () => t('eg.fair.blind', 'The Spire lost sight of part of your crossing. Stay at the door - it opens for you once the Spire has seen you there.'),
+  blind: () => t('eg.fair.blind', 'The Spire lost sight of part of your crossing. Stay at the door, and it opens once the Spire sees you there.'),
   speed: () => t('eg.fair.speed', 'You crossed faster than the Spire allows. Go back to the last island you stood on and cross again.'),
   air: () => t('eg.fair.air', 'You stayed in the air longer than the Spire allows. Go back to the last island you stood on and cross again.'),
   void: () => t('eg.fair.void', 'You fell into the void. Go back to the last island you stood on and cross again.'),

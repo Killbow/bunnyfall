@@ -282,12 +282,12 @@ const daysOf = (days) => (Number.isSafeInteger(days) && days > 0 ? days : 0);
 export function probationWords(days, kind = 'expel', online = false) {
   if (kind === 'ends') return t('guild.probation.ends', 'On probation: it ends at your next review, at the guild\'s hall.');
   if (kind === 'skills') {
-    return t('guild.probation.skills', 'On probation: your guild skills are short of a member\'s. Your review is {days, plural, =0 {at your next visit to the guild\'s hall} one {at the guild\'s hall in # day or later} other {at the guild\'s hall in # days or later}}: below {expel} you are expelled, and it ends only once one skill reaches {high}, a second {low}, and your standing is 0 or more.',
+    return t('guild.probation.skills', 'On probation: your guild skills are below a member’s. Your review is {days, plural, =0 {at your next visit to the guild\'s hall} one {at the guild\'s hall in # day or later} other {at the guild\'s hall in # days or later}}. Below {expel} you’re expelled, and it only ends once one skill reaches {high}, a second reaches {low}, and your standing is 0 or more.',
       { days: daysOf(days), high: RANK_REQ_SKILL_HIGH[0], low: RANK_REQ_SKILL_LOW[0], expel: GUILD_EXPEL_BELOW });
   }
   return daysOf(days) > 0
-    ? t('guild.probation.in', 'On probation: your review is at the guild\'s hall in {days, plural, one {# day} other {# days}} or later{online, select, yes { - sooner if you earn the next rank} other {}}. Below {expel} you are expelled there, below 0 it runs {renew} days more, and at 0 or more it ends.', { days, online: online ? 'yes' : 'no', expel: GUILD_EXPEL_BELOW, renew: DAYS_BETWEEN_RANK_CHANGES })
-    : t('guild.probation.due', 'On probation: your review is at your next visit to the guild\'s hall. Below {expel} you are expelled there, below 0 it runs {renew} days more, and at 0 or more it ends.', { expel: GUILD_EXPEL_BELOW, renew: DAYS_BETWEEN_RANK_CHANGES });
+    ? t('guild.probation.in', 'On probation. Your review is at the guild’s hall in {days, plural, one {# day} other {# days}} or later{online, select, yes {, or sooner if you earn the next rank} other {}}. Below {expel} you’re expelled there, below 0 it lasts {renew} more days, and at 0 or more it ends.', { days, online: online ? 'yes' : 'no', expel: GUILD_EXPEL_BELOW, renew: DAYS_BETWEEN_RANK_CHANGES })
+    : t('guild.probation.due', 'On probation. Your review is at your next visit to the guild’s hall. Below {expel} you’re expelled there, below 0 it lasts {renew} more days, and at 0 or more it ends.', { expel: GUILD_EXPEL_BELOW, renew: DAYS_BETWEEN_RANK_CHANGES });
 }
 
 /**
@@ -313,7 +313,7 @@ export function reviewWarnings(entity, guild, book, store, ctx = null) {
   } else if (ruled < 0) {
     out.push(getReputation(store, guild.factionId) < 0
       ? t('guild.probation.comingRep', 'Your review {days, plural, =0 {at your next visit to the guild\'s hall} one {at the guild\'s hall in # day or later} other {at the guild\'s hall in # days or later}} puts you on probation: your standing is below 0.', { days: daysOf(days) })
-      : t('guild.probation.comingSkills', 'Your review {days, plural, =0 {at your next visit to the guild\'s hall} one {at the guild\'s hall in # day or later} other {at the guild\'s hall in # days or later}} puts you on probation: your guild skills are short of a member\'s.', { days: daysOf(days) }));
+      : t('guild.probation.comingSkills', 'Your review {days, plural, =0 {at your next visit to the guild\'s hall} one {at the guild\'s hall in # day or later} other {at the guild\'s hall in # days or later}} puts you on probation: your guild skills are below a member’s.', { days: daysOf(days) }));
   }
   if (ruled >= 0 && ruled < m.rank) {
     const title = getTitle({ rank: ruled }, entity, guild);
@@ -370,7 +370,7 @@ export function rankNeedsLines(entity, guild, memberships, store, ctx = null) {
   if (n.reputation < n.reputationNeed) lines.push(reputationLine(n, owed));
   if (n.high < 1) {
     lines.push(n.best
-      ? t('guild.rankNeeds.highBest', 'A guild skill at {bar} - your best, {skill}, is {value}', { bar: n.skillHigh, skill: SKILL_NAMES[n.best.skill], value: n.best.value })
+      ? t('guild.rankNeeds.highBest', 'A guild skill at {bar} (your best, {skill}, is {value})', { bar: n.skillHigh, skill: SKILL_NAMES[n.best.skill], value: n.best.value })
       : t('guild.rankNeeds.high', 'A guild skill at {bar}', { bar: n.skillHigh }));
   }
   if (n.high + n.low < 2) lines.push(t('guild.rankNeeds.second', 'A second guild skill at {bar}', { bar: n.skillLow }));
@@ -404,7 +404,7 @@ function wayBackOf(guild, memberships, store) {
 }
 
 /** WAY-BACK: the quests line alone - the Standing page's, under the organization's own row. */
-const questsLine = (w) => t('guild.wayBack.quests', 'As a stranger you may still ask its quest-giver for work: each quest done raises your standing {per}{n, plural, =0 {} one { - # more quest reaches {need}} other { - # more quests reach {need}}}.',
+const questsLine = (w) => t('guild.wayBack.quests', 'As a stranger you can still ask its quest-giver for work. Each quest you finish raises your standing by {per}{n, plural, =0 {} one { (# more quest reaches {need})} other { (# more quests reach {need})}}.',
   { per: QUEST_SUCCESS_REP, n: w.quests, need: w.need });
 export function wayBackQuestLine(guild, memberships, store) {
   const w = wayBackOf(guild, memberships, store);
@@ -429,7 +429,7 @@ export function wayBackLines(guild, entity, memberships, store, ctx = null) {
     ...(ctx?.shut ? [t('guild.wayBack.shut', 'This hall is shut this Season. The guild\'s halls in other regions still give work.')] : []),
     t('guild.wayBack.drift', 'Below 0 your standing also recovers a point {days, plural, one {every day} other {every # days}} of your own time. Rests and journeys count{online, select, yes {, and so does time logged off} other {}}.',
       { days: RECOVERY_INTERVAL_MINUTES / MINUTES_PER_DAY, online: ctx?.online ? 'yes' : 'no' }),
-    ...(ctx?.paced ? [t('guild.wayBack.paced', 'Online, quests and the recovery raise it by at most {max} a real day (days start at midnight UTC){owed, plural, =0 {} other {, with # more standing on the way}}. On top of that, a chapter writ of the guild\'s on a notice board adds {writ}.',
+    ...(ctx?.paced ? [t('guild.wayBack.paced', 'Online, quests and recovery raise it by at most {max} per real day (days start at midnight UTC){owed, plural, =0 {} other {, with # more standing to come}}. On top of that, a guild chapter writ from a notice board adds {writ}.',
       { max: ROLL_GAIN_DAY_MAX, owed: w.owed, writ: HALL_WRIT_REP })] : []),
   ];
 }

@@ -116,5 +116,5 @@ test('RENOWN-BAR the numbers are the profile menu\'s: its Renown row says how fa
   assert.equal(renownProgressText(renownXpFor(12) + 1453), '1,453 / 3,460 XP to Renown 13');
   assert.equal(renownProgressText(renownXpFor(RENOWN_MAX)), 'the highest there is');
   const A = src('src/ui/enhanced/enhancedAccount.js');
-  assert.match(A, /row\(t\('account\.card\.renown', 'Renown'\), t\('account\.card\.renownRow', '\{name\} - Renown \{level\}, \{progress\}', \{ name: typeof tr\.name === 'string' && tr\.name \? tr\.name : t\('account\.card\.aCharacter', 'A character'\), level: tr\.level, progress: renownProgressText\(tr\.xp\) \}\)\);/, 'each character\'s row: its name, its Renown and the numbers');   // L10N4 (PIN MOVED): one pattern through t(), the numbers its arguments
+  assert.match(A, /row\(t\('account\.card\.renown', 'Renown'\), t\('account\.card\.renownRow', '\{name\} · Renown \{level\}, \{progress\}', \{ name: typeof tr\.name === 'string' && tr\.name \? tr\.name : t\('account\.card\.aCharacter', 'A character'\), level: tr\.level, progress: renownProgressText\(tr\.xp\) \}\)\);/, 'each character\'s row: its name, its Renown and the numbers');   // L10N4 (PIN MOVED): one pattern through t(), the numbers its arguments
 });

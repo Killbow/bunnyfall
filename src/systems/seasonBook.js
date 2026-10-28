@@ -74,11 +74,11 @@ export function arenaStanding(/** @type {any} */ board) {
   const me = board?.me;
   if (!me) return null;
   const rating = Number(me.pvp?.rating) || 0, bouts = (Number(me.pvp?.wins) || 0) + (Number(me.pvp?.losses) || 0) + (Number(me.pvp?.draws) || 0);
-  const line = !bouts ? t('season.book.arena.none', 'Rating {rating} - no rated bouts yet', { rating })
-    : Number.isSafeInteger(me.rank) && me.rank > 0 ? t('season.book.arena.ranked', '#{rank} - rating {rating}', { rank: me.rank, rating })
+  const line = !bouts ? t('season.book.arena.none', 'Rating {rating} · no rated bouts yet', { rating })
+    : Number.isSafeInteger(me.rank) && me.rank > 0 ? t('season.book.arena.ranked', '#{rank} · rating {rating}', { rank: me.rank, rating })
       : t('season.book.arena.rated', 'Rating {rating}', { rating });
   const banner = me.banner === 'red' ? t('season.book.arena.red', 'Red Banner') : me.banner === 'blue' ? t('season.book.arena.blue', 'Blue Banner') : null;
-  return banner ? t('season.book.arena.withBanner', '{line} - {points, plural, one {# point} other {# points}} for the {banner}', { line, banner, points: Number(me.points) || 0 }) : line;
+  return banner ? t('season.book.arena.withBanner', '{line} · {points, plural, one {# point} other {# points}} for the {banner}', { line, banner, points: Number(me.points) || 0 }) : line;
 }
 /** THE SPIRE'S LINE: the best Descent of the player's company this season (the board's `best` - the Spire's own window
  *  says it "Your best"; AUDIT SEASON-BOOK L3: a Descent, from Hall 1 - never the player's own deepest hall). */
@@ -94,13 +94,13 @@ export function ladderStanding(/** @type {any} */ data) {
   if (!games) return t('season.book.ladder.none', 'No rated games yet');
   const mine = [...(Array.isArray(data.rows) ? data.rows : []), data.pinned].find((r) => r?.you);
   const args = { rating: Number(me.rating) || 0, games };
-  return Number.isSafeInteger(mine?.rank) && mine.rank > 0 ? t('season.book.ladder.ranked', '#{rank} - rating {rating} - {games, plural, one {# game} other {# games}}', { rank: mine.rank, ...args })
-    : t('season.book.ladder.rated', 'Rating {rating} - {games, plural, one {# game} other {# games}}', args);
+  return Number.isSafeInteger(mine?.rank) && mine.rank > 0 ? t('season.book.ladder.ranked', '#{rank} · rating {rating} · {games, plural, one {# game} other {# games}}', { rank: mine.rank, ...args })
+    : t('season.book.ladder.rated', 'Rating {rating} · {games, plural, one {# game} other {# games}}', args);
 }
 /** THE SEA'S LINE: the captain's ledger's season figures (captainLedger.js `season`) - this season's alone. */
 export function seaStanding(/** @type {any} */ figures, /** @type {number} */ n) {
   if (!figures || figures.n !== n || (!(figures.deepest > 0) && !(figures.legends > 0))) return t('season.book.sea.none', 'No voyage counted yet this season');
-  return t('season.book.sea.figures', 'Deepest: {leagues, plural, one {# league} other {# leagues}} past the Veil - {legends, plural, one {# legend} other {# legends}} ended', { leagues: Math.floor(figures.deepest) || 0, legends: Math.floor(figures.legends) || 0 });
+  return t('season.book.sea.figures', 'Deepest: {leagues, plural, one {# league} other {# leagues}} past the Veil · {legends, plural, one {# legend} other {# legends}} ended', { leagues: Math.floor(figures.deepest) || 0, legends: Math.floor(figures.legends) || 0 });
 }
 
 /**
@@ -165,7 +165,7 @@ export function seasonBookModel(/** @type {any} */ src) {
             about: t('season.book.reset.about', 'Standing drifts halfway back to 50 and every fortification loses a tier. Charters stand.') },
         ]),
         { id: 'tides', name: t('season.book.tides.name', 'Tides'),
-          about: t('season.book.tides.about', 'Each week every kingdom, the Marches and the Free Lands draw a Tide - a harvest, a plague, raiders - or stay Calm.') },
+          about: t('season.book.tides.about', 'Each week every kingdom, the Marches and the Free Lands draw a Tide, like a harvest, a plague or raiders, or stay Calm.') },
         { id: 'chapters', name: t('season.book.chapters.name', 'Guild chapters'),
           about: t('season.book.chapters.about', 'Every chapter draws an event when the Season opens. In a Schism or a Succession, members back a side.') },
       ].map((r) => ({ ...r, standing: null, door: null })),

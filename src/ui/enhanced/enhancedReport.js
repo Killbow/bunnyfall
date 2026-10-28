@@ -45,8 +45,8 @@ const fromLine = (/** @type {any} */ k, /** @type {any} */ p, /** @type {string|
   const kind = reportKindText(p.kind), day = k.day(p.sentAt);
   if (!p.from) return [kind, day, state].filter(Boolean).join(' - ');
   return state
-    ? t('report.fromState', '{kind} - from {from} - {day} - {state}', { kind, from: p.from, day, state })
-    : t('report.from', '{kind} - from {from} - {day}', { kind, from: p.from, day });
+    ? t('report.fromState', '{kind} · from {from} · {day} · {state}', { kind, from: p.from, day, state })
+    : t('report.from', '{kind} · from {from} · {day}', { kind, from: p.from, day });
 };
 
 /** The key a pane stands under - the window rebuilds a pane only when it changes. */

@@ -55,7 +55,7 @@ test('STAFF-FOLLOW-UNLOCK + STAFF-HIDE-IN-GAME the bar: made once on the first s
   bar.show({ following: true });
   assert.equal(root.children[0].textContent, 'Following');
   bar.show({ following: true, name: 'Bran', seeing: false });
-  assert.equal(root.children[0].textContent, 'Following - finding them…', 'FOLLOW-GROUND-HINT: locked, not yet seen - said, never a silent camera');
+  assert.equal(root.children[0].textContent, 'Following. Finding them…', 'FOLLOW-GROUND-HINT: locked, not yet seen - said, never a silent camera');
   assert.equal(unlockOf(doc).style.display, '', 'and Unlock still there');
   assert.equal(doc.made, made, 'shown again, never made again');
   assert.doesNotThrow(() => createStaffFollowBar({ doc: null, onUnlock() {} }).show(), 'no document: nothing');

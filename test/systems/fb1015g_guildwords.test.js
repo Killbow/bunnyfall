@@ -370,10 +370,10 @@ test('AUDIT GUILD-WORDS L1-3, L1-4, L1-7, II A-6, C-7: a probation as its review
   const entity = memberAt(g, 0, { probation: true, lastRankChange: daySinceZero(day(10)) }, { factionRep: store, skills: skilled(g, 40).skills });
   const m = membershipOf(bookOf(entity), g);
   assert.deepEqual([reviewDaysLeft(m, day(30)), reviewDaysLeft(m, day(40))], [8, 0]);
-  assert.equal(probationWords(8), 'On probation: your review is at the guild\'s hall in 8 days or later. Below -10 you are expelled there, below 0 it runs 28 days more, and at 0 or more it ends.');
-  assert.equal(probationWords(1), 'On probation: your review is at the guild\'s hall in 1 day or later. Below -10 you are expelled there, below 0 it runs 28 days more, and at 0 or more it ends.');
-  assert.equal(probationWords(8, 'expel', true), 'On probation: your review is at the guild\'s hall in 8 days or later - sooner if you earn the next rank. Below -10 you are expelled there, below 0 it runs 28 days more, and at 0 or more it ends.');
-  assert.equal(probationWords(0), 'On probation: your review is at your next visit to the guild\'s hall. Below -10 you are expelled there, below 0 it runs 28 days more, and at 0 or more it ends.');
+  assert.equal(probationWords(8), 'On probation. Your review is at the guild’s hall in 8 days or later. Below -10 you’re expelled there, below 0 it lasts 28 more days, and at 0 or more it ends.');
+  assert.equal(probationWords(1), 'On probation. Your review is at the guild’s hall in 1 day or later. Below -10 you’re expelled there, below 0 it lasts 28 more days, and at 0 or more it ends.');
+  assert.equal(probationWords(8, 'expel', true), 'On probation. Your review is at the guild’s hall in 8 days or later, or sooner if you earn the next rank. Below -10 you’re expelled there, below 0 it lasts 28 more days, and at 0 or more it ends.');
+  assert.equal(probationWords(0), 'On probation. Your review is at your next visit to the guild’s hall. Below -10 you’re expelled there, below 0 it lasts 28 more days, and at 0 or more it ends.');
   assert.equal(probationWords(0, 'expel', true), probationWords(0), 'the next visit is the next visit');
   assert.deepEqual(reviewWarnings(entity, g, bookOf(entity), store, { now: day(30) }), [probationWords(8)]);
   assert.deepEqual(reviewWarnings(entity, g, bookOf(entity), store, { now: day(30), online: true }), [probationWords(8, 'expel', true)]);
@@ -384,7 +384,7 @@ test('AUDIT GUILD-WORDS L1-3, L1-4, L1-7, II A-6, C-7: a probation as its review
   assert.equal(rankNeedsLines(entity, g, bookOf(entity), store, { now: day(30), pace: PACE })[0], probationWords(8, 'expel', true), 'the hall online, while the Roll paces');
   setReputation(store, MAGES, 20);   // mended, the review not yet run: nothing short, the probation still said
   assert.deepEqual(rankNeedsLines(entity, g, bookOf(entity), store, { now: day(30) }), [probationWords(8)]);
-  const skillsWords = (d) => `On probation: your guild skills are short of a member's. Your review is ${when(d)}: below -10 you are expelled, and it ends only once one skill reaches 22, a second 4, and your standing is 0 or more.`;
+  const skillsWords = (d) => `On probation: your guild skills are below a member’s. Your review is ${when(d)}. Below -10 you’re expelled, and it only ends once one skill reaches 22, a second reaches 4, and your standing is 0 or more.`;
   const weak = memberAt(g, 0, { probation: true }, { factionRep: store, skills: skilled(g, 3).skills });
   assert.deepEqual(reviewWarnings(weak, g, bookOf(weak), store), [skillsWords(0)]);
   assert.deepEqual(reviewWarnings(weak, g, bookOf(weak), store, { now: day(20) }), [skillsWords(9)]);
@@ -422,7 +422,7 @@ test('AUDIT GUILD-WORDS II A-7: a probation the next review begins is warned, wi
   assert.deepEqual(reviewWarnings(e, g, bookOf(e), e.factionRep, { now: day(10) }), [below(19)]);
   assert.equal(rankNeedsLines(e, g, bookOf(e), e.factionRep, { now: day(10) })[0], below(19), 'first in the hall\'s line');
   const weak = memberAt(g, 2, {}, { factionRep: storeOf({ [MAGES]: { rep: 25 } }), skills: skilled(g, 3).skills });
-  assert.deepEqual(reviewWarnings(weak, g, bookOf(weak), weak.factionRep), [`Your review ${when(0)} puts you on probation: your guild skills are short of a member's.`]);
+  assert.deepEqual(reviewWarnings(weak, g, bookOf(weak), weak.factionRep), [`Your review ${when(0)} puts you on probation: your guild skills are below a member’s.`]);
   const tg = GUILDS.ThievesGuild;
   const thief = memberAt(tg, 3, {}, { factionRep: storeOf({ [tg.factionId]: { rep: -5 } }), skills: skilled(tg, 40).skills });
   assert.deepEqual(reviewWarnings(thief, tg, bookOf(thief), thief.factionRep), [`Your review ${when(0)} lowers you to Apprentice: Crook needs reputation 30.`]);
@@ -449,7 +449,7 @@ test('SEAT-WORDS: the tutorial and the notice board\'s guide say the law - a rev
     'Reviews promote you up to rank 7. Ranks 8 and 9 are chapter chairs, won by Merit at each Sunday’s Turning. Any notice board explains chapters.']);   // VOICE1 (PIN MOVED)
   const guide = Object.fromEntries(chapterGuide());
   assert.equal(guide['Your rank'], 'Your guild still promotes you as usual, up to rank 7. Ranks 8 and 9 are the chairs (see below). A chair\'s services are at its own chapter\'s halls, for members at rank 7.');
-  assert.equal(guide.Standing, 'Your standing with each of these guilds is kept online. Quests raise it by at most 15 a real day for each guild (days start at midnight UTC), and any more is paid on later days. On top of that, a chapter writ (yours or the chapter\'s) adds 2, and closing a Breach or defending a town adds 1 to each of your guilds with a chapter there (2 more for the first each day, if the chapter asks for it).');
+  assert.equal(guide.Standing, 'Your standing with these guilds is kept online. Quests raise it by at most 15 per real day for each guild (days start at midnight UTC), and anything over carries to later days. A chapter writ, yours or the chapter’s, adds 2. Closing a Breach or defending a town adds 1 to each guild with a chapter there, plus 2 for the first each day if the chapter asks for it.');
   assert.match(guide.Merit, /after 7 real days in the guild,/);
   assert.match(guide['The chairs'], /A member needs 14 real days in the guild, enough standing for rank 8 and an account 7 real days old\./);
 });
@@ -483,7 +483,7 @@ test('STANDING-WORDS: the Standing page draws the review\'s warnings and the owe
     };
     const notes = notesOf(entity);
     assert.equal(notes.length, 2);
-    assert.match(notes[0], /^On probation: your review is at /);
+    assert.match(notes[0], /^On probation\. Your review is at /);
     assert.equal(notes[1], '6 more standing to come, at most 15 per real day (days turn at midnight UTC).');
     setStandingOwed(null);
     const steady = memberAt(g, 1, {}, { factionRep: storeOf({ [FIGHTERS]: { name: 'The Fighters Guild', rep: 14 } }), skills: skilled(g, 40).skills });

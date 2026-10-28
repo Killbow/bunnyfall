@@ -73,8 +73,8 @@ test('ETHER-WILD: the live flag carries its ground - the zone\'s words are the s
     assert.equal(zoneWord('enter'), ETHER_WILD_TEXT.enter());
     assert.match(zoneWord('enter'), /Veilhaven's peace onto the open Eltheric Ocean, an open PvP zone/);
     assert.equal(zoneWord('ring')(4), 'The Abyss: +100% loot.');
-    assert.equal(zoneWord('ringCross')(3, true), 'Deeper - The Deep Aether: +75% loot.');
-    assert.equal(zoneWord('ringCross')(1, false), 'Back toward the Veil - The Shallows: +25% loot.');
+    assert.equal(zoneWord('ringCross')(3, true), 'Deeper. The Deep Aether: +75% loot.');
+    assert.equal(zoneWord('ringCross')(1, false), 'Back toward the Veil. The Shallows: +25% loot.');
     assert.match(zoneWord('chipTip'), /Eltheric Ocean past Veilhaven's peace/);
     // PIN MOVED (AUDIT SEA VENTURES C7): the truce is the sea's own now - a word the sea does not say its own way is still the mountains'
     assert.equal(zoneWord('truce'), ETHER_WILD_TEXT.truce());

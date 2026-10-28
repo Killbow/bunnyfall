@@ -429,7 +429,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   assert.deepEqual([...PROF_STATIONS], ['forge', 'workbench', 'loom', 'mason', 'jeweller']);   // PIN MOVED (PROF11): the mason's bench; PIN MOVED (PROF10): the jeweller's bench
   assert.match(stationColdLine('loom'), /The loom is still/);
   assert.match(text(), /The Loom/);
-  assert.match(text(), /The tailor's loom and tanning rack - 50 gold a craft, a cure or a weave/);
+  assert.match(text(), /The tailor’s loom and tanning rack: 50 gold a craft, a cure or a weave/);
   assert.match(text(), /leather:cured x2/, 'a Tanner\'s cure said');
   await buttons().find((b) => b.textContent === 'Cure').onclick();
   assert.deepEqual(works.at(-1), ['cure:bear', 1]);
@@ -444,7 +444,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   const ODDS_EVEN = 'Quality chances: Crude 20% | Standard 60% | Fine 20%. They get better the further your rank (10) is above the recipe\'s (10). Press every stitch on the beat to raise the result one quality.';
   press('Leather');
   buttons().find((b) => b.textContent.startsWith('Cuirass')).onclick();
-  assert.match(text(), /Leather Cuirass - rank 10/);
+  assert.match(text(), /Leather Cuirass · rank 10/);
   assert.ok(text().includes(ODDS_EVEN) && !text().includes('Being a'), text());
   loomTrack.specs[50] = 'leatherworker'; draw();
   assert.ok(text().includes(`${ODDS_EVEN} Being a Leatherworker raises leather one more.`), text());
@@ -461,14 +461,14 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   // made from raw and its Wool is picked; the Linen chosen in the box
   assert.match(shirt.textContent, /can make from raw/);
   shirt.onclick();
-  assert.match(text(), /Wool Short Shirt - rank 10/);
+  assert.match(text(), /Wool Short Shirt · rank 10/);
   buttons().find((b) => b.parentNode?.className?.includes('prof-made') && b.textContent === 'Linen').onclick();
-  assert.match(text(), /Linen Short Shirt - rank 0/);
+  assert.match(text(), /Linen Short Shirt · rank 0/);
   loomTrack.specs[50] = 'tailor'; draw();   // PLAIN-ODDS: a Tailor's clothing says its step
   assert.ok(text().includes('Quality chances: Standard 50% | Fine 40% | Superior 10%. They get better the further your rank (10) is above the recipe\'s (0). Press every stitch on the beat to raise the result one quality. Being a Tailor raises clothing one more.'), text());
   loomTrack.specs[50] = null; draw();
   assert.deepEqual(buttons().filter((b) => b.parentNode?.className?.includes('prof-made')).map((b) => b.textContent), ['Linen', 'Wool', 'Silk - rank 40', 'Standard-bearer\'s Silk - rank 55'], 'CRAFT2: its four cloths, the two past the rank naming it');
-  await press('Buy 2 from the Weavers - 4 silver');
+  await press('Buy 2 from the Weavers for 4 silver');
   assert.deepEqual(bought, [['cloth:linen', 2, 'weavers']]);
   assert.deepEqual(GARMENT_WORDS(buttons()), ['Undyed', 'Blue', 'Grey', 'Red', 'Dark Brown', 'Purple', 'Light Brown', 'White', 'Aquamarine', 'Yellow', 'Green']);
   assert.equal(dyeWord(3), 'Dark Brown');
@@ -492,7 +492,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   draw();
   press('Clothing'); press('Men\'s');
   buttons().find((b) => b.textContent.startsWith('Short Shirt, unchangeable')).onclick();   // PIN MOVED (CRAFT2): the pattern, in the Linen held
-  assert.match(text(), /Linen Short Shirt, unchangeable - rank 0/);
+  assert.match(text(), /Linen Short Shirt, unchangeable · rank 0/);
   assert.equal(buttons().some((b) => b.textContent === 'Aquamarine'), true, 'AUDIT 32 L3: an unchangeable shirt offers the ten');
   assert.doesNotMatch(text(), /takes no dye/);
   press('Undyed');

@@ -213,17 +213,17 @@ test('PROF3 anvil page: at a smith\'s forge - the families and metals, a recipe\
   const buttons = () => [...root.querySelectorAll('button')];
   const press = (label) => buttons().find((b) => b.textContent.startsWith(label)).onclick();
   assert.match(text(), /The Anvil/);
-  assert.match(text(), /The smith's anvil - 50 gold a craft/);
+  assert.match(text(), /The smith’s anvil: 50 gold a craft/);
   // PIN MOVED (CRAFT2): the anvil lists its patterns, the metal chosen in the box from what is held - none made now, so the
   // open one holding most of its inputs (the three Mithril Ingots)
   const row = buttons().find((b) => b.textContent.startsWith('Longsword'));
   assert.match(row.textContent, /needs materials/, 'no Cured Leather yet');
   row.onclick();
-  assert.match(text(), /Mithril Longsword - rank 55/);
+  assert.match(text(), /Mithril Longsword · rank 55/);
   assert.match(text(), /Cured Leather|leather:cured/);
   assert.match(text(), /Quality chances: Crude 20% \| Standard 60% \| Fine 20%\. They get better the further your rank \(55\) is above the recipe's \(55\)\./);   // PIN MOVED (PLAIN-ODDS): the odds said in plain words
   assert.equal(buttons().find((b) => b.textContent === 'Craft').disabled, true);
-  await press('Buy 1 from the smith - 4 silver');
+  await press('Buy 1 from the smith for 4 silver');
   assert.deepEqual(bought, [['leather:cured', 1]]);
   assert.equal(buttons().find((b) => b.textContent === 'Craft').disabled, false);
   press('Craft');
@@ -242,7 +242,7 @@ test('PROF3 anvil page: at a smith\'s forge - the families and metals, a recipe\
   forge = { kind: 'home', fee: 0 };
   held.delete('leather:cured');
   draw();
-  assert.match(text(), /Mithril Longsword - rank 55/, 'CRAFT2: the pattern and its metal kept');
+  assert.match(text(), /Mithril Longsword · rank 55/, 'CRAFT2: the pattern and its metal kept');
   assert.equal(buttons().some((b) => b.textContent.startsWith('Buy ')), false);
   assert.match(text(), /Your anvil/);
   forge = null;

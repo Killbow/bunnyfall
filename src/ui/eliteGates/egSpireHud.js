@@ -362,7 +362,7 @@ export function egPadPrompts({ recap = false, panel = false, witness = false, br
 export function egWatchLine(watch) {
   if (!watch?.name) return '';
   const who = `${watch.numeral ?? ''} ${watch.name}`.trim();
-  return Number.isFinite(watch.pct) ? t('eg.witness.watching', 'Watching {who} - health {pct}%.', { who, pct: Math.round(watch.pct) }) : t('eg.witness.watchingName', 'Watching {who}.', { who });
+  return Number.isFinite(watch.pct) ? t('eg.witness.watching', 'Watching {who} · health {pct}%', { who, pct: Math.round(watch.pct) }) : t('eg.witness.watchingName', 'Watching {who}.', { who });
 }
 /** AUDIT EG V (c, L7-7; sections 16.4 and 16.5 - "its cooldown shown"): a ping asked or shown inside its cooldown (`s` its
  *  seconds left). */

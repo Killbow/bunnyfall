@@ -373,7 +373,7 @@ export function pathsOpenRows(open, { growth = false } = {}) {
 /** What a chosen path is, in rows (the sheets' description). */
 export function pathAboutRows(p) {
   if (!p) return [];
-  return [t('schools.about.title', '{name} - {a} and {b}', { name: p.name, ...schoolsOf(p) }), '', ...pathPowerRows(p)];
+  return [t('schools.about.title', '{name}: {a} and {b}', { name: p.name, ...schoolsOf(p) }), '', ...pathPowerRows(p)];
 }
 
 // ── awake ───────────────────────────────────────────────────────────

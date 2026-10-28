@@ -119,8 +119,8 @@ export function staffTagWords(flag, monsters, concealed) {
   return [flag?.level ? flag.why : '', flag?.watch ? 'WATCH' : '', monsters > 0 ? `${monsters} monster${monsters === 1 ? '' : 's'}` : '', concealed ? 'concealed' : '']
     .filter(Boolean).join(' · ');
 }
-const noAccount = (/** @type {string} */ name) => (name ? t('net.staffView.noAccount', 'Staff view: no account found for {name} - not followed.', { name })
-  : t('net.staffView.noAccountAnon', 'Staff view: no account found for that player - not followed.'));
+const noAccount = (/** @type {string} */ name) => (name ? t('net.staffView.noAccount', 'Staff view: no account found for {name}, so not followed.', { name })
+  : t('net.staffView.noAccountAnon', 'Staff view: no account found for that player, so not followed.'));
 
 /** FLAG-DISMISS: the most dismissed flags one browser keeps, and where. */
 export const DISMISSED_FLAGS_MAX = 500;

@@ -273,7 +273,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     if (!r.ok) { sayActive(accountRefusalText(r.error)); return; }
     if (r.data?.order) carry(r.data.order);
     sayActive(r.data?.repeat
-      ? t('net.safety.reportedAgain', 'You already reported {name}; their newest lines were added for the moderators.', { name })
+      ? t('net.safety.reportedAgain', 'You already reported {name}. Their newest lines were added for the moderators.', { name })
       : t('net.safety.reported', 'Reported {name}. The moderators will see it. /block {name} hides them from you now.', { name }));
   };
 
@@ -611,7 +611,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     if (!cases.length) { say(tabId, t('net.safety.casesNone', 'No case is open.')); return; }
     say(tabId, t('net.safety.casesHead', '{count, plural, one {# open case} other {# open cases}}, the most credible first:', { count: cases.length }));
     for (const c of cases) {
-      const row = t('net.safety.caseRow', '{name} (#{account}): {reports, plural, one {# report} other {# reports}}, {credible} credible - {reasons}.', { name: c.name, account: c.target, reports: Number(c.reports) || 0, credible: Number(c.credible) || 0, reasons: reasonsText(c.reasons) });
+      const row = t('net.safety.caseRow', '{name} (#{account}): {reports, plural, one {# report} other {# reports}}, {credible} credible. {reasons}.', { name: c.name, account: c.target, reports: Number(c.reports) || 0, credible: Number(c.credible) || 0, reasons: reasonsText(c.reasons) });
       const ai = verdictText(c.ai);
       say(tabId, `${row}${ai ? ` ${ai}` : ''}${c.auto ? ` ${t('net.safety.caseAuto', 'Muted automatically.')}` : ''}`);
     }

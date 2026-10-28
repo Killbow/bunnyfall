@@ -176,7 +176,7 @@ test('PASSAGE-HANDS: the helm panel at a booked ship\'s helm under way is a pass
   const doc = fakeDoc(), pressed = [];
   try {
     const root = drawEnhancedHelm(drawn.at(-1), { press: (a) => pressed.push(a) }, { doc });
-    assert.equal(one(root, 'helmpanel-name').textContent, 'The Fair Silk, bound for Wayrest - her master steers', 'its title says where she is bound');
+    assert.equal(one(root, 'helmpanel-name').textContent, 'The Fair Silk, bound for Wayrest. Her master steers', 'its title says where she is bound');
     const btns = all(root, 'helmpanel-btn');
     assert.deepEqual(btns.map((b) => b.dataset.act), ['slower', 'normal', 'faster', 'leave'], 'painted: the dial and Leave');
     btns.find((b) => b.dataset.act === 'leave').fire('click');

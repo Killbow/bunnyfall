@@ -36,9 +36,9 @@ export function createHallSaleDoor({ host, townTalk, homeOnward, turnHallEntry, 
     townTalk?.showOverlay?.(new ChoiceWindow({
       lines: hallOwnerLines(home),
       options: [
-        { code: 'KeyG', label: t('home.hallMenu.goIn', 'G - go in'), action: homeOnward(hit, entries) },
-        ...(hallEntryTurnable(home) ? [{ code: 'KeyW', label: t('home.hallMenu.entry', 'W - who may enter'), action: () => turnHallEntry(bd, home) }] : []),
-        ...(hallSellable(home) ? [{ code: 'KeyS', label: t('home.hallMenu.sell', 'S - sell it'), action: () => openHallSale(bd, home) }] : []),
+        { code: 'KeyG', label: t('home.hallMenu.goIn', 'G: go in'), action: homeOnward(hit, entries) },
+        ...(hallEntryTurnable(home) ? [{ code: 'KeyW', label: t('home.hallMenu.entry', 'W: who can enter'), action: () => turnHallEntry(bd, home) }] : []),
+        ...(hallSellable(home) ? [{ code: 'KeyS', label: t('home.hallMenu.sell', 'S: sell it'), action: () => openHallSale(bd, home) }] : []),
         { code: 'Escape', label: 'Esc - close', action: () => {} },
       ],
     }));

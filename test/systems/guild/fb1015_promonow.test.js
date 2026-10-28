@@ -83,9 +83,9 @@ test('PROMO-NOW: the hall\'s line names what the next rank asks - the reputation
   assert.deepEqual(rankNeedsLines(withSkills(g, 5, { [SKILLS.LongBlade]: 40 }), g, memberships, storeWith(g, 14)),
     ['Next rank: Swordsman', 'Reputation 14 of 20', 'A second guild skill at 9', `Guild skills: ${skills}`]);
   assert.deepEqual(rankNeedsLines(withSkills(g, 5, { [SKILLS.Axe]: 25 }), g, memberships, storeWith(g, 20)),
-    ['Next rank: Swordsman', 'A guild skill at 31 - your best, Axe, is 25', 'A second guild skill at 9', `Guild skills: ${skills}`]);
+    ['Next rank: Swordsman', 'A guild skill at 31 (your best, Axe, is 25)', 'A second guild skill at 9', `Guild skills: ${skills}`]);
   assert.deepEqual(rankNeedsLines(withSkills(g, 12, { [SKILLS.Axe]: 25 }), g, memberships, storeWith(g, 30)),
-    ['Next rank: Swordsman', 'A guild skill at 31 - your best, Axe, is 25', `Guild skills: ${skills}`], 'two at the low bar: the high one alone');
+    ['Next rank: Swordsman', 'A guild skill at 31 (your best, Axe, is 25)', `Guild skills: ${skills}`], 'two at the low bar: the high one alone');
   assert.equal(rankNeedsLines(withSkills(g, 40), g, memberships, storeWith(g, 20)), null, 'nothing short: no line');
 });
 

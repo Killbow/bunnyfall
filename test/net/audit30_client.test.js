@@ -319,7 +319,7 @@ function pagesAt({ held, tracks, forge = null, workbench = null, purse = null })
 
 test('AUDIT 30 U13 + U20: a station\'s fee the purse cannot meet is not offered, and says so; a smelt under way names its own row alone', async () => {
   const p = pagesAt({ held: { 'ingot:iron': 20, 'metal:tin': 5, 'ore:iron': 10, 'wood:pine': 4 }, tracks: { smithing: 0, mining: 0 }, forge: { kind: 'shop', fee: 25 }, purse: 10 });
-  assert.match(p.root.textContent, /The smith asks 25 gold a smelt; you carry 10\./);
+  assert.match(p.root.textContent, /The smith asks 25 gold a smelt\. You carry 10\./);
   assert.ok(p.buttons().filter((b) => b.textContent === 'Smelt').every((b) => b.disabled), 'refused after the press');
   p.buttons().find((b) => b.textContent.startsWith('Dagger')).onclick();   // PIN MOVED (CRAFT2): the pattern - its Iron the metal held
   assert.equal(p.buttons().find((b) => b.textContent === 'Craft').disabled, true, 'the heat struck, then the smith refused');
@@ -352,7 +352,7 @@ test('AUDIT 30 A2 + A3: the plane\'s pickers are held while it is drawn and it m
   globalThis.performance.now = () => clock[0];
   board.onpointerdown({ clientX: 1, clientY: 20, pointerId: 1 });
   board.onpointermove({ clientX: 30, clientY: 20, pointerId: 1, buttons: 0 });
-  assert.match(p.root.textContent, /let go 1 time - start again at the head/, 'a hover planed on');
+  assert.match(p.root.textContent, /let go 1 time, start again at the head/, 'a hover planed on');
   board.onpointerdown({ clientX: 1, clientY: 20, pointerId: 1 });
   p.draw();   // the page shut and opened mid-drag: no release ever reached the old board
   board = p.root.querySelector('.prof-board');

@@ -216,7 +216,7 @@ export function createWorkTab(w, ui) {
     const need = { guild: guildName(x.guild), n: Number(x.left), material: w.countName(x.material, x.left) };
     li.append(el('p', 'writ-need', x.seat != null ? t('prof.work.writ.needFor', '{guild} needs {n, number} more {material} for {place}', { ...need, place: seatWritPlace({ name: x.seatName, camp: x.camp }) })
       : t('prof.work.writ.need', '{guild} needs {n, number} more {material}', need)));
-    li.append(el('p', 'writ-pay', t('prof.work.writ.pay', 'Pays {pay} each - {done, number} / {units, number} delivered', { pay: marksText(x.pay), done: Number(x.units - x.left), units: Number(x.units) })));
+    li.append(el('p', 'writ-pay', t('prof.work.writ.pay', 'Pays {pay} each · {done, number} / {units, number} delivered', { pay: marksText(x.pay), done: Number(x.units - x.left), units: Number(x.units) })));
     li.append(el('p', 'writ-left', writLeftText(x.expiresAt, ui.nowS())));
     const held = w.held(x.material);
     // AUDIT 31 U10: no more than the guild Stores can still take of it
@@ -267,7 +267,7 @@ export function createWorkTab(w, ui) {
     const flag = writBanner(x.guild?.heraldry);
     if (flag) li.append(flag);
     li.append(el('p', 'writ-need', t('prof.work.contract.need', '{guild} pays the defenders of {region}\'s towns against raiders', { guild: guildName(x.guild), region: w.regionNameOf(x.region) })));
-    li.append(el('p', 'writ-pay', t('prof.work.contract.pay', '{pay} each - {n, plural, one {{n, number} defender} other {{n, number} defenders}} left of {deeds, number}', { pay: marksText(x.pay), n: Number(x.left), deeds: Number(x.deeds) })));
+    li.append(el('p', 'writ-pay', t('prof.work.contract.pay', '{pay} each · {n, plural, one {{n, number} defender} other {{n, number} defenders}} left of {deeds, number}', { pay: marksText(x.pay), n: Number(x.left), deeds: Number(x.deeds) })));
     li.append(el('p', 'writ-left', writLeftText(x.expiresAt, ui.nowS())));
     const bar = el('div', 'writ-take');
     const own = data?.guild?.id === x.guild?.id && !contractPaidMay(data.guild.rank);
@@ -286,7 +286,7 @@ export function createWorkTab(w, ui) {
     li.append(el('span', 'notice-pin'), el('span', 'writ-kind', t('prof.work.comm.kind', 'Commission')));
     li.append(el('p', 'writ-need', c.crafter != null ? t('prof.work.comm.for', 'For {crafter} only: {piece}', { crafter: c.crafter, piece: commissionPieceText(c) })
       : t('prof.work.comm.forAny', 'For a crafter only: {piece}', { piece: commissionPieceText(c) })));
-    li.append(el('p', 'writ-pay', c.poster ? t('prof.work.comm.payFrom', 'Pays {pay} - from {poster}', { pay: marksText(c.pay), poster: c.poster }) : t('prof.work.comm.pay', 'Pays {pay}', { pay: marksText(c.pay) })));
+    li.append(el('p', 'writ-pay', c.poster ? t('prof.work.comm.payFrom', 'Pays {pay}, from {poster}', { pay: marksText(c.pay), poster: c.poster }) : t('prof.work.comm.pay', 'Pays {pay}', { pay: marksText(c.pay) })));
     li.append(el('p', 'writ-left', writLeftText(c.expiresAt, ui.nowS())));
     const bar = el('div', 'writ-take');
     if (c.state === 'open' && c.forMe) bar.append(...fillNodes(c), declineButton(c));
@@ -314,8 +314,8 @@ export function createWorkTab(w, ui) {
       const p = picked();
       const paid = paidText(c.pay - saleTax(c.pay), saleTax(c.pay));
       return act(() => w.writs.fulfil({ region: w.region, commission: c.id, provenance: p.item.provenance, wear: WEAR_WHOLE }, p),
-        c.poster != null ? t('prof.work.fill.filled', 'Filled: {piece} is on its way to {poster}; {paid}.', { piece: p.name, poster: c.poster, paid })
-          : t('prof.work.fill.filledNone', 'Filled: {piece} is on its way to its poster; {paid}.', { piece: p.name, paid }));
+        c.poster != null ? t('prof.work.fill.filled', 'Filled: {piece} is on its way to {poster}. {paid}.', { piece: p.name, poster: c.poster, paid })
+          : t('prof.work.fill.filledNone', 'Filled: {piece} is on its way to its poster. {paid}.', { piece: p.name, paid }));
     });
     return [labelled(t('prof.work.label.piece', 'Piece'), s, 'work-label-wide'), why(go, busyWhy())];
   }
@@ -339,7 +339,7 @@ export function createWorkTab(w, ui) {
       const said = c.state === 'open' ? writLeftText(c.expiresAt, ui.nowS())
         : c.mine && c.state === 'filled' ? t('prof.work.yours.collect', 'filled. Collect it at the Market tab')
           : !c.mine ? commissionSaid(c.state)
-            : c.returned ? t('prof.work.yours.silverBack', '{state} - silver back', { state: commissionSaid(c.state) }) : t('prof.work.yours.silverToCome', '{state} - silver to come back', { state: commissionSaid(c.state) });
+            : c.returned ? t('prof.work.yours.silverBack', '{state}, silver back', { state: commissionSaid(c.state) }) : t('prof.work.yours.silverToCome', '{state}, silver to come back', { state: commissionSaid(c.state) });
       li.append(el('span', 'work-what', who), el('span', 'work-where', t('prof.work.yours.where', '{where} · {said}', { where, said })));
       if (c.state === 'open' && c.mine) {
         li.append(why(button('work-withdraw', t('prof.work.withdraw', 'Withdraw'), () => act(() => w.writs.cancel(c.id), t('prof.work.comm.withdrawn', 'Withdrawn. {pay} back to your account.', { pay: marksText(c.pay) }))), busyWhy()));
@@ -371,7 +371,7 @@ export function createWorkTab(w, ui) {
   /** SILVER-WAYS: POST A CONTRACT - its pay a defender and how many, held from the treasury (the Officers' one budget). */
   function contractForm(g, data) {
     const box = el('div', 'work-form');
-    box.append(el('h3', 'work-head', t('prof.work.contract.title', 'Post a guild contract - {guild}', { guild: guildName(g) })));
+    box.append(el('h3', 'work-head', t('prof.work.contract.title', 'Post a guild contract: {guild}', { guild: guildName(g) })));
     const f = st.contract;
     const pay = input('number', f.pay, t('prof.work.contract.payLabel', 'Silver each defender'), 'contract|pay');
     pay.min = '1'; pay.max = String(CONTRACT_PAY_MAX);
@@ -408,7 +408,7 @@ export function createWorkTab(w, ui) {
   // ─── THE FORMS ─────────────────────────────────────────────────────
   function writForm(g, data) {
     const box = el('div', 'work-form');
-    box.append(el('h3', 'work-head', t('prof.work.writ.title', 'Post a guild writ - {guild}', { guild: guildName(g) })));
+    box.append(el('h3', 'work-head', t('prof.work.writ.title', 'Post a guild writ: {guild}', { guild: guildName(g) })));
     const max = () => writPayMax(st.writ.material);
     const f = st.writ;
     f.pay = intOf(f.pay, 1, Math.max(1, max()));

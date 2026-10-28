@@ -148,7 +148,7 @@ test('CRAFT-HOWTO THE WORDS ARE THE CODE\'S: each craft names the shops its stat
   // THE WORKS: the forge's ingots of mined ore pay Smithing; a saw and a cure pay nothing, a mason's work Building
   const ingots = SMELT_RECIPES.filter((r) => r.out.startsWith('ingot:') && r.inputs.every((i) => /^(metal|ore):/.test(i.key)));
   assert.ok(ingots.length >= 8 && ingots.every((r) => trackOf(r.xp) === 'smithing'), 'the forge smelts the ore you mine, for Smithing XP');
-  assert.match(CRAFT_HOW.smithing(), /It smelts ore into ingots; its anvil makes weapons, armor and tools, even from raw ore\./, 'PIN MOVED (PLAIN-TEXT)');
+  assert.match(CRAFT_HOW.smithing(), /It smelts ore into ingots, and its anvil makes weapons, armor and tools, even from raw ore\./, 'PIN MOVED (PLAIN-TEXT)');
   // PIN MOVED (CRAFT-HALL, PLAIN-TEXT): what pays XP is said once, in the page's What raises rows (craftHall.js xpSources)
   const raises = (id) => Object.fromEntries(xpSources(id, 0));
   const pays = (v) => /^\d[\d,]* XP\b/.test(v ?? '');

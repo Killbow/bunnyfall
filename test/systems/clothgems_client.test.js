@@ -55,7 +55,7 @@ test('CLOTH-GEMS the loom\'s page: Spin and Weave rows for the furs and Root Ten
   const loom = () => [...root.querySelectorAll('.prof-station')].find((x) => x.querySelector('h3')?.textContent === 'The Loom');
   const text = () => loom().textContent;
   const buttons = () => [...loom().querySelectorAll('button')];
-  const NOTE = 'Two Root Tendrils weave into a Linen Bolt here, and two furs - a Rat, Wolf or Tiger Pelt, a Boar or Bear Hide - spin into a Wool Bolt.';
+  const NOTE = 'Two Root Tendrils weave into a Linen Bolt here, and two furs (a Rat, Wolf or Tiger Pelt, or a Boar or Bear Hide) spin into a Wool Bolt.';
   try {
     draw();
     await buttons().find((b) => b.textContent === 'Spin').onclick();

@@ -153,14 +153,14 @@ test('CRAFT-WRITS law: the card\'s words - the ask, what fills it, the pay, what
     ['a Potion of Healing', '3 servings of Hunter\'s Stew', 'a Feast of the Hearth', '2 Steel Repair Kits', 'one Steel Repair Kit']);
   assert.equal(craftCountText('kit:ebony', 1), 'one Ebony Repair Kit', 'AUDIT CRAFT-WRITS C5: never "a Ebony"');
   assert.deepEqual(['potion:healing', 'dish:stew', 'kit:iron'].map(craftMadeText), [
-    'Of your own brewing - the bottles leave your pack.', 'Of your own cooking, never sold - the servings leave your pack.', 'Of your own make, never sold - the kits leave your pack.']);
+    'Your own brewing. The bottles leave your pack.', 'Your own cooking, never sold. The servings leave your pack.', 'Your own make, never sold. The kits leave your pack.']);
   assert.equal(craftPayText(w), 'Pays 156 silver, 312 Provisioning experience, 234 Renown and standing with the Mages Guild');
   assert.equal(craftPayText({ ...w, track: 'smithing', faction: GUILD_FACTION_IDS.FightersGuild }), 'Pays 156 silver, 312 Smithing experience, 234 Renown and standing with the Fighters Guild');
   assert.equal(craftHeldText(w, { pack: 5, made: 3 }), '3 brewed by you, 5 in your pack');
   assert.equal(craftHeldText({ kind: 'dish' }, { pack: 3, made: 2 }), '2 of your own in your pack');
-  assert.equal(craftShortText(w, { pack: 5, made: 3 }), 'Brew 1 more yourself at an alchemy station - found or bought bottles do not count');
+  assert.equal(craftShortText(w, { pack: 5, made: 3 }), 'Brew 1 more yourself at an alchemy station. Found or bought bottles don’t count');
   assert.equal(craftShortText(w, { pack: 1, made: 4 }), 'Carry 3 more of these bottles in your pack');
-  assert.equal(craftShortText({ kind: 'kit', qty: 3 }, { pack: 3, made: 1 }), 'Make 2 more yourself - pieces you bought or sold do not count');
+  assert.equal(craftShortText({ kind: 'kit', qty: 3 }, { pack: 3, made: 1 }), 'Make 2 more yourself. Pieces you bought or sold don’t count');
   assert.equal(craftFilledText(w, { pay: 156, xp: 300, renown: { credited: 234 } }), 'The Mages Guild thanks you: 156 silver, 300 Provisioning experience and 234 Renown.');
   assert.equal(craftFilledText(w, undefined), 'Delivered to the Mages Guild.', 'a landed act, its answer lost');
 });

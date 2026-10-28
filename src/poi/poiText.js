@@ -20,7 +20,7 @@ import { POI_IMAGE_LIMITS } from './poiImage.js';
 const PROBLEM = {
   'not-object': () => t('poi.problem.notObject', 'This is not a POI document.'),
   'not-json': () => t('poi.problem.notJson', 'The document cannot be written out.'),
-  'too-large': (a) => t('poi.problem.tooLarge', 'The document is too large ({bytes, number} bytes; at most {max, number}).', a),
+  'too-large': (a) => t('poi.problem.tooLarge', 'The document is too large ({bytes, number} bytes, the limit is {max, number}).', a),
   version: () => t('poi.problem.version', 'Made for another version of the editor.'),
   id: () => t('poi.problem.id', 'Its id is malformed.'),
   name: (a) => t('poi.problem.name', 'Give it a name of up to {max} characters.', a),
@@ -64,13 +64,13 @@ const PROBLEM = {
   'not-a-mesh': () => t('poi.problem.notAMesh', 'It names a picture where a model belongs.'),
   'not-a-texture': () => t('poi.problem.notATexture', 'It names a model where a picture belongs.'),
   // AUDIT POI U13: the count in its plural ("Its model has 1 materials" no more)
-  'material-count': (a) => t('poi.problem.materialCount', 'Its model has {want, plural, one {# material} other {# materials}}; the part has {have}.', a),
+  'material-count': (a) => t('poi.problem.materialCount', 'Its model has {want, plural, one {# material} other {# materials}}, but the part has {have}.', a),
   // AUDIT POI S6: the POI as a whole (poiLaw.js POI_BUDGET)
-  'budget-triangles': (a) => t('poi.problem.budgetTriangles', 'It draws too many triangles ({have, number}; at most {max, number}). Simplify a model, or stand fewer parts.', a),
-  'budget-vertices': (a) => t('poi.problem.budgetVertices', 'Its parts hold too many vertices together ({have, number}; at most {max, number}). Simplify a model, or stand fewer parts.', a),
-  'budget-bytes': (a) => t('poi.problem.budgetBytes', 'Its models and pictures are too large together ({have, number} MB; at most {max, number} MB).', { have: Math.ceil(a.have / 1048576), max: Math.floor(a.max / 1048576) }),
-  'budget-pixels': (a) => t('poi.problem.budgetPixels', 'Its pictures are too large together ({have, number} megapixels; at most {max, number}). Use smaller pictures, or fewer.', { have: Math.ceil(a.have / 1e6), max: Math.floor(a.max / 1e6) }),
-  'budget-reach': (a) => t('poi.problem.budgetReach', 'It reaches too far from its place ({have, number} m; at most {max, number} m).', a),
+  'budget-triangles': (a) => t('poi.problem.budgetTriangles', 'It draws too many triangles ({have, number}, the limit is {max, number}). Simplify a model or use fewer parts.', a),
+  'budget-vertices': (a) => t('poi.problem.budgetVertices', 'Its parts have too many vertices together ({have, number}, the limit is {max, number}). Simplify a model or use fewer parts.', a),
+  'budget-bytes': (a) => t('poi.problem.budgetBytes', 'Its models and pictures are too large together ({have, number} MB, the limit is {max, number} MB).', { have: Math.ceil(a.have / 1048576), max: Math.floor(a.max / 1048576) }),
+  'budget-pixels': (a) => t('poi.problem.budgetPixels', 'Its pictures are too large together ({have, number} megapixels, the limit is {max, number}). Use smaller or fewer pictures.', { have: Math.ceil(a.have / 1e6), max: Math.floor(a.max / 1e6) }),
+  'budget-reach': (a) => t('poi.problem.budgetReach', 'It reaches too far from its place ({have, number} m, the limit is {max, number} m).', a),
 };
 
 /** @type {Record<string, (a: any) => string>} */
@@ -107,10 +107,10 @@ const GLTF_WARN = {
   animation: () => t('poi.gltfWarn.animation', 'Animations were not imported.'),
   'camera-light': () => t('poi.gltfWarn.cameraLight', 'Cameras and lights in the file were left out: add lights in the editor.'),
   'no-uvs': () => t('poi.gltfWarn.noUvs', 'A textured material\'s mesh has no UVs: unwrap it in the UV editor.'),
-  'emission-uv-set': () => t('poi.gltfWarn.emissionUvSet', 'A glow map uses a second UV set; it is drawn with the first.'),
+  'emission-uv-set': () => t('poi.gltfWarn.emissionUvSet', 'A glow map uses a second UV set. It’s drawn with the first.'),
   'image-format': () => t('poi.gltfWarn.imageFormat', 'A picture that is not PNG, JPEG or WebP was left out.'),
   // AUDIT POI G5, G8: a glow placed unlike its picture; an extension used and not read
-  'emission-transform': () => t('poi.gltfWarn.emissionTransform', 'A glow map is placed or repeated differently from its picture; it is drawn as the picture is.'),
+  'emission-transform': () => t('poi.gltfWarn.emissionTransform', 'A glow map is placed or repeated differently from its picture. It’s drawn as the picture is.'),
   instancing: () => t('poi.gltfWarn.instancing', 'Objects repeated by GPU instancing were imported once each. Export again with GPU instancing off.'),
   'extension-ignored': (a) => t('poi.gltfWarn.extensionIgnored', 'This model uses {ext}, which the editor does not read: what it adds was left out.', a),
 };

@@ -87,7 +87,7 @@ export const crewRoom = (d) => Math.max(0, Math.floor((Number(d?.maxCrew) || 0) 
 export const CREW_TRADE_TEXT = Object.freeze({
   bought: (n, gold) => t('sea.crew.bought', 'Signed on {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),   // AUDIT CREW-TRADE R4: a man, as the row counts him
   sold: (n, gold) => t('sea.crew.sold', 'Signed off {n, plural, one {# man} other {# men}} for {gold, number} gold.', { n, gold }),
-  short: (gold) => t('sea.crew.short', 'Not enough gold - {gold, number} gold a man.', { gold }),
+  short: (gold) => t('sea.crew.short', 'Not enough gold. It’s {gold, number} gold a man.', { gold }),
   get noneToday() { return t('sea.crew.noneToday', 'The exchange has no more sailors to sign on today.'); },
   get noneWanted() { return t('sea.crew.noneWanted', 'The exchange will take no more crew today.'); },
   get full() { return t('sea.crew.full', 'The ship has her whole crew aboard.'); },

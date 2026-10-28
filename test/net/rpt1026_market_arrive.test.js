@@ -268,5 +268,5 @@ test('RPT1026-MARKET ARRIVE wiring: bootWorld hands the vendor host the checkpoi
   assert.match(host, /if \(marketBook && typeof checkpointGateOpen === 'function'\) arrivals\.start\(\);/);
   // the delete a waiting purchase holds says the way out: play it once, and what waits comes to its pack
   const open = accountRefusalText('realm-market-open');
-  assert.match(typeof open === 'function' ? open() : open, /a trader's takings\. Settle it first\. Play it online once and goods waiting for it come to its pack on their own; takings are collected on the Vendor page\.$/);
+  assert.match(typeof open === 'function' ? open() : open, /a trader’s takings\. Settle it first\. Play it online once and any goods waiting for it arrive in its pack\. Takings are collected on the Vendor page\.$/);
 });

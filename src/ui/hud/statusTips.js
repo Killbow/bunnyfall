@@ -43,7 +43,7 @@ export const ENTRY_WORDS = Object.freeze({
   continuousDamage: () => 'Damages your health every round.',
   continuousDamageFatigue: () => 'Drains your fatigue every round.',
   continuousDamageSpellPoints: () => 'Drains your magicka every round.',
-  regenerate: () => (regenHeldNow() ? t('madeRules.regenTip', 'Restores health every round - held here: half, and none for {s} seconds after you are hurt.', { s: REGEN_HELD_HURT_MS / 1000 }) : 'Restores health every round.'),   // EVENT-RULES: never a promise the place breaks
+  regenerate: () => (regenHeldNow() ? t('madeRules.regenTip', 'Restores health every round. Here: half as much, and none for {s} seconds after you’re hurt.', { s: REGEN_HELD_HURT_MS / 1000 }) : 'Restores health every round.'),   // EVENT-RULES: never a promise the place breaks
   paralyze: () => 'You cannot move.',
   shield: (a) => (Number.isFinite(a.shieldRemaining) ? `Absorbs ${Math.max(0, Math.round(a.shieldRemaining))} more damage.` : 'Absorbs damage.'),
   elementalResistance: (a) => `Resists ${RESIST_WORDS[a.element] ?? 'the element'}${Number.isFinite(a.chance) ? ` (${a.chance}% chance)` : ''}.`,
@@ -235,7 +235,7 @@ export function madeRulesLines(level) {
   if (r('unstuck') === 'wayHome') out.push(t('madeRules.unstuckHome', '/unstuck takes you out by the way home.'));
   const death = r('death');
   if (death === 'castOut') out.push(t('madeRules.castOut', 'A death casts you out before the gate.'));
-  if (death === 'final') out.push(t('madeRules.finalIn', 'A death is final for this Abyss Dungeon - unless a party member raises you within {s} seconds.', { s: (SD_REZ_MS - SD_REZ_PAGE_SLACK_MS) / 1000 }));   // AUDIT WORLD-EVENTS L1-5: the page's minute, the body's (it said two minutes; the body was gone at one)
+  if (death === 'final') out.push(t('madeRules.finalIn', 'Death is final in this Abyss Dungeon, unless a party member raises you within {s} seconds.', { s: (SD_REZ_MS - SD_REZ_PAGE_SLACK_MS) / 1000 }));   // AUDIT WORLD-EVENTS L1-5: the page's minute, the body's (it said two minutes; the body was gone at one)
   if (death === 'fall') out.push(t('madeRules.fallDown', 'A death lays you down for {s} seconds: a party member can raise you there. Past it, you fall.', { s: EG_DOWN_MS / 1000 }));   // AUDIT WORLD-EVENTS L1-4: raise before the fall (the Spire's and the Ketch's window, one minute each)
   if (r('deathPenalty') === 'none') out.push(t('madeRules.noPenalty', 'A death costs you no gold.'));
   return out;

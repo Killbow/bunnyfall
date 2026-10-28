@@ -123,7 +123,7 @@ export function effectWords(effect) {
       { base: s.chanceBase, plus: s.chancePlus, per: s.chancePerLevel }));
   }
   if (template.magnitude) {
-    parts.push(t('spellbook.effect.magnitude', 'Magnitude: {baseMin} - {baseMax} + {plusMin} - {plusMax} per {per} level(s)',
+    parts.push(t('spellbook.effect.magnitude', 'Magnitude: {baseMin} to {baseMax}, plus {plusMin} to {plusMax} per {per} level(s)',
       { baseMin: s.magnitudeBaseMin, baseMax: s.magnitudeBaseMax, plusMin: s.magnitudePlusMin, plusMax: s.magnitudePlusMax, per: s.magnitudePerLevel }));
   }
   return { group: template.group, subgroup: template.subgroup ?? '', parts };

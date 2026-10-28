@@ -171,7 +171,7 @@ export const raidLeaderLine = (name, town) => t('raid.leaderCharge', 'The {name}
 export const raidBearerFellLine = (town) => t('raid.bearerFell', 'The standard of {town} has fallen! The raiders sack the town.', { town });
 export const raidRefugeeSafeLine = (n, of) => t('raid.refugeeSafe', 'A refugee reaches the square ({n} of {of} safe).', { n, of });
 export const raidRefugeeLostLine = () => t('raid.refugeeLost', 'A refugee has fallen.');
-export const raidHeldLine = (town) => t('raid.held', '{town} is held - its people will not forget it.', { town });
+export const raidHeldLine = (town) => t('raid.held', '{town} is held. Its people won’t forget it.', { town });
 /** The board's word on a raid's objective, or '' (classic). */
 export function raidObjectiveDetail(kind, o) {
   if (!o) return '';

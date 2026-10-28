@@ -64,7 +64,7 @@ export function createNavalLoads(deps) {
     const deck = deps.deck(boat);
     const shot = nextShot(deck.load(at.side), dir);
     deck.setLoad(at.side, shot);
-    deps.say?.(t('naval.shot.loading', '{guns}: {shot} - loading', { guns: groupName(at.group), shot: shotName(shot) }), 1.6);
+    deps.say?.(t('naval.shot.loading', '{guns}: {shot}, loading', { guns: groupName(at.group), shot: shotName(shot) }), 1.6);
     return true;
   }
   return {

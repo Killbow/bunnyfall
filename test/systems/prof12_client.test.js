@@ -111,20 +111,20 @@ test('PROF12 DONE WHEN: a Healing brewed at an Alchemist\'s from the Stores\' Re
   const page = pageOf();
   try {
     assert.match(page.text(), /The Alchemy Station/);
-    assert.match(page.text(), /ProvisioningNovice 0[^]*?The alchemist's station - 25 gold a brew\. 2 potions a brew\. Potent 0% \(\+25% magnitude or duration\)\. \+5% for each herb picked unbruised\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence;   // PIN MOVED (CRAFT-PAYS): 25 gold and a Novice's two. PIN MOVED (CRAFT3): the station reads Provisioning, Alchemy's craft's track
+    assert.match(page.text(), /ProvisioningNovice 0[^]*?The alchemist’s station: 25 gold a brew\. 2 potions a brew\. Potent 0% \(\+25% magnitude or duration\)\. \+5% for each herb picked unbruised\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence;   // PIN MOVED (CRAFT-PAYS): 25 gold and a Novice's two. PIN MOVED (CRAFT3): the station reads Provisioning, Alchemy's craft's track
     assert.equal(page.recipe('Healing').textContent, 'Healingneeds ingredientsFirst-time bonus');   // PIN MOVED (CRAFT-HALL): its first-time bonus still to earn
     assert.equal(page.recipe('Invisibility').textContent, 'Invisibilityrank 70');
     page.recipe('Healing').onclick();
-    assert.match(page.text(), /Healing - rank 0Red Berries \(northern\) 1 \/ 1 \(1 stored\)Troll's Blood 0 \/ 1 \(0 stored\)Buy 1 from the Apothecaries - 4 silver/);
+    assert.match(page.text(), /Healing · rank 0Red Berries \(northern\) 1 \/ 1 \(1 stored\)Troll's Blood 0 \/ 1 \(0 stored\)Buy 1 from the Apothecaries for 4 silver/);
     assert.equal(page.button('Brew').disabled, true, 'short of its Troll\'s Blood');
-    page.button('Buy 1 from the Apothecaries - 4 silver').onclick();
+    page.button('Buy 1 from the Apothecaries for 4 silver').onclick();
     await settle(_alchemyForTests());
     page.draw();
-    page.button('Buy 1 from the Apothecaries - 6 silver').onclick();
+    page.button('Buy 1 from the Apothecaries for 6 silver').onclick();
     await settle(_alchemyForTests());
     page.draw();
     assert.deepEqual([book.held('reagent:troll-blood'), book.held('reagent:elixir-vitae')], [1, 1], 'the counter\'s goods in the Stores');
-    assert.match(page.text(), /2 potions a brew\. Potent 0% \(\+25% magnitude\) - and \+5% for each of its herbs you picked unbruised\. 20 Provisioning experience, plus a 3,155 first-time bonus\./);   // PIN MOVED (CRAFT-HALL): the real Worker says it is still to earn;   // PIN MOVED (CRAFT3): the XP is Provisioning's; PIN MOVED (FIRST-BUDGET): Provisioning's share
+    assert.match(page.text(), /2 potions a brew\. Potent 0% \(\+25% magnitude\), plus 5% for each of its herbs you picked unbruised\. 20 Provisioning experience, plus a 3,155 first-time bonus\./);   // PIN MOVED (CRAFT-HALL): the real Worker says it is still to earn;   // PIN MOVED (CRAFT3): the XP is Provisioning's; PIN MOVED (FIRST-BUDGET): Provisioning's share
     page.button('Brew').onclick();
     await settle(_alchemyForTests());
     assert.equal(player.items.length, 1);
@@ -154,7 +154,7 @@ test('PROF12 DONE WHEN: a Healing brewed at an Alchemist\'s from the Stores\' Re
     player.items.push({ group: 'Jewellery', templateIndex: 135, provenance: made.body.pieces[0].provenance, recipe: 'ring:gold:ruby', name: 'Gold Ruby Ring', enchantmentPoints: 2160 });
     layRecord(s.env, mac.character, freshSave({ name: 'Mac', items: [{ ...player.items.at(-1), stackCount: 1 }] }));   // INT16: the ring in the realm character's record, as its checkpoint would hold it
     page.draw();
-    assert.match(page.text(), /The Enchanting StationEnchantingNovice 0[^]*?The guild's enchanter - 50 gold a piece\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /The Enchanting StationEnchantingNovice 0[^]*?The guild’s enchanter: 50 gold a piece\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     assert.match(page.text(), /2,160 points: 21 Arcane Essence, \+315 Enchanting experience/);   // AUDIT PROF12 E2: 5 x the Gold ring's tier 3 x 21
     page.button('Disenchant').onclick();
     assert.ok(page.button('Press again to destroy it'), 'pressed once: armed, nothing asked');
@@ -239,7 +239,7 @@ test('PROF12 pages: The Enchanting Station - away, the word; at a Mages Guild ha
   page.done();
   const { calls } = stubPages({ enchanter: { kind: 'shop', fee: ENCHANT_FEE }, enchantingTrack: { rank: 100, specs: { 50: 'efficient', 100: null } } });
   page = pageOf();
-  assert.match(page.text(), /EnchantingMaster 100[^]*?The guild's enchanter - 50 gold a piece\. The item maker costs you 25% less\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+  assert.match(page.text(), /EnchantingMaster 100[^]*?The guild’s enchanter: 50 gold a piece\. The item maker costs you 25% less\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
   // PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): a Master's track takes no more XP - the service credits
   // MIN(earned, PROF_XP_MAX - held), none - so the piece says +0 and the station why (it said +7, which the Worker never
   // paid); AUDIT PROF12 E2's quarter is pinned at an Expert's 90 below, where it is paid
@@ -525,7 +525,7 @@ test('AUDIT PROF-541 B3/B4 client: the station\'s Potent chance carries the town
   try {
     assert.match(page.text(), /ProvisioningExpert 75[^]*?2 potions a brew\. Potent 30% \(\+25% magnitude or duration\) \(the Apothecary's \+20% with it\)/);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence;   // PIN MOVED (CRAFT3): Provisioning's rank
     page.recipe('Healing').onclick();
-    assert.match(page.text(), /2 potions a brew\. Potent 30% \(\+25% magnitude\) - and \+5% for each of its herbs/);
+    assert.match(page.text(), /2 potions a brew\. Potent 30% \(\+25% magnitude\), plus 5% for each of its herbs/);
     page.recipe('Cure Disease').onclick();
     assert.match(page.text(), new RegExp(`2 potions a brew\\. ${POTENT_NONE_LINE.replace(/[()]/g, '\\$&')}\\. \\d+ Provisioning experience`));   // PIN MOVED (CRAFT3): the XP is Provisioning's
     page.recipe('Purification').onclick();

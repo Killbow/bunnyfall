@@ -44,8 +44,8 @@ export const CHANNEL_COMMANDS = Object.freeze([
   Object.freeze({ names: Object.freeze(['local', 'l', 'say', 's']), tab: 'local', wrap: null, help: '/local, /l, /say or /s <text> - to players nearby, in character' }),
   Object.freeze({ names: Object.freeze(['ooc']), tab: 'local', wrap: 'ooc', help: '/ooc <text> - to players nearby, out of character (( ))' }),
   // CHAT-TRADE: the two channels a player joins by choice - said on a channel not joined joins it (scenes/world.js)
-  Object.freeze({ names: Object.freeze(['trade', 'tr']), tab: 'trade', wrap: null, get help() { return t('net.chat.tradeHelp', '/trade or /tr <text> - to the Trade channel: buying, selling, swapping'); } }),
-  Object.freeze({ names: Object.freeze(['lfg']), tab: 'lfg', wrap: null, get help() { return t('net.chat.lfgHelp', '/lfg <text> - to the LFG channel: looking for a group or more players'); } }),
+  Object.freeze({ names: Object.freeze(['trade', 'tr']), tab: 'trade', wrap: null, get help() { return t('net.chat.tradeHelp', '/trade or /tr <text>: post to the Trade channel to buy, sell or swap'); } }),
+  Object.freeze({ names: Object.freeze(['lfg']), tab: 'lfg', wrap: null, get help() { return t('net.chat.lfgHelp', '/lfg <text>: post to the LFG channel to find a group or more players'); } }),
 ]);
 /** CHAT-TRADE: the channels `/join` and `/leave` name (net/chat.js OPT_CHANNELS' ids). */
 export const JOIN_CHANNELS = Object.freeze(['trade', 'lfg']);
@@ -214,9 +214,9 @@ export const HELP_LINES = lazyLines([
   ...CHANNEL_COMMANDS.map((c) => () => c.help),
   '/lang de, /lang en ... - join a language channel (/lang off leaves it, /lang lists them)',
   '/roll or /dice [NdM+K] - roll dice on this tab: /roll 2d6+3, /roll d20, /roll 100',
-  () => t('net.chat.joinHelp', '/join trade, /join lfg - add a channel tab (/leave trade, /leave lfg removes it)'),
+  () => t('net.chat.joinHelp', '/join trade, /join lfg: add a channel tab (/leave trade or /leave lfg removes it)'),
   '/me <action> - an action on this tab: /me looks around',
-  () => t('net.chat.rpHelp', '/rp <text> - a roleplay line on this tab, in green italics: /rp draws her blade'),
+  () => t('net.chat.rpHelp', '/rp <text>: a roleplay line on this tab, in green italics, like /rp draws her blade'),
   '/wave, /bow, /nod ... [name] - a gesture to players nearby (/emotes lists them all)',
   ':smile: :sword: :heart: ... - shortcodes become emoji',
   '/ready - how party resting works online (resting at a fire rests the whole party)',
@@ -225,19 +225,19 @@ export const HELP_LINES = lazyLines([
   '/unstuck - leave by the door you came in, or outdoors go to the nearest town (/unstuck cancel stops it)',   // PVPUNSTUCK
   '/mentor - shows whether you are mentoring your party (it turns on when they are well below your level)',
   '/mail - your mailbox: messages from the developers and items to claim',
-  () => t('net.chat.bugHelp', '/bug - tell the developers privately about an exploit, a bug or a security hole'),   // PRIVATE-REPORT
-  () => t('net.chat.seasonHelp', '/season - this season, your standings and the time left'),   // SEASON-BOOK
+  () => t('net.chat.bugHelp', '/bug: tell the developers privately about an exploit, a bug or a security hole'),   // PRIVATE-REPORT
+  () => t('net.chat.seasonHelp', '/season: this season, your standings and the time left'),   // SEASON-BOOK
   '/find or /who <name> - find who is online by that name',   // SCALE5c
   '/search <name> - show a player\'s lines on every tab and who is online by that name (/search on its own clears it)',   // CHAT-FIND
-  () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked - hide a player\'s lines, invites and requests, or show them again'),   // SAFE1
-  () => t('net.chat.reportHelp', '/report <name> [harassment|hate|sexual|threat|spam][: note] - send their recent lines and your note to the moderators, or click a name in the chat'),   // SAFE3 - AUDIT SAFE DOC-13: and the reporter's note
-  () => t('net.chat.rulesHelp', '/rules - the Code of Conduct every player agreed to'),   // SAFE7
+  () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked: hide a player’s lines, invites and requests, or show them again'),   // SAFE1
+  () => t('net.chat.reportHelp', '/report <name> [harassment|hate|sexual|threat|spam][: note]: send their recent lines and your note to the moderators. You can also click a name in the chat'),   // SAFE3 - AUDIT SAFE DOC-13: and the reporter's note
+  () => t('net.chat.rulesHelp', '/rules: the Code of Conduct every player agreed to'),   // SAFE7
   '//text - a line that starts with a slash',
 ]);
 
 /** AUDIT EG V (c, L7-21): /help's own line for the Elite Breach's words (the host answers `/breach` before this parser is
  *  asked - breachCommandOf), in the player's language; and /help's lines whole. */
-export const breachHelpLine = () => t('chat.help.breach', '/breach - the Elite Breach: answer your company\'s call or open the start window (/breach help lists its commands)');
+export const breachHelpLine = () => t('chat.help.breach', '/breach: the Elite Breach. Answer your company’s call or open the start window (/breach help lists its commands)');
 export const helpLines = () => [...HELP_LINES.slice(0, -1), breachHelpLine(), HELP_LINES[HELP_LINES.length - 1]];
 /**
  * AUDIT EG V (c, L7-1): THE ELITE BREACH'S DOOR IN THE CHAT - what `/breach` was given: its words after it, whole (`pick 2`,

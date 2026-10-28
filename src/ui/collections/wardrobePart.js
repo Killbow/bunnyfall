@@ -273,7 +273,7 @@ export function drawWardrobePart(detail, rerender, kit, kind, flow) {
     const counted = entries.filter((e) => e.src === src && wardrobeCounted(e));
     const held = counted.filter((e) => wardrobeHeld(kind, e.key, wardrobe)).length;
     // AUDIT COLLECTIONS-II (lane 1): a group the account keeps none of (the seats' glyphs, each a character's) says no count
-    detail.append(divider(counted.length ? t('coll.group', '{source} - {held}/{total}', { source: sourceName(src), held: wardrobe ? held : '–', total: counted.length }) : sourceName(src)));   // AUDIT COLLECTIONS-II (lane 3): a dash unread, as the tiles say
+    detail.append(divider(counted.length ? t('coll.group', '{source} · {held}/{total}', { source: sourceName(src), held: wardrobe ? held : '–', total: counted.length }) : sourceName(src)));   // AUDIT COLLECTIONS-II (lane 3): a dash unread, as the tiles say
     const list = el('div', 'coll-list');
     for (const e of rows) list.append(...rowOf(ctx, e));
     detail.append(list);
@@ -335,7 +335,7 @@ function wholeOf(ctx, e) {
   text.append(el('h5', null, t('coll.whole.how', 'How to get it')), el('p', 'coll-how', e.how()));
   text.append(el('h5', null, t('coll.whole.avail', 'Availability')), el('p', 'coll-availline', availLine(e, ctx.now)));
   const held = wardrobeHeld(e.kind, e.key, wardrobe);
-  if (!wardrobeKnown(e)) text.append(el('p', 'coll-own', t('coll.whole.character', 'It shows beside the name of each member of such a guild, on that character - your account does not keep it.')));
+  if (!wardrobeKnown(e)) text.append(el('p', 'coll-own', t('coll.whole.character', 'It shows next to the name of each member of that kind of guild, on that character. Your account doesn’t keep it.')));
   else if (wardrobe) text.append(el('p', `coll-own${held ? '' : ' no'}`, held ? t('coll.whole.held', 'Your account holds this.') : t('coll.whole.missing', 'Your account does not hold this yet.')));
   box.append(text);
   // AUDIT COLLECTIONS-II (lane 3): the presses in a foot across the whole box, each centred under the row - the pad steps

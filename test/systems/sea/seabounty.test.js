@@ -298,7 +298,7 @@ test('SEA-BOUNTY the tab\'s words (navalYardWindow.js wantedText): each wanted c
   const w = { rows: [{ char: RK, name: 'kim', kills: 3, bounty: 2500 }, { char: RC, name: 'pat', kills: 0, bounty: 100 }], owed: 1200, mine: 300, posts: [500, 2000, 10_000], busy: false, line: { text: 'x', warn: false } };
   const t = wantedText(w);
   assert.deepEqual(t.head, ['Wanted', 'the open sea\'s killers']);
-  assert.deepEqual(t.rows.map((r) => [r.id, r.title, r.words]), [[RK, 'kim', '3 kills at sea - 2,500 gold on their head'], [RC, 'pat', 'No kills at sea of late - 100 gold on their head']]);
+  assert.deepEqual(t.rows.map((r) => [r.id, r.title, r.words]), [[RK, 'kim', '3 kills at sea, 2,500 gold on their head'], [RC, 'pat', 'No kills at sea of late, 100 gold on their head']]);
   assert.deepEqual(t.rows[0].presses.map((p) => [p.label, p.can, p.n]), [['Post 500', true, 500], ['Post 2,000', true, 2000], ['Post 10,000', true, 10_000]]);
   assert.deepEqual(t.owed, { title: 'Bounties owed you', words: '1,200 gold for the wanted captains you ended at sea.', press: 'Collect', can: true });
   assert.equal(t.mine, 'A bounty of 300 gold stands on your own head.');

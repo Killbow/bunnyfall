@@ -833,7 +833,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     }
     closeDialog();
     if (r.open[0] && edit.has(r.open[0].id)) edit.select({ id: r.open[0].id, part: null });
-    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}}; {entries, plural, one {# library entry} other {# library entries}} kept. Save each as a draft to send it.', { n: opened, entries: r.shelved })
+    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}} and kept {entries, plural, one {# library entry} other {# library entries}}. Save each as a draft to send it.', { n: opened, entries: r.shelved })
       + (kept ? ` ${t('poi.pack.keptOpen', '{n, plural, one {# POI was} other {# POIs were}} left as you had them (unsaved changes).', { n: kept })}` : ''));
     return true;
   }

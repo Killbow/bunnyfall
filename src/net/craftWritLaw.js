@@ -322,9 +322,9 @@ export const craftNeedText = (/** @type {{ product: string, qty: number, faction
 /** What fills it, said on the card. */
 export function craftMadeText(/** @type {string} */ product) {
   const p = craftProductOf(product);
-  if (p?.kind === 'potion') return t('prof.craftWrit.madePotion', 'Of your own brewing - the bottles leave your pack.');
-  if (p?.kind === 'dish') return t('prof.craftWrit.madeDish', 'Of your own cooking, never sold - the servings leave your pack.');
-  return t('prof.craftWrit.madeKit', 'Of your own make, never sold - the kits leave your pack.');
+  if (p?.kind === 'potion') return t('prof.craftWrit.madePotion', 'Your own brewing. The bottles leave your pack.');
+  if (p?.kind === 'dish') return t('prof.craftWrit.madeDish', 'Your own cooking, never sold. The servings leave your pack.');
+  return t('prof.craftWrit.madeKit', 'Your own make, never sold. The kits leave your pack.');
 }
 /** The card's pay: "Pays 156 silver, 312 Provisioning experience, 234 Renown and standing with the Mages Guild". */
 export const craftPayText = (/** @type {{ pay: number, xp: number, renown: number, faction: number, track: string }} */ w) =>
@@ -341,10 +341,10 @@ export function craftHeldText(/** @type {{ kind: string }} */ w, /** @type {{ pa
  *  a potion maker anywhere else is the client's mix (POTION-DOOR), which the service never sees. */
 export function craftShortText(/** @type {{ kind: string, qty: number }} */ w, /** @type {{ pack: number, made: number }} */ h) {
   if (w.kind === 'potion') {
-    if (h.made < w.qty) return t('prof.craftWrit.shortBrew', 'Brew {n, number} more yourself at an alchemy station - found or bought bottles do not count', { n: w.qty - h.made });
+    if (h.made < w.qty) return t('prof.craftWrit.shortBrew', 'Brew {n, number} more yourself at an alchemy station. Found or bought bottles don’t count', { n: w.qty - h.made });
     return t('prof.craftWrit.shortCarry', 'Carry {n, number} more of these bottles in your pack', { n: w.qty - h.pack });
   }
-  return t('prof.craftWrit.shortMake', 'Make {n, number} more yourself - pieces you bought or sold do not count', { n: w.qty - h.made });
+  return t('prof.craftWrit.shortMake', 'Make {n, number} more yourself. Pieces you bought or sold don’t count', { n: w.qty - h.made });
 }
 /** A writ filled, said: "The Mages Guild thanks you: 156 silver, 312 Provisioning experience and 234 Renown." */
 export function craftFilledText(/** @type {{ faction: number, track: string }} */ w, /** @type {any} */ d) {

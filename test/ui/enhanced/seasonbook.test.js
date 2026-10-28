@@ -92,7 +92,7 @@ test('AUDIT SEASON-BOOK L1/L5/L6/L7/L12/W4-W8: every line says what the game doe
   assert.equal(row(realm, 'iliac').about, 'Rated games at the card table. The leader wears Iliac Champion.');
   assert.equal(row(realm, 'gambit').about, 'Rated games between registered accounts. The leader wears Grandmaster.');
   assert.equal(row(realm, 'sea').about, 'The deepest voyage past the Veil and the most legends sunk or taken, on the board at any freeport\'s harbormaster.');
-  assert.equal(row(seats, 'tides').about, 'Each week every kingdom, the Marches and the Free Lands draw a Tide - a harvest, a plague, raiders - or stay Calm.');
+  assert.equal(row(seats, 'tides').about, 'Each week every kingdom, the Marches and the Free Lands draw a Tide, like a harvest, a plague or raiders, or stay Calm.');
   assert.equal(row(seats, 'crowns').about, 'Each crown\'s guildmaster earns Crowned in Season 1. The guildmaster of a guild that holds a seat all Season earns Keeper of its town.');
   assert.equal(row(seats, 'reset').about, 'Standing drifts halfway back to 50 and every fortification loses a tier. Charters stand.');
   const fest = sec(seasonBookModel({ now: NOW }), 'festival');
@@ -108,24 +108,24 @@ test('AUDIT SEASON-BOOK L1/L5/L6/L7/L12/W4-W8: every line says what the game doe
 
 test('SEASON-BOOK the standings: each line as the board says it - AUDIT L2/W3 the points the player\'s own for their banner; L3 the company\'s best Descent; W2/L8 every number ungrouped, as the boards print it; P11 a bout is a win, a loss or a draw, a rank of 0 no rank, legends alone a voyage (mutants: the banner\'s total; "deepest"; a grouped rating; a term of the bouts dropped)', () => {
   const me = (pvp, more = {}) => ({ me: { pvp: { rating: 1240, wins: 0, losses: 0, draws: 0, ...pvp }, rank: 4, banner: null, points: 0, ...more } });
-  assert.equal(arenaStanding(me({ wins: 7 }, { banner: 'red', points: 1 })), '#4 - rating 1240 - 1 point for the Red Banner');
-  assert.equal(arenaStanding(me({ wins: 1 }, { banner: 'blue', points: 12 })), '#4 - rating 1240 - 12 points for the Blue Banner');
-  assert.equal(arenaStanding(me({ draws: 1 })), '#4 - rating 1240', 'draws alone are bouts');
-  assert.equal(arenaStanding(me({ losses: 1 })), '#4 - rating 1240', 'losses alone are bouts');
-  assert.equal(arenaStanding(me({ wins: 1 })), '#4 - rating 1240', 'wins alone are bouts');
-  assert.equal(arenaStanding(me({}, { rank: null })), 'Rating 1240 - no rated bouts yet');
+  assert.equal(arenaStanding(me({ wins: 7 }, { banner: 'red', points: 1 })), '#4 · rating 1240 · 1 point for the Red Banner');
+  assert.equal(arenaStanding(me({ wins: 1 }, { banner: 'blue', points: 12 })), '#4 · rating 1240 · 12 points for the Blue Banner');
+  assert.equal(arenaStanding(me({ draws: 1 })), '#4 · rating 1240', 'draws alone are bouts');
+  assert.equal(arenaStanding(me({ losses: 1 })), '#4 · rating 1240', 'losses alone are bouts');
+  assert.equal(arenaStanding(me({ wins: 1 })), '#4 · rating 1240', 'wins alone are bouts');
+  assert.equal(arenaStanding(me({}, { rank: null })), 'Rating 1240 · no rated bouts yet');
   assert.equal(arenaStanding(me({ wins: 1 }, { rank: 0 })), 'Rating 1240', 'a rank of 0 is none');
-  assert.equal(arenaStanding({ me: { pvp: {}, banner: 'red' } }), 'Rating 0 - no rated bouts yet - 0 points for the Red Banner');
+  assert.equal(arenaStanding({ me: { pvp: {}, banner: 'red' } }), 'Rating 0 · no rated bouts yet · 0 points for the Red Banner');
   assert.equal(arenaStanding({ me: null }), null);
   assert.equal(spireStanding({ best: { h: 14, t: 3000 } }), 'Your best Descent: Hall 14');
   assert.equal(spireStanding({ best: { h: 0 } }), 'No Descent yet this season');
   assert.equal(spireStanding({ best: null }), 'No Descent yet this season');
-  assert.equal(ladderStanding({ me: { rating: 1100, games: 1 }, rows: [{ rank: 1 }], pinned: { you: true, rank: 23 } }), '#23 - rating 1100 - 1 game');
-  assert.equal(ladderStanding({ me: { rating: 1100, games: 3 } }), 'Rating 1100 - 3 games', 'no rows at all');
+  assert.equal(ladderStanding({ me: { rating: 1100, games: 1 }, rows: [{ rank: 1 }], pinned: { you: true, rank: 23 } }), '#23 · rating 1100 · 1 game');
+  assert.equal(ladderStanding({ me: { rating: 1100, games: 3 } }), 'Rating 1100 · 3 games', 'no rows at all');
   assert.equal(ladderStanding({ me: { rating: 1000, games: 0 } }), 'No rated games yet');
   assert.equal(ladderStanding({ me: null }), null);
-  assert.equal(seaStanding({ n: 1, deepest: 212.7, legends: 1 }, 1), 'Deepest: 212 leagues past the Veil - 1 legend ended');
-  assert.equal(seaStanding({ n: 1, deepest: 0, legends: 2 }, 1), 'Deepest: 0 leagues past the Veil - 2 legends ended', 'legends alone are a season counted');
+  assert.equal(seaStanding({ n: 1, deepest: 212.7, legends: 1 }, 1), 'Deepest: 212 leagues past the Veil · 1 legend ended');
+  assert.equal(seaStanding({ n: 1, deepest: 0, legends: 2 }, 1), 'Deepest: 0 leagues past the Veil · 2 legends ended', 'legends alone are a season counted');
   assert.equal(seaStanding({ n: 0, deepest: 400, legends: 3 }, 1), 'No voyage counted yet this season', 'last season\'s figures are not this one\'s');
   assert.equal(seaStanding(null, 1), 'No voyage counted yet this season');
 });
@@ -134,7 +134,7 @@ test('SEASON-BOOK the rows\' standing by its read: asking, unread, the player\'s
   const arena = { me: { pvp: { rating: 1240, wins: 7, losses: 2, draws: 1 }, rank: 4, banner: 'red', points: 1 } };
   const m = seasonBookModel({ now: NOW, signedIn: true, boards: { arena: ok(arena), spire: { state: 'asking', data: null }, iliac: { state: 'failed', data: null }, gambit: ok({ me: null }) }, sea: { n: 1, deepest: 9, legends: 0 }, doors: { arena: () => true, spire: null } });
   const realm = sec(m, 'realm');
-  assert.deepEqual(realm.rows.map((r) => r.standing), ['#4 - rating 1240 - 1 point for the Red Banner', 'Reading the board...', 'The board can\'t be read right now.', 'Sign in to be ranked.', 'Deepest: 9 leagues past the Veil - 0 legends ended']);
+  assert.deepEqual(realm.rows.map((r) => r.standing), ['#4 · rating 1240 · 1 point for the Red Banner', 'Reading the board...', 'The board can\'t be read right now.', 'Sign in to be ranked.', 'Deepest: 9 leagues past the Veil · 0 legends ended']);
   assert.deepEqual(realm.rows.map((r) => r.door), ['arena', null, null, null, null], 'the Arena\'s door handed, the Spire\'s not');
   assert.equal(row(sec(seasonBookModel({ now: NOW, signedIn: true, boards: { arena: null } }), 'realm'), 'arena').standing, null, 'R7: an arena not live reads nothing');
   const guest = seasonBookModel({ now: NOW, guest: true, signedIn: true, boards: {}, doors: { arena: () => true, spire: () => true } });
@@ -421,7 +421,7 @@ test('AUDIT SEASON-BOOK S2/U2: every line rewritten in place - a board\'s answer
   view.draw();
   assert.equal(one(root, 'sb-realm'), realm, 'the same section - nothing rebuilt');
   assert.equal(one(one(root, 'sb-iliac'), 'sb-standing'), standing, 'the same line, its words new');
-  assert.equal(standing.textContent, '#2 - rating 1200 - 2 games');
+  assert.equal(standing.textContent, '#2 · rating 1200 · 2 games');
   assert.equal(one(realm, 'sb-ssub').textContent, 'Day 26 of 56', 'the day turned in place');
   assert.equal(one(realm, 'sb-count').textContent, seasonLeftText(Date.UTC(2026, 10, 23) - now), 'the countdown the relay\'s, to the second');
   assert.equal(one(realm, 'sb-count').textContent, '30d 12h');
@@ -527,7 +527,7 @@ test('SEASON-BOOK `/season`: the window from the chat on either skin and whereve
   assert.deepEqual(parseChatLine('/season'), { kind: 'host', name: 'season' }, 'never said to the room');
   assert.equal(pauseCommandRefusal('season'), 'The world\'s clock hasn\'t been heard yet. Try again in a moment.');
   assert.equal(pauseCommandRefusal('mailbox'), 'Connect and sign in to use the mailbox.');
-  assert.ok(HELP_LINES.includes('/season - this season, your standings and the time left'), '/help says it');
+  assert.ok(HELP_LINES.includes('/season: this season, your standings and the time left'), '/help says it');
   const world = read('src/scenes/world.js');
   assert.match(world, /\n {8}\{ const at = pauseCommandOf\(text\); if \(at\) \{[^\n]*\n {10}if \(!\(at === 'season' \? timersSource\(\) : postSource\(\)\)\) \{ chatLog\.push\(tabId, \{ text: pauseCommandRefusal\(at\), system: true \}\); return true; \}\n {10}if \(!modes\?\.openPauseAt\?\.\(at\)\) hudCtx\.togglePause\(\{ at \}\);/, 'the hourglass\'s clock its door, the pause face opened at it');
   assert.match(read('src/ui/pauseDoor.js'), /\n {2}if \(\(hooks\.at === 'mailbox' \|\| hooks\.at === 'report' \|\| hooks\.at === 'season'\) && typeof document !== 'undefined'\) return enhancedPauseOverlay\(show, hooks\);/, 'the classic skin opens the enhanced face (it has no laurel)');

@@ -116,8 +116,8 @@ export const ETHER_WILD_TEXT = Object.freeze({
   leave: () => t('sea.wild.leave', 'You are in Veilhaven\'s peace. No player may attack you here.'),
   ring: (r) => t('sea.wild.ring', '{band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) }),
   ringCross: (r, deeper) => (deeper
-    ? t('sea.wild.deeper', 'Deeper - {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })
-    : t('sea.wild.shallower', 'Back toward the Veil - {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })),
+    ? t('sea.wild.deeper', 'Deeper. {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })
+    : t('sea.wild.shallower', 'Back toward the Veil. {band}: {bonus}.', { band: etherRingName(r), bonus: etherRingBonus(r) })),
   chipTip: () => t('sea.wild.chipTip', 'The {word} Ocean past Veilhaven\'s peace: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more in the Shallows, twice in the Abyss). If another player kills you, you drop what you carry.', { word: ETHER_WORD }),
   deathHold: () => t('sea.wild.deathHold', 'Past the Veil the dead wait two minutes.'),
   teleport: () => t('sea.wild.teleport', 'You cannot teleport into, out of or about the open {word} Ocean. Sail.', { word: ETHER_WORD }),

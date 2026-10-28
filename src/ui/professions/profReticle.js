@@ -197,7 +197,7 @@ function chopMarks(k, rc, under, act) {
       if (st.chops > seen) { seen = st.chops; flash.fire([0, 0], st.last === 'clean' ? 'gold' : ''); }
       flash.frame();
     },
-    hint: (st, label) => (st.creaked ? t('prof.reticle.chop.creaks', 'it creaks - keep chopping') : st.gentle ? (label || t('prof.reticle.chop.chop', 'click to chop'))
+    hint: (st, label) => (st.creaked ? t('prof.reticle.chop.creaks', 'it creaks, keep chopping') : st.gentle ? (label || t('prof.reticle.chop.chop', 'click to chop'))
       : (label || t('prof.reticle.chop.notch', 'click as the ring meets the notch'))),
   };
 }

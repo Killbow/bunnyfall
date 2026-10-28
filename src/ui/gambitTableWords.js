@@ -101,7 +101,7 @@ export function gambitGuide(online = null) {
   return [
     ...first,
     { head: t('cards.kingsGambit.guide.army.head', 'Build your army'), body: t('cards.kingsGambit.guide.army.body', 'Up to {units, plural, one {# unit} other {# units}} for {points, plural, one {# point} other {# points}}. Stronger units cost more, and ranged units cost {pct}% extra. Your king joins for free.', { units: KG_MAX_UNITS, points: KG_POINT_BUDGET, pct: pct(KG_RANGED_COST_FACTOR - 1) }) },
-    { head: t('cards.kingsGambit.guide.turn.head', 'Take your turn'), body: t('cards.kingsGambit.guide.turn.body', '{actions, plural, one {# action} other {# actions}} a turn: move a piece up to {move, plural, one {# cell} other {# cells}}, strike, or give one of your pieces a potion that heals {heal} health. You have {potions, plural, one {# potion} other {# potions}} a game.', { actions: KG_ACTIONS_PER_TURN, move: KG_MOVE_RANGE, heal: KG_POTION_HEAL, potions: KG_POTIONS_PER_SIDE }) },
+    { head: t('cards.kingsGambit.guide.turn.head', 'Take your turn'), body: t('cards.kingsGambit.guide.turn.body', 'You get {actions, plural, one {# action} other {# actions}} per turn. Move a piece up to {move, plural, one {# cell} other {# cells}}, attack, or give one of your pieces a potion that heals {heal} health. You have {potions, plural, one {# potion} other {# potions}} per game.', { actions: KG_ACTIONS_PER_TURN, move: KG_MOVE_RANGE, heal: KG_POTION_HEAL, potions: KG_POTIONS_PER_SIDE }) },
     { head: t('cards.kingsGambit.guide.strike.head', 'Strike'), body: t('cards.kingsGambit.guide.strike.body', 'A melee piece strikes the cell next to it. A ranged piece shoots up to {range, plural, one {# cell} other {# cells}} when nothing is in the way. A hit does {low}% to {high}% of the attacker\'s attack.', { range: KG_RANGED_RANGE, low: pct(KG_BLOW_LOW), high: pct(KG_BLOW_LOW + KG_BLOW_SPREAD) }) },
     { head: t('cards.kingsGambit.guide.ground.head', 'Mind the ground'), body: t('cards.kingsGambit.guide.ground.body', 'Walls and pillars block movement and shots. Water blocks movement, but shots pass over it. Every {every, plural, one {round} other {# rounds}}, warning cells turn into fire ({fire}), spikes ({spikes}) or poison ({poison}). A piece that ends its turn on one loses that much health.', { every: KG_HAZARD_SPAWN_EVERY, fire: KG_HAZARD_DAMAGE.fire, spikes: KG_HAZARD_DAMAGE.spikes, poison: KG_HAZARD_DAMAGE.poison }) },
     { head: t('cards.kingsGambit.guide.win.head', 'Win'), body: t('cards.kingsGambit.guide.win.body', 'Defeat the other king, or every piece on the other side.') },
@@ -159,8 +159,8 @@ export function regularLines(/** @type {{name: string, tier: any, nightLeft: num
   return {
     tier: tierName(T.key),
     fields: blunder > 0
-      ? t('cards.kingsGambit.regular.fields', 'An army of {points, plural, one {# point} other {# points}} - {potions, plural, one {# potion} other {# potions}} - blunders {pct}% of the time', { points: T.budget, potions: T.potions, pct: blunder })
-      : t('cards.kingsGambit.regular.fieldsNever', 'An army of {points, plural, one {# point} other {# points}} - {potions, plural, one {# potion} other {# potions}} - never blunders', { points: T.budget, potions: T.potions }),
+      ? t('cards.kingsGambit.regular.fields', 'An army of {points, plural, one {# point} other {# points}} · {potions, plural, one {# potion} other {# potions}} · blunders {pct}% of the time', { points: T.budget, potions: T.potions, pct: blunder })
+      : t('cards.kingsGambit.regular.fieldsNever', 'An army of {points, plural, one {# point} other {# points}} · {potions, plural, one {# potion} other {# potions}} · never blunders', { points: T.budget, potions: T.potions }),
     least: t('cards.kingsGambit.regular.least', 'Sits down for {stake, number} gold or more', { stake: T.stake }),
     blurb: tierBlurb(T.key),
     night: friendly ? t('cards.kingsGambit.regular.online', 'Online, the regulars play for fun')
@@ -169,7 +169,7 @@ export function regularLines(/** @type {{name: string, tier: any, nightLeft: num
   };
 }
 /** A stake's tile: "×{m} - {gold} gold". */
-export const stakeLabel = (/** @type {number} */ m, /** @type {number} */ gold) => t('cards.kingsGambit.stake.pick', '×{m} - {gold, number} gold', { m, gold });
+export const stakeLabel = (/** @type {number} */ m, /** @type {number} */ gold) => t('cards.kingsGambit.stake.pick', '×{m} · {gold, number} gold', { m, gold });
 /** What the stake does, said before it is put down. */
 export const stakeWhat = (/** @type {number} */ stake, /** @type {string} */ name) => t('cards.kingsGambit.stake.what', 'Win: you take back {pay, number} gold. Lose, forfeit or stand up mid-game: {name} keeps your {stake, number} gold.', { pay: stake * GAMBIT_WIN_PAYS, stake, name });
 /** Why a stake's pick is refused: past the purse, or past the regular's night. */
@@ -182,8 +182,8 @@ export const kingLine = () => t('cards.kingsGambit.king.line', 'The crown only c
 
 /** A unit's numbers in words (THE UNIT, shown large). @param {{level: number, hp: number, atk: number, ranged: boolean}} u */
 export const unitLine = (u) => (u.ranged
-  ? t('cards.kingsGambit.unit.ranged', 'Level {level} - Health {hp} - Attack {attack} - Ranged ({range, plural, one {# cell} other {# cells}})', { level: u.level, hp: u.hp, attack: u.atk, range: KG_RANGED_RANGE })
-  : t('cards.kingsGambit.unit.melee', 'Level {level} - Health {hp} - Attack {attack} - Melee', { level: u.level, hp: u.hp, attack: u.atk }));
+  ? t('cards.kingsGambit.unit.ranged', 'Level {level} · Health {hp} · Attack {attack} · Ranged ({range, plural, one {# cell} other {# cells}})', { level: u.level, hp: u.hp, attack: u.atk, range: KG_RANGED_RANGE })
+  : t('cards.kingsGambit.unit.melee', 'Level {level} · Health {hp} · Attack {attack} · Melee', { level: u.level, hp: u.hp, attack: u.atk }));
 /** A unit's cost in points (never gold). */
 export const unitCost = (/** @type {number} */ cost) => t('cards.kingsGambit.unit.cost', '{cost, plural, one {# point} other {# points}}', { cost });
 /** A tile's chips, short: level, health, attack, melee or ranged, cost. */
@@ -202,7 +202,7 @@ export const armyKingLine = (/** @type {string} */ crown) => t('cards.kingsGambi
 /** A press on a unit, said: it joined, or why not. */
 export const unitJoined = (/** @type {number} */ id) => t('cards.kingsGambit.army.joined', '{name} joins your army.', { name: unitName(id) });
 export const unitLeft = (/** @type {number} */ id) => t('cards.kingsGambit.army.left', '{name} leaves your army.', { name: unitName(id) });
-export const unitTooDear = (/** @type {number} */ id, /** @type {number} */ left) => t('cards.kingsGambit.army.tooDear', '{name} costs {cost, plural, one {# point} other {# points}}; you have {left} left.', { name: unitName(id), cost: rosterUnit(id)?.cost ?? 0, left });
+export const unitTooDear = (/** @type {number} */ id, /** @type {number} */ left) => t('cards.kingsGambit.army.tooDear', '{name} costs {cost, plural, one {# point} other {# points}}, and you have {left} left.', { name: unitName(id), cost: rosterUnit(id)?.cost ?? 0, left });
 export const armyFull = () => t('cards.kingsGambit.army.full', 'Your army is full: {max, plural, one {# unit} other {# units}}.', { max: KG_MAX_UNITS });
 
 // ── THE TURN ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -253,10 +253,10 @@ export function cellWords(/** @type {{tile: number, hazard: any, round: number}}
 export function pieceInfoLines(/** @type {{name: string, mine: boolean, regular: string, piece: any, foes: string[], hazard?: string|null}} */ x) {
   const p = x.piece;
   const lines = [
-    x.mine ? t('cards.kingsGambit.info.mine', '{name} - yours', { name: x.name }) : t('cards.kingsGambit.info.theirs', '{name} - {regular}\'s', { name: x.name, regular: x.regular }),
+    x.mine ? t('cards.kingsGambit.info.mine', '{name} (yours)', { name: x.name }) : t('cards.kingsGambit.info.theirs', '{name} ({regular}\'s)', { name: x.name, regular: x.regular }),
     p.ranged
-      ? t('cards.kingsGambit.info.ranged', 'Level {level} - Attack {attack} - Ranged: shoots up to {range, plural, one {# cell} other {# cells}}', { level: p.level, attack: p.atk, range: KG_RANGED_RANGE })
-      : t('cards.kingsGambit.info.melee', 'Level {level} - Attack {attack} - Melee: strikes the cell next to it', { level: p.level, attack: p.atk }),
+      ? t('cards.kingsGambit.info.ranged', 'Level {level} · Attack {attack} · Ranged: shoots up to {range, plural, one {# cell} other {# cells}}', { level: p.level, attack: p.atk, range: KG_RANGED_RANGE })
+      : t('cards.kingsGambit.info.melee', 'Level {level} · Attack {attack} · Melee: hits the cell next to it', { level: p.level, attack: p.atk }),
     t('cards.kingsGambit.info.health', 'Health {hp} of {max}', { hp: p.hp, max: p.maxHp }),
     t('cards.kingsGambit.info.moves', 'Moves up to {move, plural, one {# cell} other {# cells}} a move.', { move: KG_MOVE_RANGE }),
     // AUDIT KG II C8 + D21: whom it can strike now, by name (14.5), in range - reach is a move's word
@@ -271,7 +271,7 @@ export function pieceInfoLines(/** @type {{name: string, mine: boolean, regular:
 
 /** The panel's header by its stage (14.5). */
 export function gambitTitle(/** @type {{phase: string, round?: number, mine?: boolean, name?: string}} */ m) {
-  if (m.phase === 'battle') return m.mine ? t('cards.kingsGambit.title.mine', 'Round {round} - your turn', { round: m.round }) : t('cards.kingsGambit.title.theirs', 'Round {round} - {name}\'s turn', { round: m.round, name: m.name });
+  if (m.phase === 'battle') return m.mine ? t('cards.kingsGambit.title.mine', 'Round {round} · your turn', { round: m.round }) : t('cards.kingsGambit.title.theirs', 'Round {round} · {name}\'s turn', { round: m.round, name: m.name });
   if (m.phase === 'army') return t('cards.kingsGambit.title.army', 'The King\'s Gambit: your army');
   if (m.phase === 'over') return t('cards.kingsGambit.title.over', 'The King\'s Gambit: the result');
   return t('cards.kingsGambit.title.setup', 'The King\'s Gambit');
@@ -312,7 +312,7 @@ export const GAMBIT_PRESS = Object.freeze({
   get iliac() { return t('cards.kingsGambit.press.iliac', 'Play Iliac Hand instead'); },
 });
 export const pressStart = (/** @type {number} */ stake) => t('cards.kingsGambit.press.start', 'Start the battle and stake {stake, number} gold', { stake });
-export const pressForfeit = (/** @type {number} */ stake) => t('cards.kingsGambit.press.forfeit', 'Forfeit - lose {stake, number} gold', { stake });
+export const pressForfeit = (/** @type {number} */ stake) => t('cards.kingsGambit.press.forfeit', 'Forfeit (lose {stake, number} gold)', { stake });
 export const pressStandCost = (/** @type {number} */ stake) => t('cards.kingsGambit.press.standCost', 'Stand up and lose {stake, number} gold', { stake });
 export const pressDrink = (/** @type {string} */ piece, /** @type {number} */ healed) => t('cards.kingsGambit.press.drink', 'Give {piece} a potion (+{healed})', { piece, healed });
 export const pressStrike = (/** @type {string} */ name) => t('cards.kingsGambit.press.strike', 'Strike {name}', { name });
@@ -465,14 +465,14 @@ export const GAMBIT_ONLINE_PRESS = Object.freeze({
   get staking() { return t('cards.kingsGambit.online.press.staking', 'Staking...'); },   // KG6
 });
 /** KG6: Ready at the gold table says its stake. @param {number} n */
-export const pressReadyStake = (n) => t('cards.kingsGambit.online.press.readyStake', 'Ready - stake {n, number} gold', { n });
+export const pressReadyStake = (n) => t('cards.kingsGambit.online.press.readyStake', 'Ready · stake {n, number} gold', { n });
 /** The board's two seats, as the setup lists them. */
 export const onlineHead = () => t('cards.kingsGambit.online.head', 'At this board');
 /** A seat, by its player: who sits, whether they are ready (KG6: and for what stake); or an empty seat. @param {{name: string, ready?: boolean, stake?: number|null}|null} s */
 export function onlineSeat(s) {
   if (!s) return t('cards.kingsGambit.online.seatEmpty', 'An empty seat');
-  if (s.ready && s.stake) return t('cards.kingsGambit.online.seatStake', '{name} - ready, {n, number} gold', { name: s.name, n: s.stake });   // KG6
-  return s.ready ? t('cards.kingsGambit.online.seatReady', '{name} - ready', { name: s.name }) : t('cards.kingsGambit.online.seat', '{name}', { name: s.name });
+  if (s.ready && s.stake) return t('cards.kingsGambit.online.seatStake', '{name} · ready, {n, number} gold', { name: s.name, n: s.stake });   // KG6
+  return s.ready ? t('cards.kingsGambit.online.seatReady', '{name} · ready', { name: s.name }) : t('cards.kingsGambit.online.seat', '{name}', { name: s.name });
 }
 /** The turn's clock, as a chip: the seconds the turn has left. @param {number} n */
 export const clockChip = (n) => t('cards.kingsGambit.online.clock', '{n, plural, one {# second} other {# seconds}} left', { n });
@@ -559,7 +559,7 @@ export function stakeRefusal(r) {
 export const stakeChoose = () => t('cards.kingsGambit.online.stake.choose', 'Choose your stake, then press Ready.');
 /** THE SEASON BOARD'S words. */
 export const boardHead = (/** @type {number} */ n) => t('cards.kingsGambit.online.board.head', 'Season {n}: the board', { n });
-export const boardRow = (/** @type {{rank: number, name: string, rating: number, wins: number, losses: number}} */ r) => t('cards.kingsGambit.online.board.row', '{rank}. {name} - rating {rating} ({wins, plural, one {# win} other {# wins}}, {losses, plural, one {# loss} other {# losses}})', r);   // AUDIT KG II D20
+export const boardRow = (/** @type {{rank: number, name: string, rating: number, wins: number, losses: number}} */ r) => t('cards.kingsGambit.online.board.row', '{rank}. {name} · rating {rating} ({wins, plural, one {# win} other {# wins}}, {losses, plural, one {# loss} other {# losses}})', r);   // AUDIT KG II D20
 export const boardYou = (/** @type {{rank: number, rating: number, wins: number, losses: number}|null} */ r) => (r
   ? t('cards.kingsGambit.online.board.you', 'You: rank {rank}, rating {rating} ({wins, plural, one {# win} other {# wins}}, {losses, plural, one {# loss} other {# losses}}).', r)
   : t('cards.kingsGambit.online.board.youNone', 'You have no rated game this season.'));

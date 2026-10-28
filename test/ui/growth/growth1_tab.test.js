@@ -134,7 +134,7 @@ test('GROWTH2 WHAT OPENS IT: each skill of a pair in its own words - mastered, r
   const full = spellsword({ mastered: [LB, AR, RES, ALT], raised: { [AX]: 100 } });
   assert.deepEqual([s(LB).state, s(RES).state, s(ALT).state, skillStand(full, AX).state, s(SB).state], ['mastered', 'ready', 'climb', 'full', 'misc']);
   assert.equal(skillStandText(s(LB)), 'Long Blade: mastered (100)');
-  assert.equal(skillStandText(s(RES)), 'Restoration: 100 - ready to master in Master Skills');
+  assert.equal(skillStandText(s(RES)), 'Restoration: 100, ready to master in Master Skills');
   assert.equal(skillStandText(s(ALT)), 'Alteration: 76 of 100, then master it');
   assert.equal(skillStandText(skillStand(full, AX)), 'Axe: no major mastery slots left');
   assert.equal(skillStandText(s(SB)), 'Short Blade: not one of your class skills, so it can\'t be mastered');
@@ -159,7 +159,7 @@ test('GROWTH2 WHAT IT DOES: the passive and the signature in the laws\' own word
   const lines = spellLines('bloodmage');
   assert.equal(lines[0], 'Single target at range - Fire based');
   assert.equal(lines.length, 2, 'one effect: the maker\'s two empty slots read nothing');
-  assert.match(lines[1], /^Damage Health\. Magnitude: 10 - 18 \+ 2 - 3 per 1 level\(s\)\.$/);
+  assert.match(lines[1], /^Damage Health\. Magnitude: 10 to 18, plus 2 to 3 per 1 level\(s\)\.$/);
   assert.equal(spellLines('nope').length, 0);
 });
 
@@ -186,7 +186,7 @@ test('AUDIT GROWTH LANE1-1/4 THE SLOTS: a pair the slots left can never hold is 
   const seer = ar.paths.find((p) => p.id === 'seer');
   assert.deepEqual(seer.pair.map((s) => s.state), ['ready', 'ready']);
   assert.equal(seer.state, 'slots');
-  assert.deepEqual(pathSteps(seer).map(([, text]) => text), ['Illusion: 100 - ready to master in Master Skills', 'Mysticism: 100 - ready to master in Master Skills',
+  assert.deepEqual(pathSteps(seer).map(([, text]) => text), ['Illusion: 100, ready to master in Master Skills', 'Mysticism: 100, ready to master in Master Skills',
     'Illusion and Mysticism are both minor skills, and you can master only one more minor skill.']);
   assert.equal(stateLine(ar, seer, true), 'You don\'t have enough mastery slots left to master both of these skills.');
   assert.equal(stateTag(seer.state), 'No slots left');

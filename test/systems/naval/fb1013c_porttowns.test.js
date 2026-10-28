@@ -136,7 +136,7 @@ test('PORT-TOWNS: a held cargo for a place that is no port a cargo goes to - not
   office(seaAt).tick();
   assert.deepEqual(ledger.contracts().map((c) => c.to.key), [COAST.key], 'the cargo for the port on the sea held');
   assert.equal(ledger.standing('Wayrest'), before, 'no regard lost');
-  assert.deepEqual(mid, ['Contract void - Cargo for Wrothgaria. No ship can make port there.', 'Contract void - Cargo for Corranoth\'s Tomb. No ship can make port there.']);
+  assert.deepEqual(mid, ['Contract void: Cargo for Wrothgaria. No ship can make port there.', 'Contract void: Cargo for Corranoth\'s Tomb. No ship can make port there.']);
   office(seaAt).tick();
   assert.equal(mid.length, 2, 'said once');
 });

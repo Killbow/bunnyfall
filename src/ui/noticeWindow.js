@@ -152,7 +152,7 @@ export function chapterGuide() {
     // L3-4, L3-5: the pace a quest keeps and the real day, a receipt's first of the day; II C-3: no quest is said free of
     // its guild's losses; II C-5: a chapter writ, yours or the chapter's; II C-8: the day turns at midnight UTC
     [t('notice.chapters.rank.name', 'Your rank'), t('notice.chapters.rank.words', 'Your guild still promotes you as usual, up to rank {cap}. Ranks {officer} and {master} are the chairs (see below). A chair\'s services are at its own chapter\'s halls, for members at rank {cap}.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master })],
-    [t('notice.chapters.standing.name', 'Standing'), t('notice.chapters.standing.words', 'Your standing with each of these guilds is kept online. Quests raise it by at most {max} a real day for each guild (days start at midnight UTC), and any more is paid on later days. On top of that, a chapter writ (yours or the chapter\'s) adds {writ}, and closing a Breach or defending a town adds {receipt} to each of your guilds with a chapter there ({writ} more for the first each day, if the chapter asks for it).', { max: ROLL_GAIN_DAY_MAX, writ: HALL_WRIT_REP, receipt: RECEIPT_REP })],
+    [t('notice.chapters.standing.name', 'Standing'), t('notice.chapters.standing.words', 'Your standing with these guilds is kept online. Quests raise it by at most {max} per real day for each guild (days start at midnight UTC), and anything over carries to later days. A chapter writ, yours or the chapter’s, adds {writ}. Closing a Breach or defending a town adds {receipt} to each guild with a chapter there, plus {writ} for the first each day if the chapter asks for it.', { max: ROLL_GAIN_DAY_MAX, writ: HALL_WRIT_REP, receipt: RECEIPT_REP })],
     ['Merit', `Your work for a chapter this week. You earn ${n(MERIT_WRIT)} for filling your own chapter writ (one a day, and bought goods earn none), and a share of ${n(MERIT_RECEIPT)} for each Dagon's Breach closed or raided town defended in the region. It counts after ${days(MERIT_TENURE_S)} real days in the guild, at most ${n(MERIT_CAP_WEEK)} an account a week in each chapter, and in only one chapter of each guild a week.`],
     // AUDIT PLAIN-UI W1: the whole of strengthAfter, failingWeekAfter, the Rivalry's swing and strengthSeasonEnd - "Merit
     // raises it" alone hid the week's mark, the fall back toward 50 and the Failing band's fall
@@ -627,8 +627,8 @@ export function mountNoticeBoard(host, deps) {
   /** C6: a delivery that did not land, said - the realm's silence (the goods wait with the record a rejoin reads) and a
    *  character changed before the ask in their own words, every other refusal the service's. @param {any} r */
   function craftRefusalText(r) {
-    if (r?.unknown) return t('notice.craftWrit.unknown', 'The realm did not answer. Rejoin and look at the board again - the writ shows whether it was filled.');
-    if (r?.elsewhere || r?.error === 'elsewhere') return t('notice.craftWrit.elsewhere', 'You are playing another character now - the writ was not delivered.');
+    if (r?.unknown) return t('notice.craftWrit.unknown', 'The realm didn’t answer. Rejoin and check the board again to see if the writ was filled.');
+    if (r?.elsewhere || r?.error === 'elsewhere') return t('notice.craftWrit.elsewhere', 'You’re playing another character now, so the writ wasn’t delivered.');
     return accountRefusalText(r?.error);
   }
 
@@ -748,7 +748,7 @@ export function mountNoticeBoard(host, deps) {
     // (at the merge of CRAFT-WRITS): they stand over the bar, never sifted by it - three of the character's own, their own day
     const crafts = work.crafts ? writs?.crafts?.writs ?? [] : [];
     if (crafts.length) {
-      body.append(sectionHead(t('notice.craftWrit.head', 'Crafting writs - {filled, number} of {max, number} today', { filled: writs.crafts.today.filled, max: writs.crafts.today.max })));
+      body.append(sectionHead(t('notice.craftWrit.head', 'Crafting writs: {filled, number} of {max, number} today', { filled: writs.crafts.today.filled, max: writs.crafts.today.max })));
       const cg = el('ul', 'notice-grid');
       cg.setAttribute('role', 'list');
       for (const w of crafts) cg.append(craftNode(w));

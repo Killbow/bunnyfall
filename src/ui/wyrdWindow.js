@@ -248,7 +248,7 @@ export function mountWyrdWindow(host, deps) {
     const st = deps.state();
     const rows = wyrdRows(st, deps.worn(), itemOf, deps.nameOf);
     const s = { cakes: st.cakes, shut: deps.shut(), busy: pending != null };
-    sub.textContent = t('festival.window.until', '{festival} - until {last}.', { festival: festivalName(), last: deps.lastDay() });
+    sub.textContent = t('festival.window.until', '{festival}, until {last}.', { festival: festivalName(), last: deps.lastDay() });
     night.textContent = deps.night() ? festivalNightText() : '';
     if (deps.night()) night.removeAttribute('hidden'); else night.setAttribute('hidden', '');
     // CAKE-CAP-SAID: the day's finds (systems/festival/festivalClient.js festivalFindsToday) - nothing while unheard

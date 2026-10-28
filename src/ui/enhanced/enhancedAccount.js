@@ -514,7 +514,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
     const box = el('div', 'acctwear acctpatreon');
     box.append(el('span', 'fieldlabel', 'Patreon'));
     const row = el('div', 'acctwearrow');
-    if (p.linked) row.append(el('span', 'acctpatreonstate', titles.length ? t('account.patreon.linked', 'Linked - {titles}', { titles: titles.map((k) => TITLE_TEXT[k] ?? k).join(', ') }) : t('account.patreon.noTier', 'Linked. No rank yet')));
+    if (p.linked) row.append(el('span', 'acctpatreonstate', titles.length ? t('account.patreon.linked', 'Linked: {titles}', { titles: titles.map((k) => TITLE_TEXT[k] ?? k).join(', ') }) : t('account.patreon.noTier', 'Linked. No rank yet')));
     if (typeof p.link === 'string' && p.link.startsWith('https://')) {
       const a = keyedAs(el('a', 'act', p.linked ? t('account.patreon.refresh', 'Refresh') : t('account.patreon.link', 'Link Patreon')), 'patreon:link');
       a.href = p.link;
@@ -599,7 +599,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
     if (lvText) {
       const h = el('h3', null, null);
       const chip = el('span', 'acctrenown', lvText);
-      chip.title = typeof tracks[0].name === 'string' && tracks[0].name ? t('account.card.renownWhose', 'Renown {level} - {name}', { level: tracks[0].level, name: tracks[0].name })
+      chip.title = typeof tracks[0].name === 'string' && tracks[0].name ? t('account.card.renownWhose', 'Renown {level} · {name}', { level: tracks[0].level, name: tracks[0].name })
         : t('account.card.renownLevel', 'Renown {level}', { level: tracks[0].level });   // AUDIT RENOWN1 UI-10: whose Renown it is
       h.append(chip, el('span', 'acctname', heading));
       head.append(h);
@@ -688,7 +688,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
       // PROFILE-MENU: under a head of their own, each with the way to its next level drawn.
       const chars = section(t('account.card.characters', 'Characters'), 'acctchars');
       for (const tr of tracks) {
-        row(t('account.card.renown', 'Renown'), t('account.card.renownRow', '{name} - Renown {level}, {progress}', { name: typeof tr.name === 'string' && tr.name ? tr.name : t('account.card.aCharacter', 'A character'), level: tr.level, progress: renownProgressText(tr.xp) }));
+        row(t('account.card.renown', 'Renown'), t('account.card.renownRow', '{name} · Renown {level}, {progress}', { name: typeof tr.name === 'string' && tr.name ? tr.name : t('account.card.aCharacter', 'A character'), level: tr.level, progress: renownProgressText(tr.xp) }));
         const p = renownProgress(tr.xp);
         bar(p.need > 0 ? p.into : 1, p.need > 0 ? p.need : 1, renownProgressText(tr.xp));   // at the cap, a full bar
       }

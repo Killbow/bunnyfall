@@ -105,6 +105,6 @@ test('ANY-GOODS service: a dish writ filled by stews cooked of the pack\'s goods
 
 test('ANY-GOODS words: a potion writ short of brews asks a brew at an alchemy station - a potion maker anywhere else is the client\'s mix, which the service never sees (mutants: the station unsaid)', () => {
   const w = { product: 'potion:healTrue', kind: 'potion', qty: 3 };
-  assert.equal(craftShortText(w, { pack: 7, made: 0 }), 'Brew 3 more yourself at an alchemy station - found or bought bottles do not count');
+  assert.equal(craftShortText(w, { pack: 7, made: 0 }), 'Brew 3 more yourself at an alchemy station. Found or bought bottles don’t count');
   assert.equal(craftShortText(w, { pack: 2, made: 3 }), 'Carry 1 more of these bottles in your pack');
 });

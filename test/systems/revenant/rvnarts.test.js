@@ -456,16 +456,16 @@ test('RVN-ARTS SWORN MENDING: a hurt that leaves me under two fifths (through hu
 
 test('RVN-ARTS THE WORDS: the page says what its art does - to me while it hunts (and from Rank II, with Enhanced AI), for me once sworn - and no line for one without (mutants: a side\'s words swapped; the rank\'s note gone)', () => {
   const r = withArt('barrage', { mobileType: M.Lich, rank: 1 });
-  assert.equal(A.artWords(r), 'Art: Barrage - 3 blasts at your feet, one after another. Keep moving (from Rank II).');
+  assert.equal(A.artWords(r), 'Art: Barrage. 3 blasts at your feet, one after another. Keep moving (from Rank II).');
   setPref('enhancedAI', false);
   r.rank = 2;
-  assert.equal(A.artWords(r), 'Art: Barrage - 3 blasts at your feet, one after another. Keep moving (with Enhanced AI).');
+  assert.equal(A.artWords(r), 'Art: Barrage. 3 blasts at your feet, one after another. Keep moving (with Enhanced AI).');
   const sy = withArt('siphon', { rank: 2, sworn: true });
-  assert.equal(A.artWords(sy), 'Art: Siphon - now and then it draws its foe\'s life and gives you 25% of it.', 'AUDIT RVN D13: its share its constant\'s');
+  assert.equal(A.artWords(sy), 'Art: Siphon. Now and then it drains its foe’s life and gives you 25% of it.', 'AUDIT RVN D13: its share its constant\'s');
   const s = withArt('mending', { rank: 2, sworn: true });
-  assert.equal(A.artWords(s), 'Art: Mending - when you fall under 40% of your health it heals 16% of it (every 120 seconds).', 'AUDIT RVN-STARS S9: in seconds');
+  assert.equal(A.artWords(s), 'Art: Mending. When you drop under 40% of your health, it heals 16% of it (every 120 seconds).', 'AUDIT RVN-STARS S9: in seconds');
   const w = withArt('warding', { rank: 4, sworn: true });
-  assert.equal(A.artWords(w), 'Art: Ward - as it goes into a fight it shields you for 18 (every 90 seconds).');
+  assert.equal(A.artWords(w), 'Art: Ward. As it goes into a fight, it shields you for 18 (every 90 seconds).');
   let none = null;
   for (let i = 0; i < 100 && !none; i++) if (!A.drawArt(`rv-none-${i}`, M.Orc)) none = { id: `rv-none-${i}`, mobileType: M.Orc, rank: 3 };
   assert.equal(A.artWords(none), null);

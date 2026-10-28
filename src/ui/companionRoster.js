@@ -231,7 +231,7 @@ function gearSheet(el, r, rerender, kindName) {
   const list = el('div', 'cmp-picks');
   pieces.forEach(({ it, why }, i) => {
     const line = el('div', 'cmp-pick');
-    const nm = el('span', 'cmp-pickname', t('rvn.roster.pick', '{item} - {slot}', { item: itemLongName(it), slot: gearLabel(gearKeyOf(it)) }));
+    const nm = el('span', 'cmp-pickname', t('rvn.roster.pick', '{item} · {slot}', { item: itemLongName(it), slot: gearLabel(gearKeyOf(it)) }));
     const c = tone(it); if (c && nm.style) nm.style.color = c;
     const give = keyed(el('button', `act${why ? '' : ' primary'}`, t('rvn.roster.give', 'Give')), `cmp-${r.id}-give-${i}`);
     give.title = why ?? t('rvn.roster.giveTip', 'It wears this from now on. You can take it back at any time.');
@@ -277,8 +277,8 @@ function errandSheet(el, r, rerender, now) {
     const line = el('div', 'cmp-dest');
     const mins = errandMinutes(r, p);   // RVN-STARS: its road - a share off the days
     const name = el('span', 'cmp-destname', mins % MINUTES_PER_DAY === 0
-      ? t('rvn.roster.dest', '{place} - {days, plural, one {a day} other {# days}}, danger {danger}', { place: p.name, days: mins / MINUTES_PER_DAY, danger: ROMAN[p.danger] })
-      : t('rvn.roster.destHours', '{place} - {hours} hours, danger {danger}', { place: p.name, hours: Math.round(mins / 60), danger: ROMAN[p.danger] }));
+      ? t('rvn.roster.dest', '{place} · {days, plural, one {a day} other {# days}}, danger {danger}', { place: p.name, days: mins / MINUTES_PER_DAY, danger: ROMAN[p.danger] })
+      : t('rvn.roster.destHours', '{place} · {hours} hours, danger {danger}', { place: p.name, hours: Math.round(mins / 60), danger: ROMAN[p.danger] }));
     name.append(el('span', ODDS_CLASS[oddsKind(odds)], t('rvn.roster.odds', '{word} {pct}%', { word: oddsWord(odds), pct: Math.round(odds * 100) })));
     const go = keyed(el('button', `act${why ? '' : ' primary'}`, t('rvn.roster.send', 'Send')), `cmp-${r.id}-send-${p.key}`);
     go.title = why ?? t('rvn.roster.sendTip', 'It leaves for {place} on a {venture} errand', { place: p.name, venture: VENTURES[_venture].label });

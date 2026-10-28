@@ -67,8 +67,8 @@ test('CHAT-TRADE commands: /trade, /tr and /lfg say a line on their channel; /jo
   assert.deepEqual(JOIN_CHANNELS, ['trade', 'lfg']);
   assert.equal(badJoinText('join'), '/join takes trade or lfg: /join trade.');
   for (const id of JOIN_CHANNELS) assert.ok(CHANNEL_COMMANDS.some((c) => c.tab === id), id);
-  assert.ok(HELP_LINES.includes('/trade or /tr <text> - to the Trade channel: buying, selling, swapping'));
-  assert.ok(HELP_LINES.includes('/lfg <text> - to the LFG channel: looking for a group or more players'));
+  assert.ok(HELP_LINES.includes('/trade or /tr <text>: post to the Trade channel to buy, sell or swap'));
+  assert.ok(HELP_LINES.includes('/lfg <text>: post to the LFG channel to find a group or more players'));
   assert.ok(HELP_LINES.some((l) => l.startsWith('/join trade, /join lfg')));
   assert.equal(notJoinedText('trade'), 'You are not in the Trade channel. /join trade joins it.');
   assert.equal(optJoinedText('lfg'), 'LFG channel joined. /leave lfg leaves it.');
@@ -118,7 +118,7 @@ test('CHAT-RP mark: /rp wraps the words in single asterisks, and a whole line so
   assert.equal(parseChatLine('/rp *bows*   low').text, '*bows low*');
   for (const t of ['*draws her blade*', '*a*', ' *waves* ', '*x * y*']) assert.equal(isRpText(t), true, t);
   for (const t of ['**bold**', '* *', '*', '*sighs', 'hi *x*', '*x *', '((ooc))', '']) assert.equal(isRpText(t), false, t);
-  assert.ok(HELP_LINES.includes('/rp <text> - a roleplay line on this tab, in green italics: /rp draws her blade'));
+  assert.ok(HELP_LINES.includes('/rp <text>: a roleplay line on this tab, in green italics, like /rp draws her blade'));
   assert.match(rd('src/scenes/world.js'), /if \(cmd\.kind === 'rp'\) return chatSend\(tabId, cmd\.text, tabId, opts\);/, 'said on the tab it was typed on');
 });
 

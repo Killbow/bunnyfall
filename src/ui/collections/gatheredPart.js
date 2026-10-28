@@ -55,7 +55,7 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
   if (id === 'trophies') {
     const have = gatheredOf('trophies');
     const n = gatheredCount(id, wardrobe);
-    detail.append(divider(t('coll.trophies.head', 'Trophies - {n} of {total} beasts', { n: n.held, total: n.total })));
+    detail.append(divider(t('coll.trophies.head', 'Trophies · {n} of {total} beasts', { n: n.held, total: n.total })));
     detail.append(el('p', 'coll-acct', t('coll.trophies.how', 'A named beast from a bounty board gives one, and so does a Trophy Hunter\'s clean pelt of a grade 5 or 6 body.')));
     for (const foe of trophyKeys()) {
       const row = have[foe];
@@ -64,7 +64,7 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
   } else if (id === 'fish') {
     const have = gatheredOf('fish');
     const n = gatheredCount(id, wardrobe);
-    detail.append(divider(t('coll.fish.head', 'Fish - {n} of {total} kinds', { n: n.held, total: n.total })));
+    detail.append(divider(t('coll.fish.head', 'Fish · {n} of {total} kinds', { n: n.held, total: n.total })));
     detail.append(el('p', 'coll-acct', t('coll.fish.how', 'Cast a Fishing-Net in water. Each water has its own fish.')));
     for (const s of PASSIVE_FISH_SPECIES) {
       const row = have[s.templateIndex];
@@ -72,7 +72,7 @@ export function drawGatheredPart(detail, { el, divider }, id, wardrobe) {
     }
   } else {
     const held = annalsHeldOf(wardrobe);
-    detail.append(divider(t('coll.annals.head', 'The Annals of 3E 398 - {n} of {total} pages', { n: held ? held.length : '–', total: EG_ANNALS.length })));
+    detail.append(divider(t('coll.annals.head', 'The Annals of 3E 398 · {n} of {total} pages', { n: held ? held.length : '–', total: EG_ANNALS.length })));
     if (!held) detail.append(el('p', 'coll-acct', t('coll.annals.signIn', 'Sign in to your account to read the pages it keeps.')));
     EG_ANNALS.forEach(([title, text], p) => {
       const found = !!held?.includes(p);

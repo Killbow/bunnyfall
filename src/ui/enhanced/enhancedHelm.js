@@ -366,7 +366,7 @@ function paintHelm(doc, parts, last, state, hooks, holds) {
 /** FIELD BUGS 2026-10-21d PASSAGE-HANDS: a passenger at a booked ship's helm reads her card - her name and her port, and
  *  only what a passenger keeps (passengerButtons) (scenes/naval/passageHelm.js passengerCard): her master's hand alone
  *  is on her helm while the voyage runs. */
-const passengerTitle = (p) => t('helm.passenger', '{ship}, bound for {port} - her master steers', { ship: p.ship ?? t('passage.theShip', 'The ship'), port: p.port });
+const passengerTitle = (p) => t('helm.passenger', '{ship}, bound for {port}. Her master steers', { ship: p.ship ?? t('passage.theShip', 'The ship'), port: p.port });
 
 /** HUD-HELM: the state HUD-MOVE's preview stands on - a Come Sail Away boat at the wheel with her sails stowed and her
  *  lanterns dark, the time dial at one. Named a preview on its title (buildHelmPreview), as every stand-in is. */

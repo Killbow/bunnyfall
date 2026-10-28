@@ -19,7 +19,7 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 const ROWS = [
   ['enemy-infighting', 'Enhancements/EnemyInfighting', 'True', 'Takes effect at once.'],
   ['varied-dungeon-monsters', 'Enhancements/AlternateRandomEnemySelection', 'False', 'Takes effect on the next dungeon you enter.'],
-  ['torches-from-items', 'Enhancements/PlayerTorchFromItems', 'False', 'Takes effect at once; new characters and shop stock follow it.'],
+  ['torches-from-items', 'Enhancements/PlayerTorchFromItems', 'False', 'Takes effect right away. New characters and shop stock follow it.'],
 ];
 
 test('FT10: three DFU Classic rows over live DFU keys, titled as the settings pane titles them, sound', () => {

@@ -65,7 +65,7 @@ test('PASSAGE: her master\'s ports - every port known but the one I stand at, ne
   assert.deepEqual(list.map((d) => [d.pixels, d.fare, d.bearing]), [[10, 25, 'north'], [10, 25, 'west'], [30, 50, 'east']]);
   assert.deepEqual(passageDestinations(ports, here).map((d) => d.port.name), ['Anticlere', 'Betony', 'Sentinel', 'Wayrest'], 'no port held back but one she would set me ashore at from here (AUDIT PASSAGE A1)');
   assert.deepEqual(passageDestinations(null, here), []);
-  assert.equal(PASSAGE_TEXT.row(list[2]), 'Sentinel - east, 50 gold');
+  assert.equal(PASSAGE_TEXT.row(list[2]), 'Sentinel: east, 50 gold');
 });
 
 test('PASSAGE: the voyage\'s record is a port\'s name and pixel, or nothing - what a save hands back is read through it (mutants: a nameless port kept; the pixel unread)', () => {
@@ -76,8 +76,8 @@ test('PASSAGE: the voyage\'s record is a port\'s name and pixel, or nothing - wh
 });
 
 test('PASSAGE: the words - her name with its own article, the purse beside the fare, the passage\'s end said in the question', () => {
-  assert.equal(passageHintText('The Fair Silk'), 'The Fair Silk lies at her berth - Activate to book passage.');
-  assert.equal(passageHintText(null), 'The ship lies at her berth - Activate to book passage.');
+  assert.equal(passageHintText('The Fair Silk'), 'The Fair Silk lies at her berth. Activate to book passage.');
+  assert.equal(passageHintText(null), 'The ship lies at her berth. Activate to book passage.');
   const ask = PASSAGE_TEXT.ask('Dibella\'s Grace', 'Sentinel', 50, 120);
   assert.equal(ask[0], 'Book passage on Dibella\'s Grace to Sentinel?');
   assert.equal(ask[1], 'The fare is 50 gold. You have 120.');

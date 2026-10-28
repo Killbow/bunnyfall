@@ -193,15 +193,15 @@ test('CRAFT-WRITS client: the Work tab - the character\'s crafting writs under t
   await tick();
   byClass(host, 'notice-tab')[1].click();
   for (let i = 0; i < 3; i++) await tick();
-  assert.deepEqual(byClass(host, 'notice-section').map((n) => n.textContent), ['Crafting writs - 1 of 3 today', 'Court and guild writs']);
+  assert.deepEqual(byClass(host, 'notice-section').map((n) => n.textContent), ['Crafting writs: 1 of 3 today', 'Court and guild writs']);
   assert.equal(byClass(host, 'notice-tab')[1].getAttribute('aria-label'), 'Work, 2 open', 'AUDIT CRAFT-WRITS T5: the tab counts the crafting writs open');
   const cards = byClass(host, 'notice-craft');
   assert.equal(cards.length, 2);
   assert.deepEqual(['writ-kind', 'writ-need', 'writ-made', 'writ-pay'].map((c) => byClass(cards[0], c)[0].textContent), [
-    'Crafting writ', 'The Temple of Stendarr asks you for 4 Potions of Healing', 'Of your own brewing - the bottles leave your pack.', 'Pays 42 silver, 84 Provisioning experience, 63 Renown and standing with the Temple of Stendarr']);
+    'Crafting writ', 'The Temple of Stendarr asks you for 4 Potions of Healing', 'Your own brewing. The bottles leave your pack.', 'Pays 42 silver, 84 Provisioning experience, 63 Renown and standing with the Temple of Stendarr']);
   assert.match(byClass(cards[0], 'writ-take')[0].textContent, /4 brewed by you, 5 in your pack/);
   const stew = cards[1].querySelector('button');
-  assert.deepEqual([stew.disabled, stew.title, byClass(cards[1], 'writ-walled')[0].textContent], [true, 'Make 2 more yourself - pieces you bought or sold do not count', 'Make 2 more yourself - pieces you bought or sold do not count.']);
+  assert.deepEqual([stew.disabled, stew.title, byClass(cards[1], 'writ-walled')[0].textContent], [true, 'Make 2 more yourself. Pieces you bought or sold don’t count', 'Make 2 more yourself. Pieces you bought or sold don’t count.']);
   const go = cards[0].querySelector('button');
   assert.equal(go.disabled, false);
   const before = reads;
@@ -243,7 +243,7 @@ test('AUDIT CRAFT-WRITS C1/C6/C8: the Work tab - the day\'s three filled said on
   const now = byClass(slow, 'notice-craft')[0];
   assert.deepEqual([now.className.includes('done'), now.querySelector('button'), byClass(now, 'writ-left')[0].textContent], [true, null, 'Filled by you']);
   // the realm's silence; another character
-  for (const [answer, words] of [[{ ok: false, error: 'offline', unknown: true }, /The realm did not answer\. Rejoin and look at the board again/], [{ ok: false, error: 'elsewhere', elsewhere: true }, /You are playing another character now - the writ was not delivered\./]]) {
+  for (const [answer, words] of [[{ ok: false, error: 'offline', unknown: true }, /The realm didn’t answer\. Rejoin and check the board again/], [{ ok: false, error: 'elsewhere', elsewhere: true }, /You’re playing another character now, so the writ wasn’t delivered\./]]) {
     const h = mount({ writs: [HEALING], today: { filled: 0, max: 3 } }, async () => answer);
     await tick();
     byClass(h, 'notice-tab')[1].click();

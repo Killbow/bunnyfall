@@ -121,11 +121,11 @@ const windText = (w) => WIND_TEXT[w]?.() ?? w;
 /** The words - every one through the text core (L10N4). */
 export const PASSAGE_TEXT = Object.freeze({
   /** The look comes onto her at her berth. */
-  hint: (name) => t('passage.hint', '{ship} lies at her berth - Activate to book passage.', { ship: ship(name) }),
+  hint: (name) => t('passage.hint', '{ship} lies at her berth. Activate to book passage.', { ship: ship(name) }),
   /** A row of her master's list. */
   row: (d) => (d.bearing
-    ? t('passage.row', '{port} - {wind}, {fare} gold', { port: d.port.name, wind: windText(d.bearing), fare: d.fare })
-    : t('passage.rowHere', '{port} - {fare} gold', { port: d.port.name, fare: d.fare })),
+    ? t('passage.row', '{port}: {wind}, {fare} gold', { port: d.port.name, wind: windText(d.bearing), fare: d.fare })
+    : t('passage.rowHere', '{port}: {fare} gold', { port: d.port.name, fare: d.fare })),
   /** The question, before a coin is paid. */
   ask: (name, dest, fare, gold) => [
     t('passage.ask', 'Book passage on {ship} to {port}?', { ship: ship(name), port: dest }),
@@ -139,12 +139,12 @@ export const PASSAGE_TEXT = Object.freeze({
   get none() { return t('passage.none', 'Her master knows of no port you have heard of to sail for.'); },
   get noSail() { return t('passage.noSail', 'No ship can carry you while Come Sail Away is off.'); },
   get booking() { return t('passage.booking', 'You have a passage booked already.'); },
-  get ether() { return t('passage.ether', 'Her master sails these isles alone - the Bay\'s ports are beyond the Veil.'); },
+  get ether() { return t('passage.ether', 'Her master only sails these isles. The Bay’s ports are beyond the Veil.'); },
   get gone() { return t('passage.gone', 'She has cast off.'); },
   get failed() { return t('passage.failed', 'Her master cannot make ready to sail.'); },
   get noWay() { return t('passage.noWay', 'Her master knows no way there by sea from here.'); },
-  helm: (dest) => t('passage.helm', 'Go to her helm to sail on for {port} - her master steers from there.', { port: dest }),
-  stuck: (dest) => t('passage.stuck', 'Her master can find no way on toward {port} from here - he will try again. Step ashore to end the passage.', { port: dest }),
+  helm: (dest) => t('passage.helm', 'Go to her helm to sail on for {port}. Her master steers from there.', { port: dest }),
+  stuck: (dest) => t('passage.stuck', 'Her master can’t find a way on toward {port} from here. He’ll try again. Step ashore to end the passage.', { port: dest }),
   holds: (dest) => t('passage.holds', 'Her master holds his course for {port}.', { port: dest }),
   get goods() { return t('passage.goods', 'What you put in her hold is carried off her.'); },
   /** PASSAGE-QUAY: her master brings her in to her port's quay, she is made fast there, or her way in is blocked. */

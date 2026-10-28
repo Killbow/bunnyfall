@@ -163,18 +163,18 @@ function partTiles(/** @type {any} */ kit, /** @type {ReadonlyArray<readonly [st
 function drawCodexPart(detail, rerender, { el, divider }) {
   const n = codexCount();
   const rows = codexRows();
-  detail.append(divider(t('coll.codex.gilded', 'Gilded - {n} of {total} found', { n: n.gilded, total: n.gildeds })));   // AUDIT COLLECTIONS-II (lanes 3, 5): the codex's words in the player's language, on a page every player opens
+  detail.append(divider(t('coll.codex.gilded', 'Gilded · {n} of {total} found', { n: n.gilded, total: n.gildeds })));   // AUDIT COLLECTIONS-II (lanes 3, 5): the codex's words in the player's language, on a page every player opens
   const gilded = el('div', 'codex-list');
   for (const r of codexGilded()) gilded.append(...codexLine(el, r, rerender));
   detail.append(gilded);
-  detail.append(divider(t('coll.codex.legendaries', 'Legendaries - {n} of {total} found', { n: n.legendary, total: n.legendaries })));
+  detail.append(divider(t('coll.codex.legendaries', 'Legendaries · {n} of {total} found', { n: n.legendary, total: n.legendaries })));
   const list = el('div', 'codex-list');
   for (const r of rows) list.append(...codexLine(el, r, rerender));
   detail.append(list);
-  detail.append(divider(t('coll.codex.aetheric', 'Aetheric - {n} of {total} found', { n: n.aetheric, total: n.aetherics })));
+  detail.append(divider(t('coll.codex.aetheric', 'Aetheric · {n} of {total} found', { n: n.aetheric, total: n.aetherics })));
   for (const s of codexSets()) {
     const p = el('p', 'codex-set');
-    p.append(el('span', null, t('coll.codex.set', '{name} - {n} of {total}:', { name: setById(s.set)?.name ?? s.set, n: s.pieces.filter((x) => x.found).length, total: s.pieces.length })), el('span', null, ' '));   // AUDIT CARDS-5 D12: each set's count, as the Reforge's
+    p.append(el('span', null, t('coll.codex.set', '{name} · {n} of {total}:', { name: setById(s.set)?.name ?? s.set, n: s.pieces.filter((x) => x.found).length, total: s.pieces.length })), el('span', null, ' '));   // AUDIT CARDS-5 D12: each set's count, as the Reforge's
     s.pieces.forEach((x, i) => { if (i) p.append(el('span', null, ' · ')); p.append(el('span', x.found ? null : 'unfound', x.found ? x.name : '?')); });
     detail.append(p);
   }

@@ -153,7 +153,7 @@ export function routeForecast(samples, { nowWord, now, minuteAt, wordAt }) {
 /** The way ahead in words. `dest` the journey's end's name (a place's), or null. */
 export function routeLine(f, dest = null) {
   const word = say(f.word), km = kmWords(f.d);
-  if (f.kind === 'ahead') return t('forecast.route.ahead', '{word} ahead - {km}, {eta}', { word, km, eta: etaWords(f.min) });
+  if (f.kind === 'ahead') return t('forecast.route.ahead', '{word} ahead, {km}, {eta}', { word, km, eta: etaWords(f.min) });
   if (f.kind === 'clearing') return t('forecast.route.clears', '{word} clears {km} ahead', { word, km });
   if (notable(f.word)) {
     if (!f.all) return t('forecast.route.forNext', '{word} for the next {km}', { word, km });
@@ -172,7 +172,7 @@ export function hereLine(fc, hours = HERE_HOURS) {
     const clear = fc.steps.find((s) => s.word !== nowWord), word = say(nowWord);
     if (!clear) return t('forecast.here.forNext', '{word} for the next {hours} h', { word, hours });
     const eta = etaWords(clear.at - fc.at);
-    return notable(clear.word) ? t('forecast.here.turns', '{word} - {next} {eta}', { word, next: FORECAST_TURNS[clear.word], eta }) : t('forecast.here.clearing', '{word} - clearing {eta}', { word, eta });
+    return notable(clear.word) ? t('forecast.here.turns', '{word}, then {next} {eta}', { word, next: FORECAST_TURNS[clear.word], eta }) : t('forecast.here.clearing', '{word}, clearing {eta}', { word, eta });
   }
   const comes = fc.steps.find((s) => notable(s.word));
   return comes ? t('forecast.here.comes', '{word} {eta}', { word: say(comes.word), eta: etaWords(comes.at - fc.at) }) : t('forecast.here.fair', 'Fair for the next {hours} h', { hours });

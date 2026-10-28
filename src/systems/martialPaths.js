@@ -437,7 +437,7 @@ export function martialOpenRows(open, { growth = false } = {}) {
 /** What a chosen path is, in rows (the sheets' description). */
 export function martialAboutRows(p) {
   if (!p) return [];
-  return [t('martial.about.title', '{name} - {a} and {b}', { name: p.name, ...skillsOf(p) }), '', ...martialPowerRows(p)];
+  return [t('martial.about.title', '{name}: {a} and {b}', { name: p.name, ...skillsOf(p) }), '', ...martialPowerRows(p)];
 }
 
 // ── held and awake ──────────────────────────────────────────────────

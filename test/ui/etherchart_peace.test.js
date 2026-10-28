@@ -73,7 +73,7 @@ test('ETHER-WILD the chart: the peace painted as water - before the haunts and t
   const g2 = stubContext();
   M.paintChart(g2, M.chartModel(word({ pvp: true }), at(1), W, H), W, H);
   assert.equal(g2.log.some((c) => c[0] === 'fillText' && c[1] === M.peaceName()), false, 'too small to name');
-  assert.deepEqual([...M.CHART_PEACE_KEY], ['peace', 'Veilhaven\'s peace - past it, open PvP']);
+  assert.deepEqual([...M.CHART_PEACE_KEY], ['peace', 'Veilhaven’s peace. Past it, open PvP']);
   assert.deepEqual(M.CHART_KEY.map(([k]) => k), ['port', 'ruin', 'wild', 'rock', 'ship', 'haunt', 'sunk'], 'the marks\' key as it stood');
   const kg = stubContext();
   M.paintKey(kg, 'peace', 9, 9);

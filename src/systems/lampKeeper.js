@@ -72,7 +72,7 @@ export const LAMP_LINES = Object.freeze([
   () => [t('lamp.line.0a', 'The lamp regards you.'), t('lamp.line.0b', '"Yes, I am a lamp. No, I do not wish to discuss it. Are you buying or not?"')],
   () => [t('lamp.line.1a', 'The lamp flickers, a little embarrassed.'), t('lamp.line.1b', '"I was an ordinary shopkeeper until the business in Kludge Town. Now I am a lamp. Trade has never been better."')],
   () => [t('lamp.line.2a', 'The flame leans toward you.'), t('lamp.line.2b', '"Do not stare at the wick, friend. It is rude, and it is also my face."')],
-  () => [t('lamp.line.3a', 'The lamp burns a little brighter.'), t('lamp.line.3b', '"Twenty years behind this counter and nobody has ever asked how the lamp is doing. You are the first. I love you. I mean - I love lamp."')],
+  () => [t('lamp.line.3a', 'The lamp burns a little brighter.'), t('lamp.line.3b', '"Twenty years behind this counter and nobody’s ever asked how the lamp is doing. You’re the first. I love you. I mean... I love lamp."')],
 ]);
 /** One day's words. */
 export const lampLines = (day = 0) => LAMP_LINES[((day | 0) % LAMP_LINES.length + LAMP_LINES.length) % LAMP_LINES.length]();
