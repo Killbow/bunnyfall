@@ -767,7 +767,7 @@ const service = {
     const nowS = Math.floor(Date.now() / 1000);
     const origin = env.ALLOWED_ORIGIN || '*';
     const url = new URL(request.url);
-    const path = url.pathname;
+    const path = url.pathname.replace(/^\/accounts(?=\/)/, '');   // BUNNYFALL: the service under /accounts on its own domain (src/net/selfHost.js), or bare
 
     if (request.method === 'OPTIONS') {
       return new Response(null, {

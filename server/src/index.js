@@ -674,6 +674,7 @@ async function lawKeyOf(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    url.pathname = url.pathname.replace(/^\/relay(?=\/)/, '');   // BUNNYFALL: the relay under /relay on its own domain (src/net/selfHost.js), or bare
     if (url.pathname === '/health') return json({ ok: true, service: 'daggerfall-online', version: RELAY_VERSION, t: Date.now() });
     if (url.pathname === EG_LIVE_PATH) return egLiveAsk(env.ROOMS);   // EG-H2: the Spire's live breaches, for the deploy's hold and drain
     if (url.pathname === SAFE_LAW_PATH) return lawDoor(request, env);   // SAFE4: a mute or ban the account service pushed, for the hub

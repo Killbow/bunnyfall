@@ -166,7 +166,7 @@ test('AUDIT BAG-CRAFT A1 service: a station spends the loose units first, and wh
   const spv = sword.body.pieces[0].provenance;
   const q = Number(s.raw.prepare('SELECT quality FROM products WHERE provenance = ?').get(spv).quality);
   assert.equal(s.raw.prepare('SELECT bought_with FROM products WHERE provenance = ?').get(spv).bought_with, null);
-  await s.loose(mac, 'ingot:steel', 2);
+  await s.loose(mac, 'ingot:steel', 5);   // BUNNYFALL: a temper's cost rises with the quality (temperLaw TEMPER_SHARE)
   const t = await s.ask(mac, '/v1/prof/temper', { recipe: 'longsword:steel', quality: q, provenance: spv });
   assert.equal(t.status, 200, JSON.stringify(t.body));
   assert.equal(s.raw.prepare('SELECT bought_with FROM products WHERE provenance = ?').get(spv).bought_with, 'gold', 'raised with goods no Stores had');
