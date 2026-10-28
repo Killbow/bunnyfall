@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 // BUNNYFALL: runs the relay and the account service on this machine, no Cloudflare account needed.
-// Uses wrangler's local runtime (workerd + miniflare). Everything persists under DATA (default ./data).
+// Runs both Workers in workerd (Miniflare's API, see BUNNYFALL PERF below). Everything persists under DATA (default ./data).
 //   node selfhost/start.mjs            listen on 127.0.0.1 (Windows test)
 //   BIND=0.0.0.0 node selfhost/start.mjs   listen on all interfaces (Docker)
-import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startUpdater } from './updater.mjs';
@@ -55,25 +56,59 @@ console.log('[bunnyfall] applying database migrations');
 const mig = spawnSync(process.execPath, [wrangler, 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', DATA, '-c', accountToml], { stdio: 'inherit', env });
 if (mig.status !== 0) { console.error('[bunnyfall] migrations failed'); process.exit(mig.status || 1); }
 
-const children = [];
-function run(name, args) {
-  const child = spawn(process.execPath, [wrangler, 'dev', ...args, '--persist-to', DATA, '--ip', BIND, '--show-interactive-dev-session=false'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
-  const tag = (chunk) => String(chunk).split('\n').filter((l) => l.trim() && !/Environment Variable|Durable Object|D1 Database|R2 Bucket|Analytics Engine|^\s*Binding|^\s*env\./.test(l)).map((l) => `[${name}] ${l}`).join('\n');
-  child.stdout.on('data', (c) => { const s = tag(c); if (s) console.log(s); });
-  child.stderr.on('data', (c) => { const s = tag(c); if (s) console.error(s); });
-  child.on('exit', (code) => { console.error(`[bunnyfall] ${name} stopped (${code}), shutting down`); stop(code || 1); });
-  children.push(child);
+// BUNNYFALL PERF: the Workers run straight in workerd through Miniflare's API, never `wrangler dev`. wrangler dev is a
+// development server: it puts a proxy Worker (a second workerd) in front of each Worker and every WebSocket frame
+// crosses it, watches the source tree to rebuild, polls a file registry to join the two Workers, runs an inspector
+// and records a trace of every request. Here each Worker is bundled once, both live in ONE workerd, the service
+// bindings are direct, and each listens on its own port with no hop in between. The data layout is wrangler's own
+// (DATA/v3/...), so a box that ran the old way keeps its accounts, saves and rooms.
+const require = createRequire(join(root, 'server', 'package.json'));
+const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
+const wr = require('wrangler');
+const BUILD = join(DATA, 'build');
+const parseVars = (file) => Object.fromEntries(readFileSync(file, 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+function bundle(name, toml) {
+  const out = join(BUILD, name);
+  rmSync(out, { recursive: true, force: true });
+  const r = spawnSync(process.execPath, [wrangler, 'deploy', '--dry-run', '--outdir', out, '-c', toml], { stdio: ['ignore', 'pipe', 'inherit'], env });
+  if (r.status !== 0) { console.error(`[bunnyfall] could not bundle ${name}`); process.exit(r.status || 1); }
+  const main = readdirSync(out).find((f) => /\.m?js$/.test(f) && !f.endsWith('.map'));
+  return { out, main: join(out, main) };
 }
-run('accounts', ['-c', accountToml, '--port', ACCOUNT_PORT, '--inspector-port', '9230', '--env-file', accountVars, '--test-scheduled']);
-run('relay', ['-c', relayToml, '--port', RELAY_PORT, '--inspector-port', '9231', '--env-file', relayVars]);
+function workerFrom(toml, name, varsFile, port) {
+  const { workerOptions } = wr.unstable_getMiniflareWorkerOptions(toml);
+  const b = bundle(name, toml);
+  const keep = ['compatibilityDate', 'compatibilityFlags', 'bindings', 'r2Buckets', 'd1Databases', 'durableObjects', 'serviceBindings'];
+  const opts = Object.fromEntries(keep.filter((k) => workerOptions[k] !== undefined).map((k) => [k, workerOptions[k]]));
+  return {
+    ...opts,
+    name,
+    modulesRoot: b.out,
+    modules: [{ type: 'ESModule', path: b.main }],
+    bindings: { ...opts.bindings, ...parseVars(varsFile) },
+    unsafeDirectSockets: [{ host: BIND, port: Number(port) }],
+  };
+}
+console.log('[bunnyfall] bundling the Workers');
+const accountsWorker = workerFrom(accountToml, 'daggerfall-accounts', accountVars, ACCOUNT_PORT);
+const relayWorker = workerFrom(relayToml, 'daggerfall-online', relayVars, RELAY_PORT);
+const mf = new Miniflare(convertV4MiniflareOptions({
+  host: '127.0.0.1',
+  port: 0,
+  resourcePersistencePath: join(DATA, 'v3'),
+  logRequests: false,
+  workers: [accountsWorker, relayWorker],
+}));
+await mf.ready;
+const accountsFetcher = await mf.getWorker('daggerfall-accounts');
 
-// Cloudflare would fire the account service's crons; locally we knock on its test door once a minute.
+// Cloudflare would fire the account service's crons; here the runner fires them, once a minute.
 const accountBase = `http://127.0.0.1:${ACCOUNT_PORT}`;
 setInterval(async () => {
   const crons = ['* * * * *'];
   if (new Date().getUTCMinutes() === 41) crons.push('41 * * * *');
   for (const cron of crons) {
-    try { await fetch(`${accountBase}/__scheduled?cron=${encodeURIComponent(cron)}`); } catch { /* not up yet */ }
+    try { await accountsFetcher.scheduled({ cron, scheduledTime: new Date() }); } catch (e) { console.error('[bunnyfall] cron', cron, e?.message ?? e); }
   }
 }, 60_000);
 
@@ -85,7 +120,7 @@ function stop(code = 0) {
   if (stopping) return;
   stopping = true;
   try { updater.close(); } catch { /* gone */ }
-  for (const c of children) { try { c.kill('SIGTERM'); } catch { /* gone */ } }
+  mf.dispose().catch(() => {});
   setTimeout(() => process.exit(code), 3000).unref();
 }
 process.on('SIGINT', () => stop(0));
