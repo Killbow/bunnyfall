@@ -235,7 +235,7 @@ test('TIDY1: the move tool names the sweeps it cannot follow', () => {
   assert.equal(blindSpots("const own = src.includes('./arenaText.js');", 'src/systems/arena/arenaBout.js', dirs, moved).length, 0, 'beside it in the new folder, a quoted ./ is right');
   // AUDIT TIDY A-1: a workflow's path glob that matched a moved file where it stood and not where it goes - the intro
   // workflow's `src/ui/intro*.js` lost the four intro modules to src/ui/intro/ and would have stopped running for them
-  const wf = (glob) => planMove([['src/ui/introMap.js', 'src/ui/intro/introMap.js']], new Map([['selfhost/upstream-ci/workflows/x.yml', `on:\n  pull_request:\n    paths:\n      - '${glob}'\n`]])).blind;
+  const wf = (glob) => planMove([['src/ui/introMap.js', 'src/ui/intro/introMap.js']], new Map([['.github/workflows/x.yml', `on:\n  pull_request:\n    paths:\n      - '${glob}'\n`]])).blind;
   assert.equal(wf('src/ui/intro*.js').length, 1, 'a glob the move left behind is named');
   assert.equal(wf('src/ui/intro/**').length + wf('src/**').length + wf('src/ui/**/*.js').length, 0, 'one that still matches is not');
 });

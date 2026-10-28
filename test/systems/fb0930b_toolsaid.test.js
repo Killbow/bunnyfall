@@ -603,7 +603,7 @@ test('PROF-MENU host by source: the street\'s plaque races the node over its own
   assert.match(w, /pick: \(\) => profHoverOver\(modes\.exteriorHoverPick\(cam\.pos, _hd, \{/);
   assert.match(w, /const profHoverOver = \(ray\) => gatherHost\?\.hoverHit\?\.\(ray\) \?\? ray;/);
   assert.match(w, /const nodeClicked = !useEdge && _act\.activate && !_holdFire && !modes\.transitioning && !gatherHost\?\.acting\(\) && !_actClick && !naval\?\.takesActivate\?\.\(\) && profClickPress\(\);/);   // PIN MOVED (AUDIT HERB-CURSOR B2): nor an act's click lifting
-  assert.match(w, /return typeof lit\?\.key === 'string' && lit\.key\.startsWith\('prof:'\) && lit\.id != null && \(gatherHost\?\.press\(\{ click: true \}\) \?\? false\);/);
+  assert.match(w, /return !worldPlaqueOn\(\) \? \(gatherHost\?\.press\(\) \?\? false\) : typeof lit\?\.key === 'string' && lit\.key\.startsWith\('prof:'\) && lit\.id != null && \(gatherHost\?\.press\(\{ click: true \}\) \?\? false\);/);   // PIN MOVED (BUNNYFALL USE-KEYS): with no plaque, the click does what E does
   assert.match(w, /const win = new ListPickerWindow\(\{ backdrop: 'none', items: rows, onPick: \(i\) => \{ close\(\); pick\(i\); \}, onCancel: close \}\);/, 'the list closed before the act starts');
   assert.match(w, /profClick: \(\) => profClickPress\(\),/);
   assert.match(w, /profHoverPick: \(ray\) => gatherHost\?\.hoverHit\?\.\(ray\) \?\? null,/);

@@ -293,7 +293,7 @@ export function aimAt(eyePos, at, view) {
  *   pixelInfo: (px: number, py: number) => ({ climate: number, region: number } | null),
  *   nowMs: () => number, eye: () => ({ pos: number[], dir: number[] }), view: () => ({ yaw: number, pitch: number }),
  *   feet: () => number[], entity: () => any, keyLabel: (a: string) => string,
- *   input: () => ({ held: boolean, attack: boolean, choice?: boolean }), active: () => boolean,
+ *   input: () => ({ held: boolean, attack: boolean, use?: boolean, choice?: boolean }), active: () => boolean,
  *   activeDungeon?: () => boolean, activeInterior?: () => boolean, onSettle?: () => void, clear?: (from: number[], to: number[], underground: boolean, interior?: boolean) => boolean,
  *   plaque?: () => boolean, lit?: (key: string) => any, choose?: (rows: string[], pick: (i: number) => void) => boolean,
  *   step?: (n: number) => boolean, settled?: (pos: number[]) => boolean,
@@ -316,6 +316,12 @@ export function aimAt(eyePos, at, view) {
  */
 export function createGatherHost(deps) {
   const { book, hud, kinds } = deps;
+  // BUNNYFALL USE-KEYS: E and the activation's click both work every act, so the words name both ("E / LMB")
+  const keyLabel = (a) => {
+    if (a !== 'Interact') return deps.keyLabel(a);
+    const words = [deps.keyLabel('Interact'), deps.keyLabel('ActivateCenterObject')].filter((w) => w && w !== '?');
+    return [...new Set(words)].join(' / ') || deps.keyLabel(a);
+  };
   const kindOf = (node) => kinds.find((k) => k.id === node.kind) ?? null;
   const kindOfProfession = (p) => kinds.find((k) => k.professions.includes(p)) ?? null;
   /** pixel key -> { entry, info, nodes, batches } */
@@ -332,6 +338,7 @@ export function createGatherHost(deps) {
   let passedCast = null;      // CAST-E: the cast the last press passed on - played when the host hands the press back
   let passedCastAt = 0;       // CAST-E: when (the shared clock's ms) - a press the ladder took is never handed back
   let struck = null, strikeHeld = false;   // ACT-TOUCH: the act a finger's or a pad's press struck, for the next frame
+  let ticked = null;   // BUNNYFALL USE-KEYS: the act the last tick saw - the press that starts an act is never its first strike
   let clickHeld = false;      // CLICK-LIFT: the activation's button went down while an act played, and is not yet up
   let pointerAct = null, pointerOff = null;   // HERB-CURSOR: the act the mouse was last set for, and its release
   let standSpecs = undefined; // SEASONAL-EYE: the specs that change what stands, as the pixels were last stood
@@ -782,7 +789,7 @@ export function createGatherHost(deps) {
   /** TOOL-USE: `tool` - the template whose Use asks, null for E. */
   /** PROF-MENU: `byPress` - a row pressed by the click or picked from the list: no key is held for the act, so the press
    *  holds it, as a tool's Use does (TOUCH-HOLD) - the kind's start reads it beside `tool`. */
-  const ctxFor = (t, tool = null, byPress = false) => ({ entity: deps.entity(), info: t.info, book, rank, specs, keyLabel: deps.keyLabel, pitch: t.pitch ?? null, tool, byPress });
+  const ctxFor = (t, tool = null, byPress = false) => ({ entity: deps.entity(), info: t.info, book, rank, specs, keyLabel, pitch: t.pitch ?? null, tool, byPress });
   /** REFUSALS-LEARNED (AUDIT 2026-10-01 part four): A PLAN THE SERVICE HAS REFUSED TODAY IS NO READY PLAN - the account's
    *  veins in dungeons nobody has vouched for: a count the state does not carry, so the book keeps what the refusal said
    *  (net/profBook.js `closed`) and the prompt says it, never an act played and a tool worn for the same refusal again.
@@ -1274,7 +1281,8 @@ export function createGatherHost(deps) {
         if (follow && !(follow.act.swing > 0)) follow = null;
       }
       const input = deps.input();
-      const attack = input.attack || (!!act && struck === act);   // ACT-TOUCH: the edge ring's press, or the hooks' - on the act it struck
+      const attack = input.attack || (input.use === true && act === ticked) || (!!act && struck === act);   // ACT-TOUCH: the edge ring's press, or the hooks' - on the act it struck; USE-KEYS: or E, past the press that started it
+      ticked = act;
       struck = null;
       if (act) {
         const { pos } = deps.eye();
@@ -1313,8 +1321,8 @@ export function createGatherHost(deps) {
           const ready = rows.filter(pressable);
           const plan = ready[0] ?? rows[0] ?? null;
           if (!plan || deps.plaque?.()) hud.setPrompt(null);
-          else if (ready.length > 1) hud.setPrompt({ key: deps.keyLabel('Interact'), verb: 'Choose', rest: ready.map((r) => r.verb).join(' / ') });
-          else hud.setPrompt({ key: deps.keyLabel('Interact'), verb: plan.verb, rest: plan.rest });
+          else if (ready.length > 1) hud.setPrompt({ key: keyLabel('Interact'), verb: 'Choose', rest: ready.map((r) => r.verb).join(' / ') });
+          else hud.setPrompt({ key: keyLabel('Interact'), verb: plan.verb, rest: plan.rest });
           chipProfession = plan?.profession ?? chipProfession;
           chipLeft = Math.max(chipLeft, 0.5);
         } else hud.setPrompt(null);

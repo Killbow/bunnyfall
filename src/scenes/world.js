@@ -8698,7 +8698,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  the node took it. */
   const profClickPress = () => {
     const lit = plaqueActionSelection();
-    return typeof lit?.key === 'string' && lit.key.startsWith('prof:') && lit.id != null && (gatherHost?.press({ click: true }) ?? false);
+    return !worldPlaqueOn() ? (gatherHost?.press() ?? false) : typeof lit?.key === 'string' && lit.key.startsWith('prof:') && lit.id != null && (gatherHost?.press({ click: true }) ?? false);   // BUNNYFALL USE-KEYS: with no plaque to light a row, the click does what E does
   };
   /** A DaggerfallListPickerWindow over the top window, one row each; the pick handed back by index. Its backdrop is
    *  DaggerfallPopupWindow.Draw's: the window it was pushed over drawn, then ScreenDimColor, which is Color.clear. */
@@ -11670,7 +11670,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         keyLabel: (a) => actKeyWord(a) ?? '?',   // TOUCH-HOLD: a pad in hand, its button
         // ACT-CLICK (FIELD BUGS 2026-10-01, "minig is broken doesnt work"): the act's strike is the swing's button OR the
         // activation's - mid-act a click was the act's and nothing else (AUDIT 32 H5), so a player who clicked struck nothing
-        input: () => ({ held: held(keys, 'Interact'), attack: pressed(latch.edge, keys, 'SwingWeapon') || pressed(latch.edge, keys, 'ActivateCenterObject'), choice: !csaRuntime?.isSailing() && pressed(latch.edge, keys, 'ActChoice') }),   // HELM-KEYS: a helm's hands are on the wheel - the up arrow there is More sail's (inputActions.js DEFAULT_SHARES); PROF-MENU: the key steps a node's list
+        input: () => ({ held: held(keys, 'Interact') || held(keys, 'ActivateCenterObject'), attack: pressed(latch.edge, keys, 'SwingWeapon') || pressed(latch.edge, keys, 'ActivateCenterObject'), use: pressed(latch.edge, keys, 'Interact'), choice: !csaRuntime?.isSailing() && pressed(latch.edge, keys, 'ActChoice') }),   // HELM-KEYS: a helm's hands are on the wheel - the up arrow there is More sail's (inputActions.js DEFAULT_SHARES); PROF-MENU: the key steps a node's list
         // PROF-MENU (2026-10-01, Mac: "They should use the same menu the loot menu uses and not an interaction button"): the
         // node is the loot plaque's list where the plaque stands - it names the node, so no prompt does - and the row it
         // has lit is the one a press presses; where none stands (a phone, the classic skins) the node's acts are a list
