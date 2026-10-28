@@ -155,7 +155,7 @@ test('SCALE4d the wealth budget\'s config is kept by the binding, never by the P
 });
 
 test('AUDIT SCALE4d D5: the deploy turns the database\'s read replication ON - after the migrations, before the Worker; a PUT of mode auto to the database the deploy resolved, with the deploy\'s own token; a refusal a warning, never a stop (mutants: the mode disabled; the step a GET)', () => {
-  const wf = readFileSync(new URL('../../.github/workflows/account-deploy.yml', import.meta.url), 'utf8');
+  const wf = readFileSync(new URL('../../selfhost/upstream-ci/workflows/account-deploy.yml', import.meta.url), 'utf8');
   const names = [...wf.matchAll(/^      - name: (.+)$/gm)].map((m) => m[1]);
   const at = (re) => names.findIndex((n) => re.test(n));
   const step = at(/^Turn on the database's read replicas$/);

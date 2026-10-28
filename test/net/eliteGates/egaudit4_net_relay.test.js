@@ -413,5 +413,5 @@ test('AUDIT EG IV lane3 #19 THE HOLD AS RECORDED (section 22; EG-H2\'s departure
   assert.doesNotMatch(S22, /asks each room to hold/);
   assert.match(S22, /each room holds itself as it wakes between trials - no deploy asks it/);
   assert.doesNotMatch(rd('src/net/eliteGates/egDurable.js'), /EG_INTERNAL_HOLD/);
-  assert.doesNotMatch(rd('.github/workflows/relay-deploy.yml'), /internal\/eg\/hold/);
+  assert.doesNotMatch(rd('selfhost/upstream-ci/workflows/relay-deploy.yml'), /internal\/eg\/hold/);
 });

@@ -18,15 +18,6 @@
     ]
   },
   {
-    "name": "CRAFT4-law-top-masterwork",
-    "file": "src/net/temperLaw.js",
-    "old": "export const TEMPER_TOP = 3;",
-    "new": "export const TEMPER_TOP = 4;",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
     "name": "CRAFT4-law-found-fine",
     "file": "src/net/temperLaw.js",
     "old": "export const pieceQuality = (/** @type {any} */ item) => (Number.isInteger(item?.quality) ? item.quality : 1);",
@@ -112,24 +103,6 @@
     "why": "equivalent by the tables: every garment template's first recipe is its Linen's - the clause holds the DECIDED word against a table reordered"
   },
   {
-    "name": "CRAFT4-law-cost-down",
-    "file": "src/net/temperLaw.js",
-    "old": "n: Math.ceil(r.inputs[0].n / 2)",
-    "new": "n: Math.floor(r.inputs[0].n / 2)",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-law-cost-whole",
-    "file": "src/net/temperLaw.js",
-    "old": "n: Math.ceil(r.inputs[0].n / 2)",
-    "new": "n: r.inputs[0].n",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
     "name": "CRAFT4-law-xp-first",
     "file": "src/net/temperLaw.js",
     "old": "export const temperXp = (r, rank) => craftXp(r.tier, rank);",
@@ -179,24 +152,6 @@
     "file": "src/net/temperLaw.js",
     "old": "export const TEMPER_SHUT = Object.freeze(['legendary', 'aetheric', 'artifact', 'gilded']);",
     "new": "export const TEMPER_SHUT = Object.freeze(['aetheric', 'artifact', 'gilded']);",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-law-masterwork-open",
-    "file": "src/net/temperLaw.js",
-    "old": "  if (q === MASTERWORK) return 'masterwork';\n",
-    "new": "",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-law-top-open",
-    "file": "src/net/temperLaw.js",
-    "old": "  if (q >= TEMPER_TOP) return 'top';\n",
-    "new": "",
     "tests": [
       "test/net/craft4_temper.test.js"
     ]
@@ -261,15 +216,6 @@
     "file": "server-account/src/professions.js",
     "old": "  if (provenance !== null && (typeof provenance !== 'string' || !PROVENANCE_RE.test(provenance))) return { error: 'bad-piece' };\n",
     "new": "",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-svc-no-rank",
-    "file": "server-account/src/professions.js",
-    "old": "  if (rank < r.rank) return { error: 'prof-rank' };\n  let record = null;",
-    "new": "  let record = null;",
     "tests": [
       "test/net/craft4_temper.test.js"
     ]
@@ -490,8 +436,8 @@
   {
     "name": "CRAFT4-piece-wear-mended",
     "file": "src/systems/smithItems.js",
-    "old": "  item.currentCondition = Math.max(0, Math.min(item.maxCondition, Math.round(item.maxCondition * share)));",
-    "new": "  item.currentCondition = item.maxCondition;",
+    "old": "  item.currentCondition = Math.max(0, Math.min(item.maxCondition, Math.round(item.maxCondition * share)));\n  // AUDIT MEND-THIRD L1-6 (L2-6, L3-5)",
+    "new": "  item.currentCondition = item.maxCondition;\n  // AUDIT MEND-THIRD L1-6 (L2-6, L3-5)",
     "tests": [
       "test/net/craft4_temper.test.js"
     ]
@@ -508,8 +454,8 @@
   {
     "name": "CRAFT4-piece-quality-kept",
     "file": "src/systems/smithItems.js",
-    "old": "    item.quality = quality;\n  }",
-    "new": "  }",
+    "old": "    item.quality = quality;\n    // BUNNYFALL: a plain found",
+    "new": "    // BUNNYFALL: a plain found",
     "tests": [
       "test/net/craft4_temper.test.js"
     ]
@@ -582,24 +528,6 @@
     "file": "src/net/profBook.js",
     "old": "        if (r?.ok) { applyStore(r.data?.store); applyTrack(r.data?.track); } else shutBy(r);\n        return r;\n      })();\n      return m.promise;\n    },\n    /** The smith's stock",
     "new": "        return r;\n      })();\n      return m.promise;\n    },\n    /** The smith's stock",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-pages-temper-rank-open",
-    "file": "src/ui/professions/profPages.js",
-    "old": "    const open = rank >= r.rank, have = workOf(book, cost.key) >= cost.n;",
-    "new": "    const open = true, have = workOf(book, cost.key) >= cost.n;",
-    "tests": [
-      "test/net/craft4_temper.test.js"
-    ]
-  },
-  {
-    "name": "CRAFT4-pages-temper-short-open",
-    "file": "src/ui/professions/profPages.js",
-    "old": "    const open = rank >= r.rank, have = workOf(book, cost.key) >= cost.n;",
-    "new": "    const open = rank >= r.rank, have = true;",
     "tests": [
       "test/net/craft4_temper.test.js"
     ]

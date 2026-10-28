@@ -176,12 +176,12 @@ test('L1-3: "Leave the game?" is asked when the PLAYER leaves - a close, a quit,
 // ---- lane 3 and lane 1: the release pipeline -------------------------------
 
 test('L1-1/L1-5/L3-2/L3-5/L3-6: the release workflow - no token left behind, a tag of digits, nothing re-cut in place, "latest" never by default', () => {
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const checkouts = wf.match(/- uses: actions\/checkout@v4/g) ?? [];
   // PIN MOVED (REL-FAST): the gate's checkout is verify.yml's now - its three checkouts held to the same law
   assert.equal(checkouts.length, 3);
   assert.equal((wf.match(/persist-credentials: false/g) ?? []).length, checkouts.length, 'EVERY checkout - nothing here pushes, and the publish job holds contents: write');
-  const v = rd('.github/workflows/verify.yml');
+  const v = rd('selfhost/upstream-ci/workflows/verify.yml');
   assert.equal((v.match(/- uses: actions\/checkout@v4/g) ?? []).length, 3);
   assert.equal((v.match(/persist-credentials: false/g) ?? []).length, 3, 'and the gate\'s - verify.yml - leaves no token behind either');
   assert.doesNotMatch(wf, /\$\{\{ needs\.version\.outputs\.version \}\}"? --no-git-tag-version|run: .*\$\{\{ (inputs|github\.ref_name|needs\.version)/, 'no tag or input text is pasted into a script');
@@ -195,7 +195,7 @@ test('L1-1/L1-5/L3-2/L3-5/L3-6: the release workflow - no token left behind, a t
 });
 
 test('L3-4: a build that is not a release carries no update metadata, and a copy without it never replaces itself', () => {
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const build = wf.slice(wf.indexOf('\n  build:'), wf.indexOf('\n  publish:'));
   const step = build.slice(build.indexOf('- name: No updater in a build that is not a release'), build.indexOf('- name: Build installers'));
   assert.match(step, /if: needs\.version\.outputs\.tag == ''/, 'artifacts-only runs');
@@ -221,7 +221,7 @@ test('L5-15: the Mac build is signed ad hoc after packing, and says why it reads
 
 // ---- lane 5: what the player reads -----------------------------------------
 
-test('L5-2/L5-3: the landing page promises what each download does, and a Mac player is sent where the files are', () => {
+test('L5-2/L5-3: the landing page promises what each download does, and a Mac player is sent where the files are', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   const landing = rd('index.html');
   const entry = landing.slice(landing.indexOf('<dt id="desktop">'), landing.indexOf('</dd>', landing.indexOf('<dt id="desktop">')));
   // PIN MOVED: DA13 - the GAME updates itself on every copy (the files that changed); the app itself as before

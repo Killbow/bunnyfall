@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { SPAWN_CHANCE, ELITE_CHANCE, SPAWN_KEEP, ELITE_FOE_MULTIPLIER, ELITE_HEALTH_SCALE, ELITE_DAMAGE_SCALE, isEliteSpawn, spawnsDungeon, synthesizeDungeonLocation, dungeonSightLine } from '../../src/world/spawnedDungeons.js';
 import { expandEliteEnemies, ELITE_COPY_OFFSET } from '../../src/characters/dungeonEnemies.js';
 import { calculateAttackDamage, registerFormulaOverride } from '../../src/combat/formulas.js';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 test('ELITE: the constants are the requested ones', () => {
   assert.equal(ELITE_FOE_MULTIPLIER, 3);

@@ -26,6 +26,8 @@ import { execFileSync } from 'node:child_process';   // KEY-LAW: the law as the 
 import { WEIR_KEY_ROW } from '../../../src/systems/eliteGates/weirKey.js';
 import { WEIR_KEY_LAW_ROW } from '../../../src/systems/eliteGates/weirKeyRow.js';
 import { EG_TEXT } from '../../../src/net/eliteGates/egLaw.js';
+import { setMagicDropScale } from '../../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 const SWEEP = honestItems({ seeds: 4 });
 /** A row as the item maker lays it (enchanting.js applyEnchantments): the catalogue's settings, its type the classic number. */
@@ -131,7 +133,7 @@ test('INT1: the forgeries the old wire validator took, each from an honest piece
     ['a classic flag on a port dagger', { ...common, flags: 0x10 }, 'flags'],
     ['a card no catalog prints', { ...honest((it) => typeof it.card === 'string', 'a card'), card: 'no-such-card' }, 'card'],
     ['a potion at 30% potent', { ...honest((it) => it.templateIndex === 83, 'a potion'), potent: 30 }, 'crafted'],
-    ['a quality with no craft', { ...common, quality: 4 }, 'crafted'],
+    ['a quality with no craft', { ...common, quality: 5 }, 'crafted'],   // BUNNYFALL: a found piece tempers to 4 now
     ['an id that is no id', { ...magicSword, uid: 'x' }, 'uid'],
   ];
   for (const [why, item, code] of cases) assert.ok(itemFindings(item).includes(code), `${why}: ${itemFindings(item).join(',') || 'no finding'}`);

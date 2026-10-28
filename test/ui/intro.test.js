@@ -14,7 +14,7 @@ const read = (p) => readFileSync(new URL('../../' + p, import.meta.url));
  *  tinkering with this"): systems/introTheme.js as INTRO2 left it, before INTRO3's #906 and THEME-BUFFER. */
 const INTRO2_THEME_SHA256 = '6954cf4c01f2a32e098a08c4ae4edb81b00823573076fd1c74c2f9c5ac24c8ec';
 
-test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; timing cannot drift behind a replacement track', () => {
+test('INTRO2: supplied logo and Mac\u2019s remastered recording are byte-exact; timing cannot drift behind a replacement track', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // BR4 (2026-09-27) shipped Mac's earlier cut as he supplied it
   // (real alpha; INTRO2's JPEG had a black backing to screen away). BR5
   // (2026-10-11): his Bunnyfall logo, its 800 x 600 file cut to the 526 x 322

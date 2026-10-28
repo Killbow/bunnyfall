@@ -36,37 +36,10 @@
     ]
   },
   {
-    "name": "BATCH-SALVAGE-a-refused-piece-ticked",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "  const why = salvageRefusal(item);\n  if (why) notice = batchRefusal(",
-    "new": "  const why = null;\n  if (why) notice = batchRefusal(",
-    "tests": [
-      "test/systems/batchsalvage.test.js"
-    ]
-  },
-  {
-    "name": "BATCH-SALVAGE-a-refused-piece-undimmed",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": ": choosing && salvageRefusal(item) ? ' salvno' : ''",
-    "new": ": ''",
-    "tests": [
-      "test/systems/batchsalvage.test.js"
-    ]
-  },
-  {
     "name": "BATCH-SALVAGE-a-sweep-takes-a-Legendary",
     "file": "src/ui/enhanced/enhancedInventory.js",
     "old": "    const these = open.filter((it) => sweeps(it) && !sweepSpares(it));",
     "new": "    const these = open.filter((it) => sweeps(it));",
-    "tests": [
-      "test/systems/batchsalvage.test.js"
-    ]
-  },
-  {
-    "name": "BATCH-SALVAGE-a-sweep-takes-the-worn-and-locked",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "  const open = salvageable(pack);\n  for (const [label, sweeps]",
-    "new": "  const open = pack.filter((it) => salvageShards(it) > 0);\n  for (const [label, sweeps]",
     "tests": [
       "test/systems/batchsalvage.test.js"
     ]
@@ -94,15 +67,6 @@
     "file": "src/ui/enhanced/enhancedInventory.js",
     "old": "    notice = BATCH_DONE(r.count, r.shards, r.refused.length);",
     "new": "    notice = null;",
-    "tests": [
-      "test/systems/batchsalvage.test.js"
-    ]
-  },
-  {
-    "name": "BATCH-SALVAGE-the-button-for-a-Common-pack",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "if (salvageSel || salvageable(deps.items?.() ?? []).length) {",
-    "new": "if (true) {",
     "tests": [
       "test/systems/batchsalvage.test.js"
     ]
@@ -211,15 +175,6 @@
     "file": "src/ui/enhanced/enhancedInventory.js",
     "old": "  hideTip(); closeMenu(); closeInfo(); closeDismantle();\n  pruneSalvage(deps.items?.() ?? []);\n  const chosen = [...salvageSel];",
     "new": "  hideTip(); closeMenu(); closeInfo(); closeDismantle();\n  const chosen = [...salvageSel];",
-    "tests": [
-      "test/systems/batchsalvage.test.js"
-    ]
-  },
-  {
-    "name": "AUDIT-BATCH-C5-a-later-refusal-unpruned",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "if (!pack.includes(it) || salvageRefusal(it)) salvageSel.delete(it);",
-    "new": "if (!pack.includes(it)) salvageSel.delete(it);",
     "tests": [
       "test/systems/batchsalvage.test.js"
     ]

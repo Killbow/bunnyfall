@@ -29,8 +29,8 @@ test('AUDIT UPDATE P3: the live gate - lootPowers.js registers the live player\'
   door(me);
   try {
     assert.equal(rollerLevel(), 4);
-    me._mentor = { level: 2 };
-    assert.equal(rollerLevel(), 2, 'Mentor Mode\'s level, the one the world is built at');
+    me._partyLevel = 2;   // BUNNYFALL: no mentoring; the party's average level is the one the world is built at
+    assert.equal(rollerLevel(), 2, 'the party\'s level, the one the world is built at');
   } finally { door(null); }
 });
 

@@ -65,7 +65,7 @@
   },
   {
     "name": "RELAYLOAD-input-spliced",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "node tools/relayLoad.mjs --sql \"$q\" \"$HOURS\"",
     "new": "node tools/relayLoad.mjs --sql \"$q\" \"${{ inputs.hours }}\"",
     "tests": [
@@ -74,7 +74,7 @@
   },
   {
     "name": "RELAYLOAD-refusal-drawn",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "if [ \"${code:-000}\" = \"200\" ] && node tools/relayLoad.mjs",
     "new": "if node tools/relayLoad.mjs",
     "tests": [
@@ -253,7 +253,7 @@
   },
   {
     "name": "RELAYLOAD-token-the-jobs",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "    env:\n      # The input reaches the scripts",
     "new": "    env:\n      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}\n      # The input reaches the scripts",
     "tests": [
@@ -263,7 +263,7 @@
   },
   {
     "name": "RELAYLOAD-token-guard-inverted",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "if [ -z \"${CLOUDFLARE_API_TOKEN}\" ]; then",
     "new": "if [ -n \"${CLOUDFLARE_API_TOKEN}\" ]; then",
     "tests": [
@@ -273,7 +273,7 @@
   },
   {
     "name": "RELAYLOAD-token-step-no-window",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "          node tools/relayLoad.mjs --sql kinds \"$HOURS\" > /dev/null\n",
     "new": "",
     "tests": [
@@ -283,7 +283,7 @@
   },
   {
     "name": "RELAYLOAD-url-moved",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "\"https://api.cloudflare.com/client/v4/accounts/$acct/analytics_engine/sql\"",
     "new": "\"https://api.cloudflare.com/client/v4/accounts/$acct/analytics_engine/sql/\"",
     "tests": [
@@ -293,7 +293,7 @@
   },
   {
     "name": "RELAYLOAD-method-moved",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "-w '%{http_code}' -X POST",
     "new": "-w '%{http_code}' -X GET",
     "tests": [
@@ -303,7 +303,7 @@
   },
   {
     "name": "RELAYLOAD-window-said",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "the last $(node tools/relayLoad.mjs --hours \"$HOURS\") hour(s)",
     "new": "the last ${HOURS:-3} hour(s)",
     "tests": [
@@ -313,7 +313,7 @@
   },
   {
     "name": "RELAYLOAD-wf-token-blamed",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "*) echo \"::warning::the $q question was not answered (HTTP ${code:-000}) - the API's own words follow\" ;;",
     "new": "*) echo \"::warning::the $q question was refused (HTTP ${code:-000}) - the token needs Account Analytics: Read\" ;;",
     "tests": [
@@ -323,7 +323,7 @@
   },
   {
     "name": "RELAYLOAD-wf-nothing-read-green",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "          if [ \"$answered\" = \"0\" ]; then echo \"::error::no question was answered - nothing was read\"; exit 1; fi",
     "new": "",
     "tests": [
@@ -333,7 +333,7 @@
   },
   {
     "name": "RELAYLOAD-wf-not-strict",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "          set -euo pipefail\n          acct=",
     "new": "          acct=",
     "tests": [
@@ -343,7 +343,7 @@
   },
   {
     "name": "RELAYLOAD-wf-call-unbounded",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "curl -sS --max-time 60 ",
     "new": "curl -sS ",
     "tests": [
@@ -353,7 +353,7 @@
   },
   {
     "name": "RELAYLOAD-wf-job-unbounded",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "    timeout-minutes: 10\n",
     "new": "",
     "tests": [
@@ -363,7 +363,7 @@
   },
   {
     "name": "RELAYLOAD-wf-last-warning-gone",
-    "file": ".github/workflows/relay-load.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-load.yml",
     "old": "          [ \"$failed\" = \"0\" ] || echo \"::warning::some readings are missing from the summary - see the warnings above\"\n",
     "new": "",
     "tests": [

@@ -3,10 +3,8 @@
 //   POST /v1/prof/salvage { character, rid, pieces: [{ t, m, g, c }] }
 //     -> { ok, pieces, yields: [{ key, n }], xp: { track: n }, stores: [...], tracks: [...] } | { repeat, ... } | { error }
 //
-// Found gear broken into the materials of the recipe that makes it (src/net/salvageLaw.js rollSalvage), into the
-// Stores as the character's OWN, with a little XP in each craft. The service cannot see the pack: the pieces are the
-// save's word, as a temper's found piece is (professions.js temperPiece). The client takes them out of the pack only
-// on an answer. Its row decides and answers a request asked twice.
+// Found gear broken into its recipe's materials (salvageLaw.js), into the Stores as OWN, with a little XP. The pieces
+// are the save's word (the service cannot see the pack); the client drops them only on an answer.
 import { mintId, overRate } from './accounts.js';
 import { dice } from './unitRoll.js';
 import { asks, shut, storeOf, trackRow, trackView, craftCapSql } from './professions.js';

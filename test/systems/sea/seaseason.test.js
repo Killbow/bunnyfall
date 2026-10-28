@@ -286,7 +286,7 @@ test('SEA-SEASON the seams by source: a clean checkpoint carries the figures in 
   assert.match(realm, /\.\.\.v\.steps,\n\s+\/\/ SEA-SEASON[^\n]*\n\s+\.\.\.\(v\.clean \? seaSeasonSteps\(db, \{ player: playerId, char: id \}, save, nowS\) : \[\]\),\n\s+\]\);/);
   assert.match(src('server-account/src/index.js'), /if \(path === '\/v1\/sea\/season\/board'\) \{\n\s+if \(request\.method !== 'POST'\) return no\('method', 405, origin\);\n\s+return json\(await seaSeasonBoard\(ctx, who\.player, body\), 200, origin\);/);
   assert.match(src('server-account/src/service.js'), /'\/v1\/sea\/season\/board',/);
-  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaSeasonLaw\.js"/);
+  assert.match(src('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaSeasonLaw\.js"/);
   const sea = src('src/scenes/seaVenturesHost.js');
   assert.match(sea, /const season = createSeaSeason\(\{ live, session: deps\.session, character, door: deps\.seasonDoor, now: clock \}\);/);
   assert.match(sea, /office: \(\) => \(\{ wanted: bounty\.office\(\), season: season\.office\(\) \}\),/);

@@ -55,7 +55,7 @@
 // Pure - the door, the storage, the clock and the ids are handed in - so
 // the pins drive it without a network.
 // ═══════════════════════════════════════════════════════════════════
-import { upgradeCost } from './upgradeLaw.js';   // BUNNYFALL: the material upgrade's spend
+import { metalUpgradeCost } from './upgradeLaw.js';   // BUNNYFALL: the material upgrade's spend
 import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
 import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
 import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
@@ -997,7 +997,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       if (m.promise) return m.promise;
       m.promise = (async () => {
         const next = recipeById(recipe);
-        const ready = next ? await book.ensureInStores([upgradeCost(next)], { work: true }) : { ok: true };
+        const ready = next ? await book.ensureInStores([metalUpgradeCost(next)], { work: true }) : { ok: true };
         if (!ready.ok) { m.promise = null; ids.delete(key); return { ok: false, error: ready.error ?? 'materials-short', material: ready.material, moved: ready.moved ?? 0 }; }
         const r = await ask(() => door.upgrade(c, recipe, m.id), origin);
         m.promise = null;

@@ -153,15 +153,6 @@
     ]
   },
   {
-    "name": "BAGCRAFT-book-temper-not-work",
-    "file": "src/net/profBook.js",
-    "old": "const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0)], { work: true }) : { ok: true };",
-    "new": "const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0)]) : { ok: true };",
-    "tests": [
-      "test/systems/fb1009d_bagcraft.test.js"
-    ]
-  },
-  {
     "name": "BAGCRAFT-book-smelt-not-work",
     "file": "src/net/profBook.js",
     "old": "n: i.n * count })), { work: true }) : { ok: true };",

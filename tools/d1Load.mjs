@@ -4,7 +4,7 @@
 // THE ONE DATABASE, READ BY THE OPERATOR. Every request and every cron firing writes one point to Workers Analytics
 // Engine (server-account/src/metrics.js: the route, its wall ms, its D1 statements, its D1 WAIT, its rows read and
 // written), and nothing ever read them back but a person with the SQL API at hand. This builds the questions, and
-// .github/workflows/d1-load.yml asks them with the deploy's token, by hand, beside D1's own query insights. It writes
+// selfhost/upstream-ci/workflows/d1-load.yml asks them with the deploy's token, by hand, beside D1's own query insights. It writes
 // nothing.
 //
 //   node tools/d1Load.mjs --sql <name> [hours]   one question's SQL (routes | minutes | cron | errors | written)

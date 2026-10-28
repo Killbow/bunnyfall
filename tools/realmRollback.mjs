@@ -2,7 +2,7 @@
 // ═══════════════════════════════════════════════════════════════════
 // PURSE-BACK (2026-10-19; FIELD BUGS 2026-10-18b TRADE-WRAP's repair - the owner: "We need to restore Kurasawa's account
 // to before they were in a negative balance", and, asked how it should run, "Build a workflow") - A REALM CHARACTER BACK
-// TO ITS LAST SAVE FROM BEFORE ITS PURSE WENT BELOW NOTHING, RUN FROM THE ACTIONS TAB (.github/workflows/realm-rollback.yml).
+// TO ITS LAST SAVE FROM BEFORE ITS PURSE WENT BELOW NOTHING, RUN FROM THE ACTIONS TAB (selfhost/upstream-ci/workflows/realm-rollback.yml).
 //
 // TRADE-WRAP's counter paid a big lot's sale millions below nothing into the purse, and a purse below nothing is a law
 // finding (server-account/src/judge.js purseWord, code 'gold'): the character is held, and no checkpoint after it is

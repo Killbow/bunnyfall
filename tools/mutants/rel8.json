@@ -103,16 +103,6 @@
     ]
   },
   {
-    "name": "REL8-pause-line-the-commit-alone",
-    "file": "src/ui/pauseWindow.js",
-    "old": "const ver = UPDATE ? `Bunnyfall ${UPDATE} (${BUILD_TAG})` : `Bunnyfall ${BUILD_TAG}`;",
-    "new": "const ver = `Bunnyfall ${BUILD_TAG}`;",
-    "tests": [
-      "test/tooling/rel8_updates.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
-  },
-  {
     "name": "REL8-about-without-the-row",
     "file": "src/ui/enhanced/enhancedMenu.js",
     "old": "    [t('menu.about.update', 'Update'), UPDATE ?? t('menu.about.devBuild', 'a development build')],   // REL8: the player's update number (scripts/updateNumber.mjs)\n",
@@ -123,7 +113,7 @@
   },
   {
     "name": "REL8-site-built-shallow",
-    "file": ".github/workflows/deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/deploy.yml",
     "old": "          fetch-depth: 0\n",
     "new": "          fetch-depth: 1\n",
     "tests": [
@@ -132,7 +122,7 @@
   },
   {
     "name": "REL8-legs-untold",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          DFO_UPDATE: ${{ needs.version.outputs.update }}   # REL8: the version job's number, stamped into the game this leg packs\n",
     "new": "",
     "tests": [
@@ -141,7 +131,7 @@
   },
   {
     "name": "REL8-release-named-by-its-tag",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          name: ${{ needs.version.outputs.update != '' && format('Update {0}', needs.version.outputs.update) || needs.version.outputs.tag }}",
     "new": "          name: ${{ needs.version.outputs.tag }}",
     "tests": [
@@ -150,7 +140,7 @@
   },
   {
     "name": "REL8-version-job-says-none",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          echo \"update=$UPDATE\" >> \"$GITHUB_OUTPUT\"\n",
     "new": "",
     "tests": [

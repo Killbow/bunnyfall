@@ -18,7 +18,7 @@
 //
 // ═══ WHY `--pipe` EXISTS, AND WHY IT EMITS BOTH HALVES AT ONCE ═════
 //
-// `.github/workflows/account-deploy.yml` mints the pair and pipes each
+// `selfhost/upstream-ci/workflows/account-deploy.yml` mints the pair and pipes each
 // half STRAIGHT INTO `wrangler secret put`, so no person ever sees the
 // private one and no file ever holds it. Two things make that safe, and
 // both are properties of this tool rather than of the workflow:

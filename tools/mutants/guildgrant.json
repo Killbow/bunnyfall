@@ -71,7 +71,7 @@
   },
   {
     "name": "GUILDGRANT-an-input-spliced-into-a-run-line",
-    "file": ".github/workflows/guild-grant.yml",
+    "file": "selfhost/upstream-ci/workflows/guild-grant.yml",
     "old": "node tools/grantGuildGold.mjs --look \"$GUILD\"",
     "new": "node tools/grantGuildGold.mjs --look \"${{ inputs.guild }}\"",
     "tests": [
@@ -81,7 +81,7 @@
   },
   {
     "name": "GUILDGRANT-a-missing-guild-passes",
-    "file": ".github/workflows/guild-grant.yml",
+    "file": "selfhost/upstream-ci/workflows/guild-grant.yml",
     "old": "          if [ \"$(echo \"$rows\" | jq -r 'length')\" != \"1\" ]; then\n            echo \"::error::no guild is named",
     "new": "          if [ \"$(echo \"$rows\" | jq -r 'length')\" = \"-1\" ]; then\n            echo \"::error::no guild is named",
     "tests": [
@@ -91,7 +91,7 @@
   },
   {
     "name": "GUILDGRANT-an-award-that-changed-none-passes",
-    "file": ".github/workflows/guild-grant.yml",
+    "file": "selfhost/upstream-ci/workflows/guild-grant.yml",
     "old": "          if [ \"$(echo \"$rows\" | jq -r 'length')\" != \"1\" ]; then\n            echo \"::error::the award changed no guild",
     "new": "          if [ \"$(echo \"$rows\" | jq -r 'length')\" = \"-1\" ]; then\n            echo \"::error::the award changed no guild",
     "tests": [
@@ -101,7 +101,7 @@
   },
   {
     "name": "GUILDGRANT-the-award-on-a-dry-run",
-    "file": ".github/workflows/guild-grant.yml",
+    "file": "selfhost/upstream-ci/workflows/guild-grant.yml",
     "old": "      - name: Award the gold\n        if: env.APPLY == 'true'\n",
     "new": "      - name: Award the gold\n",
     "tests": [

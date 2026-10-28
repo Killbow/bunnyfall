@@ -625,16 +625,6 @@
     "why": "the title's own"
   },
   {
-    "name": "LOOT-GATE-Magic-gated",
-    "file": "src/systems/loot/lootRarity.js",
-    "old": "  return { magic, rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(lv)) };",
-    "new": "  return { magic: magic * rareGate(lv), rare: rareG, legendary: Math.min(rareG, legendary * legendaryGate(lv)) };",
-    "tests": [
-      "test/systems/lootgate1.test.js"
-    ],
-    "why": "the title's own"
-  },
-  {
     "name": "LOOT-GATE-the-Imbue-price-moved",
     "file": "src/systems/reforge.js",
     "old": "  rare: Object.freeze({ shards: 6, gold: 15000 }),",

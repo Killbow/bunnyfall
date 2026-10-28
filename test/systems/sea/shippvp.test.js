@@ -799,5 +799,5 @@ test('SHIP-PVP the seams by source: the naval host\'s guns asked and its seams b
   assert.match(idx, /path === '\/v1\/sea\/wreck' \? await seaWreck\(sctx, who\.player, body, \{ gateKey: await gatePublicKey\(env, subtle\) \}\)/);
   assert.match(idx, /: path === '\/v1\/sea\/prize\/collect' \? await seaPrizeCollect\(sctx, who\.player, body\) : await seaPrizeReclaim\(sctx, who\.player, body\);/);
   assert.match(src('server-account/src/service.js'), /'\/v1\/sea\/wreck', '\/v1\/sea\/prize\/collect', '\/v1\/sea\/prize\/reclaim',/);
-  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaPrizeLaw\.js"/);
+  assert.match(src('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/sea\/seaPrizeLaw\.js"/);
 });

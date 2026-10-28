@@ -223,7 +223,7 @@ test('AUDIT RENOWN1 DATA-4 at the route: `rid` rides the body to the report, and
   const freshAgain = (await call('POST', '/v1/renown/xp', { character: B.id, xp: 1, rid: 'bbbbbbbbbbbbbbbb' }, me.secret)).body;
   assert.deepEqual([freshAgain.repeat, freshAgain.order], [true, null], 'a repeat at level 1 has no rise to carry');
   assert.equal(fresh.credited, 1);
-  const yml = src('.github/workflows/account-deploy.yml');
+  const yml = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   assert.match(yml, /"\$base\/v1\/renown\/xp"/, 'the deploy reports to the real D1');
   assert.match(yml, /grep -q '"credited":1' \/tmp\/renown\.json/);
   assert.match(yml, /grep -q '"repeat":true' \/tmp\/renown2\.json/);

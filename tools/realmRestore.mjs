@@ -7,7 +7,7 @@
 // character's online home, guild place and Renown track to its realm id before the first save was sent, and the door's
 // Delete on a character whose first save never landed took them with it - the home's pieces and hidden furniture by the
 // tables' cascade - and left the census spent (bible/01-Overview/bugs/Field-Bugs-2026-09-29.md, HOUSE-LOSS). Those rows are
-// gone from the database; D1 Time Travel still holds them. The operator's workflow (.github/workflows/realm-restore.yml)
+// gone from the database; D1 Time Travel still holds them. The operator's workflow (selfhost/upstream-ci/workflows/realm-restore.yml)
 // reads a snapshot from before the loss (THEN) and the database as it stands (NOW), and this plans what comes back.
 //
 // MAC'S CALL, AS ASKED ("To the offline character"): everything a deleted customs character took comes back to the

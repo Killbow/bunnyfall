@@ -23,7 +23,7 @@ test('DA6/REL1/REL3: the release\'s number is ONE variable - the tag and the sta
   // PATCH from the commit count on main - into one shell variable, and
   // both the release tag and the `npm version` stamp electron-builder
   // bakes in read that variable. There is no second number to drift.
-  const wf = fs.readFileSync(path.join(root, '.github/workflows/release-desktop.yml'), 'utf8');
+  const wf = fs.readFileSync(path.join(root, 'selfhost/upstream-ci/workflows/release-desktop.yml'), 'utf8');
   assert.match(wf, /TAG="app-v\$\{BASE\}\.\$\(git rev-list --count HEAD\)"/, 'a main push derives the tag from the base and the commit count');
   assert.match(wf, /BASE=\$\(node -p "require\('\.\/app\/package\.json'\)\.version\.split\('\.'\)\.slice\(0,2\)\.join\('\.'\)"\)/, 'the base is the committed MAJOR.MINOR');
   // AUDIT INSTALL L1-5: the tag is app-v<n>.<n>.<n> EXACTLY or the run fails - a tag name can carry quotes and `$`
@@ -86,7 +86,7 @@ test('DA6: equal and unparseable are NOT newer - the failure direction is silenc
   assert.equal(isNewerRelease(undefined, undefined), false);
 });
 
-test('DA6: the wiring pins - one API, two gates, and probes never touch the network', () => {
+test('DA6: the wiring pins - one API, two gates, and probes never touch the network', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   const main = fs.readFileSync(path.join(root, 'app', 'main.cjs'), 'utf8');
   // ONE read-only API, the repo's own - the app's only network use of
   // its own, and the landing page's honesty line depends on it staying

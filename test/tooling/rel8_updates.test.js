@@ -113,7 +113,7 @@ test('REL8 (BUILD-LEFTOVERS, 2026-10-15) ONE STAMP: every name the game imports 
   // (AUDIT BUILD-LEFTOVERS, the second read: any spelling of the assignment, in every script a build or a release runs -
   // the shell steps, the desktop app's and the workflows' too; one spelling in two folders let a stamp of its own by)
   const scriptsOf = (dir) => readdirSync(join(ROOT, dir), { recursive: true }).map(String).filter((f) => /\.(m?js|cjs|sh|ya?ml)$/.test(f) && !/(^|[\\/])node_modules[\\/]/.test(f)).map((f) => join(dir, f));
-  const strays = [...scriptsOf('tools'), ...scriptsOf('scripts'), ...scriptsOf('app'), ...scriptsOf('.github/workflows'), 'package.json']
+  const strays = [...scriptsOf('tools'), ...scriptsOf('scripts'), ...scriptsOf('app'), ...scriptsOf('selfhost/upstream-ci/workflows'), 'package.json']
     .filter((f) => f !== join('scripts', 'buildTag.mjs') && /\bBUILD_TAG\s*=(?!=)/.test(rd(f)));
   assert.deepEqual(strays, [], 'a stamp of its own - write src/buildTag.js through tagSource');
 });
@@ -138,9 +138,9 @@ test('REL8: the game says it - the pause window\'s version line leads with the n
 });
 
 test('REL8: the site and the release derive it where the history is whole, and every leg is told the one number; the release is named for it', () => {
-  const deploy = rd('.github/workflows/deploy.yml');
+  const deploy = rd('selfhost/upstream-ci/workflows/deploy.yml');
   assert.match(deploy, /- name: Checkout production\n\s+uses: actions\/checkout@v4\n\s+with:\n\s+ref: \$\{\{ needs\.main\.outputs\.sha \}\}\n\s+path: production\n(?:\s+#[^\n]*\n)*\s+fetch-depth: 0\n/, 'the production build counts main\'s history');
-  const rel = rd('.github/workflows/release-desktop.yml');
+  const rel = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   assert.match(rel, /\n {6}update: \$\{\{ steps\.reltag\.outputs\.update \}\}\n/, 'the version job\'s output');
   assert.match(rel, /UPDATE=\$\(node scripts\/updateNumber\.mjs\)\n\s+if \[ -n "\$UPDATE" \] && ! \[\[ "\$UPDATE" =~ \^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]; then/, 'derived once, digits only');
   assert.match(rel, /echo "update=\$UPDATE" >> "\$GITHUB_OUTPUT"/);

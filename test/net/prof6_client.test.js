@@ -423,5 +423,5 @@ test('PROF6 wiring: the routes behind a session and in the Worker\'s table with 
   const css = src('src/ui/enhanced/enhancedPlusStyle.js');
   assert.match(css, /\.notice-card\.seal-commission, \.notice-read\.seal-commission \{ --seal: #3f7a3a; \}/);
   assert.match(css, /\.work-row \{ display: flex; flex-wrap: wrap;/);
-  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/writLaw\.js"/);
+  assert.match(src('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/writLaw\.js"/);
 });

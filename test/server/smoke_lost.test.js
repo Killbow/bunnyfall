@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const ROOT = new URL('../../', import.meta.url);
-const YML = readFileSync(new URL('.github/workflows/account-deploy.yml', ROOT), 'utf8');
+const YML = readFileSync(new URL('selfhost/upstream-ci/workflows/account-deploy.yml', ROOT), 'utf8');
 const STEP = 'Verify a password route really runs on the platform';
 const REACHED = 'SMOKE-REACHED-THE-HOMES';
 

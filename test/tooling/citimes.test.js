@@ -125,8 +125,8 @@ test('CI-TIMES THE SHARD RECORDS: runTests hands a runner with a record the summ
 });
 
 test('CI-TIMES THE WORKFLOWS: `times` finds the newest saved times (a lookup, nothing downloaded); every shard needs it and restores THAT key exactly, failing on a miss, before it runs - so all eight split by the same times; each shard records and keeps its record; after a green run the PR\'s check and the deploy save the merge under a key the lookup finds, beside the result, never ahead of it (mutants: the shards by the newest each; a miss run on; no record; a failed upload failing the shard; the save out of the lookup\'s reach; the check waiting on the save)', () => {
-  const v = read('.github/workflows/verify.yml'), tt = read('.github/workflows/test-times.yml');
-  const c = read('.github/workflows/check.yml'), d = read('.github/workflows/deploy.yml');
+  const v = read('selfhost/upstream-ci/workflows/verify.yml'), tt = read('selfhost/upstream-ci/workflows/test-times.yml');
+  const c = read('selfhost/upstream-ci/workflows/check.yml'), d = read('selfhost/upstream-ci/workflows/deploy.yml');
   assert.match(v, /\n {4}outputs:\n {6}times:\n {8}description: [^\n]+\n {8}value: \$\{\{ jobs\.times\.outputs\.key \}\}\n/);
   const times = v.slice(v.indexOf('\n  times:\n'), v.indexOf('\n  test:\n'));
   assert.match(times, /outputs:\n {6}key: \$\{\{ steps\.find\.outputs\.cache-matched-key \}\}\n/);

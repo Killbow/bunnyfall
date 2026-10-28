@@ -2,7 +2,7 @@
 // ASD-STE100 Simplified Technical English (STE)") - A PULL REQUEST'S PATCH
 // NOTES ARE WRITTEN IN STE. scripts/steNotes.mjs reads a description's notes
 // as the release reads them (patchNotesOf) and reports each place they break
-// a rule of STE a machine can read; .github/workflows/ste-notes.yml runs it
+// a rule of STE a machine can read; selfhost/upstream-ci/workflows/ste-notes.yml runs it
 // on every description. Each rule is pinned both ways here: a sentence that
 // breaks it is found, and its STE twin is clean.
 import { test } from 'node:test';
@@ -103,7 +103,7 @@ test('STE-NOTES: no helping verb that makes a complex verb - the simple present,
 });
 
 test('STE-NOTES: only the patch notes are read - the reviewers\' sections, the template and a description without notes are not', () => {
-  const template = rd('.github/pull_request_template.md');
+  const template = rd('selfhost/upstream-ci/pull_request_template.md');
   assert.deepEqual(steFindings(template), [], 'the template as it stands is no notes');
   assert.deepEqual(steFindings('## What changed\n\nIt\'s rewritten; having been broken.'), []);
   assert.deepEqual(steFindings(null), []);
@@ -126,7 +126,7 @@ test('STE-NOTES: the check runs as a program - 1 with the findings named, 0 when
     assert.match(bad.stdout, /"doesn't" is a contraction/);
     const good = run(pr('- You now pick a lock in a game. A pick that breaks is gone.'));
     assert.equal(good.status, 0, good.stdout);
-    const none = run(rd('.github/pull_request_template.md'));
+    const none = run(rd('selfhost/upstream-ci/pull_request_template.md'));
     assert.equal(none.status, 0);
     assert.match(none.stdout, /no patch notes/);
   } finally {
@@ -135,7 +135,7 @@ test('STE-NOTES: the check runs as a program - 1 with the findings named, 0 when
 });
 
 test('STE-NOTES: the pull request\'s ste-notes check reads every description - opened, edited, pushed - as data, with a read-only token', () => {
-  const wf = rd('.github/workflows/ste-notes.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/ste-notes.yml');
   assert.match(wf, /\non:\n {2}pull_request:\n {4}types: \[opened, edited, reopened, synchronize\]\n/, 'an edited description is read again');
   assert.doesNotMatch(wf.replace(/^\s*#.*$/gm, ''), /pull_request_target/, 'the pull request\'s own script, never with the repository\'s token');
   assert.match(wf, /\npermissions:\n {2}contents: read\n/);
@@ -158,7 +158,7 @@ test('STE-NOTES: the pull request\'s ste-notes check reads every description - o
     rmSync(dir, { recursive: true, force: true });
   }
   // the template tells the writer the law before the check does
-  const template = rd('.github/pull_request_template.md');
+  const template = rd('selfhost/upstream-ci/pull_request_template.md');
   assert.match(template, /ASD-STE100 Simplified Technical English/);
   assert.match(template, /scripts\/steNotes\.mjs/);
 });

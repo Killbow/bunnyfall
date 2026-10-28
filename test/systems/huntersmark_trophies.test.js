@@ -195,5 +195,5 @@ test('HUNTERS-MARK THE FOUR HOSTS\' WIRING (Bounty-Boards.md 12.8): the streamin
   assert.match(world, /    hunt: huntOnline\(params\.has\('online'\), saveSoon\),\n/);
   assert.match(world, /huntKind\(\{ book: profBook, bodies: \(\) => huntBodies\(\), openLoot: openHuntLoot, trophy: trophyDoor\(saveSoon\) \}\)/);
   assert.match(src('src/ui/enhanced/enhancedMenu.js'), /statsHunt\(detail, \{ el, divider: pxDivider, meter: pxMeter \}\);/);
-  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/trophyLaw\.js"/);
+  assert.match(src('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/trophyLaw\.js"/);
 });

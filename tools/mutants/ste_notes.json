@@ -271,7 +271,7 @@
   },
   {
     "name": "STE-NOTES-28-edit-unread",
-    "file": ".github/workflows/ste-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/ste-notes.yml",
     "old": "    types: [opened, edited, reopened, synchronize]",
     "new": "    types: [opened, reopened, synchronize]",
     "tests": [
@@ -281,7 +281,7 @@
   },
   {
     "name": "STE-NOTES-29-tee-swallows",
-    "file": ".github/workflows/ste-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/ste-notes.yml",
     "old": "          set -o pipefail\n",
     "new": "",
     "tests": [
@@ -291,7 +291,7 @@
   },
   {
     "name": "STE-NOTES-30-template-silent",
-    "file": ".github/pull_request_template.md",
+    "file": "selfhost/upstream-ci/pull_request_template.md",
     "old": "Write them in ASD-STE100 Simplified Technical English (STE-NOTES)",
     "new": "Write them for players",
     "tests": [
@@ -301,7 +301,7 @@
   },
   {
     "name": "STE-NOTES-31-sparse-short",
-    "file": ".github/workflows/ste-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/ste-notes.yml",
     "old": "            tools/lib\n            app/lib\n",
     "new": "            tools/lib\n",
     "tests": [

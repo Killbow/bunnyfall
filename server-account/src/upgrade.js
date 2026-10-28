@@ -11,7 +11,7 @@ import { asks, shut, storeOf, trackRow, trackView, craftCapSql, workableSql, wor
 import { firmStatsOf } from './firmament.js';
 import { rankOfXp, trackOf, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { scaleXp, xpPct } from '../../src/net/firmament/firmamentLaw.js';
-import { upgradeTarget, upgradeCost, upgradeXp } from '../../src/net/upgradeLaw.js';
+import { upgradeTarget, metalUpgradeCost, upgradeXp } from '../../src/net/upgradeLaw.js';
 
 async function upgradeAnswer(db, player, row, nowS, extra = {}) {
   return {
@@ -37,7 +37,7 @@ export async function upgradeMaterial(ctx, player, env, { character, recipe: id,
   const track = await trackRow(db, player.id, character, craft);
   const rank = rankOfXp(Number(track?.xp ?? 0));
   if (rank < r.rank) return { error: 'prof-rank' };
-  const cost = upgradeCost(r);
+  const cost = metalUpgradeCost(r);
   const cap = craftCapSql('?1', '?2', craft);
   const xp = scaleXp(upgradeXp(r, rank), xpPct(await firmStatsOf(db, player, env, character), craft));
   const nonce = mintId(rand);

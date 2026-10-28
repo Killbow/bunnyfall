@@ -195,7 +195,7 @@
   },
   {
     "name": "AUDIT-CLAWS-CI-the-deploy-filter-without-it",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "      - \"src/combat/clawMetal.js\"\n",
     "new": "",
     "tests": [

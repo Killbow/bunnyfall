@@ -325,8 +325,8 @@
   "by": "claude-in-session"
  },
  "account.codes.fileHead": {
-  "en": "0d73b3425a99",
-  "tr": "d3b1b348dede",
+  "en": "739c9538b34b",
+  "tr": "6d7d0e67adef",
   "by": "claude-in-session"
  },
  "account.codes.fileNote": {
@@ -3050,8 +3050,8 @@
   "by": "claude-in-session"
  },
  "account.refusal.profTemperTop": {
-  "en": "7efce6ca8d0e",
-  "tr": "b8350eacc195",
+  "en": "4d9785b9e376",
+  "tr": "942c35a2a368",
   "by": "claude-in-session"
  },
  "account.refusal.profTransmuter": {
@@ -8320,8 +8320,8 @@
   "by": "claude-in-session"
  },
  "coll.how.patron": {
-  "en": "d218cd5c236e",
-  "tr": "00b11324fbd7",
+  "en": "5cf38e6452e9",
+  "tr": "5d1a0a2c1e39",
   "by": "claude-in-session"
  },
  "coll.how.protector": {
@@ -14589,6 +14589,11 @@
   "tr": "86057eb517ea",
   "by": "claude-in-session"
  },
+ "inventory.batch.allPlain": {
+  "en": "944675bf987e",
+  "tr": "859f6e2d6544",
+  "by": "claude-in-session"
+ },
  "inventory.batch.allRare": {
   "en": "e467bb5f033e",
   "tr": "2c2af816b199",
@@ -17525,8 +17530,8 @@
   "by": "claude-in-session"
  },
  "menu.brand.alt": {
-  "en": "2c59b884ccf1",
-  "tr": "2c59b884ccf1",
+  "en": "97ff5f2b1a91",
+  "tr": "97ff5f2b1a91",
   "by": "claude-in-session"
  },
  "menu.chat.colours": {
@@ -17975,8 +17980,8 @@
   "by": "claude-in-session"
  },
  "menu.home.homeAria": {
-  "en": "c920f897c537",
-  "tr": "41e641b7a6ca",
+  "en": "8226520ba965",
+  "tr": "2f5d6b7c4d59",
   "by": "claude-in-session"
  },
  "menu.home.offline": {
@@ -18140,8 +18145,8 @@
   "by": "claude-in-session"
  },
  "menu.intro.aria": {
-  "en": "a6cae2e21083",
-  "tr": "95a97e58b0ae",
+  "en": "8e51c01c366d",
+  "tr": "9020be9d11a7",
   "by": "claude-in-session"
  },
  "menu.intro.begin": {
@@ -31940,8 +31945,8 @@
   "by": "claude-in-session"
  },
  "report.build.name": {
-  "en": "2c59b884ccf1",
-  "tr": "2c59b884ccf1",
+  "en": "97ff5f2b1a91",
+  "tr": "97ff5f2b1a91",
   "by": "claude-in-session"
  },
  "report.build.unknown": {
@@ -31950,8 +31955,8 @@
   "by": "claude-in-session"
  },
  "report.build.update": {
-  "en": "8d1c81fec3bb",
-  "tr": "8d1c81fec3bb",
+  "en": "df5a07e94809",
+  "tr": "df5a07e94809",
   "by": "claude-in-session"
  },
  "report.closedAs": {

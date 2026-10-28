@@ -121,7 +121,7 @@
   },
   {
     "name": "ACC2-13-the-bucket-listing-falls-back-to-empty",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "          list=$($WRANGLER r2 bucket list | sed 's/\\x1b\\[[0-9;]*m//g')",
     "new": "          list=$($WRANGLER r2 bucket list 2>/dev/null || echo '')",
     "tests": [
@@ -131,7 +131,7 @@
   },
   {
     "name": "ACC2-14-the-bucket-name-is-typed-into-the-workflow",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "          want=$(grep -oP '^bucket_name\\s*=\\s*\"\\K[^\"]+' server-account/wrangler.toml)",
     "new": "          want=daggerfall-saves",
     "tests": [

@@ -208,7 +208,7 @@
   },
   {
     "name": "REV-wf-apply-by-default",
-    "file": ".github/workflows/realm-revive.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-revive.yml",
     "old": "      apply:\n        description: \"Write the revive. Leave it off for a dry run that only reports.\"\n        required: true\n        default: false",
     "new": "      apply:\n        description: \"Write the revive. Leave it off for a dry run that only reports.\"\n        required: true\n        default: true",
     "tests": [
@@ -217,7 +217,7 @@
   },
   {
     "name": "REV-wf-lift-over-a-rewind",
-    "file": ".github/workflows/realm-revive.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-revive.yml",
     "old": "        if: always() && env.HELD == '1' && env.REWOUND != '1'",
     "new": "        if: always() && env.HELD == '1'",
     "tests": [
@@ -226,7 +226,7 @@
   },
   {
     "name": "REV-wf-the-present-left",
-    "file": ".github/workflows/realm-revive.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-revive.yml",
     "old": "      - name: Put the present back\n        if: always() && env.REWOUND == '1'",
     "new": "      - name: Put the present back\n        if: env.REWOUND == '1'",
     "tests": [

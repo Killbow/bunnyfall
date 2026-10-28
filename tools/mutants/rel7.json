@@ -51,7 +51,7 @@
   },
   {
     "name": "REL7-9-a-schedule-of-its-own",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "on:\n  workflow_dispatch:",
     "new": "on:\n  schedule:\n    - cron: '0 * * * *'\n  workflow_dispatch:",
     "tests": [
@@ -71,7 +71,7 @@
   },
   {
     "name": "REL7-7-the-tag-unchecked",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "          if ! [[ \"$TAG\" =~ ^app-v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then",
     "new": "          if ! [[ \"$TAG\" =~ ^app-v ]]; then",
     "tests": [
@@ -81,7 +81,7 @@
   },
   {
     "name": "REL7-8-a-text-sort",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "--list 'app-v*' --sort=v:refname | head -n 1)",
     "new": "--list 'app-v*' | head -n 1)",
     "tests": [
@@ -101,7 +101,7 @@
   },
   {
     "name": "REL7-11-an-open-pull-request-too",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "(github.event.pull_request.merged && github.event.changes.body && ",
     "new": "(github.event.changes.body && ",
     "tests": [
@@ -121,7 +121,7 @@
   },
   {
     "name": "REL7-13-the-pull-request-s-code",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "          ref: ${{ github.event.repository.default_branch }}",
     "new": "          ref: ${{ github.event.pull_request.head.sha }}",
     "tests": [
@@ -131,7 +131,7 @@
   },
   {
     "name": "REL7-14-no-release-yet-fails",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "              echo \"no release carries #$PR yet - the next one reads its description as it is\"\n              exit 0",
     "new": "              echo \"no release carries #$PR yet - the next one reads its description as it is\"\n              exit 1",
     "tests": [
@@ -141,7 +141,7 @@
   },
   {
     "name": "REL7-15-write-with-no-release",
-    "file": ".github/workflows/release-notes.yml",
+    "file": "selfhost/upstream-ci/workflows/release-notes.yml",
     "old": "      - name: Write the notes again\n        if: steps.release.outputs.tag != ''\n",
     "new": "      - name: Write the notes again\n",
     "tests": [

@@ -52,7 +52,7 @@ test('FLOW1 the split: every file in exactly one shard, whatever the count; the 
 });
 
 test('FLOW1 the workflows: verify.yml is the one check - lint and the types, every shard of the suite, the build; the PR\'s `check` passes only when all of it did (a skipped required check would pass, so it runs always and reads the result); the deploy verifies, builds and publishes ONE pinned commit, and publishes only after every part passed (mutants: a shard left out of the matrix; the aggregate skipped on failure; the deploy before the verification)', () => {
-  const v = read('.github/workflows/verify.yml');
+  const v = read('selfhost/upstream-ci/workflows/verify.yml');
   assert.match(v, /on:\n {2}workflow_call:/);
   const matrix = /shard: \[([\d, ]+)\]/.exec(v);
   assert.ok(matrix, 'a shard matrix');
@@ -63,11 +63,11 @@ test('FLOW1 the workflows: verify.yml is the one check - lint and the types, eve
   assert.match(v, /run: npm run lint\n[\s\S]*?run: npm run types/);
   assert.match(v, /build:\n {4}if: \$\{\{ inputs\.build \}\}[\s\S]*?run: npm run build/);
   for (const job of ['static', 'test', 'build']) assert.match(v, new RegExp(`\\n  ${job}:[\\s\\S]*?ref: \\$\\{\\{ inputs\\.ref \\}\\}`), `${job} checks out the ref it is asked`);
-  const c = read('.github/workflows/check.yml');
+  const c = read('selfhost/upstream-ci/workflows/check.yml');
   assert.match(c, /verify:\n {4}uses: \.\/\.github\/workflows\/verify\.yml/);
   assert.match(c, /\n {2}check:\n {4}if: \$\{\{ always\(\) \}\}\n {4}needs: \[verify\]/);
   assert.match(c, /if \[ "\$\{\{ needs\.verify\.result \}\}" != "success" \]; then[\s\S]*?exit 1/);
-  const d = read('.github/workflows/deploy.yml');
+  const d = read('selfhost/upstream-ci/workflows/deploy.yml');
   assert.match(d, /\n {2}main:\n[\s\S]*?ref: main\n[\s\S]*?sha=\$\(git rev-parse HEAD\)/, 'main\'s head, pinned once');
   assert.match(d, /\n {2}verify:\n {4}needs: main\n {4}uses: \.\/\.github\/workflows\/verify\.yml\n {4}with:\n {6}ref: \$\{\{ needs\.main\.outputs\.sha \}\}\n {6}build: false/);
   assert.match(d, /\n {2}site:\n {4}needs: main[\s\S]*?Checkout production\n[\s\S]*?ref: \$\{\{ needs\.main\.outputs\.sha \}\}[\s\S]*?run: npm run build\n {8}working-directory: production/);
@@ -76,12 +76,12 @@ test('FLOW1 the workflows: verify.yml is the one check - lint and the types, eve
   assert.equal((d.match(/actions\/deploy-pages/g) ?? []).length, 1);
   // REL-FAST (2026-10-15, Mac: "Yes, thats insanely slow" - a release spent 27.4 of its 33 minutes on `npm run check` in
   // series): the desktop release's gate is the same check, in parallel, on the commit its legs build
-  const r = read('.github/workflows/release-desktop.yml');
+  const r = read('selfhost/upstream-ci/workflows/release-desktop.yml');
   assert.match(r, /\n {2}gate:\n {4}uses: \.\/\.github\/workflows\/verify\.yml\n {4}with:\n {6}ref: \$\{\{ github\.sha \}\}\n/);
   assert.doesNotMatch(r, /run: npm run check/, 'never the serial check again');
   // INTRO3 (2026-10-23, the owner): the intro's workflow runs the intro's own tests before its probes - the serial check
   // had outgrown its 25 minutes and cancelled every run before a probe ran; verify.yml is the whole gate
-  const iq = read('.github/workflows/intro-quality.yml');
+  const iq = read('selfhost/upstream-ci/workflows/intro-quality.yml');
   assert.doesNotMatch(iq, /run: npm run check/, 'never the serial check in the intro\'s workflow');
   assert.match(iq, /run: node --test test\/ui\/intro\.test\.js test\/ui\/intro4_film\.test\.js test\/systems\/intro3_score\.test\.js\n/);   // INTRO4: and the film's own
   assert.ok(d.indexOf('actions/deploy-pages') > d.indexOf('\n  deploy:\n'), 'the deploy step lives in the job that waits for the verification');

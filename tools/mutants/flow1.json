@@ -28,7 +28,7 @@
   },
   {
     "name": "FLOW1-a-shard-left-out-of-the-matrix",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "        shard: [1, 2, 3, 4, 5, 6, 7, 8]",
     "new": "        shard: [1, 2, 3, 4, 5, 6, 7]",
     "tests": [
@@ -37,7 +37,7 @@
   },
   {
     "name": "FLOW1-the-aggregate-skipped-on-failure",
-    "file": ".github/workflows/check.yml",
+    "file": "selfhost/upstream-ci/workflows/check.yml",
     "old": "    if: ${{ always() }}\n    needs: [verify]",
     "new": "    needs: [verify]",
     "tests": [
@@ -46,7 +46,7 @@
   },
   {
     "name": "FLOW1-the-deploy-before-the-verification",
-    "file": ".github/workflows/deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/deploy.yml",
     "old": "    needs: [verify, site]",
     "new": "    needs: [site]",
     "tests": [
@@ -55,7 +55,7 @@
   },
   {
     "name": "FLOW1-a-job-on-main-not-the-pin",
-    "file": ".github/workflows/deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/deploy.yml",
     "old": "          ref: ${{ needs.main.outputs.sha }}\n          path: production",
     "new": "          ref: main\n          path: production",
     "tests": [

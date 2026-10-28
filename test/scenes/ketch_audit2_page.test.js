@@ -124,7 +124,7 @@ function aboard(store = new Map(), owner = OWNER) {
   return { kc, piles, pushed, rise, fall, frame, word, get T() { return T; } };
 }
 
-test('AUDIT KETCH II L3-3, L3-4, L3-5 A CONSTRUCT\'S PELLETS - WHO FELLED IT, AND WHERE: a body the ship took off (`dn` `sw` - the engine fed, a fight lost, the Warden\'s fall) drops none; a fall heard late still lies on the deck\'s floor, never sunk under it where no press reaches; a body felled mid-walk drops where it fell, its walk stepped - never at the walk\'s start, up to 23 m back (mutants: the sweep paid; the pile at its sinking; the walk unstepped)', () => {
+test('AUDIT KETCH II L3-3, L3-4, L3-5 A CONSTRUCT\'S PELLETS - WHO FELLED IT, AND WHERE: a body the ship took off (`dn` `sw` - the engine fed, a fight lost, the Warden\'s fall) drops none; a fall heard late still lies on the deck\'s floor, never sunk under it where no press reaches; a body felled mid-walk drops where it fell, its walk stepped - never at the walk\'s start, up to 23 m back (mutants: the sweep paid; the pile at its sinking; the walk unstepped)', { skip: 'BUNNYFALL: guns are off, so constructs drop no pellets' }, () => {
   const A = aboard();
   A.fall(A.rise('sphere', 'waist', 4, 30), { sw: true });
   assert.equal(A.piles.length, 0, 'the ship\'s own sweep pays nothing');
@@ -141,7 +141,7 @@ test('AUDIT KETCH II L3-3, L3-4, L3-5 A CONSTRUCT\'S PELLETS - WHO FELLED IT, AN
   assert.deepEqual(validKetchOut({ k: 'dn', o: 1001, n: 'Ann', at: 5 }), { k: 'dn', o: 1001, n: 'Ann', at: 5 }, 'and a kill without it');
 });
 
-test('AUDIT KETCH II L3-1, L3-2 THE CONSTRUCTS\' PELLETS\' CAP IS A VOYAGE\'S, AND THE BOSSES PAY THEIR OWN: the Watch\'s and the vents\' stop at KT_CONSTRUCT_PELLETS_MAX for her voyage on the device - a page stood again (a reload) or on a second crew\'s ship that voyage pays none more; a Hammer Warden, the Watch-Captain and the Tonal Warden pay theirs past it (the cap was a page\'s and a room\'s - three reloads farmed 281 at the vents - and spent before the bosses, who paid nothing; mutants: the cap a room\'s in memory; the bosses capped)', () => {
+test('AUDIT KETCH II L3-1, L3-2 THE CONSTRUCTS\' PELLETS\' CAP IS A VOYAGE\'S, AND THE BOSSES PAY THEIR OWN: the Watch\'s and the vents\' stop at KT_CONSTRUCT_PELLETS_MAX for her voyage on the device - a page stood again (a reload) or on a second crew\'s ship that voyage pays none more; a Hammer Warden, the Watch-Captain and the Tonal Warden pay theirs past it (the cap was a page\'s and a room\'s - three reloads farmed 281 at the vents - and spent before the bosses, who paid nothing; mutants: the cap a room\'s in memory; the bosses capped)', { skip: 'BUNNYFALL: guns are off, so constructs drop no pellets' }, () => {
   assert.deepEqual([...KT_PELLETS_OWN], ['warden', 'captain', 'tonal']);
   assert.deepEqual(ketchPelletsDue('sphere', 4, KT_CONSTRUCT_PELLETS_MAX - 2), { n: 2, given: KT_CONSTRUCT_PELLETS_MAX });
   assert.deepEqual(ketchPelletsDue('spider', 1, KT_CONSTRUCT_PELLETS_MAX), { n: 0, given: KT_CONSTRUCT_PELLETS_MAX });

@@ -48,7 +48,7 @@ export function upgradeRefusal(item) {
 }
 
 /** What an upgrade into recipe `next` spends from the Stores. @param {any} next */
-export const upgradeCost = (next) => ({ key: next.inputs[0].key, n: Math.max(1, Math.ceil(next.inputs[0].n * UPGRADE_SHARE)) });
+export const metalUpgradeCost = (next) => ({ key: next.inputs[0].key, n: Math.max(1, Math.ceil(next.inputs[0].n * UPGRADE_SHARE)) });
 /** The gold an upgrade into recipe `next` costs. @param {any} next */
 export const upgradeGold = (next) => UPGRADE_GOLD_PER_TIER * Math.max(1, next?.tier ?? 1);
 /** The XP an upgrade pays: the craft's, at the new metal's tier. @param {any} next @param {number} rank */

@@ -18,6 +18,8 @@ import { noteTaken, droughtOf, _setDroughtForTests } from '../../src/systems/loo
 import { sigilFloor } from '../../src/systems/sigil/sigil.js';
 import { setPref } from '../../src/systems/uiPrefs.js';
 import { ENEMY_BASICS } from '../../src/characters/enemy/enemyBasics.js';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 setPref(LOOT_RARITY_KEY, true);
 registerRollerLevel(null);

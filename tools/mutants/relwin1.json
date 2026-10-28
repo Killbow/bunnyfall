@@ -1,25 +1,5 @@
 [
   {
-    "name": "REL2-portable-shares-the-installer-name",
-    "file": "app/package.json",
-    "old": "      \"artifactName\": \"Bunnyfall-win-${arch}-portable.${ext}\"",
-    "new": "      \"artifactName\": \"Bunnyfall-win-${arch}-setup.${ext}\"",
-    "tests": [
-      "test/tooling/relwin1.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
-  },
-  {
-    "name": "REL2-portable-falls-back-to-the-one-name",
-    "file": "app/package.json",
-    "old": "    \"portable\": {\n      \"artifactName\": \"Bunnyfall-win-${arch}-portable.${ext}\"\n    },",
-    "new": "    \"portable\": {},",
-    "tests": [
-      "test/tooling/relwin1.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
-  },
-  {
     "name": "REL2-one-click-installer",
     "file": "app/package.json",
     "old": "      \"oneClick\": false,",
@@ -39,7 +19,7 @@
   },
   {
     "name": "REL3-stamp-reads-the-tag-output-not-the-version",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          VERSION: ${{ needs.version.outputs.version }}\n        run: npm version \"$VERSION\"",
     "new": "          VERSION: ${{ needs.version.outputs.tag }}\n        run: npm version \"$VERSION\"",
     "tests": [
@@ -48,7 +28,7 @@
   },
   {
     "name": "REL3-patch-is-the-run-number",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "            TAG=\"app-v${BASE}.$(git rev-list --count HEAD)\"",
     "new": "            TAG=\"app-v${BASE}.${{ github.run_number }}\"",
     "tests": [
@@ -57,7 +37,7 @@
   },
   {
     "name": "REL3-shallow-checkout",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          fetch-depth: 0   # REL3: the version is the commit count, which needs the whole history",
     "new": "          fetch-depth: 1",
     "tests": [
@@ -75,7 +55,7 @@
   },
   {
     "name": "REL3-releases-cancel-each-other",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "  cancel-in-progress: false",
     "new": "  cancel-in-progress: true",
     "tests": [

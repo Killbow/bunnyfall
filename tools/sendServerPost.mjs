@@ -3,7 +3,7 @@
 // menu. It should show notifications whenever players have a message. First use is to utilize it for players being
 // granted items."): THE POST, SENT BY THE OPERATOR. No route a player can reach writes a piece of the server's post
 // (server-account/src/post.js only reads, claims and throws away), so a piece is written here, by hand, through
-// .github/workflows/server-post.yml:
+// selfhost/upstream-ci/workflows/server-post.yml:
 //   1. a dry run reads the accounts the names find, and whether each already holds this send - and nothing is written;
 //   2. the run with apply on writes one piece to each, INSERT OR IGNORE over the one-a-send index (0093's
 //      ux_server_post_batch), so a send run twice sends once.

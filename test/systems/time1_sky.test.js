@@ -133,7 +133,7 @@ test('TIME1 the tool: tools/skyCutover.mjs lists the aligned instants, and says 
 test('TIME1 the bundles: the relay never reaches the sky (RELAY_VERSION is not moved by it); the account service does, through the professions\' day, and its deploy filter names it', () => {
   assert.ok(!graph('server/src/index.js').includes('src/net/skyLaw.js'), 'the relay bundles no sky');
   assert.ok(graph('server-account/src/index.js').includes('src/net/skyLaw.js'), 'the account service bundles it (nodeLaw.js dayDate)');
-  assert.match(rd('.github/workflows/account-deploy.yml'), /- "src\/net\/skyLaw\.js"/);
+  assert.match(rd('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/skyLaw\.js"/);
   assert.doesNotMatch(rd('src/net/wire.js'), /skyLaw|SKY_SEGMENTS/, "the wire's bytes are the relay's: the sky is not in them");
 });
 

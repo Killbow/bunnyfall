@@ -356,7 +356,7 @@ test('F4: a found stack of ammunition is never promoted, because promoting it wo
 });
 
 test.skip('(BUNNYFALL: guns off) F6: the deploy does not point a loaded gun at production', () => {
-  const yml = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  const yml = readFileSync('selfhost/upstream-ci/workflows/deploy.yml', 'utf8');
   // checking out a FEATURE BRANCH by name means deleting that branch
   // after the merge fails the step and takes the whole Pages deploy
   // down with it - the game's, not only the lab's

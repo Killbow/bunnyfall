@@ -1,6 +1,6 @@
 // GUILD-GRANT (2026-10-03, Mac: "Can we award the empire of tamriel guild 1.6mil gold") - gold into one guild's
 // treasury, awarded by the operator. `tools/grantGuildGold.mjs` writes the statements and
-// `.github/workflows/guild-grant.yml` runs them by hand - a dry run that reads the guild, then the award. The award is
+// `selfhost/upstream-ci/workflows/guild-grant.yml` runs them by hand - a dry run that reads the guild, then the award. The award is
 // the treasury AND `realm_gold`, so it buys a hall and comes back out to a realm character, and the guild's own ledger
 // says who put it there.
 import { test } from 'node:test';
@@ -112,7 +112,7 @@ function runBlock(yml, stepName) {
 }
 
 test('GUILD-GRANT the workflow: run by hand only, its inputs read once each as environment, the tool\'s statements in the deploy\'s queue, the award behind apply alone, and a run that finds no guild or changes none fails - its steps run here as the runner runs them, over D1\'s own answer (mutants: an input spliced into a run line; a missing guild passing; an award that changed none passing; the award run on a dry run)', () => {
-  const wf = src('.github/workflows/guild-grant.yml');
+  const wf = src('selfhost/upstream-ci/workflows/guild-grant.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

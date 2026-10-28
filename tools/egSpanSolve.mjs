@@ -25,7 +25,7 @@
 //         the second). `--golden` adds the law pin's four seeds (test/net/eliteGates/egz_frag.test.js). A course that is not crossed
 //         fails the run, naming its seed, hall, road and step; the exit code says so.
 //
-// CI runs 25 seeds a band on every pull request (.github/workflows/eg-sweep.yml, called by verify.yml), 500 nightly, and
+// CI runs 25 seeds a band on every pull request (selfhost/upstream-ci/workflows/eg-sweep.yml, called by verify.yml), 500 nightly, and
 // 500 again before every relay deploy (relay-deploy.yml).
 //
 // SWEEP-FAST (2026-10-19, Mac: "Yes" - a relay deploy took an hour, ~53 minutes of it one band's 500 seeds):

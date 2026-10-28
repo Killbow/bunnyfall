@@ -463,5 +463,5 @@ test('GUILD1 the wire: every guild route is the service\'s and behind a session;
   }
   assert.match(REFUSALS['guild-renown'], /Renown 10/);
   assert.match(REFUSALS['guild-full'], /75/);
-  assert.match(src('.github/workflows/account-deploy.yml'), /- "src\/net\/guild\/guildLaw\.js"/);
+  assert.match(src('selfhost/upstream-ci/workflows/account-deploy.yml'), /- "src\/net\/guild\/guildLaw\.js"/);
 });

@@ -43,6 +43,8 @@ import { setPref, _resetForTests } from '../../src/systems/uiPrefs.js';
 import '../../src/world/landView.js';
 import '../../src/world/outdoors.js';
 import '../../src/systems/featureLanes.js';   // FT18: the wind, the quick slots and the blood lanes register themselves too
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');

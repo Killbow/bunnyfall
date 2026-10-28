@@ -351,7 +351,7 @@ test('DECOR1 the client\'s door: every call rides the one session as a Bearer he
     assert.equal(typeof REFUSALS[w], 'string', `${w} has its sentence`);
   }
   assert.match(REFUSALS['decor-cap'], /at most 200 pieces/);
-  const wf = src('.github/workflows/account-deploy.yml');
+  const wf = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   assert.match(wf, /- "src\/net\/decorLaw\.js"/);
   assert.match(wf, /\$base\/v1\/homes\/decor"/);
   assert.match(wf, /grep -q '"homes-need-account"' \/tmp\/place\.json/);

@@ -17,7 +17,7 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 const tracked = (spec) => execFileSync('git', ['ls-files', spec], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean);
 
 test('AUDIT 68 X2-release-red-suite-ships: the suite is a JOB every packaging leg needs, not a step inside one leg', () => {
-  const wf = read('.github/workflows/release-desktop.yml');
+  const wf = read('selfhost/upstream-ci/workflows/release-desktop.yml');
   const jobs = wf.slice(wf.indexOf('\njobs:\n'));
   const job = (name) => {
     const at = jobs.indexOf(`\n  ${name}:\n`);
@@ -39,7 +39,7 @@ test('AUDIT 68 X2-release-red-suite-ships: the suite is a JOB every packaging le
 });
 
 test('AUDIT 68 X2-release-tag-commit: a new release tag is cut at the built commit, and the dispatch input is data, not script', () => {
-  const wf = read('.github/workflows/release-desktop.yml');
+  const wf = read('selfhost/upstream-ci/workflows/release-desktop.yml');
   // REL4: the one step that attaches anything is the publish job's draft
   const attach = wf.slice(wf.indexOf('- name: Stage the release as a draft, every file attached'), wf.indexOf('- name: Publish it whole'));
   // PIN MOVED (REL8): the release is named for the player's update (comments between) - the tag and the commit as ever

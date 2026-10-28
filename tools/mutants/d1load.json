@@ -46,7 +46,7 @@
  },
  {
   "name": "D1LOAD-refusal-drawn",
-  "file": ".github/workflows/d1-load.yml",
+  "file": "selfhost/upstream-ci/workflows/d1-load.yml",
   "old": "if [ \"${code:-000}\" = \"200\" ] && node tools/d1Load.mjs",
   "new": "if node tools/d1Load.mjs",
   "tests": [
@@ -56,7 +56,7 @@
  },
  {
   "name": "D1LOAD-input-spliced",
-  "file": ".github/workflows/d1-load.yml",
+  "file": "selfhost/upstream-ci/workflows/d1-load.yml",
   "old": "node tools/d1Load.mjs --sql \"$q\" \"$HOURS\"",
   "new": "node tools/d1Load.mjs --sql \"$q\" \"${{ inputs.hours }}\"",
   "tests": [
@@ -146,7 +146,7 @@
  },
  {
   "name": "D1LOAD-ranking-fixed",
-  "file": ".github/workflows/d1-load.yml",
+  "file": "selfhost/upstream-ci/workflows/d1-load.yml",
   "old": "--sort-by \"$sort\"",
   "new": "--sort-by time",
   "tests": [
@@ -155,7 +155,7 @@
  },
  {
   "name": "D1LOAD-ranking-unguarded",
-  "file": ".github/workflows/d1-load.yml",
+  "file": "selfhost/upstream-ci/workflows/d1-load.yml",
   "old": "time|reads|writes) sort=\"${SORT_BY:-time}\" ;;",
   "new": "*) sort=\"${SORT_BY:-time}\" ;;",
   "tests": [

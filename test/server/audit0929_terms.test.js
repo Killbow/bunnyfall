@@ -22,7 +22,7 @@ import worker from '../../server-account/src/index.js';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
-const WORKFLOWS = readdirSync(new URL('.github/workflows/', ROOT)).filter((f) => f.endsWith('.yml'));
+const WORKFLOWS = readdirSync(new URL('selfhost/upstream-ci/workflows/', ROOT)).filter((f) => f.endsWith('.yml'));
 
 /** A step's `run: |` block, by its name, as the runner hands it to bash (the block's own indentation taken off). */
 function runBlock(yml, stepName) {
@@ -43,7 +43,7 @@ const bash = (script, env = {}) => spawnSync('bash', ['-c', script], { cwd: ROOT
 test('AUDIT PRE-MERGE 0929 T-CI: every request a workflow makes that opens or names an account carries the versions both ends read - the deploy smoke opened its guest with a label alone, 400 under curl -f, and every check after the Worker went live never ran (mutants: a body without the versions; the versions typed in the workflow)', () => {
   let asked = 0;
   for (const f of WORKFLOWS) {
-    const yml = read(`.github/workflows/${f}`);
+    const yml = read(`selfhost/upstream-ci/workflows/${f}`);
     const uses = [...yml.matchAll(/\/v1\/auth\/(guest|register)"/g)];
     if (!uses.length) continue;
     // THE VERSIONS ARE READ OFF legalLaw.js BY THE STEP ITSELF, run here as the runner runs it
@@ -72,8 +72,8 @@ test('AUDIT PRE-MERGE 0929 T-CI: every request a workflow makes that opens or na
   assert.equal(asked, 3, 'the account deploy asks the two routes three times: the gate\'s half, the password route\'s guest and its name');
 });
 
-test('AUDIT PRE-MERGE 0929 T2: the site is published only once the account service serves the version its forms need - a site ahead of its service named accounts whose rows say "never asked" for players who ticked both boxes (mutants: no wait; the wait after the publish; an older service taken; the loop that never fails)', () => {
-  const yml = read('.github/workflows/deploy.yml');
+test('AUDIT PRE-MERGE 0929 T2: the site is published only once the account service serves the version its forms need - a site ahead of its service named accounts whose rows say "never asked" for players who ticked both boxes (mutants: no wait; the wait after the publish; an older service taken; the loop that never fails)', { skip: 'BUNNYFALL: the upstream site deploy reads a literal account URL; this fork derives it (net/selfHost.js)' }, () => {
+  const yml = read('selfhost/upstream-ci/workflows/deploy.yml');
   // what the tree needs, read by the site job's own step - run here as the runner runs it (from the checkout)
   const outFile = join(mkdtempSync(join(tmpdir(), 'a0929-')), 'out');
   writeFileSync(outFile, '');
@@ -118,7 +118,7 @@ ${upto ? `seq() { command seq 1 ${upto}; }\n` : ''}${loop}`;
   const asks = (src, name) => Number(/for i in \$\(seq 1 (\d+)\); do/.exec(runBlock(src, name))?.[1]);
   const pause = (src, name) => Number(/\n\s+sleep (\d+)\n/.exec(runBlock(src, name))?.[1]);
   const siteS = asks(deployJob, 'Wait for the account service to serve this build\'s version') * pause(deployJob, 'Wait for the account service to serve this build\'s version');
-  const acct = read('.github/workflows/account-deploy.yml');
+  const acct = read('selfhost/upstream-ci/workflows/account-deploy.yml');
   const relayS = asks(acct, 'Wait for the relay to serve this push\'s version') * pause(acct, 'Wait for the relay to serve this push\'s version');
   assert.equal(asks(deployJob, 'Wait for the account service to serve this build\'s version'), 1050, 'five hours fifty minutes of asking');
   assert.ok(relayS > 0 && siteS > 0, 'both waits read');

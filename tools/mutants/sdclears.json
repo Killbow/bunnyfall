@@ -61,7 +61,7 @@
   },
   {
     "name": "SDCLEARS-the-input-spliced-into-a-run-line",
-    "file": ".github/workflows/sd-clears.yml",
+    "file": "selfhost/upstream-ci/workflows/sd-clears.yml",
     "old": "--names \"$SLOT\"",
     "new": "--names \"${{ inputs.slot }}\"",
     "tests": [
@@ -71,7 +71,7 @@
   },
   {
     "name": "SDCLEARS-no-clears-passing",
-    "file": ".github/workflows/sd-clears.yml",
+    "file": "selfhost/upstream-ci/workflows/sd-clears.yml",
     "old": "no claim names one\"\n            exit 1",
     "new": "no claim names one\"",
     "tests": [
@@ -81,7 +81,7 @@
   },
   {
     "name": "SDCLEARS-no-names-passing",
-    "file": ".github/workflows/sd-clears.yml",
+    "file": "selfhost/upstream-ci/workflows/sd-clears.yml",
     "old": "nobody has claimed it yet\"\n            exit 1",
     "new": "nobody has claimed it yet\"",
     "tests": [

@@ -342,7 +342,7 @@ test('EG-ZA THE FORCE VOID (section 22): a `force` relay deploy stamps the Worke
   });
   const L = { op: T0, end: null };
   assert.deepEqual([egForceVoided(L, T0 + 1), egForceVoided(L, T0), egForceVoided(L, 0), egForceVoided({ ...L, end: 'tear' }, T0 + 1)], [true, false, false, false]);
-  const wf = rd('.github/workflows/relay-deploy.yml'), step = wf.slice(wf.indexOf('- name: Deploy\n'), wf.indexOf('- name: Verify /health'));
+  const wf = rd('selfhost/upstream-ci/workflows/relay-deploy.yml'), step = wf.slice(wf.indexOf('- name: Deploy\n'), wf.indexOf('- name: Verify /health'));
   assert.match(step, /FORCE: \$\{\{ github\.event\.inputs\.force \}\}/);
   assert.match(step, /if \[ "\$FORCE" = "true" \]; then\n\s+stamp=\$\(date \+%s%3N\)\n[^\n]*\n\s+npx --yes wrangler@4 deploy --var "EG_VOID_BEFORE:\$\{stamp\}"\n\s+else\n\s+npx --yes wrangler@4 deploy\n\s+fi/, 'the stamp on a force deploy alone');
 });

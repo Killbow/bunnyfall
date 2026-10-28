@@ -84,6 +84,11 @@
   "tr": "132957bbd193",
   "by": "claude-in-session"
  },
+ "account.refusal.profTemperTop": {
+  "en": "4d9785b9e376",
+  "tr": "f26ae218f2a1",
+  "by": "claude-in-session"
+ },
  "account.refusal.repairNoFaction": {
   "en": "40e9bc6ef338",
   "tr": "9543e972488b",
@@ -545,8 +550,8 @@
   "by": "claude-in-session"
  },
  "coll.how.patron": {
-  "en": "d218cd5c236e",
-  "tr": "377d3d1cc595",
+  "en": "5cf38e6452e9",
+  "tr": "4e0e3bc1aeba",
   "by": "claude-in-session"
  },
  "coll.how.protector": {
@@ -1567,6 +1572,11 @@
  "holdings.wagon.boons.sound": {
   "en": "71476c661351",
   "tr": "8c6ccf371e82",
+  "by": "claude-in-session"
+ },
+ "inventory.batch.allPlain": {
+  "en": "944675bf987e",
+  "tr": "0cf530bbc61c",
   "by": "claude-in-session"
  },
  "inventory.store.chestAct": {

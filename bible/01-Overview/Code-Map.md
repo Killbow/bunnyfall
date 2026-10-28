@@ -201,7 +201,6 @@ wiring in `src/scenes/`. A feature with one or two modules in a layer keeps them
 | `src/characters/ownModels/` | The port's own 3D models: heads, armour, clothing, weapons. |
 | `src/characters/paperdoll/` | The paperdoll. |
 | `src/characters/pieces/` | The voxel pieces a character is built from (heads, bodies, armour, weapons). |
-| `src/characters/rewrite/` | project-final's Rewrite Engine rig, vendored byte for byte (`test/characters/rig.test.js`). |
 
 #### `src/combat/`
 

@@ -211,7 +211,7 @@
   },
   {
     "name": "CI-TIMES-shards-newest-each",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "          key: ${{ needs.times.outputs.key }}\n          fail-on-cache-miss: true\n",
     "new": "          key: ${{ needs.times.outputs.key }}\n          restore-keys: test-times-\n          fail-on-cache-miss: true\n",
     "tests": [
@@ -221,7 +221,7 @@
   },
   {
     "name": "CI-TIMES-miss-runs-on",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "          fail-on-cache-miss: true\n",
     "new": "",
     "tests": [
@@ -231,7 +231,7 @@
   },
   {
     "name": "CI-TIMES-shards-unrecorded",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": " --record \"$RUNNER_TEMP/test-times.json\"\n",
     "new": "\n",
     "tests": [
@@ -241,7 +241,7 @@
   },
   {
     "name": "CI-TIMES-upload-fails-the-shard",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "        continue-on-error: true   # the next run's balance, never this run's verdict\n",
     "new": "",
     "tests": [
@@ -251,7 +251,7 @@
   },
   {
     "name": "CI-TIMES-rerun-cannot-replace",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "          overwrite: true   # a re-run of the shard replaces its own record\n",
     "new": "",
     "tests": [
@@ -261,7 +261,7 @@
   },
   {
     "name": "CI-TIMES-shards-ahead-of-lookup",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "    needs: times\n    runs-on: ubuntu-latest\n",
     "new": "    runs-on: ubuntu-latest\n",
     "tests": [
@@ -271,7 +271,7 @@
   },
   {
     "name": "CI-TIMES-lookup-downloads",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "          restore-keys: test-times-\n          lookup-only: true\n",
     "new": "          restore-keys: test-times-\n",
     "tests": [
@@ -281,7 +281,7 @@
   },
   {
     "name": "CI-TIMES-save-out-of-reach",
-    "file": ".github/workflows/test-times.yml",
+    "file": "selfhost/upstream-ci/workflows/test-times.yml",
     "old": "          key: test-times-${{ github.run_id }}-${{ github.run_attempt }}",
     "new": "          key: times-${{ github.run_id }}-${{ github.run_attempt }}",
     "tests": [
@@ -291,7 +291,7 @@
   },
   {
     "name": "CI-TIMES-records-merged-flat",
-    "file": ".github/workflows/test-times.yml",
+    "file": "selfhost/upstream-ci/workflows/test-times.yml",
     "old": "          merge-multiple: false\n",
     "new": "          merge-multiple: true\n",
     "tests": [
@@ -301,7 +301,7 @@
   },
   {
     "name": "CI-TIMES-check-waits",
-    "file": ".github/workflows/check.yml",
+    "file": "selfhost/upstream-ci/workflows/check.yml",
     "old": "  check:\n    if: ${{ always() }}\n    needs: [verify]\n",
     "new": "  check:\n    if: ${{ always() }}\n    needs: [verify, times]\n",
     "tests": [

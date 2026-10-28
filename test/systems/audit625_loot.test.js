@@ -9,6 +9,8 @@ import { rarityOf, rarityChances, corpseSource } from '../../src/systems/loot/lo
 import { goldStack } from '../../src/systems/inventory.js';
 import { ENEMY_BASICS } from '../../src/characters/enemy/enemyBasics.js';
 import { setPref, _resetForTests as _resetPrefsForTests } from '../../src/systems/uiPrefs.js';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 const at = (v) => () => v;
 /** A foe's body as the spawn leaves it: its kit on its table and the droppable cut in its list, the same objects. */

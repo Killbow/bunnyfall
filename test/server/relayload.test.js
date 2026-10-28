@@ -1,6 +1,6 @@
 // RELAY-LOAD (2026-10-18, from play: "Server is kinda breaking down near oblivion gate cause so many ppl lol") - WHAT IS
 // FILLING THE RELAY, READ BY THE OPERATOR: tools/relayLoad.mjs builds the Analytics Engine questions over the relay's own
-// metrics points (server/src/relayScale.js RoomMetrics) and .github/workflows/relay-load.yml asks them by hand, writing
+// metrics points (server/src/relayScale.js RoomMetrics) and selfhost/upstream-ci/workflows/relay-load.yml asks them by hand, writing
 // nothing. bible/11-Multiplayer/Scale-Arc.md RELAY-LOAD; AUDIT PLAN-1000 lane A (its block under RELAY-LOAD there, and `01-Overview/Audit-Log.md`)
 // widened every pin below to reach what its title claims.
 import { test } from 'node:test';
@@ -111,7 +111,7 @@ function stepRun(yml, stepName) {
 const stepOf = (yml, stepName) => { const at = yml.indexOf(`- name: ${stepName}\n`); const end = yml.indexOf('\n      - ', at + 1); return yml.slice(at, end < 0 ? undefined : end); };
 
 test('RELAY-LOAD the workflow: run by hand only, its one input read once as environment, its own queue, writing nothing, the token the two steps\' that use it and never the job\'s; the token step refuses to start without one and asks the tool before any question; its metrics step, run here as the runner runs it over an SQL API that holds it to its URL and method, draws every question into the summary under the window the SQL asks (an empty input the tool\'s own hour), and warns on a refusal - the token named only where the API refused it (AUDIT PLAN-1000 H3) - a refusal never drawn even when its body carries rows; a run that read nothing fails, its partial summary kept (H3); the step runs as written, strict, each call bounded and the job too (H10) (mutants: the input spliced into a run line; a refusal drawn; the token the job\'s; the token step\'s guard; the URL; the method; the window said; the token blamed for any answer; nothing read and green; the step not strict; the call unbounded; the job unbounded; the last warning gone)', () => {
-  const wf = src('.github/workflows/relay-load.yml');
+  const wf = src('selfhost/upstream-ci/workflows/relay-load.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

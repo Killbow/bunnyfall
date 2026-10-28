@@ -73,7 +73,7 @@ const run = promisify(execFile);
 const PORT = Number(process.env.ACCOUNT_PROBE_PORT || 8811);
 const BASE = `http://127.0.0.1:${PORT}`;
 // HOW WRANGLER IS RUN. `npx --yes wrangler@4` needs no install and is
-// what `.github/workflows/account-deploy.yml` uses, so it is the
+// what `selfhost/upstream-ci/workflows/account-deploy.yml` uses, so it is the
 // default. But npx re-resolves the package on every invocation, and on
 // a slow or proxied network that is minutes per call - and this probe
 // calls it twice. Set WRANGLER_BIN to an already-installed wrangler

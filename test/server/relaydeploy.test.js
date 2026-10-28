@@ -1,6 +1,6 @@
 // SRV-N/CI (2026-09-17): THE DEPLOY WORKFLOW, PINNED.
 //
-// `.github/workflows/relay-deploy.yml` is the only thing in this tree that
+// `selfhost/upstream-ci/workflows/relay-deploy.yml` is the only thing in this tree that
 // can drop every connected player, and it is the only thing that cannot
 // fail in a test run - a workflow is executed by GitHub, not by node. So
 // what CAN be held is held here, and the first pin exists because the
@@ -22,7 +22,7 @@ import { RELAY_GRAPH } from '../net/relayversion.test.js';   // the files a rela
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const rd = (p) => readFileSync(join(root, p), 'utf8');
-const WF = '.github/workflows/relay-deploy.yml';
+const WF = 'selfhost/upstream-ci/workflows/relay-deploy.yml';
 
 /** Every .js under a directory, walked rather than listed: a file added
  *  later is in the population without anybody remembering to add it. */
@@ -201,7 +201,7 @@ test('SRV-N/CI: nothing in live source calls the deploy a hand command while the
   // ...and it does not fire on the true prose that replaced them
   for (const fine of [
     '# THE DEPLOY IS AUTOMATIC, and has been since SRV-N/CI (PR #209):',
-    '//   SRV-N/CI it is deployed by `.github/workflows/relay-deploy.yml` on',
+    '//   SRV-N/CI it is deployed by `selfhost/upstream-ci/workflows/relay-deploy.yml` on',
   ]) {
     assert.doesNotMatch(fine, MANUAL_CLAIM, 'the gate fires on prose that says the right thing');
   }

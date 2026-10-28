@@ -141,7 +141,7 @@
   },
   {
     "name": "ACC4-15-a-file-leaves-the-deploy-filter",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "      - \"src/net/playClock.js\"\n",
     "new": "",
     "tests": [

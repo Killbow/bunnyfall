@@ -206,13 +206,13 @@ test('SCALE1 D: the market\'s materials view asked for the whole catalogue binds
 // ═══ E. THE DEPLOYS ══════════════════════════════════════════════════════════════════════════════════════════════════
 
 test('SCALE1 E: the account service deploys only after the suite passes; the relay runs the suite only when it would deploy, and deploys only when it passed; the bookmark is written before the migrations (mutants: each gate dropped)', () => {
-  const acct = src('.github/workflows/account-deploy.yml');
+  const acct = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   assert.match(acct, /\n {2}verify:\n {4}uses: \.\/\.github\/workflows\/verify\.yml\n {4}with:\n {6}build: false\n/);
   assert.match(acct, /\n {2}deploy:\n {4}needs: verify\n/);
   const bookmark = acct.indexOf("time-travel info \"$DB_NAME\" --json");
   const apply = acct.indexOf('d1 migrations apply "$DB_NAME" --remote');
   assert.ok(bookmark > 0 && apply > bookmark, 'the bookmark before the migrations');
-  const relay = src('.github/workflows/relay-deploy.yml');
+  const relay = src('selfhost/upstream-ci/workflows/relay-deploy.yml');
   assert.match(relay, /\n {2}verify:\n {4}needs: drift\n {4}if: needs\.drift\.outputs\.deploying == 'true'\n {4}uses: \.\/\.github\/workflows\/verify\.yml/);
   assert.match(relay, /\n {2}deploy:\n {4}needs: \[drift, verify\]\n/);
   assert.match(relay, /if: \$\{\{ !cancelled\(\) && needs\.drift\.result == 'success' && \(needs\.verify\.result == 'success' \|\| needs\.verify\.result == 'skipped'\) \}\}/);

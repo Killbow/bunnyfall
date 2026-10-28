@@ -1,7 +1,7 @@
 [
   {
     "name": "AUDIT-INSTALL-R2-B1-the-stamp-in-powershell",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        if: needs.version.outputs.version != ''\n        shell: bash\n        env:",
     "new": "        if: needs.version.outputs.version != ''\n        env:",
     "tests": ["test/tooling/audit_install2.test.js", "test/tooling/updatecheck.test.js"],
@@ -9,14 +9,14 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-B1-the-stamp-in-pwsh-by-name",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        if: needs.version.outputs.version != ''\n        shell: bash\n",
     "new": "        if: needs.version.outputs.version != ''\n        shell: pwsh\n",
     "tests": ["test/tooling/audit_install2.test.js", "test/tooling/updatecheck.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-R2-B1-a-new-step-reads-a-variable-in-any-shell",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        run: npx electron-builder --publish never\n",
     "new": "        run: npx electron-builder --publish never -c.extraMetadata.version=$VERSION\n",
     "tests": ["test/tooling/audit_install2.test.js"],
@@ -24,21 +24,21 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-B4-the-action-on-a-moving-tag",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2\n",
     "new": "uses: softprops/action-gh-release@v2\n",
     "tests": ["test/tooling/audit_install2.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-R2-B4-a-commit-nobody-can-name",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2\n",
     "new": "uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65\n",
     "tests": ["test/tooling/audit_install2.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-R2-C2-the-old-draft-is-reused",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          LEFT=$(gh api --paginate \"repos/$GITHUB_REPOSITORY/releases?per_page=100\" --jq '.[] | select(.draft and .tag_name == env.TAG) | .id')\n          for ID in $LEFT; do\n            gh api -X DELETE \"repos/$GITHUB_REPOSITORY/releases/$ID\" --silent\n            echo \"deleted draft $ID, left at $TAG by an earlier run\"\n          done\n",
     "new": "",
     "tests": ["test/tooling/audit_install2.test.js"],
@@ -46,21 +46,21 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-C2-a-failed-listing-deletes-nothing-silently",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          LEFT=$(gh api --paginate \"repos/$GITHUB_REPOSITORY/releases?per_page=100\" --jq '.[] | select(.draft and .tag_name == env.TAG) | .id')\n          for ID in $LEFT; do\n",
     "new": "          for ID in $(gh api --paginate \"repos/$GITHUB_REPOSITORY/releases?per_page=100\" --jq '.[] | select(.draft and .tag_name == env.TAG) | .id'); do\n",
     "tests": ["test/tooling/audit_install2.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-R2-C2-only-the-first-page",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          LEFT=$(gh api --paginate \"repos/",
     "new": "          LEFT=$(gh api \"repos/",
     "tests": ["test/tooling/audit_install2.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-R2-C2-published-releases-deleted-too",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "select(.draft and .tag_name == env.TAG)",
     "new": "select(.tag_name == env.TAG)",
     "tests": ["test/tooling/audit_install2.test.js"]
@@ -743,7 +743,7 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-E-52-a-tag-pasted-into-a-multi-line-script",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          echo \"published $TAG (latest: $MAKE_LATEST)\"",
     "new": "          echo \"published ${{ needs.version.outputs.tag }} (latest: $MAKE_LATEST)\"",
     "tests": ["test/tooling/audit_install2.test.js", "test/tooling/rel4_release.test.js", "test/tooling/updatecheck.test.js", "test/tooling/audit_install.test.js", "test/tooling/relwin1.test.js", "test/tooling/audit68_repo.test.js"],
@@ -751,7 +751,7 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-E-53-a-try-build-stamps-an-empty-version",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "      - name: Stamp the version\n        if: needs.version.outputs.version != ''\n",
     "new": "      - name: Stamp the version\n",
     "tests": ["test/tooling/audit_install2.test.js", "test/tooling/rel4_release.test.js", "test/tooling/updatecheck.test.js", "test/tooling/audit_install.test.js", "test/tooling/relwin1.test.js", "test/tooling/audit68_repo.test.js"],
@@ -759,7 +759,7 @@
   },
   {
     "name": "AUDIT-INSTALL-R2-E-54-the-mac-leg-hunts-for-a-signing-identity",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "      CSC_IDENTITY_AUTO_DISCOVERY: 'false'\n",
     "new": "",
     "tests": ["test/tooling/audit_install2.test.js", "test/tooling/rel4_release.test.js", "test/tooling/updatecheck.test.js", "test/tooling/audit_install.test.js", "test/tooling/relwin1.test.js", "test/tooling/audit68_repo.test.js"],

@@ -216,7 +216,7 @@ test('its own deploy: vite.config.pistol.js builds the lab alone and deploy.yml 
   assert.equal(cfg.base, './', 'relative, so it runs from any directory');
   assert.deepEqual(Object.values(cfg.build.rollupOptions.input), ['pistol-proto.html']);
   assert.match(readFileSync('vite.config.pistol.js', 'utf8'), /const ART = \['pistol-frames\.png'\];/);
-  const deploy = readFileSync('.github/workflows/deploy.yml', 'utf8');
+  const deploy = readFileSync('selfhost/upstream-ci/workflows/deploy.yml', 'utf8');
   assert.match(deploy, /npx vite build --config vite\.config\.pistol\.js/);
   assert.match(deploy, /cp -a production\/dist-pistol\/\. site\/preview\/pistol-lab\//);
 });

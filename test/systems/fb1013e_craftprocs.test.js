@@ -258,8 +258,8 @@ test('CRAFT-PROCS: a piece made before is minted again as it was, and a new one 
     assert.equal(got.status, 200, JSON.stringify(got.body));
     assert.deepEqual(mintPiece(got.body.piece, got.body.piece.provenance), { ...mint(sword, 3, seed, MINT_VERSION), provenance: ROADED }, 'collected with its line');
     // THE TEMPER: a Fine piece raised to Superior, its record re-signed with the craft's version kept
-    raw.prepare('INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, \'smithing\', ?, 1)').run(mac.id, mac.character, xpForRank(10));
-    raw.prepare('INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, \'ingot:steel\', \'own\', 4)').run(mac.id, mac.character);
+    raw.prepare('INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at) VALUES (?, ?, \'smithing\', ?, 1)').run(mac.id, mac.character, xpForRank(25));   // BUNNYFALL: a temper is capped by the rank
+    raw.prepare('INSERT INTO prof_stores (player, char_id, material, origin, qty) VALUES (?, ?, \'ingot:steel\', \'own\', 8)').run(mac.id, mac.character);   // BUNNYFALL: Superior costs 80% of the input
     const FINE_OLD = 'c2c2c2c2c2c2c2c2', FINE_NEW = 'd3d3d3d3d3d3d3d3';
     for (const [provenance, v, want] of [[FINE_OLD, null, 0], [FINE_NEW, MINT_VERSION, MINT_VERSION]]) {
       const piece = await madeAt(mac, provenance, 2, v);

@@ -87,13 +87,13 @@ test('DA7: the shell - the updater downloads on its own, installs on quit, never
   assert.match(loud, /Could not check for updates/, 'unreachable is reported out loud, as DA6 does');
 });
 
-test('DA7: the build - a publish PROVIDER (so latest.yml and app-update.yml are written), the updater a RUNTIME dependency, and the workflow attaches the metadata beside the installers', () => {
+test('DA7: the build - a publish PROVIDER (so latest.yml and app-update.yml are written), the updater a RUNTIME dependency, and the workflow attaches the metadata beside the installers', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   const pkg = JSON.parse(read('app/package.json'));
   assert.deepEqual(pkg.build.publish, [{ provider: 'github', owner: 'Lattymoy', repo: 'daggerfall-js-source' }],
     'the provider names the repo the notice already reads; without a provider electron-builder writes no update metadata at all');
   assert.ok(pkg.dependencies?.['electron-updater'], 'a runtime dependency - electron-builder packs `dependencies`, never devDependencies');
   assert.ok(!pkg.devDependencies?.['electron-updater']);
-  const wf = read('.github/workflows/release-desktop.yml');
+  const wf = read('selfhost/upstream-ci/workflows/release-desktop.yml');
   assert.match(wf, /run: npx electron-builder --publish never/, 'electron-builder uploads nothing itself; the publish job does');
   // REL4: a leg hands its files on (the run artifact), and ONE publish job attaches everything handed on
   const handOn = wf.slice(wf.indexOf('- name: Hand the installers on'), wf.indexOf('\n  publish:'));

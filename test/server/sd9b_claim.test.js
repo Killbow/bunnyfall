@@ -294,6 +294,6 @@ test('SD9b the hosts and the service by source: the world host keeps a book onli
   assert.match(idx, /sds: await sdRecordOf\(ctx, body\.id\)/);
   assert.match(src('server-account/migrations/0090_sd_kills.sql'), /PRIMARY KEY \(slot, account\)/);
   assert.match(src('server-account/migrations/0090_sd_kills.sql'), /ALTER TABLE players ADD COLUMN sd_honours INTEGER NOT NULL DEFAULT 0;/);
-  const deploy = src('.github/workflows/account-deploy.yml');
+  const deploy = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   for (const p of ['src/net/superDungeon/sdReceipt.js', 'src/systems/wind/wind.js']) assert.ok(deploy.includes(`- "${p}"`), `${p} deploys the service`);
 });

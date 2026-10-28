@@ -371,7 +371,7 @@ test('DA13: a version the store did not finish, or whose files are gone, is no v
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('DA13: which path a release takes - the channel for the same shell and generation, the installer for another shell, another generation, a version that failed here, or a copy with no seed', () => {
+test('DA13: which path a release takes - the channel for the same shell and generation, the installer for another shell, another generation, a version that failed here, or a copy with no seed', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   const seed = { shell: SHELL };
   const m = { channel: G.GAME_CHANNEL, shell: SHELL, version: '0.1.11' };
   assert.equal(G.routeFor({ seed, manifest: m }).route, 'game');
@@ -506,7 +506,7 @@ test('DA13: a readied version is switched to only by a navigation that can commi
   assert.equal(switchesReadyGame({ isMainFrame: true, isSameDocument: false }), false, 'no url: not the game\'s');
 });
 
-test('DA13: the release pipeline - one shell id, the bundled game indexed in every installer, the pack cut once beside them, and the publish step that fails an update that is no longer per file', () => {
+test('DA13: the release pipeline - one shell id, the bundled game indexed in every installer, the pack cut once beside them, and the publish step that fails an update that is no longer per file', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   // the shell is app/ and what its build takes from outside it - derived from the build config, never a list to forget
   assert.deepEqual(shellInputs(), ['app', 'public/icons/icon-512.png', 'src/ui/menu/menuPad.js', 'src/assets/branding/bunnyfall.png']);
   assert.deepEqual(shellInputs({ build: { files: [{ from: '../src/x', to: 'y', filter: ['a.js'] }, { from: '../dist', to: 'dist', filter: ['x.js'] }, 'lib/**'] } }), ['app', 'src/x/a.js'], 'the game is the channel\'s, never the shell\'s');
@@ -517,7 +517,7 @@ test('DA13: the release pipeline - one shell id, the bundled game indexed in eve
   assert.notEqual(shellId((args) => ({ ...objects, 'HEAD:src/x/a.js': 'b2' })[args[1]], 'HEAD', ['app', 'src/x/a.js']), id, 'any input changed, another id');
   // the release carries the game, and a set without it publishes nothing
   assert.ok(EXPECTED_RELEASE_FILES.includes(G.GAME_FILES.manifest) && EXPECTED_RELEASE_FILES.includes(G.GAME_FILES.pack));
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   assert.match(wf, /SHELL_ID=\$\(node scripts\/desktopRelease\.mjs shell\)\n\s+if ! \[\[ "\$SHELL_ID" =~ \^\[0-9a-f\]\{64\}\$ \]\]; then/, 'derived once, in the version job, held to its shape');
   assert.match(wf, /\n\s+shell: \$\{\{ steps\.reltag\.outputs\.shell \}\}\n/);
   const build = wf.slice(wf.indexOf('\n  build:\n'), wf.indexOf('\n  publish:\n'));

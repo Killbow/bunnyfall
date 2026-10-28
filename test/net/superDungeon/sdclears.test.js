@@ -1,6 +1,6 @@
 // SD-CLEARS (2026-10-08, Mac: "The first group clear of the new abyss dungeon is done. Can you pull up all of their
 // names?") - who broke an Abyss Dungeon, read by the operator. `tools/sdClears.mjs` writes the statements and
-// `.github/workflows/sd-clears.yml` runs them by hand: every Abyss Dungeon broken, then the names of one - the first
+// `selfhost/upstream-ci/workflows/sd-clears.yml` runs them by hand: every Abyss Dungeon broken, then the names of one - the first
 // ever broken unless a slot is asked. It reads only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -119,7 +119,7 @@ function runBlock(yml, stepName) {
 }
 
 test('SD-CLEARS the workflow: run by hand only, its one input read once as environment, the tool\'s statements in the deploy\'s queue, writing nothing; its steps, run here as the runner runs them over D1\'s own answer, list the Hollows broken and name the one asked, and fail when nothing is found (mutants: the input spliced into a run line; an empty answer passing)', () => {
-  const wf = src('.github/workflows/sd-clears.yml');
+  const wf = src('selfhost/upstream-ci/workflows/sd-clears.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

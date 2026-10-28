@@ -46,7 +46,7 @@
   },
   {
     "name": "IMPORT-GRAPH1-the-nine-unlisted",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "      - \"src/systems/loot/lootThemes.js\"\n",
     "new": "",
     "tests": [

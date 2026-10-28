@@ -1,7 +1,7 @@
 // BUNNYFALL CRAFTING REWORK: the crafting window's pack-side acts, wired by the host (scenes/world.js) into the
 // professions provider (ui/professions/profPages.js setProfessionsPages). Kept out of the host so it does not grow
 // (bible/01-Overview/Host-Split.md): the material upgrade and the salvage, both needing the pack and the purse.
-import { upgradeRecipeOf, upgradeRefusal, upgradeCost, upgradeGold } from '../net/upgradeLaw.js';
+import { upgradeRecipeOf, upgradeRefusal, metalUpgradeCost, upgradeGold } from '../net/upgradeLaw.js';
 import { upgradeMaterialItem } from '../systems/smithItems.js';
 import { salvagesToMaterials, anySalvageRefusal, salvageForMaterials, yieldsText } from '../ui/salvageMaterials.js';
 import { shardsText } from '../systems/reforge.js';
@@ -18,7 +18,7 @@ export function createCraftHost(deps) {
     upgradable() {
       return pack().filter((it) => it && !deps.worn(it) && !upgradeRefusal(it)).map((it) => {
         const next = upgradeRecipeOf(it);
-        return { item: it, name: deps.nameOf(it), next, cost: upgradeCost(next), gold: upgradeGold(next) };
+        return { item: it, name: deps.nameOf(it), next, cost: metalUpgradeCost(next), gold: upgradeGold(next) };
       });
     },
     /** A material upgrade: the gold and the fee checked, the service asked, the piece re-metalled on its answer. */

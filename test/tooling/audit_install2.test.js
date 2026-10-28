@@ -20,7 +20,7 @@ const rd = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 
 // ---- the workflows, read as GitHub reads them -------------------------------
 
-const WORKFLOWS = readdirSync(new URL('../../.github/workflows/', import.meta.url)).filter((f) => f.endsWith('.yml')).sort();
+const WORKFLOWS = readdirSync(new URL('../../selfhost/upstream-ci/workflows/', import.meta.url)).filter((f) => f.endsWith('.yml')).sort();
 /** A workflow's jobs, each from its two-space `name:` line to the next. */
 const jobsOf = (wf) => [...wf.slice(wf.indexOf('\njobs:\n')).matchAll(/\n {2}([A-Za-z0-9_-]+):\n([\s\S]*?)(?=\n {2}[A-Za-z0-9_-]+:\n|$)/g)]
   .map((m) => ({ name: m[1], text: m[2] }));
@@ -56,7 +56,7 @@ test('R2-B1: a step that reads a shell variable names its shell wherever a leg c
   let windowsJobs = 0;
   const unnamed = [];
   for (const f of WORKFLOWS) {
-    const wf = rd(`.github/workflows/${f}`);
+    const wf = rd(`selfhost/upstream-ci/workflows/${f}`);
     const wfBash = /\ndefaults:\n {2}run:\n {4}shell: bash\n/.test(wf);
     for (const job of jobsOf(wf)) {
       if (!/\bwindows-(?:latest|\d+)\b/.test(job.text)) continue;
@@ -71,7 +71,7 @@ test('R2-B1: a step that reads a shell variable names its shell wherever a leg c
   }
   assert.ok(windowsJobs >= 1, 'the desktop build has a Windows leg - this law is not vacuous');
   assert.deepEqual(unnamed, [], 'a script that reads a variable runs in whatever shell the leg defaults to');
-  const build = jobsOf(rd('.github/workflows/release-desktop.yml')).find((j) => j.name === 'build');
+  const build = jobsOf(rd('selfhost/upstream-ci/workflows/release-desktop.yml')).find((j) => j.name === 'build');
   const stamp = stepsOf(build.text).find((s) => nameOf(s) === 'Stamp the version');
   assert.match(stamp, /^ {8}shell: bash$/m, 'the stamp is bash on every leg');
   assert.equal(runOf(stamp), 'npm version "$VERSION" --no-git-tag-version --allow-same-version', 'and reads the environment, never pasted text (L1-5)');
@@ -81,7 +81,7 @@ test('R2-B4: an action nobody at GitHub owns is pinned to a commit - the release
   const loose = [];
   let thirdParty = 0;
   for (const f of WORKFLOWS) {
-    for (const m of rd(`.github/workflows/${f}`).matchAll(/^\s*(?:- )?uses: ([^\s#]+)(.*)$/gm)) {
+    for (const m of rd(`selfhost/upstream-ci/workflows/${f}`).matchAll(/^\s*(?:- )?uses: ([^\s#]+)(.*)$/gm)) {
       const [, ref, rest] = m;
       if (ref.startsWith('./') || ref.startsWith('actions/')) continue;
       thirdParty++;
@@ -91,12 +91,12 @@ test('R2-B4: an action nobody at GitHub owns is pinned to a commit - the release
   }
   assert.ok(thirdParty >= 1, 'softprops is third-party - this law is not vacuous');
   assert.deepEqual(loose, [], 'a tag can be moved under the job; a commit cannot - and the comment says which release it was');
-  assert.match(rd('.github/workflows/release-desktop.yml'), /uses: softprops\/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2\.6\.2\n/,
+  assert.match(rd('selfhost/upstream-ci/workflows/release-desktop.yml'), /uses: softprops\/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2\.6\.2\n/,
     'the commit v2 and v2.6.2 both named (git ls-remote, 2026-09-29)');
 });
 
 test('R2-C2: a draft a failed run left at the tag is deleted before staging - softprops would keep it, with its old notes and its old commit', () => {
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const publish = jobsOf(wf).find((j) => j.name === 'publish');
   const steps = stepsOf(publish.text);
   const guard = steps.findIndex((s) => nameOf(s) === 'The tag has no published release, and no draft left over');
@@ -541,7 +541,7 @@ test('R2-E (E-32..E-42, E-52..E-54): the shell\'s and the workflow\'s wiring the
   assert.match(news, /signal: AbortSignal\.timeout\(10000\),/);
   assert.ok(news.indexOf("if (!res.ok) throw new Error(`HTTP ${res.status}`);") >= 0 && news.indexOf("if (!res.ok) throw new Error(`HTTP ${res.status}`);") < news.indexOf('saveNews(items);'));
   // E-52: no ${{ }} text reaches ANY script in the release workflow - multi-line blocks included (L1-5's pin read one line)
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const pasted = jobsOf(wf).flatMap((j) => stepsOf(j.text).map((s) => [nameOf(s), runOf(s)])).filter(([, run]) => run && /\$\{\{/.test(run));
   assert.deepEqual(pasted, [], 'every value a script reads comes through its env');
   // E-53: an artifacts-only run stamps nothing - `npm version ""` would fail the leg

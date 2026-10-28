@@ -361,7 +361,7 @@
   },
   {
     "name": "WWAUDIT-B1-the-relay-not-waited-for",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "      - name: Wait for the relay to serve this push's version",
     "new": "      - name: Wait for nothing",
     "tests": [

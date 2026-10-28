@@ -12,6 +12,9 @@
 	handle_path /updater/* {
 		reverse_proxy server:8789
 	}
+	handle /v1/* {
+		reverse_proxy server:8788
+	}
 	handle_path /accounts/* {
 		reverse_proxy server:8788
 	}

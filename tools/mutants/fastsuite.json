@@ -190,7 +190,7 @@
   },
   {
     "name": "CI-FAST-install-every-time",
-    "file": ".github/workflows/verify.yml",
+    "file": "selfhost/upstream-ci/workflows/verify.yml",
     "old": "        if: steps.deps.outputs.cache-hit != 'true'\n        run: npm ci\n      - name: The times the shards split by\n",
     "new": "        run: npm ci\n      - name: The times the shards split by\n",
     "tests": [

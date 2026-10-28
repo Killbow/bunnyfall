@@ -8,7 +8,7 @@
 // test/net/gate/wb5b_gate_claim.test.js reads this file to keep it that way.
 //
 // GATE-KEYS (2026-09-26): THE ACCOUNT DEPLOY RUNS THIS, ONCE. Its step
-// "Mint the gate receipt pair" (.github/workflows/account-deploy.yml)
+// "Mint the gate receipt pair" (selfhost/upstream-ci/workflows/account-deploy.yml)
 // reads --pipe and puts both halves as Worker secrets whenever either is
 // missing, so nobody has to; by hand it is the same two `secret put`s.
 //

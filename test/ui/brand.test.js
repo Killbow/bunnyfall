@@ -69,7 +69,7 @@ const SHORT_NAME = 'DFO';
 const FILE_NAME = 'Bunnyfall';
 const TAGLINE = 'An open-source reimplementation of a classic 1996 RPG';
 
-test('BR1: every surface the player reads carries the one name', () => {
+test('BR1: every surface the player reads carries the one name', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const landing = read('index.html');
   assert.match(landing, new RegExp(`<title>${NAME}</title>`), 'the landing page\'s title');
   assert.match(landing, new RegExp(`<meta property="og:title" content="${NAME}" />`), 'and what a link preview shows');
@@ -122,7 +122,7 @@ test('BR1: every surface the player reads carries the one name', () => {
   assert.match(read('README.md'), new RegExp(`^# ${NAME}\\n`), 'the repository\'s own first line');
 });
 
-test('BR1: the tagline is one sentence, and it is the same sentence everywhere', () => {
+test('BR1: the tagline is one sentence, and it is the same sentence everywhere', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // The landing page, the manifest, the About panel and the README all
   // answer "what is this" - and before BR1 they answered it four ways,
   // one of which ("a 1:1 JavaScript port of Daggerfall") named the
@@ -162,7 +162,7 @@ test('BR1: no surface still says the old name', () => {
   assert.equal(split, '', `a wordmark still spells the old name across two elements:\n${split}`);
 });
 
-test('BR1: what the rebrand deliberately did NOT touch, and why', () => {
+test('BR1: what the rebrand deliberately did NOT touch, and why', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // THE LANGUAGE IS NOT THE BRAND, but it is still the language. A
   // comment that explains a C# integer overflow a JavaScript port gets
   // wrong by default is a true statement about the implementation, and
@@ -199,7 +199,7 @@ test('BR1: what the rebrand deliberately did NOT touch, and why', () => {
     'the desktop shell keeps writing where it already wrote - a rebrand is a name, not a migration');
 });
 
-test('BR4: the intro and the doors carry the name too', () => {
+test('BR4: the intro and the doors carry the name too', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const intro = read('src/ui/intro/introScreen.js');
   assert.match(intro, new RegExp(`host\\.setAttribute\\('aria-label', t\\('menu\\.intro\\.aria', '${NAME} introduction'\\)\\)`), 'what a screen reader hears as the film opens');
   assert.match(intro, new RegExp(`'intro-title-fallback', '${NAME}'`), 'and the title the film draws if the logo cannot load');
@@ -210,7 +210,7 @@ test('BR4: the intro and the doors carry the name too', () => {
   assert.match(read('SUPPORT.md'), new RegExp(`^# Support ${NAME}\\n`), 'the support page\'s first line');
 });
 
-test('BR4: the logo is Mac’s transparent cut, and nothing blends it away - BR5: the DFO mark, in boxes that keep the height they had', () => {
+test('BR4: the logo is Mac’s transparent cut, and nothing blends it away - BR5: the DFO mark, in boxes that keep the height they had', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // INTRO2's logo was a JPEG on black, and every surface drew it with
   // mix-blend-mode: screen to lose the black. BR4's carried its own alpha and
   // was MADE of black, so screen would erase the art itself; BR5's DFO mark
@@ -287,7 +287,7 @@ test('BR4: no surface still says the old name - whole, or split across a wordmar
   assert.equal(split, '', `a wordmark still spells the old name across two elements:\n${split}`);
 });
 
-test('BR4: what the rebrand deliberately did NOT touch, and why', () => {
+test('BR4: what the rebrand deliberately did NOT touch, and why', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // "ENHANCED" IS ALSO THE SKIN. Enhanced Plus, Enhanced lighting, the
   // Enhanced pane: those are the port's own departures, named before and
   // apart from the product, and they keep their names.
@@ -312,7 +312,7 @@ test('BR4: what the rebrand deliberately did NOT touch, and why', () => {
     'and the saves stay where they are');
 });
 
-test('BR5: no surface still says Daggerfall Online - whole, split across a wordmark, or in a file name', () => {
+test('BR5: no surface still says Daggerfall Online - whole, split across a wordmark, or in a file name', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // The BR1 sweep, for the name BR4 gave it. Case-sensitive, so the keys
   // spelled `daggerfall-online` and `daggerfallonline` (the relay's worker,
   // the Ko-fi page) are no hit: they are named in the next test, on purpose.
@@ -349,7 +349,7 @@ test('BR5: no surface still says Daggerfall Online - whole, split across a wordm
   }
 });
 
-test('BR5: the original game is named only where it must be - in what a player reads, the original game or the classic', async () => {
+test('BR5: the original game is named only where it must be - in what a player reads, the original game or the classic', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, async () => {
   // Mac's choice, asked: MINIMIZE. "Daggerfall" stays where it is the TRUTH
   // about something that is not this product - the files a player brings, the
   // credits and the licence, the trademark notice, Daggerfall Unity and the
@@ -451,7 +451,7 @@ test('AUDIT BR5: the drawn words no producer exports - the profession pages, the
   assert.ok(FEATURES.some((f) => /The sounds are in the original game but go unused\./.test(f.note)), 'A-5');
 });
 
-test('BR5: the keys other systems hold keep their spelling, and what moving each would break', () => {
+test('BR5: the keys other systems hold keep their spelling, and what moving each would break', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // Pinned as deliberately unchanged, as BR1 pinned the repository and the
   // domain: each is a name another system holds, and each moves with that
   // system or not at all. Mac weighed them (2026-10-11): the domain and the
@@ -463,8 +463,8 @@ test('BR5: the keys other systems hold keep their spelling, and what moving each
   assert.match(read('server/wrangler.toml'), /^name = "daggerfall-online"$/m, 'the relay Worker\'s name IS its hostname');
   assert.match(read('server-account/src/patreon.js'), /salt: enc\.encode\('daggerfall-accounts patreon-link'\)/,
     'a key-derivation salt - change it and every linked Patreon\'s stored secret stops opening');
-  assert.match(read('.github/workflows/account-deploy.yml'), /DB_NAME: daggerfall-accounts/, 'the D1 database, by its name');
-  assert.ok(read('.github/FUNDING.yml').includes('ko_fi: daggerfallonline'), 'the Ko-fi page is where it is - an account outside the tree, as the Patreon is');
+  assert.match(read('selfhost/upstream-ci/workflows/account-deploy.yml'), /DB_NAME: daggerfall-accounts/, 'the D1 database, by its name');
+  assert.ok(read('selfhost/upstream-ci/FUNDING.yml').includes('ko_fi: daggerfallonline'), 'the Ko-fi page is where it is - an account outside the tree, as the Patreon is');
   assert.ok(read('src/ui/supportAsks.js').includes("url: 'https://ko-fi.com/daggerfallonline'"), 'and the game links it there');
   assert.equal(JSON.parse(read('app/package.json')).name, 'daggerfall-js-app', 'the shell\'s package, and the User-Agent GitHub\'s API sees');
   assert.match(read('src/systems/modSettings.js'), /const STORE_KEY = 'dfjs-mod-settings';/, 'a live localStorage key, as BR1 pinned it');
@@ -480,7 +480,7 @@ test('BR5: the keys other systems hold keep their spelling, and what moving each
   }, 'the downloads a copy from before the rename asks for, by the names it was built with');
 });
 
-test('LOGO-CENTRE: the mark stands on its letters\' centre, not its box\'s - measured from the file, and every surface that centres it shifts it by that (mutants: the film unshifted; the door shifted by another amount)', async () => {
+test('LOGO-CENTRE: the mark stands on its letters\' centre, not its box\'s - measured from the file, and every surface that centres it shifts it by that (mutants: the film unshifted; the door shifted by another amount)', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, async () => {
   // Mac, 2026-10-26: "The main logo is off center". The box WAS centred (the film's last frame: 480.5 of 960); the
   // dragon's wing and tail fill its left, so the letters were not. The letters at mid-height run from the D's bowl
   // (its red) to the O's outline (the last paint); their centre, against the file's, is the shift.

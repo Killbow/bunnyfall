@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { standService } from '../accountDb.mjs';
-import { salvageRecipeOf, expectedYield, rollSalvage, previewSalvage, SALVAGE_SHARE, roundAtRandom } from '../../src/net/salvageLaw.js';
+import { salvageRecipeOf, expectedYield, rollSalvage, previewSalvage, GEAR_SALVAGE_SHARE, roundAtRandom } from '../../src/net/salvageLaw.js';
 import { seededRng } from '../../src/systems/wind/wind.js';
 
 const longsword = { templateIndex: 120, material: 4, group: 'Weapons', maxCondition: 100, currentCondition: 100 };
@@ -16,7 +16,7 @@ test('BUNNYFALL SALVAGE law: the recipe a piece breaks back into, 40% of it, les
   assert.equal(salvageRecipeOf({ templateIndex: 130, material: 1, group: 'Weapons' })?.id, 'longbow:oak');
   assert.equal(salvageRecipeOf({ templateIndex: 200, material: 0, group: 'Jewellery' }), null, 'no recipe, nothing');
   const y = expectedYield(salvageRecipeOf(longsword), 1);
-  assert.deepEqual(y.find((i) => i.key === 'ingot:dwarven'), { key: 'ingot:dwarven', n: 3 * SALVAGE_SHARE });
+  assert.deepEqual(y.find((i) => i.key === 'ingot:dwarven'), { key: 'ingot:dwarven', n: 3 * GEAR_SALVAGE_SHARE });
   assert.ok(expectedYield(salvageRecipeOf(longsword), 0)[0].n < y[0].n, 'a broken piece gives less');
   assert.equal(roundAtRandom(1.2, 0.1), 2);
   assert.equal(roundAtRandom(1.2, 0.5), 1);

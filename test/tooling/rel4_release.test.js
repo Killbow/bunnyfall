@@ -68,7 +68,7 @@ test('REL5: the build config produces EXACTLY the names the downloads promise - 
   assert.equal(Object.keys(DOWNLOAD_FILES).length, 4);
 });
 
-test('REL5: a download link names the file under releases/latest/download, which GitHub answers with the newest copy', () => {
+test('REL5: a download link names the file under releases/latest/download, which GitHub answers with the newest copy', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   assert.equal(RELEASES_URL, 'https://github.com/Lattymoy/daggerfall-js-source/releases');
   assert.equal(latestDownloadUrl(DOWNLOAD_FILES.winSetup),
     'https://github.com/Lattymoy/daggerfall-js-source/releases/latest/download/Bunnyfall-win-x64-setup.exe');
@@ -149,7 +149,7 @@ test('REL4: a release takes `latest` unless a newer one holds it - a hand re-cut
 });
 
 test('REL4: the workflow - one number, legs that only build, one publish gated on every leg, a draft published in one step', () => {
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const job = (name) => {
     const at = wf.indexOf(`\n  ${name}:\n`);
     assert.ok(at > 0, `a ${name} job`);
@@ -183,7 +183,7 @@ test('REL4: the workflow - one number, legs that only build, one publish gated o
   assert.match(notesStep, /\n {10}GH_TOKEN: \$\{\{ github\.token \}\}\n/, 'REL6: and the notes step hands gh that token');
 });
 
-test('REL5: the site links each installer by the name the release promises - the door\'s Install lands on them, one click each', () => {
+test('REL5: the site links each installer by the name the release promises - the door\'s Install lands on them, one click each', { skip: 'BUNNYFALL: pins the upstream desktop release pipeline, which this fork does not run' }, () => {
   const landing = rd('index.html');
   const entry = landing.slice(landing.indexOf('<dt id="desktop">'), landing.indexOf('</dd>', landing.indexOf('<dt id="desktop">')));
   const hrefs = [...entry.matchAll(/href="(https:\/\/github\.com\/[^"]*\/releases\/latest\/download\/[^"]*)"/g)].map((m) => m[1]);
@@ -382,8 +382,8 @@ test('REL6: patch notes live on the pull request - no file in the tree is one, a
     .split('\0').filter(Boolean);
   assert.ok(files.length > 1000, `the sweep read the tree (${files.length} files)`);
   assert.deepEqual(files.filter((p) => PATCH_NOTES_PATH_RE.test(p)), [],
-    'patch notes go in the pull request\'s description, under "## Patch notes" (.github/pull_request_template.md) - the release reads them there, and the tree keeps none');
-  const template = rd('.github/pull_request_template.md');
+    'patch notes go in the pull request\'s description, under "## Patch notes" (selfhost/upstream-ci/pull_request_template.md) - the release reads them there, and the tree keeps none');
+  const template = rd('selfhost/upstream-ci/pull_request_template.md');
   assert.equal(patchNotesOf(template), '', 'the template as it stands is no notes - its guidance is a comment');
   assert.equal(patchNotesOf(template.replace(/^## Patch notes$/m, '## Patch notes: The Sea\n\n- Boats.')), '# Patch Notes: The Sea\n\n- Boats.',
     'filled in, its section is the notes, and the template\'s next section ends them');
@@ -402,7 +402,7 @@ test('BR5: a copy from before the rename still finds its download, and a copy fr
   assert.deepEqual(ALIAS_COPIES.map(([from, to]) => [from, to]), Object.keys(DOWNLOAD_FILES).map((k) => [DOWNLOAD_FILES[k], LEGACY_DOWNLOAD_FILES[k]]),
     'each download is copied under ITS old name, never another\'s');
   // the alias step runs on the collected files, before the set is checked - a release short of one publishes nothing
-  const wf = rd('.github/workflows/release-desktop.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-desktop.yml');
   const collect = wf.indexOf('- name: Collect every leg\'s files'), aliasStep = wf.indexOf('run: node scripts/desktopRelease.mjs alias release'),
     check = wf.indexOf('run: node scripts/desktopRelease.mjs check release');
   assert.ok(collect > 0 && aliasStep > collect && check > aliasStep, 'collected, then copied, then checked');

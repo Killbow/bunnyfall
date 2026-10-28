@@ -3,7 +3,7 @@
 // names?") - WHO BROKE AN ABYSS DUNGEON, READ BY THE OPERATOR. The hub's record keeps only the top fighter's name and how
 // many fought (`top`, `n` - bible/11-Multiplayer/Super-Dungeons.md section 2); the names are the account service's, one
 // `sd_kills` row a (slot, account) the kill's receipt was claimed for (migration 0090, server-account/src/sds.js). No
-// route reads them back by slot, so they are read here, by hand, through .github/workflows/sd-clears.yml. It writes
+// route reads them back by slot, so they are read here, by hand, through selfhost/upstream-ci/workflows/sd-clears.yml. It writes
 // nothing.
 //
 //   node tools/sdClears.mjs --list            every Abyss Dungeon broken: its slot, how many claimed it, the first claim

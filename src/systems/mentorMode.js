@@ -1,6 +1,4 @@
 // SOFTCAP1 (2026-09-29): MENTOR MODE - playing with lower-level friends.
-// BUNNYFALL: the scaling below is no longer applied (refreshMentor never sets `_mentor`). Kept for reference; the
-// party level is the one thing left.
 //
 // AUTOMATIC (Mac, 2026-09-29: "higher level players will be automatically a mentor for lower level players
 // when partying up"): there is no switch. Join a party whose level is well below yours and you mentor it; leave, or
@@ -124,11 +122,8 @@ export function partyLevel(ownLevel, partnerLevels) {
 }
 
 /**
- * The host's per-frame door (scenes/world.js partyFrame).
- * BUNNYFALL: MENTORING IS GONE. Nobody is scaled down any more: no skill, attribute, health or gear cut, and none of
- * the powers that slept while mentoring (spell power, firmament, paths, mastery) sleep now, since `_mentor` is never
- * set. What stays is the shared world: in a party, enemies and loot are built for the party's average level
- * (`_partyLevel`, read by effectiveLevel). Returns 'on' when that level starts or changes, 'off' when it ends.
+ * The host's per-frame door (scenes/world.js partyFrame). BUNNYFALL: nobody is scaled down; in a party, enemies and
+ * loot are built for the party's average level (`_partyLevel`). Returns 'on' when it starts or changes, 'off' at its end.
  */
 export function refreshMentor(entity, partnerLevels, enabled = true) {
   if (!entity) return null;

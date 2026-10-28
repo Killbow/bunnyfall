@@ -177,8 +177,8 @@ test('DISCORD-CODE: every declared command and subcommand reaches a handler in t
   assert.deepEqual(subcommandsOf('mod'), ['lookup', 'mute', 'unmute', 'ban', 'unban']);
 });
 
-test('DISCORD-CODE: the commands live under server-account/, and the deploy\'s path filter holds the setup tool\'s whole import graph - a change to either deploys, and so reaches Discord', () => {
-  const wf = readFileSync(new URL('../../.github/workflows/account-deploy.yml', import.meta.url), 'utf8');
+test('DISCORD-CODE: the commands live under server-account/, and the deploy\'s path filter holds the setup tool\'s whole import graph - a change to either deploys, and so reaches Discord', { skip: 'BUNNYFALL: pins the upstream Cloudflare deploy, which this fork does not run' }, () => {
+  const wf = readFileSync(new URL('../../selfhost/upstream-ci/workflows/account-deploy.yml', import.meta.url), 'utf8');
   const listed = [...(/paths:\s*\n((?:\s*(?:#[^\n]*|-\s*"[^"]+")\n)+)/.exec(wf)?.[1] ?? '').matchAll(/-\s*"([^"]+)"/g)].map((m) => m[1]);
   assert.ok(listed.includes('server-account/**'), 'the service itself');
   const outside = graph('tools/discordModCommands.mjs').filter((f) => !f.startsWith('server-account/'));
@@ -189,7 +189,7 @@ test('DISCORD-CODE: the commands live under server-account/, and the deploy\'s p
 });
 
 test('DISCORD-SETUP: the deploy runs it LAST, the token an env var from the repository\'s secrets and never a word of the command, the door read off the deploy, and nothing asked of Discord when the token, channel or key is not set', () => {
-  const wf = readFileSync(new URL('../../.github/workflows/account-deploy.yml', import.meta.url), 'utf8');
+  const wf = readFileSync(new URL('../../selfhost/upstream-ci/workflows/account-deploy.yml', import.meta.url), 'utf8');
   const steps = wf.split(/\n      - name: /).slice(1);
   const step = steps.at(-1);
   assert.match(step, /^Point Discord at the service, where the repository has the bot's token\n/, 'the last step - a refusal hides no check above it');

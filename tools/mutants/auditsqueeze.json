@@ -37,7 +37,7 @@
   },
   {
     "name": "ASQ-S3-a-reset-ends-the-step",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "-d \"{\\\"secret\\\":\\\"$secret\\\",\\\"receipt\\\":\\\"r1.deploy.smoke\\\"}\" || true",
     "new": "-d \"{\\\"secret\\\":\\\"$secret\\\",\\\"receipt\\\":\\\"r1.deploy.smoke\\\"}\"",
     "tests": [

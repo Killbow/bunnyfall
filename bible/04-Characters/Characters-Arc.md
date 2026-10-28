@@ -1918,7 +1918,7 @@ viewer- and engine-side geometry, no new suites.
 body-hugging pieces: a generic `displace(groups, yLo, yHi, th, cxFor,
 zScale, mat)` in buildNeutralBody pushes body faces radially outward and
 stamps a material; shading resolves the ramp by material name. Data-
-driven table `src/characters/armorSet.js` `armorZones(index, family)`:
+driven table `src/characters/armorSet.js` `armorZones(index, family)`: (DELETED)
 Cuirass 102, Greaves 104, Gauntlets 103, Boots 108 -> zones stamped with
 the family material (Plate->steel, Chain->mail, Leather->leather; MAIL/
 LEATHER ramps added). Standoff pieces are separate meshes via the shared
@@ -1927,7 +1927,7 @@ normal flip that fixed the recurring backwards-texture bug; `capTop`/
 `capBottom` end-caps; `arc:[a0,a1]` partial rings): pauldrons (105/106,
 tagged armL/armR, raised onto the shoulder) and helm (107, a simple
 medieval dome + cheek guards after the Corinthian attempts were
-rejected). Clothing `src/characters/clothing.js` `clothingZones(index)`
+rejected). Clothing `src/characters/clothing.js` `clothingZones(index)` (DELETED)
 resolves every body-hugging garment 1:1 with the item DB by name; draped
 garments (skirts/robes/cloaks/togas/dresses/wraps/sashes) are separate
 SIMULATED cloth meshes (see C-Drapes), not zones. Layer order: clothing

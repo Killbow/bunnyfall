@@ -18,7 +18,6 @@ const HARDCODED = {
   'src/ai/nav/navClient.js': 1,
   'src/characters/atronachs.js': 4,
   'src/characters/beasts.js': 7,
-  'src/characters/clothing.js': 12,
   'src/characters/creatureBodies.js': 8,
   'src/characters/daedra.js': 4,
   'src/characters/enemy/enemyBasics.js': 19,
@@ -67,7 +66,7 @@ const HARDCODED = {
   'src/formats/skyFile.js': 1,
   'src/formats/unity/unityBundle.js': 1,
   'src/formats/unity/unityBundleWorker.js': 1,
-  'src/main.js': 6,
+  'src/main.js': 4,
   'src/net/accountClient.js': 14,
   'src/net/arena/arenaBrain.js': 2,
   'src/net/arena/arenaLaw.js': 28,
@@ -256,6 +255,7 @@ const HARDCODED = {
   'src/scenes/comeSailAway/comeSailAwayPool.js': 7,   // SHIP-PLAQUE: +1, the log's line when FONT0003 will not load - a developer's, never a player's
   'src/scenes/comeSailAway/shipLiveryPaint.js': 1,
   'src/scenes/corpseMarker.js': 3,
+  'src/scenes/craftHost.js': 6,   // BUNNYFALL: the crafting window's upgrade and salvage (English-only fork)
   'src/scenes/dataSource.js': 29,
   'src/scenes/decor/decorTool.js': 45,
   'src/scenes/livingWorld/deepRemains.js': 2,
@@ -454,7 +454,7 @@ const HARDCODED = {
   'src/systems/naval/treasureCharts.js': 1,
   'src/systems/online/onlineHomes.js': 61,
   'src/systems/online/onlineLane.js': 1,
-  'src/systems/overhauls.js': 23,
+  'src/systems/overhauls.js': 21,
   'src/systems/party/partyArrival.js': 3,
   'src/systems/party/partyMap.js': 1,
   'src/systems/party/partyRestLaw.js': 3,
@@ -511,7 +511,7 @@ const HARDCODED = {
   'src/systems/serpent/serpentSpoils.js': 4,
   'src/systems/settings/settings.js': 11,
   'src/systems/settings/settingsText.js': 156,
-  'src/systems/shellUpdates.js': 4,
+  'src/systems/shellUpdates.js': 3,
   'src/systems/shipyards.js': 21,
   'src/systems/shopStock.js': 2,
   'src/systems/sigil/sigil.js': 8,
@@ -618,7 +618,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedAccount.js': 8,
   'src/ui/enhanced/enhancedBook.js': 1,
   'src/ui/enhanced/enhancedCharSheet.js': 1,
-  'src/ui/enhanced/enhancedChargen.js': 108,
+  'src/ui/enhanced/enhancedChargen.js': 107,
   'src/ui/enhanced/enhancedChronicle.js': 33,   // QUEST-AUDIT III SHELF-WORDS: -2, "Time remains" through t()
   'src/ui/enhanced/enhancedChunk.js': 2,
   'src/ui/enhanced/enhancedControls.js': 20,
@@ -627,9 +627,9 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedHelm.js': 16,
   'src/ui/enhanced/enhancedHotbar.js': 13,
   'src/ui/enhanced/enhancedHud.js': 9,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (SKILL-READY, FIRM-STARS: +3, the two tiles' names and their cell's class)
-  'src/ui/enhanced/enhancedInventory.js': 92,   // CHAT-POST: +3 Link/Post/Linked strings on the pack card; HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
+  'src/ui/enhanced/enhancedInventory.js': 98,   // BUNNYFALL: +6, salvage into materials; CHAT-POST: +3 Link/Post/Linked strings on the pack card; HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
   'src/ui/enhanced/enhancedLevelingChoice.js': 6,
-  'src/ui/enhanced/enhancedMenu.js': 52,   // AUDIT MEM-AUDIT G5: -2, the Graphics preset's name and note routed (with its effect, its Custom and its four labels). QUEST-AUDIT III SHELF-WORDS: -5, the shelf's buttons and lines through t(). AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main. REALM-COPY: -1, the copy's slot name moved to systems/realmCopyMark.js
+  'src/ui/enhanced/enhancedMenu.js': 51,   // AUDIT MEM-AUDIT G5: -2, the Graphics preset's name and note routed (with its effect, its Custom and its four labels). QUEST-AUDIT III SHELF-WORDS: -5, the shelf's buttons and lines through t(). AUDIT COLLECTIONS-II: -2, the empty Holdings rail's words, gone with the rail that is never empty now. AUDIT EG V (c, L7-10): the Spire's three accessibility rows routed; UI-CALM's doors at the merge of main. REALM-COPY: -1, the copy's slot name moved to systems/realmCopyMark.js
   'src/ui/enhanced/enhancedMerchantPanel.js': 1,
   'src/ui/enhanced/enhancedNotice.js': 1,
   'src/ui/enhanced/enhancedPlayerTrade.js': 14,
@@ -676,7 +676,7 @@ const HARDCODED = {
   'src/ui/ink/inkDungeonSolid.js': 6,
   'src/ui/input.js': 2,
   'src/ui/inputMessageBox.js': 1,
-  'src/ui/intro/introScreen.js': 3,
+  'src/ui/intro/introScreen.js': 2,
   'src/ui/intro/introShaders.js': 2,   // INTRO4: introLandscape.js's 6 moved with its shaders - two GLSL sources the scan reads as words
   'src/ui/inventoryDoor.js': 1,
   'src/ui/joystickControlsWindow.js': 1,
@@ -697,11 +697,11 @@ const HARDCODED = {
   'src/ui/naval/navalPlunderWindow.js': 19,
   'src/ui/naval/navalYardWindow.js': 67,
   'src/ui/noticeWindow.js': 99,
+  'src/ui/ownerUpdate.js': 8,   // BUNNYFALL: the owner's update button
   'src/ui/padGlyphsHD.js': 15,
   'src/ui/pageWindow.js': 4,
   'src/ui/partyMapMarks.js': 3,
   'src/ui/partyPanel.js': 3,
-  'src/ui/pauseWindow.js': 2,
   'src/ui/peerMenuBindCard.js': 5,
   'src/ui/pickupFeed.js': 1,
   'src/ui/pixelDial.js': 3,
@@ -711,7 +711,9 @@ const HARDCODED = {
   'src/ui/plus/plusPad.js': 18,
   'src/ui/plus/plusPadBinds.js': 30,
   'src/ui/prisonScreen.js': 1,
-  'src/ui/professions/profPages.js': 29,   // FB1020c ONE-SAVE: the kept words, moved here from the world host; REFORGE-REPLACE: the Reforge with Essence's two words through t()
+  'src/ui/professions/craftActs.js': 15,   // BUNNYFALL: the crafting window's minigames
+  'src/ui/professions/craftWindow.js': 35,   // BUNNYFALL: the crafting window
+  'src/ui/professions/profPages.js': 30,   // BUNNYFALL: +1, back to the crafting window; FB1020c ONE-SAVE: the kept words, moved here from the world host; REFORGE-REPLACE: the Reforge with Essence's two words through t()
   'src/ui/profileBadge.js': 4,
   'src/ui/profileIcons.js': 4,   // WITCH1: the four profile icons' names (ICON_TEXT) - the badge's words, as playerBadge.js's titles and auras
   'src/ui/profileWindow.js': 14,
@@ -754,7 +756,6 @@ const HARDCODED = {
   'src/ui/spellbookWindow.js': 4,
   'src/ui/spyglassView.js': 2,
   'src/ui/statsCard.js': 5,
-  'src/ui/supportAsks.js': 2,
   'src/ui/tamrielInk.js': 3,
   'src/ui/tavernWindow.js': 2,
   'src/ui/techniqueCard.js': 8,

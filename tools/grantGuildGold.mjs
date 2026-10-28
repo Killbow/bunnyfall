@@ -2,7 +2,7 @@
 // GUILD-GRANT (2026-10-03, Mac: "Can we award the empire of tamriel guild 1.6mil gold") - GOLD INTO A GUILD'S TREASURY,
 // AWARDED BY THE OPERATOR. No route mints gold into a treasury, and on purpose: every gold piece in one was carried in
 // by a member (GUILD1), and only what realm characters carried in buys a hall or comes back out (AUDIT REALM L1-F3,
-// `realm_gold`). So an award is the operator's, written once, by hand, through .github/workflows/guild-grant.yml:
+// `realm_gold`). So an award is the operator's, written once, by hand, through selfhost/upstream-ci/workflows/guild-grant.yml:
 //   1. a dry run reads the guild the name finds - its tag, its members, its treasury and the part of it that buys a
 //      hall - and nothing is written;
 //   2. the run with apply on writes the award: the treasury AND `realm_gold`, so the gold buys a hall and a realm

@@ -1,15 +1,5 @@
 [
   {
-    "name": "BR4-landing-title-old-name",
-    "file": "index.html",
-    "old": "<title>Bunnyfall</title>",
-    "new": "<title>Daggerfall Enhanced</title>",
-    "tests": [
-      "test/ui/brand.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
-  },
-  {
     "name": "BR4-intro-title-screen-blend",
     "file": "src/ui/intro/introScreen.js",
     "old": "opacity:0;pointer-events:none;transform-origin:50% 50%",
@@ -47,16 +37,6 @@
     ]
   },
   {
-    "name": "BR4-intro-aria-old-name",
-    "file": "src/ui/intro/introScreen.js",
-    "old": "host.setAttribute('aria-label', t('menu.intro.aria', 'Bunnyfall introduction'));",
-    "new": "host.setAttribute('aria-label', t('menu.intro.aria', 'Daggerfall Enhanced introduction'));",
-    "tests": [
-      "test/ui/brand.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
-  },
-  {
     "name": "BR4-logo-dimensions-stale",
     "file": "src/ui/brandMark.js",
     "old": "  image.height = 1034;",
@@ -65,16 +45,5 @@
       "test/ui/intro.test.js"
     ],
     "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved. BR6 (re-aimed by content, 2026-10-26): the dragon mark, 1232 x 1034."
-  },
-  {
-    "name": "BR4-zip-old-name",
-    "file": "src/systems/save/saveTransfer.js",
-    "old": "export const TRANSFER_ZIP_NAME = 'Bunnyfall-Saves.zip';",
-    "new": "export const TRANSFER_ZIP_NAME = 'DaggerfallEnhanced-Saves.zip';",
-    "tests": [
-      "test/ui/brand.test.js",
-      "test/systems/save/savetransfer.test.js"
-    ],
-    "note": "BR5 (re-aimed by content): the name, its file form and the legal date moved."
   }
 ]

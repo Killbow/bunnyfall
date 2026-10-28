@@ -1,7 +1,7 @@
 // RECOVER-OP (2026-09-27) - A NEW RECOVERY CODE, ISSUED BY THE OPERATOR, for a player who lost both the password and
 // the code (Twoddle: "is there anyway this can be fixed without starting a new account as i would like to keep the
 // founders badge?"). The operator sets only the new code's hash (tools/reissueRecoveryCode.mjs, run by
-// .github/workflows/account-recovery.yml), and the player spends it in the game's own recovery: their own password, a
+// selfhost/upstream-ci/workflows/account-recovery.yml), and the player spends it in the game's own recovery: their own password, a
 // new code, every device signed out, the operator's copy dead. Nothing else on the row moves.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -142,7 +142,7 @@ test('RECOVER-OP: the tool refuses anything that is not a username or not a hash
 });
 
 test('RECOVER-OP the workflow: run by hand only, its inputs reach the scripts as environment and never spliced into a run line, the statement is the tool\'s, the deploy\'s queue, and a run that changed no row fails', () => {
-  const wf = src('.github/workflows/account-recovery.yml');
+  const wf = src('selfhost/upstream-ci/workflows/account-recovery.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

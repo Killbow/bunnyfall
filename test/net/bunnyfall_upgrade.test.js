@@ -11,7 +11,7 @@ import { createProfBook } from '../../src/net/profBook.js';
 import { xpForRank } from '../../src/net/professionLaw.js';
 import { recipeById } from '../../src/net/recipeLaw.js';
 import { temperCost, temperCap, temperGold, temperRefusal, TEMPER_TOP } from '../../src/net/temperLaw.js';
-import { upgradeRecipeOf, upgradeRefusal, upgradeCost, upgradeGold } from '../../src/net/upgradeLaw.js';
+import { upgradeRecipeOf, upgradeRefusal, metalUpgradeCost, upgradeGold } from '../../src/net/upgradeLaw.js';
 import { temperItem, upgradeMaterialItem } from '../../src/systems/smithItems.js';
 import { weaponOfMaterial, armorOfMaterial } from '../../src/combat/enemyEquipment.js';
 
@@ -50,7 +50,7 @@ test('BUNNYFALL UPGRADE law: one metal up, lines kept, Daedric the top, chain an
   w.rarity = 'rare'; w.affixes = [{ id: 'damage', value: 3 }];
   const next = upgradeRecipeOf(w);
   assert.equal(next.id, 'longsword:steel');
-  assert.deepEqual(upgradeCost(next), { key: 'ingot:steel', n: 3 });
+  assert.deepEqual(metalUpgradeCost(next), { key: 'ingot:steel', n: 3 });
   assert.equal(upgradeGold(next), 400);
   const was = w.value;
   assert.equal(upgradeMaterialItem(w, next), true);

@@ -204,7 +204,7 @@
   },
   {
     "name": "SCALE1-E-the-service-deploys-unverified",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "  deploy:\n    needs: verify\n",
     "new": "  deploy:\n",
     "tests": [
@@ -213,7 +213,7 @@
   },
   {
     "name": "SCALE1-E-no-bookmark",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "          b=$($WRANGLER d1 time-travel info \"$DB_NAME\" --json | jq -r '.bookmark // empty' || true)\n          if [ -z \"$b\" ]; then\n            echo \"::warning::could not read the database's Time Travel bookmark before the migrations\"",
     "new": "          b=''\n          if [ -z \"$b\" ]; then\n            echo \"::warning::could not read the database's Time Travel bookmark before the migrations\"",
     "tests": [
@@ -222,7 +222,7 @@
   },
   {
     "name": "SCALE1-E-the-relay-deploys-unverified",
-    "file": ".github/workflows/relay-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-deploy.yml",
     "old": "    needs: [drift, verify]\n",
     "new": "    needs: [drift]\n",
     "tests": [
@@ -231,7 +231,7 @@
   },
   {
     "name": "SCALE1-E-the-relay-deploys-over-a-red-suite",
-    "file": ".github/workflows/relay-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-deploy.yml",
     "old": "(needs.verify.result == 'success' || needs.verify.result == 'skipped')",
     "new": "(needs.verify.result != 'cancelled')",
     "tests": [

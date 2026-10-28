@@ -472,7 +472,7 @@
   },
   {
     "name": "DA13-48-no-seed-in-the-installers",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        run: node scripts/desktopRelease.mjs seed dist app/game-seed.json\n",
     "new": "        run: echo no seed\n",
     "tests": [
@@ -482,7 +482,7 @@
   },
   {
     "name": "DA13-49-a-pack-per-leg",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        if: needs.version.outputs.tag != '' && matrix.os == 'ubuntu-latest'\n",
     "new": "        if: needs.version.outputs.tag != ''\n",
     "tests": [
@@ -492,8 +492,8 @@
   },
   {
     "name": "DA13-50-not-measured",
-    "file": ".github/workflows/release-desktop.yml",
-    "old": "            node scripts/desktopRelease.mjs delta previous/Bunnyfall-game.json.gz release/Bunnyfall-game.json.gz \"$PREV\"\n",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
+    "old": "            node scripts/desktopRelease.mjs delta previous/DFO-Online-game.json.gz release/DFO-Online-game.json.gz \"$PREV\"\n",
     "new": "",
     "tests": [
       "test/tooling/da13_gamechannel.test.js"

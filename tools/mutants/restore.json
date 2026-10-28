@@ -379,7 +379,7 @@
   },
   {
     "name": "RESTORE-C-the-present-put-back-only-on-success",
-    "file": ".github/workflows/realm-restore.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-restore.yml",
     "old": "        if: always() && env.REWOUND == '1'",
     "new": "        if: env.REWOUND == '1'",
     "tests": [
@@ -388,7 +388,7 @@
   },
   {
     "name": "RESTORE-C-the-hold-lifted-over-a-rewind",
-    "file": ".github/workflows/realm-restore.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-restore.yml",
     "old": "        if: always() && env.REWOUND != '1'",
     "new": "        if: always()",
     "tests": [
@@ -397,7 +397,7 @@
   },
   {
     "name": "RESTORE-C-the-rewind-unmarked",
-    "file": ".github/workflows/realm-restore.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-restore.yml",
     "old": "          echo \"REWOUND=1\" >> \"$GITHUB_ENV\"\n",
     "new": "",
     "tests": [
@@ -406,7 +406,7 @@
   },
   {
     "name": "RESTORE-C-written-on-a-dry-run",
-    "file": ".github/workflows/realm-restore.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-restore.yml",
     "old": "        if: env.APPLY == 'true'",
     "new": "        if: always()",
     "tests": [
@@ -415,7 +415,7 @@
   },
   {
     "name": "RESTORE-C-the-hold-proven-by-a-guest",
-    "file": ".github/workflows/realm-restore.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-restore.yml",
     "old": "-X POST \"$base/v1/realm/customs\" -H 'content-type: application/json' -d '{}' || true)",
     "new": "-X POST \"$base/v1/auth/guest\" -H 'content-type: application/json' -d '{\"label\":\"restore-hold\"}' || true)",
     "tests": [

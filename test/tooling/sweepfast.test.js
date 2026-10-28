@@ -44,7 +44,7 @@ test('SWEEP-FAST THE CLI: `--part p/k` sweeps that part of the seeds `--seeds`, 
 });
 
 test('SWEEP-FAST THE WORKFLOW: the sweep\'s matrix takes a part of each band - six past a hundred seeds a band, one else, the part list running 1 to the parts it names under the same rule; both steps sweep their part; a pull request\'s 25 stay one job a band, the nightly\'s and a relay deploy\'s 500 run six; the part named only where there are several (mutants: a part left out; the law 9 walk sweeping every seed in every part; a pull request split; the course step unparted)', () => {
-  const w = read('.github/workflows/eg-sweep.yml');
+  const w = read('selfhost/upstream-ci/workflows/eg-sweep.yml');
   const part = /\n {8}part: \$\{\{ fromJSON\(\(inputs\.seeds \|\| 500\) > (\d+) && '\[([\d, ]+)\]' \|\| '\[1\]'\) \}\}\n/.exec(w);
   const parts = /\n {8}parts: \$\{\{ fromJSON\(\(inputs\.seeds \|\| 500\) > (\d+) && '\[(\d+)\]' \|\| '\[1\]'\) \}\}\n/.exec(w);
   assert.ok(part && parts, 'the part and the parts, by one rule');
@@ -54,7 +54,7 @@ test('SWEEP-FAST THE WORKFLOW: the sweep\'s matrix takes a part of each band - s
   assert.deepEqual(list, Array.from({ length: k }, (_, i) => i + 1), 'every part of the parts');
   const at = Number(part[1]);
   assert.ok(25 <= at && at < 500, `a pull request's 25 one job, the 500 in parts (threshold ${at})`);
-  const v = read('.github/workflows/verify.yml'), r = read('.github/workflows/relay-deploy.yml');
+  const v = read('selfhost/upstream-ci/workflows/verify.yml'), r = read('selfhost/upstream-ci/workflows/relay-deploy.yml');
   assert.match(v, /\n {6}sweep:\n {8}description: [^\n]+\n {8}type: number\n {8}default: 25\n/);
   assert.match(r, /\n {6}sweep: 500\n/);
   const runs = w.match(/run: node tools\/egSpanSolve\.mjs --sweep [^\n]*\n/g) ?? [];

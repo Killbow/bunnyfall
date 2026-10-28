@@ -1,7 +1,7 @@
 // COST-0 (2026-10-24, the owner's bill: about $90 a day, $50 of it Durable Objects compute duration) - HOW MANY ROOMS
 // ARE AWAKE, READ BY THE OPERATOR: tools/doActive.mjs walks Cloudflare's GraphQL schema to durableObjectsPeriodicGroups,
 // builds its questions from what the schema says it has, and draws each day's objects awake, the always-awake count, the
-// object-days and their cost; .github/workflows/do-active.yml runs it by hand, writing nothing. Over a fake endpoint in the
+// object-days and their cost; selfhost/upstream-ci/workflows/do-active.yml runs it by hand, writing nothing. Over a fake endpoint in the
 // real one's shape (test/fixtures/doActiveGraphql.mjs). bible/11-Multiplayer/Scale-Arc.md COST-0.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -133,7 +133,7 @@ function stepRun(yml, stepName) {
 const stepOf = (yml, stepName) => { const at = yml.indexOf(`- name: ${stepName}\n`); const end = yml.indexOf('\n      - ', at + 1); return yml.slice(at, end < 0 ? undefined : end); };
 
 test('COST-0 the workflow: run by hand only, its one input read once as environment, its own queue, writing nothing, bounded, the token the two steps\' that use it and never the job\'s; the token step refuses to start without one and asks the tool\'s window first; its reading step, run here as the runner runs it over the fake endpoint, says the window and draws the reading into the summary - and a run the schema stops keeps the schema and fails (mutants: the input spliced into a run line; the token the job\'s; the token step\'s guard; the account; the run green on a stop)', () => {
-  const wf = src('.github/workflows/do-active.yml');
+  const wf = src('selfhost/upstream-ci/workflows/do-active.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

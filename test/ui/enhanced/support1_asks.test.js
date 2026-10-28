@@ -40,7 +40,7 @@ function mediaRule(cond, sel) {
   return rule(sel, `\n${blocks[0][2]}`);
 }
 
-test('SUPPORT1: the asks are Patreon then Ko-fi, at Mac\'s two addresses - one home, both doors read it', () => {
+test('SUPPORT1: the asks are Patreon then Ko-fi, at Mac\'s two addresses - one home, both doors read it', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   assert.deepEqual(SUPPORT_ASKS.map(({ id, name, label, url }) => ({ id, name, label, url })), [
     { id: 'patreon', name: 'Patreon', label: 'Support on Patreon', url: 'https://www.patreon.com/c/dfenhanced' },   // PATREON1's
     { id: 'kofi', name: 'Ko-fi', label: 'Support on Ko-fi', url: 'https://ko-fi.com/daggerfallonline' },   // SUPPORT1's - not U64's dfjs
@@ -48,7 +48,7 @@ test('SUPPORT1: the asks are Patreon then Ko-fi, at Mac\'s two addresses - one h
   assert.ok(Object.isFrozen(SUPPORT_ASKS) && SUPPORT_ASKS.every((a) => Object.isFrozen(a) && Object.isFrozen(a.art)), 'read by two doors, written by none');
 });
 
-test('SUPPORT1: the marks are the drawings - PATREON1\'s bar and disc, U64\'s cup with its handle a ring - each body five rows', () => {
+test('SUPPORT1: the marks are the drawings - PATREON1\'s bar and disc, U64\'s cup with its handle a ring - each body five rows', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const [patreon, kofi] = SUPPORT_ASKS;
   // PATREON1's mark, the very pixels index.html carried as a box-shadow list: the bar in the dim, five tall; a column
   // of air; the disc in the brass, five across with its corners cut
@@ -158,7 +158,7 @@ test('SUPPORT1: the skin carries the one drawing, the plaque in the corner the p
   }
 });
 
-test('SUPPORT1: the corners\' band - the door\'s stage starts below its corner marks wherever the wordmark reaches under either, and every number is the marks\' own', () => {
+test('SUPPORT1: the corners\' band - the door\'s stage starts below its corner marks wherever the wordmark reaches under either, and every number is the marks\' own', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const stage = '.px-home:not(.px-over) > .px-stage:not(.px-acctstage)';
   // THE ASKS' reach from the left edge: their offset, the plaque (borders, padding, two cells and the gap), the Plus
   // frame's outset beyond it

@@ -5,7 +5,7 @@
 // around the clock - and nothing in the tree could say which. Cloudflare's GraphQL analytics can:
 // `durableObjectsPeriodicGroups` carries each object's active time. Its fields are not in Cloudflare's docs, so this asks
 // the schema first and builds every question from what the account's schema says it has.
-// .github/workflows/do-active.yml runs it by hand with the deploy's token. It reads only.
+// selfhost/upstream-ci/workflows/do-active.yml runs it by hand with the deploy's token. It reads only.
 //
 //   node tools/doActive.mjs --account <id> --days [days]   the reading, as Markdown on stdout (the token from
 //                                                         CLOUDFLARE_API_TOKEN); the schema first, so a run that

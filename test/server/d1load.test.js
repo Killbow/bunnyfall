@@ -1,7 +1,7 @@
 // D1-LOAD (2026-10-11, from play: the account service stayed slow after SEAT-CAP and SEAT-LEASE; the owner: "do
 // whatever is the most detailed. I dont want band aid fixes") - WHAT IS FILLING THE ONE DATABASE, READ BY THE OPERATOR:
 // tools/d1Load.mjs builds the Analytics Engine questions over the service's own metrics points (metrics.js) and
-// .github/workflows/d1-load.yml asks them by hand, beside D1's query insights, writing nothing.
+// selfhost/upstream-ci/workflows/d1-load.yml asks them by hand, beside D1's query insights, writing nothing.
 // bible/01-Overview/bugs/Field-Bugs-2026-10-11h.md D1-LOAD.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -69,7 +69,7 @@ function stepRun(yml, stepName) {
 }
 
 test('D1-LOAD the workflow: run by hand only, its two inputs each read once as environment, its own queue, writing nothing; its insights step ranks the statements as the choice input asks (COST-0: time, reads or writes) and hands wrangler no other; its metrics step, run here as the runner runs it over the SQL API\'s answers, draws every question into the summary and warns - never fails - on a refusal (mutants: the input spliced into a run line; a refusal drawn as a table; the ranking fixed; the ranking unguarded)', () => {
-  const wf = src('.github/workflows/d1-load.yml');
+  const wf = src('selfhost/upstream-ci/workflows/d1-load.yml');
   const on = /\non:\n([\s\S]*?)\n\S/.exec(wf)?.[1] ?? '';
   assert.match(on, /^ {2}workflow_dispatch:/);
   assert.doesNotMatch(on, /push:|pull_request|schedule:/);

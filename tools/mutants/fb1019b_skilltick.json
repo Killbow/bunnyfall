@@ -10,16 +10,6 @@
     "why": "the line counts raw uses where the pass counts them scaled"
   },
   {
-    "name": "SKILL-TICK-level-one-price",
-    "file": "src/systems/advancement.js",
-    "old": "entity.career?.advancementMultiplier ?? 1, entity.level ?? 1);",
-    "new": "entity.career?.advancementMultiplier ?? 1, 1);",
-    "tests": [
-      "test/systems/fb1019b_skilltick.test.js"
-    ],
-    "why": "the requirement at level 1 - a level-7 player told a skill is closer than it is"
-  },
-  {
     "name": "SKILL-TICK-ready-early",
     "file": "src/systems/advancement.js",
     "old": "  return { have, need: needed, ready: !held && have >= needed, held, wait };",

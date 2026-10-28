@@ -91,7 +91,7 @@
   },
   {
     "name": "AUDIT-SCALE4d-D5-replication-disabled",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "-d '{\"read_replication\":{\"mode\":\"auto\"}}'",
     "new": "-d '{\"read_replication\":{\"mode\":\"disabled\"}}'",
     "tests": [
@@ -101,7 +101,7 @@
   },
   {
     "name": "AUDIT-SCALE4d-D5-step-a-get",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "--max-time 20 -o /tmp/replicas.json -w '%{http_code}' -X PUT \\",
     "new": "--max-time 20 -o /tmp/replicas.json -w '%{http_code}' -X GET \\",
     "tests": [

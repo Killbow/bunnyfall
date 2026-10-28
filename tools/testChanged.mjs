@@ -9,7 +9,7 @@
 //     cite, a regex over world.js, a workflow's YAML) - by name it chooses too many sometimes, never too few.
 // A change to a file every test leans on (package.json, the lockfile, the test runner's own configuration) runs the
 // whole suite. Changed is: against the merge base with origin/main (else HEAD), plus what is staged, unstaged and
-// untracked. THE STANDARD IS UNCHANGED: CI runs every file on every PR and before every deploy (.github/workflows/
+// untracked. THE STANDARD IS UNCHANGED: CI runs every file on every PR and before every deploy (selfhost/upstream-ci/workflows/
 // verify.yml); this only decides what runs first, here.
 //
 //   npm run test:changed                       # run them

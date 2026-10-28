@@ -377,7 +377,7 @@ test('U63: the night is the MENU\'s night - pixelGround\'s ramp, seed and star l
   assert.match(landing, /\.night \{ position: fixed; inset: 0; z-index: -1; \}/, 'the page just declares where it goes');
 });
 
-test('U63: the page is the pixel face\'s own idioms, not the shell it replaced', () => {
+test('U63: the page is the pixel face\'s own idioms, not the shell it replaced', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const css = landing.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
   const skin = read('src/ui/enhanced/enhancedStyle.js');
   // The shell is GONE: no rail, no two-column grid, no .act buttons.
@@ -463,7 +463,7 @@ test('U63: the fi ligature is off - "files" is not "Ales", on the site AND in th
 // site cleanup; the no-raster law above is its successor.)
 
 // ── U64: THE DOMAIN, AND THE HAT ──────────────────────────────────
-test('U64 + PATREON1 + SUPPORT1: the corner asks are Patreon then Ko-fi, each a plaque with its mark drawn, near the top - the page\'s only asks, and every ask the project makes names the same two (Mac, 2026-10-05: "I want to add the kofi link in addition to the patron on the website")', () => {
+test('U64 + PATREON1 + SUPPORT1: the corner asks are Patreon then Ko-fi, each a plaque with its mark drawn, near the top - the page\'s only asks, and every ask the project makes names the same two (Mac, 2026-10-05: "I want to add the kofi link in addition to the patron on the website")', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   const css = landing.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? '';
   // THE ASKS, in the order the game's own door shows them, at SUPPORT_ASKS' addresses - and nothing else on the page
   // asks: not a banner, not a badge, and not an <img> (an image would be a second raster beside the logo, the one
@@ -512,7 +512,7 @@ test('U64 + PATREON1 + SUPPORT1: the corner asks are Patreon then Ko-fi, each a 
   // on, from .github/FUNDING.yml - and README.md and SUPPORT.md. `custom` keeps Mac's /c/ Patreon URL (`patreon:
   // dfenhanced` would link a URL Mac never gave); `ko_fi` is GitHub's own key, the page's name.
   const byId = Object.fromEntries(SUPPORT_ASKS.map((a) => [a.id, a]));
-  const funding = read('.github/FUNDING.yml');
+  const funding = read('selfhost/upstream-ci/FUNDING.yml');
   assert.equal(funding.trim(), `custom: ["${byId.patreon.url}"]\nko_fi: ${new URL(byId.kofi.url).pathname.slice(1)}`, 'the Sponsor button asks on both');
   for (const doc of ['README.md', 'SUPPORT.md']) {
     const text = read(doc);
@@ -540,7 +540,7 @@ test('SUPPORT1: the asks\' marks are the game\'s - injected verbatim after the t
   }
 });
 
-test('DISC1: the Discord is front and centre - a plaque in the door\u2019s own row, one home, no new shape', () => {
+test('DISC1: the Discord is front and centre - a plaque in the door\u2019s own row, one home, no new shape', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // Mac, 2026-09-15: "Can you add our discord ... To our website. Front
   // and center." The page has exactly TWO box shapes and that is the
   // whole of its discipline - the plaque is what you PRESS, the corner
@@ -568,7 +568,7 @@ test('DISC1: the Discord is front and centre - a plaque in the door\u2019s own r
   assert.match(landing, /href="https:\/\/discord\.gg\/jM2JdwSM8w" rel="noopener"/, 'the invite carries rel=noopener, as the asks do');
 });
 
-test('U64: the live site is the custom domain, and the build does not care which', () => {
+test('U64: the live site is the custom domain, and the build does not care which', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // `base: './'` means the SAME build serves from a project path and
   // from an apex, so the domain moved with no rebuild - which is why
   // the vite comment says so rather than naming a host.

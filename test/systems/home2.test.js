@@ -85,7 +85,7 @@ test('HOME2 the door, by source: the verbs listed in every mode but Steal and on
 });
 
 test('HOME2 the deploy: a smoke call that 404s is asked again, seven times five seconds apart, before the deploy is failed - an old instance answering mid-rollout failed PR #387\'s deploy after it had taken; every new route\'s call goes through it (mutants: no retry; a route called around it)', () => {
-  const wf = src('.github/workflows/account-deploy.yml');
+  const wf = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   // PIN MOVED (INT16, Integrity-Arc section 7): the retry is `ask`, one loop every smoke call goes through - `post` and the
   // realm character's first save (`put`) each hand it their own curl words (the loop written twice was two sites of one law)
   // PIN MOVED (SMOKE-LOST, 2026-10-18): `ask` clears and leaves `<out>.lost` - a try that went unanswered, which the first

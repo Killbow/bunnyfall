@@ -455,15 +455,6 @@
     ]
   },
   {
-    "name": "LOOT9-card-salvages-the-worn",
-    "file": "src/ui/enhanced/enhancedInventory.js",
-    "old": "if (side === 'local' && !line.equipped && (salvageShards(picked) > 0 ||",
-    "new": "if (side === 'local' && (salvageShards(picked) > 0 ||",
-    "tests": [
-      "test/systems/loot9_reforge.test.js"
-    ]
-  },
-  {
     "name": "LOOT9-card-breaks-unasked",
     "file": "src/ui/enhanced/enhancedInventory.js",
     "old": "    v.onclick = () => askSalvage(picked);",

@@ -138,7 +138,7 @@
   },
   {
     "name": "HOME2-the-smoke-never-retries",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "            for i in $(seq 1 7); do",
     "new": "            for i in $(seq 1 1); do",
     "tests": [
@@ -147,7 +147,7 @@
   },
   {
     "name": "DEPLOY-FLAKE-a-5xx-not-asked-again",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "if [ \"$got\" != \"404\" ] && [ \"$got\" != \"000\" ] && [ \"${got#5}\" = \"$got\" ]; then break; fi",
     "new": "if [ \"$got\" != \"404\" ] && [ \"$got\" != \"000\" ]; then break; fi",
     "tests": [
@@ -156,7 +156,7 @@
   },
   {
     "name": "SMOKE-HANG-no-answer-not-asked-again",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "if [ \"$got\" != \"404\" ] && [ \"$got\" != \"000\" ] && [ \"${got#5}\" = \"$got\" ]; then break; fi",
     "new": "if [ \"$got\" != \"404\" ] && [ \"${got#5}\" = \"$got\" ]; then break; fi",
     "tests": [
@@ -165,7 +165,7 @@
   },
   {
     "name": "SMOKE-HANG-a-curl-failure-not-read-as-000",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "note": "INT16 (PIN MOVED): re-aimed by content - the retry is `ask`, one loop every smoke call goes through",
     "old": "\"$@\" \"$url\") || got=000",
     "new": "\"$@\" \"$url\")",

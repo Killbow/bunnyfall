@@ -182,7 +182,7 @@
   },
   {
     "name": "SERVERPOST-an-input-spliced-into-a-run-line",
-    "file": ".github/workflows/server-post.yml",
+    "file": "selfhost/upstream-ci/workflows/server-post.yml",
     "old": "--names \"$HANDLES\"",
     "new": "--names \"${{ inputs.handles }}\"",
     "tests": [
@@ -192,7 +192,7 @@
   },
   {
     "name": "SERVERPOST-a-missing-name-passing",
-    "file": ".github/workflows/server-post.yml",
+    "file": "selfhost/upstream-ci/workflows/server-post.yml",
     "old": "nothing was sent\"\n            exit 1",
     "new": "nothing was sent\"",
     "tests": [
@@ -202,7 +202,7 @@
   },
   {
     "name": "SERVERPOST-the-send-on-a-dry-run",
-    "file": ".github/workflows/server-post.yml",
+    "file": "selfhost/upstream-ci/workflows/server-post.yml",
     "old": "      - name: Send the post\n        if: env.APPLY == 'true'\n",
     "new": "      - name: Send the post\n",
     "tests": [

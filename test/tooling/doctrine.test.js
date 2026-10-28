@@ -8,7 +8,7 @@
 // before/after gallery frames sat under `public/visual-changes/`, twelve of
 // them the port's framebuffer with classic WEAPON*.CIF sprites drawn into it
 // and upscaled. `public/` is Vite's STATIC ROOT, so `npm run build` copied
-// every one of them into `dist/`, and `.github/workflows/deploy.yml` - whose
+// every one of them into `dist/`, and `selfhost/upstream-ci/workflows/deploy.yml` - whose
 // own header says "The build contains NO game data" - uploaded `dist` to
 // GitHub Pages. The one thing the project cannot get wrong, published.
 //

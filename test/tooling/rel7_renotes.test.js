@@ -4,7 +4,7 @@
 // deleted, and its description gained them a minute after the publish job
 // had read it. A published release is never re-cut (AUDIT INSTALL L3-2),
 // but its TEXT can be written again: editing a merged pull request's
-// description (or dispatching .github/workflows/release-notes.yml with a
+// description (or dispatching selfhost/upstream-ci/workflows/release-notes.yml with a
 // tag) has `desktopRelease.mjs renotes` read the notes of the pull requests
 // between the previous release and that tag again - main's script, the
 // tag's history - and put them above GitHub's generated list; the
@@ -116,7 +116,7 @@ function runBlock(yml, stepName) {
 }
 
 test('REL7: the workflow - by hand with a tag, or ON ITS OWN when a merged pull request\'s description is edited; main\'s code only, never the pull request\'s; the first release that brought it; the body patched and nothing else', { skip: process.platform === 'win32' && 'the steps are bash' }, () => {
-  const wf = rd('.github/workflows/release-notes.yml');
+  const wf = rd('selfhost/upstream-ci/workflows/release-notes.yml');
   assert.match(wf, /\non:\n {2}workflow_dispatch:\n {4}inputs:\n {6}tag:\n[\s\S]*?\n {2}pull_request_target:\n {4}types: \[edited\]\n\n/, 'by hand, and on a description edited');
   assert.doesNotMatch(wf, /\n {2}(push|pull_request|schedule|release):/, 'no other trigger');
   assert.match(wf, /\n {4}if: github\.event_name == 'workflow_dispatch' \|\| \(github\.event\.pull_request\.merged && github\.event\.changes\.body && github\.event\.pull_request\.base\.ref == github\.event\.repository\.default_branch\)\n/,

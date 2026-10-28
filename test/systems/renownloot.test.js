@@ -23,6 +23,8 @@ import { createWeapon } from '../../src/combat/enemyEquipment.js';
 import { rarityOf } from '../../src/systems/loot/lootRarity.js';
 import { setPref, _resetForTests as _resetPrefsForTests } from '../../src/systems/uiPrefs.js';
 import { hostText } from '../hostText.mjs';   // HOST-SPLIT 2 (AUDIT, the second read): its negatives read the host whole
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 installHealingSupply();   // the hosts' order (scenes/shared.js)
 installRestItemLoot();

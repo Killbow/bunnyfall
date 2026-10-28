@@ -5,7 +5,7 @@
 //     write (legacy.js putLineage) alike;
 //   - the operator's plan (tools/reviveRealmCharacter.mjs), driven here over the real death: the repo's own putLineage,
 //     realmDie, inheritHome and ledger write it, the tool's own queries read it before and after, and its plan is run;
-//   - the workflow (.github/workflows/realm-revive.yml) holds the shape realm-restore.yml proved.
+//   - the workflow (selfhost/upstream-ci/workflows/realm-revive.yml) holds the shape realm-restore.yml proved.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
@@ -177,7 +177,7 @@ test('REVIVE: the operator\'s plan over the real death - the tombstone cleared, 
  * @param {string} mode @param {Record<string, string>} vars @param {string} cwd
  */
 function runAsTheWorkflow(mode, vars, cwd) {
-  const line = src('.github/workflows/realm-revive.yml').split('\n').map((l) => l.trim()).find((l) => l.startsWith(`node $tool ${mode} `));
+  const line = src('selfhost/upstream-ci/workflows/realm-revive.yml').split('\n').map((l) => l.trim()).find((l) => l.startsWith(`node $tool ${mode} `));
   assert.ok(line, `the workflow no longer runs the tool's ${mode}`);
   const words = line.slice('node $tool '.length).split(' > ')[0].trim().split(/\s+/)
     .flatMap((w) => (w === '$flags' ? (vars.flags ? vars.flags.trim().split(/\s+/) : []) : [w.replace(/^"|"$/g, '').replace(/\$(HANDLE|CHARACTER|RUNNER_TEMP)/g, (_, k) => vars[k])]));
@@ -212,7 +212,7 @@ test('REVIVE: the tool\'s command line as the workflow\'s lines run it - the fin
     rmSync(dir, { recursive: true, force: true });
   }
   // every line of the workflow names its mode first, and the tool reads its mode from the first word alone
-  const calls = [...src('.github/workflows/realm-revive.yml').matchAll(/node \$tool (--[a-z-]+)/g)].map((m) => m[1]);
+  const calls = [...src('selfhost/upstream-ci/workflows/realm-revive.yml').matchAll(/node \$tool (--[a-z-]+)/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(calls)].sort(), ['--find', '--plan', '--player-query', '--query']);
   assert.match(src('tools/reviveRealmCharacter.mjs'), /const mode = argv\[0\];/);
 });
@@ -319,7 +319,7 @@ test('REVIVE: the tombstone is cleared only over the death the plan read - a dea
 });
 
 test('REVIVE: the workflow - by hand, a dry run by default, its inputs as environment, found before anything is held, the present ALWAYS put back, and the maintenance never lifted over a rewound database (mutants: apply by default; an input spliced; the lift over a rewind)', () => {
-  const wf = src('.github/workflows/realm-revive.yml');
+  const wf = src('selfhost/upstream-ci/workflows/realm-revive.yml');
   assert.match(wf, /on:\n  workflow_dispatch:/);
   assert.match(wf, /      apply:\n        description: [^\n]*\n        required: true\n        default: false/);
   assert.doesNotMatch(wf, /run: [^\n]*\$\{\{ inputs\./, 'an input spliced into a run line');

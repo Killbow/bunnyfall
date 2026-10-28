@@ -16,6 +16,8 @@ import { ketchChestMouth, KT_SPOILS_KEEP, KT_CHEST_MOUTH, createKetchShares } fr
 import { spewLaunches, spewPiece, flySpew, keepLaunch } from '../../src/world/gate/gateSpew.js';
 import { seededRng } from '../../src/systems/wind/wind.js';
 import { ketchSpoilsList } from '../../src/systems/ketch/ketchSpoils.js';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 function ship(sg) {
   const col = new Collider(() => -Infinity), deck = createKetchDeck({ renderer: { createMesh: (m) => ({ m }) } });
@@ -121,7 +123,7 @@ test('KETCH-FIX THE SHARE LEAVES THE CHEST\'S MOUTH AND LIES ON THE CABIN\'S FLO
       assert.ok(Math.hypot(d[0] - KT_STERN_LIFT.x, d[2] - KT_STERN_LIFT.z) > KT_STERN_LIFT.r + 0.2, `out of the stern lift - ${where}`);
     }
   }
-  assert.ok(n >= 140, `the pieces flown (${n})`);
+  assert.ok(n >= 100, `the pieces flown (${n})`);   // BUNNYFALL: 140 upstream; guns off and rarer magic share fewer pieces
   // and the chest hands the pool that keep (scenes/ketch/ketchShares.js chest)
   let asked = null;
   const shares = createKetchShares({ store: null, pool: { spew: (o) => { asked = o; return true; }, grant: () => Promise.resolve(true) }, level: () => 30, me: () => 'acct', aboard: () => true });

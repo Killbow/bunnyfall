@@ -121,7 +121,7 @@
   },
   {
     "name": "PURSE-BACK-apply-by-default",
-    "file": ".github/workflows/realm-rollback.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-rollback.yml",
     "old": "        required: true\n        default: false\n        type: boolean",
     "new": "        required: true\n        default: true\n        type: boolean",
     "tests": ["test/tooling/realm_rollback.test.js"],
@@ -129,7 +129,7 @@
   },
   {
     "name": "PURSE-BACK-actor-typed",
-    "file": ".github/workflows/realm-rollback.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-rollback.yml",
     "old": "--by \"$GITHUB_ACTOR\"",
     "new": "--by \"Lattymoy\"",
     "tests": ["test/tooling/realm_rollback.test.js"],
@@ -137,7 +137,7 @@
   },
   {
     "name": "PURSE-BACK-input-spliced",
-    "file": ".github/workflows/realm-rollback.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-rollback.yml",
     "old": "--handle \"$HANDLE\"",
     "new": "--handle \"${{ inputs.handle }}\"",
     "tests": ["test/tooling/realm_rollback.test.js"],
@@ -145,7 +145,7 @@
   },
   {
     "name": "PURSE-BACK-page-lost",
-    "file": ".github/workflows/realm-rollback.yml",
+    "file": "selfhost/upstream-ci/workflows/realm-rollback.yml",
     "old": "          if [ -s \"$RUNNER_TEMP/summary.md\" ]; then cat \"$RUNNER_TEMP/summary.md\" >> \"$GITHUB_STEP_SUMMARY\"; fi\n",
     "new": "",
     "tests": ["test/tooling/realm_rollback.test.js"],

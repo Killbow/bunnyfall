@@ -7,7 +7,7 @@
 // fact about the player to reset against, and a signed-in device may not change the password without the old one (a
 // stolen device must not lock its owner out). So the way back is the operator's, and it is the player's OWN recovery
 // with a fresh code:
-//   1. the operator mints a code here and sets ONLY its hash on the account (.github/workflows/account-recovery.yml);
+//   1. the operator mints a code here and sets ONLY its hash on the account (selfhost/upstream-ci/workflows/account-recovery.yml);
 //   2. the player spends the code in the game's "Forgot password" form and picks their own password;
 //   3. that spend mints the player new codes - eight on a build that has the set, one on a build from before it
 //      (RECOVERY-SET) - and signs every device out (accounts.js `recover`), so the code the operator saw is dead the

@@ -120,6 +120,7 @@ export default defineConfig({
     proxy: {
       '/relay': { target: 'http://127.0.0.1:8787', ws: true, rewrite: (p) => p.replace(/^\/relay/, '') },
       '/updater': { target: 'http://127.0.0.1:8789', rewrite: (p) => p.replace(/^\/updater/, '') },
+      '/v1': { target: 'http://127.0.0.1:8788' },
       '/accounts': { target: 'http://127.0.0.1:8788', rewrite: (p) => p.replace(/^\/accounts/, '') },
     },
   },

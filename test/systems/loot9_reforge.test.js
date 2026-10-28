@@ -355,5 +355,5 @@ test('LOOT9: the pack card offers Salvage for a graded piece - asked first, Keep
   });
   // PIN MOVED (SALVAGE-CLASSIC, bible/01-Overview/bugs/Field-Bugs-2026-10-12d.md): a piece that wears Magic and never breaks
   // (DFU's own magic, salvageRefusal 'classic') shows the button too, and its press says why (test/systems/fb1012d_salvageclassic.test.js)
-  assert.match(read('src/ui/enhanced/enhancedInventory.js'), /if \(side === 'local' && !line\.equipped && \(salvageShards\(picked\) > 0 \|\| salvageRefusal\(picked\) === 'classic'\) && !\['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'\]\.includes\(salvageRefusal\(picked\) \?\? ''\)\) \{/, 'never a worn piece, never one that will not break - but classic magic says why');
+  assert.ok(read('src/ui/enhanced/enhancedInventory.js').includes("if (side === 'local' && !line.equipped && (salvagesToMaterials(picked) || ((salvageShards(picked) > 0 || salvageRefusal(picked) === 'classic') && !['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'].includes(salvageRefusal(picked) ?? '')))) {"), 'never a worn piece, never one that will not break - but classic magic says why (BUNNYFALL: and any found gear breaks into materials)');
 });

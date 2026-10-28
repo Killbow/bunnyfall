@@ -5,7 +5,7 @@
 // (server/src/relayScale.js RoomMetrics: its kind, its sockets, hellos, refusals, poses, sends, bytes, drops and peak),
 // and nothing read them back: the question "which room broke at the gate" was answered by arithmetic from the constants.
 // This builds the questions, as tools/d1Load.mjs does for the account service (its book and its command line are
-// d1Load.mjs's: questionBook, runBook), and .github/workflows/relay-load.yml asks them with the deploy's token, by hand.
+// d1Load.mjs's: questionBook, runBook), and selfhost/upstream-ci/workflows/relay-load.yml asks them with the deploy's token, by hand.
 // It writes nothing.
 //
 //   node tools/relayLoad.mjs --sql <name> [hours]   one question's SQL (kinds | windows | crowds | fulls | storage | levels | moves)

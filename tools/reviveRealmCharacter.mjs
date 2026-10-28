@@ -4,7 +4,7 @@
 // Castle Wayrest on 2026-10-13, and the remains bug (FIELD BUGS 2026-10-13d REMAINS-STAND) hid everything she lay with.
 //
 // THE PLAN, NEVER THE WRITE. This file reads what stood just before the death and what stands now - each a JSON of
-// rows the workflow (.github/workflows/realm-revive.yml) asked D1 for, the first through Time Travel - and writes the
+// rows the workflow (selfhost/upstream-ci/workflows/realm-revive.yml) asked D1 for, the first through Time Travel - and writes the
 // statements that revive her, and a summary for the run's page. The workflow runs them only with apply on.
 //
 // WHAT A DEATH WROTE (server-account/src/legacy.js entomb, afterTomb), AND WHAT THE PLAN PUTS BACK:

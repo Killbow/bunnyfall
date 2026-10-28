@@ -327,7 +327,7 @@ test('PURSE-BACK the bindings: a statement\'s binds written as literals outside 
 
 test('PURSE-BACK the config and the workflow: the database, the bucket and the developers\' list read off the service\'s own wrangler.toml; the workflow by hand, a dry run by default, its inputs as environment, its actor the act\'s, in the deploy\'s queue, the page written whatever the act answers (mutants: apply by default; an input spliced; the actor typed)', () => {
   assert.deepEqual(CONFIG, { database: 'daggerfall-accounts', bucket: 'daggerfall-saves', developers: /^DEVELOPER_HANDLES = "([^"]*)"$/m.exec(src('server-account/wrangler.toml'))[1] });
-  const wf = src('.github/workflows/realm-rollback.yml');
+  const wf = src('selfhost/upstream-ci/workflows/realm-rollback.yml');
   assert.match(wf, /on:\n  workflow_dispatch:/);
   assert.match(wf, /      apply:\n        description: [^\n]*\n        required: true\n        default: false/);
   assert.doesNotMatch(wf, /run: [^\n]*\$\{\{ inputs\./, 'an input spliced into a run line');

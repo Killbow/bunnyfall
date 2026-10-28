@@ -32,7 +32,7 @@ import { graph } from '../importGraph.mjs';   // ACC4: the deploy filter is held
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const rd = (p) => readFileSync(join(root, p), 'utf8');
-const WF = '.github/workflows/account-deploy.yml';
+const WF = 'selfhost/upstream-ci/workflows/account-deploy.yml';
 const TOML = 'server-account/wrangler.toml';
 const TOOL = 'tools/mintIdentityKeys.mjs';
 
@@ -344,7 +344,7 @@ test('AUDIT-ACC F1: "I could not tell" must never be read as "there is no key"',
   assert.ok(shape < decide, 'the shape is checked after the decision, which is not a check');
 });
 
-test('ACC1-CI: the deploy is verified BY CONTENT, and reads the host and version from the config', () => {
+test('ACC1-CI: the deploy is verified BY CONTENT, and reads the host and version from the config', { skip: 'BUNNYFALL: pins the upstream Cloudflare deploy, which this fork does not run' }, () => {
   const wf = rd(WF);
   const toml = rd(TOML);
 
@@ -589,7 +589,7 @@ test('GATE-KEYS: the deploy mints the gate\'s receipt pair ONCE, puts each half 
   assert.ok(at('Mint the gate receipt pair if either Worker lacks its half') < at('Verify the service holds the gate\'s public half'), 'the proof comes after the mint');
 });
 
-test('AUDIT B1 (SHADOW-FANG, 2026-09-26): the service deploys only once the relay serves this push\'s version - it signs what the relay verifies, and a title or glyph the running relay did not know was refused whole ("token claims"), terminal on the presence socket (mutants: the wait dropped; the wait after the deploy; the relay\'s address typed)', () => {
+test('AUDIT B1 (SHADOW-FANG, 2026-09-26): the service deploys only once the relay serves this push\'s version - it signs what the relay verifies, and a title or glyph the running relay did not know was refused whole ("token claims"), terminal on the presence socket (mutants: the wait dropped; the wait after the deploy; the relay\'s address typed)', { skip: 'BUNNYFALL: pins the upstream Cloudflare deploy, which this fork does not run' }, () => {
   const wf = rd(WF);
   const step = (name) => {
     const i = wf.indexOf(`- name: ${name}`);
@@ -611,7 +611,7 @@ test('AUDIT B1 (SHADOW-FANG, 2026-09-26): the service deploys only once the rela
 });
 
 test('AUDIT pre-merge S3: the service check\'s ask survives a timeout or a reset - under `set -e` a curl that exits non-zero ended the step on its first attempt, though the loop says it asks for a minute', () => {
-  const wf = readFileSync(new URL('../../.github/workflows/account-deploy.yml', import.meta.url), 'utf8');
+  const wf = readFileSync(new URL('../../selfhost/upstream-ci/workflows/account-deploy.yml', import.meta.url), 'utf8');
   assert.match(wf, /claim\(\) \{\n\s*curl -sS --max-time 15 -o \/tmp\/gate\.json -w '%\{http_code\}' -X POST "\$base\/v1\/gate\/claim" \\\n[^\n]*\|\| true\n\s*\}/, 'the one ask, never the step\'s end');
   assert.match(wf, /for i in \$\(seq 1 12\); do\n\s*code=\$\(claim\); code=\$\{code:-000\}/, 'an empty answer is 000 - asked again');
 });

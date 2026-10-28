@@ -8,7 +8,7 @@ import { temperRecipeOf } from './temperLaw.js';
 import { trackOf } from './professionLaw.js';
 
 /** The share of a recipe's inputs a salvage gives back. Always under 1, so craft-then-salvage never profits. */
-export const SALVAGE_SHARE = 0.4;
+export const GEAR_SALVAGE_SHARE = 0.4;
 /** The XP a salvage pays its craft's track, per tier of the piece's recipe. */
 export const SALVAGE_XP_PER_TIER = 3;
 /** The most pieces one salvage request breaks. */
@@ -52,7 +52,7 @@ export function descriptorOk(d) {
 }
 
 /** A worn piece gives less: half at broken, all at full condition. */
-export const conditionShare = (c) => 0.5 + 0.5 * Math.max(0, Math.min(1, Number.isFinite(c) ? c : 1));
+export const salvageConditionShare = (c) => 0.5 + 0.5 * Math.max(0, Math.min(1, Number.isFinite(c) ? c : 1));
 
 /**
  * The average yield of one piece, before the random rounding: `[{ key, n }]` with fractional n. Empty for a piece
@@ -61,7 +61,7 @@ export const conditionShare = (c) => 0.5 + 0.5 * Math.max(0, Math.min(1, Number.
  */
 export function expectedYield(r, c = 1) {
   if (!r?.inputs) return [];
-  const k = SALVAGE_SHARE * conditionShare(c);
+  const k = GEAR_SALVAGE_SHARE * salvageConditionShare(c);
   return r.inputs.map((i) => ({ key: i.key, n: i.n * k })).filter((y) => y.n > 0);
 }
 

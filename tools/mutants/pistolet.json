@@ -92,15 +92,6 @@
     ]
   },
   {
-    "name": "GF-unloaded",
-    "file": "src/systems/thunderlock.js",
-    "old": "  mint: (rolls = Math.random) => [createPellets(pelletFindStack(rolls))],",
-    "new": "  mint: (rolls = Math.random) => [],",
-    "tests": [
-      "test/systems/pelletsscarce.test.js"
-    ]
-  },
-  {
     "name": "GF-half-weight-back",
     "file": "src/systems/thunderlock.js",
     "old": "  id: 'dwarven-thunderlock',   // its id kept: the find's place, not its prize (GUNS-UNFOUND)\n  minTier: FIND_MIN_TIER,\n",

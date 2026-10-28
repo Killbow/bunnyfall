@@ -15,6 +15,8 @@ import { ActionTextBox } from '../../src/ui/actionText.js';
 import { capLootList, capFoeLoot, plainFoeLootRule, PLAIN_FOE_RARITY_WEIGHTS } from '../../src/systems/foeLootCap.js';
 import { rarityChances } from '../../src/systems/loot/lootRarity.js';
 import { goldStack, isGoldPieces } from '../../src/systems/inventory.js';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 const seq = (...v) => { let i = 0; return () => v[Math.min(i++, v.length - 1)]; };
 

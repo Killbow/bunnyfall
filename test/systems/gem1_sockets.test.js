@@ -37,6 +37,8 @@ import { socketWells, socketChooser, markSocketFrame, wellText, GEM_GRADE_COLOUR
 import { mountEnhancedInventory } from '../../src/ui/enhanced/enhancedInventory.js';
 import { UNSET_ASK } from '../../src/ui/reforgeWindow.js';
 import { withDom } from '../invdrag.mjs';
+import { setMagicDropScale } from '../../src/systems/loot/lootRarity.js';
+setMagicDropScale(1);   // BUNNYFALL: these pin the upstream odds; the fork's magic is 75% rarer (lootRarity.js)
 
 // PIN MOVED (TECH1, bible/05-Combat/Weapon-Techniques.md): a weapon's technique is the door's very last draw, after the gem
 // arc's - where a socket drew, the two runs' techniques differ, so a piece's technique line and its worth are set aside on

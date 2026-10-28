@@ -556,7 +556,7 @@ test('PATREON-LINK: its secrets never touch a file - the toml carries Mac\'s cli
   assert.deepEqual(titlesHeld(fifty, { PATREON_TIERS: tiers }), ['hierophant'], 'a $50 patron holds the Hierophant by their pledge');
   assert.deepEqual(glyphsOf(fifty, { PATREON_TIERS: tiers }, AFTER + 30 * 86_400), ['hierophant'], 'and wears its crown');
   assert.doesNotMatch(toml, /^PATREON_(CLIENT|WEBHOOK)_SECRET\s*=/m, 'Cloudflare refuses a secret the name of a bound var');
-  const yml = src('.github/workflows/account-deploy.yml');
+  const yml = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   const step = yml.slice(yml.indexOf('- name: Put the Patreon secrets'), yml.indexOf('- name: Verify /v1/health names this deploy'));
   assert.ok(step.length > 100, 'the step is there, before the deploy is verified');
   assert.ok(yml.indexOf('- name: Deploy') < yml.indexOf('- name: Put the Patreon secrets'), 'after the Worker is up');

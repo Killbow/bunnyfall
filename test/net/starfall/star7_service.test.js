@@ -126,7 +126,7 @@ test('STAR7 THE MIGRATION AND THE DEPLOY: stars_held and star_spoils, one row a 
   s.raw.prepare('DELETE FROM players WHERE id = ?').run(ann.id);
   assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM stars_held').get().n, 0, 'gone with its account');
   assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM star_spoils').get().n, 0);
-  const deploy = src('.github/workflows/account-deploy.yml');
+  const deploy = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   assert.match(deploy, /- "src\/net\/starfall\/starReceipt\.js"/);
   assert.match(deploy, /- "src\/net\/starfall\/starfallLaw\.js"/);
 });

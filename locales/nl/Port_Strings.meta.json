@@ -2495,8 +2495,8 @@
   "by": "claude-in-session"
  },
  "account.refusal.profTemperTop": {
-  "en": "7efce6ca8d0e",
-  "tr": "831a13023681",
+  "en": "4d9785b9e376",
+  "tr": "767430fe0221",
   "by": "claude-in-session"
  },
  "account.refusal.profTransmuter": {
@@ -3455,8 +3455,8 @@
   "by": "claude-in-session"
  },
  "coll.how.patron": {
-  "en": "d218cd5c236e",
-  "tr": "59afcd356fab",
+  "en": "5cf38e6452e9",
+  "tr": "c67860107f08",
   "by": "claude-in-session"
  },
  "coll.how.protector": {
@@ -5814,6 +5814,11 @@
   "tr": "efb8f35aa77d",
   "by": "claude-in-session"
  },
+ "inventory.batch.allPlain": {
+  "en": "944675bf987e",
+  "tr": "3162333669d6",
+  "by": "claude-in-session"
+ },
  "inventory.store.chestAct": {
   "en": "88d2f1cb9aea",
   "tr": "2a43715adde6",
@@ -6980,8 +6985,8 @@
   "by": "claude-in-session"
  },
  "menu.brand.alt": {
-  "en": "2c59b884ccf1",
-  "tr": "2c59b884ccf1",
+  "en": "97ff5f2b1a91",
+  "tr": "97ff5f2b1a91",
   "by": "claude-in-session"
  },
  "menu.chat.colours": {
@@ -7420,8 +7425,8 @@
   "by": "claude-in-session"
  },
  "menu.home.homeAria": {
-  "en": "c920f897c537",
-  "tr": "5ccc4bd46392",
+  "en": "8226520ba965",
+  "tr": "6545b286f131",
   "by": "claude-in-session"
  },
  "menu.home.offline": {
@@ -7565,8 +7570,8 @@
   "by": "claude-in-session"
  },
  "menu.intro.aria": {
-  "en": "a6cae2e21083",
-  "tr": "b85a24285524",
+  "en": "8e51c01c366d",
+  "tr": "4df9c89406f8",
   "by": "claude-in-session"
  },
  "menu.intro.begin": {

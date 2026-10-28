@@ -248,28 +248,28 @@
   },
   {
     "name": "AUDIT-INSTALL-L1-1-the-publish-job-leaves-its-token-in-git-config",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          # Nothing in this job uses git auth, and nothing it publishes is read from the working tree.\n          persist-credentials: false\n",
     "new": "          # Nothing in this job uses git auth, and nothing it publishes is read from the working tree.\n",
     "tests": ["test/tooling/audit_install.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-L1-5-any-tag-shape-runs",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          if [ -n \"$TAG\" ] && ! [[ \"$TAG\" =~ ^app-v[0-9]+\\.[0-9]+\\.[0-9]+$ ]]; then",
     "new": "          if false; then",
     "tests": ["test/tooling/updatecheck.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-L3-2-a-published-release-is-re-cut-in-place",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "            echo \"::error::$TAG is already published - a release is never re-cut in place; cut a new tag\"\n            exit 1\n",
     "new": "            echo \"::error::$TAG is already published - a release is never re-cut in place; cut a new tag\"\n",
     "tests": ["test/tooling/audit_install.test.js"]
   },
   {
     "name": "AUDIT-INSTALL-L3-4-a-try-build-carries-the-updater",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "        run: node -e \"const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.build.publish=null;",
     "new": "        run: node -e \"const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));",
     "tests": ["test/tooling/audit_install.test.js"]
@@ -283,7 +283,7 @@
   },
   {
     "name": "AUDIT-INSTALL-L3-5-an-api-error-hands-an-old-re-cut-latest",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          else cat latest-error.txt >&2; exit 1\n",
     "new": "          else CURRENT=''\n",
     "tests": ["test/tooling/audit_install.test.js"]

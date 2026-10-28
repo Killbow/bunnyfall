@@ -340,6 +340,6 @@ test('POI-1 RECORDS: the store is in the migrations, the roles in the config, it
   const toml = src('server-account/wrangler.toml');
   assert.match(toml, /^APPROVER_HANDLES = "Lattymoy"$/m);
   assert.match(toml, /^BUILDER_HANDLES = ""$/m);
-  const wf = src('.github/workflows/account-deploy.yml');
+  const wf = src('selfhost/upstream-ci/workflows/account-deploy.yml');
   for (const f of ['src/poi/poiLaw.js', 'src/poi/poiMesh.js', 'src/poi/poiImage.js']) assert.ok(wf.includes(`- "${f}"`), `${f} is not in the deploy's filter`);
 });

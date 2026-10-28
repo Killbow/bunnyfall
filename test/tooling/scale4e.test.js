@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 
-const WF = readFileSync(new URL('../../.github/workflows/account-deploy.yml', import.meta.url), 'utf8');
+const WF = readFileSync(new URL('../../selfhost/upstream-ci/workflows/account-deploy.yml', import.meta.url), 'utf8');
 
 /** A step's `run: |` block, as the runner hands it to bash. */
 function runBlock(yml, stepName) {

@@ -181,7 +181,7 @@ test('BAG-CRAFT the book: a station\'s put-in covers its shortfall from what is 
   for (const line of [
     'const ready = r0 ? await book.ensureInStores(inputs, { work: true }) : { ok: true };',
     'const ready = await book.ensureInStores(brewSpends(potionById(potion), keys), { work: true });',
-    'const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0)], { work: true }) : { ok: true };',
+    'const ready = temperableRecipe(r0) ? await book.ensureInStores([temperCost(r0, quality)], { work: true }) : { ok: true };',
     'const ready = work ? await book.ensureInStores(work.inputs.map((i) => ({ key: i.key, n: i.n * count })), { work: true }) : { ok: true };',
     'const ready = asked ? await book.ensureInStores([{ key: asked.material, n: asked.qty }]) : { ok: true };',
   ]) assert.ok(codeHas(pb, line), line);

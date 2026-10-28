@@ -41,7 +41,7 @@
   },
   {
     "name": "RECOVEROP-the-workflow-changes-none-and-passes",
-    "file": ".github/workflows/account-recovery.yml",
+    "file": "selfhost/upstream-ci/workflows/account-recovery.yml",
     "old": "          if [ \"$n\" != \"1\" ]; then",
     "new": "          if [ \"$n\" = \"-1\" ]; then",
     "tests": ["test/server/recoverop.test.js"],
@@ -49,7 +49,7 @@
   },
   {
     "name": "RECOVEROP-an-input-spliced-into-a-run-line",
-    "file": ".github/workflows/account-recovery.yml",
+    "file": "selfhost/upstream-ci/workflows/account-recovery.yml",
     "old": "node tools/reissueRecoveryCode.mjs --sql \"$HANDLE\" \"$HASH\"",
     "new": "node tools/reissueRecoveryCode.mjs --sql \"${{ inputs.handle }}\" \"$HASH\"",
     "tests": ["test/server/recoverop.test.js"],

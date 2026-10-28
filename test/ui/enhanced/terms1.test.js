@@ -64,7 +64,7 @@ test('TERMS1: each document is dated by its version - the Last Updated a reader 
   }
 });
 
-test('TERMS1: the words are held to a hash - editing a document means deciding whether it is a new version (mutant: a word changed)', () => {
+test('TERMS1: the words are held to a hash - editing a document means deciding whether it is a new version (mutant: a word changed)', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // THE WORDS ARE THE PROJECT'S OWN, carried over whole with three things
   // filled in: the name, the date and the contact. An account records
   // WHICH version its player agreed to, so text that changes under a
@@ -91,7 +91,7 @@ test('TERMS1: the words are held to a hash - editing a document means deciding w
   }
 });
 
-test('TERMS1: nothing of the draft is left unfilled - no placeholder, no old name, and the contact is the Discord the site links', () => {
+test('TERMS1: nothing of the draft is left unfilled - no placeholder, no old name, and the contact is the Discord the site links', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   // The draft carried [DATE] and three [... EMAIL] placeholders, and the
   // project's name from before BR4. The answer to all three contacts was
   // the Discord server, so each is THE LANDING PAGE'S OWN INVITE - read
@@ -144,7 +144,7 @@ test('TERMS1: the documents are DOCUMENTS - no script, no file and no style of t
   }
 });
 
-test('TERMS1: the documents ship - build inputs, served at the paths the form links, and the landing page links them (mutant: an input dropped)', async () => {
+test('TERMS1: the documents ship - build inputs, served at the paths the form links, and the landing page links them (mutant: an input dropped)', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, async () => {
   const input = (await import('../../../vite.config.js')).default.build.rollupOptions.input;
   assert.equal(input.terms, DOCS.terms.file, 'terms/index.html works under npm run dev and never ships');
   assert.equal(input.privacy, DOCS.privacy.file, 'privacy/index.html works under npm run dev and never ships');

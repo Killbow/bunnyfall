@@ -1,6 +1,6 @@
 // Deploy verification BY CONTENT (standing lesson: a failed deploy
 // leaves the site on the previous build - HTTP 200 proves nothing).
-// The pipeline is the CI workflow (.github/workflows/deploy.yml,
+// The pipeline is the CI workflow (selfhost/upstream-ci/workflows/deploy.yml,
 // Pages build_type: workflow - push to main deploys). This tool
 // closes the loop: build the commit locally (buildTag = commit sha,
 // so hashes are commit-deterministic), then run this to poll the

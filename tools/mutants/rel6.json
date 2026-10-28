@@ -217,7 +217,7 @@
   },
   {
     "name": "REL6-28-the-publish-job-cannot-read-pull-requests",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "      pull-requests: read   # REL6: the notes are the merged pull requests' own\n",
     "new": "",
     "tests": ["test/tooling/rel4_release.test.js"],
@@ -225,7 +225,7 @@
   },
   {
     "name": "REL6-29-gh-without-its-token",
-    "file": ".github/workflows/release-desktop.yml",
+    "file": "selfhost/upstream-ci/workflows/release-desktop.yml",
     "old": "          GH_TOKEN: ${{ github.token }}\n          TAG: ${{ needs.version.outputs.tag }}\n        run: node scripts/desktopRelease.mjs notes",
     "new": "          TAG: ${{ needs.version.outputs.tag }}\n        run: node scripts/desktopRelease.mjs notes",
     "tests": ["test/tooling/rel4_release.test.js"],
@@ -233,7 +233,7 @@
   },
   {
     "name": "REL6-30-the-template-asks-for-nothing",
-    "file": ".github/pull_request_template.md",
+    "file": "selfhost/upstream-ci/pull_request_template.md",
     "old": "## Patch notes\n",
     "new": "## Player notes\n",
     "tests": ["test/tooling/rel4_release.test.js"],
@@ -241,7 +241,7 @@
   },
   {
     "name": "REL6-31-the-template-s-guidance-is-notes",
-    "file": ".github/pull_request_template.md",
+    "file": "selfhost/upstream-ci/pull_request_template.md",
     "old": "<!--\nFor players.",
     "new": "For players.",
     "tests": ["test/tooling/rel4_release.test.js"],

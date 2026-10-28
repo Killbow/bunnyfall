@@ -143,7 +143,7 @@
   },
   {
     "name": "ACC1d-15-the-relay-deploys-with-an-unchecked-key",
-    "file": ".github/workflows/relay-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-deploy.yml",
     "old": "          if [ \"$want\" != \"$got\" ]; then\n            echo \"::error::the relay's IDENTITY_PUBLIC_KEY is not the one the account service publishes - every identity token would be refused\"\n            exit 1\n          fi",
     "new": "          :",
     "tests": [
@@ -153,7 +153,7 @@
   },
   {
     "name": "ACC1d-16-an-account-outage-blocks-the-relays-deploy",
-    "file": ".github/workflows/relay-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/relay-deploy.yml",
     "old": "            echo \"::warning::/v1/pubkey did not answer - the relay's key could not be checked against it\"\n            exit 0",
     "new": "            echo \"::error::/v1/pubkey did not answer - the relay's key could not be checked against it\"\n            exit 1",
     "tests": [
@@ -163,7 +163,7 @@
   },
   {
     "name": "ACC1d-17-a-freshly-minted-pair-strands-the-relay",
-    "file": ".github/workflows/account-deploy.yml",
+    "file": "selfhost/upstream-ci/workflows/account-deploy.yml",
     "old": "          if [ \"$want\" != \"$key\" ]; then",
     "new": "          if false; then",
     "tests": [

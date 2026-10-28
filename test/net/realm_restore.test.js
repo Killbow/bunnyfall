@@ -1,7 +1,7 @@
 // RESTORE C (2026-09-29, Mac: "I want people to get their stuff back"; of the homes a deleted customs character took
 // with it: "To the offline character"). The houses, pieces, hidden lists, guild places and tracks the door's Delete took
 // with a customs character - between CUSTOMS-CARRY and HOUSE-LOSS - exist only in D1's history. The operator's workflow
-// (.github/workflows/realm-restore.yml) reads a snapshot from before the loss and the database as it stands, and
+// (selfhost/upstream-ci/workflows/realm-restore.yml) reads a snapshot from before the loss and the database as it stands, and
 // tools/realmRestore.mjs plans them back. These pins build both over the REAL migrations, run the plan, apply its SQL to
 // the present, and read what stands.
 import { test } from 'node:test';
@@ -165,7 +165,7 @@ test('RESTORE C: the dumps and the words - a wrangler export loads with its fore
 });
 
 test('RESTORE C: the operator\'s workflow - by hand only, never beside a deploy, a dry run unless asked; the service held for maintenance first; the present\'s bookmark kept, the rewind proven, and the present put back ALWAYS, proven by its counts; the switch lifted only once the present is back; inputs reach the scripts as environment, never pasted into them', () => {
-  const wf = src('.github/workflows/realm-restore.yml');
+  const wf = src('selfhost/upstream-ci/workflows/realm-restore.yml');
   assert.match(wf, /^on:\n {2}workflow_dispatch:/m, 'run by hand from the Actions tab, and only so');
   assert.doesNotMatch(wf, /^\s+(push|schedule|pull_request):/m);
   assert.match(wf, /concurrency:\n {2}group: account-deploy\n {2}cancel-in-progress: false/);

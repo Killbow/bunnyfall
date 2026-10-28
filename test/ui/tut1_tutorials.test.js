@@ -56,7 +56,7 @@ test('TUT1: the catalogue - unique ids, real groups (each one used), the tour\'s
   assert.ok(TUTORIALS.length >= 60, `comprehensive: ${TUTORIALS.length} pages`);
 });
 
-test('TUT1: the game is DFO - no page names the old game, its capital or DFU, and the welcome says DFO', () => {
+test('TUT1: the game is DFO - no page names the old game, its capital or DFU, and the welcome says DFO', { skip: 'BUNNYFALL: pins the upstream DFO Online branding, landing page or support asks' }, () => {
   for (const t of TUTORIALS) {
     assert.doesNotMatch(textOf(t), /daggerfall|\bDFU\b|unity/i, `${t.id} names the old game`);
   }
