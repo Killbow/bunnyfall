@@ -274,6 +274,6 @@ test('SD20g THE HELD MAP\'S TIER READ ONCE A PLACE, AND THE SMALLER DUNGEONS ROW
   assert.equal(tierAt(null), null);
   assert.match(w, /const _tierLabels = new Map\(\);\n\s*function buildTravelMapWindow\(extra = \{\}\) \{/, 'kept for the page, across the map\'s openings');
   const note = FEATURES.find((f) => f.id === 'smaller-dungeons').note;
-  assert.match(note, /Main-story dungeons keep full size; a quest keeps the size it was set up at\./);
+  assert.match(note, /Main-story dungeons keep full size\. A quest keeps the size it was set up at\./);
   assert.doesNotMatch(note, /a quest sends you to keep/);
 });

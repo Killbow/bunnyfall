@@ -93,7 +93,7 @@ test('HORSE-TIERS THE ONE KEY: Off, Boons and Hard on the `horseCare` key - the 
   assert.equal(onlineForcedPref('horseCare', '?online'), undefined, 'nothing forced online');
   assert.ok(ONLINE_PLAYERS_OWN_PREFS.includes('horseCare'), 'the player\'s own, by name');
   assert.ok(!/always on/i.test(`${ROW.note} ${ROW.effect}`), 'RETIRING A FLAG DELETES THE SENTENCE');
-  assert.match(ROW.note, /On Boons neglect costs nothing and it is never slower than the classic horse; on Hard a hungry horse is weaker; Off is the classic horse\.$/);
+  assert.match(ROW.note, /On Boons, neglect costs nothing and it’s never slower than the classic horse\. On Hard, a hungry horse is weaker\. Off is the classic horse\.$/);
   assert.equal(ROW.effect, 'Takes effect at once. Online, each player picks their own.');
 });
 

@@ -353,9 +353,7 @@ export const FEATURES = Object.freeze([
     id: 'smaller-dungeons',
     group: 'world',
     get title() { return t('features.smallerDungeons.title', 'Smaller dungeons'); },
-    get note() { return t('features.smallerDungeons.note', 'Dungeons bigger than five blocks are cut down to five: a center block with four around it, the same '
-      + 'every visit. Main-story dungeons keep full size; a quest keeps the size it was set up at. Online every '
-      + 'dungeon has its own size instead.'); },
+    get note() { return t('features.smallerDungeons.note', 'Dungeons bigger than five blocks are cut down to five: a center block with four around it, the same every visit. Main-story dungeons keep full size. A quest keeps the size it was set up at. Online, every dungeon has its own size.'); },
     get effect() { return t('features.smallerDungeons.effect', 'Takes effect on the next dungeon you enter. A save made at the other size puts you at the dungeon\u2019s start.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Experimental/SmallerDungeons' }),
@@ -407,9 +405,7 @@ export const FEATURES = Object.freeze([
     id: 'horse-care',
     group: 'world',
     get title() { return t('features.horseCare.title', 'Horse care'); },   // HORSE-TIERS: the row's words in the player's language (L10N4's ratchet)
-    get note() { return t('features.horseCare.note', 'Every horse has its own Speed, Stamina, Endurance and Strength. It walks unless you hold Run to gallop, '
-      + 'which tires it, and feeding it builds a bond that makes it better. On Boons neglect costs nothing and it is '
-      + 'never slower than the classic horse; on Hard a hungry horse is weaker; Off is the classic horse.'); },
+    get note() { return t('features.horseCare.note', 'Every horse has its own Speed, Stamina, Endurance and Strength. It walks unless you hold Run to gallop, which tires it, and feeding it builds a bond that makes it better. On Boons, neglect costs nothing and it’s never slower than the classic horse. On Hard, a hungry horse is weaker. Off is the classic horse.'); },
     get effect() { return t('features.horseCare.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -434,8 +430,7 @@ export const FEATURES = Object.freeze([
     id: 'wagon-upkeep',
     group: 'world',
     get title() { return t('features.wagonUpkeep.title', 'Wagon upkeep'); },
-    get note() { return t('features.wagonUpkeep.note', 'Your wagon wears as it rolls and on long journeys, and a Wagon Yard or a Wagon Repair Kit mends it. '
-      + 'On Boons wear costs nothing; on Hard a worn wagon is slower and sells for less; Off is the classic wagon.'); },
+    get note() { return t('features.wagonUpkeep.note', 'Your wagon wears as it rolls and on long journeys, and a Wagon Yard or a Wagon Repair Kit mends it. On Boons, wear costs nothing. On Hard, a worn wagon is slower and sells for less. Off is the classic wagon.'); },
     get effect() { return t('features.wagonUpkeep.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -475,10 +470,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-environments',
     group: 'sight',
     get title() { return t('features.enhancedEnvironments.title', 'Enhanced environments'); },
-    get note() { return t('features.enhancedEnvironments.note', 'A living sky with the sun, both moons and stars, clouds that build with the weather and cast '
-      + 'shadows, falling rain and snow, and grass that bends in the wind. Off brings back the classic '
-      + 'painted sky and weather. The third choice uses Dynamic Skies by BadLuckBurt and carademono, included '
-      + 'with permission; its settings open on this tile.'); },
+    get note() { return t('features.enhancedEnvironments.note', 'A living sky with the sun, both moons and stars, clouds that build with the weather and cast shadows, falling rain and snow, and grass that bends in the wind. Off brings back the classic painted sky and weather. The third choice uses Dynamic Skies by BadLuckBurt and carademono, included with permission. Its settings open on this tile.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced', 'mod']),
     // EE1: the outdoors as ONE switch (the sky, the ground's surfaces, the
@@ -507,10 +499,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-ai',
     group: 'combat',
     get title() { return t('features.enhancedAi.title', 'Enhanced AI'); },
-    get note() { return t('features.enhancedAi.note', 'Enemies take turns, back off when hurt, and archers keep their distance. Big attacks are marked on the '
-      + 'ground: hit hard to stagger them or dodge. Red, hatched attacks can’t be stopped. Trees, rocks and crates block '
-      + 'sight and missiles. Pathfinding works in dungeons only for now; towns, interiors and doors come later. Off keeps '
-      + 'the classic behavior.'); },
+    get note() { return t('features.enhancedAi.note', 'Enemies take turns, back off when hurt, and archers keep their distance. Big attacks are marked on the ground: hit hard to stagger them or dodge. Red, hatched attacks can’t be stopped. Trees, rocks and crates block sight and missiles. Pathfinding only works in dungeons for now: towns, interiors and doors come later. Off keeps the classic behavior.'); },
     get effect() { return t('features.enhancedAi.effect', 'Takes effect right away. Pathfinding changes from the next dungeon you enter.'); },   // AUDIT TACT D7: the tactics, cover and blows read the switch live
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -531,10 +520,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-climbing',
     group: 'world',
     get title() { return t('features.enhancedClimbing.title', 'Enhanced climbing'); },
-    get note() { return t('features.enhancedClimbing.note', 'Press Jump at a ledge to climb onto or over it, or while moving forward to vault a low wall. Jump at a high '
-      + 'ledge to catch it and hang: Forward climbs up, Left and Right move along it, Crouch lets go. Hold '
-      + 'Forward against any wall to climb it. Holding on wears out your grip; your Climbing skill sets how long it '
-      + 'lasts, how high you reach and how fast you climb. Off keeps the classic climbing.'); },
+    get note() { return t('features.enhancedClimbing.note', 'Press Jump at a ledge to climb onto or over it, or while moving forward to vault a low wall. Jump at a high ledge to catch it and hang: Forward climbs up, Left and Right move along it, Crouch lets go. Hold Forward against any wall to climb it. Holding on wears out your grip. Your Climbing skill sets how long it lasts, how high you reach and how fast you climb. Off keeps the classic climbing.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'enhancedClimbing', initial: true, online: true }),
@@ -565,8 +551,7 @@ export const FEATURES = Object.freeze([
     id: 'water-quality',
     group: 'sight',
     get title() { return t('features.waterQuality.title', 'Water quality'); },
-    get note() { return t('features.waterQuality.note', 'How detailed the enhanced water is. Full shows what lies under the surface and ripples where '
-      + 'things move; Simple is lighter on your machine.'); },
+    get note() { return t('features.waterQuality.note', 'How detailed the enhanced water is. Full shows what lies under the surface and ripples where things move. Simple is lighter on your machine.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'waterQuality', initial: 'full', online: 'player', tiers: Object.freeze([tier('full', () => t('features.waterQuality.full', 'Full')), tier('simple', () => t('features.waterQuality.simple', 'Simple'))]) }),   // WATER-NEXT: render/renderer.js waterSimple
@@ -578,10 +563,7 @@ export const FEATURES = Object.freeze([
     id: 'enhanced-lighting',
     group: 'sight',
     get title() { return t('features.enhancedLighting.title', 'Enhanced lighting'); },
-    get note() { return t('features.enhancedLighting.note', 'Warmer, more natural light: lanterns and torches that glow and fade with distance, light through '
-      + 'fog, shadows from the sun and your torch, darker corners, a glow on windows and flames, and rays of '
-      + 'sunlight. Off is the classic flat lighting.'
-      + ' Steady shadows stops shadows flickering, at some cost to frame rate; Calmer eye slows how fast your eyes adjust to light and dark.'); },
+    get note() { return t('features.enhancedLighting.note', 'Warmer, more natural light: lanterns and torches that glow and fade with distance, light through fog, shadows from the sun and your torch, darker corners, a glow on windows and flames, and rays of sunlight. Off is the classic flat lighting. Steady shadows stops shadows flickering, at some cost to frame rate. Calmer eye slows how fast your eyes adjust to light and dark.'); },
     get effect() { return t('features.enhancedLighting.effect', 'Lighting changes when the world next loads. Steady shadows and calmer eye change right away.'); },
     kinds: Object.freeze(['enhanced']),
     // OL-LIGHT (2026-09-24, Mac: "Can we let people disable it online"): THE PLAYER'S, ONLINE TOO. It was forced on
@@ -627,9 +609,7 @@ export const FEATURES = Object.freeze([
     id: 'grass',
     group: 'sight',
     get title() { return t('features.grass.title', 'Grass'); },
-    get note() { return t('features.grass.note', 'How much grass grows in the enhanced outdoors. Grass is the heaviest thing outdoors, so try Half '
-      + 'first if the game runs slow. Meadow is hand-drawn tufts, flowers and bushes; Pixel is finer, older '
-      + 'tufts; Smooth is soft, shaded blades.'); },
+    get note() { return t('features.grass.note', 'How much grass grows in the enhanced outdoors. Grass is the heaviest thing outdoors, so try Half first if the game runs slow. Meadow: hand-drawn tufts, flowers and bushes. Pixel: finer, older tufts. Smooth: soft, shaded blades.'); },
     get effect() { return t('features.grass.effect', 'The amount changes when the world next loads. The style changes right away.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -643,8 +623,7 @@ export const FEATURES = Object.freeze([
     id: 'cloud-quality',
     group: 'sight',
     get title() { return t('features.cloudQuality.title', 'Cloud quality'); },
-    get note() { return t('features.cloudQuality.note', 'How detailed the clouds in the enhanced outdoors are. Low is lighter on your machine; High looks '
-      + 'best if you have power to spare.'); },
+    get note() { return t('features.cloudQuality.note', 'How detailed the clouds in the enhanced outdoors are. Low is lighter on your machine, and High looks best if you have power to spare.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'cloudQuality', initial: 'default', online: 'player', tiers: Object.freeze([tier('default', () => t('features.cloudQuality.default', 'Default')), tier('lo', () => localizedText('low', 'Low')), tier('hi', () => localizedText('high', 'High'))]) }),   // PERF1: volumetricClouds.js QUALITY; a dial, the player's online
@@ -664,8 +643,7 @@ export const FEATURES = Object.freeze([
     id: 'ground-sharpness',
     group: 'sight',
     get title() { return t('features.groundSharpness.title', 'Ground sharpness'); },
-    get note() { return t('features.groundSharpness.note', 'How sharp the ground looks into the distance. Off is the cheapest and blurs far ground; Maximum is '
-      + 'the sharpest. Turn it down if the outdoors run slow.'); },
+    get note() { return t('features.groundSharpness.note', 'How sharp the ground looks into the distance. Off is the cheapest and blurs far ground, and Maximum is the sharpest. Turn it down if the outdoors run slow.'); },
     get effect() { return t('features.effect.worldLoads', 'Takes effect when the world next loads.'); },
     kinds: Object.freeze(['enhanced', 'classic']),
     control: Object.freeze({ store: 'prefs', key: 'groundSharpness', initial: 'default', online: 'player', tiers: Object.freeze([tier('off', OFF), tier('default', () => t('features.groundSharpness.default', 'Default (4x)')), tier('max', () => t('features.groundSharpness.max', 'Maximum'))]) }),
@@ -693,9 +671,7 @@ export const FEATURES = Object.freeze([
     id: 'render-scale',
     group: 'sight',
     get title() { return t('features.renderScale.title', 'Render scale'); },
-    get note() { return t('features.renderScale.note', 'Draws the world at a lower resolution and scales it up to fit; menus and the HUD stay sharp. Try 75% '
-      + 'if the outdoors run slow on a big or high-resolution screen. Retro Picture Mode replaces this while '
-      + 'it is on.'); },
+    get note() { return t('features.renderScale.note', 'Draws the world at a lower resolution and scales it up to fit, while menus and the HUD stay sharp. Try 75% if the outdoors run slow on a big or high-resolution screen. Retro Picture Mode replaces this while it’s on.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     // AUDIT BRANCH-0925 PS-A1: `classic` - the row has no Off, and Daggerfall's own frame is the whole window
@@ -744,8 +720,7 @@ export const FEATURES = Object.freeze([
     id: 'resource-highlights',
     group: 'sight',
     get title() { return t('features.resourceHighlights.title', 'Resource highlights'); },
-    get note() { return t('features.resourceHighlights.note', 'How herbs, veins, trees and other gathering spots near you stand out. Glint makes them '
-      + 'catch the light with sparkles; Outline rings each one in its profession\u2019s color, plain to see day or night; Both does both.'); },
+    get note() { return t('features.resourceHighlights.note', 'How herbs, veins, trees and other gathering spots near you stand out. Glint makes them catch the light with sparkles. Outline rings each one in its profession’s color, easy to see day or night. Both does both.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'resourceHighlights', initial: 'glint', online: 'player', tiers: Object.freeze([tier('glint', () => t('features.resourceHighlights.glint', 'Glint')), tier('outline', () => t('features.resourceHighlights.outline', 'Outline')), tier('both', () => t('features.resourceHighlights.both', 'Both'))]) }),   // render/nodeGlint.js RESOURCE_HIGHLIGHT_PREF, RESOURCE_HIGHLIGHTS
@@ -1273,8 +1248,7 @@ export const FEATURES = Object.freeze([
     id: 'beast-footwear',
     group: 'combat',
     get title() { return t('features.beastFeet.title', 'Beast Footwear'); },
-    get note() { return t('features.beastFeet.note', 'With the Morrowind body, how a Khajiit\'s or an Argonian\'s boots and shoes are drawn. Shafts only '
-      + 'keeps a boot\'s shaft over the bare foot and hides shoes; Hidden hides all footwear, as in Morrowind.'); },
+    get note() { return t('features.beastFeet.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s boots and shoes are drawn. Shafts only keeps a boot’s shaft over the bare foot and hides shoes. Hidden hides all footwear, as in Morrowind.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBeastFeet', initial: 'worn', online: 'player',
@@ -1285,8 +1259,7 @@ export const FEATURES = Object.freeze([
     id: 'beast-helmets',
     group: 'combat',
     get title() { return t('features.beastHelm.title', 'Beast Helmets'); },
-    get note() { return t('features.beastHelm.note', 'With the Morrowind body, how a Khajiit\'s or an Argonian\'s helmets are drawn. Open only hides '
-      + 'closed helmets but keeps open ones such as the chain coif, as in Morrowind; Hidden hides them all.'); },
+    get note() { return t('features.beastHelm.note', 'With the Morrowind body, how a Khajiit’s or an Argonian’s helmets are drawn. Open only hides closed helmets but keeps open ones like the chain coif, as in Morrowind. Hidden hides them all.'); },
     get effect() { return t('features.mod.weaponSheathing.effect', 'Takes effect at once with the Morrowind body.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwBeastHelm', initial: 'worn', online: 'player',
@@ -1513,9 +1486,7 @@ export const FEATURES = Object.freeze([
     id: 'dungeon-wall-style',
     group: 'sight',
     get title() { return t('features.dungeonWallStyle.title', 'Dungeon Wall Style'); },
-    get note() { return t('features.dungeonWallStyle.note', 'Which textures dungeon walls use: Classic, the region’s climate (Climate) or random (Random).'
-      + ' Climate and Random keep main-story dungeons classic; Climate Only and Random Only '
-      + 'change them too. Classic by default in Daggerfall Unity.'); },
+    get note() { return t('features.dungeonWallStyle.note', 'Which textures dungeon walls use: Classic, the region’s climate (Climate) or random (Random). Climate and Random keep main-story dungeons classic, while Climate Only and Random Only change them too. Daggerfall Unity defaults to Classic.'); },
     get effect() { return t('features.effect.nextDungeon', 'Takes effect on the next dungeon you enter.'); },
     kinds: Object.freeze(['classic']),
     control: Object.freeze({ store: 'settings', key: 'Video/RandomDungeonTextures', classic: 0 }),   // FT18: Classic, what All off sets - a choice with no Off
@@ -1535,9 +1506,7 @@ export const FEATURES = Object.freeze([
     id: 'quick-slots',
     group: 'interface',
     get title() { return t('features.quickSlots.title', 'Quick slots'); },
-    get note() { return t('features.quickSlots.note', 'Diamond puts 4 slots in a diamond at the bottom left, on keys 1 to 4. Hotbar puts 10 above your '
-      + 'health bars on keys 1 to 0; Diamonds makes them diamonds. Drag an item or spell onto a slot, or point at it '
-      + 'and press the key. Off hides them, but their keys still work.'); },
+    get note() { return t('features.quickSlots.note', 'Diamond puts 4 slots in a diamond at the bottom left, on keys 1 to 4. Hotbar puts 10 above your health bars on keys 1 to 0. Diamonds makes them diamonds. Drag an item or spell onto a slot, or point at it and press the key. Off hides them, but their keys still work.'); },
     get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({
@@ -1763,9 +1732,7 @@ export const FEATURES = Object.freeze([
     id: 'blood',
     group: 'combat',
     get title() { return t('features.blood.title', 'Blood'); },
-    get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy '
-      + 'hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir; Off '
-      + 'keeps the classic splash that fades away.'); },
+    get note() { return t('features.blood.note', 'Stains stay on floors and walls where blood lands. A big killing blow sprays it further, and a heavy hit on you splashes a few drops on the screen. The slider sets how much, from Light to Abattoir. Off keeps the classic splash that fades away.'); },
     get effect() { return t('features.blood.effect', 'Takes effect right away. How many marks stay changes when the game next loads or you enter a dungeon.'); },
     kinds: Object.freeze(['enhanced']),
     // FT18: BLOOD, ONE ROW. BLOOD1's marks, BLOOD1b's overkill, BLOOD2e's lens and BLOOD2g's gore were four tiles over
@@ -1791,11 +1758,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-climates-calories',   // a mod-row id: WM3's law reaches the credits' vendor through it
     group: 'character',
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'Climates & Calories', author: 'Ralzar' }); },   // AUDIT SURV E: the author's name, as every mod row carries it
-    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a '
-      + 'campfire or in a bed. On Boons neglect costs nothing, and staying fed, watered and rested in a bed or by '
-      + 'a fire gives bonuses; on Casual, unmet needs only drain some stamina (never more than half) and it '
-      + 'comes back once you’ve seen to them; on Hard they cost attributes and health and can make you sick; '
-      + 'Off is the classic game.'); },
+    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a campfire or in a bed. On Boons, neglect costs nothing, and staying fed, watered and rested gives bonuses. On Casual, unmet needs only drain some stamina (never more than half), and it comes back once you’ve seen to them. On Hard, they cost attributes and health and can make you sick. Off is the classic game.'); },
     get effect() { return t('features.mod.climatesCalories.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['mod', 'enhanced', 'classic']),   // AUDIT SURV E: a mod row, under the MOD AUTHORED filter
     // MODS-ONLINE-3 (2026-09-22, Mac): THIS IS A MOD ROW AND IT IS THE
@@ -1854,10 +1817,7 @@ export const FEATURES = Object.freeze([
     id: 'naval-combat',
     group: 'combat',
     get title() { return t('features.navalCombat.title', 'Naval Combat'); },
-    get note() { return t('features.navalCombat.note', 'Ship battles on Come Sail Away\u2019s boats: at the helm, look to one side and hold Attack to aim a broadside, '
-      + 'then let go to fire. Pirates, merchant ships and navies sail the Bay; batter a ship until it surrenders, board '
-      + 'it, take its cargo, then sink it or let it go. Piracy is a crime, and pirates can board your ship and '
-      + 'fight you on deck. Online, everyone in the room shares one sea.'); },
+    get note() { return t('features.navalCombat.note', 'Ship battles on Come Sail Away’s boats. At the helm, look to one side and hold Attack to aim a broadside, then let go to fire. Pirates, merchant ships and navies sail the Bay. Batter a ship until it surrenders, board it, take its cargo, then sink it or let it go. Piracy is a crime, and pirates can board your ship and fight you on deck. Online, everyone in the room shares one sea.'); },
     get effect() { return t('features.navalCombat.effect', 'Takes effect right away. Ship handling changes the next time you take the helm. Online it’s always on.'); },   // AUDIT NAV2 F14: the helm takes the handling once a session (comeSailAway.js responsive)
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({

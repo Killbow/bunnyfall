@@ -78,7 +78,7 @@ test('WAGON-TIERS THE ONE KEY: Off, Boons and Hard on the `wagonUpkeep` key - th
   assert.equal(onlineForcedPref('wagonUpkeep', '?online'), undefined, 'nothing forced online');
   assert.ok(ONLINE_PLAYERS_OWN_PREFS.includes('wagonUpkeep'), 'the player\'s own, by name');
   assert.ok(!/always on|breaks down/i.test(`${ROW.note} ${ROW.effect}`), 'RETIRING A FLAG DELETES THE SENTENCE');
-  assert.match(ROW.note, /On Boons wear costs nothing; on Hard a worn wagon is slower and sells for less; Off is the classic wagon\.$/);
+  assert.match(ROW.note, /On Boons, wear costs nothing\. On Hard, a worn wagon is slower and sells for less\. Off is the classic wagon\.$/);
   assert.equal(ROW.effect, 'Takes effect at once. Online, each player picks their own.');
 });
 

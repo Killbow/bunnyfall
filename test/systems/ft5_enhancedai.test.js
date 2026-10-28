@@ -39,7 +39,7 @@ test('FT5: the note says what ships and names what it is not', () => {
   const f = FEATURES.find((x) => x.id === 'enhanced-ai');
   assert.equal(f.note, 'Enemies take turns, back off when hurt, and archers keep their distance. Big attacks are marked on the '
     + 'ground: hit hard to stagger them or dodge. Red, hatched attacks can’t be stopped. Trees, rocks and crates block '
-    + 'sight and missiles. Pathfinding works in dungeons only for now; towns, interiors and doors come later. Off keeps '
+    + 'sight and missiles. Pathfinding only works in dungeons for now: towns, interiors and doors come later. Off keeps '
     + 'the classic behavior.');   // PIN MOVED (PLAIN TEXT SWEEP): the note in plain words; DFU's "Smarter Enemies" stays unrowed below
   // ...and the DFU key it names IS unavailable, in Settings, under that label
   assert.equal(tierOf('Enhancements/EnhancedCombatAI'), 'unavailable');

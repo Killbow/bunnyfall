@@ -1665,8 +1665,7 @@ export const MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.daggerfallEnemyExpansion.Enabled.description', 'Fifty new enemies - goblins, trolls, minotaurs, golems, '
-            + 'mounted knights, necromancers, witches and more - in new encounter tables for every dungeon and climate.');
+          return t('mods.daggerfallEnemyExpansion.Enabled.description', 'Fifty new enemies, from goblins, trolls, minotaurs and golems to mounted knights, necromancers and witches, in new encounter tables for every dungeon and climate.');
         },
       }),
       'Cheat.DisableTrollRespawn': Object.freeze({
