@@ -69,11 +69,11 @@ export function introCreditOpacity(credit, time) {
  *  over a credit or the mark. The words are the port's own (3E 405: Uriel Septim VII on the throne, Lysandus dead at
  *  Cryngaine Field, the Numidium sunk in the Bay), in the player's language. */
 export const INTRO_NARRATION = Object.freeze([
-  Object.freeze({ key: 'narration1', get text() { return t('menu.intro.narration1', 'Four hundred and five years since Tiber Septim forged the Empire, Tamriel endures.'); }, start: 12.25, up: 12.95, out: 17.65, end: 18.4 }),
-  Object.freeze({ key: 'narration2', get text() { return t('menu.intro.narration2', 'From the White-Gold Tower, the Emperor holds nine provinces as one.'); }, start: 20.05, up: 20.75, out: 25.35, end: 26.1 }),
-  Object.freeze({ key: 'narration3', get text() { return t('menu.intro.narration3', 'But in the west, a murdered king walks the streets of Daggerfall, and the Iliac Bay drifts toward war.'); }, start: 27.05, up: 27.75, out: 33.05, end: 33.8 }),
-  Object.freeze({ key: 'narration4', get text() { return t('menu.intro.narration4', 'Beneath its waters, a power that once broke kingdoms waits for a hand to wake it.'); }, start: 35.0, up: 35.7, out: 40.1, end: 40.85 }),
-  Object.freeze({ key: 'narration5', get text() { return t('menu.intro.narration5', 'Nine provinces. A thousand roads. The story of this age is yours to write.'); }, start: 41.6, up: 42.3, out: 46.85, end: 47.6 }),
+  Object.freeze({ key: 'narration1', get text() { return t('menu.intro.narration1', 'It is the year 405 of the Third Era, in the reign of Uriel Septim VII.'); }, start: 12.25, up: 12.95, out: 17.65, end: 18.4 }),
+  Object.freeze({ key: 'narration2', get text() { return t('menu.intro.narration2', 'In the city of Daggerfall, the ghost of the murdered King Lysandus walks the streets at night.'); }, start: 20.05, up: 20.75, out: 25.35, end: 26.1 }),
+  Object.freeze({ key: 'narration3', get text() { return t('menu.intro.narration3', 'Across the Iliac Bay, kingdoms that called each other friends are counting their soldiers.'); }, start: 27.05, up: 27.75, out: 33.05, end: 33.8 }),
+  Object.freeze({ key: 'narration4', get text() { return t('menu.intro.narration4', 'Somewhere in the region lies the Mantella, and with it the brass god that won Tiber Septim his Empire.'); }, start: 35.0, up: 35.7, out: 40.1, end: 40.85 }),
+  Object.freeze({ key: 'narration5', get text() { return t('menu.intro.narration5', 'The Emperor has sent you to lay the king’s ghost to rest. Your ship never makes it to port.'); }, start: 41.6, up: 42.3, out: 46.85, end: 47.6 }),
 ]);
 
 export function introNarrationOpacity(line, time) {

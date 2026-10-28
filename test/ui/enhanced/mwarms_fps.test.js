@@ -185,8 +185,8 @@ test('MWA4 (before the merge: "reorganize the marrowind attachment selector, rem
   assert.deepEqual(c.rows, { Data: '1 archive attached', Arms: 'skeleton: no base_anim.nif' });
   assert.deepEqual(c.lines.slice(1), [
     'Not in the arms: torch: none',
-    'Third person refused - body: no records',
-    'Your files carry no "argonian" body (they have: breton, nord).',
+    'Third person failed at body: no records',
+    'Your files have no "argonian" body (found: breton, nord).',
   ]);
   assert.equal(morrowindArmsLine({ active: false, reason: 'unloaded' }), 'Builds when you play', 'attached but not built yet: it builds at the next door');
   assert.deepEqual(morrowindTroubleLines(null), []);

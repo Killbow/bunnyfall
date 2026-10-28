@@ -268,7 +268,7 @@ const PAGE_TIPS = localizedTable({
  *  Off, which in the desktop app with the wait lifted holds at LIFTED_OFF_FPS (systems/frameCap.js), never DFU's running
  *  free. */
 const portTip = (/** @type {string} */ key) => (key === 'Video/TargetFrameRate'
-  ? t('menu.settings.tip.frameCap', 'The most frames a second the game draws. Off lets your screen set the pace. In the desktop app with Wait For Screen Refresh off, Off still holds the game at {max} frames a second.', { max: LIFTED_OFF_FPS })
+  ? t('menu.settings.tip.frameCap', 'The most frames per second the game draws. Off lets your screen set the pace. In the desktop app with Wait For Screen Refresh off, Off still caps it at {max}.', { max: LIFTED_OFF_FPS })
   : '');
 
 /** The explanation, in DFU's own words where DFU wrote one. Empty

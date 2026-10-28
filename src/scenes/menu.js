@@ -266,7 +266,7 @@ function pickClassicSaveFiles() {
       const saves = collectClassicSaveFiles(files);
       const indexes = Object.keys(saves);
       if (!indexes.length) { msg.textContent = t('menu.classicLoad.noFolders', 'no SAVE0-SAVE5 folders in that selection'); return; }
-      msg.textContent = t('menu.classicLoad.reading', 'reading {n} save slot(s)...', { n: indexes.length });
+      msg.textContent = t('menu.classicLoad.reading', '{n, plural, one {Reading # save slot...} other {Reading # save slots...}}', { n: indexes.length });
       for (const files2 of Object.values(saves)) {
         for (const [name, file] of Object.entries(files2)) {
           files2[name] = new Uint8Array(await file.arrayBuffer());

@@ -19,13 +19,13 @@ const minuteOfDay = (m) => ((m % 1440) + 1440) % 1440;
 test('TIME4 the Online pane says the sky\'s day as it is when the pane opens: two hours until the switch (and when, in this machine\'s time), an hour from it - midnight on the hour, dusk at :45, in this machine\'s own minutes', () => {
   const utc = (ms) => new Date(ms).getUTCMinutes() + new Date(ms).getUTCSeconds() / 60;
   const before = skyDayWords(SWITCH.fromMs - 1, (ms) => `<${ms}>`, utc);
-  assert.equal(before, `A day in the world is two hours of real time until <${SWITCH.fromMs}>; from then on it is an hour: midnight falls on the hour, and dusk at :45.`);
+  assert.equal(before, `A day in the world lasts two real hours until <${SWITCH.fromMs}>, then one hour. Midnight falls on the hour, and dusk at :45.`);
   const after = skyDayWords(SWITCH.fromMs, String, utc);
-  assert.equal(after, 'A day in the world is an hour of real time: midnight falls on the hour, and dusk at :45.');
+  assert.equal(after, 'A day in the world lasts one real hour. Midnight falls on the hour, and dusk at :45.');
   // AUDIT TIME: the minutes are this machine's own - a clock set a quarter of an hour off UTC (Nepal's +5:45) hears its own,
   // and one set half an hour off (India's +5:30) its own
-  assert.equal(skyDayWords(SWITCH.fromMs, String, (ms) => (utc(ms) + 45) % 60), 'A day in the world is an hour of real time: midnight falls at :45, and dusk at :30.');
-  assert.equal(skyDayWords(SWITCH.fromMs, String, (ms) => (utc(ms) + 30) % 60), 'A day in the world is an hour of real time: midnight falls at :30, and dusk at :15.');
+  assert.equal(skyDayWords(SWITCH.fromMs, String, (ms) => (utc(ms) + 45) % 60), 'A day in the world lasts one real hour. Midnight falls at :45, and dusk at :30.');
+  assert.equal(skyDayWords(SWITCH.fromMs, String, (ms) => (utc(ms) + 30) % 60), 'A day in the world lasts one real hour. Midnight falls at :30, and dusk at :15.');
   // ...and every number in it is the law's
   assert.equal(REAL_MIN_PER_SKY_DAY, 60, 'an hour: the sky\'s rate (change it and change the words)');
   for (let k = 1; k <= 48; k++) {
@@ -38,9 +38,9 @@ test('TIME4 the Online pane says the sky\'s day as it is when the pane opens: tw
   const ev = skyClassicMinutes(SWITCH.fromMs - 3_600_000 * 4) - skyClassicMinutes(SWITCH.fromMs - 3_600_000 * 6);
   assert.ok(Math.abs(ev - 1440) < 1e-6, 'two real hours, a day, before it');
   const menu = rd('src/ui/enhanced/enhancedMenu.js');
-  assert.match(menu, /can hurt you too\. \{skyDay\} The world\\u2019s clock and sky run on real time[^\n]*\{ skyDay: skyDayWords\(\) \}/, 'the paragraph opens its clock with the sentence');
-  assert.match(menu, /a lycanthrope\\u2019s full moon lasts one night\./, 'TIME2, said at the door');
-  assert.match(menu, /loans and repairs run on it\. Quest timers run on the world\\u2019s clock while you play\. Resting, waiting and traveling don\\u2019t use up a quest\\u2019s days, and time logged off never counts\./, 'QCLOCK-WORLD, said at the door (TIME3 had the quest timers on it, a rest spending their days)');   // PIN MOVED (VOICE2): American spelling (Voice.md rule 8)
+  assert.match(menu, /can hurt anyone\. \{skyDay\} The world’s clock and sky follow real time[^\n]*\{ skyDay: skyDayWords\(\) \}/, 'the paragraph opens its clock with the sentence');
+  assert.match(menu, /a lycanthrope’s full moon lasts one night\./, 'TIME2, said at the door');
+  assert.match(menu, /loans and repairs\. Quest timers follow the world’s clock while you play\. Resting, waiting and travel don’t use up a quest’s days, and time logged off never counts\./, 'QCLOCK-WORLD, said at the door (TIME3 had the quest timers on it, a rest spending their days)');   // PIN MOVED (VOICE2): American spelling (Voice.md rule 8)
 });
 
 test('TIME4 the figures the patch notes stated are the law\'s own: a day of 60 minutes, a full moon\'s night of 30, nightfall within 30, a three-day wait in about half a minute of rest, half an hour of game time at most for a tab away', () => {

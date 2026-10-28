@@ -347,6 +347,6 @@ test('VE3/VE4 the menu: the card\'s button wears the look at once - nothing to a
   assert.match(menu, /p\.custom \?\? t\('menu\.ovh\.custom', 'Custom: your own mix from Settings\./);   // ORG2: the Features home is Settings' tabs
   assert.match(menu, /\{ label: m\.enabled \? t\('menu\.packs\.switchOff', 'Switch off'\) : t\('menu\.packs\.switchOn', 'Switch on'\), onClick: \(\) => \{ setDfmodEnabled\(m\.key, !m\.enabled\); render\(\); \} \},/);
   assert.match(menu, /\.\.\.\(m\.shipped \? \[\] : \[remove\(t\('menu\.packs\.removeYes', 'Remove'\), t\('menu\.packs\.removeMod', 'Remove \{mod\}', \{ mod: m\.title \}\)/, 'a shipped mod is switched, never removed');
-  assert.match(menu, /t\('menu\.packs\.loadOrder', 'In load order: where two mods carry the same texture, the later one is drawn\./);
+  assert.match(menu, /t\('menu\.packs\.loadOrder', 'Load order: when two mods have the same texture, the later one wins\./);
   assert.match(src('scenes/dataSource.js'), /export async function pickDfmodFiles\(\) \{\n\s+return pickAssetFolder\(\{\n\s+title: 'Add texture mods',/);
 });

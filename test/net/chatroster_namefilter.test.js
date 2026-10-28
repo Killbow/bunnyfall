@@ -368,7 +368,7 @@ test('AUDIT-CHATR F6: the Online pane\u2019s copy says what sanitizeName actuall
   assert.doesNotMatch(menu, /Up to 24 characters/, 'the line describing the typed-name field outlived the field');
   assert.doesNotMatch(menu, /letters and digits/, 'and the false promise it replaced is still gone');
   const pane2 = menu.slice(menu.indexOf('function paneOnline('), menu.indexOf('function paneLoad('));
-  assert.match(pane2, /Online needs an account, so no one else can use your name\./,
+  assert.match(pane2, /Online play needs an account, so nobody else can take your name\./,
     'what stands there now says why, and says the guest way in is one press');
 });
 

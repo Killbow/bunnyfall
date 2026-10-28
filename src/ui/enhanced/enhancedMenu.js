@@ -506,8 +506,8 @@ export function skyDayWords(nowMs = Date.now(), localTime = (ms) => new Date(ms)
   // L10N4: one sentence, one pattern - the midnight's two shapes are a select inside it, never a glued fragment
   const day = { onHour: m0 === 0 ? 'yes' : 'no', midnight: at(m0), dusk: at(m0 + 45) };
   return nowMs >= turn
-    ? t('menu.online.skyDay', 'A day in the world is an hour of real time: {onHour, select, yes {midnight falls on the hour} other {midnight falls at {midnight}}}, and dusk at {dusk}.', day)
-    : t('menu.online.skyDayUntil', 'A day in the world is two hours of real time until {turn}; from then on it is an hour: {onHour, select, yes {midnight falls on the hour} other {midnight falls at {midnight}}}, and dusk at {dusk}.', { ...day, turn: localTime(turn) });
+    ? t('menu.online.skyDay', 'A day in the world lasts one real hour. {onHour, select, yes {Midnight falls on the hour} other {Midnight falls at {midnight}}}, and dusk at {dusk}.', day)
+    : t('menu.online.skyDayUntil', 'A day in the world lasts two real hours until {turn}, then one hour. {onHour, select, yes {Midnight falls on the hour} other {Midnight falls at {midnight}}}, and dusk at {dusk}.', { ...day, turn: localTime(turn) });
 }
 
 export function takePickedSaveKey() { const k = _pickedSaveKey; _pickedSaveKey = null; return k; }
@@ -1006,7 +1006,7 @@ const head = (title) => {
 function paneContinue(body) {
   const save = savedGame();
   if (!save) {
-    body.append(empty(t('menu.continue.none', 'No game in progress'), t('menu.continue.noneHint', 'Quicksave with F9 and it appears here.')));
+    body.append(empty(t('menu.continue.none', 'No game in progress'), t('menu.continue.noneHint', 'Quicksave with F9 and it shows up here.')));
     body.append(acts([{ label: t('menu.continue.startNew', 'Start a new game'), primary: true, onClick: () => go('new') }]));
     return;
   }
@@ -1288,7 +1288,7 @@ function paneOnline(body) {
   const who = storedSession(appStorage());
   if (!who) {
     const c = el('div', 'card');
-    c.append(el('p', 'meta bad', t('menu.online.needsAccount', 'Online needs an account, so no one else can use your name. Playing as a guest takes one click and no email.')));
+    c.append(el('p', 'meta bad', t('menu.online.needsAccount', 'Online play needs an account, so nobody else can take your name. Playing as a guest is one click and no email.')));
     const go = el('button', 'act primary');
     go.type = 'button';
     go.textContent = t('menu.online.signIn', 'Sign in or continue as guest');
@@ -1345,7 +1345,7 @@ function paneOnline(body) {
   // page in the bible cannot reach them.
   const foot = el('div', 'card svonlinefoot');
   // L10N4: ONE pattern, the sky's sentence an argument in it (skyDayWords is itself routed)
-  foot.append(el('p', 'meta', t('menu.online.rules', 'Everyone plays their own save, and you can see and talk to each other anywhere. Dungeons and buildings are shared: enemies, doors, levers and opened chests are the same for everyone and stay that way. In towns and the wilds, everyone nearby sees the same monsters and can fight them, and they can hurt you too. {skyDay} The world\u2019s clock and sky run on real time. Resting, travel, jail and training don\u2019t move them, so a quest waiting for a time of day waits for the world\u2019s, and a lycanthrope\u2019s full moon lasts one night. Your character also has their own clock. It runs while you play and stops while you are logged off. Resting, travel, jail and training use it. Your wounds, spells, hunger, diseases, curses, guild ranks, rented rooms, loans and repairs run on it. Quest timers run on the world\u2019s clock while you play. Resting, waiting and traveling don\u2019t use up a quest\u2019s days, and time logged off never counts. A quest that only asks you to wait, like a letter or \u201ccome back in a few days\u201d, moves on after a couple of minutes of play. Rest at a fire, a tent or a bed: a night passes at once, at most once every 10 minutes of play, and party members within 15 meters sleep with you. Every enhancement is on for everyone, but your interface is your own. Most mods stay your choice online. A few are set for everyone: those that change the ground, monsters, loot or the rules. The Mods page marks each one.', { skyDay: skyDayWords() })));   // AUDIT WORLD5 C12: the shared clock, said at the door; OL1: the lane, said at the door; QCLOCK-WORLD: the quests' clock; REST8: the short wait; REST9: the rest act and the party's night
+  foot.append(el('p', 'meta', t('menu.online.rules', 'Everyone plays their own save, and you can see and talk to each other anywhere. Dungeons and buildings are shared: enemies, doors, levers and opened chests are the same for everyone and stay that way. In towns and the wilds, everyone nearby sees the same monsters, and those monsters can hurt anyone. {skyDay} The world’s clock and sky follow real time. Resting, travel, jail and training don’t move them, so a quest that needs a time of day waits for the world’s, and a lycanthrope’s full moon lasts one night. Your character has a clock of their own that runs while you play and stops when you log off. Resting, travel, jail and training use it, and so do your wounds, spells, hunger, diseases, curses, guild ranks, rented rooms, loans and repairs. Quest timers follow the world’s clock while you play. Resting, waiting and travel don’t use up a quest’s days, and time logged off never counts. A quest that only asks you to wait, like a letter or "come back in a few days", moves on after a couple of minutes of play. Rest at a fire, a tent or a bed: the night passes at once, at most once every 10 minutes of play, and party members within 15 meters sleep too. All enhancements are on for everyone, but your interface is your own. Most mods stay your choice online. The few that change the ground, monsters, loot or rules are set for everyone, and the Mods page marks them.', { skyDay: skyDayWords() })));   // AUDIT WORLD5 C12: the shared clock, said at the door; OL1: the lane, said at the door; QCLOCK-WORLD: the quests' clock; REST8: the short wait; REST9: the rest act and the party's night
   foot.append(field(t('menu.online.relay', 'Relay'), 'onlineServer', DEFAULT_SERVER, 200));
   body.append(foot);
   body.append(onlineSyncCard());   // UXB1-E: under the rules it copies
@@ -1368,7 +1368,7 @@ function realmCard(who) {
       render();
     }).catch(() => {});
   }
-  if (realmRows == null) { box.append(el('p', 'meta', t('menu.realm.asking', 'Asking the realm...'))); return box; }
+  if (realmRows == null) { box.append(el('p', 'meta', t('menu.realm.asking', 'Loading your online characters...'))); return box; }
   if (realmRows.length) {
     const grid = el('div', 'svgrid');
     for (const row of realmRows) {
@@ -1381,13 +1381,13 @@ function realmCard(who) {
           // HOUSE-LOSS (2026-09-29, Mac: "GarySoup lost his house and furniture"): a character brought in whose first save
           // never landed is UNDONE, never deleted - its delete took the home customs had carried, and it could never come
           // in again. The undo gives back its home, its guild place and its customs (realm.js undoRealm).
-          row.customs && save.unfinished ? { label: t('menu.realm.undo', 'Undo bringing in'), disabled: realmBusy, onClick: () => ask(t('menu.realm.undoAsk', 'Undo bringing {name} in?', { name: row.name }), t('menu.realm.undoBody', '{name} didn\u2019t finish coming online because its first save never arrived. Undo removes it and gives back its home and guild place, so you can bring the offline character online again. To finish instead, click Bring online on it below.', { name: row.name }), t('menu.realm.undoYes', 'Undo'), () => realmAct(() => realmUndo(realmIoNow(), row.id), () => [t('menu.realm.undone', '{name} is no longer online. Its home and guild place are back with the offline character. Bring it online again when you are ready.', { name: row.name })])) }
-            : { label: t('menu.realm.delete', 'Delete character'), disabled: realmBusy, onClick: () => ask(t('menu.realm.deleteAsk', 'Delete {name}?', { name: row.name }), t('menu.realm.deleteBody', 'Deleting an online character is permanent. Its Renown, professions, Stores, the homes it bought and its guild place are lost. Homes belong to your account, so your other characters lose them too. Any offline copy you made stays.'), t('menu.realm.deleteYes', 'Delete'), () => realmAct(() => realmDelete(realmIoNow(), row.id), () => [t('menu.realm.deleted', '{name} is gone from the realm.', { name: row.name })])) },
+          row.customs && save.unfinished ? { label: t('menu.realm.undo', 'Undo bringing in'), disabled: realmBusy, onClick: () => ask(t('menu.realm.undoAsk', 'Undo bringing {name} in?', { name: row.name }), t('menu.realm.undoBody', '{name} never finished coming online because its first save didn’t arrive. Undo removes it and gives its home and guild place back to the offline character, so you can try again. To finish instead, click Bring online on it below.', { name: row.name }), t('menu.realm.undoYes', 'Undo'), () => realmAct(() => realmUndo(realmIoNow(), row.id), () => [t('menu.realm.undone', '{name} is offline again. Its home and guild place are back with the offline character.', { name: row.name })])) }
+            : { label: t('menu.realm.delete', 'Delete character'), disabled: realmBusy, onClick: () => ask(t('menu.realm.deleteAsk', 'Delete {name}?', { name: row.name }), t('menu.realm.deleteBody', 'Deleting an online character is permanent. Its Renown, professions, Stores, the homes it bought and its guild place are lost. Homes belong to your account, so your other characters lose them too. Any offline copy you made stays.'), t('menu.realm.deleteYes', 'Delete'), () => realmAct(() => realmDelete(realmIoNow(), row.id), () => [t('menu.realm.deleted', '{name} was deleted.', { name: row.name })])) },
         ],
       }));
     }
     box.append(grid);
-  } else box.append(el('p', 'meta', t('menu.realm.none', 'No online characters yet. Make one, or bring one of yours in below.')));
+  } else box.append(el('p', 'meta', t('menu.realm.none', 'No online characters yet. Create one, or bring an offline one in below.')));
   for (const card of waitingHouseCards()) box.append(card);
   box.append(acts([{ label: t('menu.realm.new', 'New online character'), primary: !realmRows.length, disabled: realmBusy || realmRows.length >= realmMax, onClick: () => onAction('online-new') }]));
   return box;
@@ -1488,7 +1488,7 @@ function copyToOffline(row) {
     snap.characterId = mintCharacterId();
     const r = saveSlot(snap.name || row.name, REALM_COPY_SAVE_NAME, snap, { storage: appStorage() });
     return r.ok ? { ok: true } : { ok: false, error: 'no-room' };
-  }, () => [t('menu.realm.copied', '{name} is copied as a new offline character. Nothing you play on the copy comes back online.', { name: row.name })]);
+  }, () => [t('menu.realm.copied', '{name} was copied to a new offline character. Nothing you do on the copy comes back online.', { name: row.name })]);
 }
 
 // UXB1-E (2026-09-25, the UX backlog: "Add a 'sync from server' option so players can ensure their offline play
@@ -1545,8 +1545,8 @@ function paneLoad(body) {
   // a live online session.
   const locked = hooks.loadingPrevented?.();
   if (locked) {
-    body.append(empty(t('menu.load.onlineLocked', 'Loading is disabled during online play.'),
-      t('menu.load.onlineLockedWhy', 'Leave the shared world to load a save.')));
+    body.append(empty(t('menu.load.onlineLocked', 'You can’t load a save while playing online.'),
+      t('menu.load.onlineLockedWhy', 'Leave the shared world first.')));
     return;
   }
   // SLOTS1: EVERY restorable slot, most recent first - the classic
@@ -1626,7 +1626,7 @@ function transferCard(count) {
   const dirIn = el('input'); dirIn.type = 'file'; dirIn.setAttribute('webkitdirectory', ''); dirIn.multiple = true; dirIn.style.display = 'none';
   const done = (slots, r) => {
     const n = r.imported.length;
-    _transferNote = !slots.length ? t('menu.transfer.noneIn', 'No saves in that selection. Pick the zip an Export made, or a Saves folder holding SAVE0, SAVE1, ...')
+    _transferNote = !slots.length ? t('menu.transfer.noneIn', 'No saves found. Pick a zip made by Export, or a Saves folder with SAVE0, SAVE1 and so on.')
       : t('menu.transfer.imported', 'Imported {n, plural, one {# save} other {# saves}}{skipped, plural, =0 {} other {, # already here}}{failed, plural, =0 {} other {, # could not be written}}.', { n, skipped: r.skipped || 0, failed: r.failed || 0 });
     render();
   };
@@ -1708,7 +1708,7 @@ function paneSave(body) {
   const describe = () => {
     const name = input.value.trim() || QUICK_SAVE_NAME;
     const save = mine.find((s) => s.saveName.localeCompare(name, undefined, { sensitivity: 'accent' }) === 0) ?? null;
-    line.textContent = save ? t('menu.save.overwrites', 'Overwrites "{slot}" - {line}', { slot: save.saveName, line: saveLine(save) }) : t('menu.save.newSlot', 'A new slot, "{slot}".', { slot: name });
+    line.textContent = save ? t('menu.save.overwrites', 'Overwrites "{slot}" ({line})', { slot: save.saveName, line: saveLine(save) }) : t('menu.save.newSlot', 'New slot: "{slot}"', { slot: name });
     numbers.replaceChildren(); if (save) numbers.append(stats(saveStats(save)));
   };
   input.oninput = () => { _saveNameDraft = input.value; describe(); };
@@ -1759,9 +1759,9 @@ function paneExit(body) {
     onClick: () => ask(
       t('menu.exit.leave', 'Leave this game'),
       save
-        ? (save.when != null ? t('menu.exit.lostSince', 'Anything since {when} is lost. The quicksave itself is untouched.', { when: save.when })
-          : t('menu.exit.lostSinceLast', 'Anything since the last save is lost. The quicksave itself is untouched.'))
-        : t('menu.exit.allLost', 'Nothing has been saved in this game, so all of it is lost.'),
+        ? (save.when != null ? t('menu.exit.lostSince', 'Anything since {when} will be lost. Your quicksave stays as it is.', { when: save.when })
+          : t('menu.exit.lostSinceLast', 'Anything since your last save will be lost. Your quicksave stays as it is.'))
+        : t('menu.exit.allLost', 'Nothing in this game has been saved, so all of it will be lost.'),
       t('menu.exit.yes', 'Exit'),
       () => onAction('exit'),
     ),
@@ -2177,7 +2177,7 @@ function categoryCard({ pool = portPool(), pause = false } = {}) {
 const PRESET_WORDS = {
   name: () => t('menu.settings.preset.name', 'Quality preset'),
   note: () => t('menu.settings.preset.note', 'View distance, grass, clouds, ground sharpness, water, windows and steady shadows.'),
-  effect: () => t('menu.settings.preset.effect', 'Steady shadows and the windows change at once; the rest when the world next loads.'),
+  effect: () => t('menu.settings.preset.effect', 'Steady shadows and windows change right away. The rest applies the next time the world loads.'),
   custom: () => t('menu.settings.preset.custom', 'Custom'),
 };
 const PRESET_LABELS = {
@@ -2797,8 +2797,8 @@ function hudLayoutRows() {
   const main = el('button', 'row-main');
   const locked = hudLocked();
   main.append(el('div', 'row-name', t('menu.hud.lock', 'Lock UI')), el('div', 'row-note', locked
-    ? t('menu.hud.lockOn', 'Turn off (or press Alt+U) to move HUD pieces.')
-    : t('menu.hud.lockOff', 'In play, drag a piece to move it; double-click to put it back.')));
+    ? t('menu.hud.lockOn', 'Turn this off (or press Alt+U) to move HUD pieces.')
+    : t('menu.hud.lockOff', 'In play, drag a piece to move it. Double-click it to put it back.')));
   const flip = () => { setHudLocked(!hudLocked()); render(); };
   main.onclick = flip;
   lockRow.append(main);
@@ -2846,7 +2846,7 @@ function outdoorsTestRow() {
   const test = el('div', 'row');
   const testMain = el('div', 'row-main');
   testMain.append(el('div', 'row-name', t('menu.test.outdoorsName', 'Test the outdoors')));
-  testMain.append(el('div', 'row-note', t('menu.test.outdoorsNote', 'Pick a season and a weather, and drop into a random town. A test door: it stores nothing, and it names the town in the console.')));
+  testMain.append(el('div', 'row-note', t('menu.test.outdoorsNote', 'Pick a season and weather, then drop into a random town. Nothing is saved, and the console names the town.')));
   const testCtl = el('div', 'ctl');
   const seasonSel = el('select', 'act');
   // Daggerfall has three ARCHIVE seasons (winter, rain, summer),
@@ -2930,7 +2930,7 @@ function monsterVolumeRow() {
 export const COMPANION_VOLUME_NAME = 'Companion Idle Volume';
 function companionVolumeRow() {
   return volumeRow('companionVolume', t('menu.audio.companionVolume', COMPANION_VOLUME_NAME),
-    t('menu.audio.companionVolumeNote', 'How loud companions moan and cry out while they idle, yours and other players\' alike. 0% silences them.'));   // AUDIT UPDATE E-N6: every companion's idle call - a peer's puppet carries `companion` too
+    t('menu.audio.companionVolumeNote', 'How loud companions are while idle, yours and other players’. 0% mutes them.'));   // AUDIT UPDATE E-N6: every companion's idle call - a peer's puppet carries `companion` too
 }
 /** HORSE-VOL, ANIMAL-VOL (2026-10-23, travddm: "Add both animal volume & horse volume"): the Audio tab's Volume rows for every
  *  horse heard and for the other animal flats (systems/animalVolume.js), drawn as Monster Volume's. */
@@ -3079,10 +3079,10 @@ function portRowsInterface({ pause = false } = {}) {
  *  motion, the danger palette and a danger fill's light; every device, both skins. AUDIT EG V (c, L7-10): their words in the
  *  player's language, as the rows around them (L10N4). */
 function spireAccessRows() {
-  const motion = prefRow('reducedMotion', t('menu.spire.motion.name', 'Reduced motion'), t('menu.spire.motion.note', 'Nothing on the HUD pulses, flies or rises. Your system\'s own setting does the same.'));
-  const palette = choiceRow('dangerPalette', t('menu.spire.palette.name', 'Danger colors'), t('menu.spire.palette.note', 'The color of a blow\'s edge, of safe ground and of a hazard.'),
+  const motion = prefRow('reducedMotion', t('menu.spire.motion.name', 'Reduced motion'), t('menu.spire.motion.note', 'Nothing on the HUD pulses, flies or rises. Your system’s reduced-motion setting does the same.'));
+  const palette = choiceRow('dangerPalette', t('menu.spire.palette.name', 'Danger colors'), t('menu.spire.palette.note', 'The colors of a blow’s edge, safe ground and hazards.'),
     EG_DANGER_PALETTE_KEYS.map((k) => [k, EG_DANGER_PALETTES[k].name]));   // AUDIT EG V (c, L7-10): each its own t() (ui/eliteGates/egAccess.js)
-  const fill = choiceRow('telegraphFill', t('menu.spire.fill.name', 'Danger fill'), t('menu.spire.fill.note', 'How brightly a blow\'s ground fills. Its edge stays whole.'),
+  const fill = choiceRow('telegraphFill', t('menu.spire.fill.name', 'Danger fill'), t('menu.spire.fill.note', 'How strongly a blow’s area is filled in. The edge always shows.'),
     [[1, '100%'], [0.85, '85%'], [0.7, '70%'], [0.5, '50%']]);
   for (const [row, key] of [[palette, 'dangerPalette'], [fill, 'telegraphFill']]) if (row?.dataset) { row.dataset.opt = key; row.dataset.pref = key; }   // ORG2: the map finds it by its key
   return [motion, palette, fill];
@@ -3126,7 +3126,7 @@ function portRowsGame({ pause = false } = {}) {
     ask(t('menu.questRepair.title', 'Repair Active Quests'), questRepairAsk(), t('menu.questRepair.go', 'Repair'), () => {
       let r = null;
       try { r = hooks.repairQuests(); } catch { r = null; }
-      questRepairSaid = r?.text ?? t('menu.questRepair.failed', 'The repair could not run here.');
+      questRepairSaid = r?.text ?? t('menu.questRepair.failed', 'Repair isn’t available here.');
     });
   };
   ctl.append(b, el('span', `tier ${can ? 'live' : 'unavailable'}`));
@@ -3138,7 +3138,7 @@ function portRowsGame({ pause = false } = {}) {
  *  Motion lists it beside the recoil, which is the player's own injuries alone. */
 function peerSpellShakeRow() {
   const row = choiceRow('peerSpellShake', t('menu.motion.peerShake.name', "Shake from other players' spells"),
-    t('menu.motion.peerShake.note', "How much another player's spell shakes your view when it lands near you. Your own spells and your enemies' always shake it fully."),
+    t('menu.motion.peerShake.note', 'How much other players’ spells shake your view when they land near you. Your own spells and your enemies’ always shake it fully.'),
     [[1, t('menu.motion.peerShake.full', 'Full')], [0.5, t('menu.motion.peerShake.half', 'Half')], [0, t('menu.motion.peerShake.off', 'Off')]]);
   if (row?.dataset) { row.dataset.opt = 'peerSpellShake'; row.dataset.pref = 'peerSpellShake'; }   // ORG2: the map finds it by its key
   return row;
@@ -3167,7 +3167,7 @@ function drawsFlat(key) { const t = tierOf(key); return t === 'live' || t === 'r
  *  `open` map was made for. */
 const TIER_GROUPS = Object.freeze([   // L10N4: each group's title and blurb read when drawn, in the player's language
   ['stored', () => t('menu.settings.storedTitle', 'Saved for later'), () => t('menu.settings.storedBlurb', 'Kept in your settings file, but not used yet.')],
-  ['unavailable', () => t('menu.settings.unavailableTitle', 'Not available here'), () => t('menu.settings.unavailableBlurb', 'Fixed by the browser or by this game. Each row says what you get instead.')],
+  ['unavailable', () => t('menu.settings.unavailableTitle', 'Not available here'), () => t('menu.settings.unavailableBlurb', 'Locked by the browser or by the game. Each row says what you get instead.')],
 ]);
 
 function tierGroup(catId, tier, title, blurb, keys) {
@@ -3202,11 +3202,11 @@ export function morrowindArmsLine(armState) {
 export function morrowindTroubleLines(armState) {
   const out = [];
   if (armState?.notes?.length) out.push(t('menu.mw.notInArms', 'Not in the arms: {notes}', { notes: armState.notes.join('; ') }));
-  if (armState?.third && !armState.third.ok) out.push(t('menu.mw.thirdRefused', 'Third person refused - {stage}: {error}', { stage: armState.third.stage, error: armState.third.error }));
+  if (armState?.third && !armState.third.ok) out.push(t('menu.mw.thirdRefused', 'Third person failed at {stage}: {error}', { stage: armState.third.stage, error: armState.third.error }));
   const e = armState?.esm;
   if (e && !e.raceIsThere) {
-    out.push(e.racesFound.length ? t('menu.mw.noBody', 'Your files carry no "{race}" body (they have: {found}).', { race: e.raceWanted, found: e.racesFound.join(', ') })
-      : t('menu.mw.noBodyNone', 'Your files carry no "{race}" body (they have: none).', { race: e.raceWanted }));
+    out.push(e.racesFound.length ? t('menu.mw.noBody', 'Your files have no "{race}" body (found: {found}).', { race: e.raceWanted, found: e.racesFound.join(', ') })
+      : t('menu.mw.noBodyNone', 'Your files have no "{race}" body.', { race: e.raceWanted }));
   }
   return out;
 }
@@ -3250,7 +3250,7 @@ export function morrowindCard({ count = morrowindDataCount(), armState = fpArm.s
   if (count) {
     actions.push({ label: t('menu.mw.remove', 'Remove data'), onClick: () => ask(
       t('menu.mw.removeTitle', 'Remove Morrowind data'),
-      t('menu.mw.removeBody', 'This clears the Morrowind files from this browser and unloads the arms. You can attach them again later.'),
+      t('menu.mw.removeBody', 'Removes the Morrowind files from this browser and unloads the arms. You can attach them again later.'),
       t('menu.packs.removeYes', 'Remove'),
       async () => {
         fpArm.unload();
@@ -3281,18 +3281,18 @@ function peerSpritesCard() {
   // players, not drawn - the near tier is inside a player's shot (200 m), and the row says so; the row reads the law's own
   // answer, so a stored value that is no tier shows the 300 m it stands for (AUDIT PEER-RANGE A L2)
   c.append(choiceRow('peerRange', t('menu.peers.range', 'Draw distance'),
-    t('menu.peers.rangeNote', 'How far away other players are drawn. Your party and your duel opponent always show. Shorter runs faster, but 150 m can hide an archer.'),
+    t('menu.peers.rangeNote', 'How far away other players are drawn. Your party and your duel opponent always show. Shorter runs faster, but at 150 m you might miss an archer.'),
     PEER_RANGE_TIERS.map((m) => [m, m ? t('menu.peers.metres', '{m} m', { m }) : t('menu.peers.everyone', 'Everyone')]), { home: true, read: () => peerRangeOf(getPref('peerRange')) }));
   // YARD-RANGE (2026-10-11, a player: "20-40 fps in cities"): how far their yards' decorations are drawn - none, nearer, or
   // as far as ever; one's own yard always (scenes/homeYards.js)
   c.append(choiceRow('yardRange', t('menu.peers.yards', 'Yard decorations'),
-    t('menu.peers.yardsNote', 'How far away other players\u2019 yard decorations are drawn. Your own yard always shows. Nearer is faster in busy towns.'),
+    t('menu.peers.yardsNote', 'How far away other players’ yard decorations are drawn. Your own yard always shows. Shorter runs faster in busy towns.'),
     YARD_RANGE_TIERS.map((m) => [m, m ? t('menu.peers.metres', '{m} m', { m }) : t('menu.toggle.off', 'Off')]), { home: true, read: () => yardRangeOf(getPref('yardRange')) }));
   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): a crowd, thinned - CROWD-WIDE
   // (2026-10-23, the owner: "into the entire game"): everywhere, not the Burning Court alone, but never where a stranger can
   // fight you; AUDIT CROWD-WIDE D1: the note says what the count does - the Draw distance row above still hides the far
   c.append(choiceRow('gateCrowd', t('menu.peers.crowd', 'Players shown at once'),
-    t('menu.peers.crowdNote', 'How many other players are drawn at once, the nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. The count is off in a PvP zone, a siege, a Royal Tourney and the Arena, but not in the Burning Court.'),
+    t('menu.peers.crowdNote', 'How many other players are drawn at once, nearest first. Your party, your duel opponent and anyone you trade, ride or sail with always show. There’s no limit in PvP zones, sieges, the Royal Tourney or the Arena, but there is one in the Burning Court.'),
     GATE_CROWD_TIERS.map((n) => [n, n ? t('menu.peers.nearest', 'Nearest {n}', { n }) : t('menu.peers.everyone', 'Everyone')]), { home: true }));
   // SPELL-GIFT (2026-09-27, Tabitha: "Allow casting of buffs on players outside party"): the receiver's say
   c.append(prefRow('acceptStrangerSpells', t('menu.peers.spells', 'Spells from strangers'),
@@ -3308,17 +3308,17 @@ function peerSpritesCard() {
   // channel", "A unique color or alert for @name pings"): the chat's own three, beside the other players'
   c.append(el('h3', null, t('menu.chat.title', 'Chat')));
   c.append(choiceRow('chatLang', t('menu.chat.lang', 'Language channel'),
-    t('menu.chat.langNote', 'A chat tab for players who speak your language, wherever they are. /lang in the chat chooses it too.'),
+    t('menu.chat.langNote', 'A chat tab for players who speak your language, wherever they are. You can also pick it with /lang.'),
     [['', t('menu.toggle.off', 'Off')], ...Object.entries(CHAT_LANGS).map(([code, name]) => [code, name])], { home: true }));
   // CHAT-TRADE (2026-10-14, Mac: "New channels: Trading, LFG"): the two channels a player joins, beside the language's
   c.append(prefRow('chatTrade', t('menu.chat.trade', 'Trade channel'),
-    t('menu.chat.tradeNote', 'A chat tab for buying, selling and swapping with players anywhere. /join trade in the chat joins it too.'), { home: true }));
+    t('menu.chat.tradeNote', 'A chat tab for buying, selling and trading with players anywhere. You can also join it with /join trade.'), { home: true }));
   c.append(prefRow('chatLfg', t('menu.chat.lfg', 'LFG channel'),
-    t('menu.chat.lfgNote', 'A chat tab for finding a group, or one more for yours. /join lfg in the chat joins it too.'), { home: true }));
+    t('menu.chat.lfgNote', 'A chat tab for finding a group, or filling yours. You can also join it with /join lfg.'), { home: true }));
   c.append(prefRow('chatChannelColours', t('menu.chat.colours', 'Chat colors by channel'),
     t('menu.chat.coloursNote', 'World white, Region green, Guild purple, Local gray, Party teal, Language rose, Trade gold, LFG blue.'), { home: true }));
   c.append(prefRow('chatPingSound', t('menu.chat.ping', 'Chime when someone @mentions you'),
-    t('menu.chat.pingNote', 'A line with @YourName is always marked in gold; this adds a chime.'), { home: true }));
+    t('menu.chat.pingNote', 'Lines with @YourName are always marked in gold. This adds a sound.'), { home: true }));
   return c;
 }
 
@@ -3362,11 +3362,11 @@ function packsCard() {
   // L10N4: "It takes full effect the next time an area loads." closes two of the sentences below - each its own whole pattern
   c.append(acts([
     { label: t('menu.packs.attachMusic', 'Attach music pack'), onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickMusicFolder(); render(); } },
-    ...(replacementCount() > 0 ? [remove(t('menu.packs.removeMusic', 'Remove music pack'), t('menu.packs.removeMusic', 'Remove music pack'), t('menu.packs.removeMusicBody', 'This clears your music files from this browser; the original game\u2019s own songs play again. A sound pack stays.'), (d) => d.clearStoredMusic())] : []),
+    ...(replacementCount() > 0 ? [remove(t('menu.packs.removeMusic', 'Remove music pack'), t('menu.packs.removeMusic', 'Remove music pack'), t('menu.packs.removeMusicBody', 'Removes your music files from this browser and brings back the original songs. Your sound pack stays.'), (d) => d.clearStoredMusic())] : []),
     { label: t('menu.packs.attachSound', 'Attach sound pack'), onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickSoundFolder(); render(); } },   // SNDREP1
-    ...(soundReplacementCount() > 0 ? [remove(t('menu.packs.removeSound', 'Remove sound pack'), t('menu.packs.removeSound', 'Remove sound pack'), t('menu.packs.removeSoundBody', 'This clears your sound files from this browser; the original game\u2019s own sounds play again. A music pack stays.'), (d) => d.clearStoredSounds())] : []),
+    ...(soundReplacementCount() > 0 ? [remove(t('menu.packs.removeSound', 'Remove sound pack'), t('menu.packs.removeSound', 'Remove sound pack'), t('menu.packs.removeSoundBody', 'Removes your sound files from this browser and brings back the original sounds. Your music pack stays.'), (d) => d.clearStoredSounds())] : []),
     { label: t('menu.packs.attachTexture', 'Attach texture pack'), onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickTextureFolder(); render(); } },
-    ...(textureReplacementCount() > 0 ? [remove(t('menu.packs.removeTexture', 'Remove texture pack'), t('menu.packs.removeTexture', 'Remove texture pack'), t('menu.packs.removeTextureBody', 'This clears the texture folder you picked from this browser. Attached .dfmod texture mods stay. It takes full effect the next time an area loads.'), (d) => d.clearStoredTexturePack())] : []),
+    ...(textureReplacementCount() > 0 ? [remove(t('menu.packs.removeTexture', 'Remove texture pack'), t('menu.packs.removeTexture', 'Remove texture pack'), t('menu.packs.removeTextureBody', 'Removes the texture folder you picked from this browser. Attached .dfmod mods stay. Takes full effect the next time an area loads.'), (d) => d.clearStoredTexturePack())] : []),
   ]));
   // IIL3 (Mac: "add a button for attach lighting mod, so players arent confused"): THE LIGHTING MOD HAS ITS OWN
   // SECTION. It is a .dfmod like the texture mods and rides the same store, but it carries no picture - listed among
@@ -3380,7 +3380,7 @@ function packsCard() {
     const row = el('div', 'card');
     row.append(el('p', null, `${m.title}${m.version ? ` ${m.version}` : ''}${m.author ? ` \u00b7 ${m.author}` : ''}`));
     row.append(el('p', 'meta', m.error ? t('menu.packs.notWorking', 'Not working: {error}.', { error: m.error }) : t('menu.packs.attached', 'Attached.')));
-    row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: m.title }), t('menu.packs.removeLightingBody', 'This clears {mod} from this browser; the lighting goes back to what it was.', { mod: m.title }), (d) => d.removeStoredDfmod(m.key))]));
+    row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: m.title }), t('menu.packs.removeLightingBody', 'Removes {mod} from this browser and puts the lighting back the way it was.', { mod: m.title }), (d) => d.removeStoredDfmod(m.key))]));
     c.append(row);
   }
   if (!lighting.length) c.append(acts([{ label: t('menu.packs.attachLighting', 'Attach lighting mod'), primary: true, onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickLightingModFiles(); render(); } }]));
@@ -3390,11 +3390,11 @@ function packsCard() {
   const sameTitle = (t) => String(t ?? '').replace(/\b90s\b/i, '').replace(/\s+/g, ' ').trim().toLowerCase();
   const seen = new Map();
   for (const m of mods) { const k = sameTitle(m.title); seen.set(k, (seen.get(k) ?? 0) + 1); }
-  if ([...seen.values()].some((n) => n > 1)) c.append(el('p', 'meta', t('menu.packs.twoVersions', 'Two versions of the same mod are attached (for example DREAM and DREAM 90s). Only one shows for each texture, but both use memory. Remove one.')));
-  c.append(el('p', 'meta', t('menu.packs.dfmodsBlurb', 'Daggerfall Unity texture mods, such as DREAM. Pick one or more .dfmod files. Mod scripts don\u2019t run. Vanilla Enhanced comes with the game, and a copy you attach is used instead of the built-in one.')));
+  if ([...seen.values()].some((n) => n > 1)) c.append(el('p', 'meta', t('menu.packs.twoVersions', 'Two versions of the same mod are attached (DREAM and DREAM 90s, for example). Only one shows per texture, but both use memory, so remove one.')));
+  c.append(el('p', 'meta', t('menu.packs.dfmodsBlurb', 'Daggerfall Unity texture mods, like DREAM. Pick one or more .dfmod files. Mod scripts don’t run. Vanilla Enhanced comes with the game, and a copy you attach replaces the built-in one.')));
   // VE1: listed in load order - a mod loads after the mods it depends on, and where two carry the same texture the one
   // loaded later is drawn (DFU's ModManager)
-  if (mods.length > 1) c.append(el('p', 'meta', t('menu.packs.loadOrder', 'In load order: where two mods carry the same texture, the later one is drawn. A mod always loads after the mods it is built on.')));
+  if (mods.length > 1) c.append(el('p', 'meta', t('menu.packs.loadOrder', 'Load order: when two mods have the same texture, the later one wins. A mod always loads after the mods it builds on.')));
   if (!textureStoreSettled()) c.append(el('p', 'meta', t('menu.packs.reading', 'Reading your attached texture mods\u2026')));   // AUDIT VE R2
   for (const m of mods) {
     const row = el('div', 'card');
@@ -3407,7 +3407,7 @@ function packsCard() {
       // VE3: DFU's mod window switches a mod off without removing it (Mod.Enabled); the Texture Overhaul card does the same
       { label: m.enabled ? t('menu.packs.switchOff', 'Switch off') : t('menu.packs.switchOn', 'Switch on'), onClick: () => { setDfmodEnabled(m.key, !m.enabled); render(); } },
       // VE4: a shipped mod is switched, never removed - it is not in this browser's store
-      ...(m.shipped ? [] : [remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: m.title }), t('menu.packs.removeModBody', 'This clears {mod} from this browser. It takes full effect the next time an area loads.', { mod: m.title }), (d) => d.removeStoredDfmod(m.key))]),
+      ...(m.shipped ? [] : [remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: m.title }), t('menu.packs.removeModBody', 'Removes {mod} from this browser. Takes full effect the next time an area loads.', { mod: m.title }), (d) => d.removeStoredDfmod(m.key))]),
     ]));
     c.append(row);
   }
@@ -3416,9 +3416,9 @@ function packsCard() {
   for (const u of unregisteredDfmods()) {
     const row = el('div', 'card');
     row.append(el('p', null, u.fileName));
-    row.append(el('p', 'meta', u.state === 'indexing' ? t('menu.packs.indexing', 'Reading. It joins the load order when done.')
+    row.append(el('p', 'meta', u.state === 'indexing' ? t('menu.packs.indexing', 'Reading. It joins the load order when it’s done.')
       : u.state === 'nomods' ? t('menu.packs.nomods', 'Not loaded: this page was opened with ?nomods.') : t('menu.packs.notWorking', 'Not working: {error}.', { error: u.error })));
-    row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: u.fileName }), t('menu.packs.removeModBody', 'This clears {mod} from this browser. It takes full effect the next time an area loads.', { mod: u.fileName }), (d) => d.removeStoredDfmod(u.key))]));
+    row.append(acts([remove(t('menu.packs.removeYes', 'Remove'), t('menu.packs.removeMod', 'Remove {mod}', { mod: u.fileName }), t('menu.packs.removeModBody', 'Removes {mod} from this browser. Takes full effect the next time an area loads.', { mod: u.fileName }), (d) => d.removeStoredDfmod(u.key))]));
     c.append(row);
   }
   // DFMOD2: TEXTURE DETAIL - the longest side a mod's picture is decoded at (a smaller mip past it). Full-resolution
@@ -3426,11 +3426,11 @@ function packsCard() {
   const cap = dfmodMaxSize();
   const detailLabel = Number.isFinite(cap) ? t('menu.packs.detailPx', '{px} px', { px: cap }) : t('menu.packs.detailFull', 'full');
   const nextDetail = () => { const i = DFMOD_DETAIL.indexOf(Number.isFinite(cap) ? cap : 0); return DFMOD_DETAIL[(i + 1) % DFMOD_DETAIL.length]; };
-  c.append(el('p', 'meta', t('menu.packs.detailNote', 'Texture detail: {detail}. Higher is sharper but uses more memory and loads slower. \u201cfull\u201d can run out of memory with HD packs. Applies to areas loaded afterwards.', { detail: detailLabel })));
+  c.append(el('p', 'meta', t('menu.packs.detailNote', 'Texture detail: {detail}. Higher looks sharper but uses more memory and loads slower. "full" can run out of memory with HD packs. Applies to areas loaded after this.', { detail: detailLabel })));
   c.append(acts([
     { label: t('menu.packs.detail', 'Texture detail: {detail}', { detail: detailLabel }), onClick: () => { setPref('dfmodTextureDetail', nextDetail()); render(); } },
     { label: t('menu.packs.addDfmods', 'Add texture mods'), primary: !mods.some((m) => !m.shipped), onClick: async () => { const ds = await import('../../scenes/dataSource.js'); await ds.pickDfmodFiles(); render(); } },
-    ...(mods.filter((m) => !m.shipped).length + unregisteredDfmods().length > 1 ? [remove(t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmodsBody', 'This clears every attached .dfmod texture mod from this browser; the built-in ones stay. It takes full effect the next time an area loads.'), (d) => d.clearStoredDfmods())] : []),
+    ...(mods.filter((m) => !m.shipped).length + unregisteredDfmods().length > 1 ? [remove(t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmods', 'Remove all texture mods'), t('menu.packs.removeAllDfmodsBody', 'Removes every attached .dfmod texture mod from this browser. The built-in ones stay. Takes full effect the next time an area loads.'), (d) => d.clearStoredDfmods())] : []),
   ]));
   return c;
 }
@@ -3993,7 +3993,7 @@ function overhaulPicture(p, o, inUse) {
  *  or Enter picks, Escape closes. The machine's list is asked once a session (`fontFamiliesSeen`). */
 let fontFamiliesSeen = null;
 /** FONT-PICK: the list button's word once the machine has answered - how many, and where to pick (L10N4). */
-const fontsPickBelow = (n) => t('menu.font.pickBelow', '{n, plural, one {# font - pick below} other {# fonts - pick below}}', { n });
+const fontsPickBelow = (n) => t('menu.font.pickBelow', '{n, plural, one {# font, pick it below} other {# fonts, pick one below}}', { n });
 let fontPickShut = false;   // a pick's own repaint hands the field its focus back: that focus does not reopen the list
 function systemFontRow(redraw) {
   const row = el('div', 'look-colours look-fontrow');
@@ -4238,7 +4238,7 @@ function overhaulPanel(p) {
   card.append(use);
   if (reading) card.append(el('p', 'look-note', t('menu.ovh.reading', 'Reading your texture mods\u2026')));
   else if (blocked && o !== cur) card.append(el('p', 'look-note', blocked));
-  if (!cur) card.append(el('p', 'look-note', p.custom ?? t('menu.ovh.custom', 'Custom: your own mix from Settings. Using a look sets every switch it covers.')));
+  if (!cur) card.append(el('p', 'look-note', p.custom ?? t('menu.ovh.custom', 'Custom: your own mix from Settings. Picking a look sets every switch it covers.')));
   const forced = isOnlinePage() && p.online ? p.online : null;
   card.append(el('p', 'look-note', forced ? `${p.effect} ${forced}` : p.effect));
   return card;
@@ -4357,7 +4357,7 @@ function paneAbout(body) {
   ]));
   body.append(c);
   body.append(creditsCard());
-  body.append(empty(t('menu.about.exit', 'Exit'), t('menu.about.exitNote', 'A browser tab can\u2019t close itself. Close the tab yourself. Your quicksave is kept.')));
+  body.append(empty(t('menu.about.exit', 'Exit'), t('menu.about.exitNote', 'A browser tab can’t close itself, so close it yourself. Your quicksave is kept.')));
 }
 
 // CR1: THE CREDITS (Mac, 2026-08-30). Rendered from ui/credits.js, the
@@ -4677,7 +4677,7 @@ function drawDoors(menu) {
   }
   page('px-page-online', t('menu.home.realmHead', 'The Realm'))
     .append(doorBtn('online', railLabel('Online'), t('menu.home.onlineSub', 'Play with others in the shared world'), () => go('online')));
-  page('px-page-offline', t('menu.home.ownHead', 'Thine Own Tale'))
+  page('px-page-offline', t('menu.home.ownHead', 'On Your Own'))
     .append(doorBtn('offline', t('menu.home.offline', 'Offline'), t('menu.home.offlineSub', 'Your own game, kept on this device'), level('offline')));
   // Settings and Overhauls stand in the foot's box beside Screenshots and About (appendPxFoot) - UI-CALM, a player:
   // "settings and overhaul can be put in the ... bottom" - so the book's leaves hold the two questions and nothing else
