@@ -159,7 +159,7 @@ test('KG3 the army\'s presses: a unit joins, a unit too dear or one past the twe
   assert.equal(r.g.g.said, 'Rat joins your army.');
   r.g.press('unit', 36);   // the Iron Atronach, 50 points - six of them leave too little for a seventh
   for (let i = 0; i < 6; i++) r.g.press('unit', 36);
-  assert.match(r.g.g.said, /^Iron Atronach costs 50 points; you have \d+ left\.$/);
+  assert.match(r.g.g.said, /^Iron Atronach costs 50 points, and you have \d+ left\.$/);
   assert.equal(r.g.g.why, r.g.g.said, 'the line says it too, until the next press');
   const before = r.g.g.army.slice();
   r.g.press('remove', 0);

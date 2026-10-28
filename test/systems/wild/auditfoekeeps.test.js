@@ -79,15 +79,10 @@ test('AUDIT FOE-KEEPS O1 H5 O4 O5 N6 THE WORDS: a foe\'s death says nothing drop
   assert.doesNotMatch(WILD_TEXT.deathKept(), /keep/i, 'never "you keep" - the same death claims a tenth of the purse');
   const page = () => TUTORIALS.find((p) => p.id === 'wild-zone');
   assert.deepEqual(page().body, [
-    'Players may fight one another in the Wrothgarian Mountains and on the open Eltheric Ocean, where monsters are tougher and spoils richer.',
-    'If another player kills you there, you drop your bag (and your cart, if it’s with you) with a tenth of your gold, and they can take one item you’re wearing. Any other death costs the usual tenth.',
+    'Players can fight in the Wrothgarian Mountains and on the open Eltheric Ocean, where monsters are tougher and the loot is better.',
+    'If a player kills you there, you drop a bag with a tenth of your gold (and your cart, if it’s with you), and they can take one item you’re wearing. Other deaths cost the usual tenth.',
   ]);
-  tm.patchLocaleTable('de', 'Port_Strings', tm.loadStringTableCsv(rd('locales/de/Port_Strings.csv')));
-  try {
-    tm.setLocale('de');
-    assert.match(page().body[0], /^In den Wrothgarian Mountains und auf dem offenen Eltheric-Ozean dürfen Spieler/);
-    assert.equal(WILD_TEXT.deathKept(), 'Nichts fällt zu Boden. Was du trägst, fällt nur, wenn dich ein Spieler tötet.');
-  } finally { tm.setLocale(tm.BASE_LOCALE); }
+  // BUNNYFALL: English only - the German half of this check left with the translations
   assert.match(rd('locales/hu/Port_Strings.csv'), /^sea\.wild\.chipTip,"Az \{word\}-óceán /m);
   assert.match(rd('locales/pl/Port_Strings.csv'), /^wild\.zone\.enter,"Wkraczasz we \{zone\}, /m);
   // a short line: the classic face draws it unwrapped (AUDIT FOE-KEEPS O2 - the Indonesian ran past a phone's width)

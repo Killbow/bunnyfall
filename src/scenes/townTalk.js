@@ -1165,7 +1165,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
   // current window with the live label (our keyed-window idiom for
   // DFU's three tone buttons).
   const toneOption = (reshow) => ({
-    code: 'KeyT', label: `T - tone: ${TONE_NAMES[tone]}`,
+    code: 'KeyT', label: `T: tone (${TONE_NAMES[tone]})`,
     action: () => { tone = (tone + 1) % 3; reshow(); },
   });
 

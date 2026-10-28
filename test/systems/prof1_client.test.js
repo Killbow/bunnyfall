@@ -307,7 +307,7 @@ test('PROF1 faces: the toasts - four at most, three seconds each (PROF0 8); the 
   assert.deepEqual(storesRows(stores, { query: 'rose' }, nameOf).map((r) => r.name), ['Red Rose']);
   assert.deepEqual(storesRows(stores, { sort: 'count' }, nameOf).map((r) => r.total), [12, 3, 1]);
   assert.equal(xpLine({ xp: 11900, rank: 34 }), '11,900 / 12,250 XP');
-  assert.equal(xpLine({ xp: 100000, rank: 100 }), '100,000 XP - Master');
+  assert.equal(xpLine({ xp: 100000, rank: 100 }), '100,000 XP · Master');
   assert.equal(craftsAboveJourneyman(new Map([['smithing', { rank: 51 }], ['alchemy', { rank: 50 }], ['herbalism', { rank: 90 }]])), 1, 'only a craft above 50 counts; gathering is unlimited');
 });
 

@@ -302,8 +302,8 @@ test('AUDIT LIVED1 M/N/O/S (U1, U2, U3, U8): the words fit their screens - the n
   for (let i = 0; i < 12; i++) tav.flow.input('backspace');
   tav.flow.input('char:3'); tav.flow.input('Enter');
   assert.deepEqual(tav.flow.top.rows.slice(1).map((r) => r.text), [`${OWN_TIME_ROOM} 2 days 20 hours of your time`, `(5h 43m of play)${OWN_TIME_ROOM_NOTE}`]);
-  assert.equal(restClockLine(900 * D + 15 * H + 5, { loiter: true }), 'World time 15:05 - you wait on your own clock');
-  assert.equal(restClockLine(900 * D + 15 * H + 5), 'World time 15:05 - you rest on your own clock');
+  assert.equal(restClockLine(900 * D + 15 * H + 5, { loiter: true }), 'World time 15:05 · you wait on your own clock');
+  assert.equal(restClockLine(900 * D + 15 * H + 5), 'World time 15:05 · you rest on your own clock');
   const er = rd('src/ui/enhanced/enhancedRest.js');
   assert.match(er, /_restingRefs\.clockLine\.textContent = Number\.isFinite\(wm\) \? restClockLine\(wm, \{ loiter: overlay\.mode === 'loiter' \}\) : '';/);
   assert.match(rd('src/ui/restWindow.js'), /lines\.push\(restClockLine\(st\.worldMinutes, \{ loiter: this\.mode === 'loiter' \}\)\);/);

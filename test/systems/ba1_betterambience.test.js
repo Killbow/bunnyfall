@@ -143,7 +143,7 @@ test('BA1: the Mods pane entry is the shipped modsettings.json - six sections, t
   assert.equal(readBetterAmbienceSettings(() => defaults()).enableFog, true);
   assert.deepEqual(m.keys['Dungeon Reverb.level'].options, ['Low', 'Medium', 'High']);
   const row = FEATURES.find((f) => f.id === 'mod-better-ambience');
-  assert.ok(row); assert.equal(row.control.store, 'mods'); assert.equal(row.control.key, 'Enabled'); assert.match(row.effect, /^Takes effect at once/); assert.equal(row.group, 'world');
+  assert.ok(row); assert.equal(row.control.store, 'mods'); assert.equal(row.control.key, 'Enabled'); assert.match(row.effect, /^Takes effect right away/); assert.equal(row.group, 'world');
   for (const k of MOD_CURATED[V]) assert.ok(m.keys[k], `curated ${k}`);
   const credit = CREDITS.mods.find((c) => c.vendor.includes(V));
   assert.ok(credit); assert.equal(credit.version, '0.1.4'); assert.equal(credit.author, 'Joshua Steinhauer'); assert.match(credit.terms, /MIT/); assert.match(credit.terms, /Its rain and snow particle changes are not included\./);

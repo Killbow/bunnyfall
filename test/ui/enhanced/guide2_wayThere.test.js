@@ -260,7 +260,7 @@ test('GUIDE2 THE CHRONICLE\'S DEADLINE - the "Time remains" the pause tab has ca
   let reads = 0;
   const c = chronicle({ questLog: () => { reads++; return b.questLog(); }, canFindPlace: () => true, currentLocationName: () => 'Elsewhere' });
   try {
-    assert.equal(one(c.host, 'cr-timer').textContent, 'Time remains: 3 days');
+    assert.equal(one(c.host, 'cr-timer').textContent, 'Time left: 3 days');
     assert.equal(intervals.size, 1, 'one interval, armed after the spans exist');
     const [[firstId, first]] = [...intervals];
     assert.equal(first.ms, 1000);
@@ -268,7 +268,7 @@ test('GUIDE2 THE CHRONICLE\'S DEADLINE - the "Time remains" the pause tab has ca
     const before = reads;
     first.fn();
     assert.equal(reads, before + 1, 'the walk, read once for the tick');
-    assert.equal(one(c.host, 'cr-timer').textContent, 'Time remains: 22 hours 59 min');
+    assert.equal(one(c.host, 'cr-timer').textContent, 'Time left: 22 hours 59 min');
     assert.match(one(c.host, 'cr-timer').className, /\burgent\b/, 'urgent gold under a day, as the pause tab');
     // the clock runs out: the quest ends under the window, and the card repaints (no timer, no quest)
     clock.now += 86400;

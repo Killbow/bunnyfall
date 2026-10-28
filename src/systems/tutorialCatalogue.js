@@ -110,7 +110,7 @@ export const TUTORIALS = Object.freeze([
     id: 'combat', group: 'combat', title: 'Fighting', trigger: 'When you first draw a weapon.',
     body: [
       '{ReadyWeapon} draws your weapon and {SwingWeapon} attacks. How you move the mouse decides the swing.',
-      'If you keep missing, your skill is too low or your weapon is too weak for the enemy. You can always run.',
+      'If you keep missing, your skill or weapon is too weak for that enemy. You can always run.',
     ],
     points: [
       '{SwitchHand} changes hands, or which hand leads when both are armed.',
@@ -121,7 +121,7 @@ export const TUTORIALS = Object.freeze([
     id: 'death', group: 'combat', title: 'Dying', trigger: 'When you first die.',
     body: [
       'Online, you wake at the nearest temple, town or graveyard, and lose a tenth of the gold you were carrying. Gold in the bank is safe.',
-      'Offline, it depends on your family. In an Enduring family you rise again, a little older. In a Bloodline family death is final and your heir carries on. With Project Legacy off, load a save.',
+      'Offline, it depends on your family. An Enduring family rises again, a little older. In a Bloodline family death is final and your heir carries on. With Project Legacy off, load a save.',
     ],
   }),
   page({
@@ -626,8 +626,8 @@ export const TUTORIALS = Object.freeze([
     // there costs the usual tenth; through the text core (L10N4), read when shown
     get body() {
       return [
-        t('tutorials.wildZone.body1', 'Players can fight each other in the Wrothgarian Mountains and on the open {word} Ocean. Monsters there are tougher and the loot is better.', { word: ETHER_WORD }),
-        t('tutorials.wildZone.body2', 'If another player kills you there, you drop your bag with a tenth of your gold (and your cart, if it’s with you). They can also take one item you’re wearing. Any other death costs the usual tenth.'),
+        t('tutorials.wildZone.body1', 'Players can fight in the Wrothgarian Mountains and on the open {word} Ocean, where monsters are tougher and the loot is better.', { word: ETHER_WORD }),
+        t('tutorials.wildZone.body2', 'If a player kills you there, you drop a bag with a tenth of your gold (and your cart, if it’s with you), and they can take one item you’re wearing. Other deaths cost the usual tenth.'),
       ];
     },
   }),

@@ -485,7 +485,7 @@ test('AUDIT NAV1 (B9) THE FIGHT ON SCREEN: on foot over her rail the HUD\'s card
   h.host.frame(0.05);
   assert.deepEqual([h.host.hudModel().boarding.captainDown, h.host.hudModel().boarding.down], [true, 2]);
   const t = navalHudText(h.host.hudModel());
-  assert.deepEqual(t.fight, { name: `Boarding ${e.ship.names.name}`, sub: `Captain ${e.ship.names.captain} - down`, state: `2 of ${n} down - they yield at ${Math.ceil(n * SURRENDER_SHARE)}`, kind: 'board' });
+  assert.deepEqual(t.fight, { name: `Boarding ${e.ship.names.name}`, sub: `Captain ${e.ship.names.captain} · down`, state: `2 of ${n} down - they yield at ${Math.ceil(n * SURRENDER_SHARE)}`, kind: 'board' });
   assert.equal(navalHudText({ ...m, boarding: { ...m.boarding, captainDown: false } }).fight.state, `0 of ${n} down - defeat their captain`);
   assert.equal(navalHudText({ ...m, boarding: { ...m.boarding, phase: 'grapple' } }).fight.name, `Grappling ${e.ship.names.name}`);
   const repel = navalHudText({ ...m, boarding: { kind: 'repel', phase: 'fight', name: 'Red Wake', captain: null, captainDown: false, down: 1, total: 4, yieldAt: 3, raid: false } }).fight;

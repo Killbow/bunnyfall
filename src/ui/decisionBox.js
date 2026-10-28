@@ -45,7 +45,7 @@ export class DecisionBoxWindow {
     if (!drawMessageBox(renderer, m, font, this._box)) {
       // no art and no enhanced dialog: the words and the keys, plainly
       this.rows.forEach((r, i) => shadowText(renderer, font, r.text, m, 20, 20 + i * (this._box.rowH ?? 8)));
-      shadowText(renderer, font, this.ok ? 'Return - OK' : 'Y - yes   N - no', m, 20, 24 + this.rows.length * (this._box.rowH ?? 8));
+      shadowText(renderer, font, this.ok ? 'Return: OK' : 'Y: yes   N: no', m, 20, 24 + this.rows.length * (this._box.rowH ?? 8));
     }
   }
 }

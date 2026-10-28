@@ -121,7 +121,7 @@ test('JAN1 (4): a topic-less host opens the KEYED chain verbatim (the box in the
   host.openTalkWindow('What do you want?');
   const w = host.overlay;
   assert.ok(w?.isChoiceWindow, 'no directory: the keyed chain, not the enhanced panel');
-  assert.deepEqual(w.options.map((o) => o.label).filter(Boolean), ['W: where is...', 'T - tone: Normal', 'Esc: goodbye']);
+  assert.deepEqual(w.options.map((o) => o.label).filter(Boolean), ['W: where is...', 'T: tone (Normal)', 'Esc: goodbye']);
   assert.match(rd('src/scenes/townTalk.js'), /if \(talkDoorReady\(\) && directory\.length\) \{/, 'the one door the symptom comes out of');
 
   const world = rd('src/scenes/world.js');

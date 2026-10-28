@@ -175,9 +175,9 @@ export class YesNoBoxWindow {
     this._box = null;
     this._flat ??= new ChoiceWindow({
       lines: this.rows.map(rowText),
-      options: this.okOnly ? [{ code: 'Enter', label: 'Enter - OK', action: () => this.answer(true) }] : [
-        { code: 'KeyY', label: 'Y - yes', action: () => this.answer(true) },
-        { code: 'KeyN', label: 'N - no', action: () => this.answer(false) },
+      options: this.okOnly ? [{ code: 'Enter', label: 'Enter: OK', action: () => this.answer(true) }] : [
+        { code: 'KeyY', label: 'Y: yes', action: () => this.answer(true) },
+        { code: 'KeyN', label: 'N: no', action: () => this.answer(false) },
       ],
     });
     this._flat.draw(renderer, canvas, font, s ?? nativeMetrics(canvas).s);

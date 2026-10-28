@@ -191,7 +191,7 @@ export class TalkWindow {
 
   draw(renderer, canvas, font, s) {
     const wrapped = wrapText(font.fnt, this.text, 280);
-    const lines = [...wrapped, '', 'Esc - goodbye'];
+    const lines = [...wrapped, '', 'Esc: goodbye'];
     const w = Math.max(...lines.map((l) => measureText(font.fnt, l))) * s + 24 * s;
     const lineH = 12 * s;
     const h = lines.length * lineH + 20 * s;
