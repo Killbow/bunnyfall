@@ -80,7 +80,7 @@ test('AUDIT FOE-KEEPS O1 H5 O4 O5 N6 THE WORDS: a foe\'s death says nothing drop
   const page = () => TUTORIALS.find((p) => p.id === 'wild-zone');
   assert.deepEqual(page().body, [
     'Players can fight in the Wrothgarian Mountains and on the open Eltheric Ocean, where monsters are tougher and the loot is better.',
-    'If a player kills you there, you drop a bag with a tenth of your gold (and your cart, if it’s with you), and they can take one item you’re wearing. Other deaths cost the usual tenth.',
+    'If a player kills you there, you drop a bag with a tenth of your gold (and your cart, if it’s with you). They can take one item you’re wearing. Other deaths cost the usual tenth.',
   ]);
   // BUNNYFALL: English only - the German half of this check left with the translations
   assert.match(rd('locales/hu/Port_Strings.csv'), /^sea\.wild\.chipTip,"Az \{word\}-óceán /m);
