@@ -61,7 +61,8 @@ import { wealthOf, ledgerPieces, classicCount, WEALTH_VERSION } from './judge.js
 import { seaSeasonSteps } from './seaSeason.js';   // SEA-SEASON: the sea's season figures, off a clean checkpoint
 import { piecesRefusal, ledgerMoves, releaseSteps, ledgerReads, leavingKeys } from './ledger.js';   // INT4: a piece the record may give, and the ledger moved with it; SAVE-BATCH: its reads in the checkpoint's first batch
 import { budgetKept, budgetRead, budgetFrom } from './budget.js';   // SAVE-BATCH: and the budget's config, where the isolate kept none
-import { verdictOn } from './verdict.js';   // INT2-INT5: the verdict on every checkpoint, in the checkpoint's own batch
+import { verdictOn, verdictOff } from './verdict.js';
+import { judgeIsOff } from './bunnyfall.js';   // BUNNYFALL: the judge switched off on a friends' server   // INT2-INT5: the verdict on every checkpoint, in the checkpoint's own batch
 
 /** Realm characters an ACCOUNT may hold. A new one past it is refused; nothing is ever deleted to make room. */
 export const REALM_CHARACTERS_MAX = 6;
@@ -613,9 +614,10 @@ export async function checkpointRealm({ db, bucket, rand, nowS }, playerId, { id
   // writes no verdict
   // ...over the baseline the first judgement reads - or, the wealth measure moved since the last (judge.js WEALTH_VERSION),
   // the stored record measured again under the new one
-  const baseline = row.wealth == null || row.wealth_v !== WEALTH_VERSION ? await baselineOf(bucket, row, save) : null;
+  const baseline = !judgeIsOff() && (row.wealth == null || row.wealth_v !== WEALTH_VERSION) ? await baselineOf(bucket, row, save) : null;
   const known = { mine: mineRes, dupes: dupesRes, config };
-  const v = await verdictOn({ db, nowS }, { player: playerId, char: id, seq: /** @type {number} */ (seq), key }, row, save, summaryNow, baseline, known);
+  const at = { player: playerId, char: id, seq: /** @type {number} */ (seq), key };
+  const v = judgeIsOff() ? verdictOff({ db, nowS }, at, row, save) : await verdictOn({ db, nowS }, at, row, save, summaryNow, baseline, known);
   await bucket.put(key, body);
   /** @type {any} the judge's columns as they stand after the batch - the verdict's, or (its rev moved) the row's */
   let stood = null;

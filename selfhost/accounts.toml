@@ -11,6 +11,8 @@ dataset = "daggerfall_accounts"
 [triggers]
 crons = ["* * * * *", "41 * * * *"]
 [vars]
+# BUNNYFALL: no anti-cheat on a friends' server - saves are stored, never judged (server-account/src/bunnyfall.js)
+JUDGE_OFF = "on"
 ACCOUNT_VERSION = "acct203"
 ALLOWED_ORIGIN = "*"
 DEVELOPER_HANDLES = "Killbunny"

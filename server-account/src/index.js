@@ -229,6 +229,7 @@
 // not, the credential was in all three.
 // ═══════════════════════════════════════════════════════════════════
 
+import { readSwitches } from './bunnyfall.js';   // BUNNYFALL: the friends' server's switches
 import {
   createGuest, openSession, resolveSession, closeSession, closeAllSessions,
   devicesOf, accountView, displayName, accountKind,
@@ -2709,7 +2710,7 @@ const service = {
 };
 
 export default {
-  fetch: (request, env, exec) => measured(request, env, service.fetch, exec),   // AUDIT SAFE DISCORD-4: the ExecutionContext, for waitUntil
+  fetch: (request, env, exec) => { readSwitches(env); return measured(request, env, service.fetch, exec); },   // BUNNYFALL: the friends' server's switches (bunnyfall.js)   // AUDIT SAFE DISCORD-4: the ExecutionContext, for waitUntil
   // SCALE4b: THE SERVICE'S OWN CLOCK - wrangler.toml's [triggers] crons, each firing its list (cron.js), the sweeps no
   // read runs any more and the settlements every read now nearly always finds done
   scheduled: (controller, env) => runCron(env, { cron: controller?.cron, nowS: Math.floor(Number(controller?.scheduledTime ?? Date.now()) / 1000) }),

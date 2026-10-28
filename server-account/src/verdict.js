@@ -47,6 +47,7 @@ import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KE
 import { ledgerStep, chargeSteps } from './ledger.js';
 import { budgetConfig, bandOf, stepBudget } from './budget.js';
 import { customsAllowance } from '../../src/net/realm/realmGoldLaw.js';
+import { armsOf } from '../../src/net/siege/siegeRef.js';   // BUNNYFALL: the arms the identity mint signs, off the pack alone
 import { censusStep } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the census's tally, on the hour's row and the character's latest
 
 /** INT2's cutover (Mac: "Items judged, wealth baselined"): a character whose first judged wealth stands past this many
@@ -257,6 +258,25 @@ export async function verdictOn({ db, nowS }, { player, char, seq, key }, row, s
   const found = lawHolds ? (({ code, t }) => ({ code, t: t ?? null }))(lawFindings[0]) : null;
   const why = held !== 'law' ? null : count.until != null ? { code: 'until', t: found?.t ?? null, until: count.until } : found;
   return { steps: [verdictWrite(db, char, row, set), ...after], set, clean, law, copies: ledger.copies, over: budget.over, why, locked: ledger.locked };
+}
+
+/**
+ * BUNNYFALL: THE VERDICT WITH THE JUDGE OFF (bunnyfall.js JUDGE_OFF). The checkpoint is clean by definition: no item law,
+ * no ledger, no budget, no census, no findings - one write that keeps the row's columns current (its clean object is
+ * this one, nothing is held) and the arms the identity mint signs, read off the pack with no law. Answers verdictOn's shape.
+ * @param {any} ctx @param {{ player: string, char: string, seq: number, key: string }} at @param {any} row @param {any} save
+ */
+export function verdictOff({ db }, { char, seq, key }, row, save) {
+  const level = Number.isInteger(save?.level) && save.level >= 1 ? save.level : row.level_seen ?? 1;
+  const arms = Array.isArray(save?.items) ? armsOf(save.items, () => true) : [0, 0];
+  const set = {
+    judged_seq: seq, held: null, held_at: null, strikes: 0, held_until: null, law_holds: 0, law_at: null,
+    review: row.review ?? null, wealth: row.wealth ?? 0, allowance: row.allowance ?? null,
+    played_at: Number.isSafeInteger(row.played_now) ? row.played_now : row.played_at ?? 0,
+    clean_obj: key, clean_seq: seq, level_seen: level, level_at: row.level_at ?? null, law_sig: null, law_v: null,
+    arms_top: arms[0], arms_bow: arms[1],
+  };
+  return { steps: [verdictWrite(db, char, row, set)], set, clean: true, law: 0, copies: [], over: 0, why: null, locked: [] };
 }
 
 /**
