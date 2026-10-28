@@ -28,6 +28,23 @@ docker compose logs -f server      # relay and account service output
 docker compose down                # stop
 ```
 
+## Behind nginx (a box with a game panel)
+
+If something else already holds ports 80 and 443 (`ss -tlnp | grep -E ':(80|443) '` shows nginx, as on a box with the
+AMP panel), the game runs on a private port and that nginx passes `dagg.campfirerp.com` to it:
+
+```
+cd /opt/bunnyfall
+printf 'WEB_HTTP=127.0.0.1:8480\nWEB_HTTPS=127.0.0.1:8443\nDOMAIN=:80\n' > .env
+docker compose up -d --build
+cp selfhost/nginx-bunnyfall.conf /etc/nginx/conf.d/bunnyfall.conf
+nginx -t && systemctl reload nginx
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d dagg.campfirerp.com
+```
+
+nginx then holds the HTTPS certificate (certbot renews it on its own); the panel's own sites are untouched.
+
 ## Updating from GitHub
 
 Changes go to GitHub first (edit with Claude, it pushes to `main`), then the box pulls them:

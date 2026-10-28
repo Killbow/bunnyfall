@@ -27,10 +27,12 @@ services:
       - server
     environment:
       DOMAIN: ${DOMAIN:-dagg.campfirerp.com}
+    # BUNNYFALL: on a box where another web server holds 80/443 (a game panel's nginx), .env moves these to
+    # loopback ports that nginx proxies to (selfhost/README.md, "Behind nginx")
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "${WEB_HTTP:-80}:80"
+      - "${WEB_HTTPS:-443}:443"
+      - "${WEB_HTTPS:-443}:443/udp"
     volumes:
       - caddy_data:/data
       - caddy_config:/config

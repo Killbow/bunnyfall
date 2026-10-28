@@ -1,4 +1,16 @@
 # BUNNYFALL: the public front door. Caddy fetches and renews the HTTPS certificate on its own.
+# Behind another web server (nginx on a panel box, selfhost/nginx-bunnyfall.conf), DOMAIN=":80" makes it plain HTTP.
+{
+	servers {
+		# the player's own address, as a proxy in front of us says it (nginx), for the services' per-address limits
+		trusted_proxies static private_ranges
+	}
+}
+
+(player) {
+	header_up CF-Connecting-IP {client_ip}
+}
+
 {$DOMAIN:dagg.campfirerp.com} {
 	encode zstd gzip
 
@@ -7,16 +19,24 @@
 	respond @sched 404
 
 	handle_path /relay/* {
-		reverse_proxy server:8787
+		reverse_proxy server:8787 {
+			import player
+		}
 	}
 	handle_path /updater/* {
-		reverse_proxy server:8789
+		reverse_proxy server:8789 {
+			import player
+		}
 	}
 	handle /v1/* {
-		reverse_proxy server:8788
+		reverse_proxy server:8788 {
+			import player
+		}
 	}
 	handle_path /accounts/* {
-		reverse_proxy server:8788
+		reverse_proxy server:8788 {
+			import player
+		}
 	}
 	handle {
 		root * /srv
