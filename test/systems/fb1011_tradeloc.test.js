@@ -36,5 +36,5 @@ test('TRADE-LOC II: the trade window\'s row says a letter\'s worth under its nam
   // PIN MOVED (AUDIT TRADE-VIRT, 2026-10-20): each named - its rows' heights kept by name across repaints
   for (const call of ["fill(list, items, (it) => row(it, 'pack'), 'pack');", "fill(list, entries(), (e) => row(e.item, 'offer', e.count), 'offer');", "fill(list, session.theirs.items, (it) => row(it, 'theirs'), 'theirs');"]) assert.ok(t.includes(call), `${call} - the pack, my offer and theirs draw through the one row`);
   const inv = src('src/ui/enhanced/enhancedInventory.js');
-  assert.match(inv, /  pair\('Armour', line\.armour\);\n  pair\('Worth', letterWorthGold\(picked\)\);/, 'the card\'s headline pair - a letter is its worth');
+  assert.match(inv, /  pair\('Armor', line\.armour\);\n  pair\('Worth', letterWorthGold\(picked\)\);/, 'the card\'s headline pair - a letter is its worth');
 });

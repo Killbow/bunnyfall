@@ -207,7 +207,7 @@ test('AUDIT CAPTAIN\'S SEA S5/D5: under false colours she passes for the merchan
   assert.equal(xt.name, etherShipNames(trader, seed).name, 'an Isles trader\'s name');
   aimAt(v, x);
   const xc = v.host.glass(0.1, { up: true });
-  assert.ok(xc.rows.some(([l, w]) => l === 'Colours' && w === `${ISLES_FLAG}' merchant colors`), JSON.stringify(xc.rows));
+  assert.ok(xc.rows.some(([l, w]) => l === 'Colors' && w === `${ISLES_FLAG}' merchant colors`), JSON.stringify(xc.rows));
   assert.ok(!CROWNS.some((c) => xc.rows.some(([, w]) => w.includes(c.name))), 'no Bay crown past the Veil');
 });
 

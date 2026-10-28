@@ -467,7 +467,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   loomTrack.specs[50] = 'tailor'; draw();   // PLAIN-ODDS: a Tailor's clothing says its step
   assert.ok(text().includes('Quality chances: Standard 50% | Fine 40% | Superior 10%. They get better the further your rank (10) is above the recipe\'s (0). Press every stitch on the beat to raise the result one quality. Being a Tailor raises clothing one more.'), text());
   loomTrack.specs[50] = null; draw();
-  assert.deepEqual(buttons().filter((b) => b.parentNode?.className?.includes('prof-made')).map((b) => b.textContent), ['Linen', 'Wool', 'Silk - rank 40', 'Standard-bearer\'s Silk - rank 55'], 'CRAFT2: its four cloths, the two past the rank naming it');
+  assert.deepEqual(buttons().filter((b) => b.parentNode?.className?.includes('prof-made')).map((b) => b.textContent), ['Linen', 'Wool', 'Silk · rank 40', 'Standard-bearer\'s Silk · rank 55'], 'CRAFT2: its four cloths, the two past the rank naming it');
   await press('Buy 2 from the Weavers for 4 silver');
   assert.deepEqual(bought, [['cloth:linen', 2, 'weavers']]);
   assert.deepEqual(GARMENT_WORDS(buttons()), ['Undyed', 'Blue', 'Grey', 'Red', 'Dark Brown', 'Purple', 'Light Brown', 'White', 'Aquamarine', 'Yellow', 'Green']);

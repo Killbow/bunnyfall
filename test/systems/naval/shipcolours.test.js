@@ -225,8 +225,8 @@ test('SHIP-COLOURS the Fleet: a Colours act on every hull with a masthead - hois
   resetFleetPage();
   const draw = () => { const d = el('div', 'px-qdetail'); drawFleetPage(d, () => {}, { el, divider: (t) => el('h4', null, t), meter: () => el('div') }); return d; };
   let d = draw();
-  assert.equal(press(d, 'Colours').length, 1, 'the Small Ship\'s card alone');
-  press(d, 'Colours')[0].onclick();
+  assert.equal(press(d, 'Colors').length, 1, 'the Small Ship\'s card alone');
+  press(d, 'Colors')[0].onclick();
   d = draw();
   const pic = all(d, (c) => c.className === 'hld-flag')[0];
   assert.ok(pic.innerHTML.includes('fill="#2f8f4e"'), 'her flag as she flies it, Vert');
@@ -243,7 +243,7 @@ test('SHIP-COLOURS the Fleet: a Colours act on every hull with a masthead - hois
   arms = ARMS;
   resetFleetPage();
   d = draw();
-  press(d, 'Colours')[0].onclick();
+  press(d, 'Colors')[0].onclick();
   d = draw();
   const g = press(d, 'Fly my guild\'s arms')[0];
   assert.equal(g.attrs['aria-disabled'], undefined);
@@ -255,7 +255,7 @@ test('SHIP-COLOURS the Fleet: a Colours act on every hull with a masthead - hois
   assert.equal(fleetShip(31).colours.guild, true);
   resetFleetPage();
   d = draw();
-  press(d, 'Colours')[0].onclick();
+  press(d, 'Colors')[0].onclick();
   d = draw();
   press(d, 'Remove flag')[0].onclick();
   assert.equal(fleetShip(31).colours, null, 'struck: her pennant');

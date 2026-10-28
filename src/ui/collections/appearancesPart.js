@@ -21,7 +21,7 @@ export const LOOK_FILTERS = Object.freeze([
 ]);
 /** The part's words, each read when said. */
 export const LOOK_WORDS = Object.freeze({
-  how: () => t('coll.looks.how', 'Every armour piece, shield and weapon you hold adds its look here. A Clothing Store, an Armorer or a Weaponsmith can give a piece you wear any look of its kind, for gold.'),
+  how: () => t('coll.looks.how', 'Every armor piece, shield and weapon you hold adds its look here. A Clothing Store, an Armorer or a Weaponsmith can give a piece you wear any look of its kind, for gold.'),
   group: (/** @type {string} */ kind, /** @type {number} */ held, /** @type {number} */ total) => t('coll.looks.group', '{kind} · {held} / {total}', { kind, held, total }),
   none: () => t('coll.looks.none', 'None collected yet.'),
   held: () => t('coll.looks.tag.held', 'Held'),

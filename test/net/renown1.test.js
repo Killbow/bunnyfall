@@ -649,10 +649,10 @@ test('RENOWN1 the main menu\'s account card: the level of the character most rec
   card.paint();
   const h3 = card.root.all.find((n) => n.tag === 'h3');
   assert.deepEqual(h3.children.map((c) => [c.className, c.textContent]), [['acctrenown', '10'], ['acctname', 'Lattymoy']], 'the level of the character most recently played online, left of the name');
-  assert.equal(h3.children[0].title, 'Renown 10 - Mara Venn', 'AUDIT RENOWN1 UI-10: and whose it is');
+  assert.equal(h3.children[0].title, 'Renown 10 · Mara Venn', 'AUDIT RENOWN1 UI-10: and whose it is');
   const rows = card.root.all.filter((n) => n.className === 'acctval').map((n) => n.textContent);
-  assert.ok(rows.includes('Mara Venn - Renown 10, 490 / 2,150 XP to Renown 11'), rows.join(' | '));
-  assert.ok(rows.includes('A character - Renown 2, 50 / 130 XP to Renown 3'), 'a character whose name the service never heard');
+  assert.ok(rows.includes('Mara Venn · Renown 10, 490 / 2,150 XP to Renown 11'), rows.join(' | '));
+  assert.ok(rows.includes('A character · Renown 2, 50 / 130 XP to Renown 3'), 'a character whose name the service never heard');
   flow.account = { id: 'p1', name: 'Lattymoy', kind: 'linked', handle: 'Lattymoy', playedS: 60 };
   card.paint();
   const plain = card.root.all.find((n) => n.tag === 'h3');

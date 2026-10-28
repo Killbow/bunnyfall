@@ -146,7 +146,7 @@ test('PROF11 DONE WHEN: Rough Stone cut with a clean chisel at a General Store\'
     await settled();
     assert.equal(book.held('stone:mortar'), 10, 'ten at a time');
     assert.deepEqual([book.held('metal:sulphur'), book.held('metal:lead'), book.held('stone:rough')], [0, 0, 5]);
-    assert.equal(said.at(-1), `+${1 * 20 * 2 + 1823} building`, 'a quick mix: no chisel, no half again - rank 10\'s tier, and its first\'s share');   // PIN MOVED (FIRST-BUDGET)   // PIN MOVED (CRAFT3): the service answers the Building track
+    assert.equal(said.at(-1), `+${1 * 20 * 2 + 1823} building`, 'a quick mix: no chisel, no half again · rank 10\'s tier, and its first\'s share');   // PIN MOVED (FIRST-BUDGET)   // PIN MOVED (CRAFT3): the service answers the Building track
     // THE SCULPTOR'S COLUMN: a Master who chose the Sculptor, the dice steered to a Masterwork (the mark)
     track(PROF_XP_MAX, 'quarryman', 'sculptor');
     give('stone:cut', 12);

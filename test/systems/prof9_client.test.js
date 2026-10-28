@@ -236,7 +236,7 @@ test('PROF9 pages: The Fire - away from one, the word (no dish offered); at one,
       'Hunter\'s Stewcan cook now', 'Fisherman\'s Supperneeds materials', 'Orchard Tartrank 10', 'Feast of the Hearthrank 70',
     ]);
     page.dish('Hunter\'s Stew').onclick();
-    assert.match(page.text(), /Hunter's Stew \(northern Root Bulb\) - rank 0/, 'the way whose herb is held');
+    assert.match(page.text(), /Hunter's Stew \(northern Root Bulb\) · rank 0/, 'the way whose herb is held');
     assert.deepEqual(page.buttons().filter((b) => b.parentNode?.className?.includes('prof-made')).map((b) => [b.textContent, b.className.includes('prof-locked')]), [['northern Root Bulb', false], ['southern Root Bulb', true]]);
     page.dish('Hunter\'s Stew (northern').onclick();
     page.button('Cook').onclick();

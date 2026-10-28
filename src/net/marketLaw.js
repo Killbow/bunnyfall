@@ -72,7 +72,7 @@ export const MARKET_VIEWS = Object.freeze([
 ]);
 /** The crafted families that list - arrows carry no provenance and the siege works are never made (PROF0 25). */
 export const CRAFTED_FAMILIES = Object.freeze([
-  Object.freeze(['weapons', 'Weapons']), Object.freeze(['armour', 'Armour']), Object.freeze(['staves', 'Staves']),
+  Object.freeze(['weapons', 'Weapons']), Object.freeze(['armour', 'Armor']), Object.freeze(['staves', 'Staves']),
   Object.freeze(['bows', 'Bows']), Object.freeze(['tools', 'Tools']), Object.freeze(['kits', 'Repair Kits']),
   Object.freeze(['furniture', 'Furniture']),
   // PROF7: the loom's - the leather armour, the clothing (its dye carried with the piece), the rugs, tapestries and skins
@@ -82,7 +82,7 @@ export const CRAFTED_FAMILIES = Object.freeze([
   // PROF9: the fire's - the four dishes (recipeLaw DISHES), a cook's hand carried with each
   Object.freeze(['dishes', 'Dishes']),
   // PROF10: the jeweller's bench's - DFU's eight pieces of jewellery (recipeLaw JEWEL_PIECES), a jeweller's hand with each
-  Object.freeze(['jewellery', 'Jewellery']),
+  Object.freeze(['jewellery', 'Jewelry']),
 ]);
 /** The material families the Materials view filters by - the Stores' own (section 8). */
 export const MARKET_FAMILIES = MATERIAL_FAMILIES;
@@ -358,7 +358,7 @@ export const MARKET_HELD_MAX = 64;
 export const GOOD_ARROW_TEMPLATE = 131;
 /** The Goods view's families, by DFU's item groups (goodFamily). */
 export const GOODS_FAMILIES = Object.freeze([
-  Object.freeze(['weapons', 'Weapons']), Object.freeze(['armour', 'Armour']), Object.freeze(['clothing', 'Clothing']),
+  Object.freeze(['weapons', 'Weapons']), Object.freeze(['armour', 'Armor']), Object.freeze(['clothing', 'Clothing']),
   Object.freeze(['jewellery', 'Jewelry and gems']), Object.freeze(['other', 'Everything else']),
 ]);
 /** One group-to-family table for both the client classifier and the service's pre-limit SQL filter. */

@@ -25,8 +25,8 @@ export const CW_STATIONS = Object.freeze({
   jeweller: { name: 'Jeweller\'s bench', prof: 'jewelcrafting', act: 'facet', fee: 'jeweller', refine: () => [] },
 });
 const TABS = Object.freeze([['craft', 'Craft'], ['upgrade', 'Upgrade'], ['salvage', 'Salvage'], ['refine', 'Refine'], ['stores', 'Stores']]);
-const FAMILY_WORDS = Object.freeze({ weapons: 'Weapons', armour: 'Armour', tools: 'Tools', kits: 'Repair kits', staves: 'Staves', bows: 'Bows',
-  arrows: 'Arrows', furniture: 'Furniture', siege: 'Siege', clothing: 'Clothing', leather: 'Leather armour', jewellery: 'Jewellery', dishes: 'Dishes', stonework: 'Stonework',
+const FAMILY_WORDS = Object.freeze({ weapons: 'Weapons', armour: 'Armor', tools: 'Tools', kits: 'Repair kits', staves: 'Staves', bows: 'Bows',
+  arrows: 'Arrows', furniture: 'Furniture', siege: 'Siege', clothing: 'Clothing', leather: 'Leather armor', jewellery: 'Jewelry', dishes: 'Dishes', stonework: 'Stonework',
   furnishings: 'Furnishings' });
 const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${String(f).slice(1)}`;
 /** A garment's word where two patterns share a name (DFU's men's and women's boots). */

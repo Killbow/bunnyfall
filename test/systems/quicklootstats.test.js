@@ -47,10 +47,10 @@ test('QUICK-LOOT-STATS: the rows are the numbers a player picks a weapon by, fro
   assert.equal(by.Hands, 'One-handed');
   assert.equal(by.Condition, `${conditionWord(it)} (${conditionPercentage(it)}%)`);
   assert.ok(by.Weight?.endsWith(' kg'));
-  assert.equal(by.Armour, undefined, 'a weapon has no armour row');
+  assert.equal(by.Armor, undefined, 'a weapon has no armour row');
 
   const armourRows = Object.fromEntries(itemStatRows(mail()).map((r) => [r.label, r.text]));
-  assert.equal(armourRows.Armour, armourModString(mail()));
+  assert.equal(armourRows.Armor, armourModString(mail()));
   assert.equal(armourRows.Damage, undefined, 'and armour has no damage row');
   assert.equal(armourRows.Hands, undefined);
 
@@ -102,7 +102,7 @@ test('QUICK-LOOT-STATS: the panel describes the row that is LIT, and follows the
   foldQuickLoot(f);
   const top = quickLootStats(f);
   assert.ok(top.some((r) => r.label === 'Damage'), 'row 0 is the weapon, so it has a damage row');
-  assert.ok(!top.some((r) => r.label === 'Armour'));
+  assert.ok(!top.some((r) => r.label === 'Armor'));
 
   // The wheel moves the highlight; the panel must move with it, or the
   // player reads one item's numbers while looking at another's name -
@@ -110,7 +110,7 @@ test('QUICK-LOOT-STATS: the panel describes the row that is LIT, and follows the
   assert.equal(quickLootWheel(1), true, 'the plaque owns the wheel while it is listing');
   foldQuickLoot(f);
   const next = quickLootStats(f);
-  assert.ok(next.some((r) => r.label === 'Armour'), 'row 1 is the armour');
+  assert.ok(next.some((r) => r.label === 'Armor'), 'row 1 is the armour');
   assert.ok(!next.some((r) => r.label === 'Damage'));
 
   // Nothing lit, nothing said: look at a door and the panel is gone.

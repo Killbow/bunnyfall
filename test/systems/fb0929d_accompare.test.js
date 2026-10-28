@@ -220,7 +220,7 @@ test('AC-COMPARE the pack draws it: each part\'s number on the panel for its slo
         Mount: null, Cart: null,
       });
       const plaque = host.querySelector('.wornac-total');
-      assert.deepEqual(plaque.children.map(txt), ['Armour', '6.0']);
+      assert.deepEqual(plaque.children.map(txt), ['Armor', '6.0']);
       assert.equal(plaque.parent.className, 'wornplaques');   // PIN MOVED (AUDIT C&C S1): the plaques' own row
       assert.equal(plaque.parent.style.gridArea, '1 / 2 / 2 / 3', 'the head of the figure\'s column, its cell named whole');
       assert.match(plaque.title, /head 2, right arm 3, left arm 3, chest 4, hands 4, legs 3, feet 1 in 20\)$/);

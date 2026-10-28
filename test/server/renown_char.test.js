@@ -351,13 +351,13 @@ test('RENOWN-CHAR the client: the account card draws the characters\' tracks - t
   card.paint();
   const h3 = card.root.all.find((n) => n.tag === 'h3');
   assert.deepEqual(h3.children.map((c) => [c.className, c.textContent]), [['acctrenown', '10'], ['acctname', 'Lattymoy']], 'the level of the character played last, left of the name');
-  assert.equal(h3.children[0].title, 'Renown 10 - Mara Venn', 'and whose it is');
+  assert.equal(h3.children[0].title, 'Renown 10 · Mara Venn', 'and whose it is');
   const values = () => card.root.all.filter((n) => n.className === 'acctval').map((n) => n.textContent);
-  assert.ok(values().includes('Mara Venn - Renown 10, 490 / 2,150 XP to Renown 11'), values().join(' | '));
-  assert.ok(values().includes('A character - Renown 2, 50 / 130 XP to Renown 3'), 'a character whose name the service never heard');
+  assert.ok(values().includes('Mara Venn · Renown 10, 490 / 2,150 XP to Renown 11'), values().join(' | '));
+  assert.ok(values().includes('A character · Renown 2, 50 / 130 XP to Renown 3'), 'a character whose name the service never heard');
   flow.account = { ...base, renown: [{ character: 'char-capp', name: 'Old', xp: RENOWN_XP_MAX, level: RENOWN_MAX }] };
   card.paint();
-  assert.ok(values().includes('Old - Renown 50, the highest there is'), 'the level said once at the cap (AUDIT RENOWN1 UI-6)');
+  assert.ok(values().includes('Old · Renown 50, the highest there is'), 'the level said once at the cap (AUDIT RENOWN1 UI-6)');
   flow.account = { ...base, renown: { xp: 6000, level: 10 } };
   card.paint();
   const plain = card.root.all.find((n) => n.tag === 'h3');

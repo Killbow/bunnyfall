@@ -47,7 +47,7 @@ test('ARMOR-TYPE: quick loot and the trader look panel carry a Type row, right u
   const rows = itemStatRows(piece(ARMOR_MATERIAL.Steel));
   const labels = rows.map((r) => r.label);
   assert.equal(rows.find((r) => r.label === 'Type')?.text, 'Plate');
-  assert.equal(labels.indexOf('Type'), labels.indexOf('Armour') + 1);
+  assert.equal(labels.indexOf('Type'), labels.indexOf('Armor') + 1);
   assert.ok(!itemStatRows({ name: 'Dagger', group: 'Weapons', templateIndex: 113, material: 3, maxCondition: 10, currentCondition: 10 }).some((r) => r.label === 'Type'));
 });
 

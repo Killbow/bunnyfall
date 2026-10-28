@@ -188,7 +188,7 @@ export function armourPlaque(entity) {
   const table = struckBodyPartTable();
   const fig = tenth(overallArmour(dollArmour(entity), table)).toFixed(1);
   const n = el('div', 'wornac-total');
-  n.append(el('span', 'k', 'Armour'), el('span', 'v', fig));
+  n.append(el('span', 'k', 'Armor'), el('span', 'v', fig));
   const counts = struckCounts(table);
   const weights = PART_NAMES.map((name, p) => `${name.toLowerCase()} ${counts[p]}`).join(', ');
   n.title = `Armor ${fig}: the average armor a blow meets, with each part weighted by how often it is hit (${weights} in ${table.length})`;

@@ -528,9 +528,9 @@ test('AUDIT RENOWN1 UI-1/UI-6/UI-8/UI-10: the account card\'s values shrink and 
   flow.stage = 'in';
   card.paint();
   const rows = card.root.all.filter((n) => n.className === 'acctval').map((n) => n.textContent);
-  assert.ok(rows.includes('Old Hand - Renown 50, the highest there is'), rows.join(' | '));
+  assert.ok(rows.includes('Old Hand · Renown 50, the highest there is'), rows.join(' | '));
   const chip = card.root.all.find((n) => n.className === 'acctrenown');
-  assert.equal(chip.title, 'Renown 50 - Old Hand');
+  assert.equal(chip.title, 'Renown 50 · Old Hand');
   flow.stage = 'password';
   card.paint();
   assert.equal(card.root.all.some((n) => n.className === 'acctrenown'), false, 'only signed in');

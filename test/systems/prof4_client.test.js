@@ -392,7 +392,7 @@ test('PROF4 pages: the Workbench at a Furniture Store - the saws for the logs he
   const buttons = () => [...root.querySelectorAll('button')];
   const press = (label) => buttons().find((b) => b.textContent.startsWith(label)).onclick();
   assert.match(text(), /The Workbench/);
-  assert.match(text(), /The furnisher's workbench - 50 gold a craft or a saw/);
+  assert.match(text(), /The furnisher’s workbench: 50 gold a craft or a saw/);
   assert.match(text(), /plank:oak x2/, 'a saw\'s yield said');
   assert.match(text(), /wood:charcoal/, 'the Forge burns the logs held');
   await buttons().find((b) => b.textContent === 'Burn').onclick();
@@ -410,7 +410,7 @@ test('PROF4 pages: the Workbench at a Furniture Store - the saws for the logs he
   await press('Buy 2 from the furnisher for 4 silver');
   assert.deepEqual(bought, [['cloth:linen', 2]]);
   press('Small Table');   // PIN MOVED (CRAFT2): the pattern - in the wood the last craft here was made of, held
-  assert.match(text(), /Small Oak Table - rank 10/);
+  assert.match(text(), /Small Oak Table · rank 10/);
   assert.match(text(), /Quality chances: Crude 20% \| Standard 60% \| Fine 20%\. They get better the further your rank \(10\) is above the recipe's \(10\)\. Draw the plane true to the grain to raise the result one quality\./);   // PLAIN-ODDS
   assert.match(text(), /Use a Heartwood for a plank one grade better \(1 stored\)/);
   const box = [...root.querySelectorAll('input')].find((i) => i.type === 'checkbox' && /Heartwood/.test(i.parentNode?.textContent ?? ''));
@@ -461,7 +461,7 @@ test('PROF4 pages: the Workbench at a Furniture Store - the saws for the logs he
   assert.doesNotMatch(root.textContent, /comes later|not practiced/);
   const weaponsmith = [...root.querySelectorAll('button')].find((b) => b.textContent.startsWith('Weaponsmith'));
   assert.equal(weaponsmith.disabled, false, 'at rank 50 the smith chooses');
-  assert.match(root.textContent, /Steel; the chain/);
+  assert.match(root.textContent, /Steel, chain and the Spade/);
   setProfessionsPages(null);
   root.remove();
 });

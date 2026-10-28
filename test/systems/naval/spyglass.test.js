@@ -132,12 +132,12 @@ test('SPYGLASS the glass\'s card: unknown - her hull and her way, nothing of her
   assert.deepEqual(unknown, { title: 'Unknown sloop', sub: 'Colors not yet identified', rows: [['Range', '1234 m'], ['Way', 'making 10 knots']], tone: 'unknown', study: 0.3, hint: 'Close within 1800 m to make out its colours' });
   const told = glassCard(f, KNOW.colours, { study: 0.5 });
   assert.deepEqual([told.title, told.sub, told.tone, told.study, told.hint], ['A merchantman of Wayrest', 'Merchantman', 'friendly', 0.5, '']);
-  assert.deepEqual(told.rows, [['Colours', 'Wayrest\'s merchant colors'], ['Range', '1234 m - making 10 knots'], ['Bearing', 'Holding course']], 'a merchantman\'s colours and mind: the disguise holds');
+  assert.deepEqual(told.rows, [['Colors', 'Wayrest\'s merchant colors'], ['Range', '1234 m - making 10 knots'], ['Bearing', 'Holding course']], 'a merchantman\'s colours and mind: the disguise holds');
   assert.equal(glassCard(f, KNOW.colours, { within: 900 }).hint, 'Close within 900 m to make out its guns and hold');
   const seen = glassCard(f, KNOW.studied, { study: 0.2 });
   assert.deepEqual([seen.title, seen.sub, seen.tone, seen.study], ['The Black Gull', 'Pirate Sloop', 'pirate', 1]);
   assert.deepEqual(seen.rows, [
-    ['False colors', 'Too many gunports for a trader. This is a pirate'], ['Colours', 'the black flag'], ['Range', '1234 m - making 10 knots'], ['Bearing', 'Wary. Picks its targets carefully'],
+    ['False colors', 'Too many gunports for a trader. This is a pirate'], ['Colors', 'the black flag'], ['Range', '1234 m - making 10 knots'], ['Bearing', 'Wary. Picks its targets carefully'],
     ['Guns', '6 swivels, a swivel gun forward'], ['Hands', 'about 10 hands'], ['Hurts', 'hull 50%, canvas 75% - burning'], ['Hold', 'riding easy - some cargo'], ['Wanted', '300 gold - posted at Wayrest'],
   ]);
   assert.equal(glassCard({ ...f, hostile: true, mode: 'engage' }, KNOW.colours).title, 'The Black Gull', 'her guns on me: false colours hold for nobody');
@@ -361,7 +361,7 @@ test('SPYGLASS the window: hidden while the glass is down; up, the tube and its 
   assert.equal(glassFootWords({ zoom: 2, pad: true, keys: { glass: 'Y' } }), 'x2 - Y: lower the glass');
   drawSpyglass(null);
   assert.equal(byClass(globalThis.document.body, 'dfglass').length, 0, 'nothing built while it is down');
-  const card = { title: 'The Black Gull', sub: 'Pirate Sloop', rows: [['Colours', 'the black flag'], ['Guns', '6 swivels']], tone: 'pirate', study: 0.5, hint: '' };
+  const card = { title: 'The Black Gull', sub: 'Pirate Sloop', rows: [['Colors', 'the black flag'], ['Guns', '6 swivels']], tone: 'pirate', study: 0.5, hint: '' };
   drawSpyglass({ card, zoom: 4 }, { keys: { glass: 'K' } });
   const [root] = byClass(globalThis.document.body, 'dfglass');
   assert.ok(root && root.style.display !== 'none');
@@ -369,7 +369,7 @@ test('SPYGLASS the window: hidden while the glass is down; up, the tube and its 
   const [title] = byClass(root, 'dfglass-title');
   assert.deepEqual([title.textContent, title.style.color], ['The Black Gull', GLASS_TONES.pirate]);
   assert.equal(byClass(root, 'dfglass-sub')[0].textContent, 'Pirate Sloop');
-  assert.equal(byClass(root, 'dfglass-rows')[0].textContent, 'Coloursthe black flagGuns6 swivels');
+  assert.equal(byClass(root, 'dfglass-rows')[0].textContent, 'Colorsthe black flagGuns6 swivels');
   const [bar] = byClass(root, 'dfglass-study');
   assert.equal(bar.style.display, '');
   assert.equal(bar.children[0].style.width, '50%');

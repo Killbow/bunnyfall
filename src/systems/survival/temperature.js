@@ -492,7 +492,7 @@ export function temperatureBreakdown(env = {}, temp = null) {
   add('resist', 'Resistances', temp.worldResist);
   add('race', 'Your race', temp.race);
   add('clothes', 'Clothing', temp.clothes, temp.clothesDry > temp.clothes && temp.wet > 0 ? `${signedDegrees(temp.clothesDry)} dry` : null);
-  add('armour', 'Armour', temp.armour, temp.metal > 0 ? 'hot metal' : temp.metal < 0 ? 'cold metal' : null);   // `metal` is the heat the law laid on: the sun's, uncovered, or the cold's
+  add('armour', 'Armor', temp.armour, temp.metal > 0 ? 'hot metal' : temp.metal < 0 ? 'cold metal' : null);   // `metal` is the heat the law laid on: the sun's, uncovered, or the cold's
   add('fire', 'A fire', temp.fire);
   add('wet', 'Wet through', -temp.water);
   add('skin', 'Heat loss', temp.naked);   // AUDIT C&C T8: the mod's own offset, every body's - not "Bare skin" on a body dressed head to foot

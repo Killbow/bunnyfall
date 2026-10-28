@@ -68,7 +68,7 @@ export function createStaffFlatMapHost({ map, politicAt, pixel, flagOf, words, c
       }).sort((/** @type {any} */ a, /** @type {any} */ b) => (RANK[/** @type {keyof typeof RANK} */ (a.level)] ?? 3) - (RANK[/** @type {keyof typeof RANK} */ (b.level)] ?? 3) || a.name.localeCompare(b.name));
       const state = v?.region === region ? v.state : 'connecting';
       const hint = state === 'hide' ? t('net.staffFlat.hideOff', 'Turn on Hide me (the bar at the top) to watch a region. It only opens while you’re hidden.')
-        : state === 'open' ? t('net.staffFlat.count', '{n, plural, one {# traveller} other {# travellers}} outdoors. Indoors and dungeons send no position.', { n: players.length })
+        : state === 'open' ? t('net.staffFlat.count', '{n, plural, one {# traveler} other {# travelers}} outdoors. Indoors and dungeons send no position.', { n: players.length })
           : t('net.staffFlat.connecting', 'Connecting…');
       const me = pixel();
       const box = boxOf(region);

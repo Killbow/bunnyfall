@@ -383,7 +383,7 @@ function shipCard(el, s, { rerender, meter, door, arms = null }) {
   acts.append(button(el, s.plaque ? t('naval.plaque.hide', 'Hide name') : t('naval.plaque.show', 'Show name'), s.named ? null : t('naval.plaque.unnamed', 'Give the ship a name first.'), () => act('plaque', !s.plaque)));
   if (s.crewed && s.where !== 'packed') acts.append(button(el, _open?.uid === s.uid && _open.panel === 'crew' ? 'Close crew' : 'Crew', null, () => { _open = _open?.uid === s.uid && _open.panel === 'crew' ? null : { uid: s.uid, panel: 'crew' }; rerender(); }));
   // SHIP-COLOURS: her flag - every hull with a masthead
-  if (s.flag) acts.append(button(el, t('naval.flag.open', 'Colours'), null, () => { const open = _open?.uid === s.uid && _open.panel === 'colours'; _open = open ? null : { uid: s.uid, panel: 'colours' }; _flag = open ? null : s.colours ?? null; _said = null; rerender(); }));
+  if (s.flag) acts.append(button(el, t('naval.flag.open', 'Colors'), null, () => { const open = _open?.uid === s.uid && _open.panel === 'colours'; _open = open ? null : { uid: s.uid, panel: 'colours' }; _flag = open ? null : s.colours ?? null; _said = null; rerender(); }));
   // SHIP-LIVERY: her paint - every hull that takes one
   acts.append(button(el, s.fittings ? t('naval.deck.openN', 'Deck ({n})', { n: s.fittings }) : t('naval.deck.open', 'Deck'), null, () => act('deckPlan')));   // DECK-PROPS: the plan of her deck, her fittings on it
   if (s.paints?.length || s.cabin != null) acts.append(button(el, t('naval.paint.open', 'Paint'), null, () => { const open = _open?.uid === s.uid && _open.panel === 'paint'; _open = open ? null : { uid: s.uid, panel: 'paint' }; _paint = null; _said = null; rerender(); }));

@@ -48,17 +48,17 @@ const LOOK = { race: 'DarkElf', gender: 'female', faceIndex: 3, class: 'Nightbla
 ] };
 
 test('PROFILE-UI what they wear in its parts - in hand (the shield with the sword), armour, clothing, jewellery, each piece by its own group, a part with nothing in it left out; a pair worn in two slots of one name one row under the plural (mutants: nothing in hand; the parts out of order; a pair two rows; the plural unsaid)', () => {
-  assert.deepEqual(GEAR_PARTS.map(([, head]) => head), ['In hand', 'Armour', 'Clothing', 'Jewellery']);
+  assert.deepEqual(GEAR_PARTS.map(([, head]) => head), ['In hand', 'Armor', 'Clothing', 'Jewelry']);
   assert.deepEqual([gearPartOf(S.LeftHand, { group: 'Armor' }), gearPartOf(S.Head, { group: 'Armor' }), gearPartOf(S.Feet, { group: 'MensClothing' }), gearPartOf(S.Ring0, { group: 'Jewellery' })],
     ['hand', 'armour', 'clothing', 'jewellery'], 'a shield in hand; shoes are clothes, by the piece\'s own group');
   const groups = gearGroups(gearRows(LOOK));
   assert.deepEqual(groups.map((g) => [g.head, g.rows.map((r) => [r.slot, r.names.length])]), [
     ['In hand', [['Right hand', 1], ['Left hand', 1]]],
-    ['Armour', [['Head', 1], ['Chest', 1]]],
+    ['Armor', [['Head', 1], ['Chest', 1]]],
     ['Clothing', [['Cloaks', 2]]],
-    ['Jewellery', [['Rings', 2]]],
+    ['Jewelry', [['Rings', 2]]],
   ]);
-  assert.deepEqual(gearGroups(gearRows({ items: [LOOK.items[2]] })).map((g) => g.head), ['Armour'], 'a part with nothing in it is left out');
+  assert.deepEqual(gearGroups(gearRows({ items: [LOOK.items[2]] })).map((g) => g.head), ['Armor'], 'a part with nothing in it is left out');
   assert.deepEqual(gearGroups([]), []);
 });
 
@@ -86,7 +86,7 @@ test('PROFILE-UI the card: the name on its own line, the glyphs on a row of thei
   const body = byClass(card, 'dfprofile-body')[0];
   assert.ok(note && card.children.indexOf(note) === card.children.indexOf(head) + 1 && card.children.indexOf(note) < card.children.indexOf(body), 'the waiting said under the head, before the body');
   const gear = byClass(card, 'dfprofile-gear')[0];
-  assert.deepEqual(byClass(gear, 'dfprofile-sub').map((s) => s.textContent), ['In hand', 'Armour', 'Clothing', 'Jewellery']);
+  assert.deepEqual(byClass(gear, 'dfprofile-sub').map((s) => s.textContent), ['In hand', 'Armor', 'Clothing', 'Jewelry']);
   const rings = byClass(gear, 'dfprofile-row').find((r) => r.children[0].textContent === 'Rings');
   assert.deepEqual(rings.children.map((c) => c.className), ['dfprofile-slot', 'dfprofile-items']);
   assert.equal(byClass(rings, 'dfprofile-item').length, 2, 'a pair\'s names one under the other');

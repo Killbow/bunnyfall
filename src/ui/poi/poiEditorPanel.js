@@ -420,7 +420,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       colour.type = 'color';
       colour.value = `#${m.color.slice(0, 3).map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`;
       colour.addEventListener('change', () => change('material', mat((x) => { const v = colour.value; x.color = [parseInt(v.slice(1, 3), 16) / 255, parseInt(v.slice(3, 5), 16) / 255, parseInt(v.slice(5, 7), 16) / 255, x.color[3]]; })));
-      out.push(field(t('poi.editor.colour', 'Colour'), colour, numberInput(m.color[3], (a) => change('material', mat((x) => { x.color = [x.color[0], x.color[1], x.color[2], a]; })), { step: 0.05, min: 0, max: 1 })));
+      out.push(field(t('poi.editor.colour', 'Color'), colour, numberInput(m.color[3], (a) => change('material', mat((x) => { x.color = [x.color[0], x.color[1], x.color[2], a]; })), { step: 0.05, min: 0, max: 1 })));
       out.push(field(t('poi.editor.alpha', 'Edges'), select(m.alpha, POI_ALPHA.map((a) => [a, alphaText(a)]), (v) => change('material', mat((x) => { x.alpha = v; })))));
       if (m.alpha === 'cutout') out.push(field(t('poi.editor.cutoff', 'Cut at'), numberInput(m.cutoff, (v) => change('material', mat((x) => { x.cutoff = v; })), { step: 0.05, min: 0, max: 1 })));
       out.push(field(t('poi.editor.twoSided', 'Both sides'), check(m.twoSided, (v) => change('material', mat((x) => { x.twoSided = v; })))));
@@ -469,7 +469,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     colour.type = 'color';
     colour.value = `#${l.color.map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`;
     colour.addEventListener('change', () => change('light', at((q) => { const v = colour.value; q.color = [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16) / 255); })));
-    out.push(field(t('poi.editor.colour', 'Colour'), colour));
+    out.push(field(t('poi.editor.colour', 'Color'), colour));
     out.push(field(t('poi.editor.reach', 'Reach (m)'), numberInput(l.radius, (v) => change('light', at((q) => { q.radius = v; })), { step: 0.5, min: 0.5, max: 100 })));
     out.push(field(t('poi.editor.strength', 'Strength'), numberInput(l.intensity, (v) => change('light', at((q) => { q.intensity = v; })), { step: 0.1, min: 0, max: 10 })));
     out.push(field(t('poi.editor.flicker', 'Flickers'), check(l.flicker, (v) => change('light', at((q) => { q.flicker = v; })))));

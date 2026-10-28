@@ -167,30 +167,30 @@ test('CRAFT-FIRST-SHOWN the stations say it, read off the real book: the loom\'s
     // THE LOOM, Outfitting 10: the Weavers' cloth alone says it earns none; a boot's Cured Leather and the leathers the 500
     press('The Loom', 'Clothing', true);
     press('The Loom', 'Straps');
-    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].slice(-2)], ['Linen Straps - rank 0', ['Quality chances: Standard 50% | Fine 40% | Superior 10%. They get better the further your rank (10) is above the recipe\'s (0). Press every stitch on the beat to raise the result one quality.', SHOP(20)]], 'under the odds');   // PIN MOVED (PLAIN-ODDS): the odds said in plain words
+    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].slice(-2)], ['Linen Straps · rank 0', ['Quality chances: Standard 50% | Fine 40% | Superior 10%. They get better the further your rank (10) is above the recipe\'s (0). Press every stitch on the beat to raise the result one quality.', SHOP(20)]], 'under the odds');   // PIN MOVED (PLAIN-ODDS): the odds said in plain words
     press('The Loom', 'Boots');
-    assert.equal(box('The Loom')[0], 'Linen Boots - rank 0');
+    assert.equal(box('The Loom')[0], 'Linen Boots · rank 0');
     assert.equal(box('The Loom')[1].at(-1), FIRST(20, 'Outfitting', 511));
     press('The Loom', 'Tools', true);
     press('The Loom', 'Fishing-Net');
     assert.equal(box('The Loom')[1].at(-1), SHOP(20), 'the report\'s Fishing-Net: none, and said');
     press('The Loom', 'Furnishings', true);
     press('The Loom', 'Small Plain Rug');
-    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].at(-1)], ['Small Plain Rug - rank 10', SHOP(40)]);
+    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].at(-1)], ['Small Plain Rug · rank 10', SHOP(40)]);
     press('The Loom', 'Leather', true);
     press('The Loom', 'Cuirass');
-    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].at(-1)], ['Leather Cuirass - rank 10', FIRST(40, 'Outfitting', 511)]);
+    assert.deepEqual([box('The Loom')[0], box('The Loom')[1].at(-1)], ['Leather Cuirass · rank 10', FIRST(40, 'Outfitting', 511)]);
     // THE ANVIL, Smithing 0: the Iron Dagger's 20 and the 500; the Silver Dagger past the rank, no line
     press('The Anvil', 'Dagger');
-    assert.deepEqual(box('The Anvil')[0], 'Iron Dagger - rank 0');
+    assert.deepEqual(box('The Anvil')[0], 'Iron Dagger · rank 0');
     assert.equal(box('The Anvil')[1].filter((p) => / experience/.test(p)).join('|'), FIRST(20, 'Smithing'));
-    press('The Anvil', 'Silver - rank 25', true);
-    assert.equal(box('The Anvil')[0], 'Silver Dagger - rank 25');
+    press('The Anvil', 'Silver · rank 25', true);
+    assert.equal(box('The Anvil')[0], 'Silver Dagger · rank 25');
     assert.deepEqual(box('The Anvil')[1].filter((p) => / experience/.test(p)), [], 'a recipe past the rank says no XP');
     // THE JEWELLER'S BENCH, a jewel on Smithing's track: the odds without the XP, the XP its own line beside the first's
     press('The Jeweler\'s Bench', 'Silver Ring');
     const jewel = box('The Jeweler\'s Bench');
-    assert.equal(jewel[0], 'Silver Ring - rank 0');
+    assert.equal(jewel[0], 'Silver Ring · rank 0');
     assert.ok(jewel[1].includes('Quality chances: Crude 20% | Standard 60% | Fine 20%. They get better the further your rank (0) is above the recipe\'s (0). Stop every turn where the stone catches the light to raise the result one quality.'), jewel[1].join('|'));
     assert.equal(jewel[1].at(-1), FIRST(20, 'Smithing'));
     // THE WORKBENCH, Building 100. PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): a Master's track takes no more XP -
@@ -198,11 +198,11 @@ test('CRAFT-FIRST-SHOWN the stations say it, read off the real book: the loom\'s
     // (it said "5 Building XP, and 500 more", which the Worker never paid); the quarter and the 500 at Building 99, below
     const TOP = 'No Building experience: Building is at Master.';   // PIN MOVED (VOICE2): experience, not XP; no dash aside (the craft-limit lines in the voice)
     press('The Workbench', 'Staff');
-    assert.deepEqual([box('The Workbench')[0], box('The Workbench')[1].at(-1)], ['Pine Staff - rank 0', TOP]);
+    assert.deepEqual([box('The Workbench')[0], box('The Workbench')[1].at(-1)], ['Pine Staff · rank 0', TOP]);
     // THE MASON'S BENCH: the works' first, and a Sculptor's carving
     assert.ok(station('The Mason\'s Bench').querySelectorAll('p').some((p) => p.textContent === TOP));
     press('The Mason\'s Bench', 'Stone Column');
-    assert.deepEqual([box('The Mason\'s Bench')[0], box('The Mason\'s Bench')[1].at(-1)], ['Stone Column - a Sculptor\'s', TOP]);
+    assert.deepEqual([box('The Mason\'s Bench')[0], box('The Mason\'s Bench')[1].at(-1)], ['Stone Column (a Sculptor’s)', TOP]);
     // THE FIRE: a dish's first, beside the pans' XP
     press('The Fire', 'Hunter\'s Stew');
     assert.equal(box('The Fire')[1].at(-1), 'First time cooking this: 3,155 more Provisioning experience.');   // PIN MOVED (FIRST-BUDGET): Provisioning's share; PIN MOVED (CRAFT-HALL): still to earn
@@ -216,7 +216,7 @@ test('CRAFT-FIRST-SHOWN the stations say it, read off the real book: the loom\'s
     assert.equal((await book.refresh({ force: true })).ok, true);
     draw();
     press('The Workbench', 'Staff');
-    assert.deepEqual([box('The Workbench')[0], box('The Workbench')[1].at(-1)], ['Pine Staff - rank 0', FIRST(5, 'Building', 1823)]);
+    assert.deepEqual([box('The Workbench')[0], box('The Workbench')[1].at(-1)], ['Pine Staff · rank 0', FIRST(5, 'Building', 1823)]);
     assert.ok(station('The Mason\'s Bench').querySelectorAll('p').some((p) => p.textContent === 'First-time bonus, 1,823 Building experience each: first cut still to earn, first mix still to earn.'));   // PIN MOVED (CRAFT-HALL): each work's own   // PIN MOVED (FIRST-BUDGET): Building's share, each work   // PIN MOVED (VOICE2): experience in a sentence (Voice.md rule 3)
   } finally {
     setProfessionsPages(null);

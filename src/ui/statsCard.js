@@ -158,21 +158,21 @@ export function buildStatsPage(entity, repaint, opts = {}) {
   if (p.racial) build.append(row(t('stats.breakdown.race', 'Race'), signed(p.racial), t('stats.breakdown.raceTip', 'Your race\u2019s bonus with this kind of attack.')));
   const terms = head.terms;
   build.append(row(t('stats.breakdown.attack', 'Attack (skill, gear, swing)'), signedPct(terms.base), t('stats.breakdown.attackTip', 'Your weapon skill and every bonus to hit, before the foe is counted.')));
-  build.append(row(t('stats.breakdown.foeArmour', 'Foe\u2019s armour'), signedPct(Math.round(terms.armour)), t('stats.breakdown.foeArmourTip', 'Its armor value on the part you strike, averaged over where blows land.')));
+  build.append(row(t('stats.breakdown.foeArmour', 'Foe’s armor'), signedPct(Math.round(terms.armour)), t('stats.breakdown.foeArmourTip', 'Its armor value on the part you strike, averaged over where blows land.')));
   build.append(row(t('stats.breakdown.foeDodging', 'Foe\u2019s dodging'), signedPct(-terms.dodge)));
   build.append(row(t('stats.breakdown.adjustments', 'Attributes & adjustments'), signedPct(terms.other + terms.dodge), t('stats.breakdown.adjustmentsTip', 'Your Agility and Luck (and Speed) against the foe\u2019s, plus enchantments, adrenaline and fixed adjustments.')));
   build.append(row(t('stats.breakdown.total', '= Hit chance'), pct(head.hit), t('stats.breakdown.totalTip', 'The four lines above added together, then kept between 3% and 97%.')));
   page.append(build);
 
   // defence
-  const def = section(t('stats.defence', 'Defence'), 9);
+  const def = section(t('stats.defence', 'Defense'), 9);
   const parts = dollArmour(entity);
-  def.append(row(t('stats.defence.armour', 'Armour'), one(tenth(overallArmour(parts))), t('stats.defence.armourTip', 'The armor a blow meets on average (the number on the paperdoll).')));
+  def.append(row(t('stats.defence.armour', 'Armor'), one(tenth(overallArmour(parts))), t('stats.defence.armourTip', 'The armor a blow meets on average (the number on the paperdoll).')));
   const pills = el('div', 'sf-pills');
   parts.forEach((v, i) => {
     const pl = el('span', `sf-pill${v ? '' : ' nil'}`);
     pl.append(el('i', null, PART_NAMES[i].replace(/^(Left|Right) /, (m) => m[0] + '. ')), el('b', null, String(v)));
-    pl.title = t('stats.defence.partTip', '{part}: armour {value}', { part: PART_NAMES[i], value: v });
+    pl.title = t('stats.defence.partTip', '{part}: armor {value}', { part: PART_NAMES[i], value: v });
     pills.append(pl);
   });
   def.append(pills);

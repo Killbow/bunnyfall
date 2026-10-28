@@ -113,7 +113,7 @@ export const REFORGE_REFUSALS = Object.freeze({
 });
 /** LOOT-GATE (systems/reforge.js imbuePiece): the Imbue's words, each read when it is said (L10N4). */
 export const IMBUE_SUB = () => t('reforge.imbue.sub', 'Raise a plain piece to Magic, or a Magic piece to Rare. Its lines are rolled fresh. Shops still pay only what the piece was worth before.');
-export const IMBUE_NONE = () => t('reforge.imbue.none', 'Nothing in your pack can be imbued. Imbue takes plain weapons, armour, jewellery and clothing, and Magic pieces you found.');
+export const IMBUE_NONE = () => t('reforge.imbue.none', 'Nothing in your pack can be imbued. Imbue takes plain weapons, armor, jewelry and clothing, and Magic pieces you found.');
 export const IMBUE_ASK = (name, tier) => t('reforge.imbue.ask', 'Imbue {name} to {tier}? Its lines are rolled fresh.', { name, tier });
 export const IMBUED = (name, tier) => t('reforge.imbue.done', 'Imbued: {name}, now {tier}.', { name, tier });
 const TIER_WORD = Object.freeze({ magic: 'Magic', rare: 'Rare' });

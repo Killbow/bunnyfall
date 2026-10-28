@@ -413,7 +413,7 @@ export const MOD_SETTINGS = Object.freeze({
       'WindDirectionWidget.Position': Object.freeze({ default: Object.freeze([0.5, 0.5]), tuple: 'float', get description() { return t('mods.comeSailAway.WindDirectionWidget.Position.description', 'Where the widget sits on the screen, across and down.'); } }),
       'WindDirectionWidget.Scale': Object.freeze({ default: 1, min: 0, max: 2, float: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Scale.description', 'The widget’s size.'); } }),
       'WindDirectionWidget.ScalingMode': Object.freeze({ default: 0, options: lazyWords(() => t('mods.comeSailAway.option.doNotScale', 'DoNotScale'), () => t('mods.comeSailAway.option.screenHeight', 'ScreenHeight'), () => t('mods.comeSailAway.option.screenDimensions', 'ScreenDimensions')), get description() { return t('mods.comeSailAway.WindDirectionWidget.ScalingMode.description', 'Whether the widget grows with the screen.'); } }),
-      'WindDirectionWidget.Color': Object.freeze({ default: '#ffffffff', color: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Color.description', 'The widget’s colour.'); } }),
+      'WindDirectionWidget.Color': Object.freeze({ default: '#ffffffff', color: true, get description() { return t('mods.comeSailAway.WindDirectionWidget.Color.description', 'The widget’s color.'); } }),
       'Waves.Enable': Object.freeze({ default: true, get description() { return t('mods.comeSailAway.Waves.Enable.description', 'Draw the waves breaking along the coasts around you, and let the sea carry a boat on its current.'); } }),
       'Waves.Distance': Object.freeze({ default: 2, min: 1, max: 4, get description() { return t('mods.comeSailAway.Waves.Distance.description', 'How many map squares around you have waves, in each direction.'); } }),
       'Waves.Length': Object.freeze({ default: 1.5, min: 0, max: 2, float: true, get description() { return t('mods.comeSailAway.Waves.Length.description', 'How far out the waves reach before they end.'); } }),
@@ -489,9 +489,7 @@ export const MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         get description() {
-          return t('mods.pcaao.Enabled.description', 'Armour reduces the damage you take instead of your chance to be hit, your skills decide whether you '
-            + 'hit, shields block according to their material, and critical hits multiply '
-            + 'damage. Off uses Daggerfall Unity’s combat.');
+          return t('mods.pcaao.Enabled.description', 'Armor reduces the damage you take instead of your chance to be hit, your skills decide whether you hit, shields block according to their material, and critical hits multiply damage. Off uses Daggerfall Unity’s combat.');
         },
       }),
       // WEAR-VANILLA (2026-10-01, the repair triage: "Disable the modded feature that increases durability loss.
@@ -728,7 +726,7 @@ export const MOD_SETTINGS = Object.freeze({
       'Swings.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 5.0, float: true, step: 0.25, get description() { return t('mods.weaponWidget.Swings.Speed.description', 'Speed of the swing animation.'); } }),
       'Swings.Windup': Object.freeze({ default: 1, options: lazyWords(() => t('mods.weaponWidget.option.hide', 'Hide'), () => t('mods.weaponWidget.option.idle', 'Idle'), () => t('mods.weaponWidget.option.firstFrame', 'First Frame')), get description() { return t('mods.weaponWidget.Swings.Windup.description', 'What shows while the swing winds up.'); } }),
       'Swings.Recovery': Object.freeze({ default: 0, options: lazyWords(() => t('mods.weaponWidget.option.hide', 'Hide'), () => t('mods.weaponWidget.option.lastFrame', 'Last Frame')), get description() { return t('mods.weaponWidget.Swings.Recovery.description', 'What shows while the swing recovers.'); } }),
-      'Swings.VanillaAlignmentOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaAlignmentOverride.description', 'Centres the down and up strikes of the vanilla weapons at the screen\u2019s middle edge.'); } }),
+      'Swings.VanillaAlignmentOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaAlignmentOverride.description', 'Centers the down and up strikes of the vanilla weapons at the screen’s middle edge.'); } }),
       'Swings.VanillaRecoveryOverride': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.VanillaRecoveryOverride.description', 'Plays the StrikeUp animation in reverse during recovery for some vanilla weapons'); } }),
       'Swings.NoDaggerMirroredStrikes': Object.freeze({ default: true, get description() { return t('mods.weaponWidget.Swings.NoDaggerMirroredStrikes.description', 'Prevents Daggers from using the opposite hand animations'); } }),
       'Offset.Speed': Object.freeze({ default: 1.0, min: 0.0, max: 5.0, float: true, step: 0.25, get description() { return t('mods.weaponWidget.Offset.Speed.description', 'Speed of the slide on and off the screen.'); } }),
@@ -1083,7 +1081,7 @@ export const MOD_SETTINGS = Object.freeze({
     keys: Object.freeze({
       Enabled: Object.freeze({
         default: true,
-        get description() { return t('mods.immersiveFootsteps.Enabled.description', 'Footsteps that match the ground you walk on, and armour that rattles as you move.'); },
+        get description() { return t('mods.immersiveFootsteps.Enabled.description', 'Footsteps that match the ground you walk on, and armor that rattles as you move.'); },
       }),
       'AudioQualitySettings.SoundClipQuality': Object.freeze({ default: 0, options: lazyWords(() => t('mods.immersiveFootsteps.option.lowQualityRetro', 'Low-Quality (Retro)'), () => t('mods.immersiveFootsteps.option.highQuality', 'High-Quality')), get description() { return t('mods.immersiveFootsteps.AudioQualitySettings.SoundClipQuality.description', 'Quality of the footstep sounds'); } }),
       'FootstepSettings.AllowFootstepSounds': Object.freeze({ default: true, get description() { return t('mods.immersiveFootsteps.FootstepSettings.AllowFootstepSounds.description', 'Your footsteps make a sound'); } }),
@@ -1300,7 +1298,7 @@ export const MOD_SETTINGS = Object.freeze({
       'RoadsIntegration.FollowPathsCustomKeyBind': Object.freeze({ default: "", text: true, get description() { return t('mods.travelOptions.RoadsIntegration.FollowPathsCustomKeyBind.description', "Custom key bind for following paths used if CustomBind set above"); } }),   // KB1: not read by the mod any more - the key is the registry's action (inputActions.js MOD_ACTIONS); a player's saved value is carried there once (migrateKeyBinds)
       'RoadsIntegration.EnableWaterways': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableWaterways.description', "Enhances the travel map with rivers and streams with a toggle button"); } }),
       'RoadsIntegration.EnableStreamsToggle': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsIntegration.EnableStreamsToggle.description', "Adds a streams toggle button separate from rivers button"); } }),
-      'RoadsIntegration.MarkLocationColor': Object.freeze({ default: '#ffeb05ff', color: true, get description() { return t('mods.travelOptions.RoadsIntegration.MarkLocationColor.description', "The colour used to highlight locations using middle mouse button on travel map"); } }),
+      'RoadsIntegration.MarkLocationColor': Object.freeze({ default: '#ffeb05ff', color: true, get description() { return t('mods.travelOptions.RoadsIntegration.MarkLocationColor.description', 'The color used to highlight locations using middle mouse button on travel map'); } }),
       // the shipped file's spacer section "-" carries no keys
       'FastTravelCostScaling.FastTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.FastTravelCostScaleFactor.description', "Scales the cost of inns when using standard fast travel, suggest x4-x6 for Climate & Calories."); } }),
       'FastTravelCostScaling.ShipTravelCostScaleFactor': Object.freeze({ default: 1, min: 1, max: 10, get description() { return t('mods.travelOptions.FastTravelCostScaling.ShipTravelCostScaleFactor.description', "Scales the cost of ships when using standard fast travel, suggest x2-x3 for Climate & Calories."); } }),
@@ -1313,25 +1311,25 @@ export const MOD_SETTINGS = Object.freeze({
       'RoadsJunctionMap.ScreenPositionY': Object.freeze({ default: 10, min: 0, max: 160, get description() { return t('mods.travelOptions.RoadsJunctionMap.ScreenPositionY.description', "The Y coordinate the mini-map is rendered on the screen"); } }),
       'RoadsJunctionMap.FilterMode': Object.freeze({ default: 0, options: lazyWords(() => t('mods.travelOptions.option.point', 'Point'), () => t('mods.travelOptions.option.bilinear', 'Bilinear'), () => t('mods.travelOptions.option.trilinear', 'Trilinear')), get description() { return t('mods.travelOptions.RoadsJunctionMap.FilterMode.description', "Pixel filtering to use when rendering the mini-map"); } }),
       'RoadsJunctionMap.Circular': Object.freeze({ default: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.Circular.description', "Draw the mini-map in a circle around the player"); } }),
-      'RoadsJunctionMap.PlayerColor': Object.freeze({ default: '#ff0000ff', color: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.PlayerColor.description', "The colour of the player position and direction indicator"); } }),
+      'RoadsJunctionMap.PlayerColor': Object.freeze({ default: '#ff0000ff', color: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.PlayerColor.description', 'The color of the player position and direction indicator'); } }),
       'RoadsJunctionMap.Opaque': Object.freeze({ default: false, get description() { return t('mods.travelOptions.RoadsJunctionMap.Opaque.description', "Render the mini-map with an opaque background color"); } }),
       'RoadsJunctionMap.BackgroundColor': Object.freeze({ default: '#327f19ff', color: true, get description() { return t('mods.travelOptions.RoadsJunctionMap.BackgroundColor.description', "The opaque background color to use for the mini-map"); } }),
       // the shipped file's spacer section "--" carries no keys
       // the shipped file's spacer section "." carries no keys
-      'LocationColours.DungeonLabyrinth': Object.freeze({ default: '#d77727ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.DungeonKeep': Object.freeze({ default: '#bf571bff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.DungeonRuin': Object.freeze({ default: '#ab330fff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Graveyard': Object.freeze({ default: '#930f07ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Coven': Object.freeze({ default: '#0f0f0fff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Farm': Object.freeze({ default: '#9b696aff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.WealthyHome': Object.freeze({ default: '#bc8a8aff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.PoorHome': Object.freeze({ default: '#7e5159ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Temple': Object.freeze({ default: '#b0cdffff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Cult': Object.freeze({ default: '#447cc0ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Tavern': Object.freeze({ default: '#8c5637ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.City': Object.freeze({ default: '#e3b490ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Hamlet': Object.freeze({ default: '#c18564ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
-      'LocationColours.Village': Object.freeze({ default: '#a56446ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', "The colour shown on the travel map"); } }),
+      'LocationColours.DungeonLabyrinth': Object.freeze({ default: '#d77727ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.DungeonKeep': Object.freeze({ default: '#bf571bff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.DungeonRuin': Object.freeze({ default: '#ab330fff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Graveyard': Object.freeze({ default: '#930f07ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Coven': Object.freeze({ default: '#0f0f0fff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Farm': Object.freeze({ default: '#9b696aff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.WealthyHome': Object.freeze({ default: '#bc8a8aff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.PoorHome': Object.freeze({ default: '#7e5159ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Temple': Object.freeze({ default: '#b0cdffff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Cult': Object.freeze({ default: '#447cc0ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Tavern': Object.freeze({ default: '#8c5637ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.City': Object.freeze({ default: '#e3b490ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Hamlet': Object.freeze({ default: '#c18564ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
+      'LocationColours.Village': Object.freeze({ default: '#a56446ff', color: true, get description() { return t('mods.travelOptions.LocationColours.description', 'The color shown on the travel map'); } }),
     }),
   }),
   // IT1 (2026-10-04, the owner: "Actually lets let this be the next mod we integrate 1:1"): IMMERSIVE TRAVEL - kkgobkk's

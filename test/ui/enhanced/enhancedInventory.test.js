@@ -1932,7 +1932,7 @@ test('MAC-M1: the card draws the stat FIRST, and the worn map’s hover carries 
   const stats = src.slice(src.indexOf("const dl = el('dl', 'stats');"));
   const body = stats.slice(0, stats.indexOf("c.append(dl);"));
   const dmg = body.indexOf("pair('Damage', line.damage);");
-  const arm = body.indexOf("pair('Armour', line.armour);");
+  const arm = body.indexOf("pair('Armor', line.armour);");
   const wgt = body.indexOf("pair('Weight'");
   assert.ok(dmg > 0 && arm > 0 && wgt > 0, 'all three rows are built');
   assert.ok(dmg < wgt && arm < wgt,

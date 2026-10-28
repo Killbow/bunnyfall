@@ -82,7 +82,7 @@ test('PROF10 law: a piece of jewellery takes a quality and lists among the Jewel
     assert.deepEqual([pieceListable(r.id), commissionable(r.id), commissionTakesQuality(r.id), auctionable(r.id, 4), auctionable(r.id, 3)], [true, !looseOnly(r.gem), true, true, false], r.id);
     assert.equal(craftCount(r, 'quartermaster', 'cook'), 1);
   }
-  assert.deepEqual(CRAFTED_FAMILIES.at(-1), ['jewellery', 'Jewellery']);
+  assert.deepEqual(CRAFTED_FAMILIES.at(-1), ['jewellery', 'Jewelry']);
   const wand = recipeById('wand:ironwood:ruby'), ring = recipeById('ring:silver');
   assert.deepEqual([takesHeartwood(wand), takesHeartwood(ring)], [true, false]);
   assert.deepEqual(recipeInputs(wand, { heartwood: true }), [{ key: 'plank:ironwood', n: 1 }, { key: 'gem:ruby', n: 1 }, { key: 'wood:heartwood', n: 1 }]);

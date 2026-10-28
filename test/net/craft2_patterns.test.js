@@ -170,19 +170,19 @@ test('CRAFT2 anvil: the Weapons are fifteen patterns, no metal row before one is
     const sword = p.rows().find((b) => b.textContent.startsWith('Longsword'));
     assert.equal(sword.textContent, 'Longswordcan make now');
     sword.onclick();
-    assert.match(p.text(), /Ebony Longsword - rank 70/);
+    assert.match(p.text(), /Ebony Longsword · rank 70/);
     assert.deepEqual(p.made().map((b) => [b.textContent, b.className.includes(' on'), b.className.includes('prof-locked')]), [
       ['Iron', false, true], ['Steel', false, false], ['Silver', false, true], ['Elven', false, true], ['Dwarven', false, true], ['Mithril', false, true],
-      ['Adamantium', false, true], ['Ebony', true, false], ['Orcish', false, true], ['Daedric - rank 90', false, true], ['Warforged', false, true],
+      ['Adamantium', false, true], ['Ebony', true, false], ['Orcish', false, true], ['Daedric · rank 90', false, true], ['Warforged', false, true],
     ]);
     p.press('Steel');
-    assert.match(p.text(), /Steel Longsword - rank 10/);
+    assert.match(p.text(), /Steel Longsword · rank 10/);
     p.press('Quick craft');
     await new Promise((r) => setTimeout(r, 5));
     assert.deepEqual(p.crafted, ['longsword:steel'], 'the craft asks the material chosen');
     p.rows().find((b) => b.textContent.startsWith('Broadsword')).onclick();
-    assert.match(p.text(), /Steel Broadsword - rank 10/, 'the last craft\'s metal, held');
-    p.press('Armour');
+    assert.match(p.text(), /Steel Broadsword · rank 10/, 'the last craft\'s metal, held');
+    p.press('Armor');
     assert.equal(p.rows().length, 18);
     assert.doesNotMatch(p.text(), /Broadsword - rank/, 'a family turned lets the pattern go');
     p.press('Weapons');
@@ -196,11 +196,11 @@ test('CRAFT2 workbench: the Arrows one pattern - its fletching chosen from what 
     p.press('Arrows');
     assert.equal(p.rows().length, 1);
     p.rows()[0].onclick();
-    assert.match(p.text(), /Arrows \(southern Twigs\) - rank 0/);
+    assert.match(p.text(), /Arrows \(southern Twigs\) · rank 0/);
     assert.deepEqual(p.made().map((b) => b.textContent), ['northern Twigs', 'southern Twigs']);
     p.press('Furniture');
     p.rows().find((b) => b.textContent.startsWith('Fancy Double Bed')).onclick();
-    assert.match(p.text(), /Fancy Double Bed - rank 40/);
+    assert.match(p.text(), /Fancy Double Bed · rank 40/);
     assert.equal(p.made().length, 0, 'made one way: no row');
   } finally { p.done(); }
 });
@@ -210,10 +210,10 @@ test('CRAFT2 loom: a garment one pattern, its cloth chosen from what is held (th
   try {
     p.press('Clothing');
     p.rows().find((b) => b.textContent.startsWith('Straps')).onclick();
-    assert.match(p.text(), /Linen Straps - rank 0/);
+    assert.match(p.text(), /Linen Straps · rank 0/);
     assert.doesNotMatch(p.text(), /comes only from the sieges/);
     p.press('Standard-bearer\'s Silk');
-    assert.match(p.text(), /Standard-bearer's Silk Straps - rank 55/);
+    assert.match(p.text(), /Standard-bearer's Silk Straps · rank 55/);
     assert.match(p.text(), /cloth:standard comes only from the sieges, as a Siege Honor's Spoils\./);
   } finally { p.done(); }
 });

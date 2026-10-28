@@ -75,7 +75,7 @@ export const GEAR_ROWS = Object.freeze([
  *  PARTS, in the order a reader looks for them - what is in their hands (a shield with the sword), their armour, their
  *  clothes, their jewellery - each piece by its own group (net/wire.js LOOK_GROUPS: every piece the look carries names
  *  one), a hand's piece in hand whatever it is. */
-export const GEAR_PARTS = Object.freeze([['hand', 'In hand'], ['armour', 'Armour'], ['clothing', 'Clothing'], ['jewellery', 'Jewellery']]);
+export const GEAR_PARTS = Object.freeze([['hand', 'In hand'], ['armour', 'Armor'], ['clothing', 'Clothing'], ['jewellery', 'Jewelry']]);
 const HAND_SLOTS = new Set([EQUIP_SLOTS.RightHand, EQUIP_SLOTS.LeftHand]);
 /** The part a worn piece stands in. */
 export const gearPartOf = (slot, it) => (HAND_SLOTS.has(slot) || it?.group === 'Weapons' ? 'hand'

@@ -1028,7 +1028,7 @@ export function itemStatRows(item) {
   const rows = [];
   const push = (label, text) => { if (text != null && text !== '') rows.push({ label, text }); };
   push('Damage', itemDamageLine(item));
-  push('Armour', itemArmourLine(item));
+  push('Armor', itemArmourLine(item));
   push('Type', itemArmorTypeLine(item));   // ARMOR-TYPE: Leather, Chain or Plate
   push('Hands', itemHandsLine(item));
   // The material PREFIX is the name's (itemNameParts), so a Daedric

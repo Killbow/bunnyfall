@@ -3509,7 +3509,7 @@ function infoCard(picked, side, ready = render, { body = false, own = true } = {
   // question. Only one of the two ever draws: an item is a weapon or it
   // is armour, and `pair` skips a null.
   pair('Damage', line.damage);
-  pair('Armour', line.armour);
+  pair('Armor', line.armour);
   pair('Worth', letterWorthGold(picked));   // TRADE-LOC II: a letter of credit is its worth - the card every pack, shop and trade hover shows says it
   pair('Type', line.armorType);   // ARMOR-TYPE: beside the number it sets - right under Armour, as Worth is a letter's alone
   // MAC-M2: under the damage, because it is the same question - how the

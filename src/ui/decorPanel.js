@@ -1056,7 +1056,7 @@ export function createDecorPanel({
       const on = loadDecorFavourites().has(e.key);
       const fav = el('button', 'dfdecor-btn dfdecor-mark dfdecor-fav', on ? '★' : '☆');
       fav.type = 'button';
-      fav.title = on ? t('decor.panel.unfav', 'Remove favourite') : 'Favourite';
+      fav.title = on ? t('decor.panel.unfav', 'Remove favorite') : 'Favourite';
       fav.setAttribute('aria-pressed', on ? 'true' : 'false');
       fav.setAttribute('aria-label', fav.title);
       fav.addEventListener('click', (ev) => { ev.stopPropagation?.(); toggleDecorFavourite(e.key); redraw(); });
@@ -1198,7 +1198,7 @@ export function createDecorPanel({
     const hotOn = markable && (view?.hot ?? []).includes(e.key);
     sideFav.disabled = !markable;
     sideHot.disabled = !markable;
-    sideFav.title = favOn ? t('decor.panel.unfav', 'Remove favourite') : 'Favourite';
+    sideFav.title = favOn ? t('decor.panel.unfav', 'Remove favorite') : 'Favourite';
     sideHot.title = hotOn ? t('decor.panel.unhot', 'Remove from hotbar') : t('decor.panel.hot', 'Add to hotbar');
     sideFav.setAttribute('aria-pressed', favOn ? 'true' : 'false');
     sideHot.setAttribute('aria-pressed', hotOn ? 'true' : 'false');

@@ -1547,7 +1547,7 @@ const daedricWord = () => t('prof.page.forge.daedric', DAEDRIC_LINE);
 
 /** The anvil's families, in its row's order, and the metals a family is made in. */
 const toolsWord = () => t('prof.page.family.tools', 'Tools');
-export const ANVIL_FAMILIES = Object.freeze([wordRow('weapons', () => t('prof.page.family.weapons', 'Weapons')), wordRow('armour', () => t('prof.page.family.armour', 'Armour')),
+export const ANVIL_FAMILIES = Object.freeze([wordRow('weapons', () => t('prof.page.family.weapons', 'Weapons')), wordRow('armour', () => t('prof.page.family.armour', 'Armor')),
   wordRow('tools', toolsWord), wordRow('kits', () => t('prof.page.family.kits', 'Repair Kits'))]);
 /** The recipes the anvil makes for a family - at a metal where one is named (the tools are Iron's alone; the chain is
  *  Steel's). CRAFT2: the anvil lists them as patterns (patternsOf), every metal under its piece. */

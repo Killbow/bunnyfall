@@ -66,7 +66,7 @@ test('CLOTH-GEMS the jeweller\'s bench: the gems a grade at a time - the plain g
     assert.deepEqual(rows().slice(0, 2), ['Silver Flawless Ruby Ringcan make now', 'Silver Flawless Emerald Ringneeds materials'], 'the pack\'s Flawless Ruby, workable');
     assert.equal(rows().length, 8);
     buttons().find((b) => b.textContent.startsWith('Silver Flawless Ruby Ring')).onclick();
-    assert.match(bench().textContent, /Silver Flawless Ruby Ring - rank 0/);
+    assert.match(bench().textContent, /Silver Flawless Ruby Ring · rank 0/);
     assert.match(bench().textContent, /2,160 enchantment points \(\+20%\)/, 'Silver\'s none and a Flawless stone\'s 20');
     family('Bracelet').onclick();
     assert.equal(family('Flawless'), undefined, 'no grade where no gem is set');

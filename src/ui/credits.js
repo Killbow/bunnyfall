@@ -214,7 +214,7 @@ export const CREDITS = Object.freeze({
       title: 'Climates & Calories',
       version: '1.7.1',
       author: 'Ralzar',
-      get what() { return t('credits.climatesCalories.what', 'Survival. You feel the temperature from the climate, season, hour, weather, clothes and armor. Hunger, thirst, sleep and wetness are needs, food spoils, you can make camp and light campfires, and where you sleep matters. Settings has four tiers. Off. Boons, the default: neglect costs nothing, and staying fed, watered and rested gives bonuses. Casual: neglect only borrows stamina, which comes back once the need is met. Hard: needs can hurt your attributes and health and make you sick.'); },
+      get what() { return t('credits.climatesCalories.what', 'Survival. You feel the temperature from the climate, season, hour, weather, clothes and armor. Hunger, thirst, sleep and wetness are needs, food spoils, you can make camp and light campfires, and where you sleep matters. There are four tiers in Settings: Off, Boons (the default: neglect costs nothing, and staying fed, watered and rested gives bonuses), Casual (neglect only borrows stamina, which comes back once the need is met) and Hard (needs can hurt your attributes and health and make you sick).'); },
       get terms() { return t('credits.climatesCalories.terms', 'Reworked from the mod\u2019s rules with the author\u2019s permission, passed on by Mac. Its numbers were the starting point, and its own art is used for spoiled food, raw meat and the waterskin.'); },
       get contact() { return t('credits.contact.forumsManifest', '{author}, on the DFU forums', { author: 'Ralzar' }); },
       vendor: Object.freeze(['climates-calories']),

@@ -51,7 +51,7 @@ test('STAFF-FLATMAP the sheet: the region\'s box off the politic map with a marg
   assert.deepEqual([v.landAt(104, 52), v.landAt(112, 52), v.landAt(104, 40)], ['own', 'other', 'sea']);
   assert.deepEqual(v.me, { x: 104.5, y: 52.5 });
   assert.deepEqual(v.players.map((p) => [p.name, p.level, p.line]), [['Bran', 'high', '4 reports'], ['Ash', 'medium', 'gold'], ['Dee', 'low', 'WATCH'], ['Cole', '', '']]);
-  assert.match(v.hint, /4 travellers outdoors/);
+  assert.match(v.hint, /4 travelers outdoors/);
   r.sheet.deps.onPick('b', { x: 5, y: 6 });
   assert.deepEqual(r.chosen, [['b', 'acct-b', 'Bran', { x: 5, y: 6 }]], 'a press is the view\'s menu');
   r.sheet.deps.onPick('nobody', { x: 0, y: 0 });

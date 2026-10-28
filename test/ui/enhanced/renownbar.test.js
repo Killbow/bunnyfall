@@ -4,7 +4,7 @@
 // RENOWN ROW IS THE BOX AND THE THIN BAR, AND THE BAR IS ON THE MIDDLE. RENOWN4 drew box, bar, numbers - the numbers a
 // readout beside the bar, so the bar's middle stood 42px left of the vitals' (57px at the widest numbers,
 // tools/renownBarProbe.mjs). Now there are no numbers on the HUD - they are the profile menu's (ui/enhanced/enhancedAccount.js,
-// its Renown row: "Mara Venn - Renown 10, 490 / 2,150 XP to Renown 11", renown1.test.js drives it) - the bar is
+// its Renown row: "Mara Venn · Renown 10, 490 / 2,150 XP to Renown 11", renown1.test.js drives it) - the bar is
 // RENOWN4's own 8px, and the row is a grid of three columns - the box, the bar and an empty column the box's width -
 // so the bar's middle is the row's, and the row is as wide as the vitals' and centred under them. The probe measures it
 // in Chromium (centre off 0.0px at a desktop, a laptop and a phone both ways up); these hold the markup and the sheet.

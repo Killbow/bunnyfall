@@ -137,7 +137,7 @@ test('the Stats button turns the card, builds the back, and the turn survives a 
   assert.ok(card.classList.contains('is-back'));
   assert.equal(btn.textContent, 'Paperdoll');
   const text = card.textContent;
-  for (const word of ['Combat Stats', 'Damage', 'Hit chance', 'Critical', 'Backstab', 'Swing directions', 'Defence', 'Attributes']) assert.ok(text.includes(word), word);
+  for (const word of ['Combat Stats', 'Damage', 'Hit chance', 'Critical', 'Backstab', 'Swing directions', 'Defense', 'Attributes']) assert.ok(text.includes(word), word);
   // a repaint while turned builds the back already facing you
   const again = statFlip(new FakeEl('div'), p);
   assert.ok(again.classList.contains('is-back'));

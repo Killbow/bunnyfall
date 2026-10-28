@@ -1758,7 +1758,7 @@ export const FEATURES = Object.freeze([
     id: 'mod-climates-calories',   // a mod-row id: WM3's law reaches the credits' vendor through it
     group: 'character',
     get title() { return t('features.mod.title', '{title} by {author}', { title: 'Climates & Calories', author: 'Ralzar' }); },   // AUDIT SURV E: the author's name, as every mod row carries it
-    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a campfire or in a bed. On Boons, neglect costs nothing, and staying fed, watered and rested gives bonuses. On Casual, unmet needs only drain some stamina (never more than half), and it comes back once you’ve seen to them. On Hard, they cost attributes and health and can make you sick. Off is the classic game.'); },
+    get note() { return t('features.mod.climatesCalories.note', 'Hunger, thirst, sleep and the weather come into play: eat, drink, dress for the climate and rest by a campfire or in a bed. On Boons neglect costs nothing, and staying fed, watered and rested in a bed or by a fire gives bonuses; on Casual, unmet needs only drain some stamina (never more than half) and it comes back once you’ve seen to them; on Hard they cost attributes and health and can make you sick; Off is the classic game.'); },
     get effect() { return t('features.mod.climatesCalories.effect', 'Takes effect at once. Online, each player picks their own.'); },
     kinds: Object.freeze(['mod', 'enhanced', 'classic']),   // AUDIT SURV E: a mod row, under the MOD AUTHORED filter
     // MODS-ONLINE-3 (2026-09-22, Mac): THIS IS A MOD ROW AND IT IS THE
