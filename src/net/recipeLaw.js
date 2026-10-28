@@ -200,7 +200,7 @@ const BEDS = Object.freeze([
   ['bed-fancy-single', 'Fancy Single Bed', 218, 'cherry'], ['bed-fancy-double', 'Fancy Double Bed', 220, 'teak'],
 ]);
 /** EVERY RECIPE the workbench knows, in its window's order: the staves and bows at every wood; the arrows (the northern
- *  Twigs', the southern's and - PROF7 - the Harpy's feathers'); the furniture; the Basket; the Ram Kit (named, never made
+ *  Twigs' and the southern's); the furniture; the Basket; the Ram Kit (named, never made
  *  - PROF0 25). */
 export const CARPENTRY_RECIPES = Object.freeze([
   ...WOODS.map((w) => carpentry({ id: `staff:${w.id}`, name: `${w.name} Staff`, kind: 'staff', family: 'staves', templateIndex: STAFF_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 3]], pattern: 'Staff' })),
@@ -208,9 +208,7 @@ export const CARPENTRY_RECIPES = Object.freeze([
   ...WOODS.map((w) => carpentry({ id: `longbow:${w.id}`, name: `${w.name} Long Bow`, kind: 'bow', family: 'bows', templateIndex: LONG_BOW_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 4], [RESIN.key, 1]], pattern: 'Long Bow' })),
   carpentry({ id: 'arrows:north', name: 'Arrows (northern Twigs)', kind: 'arrows', family: 'arrows', templateIndex: ARROWS_TEMPLATE, wood: 'pine', stack: ARROWS_STACK, inputs: [[PINE_PLANK.key, 1], ['ingot:iron', 1], [TWIGS_NORTH, 4]], pattern: 'Arrows', madeOf: 'northern Twigs' }),
   carpentry({ id: 'arrows:south', name: 'Arrows (southern Twigs)', kind: 'arrows', family: 'arrows', templateIndex: ARROWS_TEMPLATE, wood: 'pine', stack: ARROWS_STACK, inputs: [[PINE_PLANK.key, 1], ['ingot:iron', 1], [TWIGS_SOUTH, 4]], pattern: 'Arrows', madeOf: 'southern Twigs' }),
-  // PROF7 (PROF0 9.3's own fletching, waiting on Hunting since PROF4): one Harpy Feathers for the four Twigs - the same
-  // quiver, since an arrow takes no quality for "one step lower" to act on (PROF0 25, 29)
-  carpentry({ id: 'arrows:harpy', name: 'Arrows (Harpy Feathers)', kind: 'arrows', family: 'arrows', templateIndex: ARROWS_TEMPLATE, wood: 'pine', stack: ARROWS_STACK, inputs: [[PINE_PLANK.key, 1], ['ingot:iron', 1], ['hide:harpy', 1]], pattern: 'Arrows', madeOf: 'Harpy Feathers' }),
+  // BUNNYFALL: the Harpy Feathers' arrows are gone - the feathers are too rare for a quiver; the Twigs' two remain
   ...FURNITURE_WOODS.map(([w, i]) => carpentry({ id: `table-large:${w}`, name: `Large ${woodName(w)} Table`, kind: 'furniture', family: 'furniture', templateIndex: 221 + i, wood: w, inputs: [[plank(w), 6]], pattern: 'Large Table' })),
   ...FURNITURE_WOODS.map(([w, i]) => carpentry({ id: `table-small:${w}`, name: `Small ${woodName(w)} Table`, kind: 'furniture', family: 'furniture', templateIndex: 225 + i, wood: w, inputs: [[plank(w), 3]], pattern: 'Small Table' })),
   ...FURNITURE_WOODS.map(([w, i]) => carpentry({ id: `chair:${w}`, name: `${woodName(w)} Chair`, kind: 'furniture', family: 'furniture', templateIndex: 229 + i, wood: w, inputs: [[plank(w), 2]], pattern: 'Chair' })),

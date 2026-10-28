@@ -105,7 +105,7 @@ test('PROF4 law: the forge burns a log to a Charcoal (a Charcoal Burner two) and
 });
 
 test('PROF4 law: Carpentry\'s recipes (9.3) - staves 3 planks, short bows 3 and a Resin, long bows 4 and a Resin at every wood, their DFU material the wood\'s tier\'s; arrows twenty of a Pine Plank, an Iron Ingot and 4 Twigs (either land\'s); the tables 6 and 3, the chairs 2, the beds 8 and 2 Linen by DFU\'s rarity; the Basket; the Ram Kit named and never made', () => {
-  assert.equal(CARPENTRY_RECIPES.length, 21 + 2 + 1 + 12 + 4 + 1 + 1);   // PROF7 moved it: the Harpy-feathered arrows
+  assert.equal(CARPENTRY_RECIPES.length, 21 + 2 + 12 + 4 + 1 + 1);   // PROF7 moved it: the Harpy-feathered arrows; BUNNYFALL moved it back: they are gone
   assert.equal(RECIPES.length, SMITH_RECIPES.length + CARPENTRY_RECIPES.length + OUTFITTING_RECIPES.length + 4 + 7 + 504);   // PIN MOVED (CLOTH-GEMS): the jeweller's 504, every grade of every gem a recipe   // PROF7: the loom's; PIN MOVED (PROF11): the Sculptor's four stone pieces; PIN MOVED (PROF9): the fire's seven dishes; PIN MOVED (PROF10): the jeweller's 120 pieces
   assert.ok(CARPENTRY_RECIPES.every((r) => r.profession === 'carpentry' && r.metal === null));
   assert.deepEqual({ ...WOOD_MATERIAL }, { pine: 0, oak: 1, cherry: 2, teak: 3, mahogany: 5, ironwood: 6, ghostwood: 7 });

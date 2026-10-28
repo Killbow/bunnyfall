@@ -238,7 +238,8 @@ test('PROF7 law: Outfitting\'s recipes (9.3) - the leather armour in Cured and H
   assert.equal(new Set(RECIPES.map((r) => r.id)).size, RECIPES.length, 'every id its own');
   const knife = recipeById('knife:iron');
   assert.deepEqual([knife.templateIndex, knife.rank, knife.profession, ins('knife:iron')], [603, 0, 'smithing', '1 ingot:iron + 1 plank:pine']);
-  assert.deepEqual([ins('arrows:harpy'), recipeById('arrows:harpy').stack, takesQuality(recipeById('arrows:harpy'))], ['1 plank:pine + 1 ingot:iron + 1 hide:harpy', 20, false]);
+  assert.equal(recipeById('arrows:harpy'), null, 'BUNNYFALL: no Harpy Feathers arrows (the feathers are too rare)');
+  assert.deepEqual([ins('arrows:north'), recipeById('arrows:north').stack, takesQuality(recipeById('arrows:north'))], ['1 plank:pine + 1 ingot:iron + 4 p1:8', 20, false]);
   assert.equal(recipeOpen(recipeById('garment-141:silk'), 39), false);
   assert.equal(recipeOpen(recipeById('garment-141:silk'), 40), true);
   assert.equal(craftXp(4, 40), 80);   // PIN MOVED (FIRST-BUDGET): the first's XP its track's first-make share (recipeLaw firstCraftXp), no longer a flat 500
@@ -300,7 +301,7 @@ test('PROF7 law: Couturier and Saddler are named and never chosen - DFU gives th
   assert.deepEqual([later('hunting', 100, 'trophy-hunter'), later('outfitting', 100, 'couturier'), later('outfitting', 100, 'saddler')], [null, 'two-colour', 'wagon']);
   assert.deepEqual([specOk('hunting', 100, 'trophy-hunter'), specOk('hunting', 100, 'butcher'), specOk('hunting', 50, 'tanner'), specOk('outfitting', 50, 'tailor'), specOk('outfitting', 100, 'couturier')], [true, true, true, true, false]);
   assert.deepEqual(CRAFTED_FAMILIES.slice(-6, -3).map(([f]) => f), ['leather', 'clothing', 'furnishings']);   // PIN MOVED (PROF11): the mason's stonework lists after the loom's three; PIN MOVED (PROF9): and the fire's dishes after it; PIN MOVED (PROF10): and the jeweller's pieces after them
-  assert.deepEqual(['leather-helm:cured', 'garment-141:linen', 'rug-237:wool', 'skins-244:bear', 'fishingnet:linen', 'knife:iron', 'arrows:harpy'].map(pieceListable), [true, true, true, true, true, true, false]);
+  assert.deepEqual(['leather-helm:cured', 'garment-141:linen', 'rug-237:wool', 'skins-244:bear', 'fishingnet:linen', 'knife:iron', 'arrows:north'].map(pieceListable), [true, true, true, true, true, true, false]);
   assert.deepEqual([DECOR_STATIONS.at(-4), DECOR_STATION_FEES.loom, DECOR_STATION_NAMES.loom], ['loom', 50_000, 'Loom']);   // PIN MOVED (PROF11): the mason's bench a seventh after it; PIN MOVED (PROF10): the jeweller's bench an eighth; PIN MOVED (HOME-VENDOR): the hired trader a ninth
   // a day's rot: a plain Raw Meat rolls every day; a Butcher's every other, aged half its days
   const rolls = () => 0.99;   // the highest roll: whatever may spoil, spoils

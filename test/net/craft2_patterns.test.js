@@ -69,7 +69,7 @@ test('CRAFT2 law: a station\'s patterns - the anvil 39 (15 weapons, 18 armour, 5
   ]);
   const sword = patternsOf(station('smithing', 'weapons')).find((p) => p.id === 'longsword');
   assert.deepEqual([sword.name, sword.recipes.map((r) => r.madeOf)], ['Longsword', ['Iron', 'Steel', 'Silver', 'Elven', 'Dwarven', 'Mithril', 'Adamantium', 'Ebony', 'Orcish', 'Daedric', 'Warforged']]);
-  assert.deepEqual(patternsOf(station('carpentry', 'arrows'))[0].recipes.map((r) => [r.id, r.madeOf]), [['arrows:north', 'northern Twigs'], ['arrows:south', 'southern Twigs'], ['arrows:harpy', 'Harpy Feathers']]);
+  assert.deepEqual(patternsOf(station('carpentry', 'arrows'))[0].recipes.map((r) => [r.id, r.madeOf]), [['arrows:north', 'northern Twigs'], ['arrows:south', 'southern Twigs']]);   // BUNNYFALL: the Harpy Feathers' arrows gone
   assert.equal(patternsOf(RECIPES).reduce((n, p) => n + p.recipes.length, 0), RECIPES.length, 'every recipe in one pattern');
   const profsOf = new Map();
   for (const r of RECIPES) profsOf.set(recipePattern(r), new Set([...(profsOf.get(recipePattern(r)) ?? []), r.profession]));
@@ -95,7 +95,7 @@ test('CRAFT2 law: the first-make 500 a pattern\'s at a tier - Adamantium, Ebony,
   const paying = RECIPES.filter(firstCraftPays);
   // the key as it stood (AUDIT PROF-541 J7 and R2-S7 - a jewel's piece and base, a dish its dish, every other recipe its id)
   const before = (r) => (r.kind === 'jewel' ? r.id.split(':').slice(0, 2).join(':') : r.kind === 'dish' ? r.product : r.id);
-  assert.deepEqual([paying.length, new Set(paying.map(before)).size, new Set(paying.map(firstCraftKey)).size], [1051, 565, 446], 'MEASURED: the recipes that pay a first, the firsts they paid, and the patterns\' at a tier');   // PIN MOVED (CLOTH-GEMS): the 384 graded jewels pay, and no new first   // PIN MOVED (FIELD BUGS 2026-10-20h DEX-HIDES): the Wolf Pelt's and the Boar Hide's four skins pay a first each, kin of the Bat's and the Bear's at tier 2 (663, 561)
+  assert.deepEqual([paying.length, new Set(paying.map(before)).size, new Set(paying.map(firstCraftKey)).size], [1050, 564, 446], 'MEASURED: the recipes that pay a first, the firsts they paid, and the patterns\' at a tier');   // PIN MOVED (CLOTH-GEMS): the 384 graded jewels pay, and no new first   // PIN MOVED (FIELD BUGS 2026-10-20h DEX-HIDES): the Wolf Pelt's and the Boar Hide's four skins pay a first each, kin of the Bat's and the Bear's at tier 2 (663, 561)
   const mixed = [...new Set(RECIPES.map(firstCraftKey))].filter((k) => { const pays = RECIPES.filter((r) => firstCraftKey(r) === k).map(firstCraftPays); return pays.includes(true) && pays.includes(false); });
   assert.deepEqual(mixed, [], 'FACT: AUDIT 32 S1 stands beside it - no pattern at a tier mixes the world\'s goods and the counter\'s');
   // D1 binds at most 100 parameters a statement: the craft's decision binds 16, two an input (a Heartwood's or a cracked
@@ -191,13 +191,13 @@ test('CRAFT2 anvil: the Weapons are fifteen patterns, no metal row before one is
 });
 
 test('CRAFT2 workbench: the Arrows one pattern - its fletching chosen from what is held (the Harpy\'s); a single-wood bed no wood row', async () => {
-  const p = await pageAt({ 'plank:pine': 4, 'ingot:iron': 2, 'hide:harpy': 1, 'plank:teak': 9, 'cloth:linen': 2 }, 40, 'workbench');
+  const p = await pageAt({ 'plank:pine': 4, 'ingot:iron': 2, 'p2:8': 4, 'plank:teak': 9, 'cloth:linen': 2 }, 40, 'workbench');   // BUNNYFALL: the southern Twigs held, the Harpy's arrows gone
   try {
     p.press('Arrows');
     assert.equal(p.rows().length, 1);
     p.rows()[0].onclick();
-    assert.match(p.text(), /Arrows \(Harpy Feathers\) - rank 0/);
-    assert.deepEqual(p.made().map((b) => b.textContent), ['northern Twigs', 'southern Twigs', 'Harpy Feathers']);
+    assert.match(p.text(), /Arrows \(southern Twigs\) - rank 0/);
+    assert.deepEqual(p.made().map((b) => b.textContent), ['northern Twigs', 'southern Twigs']);
     p.press('Furniture');
     p.rows().find((b) => b.textContent.startsWith('Fancy Double Bed')).onclick();
     assert.match(p.text(), /Fancy Double Bed - rank 40/);
