@@ -7,6 +7,10 @@ services:
       dockerfile: selfhost/Dockerfile
       target: server
     restart: unless-stopped
+    # BUNNYFALL: a ceiling, so the game server can never take the whole box down with it (the box stays reachable
+    # over SSH and docker keeps answering, whatever the server does)
+    mem_limit: 3g
+    cpus: "2.0"
     volumes:
       - ./data:/data
       - ./updates:/updates   # the owner's update button leaves its request here for the host's cron
@@ -17,6 +21,8 @@ services:
       dockerfile: selfhost/Dockerfile
       target: web
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: "1.0"
     depends_on:
       - server
     environment:
