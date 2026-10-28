@@ -252,7 +252,7 @@ test('SHOT-KINDS the helm\'s choice: the group laid, else the one the look bears
   assert.equal(loads.label(boat), 'Bow chasers: Chain shot');
   assert.equal(loads.cycle(1), true);
   assert.equal(deck.load('bow'), 'heated', 'chain on to heated');
-  assert.equal(said.at(-1), 'Bow chasers: Heated shot - loading');
+  assert.equal(said.at(-1), 'Bow chasers: Heated shot, loading');
   side = 'port';
   loads.cycle(-1);
   assert.equal(deck.load('starboard'), 'heated', 'round back to heated, both broadsides');

@@ -50,8 +50,8 @@ export const BLIND_PEAK = 0.92;
 export const BLIND_STEP = 0.04;
 /** The words. */
 export const GROUND_VIEW_TEXT = Object.freeze({
-  warn: (ground) => `${ground || 'Burning ground'} - step out!`,
-  peril: (name) => `${name} - move!`,   // WB13a
+  warn: (ground) => `${ground || 'Burning ground'}. Step out!`,
+  peril: (name) => `${name}. Move!`,   // WB13a
 });
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));

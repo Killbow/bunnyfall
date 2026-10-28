@@ -67,14 +67,14 @@ export function createStandingWatch({
     ];
     const answer = (fn) => () => { if (box !== win) return; box = null; fn(); };
     const options = [
-      ...(canPay ? [{ code: 'KeyP', label: `P - pay ${fine} gold`, action: answer(() => {
+      ...(canPay ? [{ code: 'KeyP', label: `P: pay ${fine} gold`, action: answer(() => {
         deductGold(playerEntity, fine);
         settleChallenge(playerEntity, region);   // FINE-MENDS: the fine mends the name a penance's step, to the line at most
         grantGrace(playerEntity, region, ownNow());
         townTalk.say?.(`You pay the watch ${fine} gold.`);
       }) }] : []),
-      { code: 'KeyS', label: 'S - come quietly', action: answer(() => { arrestFlow.surrenderToChallenge(); }) },
-      { code: 'KeyR', label: 'R - refuse', action: answer(() => {
+      { code: 'KeyS', label: 'S: come quietly', action: answer(() => { arrestFlow.surrenderToChallenge(); }) },
+      { code: 'KeyR', label: 'R: refuse', action: answer(() => {
         playerEntity.crimeCommitted = CRIMES.Criminal_Conspiracy;   // the levy's own write (WERE-LEVY: the field)
         crimeResponse();
       }) },

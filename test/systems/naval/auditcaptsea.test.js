@@ -823,7 +823,7 @@ test('AUDIT CAPTAIN\'S SEA X5/X10/X11/X17: no chart is sold past the charts\' ro
   const { isleWords, capFirst } = await import('../../../src/ui/etherChartWindow.js');
   assert.equal(capFirst('the Sepulchre of Aelorrel'), 'The Sepulchre of Aelorrel');
   const ruin = { name: 'the Sepulchre of Aelorrel', kind: 'ruin', px: 0, py: 0 };
-  assert.match(isleWords(ruin, { px: 0, py: 0 }), /^The Sepulchre of Aelorrel - a ruin - here$/);
+  assert.match(isleWords(ruin, { px: 0, py: 0 }), /^The Sepulchre of Aelorrel · a ruin · here$/);
   assert.match(rd('src/scenes/etherHost.js'), /Land ho! \$\{i\.name\.replace\(\/\^\.\/, \(c\) => c\.toUpperCase\(\)\)\}/);
 });
 
@@ -974,8 +974,8 @@ test('AUDIT CAPTAIN\'S SEA C2: the Fleet page says a hand ashore with me so, and
   const draw = () => { const d = el('div'); drawFleetPage(d, () => {}, { el, divider: (t) => el('h4', null, t), meter: () => el('div') }); return d; };
   all(draw(), (c) => c.tag === 'button' && c.textContent === 'Crew')[0].onclick();
   const lines = all(draw(), (c) => c.className === 'hld-sub').map((c) => c.textContent);
-  assert.ok(lines.includes('Old Salt - 40 fights won - ashore with you'), `ashore, said so, his post's worth unsaid: ${lines.join(' | ')}`);
-  assert.ok(lines.some((l) => /^Green - the guns reload/.test(l)), 'the Green gunner aboard holds the guns');
+  assert.ok(lines.includes('Old Salt · 40 fights won · ashore with you'), `ashore, said so, his post's worth unsaid: ${lines.join(' | ')}`);
+  assert.ok(lines.some((l) => /^Green · the guns reload/.test(l)), 'the Green gunner aboard holds the guns');
   setHoldingsProvider(null);
 });
 
@@ -1410,7 +1410,7 @@ test('AUDIT CAPTAIN\'S SEA L5/L10/B14/B15: the Captain page\'s meter below nothi
   const offer = yardOffer(damage, 99, 0, { discount: 0.05 });
   const bill = offer.rows.find((r) => r.id === 'hull').whole;
   const model = { offer: () => yardOffer(damage, 99, bill, { discount: 0.05 }), ship: () => ({ ...damage, barrels: 99, wrecked: false }), name: 'Galleon', hasBarrels: false };
-  assert.equal(yardText(model).whole, `Repair all - ${bill} gold`);
+  assert.equal(yardText(model).whole, `Repair all: ${bill} gold`);
 });
 
 test('AUDIT CAPTAIN\'S SEA L6/B5/B7: the survey counts a ship once by her seed (kept on the contract, through a save); a deed moves one contract - a bounty\'s own quarry hers, else the soonest due (three hunts were done by the same three kills) - a berth every delivery\'s (mutants: the seen seeds, the order, the break)', async () => {
@@ -1539,7 +1539,7 @@ test('AUDIT CAPTAIN\'S SEA B4: a bounty\'s quarry gone down by another hand is n
   const L2 = createCaptainLedger();
   L2.holdContract({ id: 'y', kind: 'bounty', title: 'The Gull\'s bounty', crown: 'Wayrest', until: 9, pay: 5, days: 4, standing: 3, target: { px: 1, py: 1 } });
   createHarbourOffice({ ledger: L2, mid: (t) => said.push(t) }).event({ type: 'lost', bounty: 'y' });
-  assert.deepEqual(said, ['Bounty void - The Gull\'s bounty. Someone else sank it.']);
+  assert.deepEqual(said, ['Bounty void: The Gull\'s bounty. Someone else sank it.']);
 });
 
 test('AUDIT CAPTAIN\'S SEA B6/B8/B10: a chart\'s port drawn again till one has open water (one in five was a dud for good), a site sought outward past the drawn reach; a raised cache\'s chart, read again, marks nothing; no site past the map\'s edge where nothing streams (mutants: the redraw, the outward walk, the raised set, the edge)', async () => {

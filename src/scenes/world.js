@@ -14404,9 +14404,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     townTalk.showOverlay(new ChoiceWindow({
       lines: ['Do you want to Teleport or Set an Anchor?'],
       options: [
-        { code: 'KeyA', label: 'A - set anchor', action: () => setRecallAnchor() },
-        { code: 'KeyT', label: 'T - teleport', action: () => { recallToAnchor(); } },
-        { code: 'Escape', label: 'Esc - cancel', action: () => {} },
+        { code: 'KeyA', label: 'A: set anchor', action: () => setRecallAnchor() },
+        { code: 'KeyT', label: 'T: teleport', action: () => { recallToAnchor(); } },
+        { code: 'Escape', label: 'Esc: cancel', action: () => {} },
       ],
     }));
   }
@@ -15818,7 +15818,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         };
         const pixel = extras.dungeon?.pixel ?? dungeonPixelFor(extras.locationKey, locationIndex.values(), (mt) => longitudeLatitudeToMapPixel(mt.longitude, mt.latitude));
         csaElsewhere = !pixel;   // CSA-J (the audit): a dungeon this world cannot find is no landing at the save's place
-        if (!pixel) townTalk.say('(the dungeon you saved in could not be found. Your character is restored; travel there yourself)');
+        if (!pixel) townTalk.say('(the dungeon you saved in couldn’t be found. Your character is restored, so travel there yourself)');
         else if (onlineOn && !(pixel.x === getInt('Startup', 'StartCellX') && pixel.y === getInt('Startup', 'StartCellY'))) {
           // ONLINE-UNDERGROUND-LOAD1 (Lost, 2026-09-19): an online page never puts a character back INSIDE a dungeon -
           // it wakes them at the nearest temple, town or graveyard to it (the death respawn's own search, over the
@@ -15846,7 +15846,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         }
         if (!pixel) { standOuterCamps(); carrySavedFires(); }   // AUDIT REST II H5 + H6: a dungeon this world cannot find - restored outside, my fires with me
       } else if (extras.locationKey && extras.locationKey !== 'world') {
-        townTalk.say('(saved somewhere else. Your character is restored; travel there yourself)');
+        townTalk.say('(saved somewhere else. Your character is restored, so travel there yourself)');
         csaElsewhere = true;
       }
       ohAbyss?.onRespawnerComplete();   // OH-D: RestorePositionHelper's respawn completes (LoadInProgress) before the mod loop restores the save's record
@@ -23094,7 +23094,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const openWildBody = (pile) => {
     const peer = pile.wildBody, b = _wildBodies.get(peer);
     if (!b || !wildFight.body(peer)) { wildBodyGone(peer); townTalk.say(WILD_TEXT.gone); return; }
-    const w = makeInventoryWindow({ chooseOne: { items: pile.items, title: `${b.name} - choose one`, onChoose: (taken) => wildBodyChosen(peer, taken) } });
+    const w = makeInventoryWindow({ chooseOne: { items: pile.items, title: `${b.name} · choose one`, onChoose: (taken) => wildBodyChosen(peer, taken) } });
     if (w) townTalk.showOverlay(w);
   };
   /** The choice made: what the window put in my pack goes straight back out, and the pick goes to the relay (INT9) - it

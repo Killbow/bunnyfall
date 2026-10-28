@@ -166,9 +166,9 @@ export function notePlace(p) {
  *  this' everywhere"). @param {{ name: string, via?: string, fb?: string }} who */
 export function staffTpLine(who) {
   const name = { name: who.name };
-  if (who.via === 'note') return t('net.staffTp.viaNote', 'Teleported to {name} from their where note. Their game wasn’t told, but the player can see you arrive.', name);
-  if (who.fb === 'missing') return t('net.staffTp.noteMissing', 'Teleported to {name}\'s exact position. Their where note was missing, so their game was asked (the player can see this).', name);
-  if (who.fb) return t('net.staffTp.noteMismatch', 'Teleported to {name}\'s exact position. Their where note didn’t match, so their game was asked (the player can see this).', name);
+  if (who.via === 'note') return t('net.staffTp.viaNote', 'Teleported to {name} from their where note - their game was told nothing, but the player can see you arrive.', name);
+  if (who.fb === 'missing') return t('net.staffTp.noteMissing', "Teleported to {name}'s exact position - their game was asked, because their where note was missing (the player can see this).", name);
+  if (who.fb) return t('net.staffTp.noteMismatch', "Teleported to {name}'s exact position - their game was asked, because their where note did not match (the player can see this).", name);
   return t('net.staffTp.exact', "Teleported to {name}'s exact position (the player can see this).", name);
 }
 

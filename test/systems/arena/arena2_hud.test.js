@@ -176,7 +176,7 @@ test('ARENA2 Herald: his choice - watch while a bout stands or the hour\'s is op
   const g = heraldChoice({ gameMinutes: day + 12 * 60, ladder: done });
   assert.ok(g.lines.includes(ARENA_TEXT.herald.ladderDone));
   assert.ok(!g.options.some((o) => o.act === 'fight'));
-  for (const o of open.options.filter((x) => x.label)) assert.match(o.label, /^[A-Z] - [A-Z]/, 'ChoiceWindow\'s "K - Label"');
+  for (const o of open.options.filter((x) => x.label)) assert.match(o.label, /^[A-Z]: [A-Z]/, 'ChoiceWindow\'s "K: Label"');
 });
 
 // ── THE WORDS ────────────────────────────────────────────────────────────────────────────────────────────

@@ -377,7 +377,7 @@ test('MAP-KEY: what the key says at each band - the far band inks the cities alo
     const at = (scale) => { win._view = { ox: 0, oy: 0, scale }; win._goal = { ...win._view }; win.tick(0.016); return dims(); };
     assert.deepEqual(at(1), ['dungeon', 'graveyard', 'coven', 'temple', 'cult', 'home', 'tavern', 'hamlet', 'village'], 'far: the cities alone are inked');
     const far = itemsOf(win).find((i) => i.dataset.kind === 'dungeon');
-    assert.equal(far.title, 'Dungeon - zoom in to see');
+    assert.equal(far.title, 'Dungeon · zoom in to see');
     assert.equal(itemsOf(win).find((i) => i.dataset.kind === 'city').title, 'City');
     assert.deepEqual(at(3), ['graveyard', 'coven', 'home'], 'mid: towns, temples and dungeons, not the graveyards, covens and homes');
     assert.deepEqual(at(8), [], 'near: every kind');

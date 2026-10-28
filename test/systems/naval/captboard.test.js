@@ -277,14 +277,14 @@ test('CAPT-BOARD the harbour office: the board of the port lain at, an offer tak
   g.ledger.holdContract(c);
   g.office.event({ type: 'end', act: 'sink', faction: 'pirate', crown: 'Wayrest' });
   assert.deepEqual(g.log.credited, [c.pay]);
-  assert.equal(g.log.mid.at(-1), `Contract done - ${c.title}. ${c.pay.toLocaleString('en-US')} gold paid by Wayrest's harbormaster.`);
+  assert.equal(g.log.mid.at(-1), `Contract done: ${c.title}. ${c.pay.toLocaleString('en-US')} gold paid by Wayrest's harbormaster.`);
   const s2 = takeContract({ ...off[0], kind: 'survey', need: 3, id: 's2' }, { now: 0 });
   g.ledger.holdContract(s2);
   g.office.event({ type: 'study', crown: 'Wayrest' });
   assert.equal(g.log.say.at(-1), `${s2.title}: 1 of 3 ships studied.`);
   const t = officeOf({ now: s2.until, ledger: g.ledger });
   assert.deepEqual(t.office.tick().map((x) => x.id), ['s2']);
-  assert.equal(t.log.mid.at(-1), `Contract failed - ${s2.title}. Its term ran out.`);
+  assert.equal(t.log.mid.at(-1), `Contract failed: ${s2.title}. Its term ran out.`);
   // the letters
   const L = createCaptainLedger();
   L.regard('Wayrest', 130);   // a Commodore

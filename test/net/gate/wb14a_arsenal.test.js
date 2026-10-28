@@ -399,7 +399,7 @@ test('WB14a the order under the crosshair, while it winds up: chained - run from
   assert.ok(Math.abs(Math.abs(orderPeril(ch, Math.PI).arrow) - 180) < 1e-9, 'behind me as I face him');
   const g = groundViewModel({ now: T0, peril: pr });
   assert.equal(g.warn, ARSENAL_TEXT.chained(), 'its own order');
-  assert.equal(groundViewModel({ now: T0, peril: { name: 'Cleave', t: 0.5, color: [1, 0, 0] } }).warn, 'Cleave - move!', 'the rest as they were');
+  assert.equal(groundViewModel({ now: T0, peril: { name: 'Cleave', t: 0.5, color: [1, 0, 0] } }).warn, 'Cleave. Move!', 'the rest as they were');
   const b0 = groundViewModel({ now: T0, blindAt: T0 }), b1 = groundViewModel({ now: T0 + GAZE_BLIND_MS / 2, blindAt: T0 });
   assert.ok(Math.abs(b0.blind - BLIND_PEAK) < 0.05 && b1.blind < b0.blind && b1.blind > 0);
   assert.equal(groundViewModel({ now: T0 + GAZE_BLIND_MS, blindAt: T0 }), null, 'gone');

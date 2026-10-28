@@ -173,7 +173,7 @@ export function choiceOffer(choice, mine, { barrelStock = 0, barrels = 0, barrel
     if (!guns) return { id: choice, title, useful: false, detail: 'No guns aboard' };   // AUDIT NAV1: a rowboat's, never "loaded"
     const topUp = barrelGuns && barrels < barrelStock;
     const useful = !loaded || topUp;
-    return { id: choice, title, useful, detail: useful ? `Every gun loaded${barrelGuns ? ` - fire barrels to ${barrelStock}` : ''}` : 'Your guns are loaded' };
+    return { id: choice, title, useful, detail: useful ? `Every gun loaded${barrelGuns ? `, fire barrels to ${barrelStock}` : ''}` : 'Your guns are loaded' };
   }
   if (choice === 'press') {
     const n = Math.max(0, fx.crew | 0);

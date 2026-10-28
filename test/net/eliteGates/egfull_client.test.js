@@ -190,7 +190,7 @@ test('EG-FULL THE ROOM\'S HEALS AND THE RECAP (sections 16.2 and 27.6): the rest
   P.B.mem[ME].vs = [[EG_V_BY_KEY.ironfooting.id, 2]];
   P.tell(egStateOf(P.B, P.now()));
   const R = egRecapModel(client.state(), ME, [{ h: 1, glyph: 'Y' }, { h: 2, glyph: 'S', fall: true }], P.now());
-  assert.match(R.title, /^Hall 2 - Redoubt 0 - The Broken Galleries$/);
+  assert.match(R.title, /^Hall 2 · Redoubt 0 · The Broken Galleries$/);
   assert.deepEqual(R.circles, ['Circle 1: Y S (a fall)']);
   assert.deepEqual(R.vestiges, ['Iron Footing II']);
   assert.match(R.company, /Mac/);

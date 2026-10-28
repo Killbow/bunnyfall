@@ -765,7 +765,7 @@ export function chapterBandEffectsLine(/** @type {unknown} */ strength, /** @typ
   ].filter(Boolean);
   const said = /** @type {string[]} */ (parts).join(', ');
   const and = fall ?? high;
-  return `${cap(said)}${and ? ` - and ${and}` : ''}.`;
+  return `${cap(said)}${and ? `, and ${and}` : ''}.`;
 }
 
 // ─── CHAP3c: THE BANDS ON THE HALLS (Chapters-Arc 5.2) ──────────────

@@ -95,7 +95,7 @@ test('CAPT-CREW a seasoned hire: hands joining with `service` bring that much se
   assert.ok(crew.hands.slice(0, 3).every((h) => h.prior === 0), 'the old hands as they were');
   const card = crewCard({ morale: 60, hands: joined });
   assert.ok(card.slice(1).every((l) => / - Seasoned$/.test(l) && !/fight/.test(l)), `no fights told: ${card.join(' | ')}`);
-  assert.equal(handService({ ...joined[0], role: 'Gunner' }, true), 'Seasoned - the guns reload 7% quicker', 'the Fleet page the same');
+  assert.equal(handService({ ...joined[0], role: 'Gunner' }, true), 'Seasoned · the guns reload 7% quicker', 'the Fleet page the same');
   const kept = createShipCrew({ seed: 11, record: JSON.parse(JSON.stringify(crew.snapshot())) });
   assert.deepEqual(kept.hands.map((h) => h.prior), [0, 0, 0, SEASONED_HIRE, SEASONED_HIRE], 'the save keeps it');
   assert.deepEqual(createShipCrew({ seed: 1, record: { hands: [{ name: 'X', prior: 9999 }, { name: 'Y', prior: -3 }, { name: 'Z', prior: 'a' }] } }).hands.map((h) => h.prior), [VETERANCY[VETERANCY.length - 1].at, 0, 0], 'a junk one clamped');
@@ -108,9 +108,9 @@ test('CAPT-CREW in a captain\'s words: the crew card ends a hand\'s line with hi
   const card = crewCard({ morale: 60, hands: [hand('Cora', 'Gunner', 12), hand('Finn', 'Cook', 1)] });
   assert.ok(card.includes('Cora, Gunner - 12 fights - Veteran'));
   assert.ok(card.includes('Finn, Cook - 1 fight'), 'a Green hand says no rank');
-  assert.equal(handService(hand('Cora', 'Gunner', 12), true), 'Veteran - 12 fights won - the guns reload 10% quicker');
-  assert.equal(handService(hand('Cora', 'Gunner', 12), false), 'Veteran - 12 fights won', 'a second gunner\'s worth is not hers');
-  assert.equal(handService(hand('Ann', 'First Mate', 1, 1), true), 'Green - 1 fight won, 1 boarding', 'a Green mate is worth no hand yet');
+  assert.equal(handService(hand('Cora', 'Gunner', 12), true), 'Veteran · 12 fights won · the guns reload 10% quicker');
+  assert.equal(handService(hand('Cora', 'Gunner', 12), false), 'Veteran · 12 fights won', 'a second gunner\'s worth is not hers');
+  assert.equal(handService(hand('Ann', 'First Mate', 1, 1), true), 'Green · 1 fight won, 1 boarding', 'a Green mate is worth no hand yet');
   assert.deepEqual(['Gunner', 'Carpenter', 'Lookout', 'Cook', 'Bosun', 'First Mate'].map((r) => postWords(r, 3)),
     ['the guns reload 13% quicker', 'the crew repairs 45% faster', 'the lookout sees 40% further', 'spirits last 100% longer at sea', '4% more way under sail', '2 more hands over the rail']);
   assert.equal(postWords('Deckhand', 3), '');

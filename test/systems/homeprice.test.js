@@ -220,7 +220,7 @@ test('HOME-PRICE the words: every sum a home\'s door, sale and rent say with its
   assert.equal(homeSoldLine(38_250, 0, 1_500), 'You sold your home. 39,750 gold went to your account at the Bank of the Empire, 1,500 of it rent you had not collected.', 'AUDIT HOME-PRICE D3');
   assert.equal(homeBuyRows(45_000, true)[1].label, 'Click again to buy: 45,000 gold');
   assert.equal(homeHallBuyRow(100_000, { name: 'The Hand', rank: 0, hall: null }).label, 'Buy it for The Hand: 150,000 gold from the treasury');
-  assert.equal(hallOfferLabel(100_000, { name: 'The Hand' }), 'G - buy it for The Hand: 150,000 gold from the treasury');
+  assert.equal(hallOfferLabel(100_000, { name: 'The Hand' }), 'G: buy it for The Hand: 150,000 gold from the treasury');
   // AUDIT HOME-PRICE E4: the rent at the same door, said the same way
   assert.equal(rentRowLabel(10_000), 'Rent a room: from 10,000 gold a day');
   assert.equal(rentPickLines('Mara')[1], 'The rent is paid now, from your purse and your account at the Bank of the Empire.');

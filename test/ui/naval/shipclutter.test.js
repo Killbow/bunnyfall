@@ -47,7 +47,7 @@ test('SHIP-CLUTTER THE ONE LINE: the card\'s ship reads it; else the tag nearest
   assert.deepEqual(lines({ focus: { x: 1200 + 250, y: 300 } }), [], 'none within TAG_FOCUS_PX: no line at all');
   assert.deepEqual(lines({ focus: { x: 1200, y: 300 }, patch: (t) => (t.id === 'e:5' ? { target: true } : null) }), ['e:5'], 'the card\'s ship, wherever the crosshair');
   assert.deepEqual(lines({ focus: { x: 1200, y: 300 }, patch: (t) => (t.id === 'c:3' ? { distance: TAG_DETAIL_M + 1 } : null) }), [], 'too far to read');
-  assert.equal(tagLine(spread[2]), 'Wayrest War Galley - moored at Joyous Light of Akatosh');
+  assert.equal(tagLine(spread[2]), 'Wayrest War Galley · moored at Joyous Light of Akatosh');
 });
 
 test('SHIP-CLUTTER WHO STANDS: where two would touch, the line\'s ship stands, then a hostile ship over a friendly one nearer, then the nearer (mutants: by distance alone, the line\'s ship laid last)', () => {
@@ -89,6 +89,6 @@ test('SHIP-CLUTTER THE DRAW: drawNavalTags lays the tags before it wears them - 
   const want = layoutNavalTags(harbour(), { scale: 1, focus: { x: 650, y: 230 } });
   assert.deepEqual(on.map((n) => byClass(n, 'dfnaval-tag-name')[0].textContent), want.map((t) => t.name));
   const lines = on.map((n) => byClass(n, 'dfnaval-tag-line')[0].textContent).filter(Boolean);
-  assert.deepEqual(lines, ['Merchant Galleon - moored at Joyous Light of Akatosh'], 'the Pearl\'s alone - looked at');
+  assert.deepEqual(lines, ['Merchant Galleon · moored at Joyous Light of Akatosh'], 'the Pearl\'s alone - looked at');
   destroyNavalHud();
 });

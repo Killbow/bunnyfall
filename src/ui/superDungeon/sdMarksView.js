@@ -34,10 +34,10 @@ export const SD_ELEMENT_WORD = Object.freeze({ fire: 'Fire', frost: 'Frost', sho
 /** HOW TO MEET EACH MARK - the card's advice (the tables' `text` says what it does). */
 export const SD_MARK_TIPS = Object.freeze({
   daggerfall: 'Its Stomp\'s ring reaches the rim. Jump it.',   // AUDIT SD IV (T9): WB13b's words - no dash aside, no "X, not Y"
-  sentinel: 'Spread out; its brass burns long.',
+  sentinel: 'Spread out. Its brass burns long.',
   wayrest: 'Its Hand reaches three quarters round. Keep a pillar near.',
-  orsinium: 'It closes fast; give its Stomp a wider berth.',
-  underking: 'Heal between Pulses; they come quicker.',
+  orsinium: 'It closes fast. Give its Stomp a wider berth.',
+  underking: 'Heal between Pulses. They come quicker.',
   blades: 'Fell Gold and Silver within 10 seconds of each other.',   // AUDIT SD III (T14): the Dragon Break's window in its one form
   brazen: 'Bring more damage.',
   quickened: 'Move at the word, before the fill.',

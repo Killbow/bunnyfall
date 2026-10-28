@@ -893,7 +893,7 @@ export function mountNoticeBoard(host, deps) {
     const head = el('h3', 'notice-section');
     const img = g ? bannerImg(g.heraldry, 30) : null;
     if (img) head.append(img);
-    head.append(el('span', null, g ? `<${g.tag}> ${g.name} - members only` : 'Your guild'));
+    head.append(el('span', null, g ? `<${g.tag}> ${g.name} (members only)` : 'Your guild'));
     body.append(head);
     const grid = el('ul', 'notice-grid');
     grid.setAttribute('role', 'list');
@@ -933,7 +933,7 @@ export function mountNoticeBoard(host, deps) {
     text.setAttribute('data-focus', 'gbody');
     const counted = el('span', 'notice-count', `${d.body.length} / ${NOTE_BODY_MAX}`);
     subject.oninput = () => { d.subject = subject.value; };
-    text.oninput = () => { d.body = text.value; counted.textContent = `${text.value.length} / ${NOTE_BODY_MAX}${text.value.split('\n').length > NOTE_LINES_MAX ? ` - at most ${NOTE_LINES_MAX} lines` : ''}`; };
+    text.oninput = () => { d.body = text.value; counted.textContent = `${text.value.length} / ${NOTE_BODY_MAX}${text.value.split('\n').length > NOTE_LINES_MAX ? `, at most ${NOTE_LINES_MAX} lines` : ''}`; };
     const days = /** @type {HTMLSelectElement} */ (el('select', 'notice-select'));
     for (const n of NOTE_DAYS) { const o = /** @type {HTMLOptionElement} */ (el('option', null, `${n} day${n === 1 ? '' : 's'}`)); o.value = String(n); if (n === d.days) o.selected = true; days.append(o); }
     days.onchange = () => { d.days = Number(days.value); };
@@ -1027,7 +1027,7 @@ export function mountNoticeBoard(host, deps) {
     text.maxLength = NOTE_BODY_MAX; text.value = draft.body; text.rows = 7; text.placeholder = 'Your note';
     const counted = el('span', 'notice-count', `${draft.body.length} / ${NOTE_BODY_MAX}`);
     subject.oninput = () => { draft.subject = subject.value; };
-    text.oninput = () => { draft.body = text.value; counted.textContent = `${text.value.length} / ${NOTE_BODY_MAX}${text.value.split('\n').length > NOTE_LINES_MAX ? ` - at most ${NOTE_LINES_MAX} lines` : ''}`; };
+    text.oninput = () => { draft.body = text.value; counted.textContent = `${text.value.length} / ${NOTE_BODY_MAX}${text.value.split('\n').length > NOTE_LINES_MAX ? `, at most ${NOTE_LINES_MAX} lines` : ''}`; };
     const days = /** @type {HTMLSelectElement} */ (el('select', 'notice-select'));
     for (const d of NOTE_DAYS) { const o = /** @type {HTMLOptionElement} */ (el('option', null, `${d} day${d === 1 ? '' : 's'}`)); o.value = String(d); if (d === draft.days) o.selected = true; days.append(o); }
     days.onchange = () => { draft.days = Number(days.value); };

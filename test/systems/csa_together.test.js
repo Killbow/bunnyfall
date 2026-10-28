@@ -579,7 +579,7 @@ test('CSA-L: the panel on a page - under the compass, titled with the hull, a ke
     const root = drawEnhancedHelm({ helm: H({ squareToggle: true, manualTrim: true, hasSquare: true }), keyOf, mouseFree: false, freeKey: 'Y' }, hooks, { doc });
     assert.ok(root && root.id === ENHANCED_HELM_ID && doc.body.children.includes(root), 'mounted on the page');
     assert.equal(enhancedHelmBar(), one(root, 'helmpanel-bar'), 'THE MERGE with NAV-F: the bar standing, which the sea\'s target card stands under');
-    assert.equal(one(root, 'helmpanel-name').textContent, 'At the helm - Large Boat');
+    assert.equal(one(root, 'helmpanel-name').textContent, 'At the helm: Large Boat');
     assert.equal(one(root, 'helmpanel-hint').textContent, 'Oars & sails UP DOWN · Steer LEFT RIGHT · Free the mouse (Y) to use these', 'HELM-KEYS: the helm\'s hand at a glance (HELM-LADDER: her oars and her sails on one ladder)');
     const btn = (act) => all(root, 'helmpanel-btn').find((b) => b.dataset.act === act);
     assert.equal(one(btn('sails'), 'helmpanel-key').textContent, 'End', 'the key it stands for (HELM-LADDER: the toggle\'s)');

@@ -107,9 +107,9 @@ export function shipCardText(s) {
   if (s.ram) figs.push('a ram');   // RAM-RETURN
   figs.push(`hull ${s.hullHp}${s.sailHp > 0 ? `, canvas ${s.sailHp}` : ''}`);
   return {
-    name: s.name, line: s.line, figs: figs.join(' - '),
+    name: s.name, line: s.line, figs: figs.join(' · '),
     note: s.docks ? null : 'Too big for the quay. It anchors off the harbor.',
-    press: `Buy - ${gold(s.asked)}`,
+    press: `Buy: ${gold(s.asked)}`,
     why: s.why, can: !s.why,
   };
 }
@@ -366,7 +366,7 @@ export function mountShipyardWindow(host, deps) {
       left.append(el('b', null, w.name), el('br'), el('span', null, w.gain));
       const mid = el('span', null, r.next ? [w.asks, w.melt, w.lock].filter(Boolean).join(' ') : 'This upgrade line is complete.');
       const acts = el('div', 'dfyard-acts');
-      acts.append(button(r.next ? `Refit - ${REFIT_NUMERALS[r.tier + 1]}` : 'Done', 'dfnaval-btn', () => press('refit', m.uid, r.id), !!r.next && r.afford && !o.why, o.why ?? w.lock));
+      acts.append(button(r.next ? `Refit: ${REFIT_NUMERALS[r.tier + 1]}` : 'Done', 'dfnaval-btn', () => press('refit', m.uid, r.id), !!r.next && r.afford && !o.why, o.why ?? w.lock));
       row.append(left, mid, acts);
       sec.append(row);
     }
@@ -383,7 +383,7 @@ export function mountShipyardWindow(host, deps) {
       for (const h of m.hands) {
         const row = el('div', 'dfyard-row');
         const left = el('div');
-        left.append(el('b', null, h.name), el('br'), el('span', null, `${h.fights} ${h.fights === 1 ? 'fight' : 'fights'}, ${h.boardings} ${h.boardings === 1 ? 'boarding' : 'boardings'}${h.ashore ? ' - ashore with you' : ''}`));
+        left.append(el('b', null, h.name), el('br'), el('span', null, `${h.fights} ${h.fights === 1 ? 'fight' : 'fights'}, ${h.boardings} ${h.boardings === 1 ? 'boarding' : 'boardings'}${h.ashore ? ' · ashore with you' : ''}`));
         const post = /** @type {HTMLSelectElement} */ (el('select', 'dfyard-post'));
         // AUDIT SHIPYARDS L2-7: the Fleet page's posts (AUDIT HOLDINGS C3) - a Bard by his class keeps his calling to
         // offer and stands no lookout
@@ -447,7 +447,7 @@ export function mountShipyardWindow(host, deps) {
     view.page = m.page;
     if (m.uid != null) view.uid = m.uid;
     h2.textContent = m.title;
-    sub.textContent = `${m.keeper ? `${m.keeper}, the shipmaster` : 'The shipmaster'} - your purse: ${gold(m.gold)}`;
+    sub.textContent = `${m.keeper ? `${m.keeper}, the shipmaster` : 'The shipmaster'} · your purse: ${gold(m.gold)}`;
     noteLine.textContent = note ? note.text : '';
     noteLine.className = `dfnaval-note${note?.warn ? ' warn' : ''}`;
     if (note) noteLine.removeAttribute('hidden'); else noteLine.setAttribute('hidden', '');

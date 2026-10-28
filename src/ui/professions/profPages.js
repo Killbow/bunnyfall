@@ -1594,7 +1594,7 @@ export function chainNote(box, el, p, book, inputs) {
     made.set(k, (made.get(k) ?? 0) + w.count * chainYield(r, (prof) => book.track(prof)));
   }
   const raw = plan.spent.filter((s) => !inputs.some((i) => i.key === s.key));
-  box.append(el('p', 'px-note prof-chain', `Refined first: ${[...made].map(([k, n]) => `${k} x${n}`).join(', ')}${raw.length ? ` - from ${raw.map((s) => `${p.name(s.key)} x${s.n}`).join(', ')}` : ''}. The refining earns its own experience, and anything left over stays in your Stores.`));
+  box.append(el('p', 'px-note prof-chain', `Refined first: ${[...made].map(([k, n]) => `${k} x${n}`).join(', ')}${raw.length ? `, from ${raw.map((s) => `${p.name(s.key)} x${s.n}`).join(', ')}` : ''}. The refining earns its own experience, and anything left over stays in your Stores.`));
   return plan;
 }
 
@@ -1717,7 +1717,7 @@ export function materialRow(box, el, list, r, state, rerender, stand, locked = f
   for (const x of made) {
     const s = stand(x);
     const star = s.open && first?.(x) === true ? ` ${FIRST_STAR}` : '';
-    const b = el('button', `prof-family${x.id === r.id ? ' on' : ''}${s.can || s.raw ? '' : ' prof-locked'}`, s.open ? `${x.madeOf}${star}` : `${x.madeOf} - rank ${x.rank}`);
+    const b = el('button', `prof-family${x.id === r.id ? ' on' : ''}${s.can || s.raw ? '' : ' prof-locked'}`, s.open ? `${x.madeOf}${star}` : `${x.madeOf} · rank ${x.rank}`);
     b.type = 'button';
     b.disabled = locked;
     b.onclick = () => { state.picked = x.id; state.madeOf = x.madeOf; rerender(); };

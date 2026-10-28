@@ -523,7 +523,7 @@ export const WILD_TEXT = Object.freeze({
   get revenantOne() { return t('wild.zone.revenantOne', 'Only one revenant may walk at your side in the Wrothgarian Mountains.'); },
   // WILD3: the strangers
   stranger: 'Stranger',
-  strangerNear: (m) => `A stranger is near - ${Math.max(10, Math.round(m / 10) * 10)} m.`,
+  strangerNear: (m) => `A stranger is near: ${Math.max(10, Math.round(m / 10) * 10)} m.`,
   // WILD3: the journeys
   travelIn: `No fast travel into the ${WILD_NAME}. Cross its edge on foot or on horseback (the Overworld map).`,
   travelOut: `No fast travel out of the ${WILD_NAME}. Walk or ride out (the Overworld map).`,

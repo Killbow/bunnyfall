@@ -242,7 +242,7 @@ test('PLEA-LOOP: a keyed menu answers ONCE, however many doors reach it - a key,
     const got = [];
     const box = new ChoiceWindow({ lines: ['How plead you?'], options: [
       { code: 'KeyG', label: 'G - guilty', action: () => got.push('G') },
-      { code: 'KeyN', label: 'N - not guilty', action: () => got.push('N') },
+      { code: 'KeyN', label: 'N: not guilty', action: () => got.push('N') },
     ] });
     box.input('KeyG');
     box.input('KeyG');

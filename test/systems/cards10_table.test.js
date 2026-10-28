@@ -224,7 +224,7 @@ test('CARDS10 the panel\'s model: the setup (decks with the binder\'s words, the
   assert.equal(staged.actions[0].label, 'Commit 1 play');
   assert.equal(staged.holdings[one.holding].staged.length, 1);
   assert.ok(staged.hand[one.card].staged);
-  assert.match(staged.message, /^Turn 1 of 6 - your magicka \d+ of 1\.$/);
+  assert.match(staged.message, /^Turn 1 of 6. Your magicka \d+ of 1\.$/);
   assert.equal(m.them.name, 'Ana');
   // the end
   assert.equal(resultLine({ viewer: 0, result: { winner: 0, held: [0, 0, 1], total: [9, 4], by: 'holdings' } }, 'won'), 'You win - 2 of three holdings held.');

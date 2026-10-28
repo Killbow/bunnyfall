@@ -62,11 +62,11 @@ test('SD2c the ring: none while it has only risen (a find), its own pixel\'s onc
   assert.equal(sdMapMark(r, HOLLOW, T0 + M), null, 'risen: a find, not news');
   const f = sdFind(r, T0 + H, 'Mara');
   const m = sdMapMark(f, HOLLOW, T0 + H + 1000);
-  assert.deepEqual({ ...m, tip: null }, { day: 1, cx: 303.5, cy: 202.5, r: SD_RING_R, label: 'The Stopped Bell - fades in 1d 22h', phase: 'found', tip: null });
+  assert.deepEqual({ ...m, tip: null }, { day: 1, cx: 303.5, cy: 202.5, r: SD_RING_R, label: 'The Stopped Bell · fades in 1d 22h', phase: 'found', tip: null });
   assert.deepEqual(m.tip, { title: 'The Stopped Bell, an Abyss Dungeon', lines: ['Near Copperham', `It keeps the Ending of ${sdEndingOf(sdMarksOf(1)).stone}`, 'Found by Mara', 'Fades in 1d 22h'] });   // SD18c (PIN MOVED): the Ending it keeps
   assert.equal(sdStateWords(f, T0 + H + 1000), 'fades in 1d 22h');
   const k = sdFell(f, T0 + 3 * H, { top: 'Mara', n: 2 });
-  assert.equal(sdMapMark(k, HOLLOW, T0 + 3 * H + 1000).label, 'The Stopped Bell - collapsing');
+  assert.equal(sdMapMark(k, HOLLOW, T0 + 3 * H + 1000).label, 'The Stopped Bell · collapsing');
   assert.equal(sdMapMark(k, HOLLOW, k.fellAt + SD_COLLAPSE_MS), null, 'collapsed: gone');
   assert.equal(sdMapMark(f, { ...HOLLOW, s: 2 }, T0 + H + 1000), null, 'another slot\'s Hollow');
   assert.equal(sdMapMark(f, { s: 1, key: HOLLOW.key, loc: HOLLOW.loc }, T0 + H + 1000), null, 'a Hollow whose site is not known');

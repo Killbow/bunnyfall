@@ -131,10 +131,10 @@ export const ADAPT_NAMES = Object.freeze({
 });
 /** RVN12b (bible/12-Enhanced-AI/Feud-Arc.md 24.1): what each adaptation does to me, in a chip's words (13.2's table). */
 export const ADAPT_EFFECTS = Object.freeze({
-  mailed: 'your blades bite less', braced: 'your blunt blows bite less; it stands firmer', hewnHard: 'your axes bite less',
-  unflinching: 'your fists bite less', arrowWise: 'your arrows bite less; it closes fast', fireproof: 'it shrugs off fire',
+  mailed: 'your blades bite less', braced: 'your blunt blows bite less and it stands firmer', hewnHard: 'your axes bite less',
+  unflinching: 'your fists bite less', arrowWise: 'your arrows bite less and it closes fast', fireproof: 'it shrugs off fire',
   rimebound: 'it shrugs off frost', grounded: 'it shrugs off shock', venomBlooded: 'it shrugs off poison', spellScarred: 'it shrugs off magic',
-  silverScarred: 'silver no longer doubles on it', steadfast: 'it stands firmer; its blows often cannot be broken',
+  silverScarred: 'silver no longer doubles on it', steadfast: 'it stands firmer and its blows often can’t be broken',
   patient: 'it tracks you, feints and times its swings', watchful: 'it is never caught unaware', relentless: 'it is faster, and never gives up the hunt',
   nightStalker: 'it comes only by night, and strikes harder in the dark',
 });

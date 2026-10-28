@@ -42,14 +42,14 @@ test('OL2 (5): the clock line says the world\'s time of day (RESTX2: and that a 
   // the one thing that still is: the world's clock, which a rest online
   // never moves. REAL_MINUTES_PER_WORLD_HOUR went with the sentence.
   // LIVED1 (2026-09-29): and the hours are the character's own - the line says whose time the counter spends
-  assert.equal(restClockLine(CLASSIC_GAME_START_TIME), 'World time 13:30 - you rest on your own clock', 'the classic start, 13:30');
-  assert.equal(restClockLine(CLASSIC_GAME_START_TIME + 95), 'World time 15:05 - you rest on your own clock', 'padded');
+  assert.equal(restClockLine(CLASSIC_GAME_START_TIME), 'World time 13:30 · you rest on your own clock', 'the classic start, 13:30');
+  assert.equal(restClockLine(CLASSIC_GAME_START_TIME + 95), 'World time 15:05 · you rest on your own clock', 'padded');
   assert.ok(!rd('src/ui/restWindow.js').includes('REAL_MINUTES_PER_WORLD_HOUR'), 'no spelled pace on the page, and no constant left to drift');
   void ONLINE_MINUTES_PER_MS;
   const on = resting({ sharedMinutes: () => CLASSIC_GAME_START_TIME + 95, vitals: () => ({ health: 10, maxHealth: 20, fatigue: 5, magicka: 6 }) });
-  assert.deepEqual(on.restingLines(), ['Resting...', 'Hours remaining: 4', 'World time 15:05 - you rest on your own clock', 'Health 10/20  Fatigue 5  Magicka 6', '', 'Esc - stop'], 'the text page, between the hours and the vitals');
+  assert.deepEqual(on.restingLines(), ['Resting...', 'Hours remaining: 4', 'World time 15:05 · you rest on your own clock', 'Health 10/20  Fatigue 5  Magicka 6', '', 'Esc: stop'], 'the text page, between the hours and the vitals');
   const off = resting({ vitals: () => ({ health: 10, maxHealth: 20, fatigue: 5, magicka: 6 }) });
-  assert.deepEqual(off.restingLines(), ['Resting...', 'Hours remaining: 4', 'Health 10/20  Fatigue 5  Magicka 6', '', 'Esc - stop'], 'offline: the page it always was');
+  assert.deepEqual(off.restingLines(), ['Resting...', 'Hours remaining: 4', 'Health 10/20  Fatigue 5  Magicka 6', '', 'Esc: stop'], 'offline: the page it always was');
   const src = rd('src/ui/restWindow.js');
   assert.match(src, /if \(Number\.isFinite\(st\.worldMinutes\)\) \{\s*shadowText\(renderer, font, restClockLine\(st\.worldMinutes, \{ loiter: this\.mode === 'loiter' \}\), m, 0, REST_PANEL_Y \+ REST_COUNTER_RECT\[3\] \+ 18, \{ align: 'center', w: NATIVE_W \}\);/, 'the art page, under the vitals');
   assert.match(src, /lines = this\.restingLines\(\);/, 'one body for the text page and the pin');

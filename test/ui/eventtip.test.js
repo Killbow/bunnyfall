@@ -80,7 +80,7 @@ test('EVENT-TIP: a raid is marked while it RUNS - begun, not withdrawn, not clea
     raid({ locationName: 'Held', cleansed: true }),
     raid({ locationName: 'Nowhere', px: 3.5 }),
   ], NOW, { regionName });
-  assert.deepEqual(marks.map((m) => m.label), ['Gothway Garden - under attack'], 'the one running now, and it alone');
+  assert.deepEqual(marks.map((m) => m.label), ['Gothway Garden · under attack'], 'the one running now, and it alone');
   const [m] = marks;
   assert.deepEqual({ key: m.key, px: m.px, py: m.py }, { key: '17:3:700', px: 3, py: 7 });
   assert.deepEqual(m.tip, { title: RAID_TIP_TITLE, lines: ['Gothway Garden, Daggerfall', 'Orcs attacking', 'Withdraws at 12:00'] });
@@ -206,7 +206,7 @@ test('EVENT-TIP on the held map: the hover asks a party member, a raided town, a
     // the raided town: its card, and the hand (a press still picks the town under it)
     const [rx, ry] = toPaper(win._view, 3.5, 7.5);
     const onRaid = win._hoverLabel(rx, ry);
-    assert.deepEqual({ label: onRaid.label, cursor: onRaid.cursor }, { label: 'Gothway Garden - under attack', cursor: 'pointer' });
+    assert.deepEqual({ label: onRaid.label, cursor: onRaid.cursor }, { label: 'Gothway Garden · under attack', cursor: 'pointer' });
     assert.deepEqual(onRaid.tip.lines, ['Gothway Garden, Daggerfall', 'Orcs attacking', 'Withdraws at 12:00']);
     assert.equal(win._hoverLabel(rx, ry - 18).tip?.title, RAID_TIP_TITLE, 'its blades are the raid\'s too');
     assert.equal(win._raidAt(rx + RAID_HIT_PX + 1, ry), null, 'past the reach, not the raid');

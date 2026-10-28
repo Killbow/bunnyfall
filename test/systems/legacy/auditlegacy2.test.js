@@ -250,7 +250,7 @@ test('AUDIT LEGACY II A4/P1: a write never loses a fact the store holds - a seco
   assert.ok(loadFamily(w.storage, w.host.family.id).people[0].died, 'the death lands at the next tick');
 });
 
-test('AUDIT LEGACY II A5: the line\'s houses keep their places - the family home never moves with whoever is played', () => {
+test('AUDIT LEGACY II A5: the line\'s houses keep their places · the family home never moves with whoever is played', () => {
   const f = foundFamily(person('c-a'), { id: 'fam-h', seat: { region: 'X', loc: 'Elsewhere' } });
   syncHouses(f, 1, [HOUSE_A]);
   syncHouses(f, 2, [HOUSE_B]);

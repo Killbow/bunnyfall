@@ -1461,7 +1461,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     }
     // CHAT-CHAN: the field says where a line typed into it goes
     const on = log.tab(log.active);
-    const ph = on ? `Say something - ${on.place ?? on.label}` : 'Say something';
+    const ph = on ? `Say something: ${on.place ?? on.label}` : 'Say something';
     if (input.placeholder !== ph) input.placeholder = ph;
     const unread = log.unreadTotal();
     badgeOut.textContent = unread ? String(unread) : '';

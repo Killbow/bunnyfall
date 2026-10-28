@@ -99,7 +99,7 @@ export function patchPlan({ patch, taken, counting, basket, rank, sickle, basket
   const both = herbsLeft && foodLeft;
   const name = templateByIndex(patch.herb)?.name ?? 'the herb';
   const rankWord = `Herbalism ${rank}`;
-  if (!herbsLeft && !foodLeft) return { kind, verb: `${name} - gathered today`, rest: counting('herbs') || counting('food') ? 'being counted' : '', ready: false, both: false };
+  if (!herbsLeft && !foodLeft) return { kind, verb: `${name} · gathered today`, rest: counting('herbs') || counting('food') ? 'being counted' : '', ready: false, both: false };
   // TOOL-USE: the tool's own harvest gone, the other left
   if (!(kind === 'food' ? foodLeft : herbsLeft)) return { kind, verb: kind === 'food' ? 'Search with the Basket' : `Pick ${name}`, rest: counting(kind) ? 'being counted' : 'gathered today', ready: false, both };
   if (kind === 'food') {

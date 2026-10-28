@@ -242,7 +242,7 @@ export const guildRenameSoonText = (at, nowS) => {
   const days = Math.max(1, Math.ceil((at - nowS) / 86_400));
   return `The guild was renamed recently. It can be renamed again in ${days} ${days === 1 ? 'day' : 'days'}.`;
 };
-export const GUILD_VAULT_REACH_TEXT = 'You can use the vault in any town. View it here; put items in and take them out in town.';
+export const GUILD_VAULT_REACH_TEXT = 'You can use the vault in any town. You can view it here, but items go in and out in town.';
 export const GUILD_VAULT_EMPTY_TEXT = 'The vault is empty. Put an item in from your pack below.';
 /** GUILD2c: why a draft of arms will not stand, in the law's own terms (heraldryLaw.js heraldryOf). */
 export function armsWhy(h) {
@@ -1429,7 +1429,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       if (counted) out.push(el('div', 'dfsocial-note', counted));
       return out;
     }
-    out.push(personRow({ name: guildHallWhereText(hall), sub: `Who may enter: ${GUILD_HALL_ENTRY_WORDS[hall.entry] ?? GUILD_HALL_ENTRY_WORDS.guild} - bought for ${Number(hall.paid).toLocaleString('en-US')} gold` }));
+    out.push(personRow({ name: guildHallWhereText(hall), sub: `Who may enter: ${GUILD_HALL_ENTRY_WORDS[hall.entry] ?? GUILD_HALL_ENTRY_WORDS.guild} · bought for ${Number(hall.paid).toLocaleString('en-US')} gold` }));
     const acts = el('div', 'dfsocial-acts');
     if (hallMay(me, 'hallEntry')) {
       const next = GUILD_HALL_ENTRIES[(Math.max(0, GUILD_HALL_ENTRIES.indexOf(hall.entry)) + 1) % GUILD_HALL_ENTRIES.length];

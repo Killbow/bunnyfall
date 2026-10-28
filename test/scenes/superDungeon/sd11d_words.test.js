@@ -182,20 +182,20 @@ test('SD11d THE BAR\'S ONE CALLOUT, BY WHAT CAN BE DONE ABOUT IT (L6 F1): the Re
   assert.equal(remnantBarModel(fight({ ph: 3, su: NOW + 6000 }), NOW).callout.text, SD_BAR_TEXT.stunned(6), 'the stun alone');
 });
 
-test('SD11d THE ECHO\'S CLOCK AND THE RETURN (L6 F6, F10): a fallen Echo counts to its rising - the callout "Gold rises in 12s", its chip the same, pulsing its last five seconds (it said "fallen" and no time); "Outside time" while both stand; for the Last Moment\'s 2.5 s return "It returns - Ns" (it said "strike the Echoes" with none there); the gate bar pulses the host\'s chip as it does the Wrath\'s (mutants: no clock; no pulse; the return outside time)', () => {
+test('SD11d THE ECHO\'S CLOCK AND THE RETURN (L6 F6, F10): a fallen Echo counts to its rising - the callout "Gold rises in 12s", its chip the same, pulsing its last five seconds (it said "fallen" and no time); "Outside time" while both stand; for the Last Moment\'s 2.5 s return "It returns: Ns" (it said "strike the Echoes" with none there); the gate bar pulses the host\'s chip as it does the Wrath\'s (mutants: no clock; no pulse; the return outside time)', () => {
   const ec = (dn) => [{ h: 0, m: 5000, up: 0, dn, atk: null, x: 0, z: 0 }, { h: 2250, m: 5000, up: 0, dn: 0, atk: null, x: 0, z: 0 }];
   const a = remnantBarModel(fight({ ph: 2, ec: ec(NOW - 3000) }), NOW);
   assert.equal(a.callout.text, SD_BAR_TEXT.rises(0, 12));
   assert.equal(a.callout.text, 'Gold rises - 12s');   // AUDIT SD III (T5, PIN MOVED): its count after the dash, as every countdown the bar calls - the callout came in afresh each second
-  assert.equal(a.host, 'Gold rises in 12s - Silver 45%');
+  assert.equal(a.host, 'Gold rises in 12s · Silver 45%');
   assert.equal(a.hostNear, false);
   const b = remnantBarModel(fight({ ph: 2, ec: ec(NOW - SD_ECHO_PAIR_MS + SD_ECHO_RISE_NEAR_MS - 1) }), NOW);
   assert.equal(b.hostNear, true, 'its last five seconds');
   const both = remnantBarModel(fight({ ph: 2, ec: [{ h: 4000, m: 5000, up: 0, dn: 0, atk: null, x: 0, z: 0 }, { h: 2250, m: 5000, up: 0, dn: 0, atk: null, x: 0, z: 0 }] }), NOW);
   assert.equal(both.callout.text, SD_BAR_TEXT.outside);
-  assert.equal(both.host, 'Gold 80% - Silver 45%');
+  assert.equal(both.host, 'Gold 80% · Silver 45%');
   const back = remnantBarModel(fight({ ph: 3, ou: NOW + 2400 }), NOW);
-  assert.equal(back.callout.text, 'It returns - 3s', 'the Remnant rising, the Echoes gone');
+  assert.equal(back.callout.text, 'It returns: 3s', 'the Remnant rising, the Echoes gone');
   const bar = read('src/ui/gate/gateBossBar.js');
   assert.match(bar, /const hostNear = !!model\.host && !!model\.hostNear && !model\.fallen;/);
   assert.match(bar, /parts\.tags\[1\]\.className = hostNear \? 'wb-boss-tag wb-boss-host near' : 'wb-boss-tag wb-boss-host';/);
@@ -505,7 +505,7 @@ function arcLines() {
   // PIN MOVED (AUDIT SD IV T9): and every line the arc has said since SD11 - the marks line with every find (each Ending's;
   // it hung its signature between dashes), the last hour's, the turn's wait, the claim's words, the card's tips (two
   // dash asides and an "X, not Y"). The law's scope: what is SAID - a chat line, a voice's line, a plaque's row, a tip.
-  // A label and its value keep their dash (the bar's chips, the card's wake line "Sunfall - the Ending of Sentinel", the
+  // A label and its value keep their dash (the bar's chips, the card's wake line "Sunfall: the Ending of Sentinel", the
   // ground's "Brass Stomp - jump!", the Timers' rows), as the gate's own do.
   for (const E of SD_ENDINGS) { const s = Array.from({ length: 216 }, (_, i) => i + 1).find((k) => sdEndingOf(sdMarksOf(k))?.id === E.id); add(`marks.${E.id}`, sdMarksLine({ name: 'The Stopped Bell', s })); }
   add('hour.near', sdHourLine({ name: 'The Stopped Bell', near: 'Copperham' })); add('hour.region', sdHourLine({ region: 'Alik\'r Desert' }));

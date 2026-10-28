@@ -125,7 +125,7 @@ export function handService(h, holds = false) {
   const v = veteranOf(h);
   const deeds = [h.fights ? `${h.fights} fight${h.fights === 1 ? '' : 's'} won` : '', h.boardings ? `${h.boardings} boarding${h.boardings === 1 ? '' : 's'}` : ''].filter(Boolean).join(', ');
   const worth = holds ? postWords(h.role, v.tier) : '';
-  return [v.label, deeds, worth].filter(Boolean).join(' - ');
+  return [v.label, deeds, worth].filter(Boolean).join(' · ');
 }
 
 /** HOLDINGS: her named hands, each with his post - a list of CREW_ROLES (and a Bard's calling, his) to give him another.
@@ -140,7 +140,7 @@ function crewPanel(el, s, act) {
     const head = el('div', 'hld-head');
     head.append(el('span', 'hld-name', h.name), el('span', 'hld-state', h.role));
     row.append(head);
-    row.append(el('span', 'hld-sub', `${handService(h, posts[h.role]?.name === h.name)}${h.ashore ? ' - ashore with you' : ''}`));
+    row.append(el('span', 'hld-sub', `${handService(h, posts[h.role]?.name === h.name)}${h.ashore ? ' · ashore with you' : ''}`));
     const pick = /** @type {HTMLSelectElement} */ (el('select', 'hld-field hld-select'));
     pick.setAttribute('aria-label', `${h.name}'s post`);
     for (const role of [...CREW_ROLES.filter((r) => !(h.bard && r === 'Lookout')), ...(h.bard ? ['Bard'] : [])]) {   // AUDIT HOLDINGS C3: a Bard keeps no lookout

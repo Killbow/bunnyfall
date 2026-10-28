@@ -41,7 +41,7 @@ export const SD_BEAT_LAST_MS = 60 * 1000;
  *  (T14): in the window's one form, the card's, the chat's, the Blades' tip and law (it was said four ways). */
 export const sdBreakSub = (ms) => `Fell Gold and Silver within ${Math.round(ms / 1000)} seconds of each other`;
 /** SD18b: its wake's words by its Hollow's Ending - its signature and the Ending it keeps (the table's with none). */
-export const sdWakeText = (mk) => { const E = sdEndingOf(mk); return E ? { ...SD_BEAT_TEXT.wake, sub: `${E.sig} - the Ending of ${E.stone}` } : SD_BEAT_TEXT.wake; };
+export const sdWakeText = (mk) => { const E = sdEndingOf(mk); return E ? { ...SD_BEAT_TEXT.wake, sub: `${E.sig}: the Ending of ${E.stone}` } : SD_BEAT_TEXT.wake; };
 /** The words on the card. */
 export const SD_BEAT_TEXT = Object.freeze({
   wake: Object.freeze({ kicker: 'The Shattered Hour', main: 'The Brass Remnant', sub: 'What the Warp kept of the Numidium' }),
@@ -51,7 +51,7 @@ export const SD_BEAT_TEXT = Object.freeze({
   fell: Object.freeze({ kicker: 'The Brass Remnant', main: 'Undone', sub: '' }),
 });
 /** The words under the crosshair for the ring. */
-export const SD_JUMP_TEXT = (name) => `${name} - jump!`;
+export const SD_JUMP_TEXT = (name) => `${name}. Jump!`;
 
 /**
  * THE NEAREST WAY OUT of a shape (`inside(x, z)`, the arena's frame) from my feet at (fx, fz), over the arena's floor:

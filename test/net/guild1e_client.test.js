@@ -106,7 +106,7 @@ test('GUILD1e the Guilds tab: the reader\'s guild\'s notes under its banner, the
   tabs[1].onclick();
   await until(() => /on The Silver Hand's board/.test(host.textContent));   // AUDIT SEATS-3 F1: the guild's board read
   const text = host.textContent;
-  assert.match(text, /<SH> The Silver Hand - members only/);   // BOARD-UI (PIN MOVED)
+  assert.match(text, /<SH> The Silver Hand \(members only\)/);   // BOARD-UI (PIN MOVED)
   assert.match(text, new RegExp(GUILD_BOARD_EMPTY.none('The Silver Hand')));
   assert.match(text, /Recruiting in Daggerfall/);
   const posters = byClass(host, 'notice-poster');

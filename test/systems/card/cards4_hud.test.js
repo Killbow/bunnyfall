@@ -30,7 +30,7 @@ test('CARDS4 a card as the panel writes it', () => {
 
 test('CARDS4 the panel at the buy-in: gold or chips, affordable or not', () => {
   const gold = cardHudModel({ phase: 'buyin', buyIn: { min: 200, max: 1000 }, stakes: TABLE_STAKES });
-  assert.equal(gold.title, 'Card table - 5/10 gold');
+  assert.equal(gold.title, 'Card table: 5/10 gold');
   assert.equal(gold.note, null);
   assert.deepEqual(gold.buyIn, { min: 200, max: 1000, value: 400, picks: [{ label: 'Min', value: 200 }, { label: 'Max', value: 1000 }] }, 'forty big blinds to start');   // PIN MOVED (CARDS-PANEL): the quick stakes beside the slider
   assert.deepEqual(gold.actions, [{ id: 'deal', label: 'Deal me in', enabled: true }, { id: 'stand', label: 'Stand up', enabled: true }]);
@@ -39,7 +39,7 @@ test('CARDS4 the panel at the buy-in: gold or chips, affordable or not', () => {
   assert.equal(poor.message, 'You need 200 gold to sit in at these stakes.');
   assert.equal(poor.actions[0].enabled, false);
   const friendly = cardHudModel({ phase: 'buyin', buyIn: { min: 200, max: 1000 }, stakes: TABLE_STAKES, friendly: true });
-  assert.equal(friendly.title, 'Card table - 5/10 chips');
+  assert.equal(friendly.title, 'Card table: 5/10 chips');
   assert.match(friendly.note, /Online, no gold changes hands/);
 });
 

@@ -181,13 +181,13 @@ test('PROF2 stand: a dungeon\'s veins on its walls - the dungeon\'s own ray answ
 
 // ─── THE PLAN ────────────────────────────────────────────────────────
 
-test('PROF2 plan: what E does at a vein or a boulder, and what it needs - worked today, the rank, the Pick-Axe, the Stores\' room; no day\'s sixty (CAP-OFF)', () => {
+test('PROF2 plan: what E does at a vein or a boulder, and what it needs · worked today, the rank, the Pick-Axe, the Stores\' room; no day\'s sixty (CAP-OFF)', () => {
   const base = { node: { what: 'vein', tier: 2, material: 'metal:lodestone' }, taken: false, counting: false, rank: 10, pick: true, storesFull: () => false };
   assert.deepEqual(minePlan(base), { harvest: 'ore', verb: 'Mine Lodestone', rest: 'Mining 10', ready: true });
   assert.equal(minePlan({ ...base, rank: 9 }).rest, 'needs Mining 10');
   assert.equal(minePlan({ ...base, pick: false }).rest, 'needs a Pick-Axe');
   assert.equal(minePlan({ ...base, storesFull: () => true }).rest, 'Stores full - Lodestone');
-  assert.deepEqual([minePlan({ ...base, taken: true }).verb, minePlan({ ...base, taken: true }).ready], ['Lodestone - worked today', false]);
+  assert.deepEqual([minePlan({ ...base, taken: true }).verb, minePlan({ ...base, taken: true }).ready], ['Lodestone · worked today', false]);
   assert.equal(minePlan({ ...base, counting: true }).rest, 'being counted');
   // PIN MOVED (CAP-OFF, 2026-10-07 - Mac: "Remove the cap on life skills"): sixty today was no ready plan
   assert.equal(minePlan({ ...base, today: 600, cap: 60 }).ready, true, 'a day past the old sixty: ready');

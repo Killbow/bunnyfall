@@ -393,7 +393,7 @@ test('CAPTAIN-TREE the Captain page: her level, her XP\'s meter to the next, the
     drawCaptainPage(detail, () => {}, { el, divider: (t) => el('h4', null, t), door: (fn) => { handed++; fn(); } });
     const words = f.text(detail);
     assert.match(words, /The Captain's StarsLevel 5/);
-    assert.match(words, /1 of 4 stars set - 3 to spend\./);
+    assert.match(words, /1 of 4 stars set, 3 to spend\./);
     const find = (e) => (e.tagName === 'BUTTON' ? e : e.children.map(find).find(Boolean));
     const b = find(detail);
     assert.equal(b.textContent, 'Open the stars');

@@ -656,7 +656,7 @@ test('AUDIT CARDS-6 E5: a new socket asks the table again - seated but stood up 
   } finally { W.restore(); }
 });
 
-test('AUDIT CARDS-6 E9/E10/E19: the panel says why a press did nothing in the game; the wait said while no game is on (never "Turn 1 of 6 - your magicka 0 of 0"); the next game deals only with both chairs filled, a watcher back at the setup when a chair frees', async () => {
+test('AUDIT CARDS-6 E9/E10/E19: the panel says why a press did nothing in the game; the wait said while no game is on (never "Turn 1 of 6. Your magicka 0 of 0"); the next game deals only with both chairs filled, a watcher back at the setup when a chair frees', async () => {
   const W = await world();
   try {
     const A = await W.page('peer-a', { chair: 0 }), B = await W.page('peer-b', { chair: 2 }), Z = await W.page('peer-z', { chair: 3 });

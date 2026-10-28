@@ -56,7 +56,7 @@ export function raisePicks(raise, currentBet, call, pot, step) {
  */
 export function cardHudModel({ phase, view = null, legal = null, buyIn = null, stakes, friendly = false, log = [], why = null, online = null, gold = false, staking = false, topUp = null, iliac = false, gambit = false, packPrice = null, refused = null }) {
   const unit = friendly ? 'chips' : 'gold';
-  const title = `Card table - ${stakes.sb}/${stakes.bb} ${unit}`;
+  const title = `Card table: ${stakes.sb}/${stakes.bb} ${unit}`;
   // CARDS6: online, a realm character's table plays for gold - the realm holds the stake, the relay deals
   const note = gold ? 'A gold table. The realm holds your stake, and you keep what you have when you stand up.'
     : online ? 'A friendly game with the room. No gold changes hands.' : friendly ? 'A friendly game. Online, no gold changes hands at a patrons\' table.' : null;
@@ -126,7 +126,7 @@ export function cardHudModel({ phase, view = null, legal = null, buyIn = null, s
     ? (why === 'broke' ? 'You are out of chips.' : why === 'empty' ? 'The table has emptied. Every patron is broke.' : why === 'stood' ? 'You were removed from the table.' : why === 'other game' ? HOLDEM_REFUSALS['other game'] : 'You leave the table.')
     : sd ? showdownLine(sd, view.seats.map((x) => x.name), you)
       : online?.waiting ? 'Waiting for another player to sit down.'
-      : !hand ? 'The next hand is being dealt...' : legal ? (online?.clock ? `Your turn - ${online.clock} s.` : 'Your turn.') : `Waiting on ${seats.find((s) => s.state === 'to act')?.name ?? 'the table'}...`;
+      : !hand ? 'The next hand is being dealt...' : legal ? (online?.clock ? `Your turn: ${online.clock} s.` : 'Your turn.') : `Waiting on ${seats.find((s) => s.state === 'to act')?.name ?? 'the table'}...`;
   return {
     phase, title, note, unit, seats: present, pot,
     board: hand ? hand.board.map(cardFace) : sd ? sd.board.map(cardFace) : [],
@@ -333,7 +333,7 @@ export function createCardTableHud({ onPress, doc = document }) {
         for (const s of m.seats) {
           const box = el('div', `seat${s.you ? ' you' : ''}${s.state ? ` ${s.state.replace(' ', '-')}` : ''}`);
           box.append(el('div', 'nm', `${s.button ? '● ' : ''}${s.name}${s.state && s.state !== 'to act' ? ` (${s.state})` : ''}`));
-          box.append(el('div', 'st', `${s.stack}${s.bet ? ` - in ${s.bet}` : ''}`));
+          box.append(el('div', 'st', `${s.stack}${s.bet ? ` · in ${s.bet}` : ''}`));
           box.append(cardsOf(s.cards));
           seats.append(box);
         }

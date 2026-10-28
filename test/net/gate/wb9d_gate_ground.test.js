@@ -64,7 +64,7 @@ test('WB9d the view\'s reading: nothing to feel, nothing drawn; standing in his 
     const m = groundViewModel({ inside: true, ground: 'Rime', color: frost, now: t });
     assert.ok(m.edge >= GROUND_EDGE_IN[0] - GROUND_EDGE_STEP / 2 && m.edge <= GROUND_EDGE_IN[1] + GROUND_EDGE_STEP / 2, `breathing: ${m.edge}`);
     assert.ok(Math.abs(m.edge / GROUND_EDGE_STEP - Math.round(m.edge / GROUND_EDGE_STEP)) < 1e-9, 'in whole steps');
-    assert.equal(m.warn, 'Rime - step out!');
+    assert.equal(m.warn, 'Rime. Step out!');
     assert.equal(m.rgb, '128, 204, 255');
   }
   const bite = groundViewModel({ inside: true, ground: 'Burning ground', color: fire, biteAt: 1000, biteColor: [1, 0, 0], now: 1000 });
@@ -73,7 +73,7 @@ test('WB9d the view\'s reading: nothing to feel, nothing drawn; standing in his 
   const flare = groundViewModel({ inside: false, biteAt: 1000, biteColor: [1, 0, 0], now: 1000 });
   const fade = groundViewModel({ inside: false, biteAt: 1000, biteColor: [1, 0, 0], now: 1000 + GROUND_BITE_MS * 0.5 });
   assert.ok(fade.edge > 0 && fade.edge < flare.edge && fade.warn === null, 'a blow landed, out of the ground: the flare alone, falling');
-  assert.equal(GROUND_VIEW_TEXT.warn(''), 'Burning ground - step out!');
+  assert.equal(GROUND_VIEW_TEXT.warn(''), 'Burning ground. Step out!');
   assert.match(GROUND_VIEW_CSS, /\.wb-ground-edge \{ position: fixed; inset: 0; pointer-events: none;/, 'a readout: nothing to click');
 });
 
@@ -82,7 +82,7 @@ test('WB9d the view drawn: two nodes made on the first need, each written only w
   const { made, doc } = fakeDoc();
   drawGateGround(null, { doc });
   assert.equal(made.length, 1, 'nothing made for nothing');
-  const m = { edge: 0.3, rgb: '255, 102, 26', warn: 'Burning ground - step out!' };
+  const m = { edge: 0.3, rgb: '255, 102, 26', warn: 'Burning ground. Step out!' };
   drawGateGround(m, { doc });
   const [edge, warn] = made.filter((n) => n.className.startsWith('wb-ground'));
   assert.equal(edge.className, 'wb-ground-edge'); assert.equal(warn.className, 'wb-ground-warn');

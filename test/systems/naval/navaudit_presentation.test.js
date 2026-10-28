@@ -620,12 +620,12 @@ test('AUDIT NAV1 (the presentation) THE DRAW BY THE SCREEN: a screen NAVAL_SHORT
     assert.equal(root.className, 'dfnaval-hud short aside', '720 lines at 1.5 are 480 of the HUD\'s');
     assert.equal(byClass(root, 'dfnaval-card')[0].style.top, '', 'aside: the sheet places it');
     assert.equal(vars['--nc-card-scale'], '', 'no column scale aside');
-    assert.deepEqual([byClass(root, 'dfnaval-aim-text')[0].textContent, byClass(root, 'dfnaval-aim-range')[0].textContent, byClass(root, 'dfnaval-aim-target')[0].textContent], ['', '138 m', ' - on target']);
+    assert.deepEqual([byClass(root, 'dfnaval-aim-text')[0].textContent, byClass(root, 'dfnaval-aim-range')[0].textContent, byClass(root, 'dfnaval-aim-target')[0].textContent], ['', '138 m', ' · on target']);
     assert.equal(byClass(root, 'dfnaval-tally')[0].style.display, 'none', 'the tally waits while the aim is up');
     drawNavalHud(layoutModel({ aim: null, aiming: false }), { keys: HUD_KEYS, scale: 1.5, under });
     assert.equal(byClass(root, 'dfnaval-tally')[0].style.display, '', '...and stands in its place once it is down');
     drawNavalHud(layoutModel({ aim: { side: 'stern', gun: 'barrel', range: 0, max: 0, hot: false, barrel: true, state: 'ready' } }), { keys: HUD_KEYS, scale: 1.5, under });
-    assert.equal(byClass(root, 'dfnaval-aim-text')[0].textContent, 'Stern - roll a fire barrel', 'no range to stand alone: the words stay');
+    assert.equal(byClass(root, 'dfnaval-aim-text')[0].textContent, 'Stern · roll a fire barrel', 'no range to stand alone: the words stay');
     // no ship in the look, the layout not due: the panel unmeasured
     reads = 0;
     drawNavalHud(layoutModel({ target: null }), { keys: HUD_KEYS, scale: 1.5, under, dt: 0.01 });
@@ -742,7 +742,7 @@ test('AUDIT NAV1 (the presentation) THE CENTRE COLUMN\'S SHEET: the aim and the 
     const [stack] = byClass(globalThis.document.body, 'dfnaval-stack');
     assert.deepEqual(stack.children.map((c) => c.className.split(' ')[0]), ['dfnaval-aim', 'dfnaval-tally']);
   });
-  assert.equal(navalHudText(layoutModel({ aim: { side: 'port', gun: 'long', range: 90, max: 211, hot: false, barrel: false, state: 'reloading', left: 4.24 } }), HUD_KEYS).aim.target, ' - reloading 4.2 s');
+  assert.equal(navalHudText(layoutModel({ aim: { side: 'port', gun: 'long', range: 90, max: 211, hot: false, barrel: false, state: 'reloading', left: 4.24 } }), HUD_KEYS).aim.target, ' · reloading 4.2 s');
   assert.equal(NAVAL_STACK_H >= 2 * 15 + 4 + 2 * 14, true, 'two lines of aim, two of tally');
   assert.equal(NAVAL_WARN_H >= 29, true, 'the warning as drawn');
   assert.equal(NAVAL_CARD_ASIDE_H >= 55, true, 'the slim card as drawn');

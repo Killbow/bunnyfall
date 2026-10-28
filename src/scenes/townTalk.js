@@ -1186,9 +1186,9 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     mount(new ChoiceWindow({
       lines: [text],
       options: [
-        { code: 'KeyW', label: 'W - where is...', action: () => openCategories(onClosed) },
+        { code: 'KeyW', label: 'W: where is...', action: () => openCategories(onClosed) },
         toneOption(() => showGreeting(text, showOverlay, onClosed)),
-        { code: 'Escape', label: 'Esc - goodbye', action: () => {} },
+        { code: 'Escape', label: 'Esc: goodbye', action: () => {} },
         { code: 'KeyE', label: '', action: () => {} },
         { code: 'Enter', label: '', action: () => {} },
       ],
@@ -1199,8 +1199,8 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     const per = 8;
     const slice = items.slice(page * per, (page + 1) * per);
     const options = slice.map((it, i) => ({ code: `Digit${i + 1}`, label: `${i + 1} - ${it.label}`, action: () => onPick(it) }));
-    if ((page + 1) * per < items.length) options.push({ code: 'KeyN', label: 'N - more', action: () => pagedList(lines, items, onPick, page + 1, onClosed) });
-    options.push({ code: 'Escape', label: 'Esc - goodbye', action: () => {} });
+    if ((page + 1) * per < items.length) options.push({ code: 'KeyN', label: 'N: more', action: () => pagedList(lines, items, onPick, page + 1, onClosed) });
+    options.push({ code: 'Escape', label: 'Esc: goodbye', action: () => {} });
     showOverlay(new ChoiceWindow({ lines, options }), onClosed);
   }
 
@@ -1295,9 +1295,9 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     showOverlay(new ChoiceWindow({
       lines: [text],
       options: [
-        { code: 'KeyW', label: 'W - ask another', action: () => openCategories(onClosed) },
+        { code: 'KeyW', label: 'W: ask another', action: () => openCategories(onClosed) },
         toneOption(() => showAnswer(text, onClosed)),
-        { code: 'Escape', label: 'Esc - goodbye', action: () => {} },
+        { code: 'Escape', label: 'Esc: goodbye', action: () => {} },
         { code: 'KeyE', label: '', action: () => {} },
       ],
     }), onClosed);

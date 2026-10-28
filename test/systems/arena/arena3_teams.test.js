@@ -174,7 +174,7 @@ test('ARENA3 recruiters: the pitch and the standing; join where it will take you
   assert.ok(red.lines.includes(R.pitch) && red.lines.includes(R.rule));
   assert.ok(red.lines.some((l) => l.startsWith('The season of 3E 405, day 14 of 360')));
   assert.deepEqual(red.options.map((o) => o.act), ['join', 'window', 'leave', 'leave']);
-  assert.equal(red.options[0].label, 'J - Join the Red Banner');
+  assert.equal(red.options[0].label, 'J: Join the Red Banner');
   const L1 = LG.joinBanner(L0, 'red', at(10)).league;
   const mine = recruiterChoice({ banner: 'red', league: L1, gameMinutes: at(10) });
   assert.deepEqual(mine.options.map((o) => o.act), ['quit', 'window', 'leave', 'leave']);
@@ -190,7 +190,7 @@ test('ARENA3 recruiters: the pitch and the standing; join where it will take you
   assert.ok(!recruiterChoice({ banner: 'red', league: L0, gameMinutes: at(10), window: false }).options.some((o) => o.act === 'window'), 'no window, no button');
   const ask = quitAsk('blue');
   assert.deepEqual(ask.options.map((o) => [o.code, o.act]), [['KeyY', 'quit'], ['KeyN', 'stay'], ['Escape', 'stay']]);
-  for (const o of [...red.options, ...mine.options, ...ask.options].filter((x) => x.label)) assert.match(o.label, /^[A-Z] - [A-Z]/);
+  for (const o of [...red.options, ...mine.options, ...ask.options].filter((x) => x.label)) assert.match(o.label, /^[A-Z]: [A-Z]/);
   for (const l of [...red.lines, ...mine.lines, ...wait.lines, ...ask.lines]) assert.ok(l.length <= 90, l);
 });
 

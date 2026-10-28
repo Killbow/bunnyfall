@@ -117,7 +117,7 @@ test('AUDIT NAV2 F14 the Ship handling is taken once a helm session: a Carrack u
   assert.ok(ss.s.rt.properties.moveAccel() < quick / 2, 'the next helm: the mod\'s');
   // the Features row's own word
   const row = FEATURES.find((r) => r.id === 'naval-combat');
-  assert.match(row.effect, /Ship handling, the next time you take the helm/);
+  assert.match(row.effect, /Ship handling changes the next time you take the helm/);
   assert.doesNotMatch(row.effect, /^Takes effect at once\. /, 'not "at once" for all of it');
 });
 

@@ -410,7 +410,7 @@ test('AUDIT-SEATS S4: A HELD SEAT STRUCK - its Charter void in the strike\'s own
   const row = s.history('strike')[0];
   assert.deepEqual([row.data.by, row.data.guild, row.data.refund], ['Devra', { name: 'The Silver Hand', tag: 'SH' }, CLAIM_FEE.palace]);
   // PIN MOVED: GUILD3a (bible/11-Multiplayer/Guilds-Made-Plain.md) - silver, never Marks; marked by AUDIT GUILD3 R4
-  assert.equal(chronicleLine(row, ANTICLERE), `In week ${W}, Anticlere was struck from the registry, and the Silver Hand <SH>'s Charter with it - its claim fee of 8,000 silver refunded.`);
+  assert.equal(chronicleLine(row, ANTICLERE), `In week ${W}, Anticlere was struck from the registry, and the Silver Hand <SH>'s Charter with it, with its claim fee of 8,000 silver refunded.`);
   // the guild pledges in the region again; a claim on the struck seat's battle is refused
   assert.equal((await s.call('/v1/seats/pledge', { character: sh.gm.character, key: ASHFIELD.key }, sh.gm)).status, 200, 'no longer seat-held-here');
   assert.equal((await s.claim(sh.gm, { sw: W, sd: 'defend', r: 'defend' })).body.error, 'battle-void');

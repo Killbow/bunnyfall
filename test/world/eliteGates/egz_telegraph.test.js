@@ -299,7 +299,7 @@ test('EG-ZG THE TETHERS\' LAW, A SPIRE POOL\'S COLOUR AND THE ECLIPSE (sections 
   for (let k = 0; k < 8000 && (tTell == null || tLive == null); k++) { const e = egEclipseAt(s, k / 100); if (e && !e.live && e.secs > 5.5 && tTell == null) tTell = k / 100; if (e?.live && tLive == null) tLive = k / 100; }
   const e0 = egEclipseAt(s, tTell);
   assert.ok(e0.havens.length >= 1 && e0.r === L.r);
-  assert.equal(egEclipseChip(e0), `The Eclipse - ${Math.ceil(e0.secs - 1e-9)}`);
+  assert.equal(egEclipseChip(e0), `The Eclipse: ${Math.ceil(e0.secs - 1e-9)}`);
   assert.equal(egEclipseDark(e0), 0, 'no dark from 6 s out');
   const e2 = egEclipseAt(s, tTell + (L.tell / 1000 - 1) - (6 - e0.secs));
   assert.ok(Math.abs(egEclipseDark(e2) - 0.5) < 0.02, `half dark a second out (${egEclipseDark(e2)})`);
@@ -393,7 +393,7 @@ test('EG-ZG IN THE FIGHT (scenes/eliteGates/egFight.js): burning ground a Spire 
   assert.ok(chain && chain.t === 0, 'the chain, slack at 4 m');
   assert.ok(sh.every((x) => x.pool !== TELEGRAPH_POOL.path), 'no tether a plain flowing lane any more');
   assert.equal(H.fight.peril()?.name, 'Smash');
-  assert.equal(H.fight.ground().warn, 'Smash - move!', 'the peril\'s words take the crosshair');
+  assert.equal(H.fight.ground().warn, 'Smash. Move!', 'the peril\'s words take the crosshair');
   // a CHECK with no light in reach: its order, no arrow
   F.blows = [{ i: 6, o: 1, at: t + 900, wu: 1400, s: [['h', court.x + 60, court.z, 3]], ch: 1, el: null, p: 0.3, b: 10, nm: 'The Reckoning', sp: 0, pu: 0 }];
   H.clock.t += 5; H.fight.frame();
@@ -480,7 +480,7 @@ test('EG-ZG A DROP AND THE ECLIPSE IN THE FIGHT, AND THE SPAN\'S WORD TO THE DUN
   assert.ok(Math.abs(darkOf().t - EG_ECLIPSE_LOOK.deep) < 1e-9);
   // the HUD's chip
   const hud = egSpireHudModel({ ...EG_STATE_EMPTY, b: '0123456789abcdef', h: ec.s.h, seed: ec.seed, sg: 'trial', co: [['acct-mac', 'Mac', 1, 1, 0, 1, 0, 0, 0, 1]] }, 'acct-mac', tTell + 1100);
-  assert.equal(hud.eclipse, 'The Eclipse - 5', 'the bar\'s chip');
+  assert.equal(hud.eclipse, 'The Eclipse: 5', 'the bar\'s chip');
   const rest = egSpireHudModel({ ...EG_STATE_EMPTY, b: '0123456789abcdef', h: ec.s.h, seed: ec.seed, sg: 'rest', co: [['acct-mac', 'Mac', 1, 1, 0, 1, 0, 0, 0, 1]] }, 'acct-mac', tTell + 1100);
   assert.equal(rest.eclipse, '', 'at a rest the place\'s hazards are still: no chip');
 });

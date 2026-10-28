@@ -87,7 +87,7 @@ test('PASSAGE host: her master\'s ports - every port I know but this one, neares
   const w = world();
   w.host.offer(SHIP);
   const list = w.log.shown[0];
-  assert.deepEqual(list.items, [`Sentinel - east, ${passageFare({ x: 100, y: 100 }, { x: 130, y: 100 })} gold`], 'never Daggerfall (I stand at it), never Wayrest (never discovered)');
+  assert.deepEqual(list.items, [`Sentinel: east, ${passageFare({ x: 100, y: 100 }, { x: 130, y: 100 })} gold`], 'never Daggerfall (I stand at it), never Wayrest (never discovered)');
   list._pick(0);
   const box = w.log.shown[1];
   assert.deepEqual(box.rows, PASSAGE_TEXT.ask(SHIP.name, 'Sentinel', 50, 200));

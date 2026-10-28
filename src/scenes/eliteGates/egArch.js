@@ -307,7 +307,7 @@ export function createEgArchPool({ renderer = null, collider = () => null, pixel
     const L = a.place?.life;
     if (!L) return '';
     const t = now();
-    return L.phase === 'rising' || L.phase === 'sealed' ? `Opens in ${egCountText(L.openAt - t)}` : L.phase === 'open' ? `Open - ${egCountText(L.admitUntil - t)} to answer` : 'Sinking';
+    return L.phase === 'rising' || L.phase === 'sealed' ? `Opens in ${egCountText(L.openAt - t)}` : L.phase === 'open' ? `Open: ${egCountText(L.admitUntil - t)} to answer` : 'Sinking';
   };
 
   return {

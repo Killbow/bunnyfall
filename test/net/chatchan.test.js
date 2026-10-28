@@ -463,12 +463,12 @@ test('CHAT-CHAN panel: each tab says who it reaches (and the region\'s name), th
   panel.render({});
   assert.deepEqual(tabs.map((b) => b.title), CHAT_TABS.map((t) => t.hint));
   const input = one(root, 'dfchat-input');
-  assert.equal(input.placeholder, 'Say something - World');
+  assert.equal(input.placeholder, 'Say something: World');
   log.setRoom('region', 'chat:region.17', 'Wayrest');
   log.select('region');
   panel.render({});
   assert.equal(tabs[1].title, `Wayrest - ${CHAT_TABS[1].hint}`);
-  assert.equal(input.placeholder, 'Say something - Wayrest', 'the place a moving channel is');
+  assert.equal(input.placeholder, 'Say something: Wayrest', 'the place a moving channel is');
   log.select('world');
   assert.equal(tabs[5].style.display, 'none', 'CHAT-P: the Party tab is off the bar outside a party');   // CHAT-LANG: the Language tab stands before it; CHAT-TRADE: and the Trade and LFG tabs (PIN MOVED: 3 -> 5)
   log.setShown('party', true);

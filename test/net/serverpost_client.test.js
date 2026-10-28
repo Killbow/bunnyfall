@@ -385,7 +385,7 @@ test('AUDIT SERVER-POST the window keeps its place: rebuilt by the face (a rende
 
 test('AUDIT SERVER-POST the doors: /mail opens the mailbox on either skin and wherever the player stands (the enhanced pause face with its window open - the classic pause has no envelope); the face under the account window is out of reach; Tab never lands on what is inert; the window\'s place is the menu\'s, reset with the visit (mutants: the classic skin without a way in; /mail outdoors only)', () => {
   assert.ok(HOST_COMMANDS.includes('mail') && HOST_COMMANDS.includes('mailbox'));
-  assert.ok(HELP_LINES.some((l) => l.startsWith('/mail - ')), '/help says it');
+  assert.ok(HELP_LINES.some((l) => l.startsWith('/mail: ')), '/help says it');
   const world = src('src/scenes/world.js');
   // PIN MOVED (PRIVATE-REPORT): the line read by chatCommands.js mailboxCommandOf - `/mail` and `/mailbox` the mailbox, `/bug` its form;
   // PIN MOVED (SEASON-BOOK): through pauseCommandOf, `/season` beside them - the mailbox's lines still refused without a box

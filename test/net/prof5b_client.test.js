@@ -167,7 +167,7 @@ test('PROF5b tab: Auctions - each Masterwork\'s standing bid, bids and end, wher
   buttons().find((b) => b.textContent === 'Auctions').onclick();
   await tick();
   const text = () => root.textContent;
-  assert.match(text(), /Silverthorn's Mithril LongswordMasterwork · made by Silverthorn · worn to 90%opening 500 silver - no bids yethere · ends in 2 hours/);
+  assert.match(text(), /Silverthorn's Mithril LongswordMasterwork · made by Silverthorn · worn to 90%opening 500 silver · no bids yethere · ends in 2 hours/);
   assert.match(text(), /300 silver \(3 bids\)Wayrest \+17 courier, \d+ minutes · ends in 25 hoursyour bid leads/);
   // the first: Bid at the next, a typed amount pressed with no redraw
   buttons().find((b) => b.textContent.includes('no bids yet')).onclick();
@@ -211,7 +211,7 @@ test('PROF5b tab: Auctions - each Masterwork\'s standing bid, bids and end, wher
   await buttons().find((b) => b.textContent === 'List').onclick();
   assert.deepEqual(calls.at(-1)[0], 'auction');
   assert.equal(calls.at(-1)[1].provenance, PV);
-  assert.match(text(), /Your auctionsSilverthorn's Mithril Longswordopening 50 silver - no bids yetends in 10 minutes/);
+  assert.match(text(), /Your auctionsSilverthorn's Mithril Longswordopening 50 silver · no bids yetends in 10 minutes/);
   assert.match(text(), /900 silver \(4 bids\)sold for 900 silver/);
   assert.match(text(), /Your bidsSilverthorn's Mithril Longsword - 300 silver \+ 17 courier - leading - ends in 25 hours/);
   assert.match(text(), /80 silver - outbid\. Your silver comes back the next time you look/);   // AUDIT 31 U13

@@ -67,7 +67,7 @@ test('SEAT2a part four THE FOLD AND THE HUD\'S WORDS: the roll call replaces eve
   assert.equal(siegeSelfLines(s, 'me-00001', AT)[0], 'vitality  |||||.....  160 / 320');
   assert.deepEqual(siegeSelfLines(s, 'nobody', AT), []);
   s = foldSiege(s, { k: 'f', b: [[1, 0, 0], [2, 5, 1], [2, 0, 0]], th: 30, s: AT + 60_000, e: AT + 60_000 + 1_800_000, n: [3, 4, 41] }, AT);
-  assert.deepEqual(siegeSelfLines(s, 'me-00001', AT, { watching: true }), ['Spectating - 41 of 60']);
+  assert.deepEqual(siegeSelfLines(s, 'me-00001', AT, { watching: true }), ['Spectating: 41 of 60']);
   assert.deepEqual(siegeBarLines(s, BATTLE, AT), [
     'ANTICLERE   The Silver Hand <SH>   vs   Ebon Oath <EO>   joined in 1:00',
     'GATE [^ EO]    MARKET [~ 5/20]    TEMPLE [o SH]    THRONE 25% (2 of 3)',

@@ -5134,7 +5134,7 @@ export function createWorldModes(host) {
       options: [
         { code: 'Digit1', label: `1 - ${SERVICE_LABEL[maker]}`, action: () => { leave(); openStationMaker(piece); } },
         { code: 'Digit2', label: stationActLabel(kind), action: () => { leave(); interiorKeyCtx.togglePause({ at: stationDoorAt(kind) }); } },   // AUDIT HORIZONTAL A7: in the player's language
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     });
     const leave = () => { if (interiorOverlay === chooser) interiorOverlay = null; };
@@ -6939,14 +6939,14 @@ export function createWorldModes(host) {
       label: `${j + 1} - ${_itemLabel(it)}${repairRefusal(it, { allowMagicRepairs: allowMagic }) ? '' : ` (${repairPrice(it, ctx.reducedRepairCost)} gold)`}`,
       action: () => repairItem(it, ctx),
     }));
-    if ((page + 1) * per < locals.length) options.push({ code: 'KeyN', label: 'N - more', action: () => showRepairList(page + 1, ctx) });
-    if (jobs.length) options.push({ code: 'KeyC', label: `C - collect (${jobs.length} in repair)`, action: () => showRepairJobs(ctx) });
-    if (ctx.onTalk) options.push({ code: 'KeyT', label: 'T - talk', action: () => ctx.onTalk() });
+    if ((page + 1) * per < locals.length) options.push({ code: 'KeyN', label: 'N: more', action: () => showRepairList(page + 1, ctx) });
+    if (jobs.length) options.push({ code: 'KeyC', label: `C: collect (${jobs.length} in repair)`, action: () => showRepairJobs(ctx) });
+    if (ctx.onTalk) options.push({ code: 'KeyT', label: 'T: talk', action: () => ctx.onTalk() });
     // U40: the popup's THIRD button, which R1 flagged as waiting on the
     // trade window's mode split (DaggerfallMerchantRepairPopupWindow's
     // Sell). The split landed, so the button does.
-    if (ctx.onSell) options.push({ code: 'KeyS', label: 'S - sell', action: () => ctx.onSell() });
-    options.push({ code: 'Escape', label: 'Esc - close', action: () => {} });
+    if (ctx.onSell) options.push({ code: 'KeyS', label: 'S: sell', action: () => ctx.onSell() });
+    options.push({ code: 'Escape', label: 'Esc: close', action: () => {} });
     return mountServiceWindow(new ChoiceWindow({
       lines: [interiorBuilding?.name || localizedText('serviceRepairs', 'Repairs'), `Repair: (you have ${goldAmount(playerEntity)} gold)`],
       options,
@@ -6954,7 +6954,7 @@ export function createWorldModes(host) {
   }
   function repairItem(it, ctx) {
     const rows = (id) => townTalk?.lines?.(id) ?? [];
-    const back = [{ code: 'Escape', label: 'Esc - back', action: () => showRepairList(0, ctx) }];
+    const back = [{ code: 'Escape', label: 'Esc: back', action: () => showRepairList(0, ctx) }];
     const refusal = repairRefusal(it, { allowMagicRepairs: getBool('Controls', 'AllowMagicRepairs') });
     if (refusal) {
       // the three refusals in DFU's click order (:808-818): TEXT.RSC
@@ -7008,8 +7008,8 @@ export function createWorldModes(host) {
       label: `${j + 1} - ${_itemLabel(it)} (${repairStatusLabel(it, now)})`,
       action: () => collectJob(it, ctx),
     }));
-    if ((page + 1) * per < jobs.length) options.push({ code: 'KeyN', label: 'N - more', action: () => showRepairJobs(ctx, page + 1) });
-    options.push({ code: 'Escape', label: 'Esc - back', action: () => showRepairList(0, ctx) });
+    if ((page + 1) * per < jobs.length) options.push({ code: 'KeyN', label: 'N: more', action: () => showRepairJobs(ctx, page + 1) });
+    options.push({ code: 'Escape', label: 'Esc: back', action: () => showRepairList(0, ctx) });
     mountServiceWindow(new ChoiceWindow({ lines: ['Items left for repair:'], options }));
   }
   function collectJob(it, ctx) {
@@ -7027,8 +7027,8 @@ export function createWorldModes(host) {
       mountServiceWindow(new ChoiceWindow({
         lines: [interruptRepairText()],   // Internal_Strings.csv:819, the one constant the native window speaks too
         options: [
-          { code: 'KeyY', label: 'Y - yes', action: takeBack },
-          { code: 'KeyN', label: 'N - no', action: () => showRepairJobs(ctx) },
+          { code: 'KeyY', label: 'Y: yes', action: takeBack },
+          { code: 'KeyN', label: 'N: no', action: () => showRepairJobs(ctx) },
         ],
       }));
       return;
@@ -7043,12 +7043,12 @@ export function createWorldModes(host) {
       code: `Digit${j + 1}`, label: `${j + 1} - ${_itemLabel(it)} (${buyPrice(it)} gold)`,
       action: () => buyItem(shelf, it),
     }));
-    if ((page + 1) * per < shelf.items.length) options.push({ code: 'KeyN', label: 'N - more', action: () => showShelfList(shelf, page + 1) });
+    if ((page + 1) * per < shelf.items.length) options.push({ code: 'KeyN', label: 'N: more', action: () => showShelfList(shelf, page + 1) });
     // E3: the sell mode (storeBuysItemType gates what they take)
     if ((SHOP_BUYS_GROUPS[interiorBuilding.buildingType] ?? []).length) {
-      options.push({ code: 'KeyS', label: 'S - sell', action: () => showSellList(shelf, 0) });
+      options.push({ code: 'KeyS', label: 'S: sell', action: () => showSellList(shelf, 0) });
     }
-    options.push({ code: 'Escape', label: 'Esc - close', action: () => {} });
+    options.push({ code: 'Escape', label: 'Esc: close', action: () => {} });
     interiorOverlay = new ChoiceWindow({
       lines: [interiorBuilding.name || 'Shelves', shelf.items.length ? `Buy: (you have ${goldAmount(playerEntity)} gold)` : 'The shelf is empty.'],
       options,
@@ -7061,7 +7061,7 @@ export function createWorldModes(host) {
   function buyItem(shelf, it) {
     const bought = doBuy(shelf, it);
     if (bought === null || bought === false) {
-      interiorOverlay = new ChoiceWindow({ lines: [bought === false ? BAG_WORDS.second : 'You do not have enough gold.'], options: [{ code: 'Escape', label: 'Esc - close', action: () => {} }] });   // ONE-BAG: a second bag refused
+      interiorOverlay = new ChoiceWindow({ lines: [bought === false ? BAG_WORDS.second : 'You do not have enough gold.'], options: [{ code: 'Escape', label: 'Esc: close', action: () => {} }] });   // ONE-BAG: a second bag refused
       return;
     }
     showShelfList(shelf, 0);
@@ -7075,9 +7075,9 @@ export function createWorldModes(host) {
       code: `Digit${j + 1}`, label: `${j + 1} - ${_itemLabel(it)} (${sellPrice(it)} gold)`,
       action: () => sellItem(shelf, it),
     }));
-    if ((page + 1) * per < sellable.length) options.push({ code: 'KeyN', label: 'N - more', action: () => showSellList(shelf, page + 1) });
-    options.push({ code: 'KeyB', label: 'B - buy', action: () => showShelfList(shelf, 0) });
-    options.push({ code: 'Escape', label: 'Esc - close', action: () => {} });
+    if ((page + 1) * per < sellable.length) options.push({ code: 'KeyN', label: 'N: more', action: () => showSellList(shelf, page + 1) });
+    options.push({ code: 'KeyB', label: 'B: buy', action: () => showShelfList(shelf, 0) });
+    options.push({ code: 'Escape', label: 'Esc: close', action: () => {} });
     interiorOverlay = new ChoiceWindow({
       lines: [interiorBuilding.name || 'Shelves', sellable.length ? `Sell: (you have ${goldAmount(playerEntity)} gold)` : 'You have nothing they want.'],
       options,
@@ -8209,7 +8209,7 @@ export function createWorldModes(host) {
           code: `Digit${i + 1}`, label: `${i + 1} - Room ${r.room}: ${goldSum(r.price)} gold a day${r.yours ? ' (yours, renew it)' : ''}`,
           action: () => { const days = rentDayRows(r, nowS); if (days.length) openHomeRentDays(bd, r, days); else townTalk?.say?.(RENT_FULL_LINE); },   // RENT-RENEW: only the days the service takes - none left, said
         })),
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));
   }
@@ -8222,7 +8222,7 @@ export function createWorldModes(host) {
           code: `Digit${i + 1}`, label: `${i + 1} - ${d} day${d === 1 ? '' : 's'}: ${goldSum(rentCost(room.price, d))} gold`,
           action: () => openHomeRentConfirm(bd, room, d),
         })),
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));
   }
@@ -8231,8 +8231,8 @@ export function createWorldModes(host) {
     townTalk?.showOverlay?.(new ChoiceWindow({
       lines: rentConfirmLines(room.room, days, room.price),
       options: [
-        { code: 'KeyY', label: 'Y - yes', action: () => { rentHomeAt(bd, room, days).catch((e) => console.error(e)); } },
-        { code: 'KeyN', label: 'N - no', action: () => {} },
+        { code: 'KeyY', label: 'Y: yes', action: () => { rentHomeAt(bd, room, days).catch((e) => console.error(e)); } },
+        { code: 'KeyN', label: 'N: no', action: () => {} },
       ],
     }));
   }
@@ -8267,11 +8267,11 @@ export function createWorldModes(host) {
     townTalk?.showOverlay?.(new ChoiceWindow({
       lines: [...homeOwnerLines(home), ...homeVoteLines(home)],   // AUDIT HOME-VOTE II B2: its votes, and whether the town sees its decor - where no plaque is drawn, said here alone
       options: [
-        { code: 'KeyG', label: 'G - go in', action: homeOnward(hit, entries) },
-        { code: 'KeyW', label: 'W - who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
-        { code: 'KeyS', label: 'S - sell it', action: () => openHomeSale(bd) },
+        { code: 'KeyG', label: 'G: go in', action: homeOnward(hit, entries) },
+        { code: 'KeyW', label: 'W: who may enter', action: () => openHomeEntryMenu(bd, home.entry) },
+        { code: 'KeyS', label: 'S: sell it', action: () => openHomeSale(bd) },
         { code: 'KeyT', label: t('housing.transfer.transferIt', 'T: transfer it'), action: () => openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)) },
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));
   }
@@ -8293,9 +8293,9 @@ export function createWorldModes(host) {
     townTalk?.showOverlay?.(new ChoiceWindow({
       lines: [homeDoorTitle(home), ...(door === 'locked' ? [homeLockedLine(home)] : []), ...(homeVoteLines(home).length ? homeVoteLines(home) : [homeVotesLine(home.score)])],
       options: [
-        ...(onward ? [{ code: 'KeyG', label: 'G - go in', action: onward }] : []),
+        ...(onward ? [{ code: 'KeyG', label: 'G: go in', action: onward }] : []),
         ...homeVoteChoices(home).map((c) => ({ code: c.code, label: c.label, action: () => pressHomeVote(bd, c.vote) })),
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));
   }
@@ -8313,7 +8313,7 @@ export function createWorldModes(host) {
           code: `Digit${i + 1}`, label: `${i + 1} - ${HOME_ENTRY_WORDS[e]}`,
           action: () => { pick(e)().catch((err) => console.error(err)); },
         })),
-        { code: 'Escape', label: 'Esc - close', action: () => {} },
+        { code: 'Escape', label: 'Esc: close', action: () => {} },
       ],
     }));
   }
@@ -8323,15 +8323,15 @@ export function createWorldModes(host) {
     // HOME-CROSSED (FIELD BUGS 2026-09-30): a home customs carried in is never bought back online - the door says so
     // and asks no price (it asked 600,100 of Seanobi's, and the service paid its deed share of nothing and took it)
     const home = homeOf(bd);
-    if (home?.crossed && host.realmAct) { townTalk?.showOverlay?.(new ChoiceWindow({ lines: HOME_CROSSED_LINES, options: [{ code: 'Escape', label: 'Esc - close', action: () => {} }] })); return; }
+    if (home?.crossed && host.realmAct) { townTalk?.showOverlay?.(new ChoiceWindow({ lines: HOME_CROSSED_LINES, options: [{ code: 'Escape', label: 'Esc: close', action: () => {} }] })); return; }
     // HOME-PRICE: what the sale will pay - the service's own sum (its deed share of what was PAID), never this client's
     // share of the house's price now, which a home bought before HOME-PRICE was never bought at
     const refund = homeSaleOffer(home, homeListPrice(bd));
     townTalk?.showOverlay?.(new ChoiceWindow({
       lines: homeSaleLines(refund, home?.rentDue ?? 0),   // AUDIT HOME-PRICE C3: and the rent held on it
       options: [
-        { code: 'KeyY', label: 'Y - yes', action: () => { sellHomeAt(bd).catch((e) => console.error(e)); } },
-        { code: 'KeyN', label: 'N - no', action: () => {} },
+        { code: 'KeyY', label: 'Y: yes', action: () => { sellHomeAt(bd).catch((e) => console.error(e)); } },
+        { code: 'KeyN', label: 'N: no', action: () => {} },
       ],
     }));
   }

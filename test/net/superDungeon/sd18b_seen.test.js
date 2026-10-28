@@ -99,12 +99,12 @@ test('SD18b UNDER ITS BAR AND ON ITS WAKE: the row of its marks and the omens\' 
   const P = createSdFightLink({ now: () => T0 + 20_000 }); P.word(validSdOut({ ...remnantStateOf(plain), me: 1 }));
   assert.equal(remnantBarModel(P.state(), T0 + 20_000).marksView, null);   // AUDIT SD III (T17, PIN MOVED): and no `trials`
   // the wake
-  assert.deepEqual(sdWakeText(MK), { ...SD_BEAT_TEXT.wake, sub: 'The Turning Tide - the Ending of Wayrest' });
+  assert.deepEqual(sdWakeText(MK), { ...SD_BEAT_TEXT.wake, sub: 'The Turning Tide: the Ending of Wayrest' });
   assert.equal(sdWakeText(null), SD_BEAT_TEXT.wake);
   const beats = createSdBeats();
   const s0 = { ...SD_FIGHT_EMPTY, fi: 1, s: 4, ph: 1, op: T0 + 100, mk: MK };
   beats.frame(s0, T0);
-  assert.equal(beats.frame(s0, T0 + 200).sub, 'The Turning Tide - the Ending of Wayrest');
+  assert.equal(beats.frame(s0, T0 + 200).sub, 'The Turning Tide: the Ending of Wayrest');
 });
 
 test('SD18b ITS ELEMENT ON THE FLOOR: its own blows\' colours leaning to it (kept apart), the Hour\'s own untouched; its brass in its element\'s colour, grain and name; the arena read and the ground view the same', () => {

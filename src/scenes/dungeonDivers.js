@@ -374,11 +374,11 @@ export function createDungeonDivers(deps) {
         // AUDIT LW-II-2 D4: answers whether the choice MOUNTED - a window that stood nowhere (no dungeon to mount it: the
         // street's talk door asking a company left below) opened nothing, and the talk behind it is the person's
         const shown = deps.choose([`${name}: "Well met, down here. What'll it be?"`], [
-          { code: 'KeyJ', label: 'J - join us', action: () => join(c) },
-          { code: 'KeyL', label: 'L - lead on', action: () => { if (!leadOn(c, lastT)) deps.say?.(`${name}: "We're done here - nowhere left to lead."`); } },
-          { code: 'KeyP', label: 'P - part ways', action: () => { c.parted = true; c.mode = 'hold'; } },
-          { code: 'KeyA', label: 'A - talk', action: () => talk() },
-          { code: 'Escape', label: 'Esc - goodbye', action: () => {} },
+          { code: 'KeyJ', label: 'J: join us', action: () => join(c) },
+          { code: 'KeyL', label: 'L: lead on', action: () => { if (!leadOn(c, lastT)) deps.say?.(`${name}: "We're done here - nowhere left to lead."`); } },
+          { code: 'KeyP', label: 'P: part ways', action: () => { c.parted = true; c.mode = 'hold'; } },
+          { code: 'KeyA', label: 'A: talk', action: () => talk() },
+          { code: 'Escape', label: 'Esc: goodbye', action: () => {} },
         ]);
         return !!shown;
       }

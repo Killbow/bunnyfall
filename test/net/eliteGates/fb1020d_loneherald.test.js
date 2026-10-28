@@ -166,5 +166,5 @@ test('AUDIT FB1020d L1-3 THE TRACKER COUNTS WHO CAME: the relay\'s own state, th
   // two who came, one fallen: still two
   const pair = breachOf({ n: 2 });
   pair.court(50, (spec) => pair.fall('acct-1', spec));
-  assert.match(hud(pair).company, /^1 of 2 standing\nI M0\nII M1 - watching$/);
+  assert.match(hud(pair).company, /^1 of 2 standing\nI M0\nII M1 · watching$/);
 });

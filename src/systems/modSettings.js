@@ -1346,7 +1346,7 @@ export const MOD_SETTINGS = Object.freeze({
       Enabled: Object.freeze({
         default: true,
         description: 'Carriage drivers wait outside the gates of the walled cities. Talk to one and pay the fare to fast '
-          + 'travel to a town or village; with Disable Normal Travel on, a carriage is the only fast travel there is.',
+          + 'travel to a town or village. With Disable Normal Travel on, a carriage is the only fast travel there is.',
       }),
       // IT1: DEPARTURE FROM THE MOD'S SHIPPED DEFAULT (it ships true), on the owner's word that the carriage is instant
       // travel "as an option" - TO-FIELD2's shape. On, the travel map refuses every trip to a place (the mod's

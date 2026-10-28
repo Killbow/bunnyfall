@@ -577,7 +577,7 @@ export function chronicleLine(row, seat, zero = null) {
     // AUDIT-SEATS S4 (16: "the Charter voids, the claim fee is refunded ... if struck within the Season"): a held seat's
     // strike names the Charter it voided and the fee it refunded
     case 'strike': return d.guild
-      ? `${when}, ${seat.name} was struck from the registry, and ${guildWords(d.guild)}'s Charter with it${Number(d.refund) > 0 ? ` - its claim fee of ${marksText(Number(d.refund))} refunded` : ''}.`   // GUILD3a: silver, as every sentence says it
+      ? `${when}, ${seat.name} was struck from the registry, and ${guildWords(d.guild)}'s Charter with it${Number(d.refund) > 0 ? `, with its claim fee of ${marksText(Number(d.refund))} refunded` : ''}.`   // GUILD3a: silver, as every sentence says it
       : `${when}, ${seat.name} was struck from the registry.`;
     // AUDIT-SEATS S4: a Charter whose seat the registry no longer confirms, lapsed at the Turning
     case 'unregistered': return `${when}, ${c} lapsed - ${seat.name} is no longer confirmed in the registry.`;
@@ -623,7 +623,7 @@ export function chronicleLine(row, seat, zero = null) {
     case 'conscription': return `${when}, the crown's Conscription brought ${guildWords(d.guild)} ${marksText(Number(d.marks ?? 0))} of its kingdom's Tithe.`;
     case 'conscripted': return `${when}, ${guildWords(d.guild)} paid ${marksText(Number(d.marks ?? 0))} of its Tithe to ${guildWords(d.crown)}'s Conscription.`;
     // CROWN1 part two: the Royal Tourney's end
-    case 'royal-champion': return `${when}, ${d.name || 'a contender'} won the Royal Tourney at ${seat.name} with ${plural(Number(d.wins ?? 0), 'bout')} - Champion of ${kingdomName(d.kingdom) ?? seat.name}.`;   // AUDIT-SEATS L7: "1 bout"
+    case 'royal-champion': return `${when}, ${d.name || 'a contender'} won the Royal Tourney at ${seat.name} with ${plural(Number(d.wins ?? 0), 'bout')}. Now Champion of ${kingdomName(d.kingdom) ?? seat.name}.`;   // AUDIT-SEATS L7: "1 bout"
     case 'royal-none': return `${when}, no bout of the Royal Tourney at ${seat.name} was won; its prize went home.`;
     // CROWN2: fealty (7.8)
     case 'fealty-sworn': return `${when}, ${guildWords(d.vassal)} swore fealty to ${guildWords(d.liege)}.`;

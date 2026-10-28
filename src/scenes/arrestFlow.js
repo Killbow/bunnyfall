@@ -313,7 +313,7 @@ export function createArrestFlow({
       const box = beast ? beastHaltBox(() => box, applyDamage, guardLevel) : new ChoiceWindow({
         lines: text(TEXT_SURRENDER, 'Halt! You are under arrest. Do you surrender?'),
         options: [
-          { code: 'KeyY', label: 'Y - surrender', action: () => {
+          { code: 'KeyY', label: 'Y: surrender', action: () => {
             if (surrenderBox !== box) return;
             awaitingSurrenderAnswer = false;
             if (crimeId() === 0) return;
@@ -322,7 +322,7 @@ export function createArrestFlow({
             if (isTransformedLycanthrope(playerEntity)) { applyDamage(); return; }
             if (surrenderToCityGuards(playerEntity, region(), true, { setHealth1: () => { playerEntity.health = 1; } })) startCourtFlow();
           } },
-          { code: 'KeyN', label: 'N - fight on', action: () => { if (surrenderBox !== box) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) applyDamage(); } },
+          { code: 'KeyN', label: 'N: fight on', action: () => { if (surrenderBox !== box) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) applyDamage(); } },
         ],
       });
       // JAIL-HIT: the question is the box's. A box thrown away unanswered - another window REPLACED it, and
@@ -358,8 +358,8 @@ export function createArrestFlow({
     return new ChoiceWindow({
       lines: [...BEAST_HALT_LINES],
       options: [
-        { code: 'KeyF', label: 'F - frighten', action: () => { if (surrenderBox !== boxOf()) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) roarAtTheWatch(applyDamage, guardLevel); } },
-        { code: 'KeyN', label: 'N - fight on', action: () => { if (surrenderBox !== boxOf()) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) applyDamage(); } },
+        { code: 'KeyF', label: 'F: frighten', action: () => { if (surrenderBox !== boxOf()) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) roarAtTheWatch(applyDamage, guardLevel); } },
+        { code: 'KeyN', label: 'N: fight on', action: () => { if (surrenderBox !== boxOf()) return; awaitingSurrenderAnswer = false; if (crimeId() !== 0) applyDamage(); } },
       ],
     });
   }
@@ -476,8 +476,8 @@ export function createArrestFlow({
     courtBox(new ChoiceWindow({
       lines: [courtMacros(text(TEXT_COURT_START, 'You stand accused. How do you plead?')[0] ?? '', court)],
       options: [
-        { code: 'KeyG', label: 'G - guilty', action: step(() => finish(pleaGuilty(court, playerEntity), court)) },
-        { code: 'KeyN', label: 'N - not guilty', action: step(() => notGuilty(court)) },
+        { code: 'KeyG', label: 'G: guilty', action: step(() => finish(pleaGuilty(court, playerEntity), court)) },
+        { code: 'KeyN', label: 'N: not guilty', action: step(() => notGuilty(court)) },
       ],
     }));
   }
@@ -486,8 +486,8 @@ export function createArrestFlow({
     courtBox(new ChoiceWindow({
       lines: text(TEXT_HOW_CONVINCE, 'How will you convince the court?'),
       options: [
-        { code: 'KeyD', label: 'D - debate (Etiquette)', action: step(() => verdict(court, true)) },
-        { code: 'KeyL', label: 'L - lie (Streetwise)', action: step(() => verdict(court, false)) },
+        { code: 'KeyD', label: 'D: debate (Etiquette)', action: step(() => verdict(court, true)) },
+        { code: 'KeyL', label: 'L: lie (Streetwise)', action: step(() => verdict(court, false)) },
       ],
     }));
   }

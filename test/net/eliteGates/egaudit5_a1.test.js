@@ -119,7 +119,7 @@ test('AUDIT EG V L2-11 THE BEACON NAMES THE NEXT CIRCLE (sections 14 and 16.3: *
   assert.ok(egSpireHudModel(E, 'acct-0', P.now()).stage.includes(line), 'the Spire HUD\'s stage line');
   // under the Twin Court the next Court's second lord beside it (the strata the state says)
   const two = egLordCard(egStrataSecond(['twincourt'], egBossOf(12345, 2), 2));
-  assert.ok(egNextCircleText({ ...E, sr: ['twincourt'] }).endsWith(`The next Court: ${L2.name}, ${L2.epithet} - and ${two.name}, ${two.epithet}.`), 'the Twin Court\'s second lord named');
+  assert.ok(egNextCircleText({ ...E, sr: ['twincourt'] }).endsWith(`The next Court: ${L2.name}, ${L2.epithet}, and ${two.name}, ${two.epithet}.`), 'the Twin Court\'s second lord named');
   P.voteAll('ready', 1);
   P.stepUntil(() => P.B.sg !== 'rest');
   assert.deepEqual(egNextOf(P.B), [], 'none outside a rest');

@@ -516,7 +516,7 @@ test('QUAYS THE GANGWAY, by the real host: run out square to her side at her wai
   h.view.look = { origin: [g.foot[0], g.foot[1] + 1.6, g.foot[2]], dir: toShip };
   h.log.say.length = 0;
   h.run(0.5);
-  assert.equal(h.log.say.filter((s) => /The gangway to the Sea Witch - Activate to go aboard/.test(s)).length, 1, 'said once');
+  assert.equal(h.log.say.filter((s) => /The gangway to the Sea Witch\. Activate to go aboard/.test(s)).length, 1, 'said once');
   // ashore by the harbour now: the port's roll stands its ships, none at the berth she lies made fast at
   const rolled = [...h.host._sea.values()].filter((e) => e.ship.errand?.kind === 'moored');
   assert.ok(rolled.length >= 1, 'the roll stood');

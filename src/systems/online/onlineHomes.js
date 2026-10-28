@@ -401,7 +401,7 @@ export const hallSaleLines = (home) => [
 /** GUILD-HALL-SALE: the sale said - what it paid the treasury (the service's `back`: the deed share and the pieces' half). */
 export const hallSoldLine = (name, back) => t('home.hall.sold', 'You sold the hall of {name}. {gold} gold went to the guild\'s treasury.', { name, gold: gold(Math.max(0, Number(back) || 0)) });
 /** AUDIT GUILD1d A3: the offer box's hall choice (the plaque-less click's), for a guildmaster whose guild holds no hall. */
-export const hallOfferLabel = (price, guild) => `G - buy it for ${guild?.name ?? 'your guild'}: ${gold(guildHallPrice(price))} gold from the treasury`;
+export const hallOfferLabel = (price, guild) => `G: buy it for ${guild?.name ?? 'your guild'}: ${gold(guildHallPrice(price))} gold from the treasury`;
 /** GUILD1d: who may walk into a hall after `entry`, a press on the row: members, anyone, and round again. */
 export const hallNextEntry = (entry) => GUILD_HALL_ENTRIES[(Math.max(0, GUILD_HALL_ENTRIES.indexOf(entry)) + 1) % GUILD_HALL_ENTRIES.length];
 /** GUILD1d: the hall bought and refused at its door, in words. */
@@ -433,8 +433,8 @@ export const HALL_CHEST_SHUT = "The guild's chest is the guild's vault. Open the
 /** Who may enter after `entry`, a press on the row: only me, my party, anyone, my guild, and round again. */
 export const homeNextEntry = (entry) => HOME_ENTRIES[(Math.max(0, HOME_ENTRIES.indexOf(entry)) + 1) % HOME_ENTRIES.length];
 /** Where the plaque draws no rows, the click's own offer: its two answers. */
-export const HOME_OFFER_BUY = 'Y - buy it';
-export const HOME_OFFER_PASS = 'N - just go in';
+export const HOME_OFFER_BUY = 'Y: buy it';
+export const HOME_OFFER_PASS = 'N: just go in';
 
 /** The owner's menu at their own door. */
 export const homeOwnerLines = (home) => ['This is your home.', homeEntryLine(home.entry)];

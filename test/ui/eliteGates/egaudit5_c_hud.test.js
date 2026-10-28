@@ -107,7 +107,7 @@ test('AUDIT EG V L7-7 THE WITNESS\'S SEAT (section 16.5 - "the HUD: the count, t
   // the stage line names her and her health
   const E = R.client.state();
   const m = egSpireHudModel(E, ME, R.now(), { witness: true, watch: { numeral: 'II', name: 'Ann', pct: 64 }, ping: 0, touch: true });
-  assert.match(m.stage, /^Watching II Ann - health 64%\. /);
+  assert.match(m.stage, /^Watching II Ann · health 64%\. /);
   assert.equal(egWatchLine({ numeral: 'III', name: 'Bo', pct: null }), 'Watching III Bo.');
   assert.deepEqual(m.touch.map((b) => b.id), ['prev', 'next', 'ping', 'forsake']);
   const cool = egSpireHudModel(E, ME, R.now(), { witness: true, ping: 2100, touch: true });
@@ -126,7 +126,7 @@ test('AUDIT EG V L7-7 THE WITNESS\'S SEAT (section 16.5 - "the HUD: the count, t
   globalThis.document = fakeDocument();
   try {
     R.client.frame();
-    assert.match(find(globalThis.document.body, 'eg-stage')[0].textContent, /^Watching II Ann - health 64%\./);
+    assert.match(find(globalThis.document.body, 'eg-stage')[0].textContent, /^Watching II Ann · health 64%\./);
   } finally { destroyEgSpireHud(); destroyEgHud(); delete globalThis.document; }
   assert.match(rd('src/scenes/eliteGates/egClient.js'), /watch: witness \? watchedOf\(E\) : null, ping: witness \? pingLeft\(\) : 0/);
   // the shoulders and Q/E move the eye along the living
@@ -337,7 +337,7 @@ test('AUDIT EG V L7-19 THE LAST FIVE RUNS ARE READ (section 27.6 - "The last fiv
   R.B.end = 'last';
   const E = foldEg(EG_STATE_EMPTY, wire(egStateOf(R.B, R.now())), R.now());
   egRecapKeep(store, egRecapModel(E, ME, [], R.now(), { whyText: 'The last word.', board: 'The Descent, the Few: 3rd' }), Date.UTC(2026, 9, 14));
-  egRecapKeep(store, { ...egRecapModel(E, ME, [], R.now(), { whyText: 'You walk home.' }), title: 'Hall 4 - Redoubt 0 - The Broken Galleries' }, Date.UTC(2026, 9, 15));
+  egRecapKeep(store, { ...egRecapModel(E, ME, [], R.now(), { whyText: 'You walk home.' }), title: 'Hall 4 · Redoubt 0 · The Broken Galleries' }, Date.UTC(2026, 9, 15));
   assert.equal(EG_BOARD_TABS.at(-1), 'runs');
   assert.equal(EG_BOARD_TAB_TEXT.runs, 'Your last runs');
   const lines = egRunsLines(egRecapsKept(store));

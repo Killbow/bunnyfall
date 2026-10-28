@@ -75,7 +75,7 @@ function shipSlots(archive, tex, art, night, glow) {
   const dayOf = new Map(Object.entries(night).map(([day, twin]) => [twin, Number(day)]));
   return entries.map((e) => ({
     record: e.record,
-    name: dayOf.has(e.record) ? `${words(nameOf(tex, dayOf.get(e.record)))} - at night` : words(nameOf(tex, e.record)),
+    name: dayOf.has(e.record) ? `${words(nameOf(tex, dayOf.get(e.record)))} · at night` : words(nameOf(tex, e.record)),
     cutout: Object.hasOwn(night, e.record),   // a stern window by day: its glass a hole (the pool's cutOf)
     picture: () => e.build(),
   })).sort((a, b) => a.record - b.record);

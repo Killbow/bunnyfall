@@ -236,7 +236,7 @@ export function iliacHudModel({ phase, view = null, staged = [], pick = null, se
       : online?.watching ? `You watch ${view?.names?.[0] ?? 'a player'} and ${view?.names?.[1] ?? 'a player'} play.`
       : view?.revealing ? 'The cards turn over...'
       : committed ? (view?.players?.[them]?.committed ? 'Both players have committed. The cards turn over.' : `${other} is thinking...`)
-      : `Turn ${view?.turn ?? 1} of ${view?.turns ?? 6} - your magicka ${Math.max(0, (mine?.magicka ?? 0) - spend)} of ${mine?.magicka ?? 0}.${online?.clock ? ` ${online.clock} s.` : ''}`;
+      : `Turn ${view?.turn ?? 1} of ${view?.turns ?? 6}. Your magicka ${Math.max(0, (mine?.magicka ?? 0) - spend)} of ${mine?.magicka ?? 0}.${online?.clock ? ` ${online.clock} s.` : ''}`;
   const outcome = phase === 'over' ? iliacOutcome(view, end) : null;
   // CARDS-PLUS: what the line is, as the Hold'em panel says it - a refusal a warning; the table's time (a sit on its way,
   // the other chair empty, a game watched, the cards turning, the other's thought) a wait; the turn yours; the end its own
@@ -265,7 +265,7 @@ export function iliacHudModel({ phase, view = null, staged = [], pick = null, se
 export function boardLines(b) {
   if (!b) return [];
   if (b.error) return [b.error];
-  const row = (r) => `${r.rank}. ${r.name ?? '?'} - ${r.rating} (${r.wins}-${r.losses}-${r.draws})${r.you ? ' - you' : ''}`;
+  const row = (r) => `${r.rank}. ${r.name ?? '?'} - ${r.rating} (${r.wins}-${r.losses}-${r.draws})${r.you ? ' · you' : ''}`;
   const out = [`Season ${b.season?.n ?? '?'}, day ${b.season?.day ?? '?'}.`];
   if (!b.rows?.length) out.push('No ranked game has been played this season.');
   for (const r of b.rows ?? []) out.push(row(r));

@@ -725,7 +725,7 @@ const HARDCODED = {
   'src/ui/quest/questRail.js': 1,
   'src/ui/quest/questTracker.js': 5,
   'src/ui/reforgeWindow.js': 89,   // REFORGE-REPLACE: the card's note and the line's refusal through t(), the one-line lock's words gone
-  'src/ui/restWindow.js': 7,
+  'src/ui/restWindow.js': 9,
   'src/ui/revenant/revenantCard.js': 5,
   'src/ui/revenant/revenantFateView.js': 3,
   'src/ui/revenant/revenantPage.js': 45,

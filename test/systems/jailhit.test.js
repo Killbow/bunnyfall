@@ -86,7 +86,7 @@ test('JAIL-HIT: the surrender question is the box\'s - answered, or thrown away 
   assert.equal(playerDamageWithheld(), true, 'offline too, while the box asks');
   townTalk.showOverlay({ done: false });   // another window replaces the box before it is answered
   assert.equal(playerDamageWithheld(), false, 'the box is gone and its question with it - no immortality left behind');
-  // answered: "N - fight on" lands the blow that opened it, and the shield is down
+  // answered: "N: fight on" lands the blow that opened it, and the shield is down
   const t2 = mkTalk();
   const p2 = mkConvict({ health: 30, haveShownSurrenderDialogue: false, legalRep: {} });
   const f2 = mkFlow(t2, p2);

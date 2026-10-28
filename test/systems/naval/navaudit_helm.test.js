@@ -126,7 +126,7 @@ test('AUDIT NAV1 H3 the crosshair on her hull lays the broadside into her side: 
   for (let i = 0; i < 5; i++) assert.deepEqual(d.arcs[i].at(-1).map(r3), d.strikes[i].map(r3), 'each arc ends where its ball strikes');
   const s = EYE[1] / -dir[1];
   assert.ok(EYE[0] + dir[0] * s > box.c[0] + box.h[0], 'where the look met the sea lay beyond her far side');
-  assert.equal(navalHudText(m, {}).aim.target, ' - on target');
+  assert.equal(navalHudText(m, {}).aim.target, ' · on target');
   assert.equal(m.target?.name, h.e.ship.names.name, 'her card');
   // the look on the sea 26 degrees forward of her, the broadside still square on her: red, and her card
   h.view.look = { origin: EYE, dir: toward(EYE, [box.c[0] - box.h[0], 1, 40]) };
@@ -240,7 +240,7 @@ test('AUDIT NAV1 H6 why the guns will not fire yet - loading (the seconds left),
   assert.ok(m.aim.left > 0 && m.aim.left < 13);
   assert.equal(m.aim.hot, false, 'never red while loading');
   let t = navalHudText(m, {}).aim;
-  assert.deepEqual([t.target, t.dim, t.hot], [` - reloading ${m.aim.left.toFixed(1)}\u00a0s`, true, false]);   // AUDIT NAV1 (the presentation): the seconds and their unit kept whole in a wrapped line
+  assert.deepEqual([t.target, t.dim, t.hot], [` · reloading ${m.aim.left.toFixed(1)}\u00a0s`, true, false]);   // AUDIT NAV1 (the presentation): the seconds and their unit kept whole in a wrapped line
   let d = h.host.drawFrame().aim;
   assert.deepEqual([d.ready, d.hot], [false, false]);
   assert.ok(d.strikes.length > 0, 'the arcs still end at her side');
@@ -252,7 +252,7 @@ test('AUDIT NAV1 H6 why the guns will not fire yet - loading (the seconds left),
   frames(h, [[h.e, her]], 1, { brace: true });
   m = h.host.hudModel();
   assert.deepEqual([m.aim.side, m.aim.state], ['port', 'braced']);
-  assert.equal(navalHudText(m, {}).aim.target, ' - braced');
+  assert.equal(navalHudText(m, {}).aim.target, ' · braced');
   // no barrels: four rolled off the stern
   h.host.cancelAim();
   h.view.look = { origin: EYE, dir: [0, -0.3, -1] };
@@ -262,7 +262,7 @@ test('AUDIT NAV1 H6 why the guns will not fire yet - loading (the seconds left),
   m = h.host.hudModel();
   assert.deepEqual([m.aim.side, m.aim.state, m.aim.barrel], ['stern', 'empty', true]);
   t = navalHudText(m, {}).aim;
-  assert.deepEqual([t.target, t.dim], [' - no barrels', true]);
+  assert.deepEqual([t.target, t.dim], [' · no barrels', true]);
   assert.equal(h.host.drawFrame().aim.ready, false);
   // crippled
   const w = await helm({ save: { v: 1, boats: { 42: { hull: 0, sail: 0, crew: 24, fire: 0, state: 'wrecked', barrels: 4 } }, notoriety: {}, day: 1, raids: [] } });
@@ -271,7 +271,7 @@ test('AUDIT NAV1 H6 why the guns will not fire yet - loading (the seconds left),
   frames(w, []);
   m = w.host.hudModel();
   assert.equal(m.aim.state, 'crippled');
-  assert.equal(navalHudText(m, {}).aim.target, ' - guns silent');
+  assert.equal(navalHudText(m, {}).aim.target, ' · guns silent');
   // loaded and laid on the sea: the plain line
   const f = navalHudText({ ...m, aim: { ...m.aim, state: 'ready', hot: false } }, {}).aim;
   assert.deepEqual([f.target, f.dim], ['', false]);
@@ -692,7 +692,7 @@ test('AUDIT NAV1 H15 the shipwright\'s window: his words for her - each row what
   };
   let t = yardText(model);
   assert.equal(t.title, 'The shipwright');
-  assert.equal(t.sub, 'Small Ship - your purse: 723 gold');
+  assert.equal(t.sub, 'Small Ship · your purse: 723 gold');
   assert.equal(t.lede, 'The shipwright can fully repair it for 1,726 gold.');
   assert.deepEqual(t.rows.map((r) => [r.label, r.state, r.press, r.can]), [
     ['Hull', '262 of 420 - 158 needed at 7 gold each', 'Mend 103 - 721 gold', true],
@@ -700,7 +700,7 @@ test('AUDIT NAV1 H15 the shipwright\'s window: his words for her - each row what
     ['Hands', '18 of 24 - 6 needed at 30 gold each', 'Hire all - 180 gold', true],
     ['Fire barrels', '1 aboard - 3 needed at 40 gold each', 'Buy all - 120 gold', true],
   ]);
-  assert.equal(t.whole, 'Repair what you can afford - 721 gold');
+  assert.equal(t.whole, 'Repair what you can afford: 721 gold');
   assert.deepEqual(yardNote({ ok: true, id: 'crew', n: 6, cost: 180 }), { text: 'Hands hired: 6 men for 180 gold.', warn: false });
   assert.deepEqual(yardNote({ ok: false, id: 'hull', short: 12 }), { text: 'Not enough gold. It costs 12 gold each.', warn: true });
   assert.deepEqual(yardNote({ ok: true, cost: 2676, bought: [{}], whole: true }), { text: 'Fully repaired for 2,676 gold.', warn: false });

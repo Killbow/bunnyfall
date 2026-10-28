@@ -95,7 +95,7 @@ test('WERE-FRIGHT: THE CHANGE - a beast halted by the watch is never asked to su
     assert.equal(landed, 0);
     const box = beast.talk.slot.win;
     assert.deepEqual(optionCodes(box), ['KeyF', 'KeyN'], 'frighten or fight - no surrender');
-    assert.deepEqual(box.options.map((o) => o.label), ['F - frighten', 'N - fight on']);
+    assert.deepEqual(box.options.map((o) => o.label), ['F: frighten', 'N: fight on']);
     assert.deepEqual(box.lines, [...BEAST_HALT_LINES]);
     assert.equal(player.haveShownSurrenderDialogue, true, 'once a watch, as the surrender is');
     assert.ok((player.legalRep[17] ?? 0) < 0, 'the halt costs the crime\'s reputation as it always did');

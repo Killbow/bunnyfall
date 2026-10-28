@@ -189,10 +189,10 @@ export const enhancedDialogOpen = () => !!active || !!choice;
 // button asks the stack again at the press, so a frame's lag answers
 // nothing either.
 
-/** "Y - yes" -> { key: 'Y', label: 'Yes' }; "Esc - close" -> Esc/Close;
+/** "Y: yes" (or the classic "Y - yes") -> { key: 'Y', label: 'Yes' }; "Esc: close" -> Esc/Close;
  *  a label with no key prefix ("Invite to party") keeps its words. */
 export function choiceLabel(text) {
-  const m = /^\s*([A-Za-z0-9]{1,5})\s+-\s+(.+)$/.exec(String(text ?? ''));
+  const m = /^\s*([A-Za-z0-9]{1,5})(?:\s+-|:)\s+(.+)$/.exec(String(text ?? ''));
   const word = (t) => t.charAt(0).toUpperCase() + t.slice(1);
   return m ? { key: m[1], label: word(m[2]) } : { key: null, label: word(String(text ?? '')) };
 }

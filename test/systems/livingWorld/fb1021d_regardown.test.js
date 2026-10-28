@@ -185,7 +185,7 @@ test('REGARD-OWN (AUDIT FB1021d RO-1): townTalk says a friend made once nothing 
     livingTalk: { friendsMade: () => queue.splice(0) } });
   const said = [];
   tt.hudMessageSink = (l) => said.push(l);
-  const win = new ChoiceWindow({ lines: ['Well met.'], options: [{ code: 'Escape', label: 'Esc - goodbye', action: () => {} }] });
+  const win = new ChoiceWindow({ lines: ['Well met.'], options: [{ code: 'Escape', label: 'Esc: goodbye', action: () => {} }] });
   tt.showOverlay(win);
   queue.push({ name: 'Ysabel Lark', court: true });
   for (let i = 0; i < 300; i++) tt.hudFrame(1 / 30, null);   // ten seconds of the conversation (the interior arm's frame keeps a font-less window)

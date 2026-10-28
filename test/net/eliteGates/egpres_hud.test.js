@@ -189,7 +189,7 @@ test('EG-G1 THE COUNT CHIP (section 27.2): mm:ss - gold above 10:00, white to 2:
   assert.deepEqual(egChipWarnings(c, stateAt({ h: 3, cl: egCourtNeedMs(3) - 2000, ca: at }), at), [], 'once');
 });
 
-test('EG-G1 THE ARRIVAL CARD, THE OBJECTIVE, THE DOOR, THE LORD\'S BAR (section 27.3): *Hall 12 - the Broken Galleries* under the hall\'s name, the objective beneath, the twist\'s line, the decrees; the band\'s card at a band\'s first hall; *Hall 15 - the Court* with the lord\'s card; it stands EG_CARD_MS on its own node in the gate card\'s sheet; the objective chip with its progress; the door\'s marker by its bearing; the lord\'s bar off its body (mutants: the band\'s card on every hall; the twist dropped; the marker on the wrong side)', () => {
+test('EG-G1 THE ARRIVAL CARD, THE OBJECTIVE, THE DOOR, THE LORD\'S BAR (section 27.3): *Hall 12 - the Broken Galleries* under the hall\'s name, the objective beneath, the twist\'s line, the decrees; the band\'s card at a band\'s first hall; *Hall 15: the Court* with the lord\'s card; it stands EG_CARD_MS on its own node in the gate card\'s sheet; the objective chip with its progress; the door\'s marker by its bearing; the lord\'s bar off its body (mutants: the band\'s card on every hall; the twist dropped; the marker on the wrong side)', () => {
   const E = stateAt({ h: 12, seed: 77, dc: [[EG_DECREE_BY_KEY.pack.id, 1]] });
   const card = egArrivalCard(E);
   const spec = egHallOf(77, 12);
@@ -204,7 +204,7 @@ test('EG-G1 THE ARRIVAL CARD, THE OBJECTIVE, THE DOOR, THE LORD\'S BAR (section 
   assert.equal(egArrivalCard(stateAt({ h: 26 })).main, 'Hall 26 - the Soul Cairn');
   assert.equal(egArrivalCard(stateAt({ h: 12 }), { first: true }).band.length > 0, true, 'the breach\'s own first hall');
   const court = egArrivalCard(stateAt({ h: 15 }));
-  assert.equal(court.main, 'Hall 15 - the Court');
+  assert.equal(court.main, 'Hall 15: the Court');
   assert.equal(court.sub, egHallOf(77, 15).name, 'the lord\'s card');
   const tw = egArrivalCard(stateAt({ seed: 1, h: 6 }));
   assert.equal(tw.twist, EG_TWIST_LINES.captive, 'the twist as a second line');
@@ -382,7 +382,7 @@ test('EG-G1 THE RECAP (section 27.6): the depth (the hall, the Redoubt, the band
   drawEgPanel(null, { doc, recap: R, relShown: 1, words: EG_PRES_TEXT });
   const panel = one(doc.body, 'eg-panel');
   const text = JSON.stringify(panel, (k, v) => (k === 'parent' ? undefined : v));
-  for (const s of ['Hall 7 - Redoubt 1 - The Broken Galleries', 'Reliquaries opened: 1', 'Circle 1: Y S C - Grath (a fall)', 'I Mac - walked home, 1 fall, recall spent', 'Hammer and Anvil']) assert.ok(text.includes(s), s);
+  for (const s of ['Hall 7 · Redoubt 1 · The Broken Galleries', 'Reliquaries opened: 1', 'Circle 1: Y S C - Grath (a fall)', 'I Mac - walked home, 1 fall, recall spent', 'Hammer and Anvil']) assert.ok(text.includes(s), s);
   drawEgPanel(null, { doc, recap: R, relShown: 2, words: EG_PRES_TEXT });
   assert.equal(one(panel, 'eg-rel').textContent, 'Reliquaries opened: 2', 'opened in place, one by one');
   drawEgPanel(null, { doc });
@@ -595,7 +595,7 @@ test('EG-G1 THE CLIENT, PLAYED (sections 27.2-27.5): the arrival card at a hall\
   const Q = inBreach({ h: 1, sg: 'closing', seed: 77 });
   const m1 = (() => { const gg = globalThis.document, d = fakeDocument(); globalThis.document = /** @type {any} */ (d); try { Q.client.frame(); return one(d.body, 'eg-door'); } finally { globalThis.document = gg; destroyEgSpireHud(); } })();
   assert.match(m1.className, /\bon\b/, 'the way down marked');
-  assert.match(one(m1, 'eg-door-text').textContent, /^The way down - \d+ m$/);
+  assert.match(one(m1, 'eg-door-text').textContent, /^The way down: \d+ m$/);
   const buzz = [];
   const nav0 = globalThis.navigator;
   Object.defineProperty(globalThis, 'navigator', { value: { vibrate: (ms) => buzz.push(ms) }, configurable: true, writable: true });

@@ -269,7 +269,7 @@ test('ETHER-CHART the model: the charted isles in view (a port named at any zoom
   assert.ok(close.isles.filter((i) => i.key !== h.key).every((i) => i.label), 'at x8 every one');
   assert.ok(m.veil != null && m.veil > 500, 'the Veil to the east');
   assert.deepEqual([m.ship.x, m.ship.y, m.ship.yaw], [...toScreen({ cx: h.px, cy: h.py, zoom: 2 }, h.px + 4.5, h.py + 0.5, 1000, 700), 1]);
-  assert.match(m.sub, /^4 isles charted - deepest 12 leagues past the Veil - 1 crossing$/);
+  assert.match(m.sub, /^4 isles charted · deepest 12 leagues past the Veil · 1 crossing$/);
   // PIN MOVED (AUDIT CAPTAIN'S SEA X12): the Shallows named by the Veil (no line of its own), each name on its deeper side
   const wide = chartModel(word, { cx: VEIL_X - 60 * LEAGUE_PX, cy: h.py, zoom: 0 }, 1000, 700);
   assert.deepEqual(wide.bands.map((b) => [b.name, b.line]), [['the Shallows', false], ['the Reaches', true], ['the Deep Aether', true], ['the Abyss', true]], 'the bounds in view');
@@ -282,7 +282,7 @@ test('ETHER-CHART the model: the charted isles in view (a port named at any zoom
   assert.equal(wayWords({ px: 0, py: 0 }, { px: -Math.round(12 * LEAGUE_PX), py: 0 }), '12 leagues west');
   assert.equal(wayWords({ px: 0, py: 0 }, { px: 0, py: Math.round(LEAGUE_PX) }), '1 league south');
   assert.equal(wayWords({ px: 0, py: 0 }, { px: 1, py: 0 }), 'here');
-  assert.match(isleWords(h, { px: h.px + Math.round(3 * LEAGUE_PX), py: h.py }), /^Veilhaven - a port - 3 leagues west$/);
+  assert.match(isleWords(h, { px: h.px + Math.round(3 * LEAGUE_PX), py: h.py }), /^Veilhaven · a port · 3 leagues west$/);
 });
 
 test('ETHER-CHART the doors: the travel map\'s door opens the chart past the Veil; the freeport\'s harbourmaster\'s tab its rumours and its chart (mutants: the door, the tab\'s words)', () => {
@@ -296,9 +296,9 @@ test('ETHER-CHART the doors: the travel map\'s door opens the chart past the Vei
   const t = officeText(o);
   assert.deepEqual(t, etherOfficeText(o));
   // PIN MOVED (ELTHERIC): the Etheric Sea's
-  assert.equal(t.lede, 'Veilhaven - a freeport of the Eltheric Ocean, in the Shallows, 7 leagues past the Veil. No crown\'s writ runs past the Veil, and no crown\'s favors. Your charts hold 1 isle.');
+  assert.equal(t.lede, 'Veilhaven · a freeport of the Eltheric Ocean, in the Shallows, 7 leagues past the Veil. No crown\'s writ runs past the Veil, and no crown\'s favors. Your charts hold 1 isle.');
   assert.deepEqual(t.board.map((b) => [b.title, b.words, b.press]), [['Talk on the quay', 'A tale.', ''], ['Talk on the quay', 'Another.', '']]);
-  assert.deepEqual(t.letters, [{ id: 'chart', title: 'A chart of these waters', words: '12 isles your charts do not hold, marked on them.', press: 'Buy - 150 gold', can: true }]);
+  assert.deepEqual(t.letters, [{ id: 'chart', title: 'A chart of these waters', words: '12 isles your charts do not hold, marked on them.', press: 'Buy: 150 gold', can: true }]);
   assert.deepEqual(t.heads.board, ['The quay\'s talk', 'the legends of these waters']);
   const none = etherOfficeText({ ...o, chart: { price: 150, fresh: 0, can: false, why: 'Every isle in these waters is already on your charts.' } });
   assert.equal(none.letters[0].words, 'Every isle in these waters is already on your charts.');

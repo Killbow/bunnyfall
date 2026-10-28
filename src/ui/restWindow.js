@@ -166,12 +166,12 @@ export const restArtLoaded = () => !!_art;
  *  (worldTick.js ownMinutes) while the world's sky stays where it is -
  *  so the line says whose time the counter is spending. */
 /** LOITER-ANYWHERE: what an act's refusal adds - Loiter in its place (3, or the RestLoiter binding). */
-export const LOITER_OFFER_LINE = '3 - Loiter instead';
+export const LOITER_OFFER_LINE = '3: Loiter instead';
 
 export function restClockLine(worldMinutes, { loiter = false } = {}) {
   const d = dateFromClassicMinutes(worldMinutes);
   const two = (n) => String(n).padStart(2, '0');
-  return `World time ${two(d.hour)}:${two(d.minute)} - you ${loiter ? 'wait' : 'rest'} on your own clock`;   // AUDIT LIVED1 S (U8): a loiter waits
+  return `World time ${two(d.hour)}:${two(d.minute)} · you ${loiter ? 'wait' : 'rest'} on your own clock`;   // AUDIT LIVED1 S (U8): a loiter waits
 }
 
 export class RestWindow {
@@ -324,7 +324,7 @@ export class RestWindow {
     const where = this._act?.point?.where;
     const frac = Math.max(0, Math.min(1, this._actT / (this._act?.channelSeconds || 1)));
     const n = Math.round(frac * 20);
-    return [this._act?.meditate ? REST_ACT_TEXT.meditating : where ? REST_ACT_TEXT.channel(where) : REST_ACT_TEXT.channelBed, `[${'#'.repeat(n)}${'.'.repeat(20 - n)}]`, '', '3 - loiter instead', 'Esc - stop'];   // LOITER-ANYWHERE
+    return [this._act?.meditate ? REST_ACT_TEXT.meditating : where ? REST_ACT_TEXT.channel(where) : REST_ACT_TEXT.channelBed, `[${'#'.repeat(n)}${'.'.repeat(20 - n)}]`, '', '3: loiter instead', 'Esc: stop'];   // LOITER-ANYWHERE
   }
 
   /** OnPop (:271-285) clears both flags. Every exit from this window
@@ -882,7 +882,7 @@ export class RestWindow {
     ];
     if (Number.isFinite(st.worldMinutes)) lines.push(restClockLine(st.worldMinutes, { loiter: this.mode === 'loiter' }));
     if (v) lines.push(`Health ${v.health}/${v.maxHealth}  Fatigue ${v.fatigue}  Magicka ${v.magicka}`);
-    lines.push('', 'Esc - stop');
+    lines.push('', 'Esc: stop');
     return lines;
   }
 
@@ -984,9 +984,9 @@ export class RestWindow {
 
     let lines;
     if (this.state === 'selection') {
-      lines = ['How would you like to rest?', '', '1. Rest for a while', '2. Rest until healed', '3. Loiter', '', 'Esc - never mind'];
+      lines = ['How would you like to rest?', '', '1. Rest for a while', '2. Rest until healed', '3. Loiter', '', 'Esc: never mind'];
     } else if (this.state === 'confirm') {
-      lines = [illegalRestWarningText(), '', 'Y - yes', 'N - no'];
+      lines = [illegalRestWarningText(), '', 'Y: yes', 'N: no'];
     } else if (this.state === 'hours') {
       lines = [(this.mode === 'loiter' ? loiterPrompt() : restPrompt()) + this.value + '_'];
     } else if (this.state === 'hoursRefused') {
@@ -996,7 +996,7 @@ export class RestWindow {
     } else if (this.state === 'channel') {
       lines = this.actLines();   // REST1
     } else if (this.state === 'campWait') {
-      lines = [REST_ACT_TEXT.campWait(this._campWho ?? 'A party member'), '', 'Esc - stop'];   // CAMP-ROLL
+      lines = [REST_ACT_TEXT.campWait(this._campWho ?? 'A party member'), '', 'Esc: stop'];   // CAMP-ROLL
     } else if (this.state === 'resting') {
       // ShowStatus (:317-346): FullRest shows hours PAST against the
       // hoursPastTexture; TimedRest and Loiter show hours REMAINING

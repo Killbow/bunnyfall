@@ -105,7 +105,7 @@ export function egProgressText(spec, pg) {
   if (!pg) return '';
   if (Array.isArray(pg.rifts)) return `Rifts ${pg.rifts[1] - pg.rifts[0]} of ${pg.rifts[1]} closed`;
   if (pg.obj === 'wellspring') return pg.anchors > 0 ? `Anchors standing: ${pg.anchors}` : 'The Wellspring is open to blows';
-  if (pg.obj === 'holdfast') return `Hold ${ms(75_000 - (pg.hold ?? 0))} - the relic ${pg.relic ?? 100}%`;
+  if (pg.obj === 'holdfast') return `Hold ${ms(75_000 - (pg.hold ?? 0))} · the relic ${pg.relic ?? 100}%`;
   if (pg.obj === 'winch') return `The winch ${Math.round(((pg.winch ?? 0) / 60_000) * 100)}%`;
   if (pg.obj === 'gauntlet') return t('eg.progress.gauntlet', 'Casters left: {n}. Hold a plate {s} s or slay its caster', { n: pg.left ?? 0, s: EG_SILENCE_MS / 1000 });   // FIELD BUGS 2026-10-19f GAUNTLET-PLATES: the two ways a Caster is silenced named - its plate held, or its death (GAUNTLET-SLAIN)
   if (pg.obj === 'engine') return `Hold the engine ${ms(45_000 - (pg.hold ?? 0))}`;
@@ -130,7 +130,7 @@ function stageLines(E, spec, now) {
       return { line: obj, sub: prog || (spec?.kind === 'court' && lordAsleep && !(E.fight?.says ?? []).some((s) => s.w === 'wake') ? 'Step into the ring to wake its lord.' : egTwistShown(spec, E.dc) ? EG_TWIST_NAMES[spec.twist] : '') };
     }
     case 'closing': return { line: `${EG_TEXT.door} Step through the door.`, sub: left > 0 ? `${EG_TEXT.pulled.replace('.', '')} in ${ms(left)}.` : '' };
-    case 'rest': return { line: `${EG_TEXT.redoubt(E.rd)} - ${EG_TEXT.rest}`, sub: left > 0 ? `${EG_TEXT.descend.replace('.', '')} in ${ms(left)} - or take the way home.` : '' };
+    case 'rest': return { line: `${EG_TEXT.redoubt(E.rd)} - ${EG_TEXT.rest}`, sub: left > 0 ? `${EG_TEXT.descend.replace('.', '')} in ${ms(left)}, or take the way home.` : '' };
     case 'end': return { line: EG_TEXT.ended, sub: '' };
     default: return { line: '', sub: '' };
   }
@@ -164,13 +164,13 @@ export function egNextCircleText(E) {
   const dec = (E.nx ?? []).map(([id, rank]) => `${EG_DECREES[id]?.name ?? ''}${rank >= 2 ? ' II' : ''}`).filter(Boolean);
   const c = egCircleOfHall(E.h) + 1, key = egBossOf(E.seed, c), two = egStrataSecond(E.sr, key, c);
   const card = (k) => { const L = egLordCard(k); return `${L.name}${L.epithet ? `, ${L.epithet}` : ''}`; };
-  return [dec.length ? `The next circle bears: ${dec.join(', ')}.` : '', `The next Court: ${card(key)}${two ? ` - and ${card(two)}` : ''}.`].filter(Boolean).join(' ');
+  return [dec.length ? `The next circle bears: ${dec.join(', ')}.` : '', `The next Court: ${card(key)}${two ? `, and ${card(two)}` : ''}.`].filter(Boolean).join(' ');
 }
 /** The company's rows (section 27.4): each member's numeral and name, a cracked recall, a witness's eye, home, forsaken. */
 export function egCompanyRows(E) {
   return E.co.map((c) => {
     const [, name, n, alive, home, , wit, forsaken, , recall] = c;
-    const state = forsaken ? ' (forsaken)' : home ? ' - home' : wit ? ' - watching' : !alive ? ' - fallen' : '';
+    const state = forsaken ? ' (forsaken)' : home ? ' · home' : wit ? ' · watching' : !alive ? ' · fallen' : '';
     const crack = alive && !home && recall === 0 ? ' *' : '';
     return `${ROMAN[n] ?? n} ${name}${crack}${state}`;
   }).join('\n');
@@ -206,8 +206,8 @@ export function egHudModel(E, me, now, { inSpire = false, witness = false, potio
     const memento = me ? (E.mm ?? []).find((q) => q[0] === me) : null;
     const witLine = witness || (mine && mine.wit) ? (mine && mine.recall ? (memento ? `Your Memento lies in Hall ${memento[1]}. You will be called back at Redoubt ${egCircleOfHall(E.h)}.` : `You will be called back at Redoubt ${egCircleOfHall(E.h)}.`) : `${EG_TEXT.fallen} Forsaking leaves for good.`) : '';   // AUDIT EG V (c, L7-20): in no one input's words
     return {
-      kicker: `${E.rh ? `${EG_TEXT.name} - Rehearsal` : EG_TEXT.name}${spec ? ` - ${EG_BANDS[spec.band]?.name ?? ''}` : ''}`,
-      title: spec ? `Circle ${egCircleOfHall(E.h)} - Hall ${egSlotOfHall(E.h)}: ${spec.name}` : 'The Battlespire',
+      kicker: `${E.rh ? `${EG_TEXT.name} · Rehearsal` : EG_TEXT.name}${spec ? ` - ${EG_BANDS[spec.band]?.name ?? ''}` : ''}`,
+      title: spec ? `Circle ${egCircleOfHall(E.h)} · Hall ${egSlotOfHall(E.h)}: ${spec.name}` : 'The Battlespire',
       count: E.sg === 'end' ? '' : `${held ? 'Held ' : ''}${seal ? 'Last word ' : ''}${ms(shown)}`, countCls,
       line: witLine || line, sub: witLine ? '' : E.sg === 'rest' && run?.rw?.length ? `${egStakeText(run.rw)}. ${sub}` : sub, company: n > 1 ? `${standing} of ${n} standing\n${egCompanyRows({ ...E, co })}` : '',
       run: runLine, dec: E.sg === 'rest' ? egNextCircleText(E) : dec.length ? `Decrees: ${dec.join(', ')}` : '', mark: marks.join(' - '),   // AUDIT EG V (L2-11): a rest's beacon
@@ -219,7 +219,7 @@ export function egHudModel(E, me, now, { inSpire = false, witness = false, potio
   if (phase === 'ended' || phase === 'deep' || phase === 'torn') return null;
   const mine = c.os === me;
   return {
-    kicker: c.rh ? `${EG_TEXT.name} - Rehearsal` : EG_TEXT.name,
+    kicker: c.rh ? `${EG_TEXT.name} · Rehearsal` : EG_TEXT.name,
     title: mine ? 'Your breach is opening' : EG_TEXT.call(c.o || 'Your company'),
     count: '', countCls: '',
     line: phase === 'open' ? EG_TEXT.answer(ms(T.admitUntil - now)) : EG_TEXT.sealed(ms(T.openAt - now)),
@@ -307,7 +307,7 @@ export function egRecapModel(E, me, log, now, { whyText = '', board = '', why = 
   const ds = new Map((E.ds ?? []).map((t) => [t[0], t])), dealt = [...ds.values()].reduce((a, t) => a + t[1], 0);   // EG-ZF
   return {
     b: E.b,
-    title: `Hall ${E.h} - Redoubt ${E.rd} - ${band}`,
+    title: `Hall ${E.h} · Redoubt ${E.rd} · ${band}`,
     time: ms(t), why: why ?? '',
     circles: circles.filter(Boolean).map((hs, j) => `Circle ${j + 1}: ${hs.map((h) => h.glyph).join(' ')}${hs.some((h) => h.fall) ? ' (a fall)' : ''}`),
     company: egCompanyRows(E),

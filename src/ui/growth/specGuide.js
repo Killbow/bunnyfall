@@ -64,7 +64,7 @@ export function spellLines(pathId) {
   if (!sp) return [];
   const fr = spellFrame(sp);
   const out = [];
-  const head = [fr.target, fr.element].filter(Boolean).join(' - ');
+  const head = [fr.target, fr.element].filter(Boolean).join(' · ');
   if (head) out.push(head);
   for (const e of sp.effects ?? []) {
     if (!e || e.type < 0) continue;   // an empty slot of the maker's three

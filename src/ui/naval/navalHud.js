@@ -537,11 +537,11 @@ export const shotLineWord = (shot) => SHOT_LINE[shot]?.() ?? '';
 /** AUDIT NAV1 (the helm): the aim line's tail - on target, or why the battery will not fire yet. */
 function aimTail(a) {
   switch (a.state) {
-    case 'reloading': return ` - reloading ${(Number(a.left) || 0).toFixed(1)}\u00a0s`;   // AUDIT NAV1 (the presentation): a wrapped aim keeps "4.2 s" whole
-    case 'braced': return ' - braced';
-    case 'crippled': return ' - guns silent';
-    case 'empty': return ' - no barrels';
-    default: return a.hot ? ' - on target' : '';
+    case 'reloading': return ` · reloading ${(Number(a.left) || 0).toFixed(1)}\u00a0s`;   // AUDIT NAV1 (the presentation): a wrapped aim keeps "4.2 s" whole
+    case 'braced': return ' · braced';
+    case 'crippled': return ' · guns silent';
+    case 'empty': return ' · no barrels';
+    default: return a.hot ? ' · on target' : '';
   }
 }
 
@@ -554,7 +554,7 @@ function fightCard(b) {
   if (b.kind === 'board') {
     if (b.phase !== 'fight') return { name: `Grappling ${b.name}`, sub: 'Hauling alongside', state: '', kind: '' };
     return {
-      name: `Boarding ${b.name}`, sub: b.captain ? `Captain ${b.captain} - ${b.captainDown ? 'down' : 'standing'}` : '',
+      name: `Boarding ${b.name}`, sub: b.captain ? `Captain ${b.captain} · ${b.captainDown ? 'down' : 'standing'}` : '',
       state: `${b.down} of ${b.total} down - ${b.captainDown ? `they yield at ${b.yieldAt}` : 'defeat their captain'}`, kind: 'board',
     };
   }
@@ -567,16 +567,16 @@ function cardState(t, board, key) {
   const mine = board != null && board.name === t.name;
   if (t.state === 'sinking') return { text: 'Going down', kind: 'sinking' };
   // AUDIT NAV1 (the presentation): one wording with the plate's hint ("open ... hold") - it read "her hold" here
-  if (t.state === 'prize') return mine && board.kind === 'hold' ? { text: `Taken - ${key}: open hold`, kind: 'board' } : { text: 'Taken', kind: '' };
+  if (t.state === 'prize') return mine && board.kind === 'hold' ? { text: `Taken. ${key}: open hold`, kind: 'board' } : { text: 'Taken', kind: '' };
   if (t.boarded) return { text: 'Boarded', kind: '' };
   if (t.state === 'struck') {
-    if (mine && board.kind === 'board') return { text: `Colors struck - ${key}: board`, kind: 'board' };   // BOARD-MAGNET: in reach, at any way
+    if (mine && board.kind === 'board') return { text: `Colors struck. ${key}: board`, kind: 'board' };   // BOARD-MAGNET: in reach, at any way
     return { text: 'Colors struck', kind: '' };
   }
   if (t.faction === 'unknown') return { text: 'Colors unknown', kind: '' };   // SPYGLASS: nothing of her stance till they are made out
   // SHIP-STANCE, SHIP-TAGS: how she stands to me, and where she is bound
   const stance = t.hostile ? 'Hostile' : t.friendly ? 'Friendly' : '';
-  return { text: [stance, t.bound].filter(Boolean).join(' - '), kind: t.hostile ? 'hostile' : t.friendly ? 'friendly' : '' };
+  return { text: [stance, t.bound].filter(Boolean).join(' · '), kind: t.hostile ? 'hostile' : t.friendly ? 'friendly' : '' };
 }
 
 /**
@@ -619,7 +619,7 @@ export function navalHudText(model, keys = {}, { touch = false } = {}) {
   }));
   const a = model.aim;
   const aim = a ? {
-    text: a.barrel ? `${SIDE_WORDS[a.side]} - roll a fire barrel` : `${SIDE_WORDS[a.side]} ${a.side === 'bow' || a.side === 'stern' ? 'chasers' : 'broadside'}${a.shot ? `, ${shotLineWord(a.shot)}` : ''} - `,   // SHOT-KINDS: and its load
+    text: a.barrel ? `${SIDE_WORDS[a.side]} · roll a fire barrel` : `${SIDE_WORDS[a.side]} ${a.side === 'bow' || a.side === 'stern' ? 'chasers' : 'broadside'}${a.shot ? `, ${shotLineWord(a.shot)}` : ''} - `,   // SHOT-KINDS: and its load
     range: a.barrel ? '' : `${a.range} m${a.range >= a.max - 1 ? ' (longest)' : ''}`,
     hot: !!a.hot && (a.state ?? 'ready') === 'ready', dim: !!a.state && a.state !== 'ready', target: aimTail(a),
   } : null;
@@ -627,7 +627,7 @@ export function navalHudText(model, keys = {}, { touch = false } = {}) {
   const st = tgt ? cardState(tgt, model.board, boardKey) : null;
   const card = tgt ? {
     id: tgt.id ?? tgt.name, name: tgt.name, faction: tgt.faction, hostile: !!tgt.hostile, friendly: !!tgt.friendly && !tgt.hostile,
-    sub: [tgt.classLine, tgt.captain ? `Captain ${tgt.captain}` : null, `${tgt.distance} m`].filter(Boolean).join(' - '),
+    sub: [tgt.classLine, tgt.captain ? `Captain ${tgt.captain}` : null, `${tgt.distance} m`].filter(Boolean).join(' · '),
     hull: tgt.hull == null ? null : pct(tgt.hull), sail: tgt.sail == null ? null : pct(tgt.sail),   // AUDIT CAPTAIN'S SEA S24: an unknown hull's none
     crew: tgt.crew == null ? null : pct(tgt.crew),   // CARD-CREW (COMBAT-FEEL): her men, as grape thins them
     state: st.text, stateKind: st.kind,
@@ -637,7 +637,7 @@ export function navalHudText(model, keys = {}, { touch = false } = {}) {
     // SHIP-CREW: her crew's spirits and standing order beside her waters
     // CAPT-WATERS: the deep waters said beside the crown's - richer prizes, bolder pirates
     // ETHER-SEA: past the Veil, the band and the leagues from it - no crown's waters, no crown's anchors
-    id: ship.id ?? null, name: ship.name, waters: [model.ether ? etherWatersWords(model.ether) : `${model.notoriety.crown} waters${model.waters === 'deep' ? ', deep' : ''}`, ship.spirits ? `crew ${ship.spirits.toLowerCase()}` : null, ship.order ?? null].filter(Boolean).join(' - '), anchors: model.ether ? 0 : model.notoriety.level,
+    id: ship.id ?? null, name: ship.name, waters: [model.ether ? etherWatersWords(model.ether) : `${model.notoriety.crown} waters${model.waters === 'deep' ? ', deep' : ''}`, ship.spirits ? `crew ${ship.spirits.toLowerCase()}` : null, ship.order ?? null].filter(Boolean).join(' · '), anchors: model.ether ? 0 : model.notoriety.level,
     hull: pct(ship.hull), sail: ship.sail == null ? null : pct(ship.sail), crew: ship.crew == null ? null : pct(ship.crew),
     chips: [ship.wrecked ? 'wreck' : null, ship.fire ? 'fire' : null, ship.braced ? 'brace' : null, ship.repairing ? 'repair' : ship.mending ? 'mend' : null].filter(Boolean),   // SEA-REPAIR: her repairs over the free mending
     batteries,
@@ -737,7 +737,7 @@ function build(doc) {
   // the warning and the tally
   const warn = el(doc, 'div', 'dfnaval-warn');
   const warnText = el(doc, 'span', 'dfnaval-warn-text'), warnKey = el(doc, 'span', 'dfnaval-warn-key');
-  warn.append(warnText, el(doc, 'span', null, ' - '), warnKey);
+  warn.append(warnText, el(doc, 'span', null, ' · '), warnKey);
   const tallyEl = el(doc, 'div', 'dfnaval-tally');
   const tallyHits = el(doc, 'span', 'dfnaval-tally-hits'), tallyRest = el(doc, 'span', 'dfnaval-tally-rest');
   tallyEl.append(tallyHits, tallyRest);
@@ -1024,7 +1024,7 @@ export function tagState(t) {
 export const TAG_DETAIL_M = 400;
 export function tagLine(t) {
   if (!((t.distance ?? Infinity) <= TAG_DETAIL_M)) return '';
-  return [t.line, t.bound].filter(Boolean).join(' - ');
+  return [t.line, t.bound].filter(Boolean).join(' · ');
 }
 /** A tag's opacity by her distance: whole to `from` (TAG_FADE_FROM), TAG_FADE_TO at the tags' `reach`. */
 export const tagAlpha = (d, reach, from = TAG_FADE_FROM) => 1 - (1 - TAG_FADE_TO) * Math.max(0, Math.min(1, ((d ?? 0) - from) / Math.max(1, reach - from)));

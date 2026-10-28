@@ -416,7 +416,7 @@ test('EG-PERFECT SEYTH\'S OWN ECLIPSE (sections 13.4 and 25.5): her Eclipse blow
   assert.equal(egEclipseOfBlows([bl], T0 - 1), null, 'not yet told');
   const e = egEclipseOfBlows([bl], T0 + 1000);
   assert.ok(e && !e.live && Math.abs(e.secs - 5) < 1e-9 && e.havens.length === 2);
-  assert.equal(egEclipseChip(e), 'The Eclipse - 5');
+  assert.equal(egEclipseChip(e), 'The Eclipse: 5');
   assert.ok(egEclipseOfBlows([bl], T0 + 6100).live, 'live at its landing');
   assert.equal(egEclipseOfBlows([{ ...bl, nm: 'Slam' }], T0 + 1000), null, 'another blow is none');
 });

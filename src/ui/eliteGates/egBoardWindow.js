@@ -90,7 +90,7 @@ export function egBoardLines(board, tab, { short = false, runs = [] } = {}) {
   if (!board) return [EG_BOARD_TEXT.reading];
   if (board.error) return [EG_BOARD_TEXT.failed(board.error)];
   const t = EG_BOARD_TABS.includes(tab) ? tab : EG_BOARD_TABS[0];
-  const you = (r) => (r.you ? ` - ${EG_BOARD_TEXT.you}` : '');
+  const you = (r) => (r.you ? ` · ${EG_BOARD_TEXT.you}` : '');
   /** @type {any} */ let b;
   /** @type {(r: any) => string} */ let row;
   let none;
@@ -98,18 +98,18 @@ export function egBoardLines(board, tab, { short = false, runs = [] } = {}) {
     b = board.depths; none = EG_BOARD_TEXT.noDepths;
     // AUDIT EG V (lane8 L8-9; sections 18 and 20 - "the Wager shown on the row"): its decrees by name; a row whose end kept
     // none of them (claimed before they were kept) says it was wagered
-    const wager = (r) => { const names = (Array.isArray(r.wg) ? r.wg : []).map((id) => EG_DECREES[id]?.name).filter(Boolean); return names.length ? ` - ${EG_TEXT.wager(names.join(', '))}` : r.wagered ? ` - ${EG_BOARD_TEXT.wagered}` : ''; };
-    row = (r) => `${r.rank}. ${r.name ?? '?'} - Hall ${r.h}${r.ew > 0 ? ` from Redoubt ${r.ew}` : ''}${wager(r)}${you(r)}`;
+    const wager = (r) => { const names = (Array.isArray(r.wg) ? r.wg : []).map((id) => EG_DECREES[id]?.name).filter(Boolean); return names.length ? ` · ${EG_TEXT.wager(names.join(', '))}` : r.wagered ? ` · ${EG_BOARD_TEXT.wagered}` : ''; };
+    row = (r) => `${r.rank}. ${r.name ?? '?'} · Hall ${r.h}${r.ew > 0 ? ` from Redoubt ${r.ew}` : ''}${wager(r)}${you(r)}`;
   } else if (t === 'deepest') {
     b = board.deepest; none = EG_BOARD_TEXT.noDeepest;
-    row = (r) => `${r.rank}. ${r.name ?? '?'} - Redoubt ${r.w} - ${dayOf(r.at)}${you(r)}`;
+    row = (r) => `${r.rank}. ${r.name ?? '?'} · Redoubt ${r.w} · ${dayOf(r.at)}${you(r)}`;
   } else {
     b = board.descent?.[t]; none = EG_BOARD_TEXT.noDescent;
     row = (r) => {
       const names = Array.isArray(r.names) && r.names.length ? r.names : ['?'];
       const who = short && names.length > 1 ? `${names[0]} +${names.length - 1}` : names.join(', ');
       const band = short ? '' : ` (${EG_BAND_NAMES[egBandOfHall(r.h)]})`;
-      return `${r.rank}. ${who} - Hall ${r.h}${band} - ${egBoardClock(r.t)}${r.flame ? ` - ${EG_BOARD_TEXT.unfallen}` : ''}${!short && r.pr ? ` - ${r.pr}` : ''}${you(r)}`;
+      return `${r.rank}. ${who} · Hall ${r.h}${band} · ${egBoardClock(r.t)}${r.flame ? ` · ${EG_BOARD_TEXT.unfallen}` : ''}${!short && r.pr ? ` · ${r.pr}` : ''}${you(r)}`;
     };
   }
   const out = [EG_BOARD_TAB_TEXT[t], EG_BOARD_TEXT.season(board.season)];

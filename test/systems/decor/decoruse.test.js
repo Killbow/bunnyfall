@@ -51,7 +51,7 @@ test('DECOR-USE the cooking station: a tenth station, before the loom, at the cr
   assert.equal(DECOR_STATIONS.indexOf('cooking'), DECOR_STATIONS.indexOf('loom') - 1, 'before the loom, so the stations counted from the end stand');
   assert.equal(DECOR_STATION_FEES.cooking, 50_000);
   assert.equal(DECOR_STATION_NAMES.cooking, 'Cooking station');
-  assert.deepEqual(decorStationWords(null, 'cooking'), { pick: 'Station: Cooking >', act: 'Make station - 50,000 gold', what: 'station:cooking' });
+  assert.deepEqual(decorStationWords(null, 'cooking'), { pick: 'Station: Cooking >', act: 'Make station: 50,000 gold', what: 'station:cooking' });
   assert.equal(decorPlaceOf({ pos: [1, 0, 2], rot: [0, 0, 0], scale: 1, light: null, storage: false, paid: 120, station: 'cooking' })?.station, 'cooking', 'the service keeps it');
   assert.ok(stationsOffered().includes('cooking'), 'offered offline');
   assert.ok(stationsOffered(false).includes('cooking'), 'and in a caravan or a ship');

@@ -2033,7 +2033,7 @@ export function createEgClient({ modes, online, hub, account, now: hostNow, enti
       if (w.k === 'eland') fight?.landed?.(w.i, w.d);   // FIELD BUGS 2026-10-20f LANDED-WORD: what my blow landed - its number
       if (w.k === 'efair' && EG_FAIR_TEXT[w.w]) { unfair = { h: link.state().h | 0, w: w.w }; mid(EG_FAIR_TEXT[w.w]()); say(EG_FAIR_TEXT[w.w]()); }   // DOOR-WORD
       if (w.k === 'ebridge') say(w.s === me() ? EG_PRES_TEXT.bridgeMine : EG_PRES_TEXT.bridgeRaised(w.n || 'A companion'));   // AUDIT EG III: Spirebridge, said to the company
-      if (w.k === 'egot' && w.w === 'page' && EG_ANNALS[w.p]) { annals.add(w.p); say(`A page of the Annals of 3E 398 - ${EG_ANNALS[w.p][0]}: ${EG_ANNALS[w.p][1]}`); }
+      if (w.k === 'egot' && w.w === 'page' && EG_ANNALS[w.p]) { annals.add(w.p); say(`A page of the Annals of 3E 398: ${EG_ANNALS[w.p][0]}: ${EG_ANNALS[w.p][1]}`); }
       else if (w.k === 'egot' && EG_GOT_TEXT[w.w]) say(EG_GOT_TEXT[w.w]);
       if (w.k === 'egot' && w.w === 'longstep') longStepHeard(link.state());   // AUDIT EG III (lane1 #5): LONG STEP on my crumbles, for one span
       if (w.k === 'rd') say(w.cov ? `${EG_TEXT.redoubt(w.w)}: the Covenant has spoken. This Redoubt is the last.` : `${EG_TEXT.redoubt(w.w)}: the count gains ${egCountText(Math.max(0, w.g ?? 0))}.`);

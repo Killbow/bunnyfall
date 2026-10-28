@@ -58,7 +58,7 @@ test('LOITER-ANYWHERE: in a town\'s street the act refuses, and Loiter is still 
 test('LOITER-ANYWHERE: at a fire the act holds - 3 in the channel turns it into a loiter, nothing slept', async () => {
   const { w, calls } = await classic({ restAct: () => ({ point: { kind: 'camp', where: 'fire' }, night: true, channelSeconds: 6 }) });
   assert.equal(w.state, 'channel');
-  assert.match(w.actLines().join('\n'), /3 - loiter instead/);
+  assert.match(w.actLines().join('\n'), /3: loiter instead/);
   w.input('char:3');
   assert.deepEqual([w.state, w.mode], ['hours', 'loiter']);
   w.tick(10);

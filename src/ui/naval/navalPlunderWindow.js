@@ -116,7 +116,7 @@ export function plunderText(model, nameOf = (it) => String(it?.name ?? '')) {
   const shown = items.slice(0, HOLD_ROWS).map((it) => nameOf(it));
   return {
     title: model.name,
-    sub: [model.classLine, model.captain ? `Captain ${model.captain}` : null].filter(Boolean).join(' - '),
+    sub: [model.classLine, model.captain ? `Captain ${model.captain}` : null].filter(Boolean).join(' · '),
     lede: model.raid ? 'The raiders are beaten. Their ship is alongside and its hold is open to you.' : `The ship is yours.${mine ? '' : ' None of your ships is alongside to load anything onto.'}`,
     count: items.length ? thingsText(items.length) : 'empty',
     rows: items.length > HOLD_ROWS ? [...shown, `and ${items.length - HOLD_ROWS} more`] : shown,

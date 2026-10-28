@@ -45,7 +45,7 @@ function draw() {
 test('RVN12b WHAT IT LEARNED: chips, each its name and what it does, oldest first; an effect for every habit (mutants: an effect lost; the order)', () => {
   assert.deepEqual(Object.keys(PG.ADAPT_EFFECTS).sort(), [...F.ADAPTATIONS].sort());
   assert.deepEqual(PG.learnedChips({ learned: ['arrowWise', 'fireproof'] }), [
-    { id: 'arrowWise', name: 'Arrow-wise', effect: 'your arrows bite less; it closes fast', title: 'Arrow-wise - your arrows bite less; it closes fast' },
+    { id: 'arrowWise', name: 'Arrow-wise', effect: 'your arrows bite less and it closes fast', title: 'Arrow-wise - your arrows bite less and it closes fast' },
     { id: 'fireproof', name: 'Fireproof', effect: 'it shrugs off fire', title: 'Fireproof - it shrugs off fire' },
   ]);
   assert.deepEqual(PG.learnedChips({ learned: ['nope'] }), []);

@@ -266,7 +266,7 @@ test('ARENA-FIX 4: the Hall of Champions - the stone waits, then a tier champion
   assert.deepEqual(two.slice(4), ['Tier 3, Sworn - Aldo, Sworn', 'Tier 1, The Pit - Aldo, Pit Fighter', '', 'Your name is cut here 2 times.']);
   L.champs.fill(true); L.grand = true;
   const all = hallOfChampions(L, 'Aldo');
-  assert.equal(all[4], 'Grand Champion - Aldo');
+  assert.equal(all[4], 'Grand Champion: Aldo');
   assert.equal(all.filter((l) => / - Aldo, /.test(l)).length, 9, 'the nine tiers under the Grand Champion\'s line');
 });
 

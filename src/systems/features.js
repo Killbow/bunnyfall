@@ -679,7 +679,7 @@ export const FEATURES = Object.freeze([
     group: 'sight',
     title: 'Real windows',
     note: 'From the street, house windows show the rooms behind them, warmly lit at night; from inside, you can see '
-      + 'out through them. Rooms only is lighter on your machine; Off is the classic flat glass.',
+      + 'out through them. Rooms only is lighter on your machine, and Off is the classic flat glass.',
     effect: 'Takes effect at once.',
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'realWindows', initial: 'full', online: 'player', tiers: Object.freeze([['full', 'Full'], ['rooms', 'Rooms only'], ['off', 'Off']]) }),   // RW1: render/realWindows.js realWindowsMode reads it
@@ -1036,7 +1036,7 @@ export const FEATURES = Object.freeze([
     note: 'Quests from guilds, temples, nobles and townsfolk send you to towns and dungeons near where you took them: a '
       + 'day or two away at first, farther as you level, and anywhere in the region by about level 15. '
       + 'Off sends you anywhere in the region from the start, like the original.',
-    effect: 'Takes effect on the next quest you take; quests you already have keep their places.',
+    effect: 'Takes effect on the next quest you take. Quests you already have keep their places.',
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'nearbyQuests', initial: true, online: 'player' }),
   }),
@@ -1259,7 +1259,7 @@ export const FEATURES = Object.freeze([
     id: 'steel-helm',
     group: 'combat',
     title: 'Steel Helm',
-    note: 'With the Morrowind body, choose how a Steel Helm looks: Closed has a visor and a plume; Open is a nasal helm that shows the face.',
+    note: 'With the Morrowind body, choose how a Steel Helm looks. Closed has a visor and a plume, and Open is a nasal helm that shows the face.',
     effect: 'Takes effect at once with the Morrowind body.',
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwSteelHelm', initial: 'closed', online: 'player', tiers: Object.freeze([['closed', 'Closed'], ['open', 'Open']]) }),
@@ -1350,7 +1350,7 @@ export const FEATURES = Object.freeze([
     id: 'mw-npc-bodies',
     group: 'world',
     title: 'Morrowind People',
-    note: 'With the Morrowind body, the people around you get Morrowind bodies too, nearest first. Near shows up to 24; All shows up to 48 but costs more.',
+    note: 'With the Morrowind body, the people around you get Morrowind bodies too, nearest first. Near shows up to 24, and All shows up to 48 but costs more.',
     effect: 'Takes effect at once.',
     kinds: Object.freeze(['enhanced']),
     control: Object.freeze({ store: 'prefs', key: 'mwNpcBodies', initial: 'near', online: 'player', tiers: Object.freeze([['off', 'Off'], ['near', 'Near'], ['all', 'All']]) }),

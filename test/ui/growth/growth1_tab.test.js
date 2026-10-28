@@ -157,7 +157,7 @@ test('GROWTH2 WHAT IT DOES: the passive and the signature in the laws\' own word
   const blood = family(m, 'arcane').paths.find((p) => p.id === 'bloodmage');
   assert.deepEqual([blood.signature.kind, blood.signature.name, blood.signature.text], ['spell', AP.PATH_BY_ID.bloodmage.spell.name, AP.PATH_BY_ID.bloodmage.rider]);
   const lines = spellLines('bloodmage');
-  assert.equal(lines[0], 'Single target at range - Fire based');
+  assert.equal(lines[0], 'Single target at range · Fire based');
   assert.equal(lines.length, 2, 'one effect: the maker\'s two empty slots read nothing');
   assert.match(lines[1], /^Damage Health\. Magnitude: 10 to 18, plus 2 to 3 per 1 level\(s\)\.$/);
   assert.equal(spellLines('nope').length, 0);

@@ -669,7 +669,7 @@ export function createMarketTab(m, ui) {
 
   // ─── PROF5b: THE AUCTIONS ────────────────────────────────────────
   const endsText = (endsAt) => (endsAt - ui.nowS() <= 0 ? 'ended' : `ends in ${arrivalText(endsAt, ui.nowS())}`);
-  const standing = (a) => (a.high == null ? `opening ${marksText(a.opening)} - no bids yet` : `${marksText(a.high)} (${plural(a.bids, 'bid')})`);
+  const standing = (a) => (a.high == null ? `opening ${marksText(a.opening)} · no bids yet` : `${marksText(a.high)} (${plural(a.bids, 'bid')})`);
   function auctionRow(a) {
     const p = a.piece;
     const b = rowButton(a, ' market-piece market-auction');
@@ -687,8 +687,8 @@ export function createMarketTab(m, ui) {
   function auctionBar(a) {
     const bar = el('div', 'market-bar');
     if (a.mine) {
-      bar.append(el('span', 'market-ask', a.bids ? `Your auction - ${standing(a)}. It cannot be cancelled once bid on.` : 'Your auction. No bids yet.'));
-      if (!a.bids) bar.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(a.id, m.mint), 'Canceled. Your Masterwork is back; the fee is kept.')));
+      bar.append(el('span', 'market-ask', a.bids ? `Your auction: ${standing(a)}. It cannot be cancelled once bid on.` : 'Your auction. No bids yet.'));
+      if (!a.bids) bar.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(a.id, m.mint), 'Canceled. Your Masterwork is back, but the fee is kept.')));
       return bar;
     }
     if (a.leading) {
@@ -944,7 +944,7 @@ export function createMarketTab(m, ui) {
       const less = pct > 0 ? `${saleTax(100)}% tax and the ${pct}% Tithe` : `${saleTax(100)}% tax`;
       const goldGets = goldText(goldSaleOf(0, worth()).gets);
       hint.textContent = full ? `You have ${listingsMax} listings up, the most allowed here. Cancel one or wait for a sale.`
-        : worth() > MARKET_WORTH_MAX ? `A listing is worth at most ${priceText(MARKET_WORTH_MAX, cur)} - list fewer, or ask less.`   // MARKET-AUDIT: never offered to be refused
+        : worth() > MARKET_WORTH_MAX ? `A listing is worth at most ${priceText(MARKET_WORTH_MAX, cur)}. List fewer, or ask less.`   // MARKET-AUDIT: never offered to be refused
         // GOLD-MARKET: no fee now - each sale pays its share and the tax; the gold is held for the seller to collect
         // MARKET-ANY: a piece from the pack - where it goes, and why gold alone
         // AUDIT 657 B9: the 1% is a fee - the sale's (goldSaleOf), never the listing's
@@ -1053,7 +1053,7 @@ export function createMarketTab(m, ui) {
         el('span', 'market-where', l.region === m.region ? 'here' : m.regionNameOf(l.region)),
         el('span', 'market-state', l.state === 'open' ? `${plural(Math.max(0, Math.ceil((l.expiresAt - ui.nowS()) / 3600)), 'hour')} left` : l.state));
       // MARKET-AUDIT: a gold listing (a pack's piece among them) paid no fee to keep
-      if (l.state === 'open') li.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(l.id, m.mint), l.currency === 'gold' ? 'Canceled. The goods are back.' : 'Canceled. The goods are back; the fee is kept.')));
+      if (l.state === 'open') li.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(l.id, m.mint), l.currency === 'gold' ? 'Canceled. The goods are back.' : 'Canceled. The goods are back, but the fee is kept.')));
       ul.append(li);
     }
     if (!rows.length && st.data) ul.append(el('li', 'notice-empty', MARKET_WORDS.noListings));
@@ -1068,7 +1068,7 @@ export function createMarketTab(m, ui) {
         const li = el('li', `market-listing state-${a.state}`);
         li.append(el('b', null, m.pieceName(a.piece)), el('span', 'market-price', standing(a)),
           el('span', 'market-state', a.state === 'open' ? endsText(a.endsAt) : (said[a.state]?.(a) ?? a.state)));
-        if (a.state === 'open' && !a.bids) li.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(a.id, m.mint), 'Canceled. Your Masterwork is back; the fee is kept.')));
+        if (a.state === 'open' && !a.bids) li.append(button('market-cancel', 'Cancel', () => act(() => m.book.cancel(a.id, m.mint), 'Canceled. Your Masterwork is back, but the fee is kept.')));
         al.append(li);
       }
       box.append(al);

@@ -408,7 +408,7 @@ test('S40 RestWindow: the confirm page paints the verbatim warning', () => {
   // The page's own lines, straight out of draw()'s branch - no font
   // needed to pin WHAT it says.
   assert.match(src('src/ui/restWindow.js'),
-    /lines = \[illegalRestWarningText\(\), '', 'Y - yes', 'N - no'\]/);
+    /lines = \[illegalRestWarningText\(\), '', 'Y: yes', 'N: no'\]/);
   // Confirm is a live state everywhere it must be: it does not fall
   // through to the hours-entry tail.
   const w2 = new RestWindow(winDeps({ restPlace: () => ({ inTownOutside: true }) }));

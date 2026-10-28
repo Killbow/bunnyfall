@@ -167,7 +167,7 @@ export function siegeSidesLine(s, battle) {
 /** This fighter's own lines - its vitality, and when it has fallen, its wave (`waveMs` the tier's - SEAT2b part two (b): a
  *  defender's the Walls' quicker, net/siege/siegeRef.js siegeWaveMs) - or the spectator's. */
 export function siegeSelfLines(s, me, now, { tier = 'palace', watching = false } = {}) {
-  if (watching) return [`Spectating - ${s.counts[2] ?? 0} of ${SIEGE_SPECTATORS_MAX}`];
+  if (watching) return [`Spectating: ${s.counts[2] ?? 0} of ${SIEGE_SPECTATORS_MAX}`];
   const f = s.roll[me];
   if (!f) return [];
   const bars = f.max > 0 ? Math.round((10 * f.hp) / f.max) : 0;

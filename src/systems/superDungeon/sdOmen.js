@@ -70,13 +70,13 @@ export function sdMapMark(rec, hollow, now) {
   const words = sdStateWords(rec, now);
   const E = sdEndingOf(sdMarksOf(rec.s));   // SD18c: the Ending it keeps, on its card
   const lines = [`Near ${hollow.site.cityName || 'the Iliac Bay'}`, ...(E ? [`It keeps the Ending of ${E.stone}`] : []), ...(rec.fb ? [`Found by ${rec.fb}`] : []), ...(words ? [words[0].toUpperCase() + words.slice(1)] : [])];
-  return { day: rec.s, cx: hollow.site.px + 0.5, cy: hollow.site.py + 0.5, r: SD_RING_R, label: words ? `${name} - ${words}` : name, phase, tip: { title: `${name}, an Abyss Dungeon`, lines } };
+  return { day: rec.s, cx: hollow.site.px + 0.5, cy: hollow.site.py + 0.5, r: SD_RING_R, label: words ? `${name} · ${words}` : name, phase, tip: { title: `${name}, an Abyss Dungeon`, lines } };
 }
 
 /** The note under the red seal on every notice board while it is news - the ring's own words. */
 export function sdNoticeCard(mark, cityName) {
   if (!mark) return null;
-  const [name, words] = String(mark.label).split(' - ');
+  const [name, words] = String(mark.label).split(' · ');
   const where = cityName ? `${name}, near ${cityName}.` : `${name}.`;
   return { subject: 'Abyss Dungeon', body: words ? `${where} ${words[0].toUpperCase()}${words.slice(1)}.` : where };
 }

@@ -150,15 +150,15 @@ test('EG-E2 THE BOARD WINDOW\'S LINES: each tab its name and the season, its ran
   assert.deepEqual([egBoardClock(6252), egBoardClock(59), egBoardClock(3600), egBoardClock(-4)], ['1:44:12', '0:59', '1:00:00', '0:00']);
   assert.deepEqual(egBoardLines(BOARD, 'alone'), [
     'The Descent: Alone', 'Season 3, day 12.',   // PIN MOVED (VOICE2): a title's colon, no dash aside (Voice.md rule 5)
-    "1. Avel - Hall 47 (The Soul Cairn) - 1:44:12 - unfallen - Kyn's Rally",
-    '...', '14. Mac - Hall 30 (The Soul Cairn) - 50:00 - Ashfall - you',
+    "1. Avel · Hall 47 (The Soul Cairn) · 1:44:12 · unfallen · Kyn's Rally",
+    '...', '14. Mac · Hall 30 (The Soul Cairn) · 50:00 · Ashfall · you',
     "This week's Proclamation: Kyn's Rally - A slain add strengthens its wave.", 'Your best: Hall 47 - 1:44:12',
   ]);
-  assert.equal(egBoardLines(BOARD, 'few')[2], '1. Fenn, Gale, Hale - Hall 26 (The Soul Cairn) - 33:20 - Ashfall');
-  assert.equal(egBoardLines(BOARD, 'few', { short: true })[2], '1. Fenn +2 - Hall 26 - 33:20');
+  assert.equal(egBoardLines(BOARD, 'few')[2], '1. Fenn, Gale, Hale · Hall 26 (The Soul Cairn) · 33:20 · Ashfall');
+  assert.equal(egBoardLines(BOARD, 'few', { short: true })[2], '1. Fenn +2 · Hall 26 · 33:20');
   assert.equal(egBoardLines(BOARD, 'company')[2], 'No company has gone down this season.');
-  assert.equal(egBoardLines(BOARD, 'depths')[2], '1. Dare - Hall 80 from Redoubt 4 - wagered');
-  assert.equal(egBoardLines(BOARD, 'deepest')[2], '1. Edda - Redoubt 19 - 2027-01-15 - you');
+  assert.equal(egBoardLines(BOARD, 'depths')[2], '1. Dare · Hall 80 from Redoubt 4 · wagered');
+  assert.equal(egBoardLines(BOARD, 'deepest')[2], '1. Edda · Redoubt 19 · 2027-01-15 · you');
   assert.equal(egBoardLines({ ...BOARD, best: null }, 'depths').at(-1), 'Your best: no descent yet this season.');
   assert.deepEqual(egBoardLines(BOARD, 'nonsense')[0], EG_BOARD_TAB_TEXT.alone, 'an unknown tab is the first');
   assert.deepEqual(egBoardLines(null, 'alone'), ['Reading the boards...']);
@@ -194,7 +194,7 @@ test('EG-E2 THE BOARD WINDOW, OPENED: the enhanced skin\'s one panel - its five 
   assert.deepEqual(slot[0].items, EG_BOARD_TABS.map((k) => EG_BOARD_TAB_TEXT[k]), 'the tabs first');
   slot[0].onPick(1);
   assert.equal(slot.length, 1, 'the tabs out of the slot before the lines go in');
-  assert.equal(slot[0].items[2], '1. Fenn +2 - Hall 26 - 33:20', 'the Few\'s lines, the short form');
+  assert.equal(slot[0].items[2], '1. Fenn +2 · Hall 26 · 33:20', 'the Few\'s lines, the short form');
   slot[0].onCancel();
   assert.deepEqual([slot.length, slot[0].selectedIndex], [1, 1], 'back to the tabs, the Few chosen');
   slot[0].onCancel();

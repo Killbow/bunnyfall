@@ -132,7 +132,7 @@ test('AUDIT-SEATS L6 THE FESTIVAL\'S PRICE BEFORE THE FIRST COUNTED WEEK: the we
 test('AUDIT-SEATS L7 THE CHRONICLE\'S WORDS: "1 bout"; Drakes, the players\' word, on Conscription\'s and fealty\'s sums; an Edict with its article ("proclaimed a Festival", 9.2) but Market Day and Open Gates bare; a title won with no Season counted names none (mutants: the plural; the Drakes; the article; the Season\'s tail)', () => {
   const seat = { key: 5023, name: 'Wayrest', region: 23, tier: 'crown' };
   const line = (kind, data) => chronicleLine({ week: 9, kind, data }, seat);
-  assert.equal(line('royal-champion', { name: 'Arden', kingdom: 'wayrest', wins: 1 }), 'In week 9, Arden won the Royal Tourney at Wayrest with 1 bout - Champion of Wayrest.');
+  assert.equal(line('royal-champion', { name: 'Arden', kingdom: 'wayrest', wins: 1 }), 'In week 9, Arden won the Royal Tourney at Wayrest with 1 bout. Now Champion of Wayrest.');
   assert.match(line('royal-champion', { name: 'Arden', kingdom: 'wayrest', wins: 4 }), /with 4 bouts/);
   const SH = { name: 'The Silver Hand', tag: 'SH' };
   assert.match(line('conscription', { guild: SH, marks: 1 }), /brought the Silver Hand <SH> 1 silver of its kingdom's Tithe\.$/);

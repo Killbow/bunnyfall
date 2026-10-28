@@ -142,7 +142,7 @@ test('ARENA3 the stall: his choice - the bout\'s prices, collect, back either, t
   assert.deepEqual(ch.options.map((o) => o.act), ['back0', 'back1', 'window', 'leave', 'leave']);
   assert.ok(ch.lines.includes(ARENA_TEXT.book.edge), 'the house\'s tenth, said');
   assert.ok(ch.lines.some((l) => l.startsWith('This hour: ')));
-  for (const o of ch.options.filter((x) => x.label)) assert.match(o.label, /^[A-Z] - [A-Z]/);
+  for (const o of ch.options.filter((x) => x.label)) assert.match(o.label, /^[A-Z]: [A-Z]/);
   for (const l of ch.lines) assert.ok(l.length <= 90, l);
   assert.deepEqual(BK.bookmakerChoice({ league: L, gameMinutes: gm, gold: 5 }).options.map((o) => o.act), ['window', 'leave', 'leave'], 'no purse, no backing');
   assert.ok(BK.bookmakerChoice({ league: L, gameMinutes: gm, gold: 5 }).lines.includes(ARENA_TEXT.book.whyGold));
@@ -152,7 +152,7 @@ test('ARENA3 the stall: his choice - the bout\'s prices, collect, back either, t
   const owing = { ...L, book: { ...BK.newArenaBook(), owed: 175 } };
   const och = BK.bookmakerChoice({ league: owing, gameMinutes: night, gold: 0, window: false });
   assert.deepEqual(och.options.map((o) => o.act), ['collect', 'leave', 'leave']);
-  assert.equal(och.options[0].label, 'C - Collect 175 gold');
+  assert.equal(och.options[0].label, 'C: Collect 175 gold');
   const st = BK.stakeChoice({ name: 'Aldo', price: '7 to 4', gold: 120 });
   assert.deepEqual(st.options.filter((o) => o.act === 'stake').map((o) => [o.code, o.stake]), [['Digit1', 10], ['Digit2', 25], ['Digit3', 50], ['Digit4', 100]]);
   assert.equal(st.options[0].label, '1 - 10 gold');

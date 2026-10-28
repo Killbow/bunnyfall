@@ -170,7 +170,7 @@ test('BOARD-MAGNET THE PROMPT IN REACH, AT ANY WAY: a struck ship within the gra
     assert.deepEqual(m.board, { name, kind: 'board' }, `at ${v} m/s`);
     const words = navalHudText({ ...m, target: { ...m.target, name, state: 'struck' } }, { board: 'E' });
     assert.equal(words.plate.hint, `E: board ${name}`);
-    assert.equal(words.card.state, 'Colors struck - E: board');
+    assert.equal(words.card.state, 'Colors struck. E: board');
     assert.deepEqual(navalPadPrompts({ ...m, aiming: false }, { board: 'A' }).at(-1), [['A'], `Board ${name}`]);
     assert.equal(h.host.takesActivate(), true);
   }

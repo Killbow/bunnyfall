@@ -134,7 +134,7 @@ test('AUDIT EG V L8-9 AN END KEEPS ITS WAGER, AND THE DEPTHS\' ROW NAMES IT (sec
   const board = (await S.call('/v1/eg/board', {}, mac.secret)).body;
   const rows = board.depths.rows;
   assert.deepEqual(rows.map((r) => [r.name, r.h, r.wagered, r.wg]), [['Wagerer', 31, true, [0, 9]], ['Plain', 20, false, []]]);
-  assert.match(egBoardLines(board, 'depths')[2], / - The Wager: Chained Blows, Ashfall/);
+  assert.match(egBoardLines(board, 'depths')[2], / · The Wager: Chained Blows, Ashfall/);
 });
 
 // ── L9-5 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────

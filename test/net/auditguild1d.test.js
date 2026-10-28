@@ -255,7 +255,7 @@ test('AUDIT GUILD1d A1-A9: members rest (the online bed its own permanence), use
   assert.match(wm, /const visitorMagicRefusal = \(\) => \(visitorDropRefusal\(\) && !hallMemberHere\(\) \? \(interiorHome\?\.hall \? HALL_VISITOR_MAGIC_TEXT : HOME_VISITOR_MAGIC_TEXT\) : null\);/, 'A7 the spell');
   assert.ok(HALL_DROP_TEXT && HALL_VISITOR_MAGIC_TEXT);
   assert.match(wm, /\.\.\.\(homeHallBuyRow\(price, hallGuild\(\)\) \? \[\{ code: 'KeyG', label: hallOfferLabel\(price, hallGuild\(\)\), action: \(\) => \{ buyHallAt\(bd, price\); \} \}\] : \[\]\),/, 'A3');
-  assert.equal(hallOfferLabel(20_000, { name: 'The Hand' }), 'G - buy it for The Hand: 30,000 gold from the treasury');   // HOME-PRICE: the thousands
+  assert.equal(hallOfferLabel(20_000, { name: 'The Hand' }), 'G: buy it for The Hand: 30,000 gold from the treasury');   // HOME-PRICE: the thousands
   assert.match(wm, /if \(_hallBuying\.has\(id\)\) return;\n\s*_hallBuying\.add\(id\);/, 'A8');
   assert.match(wm, /\.finally\(\(\) => \{ _hallBuying\.delete\(id\); \}\);/);
   const w = src('src/scenes/world.js');

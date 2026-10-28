@@ -679,7 +679,7 @@ export function drawHousePage(detail, rerender, { el, divider } = /** @type {any
     for (const h of houses) {
       const row = el('div', 'fam-hallrow');
       const holder = personOf(family, h.by);
-      row.append(el('div', 'fam-kin', `${h.location || 'A house'}${sameHouse(h, home) ? ' - the family home' : ''}`),
+      row.append(el('div', 'fam-kin', `${h.location || 'A house'}${sameHouse(h, home) ? ' · the family home' : ''}`),
         el('div', 'fam-sub', deedLine(family, h, holder)));
       if (!sameHouse(h, home) && prov.markHome) {
         const b = el('button', 'act fam-makehome', 'Make this the family home');

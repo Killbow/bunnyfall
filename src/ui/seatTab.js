@@ -98,7 +98,7 @@ export function seatGuide(seat) {
  * @param {{ name: string }} seat
  */
 export const seatAbout = (seat) => `${seat.name} is a seat: one player guild at a time holds its Charter and rules the town. `
-  + 'Each week the guilds pledged here earn influence; at the week\'s end the strongest takes an unheld Charter, or wins the right to fight its holder for it.';
+  + 'Each week the guilds pledged here earn influence. At the week’s end the strongest takes an unheld Charter, or wins the right to fight its holder for it.';
 
 /**
  * PLAIN-UI: whether the reader may pledge their guild HERE now - the Muster, the pledge's rank, no pledge in the region

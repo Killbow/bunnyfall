@@ -31,7 +31,7 @@ test('ELTHERIC: every word a player reads of the sea is the one home\'s - the cr
   const lines = Object.fromEntries(logLines({ ...newLog(), islands: 2, deepest: 3 }));
   assert.deepEqual([lines[`${ETHER_WORD} isles charted`], lines[`Deepest ${ETHER_WORD} waters`]], ['2', '3 leagues past the Veil']);
   assert.deepEqual([TRADE_WORD.ether, TRADE_WORDS.ether], [`${ETHER_WORD} ship`, `${ETHER_WORD} ships`]);
-  assert.match(etherOfficeText({ port: 'Veilhaven', waters: 'the Shallows', charted: 2, rumours: [] }).lede, new RegExp(`^Veilhaven - a freeport of ${ETHER_SEA_NAME}, in the Shallows\\.`));
+  assert.match(etherOfficeText({ port: 'Veilhaven', waters: 'the Shallows', charted: 2, rumours: [] }).lede, new RegExp(`^Veilhaven · a freeport of ${ETHER_SEA_NAME}, in the Shallows\\.`));
 });
 
 test('ELTHERIC: no code names the sea "Etheric" any more, and the word is written in one module (the intro map\'s table beside it) - comments may speak of it, code may not spell it', () => {

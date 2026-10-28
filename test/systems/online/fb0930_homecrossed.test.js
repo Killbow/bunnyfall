@@ -70,7 +70,7 @@ test('HOME-CROSSED the door: a carried-in home\'s Sell says the bank\'s refusal 
   const w = src('src/scenes/worldModes.js');
   const at = w.indexOf('function openHomeSale(bd)');
   const body = w.slice(at, w.indexOf('\n  }\n', at));
-  assert.match(body, /const home = homeOf\(bd\);\n\s*if \(home\?\.crossed && host\.realmAct\) \{ townTalk\?\.showOverlay\?\.\(new ChoiceWindow\(\{ lines: HOME_CROSSED_LINES, options: \[\{ code: 'Escape', label: 'Esc - close', action: \(\) => \{\} \}\] \}\)\); return; \}/);
+  assert.match(body, /const home = homeOf\(bd\);\n\s*if \(home\?\.crossed && host\.realmAct\) \{ townTalk\?\.showOverlay\?\.\(new ChoiceWindow\(\{ lines: HOME_CROSSED_LINES, options: \[\{ code: 'Escape', label: 'Esc: close', action: \(\) => \{\} \}\] \}\)\); return; \}/);
   assert.ok(body.indexOf('HOME_CROSSED_LINES') < body.indexOf('homeSaleLines('), 'refused before any price is asked');
   assert.match(w, /if \(r\.error === HOME_SALE_OUT\) return;[^\n]*\n\s*if \(!r\.ok\) \{ townTalk\?\.say\?\.\(accountRefusalText\(r\.error\)\); return; \}/, 'a second press says nothing of its own');
 });

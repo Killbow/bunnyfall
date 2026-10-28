@@ -523,6 +523,6 @@ test('AUDIT LIVED1b U1-U8, D3: the words - two rows on the classic panel, one ro
   assert.equal(WT.sharedRealTimeText, undefined);
   assert.match(rd('src/ui/enhanced/enhancedRest.js'), /const clockLine = el\('p', 'clock-line'\);/, 'U7');
   for (const s of ['src/ui/enhanced/enhancedPlusStyle.js', 'src/ui/enhanced/enhancedStyle.js']) assert.match(rd(s), /\.rest-shell \.clock-line:empty \{ display: none; \}/, s);
-  assert.equal(OWN_TIME_ROOM_NOTE, '. Resting uses it; logging off does not.', 'U8');
+  assert.equal(OWN_TIME_ROOM_NOTE, '. Resting uses it, but logging off doesn’t.', 'U8');
   assert.match(rd('src/scenes/world.js'), /LIVED1: the cure's minute is the character's own time/, 'D3');
 });

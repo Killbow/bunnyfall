@@ -71,7 +71,7 @@ export function royalHudModel(s, t, me, now, { watching = false, name = () => ''
   const title = `THE ROYAL TOURNEY OF ${String(t.seat ?? '').toUpperCase()}   prize ${Number(t.prize ?? 0).toLocaleString('en-US')} silver   ends in ${daysHours((t.endsMs ?? now) - now)}`;
   const b = s.bout;
   const ring = !b ? 'The ring is empty. Challenge a contender from their card.'
-    : now < b.s ? `BOUT ${b.n}: ${who(b.a)} against ${who(b.b)} - begins in ${Math.max(1, Math.ceil((b.s - now) / 1000))}`
+    : now < b.s ? `BOUT ${b.n}: ${who(b.a)} against ${who(b.b)}, begins in ${Math.max(1, Math.ceil((b.s - now) / 1000))}`
       : `BOUT ${b.n}: ${who(b.a)} against ${who(b.b)}   ${clock(b.e - now)}`;
   const ladder = s.ladder.slice(0, ROYAL_HUD_ROWS).map((r, i) => `${i + 1}. ${r[0] ? who(r[0]) : 'someone gone'} ${r[1]}-${r[2]}`).join('   ');
   const self = [];

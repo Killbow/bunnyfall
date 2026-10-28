@@ -430,7 +430,7 @@ export function drawGateBossBar(model, { hidden = false, doc = globalThis.docume
   if (text) {
     shown.outAt = null;
     if (text !== shown.callout) {
-      const fresh = !shown.callout || shown.callout.split(' - ')[0] !== text.split(' - ')[0];   // a countdown ticking is the same callout
+      const fresh = !shown.callout || shown.callout.split(/ [-·] /)[0] !== text.split(/ [-·] /)[0];   // a countdown ticking is the same callout
       shown.callout = text; parts.calloutText.textContent = text;
       if (fresh) shown.inAt = now;
     }

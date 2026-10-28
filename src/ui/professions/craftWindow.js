@@ -346,7 +346,7 @@ function drawUpgrade(root, p, station, run) {
   const fee = feeOf(p, station);
   const purse = p.purse?.() ?? 0;
   if (S.temper && typeof p.temperable === 'function') {
-    root.append(h('div', 'cw-label', 'Raise quality: Crude, Standard, Fine, Superior, Masterwork. Never fails; your rank sets the top.'));
+    root.append(h('div', 'cw-label', 'Raise quality: Crude, Standard, Fine, Superior, Masterwork. It never fails, and your rank sets the top.'));
     const pieces = p.temperable(S.temper);
     if (!pieces.length) root.append(h('div', 'cw-empty', 'Nothing in your pack to raise here.'));
     const rank = rankOf(book, S.temper === 'loom' ? 'outfitting' : 'smithing');

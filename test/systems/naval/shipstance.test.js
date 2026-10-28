@@ -85,7 +85,7 @@ test('SHIP-STANCE THE GREEN BAR: a friendly ship\'s tag is marked `friendly` and
   const helm = (target) => ({ ship: { name: 'Small Ship', hull: 1, sail: 1, crew: 1, fire: false, wrecked: false, braced: false }, armed: false, aiming: false, aim: null, board: null, boarding: null, batteries: [], notoriety: { crown: 'Wayrest', value: 0, level: 0 }, target });
   const target = (o = {}) => ({ id: 'a:1', name: 'The Gilded Cog', captain: 'Ysona Wicksley', classLine: 'Merchant Coaster', faction: 'merchant', hull: 0.9, sail: 1, state: 'afloat', boarded: false, distance: 220, hostile: false, friendly: true, bound: 'bound for Sentinel', ...o });
   const c = navalHudText(helm(target())).card;
-  assert.deepEqual([c.friendly, c.hostile, c.state, c.stateKind], [true, false, 'Friendly - bound for Sentinel', 'friendly']);
+  assert.deepEqual([c.friendly, c.hostile, c.state, c.stateKind], [true, false, 'Friendly · bound for Sentinel', 'friendly']);
   const foe = navalHudText(helm(target({ hostile: true, friendly: false, bound: '' }))).card;
   assert.deepEqual([foe.friendly, foe.hostile, foe.state, foe.stateKind], [false, true, 'Hostile', 'hostile']);
   assert.equal(navalHudText(helm(target({ hostile: true, friendly: true }))).card.friendly, false, 'never friendly while hostile');
@@ -96,7 +96,7 @@ test('SHIP-STANCE THE GREEN BAR: a friendly ship\'s tag is marked `friendly` and
   const [root] = byClass(globalThis.document.body, 'dfnaval-hud');
   assert.equal(byClass(root, 'dfnaval-card')[0].className, 'dfnaval-card merchant friendly');
   assert.equal(byClass(root, 'dfnaval-card-state')[0].className, 'dfnaval-card-state friendly');
-  assert.equal(byClass(root, 'dfnaval-card-state')[0].textContent, 'Friendly - bound for Sentinel');
+  assert.equal(byClass(root, 'dfnaval-card-state')[0].textContent, 'Friendly · bound for Sentinel');
   drawNavalHud(helm(target({ hostile: true, friendly: false, bound: '' })), { keys: {} });
   assert.equal(byClass(root, 'dfnaval-card')[0].className, 'dfnaval-card merchant hostile');
   assert.equal(byClass(root, 'dfnaval-card-state')[0].className, 'dfnaval-card-state hostile');
@@ -104,7 +104,7 @@ test('SHIP-STANCE THE GREEN BAR: a friendly ship\'s tag is marked `friendly` and
 });
 
 test('SHIP-TAGS HER CLASS AND WHERE SHE IS BOUND: within TAG_DETAIL_M of the eye a tag\'s second line reads her class (a crown\'s ship by her crown) and where she is bound; past it, none (the name and the bar are what can be read); the line drawn in its own slot, emptied when it says nothing', () => {
-  assert.equal(tagLine({ distance: TAG_DETAIL_M, line: 'Wayrest War Galley', bound: 'bound for Daggerfall' }), 'Wayrest War Galley - bound for Daggerfall');
+  assert.equal(tagLine({ distance: TAG_DETAIL_M, line: 'Wayrest War Galley', bound: 'bound for Daggerfall' }), 'Wayrest War Galley · bound for Daggerfall');
   assert.equal(tagLine({ distance: TAG_DETAIL_M + 1, line: 'Wayrest War Galley', bound: 'bound for Daggerfall' }), '', 'too far to read');
   assert.equal(tagLine({ distance: 100, line: 'Merchant Coaster', bound: '' }), 'Merchant Coaster');
   assert.equal(tagLine({ distance: 100, line: '', bound: 'moored at Wayrest' }), 'moored at Wayrest');
@@ -115,7 +115,7 @@ test('SHIP-TAGS HER CLASS AND WHERE SHE IS BOUND: within TAG_DETAIL_M of the eye
   const [layer] = byClass(globalThis.document.body, 'dfnaval-tags');
   const [tag] = byClass(layer, 'dfnaval-tag');
   assert.deepEqual(tag.children.map((x) => x.className), ['dfnaval-tag-name', 'dfnaval-tag-line', 'dfnaval-tag-bar', 'dfnaval-tag-state'], 'the line under her name, over her bar');
-  assert.equal(byClass(tag, 'dfnaval-tag-line')[0].textContent, 'Merchant Coaster - bound for Sentinel');
+  assert.equal(byClass(tag, 'dfnaval-tag-line')[0].textContent, 'Merchant Coaster · bound for Sentinel');
   drawNavalTags([pt({ distance: 600 })], { scale: 1, reach: 700 });
   assert.equal(byClass(tag, 'dfnaval-tag-line')[0].textContent, '', 'far: emptied (and hidden by its :empty rule)');
   assert.match(NAVAL_HUD_CSS, /\.dfnaval-tag-line:empty \{ display: none; \}/);
@@ -169,5 +169,5 @@ test('SHIP-TAGS THE WORDS, by the real host: her class line (a crown\'s by her c
   assert.equal(t().bound, '');
   // the card's line through the HUD's own words
   const hud = navalHudText({ ship: null, armed: false, aiming: false, aim: null, board: null, boarding: null, batteries: [], notoriety: null, target: { id: 'x', name: 'The Gilded Cog', classLine: 'Merchant Coaster', faction: 'merchant', hull: 1, sail: 1, state: 'afloat', boarded: false, distance: 90, hostile: false, friendly: true, bound: 'moored at Wayrest' } });
-  assert.equal(hud.card.state, 'Friendly - moored at Wayrest');
+  assert.equal(hud.card.state, 'Friendly · moored at Wayrest');
 });

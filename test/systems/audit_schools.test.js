@@ -759,7 +759,7 @@ test('AUDIT SCHOOLS L4 H1 / L5 H3: THE CLASSIC SHEET\'S S ROW - drawn on a skill
   sheet.page = 1;
   sheet._drawSkillPage(renderer, font, { s: 1, ox: 0, oy: 0 });
   sheet.input('KeyS');
-  assert.deepEqual([sheet.child.okOnly, sheet.child.rows[0], sheet.child.rows.at(-1)], [true, 'Riftwalker - Alteration and Mysticism', 'Its signature spell is sold to you at the Mages Guild.'], 'a chosen path: what it is, in an OK box');
+  assert.deepEqual([sheet.child.okOnly, sheet.child.rows[0], sheet.child.rows.at(-1)], [true, 'Riftwalker: Alteration and Mysticism', 'Its signature spell is sold to you at the Mages Guild.'], 'a chosen path: what it is, in an OK box');
 });
 
 test('AUDIT SCHOOLS L4 8 / L5 H3: THE ENHANCED MODEL - each path names its two schools; a chosen one its schools too; a class whose career holds fewer than two schools can never meet one (pathPossible), and its sheet says so by showing nothing (mutants: the schools unnamed; pathPossible always true)', async () => {

@@ -638,7 +638,7 @@ test('BOUNTY-WAY: a one-group farm hunt\'s way to its farmstead is said once and
 test('BOUNTY-WAY: the tutorial says where a hunt is found and that the last kill pays (mutant: the old page)', () => {
   const words = tutorialById('bounties').body.join(' ');
   assert.match(words, /middle of its black circle on your map, or the dungeon it names/);
-  assert.match(words, /which way it waits; the Quests tab keeps the way/);
-  assert.match(words, /The last kill pays gold and an item/);
+  assert.match(words, /you're told which way to go, and the Quests tab keeps track/);
+  assert.match(words, /The final kill pays gold and an item/);
   assert.doesNotMatch(words, /return for gold/);
 });

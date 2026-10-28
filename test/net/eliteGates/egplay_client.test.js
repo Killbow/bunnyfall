@@ -366,7 +366,7 @@ test('EG-PLAY THE TRACKER: outside, the call for my company - when it opens, the
   assert.equal(egHudModel(E, ME, T0 + 11 * 60_000), null, 'the call past');
   const inside = { ...E, h: 3, sg: 'trial', wk: T0, cl: 20 * 60_000, ca: T0 + 1000, op: T0, co: [[ME, 'Mac', 1, 1, 0, 1, 0, 0, 0, 1], ['acct-ann', 'Ann', 2, 0, 0, 1, 1, 0, 1, 1]], rd: 0, rh: 0 };
   const m = egHudModel(inside, ME, T0 + 61_000, { inSpire: true });
-  assert.equal(m.title, `Circle 1 - Hall 3: ${egHallOf(7, 3).name}`);
+  assert.equal(m.title, `Circle 1 · Hall 3: ${egHallOf(7, 3).name}`);
   assert.equal(m.count, '19:00');
   assert.equal(m.countCls, 'gold', 'gold while it holds past ten minutes');
   assert.equal(m.line, egHallOf(7, 3).objective);

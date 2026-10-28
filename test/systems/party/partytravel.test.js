@@ -1052,8 +1052,8 @@ test('PARTY-TRAVEL chat: /leader and /travel are the host\'s own commands, and /
     assert.ok(HOST_COMMANDS.includes(n));
     assert.deepEqual(parseChatLine(`/${n}`), { kind: 'host', name: n });
   }
-  assert.ok(HELP_LINES.includes('/leader - travel to your party leader'));
-  assert.ok(HELP_LINES.includes('/travel - get ready for the leader\'s journey (as leader, call it off)'));
+  assert.ok(HELP_LINES.includes('/leader: travel to your party leader'));
+  assert.ok(HELP_LINES.includes('/travel: get ready for the leader\'s journey (as leader, call it off)'));
   assert.equal(PARTY_TRIP_GO_MS, 3000);
 });
 

@@ -231,7 +231,7 @@ test('CROWN1 THE SERVICE\'S LAW: the ring settled by two different contenders\' 
   assert.deepEqual([edictForTier('royal-tourney', 'crown'), edictForTier('royal-tourney', 'palace'), edictCost('royal-tourney', 'crown')], [true, false, 5000]);
   assert.match(edictLine('royal-tourney', 'crown'), /^Royal Tourney: A duel ladder all week .* Costs 5,000 silver\.$/);
   const seat = { key: 5023, name: 'Wayrest', tier: 'crown', region: 23 };
-  assert.equal(chronicleLine({ kind: 'royal-champion', week: 9, data: { name: 'Arden', kingdom: 'wayrest', wins: 4, prize: 5000 } }, seat), 'In week 9, Arden won the Royal Tourney at Wayrest with 4 bouts - Champion of Wayrest.');
+  assert.equal(chronicleLine({ kind: 'royal-champion', week: 9, data: { name: 'Arden', kingdom: 'wayrest', wins: 4, prize: 5000 } }, seat), 'In week 9, Arden won the Royal Tourney at Wayrest with 4 bouts. Now Champion of Wayrest.');
   assert.equal(chronicleLine({ kind: 'royal-none', week: 9, data: { kingdom: 'wayrest' } }, seat), 'In week 9, no bout of the Royal Tourney at Wayrest was won; its prize went home.');
   assert.equal(seatTitleText('champion', [5023, 2], (k) => (k === 5023 ? seat : null)), 'Champion of Wayrest, Season 2');
   assert.equal(seatTitleText('champion', [9, 2], () => null), null, 'a crown this client cannot name');

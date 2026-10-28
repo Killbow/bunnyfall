@@ -413,7 +413,7 @@ export function egEclipseOfBlows(blows, ms) {
   return null;
 }
 /** The bar's chip, *The Eclipse - 5*, while it is told; nothing else. Pure. */
-export const egEclipseChip = (e) => (e && !e.live ? `The Eclipse - ${Math.max(1, Math.ceil(e.secs - 1e-9))}` : '');
+export const egEclipseChip = (e) => (e && !e.live ? `The Eclipse: ${Math.max(1, Math.ceil(e.secs - 1e-9))}` : '');
 /** How dark the floor is (0-1): from its last 2 s to the strike, the havens kept. Pure. */
 export const egEclipseDark = (e) => (!e ? 0 : e.live ? 1 : clamp01(1 - e.secs / EG_ECLIPSE_LOOK.dark));
 

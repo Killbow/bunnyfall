@@ -827,7 +827,7 @@ test('AUDIT MARTIAL L5 H2: THE CLASSIC SHEET\'S W ROW, DRIVEN - drawn under the 
   sheet.page = 1;
   sheet._drawSkillPage(renderer, font, { s: 1, ox: 0, oy: 0 });
   sheet.input('KeyW');
-  assert.deepEqual([sheet.child.okOnly, sheet.child.rows[0], sheet.child.rows.at(-1)], [true, 'Blademaster - Long Blade and Short Blade', 'Use your Weapon Technique key while holding one of its weapons. A weapon with its own technique uses that instead.']);
+  assert.deepEqual([sheet.child.okOnly, sheet.child.rows[0], sheet.child.rows.at(-1)], [true, 'Blademaster: Long Blade and Short Blade', 'Use your Weapon Technique key while holding one of its weapons. A weapon with its own technique uses that instead.']);
 }));
 
 // PIN MOVED (GROWTH2, bible/10-UI/Growth.md section 5): the enhanced model is the Growth tab's guide (ui/growth/specGuide.js)

@@ -276,7 +276,7 @@ test('AUDIT D1/D4/D5: Enter on a focused button is that button\'s; the judgement
   assert.equal(fateKey({ key: 'Enter', target: { closest: () => null } }, fate, 'kill', kit), true);
   assert.deepEqual(got, [['choose', 'kill']]);
   const w = createInventoryWindow({ fate, entity: { isPlayer: true, items: [] } });
-  assert.deepEqual(w.options.map((o) => o.label), ['K - Kill', 'Esc - Leave it kneeling'], 'short keys; the refused one not offered');
+  assert.deepEqual(w.options.map((o) => o.label), ['K - Kill', 'Esc: Leave it kneeling'], 'short keys; the refused one not offered');
   assert.ok(w.lines.some((l) => /Spare: You keep 6 sworn already/.test(l)), 'its reason in the wrapped lines');
 });
 

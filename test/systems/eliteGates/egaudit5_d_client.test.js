@@ -327,8 +327,8 @@ test('AUDIT EG V L8-9 THE DEPTHS\' ROW NAMES ITS WAGER (sections 18 and 20 - "wi
     { rank: 3, name: 'Bob', h: 20, ew: 0, wagered: false, wg: [] },
   ] } };
   const lines = egBoardLines(board, 'depths');
-  assert.equal(lines[2], `1. Mac - Hall 47 from Redoubt 10 - ${EG_TEXT.wager(`${EG_DECREES[0].name}, ${EG_DECREES[9].name}`)}`);
-  assert.equal(lines[2], '1. Mac - Hall 47 from Redoubt 10 - The Wager: Chained Blows, Ashfall', 'the start window\'s own words');
-  assert.equal(lines[3], `2. Ann - Hall 31 - ${EG_BOARD_TEXT.wagered}`);
-  assert.equal(lines[4], '3. Bob - Hall 20');
+  assert.equal(lines[2], `1. Mac · Hall 47 from Redoubt 10 · ${EG_TEXT.wager(`${EG_DECREES[0].name}, ${EG_DECREES[9].name}`)}`);
+  assert.equal(lines[2], '1. Mac · Hall 47 from Redoubt 10 · The Wager: Chained Blows, Ashfall', 'the start window\'s own words');
+  assert.equal(lines[3], `2. Ann · Hall 31 · ${EG_BOARD_TEXT.wagered}`);
+  assert.equal(lines[4], '3. Bob · Hall 20');
 });

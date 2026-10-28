@@ -438,7 +438,7 @@ export function crewCard(crew, { ship = 'Your ship', order = CREW_ORDERS.stand, 
   for (const h of crew.hands) {
     const deeds = [h.fights ? `${h.fights} ${h.fights === 1 ? 'fight' : 'fights'}` : '', h.boardings ? `${h.boardings} ${h.boardings === 1 ? 'boarding' : 'boardings'}` : ''].filter(Boolean).join(', ');
     const v = veteranOf(h);   // CAPT-CREW: a hand's rank of service, from Seasoned up
-    lines.push(`${h.name}, ${h.role}${deeds ? ` - ${deeds}` : ''}${v.tier > 0 ? ` - ${v.label}` : ''}${ashore?.has(h.name) ? ' - ashore with you' : ''}`);   // AUDIT CC-D8: a hand ashore said so
+    lines.push(`${h.name}, ${h.role}${deeds ? ` - ${deeds}` : ''}${v.tier > 0 ? ` - ${v.label}` : ''}${ashore?.has(h.name) ? ' · ashore with you' : ''}`);   // AUDIT CC-D8: a hand ashore said so
   }
   return lines;
 }

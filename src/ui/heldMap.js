@@ -2306,7 +2306,7 @@ export class HeldMapWindow {
       for (const kind of g.kinds) {
         const inked = g.buckets.some((i) => markKind(i) === kind && shown.has(i));
         const item = el('span', `hmkeykind${inked ? '' : ' dim'}`);
-        item.title = inked ? KIND_WORD[kind] : `${KIND_WORD[kind]} - zoom in to see`;
+        item.title = inked ? KIND_WORD[kind] : `${KIND_WORD[kind]} · zoom in to see`;
         item.dataset.kind = kind;
         const chip = el('canvas', 'hmkeychip');
         chip.width = chip.height = Math.round(KEY_CHIP_PX * dpr);

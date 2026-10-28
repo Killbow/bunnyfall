@@ -26,7 +26,7 @@ test('HOME-VENDOR the waypoint: set on a house and named on the town map, the ma
   setTravelMapMarkedMapId(77);   // a town the player marked
   assert.equal(setVendorWaypoint({ map: 11, buildingKey: 5, owner: 'Eve', town: 'Daggerfall' }), true);
   assert.deepEqual([vendorWaypointKey(), travelMapMarkedMapId(), isVendorWaypoint(11, 5), isVendorWaypoint(11, 6)], ['11:5', 77, true, false]);
-  assert.equal(vendorWaypointLabel('Eve'), 'Trader waypoint - Eve');
+  assert.equal(vendorWaypointLabel('Eve'), 'Trader waypoint: Eve');
   clearVendorWaypoint();
   assert.deepEqual([vendorWaypointKey(), travelMapMarkedMapId()], [null, 77], 'the player\'s mark stands');
   setTravelMapMarkedMapId(-1);

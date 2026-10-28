@@ -4292,7 +4292,7 @@ export function createNavalHost(deps) {
   function gangwayHint() {
     const g = gangwayInReach(false);
     const k = g ? `${g.way}:${g.boat.uid ?? ''}` : null;
-    if (k && k !== gangwaySaid) deps.say?.(g.way === 'aboard' ? `The gangway${g.name ? ` to the ${g.name}` : ''} - Activate to go aboard.` : 'The gangway. Activate to step ashore.', 3);
+    if (k && k !== gangwaySaid) deps.say?.(g.way === 'aboard' ? `The gangway${g.name ? ` to the ${g.name}` : ''}. Activate to go aboard.` : 'The gangway. Activate to step ashore.', 3);
     gangwaySaid = k;
   }
   // ── PASSAGE (2026-10-19; bible/03-World/Passage.md): a harbour's own friendly ship, booked from her quay - the sea's half

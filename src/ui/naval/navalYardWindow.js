@@ -112,11 +112,11 @@ export function yardText(model) {
   return {
     provisions,
     title: 'The shipwright',
-    sub: `${model.name} - your purse: ${gold(o.gold)}`,
+    sub: `${model.name} · your purse: ${gold(o.gold)}`,
     lede: bill === 0 ? 'The ship is in full repair. There is nothing to fix.'
       : sh.wrecked ? `The ship came in wrecked. The shipwright can fully repair it for ${gold(bill)}.` : `The shipwright can fully repair it for ${gold(bill)}.`,
     rows,
-    whole: bill === 0 ? null : paid >= bill ? `Repair all - ${gold(bill)}` : paid > 0 ? `Repair what you can afford - ${gold(paid)}` : `Repair all - ${gold(bill)}`,
+    whole: bill === 0 ? null : paid >= bill ? `Repair all: ${gold(bill)}` : paid > 0 ? `Repair what you can afford: ${gold(paid)}` : `Repair all: ${gold(bill)}`,
     canWhole: paid > 0,
   };
 }
@@ -139,8 +139,8 @@ export function officeText(o) {
   const letters = [];
   const mq = o.marque;
   if (mq?.held) letters.push({ id: 'marque', title: 'Letter of marque', words: `You sail under ${mq.held.crown}'s letter.`, press: 'Held', can: false });
-  else if (mq) letters.push({ id: 'marque', title: 'Letter of marque', words: mq.can ? `${o.crown}'s commission against its rivals' shipping for ${mq.days}.` : mq.why, press: `Buy - ${mq.price}`, can: !!mq.can });
-  if (o.admiralty?.open || o.admiralty?.can) letters.push({ id: 'admiralty', title: 'The Admiralty\'s carrack', words: o.admiralty.can ? 'The only carrack for sale in the Bay. The title goes to your Fleet.' : o.admiralty.why, press: `Buy - ${o.admiralty.price}`, can: !!o.admiralty.can });
+  else if (mq) letters.push({ id: 'marque', title: 'Letter of marque', words: mq.can ? `${o.crown}'s commission against its rivals' shipping for ${mq.days}.` : mq.why, press: `Buy: ${mq.price}`, can: !!mq.can });
+  if (o.admiralty?.open || o.admiralty?.can) letters.push({ id: 'admiralty', title: 'The Admiralty\'s carrack', words: o.admiralty.can ? 'The only carrack for sale in the Bay. The title goes to your Fleet.' : o.admiralty.why, press: `Buy: ${o.admiralty.price}`, can: !!o.admiralty.can });
   else if (o.admiralty) letters.push({ id: 'admiralty', title: 'The Admiralty\'s carrack', words: o.admiralty.why, press: 'Commodores only', can: false });
   return { lede, board, held, letters };
 }
@@ -153,10 +153,10 @@ export function officeText(o) {
  */
 export function etherOfficeText(o) {
   const g = (n) => `${Math.round(n).toLocaleString('en-US')} gold`;
-  const lede = `${o.port} - a freeport of ${ETHER_SEA_NAME}, in ${o.waters}. No crown's writ runs past the Veil, and no crown's favors. Your charts hold ${o.charted} ${o.charted === 1 ? 'isle' : 'isles'}.`;
+  const lede = `${o.port} · a freeport of ${ETHER_SEA_NAME}, in ${o.waters}. No crown's writ runs past the Veil, and no crown's favors. Your charts hold ${o.charted} ${o.charted === 1 ? 'isle' : 'isles'}.`;
   const board = (o.rumours ?? []).map((r, i) => ({ id: `rumour:${i}`, title: 'Talk on the quay', words: r, terms: '', press: '', can: false, why: '' }));
   const c = o.chart;
-  const letters = c ? [{ id: 'chart', title: 'A chart of these waters', words: c.fresh > 0 ? `${c.fresh} ${c.fresh === 1 ? 'isle' : 'isles'} your charts do not hold, marked on them.${c.can ? '' : ` ${c.why}`}` : c.why, press: `Buy - ${g(c.price)}`, can: !!c.can }] : [];
+  const letters = c ? [{ id: 'chart', title: 'A chart of these waters', words: c.fresh > 0 ? `${c.fresh} ${c.fresh === 1 ? 'isle' : 'isles'} your charts do not hold, marked on them.${c.can ? '' : ` ${c.why}`}` : c.why, press: `Buy: ${g(c.price)}`, can: !!c.can }] : [];
   return { lede, board, held: [], letters, ether: true, heads: { board: ['The quay\'s talk', 'the legends of these waters'], letters: ['Charts', 'the harbormaster\'s'] }, wanted: o.wanted ? wantedText(o.wanted) : null, season: o.season ? seasonText(o.season) : null };
 }
 

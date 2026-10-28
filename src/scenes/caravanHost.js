@@ -255,20 +255,20 @@ export function createCaravanHost(deps) {
       const contract = rel()?.escort?.() ?? null;
       const robbed = robbedOf(trip.id) != null;
       if (keepsCounter(trip, res, t)) {
-        if (robbed) options.push({ code: 'KeyT', label: 'T - take', action: () => openCounter(trip, res, t) });
+        if (robbed) options.push({ code: 'KeyT', label: 'T: take', action: () => openCounter(trip, res, t) });
         else {
-          options.push({ code: 'KeyB', label: 'B - buy', action: () => openCounter(trip, res, t, 'Buy') });
-          options.push({ code: 'KeyS', label: 'S - sell', action: () => openCounter(trip, res, t, 'Sell') });
+          options.push({ code: 'KeyB', label: 'B: buy', action: () => openCounter(trip, res, t, 'Buy') });
+          options.push({ code: 'KeyS', label: 'S: sell', action: () => openCounter(trip, res, t, 'Sell') });
         }
       }
       // AUDIT LW-II C5e: never the road of a party the character robbed
-      if (!contract && !robbed && escortOffer(trip, t)) options.push({ code: 'KeyH', label: `H - hire on (${escortPay(trip, deps.level(), 0, t)} gold)`, action: () => hire(trip, res, t) });
+      if (!contract && !robbed && escortOffer(trip, t)) options.push({ code: 'KeyH', label: `H: hire on (${escortPay(trip, deps.level(), 0, t)} gold)`, action: () => hire(trip, res, t) });
       // AUDIT LW-II-2 C6: only where a journey may go - outdoors, nothing near (a lodged party's door at an inn moved the open
       // world under the building)
-      if (contract?.trip === trip.id && !deps.online() && deps.travelWith && deps.travelFree?.() && t < trip.outT1) options.push({ code: 'KeyR', label: 'R - travel on with them', action: () => travel(trip, nextStop(trip, t)) });
+      if (contract?.trip === trip.id && !deps.online() && deps.travelWith && deps.travelFree?.() && t < trip.outT1) options.push({ code: 'KeyR', label: 'R: travel on with them', action: () => travel(trip, nextStop(trip, t)) });
       if (!options.length) return false;
-      options.push({ code: 'KeyA', label: 'A - talk', action: () => talk() });
-      options.push({ code: 'Escape', label: 'Esc - goodbye', action: () => {} });
+      options.push({ code: 'KeyA', label: 'A: talk', action: () => talk() });
+      options.push({ code: 'Escape', label: 'Esc: goodbye', action: () => {} });
       deps.choose([CARAVAN_LINES.ask(name)], options);
       return true;
     },

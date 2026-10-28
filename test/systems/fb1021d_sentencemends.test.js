@@ -50,7 +50,7 @@ function rig({ rep = -20, rolls = () => 0.99 } = {}) {
     blocked: () => stack.length > 0, clock: () => ms,
   });
   const clocks = () => ({ ownNow: ownMinutes(), worldNow: trustedWorldMinutes() });
-  /** Stopped by the watch, "S - come quietly", "G - guilty", the sentence served day by day, released. */
+  /** Stopped by the watch, "S: come quietly", "G - guilty", the sentence served day by day, released. */
   const comeQuietly = ({ between = () => {} } = {}) => {
     ms += STANDING_LOOK_MS;
     if (!watch.frame()) return null;

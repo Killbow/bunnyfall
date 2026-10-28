@@ -88,32 +88,32 @@ test('NAV-F the hint says the press that matters most, in the registry\'s own na
 test('NAV-F the aim under the crosshair: the battery and its word - a broadside, the chasers, a barrel rolled - the range the guns are laid for, "(longest)" at the carriage\'s top, and ON TARGET when the zone lies on a ship (mutants: the chasers called a broadside, the longest never said)', () => {
   const aim = (a) => navalHudText(helm({ aim: a }), KEYS).aim;
   assert.deepEqual(aim({ side: 'starboard', range: 120, max: 190, hot: false }), { text: 'Starboard broadside - ', range: '120 m', hot: false, dim: false, target: '' });
-  assert.deepEqual(aim({ side: 'port', range: 189, max: 190, hot: true }), { text: 'Port broadside - ', range: '189 m (longest)', hot: true, dim: false, target: ' - on target' });
+  assert.deepEqual(aim({ side: 'port', range: 189, max: 190, hot: true }), { text: 'Port broadside - ', range: '189 m (longest)', hot: true, dim: false, target: ' · on target' });
   assert.equal(aim({ side: 'bow', range: 80, max: 150, hot: false }).text, 'Bow chasers - ');
-  assert.deepEqual(aim({ side: 'stern', barrel: true, range: 0, max: 0, hot: false }), { text: 'Stern - roll a fire barrel', range: '', hot: false, dim: false, target: '' });
+  assert.deepEqual(aim({ side: 'stern', barrel: true, range: 0, max: 0, hot: false }), { text: 'Stern · roll a fire barrel', range: '', hot: false, dim: false, target: '' });
   assert.equal(navalHudText(helm(), KEYS).aim, null, 'nothing laid, nothing said');
 });
 
 test('NAV-F the target card: her name and colours, her class, captain and distance, her hull and canvas, and her state - hostile, colours struck (with the key that boards her when she is in reach), boarded, taken (her hold\'s key), going down (mutants: the board key offered for another ship, the prize state missed)', () => {
   const c = navalHudText(helm({ target: card() }), KEYS).card;
   // SHIP-STANCE (2026-10-02) PIN MOVED: the card says how she stands - `friendly`, and her hostile state line its own red
-  assert.deepEqual(c, { id: 'The Red Wake', name: 'The Red Wake', faction: 'pirate', hostile: true, friendly: false, sub: 'Pirate Brigantine - Captain Irna Vosk - 142 m', hull: 30, sail: 75, crew: null, state: 'Hostile', stateKind: 'hostile' });   // PIN MOVED (COMBAT-FEEL CARD-CREW: her men - none known here)
+  assert.deepEqual(c, { id: 'The Red Wake', name: 'The Red Wake', faction: 'pirate', hostile: true, friendly: false, sub: 'Pirate Brigantine · Captain Irna Vosk · 142 m', hull: 30, sail: 75, crew: null, state: 'Hostile', stateKind: 'hostile' });   // PIN MOVED (COMBAT-FEEL CARD-CREW: her men - none known here)
   const st = (t, board = null) => { const x = navalHudText(helm({ target: card(t), board }), KEYS).card; return [x.state, x.stateKind]; };
   assert.deepEqual(st({ hostile: false }), ['', '']);
   assert.deepEqual(st({ state: 'struck' }), ['Colors struck', '']);
-  assert.deepEqual(st({ state: 'struck' }, { name: 'The Red Wake', kind: 'board' }), ['Colors struck - E: board', 'board']);
+  assert.deepEqual(st({ state: 'struck' }, { name: 'The Red Wake', kind: 'board' }), ['Colors struck. E: board', 'board']);
   assert.deepEqual(st({ state: 'struck' }, { name: 'The Black Kraken', kind: 'board' }), ['Colors struck', ''], 'another ship is the one in reach');
   assert.deepEqual(st({ state: 'afloat', boarded: true }), ['Boarded', '']);
   assert.deepEqual(st({ state: 'prize' }), ['Taken', '']);
-  assert.deepEqual(st({ state: 'prize' }, { name: 'The Red Wake', kind: 'hold' }), ['Taken - E: open hold', 'board']);
+  assert.deepEqual(st({ state: 'prize' }, { name: 'The Red Wake', kind: 'hold' }), ['Taken. E: open hold', 'board']);
   assert.deepEqual(st({ state: 'sinking' }, { name: 'The Red Wake', kind: 'board' }), ['Going down', 'sinking']);
   const merchant = navalHudText(helm({ target: card({ captain: null, faction: 'merchant', sail: null, hostile: false }) }), KEYS).card;
-  assert.equal(merchant.sub, 'Pirate Brigantine - 142 m');
+  assert.equal(merchant.sub, 'Pirate Brigantine · 142 m');
   assert.equal(merchant.sail, null);
   // on foot: the card alone, and only the plate's absence says so
   const foot = navalHudText({ ship: null, armed: false, batteries: [], aim: null, aiming: false, target: card({ state: 'prize' }), board: { name: 'The Red Wake', kind: 'hold' }, notoriety: { crown: 'Wayrest', level: 0 } }, KEYS);
   assert.equal(foot.plate, null);
-  assert.equal(foot.card.state, 'Taken - E: open hold');   // AUDIT NAV1: the plate's own wording
+  assert.equal(foot.card.state, 'Taken. E: open hold');   // AUDIT NAV1: the plate's own wording
 });
 
 test('NAV-F a finger\'s screen: no key is named - a tap boards her and opens her hold (the host\'s one activation arm, a key\'s, a click\'s or a tap\'s), the finger held and dragged lays the guns and its lift fires them, the plate\'s own Brace held the brace (AUDIT NAV1 - test/systems/naval/navaudit_helm.test.js); the plate stands over the touch corner\'s presses, never on them (mutants: the keys named to a finger, the plate on the presses, the finger\'s root never marked)', () => {
@@ -122,7 +122,7 @@ test('NAV-F a finger\'s screen: no key is named - a tap boards her and opens her
   assert.equal(navalHudText(helm({ aiming: true }), KEYS, T).plate.hint, 'Lift to fire - Tap: hold fire');
   assert.equal(navalHudText(helm({ board: { name: 'The Red Wake', kind: 'board' } }), KEYS, T).plate.hint, 'Tap: board The Red Wake');
   assert.equal(navalHudText(helm({ board: { name: 'The Red Wake', kind: 'hold' } }), KEYS, T).plate.hint, "Tap: open The Red Wake's hold");
-  assert.equal(navalHudText(helm({ target: card({ state: 'struck' }), board: { name: 'The Red Wake', kind: 'board' } }), KEYS, T).card.state, 'Colors struck - Tap: board');
+  assert.equal(navalHudText(helm({ target: card({ state: 'struck' }), board: { name: 'The Red Wake', kind: 'board' } }), KEYS, T).card.state, 'Colors struck. Tap: board');
   assert.equal(navalHudText(helm({ armed: false, batteries: [] }), KEYS, T).plate.hint, 'No guns aboard');
   // the keys' own words off a finger's screen, unchanged
   assert.equal(navalHudText(helm(), KEYS).plate.hint, 'Hold RIGHT CLICK to aim - C: brace');
@@ -288,7 +288,7 @@ test('NAV-F the plunder window\'s words: her name, class and captain, the lede (
   const m = { name: 'The Red Wake', classLine: 'Pirate Brigantine', captain: 'Irna Vosk', items, mine: () => ({ name: 'Carrack' }) };
   const t = plunderText(m);
   assert.equal(t.title, 'The Red Wake');
-  assert.equal(t.sub, 'Pirate Brigantine - Captain Irna Vosk');
+  assert.equal(t.sub, 'Pirate Brigantine · Captain Irna Vosk');
   assert.equal(t.lede, 'The ship is yours.');
   assert.equal(t.count, `${HOLD_ROWS + 3} things`);
   assert.equal(t.rows.length, HOLD_ROWS + 1);

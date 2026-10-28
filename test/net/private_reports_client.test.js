@@ -305,7 +305,7 @@ test('PRIVATE-REPORT THE READER\'S INBOX IN THE MAILBOX: a door that counts the 
   assert.equal(byKey(w.root, 'more').hidden, true, 'no older page');
   const rows = all(w.root, 'pm-row');
   assert.equal(rows.length, 1);
-  assert.equal(text(rows[0]).startsWith('Tokens never expireSecurity - from Ann - '), true);
+  assert.equal(text(rows[0]).startsWith('Tokens never expireSecurity · from Ann · '), true);
   assert.ok(rows[0].className.includes('unread'));
   await click(rows[0]);
   await until(() => box.desk.opened.size === 1);
@@ -453,7 +453,7 @@ test('PRIVATE-REPORT the doors: `/bug` the form and `/mail` the mailbox, on eith
   assert.equal(mailboxCommandOf('/report Bob harassment'), null);
   assert.ok(HOST_COMMANDS.includes('bug'));
   assert.deepEqual(parseChatLine('/bug'), { kind: 'host', name: 'bug' }, 'never said to the room');
-  assert.ok(HELP_LINES.some((l) => l.startsWith('/bug - ')), '/help says it');
+  assert.ok(HELP_LINES.some((l) => l.startsWith('/bug: ')), '/help says it');
   const world = src('src/scenes/world.js');
   // PIN MOVED (SEASON-BOOK): the host asks pauseCommandOf, mailboxCommandOf's lines and `/season` (test/ui/enhanced/seasonbook.test.js)
   assert.match(world, /import \{ breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal \} from '\.\.\/net\/chatCommands\.js';/);

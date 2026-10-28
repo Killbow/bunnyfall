@@ -377,8 +377,8 @@ export function decorStationWords(piece, offered, armed = false) {
   // station unmade it on the next frame, the licence gone
   if (piece?.station === kind) return armed ? { pick, act: 'Press again to destroy it. Nothing is returned', what: 'station:none' } : { pick, act: 'Unmake station (nothing back)', what: 'arm' };
   // AUDIT HOME-STATIONS S6: a change of craft names that the old licence goes
-  if (piece?.station) return { pick, act: `Change station - ${gold} (no refund)`, what: `station:${kind}` };
-  return { pick, act: `Make station - ${gold}`, what: `station:${kind}` };
+  if (piece?.station) return { pick, act: `Change station: ${gold} (no refund)`, what: `station:${kind}` };
+  return { pick, act: `Make station: ${gold}`, what: `station:${kind}` };
 }
 /** DECOR2a: what an item in the pack says under its name in the "Your things" list. */
 export const DECOR_OWN_LINE = 'yours, free to set down, and back to your pack when taken down';
@@ -1280,7 +1280,7 @@ export function createDecorPanel({
     if ((it?.piece.id ?? null) !== stationFor) { stationFor = it?.piece.id ?? null; stationArmed = null; stationOffer = DECOR_STATIONS.includes(it?.piece.station) ? it.piece.station : DECOR_STATIONS[0]; }
     const words = decorStationWords(it?.piece, stationOffer, !!it && stationArmed === it.piece.id);
     stationPick.textContent = words.pick;
-    stationPick.setAttribute('aria-label', `Station craft: ${words.pick.replace(/^Station: | >$/g, '')} - press for the next`);   // AUDIT HOME-STATIONS S9
+    stationPick.setAttribute('aria-label', `Station craft: ${words.pick.replace(/^Station: | >$/g, '')}, press for the next`);   // AUDIT HOME-STATIONS S9
     stationBtn.textContent = words.act;
     stationBtn.dataset.what = words.what;
     const door = !!it && decorIsDoor(it.piece);   // HOME-DOORS (AUDIT): a door hangs in its doorway - no station, no store, no light
@@ -1340,7 +1340,7 @@ export function createDecorPanel({
     if (footCount.textContent !== c) footCount.textContent = c;
     const g = `${view.gold} gold to spend (purse and bank)`;
     if (footGold.textContent !== g) footGold.textContent = g;
-    const s = view.ready ? '' : `Reading the catalog - ${Math.floor((view.progress ?? 0) * 100)}%`;
+    const s = view.ready ? '' : `Reading the catalog: ${Math.floor((view.progress ?? 0) * 100)}%`;
     if (footStatus.textContent !== s) footStatus.textContent = s;
     const w = String(view.where ?? '');
     if (whereLine.textContent !== w) whereLine.textContent = w;

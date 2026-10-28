@@ -525,7 +525,7 @@ test('PROF-MENU: a refused row says why - the herbs gathered, the Basket lit fir
     let f = plaqueOf(s);
     assert.deepEqual([f.rows.map((r) => [r.name, r.disabled]), f.startRow], [[[`Pick ${name} (gathered today)`, true], ['Search with the Basket', false]], 1]);
     // a row whose label already says it: drawn bare
-    assert.equal(resolveHover({ key: 'k', distance: 1, reach: 2 }, { name: () => ({ title: 'T', actions: [{ id: 'herbs', label: `${name} - gathered today`, disabled: true, why: '' }] }) }).rows[0].name, `${name} - gathered today`);
+    assert.equal(resolveHover({ key: 'k', distance: 1, reach: 2 }, { name: () => ({ title: 'T', actions: [{ id: 'herbs', label: `${name} · gathered today`, disabled: true, why: '' }] }) }).rows[0].name, `${name} · gathered today`);
     // a row refused for want of a tool: nothing to press, and a door in reach takes the plaque
     s.taken.clear();
     s.e.items = s.e.items.filter((i) => i !== s.tools[FT.Basket] && i !== s.tools[FT.Sickle]);

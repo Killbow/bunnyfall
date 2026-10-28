@@ -387,7 +387,7 @@ export function createAutomapSheet(deps = {}) {
         x, z, dx: l.dx, dz: -l.dz,   // plan y runs south, world z north
         up, to, cross: !inside,
         known: inside || listed(to),   // EM3-3D fix: a floor not yet walked is not a page to turn to
-        name: inside ? '' : listed(to) ? `${up ? 'up' : 'down'} to ${sheets[to]?.label ?? ''}` : `${up ? 'up' : 'down'} - not explored yet`,
+        name: inside ? '' : listed(to) ? `${up ? 'up' : 'down'} to ${sheets[to]?.label ?? ''}` : `${up ? 'up' : 'down'} · not explored yet`,
       });
     }
     return out;

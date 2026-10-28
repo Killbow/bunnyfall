@@ -2854,9 +2854,9 @@ export async function bootExterior(canvas, renderer, params, status) {
     townTalk.showOverlay(new ChoiceWindow({
       lines: ['Do you want to Teleport or Set an Anchor?'],
       options: [
-        { code: 'KeyA', label: 'A - set anchor', action: () => setRecallAnchor() },
-        { code: 'KeyT', label: 'T - teleport', action: () => { recallToAnchor(); } },
-        { code: 'Escape', label: 'Esc - cancel', action: () => {} },
+        { code: 'KeyA', label: 'A: set anchor', action: () => setRecallAnchor() },
+        { code: 'KeyT', label: 'T: teleport', action: () => { recallToAnchor(); } },
+        { code: 'Escape', label: 'Esc: cancel', action: () => {} },
       ],
     }));
   }

@@ -339,7 +339,7 @@ function paintHelm(doc, parts, last, state, hooks, holds) {
   if (last.scale !== scale) { last.scale = scale; parts.root.style.setProperty?.('--hud-scale', scale); }
   const rootClass = `helmpanel${state.touch ? ' touch' : ''}${aboard ? ' aboard' : ''}`;
   if (last.rootClass !== rootClass) { last.rootClass = rootClass; parts.root.className = rootClass; }
-  const title = h ? `At the helm - ${HULL_NAMES[h.hull] ?? 'Boat'}` : aboard.passage ? passengerTitle(aboard.passage) : `Aboard ${aboard.owner ? `${aboard.owner}'s` : "another player's"} ${HULL_NAMES[aboard.hull] ?? 'boat'}`;
+  const title = h ? `At the helm: ${HULL_NAMES[h.hull] ?? 'Boat'}` : aboard.passage ? passengerTitle(aboard.passage) : `Aboard ${aboard.owner ? `${aboard.owner}'s` : "another player's"} ${HULL_NAMES[aboard.hull] ?? 'boat'}`;
   if (last.title !== title) { last.title = title; parts.name.textContent = title; }
   const speed = h ? helmSpeedText(h.way) : '';
   if (last.speed !== speed) { last.speed = speed; parts.speed.textContent = speed; }

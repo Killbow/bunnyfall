@@ -387,7 +387,7 @@ export function minePlan({ node, taken, counting, rank, pick, storesFull, fullWo
   const name = node.what === 'boulder' ? 'the stone' : materialLabel(node.material);
   const verb = node.what === 'boulder' ? 'Quarry the stone' : `Mine ${name}`;
   const rankWord = `Mining ${rank}`;
-  if (taken) return { harvest, verb: `${node.what === 'boulder' ? 'The stone' : name} - worked today`, rest: '', ready: false };
+  if (taken) return { harvest, verb: `${node.what === 'boulder' ? 'The stone' : name} · worked today`, rest: '', ready: false };
   if (counting) return { harvest, verb, rest: 'being counted', ready: false };
   if (!tierOpen(rank, node.tier)) return { harvest, verb, rest: `needs Mining ${TIER_RANKS[node.tier - 1]}`, ready: false, needsRank: TIER_RANKS[node.tier - 1] };
   if (!pick) return { harvest, verb, rest: 'needs a Pick-Axe', ready: false };

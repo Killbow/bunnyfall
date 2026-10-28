@@ -290,16 +290,16 @@ test('WB13a T13: A BLOW STILL TO COME ON MY FEET - his Cleave\'s shape is none o
   assert.ok(strip && strip.dir[0] < -0.99 && Math.abs(strip.m - 7) <= 0.25, `back across the floor (${strip?.m} m)`);
 });
 
-test('WB13a T13: the rim and the warning for a blow to come - "Cleave - move!", the rim rising in the danger edge\'s colour as it winds up and at its height in its last moment, over the ground\'s warning; the arrow turned in steps (mutants: the ground\'s warning over a blow\'s)', () => {
+test('WB13a T13: the rim and the warning for a blow to come - "Cleave. Move!", the rim rising in the danger edge\'s colour as it winds up and at its height in its last moment, over the ground\'s warning; the arrow turned in steps (mutants: the ground\'s warning over a blow\'s)', () => {
   const peril = (t, now = false, arrow = 37) => ({ name: 'Cleave', t, now, color: TELEGRAPH_EDGE, arrow });
   const m0 = groundViewModel({ now: 0, peril: peril(0) }), m1 = groundViewModel({ now: 0, peril: peril(1) }), mn = groundViewModel({ now: 0, peril: peril(0.9, true) });
-  assert.equal(m0.warn, GROUND_VIEW_TEXT.peril('Cleave')); assert.equal(m0.warn, 'Cleave - move!');
+  assert.equal(m0.warn, GROUND_VIEW_TEXT.peril('Cleave')); assert.equal(m0.warn, 'Cleave. Move!');
   assert.ok(Math.abs(m0.edge - PERIL_EDGE[0]) < 0.011 && Math.abs(m1.edge - PERIL_EDGE[1]) < 0.011 && Math.abs(mn.edge - PERIL_EDGE_NOW) < 0.011);
   assert.equal(m0.rgb, `${Math.round(TELEGRAPH_EDGE[0] * 255)}, ${Math.round(TELEGRAPH_EDGE[1] * 255)}, ${Math.round(TELEGRAPH_EDGE[2] * 255)}`);
   assert.equal(m0.arrow % PERIL_ARROW_STEP, 0); assert.ok(Math.abs(m0.arrow - 37) <= PERIL_ARROW_STEP / 2);
   const both = groundViewModel({ now: 0, inside: true, ground: 'Burning ground', peril: peril(0.5) });
-  assert.equal(both.warn, 'Cleave - move!', 'a blow to come over the ground I stand in');
-  assert.equal(groundViewModel({ now: 0, inside: true, ground: 'Rime' }).warn, 'Rime - step out!', 'the ground\'s own, alone');
+  assert.equal(both.warn, 'Cleave. Move!', 'a blow to come over the ground I stand in');
+  assert.equal(groundViewModel({ now: 0, inside: true, ground: 'Rime' }).warn, 'Rime. Step out!', 'the ground\'s own, alone');
   assert.equal(groundViewModel({ now: 0, peril: peril(0.5, false, null) }).arrow, null);
 });
 

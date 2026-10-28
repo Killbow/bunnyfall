@@ -103,7 +103,7 @@ function classicFateWindow(fate) {
   const lines = [fate.name, fate.sub ?? '', '', fate.plea?.speech ? `"${fate.plea.speech}"` : (fate.plea?.body ?? ''), '',
     ...fate.options.map((o) => `${o.label}: ${o.detail}`)].filter((l, i, a) => l !== '' || (i > 0 && a[i - 1] !== ''));
   const options = fate.options.filter((o) => !o.disabled).map((o) => ({ code: `Key${o.key}`, label: `${o.key} - ${o.label}`, action: () => fate.choose(o.id) }));
-  options.push({ code: 'Escape', label: 'Esc - Leave it kneeling', action: () => {} });
+  options.push({ code: 'Escape', label: 'Esc: Leave it kneeling', action: () => {} });
   return new ChoiceWindow({ lines, options });
 }
 

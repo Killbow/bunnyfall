@@ -89,11 +89,11 @@ export const ARENA_TEXT = F({
     ladderDone: 'You are the Grand Champion. Nobody is left to beat.',
     title: (t) => `They call you ${t} here.`,
     /** The choices, as ChoiceWindow labels ("W - Watch the exhibition"). */
-    watch: 'W - Watch the bout',
-    fight: 'F - Fight',
-    hall: "H - Fighters' hall",
-    leave: 'L - Leave',
-    window: 'A - Arena window',   // ARENA3
+    watch: 'W: Watch the bout',
+    fight: 'F: Fight',
+    hall: "H: Fighters' hall",
+    leave: 'L: Leave',
+    window: 'A: Arena window',   // ARENA3
     /** The refusals said in his box, beside the choice that cannot be taken. */
     noWatch: 'No bout right now. Come back on the hour.',
     noFight: 'You are too hurt to fight. Rest first.',
@@ -234,8 +234,8 @@ export const ARENA_TEXT = F({
       'The training pit. No purse, no crowd, no shame.',
       'Spar with one of my fighters to train for the next rank.',
     ]),
-    pitFight: 'S - Spar',
-    pitLeave: 'L - Leave',
+    pitFight: 'S: Spar',
+    pitLeave: 'L: Leave',
     pitHurt: 'You are too hurt to spar. See a healer first.',
     pitBusy: 'Finish your current bout first.',
     /** The practice bout: its call, its sparring partner's billing, its end. */
@@ -249,7 +249,7 @@ export const ARENA_TEXT = F({
     /** The Hall of Champions, as its keeper reads the names cut in the stone. */
     hallTitle: 'The Hall of Champions',
     hallIntro: 'The names on this wall are the arena\'s champions.',
-    hallGrand: (name) => `Grand Champion - ${name}`,
+    hallGrand: (name) => `Grand Champion: ${name}`,
     hallTierName: (n, tier) => `Tier ${n}, ${tier}`,
     hallTier: (tier, title, name) => `${tier} - ${name}, ${title}`,
     hallNone: 'No name is cut here yet.',
@@ -263,7 +263,7 @@ export const ARENA_TEXT = F({
      *  the stone's own `hallNone`. */
     plaqueTitle: (name) => `${name}, Grand Champion`,
     plaqueBare: 'An empty plaque',
-    plaqueLine: (name, banner, season) => `${name} - Grand Champion of the Arena${banner ? `, for ${banner}` : ''}, ${season}.`,
+    plaqueLine: (name, banner, season) => `${name} · Grand Champion of the Arena${banner ? `, for ${banner}` : ''}, ${season}.`,
   }),
 
   // ── YOUR LADDER REPLAY (ARENA5; systems/arena/arenaReplay.js) ─────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ export const ARENA_TEXT = F({
     call: (tier, label) => `From the records: ${tier}, ${label}!`,
     callBare: 'A bout from the records!',
     /** His choice and his line before it (the last bout kept). */
-    herald: 'R - Replay last bout',
+    herald: 'R: Replay last bout',
     heraldLine: 'You can replay your last bout.',
     /** The Records page's press on a bout the records keep; its refusals. */
     press: 'Replay',
@@ -315,13 +315,13 @@ export const ARENA_TEXT = F({
     yours: (b) => `You already fight for ${b}.`,
     theirs: (b) => `You fight for ${b}. Quit with their recruiter first.`,
     wait: (b) => `You quit ${b} this season. Come back next season.`,
-    join: (b) => `J - Join ${b}`,
-    quit: (b) => `Q - Quit ${b}`,
-    window: 'A - Arena window',
-    leave: 'L - Leave',
+    join: (b) => `J: Join ${b}`,
+    quit: (b) => `Q: Quit ${b}`,
+    window: 'A: Arena window',
+    leave: 'L: Leave',
     askQuit: (b) => `Quit ${b}? Your points stay with them, and you wait a season to switch.`,
-    yes: 'Y - Yes, quit',
-    no: 'N - No, stay',
+    yes: 'Y: Yes, quit',
+    no: 'N: No, stay',
     joined: (b) => `Welcome to ${b}! Your ladder wins now count for us.`,
     quitDone: (b) => `You quit ${b}. You can join the other banner next season.`,
   }),
@@ -335,13 +335,13 @@ export const ARENA_TEXT = F({
     edge: 'The house keeps a tenth of every price.',
     standing: (line) => `You have ${line}.`,
     owes: (gold) => `I owe you ${gold} gold.`,
-    collect: (gold) => `C - Collect ${gold} gold`,
-    back: (key, name, price) => `${key} - Bet on ${name} at ${price}`,
-    window: 'W - Arena window',
-    leave: 'L - Leave',
+    collect: (gold) => `C: Collect ${gold} gold`,
+    back: (key, name, price) => `${key}: Bet on ${name} at ${price}`,
+    window: 'W: Arena window',
+    leave: 'L: Leave',
     howMuch: (name, price) => `How much on ${name} at ${price}?`,
     stake: (n, gold) => `${n} - ${gold} gold`,
-    never: 'N - Never mind',
+    never: 'N: Never mind',
     taken: (gold, name, price) => `${gold} gold on ${name} at ${price}. Good luck!`,
     paid: (gold) => `The bookmaker pays you ${gold} gold.`,
     evens: 'evens',

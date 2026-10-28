@@ -210,7 +210,7 @@ export function drawVendorPage(detail, rerender, kit) {
       total += Number(s.gets) || 0;
       const row = el('div', 'vendor-row');
       const who = s.patron ? safe(() => p.patronName?.(s.patron), null) : null;   // LW15: "Sold to Ada Lark of Wayrest"
-      row.append(named(s.item), el('span', 'vendor-meta', `${who ? `Sold to ${who} - ` : ''}${goldText(s.total)} - you got ${goldText(s.gets)} · ${townOf(s.vendor?.map)} · ${agoText(s.at)}`));
+      row.append(named(s.item), el('span', 'vendor-meta', `${who ? `Sold to ${who} - ` : ''}${goldText(s.total)} · you got ${goldText(s.gets)} · ${townOf(s.vendor?.map)} · ${agoText(s.at)}`));
       lookable(row, `d:${s.listing}:${s.at}`, s.item);
       sg.append(row);
     }

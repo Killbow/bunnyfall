@@ -36,13 +36,13 @@ import { t } from '../systems/textManager.js';   // CHAT-TRADE: the new rows' wo
 
 /** The channel commands: each names the tab its text is said on. `wrap` is what the text becomes first. */
 export const CHANNEL_COMMANDS = Object.freeze([
-  Object.freeze({ names: Object.freeze(['world', 'g']), tab: 'world', wrap: null, help: '/world or /g <text> - to everyone online' }),
-  Object.freeze({ names: Object.freeze(['region', 'r']), tab: 'region', wrap: null, help: '/region or /r <text> - to everyone in your region' }),
-  Object.freeze({ names: Object.freeze(['lc']), tab: 'lang', wrap: null, help: '/lc <text> - to your language channel' }),   // CHAT-LANG: /l is Local's
-  Object.freeze({ names: Object.freeze(['party', 'p']), tab: 'party', wrap: null, help: '/party or /p <text> - to your party' }),
-  Object.freeze({ names: Object.freeze(['guild', 'gu']), tab: 'guild', wrap: null, help: '/guild or /gu <text> - to your guild' }),   // GUILD1c: /g is the World's
-  Object.freeze({ names: Object.freeze(['local', 'l', 'say', 's']), tab: 'local', wrap: null, help: '/local, /l, /say or /s <text> - to players nearby, in character' }),
-  Object.freeze({ names: Object.freeze(['ooc']), tab: 'local', wrap: 'ooc', help: '/ooc <text> - to players nearby, out of character (( ))' }),
+  Object.freeze({ names: Object.freeze(['world', 'g']), tab: 'world', wrap: null, help: '/world or /g <text>: to everyone online' }),
+  Object.freeze({ names: Object.freeze(['region', 'r']), tab: 'region', wrap: null, help: '/region or /r <text>: to everyone in your region' }),
+  Object.freeze({ names: Object.freeze(['lc']), tab: 'lang', wrap: null, help: '/lc <text>: to your language channel' }),   // CHAT-LANG: /l is Local's
+  Object.freeze({ names: Object.freeze(['party', 'p']), tab: 'party', wrap: null, help: '/party or /p <text>: to your party' }),
+  Object.freeze({ names: Object.freeze(['guild', 'gu']), tab: 'guild', wrap: null, help: '/guild or /gu <text>: to your guild' }),   // GUILD1c: /g is the World's
+  Object.freeze({ names: Object.freeze(['local', 'l', 'say', 's']), tab: 'local', wrap: null, help: '/local, /l, /say or /s <text>: to players nearby, in character' }),
+  Object.freeze({ names: Object.freeze(['ooc']), tab: 'local', wrap: 'ooc', help: '/ooc <text>: to players nearby, out of character (( ))' }),
   // CHAT-TRADE: the two channels a player joins by choice - said on a channel not joined joins it (scenes/world.js)
   Object.freeze({ names: Object.freeze(['trade', 'tr']), tab: 'trade', wrap: null, get help() { return t('net.chat.tradeHelp', '/trade or /tr <text>: post to the Trade channel to buy, sell or swap'); } }),
   Object.freeze({ names: Object.freeze(['lfg']), tab: 'lfg', wrap: null, get help() { return t('net.chat.lfgHelp', '/lfg <text>: post to the LFG channel to find a group or more players'); } }),
@@ -212,32 +212,32 @@ const lazyLines = (rows) => {
 export const HELP_LINES = lazyLines([
   'Chat commands:',
   ...CHANNEL_COMMANDS.map((c) => () => c.help),
-  '/lang de, /lang en ... - join a language channel (/lang off leaves it, /lang lists them)',
-  '/roll or /dice [NdM+K] - roll dice on this tab: /roll 2d6+3, /roll d20, /roll 100',
+  '/lang de, /lang en ...: join a language channel (/lang off leaves it, /lang lists them)',
+  '/roll or /dice [NdM+K]: roll dice on this tab, like /roll 2d6+3, /roll d20 or /roll 100',
   () => t('net.chat.joinHelp', '/join trade, /join lfg: add a channel tab (/leave trade or /leave lfg removes it)'),
-  '/me <action> - an action on this tab: /me looks around',
+  '/me <action>: an action on this tab, like /me looks around',
   () => t('net.chat.rpHelp', '/rp <text>: a roleplay line on this tab, in green italics, like /rp draws her blade'),
-  '/wave, /bow, /nod ... [name] - a gesture to players nearby (/emotes lists them all)',
+  '/wave, /bow, /nod ... [name]: a gesture to players nearby (/emotes lists them all)',
   ':smile: :sword: :heart: ... - shortcodes become emoji',
-  '/ready - how party resting works online (resting at a fire rests the whole party)',
-  '/leader - travel to your party leader',
-  '/travel - get ready for the leader\'s journey (as leader, call it off)',
-  '/unstuck - leave by the door you came in, or outdoors go to the nearest town (/unstuck cancel stops it)',   // PVPUNSTUCK
-  '/mentor - shows whether you are mentoring your party (it turns on when they are well below your level)',
-  '/mail - your mailbox: messages from the developers and items to claim',
+  '/ready: how party resting works online (resting at a fire rests the whole party)',
+  '/leader: travel to your party leader',
+  '/travel: get ready for the leader\'s journey (as leader, call it off)',
+  '/unstuck: leave by the door you came in, or outdoors go to the nearest town (/unstuck cancel stops it)',   // PVPUNSTUCK
+  '/mentor: shows whether you’re mentoring your party (it turns on when they’re well below your level)',
+  '/mail: your mailbox, with messages from the developers and items to claim',
   () => t('net.chat.bugHelp', '/bug: tell the developers privately about an exploit, a bug or a security hole'),   // PRIVATE-REPORT
   () => t('net.chat.seasonHelp', '/season: this season, your standings and the time left'),   // SEASON-BOOK
-  '/find or /who <name> - find who is online by that name',   // SCALE5c
-  '/search <name> - show a player\'s lines on every tab and who is online by that name (/search on its own clears it)',   // CHAT-FIND
+  '/find or /who <name>: find who is online by that name',   // SCALE5c
+  '/search <name>: show a player\'s lines on every tab and who is online by that name (/search on its own clears it)',   // CHAT-FIND
   () => t('net.chat.blockHelp', '/block <name>, /unblock <name>, /blocked: hide a player’s lines, invites and requests, or show them again'),   // SAFE1
   () => t('net.chat.reportHelp', '/report <name> [harassment|hate|sexual|threat|spam][: note]: send their recent lines and your note to the moderators. You can also click a name in the chat'),   // SAFE3 - AUDIT SAFE DOC-13: and the reporter's note
   () => t('net.chat.rulesHelp', '/rules: the Code of Conduct every player agreed to'),   // SAFE7
-  '//text - a line that starts with a slash',
+  '//text: a line that starts with a slash',
 ]);
 
 /** AUDIT EG V (c, L7-21): /help's own line for the Elite Breach's words (the host answers `/breach` before this parser is
  *  asked - breachCommandOf), in the player's language; and /help's lines whole. */
-export const breachHelpLine = () => t('chat.help.breach', '/breach: the Elite Breach. Answer your company’s call or open the start window (/breach help lists its commands)');
+export const breachHelpLine = () => t('chat.help.breach', '/breach answers your company’s call for the Elite Breach or opens its start window (/breach help lists its commands)');
 export const helpLines = () => [...HELP_LINES.slice(0, -1), breachHelpLine(), HELP_LINES[HELP_LINES.length - 1]];
 /**
  * AUDIT EG V (c, L7-1): THE ELITE BREACH'S DOOR IN THE CHAT - what `/breach` was given: its words after it, whole (`pick 2`,

@@ -142,7 +142,7 @@ test('CAPT-TRADE the exchange dealt with: goods bought into the hold - as many a
   assert.equal(r1.text, `Bought 10 casks of Wine for ${(10 * wine.sell).toLocaleString('en-US')} gold.`);
   assert.equal(h.office.exchange({ cargo: hold }).rows.find((r) => r.id === 'wine').sells, 20, 'the day\'s dealing kept');
   const poor = officeOf({ gold: 3 });
-  assert.deepEqual(poor.office.exchange({ cargo: [] }).buy('wine', 1), { ok: false, text: `Not enough gold - ${wine.sell} gold a cask.` });
+  assert.deepEqual(poor.office.exchange({ cargo: [] }).buy('wine', 1), { ok: false, text: `Not enough gold: ${wine.sell} gold a cask.` });
   const many = officeOf({ gold: 99999 });
   const big = [];
   many.office.exchange({ cargo: big }).buy('wine', 99);

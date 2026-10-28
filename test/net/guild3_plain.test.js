@@ -76,7 +76,7 @@ test('GUILD3a silver in every sentence a player reads - a siege\'s Honour, a str
   assert.equal(siegeHonourLine({ marks: 50, xp: 2000 }), 'Your Honor: 50 silver, 2,000 Renown, one Spoils of War roll');
   const seat = { key: 1, name: 'Anticlere', region: ANTICLERE, tier: 'palace' };
   assert.equal(chronicleLine({ kind: 'strike', week: 5, data: { guild: { name: 'The Silver Hand', tag: 'SH' }, refund: 8000 } }, seat),
-    'In week 5, Anticlere was struck from the registry, and the Silver Hand <SH>\'s Charter with it - its claim fee of 8,000 silver refunded.');
+    'In week 5, Anticlere was struck from the registry, and the Silver Hand <SH>\'s Charter with it, with its claim fee of 8,000 silver refunded.');
   const daily = eventTimerRows({ now: T0 * 1000 }).find((r) => r.id === 'daily');
   assert.ok(daily, 'the daily reset row');
   assert.match(daily.detail, /rare hides, silver and Court writs/);
@@ -330,13 +330,13 @@ test('GUILD3d what a band does, in words off the bands and off what the guild\'s
   assert.equal(chapterBandEffectsLine(50, FIGHTERS), 'Its halls keep their usual prices and chapter writs.');
   assert.equal(chapterBandEffectsLine(50, MAGES), 'Its halls keep their usual prices, shelf and chapter writs.');
   assert.equal(chapterBandEffectsLine(50, DRAGON), 'Its halls keep their usual chapter writs.');
-  assert.equal(chapterBandEffectsLine(10, MAGES), 'Training and spells a quarter dearer, a poorer shelf, half the chapter writs - and it loses 2 Strength more each week its members\' Merit lifts it by less than 2.');
+  assert.equal(chapterBandEffectsLine(10, MAGES), 'Training and spells a quarter dearer, a poorer shelf, half the chapter writs, and it loses 2 Strength more each week its members\' Merit lifts it by less than 2.');
   assert.equal(chapterBandEffectsLine(75, MAGES), 'Training and spells a tenth cheaper, a richer shelf, half again the chapter writs.');
-  assert.equal(chapterBandEffectsLine(95, MAGES), 'Training and spells a fifth cheaper, a richer shelf, half again the chapter writs - and whoever holds its Master\'s chair is its High Master.');
+  assert.equal(chapterBandEffectsLine(95, MAGES), 'Training and spells a fifth cheaper, a richer shelf, half again the chapter writs, and whoever holds its Master\'s chair is its High Master.');
   assert.equal(chapterBandEffectsLine(75, FIGHTERS), 'Training a tenth cheaper, half again the chapter writs.', 'the Fighters Guild keeps no shelf, sells no spell');
   assert.equal(chapterBandEffectsLine(75, KYNARETH), 'Training and spells a tenth cheaper, half again the chapter writs.');
   assert.equal(chapterBandEffectsLine(75, ARKAY), 'Training a tenth cheaper, a richer shelf, half again the chapter writs.');
-  assert.equal(chapterBandEffectsLine(95, DRAGON), 'Half again the chapter writs - and whoever holds its Master\'s chair is its High Master.', 'an order trains nothing, keeps no shelf');
+  assert.equal(chapterBandEffectsLine(95, DRAGON), 'Half again the chapter writs, and whoever holds its Master\'s chair is its High Master.', 'an order trains nothing, keeps no shelf');
   assert.equal(chapterBandEffectsLine(95, THIEVES), 'Half again the chapter writs.', 'a hidden guild: its hall DFU\'s own; no title');
   assert.deepEqual(chapterDoctrinesFor(DRAGON), ['writs']);
 });
@@ -390,7 +390,7 @@ test('GUILD3d the board draws each chapter as one card under its guild\'s name a
   ]);
   assert.deepEqual(card(1), [
     'Mages Guild - Failing', 'The chapter of the Mages Guild here is Failing (Strength 10).',
-    'Training and spells a quarter dearer, a poorer shelf, half the chapter writs - and it loses 2 Strength more each week its members\' Merit lifts it by less than 2.',   // PIN MOVED: AUDIT GUILD3 R1
+    'Training and spells a quarter dearer, a poorer shelf, half the chapter writs, and it loses 2 Strength more each week its members\' Merit lifts it by less than 2.',   // PIN MOVED: AUDIT GUILD3 R1
     'Its members\' duties here: hold a gate - standing each time, more for the day\'s first of it, and Merit.',
   ]);
   const inCard = (n) => { for (let x = n.parentNode; x; x = x.parentNode) if (String(x.className).split(/\s+/).includes('notice-chapter-card')) return true; return false; };

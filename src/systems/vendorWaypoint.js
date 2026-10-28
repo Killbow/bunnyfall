@@ -39,4 +39,4 @@ export function clearVendorWaypoint() {
 export const isVendorWaypoint = (map, buildingKey) => !!_wp && _wp.map === (Number(map) >>> 0) && _wp.buildingKey === buildingKey;
 
 /** The owner's name as the town map says it on the waypoint's house ("Trader waypoint - Eve's home", homeDoorTitle). */
-export const vendorWaypointLabel = (owner) => `Trader waypoint - ${owner || _wp?.owner || 'a trader'}`;
+export const vendorWaypointLabel = (owner) => `Trader waypoint: ${owner || _wp?.owner || 'a trader'}`;

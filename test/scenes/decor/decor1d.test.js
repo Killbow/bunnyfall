@@ -194,7 +194,7 @@ test('DECOR1d the panel reads the scan as it goes: "reading" while the blocks ar
   const { panel, view, pointed, entries, radius } = panelRig();
   panel.open(view({ entries: null, ready: false, progress: 0.4 }));
   assert.match(text(panel.root), /Reading the catalog/);
-  assert.match(text(one(panel.root, 'dfdecor-foot')), /Reading the catalog - 40%/);
+  assert.match(text(one(panel.root, 'dfdecor-foot')), /Reading the catalog: 40%/);
   radius.delete(entries[0].key);
   panel.update(view({ ready: false, progress: 0.9 }));
   assert.equal(rows(panel.root).length, entries.length, 'the list the moment the blocks are read');

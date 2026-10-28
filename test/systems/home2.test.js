@@ -35,7 +35,7 @@ test('HOME2 the law: every house type is a house - House1-6 and the for-sale hou
   assert.equal(homeOwnerRows('nonsense')[1].label, 'Who may enter: Only me', 'an entry this build does not know reads as the default');
   assert.deepEqual(['private', 'party', 'public', 'guild'].map(homeNextEntry), ['party', 'public', 'guild', 'private']);   // GUILD1d (re-aimed by content): and the owner's guild, before round again
   assert.equal(homeNextEntry(undefined), 'party', 'no entry is the default, and moves on from it');
-  assert.deepEqual([HOME_OFFER_BUY, HOME_OFFER_PASS], ['Y - buy it', 'N - just go in']);
+  assert.deepEqual([HOME_OFFER_BUY, HOME_OFFER_PASS], ['Y: buy it', 'N: just go in']);
 });
 
 test('HOME2 the plaque: a door naming its verbs is an actions frame - "Go in" lit first, the wheel lighting "Buy it", and the lit row keeping its place when its words change (the arm); the press reads the lit verb for THAT door alone (mutants: the verbs dropped from the frame; the wheel moving nothing)', () => {

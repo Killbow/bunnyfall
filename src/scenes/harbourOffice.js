@@ -95,11 +95,11 @@ export function createHarbourOffice(deps) {
   function event(ev) {
     if (ev?.type === 'berth' && typeof ev.port === 'string') berthed(ev);
     const r = L.contractEvent(ev);
-    for (const c of r.done) { deps.credit?.(c.pay); deps.mid?.(`Contract done - ${c.title}. ${gold(c.pay)} paid by ${c.port?.name ?? c.crown}'s harbormaster.`, 5); }
+    for (const c of r.done) { deps.credit?.(c.pay); deps.mid?.(`Contract done: ${c.title}. ${gold(c.pay)} paid by ${c.port?.name ?? c.crown}'s harbormaster.`, 5); }
     for (const c of r.done) if (c.kind === 'delivery') noteAct('cargo-delivered');   // QL11: a cargo delivered - its port's harbormaster paid it
-    for (const c of r.failed) deps.mid?.(`Contract failed - ${c.title}.${c.kind === 'delivery' ? ' The cargo went down with the ship.' : ''}`, 5);
+    for (const c of r.failed) deps.mid?.(`Contract failed: ${c.title}.${c.kind === 'delivery' ? ' The cargo went down with the ship.' : ''}`, 5);
     for (const c of r.moved) deps.say?.(`${c.title}: ${movedWords(c)}.`, 3);
-    for (const c of r.voided ?? []) deps.mid?.(c.kind === 'delivery' ? cargoVoidWords(c) : `Bounty void - ${c.title}. Someone else sank it.`, 5);   // AUDIT CAPTAIN'S SEA B4; FIELD BUGS 2026-10-13c PORT-TOWNS
+    for (const c of r.voided ?? []) deps.mid?.(c.kind === 'delivery' ? cargoVoidWords(c) : `Bounty void: ${c.title}. Someone else sank it.`, 5);   // AUDIT CAPTAIN'S SEA B4; FIELD BUGS 2026-10-13c PORT-TOWNS
     return r;
   }
   /** The clock's step: every contract whose term is out failed, and said. FIELD BUGS 2026-10-13c PORT-TOWNS: and every
@@ -109,7 +109,7 @@ export function createHarbourOffice(deps) {
    *  ship can lie at. Asked once the map's ports and the sea stand. */
   function tick() {
     const failed = L.expireContracts(now());
-    for (const c of failed) deps.mid?.(`Contract failed - ${c.title}. Its term ran out.`, 5);
+    for (const c of failed) deps.mid?.(`Contract failed: ${c.title}. Its term ran out.`, 5);
     const ports = deps.ports?.() ?? [];
     if (ports.length && typeof deps.seaAt === 'function') {
       for (const c of L.contracts()) {
@@ -202,7 +202,7 @@ export function createHarbourOffice(deps) {
     const fit = roomFor(room?.(), r.kg);
     if (fit <= 0) return { ok: false, text: 'The ship can\'t carry any more.' };
     const k = Math.min(asked(n), r.sells, Math.floor((deps.gold?.() ?? 0) / r.sell), fit);
-    if (k <= 0) return { ok: false, text: `Not enough gold - ${gold(r.sell)} a ${r.unit}.` };
+    if (k <= 0) return { ok: false, text: `Not enough gold: ${gold(r.sell)} a ${r.unit}.` };
     deps.pay?.(k * r.sell);
     const goods = mintGood(id, k);
     markCounterBought([goods], { price: k * r.sell });   // SEA-TRADE: online, what it cost rides it (before a stack's merge takes it)
@@ -323,7 +323,7 @@ export function createHarbourOffice(deps) {
     /** The Captain page's charts. */
     pageCharts: () => L.charts().map((c) => ({ title: `A cache ${c.words}`, line: c.id.startsWith(CHART_SITE) ? 'Marked from a pirate\'s chart' : '' })),
     /** A bounty's words on the glass's card: her purse and the port that posted her. */
-    bountyWords: (id) => { const c = L.contracts().find((x) => x.id === id); return c ? `${gold(c.pay)} - posted at ${c.port?.name ?? c.crown}` : null; },
+    bountyWords: (id) => { const c = L.contracts().find((x) => x.id === id); return c ? `${gold(c.pay)} · posted at ${c.port?.name ?? c.crown}` : null; },
     perksHere,
     /** A crown's favours (the relief's). */
     perksAt,

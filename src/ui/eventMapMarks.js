@@ -83,7 +83,7 @@ export function raidMapMarks(raids, nowMinutes, { regionName = () => '', localTi
     if (killed > 0 && target > 0) lines.push(`${Math.min(killed, target)} of ${target} driven off`);
     const local = typeof localTime === 'function' ? localTime(r.endMinute) : null;
     lines.push(local ? `Withdraws at ${local} your time` : `Withdraws at ${clockText(r.endMinute)}`);
-    out.push({ key: raidKey(r), px: r.px, py: r.py, label: `${town} - under attack`, tip: { title: RAID_TIP_TITLE, lines } });
+    out.push({ key: raidKey(r), px: r.px, py: r.py, label: `${town} · under attack`, tip: { title: RAID_TIP_TITLE, lines } });
   }
   return out;
 }
