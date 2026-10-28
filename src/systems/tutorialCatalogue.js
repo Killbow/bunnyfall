@@ -62,7 +62,7 @@ export const TUTORIALS = Object.freeze([
     id: 'welcome', group: 'basics', title: 'Welcome to Bunnyfall', trigger: TOUR,
     body: [
       'You awaken in a small cave. Take what you need from your pack, find the way out and make for the nearest town.',
-      'When you meet something new, a short note like this one explains it. All of them can be read again under Menu > Tutorials.',
+      'When you meet something new, a short note like this one explains it. You can read them all again under Menu > Tutorials.',
     ],
   }),
   page({
@@ -72,14 +72,14 @@ export const TUTORIALS = Object.freeze([
     ],
     points: [
       'Jump at a ledge to pull yourself up, or walk into a wall to climb it.',
-      '{FreeMouse} frees the cursor. Press it again to look around once more.',
+      '{FreeMouse} frees the cursor. Press it again to look around.',
       '{TogglePerspective} changes between first and third person.',
     ],
   }),
   page({
     id: 'interacting', group: 'basics', title: 'Using Things', trigger: TOUR,
     body: [
-      'Look at a door, chest, lever or person and press {ActivateCenterObject} or {Interact}. The words beneath your crosshair tell you what will happen.',
+      'Look at a door, chest, lever or person and press {ActivateCenterObject} or {Interact}. The text under your crosshair says what will happen.',
       'Hold {ModeWheel} to choose Steal, Grab, Info or Talk. Info names a building from a distance.',
     ],
   }),
@@ -100,7 +100,7 @@ export const TUTORIALS = Object.freeze([
       '{QuickSave} saves your game at once and {QuickLoad} loads that save. Save often.',
     ],
     points: [
-      'Every feature DFO adds can be turned off under Settings > Features.',
+      'Every feature Bunnyfall adds can be turned off under Settings > Features.',
       'Online, the world goes on while the menu is open.',
     ],
   }),
@@ -110,17 +110,17 @@ export const TUTORIALS = Object.freeze([
     id: 'combat', group: 'combat', title: 'Fighting', trigger: 'When you first draw a weapon.',
     body: [
       '{ReadyWeapon} draws your weapon and {SwingWeapon} attacks. How you move the mouse decides the swing.',
-      'Missing often means low skill or a weapon too poor for the foe. You can always run.',
+      'If you keep missing, your skill is too low or your weapon is too weak for the enemy. You can always run.',
     ],
     points: [
       '{SwitchHand} changes hands, or which hand leads when both are armed.',
-      'Some weapons have a technique on {WeaponTechnique}, which costs fatigue and takes time to recover.',
+      'Some weapons have a technique on {WeaponTechnique}. It costs fatigue and needs time to recover.',
     ],
   }),
   page({
     id: 'death', group: 'combat', title: 'Dying', trigger: 'When you first die.',
     body: [
-      'Online, you wake at the nearest temple, town or graveyard, short a tenth of the gold you carried. Gold in the bank is safe.',
+      'Online, you wake at the nearest temple, town or graveyard, and lose a tenth of the gold you were carrying. Gold in the bank is safe.',
       'Offline, it depends on your family. In an Enduring family you rise again, a little older. In a Bloodline family death is final and your heir carries on. With Project Legacy off, load a save.',
     ],
   }),
@@ -134,7 +134,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'spellmaker', group: 'combat', title: 'Making Spells', trigger: 'When you first open the spellmaker.',
     body: [
-      'Choose up to three effects and set their duration, chance and magnitude. Then choose whom the spell strikes and its element.',
+      'Pick up to three effects and set their duration, chance and magnitude. Then pick who the spell hits and its element.',
       'The stronger the spell, the more gold it costs to make and the more magicka to cast.',
     ],
   }),
@@ -148,8 +148,8 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'daedra-summoning', group: 'combat', title: 'Summoning Daedra', trigger: 'When you first ask to summon a Daedra Prince.',
     body: [
-      'For a fee, summoners at the Mages Guild, certain temples and the witch covens will call a Daedra Prince, but only on the right days.',
-      'Do the Prince\'s bidding and you will be given one of their artifacts.',
+      'For a fee, summoners at the Mages Guild, some temples and the witch covens will call up a Daedra Prince, but only on the right days.',
+      'Do what the Prince asks and you\'ll get one of their artifacts.',
     ],
   }),
   page({
@@ -190,20 +190,20 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'level-up', group: 'character', title: 'Gaining a Level', trigger: 'When you first level up.',
     body: [
-      'You have gained a level. Open your character sheet to spend your bonus points on your attributes.',
+      'You gained a level. Open your character sheet to spend your bonus points on your attributes.',
     ],
   }),
   page({
     id: 'rest', group: 'character', title: 'Resting', trigger: 'When you first rest.',
     body: [
-      '{Rest} lets you rest to recover, or wait until a set hour, such as when a shop opens. You cannot rest with enemies nearby.',
+      '{Rest} lets you rest to recover, or wait until a certain hour, like when a shop opens. You can\'t rest with enemies nearby.',
       'Sleeping in the open is dangerous. A room at an inn is safer.',
     ],
   }),
   page({
     id: 'reputation', group: 'character', title: 'Reputation', trigger: MENU_ONLY,
     body: [
-      'Guilds, temples, knightly orders and the people of each region remember your deeds. Quests raise your standing and crimes lower it. Poor standing mends slowly.',
+      'Guilds, temples, knightly orders and the people of each region remember what you do. Quests raise your standing and crimes lower it. Bad standing recovers slowly.',
       'Good standing brings better prices and higher rank.',
     ],
   }),
@@ -211,7 +211,7 @@ export const TUTORIALS = Object.freeze([
     id: 'afflictions', group: 'character', title: 'Disease and Curses', trigger: 'When you first get sick.',
     body: [
       'Bites and filth can bring disease, and a disease grows worse with time. Temples, potions and spells can cure it.',
-      'Vampirism and lycanthropy are curses. Here a vampire does not burn in sunlight, but is weaker by day and stronger by night.',
+      'Vampirism and lycanthropy are curses. Here a vampire doesn\'t burn in sunlight, but is weaker by day and stronger at night.',
     ],
   }),
 
@@ -226,13 +226,13 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'dungeons', group: 'world', title: 'Dungeons', trigger: 'When you first enter a dungeon.',
     body: [
-      'Dungeons are large and it is easy to lose your way. Look at your map often and watch for levers and secret doors. The way out is the way you came in.',
+      'Dungeons are big and easy to get lost in. Check your map often and look for levers and secret doors. The way out is the way you came in.',
     ],
   }),
   page({
     id: 'searchables', group: 'world', title: 'Searching', trigger: 'When you first search something.',
     body: [
-      'Coffins, shelves, gravestones, chests and crates can be searched. You may find gold, find nothing, or wake something.',
+      'You can search coffins, shelves, gravestones, chests and crates. You might find gold, nothing at all, or something that wakes up.',
     ],
   }),
   page({
@@ -245,8 +245,8 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'crime', group: 'world', title: 'Crime', trigger: 'When the law first catches up with you.',
     body: [
-      'Theft, trespass and attacks on innocent folk are crimes. When a guard stops you, you may pay the fine, stand trial or resist.',
-      'Murder and treason see you banished from the region for 30 days. The region\'s temple sells pardons.',
+      'Theft, trespassing and attacking innocent people are crimes. When a guard stops you, you can pay the fine, stand trial or resist.',
+      'Murder and treason get you banished from the region for 30 days. The region\'s temple sells pardons.',
     ],
   }),
 
@@ -255,7 +255,7 @@ export const TUTORIALS = Object.freeze([
     id: 'travel-map', group: 'travel', title: 'The Travel Map', trigger: 'When you first open the travel map.',
     body: [
       '{TravelMap} opens the map of the whole land. Choose a place to travel there. The journey takes days in the game but only a moment for you.',
-      'You decide how fast to go, how to travel and whether to camp or stop at inns. Online, journeys over land are made along the roads instead.',
+      'You choose how fast to go, how to travel and whether to camp or stay at inns. Online, overland journeys follow the roads instead.',
     ],
   }),
   page({
@@ -268,28 +268,28 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'carriages', group: 'travel', title: 'Carriages', trigger: 'When you first hire a carriage.',
     body: [
-      'Carriage drivers wait outside the gates of walled cities. Speak with one to ride to another town, for a daily fare and the inns along the way.',
+      'Carriage drivers wait outside the gates of walled cities. Talk to one to ride to another town. You pay a daily fare, plus the inns on the way.',
     ],
   }),
   page({
     id: 'horse', group: 'travel', title: 'Horses', trigger: 'When you first choose how to travel.',
     body: [
       'Every town has a stable that sells horses. {Transport} chooses how you travel: on foot, on horseback or by cart.',
-      '{HorseMount} mounts and dismounts. Your horse walks; hold {Run} to gallop. Do not gallop into people in town: trampling them is a crime. {HorseSummon} calls your horse and wagon to you.',
+      '{HorseMount} mounts and dismounts. Your horse walks, and holding {Run} makes it gallop. Don\'t gallop into people in town: trampling them is a crime. {HorseSummon} calls your horse and wagon to you.',
     ],
   }),
   page({
     id: 'wagon', group: 'travel', title: 'Wagons', trigger: 'When you first use a wagon.',
     body: [
       'Wagon yards sell carts and wagons for hauling goods. The Open Wagon and the Caravan need two horses.',
-      'Never leave a wagon standing on a town road. After ten minutes the watch hauls it out of town, cargo and all.',
+      'Never leave a wagon standing on a town road. After ten minutes the watch tows it out of town, cargo and all.',
     ],
   }),
   page({
     id: 'portal-stone', group: 'travel', title: 'Portal Stones', trigger: 'When you first use a portal stone.',
     body: [
       'Use a portal stone and choose any place on the map. A portal stays open for 30 seconds, and online anyone near you may follow. Each stone works only once.',
-      'They do not work indoors, in dungeons or with enemies near.',
+      'They don\'t work indoors, in dungeons or with enemies nearby.',
     ],
   }),
 
@@ -297,7 +297,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'talk', group: 'towns', title: 'Talking', trigger: 'When you first talk to someone.',
     body: [
-      'Ask people for directions, news or work. Your manner, their mood and your reputation decide what they will tell you.',
+      'Ask people for directions, news or work. Your manner, their mood and your reputation decide what they tell you.',
       'Ask about a building more than once and they may mark it on your map.',
     ],
   }),
@@ -359,7 +359,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'holdings', group: 'towns', title: 'Houses', trigger: 'When you first look at buying or renting a house.',
     body: [
-      'Offline, banks sell houses. Online, you may buy up to three empty houses at their front doors and choose who may enter.',
+      'Offline, banks sell houses. Online, you can buy up to three empty houses at their front doors and choose who can enter.',
       'A house is a safe place to sleep, to keep your belongings and to furnish as you like.',
     ],
   }),
@@ -374,8 +374,8 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'quests', group: 'quests', title: 'Quests', trigger: 'When you first get quest news or open your log.',
     body: [
-      '{LogBook} and the Quests tab of the menu keep track of your quests. Read them carefully: they tell you whom to find and where.',
-      'Many quests must be finished in time. Turning work down costs you nothing, except in the main story.',
+      '{LogBook} and the Quests tab of the menu keep track of your quests. Read them carefully, since they tell you who to find and where.',
+      'Many quests have a time limit. Turning down work costs you nothing, except in the main story.',
     ],
   }),
   // QL2 (bible/06-Systems/Questlines-Arc.md section 6): what the questlines changed, the first time a quest carries them
@@ -403,7 +403,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'bounties', group: 'quests', title: 'Bounties', trigger: 'When you first read a bounty board.',
     body: [
-      'Bounty boards list four hunts. Take one and make for the middle of its black circle on your map, or the dungeon it names. There the quarry shows itself, or you are told which way it waits; the Quests tab keeps the way. The last kill pays gold and an item and raises your standing in the region.',
+      'Bounty boards list four hunts. Take one and head for the middle of its black circle on your map, or the dungeon it names. There your target shows itself, or you\'re told which way to go, and the Quests tab keeps track. The final kill pays gold and an item, and raises your standing in the region.',
     ],
   }),
   page({
@@ -418,7 +418,7 @@ export const TUTORIALS = Object.freeze([
     id: 'loot', group: 'loot', title: 'Loot', trigger: 'When you first loot something.',
     body: [
       '{QuickLootAll} takes everything from a body or pile. {QuickLootOpen} opens the full window.',
-      'The color of an item\'s name shows its rarity: Common, Magic, Rare or Legendary. The rarer the item, the more and the better its powers.',
+      'The color of an item\'s name shows its rarity: Common, Magic, Rare or Legendary. Rarer items have more powers, and better ones.',
     ],
   }),
   page({
@@ -431,7 +431,7 @@ export const TUTORIALS = Object.freeze([
     id: 'reforge', group: 'loot', title: 'Reforging', trigger: 'When you first visit the Reforge.',
     body: [
       'The Reforge at the Mages Guild remakes one power on a Magic or Rare item for Welkynd Shards and gold. It can also take a gem out of its socket.',
-      'Salvage breaks down gear you have no use for into Welkynd Shards.',
+      'Salvage breaks gear you don\'t need into crafting materials, and magic gear into Welkynd Shards as well.',
     ],
   }),
   page({
@@ -452,7 +452,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'foraging', group: 'livelihood', title: 'Gathering', trigger: 'When you first gather something.',
     body: [
-      'With the right tool you can gather herbs, ore, wood, fish and game. Look at something that can be gathered and choose what to do. {ActChoice} changes the choice.',
+      'With the right tool you can gather herbs, ore, wood, fish and game. Look at something you can gather and choose what to do. {ActChoice} switches between the choices.',
     ],
   }),
   page({
@@ -499,7 +499,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'ships', group: 'sea', title: 'Sailing', trigger: 'When you first board a boat.',
     body: [
-      'Shipyards in port towns sell ships. A rowboat comes in parts, to be put together by any water. A larger ship is laid up where you bought it; bring it round from the shipyard\'s Your fleet page.',
+      'Shipyards in port towns sell ships. A rowboat comes in parts that you put together at any water. A bigger ship stays where you bought it, and you bring it round from the shipyard\'s Your fleet page.',
       'At the helm, {BoatToggleSail} raises or lowers the sail and {BoatSailUp} and {BoatSailDown} trim it. {BoatDisembark} leaves the helm.',
     ],
   }),
@@ -562,7 +562,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'ocean-holes', group: 'challenges', title: 'Ocean Holes', trigger: 'When you first dive into an Ocean Hole.',
     body: [
-      'Black holes in the seabed beneath purple mist lead down to flooded dungeons. Mind your breath.',
+      'Black holes in the seabed under purple mist lead down to flooded dungeons. Watch your breath.',
     ],
   }),
 
@@ -584,7 +584,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'companions', group: 'legacy', title: 'Companions', trigger: 'When a revenant first kneels to you.',
     body: [
-      'Spare a revenant and it swears to follow you. You may keep six, with three at your side. Manage them under Menu > Holdings.',
+      'Spare a revenant and it swears to follow you. You can keep six, with three at your side. Manage them under Menu > Holdings.',
     ],
   }),
 
@@ -604,13 +604,13 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'party', group: 'online', title: 'Other Players', trigger: 'When you first interact with another player.',
     body: [
-      'Look at a player and press {SocialInteract} to befriend them, invite them to your party, trade with them or inspect them. With no one before you, it opens your list of friends.',
+      'Look at a player and press {SocialInteract} to befriend them, invite them to your party, trade with them or inspect them. With nobody in front of you, it opens your friends list.',
     ],
   }),
   page({
     id: 'player-trade', group: 'online', title: 'Trading', trigger: 'When you first trade with a player.',
     body: [
-      'Each of you puts up what you offer. Nothing changes hands until you both accept.',
+      'You each put up your offer. Nothing changes hands until you both accept.',
     ],
   }),
   page({
@@ -650,13 +650,13 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'player-guilds', group: 'online', title: 'Player Guilds', trigger: MENU_ONLY,
     body: [
-      'Players may found guilds with a shared vault and guild chat. A guild can claim a palace town as its seat, but must hold it against sieges.',
+      'Players can found guilds with a shared vault and guild chat. A guild can claim a palace town as its seat, but has to hold it against sieges.',
     ],
   }),
   page({
     id: 'world-events', group: 'online', title: 'Raids and Caravans', trigger: MENU_ONLY,
     body: [
-      'Every day raiders fall on a town somewhere. Drive them off to raise your standing. Caravans travel the roads; you may attack them, guard them or trade with them.',
+      'Every day, raiders attack a town somewhere. Drive them off to raise your standing. Caravans travel the roads, and you can attack them, guard them or trade with them.',
     ],
   }),
 ]);
