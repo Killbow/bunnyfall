@@ -109,7 +109,7 @@ test('KG-SET the relay\'s catalog keeps no word; the words cover the set exactly
   assert.doesNotMatch(read('src/net/iliac/iliacCards.js'), /^import /m, 'and the catalog still imports nothing - the relay carries it whole');
 });
 
-test('KG-SET a card\'s words are read when they are shown - French chosen, French said on the face, the binder, the item and the table; English again, byte for byte', () => {
+test('KG-SET a card\'s words are read when they are shown - French chosen, French said on the face, the binder, the item and the table; English again, byte for byte', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const en = Object.fromEntries(ALL.map((c) => [c.id, { rules: cardRules(c), flavor: cardFlavor(c) }]));
   const enFace = faceWords(cardById('grizzly-bear'));
   const enLines = iliacCardLines(mintIliacCard('spider'));
@@ -154,7 +154,7 @@ test('KG-SET a card\'s words are read when they are shown - French chosen, Frenc
   } finally { tm._resetTextManagerForTests(); _clearCardFacesForTests(); }
 });
 
-test('KG-SET a no-break space is no place to break a card\'s words, and is kept - the French tables set one before every colon, and no French rules line breaks there (mutant: the words split on every white space)', () => {
+test('KG-SET a no-break space is no place to break a card\'s words, and is kept - the French tables set one before every colon, and no French rules line breaks there (mutant: the words split on every white space)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const ctx = { measureText: (t) => ({ width: [...String(t)].length * 10 }) };
   assert.deepEqual(wrapCardText(ctx, 'Continu\u00a0: vos unit\u00e9s', 90), ['Continu\u00a0:', 'vos', 'unit\u00e9s'], 'the colon stays with its word, the no-break space with them');
   assert.deepEqual(wrapCardText(ctx, 'a\u202fb c', 30), ['a\u202fb', 'c'], 'the narrow no-break space too');

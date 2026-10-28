@@ -112,7 +112,7 @@ test('KETCH A FALL IS CAUGHT, NEVER A WAKING: the nets\' line says they haul you
   assert.match(body2, /only death wakes you/);
 });
 
-test('KETCH ONE WORD A THING IN EVERY LANGUAGE: Chinese names the crew\'s leader apart from the Ketchmaster (船长 / 船長 is his), and German counts the voyages sailed in one phrase on the card and the profile (AUDIT KETCH L5-12; mutants: the leader called the Ketchmaster)', () => {
+test('KETCH ONE WORD A THING IN EVERY LANGUAGE: Chinese names the crew\'s leader apart from the Ketchmaster (船长 / 船長 is his), and German counts the voyages sailed in one phrase on the card and the profile (AUDIT KETCH L5-12; mutants: the leader called the Ketchmaster)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const row = (lang, key) => { const m = new RegExp(`^${key.replace(/\./g, '\\.')},"(.*)"$`, 'm').exec(readFileSync(new URL(`../../../locales/${lang}/Port_Strings.csv`, import.meta.url), 'utf8')); return m?.[1] ?? null; };
   for (const [lang, master] of [['zh-Hans', '船长'], ['zh-Hant', '船長']]) {
     assert.ok(row(lang, 'ketch.client.chest').includes(master), `${lang}: the Ketchmaster is ${master}`);

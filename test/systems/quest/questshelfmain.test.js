@@ -76,7 +76,7 @@ test('QUEST-SHELF-MAIN the chronicle: Abandon on each running quest the bridge a
   } finally { bare.restore(); }
 });
 
-test('QUEST-SHELF-MAIN the chronicle\'s Abandon in the player\'s language (L10N4): its label, its armed label, its title and its two aria-labels are the text core\'s (`chronicle.quests.*`) - in French they read French, read when they are drawn; in English byte for byte as before (mutants: a word left English)', async () => {
+test('QUEST-SHELF-MAIN the chronicle\'s Abandon in the player\'s language (L10N4): its label, its armed label, its title and its two aria-labels are the text core\'s (`chronicle.quests.*`) - in French they read French, read when they are drawn; in English byte for byte as before (mutants: a word left English)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const tm = await import('../../../src/systems/textManager.js');
   const rows = tm.loadStringTableCsv(src('locales/fr/Port_Strings.csv'));
   tm.patchLocaleTable('fr', 'Port_Strings', rows);

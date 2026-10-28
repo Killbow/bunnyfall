@@ -141,7 +141,7 @@ test('PORT-TOWNS: a held cargo for a place that is no port a cargo goes to - not
   assert.equal(mid.length, 2, 'said once');
 });
 
-test('PORT-TOWNS: the void is said in the player\'s language - the text core\'s row, read when it is said (mutant: the words English always)', async () => {
+test('PORT-TOWNS: the void is said in the player\'s language - the text core\'s row, read when it is said (mutant: the words English always)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const tm = await import('../../../src/systems/textManager.js');
   const rows = tm.loadStringTableCsv(readFileSync(new URL('../../../locales/fr/Port_Strings.csv', import.meta.url), 'utf8'));
   const fr = new Map(rows).get('sea.board.cargoVoid');

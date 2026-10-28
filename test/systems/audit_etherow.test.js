@@ -159,7 +159,7 @@ test('AUDIT ETHER-OW C2-3: "Your Ship" is boarded from the Bay alone - past the 
 
 // ─── THE MERGE WITH L10N: THE CHART IN THE PLAYER'S LANGUAGE ───────────────────────────────────────────────────────
 
-test('AUDIT ETHER-OW, the merge with main\'s L10N: the Eltheric chart\'s own words are the text core\'s (L10N4) - in French its title, its line, the ruler\'s Veil, its key, a way and an isle\'s line, its scale and a haunt read French, read when they are drawn (never at load); in English byte for byte as before; the sea\'s name and its bands\', kinds\' and compass words stay `world/ethericSea.js`\'s (mutants: a word left English, a table read at load)', async () => {
+test('AUDIT ETHER-OW, the merge with main\'s L10N: the Eltheric chart\'s own words are the text core\'s (L10N4) - in French its title, its line, the ruler\'s Veil, its key, a way and an isle\'s line, its scale and a haunt read French, read when they are drawn (never at load); in English byte for byte as before; the sea\'s name and its bands\', kinds\' and compass words stay `world/ethericSea.js`\'s (mutants: a word left English, a table read at load)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const tm = await import('../../src/systems/textManager.js');
   const M = await import('../../src/ui/etherChartWindow.js');
   const word = { px: H.px, py: H.py, yaw: 0, charted: [H.key], legends: [], stats: { charted: 2, deepest: 3, crossings: 1 } };

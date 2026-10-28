@@ -71,7 +71,7 @@ test('AUDIT CREW-TRADE O1 - A GREYED SELL SAYS WHY: a ship come through customs,
   assert.deepEqual([glut.canSell, glut.extra], [false, `Aboard: ${24 - DAY_STOCK.makes.buy} of 24 crew`], 'none wanted today: the words say it, no reason of hers');
 });
 
-test('AUDIT CREW-TRADE O2/O3 - IN THE PLAYER\'S LANGUAGE: the crew row\'s title, its stand, its two prices and its counts, the note of a sale and the refusals are the language\'s own, the gold a number in its own figures - no English left in German (mutants: the title, the prices\' words, the gold a string)', async () => {
+test('AUDIT CREW-TRADE O2/O3 - IN THE PLAYER\'S LANGUAGE: the crew row\'s title, its stand, its two prices and its counts, the note of a sale and the refusals are the language\'s own, the gold a number in its own figures - no English left in German (mutants: the title, the prices\' words, the gold a string)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const q = await quay(SMALL_SHIP, 24, { port: portStanding('wants') });
   const en = exchangeText(q.x()).rows[0];
   const de = Object.fromEntries(tm.parseStringTableCsv(rd('locales/de/Port_Strings.csv')));

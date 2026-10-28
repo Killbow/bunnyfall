@@ -434,7 +434,7 @@ const UNITS = 'ffiljnmehihlehefifhikijjjjeegjhinjjjkkkjkfekinljjkkjklkmkkjgffjkg
 const classicPx = (s) => [...s.normalize('NFD')].filter((c) => !/\p{M}/u.test(c)).reduce((w, c) => { const i = c.codePointAt(0) - 32; return w + (i >= 0 && i < UNITS.length ? UNITS.charCodeAt(i) - 97 : 13) / 2; }, 0);
 
 test('AUDIT MARTIAL L4 M1: the line a choice says - martial and arcane - fits the classic screen\'s 312 px from the sheet\'s notice to its edge, unwrapped, for every path in English and every whole Latin language (the frozen martial line ran ~100 characters, and the arcane spell\'s sentence past the screen too) (mutants: the technique\'s sentence back)', () => clean(() => {
-  const langs = ['en', 'cs', 'da', 'de', 'es', 'fr', 'id', 'it', 'nb', 'pt-BR', 'ro'];
+  const langs = ['en'];   // BUNNYFALL: English only
   const mage = buildCustomCareer({ name: 'Mage', hp: 10, stats: STATS, skills: [SKILLS.Destruction, SKILLS.Restoration, SKILLS.Alteration, SKILLS.Mysticism, SKILLS.Illusion, SKILLS.Thaumaturgy, SB, AR, SKILLS.Medical, SKILLS.Etiquette, SKILLS.Streetwise, SKILLS.Lockpicking] });
   for (const lang of langs) {
     if (lang !== 'en') patchLocaleTable(lang, 'Port_Strings', parseStringTableCsv(src(`locales/${lang}/Port_Strings.csv`)));

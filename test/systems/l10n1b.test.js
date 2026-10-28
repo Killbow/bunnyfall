@@ -82,7 +82,7 @@ test('L10N1b the English catalog is read off the source and in step with it: eve
   assert.equal(strings.get('lang.offer').en, 'Play in English?', 'tIn\'s key is read too');
 });
 
-test('L10N1b every language\'s file: DFU\'s format as the port writes it, the English catalog\'s keys exactly, every value a readable pattern naming the English\'s arguments - and every visible catalog language has one, and no folder is outside the catalog', () => {
+test('L10N1b every language\'s file: DFU\'s format as the port writes it, the English catalog\'s keys exactly, every value a readable pattern naming the English\'s arguments - and every visible catalog language has one, and no folder is outside the catalog', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const en = new Map(tm.parseStringTableCsv(rd(CATALOG_PATH)));
   const dirs = readdirSync(new URL('../../locales/', import.meta.url), { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const d of dirs) assert.ok(catalogLocale(d), `locales/${d} is not a catalog language`);
@@ -124,7 +124,7 @@ test('L10N6 the first batch: a language still drafting is not offered on its par
   data._useLocaleFilesForTests({});
 });
 
-test('L10N1b executed: a language\'s file patched in speaks through t(); tIn asks in another language while English stands; the rail\'s English reads back as itself', () => {
+test('L10N1b executed: a language\'s file patched in speaks through t(); tIn asks in another language while English stands; the rail\'s English reads back as itself', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   tm.patchLocaleTable('fr', 'Port_Strings', tm.loadStringTableCsv(rd('locales/fr/Port_Strings.csv')));
   tm.patchLocaleTable('ja', 'Port_Strings', tm.loadStringTableCsv(rd('locales/ja/Port_Strings.csv')));
   assert.equal(tm.t('menu.rail.new', 'New Game'), 'New Game', 'English stands');
@@ -147,7 +147,7 @@ test('L10N1b executed: a language\'s file patched in speaks through t(); tIn ask
   }
 });
 
-test('L10N1b the boot, run: the saved choice, ?lang= for one visit, only the chosen language\'s chain fetched and each file once, English never fetched, a language without text is English, the offer\'s language fetched while English stands and never once answered, and a failed load forgotten with English left standing', async () => {
+test('L10N1b the boot, run: the saved choice, ?lang= for one visit, only the chosen language\'s chain fetched and each file once, English never fetched, a language without text is English, the offer\'s language fetched while English stands and never once answered, and a failed load forgotten with English left standing', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const calls = [];
   let koFails = false;
   const glob = {

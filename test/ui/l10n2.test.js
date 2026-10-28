@@ -174,7 +174,7 @@ test('L10N2 the port\'s faces: every language but English gets one face for the 
   assert.equal(made[1].opts.lang, 'en', 'the pseudo-locale reads as English');
 });
 
-test('L10N2 the boot installs them: a switch to a language gives its fonts their face, English none', async () => {
+test('L10N2 the boot installs them: a switch to a language gives its fonts their face, English none', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const { make } = fakeCanvases();
   const was = globalThis.OffscreenCanvas;
   globalThis.OffscreenCanvas = function OffscreenCanvas(w, h) { return make(w, h); };

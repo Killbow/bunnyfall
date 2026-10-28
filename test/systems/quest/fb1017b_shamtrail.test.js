@@ -223,7 +223,7 @@ test('SHAM-TRAIL, the patch law: each patch finds its text in the vendored sourc
   assert.throws(() => applyForageFix('FetchWood01', 'nothing'), /^Error: FORAGE-FIX: FetchWood01 holds /);
 });
 
-test('SHAM-TRAIL, the words: the entry is the text core\'s (quest.possessedChild.shamTrail), read as the quest is read - in French the French row, laid in journal lines, its four names expanded, and English again byte for byte; every whole language keeps the four names', () => {
+test('SHAM-TRAIL, the words: the entry is the text core\'s (quest.possessedChild.shamTrail), read as the quest is read - in French the French row, laid in journal lines, its four names expanded, and English again byte for byte; every whole language keeps the four names', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const english = applyQuestPatches('C0B00Y02', SOURCE);
   // the lines: never an empty one (it would end the message), each led by the script's space, none past the width but a lone word
   for (const text of ['', 'a', 'No daedra came out of _child_ when I brought the _item_.', 'x'.repeat(50) + ' y']) {

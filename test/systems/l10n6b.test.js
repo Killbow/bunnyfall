@@ -134,7 +134,7 @@ test('L10N6b the request: the Messages API with the key, the version header, the
   await assert.rejects(callClaude({ apiKey: 'k', model: 'm', system: 'S', rows: [], fetchImpl: failing }), /answered 400: bad request/);
 });
 
-test('L10N6b the command line, the sources, the prompt\'s rules; and the in-session drafts recorded as the machine\'s, so the pipeline redrafts them when their English moves and never mistakes them for a person\'s', () => {
+test('L10N6b the command line, the sources, the prompt\'s rules; and the in-session drafts recorded as the machine\'s, so the pipeline redrafts them when their English moves and never mistakes them for a person\'s', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   assert.deepEqual(parseArgs(['--lang', 'de', '--table', 'Internal_RSC', '--batch', '10', '--dry-run']).batch, 10);
   assert.throws(() => parseArgs(['--lang', 'de']), /usage/);
   assert.throws(() => parseArgs(['--lang', 'de', '--table', 'x', '--nope']), /unknown option/);

@@ -61,7 +61,7 @@ test('L10N6 what the tree bundles: a pack by its PACK.json, each file by the fol
   assert.equal(data.hasLocaleText('it'), false);
 });
 
-test('L10N6 drafts < bundled < installed: the bundled pack over the machine drafts, the player\'s pack over both, its documents too; the player\'s removed, the bundled pack stands again; a bundled language with no drafts loads its pack', async () => {
+test('L10N6 drafts < bundled < installed: the bundled pack over the machine drafts, the player\'s pack over both, its documents too; the player\'s removed, the bundled pack stands again; a bundled language with no drafts loads its pack', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const draft = new Map(tm.parseStringTableCsv(rd('locales/fr/Port_Strings.csv')));
   const fetched = [], wasFetch = globalThis.fetch;
   globalThis.fetch = async (url) => { fetched.push(url); return { arrayBuffer: async () => new ArrayBuffer(4) }; };
@@ -98,7 +98,7 @@ test('L10N6 drafts < bundled < installed: the bundled pack over the machine draf
   assert.equal(await data.switchLocale('it'), 'en', 'a pack folder with no PACK.json offers nothing');
 });
 
-test('L10N6 a bundled pack\'s font, where a browser can load it: its bytes fetched from the build\'s URL and registered for its language, ahead of the language\'s own face', async () => {
+test('L10N6 a bundled pack\'s font, where a browser can load it: its bytes fetched from the build\'s URL and registered for its language, ahead of the language\'s own face', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const loaded = [], fetched = [];
   globalThis.FontFace = class { constructor(family, bytes) { this.family = family; this.bytes = bytes; } async load() { loaded.push([this.family, this.bytes.byteLength]); return this; } };
   const wasCanvas = globalThis.OffscreenCanvas, wasFetch = globalThis.fetch;

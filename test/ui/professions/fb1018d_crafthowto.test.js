@@ -230,7 +230,7 @@ test('CRAFT-HOWTO THE TUTORIAL: a Crafting page among Professions & Survival, af
   assert.equal(actionLabel('Professions'), 'Open your Professions page, or the Crafting page at a station (online)');   // PIN MOVED (AUDIT HORIZONTAL A7): at a station the key lands on the Crafting page, and its row says so
 });
 
-test('CRAFT-HOWTO IN EVERY WHOLE LANGUAGE: the new words are drafted in each language the catalog holds whole, the Crafting page\'s last point naming the key it fills (the l10n gate holds the rest)', () => {
+test('CRAFT-HOWTO IN EVERY WHOLE LANGUAGE: the new words are drafted in each language the catalog holds whole, the Crafting page\'s last point naming the key it fills (the l10n gate holds the rest)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const keys = ['prof.page.how.smithing', 'prof.page.how.building', 'prof.page.how.outfitting', 'prof.page.how.cooking', 'prof.page.how.alchemy',
     'tutorials.crafting.title', 'tutorials.crafting.trigger', 'tutorials.crafting.body', 'tutorials.crafting.shops1', 'tutorials.crafting.shops2', 'tutorials.crafting.more'];
   const en = src('locales/en/Port_Strings.csv');

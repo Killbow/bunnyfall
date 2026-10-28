@@ -152,7 +152,7 @@ test('AUDIT KG II B2 + B17 A GAME GONE WHILE AWAY, AND A LOOK THE GATE REFUSED: 
   assert.equal(looks(), before + 1, 'once');
 });
 
-test('AUDIT KG II D1 THE ONLINE BOARD\'S THREE PRESSES IN THE THIRTEEN WHOLE LANGUAGES: Sit at the board, Play a regular instead and Not ready each its own words - the drafts had them rotated one key along (mutants: a row moved)', async () => {
+test('AUDIT KG II D1 THE ONLINE BOARD\'S THREE PRESSES IN THE THIRTEEN WHOLE LANGUAGES: Sit at the board, Play a regular instead and Not ready each its own words - the drafts had them rotated one key along (mutants: a row moved)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const { readFileSync } = await import('node:fs');
   const WANT = {
     'bg': ["Седни на дъската", "Играй със завсегдатай", "Не съм готов"],

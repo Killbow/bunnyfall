@@ -87,7 +87,7 @@ test('L10N3b the store: only the files the game reads are kept, text decoded and
   assert.deepEqual(await store.packFiles('fr'), []);
 });
 
-test('L10N3b the pack at work: its tables over the machine drafts (a person\'s word outranks a machine\'s), its other text for the readers that ask, pt-BR reading pt\'s pack, the language told the pack is there; removed, the drafts stand again; no FontFace, no font - the language\'s own face stands', async () => {
+test('L10N3b the pack at work: its tables over the machine drafts (a person\'s word outranks a machine\'s), its other text for the readers that ask, pt-BR reading pt\'s pack, the language told the pack is there; removed, the drafts stand again; no FontFace, no font - the language\'s own face stands', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const draft = tm.parseStringTableCsv(rd('locales/fr/Port_Strings.csv'));
   const draftWord = new Map(draft).get('menu.rail.new');
   await data.initLocale(new URLSearchParams('lang=fr'), { languages: [] });
@@ -127,7 +127,7 @@ test('L10N3b the pack at work: its tables over the machine drafts (a person\'s w
   await assert.rejects(data.installTranslationPack('qps-ploc', entries(FRENCH)), /not a language/);
 });
 
-test('L10N3b the pack\'s font, where a browser can load it: registered for its language and font as RegisterLocalizedFont registers one, ahead of the language\'s own face', async () => {
+test('L10N3b the pack\'s font, where a browser can load it: registered for its language and font as RegisterLocalizedFont registers one, ahead of the language\'s own face', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const loaded = [];
   globalThis.FontFace = class { constructor(family, bytes) { this.family = family; this.bytes = bytes; } async load() { loaded.push(this.family); return this; } };
   const was = globalThis.OffscreenCanvas;

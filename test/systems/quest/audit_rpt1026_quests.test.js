@@ -254,7 +254,7 @@ test('AUDIT RPT1026 H4: The Lost Artifact itself, paid with its journal taken ba
 
 // ── H2 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
-test('AUDIT RPT1026 H2: the questor\'s close names the way to Abandon on the skin worn - the Quests tab on the enhanced skin, the classic pause\'s Controls then Escape on the classic (which has no tabs) - in the player\'s language (mutant: the classic words dropped)', () => {
+test('AUDIT RPT1026 H2: the questor\'s close names the way to Abandon on the skin worn - the Quests tab on the enhanced skin, the classic pause\'s Controls then Escape on the classic (which has no tabs) - in the player\'s language (mutant: the classic words dropped)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   withQuestlines(false, () => {
     const { quest } = artifactPaid();
     const close = () => questorBusyRows(quest).map((r) => r.text);

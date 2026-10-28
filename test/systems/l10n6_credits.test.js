@@ -51,7 +51,7 @@ test('L10N6 a language\'s row: Claude\'s drafts said to be drafts, the people wh
   assert.ok(Object.isFrozen(fr));
 });
 
-test('L10N6 the translators reach the language\'s record: `locales/<tag>/translators.json` read by the loader, names only, none for English; a bundled pack beside them; the row in the language itself', async () => {
+test('L10N6 the translators reach the language\'s record: `locales/<tag>/translators.json` read by the loader, names only, none for English; a bundled pack beside them; the row in the language itself', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   data._useLocaleFilesForTests({ '../../locales/fr/Port_Strings.csv': async () => rd('locales/fr/Port_Strings.csv'), '../../locales/de/Port_Strings.csv': async () => rd('locales/de/Port_Strings.csv') }, {
     meta: { '../../locales/fr/pack/PACK.json': PACK },
     translators: {

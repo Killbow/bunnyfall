@@ -130,7 +130,7 @@ test('QUESTOR-SAID: the coven\'s Quest button the same (DaggerfallWitchesCovenPo
   assert.deepEqual(social.offerBoxes(bare, () => []), []);
 });
 
-test('QUESTOR-SAID: the words are the text core\'s (quest.offer.questorBusy, quest.offer.questorBusyUnnamed) - in French the French row, the quest\'s name in it; every whole language keeps {quest}', () => {
+test('QUESTOR-SAID: the words are the text core\'s (quest.offer.questorBusy, quest.offer.questorBusyUnnamed) - in French the French row, the quest\'s name in it; every whole language keeps {quest}', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const quest = { displayName: 'La course' };
   const rows = tm.loadStringTableCsv(rd('locales/fr/Port_Strings.csv'));
   const fr = new Map(rows);

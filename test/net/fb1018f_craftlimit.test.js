@@ -608,7 +608,7 @@ test('AUDIT FB1018f L5-6 the Firmament\'s hand at the fire, the alchemy station 
   } finally { _resetFirmamentLiveForTests(); }
 });
 
-test('AUDIT FB1018f L5-8 the limit\'s rows in the player\'s language: German\'s and Russian\'s crafts joined with their own "und" and "и", the rule\'s two arms (Russian\'s named crafts at two past, its before-the-choice arm at one), the tab\'s ceiling and Master\'s word - each the table\'s row as formatMessage reads it (mutants: the crafts joined in English; Russian\'s arms swapped)', () => {
+test('AUDIT FB1018f L5-8 the limit\'s rows in the player\'s language: German\'s and Russian\'s crafts joined with their own "und" and "и", the rule\'s two arms (Russian\'s named crafts at two past, its before-the-choice arm at one), the tab\'s ceiling and Master\'s word - each the table\'s row as formatMessage reads it (mutants: the crafts joined in English; Russian\'s arms swapped)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const two = law.craftLimit('smithing', { building: 60, provisioning: 55 }, HELD);
   try {
     for (const [lang, joined] of [['de', 'Building und Provisioning'], ['ru', 'Building и Provisioning']]) {

@@ -442,7 +442,7 @@ test('AUDIT EG V L8-6 THE WEIR KEY\'S CARD SAYS ITS LINE (section 5 - "its line:
   assert.equal(rows[0].text, EG_TEXT.keyName);
 });
 
-test('AUDIT EG V L7-10 THE SPIRE\'S ACCESSIBILITY ROWS IN THE PLAYER\'S LANGUAGE (L10N4; section 27.9): the three rows\' names and notes and the four palettes\' names go through the text core, each a catalog key the thirteen whole languages hold (mutants: a row\'s literal back; a palette\'s name English alone)', () => {
+test('AUDIT EG V L7-10 THE SPIRE\'S ACCESSIBILITY ROWS IN THE PLAYER\'S LANGUAGE (L10N4; section 27.9): the three rows\' names and notes and the four palettes\' names go through the text core, each a catalog key the thirteen whole languages hold (mutants: a row\'s literal back; a palette\'s name English alone)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const M = rd('src/ui/enhanced/enhancedMenu.js');
   const body = M.slice(M.indexOf('function spireAccessRows() {'), M.indexOf('  return [motion, palette, fill];'));
   assert.doesNotMatch(body, /prefRow\('reducedMotion', '/);

@@ -420,7 +420,7 @@ test('CARDS-PLUS Iliac Hand\'s painted panel: the turn a track of six and the ma
   ch.destroy();
 });
 
-test('CARDS-PLUS the words the panel\'s look added are the player\'s language\'s (L10N4, bible/06-Systems/Localization-Arc.md): routed through the text core and read when they are shown - the verdict, the fold, the setup\'s heads and boxes, the track (the magicka by DFU\'s own key), the other player\'s line and state, the empty tray - from the real French table; English byte for byte until French is chosen, and again after (mutants: the verdict\'s words read once, at load; a head left in English; the magicka a port key)', () => {
+test('CARDS-PLUS the words the panel\'s look added are the player\'s language\'s (L10N4, bible/06-Systems/Localization-Arc.md): routed through the text core and read when they are shown - the verdict, the fold, the setup\'s heads and boxes, the track (the magicka by DFU\'s own key), the other player\'s line and state, the empty tray - from the real French table; English byte for byte until French is chosen, and again after (mutants: the verdict\'s words read once, at load; a head left in English; the magicka a port key)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   tm._resetTextManagerForTests();
   try {
     const { v } = iliacTurn();

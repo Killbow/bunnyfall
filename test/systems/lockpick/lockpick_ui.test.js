@@ -84,7 +84,7 @@ test('AUDIT LOCKPICK C2: never past a short screen - the window scrolls, the loc
   assert.match(LOCK_CSS, /html\.plus-pad-prompts-visible \.lk-win \{ max-height: calc\(100dvh - var\(--plus-pad-clearance, 0px\) - 16px\); \}/, 'S3: above the pad\'s prompt bar, never under it');
 });
 
-test('AUDIT LOCKPICK B3: a snapped pick\'s count reads right at one, a few and many in every language, through the real t() over each real table (a table\'s plural dropped fails it)', async () => {
+test('AUDIT LOCKPICK B3: a snapped pick\'s count reads right at one, a few and many in every language, through the real t() over each real table (a table\'s plural dropped fails it)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, async () => {
   const { readFileSync } = await import('node:fs');
   const tm = await import('../../../src/systems/textManager.js');
   const want = { es: ['Queda 1.', 'Quedan 2.'], it: ['Ne resta 1.', 'Ne restano 2.'], 'pt-BR': ['Resta 1.', 'Restam 2.'], bg: ['Остава 1.', 'Остават 2.'],

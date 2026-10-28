@@ -206,7 +206,7 @@ test('AUDIT SAFE CLIENT-2 A BAN\'S OWN SENTENCE, one home for the game\'s word a
   assert.equal(law.untilText(BAN_FOREVER), 'for good');
 });
 
-test('AUDIT SAFE DOC-16 A BAN IS A BAN IN EVERY LANGUAGE - never a suspension (a ban may be for good): Spanish, Italian, Romanian and Indonesian said "suspended" in the code\'s consequence and every ban line; and German names race as the rest of its locale does (Rasse), not skin colour (mutant: a suspension\'s word back)', () => {
+test('AUDIT SAFE DOC-16 A BAN IS A BAN IN EVERY LANGUAGE - never a suspension (a ban may be for good): Spanish, Italian, Romanian and Indonesian said "suspended" in the code\'s consequence and every ban line; and German names race as the rest of its locale does (Rasse), not skin colour (mutant: a suspension\'s word back)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const rows = (code) => new Map(parseStringTableCsv(readFileSync(new URL(`../../../locales/${code}/Port_Strings.csv`, import.meta.url), 'utf8')));
   const BAN_KEYS = ['net.conduct.consequence', 'account.refusal.banned', 'net.safety.bannedSelf', 'net.safety.bannedAccount', 'net.safety.bannedWhy', 'net.safety.didBan', 'net.safety.nextBan', 'net.online.banned'];
   const SUSPENSION = { es: /suspen/i, it: /sospe/i, ro: /suspend/i, id: /tangguh/i };

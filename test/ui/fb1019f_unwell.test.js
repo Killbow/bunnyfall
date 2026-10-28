@@ -176,7 +176,7 @@ test('DISEASE-UNWELL THE ENHANCED HUD, EXECUTED: the status widget draws the Unw
   }
 });
 
-test('DISEASE-UNWELL IN THE PLAYER\'S LANGUAGE: the tile\'s word and the box\'s line are the catalog\'s (hud.status.unwell, status.health.unwell), read when they are drawn - a language\'s row speaks them (mutants: either left a literal)', () => {
+test('DISEASE-UNWELL IN THE PLAYER\'S LANGUAGE: the tile\'s word and the box\'s line are the catalog\'s (hud.status.unwell, status.health.unwell), read when they are drawn - a language\'s row speaks them (mutants: either left a literal)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   const en = new Map(tm.parseStringTableCsv(rd('locales/en/Port_Strings.csv')));
   assert.equal(en.get('hud.status.unwell'), UNWELL_TILE_TEXT);
   assert.equal(en.get('status.health.unwell'), UNWELL_LINE_TEXT);

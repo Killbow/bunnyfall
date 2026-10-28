@@ -52,7 +52,7 @@ test('FOE-KEEPS THE SPELLBOOK (wildDropLaw.js wildCanLose): no death in the zone
   assert.equal(d.taken.filter((it) => it.group === 'Gems').length, 3, 'the gems dropped - the death took what it may');
 });
 
-test('AUDIT FOE-KEEPS P4 THE WORDS READ WHEN SAID: the mountains\' entry and chip are the text core\'s at the moment they are read, so a language chosen after the module loaded speaks them (mutants: either read once, at import)', () => {
+test('AUDIT FOE-KEEPS P4 THE WORDS READ WHEN SAID: the mountains\' entry and chip are the text core\'s at the moment they are read, so a language chosen after the module loaded speaks them (mutants: either read once, at import)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   tm.patchLocaleTable('de', 'Port_Strings', tm.loadStringTableCsv(rd('locales/de/Port_Strings.csv')));
   try {
     tm.setLocale('de');

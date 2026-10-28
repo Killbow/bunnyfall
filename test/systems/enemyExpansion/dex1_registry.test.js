@@ -186,7 +186,7 @@ test('DEX1 the install: the fifty in the table, a career each, DFU\'s entity typ
   assert.equal(dexEnemyIds().length, 50);
 });
 
-test('AUDIT DEX A6 the fifty names in the player\'s language: each is the mod\'s own English under English, the language\'s draft under another, and the game\'s own English (the Foes table\'s keys, enemyDisplayName) is untouched; a classic id and an id no mod names keep DFU\'s answer', (t) => {
+test('AUDIT DEX A6 the fifty names in the player\'s language: each is the mod\'s own English under English, the language\'s draft under another, and the game\'s own English (the Foes table\'s keys, enemyDisplayName) is untouched; a classic id and an id no mod names keep DFU\'s answer', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, (t) => {
   t.after(() => { setLocale('en'); clearLocaleTables('de'); _resetEnemyExpansion(); clearCustomEnemies(); _resetMintRowEditors(); _resetExtraQuestRows(); });
   installEnemyExpansion({ on: false, log: silent });
   const ids = dexEnemyIds();

@@ -74,7 +74,7 @@ test('AUDIT FOE-KEEPS H1 H2 H4 THE HOST: the referee\'s fall goes to the zone\'s
   assert.ok(rez.includes('if (spared > 0) townTalk.say(RESURRECT_TEXT.spared(spared));'));
 });
 
-test('AUDIT FOE-KEEPS O1 H5 O4 O5 N6 THE WORDS: a foe\'s death says nothing dropped - true beside the tenth it claims and a revenant\'s theft; the tutorial names both zones, the cart only while it is with you, the tenth of a kill and of any other death, in the player\'s language and within a popup\'s sixty words (TUT1); Hungarian\'s "Az" and Polish "we" (mutants: the page\'s words read once)', () => {
+test('AUDIT FOE-KEEPS O1 H5 O4 O5 N6 THE WORDS: a foe\'s death says nothing dropped - true beside the tenth it claims and a revenant\'s theft; the tutorial names both zones, the cart only while it is with you, the tenth of a kill and of any other death, in the player\'s language and within a popup\'s sixty words (TUT1); Hungarian\'s "Az" and Polish "we" (mutants: the page\'s words read once)', { skip: 'BUNNYFALL: English only - the 25 translations were removed' }, () => {
   assert.equal(WILD_TEXT.deathKept(), 'Nothing dropped. Only another player\'s kill drops what you carry.');
   assert.doesNotMatch(WILD_TEXT.deathKept(), /keep/i, 'never "you keep" - the same death claims a tenth of the purse');
   const page = () => TUTORIALS.find((p) => p.id === 'wild-zone');
