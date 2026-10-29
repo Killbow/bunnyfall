@@ -256,7 +256,11 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
     const wrap = el('label', 'field');
     wrap.append(el('span', 'fieldlabel', spec.label));
     const input = keyedAs(el('input'), `field:${key}`);
-    input.type = spec.secret ? 'password' : 'text';
+    // BUNNYFALL: on Linux a real password box can swallow every key (Chromium puts the input method in its secure mode,
+    // and some ibus/fcitx setups then deliver nothing) - there it is a text box drawn as dots instead
+    const maskOnly = spec.secret && /Linux/i.test(globalThis.navigator?.userAgent ?? '') && !/Android/i.test(globalThis.navigator?.userAgent ?? '');
+    input.type = spec.secret && !maskOnly ? 'password' : 'text';
+    if (maskOnly) { input.style.setProperty('-webkit-text-security', 'disc'); input.spellcheck = false; input.autocapitalize = 'off'; }
     input.maxLength = spec.max;
     input.value = flow.values[key] ?? '';
     // AUTOCOMPLETE IS TOLD THE TRUTH, which is a real accessibility and
