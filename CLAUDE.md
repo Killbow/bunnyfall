@@ -14,11 +14,9 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   `ARENA2_PATH` to it before work that reads the game's files.
 - **The hosts do not grow** (`bible/01-Overview/Host-Split.md`): new behaviour goes into a module the host wires, never
   into `bootWorld`, `createWorldModes`, `buildDungeonContext`, `bootExterior` and the other hosts listed there.
-- **Before a push**: `npm run test:quick`, lint on the changed files and `npm run build`. There is no CI. `test:quick`
-  runs the tests that import a changed module directly, plus the standing rules (host ceilings, licences); it takes
-  minutes. Do not run the full suite or `test:changed` by default: on this box they take hours.
-- **Tests run code, they do not quote it.** The fork is on its own now. Write new tests that call the module and check
-  what it does. Do not add tests that read source files as text or pin exact UI sentences and counts; the old ones are
-  being retired. When one of those fails only on wording, update or remove it, don't chase it.
+- **Before a push**: lint on the changed files and `npm run build`. There is no CI and no test suite: the old one was
+  upstream's and was removed. Check a change by reading it and, when it matters, trying it in the game.
+- **Content switched off** (Phase 2) lives in `src/systems/contentOff.js`: one list the client and the relay both read.
+  Flip a flag to bring a piece back.
 - **Credits stay.** Keep `LICENSE` (MIT notices for DFO Online and Daggerfall Unity) and the authors in
   `src/ui/credits.js` and `vendor/`.

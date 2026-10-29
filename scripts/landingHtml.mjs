@@ -58,21 +58,9 @@ export function readBuildSha(read = (p) => readFileSync(p, 'utf8')) {
 }
 
 /* ── THE LEDGER STRIP (U60c) ──────────────────────────────────
-   Two figures beside the sha, COUNTED at build rather than typed:
-   the size of the suite and the size of the port. Both come from the
-   tree the build is made of, the way the sha does, so the page can
-   never claim a number the repository does not hold. The test count
-   is the declared tests: top-of-line `test(` calls in every *.test.js
-   under test/ (test/ui/enhanced/landing.test.js walks the tree to hold it). */
-export function countTests(dir = 'test', read = (p) => readFileSync(p, 'utf8')) {
-  let n = 0;
-  for (const f of readdirSync(dir, { recursive: true })) {   // TIDY5: every folder under test/
-    if (!f.endsWith('.test.js')) continue;
-    n += (read(`${dir}/${f}`).match(/^test\(/gm) || []).length;
-  }
-  return n;
-}
-
+   A figure beside the sha, COUNTED at build rather than typed:
+   the size of the port, from the tree the build is made of, the way the
+   sha does. (BUNNYFALL: the test count went with the tests.) */
 /** Lines of JavaScript under src/ - TRACKED files only (`git ls-files`),
  *  so a scratch file or the build's own stamp cannot inflate it.
  *  NO-GIT (2026-10-10, Dudey's dev serve from a downloaded zip: "fatal: not a git repository" - the landing page an
@@ -287,7 +275,7 @@ export function landingHtml() {
           sha: ctx.server ? '' : readBuildSha(),
           // Counted fresh on every serve and build: they are true whenever
           // they are counted, unlike the sha, which is true only of a build.
-          stats: { tests: countTests(), lines: countSrcLines() },
+          stats: { lines: countSrcLines() },
         });
       },
     },

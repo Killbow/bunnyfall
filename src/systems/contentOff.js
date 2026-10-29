@@ -8,6 +8,8 @@
 export const CONTENT = Object.freeze({
   /** Daggerfall's main quest: a new game starts no backbone (_BRISIEN, S0000999). */
   mainQuest: false,
+  /** The Curse of Daggerfall (S0000977): no longer the first quest of a new game. */
+  curseOfDaggerfall: false,
   /** The Sky-Ketch: no voyage ever comes (net/ketch/ketchLaw.js ketchVoyageAt). */
   skyKetch: false,
   /** The Sea Serpent: no serpent day (net/serpent/serpentLaw.js isSerpentDay). */

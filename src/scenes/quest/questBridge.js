@@ -202,7 +202,7 @@ export const choiceDoor = (showQuestBox) => (q, message, choices, respond) => sh
  *  task, `start quest 977 977` - the curse on the old capital's streets, a world quest (questFoeHost.js WORLD_QUESTS) -
  *  so S0000977 starts here, in the tutorial's place, as a player who said No to its first page started it. Port-Ledger
  *  section A. */
-export const GAME_START_QUESTS = Object.freeze(contentOn('mainQuest') ? ['S0000977', '_BRISIEN'] : ['S0000977']);   // BUNNYFALL PHASE 2 (systems/contentOff.js): no main quest opener
+export const GAME_START_QUESTS = Object.freeze([...(contentOn('curseOfDaggerfall') ? ['S0000977'] : []), ...(contentOn('mainQuest') ? ['_BRISIEN'] : [])]);   // BUNNYFALL PHASE 2 (systems/contentOff.js): neither the Curse nor the main quest opener
 
 /** TUT1: the DFU tutorial a save from before TUT1 may still be running, and the quest its close starts. */
 export const RETIRED_TUTORIAL_QUEST = '_TUTOR__';
@@ -219,7 +219,7 @@ export function retireDfuTutorial(machine) {
   const held = [...machine.quests.values()].some((q) => String(q?.questName ?? '').toUpperCase() === RETIRED_TUTORIAL_STARTS);
   let started = false;
   // AUDIT TUT1: a start that throws (StartQuestImmediate propagates) costs the curse, never the load around it
-  if (!held) { try { started = !!machine.startQuestByName(RETIRED_TUTORIAL_STARTS); } catch (e) { console.warn('[quest] the curse did not start in the retired tutorial\'s place', e); } }
+  if (!held && contentOn('curseOfDaggerfall')) { try { started = !!machine.startQuestByName(RETIRED_TUTORIAL_STARTS); } catch (e) { console.warn('[quest] the curse did not start in the retired tutorial\'s place', e); } }
   return { retired: live.length, started };
 }
 

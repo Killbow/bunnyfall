@@ -57,7 +57,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMain } from './lib/isMain.mjs';
 import { regionStops, continuationsIn, SELF_DOCS as SHIFT_SELF_DOCS, GIT_MAX_BUFFER } from './citeShift.mjs';
-import { closureOf } from './testChanged.mjs';
+import { closureOf } from './lib/importGraph.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -69,7 +69,7 @@ export const QUOTE_MAX = 72;
 export const AFTER_REACH = 60;
 
 /** The tools' own fixtures, which carry example cites that are synthetic. */
-export const SELF_DOCS = Object.freeze([...SHIFT_SELF_DOCS, 'tools/citeAnchor.mjs', 'test/tooling/citeanchor.test.js']);
+export const SELF_DOCS = Object.freeze([...SHIFT_SELF_DOCS, 'tools/citeAnchor.mjs']);
 
 /** Cites into a file that is not one of ours but shares a basename with one: another repository's (Audit-68.md:
  *  project-final's main.js, which citeShift moved as if it were src/main.js - the five carry their first-written
