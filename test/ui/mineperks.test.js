@@ -92,7 +92,7 @@ test('MINE-PERKS the four choices say what they now do; the Surveyor stands on t
   assert.equal(specOk('mining', 100, SURVEYOR), true);
   assert.match(specOf('mining', 50, 'prospector').text, /within 500 m .* each vein on the Overworld by its ore/);
   assert.match(specOf('mining', 50, 'deep-delver').text, /yield double, and every vein in the dungeon is marked on the compass/);
-  assert.match(specOf('mining', 100, 'motherlode-sense').text, /marked on your map from the day's start/);
+  assert.match(specOf('mining', 100, 'motherlode-sense').text, /marked on your map from the day['’]s start/);
   assert.match(specOf('mining', 100, SURVEYOR).text, /You witness the ground yourself.*a region's own ore still needs the other players.*Cut Stone directly/);
 });
 

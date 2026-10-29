@@ -280,7 +280,7 @@ test('CARP-YARD THE HOSTS: the street\'s workbench is the host\'s own question -
   assert.equal((w.match(/modes\?\.workbenchHere\?\.\(\)/g) ?? []).length, 1, 'the modes\' asked from the host\'s question alone');
   assert.match(w, /here: \(\) => workbenchHere\(\), a: 'a workbench'/);
   assert.match(w, /workbench: \(\) => workbenchHere\(\),/);
-  assert.match(w, /: bench \? workbenchHere\(\) : modes\?\.forgeHere\?\.\(\)\) \?\? null;/);
+  assert.match(w, /: bench \? workbenchHere\(\) : modes\?\.forgeHere\?\.\(\)\) \?\? null, materialValue\(work\?\.out, count\)\);/);   // PIN MOVED (BUNNYFALL CRAFT FEES: the station priced by what is made)
   assert.match(w, /bench: \(\) => openYardBench\(\),/);
   assert.match(w, /function openYardBench\(\) \{\n\s+if \(!forgeOffered\(\)\) \{ townTalk\.say\(stationColdLine\('workbench'\)\); return true; \}[^\n]*\n\s+hudCtx\.togglePause\(\{ at: stationDoorAt\('workbench'\) \}\);/);   // PIN MOVED (CRAFT-HALL): the Crafting page at the bench, its focus handed by stationDoorAt
   assert.match(w, /`The \$\{f\.who \?\? st\.who\} asks \$\{f\.fee\} gold for the use of the \$\{st\.noun\}\.`/);

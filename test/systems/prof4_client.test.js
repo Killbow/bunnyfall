@@ -479,7 +479,7 @@ test('PROF4 wiring: a built pixel keeps its forest (the tree flats by World of D
   assert.equal((w.match(/if \(g\.natureSet\.has\(archive\)\) forestGroups\.set\(k, \{ batch, centers, size[^}]*\}\);/g) ?? []).length, 3, 'the season\'s batch, the classic one and (LPT1) a low-poly tree\'s far pictures');
   assert.match(w, /if \(isCraftedFurniture\(it\)\) \(playerEntity\.furnishings \?\?= \[\]\)\.push\(it\);\n\s*else addItem\(\(playerEntity\.items \?\?= \[\]\), it, 'back'\);/);
   // PROF7 moved it: the station a recipe's profession names (craftStation) - the workbench Carpentry's, the loom Outfitting's
-  assert.match(w, /const st = craftStation\(recipeById\(recipe\)\?\.profession\);\n\s*const f = st\.here\(\);/);
+  assert.match(w, /const st = craftStation\(recipeById\(recipe\)\?\.profession\);\n\s*const f = pricedStation\(st\.here\(\), recipeValue\(recipe\)\);/);   // PIN MOVED (BUNNYFALL CRAFT FEES: the station priced by what is made)
   assert.match(w, /const craftStation = \(profession\) => \(profession === 'carpentry'\n\s*\? \{ here: \(\) => workbenchHere\(\),/);   // PIN MOVED (CARP-YARD, 2026-10-12): the host's own question - a joinery's bench in the street
   // PIN MOVED (PROF11): the work names the mason's bench too
   assert.match(w, /const bench = work\?\.station === 'workbench', loom = work\?\.station === 'loom', mason = work\?\.station === 'mason';/);
