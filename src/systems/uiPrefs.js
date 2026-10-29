@@ -83,7 +83,8 @@ export const PREF_DEFAULTS = Object.freeze({
   // its card's two choices: the page the windows are written on ('cream' | 'scroll') and what the front door and the
   // full screens stand on ('desk' | 'map'), and the vitals' vials upright in the corner or lying in a row ('upright' |
   // 'row'). While the dress is worn `plusTheme` stays the player's, unworn.
-  plusDress: 'none', grimoirePages: 'cream', grimoireBackdrop: 'desk', grimoireVitals: 'upright', grimoireSpellbook: 'book',
+  plusDress: 'grimoire',   // BUNNYFALL: the DFO Grimoire is the default dress
+  grimoirePages: 'cream', grimoireBackdrop: 'desk', grimoireVitals: 'upright', grimoireSpellbook: 'book',
   grimoireDial: 'classic',   // DIAL-PACK (2026-10-12): the Tab dial's doors - Daggerfall's own art ('classic') or the pack's paintings ('pack')
   // TEXT-FONT (2026-10-11): the face the enhanced skin's words are written in ('game' | 'sans' | 'mono' | 'dyslexic' |
   // 'system', ui/textFont.js) and the installed font 'system' names.
