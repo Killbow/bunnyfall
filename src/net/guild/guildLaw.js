@@ -24,7 +24,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 /** What founding costs: gold (the purse, then the bank - a fee, the treasury starts empty) and the founder's Renown. */
-export const GUILD_FOUND_GOLD = 2_500;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
+export const GUILD_FOUND_GOLD = 10_000;
 export const GUILD_FOUND_RENOWN = 5;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
 /** How many characters one guild holds - 75 since GUILD-CAP (the Discord, 2026-10-21: "75 would be a great start"; it was 50).
  *  The hub's who-is-online list (hubShards.js HUB_GUILD_WHO_MAX) must hold a full guild but its asker. */
@@ -124,7 +124,7 @@ export function guildRankNamesOf(raw) {
 // any founder. bible/11-Multiplayer/Guild-Overhaul.md.
 
 /** What a rename costs, in gold from the treasury - two and a half foundings. */
-export const GUILD_RENAME_GOLD = 5_000;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
+export const GUILD_RENAME_GOLD = 25_000;
 /** How long a guild keeps a name before it may change it again, in seconds - a fortnight. */
 export const GUILD_RENAME_COOLDOWN_S = 14 * 24 * 3600;
 /** When a guild renamed at `renamedAt` (epoch seconds, or null for never) may rename again - null for now. */

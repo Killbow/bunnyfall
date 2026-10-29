@@ -409,7 +409,7 @@ export const seatTributeLine = (room) => (room > 0
 /** The influence a guild needs at a seat to claim it, or to challenge its holder. */
 export const CLAIM_THRESHOLD = Object.freeze({ palace: 1200, crown: 5000 });   // BUNNYFALL COMPANIES (Phase 4): scaled for a Company of 5-6 (was palace 6000 / crown 30000)
 /** What a Charter costs its first holder, in Drakes from the guild's treasury - burnt. */
-export const CLAIM_FEE = Object.freeze({ palace: 2000, crown: 15000 });   // BUNNYFALL COMPANIES (was 8000 / 80000)
+export const CLAIM_FEE = Object.freeze({ palace: 8000, crown: 80000 });
 /** The second claimant within this share of the first: nobody takes it - the seat is Contested. */
 export const CONTESTED_MARGIN = 0.1;
 /** A new Charter's Standing, its bounds, and what a Turning held unchallenged gives it. */
@@ -788,7 +788,7 @@ export function seatTitleText(title, ts, place) {
 // every one of them in its one batch (server-account/src/seatTurning.js); the client prices its own shops off them.
 
 /** A Charter's upkeep a week, in Drakes from the holder's treasury - burnt (SEAT0 7.1). */
-export const SEAT_UPKEEP = Object.freeze({ palace: 500, crown: 3000 });   // BUNNYFALL COMPANIES (was 2500 / 15000)
+export const SEAT_UPKEEP = Object.freeze({ palace: 2500, crown: 15000 });
 /** The crown's scale: x min(1.5, max(0.4, active / 100)), `active` the accounts that played online in the week. */
 export const CROWN_SCALE = Object.freeze({ least: 0.4, most: 1.5, per: 100 });
 export const crownScale = (active) => Math.min(CROWN_SCALE.most, Math.max(CROWN_SCALE.least, Math.max(0, Number(active) || 0) / CROWN_SCALE.per));
