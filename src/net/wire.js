@@ -2590,6 +2590,8 @@ export function parseClient(text, { hasHello = false } = {}) {
       items = [one];
     }
     const me = m.me === true ? { me: true } : {};
+    if (m.vol !== undefined && m.vol !== 'shout' && m.vol !== 'low') return { error: 'bad chat' };   // BUNNYFALL VOICE
+    if (m.vol !== undefined) me.vol = m.vol;
     const linked = items ? { items, item: items[0] } : {};   // `item` kept so a one-link line still reads on an older client build
     if (m.ch === undefined) return { t: 'chat', text, ...me, ...linked };
     // BUNNYFALL WHISPER: a private line names who it is for - a name as the hub's search folds it, or nothing to say

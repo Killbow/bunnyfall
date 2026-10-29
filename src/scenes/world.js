@@ -897,7 +897,7 @@ import { CHAT_LANGS, chatLangRoom } from '../net/wire.js';   // CHAT-LANG: the l
 import { LANG_LINES, unknownLangText } from '../net/chatCommands.js';   // CHAT-LANG: /lang's list and refusal
 import { OPT_CHANNELS, tradeChanOldText, notJoinedText, optJoinedText, optJoinedSayText, optLeftText, optWaitText, alreadyJoinedText } from '../net/chat.js';   // CHAT-TRADE: the Trade and LFG tabs' words
 import { badJoinText } from '../net/chatCommands.js';   // CHAT-TRADE: /join's and /leave's refusal
-import { oocText, localLineHeard, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
+import { oocText, localLineHeard, sayRangeOf, voicedLine, nextRegionRoom, regionJoinedText, CHAN_OLD_RELAY_TEXT, ROLL_OLD_RELAY_TEXT, EMOTE_OLD_RELAY_TEXT, GUILD_OLD_RELAY_TEXT, NO_GUILD_TEXT, partyNoteTab } from '../net/chat.js';   // CHAT-CHAN: the channels' own laws (a second chat import: CHAT1's pin holds the first as it stands)
 import { breachCommandOf, helpLines, pauseCommandOf, pauseCommandRefusal } from '../net/chatCommands.js';   // AUDIT EG V (c, L7-1, L7-21): the Elite Breach's door, its words whole; /help's lines with its own
 import { parseChatLine, CHAT_GREETING_TEXT, unknownCommandText, emptyCommandText, hostMisuseText, badRollText, expandShortcodes, EMOTE_LINES, foundText, FIND_OFFLINE_TEXT, FIND_RELAY_TEXT } from '../net/chatCommands.js';   // CHAT-CHAN: what a typed line IS; DICE1: and a roll; EMOTE1: an action, a gesture, a shortcode
 import { partyRosterSource, localRosterSource, guildRosterSource, placedRosterSource } from '../net/roster.js';   // CHAT-CHAN: the Party and Local tabs' composed lists; HIDDEN-UNCOUNTED: and a placed tab's
@@ -21365,7 +21365,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // its halo are one socket each in the speaker's room, so a line is heard ONCE across a cell edge; what this client
     // keeps is what it can hear - its own line, and a line from a body within earshot (net/chat.js localLineHeard).
     // Local is not a private channel: the relay's reach is the room's, and the earshot is each hearer's own.
-    online.onChat = (line) => { if (localLineHeard(line, peersNear(), player.feetAt())) chatLog.push('local', line); };
+    online.onChat = (line) => { if (localLineHeard(line, peersNear(), player.feetAt(), sayRangeOf(line))) chatLog.push('local', voicedLine(line)); };   // BUNNYFALL VOICE: a shout carries further, a low voice less
     online.onRoll = (line) => { if (localLineHeard(line, peersNear(), player.feetAt())) chatLog.push('local', line); };   // DICE1: a roll at the table is heard as a line is
     online.onIliac = (f) => modes?.iliacOnlineFrame?.(f);   // CARDS10: the relay's Iliac table, to the room's host
     online.onGambit = (f) => modes?.gambitOnlineFrame?.(f);   // KG5: the relay's King's Gambit table, to the room's host
@@ -21702,7 +21702,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         if (cmd.kind === 'host') { note(hostMisuseText(cmd.name)); return false; }
         if (cmd.kind === 'badroll') { note(badRollText(cmd.name)); return false; }
         if (cmd.kind === 'roll') return chatRoll(tabId, cmd.spec);   // DICE1: the relay rolls, on this tab's channel
-        if (cmd.kind === 'channel') return chatSend(cmd.tab, cmd.wrap === 'ooc' ? oocText(cmd.text) : cmd.text, tabId, opts);
+        if (cmd.kind === 'channel') return chatSend(cmd.tab, cmd.wrap === 'ooc' ? oocText(cmd.text) : cmd.text, tabId, { ...opts, vol: cmd.vol });   // BUNNYFALL VOICE: /y and /low carry how it was said
         return chatSend(tabId, cmd.text, tabId, opts);   // false keeps the line in the field (B2)
       },
       // CHAT-R1 (Mac: "a sidepanel on the chat ui showing all currently
@@ -27989,7 +27989,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const postItemInChat = (text, item) => (canPostItemInChat() ? chatSend(chatLog.active, text, chatLog.active, { item }) === true : false);
   /** CHAT-POST: insert the piece into the chat field as `[Label]` - the player finishes the line and sends. */
   const linkItemInChat = (item) => (canPostItemInChat() ? chatPanel.linkItem?.(item) === true : false);
-  const chatSend = (tabId, text, from = tabId, { me = false, item = null, items = null } = {}) => {
+  const chatSend = (tabId, text, from = tabId, { me = false, item = null, items = null, vol = null } = {}) => {
     const why = (line) => { chatLog.push(from, { text: line, system: true }); return false; };
     if ((tabId === 'party' || tabId === 'region') && chanOld()) return why(CHAN_OLD_RELAY_TEXT);
     if (tabId === 'guild' && guildOld()) return why(GUILD_OLD_RELAY_TEXT);   // GUILD1c
@@ -27998,7 +27998,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // EMOTE1: an action only down a session whose relay carries one - an older one would say the words bare
     const s = tabId === 'local' ? online : tabId === 'party' || tabId === 'guild' ? socialLink() : chatLinks.get(tabId);
     if (me && s?.status === 'open' && !s.emoteOk) return why(EMOTE_OLD_RELAY_TEXT);
-    if (tabId === 'local') return online?.sendChat(text, { me, item, items }) ?? false;
+    if (tabId === 'local') return online?.sendChat(text, { me, item, items, vol }) ?? false;
     if (tabId === 'party') {
       if (!social?.party) return why(NO_PARTY_TEXT);
       return socialLink()?.sendChat(text, { ch: 'party', me, item, items }) ?? false;   // the relay fans it to the party's members alone - my own tabs too: the echo is the receipt

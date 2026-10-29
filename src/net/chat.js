@@ -141,6 +141,13 @@ export const NO_GUILD_TEXT = 'You are not in a guild.';
 /** CHAT-CHAN: how far a Local line carries, scene units - the distance a peer's NAME is drawn at (net/remotePlayers.js
  *  NAME_RANGE; a pin holds them equal): whoever you can read over a head can hear you, and nobody further. */
 export const CHAT_SAY_RANGE = 60;
+/** BUNNYFALL VOICE: how far a Local line carries by how it was said - a shout three times as far, a low voice a
+ *  quarter. `vol` rides the line ('shout' | 'low'), set by the sender's /y or /low and passed on by the relay. */
+export const VOICE_RANGE = Object.freeze({ shout: CHAT_SAY_RANGE * 3, low: CHAT_SAY_RANGE / 4 });
+export const VOICE_VOLS = Object.freeze(Object.keys(VOICE_RANGE));
+export const sayRangeOf = (line) => VOICE_RANGE[line?.vol] ?? CHAT_SAY_RANGE;
+/** The name a Local line is shown under: "Ann shouts", "Ann, quietly", or the name alone. */
+export const voicedLine = (line) => (line?.vol === 'shout' ? { ...line, name: `${line.name} shouts` } : line?.vol === 'low' ? { ...line, name: `${line.name}, quietly` } : line);
 /** CHAT-CHAN: a line wrapped in double parentheses is out of character - the tabletop's own mark. */
 export const isOocText = (text) => /^\(\(/.test(String(text ?? '').trim());
 /** CHAT-CHAN: `/ooc text`'s line - the text in the mark. */

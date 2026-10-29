@@ -121,7 +121,8 @@ export function bubbleSaid(text) {
  *  never a roll (DICE1) or an action (EMOTE1): what stands over a head is what the character SAID. */
 export function bubbleLineOk(line) {
   if (!line || typeof line !== 'object') return false;
-  if (line.system || line.mine || line.kind === 'ooc' || line.kind === 'roll' || line.kind === 'me') return false;   // DICE1: a roll is the table's, not the character's words; EMOTE1: an action is done, not said
+  if (line.system || line.mine || line.kind === 'ooc' || line.kind === 'roll' || line.kind === 'me') return false;
+  if (line.ch === 'whisper' || line.tab === 'whisper') return false;   // BUNNYFALL WHISPER: a private line is never said over a head   // DICE1: a roll is the table's, not the character's words; EMOTE1: an action is done, not said
   return typeof line.id === 'string' && !!line.id && typeof line.text === 'string' && !!line.text;
 }
 
@@ -367,6 +368,7 @@ export function createNameLayer({ doc = document, now = () => Date.now(), armsOf
     // lines of each are its tail, read back to the watermark (a line kept on every tab is one line: a Set)
     const fresh = new Set();
     for (const tab of log?.tabs ?? []) {
+      if (tab.id === 'whisper') continue;   // BUNNYFALL WHISPER: a private line is never said over a head
       const msgs = tab.messages ?? [];
       for (let i = msgs.length - 1; i >= 0 && msgs[i].seq > seq; i--) fresh.add(msgs[i]);
     }

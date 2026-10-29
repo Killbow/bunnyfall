@@ -240,7 +240,7 @@ export const HELP_LINES = lazyLines([
 export const breachHelpLine = () => t('chat.help.breach', '/breach answers your company’s call for the Elite Breach or opens its start window (/breach help lists its commands)');
 export const helpLines = () => [...HELP_LINES.slice(0, -1), breachHelpLine(), ...WHISPER_HELP_LINES, HELP_LINES[HELP_LINES.length - 1]];
 /** BUNNYFALL WHISPER: the private lines' commands (scenes/whisperHost.js). */
-export const WHISPER_HELP_LINES = Object.freeze(['/w, /whisper, /tell or /msg <name> <text>: a private line to one player ("quotes" around a full name)', '/reply or /re <text>: answer the last private line']);
+export const WHISPER_HELP_LINES = Object.freeze(['/y, /yell or /shout <text>: Local, heard three times as far', '/low or /mutter <text>: Local, heard only close by', '/w, /whisper, /tell or /msg <name> <text>: a private line to one player ("quotes" around a full name)', '/reply or /re <text>: answer the last private line']);
 /**
  * AUDIT EG V (c, L7-1): THE ELITE BREACH'S DOOR IN THE CHAT - what `/breach` was given: its words after it, whole (`pick 2`,
  * `vote yes`, `buy tonic`, `ping danger`, `annals 3`, `surplus reroll`, `bequest 1`), '' for `/breach` alone, null for any
@@ -291,6 +291,9 @@ export function parseChatLine(text, extra = []) {
   if (name === 'rp') return rest.replace(/\*/g, '').trim() ? { kind: 'rp', text: rpText(rest) } : { kind: 'empty', name };   // CHAT-RP
   if (name === 'join' || name === 'leave') { const chan = rest.toLowerCase().replace(/^#/, ''); return { kind: name, chan: JOIN_CHANNELS.includes(chan) ? chan : '' }; }   // CHAT-TRADE
   if (name === 'emotes') return { kind: 'emotes' };
+  // BUNNYFALL VOICE: Local, said louder or lower - heard further, or only close by (net/chat.js VOICE_RANGE)
+  if (['y', 'yell', 'shout'].includes(name)) return rest ? { kind: 'channel', tab: 'local', text: rest, wrap: null, vol: 'shout' } : { kind: 'empty', name };
+  if (['low', 'mutter'].includes(name)) return rest ? { kind: 'channel', tab: 'local', text: rest, wrap: null, vol: 'low' } : { kind: 'empty', name };
   if (name === 'find' || name === 'who') return rest ? { kind: 'find', q: rest } : { kind: 'empty', name };   // SCALE5c (Mac's decision 2)
   if (Object.hasOwn(EMOTES, name)) return { kind: 'emote', text: emoteText(name, rest) };
   const chan = CHANNEL_COMMANDS.find((c) => c.names.includes(name));

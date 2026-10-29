@@ -2709,7 +2709,7 @@ export class OnlineSession {
    *  (AUDIT CHAT A8: the relay drops an over-rate line without a word, so the client refuses it first and the
    *  caller keeps the text); false when nothing went - nothing to say, over the rate, or no open socket.
    *  CHAT-POST: `items` (or a single `item`) ride beside the words when the wire admits them; an older relay drops them. */
-  sendChat(text, { ch = null, me = false, item = null, items = null, to = null } = {}) {
+  sendChat(text, { ch = null, me = false, item = null, items = null, to = null, vol = null } = {}) {
     const line = sanitizeChat(text);
     if (!line) return false;
     if (this.mayChat && !this.mayChat(line)) return false;   // AUDIT SAFE CLIENT-13: the code of conduct's gate, whatever door the line came by
@@ -2729,7 +2729,7 @@ export class OnlineSession {
     if (!gate.pass) return false;
     const linked = wired ? { items: wired, item: wired[0] } : {};
     if (ch === 'whisper' && !(typeof to === 'string' && to.trim())) return false;   // BUNNYFALL WHISPER: a private line names who it is for
-    const frame = { t: 'chat', text: line, ...(ch != null ? { ch } : {}), ...(ch === 'whisper' ? { to: to.trim() } : {}), ...(me ? { me: true } : {}), ...linked };
+    const frame = { t: 'chat', text: line, ...(ch != null ? { ch } : {}), ...(ch === 'whisper' ? { to: to.trim() } : {}), ...(vol === 'shout' || vol === 'low' ? { vol } : {}), ...(me ? { me: true } : {}), ...linked };
     if (!this._send(frame)) return false;
     this._cbucket = gate.bucket;   // the token is spent only on a line that left
     this.stats.chats++;
@@ -4012,7 +4012,7 @@ export class OnlineSession {
       // CHAT-POST: `items` (or legacy `item`) - the panel projects through validLootItem before a card
       const list = Array.isArray(m.items) && m.items.length ? m.items : (m.item && typeof m.item === 'object' && !Array.isArray(m.item) ? [m.item] : null);
       const linked = list ? { items: list, item: list[0] } : {};
-      this._deliver('chat', () => this.onChat?.({ id: m.id, name: sanitizeName(m.name), text, at: Number.isFinite(m.at) ? m.at : now, mine: m.id === this.id, sub: subOf(m), ch, ...(ch === 'whisper' && typeof m.to === 'string' ? { to: sanitizeName(m.to) } : {}), ...(ch === 'whisper' && (m.miss === 'none' || m.miss === 'many') ? { miss: m.miss } : {}), ...(m.me === true ? { me: true } : {}), ...linked, ...(typeof m.sg === 'string' && STAMP_RE.test(m.sg) ? { sg: m.sg, ...(m.text.length <= CHAT_MAX ? { raw: m.text } : {}) } : {}) }));
+      this._deliver('chat', () => this.onChat?.({ id: m.id, name: sanitizeName(m.name), text, at: Number.isFinite(m.at) ? m.at : now, mine: m.id === this.id, sub: subOf(m), ch, ...(ch === 'whisper' && typeof m.to === 'string' ? { to: sanitizeName(m.to) } : {}), ...(ch === 'whisper' && (m.miss === 'none' || m.miss === 'many') ? { miss: m.miss } : {}), ...(m.vol === 'shout' || m.vol === 'low' ? { vol: m.vol } : {}), ...(m.me === true ? { me: true } : {}), ...linked, ...(typeof m.sg === 'string' && STAMP_RE.test(m.sg) ? { sg: m.sg, ...(m.text.length <= CHAT_MAX ? { raw: m.text } : {}) } : {}) }));
     } else if (m.t === 'holdem') {
       // CARDS5: THE RELAY'S CARD TABLE - the room's events and the table as it stands, my own hole cards, or my turn;
       // checked by the table's own law, from the room the player stands in only
