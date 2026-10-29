@@ -1893,6 +1893,7 @@ export function poseChanged(a, b, eps = 0.01) {
     || (a.lt | 0) !== (b.lt | 0)   // PEERLIGHT1: a torch lit, put out or guttering goes out at once
     || (a.hl | 0) !== (b.hl | 0)   // HT-WAIST-NET: a lantern lit at the waist, or put out, goes out at once, as a draw does
     || (a.hk | 0) !== (b.hk | 0) || (a.hu | 0) !== (b.hu | 0)   // PEERFX1: a blow landed or taken goes out at once, as a swing does
+    || (a.ef | 0) !== (b.ef | 0)   // BUNNYFALL SPELL VISUALS: catching fire, or a bubble gone, shows at once
     || (a.cv | 0) !== (b.cv | 0)   // INVIS-NET: a player vanishing (or coming back) is news at once, as a draw is
     || (a.cl | 0) !== (b.cl | 0) || ((a.cl | 0) > 0 && Math.abs(wrapAngle((a.cw ?? 0) - (b.cw ?? 0))) > eps)   // CLIMB5: a hold taken or let go, a move begun, goes out at once - and the body turning on the wall, as a turn does
     || (a.ck | 0) !== (b.ck | 0) || (a.cy | 0) !== (b.cy | 0)   // CLIMB6: a move of another kind, or on another lip, is another move - at once
@@ -1977,7 +1978,7 @@ export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -2055,6 +2056,9 @@ export function validPose(p) {
     // not the player (EntityConcealmentBehaviour: the renderer off) and their foes' senses read it (EnemySenses
     // .BlockedByIllusionEffect). OMITTED at 0 (validLook's `class` law): an unconcealed pose keeps its bytes.
     ...(uint(cv, 7) ? { cv: uint(cv, 7) } : {}),
+    // BUNNYFALL SPELL VISUALS: `ef` the lasting effects that show on the body (systems/effectVisuals.js: 1 fire, 2 frost,
+    // 4 shock, 8 poison, 16 Water Breathing's bubble, 32 magic), so the others draw them. OMITTED at 0.
+    ...(uint(ef, 63) ? { ef: uint(ef, 63) } : {}),
     // CLIMB5 (2026-10-01, the Enhanced Climbing arc - bible/03-World/Parkour-Arc.md): `cl` the player's CLIMB - 1
     // hanging from a lip, 2 climbing a face, 3 a move in flight (a mantle, a vault, a lower, a leap) - and `cw` the way
     // the body faces on it (the wall, or the move's way; player/motor.js climbPoseOf), an angle wrapped as the yaw is,
