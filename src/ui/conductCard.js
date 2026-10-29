@@ -25,7 +25,7 @@ export const CONDUCT_CSS = `
   color: #e9e4d9; font-family: inherit; box-shadow: 0 8px 28px rgba(0, 0, 0, .55); }
 .dfconduct[data-up="1"] { display: flex; }
 .dfconduct-title { font-size: 17px; font-weight: 600; color: #e8c46a; margin: 0; }
-.dfconduct-rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; }
+.dfconduct-rules { margin: 0; padding-left: 0; list-style: none; max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; font-size: 13px; line-height: 1.4; }
 .dfconduct-after { margin: 0; font-size: 12px; line-height: 1.4; color: #b9a99a; }
 .dfconduct-row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .dfconduct-btn { min-height: 32px; padding: 4px 14px; border-radius: 3px; border: 1px solid #6b5a3a; background: #2b323b;
