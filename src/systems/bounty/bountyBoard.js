@@ -422,9 +422,36 @@ const boardOrder = (boards) => (Array.isArray(boards) ? boards : []).map((b, i) 
 export function questBoardIndices(boards) {
   const out = new Set();
   const order = boardOrder(boards);
-  const want = Math.floor(order.length / 2);
-  for (let k = 0; k < order.length && out.size < want; k += 2) out.add(order[k][1]);
+  // BUNNYFALL BOARD-PAIRS: boards standing together are ONE place, and a place of two gets one of each. Taking every
+  // other board of the whole town by position alone let two pairs interleave (the east board of one pair sorting before
+  // the west board of the other), so one spot got both bounty boards and the other both notice boards.
+  const places = boardPlaces(order);
+  const singles = [];
+  for (const place of places) {
+    if (place.length === 1) { singles.push(place[0]); continue; }
+    for (let k = 0; k < place.length; k += 2) if (k + 1 < place.length || place.length % 2 === 0) out.add(place[k][1]);
+  }
+  // boards standing alone share out as before: every other one by position, starting with the first
+  const wantSingles = Math.floor(singles.length / 2);
+  let took = 0;
+  for (let k = 0; k < singles.length && took < wantSingles; k += 2) { out.add(singles[k][1]); took++; }
   return out;
+}
+
+/** BUNNYFALL BOARD-PAIRS: the boards in groups that stand together - a board joins a group when its middle is within
+ *  BOARD_PLACE_SPAN board-widths of one already in it. Each group keeps the position order. */
+const BOARD_PLACE_SPAN = 4;
+function boardPlaces(order) {
+  const mid = (b) => [(b[0] + b[3]) / 2, (b[2] + b[5]) / 2];
+  const width = Math.max(1, ...order.map(([b]) => Math.max(Math.abs(b[3] - b[0]), Math.abs(b[5] - b[2]))));
+  const reach = width * BOARD_PLACE_SPAN;
+  const places = [];
+  for (const entry of order) {
+    const [x, z] = mid(entry[0]);
+    const place = places.find((p) => p.some(([b]) => { const [px, pz] = mid(b); return Math.hypot(px - x, pz - z) <= reach; }));
+    if (place) place.push(entry); else places.push([entry]);
+  }
+  return places;
 }
 
 /** THE RUMOUR BOARD NEAREST THE TOWN'S MIDDLE: of the boards questBoardIndices left, the one nearest `centre` (the
