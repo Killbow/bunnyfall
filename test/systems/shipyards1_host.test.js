@@ -284,7 +284,7 @@ test('SHIPYARDS THE WINDOW MOUNTED: its tabs page the model; a ship bought, a sh
   assert.equal(selected(), 'fleet', 'a deed bought: the window turns to her on Your fleet');
   // selling, the same way
   const rowOf = (uid) => byClass(host, 'dfyard-row').find((x) => x.getAttribute('data-uid') === String(uid));
-  const sellBtn = () => byClass(rowOf(801), 'dfnaval-btn').find((b) => /^Sell$|^Yes - sell/.test(b.textContent));
+  const sellBtn = () => byClass(rowOf(801), 'dfnaval-btn').find((b) => /^Sell$|^Yes, sell/.test(b.textContent));
   click(sellBtn());
   assert.equal(r.log.credited.length, 0, 'the first press asks');
   assert.match(note(), /Press again to confirm/);

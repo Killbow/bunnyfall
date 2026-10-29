@@ -227,7 +227,7 @@ test('COLLECTIONS-II THE CATALOGUE IS THE SERVICE\'S LAW SAID, ENTRY BY ENTRY (A
   // the founders: the instant, the routes still open
   assert.equal(FOUNDER_UNTIL, Date.UTC(2026, 8, 25, 12) / 1000, 'noon UTC, 25 September 2026');
   assert.equal(entry('title', 'founder').avail, 'closed');
-  assert.match(how('title', 'founder'), /by noon UTC on 25 September 2026, or is granted it by name\. A guest from before then earns it by registering; a character from before then brought onto your account counts too\./);
+  assert.match(how('title', 'founder'), /by noon UTC on 25 September 2026, or that’s granted it by name\. A guest from before then earns it by registering, and a character from before then brought onto your account counts too\./);
   assert.ok(!W.AVAIL_NOW.includes('closed') && !W.AVAIL_NOW.includes('retired'));
   // the seats: Season 0 crowns no one; the guildmaster's character wears a seat's title
   for (const t of SEAT_TITLES) assert.equal(entry('title', t).src, 'seats');

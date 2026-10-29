@@ -289,7 +289,7 @@ export function mountShipyardWindow(host, deps) {
       if (t.note) card.append(el('span', 'dfyard-figs', t.note));
       if (t.why) card.append(el('span', 'dfyard-why', t.why));
       const key = `buy:${s.hull}`;
-      card.append(button(confirm === key ? `Yes - buy for ${gold(s.asked)}` : t.press, 'dfnaval-btn dfnaval-take',
+      card.append(button(confirm === key ? `Yes, buy for ${gold(s.asked)}` : t.press, 'dfnaval-btn dfnaval-take',
         () => twoPress(key, `Buy the ${t.name} for ${gold(s.asked)}? Press again to confirm.`, () => press('buy', s.hull)), t.can, t.why));
       cards.append(card);
     }
@@ -310,7 +310,7 @@ export function mountShipyardWindow(host, deps) {
       if (t.sell) mid.append(el('br'), el('span', null, t.sell));
       const acts = el('div', 'dfyard-acts');
       const key = `sell:${r.uid}`;
-      acts.append(button(confirm === key ? `Yes - sell for ${gold(r.offer)}` : 'Sell', 'dfnaval-btn',
+      acts.append(button(confirm === key ? `Yes, sell for ${gold(r.offer)}` : 'Sell', 'dfnaval-btn',
         () => twoPress(key, `Sell ${t.name} for ${gold(r.offer)}? This can't be undone. Press again to confirm.`, () => press('sell', r.uid)), t.canSell, t.sell));
       acts.append(button('Bring here', 'dfnaval-btn', () => press('summon', r.uid), !t.summon, t.summon));
       acts.append(button('Lay up', 'dfnaval-btn', () => press('away', r.uid), !t.away, t.away));

@@ -86,8 +86,8 @@ test('BAG1 the words: where a harvest\'s goods went - the Stores for an older bo
   assert.equal(goodsWhere({ carry: true, put: { bag: 3, pack: 0, left: 0 } }), 'to your bag');
   assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 2, left: 0 } }), 'to your pack');
   assert.equal(goodsWhere({ carry: true, put: { bag: 1, pack: 2, left: 0 } }), 'to your bag and pack');
-  assert.equal(goodsWhere({ carry: true, put: { bag: 4, pack: 0, left: 1 } }), 'to your bag - 1 left where it was gathered: no room');
-  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 1, left: 3 } }), 'to your pack - 3 left where they were gathered: no room');
+  assert.equal(goodsWhere({ carry: true, put: { bag: 4, pack: 0, left: 1 } }), 'to your bag · 1 left where it was gathered: no room');
+  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 1, left: 3 } }), 'to your pack · 3 left where they were gathered: no room');
   // AUDIT2 K11: none of it carried - never "to your bag" of goods that went nowhere
   assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 0, left: 3 } }), '- all left where they were gathered: no room in your bag or pack');
   assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 0, left: 1 } }), '- all left where it was gathered: no room in your bag or pack');

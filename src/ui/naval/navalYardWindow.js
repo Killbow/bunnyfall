@@ -83,7 +83,7 @@ export function yardText(model) {
     const w = WORDS[r.id];
     return {
       id: r.id, label: w.label,
-      state: r.missing === 0 ? `${have[r.id]} - whole` : `${have[r.id]} - ${r.missing} needed at ${gold(r.price)} each`,
+      state: r.missing === 0 ? `${have[r.id]} - whole` : `${have[r.id]}: ${r.missing} needed at ${gold(r.price)} each`,
       press: r.missing === 0 ? 'Whole' : r.afford === 0 ? `${w.verb} - ${gold(r.price)} each`
         : r.afford === r.missing ? `${w.verb} all - ${gold(r.cost)}` : `${w.verb} ${r.afford} - ${gold(r.cost)}`,
       can: r.missing > 0 && r.afford > 0,
@@ -99,7 +99,7 @@ export function yardText(model) {
   const provisions = (po?.rows ?? []).map((r) => {
     const w = WORDS[r.id];
     const state = r.id === 'stores'
-      ? (r.missing === 0 ? `${r.have} in the hold. Stores are full` : `${r.have} in the hold - ${r.missing} more at ${gold(r.price)} each`)
+      ? (r.missing === 0 ? `${r.have} in the hold. Stores are full` : `${r.have} in the hold, ${r.missing} more at ${gold(r.price)} each`)
       : r.drunk ? t('naval.yard.grogDrunk', 'Crew spirits are {spirits, select, roaring {roaring} high {high} steady {steady} low {low} other {grim}}, and they\'ve had today\'s round', { spirits: spiritsWord(r.have) })   // GROG-WORD: never "as high as they go" below the top
         : (r.missing === 0 ? 'Crew spirits are as high as they go' : `Crew spirits are ${spiritsWord(r.have)}. A round costs ${gold(r.price)}`);
     return {
@@ -132,8 +132,8 @@ export function officeText(o) {
   if (o.ether) return etherOfficeText(o);   // ETHER-SEA: a freeport past the Veil
   // AUDIT CAPTAIN'S SEA L10: the favours are refused at a quarter of the notoriety its navy hunts at - never "hunts you";
   // B14: "an Admiral"
-  const lede = o.hunted ? `${o.port} - ${o.crown}'s harbormaster. Your notoriety in these waters is too high for any favors.`
-    : `${o.port} - ${o.crown}'s harbormaster. You are ${o.rank === 'Unsworn' ? 'Unsworn' : `${/^[aeiou]/i.test(o.rank) ? 'an' : 'a'} ${o.rank}`} of ${o.crown} (standing ${o.standing}).`;
+  const lede = o.hunted ? `${o.port}, ${o.crown}'s harbormaster. Your notoriety in these waters is too high for any favors.`
+    : `${o.port}, ${o.crown}'s harbormaster. You are ${o.rank === 'Unsworn' ? 'Unsworn' : `${/^[aeiou]/i.test(o.rank) ? 'an' : 'a'} ${o.rank}`} of ${o.crown} (standing ${o.standing}).`;
   const board = (o.board ?? []).map((b) => ({ id: b.id, title: b.title, words: b.words, terms: `${b.pay} - ${b.term} - ${b.standing}`, press: 'Take', can: !!b.can, why: b.why ?? '' }));
   const held = (o.held ?? []).map((h) => ({ id: h.id, title: h.title, words: h.progress, state: `${h.left} - ${h.pay}` }));
   const letters = [];

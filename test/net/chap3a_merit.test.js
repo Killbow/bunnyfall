@@ -79,8 +79,8 @@ test('CHAP3a the board\'s Merit line: the account\'s Merit in the chapter, or wh
   const now = T0;
   assert.equal(meritLineOf({ faction: 41, merit: 1250, max: 600, elsewhere: false, from: null }, now), 'Merit with the Fighters Guild here this week: 1,250 of 600');
   assert.equal(meritLineOf({ faction: 368, merit: 0, max: 600, elsewhere: true, from: null }, now), 'Your Merit with the Knights of the Dragon this week is another chapter\'s');
-  assert.equal(meritLineOf({ faction: 41, merit: 0, max: 600, elsewhere: true, from: now + 3 * DAY - 5 }, now), 'The Fighters Guild counts your Merit after a week in the guild - in 3 days');
-  assert.equal(meritLineOf({ faction: 41, merit: 0, max: 600, elsewhere: false, from: now + 60 }, now), 'The Fighters Guild counts your Merit after a week in the guild - tomorrow');
+  assert.equal(meritLineOf({ faction: 41, merit: 0, max: 600, elsewhere: true, from: now + 3 * DAY - 5 }, now), 'The Fighters Guild counts your Merit after a week in the guild. in 3 days');
+  assert.equal(meritLineOf({ faction: 41, merit: 0, max: 600, elsewhere: false, from: now + 60 }, now), 'The Fighters Guild counts your Merit after a week in the guild. tomorrow');
   assert.equal(meritLineOf({ faction: 41, merit: 50, max: 600, elsewhere: false, from: now }, now), 'Merit with the Fighters Guild here this week: 50 of 600', 'a tenure ended is no wait');
 });
 

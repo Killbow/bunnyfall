@@ -65,7 +65,7 @@ test('REFORGE-STACK: the station drawn off the game\'s own pieces - each piece\'
     for (const row of rows()) {
       const short = row.children.filter((c) => c.className === 'prof-short');
       assert.equal(short.length, 1, 'the Essence short, said');
-      assert.match(short[0].textContent, /^Needs \d Arcane Essence; your Stores hold 1\.$/);
+      assert.match(short[0].textContent, /^Needs \d Arcane Essence, and your Stores hold 1\.$/);
       assert.ok(row.children.indexOf(short[0]) < row.children.indexOf(byClass(row, 'prof-lines')[0]), 'said above the presses');
       assert.ok(byClass(row, 'act').every((b) => b.disabled), 'and none pressed');
     }

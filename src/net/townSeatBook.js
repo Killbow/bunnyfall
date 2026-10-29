@@ -89,7 +89,7 @@ class StandingsCache extends Map {
 
 /** A developer's chat word (SEAT0 3.2: "`/seat strike <key>`"): `{ op: 'strike', key }`, `{ error }` in words, or null
  *  when the line is not /seat. NEVER GUARDED HERE (RED1's law): whether this player may is the service's question. */
-export const SEAT_USAGE = 'Usage: /seat strike <seat key> - the map id a developer sees on the seat.';
+export const SEAT_USAGE = 'Usage: /seat strike <seat key>, with the map id a developer sees on the seat.';
 export function parseSeatCommand(text) {
   const m = /^\/seat(?:\s+([\s\S]*))?$/i.exec(String(text ?? '').trim());
   if (!m) return null;
@@ -101,7 +101,7 @@ export function parseSeatCommand(text) {
 /** VOID (Seats-Arc 18: "Moderators (MOD1) may **void a siege** (`/siege void`)"): a moderator's chat word -
  *  `{ op: 'void', key }`, `{ error }` in words, or null when the line is not /siege. NEVER GUARDED HERE (RED1's law): whether
  *  this player may is the service's question (server-account/src/seatSiege.js voidSiege). */
-export const SIEGE_USAGE = 'Usage: /siege void <seat key> - the map id of the seat whose battle this week was won by an exploit.';
+export const SIEGE_USAGE = 'Usage: /siege void <seat key>, with the map id of the seat whose battle this week was won by an exploit.';
 export function parseSiegeCommand(text) {
   const m = /^\/siege(?:\s+([\s\S]*))?$/i.exec(String(text ?? '').trim());
   if (!m) return null;
@@ -637,7 +637,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       standingsAt.clear();
       const what = r.data?.battle === 'tourney' ? 'Tourney' : r.data?.battle === 'revolt' ? 'revolt' : 'siege';
       if (r.data?.repeat) return { ok: true, text: `The ${what} at seat ${key} is void already.` };
-      return { ok: true, text: `The ${what} at seat ${key} is voided${r.data?.restored ? ' - its Charter went back to the guild that held it' : ''}.` };
+      return { ok: true, text: `The ${what} at seat ${key} is voided${r.data?.restored ? ', and its Charter went back to the guild that held it' : ''}.` };
     },
   };
 }

@@ -366,7 +366,7 @@ export function egPullLook(a, b, brk) {
  *  and its chip, *6.8/8 m*. Pure. */
 export const egChainLook = (d) => ({ taut: clamp01((d - EG_TETHER.slack) / (EG_TETHER.taut - EG_TETHER.slack)), chip: `${d.toFixed(1)}/${EG_TETHER.taut} m` });
 /** The words under the crosshair while I am chained (section 25.5). */
-export const egChainWords = (name, d) => `Chained to ${name || 'another'} - ${egChainLook(d).chip}`;
+export const egChainWords = (name, d) => `Chained to ${name || 'another'}: ${egChainLook(d).chip}`;
 
 // ── A SPIRE POOL (section 25.2) ────────────────────────────────────────────────────────────────────────────────
 /** Which of each band's ramps its pools take (world/eliteGates/egBandArt.js EG_BAND_RAMPS - the fire-sea's, the Cairn's slate violet,

@@ -408,7 +408,7 @@ export function buildZoneLegend(doc, { ring = 0, onBack = null, names = true, on
   const head = el('div', 'hmwild-head');
   head.append(el('div', 'hmwild-kicker', 'Open PvP zone'), el('div', 'hmwild-title', WILD_NAME));
   root.append(head);
-  const where = el('div', `hmwild-where${ring ? ' in' : ''}`, ring ? `You stand in ${RING_NUMERALS[ring - 1]} · ${wildRingName(ring)} - ${wildRingBonus(ring)}` : 'You stand outside the zone');
+  const where = el('div', `hmwild-where${ring ? ' in' : ''}`, ring ? `You stand in ${RING_NUMERALS[ring - 1]} · ${wildRingName(ring)} · ${wildRingBonus(ring)}` : 'You stand outside the zone');
   root.append(where);
   const list = el('ol', 'hmwild-rings');
   for (let r = 1; r <= WILD_RINGS; r++) {

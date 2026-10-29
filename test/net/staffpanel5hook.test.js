@@ -708,9 +708,9 @@ test('STAFF-PANEL5-FOLLOW TP law: where a note puts staff, the line a TP says, a
   assert.equal(notePlace(null), null);
   assert.equal(staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}` }))), staffDestinationKey(notePlace(p({ in: 2, bk, rk: `interior:m99.${bk}`, h: 1 }))));
   // the line: the player can see it, every way
-  assert.match(staffTpLine({ name: 'Bran', via: 'note' }), /where note - their game was told nothing, but the player can see you arrive/);
-  assert.match(staffTpLine({ name: 'Bran', fb: 'missing' }), /was missing \(the player can see this\)/);
-  assert.match(staffTpLine({ name: 'Bran', fb: 'mismatch' }), /did not match \(the player can see this\)/);
+  assert.match(staffTpLine({ name: 'Bran', via: 'note' }), /where note\. Their game wasn’t told, but the player can see you arrive/);
+  assert.match(staffTpLine({ name: 'Bran', fb: 'missing' }), /was missing, so their game was asked \(the player can see this\)/);
+  assert.match(staffTpLine({ name: 'Bran', fb: 'mismatch' }), /didn’t match, so their game was asked \(the player can see this\)/);
   assert.equal(staffTpLine({ name: 'Bran' }), 'Teleported to Bran\'s exact position (the player can see this).');
   assert.deepEqual(STAFF_TP_FALLBACKS, ['missing', 'mismatch']);
   for (const [g, ok] of [[['dev'], true], [['shadowfang'], true], [['dm'], false], [['mod'], false], [[], false], [null, false], ['dev', false]]) assert.equal(quietTeleportAllowed(g), ok, JSON.stringify(g));

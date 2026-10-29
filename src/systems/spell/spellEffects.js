@@ -452,7 +452,7 @@ export const PORT_EFFECT_DESCRIPTIONS = new Map([
   ['45,255', Object.freeze([
     'Resurrect',
     'Calls a fallen party member back from death.',
-    'Cast by touch at their body; they rise where',
+    'Cast by touch at their body, and they rise where',
     'they fell, with 30% of their health.',
   ])],
   ['46,255', Object.freeze([

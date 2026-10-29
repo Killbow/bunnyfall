@@ -37,14 +37,14 @@ export const TP_MAP_H = 500;
 /** The lines `/staff` shows. */
 export const STAFF_HELP_LINES = Object.freeze([
   'Staff commands:',
-  '/tp <place> - to a named place anywhere',
-  '/tp <x> <y> - to a map pixel (x 0-999, y 0-499)',
-  '/tp @<player> - to their exact live position',
-  '/god [on|off] - take no damage',
-  '/fly [on|off] - levitate',
-  '/heal - restore health, fatigue and magicka',
-  '/pos - show your position',
-  '/relay [<setting> <value>|-] - server settings (developers only)',
+  '/tp <place>: to a named place anywhere',
+  '/tp <x> <y>: to a map pixel (x 0-999, y 0-499)',
+  '/tp @<player>: to their exact live position',
+  '/god [on|off]: take no damage',
+  '/fly [on|off]: levitate',
+  '/heal: restore health, fatigue and magicka',
+  '/pos: show your position',
+  '/relay [<setting> <value>|-]: server settings (developers only)',
 ]);
 
 const onOff = (word, was) => (word === 'on' ? true : word === 'off' ? false : word === undefined ? !was : null);

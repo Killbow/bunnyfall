@@ -183,7 +183,7 @@ test('DAEDRIC-SMELT the book\'s smelt (net/profBook.js): a pack short of embers 
 test('DAEDRIC-SMELT the Forge (ui/professions/profPages.js): a smelt\'s most is bounded by the pack\'s embers where the book knows them; the Daedric line says what it takes and where a heart and an ember are won, while it cannot be made; the world host hands the book its hands once the checkpoint stands (mutants: the embers unbounded; the line unsaid; the hands never handed)', () => {
   const all = () => 1000;
   assert.deepEqual([smeltable(DAEDRIC, all, 4), smeltable(DAEDRIC, all, 0), smeltable(DAEDRIC, all, null), smeltable(DAEDRIC, (k) => (k === HEART ? 2 : 1000), 9)], [4, 0, 100, 2]);
-  assert.equal(DAEDRIC_LINE, 'A Daedric Ingot takes an Ebony Ingot, a Daedra\'s Heart and a Deadlands Ember. Hearts are carried by the daedra you slay and won at Dagon\'s Breaches; embers are won closing the Breaches, slaying Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won.');
+  assert.equal(DAEDRIC_LINE, 'A Daedric Ingot takes an Ebony Ingot, a Daedra’s Heart and a Deadlands Ember. Daedra you kill and Dagon’s Breaches give Hearts. Embers come from closing Breaches, killing Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won.');
   const pages = src('src/ui/professions/profPages.js');
   assert.match(pages, /  if \(daedricWaits\(book\)\) detail\.append\(el\('p', 'px-note', daedricWord\(\)\)\);/);
   assert.match(pages, /const daedricWaits = \(book\) => !!DAEDRIC_SMELT && smeltable\(DAEDRIC_SMELT, \(k\) => workOf\(book, k\), book\.embers\?\.\(\) \?\? null\) < 1;/);

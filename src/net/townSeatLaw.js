@@ -580,16 +580,16 @@ export function chronicleLine(row, seat, zero = null) {
       ? `${when}, ${seat.name} was struck from the registry, and ${guildWords(d.guild)}'s Charter with it${Number(d.refund) > 0 ? `, with its claim fee of ${marksText(Number(d.refund))} refunded` : ''}.`   // GUILD3a: silver, as every sentence says it
       : `${when}, ${seat.name} was struck from the registry.`;
     // AUDIT-SEATS S4: a Charter whose seat the registry no longer confirms, lapsed at the Turning
-    case 'unregistered': return `${when}, ${c} lapsed - ${seat.name} is no longer confirmed in the registry.`;
+    case 'unregistered': return `${when}, ${c} lapsed because ${seat.name} is no longer confirmed in the registry.`;
     // SEAT1d: the upkeep's and the Edicts' rows
     case 'neglect': return `${when}, ${guildWords(d.guild)} could not pay the upkeep of ${c}. ${seat.name} is in Neglect.`;
     case 'late': return `${when}, ${guildWords(d.guild)} paid the upkeep it owed for ${c}.`;
-    case 'lapse': return `${when}, ${c} lapsed - ${guildWords(d.guild)} could not pay its upkeep two weeks running.`;
+    case 'lapse': return `${when}, ${c} lapsed because ${guildWords(d.guild)} couldn’t pay its upkeep two weeks running.`;
     case 'edict': return `${when}, ${guildWords(d.guild)} proclaimed ${edictWords(d.edict) ?? 'an Edict'} at ${seat.name}.`;   // AUDIT-SEATS L7: its article
     case 'edict-unpaid': return `${when}, ${guildWords(d.guild)} could not pay for the ${EDICTS[d.edict]?.name ?? 'Edict'} it proclaimed at ${seat.name}.`;
     // SEAT2a: the schedule's two rows
     case 'battle-moved': return `${when}, the battle for ${seat.name} was moved to ${battleWhenText(Number(d.at ?? 0) * 1000)}, so that no guild fights twice at once.`;
-    case 'battle-void': return `${when}, no hour of the week could hold the battle for ${seat.name}; it is void.`;
+    case 'battle-void': return `${when}, no hour of the week could hold the battle for ${seat.name}, so it’s void.`;
     // SEAT2a part three: a battle's end
     // AUDIT-SEATS (9.2: "stormed the gates of Anticlere and took its Charter from the Ebon Oath after thirty-one minutes"):
     // the siege's length where its row keeps one
@@ -599,8 +599,8 @@ export function chronicleLine(row, seat, zero = null) {
     // AUDIT-SEATS T1 (9.2: "The Ebon Oath held Wayrest against the Iron Circle. The Throne was never reached."): the Throne's
     // line where the row keeps it (a row written before T1 keeps none, and says neither)
     case 'siege-held': return `${when}, ${guildWords(d.guild)} held ${seat.name} against the siege of ${guildWords(d.against)}${d.throne === 1 ? ', though its Throne was reached' : ''}.${d.throne === 0 ? ' The Throne was never reached.' : ''}`;
-    case 'siege-forfeit': return `${when}, ${guildWords(d.against)} never came to the siege of ${seat.name}; ${guildWords(d.guild)} holds it by forfeit.`;
-    case 'siege-absent': return `${when}, neither side came to the siege of ${seat.name}; ${guildWords(d.guild)} keeps it.`;
+    case 'siege-forfeit': return `${when}, ${guildWords(d.against)} never came to the siege of ${seat.name}, so ${guildWords(d.guild)} holds it by forfeit.`;
+    case 'siege-absent': return `${when}, neither side came to the siege of ${seat.name}, so ${guildWords(d.guild)} keeps it.`;
     case 'tourney-won': return `${when}, ${guildWords(d.guild)} won the Tourney for ${c}.`;
     case 'tourney-unheld': return `${when}, the Tourney for ${seat.name} was fought, but neither guild could pay for ${c}.`;
     // SEAT2b part two (c) (7.7; 9.2: "Anticlere rose against the Silver Hand. The rebel captain fell at the palace door,
@@ -611,10 +611,10 @@ export function chronicleLine(row, seat, zero = null) {
     // AUDIT-SEATS S3 (17: "voids the siege: the holder keeps the seat for now, and the challenger's Right carries to the
     // holder's window the next week"): a battle no result reached by its week's Turning
     case 'siege-void': return d.battle === 'tourney'
-      ? `${when}, no result of the Tourney for ${seat.name} came; it is void, and ${c} stays unheld.`
+      ? `${when}, no result came for the Tourney of ${seat.name}. It’s void, and ${c} stays unheld.`
       : d.carried
-        ? `${when}, no result of the siege of ${seat.name} came; it is void, ${guildWords(d.holder)} keeps it for now, and ${guildWords(d.guild)}'s Right of Siege carries to the next week.`
-        : `${when}, no result of the siege of ${seat.name} came; it is void, and ${guildWords(d.holder)} keeps it.`;
+        ? `${when}, no result came for the siege of ${seat.name}. It’s void, ${guildWords(d.holder)} keeps it for now, and ${guildWords(d.guild)}'s Right of Siege carries to the next week.`
+        : `${when}, no result came for the siege of ${seat.name}. It’s void, and ${guildWords(d.holder)} keeps it.`;
     // VOID (18: "Moderators (MOD1) may void a siege (`/siege void`) - a history row"): a battle of the week the Moderators
     // voided (server-account/src/seatSiege.js voidSiege) - and where a Charter it had moved went back, to whom
     case 'siege-voided': return `${when}, ${d.battle === 'tourney' ? `the Tourney for ${seat.name}` : d.battle === 'revolt' ? `the revolt at ${seat.name}` : `the siege of ${seat.name}`} was voided by the Moderators${d.restored ? `, and ${c} went back to ${guildWords(d.holder)}` : ''}.`;
@@ -624,7 +624,7 @@ export function chronicleLine(row, seat, zero = null) {
     case 'conscripted': return `${when}, ${guildWords(d.guild)} paid ${marksText(Number(d.marks ?? 0))} of its Tithe to ${guildWords(d.crown)}'s Conscription.`;
     // CROWN1 part two: the Royal Tourney's end
     case 'royal-champion': return `${when}, ${d.name || 'a contender'} won the Royal Tourney at ${seat.name} with ${plural(Number(d.wins ?? 0), 'bout')}. Now Champion of ${kingdomName(d.kingdom) ?? seat.name}.`;   // AUDIT-SEATS L7: "1 bout"
-    case 'royal-none': return `${when}, no bout of the Royal Tourney at ${seat.name} was won; its prize went home.`;
+    case 'royal-none': return `${when}, no bout of the Royal Tourney at ${seat.name} was won, so its prize went home.`;
     // CROWN2: fealty (7.8)
     case 'fealty-sworn': return `${when}, ${guildWords(d.vassal)} swore fealty to ${guildWords(d.liege)}.`;
     case 'fealty-broken': return `${when}, ${guildWords(d.breaker)} broke the fealty between ${guildWords(d.vassal)} and ${guildWords(d.liege)}.`;
@@ -975,11 +975,11 @@ export const EDICT_WORDS = Object.freeze({
   'market-day': 'The town\'s shops ask a tenth less of everyone.',
   'open-gates': 'Every home in the town stands open to all. Standing +3.',
   curfew: 'The guards are stronger at night and every crime costs twice the reputation. Standing -2.',
-  festival: 'Music and banners; everyone in the town is Festive, +5 to every attribute for a day. Standing +10.',
+  festival: 'Music and banners. Everyone in the town is Festive, +5 to every attribute for a day. Standing +10.',
   levy: 'A tenth of what is gathered near the town goes to its stockpile. Standing -2.',
   bounty: 'Camps near the town yield double, and the treasury pays 20 silver a camp cleared, from what is set aside.',
   conscription: 'The kingdom\'s palace seats held by other guilds pay the crown 2% of their week\'s Tithe, a March\'s 1%. Standing -5 at every seat that pays.',
-  'royal-tourney': 'A duel ladder all week at the castle\'s square, every blow refereed; the week\'s champion takes the prize and the title Champion of the kingdom for good.',
+  'royal-tourney': 'A refereed duel ladder runs all week in the castle’s square. The week’s champion takes the prize and keeps the title Champion of the kingdom for good.',
 });
 /** An Edict's line in the Seat tab, with its cost at a seat of `tier`. */
 export function edictLine(edict, tier, tide = 'calm') {   // SEASON1 part two: `tide` the coming week's, a Festival's cost

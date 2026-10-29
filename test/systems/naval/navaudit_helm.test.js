@@ -452,9 +452,9 @@ test('AUDIT NAV1 H10 the brace is the brace and nothing else: at the helm the Cr
   const model = (o = {}) => ({ ship: { name: 'Small Ship', hull: 1, sail: 1, crew: 1 }, armed: true, aiming: false, aim: null, board: null, batteries: [], notoriety: { crown: 'Daggerfall', level: 0 }, incoming: null, ...o });
   const keys = { aim: 'RIGHT CLICK', board: 'E', brace: 'C' };
   let t = navalHudText(model({ incoming: { name: 'x' } }), keys, { touch: true });
-  assert.deepEqual([t.plate.hint, t.warn.key, t.plate.brace], ['Hold and drag to aim - hold Brace', 'Brace', true]);   // AUDIT NAV1 (the presentation): the warning names the press
+  assert.deepEqual([t.plate.hint, t.warn.key, t.plate.brace], ['Hold and drag to aim · hold Brace', 'Brace', true]);   // AUDIT NAV1 (the presentation): the warning names the press
   t = navalHudText(model({ incoming: { name: 'x' } }), keys);
-  assert.deepEqual([t.plate.hint, t.warn.key, t.plate.brace], ['Hold RIGHT CLICK to aim - C: brace', 'C: brace', false]);
+  assert.deepEqual([t.plate.hint, t.warn.key, t.plate.brace], ['Hold RIGHT CLICK to aim · C: brace', 'C: brace', false]);
   assert.equal(navalHudText(model({ armed: false }), keys, { touch: true }).plate.brace, false, 'no guns, no brace to hold');
   // the press
   destroyNavalHud();
@@ -695,10 +695,10 @@ test('AUDIT NAV1 H15 the shipwright\'s window: his words for her - each row what
   assert.equal(t.sub, 'Small Ship · your purse: 723 gold');
   assert.equal(t.lede, 'The shipwright can fully repair it for 1,726 gold.');
   assert.deepEqual(t.rows.map((r) => [r.label, r.state, r.press, r.can]), [
-    ['Hull', '262 of 420 - 158 needed at 7 gold each', 'Mend 103 - 721 gold', true],
-    ['Canvas', '80 of 160 - 80 needed at 4 gold each', 'Mend all - 320 gold', true],
-    ['Hands', '18 of 24 - 6 needed at 30 gold each', 'Hire all - 180 gold', true],
-    ['Fire barrels', '1 aboard - 3 needed at 40 gold each', 'Buy all - 120 gold', true],
+    ['Hull', '262 of 420: 158 needed at 7 gold each', 'Mend 103 - 721 gold', true],
+    ['Canvas', '80 of 160: 80 needed at 4 gold each', 'Mend all - 320 gold', true],
+    ['Hands', '18 of 24: 6 needed at 30 gold each', 'Hire all - 180 gold', true],
+    ['Fire barrels', '1 aboard: 3 needed at 40 gold each', 'Buy all - 120 gold', true],
   ]);
   assert.equal(t.whole, 'Repair what you can afford: 721 gold');
   assert.deepEqual(yardNote({ ok: true, id: 'crew', n: 6, cost: 180 }), { text: 'Hands hired: 6 men for 180 gold.', warn: false });

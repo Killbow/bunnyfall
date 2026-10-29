@@ -151,10 +151,10 @@ export function seatWords(seat) {
   const t = seat?.tier === 'crown' ? 'crown' : 'palace';
   return [
     ['Charter', 'The right to rule this town. One player guild holds it at a time.'],
-    ['Influence', `A guild's score at this seat for the week, earned by its members and bought with Tribute. ${SEAT_LEGACY_SHARE === 0.1 ? 'A tenth' : `${Math.round(SEAT_LEGACY_SHARE * 100)}%`} carries into the next week (none past a Season's end); the rest is cleared at the Turning.`],
+    ['Influence', `A guild’s score at this seat for the week, earned by its members and bought with Tribute. ${SEAT_LEGACY_SHARE === 0.1 ? 'A tenth' : `${Math.round(SEAT_LEGACY_SHARE * 100)}%`} carries into the next week (none past a Season’s end), and the rest is cleared at the Turning.`],
     ['Muster, Reckoning, Turning', 'The week\'s three parts. The Muster, Sunday 18:00 to Friday 18:00 UTC: guilds pledge. The Reckoning, to Sunday 18:00: pledges are locked, influence still counts. The Turning, Sunday 18:00: the week is settled.'],
     // AUDIT PLAIN-UI W4: the pledged seat takes the region's Breaches and Renown too (seatInfluence.js countsAt)
-    ['Pledge', 'A guild\'s choice of the one seat it fights for in a region this week. Its members\' work counts there: the Watch, a home and seat writs in that seat\'s town; Dagon\'s Breaches and Renown anywhere in the region.'],
+    ['Pledge', 'A guild’s choice of the one seat it fights for in a region this week. Its members\' work counts there: the Watch, a home and seat writs in that seat’s town, plus Dagon’s Breaches and Renown anywhere in the region.'],
     ['Defence', 'The holder\'s strength here this week: its own influence, raised or cut by the town\'s Standing, its last siege, how many seats it holds and its liege. A challenger must beat it.'],   // seatDefence
     ['Right of Siege', `Won at the Turning by the strongest challenger past the defense (and at least ${CLAIM_THRESHOLD[t].toLocaleString('en-US')} influence): a battle with the holder for the Charter, in the holder's battle window.`],
     ['Tourney', `Two guilds that pass the claim's line within ${Math.round(CONTESTED_MARGIN * 100)}% of each other fight for an unheld Charter in a Tourney.`],

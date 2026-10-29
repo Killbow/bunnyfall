@@ -107,7 +107,7 @@ export function resultLine(view, end) {
   if (r.winner === null) return `A draw: ${held} holdings each, and ${r.total[me]} power to ${r.total[1 - me]}.`;
   const won = r.winner === me;
   return r.by === 'holdings'
-    ? `${won ? 'You win' : 'You lose'} - ${won ? held : theirs} of three holdings ${won ? 'held' : 'lost'}.`
+    ? `${won ? 'You win' : 'You lose'}: ${won ? held : theirs} of three holdings ${won ? 'held' : 'lost'}.`
     : `${won ? 'You win' : 'You lose'} on power, ${r.total[me]} to ${r.total[1 - me]}.`;
 }
 

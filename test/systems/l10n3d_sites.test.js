@@ -21,6 +21,7 @@ const DFU = dfuTables();
 
 /** The words whose English is the port's own, by `file|key`, and why. */
 const OWN_ENGLISH = new Map([
+  ['src/ui/mouseControlsWindow.js|bowDrawback', ['Bows: draw and release', 'BUNNYFALL copy pass: a colon for DFU\'s spaced hyphen']],
   ['src/systems/skills.js|pickpocket', ['Pickpocket', 'the port\'s skill name, derived from the enum key since U10; DFU ships "Pickpocketing" (reported, not changed here)']],
   ['src/ui/enhanced/enhancedChargen.js|commoners', ['Peasants', 'the reputation window\'s painted art; DFU keys the group "commoners"']],
   ['src/ui/settings/settingsLaw.js|FourThree', ['4:3', 'DFU\'s shipped English (Internal_Strings_en.asset); the master CSV\'s "4:03" is a spreadsheet\'s reading of 4:3']],

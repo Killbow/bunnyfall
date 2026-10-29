@@ -247,7 +247,7 @@ test('AUDIT REALM2 T3 / RESTORE: customs counts each deed at what the realm\'s b
   assert.deepEqual(room18.decor.map((p) => p.paid), [...Array(30).fill(0), 0], 'every piece stands, the bought ones paying nothing back');
   assert.equal(room18.decor.length, 31);
   assert.deepEqual([room17.lootContainers[0].items.map((i) => i.stackCount), snap.bankAccounts[0].accountGold, snap.goldPieces], [[30_000], 5_000, 10_000], 'and the gold, within the allowance, is untouched');
-  assert.deepEqual(customsLines(r), ['Your ship and 2 houses came with you, every piece in them; the realm\'s bank does not buy back what comes through customs.']);
+  assert.deepEqual(customsLines(r), ['Your ship and 2 houses came with you, every piece in them. The realm’s bank doesn’t buy back what comes through customs.']);
   // online, the realm's bank buys none of it back - and says why; offline, a copy is an offline character's and sells
   assert.equal(sellShip(snap.bankAccounts, 0, snap, { online: true }).kind, 'crossed');
   assert.equal(sellHouse(snap.bankAccounts, snap.houses, 18, { meshRadius: 60, found: true, online: true }).kind, 'crossed');
@@ -269,7 +269,7 @@ test('AUDIT REALM2 T3 / RESTORE: the rich one of the audit - a Large ship and a 
   assert.equal(paid, 0, 'the realm\'s bank buys none of it back');
   assert.deepEqual([ownsShip(rich), rich.houses.every((h) => h.buildingKey > 0)], [true, true]);
   assert.equal(stray.decor[0].paid, 400, 'no deed stands for that room: customs leaves it be');
-  assert.equal(customsLines(c)[0], 'Your ship and 62 houses came with you, every piece in them; the realm\'s bank does not buy back what comes through customs.');
+  assert.equal(customsLines(c)[0], 'Your ship and 62 houses came with you, every piece in them. The realm’s bank doesn’t buy back what comes through customs.');
   // a house bought in the realm after is the buyer's own - the slot's customs mark goes with the old deed
   const one = holder({ level: 1, houses: [[3, 4, 5]] });
   applyCustoms(one);
@@ -283,5 +283,5 @@ test('AUDIT REALM2 T3 / RESTORE: the rich one of the audit - a Large ship and a 
   const poor = holder({ level: 30, gold: 10_000, ship: SHIP_TYPES.Large, houses: [[17, 1017, 5]], scenes: [home] });
   const p = applyCustoms(poor);
   assert.deepEqual([p.taken, p.crossed, home.decor.length], [0, ['ship', 'house'], 20]);
-  assert.deepEqual(customsLines(p), ['Your ship and your house came with you, every piece in them; the realm\'s bank does not buy back what comes through customs.']);
+  assert.deepEqual(customsLines(p), ['Your ship and your house came with you, every piece in them. The realm’s bank doesn’t buy back what comes through customs.']);
 });

@@ -262,8 +262,8 @@ test('AUDIT-SEATS S3: A BATTLE NO RESULT REACHED BY ITS TURNING IS VOID - its Se
   assert.deepEqual(s.history('siege-void', ASHFIELD).map((h) => [h.data.battle, h.data.carried]), [['tourney', false]]);
   assert.equal(s.history('right').filter((h) => h.week === W + 1).length, 0, 'the void row says it carries - no second Right row');
   assert.equal(s.history('held').filter((h) => h.week === W + 1).length, 0, 'a seat whose Right carries is not held unchallenged');
-  assert.equal(chronicleLine(s.history('siege-void')[0], ANTICLERE), `In week ${W + 1}, no result of the siege of Anticlere came; it is void, the Silver Hand <SH> keeps it for now, and Ebon Oath <EO>'s Right of Siege carries to the next week.`);
-  assert.equal(chronicleLine(s.history('siege-void', ASHFIELD)[0], ASHFIELD), `In week ${W + 1}, no result of the Tourney for Ashfield came; it is void, and the Charter of Ashfield stays unheld.`);
+  assert.equal(chronicleLine(s.history('siege-void')[0], ANTICLERE), `In week ${W + 1}, no result came for the siege of Anticlere. It’s void, the Silver Hand <SH> keeps it for now, and Ebon Oath <EO>'s Right of Siege carries to the next week.`);
+  assert.equal(chronicleLine(s.history('siege-void', ASHFIELD)[0], ASHFIELD), `In week ${W + 1}, no result came for the Tourney of Ashfield. It’s void, and the Charter of Ashfield stays unheld.`);
   // the escrow home, the signed contract's too (DECIDED: a void battle pays no fee)
   const home = s.raw.prepare("SELECT dst_kind, dst_id, amount FROM marks_ledger WHERE kind = 'sellsword-return' ORDER BY amount").all().map((l) => ({ ...l }));
   assert.deepEqual(home, [{ dst_kind: 'guild', dst_id: sh.gid, amount: 200 }, { dst_kind: 'guild', dst_id: sh.gid, amount: 300 }]);
@@ -364,7 +364,7 @@ test('AUDIT-SEATS S3: a void siege whose challenger is gone carries nothing (16:
   assert.equal(s.battle(ANTICLERE, W).state, 'void');
   assert.equal(s.raw.prepare('SELECT COUNT(*) AS n FROM town_seat_rights WHERE week = ?').get(W + 1).n, 0);
   assert.deepEqual(s.history('siege-void').map((h) => [h.data.carried, h.data.guild]), [[false, { name: '', tag: '' }]]);
-  assert.equal(chronicleLine(s.history('siege-void')[0], ANTICLERE), `In week ${W}, no result of the siege of Anticlere came; it is void, and the Silver Hand <SH> keeps it.`);
+  assert.equal(chronicleLine(s.history('siege-void')[0], ANTICLERE), `In week ${W}, no result came for the siege of Anticlere. It’s void, and the Silver Hand <SH> keeps it.`);
 });
 
 // ─── S4 ──────────────────────────────────────────────────────────────
@@ -450,7 +450,7 @@ test('AUDIT-SEATS S4: A CHARTER WHOSE SEAT THE REGISTRY NO LONGER CONFIRMS lapse
   assert.equal(s.purse(sh.gid), 10000, 'no upkeep asked');
   const row = s.history('unregistered', ALCAIRE)[0];
   assert.deepEqual([row.week, row.data.guild.tag], [W, 'SH']);
-  assert.equal(chronicleLine(row, ALCAIRE), `In week ${W}, the Charter of Alcaire Keep lapsed - Alcaire Keep is no longer confirmed in the registry.`);
+  assert.equal(chronicleLine(row, ALCAIRE), `In week ${W}, the Charter of Alcaire Keep lapsed because Alcaire Keep is no longer confirmed in the registry.`);
   assert.deepEqual((await seatBadgeOf(s.svc.env.DB, sh.gm.id, sh.gm.character)).glyphs, []);
   // at a Season's end, a Charter that lapsed so keeps no Keeper's title
   const k = await stood(t, { SEASON_ZERO_WEEK: String(W - 11) });   // Season 1 runs W-7..W: W's Turning ends it

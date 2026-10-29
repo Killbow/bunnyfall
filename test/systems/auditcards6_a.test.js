@@ -80,7 +80,7 @@ test('AUDIT CARDS-6 A1: a sealed pack is counted at its worth - the mean of what
   assert.ok(cardWorthOf(copy) <= customsCardAllowance(5));
   assert.equal(firstSaveRefusal(JSON.stringify(copy), customsRow(5)), null, 'what customs left, the service takes');
   assert.equal(deckHeldRefusal(STARTER_DECK, copy.items), null, 'the starter deck untouched');
-  assert.ok(customsLines(rep).some((l) => l === `Your cards are worth ${STARTER_DECK_WORTH + 220 * CARD_PACK_WORTH} gold; the realm lets a character of this level bring ${customsCardAllowance(5)}. ${220 - fit} cards, the dearest, stayed with your offline character.`), customsLines(rep).join(' | '));
+  assert.ok(customsLines(rep).some((l) => l === `Your cards are worth ${STARTER_DECK_WORTH + 220 * CARD_PACK_WORTH} gold, but the realm lets a character of this level bring ${customsCardAllowance(5)}. ${220 - fit} cards, the dearest, stayed with your offline character.`), customsLines(rep).join(' | '));
   assert.equal(packsIn(offline.wagonItems) + packsIn(offline.items), 220, 'the offline character keeps every pack');
   // among the cards by its worth: two packs (342) dearer than four Liches (300), the dearest first
   const mixed = { level: 1, items: [mintIliacCard('lich', 4), mintCardPack(2)] };
@@ -332,7 +332,7 @@ test('AUDIT CARDS-6 A9: within a worth, customs takes the copies no deck needs f
   const r2 = applyCustoms(two);
   assert.equal(r2.cardsKept, 1);
   assert.equal(r2.decksShort, 1, 'the Lich Deck names a card that stayed');
-  assert.ok(customsLines(r2).includes('One deck in your binder names cards that stayed behind; the table deals a deck only when your binder holds every card it names.'), customsLines(r2).join(' | '));
-  assert.ok(customsLines(r2, { before: true }).includes('One deck in your binder will name cards that stay behind; the table deals a deck only when your binder holds every card it names.'));
+  assert.ok(customsLines(r2).includes('One deck in your binder names cards that stayed behind. The table only deals a deck when your binder holds every card it names.'), customsLines(r2).join(' | '));
+  assert.ok(customsLines(r2, { before: true }).includes('One deck in your binder will name cards that stay behind. The table only deals a deck when your binder holds every card it names.'));
   assert.ok(!customsLines(rep).some((l) => /deck in your binder/.test(l)), 'none broken, nothing said');
 });

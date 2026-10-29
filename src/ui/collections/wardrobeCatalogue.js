@@ -172,7 +172,7 @@ const MASTERS = Object.freeze(Object.fromEntries(Object.entries(MASTERY_TITLES).
 /** @type {Readonly<Record<string, Readonly<Record<string, WardrobeEntry>>>>} */
 export const WARDROBE = Object.freeze({
   title: Object.freeze({
-    founder: E('account', 'closed', () => t('coll.how.founder', 'Every registered account that first played by noon UTC on 25 September 2026, or is granted it by name. A guest from before then earns it by registering; a character from before then brought onto your account counts too.')),   // AUDIT COLLECTIONS-II (lane 1): server-account/src/titles.js FOUNDER_UNTIL, firstPlayed, FOUNDER_HANDLES; founderLink.js
+    founder: E('account', 'closed', () => t('coll.how.founder', 'Every registered account that first played by noon UTC on 25 September 2026, or that’s granted it by name. A guest from before then earns it by registering, and a character from before then brought onto your account counts too.')),   // AUDIT COLLECTIONS-II (lane 1): server-account/src/titles.js FOUNDER_UNTIL, firstPlayed, FOUNDER_HANDLES; founderLink.js
     developer: E('staff', 'staff', developer, { with: ['aura:seraphwings', 'glyph:dev'] }),
     dungeonmaster: E('staff', 'staff', dungeonMaster, { with: ['glyph:dm'] }),
     disciple: E('patrons', 'patron', patron('disciple'), { with: ['glyph:disciple'] }),

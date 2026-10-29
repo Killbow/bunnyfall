@@ -80,7 +80,7 @@ export function codexKey(item) {
   return null;
 }
 /** The first find's words: "Wyrmbane - a Legendary! Added to your codex." */
-export const CODEX_FIND = (name, kind) => `${name} - ${kind === 'gilded' ? 'a Gilded piece' : kind === 'aetheric' ? 'an Aetheric piece' : 'a Legendary'}! Added to your codex.`;
+export const CODEX_FIND = (name, kind) => `${name}: ${kind === 'gilded' ? 'a Gilded piece' : kind === 'aetheric' ? 'an Aetheric piece' : 'a Legendary'}! Added to your codex.`;
 
 /** NOTE A PIECE: into the codex if it is a record not yet there - said and heard unless `quiet`. Answers whether it
  *  was new. */

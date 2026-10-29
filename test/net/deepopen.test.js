@@ -79,7 +79,7 @@ test('DEEP-OPEN the ore card and the Mining page: the card\'s Dungeons line is t
     for (let id = 1; id < 300; id++) for (let d = 0; d < 4; d++) for (const v of dungeonVeins({ dungeon: id, day: DAY0 + d, climate: c, confirmed: false })) drawn.add(v.material);
     assert.deepEqual([...drawn].map(oreWord).sort(), DUNGEON_VEINS.map(oreWord).sort(), `climate ${c}: the card promises what an unwitnessed dungeon gives`);
   }
-  assert.match(MINING_GROUND_LINE, / Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium among them, in any dungeon; only a woodland dungeon's Moonstone waits for three players to gather in it\. /);
+  assert.match(MINING_GROUND_LINE, / Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium included\. Only a woodland dungeon’s Moonstone waits for three players to gather in it\. /);
   assert.doesNotMatch(MINING_GROUND_LINE, /Silver anywhere/);
 });
 

@@ -286,7 +286,7 @@ test('EG-ZG THE TETHERS\' LAW, A SPIRE POOL\'S COLOUR AND THE ECLIPSE (sections 
   assert.ok(Math.abs(egPullLook([0, 0], [12, 0], 10).end[0] - 12) < 1e-9, 'past the break: the pair\'s own length');
   assert.deepEqual([egChainLook(4).taut, egChainLook(7).taut, egChainLook(8).taut, egChainLook(9).taut], [0, 0.5, 1, 1]);
   assert.equal(egChainLook(6.8).chip, '6.8/8 m');
-  assert.equal(egChainWords('Mira', 6.84), 'Chained to Mira - 6.8/8 m');
+  assert.equal(egChainWords('Mira', 6.84), 'Chained to Mira: 6.8/8 m');
   for (let b = 0; b < 4; b++) {
     const c = egPoolRgb(b), src = EG_BAND_RAMPS[b][EG_POOL_RAMP[b]][2];
     assert.ok(Math.abs(c[0] - src[0] / 510) < 1e-9 && Math.abs(c[2] - src[2] / 510) < 1e-9, `band ${b}: its ramp, darkened`);
@@ -402,7 +402,7 @@ test('EG-ZG IN THE FIGHT (scenes/eliteGates/egFight.js): burning ground a Spire 
   // the peril gone: my chain's words
   F.blows = [];
   H.clock.t += 10; H.fight.frame();
-  assert.equal(H.fight.ground().warn, 'Chained to Ann - 4.0/8 m', 'chained: whom, and how far of 8');
+  assert.equal(H.fight.ground().warn, 'Chained to Ann: 4.0/8 m', 'chained: whom, and how far of 8');
   peerPos[0] = court.x - 7; H.clock.t += 10; H.fight.frame();
   assert.ok(H.fight.shapes().find((x) => x.pool === TELEGRAPH_POOL_SPIRE.chain).t > 0.4, 'taut toward 8 m');
   // the heavy landing; a feint's; under reduced motion

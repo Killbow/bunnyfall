@@ -259,7 +259,7 @@ test('CARDS10 the season board in the panel: asked of the service on a press, it
     pinned: { rank: 14, name: 'Ves', rating: 984, wins: 1, losses: 3, draws: 0, you: true },
     champion: { player: 'p1', name: 'Eira' }, titleNeeds: { games: 10, foes: 5 }, me: { rating: 984, games: 4 },
   };
-  assert.deepEqual(boardLines(data), ['Season 3, day 12.', '1. Eira - 1104 (9-2-1)', '2. Fen - 1050 (5-4-0)', '...', '14. Ves - 984 (1-3-0) - you', 'Iliac Champion: Eira.', 'Your rating 984, 4 games this season.']);
+  assert.deepEqual(boardLines(data), ['Season 3, day 12.', '1. Eira - 1104 (9-2-1)', '2. Fen - 1050 (5-4-0)', '...', '14. Ves - 984 (1-3-0) · you', 'Iliac Champion: Eira.', 'Your rating 984, 4 games this season.']);
   assert.match(boardLines({ ...data, rows: [], pinned: null, champion: null })[1], /No ranked game has been played this season\./);
   assert.match(boardLines({ ...data, champion: null }).join(' '), /No Iliac Champion yet\. The top player needs 10 games against 5 different players\./);
   const entity = { name: 'a', items: [], goldPieces: 100 };

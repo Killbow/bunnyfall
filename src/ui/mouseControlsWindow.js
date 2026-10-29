@@ -233,7 +233,7 @@ export const CHECK_TEXT_OFFSET = Object.freeze([2, 1]);
 export const CHECKBOXES = Object.freeze([
   { id: 'invertMouseVertical', get label() { return localizedText('invertLookY', 'Invert Look-Y', TextCollections.TextSettings); }, x: 20, y: 120, section: 'Controls', key: 'InvertMouseVertical' },
   { id: 'movementAcceleration', get label() { return localizedText('movementAcceleration', 'Movement Acceleration', TextCollections.TextSettings); }, x: 20, y: 130, section: 'Controls', key: 'MovementAcceleration' },
-  { id: 'bowDrawback', get label() { return localizedText('bowDrawback', 'Bows - draw and release', TextCollections.TextSettings); }, x: 150, y: 120, section: 'Controls', key: 'BowDrawback' },
+  { id: 'bowDrawback', get label() { return localizedText('bowDrawback', 'Bows: draw and release', TextCollections.TextSettings); }, x: 150, y: 120, section: 'Controls', key: 'BowDrawback' },
   { id: 'toggleSneak', get label() { return localizedText('toggleSneak', 'Toggle Sneak', TextCollections.TextSettings); }, x: 150, y: 130, section: 'Controls', key: 'ToggleSneak' },
   { id: 'meleeAttackFriendlyProtection', label: 'Protect Friendlies and Neutrals', x: 150, y: 145, section: 'MeleeAttacks', key: 'MeleeAttackFriendlyProtection' },
 ]);

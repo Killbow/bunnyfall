@@ -44,7 +44,7 @@ export function ketchArrivedPost({ n }) {
     family: 'ketch', moment: 'Arrived',
     title: 'The Sky-Ketch is over Daggerfall',
     text: 'The Sky-Ketch has arrived over Daggerfall. Its anchor-lift is down in the fields east of the city.',
-    fields: [['Boarding until', heraldWhen(v.departAt)], ['Crew', `Up to ${KT_CREW_MAX} a ship - your party`], ['Where', 'The fields east of Daggerfall']],
+    fields: [['Boarding until', heraldWhen(v.departAt)], ['Crew', `Up to ${KT_CREW_MAX} a ship, your party`], ['Where', 'The fields east of Daggerfall']],
   });
 }
 /** THE WEIGHING ANCHOR'S POST: the lift drawn up, the crews aboard's last minutes. Pings nobody. */

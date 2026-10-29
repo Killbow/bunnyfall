@@ -346,7 +346,7 @@ test('PROF11 pages: the chisel\'s keys - the arrows move it a line, a digit sets
     page.button('Cut').onclick();
     page.button('Set the chisel down').onclick();
     assert.equal(_masonForTests().act, null);
-    assert.match(page.text(), /You set the chisel down; nothing is spent\./);
+    assert.match(page.text(), /You set the chisel down\. Nothing is spent\./);
     // the page shut under it: let go on its next frame
     page.button('Cut').onclick();
     a = _masonForTests().act;

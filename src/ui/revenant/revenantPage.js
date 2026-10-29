@@ -201,7 +201,7 @@ export function bandWords(r, kindName = (t) => String(t)) {
   for (const m of members) counts.set(m.mobileType, (counts.get(m.mobileType) ?? 0) + 1);
   const parts = [...counts].map(([t, n]) => pluralKind(kindName(t), n));
   const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts[0];
-  return `Band: rides with ${list} - ${name}.`;
+  return `Band: rides with ${list}. ${name}.`;
 }
 /** RVN7 (18.1; RVN12 completes the page): where it goes to ground - its lair as the player knows it. RENOWN-GATE: held,
  *  neither the map's mark nor the towns' word (systems/revenant/revenant.js revenantMapMarks, revenantRumor) is promised. */
@@ -225,14 +225,14 @@ export function woundLine(r, now = null, held = revenantHeld()) {
 export function craftLine(r) {
   if (r?.dread) return t('rvn.unq.page.dreadWill', 'At home it has nowhere to run: it never flees, and kneels at the end.');
   const c = craftWords(revenantCraft(r?.mobileType, r?.rank));
-  return c ? t('rvn.unq.page.craft', 'Its flight: {name}. {effect}.', { name: c.name, effect: c.effect })
+  return c ? t('rvn.unq.page.craft', 'Its flight: {name} ({effect}).', { name: c.name, effect: c.effect })
     : t('rvn.unq.page.craftYoung', 'Its flight: it runs. From rank {rank} it will break away in its own way.', { rank: revenantRankNumeral(CRAFT.RANK) });
 }
 /** UNQUIET: what it does while it waits (none for the Dread - it waits at home). */
 export function ambitionLine(r) {
   if (r?.dread) return '';
   const a = ambitionWords(ambitionOf(r?.personality));
-  return a ? t('rvn.unq.page.ambition', 'Its ambition: {name}. {effect}.', { name: a.name, effect: a.effect }) : '';
+  return a ? t('rvn.unq.page.ambition', 'Its ambition: {name} ({effect}).', { name: a.name, effect: a.effect }) : '';
 }
 /** UNQUIET: its blood since its last rank - one more kill and it climbs (AUDIT UNQUIET: a companion is felled, never
  *  killed); and its tear-aways (revenantUnquiet.js TEAR_RANK) - once more its will holds, and it climbs. */

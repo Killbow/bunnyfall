@@ -265,7 +265,7 @@ export function createTownEconBook({ door, storage = null, nowMs = () => Date.no
 /** AUDIT TOWN-ECON 2 SVC-1: A DEVELOPER'S CHAT WORD (the halls' `/hall`, npcHallBook.js parseHallCommand): `/town audit`
  *  (the confirmed towns of the region the player stands in) or `/town strike <map id>` - `{ op, key? }`, `{ error }` in
  *  words, or null when the line is not /town. NEVER GUARDED HERE (RED1's law): the service asks whether this player may. */
-export const TOWN_USAGE = 'Usage: /town audit - the confirmed towns of this region; /town strike <map id> - a false town struck from the registry.';
+export const TOWN_USAGE = 'Usage: /town audit lists the confirmed towns of this region. /town strike <map id> strikes a false town from the registry.';
 export function parseTownCommand(/** @type {unknown} */ text) {
   const m = /^\/town(?:\s+([\s\S]*))?$/i.exec(String(text ?? '').trim());
   if (!m) return null;

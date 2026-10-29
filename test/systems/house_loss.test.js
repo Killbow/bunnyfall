@@ -231,7 +231,7 @@ test('HOUSE-LOSS 2 / RESTORE: customs never takes a deed - GarySoup\'s shape (le
   assert.deepEqual([r.wealth, r.allowance, r.taken, r.crossed], [70_000, 120_000, 0, ['house']]);
   assert.deepEqual([ownsHouse(snap.houses, 17), snap.houses[17].crossed, home.decor.length, snap.bankAccounts[0].accountGold, snap.goldPieces], [true, true, 21, 60_000, 10_000]);
   assert.deepEqual(home.decor.filter((p) => !p.item).map((p) => p.paid), Array(20).fill(0), 'the bought pieces pay nothing back now');
-  assert.deepEqual(customsLines(r), ['Your house came with you, every piece in it; the realm\'s bank does not buy back what comes through customs.']);
+  assert.deepEqual(customsLines(r), ['Your house came with you, every piece in it. The realm’s bank doesn’t buy back what comes through customs.']);
   // gold past the allowance is still the allowance's: 100,000 in the house's chest makes 170,000 - the chest pays 50,000
   const { snap: stashed, home: h2 } = garys(10);
   h2.lootContainers.push({ containerType: LOOT_CONTAINER_TYPES.HouseContainers, key: 'container:0', items: [goldStack(100_000)] });

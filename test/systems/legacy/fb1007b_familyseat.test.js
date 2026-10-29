@@ -225,7 +225,7 @@ test('FAMILY-SEAT: the House page offers the town the one played stands in - one
   assert.equal(b?.textContent, 'Make Wayrest the family seat');
   b.click();
   assert.equal(moves, 0, 'the first press moves nothing');
-  assert.equal(d.querySelector('.fam-moveseat').textContent, 'Yes - make Wayrest the family seat');
+  assert.equal(d.querySelector('.fam-moveseat').textContent, 'Yes, make Wayrest the family seat');
   assert.match(d.textContent, /heirs will be born in Wayrest/);
   d.querySelector('.fam-moveseat').click();
   assert.equal(moves, 1);
@@ -300,7 +300,7 @@ test('AUDIT FB1007b S3-S5: the House page says a refusal as one, leaves no armed
   draw();
   app.querySelector('.fam-moveseat').focus();
   app.querySelector('.fam-moveseat').click();
-  assert.equal(globalThis.document.activeElement?.textContent, 'Yes - make Wayrest the family seat', 'armed: the keyboard stays on the button');
+  assert.equal(globalThis.document.activeElement?.textContent, 'Yes, make Wayrest the family seat', 'armed: the keyboard stays on the button');
   globalThis.document.activeElement.click();
   assert.equal(host.family.seat.loc, 'Wayrest');
   const said = app.querySelector('.fam-said');

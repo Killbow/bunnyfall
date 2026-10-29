@@ -218,7 +218,7 @@ export const HELP_LINES = lazyLines([
   '/me <action>: an action on this tab, like /me looks around',
   () => t('net.chat.rpHelp', '/rp <text>: a roleplay line on this tab, in green italics, like /rp draws her blade'),
   '/wave, /bow, /nod ... [name]: a gesture to players nearby (/emotes lists them all)',
-  ':smile: :sword: :heart: ... - shortcodes become emoji',
+  ':smile: :sword: :heart: ...: shortcodes become emoji',
   '/ready: how party resting works online (resting at a fire rests the whole party)',
   '/leader: travel to your party leader',
   '/travel: get ready for the leader\'s journey (as leader, call it off)',

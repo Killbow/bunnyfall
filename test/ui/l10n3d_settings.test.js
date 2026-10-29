@@ -143,7 +143,7 @@ test('L10N3d mouse controls: the title, CONTINUE, the keybind faces by action na
   const english = [SLIDERS.map((s) => s.label), CHECKBOXES.map((c) => c.label), THRESHOLD.label, { ...KEYBIND_LABELS }];
   assert.deepEqual(english, [
     ['Mouse Look Smoothing', 'Mouse Look Sensitivity', 'Weapon Swing Mode', 'Hit Detection'],
-    ['Invert Look-Y', 'Movement Acceleration', 'Bows - draw and release', 'Toggle Sneak', 'Protect Friendlies and Neutrals'],
+    ['Invert Look-Y', 'Movement Acceleration', 'Bows: draw and release', 'Toggle Sneak', 'Protect Friendlies and Neutrals'],
     'Mouse Weapon Attack Threshold',
     { Escape: 'Escape', AutoRun: 'AutoRun', ToggleConsole: 'Console', PrintScreen: 'Screenshot', QuickSave: 'QuickSave', QuickLoad: 'QuickLoad' },
   ]);

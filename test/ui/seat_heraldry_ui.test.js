@@ -235,7 +235,7 @@ test('HERALDRY-SHOWN THE SEAT TAB\'S CHRONICLE: each line under the shield of th
     'In week 15, the Silver Hand <SH> held Anticlere unchallenged.',
     'In week 14, Iron Circle <IC> won a Right of Siege against the Silver Hand <SH> at Anticlere.',
     'In week 3, Lost Lantern <LL> took the Charter of Anticlere with 6,100 influence.',
-    'In week 2, no hour of the week could hold the battle for Anticlere; it is void.',
+    'In week 2, no hour of the week could hold the battle for Anticlere, so it’s void.',
   ], 'the words as they were; a row with none left out');
   const shield = (li) => li.querySelectorAll('img')[0] ?? null;
   assert.deepEqual(lis.map((li) => shield(li)?.src ?? null), [heraldrySwatchSrc(SH_ARMS), heraldrySwatchSrc(IC.heraldry), null, null],

@@ -108,7 +108,7 @@ test('REALM P1.5: customs settles every loan - the Empire keeps none for a newco
   Object.assign(owing.bankAccounts[5], { loanTotal: 5_000, loanDueDate: 900_000 });
   const o = applyCustoms(owing);
   assert.deepEqual([o.paid, o.owed, owing.bankAccounts[5].loanTotal, owing.bankAccounts[5].loanDueDate, owing.goldPieces], [100, 4_900, 4_900, 777, 0]);
-  assert.match(customsLines(o)[0], /4900 could not be paid and falls due/);
+  assert.match(customsLines(o)[0], /4900 couldn’t be paid and falls due/);
   assert.deepEqual(customsLines({ called: 0, owed: 0, taken: 0 }), ['Customs found nothing to settle.']);
 });
 

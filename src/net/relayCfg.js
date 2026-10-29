@@ -107,9 +107,9 @@ export function parseRelayCfgCommand(rest) {
   if (!text) return { cmd: 'relay' };
   const m = /^(\S+)\s*([\s\S]*)$/.exec(text);
   const k = RELAY_CFG_KEYS.find((x) => x.toLowerCase() === String(m?.[1] ?? '').toLowerCase());
-  if (!k) return { error: `No relay setting called "${String(m?.[1] ?? '').slice(0, 24)}" - ${RELAY_CFG_KEYS.join(', ')}.` };
+  if (!k) return { error: `No relay setting called "${String(m?.[1] ?? '').slice(0, 24)}". Settings: ${RELAY_CFG_KEYS.join(', ')}.` };
   const v = (m?.[2] ?? '').trim();
-  if (!v) return { error: `Usage: /relay ${k} <value>, or /relay ${k} - to hand it back to the Worker's var.` };
+  if (!v) return { error: `Usage: /relay ${k} <value>, or /relay ${k} - to hand it back to the Worker’s own value.` };
   if (v.length > RELAY_CFG_VALUE_MAX) return { error: `A setting is ${RELAY_CFG_VALUE_MAX} characters at most.` };
   return { cmd: 'relay', k, v: v === '-' ? null : v };
 }

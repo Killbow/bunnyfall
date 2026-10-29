@@ -30,7 +30,7 @@ test('ORE-MAP: the card says a pixel\'s veins, its dungeons\', its kingdom\'s ow
     'Veins: Iron, Copper, Tin, Lodestone',
     'Dungeons: Silver, Gold, Dwarven Scrap, Platinum, Adamantium',
     'Daggerfall\'s own ore: Moonstone',
-    'Moonstone only on witnessed ground; Moonstone in witnessed dungeons',
+    'Moonstone only on witnessed ground. Moonstone in witnessed dungeons',
     ORE_WITNESS_RULE,
   ] });
   assert.deepEqual(oreMapTip({ climate: CLIMATES.Desert, region: SENTINEL, fact: { state: 'unconfirmed' } }).lines.slice(2), [

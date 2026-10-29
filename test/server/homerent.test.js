@@ -314,7 +314,7 @@ test('HOME-RENT the owner\'s rooms: each room the walls make beside the offer wh
     'matched by where its point stands, never by its number; a room not offered takes the first number no offer holds - never the finder\'s 1, the orphan\'s');
   assert.equal(rentRowSub(rows[0], T0), 'Not offered to rent');
   assert.equal(rentRowSub(rows[1], T0), 'Offered at 40 gold a day');
-  assert.equal(rentRowSub(rows[3], T0), 'Rented by Tomas - 1 day left');
+  assert.equal(rentRowSub(rows[3], T0), 'Rented by Tomas · 1 day left');
   // every number held: a room not offered cannot be
   const full = Array.from({ length: 8 }, (_, i) => ({ room: i + 1, anchor: [50, 0, 0], price: 10, listed: true, taken: false }));
   const none = rentRoomsView(found, full, roomOf, [10, 0, 10]);

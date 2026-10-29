@@ -87,7 +87,7 @@ test('SEAT2a part four THE FOLD AND THE HUD\'S WORDS: the roll call replaces eve
   assert.equal(siegeResultLine(s), '1 minutes 14 seconds.  Gate ^  Market o  Temple o');
   assert.deepEqual(['attack', 'defend', 'forfeit', 'absent'].map((r) => siegeResultTitle({ r }, BATTLE)), [
     'EBON OATH TAKES THE THRONE OF ANTICLERE', 'THE SILVER HAND HOLDS THE THRONE OF ANTICLERE',
-    'EBON OATH NEVER CAME - THE SILVER HAND HOLDS ANTICLERE', 'NEITHER SIDE CAME - THE SILVER HAND KEEPS ANTICLERE']);
+    'EBON OATH NEVER CAME. THE SILVER HAND HOLDS ANTICLERE', 'NEITHER SIDE CAME - THE SILVER HAND KEEPS ANTICLERE']);
   assert.deepEqual(['attack', 'defend', 'tie'].map((r) => siegeResultTitle({ r }, { ...BATTLE, kind: 'tourney' })), [
     'EBON OATH WINS THE TOURNEY FOR ANTICLERE', 'THE SILVER HAND WINS THE TOURNEY FOR ANTICLERE', 'A DEAD HEAT AT ANTICLERE - THE GREATER INFLUENCE TAKES IT']);
   assert.equal(siegeHonourLine({ marks: 50, xp: 2000 }), 'Your Honor: 50 silver, 2,000 Renown, one Spoils of War roll');

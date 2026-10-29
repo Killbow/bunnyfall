@@ -2083,7 +2083,7 @@ export const EG_TEXT = Object.freeze({
   guest: 'Sign in to open an Elite Breach.',
   opening: 'The Weir Key turns. The Spire answers.',
   call: (opener) => `${opener} opens an Elite Breach.`,
-  answer: (left) => `Answer the call - ${left}`,
+  answer: (left) => `Answer the call: ${left}`,
   sealed: (left) => `The breach opens in ${left}.`,
   opens: 'The breach is open. Step through.',
   late: (opener) => `The breach has closed behind ${opener}'s company.`,

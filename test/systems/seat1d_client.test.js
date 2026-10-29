@@ -101,7 +101,7 @@ test('SEAT1d THE EDICTS AND THEIR NUMBERS: six for a palace (the crown\'s two CR
 });
 
 test('SEAT1d THE WORDS: an Edict\'s line with its cost; the holder\'s members\' lines (next week\'s Edict, Unrest, the upkeep, Neglect\'s debt); everyone\'s line (the Tithe, the Edict, Unrest); the arrival\'s news; the Chronicle\'s new rows (mutants: each line)', () => {
-  assert.equal(edictLine('festival', 'palace'), 'Festival: Music and banners; everyone in the town is Festive, +5 to every attribute for a day. Standing +10. Costs 2,500 silver.');
+  assert.equal(edictLine('festival', 'palace'), 'Festival: Music and banners. Everyone in the town is Festive, +5 to every attribute for a day. Standing +10. Costs 2,500 silver.');
   assert.equal(edictLine('market-day', 'palace'), 'Market Day: The town\'s shops ask a tenth less of everyone.');
   assert.equal(edictLine('nope', 'palace'), null);
   assert.deepEqual(seatHoldingLines(ANTICLERE, { standing: 15, tithe: 6, edict: null, next: 'levy', upkeep: 3125, owed: 2500 }), [
@@ -118,7 +118,7 @@ test('SEAT1d THE WORDS: an Edict\'s line with its cost; the holder\'s members\' 
   const row = (kind, data) => chronicleLine({ kind, week: 4, data }, ANTICLERE);
   assert.equal(row('neglect', { guild: SH }), 'In week 4, the Silver Hand <SH> could not pay the upkeep of the Charter of Anticlere. Anticlere is in Neglect.');
   assert.equal(row('late', { guild: SH }), 'In week 4, the Silver Hand <SH> paid the upkeep it owed for the Charter of Anticlere.');
-  assert.equal(row('lapse', { guild: SH }), 'In week 4, the Charter of Anticlere lapsed - the Silver Hand <SH> could not pay its upkeep two weeks running.');
+  assert.equal(row('lapse', { guild: SH }), 'In week 4, the Charter of Anticlere lapsed because the Silver Hand <SH> couldn’t pay its upkeep two weeks running.');
   assert.equal(row('edict', { guild: SH, edict: 'festival' }), 'In week 4, the Silver Hand <SH> proclaimed a Festival at Anticlere.');   // PIN MOVED (AUDIT-SEATS L7)
   assert.equal(row('edict-unpaid', { guild: SH, edict: 'festival' }), 'In week 4, the Silver Hand <SH> could not pay for the Festival it proclaimed at Anticlere.');
 });

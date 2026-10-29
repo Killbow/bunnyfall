@@ -461,7 +461,7 @@ test('TOOL-USE: the Professions page says a tool\'s Use at the node is the key\'
   assert.match(GATHER_HOW.herbalism, /patch of herbs/);   // VOICE1 (PIN MOVED): the same law in plain words
   assert.match(GATHER_HOW.mining, /vein of ore or a boulder/);   // VOICE1 (PIN MOVED)
   assert.match(GATHER_HOW.logging, /tree/);
-  assert.match(GATHER_HOW.herbalism, /The Sickle and the Basket can be used from your hotbar or quick slots as well\. Used from your pack, a tool only tells you where it can be used\.$/);   // VOICE1 (PIN MOVED): the same law in plain words
+  assert.match(GATHER_HOW.herbalism, /The Sickle and the Basket work from your hotbar or quick slots too\. Used from your pack, a tool only tells you where it can be used\.$/);   // VOICE1 (PIN MOVED): the same law in plain words
   assert.match(GATHER_HOW.mining, /The pick can also be used from your hotbar or quick slots\. Used from your pack, a tool only tells you where it can be used\.$/);   // VOICE1 (PIN MOVED): the same law in plain words
   assert.match(GATHER_HOW.logging, /The axe can also be used from your hotbar or quick slots\. Used from your pack, a tool only tells you where it can be used\.$/);   // VOICE1 (PIN MOVED): the same law in plain words
   for (const k of ['herbalism', 'mining', 'logging']) assert.doesNotMatch(GATHER_HOW[k], /Foraging|earns no XP/);
@@ -475,7 +475,7 @@ test('TOOL-USE: the Professions page says a tool\'s Use at the node is the key\'
   // AUDIT (2026-10-04): PROF-MENU retired the act choice key's search - the patch's and the body's lists carry it now; and
   // BAG1's page says where a carrying book's goods go (the bag or the pack), not the Stores
   assert.doesNotMatch(GATHER_HOW.herbalism, /act choice key/);
-  assert.match(GATHER_HOW.herbalism, /the patch's list also lets you search it for food/);
+  assert.match(GATHER_HOW.herbalism, /the patch’s list also lets you search it for food/);
   assert.doesNotMatch(src, /act choice key searches/);
   assert.match(src, /The carcass\\'s list also lets you search it\.'\)\)\);/);   // VOICE1 (PIN MOVED)   // PIN MOVED (L10N4): said through t()
   assert.match(STORES_EMPTY_CARRY_LINE, /goes into your Materials Bag or pack\. Put it in here in any town\.$/);

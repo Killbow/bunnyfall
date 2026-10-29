@@ -743,7 +743,7 @@ export function mountNoticeBoard(host, deps) {
     // BOARD-UI: the day's count above the cards - under the last card it stood off the bottom of a long list
     const today = writs?.today ?? { filled: work.book.state.writs?.today ?? 0, max: work.book.state.writs?.max ?? 3 };
     // AUDIT CHAP2 C5: "Writs" - the count is every writ the account filled today, the Court's and the halls' (CALL 8)
-    body.append(el('p', 'notice-worktoday', `Writs today: ${today.filled} of ${today.max}${writsStale ? ' - the list may be out of date' : ''}`));
+    body.append(el('p', 'notice-worktoday', `Writs today: ${today.filled} of ${today.max}${writsStale ? '. The list may be out of date' : ''}`));
     // CRAFT-WRITS: the character's crafting writs above the Court's - its own three, the day's count beside them. BOARD-SIFT
     // (at the merge of CRAFT-WRITS): they stand over the bar, never sifted by it - three of the character's own, their own day
     const crafts = work.crafts ? writs?.crafts?.writs ?? [] : [];

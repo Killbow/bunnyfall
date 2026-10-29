@@ -320,7 +320,7 @@ test('EG-ZD THE WAY BACK\'S RECORD (section 22): read off the device strictly; k
   strip.draw({ text: EG_BACK_TEXT.prompt, answerable: true, button: EG_BACK_TEXT.button });
   const btn = doc.body.children.at(-1).children[1];
   assert.equal(btn.textContent, 'Return');
-  strip.draw({ text: 'Answer the call - 5:00', answerable: true });
+  strip.draw({ text: 'Answer the call: 5:00', answerable: true });
   assert.equal(btn.textContent, 'Answer');
 });
 

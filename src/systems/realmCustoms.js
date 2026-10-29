@@ -389,25 +389,25 @@ export function customsLines({ called, owed, wealth, allowance, taken, crossed =
   const lines = [];
   if (called > 0) {
     lines.push(before
-      ? (owed > 0 ? `Customs will call in ${called} gold of loans; ${owed} cannot be paid and falls due.` : `Customs will call in ${called} gold of loans and pay them from your bank and purse.`)
-      : (owed > 0 ? `Customs called in ${called} gold of loans; ${owed} could not be paid and falls due.` : `Customs called in ${called} gold of loans, and they are paid.`));
+      ? (owed > 0 ? `Customs will call in ${called} gold of loans. ${owed} can’t be paid and falls due.` : `Customs will call in ${called} gold of loans and pay them from your bank and purse.`)
+      : (owed > 0 ? `Customs called in ${called} gold of loans. ${owed} couldn’t be paid and falls due.` : `Customs called in ${called} gold of loans, and they are paid.`));
   }
   if (taken > 0) {
     lines.push(before
-      ? `You carry ${wealth} gold; the realm lets a character of this level bring ${allowance}. ${taken} will stay behind.`
-      : `You carried ${wealth} gold; the realm lets a character of this level bring ${allowance}. ${taken} stays behind.`);
+      ? `You carry ${wealth} gold, but the realm lets a character of this level bring ${allowance}. ${taken} will stay behind.`
+      : `You carried ${wealth} gold, but the realm lets a character of this level bring ${allowance}. ${taken} stays behind.`);
   }
   // RESTORE: every deed comes along - and the door says so, since the realm's bank will not buy it back
   const houses = crossed.filter((d) => d === 'house').length;
   const what = [crossed.includes('ship') ? 'your ship' : '', houses > 1 ? `${houses} houses` : houses ? 'your house' : ''].filter(Boolean).join(' and ');
-  if (what) lines.push(`${what[0].toUpperCase()}${what.slice(1)} ${before ? 'will come' : 'came'} with you, every piece in ${crossed.length > 1 ? 'them' : 'it'}; the realm's bank does not buy back what comes through customs.`);
+  if (what) lines.push(`${what[0].toUpperCase()}${what.slice(1)} ${before ? 'will come' : 'came'} with you, every piece in ${crossed.length > 1 ? 'them' : 'it'}. The realm’s bank doesn’t buy back what comes through customs.`);
   // AUDIT SHIPYARDS L1-2: Come Sail Away's ships come too, by number - sailed in the realm, never sold there
-  if (fleet > 0) lines.push(`${fleet === 1 ? 'Your boat' : `Your ${fleet} boats`} ${before ? 'will come' : 'came'} with you; no shipyard in the realm buys a boat that comes through customs.`);
+  if (fleet > 0) lines.push(`${fleet === 1 ? 'Your boat' : `Your ${fleet} boats`} ${before ? 'will come' : 'came'} with you. No shipyard in the realm buys a boat that comes through customs.`);
   if (restKept > 0) lines.push(`Your rest supplies ${before ? 'will stay' : 'stayed'} with your offline character. They are not yet sold in the realm.`);   // AUDIT REST-PARTY B4; AUDIT REST II H13: the Tonics, Salts, Draughts and Candles are rest supplies, not camping
   // CARDS9: the cards past the allowance, the dearest first
-  if (cardsKept > 0) lines.push(`Your cards are worth ${cardsWorth} gold; the realm lets a character of this level bring ${cardAllowance}. ${cardsKept} ${cardsKept === 1 ? 'card' : 'cards'}, the dearest, ${before ? 'will stay' : 'stayed'} with your offline character.`);
+  if (cardsKept > 0) lines.push(`Your cards are worth ${cardsWorth} gold, but the realm lets a character of this level bring ${cardAllowance}. ${cardsKept} ${cardsKept === 1 ? 'card' : 'cards'}, the dearest, ${before ? 'will stay' : 'stayed'} with your offline character.`);
   // AUDIT CARDS-6 A9: and a binder's deck left naming a card that stayed - the table deals it again once the binder holds it
-  if (decksShort > 0) lines.push(`${decksShort === 1 ? 'One deck' : `${decksShort} decks`} in your binder ${before ? 'will name' : decksShort === 1 ? 'names' : 'name'} cards that ${before ? 'stay' : 'stayed'} behind; the table deals a deck only when your binder holds every card it names.`);
+  if (decksShort > 0) lines.push(`${decksShort === 1 ? 'One deck' : `${decksShort} decks`} in your binder ${before ? 'will name' : decksShort === 1 ? 'names' : 'name'} cards that ${before ? 'stay' : 'stayed'} behind. The table only deals a deck when your binder holds every card it names.`);
   if (!lines.length) lines.push(before ? 'Customs finds nothing to settle.' : 'Customs found nothing to settle.');
   return before ? [...lines, ...CUSTOMS_PROMISE] : lines;
 }

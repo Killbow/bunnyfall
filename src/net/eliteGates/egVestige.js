@@ -102,7 +102,7 @@ export const EG_VESTIGES = Object.freeze([
   Object.freeze({ id: 13, key: 'huntersmark', fam: 'hunt', name: "Hunter's Mark", v: [0.05, 0.08, 0.12], by: 'relay', line: (v) => `Your first arrow from beyond 12 m marks a foe, and the company deals +${pc(v)} damage to it.` }),
   Object.freeze({ id: 14, key: 'fleetfoot', fam: 'hunt', name: 'Fleetfoot', v: [0.04, 0.07, 0.10], by: 'client', line: (v) => `Run speed +${pc(v)}.` }),
   // ARCANA
-  Object.freeze({ id: 15, key: 'focus', fam: 'arcana', name: "Battlemage's Focus", v: [0.10, 0.18, 0.25], by: 'client', line: (v) => `Spell cost -${pc(v)}.` }),
+  Object.freeze({ id: 15, key: 'focus', fam: 'arcana', name: "Battlemage's Focus", v: [0.10, 0.18, 0.25], by: 'client', line: (v) => `Spell cost:${pc(v)}.` }),
   Object.freeze({ id: 16, key: 'overcharge', fam: 'arcana', name: 'Overcharge', v: [0.08, 0.14, 0.20], x: [1.08, 1.14, 1.20], by: 'client', line: (v) => `Spell damage +${pc(v)}.` }),
   Object.freeze({ id: 17, key: 'spellbane', fam: 'arcana', name: 'Spellbane', v: [10, 18, 25], by: 'client', line: (v) => `Every resistance +${v}.` }),
   Object.freeze({ id: 18, key: 'shieldweaver', fam: 'arcana', name: 'Shieldweaver', v: [0.20, 0.35, 0.50], by: 'client', line: (v) => `Your Shield spell absorbs ${pc(v)} more.` }),

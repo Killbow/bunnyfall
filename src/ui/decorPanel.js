@@ -399,7 +399,7 @@ export const DECOR_LOOK_LINE = 'Choose how it looks. Any of these costs nothing.
 /** HOME-DOORS: what a door says beside its line - it hangs in a doorway, and how many this house has free (null: still
  *  being found). */
 export const decorDoorLine = (n) => (n == null ? 'hangs in a doorway. Finding the doorways...' : n === 0 ? 'hangs in a doorway. This house has none free'
-  : `hangs in a doorway - ${n} free here, marked while you place it`);
+  : `hangs in a doorway, ${n} free here, marked while you place it`);
 /** HOME-LOOK: what a part's choice reads as - its set and climate, its climate and its number, or the town's own. */
 export function decorLookText(part, choice) {
   if (!choice) return "The town's own";

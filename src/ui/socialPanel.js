@@ -1757,7 +1757,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const vv = g.vaultNow ? g.vaultNow() : g.vaultView;   // AUDIT GUILD2 M3: this character's and guild's alone
     const st = vv?.me ?? v.vault?.me ?? null;
     out.push(el('div', 'dfsocial-sec', `Vault (${vv?.items?.length ?? v.vault?.used ?? 0}/${vv?.max ?? v.vault?.max ?? GUILD_VAULT_SLOTS})`));
-    out.push(el('div', 'dfsocial-note', `Your standing: ${vaultStandingText(st)}${st?.level === 'withdraw' && st.limit ? ` - ${Number(st.taken ?? 0)} of ${st.limit} taken today` : ''}.`));
+    out.push(el('div', 'dfsocial-note', `Your standing: ${vaultStandingText(st)}${st?.level === 'withdraw' && st.limit ? ` · ${Number(st.taken ?? 0)} of ${st.limit} taken today` : ''}.`));
     // AUDIT GUILD2 M1: the town is read at the press and on the live pass, never once at the build - a page left open
     // on the road kept Take alive and sent takes out of town
     const reachNow = () => g.pack?.reach?.() !== false;

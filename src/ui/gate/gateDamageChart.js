@@ -39,7 +39,7 @@ export const CHART_IN_MS = (DAMAGE_CHART_ROWS + 3) * CHART_ROW_STEP_MS + CHART_F
 /** The words. */
 export const DAMAGE_CHART_TEXT = Object.freeze({
   title: 'Damage Dealt',
-  sub: (boss, n) => `${boss} has fallen - ${n} ${n === 1 ? 'challenger' : 'challengers'}`,
+  sub: (boss, n) => `${boss} has fallen. ${n} ${n === 1 ? 'challenger' : 'challengers'}`,
   head: Object.freeze(['#', 'Challenger', 'Damage', 'Share', 'Blows', 'Best', 'Crystals', 'Falls']),
   host: 'Host',   // WB11c: the column of his host's share - a Legion-Lord's court's alone
   heal: 'Healed',   // GATE-HEAL: the column of what each healed in others - a court someone healed another in alone

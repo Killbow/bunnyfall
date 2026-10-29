@@ -130,13 +130,13 @@ test('PACK-OVER done when: a character with no bag and a pack at its limit gathe
 // ─── THE WORDS ──────────────────────────────────────────────────────
 
 test('PACK-OVER the words: goods past the pack\'s weight are the pack\'s, and the line says the pack is over its weight; the haul card counts them all and the enhanced skin says the weight beside it (mutants: `over` not the pack\'s; the weight unsaid; the toast unsaid)', () => {
-  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 1, over: 3, left: 0 } }), 'to your pack - your pack is over its weight');
-  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 0, over: 3, left: 0 } }), 'to your pack - your pack is over its weight');
-  assert.equal(goodsWhere({ carry: true, put: { bag: 2, pack: 0, over: 1, left: 0 } }), 'to your bag and pack - your pack is over its weight');
+  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 1, over: 3, left: 0 } }), 'to your pack · your pack is over its weight');
+  assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 0, over: 3, left: 0 } }), 'to your pack · your pack is over its weight');
+  assert.equal(goodsWhere({ carry: true, put: { bag: 2, pack: 0, over: 1, left: 0 } }), 'to your bag and pack · your pack is over its weight');
   assert.equal(goodsWhere({ carry: true, put: { bag: 0, pack: 2, over: 0, left: 0 } }), 'to your pack', 'under the weight, as before');
   assert.equal(goodsWhere({ carry: true, put: { bag: 2, pack: 0, left: 0 } }), 'to your bag', 'a put with no `over`, as before');
   const d = { carry: true, material: OAK, qty: 4, xp: 2, carried: { material: OAK, own: 4, bought: 0 }, track: { profession: 'logging', xp: 2, rank: 0 }, put: { bag: 0, pack: 0, over: 4, left: 0, lost: [] } };
-  assert.equal(storesLine(d), `+4 ${materialCountLabel(OAK, 4)} to your pack - your pack is over its weight`);
+  assert.equal(storesLine(d), `+4 ${materialCountLabel(OAK, 4)} to your pack · your pack is over its weight`);
   assert.equal(harvestHauls(d)[0].count, 4, 'the card counts what came - all of it');
   assert.equal(BAG_WORDS.overWeight, 'Your pack is over its weight. Put materials in your Stores in any town, or carry them in a Materials Bag.');
 });

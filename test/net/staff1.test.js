@@ -50,7 +50,7 @@ test('STAFF1 grammar: /tp takes a place, a map pixel or @player; /god and /fly f
   assert.ok('error' in parseStaffCommand('/heal me'));
   for (const line of ['/red hi', '/unstuck', 'tp Daggerfall', '/tpx 1 2', '//tp 1 2', 'hello']) assert.equal(parseStaffCommand(line), null, line);
   assert.deepEqual([...STAFF_COMMANDS], ['tp', 'god', 'fly', 'heal', 'pos', 'staff', 'relay']);   // PIN MOVED (SCALE5b): /relay, a developer's (net/relayCfg.js, test/net/scale5b.test.js)
-  for (const c of STAFF_COMMANDS.filter((n) => n !== 'staff')) assert.ok(STAFF_HELP_LINES.some((l) => l.startsWith(`/${c} `)), `/staff lists /${c}`);
+  for (const c of STAFF_COMMANDS.filter((n) => n !== 'staff')) assert.ok(STAFF_HELP_LINES.some((l) => (l.startsWith(`/${c} `) || l.startsWith(`/${c}:`))), `/staff lists /${c}`);
 });
 
 test('STAFF1 matching: a place by exact name, then the shortest it begins, then one it contains; a player exact, then begun', () => {

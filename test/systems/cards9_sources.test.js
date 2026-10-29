@@ -282,7 +282,7 @@ test('CARDS9 THE CUSTOMS: a character brings cards worth the starter deck\'s and
   const full = structuredClone(snap);
   const rep = applyCustoms(full);
   assert.equal(rep.cardsKept, 1);
-  assert.ok(customsLines(rep).some((l) => /^Your cards are worth 810 gold; the realm lets a character of this level bring 585\. 1 card, the dearest, stayed with your offline character\.$/.test(l)), customsLines(rep).join(' | '));
+  assert.ok(customsLines(rep).some((l) => /^Your cards are worth 810 gold, but the realm lets a character of this level bring 585\. 1 card, the dearest, stayed with your offline character\.$/.test(l)), customsLines(rep).join(' | '));
   assert.ok(customsLines(rep, { before: true }).some((l) => /will stay with your offline character/.test(l)));
   assert.match(read('src/net/accountClient.js'), /'customs-cards': \(\) => t\('account\.refusal\.customsCards', 'That character carries more cards than customs lets in\. Bring it online again\.'\)/);
 });

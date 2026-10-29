@@ -178,7 +178,7 @@ function openDb() {
     // and on the title bar the status convention already uses.
     req.onblocked = () => {
       console.warn('[dataSource] database upgrade blocked - close other tabs running this game');
-      try { document.title = 'Bunnyfall - close other game tabs to continue'; } catch { /* no-DOM host */ }
+      try { document.title = 'Bunnyfall: close other game tabs to continue'; } catch { /* no-DOM host */ }
     };
   });
 }

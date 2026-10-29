@@ -263,7 +263,7 @@ test('EM3: a note under the pointer answers its own words', () => {
   const planX = 105 - (100 - 1), planZ = 205 - (200 - 1);
   const [nx, ny] = toPaper(view, planX, planZ);
   // NOTE-PIN: ...and says how to change it
-  assert.deepEqual(s.hoverLabel(nx, ny), { label: 'the lever is behind the throne - click to rename, empty to remove', cursor: 'pointer' });
+  assert.deepEqual(s.hoverLabel(nx, ny), { label: 'the lever is behind the throne: click to rename, empty to remove', cursor: 'pointer' });
   // NOTE-PIN: the pin's head and the word beside it take the pointer too, not only the point it is stuck in
   assert.equal(s.hoverLabel(nx, ny - 16).cursor, 'pointer', 'the pin head');
   assert.equal(s.hoverLabel(nx + 40, ny - 16).cursor, 'pointer', 'the word beside it');

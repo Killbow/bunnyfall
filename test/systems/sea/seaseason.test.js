@@ -242,8 +242,8 @@ test('SEA-SEASON the page\'s half (seaSeasonHost.js) and its door: no section of
 test('SEA-SEASON the tab\'s words and section (navalYardWindow.js seasonText): the season and its days left, each board\'s ranks with their figures (or its line of none), the player\'s own places, the last season\'s firsts; shown at a freeport online, hidden offline and on the shipwright\'s own tab (mutants: the head, the rows, the plurals, the places, the last, the section)', () => {
   const s = { asking: false, season: 3, daysLeft: 1, deep: [{ name: 'kim', n: 1365 }, { name: 'hal', n: 1 }], legends: [], mine: { deep: { rank: 2, n: 1 }, legends: { rank: 11, n: 1200 } }, last: { deep: [{ name: 'val', n: 900 }], legends: [{ name: 'pat', n: 1 }] }, line: null };
   const t = seasonText(s);
-  assert.deepEqual(t.head, ['The season\'s captains', 'Season 3 - 1 day left']);
-  assert.deepEqual(seasonText({ ...s, daysLeft: 34 }).head[1], 'Season 3 - 34 days left');
+  assert.deepEqual(t.head, ['The season\'s captains', 'Season 3 · 1 day left']);
+  assert.deepEqual(seasonText({ ...s, daysLeft: 34 }).head[1], 'Season 3 · 34 days left');
   assert.equal(t.lede, 'Every captain of the realm, this season: how far past the Veil they have sailed, and how many of the six legends they have sunk or taken. You are 2nd for the deepest voyage (1 league). You are 11th for legends ended (1,200 legends). Last season\'s deepest voyage: val (900 leagues). Last season\'s most legends ended: pat (1 legend).');
   assert.deepEqual(t.lists, [
     { title: 'Deepest voyages', rows: [{ title: '1. kim', words: '1,365 leagues' }, { title: '2. hal', words: '1 league' }], none: 'No captain has sailed past the Veil this season.' },
@@ -267,7 +267,7 @@ test('SEA-SEASON the tab\'s words and section (navalYardWindow.js seasonText): t
   tabs.children[1].onclick({ stopPropagation() {} });
   const sec = () => byClass(host, 'dfnaval-sec').find((x) => x.children[0]?.children[0]?.textContent === 'The season\'s captains');
   assert.ok(sec() && sec().style.display !== 'none', 'shown');
-  assert.equal(sec().children[0].children[1].textContent, 'Season 3 - 1 day left');
+  assert.equal(sec().children[0].children[1].textContent, 'Season 3 · 1 day left');
   const items = byClass(sec(), 'dfnaval-item').map((li) => li.textContent);
   assert.deepEqual(items, ['Deepest voyages', '1. kim1,365 leagues', '2. hal1 league', 'Legends ended', 'No legend has been sunk or taken this season.']);
   const line = byClass(sec(), 'dfnaval-note')[0];

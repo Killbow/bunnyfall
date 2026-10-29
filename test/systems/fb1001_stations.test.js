@@ -53,7 +53,7 @@ test('CHARCOAL-BUY: at a smith\'s forge with no Charcoal held, the Forge offers 
     assert.match(p.text(), /Steel needs Charcoal\. Burn a log here to make it, or buy it from the smith\./);
     const buy = p.btn('Buy 1 from the smith');
     assert.ok(buy, `the counter stands at the Forge: ${p.text().slice(0, 400)}`);
-    assert.equal(buy.textContent, `Buy 1 from the smith - ${sale.marks} silver`);
+    assert.equal(buy.textContent, `Buy 1 from the smith for ${sale.marks} silver`);
     assert.equal(buy.disabled, false);
     await buy.onclick();
     assert.deepEqual(p.calls.at(-1), ['stock', 'wood:charcoal', 1], 'Charcoal, from the smith');

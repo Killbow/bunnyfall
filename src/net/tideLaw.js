@@ -91,7 +91,7 @@ export const TIDE_WORDS = Object.freeze({
 export function tideLine(region, now, next) {
   const land = tideLandName(tideLandOf(region));
   if (!land || !now) return null;
-  return `The Tide in ${land} this week: ${tideName(now)} - ${TIDE_WORDS[now][0].toLowerCase()}${TIDE_WORDS[now].slice(1)}${next ? ` Next week: ${tideName(next)}.` : ''}`;
+  return `The Tide in ${land} this week: ${tideName(now)}. ${TIDE_WORDS[now][0].toLowerCase()}${TIDE_WORDS[now].slice(1)}${next ? ` Next week: ${tideName(next)}.` : ''}`;
 }
 /** The land's gathering a Harvest raises (9.3: "gathering yields +25%") - every node on the ground: herbs, the basket,
  *  wood, ore, stone. DECIDED: not the net, whose Tide is the Storm Season's, and never a body (it names no ground). */

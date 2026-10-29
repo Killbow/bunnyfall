@@ -320,8 +320,8 @@ test('RVN-ERRAND THE PAGE: Mission opens the sheet - the three ventures, the nin
   assert.deepEqual(byClass(d, 'cmp-vent').map((b) => b.textContent), ['Plunder', 'Forage', 'Sell-sword']);
   const dests = byClass(d, 'cmp-dest');
   assert.equal(dests.length, 9);
-  assert.match(dests[0].textContent, /^High Rock - a day, danger IFair odds 55%Send$/);
-  assert.match(dests[8].textContent, /^Black Marsh - 4 days, danger VGrim odds 30%Send$/);
+  assert.match(dests[0].textContent, /^High Rock · a day, danger IFair odds 55%Send$/);
+  assert.match(dests[8].textContent, /^Black Marsh · 4 days, danger VGrim odds 30%Send$/);
   assert.doesNotMatch(d.textContent, /Online, a mission keeps real time/, 'offline: the one clock, no word of the world\'s');   // PIN MOVED (OFFLINE-ROAD): the online word is the world's time now
   assert.match(d.textContent, /A hard-won mission brings back 50% of the haul/);
   byClass(d, 'cmp-vent')[1].onclick();

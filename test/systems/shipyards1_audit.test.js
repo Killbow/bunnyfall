@@ -227,7 +227,7 @@ test('AUDIT SHIPYARDS CUSTOMS CROSSES THE FLEET (L1-2): every Come Sail Away shi
   const rep = applyCustoms(snap);
   assert.equal(rep.fleet, 3, 'three ships by number: a record, a placed boat (the record\'s twice), a pack\'s parts');
   assert.deepEqual([...snap.modData[FLEET_SAVE_VENDOR].crossed].sort(), [501, 502, 601]);
-  assert.ok(customsLines(rep, { before: true }).includes('Your 3 boats will come with you; no shipyard in the realm buys a boat that comes through customs.'));
+  assert.ok(customsLines(rep, { before: true }).includes('Your 3 boats will come with you. No shipyard in the realm buys a boat that comes through customs.'));
   restoreFleetSaveData(snap.modData[FLEET_SAVE_VENDOR]);
   assert.deepEqual([fleetCrossed(501), fleetCrossed(502), fleetCrossed(601), fleetCrossed(999)], [true, true, true, false]);
   assert.deepEqual(fleetSaveData().crossed.sort(), [501, 502, 601], 'kept through a save');

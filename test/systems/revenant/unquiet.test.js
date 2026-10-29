@@ -608,15 +608,15 @@ test('UNQUIET THE DREAD\'S STAND: half again its health; its will never holds (i
 
 test('UNQUIET THE PAGE: how it gets away (its craft, from rank II), the wounds I left, its ambition, its blood; the Dread\'s home, its two stands, no will; the empty page says who rises (mutants: each line)', () => {
   assert.equal(PG.craftLine({ mobileType: M.Orc, rank: 1 }), 'Its flight: it runs. From rank II it will break away in its own way.');
-  assert.equal(PG.craftLine({ mobileType: M.Mage, rank: 2 }), 'Its flight: Blink - it tears open a rift and is gone. Silence it, hold it, or strike it as it fades.');
+  assert.equal(PG.craftLine({ mobileType: M.Mage, rank: 2 }), 'Its flight: Blink (it tears open a rift and is gone. Silence it, hold it, or strike it as it fades).');
   // PIN MOVED (AUDIT UNQUIET, section 49): each true on both skins and past its will - a struck sinker's will may still tear it away
-  assert.equal(PG.craftLine({ mobileType: M.Zombie, rank: 3 }), 'Its flight: Sink - it sinks into the earth. Strike it before it is under, and it rises, cornered, and runs no more.');
-  assert.equal(PG.craftLine({ mobileType: M.Thief, rank: 3 }), 'Its flight: Smoke - it throws down smoke and vanishes as it runs, but a blow can still find it.');
-  assert.equal(PG.craftLine({ mobileType: M.Orc, rank: 3 }), 'Its flight: Bolt - it runs faster than anything you have chased. Bring it down from range, and break its will before the killing blow.');
+  assert.equal(PG.craftLine({ mobileType: M.Zombie, rank: 3 }), 'Its flight: Sink (it sinks into the earth. Strike it before it is under, and it rises, cornered, and runs no more).');
+  assert.equal(PG.craftLine({ mobileType: M.Thief, rank: 3 }), 'Its flight: Smoke (it throws down smoke and vanishes as it runs, but a blow can still find it).');
+  assert.equal(PG.craftLine({ mobileType: M.Orc, rank: 3 }), 'Its flight: Bolt (it runs faster than anything you have chased. Bring it down from range, and break its will before the killing blow).');
   assert.equal(PG.craftLine({ dread: true }), 'At home it has nowhere to run: it never flees, and kneels at the end.');
   assert.equal(PG.woundLine({ wounds: ['lamed'] }), 'Wounds you left: Lamed (a lamed leg, so it runs slower).');
   assert.equal(PG.woundLine({ wounds: [] }), '');
-  assert.equal(PG.ambitionLine({ personality: 'witty' }), 'Its ambition: Plunder - it raids the roads while it waits, and grows richer the longer you leave it.');
+  assert.equal(PG.ambitionLine({ personality: 'witty' }), 'Its ambition: Plunder (it raids the roads while it waits, and grows richer the longer you leave it).');
   assert.equal(PG.ambitionLine({ personality: 'witty', dread: true }), '');
   assert.equal(PG.bloodLine({ blood: 1, rank: 2 }), 'If it kills you once more, or fells one more companion, it grows bolder.');   // PIN MOVED (AUDIT UNQUIET): a companion is felled
   assert.deepEqual([PG.bloodLine({ blood: 0, rank: 2 }), PG.bloodLine({ blood: 1, rank: 5 })], ['', '']);

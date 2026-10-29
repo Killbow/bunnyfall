@@ -24,7 +24,7 @@ test('SEASON1 THE SEAT TAB\'S TIDE: the Marches\' Tide this week and what it doe
   await tick();
   const lines = byClass(host, 'notice-seat-week').map((n) => n.textContent);
   assert.equal(lines[0], 'Week 3 of 8 of the Season of Morning Star.');
-  assert.equal(lines[1], 'The Tide in the Marches this week: Daedric Incursion - gate kills give double influence and double silver. Next week: Plague.');   // AUDIT SEATS-2 L7: and the Drakes 9.3 doubles (PIN MOVED); SILVER: silver
+  assert.equal(lines[1], 'The Tide in the Marches this week: Daedric Incursion. gate kills give double influence and double silver. Next week: Plague.');   // AUDIT SEATS-2 L7: and the Drakes 9.3 doubles (PIN MOVED); SILVER: silver
   assert.match(lines[2], /^The Muster/);
   host = mount({ season: null, tides: null });
   await tick();

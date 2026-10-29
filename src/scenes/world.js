@@ -11828,7 +11828,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
               if (owed > 0) deductGold(playerEntity, owed);
               profBook.refresh({ force: true }).catch(() => {});
               saveSoon.changed();
-              return { ok: false, text: `${name} was already disenchanted. Its Essence is in your Stores, and it leaves your pack${owed > 0 ? `; you paid the enchanter ${owed} gold` : ''}.` };
+              return { ok: false, text: `${name} was already disenchanted. Its Essence is in your Stores, and it leaves your pack${owed > 0 ? `, and you paid the enchanter ${owed} gold` : ''}.` };
             }
             return { ok: false, text: accountRefusalText(r?.error) };
           }
@@ -20763,7 +20763,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (c.cmd === 'relay') {
       // SCALE5b: a relay setting, to the hub (net/relayCfg.js) - the Developer's alone; the hub's answer lands in this tab
       if (!mayRelayCfg(staffGlyphs())) { say('Only a developer may change the relay\'s settings.'); return; }
-      if (!c.k) { say(`Relay settings: ${RELAY_CFG_KEYS.join(', ')} - /relay <setting> <value>, or /relay <setting> - for the Worker's own.`); return; }
+      if (!c.k) { say(`Relay settings: ${RELAY_CFG_KEYS.join(', ')}. Use /relay <setting> <value>, or /relay <setting> - for the Worker’s own.`); return; }
       relayCfgTab = tabId;
       if (!relayCfgLink?.sendRelayCfg({ k: c.k, v: c.v })) say('The relay\'s settings need the hub online, on a relay that takes them.');
       return;

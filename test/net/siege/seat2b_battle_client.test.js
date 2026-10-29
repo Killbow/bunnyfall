@@ -22,10 +22,10 @@ const battle = { seat: 'Wayrest', kind: 'siege', tier: 'crown', attacker: EO, de
 test('SEAT2b part two (b) THE WORKS FOLDED AND SAID: the frame\'s Gatehouse, Ram and Walls kept (none: none); the works\' line - the gate\'s vitality or its breach, the Ram\'s and its charge, the camp behind it, the Walls; the Throne\'s rule names the gate and opens only on its breach (mutants: the fold; each word; the bar)', () => {
   let s = foldSiege(SIEGE_STATE_EMPTY, { ...F, g: [29995, 30000], r: [4480, 4500, 9, 1], w: 2 }, T);
   assert.deepEqual([s.gate, s.ram, s.walls], [[29995, 30000], [4480, 4500, 9, 1], 2]);
-  assert.equal(siegeWorksLine(s), 'GATEHOUSE 29,995 / 30,000    RAM 4,480 / 4,500  9/10 s - 1 more in the camp    WALLS 2');
+  assert.equal(siegeWorksLine(s), 'GATEHOUSE 29,995 / 30,000    RAM 4,480 / 4,500  9/10 s, 1 more in the camp    WALLS 2');
   assert.match(siegeBarLines(s, battle, T)[1], /THRONE 0% \(3 of 4 \+ the Gatehouse\)$/, 'three of four held, the gate standing: not OPEN');
   s = foldSiege(s, { ...F, g: [12000, 30000], r: [0, 0, 0, 1] }, T + 1000);
-  assert.equal(siegeWorksLine(s), 'GATEHOUSE 12,000 / 30,000    RAM coming at the next wave - 1 more in the camp');
+  assert.equal(siegeWorksLine(s), 'GATEHOUSE 12,000 / 30,000    RAM coming at the next wave, 1 more in the camp');
   s = foldSiege(s, { ...F, g: [0, 30000], r: [3000, 4500, 0, 0] }, T + 2000);
   assert.equal(siegeWorksLine(s), 'GATEHOUSE BREACHED', 'a breached gate: no Ram to speak of');
   assert.match(siegeBarLines(s, battle, T)[1], /THRONE OPEN 0% \(3 of 4 \+ the Gatehouse\)$/);

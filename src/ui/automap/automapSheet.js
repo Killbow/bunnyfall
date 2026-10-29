@@ -1475,7 +1475,7 @@ export function createAutomapSheet(deps = {}) {
       }
       const mark = nearestMark(px, py);
       // NOTE-PIN: a waypoint lights up and says how to change it
-      if (mark?.kind === 'note') { hoverNote = mark.id; return { label: `${mark.name || 'Note'} - click to rename, empty to remove`, cursor: 'pointer' }; }
+      if (mark?.kind === 'note') { hoverNote = mark.id; return { label: `${mark.name || 'Note'}: click to rename, empty to remove`, cursor: 'pointer' }; }
       // AUDIT DELVE D4: the dungeon sheet has no legend (heldMap.js mounts it on the world's sheet), so the hover says
       // what a filled diamond is and a hollow one - AUDIT GUIDE U16's words, underground
       if (mark?.kind === 'quest') return { label: `${mark.name || QUEST_LEGEND_TEXT} - ${mark.followed ? QUEST_FOLLOWED_TEXT : QUEST_LEGEND_TEXT}`, cursor: 'pointer' };

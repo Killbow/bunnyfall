@@ -192,7 +192,7 @@ test('CUSTOMS-CARRY: the door says what customs will do BEFORE it runs - the loa
   assert.equal(JSON.stringify(snap), kept, 'the save itself is untouched - a copy is what customs runs on');
   assert.deepEqual(preview, [
     'Customs will call in 11000 gold of loans and pay them from your bank and purse.',
-    'You carry 495000 gold; the realm lets a character of this level bring 30000. 465000 will stay behind.',
+    'You carry 495000 gold, but the realm lets a character of this level bring 30000. 465000 will stay behind.',
     ...CUSTOMS_PROMISE,
   ]);
   assert.deepEqual(CUSTOMS_PROMISE, [
@@ -204,13 +204,13 @@ test('CUSTOMS-CARRY: the door says what customs will do BEFORE it runs - the loa
   const after = customsLines(applyCustoms(JSON.parse(kept)));
   assert.deepEqual(after, [
     'Customs called in 11000 gold of loans, and they are paid.',
-    'You carried 495000 gold; the realm lets a character of this level bring 30000. 465000 stays behind.',
+    'You carried 495000 gold, but the realm lets a character of this level bring 30000. 465000 stays behind.',
   ]);
   const owing = { level: 1, classicMinutes: 7, goldPieces: 100, items: [], wagonItems: [], bankAccounts: createBankAccounts() };
   Object.assign(owing.bankAccounts[5], { loanTotal: 5_000, loanDueDate: 900_000 });
-  assert.equal(customsLines(applyCustoms(owing), { before: true })[0], 'Customs will call in 5000 gold of loans; 4900 cannot be paid and falls due.');
-  // RESTORE (Mac: "Keep all, can't sell"): no deed stays behind now - the door says it comes, and that it never sells back
-  assert.equal(customsLines({ called: 0, owed: 0, taken: 0, crossed: ['house'] }, { before: true })[0], 'Your house will come with you, every piece in it; the realm\'s bank does not buy back what comes through customs.');
+  assert.equal(customsLines(applyCustoms(owing), { before: true })[0], 'Customs will call in 5000 gold of loans. 4900 can’t be paid and falls due.');
+  // RESTORE (Mac: "Keep all, can’t sell"): no deed stays behind now - the door says it comes, and that it never sells back
+  assert.equal(customsLines({ called: 0, owed: 0, taken: 0, crossed: ['house'] }, { before: true })[0], 'Your house will come with you, every piece in it. The realm’s bank doesn’t buy back what comes through customs.');
   assert.deepEqual(customsLines({ called: 0, owed: 0, taken: 0 }, { before: true }), ['Customs finds nothing to settle.', ...CUSTOMS_PROMISE]);
 });
 

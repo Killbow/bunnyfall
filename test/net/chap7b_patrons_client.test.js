@@ -54,7 +54,7 @@ test('CHAP7b the board\'s words: the patron\'s line, a guildmaster\'s bid and wh
   const season = seatSeasonName(2);
   // PIN MOVED: AUDIT GUILD3 W12 - its tag as every guild's is written, <GLN>; L6 - and what its patronage buys where the hall sells training
   assert.equal(chapterPatronSheetLine({ id: GL, name: 'Grey Lanterns', tag: 'GLN' }), 'Its patron this Season: Grey Lanterns <GLN>.');
-  assert.equal(chapterPatronSheetLine({ id: GL, name: 'Grey Lanterns', tag: 'GLN' }, 41), 'Its patron this Season: Grey Lanterns <GLN> - its members pay Thriving\'s prices here, or the band\'s where better.');
+  assert.equal(chapterPatronSheetLine({ id: GL, name: 'Grey Lanterns', tag: 'GLN' }, 41), 'Its patron this Season: Grey Lanterns <GLN>, so its members pay Thriving\'s prices here, or the band’s where they’re better.');
   assert.equal(chapterPatronSheetLine({ id: GL, name: 'Grey Lanterns', tag: 'GLN' }, 368), 'Its patron this Season: Grey Lanterns <GLN>.', 'an order sells nothing priced');
   assert.equal(chapterPatronSheetLine({ id: GL, name: 'Grey Lanterns', tag: '' }), 'Its patron this Season: Grey Lanterns.');
   assert.deepEqual([chapterPatronSheetLine(null), chapterPatronSheetLine({ id: 'nope', name: 'X' })], [null, null]);
@@ -145,7 +145,7 @@ test('CHAP7b the board names each chapter\'s patron, and offers its own guild\'s
   const calls = [];
   const s = await board(chapters, { patron: async (f, m) => { calls.push([f, m]); return { ok: true, data: { season: 2, marks: m } }; } });
   assert.deepEqual(byClass(s.host, 'notice-patron').map((p) => p.textContent), [
-    'Its patron this Season: Grey Lanterns <GLN> - its members pay Thriving\'s prices here, or the band\'s where better.', `Your guild bids 1,500 silver for its patronage in ${season}.`, `Your guild has not bid for its patronage in ${season}.`,   // PIN MOVED: AUDIT GUILD3 W12, L6
+    'Its patron this Season: Grey Lanterns <GLN>, so its members pay Thriving\'s prices here, or the band’s where they’re better.', `Your guild bids 1,500 silver for its patronage in ${season}.`, `Your guild has not bid for its patronage in ${season}.`,   // PIN MOVED: AUDIT GUILD3 W12, L6
   ]);
   const picks = byClass(s.host, 'notice-patron-pick');
   assert.deepEqual(picks.map((p) => [p.textContent.split(':')[0], [...p.querySelectorAll('button')].map((x) => x.textContent)]), [

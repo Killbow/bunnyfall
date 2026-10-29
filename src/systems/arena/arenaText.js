@@ -85,7 +85,7 @@ export const ARENA_TEXT = F({
     ]),
     onNow: (a, b) => `On the sand now: ${a} against ${b}.`,
     nextAt: (hh) => `Next exhibition at ${hh}.`,
-    ladderNext: (tier, label) => `Your next bout: ${tier} - ${label}.`,
+    ladderNext: (tier, label) => `Your next bout: ${tier}, ${label}.`,
     ladderDone: 'You are the Grand Champion. Nobody is left to beat.',
     title: (t) => `They call you ${t} here.`,
     /** The choices, as ChoiceWindow labels ("W - Watch the exhibition"). */
@@ -295,7 +295,7 @@ export const ARENA_TEXT = F({
     }),
     season: (year) => `the season of 3E ${year}`,
     seasonDay: (day) => `day ${day} of 360`,
-    standing: (red, blue) => `Red Banner ${red} - Blue Banner ${blue}`,
+    standing: (red, blue) => `Red Banner ${red} · Blue Banner ${blue}`,
     leads: (b) => `${b} leads the season.`,
     level: 'The banners are tied.',
     laurel: (b) => `${b} won last season and wears the laurel.`,
@@ -635,7 +635,7 @@ export const ARENA_TEXT = F({
     hallTheirs: 'Grand Champions, newest first:',
     hallTheir: (name) => `${name}, Grand Champion of the Arena.`,
     /** ARENA4b: a name on the realm's wall with the season it was cut in (the Keeper's roll, the Leaderboards' Hall). */
-    hallTheirAt: (name, season) => `Season ${season} - ${name}, Grand Champion of the Arena.`,
+    hallTheirAt: (name, season) => `Season ${season}: ${name}, Grand Champion of the Arena.`,
     // ARENA4b: the account's climb, roll and record, before and after the realm's records are in
     climbWait: 'Still loading. Try again in a moment.',
     rollWait: 'The names are not in yet. Ask me again soon.',

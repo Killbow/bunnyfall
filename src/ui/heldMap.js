@@ -2457,7 +2457,7 @@ export class HeldMapWindow {
     const id = w?.id ?? null;
     if (id !== this._wpHover) { this._wpHover = id; this._dirty = true; }
     if (!w) return null;
-    return { label: `${w.name} - ${WAYPOINT_TEXT.kindWord[w.kind]}${!w.mine && w.by ? ` by ${w.by}` : ''} (right-click to edit)`, cursor: 'pointer' };
+    return { label: `${w.name}: ${WAYPOINT_TEXT.kindWord[w.kind]}${!w.mine && w.by ? ` by ${w.by}` : ''} (right-click to edit)`, cursor: 'pointer' };
   }
 
   /** WAYPOINTS (the player: "Worldmap(V) with right mouseclick context menu"): a right click on the bay - a flag's own

@@ -292,7 +292,7 @@ test('VOID THE CHAT WORD: `/siege void <key>` parsed - anything else /siege is t
   ];
   const door = { voidSiege: async (key) => { asked.push(key); return answers.shift(); } };
   const book = createTownSeatBook({ door: /** @type {any} */ (door), storage: null });
-  assert.deepEqual(await book.voidSiege(3021), { ok: true, text: 'The siege at seat 3021 is voided - its Charter went back to the guild that held it.' });
+  assert.deepEqual(await book.voidSiege(3021), { ok: true, text: 'The siege at seat 3021 is voided, and its Charter went back to the guild that held it.' });
   assert.deepEqual(await book.voidSiege(3022), { ok: true, text: 'The Tourney at seat 3022 is void already.' });
   assert.deepEqual(await book.voidSiege(3023), { ok: false, text: 'Only moderators can do that.' });
   assert.deepEqual(asked, [3021, 3022, 3023]);

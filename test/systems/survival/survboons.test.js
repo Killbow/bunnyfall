@@ -103,7 +103,7 @@ test('SURV-BOONS: the fourth tier - on the one key, stored by name between Off a
   assert.equal(SURVIVAL_DEFAULT, 'boons', 'BOONS-DEFAULT (2026-10-13, Mac: "make boons the default")');   // PIN MOVED: SURV-BOONS had it a choice, not the default
   const row = FEATURES.find((f) => f.id === 'mod-climates-calories');
   assert.deepEqual(row.control.tiers[1], ['boons', 'Boons'], 'the bar\'s second segment');
-  assert.match(row.note, /On Boons neglect costs nothing, and staying fed, watered and rested in a bed or by a fire gives bonuses/);
+  assert.match(row.note, /Boons only rewards you/);
   setPref(SURVIVAL_PREF, 'boons');
   assert.equal(survivalTier(), 'boons'); assert.equal(survivalOn(), true); assert.equal(survivalRules(), BOONS);
   assert.equal(survivalFeed(body(), INDOORS).deps.rules, BOONS, 'the feed hands the minute law the Boons rules');
@@ -433,7 +433,7 @@ test('SURV-BOONS: the sheet explains the points - the Stats side\'s Boons rows i
     'You need food, water, warmth and sleep. Signs at the left edge of the screen show what you lack, and on Boons what you have earned.',   // PIN MOVED (AUDIT C&C S13): where the tiles stand; VOICE1: plain words
     'Survival can be Off, Boons (the default), Casual or Hard, set under Settings > Features. On Boons, needs that are met give bonuses. On Hard, neglected needs hurt you and can make you ill.',   // PIN MOVED (BOONS-DEFAULT; VOICE1)
   ]);
-  assert.match(read('src/ui/credits.js'), /There are four tiers in Settings: Off, Boons \(the default: neglect costs nothing, and staying fed, watered and rested gives bonuses\), Casual/);   // PIN MOVED (AUDIT C&C S8): the drink's swing is taken in Boons too
+  assert.match(read('src/ui/credits.js'), /Settings has four tiers\. Off is the classic game\. Boons, the default, never punishes neglect and gives bonuses for staying fed, watered and rested\. Casual/);   // PIN MOVED (AUDIT C&C S8): the drink's swing is taken in Boons too
 });
 
 test('SURV-BOONS C2 / CHARGEN-TUT: the HUD asks for the first-need page on a made character\'s felt need - never on a boon, and never on the stand-in the HUD draws under the character-creation wizard', async () => {

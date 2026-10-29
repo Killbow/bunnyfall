@@ -644,11 +644,11 @@ export function navalHudText(model, keys = {}, { touch = false } = {}) {
     blow: ship.blow ?? null,   // HULL-BLOW (COMBAT-FEEL): the side a ball just struck her from
     // the press that matters most, first: the guns while they are laid (GUN-HOLD: Activate holds fire then, never
     // boards), a ship in reach to board or plunder, then the guns
-    hint: model.aiming && model.armed && !ship.wrecked ? `${touch ? 'Lift' : 'Let go'} to fire - ${boardKey}: hold fire`
+    hint: model.aiming && model.armed && !ship.wrecked ? `${touch ? 'Lift' : 'Let go'} to fire · ${boardKey}: hold fire`
       : model.board ? `${boardKey}: ${model.board.kind === 'hold' ? `open ${model.board.name}'s hold` : model.board.kind === 'yard' ? model.board.name : `board ${model.board.name}`}`
       : ship.wrecked ? (ship.repairing ? 'Crippled, crew repairing' : ship.repairOrdered ? 'Crippled, repairs ordered' : ship.stores > 0 ? 'Crippled. Order repairs, or make for port' : 'Crippled. Make for port and a shipwright')   // AUDIT NAV1: the way out of a wreck, said - SEA-REPAIR: her stores the other
       : !model.armed ? 'No guns aboard'
-      : `${touch ? 'Hold and drag' : `Hold ${aimKey}`} to aim - ${bracePress}`,
+      : `${touch ? 'Hold and drag' : `Hold ${aimKey}`} to aim · ${bracePress}`,
     brace: touch && !!model.armed,
   } : null;
   // AUDIT NAV1 (the guns): the tell's words, and the last volley's count

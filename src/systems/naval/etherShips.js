@@ -139,7 +139,7 @@ export const legendAbroad = (legend, { night = false } = {}) => legend?.trait !=
 export function rumourOf(legend, from, { endedDay = null, day = 0 } = {}) {
   if (!legendSails(endedDay, day)) {
     const ago = Math.max(0, (day | 0) - (endedDay | 0));
-    return `${legend.name} went down ${ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`}; they say the aether will raise it again.`;
+    return `${legend.name} went down ${ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`}. They say the aether will raise it again.`;
   }
   const h = hauntOf(legend);
   const dx = h.px - from.px, dy = h.py - from.py;

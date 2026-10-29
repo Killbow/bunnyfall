@@ -288,9 +288,9 @@ test('RVN4 RANK 5, built with RVN6: at its last stand its band\'s survivors run 
 test('RVN6 the page: from rank 2 who rides with it, counted, and its band\'s name; none at rank 1 or for a solitary kind (mutants: shown at rank 1; the count; the name)', () => {
   const kind = (t) => ({ [M.Orc]: 'Orc', [M.OrcShaman]: 'Orc Shaman', [M.Thief]: 'Thief' })[t] ?? 'Thing';
   const r = { given: 'Grushnak', rank: 3, kin: [M.Orc, M.Orc, M.OrcShaman], mobileType: M.Orc };
-  assert.equal(bandWords(r, kind), "Band: rides with two Orcs - Grushnak's Warband.");
-  assert.equal(bandWords({ ...r, rank: 4 }, kind), "Band: rides with two Orcs and an Orc Shaman - Grushnak's Warband.");
-  assert.equal(bandWords({ ...r, rank: 2 }, kind), "Band: rides with an Orc - Grushnak's Warband.");
+  assert.equal(bandWords(r, kind), "Band: rides with two Orcs. Grushnak's Warband.");
+  assert.equal(bandWords({ ...r, rank: 4 }, kind), "Band: rides with two Orcs and an Orc Shaman. Grushnak's Warband.");
+  assert.equal(bandWords({ ...r, rank: 2 }, kind), "Band: rides with an Orc. Grushnak's Warband.");
   assert.equal(bandWords({ ...r, rank: 1 }, kind), '');
   assert.equal(bandWords({ ...r, mobileType: M.Giant, kin: [] }, kind), '');
   assert.equal(pluralKind('Thief', 3), 'three Thieves');

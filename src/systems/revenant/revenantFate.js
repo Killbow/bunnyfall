@@ -286,7 +286,7 @@ export function fateModel(player, f, { choose } = /** @type {any} */ ({})) {
       {
         id: 'kill', key: 'K', label: 'Kill', verb: 'Execute', tone: 'warn',
         title: `Kill ${r.given}`,
-        detail: trophy ? `It drops ${trophy.name} - ${trophyKindWords(trophy)}` : 'It drops what it carried',
+        detail: trophy ? `It drops ${trophy.name}: ${trophyKindWords(trophy)}` : 'It drops what it carried',
         confirm: `Destroy ${r.name}? It is gone for good${trophy ? `, and ${trophy.name} is yours` : ''}.`,
         disabled: false,
       },

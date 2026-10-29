@@ -19,7 +19,7 @@ import { accountRefusalText } from './accountClient.js';
 
 /** A moderator's chat word (PROF0 20: "`/note remove <id>`"): `{ op: 'remove', id }`, `{ error }` in words, or null
  *  when the line is not /note. NEVER GUARDED HERE (RED1's law): whether this player may is the service's question. */
-export const NOTE_USAGE = 'Usage: /note remove <note id> - the id a moderator sees on the note.';
+export const NOTE_USAGE = 'Usage: /note remove <note id>, with the id a moderator sees on the note.';
 export function parseNoteCommand(text) {
   const m = /^\/note(?:\s+([\s\S]*))?$/i.exec(String(text ?? '').trim());
   if (!m) return null;

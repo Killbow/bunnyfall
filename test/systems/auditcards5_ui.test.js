@@ -66,9 +66,9 @@ test('AUDIT CARDS-5 D12/D14: the Codex part - every Legendary row, found and not
   const unfound = lines.find((l) => !l.classList.contains('found') && rows.some((x) => x.id === l.dataset.record));   // a Legendary's
   assert.equal(unfound.children[0].textContent, 'Unfound', 'never its name');
   const n = CX.codexCount();
-  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Legendaries - ${n.legendary} of ${n.legendaries} found`));
-  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Aetheric - ${n.aetheric} of ${n.aetherics} found`));
-  assert.ok(all(p.root, (c) => c.classList?.contains('codex-set')).every((s) => /- \d+ of \d+: /.test(s.textContent)), 'each set\'s count');
+  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Legendaries · ${n.legendary} of ${n.legendaries} found`));
+  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Aetheric · ${n.aetheric} of ${n.aetherics} found`));
+  assert.ok(all(p.root, (c) => c.classList?.contains('codex-set')).every((s) => /· \d+ of \d+: /.test(s.textContent)), 'each set\'s count');
   // opened whole: the Reforge's lines
   found.onclick();
   const whole = all(p.root, (c) => c.classList?.contains('codex-whole'))[0];
@@ -83,7 +83,7 @@ test('AUDIT CARDS-5 D12/D14: the Codex part - every Legendary row, found and not
   assert.deepEqual(all(p.root, (c) => c.classList?.contains('codex-whole'))[0].children.map((c) => c.textContent).slice(0, 2), [`Legendary · ${unfound.children[1].textContent.split(' · ')[0]}`, 'Not yet found']);
   // AUDIT WORLD-REWARDS A5: the Gilded rung first, as the Reforge's Codex page lists it - each record a row, unfound by its
   // OWN hint; one found opens whole in the Reforge's own lines, its tier's word first
-  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Gilded - ${n.gilded} of ${n.gildeds} found`));
+  assert.ok(all(p.root, (c) => c.tag === 'h4').some((h) => h.textContent === `Gilded · ${n.gilded} of ${n.gildeds} found`));
   const gildedRows = all(p.root, (c) => c.classList?.contains('codex-line')).slice(0, GILDED_RECORDS.length);
   assert.deepEqual(gildedRows.map((l) => l.dataset.record), GILDED_RECORDS.map((g) => g.id), 'the rung first, in its order');
   assert.deepEqual(gildedRows.map((l) => l.children[1].textContent), GILDED_RECORDS.map((g) => `${g.group} · ${CX.codexGilded().find((x) => x.id === g.id).hint}`), 'each unfound by its own hint');

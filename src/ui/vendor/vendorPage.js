@@ -180,7 +180,7 @@ export function drawVendorPage(detail, rerender, kit) {
     if (!traders.length) detail.append(el('p', 'px-note', VENDOR_PAGE_TEXT.noTraders));
     for (const t of traders) {
       const here = (mine.stock ?? []).filter((l) => l.vendor?.map === t.map && l.vendor?.id === t.id);
-      detail.append(el('p', 'vendor-line', `${townOf(t.map)} - ${here.length} piece${here.length === 1 ? '' : 's'} for sale`));
+      detail.append(el('p', 'vendor-line', `${townOf(t.map)}: ${here.length} piece${here.length === 1 ? '' : 's'} for sale`));
     }
     const takings = el('div', 'vendor-takings');
     takings.append(el('span', 'vendor-line', VENDOR_PAGE_TEXT.takings(Number(mine.gold) || 0)));
@@ -210,7 +210,7 @@ export function drawVendorPage(detail, rerender, kit) {
       total += Number(s.gets) || 0;
       const row = el('div', 'vendor-row');
       const who = s.patron ? safe(() => p.patronName?.(s.patron), null) : null;   // LW15: "Sold to Ada Lark of Wayrest"
-      row.append(named(s.item), el('span', 'vendor-meta', `${who ? `Sold to ${who} - ` : ''}${goldText(s.total)} · you got ${goldText(s.gets)} · ${townOf(s.vendor?.map)} · ${agoText(s.at)}`));
+      row.append(named(s.item), el('span', 'vendor-meta', `${who ? `Sold to ${who}: ` : ''}${goldText(s.total)} · you got ${goldText(s.gets)} · ${townOf(s.vendor?.map)} · ${agoText(s.at)}`));
       lookable(row, `d:${s.listing}:${s.at}`, s.item);
       sg.append(row);
     }

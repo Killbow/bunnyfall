@@ -357,7 +357,7 @@ test('LW15 drawn: the seed dealt to one of the town\'s households alike by every
   const page = readFileSync(new URL('../../../src/ui/vendor/vendorPage.js', import.meta.url), 'utf8');
   assert.match(page, /const sold = \[\.\.\.\(mine\.sold \?\? \[\]\), \.\.\.\(mine\.patronSold \?\? \[\]\)\]\.sort\(/);
   assert.match(page, /const who = s\.patron \? safe\(\(\) => p\.patronName\?\.\(s\.patron\), null\) : null;/);
-  assert.match(page, /\$\{who \? `Sold to \$\{who\} - ` : ''\}/);
+  assert.match(page, /\$\{who \? `Sold to \$\{who\}: ` : ''\}/);
 });
 
 test('LW15 the host\'s seams: the region\'s patrons read online alone, now and then; each town\'s LivingTown its own; its errands and browsers in a household\'s plan; the Vendor page\'s buyer named (mutants: each seam)', () => {

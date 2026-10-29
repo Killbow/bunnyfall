@@ -478,7 +478,7 @@ export function createMarketTab(m, ui) {
   function walletNode() {
     const held = m.book.state.held ?? 0;
     const gold = goldOk() && purse() != null ? ` · Your gold here: ${goldText(purse())}` : '';   // GOLD-MARKET: the purse and the account here
-    return el('p', 'market-wallet', `Your silver: ${balance() == null ? '-' : marksText(balance())}${held > 0 ? ` (${marksText(held)} held in bids)` : ''}${gold}${st.stale ? ' - the market may be out of date' : ''}`);
+    return el('p', 'market-wallet', `Your silver: ${balance() == null ? '-' : marksText(balance())}${held > 0 ? ` (${marksText(held)} held in bids)` : ''}${gold}${st.stale ? '. The market may be out of date' : ''}`);
   }
 
   function roadNode() {
@@ -645,7 +645,7 @@ export function createMarketTab(m, ui) {
     const buy = button('primary market-buy', m.book.busy ? 'Buying...' : 'Buy', () => {
       const units = unitsNow(), courier = courierOf(row, units), w = what(units);
       return act(() => m.book.buy({ region: m.region, listing: row.id, units, max: units * row.price + (courier ?? 0), hubs: m.hubs, ...at(), ...(gold ? { currency: 'gold' } : {}) }, m.mint),
-        (d) => (d?.sale?.here ? `Bought ${w}.` : `Bought ${w} - the courier brings it from ${m.regionNameOf(row.region)} in ${arrivalText(d?.sale?.arrivesAt, ui.nowS())}.`));
+        (d) => (d?.sale?.here ? `Bought ${w}.` : `Bought ${w}. The courier brings it from ${m.regionNameOf(row.region)} in ${arrivalText(d?.sale?.arrivesAt, ui.nowS())}.`));
     });
     const refresh = () => {
       const units = unitsNow(), courier = courierOf(row, units), total = units * row.price;
@@ -951,7 +951,7 @@ export function createMarketTab(m, ui) {
         : st.list.kind === 'item' ? `No fee to list. Up for 72 hours on every board. If it sells you get ${goldGets} (after a 1% fee and ${saleTax(100)}% tax), collected at a bank. It leaves your pack now and comes back if it does not sell.`
         : gold ? `No fee to list. Up for 72 hours on every board. If it all sells you get ${goldGets} (after a 1% fee and ${saleTax(100)}% tax), collected at a bank. Goods bought with silver, and pieces made with them, sell only for silver.`
         : st.list.kind === 'auction'
-          ? `Fee ${marksText(fee)}, kept if you cancel (only before the first bid). Runs ${AUCTION_S / 3600} hours on every board; each bid beats the last by ${AUCTION_RAISE_PCT}%, and a bid in the last ${AUCTION_LATE_S / 60} minutes adds ${AUCTION_ADD_S / 60} minutes. You get the top bid, less ${less}${pct == null ? ' and any Tithe' : ''}.`
+          ? `Fee ${marksText(fee)}, kept if you cancel (only before the first bid). Runs ${AUCTION_S / 3600} hours on every board. Each bid beats the last by ${AUCTION_RAISE_PCT}%, and a bid in the last ${AUCTION_LATE_S / 60} minutes adds ${AUCTION_ADD_S / 60} minutes. You get the top bid, less ${less}${pct == null ? ' and any Tithe' : ''}.`
           : `Fee ${marksText(fee)}, kept if you cancel. Up for 72 hours on every board. If it all sells you get ${marksText(sellerGets(worth(), pct ?? 0))}, after ${less}${pct == null ? ', before any Tithe' : ''}.`;
       b.disabled = ui.busy() || full || !can() || (!gold && short(fee));
     };

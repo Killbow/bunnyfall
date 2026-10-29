@@ -590,7 +590,7 @@ test('AUDIT PROF-541 R2-C1/N1: a realm disenchant that LANDED (its first answer 
   const w = hostText('src/scenes/world.js');
   assert.match(w, /if \(paid\) deductGold\(playerEntity, Math\.min\(f\.fee, totalGoldAmount\(playerEntity\)\)\);\n(?:\s*\/\/[^\n]*\n)*\s*if \(!r\.data\) profBook\.refresh\(\{ force: true \}\)\.catch\(\(\) => \{\}\);/, 'a landed act: the state read again');
   assert.match(w, /if \(r\?\.error === 'prof-no-piece' && r\?\.why === 'disenchanted' && takeOut\(\)\) \{\n\s*const owed = f\.fee > 0 \? Math\.min\(f\.fee, totalGoldAmount\(playerEntity\)\) : 0;\n\s*if \(owed > 0\) deductGold\(playerEntity, owed\);\n\s*profBook\.refresh\(\{ force: true \}\)\.catch\(\(\) => \{\}\);/, 'disenchanted already: the fee paid, the state read again');
-  assert.match(w, /and it leaves your pack\$\{owed > 0 \? `; you paid the enchanter \$\{owed\} gold` : ''\}\./);
+  assert.match(w, /and it leaves your pack\$\{owed > 0 \? `, and you paid the enchanter \$\{owed\} gold` : ''\}\./);
 });
 
 test('AUDIT PROF-541 R2-C2: one latch holds every craft and brew (profBook _craftBusy), so the busy word names no station - not the anvil at the fire, nor the fire at the loom', async () => {

@@ -373,7 +373,7 @@ test('CAPT-BOARD the shipwright\'s Harbourmaster tab: the port and the rank, the
   const h = officeOf();
   const o = h.office.model({ uid: 42 });
   const t = officeText(o);
-  assert.equal(t.lede, 'Wayrest - Wayrest\'s harbormaster. You are Unsworn of Wayrest (standing 0).');
+  assert.equal(t.lede, 'Wayrest, Wayrest\'s harbormaster. You are Unsworn of Wayrest (standing 0).');
   assert.equal(t.board.length, 3);
   assert.match(t.board[0].terms, /^[\d,]+ gold - \d+ days? - \+\d+ with Wayrest$/);
   assert.deepEqual(t.letters.map((x) => [x.id, x.can]), [['marque', false], ['admiralty', false]]);

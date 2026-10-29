@@ -169,9 +169,9 @@ const OWN_CHOICES = Object.freeze({
     // MINE-PERKS (Professions-Arc 43, the players' "Mining perks need buff" thread): the four made worth a choice - the
     // Prospector's compass 500 m and its veins one by one on the Overworld, the Deep Delver's x2 and every vein of the
     // dungeon on the compass, the day's Motherlodes on a Sense's map, and the Stonebreaker made the Surveyor (SURVEYOR)
-    50: pair(spec('prospector', 'Prospector', "Surface veins within 500 m are marked on the compass (a dungeon's within 200 m), and each vein on the Overworld by its ore; gems come a tenth more often."),
+    50: pair(spec('prospector', 'Prospector', "Surface veins within 500 m are marked on the compass (a dungeon’s within 200 m), and each vein on the Overworld by its ore. Gems come a tenth more often."),
       spec('deep-delver', 'Deep Delver', 'Dungeon veins yield double, and every vein in the dungeon is marked on the compass.')),
-    100: pair(spec('motherlode-sense', 'Motherlode Sense', "The day's Motherlodes are marked on your map from the day's start; warnings come 30 minutes ahead, not 10."),   // PROF2b: its Motherlodes built - chosen as any
+    100: pair(spec('motherlode-sense', 'Motherlode Sense', "The day’s Motherlodes are marked on your map from the day’s start, and warnings come 30 minutes ahead instead of 10."),   // PROF2b: its Motherlodes built - chosen as any
       spec(SURVEYOR, 'Surveyor', "You witness the ground yourself: unwitnessed veins can hold any ore of their land for you (a region's own ore still needs the other players). Quarrying yields Cut Stone directly.")),
   }),
   logging: Object.freeze({
@@ -214,7 +214,7 @@ const OWN_CHOICES = Object.freeze({
   carpentry: Object.freeze({
     50: pair(spec('bowyer', 'Bowyer', 'Bows +1 quality step (arrows take none).'),
       spec('joiner', 'Joiner', 'Furniture at half the planks.')),
-    100: pair(spec('siegewright', 'Siegewright', 'Rams +50% vitality; siege works a day sooner.'),   // PROF4: the sieges are SEAT2's - SEAT2b part two: chosen since (fortLaw.js SIEGEWRIGHT_DAYS, ramVitality)
+    100: pair(spec('siegewright', 'Siegewright', 'Rams +50% vitality, and siege works a day sooner.'),   // PROF4: the sieges are SEAT2's - SEAT2b part two: chosen since (fortLaw.js SIEGEWRIGHT_DAYS, ramVitality)
       spec('master-joiner', 'Master Joiner', "Furniture carries the maker's mark.")),
   }),
   masonry: Object.freeze({

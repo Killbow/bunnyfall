@@ -119,11 +119,11 @@ test('EG-F THE START WINDOW: the stake, the warning, Hall 1 and every Redoubt th
   assert.deepEqual(R.log, ['close', 'close', 'cancel']);
 });
 
-test('EG-F THE CALL\'S PROMPT, HORN AND PORTAL: "The breach opens in 4:12" while sealed; "Answer the call - 4:12" while open (Enter, the pad\'s A); "Answer from open ground." indoors; gone under a window and back when it closes; gone once answered or the window ends; the horn a war horn made in code; the portal opened ahead of my feet, the first step in my admission (mutants: answerable while sealed; the prompt over a window; the horn never registered; the step taken in a hold)', async () => {
+test('EG-F THE CALL\'S PROMPT, HORN AND PORTAL: "The breach opens in 4:12" while sealed; "Answer the call: 4:12" while open (Enter, the pad\'s A); "Answer from open ground." indoors; gone under a window and back when it closes; gone once answered or the window ends; the horn a war horn made in code; the portal opened ahead of my feet, the first step in my admission (mutants: answerable while sealed; the prompt over a window; the horn never registered; the step taken in a hold)', async () => {
   const call = { b: B, o: 'Ann', os: 'acct-ann', op: T0, co: [[ME, 'Mac', 1], ['acct-ann', 'Ann', 2]] };
   const at = (now, o = {}) => egCallPromptModel({ call, me: ME, now, ...o });
   assert.deepEqual(at(T0 + 48_000), { text: 'The breach opens in 4:12.', answerable: false, left: EG_SEALED_MS - 48_000 });
-  assert.deepEqual(at(T0 + EG_SEALED_MS + 48_000), { text: 'Answer the call - 4:12', answerable: true, left: EG_ADMIT_MAX_MS - 48_000 });
+  assert.deepEqual(at(T0 + EG_SEALED_MS + 48_000), { text: 'Answer the call: 4:12', answerable: true, left: EG_ADMIT_MAX_MS - 48_000 });
   assert.equal(at(T0 + EG_SEALED_MS + 48_000, { exterior: false }).text, EG_TEXT.indoors);
   assert.equal(at(T0 + EG_SEALED_MS + 48_000, { exterior: false }).answerable, false);
   assert.equal(at(T0 + EG_SEALED_MS, { windowUp: true }), null, 'under a window');
@@ -152,7 +152,7 @@ test('EG-F THE CALL\'S PROMPT, HORN AND PORTAL: "The breach opens in 4:12" while
   const strip = createEgCallPrompt({ onAnswer: () => answered++, doc });
   strip.draw(at(T0 + EG_SEALED_MS + 48_000));
   assert.equal(strip.root.dataset.up, '1');
-  assert.equal(strip.root.children[0].textContent, 'Answer the call - 4:12');
+  assert.equal(strip.root.children[0].textContent, 'Answer the call: 4:12');
   assert.equal(strip.root.children[1].hidden, false);
   strip.root.children[1].fire('click');
   assert.equal(answered, 1, 'a tap answers');
@@ -390,7 +390,7 @@ test('EG-F THE CLIENT ON THE RELAY: the key\'s refusals over the host\'s facts; 
     assert.equal(client.key({ code: 'Enter' }), false, 'nothing to answer while sealed');
     step(EG_SEALED_MS);
     client.frame();
-    assert.equal(prompts.at(-1).text, `Answer the call - ${'4:59'}`);
+    assert.equal(prompts.at(-1).text, `Answer the call: ${'4:59'}`);
     assert.equal(client.key({ code: 'Enter' }), true, 'Enter answers');
     await settle();
     assert.deepEqual(asked.admit, [B]);

@@ -579,7 +579,7 @@ export const FISHING_HOW = 'With a Fishing-Net in your pack, fish while standing
 /** FIELD BUGS 2026-09-30b (TOOL-SAID): how the other three gathering professions gather, as the page says it - the page
  *  said it for Hunting and Fishing alone, and players used the tools from the pack. TOOL-USE: a tool's Use at the node
  *  (the hotbar's, a quick slot's) is the key's; from the pack it only points the way. */
-const GATHER_HOW_HERBALISM = 'Press the use key at a patch of herbs in the wilderness. Common herbs need no tool; the rest need a Sickle in your pack. With a Basket, the patch\'s list also lets you search it for food. The Sickle and the Basket can be used from your hotbar or quick slots as well. Used from your pack, a tool only tells you where it can be used.';
+const GATHER_HOW_HERBALISM = 'Press the use key at a patch of herbs in the wilderness. Common herbs need no tool, but the rest need a Sickle in your pack. With a Basket, the patch’s list also lets you search it for food. The Sickle and the Basket work from your hotbar or quick slots too. Used from your pack, a tool only tells you where it can be used.';
 const GATHER_HOW_MINING = 'Press the use key at a vein of ore or a boulder in the wilderness, or at a vein in a dungeon. You need a Pick-Axe in your pack. The pick can also be used from your hotbar or quick slots. Used from your pack, a tool only tells you where it can be used.';
 const GATHER_HOW_LOGGING = 'Press the use key at a tree in the wilderness. You need a Wood-Axe in your pack. Only some trees in each place can be felled each day. The axe can also be used from your hotbar or quick slots. Used from your pack, a tool only tells you where it can be used.';
 export const GATHER_HOW = Object.freeze({ herbalism: GATHER_HOW_HERBALISM, mining: GATHER_HOW_MINING, logging: GATHER_HOW_LOGGING });
@@ -592,7 +592,7 @@ const gatherHow = (id) => (id === 'herbalism' ? t('prof.page.how.herbalism', GAT
  *  ORE-MAP: and where to read it for a place - the world map's ore card (ui/oreMapTip.js). DEEP-OPEN (bible/06-Systems/
  *  Professions-Arc.md section 53): a dungeon's deep veins draw their whole table on anyone's word (nodeLaw.js
  *  dungeonVein) - only the woods' Moonstone waits (deepClimateOres) - where this line had said "Silver anywhere". */
-export const MINING_GROUND_LINE = 'Veins hold Silver at most until three different players, each with an account at least a week old, have gathered on that ground. Then Gold, Platinum and Mithril in the mountains, and the region\'s own ore, can appear. Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium among them, in any dungeon; only a woodland dungeon\'s Moonstone waits for three players to gather in it. Point at open ground on the world map to see what its veins hold and whether it has been witnessed yet.';
+export const MINING_GROUND_LINE = 'Veins hold Silver at most until three different players, each with an account at least a week old, have gathered on that ground. After that, Gold, Platinum and Mithril can appear in the mountains, along with the region’s own ore. Deep veins in dungeons can hold any of their ores, Dwarven Scrap and Adamantium included. Only a woodland dungeon’s Moonstone waits for three players to gather in it. Point at open ground on the world map to see what its veins hold and whether it has been witnessed yet.';
 /** L10N4: MINING_GROUND_LINE in the player's language. */
 const miningGroundLine = () => t('prof.page.how.miningGround', MINING_GROUND_LINE);
 /** AUDIT MINE-PERKS (the cold pass, 8): what the line above means for a Surveyor - the Mining page told them "Silver at
@@ -1540,7 +1540,7 @@ const daedricWaits = (book) => !!DAEDRIC_SMELT && smeltable(DAEDRIC_SMELT, (k) =
 /** DAEDRIC-SMELT: the Daedric line - what its smelt takes, and where a heart and an ember are won (systems/loot/lootThemes.js
  *  CREATURE_INGREDIENT_THEME, the daedra's hearts; systems/riteChest.js RITE_HEART, the Breach's faithful's chest;
  *  accounts.js EMBERS_EARNED_SQL, the embers the account earned). */
-export const DAEDRIC_LINE = 'A Daedric Ingot takes an Ebony Ingot, a Daedra\'s Heart and a Deadlands Ember. Hearts are carried by the daedra you slay and won at Dagon\'s Breaches; embers are won closing the Breaches, slaying Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won.';
+export const DAEDRIC_LINE = 'A Daedric Ingot takes an Ebony Ingot, a Daedra’s Heart and a Deadlands Ember. Daedra you kill and Dagon’s Breaches give Hearts. Embers come from closing Breaches, killing Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won.';
 const daedricWord = () => t('prof.page.forge.daedric', DAEDRIC_LINE);
 
 // ─── PROF3: THE ANVIL (bible/06-Systems/Professions-Arc.md 9, 24) ─────
@@ -2384,7 +2384,7 @@ function drawLoom(detail, rerender, kit) {
 // ─── PROF11: THE MASON'S BENCH (bible/06-Systems/Professions-Arc.md 4.5, 9.3, 9.4) ─────
 
 /** What setting the chisel down says. */
-export const CHISEL_DOWN_LINE = 'You set the chisel down; nothing is spent.';
+export const CHISEL_DOWN_LINE = 'You set the chisel down. Nothing is spent.';
 const chiselDownLine = () => t('prof.page.mason.down', CHISEL_DOWN_LINE);
 /** Tests: the bench's state - its chisel ticked by hand, as a frame would. */
 export const _masonForTests = () => _mason;
@@ -2639,7 +2639,7 @@ function drawMasonBench(detail, rerender, kit) {
 // ─── PROF9: THE FIRE (bible/06-Systems/Professions-Arc.md 9.3, 9.4, 35) ─────
 
 /** What setting the pan aside says. */
-export const PAN_DOWN_LINE = 'You take the pan off the fire; nothing is spent.';
+export const PAN_DOWN_LINE = 'You take the pan off the fire. Nothing is spent.';
 const panDownLine = () => t('prof.page.fire.down', PAN_DOWN_LINE);
 /** Where Cooking is done, said away from a fire. */
 export const FIRE_AWAY_LINE = 'Cook at a fire, such as a campfire, a hearth or a brazier. Stand close to its flame. Your dishes go to your pack.';
@@ -2828,7 +2828,7 @@ function drawCookFire(detail, rerender, kit) {
 // ─── PROF10: THE JEWELLER'S BENCH (bible/06-Systems/Professions-Arc.md 9.3, 9.4, 36) ─────
 
 /** What setting the stone down says. */
-export const FACET_DOWN_LINE = 'You set the stone down; nothing is spent.';
+export const FACET_DOWN_LINE = 'You set the stone down. Nothing is spent.';
 const facetDownLine = () => t('prof.page.jewel.down', FACET_DOWN_LINE);
 /** Tests: the bench's state - its facet ticked by hand, as a frame would. */
 export const _jewelForTests = () => _jewel;
@@ -3434,7 +3434,7 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
     if (!n) continue;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${n} Arcane Essence a line`));
-    if (have < n) row.append(el('span', 'prof-short', `Needs ${n} Arcane Essence; your Stores hold ${have}.`));
+    if (have < n) row.append(el('span', 'prof-short', `Needs ${n} Arcane Essence, and your Stores hold ${have}.`));
     // FB1017 REFORGE-STACK: a press a line, in a block of their own under the piece - in the row's button track (one cell,
     // `.prof-smelt .act`) every press drew on the first and the name was squeezed to nothing
     const presses = el('div', 'prof-lines');

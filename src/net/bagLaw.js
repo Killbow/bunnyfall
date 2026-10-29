@@ -162,8 +162,8 @@ export function goodsWhere(d) {
   // AUDIT2 BAG1 K11: none of it carried - said as such, never "to your bag" of goods that went nowhere
   if (!(p.bag > 0) && !(p.pack > 0) && p.left > 0) return `- all ${left}: no room in your bag or pack`;
   const to = p.bag > 0 && p.pack > 0 ? 'to your bag and pack' : p.pack > 0 ? 'to your pack' : 'to your bag';
-  const said = (put.over | 0) > 0 ? `${to} - your pack is over its weight` : to;
-  return p.left > 0 ? `${said} - ${p.left} ${left}: no room` : said;
+  const said = (put.over | 0) > 0 ? `${to} · your pack is over its weight` : to;
+  return p.left > 0 ? `${said} · ${p.left} ${left}: no room` : said;
 }
 
 /** AUDIT2 BAG1 K10: why a station's work stayed in the Stores (net/profBook.js carryOut's `why`) - a refusal's own words

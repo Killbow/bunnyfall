@@ -48,7 +48,7 @@ export const EG_BOARD_TEXT = Object.freeze({
   wagered: 'wagered',
   you: 'you',
   proclamation: (p) => `This week's Proclamation: ${p.name}${p.line ? ` - ${p.line}` : ''}`,
-  best: (h, t) => `Your best: Hall ${h} - ${egBoardClock(t)}`,
+  best: (h, t) => `Your best: Hall ${h} · ${egBoardClock(t)}`,
   noBest: 'Your best: no descent yet this season.',
   close: 'Close',
 });

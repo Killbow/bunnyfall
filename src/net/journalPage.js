@@ -85,7 +85,7 @@ const noteTokensOf = (lines) => lines.map((l) => ({ formatting: 'text', text: l 
  */
 export function keptPageTokens(name, page) {
   const who = name || 'someone';
-  return noteTokensOf([page.head ? `From the journal of ${who} - ${page.head}` : `From the journal of ${who}:`, '', ...page.lines]);
+  return noteTokensOf([page.head ? `From the journal of ${who}: ${page.head}` : `From the journal of ${who}:`, '', ...page.lines]);
 }
 
 /**

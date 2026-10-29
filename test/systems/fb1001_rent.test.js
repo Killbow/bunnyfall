@@ -214,7 +214,7 @@ test('RENT-FRESH: the owner\'s rooms are read again as the panel opens and while
   o.rig.frame();
   assert.equal(o.rig.tool.openPanel(), true);
   assert.ok(await o.until(() => collectText(o) === 'Collect rent: 150 gold'), `reopened: ${collectText(o)}`);
-  assert.match(text(o.rows()[0]), /Rented by Tomas - 3 days left/);
+  assert.match(text(o.rows()[0]), /Rented by Tomas · 3 days left/);
   // ...and while the view stays up, past the bound, it is read again
   assert.equal(typeof DT.RENT_VIEW_FRESH_MS, 'number');
   assert.equal((await H.rentHomeRoom({ api: w.api, homes: w.homes, realm: actFor(w.T), wallet: walletOf(playerWith(5000), 17), mapId: 7, buildingKey: 300, character: w.T.id, room: 1, days: 1, price: 50 })).ok, true);
@@ -261,7 +261,7 @@ test('RENT-ORPHANS: a house that is one room now lists its offers to its owner -
   assert.deepEqual(o.empty(), [DECOR_RENT_FINDING], 'the rooms are being found - not "a house of one room"');
   assert.ok(await o.until(() => o.rows().length === 2), `found: ${o.empty()}`);
   const lines = o.rows().map(text);
-  assert.match(lines[0], /Room 1 \(its walls have changed\).*Rented by Tomas - 2 days left/);
+  assert.match(lines[0], /Room 1 \(its walls have changed\).*Rented by Tomas · 2 days left/);
   assert.match(lines[1], /Room 2 \(its walls have changed\).*Offered at 60 gold a day/);
   assert.match(o.tab().textContent, /Rooms to rent \(2\)/);
   o.rows()[1].fire('click');

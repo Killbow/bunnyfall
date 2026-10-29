@@ -88,7 +88,7 @@ export function levelingOptions(s = null, { online = false } = {}) {
       lines: Object.freeze([
         'Level with a bar, as in Oblivion Remastered.',
         'Every skill you raise fills it, your best',
-        `skills fastest. At ${LEVELUP_TOTAL} you level; the rest`,
+        `skills fastest. At ${LEVELUP_TOTAL} you level, and the rest`,
         purse > 0
           ? `rolls over. Each level gives you ${virtues},`
           : 'rolls over. Attribute points are set to 0,',

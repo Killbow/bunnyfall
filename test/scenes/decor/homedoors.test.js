@@ -425,7 +425,7 @@ test('HOME-DOORS the panel says where a door goes before it is placed: a door\'s
   const { decorDoorLine } = await import('../../../src/ui/decorPanel.js');
   assert.equal(decorDoorLine(null), 'hangs in a doorway. Finding the doorways...');
   assert.equal(decorDoorLine(0), 'hangs in a doorway. This house has none free');
-  assert.equal(decorDoorLine(2), 'hangs in a doorway - 2 free here, marked while you place it');
+  assert.equal(decorDoorLine(2), 'hangs in a doorway, 2 free here, marked while you place it');
   const rig = toolRig({ collider: rigHouse(), gold: 50_000, doors: [0], walls: WALLS, doorsHere: () => [] });
   rig.frame();
   rig.tool.openPanel();
@@ -434,5 +434,5 @@ test('HOME-DOORS the panel says where a door goes before it is placed: a door\'s
   const rowsOf = (n, out = []) => { if (String(n.className).split(/\s+/).includes('dfdecor-row')) out.push(n); for (const k of n.children ?? []) rowsOf(k, out); return out; };
   rowsOf(root).find((r) => r.dataset.key === 'm9000').fire('click');
   const line = (function find(n) { if (n.className === 'dfdecor-pick-line') return n; for (const k of n.children ?? []) { const f = find(k); if (f) return f; } return null; })(root);
-  assert.match(line.textContent, /hangs in a doorway - 1 free here/);
+  assert.match(line.textContent, /hangs in a doorway, 1 free here/);
 });

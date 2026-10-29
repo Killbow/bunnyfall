@@ -115,7 +115,7 @@ test('PROF11 law: Masonry\'s four (3.3) - the Quarryman (50) and the Sculptor (1
     ['quarryman', 'Quarryman', 'Rough Stone cuts 1:1, not 2:1.', null], ['builder', 'Builder', 'Fortification projects need 10% less stone.', null],   // PIN MOVED (SEAT2b): chosen now
   ]);
   assert.deepEqual(SPECIALISATIONS.building[100].map((s) => [s.id, s.name, s.text, s.later ?? null]), [
-    ['siegewright', 'Siegewright', 'Rams +50% vitality; siege works a day sooner.', null], ['master-joiner', 'Master Joiner', 'Furniture carries the maker\'s mark.', null],
+    ['siegewright', 'Siegewright', 'Rams +50% vitality, and siege works a day sooner.', null], ['master-joiner', 'Master Joiner', 'Furniture carries the maker\'s mark.', null],
     ['fortifier', 'Fortifier', 'Once a Season a seat\'s Walls skip their drop on capture.', null], ['sculptor', 'Sculptor', 'Stone decor pieces.', null],   // PIN MOVED (SEAT2b)
   ]);
   assert.equal(SPECIALISATIONS.masonry, undefined, 'no track of its own');   // PIN MOVED (CRAFT3): a discipline, not a track

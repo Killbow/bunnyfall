@@ -32,7 +32,7 @@ export const SD_BAR_TEXT = Object.freeze({
   rises: (e, secs) => `${e === 0 ? 'Gold' : 'Silver'} rises - ${secs}s`,   // AUDIT SD II (L6 F6): the pair's window; AUDIT SD III (T5): its count after the dash, as every countdown on the bar - "rises in 12s" came in afresh each second
   risesIn: (secs) => `rises in ${secs}s`,   // the Echoes' chip: "Gold 45% - Silver rises in 7s"
   stunned: (secs) => `Stunned: ${secs}s`,
-  reset: (left, n, secs) => `The Reset: ${left} of ${n} ${n === 1 ? 'Heart' : 'Hearts'} - ${secs}s`,
+  reset: (left, n, secs) => `The Reset: ${left} of ${n} ${n === 1 ? 'Heart' : 'Hearts'} · ${secs}s`,
   echo: (e, name) => `${e === 0 ? 'Gold' : 'Silver'} Echo: ${name}`,
   echoes: (g, s) => `Gold ${g} · Silver ${s}`,
   echoLeft: (h, m) => (h > 0 ? `${Math.max(1, Math.round((h / Math.max(1, m)) * 100))}%` : 'fallen'),

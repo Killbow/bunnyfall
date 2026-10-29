@@ -645,7 +645,7 @@ export function meritLineOf(m, nowS) {
   const name = hallPosterName(m?.faction) ?? 'guild';
   if (m.from != null && m.from > nowS) {
     const days = Math.ceil((m.from - nowS) / 86_400);
-    return `The ${name} counts your Merit after a week in the guild - ${days === 1 ? 'tomorrow' : `in ${days} days`}`;
+    return `The ${name} counts your Merit after a week in the guild. ${days === 1 ? 'tomorrow' : `in ${days} days`}`;
   }
   if (m.elsewhere) return `Your Merit with the ${name} this week is another chapter's`;
   return `Merit with the ${name} here this week: ${Number(m.merit).toLocaleString('en-US')} of ${Number(m.max).toLocaleString('en-US')}`;
@@ -1446,7 +1446,7 @@ export function chapterPatronSheetLine(/** @type {any} */ patron, /** @type {unk
   // AUDIT GUILD3 L6: what the patronage buys, where the hall sells training (chapterHallFactor - the better of the band's
   // price and Thriving's); W12: its tag as guildTagText writes every guild's, <TAG>
   const priced = faction != null && chapterDoctrinesFor(faction).includes('training');
-  return `Its patron this Season: ${p.name}${p.tag ? ` <${p.tag}>` : ''}${priced ? ` - its members pay ${chapterBandNamed(CHAPTER_PATRON_BAND)}'s prices here, or the band's where better` : ''}.`;
+  return `Its patron this Season: ${p.name}${p.tag ? ` <${p.tag}>` : ''}${priced ? `, so its members pay ${chapterBandNamed(CHAPTER_PATRON_BAND)}'s prices here, or the band’s where they’re better` : ''}.`;
 }
 /** The board's line for a guildmaster's own bid: "Your guild bids 1,500 silver for its patronage in the Season of First
  *  Seed." - or that it has not bid; null for no bid to say. */

@@ -82,7 +82,7 @@ test('SEAT2a THE SIDES AND THE WORDS: ten and twenty a side, two and four Sellsw
   assert.equal(sideLine('Attackers', 7, 10, 1), 'Attackers: 7 of 10 signed (1 Sellsword).');
   assert.equal(sideLine('Defenders', 3, 10, 0), 'Defenders: 3 of 10 signed.');
   assert.match(chronicleLine({ kind: 'battle-moved', week: 4, data: { at: siegeStartMs(WK, 1, 23) / 1000 } }, ANTICLERE), /was moved to Thursday at 23:00 UTC, so that no guild fights twice at once\./);
-  assert.match(chronicleLine({ kind: 'battle-void', week: 4, data: {} }, ANTICLERE), /no hour of the week could hold the battle for Anticlere; it is void\./);
+  assert.match(chronicleLine({ kind: 'battle-void', week: 4, data: {} }, ANTICLERE), /no hour of the week could hold the battle for Anticlere, so it’s void\./);
   for (const [k, v] of Object.entries(SIGN_WHY)) assert.equal(accountRefusalText(k), v, k);
   assert.match(accountRefusalText('bad-fee'), /at most 5,000\./);
 });

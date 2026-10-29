@@ -125,7 +125,7 @@ export function createHallBook({ door, storage = null, nowMs = () => Date.now(),
  *  (the region the player stands in - the towns the audit names) or `/hall strike <map id>` - `{ op, key? }`, `{ error }`
  *  in words, or null when the line is not /hall. NEVER GUARDED HERE (RED1's law): whether this player may is the
  *  service's question (server-account/src/npcHalls.js listHalls, strikeHall). */
-export const HALL_USAGE = 'Usage: /hall audit - the towns of this region the audit names; /hall strike <map id> - a false town struck.';
+export const HALL_USAGE = 'Usage: /hall audit lists the towns of this region the audit names. /hall strike <map id> strikes a false town.';
 export function parseHallCommand(/** @type {unknown} */ text) {
   const m = /^\/hall(?:\s+([\s\S]*))?$/i.exec(String(text ?? '').trim());
   if (!m) return null;

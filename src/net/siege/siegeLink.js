@@ -149,7 +149,7 @@ export function siegeWorksLine(s) {
   if (s.gate) out.push(s.gate[0] > 0 ? `GATEHOUSE ${s.gate[0].toLocaleString('en-US')} / ${s.gate[1].toLocaleString('en-US')}` : 'GATEHOUSE BREACHED');
   if (s.gate && s.gate[0] > 0 && s.ram) {
     const [hp, max, charge, left] = s.ram;
-    const behind = left > 0 ? ` - ${left} more in the camp` : '';
+    const behind = left > 0 ? `, ${left} more in the camp` : '';
     out.push(max > 0 ? `RAM ${hp.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}  ${charge}/10 s${behind}` : `RAM coming at the next wave${behind}`);
   }
   if (s.walls > 0) out.push(`WALLS ${s.walls}`);
@@ -187,7 +187,7 @@ export function siegeResultTitle(end, battle) {
   }
   if (battle.kind === 'revolt') return end.r === 'defend' ? `${D} PUTS DOWN THE REVOLT AT ${seat}` : `THE REVOLT STANDS - ${seat} IS LOST TO ${D}`;   // SEAT2b part two (c)
   if (end.r === 'attack') return `${A} TAKES THE THRONE OF ${seat}`;
-  if (end.r === 'forfeit') return `${A} NEVER CAME - ${D} HOLDS ${seat}`;
+  if (end.r === 'forfeit') return `${A} NEVER CAME. ${D} HOLDS ${seat}`;
   if (end.r === 'absent') return `NEITHER SIDE CAME - ${D} KEEPS ${seat}`;
   return `${D} HOLDS THE THRONE OF ${seat}`;
 }

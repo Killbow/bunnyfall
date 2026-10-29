@@ -37,8 +37,8 @@ test('SEASON1 THE TIDES\' NUMBERS AND WORDS (9.3): every effect\'s number; a Tid
   assert.deepEqual(Object.keys(TIDE_WORDS), TIDES.map((t) => t.id));
   assert.deepEqual([tideName('daedra'), tideName('orcs'), tideName('nope')], ['Daedric Incursion', 'Orc Raids', null]);
   assert.deepEqual(['wayrest', 'marches', 'free', 'x'].map(tideLandName), ['the Kingdom of Wayrest', 'the Marches', 'the Free Lands', null]);
-  assert.equal(tideLine(34, 'plague', 'calm'), 'The Tide in the Kingdom of Wayrest this week: Plague - the Watch counts half, and Festivals cost double. Next week: Calm.');
-  assert.equal(tideLine(21, 'calm', null), 'The Tide in the Marches this week: Calm - nothing stirs.');
+  assert.equal(tideLine(34, 'plague', 'calm'), 'The Tide in the Kingdom of Wayrest this week: Plague. the Watch counts half, and Festivals cost double. Next week: Calm.');
+  assert.equal(tideLine(21, 'calm', null), 'The Tide in the Marches this week: Calm. nothing stirs.');
   assert.deepEqual([tideLine(31, 'plague', 'calm'), tideLine(34, null, 'calm')], [null, null]);
 });
 

@@ -185,7 +185,7 @@ export function rentRoomsView(found, offers, roomOf, origin) {
 export function rentRowSub(row, nowS) {
   const o = row.offer;
   if (!o) return row.offerable ? 'Not offered to rent' : `Only ${RENT_ROOMS_MAX} rooms can be offered`;
-  if (o.taken) return `Rented by ${o.tenant ?? 'a tenant'} - ${rentDaysLeft(o.until, nowS)} day${rentDaysLeft(o.until, nowS) === 1 ? '' : 's'} left${o.listed ? '' : ', then no longer offered'}`;
+  if (o.taken) return `Rented by ${o.tenant ?? 'a tenant'} · ${rentDaysLeft(o.until, nowS)} day${rentDaysLeft(o.until, nowS) === 1 ? '' : 's'} left${o.listed ? '' : ', then no longer offered'}`;
   if (!o.listed) return 'No longer offered to rent';   // AUDIT: a room taken off the offer whose tenancy ran out (it said "Offered")
   return `Offered at ${goldSum(o.price)} gold a day`;
 }

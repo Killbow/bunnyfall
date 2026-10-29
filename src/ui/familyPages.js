@@ -646,7 +646,7 @@ export function drawHousePage(detail, rerender, { el, divider } = /** @type {any
   const here = prov.moveFamilySeat ? prov.familySeatHere?.() ?? null : null;
   if (here) {
     const armed = _armed === 'seat';
-    const b = el('button', `act fam-moveseat${armed ? ' primary' : ''}`, armed ? `Yes - make ${here.loc} the family seat` : `Make ${here.loc} the family seat`);
+    const b = el('button', `act fam-moveseat${armed ? ' primary' : ''}`, armed ? `Yes, make ${here.loc} the family seat` : `Make ${here.loc} the family seat`);
     b.setAttribute('data-focus', 'fam-act-seat');   // armed, its words change - the keyboard stays on it
     b.onclick = () => {
       if (!armed) { _armed = 'seat'; _seatSaid = { ok: true, text: `The house's heirs will be born in ${here.loc}, and its fallen laid to rest there. Press again to move the seat.` }; rerender(); return; }

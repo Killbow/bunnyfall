@@ -586,7 +586,7 @@ function paintWaypoints() {
     const name = doc.createElement('span');
     name.className = 'tview-wp-name';
     name.textContent = w.name;
-    name.title = `${WAYPOINT_TEXT.kindWord[w.kind]}${!w.mine && w.by ? ` by ${w.by}` : ''} - right-click its flag to rename it`;
+    name.title = `${WAYPOINT_TEXT.kindWord[w.kind]}${!w.mine && w.by ? ` by ${w.by}` : ''}. Right-click its flag to rename it`;
     const dist = doc.createElement('span');
     dist.className = 'tview-wp-dist';
     dist.textContent = wpDist[id] ?? '';

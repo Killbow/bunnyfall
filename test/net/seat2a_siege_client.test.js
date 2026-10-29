@@ -72,8 +72,8 @@ test('SEAT2a part three HONOURS AND THE SPOILS: 50 Marks and 2,000 Renown XP to 
   ], [
     'In week 20, Ebon Oath <EO> took the Charter of Anticlere by siege from the Silver Hand <SH>.',
     'In week 20, the Silver Hand <SH> held Anticlere against the siege of Ebon Oath <EO>.',
-    'In week 20, Ebon Oath <EO> never came to the siege of Anticlere; the Silver Hand <SH> holds it by forfeit.',
-    'In week 20, neither side came to the siege of Anticlere; the Silver Hand <SH> keeps it.',
+    'In week 20, Ebon Oath <EO> never came to the siege of Anticlere, so the Silver Hand <SH> holds it by forfeit.',
+    'In week 20, neither side came to the siege of Anticlere, so the Silver Hand <SH> keeps it.',
     'In week 20, Ebon Oath <EO> won the Tourney for the Charter of Anticlere.',
     'In week 20, the Tourney for Anticlere was fought, but neither guild could pay for the Charter of Anticlere.',
   ]);
