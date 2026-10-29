@@ -209,7 +209,7 @@ export function createWorkTab(w, ui) {
 
   // ─── A GUILD WRIT ──────────────────────────────────────────────────
   function guildWritCard(x, data) {
-    const li = el('li', `notice-card notice-writ seal-company${x.state !== 'open' ? ' done' : ''}`);
+    const li = el('li', `notice-card notice-writ seal-guild${x.state !== 'open' ? ' done' : ''}`);
     li.append(el('span', 'notice-pin'), el('span', 'writ-kind', x.seat != null ? t('prof.work.writ.seatKind', 'Seat writ') : t('prof.work.writ.kind', 'Company writ')));
     const flag = writBanner(x.guild?.heraldry);   // AUDIT-SEATS G11: its guild's banner
     if (flag) li.append(flag);
@@ -262,7 +262,7 @@ export function createWorkTab(w, ui) {
 
   // ─── A GUILD CONTRACT (SILVER-WAYS) ────────────────────────────────
   function contractCard(x, data) {
-    const li = el('li', `notice-card notice-writ seal-company${x.state !== 'open' ? ' done' : ''}`);
+    const li = el('li', `notice-card notice-writ seal-guild${x.state !== 'open' ? ' done' : ''}`);
     li.append(el('span', 'notice-pin'), el('span', 'writ-kind', t('prof.work.contract.kind', 'Company contract')));
     const flag = writBanner(x.guild?.heraldry);
     if (flag) li.append(flag);

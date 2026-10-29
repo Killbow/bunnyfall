@@ -871,7 +871,7 @@ export function mountNoticeBoard(host, deps) {
   /** GUILD1e: a town's recruitment note hung as its guild's poster - the banner, the guild, the note's subject. */
   function posterNode(n) {
     const c = { key: `note:${n.id}`, seal: 'guild', subject: n.subject, body: n.body, from: n.from, at: n.at, expiresAt: n.expiresAt, note: n };
-    const li = el('li', 'notice-card notice-poster seal-company');
+    const li = el('li', 'notice-card notice-poster seal-guild');
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
     const img = bannerImg(n.guild.heraldry, 38);
