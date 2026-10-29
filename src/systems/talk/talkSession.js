@@ -83,9 +83,9 @@ export const oathTextId = (race) => OATH_BASE_TEXT_ID + (OATH_RACE_INDEX[race] ?
  *  LOCATION name, falling back to the region name off-location.
  *  MH1: the walk is questMacros' expandMacroValues - this is a VALUE
  *  MAP now, not a replaceAll chain. */
-export function expandMacros(text, { playerName = '', oath = '', cityName = '' } = {}) {
+export function expandMacros(text, { playerName = '', oath = '', cityName = '', address = null } = {}) {
   return expandMacroValues(text, {
-    pcf: known(playerName) && firstName(playerName), pcn: known(playerName), cn: known(cityName), oth: oath,
+    pcf: known(address) ?? (known(playerName) && firstName(playerName)),   // BUNNYFALL PHASE 3 (systems/names.js): `address`, what this NPC calls you pcn: known(playerName), cn: known(cityName), oth: oath,
   });
 }
 
@@ -114,9 +114,10 @@ export function expandAnswerRecord(raw, {
   // them, and the host with no talk engine printed them raw. A function
   // is called per occurrence, as C# calls the handler per macro.
   femaleName = null, maleName = null,
+  address = null,   // BUNNYFALL PHASE 3 (systems/names.js)
 } = {}) {
   return expandMacroValues(raw, {
-    pcf: known(playerName) && firstName(playerName), pcn: known(playerName), cn: known(cityName), oth: oath,
+    pcf: known(address) ?? (known(playerName) && firstName(playerName)), pcn: known(playerName), cn: known(cityName), oth: oath,
     hnt: hint, hnt2: hint, key, hnr: honorific, ra: race,
     fn: femaleName, fn2: femaleName, mn: maleName, mn2: maleName,
   });
@@ -130,7 +131,7 @@ export function expandAnswerRecord(raw, {
  * @param rolls Math.random-compatible (variant picks)
  * @returns { refused, textId, text }
  */
-export function startMobileTalk({ reaction, textVariants, playerName = '', npcRace = 'Breton', cityName = '', rolls = Math.random }) {
+export function startMobileTalk({ reaction, textVariants, playerName = '', npcRace = 'Breton', cityName = '', rolls = Math.random, address = null }) {
   const pick = (id) => {
     const variants = textVariants(id) ?? [''];
     return variants[Math.floor(rolls() * variants.length)] ?? '';
@@ -141,5 +142,5 @@ export function startMobileTalk({ reaction, textVariants, playerName = '', npcRa
   const textId = greetingTextId(reaction);
   const raw = pick(textId);
   const oath = raw.includes('%oth') ? pick(oathTextId(npcRace)) : '';
-  return { refused: false, textId, text: expandMacros(raw, { playerName, oath, cityName }) };
+  return { refused: false, textId, text: expandMacros(raw, { playerName, oath, cityName, address }) };
 }

@@ -128,6 +128,7 @@ const ENTITY_FIELDS = [
   // model, or no lineage (systems/legacy/family.js NO_LINEAGE), which keeps them out of the system for good. A save
   // written before it carries none, and reads as a character who was never asked.
   'legacyChoice',
+  'firstName', 'lastName',   // BUNNYFALL PHASE 3 (systems/names.js): a save from before carries neither, and the picker asks
   // AUDIT 17h F1: the six BIOGRAPHY modifiers, which DFU persists
   // one-for-one (SerializablePlayer.cs:136-141, :305-310). Without
   // them a load reset every biography answer's lasting effect.

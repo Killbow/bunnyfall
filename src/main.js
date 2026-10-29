@@ -51,6 +51,7 @@ import { publishBootParams, BOOT_DOOR_KEYS } from './systems/online/onlineLane.j
 // build that is gone. Recoverable, and the law of that is its own file.
 import { staleChunkAction, RELOAD_KEY, STALE_CHUNK_TEXT } from './systems/staleChunk.js';
 import { loseGlContext, onPageGone, releaseGlContexts } from './render/glRelease.js';   // GL-LEAK: a leaf - the entry's reach is unchanged
+import './ui/namePicker.js';   // BUNNYFALL PHASE 3: a character without a first and last name is asked for them in the world
 
 async function boot() {
   installFramePacer();   // FPS-VSYNC: first, before any loop asks for a frame - a no-op but in the app with the wait lifted

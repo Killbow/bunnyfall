@@ -33,6 +33,7 @@
 //     reports as `modal` and the steal arm below routes on.
 
 import { FactionFile } from '../formats/factionFile.js';
+import { spokenName } from '../systems/names.js';   // BUNNYFALL PHASE 3 (systems/names.js): what NPCs call you
 import { addCustomFactions } from '../systems/faction/factionRep.js';   // RR3: a mod's registered factions, on this reader too
 import { racialSuppressTalk } from '../systems/lycanthropy.js';   // V4: the transformed talk refusal
 import { TextRsc } from '../formats/textRsc.js';
@@ -396,8 +397,10 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
   }
   /** One record through the greeting/question macro set: the oath is
    *  drawn ONLY when the record carries %oth (DFU expands lazily). */
+  /** BUNNYFALL PHASE 3: what the NPC in front of you calls you - your first name if they like you, else title and last name. */
+  const addressNow = () => spokenName(playerEntity, peopleNow() ? getReactionToPlayer(peopleNow(), playerEntity) : 0);
   const expandRecord = (raw) => expandMacros(raw, {
-    playerName: playerEntity.name ?? '',
+    playerName: playerEntity.name ?? '', address: addressNow(),
     oath: raw.includes('%oth') ? randomPooledText(oathTextId(npcRaceNow()), '') : '',   // F047: GetRandomText(201 + oathId)
     cityName: shownCityName(),
   });
@@ -886,7 +889,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     // exterior.js): the reaction-threshold greeting ladder alone.
     const reaction = peopleNow() ? getReactionToPlayer(peopleNow(), playerEntity) : 0;
     const t = startMobileTalk({
-      reaction, textVariants, playerName: playerEntity.name ?? '', npcRace: npcRaceNow(), rolls, cityName: shownCityName(),
+      reaction, textVariants, playerName: playerEntity.name ?? '', npcRace: npcRaceNow(), rolls, cityName: shownCityName(), address: spokenName(playerEntity, reaction),   // BUNNYFALL PHASE 3 (systems/names.js)
     });
     if (t.refused) { hud.add(t.text || 'You get no response.'); return; }
     // AUDIT 39 (#46): through the slot's own door, like every other
@@ -1281,7 +1284,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     // runs the FULL MacroHelper over the answer record - %oth and %cn
     // resolve here exactly as they do in the greeting.
     return expandAnswerRecord(raw, {
-      playerName: playerEntity.name ?? '',
+      playerName: playerEntity.name ?? '', address: addressNow(),   // BUNNYFALL PHASE 3 (systems/names.js)
       oath: raw.includes('%oth') ? randomPooledText(oathTextId(npcRaceNow()), '') : '',   // F047: GetRandomText(201 + oathId)
       cityName: shownCityName(),
       hint, key: building.name,
