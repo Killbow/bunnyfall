@@ -85,6 +85,7 @@ test('I1: the Actions enum, verbatim names and order (:324-384)', () => {
     'ShotCycle',   // SHOT-KINDS: the guns' load (bible/03-World/Naval-Refit.md) - appended (PIN MOVED)
     'PartyPing',   // PARTY-PING: a look's point for the party - appended (PIN MOVED)
     'Decorate',   // the decorator, unbound - a player gives it a key; appended last (PIN MOVED)
+    'HotbarPreset',   // BUNNYFALL HOTBAR-PRESETS: the next hotbar set, appended last (PIN MOVED)
   ]);
   // ActionNameToEnum's sentinel: unknown parses to Unknown, and
   // Unknown itself is NOT a bindable action.
@@ -143,7 +144,7 @@ test('I1: ResetDefaults\' table, every row (:979-1032)', () => {
     // The Beholder's B and keypad +, Travel Options' K, and Horse Cart and
     // Cargo's comma and period (off 5 and 6, which the hotbar now owns).
     'KeyE=Interact', 'Tab=QuickDial',
-    'Digit5=Hotbar5', 'Digit6=Hotbar6', 'Digit7=Hotbar7', 'Digit8=Hotbar8', 'Digit9=Hotbar9', 'Digit0=Hotbar10',
+    'Digit5=Hotbar5', 'Digit6=Hotbar6', 'Digit7=Hotbar7', 'Digit8=Hotbar8', 'Digit9=Hotbar9', 'Digit0=Hotbar10', 'Minus=HotbarPreset',
     'KeyO=TorchToggleLight', 'KeyG=TorchDrop', 'KeyX=TorchThrow',
     'KeyB=ShoulderSwitch', 'NumpadAdd=AutoPerspective',
     'KeyK=FollowPaths',
@@ -181,10 +182,10 @@ test('I1: ResetDefaults\' table, every row (:979-1032)', () => {
   // DebugOverlay ships unbound, a developer's key. CSA-D: two more appended, both bound; CSA-E four more, all bound;
   // CSA-G three more, all bound. PROF1: and the act choice, appended and bound (the up arrow). HELM-KEYS: less sail on
   // the down arrow; more sail owns no key - it SHARES the up arrow with the act choice (DEFAULT_SHARES).
-  assert.equal(DEFAULT_BINDINGS.length, 79);   // PARTY-PING: Mouse2 leaves AutoRun and the ping takes it, auto-run gains F3 (net +1); CARGO-ANYWHERE: plus the hold's (F4) - PIN MOVED; UI-CALM: plus the saddle panel's (F2); TECH1: plus the technique's (Mouse3); MODE-WHEEL: minus F1-F4 and Sneak's Alt, plus the wheel's; LEGACY3: plus the Family tab's; VIEW-TOGGLE: plus the view's toggle; PROF1: plus the act choice's; HELM-KEYS: plus less sail's
-  assert.equal(bound.size, 79, 'no action is defaulted twice');   // PARTY-PING: the ping's own
+  assert.equal(DEFAULT_BINDINGS.length, 80);   // BUNNYFALL HOTBAR-PRESETS: plus Minus (PIN MOVED)   // PARTY-PING: Mouse2 leaves AutoRun and the ping takes it, auto-run gains F3 (net +1); CARGO-ANYWHERE: plus the hold's (F4) - PIN MOVED; UI-CALM: plus the saddle panel's (F2); TECH1: plus the technique's (Mouse3); MODE-WHEEL: minus F1-F4 and Sneak's Alt, plus the wheel's; LEGACY3: plus the Family tab's; VIEW-TOGGLE: plus the view's toggle; PROF1: plus the act choice's; HELM-KEYS: plus less sail's
+  assert.equal(bound.size, 80, 'no action is defaulted twice');   // PARTY-PING: the ping's own
   // TV1: one more appended after them, and unbound - the travel view's door is the map's.
-  assert.equal(ACTIONS.length, 95);   // Decorate appended, unbound (PIN MOVED); PARTY-PING: + PartyPing (PIN MOVED); SHOT-KINDS: + ShotCycle (PIN MOVED); CARGO-ANYWHERE: + ShipHold (PIN MOVED); UI-CALM: + SaddlePanel, last (PIN MOVED); SPYGLASS: + Spyglass, last (PIN MOVED); TECH1: + WeaponTechnique; MODE-WHEEL: + ModeWheel, last; LEGACY3: + LegacyFamily, last; CLASSIC-PAGES: + Professions, last; PADWALK: + WalkMode, after them (main's indices are live); VIEW-TOGGLE: + TogglePerspective; PROF1: + ActChoice; HELM-KEYS: + BoatSailUp, BoatSailDown, last
+  assert.equal(ACTIONS.length, 96);   // BUNNYFALL HOTBAR-PRESETS: + HotbarPreset (PIN MOVED); Decorate appended, unbound (PIN MOVED); PARTY-PING: + PartyPing (PIN MOVED); SHOT-KINDS: + ShotCycle (PIN MOVED); CARGO-ANYWHERE: + ShipHold (PIN MOVED); UI-CALM: + SaddlePanel, last (PIN MOVED); SPYGLASS: + Spyglass, last (PIN MOVED); TECH1: + WeaponTechnique; MODE-WHEEL: + ModeWheel, last; LEGACY3: + LegacyFamily, last; CLASSIC-PAGES: + Professions, last; PADWALK: + WalkMode, after them (main's indices are live); VIEW-TOGGLE: + TogglePerspective; PROF1: + ActChoice; HELM-KEYS: + BoatSailUp, BoatSailDown, last
   // PIN MOVED (SPYGLASS, 2026-10-11): the glass owns no key - it shares K with the road's follow
   assert.deepEqual(ACTIONS.filter((a) => !bound.has(a)), ['ToggleConsole', 'Slide', 'StealMode', 'GrabMode', 'InfoMode', 'TalkMode', 'Sneak', 'QuickSwap', 'DebugOverlay', 'TravelView', 'WalkMode', 'BoatSailUp', 'Professions', 'Spyglass', 'ShotCycle', 'Decorate'], 'the fourteen without an owned key, named - more sail\'s, the Professions key\'s and the glass\'s are default shares; MODE-WHEEL: the four modes and Sneak; Decorate ships unbound');
   assert.deepEqual(DEFAULT_SHARES, [['ArrowUp', 'BoatSailUp', 'ActChoice'], ['ArrowDown', 'Professions', 'BoatSailDown'], ['KeyK', 'Spyglass', 'FollowPaths']], 'HELM-KEYS: the default shares - onto their partners\' own keys; CLASSIC-PAGES: the Professions key beside less sail; SPYGLASS: the glass beside the road\'s follow');
@@ -231,7 +232,7 @@ test('I1: the two clears - by action walks all its codes, by code takes one (:80
 test('I1: a FULL reset clears primary and the removed list but NOT secondary (:956-960)', () => {
   const s = createBindings();
   resetDefaults(s);
-  assert.equal(s.primary.size, 79);   // PARTY-PING: plus the ping's Mouse2 and auto-run's F3, minus the old Mouse2 (net +1); CARGO-ANYWHERE: plus the hold's F4 (PIN MOVED); UI-CALM: plus the saddle panel's Slash; TECH1: plus the technique's Mouse3; MODE-WHEEL: minus F1-F4 and Sneak's Alt, plus the wheel's; LEGACY3: plus the Family tab's key; HELM-KEYS: plus less sail's (more sail's is a share - sharedPrimary); VIEW-TOGGLE: plus the view's toggle; PROF1: plus the act choice's key; CSA-D: plus the helm's two; CSA-E: the sails' four; CSA-G: the time scale's three; KB1: DFU's 42 (its console and Slide rows unbound) plus the port's 24; SOC5: DFU's 44 plus SocialInteract; QS2: plus the three quickslot rows; QS4: plus the off hand's; QUICK-LOOT B4: plus the plaque's two; FREEMOUSE: plus the mouse toggle's own key
+  assert.equal(s.primary.size, 80);   // BUNNYFALL HOTBAR-PRESETS: plus Minus (PIN MOVED)   // PARTY-PING: plus the ping's Mouse2 and auto-run's F3, minus the old Mouse2 (net +1); CARGO-ANYWHERE: plus the hold's F4 (PIN MOVED); UI-CALM: plus the saddle panel's Slash; TECH1: plus the technique's Mouse3; MODE-WHEEL: minus F1-F4 and Sneak's Alt, plus the wheel's; LEGACY3: plus the Family tab's key; HELM-KEYS: plus less sail's (more sail's is a share - sharedPrimary); VIEW-TOGGLE: plus the view's toggle; PROF1: plus the act choice's key; CSA-D: plus the helm's two; CSA-E: the sails' four; CSA-G: the time scale's three; KB1: DFU's 42 (its console and Slide rows unbound) plus the port's 24; SOC5: DFU's 44 plus SocialInteract; QS2: plus the three quickslot rows; QS4: plus the off hand's; QUICK-LOOT B4: plus the plaque's two; FREEMOUSE: plus the mouse toggle's own key
   // a secondary binding on a code no default uses SURVIVES the reset;
   // one on a default's code is stolen back by SetBinding's alt-removal.
   // QUICK-LOOT B4: this was KeyP, chosen because no default used it -

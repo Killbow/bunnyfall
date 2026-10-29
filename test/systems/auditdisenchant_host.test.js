@@ -12,6 +12,8 @@ let fn;
 function walk(n){if(!n||typeof n!=='object')return;if(n.type==='Property'&&n.key?.name==='disenchant'&&source.slice(n.value.start,n.value.end).includes('modes?.enchantHere'))fn=source.slice(n.value.start,n.value.end);for(const v of Object.values(n))if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}
 walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert.ok(fn,'production disenchant host callback found');
 const {realmGoldAct}=await import(pathToFileURL(path.join(root,'src/systems/realmSaves.js')));
+// BUNNYFALL CRAFT FEES: the shop asks a tenth of the piece, the station's 50 its ceiling - a 500-gold ring pays the 50
+const {pricedStation}=await import(pathToFileURL(path.join(root,'src/systems/craftFees.js')));const itemFeeValue=()=>500;
 const defer=()=>{let resolve;return {promise:new Promise(r=>{resolve=r}),resolve:r=>resolve(r)}};
 test('a realm disenchant rollback restores only the initiating inventory after a character switch',async()=>{
  const pending=defer(),piece={provenance:'aaaaaaaaaaaaaaaa',name:'Gold Ruby Ring'},itemsA=[piece],itemsB=[{name:'B item'}];
@@ -19,7 +21,7 @@ test('a realm disenchant rollback restores only the initiating inventory after a
  const env={playerEntity,modes:{enchantHere:()=>({kind:'shop',fee:50})},totalGoldAmount:p=>p.gold,itemLongName:p=>p.name,
   characterIdOf:p=>p.characterId,storedSession:()=>({id:'account-A'}),appStorage:()=>null,
   realmSession:{transact:fn=>fn({id:'record-A',lease:'lease-A',seq:1})},realmGoldAct,onlineCheckpoint:()=>checkpoints++,
-  profBook:{disenchant:()=>pending.promise,refresh:async()=>({ok:true})},deductGold:(p,n)=>p.gold-=n,saveSoon:{changed:()=>{}},accountRefusalText:x=>x};
+  profBook:{disenchant:()=>pending.promise,refresh:async()=>({ok:true})},deductGold:(p,n)=>p.gold-=n,saveSoon:{changed:()=>{}},accountRefusalText:x=>x,pricedStation,itemFeeValue};
  const host=Function(...Object.keys(env),`return (${fn})`)(...Object.values(env));const action=host(piece.provenance);
  await new Promise(r=>setImmediate(r));assert.equal(itemsA.length,0,'original piece reserved before request');
  playerEntity.characterId='B';playerEntity.items=itemsB;
@@ -34,7 +36,7 @@ for (const switchIdentity of [false,true]) test(`confirmed realm success ${switc
  const env={playerEntity,modes:{enchantHere:()=>({kind:'shop',fee:50})},totalGoldAmount:p=>p.gold,itemLongName:p=>p.name,
   characterIdOf:p=>p.characterId,storedSession:()=>({id:'account-A'}),appStorage:()=>null,
   realmSession:{transact:fn=>fn({id:'record-A',lease:'lease-A',seq:1})},realmGoldAct,onlineCheckpoint:()=>checkpoints++,
-  profBook:{disenchant:()=>pending.promise,refresh:async()=>({ok:true})},deductGold:(p,n)=>p.gold-=n,saveSoon:{changed:()=>saves++},accountRefusalText:x=>x};
+  profBook:{disenchant:()=>pending.promise,refresh:async()=>({ok:true})},deductGold:(p,n)=>p.gold-=n,saveSoon:{changed:()=>saves++},accountRefusalText:x=>x,pricedStation,itemFeeValue};
  const host=Function(...Object.keys(env),`return (${fn})`)(...Object.values(env));const action=host(piece.provenance);
  await new Promise(r=>setImmediate(r));if(switchIdentity){playerEntity.characterId='B';playerEntity.items=itemsB;}
  pending.resolve({ok:true,data:{essence:21,xp:315,realm:{seq:2}},...(switchIdentity?{elsewhere:true}:{})});const r=await action;

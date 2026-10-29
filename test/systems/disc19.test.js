@@ -200,7 +200,9 @@ test('DISC19-C: the online exit autosave writes every slot of a living player an
   const w = rd('src/scenes/world.js');
   // FIELD BUGS 29h (BOOT-HIDE): PIN MOVED - the handler is named at the checkpoint (`exitAutosave`) and handed to the
   // page with the checkpoint's other doors, below every binding it reads (test/scenes/fb0929h_boothide.test.js)
-  const at = w.search(/const exitAutosave = \(\) => \{\n(?:\s*\/\/[^\n]*\n)*\s*if \(!online \|\| !playerSpawned\b/);   // AUDIT ONESEAT H4: its guard asks the seat too, a comment above it
+  // BUNNYFALL SAVE-ON-EXIT: PIN MOVED - the guard no longer leaves offline; an offline page takes its own AutoSave
+  // (systems/save/exitSave.js) on the next line and returns, so what follows is still online's alone
+  const at = w.search(/const exitAutosave = \(\) => \{\n(?:\s*\/\/[^\n]*\n)*\s*if \(!playerSpawned \|\| seatOut\(\)\) return;\n(?:\s*\/\/[^\n]*\n)*\s*if \(!online\) return void offlineExitSave\(playerEntity, /);   // AUDIT ONESEAT H4: its guard asks the seat too, a comment above it
   const handler = w.slice(at, w.indexOf('\n  };', at));
   assert.ok(at > 0, 'the online exit autosave was found');
   assert.ok(w.includes("\n  addEventListener('beforeunload', exitAutosave);\n"), 'and it is the page\'s end');

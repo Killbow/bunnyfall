@@ -128,7 +128,7 @@ test('PROF10 DONE WHEN: a Gold Ruby Ring cut with a clean facet at a Gem Store\'
   const page = pageOf();
   try {
     assert.match(page.text(), /The Jeweler's Bench/);
-    assert.match(page.text(), /The Jeweler's BenchSmithingApprentice 25[^]*?The jeweler’s bench: 50 gold a piece\./);   // PIN MOVED (CRAFT3): the bench says the craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /The Jeweler's BenchSmithingApprentice 25[^]*?The jeweler’s bench: a tenth of the piece’s worth, at most 50 gold\./);   // PIN MOVED (CRAFT3): the bench says the craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     page.family('Gold').onclick();
     page.recipe('Gold Ruby Ring').onclick();
     assert.match(page.text(), /Gold Ruby Ring · rank 25Gold 1 \/ 1 \(1 stored\)Ruby 1 \/ 1 \(1 stored\)/);
@@ -223,7 +223,7 @@ test('PROF10 pages: The Jeweler\'s Bench - away, the word; at a Pawn Shop or a G
     assert.deepEqual([...PROF_STATIONS], ['forge', 'workbench', 'loom', 'mason', 'jeweller']);
     assert.equal(stationColdLine('jeweller'), JEWEL_COLD_LINE);
     assert.match(JEWEL_COLD_LINE, /Jewelcrafting is done online, from your Crafting page/);   // PIN MOVED (CRAFT-HALL): the stations are worked from the Crafting page
-    assert.match(page.text(), /The Jeweler's BenchJewelcrafting is done at a jeweler's bench: a Pawn Shop's or a Gem Store's \(50 gold a piece\), or your own home's\./);
+    assert.match(page.text(), /The Jeweler's BenchJewelcrafting is done at a jeweler’s bench: a Pawn Shop’s or a Gem Store’s \(a tenth of the piece’s worth, at most 50 gold\), or your own home’s\./);
     assert.equal(page.recipe('Silver Ring'), null, 'no piece offered away from a bench');
     page.done();
     ({ calls } = stubPages());
@@ -287,10 +287,10 @@ test('PROF10 pages: The Jeweler\'s Bench - away, the word; at a Pawn Shop or a G
     setPref('gentleActs', false);
     page.done();
     // the purse short; a home's bench
-    stubPages({ purse: 20 });
+    stubPages({ purse: 0 });   // PIN MOVED (BUNNYFALL CRAFT FEES: a tenth of the work, the old fee its ceiling)
     page = pageOf();
     page.recipe('Silver Ring').onclick();
-    assert.match(page.text(), /The jeweler asks 50 gold a piece\. You carry 20\./);
+    assert.match(page.text(), /The jeweler asks at least 1 gold a piece\. You carry 0\./);
     assert.equal(page.button('Craft').disabled, true);
     page.done();
     stubPages({ bench: { kind: 'home', fee: 0 }, purse: 0 });

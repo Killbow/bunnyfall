@@ -318,8 +318,8 @@ function pagesAt({ held, tracks, forge = null, workbench = null, purse = null })
 }
 
 test('AUDIT 30 U13 + U20: a station\'s fee the purse cannot meet is not offered, and says so; a smelt under way names its own row alone', async () => {
-  const p = pagesAt({ held: { 'ingot:iron': 20, 'metal:tin': 5, 'ore:iron': 10, 'wood:pine': 4 }, tracks: { smithing: 0, mining: 0 }, forge: { kind: 'shop', fee: 25 }, purse: 10 });
-  assert.match(p.root.textContent, /The smith asks 25 gold a smelt\. You carry 10\./);
+  const p = pagesAt({ held: { 'ingot:iron': 20, 'metal:tin': 5, 'ore:iron': 10, 'wood:pine': 4 }, tracks: { smithing: 0, mining: 0 }, forge: { kind: 'shop', fee: 25 }, purse: 0 });   // PIN MOVED (BUNNYFALL CRAFT FEES: a tenth of the work, the old fee its ceiling): only an empty purse is short up front
+  assert.match(p.root.textContent, /The smith asks at least 1 gold a smelt\. You carry 0\./);
   assert.ok(p.buttons().filter((b) => b.textContent === 'Smelt').every((b) => b.disabled), 'refused after the press');
   p.buttons().find((b) => b.textContent.startsWith('Dagger')).onclick();   // PIN MOVED (CRAFT2): the pattern - its Iron the metal held
   assert.equal(p.buttons().find((b) => b.textContent === 'Craft').disabled, true, 'the heat struck, then the smith refused');

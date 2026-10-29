@@ -615,7 +615,7 @@ import { mintPieces, mintPiece, craftedText, storedText, CRAFT_KEPT_TEXT, BENCH_
 import { heatBand, planeBand, stitchBand, chiselBand, recipeById } from '../net/recipeLaw.js';   // PROF3: the heat's attribute band; PROF4: the plane's, and a recipe's station; PROF7: the stitch's; PROF11: the chisel's
 import { COOK_KEPT_TEXT } from '../systems/smithItems.js';   // PROF9: the fire's word, a dish whose answer did not come
 import { pricedStation, recipeValue, potionValue, materialValue, itemFeeValue } from '../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of what is made, the station's old fee its ceiling
-import { offlineExitSaveNames } from '../systems/save/exitSave.js';   // BUNNYFALL SAVE-ON-EXIT
+import { offlineExitSave } from '../systems/save/exitSave.js';   // BUNNYFALL SAVE-ON-EXIT
 import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jeweller's bench's word, a piece whose answer did not come
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
 import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence, withTemperGold } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
@@ -17861,11 +17861,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // of the character would be written over what the tab that has the seat saved (the same character, played on there)
     if (!playerSpawned || seatOut()) return;
     // BUNNYFALL SAVE-ON-EXIT: offline, the character's AutoSave slot only (systems/save/exitSave.js) - quiet, synchronous
-    if (!online) {
-      const deathUp = townTalk.overlay instanceof DeathScreen || !!modes?.deathUp?.() || successionOpen();
-      for (const saveName of offlineExitSaveNames(playerEntity, { deathUp })) { try { if (modes) modes?.quickSaveNow(saveName, { quiet: true }); else worldQuickSave(saveName, { quiet: true }); } catch (e) { console.error('[save] exit save failed', e); } }
-      return;
-    }
+    if (!online) return void offlineExitSave(playerEntity, townTalk.overlay instanceof DeathScreen || !!modes?.deathUp?.() || successionOpen(), (n, o) => (modes ? modes?.quickSaveNow(n, o) : worldQuickSave(n, o)));   // `?.` inside the ternary: audit24 wave37's gate
     // AUDIT DUEL1 D5 + B4: a duel in play ends here as `left` (the opponent is told now, not after DUEL_GONE_MS) and its
     // heal runs now - the exit autosave below must not keep a duel's 1 health or its opponent's spells
     try { duelLeaveNow(); } catch { /* no duel was built: nothing to end */ }

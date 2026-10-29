@@ -111,7 +111,7 @@ test('PROF12 DONE WHEN: a Healing brewed at an Alchemist\'s from the Stores\' Re
   const page = pageOf();
   try {
     assert.match(page.text(), /The Alchemy Station/);
-    assert.match(page.text(), /ProvisioningNovice 0[^]*?The alchemist’s station: 25 gold a brew\. 2 potions a brew\. Potent 0% \(\+25% magnitude or duration\)\. \+5% for each herb picked unbruised\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence;   // PIN MOVED (CRAFT-PAYS): 25 gold and a Novice's two. PIN MOVED (CRAFT3): the station reads Provisioning, Alchemy's craft's track
+    assert.match(page.text(), /ProvisioningNovice 0[^]*?The alchemist’s station: a tenth of the potion’s worth, at most 25 gold a brew\. 2 potions a brew\. Potent 0% \(\+25% magnitude or duration\)\. \+5% for each herb picked unbruised\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence;   // PIN MOVED (CRAFT-PAYS): 25 gold and a Novice's two. PIN MOVED (CRAFT3): the station reads Provisioning, Alchemy's craft's track
     assert.equal(page.recipe('Healing').textContent, 'Healingneeds ingredientsFirst-time bonus');   // PIN MOVED (CRAFT-HALL): its first-time bonus still to earn
     assert.equal(page.recipe('Invisibility').textContent, 'Invisibilityrank 70');
     page.recipe('Healing').onclick();
@@ -154,7 +154,7 @@ test('PROF12 DONE WHEN: a Healing brewed at an Alchemist\'s from the Stores\' Re
     player.items.push({ group: 'Jewellery', templateIndex: 135, provenance: made.body.pieces[0].provenance, recipe: 'ring:gold:ruby', name: 'Gold Ruby Ring', enchantmentPoints: 2160 });
     layRecord(s.env, mac.character, freshSave({ name: 'Mac', items: [{ ...player.items.at(-1), stackCount: 1 }] }));   // INT16: the ring in the realm character's record, as its checkpoint would hold it
     page.draw();
-    assert.match(page.text(), /The Enchanting StationEnchantingNovice 0[^]*?The guild’s enchanter: 50 gold a piece\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /The Enchanting StationEnchantingNovice 0[^]*?The guild’s enchanter: a tenth of the piece’s worth, at most 50 gold\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     assert.match(page.text(), /2,160 points: 21 Arcane Essence, \+315 Enchanting experience/);   // AUDIT PROF12 E2: 5 x the Gold ring's tier 3 x 21
     page.button('Disenchant').onclick();
     assert.ok(page.button('Press again to destroy it'), 'pressed once: armed, nothing asked');
@@ -239,7 +239,7 @@ test('PROF12 pages: The Enchanting Station - away, the word; at a Mages Guild ha
   page.done();
   const { calls } = stubPages({ enchanter: { kind: 'shop', fee: ENCHANT_FEE }, enchantingTrack: { rank: 100, specs: { 50: 'efficient', 100: null } } });
   page = pageOf();
-  assert.match(page.text(), /EnchantingMaster 100[^]*?The guild’s enchanter: 50 gold a piece\. The item maker costs you 25% less\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+  assert.match(page.text(), /EnchantingMaster 100[^]*?The guild’s enchanter: a tenth of the piece’s worth, at most 50 gold\. The item maker costs you 25% less\./);   // PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
   // PIN MOVED (FIELD BUGS 2026-10-18f CRAFT-LIMIT-SAID): a Master's track takes no more XP - the service credits
   // MIN(earned, PROF_XP_MAX - held), none - so the piece says +0 and the station why (it said +7, which the Worker never
   // paid); AUDIT PROF12 E2's quarter is pinned at an Expert's 90 below, where it is paid

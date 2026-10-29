@@ -213,7 +213,7 @@ test('PROF3 anvil page: at a smith\'s forge - the families and metals, a recipe\
   const buttons = () => [...root.querySelectorAll('button')];
   const press = (label) => buttons().find((b) => b.textContent.startsWith(label)).onclick();
   assert.match(text(), /The Anvil/);
-  assert.match(text(), /The smith’s anvil: 50 gold a craft/);
+  assert.match(text(), /The smith’s anvil: a tenth of the piece’s worth, at most 50 gold a craft/);
   // PIN MOVED (CRAFT2): the anvil lists its patterns, the metal chosen in the box from what is held - none made now, so the
   // open one holding most of its inputs (the three Mithril Ingots)
   const row = buttons().find((b) => b.textContent.startsWith('Longsword'));

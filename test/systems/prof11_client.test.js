@@ -122,7 +122,7 @@ test('PROF11 DONE WHEN: Rough Stone cut with a clean chisel at a General Store\'
   const page = pageOf();
   try {
     assert.match(page.text(), /The Mason's Bench/);
-    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: a tenth of what you make, at most 50 gold\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     // THE CUT: five cuts, the chisel struck true four times
     const cutQty = page.qty(0);
     cutQty.value = '5';
@@ -219,7 +219,7 @@ test('PROF11 pages: the Mason\'s Bench at a General Store - the cut and the mix 
     assert.deepEqual([...PROF_STATIONS], ['forge', 'workbench', 'loom', 'mason', 'jeweller']);   // PIN MOVED (PROF10): the jeweller's bench
     assert.equal(stationColdLine('mason'), MASON_COLD_LINE);
     assert.match(MASON_COLD_LINE, /Masonry is done online, from your Crafting page/);   // PIN MOVED (CRAFT-HALL): the stations are worked from the Crafting page
-    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: 50 gold a cut, a mix or a carving\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
+    assert.match(page.text(), /BuildingNovice 0[^]*?The mason’s bench: a tenth of what you make, at most 50 gold\./);   // PIN MOVED (CRAFT3): the bench says its craft's track;// PIN MOVED (CRAFT-HALL): the rank is the station header's bar, not the station's sentence
     assert.match(page.text(), /stone:cut2 stone:rough \(9\)/, 'the cut and its stone held');
     assert.match(page.text(), /stone:mortar x101 metal:sulphur \(2\) \+ 1 metal:lead \(2\) \+ 5 stone:rough \(9\) · rank 10/, 'ten a mix, shut below rank 10');
     assert.deepEqual([masonVerb('cut:stone'), masonVerb('mix:mortar')], ['Cut', 'Mix']);
@@ -277,10 +277,10 @@ test('PROF11 pages: the Mason\'s Bench at a General Store - the cut and the mix 
     assert.doesNotMatch(q.text(), /- rank 10/);
   } finally { q.done(); }
   // the purse short of the mason's fee: offered nothing
-  stubPages({ purse: 10 });
+  stubPages({ purse: 0 });   // PIN MOVED (BUNNYFALL CRAFT FEES: a tenth of the work, the old fee its ceiling)
   const poor = pageOf();
   try {
-    assert.match(poor.text(), /The mason asks 50 gold a cut, a mix or a carving\. You carry 10\./);
+    assert.match(poor.text(), /The mason asks at least 1 gold a cut, a mix or a carving\. You carry 0\./);
     assert.equal(poor.button('Cut').disabled, true);
   } finally { poor.done(); }
   // a home's bench: no fee
@@ -291,7 +291,7 @@ test('PROF11 pages: the Mason\'s Bench at a General Store - the cut and the mix 
   stubPages({ bench: null });
   const away = pageOf();
   try {
-    assert.match(away.text(), /Masonry is done at a mason's bench: a General Store's \(50 gold a cut, a mix or a carving\), or your own home's\./);
+    assert.match(away.text(), /Masonry is done at a mason’s bench: a General Store’s \(a tenth of what you make, at most 50 gold\), or your own home’s\./);
     assert.equal(away.button('Cut'), null);
   } finally { away.done(); }
   // no Rough Stone: where it comes from

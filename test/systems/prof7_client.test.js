@@ -429,7 +429,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   assert.deepEqual([...PROF_STATIONS], ['forge', 'workbench', 'loom', 'mason', 'jeweller']);   // PIN MOVED (PROF11): the mason's bench; PIN MOVED (PROF10): the jeweller's bench
   assert.match(stationColdLine('loom'), /The loom is still/);
   assert.match(text(), /The Loom/);
-  assert.match(text(), /The tailor’s loom and tanning rack: 50 gold a craft, a cure or a weave/);
+  assert.match(text(), /The tailor’s loom and tanning rack: a tenth of what you make, at most 50 gold/);
   assert.match(text(), /leather:cured x2/, 'a Tanner\'s cure said');
   await buttons().find((b) => b.textContent === 'Cure').onclick();
   assert.deepEqual(works.at(-1), ['cure:bear', 1]);
@@ -507,7 +507,7 @@ test('PROF7 pages: the Loom at a Clothing Store - the cures for the hides held a
   assert.match(text(), /Your loom/);
   loom = null;
   draw();
-  assert.match(text(), /Outfitting, and the tanning of hides, is done at a loom: a Clothing Store's \(50 gold a craft, a cure or a weave\)/);
+  assert.match(text(), /Outfitting, and the tanning of hides, is done at a loom: a Clothing Store’s \(a tenth of what you make, at most 50 gold\)/);
   // the Professions page: Hunting practised, its day the account's; Outfitting's cards; Smithing's unlocks whole
   const page = (sel) => {
     root.remove(); root = el('div'); document.body.append(root);

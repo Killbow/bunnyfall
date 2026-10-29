@@ -181,7 +181,8 @@ test('I3: the wiring - four hosts, one Escape door each, art preloaded', () => {
   // and the door out is the ONE menu unwind (audit24_onehome watches
   // the symbol; this pins the CALL in the exit hook of each host)
   for (const rel of ['scenes/world.js', 'scenes/exterior.js', 'scenes/worldModes.js', 'scenes/dungeonContext.js']) {
-    assert.match(code(rel), /exitToMenu: exitToTitleMenu/, `${rel} exits through the shared door`);
+    // BUNNYFALL SAVE-ON-EXIT: world.js's Exit saves first, then takes the same door (PIN MOVED)
+    assert.match(code(rel), /exitToMenu: (?:\(\) => \{ exitAutosave\(\); )?exitToTitleMenu/, `${rel} exits through the shared door`);
   }
 });
 

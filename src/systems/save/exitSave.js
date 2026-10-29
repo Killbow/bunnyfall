@@ -13,3 +13,11 @@ export function offlineExitSaveNames(entity, { deathUp = false } = {}) {
   if (deathUp || !(entity?.health > 0)) return [];
   return EXIT_SAVE_NAME === QUICK_SAVE_NAME ? [] : [EXIT_SAVE_NAME];
 }
+
+/** The offline exit save, as the world host asks it: each slot written quietly through `save(name, opts)`, a failure
+ *  logged and never thrown (the game is closing). Kept here so the host only wires it (HOST-SPLIT). */
+export function offlineExitSave(entity, deathUp, save) {
+  for (const saveName of offlineExitSaveNames(entity, { deathUp })) {
+    try { save(saveName, { quiet: true }); } catch (e) { console.error('[save] exit save failed', e); }
+  }
+}

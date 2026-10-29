@@ -392,7 +392,7 @@ test('PROF4 pages: the Workbench at a Furniture Store - the saws for the logs he
   const buttons = () => [...root.querySelectorAll('button')];
   const press = (label) => buttons().find((b) => b.textContent.startsWith(label)).onclick();
   assert.match(text(), /The Workbench/);
-  assert.match(text(), /The furnisher’s workbench: 50 gold a craft or a saw/);
+  assert.match(text(), /The furnisher’s workbench: a tenth of what you make, at most 50 gold/);
   assert.match(text(), /plank:oak x2/, 'a saw\'s yield said');
   assert.match(text(), /wood:charcoal/, 'the Forge burns the logs held');
   await buttons().find((b) => b.textContent === 'Burn').onclick();
@@ -450,7 +450,7 @@ test('PROF4 pages: the Workbench at a Furniture Store - the saws for the logs he
   assert.match(text(), /Your workbench/);
   bench = null;
   draw();
-  assert.match(text(), /Carpentry is done at a workbench: a Furniture Store's or a joinery's \(50 gold a craft or a saw\)/);   // PIN MOVED (CARP-YARD, 2026-10-12): a joinery's bench too
+  assert.match(text(), /Carpentry is done at a workbench: a Furniture Store’s or a joinery’s \(a tenth of what you make, at most 50 gold\)/);   // PIN MOVED (CARP-YARD, 2026-10-12): a joinery's bench too
   // the Professions page: Smithing practised - its cards chosen at 50 (PROF4's FOUND)
   root.remove(); root = el('div'); document.body.append(root);
   drawProfessionsPage(root, () => {}, kit);

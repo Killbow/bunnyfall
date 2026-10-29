@@ -32,7 +32,7 @@ const read = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8')
 const KEEPER = { name: 'Aldric Thane', sex: 'male', variant: 2 };
 
 test('CARP-YARD THE LAW: the joinery a yard kind of its own - its title, its board\'s word, its trade at the furnisher\'s fee, its carpenter - placed after the two yards and the port\'s places and keyed after them, so every key before it stays; no counter (nothing sold, nothing bought), its one row the bench; its bench a shop\'s station at WORKBENCH_FEE, the carpenter paid (mutants: the key a shipyard\'s, the fee its own, a counter row)', () => {
-  assert.deepEqual(YARD_KINDS.carpenter, { key: 'carpenter', title: 'Joinery', sign: 'JOINERY', trade: 'Carpentry at the workbench: 50 gold a craft or a saw', keeper: 'Carpenter', seed: 0xca4be7 });
+  assert.deepEqual(YARD_KINDS.carpenter, { key: 'carpenter', title: 'Joinery', sign: 'JOINERY', trade: 'Carpentry at the workbench: a tenth of what you make, at most 50 gold', keeper: 'Carpenter', seed: 0xca4be7 });
   assert.deepEqual([...YARD_KIND_ORDER], ['stable', 'transport'], 'the two placed first, as they always were');
   assert.deepEqual([...CRAFT_YARD_ORDER], ['carpenter']);
   assert.deepEqual([...ALL_YARD_KINDS], ['stable', 'transport', 'carpenter']);
