@@ -20,7 +20,7 @@
 //
 // Not a DFU member: Daggerfall has no other players and no sea serpent. Ledger A (SERPENT1).
 import { sharedClassicMinutes, wallMsForClassicMinutes } from '../wire.js';
-import { gateHash, PIXEL_M } from '../gate/gateLaw.js';
+import { gateHash, PIXEL_M, EVENT_OFF_DAYS } from '../gate/gateLaw.js';
 import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** Classic minutes in a game day (gameDate.js MINUTES_PER_DAY - pinned equal; the relay's graph stays flat). */
@@ -75,6 +75,7 @@ const _timesOf = new Map();
  */
 export function serpentAt(nowMs) {
   let day = serpentDayAt(nowMs);
+  if (!contentOn('seaSerpent')) return serpentTimes(Math.max(0, day) + EVENT_OFF_DAYS);   // BUNNYFALL PHASE 2: switched off, no serpent day ever comes - a far day, never a search (it would never end)
   if (isSerpentDay(day) && nowMs < serpentTimes(day).soundAt + SERPENT_DIVE_MS) return serpentTimes(day);
   day++;
   while (!isSerpentDay(day)) day++;

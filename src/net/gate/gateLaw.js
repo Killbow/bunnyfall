@@ -59,6 +59,9 @@ export function gateTimes(day) {
 /** The days' instants already made (frozen, so one answer serves every asker). */
 const _gateTimesOf = new Map();
 
+/** BUNNYFALL PHASE 2: how far ahead a switched-off event's next day is put (game days, about 22 real years). */
+export const EVENT_OFF_DAYS = 100_000;
+
 /**
  * The gate the clock is about at `nowMs`: yesterday's while it is still sinking (its wrath is today's midnight),
  * else the next gate day's from today on - live from its omen, upcoming before it.
@@ -66,6 +69,7 @@ const _gateTimesOf = new Map();
  */
 export function gateAt(nowMs) {
   let day = gameDayAt(nowMs);
+  if (!contentOn('dagonBreaches')) return gateTimes(Math.max(0, day) + EVENT_OFF_DAYS);   // BUNNYFALL PHASE 2: switched off, no gate day ever comes - a far day, never a search (it would never end)
   if (isGateDay(day - 1) && nowMs < gateTimes(day - 1).wrathAt + GATE_COLLAPSE_MS) return gateTimes(day - 1);
   while (!isGateDay(day)) day++;
   return gateTimes(day);

@@ -29,6 +29,10 @@ import { egTimes } from '../net/eliteGates/egLaw.js';   // EG-F: an Elite Breach
 import { arenaSeasonOf, arenaSeasonEndsS } from '../net/arena/arenaLaw.js';   // EG-ZM: the Spire's boards keep the arena's season
 import { ketchVoyageAt } from '../net/ketch/ketchLaw.js';   // KETCH: the Sky-Ketch's voyage - the clock's alone
 import { t } from './textManager.js';
+import { contentOn } from './contentOff.js';   // BUNNYFALL PHASE 2
+
+/** BUNNYFALL PHASE 2: a row's kind and the switch that rules it. */
+const OFF_KINDS = Object.freeze({ gate: 'dagonBreaches', serpent: 'seaSerpent', super: 'abyssDungeons', ketch: 'skyKetch', star: 'witchesFestival', eg: 'eliteBreach' });
 
 const DAY_MS = 86_400_000;
 
@@ -88,8 +92,10 @@ export function eventTimerRows(src) {
   if (!Number.isFinite(now)) return [];
   /** @type {Array<{id: string, kind: string, title: string, where: string|null, detail: string|null, live: boolean, at: number, until: number|null, door?: string, shut?: boolean}>} */
   const rows = [];
-  const coming = (id, kind, title, at, where = null, detail = null) => rows.push({ id, kind, title, where, detail, live: false, at, until: null });
-  const live = (id, kind, title, until, where = null, detail = null) => rows.push({ id, kind, title, where, detail, live: true, at: until, until });
+  // BUNNYFALL PHASE 2: an event switched off (systems/contentOff.js) never gets a row
+  const switchedOff = (kind) => OFF_KINDS[kind] != null && !contentOn(OFF_KINDS[kind]);
+  const coming = (id, kind, title, at, where = null, detail = null) => switchedOff(kind) || rows.push({ id, kind, title, where, detail, live: false, at, until: null });
+  const live = (id, kind, title, until, where = null, detail = null) => switchedOff(kind) || rows.push({ id, kind, title, where, detail, live: true, at: until, until });
 
   // ── THE OBLIVION GATE (gateLaw: a gate every game day - omen, rise, open, seal, wrath) ──
   const t = gateAt(now);
@@ -140,7 +146,7 @@ export function eventTimerRows(src) {
   // Starfall.md section 8): the rows the star's own law lays (systems/starfall/starfallClient.js starTimerRows) - each
   // fallen star still undecided, to its deadline; the next fall, with the night's coven - handed in whole by the host, the
   // one that knows where the night's stars fall and which of them are held.
-  for (const r of src?.stars ?? []) if (r?.kind === 'star' && typeof r.id === 'string' && Number.isFinite(r.at)) rows.push(r);
+  for (const r of src?.stars ?? []) if (r?.kind === 'star' && !switchedOff('star') && typeof r.id === 'string' && Number.isFinite(r.at)) rows.push(r);
 
   // ── THE SKY-KETCH (net/ketch/ketchLaw.js: a voyage every real Saturday, the clock's alone) ── KETCH: ketchRows
   ketchRows(now, coming, live);
