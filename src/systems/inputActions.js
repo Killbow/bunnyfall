@@ -986,6 +986,20 @@ export function setBinding(store, code, action, primary = true) {
   }
 }
 
+/** BUNNYFALL MMO-KEYS: THE MMO LAYOUT - Daggerfall's defaults with the keys an MMO player reaches for: I the inventory,
+ *  P the spellbook, C the character sheet. What stood on those keys moves (Status to F7, Quick loot all to Backspace,
+ *  Crouch to Left Ctrl). In order: each row steals its key, then the action it stole from lands on the key just freed. */
+export const MMO_BINDINGS = Object.freeze([
+  ['KeyI', 'Inventory'], ['F7', 'Status'],
+  ['KeyP', 'CastSpell'], ['Backspace', 'QuickLootAll'],
+  ['KeyC', 'CharacterSheet'], ['ControlLeft', 'Crouch'],
+]);
+/** The MMO layout over a store: Daggerfall's defaults, then MMO_BINDINGS. */
+export function applyMmoBindings(store) {
+  resetDefaults(store);
+  for (const [code, action] of MMO_BINDINGS) setBinding(store, code, action, true);
+}
+
 /** UXB1-S: THE SHARE - `action` answers `code` BESIDE whoever holds it, in this dict or the other; nobody is stolen
  *  from. The action's old key in this dict is let go first (one key per action per dict, as ever), and binding a
  *  force-removed action un-removes it, as SetBinding's does. A free code is a plain bind. */

@@ -79,7 +79,7 @@ import {
   createUnsavedKeybinds, currentDict, setUnsavedBinding, checkDuplicates,
   applyUnsavedKeybinds, buttonText,
   comboFromEvent, swingHint, floatHint, sharedFloatNote, fixedKeyRows,
-  bindingHolders, replaceKeybindPromptRows, stageReplace, stagedDefaults,
+  bindingHolders, replaceKeybindPromptRows, stageReplace, stagedDefaults, stagedMmo,
   canShareKey, stageShare, keySharers, SHARE_KEY_LABEL, unsavedEdits,
 } from '../../systems/controlsConfig.js';
 import { localizedText } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
@@ -140,6 +140,8 @@ let armed = null;          // the action awaiting a key (:52 waitingForInput)
 let armedHandler = null;   // the document keydown listener while it waits
 let armedMouse = null;     // MAC-K1: and its mouse half - one arm, two doors
 let prompt = null;         // { kind: 'defaults' } | { kind: 'replace', action, code, holders, usingPrimary }
+/** BUNNYFALL MMO-KEYS: the MMO layout's question. */
+const MMO_PROMPT = 'Switch to the MMO layout? I opens the inventory, P the spellbook and C the character sheet. Status moves to F7, Quick loot all to Backspace and Crouch to Left Ctrl. Everything else is Daggerfall\'s default. Nothing is saved until you confirm.';
 let pendingDefaults = false;   // KB1: Defaults is staged; Confirm commits it with the live reset
 let notice = null;         // the multipleAssignments line, or the saved note
 let edited = new Set();    // UNSAVED-MARK: the shown dict's rows a Confirm still owes - read at each paint
@@ -342,7 +344,7 @@ function answerPrompt(yes) {
     // staged dicts land, so what is committed is the defaults plus any
     // edit made after them.
     const using = unsaved.usingPrimary;
-    unsaved = stagedDefaults(bindings());
+    unsaved = p.mmo ? stagedMmo(bindings()) : stagedDefaults(bindings());   // BUNNYFALL MMO-KEYS: or the MMO layout
     unsaved.usingPrimary = using;
     pendingDefaults = true;
     refresh();
@@ -464,10 +466,11 @@ function promptCard(asTooltip = false) {
     c.setAttribute('aria-labelledby', 'ctl-key-in-use-title');
     c.oncancel = (e) => { e.preventDefault?.(); answerPrompt(false); };
   }
-  const title = el('h3', null, prompt.kind === 'defaults' ? 'Default controls' : 'Key in use');
+  const title = el('h3', null, prompt.kind === 'defaults' ? (prompt.mmo ? 'MMO controls' : 'Default controls') : 'Key in use');
   if (asTooltip) title.id = 'ctl-key-in-use-title';
   c.append(title);
-  const rows = prompt.kind === 'defaults' ? [localizedText('confirmDefaultControls', DEFAULTS_PROMPT)]   // L10N3d (DaggerfallControlsWindow.cs:302)
+  const rows = prompt.kind === 'defaults' && prompt.mmo ? [MMO_PROMPT]   // BUNNYFALL MMO-KEYS
+    : prompt.kind === 'defaults' ? [localizedText('confirmDefaultControls', DEFAULTS_PROMPT)]   // L10N3d (DaggerfallControlsWindow.cs:302)
     : replaceKeybindPromptRows(prompt.action, prompt.code, prompt.holders, prompt.usingPrimary);
   // UXB1-D: the one pair where the answer is "you need neither" - see sharedFloatNote.
   const note = prompt.kind === 'replace' ? sharedFloatNote(prompt.action, prompt.holders, prompt.usingPrimary) : null;
@@ -568,9 +571,13 @@ export function paneControls(body, { render = () => {} } = {}) {
     which.onclick = act(switchDict);
     const defaults = el('button', 'act ctl-defaults', 'Defaults');
     defaults.onclick = act(() => { prompt = { kind: 'defaults' }; repaint(); });
+    // BUNNYFALL MMO-KEYS: the MMO layout, asked and staged as Defaults are
+    const mmo = el('button', 'act ctl-defaults ctl-mmo', 'MMO layout');
+    mmo.title = 'I inventory, P spellbook, C character sheet - the rest as Daggerfall';
+    mmo.onclick = act(() => { prompt = { kind: 'defaults', mmo: true }; repaint(); });
     const cont = el('button', 'act primary ctl-continue', CONFIRM_LABEL);
     cont.onclick = act(applyAndSave);
-    acts.append(which, defaults, cont);
+    acts.append(which, defaults, mmo, cont);
     head.append(acts);
 
     // L10N3d: the refusal shown in the player's language (DaggerfallControlsWindow.cs:262); `notice` keeps the

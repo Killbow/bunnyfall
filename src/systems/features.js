@@ -700,6 +700,17 @@ export const FEATURES = Object.freeze([
   // the law, render/weaponGlowGlsl.js the drawing, bible/05-Combat/Weapon-Glow.md the page. A look, read every frame
   // (weaponGlowOn; `?weaponglow=off` the kill door), so a press takes effect at once; the player's own online - a
   // peer's weapon glows on my screen by MY switch, off the word their look carries.
+  // BUNNYFALL HOTBAR-MODS: Shift, Ctrl or Alt with a slot key reaches hotbar set II, III or IV (ui/enhanced/enhancedHotbar.js
+  // modifierSet) - off by default, as Shift is also run
+  Object.freeze({
+    id: 'hotbar-modifiers',
+    group: 'interface',
+    get title() { return t('features.hotbarModifiers.title', 'Hotbar sets on Shift, Ctrl and Alt'); },
+    get note() { return t('features.hotbarModifiers.note', 'Hold Shift, Ctrl or Alt with a hotbar key to use that slot of set II, III or IV without switching the bar. Holding Shift to run while pressing a slot uses set II.'); },
+    get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
+    kinds: Object.freeze(['enhanced']),
+    control: Object.freeze({ store: 'prefs', key: 'hotbarModifiers', initial: false, online: 'player' }),
+  }),
   Object.freeze({
     id: 'weapon-glow',
     group: 'sight',

@@ -46,7 +46,7 @@ import {
   HOTBAR_SIZE, HOTBAR_TEXT, hotbarView, hotbarRevision, hotbarPress, hotbarReady,
   hotbarEntryForItem, hotbarEntryForSpell, setHotbarSlot, clearHotbarSlot, swapHotbarSlots, hotbarEntry,
   hotbarSlotOf, firstFreeHotbarSlot, hotbarKindOf,
-  switchHotbarPreset, hotbarPreset, HOTBAR_PRESETS,   // BUNNYFALL HOTBAR-PRESETS
+  switchHotbarPreset, hotbarPreset, HOTBAR_PRESETS, hotbarPressInSet,   // BUNNYFALL HOTBAR-PRESETS; HOTBAR-MODS
 } from '../../systems/quickslots.js';
 import { shownSpellName } from '../../systems/loot/loot.js';   // L10N3e: a spell's name as the book shows it
 import { modelIconUrl } from '../item/itemIconUrl.js';
@@ -618,6 +618,26 @@ function slotPicture(img) {
   return src && w > 0 && h > 0 ? { src, w, h, smooth: !!img.classList?.contains('smooth') } : null;
 }
 
+// ── BUNNYFALL HOTBAR-MODS ─────────────────────────────────────────
+/** The set a held modifier reaches (Shift II, Ctrl III, Alt IV - 0-based), or -1: the option off, or no single one held. */
+export function modifierSet(e) {
+  if (getPref('hotbarModifiers') !== true) return -1;
+  const held = [e.shiftKey, e.ctrlKey, e.altKey];
+  if (held.filter(Boolean).length !== 1) return -1;
+  return held.indexOf(true) + 1;
+}
+/** Press slot i of set k: the press, the caption naming the set - the bar on screen stays the set it was. */
+function pressHotbarInSet(k, i) {
+  if (!bar) return;
+  if (k === hotbarPreset()) { pressHotbar(i); return; }
+  let said = null;
+  const res = hotbarPressInSet(k, i, { entity: liveEntity, doors: liveOpts, say: (l) => { said = l; } });
+  const good = res.kind !== 'none' && res.kind !== 'refused' && res.kind !== 'empty';
+  showCaption(`${presetLabel(k)}: ${said ?? res.name ?? HOTBAR_TEXT.emptySlot}`, !good);
+  lastSig = null;
+  paint();
+}
+
 // ── THE PRESS ─────────────────────────────────────────────────────
 /** Press slot i: the model's performer through the host's own doors,
  *  then the flash. A slot that cannot act is REFUSED in the flash as
@@ -739,6 +759,12 @@ function onKey(e) {
   if (e.metaKey || isTextEntryTarget(e.target)) return;
   // BUNNYFALL HOTBAR-PRESETS: the next set, one press
   if (eventActions(e).includes('HotbarPreset')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) nextHotbarPreset(); return; }
+  // BUNNYFALL HOTBAR-MODS: with the option on, Shift, Ctrl or Alt and a slot's key press that slot of set II, III or IV
+  const k = modifierSet(e);
+  if (k >= 0) {
+    const j = slotOfActions(eventActions({ code: e.code }));   // the slot the key means bare - Shift+1 is bound to nothing
+    if (j >= 0 && j < hotbarSize()) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) pressHotbarInSet(k, j); return; }
+  }
   // KB1: THE SLOTS ARE REGISTRY ACTIONS. This read `Digit1`-`Digit0` off the event and stepped aside for any digit
   // someone else held - a table of its own beside the controls pane's. The slot is whatever the key MEANS now: a
   // player who moved slot 7 to a mouse button, or a pad's d-pad on slots 1-4, presses it; a digit bound to anything

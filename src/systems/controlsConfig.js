@@ -19,7 +19,7 @@
 import {
   ACTIONS, getBinding, addRemovedPrimaryAction, addRemovedSecondaryAction, resetDefaults,
   isCombo, getCombo, comboCode, actionLabel, actionLive, createBindings, serializeKeyBinds, loadKeyBinds,
-  MOD_ACTIONS, ACTION_GROUPS, codeForAction, actionsAt, shareBinding, dropBinding, clearBinding,
+  MOD_ACTIONS, ACTION_GROUPS, codeForAction, actionsAt, shareBinding, dropBinding, clearBinding, applyMmoBindings,
 } from './inputActions.js';
 import { shortcutBinding, MOD } from './dialogShortcuts.js';   // UXB1-F: the keys this page names and cannot move
 import { localizedText, formatText } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
@@ -276,6 +276,14 @@ export function stagedDefaults(store) {
   const copy = createBindings();
   loadKeyBinds(copy, serializeKeyBinds(store));
   resetDefaults(copy);
+  return createUnsavedKeybinds(copy);
+}
+
+/** BUNNYFALL MMO-KEYS: the MMO layout, staged as Defaults are (stagedDefaults) - committed on Confirm. */
+export function stagedMmo(store) {
+  const copy = createBindings();
+  loadKeyBinds(copy, serializeKeyBinds(store));
+  applyMmoBindings(copy);
   return createUnsavedKeybinds(copy);
 }
 

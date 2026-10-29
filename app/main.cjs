@@ -60,6 +60,11 @@ else app.setPath('userData', path.join(app.getPath('appData'), 'Daggerfall JavaS
 // what this launch runs with (dagger:frames-lifted, below) - its pacer is for a lifted wait only (AUDIT 28e).
 const FRAME_SWITCHES = frameRateSwitches(app.getPath('userData'));
 for (const s of FRAME_SWITCHES) app.commandLine.appendSwitch(s);
+// BUNNYFALL BACKGROUND-PLAY: the game keeps running behind another window - a walk or a travel goes on while the player
+// types in Discord. Chromium otherwise stops a covered window's frames (occlusion) and slows a background one.
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
 
 // PERF-GPU1 (2026-10-10, a player via Mac: 5 fps in every room "with the graphics all low", playable only at 800x600):
 // THE DISCRETE GPU. On a laptop with two GPUs Chromium draws on whichever the system hands a browser - the integrated
@@ -1312,6 +1317,7 @@ async function createWindow({ onShown = null } = {}) {
       // its own synchronous file IO; the navigation fences below are
       // what keep the bridge from ever facing remote content.
       sandbox: false,
+      backgroundThrottling: false,   // BUNNYFALL BACKGROUND-PLAY: frames and timers keep their pace while the window is not in front
     },
   });
   gameWindow = win;

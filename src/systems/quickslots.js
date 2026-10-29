@@ -1007,6 +1007,17 @@ export function switchHotbarPreset(to = (hotbarPresetAt + 1) % HOTBAR_PRESETS) {
   return true;
 }
 
+/** BUNNYFALL HOTBAR-MODS: press slot `i` of set `k` without putting that set up - its entry lent to the bar for the one
+ *  press, the bar's own put back after (no revision bump: nothing on screen changes). The set up now presses as ever. */
+export function hotbarPressInSet(k, i, opts = {}) {
+  assertHot(i);
+  if (!Number.isInteger(k) || k < 0 || k >= HOTBAR_PRESETS || k === hotbarPresetAt) return hotbarPress(i, opts);
+  const lent = hotbarPresets[k]?.[i] ?? null;
+  const keep = hotbar[i];
+  hotbar[i] = lent ? { ...lent } : null;
+  try { return hotbarPress(i, opts); } finally { hotbar[i] = keep; }
+}
+
 export const HOTBAR_TEXT = Object.freeze({
   emptySlot: 'That hotbar slot is empty.',
   offHandFull: 'Your off hand is full.',
