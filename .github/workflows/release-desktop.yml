@@ -276,12 +276,12 @@ jobs:
             echo "no game on the release before (${PREV:-none}) - nothing to measure against"
           fi
 
-      # BUNNYFALL: the commits since the previous release, as one list.
+      # BUNNYFALL: no patch notes - one plain line, no commit list.
       - name: Write the notes
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
-        run: node scripts/desktopRelease.mjs notes "$TAG" > release-notes.md
+        run: echo "A new version of Bunnyfall. Installed copies update themselves." > release-notes.md
 
       # AUDIT INSTALL L3-2: a tag that already has a PUBLISHED release is
       # never re-cut in place. softprops updates an existing release rather
@@ -334,7 +334,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           draft: true
           body_path: release-notes.md
-          generate_release_notes: true
+          generate_release_notes: false
           fail_on_unmatched_files: true
           files: release/*
 

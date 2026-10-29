@@ -656,6 +656,8 @@ function saveNews(items) {
  *  and handed to the launcher; the cached list stays up when GitHub does
  *  not answer. */
 async function fetchNews() {
+  return;   // BUNNYFALL: the launcher shows no patch notes - nothing is fetched
+  // eslint-disable-next-line no-unreachable
   try {
     const res = await net.fetch(RELEASES_LIST_API, {
       headers: { 'User-Agent': 'daggerfall-js-app', Accept: 'application/vnd.github+json' },

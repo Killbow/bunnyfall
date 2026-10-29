@@ -577,7 +577,7 @@ function viewOf(s) {
     statusActions: [],
     play: { enabled: canPlay(s), label: 'Play' },
     // the saved folder being looked at shows the front door - on a healthy disk the answer is back before the first paint
-    panel: SETUP_DONE.has(st.status) || st.status === 'checking' ? 'news' : 'setup',
+    panel: SETUP_DONE.has(st.status) || st.status === 'checking' ? 'none' : 'setup',   // BUNNYFALL: no patch notes panel
     setup: null,
     news: newsView(s),
     options: {
