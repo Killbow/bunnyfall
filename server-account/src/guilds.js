@@ -206,6 +206,7 @@ async function viewOf(db, guildId, me, nowS, marksOpen = false, env = null) {
     WHERE (dst_kind = 'guild' AND dst_id = ?1) OR (src_kind = 'guild' AND src_id = ?1) ORDER BY seq DESC LIMIT ?2`).bind(guildId, MARKS_LEDGER_SHOWN).all() : null;
   let ranks = GUILD_RANK_NAMES;
   try { ranks = guildRankNamesOf(JSON.parse(g.ranks)) ?? GUILD_RANK_NAMES; } catch { /* the defaults */ }
+  if (ranks[0] === 'Guildmaster') ranks = [GUILD_RANK_NAMES[0], ...ranks.slice(1)];   // BUNNYFALL COMPANIES: the old default leader's name is the Captain now (a name the leader chose stays)
   return {
     id: g.id, name: g.name, tag: g.tag, ranks: [...ranks], treasury: g.treasury, foundedAt: g.founded_at, rank: me.rank,
     // HALL-GOLD (FIELD BUGS 2026-10-03): what of the treasury buys a hall - the gold realm characters put in (`realm_gold`,

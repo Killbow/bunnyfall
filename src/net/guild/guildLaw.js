@@ -24,11 +24,11 @@
 // ═══════════════════════════════════════════════════════════════════
 
 /** What founding costs: gold (the purse, then the bank - a fee, the treasury starts empty) and the founder's Renown. */
-export const GUILD_FOUND_GOLD = 10_000;
-export const GUILD_FOUND_RENOWN = 10;
+export const GUILD_FOUND_GOLD = 2_500;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
+export const GUILD_FOUND_RENOWN = 5;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
 /** How many characters one guild holds - 75 since GUILD-CAP (the Discord, 2026-10-21: "75 would be a great start"; it was 50).
  *  The hub's who-is-online list (hubShards.js HUB_GUILD_WHO_MAX) must hold a full guild but its asker. */
-export const GUILD_MEMBERS_MAX = 75;
+export const GUILD_MEMBERS_MAX = 6;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players - a bigger one from before keeps its members and invites again at 5
 /** A guild's name: 3 to 32 of letters, digits, spaces, apostrophes and hyphens; its tag 2 to 4 capitals or digits. */
 export const GUILD_NAME_MIN = 3;
 export const GUILD_NAME_MAX = 32;
@@ -38,7 +38,7 @@ export const GUILD_RANK_MASTER = 0;
 export const GUILD_RANK_OFFICER = 1;
 export const GUILD_RANK_MEMBER = 2;
 export const GUILD_RANK_RECRUIT = 3;
-export const GUILD_RANK_NAMES = Object.freeze(['Guildmaster', 'Officer', 'Member', 'Recruit']);
+export const GUILD_RANK_NAMES = Object.freeze(['Captain', 'Officer', 'Member', 'Recruit']);   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players: the leader is the Captain
 export const GUILD_RANK_NAME_MAX = 20;
 /** What each rank may do (the ranks that may). */
 export const GUILD_POWERS = Object.freeze({
@@ -124,7 +124,7 @@ export function guildRankNamesOf(raw) {
 // any founder. bible/11-Multiplayer/Guild-Overhaul.md.
 
 /** What a rename costs, in gold from the treasury - two and a half foundings. */
-export const GUILD_RENAME_GOLD = 25_000;
+export const GUILD_RENAME_GOLD = 5_000;   // BUNNYFALL COMPANIES (Phase 4): a Company is 5-6 players
 /** How long a guild keeps a name before it may change it again, in seconds - a fortnight. */
 export const GUILD_RENAME_COOLDOWN_S = 14 * 24 * 3600;
 /** When a guild renamed at `renamedAt` (epoch seconds, or null for never) may rename again - null for now. */

@@ -91,7 +91,7 @@ const button = (cls, text, onPress) => {
 };
 
 /** The seal a card wears - who posted it. */
-export const NOTICE_SEALS = Object.freeze({ town: 'The town', bounty: 'The bounty board', server: 'The server', player: 'A player', guild: 'A guild' });
+export const NOTICE_SEALS = Object.freeze({ town: 'The town', bounty: 'The bounty board', server: 'The server', player: 'A player', guild: 'A company' });
 /** "2 days left", "5 hours left", "under an hour left". */
 export function timeLeftText(expiresAt, nowS) {
   const s = Math.max(0, (Number(expiresAt) || 0) - nowS);
@@ -106,9 +106,9 @@ export const snippetOf = (body, lines = 4) => String(body ?? '').split('\n').fil
 export const recruitPosters = (board) => (board?.notes ?? []).filter((n) => n?.button === 'guild' && n.guild);
 /** GUILD1e: what the Guilds tab says of the reader's own guild board when it has none to show. */
 export const GUILD_BOARD_EMPTY = Object.freeze({
-  'no-guild': 'Join a guild to read its board.',
-  shut: 'Guild boards are closed to you.',
-  slow: 'Your guild\'s board did not load.',
+  'no-guild': 'Join a company to read its board.',
+  shut: 'Company boards are closed to you.',
+  slow: 'Your company\'s board did not load.',
   none: (name) => `No notes from ${name} yet.`,
 });
 /** BOARD-UI: the window's own fixed words, in one place - short, and plain. */
@@ -124,10 +124,10 @@ export const BOARD_WORDS = Object.freeze({
   writsSlow: 'The writs did not load.',
   writsNone: (region) => `No Court writs in ${region} today. They go up once players have gathered in the region.`,
   writsReading: 'Reading the writs...',
-  noRecruits: 'No guild is recruiting here.',
+  noRecruits: 'No company is recruiting here.',
   hidden: 'Hidden after reports until a moderator looks at it. You can still take it down.',
   guestAnswer: 'Only a registered account can answer a note',
-  pinTip: 'Answers come to you as letters. A recruit button needs a guild rank that can invite.',
+  pinTip: 'Answers come to you as letters. A recruit button needs a company rank that can invite.',
   noticeTip: 'Goes up on every board, under the red seal.',
 });
 
@@ -153,14 +153,14 @@ export function chapterGuide() {
     // its guild's losses; II C-5: a chapter writ, yours or the chapter's; II C-8: the day turns at midnight UTC
     [t('notice.chapters.rank.name', 'Your rank'), t('notice.chapters.rank.words', 'Your guild still promotes you as usual, up to rank {cap}. Ranks {officer} and {master} are the chairs (see below). A chair\'s services are at its own chapter\'s halls, for members at rank {cap}.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master })],
     [t('notice.chapters.standing.name', 'Standing'), t('notice.chapters.standing.words', 'Your standing with these guilds is kept online. Quests raise it by at most {max} per real day for each guild (days start at midnight UTC), and anything over carries to later days. A chapter writ, yours or the chapter’s, adds {writ}. Closing a Breach or defending a town adds {receipt} to each guild with a chapter there, plus {writ} for the first each day if the chapter asks for it.', { max: ROLL_GAIN_DAY_MAX, writ: HALL_WRIT_REP, receipt: RECEIPT_REP })],
-    ['Merit', `Your work for a chapter this week. You earn ${n(MERIT_WRIT)} for filling your own chapter writ (one a day, and bought goods earn none), and a share of ${n(MERIT_RECEIPT)} for each Dagon's Breach closed or raided town defended in the region. It counts after ${days(MERIT_TENURE_S)} real days in the guild, at most ${n(MERIT_CAP_WEEK)} an account a week in each chapter, and in only one chapter of each guild a week.`],
+    ['Merit', `Your work for a chapter this week. You earn ${n(MERIT_WRIT)} for filling your own chapter writ (one a day, and bought goods earn none), and a share of ${n(MERIT_RECEIPT)} for each Dagon's Breach closed or raided town defended in the region. It counts after ${days(MERIT_TENURE_S)} real days in the company, at most ${n(MERIT_CAP_WEEK)} an account a week in each chapter, and in only one chapter of each guild a week.`],
     // AUDIT PLAIN-UI W1: the whole of strengthAfter, failingWeekAfter, the Rivalry's swing and strengthSeasonEnd - "Merit
     // raises it" alone hid the week's mark, the fall back toward 50 and the Failing band's fall
     ['Strength', `The chapter's health, from ${STRENGTH_MIN} to ${STRENGTH_MAX}, starting at ${STRENGTH_START}. The week's mark is ${STRENGTH_TARGET} Merit for every 100 active players (at least ${STRENGTH_TARGET}). At each Turning (Sunday 18:00 UTC), Strength rises 1 for each mark its members' Merit reached that week, up to ${STRENGTH_STEP_MAX}. A week below the mark moves a chapter above ${STRENGTH_START} back ${STRENGTH_SHORT} toward it. A week with no Merit costs ${STRENGTH_IDLE}. A Failing chapter loses ${CHAPTER_FAILING_FALL} more unless its Merit reaches ${CHAPTER_FAILING_MEETS === 2 ? 'twice' : `${CHAPTER_FAILING_MEETS} times`} the mark. A Rivalry's winner takes ${CHAPTER_EVENT_EFFECTS.rivalrySwing} from the loser, and a Season's end moves every chapter halfway back to ${STRENGTH_START}.`],
     ['Band', `Strength's name: ${bands}. The band sets the halls' prices, what they stock and how many chapter writs they post. Each card says what its band does.`],
-    ['The chairs', `Rank ${SEAT_RANK.master} (the Master) and rank ${SEAT_RANK.officer} (${CHAPTER_SEATS.officer} council chairs) go at each Turning to the members with the most Merit over the last ${SEAT_MERIT_WEEKS} weeks. A member needs ${days(SEAT_TENURE_S)} real days in the guild, enough standing for rank ${SEAT_RANK.officer} and an account ${days(SEAT_ACCOUNT_AGE_S)} real days old. The Master picks the week's Focus: the goods the chapter writs ask for.`],
+    ['The chairs', `Rank ${SEAT_RANK.master} (the Master) and rank ${SEAT_RANK.officer} (${CHAPTER_SEATS.officer} council chairs) go at each Turning to the members with the most Merit over the last ${SEAT_MERIT_WEEKS} weeks. A member needs ${days(SEAT_TENURE_S)} real days in the company, enough standing for rank ${SEAT_RANK.officer} and an account ${days(SEAT_ACCOUNT_AGE_S)} real days old. The Master picks the week's Focus: the goods the chapter writs ask for.`],
     ['Season', `Each Season a chapter draws one event: ${events.slice(0, -1).join(', ')} or ${events[events.length - 1]}. A Schism or a Succession asks members to back a side. The card says what this Season's event does.`],
-    ['Patron', `A player guild's Guildmaster can bid silver (at least ${n(CHAPTER_PATRON_MIN)}) to be a chapter's patron next Season. The highest bid is spent and the others are returned. The patron's members pay ${patronBand} prices for training and spells in its halls, or the chapter's own prices if lower.`],
+    ['Patron', `A player company's Captain can bid silver (at least ${n(CHAPTER_PATRON_MIN)}) to be a chapter's patron next Season. The highest bid is spent and the others are returned. The patron's members pay ${patronBand} prices for training and spells in its halls, or the chapter's own prices if lower.`],
   ];
 }
 
@@ -425,7 +425,7 @@ export function mountNoticeBoard(host, deps) {
     const notes = board?.notes?.length ?? 0;
     const gnotes = gboard?.notes?.length ?? 0;
     const sub = tab === 'guilds'
-      ? (gboard ? `${gnotes} note${gnotes === 1 ? '' : 's'} on ${gboard.guild?.name ?? 'your guild'}'s board · yours up: ${gme().live} of ${gme().max}` : (gbusy ? BOARD_WORDS.reading : ''))
+      ? (gboard ? `${gnotes} note${gnotes === 1 ? '' : 's'} on ${gboard.guild?.name ?? 'your company'}'s board · yours up: ${gme().live} of ${gme().max}` : (gbusy ? BOARD_WORDS.reading : ''))
       : board
         ? `${notes} note${notes === 1 ? '' : 's'} pinned here${me().canPin ? ` · yours up: ${me().live} of ${me().max}` : ''}`
         : (busy ? BOARD_WORDS.reading : '');
@@ -441,7 +441,7 @@ export function mountNoticeBoard(host, deps) {
     }
     if (tab === 'guilds') {
       // GUILD1e: a note for the guild's own board, while the member has room
-      if (view === 'board' && gboard && gme().canPin && gme().live < gme().max) acts.append(button('primary notice-pinbtn', 'Pin a note for the guild', () => { view = 'gpin'; word = null; render(); }));
+      if (view === 'board' && gboard && gme().canPin && gme().live < gme().max) acts.append(button('primary notice-pinbtn', 'Pin a note for the company', () => { view = 'gpin'; word = null; render(); }));
       acts.append(button('notice-close', view === 'board' ? 'Close' : 'Back', back));
       head.append(title, acts);
       return [head, tabsNode()];
@@ -464,8 +464,8 @@ export function mountNoticeBoard(host, deps) {
    *  the market is (PROF5). */
   function tabsNode() {
     const tabs = el('nav', 'notice-tabs');
-    const shown = guildOnly ? [['guilds', 'Guild notes']] : traderOnly ? [['vendors', 'Trader']]   // HOME-VENDOR: a stall's one tab
-      : [['notices', 'Notices'], ...(workShown() ? [['work', 'Work']] : []), ...(marketShown() ? [['market', 'Market']] : []), ...(vendorTab ? [['vendors', 'Vendors']] : []), ...(guildsShown() ? [['guilds', 'Guilds']] : []), ...(seatShown() ? [['seat', 'Seat']] : [])];
+    const shown = guildOnly ? [['guilds', 'Company notes']] : traderOnly ? [['vendors', 'Trader']]   // HOME-VENDOR: a stall's one tab
+      : [['notices', 'Notices'], ...(workShown() ? [['work', 'Work']] : []), ...(marketShown() ? [['market', 'Market']] : []), ...(vendorTab ? [['vendors', 'Vendors']] : []), ...(guildsShown() ? [['guilds', 'Companies']] : []), ...(seatShown() ? [['seat', 'Seat']] : [])];
     if (!shown.some(([id]) => id === tab)) tab = shown[0][0];
     for (const [id, label] of shown) {
       const t = el(shown.length > 1 ? 'button' : 'span', `notice-tab${tab === id ? ' on' : ''}`, label);
@@ -639,7 +639,7 @@ export function mountNoticeBoard(host, deps) {
    *  receipt asks, which stood as "Hall writ" cards with no Take (chapterDutiesLine). @param {any} c */
   function chapterCard(c) {
     const card = el('section', 'notice-panel notice-chapter-card');
-    card.append(el('h3', null, `${hallPosterName(c.faction) ?? 'Guild'} - ${chapterBandOf(c.strength).name}`));
+    card.append(el('h3', null, `${hallPosterName(c.faction) ?? 'Company'} - ${chapterBandOf(c.strength).name}`));
     card.append(el('p', 'notice-chapter', `${chapterLineOf(c)}.`));   // CHAP3b: the chapter here, its Strength (AUDIT GUILD3 W12: a sentence, as the card's others)
     const merit = (writs?.merit ?? []).find((m) => m.faction === c.faction);
     // GUILD3d: what the band does - AUDIT GUILD3 L3: none of its halls' where they are shut this Season (its season line says so)
@@ -753,7 +753,7 @@ export function mountNoticeBoard(host, deps) {
       cg.setAttribute('role', 'list');
       for (const w of crafts) cg.append(craftNode(w));
       body.append(cg);
-      body.append(sectionHead(t('notice.craftWrit.court', 'Court and guild writs')));
+      body.append(sectionHead(t('notice.craftWrit.court', 'Court and company writs')));
     }
     const grid = el('ul', 'notice-grid');
     grid.setAttribute('role', 'list');
@@ -871,7 +871,7 @@ export function mountNoticeBoard(host, deps) {
   /** GUILD1e: a town's recruitment note hung as its guild's poster - the banner, the guild, the note's subject. */
   function posterNode(n) {
     const c = { key: `note:${n.id}`, seal: 'guild', subject: n.subject, body: n.body, from: n.from, at: n.at, expiresAt: n.expiresAt, note: n };
-    const li = el('li', 'notice-card notice-poster seal-guild');
+    const li = el('li', 'notice-card notice-poster seal-company');
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
     const img = bannerImg(n.guild.heraldry, 38);
@@ -893,20 +893,20 @@ export function mountNoticeBoard(host, deps) {
     const head = el('h3', 'notice-section');
     const img = g ? bannerImg(g.heraldry, 30) : null;
     if (img) head.append(img);
-    head.append(el('span', null, g ? `<${g.tag}> ${g.name} (members only)` : 'Your guild'));
+    head.append(el('span', null, g ? `<${g.tag}> ${g.name} (members only)` : 'Your company'));
     body.append(head);
     const grid = el('ul', 'notice-grid');
     grid.setAttribute('role', 'list');
     const notes = gboard?.notes ?? [];
     for (const n of notes) grid.append(cardNode({ key: `gnote:${n.id}`, seal: 'guild', subject: n.subject, body: n.body, from: n.from, at: n.at, expiresAt: n.expiresAt, gnote: n }));
-    if (gbusy && !gboard) grid.append(el('li', 'notice-empty', 'Reading your guild\'s board...'));
+    if (gbusy && !gboard) grid.append(el('li', 'notice-empty', 'Reading your company\'s board...'));
     else if (!gboard && gerror) {
       const shut = gerror === 'board-closed' || gerror === 'no-session' || gerror === 'auth';
       const li = el('li', 'notice-empty', gerror === 'no-guild' ? GUILD_BOARD_EMPTY['no-guild'] : shut ? GUILD_BOARD_EMPTY.shut : GUILD_BOARD_EMPTY.slow);
       if (!shut && gerror !== 'no-guild') li.append(button('notice-retry', 'Try again', () => loadGuild(true)));
       grid.append(li);
     }
-    else if (gboard && !notes.length) grid.append(el('li', 'notice-empty', GUILD_BOARD_EMPTY.none(g?.name ?? 'your guild')));
+    else if (gboard && !notes.length) grid.append(el('li', 'notice-empty', GUILD_BOARD_EMPTY.none(g?.name ?? 'your company')));
     body.append(grid);
     if (!guildOnly) {
       const posters = recruitPosters(board);
@@ -938,7 +938,7 @@ export function mountNoticeBoard(host, deps) {
     for (const n of NOTE_DAYS) { const o = /** @type {HTMLOptionElement} */ (el('option', null, `${n} day${n === 1 ? '' : 's'}`)); o.value = String(n); if (n === d.days) o.selected = true; days.append(o); }
     days.onchange = () => { d.days = Number(days.value); };
     form.append(field('Subject', subject), field('Note', text, counted), field('Keep it up for', days));
-    form.append(el('p', 'notice-tip', `Only members of ${gboard?.guild?.name ?? 'your guild'} can read it.`));
+    form.append(el('p', 'notice-tip', `Only members of ${gboard?.guild?.name ?? 'your company'} can read it.`));
     const acts = el('div', 'notice-acts');
     acts.append(button('primary notice-dopin', gbusy ? 'Pinning...' : 'Pin it', () => {
       gact(() => deps.book.pinGuild(character(), { subject: d.subject, body: d.body, days: d.days }))

@@ -69,7 +69,7 @@ export const CHAT_TABS = Object.freeze([
   Object.freeze({ id: 'party', label: 'Party', room: null, link: false, hint: 'Only your party', hidden: true, peekAll: true }),
   // GUILD1c (Mac: "Do guild1c" - the guild's chat): the Party tab's shape - its lines ride the hub's link with
   // `ch: 'guild'` and reach the guild's members online alone, and the tab is on the bar while the character is in one
-  Object.freeze({ id: 'guild', label: 'Guild', room: null, link: false, hint: 'Only your guild', hidden: true, peekAll: true }),
+  Object.freeze({ id: 'guild', label: 'Company', room: null, link: false, hint: 'Only your company', hidden: true, peekAll: true }),
   // BUNNYFALL WHISPER: private lines (scenes/whisperHost.js) - on the bar once one is sent or heard; typing here answers
   // the last person
   Object.freeze({ id: 'whisper', label: 'Whispers', room: null, link: false, hint: 'Private lines. Typing here answers the last person.', hidden: true, peekAll: true }),
@@ -135,9 +135,9 @@ export function mentions(text, name) {
   return new RegExp(`(^|[^\\p{L}\\p{N}_])@${esc}(?![\\p{L}\\p{N}_])`, 'iu').test(String(text ?? ''));
 }
 /** GUILD1c: the Guild tab on a relay from before the guild's channel - the World link's welcome said so. */
-export const GUILD_OLD_RELAY_TEXT = 'The guild channel needs the server\'s next update.';
+export const GUILD_OLD_RELAY_TEXT = 'The company channel needs the server\'s next update.';
 /** GUILD1c: the Guild tab's word while the character is in no guild. */
-export const NO_GUILD_TEXT = 'You are not in a guild.';
+export const NO_GUILD_TEXT = 'You are not in a company.';
 /** CHAT-CHAN: how far a Local line carries, scene units - the distance a peer's NAME is drawn at (net/remotePlayers.js
  *  NAME_RANGE; a pin holds them equal): whoever you can read over a head can hear you, and nobody further. */
 export const CHAT_SAY_RANGE = 60;

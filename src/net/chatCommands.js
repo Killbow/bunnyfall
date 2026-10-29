@@ -40,7 +40,7 @@ export const CHANNEL_COMMANDS = Object.freeze([
   Object.freeze({ names: Object.freeze(['region', 'r']), tab: 'region', wrap: null, help: '/region or /r <text>: to everyone in your region' }),
   Object.freeze({ names: Object.freeze(['lc']), tab: 'lang', wrap: null, help: '/lc <text>: to your language channel' }),   // CHAT-LANG: /l is Local's
   Object.freeze({ names: Object.freeze(['party', 'p']), tab: 'party', wrap: null, help: '/party or /p <text>: to your party' }),
-  Object.freeze({ names: Object.freeze(['guild', 'gu']), tab: 'guild', wrap: null, help: '/guild or /gu <text>: to your guild' }),   // GUILD1c: /g is the World's
+  Object.freeze({ names: Object.freeze(['company', 'co', 'guild', 'gu']), tab: 'guild', wrap: null, help: '/company or /co <text>: to your company (/guild still works)' }),   // GUILD1c: /g is the World's
   Object.freeze({ names: Object.freeze(['local', 'l', 'say', 's']), tab: 'local', wrap: null, help: '/local, /l, /say or /s <text>: to players nearby, in character' }),
   Object.freeze({ names: Object.freeze(['ooc']), tab: 'local', wrap: 'ooc', help: '/ooc <text>: to players nearby, out of character (( ))' }),
   // CHAT-TRADE: the two channels a player joins by choice - said on a channel not joined joins it (scenes/world.js)

@@ -335,7 +335,7 @@ const REFUSAL_WORDS = {
   'home-unmoved': () => ARENA_TEXT.homeMove.unmoved,
   'home-changed': () => ARENA_TEXT.homeMove.changed,
   // HOME-VOTE: a town's word on a player's house (server-account/src/homeVotes.js) - met at its door
-  'vote-own': () => t('account.refusal.voteOwn', 'You cannot vote on your own home, or on the hall of your own guild.'),
+  'vote-own': () => t('account.refusal.voteOwn', 'You cannot vote on your own home, or on the hall of your own company.'),
   'vote-rate': () => t('account.refusal.voteRate', 'You have voted on too many homes this hour. Try again later.'),
   'vote-young': () => t('account.refusal.voteYoung', 'An account must have had its username and password for a week to vote on homes.'),   // AUDIT HOME-VOTE A1: HOME_VOTE_AGE_S (II A7: a week REGISTERED - a guest played a year is no older for it)
   'bad-vote': () => t('account.refusal.badVote', 'The account service could not read that vote. The game may need updating.'),
@@ -369,26 +369,26 @@ const REFUSAL_WORDS = {
   'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
   'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
   // GUILD1: the guilds (server-account/src/guilds.js)
-  'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Guilds need a username and a password. Give this account one and you can found or join one.'),
+  'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Companies need a username and a password. Give this account one and you can found or join one.'),
   'guild-character': () => t('account.refusal.guildCharacter', 'The account service could not tell which character that is.'),
-  'bad-guild': () => t('account.refusal.badGuild', 'A guild\'s name is {min} to {max} letters, digits, spaces, apostrophes or hyphens, and its tag 2 to 4 capitals or digits.', { min: GUILD_NAME_MIN, max: GUILD_NAME_MAX }),
-  'guild-rate': () => t('account.refusal.guildRate', 'You have changed your guild too often this hour. Try again later.'),
-  'guild-renown': () => t('account.refusal.guildRenown', 'Founding a guild takes Renown {renown}.', { renown: GUILD_FOUND_RENOWN }),
-  'guild-already': () => t('account.refusal.guildAlready', 'This character already belongs to a guild.'),
-  'guild-name-taken': () => t('account.refusal.guildNameTaken', 'Another guild already bears that name.'),
-  'guild-tag-taken': () => t('account.refusal.guildTagTaken', 'Another guild already bears that tag.'),
-  'no-guild': () => t('account.refusal.noGuild', 'This character belongs to no guild.'),
-  'guild-rank': () => t('account.refusal.guildRank', 'Your rank in the guild cannot do that.'),
-  'guild-full': () => t('account.refusal.guildFull', 'The guild already holds {max} members.', { max: GUILD_MEMBERS_MAX }),
+  'bad-guild': () => t('account.refusal.badGuild', 'A company\'s name is {min} to {max} letters, digits, spaces, apostrophes or hyphens, and its tag 2 to 4 capitals or digits.', { min: GUILD_NAME_MIN, max: GUILD_NAME_MAX }),
+  'guild-rate': () => t('account.refusal.guildRate', 'You have changed your company too often this hour. Try again later.'),
+  'guild-renown': () => t('account.refusal.guildRenown', 'Founding a company takes Renown {renown}.', { renown: GUILD_FOUND_RENOWN }),
+  'guild-already': () => t('account.refusal.guildAlready', 'This character already belongs to a company.'),
+  'guild-name-taken': () => t('account.refusal.guildNameTaken', 'Another company already bears that name.'),
+  'guild-tag-taken': () => t('account.refusal.guildTagTaken', 'Another company already bears that tag.'),
+  'no-guild': () => t('account.refusal.noGuild', 'This character belongs to no company.'),
+  'guild-rank': () => t('account.refusal.guildRank', 'Your rank in the company cannot do that.'),
+  'guild-full': () => t('account.refusal.guildFull', 'The company already holds {max} members.', { max: GUILD_MEMBERS_MAX }),
   'no-invite': () => t('account.refusal.noInvite', 'That invitation is no longer open.'),
-  'guild-master-leaves': () => t('account.refusal.guildMasterLeaves', 'Hand the guild on to another member before you leave it.'),
+  'guild-master-leaves': () => t('account.refusal.guildMasterLeaves', 'Hand the company on to another member before you leave it.'),
   'guild-treasury': () => t('account.refusal.guildTreasury', 'Take the gold out of the treasury first.'),
   // RPT1026-MARKET ARRIVE (private reports 2026-10-26: a character the delete refused while a trade with another player
   // stood open, a trader's purchase still waiting for it): the goods waiting come to its pack on their own now as it plays
   // (net/marketArrivals.js), and a trader's takings held for it are said too - they hold the delete (realm.js
   // REALM_MARKET_OPEN_SQL's `market_gold`) and the line never named them
   'realm-market-open': () => t('account.refusal.realmMarketOpen', 'This character still has business on the market: a listing, auction, bid, buy order or commission, goods on the way or waiting to be collected, or a trader’s takings. Settle it first. Play it online once and any goods waiting for it arrive in its pack. Takings are collected on the Vendor page.'),   // PROF-DELETE   // AUDIT 28 M3: the Marks go to the guildmaster with the guild
-  'no-member': () => t('account.refusal.noMember', 'That member is no longer in the guild.'),
+  'no-member': () => t('account.refusal.noMember', 'That member is no longer in the company.'),
   'bad-ranks': () => t('account.refusal.badRanks', 'Each rank needs a name of its own, 1 to {max} letters, digits, spaces, apostrophes or hyphens.', { max: GUILD_RANK_NAME_MAX }),
   'bad-gold': () => t('account.refusal.badGold', 'Gold goes in or out 1 to {max} at a time.', { max: GUILD_MOVE_MAX }),
   'guild-treasury-full': () => t('account.refusal.guildTreasuryFull', 'The treasury can hold no more.'),
@@ -429,7 +429,7 @@ const REFUSAL_WORDS = {
   'marks-bank-cap': () => t('account.refusal.marksBankCap', 'The Bank buys at most {perDay} silver from you a day.', { perDay: MARKS_BANK.perDay }),
   'marks-full': () => t('account.refusal.marksFull', 'An account holds at most {max, number} silver.', { max: MARKS_MAX }),
   'guild-marks-short': () => t('account.refusal.guildMarksShort', 'The treasury does not hold that much silver.'),
-  'guild-marks-full': () => t('account.refusal.guildMarksFull', 'A guild\'s treasury holds at most {max, number} silver.', { max: MARKS_MAX }),
+  'guild-marks-full': () => t('account.refusal.guildMarksFull', 'A company\'s treasury holds at most {max, number} silver.', { max: MARKS_MAX }),
   'marks-rate': () => t('account.refusal.marksRate', 'You have moved too much silver this hour. Try again later.'),
   'bad-find': () => t('account.refusal.badFind', 'That find could not be read.'),   // SILVER-FINDS: a loot find of no kind the service knows
   'marks-young': () => t('account.refusal.marksYoung', 'Silver turns up in finds and gathering once your account is a week old.'),   // AUDIT 625 S1: the witnesses' own age
@@ -444,14 +444,14 @@ const REFUSAL_WORDS = {
   // SEAT1b: influence (server-account/src/seatInfluence.js)
   'seat-unconfirmed': () => t('account.refusal.seatUnconfirmed', 'That seat is not confirmed yet. Seats are confirmed once enough players have seen them.'),
   'seat-reckoning': () => t('account.refusal.seatReckoning', 'Pledges are locked until the Turning, Sunday 18:00 UTC.'),
-  'seat-pledges-full': () => t('account.refusal.seatPledgesFull', 'Your guild has pledged in five regions this week. Take one pledge down first.'),
-  'seat-no-pledge': () => t('account.refusal.seatNoPledge', 'Your guild is not pledged to that seat this week.'),
-  'seat-tribute-cap': () => t('account.refusal.seatTributeCap', 'Tribute is at most a fifth of your guild\'s week at a seat. Earn more influence there first.'),
+  'seat-pledges-full': () => t('account.refusal.seatPledgesFull', 'Your company has pledged in five regions this week. Take one pledge down first.'),
+  'seat-no-pledge': () => t('account.refusal.seatNoPledge', 'Your company is not pledged to that seat this week.'),
+  'seat-tribute-cap': () => t('account.refusal.seatTributeCap', 'Tribute is at most a fifth of your company\'s week at a seat. Earn more influence there first.'),
   'bad-tribute': () => t('account.refusal.badTribute', 'Tribute is paid in multiples of 10 silver.'),
   'bad-watch': () => t('account.refusal.badWatch', 'Those watch records could not be read.'),
   // SEAT1c: the Charters
-  'seat-not-held': () => t('account.refusal.seatNotHeld', 'Your guild does not hold that Charter.'),
-  'seat-held-here': () => t('account.refusal.seatHeldHere', 'Your guild holds a Charter in this region, and is pledged to it.'),
+  'seat-not-held': () => t('account.refusal.seatNotHeld', 'Your company does not hold that Charter.'),
+  'seat-held-here': () => t('account.refusal.seatHeldHere', 'Your company holds a Charter in this region, and is pledged to it.'),
   // SEAT1d: the holder's levers
   'bad-tithe': () => t('account.refusal.badTithe', 'A Tithe must be a whole percent, up to what the seat allows: 10% at a palace, 15% at a crown, plus one point for each stage of its Market Hall.'),   // AUDIT SEATS-3 C6: the Market Hall raises the cap (fortLaw.js marketHallTitheCap)
   'tithe-this-week': () => t('account.refusal.titheThisWeek', 'The Tithe has been set this week already. It may change again after the Turning.'),
@@ -482,7 +482,7 @@ const REFUSAL_WORDS = {
   'bad-note-button': () => t('account.refusal.badNoteButton', 'That note cannot carry that button.'),
   'bad-notice-days': () => t('account.refusal.badNoticeDays', 'A notice stands for 1 to {max} days.', { max: NOTICE_DAYS_MAX }),
   'notes-full': () => t('account.refusal.notesFull', 'You have {max} notes up already. Take one down first.', { max: NOTES_LIVE_MAX }),
-  'note-no-guild': () => t('account.refusal.noteNoGuild', 'Your character is not in a guild to recruit for.'),
+  'note-no-guild': () => t('account.refusal.noteNoGuild', 'Your character is not in a company to recruit for.'),
   'no-note': () => t('account.refusal.noNote', 'That note is no longer on the board.'),
   'no-notice': () => t('account.refusal.noNotice', 'That notice is no longer on the board.'),
   'own-note': () => t('account.refusal.ownNote', 'That note is your own.'),
@@ -643,28 +643,28 @@ const REFUSAL_WORDS = {
   'other-character': () => t('account.refusal.otherCharacter', 'That was begun by another of your characters. It settles when they next open the board.'),
   'piece-held': () => t('account.refusal.pieceHeld', 'That piece cannot leave your pack now. Take it off or unlock it first.'),   // AUDIT 31 H8
   // PROF6: guild writs, commissions and the guild Stores
-  'writs-closed': () => t('account.refusal.writsClosed', 'Guild writs and commissions are not open to this account.'),
-  'writ-pay': () => t('account.refusal.writPay', 'A guild writ can pay at most 1.5 times the material\'s worth per unit.'),
-  'writ-budget': () => t('account.refusal.writBudget', 'That is past the Officers\' writ budget for this week. The Guildmaster sets it on the Guild tab.'),
+  'writs-closed': () => t('account.refusal.writsClosed', 'Company writs and commissions are not open to this account.'),
+  'writ-pay': () => t('account.refusal.writPay', 'A company writ can pay at most 1.5 times the material\'s worth per unit.'),
+  'writ-budget': () => t('account.refusal.writBudget', 'That is past the Officers\' writ budget for this week. The Captain sets it on the Company tab.'),
   'writ-gone': () => t('account.refusal.writGone', 'That writ is no longer posted.'),
   'writ-elsewhere': () => t('account.refusal.writElsewhere', 'That writ is delivered at the boards of the region that posted it.'),
   'writ-short': () => t('account.refusal.writShort', 'That writ needs fewer than that now.'),
   'writ-moved': () => t('account.refusal.writMoved', 'Someone else delivered first. Check the writ again.'),
   // SEAT2b: a seat writ and a fortification project
-  'seat-not-pledged': () => t('account.refusal.seatNotPledged', 'Your guild neither holds that seat nor is pledged to it this week.'),
+  'seat-not-pledged': () => t('account.refusal.seatNotPledged', 'Your company neither holds that seat nor is pledged to it this week.'),
   'bad-work': () => t('account.refusal.badWork', 'There is no such work.'),
   'fort-not-here': () => t('account.refusal.fortNotHere', 'That work cannot be raised at this seat.'),
   'fort-building': () => t('account.refusal.fortBuilding', 'That work is being raised already.'),
   'fort-max': () => t('account.refusal.fortMax', 'That work has reached its final stage.'),
-  'seat-treasury': () => t('account.refusal.seatTreasury', 'The guild\'s treasury does not hold the silver that project asks.'),
+  'seat-treasury': () => t('account.refusal.seatTreasury', 'The company\'s treasury does not hold the silver that project asks.'),
   'bad-rid': () => t('account.refusal.badRid', 'That request could not be read. Try again.'),
   'writ-rate': () => t('account.refusal.writRate', 'You have reached the hourly limit for writs and commissions ({posts} posted, {acts} other actions). Try again later.', { posts: WRIT_POSTS_MAX, acts: WRIT_OPS_MAX }),
   'writ-busy': () => t('account.refusal.writBusy', 'Your last writ is still being settled. Try again in a moment.'),
-  'guild-writs-max': () => t('account.refusal.guildWritsMax', 'A guild may have {max} writs posted at once.', { max: GUILD_WRITS_MAX }),
-  'guild-stores-full': () => t('account.refusal.guildStoresFull', 'The guild Stores hold at most {max, number} of a material.', { max: GUILD_STORES_MAX }),
-  'guild-stores-short': () => t('account.refusal.guildStoresShort', 'The guild Stores do not hold that many.'),
-  'guild-stores': () => t('account.refusal.guildStores', 'Empty the guild Stores first.'),
-  'guild-writs': () => t('account.refusal.guildWrits', 'Withdraw the guild\'s writs first.'),
+  'guild-writs-max': () => t('account.refusal.guildWritsMax', 'A company may have {max} writs posted at once.', { max: GUILD_WRITS_MAX }),
+  'guild-stores-full': () => t('account.refusal.guildStoresFull', 'The company Stores hold at most {max, number} of a material.', { max: GUILD_STORES_MAX }),
+  'guild-stores-short': () => t('account.refusal.guildStoresShort', 'The company Stores do not hold that many.'),
+  'guild-stores': () => t('account.refusal.guildStores', 'Empty the company Stores first.'),
+  'guild-writs': () => t('account.refusal.guildWrits', 'Withdraw the company\'s writs first.'),
   'guild-writ-escrow': () => t('account.refusal.guildWritEscrow', 'A withdrawn writ\'s or contract\'s pay is still waiting to go back to the silver treasury, which is full. Take silver out of the treasury first.'),   // AUDIT 31 A15; SILVER-WAYS: or a contract's
   // PROF2b: a Motherlode's strike
   'motherlode-closed': () => t('account.refusal.motherlodeClosed', 'There is no Motherlode right now. It has not appeared yet, or it is gone.'),
@@ -672,49 +672,49 @@ const REFUSAL_WORDS = {
   'motherlode-found': () => t('account.refusal.motherlodeFound', 'You have found your Motherlode today. Another breaks ground tomorrow.'),
   'motherlode-full': () => t('account.refusal.motherlodeFull', 'Its twenty miners have struck it. The Motherlode is spent.'),
   // SILVER-WAYS: guild contracts
-  'guild-contracts': () => t('account.refusal.guildContracts', 'Withdraw the guild\'s contracts first.'),
-  'guild-contracts-max': () => t('account.refusal.guildContractsMax', 'A guild may have {max} contracts posted at once.', { max: GUILD_CONTRACTS_MAX }),
-  'contract-kind': () => t('account.refusal.contractKind', 'A guild contract pays for towns defended.'),
+  'guild-contracts': () => t('account.refusal.guildContracts', 'Withdraw the company\'s contracts first.'),
+  'guild-contracts-max': () => t('account.refusal.guildContractsMax', 'A company may have {max} contracts posted at once.', { max: GUILD_CONTRACTS_MAX }),
+  'contract-kind': () => t('account.refusal.contractKind', 'A company contract pays for towns defended.'),
   'contract-pay': () => t('account.refusal.contractPay', 'A contract pays 1 to {max} silver a defender.', { max: CONTRACT_PAY_MAX }),
   'contract-deeds': () => t('account.refusal.contractDeeds', 'A contract pays 1 to {max} defenders.', { max: CONTRACT_DEEDS_MAX }),
   'contract-gone': () => t('account.refusal.contractGone', 'That contract is no longer posted.'),
   'no-contract': () => t('account.refusal.noContract', 'There is no such contract.'),
   // GUILD1d (Seats-Arc 8): the guild hall and the heraldry (server-account/src/halls.js)
-  'guild-hall-have': () => t('account.refusal.guildHallHave', 'Your guild already has a hall. Sell it first to buy another.'),
-  'guild-hall-none': () => t('account.refusal.guildHallNone', 'Your guild has no hall.'),
+  'guild-hall-have': () => t('account.refusal.guildHallHave', 'Your company already has a hall. Sell it first to buy another.'),
+  'guild-hall-none': () => t('account.refusal.guildHallNone', 'Your company has no hall.'),
   'guild-hall-moved': () => t('account.refusal.guildHallMoved', 'The hall changed while you were selling it. Look again.'),
-  'guild-hall': () => t('account.refusal.guildHall', 'Sell the guild\'s hall first.'),
-  'guild-seat': () => t('account.refusal.guildSeat', 'Give up the guild\'s Charters first, at each seat\'s Notice Board.'),   // SEAT1c
-  'guild-battle': () => t('account.refusal.guildBattle', 'The guild is in a siege or a Tourney this week. It cannot be disbanded until the battle is over.'),   // SEAT1c
-  'guild-patron': () => t('account.refusal.guildPatron', 'The guild has bid for a chapter\'s patronage. It cannot be disbanded until the Season opens and the bid is decided.'),   // AUDIT CHAP5 E4
-  'hall-item': () => t('account.refusal.hallItem', 'A guild hall can only hold furniture from the catalog. Your own things stay with you.'),
+  'guild-hall': () => t('account.refusal.guildHall', 'Sell the company\'s hall first.'),
+  'guild-seat': () => t('account.refusal.guildSeat', 'Give up the company\'s Charters first, at each seat\'s Notice Board.'),   // SEAT1c
+  'guild-battle': () => t('account.refusal.guildBattle', 'The company is in a siege or a Tourney this week. It cannot be disbanded until the battle is over.'),   // SEAT1c
+  'guild-patron': () => t('account.refusal.guildPatron', 'The company has bid for a chapter\'s patronage. It cannot be disbanded until the Season opens and the bid is decided.'),   // AUDIT CHAP5 E4
+  'hall-item': () => t('account.refusal.hallItem', 'A company hall can only hold furniture from the catalog. Your own things stay with you.'),
   'hall-yard': () => t('account.refusal.hallYard', 'A palace\'s grounds cannot be furnished, only its Charter Room.'),   // GUILD-YARD: a guild hall's yard is its keepers'; a palace's grounds stand none
   'bad-heraldry': () => t('account.refusal.badHeraldry', 'Those arms aren’t allowed. Field and border need different colors, and Ash can only be the border. The device must stand out from the field. A divided field’s second color must differ from the first and the border.'),   // AUDIT2 GUILD2 G5: GUILD2c's divisions and device colour
   // GUILD2a (bible/11-Multiplayer/Guild-Overhaul.md): a new name for a price (server-account/src/guilds.js renameGuild)
-  'guild-rename-same': () => t('account.refusal.guildRenameSame', 'That is already the guild\'s name and tag.'),
-  'guild-name-word': () => t('account.refusal.guildNameWord', 'A guild\'s name and tag cannot contain a word that is not allowed in names.'),
+  'guild-rename-same': () => t('account.refusal.guildRenameSame', 'That is already the company\'s name and tag.'),
+  'guild-name-word': () => t('account.refusal.guildNameWord', 'A company\'s name and tag cannot contain a word that is not allowed in names.'),
   'guild-rank-word': () => t('account.refusal.guildRankWord', 'A rank\'s name cannot contain a word that is not allowed in names.'),   // TEXT-F1
-  'guild-rename-soon': () => t('account.refusal.guildRenameSoon', 'The guild was renamed too recently. It can be renamed again 2 weeks after the last time.'),
-  'guild-rename-siege': () => t('account.refusal.guildRenameSiege', 'The guild is in a siege or a Tourney this week. It cannot be renamed until the battle is over.'),
+  'guild-rename-soon': () => t('account.refusal.guildRenameSoon', 'The company was renamed too recently. It can be renamed again 2 weeks after the last time.'),
+  'guild-rename-siege': () => t('account.refusal.guildRenameSiege', 'The company is in a siege or a Tourney this week. It cannot be renamed until the battle is over.'),
   'guild-rename-gold': () => t('account.refusal.guildRenameGold', 'A new name costs {cost, number} gold, paid from gold that realm characters put in the treasury, and there is not that much.', { cost: GUILD_RENAME_GOLD }),
-  'guild-rename-moved': () => t('account.refusal.guildRenameMoved', 'The guild changed while it was being renamed. Nothing was paid. Look again.'),
+  'guild-rename-moved': () => t('account.refusal.guildRenameMoved', 'The company changed while it was being renamed. Nothing was paid. Look again.'),
   // GUILD2b: the vault (server-account/src/guildVault.js)
-  'guild-vault-rank': () => t('account.refusal.guildVaultRank', 'The guildmaster has not given you that permission at the guild vault.'),
-  'guild-vault-limit': () => t('account.refusal.guildVaultLimit', 'You have taken as many pieces from the vault today as the guildmaster allows. Try again tomorrow.'),
-  'guild-vault-full': () => t('account.refusal.guildVaultFull', 'The guild\'s vault is full. It holds {slots} pieces, and {hallSlots} more with a guild hall.', { slots: GUILD_VAULT_SLOTS, hallSlots: GUILD_VAULT_HALL_SLOTS }),
+  'guild-vault-rank': () => t('account.refusal.guildVaultRank', 'The captain has not given you that permission at the company vault.'),
+  'guild-vault-limit': () => t('account.refusal.guildVaultLimit', 'You have taken as many pieces from the vault today as the captain allows. Try again tomorrow.'),
+  'guild-vault-full': () => t('account.refusal.guildVaultFull', 'The company\'s vault is full. It holds {slots} pieces, and {hallSlots} more with a company hall.', { slots: GUILD_VAULT_SLOTS, hallSlots: GUILD_VAULT_HALL_SLOTS }),
   'guild-vault-empty': () => t('account.refusal.guildVaultEmpty', 'That piece is no longer in the vault.'),
   'guild-vault-moved': () => t('account.refusal.guildVaultMoved', 'The vault or your pack changed while you were using it. Nothing moved. Look again.'),
-  'guild-vault': () => t('account.refusal.guildVault', 'Empty the guild\'s vault first.'),
+  'guild-vault': () => t('account.refusal.guildVault', 'Empty the company\'s vault first.'),
   'vault-goods': () => t('account.refusal.vaultGoods', 'That piece cannot go in the vault. It is no longer in your pack, or it has to stay with its owner (a quest item, a summoned item or the Materials Bag).'),
   'bad-vault-item': () => t('account.refusal.badVaultItem', 'The account service could not read that piece.'),
   'bad-vault-count': () => t('account.refusal.badVaultCount', 'That is more than the stack holds.'),
   'bad-vault-slot': () => t('account.refusal.badVaultSlot', 'The account service could not tell which piece that is.'),
   'bad-vault-grant': () => t('account.refusal.badVaultGrant', 'The account service could not read that grant.'),
-  'heraldry-same': () => t('account.refusal.heraldrySame', 'That is already your guild\'s heraldry.'),
-  'heraldry-moved': () => t('account.refusal.heraldryMoved', 'The guild\'s heraldry changed meanwhile. Look again.'),
-  'heraldry-drakes': () => t('account.refusal.heraldryDrakes', 'Changing the heraldry costs {cost} silver from the guild\'s silver treasury, and it holds less.', { cost: HERALDRY_CHANGE_DRAKES }),
-  'writ-own-guild': () => t('account.refusal.writOwnGuild', 'Officers and the Guildmaster can take from the guild Stores, so they cannot deliver to the guild\'s own writs.'),   // AUDIT 31 S6
-  'guild-stores-mine': () => t('account.refusal.guildStoresMine', 'A member can only take out what they put in. The Officers and the Guildmaster can take the rest.'),   // AUDIT 31 R1
+  'heraldry-same': () => t('account.refusal.heraldrySame', 'That is already your company\'s heraldry.'),
+  'heraldry-moved': () => t('account.refusal.heraldryMoved', 'The company\'s heraldry changed meanwhile. Look again.'),
+  'heraldry-drakes': () => t('account.refusal.heraldryDrakes', 'Changing the heraldry costs {cost} silver from the company\'s silver treasury, and it holds less.', { cost: HERALDRY_CHANGE_DRAKES }),
+  'writ-own-guild': () => t('account.refusal.writOwnGuild', 'Officers and the Captain can take from the company Stores, so they cannot deliver to the company\'s own writs.'),   // AUDIT 31 S6
+  'guild-stores-mine': () => t('account.refusal.guildStoresMine', 'A member can only take out what they put in. The Officers and the Captain can take the rest.'),   // AUDIT 31 R1
   'bad-budget': () => t('account.refusal.badBudget', 'A writ budget is 0 to {max, number} silver.', { max: MARKS_MAX }),
   'bad-quality': () => t('account.refusal.badQuality', 'Choose a quality from Crude to Masterwork, or none for a piece without quality.'),
   'bad-pay': () => t('account.refusal.badPay', 'A commission pays 1 to {max, number} silver.', { max: MARKET_PRICE_MAX }),
@@ -796,18 +796,18 @@ const REFUSAL_WORDS = {
   'roll-unseeded': () => t('account.refusal.rollUnseeded', 'The realm has not read your standing with the guilds yet. It will try again.'),
   'roll-busy': () => t('account.refusal.rollBusy', 'Your standing with the guilds was being written. It will try again.'),
   // CHAP2a: a town's guild halls, witnessed (server-account/src/npcHalls.js) - asked quietly, said only if ever shown
-  'halls-need-account': () => t('account.refusal.hallsNeedAccount', 'Only registered accounts can report a town\'s guild halls.'),
+  'halls-need-account': () => t('account.refusal.hallsNeedAccount', 'Only registered accounts can report a town\'s company halls.'),
   // TOWN-ECON TE2 (server-account/src/townEcon.js): the towns' registry and their footsteps
   'towns-need-account': () => t('account.refusal.townsNeedAccount', 'Only registered accounts can report towns and their visits.'),
   'bad-town': () => t('account.refusal.badTown', 'That town could not be read.'),
   'towns-rate': () => t('account.refusal.townsRate', 'You have reported too many towns this hour. Try again later.'),
   'towns-closed': () => t('account.refusal.townsClosed', 'The towns\' economy is closed for now.'),   // AUDIT TOWN-ECON 2 SVC-7: the service's switch
   'town-unwalked': () => t('account.refusal.townUnwalked', 'Walk a town\'s streets before you report it.'),   // SVC-1: no tick of yours at its pixel
-  'bad-hall': () => t('account.refusal.badHall', 'That town\'s guild halls could not be read. The game may need updating.'),
+  'bad-hall': () => t('account.refusal.badHall', 'That town\'s company halls could not be read. The game may need updating.'),
   'halls-rate': () => t('account.refusal.hallsRate', 'You have reported enough towns this hour.'),
   // AUDIT CHAP2: the claims' hour; a town a developer struck
   'roll-rate': () => t('account.refusal.rollRate', 'Your standing with the guilds has been sent often this hour. It will be sent again later.'),
-  'hall-struck': () => t('account.refusal.hallStruck', 'That town\'s guild halls were struck from the record.'),
+  'hall-struck': () => t('account.refusal.hallStruck', 'That town\'s company halls were struck from the record.'),
   // CHAP4d: a chapter's Focus - set by its Master alone, to a family its guild's own
   'not-master': () => t('account.refusal.notMaster', 'Only the chapter\'s Master sets its Focus.'),
   'no-focus': () => t('account.refusal.noFocus', 'The guild asks for no such thing.'),
@@ -818,8 +818,8 @@ const REFUSAL_WORDS = {
   'not-member': () => t('account.refusal.notMember', 'Only an active member of the guild may back its chapter.'),
   // CHAP7a: a guild's bid for a chapter's patronage - for the Season after this one, the guildmaster's, more than it stood at
   'no-season': () => t('account.refusal.noSeason', 'No Season is counted yet, so there is no patronage to bid for.'),
-  'no-chapter': () => t('account.refusal.noChapter', 'There is no chapter there whose patronage a guild may bid for.'),
-  'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 silver, and more than your guild bid before.'),
+  'no-chapter': () => t('account.refusal.noChapter', 'There is no chapter there whose patronage a company may bid for.'),
+  'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 silver, and more than your company bid before.'),
   // CARDS6: a gold card table's stake and its cash-out (server-account/src/cards.js)
   'cards-realm': () => t('account.refusal.cardsRealm', 'Only an online character of the realm can play a card table for gold.'),
   // SEA-BOUNTY (server-account/src/seaBounty.js): a freeport's bounty board

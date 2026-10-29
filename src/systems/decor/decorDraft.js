@@ -65,8 +65,8 @@ export function decorDraftGold(before, after) {
 export function decorHallDraftText(parts) {
   const pay = parts?.pay ?? 0;
   const back = parts?.back ?? 0;
-  if (pay && back) return t('decor.draft.hallBoth', '{pay} gold to confirm, {back} to the guild', { pay: pay.toLocaleString('en-US'), back: back.toLocaleString('en-US') });
-  if (back) return t('decor.draft.hallBack', '{back} gold to the guild', { back: back.toLocaleString('en-US') });
+  if (pay && back) return t('decor.draft.hallBoth', '{pay} gold to confirm, {back} to the company', { pay: pay.toLocaleString('en-US'), back: back.toLocaleString('en-US') });
+  if (back) return t('decor.draft.hallBack', '{back} gold to the company', { back: back.toLocaleString('en-US') });
   return decorDraftText(-pay);
 }
 

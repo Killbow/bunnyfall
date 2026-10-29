@@ -292,7 +292,7 @@ export function townReasonLine({ raided = false, edict = null, players = 0, lane
  *  and the guild's own - charterName and guildWords are the seats' English, and sat inside every language's grammar.
  *  @param {any} area a dressed seat, or null for a region with none */
 export function townAreaLine(area) {
-  if (!area) return t('town.econ.area.none', 'No guild holds this area.');
+  if (!area) return t('town.econ.area.none', 'No company holds this area.');
   const g = area.holder?.guild;
   const guild = g ? `${g.name} <${g.tag}>` : null;
   if (area.tier === 'crown') {

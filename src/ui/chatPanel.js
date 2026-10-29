@@ -281,7 +281,7 @@ ${PIXELIFY_FIVE_FACE}
 .dfchat-chan[data-tab="region"] { color: #e0a45a; }
 .dfchat-chan[data-tab="party"] { color: ${PARTY_GREEN_CSS}; }
 .dfchat-chan[data-tab="local"] { color: #e9e4d9; }
-/* CHAT-COLOURS (the players: "White for Global, Green for Regional, Purple for Guild, Grey for Local"): each channel's
+/* CHAT-COLOURS (the players: "White for Global, Green for Regional, Purple for Company, Grey for Local"): each channel's
    words in its own colour (ui/chatColours.js - Language rose and Party teal beside the four asked for), and a pip of it
    before each tab's name and each peek line's channel mark, so the colour is learned where the channel is named.
    The switch is the player's (Settings: Chat colours by channel) - off, every line is the bone it always was. */
@@ -442,8 +442,8 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 /* CHAT-FIT: the same badge on a chat LINE - the glyphs after the name
    at the roster's size (TITLE-C: no title before it, as the roster wears none). */
 .dfchat-line-glyph { width: calc(11px * var(--dfchat-scale, 1)); height: calc(11px * var(--dfchat-scale, 1)); display: inline-block; vertical-align: -1px; margin-left: 3px; }
-/* GUILD1c: the guild's tag right of the name, before the glyphs - the name layer's own steel, on a line and in the roster */
-.dfchat-line-guild, .dfchat-who-guild { flex: none; color: #a9c4dd; font-size: calc(11px * var(--dfchat-scale, 1)); letter-spacing: .04em; margin-left: 4px; }
+/* GUILD1c: the company's tag right of the name, before the glyphs - the name layer's own steel, on a line and in the roster */
+.dfchat-line-company, .dfchat-who-company { flex: none; color: #a9c4dd; font-size: calc(11px * var(--dfchat-scale, 1)); letter-spacing: .04em; margin-left: 4px; }
 .dfchat-who-more { font-size: calc(11px * var(--dfchat-scale, 1)); color: var(--dim, #9a9486); padding-top: 4px; }
 /* the roster is the first thing to go when there is no width for it */
 @media (max-width: 560px) { .dfchat-who { display: none; } }

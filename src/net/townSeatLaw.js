@@ -367,7 +367,7 @@ export function seatWeekLine({ phase, reckoningAt, turningAt }, nowS) {
 /** A standing's row: "1. the Silver Hand <SH> - 8,393 influence". */
 export const seatStandingLine = (s, i) => `${i + 1}. ${guildWords(s.guild)} - ${s.influence.toLocaleString('en-US')} influence${s.shrine > 0 ? ` (its Shrine's ${s.shrine.toLocaleString('en-US')})` : ''}`;   // SEAT2b part two: the holder's Shrine's part
 /** No guild pledged here yet. */
-export const seatNoStandingsLine = (seat) => `No guild has pledged to ${seat.name} this week.`;
+export const seatNoStandingsLine = (seat) => `No company has pledged to ${seat.name} this week.`;
 /**
  * The reader's own guild at this seat (`mine` of the standings' answer): where it is pledged in the seat's region, and
  * whether this account's war and this character count here.
@@ -376,16 +376,16 @@ export const seatNoStandingsLine = (seat) => `No guild has pledged to ${seat.nam
  * @param {(key: number) => string|null} nameOf a seat's name by key (the client's derived seats)
  */
 export function seatMineLines(seat, mine, nameOf = () => null) {
-  if (!mine) return ['Join a guild to fight for a seat.'];
+  if (!mine) return ['Join a company to fight for a seat.'];
   const out = [];
   const here = mine.pledges.find((p) => p.region === seat.region);
-  if (!here) out.push('Your guild has not pledged in this region this week.');
-  else if (here.held && here.key === seat.key) out.push('Your guild holds this Charter, and is pledged to it.');   // SEAT1c
-  else if (here.held) out.push(`Your guild holds ${nameOf(here.key) ?? 'another seat'} in this region, and is pledged to it.`);
-  else if (here.key === seat.key) out.push(`Your guild is pledged to ${seat.name}.`);
-  else out.push(`Your guild is pledged to ${nameOf(here.key) ?? 'another seat'} in this region.`);
-  if (!mine.seasoned) out.push('You count for your guild after 7 days in it.');
-  else if (mine.bound && mine.bound !== mine.guild) out.push('Your account fights for another guild this week.');
+  if (!here) out.push('Your company has not pledged in this region this week.');
+  else if (here.held && here.key === seat.key) out.push('Your company holds this Charter, and is pledged to it.');   // SEAT1c
+  else if (here.held) out.push(`Your company holds ${nameOf(here.key) ?? 'another seat'} in this region, and is pledged to it.`);
+  else if (here.key === seat.key) out.push(`Your company is pledged to ${seat.name}.`);
+  else out.push(`Your company is pledged to ${nameOf(here.key) ?? 'another seat'} in this region.`);
+  if (!mine.seasoned) out.push('You count for your company after 7 days in it.');
+  else if (mine.bound && mine.bound !== mine.guild) out.push('Your account fights for another company this week.');
   else if (here?.key === seat.key) out.push(`Your influence here this week: ${mine.influence.toLocaleString('en-US')} of ${ACCOUNT_SEAT_WEEK_CAP.toLocaleString('en-US')}.`);   // BOARD-UI: what the number is
   return out;
 }
@@ -394,12 +394,12 @@ export const SEAT_PLEDGE_WORDS = Object.freeze({
   pledge: (seat) => `Pledge to ${seat.name}`,
   move: (seat) => `Move the pledge to ${seat.name}`,
   drop: 'Take the pledge down',
-  full: `Your guild has pledged in ${SEAT_PLEDGE_REGIONS_MAX} regions this week.`,
+  full: `Your company has pledged in ${SEAT_PLEDGE_REGIONS_MAX} regions this week.`,
 });
 /** Tribute's line for the guildmaster: its room in silver. BOARD-UI: in plain words. */
 export const seatTributeLine = (room) => (room > 0
   ? `Tribute: up to ${room.toLocaleString('en-US')} silver more this week, 1 influence per ${TRIBUTE_MARKS_PER_INFLUENCE} silver (the silver is spent).`
-  : 'Tribute: no room left this week. It may be no more than a fifth of your guild\'s influence here.');
+  : 'Tribute: no room left this week. It may be no more than a fifth of your company\'s influence here.');
 
 // ═══ SEAT1c: THE TURNING (SEAT0 5.2, Appendix B) ════════════════════
 // The week settles the first time anything asks about any seat after its boundary - never a job that runs - in one
@@ -407,9 +407,9 @@ export const seatTributeLine = (room) => (room > 0
 // SEAT0 5.2 writes it, so nothing depends on which seat is read first.
 
 /** The influence a guild needs at a seat to claim it, or to challenge its holder. */
-export const CLAIM_THRESHOLD = Object.freeze({ palace: 6000, crown: 30000 });
+export const CLAIM_THRESHOLD = Object.freeze({ palace: 1200, crown: 5000 });   // BUNNYFALL COMPANIES (Phase 4): scaled for a Company of 5-6 (was palace 6000 / crown 30000)
 /** What a Charter costs its first holder, in Drakes from the guild's treasury - burnt. */
-export const CLAIM_FEE = Object.freeze({ palace: 8000, crown: 80000 });
+export const CLAIM_FEE = Object.freeze({ palace: 2000, crown: 15000 });   // BUNNYFALL COMPANIES (was 8000 / 80000)
 /** The second claimant within this share of the first: nobody takes it - the seat is Contested. */
 export const CONTESTED_MARGIN = 0.1;
 /** A new Charter's Standing, its bounds, and what a Turning held unchallenged gives it. */
@@ -588,7 +588,7 @@ export function chronicleLine(row, seat, zero = null) {
     case 'edict': return `${when}, ${guildWords(d.guild)} proclaimed ${edictWords(d.edict) ?? 'an Edict'} at ${seat.name}.`;   // AUDIT-SEATS L7: its article
     case 'edict-unpaid': return `${when}, ${guildWords(d.guild)} could not pay for the ${EDICTS[d.edict]?.name ?? 'Edict'} it proclaimed at ${seat.name}.`;
     // SEAT2a: the schedule's two rows
-    case 'battle-moved': return `${when}, the battle for ${seat.name} was moved to ${battleWhenText(Number(d.at ?? 0) * 1000)}, so that no guild fights twice at once.`;
+    case 'battle-moved': return `${when}, the battle for ${seat.name} was moved to ${battleWhenText(Number(d.at ?? 0) * 1000)}, so that no company fights twice at once.`;
     case 'battle-void': return `${when}, no hour of the week could hold the battle for ${seat.name}, so it’s void.`;
     // SEAT2a part three: a battle's end
     // AUDIT-SEATS (9.2: "stormed the gates of Anticlere and took its Charter from the Ebon Oath after thirty-one minutes"):
@@ -602,7 +602,7 @@ export function chronicleLine(row, seat, zero = null) {
     case 'siege-forfeit': return `${when}, ${guildWords(d.against)} never came to the siege of ${seat.name}, so ${guildWords(d.guild)} holds it by forfeit.`;
     case 'siege-absent': return `${when}, neither side came to the siege of ${seat.name}, so ${guildWords(d.guild)} keeps it.`;
     case 'tourney-won': return `${when}, ${guildWords(d.guild)} won the Tourney for ${c}.`;
-    case 'tourney-unheld': return `${when}, the Tourney for ${seat.name} was fought, but neither guild could pay for ${c}.`;
+    case 'tourney-unheld': return `${when}, the Tourney for ${seat.name} was fought, but neither company could pay for ${c}.`;
     // SEAT2b part two (c) (7.7; 9.2: "Anticlere rose against the Silver Hand. The rebel captain fell at the palace door,
     // and the Charter held."): a revolt due at the Turning, put down, or standing at its window's end (the Charter lapsed)
     case 'revolt': return `${when}, ${seat.name}'s Standing under ${guildWords(d.guild)} fell to nothing, and the town rose in revolt.`;
@@ -703,7 +703,7 @@ export function standingTrendWords(trend) {
  *  where the read names one ("Standing 55, up 7 since the last Turning."). */
 export const seatHolderLine = (holder) => (holder
   ? `Held by ${guildWords(holder.guild)} since ${seatWeekName(holder.since)}. Standing ${holder.standing}${standingTrendWords(standingTrend(holder))}.`
-  : 'No guild holds this Charter.');
+  : 'No company holds this Charter.');
 /** This week's battle at a seat, in words - a Contested seat's Tourney, or a Right of Siege - or null. */
 export function seatBattleLine(battle) {
   if (!battle) return null;
@@ -735,7 +735,7 @@ export function seatTipOf(seat, nowMs = Date.now()) {
 export const SEAT_RELINQUISH_WORDS = Object.freeze({ arm: 'Give up the Charter', sure: 'Press again to give up the Charter' });
 /** The claim line under the standings: the threshold an unheld seat's claimant must pass, or the holder's defence. */
 export const seatClaimLine = (seat, defence = null) => (defence == null
-  ? `To claim it at the Turning: ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence, and ${CLAIM_FEE[seat.tier].toLocaleString('en-US')} silver from the guild's treasury.`
+  ? `To claim it at the Turning: ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence, and ${CLAIM_FEE[seat.tier].toLocaleString('en-US')} silver from the company's treasury.`
   : `To win a Right of Siege: more than the holder's defense of ${defence.toLocaleString('en-US')}, and at least ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence.`);
 
 // ─── SEAT1c: THE TITLES AND GLYPHS A CHARTER GIVES (SEAT0 7.4) ─────
@@ -788,7 +788,7 @@ export function seatTitleText(title, ts, place) {
 // every one of them in its one batch (server-account/src/seatTurning.js); the client prices its own shops off them.
 
 /** A Charter's upkeep a week, in Drakes from the holder's treasury - burnt (SEAT0 7.1). */
-export const SEAT_UPKEEP = Object.freeze({ palace: 2500, crown: 15000 });
+export const SEAT_UPKEEP = Object.freeze({ palace: 500, crown: 3000 });   // BUNNYFALL COMPANIES (was 2500 / 15000)
 /** The crown's scale: x min(1.5, max(0.4, active / 100)), `active` the accounts that played online in the week. */
 export const CROWN_SCALE = Object.freeze({ least: 0.4, most: 1.5, per: 100 });
 export const crownScale = (active) => Math.min(CROWN_SCALE.most, Math.max(CROWN_SCALE.least, Math.max(0, Number(active) || 0) / CROWN_SCALE.per));
@@ -978,7 +978,7 @@ export const EDICT_WORDS = Object.freeze({
   festival: 'Music and banners. Everyone in the town is Festive, +5 to every attribute for a day. Standing +10.',
   levy: 'A tenth of what is gathered near the town goes to its stockpile. Standing -2.',
   bounty: 'Camps near the town yield double, and the treasury pays 20 silver a camp cleared, from what is set aside.',
-  conscription: 'The kingdom\'s palace seats held by other guilds pay the crown 2% of their week\'s Tithe, a March\'s 1%. Standing -5 at every seat that pays.',
+  conscription: 'The kingdom\'s palace seats held by other companies pay the crown 2% of their week\'s Tithe, a March\'s 1%. Standing -5 at every seat that pays.',
   'royal-tourney': 'A refereed duel ladder runs all week in the castle’s square. The week’s champion takes the prize and keeps the title Champion of the kingdom for good.',
 });
 /** An Edict's line in the Seat tab, with its cost at a seat of `tier`. */
@@ -1151,7 +1151,7 @@ export const siegeWindowText = (w) => (w && siegeWindowOk(w.day, w.hour)
 export function battleAnnouncement(b, seatName) {
   if (!b) return null;
   const when = battleWhenText(b.startsAt);
-  const moved = b.moved ? ' (moved, so that no guild fights twice at once)' : '';
+  const moved = b.moved ? ' (moved, so that no company fights twice at once)' : '';
   if (b.kind === 'tourney') return `${GuildWords(b.attackerGuild)} and ${guildWords(b.defenderGuild)} meet in a Tourney for ${seatName}. Battle is joined ${when}${moved}.`;
   // SEAT2b part two (c) (7.7): a revolt - its holder must fell the Captain inside the window's two hours
   if (b.kind === 'revolt') return `${seatName} rises against ${guildWords(b.defenderGuild)}: a Rebel Captain and ${countWords(REVOLT.rebels)} rebels hold its palace door. The revolt begins ${when}${moved}: fell the Captain within two hours, or the Charter lapses.`;
@@ -1162,14 +1162,14 @@ export const sideLine = (label, n, max, swords) => `${label}: ${n} of ${max} sig
 /** Why the board will not sign a character, in its own words (the service's refusals, said by the Seat tab). */
 export const SIGN_WHY = Object.freeze({
   'battle-none': 'No battle is named here this week.',
-  'battle-not-side': 'Your guild fights on neither side of this battle.',
+  'battle-not-side': 'Your company fights on neither side of this battle.',
   'sign-closed': 'The rosters closed ten minutes before the battle.',
   'sign-new-member': 'Only members of seven days at the Turning may sign.',
-  'sign-unbound': 'Only members whose account counted for the guild in the week that won the Right may sign.',
-  'sign-bound-elsewhere': 'Your account fights for another guild this week.',
+  'sign-unbound': 'Only members whose account counted for the company in the week that won the Right may sign.',
+  'sign-bound-elsewhere': 'Your account fights for another company this week.',
   'side-full': 'This side is full.',
   'sellswords-full': 'This side has hired all the Sellswords it may.',
-  'sellsword-member': 'A Sellsword may belong to neither guild.',
+  'sellsword-member': 'A Sellsword may belong to neither company.',
   'sellsword-cooling': 'This Sellsword fought for the other side in the last four weeks.',
   'sign-twice': 'You are signed already.',
   // AUDIT-SEATS S10 (5.1: "Muster ... windows may move (6.3)"): the holder's window is the Muster's to move
@@ -1259,7 +1259,7 @@ export const SIEGE_WHY = Object.freeze({
   // AUDIT 529 V5: a moderator's `/siege void` that reached the service after the battle's week was reckoned
   'battle-settled': 'That battle\'s week is settled and can no longer be voided.',
   // AUDIT-SEATS S10 (8.1: "changing either ... is refused in a siege week")
-  'heraldry-siege': 'Your guild fights a battle for a seat this week. Its heraldry may change after the Turning.',
+  'heraldry-siege': 'Your company fights a battle for a seat this week. Its heraldry may change after the Turning.',
 });
 
 // ─── CROWN1: THE CROWN TIER - REACH, THE MARCHES, THE FREE LANDS, CONSCRIPTION (SEAT0 4.3, 7.6) ───
@@ -1420,17 +1420,17 @@ export const pactBrokenText = (breaker, other) => `${GuildWords(breaker)} has br
 export const SEAT_RED_S = 24 * 3600;
 /** Why the service will not swear, accept, break or pledge, in its own words. */
 export const FEALTY_WHY = Object.freeze({
-  'fealty-unfit': 'Fealty is sworn by a guild holding a palace of a crown\'s kingdom (or a March it claims) to that crown\'s holder.',
+  'fealty-unfit': 'Fealty is sworn by a company holding a palace of a crown\'s kingdom (or a March it claims) to that crown\'s holder.',
   'fealty-none': 'There is no such offer of fealty.',
-  'fealty-sworn': 'Your guild is sworn already.',
+  'fealty-sworn': 'Your company is sworn already.',
   'fealty-pledged': 'One of you is pledged against the other\'s seat this week.',
-  'fealty-pledge': 'Your guild may not pledge against its liege\'s or its vassal\'s seat.',
+  'fealty-pledge': 'Your company may not pledge against its liege\'s or its vassal\'s seat.',
   'pact-none': 'There is no such Pact.',
-  'pact-signed': 'A Pact stands between your guilds already.',
-  'pact-self': 'A guild makes no Pact with itself.',
+  'pact-signed': 'A Pact stands between your companies already.',
+  'pact-self': 'A company makes no Pact with itself.',
   'pact-pledged': 'One of you is pledged against the other\'s seat this week.',
-  'pact-pledge': 'Your guild may not pledge against a seat its Pact partner holds.',
-  'guild-unknown': 'There is no guild by that tag.',
+  'pact-pledge': 'Your company may not pledge against a seat its Pact partner holds.',
+  'guild-unknown': 'There is no company by that tag.',
 });
 /** THE POLITICS' LEVERS' WORDS on the Seat tab, by act. */
 export const POLITICS_ACTS = Object.freeze({
@@ -1448,19 +1448,19 @@ export function politicsRows(p) {
   for (const f of p?.fealty ?? []) {
     const other = f.asVassal ? f.liege : f.vassal;
     if (f.state === 'sworn') {
-      rows.push({ text: f.asVassal ? `Your guild is sworn to ${guildWords(f.liege)}.` : `${GuildWords(f.vassal)} is sworn to your guild.`, act: 'fealty-break', tag: other.tag });
+      rows.push({ text: f.asVassal ? `Your company is sworn to ${guildWords(f.liege)}.` : `${GuildWords(f.vassal)} is sworn to your company.`, act: 'fealty-break', tag: other.tag });
     } else if (f.state === 'breaking') {
       rows.push({ text: `The fealty between ${guildWords(f.vassal)} and ${guildWords(f.liege)} ends at the Turning.`, act: null, tag: other.tag });
     } else if (f.mine) {
-      rows.push({ text: f.asVassal ? `Your guild offers to swear fealty to ${guildWords(f.liege)}.` : `Your guild offers to take ${guildWords(f.vassal)} as its vassal.`, act: 'fealty-withdraw', tag: other.tag });
+      rows.push({ text: f.asVassal ? `Your company offers to swear fealty to ${guildWords(f.liege)}.` : `Your company offers to take ${guildWords(f.vassal)} as its vassal.`, act: 'fealty-withdraw', tag: other.tag });
     } else {
-      rows.push({ text: f.asVassal ? `${GuildWords(f.liege)} offers to take your guild as its vassal.` : `${GuildWords(f.vassal)} offers to swear fealty to your guild.`, act: 'fealty-accept', alt: 'fealty-decline', tag: other.tag });
+      rows.push({ text: f.asVassal ? `${GuildWords(f.liege)} offers to take your company as its vassal.` : `${GuildWords(f.vassal)} offers to swear fealty to your company.`, act: 'fealty-accept', alt: 'fealty-decline', tag: other.tag });
     }
   }
   for (const c of p?.pacts ?? []) {
     if (c.state === 'signed') rows.push({ text: `A Pact of non-aggression with ${guildWords(c.with)}, until week ${c.until}. Breaking it early is announced to everyone.`, act: 'pact-break', tag: c.with.tag });
-    else if (c.mine) rows.push({ text: `Your guild offers ${guildWords(c.with)} a Pact of non-aggression.`, act: 'pact-withdraw', tag: c.with.tag });
-    else rows.push({ text: `${GuildWords(c.with)} offers your guild a Pact of non-aggression, until week ${c.until}.`, act: 'pact-accept', alt: 'pact-decline', tag: c.with.tag });
+    else if (c.mine) rows.push({ text: `Your company offers ${guildWords(c.with)} a Pact of non-aggression.`, act: 'pact-withdraw', tag: c.with.tag });
+    else rows.push({ text: `${GuildWords(c.with)} offers your company a Pact of non-aggression, until week ${c.until}.`, act: 'pact-accept', alt: 'pact-decline', tag: c.with.tag });
   }
   return rows;
 }

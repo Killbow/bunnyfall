@@ -67,7 +67,7 @@ export const SEAT_TAB_WORDS = Object.freeze({
 /** BOARD-UI: the panels' names, in the order they stand. PLAIN-UI: what the seat is, and the board's words, first. */
 export const SEAT_PANELS = Object.freeze({
   about: 'What this is', guide: 'How the seat war works', words: 'Words on this board',
-  week: 'This week', battle: 'This week\'s battle', standings: 'Standings', mine: 'Your guild', holding: 'The holder\'s orders',
+  week: 'This week', battle: 'This week\'s battle', standings: 'Standings', mine: 'Your company', holding: 'The holder\'s orders',
   chronicle: 'The Chronicle',
 });
 /** BOARD-UI: the week's three phases, as the strip names them - the Muster (pledges open), the Reckoning (locked), the
@@ -82,11 +82,11 @@ export function seatGuide(seat) {
   const t = seat?.tier === 'crown' ? 'crown' : 'palace';
   const n = (x) => Number(x).toLocaleString('en-US');
   return [
-    ['Pledge', `In the Muster, a guild's Officers or Guildmaster pledge it to one seat a region, in up to ${SEAT_PLEDGE_REGIONS_MAX} regions. Pledges lock at the Reckoning, Friday 18:00 UTC.`],
+    ['Pledge', `In the Muster, a company's Officers or Captain pledge it to one seat a region, in up to ${SEAT_PLEDGE_REGIONS_MAX} regions. Pledges lock at the Reckoning, Friday 18:00 UTC.`],
     // AUDIT 657 B9: Tribute is the Guildmaster's, paid from the treasury - never a member's earning; D6: the wait the law's
-    ['Earn', `Members ${n(SEAT_MEMBER_WAIT_S / 86400)} days in the guild earn influence in the seat's region: walking the town (the Watch), closing Dagon's Breaches, a home in the town, Renown and seat writs. The Guildmaster adds Tribute from the treasury. One account counts for at most ${n(ACCOUNT_SEAT_WEEK_CAP)} a week at a seat.`],
+    ['Earn', `Members ${n(SEAT_MEMBER_WAIT_S / 86400)} days in the company earn influence in the seat's region: walking the town (the Watch), closing Dagon's Breaches, a home in the town, Renown and seat writs. The Captain adds Tribute from the treasury. One account counts for at most ${n(ACCOUNT_SEAT_WEEK_CAP)} a week at a seat.`],
     // AUDIT 657 B9: the law's taker - the strongest past the line whose treasury holds the fee (townSeatLaw.js turningPlan)
-    ['Claim', `At the Turning, Sunday 18:00 UTC, an unheld Charter goes to the strongest guild with at least ${n(CLAIM_THRESHOLD[t])} influence whose treasury can pay ${n(CLAIM_FEE[t])} silver. Two guilds within ${Math.round(CONTESTED_MARGIN * 100)}% of each other meet in a Tourney for it.`],
+    ['Claim', `At the Turning, Sunday 18:00 UTC, an unheld Charter goes to the strongest company with at least ${n(CLAIM_THRESHOLD[t])} influence whose treasury can pay ${n(CLAIM_FEE[t])} silver. Two companies within ${Math.round(CONTESTED_MARGIN * 100)}% of each other meet in a Tourney for it.`],
     ['Siege', `A held Charter is challenged by beating the holder's defense with at least ${n(CLAIM_THRESHOLD[t])}: the strongest challenger wins a Right of Siege, fought in the holder's battle window. Sign for your side on this tab.`],
     ['Hold', 'The holder sets the Tithe and an Edict and pays upkeep each week. Keeping the town raises its Standing. At a Standing of 0 the town revolts.'],
   ];
@@ -97,8 +97,8 @@ export function seatGuide(seat) {
  * explain anything"): WHAT THIS IS - the seat in two sentences, before any of its numbers. Pure.
  * @param {{ name: string }} seat
  */
-export const seatAbout = (seat) => `${seat.name} is a seat: one player guild at a time holds its Charter and rules the town. `
-  + 'Each week the guilds pledged here earn influence. At the week’s end the strongest takes an unheld Charter, or wins the right to fight its holder for it.';
+export const seatAbout = (seat) => `${seat.name} is a seat: one player company at a time holds its Charter and rules the town. `
+  + 'Each week the companies pledged here earn influence. At the week’s end the strongest takes an unheld Charter, or wins the right to fight its holder for it.';
 
 /**
  * PLAIN-UI: whether the reader may pledge their guild HERE now - the Muster, the pledge's rank, no pledge in the region
@@ -124,22 +124,22 @@ export function seatNextStep(seat, data, { nameOf = () => null, nowS = NaN } = {
   const mine = data?.mine ?? null;
   const left = (/** @type {unknown} */ at) => (Number.isFinite(at) && Number.isFinite(nowS) ? ` (in ${seatSpanWords(Number(at) - nowS)})` : '');
   // AUDIT PLAIN-UI W12: a guest's guild is refused ('guilds-need-account') - the step says what a guild needs
-  if (!mine) return 'You need a guild to take part. Open Social (beside the chat), then its Guild page to join or found one. A guild needs an account with a username and a password.';
+  if (!mine) return 'You need a company to take part. Open Social (beside the chat), then its Company page to join or found one. A company needs an account with a username and a password.';
   const here = (mine.pledges ?? []).find((/** @type {any} */ p) => p.region === seat.region) ?? null;
   if (!here) {
-    if (data?.phase !== 'muster') return `Pledges are locked until the Turning, Sunday 18:00 UTC${left(data?.turningAt)}. Your guild can pledge here in next week's Muster.`;
+    if (data?.phase !== 'muster') return `Pledges are locked until the Turning, Sunday 18:00 UTC${left(data?.turningAt)}. Your company can pledge here in next week's Muster.`;
     // AUDIT PLAIN-UI W5: a guild at its regions' most has no pledge button here (leversNode) - its next step says so
-    if ((mine.pledges ?? []).length >= SEAT_PLEDGE_REGIONS_MAX) return `Your guild has pledged in ${SEAT_PLEDGE_REGIONS_MAX} regions this week, the most it can. Take one pledge down to pledge here.`;
+    if ((mine.pledges ?? []).length >= SEAT_PLEDGE_REGIONS_MAX) return `Your company has pledged in ${SEAT_PLEDGE_REGIONS_MAX} regions this week, the most it can. Take one pledge down to pledge here.`;
     return seatMay(mine.rank, 'pledge')
-      ? `Pledge your guild to ${seat.name} before Friday 18:00 UTC${left(data?.reckoningAt)}.`
-      : `Ask an Officer or your Guildmaster to pledge your guild to ${seat.name} before Friday 18:00 UTC${left(data?.reckoningAt)}.`;
+      ? `Pledge your company to ${seat.name} before Friday 18:00 UTC${left(data?.reckoningAt)}.`
+      : `Ask an Officer or your Captain to pledge your company to ${seat.name} before Friday 18:00 UTC${left(data?.reckoningAt)}.`;
   }
-  if (here.key !== seat.key) return `Your guild fights for ${nameOf(here.key) ?? 'another seat of this region'} this week, and what you earn counts there.`;
-  if (!mine.seasoned) return `You count for your guild once you have been in it ${SEAT_MEMBER_WAIT_S / 86400} days.`;
-  if (mine.bound && mine.bound !== mine.guild) return 'Your account fights for another guild this week, and what you earn counts there.';
+  if (here.key !== seat.key) return `Your company fights for ${nameOf(here.key) ?? 'another seat of this region'} this week, and what you earn counts there.`;
+  if (!mine.seasoned) return `You count for your company once you have been in it ${SEAT_MEMBER_WAIT_S / 86400} days.`;
+  if (mine.bound && mine.bound !== mine.guild) return 'Your account fights for another company this week, and what you earn counts there.';
   return here.held
-    ? 'Your guild holds this Charter. Earn influence here to keep its defense above every challenger: walk the town, close Dagon\'s Breaches, keep a home here, gain Renown, fill seat writs.'
-    : 'Earn influence for your guild here: walk the town, close Dagon\'s Breaches, keep a home here, gain Renown, fill seat writs.';
+    ? 'Your company holds this Charter. Earn influence here to keep its defense above every challenger: walk the town, close Dagon\'s Breaches, keep a home here, gain Renown, fill seat writs.'
+    : 'Earn influence for your company here: walk the town, close Dagon\'s Breaches, keep a home here, gain Renown, fill seat writs.';
 }
 
 /**
@@ -150,23 +150,23 @@ export function seatNextStep(seat, data, { nameOf = () => null, nowS = NaN } = {
 export function seatWords(seat) {
   const t = seat?.tier === 'crown' ? 'crown' : 'palace';
   return [
-    ['Charter', 'The right to rule this town. One player guild holds it at a time.'],
-    ['Influence', `A guild’s score at this seat for the week, earned by its members and bought with Tribute. ${SEAT_LEGACY_SHARE === 0.1 ? 'A tenth' : `${Math.round(SEAT_LEGACY_SHARE * 100)}%`} carries into the next week (none past a Season’s end), and the rest is cleared at the Turning.`],
-    ['Muster, Reckoning, Turning', 'The week\'s three parts. The Muster, Sunday 18:00 to Friday 18:00 UTC: guilds pledge. The Reckoning, to Sunday 18:00: pledges are locked, influence still counts. The Turning, Sunday 18:00: the week is settled.'],
+    ['Charter', 'The right to rule this town. One player company holds it at a time.'],
+    ['Influence', `A company’s score at this seat for the week, earned by its members and bought with Tribute. ${SEAT_LEGACY_SHARE === 0.1 ? 'A tenth' : `${Math.round(SEAT_LEGACY_SHARE * 100)}%`} carries into the next week (none past a Season’s end), and the rest is cleared at the Turning.`],
+    ['Muster, Reckoning, Turning', 'The week\'s three parts. The Muster, Sunday 18:00 to Friday 18:00 UTC: companies pledge. The Reckoning, to Sunday 18:00: pledges are locked, influence still counts. The Turning, Sunday 18:00: the week is settled.'],
     // AUDIT PLAIN-UI W4: the pledged seat takes the region's Breaches and Renown too (seatInfluence.js countsAt)
-    ['Pledge', 'A guild’s choice of the one seat it fights for in a region this week. Its members\' work counts there: the Watch, a home and seat writs in that seat’s town, plus Dagon’s Breaches and Renown anywhere in the region.'],
+    ['Pledge', 'A company’s choice of the one seat it fights for in a region this week. Its members\' work counts there: the Watch, a home and seat writs in that seat’s town, plus Dagon’s Breaches and Renown anywhere in the region.'],
     ['Defence', 'The holder\'s strength here this week: its own influence, raised or cut by the town\'s Standing, its last siege, how many seats it holds and its liege. A challenger must beat it.'],   // seatDefence
     ['Right of Siege', `Won at the Turning by the strongest challenger past the defense (and at least ${CLAIM_THRESHOLD[t].toLocaleString('en-US')} influence): a battle with the holder for the Charter, in the holder's battle window.`],
-    ['Tourney', `Two guilds that pass the claim's line within ${Math.round(CONTESTED_MARGIN * 100)}% of each other fight for an unheld Charter in a Tourney.`],
+    ['Tourney', `Two companies that pass the claim's line within ${Math.round(CONTESTED_MARGIN * 100)}% of each other fight for an unheld Charter in a Tourney.`],
     ['Standing', `How the town feels about its holder, from 0 to 100. A new Charter starts at ${STANDING_START}. Under ${STANDING_UNREST} the town is in Unrest and challengers earn ${Math.round(UNREST_BONUS * 100)}% more influence. At 0 it revolts.`],
     ['Tithe', `The holder's cut of each sale at the Notice Boards of its part of the region, set once a week (at most ${TITHE_CAP[t]}% here, more with a Market Hall).`],
     ['Edict', 'A law the holder proclaims for the coming week, such as a Market Day, a Curfew or a Festival. Some raise the town\'s Standing, some lower it.'],
-    ['Tribute', `Silver the Guildmaster pays from the treasury for influence: 1 for every ${TRIBUTE_MARKS_PER_INFLUENCE} silver, at most a fifth of the guild's influence here a week. The silver is spent.`],
+    ['Tribute', `Silver the Captain pays from the treasury for influence: 1 for every ${TRIBUTE_MARKS_PER_INFLUENCE} silver, at most a fifth of the company's influence here a week. The silver is spent.`],
     // AUDIT PLAIN-UI W7: a player of neither guild in the battle - a third guild's member may be one
-    ['Sellsword', 'A player of neither guild in the battle, hired for a fee by one side\'s Guildmaster to fight on that side.'],
+    ['Sellsword', 'A player of neither company in the battle, hired for a fee by one side\'s Captain to fight on that side.'],
     // AUDIT PLAIN-UI T6: the Works and crown politics are on this tab too
     ['The Works', 'The seat\'s own buildings, such as Walls, a Gatehouse, Watchtowers, Barracks and a Market Hall. The holder builds them with silver and the goods in its stockpile. They stay with the seat when the Charter changes hands, and each drops a grade.'],
-    ['Fealty and Pacts', 'A guild holding a palace in a crown\'s kingdom can swear fealty to the crown\'s holder. The vassal pays the crown a share of its Tithe and gains half the crown\'s reach in its defense, and neither can pledge against the other. A Pact of non-aggression stops two guilds pledging against each other\'s seats for the rest of a Season.'],
+    ['Fealty and Pacts', 'A company holding a palace in a crown\'s kingdom can swear fealty to the crown\'s holder. The vassal pays the crown a share of its Tithe and gains half the crown\'s reach in its defense, and neither can pledge against the other. A Pact of non-aggression stops two companies pledging against each other\'s seats for the rest of a Season.'],
     ['Season and Tide', 'A Season is a run of weeks, and This week shows which week of it this is. A Tide is the week\'s change of fortune in a land, such as a Harvest, a Blight or a Plague.'],
   ];
 }
@@ -425,7 +425,7 @@ export function createSeatTab(host, ui) {
     const busy = ui.busy();
     out.append(el('p', 'notice-section', 'Fealty and Pacts'));
     const rows = politicsRows(p);
-    if (!rows.length) out.append(el('p', 'notice-seat-mine', 'Your guild has no liege, no vassal and no Pact.'));
+    if (!rows.length) out.append(el('p', 'notice-seat-mine', 'Your company has no liege, no vassal and no Pact.'));
     const acts = {
       'fealty-accept': (t) => book.acceptFealty(t), 'fealty-withdraw': (t) => book.breakFealty(t), 'fealty-break': (t) => book.breakFealty(t),
       'pact-accept': (t) => book.offerPact(t), 'pact-withdraw': (t) => book.breakPact(t), 'pact-break': (t) => book.breakPact(t),
@@ -443,8 +443,8 @@ export function createSeatTab(host, ui) {
     }
     if (!lever) return out;
     const tag = /** @type {HTMLInputElement} */ (el('input', 'notice-input notice-seat-politics-tag'));
-    tag.setAttribute('aria-label', 'A guild\'s tag');
-    tag.placeholder = 'Guild tag';
+    tag.setAttribute('aria-label', 'A company\'s tag');
+    tag.placeholder = 'Company tag';
     tag.maxLength = 8;
     tag.value = politicsTag;
     tag.oninput = () => { politicsTag = tag.value.trim(); };

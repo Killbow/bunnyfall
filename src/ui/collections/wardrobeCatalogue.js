@@ -133,7 +133,7 @@ const spireFirst = () => t('coll.how.spirefirst', 'Granted by name to the first 
 const arenaTop = () => t('coll.how.arenachampion', 'Stand first on the Arena’s ranked board this season, with at least {bouts} rated bouts against {foes} different opponents.', { bouts: ARENA_CHAMPION_MIN_BOUTS, foes: ARENA_CHAMPION_MIN_FOES });
 /** AUDIT COLLECTIONS-II (lane 4): the crown's own row names its kingdom (the glyph's word, in the player's language) - a
  *  kingdom's English name inside a translated sentence was the one word the player's language could not have. */
-const crown = () => t('coll.how.crown', 'Belong to a guild that holds this kingdom’s crown seat.');
+const crown = () => t('coll.how.crown', 'Belong to a company that holds this kingdom’s crown seat.');
 /** AUDIT COLLECTIONS-II (lane 1): a seat's glyph is the character's - minted beside its name while its guild holds the
  *  seat (server-account/src/index.js, the token's seat glyphs) - never kept by the account the page reads. */
 const PER_CHARACTER = Object.freeze({ scope: 'character' });
@@ -184,10 +184,10 @@ export const WARDROBE = Object.freeze({
     herald: E('patrons', 'patron', patron('herald'), { with: ['glyph:herald'] }),
     // AUDIT COLLECTIONS-II (lane 1): a seat's title is worn on the guildmaster's character (the token's mint); Crowned and
     // Keeper from Season 1 on (townSeatLaw.js seasonTitles: Season 0, the beta, crowns no one); the Tourney when proclaimed
-    warden: E('seats', 'open', () => t('coll.how.warden', 'Lead a guild that holds a town’s palace seat. Your guildmaster character wears it as “Warden of” the town.')),
-    protector: E('seats', 'open', () => t('coll.how.protector', 'Lead a guild that holds a kingdom’s crown seat. Your guildmaster character wears it as “Protector of” the kingdom.')),
-    crowned: E('seats', 'open', () => t('coll.how.crowned', 'Lead a guild that holds a crown seat when a Season ends, from Season 1 on (Season 0, the beta, crowns no one). Kept for good, with the Season’s number.')),
-    keeper: E('seats', 'open', () => t('coll.how.keeper', 'Lead a guild that holds a seat for a whole Season, from Season 1 on. Kept for good as “Keeper of” the town.')),
+    warden: E('seats', 'open', () => t('coll.how.warden', 'Lead a company that holds a town’s palace seat. Your captain character wears it as “Warden of” the town.')),
+    protector: E('seats', 'open', () => t('coll.how.protector', 'Lead a company that holds a kingdom’s crown seat. Your captain character wears it as “Protector of” the kingdom.')),
+    crowned: E('seats', 'open', () => t('coll.how.crowned', 'Lead a company that holds a crown seat when a Season ends, from Season 1 on (Season 0, the beta, crowns no one). Kept for good, with the Season’s number.')),
+    keeper: E('seats', 'open', () => t('coll.how.keeper', 'Lead a company that holds a seat for a whole Season, from Season 1 on. Kept for good as “Keeper of” the town.')),
     champion: E('seats', 'open', () => t('coll.how.champion', 'Win a kingdom’s Royal Tourney, the week-long duel ladder held at its castle when its crown calls one. You keep it for good as “Champion of” that kingdom.')),
     grandchampion: E('ranked', 'open', () => t('coll.how.grandchampion', 'Beat the champion of the Arena’s tenth and highest tier.')),
     arenachampion: E('ranked', 'ranked', arenaTop, { with: ['glyph:laurel'] }),
@@ -277,7 +277,7 @@ export const WARDROBE = Object.freeze({
     shadowfang: E('bestowed', 'bestowed', bestowed, { with: ['title:shadowfang', 'aura:shadowcloak'] }),
     penitent: E('bestowed', 'bestowed', bestowed, { with: ['title:penitent'] }),
     herald: E('patrons', 'patron', patron('herald'), { with: ['title:herald'] }),
-    tower: E('seats', 'open', () => t('coll.how.tower', 'Belong to a guild that holds a town’s palace seat.'), PER_CHARACTER),
+    tower: E('seats', 'open', () => t('coll.how.tower', 'Belong to a company that holds a town’s palace seat.'), PER_CHARACTER),
     crownDF: E('seats', 'open', crown, PER_CHARACTER),
     crownWR: E('seats', 'open', crown, PER_CHARACTER),
     crownSN: E('seats', 'open', crown, PER_CHARACTER),

@@ -236,10 +236,10 @@ function coloursPanel(el, s, rerender, act, arms) {
   const armed = !!heraldryOf(arms);
   box.append(flagStepper(el, t('naval.flag.shape', 'Shape'), FLAG_SHAPES, d.shape, (k) => SHAPE_WORDS[k](), (v) => set('shape', v)));
   const guild = el('div', 'hld-acts');
-  guild.append(button(el, d.guild && armed ? t('naval.flag.guildOn', 'Flying your guild\'s arms') : t('naval.flag.guildOff', 'Fly my guild\'s arms'),
-    armed ? null : t('naval.flag.noArms', 'Your guild has no arms, or you\'re not in a guild.'), () => { if (armed) set('guild', !d.guild); }, d.guild && armed ? 'act primary' : 'act'));
+  guild.append(button(el, d.guild && armed ? t('naval.flag.guildOn', 'Flying your company\'s arms') : t('naval.flag.guildOff', 'Fly my company\'s arms'),
+    armed ? null : t('naval.flag.noArms', 'Your company has no arms, or you\'re not in a company.'), () => { if (armed) set('guild', !d.guild); }, d.guild && armed ? 'act primary' : 'act'));
   box.append(guild);
-  if (d.guild && armed) box.append(el('span', 'hld-sub', t('naval.flag.guildNote', 'The ship flies your guild\'s arms in this shape and updates when they change.')));
+  if (d.guild && armed) box.append(el('span', 'hld-sub', t('naval.flag.guildNote', 'The ship flies your company\'s arms in this shape and updates when they change.')));
   else {
     box.append(flagSwatches(el, t('naval.flag.field', 'Field'), d.field, (v) => set('field', v)));
     box.append(flagStepper(el, t('naval.flag.division', 'Division'), HERALDRY_DIVISIONS, d.division, (k) => HERALDRY_DIVISION_NAMES[k] ?? k, (v) => set('division', v)));

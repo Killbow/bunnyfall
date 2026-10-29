@@ -154,13 +154,13 @@ export function seasonBookModel(/** @type {any} */ src) {
       at: seat.endMs, atLabel: 'ends',
       lead: seat.trial
         ? t('season.book.seats.trialLead', 'Season 0 is the beta. When it ends, the seats\' war is wiped and no one is crowned. Silver, the Stores and your professions stay.')
-        : t('season.book.seats.lead', 'The guilds\' war for the towns. A Season ends at its last Sunday Turning.'),
+        : t('season.book.seats.lead', 'The companies\' war for the towns. A Season ends at its last Sunday Turning.'),
       rows: [
         ...(seat.trial ? [] : [
           { id: 'crowns', name: t('season.book.crowns.name', 'Crowns and keepers'),
-            about: t('season.book.crowns.about', 'Each crown\'s guildmaster earns Crowned in Season {n}. The guildmaster of a guild that holds a seat all Season earns Keeper of its town.', { n: seat.n }) },
+            about: t('season.book.crowns.about', 'Each crown\'s captain earns Crowned in Season {n}. The captain of a company that holds a seat all Season earns Keeper of its town.', { n: seat.n }) },
           { id: 'ribbon', name: t('season.book.ribbon.name', 'The banner ribbon'),
-            about: t('season.book.ribbon.about', 'Members of a guild that kept a seat all Season wear its ribbon through the next.') },
+            about: t('season.book.ribbon.about', 'Members of a company that kept a seat all Season wear its ribbon through the next.') },
           { id: 'reset', name: t('season.book.reset.name', 'The turn of the Season'),
             about: t('season.book.reset.about', 'Standing drifts halfway back to 50 and every fortification loses a tier. Charters stand.') },
         ]),

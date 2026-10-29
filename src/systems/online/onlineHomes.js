@@ -389,17 +389,17 @@ export function homeHallRows(home, door) {
 export const hallOwnerLines = (home) => [t('home.hall.owner', 'This is the hall of {name}.', { name: home?.hall?.name ?? hallYourGuild() }),
   t('home.hall.entry', 'Who may enter: {who}.', { who: GUILD_HALL_ENTRY_WORDS[home?.entry] ?? GUILD_HALL_ENTRY_WORDS.guild })];
 /** GUILD-HALL-SALE: a hall whose guild's name the door has not heard - "your guild". */
-export const hallYourGuild = () => t('home.hall.yourGuild', 'your guild');
+export const hallYourGuild = () => t('home.hall.yourGuild', 'your company');
 /** GUILD-HALL-SALE: the sale asked first, at what it pays the treasury - the deed share of what the treasury paid (the
  *  service's `refund`, halls.js sellHall's own sum) with half of what records paid for its pieces, which only the sale
  *  counts. */
 export const hallSaleLines = (home) => [
   t('home.hall.saleAsk', 'Sell the hall of {name} for {gold} gold, and half of what its placed pieces cost?', { name: home?.hall?.name ?? hallYourGuild(), gold: gold(Number.isSafeInteger(home?.refund) ? home.refund : 0) }),
-  t('home.hall.saleTreasury', 'The gold goes to the guild\'s treasury. The pieces go with the hall.'),
-  t('home.hall.saleVault', 'The guild\'s vault stays the guild\'s.'),
+  t('home.hall.saleTreasury', 'The gold goes to the company\'s treasury. The pieces go with the hall.'),
+  t('home.hall.saleVault', 'The company\'s vault stays the company\'s.'),
 ];
 /** GUILD-HALL-SALE: the sale said - what it paid the treasury (the service's `back`: the deed share and the pieces' half). */
-export const hallSoldLine = (name, back) => t('home.hall.sold', 'You sold the hall of {name}. {gold} gold went to the guild\'s treasury.', { name, gold: gold(Math.max(0, Number(back) || 0)) });
+export const hallSoldLine = (name, back) => t('home.hall.sold', 'You sold the hall of {name}. {gold} gold went to the company\'s treasury.', { name, gold: gold(Math.max(0, Number(back) || 0)) });
 /** AUDIT GUILD1d A3: the offer box's hall choice (the plaque-less click's), for a guildmaster whose guild holds no hall. */
 export const hallOfferLabel = (price, guild) => `G: buy it for ${guild?.name ?? 'your guild'}: ${gold(guildHallPrice(price))} gold from the treasury`;
 /** GUILD1d: who may walk into a hall after `entry`, a press on the row: members, anyone, and round again. */

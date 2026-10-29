@@ -1555,7 +1555,7 @@ export function createDecorTool(deps) {
       if (placing) placing.draftWhy = null;
       await flushStagedUse(r);
       publishDraft();
-      deps.say?.(share ? t('decor.tool.keptShare', 'The room is kept. The guild has its share.') : t('decor.tool.kept', 'The room is kept.'));
+      deps.say?.(share ? t('decor.tool.keptShare', 'The room is kept. The company has its share.') : t('decor.tool.kept', 'The room is kept.'));
       return true;
     } finally {
       d.keeping = false;

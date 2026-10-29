@@ -224,13 +224,13 @@ export class GuildBook {
     const ranked = this.guild ? `${this.guild.id}|${this.guild.rank}|${this.guild.hall ? 1 : 0}` : '';
     const moved = ranked !== this._ranked;
     this._ranked = ranked;
-    if (moved) { try { this.onRank?.(); } catch (e) { console.warn('[guild] a rank moved, its town unread', e?.message ?? e); } }
+    if (moved) { try { this.onRank?.(); } catch (e) { console.warn('[company] a rank moved, its town unread', e?.message ?? e); } }
     return { ok: true };
   }
 
   /** GUILD1c: orders to the host; a host that throws costs the rooms their news, never the tab its look. */
   _hand(orders) {
-    try { this.onOrders?.(orders); } catch (e) { console.warn('[guild] carrying an order failed', e?.message ?? e); }
+    try { this.onOrders?.(orders); } catch (e) { console.warn('[company] carrying an order failed', e?.message ?? e); }
   }
 
   /** One act through the door, then a fresh look. Answers `{ ok, error?, data? }`. */
@@ -424,7 +424,7 @@ export class GuildBook {
         const rec = a?.data?.item;
         let held = false;
         if (rec && typeof rec === 'object') {
-          try { this.pack.add(rec); this.pack.changed(); held = true; } catch (e) { console.warn('[guild] a vault piece would not go in the pack', e?.message ?? e); }
+          try { this.pack.add(rec); this.pack.changed(); held = true; } catch (e) { console.warn('[company] a vault piece would not go in the pack', e?.message ?? e); }
         }
         if (!held) this.realm.abandon?.('unknown');   // the record holds what the pack does not: a join reads it
       },
@@ -462,7 +462,7 @@ export class GuildBook {
   }
   /** GUILD1d: a hall act that landed tells the host which town to read again; answers the act's answer. */
   _hallTold(mapId, r) {
-    if (r?.ok && Number.isSafeInteger(mapId)) { try { this.onHall?.(mapId); } catch (e) { console.warn('[guild] telling the hall\'s town failed', e?.message ?? e); } }
+    if (r?.ok && Number.isSafeInteger(mapId)) { try { this.onHall?.(mapId); } catch (e) { console.warn('[company] telling the hall\'s town failed', e?.message ?? e); } }
     return r;
   }
   /** THE HERALDRY - the first free, a change after it paid from the Drake treasury. A change carries ONE request id while

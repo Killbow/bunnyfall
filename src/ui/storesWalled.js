@@ -27,7 +27,7 @@ export function walledText(/** @type {any} */ stores, /** @type {string} */ whos
   if (!rows.length) return '';
   const shown = rows.slice(0, WALLED_SAID).map(([k, n]) => `${nameOf(k)} (${n.toLocaleString('en-US')})`).join(', ');
   const list = rows.length > WALLED_SAID ? t('market.list.walledMore', '{list} and {n, number} more', { list: shown, n: rows.length - WALLED_SAID }) : shown;
-  if (whose === 'guild') return t('market.list.walledGuild', 'Not for the guild Stores: {list}. The guild takes only what you gathered or bought with silver. Goods bought with gold or from your pack stay in your own Stores.', { list });
+  if (whose === 'guild') return t('market.list.walledGuild', 'Not for the company Stores: {list}. The company takes only what you gathered or bought with silver. Goods bought with gold or from your pack stay in your own Stores.', { list });
   return whose === 'gold'
     ? t('market.list.walledGold', 'Not for a gold sale: {list}. Goods bought with silver sell only for silver, and goods from your pack, or made from them, only go to crafting stations.', { list })
     : t('market.list.walledSilver', 'Not for a silver sale: {list}. Goods bought with gold sell only for gold, and goods from your pack, or made from them, only go to crafting stations.', { list });

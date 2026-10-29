@@ -144,13 +144,13 @@ export const LETTERS_LOOKING_TEXT = 'Looking for letters...';
 /** How recent a look the Letters tab trusts when it opens; older, and opening it looks again. */
 export const LETTERS_FRESH_MS = 30_000;
 /** GUILD1b: the Guild tab's own sentences. */
-export const GUILD_SIGNED_OUT_TEXT = 'Sign in to an account to found or join a guild.';
-export const GUILD_LOOKING_TEXT = 'Looking for your guild...';
-export const GUILD_NONE_TEXT = 'This character belongs to no guild. Accept an invitation, or found one.';
-export const GUILD_FOUND_COST_TEXT = `Founding a guild costs ${GUILD_FOUND_GOLD.toLocaleString('en-US')} gold (from your purse, then this region's bank account) and Renown ${GUILD_FOUND_RENOWN}.`;
+export const GUILD_SIGNED_OUT_TEXT = 'Sign in to an account to found or join a company.';
+export const GUILD_LOOKING_TEXT = 'Looking for your company...';
+export const GUILD_NONE_TEXT = 'This character belongs to no company. Accept an invitation, or found one.';
+export const GUILD_FOUND_COST_TEXT = `Founding a company costs ${GUILD_FOUND_GOLD.toLocaleString('en-US')} gold (from your purse, then this region's bank account) and Renown ${GUILD_FOUND_RENOWN}.`;
 export const GUILD_GOLD_SHORT_TEXT = 'You do not have that much gold, even with this region\'s bank account.';
 /** GUILD1d (Seats-Arc 8): the Hall and Heraldry sections' words. */
-export const GUILD_HALL_NONE_TEXT = `Your guild has no hall. The guildmaster can buy one at any house's door with treasury gold, for its price plus ${Math.round((GUILD_HALL_PRICE_MULT - 1) * 100)}%.`;
+export const GUILD_HALL_NONE_TEXT = `Your company has no hall. The captain can buy one at any house's door with treasury gold, for its price plus ${Math.round((GUILD_HALL_PRICE_MULT - 1) * 100)}%.`;
 /** HALL-GOLD (FIELD BUGS 2026-10-03): what of the treasury buys a hall, said where a hall is bought - only the gold realm
  *  characters put in counts (halls.js buyHall), and a guild whose gold came in before the realm could not see why it was
  *  refused. Absent from an older service's answer: nothing said. */
@@ -164,18 +164,18 @@ export const guildRealmGoldText = (hallGold, treasury, hall = false) => (Number.
   : null);
 /** GUILD3c: A GUILD IN ONE LOOK, for a character in none - what one is for, before the invitations and the founding. */
 export const GUILD_PRIMER_LINES = Object.freeze([   // AUDIT GUILD3 W10: one reading each, and no town promised that is no seat
-  'Guild members share a gold treasury, a silver treasury and a vault for items. A guild can also buy a hall under its own arms.',
+  'Company members share a gold treasury, a silver treasury and a vault for items. A company can also buy a hall under its own arms.',
   'Together they can hold seats of the Iliac Bay: a palace\'s or a crown\'s Charter, contested from that town\'s Notice Board.',
 ]);
 /** GUILD3c: where the rest of a guild is run - said on the Overview, so a member is never left to find the boards. */
-export const GUILD_ELSEWHERE_TEXT = 'Seats and sieges are run from the Seat tab of a seat town\'s Notice Board, where you can also read its Chronicle. Guild writs and contracts are posted from the Work tab of any Notice Board.';   // AUDIT GUILD3 W9: a Chronicle is read, never run
+export const GUILD_ELSEWHERE_TEXT = 'Seats and sieges are run from the Seat tab of a seat town\'s Notice Board, where you can also read its Chronicle. Company writs and contracts are posted from the Work tab of any Notice Board.';   // AUDIT GUILD3 W9: a Chronicle is read, never run
 /** GUILD-WINDOW (Guild-Overhaul.md GUILD-WINDOW): what each page holds, said under its name in the window's column of
  *  pages - one line each, the page's sections in the order it shows them; read at each call, in the player's language. */
 export const guildPageWords = () => ({
   overview: t('social.guild.page.overview', 'The arms, the hall, and where the rest is run'),
   members: t('social.guild.page.members', 'The roster, its ranks, and invitations'),
   treasury: t('social.guild.page.treasury', 'Gold and silver, and their ledgers'),
-  vault: t('social.guild.page.vault', 'The pieces the guild keeps'),
+  vault: t('social.guild.page.vault', 'The pieces the company keeps'),
   stores: t('social.guild.page.stores', 'Materials, and the writ budget'),
   arms: t('social.guild.page.arms', 'The banner, the shield and the tag'),
   settings: t('social.guild.page.settings', 'A new name, the rank names, and leaving'),
@@ -199,7 +199,7 @@ export const guildPageNames = () => ({
   settings: t('social.guild.name.settings', 'Settings'),
 });
 /** GUILD3c: the Settings page's list of what still holds a guild that would go - its heading. */
-export const GUILD_KEEPS_HEAD = 'Before the guild can be disbanded';   // AUDIT GUILD3 W13: the act the page names
+export const GUILD_KEEPS_HEAD = 'Before the company can be disbanded';   // AUDIT GUILD3 W13: the act the page names
 /** GUILD3c: the codes the service's view reads of what holds a guild (server-account/src/guilds.js guildHolds) - where
  *  the view carries its list, its word stands for these; a refusal's older word for one of them is not repeated. */
 export const GUILD_HOLD_CODES = Object.freeze(['guild-treasury', 'guild-stores', 'guild-writs', 'guild-writ-escrow', 'guild-contracts', 'guild-hall',
@@ -207,7 +207,7 @@ export const GUILD_HOLD_CODES = Object.freeze(['guild-treasury', 'guild-stores',
 /** AUDIT GUILD3 S3: a hold the Settings list says in the going's own terms where the service's sentence is a general one
  *  (an account's cap, said of any silver it is paid). */
 export const GUILD_KEEPS_WORDS = Object.freeze({
-  'marks-full': `The guild's silver goes to you when it is disbanded, but your account cannot hold it (the most is ${MARKS_MAX.toLocaleString('en-US')} silver). Spend some of yours first.`,
+  'marks-full': `The company's silver goes to you when it is disbanded, but your account cannot hold it (the most is ${MARKS_MAX.toLocaleString('en-US')} silver). Spend some of yours first.`,
 });
 /**
  * GUILD3c: EVERYTHING THAT STILL HOLDS A GUILD THAT WOULD GO, as refusal codes in the service's order: the guildmaster's
@@ -234,13 +234,13 @@ export function guildKeepsOf(v, said) {
   for (const [k, holds] of known) if (holds && !out.includes(k)) out.push(k);
   return out;
 }
-export const GUILD_HERALDRY_NONE_TEXT = 'Your guild has no arms yet.';   // AUDIT GUILD3 W6: one word - the page is "Arms"
+export const GUILD_HERALDRY_NONE_TEXT = 'Your company has no arms yet.';   // AUDIT GUILD3 W6: one word - the page is "Arms"
 /** GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): the pages' own sentences. */
 export const GUILD_RENAME_COST_TEXT = `A new name or tag costs ${GUILD_RENAME_GOLD.toLocaleString('en-US')} gold from the treasury (gold put in by realm characters). You can rename again after two weeks. The old name is free for anyone at once.`;
 /** GUILD2a: when the next new name may come, from `at` (epoch seconds). */
 export const guildRenameSoonText = (at, nowS) => {
   const days = Math.max(1, Math.ceil((at - nowS) / 86_400));
-  return `The guild was renamed recently. It can be renamed again in ${days} ${days === 1 ? 'day' : 'days'}.`;
+  return `The company was renamed recently. It can be renamed again in ${days} ${days === 1 ? 'day' : 'days'}.`;
 };
 export const GUILD_VAULT_REACH_TEXT = 'You can use the vault in any town. You can view it here, but items go in and out in town.';
 export const GUILD_VAULT_EMPTY_TEXT = 'The vault is empty. Put an item in from your pack below.';
@@ -256,14 +256,14 @@ export function armsWhy(h) {
   return 'arms the rules allow';
 }
 /** AUDIT SILVER-WAYS A3: the day's guild deeds, as the Guild tab says them (marksLaw.js MARKS_FAUCETS.deed). */
-export const guildDeedsText = (n, max) => `Guild deeds today: ${Math.max(0, Number(n) || 0)} of ${max}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
+export const guildDeedsText = (n, max) => `Company deeds today: ${Math.max(0, Number(n) || 0)} of ${max}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
 /** GUILD1d: a treasury ledger line's verb - a deposit and a withdrawal, and the hall's own moves (0043's `moved_kind`). */
-export const GUILD_LEDGER_WORDS = Object.freeze({ deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the guild for', grant: 'awarded the guild' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
+export const GUILD_LEDGER_WORDS = Object.freeze({ deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
 /** AUDIT GUILD1d R5: a Drakes ledger line's verb - a heraldry changed is the treasury paying, never a deposit. */
 export const GUILD_MARKS_LEDGER_WORDS = Object.freeze({
-  deposit: 'put in', withdraw: 'took out', heraldry: 'changed the guild\'s arms for',   // AUDIT GUILD3 W6: the page is "Arms"
+  deposit: 'put in', withdraw: 'took out', heraldry: 'changed the company\'s arms for',   // AUDIT GUILD3 W6: the page is "Arms"
   // SILVER-WAYS: a guild deed (its third member names it), a contract's pay put up, and what came home of it
-  deed: 'completed a guild deed:', contract: 'put up a contract of', 'contract-return': 'came home with',
+  deed: 'completed a company deed:', contract: 'put up a contract of', 'contract-return': 'came home with',
 });
 /** GUILD3b (bible/11-Multiplayer/Guilds-Made-Plain.md, EVERY RULE BEFORE THE PRESS): A SILVER LINE BY ITS OWN KIND - the
  *  ledger's (`raw`, marksLaw.js MARKS_KINDS) where the service sends it, each kind a guild's treasury is an end of, worded
@@ -272,9 +272,9 @@ export const GUILD_MARKS_LEDGER_WORDS = Object.freeze({
  *  escrow, a patron's bid: silver LEAVING the treasury read as silver coming into it. */
 export const GUILD_SILVER_LINE_WORDS = Object.freeze({
   'guild-deposit': 'put in', 'guild-withdraw': 'took out',
-  heraldry: 'changed the guild\'s arms for', 'guild-deed': 'completed a guild deed:',   // AUDIT GUILD3 W6: the page is "Arms"
+  heraldry: 'changed the company\'s arms for', 'guild-deed': 'completed a company deed:',   // AUDIT GUILD3 W6: the page is "Arms"
   'contract-escrow': 'put up a contract of', 'contract-return': 'had a contract\'s unpaid pay come home:',
-  'writ-escrow': 'set aside a guild writ\'s pay of', 'writ-return': 'had a guild writ\'s unpaid pay come home:',
+  'writ-escrow': 'set aside a company writ\'s pay of', 'writ-return': 'had a company writ\'s unpaid pay come home:',
   tribute: 'paid Tribute of', 'seat-claim': 'paid a Charter\'s claim fee of', 'seat-upkeep': 'paid a Charter\'s upkeep of',
   'seat-edict': 'paid for an Edict:', fort: 'paid for the Works:', 'seat-strike-refund': 'had a struck Charter\'s fee refunded:',
   tithe: 'collected a Tithe of', 'bounty-escrow': 'set a Bounty aside:', 'bounty-return': 'had a Bounty\'s unpaid silver come home:',
@@ -300,7 +300,7 @@ export function guildSilverLineText(l) {
   if (typeof l?.raw !== 'string') return `${l?.who} ${GUILD_MARKS_LEDGER_WORDS[l?.kind] ?? GUILD_MARKS_LEDGER_WORDS.deposit} ${amount}`;
   const w = Object.hasOwn(GUILD_SILVER_LINE_WORDS, l.raw) ? GUILD_SILVER_LINE_WORDS[l.raw] : null;
   const words = typeof w === 'string' ? w : w ? w[l.out === true ? 'out' : 'in'] : l.out === true ? 'paid' : 'received';
-  return `${GUILD_SILVER_MEMBER_KINDS.includes(l.raw) ? l.who : 'The guild'} ${words} ${amount}`;
+  return `${GUILD_SILVER_MEMBER_KINDS.includes(l.raw) ? l.who : 'The company'} ${words} ${amount}`;
 }
 /** AUDIT GUILD1d R13: the hall's sale in words - the service's own sum (the deed share and its pieces' half). */
 export const guildHallSoldText = (r) => `The hall is sold. ${Number(r?.data?.back ?? 0).toLocaleString('en-US')} gold went back into the treasury.`;
@@ -313,7 +313,7 @@ export const guildHallWhereText = (hall) => `Your hall stands in ${REGION_NAMES[
 export function guildWordText(error, r = null, nowS = Math.floor(Date.now() / 1000)) {
   if (error === 'gold') return GUILD_GOLD_SHORT_TEXT;
   if (error === 'guild-unsure') return GUILD_DEPOSIT_UNSURE;
-  if (error === 'guild-name-word' && typeof r?.why === 'string' && r.why) return `A guild's name and tag may not contain "${r.why}". That word is not allowed in names.`;
+  if (error === 'guild-name-word' && typeof r?.why === 'string' && r.why) return `A company's name and tag may not contain "${r.why}". That word is not allowed in names.`;
   if (error === 'guild-rank-word' && typeof r?.why === 'string' && r.why) return `A rank's name may not contain "${r.why}". That word is not allowed in names.`;   // TEXT-F1
   if (error === 'guild-rename-soon' && Number.isSafeInteger(r?.at) && r.at > nowS) return guildRenameSoonText(r.at, nowS);
   return accountRefusalText(error);
@@ -386,7 +386,7 @@ ${PIXELIFY_FIVE_FACE}
 .dfsocial-err:empty { display: none; }
 .dfsocial-note { flex: none; padding: 4px 8px; font-size: 12px; color: #e0b070; }
 .dfsocial-note:empty { display: none; }
-/* GUILD3c: what each rank may do, folded under its line; what still holds a guild that would go, one line a thing */
+/* GUILD3c: what each rank may do, folded under its line; what still holds a company that would go, one line a thing */
 .dfsocial-ranks { flex: none; padding: 4px 0; font-size: 12px; color: var(--bone, #e9e4d9); }
 .dfsocial-ranks > summary { cursor: pointer; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim, #9a9486); }
 .dfsocial-ranks p { margin: 4px 0; overflow-wrap: anywhere; }
@@ -449,7 +449,7 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfsocial-count { font-size: 11px; color: var(--dim, #9a9486); text-align: right; }
 .dfsocial-count.over { color: #e0704a; }
 
-/* GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): THE GUILD PAGE - its header (the banner beside the name), its page
+/* GUILD2 (bible/11-Multiplayer/Company-Overhaul.md): THE GUILD PAGE - its header (the banner beside the name), its page
    strip (wrapping: seven pages are wider than the panel at a phone's width), a member's vault grant beneath its row, and
    the arms' choices drawn - colour swatches and shield tiles, the one picked ringed in brass. */
 .dfsocial-guildhead { flex-direction: row; align-items: center; gap: 10px; }
@@ -473,43 +473,43 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfsocial.touch .dfsocial-swatch { width: 44px; height: 44px; }
 .dfsocial.touch .dfsocial-tile { padding: 8px; }
 
-/* GUILD-WINDOW (2026-10-23, the owner: "overhaul the guild tab to be more of a full fledged detailed window with easy
-   navigation and readabity instead of being stuffed as a small window in the social tab" - Guild-Overhaul.md
-   GUILD-WINDOW): THE GUILD TAB IS A WINDOW OF ITS OWN. While it is up the panel is the Guild window (data-mode
-   "guild"): large, the social tabs put away behind its Social button, the guild's header and tiles over a column of
+/* GUILD-WINDOW (2026-10-23, the owner: "overhaul the company tab to be more of a full fledged detailed window with easy
+   navigation and readabity instead of being stuffed as a small window in the social tab" - Company-Overhaul.md
+   GUILD-WINDOW): THE GUILD TAB IS A WINDOW OF ITS OWN. While it is up the panel is the Company window (data-mode
+   "company"): large, the social tabs put away behind its Social button, the company's header and tiles over a column of
    its pages, the page up in cards in a column of its own that scrolls under them, at a reading size, and a foot
    where the last act's words stand. The panel's places beside and below the chat are its social mode's alone - the
    open mark and :root put these rules past every one of them (the chat's fit included, whatever size it is dragged
    to) - and nothing of the social mode's moves. Centred, or (AUDIT GUILD-WINDOW W7) beside the chat where the screen
    holds both. Its heights read 100dvh where the browser has it (W6: a phone's toolbar stood over its foot). */
-:root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
+:root .dfsocial[data-mode="company"][data-open], :root .dfsocial.touch[data-mode="company"][data-open] {
   --dfguild-w: min(1060px, calc(100vw - 28px));
   left: calc((100vw - var(--dfguild-w)) / 2); width: var(--dfguild-w);
   top: calc((100vh - min(740px, calc(100vh - 56px))) / 2); top: calc((100dvh - min(740px, calc(100dvh - 56px))) / 2);
   height: min(740px, calc(100vh - 56px)); height: min(740px, calc(100dvh - 56px)); max-height: none;
   background: rgba(14, 16, 19, .97); border-color: #4a3b26; box-shadow: 0 12px 48px rgba(0, 0, 0, .6); }
 /* AUDIT GUILD-WINDOW W7: BESIDE THE CHAT where the screen holds the chat and a window 760 wide - the chat stays read and
-   typed into while the guild is run (AUDIT SOC C13's law, the panel's own); a chat dragged too wide for both leaves the
+   typed into while the company is run (AUDIT SOC C13's law, the panel's own); a chat dragged too wide for both leaves the
    window 760 wide over its edge. */
 @media (min-width: 1240px) and (min-height: 521px) {
-  :root[data-dfchat-fit] .dfsocial[data-mode="guild"][data-open], :root[data-dfchat-fit] .dfsocial.touch[data-mode="guild"][data-open] {
+  :root[data-dfchat-fit] .dfsocial[data-mode="company"][data-open], :root[data-dfchat-fit] .dfsocial.touch[data-mode="company"][data-open] {
     --dfguild-l: max(calc((100vw - var(--dfguild-w)) / 2), min(calc(26px + min(var(--dfchat-w, 440px), calc(100vw - 28px)) + env(safe-area-inset-left, 0px)), calc(100vw - 774px)));
     left: var(--dfguild-l); width: min(var(--dfguild-w), calc(100vw - 14px - var(--dfguild-l))); }
 }
-.dfsocial[data-mode="guild"] .dfsocial-tabs { display: none; }
+.dfsocial[data-mode="company"] .dfsocial-tabs { display: none; }
 .dfsocial-back { display: none; flex: none; background: none; color: var(--dim, #9a9486); border: 1px solid var(--iron, #2b323b); border-radius: 3px;
   font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer; }
 .dfsocial-back:hover, .dfsocial-back:focus-visible { color: var(--bone, #e9e4d9); border-color: var(--brass, #c08a3e); outline: none; }
-.dfsocial[data-mode="guild"] .dfsocial-back { display: block; }
+.dfsocial[data-mode="company"] .dfsocial-back { display: block; }
 .dfsocial.touch .dfsocial-back { min-height: 44px; padding: 4px 12px; }   /* AUDIT SOC C8's finger, as Close has it */
 .dfguild-backbadge { margin-left: 6px; background: #c8503c; color: #f6efe2; border-radius: 8px; padding: 0 6px; font-size: 11px; }
 .dfguild-backbadge:empty { display: none; }
-.dfsocial[data-mode="guild"] .dfsocial-head { padding: 8px 12px; }
-.dfsocial[data-mode="guild"] .dfsocial-title { font-size: 15px; color: var(--brass, #c08a3e); }
-.dfsocial[data-mode="guild"] .dfsocial-body { overflow: hidden; padding: 0; }
+.dfsocial[data-mode="company"] .dfsocial-head { padding: 8px 12px; }
+.dfsocial[data-mode="company"] .dfsocial-title { font-size: 15px; color: var(--brass, #c08a3e); }
+.dfsocial[data-mode="company"] .dfsocial-body { overflow: hidden; padding: 0; }
 /* the header: the banner beside the name, and the tiles */
-.dfsocial[data-mode="guild"] .dfsocial-guildhead { gap: 16px; padding: 12px 18px; background: linear-gradient(rgba(192, 138, 62, .08), rgba(192, 138, 62, 0)); }
-.dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 22px; letter-spacing: .03em; }
+.dfsocial[data-mode="company"] .dfsocial-guildhead { gap: 16px; padding: 12px 18px; background: linear-gradient(rgba(192, 138, 62, .08), rgba(192, 138, 62, 0)); }
+.dfsocial[data-mode="company"] .dfsocial-guildhead .dfsocial-subject { font-size: 22px; letter-spacing: .03em; }
 .dfguild-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .dfguild-stat { flex: none; min-width: 84px; padding: 5px 10px; background: rgba(0, 0, 0, .3); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
 .dfguild-statlabel { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim, #9a9486); }
@@ -517,12 +517,12 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfguild-statsub { font-size: 11px; color: ${PARTY_GREEN_CSS}; }
 /* the pages beside the page */
 .dfguild-layout { flex: 1; min-height: 0; display: flex; }
-.dfsocial[data-mode="guild"] .dfguild-nav { width: 232px; flex-direction: column; flex-wrap: nowrap; gap: 2px; padding: 10px 8px; overflow-y: auto;
+.dfsocial[data-mode="company"] .dfguild-nav { width: 232px; flex-direction: column; flex-wrap: nowrap; gap: 2px; padding: 10px 8px; overflow-y: auto;
   border-bottom: 0; border-right: 1px solid var(--iron, #2b323b); }
-.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left;
+.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left;
   border: 0; border-left: 3px solid transparent; border-radius: 0 4px 4px 0; padding: 8px 10px; color: var(--bone, #e9e4d9); text-transform: none; letter-spacing: 0; }
-.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:hover, .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:focus-visible { background: rgba(125, 116, 96, .16); outline: none; }
-.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { background: rgba(192, 138, 62, .16); border-left-color: var(--brass, #c08a3e); }
+.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab:hover, .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab:focus-visible { background: rgba(125, 116, 96, .16); outline: none; }
+.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab.active { background: rgba(192, 138, 62, .16); border-left-color: var(--brass, #c08a3e); }
 .dfguild-navtop { display: flex; align-items: baseline; gap: 8px; }
 .dfguild-navlabel { flex: 1; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
 .dfguild-navcount { flex: none; font-size: 12px; color: var(--dim, #9a9486); }
@@ -536,51 +536,51 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 /* AUDIT GUILD-WINDOW W13: the foot - always drawn, the last act's words in it */
 .dfguild-foot { flex: none; box-sizing: border-box; min-height: 34px; display: flex; align-items: center; padding: 6px 18px;
   border-top: 1px solid var(--iron, #2b323b); background: rgba(0, 0, 0, .3); }
-.dfsocial[data-mode="guild"] .dfguild-foot .dfguild-said { padding: 0; font-size: 13px; line-height: 1.4; color: var(--bone, #e9e4d9); overflow-wrap: anywhere; }
-.dfsocial[data-mode="guild"] .dfguild-foot .dfguild-said.dfsocial-err { color: #e0704a; }
-.dfsocial[data-mode="guild"] .dfguild-card > .dfsocial-sec { font-size: 12px; color: var(--brass, #c08a3e); padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--iron, #2b323b); }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-note { font-size: 13px; line-height: 1.5; color: #e6d3ad; padding: 3px 0; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-empty { font-size: 13px; line-height: 1.5; padding: 4px 0; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-err { font-size: 13px; padding: 4px 0; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row { padding: 6px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row:last-child { border-bottom: 0; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-name { font-size: 15px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-sub { font-size: 12px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-btn { font-size: 13px; padding: 5px 12px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-why { font-size: 12px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-form { max-width: 460px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-label { font-size: 11px; margin-top: 6px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-field { font-size: 14px; padding: 6px 8px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks { font-size: 13px; line-height: 1.5; padding: 6px 0; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks > summary { font-size: 12px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-keeps { font-size: 13px; line-height: 1.5; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant { padding: 0 0 8px 18px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant .dfsocial-field { flex: 0 1 300px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter { max-width: none; flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field { width: auto; flex: 0 1 200px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field[type="search"] { flex: 1 1 240px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-swatch { width: 24px; height: 24px; }
-.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-armspics { gap: 18px; padding: 8px 0; }
+.dfsocial[data-mode="company"] .dfguild-foot .dfguild-said { padding: 0; font-size: 13px; line-height: 1.4; color: var(--bone, #e9e4d9); overflow-wrap: anywhere; }
+.dfsocial[data-mode="company"] .dfguild-foot .dfguild-said.dfsocial-err { color: #e0704a; }
+.dfsocial[data-mode="company"] .dfguild-card > .dfsocial-sec { font-size: 12px; color: var(--brass, #c08a3e); padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--iron, #2b323b); }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-note { font-size: 13px; line-height: 1.5; color: #e6d3ad; padding: 3px 0; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-empty { font-size: 13px; line-height: 1.5; padding: 4px 0; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-err { font-size: 13px; padding: 4px 0; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-row { padding: 6px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-row:last-child { border-bottom: 0; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-name { font-size: 15px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-sub { font-size: 12px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-btn { font-size: 13px; padding: 5px 12px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-why { font-size: 12px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-form { max-width: 460px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-label { font-size: 11px; margin-top: 6px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-field { font-size: 14px; padding: 6px 8px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-ranks { font-size: 13px; line-height: 1.5; padding: 6px 0; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-ranks > summary { font-size: 12px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-keeps { font-size: 13px; line-height: 1.5; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-grant { padding: 0 0 8px 18px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-grant .dfsocial-field { flex: 0 1 300px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter { max-width: none; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter .dfsocial-field { width: auto; flex: 0 1 200px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter .dfsocial-field[type="search"] { flex: 1 1 240px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-swatch { width: 24px; height: 24px; }
+.dfsocial[data-mode="company"] .dfguild-main .dfsocial-armspics { gap: 18px; padding: 8px 0; }
 /* AUDIT GUILD-WINDOW W2: THE FINGER'S SIZES OUTRANK THE WINDOW'S - the reading sizes above outweighed AUDIT SOC C8's touch
    rules: every swatch of the Arms 24px under a finger, and a field's 14px made a phone zoom the page into it */
-.dfsocial.touch[data-mode="guild"] .dfguild-main .dfsocial-swatch { width: 44px; height: 44px; }
-.dfsocial.touch[data-mode="guild"] .dfguild-main .dfsocial-field { font-size: 16px; min-height: 44px; }
+.dfsocial.touch[data-mode="company"] .dfguild-main .dfsocial-swatch { width: 44px; height: 44px; }
+.dfsocial.touch[data-mode="company"] .dfguild-main .dfsocial-field { font-size: 16px; min-height: 44px; }
 @media ${GUILD_SMALL_QUERY} {
-  :root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
+  :root .dfsocial[data-mode="company"][data-open], :root .dfsocial.touch[data-mode="company"][data-open] {
     left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(6px + env(safe-area-inset-top, 0px));
     width: calc(100vw - 12px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
     height: calc(100vh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
-  .dfsocial[data-mode="guild"] .dfsocial-guildhead { padding: 8px 12px; gap: 10px; }
-  .dfsocial[data-mode="guild"] .dfsocial-guildhead img { width: 20px; height: 60px; }
-  .dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 17px; }
+  .dfsocial[data-mode="company"] .dfsocial-guildhead { padding: 8px 12px; gap: 10px; }
+  .dfsocial[data-mode="company"] .dfsocial-guildhead img { width: 20px; height: 60px; }
+  .dfsocial[data-mode="company"] .dfsocial-guildhead .dfsocial-subject { font-size: 17px; }
   .dfguild-stat { min-width: 0; padding: 3px 8px; }
   .dfguild-statvalue { font-size: 13px; }
   .dfguild-layout { flex-direction: column; }
-  .dfsocial[data-mode="guild"] .dfguild-nav { width: auto; flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px;
+  .dfsocial[data-mode="company"] .dfguild-nav { width: auto; flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px;
     border-right: 0; border-bottom: 1px solid var(--iron, #2b323b); background: rgba(14, 16, 19, .97); }
-  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { flex: none; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
-  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { border-bottom-color: var(--brass, #c08a3e); }
+  .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab { flex: none; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
+  .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab.active { border-bottom-color: var(--brass, #c08a3e); }
   .dfguild-navsub { display: none; }
   .dfguild-main { padding: 10px 10px 14px; }
   .dfguild-foot { padding: 6px 12px; }
@@ -588,11 +588,11 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 /* AUDIT GUILD-WINDOW W6: A SHORT SCREEN SCROLLS THE WINDOW AS ONE - a phone on its side kept the head, the tiles and the
    row of pages standing and left the page 99 to 169px of it; the row of pages and the foot stay in sight as it goes */
 @media (max-height: 520px) {
-  .dfsocial[data-mode="guild"] .dfsocial-body { overflow-y: auto; }
-  .dfsocial[data-mode="guild"] .dfguild-layout { flex: none; }
-  .dfsocial[data-mode="guild"] .dfguild-main { flex: none; overflow: visible; }
-  .dfsocial[data-mode="guild"] .dfguild-nav { position: sticky; top: 0; z-index: 1; }
-  .dfsocial[data-mode="guild"] .dfguild-foot { position: sticky; bottom: 0; background: rgba(14, 16, 19, .97); }
+  .dfsocial[data-mode="company"] .dfsocial-body { overflow-y: auto; }
+  .dfsocial[data-mode="company"] .dfguild-layout { flex: none; }
+  .dfsocial[data-mode="company"] .dfguild-main { flex: none; overflow: visible; }
+  .dfsocial[data-mode="company"] .dfguild-nav { position: sticky; top: 0; z-index: 1; }
+  .dfsocial[data-mode="company"] .dfguild-foot { position: sticky; bottom: 0; background: rgba(14, 16, 19, .97); }
 }
 /* AUDIT GUILD-WINDOW W1: THE TOASTS' STRIP IS THEIRS. Where the window takes a narrow screen, an invitation's toast (z 7,
    this panel's) or a duel's (z 8, ui/duelPrompt.js) at the top centre stood over its head - a press on Close landed on
@@ -600,12 +600,12 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
    duelPrompt.js already stacks a second toast, or below where this panel's toast was measured to end when a long name
    wraps it lower (--dfsocial-toast-b, paintToast); and below a second toast when it stands too. */
 @media (max-width: 600px) {
-  :root:has(.dfsocial-toast[data-up="1"]) .dfsocial[data-mode="guild"][data-open], :root:has(.dfduel-toast[data-up="1"]) .dfsocial[data-mode="guild"][data-open] {
+  :root:has(.dfsocial-toast[data-up="1"]) .dfsocial[data-mode="company"][data-open], :root:has(.dfduel-toast[data-up="1"]) .dfsocial[data-mode="company"][data-open] {
     --dfguild-t: max(calc(76px + env(safe-area-inset-top, 0px)), calc(var(--dfsocial-toast-b, 0px) + 6px));
     top: var(--dfguild-t);
     height: calc(100vh - var(--dfguild-t) - 6px - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - var(--dfguild-t) - 6px - env(safe-area-inset-bottom, 0px)); }
-  :root:has(.dfduel-toast.second[data-up="1"]) .dfsocial[data-mode="guild"][data-open] {
+  :root:has(.dfduel-toast.second[data-up="1"]) .dfsocial[data-mode="company"][data-open] {
     top: calc(144px + env(safe-area-inset-top, 0px));
     height: calc(100vh - 150px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - 150px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
@@ -735,7 +735,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   tabs.setAttribute('role', 'tablist');
   // MAIL1: the third tab, where the host has a letterbox to hand (net/mail.js) - a panel without one is the two it was
   // GUILD1b: and the fourth, where the host has a guild book (net/guild/guildBook.js)
-  for (const [id, label] of [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : []), ...(guild ? [['guild', 'Guild']] : [])]) {
+  for (const [id, label] of [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : []), ...(guild ? [['guild', 'Company']] : [])]) {
     const b = el('button', 'dfsocial-tab', label);
     b.type = 'button'; b.dataset.tab = id;
     b.setAttribute('role', 'tab');                    // AUDIT SOC C21: a tab that says it is one...
@@ -1274,16 +1274,16 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         out.push(r);
       }
     }
-    out.push(el('div', 'dfsocial-sec', 'Found a guild'));
+    out.push(el('div', 'dfsocial-sec', 'Found a company'));
     const d = guildUi.draft;
     const form = el('div', 'dfsocial-form');
-    guildField(form, 'Guild name', d.name, GUILD_NAME_MAX, (v) => { d.name = v; });
+    guildField(form, 'Company name', d.name, GUILD_NAME_MAX, (v) => { d.name = v; });
     guildField(form, 'Tag', d.tag, 4, (v) => { d.tag = v; });
     form.append(el('div', 'dfsocial-empty', GUILD_FOUND_COST_TEXT));
     out.push(form);
     const acts = el('div', 'dfsocial-acts');
     acts.append(liveBtn('Found', () => ({ enabled: !g.busy && !!guildNameOf(d.name) && !!guildTagOf(d.tag), why: g.busy ? 'a moment' : 'a name of 3 to 32 characters and a tag of 2 to 4 letters or digits' }),
-      { run: () => guildDo(g.found(d.name, d.tag), 'Your guild is founded.', () => { d.name = ''; d.tag = ''; }) }));
+      { run: () => guildDo(g.found(d.name, d.tag), 'Your company is founded.', () => { d.name = ''; d.tag = ''; }) }));
     out.push(acts);
     return out;
   };
@@ -1305,16 +1305,16 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     }
     const gs = W.state.guildStores;
     const d = guildUi.draft;
-    out.push(el('div', 'dfsocial-sec', 'Guild Stores'));
+    out.push(el('div', 'dfsocial-sec', 'Company Stores'));
     if (!gs) {
-      if (!guildUi.storesError) { out.push(el('div', 'dfsocial-note', 'Reading the guild Stores...')); return out; }
-      out.push(el('div', 'dfsocial-note', `The guild Stores cannot be read now: ${guildWordText(guildUi.storesError)}`));
+      if (!guildUi.storesError) { out.push(el('div', 'dfsocial-note', 'Reading the company Stores...')); return out; }
+      out.push(el('div', 'dfsocial-note', `The company Stores cannot be read now: ${guildWordText(guildUi.storesError)}`));
       const again = el('div', 'dfsocial-acts');
       again.append(btn('Try again', { enabled: !W.busy, why: 'a moment', run: () => { guildUi.storesAsked = false; ui++; if (open) repaint(); } }));
       out.push(again);
       return out;
     }
-    if (!gs.rows.length) out.push(el('div', 'dfsocial-note', 'The guild Stores hold nothing yet. Any member may put in from their own Stores.'));
+    if (!gs.rows.length) out.push(el('div', 'dfsocial-note', 'The company Stores hold nothing yet. Any member may put in from their own Stores.'));
     // GUILD-UX (2026-10-19, Discord #suggestions "Guild Hall Storage Improvements", Alkfay: "you have to scroll past all of
     // the stored materials to get to the input section, and then you have to manually enter the amount to store"): the
     // form and its acts come FIRST, the stored rows after them; Units left empty is all of it, as the vault's How many is
@@ -1347,7 +1347,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     }
     if (takeable.length) {
       if (!takeable.some((r) => r.material === d.storeOut)) d.storeOut = takeable[0].material;
-      form.append(el('div', 'dfsocial-label', 'Take out'), pick('A material of the guild Stores', takeable.map((r) => [r.material, `${ps.name(r.material, 2)} (${outMost(r.material).toLocaleString('en-US')})`]), d.storeOut, (k) => { d.storeOut = k; }));
+      form.append(el('div', 'dfsocial-label', 'Take out'), pick('A material of the company Stores', takeable.map((r) => [r.material, `${ps.name(r.material, 2)} (${outMost(r.material).toLocaleString('en-US')})`]), d.storeOut, (k) => { d.storeOut = k; }));
     }
     guildField(form, t('social.stores.units', 'Units (leave empty for all)'), d.storeUnits ?? '', String(STORES_MAX).length, (x) => { d.storeUnits = x; });
     // RPT1026-MARKET STORES-SAID: what your Stores hold that the guild's may not take (bought with gold, or from your pack),
@@ -1359,12 +1359,12 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (mine.length) {
       acts.append(liveBtn('Put in', () => {
         const n = putUnits(d.storeIn), k = d.storeIn;
-        const why = W.busy ? 'a moment' : !n ? (unitsEmpty() ? t('social.stores.noRoom', 'the guild Stores have no room for more of it') : `a number from 1 to ${STORES_MAX.toLocaleString('en-US')}`)
+        const why = W.busy ? 'a moment' : !n ? (unitsEmpty() ? t('social.stores.noRoom', 'the company Stores have no room for more of it') : `a number from 1 to ${STORES_MAX.toLocaleString('en-US')}`)
           : n > heldOf(k) ? `your Stores hold ${heldOf(k).toLocaleString('en-US')}`
-            : guildOf(k) + n > GUILD_STORES_MAX ? `the guild Stores hold at most ${GUILD_STORES_MAX.toLocaleString('en-US')} of a material` : '';
+            : guildOf(k) + n > GUILD_STORES_MAX ? `the company Stores hold at most ${GUILD_STORES_MAX.toLocaleString('en-US')} of a material` : '';
         return { enabled: !why, why };
       }, {
-        run: () => { const k = d.storeIn, n = putUnits(k); if (n > 0 && k) guildDo(W.deposit(k, n), `${n.toLocaleString('en-US')} ${ps.name(k, n)} put in the guild Stores.`, () => { d.storeUnits = ''; }); },
+        run: () => { const k = d.storeIn, n = putUnits(k); if (n > 0 && k) guildDo(W.deposit(k, n), `${n.toLocaleString('en-US')} ${ps.name(k, n)} put in the company Stores.`, () => { d.storeUnits = ''; }); },
       }));
       // GUILD-UX (the thread: "having an 'transfer all' button that empties your personal store into the guild's store
       // would be wonderful"): every material of your Stores put in, each up to the guild's room for it, one deposit a
@@ -1372,22 +1372,22 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       // the run and says why, what went in staying in
       const allMoves = () => mine.map((v) => [v.material, Math.min(v.own + v.bought, Math.max(0, GUILD_STORES_MAX - guildOf(v.material)))]).filter(([, n]) => n > 0);
       acts.append(liveBtn(t('social.stores.putAll', 'Put in all'), () => {
-        const why = W.busy ? 'a moment' : !allMoves().length ? t('social.stores.noRoomAll', 'the guild Stores have no room for any of it') : '';
+        const why = W.busy ? 'a moment' : !allMoves().length ? t('social.stores.noRoomAll', 'the company Stores have no room for any of it') : '';
         return { enabled: !why, why };
       }, {
         // AUDIT SUGGESTIONS-1019 L4-5: a run the service stopped part way says what went in before it, and why it stopped
         run: () => guildDo(guildPutAll(W, allMoves()).then((r) => (!r.ok && r.moved > 0 ? { ok: true, moved: r.moved, stopped: r } : r)),
           (r) => (r.stopped
-            ? t('social.stores.putAllStopped', '{n, plural, one {# material} other {# materials}} went in, then the guild Stores refused: {why}', { n: r.moved, why: guildWordText(r.stopped.error, r.stopped, Math.floor(social.now() / 1000)) })
-            : t('social.stores.putAllDone', '{n, plural, one {# material} other {# materials}} put in the guild Stores.', { n: r.moved }))),
+            ? t('social.stores.putAllStopped', '{n, plural, one {# material} other {# materials}} went in, then the company Stores refused: {why}', { n: r.moved, why: guildWordText(r.stopped.error, r.stopped, Math.floor(social.now() / 1000)) })
+            : t('social.stores.putAllDone', '{n, plural, one {# material} other {# materials}} put in the company Stores.', { n: r.moved }))),
       }));
     }
     if (gs.rows.length) {
       acts.append(liveBtn('Take out', () => {
         const n = takeUnits(d.storeOut), k = d.storeOut;
-        const why = !takeable.length ? 'Officers and the guildmaster only, or your own deposits'
+        const why = !takeable.length ? 'Officers and the captain only, or your own deposits'
           : W.busy ? 'a moment' : !n ? (unitsEmpty() ? t('social.stores.noRoomMine', 'your Stores have no room for more of it') : `a number from 1 to ${STORES_MAX.toLocaleString('en-US')}`)
-            : n > outMost(k) ? (gs.mayWithdraw ? `the guild Stores hold ${outMost(k).toLocaleString('en-US')}` : `you put in ${outMost(k).toLocaleString('en-US')} of your own`)
+            : n > outMost(k) ? (gs.mayWithdraw ? `the company Stores hold ${outMost(k).toLocaleString('en-US')}` : `you put in ${outMost(k).toLocaleString('en-US')} of your own`)
               : roomHeld(k) + n > STORES_MAX ? `your Stores hold at most ${STORES_MAX.toLocaleString('en-US')} of a material` : '';
         return { enabled: !why, why };
       }, {
@@ -1402,7 +1402,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const b = W.state.writBudget;
     if (writMay(me, 'writBudget')) {
       out.push(el('div', 'dfsocial-sec', 'Writ budget'));
-      out.push(el('div', 'dfsocial-note', `The silver your Officers may spend on guild writs each week, from the silver treasury${b ? ` (${marksText(b.budget)}, ${marksText(b.spent)} posted this week)` : ''}. Your own writs do not count.`));
+      out.push(el('div', 'dfsocial-note', `The silver your Officers may spend on company writs each week, from the silver treasury${b ? ` (${marksText(b.budget)}, ${marksText(b.spent)} posted this week)` : ''}. Your own writs do not count.`));
       const bform = el('div', 'dfsocial-form');
       guildField(bform, 'Silver a week', d.budget ?? '', String(WRIT_BUDGET_MAX).length, (x) => { d.budget = x; });
       out.push(bform);
@@ -1543,7 +1543,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
 
   /** OVERVIEW: the arms in words, the hall, and where the reader stands at the vault. */
   const guildOverviewNodes = (g, v, me) => {
-    const out = [el('div', 'dfsocial-sec', 'The guild')];
+    const out = [el('div', 'dfsocial-sec', 'The company')];
     out.push(el('div', 'dfsocial-note', v.heraldry ? heraldryText(v.heraldry) : GUILD_HERALDRY_NONE_TEXT));
     if (v.vault?.me) out.push(el('div', 'dfsocial-note', `At the vault: ${vaultStandingText(v.vault.me)}.`));
     out.push(...guildHallNodes(g, v, me));
@@ -1579,13 +1579,13 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         if (mayMove[1]) racts.append(btn('Demote', { ...wait, run: () => guildDo(g.rank(m.member, m.rank + 1), `${m.name} is ${rankName(v, m.rank + 1)} now.`) }));
         if (mayRemove) {
           const k = `remove:${m.member}`;
-          racts.append(armed(k) ? btn('Sure?', { warn: true, ...wait, run: () => guildDo(g.remove(m.member), `${m.name} is no longer in the guild.`) })
+          racts.append(armed(k) ? btn('Sure?', { warn: true, ...wait, run: () => guildDo(g.remove(m.member), `${m.name} is no longer in the company.`) })
             : btn('Remove', { ...wait, run: () => arm(k) }));
         }
         if (mayHand) {
           const k = `hand:${m.member}`;
-          racts.append(armed(k) ? btn('Sure?', { warn: true, ...wait, run: () => guildDo(g.handOver(m.member), `${m.name} leads the guild now.`) })
-            : btn('Make guildmaster', { ...wait, run: () => arm(k) }));
+          racts.append(armed(k) ? btn('Sure?', { warn: true, ...wait, run: () => guildDo(g.handOver(m.member), `${m.name} leads the company now.`) })
+            : btn('Make captain', { ...wait, run: () => arm(k) }));
         }
       }
       out.push(r);
@@ -1677,7 +1677,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const capWhy = `at most ${GUILD_MOVE_MAX.toLocaleString('en-US')} at a time`;
     tacts.append(liveBtn('Deposit', () => ({ enabled: !g.busy && goldTyped() > 0 && !overCap(), why: g.busy ? 'a moment' : overCap() ? capWhy : 'an amount' }),
       { run: () => { const n = goldTyped(); if (n > 0) guildDo(g.deposit(n), `${n.toLocaleString('en-US')} gold put in.`, () => { d.gold = ''; }); } }));
-    tacts.append(liveBtn('Withdraw', () => ({ enabled: !g.busy && goldTyped() > 0 && !overCap() && guildMay(me, 'withdraw'), why: guildMay(me, 'withdraw') ? (g.busy ? 'a moment' : overCap() ? capWhy : 'an amount') : 'the guildmaster\'s alone' }),
+    tacts.append(liveBtn('Withdraw', () => ({ enabled: !g.busy && goldTyped() > 0 && !overCap() && guildMay(me, 'withdraw'), why: guildMay(me, 'withdraw') ? (g.busy ? 'a moment' : overCap() ? capWhy : 'an amount') : 'the captain\'s alone' }),
       { run: () => { const n = goldTyped(); if (n > 0) guildDo(g.withdraw(n), `${n.toLocaleString('en-US')} gold taken out.`, () => { d.gold = ''; }); } }));
     out.push(tacts);
     for (const l of v.ledger ?? []) {
@@ -1696,7 +1696,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       const macts = el('div', 'dfsocial-acts');
       macts.append(liveBtn('Put in', () => ({ enabled: !g.busy && marksTyped() > 0, why: g.busy ? 'a moment' : 'an amount' }),
         { run: () => { const n = marksTyped(); if (n > 0) guildDo(g.moveMarks(n, false), `${marksText(n)} put in.`, () => { d.marks = ''; }); } }));
-      macts.append(liveBtn('Take out', () => ({ enabled: !g.busy && marksTyped() > 0 && guildMay(me, 'withdraw'), why: guildMay(me, 'withdraw') ? (g.busy ? 'a moment' : 'an amount') : 'the guildmaster\'s alone' }),
+      macts.append(liveBtn('Take out', () => ({ enabled: !g.busy && marksTyped() > 0 && guildMay(me, 'withdraw'), why: guildMay(me, 'withdraw') ? (g.busy ? 'a moment' : 'an amount') : 'the captain\'s alone' }),
         { run: () => { const n = marksTyped(); if (n > 0) guildDo(g.moveMarks(n, true), `${marksText(n)} taken out.`, () => { d.marks = ''; }); } }));
       out.push(macts);
       for (const l of v.marksLedger ?? []) out.push(personRow({ name: guildSilverLineText(l) }));   // GUILD3b: each line its own kind and way; AUDIT GUILD1d R5
@@ -1943,7 +1943,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
           : v.heraldry && !('marks' in v) ? accountRefusalText('marks-closed')   // AUDIT GUILD1d R12: Drakes not this account's
             : v.heraldry && Number(v.marks ?? 0) < HERALDRY_CHANGE_DRAKES ? `${marksText(HERALDRY_CHANGE_DRAKES)} in the silver treasury` : '';
       return { enabled: !why, why };
-    }, { run: () => guildDo(g.setHeraldry(d.heraldry), 'The guild\'s banner is raised.', () => { d.heraldry = null; }) });
+    }, { run: () => guildDo(g.setHeraldry(d.heraldry), 'The company\'s banner is raised.', () => { d.heraldry = null; }) });
     liveBtns[liveBtns.length - 1].arms = true;
     acts.append(raise);
     out.push(acts);
@@ -1960,7 +1960,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       out.push(el('div', 'dfsocial-sec', 'A new name'));
       if (d.renameFrom !== `${v.id}|${v.name}|${v.tag}`) { d.renameFrom = `${v.id}|${v.name}|${v.tag}`; d.newName = v.name; d.newTag = v.tag; }
       const form = el('div', 'dfsocial-form');
-      guildField(form, 'Guild name', d.newName ?? '', GUILD_NAME_MAX, (x) => { d.newName = x; });
+      guildField(form, 'Company name', d.newName ?? '', GUILD_NAME_MAX, (x) => { d.newName = x; });
       guildField(form, 'Tag', d.newTag ?? '', 4, (x) => { d.newTag = x; });
       form.append(el('div', 'dfsocial-empty', GUILD_RENAME_COST_TEXT));
       const nowS = Math.floor(social.now() / 1000);
@@ -1970,14 +1970,14 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       const of = () => {
         const t = typed();
         const why = busy ? 'a moment' : !t.name || !t.tag ? 'a name of 3 to 32 characters and a tag of 2 to 4 letters or digits'
-          : t.name === v.name && t.tag === v.tag ? 'already the guild\'s'
+          : t.name === v.name && t.tag === v.tag ? 'already the company\'s'
             : Number.isSafeInteger(v.renameAt) && v.renameAt > Math.floor(social.now() / 1000) ? 'not yet'
               : Number(v.hallGold ?? 0) < GUILD_RENAME_GOLD ? `${GUILD_RENAME_GOLD.toLocaleString('en-US')} of the realm's gold in the treasury` : '';
         return { enabled: !why, why };
       };
       const acts = el('div', 'dfsocial-acts');
       acts.append(armed('rename')
-        ? liveBtn(`Sure? ${GUILD_RENAME_GOLD.toLocaleString('en-US')} gold`, of, { warn: true, run: () => { const t = typed(); guildDo(g.rename(t.name, t.tag), `The guild is ${t.name} [${t.tag}] now.`); } })
+        ? liveBtn(`Sure? ${GUILD_RENAME_GOLD.toLocaleString('en-US')} gold`, of, { warn: true, run: () => { const t = typed(); guildDo(g.rename(t.name, t.tag), `The company is ${t.name} [${t.tag}] now.`); } })
         : liveBtn('Rename', of, { run: () => arm('rename') }));
       out.push(acts);
     }
@@ -2016,17 +2016,17 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const master = guildMay(me, 'disband');
     const keeps = (v.vault?.used ?? 0) > 0;   // GUILD2b: a vault holding pieces holds the guild too
     const listed = seen.length > 0;   // GUILD3c: the rest of what holds it, listed above - what the page sees of it (C1)
-    const leaveWhy = master && !alone ? 'hand the guild on first' : master && v.treasury > 0 ? 'take the gold out first' : master && v.hall ? 'sell the hall first' : master && keeps ? 'empty the vault first' : master && listed ? 'clear the list above first' : 'a moment';
+    const leaveWhy = master && !alone ? 'hand the company on first' : master && v.treasury > 0 ? 'take the gold out first' : master && v.hall ? 'sell the hall first' : master && keeps ? 'empty the vault first' : master && listed ? 'clear the list above first' : 'a moment';
     // GUILD1d: a guild holding a hall never goes; GUILD3c: the list holds the page's own (gold, hall, vault) and the service's
     const canLeave = !busy && (!master || (alone && !listed));
     // AUDIT 28 M3: the Marks treasury never holds a guild back - a guild that goes gives what it holds to its guildmaster
-    if (master && (v.marks ?? 0) > 0) out.push(el('div', 'dfsocial-note', `If the guild is disbanded, its ${marksText(Number(v.marks))} goes to you.`));
-    acts.append(armed('leave') ? btn('Sure?', { warn: true, enabled: canLeave, why: leaveWhy, run: () => guildDo(keptBy(g.leave()), 'You left the guild.') })
+    if (master && (v.marks ?? 0) > 0) out.push(el('div', 'dfsocial-note', `If the company is disbanded, its ${marksText(Number(v.marks))} goes to you.`));
+    acts.append(armed('leave') ? btn('Sure?', { warn: true, enabled: canLeave, why: leaveWhy, run: () => guildDo(keptBy(g.leave()), 'You left the company.') })
       : btn('Leave', { enabled: canLeave, why: leaveWhy, run: () => arm('leave') }));
     if (master) {
       const why = v.treasury > 0 ? 'take the gold out first' : v.hall ? 'sell the hall first' : keeps ? 'empty the vault first' : listed ? 'clear the list above first' : 'a moment';
       const can = !busy && !listed;   // GUILD3c: nothing on the list - the page's own gold, hall and vault, and the service's
-      acts.append(armed('disband') ? btn('Sure?', { warn: true, enabled: can, why, run: () => guildDo(keptBy(g.disband()), 'The guild is disbanded.') })
+      acts.append(armed('disband') ? btn('Sure?', { warn: true, enabled: can, why, run: () => guildDo(keptBy(g.disband()), 'The company is disbanded.') })
         : btn('Disband', { warn: true, enabled: can, why, run: () => arm('disband') }));
     }
     out.push(acts);
@@ -2140,9 +2140,9 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     if (root.dataset.mode !== mode) focusOwed = mode === 'guild';   // a guild still being read draws no tab: owed until one is
     if (root.dataset.mode !== mode) {
       root.dataset.mode = mode;
-      titleEl.textContent = mode === 'guild' ? t('social.guild.title', 'Guild') : 'Social';
-      root.setAttribute('aria-label', mode === 'guild' ? t('social.guild.title', 'Guild') : SOCIAL_LABEL);
-      closeBtn.setAttribute('aria-label', mode === 'guild' ? t('social.guild.close', 'Close guild') : CLOSE_SOCIAL_LABEL);   // AUDIT GUILD-WINDOW W11
+      titleEl.textContent = mode === 'guild' ? t('social.guild.title', 'Company') : 'Social';
+      root.setAttribute('aria-label', mode === 'guild' ? t('social.guild.title', 'Company') : SOCIAL_LABEL);
+      closeBtn.setAttribute('aria-label', mode === 'guild' ? t('social.guild.close', 'Close company') : CLOSE_SOCIAL_LABEL);   // AUDIT GUILD-WINDOW W11
     }
     // GUILD-WINDOW: the page's column is drawn again at every act and every look, so where it was scrolled to is put
     // back on the same page - a guildmaster promoting the fortieth member is not thrown back to the first. AUDIT
