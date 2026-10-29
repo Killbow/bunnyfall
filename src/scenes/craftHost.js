@@ -6,6 +6,7 @@ import { upgradeMaterialItem } from '../systems/smithItems.js';
 import { salvagesToMaterials, anySalvageRefusal, salvageForMaterials, yieldsText } from '../ui/salvageMaterials.js';
 import { shardsText } from '../systems/reforge.js';
 import { accountRefusalText } from '../net/accountClient.js';
+import { pricedStation, itemFeeValue } from '../systems/craftFees.js';   // BUNNYFALL CRAFT FEES
 
 /**
  * @param {{ player: () => any, forge: () => ({ fee: number }|null), book: () => any, saved: () => void,
@@ -23,7 +24,7 @@ export function createCraftHost(deps) {
     },
     /** A material upgrade: the gold and the fee checked, the service asked, the piece re-metalled on its answer. */
     async upgrade(offer) {
-      const f = deps.forge();
+      const f = pricedStation(deps.forge(), itemFeeValue(offer?.item));
       if (!f) return { ok: false, text: 'You are not at an anvil.' };
       const due = (f.fee > 0 ? f.fee : 0) + offer.gold;
       if (deps.gold() < due) return { ok: false, text: `The smith asks ${due} gold for that.` };

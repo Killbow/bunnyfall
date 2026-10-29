@@ -111,6 +111,7 @@ import { getPref, setPref } from '../../systems/uiPrefs.js';
 import { pictureNode } from '../menu/menuGlyphs.js';   // MENU-ORDER: a material's picture, the host's
 import { t, localizedText, formatMessage, formatNumber, intlLocale } from '../../systems/textManager.js';   // L10N4: the pages' words in the player's language; the smith's lone metals, Leather, Arrows and All are DFU's own
 import { capturePointer } from '../pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
+import { pricedStation, recipeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 /**
  * @typedef {object} ProfPagesProvider
@@ -453,19 +454,19 @@ function purseShort(station, which) {
   const p = _provider;
   if (!station || station.kind !== 'shop' || !(station.fee > 0) || typeof p?.purse !== 'function') return null;
   const have = p.purse();
-  if (have >= station.fee) return null;
+  if (have >= 1) return null;   // BUNNYFALL CRAFT FEES: the fee is a tenth of what is made, at least 1 gold - the act itself says the rest
   const a = { fee: station.fee, have };
   switch (which) {
-    case 'forge': return t('prof.page.purse.forge', 'The smith asks {fee} gold a smelt. You carry {have}.', a);
-    case 'anvil': return t('prof.page.purse.anvil', 'The smith asks {fee} gold a craft. You carry {have}.', a);
-    case 'workbench': return t('prof.page.purse.workbench', 'The {who, select, carpenter {carpenter} other {furnisher}} asks {fee} gold a craft or a saw. You carry {have}.', { ...a, who: station.who ?? 'furnisher' });   // CARP-YARD: a joinery's carpenter
-    case 'loom': return t('prof.page.purse.loom', 'The tailor asks {fee} gold a craft, a cure or a weave. You carry {have}.', a);
-    case 'mason': return t('prof.page.purse.mason', 'The mason asks {fee} gold a cut, a mix or a carving. You carry {have}.', a);
-    case 'jeweller': return t('prof.page.purse.jeweller', 'The jeweler asks {fee} gold a piece. You carry {have}.', a);
-    case 'alchemy': return t('prof.page.purse.alchemy', 'The alchemist asks {fee} gold a brew. You carry {have}.', a);
-    case 'temperAnvil': return t('prof.page.purse.temperAnvil', 'The smith asks {fee} gold a temper. You carry {have}.', a);   // CRAFT4
-    case 'temperLoom': return t('prof.page.purse.temperLoom', 'The tailor asks {fee} gold a temper. You carry {have}.', a);
-    default: return t('prof.page.purse.enchanter', 'The enchanter asks {fee} gold a piece. You carry {have}.', a);
+    case 'forge': return t('prof.page.purse.forge', 'The smith asks at least 1 gold a smelt. You carry {have}.', a);
+    case 'anvil': return t('prof.page.purse.anvil', 'The smith asks at least 1 gold a craft. You carry {have}.', a);
+    case 'workbench': return t('prof.page.purse.workbench', 'The {who, select, carpenter {carpenter} other {furnisher}} asks at least 1 gold a craft or a saw. You carry {have}.', { ...a, who: station.who ?? 'furnisher' });   // CARP-YARD: a joinery's carpenter
+    case 'loom': return t('prof.page.purse.loom', 'The tailor asks at least 1 gold a craft, a cure or a weave. You carry {have}.', a);
+    case 'mason': return t('prof.page.purse.mason', 'The mason asks at least 1 gold a cut, a mix or a carving. You carry {have}.', a);
+    case 'jeweller': return t('prof.page.purse.jeweller', 'The jeweler asks at least 1 gold a piece. You carry {have}.', a);
+    case 'alchemy': return t('prof.page.purse.alchemy', 'The alchemist asks at least 1 gold a brew. You carry {have}.', a);
+    case 'temperAnvil': return t('prof.page.purse.temperAnvil', 'The smith asks at least 1 gold a temper. You carry {have}.', a);   // CRAFT4
+    case 'temperLoom': return t('prof.page.purse.temperLoom', 'The tailor asks at least 1 gold a temper. You carry {have}.', a);
+    default: return t('prof.page.purse.enchanter', 'The enchanter asks at least 1 gold a piece. You carry {have}.', a);
   }
 }
 /** What a Stores material of the smith's stock says in place of a withdrawal. */
@@ -1506,10 +1507,10 @@ function drawForge(detail, rerender, { el, divider }) {
   const forge = p.forge();
   detail.append(stationHead(divider, t('prof.page.forge', 'The Forge'), 'forge'));   // CRAFT-HALL: a landing
   if (!forge) {
-    detail.append(el('p', 'px-note', t('prof.page.forge.away', 'Smelting is done at a forge: a Weaponsmith\'s or an Armorer\'s ({fee} gold a smelt), or your own home\'s forge.', { fee: FORGE_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.forge.away', 'Smelting is done at a forge: a Weaponsmith’s or an Armorer’s (a tenth of what you smelt, at most {fee} gold), or your own home’s forge.', { fee: FORGE_FEE })));
     return;
   }
-  detail.append(el('p', 'px-note', forge.kind === 'shop' ? t('prof.page.forge.shop', 'The smith’s forge: {fee} gold a smelt.', { fee: forge.fee }) : t('prof.page.forge.home', 'Your forge.')));
+  detail.append(el('p', 'px-note', forge.kind === 'shop' ? t('prof.page.forge.shop', 'The smith’s forge: a tenth of what you smelt, at most {fee} gold.', { fee: forge.fee }) : t('prof.page.forge.home', 'Your forge.')));
   const short = purseShort(forge, 'forge');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   workRows(detail, rerender, el, SMELT_RECIPES, _forge, t('prof.page.forge.smelt', 'Smelt'), t('prof.page.forge.smelting', 'Smelting...'), (id, n) => p.smelt(id, n), short);
@@ -1794,13 +1795,13 @@ function drawAnvil(detail, rerender, kit) {
   detail.append(stationHead(divider, t('prof.page.anvil', 'The Anvil'), 'anvil'));   // CRAFT-HALL: a forge's landing
   if (!forge) {
     endHeat();
-    detail.append(el('p', 'px-note', t('prof.page.anvil.away', 'Smithing is done at an anvil, beside a forge: a Weaponsmith\'s or an Armorer\'s ({fee} gold a craft), or your own home\'s forge.', { fee: FORGE_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.anvil.away', 'Smithing is done at an anvil, beside a forge: a Weaponsmith’s or an Armorer’s (a tenth of the piece’s worth, at most {fee} gold), or your own home’s forge.', { fee: FORGE_FEE })));
     return;
   }
   const rank = book.track('smithing')?.rank ?? 0;
   const specs = book.track('smithing')?.specs ?? {};
   stationTrack(detail, kit, book, 'anvil');   // CRAFT-HALL: one Smithing header for the forge and the anvil
-  detail.append(el('p', 'px-note', forge.kind === 'shop' ? t('prof.page.anvil.shop', 'The smith’s anvil: {fee} gold a craft.', { fee: forge.fee }) : t('prof.page.anvil.home', 'Your anvil.')));
+  detail.append(el('p', 'px-note', forge.kind === 'shop' ? t('prof.page.anvil.shop', 'The smith’s anvil: a tenth of the piece’s worth, at most {fee} gold a craft.', { fee: forge.fee }) : t('prof.page.anvil.home', 'Your anvil.')));
   const short = purseShort(forge, 'anvil');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   // AUDIT 30 A2: Gentle acts switched on under a heat lets it cool - nothing is spent, and the craft is a plain one
@@ -1898,7 +1899,7 @@ function drawAnvil(detail, rerender, kit) {
       box.append(go, quick);
       // CRAFT-HALL: Craft x N
       const wood = _anvil.heartwood && takesHeartwood(r);
-      craftTimes(box, el, _anvil, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(forge, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });
+      craftTimes(box, el, _anvil, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(forge, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_anvil.busy && !_anvil.crafting && !_anvil.act;
       drawMasterBox(box, kit, r, { station: 'anvil', book, state: _anvil, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
@@ -2016,13 +2017,13 @@ function drawWorkbench(detail, rerender, kit) {
   detail.append(stationHead(divider, t('prof.page.bench', 'The Workbench'), 'workbench'));   // CARP-YARD: a joinery's press lands here
   if (!bench) {
     _bench.act?.cancel(); _bench.act = null; _bench.actRecipe = null;
-    detail.append(el('p', 'px-note', t('prof.page.bench.away', 'Carpentry is done at a workbench: a Furniture Store\'s or a joinery\'s ({fee} gold a craft or a saw), or your own home\'s.', { fee: WORKBENCH_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.bench.away', 'Carpentry is done at a workbench: a Furniture Store’s or a joinery’s (a tenth of what you make, at most {fee} gold), or your own home’s.', { fee: WORKBENCH_FEE })));
     return;
   }
   const rank = book.track('carpentry')?.rank ?? 0;
   const who = bench.who ?? 'furnisher';   // CARP-YARD: a joinery's carpenter
   stationTrack(detail, kit, book, 'workbench');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.bench.shop', 'The {who, select, carpenter {carpenter} other {furnisher}}’s workbench: {fee} gold a craft or a saw.', { who, fee: bench.fee }) : t('prof.page.bench.home', 'Your workbench.')));
+  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.bench.shop', 'The {who, select, carpenter {carpenter} other {furnisher}}’s workbench: a tenth of what you make, at most {fee} gold.', { who, fee: bench.fee }) : t('prof.page.bench.home', 'Your workbench.')));
   const short = purseShort(bench, 'workbench');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   // AUDIT 30 A2: Gentle acts switched on under a pass sets the plane down - nothing spent, the craft a plain one
@@ -2118,7 +2119,7 @@ function drawWorkbench(detail, rerender, kit) {
       quick.onclick = () => { void finish(false); };
       box.append(go, quick);
       const wood = _bench.heartwood && takesHeartwood(r);
-      craftTimes(box, el, _bench, rerender, { ready, most: !r.later && recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });   // CRAFT-HALL
+      craftTimes(box, el, _bench, rerender, { ready, most: !r.later && recipeOpen(r, rank) ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });   // CRAFT-HALL
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = !r.later && recipeOpen(r, rank) && !elsewhere && !short && !_bench.busy && !_bench.crafting && !_bench.act;
       drawMasterBox(box, kit, r, { station: 'workbench', book, state: _bench, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
@@ -2216,13 +2217,13 @@ function drawLoom(detail, rerender, kit) {
   detail.append(stationHead(divider, t('prof.page.loom', 'The Loom'), 'loom'));   // CRAFT-HALL: a landing
   if (!loom) {
     endStitch();
-    detail.append(el('p', 'px-note', t('prof.page.loom.away', 'Outfitting, and the tanning of hides, is done at a loom: a Clothing Store\'s ({fee} gold a craft, a cure or a weave), or your own home\'s.', { fee: LOOM_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.loom.away', 'Outfitting, and the tanning of hides, is done at a loom: a Clothing Store’s (a tenth of what you make, at most {fee} gold), or your own home’s.', { fee: LOOM_FEE })));
     return;
   }
   const rank = book.track('outfitting')?.rank ?? 0;
   const specs = book.track('outfitting')?.specs ?? {};
   stationTrack(detail, kit, book, 'loom');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', loom.kind === 'shop' ? t('prof.page.loom.shop', 'The tailor’s loom and tanning rack: {fee} gold a craft, a cure or a weave.', { fee: loom.fee }) : t('prof.page.loom.home', 'Your loom.')));
+  detail.append(el('p', 'px-note', loom.kind === 'shop' ? t('prof.page.loom.shop', 'The tailor’s loom and tanning rack: a tenth of what you make, at most {fee} gold.', { fee: loom.fee }) : t('prof.page.loom.home', 'Your loom.')));
   const short = purseShort(loom, 'loom');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   // AUDIT 30 A2's law: Gentle acts switched on under a stitch sets the needle down - nothing spent, the craft a plain one
@@ -2371,7 +2372,7 @@ function drawLoom(detail, rerender, kit) {
       quick.disabled = !ready;
       quick.onclick = () => { void finish(false); };
       box.append(go, quick);
-      craftTimes(box, el, _loom, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(loom, craftsHeld(r.inputs, book)) : 0, once: () => p.craft(r.id, { clean: false, dye }) });   // CRAFT-HALL: in the dye chosen
+      craftTimes(box, el, _loom, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(loom, recipeValue(r.id)), craftsHeld(r.inputs, book)) : 0, once: () => p.craft(r.id, { clean: false, dye }) });   // CRAFT-HALL: in the dye chosen
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_loom.busy && !_loom.crafting && !_loom.act;
       drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });   // MASTER-ART: in the dye chosen
@@ -2479,14 +2480,14 @@ function drawMasonBench(detail, rerender, kit) {
   detail.append(stationHead(divider, t('prof.page.mason', 'The Mason\'s Bench'), 'mason'));   // CRAFT-HALL: a landing
   if (!bench) {
     endChisel();
-    detail.append(el('p', 'px-note', t('prof.page.mason.away', 'Masonry is done at a mason\'s bench: a General Store\'s ({fee} gold a cut, a mix or a carving), or your own home\'s.', { fee: MASON_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.mason.away', 'Masonry is done at a mason’s bench: a General Store’s (a tenth of what you make, at most {fee} gold), or your own home’s.', { fee: MASON_FEE })));
     return;
   }
   const track = book.track('masonry');
   const rank = track?.rank ?? 0;
   const specs = track?.specs ?? {};
   stationTrack(detail, kit, book, 'mason');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.mason.shop', 'The mason’s bench: {fee} gold a cut, a mix or a carving.', { fee: bench.fee }) : t('prof.page.mason.home', 'Your mason\'s bench.')));
+  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.mason.shop', 'The mason’s bench: a tenth of what you make, at most {fee} gold.', { fee: bench.fee }) : t('prof.page.mason.home', 'Your mason\'s bench.')));
   const made = madeOf(book);   // CRAFT-HALL
   const short = purseShort(bench, 'mason');
   if (short) detail.append(el('p', 'px-note prof-short', short));
@@ -2630,7 +2631,7 @@ function drawMasonBench(detail, rerender, kit) {
     quick.disabled = !ready;
     quick.onclick = () => { if (!quick.disabled) void finishFor({ kind: 'carve', id: r.id, count: 1 })(false); };
     box.append(go, quick);
-    craftTimes(box, el, _mason, rerender, { ready, most: open ? feesPaid(bench, craftsHeld(r.inputs, book)) : 0, once: () => p.craft?.(r.id, { clean: false }) ?? Promise.resolve(null) });   // CRAFT-HALL: carvings x N
+    craftTimes(box, el, _mason, rerender, { ready, most: open ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(r.inputs, book)) : 0, once: () => p.craft?.(r.id, { clean: false }) ?? Promise.resolve(null) });   // CRAFT-HALL: carvings x N
     detail.append(box);
   }
   if (_mason.word) detail.append(el('p', 'prof-word', _mason.word));
@@ -2935,14 +2936,14 @@ function drawJewellerBench(detail, rerender, kit) {
   detail.append(stationHead(divider, t('prof.page.jewel', 'The Jeweler\'s Bench'), 'jeweller'));   // CRAFT-HALL: a landing
   if (!bench) {
     endFacet();
-    detail.append(el('p', 'px-note', t('prof.page.jewel.away', 'Jewelcrafting is done at a jeweler\'s bench: a Pawn Shop\'s or a Gem Store\'s ({fee} gold a piece), or your own home\'s.', { fee: JEWEL_FEE })));
+    detail.append(el('p', 'px-note', t('prof.page.jewel.away', 'Jewelcrafting is done at a jeweler’s bench: a Pawn Shop’s or a Gem Store’s (a tenth of the piece’s worth, at most {fee} gold), or your own home’s.', { fee: JEWEL_FEE })));
     return;
   }
   const track = book.track('jewelcrafting');
   const rank = track?.rank ?? 0;
   const specs = track?.specs ?? {};
   stationTrack(detail, kit, book, 'jeweller');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.jewel.shop', 'The jeweler’s bench: {fee} gold a piece.', { fee: bench.fee }) : t('prof.page.jewel.home', 'Your jeweler\'s bench.')));
+  detail.append(el('p', 'px-note', bench.kind === 'shop' ? t('prof.page.jewel.shop', 'The jeweler’s bench: a tenth of the piece’s worth, at most {fee} gold.', { fee: bench.fee }) : t('prof.page.jewel.home', 'Your jeweler\'s bench.')));
   // CRAFT-HALL: a jewel's first-time bonus is per piece and base (AUDIT PROF-541 J7), so the stars go on those, not gems
   const made = madeOf(book);
   const owedIn = (/** @type {readonly any[]} */ rs) => rs.some((x) => recipeOpen(x, rank) && recipeFirstOwed(made, x) === true);
@@ -3096,7 +3097,7 @@ function drawJewellerBench(detail, rerender, kit) {
       quick.disabled = !ready;
       quick.onclick = () => { if (!quick.disabled) void finishFor(r.id, wood, crack)(false); };
       box.append(go, quick);
-      craftTimes(box, el, _jewel, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(bench, craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood, cracked: crack }) });   // CRAFT-HALL
+      craftTimes(box, el, _jewel, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood, cracked: crack }) });   // CRAFT-HALL
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_jewel.crafting && !_jewel.act;
       drawMasterBox(box, kit, r, { station: 'jeweller', book, state: _jewel, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
@@ -3110,7 +3111,7 @@ function drawJewellerBench(detail, rerender, kit) {
 // ─── PROF12: THE ALCHEMY STATION (bible/06-Systems/Professions-Arc.md 9.3, 37) ─────
 
 /** What the station says a potion's cauldron wants, and its word for the Apothecaries'. */
-const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist\'s or a Mages Guild hall ({fee} gold a brew), or your own home\'s. Your potions go to your pack.';   // POTION-DOOR: the Mages Guild's hall a station
+const ALCHEMY_AWAY = 'Alchemy is brewed at an alchemy station: an Alchemist’s or a Mages Guild hall (a tenth of the potion’s worth, at most {fee} gold a brew), or your own home’s. Your potions go to your pack.';   // POTION-DOOR: the Mages Guild's hall a station
 export const ALCHEMY_AWAY_LINE = formatMessage(ALCHEMY_AWAY, { fee: ALCHEMY_FEE });   // the English, as the tests compare it
 const alchemyAwayLine = () => t('prof.page.alchemy.away', ALCHEMY_AWAY, { fee: ALCHEMY_FEE });
 /** Tests: the station's state. */
@@ -3155,7 +3156,7 @@ function drawAlchemyStation(detail, rerender, kit) {
   const brewLine = t('prof.page.alchemy.brewAt', '{n, plural, one {A potion} other {# potions}} a brew. {potent}{withSteps, select, yes { (the Apothecary\'s +{apothecary}% with it)} other {}}. +{unbruised}% for each herb picked unbruised.',
     { n, potent: potentLine(rank, specs, 0, null, steps), withSteps: steps > 0 ? 'yes' : 'no', apothecary: POTENT.apothecary * steps, unbruised: POTENT.unbruised });
   stationTrack(detail, kit, book, 'alchemy');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', `${station.kind === 'shop' ? t('prof.page.alchemy.shop', 'The alchemist’s station: {fee} gold a brew.', { fee: station.fee }) : t('prof.page.alchemy.home', 'Your alchemy station.')} ${brewLine}${n > 1 ? ` ${t('prof.page.alchemy.counterOne', 'A potion made only from the Apothecaries\' goods brews just one.')}` : ''}`));   // AUDIT PROF-541 R2-S1
+  detail.append(el('p', 'px-note', `${station.kind === 'shop' ? t('prof.page.alchemy.shop', 'The alchemist’s station: a tenth of the potion’s worth, at most {fee} gold a brew.', { fee: station.fee }) : t('prof.page.alchemy.home', 'Your alchemy station.')} ${brewLine}${n > 1 ? ` ${t('prof.page.alchemy.counterOne', 'A potion made only from the Apothecaries\' goods brews just one.')}` : ''}`));   // AUDIT PROF-541 R2-S1
   const short = purseShort(station, 'alchemy');
   if (short) detail.append(el('p', 'px-note prof-short', short));
   const held = (k) => workOf(book, k);
@@ -3229,7 +3230,7 @@ function drawAlchemyStation(detail, rerender, kit) {
 
 // ─── PROF12: THE ENCHANTING STATION (bible/06-Systems/Professions-Arc.md 9.3, 37) ─────
 
-const ENCHANT_AWAY = 'Disenchanting is done at an enchanting station: a Mages Guild hall ({fee} gold a piece), or your own home\'s. A crafted piece comes apart into Arcane Essence in your Stores.';
+const ENCHANT_AWAY = 'Disenchanting is done at an enchanting station: a Mages Guild hall (a tenth of the piece’s worth, at most {fee} gold), or your own home’s. A crafted piece comes apart into Arcane Essence in your Stores.';
 export const ENCHANT_AWAY_LINE = formatMessage(ENCHANT_AWAY, { fee: ENCHANT_FEE });   // the English, as the tests compare it
 const enchantAwayLine = () => t('prof.page.enchant.away', ENCHANT_AWAY, { fee: ENCHANT_FEE });
 /** Tests: the station's state. */
@@ -3285,7 +3286,7 @@ function drawEnchantingStation(detail, rerender, kit) {
   const specs = track?.specs ?? {};
   const pct = enchantDiscountPct(rank, specs[50] ?? null);
   stationTrack(detail, kit, book, 'enchant');   // CRAFT-HALL
-  detail.append(el('p', 'px-note', [station.kind === 'shop' ? t('prof.page.enchant.shop', 'The guild’s enchanter: {fee} gold a piece.', { fee: station.fee }) : t('prof.page.enchant.home', 'Your enchanting station.'),
+  detail.append(el('p', 'px-note', [station.kind === 'shop' ? t('prof.page.enchant.shop', 'The guild’s enchanter: a tenth of the piece’s worth, at most {fee} gold.', { fee: station.fee }) : t('prof.page.enchant.home', 'Your enchanting station.'),
     pct ? t('prof.page.enchant.pctAt', 'The item maker costs you {pct}% less.', { pct }) : ''].filter(Boolean).join(' ')));
   const short = purseShort(station, 'enchanter');
   if (short) detail.append(el('p', 'px-note prof-short', short));

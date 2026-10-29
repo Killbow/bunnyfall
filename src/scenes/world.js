@@ -614,6 +614,8 @@ import { registerContainerLootHandler } from '../systems/containerLoot.js';   //
 import { mintPieces, mintPiece, craftedText, storedText, CRAFT_KEPT_TEXT, BENCH_KEPT_TEXT, LOOM_KEPT_TEXT, MASON_KEPT_TEXT, isCraftedFurniture, asMinted, pieceOfRecipe } from '../systems/smithItems.js';   // PROF3: a craft's pieces, minted into the pack; PROF4: furniture into the home's things; PROF11: the mason's word; SEAT2b part two: a siege work's
 import { heatBand, planeBand, stitchBand, chiselBand, recipeById } from '../net/recipeLaw.js';   // PROF3: the heat's attribute band; PROF4: the plane's, and a recipe's station; PROF7: the stitch's; PROF11: the chisel's
 import { COOK_KEPT_TEXT } from '../systems/smithItems.js';   // PROF9: the fire's word, a dish whose answer did not come
+import { pricedStation, recipeValue, potionValue, materialValue, itemFeeValue } from '../systems/craftFees.js';
+import { offlineExitSaveNames } from '../systems/save/exitSave.js';   // BUNNYFALL SAVE-ON-EXIT   // BUNNYFALL CRAFT FEES: a tenth of what is made, the station's old fee its ceiling
 import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jeweller's bench's word, a piece whose answer did not come
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
 import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence, withTemperGold } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
@@ -11716,7 +11718,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           // PROF4: the station is the recipe's - the anvil for Smithing's, the workbench for Carpentry's; PROF7: the loom
           // for Outfitting's
           const st = craftStation(recipeById(recipe)?.profession);
-          const f = st.here();
+          const f = pricedStation(st.here(), recipeValue(recipe));   // BUNNYFALL CRAFT FEES: a tenth of the piece's worth
           if (!f) return { ok: false, text: `You are not at ${st.a}.` };
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The ${f.who ?? st.who} asks ${f.fee} gold for the use of the ${st.noun}.` };   // CARP-YARD: the joinery's carpenter
           // AUDIT 30 C4: the fee rides the kept craft and is paid as its pieces are minted (profMintCraft) - by this press's
@@ -11771,7 +11773,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // Potent chance says them, as the service adds them (professions.js seatStepsFor)
         alchemySteps: () => alchemyHall().steps,
         brew: async (potion, keys) => {
-          const f = modes?.alchemyHere?.() ?? null;
+          const f = pricedStation(modes?.alchemyHere?.() ?? null, potionValue(potion));   // BUNNYFALL CRAFT FEES
           if (!f) return { ok: false, text: 'You are not at an alchemy station.' };
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The alchemist asks ${f.fee} gold for the use of the station.` };
           const { seat } = alchemyHall();
@@ -11790,7 +11792,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           const owner = characterIdOf(playerEntity), account = storedSession(appStorage())?.id;
           const pack = playerEntity.items;
           const here = () => owner === characterIdOf(playerEntity) && account === storedSession(appStorage())?.id && pack === playerEntity.items;
-          const f = modes?.enchantHere?.() ?? null;
+          const f = pricedStation(modes?.enchantHere?.() ?? null, itemFeeValue((playerEntity.items ?? []).find((x) => x?.provenance === provenance)));   // BUNNYFALL CRAFT FEES
           if (!f) return { ok: false, text: 'You are not at an enchanting station.' };
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The enchanter asks ${f.fee} gold to take a piece apart.` };
           const it = (playerEntity.items ?? []).find((x) => x?.provenance === provenance) ?? null;
@@ -11850,7 +11852,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         temper: async (offer) => {
           const r0 = recipeById(offer?.recipe);
           const loom = trackOf(r0?.profession) === 'outfitting';
-          const f = withTemperGold((loom ? modes?.loomHere?.() : modes?.forgeHere?.()) ?? null, offer?.quality);   // BUNNYFALL: the upgrade's gold on the fee
+          const f = withTemperGold(pricedStation((loom ? modes?.loomHere?.() : modes?.forgeHere?.()) ?? null, itemFeeValue(offer?.item)), offer?.quality);   // BUNNYFALL CRAFT FEES   // BUNNYFALL: the upgrade's gold on the fee
           if (!f) return { ok: false, text: loom ? 'You are not at a loom.' : 'You are not at an anvil.' };
           const who = loom ? 'tailor' : 'smith';
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The ${who} asks ${f.fee} gold for a temper.` };
@@ -11873,7 +11875,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         reforgeable: () => (playerEntity.items ?? []).filter((it) => it && reforgeEssence(it.rarity) && !essenceReforgeRefusal(it, reforgeableLines(it)[0]))
           .map((it) => ({ item: it, name: itemLongName(it), tier: it.rarity, lines: reforgeableLines(it).map((index) => ({ index, text: affixLine(it, index) })) })),
         essenceReforge: async (offer, index) => {
-          const f = modes?.enchantHere?.() ?? null;
+          const f = pricedStation(modes?.enchantHere?.() ?? null, itemFeeValue(offer?.item));   // BUNNYFALL CRAFT FEES
           if (!f) return { ok: false, text: 'You are not at an enchanting station.' };
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The enchanter asks ${f.fee} gold to reforge a piece.` };
           const pack = playerEntity.items, it = offer.item;
@@ -11897,7 +11899,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           const work = smeltRecipe(recipe);
           const bench = work?.station === 'workbench', loom = work?.station === 'loom', mason = work?.station === 'mason';
           const alch = work?.station === 'alchemy';   // PROF12: a Transmuter's transmutation, at the alchemy station
-          const f = (alch ? modes?.alchemyHere?.() : mason ? modes?.masonHere?.() : loom ? modes?.loomHere?.() : bench ? workbenchHere() : modes?.forgeHere?.()) ?? null;
+          const f = pricedStation((alch ? modes?.alchemyHere?.() : mason ? modes?.masonHere?.() : loom ? modes?.loomHere?.() : bench ? workbenchHere() : modes?.forgeHere?.()) ?? null, materialValue(work?.out, count));   // BUNNYFALL CRAFT FEES
           if (!f) return { ok: false, text: alch ? 'You are not at an alchemy station.' : mason ? 'You are not at a mason\'s bench.' : loom ? 'You are not at a loom.' : bench ? 'You are not at a workbench.' : 'You are not at a forge.' };
           const who = alch ? 'alchemist' : mason ? 'mason' : loom ? 'tailor' : bench ? (f.who ?? 'furnisher') : 'smith';   // CARP-YARD: the joinery's carpenter
           if (f.fee > 0 && totalGoldAmount(playerEntity) < f.fee) return { ok: false, text: `The ${who} asks ${f.fee} gold for the use of the ${alch ? 'station' : mason ? 'mason\'s bench' : loom ? 'loom' : bench ? 'workbench' : 'forge'}.` };
@@ -17177,7 +17179,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // replacing it, and Cancel pops back onto it. This host's push
     // door is townTalk's (ROAD-B B5).
     pushWindow: (w) => townTalk.pushOverlay(w),
-    exitToMenu: exitToTitleMenu,
+    exitToMenu: () => { exitAutosave(); exitToTitleMenu(); },   // BUNNYFALL SAVE-ON-EXIT: the pause menu's Exit saves first, as closing the game does
     textLines: (id) => townTalk.lines(id),
     // PX3: the pause window's Quests tab - the SAME seam the F5
     // logbook reads (:1525).
@@ -17857,7 +17859,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const exitAutosave = () => {
     // AUDIT ONESEAT H4: and never from a tab another took the seat from (ONE-SEAT) - it is offline, and its every slot
     // of the character would be written over what the tab that has the seat saved (the same character, played on there)
-    if (!online || !playerSpawned || seatOut()) return;
+    if (!playerSpawned || seatOut()) return;
+    // BUNNYFALL SAVE-ON-EXIT: offline, the character's AutoSave slot only (systems/save/exitSave.js) - quiet, synchronous
+    if (!online) {
+      const deathUp = townTalk.overlay instanceof DeathScreen || !!modes?.deathUp?.() || successionOpen();
+      for (const saveName of offlineExitSaveNames(playerEntity, { deathUp })) { try { if (modes) modes?.quickSaveNow(saveName, { quiet: true }); else worldQuickSave(saveName, { quiet: true }); } catch (e) { console.error('[save] exit save failed', e); } }
+      return;
+    }
     // AUDIT DUEL1 D5 + B4: a duel in play ends here as `left` (the opponent is told now, not after DUEL_GONE_MS) and its
     // heal runs now - the exit autosave below must not keep a duel's 1 health or its opponent's spells
     try { duelLeaveNow(); } catch { /* no duel was built: nothing to end */ }

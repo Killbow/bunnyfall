@@ -967,6 +967,7 @@ export const knifeBand = ({ intelligence, agility }) => actBand(Math.trunc((inte
 /** A smelt, most units a request. */
 export const SMELT_MAX = 100;
 /** The use fee a Weaponsmith's or Armorer's forge asks, a smelt (gold, the purse's). */
+// BUNNYFALL CRAFT FEES: these flat fees are each station's ceiling now - a shop asks a tenth of what is made (systems/craftFees.js)
 export const FORGE_FEE = 50;
 /** PROF4: a Furniture Store's workbench asks the same, a craft or a saw. */
 export const WORKBENCH_FEE = 50;

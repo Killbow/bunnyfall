@@ -58,6 +58,14 @@ export const CREDITS = Object.freeze({
       link: 'https://github.com/googlefonts/silkscreen',
     }),
     Object.freeze({
+      title: 'Alegreya',
+      version: '5.1.0 (Fontsource)',
+      get author() { return t('credits.author.projectAuthors', 'The {project} Project Authors', { project: 'Alegreya' }); },
+      get what() { return t('credits.alegreya.what', 'The Book text font, the game’s default for menus and windows on the Enhanced skin.'); },
+      get terms() { return t('credits.alegreya.terms', 'SIL Open Font License 1.1. The license is included with the font in fonts/alegreya.'); },
+      link: 'https://github.com/huertatipografica/Alegreya',
+    }),
+    Object.freeze({
       get title() { return t('credits.pixelifyGlyphs.title', 'The 2 and the Z'); },
       author: 'DFO',
       get what() { return t('credits.pixelifyGlyphs.what', 'Two glyphs drawn for the enhanced skin on Pixelify Sans\'s own grid: a 2 and a Z that can no longer be taken for each other.'); },

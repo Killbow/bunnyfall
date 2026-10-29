@@ -6,9 +6,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { TEXT_FONTS, TEXT_STACKS, KEEP_SELECTORS, DYSLEXIC_DIR, cleanFamily, wordStack, textFontCss } from '../../../src/ui/textFont.js';
 import { PREF_DEFAULTS } from '../../../src/systems/uiPrefs.js';
 
-test('TEXT-FONT choices: the five the player asked for, the game\'s own the default', () => {
-  assert.deepEqual(Object.keys(TEXT_FONTS), ['game', 'sans', 'mono', 'dyslexic', 'system']);
-  assert.equal(PREF_DEFAULTS.textFont, 'game');
+test('TEXT-FONT choices: the five the player asked for and BUNNYFALL\'s Book, the default', () => {
+  assert.deepEqual(Object.keys(TEXT_FONTS), ['book', 'game', 'sans', 'mono', 'dyslexic', 'system']);
+  assert.equal(PREF_DEFAULTS.textFont, 'book');
+  assert.match(TEXT_STACKS.book, /^'Alegreya', .*serif$/);
   assert.equal(PREF_DEFAULTS.textFontSystem, '');
   assert.ok(!('nameFont' in PREF_DEFAULTS), 'names follow the words\' face - the colour sets them apart');
   assert.match(TEXT_STACKS.sans, /sans-serif$/);
@@ -46,6 +47,15 @@ test('TEXT-FONT Dyslexic: OpenDyslexic shipped under public/ with its licence, f
   assert.match(readFileSync(new URL('OFL.txt', dir), 'utf8'), /SIL Open Font License/);
   assert.match(textFontCss('dyslexic', ''), /@font-face \{ font-family: 'OpenDyslexic'; font-weight: 400;/);
   assert.doesNotMatch(textFontCss('sans', ''), /@font-face/);
+});
+
+test('BUNNYFALL READABLE-FONT: Alegreya shipped under public/ with its licence, faced when Book is worn', () => {
+  const dir = new URL('../../../public/fonts/alegreya/', import.meta.url);
+  for (const f of ['alegreya-latin-400-normal.woff2', 'alegreya-latin-400-italic.woff2', 'alegreya-latin-700-normal.woff2', 'OFL.txt']) assert.ok(existsSync(new URL(f, dir)), f);
+  assert.match(readFileSync(new URL('OFL.txt', dir), 'utf8'), /SIL Open Font License/);
+  const css = textFontCss('book', '');
+  assert.match(css, /@font-face \{ font-family: 'Alegreya'; font-weight: 400;/);
+  assert.match(css, /--dfo-text-font: 'Alegreya'/);
 });
 
 test('TEXT-FONT worn with the look, offered on its card', () => {

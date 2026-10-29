@@ -58,7 +58,7 @@ export const ALL_YARD_KINDS = Object.freeze([...YARD_KIND_ORDER, ...CRAFT_YARD_O
 export const YARD_KINDS = Object.freeze({
   stable: Object.freeze({ key: 'stable', title: 'Stables', sign: 'STABLES', trade: 'Horses bought and sold', keeper: 'Stablemaster', seed: 0x57ab1e }),
   transport: Object.freeze({ key: 'transport', title: 'Wagon Yard', sign: 'WAGONS', trade: 'Carts and wagons bought and sold', keeper: 'Wagonwright', seed: 0x3a90e5 }),
-  carpenter: Object.freeze({ key: 'carpenter', title: 'Joinery', sign: 'JOINERY', trade: `Carpentry at the workbench: ${WORKBENCH_FEE} gold a craft or a saw`, keeper: 'Carpenter', seed: 0xca4be7 }),   // CARP-YARD
+  carpenter: Object.freeze({ key: 'carpenter', title: 'Joinery', sign: 'JOINERY', trade: `Carpentry at the workbench: a tenth of what you make, at most ${WORKBENCH_FEE} gold`, keeper: 'Carpenter', seed: 0xca4be7 }),   // CARP-YARD
 });
 /** A kind the law knows, or null. */
 export const validYardKind = (k) => (typeof k === 'string' && Object.prototype.hasOwnProperty.call(YARD_KINDS, k) ? k : null);

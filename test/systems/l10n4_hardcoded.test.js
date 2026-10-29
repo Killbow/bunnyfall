@@ -408,7 +408,7 @@ const HARDCODED = {
   'src/systems/immersiveFootsteps.js': 10,
   'src/systems/immersiveTravel.js': 13,
   'src/systems/improvedInteriorLighting.js': 1,
-  'src/systems/inputActions.js': 85,
+  'src/systems/inputActions.js': 86,
   'src/systems/inventory.js': 2,
   'src/systems/item/itemBound.js': 4,
   'src/systems/item/itemInfo.js': 8,
@@ -625,7 +625,7 @@ const HARDCODED = {
   'src/ui/enhanced/enhancedDialog.js': 1,
   'src/ui/enhanced/enhancedFrame.js': 2,
   'src/ui/enhanced/enhancedHelm.js': 16,
-  'src/ui/enhanced/enhancedHotbar.js': 13,
+  'src/ui/enhanced/enhancedHotbar.js': 16,
   'src/ui/enhanced/enhancedHud.js': 9,   // HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (SKILL-READY, FIRM-STARS: +3, the two tiles' names and their cell's class)
   'src/ui/enhanced/enhancedInventory.js': 98,   // BUNNYFALL: +6, salvage into materials; CHAT-POST: +3 Link/Post/Linked strings on the pack card; HUD/GROWTH PATCHES (2026-10-20): counted as they arrived at their merge with main - English until a slice routes them through t() (BELT-LANTERN: +5, the lantern slot's acts)
   'src/ui/enhanced/enhancedLevelingChoice.js': 6,
@@ -712,7 +712,7 @@ const HARDCODED = {
   'src/ui/plus/plusPadBinds.js': 30,
   'src/ui/prisonScreen.js': 1,
   'src/ui/professions/craftActs.js': 15,   // BUNNYFALL: the crafting window's minigames
-  'src/ui/professions/craftWindow.js': 35,   // BUNNYFALL: the crafting window
+  'src/ui/professions/craftWindow.js': 36,   // BUNNYFALL: the crafting window
   'src/ui/professions/profPages.js': 30,   // BUNNYFALL: +1, back to the crafting window; FB1020c ONE-SAVE: the kept words, moved here from the world host; REFORGE-REPLACE: the Reforge with Essence's two words through t()
   'src/ui/profileBadge.js': 4,
   'src/ui/profileIcons.js': 4,   // WITCH1: the four profile icons' names (ICON_TEXT) - the badge's words, as playerBadge.js's titles and auras
@@ -761,7 +761,7 @@ const HARDCODED = {
   'src/ui/techniqueCard.js': 8,
   'src/ui/techniqueGlyph.js': 2,
   'src/ui/temperatureCard.js': 8,
-  'src/ui/textFont.js': 4,
+  'src/ui/textFont.js': 5,
   'src/ui/touch/touchButtons.js': 10,
   'src/ui/town/townMapMarks.js': 2,
   'src/ui/travel/travelMapWindow.js': 15,

@@ -12,7 +12,11 @@ import { getPref, setPref } from '../systems/uiPrefs.js';
 import { APP_ROOT } from '../systems/appRoot.js';
 
 export const TEXT_FONT_STYLE_ID = 'dfo-text-font';
-export const TEXT_FONTS = Object.freeze({ game: 'Game', sans: 'Sans', mono: 'Monospace', dyslexic: 'Dyslexic', system: 'My font' });
+export const TEXT_FONTS = Object.freeze({ book: 'Book', game: 'Pixel', sans: 'Sans', mono: 'Monospace', dyslexic: 'Dyslexic', system: 'My font' });
+/** BUNNYFALL READABLE-FONT: the default face - Alegreya, a book serif (public/fonts/alegreya/, SIL OFL), fetched once. */
+export const DEFAULT_TEXT_FONT = 'book';
+export const BOOK_FAMILY = 'Alegreya';
+export const BOOK_DIR = 'fonts/alegreya';
 export const DYSLEXIC_FAMILY = 'OpenDyslexic';
 export const DYSLEXIC_DIR = 'fonts/opendyslexic';
 /** The stacks: each names what the common systems carry, so a machine without the first still lands on its kind. */
@@ -20,6 +24,7 @@ export const TEXT_STACKS = Object.freeze({
   sans: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif",
   mono: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace",
   dyslexic: `'${DYSLEXIC_FAMILY}', 'Comic Sans MS', sans-serif`,
+  book: `'${BOOK_FAMILY}', Georgia, 'Palatino Linotype', 'Book Antiqua', serif`,
 });
 /** Kept in their own face whatever the words are in: the wordmark and the menu's emblem. */
 export const KEEP_SELECTORS = Object.freeze(['.px-wordmark', '.shell .brand h1', '.look-emblem']);
@@ -28,7 +33,7 @@ export const KEEP_SELECTORS = Object.freeze(['.px-wordmark', '.shell .brand h1',
  *  never longer than a family name has reason to be. */
 export const cleanFamily = (name) => String(name ?? '').replace(/["'\\{}<>;\n\r]/g, '').replace(/\s+/g, ' ').trim().slice(0, 64);
 
-export const textFont = () => (Object.hasOwn(TEXT_FONTS, getPref('textFont')) ? getPref('textFont') : 'game');
+export const textFont = () => (Object.hasOwn(TEXT_FONTS, getPref('textFont')) ? getPref('textFont') : DEFAULT_TEXT_FONT);
 export const textFontSystem = () => cleanFamily(getPref('textFontSystem'));
 
 /** The face the words are in, as a font-family value - null for the game's own (no override at all). 'My font' with
@@ -38,7 +43,7 @@ export function wordStack(id = textFont(), system = textFontSystem()) {
   return TEXT_STACKS[id] ?? null;
 }
 
-const fontUrl = (file, root = APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/') => new URL(`${DYSLEXIC_DIR}/${file}`, root).href;
+const fontUrl = (file, root = APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/', dir = DYSLEXIC_DIR) => new URL(`${dir}/${file}`, root).href;
 
 /** The sheet, for the choice in hand. */
 export function textFontCss(id = textFont(), system = textFontSystem()) {
@@ -48,6 +53,13 @@ export function textFontCss(id = textFont(), system = textFontSystem()) {
   if (id === 'dyslexic') {
     css += `@font-face { font-family: '${DYSLEXIC_FAMILY}'; font-weight: 400; font-display: swap; src: url("${fontUrl('opendyslexic-latin-400-normal.woff2')}") format('woff2'); }
 @font-face { font-family: '${DYSLEXIC_FAMILY}'; font-weight: 700; font-display: swap; src: url("${fontUrl('opendyslexic-latin-700-normal.woff2')}") format('woff2'); }
+`;
+  }
+  if (id === 'book') {
+    const book = (f) => fontUrl(f, undefined, BOOK_DIR);
+    css += `@font-face { font-family: '${BOOK_FAMILY}'; font-weight: 400; font-display: swap; src: url("${book('alegreya-latin-400-normal.woff2')}") format('woff2'); }
+@font-face { font-family: '${BOOK_FAMILY}'; font-weight: 400; font-style: italic; font-display: swap; src: url("${book('alegreya-latin-400-italic.woff2')}") format('woff2'); }
+@font-face { font-family: '${BOOK_FAMILY}'; font-weight: 700; font-display: swap; src: url("${book('alegreya-latin-700-normal.woff2')}") format('woff2'); }
 `;
   }
   if (words) {

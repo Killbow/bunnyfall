@@ -46,6 +46,7 @@ import {
   HOTBAR_SIZE, HOTBAR_TEXT, hotbarView, hotbarRevision, hotbarPress, hotbarReady,
   hotbarEntryForItem, hotbarEntryForSpell, setHotbarSlot, clearHotbarSlot, swapHotbarSlots, hotbarEntry,
   hotbarSlotOf, firstFreeHotbarSlot, hotbarKindOf,
+  switchHotbarPreset, hotbarPreset, HOTBAR_PRESETS,   // BUNNYFALL HOTBAR-PRESETS
 } from '../../systems/quickslots.js';
 import { shownSpellName } from '../../systems/loot/loot.js';   // L10N3e: a spell's name as the book shows it
 import { modelIconUrl } from '../item/itemIconUrl.js';
@@ -105,6 +106,7 @@ let bar = null;          // the one .hb node
 let hbTook = null;       // AUDIT 27h B1: the press a socket stopped ({ node, button }), until the next press anywhere
 let slots = [];          // per slot: { node, icon, glyph, count, key, wear, wearFill, pip }
 let caption = null;
+let setBtn = null;   // BUNNYFALL HOTBAR-PRESETS: the set's button at the row's end
 let hint = null;
 let dock = null;         // the HUD's own place for it
 let quadDock = null;     // DIAMOND-HB: HUD container for the diamond layout (bottom-left)
@@ -384,6 +386,12 @@ function build() {
     slots.push({ node, face, icon, glyph, count, key, wear, wearFill, pip, badge });
     iconKeys[i] = null;
   }
+  // BUNNYFALL HOTBAR-PRESETS: the set that is up, at the row's end - a click puts the next one up, as the key does
+  setBtn = el('button', 'hb-set');
+  setBtn.type = 'button';
+  setBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  setBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); nextHotbarPreset(); });
+  row.append(setBtn);
   rowHold = el('div', 'xb-hold');   // DIAMOND-HB: holds the slot nodes the current layout does not show
   for (let i = HOTBAR_SIZE; i < HOTBAR_CAPACITY; i++) rowHold.append(slots[i].node);
   hint = el('div', 'hb-hint', HINT_DROP);
@@ -474,6 +482,7 @@ function paint() {
   const hintText = hand ? (xbOn ? PAD_ARRANGE_TEXT.hintHand : PAD_ARRANGE_TEXT.hintHandRow) : arranging ? PAD_ARRANGE_TEXT.hint
     : xbOn ? HINT_XB : editing ? HINT_EDIT : HINT_DROP;   // PAD-ARRANGE
   if (hint && hint.textContent !== hintText) hint.textContent = hintText;
+  paintPresetButton();
   if (!shown) return;
   const entity = dropping ? (dropEntity ?? liveEntity) : liveEntity;
   const readiedIndex = liveOpts.readied?.index ?? null;
@@ -651,6 +660,27 @@ function strike(i, good) {
 export const CAPTION_ON = 'hb-cap-on';
 export const CAPTION_FADE = Object.freeze([{ opacity: 0, offset: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1, offset: 0.75 }, { opacity: 0, offset: 1 }]);
 let captionFade = null;
+/** BUNNYFALL HOTBAR-PRESETS: the sets' names as the button and the caption say them. */
+export const HOTBAR_SET_NAMES = Object.freeze(['I', 'II', 'III', 'IV', 'V', 'VI']);
+const presetLabel = (k = hotbarPreset()) => HOTBAR_SET_NAMES[k] ?? String(k + 1);
+function paintPresetButton() {
+  if (!setBtn) return;
+  const word = presetLabel();
+  if (setBtn.textContent !== word) setBtn.textContent = word;
+  const tag = hotbarPresetKey();
+  const title = `Hotbar set ${hotbarPreset() + 1} of ${HOTBAR_PRESETS}. Click${tag ? ` or press ${tag}` : ''} for the next set.`;
+  if (setBtn.title !== title) { setBtn.title = title; setBtn.setAttribute('aria-label', title); }
+}
+const hotbarPresetKey = () => quickslotTag('HotbarPreset', { bindings: bindings() }) || '';
+/** BUNNYFALL HOTBAR-PRESETS: put the next set up, redraw, and say which. */
+export function nextHotbarPreset() {
+  if (!switchHotbarPreset()) return false;
+  lastSig = null;
+  paint();
+  showCaption(`Hotbar set ${presetLabel()}`);
+  return true;
+}
+
 function showCaption(text, bad = false) {
   if (!caption) return;
   caption.textContent = text ?? '';
@@ -707,6 +737,8 @@ function onKey(e) {
   if (keysPaused()) return;
   if (keyHolds.size) return;   // AUDIT POI E1: a surface that owns the keys is up
   if (e.metaKey || isTextEntryTarget(e.target)) return;
+  // BUNNYFALL HOTBAR-PRESETS: the next set, one press
+  if (eventActions(e).includes('HotbarPreset')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) nextHotbarPreset(); return; }
   // KB1: THE SLOTS ARE REGISTRY ACTIONS. This read `Digit1`-`Digit0` off the event and stepped aside for any digit
   // someone else held - a table of its own beside the controls pane's. The slot is whatever the key MEANS now: a
   // player who moved slot 7 to a mouse button, or a pad's d-pad on slots 1-4, presses it; a digit bound to anything
@@ -1316,4 +1348,11 @@ ${GEM_CSS}
   .hb-ring { display: none; }
   .hb-slot.hb-strike .hb-flash { animation: none; opacity: 0.6; }
 }
+
+/* BUNNYFALL HOTBAR-PRESETS: the set's button at the row's end */
+.hb-set { align-self: center; min-width: 26px; height: 26px; margin-left: 4px; padding: 0 5px; border: 1px solid #8a7a52;
+  background: rgba(12,14,18,0.72); color: #f3cf86; font: inherit; font-size: 12px; letter-spacing: 0.06em; cursor: pointer;
+  pointer-events: auto; text-shadow: 1px 1px 0 #000; }
+.hb-set:hover, .hb-set:focus-visible { border-color: #f3cf86; color: #fff3cf; }
+.hb.xb .hb-set { display: none; }
 `;

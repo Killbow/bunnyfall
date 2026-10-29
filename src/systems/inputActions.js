@@ -208,6 +208,8 @@ export const ACTIONS = Object.freeze([
   // The decorator. Ships with no key: every letter is spent, and F1-F4 are the browser's or already bound.
   // A player gives it one in Controls. It answers only where the Decorate button would stand.
   'Decorate',
+  // BUNNYFALL HOTBAR-PRESETS: the next hotbar set, one press (Minus, beside the bar's 0)
+  'HotbarPreset',
 ]);
 
 /** AUDIT SOC D3: THE PORT'S OWN ROWS, NAMED SO THE CLASSIC WINDOWS CAN YIELD THEM.
@@ -225,7 +227,7 @@ export const PORT_ACTIONS = Object.freeze(['SocialInteract', 'QuickUse1', 'Quick
   'TorchToggleLight', 'TorchDrop', 'TorchThrow', 'ShoulderSwitch', 'AutoPerspective', 'FollowPaths', 'HorseMount', 'HorseSummon', 'DebugOverlay',
   'BoatDisembark', 'BoatToggleLight', 'BoatToggleSail', 'BoatTrimRight', 'BoatTrimLeft', 'BoatTrimModifier',
   'BoatTimeScaleUp', 'BoatTimeScaleDown', 'BoatTimeScaleReset', 'TravelView', 'WalkMode', 'TogglePerspective', 'ActChoice', 'BoatSailUp', 'BoatSailDown', 'Professions',
-  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
+  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
 
 const ACTION_SET = new Set(ACTIONS);
 
@@ -374,6 +376,7 @@ export const DEFAULT_BINDINGS = Object.freeze([
   ['Digit8', 'Hotbar8'],
   ['Digit9', 'Hotbar9'],
   ['Digit0', 'Hotbar10'],
+  ['Minus', 'HotbarPreset'],   // BUNNYFALL HOTBAR-PRESETS: free on every count (DFU, the port, the vendored mods)
   ['KeyO', 'TorchToggleLight'],
   ['KeyG', 'TorchDrop'],
   ['KeyX', 'TorchThrow'],
@@ -578,6 +581,7 @@ export const ACTION_GROUPS = Object.freeze([
     ['QuickOffHand', 'Off hand: light, douse or swap / hotbar slot 4'], ['QuickSwap', 'Swap weapon'],
     ['Hotbar5', 'Hotbar slot 5'], ['Hotbar6', 'Hotbar slot 6'], ['Hotbar7', 'Hotbar slot 7'], ['Hotbar8', 'Hotbar slot 8'],
     ['Hotbar9', 'Hotbar slot 9'], ['Hotbar10', 'Hotbar slot 10'],
+    ['HotbarPreset', 'Next hotbar set'],   // BUNNYFALL HOTBAR-PRESETS
   ]),
   g('Mouse', [
     ['ActivateCursor', 'Free the mouse (offline) / open chat (online)'], ['FreeMouse', 'Free the mouse (press again to look)'],

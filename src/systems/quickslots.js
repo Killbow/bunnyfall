@@ -187,7 +187,7 @@ export function assignQuickslot(slot, item) {
 }
 
 export function clearQuickslot(slot) { assertSlot(slot); state[slot] = null; }
-export function clearQuickslots() { for (const s of QUICKSLOTS) state[s] = null; spellState = null; hotbar.fill(null); hotbarRev++; }   // HB1: the hotbar clears with them (a load, a new character)   // QS6: the spell slot is a slot too
+export function clearQuickslots() { for (const s of QUICKSLOTS) state[s] = null; spellState = null; hotbar.fill(null); hotbarPresets.fill(null); hotbarPresetAt = 0; hotbarRev++; }   // BUNNYFALL HOTBAR-PRESETS: the stored sets too   // HB1: the hotbar clears with them (a load, a new character)   // QS6: the spell slot is a slot too
 
 /** The slot this item's kind is in, or null. The tooltip's buttons
  *  read it to show "Unslot" on the one that holds the item. */
@@ -908,6 +908,11 @@ export function quickslotSaveData() {
   out.hotbar = hotbar.map((e) => (e ? { ...e } : null));
   // PADPLUS1: the crossbar's six extra slots ride only when one is filled - a keyboard player's save is the ten it was
   if (out.hotbar.slice(HOTBAR_SIZE).every((e) => !e)) out.hotbar.length = HOTBAR_SIZE;
+  // BUNNYFALL HOTBAR-PRESETS: which set is up, and the others as they were left - only once a second set was used
+  if (hotbarPresetAt !== 0 || hotbarPresets.some((p) => p)) {
+    out.hotbarPreset = hotbarPresetAt;
+    out.hotbarPresets = hotbarPresets.map((p) => (p ? p.map((e) => (e ? { ...e } : null)) : null));
+  }
   return out;
 }
 
@@ -923,13 +928,14 @@ export function restoreQuickslotSaveData(data) {
   // HB1: the hotbar. A save written before it carries no block and the
   // bar clears, as the slots above do for a pre-QS save.
   if (Array.isArray(data.hotbar)) {
-    data.hotbar.slice(0, HOTBAR_CAPACITY).forEach((e, i) => {
-      if (!e || typeof e !== 'object' || typeof e.name !== 'string') return;
-      if (e.type === 'spell' && Number.isFinite(e.index)) hotbar[i] = { type: 'spell', index: e.index, name: e.name, ...iconOf(e) };   // UI2: and its icon
-      else if (e.type === 'item' && typeof e.key === 'string' && HOTBAR_KINDS.includes(e.kind)) {
-        hotbar[i] = { type: 'item', kind: e.kind, key: e.key, name: e.name };
-        if (OLD_BOOK_KEY.test(e.key)) _oldBookKeys = true;
-      }
+    data.hotbar.slice(0, HOTBAR_CAPACITY).forEach((e, i) => { hotbar[i] = savedHotbarEntry(e); });
+  }
+  // BUNNYFALL HOTBAR-PRESETS: the set that was up, and the others
+  if (Number.isInteger(data.hotbarPreset) && data.hotbarPreset >= 0 && data.hotbarPreset < HOTBAR_PRESETS) hotbarPresetAt = data.hotbarPreset;
+  if (Array.isArray(data.hotbarPresets)) {
+    data.hotbarPresets.slice(0, HOTBAR_PRESETS).forEach((p, k) => {
+      if (k === hotbarPresetAt || !Array.isArray(p)) return;
+      hotbarPresets[k] = p.slice(0, HOTBAR_CAPACITY).map(savedHotbarEntry);
     });
   }
   hotbarRev++;
@@ -968,6 +974,38 @@ export const HOTBAR_CAPACITY = 16;
 // table here - the fixed Digit1-Digit0 list this held was a second keymap beside the controls pane's.
 const hotbar = new Array(HOTBAR_CAPACITY).fill(null);
 let hotbarRev = 0;   // bumped on every write, so a view can tell "changed" in one compare
+
+/** A saved hotbar entry made safe to put on the bar, or null. */
+function savedHotbarEntry(e) {
+  if (!e || typeof e !== 'object' || typeof e.name !== 'string') return null;
+  if (e.type === 'spell' && Number.isFinite(e.index)) return { type: 'spell', index: e.index, name: e.name, ...iconOf(e) };   // UI2: and its icon
+  if (e.type === 'item' && typeof e.key === 'string' && HOTBAR_KINDS.includes(e.kind)) {
+    if (OLD_BOOK_KEY.test(e.key)) _oldBookKeys = true;
+    return { type: 'item', kind: e.kind, key: e.key, name: e.name };
+  }
+  return null;
+}
+
+// ── BUNNYFALL HOTBAR-PRESETS ──────────────────────────────────────
+// Several hotbar layouts, one up at a time. The bar above IS the set that is up; the others wait here as they were
+// left, and a swap trades them. A press, a drag and the save all keep reading the one bar, so nothing else changes.
+export const HOTBAR_PRESETS = 4;
+const hotbarPresets = new Array(HOTBAR_PRESETS).fill(null);
+let hotbarPresetAt = 0;
+/** Which set is up (0-based). */
+export const hotbarPreset = () => hotbarPresetAt;
+/** Put set `to` up (the next one by default), keeping the one that was up as it was. Answers whether it moved. */
+export function switchHotbarPreset(to = (hotbarPresetAt + 1) % HOTBAR_PRESETS) {
+  if (!Number.isInteger(to) || to < 0 || to >= HOTBAR_PRESETS || to === hotbarPresetAt) return false;
+  hotbarPresets[hotbarPresetAt] = hotbar.map((e) => (e ? { ...e } : null));
+  const next = hotbarPresets[to];
+  hotbar.fill(null);
+  if (next) next.forEach((e, i) => { if (i < HOTBAR_CAPACITY) hotbar[i] = e ? { ...e } : null; });
+  hotbarPresets[to] = null;
+  hotbarPresetAt = to;
+  hotbarRev++;
+  return true;
+}
 
 export const HOTBAR_TEXT = Object.freeze({
   emptySlot: 'That hotbar slot is empty.',

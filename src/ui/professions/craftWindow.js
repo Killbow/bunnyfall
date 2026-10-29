@@ -13,6 +13,7 @@ import { DYE_NAMES } from '../../characters/dyes.js';
 import { getPref } from '../../systems/uiPrefs.js';
 import { materialsText } from '../salvageMaterials.js';
 import { mountAct } from './craftActs.js';
+import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 
 /** The stations this window draws, each its name, its craft, its minigame, its fee's door and its refine works. */
@@ -190,7 +191,7 @@ export function drawCraftWindow(detail, rerender, p, station, toOld) {
   const root = h('div', 'cw');
   const head = h('div', 'cw-head');
   const fee = feeOf(p, station);
-  head.append(h('div', 'cw-title', S.name), h('div', 'cw-sub', `${prof[0].toUpperCase()}${prof.slice(1)} rank ${rank}${fee ? ` · fee ${fee} gold` : ''} · ${p.purse?.() ?? 0} gold carried`));
+  head.append(h('div', 'cw-title', S.name), h('div', 'cw-sub', `${prof[0].toUpperCase()}${prof.slice(1)} rank ${rank}${fee ? ` · fee 10% of the piece, up to ${fee} gold` : ''} · ${p.purse?.() ?? 0} gold carried`));
   root.append(head);
   const tabs = h('div', 'cw-tabs');
   const shown = TABS.filter(([id]) => id !== 'upgrade' || S.temper || S.upgrade).filter(([id]) => id !== 'refine' || S.refine().length);
@@ -309,7 +310,7 @@ function drawRecipeCard(card, rerender, p, station, pick, rank, specs, run) {
     });
     card.append(bar, key);
   }
-  const fee = feeOf(p, station);
+  const fee = valueFee(recipeValue(r.id), feeOf(p, station));
   card.append(h('p', 'cw-note', `${r.tier ? `+${craftXp(r.tier, rank)} ${S.prof} experience` : ''}${fee ? ` · fee ${fee} gold` : ''}`));
   if (v.st.s === 'locked') card.append(h('p', 'cw-note', r.later ? 'Not made yet.' : `Needs ${S.prof} rank ${r.rank}.`));
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
@@ -353,7 +354,7 @@ function drawUpgrade(root, p, station, run) {
     for (const pc of pieces) {
       const r = RECIPES.find((x) => x.id === pc.recipe);
       if (!r) continue;
-      const cost = temperCost(r, pc.quality), gold = temperGold(pc.quality) + fee;
+      const cost = temperCost(r, pc.quality), gold = temperGold(pc.quality) + valueFee(itemFeeValue(pc.item), fee);
       const cap = temperCap(r, rank);
       const have = workOf(book, cost.key);
       const line = h('div', 'cw-line');
@@ -370,7 +371,7 @@ function drawUpgrade(root, p, station, run) {
     if (!offers.length) root.append(h('div', 'cw-empty', 'No found metal pieces in your pack to rework.'));
     const rank = rankOf(book, 'smithing');
     for (const o of offers) {
-      const have = workOf(book, o.cost.key), gold = o.gold + fee;
+      const have = workOf(book, o.cost.key), gold = o.gold + valueFee(itemFeeValue(o.item), fee);
       const line = h('div', 'cw-line');
       const main = h('div', 'cw-line-main');
       main.append(h('b', null, o.name), h('span', 'cw-state', `To ${o.next.madeOf}: ${o.cost.n} ${p.name(o.cost.key)} (have ${have}) and ${gold} gold${rank < o.next.rank ? `. Needs Smithing rank ${o.next.rank}` : ''}`));
