@@ -614,8 +614,8 @@ import { registerContainerLootHandler } from '../systems/containerLoot.js';   //
 import { mintPieces, mintPiece, craftedText, storedText, CRAFT_KEPT_TEXT, BENCH_KEPT_TEXT, LOOM_KEPT_TEXT, MASON_KEPT_TEXT, isCraftedFurniture, asMinted, pieceOfRecipe } from '../systems/smithItems.js';   // PROF3: a craft's pieces, minted into the pack; PROF4: furniture into the home's things; PROF11: the mason's word; SEAT2b part two: a siege work's
 import { heatBand, planeBand, stitchBand, chiselBand, recipeById } from '../net/recipeLaw.js';   // PROF3: the heat's attribute band; PROF4: the plane's, and a recipe's station; PROF7: the stitch's; PROF11: the chisel's
 import { COOK_KEPT_TEXT } from '../systems/smithItems.js';   // PROF9: the fire's word, a dish whose answer did not come
-import { pricedStation, recipeValue, potionValue, materialValue, itemFeeValue } from '../systems/craftFees.js';
-import { offlineExitSaveNames } from '../systems/save/exitSave.js';   // BUNNYFALL SAVE-ON-EXIT   // BUNNYFALL CRAFT FEES: a tenth of what is made, the station's old fee its ceiling
+import { pricedStation, recipeValue, potionValue, materialValue, itemFeeValue } from '../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of what is made, the station's old fee its ceiling
+import { offlineExitSaveNames } from '../systems/save/exitSave.js';   // BUNNYFALL SAVE-ON-EXIT
 import { JEWEL_KEPT_TEXT } from '../systems/smithItems.js';   // PROF10: the jeweller's bench's word, a piece whose answer did not come
 import { temperItem, reforgeItem, essenceReforgeRefusal, TEMPER_MOVED_TEXT, TEMPER_LOST_TEXT, REFORGE_LOST_TEXT } from '../systems/smithItems.js';   // CRAFT4: the temper and the Reforge with Essence, on the piece
 import { temperRecipeOf, temperRefusal, pieceQuality, reforgeEssence, withTemperGold } from '../net/temperLaw.js';   // CRAFT4: what a temper takes
