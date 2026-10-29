@@ -219,7 +219,7 @@ jobs:
             app/release/*.exe
             app/release/latest*.yml
             app/release/*.blockmap
-            app/release/DFO-Online-game.*
+            app/release/Bunnyfall-game.*
           if-no-files-found: error
           retention-days: ${{ needs.version.outputs.tag != '' && 1 || 14 }}
 
@@ -269,9 +269,9 @@ jobs:
           elif grep -q 'HTTP 404' prev-error.txt; then PREV=''
           else cat prev-error.txt >&2; exit 1
           fi
-          if [ -n "$PREV" ] && gh api "repos/$GITHUB_REPOSITORY/releases/tags/$PREV" --jq '.assets[].name' | grep -qx 'DFO-Online-game.json.gz'; then
-            gh release download "$PREV" --repo "$GITHUB_REPOSITORY" --pattern 'DFO-Online-game.json.gz' --dir previous
-            node scripts/desktopRelease.mjs delta previous/DFO-Online-game.json.gz release/DFO-Online-game.json.gz "$PREV"
+          if [ -n "$PREV" ] && gh api "repos/$GITHUB_REPOSITORY/releases/tags/$PREV" --jq '.assets[].name' | grep -qx 'Bunnyfall-game.json.gz'; then
+            gh release download "$PREV" --repo "$GITHUB_REPOSITORY" --pattern 'Bunnyfall-game.json.gz' --dir previous
+            node scripts/desktopRelease.mjs delta previous/Bunnyfall-game.json.gz release/Bunnyfall-game.json.gz "$PREV"
           else
             echo "no game on the release before (${PREV:-none}) - nothing to measure against"
           fi
