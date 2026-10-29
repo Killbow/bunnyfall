@@ -19,6 +19,8 @@ import { PIXEL_FONT_CSS } from '../ui/pixelifyFive.js';   // FONT3
 import { optionPath } from '../ui/settings/settingsMap.js';   // ORG2
 
 const DB_NAME = 'project-dagger';
+/** The lowest version this build opens the database at (R6's derived store); a newer one is used as it stands. */
+const DB_VERSION_MIN = 5;
 const STORE = 'arena2';
 /** M-EXT: user-supplied music lives in its OWN store, and that is not
  *  tidiness. The ARENA2 store is filtered by KEEP - the download diet -
@@ -159,7 +161,29 @@ function openDb() {
     // 5 (R6): the derived store. The upgrade is ADDITIVE and every arm
     // below is guarded by `contains`, so a player arriving at any older
     // version gains the new store and keeps every byte of the old ones.
-    const req = indexedDB.open(DB_NAME, 5);
+    // BUNNYFALL: never ask for a version below the one the database has - a copy that ran a newer build (upstream's
+    // DFO Online on the same app data) holds it at 6, and an open at 5 is refused (VersionError: nothing stored, no mod
+    // added). Asked first without a version; that answer is kept when it already holds every store, and an additive
+    // upgrade to one past it otherwise.
+    const want = DB_VERSION_MIN;
+    const probe = indexedDB.open(DB_NAME);
+    probe.onerror = () => rej(probe.error);
+    probe.onblocked = () => { console.warn('[dataSource] database upgrade blocked - close other tabs running this game'); };
+    probe.onupgradeneeded = () => {   // a database that did not exist: made here, at version 1, then upgraded below
+      const d = probe.result;
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
+      for (const name of ASSET_STORES) if (!d.objectStoreNames.contains(name)) d.createObjectStore(name);
+    };
+    probe.onsuccess = () => {
+      const have = probe.result;
+      const whole = have.objectStoreNames.contains(STORE) && ASSET_STORES.every((n) => have.objectStoreNames.contains(n));
+      if (whole && have.version >= want) { res(have); return; }
+      const next = Math.max(want, have.version + (whole ? 0 : 1));
+      have.close();
+      openAt(next);
+    };
+    const openAt = (version) => {
+    const req = indexedDB.open(DB_NAME, version);
     req.onupgradeneeded = () => {
       const d = req.result;
       if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE);
@@ -179,6 +203,7 @@ function openDb() {
     req.onblocked = () => {
       console.warn('[dataSource] database upgrade blocked - close other tabs running this game');
       try { document.title = 'Bunnyfall: close other game tabs to continue'; } catch { /* no-DOM host */ }
+    };
     };
   });
 }
