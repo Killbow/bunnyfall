@@ -48,6 +48,7 @@ import { homeSceneName } from '../../net/homeScene.js';   // HOME-POUR: the home
 import { ARENA_TEXT } from '../arena/arenaText.js';   // ARENA4b: the bank's letter for a home the arena displaced
 import { RENT_VERB, rentRowLabel, rentTenantLabel } from '../homeRent.js';   // HOME-RENT: the door's rows for a room to rent
 import { BUILDING_TYPES, isResidence } from '../../world/buildingNames.js';
+import { isBunnyHall } from '../guild/bunnyGuilds.js';   // BUNNY-GUILDS: a guild's hall is no home
 import { DEED_SELL_MULT, CROSSED_DEED_LINES, deedStands } from '../banking.js';   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed names its building only where it stands
 import { guildTagText, GUILD_MOVE_MAX } from '../../net/guild/guildLaw.js';   // GUILD1d: a hall's tag, as a name wears it; HALL-GOLD: a deposit's cap, said
 import { GUILD_HALL_ENTRIES, GUILD_HALL_ENTRY_WORDS, guildHallPrice } from '../../net/hallLaw.js';   // GUILD1d: a guild's hall
@@ -95,6 +96,7 @@ export function homeCandidate(bd) {
   const t = bd?.buildingType;
   if (!homeBuildingKeyOk(bd?.buildingKey)) return false;
   if (t === BUILDING_TYPES.House2 && (bd.factionId ?? 0) !== 0) return false;
+  if (isBunnyHall(bd)) return false;   // BUNNY-GUILDS: a house a guild of Bunnyfall's keeps as its hall
   return t === BUILDING_TYPES.HouseForSale || isResidence(t) || t === BUILDING_TYPES.House5 || t === BUILDING_TYPES.House6;
 }
 

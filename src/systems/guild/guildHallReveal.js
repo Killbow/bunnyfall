@@ -41,6 +41,7 @@
 
 import { GUILDS, hasJoined, activeMemberships, membershipsFor } from './guilds.js';
 import { discoverBuilding } from '../discovery.js';
+import { bunnyGuildOfFaction } from './bunnyGuilds.js';   // BUNNY-GUILDS: their halls are named for everyone
 
 /** The two guilds that override Join with a reveal. Their faction ids
  *  are FactionFile.FactionIDs.The_Thieves_Guild (42) and
@@ -90,6 +91,26 @@ export function revealGuildHallsOnMap(memberships, locationId, buildings, {
       if (b?.factionId !== guild.factionId) continue;
       if (discover(locationId, b, name)) written++;
     }
+  }
+  return written;
+}
+
+/**
+ * BUNNY-GUILDS (Phase 0a): Bunnyfall's guild halls are converted houses, and a house carries no plate on the town map
+ * unless it is discovered under an override name (the reveal above, for the same reason). Their halls are public, so
+ * every player's map and door name them, member or not. A location's buildings only carry these factions online
+ * (bunnyGuilds.js stampBunnyHalls), so offline this writes nothing.
+ *
+ * @param locationId the discovery store's key for this location
+ * @param buildings  the location's FULL building set, as above
+ * @returns how many records the reveal wrote
+ */
+export function revealBunnyHallsOnMap(locationId, buildings, { discover = discoverBuilding } = {}) {
+  if (locationId == null || !buildings?.length) return 0;
+  let written = 0;
+  for (const b of buildings) {
+    const guild = bunnyGuildOfFaction(b?.factionId);
+    if (guild && discover(locationId, b, guild.name)) written++;
   }
   return written;
 }

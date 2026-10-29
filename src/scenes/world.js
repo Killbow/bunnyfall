@@ -1014,7 +1014,7 @@ import { GUILD_FACTION_IDS } from '../systems/guild/guildFactions.js';   // CHAP
 import { GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';   // the membership book's key - the travel popup's free-ship read   // AUDIT 39 (#23): GetRegionFaction's Province filter
 import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // KnightlyOrder.FreeShipTravel, the second half of hasShip; FreeTavernRooms, the trip cost's inn nights
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
-import { revealGuildHallsOnMap, revealingMemberships } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
+import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
 import { RumorMill, tokensToString } from '../systems/rumorMill.js';
 import { HolidayTextTimer, holidayTextPrimesFor } from '../systems/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
@@ -16990,6 +16990,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     Promise.resolve(townTalk.ensureFactions?.()).then(() => {
       revealGuildHallsOnMap(revealingMemberships(playerEntity), locationId, buildings,   // AUDIT CHAP2 D4: either book's
         { factionName: (id) => { const n = townTalk.factionDict?.get(id)?.name; return n == null ? '' : getLocalizedFactionName(id, n); } });   // L10N3e: GetGuildName's GetFactionData, a translation's name for the id (ThievesGuild.cs:246, DarkBrotherhood.cs:255, PersistentFactionData.cs:176)
+      revealBunnyHallsOnMap(locationId, buildings);   // BUNNY-GUILDS: Bunnyfall's halls, named for everyone (online only)
       // CHAP2a (Chapters-Arc 4): and online, at the entry edge, the town's guild halls read off these same buildings are
       // reported - once a UTC day a town, the Chapters' witnesses (net/npcHallBook.js). A town with none reports nothing.
       // AUDIT CHAP2 U1: only off the layout every client stands in - the homes' own gate (WD3): a town whose pinned layout

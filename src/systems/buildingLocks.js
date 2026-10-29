@@ -13,6 +13,7 @@
 // open, and what is its lock worth.
 
 import { BUILDING_TYPES } from '../world/buildingNames.js';
+import { isBunnyHall } from './guild/bunnyGuilds.js';   // BUNNY-GUILDS: a converted house that is a guild's hall
 import { isShop } from './shopStock.js';
 import { HOLIDAYS } from './holidays.js';
 import { sharedClockOn } from './worldTick.js';   // OL4 (AUDIT ALL O1): the shared clock IS the reason for the shift, and every other online law keys on it
@@ -96,6 +97,8 @@ export function buildingIsUnlocked(building, {
     // arm - harmless while guild halls had no relief, a lie the moment they do.
     return (g?.hallAccessAnytime ?? false) || isBuildingOpen(type, hour, { online });
   }
+  // BUNNY-GUILDS: a house a guild of Bunnyfall's keeps as its hall keeps a guild hall's hours
+  if (isBunnyHall(building)) return isBuildingOpen(BUILDING_TYPES.GuildHall, hour, { online });
   // TG/DB houses: a House2 with a faction is members-only (:1281-1285)
   if (type === BUILDING_TYPES.House2 && (building?.factionId ?? 0) !== 0) {
     const g = guildForBuilding?.(building.factionId);

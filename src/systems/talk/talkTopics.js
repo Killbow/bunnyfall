@@ -36,7 +36,8 @@ import { staticNpcData, isChildNPCData } from '../../characters/staticNpc.js';  
 import { collectInteriorPeople } from '../../characters/interiorPeople.js';   // QP1: the one people mapper
 import { hasInteriorModels } from '../../world/interior/interiorLayout.js';   // FIELD BUGS 2026-10-05 CRYPT-SALE: a room that cannot be laid out is not for sale
 import { buildingSummaries } from '../../world/buildingSummaries.js';   // D9: GetBuildingList's own per-block building walk (RMBLayout.GetBuildingData)
-import { localizedTable } from '../textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedTable } from '../textManager.js';
+import { stampBunnyHalls } from '../guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls, online   // L10N3d: DFU's Internal_Strings, read in the player's language
 
 // TalkManager.knowledgeModifiers (verbatim, 8 question rows x 5
 // social groups).
@@ -226,6 +227,13 @@ export function drawNamedBuildings(exteriorBuildings, blocks, { locationIndex = 
     }
     out.set(b, list);
   }
+  // BUNNY-GUILDS (Phase 0a): online, a town's guild halls are some of its houses, stamped with their guild's faction
+  stampBunnyHalls(out, blocks, {
+    locationIndex,
+    keyOf: (b, i) => makeBuildingKey(b.x ?? 0, b.y ?? 0, i),
+    hasRoom: (b, i) => hasInteriorModels(b.dfBlock.rmbBlock.subRecords?.[i]),
+    countOf: (b) => blockBuildingCount(b.dfBlock) ?? Infinity,
+  });
   return { out, drawn: drawnBy };
 }
 
