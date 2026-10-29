@@ -158,6 +158,10 @@ export function cycleAllowed(index, dir, flags) {
 export const MAX_EFFECTS_PER_SPELL = 3;      // maxEffectsPerSpell (SpellMakerWindow:131)
 export const DEFAULT_SPELL_ICON = 1;         // defaultSpellIcon (:132)
 export const SPELL_ICON_COUNT = 69;          // SpellIconCollection.SpellIconCount
+/** The added icon pack (public/art/spell-icons/pack.png): its icons follow the classic ones, so index 69 is its first. */
+export const SPELL_ICON_PACK_COUNT = 154;
+/** Every icon a spell may carry: the classic sheet, then the pack. */
+export const SPELL_ICON_TOTAL = SPELL_ICON_COUNT + SPELL_ICON_PACK_COUNT;
 export const MAX_SPELL_NAME = 31;            // TextBox.MaxCharacters default
 
 /** The spinner ranges, inclusive (EffectSettingsEditorWindow's
@@ -287,7 +291,7 @@ export function buildCustomSpell({ slots, rangeType = 0, element = 4, name = '',
   while (effects.length < MAX_EFFECTS_PER_SPELL) effects.push(emptyEffect());
   return {
     effects, element, rangeType, name,
-    icon: ((icon % SPELL_ICON_COUNT) + SPELL_ICON_COUNT) % SPELL_ICON_COUNT,   // SetIcon's index % count
+    icon: ((icon % SPELL_ICON_TOTAL) + SPELL_ICON_TOTAL) % SPELL_ICON_TOTAL,   // SetIcon's index % count
     cost: 0,   // the file's u16; nothing in the cast path reads it (the live formula prices every spell)
     index: index ?? mintCustomSpellIndex(),
     custom: true,

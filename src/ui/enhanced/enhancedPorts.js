@@ -36,7 +36,7 @@ import { flagOfIndex, spinnerRange } from '../../systems/spell/spellMaker.js';  
 import { SPELLBOOK_RECTS, spellPointCost, spellEffects } from '../spellbookWindow.js';   // SHOP-PLUS: the spell shop is the book in buy mode
 import { effectWords, spellFrame } from './enhancedSpellbook.js';        // ...and says a spell in the enhanced book's own words
 import { totalGoldAmount } from '../../systems/court.js';
-import { SPELL_ICON_COUNT } from '../spell/spellIcons.js';
+import { SPELL_ICON_TOTAL } from '../spell/spellIcons.js';
 
 /** Press the classic window at a rect's centre (panel-relative rects take their panel's origin). */
 const at = (win, rect, ox = 0, oy = 0) => () => { const [x, y] = centreOf(rect, ox, oy); win.click(x, y); };
@@ -313,7 +313,7 @@ function iconPickerView(w) {
   const choose = (i) => () => { p.selectedIcon = { key: null, index: i }; p._close(); };
   return {
     title: 'Choose an icon', size: 'medium',
-    blocks: [{ type: 'iconGrid', key: 'icons', items: Array.from({ length: SPELL_ICON_COUNT }, (_, i) => ({
+    blocks: [{ type: 'iconGrid', key: 'icons', items: Array.from({ length: SPELL_ICON_TOTAL }, (_, i) => ({
       icon: spellIconUrl(i), label: String(i + 1), on: i === w.icon, act: choose(i), title: `Icon ${i + 1}` })) }],
     foot: [{ label: 'Cancel', key: 'Esc', act: () => p.cancel() }],
   };

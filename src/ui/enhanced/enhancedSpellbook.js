@@ -41,7 +41,7 @@ import { effectByKey, classicEffectSettings } from '../../systems/spell/spellEff
 import { t } from '../../systems/textManager.js';   // SB-FX: an effect's numbers in the player's language
 import { shownSpellName } from '../../systems/loot/loot.js';   // L10N3e: a stock spell's name in the player's language
 import { spellQuickslot, setSpellQuickslot, clearSpellQuickslot } from '../../systems/quickslots.js';   // HOTSLOT: the book is where a spell is slotted
-import { TARGET_DESCRIPTIONS, ELEMENT_DESCRIPTIONS, SPELL_ICON_COUNT } from '../spell/spellIcons.js';
+import { TARGET_DESCRIPTIONS, ELEMENT_DESCRIPTIONS, SPELL_ICON_TOTAL } from '../spell/spellIcons.js';
 import { spellIconPicture, spellIconUrl } from './enhancedArt.js';   // UI2: the spell's own icon, carried onto the hotbar
 /** UI2: the hotbar ghost's picture box - its 46px tile inside the 2px frame, less two a side. */
 const SPELL_DRAG_BOX = 38;
@@ -357,7 +357,7 @@ function paint() {
     const grid = el('div', 'sb-icons');
     grid.setAttribute('role', 'listbox');
     grid.setAttribute('aria-label', 'Choose an icon');
-    for (let n = 0; n < SPELL_ICON_COUNT; n++) {
+    for (let n = 0; n < SPELL_ICON_TOTAL; n++) {
       const c = el('button', `sb-icon${!sel.spell?.noIcon && n === (sel.spell?.icon ?? 0) ? ' on' : ''}`);
       c.type = 'button';
       c.title = `Icon ${n + 1}`;
@@ -374,7 +374,7 @@ function paint() {
     }
     detail.append(grid);
     // the sheet may still be loading the first time: paint again once it lands
-    if (Array.from({ length: SPELL_ICON_COUNT }, (_, n) => spellIconUrl(n)).some((u) => !u)) {
+    if (Array.from({ length: SPELL_ICON_TOTAL }, (_, n) => spellIconUrl(n)).some((u) => !u)) {
       setTimeout(() => { if (host && choosingIcon) render(); }, 400);
     }
   }

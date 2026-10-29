@@ -3717,7 +3717,7 @@ export const CAST_IN_HZ_MAX = CAST_HZ_MAX * 2;
 export const CAST_LEVEL_MAX = 30;
 export const CAST_EFFECTS_MAX = 3;       // spellMaker.js MAX_EFFECTS_PER_SPELL, the classic record's three slots
 export const CAST_SETTING_MAX = 255;     // a duration/chance/magnitude component: the classic byte
-export const CAST_ICON_MAX = 68;         // spellMaker.js SPELL_ICON_COUNT - 1
+export const CAST_ICON_MAX = 222;        // spellMaker.js SPELL_ICON_TOTAL - 1 (the classic sheet and the added pack)
 export const CAST_NAME_MAX = 32;
 /** AUDIT ALLY-CAST B1: the relay that first carries the cast arm. An older one answers a cast with 'unknown message'
  *  and CLOSES the socket (the relay refuses what it cannot parse) - the caster was kicked offline by their own heal.

@@ -31,12 +31,18 @@ import { loadImg, drawImgCrop } from '../native/nativePanel.js';
 // systems/spell/spellMaker.js, where S1's SetIcon wrap reads it. This is
 // the same DFU member, so it is imported and re-exported rather than
 // written a second time.
-import { SPELL_ICON_COUNT } from '../../systems/spell/spellMaker.js';
+import { SPELL_ICON_COUNT, SPELL_ICON_PACK_COUNT, SPELL_ICON_TOTAL } from '../../systems/spell/spellMaker.js';
+import { APP_ROOT } from '../../systems/appRoot.js';
 import { localizedStrings } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 
 /** classicSpellIconsRowCount / classicSpellIconsCount (:36-37). */
 export const SPELL_ICON_ROW_COUNT = 20;
-export { SPELL_ICON_COUNT };
+export { SPELL_ICON_COUNT, SPELL_ICON_PACK_COUNT, SPELL_ICON_TOTAL };
+
+/** The added icon pack: a 320x128 PNG, 20 to a row, 16px square. Its icon `n` is spell icon SPELL_ICON_COUNT + n. */
+export const SPELL_ICON_PACK_FILE = 'art/spell-icons/pack.png';
+export const spellIconPackUrl = (root = APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/') => new URL(SPELL_ICON_PACK_FILE, root).href;
+export const isPackIcon = (index) => (index | 0) >= SPELL_ICON_COUNT && (index | 0) < SPELL_ICON_TOTAL;
 /** spellTargetIconsCount / spellElementIconsCount (:38-39) and the
  *  three sizes LoadClassicSpellTargetAndElementIcons reads with
  *  (:443-445) over the 40x80 sheet (:40). */
@@ -57,8 +63,24 @@ export async function preloadSpellIcons(deps) {
     loadImg(deps, 'ICON00I0.IMG'),
     loadImg(deps, 'MASK04I0.IMG'),
   ]);
-  _art = { icons, mask };
+  _art = { icons, mask, pack: null };
+  loadPack(deps.renderer).then((pack) => { if (_art) _art.pack = pack; });
   return _art;
+}
+
+/** The pack's sheet as a texture; null when it will not load (its icons then draw as black squares, as a bad index does). */
+async function loadPack(renderer) {
+  if (typeof renderer?.uploadTexture !== 'function') return null;
+  try {
+    const r = await fetch(spellIconPackUrl());
+    if (!r.ok) throw new Error(String(r.status));
+    const [{ toScreenOrder }, { decodePng }] = await Promise.all([import('../../formats/color32Order.js'), import('../../systems/textureReplacement.js')]);
+    const px = toScreenOrder(await decodePng(new Uint8Array(await r.arrayBuffer())));
+    return { tex: renderer.uploadTexture('spell-icon-pack', SPELL_ICON_PACK_FILE, px, { alpha: true }), w: px.width, h: px.height };
+  } catch (e) {
+    console.warn('[spell icons] the added pack did not load:', e?.message ?? e);
+    return null;
+  }
 }
 export const spellIconsLoaded = () => !!_art;
 export function _setSpellIconsForTests(art) { _art = art; }
@@ -83,6 +105,7 @@ export const spellIconDim = () => (_art ? Math.trunc(_art.icons.w / SPELL_ICON_R
  *  as a black square here rather than as some other spell's icon. */
 export function spellIconRect(index) {
   const i = index | 0;
+  if (isPackIcon(i)) { const n = i - SPELL_ICON_COUNT; return [(n % SPELL_ICON_ROW_COUNT) * 16, Math.trunc(n / SPELL_ICON_ROW_COUNT) * 16, 16, 16]; }
   if (i < 0 || i >= SPELL_ICON_COUNT) return null;
   const dim = spellIconDim();
   return [(i % SPELL_ICON_ROW_COUNT) * dim, Math.trunc(i / SPELL_ICON_ROW_COUNT) * dim, dim, dim];
@@ -107,7 +130,9 @@ export function elementIconRect(elementType) {
 export function drawSpellIcon(renderer, m, index, dst) {
   const src = _art ? spellIconRect(index) : null;
   if (!src) return false;   // GetSpellIcon's null - the panel stays black
-  drawImgCrop(renderer, _art.icons, m, src, dst);
+  const sheet = isPackIcon(index) ? _art.pack : _art.icons;
+  if (!sheet) return false;   // the pack still loading, or missing
+  drawImgCrop(renderer, sheet, m, src, dst);
   return true;
 }
 

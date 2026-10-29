@@ -100,7 +100,7 @@ import {
   SPELL_INSCRIBED_ID, noEffectsText,
   updateAllowedButtons, enforceSelected, flagOfIndex,
   DEFAULT_TARGET_INDEX, DEFAULT_ELEMENT_INDEX,
-  TARGET_FLAGS_ALL, ELEMENT_FLAGS_MAGIC_ONLY, SPELL_ICON_COUNT,
+  TARGET_FLAGS_ALL, ELEMENT_FLAGS_MAGIC_ONLY, SPELL_ICON_TOTAL,
 } from '../../systems/spell/spellMaker.js';
 import { goldAmount } from '../../systems/court.js';
 import { firstHotkey, shortcutBinding, sequenceString, normalizeCode } from '../../systems/dialogShortcuts.js';
@@ -676,8 +676,8 @@ export class SpellMakerWindow {
   /** NextIconButton (:875-884) / PreviousIconButton (:900-908). */
   _stepIcon(dir) {
     let index = this.icon + dir;
-    if (index >= SPELL_ICON_COUNT) index = 0;
-    if (index < 0) index = SPELL_ICON_COUNT - 1;
+    if (index >= SPELL_ICON_TOTAL) index = 0;
+    if (index < 0) index = SPELL_ICON_TOTAL - 1;
     this.icon = index;
     audio.playOneShot(SOUND.ButtonClick, 1);
   }
@@ -688,7 +688,7 @@ export class SpellMakerWindow {
   _openIconPicker() {
     audio.playOneShot(SOUND.ButtonClick, 1);
     this.iconPicker = new SpellIconPickerWindow({
-      onClose: (icon) => { this.picker = null; if (icon) this.icon = icon.index % SPELL_ICON_COUNT; },
+      onClose: (icon) => { this.picker = null; if (icon) this.icon = icon.index % SPELL_ICON_TOTAL; },
     });
     this.picker = this.iconPicker;
   }

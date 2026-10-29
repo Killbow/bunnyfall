@@ -20,7 +20,7 @@
 // invite-only), and - SPELL-GIFT, 2026-09-27 - the stranger's list alone from anyone else, while the receiver's
 // "Spells from strangers" switch is on (STRANGER_CAST_TYPES below). A crafted frame carrying Damage Health or Paralyze
 // lands nothing from anyone. So friendly fire is off by construction, and the relay never has to judge a spell.
-import { MAX_EFFECTS_PER_SPELL, SPELL_ICON_COUNT } from './spell/spellMaker.js';
+import { MAX_EFFECTS_PER_SPELL, SPELL_ICON_TOTAL } from './spell/spellMaker.js';
 import { TOUCH_RANGE, TOUCH_SPHERE_CAST_RADIUS } from './spellcast.js';
 import { CAST_LEVEL_MAX } from '../net/wire.js';   // PEER-CAST: the frame's level bound, clamped to at the sender
 
@@ -144,7 +144,7 @@ export function allyCastSpell(d, { stranger = false, companion = false } = {}) {
   if (!d || !Array.isArray(d.effects)) return null;
   const effects = d.effects.filter(stranger ? strangerEffect : companion ? companionEffect : allyEffect).slice(0, MAX_EFFECTS_PER_SPELL);   // SPELL-GIFT: a stranger's cast keeps the stranger's list alone; AUDIT WK-M4: my companion's gift, what he can use
   if (!effects.length) return null;
-  const icon = Number.isInteger(d.icon) && d.icon >= 0 && d.icon < SPELL_ICON_COUNT ? d.icon : 0;
+  const icon = Number.isInteger(d.icon) && d.icon >= 0 && d.icon < SPELL_ICON_TOTAL ? d.icon : 0;
   return { name: typeof d.name === 'string' ? d.name : '', element: d.element ?? 4, rangeType: 0, effects, icon, index: -1, custom: true };
 }
 
@@ -174,7 +174,7 @@ export function allyCastFrame(spell, level, to) {
       name: String(spell?.name ?? ''),
       element: spell?.element ?? 4,
       rangeType: spell?.rangeType === 2 ? 2 : 1,
-      icon: Number.isInteger(spell?.icon) && spell.icon >= 0 && spell.icon < SPELL_ICON_COUNT ? spell.icon : 0,
+      icon: Number.isInteger(spell?.icon) && spell.icon >= 0 && spell.icon < SPELL_ICON_TOTAL ? spell.icon : 0,
       effects: (Array.isArray(spell?.effects) ? spell.effects : []).filter((e) => e && Number.isInteger(e.type) && e.type >= 0).slice(0, MAX_EFFECTS_PER_SPELL),
     },
   };

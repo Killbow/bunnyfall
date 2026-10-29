@@ -13,7 +13,7 @@
 import { inventoryItemImage } from '../../systems/item/itemTemplates.js';
 import { itemLongName } from '../../systems/item/itemInfo.js';   // RF6: the one resolver - the name every other enhanced list reads
 import { requestIcon, requestFittedPicture } from '../textureCanvas.js';
-import { SPELL_ICON_COUNT, SPELL_ICON_ROW_COUNT } from '../spell/spellIcons.js';
+import { SPELL_ICON_COUNT, SPELL_ICON_ROW_COUNT, isPackIcon, spellIconPackUrl } from '../spell/spellIcons.js';
 import { screenDpr } from '../iconFit.js';   // UI2: a spell's icon fitted to its slot
 
 /** An item's icon as a data URL (null until it has loaded), and its name. */
@@ -34,6 +34,7 @@ const CUT_WAKE_MAX = 8;
 function loadSheet(name) {
   if (sheets.has(name)) return sheets.get(name);
   const p = (async () => {
+    if (name === PACK_SHEET) return loadPngSheet(spellIconPackUrl());
     try {
       const [{ ImgFile }, { DFPalette }, { getBytes }, { bitmapToColor32 }] = await Promise.all([
         import('../../formats/imgFile.js'), import('../../formats/dfPalette.js'),
@@ -55,6 +56,22 @@ function loadSheet(name) {
   })();
   sheets.set(name, p);
   return p;
+}
+
+/** The added spell icon pack's PNG, as a canvas like an IMG sheet; null when it will not load. */
+const PACK_SHEET = 'spell-icon-pack';
+function loadPngSheet(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.getContext('2d').drawImage(img, 0, 0);
+      resolve(cv);
+    };
+    img.onerror = () => { console.warn('[port] the added spell icon pack is unavailable'); resolve(null); };
+    img.src = url;
+  });
 }
 
 /** A sub-rect of a sheet IMG as a data URL, scaled up by whole pixels;
@@ -86,12 +103,17 @@ export function sheetCutUrl(name, [x, y, w, h], scale = 2, onReady = null) {
   return null;
 }
 
-/** UI2: the ICON00I0 rectangle of spell icon `index` (20 to a row, 16px square), or null past the sheet. */
+/** UI2: the ICON00I0 rectangle of spell icon `index` (20 to a row, 16px square), or null past the sheet.
+ *  Past the classic sheet, the added pack's: the same grid on its own PNG. */
 function spellIconRect(index) {
-  if (!Number.isInteger(index) || index < 0 || index >= SPELL_ICON_COUNT) return null;
+  if (!Number.isInteger(index) || index < 0) return null;
+  const pack = isPackIcon(index);
+  if (!pack && index >= SPELL_ICON_COUNT) return null;
+  const n = pack ? index - SPELL_ICON_COUNT : index;
   const d = 16;
-  return [(index % SPELL_ICON_ROW_COUNT) * d, Math.trunc(index / SPELL_ICON_ROW_COUNT) * d, d, d];
+  return [(n % SPELL_ICON_ROW_COUNT) * d, Math.trunc(n / SPELL_ICON_ROW_COUNT) * d, d, d];
 }
+const spellIconSheet = (index) => (isPackIcon(index) ? PACK_SHEET : 'ICON00I0.IMG');
 
 /** UI2: spell icon `index` FITTED to a slot's box (ui/iconFit.js) - `{ src, w, h, smooth }`, or null while the sheet
  *  loads (`onReady` fires when it lands) and for an index past it. The whole 16px tile, untrimmed, in whole pixels
@@ -99,14 +121,14 @@ function spellIconRect(index) {
 export function spellIconPicture(index, { box, dpr = screenDpr(), onReady = null } = /** @type {any} */ ({})) {
   const rect = spellIconRect(index);
   if (!rect) return null;
-  return requestFittedPicture(`spellicon${index}`, (wake) => sheetCutUrl('ICON00I0.IMG', rect, 1, wake), { box, dpr, trim: false, onReady });
+  return requestFittedPicture(`spellicon${index}`, (wake) => sheetCutUrl(spellIconSheet(index), rect, 1, wake), { box, dpr, trim: false, onReady });
 }
 
 /** Spell icon `index` from ICON00I0 (20 to a row, square - the classic
  *  sheet's own 16px). */
 export function spellIconUrl(index) {
   const rect = spellIconRect(index | 0);
-  return rect ? sheetCutUrl('ICON00I0.IMG', rect, 2) : null;
+  return rect ? sheetCutUrl(spellIconSheet(index | 0), rect, 2) : null;
 }
 
 /** Paint a raw { width, height, colors } frame into `cv`, once per frame object. */

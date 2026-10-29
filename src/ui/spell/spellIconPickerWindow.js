@@ -51,10 +51,10 @@
 
 import { nativeMetrics, drawRect } from '../native/nativePanel.js';
 import { drawScreenDimBackdrop } from '../chargenArt.js';
-import { drawSpellIcon, SPELL_ICON_COUNT } from './spellIcons.js';
+import { drawSpellIcon, SPELL_ICON_COUNT, SPELL_ICON_PACK_COUNT } from './spellIcons.js';
 import { drawText } from '../text.js';
 import { VerticalScrollBar, drawScrollThumb } from '../verticalScrollBar.js';   // ROAD-G G4: the scroller is DFU's component, not a painted rectangle
-import { localizedText } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedText, t } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 
 // #region UI Rects (:27-31), verbatim - the main panel is centred.
 export const ICON_PICKER_PANEL_SIZE = Object.freeze([274, 180]);
@@ -69,6 +69,8 @@ export const ICON_SPACING = 22;
 /** THE F116 CONVENTION: TextManager "classicIcons" reads "Classic"
  *  from the pinned clone's Internal_Strings.csv. */
 export const CLASSIC_ICONS_HEADER = 'Classic';
+/** The header over the added icon pack. */
+export const SPELL_ICON_PACK_HEADER = 'More icons';
 
 // scrollingPanel.BackgroundColor (:82); the main panel is black with
 // a white outline (:75-76, Outline.cs:30 - Color.white, thickness 1).
@@ -87,22 +89,28 @@ const OUTLINE = [1, 1, 1, 1];
  * `ypos / iconSpacing + 1` - integer division over the FINAL ypos,
  * which the classic loop leaves on the last icon row.
  */
-export function buildIconPickerLayout(iconCount = SPELL_ICON_COUNT) {
+export function buildIconPickerLayout(iconCount = SPELL_ICON_COUNT, packCount = SPELL_ICON_PACK_COUNT) {
   const items = [];
   let xpos = 2, ypos = 2;
   const startX = xpos;
-  items.push({ type: 'header', text: localizedText('classicIcons', CLASSIC_ICONS_HEADER), x: xpos, y: ypos + 4 });
-  ypos += ICON_SPACING;
   let rowCount = 0;
-  for (let i = 0; i < iconCount; i++) {
-    items.push({ type: 'icon', index: i, x: xpos, y: ypos });
-    xpos += ICON_SPACING;
-    if (++rowCount >= ICONS_PER_ROW) {
-      xpos = startX;
-      ypos += ICON_SPACING;
-      rowCount = 0;
+  const section = (title, first, count) => {
+    if (rowCount) { xpos = startX; ypos += ICON_SPACING; rowCount = 0; }   // a section starts on its own row
+    items.push({ type: 'header', text: title, x: xpos, y: ypos + 4 });
+    ypos += ICON_SPACING;
+    for (let i = first; i < first + count; i++) {
+      items.push({ type: 'icon', index: i, x: xpos, y: ypos });
+      xpos += ICON_SPACING;
+      if (++rowCount >= ICONS_PER_ROW) {
+        xpos = startX;
+        ypos += ICON_SPACING;
+        rowCount = 0;
+      }
     }
-  }
+  };
+  // the classic icons keep their place at the top; the added pack follows, and the scroller reaches it
+  section(localizedText('classicIcons', CLASSIC_ICONS_HEADER), 0, iconCount);
+  if (packCount > 0) section(t('spell.iconPack', SPELL_ICON_PACK_HEADER), iconCount, packCount);
   return { items, scrollSteps: Math.trunc(ypos / ICON_SPACING) + 1 };
 }
 
