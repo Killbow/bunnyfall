@@ -136,6 +136,8 @@ export const PREF_DEFAULTS = Object.freeze({
   // (min(440px, 100vw - 28px) wide, min(220px, 34vh) of list). The text's scale follows the width (ui/chatPanel.js).
   chatWidth: null,
   chatListHeight: null,
+  // BUNNYFALL CHAT-MOVE: where the player dragged the chat to (CSS px from the top-left) - null is the sheet's corner
+  chatLeft: null, chatTop: null,
   // TI2: THE PHONE IN HAND, TUNED (2026-09-11, Mac: "enhance the mobile
   // element... camera movement, character movement and a more phone
   // built feel"). The touch layer's own knobs - DFU has no touch input

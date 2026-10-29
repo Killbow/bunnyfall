@@ -400,6 +400,10 @@ ${Object.entries(CHANNEL_COLOURS).map(([ch, c]) => `.dfchat[data-colours="on"] .
 .dfchat-grip { position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; cursor: nwse-resize; touch-action: none; border-bottom-right-radius: 6px;
   background: linear-gradient(135deg, transparent 0 50%, var(--dim, #9a9486) 50% 58%, transparent 58% 70%, var(--dim, #9a9486) 70% 78%, transparent 78%); opacity: .75; }
 .dfchat-grip:hover, .dfchat-grip:focus-visible { opacity: 1; outline: none; }
+/* BUNNYFALL CHAT-MOVE: the move handle, at the start of the tab row */
+.dfchat-move { float: left; width: 16px; height: 22px; margin: 2px 2px 0 2px; display: flex; align-items: center; justify-content: center;
+  cursor: move; touch-action: none; color: var(--dim, #9a9486); font-size: 13px; opacity: .75; user-select: none; }
+.dfchat-move:hover, .dfchat-move:focus-visible { opacity: 1; outline: none; color: var(--bone, #e9e4d9); }
 .dfchat.touch .dfchat-grip { width: 26px; height: 26px; }
 .dfchat.touch .dfchat-form { padding-right: 30px; }
 
@@ -631,6 +635,12 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
   const send = el('button', 'dfchat-send', 'Send'); send.type = 'submit';
   const close = el('button', 'dfchat-close', '✕'); close.type = 'button';
   close.setAttribute('aria-label', 'Close chat');
+  // BUNNYFALL CHAT-MOVE: the handle the box is moved by - the start of the tab row
+  const mover = el('div', 'dfchat-move', '⠿');
+  mover.tabIndex = 0;
+  mover.setAttribute('role', 'button');
+  mover.setAttribute('aria-label', 'Move chat');
+  mover.setAttribute('title', 'Drag to move the chat. Double-click to put it back.');
   // CHAT-SIZE: the corner the box is dragged from - the last thing in the form's row, so it stands at the box's corner
   const grip = el('div', 'dfchat-grip');
   grip.tabIndex = 0;
@@ -957,6 +967,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (inWho) whoInner.replaceChildren(findRow, whoHead, whoList, whoMore);
     else main.replaceChildren(findRow, list, jump, emojiGrid, form);
   };
+  tabs.prepend(mover);   // BUNNYFALL CHAT-MOVE
   box.append(tabs, cols, grip);   // CHAT-SIZE: the grip is the BOX's - its corner is past the roster column, not at the end of the form's row
   box.append(suggest);   // CHAT-POST: the bag list hangs off the box's right edge (absolute; after the grip so the pin still sees box.append(tabs, cols, grip))
   // the Social button follows the Chat button (they share a line when both are drawn); `show` and the box keep their places
@@ -1659,6 +1670,40 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     if (id != null) releasePointer(grip, id);
     keepSize();
   };
+  // BUNNYFALL CHAT-MOVE: the handle moves the whole chat (the peek over the world with it), kept inside the window
+  let move = null;
+  const placeAt = (x, y) => {
+    if (x == null || y == null) { root.style.left = ''; root.style.top = ''; return; }
+    const w = root.offsetWidth || 300, h = Math.max(40, root.offsetHeight || 40);
+    const cx = Math.round(Math.min(Math.max(0, x), Math.max(0, (win.innerWidth || 800) - w)));
+    const cy = Math.round(Math.min(Math.max(0, y), Math.max(0, (win.innerHeight || 600) - Math.min(h, 120))));
+    root.style.left = `${cx}px`; root.style.top = `${cy}px`;
+  };
+  const keepPlace = () => { setPref('chatLeft', root.style.left ? parseInt(root.style.left, 10) : null); setPref('chatTop', root.style.top ? parseInt(root.style.top, 10) : null); };
+  { const l = getPref('chatLeft'), tp = getPref('chatTop'); if (Number.isFinite(l) && Number.isFinite(tp)) placeAt(l, tp); }
+  mover.addEventListener('pointerdown', (e) => {
+    if (e.button != null && e.button !== 0) return;
+    e.preventDefault?.();
+    const r = root.getBoundingClientRect();
+    move = { id: e.pointerId ?? null, dx: (Number(e.clientX) || 0) - r.left, dy: (Number(e.clientY) || 0) - r.top };
+    if (e.pointerId != null) capturePointer(mover, e.pointerId);
+  });
+  mover.addEventListener('pointermove', (e) => {
+    if (!move || (move.id != null && e.pointerId != null && e.pointerId !== move.id)) return;
+    placeAt((Number(e.clientX) || 0) - move.dx, (Number(e.clientY) || 0) - move.dy);
+  });
+  const endMove = () => { if (!move) return; const id = move.id; move = null; if (id != null) releasePointer(mover, id); keepPlace(); };
+  mover.addEventListener('pointerup', endMove);
+  mover.addEventListener('pointercancel', endMove);
+  mover.addEventListener('dblclick', () => { placeAt(null, null); keepPlace(); });
+  mover.addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: [-16, 0], ArrowRight: [16, 0], ArrowUp: [0, -16], ArrowDown: [0, 16] }[e.code];
+    if (!step) return;
+    e.preventDefault?.(); e.stopPropagation?.();
+    const r = root.getBoundingClientRect();
+    placeAt(r.left + step[0], r.top + step[1]);
+    keepPlace();
+  });
   grip.addEventListener('pointerup', endDrag);
   grip.addEventListener('pointercancel', endDrag);
   grip.addEventListener('dblclick', () => resetSize());
