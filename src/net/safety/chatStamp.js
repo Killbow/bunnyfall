@@ -41,7 +41,7 @@ export const STAMP_V = 'chat-stamp1';
 /** A stamp on the wire: a 64-byte signature, base64url without padding. */
 export const STAMP_RE = /^[A-Za-z0-9_-]{86}$/;
 /** The tabs a stamped line can be heard on - net/chat.js CHAT_TABS' ids, the same words. */
-export const STAMP_TABS = Object.freeze(['world', 'region', 'lang', 'trade', 'lfg', 'party', 'guild', 'local']);
+export const STAMP_TABS = Object.freeze(['world', 'region', 'lang', 'trade', 'lfg', 'party', 'guild', 'local', 'whisper']);   // BUNNYFALL WHISPER: a private line can be reported too
 /** The tabs whose lines are said to everyone in a channel - the public ones, which the reviewer reads (chatFeed.js).
  *  Party, guild and a place's local talk are not: those reach a reviewer only in a report. */
 export const PUBLIC_TABS = Object.freeze(['world', 'region', 'lang', 'trade', 'lfg']);
@@ -53,7 +53,7 @@ export const PUBLIC_TABS = Object.freeze(['world', 'region', 'lang', 'trade', 'l
  * @param {string} key the relay room's key @param {unknown} [ch]
  */
 export function stampTabOf(key, ch) {
-  if (ch === 'party' || ch === 'guild') return ch;
+  if (ch === 'party' || ch === 'guild' || ch === 'whisper') return ch;   // BUNNYFALL WHISPER
   const k = channelOf(String(key ?? ''));
   if (k === 'chat:world') return 'world';
   if (isRegionBus(k)) return 'region';

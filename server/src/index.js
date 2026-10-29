@@ -2933,6 +2933,7 @@ export class Room {
       for (const member of party.members) for (const other of this._socketsOf(member)) this._send(other, line);
       return;
     }
+    if (ch === 'whisper') { await this._whisperLine(ws, a, frame, now); return; }   // BUNNYFALL WHISPER (_whisperLine)
     // AUDIT PRE-MERGE 1003b R4: A PRIVATE SESSION'S ROOM TALKS AMONG ITS MEMBERS - a stranger with the code, or a member
     // removed who kept its socket, neither speaks to the session (its line ignored before it spends the room's budget)
     // nor overhears it
@@ -2957,6 +2958,34 @@ export class Room {
       if (!b.id || (S && !S.members[b.sub])) continue;
       if (other === ws || chat || inRange(a.key ?? '', a.pose, b.pose)) this._send(other, out);   // the sender hears its own line back: that is the receipt
     }
+  }
+
+  /** BUNNYFALL WHISPER: A PRIVATE LINE, said on the hub link to one player by name - the whole name, or the start of
+   *  one when only one player online has a name that starts so ("/w ann" for Ann Ashford). Heard by that player's
+   *  sockets and the sender's own (the echo is the receipt, and carries `to`, the name it went to). A name nobody here
+   *  wears, or that starts more than one, comes back to the sender alone as `miss` ('none' | 'many'). Never a hidden
+   *  staff socket, never the sender. On the party lines' budget. */
+  async _whisperLine(ws, a, frame, now) {
+    if (!isSocialRoom(a.key) || !a.acct) { this._junk(ws); return; }
+    const budget = tokenGate(this._partyChat, now, PARTY_CHAT_ROOM_HZ_MAX);
+    this._partyChat = budget.bucket;
+    if (!budget.pass) return;
+    const q = foldFind(frame.to);
+    if (!q) return;
+    let exact = null; const starts = new Map();
+    for (const [w, b] of this._all()) {
+      if (b.hid || !b.id || !b.acct || b.acct === a.acct || this._dead.has(w) || this._gone.has(w)) continue;
+      let f = this._folds.get(b);
+      if (f === undefined) this._folds.set(b, f = foldFind(b.name));
+      if (f === q) { exact = b; break; }
+      if (f.startsWith(q)) starts.set(b.acct, b);
+    }
+    const to = exact ?? (starts.size === 1 ? [...starts.values()][0] : null);
+    if (!to) { this._send(ws, JSON.stringify({ t: 'chat', ch: 'whisper', text: frame.text, to: frame.to, miss: starts.size > 1 ? 'many' : 'none', id: a.id, name: a.name ?? '' })); return; }
+    const said = await this._stamped(ws, a, 'whisper', frame);   // SAFE2: stamped, so a whisper can be reported as any line can
+    if (!said) return;
+    const line = JSON.stringify({ ...said, ch: 'whisper', to: to.name });
+    for (const other of new Set([...this._socketsOf(to.acct), ...this._socketsOf(a.acct)])) this._send(other, line);
   }
 
   /** SAFE6 (bible/11-Multiplayer/Chat-Safety-Arc.md section 7): A NEW VOICE - a socket whose verified token wears the
@@ -4830,7 +4859,7 @@ export class Room {
       // the key is struck out exactly as anyone else would be, and a
       // refusal is never a free way to make the room answer.
       if (a.mu && a.mu > Math.floor(now / 1000)) { this._send(ws, JSON.stringify({ t: 'muted', until: a.mu })); return; }
-      await this._sayLine(ws, a, m.ch, { t: 'chat', id: a.id, name: a.name, text: m.text, at: now, sub: a.sub, ...(m.me === true ? { me: true } : {}), ...(m.items ? { items: m.items } : {}), ...(m.item ? { item: m.item } : {}) }, now);   // MOD1: the verified account beside the line; EMOTE1: and an action said as one; CHAT-POST: and its linked items
+      await this._sayLine(ws, a, m.ch, { t: 'chat', id: a.id, name: a.name, text: m.text, at: now, sub: a.sub, ...(m.me === true ? { me: true } : {}), ...(m.items ? { items: m.items } : {}), ...(m.item ? { item: m.item } : {}), ...(m.ch === 'whisper' ? { to: m.to } : {}) }, now);   // BUNNYFALL WHISPER: and who it is for   // MOD1: the verified account beside the line; EMOTE1: and an action said as one; CHAT-POST: and its linked items
       return;
     }
     if (m.t === 'holdem') {

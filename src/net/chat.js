@@ -70,6 +70,9 @@ export const CHAT_TABS = Object.freeze([
   // GUILD1c (Mac: "Do guild1c" - the guild's chat): the Party tab's shape - its lines ride the hub's link with
   // `ch: 'guild'` and reach the guild's members online alone, and the tab is on the bar while the character is in one
   Object.freeze({ id: 'guild', label: 'Guild', room: null, link: false, hint: 'Only your guild', hidden: true, peekAll: true }),
+  // BUNNYFALL WHISPER: private lines (scenes/whisperHost.js) - on the bar once one is sent or heard; typing here answers
+  // the last person
+  Object.freeze({ id: 'whisper', label: 'Whispers', room: null, link: false, hint: 'Private lines. Typing here answers the last person.', hidden: true, peekAll: true }),
   Object.freeze({ id: 'local', label: 'Local', room: null, link: false, hint: 'Players near enough to hear you. Speak in character here, and put out-of-character remarks in (( )).' }),
 ]);
 /** STAFF-PANEL5-FREEZE: the word on a line's Copy button (a line's `copy`, ChatLog._line). */

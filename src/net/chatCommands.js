@@ -238,7 +238,9 @@ export const HELP_LINES = lazyLines([
 /** AUDIT EG V (c, L7-21): /help's own line for the Elite Breach's words (the host answers `/breach` before this parser is
  *  asked - breachCommandOf), in the player's language; and /help's lines whole. */
 export const breachHelpLine = () => t('chat.help.breach', '/breach answers your company’s call for the Elite Breach or opens its start window (/breach help lists its commands)');
-export const helpLines = () => [...HELP_LINES.slice(0, -1), breachHelpLine(), HELP_LINES[HELP_LINES.length - 1]];
+export const helpLines = () => [...HELP_LINES.slice(0, -1), breachHelpLine(), ...WHISPER_HELP_LINES, HELP_LINES[HELP_LINES.length - 1]];
+/** BUNNYFALL WHISPER: the private lines' commands (scenes/whisperHost.js). */
+export const WHISPER_HELP_LINES = Object.freeze(['/w, /whisper, /tell or /msg <name> <text>: a private line to one player ("quotes" around a full name)', '/reply or /re <text>: answer the last private line']);
 /**
  * AUDIT EG V (c, L7-1): THE ELITE BREACH'S DOOR IN THE CHAT - what `/breach` was given: its words after it, whole (`pick 2`,
  * `vote yes`, `buy tonic`, `ping danger`, `annals 3`, `surplus reroll`, `bequest 1`), '' for `/breach` alone, null for any

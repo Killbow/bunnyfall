@@ -731,7 +731,9 @@ export const CHAT_ROOMS = Object.freeze(new Set([CHAT_WORLD_ROOM, ...Array.from(
 /** CHAT-CHAN: the channels a LINE may name inside a room (`{t:'chat', text, ch}`). A party's line is said on the hub
  *  link and heard by the party's members alone; a line naming anything else is refused whole - it is never allowed to
  *  fall through to the room's own fan, where a party line said to an old or a confused relay would reach everyone. */
-export const CHAT_LINE_CHANNELS = Object.freeze(['party', 'guild', 'staff']);   // GUILD1c: a guild's line, said on the hub link and heard by the guild's members online alone   // STAFF-PANEL5-FREEZE: a staff chat thread's nudge, said on the hub link by its player and heard by the thread's members alone (server/src/staffFreeze.js) - the line itself is the account service's
+export const CHAT_LINE_CHANNELS = Object.freeze(['party', 'guild', 'staff', 'whisper']);   // BUNNYFALL WHISPER: a private line, said on the hub link to one player by name (`to`) - heard by them and the sender alone   // GUILD1c: a guild's line, said on the hub link and heard by the guild's members online alone   // STAFF-PANEL5-FREEZE: a staff chat thread's nudge, said on the hub link by its player and heard by the thread's members alone (server/src/staffFreeze.js) - the line itself is the account service's
+/** BUNNYFALL WHISPER: the longest name a private line may be addressed to (a first and last name, a space between). */
+export const WHISPER_TO_MAX = 48;
 /** CHAT-CHAN: the hub's budget for PARTY lines, lines a second across every party - apart from CHAT_ROOM_HZ_MAX,
  *  which AUDIT CHAT A2 priced for a line whose fan is EVERYONE online. A party line's fan is its party (PARTY_MAX seats,
  *  their tabs), so priced out of the World's budget one talkative party would silence the World channel, and a busy
@@ -2590,6 +2592,11 @@ export function parseClient(text, { hasHello = false } = {}) {
     const me = m.me === true ? { me: true } : {};
     const linked = items ? { items, item: items[0] } : {};   // `item` kept so a one-link line still reads on an older client build
     if (m.ch === undefined) return { t: 'chat', text, ...me, ...linked };
+    // BUNNYFALL WHISPER: a private line names who it is for - a name as the hub's search folds it, or nothing to say
+    if (m.ch === 'whisper') {
+      const to = typeof m.to === 'string' ? sanitizeName(m.to).slice(0, WHISPER_TO_MAX) : '';
+      return to ? { t: 'chat', text, ch: 'whisper', to, ...me, ...linked } : { error: 'bad chat' };
+    }
     return CHAT_LINE_CHANNELS.includes(m.ch) ? { t: 'chat', text, ch: m.ch, ...me, ...linked } : { error: 'bad chat' };
   }
   if (m.t === 'holdem') {
