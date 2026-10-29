@@ -46,6 +46,7 @@ import { oblivionLevelingEnabled, initVirtueLeveling, LEVELING_CLASSIC, newChara
 import { isOnlinePage } from './online/onlineLane.js';   // LEVEL-ONLINE-2: Oblivion's leveling is offline-only for a new character
 import { legacyOn } from './legacy/settings.js';   // LEGACY2: Project Legacy's question - the family's model
 import { legacyModelScreen } from '../ui/legacy/legacyModelChoice.js';
+import { contentOn } from './contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js): no leveling or lineage question while switched off
 import { isLegacyChoice } from './legacy/family.js';   // LEGACY-CHOICE: the answer kept on the character
 
 /** SPELLS.STD as an index -> spell map. AUDIT 17f: the exterior
@@ -442,8 +443,8 @@ function withLevelingChoice(flow, { onDone, onCancel, hudScale = 2 } = {}) {
   // Bloodline or Enduring, asked of the character who founds a house (legacyModelScreen). The same door, the same one
   // overlay slot: the questions are STAGES of one window, put in turn, each answered once; the answers ride the result.
   const asks = [];
-  if (oblivionLevelingEnabled() || online) asks.push((answer) => new LevelingChoiceScreen((id) => answer({ levelingSystem: id }), { online }));
-  if (legacyOn()) asks.push((answer) => legacyModelScreen((model) => answer({ legacyModel: model })));
+  if (contentOn('oblivionLeveling') && (oblivionLevelingEnabled() || online)) asks.push((answer) => new LevelingChoiceScreen((id) => answer({ levelingSystem: id }), { online }));
+  if (contentOn('permadeath') && legacyOn()) asks.push((answer) => legacyModelScreen((model) => answer({ legacyModel: model })));
   const unasked = { levelingSystem: LEVELING_CLASSIC };
   if (!asks.length) {
     return chargenWizard(flow, {

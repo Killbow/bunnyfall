@@ -23,6 +23,7 @@
 //
 // Not a DFU member: Daggerfall has no other players and no airship. Ledger A (KETCH).
 import { INSTANCE_OWNER_HEX } from '../instanceRoom.js';
+import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** KETCH-EVERY: her round - a voyage every ten hours, ms. */
 export const KT_EVERY_MS = 10 * 3600 * 1000;
@@ -59,7 +60,11 @@ export function ketchVoyageOf(n) {
  * @param {number} now relay ms
  * @returns {{ n: number, sightAt: number, at: number, departAt: number, endAt: number, phase: 'away'|'sighted'|'docked'|'departing' }}
  */
+/** BUNNYFALL PHASE 2: a voyage thousands of years out, the one 'away' points at while the Ketch is switched off. */
+export const KT_NEVER_N = 10_000_000;
+
 export function ketchVoyageAt(now) {
+  if (!contentOn('skyKetch')) return { ...ketchVoyageOf(KT_NEVER_N), phase: 'away' };   // BUNNYFALL PHASE 2 (systems/contentOff.js): the next voyage never comes
   const t = Number(now);
   if (!Number.isFinite(t)) return { ...ketchVoyageOf(0), phase: 'away' };
   const n = Math.floor((t - (KT_EPOCH_MS - KT_SIGHT_MS)) / KT_EVERY_MS);

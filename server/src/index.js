@@ -195,6 +195,7 @@ import { isStaff } from '../../src/net/staffCommands.js';
 import { isKetchRoom, ketchRoomOf, ketchRoomHolds, ketchAdmits, ketchHolds, ketchVoyageOf, ketchVoyageAt, KT_TEXT } from '../../src/net/ketch/ketchLaw.js';   // KETCH: the sky-ketch's law - its voyages, its ships' rooms, its door
 import { newVoyage, joinVoyage, stepVoyage, voyageWord, voyageStateOf, voyageEarners, voyageLive, dropCell, idlePlaces, freePlace, stampFightFall, fightBodyOf, KT_POSE_FRESH_MS } from '../../src/net/ketch/ketchBrain.js';   // KETCH: a crew's voyage, run by its room
 import { judgeVoyage } from '../../src/net/ketch/ketchJudge.js';   // KETCH: its constructs' blows and its hazards, judged on the trails
+import { contentOn } from '../../src/systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 import { KETCH_SEAM } from '../../src/net/ketch/ketchWarden.js';   // KETCH: the Tonal Warden on the boss seam
 import { mintKetchReceipt, readKetchReceipt, KT_RECEIPT_TTL_S } from '../../src/net/ketch/ketchReceipt.js';   // KETCH: the y1 receipt
 import { dungeonToDeck } from '../../src/net/ketch/ketchDeck.js';   // KETCH: a pose of the dungeon's frame in the deck's
@@ -9689,7 +9690,7 @@ export class Room {
     await this.state.storage.put(EG_LIVE_KEY, live);
   }
   /** EG-H2: is the Spire's road shut (THE DRAIN - the relay setting `egDrain` 'on', or the Worker's EG_DRAIN var)? */
-  async _egDraining() { return relayCfgValue(await this._relayCfgOf(), this.env, 'egDrain') === 'on'; }
+  async _egDraining() { return !contentOn('eliteBreach') || relayCfgValue(await this._relayCfgOf(), this.env, 'egDrain') === 'on'; }   // BUNNYFALL PHASE 2 (systems/contentOff.js): the Spire's road shut, keys handed back
   /** EG-H2: AN OPEN REFUSED AT THE HUB - the stake the service took handed straight back (a void receipt to the opener's
    *  socket, which its client carries to the service), and the road said shut. EG-ZA (section 23): the void is the
    *  ROOM's - it writes the order into its tombstone first, so the order can never open a breach after the road reopens

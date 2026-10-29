@@ -15,6 +15,7 @@
 //
 // Not a DFU member: Daggerfall has no other players and no world events. Ledger A (WB).
 import { sharedClassicMinutes, wallMsForClassicMinutes } from '../wire.js';
+import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 import { GATE_COURTS_MAX } from './gateCourts.js';   // GATE-COURTS: a night's courts' rooms - gateCourts.js imports nothing
 import { GATE_ASPECTS, GATE_TRIALS, readGateMods, GATE_DIRE, gateDireLine, CAPTIVE_NAMES, validGatePortents, portentOf } from './gateMods.js';   // WB8b: the Warden's marks, drawn by the day; WB14b: and the night's portents
 
@@ -38,7 +39,7 @@ export const GATE_SALT = 0x6a7e;
 /** The game day a relay-clock instant stands in. */
 export const gameDayAt = (nowMs) => Math.floor(sharedClassicMinutes(nowMs) / GATE_DAY_MINUTES);
 /** Does game day `day` hold a gate? */
-export const isGateDay = (day) => Number.isSafeInteger(day) && day >= 0 && day % GATE_EVERY_DAYS === 0;
+export const isGateDay = (day) => contentOn('dagonBreaches') && Number.isSafeInteger(day) && day >= 0 && day % GATE_EVERY_DAYS === 0;   // BUNNYFALL PHASE 2 (systems/contentOff.js): no gate day while switched off
 
 /**
  * A gate's instants, RELAY-CLOCK milliseconds (the client reads its own through the welcome's offset - WORLD5).

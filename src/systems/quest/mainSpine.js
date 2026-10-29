@@ -42,6 +42,8 @@
 // The story's own record (storyStarted) is the guard for a save from before the record: a backbone that ended ended
 // the main quest, and a main quest ends only past the courts' first quests.
 
+import { contentOn } from '../contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
+
 /** The backbone, and the quest that starts it. */
 export const SPINE = 'S0000999';
 export const SPINE_OPENER = '_BRISIEN';
@@ -76,6 +78,7 @@ export function spineRecord(saved, names) {
  * @param {{ quests: Map<any, any>, questsToInvoke: any[], storyStarted: Set<string>, spine: { opened: boolean, ran: boolean } }} m
  */
 export function spineOwed(m) {
+  if (!contentOn('mainQuest')) return false;   // BUNNYFALL PHASE 2 (systems/contentOff.js): the backbone is never owed
   if (m.spine.ran || m.storyStarted.size > 0) return false;
   if (m.questsToInvoke.some((q) => named(q, SPINE))) return false;
   for (const q of m.quests.values()) if (named(q, SPINE_OPENER)) return openerStartedSpine(q);

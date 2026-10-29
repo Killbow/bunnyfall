@@ -21,6 +21,7 @@
 // Not a DFU member: Daggerfall has no other players and no sea serpent. Ledger A (SERPENT1).
 import { sharedClassicMinutes, wallMsForClassicMinutes } from '../wire.js';
 import { gateHash, PIXEL_M } from '../gate/gateLaw.js';
+import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** Classic minutes in a game day (gameDate.js MINUTES_PER_DAY - pinned equal; the relay's graph stays flat). */
 export const SERPENT_DAY_MINUTES = 1440;
@@ -49,7 +50,7 @@ export const SERPENT_SALT = 0x5e7a;
 /** The game day a relay-clock instant stands in (the gate's own - pinned equal: gateLaw.js gameDayAt). */
 export const serpentDayAt = (nowMs) => Math.floor(sharedClassicMinutes(nowMs) / SERPENT_DAY_MINUTES);
 /** Does game day `day` hold a serpent? */
-export const isSerpentDay = (day) => Number.isSafeInteger(day) && day >= 0 && day % SERPENT_EVERY_DAYS === SERPENT_DAY_PHASE;
+export const isSerpentDay = (day) => contentOn('seaSerpent') && Number.isSafeInteger(day) && day >= 0 && day % SERPENT_EVERY_DAYS === SERPENT_DAY_PHASE;
 
 /**
  * A serpent's instants, RELAY-CLOCK milliseconds, made once a day (the client's clock asks every frame).

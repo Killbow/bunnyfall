@@ -50,6 +50,7 @@ import { t } from '../systems/textManager.js';   // REZ-BLOODLINE AUDIT R1: the 
 import { repairItemLists } from '../systems/save/save.js';   // ITEM-WALK B: the load's item repairs, on what leaves the line's record
 import { rollStats, rollSkills, spendPoolLowest, STAT_KEYS_ORDER } from '../systems/chargen.js';
 import { LEVELING_CLASSIC } from '../systems/oblivionLeveling.js';
+import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 import { pickHeirloom, markHeirloom, mintRemainsItem, isRemainsItem, isHeirloom, attuneHeirloom, blessingOf, blessedIn, remainsGoldOf, REMAINS_LIST, BLESSING_POINTS } from '../systems/legacy/heirloom.js';
 import { SKILL_NAMES } from '../systems/skills.js';
 import { syncHouses, householdOf, residentOf, familyResOf, kinGreeting, setFamilyHome, familyHome, sameHouse, deedsDue, houseKeyOf } from '../systems/legacy/household.js';
@@ -539,6 +540,7 @@ export function createLegacyHost(deps) {
     if (deathSeen) return outcome;   // one death, one decision - the door and the DEATH-KEPT re-ask both reach here
     deathSeen = true;
     outcome = null;
+    if (!contentOn('permadeath')) return null;   // BUNNYFALL PHASE 2 (systems/contentOff.js): a death is Daggerfall's own respawn, the line untouched
     const p = current();
     if (!family || !p || !deps.on() || past || family.pending || !isAlive(p) || p.retired != null || !deps.entity?.chargenDone) return null;
     writeCurrent();

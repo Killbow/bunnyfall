@@ -17,6 +17,7 @@
 // A leaf but for the holiday tables (systems/holidayTables.js, itself a leaf). Not a DFU member: DFU has no live events.
 // Ledger A (THE WITCHES' FESTIVAL).
 import { HOLIDAYS, holidayDayOfYear } from '../systems/holidayTables.js';
+import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 /** THE FESTIVALS, one a year: its id (the service's rows carry it), its first and its end instant (UTC ms; the end is
  *  not inside), and its own night's (`eveFromMs`, `eveToMs` - All Hallows' Eve's whole UTC day). 2026's opens 20 October
@@ -25,7 +26,7 @@ export const FESTIVALS = Object.freeze([
   Object.freeze({ id: 'witches-2026', fromMs: Date.UTC(2026, 9, 20), toMs: Date.UTC(2026, 10, 8), eveFromMs: Date.UTC(2026, 9, 31), eveToMs: Date.UTC(2026, 10, 1) }),
 ]);
 /** The festival open at `nowMs`, or null. Pure. */
-export const festivalAt = (/** @type {number} */ nowMs) => (Number.isFinite(nowMs) ? FESTIVALS.find((f) => nowMs >= f.fromMs && nowMs < f.toMs) ?? null : null);
+export const festivalAt = (/** @type {number} */ nowMs) => (contentOn('witchesFestival') && Number.isFinite(nowMs) ? FESTIVALS.find((f) => nowMs >= f.fromMs && nowMs < f.toMs) ?? null : null);
 /** Whether a festival is open at `nowMs`. */
 export const festivalOpen = (/** @type {number} */ nowMs) => festivalAt(nowMs) != null;
 /** The festival open now or the next to come, or null when none is left. */

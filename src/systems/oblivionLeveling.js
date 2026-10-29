@@ -61,6 +61,7 @@
 // test/systems/orl1_leveling.test.js.
 
 import { modSetting } from './modSettings.js';
+import { contentOn } from './contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 import { STAT_KEYS_ORDER, hitPointsPerLevelUp } from './chargen.js';
 import { refreshOnlineLayer } from './renownLayer.js';   // LEVEL-EVEN (systems/levelEven.js)
 import { atLevelCap, releaseCapLatch } from './levelCap.js';   // LEVEL-45: the level stops at 45 on this lane too
@@ -135,6 +136,7 @@ export function newCharacterLevelingSystem(requested, { online = false } = {}) {
  *  this slice carries no field and reads as classic, which is the
  *  port's own law and the safe side of the fork. */
 export function usesVirtueLeveling(entity) {
+  if (!contentOn('oblivionLeveling')) return false;   // BUNNYFALL PHASE 2 (systems/contentOff.js): every character levels Daggerfall's way
   return entity?.levelingSystem === LEVELING_VIRTUE;
 }
 

@@ -20,6 +20,7 @@
 // Not a DFU member: Daggerfall has no other players and no world events. Ledger A (SUPER-DUNGEONS).
 import { sanitizeName, PIXEL_UNITS, SD_REGION_COUNT, SD_SLOT_MAX, SD_FIGHTERS_MAX } from '../wire.js';
 import { gateHash, PIXEL_M } from '../gate/gateLaw.js';
+import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 
 export { SD_PHASES, SD_REGION_COUNT, SD_SLOT_MAX, SD_FIGHTERS_MAX, validSdRecord } from '../wire.js';
 
@@ -127,6 +128,9 @@ export function sdGone(rec, now) {
   return /** @type {SdRecord} */ ({ ...rec, ph: 'gone' });
 }
 
+/** BUNNYFALL PHASE 2: how often a switched-off director looks again (a day). */
+export const SD_OFF_RECHECK_MS = 24 * 3600 * 1000;
+
 /**
  * What the director does at `now`: `first` (no record), `gone` (its time ran - fan it), `rise` (the rest is over - take
  * the census), or nothing until `at`.
@@ -135,12 +139,13 @@ export function sdGone(rec, now) {
  * @returns {{ act: 'first'|'gone'|'rise'|null, at?: number }}
  */
 export function sdDue(rec, now) {
-  if (!rec) return { act: 'first' };
+  if (!rec) return contentOn('abyssDungeons') ? { act: 'first' } : { act: null, at: now + SD_OFF_RECHECK_MS };   // BUNNYFALL PHASE 2 (systems/contentOff.js)
   const p = sdPhase(rec, now);
   // AUDIT SD II (L3 F4): a FOUND Hollow's fade waits SD_FADE_GRACE_MS past its `until` - a fall told meanwhile wins (one
   // never found has no realm, and no fight to fall)
   if (p === 'gone' && rec.ph === 'found' && now < rec.until + SD_FADE_GRACE_MS) return { act: null, at: rec.until + SD_FADE_GRACE_MS };
   if (p === 'gone' && rec.ph !== 'gone' && rec.s) return { act: 'gone' };
+  if (p === 'gone' && !contentOn('abyssDungeons')) return { act: null, at: now + SD_OFF_RECHECK_MS };   // BUNNYFALL PHASE 2 (systems/contentOff.js): no new Hollow
   if (p === 'gone') return now >= rec.next ? { act: 'rise' } : { act: null, at: rec.next };
   return { act: null, at: rec.fellAt != null ? rec.fellAt + SD_COLLAPSE_MS : rec.until };
 }

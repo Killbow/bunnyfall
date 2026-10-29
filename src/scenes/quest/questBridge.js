@@ -62,6 +62,7 @@
 // billboard indices ride along for the questor flat-pick (Q4-iii).
 
 import { QuestMachine, TICKS_PER_SECOND, holdsQuestorDoor } from '../../systems/quest/machine.js';   // RPT1026-QUESTS ABANDON-ALWAYS: a quest holding its questor's door is a journal row
+import { contentOn } from '../../systems/contentOff.js';   // BUNNYFALL PHASE 2 (systems/contentOff.js)
 import { isEnhanced } from '../../systems/uiSkin.js';   // AUDIT RPT1026 H2: the questor's close names the way to Abandon on the skin worn
 import { clockCounts } from '../../systems/quest/clock.js';   // DEAD-CLOCK: a clock whose end changes nothing is no deadline
 import { repairActiveQuests, relayOnlineDungeons, relayMovedLayouts, relayBuiltDungeon } from '../../systems/quest/questRepair.js';   // QREPAIR: the Settings' repair (AUDIT DELVE E1: and a frozen size, crossing online)
@@ -201,7 +202,7 @@ export const choiceDoor = (showQuestBox) => (q, message, choices, respond) => sh
  *  task, `start quest 977 977` - the curse on the old capital's streets, a world quest (questFoeHost.js WORLD_QUESTS) -
  *  so S0000977 starts here, in the tutorial's place, as a player who said No to its first page started it. Port-Ledger
  *  section A. */
-export const GAME_START_QUESTS = Object.freeze(['S0000977', '_BRISIEN']);
+export const GAME_START_QUESTS = Object.freeze(contentOn('mainQuest') ? ['S0000977', '_BRISIEN'] : ['S0000977']);   // BUNNYFALL PHASE 2 (systems/contentOff.js): no main quest opener
 
 /** TUT1: the DFU tutorial a save from before TUT1 may still be running, and the quest its close starts. */
 export const RETIRED_TUTORIAL_QUEST = '_TUTOR__';
