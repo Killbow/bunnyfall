@@ -82,13 +82,13 @@ export const ALIAS_COPIES = Object.freeze(Object.keys(DOWNLOAD_FILES).map((k) =>
  *  blockmap is embedded in the AppImage; the portable exe has none. BR5:
  *  and the four downloads again under their names from before the rename
  *  (ALIAS_COPIES), which no manifest names - an updater reads the new. */
+// BUNNYFALL: Windows and Linux only, and no copies under the old names - no copy older than the rename was ever
+// released here.
 export const EXPECTED_RELEASE_FILES = Object.freeze([
   DOWNLOAD_FILES.winSetup, `${DOWNLOAD_FILES.winSetup}.blockmap`,
   DOWNLOAD_FILES.winPortable,
-  DOWNLOAD_FILES.mac, `${DOWNLOAD_FILES.mac}.blockmap`,
   DOWNLOAD_FILES.linux,
-  'latest.yml', 'latest-mac.yml', 'latest-linux.yml',
-  ...ALIAS_COPIES.map(([, to]) => to),
+  'latest.yml', 'latest-linux.yml',
   // DA13: the game a file at a time - the manifest every copy reads first, and the pack it fetches ranges of
   GAME_FILES.manifest, GAME_FILES.pack,
 ]);
@@ -187,6 +187,17 @@ export function previousReleaseTag(tag, run = git, at = 'HEAD') {
   } catch {
     return null;
   }
+}
+
+/**
+ * BUNNYFALL: changes are pushed straight to main, with no pull requests - the notes are the commits' subjects since the
+ * previous release (the last 50 for the first one), newest first, as one list.
+ */
+export function commitNotesSince(from, run = git) {
+  const range = from ? [`${from}..HEAD`] : ['-50', 'HEAD'];
+  const subjects = run(['log', '--first-parent', '--no-merges', '--format=%s', ...range]).split('\n').map((s) => s.trim())
+    .filter((s) => s && !/^WIP\b/i.test(s));
+  return subjects.length ? [{ text: subjects.map((s) => `- ${s}`).join('\n') }] : [];
 }
 
 /**
@@ -498,7 +509,7 @@ function main(argv) {
   if (cmd === 'notes') {
     let notes;
     try {
-      notes = pullRequestNotesSince(previousReleaseTag(a));
+      notes = commitNotesSince(previousReleaseTag(a));
     } catch (e) {
       console.error(`the notes could not be read - nothing is published: ${String(e?.stderr || e?.message || e).trim()}`);
       return 1;
