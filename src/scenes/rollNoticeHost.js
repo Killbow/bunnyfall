@@ -20,6 +20,7 @@
 // worldModes.js and dungeonContext.js are entered from it and read the same tracker through the host's doors;
 // exterior.js, the offline fixed city, keeps no Roll (offline the standing is DFU's, unsaid as DFU's - nothing to wire).
 // ═══════════════════════════════════════════════════════════════════
+import { bunnyLawOf } from '../net/bunnyGuildLaw.js';   // BUNNYFALL: a Bunnyfall guild's faction is named too, not its number
 import { bookCappedLine, ROLL_FACTIONS, rollFactionOfGuild } from '../net/npcChapterLaw.js';
 import { t, intlLocale } from '../systems/textManager.js';
 import { noteFirstUse } from '../systems/tutorials.js';
@@ -58,7 +59,7 @@ const ROLL_NAMES = Object.freeze({
  *  moves only the twenty-two, so any other faction is its number. */
 export function standingName(/** @type {number} */ f) {
   const own = /** @type {Record<number, () => string>} */ (ROLL_NAMES)[f];
-  return own ? own() : String(f);
+  return own ? own() : bunnyLawOf(f)?.name ?? String(f);   // BUNNYFALL: 2002 is the Bards' College
 }
 
 /** AUDIT GUILD-WORDS II B-6: a list the player's language's way (Intl.ListFormat's conjunction - ui/credits.js's way). */

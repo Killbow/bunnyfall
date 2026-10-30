@@ -390,6 +390,7 @@ export function lerpPose(from, to, t) {
     ...(to.hu ? { hu: to.hu, uq: to.uq ?? 20 } : {}),   // PEERFX1: and the times struck; PEERFX2: and what it cost
     ...(to.lc ? { lc: 1 } : {}),   // PEERLIGHT2: the Light spell's candle - discrete, omitted while none burns
     ...(to.lt ? { lt: to.lt } : {}),   // PEERLIGHT1: the torch's light - discrete, omitted while nothing burns
+    ...(to.tq ? { tq: to.tq } : {}), ...(to.bp ? { bp: 1 } : {}), ...(to.tt ? { tt: to.tt, tn: to.tn ?? 0, tg: to.tg ?? 0 } : {}),   // BUNNYFALL TAVERN-SOCIAL: a round, a song, a tip ride the drawn pose whole - the smoothing dropped them, so no one ever heard a round
     ...(to.hl ? { hl: 1 } : {}),   // HT-WAIST-NET: the lantern at the waist - discrete, omitted without one as the wire omits it
     ...(to.st ? { st: to.st } : {}),   // CARDS2b: the seat - discrete, omitted standing as the wire omits it
     ...(to.cv ? { cv: to.cv } : {}),   // INVIS-NET: the concealment - discrete, omitted when there is none as the wire omits it

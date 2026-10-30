@@ -1280,6 +1280,8 @@ function buildMenu() {
         process.platform === 'darwin'
           ? { role: 'togglefullscreen' }
           : { role: 'togglefullscreen', accelerator: 'Alt+Enter' },
+        // BUNNYFALL START-FULLSCREEN: the game window opens fullscreen next time (the launcher's own window is untouched)
+        { label: 'Start in Fullscreen', type: 'checkbox', checked: startsFullscreen(), click: (item) => setStartsFullscreen(item.checked) },
         // AUDIT ANTICHEAT (Mac's call, 2026-10-17: kept): the installed game keeps
         // DevTools. Its console is how a player hands over a field report's lines
         // (bible/01-Overview/bugs/Field-Bugs-2026-10-13b.md), and taking it away
@@ -1302,6 +1304,15 @@ function buildMenu() {
  *  window is built hidden and shown at its FIRST PAINT, so there is never
  *  a blank window between the launcher and the game - and a first paint
  *  that never comes still shows it, after GAME_REVEAL_MS. */
+/** BUNNYFALL START-FULLSCREEN: whether the game window opens fullscreen - a View menu choice, kept beside the other
+ *  shell files in the user data folder (window.json). A file that cannot be read or written is the windowed start. */
+const windowPrefsPath = () => path.join(app.getPath('userData'), 'window.json');
+function startsFullscreen() {
+  try { return JSON.parse(fs.readFileSync(windowPrefsPath(), 'utf8')).startFullscreen === true; } catch { return false; }
+}
+function setStartsFullscreen(on) {
+  try { fs.writeFileSync(windowPrefsPath(), JSON.stringify({ startFullscreen: !!on })); } catch (err) { console.warn('[window] the choice could not be kept:', err.message); }
+}
 const GAME_REVEAL_MS = 8000;
 async function createWindow({ onShown = null } = {}) {
   const win = new BrowserWindow({
@@ -1309,6 +1320,7 @@ async function createWindow({ onShown = null } = {}) {
     height: 800,
     backgroundColor: '#111111',
     title: 'Bunnyfall',
+    fullscreen: startsFullscreen(),   // BUNNYFALL START-FULLSCREEN
     show: !onShown,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

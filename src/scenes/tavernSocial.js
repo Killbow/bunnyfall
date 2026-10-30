@@ -55,9 +55,9 @@ export function createTavernSocial(deps) {
       if (!e || goldPiecesOf(e) < gold) return [tavernWords.poor()];
       addGoldPieces(e, -gold);
       rounds = rounds >= 255 ? 1 : rounds + 1;
-      drinkRound(e);
+      const had = drinkRound(e);
       deps.sent();
-      return [tavernWords.bought(), tavernWords.luck()];
+      return [tavernWords.bought(), tavernWords.luck(), ...(had?.quenched ? [tavernWords.quenched()] : [])];
     },
     /** The bards playing near now, as `{ id, name }`. */
     bardsNear: () => near().filter((p) => deps.peerPose(p.id)?.bp === 1).map((p) => ({ id: p.id, name: deps.nameOf(p.id) ?? '?' })),
@@ -97,8 +97,9 @@ export function createTavernSocial(deps) {
         if (pose.bp === 1 && playing() && close.has(p.id)) beside.add(p.id);
         if (!was) continue;   // first seen: what it says is from before me
         if (now.tq && now.tq !== was.tq && close.has(p.id) && deps.indoors()) {
-          drinkRound(deps.entity());
+          const had = drinkRound(deps.entity());
           deps.say(tavernWords.heard(deps.nameOf(p.id) ?? '?'));
+          if (had?.quenched) deps.say(tavernWords.quenched());
         }
         if (now.tn && now.tn !== was.tn && me && pose.tt === me && pose.tg > 0) {
           addGoldPieces(deps.entity(), pose.tg);

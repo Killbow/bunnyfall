@@ -43,6 +43,10 @@ export function drinkRound(/** @type {any} */ entity, rolls = Math.random) {
   if (ids.size) entity.activeEffects = entity.activeEffects.filter((a) => !ids.has(a.bundleId));
   const e = assignModBundle(entity, { name: ROUND_NAME, kind: 'fortifyAttribute', rounds: ROUND_ROUNDS, sinks: {}, rolls });
   Object.assign(e, { stat: 'luck', magnitude: ROUND_LUCK, bundleIcon: DISH_ICON });
+  // BUNNYFALL: and the round is a drink - the thirst quenched whole, as a tavern drink does (survival/tavernMenu.js tavernDrink)
+  const sv = entity.survival;
+  Object.defineProperty(e, 'quenched', { value: !!sv && Number(sv.thirst) > 0, enumerable: false });   // said once, never saved
+  if (sv && typeof sv === 'object') sv.thirst = 0;
   return e;
 }
 
@@ -53,6 +57,7 @@ export const tavernWords = {
   poor: () => t('tavern.round.poor', 'You cannot afford a round.'),
   heard: (/** @type {string} */ name) => t('tavern.round.heard', '{name} buys a round for the house! You raise your cup.', { name }),
   luck: () => t('tavern.round.luck', 'Luck +{n} for a few hours.', { n: ROUND_LUCK }),
+  quenched: () => t('tavern.round.quenched', 'Your thirst is quenched.'),
   tip: (/** @type {string} */ name, /** @type {number} */ gold, /** @type {string} */ key) => t('tavern.tip.offer', '{key} - Tip {name} {gold} gold', { name, gold, key }),
   tipped: (/** @type {string} */ name, /** @type {number} */ gold) => t('tavern.tip.sent', 'You tip {name} {gold} gold.', { name, gold }),
   tipHeard: (/** @type {string} */ name, /** @type {number} */ gold) => t('tavern.tip.heard', '{name} tips you {gold} gold for your playing.', { name, gold }),
