@@ -1898,6 +1898,7 @@ export function poseChanged(a, b, eps = 0.01) {
     || (a.cl | 0) !== (b.cl | 0) || ((a.cl | 0) > 0 && Math.abs(wrapAngle((a.cw ?? 0) - (b.cw ?? 0))) > eps)   // CLIMB5: a hold taken or let go, a move begun, goes out at once - and the body turning on the wall, as a turn does
     || (a.ck | 0) !== (b.ck | 0) || (a.cy | 0) !== (b.cy | 0)   // CLIMB6: a move of another kind, or on another lip, is another move - at once
     || (a.st | 0) !== (b.st | 0)   // CARDS2b: sitting down or standing up goes out at once, as a mount does
+    || (a.tq | 0) !== (b.tq | 0) || (a.bp | 0) !== (b.bp | 0) || (a.tn | 0) !== (b.tn | 0)   // TAVERN-SOCIAL: a round, a song begun or ended, a tip - at once
     || (a.ga | 0) !== (b.ga | 0) || (a.gb | 0) !== (b.gb | 0) || (a.gm | 0) !== (b.gm | 0);   // PEER-ACTS: an act begun, a beat, the net thrown - at once, as a swing
 }
 
@@ -1978,7 +1979,7 @@ export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef, tq, bp, tt, tn, tg } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -2077,10 +2078,26 @@ export function validPose(p) {
     // others see the swing, the kneel and the throw and hear each beat at the act's place (net/peer/peerGather.js). OMITTED
     // at 0 (validLook's `class` law): a player who never gathered keeps the bytes it had.
     ...gatherOf(ga, gb, gm),
+    ...tavernOf(tq, bp, tt, tn, tg),   // TAVERN-SOCIAL: a round bought, a bard playing, a tip to one - absent at none
     // SCALE2b: the send time - an integer inside POSE_TS_MOD, or nothing (never clamped: a clamped time would order
     // every later pose behind it). OMITTED when absent (validLook's `class` law).
     ...(Number.isInteger(ts) && ts >= 0 && ts < POSE_TS_MOD ? { ts } : {}),
   };
+}
+/** TAVERN-SOCIAL (scenes/tavernSocial.js): the most gold one tip carries. */
+export const POSE_TIP_MAX = 100;
+/** TAVERN-SOCIAL: `tq` the rounds this player has bought (a count, round and round - a new one is a round bought now),
+ *  `bp` 1 while they play for the house, and `tt`/`tn`/`tg` their last tip: to whose account, its count, its gold. Each
+ *  absent at none (validLook's `class` law); a tip with no account or no gold is no tip. */
+function tavernOf(tq, bp, tt, tn, tg) {
+  const out = {};
+  const q = uint(tq, 255);
+  if (q) out.tq = q;
+  if (bp === 1) out.bp = 1;
+  const to = typeof tt === 'string' ? idOf(tt) : null;
+  const n = uint(tn, 255), g = uint(tg, POSE_TIP_MAX);
+  if (to && n && g) { out.tt = to; out.tn = n; out.tg = g; }
+  return out;
 }
 /** PEER-ACTS (GATHER-FEEL II): how many acts the pose's `ga` can name - its code is the index + 1 into the client's
  *  table (net/peer/peerGather.js GATHER_POSE_ACTS, pinned to this count: the names are the client's, the bound the law's);

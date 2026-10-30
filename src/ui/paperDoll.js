@@ -39,6 +39,7 @@
 // Breton/male/face 0 is only the PRE-CHARGEN default (chargen fronts
 // identity and this file reloads on identity change - AUDIT 23).
 
+import { createDollTracker, dollBackPixels } from './paperDollBack.js';   // DOLL-BACK: the doll seen from behind
 import { ImgFile } from '../formats/imgFile.js';
 import { packImgTexture } from './packArt.js';   // OVH2: a worn UI pack's backdrop
 import { racialPaperDollBackground, racialOverrideHeadArt, racialSuppressPaperDollBodyAndItems } from '../systems/vampirism.js';   // V5: the curse art laws, both curses' one switch
@@ -540,9 +541,10 @@ async function loadOverrideArt(file, record, deps, palette) {
  * while the inventory shows the player's own, untouched.
  * `background` false leaves the panel clear (a peer's billboard).
  */
-async function composeDoll(art, deps, entity, { background = true, scale: S = 1 } = {}) {
+async function composeDoll(art, deps, entity, { background = true, scale: S = 1, back = false } = {}) {
   const OW = PAPERDOLL_W * S, OH = PAPERDOLL_H * S;   // DFMOD4: the composite, S texels per doll pixel
   const out = new Uint8Array(OW * OH * 4);
+  let track = null;   // DOLL-BACK: each layer's pixels, for the doll seen from behind (ui/paperDollBack.js)
   const layout = [];
   // V5: the racial override's three art laws - the beast/crypt
   // background, the whole-body suppression (PaperDollRenderer:165 -
@@ -570,6 +572,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1 
     }
   }
   const under = out.slice();   // HM1: the background alone (or nothing), for the item masks
+  if (back) track = createDollTracker(out, OW, OH);
   const table = equipTableOf(entity);
   const worn = table.filter(Boolean).map((it) => ({ it, t: getTemplate(it.templateIndex) })).filter((w) => w.t);
   // cloak interiors first (BlitCloakInterior: cloak2 then cloak1,
@@ -590,12 +593,14 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1 
       // port drew it and entered nothing, so a click on the lining
       // beside the body did nothing where DFU unequips the cloak.
       layout.push({ slot: it.equipSlot ?? slot, img });
+      track?.mark('cloak');
     }
     break;   // DFU stops at the first drawn cloak interior
   }
   // body + welds + head (BlitBody) - all skipped while suppressed
   if (!suppress) {
     blit(out, art.nude, art.palette, { S });
+    track?.mark('body');
     const split = WAIST_HEIGHT;
     // BlitBody (PaperDollRenderer.cs:346-353): the WELDS as a whole
     // hang off the setting - the nude body above is drawn either
@@ -605,11 +610,13 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1 
     if (!getBool('ChildGuard', 'PlayerNudity')) {
       if (!table[EQUIP_SLOTS.ChestClothes] && !table[EQUIP_SLOTS.ChestArmor]) blit(out, art.clothed, art.palette, { rows: [0, split], S });
       if (!table[EQUIP_SLOTS.LegsClothes]) blit(out, art.clothed, art.palette, { rows: [split, art.clothed.bmp.height], S });
+      track?.mark('weld');
     }
     // V5: the vampire's clanless head replaces the racial one
     const headOv = racialOverrideHeadArt(entity);
     const headArt = headOv ? await loadOverrideArt(headOv.file, headOv.record, deps, art.palette) : null;
     blit(out, headArt ?? art.head, art.palette, { S });
+    track?.mark('head');
   }
   // items ascending drawOrder (BlitItems)
   const ordered = suppress ? [] : paperdollOrder(worn.map((w) => ({ ...w.it, drawOrder: w.t.drawOrderOrEffect })));
@@ -622,12 +629,13 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1 
     // through the palette - it hands back RGBA instead, and it is the
     // port's own art rather than DFU's, so it takes neither the dye
     // nor the helm mask.
-    if (img.bmp?.rgba) { blitRgba(out, img, { under, S }); layout.push({ slot: it.equipSlot, img }); continue; }   // RRI1: the imported helmet's mask erases the hair under it
+    if (img.bmp?.rgba) { blitRgba(out, img, { under, S }); layout.push({ slot: it.equipSlot, img }); track?.mark('item'); continue; }   // RRI1: the imported helmet's mask erases the hair under it
     const remap = res.target == null ? null : (i) => applyDyeToIndex(i, res.dye, res.target);
     blit(out, img, art.palette, { remap, under, S });   // HM1: the helm's mask erases the hair
     layout.push({ slot: it.equipSlot, img });
+    track?.mark('item');
   }
-  return { out, layout, bgSize: [bg.width, bg.height], width: OW, height: OH };
+  return { out, layout, bgSize: [bg.width, bg.height], width: OW, height: OH, back: track ? dollBackPixels(out, track) : null };
 }
 
 export async function refreshPaperDoll(entity) {
@@ -805,7 +813,7 @@ export async function composeDollFor(entity) {
  */
 const _artSets = new Map();   // identity key -> art set, insertion-ordered (the oldest goes first)
 export const PEER_ART_SETS_MAX = 8;
-export async function composePaperDollPixels(deps, entity, { context = 'town', background = true } = {}) {
+export async function composePaperDollPixels(deps, entity, { context = 'town', background = true, back = false } = {}) {
   const ident = { race: entity?.race ?? 'Breton', gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, context };
   const key = paperDollIdentityKey(ident);
   try {
@@ -815,8 +823,8 @@ export async function composePaperDollPixels(deps, entity, { context = 'town', b
       if (_artSets.size >= PEER_ART_SETS_MAX) _artSets.delete(_artSets.keys().next().value);
       _artSets.set(key, art);
     }
-    const { out } = await composeDoll(art, { ...deps, gender: ident.gender, race: ident.race }, entity, { background });
-    return { width: PAPERDOLL_W, height: PAPERDOLL_H, rgba: out };
+    const { out, back: backRgba } = await composeDoll(art, { ...deps, gender: ident.gender, race: ident.race }, entity, { background, back });
+    return { width: PAPERDOLL_W, height: PAPERDOLL_H, rgba: out, back: backRgba };   // DOLL-BACK: and, asked, the doll from behind
   } catch { return null; }
 }
 

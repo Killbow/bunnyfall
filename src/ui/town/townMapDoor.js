@@ -30,6 +30,7 @@
 // a dynamic import would make the slot briefly empty.
 // ═══════════════════════════════════════════════════════════════════
 
+import { withHallBytes } from './hallAutomap.js';   // BUNNY-GUILDS: the halls in the guild halls' colour
 import { heldMapWorn } from '../map/mapSkin.js';   // MAP-TOGGLE: the skin AND the player's switch
 import { ExteriorAutomapWindow, preloadExteriorAutomapArt, exteriorAutomapArtLoaded } from '../exteriorAutomapWindow.js';
 import { HeldMapWindow } from '../heldMap.js';
@@ -85,6 +86,7 @@ export function createTownMapWindow(deps = {}) {
 /** YARDS-FOUND / SHIPYARDS-FOUND: the town's sites laid on its block rows, once, for whichever map is built - the
  *  classic window's rows and the held sheet's alike. */
 function laidOn(deps) {
+  if (typeof deps.buildings === 'function') deps = { ...deps, blocks: withHallBytes(deps.blocks ?? [], deps.buildings() ?? []) };   // BUNNY-GUILDS: a hall coloured as a guild hall (ui/town/hallAutomap.js)
   if (deps.ports?.length) deps = { ...deps, blocks: yardTownBlocks(deps.blocks ?? [], deps.ports) };   // SHIPYARDS-FOUND: a port town's shipyard and lighthouse, the same way
   if (deps.yards?.length) deps = { ...deps, blocks: yardTownBlocks(deps.blocks ?? [], deps.yards) };
   return deps;

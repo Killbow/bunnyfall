@@ -1016,6 +1016,7 @@ import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
 import { createRescueLink } from './rescueLink.js';   // BUNNY-SPELLS: Rescue between players
+import { createTavernSocial } from './tavernSocial.js';   // TAVERN-SOCIAL: rounds, bards together, tips
 import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';
 import { bunnyGuildsOn } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
@@ -20181,7 +20182,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const rescueLink = createRescueLink({
     social: () => social, peers: () => peersNear(), accountOfPeer: (id) => social?.accountOfPeer?.(id) ?? null,
     feet: () => player.pos, moveTo: (p) => player.spawn(p[0], p[1], p[2]), say: (text) => townTalk.say(text), sent: () => { _partyComposedAt = -Infinity; },
-  });  let _deadMark = null;   // PCORPSE3: where my body lies while I am dead (my party pose says so)
+  });
+  // TAVERN-SOCIAL: a round bought, a bard playing, a tip - on my pose, and the others' read (scenes/tavernSocial.js)
+  const tavernSocial = createTavernSocial({
+    entity: () => playerEntity, online: () => !!online && online.status === 'open', peers: () => peersNear(), peerPose: (id) => online?.peers?.get(id)?.shown ?? null,
+    accountOfPeer: (id) => social?.accountOfPeer?.(id) ?? null, myAccount: () => social?.acct ?? null, nameOf: (id) => peerName(id),
+    feet: () => player.pos, indoors: () => modes?.mode === 'interior', say: (text) => townTalk.say(text), sent: () => {},
+  });
+  let _deadMark = null;   // PCORPSE3: where my body lies while I am dead (my party pose says so)
   const _partyBodies = new Set();   // PCORPSE3: the accounts whose party pose tells of a body (AUDIT CONTRIB A3: remotePlayers.partyBody keeps each death's minute)
   let _partyRestReady = false;   // PARTY-REST2: this tab's own /ready vote, broadcast in composePartyPose's own `ready` field
   let _partyRestReadyAt = 0;   // PARTY-REST2b: when it was set - on the shared clock (social.now()), broadcast as `readyAt` (AUDIT PARTY-REST)
@@ -28784,6 +28792,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       peerBodies.destroy(); remotePlayers.sync([], onlineToScene); peerRiders?.destroy(); peerWalkers?.destroy(); peerCandlesFrame([], dt); return;   // PEERLIGHT2: and no candle hangs over the dead; AUDIT RIDE: and no rider stands frozen over it either
     }   // AUDIT WORLD B6: the dungeon's and the building's death screens stand in the mode's slot   // AUDIT MWBODY B7: and no body stands frozen over the death screen
     _rezSeen = null;   // AUDIT CONTRIB A6: alive - the next death takes its own snapshot of what the party's poses say
+    tavernSocial.frame();   // TAVERN-SOCIAL: a round near me, a tip to me
     rescueLink.frame();   // BUNNY-SPELLS: a party member's Rescue naming me brings me to them
     checkpointWhenDue(now, _checkpointAt, realmSession, () => onlineCheckpoint());   // SCALE2b: the periodic one may be answered by the save the service holds (realmSaves.js idle)   // REALM P0.5: every ONLINE_CHECKPOINT_MS (five real minutes, CHECKPOINT-5), alive and in the seat (the first such frame persists the join's call-in)
     if (instanceDoor.refused(online)) modes?.forceExitToExterior?.();   // INSTANCES (the audit): alive, an instance's door shut on me (not of its owner's party - a kick, a lapse) - out, as the realm's door does, never left inside it alone
@@ -28898,6 +28907,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // the person). Both absent rather than 0, the wire's omission law.
       ...poseHandsOf(rig.playerWeapon.usingRightHand, rig.swing.hand),   // AUDIT MIXED-PAIR L4-3: and `ah`, the hand a pair's last strike was (net/wire.js poseHandsOf)
       wb: (() => { const l = liveLycanthropy(playerEntity); return l?.isTransformed ? (l.infectionType | 0) || undefined : undefined; })(),
+      ...tavernSocial.poseField(),   // TAVERN-SOCIAL: my rounds, my playing, my last tip
       ef: effectVfxBits(playerEntity) || undefined,   // BUNNYFALL SPELL VISUALS: what burns, freezes or bubbles on me, for the others to draw
       cv: concealBits(playerEntity) || undefined,   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
       hl: waistLanternPoseBit(playerEntity.lightSource),   // HT-WAIST-NET: a lit lantern hung at the waist, so the others' Morrowind bodies hang it at the hip - absent otherwise, the wire's omission law
@@ -29834,6 +29844,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
     },
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
+    guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
+    tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (worldModes.js bardTavernOffer)
     guildHall: {
       info: () => {
         const g = guildBook;

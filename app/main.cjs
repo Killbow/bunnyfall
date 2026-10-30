@@ -52,7 +52,8 @@ const { frameRateSwitches } = require('./lib/frameRate.cjs');   // FPS-VSYNC: VS
 // rebrand is a name, not a migration. The folder keeps the name it was
 // created with, whatever the product is called on the outside.
 if (process.env.DAGGER_USER_DATA) app.setPath('userData', process.env.DAGGER_USER_DATA);
-else app.setPath('userData', path.join(app.getPath('appData'), 'Daggerfall JavaScript'));
+// BUNNYFALL OWN-FOLDER: but never DFO Online's folder - Bunnyfall keeps <appData>/Bunnyfall (app/lib/ownFolder.cjs)
+else app.setPath('userData', require('./lib/ownFolder.cjs').ownUserData(app.getPath('appData')));
 
 // FPS-VSYNC (2026-09-28): the player's saved VSync, read BEFORE the app is ready - Chromium takes its switches at
 // launch or never. VSync off lifts the screen's wait, and the page's Frame Rate Cap holds the frames instead

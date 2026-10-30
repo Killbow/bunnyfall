@@ -359,6 +359,21 @@ export function createSightCache({ now = () => Date.now(), every = NAME_SIGHT_MS
  *  looks in view: 5,464 composes where 199 would do, 2,496 billboards destroyed, and only ever 64 peers drawn - a
  *  DIFFERENT 64 each frame, so the crowd flickered. A doll a billboard is wearing is not cache, it is the scene. */
 export const DOLLS_MAX = 64;
+/** DOLL-BACK: how far round a peer must have turned from me for its doll to show its back (the cosine of the angle
+ *  between its facing and the way to me), and how far back again before it shows its front - apart, so a peer side-on
+ *  does not flicker between the two. */
+export const DOLL_BACK_IN = -0.35;
+export const DOLL_BACK_OUT = -0.15;
+/** DOLL-BACK: whether the doll of a peer facing `yaw` (mobileOrientation's convention) at `feet` is seen from behind by
+ *  the eye `eye`; `was` its side last frame. */
+export function dollSeenFromBehind(yaw, feet, eye, was = false) {
+  if (!Number.isFinite(yaw) || !eye || eye.length !== 3 || !feet) return false;
+  const dx = eye[0] - feet[0], dz = eye[2] - feet[2];
+  const l = Math.hypot(dx, dz);
+  if (l < 0.3) return was;
+  const dot = (dx * Math.sin(yaw) + dz * Math.cos(yaw)) / l;
+  return was ? dot < DOLL_BACK_OUT : dot < DOLL_BACK_IN;
+}
 /** A doll that failed to compose is not retried before this (AUDIT ONLINE C5). */
 export const DOLL_RETRY_MS = 5000;
 /** A class-enemy SPRITE build that failed is not retried before this. Kept far shorter than DOLL_RETRY_MS (2026-09-23,
@@ -706,7 +721,7 @@ export class RemotePlayers {
       // SLAM12 (AUDIT SLAM): a doll that lands after its key was released - by `_evict`, or by `destroy()` at the
       // page's hide - has a texture on the GPU that nothing references. It used to be orphaned here. Measured: sync
       // fifty peers, destroy, fifty textures uploaded, none released.
-      if (this._dolls.get(key) !== p) { if (doll && typeof doll.rec === 'string') this.renderer.releaseTexture?.(PEER_ARCHIVE, doll.rec); return; }
+      if (this._dolls.get(key) !== p) { if (doll && typeof doll.rec === 'string') { this.renderer.releaseTexture?.(PEER_ARCHIVE, doll.rec); if (doll.backRec) this.renderer.releaseTexture?.(PEER_ARCHIVE, doll.backRec); } return; }
       if (doll) { this._dolls.set(key, doll); } else this._dolls.set(key, { failedUntil: this._now() + DOLL_RETRY_MS });
       this._evict();   // SLAM4: a FAILURE sweeps too - it was the one outcome that never reached the eviction
     });
@@ -716,14 +731,22 @@ export class RemotePlayers {
   async _composeDoll(look) {
     const { deps, renderer } = this;
     if (!deps || !renderer) return null;
-    const px = await this._compose(deps, peerStubEntity(look), { context: 'town', background: false });
+    const px = await this._compose(deps, peerStubEntity(look), { context: 'town', background: false, back: true });
     if (!px?.rgba) return null;
     const r = alphaBounds(px.rgba, px.width, px.height);
     if (!r) return null;
     const crop = cropRgba(px.rgba, px.width, r, { bottomUp: true });   // OD1: the billboard samples bottom-up
     const rec = `doll_${++_dollSeq}`;
     renderer.uploadTexture(PEER_ARCHIVE, rec, { width: r.w, height: r.h, colors: new Uint32Array(crop.buffer) });
-    return { rec, w: PEER_HEIGHT * (r.w / r.h), h: PEER_HEIGHT };
+    // DOLL-BACK: the doll from behind (ui/paperDollBack.js) - turned left for right, so its bounds are the front's mirrored
+    let backRec = null;
+    if (px.back) {
+      const rb = { ...r, x: px.width - r.x - r.w };
+      const cb = cropRgba(px.back, px.width, rb, { bottomUp: true });
+      backRec = `${rec}_back`;
+      renderer.uploadTexture(PEER_ARCHIVE, backRec, { width: rb.w, height: rb.h, colors: new Uint32Array(cb.buffer) });
+    }
+    return { rec, backRec, w: PEER_HEIGHT * (r.w / r.h), h: PEER_HEIGHT };
   }
 
   /** The mobile-unit bundle for a peer's class-enemy sprite: composed once per PEER (not shared by look, the way a
@@ -883,6 +906,7 @@ export class RemotePlayers {
       this._batches.delete(id);
     }
     this.renderer.releaseTexture?.(PEER_ARCHIVE, doll.rec);
+    if (doll.backRec) this.renderer.releaseTexture?.(PEER_ARCHIVE, doll.backRec);   // DOLL-BACK
   }
 
   /**
@@ -960,7 +984,7 @@ export class RemotePlayers {
       // change, on every screen. A beast whose art is not up yet draws nothing for those frames, and the doll it wore
       // as a person goes with the change.
       if (beast) { this._dropDoll(peer.id); continue; }
-      this._syncDollPeer(peer, toScene, veil);
+      this._syncDollPeer(peer, toScene, veil, eye);
     }
     this._fFor = null;   // PERF-PEERS2: no feet outlive the sync that asked for them
     for (const [id, entry] of this._batches) {
@@ -1175,20 +1199,24 @@ export class RemotePlayers {
 
   /** The paperdoll path, unchanged in shape from before the mobile-billboard branch existed - just factored out of
    *  `sync` so the two paths (doll, mobile) share the same peer loop and the same departed-peer cleanup. */
-  _syncDollPeer(peer, toScene, veil = null) {
+  _syncDollPeer(peer, toScene, veil = null, eye = null) {
     const key = lookKey(peer.look);
     this._wanted.add(key); this._touch(key);   // SLAM7: asked for this frame, so it is needed and it is the newest thing in the cache
     let entry = this._batches.get(peer.id);
-    if (entry && (entry.kind === 'mobile' || entry.key !== key)) { this.renderer.destroyBillboardBatch?.(entry.batch); this._batches.delete(peer.id); entry = null; }
+    const f = this._feet(peer, toScene);
+    // DOLL-BACK: seen from behind, the doll's back - its side held until the turn is past DOLL_BACK_IN / DOLL_BACK_OUT
+    const doll0 = this._dolls.get(key);
+    const was = entry?.kind === 'doll' && entry.key === key ? !!entry.backSide : false;
+    const backSide = !!doll0?.backRec && dollSeenFromBehind(peerBodyYaw(peer.shown), f, eye, was);
+    if (entry && (entry.kind === 'mobile' || entry.key !== key || !!entry.backSide !== backSide)) { this.renderer.destroyBillboardBatch?.(entry.batch); this._batches.delete(peer.id); entry = null; }
     if (!entry) {
       const doll = this._dolls.get(key);
       if (!doll || typeof doll.rec !== 'string') { this.dollFor(peer.look); return; }   // composing, or waiting out a failure
-      const batch = this.renderer.createBillboardBatch(PEER_ARCHIVE, doll.rec, { w: doll.w, h: doll.h }, [[0, 0, 0]]);
+      const batch = this.renderer.createBillboardBatch(PEER_ARCHIVE, backSide ? doll.backRec : doll.rec, { w: doll.w, h: doll.h }, [[0, 0, 0]]);
       batch.origin = [0, 0, 0];
-      entry = { kind: 'doll', batch, key, doll, peer };
+      entry = { kind: 'doll', batch, key, doll, peer, backSide };
       this._batches.set(peer.id, entry);
     }
-    const f = this._feet(peer, toScene);
     const sink = seatedSink(peer.shown);   // CARDS2c: seated, sunk by the seat's drop
     entry.batch.origin[0] = f[0]; entry.batch.origin[1] = f[1] - sink; entry.batch.origin[2] = f[2];
     entry.batch.conceal = veil;   // INVIS-LOOK: the renderer's blended phase, or plain

@@ -22,6 +22,7 @@ import { bunnyGuildOfKey } from './bunnyGuilds.js';
 import { bunnyMembershipOf, performedOn, notePerformed, surveyedCount, noteSurveyed } from './bunnyMembership.js';
 import { discoveredLocationCount } from '../discovery.js';
 import { t } from '../textManager.js';
+import { tavernWords, TIP_CHOICES } from '../tavern/tavernLaw.js';   // TAVERN-SOCIAL: a round and a tip at the innkeeper
 
 /** The Adventurers Guild's reputation for a quest done well. */
 export const QUEST_REP = 2;
@@ -126,37 +127,53 @@ export function bunnyHallServices(doors) {
 }
 
 /**
- * THE INNKEEPER'S OFFER to a Bards' College member: play for the house, or the tavern as ever. Answers false for anyone
- * else, so the innkeeper's own window opens unchanged. `where` names the tavern (`${town}:${building}`), `day` the
- * game's day, `openTavern()` the innkeeper's own window, `show(view)` a choice, `perform(onDone)` the performance window.
+ * THE INNKEEPER'S OFFER to a Bards' College member: play for the house, or the tavern as ever. TAVERN-SOCIAL: and, online
+ * (`tavern`, scenes/tavernSocial.js), to anyone: a round for the house, and a tip to a bard playing near. Answers false
+ * when there is nothing to offer, so the innkeeper's own window opens unchanged. `where` names the tavern
+ * (`${town}:${building}`), `day` the game's day, `openTavern()` the innkeeper's own window, `show(view)` a choice,
+ * `perform(onDone)` the performance window.
  * @param {{ entity: any, where: string, day: number, openTavern: () => void, show: (view: any) => void,
- *   perform: (onDone: (hits: number) => string[]) => void, notes: number }} o
+ *   perform: (onDone: (hits: number) => string[]) => void, notes: number, tavern?: any, say?: (s: string) => void }} o
  */
-export function bardTavernOffer({ entity, where, day, openTavern, show, perform, notes }) {
+export function bardTavernOffer({ entity, where, day, openTavern, show, perform, notes, tavern = null, say = () => {} }) {
   const m = bunnyMembershipOf('bards');
-  if (!m) return false;
-  const played = performedOn(where) === day;
-  const lines = [played
+  const social = tavern?.on?.() ? tavern : null;
+  if (!m && !social) return false;
+  const played = m ? performedOn(where) === day : false;
+  const lines = [];
+  if (m) lines.push(played
     ? t('bguild.bards.played', 'You have already played here today. Come back tomorrow.')
-    : t('bguild.bards.offer', 'A member of the College! Will you play for the house tonight?')];
+    : t('bguild.bards.offer', 'A member of the College! Will you play for the house tonight?'));
+  else lines.push(t('tavern.welcome', 'What will it be?'));
+  const later = (/** @type {() => void} */ fn) => () => { Promise.resolve().then(fn).catch(() => {}); };
   const options = [];
-  if (!played) {
-    options.push({ code: 'KeyP', label: t('bguild.bards.perform', 'P - Perform'), action: () => {
-      Promise.resolve().then(() => perform((hits) => {
+  if (m && !played) {
+    options.push({ code: 'KeyP', label: t('bguild.bards.perform', 'P - Perform'), action: later(() => {
+      social?.startPlaying?.();
+      perform((hits) => {
         notePerformed(where, day);
-        const gold = bardPay(hits, m.rank);
+        const crowd = social?.stopPlaying?.() ?? { share: 1, lines: [] };   // TAVERN-SOCIAL: the bards beside me, the crowd
+        const gold = Math.round(bardPay(hits, m.rank) * crowd.share);
         const rep = bardRep(hits, notes);
         addGoldPieces(entity, gold);
         gainRep(entity, 'bards', rep);
         return [
           t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
+          ...crowd.lines,
           t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
           ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),
         ];
-      })).catch(() => {});
-    } });
+      });
+    }) });
   }
-  options.push({ code: 'KeyT', label: t('bguild.bards.tavern', 'T - Rooms and drinks'), action: () => { Promise.resolve().then(openTavern).catch(() => {}); } });
+  if (social) {
+    options.push({ code: 'KeyR', label: tavernWords.buy(social.price()), action: later(() => { for (const l of social.buyRound()) say(l); }) });
+    social.bardsNear().slice(0, 2).forEach((/** @type {{ id: string, name: string }} */ b, /** @type {number} */ i) => {
+      const gold = TIP_CHOICES[1] ?? TIP_CHOICES[0];
+      options.push({ code: `Digit${i + 1}`, label: tavernWords.tip(b.name, gold, String(i + 1)), action: later(() => { for (const l of social.tipBard(b.id, gold)) say(l); }) });
+    });
+  }
+  options.push({ code: 'KeyT', label: t('bguild.bards.tavern', 'T - Rooms and drinks'), action: later(openTavern) });
   options.push({ code: 'Escape', label: undefined, action: () => {} });
   show({ lines, options });
   return true;

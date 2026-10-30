@@ -36,6 +36,7 @@
 // often than the town does.
 // ═══════════════════════════════════════════════════════════════════
 
+import { hallTypeOf } from '../../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: a hall is a guild hall on the map
 import { boundarySegments, linkSegments, fitView, toPaper, viewCentredOn, SCALE_MAX, NAME_FACE } from '../ink/inkMap.js';
 import {
   townBytes, townChains, quarterChains, quarterOfType, isBuilt, QUARTERS, sheetY,
@@ -173,7 +174,7 @@ export function createTownSheet(deps = {}) {
       // the grid's byte is this type PLUS ONE, and quarterOfType is the
       // one place that plus-one is written, so a name and the wash
       // under it cannot come to disagree about what the building is.
-      out.push({ text, quest, x: ax, y: sy, key: b.buildingKey, quarter: quarterOfType(b.buildingType) });
+      out.push({ text, quest, x: ax, y: sy, key: b.buildingKey, quarter: quarterOfType(hallTypeOf(b)) });   // BUNNY-GUILDS: a hall's name in the guild halls' ink
     }
     // ARENA-MAP: a block's LANDMARK (the Arena, world/arena/arenaCity.js arenaTownLandmark) - always named, as the classic
     // window names it, at its place and in its quarter's ink (the ring under it is that quarter's byte). YARDS-FOUND: and

@@ -187,6 +187,9 @@
 // HOME-VOTE, a registered account's word on another's home (homeVotes.js; /v1/homes/town's homes carry `score` and the
 // caller's `vote`):
 //   POST /v1/homes/vote { mapId, buildingKey, vote: 1 | -1 | 0 } -> { ok, mapId, buildingKey, vote, score }
+// GUESTBOOK (guestbook.js): a visitor's line at a home's door, and its insiders' read of the book:
+//   POST /v1/homes/guestbook/sign { mapId, buildingKey, name, text } -> { ok }
+//   POST /v1/homes/guestbook/read { mapId, buildingKey }             -> { ok, lines: [{ name, text, at }] }
 // PATREON-LINK, a patron's own Patreon (patreon.js) - /v1/account's answer carries `patreon: { on, linked, titles,
 // link }`, `link` the authorize URL with a state sealed for the account; the next three answer a browser and Patreon:
 //   GET  /v1/patreon/callback ?code&state  -> a page asking which game account, with the yes's ticket
@@ -290,6 +293,7 @@ import { claimLamp } from './lamp.js';
 import { festivalOf, findFestival, buyFestival, festivalTown, setOffering, fillOffering, takeInOffering, takeFromOffering, FEST_STATUS } from './festival.js';   // WITCH1: the Witches' Festival   // LAMP-KEEPER II: I Love Lamp, laid on the row
 import { claimQl, QL_STATUS } from './questlines.js';   // QL12: a questline's step claimed - what the service witnessed, paid
 import { voteHome } from './homeVotes.js';   // HOME-VOTE: a town's word on a player's house
+import { signGuestbook, readGuestbook } from './guestbook.js';   // GUESTBOOK: the lines visitors sign at a home's door
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from './rent.js';   // HOME-RENT: a home's rooms, rented
@@ -1794,6 +1798,11 @@ const service = {
           if (r.error === 'rent-price') return json({ error: 'rent-price', price: r.price }, 409, origin);   // the price that stands, for the door to show
           const status = RENT_STATUS[r.error] ?? 400;
           return no(r.error, status, origin);
+        }
+        if (path === '/v1/homes/guestbook/sign' || path === '/v1/homes/guestbook/read') {   // GUESTBOOK: signed by a visitor, read by its insiders
+          const r = path.endsWith('/sign') ? await signGuestbook(ctx, who.player, body) : await readGuestbook(ctx, who.player, body);
+          if (!('error' in r)) return json(r, 200, origin);
+          return no(r.error, r.error === 'no-home' ? 404 : r.error === 'guestbook-soon' ? 429 : r.error === 'guestbook-not-yours' || r.error === 'homes-need-account' ? 403 : 400, origin);
         }
         if (path === '/v1/homes/vote') {   // HOME-VOTE: a registered account's word on a home it is no insider of
           const r = await voteHome(ctx, who.player, body);

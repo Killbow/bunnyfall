@@ -46,6 +46,7 @@ import { NAME_MAX } from './wire.js';   // NAME-AS: the wire's bound on a name, 
 import { LETTER_SUBJECT_MAX, LETTER_BODY_MAX, LETTER_LINES_MAX, LETTERS_SENT_MAX, LETTERS_PAIR_MAX } from './letterLaw.js';   // MAIL1: the letter's bounds, in the refusals' own sentences
 import { banRangeText, bannedText } from './safety/safetyLaw.js';   // SAFE4: a ban's bound in its refusal's sentence, from its home; AUDIT SAFE CLIENT-2: and the ban itself
 import { muteRangeText } from './moderation.js';   // AUDIT 68 S14-mute-range-text-duplicated: the mute's bound in the refusal's sentence, from its home (L10N4: its reader)
+import { GUESTBOOK_TEXT_MAX } from './guestbookLaw.js';   // GUESTBOOK: its bound, in its refusal
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
 import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY, DECOR_YARDS_TOWN_MAX } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's; YARD-TOWN: a town's
 import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
@@ -335,6 +336,9 @@ const REFUSAL_WORDS = {
   'home-unmoved': () => ARENA_TEXT.homeMove.unmoved,
   'home-changed': () => ARENA_TEXT.homeMove.changed,
   // HOME-VOTE: a town's word on a player's house (server-account/src/homeVotes.js) - met at its door
+  'bad-guestbook': () => t('account.refusal.badGuestbook', 'Write a line of up to {max} characters.', { max: GUESTBOOK_TEXT_MAX }),
+  'guestbook-soon': () => t('account.refusal.guestbookSoon', 'You signed this guestbook not long ago. Come back later.'),
+  'guestbook-not-yours': () => t('account.refusal.guestbookNotYours', 'Only the people of this home read its guestbook.'),
   'vote-own': () => t('account.refusal.voteOwn', 'You cannot vote on your own home, or on the hall of your own company.'),
   'vote-rate': () => t('account.refusal.voteRate', 'You have voted on too many homes this hour. Try again later.'),
   'vote-young': () => t('account.refusal.voteYoung', 'An account must have had its username and password for a week to vote on homes.'),   // AUDIT HOME-VOTE A1: HOME_VOTE_AGE_S (II A7: a week REGISTERED - a guest played a year is no older for it)
@@ -2102,7 +2106,10 @@ export function accountHomes({ fetch, storage }) {
     // HOME-LOOK: how a home looks outside, painted by its owner (null: the town's own)
     look: ({ mapId, buildingKey, character, look = null }) => post('/v1/homes/look', { mapId, buildingKey, character, look }),
     // HOME-VOTE: this account's word on another's home - up (1), down (-1), or taken back (0)
-    vote: ({ mapId, buildingKey, vote, owner }) => post('/v1/homes/vote', { mapId, buildingKey, vote, owner }),   // AUDIT HOME-VOTE II A4: the owner the door read
+    vote: ({ mapId, buildingKey, vote, owner }) => post('/v1/homes/vote', { mapId, buildingKey, vote, owner }),
+    // GUESTBOOK: a line signed at another's door, and the book read by its insiders
+    guestbookSign: ({ mapId, buildingKey, name, text }) => post('/v1/homes/guestbook/sign', { mapId, buildingKey, name, text }),
+    guestbookRead: (mapId, buildingKey) => post('/v1/homes/guestbook/read', { mapId, buildingKey }),   // AUDIT HOME-VOTE II A4: the owner the door read
     // ARENA4b: a home the arena displaced, moved to the house this client picked (its record named when the pieces' refund
     // comes onto it); the moves this character has not read; and one read
     arenaMove: ({ mapId, from, to, character, realm = null }) => post('/v1/homes/arena-move', { mapId, from, to, character, ...(realm ? { realm } : {}) }),
