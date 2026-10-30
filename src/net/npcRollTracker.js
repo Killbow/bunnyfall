@@ -70,6 +70,7 @@ import {
   rollMovesOf,   // STANDING-WORDS
 } from './npcChapterLaw.js';
 import { setReputation } from '../systems/faction/factionRep.js';
+import { bunnyRollMembers } from '../systems/guild/bunnyMembership.js';   // BUNNY-GUILDS: their members on the Roll
 import { setStandingOwed } from '../systems/standingOwed.js';   // STANDING-WORDS: the owed, kept for the windows
 import { carryInvitationOnly } from '../systems/guild/guilds.js';   // CURSE-CARRY: the underworld guilds read where the curse reads
 
@@ -111,7 +112,8 @@ export function rollEntityDoors(/** @type {() => any} */ entityOf) {
     members: () => {
       const entity = entityOf();
       carryInvitationOnly(entity?.guildMemberships, rollVampireOf(entity));   // CURSE-CARRY: before the read, not at the next activeMemberships
-      return rollMembersOf(entity?.guildMemberships, rollVampireOf(entity));
+      const members = rollMembersOf(entity?.guildMemberships, rollVampireOf(entity));
+      return members && [...members, ...bunnyRollMembers()].sort((a, b) => a.f - b.f);   // BUNNY-GUILDS: Bunnyfall's guilds, from their own book
     },
     cap: () => rollBookCap(entityOf()?.guildMemberships),   // CHAP4b: the book held at 7
   };

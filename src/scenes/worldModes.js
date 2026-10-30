@@ -477,7 +477,7 @@ import { rrVariantPerson } from '../systems/roleplayRealism/rrVariants.js';   //
 import { chairSeatOf, chairProbeOver, CHAIR_KIND, CHAIR_FLOOR_STEP } from '../world/chairSeat.js';   // SIT1: where on a chair the sitter's body goes
 import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a shop's keeper standing as the lamp, its words and its title
 import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
-import { bunnyClerkName, bunnyClerkGreeting } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
+import { bunnyClerkName, openBunnyHall } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { vendorOffice } from '../systems/festival/festivalWords.js';   // WITCH1: a Wyrd Sister is named by her office
 import { announceHonour } from '../ui/lootBanner.js';   // LAMP-KEEPER II: I Love Lamp, as a loot banner
 import { setRrHostSeams } from '../systems/roleplayRealism/rrInstall.js';   // RR1: the host's foe-spawner seam for the underworld guilds' squad
@@ -4382,7 +4382,7 @@ export function createWorldModes(host) {
     if ((gateRole === 'redRecruiter' || gateRole === 'blueRecruiter') && host.arenaRecruiter?.(gateRole)) return;
     if (gateRole === 'bookmaker' && host.arenaBookmaker?.()) return;   // ARENA3: the bookmaker's stall (scenes/arena/arenaGate.js)
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
-    if (!info && pn?.bunnyClerk) { townTalk?.showOverlay?.(new ActionTextBox(bunnyClerkGreeting(pn.bunnyClerk))); return; }   // BUNNY-GUILDS: the hall's clerk
+    if (!info && pn?.bunnyClerk) { openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view))); return; }   // BUNNY-GUILDS: the hall's clerk
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title
     if (!info && pn?.witch && host.witches?.shop()) return;   // WITCH1: a Wyrd Sister's window (scenes/witchesHost.js) - a host with none lets her talk
     if (!info && pn?.arenaRole === 'pitMaster') { pitMasterChoice(); return; }

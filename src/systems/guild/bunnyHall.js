@@ -8,6 +8,7 @@
 import { bunnyGuildOfKey, bunnyGuildOfFaction } from './bunnyGuilds.js';
 import { isChildNPCTexture } from '../../characters/staticNpc.js';
 import { t } from '../textManager.js';
+import { bunnyMembershipOf, bunnyRepOf, joinBunnyGuild, leaveBunnyGuild, reviewBunnyRank, BUNNY_JOIN_REP } from './bunnyMembership.js';
 
 /**
  * Mark the hall's clerk among its people, in place: the first grown person, so every client in the room picks the same.
@@ -29,14 +30,38 @@ export const bunnyClerkName = (/** @type {string} */ key) => {
   return g ? t('bguild.clerk', '{guild} Clerk', { guild: g.name }) : null;
 };
 
-/** What the clerk says while the guild takes no members yet. */
-export function bunnyClerkGreeting(/** @type {string} */ key) {
+/**
+ * Phase 0d: THE HALL'S WINDOW, as a choice the clerk offers (ui ChoiceWindow's `{ lines, options }`): who you are to the
+ * guild, then join or leave, and goodbye. Opening it is a visit, so a member's rank is reviewed first. `show(view)`
+ * puts the window up; each choice that changes the book shows the window again, so the player sees where they stand.
+ * The guilds' own services join the options as each guild's phase brings them.
+ * @param {string} key @param {any} entity @param {(view: { lines: string[], options: any[] }) => void} show
+ */
+export function openBunnyHall(key, entity, show) {
   const g = bunnyGuildOfKey(key);
-  if (!g) return [];
-  return [
-    t('bguild.greeting.welcome', 'Welcome to the {guild}.', { guild: g.name }),
-    t('bguild.greeting.soon', 'Our rolls are not open yet. Come back soon, and we will have work for you.'),
-  ];
+  if (!g) return false;
+  const rose = reviewBunnyRank(entity, key);
+  const m = bunnyMembershipOf(key);
+  const rep = bunnyRepOf(entity, key);
+  // the window answering a choice has left its slot by the time the next one is shown (as the lamp's Trade waits a turn)
+  const again = () => { Promise.resolve().then(() => openBunnyHall(key, entity, show)).catch(() => {}); };
+  const lines = [t('bguild.greeting.welcome', 'Welcome to the {guild}.', { guild: g.name })];
+  const options = [];
+  if (rose != null) lines.push(t('bguild.hall.promoted', 'You have risen to the rank of {title}.', { title: g.ranks[rose] }));
+  if (m) {
+    lines.push(t('bguild.hall.rank', 'Your rank: {title} ({rank} of 9).', { title: g.ranks[m.rank], rank: m.rank }),
+      t('bguild.hall.rep', 'Your standing with us: {rep}.', { rep }));
+    options.push({ code: 'KeyL', label: t('bguild.hall.leave', 'L - Leave the guild'), action: () => { leaveBunnyGuild(key); again(); } });
+  } else if (rep >= BUNNY_JOIN_REP) {
+    lines.push(t('bguild.hall.invite', 'We are always looking for new members. Will you join us?'));
+    options.push({ code: 'KeyJ', label: t('bguild.hall.join', 'J - Join the guild'), action: () => { joinBunnyGuild(entity, key); again(); } });
+  } else {
+    lines.push(t('bguild.hall.refused', 'Your name is not well spoken of here. Mend your standing with us, then ask again.'));
+  }
+  options.push({ code: 'KeyG', label: t('bguild.hall.goodbye', 'G - Goodbye'), action: () => {} });
+  options.push({ code: 'Escape', label: undefined, action: () => {} });
+  show({ lines, options });
+  return true;
 }
 
 /** The Where-is page's group for the halls. */

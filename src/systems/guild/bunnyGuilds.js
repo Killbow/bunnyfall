@@ -36,13 +36,24 @@ const RANKS = Object.freeze({
   artisans: ['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Guildmaster'],
 });
 
+/** Each guild's name in the player's language (literal keys, so tools/l10nExtract.mjs finds them). */
+const NAMES = Object.freeze({
+  adventurers: () => t('bguild.adventurers.name', 'Adventurers Guild'),
+  bards: () => t('bguild.bards.name', "Bards' College"),
+  cartographers: () => t('bguild.cartographers.name', "Cartographers' Society"),
+  merchants: () => t('bguild.merchants.name', "Merchants' League"),
+  hunters: () => t('bguild.hunters.name', "Hunters' Lodge"),
+  apothecaries: () => t('bguild.apothecaries.name', "Apothecaries' Guild"),
+  artisans: () => t('bguild.artisans.name', "Artisans' Guild"),
+});
+
 /**
  * The guilds (net/bunnyGuildLaw.js, the law both ends read), in the order a town gives out its houses, each with its
  * name in the player's language and its ranks' titles.
  */
 export const BUNNY_GUILDS = Object.freeze(BUNNY_GUILD_LAW.map((g) => Object.freeze({
   key: g.key, factionId: g.factionId,
-  get name() { return t(`bguild.${g.key}.name`, g.name); },
+  get name() { return /** @type {Record<string, () => string>} */ (NAMES)[g.key]?.() ?? g.name; },
   ranks: Object.freeze([.../** @type {Record<string, string[]>} */ (RANKS)[g.key]]),
 })));
 
