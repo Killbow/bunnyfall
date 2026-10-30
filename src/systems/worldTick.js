@@ -796,7 +796,9 @@ function tickPlayerMinutesOnce({
   // below). The port drove both off one `activity.running` that the
   // hosts built with the fatigue condition, so a grounded player
   // holding Run in place tallied nothing where DFU tallies 4/s.
-  if (activity.runningTally) {
+  // BUNNYFALL: and on an accelerated journey it trains nothing at all - the auto-run latch ran the body at x60 with no key
+  // held, and a held run trained Running by the real second the whole way (DFU's own fast travel trains nothing)
+  if (activity.runningTally && pace <= 1) {
     entity._runTallyAcc = (entity._runTallyAcc ?? 0) + dt / pace;   // RPT1026-PROGRESS: a journey's run, its real seconds
     while (entity._runTallyAcc >= 0.25) {
       entity._runTallyAcc -= 0.25;
