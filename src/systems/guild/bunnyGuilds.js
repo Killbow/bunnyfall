@@ -18,33 +18,33 @@
 // Pure: no DOM, no network. `isOnlinePage` is read once a call, from the page's own address.
 
 import { isOnlinePage } from '../online/onlineLane.js';
+import { BUNNY_GUILD_LAW } from '../../net/bunnyGuildLaw.js';
+import { registerCustomFaction, FACTION_TYPES, GUILD_GROUPS, SOCIAL_GROUPS } from '../../formats/factionFile.js';
 import { t } from '../textManager.js';
 
-/** The first of Bunnyfall's faction ids, past every FACTION.TXT id. */
-export const BUNNY_FACTION_BASE = 2001;
 /** Houses a town keeps for its people after its guilds take theirs. */
 export const HOUSES_LEFT = 6;
 
+/** The titles of ranks 0 to 9, lowest first (8 and 9 are a chapter's seats). */
+const RANKS = Object.freeze({
+  adventurers: ['Wanderer', 'Sellsword', 'Pathfinder', 'Delver', 'Trailblazer', 'Veteran', 'Vanguard', 'Champion', 'Warden', 'Guildmaster'],
+  bards: ['Busker', 'Minstrel', 'Troubadour', 'Balladeer', 'Lyricist', 'Skald', 'Virtuoso', 'Maestro', 'Loremaster', 'Archbard'],
+  cartographers: ['Scribe', 'Surveyor', 'Draughtsman', 'Wayfinder', 'Chartmaker', 'Navigator', 'Geographer', 'Explorer', 'Master Cartographer', 'Grand Cartographer'],
+  merchants: ['Peddler', 'Hawker', 'Trader', 'Broker', 'Factor', 'Merchant', 'Financier', 'Magnate', 'Trade Lord', 'Guildmaster'],
+  hunters: ['Beater', 'Tracker', 'Trapper', 'Stalker', 'Hunter', 'Huntsman', 'Slayer', 'Beastmaster', 'Master of the Hunt', 'Lodgemaster'],
+  apothecaries: ['Herb Gatherer', 'Mortar Hand', 'Mixer', 'Brewer', 'Distiller', 'Apothecary', 'Physician', 'Alchemist', 'Master Apothecary', 'Grand Apothecary'],
+  artisans: ['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Guildmaster'],
+});
+
 /**
- * The guilds, in the order a town gives out its houses. `ranks` are the titles of ranks 0 to 9, lowest first (ranks 8
- * and 9 are a chapter's seats once the guild joins the Chapters).
+ * The guilds (net/bunnyGuildLaw.js, the law both ends read), in the order a town gives out its houses, each with its
+ * name in the player's language and its ranks' titles.
  */
-export const BUNNY_GUILDS = Object.freeze([
-  Object.freeze({ key: 'adventurers', factionId: 2001, get name() { return t('bguild.adventurers.name', 'Adventurers Guild'); },
-    ranks: Object.freeze(['Wanderer', 'Sellsword', 'Pathfinder', 'Delver', 'Trailblazer', 'Veteran', 'Vanguard', 'Champion', 'Warden', 'Guildmaster']) }),
-  Object.freeze({ key: 'bards', factionId: 2002, get name() { return t('bguild.bards.name', "Bards' College"); },
-    ranks: Object.freeze(['Busker', 'Minstrel', 'Troubadour', 'Balladeer', 'Lyricist', 'Skald', 'Virtuoso', 'Maestro', 'Loremaster', 'Archbard']) }),
-  Object.freeze({ key: 'cartographers', factionId: 2003, get name() { return t('bguild.cartographers.name', "Cartographers' Society"); },
-    ranks: Object.freeze(['Scribe', 'Surveyor', 'Draughtsman', 'Wayfinder', 'Chartmaker', 'Navigator', 'Geographer', 'Explorer', 'Master Cartographer', 'Grand Cartographer']) }),
-  Object.freeze({ key: 'merchants', factionId: 2004, get name() { return t('bguild.merchants.name', "Merchants' League"); },
-    ranks: Object.freeze(['Peddler', 'Hawker', 'Trader', 'Broker', 'Factor', 'Merchant', 'Financier', 'Magnate', 'Trade Lord', 'Guildmaster']) }),
-  Object.freeze({ key: 'hunters', factionId: 2005, get name() { return t('bguild.hunters.name', "Hunters' Lodge"); },
-    ranks: Object.freeze(['Beater', 'Tracker', 'Trapper', 'Stalker', 'Hunter', 'Huntsman', 'Slayer', 'Beastmaster', 'Master of the Hunt', 'Lodgemaster']) }),
-  Object.freeze({ key: 'apothecaries', factionId: 2006, get name() { return t('bguild.apothecaries.name', "Apothecaries' Guild"); },
-    ranks: Object.freeze(['Herb Gatherer', 'Mortar Hand', 'Mixer', 'Brewer', 'Distiller', 'Apothecary', 'Physician', 'Alchemist', 'Master Apothecary', 'Grand Apothecary']) }),
-  Object.freeze({ key: 'artisans', factionId: 2007, get name() { return t('bguild.artisans.name', "Artisans' Guild"); },
-    ranks: Object.freeze(['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Guildmaster']) }),
-]);
+export const BUNNY_GUILDS = Object.freeze(BUNNY_GUILD_LAW.map((g) => Object.freeze({
+  key: g.key, factionId: g.factionId,
+  get name() { return t(`bguild.${g.key}.name`, g.name); },
+  ranks: Object.freeze([.../** @type {Record<string, string[]>} */ (RANKS)[g.key]]),
+})));
 
 const BY_FACTION = new Map(BUNNY_GUILDS.map((g) => [g.factionId, g]));
 const BY_KEY = new Map(BUNNY_GUILDS.map((g) => [g.key, g]));
@@ -137,3 +137,18 @@ const GUILD_HALL = 11;
 /** The type a building keeps its hours and its people by: a hall of these guilds is a guild hall, whatever house it was. */
 export const hallTypeOf = (/** @type {{ buildingType?: number, factionId?: number } | null | undefined} */ bd) =>
   (isBunnyHall(bd) ? GUILD_HALL : bd?.buildingType ?? -1);
+
+/**
+ * Phase 0c: the guilds as factions of the player's dictionary - DFU's own door for a mod's faction (FactionFile
+ * .RegisterCustomFaction, which every fresh dictionary takes in), so a reputation with one is kept, saved and carried
+ * onto the Roll as any guild's is. Online only, and before the dictionary is built at the load. A Group of no guild
+ * group: Daggerfall's guild code never takes them for one of its own.
+ */
+export function installBunnyGuilds(search = undefined) {
+  if (!bunnyGuildsOn(search)) return 0;
+  let n = 0;
+  for (const g of BUNNY_GUILD_LAW) {
+    if (registerCustomFaction(g.factionId, { parent: 0, type: FACTION_TYPES.Group, name: g.name, ggroup: GUILD_GROUPS.None, sgroup: SOCIAL_GROUPS.GuildMembers, power: 10 })) n++;
+  }
+  return n;
+}

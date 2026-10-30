@@ -68,7 +68,8 @@ import { REGION_NAMES } from '../formats/mapsTables.js';   // CHAP4b: a seat's r
 import { seatWeekOf, chronicleWhen, seatSeasonName } from './townSeatLaw.js';   // CHAP3a: Merit's week is the seats' (the Turning settles both); CHAP4d: the Chronicle's when; CHAP6a: a Season's name
 import { GUILD_ID_RE, GUILD_NAME_MAX, GUILD_TAG_RE } from './guild/guildLaw.js';   // CHAP7a: a patron is a player guild
 import { MARKS_MAX } from './marksLaw.js';   // CHAP7a: a bid held under the one cap every treasury keeps
-import { REALM_CHARACTER_RE } from './identityToken.js';   // CHAP3a: a member's own writ is drawn over its realm id
+import { REALM_CHARACTER_RE } from './identityToken.js';
+import { BUNNY_FACTIONS, bunnyLawOf } from './bunnyGuildLaw.js';   // BUNNY-GUILDS: Bunnyfall's guilds on the Roll and in the Chapters   // CHAP3a: a member's own writ is drawn over its realm id
 
 /** The membership books a character holds (systems/guild/guilds.js: the mortal's and the vampire's), each one temple and one
  *  order at most. */
@@ -76,7 +77,7 @@ export const ROLL_BOOKS = 2;
 const DIVINE_SET = /** @type {Set<number>} */ (new Set(Object.values(DIVINES)));
 const ORDER_SET = /** @type {Set<number>} */ (new Set(Object.values(ORDERS)));
 /** The twenty-two guild factions the Roll keeps, by id, ascending. */
-export const ROLL_FACTIONS = Object.freeze([...Object.values(GUILD_FACTION_IDS), ...Object.values(DIVINES), ...Object.values(ORDERS)]
+export const ROLL_FACTIONS = Object.freeze([...Object.values(GUILD_FACTION_IDS), ...Object.values(DIVINES), ...Object.values(ORDERS), ...BUNNY_FACTIONS]   // BUNNY-GUILDS: and Bunnyfall's seven
   .sort((a, b) => a - b));
 const ROLL_SET = /** @type {Set<number>} */ (new Set(ROLL_FACTIONS));
 /** One of the twenty-two. */
@@ -414,7 +415,7 @@ export function hallFamiliesOf(/** @type {number} */ faction) {
   if (faction === GUILD_FACTION_IDS.DarkBrotherhood) return ['herbs'];
   if (/** @type {number[]} */ (Object.values(DIVINES)).includes(faction)) return ['herbs'];
   if (/** @type {number[]} */ (Object.values(ORDERS)).includes(faction)) return ['metals', 'wood'];
-  return [];
+  return [...(bunnyLawOf(faction)?.families ?? [])];   // BUNNY-GUILDS: net/bunnyGuildLaw.js
 }
 
 /** THE HIDDEN TWO: the Thieves Guild's and the Dark Brotherhood's halls are kept from everyone but their members (DFU's
@@ -513,7 +514,7 @@ export function hallPosterName(/** @type {number} */ faction) {
   const divine = Object.keys(DIVINES).find((k) => DIVINES[/** @type {keyof typeof DIVINES} */ (k)] === faction);
   if (divine) return `Temple of ${divine}`;
   const order = Object.keys(ORDERS).find((k) => ORDERS[/** @type {keyof typeof ORDERS} */ (k)] === faction);
-  return order ? ORDER_NAMES[/** @type {keyof typeof ORDER_NAMES} */ (order)] : null;
+  return order ? ORDER_NAMES[/** @type {keyof typeof ORDER_NAMES} */ (order)] : bunnyLawOf(faction)?.name ?? null;   // BUNNY-GUILDS
 }
 
 /** CHAP2b: the line a credited receipt says - "The Fighters Guild and the Knights of the Dragon will remember it." -

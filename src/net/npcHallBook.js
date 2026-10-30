@@ -26,6 +26,7 @@ import { GUILD_FACTION_IDS } from '../systems/guild/guildFactions.js';
 import { guildGroupOfFaction } from '../systems/guild/guilds.js';
 import { createGuildForGroup } from '../systems/guild/guildVariants.js';
 import { isRollFaction, hallReportOf } from './npcChapterLaw.js';
+import { isBunnyFaction } from './bunnyGuildLaw.js';   // BUNNY-GUILDS: their halls are witnessed as any guild's
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN
 
 /** Where this device keeps the day it last reported each town: { [mapId]: UTC day } - HALL_DONE past the day for a town
@@ -58,6 +59,7 @@ export function hallFactionsOf(buildings, factionDict) {
   for (const b of buildings ?? []) {
     const id = b?.factionId;
     if (HIDDEN.has(id)) { out.add(id); continue; }
+    if (isBunnyFaction(id)) { out.add(id); continue; }   // BUNNY-GUILDS: a converted house that is a guild's hall
     if (!id || (b?.buildingType !== BUILDING_TYPES.GuildHall && b?.buildingType !== BUILDING_TYPES.Temple)) continue;
     const f = chapterFactionOf(id, factionDict);
     if (f != null) out.add(f);
