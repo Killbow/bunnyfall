@@ -70,6 +70,7 @@ import {
   rollMovesOf,   // STANDING-WORDS
 } from './npcChapterLaw.js';
 import { setReputation } from '../systems/faction/factionRep.js';
+import { MAX_REPUTATION } from '../systems/guild/guildFactions.js';   // BUNNYFALL: the most a standing holds
 import { bunnyRollMembers } from '../systems/guild/bunnyMembership.js';   // BUNNY-GUILDS: their members on the Roll
 import { setStandingOwed } from '../systems/standingOwed.js';   // STANDING-WORDS: the owed, kept for the windows
 import { carryInvitationOnly } from '../systems/guild/guilds.js';   // CURSE-CARRY: the underworld guilds read where the curse reads
@@ -266,7 +267,11 @@ export function createRollTracker({
     const paced = paid ? cut.filter((f) => grew(f) > 0) : cut;
     if (paced.length) onCeiling(paced);
     const lost = paid ? cut.filter((f) => c.deltas[f] - (credited[f] ?? c.deltas[f]) > Math.max(0, grew(f))) : [];
-    if (lost.length) onFull(lost);
+    // BUNNYFALL: "lost" is only said where the standing really is at the most it holds. The Bunnyfall pace (ROLL_GAIN_SLOW)
+    // credits a claim's gain at 1/1.75, and that haircut read as a full standing: one song at the Bards' College said its
+    // standing and what is owed "already reach 100"
+    const full = lost.filter((f) => (Number(/** @type {any} */ (base)?.[f]) || 0) + (Number(lastOwed[f]) || 0) >= MAX_REPUTATION);
+    if (full.length) onFull(full);
   }
 
   return {
