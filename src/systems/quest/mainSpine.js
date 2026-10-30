@@ -69,7 +69,28 @@ function openerStartedSpine(quest) {
  *  the opener, or the Curse begun beside it (AUDIT FB1026d II A1). @param {any} saved @param {string[]} names */
 export function spineRecord(saved, names) {
   const has = (n) => names.some((x) => String(x ?? '').toUpperCase() === n);
-  return { opened: saved?.opened === true || has(SPINE_OPENER) || has(SPINE_CURSE), ran: saved?.ran === true || has(SPINE) };
+  return { opened: saved?.opened === true || has(SPINE_OPENER) || has(SPINE_CURSE), ran: saved?.ran === true || has(SPINE),
+    cursed: saved?.cursed === true || has(SPINE_CURSE) };   // MAIN-RETURN: the Curse begun in this game
+}
+
+/**
+ * MAIN-RETURN (2026-10-30, the owner: "chars without the quest should get a letter and the curse of daggerfall should come
+ * back"): THE OPENERS A GAME NEVER HAD. A character made while the main quest and the Curse were switched off
+ * (systems/contentOff.js) has neither: it is started now, once - _BRISIEN, whose first act is Brisienna's letter, and the
+ * Curse (S0000977), the world quest every game began beside it. Each only while its switch is on, and never where the
+ * game's record says it began. A game with any main-quest global set (a classic import, whose main quest is the classic
+ * game's) gets no letter.
+ * @param {{ quests: Map<any, any>, questsToInvoke: any[], storyStarted: Set<string>, globalVars?: Map<any, boolean>,
+ *   spine: { opened: boolean, ran: boolean, cursed?: boolean } }} m
+ * @returns {string[]} the quests to start
+ */
+export function openersOwed(m) {
+  const out = [];
+  const held = (n) => [...m.quests.values()].some((q) => named(q, n)) || m.questsToInvoke.some((q) => named(q, n));
+  const classic = [...(m.globalVars?.values() ?? [])].some(Boolean);
+  if (contentOn('mainQuest') && !m.spine.opened && !m.spine.ran && m.storyStarted.size === 0 && !classic && !held(SPINE_OPENER) && !held(SPINE)) out.push(SPINE_OPENER);
+  if (contentOn('curseOfDaggerfall') && !m.spine.cursed && !held(SPINE_CURSE)) out.push(SPINE_CURSE);
+  return out;
 }
 
 /**

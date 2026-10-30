@@ -292,7 +292,7 @@
 
 import { Parser } from './parser.js';
 import { globalVarsTable } from './tables.js';   // STORY-AGAIN (AUDIT QA3): a step's globals, by name
-import { spineOwed, spineRecord, SPINE, SPINE_OPENER, SPINE_CHECK_TICKS } from './mainSpine.js';   // MAIN-SPINE: the main quest's backbone kept
+import { spineOwed, spineRecord, openersOwed, SPINE, SPINE_OPENER, SPINE_CURSE, SPINE_CHECK_TICKS } from './mainSpine.js';   // MAIN-SPINE: the main quest's backbone kept
 import { defaultActionTemplates, heldPromptPlaces } from './actions.js';   // AUDIT QA3 A1: a box up here, asked in the envelope
 import { receivedState, mergeSharedState, freshState, QL_STAMP } from '../questlines/qlState.js';   // QL1: a shared copy's questline state (decision 7); AUDIT QUESTLINES BRANCH-14: a restart's stamp
 import { QuestResourceBehaviour } from './resourceBehaviour.js';
@@ -520,7 +520,7 @@ export class QuestMachine {
     this.storyStarted = new Set();
     this.storyEnded = new Set();
     this.storyLegacy = false;   // a load of an envelope from before the record (seedStory reads the journal's archive once)
-    this.spine = { opened: false, ran: false };   // MAIN-SPINE (mainSpine.js): this game's opener begun, its backbone begun
+    this.spine = { opened: false, ran: false, cursed: false };   // MAIN-SPINE (mainSpine.js): this game's opener begun, its backbone begun
     this.actionTemplates = [];
     this.globalVars = new Map();      // link id -> bool
     this.siteLinks = [];              // QuestMachine.cs siteLinks - the world<->marker bridge (Q3-i)
@@ -818,6 +818,7 @@ export class QuestMachine {
     this.quests.set(quest.uid, quest);
     if (isMainStoryQuest(quest.questName)) { const n = quest.questName.toUpperCase(); this.storyStarted.add(n); this.storyEnded.delete(n); }   // STORY-AGAIN
     if (questNameIn([SPINE], quest.questName)) this.spine.ran = true; else if (questNameIn([SPINE_OPENER], quest.questName)) this.spine.opened = true;   // MAIN-SPINE: the record the law reads
+    if (questNameIn([SPINE_CURSE], quest.questName)) this.spine.cursed = true;   // MAIN-RETURN: the Curse begun
     this.deps.onQuestStarted?.(quest);
     revealNearSites(quest);   // FIELD BUGS 2026-10-12g QUEST-TOWN: its town on the map, once the quest is the machine's
     if (this.lastNPCClicked != null) {
@@ -1804,6 +1805,7 @@ export class QuestMachine {
   tick() {
     this.beat++;   // AUDIT STAR8 S1 (questFoeStands)
     if (this.beat % SPINE_CHECK_TICKS === 0) this.keepSpine();   // MAIN-SPINE: before the invoke loop, so a start lands this tick
+    if (this.beat % SPINE_CHECK_TICKS === 0) this.keepOpeners();   // MAIN-RETURN: the letter and the Curse a game made without them is owed
     // Invoke scheduled quests (QuestMachine.cs StartQuest:719-725):
     // Start, then the talk-topic registration, then the live table.
     // The questor-behaviour relink that follows in C# is scene work
@@ -1869,6 +1871,16 @@ export class QuestMachine {
     return !!quest;
   }
 
+  /** MAIN-RETURN (mainSpine.js openersOwed): a game made while the main quest and the Curse were off is given them, once -
+   *  each recorded as begun when it starts, so a start that fails is asked again at the next check. Answers how many. */
+  keepOpeners() {
+    let n = 0;
+    for (const name of openersOwed(this)) {
+      try { if (this.startQuestByName(name)) { n++; console.warn(`[quest] ${name} was never begun in this game - started now`); } } catch (e) { console.warn(`[quest] ${name} did not start`, e?.message ?? e); }
+    }
+    return n;
+  }
+
   /** MAIN-SPINE: an opener the journal's archive files began in this game - a load's word, beside seedStory's. */
   seedSpine(entries) {
     if ((entries ?? []).some((e) => e?.kind === 'quest' && questNameIn([SPINE_OPENER], String(e.quest ?? '')))) this.spine.opened = true;
@@ -1877,7 +1889,7 @@ export class QuestMachine {
   /** MAIN-SPINE: the record as the save writes it - the machine's, and its table's word, as a load reads it (spineRecord). */
   _spineData() {
     const spine = spineRecord(this.spine, [...this.quests.values()].map((q) => q.questName));
-    return spine.opened || spine.ran ? { spine } : {};
+    return spine.opened || spine.ran || spine.cursed ? { spine } : {};
   }
 
   /**
