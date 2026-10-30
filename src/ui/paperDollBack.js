@@ -11,7 +11,7 @@
 // the whole turned left for right, as a body seen from behind is.
 
 /** How much of the front's light and shade the back keeps (0 flat, 1 the front's own). */
-export const DOLL_BACK_SHADE = 0.35;
+export const DOLL_BACK_SHADE = 0.15;   // DOLL-BACK II (the owner, a screenshot: "could use some work"): the folds alone, faint
 
 /**
  * A tracker over the compositor's `out` (RGBA, `w` x `h`): `mark(kind)` after each layer is laid names the pixels it
@@ -60,17 +60,31 @@ export function dollBackPixels(out, track) {
     const r = sum[k * 4] / c, g = sum[k * 4 + 1] / c, b = sum[k * 4 + 2] / c;
     avg[k * 4] = r; avg[k * 4 + 1] = g; avg[k * 4 + 2] = b; avg[k * 4 + 3] = 0.299 * r + 0.587 * g + 0.114 * b;
   }
+  // DOLL-BACK II: THE BACK OF THE HEAD. The head's own layer is mostly its hair: the face is the body's art, and showed
+  // through as skin. Every pixel of the body or the head within the head's box is the hair's colour from behind - a
+  // helm or a hood (an item's own layer) still drawn over it.
+  const headK = kinds.indexOf('head');
+  let hx0 = w, hy0 = h, hx1 = -1, hy1 = -1;
+  if (headK >= 0) {
+    for (let p = 0; p < owner.length; p++) {
+      if (owner[p] !== headK || !out[p * 4 + 3]) continue;
+      const x = p % w, y = (p / w) | 0;
+      if (x < hx0) hx0 = x; if (x > hx1) hx1 = x; if (y < hy0) hy0 = y; if (y > hy1) hy1 = y;
+    }
+  }
+  const skin = (/** @type {number} */ k) => kinds[k] === 'body' || kinds[k] === 'weld' || kinds[k] === 'head';
   const back = new Uint8Array(out.length);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const p = y * w + x, i = p * 4, o = (y * w + (w - 1 - x)) * 4;   // turned left for right
       const a = out[i + 3];
       if (!a) continue;
-      const k = owner[p];
+      let k = owner[p];
+      if (headK >= 0 && k >= 0 && skin(k) && x >= hx0 && x <= hx1 && y >= hy0 && y <= hy1) k = headK;
       if (k < 0) { back[o] = out[i]; back[o + 1] = out[i + 1]; back[o + 2] = out[i + 2]; back[o + 3] = a; continue; }
       const lum = 0.299 * out[i] + 0.587 * out[i + 1] + 0.114 * out[i + 2];
       const m = avg[k * 4 + 3];
-      const shade = kinds[k] === 'head' ? 1 : Math.max(0.55, Math.min(1.45, 1 + DOLL_BACK_SHADE * (m > 1 ? lum / m - 1 : 0)));
+      const shade = skin(k) ? 1 : Math.max(0.55, Math.min(1.45, 1 + DOLL_BACK_SHADE * (m > 1 ? lum / m - 1 : 0)));
       back[o] = Math.min(255, avg[k * 4] * shade); back[o + 1] = Math.min(255, avg[k * 4 + 1] * shade); back[o + 2] = Math.min(255, avg[k * 4 + 2] * shade);
       back[o + 3] = a;
     }
