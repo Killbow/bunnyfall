@@ -5,7 +5,9 @@
 // piece made bigger or smaller keeps its light in its flame.
 
 /** record -> how far up the picture its flame is, as a share of its height. */
-export const DECOR_CHAIN_FLAME = Object.freeze(new Map([[24, 0.1], [25, 0.17], [26, 0.25]]));
+// Measured from the game's own TEXTURE.210 (2026-10-30, the owner's files): the middle of each picture's lit glass, as a
+// share of its height from the foot - the round lantern (22) hangs on a chain too, and the plain lantern (27) from a hook.
+export const DECOR_CHAIN_FLAME = Object.freeze(new Map([[22, 0.21], [24, 0.1], [25, 0.16], [26, 0.23], [27, 0.46]]));
 
 /** How far above a lantern-on-a-chain's foot its flame is, for a picture `h` high; null for any other record. */
 export function decorFlameLift(/** @type {number} */ record, /** @type {number} */ h) {

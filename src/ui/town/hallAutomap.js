@@ -13,7 +13,7 @@ const PX = 64;
 /** DFLocation.BuildingTypes.GuildHall (11), as its automap byte. */
 export const GUILD_HALL_BYTE = 12;
 /** How far from the building's place its pixels are looked for, and the most a hall's run may hold. */
-const SEEK = 4, MOST = 900;
+const SEEK = 5, MOST = 900;
 const HOUSE = new Set(HOUSE_SET);
 
 /**
@@ -33,14 +33,28 @@ export function withHallBytes(blocks, buildings, scale = 0.025) {
     let data = copies.get(bl);
     if (!data) { data = Uint8Array.from(bl.autoMap); copies.set(bl, data); }
     const cx = Math.trunc((h.position[0] / div) * PX), cy = PX - 1 - Math.trunc((h.position[2] / div) * PX);
-    // the nearest house pixel to the building's place
-    let start = -1, best = Infinity;
+    // the house about the building's place: of the house pixels near it, the run that covers most of that neighbourhood
+    // (the nearest pixel alone could be a corner of the next house's)
+    let start = -1, most = 0;
+    const seen = new Set();
     for (let dy = -SEEK; dy <= SEEK; dy++) {
       for (let dx = -SEEK; dx <= SEEK; dx++) {
-        const x = cx + dx, y = cy + dy;
-        if (x < 0 || y < 0 || x >= PX || y >= PX || !HOUSE.has(data[y * PX + x])) continue;
-        const d = dx * dx + dy * dy;
-        if (d < best) { best = d; start = y * PX + x; }
+        const x = cx + dx, y = cy + dy, p0 = y * PX + x;
+        if (x < 0 || y < 0 || x >= PX || y >= PX || seen.has(p0) || !HOUSE.has(data[p0])) continue;
+        const byte = data[p0], stack = [p0];
+        let count = 0;
+        seen.add(p0);
+        while (stack.length) {
+          const p = /** @type {number} */ (stack.pop());
+          count++;
+          const px = p % PX, py = (p / PX) | 0;
+          for (const [nx, ny] of [[px - 1, py], [px + 1, py], [px, py - 1], [px, py + 1]]) {
+            if (Math.abs(nx - cx) > SEEK || Math.abs(ny - cy) > SEEK || nx < 0 || ny < 0 || nx >= PX || ny >= PX) continue;
+            const q = ny * PX + nx;
+            if (!seen.has(q) && data[q] === byte) { seen.add(q); stack.push(q); }
+          }
+        }
+        if (count > most) { most = count; start = p0; }
       }
     }
     if (start < 0) continue;
