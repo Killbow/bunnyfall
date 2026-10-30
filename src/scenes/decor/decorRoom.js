@@ -35,6 +35,7 @@
 // colour, never a film's thickness).
 // ═══════════════════════════════════════════════════════════════════
 
+import { decorFlameLift } from '../../systems/decor/decorFlame.js';   // CHAIN-FLAME: a lantern on a chain lights from its flame
 import { trs } from '../../world/mat4.js';
 import { localAabb, transformedAabb, aabbOutside } from '../../render/frustum.js';   // PERF-YARD: and the view's box test
 import { RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE } from '../../player/activate.js';
@@ -165,6 +166,8 @@ export function decorFlatMergeKey(e, o) {
 export function decorLightLift(piece, size) {
   if (!piece.flat) return 0;
   if (!size) return null;
+  const flame = piece.flat[0] === 210 ? decorFlameLift(piece.flat[1], size.h) : null;   // CHAIN-FLAME: a hanging lantern's flame
+  if (flame != null) return flame;
   const [own] = collectInteriorLights([{ archive: piece.flat[0], record: piece.flat[1], x: 0, y: 0, z: 0 }], () => size);
   return own ? own.y : size.h / 2;
 }

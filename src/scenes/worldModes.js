@@ -378,6 +378,7 @@ import {
   homeVoteRows, homeVotePressable, homeVoteOfVerb, homeVoteChoices, homeVoteLines, isHomeVoteVerb,   // HOME-VOTE: the town's word on it, at its door
   homeStationsServe,   // FB1018D HOME-BENCH: a home's stations serve its owner's account, as its door does
 } from '../systems/online/onlineHomes.js';
+import { HOME_HIDE_VERB, homeHideRows, homeHideLine, homeHideVersion, homeDecorSeenByMe, toggleHomeDecorHidden } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE: another's home's decorations hidden for me alone
 import { homeDecorShown, homeVotedLine, homeVotesLine, homeVoteRefusalLine, decorStaysShunned, HOME_VOTE_GONE_LINE } from '../net/homeVoteLaw.js';   // HOME-VOTE: a shunned home's decor stands for its insiders alone
 import { goldSum, accountWords } from '../systems/homeWords.js';   // AUDIT HOME-PRICE E4: a home's sums and the account they moved in
 import { guildHallPrice, GUILD_HALL_ENTRY_WORDS } from '../net/hallLaw.js';   // GUILD1d: what a hall costs, in its refusal's words; who may walk in
@@ -5485,7 +5486,7 @@ export function createWorldModes(host) {
         // HOME-VOTE: a home the town voted below zero stands as Daggerfall furnished it for everyone but its insiders - no
         // placed piece but its hired trader, nothing taken out (net/homeVoteLaw.js homeDecorShown, decorStaysShunned; the
         // owner, and a hall's guild, see theirs; the service hands out no more - decor.js decorOf)
-        const shown = homeDecorShown(interiorHome);
+        const shown = homeDecorSeenByMe(interiorHome, Number(homeTownOf(b)) >>> 0, b.buildingKey, homeDecorShown(interiorHome));   // DECOR-HIDE: nor one I hid
         const pieces = r.data.pieces.map(decorPieceOf).filter((p) => p && (shown || decorStaysShunned(p)));   // AUDIT B2: its trader stands
         interiorDecor.set(pieces);
         if (interiorHome?.own) decorReturnStrays(pieces);   // DECOR2a: the owner's own things the room no longer stands
@@ -7650,7 +7651,7 @@ export function createWorldModes(host) {
   const homeArmed = (bd) => !!_homeArm && _homeArm.id === homeIdOf(bd) && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS;
   /** What the door's cached text depends on beyond the door: whether verbs are listed at all (Steal lists none) and the
    *  arm that is live - its lapse repaints the row back to "Buy it". */
-  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}`;
+  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}`;
   /** The door's verbs, or null: my own home's, or a house's I could buy (homeOfferPrice), in any mode but Steal. */
   function homeDoorVerbs(bd, home) {
     if (!host.onlineHomes || getInteractionMode() === 'steal') return null;
@@ -7658,7 +7659,7 @@ export function createWorldModes(host) {
     if (home) {
       // HOME-RENT: a tenant's own room, or a room to rent; GUILD1d: a hall's members go in, its keepers say who may;
       // HOME-VOTE: and the town's word on it, under whatever else the door does, to anyone who is not its insider - where the plaque DRAWS a list (AUDIT HOME-VOTE II D1: the classic face folds a door's rows it never draws, and a wheel notch lit a vote the click cast unseen; there the Info box asks)
-      const rows = [...(homeVisitorRows(home, homeDoorFor(bd, home)) ?? []), ...(worldPlaqueOn() ? homeVoteRows(home) : [])];
+      const rows = [...(homeVisitorRows(home, homeDoorFor(bd, home)) ?? []), ...(worldPlaqueOn() ? [...homeVoteRows(home), ...homeHideRows(home, homeTownOf(bd), bd.buildingKey)] : [])];   // DECOR-HIDE: last, and only where a plaque lists it
       return rows.length ? rows : null;
     }
     const price = homeOfferPrice(bd);
@@ -7673,7 +7674,7 @@ export function createWorldModes(host) {
    *  law). `text` the door's word so far (null: none), `verbs` its rows (homeDoorVerbs). */
   function homeVoteDoorText(text, bd, home, verbs) {
     if (!text || !home) return text;
-    const voteOnly = isHomeVoteVerb(verbs?.[0]?.id);
+    const voteOnly = isHomeVoteVerb(verbs?.[0]?.id) || verbs?.[0]?.id === HOME_HIDE_VERB;   // DECOR-HIDE: a plain click never hides
     const lines = [...(voteOnly && homeDoorFor(bd, home) === 'locked' ? ['Locked'] : []), ...homeVoteLines(home)];
     const said = lines.length ? { ...text, subs: [...(text.subs ?? []), ...lines] } : text;
     return voteOnly ? { ...said, actionsUnlit: true } : said;
@@ -7935,6 +7936,7 @@ export function createWorldModes(host) {
           // said so, never handed to Daggerfall's lock ladder); and an Info press on a home I may vote on asks - only where
           // the plaque lists no rows (AUDIT B1: a touch screen, World Tooltips off; a drawn plaque's plain click goes in)
           if (!isBash && !homeAsked && getInteractionMode() !== 'steal') {
+            if (verb === HOME_HIDE_VERB) { if (home) townTalk?.say?.(homeHideLine(toggleHomeDecorHidden(Number(homeTownOf(bd)) >>> 0, bd.buildingKey))); return true; }   // DECOR-HIDE
             if (isHomeVoteVerb(verb)) { if (homeVotePressable(home, homeVoteOfVerb(verb))) pressHomeVote(bd, homeVoteOfVerb(verb)); else if (!home) townTalk?.say?.(HOME_VOTE_GONE_LINE); return true; }
             if (verb == null && getInteractionMode() === 'info' && homeVoteRows(home).length && !listed) { openHomeVoteMenu(bd, home, door, door === 'enter' ? homeOnward(hit, entries) : null); return true; }
           }

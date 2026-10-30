@@ -193,7 +193,7 @@ export function decorDoorMarkPixels(size = 16) {
 /** HOME-YARD: the lot's marked edge, a soft blue - never a doorway's green. */
 export const DECOR_LOT_MARK = Object.freeze([0.45, 0.75, 1, 0.5]);
 /** FB1001 ROAD-LOT: the most bands the lot's edge is marked in - four sides, and the road's sides where it cuts in. */
-export const DECOR_LOT_MARKS = 64;
+export const DECOR_LOT_MARKS = 192;   // YARD-SPLIT: the midline's steps too
 /** DECOR1e: the light a piece with none of its own is given when the owner lights it - a warm lamp's. */
 export const DECOR_DEFAULT_LIGHT = Object.freeze({ color: Object.freeze([1, 0.85, 0.6]), range: 6, intensity: 1 });
 

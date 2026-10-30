@@ -59,6 +59,7 @@
 
 import { createDecorRoom, decorBoxSeen, DECOR_DRAW, DECOR_SKIP } from './decor/decorRoom.js';   // YARD-RANGE: a piece too small to see
 import { decorKey } from '../systems/decor/decorCatalogue.js';
+import { decorFlameLift } from '../systems/decor/decorFlame.js';   // CHAIN-FLAME
 import { decorPlaque } from '../systems/decor/decorLook.js';
 import { pickActivatableHit } from '../player/activate.js';
 import { plaqueActionFor } from '../systems/quickLoot.js';
@@ -70,7 +71,8 @@ import { onPathTile } from '../player/exteriorSurface.js';   // FB1001 ROAD-LOT:
 import { RMB_TILE_SIDE } from '../world/locationEntrance.js';   // FB1001 ROAD-LOT: RMBLayout.RMBTileSide, a ground tile's side
 import { TERRAIN_TILE_DIM } from '../world/terrain/terrainSurface.js';
 import { homeOutsideKept, homeYardWhere, homeCandidate } from '../systems/online/onlineHomes.js';   // GUILD-YARD: a hall's keepers keep its outside
-import { homeDecorShown } from '../net/homeVoteLaw.js';   // HOME-VOTE: a shunned home's yard stands for its insiders alone
+import { homeDecorShown } from '../net/homeVoteLaw.js';
+import { homeDecorSeenByMe } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE   // HOME-VOTE: a shunned home's yard stands for its insiders alone
 import { createYardNature, isNaturePiece, yardNatureFlat, yardTreeSet } from './yardNature.js';   // DECOR-OUTDOOR: a yard's trees and plants, in its town's season; DECOR-LPT: as Low Poly Trees' own
 import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yard's models in its town's climate
 import { applyClimate } from '../world/climateSwaps.js';
@@ -128,7 +130,8 @@ export function yardLampOf(piece, size) {
     const c = interiorLightProperties(piece.flat[1]);
     return { light: { range: c.range * k, intensity: c.intensity, color: c.color, slot }, lift: size.h + YARD_LAMP_RAISE * k };
   }
-  return { light: { ...YARD_LAMP, range: YARD_LAMP.range * k, slot }, lift: size.h + YARD_LAMP_RAISE * k };
+  const flame = decorFlameLift(piece.flat[1], size.h);   // CHAIN-FLAME: a lantern on a chain lights from its flame, at its foot
+  return { light: { ...YARD_LAMP, range: YARD_LAMP.range * k, slot }, lift: flame ?? size.h + YARD_LAMP_RAISE * k };
 }
 /** YARD-LIGHT: the town's flicker slot a yard's lamp takes (CityLightAnimator), named by its piece - FNV-1a of the id -
  *  so it keeps its own flicker whatever else stands (LA-LIGHTS1's law for the street's lanterns). */
@@ -226,6 +229,8 @@ export const YARD_TOO_HIGH = DECOR_YARD_HIGH_WHY;
 export const YARD_EDGE_PAD = 0.05;
 /** FB1009 HOME-FOOT: the side of the cells a model's ground is measured in, metres (half Daggerfall's 0.8 m wall step). */
 export const YARD_FOOT_CELL = 0.4;
+/** YARD-SPLIT: the step the lot's marked edge follows the midline to a neighbour in, metres. */
+export const YARD_SPLIT_CELL = 0.5;
 /** A face this high, and higher, is a roof. Ground under the part of it that hangs past the walls is still the yard. */
 export const YARD_ROOF_Y = 2;
 
@@ -445,16 +450,28 @@ export function yardRoadsOf(p, at, lot) {
  * left (the bands' faces turned in, as the four sides always were), joined end to end into loops and a straight run
  * one segment. With no road it is the lot's four sides, south first.
  */
-export function yardLotEdges(lot, roads = []) {
+export function yardLotEdges(lot, roads = [], lines = []) {
   if (!lot) return [];
   const [X0, Z0, X1, Z1] = lot.lot;
   const holes = (roads ?? []).filter((r) => r[0] < X1 && r[2] > X0 && r[1] < Z1 && r[3] > Z0);
-  const cuts = (lo, hi, i, j) => [...new Set([lo, hi, ...holes.flatMap((r) => [r[i], r[j]]).filter((v) => v > lo && v < hi)])].sort((a, b) => a - b);
+  // YARD-SPLIT (2026-10-30, the owner: "the border of your yard shows the line between your yard and the yard of each
+  // neighbor"): with neighbours' ground in `lines` (yardWhyNot's HOME-LINE midline), the lot is cut in YARD_SPLIT_CELL
+  // steps too and a cell nearer a neighbour than the house is off the lot, so the edge runs along the midline
+  const near = (lines ?? []).filter((r) => r[0] < X1 + 2 * YARD_MARGIN && r[2] > X0 - 2 * YARD_MARGIN && r[1] < Z1 + 2 * YARD_MARGIN && r[3] > Z0 - 2 * YARD_MARGIN);
+  const own = lot.walls ?? [lot.house];
+  const steps = (lo, hi) => (near.length ? Array.from({ length: Math.max(0, Math.ceil((hi - lo) / YARD_SPLIT_CELL) - 1) }, (_, k) => lo + (k + 1) * YARD_SPLIT_CELL) : []);
+  const cuts = (lo, hi, i, j) => [...new Set([lo, hi, ...steps(lo, hi), ...holes.flatMap((r) => [r[i], r[j]]).filter((v) => v > lo && v < hi)])].sort((a, b) => a - b);
   const xs = cuts(X0, X1, 0, 2), zs = cuts(Z0, Z1, 1, 3);
+  const memo = new Map();
   const open = (i, j) => {
     if (i < 0 || j < 0 || i >= xs.length - 1 || j >= zs.length - 1) return false;
+    const k = i * 65536 + j;
+    if (memo.has(k)) return memo.get(k);
     const cx = (xs[i] + xs[i + 1]) / 2, cz = (zs[j] + zs[j + 1]) / 2;
-    return !holes.some((r) => cx > r[0] && cx < r[2] && cz > r[1] && cz < r[3]);
+    const v = !holes.some((r) => cx > r[0] && cx < r[2] && cz > r[1] && cz < r[3])
+      && !(near.length && yardGapTo(near, cx, cz) < yardGapTo(own, cx, cz));
+    memo.set(k, v);
+    return v;
   };
   const segs = [];
   for (let i = 0; i < xs.length; i++) {
@@ -498,14 +515,14 @@ export const yardHolds = (lot, origin, p, near = 0) => !!lot && Array.isArray(p)
  * shape), standing on the ground, in the world (`origin` the frame's). FB1001 ROAD-LOT: with the road taken out of it
  * (`roads` - yardRoadsOf), the edge runs along the road's side: the band is where a piece may stand up to.
  */
-export function yardLotQuads(lot, origin, high = YARD_MARK_HIGH, roads = []) {
+export function yardLotQuads(lot, origin, high = YARD_MARK_HIGH, roads = [], lines = []) {
   if (!lot) return [];
   const y = origin[1] + lot.y + high / 2;
   const side = ([ax, az, bx, bz]) => {
     const len = Math.hypot(bx - ax, bz - az);
     return { pos: [origin[0] + (ax + bx) / 2, y, origin[2] + (az + bz) / 2], size: high, stretch: len / high, right: [(bx - ax) / len, 0, (bz - az) / len], up: [0, 1, 0] };
   };
-  return yardLotEdges(lot, roads).map(side);
+  return yardLotEdges(lot, roads, lines).map(side);
 }
 
 /**
@@ -559,6 +576,8 @@ export function createHomeYards(deps) {
   let syncIn = 0;
   /** @type {any} the owner's own yard the decorator stands in, or null */
   let cur = null;
+  /** YARD-SPLIT: the marked edge last worked out, and what it was worked out for. */
+  let lotMarks = { yard: null, key: '', quads: [] };
   // FB1001 YARD-STALE: the owner's own writes - each one's turn, and the yard it left, by town and building - so a town's
   // answer READ BEFORE a write and landing after it never stands the yard as it was (the piece placed gone, the piece
   // moved back, the piece removed standing again, for the minute until the next read)
@@ -670,7 +689,7 @@ export function createHomeYards(deps) {
         const home = deps.homes?.homeAt?.(p.homeTown, bk) ?? null;
         // HOME-VOTE: a home the town voted below zero stands no yard but for its insiders (net/homeVoteLaw.js) - its
         // pieces taken down where they stood, and stood again the moment its votes climb
-        const pieces = homeDecorShown(home) ? town?.byKey.get(bk) ?? null : null;
+        const pieces = homeDecorSeenByMe(home, p.homeTown, bk, homeDecorShown(home)) ? town?.byKey.get(bk) ?? null : null;   // DECOR-HIDE: nor one I hid
         if (!home || (!pieces?.length && !homeOutsideKept(home))) continue;   // a yard stands for a home with pieces, or for its owner (GUILD-YARD: a hall's keeper)
         if (!homeOutsideKept(home) && range() === 0) continue;   // YARD-RANGE: none of a stranger's - taken down where it stood
         const key = `${pk}:${bk}`;
@@ -737,7 +756,10 @@ export function createHomeYards(deps) {
       if (bk === y.bk) continue;
       // FB1009 HOME-FOOT: a neighbour's ground is what its faces cover too (its box, where none are known)
       const ground = f.rects?.length ? f.rects : [[f.box[0], f.box[2], f.box[3], f.box[5]]];
-      const holds = yardLineHolder(f, bk, deps.homes?.homeAt?.(y.mapId, bk) ?? null);   // YARD-LINE: the midline is a lot's holder's alone
+      const nb = deps.homes?.homeAt?.(y.mapId, bk) ?? null;
+      // YARD-LINE: the midline is a lot's holder's alone; YARD-SPLIT (the owner: "when you own two houses next to each
+      // other, no line divides their yards"): never to another home of my own account's
+      const holds = yardLineHolder(f, bk, nb) && !(nb?.mine === true && !nb.hall && !home.hall);
       for (const r of ground) {
         const g = [r[0] - y.frame.at[0], r[1] - y.frame.at[2], r[2] - y.frame.at[0], r[3] - y.frame.at[2]];
         others.push(g);
@@ -811,7 +833,14 @@ export function createHomeYards(deps) {
     say: (l) => deps.say?.(l), refusal: (w) => deps.refusal?.(w) ?? null, now,
     // HOME-YARD: the lot - a piece off it refused, its edge marked
     placeOk: (piece, foot) => (cur ? hallWords(yardWhyNot(piece.pos, cur.yard.lot, cur.others, foot, cur.roads, cur.lines)) : YARD_OFF_LOT),   // FB1001 ROAD-LOT: off the road
-    lot: () => (cur ? yardLotQuads(cur.yard.lot, originOf(cur.yard), YARD_MARK_HIGH, cur.roads) : []),   // FB1001 ROAD-LOT: the edge along the road's side
+    lot: () => {   // YARD-SPLIT: and the midline to each neighbour - worked out again only when the yard or its place moved
+      if (!cur) return [];
+      const o = originOf(cur.yard), key = `${o.join(',')}|${cur.lines.length}|${cur.roads.length}`;
+      if (lotMarks.yard !== cur.yard.lot || lotMarks.key !== key) {
+        lotMarks = { yard: cur.yard.lot, key, quads: yardLotQuads(cur.yard.lot, o, YARD_MARK_HIGH, cur.roads, cur.lines) };
+      }
+      return lotMarks.quads;
+    },   // FB1001 ROAD-LOT: the edge along the road's side
     yardCap: DECOR_YARD_CAP,
     // HOME-LOOK: the house's outside, painted from the yard's panel
     look: () => (cur && deps.look ? lookDoor(cur.yard) : null),
