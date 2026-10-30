@@ -389,7 +389,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     }
     const aabb = worldAabb(cpu.positions, matrix);
     // IIL1: ImproveFireplaces.cs finds its hearths by mesh id - the port keeps where they stand
-    if (IIL_FIREPLACE_MODELS.has(p.modelIdNum)) iilFireplaces.push({ x: (aabb.min[0] + aabb.max[0]) / 2, y: (aabb.min[1] + aabb.max[1]) / 2, z: (aabb.min[2] + aabb.max[2]) / 2 });
+    if (IIL_FIREPLACE_MODELS.has(p.modelIdNum)) iilFireplaces.push({ x: (aabb.min[0] + aabb.max[0]) / 2, y: (aabb.min[1] + aabb.max[1]) / 2, z: (aabb.min[2] + aabb.max[2]) / 2, foot: aabb.min[1], w: Math.max(aabb.max[0] - aabb.min[0], aabb.max[2] - aabb.min[2]), h: aabb.max[1] - aabb.min[1] });   // BUNNYFALL: and its box, for a cooking fire
     const key = `int:${pi}`;
     const baseKey = base && p.objectType === PROP_MODEL_TYPE && p.modelIdNum !== LADDER_MODEL_ID && p.modelIdNum !== MACHINERY_MODEL_ID
       ? decorBaseModelKey(pi, p.modelIdNum) : null;   // BASE-HIDE: a piece its owner may take out

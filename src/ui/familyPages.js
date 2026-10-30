@@ -646,16 +646,18 @@ export function drawHousePage(detail, rerender, { el, divider } = /** @type {any
   const here = prov.moveFamilySeat ? prov.familySeatHere?.() ?? null : null;
   if (here) {
     const armed = _armed === 'seat';
-    const b = el('button', `act fam-moveseat${armed ? ' primary' : ''}`, armed ? `Yes, make ${here.loc} the family seat` : `Make ${here.loc} the family seat`);
+    const b = el('button', `act fam-moveseat${armed ? ' primary' : ''}`, armed ? `Yes, make ${here.loc} the family seat` : (family.seat ? `Make ${here.loc} the family seat` : `Establish the family seat in ${here.loc}`));
     b.setAttribute('data-focus', 'fam-act-seat');   // armed, its words change - the keyboard stays on it
     b.onclick = () => {
-      if (!armed) { _armed = 'seat'; _seatSaid = { ok: true, text: `The house's heirs will be born in ${here.loc}, and its fallen laid to rest there. Press again to move the seat.` }; rerender(); return; }
+      if (!armed) { _armed = 'seat'; _seatSaid = { ok: true, text: `The house's heirs will be born in ${here.loc}, and its fallen laid to rest there. Press again to ${family.seat ? 'move' : 'establish'} the seat.` }; rerender(); return; }
       _armed = null;
       const r = prov.moveFamilySeat();
       _seatSaid = r.ok ? { ok: true, text: `${here.loc} is your family's seat now.` } : { ok: false, text: r.why ?? 'Not now.' };
       rerender();
     };
     detail.append(b);
+  } else if (prov.moveFamilySeat && !family.seat?.loc && !family.pending && me && isAlive(me) && !prov.past?.()) {
+    detail.append(el('p', 'px-note fam-seathint', 'The house has no seat yet. Stand in the town you choose and open this page to establish it.'));   // BUNNYFALL
   } else if (prov.moveFamilySeat && family.seat?.loc && !family.pending && me && isAlive(me) && !prov.past?.()) {
     // AUDIT FB1007b S5: where the move is not offered, the page says where it is - else the seat looked fixed for good
     detail.append(el('p', 'px-note fam-seathint', SEAT_HINT));

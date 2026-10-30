@@ -94,6 +94,7 @@ import { installConsoleProbe } from '../systems/consoleCommands.js';   // E3: th
 import { createSwimMovement } from './deepWater/deepWatersSwimMove.js';   // DW-D: Iliac Puddle No More's swim movement - the dungeon's water too (IsAnySwimming)
 import { deepWatersOn, deepWatersSwimSettings } from './deepWater/deepWatersHost.js';
 import { loadGraceActive as dwLoadGraceActive } from '../world/deepWater/deepWaterRuntime.js';
+import { autorunCancel } from '../player/autorunCancel.js';
 
 // Water surface: the classic water tile (R11), drawn by the context's
 // own frame function since WATER-D1 - its colour (DUNGEON_WATER_COLOR)
@@ -933,6 +934,7 @@ export async function bootDungeon(canvas, renderer, params, status) {
       // (PlayerSpeedChanger's half), so this reads last step's value -
       // DFU's own script-order indeterminacy between InputManager.Update
       // and PlayerMotor.Update.
+      autorunCancel(mv, player);   // BUNNYFALL: a fresh W press drops the autorun latch
       const axes = moveAxes.update(dt, { ...mv, autorun: player.toggleAutorun });   // AUDIT 28 W8: one Update of the axes per frame the motor runs
       // Audit F3: the crouch toggle stays LIVE while paralyzed - DFU
       // gates movement/jump only (DecideHeightAction has no check).

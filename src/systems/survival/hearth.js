@@ -185,3 +185,13 @@ export function hearthNear(hearths, pos, reach, n = -1) {
   }
   return false;
 }
+
+/**
+ * BUNNYFALL: A BUILT-IN FIREPLACE IS A FIRE TO COOK AT. HEARTH1 left the mesh fireplaces (the models ImproveFireplaces
+ * lights) out because no flat carries them; a room hands its fireplace models' centres and boxes here (interiorContext's
+ * iilFireplaces) and they are hearths like the braziers, so a tavern's or a stranger's house's hearth cooks a dish.
+ * @param {{x:number,y:number,z:number,foot?:number,w?:number,h?:number}[]|null|undefined} fireplaces
+ */
+export function fireplaceHearths(fireplaces) {
+  return (fireplaces ?? []).filter(Boolean).map((f) => ({ x: f.x, y: f.y, z: f.z, foot: f.foot, w: f.w, h: f.h }));
+}

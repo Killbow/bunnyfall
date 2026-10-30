@@ -87,7 +87,7 @@ import { getGroundArchive } from '../world/climateSwaps.js';
 import { DUNGEON_LIGHT_COLOR, DUNGEON_LIGHT_BLOCK_RANGE } from '../world/dungeon/dungeonLights.js';   // A10: the block-range cut
 import { createCamps } from './camps.js';   // HEARTH1: not to STAND a camp indoors - nothing may be - but to answer the room's own fires
 import { CAMP_TEXT } from '../systems/survival/camp.js';   // AUDIT REST II H4: the carried-out word, said on the HUD outside
-import { collectHearths } from '../systems/survival/hearth.js';   // AUDIT HEARTH1 F4: the law's own collection, rather than a fourth hand-written copy of its test
+import { collectHearths, fireplaceHearths } from '../systems/survival/hearth.js';   // AUDIT HEARTH1 F4: the law's own collection, rather than a fourth hand-written copy of its test
 import { lanternColor, dungeonAmbient, dungeonTrilight, dungeonFog, interiorLightColor, interiorGrade } from '../render/enhancedLighting.js';   // EL1: the world host installed the lane; this reads it; EL4: the dark; AUDIT-EL F6: the fog with it; INTERIOR-DIM: a room's lamps and its grade
 import { INTERIOR_AMBIENT, INTERIOR_NIGHT_AMBIENT, INTERIOR_LIGHT_DIR, roomAmbient } from '../world/interior/interiorLights.js';   // RPT1026-WORLD DARK-ROOM: roomAmbient
 import { isNight } from '../world/worldClock.js';   // AUDIT 23 (C12)
@@ -402,6 +402,7 @@ import { forgeOffered, PROF_STATIONS, stationColdLine, enchantGoldPct, STORES_AC
 import { FORGE_FEE, WORKBENCH_FEE, LOOM_FEE, MASON_FEE, COOK_FIRE, JEWEL_FEE, ALCHEMY_FEE, ENCHANT_FEE } from '../net/professionLaw.js';   // PROF2: a smith's forge's use fee; PROF4: a furnisher's workbench's; PROF7: a tailor's loom's; PROF11: a General Store's mason's bench's; PROF10: a Pawn Shop's or a Gem Store's jeweller's bench's
 /** HOME-STATIONS: a station pressed whose maker's art has not landed yet. */
 const DECOR_STATION_NOT_READY = 'The station is not ready yet. Try again in a moment.';
+import { autorunCancel } from '../player/autorunCancel.js';
 /** AUDIT HOME-STATIONS S7: a maker's refusal whose TEXT.RSC record did not answer. */
 const DECOR_STATION_REFUSED = 'You cannot use the station right now.';
 import { createDecorRoom, decorIdOfKey, askDecorList, offerDecorFigures, primeDecorList, primedDecorList, decorListKey } from './decor/decorRoom.js';   // MWNPC18: a placed figure in its body; the door's list starts when the player goes in
@@ -8732,6 +8733,7 @@ export function createWorldModes(host) {
       // does, and go out with it below.
       interiorHearths.length = 0;
       interiorHearths.push(...collectHearths(ctx.lights));
+      interiorHearths.push(...fireplaceHearths(ctx.iilFireplaces));   // BUNNYFALL: and its built-in fireplaces
       // WORLD6a: this building's room - keyed as the relay room is (the map id unsigned, the building key), stamped
       // by this context; an OWNED house or ship is the player's own and keeps no room. The doors go out as acts the
       // moment they move (WORLD3's change seam, the graph's own), keyed by the building.
@@ -10567,6 +10569,7 @@ export function createWorldModes(host) {
     // (PlayerSpeedChanger's half), so this reads last step's value -
     // DFU's own script-order indeterminacy between InputManager.Update
     // and PlayerMotor.Update.
+    if (!overlayHeld) autorunCancel(mv, player);   // BUNNYFALL: a fresh W press drops the autorun latch
     const axes = overlayHeld ? { forward: moveAxes.vertical, strafe: moveAxes.horizontal } : moveAxes.update(dt, { ...mv, autorun: player.toggleAutorun });
     // SD7b (Super-Dungeons.md section 9): THE UNMOORED STEPS ride before the motor too - each step stood where the realm's
     // clock has it and a body on one carried with it (under a window as well: the realm's clock runs on), and while the

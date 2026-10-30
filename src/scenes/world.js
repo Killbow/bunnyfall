@@ -405,6 +405,7 @@ import { registerEgFind, egFindThrow, egFindPlace } from '../systems/eliteGates/
 import { setSetPowersAllies, setSpireRecovery, spireRedoubtTaken } from '../systems/sigil/sigilSetPowers.js';   // EG15: the Reprieve's allies, the death saves held to a Redoubt in a breach
 import { brokerStock, brokerDay, brokerBought, makeBrokerSale, spendableStonesIn, lockedStonesIn, stoneCount, stonesText, brokerOwedDoor, brokerOwedText, emberHands } from '../systems/sigil/sigilBroker.js';   // SET7: the day's stock, the record, the sale   // SS1: the stones counted over their stacks   // BROKER-RID (AUDIT FB1024): her two sales by their request ids, an unheard one owed and settled at her next open
 import { drawGateBanner } from '../ui/gate/gateBanner.js';
+import { autorunCancel } from '../player/autorunCancel.js';
 import { drawGateGround } from '../ui/gate/gateGroundView.js';   // WB9d: his ground's rim and warning - hidden with a held frame (the court draws it); SD15: and the Hour's
 import { drawGateDamageChart } from '../ui/gate/gateDamageChart.js';   // GATE-UX: the kill's damage chart (the court draws it - scenes/gate/gateCourt.js); a held frame hides it with the rest
 import { drawGateMarksCard } from '../ui/gate/gateMarksView.js';   // WB9a: tonight's marks over the screen - by the gate before it is entered (and in the court as a fighter steps in: scenes/gate/gateCourt.js)
@@ -32963,6 +32964,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         // (PlayerSpeedChanger's half), so this reads last step's value -
         // DFU's own script-order indeterminacy between InputManager.Update
         // and PlayerMotor.Update.
+        if (!_overlayHeld) autorunCancel(mv, player);   // BUNNYFALL: a fresh W press drops the autorun latch
         const axes = _overlayHeld ? { forward: moveAxes.vertical, strafe: moveAxes.horizontal } : moveAxes.update(dt, { ...mv, autorun: player.toggleAutorun });
         // TO1: THE AUTOPILOT DRIVES. Its Update answers two numbers -
         // the yaw the body should face and the forward force - and the

@@ -199,6 +199,19 @@ export function drawTier(u, tiers) {
   return w.length;
 }
 
+/** BUNNYFALL HERB-CLUSTERS: a pixel's herb patches stand in groups of three or four, as the veins do (veinGroupOf), each
+ *  group round its own law point and a patch of it HERB_RING from that point. Tier, herb and season are the law's as before. */
+export const HERB_RING = Object.freeze([0.012, 0.022]);
+function herbPoint(x, y, day, slot, slots) {
+  const { group, at, size } = veinGroupOf(slot, slots);
+  const pad = 0.04 + HERB_RING[1];
+  const cu = pad + (1 - 2 * pad) * unit('herb', x, y, day, 100 + group, 1);
+  const cv = pad + (1 - 2 * pad) * unit('herb', x, y, day, 100 + group, 2);
+  const turn = unit('herb', x, y, day, 100 + group, 3);
+  const a = 2 * Math.PI * (turn + at / size) + (unit('herb', x, y, day, slot, 6) - 0.5) * (Math.PI / size);
+  const r = HERB_RING[0] + (HERB_RING[1] - HERB_RING[0]) * unit('herb', x, y, day, slot, 7);
+  return { u: cu + Math.cos(a) * r, v: cv + Math.sin(a) * r };
+}
 /**
  * ONE HERB PATCH of a pixel's day: where it stands in the pixel (`u`, `v` in [0.04, 0.96]), its tier, its herb, and
  * whether the herb is out of season (a Seasonal Eye's alone). The tier is held to 2 on a pixel not confirmed. The herb
@@ -210,8 +223,7 @@ export function herbPatch({ x, y, day, slot, climate, confirmed = false, seasona
   const table = HERB_TABLES[climate];
   if (!table) return null;
   const season = daySeason(day);
-  const u = 0.04 + 0.92 * unit('herb', x, y, day, slot, 1);
-  const v = 0.04 + 0.92 * unit('herb', x, y, day, slot, 2);
+  const { u, v } = herbPoint(x, y, day, slot, nodeCount(climate, 'herb'));   // BUNNYFALL: in groups, as the veins stand
   // AUDIT 29 A8: held to tier 2 by the weights (40 : 25), as a vein is - a clamp gave tier 3's draws to tier 2
   const tier = drawTier(unit('herb', x, y, day, slot, 3), confirmed ? HERB_TIERS : 2);
   const list = table[tier - 1];

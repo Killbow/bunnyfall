@@ -346,6 +346,7 @@ import { registerPlayerSwingListener } from '../combat/playerWeapon.js';
 import { raceDisplayName } from '../systems/talk/talkSession.js';   // MACRO-ONE: %ra's display name, as world.js reads it
 import { localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
+import { autorunCancel } from '../player/autorunCancel.js';
 
 export async function bootExterior(canvas, renderer, params, status) {
   const regionName = params.get('region') || 'Daggerfall';
@@ -5366,6 +5367,7 @@ export async function bootExterior(canvas, renderer, params, status) {
       // (PlayerSpeedChanger's half), so this reads last step's value -
       // DFU's own script-order indeterminacy between InputManager.Update
       // and PlayerMotor.Update.
+      if (!_overlayHeld) autorunCancel(mv, player);   // BUNNYFALL: a fresh W press drops the autorun latch
       const axes = _overlayHeld ? { forward: moveAxes.vertical, strafe: moveAxes.horizontal } : moveAxes.update(dt, { ...mv, autorun: player.toggleAutorun });
       // Audit F3: the crouch toggle stays LIVE while paralyzed - DFU
       // gates movement and the jump only (DecideHeightAction has no check).

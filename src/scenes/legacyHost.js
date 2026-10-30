@@ -70,6 +70,7 @@ export const BORN_REFLEXES = 2;
 export const LEGACY_TEXT = Object.freeze({
   founded: (sur, model) => `${houseWord(sur) ? `The house of ${houseWord(sur)}` : 'Your house'} is founded as ${model === MODELS.bloodline ? 'a Bloodline, where every death is final' : 'an Enduring line, where a death costs years'}.`,   // LEGACY-NAME: named at its seat, or not yet
   seat: (loc) => `${loc} is your family's seat.`,
+  seatUnset: 'Your house has no seat yet. Open the House page in the town you choose to establish it there.',   // BUNNYFALL
   // FAMILY-SEAT (FIELD BUGS 2026-10-07b): the seat moved where the one played stands (the House page)
   seatMoved: (loc) => `The house moves its seat: ${loc} is your family's seat.`,
   seatNowhere: 'To move the family seat, stand anywhere in another town, or at a home your family owns.',   // AUDIT FB1007b S5: and the House page's hint; FB1012d SEAT-HOME: a farm's home too
@@ -233,6 +234,7 @@ export function createLegacyHost(deps) {
   /** @type {any} */ let held = null;
   const wallNow = () => Number(deps.wall?.() ?? Date.now());
   let elderSaid = false;
+  let seatHinted = false;   // BUNNYFALL: the seatless house said so once
   /** The remains opened this visit, and the rests asked this visit - by remains id (AUDIT LEGACY H8). */
   const openedThisVisit = new Set();
   const restAskedThisVisit = new Set();
@@ -1189,8 +1191,9 @@ export function createLegacyHost(deps) {
     const p = current();
     if (!p || !isAlive(p) || !playedHere(p)) return null;   // AUDIT LEGACY II A1: nothing of the one handed the line, on a page not theirs
     if (!family.seat) {
-      const t = deps.town(deps.here());
-      if (t) { family.seat = t; const named = nameAtSeat(family); touch(family); store(); deps.say(LEGACY_TEXT.seat(t.loc)); if (named) deps.say(LEGACY_TEXT.named(family.surname)); }   // LEGACY-NAME: a nameless house takes its seat's name
+      // BUNNYFALL: no seat falls to the first town entered - the house stands seatless until the player establishes one (the
+      // House page, moveFamilySeat), since none of us hail from the town we first wander into. Said once, in the first town.
+      if (!seatHinted && deps.town(deps.here())) { seatHinted = true; deps.say(LEGACY_TEXT.seatUnset); }
     } else if (nameAtSeat(family)) {
       touch(family); store(); deps.say(LEGACY_TEXT.named(family.surname));   // AUDIT LEGACY III A6: a seat noted with the house left nameless
     } else if (family.seat.mapId == null) {
@@ -1572,11 +1575,12 @@ export function createLegacyHost(deps) {
     if (!t) return { ok: false, why: family?.pending ? LEGACY_TEXT.pending : LEGACY_TEXT.seatNowhere };
     // AUDIT FB1007b S2: the newest word on the seat, as writeCurrent's savedAt is - after the stamp of the seat it moves,
     // so a move stands over that seat in every merge though this clock run behind the one that stamped it (a device's)
+    const firstSeat = !family.seat;   // BUNNYFALL: the first seat is established, not moved
     family.seat = { ...t, at: Math.max((Number(family.seat?.at) || 0) + 1, Math.floor(deps.wall?.() ?? Date.now())) };
     const nameTaken = nameAtSeat(family);   // LEGACY-NAME: a nameless house takes its seat's name, as at the first
     touch(family);
     store();
-    deps.say(LEGACY_TEXT.seatMoved(t.loc));
+    deps.say(firstSeat ? LEGACY_TEXT.seat(t.loc) : LEGACY_TEXT.seatMoved(t.loc));
     if (nameTaken) deps.say(LEGACY_TEXT.named(family.surname));
     return { ok: true };
   }
