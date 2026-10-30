@@ -1015,6 +1015,7 @@ import { GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';   // th
 import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // KnightlyOrder.FreeShipTravel, the second half of hasShip; FreeTavernRooms, the trip cost's inn nights
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
+import { bunnyQuestEnded } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
 import { RumorMill, tokensToString } from '../systems/rumorMill.js';
 import { HolidayTextTimer, holidayTextPrimesFor } from '../systems/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
@@ -19654,6 +19655,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (initiated.length) revealMemberGuildHalls();
       escortQuestEnded(q);
       renownQuestEnded?.(q);   // RENOWN1: a quest done online pays its Renown XP
+      bunnyQuestEnded(q, playerEntity);   // BUNNY-GUILDS: a quest done well raises the Adventurers Guild's regard (online)
       cardQuestEnded(q);   // CARDS9: and a guild's quest, now and then, one of its guild's cards
       naval?.raidEnded(q);   // NAV-D: a raid the sea fight started - won (its leader down) or run out - ends its boarding
       raidAshore.questEnded(q);   // RAID-ASHORE: a raid ended ashore - what its last ticks stood, withdrawn
@@ -27443,7 +27445,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // settles it is asked (the town's board is read on arrival anyway, for the count over it).
   // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): the Work tab's crafting writs, their goods out of the pack and the record
   const craftWrits = createCraftWritHost({ player: () => playerEntity, session: () => realmSession, checkpoint: () => onlineCheckpoint(), saved: () => saveSoon.changed(), book: () => profBook });
-  const openNoticeBoard = (town, rumour) => {
+  const openNoticeBoard = (town, rumour, opts = null) => {
     if (!noticeBook || !town) return false;
     if (noticeBook.open !== true) { noticeBook.read(town.mapId); return false; }
     // PROF1: the Work tab - the town's region's Court writs - while the professions are this account's
@@ -27495,6 +27497,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
     } : null;
     return showNoticeWindow({
+      ...(opts?.tab ? { tab: opts.tab } : {}),   // BUNNY-GUILDS: the Adventurers Guild's desk opens it on the Work tab
       town: { name: town.name, mapId: town.mapId }, rumour: rumour ?? [], bountyLine: !!town.bountyLine,
       gate: () => noticeGateCard(), sd: () => noticeSdCard(), answer: (note) => answerNote(note), work, market,
       vendors: market ? vendorBoardHost(region) : null,   // HOME-VENDOR: the region's traders, searched, a waypoint set on one
@@ -29950,7 +29953,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     pauseQuestLog: () => questBridge?.questLog() ?? { active: [], finished: [] },
     repairQuests: () => questBridge?.repair?.() ?? null,   // QREPAIR: the interior pause's Settings row, off this host's bridge
     journalClean: () => questBridge?.journalClean ?? null,   // JOURNAL-CLEAN: the Quests tab's remove / clear archive / hide / unhide (scenes/quest/questBridge.js journalClean), for the interior pause
-    revealLocation, revealMap: () => useHooks.revealMap(),   // L10N3e: the map item's reveal, for the dungeon's use bag - the one law above
+    revealLocation, revealMap: () => useHooks.revealMap(),
+    // BUNNY-GUILDS (Phase 1): the Adventurers Guild's desk - the Company window, and this town's work board on its Work tab
+    openCompany: () => socialPanel?.openGuild?.() === true,
+    openHallWork: () => { const p = playerTravelPixel(); return openNoticeBoard(noticeTownOf(p.x, p.y), [], { tab: 'work' }); },   // L10N3e: the map item's reveal, for the dungeon's use bag - the one law above
     scryWhere,   // LOOT19: the guild's scryers read this host's region
     magic, spellsByIndex: () => spellsByIndex,   // M2: the one cast engine + SPELLS.STD ride into the interior arm
     townTalk,   // U23: the interior host borrows FACTION.TXT/TEXT.RSC + the talk seam

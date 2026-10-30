@@ -266,6 +266,9 @@ export function discoverLocation(mapId, info = {}) {
   return true;
 }
 
+/** BUNNY-GUILDS (Phase 2b): how many places the character has found - the Cartographers' Society buys the surveys. */
+export const discoveredLocationCount = () => _locations.size;
+
 /** HasDiscoveredLocation (:875-882). */
 export function hasDiscoveredLocationId(mapId) {
   return _locations.has(mapId & 0xfffff);

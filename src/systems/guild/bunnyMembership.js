@@ -12,6 +12,7 @@
 // taken away by a falling reputation; leaving is the member's own choice.
 
 import { registerModSaveData } from '../modSaveData.js';
+import { discoveredLocationCount } from '../discovery.js';
 import { RANK_REQ_REPUTATION } from './guildFactions.js';
 import { getReputation } from '../faction/factionRep.js';
 import { bunnyGuildOfKey, BUNNY_GUILDS, bunnyGuildsOn } from './bunnyGuilds.js';
@@ -26,6 +27,20 @@ export const BUNNY_JOIN_REP = RANK_REQ_REPUTATION[0];
 /** @typedef {{ rank: number, joinedAt: number }} BunnyMembership */
 /** @type {Record<string, BunnyMembership>} */
 let book = {};
+/** Phase 2: what the guilds' own work remembers - the taverns played (`${town}:${building}` -> the day), and how many
+ *  places the character had found at its last survey sold. Kept in the same record, under `_marks`, which the book's
+ *  check skips (no guild has that key). */
+let marks = { performed: /** @type {Record<string, number>} */ ({}), surveyed: 0 };
+
+/** The marks as the save keeps them, checked. */
+function marksOf(/** @type {any} */ rec) {
+  const m = rec?._marks;
+  const performed = {};
+  if (m?.performed && typeof m.performed === 'object') {
+    for (const [k, d] of Object.entries(m.performed)) if (typeof k === 'string' && k.length < 40 && Number.isSafeInteger(d)) /** @type {any} */ (performed)[k] = d;
+  }
+  return { performed, surveyed: Number.isSafeInteger(m?.surveyed) && m.surveyed >= 0 ? m.surveyed : 0 };
+}
 
 /** The book as the save keeps it, each line checked: a known guild, a whole rank 0..9, a time. */
 export function bunnyBookOf(/** @type {unknown} */ rec) {
@@ -45,8 +60,8 @@ export function registerBunnyMembership(search = undefined) {
   if (!bunnyGuildsOn(search)) return;
   registerModSaveData(BUNNY_GUILDS_VENDOR, {
     newSaveData: () => ({}),
-    getSaveData: () => ({ ...book }),
-    restoreSaveData: (rec) => { book = bunnyBookOf(rec); },
+    getSaveData: () => ({ ...book, _marks: { performed: { ...marks.performed }, surveyed: marks.surveyed } }),
+    restoreSaveData: (rec) => { book = bunnyBookOf(rec); marks = marksOf(rec); },
   });
 }
 
@@ -74,6 +89,7 @@ export function joinBunnyGuild(/** @type {any} */ entity, /** @type {string} */ 
   if (book[key]) return 'already';
   if (bunnyRepOf(entity, key) < BUNNY_JOIN_REP) return 'refused';
   book[key] = { rank: 0, joinedAt: nowS };
+  if (key === 'cartographers') marks.surveyed = discoveredLocationCount();   // Phase 2b: a new member's notes begin now
   return 'joined';
 }
 
@@ -98,5 +114,15 @@ export function reviewBunnyRank(/** @type {any} */ entity, /** @type {string} */
 export const bunnyRollMembers = () => BUNNY_GUILDS.filter((g) => book[g.key]).map((g) => ({ f: g.factionId, rank: book[g.key].rank }))
   .sort((a, b) => a.f - b.f);
 
+/** The day a tavern was last played, or null. Old entries are dropped as a new one is written. */
+export const performedOn = (/** @type {string} */ where) => marks.performed[where] ?? null;
+export function notePerformed(/** @type {string} */ where, /** @type {number} */ day) {
+  for (const [k, d] of Object.entries(marks.performed)) if (d < day - 1) delete marks.performed[k];
+  marks.performed[where] = day;
+}
+/** How many places were found at the last survey sold; and the next sale's count written. */
+export const surveyedCount = () => marks.surveyed;
+export function noteSurveyed(/** @type {number} */ n) { marks.surveyed = Math.max(0, Math.trunc(n)); }
+
 /** For tests: set the book. */
-export function _setBunnyBook(/** @type {unknown} */ rec) { book = bunnyBookOf(rec); }
+export function _setBunnyBook(/** @type {unknown} */ rec) { book = bunnyBookOf(rec); marks = marksOf(rec); }

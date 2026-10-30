@@ -477,7 +477,9 @@ import { rrVariantPerson } from '../systems/roleplayRealism/rrVariants.js';   //
 import { chairSeatOf, chairProbeOver, CHAIR_KIND, CHAIR_FLOOR_STEP } from '../world/chairSeat.js';   // SIT1: where on a chair the sitter's body goes
 import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a shop's keeper standing as the lamp, its words and its title
 import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
-import { bunnyClerkName, openBunnyHall } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
+import { bunnyClerkName, openBunnyHall } from '../systems/guild/bunnyHall.js';
+import { bunnyHallServices, bardTavernOffer } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the guilds' services
+import { BardPerformanceWindow, NOTES as BARD_NOTES, bardPerformanceTitle, bardPerformanceWords } from '../ui/bardPerformanceWindow.js';   // BUNNY-GUILDS: the Bards' performance   // BUNNY-GUILDS: the hall's clerk
 import { vendorOffice } from '../systems/festival/festivalWords.js';   // WITCH1: a Wyrd Sister is named by her office
 import { announceHonour } from '../ui/lootBanner.js';   // LAMP-KEEPER II: I Love Lamp, as a loot banner
 import { setRrHostSeams } from '../systems/roleplayRealism/rrInstall.js';   // RR1: the host's foe-spawner seam for the underworld guilds' squad
@@ -4382,7 +4384,13 @@ export function createWorldModes(host) {
     if ((gateRole === 'redRecruiter' || gateRole === 'blueRecruiter') && host.arenaRecruiter?.(gateRole)) return;
     if (gateRole === 'bookmaker' && host.arenaBookmaker?.()) return;   // ARENA3: the bookmaker's stall (scenes/arena/arenaGate.js)
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
-    if (!info && pn?.bunnyClerk) { openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view))); return; }   // BUNNY-GUILDS: the hall's clerk
+    if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
+      openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
+        entity: playerEntity, openCompany: host.openCompany ?? null, openWork: host.openHallWork ?? null,
+        revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
+      }));
+      return;
+    }
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title
     if (!info && pn?.witch && host.witches?.shop()) return;   // WITCH1: a Wyrd Sister's window (scenes/witchesHost.js) - a host with none lets her talk
     if (!info && pn?.arenaRole === 'pitMaster') { pitMasterChoice(); return; }
@@ -4540,6 +4548,12 @@ export function createWorldModes(host) {
       && openMerchantSell()) return;
     // U39: DaggerfallTavernWindow. Same shape as the repair arm - the
     // routing has said 'tavern' since G8 and nothing consumed it.
+    // BUNNY-GUILDS (Phase 2a): a Bards' College member is asked first whether to play for the house
+    if (!forceTalk && route.kind === 'merchant' && route.service === 'tavern' && bardTavernOffer({
+      entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${interiorBuilding?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY),
+      openTavern: () => openTavern(pn), show: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), notes: BARD_NOTES,
+      perform: (onDone) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, words: bardPerformanceWords() })),
+    })) return;
     if (!forceTalk && route.kind === 'merchant' && route.service === 'tavern'
       && openTavern(pn)) return;
     // TK-iv: THE QUESTOR DOOR. TalkToStaticNPC's first act, before the

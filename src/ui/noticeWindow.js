@@ -246,7 +246,7 @@ export function mountNoticeBoard(host, deps) {
   const guildOnly = deps.guildOnly ?? null;
   // HOME-VENDOR: a trader's stall - the window over its one tab, under its owner's name (no town's board is read)
   const traderOnly = guildOnly ? null : (deps.traderOnly ?? null);
-  let tab = guildOnly ? 'guilds' : traderOnly ? 'vendors' : 'notices';  // PROF1: 'notices' | 'work'; PROF5: 'market'; GUILD1e: 'guilds'
+  let tab = guildOnly ? 'guilds' : traderOnly ? 'vendors' : (deps.tab ?? 'notices');   // BUNNY-GUILDS: a hall's desk opens it on its own tab  // PROF1: 'notices' | 'work'; PROF5: 'market'; GUILD1e: 'guilds'
   // GUILD1e: the reader's guild board - its own read, its own one-at-a-time door
   let gboard = null, gerror = null, gstale = false, gbusy = false;
   const guildsShown = () => !!guildOnly || !!deps.guilds;

@@ -67,6 +67,7 @@
 //
 // EVERY CLOCK IS AN ARGUMENT, as in accounts.js.
 // ═══════════════════════════════════════════════════════════════════
+import { ADVENTURERS_FACTION, companyRenameCost } from '../../src/net/bunnyGuildLaw.js';   // BUNNY-GUILDS: the Adventurers Guild's rank perk
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE } from './service.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE } from './realm.js';   // REALM P2.2; AUDIT REALM L1-F2: the record asked first; AUDIT REALM2 S2/S3
@@ -323,7 +324,10 @@ export async function renameGuild(ctx, player, { character, name = null, tag = n
   const week = seatWeekOf(nowS * 1000);
   const battle = `EXISTS (SELECT 1 FROM town_seat_battles WHERE week = ${week} AND (attacker = ?1 OR defender = ?1) AND state <> 'void')`;
   if ((await db.prepare(`SELECT ${battle} AS b`).bind(gid).first())?.b) return { error: 'guild-rename-siege' };
-  if (Number(g.realm_gold ?? 0) < GUILD_RENAME_GOLD) return { error: 'guild-rename-gold' };
+  // BUNNY-GUILDS (Phase 1): the Captain's rank in the Adventurers Guild, as the Roll holds it, takes its share off
+  const advRank = await db.prepare('SELECT rank FROM npc_roll WHERE char_id = ? AND faction_id = ? AND member = 1').bind(character, ADVENTURERS_FACTION).first().catch(() => null);
+  const cost = companyRenameCost(GUILD_RENAME_GOLD, advRank?.rank == null ? -1 : Number(advRank.rank));
+  if (Number(g.realm_gold ?? 0) < cost) return { error: 'guild-rename-gold' };
   if (await spend(ctx, player)) return { error: 'guild-rate' };
   const key = guildNameKey(n);
   // a guild nobody is left in holds its name and tag for no one (foundGuild's sweep, the same clause)
@@ -337,10 +341,10 @@ export async function renameGuild(ctx, player, { character, name = null, tag = n
         WHERE id = ?1 AND name = ?8 AND tag = ?9 AND realm_gold >= ?6 AND treasury >= ?6
           AND (renamed_at IS NULL OR renamed_at + ?10 <= ?5) AND NOT ${battle}
           AND EXISTS (SELECT 1 FROM guild_members WHERE rowid = ?11 AND guild_id = ?1 AND rank = ${GUILD_RANK_MASTER})`)
-        .bind(gid, n, key, t, nowS, GUILD_RENAME_GOLD, who, g.name, g.tag, GUILD_RENAME_COOLDOWN_S, a.me.rid),
+        .bind(gid, n, key, t, nowS, cost, who, g.name, g.tag, GUILD_RENAME_COOLDOWN_S, a.me.rid),
       mustChange(db),
       db.prepare('INSERT INTO guild_renames (guild_id, at, who, old_name, old_tag, new_name, new_tag, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .bind(gid, nowS, who, g.name, g.tag, n, t, GUILD_RENAME_GOLD),
+        .bind(gid, nowS, who, g.name, g.tag, n, t, cost),
       // the hall's owner, as its purchase copied the guild's name (halls.js buyHall) - reads prefer the live name; the copy too
       db.prepare('UPDATE homes SET owner_name = ? WHERE guild_id = ?').bind(n, gid),
     ]);
@@ -350,14 +354,14 @@ export async function renameGuild(ctx, player, { character, name = null, tag = n
     if (await db.prepare('SELECT 1 FROM guilds WHERE tag = ? AND id != ?').bind(t, gid).first()) return { error: 'guild-tag-taken' };
     const now = await db.prepare('SELECT realm_gold, renamed_at FROM guilds WHERE id = ?').bind(gid).first();
     if (!now) return { error: 'no-guild' };
-    if (Number(now.realm_gold ?? 0) < GUILD_RENAME_GOLD) return { error: 'guild-rename-gold' };
+    if (Number(now.realm_gold ?? 0) < cost) return { error: 'guild-rename-gold' };
     const was = now.renamed_at == null ? null : Number(now.renamed_at);
     if (!guildRenameOpen(was, nowS)) return { error: 'guild-rename-soon', at: guildRenameAt(was) };   // AUDIT2 GUILD2 S7: said here too
     return { error: 'guild-rename-moved' };
   }
   const me = await memberRow(db, player.id, character);
   if (!me) return { error: 'no-guild' };
-  return { ok: true, guild: await viewOf(db, gid, me, nowS, marksOpenFor(player, ctx.env), ctx.env), badge: badgeOfRow(me, t), cost: GUILD_RENAME_GOLD };
+  return { ok: true, guild: await viewOf(db, gid, me, nowS, marksOpenFor(player, ctx.env), ctx.env), badge: badgeOfRow(me, t), cost };
 }
 
 /**

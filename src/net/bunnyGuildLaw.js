@@ -27,3 +27,10 @@ const BY_FACTION = new Map(BUNNY_GUILD_LAW.map((g) => [g.factionId, g]));
 export const isBunnyFaction = (/** @type {unknown} */ id) => typeof id === 'number' && BY_FACTION.has(id);
 /** A guild's law by its faction, or null. */
 export const bunnyLawOf = (/** @type {unknown} */ id) => (typeof id === 'number' ? BY_FACTION.get(id) ?? null : null);
+
+/** Phase 1: the Adventurers Guild's faction, and its rank perk on a Company's costs - RENAME_RANK_OFF off a Company's
+ *  new name for each rank its Captain holds in the guild (the Roll's rank, read by the service). */
+export const ADVENTURERS_FACTION = 2001;
+export const RENAME_RANK_OFF = 0.05;
+export const companyRenameCost = (/** @type {number} */ full, /** @type {number} */ rank) =>
+  Math.round(full * (1 - RENAME_RANK_OFF * Math.max(0, Math.min(9, Math.trunc(rank) || 0))));

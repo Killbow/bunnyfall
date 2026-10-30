@@ -72,7 +72,9 @@ import { homeSaleRefund } from '../net/homeLaw.js';   // GUILD1d: what the hall 
 import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the hall stands
 import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
-import { t } from '../systems/textManager.js';   // GUILD-UX: the storage pages' new words in the player's language
+import { t } from '../systems/textManager.js';
+import { companyRenameCost } from '../net/bunnyGuildLaw.js';   // BUNNY-GUILDS: the Adventurers Guild's rank perk
+import { bunnyMembershipOf } from '../systems/guild/bunnyMembership.js';   // GUILD-UX: the storage pages' new words in the player's language
 import { storeFilterAccepts, storeRarityAccepts, storeQuery, storeFilterOptions, storeRarityOptions } from './storeFilter.js';   // GUILD-UX: the stores' one filter
 import { showItemHover, hideItemHover } from './enhanced/enhancedInventory.js';   // GUILD-UX: the pack's one item card
 import { playerEntity } from '../characters/playerEntity.js';   // GUILD-UX: the card's comparison is against what I wear
@@ -236,6 +238,9 @@ export function guildKeepsOf(v, said) {
 }
 export const GUILD_HERALDRY_NONE_TEXT = 'Your company has no arms yet.';   // AUDIT GUILD3 W6: one word - the page is "Arms"
 /** GUILD2 (bible/11-Multiplayer/Guild-Overhaul.md): the pages' own sentences. */
+/** BUNNY-GUILDS (Phase 1): a new name's price for this Captain - less by their Adventurers Guild rank (the service's own
+ *  reckoning, net/bunnyGuildLaw.js companyRenameCost, over the Roll's rank; the book here is the same rank, a visit behind). */
+const renameCost = () => companyRenameCost(GUILD_RENAME_GOLD, bunnyMembershipOf('adventurers')?.rank ?? -1);
 export const GUILD_RENAME_COST_TEXT = `A new name or tag costs ${GUILD_RENAME_GOLD.toLocaleString('en-US')} gold from the treasury (gold put in by realm characters). You can rename again after two weeks. The old name is free for anyone at once.`;
 /** GUILD2a: when the next new name may come, from `at` (epoch seconds). */
 export const guildRenameSoonText = (at, nowS) => {
@@ -735,7 +740,8 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   tabs.setAttribute('role', 'tablist');
   // MAIL1: the third tab, where the host has a letterbox to hand (net/mail.js) - a panel without one is the two it was
   // GUILD1b: and the fourth, where the host has a guild book (net/guild/guildBook.js)
-  for (const [id, label] of [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : []), ...(guild ? [['guild', 'Company']] : [])]) {
+  // BUNNY-GUILDS (Phase 1): no Company tab - the Company window is opened at an Adventurers Guild hall's desk (openGuild)
+  for (const [id, label] of [['friends', 'Friends'], ['party', 'Party'], ...(mail ? [['letters', 'Letters']] : [])]) {
     const b = el('button', 'dfsocial-tab', label);
     b.type = 'button'; b.dataset.tab = id;
     b.setAttribute('role', 'tab');                    // AUDIT SOC C21: a tab that says it is one...
@@ -884,6 +890,9 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   /** THE FRIENDS TAB: what is waiting on me first, then everyone I have. */
   const friendsBody = () => {
     const out = [];
+    // BUNNY-GUILDS (Phase 1): a Company's invitations are answered at an Adventurers Guild hall now - said where they were seen
+    const companyInvites = guild && !guild.guild ? (guild.invites?.length ?? 0) : 0;
+    if (companyInvites) out.push(el('div', 'dfsocial-sec', t('social.guild.invitesAtHall', '{n, plural, one {A Company invitation waits} other {{n, number} Company invitations wait}} for you at any Adventurers Guild hall.', { n: companyInvites })));
     const ins = social.in ?? [], outs = social.out ?? [];
     if (ins.length || outs.length) {
       out.push(el('div', 'dfsocial-sec', 'Requests'));
@@ -1972,12 +1981,12 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         const why = busy ? 'a moment' : !t.name || !t.tag ? 'a name of 3 to 32 characters and a tag of 2 to 4 letters or digits'
           : t.name === v.name && t.tag === v.tag ? 'already the company\'s'
             : Number.isSafeInteger(v.renameAt) && v.renameAt > Math.floor(social.now() / 1000) ? 'not yet'
-              : Number(v.hallGold ?? 0) < GUILD_RENAME_GOLD ? `${GUILD_RENAME_GOLD.toLocaleString('en-US')} of the realm's gold in the treasury` : '';
+              : Number(v.hallGold ?? 0) < renameCost() ? `${renameCost().toLocaleString('en-US')} of the realm's gold in the treasury` : '';
         return { enabled: !why, why };
       };
       const acts = el('div', 'dfsocial-acts');
       acts.append(armed('rename')
-        ? liveBtn(`Sure? ${GUILD_RENAME_GOLD.toLocaleString('en-US')} gold`, of, { warn: true, run: () => { const t = typed(); guildDo(g.rename(t.name, t.tag), `The company is ${t.name} [${t.tag}] now.`); } })
+        ? liveBtn(`Sure? ${renameCost().toLocaleString('en-US')} gold`, of, { warn: true, run: () => { const t = typed(); guildDo(g.rename(t.name, t.tag), `The company is ${t.name} [${t.tag}] now.`); } })
         : liveBtn('Rename', of, { run: () => arm('rename') }));
       out.push(acts);
     }
@@ -2109,7 +2118,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
    *  number (AUDIT SOC C5). */
   const badgeText = (id) => {
     // GUILD1b: the Guild tab's badge is the invitations waiting on a character in none
-    const n = id === 'friends' ? (social.in?.length ?? 0) : id === 'letters' ? (mail?.unread ?? 0)
+    const n = id === 'friends' ? (social.in?.length ?? 0) + (guild && !guild.guild ? (guild.invites?.length ?? 0) : 0) : id === 'letters' ? (mail?.unread ?? 0)
       : id === 'guild' ? (guild && !guild.guild ? (guild.invites?.length ?? 0) : 0) : social.liveInvites().length;
     return n > 0 ? String(n) : '';
   };
@@ -2325,6 +2334,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
    *  hall chest's; this door gives the social tab last up. */
   const openSocial = () => {
     if (tab === 'guild') { tab = socialTab; confirm = null; ui++; }
+    lookAtGuild();   // BUNNY-GUILDS: the Company's invitations are said on the Friends tab, so its book is read here too
     return openPanel();
   };
 

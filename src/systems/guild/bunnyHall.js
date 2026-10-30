@@ -32,21 +32,24 @@ export const bunnyClerkName = (/** @type {string} */ key) => {
 
 /**
  * Phase 0d: THE HALL'S WINDOW, as a choice the clerk offers (ui ChoiceWindow's `{ lines, options }`): who you are to the
- * guild, then join or leave, and goodbye. Opening it is a visit, so a member's rank is reviewed first. `show(view)`
- * puts the window up; each choice that changes the book shows the window again, so the player sees where they stand.
- * The guilds' own services join the options as each guild's phase brings them.
+ * guild, the guild's own services (Phases 1 and 2: `services`, systems/guild/bunnyServices.js), then join or leave, and
+ * goodbye. Opening it is a visit, so a member's rank is reviewed first. `show(view)` puts the window up; a choice that
+ * changes something shows the window again with its word on top (`note`), so the player sees where they stand.
  * @param {string} key @param {any} entity @param {(view: { lines: string[], options: any[] }) => void} show
+ * @param {((key: string, ctx: { member: { rank: number } | null, again: (note?: string) => void }) => any[]) | null} [services]
+ * @param {string | null} [note]
  */
-export function openBunnyHall(key, entity, show) {
+export function openBunnyHall(key, entity, show, services = null, note = null) {
   const g = bunnyGuildOfKey(key);
   if (!g) return false;
   const rose = reviewBunnyRank(entity, key);
   const m = bunnyMembershipOf(key);
   const rep = bunnyRepOf(entity, key);
   // the window answering a choice has left its slot by the time the next one is shown (as the lamp's Trade waits a turn)
-  const again = () => { Promise.resolve().then(() => openBunnyHall(key, entity, show)).catch(() => {}); };
-  const lines = [t('bguild.greeting.welcome', 'Welcome to the {guild}.', { guild: g.name })];
-  const options = [];
+  const again = (/** @type {string | undefined} */ said) => { Promise.resolve().then(() => openBunnyHall(key, entity, show, services, said ?? null)).catch(() => {}); };
+  const lines = note ? [note, ''] : [];
+  lines.push(t('bguild.greeting.welcome', 'Welcome to the {guild}.', { guild: g.name }));
+  const options = [...(services?.(key, { member: m, again }) ?? [])];
   if (rose != null) lines.push(t('bguild.hall.promoted', 'You have risen to the rank of {title}.', { title: g.ranks[rose] }));
   if (m) {
     lines.push(t('bguild.hall.rank', 'Your rank: {title} ({rank} of 9).', { title: g.ranks[m.rank], rank: m.rank }),
