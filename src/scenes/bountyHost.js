@@ -22,6 +22,7 @@
 // every other foe of theirs already is. The hunt's kills are the party's (AUDIT 28 B4: a row's `k`): an owner who
 // falls or walks off hands on a hunt part done.
 
+import { lodgeBountyGold, lodgeBountyPaid } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Hunters' Lodge
 import {
   BOUNTY_VENDOR, bountyDay, bountySites, boardPostings, postingFromId, parseBountyId, postingState,
   bountyDungeons, newBountyLedger, readBountyLedger, takeBounty, dropBounty, payBounty, lapseBounties, pruneBountyLedger,
@@ -348,21 +349,23 @@ export function createBountyHost(deps) {
     packs.delete(id);
     const entity = deps.entity();
     const item = mintBountyItem(posting.level, { rolls });
-    addGoldPieces(entity, posting.gold);
+    const gold = lodgeBountyGold(posting.gold);   // BUNNY-GUILDS: a Hunters' Lodge member is paid more, by rank
+    addGoldPieces(entity, gold);
+    lodgeBountyPaid(entity);   // BUNNY-GUILDS: and the Lodge hears of it
     if (Array.isArray(entity?.items)) addItem(entity.items, item);
     // REP4 (Mac: "Earn it + faster drift" - regional contracts): the board's region thinks better of the hunter who
     // cleared its road - two points of its law (standing.js rewardContract), said by the law's own notice
     const region = deps.regionAt?.(posting.town.px, posting.town.py);
     if (Number.isInteger(region) && region >= 0 && entity) rewardContract(entity, region);
-    const reward = bountyRewardRows(posting.gold, item);
+    const reward = bountyRewardRows(gold, item);
     notices.push({
       title: BOUNTY_REWARD_TITLE,
       heading: posting.title,
-      story: rewardStory({ town: posting.town.name, gold: posting.gold, itemName: bountyItemName(item) }, Math.floor(rolls() * 1e9)),
+      story: rewardStory({ town: posting.town.name, gold, itemName: bountyItemName(item) }, Math.floor(rolls() * 1e9)),
       byMate,
       reward,
     });
-    deps.say(`Bounty fulfilled: ${posting.title}. +${posting.gold} gold, ${reward.item}.`);
+    deps.say(`Bounty fulfilled: ${posting.title}. +${gold} gold, ${reward.item}.`);
     festivalBountyPaid();   // WITCH1: a Witches' Festival find (nothing while it is not live)
     hunt.cleared(id, Number.isInteger(region) ? region : null);   // HUNTERS-MARK: reported to the hunt's ledger, kept until answered
     repaint();

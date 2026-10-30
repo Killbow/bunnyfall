@@ -11,6 +11,7 @@
 // scenes/exterior.js - FLAGGED: the fixed-city bench never goes online, so it posts no crafting writ, as no Court writ.
 // ═══════════════════════════════════════════════════════════════════
 
+import { craftWritDelivered } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the crafters' halls
 import { realmGoldAct } from '../systems/realmSaves.js';
 import { craftGoodsPick, craftGoodsHeld, pieceOf } from '../net/craftWritLaw.js';
 import { recordCount } from '../net/realm/realmTradeLaw.js';
@@ -95,6 +96,7 @@ export function createCraftWritHost({ player, session, checkpoint, saved, book }
         return { ok: false, error: 'offline' };
       }
       if (r?.ok) saved();
+      if (r?.ok && !r.data?.repeat) craftWritDelivered(p, w.kind);   // BUNNY-GUILDS: its guild hall's regard (Apothecaries, Artisans)
       // AUDIT CRAFT-WRITS C4: a realm act that LANDED (its answer lost, the record one on) says no track and no Renown - the
       // state read again now (the disenchant's own, AUDIT PROF-541 R2-C1)
       if (r?.ok && !r.data) Promise.resolve(book()?.refresh?.({ force: true })).catch(() => {});

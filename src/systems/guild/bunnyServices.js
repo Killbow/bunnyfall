@@ -64,7 +64,10 @@ export function bunnyQuestEnded(/** @type {any} */ quest, /** @type {any} */ ent
  * The services a hall offers: the option rows for openBunnyHall (bunnyHall.js). `doors`:
  * `entity`, `openCompany()` the Company window, `openWork()` the town's work board, `revealLocation()` (the host's: a
  * place of the region not yet found, `{ shown }`, or null).
- * @param {{ entity: any, openCompany?: (() => boolean) | null, openWork?: (() => boolean) | null, revealLocation?: (() => { shown: string } | null) | null }} doors
+ * `openBoard(focus)` this town's Notice Board as the hall's desk opens it (`{ tab, hall, sift?, crafts? }`), `openBounties()`
+ * the town's bounty notices.
+ * @param {{ entity: any, openCompany?: (() => boolean) | null, openBoard?: ((focus: any) => boolean) | null, openBounties?: (() => boolean) | null,
+ *   revealLocation?: (() => { shown: string } | null) | null }} doors
  */
 export function bunnyHallServices(doors) {
   return (/** @type {string} */ key, /** @type {{ member: { rank: number } | null, again: (note?: string) => void }} */ { member, again }) => {
@@ -72,7 +75,7 @@ export function bunnyHallServices(doors) {
     const out = [];
     if (key === 'adventurers') {
       if (doors.openCompany) out.push({ code: 'KeyC', label: t('bguild.adv.company', 'C - Company affairs'), action: () => { doors.openCompany?.(); } });
-      if (doors.openWork) out.push({ code: 'KeyW', label: t('bguild.adv.work', 'W - Work and contracts'), action: () => { doors.openWork?.(); } });
+      if (doors.openBoard) out.push({ code: 'KeyW', label: t('bguild.adv.work', 'W - Work and contracts'), action: () => { doors.openBoard?.({ tab: 'work', hall: key }); } });
     }
     if (key === 'cartographers') {
       const price = mapPrice(rank);
@@ -96,6 +99,20 @@ export function bunnyHallServices(doors) {
           again(t('bguild.carto.sold', 'The Society pays {gold} gold for your notes on {n} places.', { gold, n }));
         } });
       }
+    }
+    if (key === 'merchants' && doors.openBoard) {
+      out.push({ code: 'KeyM', label: t('bguild.merch.market', 'M - Market'), action: () => { doors.openBoard?.({ tab: 'market', hall: key }); } });
+      out.push({ code: 'KeyT', label: t('bguild.merch.traders', 'T - Traders'), action: () => { doors.openBoard?.({ tab: 'vendors', hall: key }); } });
+      out.push({ code: 'KeyW', label: t('bguild.merch.deliveries', 'W - Delivery writs'), action: () => { doors.openBoard?.({ tab: 'work', hall: key, sift: { kind: 'court' } }); } });
+    }
+    if (key === 'hunters' && doors.openBounties) {
+      out.push({ code: 'KeyB', label: t('bguild.hunt.bounties', 'B - Bounties'), action: () => { doors.openBounties?.(); } });
+    }
+    if (key === 'apothecaries' && doors.openBoard) {
+      out.push({ code: 'KeyW', label: t('bguild.apoth.writs', 'W - Potion writs'), action: () => { doors.openBoard?.({ tab: 'work', hall: key, crafts: ['potion'] }); } });
+    }
+    if (key === 'artisans' && doors.openBoard) {
+      out.push({ code: 'KeyW', label: t('bguild.art.writs', 'W - Crafting writs and commissions'), action: () => { doors.openBoard?.({ tab: 'work', hall: key, crafts: ['kit'], sift: { kind: 'commission' } }); } });
     }
     if (key === 'bards') {
       out.push({ code: 'KeyP', label: t('bguild.bards.how', 'P - How to perform'), action: () => {
@@ -143,4 +160,50 @@ export function bardTavernOffer({ entity, where, day, openTavern, show, perform,
   options.push({ code: 'Escape', label: undefined, action: () => {} });
   show({ lines, options });
   return true;
+}
+
+// ─── Phases 3 and 4: the work the town's boards hand over to the halls ─────────────────────────────────────────────
+
+/** Which hall takes which part of the boards. In a town with that hall, its part leaves the town's own board and is
+ *  found at the hall's desk; a town without one keeps its board whole. */
+export const BOARD_HOMES = Object.freeze({ market: 'merchants', bounties: 'hunters' });
+/** A crafting writ's kind (net/craftWritLaw.js) and the hall that posts it. Dishes stay on the town's board. */
+export const CRAFT_HOMES = Object.freeze({ potion: 'apothecaries', kit: 'artisans' });
+
+/** The Hunters' Lodge's share more on a bounty's gold for each rank a member holds, and its reputation for a bounty paid. */
+export const LODGE_RANK_SHARE = 0.1;
+export const BOUNTY_REP = 2;
+/** The Merchants' League's reputation for a Court writ filled; the crafters' halls' for a crafting writ delivered. */
+export const COURT_WRIT_REP = 1;
+export const CRAFT_WRIT_REP = 2;
+
+/** A bounty's gold as it is paid: more for a member of the Lodge, by rank. */
+export function lodgeBountyGold(/** @type {number} */ gold) {
+  const m = bunnyMembershipOf('hunters');
+  return m ? Math.round(gold * (1 + LODGE_RANK_SHARE * m.rank)) : gold;
+}
+/** A bounty paid (a board's or a Hunter's Mark): the Lodge's regard. */
+export const lodgeBountyPaid = (/** @type {any} */ entity) => gainRep(entity, 'hunters', BOUNTY_REP);
+/** A Court writ filled: the Merchants' League's regard. */
+export const courtWritFilled = (/** @type {any} */ entity) => gainRep(entity, 'merchants', COURT_WRIT_REP);
+/** A crafting writ delivered: its hall's regard (a potion's the Apothecaries', a kit's the Artisans'). */
+export function craftWritDelivered(/** @type {any} */ entity, /** @type {string} */ kind) {
+  const home = /** @type {Record<string, string>} */ (CRAFT_HOMES)[kind];
+  if (home) gainRep(entity, home, CRAFT_WRIT_REP);
+}
+
+/**
+ * How the town's own Notice Board is narrowed by the halls standing in the town (`halls`, their keys), or by the hall
+ * it is opened from (`from`). Answers `{ market, crafts, moved }`: whether the Market and Traders tabs stand, the
+ * crafting writ kinds shown (null for all), and the lines that say where the rest went.
+ * @param {Set<string>} halls @param {{ hall?: string, crafts?: string[] } | null} [from]
+ */
+export function boardFocus(halls, from = null) {
+  if (from?.hall) return { market: true, crafts: from.crafts ?? null, moved: [] };
+  const moved = [];
+  const market = !halls.has(BOARD_HOMES.market);
+  if (!market) moved.push(t('bguild.moved.market', 'Trade is done at the Merchants\' League now.'));
+  const gone = Object.entries(CRAFT_HOMES).filter(([, h]) => halls.has(h)).map(([k]) => k);
+  if (gone.length) moved.push(t('bguild.moved.crafts', 'Crafting writs for potions and repair kits are posted at their guild halls.'));
+  return { market, crafts: gone.length ? Object.keys({ potion: 1, dish: 1, kit: 1 }).filter((k) => !gone.includes(k)) : null, moved };
 }

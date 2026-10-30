@@ -1015,7 +1015,7 @@ import { GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';   // th
 import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // KnightlyOrder.FreeShipTravel, the second half of hasShip; FreeTavernRooms, the trip cost's inn nights
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
-import { bunnyQuestEnded } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
+import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
 import { RumorMill, tokensToString } from '../systems/rumorMill.js';
 import { HolidayTextTimer, holidayTextPrimesFor } from '../systems/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
@@ -27445,6 +27445,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // settles it is asked (the town's board is read on arrival anyway, for the count over it).
   // CRAFT-WRITS (bible/06-Systems/Professions-Arc.md section 49): the Work tab's crafting writs, their goods out of the pack and the record
   const craftWrits = createCraftWritHost({ player: () => playerEntity, session: () => realmSession, checkpoint: () => onlineCheckpoint(), saved: () => saveSoon.changed(), book: () => profBook });
+  /** BUNNY-GUILDS: the guild halls standing in the town the player is in (its talk directory's marked rows), by key. */
+  const hallsHere = () => new Set((townTalk.directory ?? []).map((b) => b.bunnyHall).filter(Boolean));
   const openNoticeBoard = (town, rumour, opts = null) => {
     if (!noticeBook || !town) return false;
     if (noticeBook.open !== true) { noticeBook.read(town.mapId); return false; }
@@ -27477,7 +27479,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // AUDIT 30 U11: and the Marks - a shut currency is a market nobody can pay on
     // MARKET-AUDIT: while the professions' read is unanswered too (a slow or failed first read hid the tab until the board
     // was opened again) - the market's own read says whether it is this account's (`market-closed`)
-    const market = marketBook && profBook && profBook.state.open !== false && marksBook?.state?.open !== false && Number.isInteger(region) ? {
+    const focus = boardFocus(hallsHere(), opts);   // BUNNY-GUILDS: what this town's guild halls take off its board
+    if (focus.moved.length) rumour = [...focus.moved, ...(rumour ?? [])];
+    const market = focus.market && marketBook && profBook && profBook.state.open !== false && marksBook?.state?.open !== false && Number.isInteger(region) ? {
       book: marketBook, stores: () => profBook.state.stores, region, regionName: REGION_NAMES[region] ?? 'the region',
       regionNameOf: (r) => REGION_NAMES[r] ?? 'another region', hubs: marketHubs, name: (k) => materialLabel(k), countName: materialCountLabel,
       picture: (k, wake) => materialPicture(k, { onReady: wake }), itemPicture: (it, wake, box) => itemPicture(it, { onReady: wake, box }), piecePicture: marketPiecePicture,   // MENU-ORDER: a row's picture
@@ -27497,7 +27501,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       },
     } : null;
     return showNoticeWindow({
-      ...(opts?.tab ? { tab: opts.tab } : {}),   // BUNNY-GUILDS: the Adventurers Guild's desk opens it on the Work tab
+      ...(opts?.tab ? { tab: opts.tab } : {}), ...(opts?.sift ? { sift: opts.sift } : {}), craftKinds: focus.crafts,   // BUNNY-GUILDS: a hall's desk opens it on its own work
       town: { name: town.name, mapId: town.mapId }, rumour: rumour ?? [], bountyLine: !!town.bountyLine,
       gate: () => noticeGateCard(), sd: () => noticeSdCard(), answer: (note) => answerNote(note), work, market,
       vendors: market ? vendorBoardHost(region) : null,   // HOME-VENDOR: the region's traders, searched, a waypoint set on one
@@ -27564,6 +27568,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  carried to the rooms - and the line the board's word says. */
   const profWritTaken = (r) => {
     const d = r?.data ?? {};
+    if (r?.ok && !d.repeat && !isChapterWrit(d.writ?.kind)) courtWritFilled(playerEntity);   // BUNNY-GUILDS: the Merchants' League's regard
     if (Number.isSafeInteger(d.balance)) marksBook?.set(d.balance);
     if (d.renown) {
       const a = renownAnswer({ ...d.renown, order: d.order ?? null }, d.renown.credited ?? 0, renownSaid);
@@ -29953,10 +29958,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     pauseQuestLog: () => questBridge?.questLog() ?? { active: [], finished: [] },
     repairQuests: () => questBridge?.repair?.() ?? null,   // QREPAIR: the interior pause's Settings row, off this host's bridge
     journalClean: () => questBridge?.journalClean ?? null,   // JOURNAL-CLEAN: the Quests tab's remove / clear archive / hide / unhide (scenes/quest/questBridge.js journalClean), for the interior pause
-    revealLocation, revealMap: () => useHooks.revealMap(),
-    // BUNNY-GUILDS (Phase 1): the Adventurers Guild's desk - the Company window, and this town's work board on its Work tab
+    revealLocation, revealMap: () => useHooks.revealMap(),   // L10N3e: the map item's reveal, for the dungeon's use bag - the one law above
+    // BUNNY-GUILDS: the halls' desks - the Company window, this town's Notice Board as a hall opens it, its bounty notices
     openCompany: () => socialPanel?.openGuild?.() === true,
-    openHallWork: () => { const p = playerTravelPixel(); return openNoticeBoard(noticeTownOf(p.x, p.y), [], { tab: 'work' }); },   // L10N3e: the map item's reveal, for the dungeon's use bag - the one law above
+    openHallBoard: (focus) => { const p = playerTravelPixel(); return openNoticeBoard(noticeTownOf(p.x, p.y), [], focus); },
+    openBounties: () => { const p = playerTravelPixel(); return bountyHost?.openBoard({ px: p.x, py: p.y, name: noticeTownOf(p.x, p.y)?.name ?? '' }) ?? false; },
     scryWhere,   // LOOT19: the guild's scryers read this host's region
     magic, spellsByIndex: () => spellsByIndex,   // M2: the one cast engine + SPELLS.STD ride into the interior arm
     townTalk,   // U23: the interior host borrows FACTION.TXT/TEXT.RSC + the talk seam
@@ -30163,7 +30169,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // ActivateBulletinBoard's news (:716) - the mill's SIGN face,
     // ported at TK-i and until now called by nothing.
     bulletinBoardNews: () => rumorMill.getNewsOrRumorsForBulletinBoard(),
-    openBountyBoard: (town) => bountyHost?.openBoard(town) ?? false,   // BOUNTY1: a bounty board's press
+    // BOUNTY1: a bounty board's press - BUNNY-GUILDS: in a town with a Hunters' Lodge, its bounties are the Lodge's
+    openBountyBoard: (town) => (hallsHere().has(BOARD_HOMES.bounties) ? (townTalk.say(t('bguild.moved.bounties', 'Bounties are posted at the Hunters\' Lodge now.')), true) : bountyHost?.openBoard(town) ?? false),
     openNoticeBoard: (town, rumour) => openNoticeBoard(town, rumour),   // NOTICE1: a rumour board's press, online
     baseCollider: () => collider,
     // E2: one entered door -> its merged building identity. Door

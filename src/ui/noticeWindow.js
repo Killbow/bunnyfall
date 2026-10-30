@@ -261,7 +261,8 @@ export function mountNoticeBoard(host, deps) {
   const work = deps.work ?? null;
   const workShown = () => !!work && work.book?.state?.open === true;
   // BOARD-SIFT: the Work tab's filter and order - the professions book's for the session, so a reopened board keeps them
-  const sift = work?.book?.state ? (work.book.state.workSift ??= freshSift()) : freshSift();
+  // BUNNY-GUILDS: a hall's desk opens the Work tab on its own work - a sift of its own, never the session's kept one
+  const sift = deps.sift ? { ...freshSift(), ...deps.sift } : work?.book?.state ? (work.book.state.workSift ??= freshSift()) : freshSift();
   // PROF5: the Market tab - its own state and views, the window's one-at-a-time door and its status line
   const marketHost = deps.market ?? null;
   // MARKET-AUDIT U4: a market that shuts while its tab is read stays the tab, its shut word said (AUDIT 30 U11) - it vanished.
@@ -746,7 +747,7 @@ export function mountNoticeBoard(host, deps) {
     body.append(el('p', 'notice-worktoday', `Writs today: ${today.filled} of ${today.max}${writsStale ? '. The list may be out of date' : ''}`));
     // CRAFT-WRITS: the character's crafting writs above the Court's - its own three, the day's count beside them. BOARD-SIFT
     // (at the merge of CRAFT-WRITS): they stand over the bar, never sifted by it - three of the character's own, their own day
-    const crafts = work.crafts ? writs?.crafts?.writs ?? [] : [];
+    const crafts = work.crafts ? (writs?.crafts?.writs ?? []).filter((w) => !deps.craftKinds || deps.craftKinds.includes(w.kind)) : [];   // BUNNY-GUILDS: the kinds a guild hall here posts are its own
     if (crafts.length) {
       body.append(sectionHead(t('notice.craftWrit.head', 'Crafting writs: {filled, number} of {max, number} today', { filled: writs.crafts.today.filled, max: writs.crafts.today.max })));
       const cg = el('ul', 'notice-grid');

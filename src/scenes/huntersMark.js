@@ -6,6 +6,7 @@
 // A NAMED MARK: one beast of the reader's tier a week, the same at every board (huntLaw.js huntMarkOf), on one of the
 // board's own sites - an elite under its name with two boss traits off the week's seed. It pays gold and a mounted
 // trophy, never kit; its clear is reported as a board's, one a week a character.
+import { lodgeBountyGold, lodgeBountyPaid } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Hunters' Lodge
 import { createHuntBook, setHuntBook } from '../net/huntBook.js';
 import {
   huntWeekAt, huntMarkOf, huntMarkId, parseHuntMarkId, huntMarkSite, huntMarkGold, huntMarksOpen, huntRungOf, huntNextRung,
@@ -150,7 +151,8 @@ export function createHuntersMark(deps) {
   }
   function pay(/** @type {any} */ p) {
     const entity = deps.entity();
-    addGoldPieces(entity, p.gold);
+    addGoldPieces(entity, lodgeBountyGold(p.gold));   // BUNNY-GUILDS: a Hunters' Lodge member is paid more, by rank
+    lodgeBountyPaid(entity);
     giveTrophy(entity, p.foe, { nameIndex: p.nameIndex, day: Math.floor(wallNow() / 86_400_000) });
     deps.hunt?.saved?.();
     const region = deps.regionAt?.(p.town.px, p.town.py);

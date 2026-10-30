@@ -4386,7 +4386,7 @@ export function createWorldModes(host) {
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
       openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openCompany: host.openCompany ?? null, openWork: host.openHallWork ?? null,
+        entity: playerEntity, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
       }));
       return;
