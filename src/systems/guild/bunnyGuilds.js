@@ -27,13 +27,13 @@ export const HOUSES_LEFT = 6;
 
 /** The titles of ranks 0 to 9, lowest first (8 and 9 are a chapter's seats). */
 const RANKS = Object.freeze({
-  adventurers: ['Wanderer', 'Sellsword', 'Pathfinder', 'Delver', 'Trailblazer', 'Veteran', 'Vanguard', 'Champion', 'Warden', 'Guildmaster'],
+  adventurers: ['Wanderer', 'Sellsword', 'Pathfinder', 'Delver', 'Trailblazer', 'Veteran', 'Vanguard', 'Champion', 'Warden', 'Paragon'],
   bards: ['Busker', 'Minstrel', 'Troubadour', 'Balladeer', 'Lyricist', 'Skald', 'Virtuoso', 'Maestro', 'Loremaster', 'Archbard'],
   cartographers: ['Scribe', 'Surveyor', 'Draughtsman', 'Wayfinder', 'Chartmaker', 'Navigator', 'Geographer', 'Explorer', 'Master Cartographer', 'Grand Cartographer'],
-  merchants: ['Peddler', 'Hawker', 'Trader', 'Broker', 'Factor', 'Merchant', 'Financier', 'Magnate', 'Trade Lord', 'Guildmaster'],
+  merchants: ['Peddler', 'Hawker', 'Trader', 'Broker', 'Factor', 'Merchant', 'Financier', 'Magnate', 'Trade Lord', 'Lord'],
   hunters: ['Beater', 'Tracker', 'Trapper', 'Stalker', 'Hunter', 'Huntsman', 'Slayer', 'Beastmaster', 'Master of the Hunt', 'Lodgemaster'],
   apothecaries: ['Herb Gatherer', 'Mortar Hand', 'Mixer', 'Brewer', 'Distiller', 'Apothecary', 'Physician', 'Alchemist', 'Master Apothecary', 'Grand Apothecary'],
-  artisans: ['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Guildmaster'],
+  artisans: ['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Manderville'],
 });
 
 /** Each guild's name in the player's language (literal keys, so tools/l10nExtract.mjs finds them). */
