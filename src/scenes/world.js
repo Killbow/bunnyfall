@@ -29983,7 +29983,18 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     journalClean: () => questBridge?.journalClean ?? null,   // JOURNAL-CLEAN: the Quests tab's remove / clear archive / hide / unhide (scenes/quest/questBridge.js journalClean), for the interior pause
     revealLocation, revealMap: () => useHooks.revealMap(),   // L10N3e: the map item's reveal, for the dungeon's use bag - the one law above
     // BUNNY-GUILDS: the halls' desks - the Company window, this town's Notice Board as a hall opens it, its bounty notices
-    openCompany: () => socialPanel?.openGuild?.() === true,
+    // BUNNY-GUILDS (the owner: "i click company affairs and it does nothing"): pressed in the desk's box, the panel was
+    // asked while that box still covered the HUD, and it refused (canOpen). Asked again each frame until it opens, a moment
+    openCompany: () => {
+      const t0 = performance.now();
+      const tryOpen = () => {
+        if (socialPanel?.openGuild?.() === true) return;
+        if (performance.now() - t0 < 2000) requestAnimationFrame(tryOpen);
+        else townTalk.say(t('bguild.adv.companyLater', 'The Company ledger cannot be opened right now. Try again in a moment.'));
+      };
+      tryOpen();
+      return true;
+    },
     openHallBoard: (focus) => { const p = playerTravelPixel(); return openNoticeBoard(noticeTownOf(p.x, p.y), [], focus); },
     openBounties: () => { const p = playerTravelPixel(); return bountyHost?.openBoard({ px: p.x, py: p.y, name: noticeTownOf(p.x, p.y)?.name ?? '' }) ?? false; },
     scryWhere,   // LOOT19: the guild's scryers read this host's region

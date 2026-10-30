@@ -773,6 +773,7 @@ bf.conduct.r7,"7. Keep private things private. Don’t share anyone’s personal
 bf.conduct.r8,"8. No spam or self-promo. No ads, invite links or repeated messages unless the mods say it’s OK."
 bf.conduct.r9,"9. Bugs and cheats. Report bugs in the bug channel. Don’t use exploits against other players, and don’t share them publicly."
 bguild.adv.company,"C - Company affairs"
+bguild.adv.companyLater,"The Company ledger cannot be opened right now. Try again in a moment."
 bguild.adv.work,"W - Work and contracts"
 bguild.adventurers.name,"Adventurers Guild"
 bguild.apoth.writs,"W - Potion writs"
