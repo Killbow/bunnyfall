@@ -840,7 +840,8 @@ import { createRenownTracker, setRenownKillHandler, renownFoeLevel, renownAnswer
 import { setRenownLayer } from '../systems/renownLayer.js';   // RENOWN1: the level's health and magicka, on top of Daggerfall's while online
 import { createHallBook, hallFactionsOf, chapterFactionOf, parseHallCommand, hallAuditLines } from '../net/npcHallBook.js';   // CHAP2a: a town's guild halls, witnessed as I walk in; AUDIT CHAP2 E1: a developer's /hall
 import { createChapterSheet } from '../net/chapterSheet.js';   // CHAP3c: the chapter sheet, for the halls' prices and shelves
-import { createChapterBanners } from './chapterBanners.js';   // CHAP7b: a patron's banners at its chapter's halls
+import { createChapterBanners } from './chapterBanners.js';
+import { createBunnyHallBanners } from './bunnyHallBanners.js';   // BUNNY-GUILDS: the halls' arms beside their doors   // CHAP7b: a patron's banners at its chapter's halls
 import { createRollTracker, rollEntityDoors, rollPaceOf } from '../net/npcRollTracker.js';   // CHAP1: the Roll - this realm character's standing with Daggerfall's guilds, the account service's
 import { rollKeptOf, ROLL_KEPT_VENDOR, hallPosterName, hallRememberLine, isChapterWrit, seatLinesOf, seatRankAt, chapterRollTitle, chapterRollLines, chapterBandOf } from '../net/npcChapterLaw.js';   // AUDIT CHAP: the pace's line; the last adoption, kept in the save; CHAP2a: a hall writ's guild, named; CHAP3a: a member's own writ too; CHAP5a: the hall's roll; CHAP5b: a chapter's band, the living town's
 import { chapterSeasonLines } from '../net/chapterEvents.js';   // CHAP6c: a chapter's Season in words, its candidates named
@@ -12508,6 +12509,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     chapterOf: (faction, region) => chapterSheet.chapterOf(chapterFactionOf(faction, townTalk?.factionDict ?? null) ?? faction, region),
     translation: (px, py) => state.pixelTranslation(px, py), eye: () => cam.pos,
   }) : null;
+  // BUNNY-GUILDS: Bunnyfall's guild halls hang their guild's arms (scenes/bunnyHallBanners.js), on the same pass
+  const bunnyHallBanners = bannerPass ? createBunnyHallBanners({ built: () => built, translation: (px, py) => state.pixelTranslation(px, py), eye: () => cam.pos }) : null;
   // FESTIVAL-STAGE (Seats-Arc 7.6): whether a Festival rules at a town - its streets' music, its lanterns lit
   const festivalStage = seatBook ? createFestivalStage({ seatAt: (mapId) => seatHere(mapId), version: () => (seatBook.open === true ? 1 : 0) }) : null;
   /** GUILD1d + SEAT1a: this frame's banners - the halls' and the seats', the nearest BANNERS_MAX of them. */
@@ -12522,6 +12525,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const b of hallBanners?.list() ?? []) all.push(b);
     for (const b of seatBanners?.list() ?? []) all.push(b);
     for (const b of chapterBanners?.list() ?? []) all.push(b);   // CHAP7b
+    for (const b of bunnyHallBanners?.list() ?? []) all.push(b);   // BUNNY-GUILDS
     if (all.length <= BANNERS_MAX) return all;
     _hungEye = cam.pos;
     all.sort(_hungByEye);

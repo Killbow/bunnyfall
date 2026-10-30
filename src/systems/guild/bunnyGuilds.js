@@ -36,6 +36,25 @@ const RANKS = Object.freeze({
   artisans: ['Apprentice', 'Journeyman', 'Craftsman', 'Fabricator', 'Artificer', 'Artisan', 'Master Craftsman', 'Mastersmith', 'Grandmaster', 'Manderville'],
 });
 
+/** BUNNY-GUILDS (2026-10-30, the owner: "the new guilds looking like houses"): each guild's arms (net/heraldryLaw.js's
+ *  shape), hung as two banners beside its hall's door (scenes/bunnyHallBanners.js) - a converted house told from its
+ *  street, as a Company's hall is. */
+const ARMS = Object.freeze({
+  adventurers: { field: 'azure', border: 'gold', device: 'swords' },
+  bards: { field: 'purpure', border: 'gold', device: 'rose' },
+  cartographers: { field: 'teal', border: 'argent', device: 'star' },
+  merchants: { field: 'gold', border: 'sable', device: 'scales' },
+  hunters: { field: 'vert', border: 'umber', device: 'bow' },
+  apothecaries: { field: 'celeste', border: 'argent', device: 'chalice', charge: 'sable' },
+  artisans: { field: 'umber', border: 'ochre', device: 'anvil' },
+});
+/** A guild's arms by its faction id, or null. */
+export const bunnyHallArms = (/** @type {unknown} */ factionId) => {
+  const g = BY_FACTION_ID.get(/** @type {number} */ (factionId));
+  return g ? /** @type {Record<string, any>} */ (ARMS)[g.key] ?? null : null;
+};
+const BY_FACTION_ID = new Map(BUNNY_GUILD_LAW.map((g) => [g.factionId, g]));
+
 /** Each guild's name in the player's language (literal keys, so tools/l10nExtract.mjs finds them). */
 const NAMES = Object.freeze({
   adventurers: () => t('bguild.adventurers.name', 'Adventurers Guild'),
