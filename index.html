@@ -7,228 +7,129 @@
   <!-- TI2 (2026-09-11): the phone's chrome colour. The manifest and the
        home-screen icons are the GAME page's (play/index.html): this page
        references no file, by its own test's law. -->
-  <meta name="theme-color" content="#0a0c11" />
+  <meta name="theme-color" content="#1c1108" />
   <meta name="description" content="Daggerfall online with friends, in your browser. Bring your own copy of The Elder Scrolls II: Daggerfall." />
   <meta property="og:title" content="Bunnyfall" />
   <meta property="og:description" content="Daggerfall online with friends, in your browser. Bring your own copy of The Elder Scrolls II: Daggerfall." />
   <meta property="og:type" content="website" />
   <!--
-    THE DOOR IN FRONT OF THE DOOR (U60, restyled U63). The game lives at
-    ./play/. This page mounts none of it: no module, no canvas, no game
-    data. Its palette, its fonts and its NIGHT SKY are injected by
-    scripts/landingHtml.mjs from the game's own sources - the enhanced
-    skin's tokens, the skin's one fonts request, and pixelGround's ramp,
-    seed and star law rebuilt in CSS - so the page cannot drift from the
-    menu it opens onto. Every colour below is a var() or one of the
-    pixel face's own literals; test/ui/enhanced/landing.test.js holds it to that.
+    THE DOOR IN FRONT OF THE DOOR, IN GRIMOIRE DRESS (2026-10-30, the owner: "make it look more like the daggerfall
+    grimoire ui"). The game lives at ./play/. This page mounts none of it: no module, no canvas. It wears the game's
+    DFO Grimoire look from the pack's own pictures and face (public/art/grimoire-ui/, GrimoireUI by LordSquacquerone,
+    credited below): the dark planked desk, cream pages with a dark edge, the red press with yellow lettering, the
+    Alagard face. The colours are the dress's own (ui/grimoireDress.js): wood #3a2414, page #e3c995, ink #2b1a0c, red
+    #8e1a10, yellow #f4e04c.
   -->
   <style>
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    /* FIX-D: Pixelify Sans's 5 reads as an 8; the digit five is Silkscreen's
-       (OFL, vendor/silkscreen-five/), one glyph as a data URI, the same
-       face src/ui/pixelifyFive.js gives the game. */
-    @font-face { font-family: 'Pixelify Five'; unicode-range: U+0035; font-display: swap; src: url(data:font/woff2;base64,d09GMgABAAAAAAIIAA0AAAAABKQAAAG5AAEAQgAAAAAAAAAAAAAAAAAAAAAAAAAAGyAcIAZgADQRCAo8UQE2AiQDCAsGAAQgBYQEByAb0gMRFZQRZF8mbyrtyKnsmUtW0uh5eajRkkYiwmd9zzwevvZ7PXd3A4jjU0BFqJDHE1p0Mq4uqiyrUX1VpBcA/QCAwLv/sfo5F6Rn9t09Ls65/8pEjkFdE/m2A84AIXIHmiZwJJFm0pbQC2cFlGjCRS2xqAUWJRAZpScLgtmEN4H2INg9T6DZqHGxacuuvRoVqAhYvaSloI70IIWdVRLHLfgNBOxl356deyxZYUWpr+rJNb8JiK/pmJSRkNErC/QqJlEUgRWVXLV6ESBEVQESKEjoRA+gAFJrOROtuU2rFi1ORpsvt1y9+lW3f3N7TL8NBMKGS6Nj8yes/za5Bg8HfwuvHq+zWX05l2uol0Dwz5V3RP1cQJeUzrud3rstkMyqCwJGSQINDsuiNGGRJvRaJGn3iGytlxSz0U6dvbHww+rNxh0babDbhyLLJzB13YBvnsCnqKuRDUnSwnPAMmETnOcpx2EEPp+mbgw1LSumfKYqw0bLELM6SbGdRm08TAsa7XeSzTUZDFX+dPS7X+6RR5RVmJvg9p8MY4EtHAlMk2kyC+YFf/8E/GKovmqrnuLEDhW0/Ak2MwEAAA==) format('woff2'); }
-    @font-face { font-family: 'Pixelify Five'; unicode-range: U+0032, U+005A; font-display: swap; src: url(data:font/woff2;base64,d09GMgABAAAAAAGgAAoAAAAAAxAAAAFVAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAABmAAPAqBJIEfATYCJAMKCwgABCAFaQcoG08CEK4G7CZ4Jq7VZnqPaS6YXuWQw1RbJh6+H/t27nvrmtQMbRCLt0hnKJGdvlT+z5/rbZqg29elVx1WpXCJB/CNL2EDTlNMNbGZr4i7wsrKf1Qlsx1PdmMc+kB2w92NINLQ3/I4DzSggLvLbQzxeALBIZ3X3J0op6mYYkWkA21shWnP+fr/hfwzOID4lQKdICGjSRZoUmQQJYqEZNpzAflL4Y8FADIoQSVGsQwoApTJRWg/BOVjEKpJt/zRejXl4RPResYon4PypSPKH6ezwgzNirNnNhfmUC4f5rlc/pHOPd3f5P95UE+t19nX6YofP9MAgeB3e0qV0f6R8wv8LSXHVguvqTEFZAkEBz1d7mKtI1ileMUFqwJZpzKQABWZFyBUUDgpVSGLonKhSX2hpEbfbhBlI6P9rLf8Vr0BeAJRrAMjezM9SwltXWsjdQs4kyybrQEAAAA=) format('woff2'); }
+    @font-face { font-family: 'DFO Alagard'; src: url('./art/grimoire-ui/Fonts/FONT0003-SDF.ttf') format('truetype'); font-display: swap; }
+    :root {
+      --wood: #3a2414; --wood-dark: #1c1108; --wood-mid: #53351d; --wood-lit: #7a5230;
+      --page: #e3c995; --cream: #efdcae; --tan: #b3834a; --scroll: #c99a5c;
+      --ink: #2b1a0c; --ink-soft: #5b3b1f; --ink-faint: #80603e;
+      --red: #8e1a10; --red-hi: #b52418; --red-deep: #5a0a06;
+      --yellow: #f4e04c; --outline: #140b04;
+    }
     body {
       margin: 0; min-height: 100dvh; position: relative;
-      color: #d8cfae; background: #0a0c11;
-      font-family: 'Pixelify Five', 'Pixelify Sans', monospace; font-size: 16px; line-height: 1.6;
+      color: var(--cream); background: var(--wood-dark);
+      font-family: 'DFO Alagard', 'Alagard', Georgia, serif; font-size: 19px; line-height: 1.5;
       -webkit-font-smoothing: none;
-      /* U63: Pixelify Sans ships an `fi` LIGATURE whose glyph reads as a
-         capital A - "files" becomes "Ales", "first" becomes "Arst".
-         Caught on the first render of this page and fixed in the skin
-         too, because the whole enhanced UI is set in this face. */
-      font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'clig' 0;
     }
-    /* THE NIGHT is the page itself: one fixed layer behind everything,
-       so the sky does not scroll away from the words standing on it. */
-    .night { position: fixed; inset: 0; z-index: -1; }
+    /* THE DESK: the clean planks at the top left of the pack's spellmaker picture, one fixed layer behind everything */
+    .night { position: fixed; inset: 0; z-index: -1;
+      background: url('./art/grimoire-ui/Img/INFO01I0.IMG.png') 0 0 / max(165vw, 220vh) auto, var(--wood); }
+    .night::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 40%, rgba(10,5,2,0.55) 100%); }
 
-    a { color: #d8cfae; text-decoration: none; border-bottom: 2px solid #7d7460; }
-    a:hover, a:focus-visible { outline: none; color: rgb(243,239,44); border-color: var(--brass); text-shadow: 2px 2px 0 rgb(93,77,12); }
-    /* SITE1 (2026-09-15, Mac: "remove the fancy font from the site for
-       capital letters (keep the daggerfall Enhanced title unchanged)"):
-       JACQUARD 12 IS THE WORDMARK'S FACE, AND NOTHING ELSE'S. It was set
-       on every heading, every step numeral and every Q&A term, and its
-       capitals are the ornate part - an H, a G, a P at 52px carry more
-       flourish than a section title is asking for. The page keeps its
-       own pixel face for those, which is what the body, the sub-line and
-       every tracked caps rule were already set in, so the site now has
-       ONE text face plus a wordmark rather than two competing for the
-       same words. The title itself is untouched. */
-    h1, h2, h3 { font-family: 'Pixelify Five', 'Pixelify Sans', monospace; font-weight: 400; margin: 0; text-shadow: 4px 4px 0 rgba(0,0,0,0.7); }
-    p { margin: 0 0 14px; }
-    .skip { position: absolute; left: 12px; top: -60px; padding: 10px 14px; background: var(--brass); color: #0a0c11; z-index: 10; border: 0; }
+    a { color: var(--red); text-decoration: none; border-bottom: 2px solid var(--tan); }
+    a:hover, a:focus-visible { outline: none; color: var(--red-hi); border-color: var(--red-hi); }
+    h1, h2, h3 { font-family: inherit; font-weight: 400; margin: 0; }
+    p { margin: 0 0 12px; }
+    .skip { position: absolute; left: 12px; top: -60px; padding: 10px 14px; background: var(--yellow); color: var(--outline); z-index: 10; border: 0; }
     .skip:focus { top: 12px; }
 
-    /* THE IDIOMS, borrowed one for one from the home face. */
-    .rule { display: flex; align-items: center; gap: 16px; width: min(420px, 70vw); margin: 30px auto 32px; }
-    .rule::before, .rule::after { content: ''; flex: 1; height: 2px; background: #7d7460; opacity: 0.55; }
-    /* BR2: the logo's divider is a gold bar with a RED stone set in it, so
-       the page's own gem is built the same way - a ruby core keeping the
-       four gold tips it already had. This is the ONE place the red is asked
-       to carry the brand; everything else stays brass and parchment, which
-       is what keeps the scheme following the logo rather than shouting it. */
-    .gem {
-      position: relative; width: 2px; height: 2px; background: var(--ruby);
-      box-shadow:
-        0 -4px 0 var(--brass), 0 4px 0 var(--brass), -4px 0 0 var(--brass), 4px 0 0 var(--brass),
-        -2px -2px 0 var(--ruby), 2px -2px 0 var(--ruby), -2px 2px 0 var(--ruby), 2px 2px 0 var(--ruby);
-    }
-    .caps { font-size: 15px; letter-spacing: 0.26em; text-indent: 0.26em; text-transform: uppercase; color: #7d7460; text-shadow: 2px 2px 0 rgba(0,0,0,0.7); }
-    /* The ONE box, the About plaque's own shape - here it is Play. */
+    /* THE RULE: a thin ink line either side of a red stone */
+    .rule { display: flex; align-items: center; gap: 14px; width: min(380px, 70vw); margin: 22px auto 24px; }
+    .rule::before, .rule::after { content: ''; flex: 1; height: 2px; background: currentColor; opacity: 0.45; }
+    .gem { width: 8px; height: 8px; background: var(--red-hi); border: 2px solid var(--outline); transform: rotate(45deg); box-shadow: 0 0 0 1px var(--yellow); }
+
+    /* THE PRESS: the pack's red Exit press, its lettering yellow. Download is the wooden one beside it. */
     .plaque {
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 20px; letter-spacing: 0.18em; text-indent: 0.18em; text-transform: uppercase;
-      color: #d8cfae; min-height: 52px; padding: 12px 34px;
-      background: rgba(10,12,17,0.55); border: 2px solid #7d7460;
-      text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+      font-size: 26px; letter-spacing: 0.06em; color: var(--yellow); min-height: 54px; padding: 8px 40px;
+      background: linear-gradient(180deg, var(--red-hi), var(--red) 55%, var(--red-deep));
+      border: 3px solid var(--outline); border-bottom-width: 5px;
+      box-shadow: inset 0 2px 0 rgba(255,196,120,0.3), 0 3px 0 rgba(0,0,0,0.5);
+      text-shadow: 2px 2px 0 #3a2400;
     }
-    .plaque:hover, .plaque:focus-visible { outline: none; color: rgb(243,239,44); border-color: var(--brass); text-shadow: 2px 2px 0 rgb(93,77,12); }
-    /* The door's three: Play into the browser, Install onto the desk,
-       Discord for the people - the same plaque, side by side, wrapping
-       to a stack on a phone.
+    .plaque:hover, .plaque:focus-visible { outline: none; color: #fff7a8; filter: brightness(1.15); border-color: var(--outline); }
+    .plaque.wood { background: linear-gradient(180deg, var(--wood-lit), var(--wood-mid) 55%, var(--wood)); color: var(--cream); text-shadow: 2px 2px 0 #140b04; box-shadow: inset 0 2px 0 rgba(255,214,150,0.26), 0 3px 0 rgba(0,0,0,0.5); }
+    .doorplaques { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
 
-       DISCORD WEARS THE PLAQUE AND NOT THE ASKS' SHAPE (Mac, 2026-09-15:
-       "Can you add our discord ... Front and center"). The page has
-       exactly two box shapes and that is the whole of its discipline:
-       the plaque is what you PRESS, the corner shape is an ASK.
-       Front and centre is the plaque row, so Discord joins it rather
-       than becoming a third shape or a second corner - no new box rule,
-       no new colour, no icon the other two do not have. Play is still
-       first and still leftmost. */
-    .doorplaques { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-
-    /* THE DOOR: the home face's own stage - centered, boxless, the
-       wordmark over a rule, one thing to press. Its top is the asks' room
-       (SUPPORT1): the corner row is two plaques wide, which reaches over
-       the wordmark on a short window, so the door starts below it at
-       every width rather than on a phone alone. */
-    .door { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 84px 24px 118px; text-align: center; }
-    /* AUDIT BR5 (Mac, 2026-10-11: "Use the new logo"): the wordmark is
-       the product's LOGO - the game's own file (src/assets/branding,
-       BR5), at the width the game's front door draws it, over the page's
-       own rule. It is the one picture this page carries. BR3 had made it
-       type (Mac, 2026-09-14); the face stays on the heading for its alt.
-       BR6 (Mac, 2026-10-26): the dragon mark, at the door's 234px and at
-       the height 64vw gave BR5's 1.63:1 (46.7vw). LOGO-CENTRE (Mac,
-       2026-10-26): drawn 10% of its width left, so its letters stand on
-       the centre line and the dragon hangs left of them (brandMark.js). */
-    .wordmark { font-family: 'Jacquard 12', var(--brand); font-size: clamp(64px, 12vw, 112px); line-height: 1; }
-    .wordmark img { display: block; width: min(560px, 88vw); height: auto; margin: 0 auto; transform: translateX(-2%); }
-    .dek { max-width: 46ch; margin: 0 auto 24px; }
-    .gate { max-width: 54ch; margin: 0 auto 26px; color: #a89f88; font-size: 15px; }
-    .gate b { color: #d8cfae; font-weight: 400; }
+    /* THE DOOR */
+    .door { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px 118px; text-align: center; }
+    .wordmark { font-size: clamp(64px, 12vw, 112px); line-height: 1; }
+    .wordmark img { display: block; width: min(560px, 88vw); height: auto; margin: 0 auto; transform: translateX(-2%); filter: drop-shadow(0 4px 0 rgba(0,0,0,0.55)); }
+    .door .rule { color: var(--cream); }
+    .dek { max-width: 46ch; margin: 0 auto 22px; font-size: 24px; color: var(--cream); text-shadow: 2px 2px 0 var(--outline); }
+    .gate { max-width: 54ch; margin: 0 auto 28px; color: #d9c28f; font-size: 18px; text-shadow: 2px 2px 0 var(--outline); }
+    .gate b { color: var(--yellow); font-weight: 400; }
     .doorlinks { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-    /* PLUS-SITE: the sections' four are pressed, so they are slabs too - the plaque's kind a size down */
-    .doorlinks a { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 14px; border: 2px solid; color: #d8cfae; }
+    .doorlinks a { display: inline-flex; align-items: center; min-height: 40px; padding: 4px 18px; font-size: 18px; color: var(--cream);
+      background: linear-gradient(180deg, var(--wood-lit), var(--wood-mid) 55%, var(--wood)); border: 3px solid var(--outline); box-shadow: inset 0 2px 0 rgba(255,214,150,0.26), 0 3px 0 rgba(0,0,0,0.5); text-shadow: 2px 2px 0 #140b04; }
+    .doorlinks a:hover, .doorlinks a:focus-visible { color: var(--yellow); }
 
-    /* THE ASKS (U64's corner; PATREON1, 2026-09-25, Mac: "Replace website
-       KOFI with patreon"; SUPPORT1, 2026-10-05, Mac: "I want to add the
-       kofi link in addition to the patron on the website"). Top right of
-       the door, the ONE thing above the wordmark - Patreon's plaque and
-       Ko-fi's beside it, in the one shape (.ask: a third box rule would
-       break the page's two). Each carries its mark drawn in box-shadow
-       pixels beside the word, because an <img> would be a second raster
-       beside the logo, and the logo is the one picture this site carries
-       (AUDIT BR5). The marks are the
-       GAME's (.supmark, ui/supportAsks.js, injected at serve and build by
-       scripts/landingHtml.mjs) - the same pixels the game's own door
-       draws its two icons in, so the site and the menu cannot ask under
-       two different drawings. */
-    .asks { position: absolute; top: 0; right: 0; z-index: 2; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin: 16px; }
-    .ask {
-      /* 5px over and under: a drawing is laid out whole (the mug's steam
-         is part of its box), so the tallest - the mug's 32px - sets the row
-         and the plaques keep PATREON1's 46px (.asks stretches the other). */
-      display: flex; align-items: center; gap: 14px;
-      padding: 5px 16px; min-height: 44px;
-      font-size: 14px; letter-spacing: 0.14em; text-indent: 0.14em; text-transform: uppercase;
-      color: #d8cfae; background: rgba(10,12,17,0.55); border: 2px solid #7d7460;
-      text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
-    }
-    .ask:hover, .ask:focus-visible { outline: none; color: rgb(243,239,44); border-color: var(--brass); text-shadow: 2px 2px 0 rgb(93,77,12); }
-
-    /* THE FOOT: the home face's three zones, at the foot of the door. */
-    .foot {
-      position: absolute; left: 0; right: 0; bottom: 0;
-      display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px;
-      padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-      font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; color: #7d7460;
-      text-shadow: 2px 2px 0 rgba(0,0,0,0.7);
-    }
-    .foot a { border: 0; color: #7d7460; }
-    .foot .l { justify-self: start; display: flex; gap: 16px; }
-    .foot .c { justify-self: center; }
-    .foot .r { justify-self: end; }
     .build::before { content: 'build '; }
-    .build:empty, .stat:empty { display: none; }
-    .stat[data-stat="lines"]::after { content: ' lines of code'; }
+    .build:empty { display: none; }
 
-    /* SECTIONS. PLUS-SITE (2026-10-07, Mac: "give the main menu the enhanced plus UI treatment and do the same thing for
-       our website"): each a carved WINDOW of the game's stone - its name on the lit band at its head, a box inside it a
-       PANEL. The page gives each box its edge and room; the stone and brass are the kit's, injected after this sheet by
-       scripts/landingHtml.mjs from the game's own tones (ui/enhanced/enhancedFrame.js siteKitCss), as the night and the marks
-       are. Without the kit (the raw file) every edge falls back to the text's colour, never to a colour of its own. */
-    main { max-width: 1000px; margin: 0 auto; padding: 24px 24px 40px; }
-    main > section { position: relative; border: 4px solid; padding: 0 30px 34px; margin: 0 0 44px; text-align: center; }
-    main > section > h2 { font-size: clamp(36px, 5vw, 52px); line-height: 1; margin: 0 -30px; padding: 24px 16px 20px; }
-    main > section > .rule { margin: 18px auto 26px; }
-    .lede { color: #a89f88; max-width: 56ch; margin: 14px auto 30px; font-size: 15px; }
-    .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: left; }
-    .cols > div, .grid > div { border: 2px solid; padding: 16px 18px 4px; }
-    .cols h3 { font-size: 26px; margin-bottom: 8px; }
-    .cols p { color: #a89f88; font-size: 15px; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; text-align: left; }
-    .grid dd { margin-bottom: 12px; }
-    .grid dt { font-size: 15px; letter-spacing: 0.18em; text-indent: 0.18em; text-transform: uppercase; color: #d8cfae; text-shadow: 2px 2px 0 rgba(0,0,0,0.8); }
-    .grid dd { margin-top: 6px; margin-left: 0; color: #a89f88; font-size: 15px; }
+    /* A PAGE: cream, dark edged, laid on the desk */
+    main { max-width: 860px; margin: 0 auto; padding: 24px 24px 40px; }
+    main > section:not(.credits) { position: relative; color: var(--ink); text-align: center; margin: 0 0 40px; padding: 0 30px 30px;
+      background: radial-gradient(120% 100% at 50% 0, #ecd7a6, var(--page) 60%, #d6b97e);
+      border: 4px solid var(--outline); outline: 3px solid var(--wood-lit); outline-offset: 0;
+      box-shadow: 0 8px 0 rgba(0,0,0,0.45); }
+    main > section:not(.credits) > h2 { font-size: clamp(34px, 5vw, 46px); line-height: 1; padding: 26px 16px 4px; color: var(--ink); }
+    main > section:not(.credits) > h2::first-letter { color: var(--red); }
+    main > section:not(.credits) > .rule { color: var(--ink); margin: 14px auto 22px; }
+    .lede { color: var(--ink-soft); max-width: 56ch; margin: 0 auto 24px; font-size: 19px; }
 
     .steps { list-style: none; margin: 0 auto; padding: 0; counter-reset: step; text-align: left; max-width: 64ch; }
-    /* a step is a panel, its numeral in a brass-lit socket */
-    .step { display: grid; grid-template-columns: 54px 1fr; gap: 0 18px; padding: 16px 18px 4px; margin: 0 0 12px; border: 2px solid; }
+    .step { display: grid; grid-template-columns: 54px 1fr; gap: 0 18px; align-items: start; padding: 14px 16px 6px; margin: 0 0 12px;
+      background: rgba(179,131,74,0.22); border: 2px solid var(--ink-faint); }
     .step::before { counter-increment: step; content: counter(step); display: flex; align-items: center; justify-content: center;
-      width: 54px; height: 54px; border: 2px solid; font-size: 36px; line-height: 1; color: var(--brass); text-shadow: 2px 2px 0 rgba(0,0,0,0.8); }
-    .step h3 { font-size: 24px; margin-bottom: 6px; }
-    .step p { color: #a89f88; font-size: 15px; }
-    .sources { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 15px; }
+      width: 54px; height: 54px; font-size: 34px; line-height: 1; color: var(--yellow); text-shadow: 2px 2px 0 #3a2400;
+      background: linear-gradient(180deg, var(--red-hi), var(--red) 55%, var(--red-deep)); border: 3px solid var(--outline); box-shadow: inset 0 2px 0 rgba(255,196,120,0.3); }
+    .step h3 { font-size: 26px; margin: 2px 0 6px; color: var(--ink); }
+    .step p { color: var(--ink-soft); font-size: 18px; }
+    .sources { list-style: none; margin: 8px 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 19px; }
 
-    /* a question and its answer, a panel each */
-    .qa { display: flex; flex-direction: column; gap: 12px; text-align: left; margin: 24px 0 0; }
-    .qa > div { display: grid; grid-template-columns: 220px 1fr; gap: 6px 24px; padding: 16px 18px; border: 2px solid; }
-    .qa dt { font-size: 24px; line-height: 1.1; text-shadow: 2px 2px 0 rgba(0,0,0,0.7); }
-    .qa dd { margin: 0; color: #a89f88; font-size: 15px; }
-    .qa dd .meta { display: block; color: #7d7460; font-size: 14px; margin-top: 6px; }
-    /* REL5: the three downloads, each its platform's own file by the name
-       that never moves (releases/latest/download/...) - LINKS, the page's
-       own kind, not a fourth plaque and not a third box. The door's
-       Install lands here. */
-    .qa .dl { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 12px 0 10px; font-size: 18px; letter-spacing: 0.14em; text-transform: uppercase; }
+    .qa { display: flex; flex-direction: column; gap: 12px; text-align: left; margin: 22px 0 0; }
+    .qa > div { display: grid; grid-template-columns: 200px 1fr; gap: 6px 24px; padding: 14px 16px; background: rgba(179,131,74,0.22); border: 2px solid var(--ink-faint); }
+    .qa dt { font-size: 26px; line-height: 1.1; color: var(--ink); }
+    .qa dd { margin: 0; color: var(--ink-soft); font-size: 18px; }
+    .qa dd .meta { display: block; color: var(--ink-faint); font-size: 16px; margin-top: 6px; }
+    .qa .dl { display: flex; flex-wrap: wrap; gap: 8px 26px; margin: 12px 0 10px; font-size: 22px; }
     .qa dt[id] { scroll-margin-top: 24px; }
 
-    .end { text-align: center; padding: 26px 0 60px; color: #7d7460; font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase; display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; }
-    .end a { border: 0; color: #7d7460; }
+    /* THE CREDITS: a few small lines, not a page */
+    .credits { max-width: 680px; margin: 0 auto 28px; padding: 0 8px; text-align: center; font-size: 14px; line-height: 1.5; color: #d9c28f; text-shadow: 1px 1px 0 var(--outline); }
+    .credits p { margin: 0 0 6px; }
+    .credits a { color: var(--cream); border-bottom-color: var(--wood-lit); }
+    .credits a:hover { color: var(--yellow); border-color: var(--yellow); }
+
+    .end { text-align: center; padding: 10px 0 56px; color: var(--tan); font-size: 15px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: center; text-shadow: 2px 2px 0 var(--outline); }
+    .end a { border: 0; color: var(--tan); }
+    .end a:hover { color: var(--yellow); }
 
     @media (max-width: 860px) {
-      .cols, .grid { grid-template-columns: 1fr; }
       .qa > div { grid-template-columns: 1fr; }
       main { padding: 16px 14px 32px; }
-      main > section { padding: 0 16px 24px; }
-      main > section > h2 { margin: 0 -16px; }
-      .step { grid-template-columns: 44px 1fr; gap: 0 14px; padding: 14px 14px 4px; }
+      main > section:not(.credits) { padding: 0 16px 22px; }
+      .step { grid-template-columns: 44px 1fr; gap: 0 14px; padding: 12px 12px 4px; }
       .step::before { width: 44px; height: 44px; font-size: 28px; }
       .door { padding-bottom: 140px; }
-      /* The asks keep ONE row on a phone, where two plaques in full words
-         would wrap onto the wordmark: the mark and the platform's name,
-         the "Support on" set down (the row is labelled Support). */
-      .asks { margin: 12px; }
-      .ask { font-size: 13px; padding: 5px 12px; gap: 12px; }
-      .askverb { display: none; }
-      /* PX1b's own phone rule: three zones wrap the middle one into the
-         build line, so the foot stacks. */
-      .foot { grid-template-columns: 1fr; justify-items: center; gap: 8px; text-align: center; }
-      .foot .l, .foot .c, .foot .r { justify-self: center; }
     }
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
@@ -244,43 +145,15 @@
     <p class="gate">You need <b>your own copy</b> of The Elder Scrolls II: Daggerfall, free since 2009. Your game files stay on your device. Make an account to play online with the group and back up your saves.</p>
     <div class="doorplaques">
       <a class="plaque" href="./play/">Play</a>
-      <a class="plaque" href="#desktop">Download</a>
+      <a class="plaque wood" href="#desktop">Download</a>
     </div>
     <nav class="doorlinks caps" aria-label="Sections">
-      <a href="#what">What it is</a>
       <a href="#how">How to play</a>
-      <a href="#inside">What's in it</a>
       <a href="#credits">Credits</a>
     </nav>
-    <div class="foot">
-      <span class="l">
-        <a class="build" data-build="" href="https://github.com/Killbow/bunnyfall/commit/"></a>
-      </span>
-      <span class="c"><span class="stat" data-stat="lines"></span></span>
-      <span class="r"><a href="https://github.com/Killbow/bunnyfall">Source</a></span>
-    </div>
   </header>
 
   <main id="main">
-    <section id="what" aria-labelledby="what-h">
-      <h2 id="what-h">What it is</h2>
-      <div class="rule"><i class="gem"></i></div>
-      <div class="cols">
-        <div>
-          <h3>Built on DFO Online</h3>
-          <p>A fork of DFO Online, itself grown from Daggerfall Unity. Run on our own server.</p>
-        </div>
-        <div>
-          <h3>Rebuilt</h3>
-          <p>A hand-rolled WebGL2 renderer with no engine underneath, and a procedural sky.</p>
-        </div>
-        <div>
-          <h3>In progress</h3>
-          <p>Not finished. You cannot import classic or Daggerfall Unity saves yet, and there is no mod support.</p>
-        </div>
-      </div>
-    </section>
-
     <section id="how" aria-labelledby="how-h">
       <h2 id="how-h">How to play</h2>
       <div class="rule"><i class="gem"></i></div>
@@ -301,7 +174,6 @@
         </div></li>
         <li class="step"><div>
           <h3>Then play.</h3>
-          <p>You wake in Privateer's Hold, as everyone does. Touch controls appear on their own.</p>
         </div></li>
       </ol>
       <dl class="qa">
@@ -309,55 +181,13 @@
           <dd>The same game in its own window, for Windows and Linux. It updates itself when a new version is out.
             <span class="dl"><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-setup.exe">Windows</a><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-win-x64-portable.exe">Windows portable</a><a href="https://github.com/Killbow/bunnyfall/releases/latest/download/Bunnyfall-linux-x86_64.AppImage">Linux</a></span>
             <span class="meta">Windows may warn the first time: More info, then Run anyway.</span></dd></div>
-
-        <div><dt>Controls</dt>
-          <dd>Daggerfall Unity's defaults. WASD and mouse, F6 for the pack, F9 and F11 to quick save and load, Esc for the rest. Rebind anything in Settings.</dd></div>
-
-        <div><dt>Browsers</dt>
-          <dd>Any current one with WebGL2: Chrome, Edge, Firefox or Safari.</dd></div>
-
-        <div><dt>Saves</dt>
-          <dd>In your browser's storage, and on the server when you are signed in.</dd></div>
-
-
-        <div><dt>If it breaks</dt>
-          <dd>Reload first. If it is still broken, tell Killbunny what you did.</dd></div>
       </dl>
     </section>
 
-    <section id="inside" aria-labelledby="inside-h">
-      <h2 id="inside-h">What's in it</h2>
-      <div class="rule"><i class="gem"></i></div>
-      <p class="lede">All of this is in the game now.</p>
-      <dl class="grid">
-        <div><dt>The world</dt><dd>The whole Iliac Bay, streamed as you walk it. Weather and seasons run on the game's calendar.</dd></div>
-        <div><dt>Towns and people</dt><dd>Shops, taverns, banks and guild halls. People who talk and take offence, a watch that arrests you, a court that tries you.</dd></div>
-        <div><dt>Dungeons</dt><dd>The classic dungeons with their locks, teleporters and traps, and an automap that fills in as you go.</dd></div>
-        <div><dt>Combat</dt><dd>The original game's own hit and damage formulas. Armour wears out, and enemies run when they are losing.</dd></div>
-        <div><dt>Magic</dt><dd>The spellbook, the spell and item makers, and the Daedric artifacts.</dd></div>
-        <div><dt>Your character</dt><dd>The class questions, custom classes and the biography. Then levelling and reputation.</dd></div>
-        <div><dt>Quests</dt><dd>265 of them, running on the game's own scripts and tracked in the journal.</dd></div>
-        <div><dt>The screens</dt><dd>Every classic window laid out from the original art, with a modern set beside it. One press switches.</dd></div>
-        <div><dt>Sound and music</dt><dd>The game's sounds, and its MIDI through a synth written for this project. Your own tracks work too.</dd></div>
-      </dl>
-    </section>
-
-    <section id="credits" aria-labelledby="credits-h">
-      <h2 id="credits-h">Credits</h2>
-      <div class="rule"><i class="gem"></i></div>
-      <dl class="qa">
-        <div><dt><a href="https://github.com/Interkarma/daggerfall-unity">Daggerfall Unity</a></dt>
-          <dd>Interkarma and contributors, MIT licence. Bunnyfall is a separate project translated from its C#. Without it there would be nothing to build on.</dd></div>
-
-        <div><dt>The Elder Scrolls II: Daggerfall</dt>
-          <dd>Bethesda Softworks, 1996. A fan project, not affiliated with or endorsed by Bethesda or ZeniMax. The Elder Scrolls and Daggerfall are trademarks of ZeniMax Media Inc.</dd></div>
-
-        <div><dt><a href="https://www.dfworkshop.net/">Daggerfall Workshop</a> and <a href="https://en.uesp.net/wiki/Daggerfall:Daggerfall">UESP</a></dt>
-          <dd>The format documentation the readers were checked against.</dd></div>
-
-        <div><dt><a href="https://github.com/Lattymoy/daggerfall-js-source">DFO Online</a></dt>
-          <dd>By Lattymoy and contributors, MIT licence. Bunnyfall is a fork of it, run by Killbunny.<span class="meta">Set in Jacquard 12 and Pixelify Sans from Google Fonts.</span></dd></div>
-      </dl>
+    <section class="credits" id="credits" aria-label="Credits">
+      <p>Bunnyfall is a fork of <a href="https://github.com/Lattymoy/daggerfall-js-source">DFO Online</a> (Lattymoy and contributors, MIT), which grew from <a href="https://github.com/Interkarma/daggerfall-unity">Daggerfall Unity</a> (Interkarma and contributors, MIT). Run by Killbunny.</p>
+      <p>The look is <a href="https://www.nexusmods.com/daggerfallunity/mods/1222">GrimoireUI</a> by LordSquacquerone. Format notes from <a href="https://www.dfworkshop.net/">Daggerfall Workshop</a> and <a href="https://en.uesp.net/wiki/Daggerfall:Daggerfall">UESP</a>.</p>
+      <p>The Elder Scrolls II: Daggerfall is by Bethesda Softworks, 1996. This is a fan project, not affiliated with or endorsed by Bethesda or ZeniMax. The Elder Scrolls and Daggerfall are trademarks of ZeniMax Media Inc.</p>
     </section>
 
     <footer class="end">
