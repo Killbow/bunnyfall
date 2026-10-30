@@ -44,6 +44,7 @@
 import { eventBoardModel, eventAnnouncements, createEventToasts, EVENT_KIND_TEXT, EVENT_BOARD_TEXT, EVENT_BOARD_ROWS, EVENT_SINGLE_KINDS } from '../systems/eventBoard.js';
 import { takeEventNotices, eventBoardSource, eventBoardOn, eventNoticeElsewhere, eventHudLine, eventKindShown, EVENT_NOTICE_KINDS } from '../systems/eventNotices.js';
 import { timerText } from '../systems/eventTimers.js';
+import { installEventBoardKey } from './eventBoardKey.js';   // EVENT-BOARD-KEY: the key that shows or hides the board
 import { t } from '../systems/textManager.js';
 import { FRAME_TONES, frameCss, scopeRules } from './enhanced/enhancedFrame.js';
 import { injectEnhancedFonts } from './enhanced/enhancedStyle.js';
@@ -328,6 +329,7 @@ function drawFitted(doc, now, fit) {
  * @param {{ hidden?: boolean, dt?: number, doc?: any, nowMs?: number, height?: number }} [o]
  */
 export function drawEventBoard({ hidden = false, dt = 0, doc = globalThis.document, nowMs = Date.now(), height = Number(globalThis.innerHeight) || 720 } = {}) {
+  installEventBoardKey();   // EVENT-BOARD-KEY: live while the board is away too, so the same key brings it back
   const lines = takeEventNotices();
   // AUDIT EVENTS1 C4 / B9: off, a line taken in this frame goes where it went before, and the board forgets everything
   if (!eventBoardOn()) { for (const l of lines) eventNoticeElsewhere(l.kind, l.text, true); if (root || seen.size || watchFrom != null) reset(); return; }

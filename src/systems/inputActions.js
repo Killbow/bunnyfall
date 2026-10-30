@@ -210,6 +210,8 @@ export const ACTIONS = Object.freeze([
   'Decorate',
   // BUNNYFALL HOTBAR-PRESETS: the next hotbar set, one press (Minus, beside the bar's 0)
   'HotbarPreset',
+  // BUNNYFALL EVENT-BOARD-KEY: the world event board, shown or hidden (Equal, beside Minus)
+  'EventBoard',
 ]);
 
 /** AUDIT SOC D3: THE PORT'S OWN ROWS, NAMED SO THE CLASSIC WINDOWS CAN YIELD THEM.
@@ -227,7 +229,7 @@ export const PORT_ACTIONS = Object.freeze(['SocialInteract', 'QuickUse1', 'Quick
   'TorchToggleLight', 'TorchDrop', 'TorchThrow', 'ShoulderSwitch', 'AutoPerspective', 'FollowPaths', 'HorseMount', 'HorseSummon', 'DebugOverlay',
   'BoatDisembark', 'BoatToggleLight', 'BoatToggleSail', 'BoatTrimRight', 'BoatTrimLeft', 'BoatTrimModifier',
   'BoatTimeScaleUp', 'BoatTimeScaleDown', 'BoatTimeScaleReset', 'TravelView', 'WalkMode', 'TogglePerspective', 'ActChoice', 'BoatSailUp', 'BoatSailDown', 'Professions',
-  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
+  'LegacyFamily', 'ModeWheel', 'WeaponTechnique', 'Spyglass', 'SaddlePanel', 'ShipHold', 'ShotCycle', 'PartyPing', 'Decorate', 'HotbarPreset', 'EventBoard']);   // PARTY-PING: the party's ping   // the decorator, unbound   // SHOT-KINDS: the guns' load   // CARGO-ANYWHERE: the ship's hold   // SPYGLASS: the captain's glass   // TECH1: the weapon's technique   // LEGACY1: Project Legacy's family tree; MODE-WHEEL: the mode wheel   // KB1; TV1; PADWALK; VIEW-TOGGLE; PROF1   // QUICK-LOOT B4: the plaque's two, drawn in the enhanced pane under their own heading - the classic windows cannot draw them at all
 
 const ACTION_SET = new Set(ACTIONS);
 
@@ -376,6 +378,7 @@ export const DEFAULT_BINDINGS = Object.freeze([
   ['Digit8', 'Hotbar8'],
   ['Digit9', 'Hotbar9'],
   ['Digit0', 'Hotbar10'],
+  ['Equal', 'EventBoard'],   // BUNNYFALL EVENT-BOARD-KEY: free on every count (DFU, the port, the vendored mods); the map's zoom reads it only inside the map
   ['Minus', 'HotbarPreset'],   // BUNNYFALL HOTBAR-PRESETS: free on every count (DFU, the port, the vendored mods)
   ['KeyO', 'TorchToggleLight'],
   ['KeyG', 'TorchDrop'],
@@ -574,6 +577,7 @@ export const ACTION_GROUPS = Object.freeze([
     ['LogBook', journalKeyLabel('Quests', 'logbook')], ['NoteBook', journalKeyLabel('Notes', 'notebook')],   // FB1018D KEY-LOGBOOK
     ['AutoMap', 'Map'], ['TravelMap', 'Travel map'],
     ['QuickDial', 'Quick dial'], ['TravelView', 'Overworld (the travel view)'],
+    ['EventBoard', t('input.action.eventBoard', 'World event board: show or hide')],   // BUNNYFALL EVENT-BOARD-KEY
   ]),
   g('Quickslots and hotbar', [
     ['QuickUse1', 'Use quickslot 1 / hotbar slot 1'], ['QuickUse2', 'Use quickslot 2 / hotbar slot 2'],
