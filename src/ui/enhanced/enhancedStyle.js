@@ -2367,20 +2367,20 @@ ${badgeCss()}
    BR6: the dragon mark is 1232 x 1034 (1.19:1), painted to its edges too;
    the same heights at its ratio are 540 x 769/2112 x 1232/1034 = 234px
    (36.4vw), and the short landscape screen's 171px (24.3vw). */
-.px-wordmark:has(.brand-logo) { width: min(234px, 36.4vw); line-height: 0; flex-shrink: 0; }
+.px-wordmark:has(.brand-logo) { width: min(560px, 72vw); line-height: 0; flex-shrink: 0; }   /* BR7: the wide wordmark, by its width */
 .brand-logo { display: block; width: 100%; height: auto; object-fit: contain;
-  image-rendering: auto; transform: translateX(-10%); }   /* LOGO-CENTRE: the letters on the centre line (brandMark.js) */
+  image-rendering: auto; transform: translateX(-2%); }   /* LOGO-CENTRE: the letters on the centre line (brandMark.js) */
 /* BR5: the masthead's mark spent 769/2112 of the column's width in height
    (BR4's file less its empty rows); the DFO mark spends the same height at
    769/2112 x 526/322 = 59.5% of the width, centred. No margin pulls
    anything up any more - the file has no empty rows. BR6: the dragon
    mark's 1.19:1 spends that height at 769/2112 x 1232/1034 = 43.4%. */
-.brand-home .brand-logo { width: 43.4%; margin: 0 auto; }
+.brand-home .brand-logo { width: 88%; margin: 0 auto; }   /* BR7 */
 .brand-home { display: block; width: 100%; border: 0; padding: 0; background: transparent; cursor: pointer; }
 .brand-home:focus-visible { outline: 2px solid var(--brass); outline-offset: 6px; }
 .shell .brand h1:has(.brand-logo) { line-height: 0; }
 @media (max-height: 560px) and (min-width: 600px) {
-  .px-wordmark:has(.brand-logo) { width: min(171px, 24.3vw); }   /* BR4: INTRO2's 430px, at the same height; BR5 and BR6: BR4's 394px, at the same height */
+  .px-wordmark:has(.brand-logo) { width: min(420px, 52vw); }   /* BR7 */   /* BR4: INTRO2's 430px, at the same height; BR5 and BR6: BR4's 394px, at the same height */
 }
 .px-wordmark small { display: block; font-family: ${PIXEL_STACK};
   font-size: 16px; letter-spacing: 0.5em; text-indent: 0.5em;

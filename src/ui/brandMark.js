@@ -7,6 +7,9 @@
 // file cut to the 1680 x 1410 its paint covers (none outside it had any
 // alpha), then scaled to 1232 x 1034 at his word, the same 56:47, so the
 // page stays light; it is drawn no wider than 595px.
+// BR7 (the owner, 2026-10-30: "we have a new logo"): the BUNNYFALL wordmark with the bunny peeking round its B - cut to
+// its paint and scaled to 1600 x 382 (4.19:1). A wide mark: every box that drew the dragon at a height now draws this
+// at a width (enhancedStyle.js, introScreen.js, index.html, the launcher).
 import { t } from '../systems/textManager.js';   // L10N4: the mark's alt text in the player's language
 
 export const BRAND_LOGO_URL = new URL('../assets/branding/bunnyfall.png', import.meta.url).href;
@@ -17,7 +20,7 @@ export const BRAND_LOGO_URL = new URL('../assets/branding/bunnyfall.png', import
 // the mark draws it that 10% back (the film's title, the door and the masthead, the site's page), so DFO stands on the
 // centre line and the dragon hangs to its left. test/ui/brand.test.js measures it from the file, so the next logo
 // reddens there rather than in a layout. The launcher sets the mark at its left edge and is not moved.
-export const BRAND_LOGO_OPTICAL_SHIFT = 0.1;
+export const BRAND_LOGO_OPTICAL_SHIFT = 0.02;   // BR7: the bunny at the B's left - the letters 2% right of the file's centre
 export const BRAND_LOGO_ALT = 'Bunnyfall';
 /** L10N4: the alt text a screen reader hears, in the player's language (BRAND_LOGO_ALT stays the English). */
 export const brandLogoAlt = () => t('menu.brand.alt', BRAND_LOGO_ALT);
@@ -27,8 +30,8 @@ export function brandMark(doc = document) {
   image.src = BRAND_LOGO_URL;
   image.alt = brandLogoAlt();
   image.className = 'brand-logo';
-  image.width = 1232;
-  image.height = 1034;
+  image.width = 1600;
+  image.height = 382;
   image.draggable = false;
   return image;
 }

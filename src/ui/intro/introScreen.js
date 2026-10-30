@@ -46,8 +46,8 @@ const STYLE = `${PIXELIFY_FIVE_FACE}
 .intro-credit img{display:block;max-width:62vw;max-height:29dvh;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 3px 14px #0008)}
 .intro-credit[data-credit=nexus] img{max-width:45vw;max-height:17dvh}
 /* BR5: the box keeps BR4's height - 86vw and 1240px x 850/2112 x 526/322 for the DFO mark's 1.63:1; BR6: x 1232/1034 for the dragon mark's 1.19:1 */
-.intro-title{position:absolute;left:50%;top:48%;width:min(41.2vw,595px);opacity:0;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity,filter}
-.intro-title .brand-logo{display:block;width:100%;height:auto;transform:translateX(-10%)}
+.intro-title{position:absolute;left:50%;top:48%;width:min(72vw,1000px);opacity:0;pointer-events:none;transform-origin:50% 50%;will-change:transform,opacity,filter}
+.intro-title .brand-logo{display:block;width:100%;height:auto;transform:translateX(-2%)}
 .intro-title-fallback{font-size:clamp(28px,7vw,100px);text-align:center;margin:0;letter-spacing:.05em}
 .intro-light{position:absolute;inset:0;opacity:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,#ebd3a025,transparent 58%)}
 /* INTRO4: the narrator's line, low in the frame over a soft dark of its own; the map's words over the continent */
@@ -70,11 +70,11 @@ const STYLE = `${PIXELIFY_FIVE_FACE}
 .intro-skip{position:absolute;right:max(20px,env(safe-area-inset-right));top:max(16px,env(safe-area-inset-top));z-index:3;min-height:44px;padding:10px 16px;background:#04060899;border:1px solid #b1a17a42;font-size:11px!important;letter-spacing:.15em;text-transform:uppercase}
 .intro-footer{position:absolute;bottom:max(18px,env(safe-area-inset-bottom));left:20px;right:20px;text-align:center;font-size:11px;line-height:1.5;letter-spacing:.18em;text-transform:uppercase;color:#898a82;pointer-events:none}
 @media(max-width:600px){.intro-narration{bottom:18dvh;padding:10px 12px}.intro-narration p{font-size:12px;letter-spacing:.03em}.intro-label[data-kind=sea]{display:none}.intro-credit img{max-width:80vw;max-height:24dvh}.intro-credit[data-credit=nexus] img{max-width:72vw}.intro-credit p{font-size:11px;letter-spacing:.18em}.intro-title{width:68.6vw}.intro-letterbox{border-width:4dvh 0}.intro-footer{font-size:11px}}
-@media(max-height:450px){.intro-title{width:min(35.5vw,480px)}.intro-footer{bottom:6px}.intro-gate{gap:12px}}
+@media(max-height:450px){.intro-title{width:min(62vw,820px)}.intro-footer{bottom:6px}.intro-gate{gap:12px}}
 /* TITLE-DOOR: the landed title steps under the menu (#enhanced-menu stands at 12) and rises a little to make room for
    the doors under it. The doors' band starts at --intro-doors-top (ui/uiCalmStyle.js TITLE_DOOR_CSS reads it): the
    mark's centre plus half its height - .42 of its width, the 1034 / 1232 file's half, rounded up */
-:root{--intro-title-y:41dvh;--intro-title-w:min(37vw,535px,64dvh);--intro-doors-top:calc(var(--intro-title-y) + var(--intro-title-w) * .42)}
+:root{--intro-title-y:36dvh;--intro-title-w:min(64vw,900px,190dvh);--intro-doors-top:calc(var(--intro-title-y) + var(--intro-title-w) * .14)}   /* BR7: the wide wordmark - its half height .12 of its width, rounded up */
 #intro.intro-landed{z-index:11}
 #intro.intro-landed .intro-title{top:var(--intro-title-y);width:var(--intro-title-w);transition:top .6s ease-out,width .6s ease-out}
 #intro.intro-landed .intro-footer{top:max(74px,calc(env(safe-area-inset-top) + 62px));bottom:auto}
