@@ -38,8 +38,9 @@
       -webkit-font-smoothing: none;
     }
     /* THE DESK: the clean planks at the top left of the pack's spellmaker picture, one fixed layer behind everything */
-    .night { position: fixed; inset: 0; z-index: -1;
-      background: url('./art/grimoire-ui/Img/INFO01I0.IMG.png') 0 0 / max(165vw, 220vh) auto, var(--wood); }
+    .night { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--wood); }
+    .night::before { content: ''; position: absolute; inset: -24px; filter: blur(3px);
+      background: url('./art/grimoire-ui/Img/INFO01I0.IMG.png') 24px 24px / max(165vw, 220vh) auto; }
     .night::after { content: ''; position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(120% 90% at 50% 40%, rgba(0,0,0,0) 40%, rgba(10,5,2,0.55) 100%); }
 
