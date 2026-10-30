@@ -6,8 +6,8 @@
 // numbered past every FACTION.TXT id so no record of the game's can be taken for one.
 //
 // A HALL IS A CONVERTED HOUSE (the owner's call): Daggerfall's towns have no building type for these guilds, so each
-// town gives one of its ordinary houses (House1-House4, no faction, a room inside) to each guild it is big enough for,
-// the Adventurers Guild first. The pick is the town's own: the same houses, in the same order, seeded by the town, so
+// town gives a few of its ordinary houses (House1-House4, no faction, a room inside) to the guilds it draws - more the
+// bigger it is, every guild in a capital (bunnyHallPick). The pick is the town's own: the same houses, in the same order, seeded by the town, so
 // every client names the same door. A town keeps HOUSES_LEFT houses at least for its people, so a hamlet holds fewer
 // guilds, or none.
 //
@@ -72,7 +72,7 @@ export const bunnyGuildsOn = (search = undefined) => isOnlinePage(search);
 
 /** DFLocation.BuildingTypes House1-House4 (world/buildingNames.js BUILDING_TYPES; written here because that module
  *  names halls through this one). */
-const HOUSE1 = 17, HOUSE4 = 20;
+const HOUSE1 = 17, HOUSE4 = 20, PALACE = 16;
 /** A house a hall can be: a residence with no guild of its own already, and a room inside. */
 const hallCandidate = (/** @type {{ buildingType: number, factionId?: number }} */ d, /** @type {boolean} */ hasRoom) =>
   hasRoom && d.buildingType >= HOUSE1 && d.buildingType <= HOUSE4 && (d.factionId ?? 0) === 0;
@@ -87,24 +87,44 @@ function seedOf(/** @type {number[]} */ nums) {
   return h >>> 0;
 }
 
+/** How many halls a town holds, by its size (its houses that could be halls): `[least houses, fewest, most]`, the
+ *  biggest band first. A capital (a town with a palace and CAPITAL_HOUSES houses or more) holds every guild. */
+export const HALL_TIERS = Object.freeze([[50, 4, 6], [25, 2, 4], [12, 1, 2], [8, 0, 1]]);
+export const CAPITAL_HOUSES = 40;
+
+/** How many halls a town of `houses` holds, `palace` whether it has one, drawn by `seed`. */
+export function hallCountOf(/** @type {number} */ houses, /** @type {boolean} */ palace, /** @type {number} */ seed) {
+  if (palace && houses >= CAPITAL_HOUSES) return BUNNY_GUILDS.length;
+  const tier = HALL_TIERS.find(([least]) => houses >= least);
+  if (!tier) return 0;
+  const [, lo, hi] = tier;
+  return lo + (seed % (hi - lo + 1));
+}
+
 /**
  * Which guild each candidate house gets, as `buildingKey -> factionId`. `houses` is the town's candidate houses, each
  * `{ buildingKey }`, in any order; the town is named by `locationIndex` and its own houses, so two towns with the same
- * index in different regions still differ.
+ * index in different regions still differ. CITIES DIFFER (the owner: "not every city will have the same halls"): a town
+ * holds a few halls by its size (hallCountOf) - a capital all of them - and WHICH guilds is the town's own draw, so a
+ * player travels to find every service. Never fewer than HOUSES_LEFT houses are left to the town's people.
  *
  * @param {{ buildingKey: number }[]} houses
  * @param {number} locationIndex
+ * @param {{ palace?: boolean }} [o]
  * @returns {Map<number, number>}
  */
-export function bunnyHallPick(houses, locationIndex) {
+export function bunnyHallPick(houses, locationIndex, { palace = false } = {}) {
   const out = new Map();
   const free = [...new Set(houses.map((h) => h.buildingKey))].sort((a, b) => a - b);
-  const room = free.length - HOUSES_LEFT;
-  if (room <= 0) return out;
+  if (!free.length) return out;
   const seed = seedOf([locationIndex, free.length, free[0], free[free.length - 1]]);
-  for (let i = 0; i < BUNNY_GUILDS.length && i < room; i++) {
-    const at = seedOf([seed, BUNNY_GUILDS[i].factionId]) % free.length;
-    out.set(free[at], BUNNY_GUILDS[i].factionId);
+  const count = Math.min(hallCountOf(free.length, palace, seed), free.length - HOUSES_LEFT);
+  if (count <= 0) return out;
+  // the town's own order of the guilds: each ranked by its own draw from the town's seed
+  const order = [...BUNNY_GUILDS].sort((g1, g2) => seedOf([seed, g1.factionId, 7]) - seedOf([seed, g2.factionId, 7]));
+  for (const g of order.slice(0, count)) {
+    const at = seedOf([seed, g.factionId]) % free.length;
+    out.set(free[at], g.factionId);
     free.splice(at, 1);
   }
   return out;
@@ -127,15 +147,17 @@ export function stampBunnyHalls(merged, blocks, { locationIndex = 0, keyOf, hasR
   if (!bunnyGuildsOn(search)) return 0;
   /** @type {{ buildingKey: number, rec: { factionId?: number } }[]} */
   const houses = [];
+  let palace = false;
   for (const b of blocks) {
     const list = merged.get(b) ?? [];
     const count = Math.min(list.length, countOf(b));
     for (let i = 0; i < count; i++) {
       const d = list[i];
+      if (d?.buildingType === PALACE) palace = true;
       if (d && hallCandidate(d, hasRoom(b, i))) houses.push({ buildingKey: keyOf(b, i), rec: d });
     }
   }
-  const pick = bunnyHallPick(houses, locationIndex);
+  const pick = bunnyHallPick(houses, locationIndex, { palace });
   for (const h of houses) {
     const f = pick.get(h.buildingKey);
     if (f) h.rec.factionId = f;

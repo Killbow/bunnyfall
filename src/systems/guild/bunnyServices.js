@@ -164,11 +164,13 @@ export function bardTavernOffer({ entity, where, day, openTavern, show, perform,
 
 // ─── Phases 3 and 4: the work the town's boards hand over to the halls ─────────────────────────────────────────────
 
-/** Which hall takes which part of the boards. In a town with that hall, its part leaves the town's own board and is
- *  found at the hall's desk; a town without one keeps its board whole. */
+/** Which hall takes which part of the boards: that part is found at the hall's desk alone, so a town without the hall
+ *  has none of it. */
 export const BOARD_HOMES = Object.freeze({ market: 'merchants', bounties: 'hunters' });
 /** A crafting writ's kind (net/craftWritLaw.js) and the hall that posts it. Dishes stay on the town's board. */
 export const CRAFT_HOMES = Object.freeze({ potion: 'apothecaries', kit: 'artisans' });
+/** The crafting writ kinds no hall posts, which every town's board keeps. */
+export const CRAFTS_UNHOMED = Object.freeze(['dish']);
 
 /** The Hunters' Lodge's share more on a bounty's gold for each rank a member holds, and its reputation for a bounty paid. */
 export const LODGE_RANK_SHARE = 0.1;
@@ -193,17 +195,19 @@ export function craftWritDelivered(/** @type {any} */ entity, /** @type {string}
 }
 
 /**
- * How the town's own Notice Board is narrowed by the halls standing in the town (`halls`, their keys), or by the hall
- * it is opened from (`from`). Answers `{ market, crafts, moved }`: whether the Market and Traders tabs stand, the
- * crafting writ kinds shown (null for all), and the lines that say where the rest went.
- * @param {Set<string>} halls @param {{ hall?: string, crafts?: string[] } | null} [from]
+ * How the town's own Notice Board is narrowed (the owner: "not having the service available if they don't have the
+ * guild"): a guild's part of the boards is its hall's alone, in every town - a town with no Merchants' League has no
+ * market, one with no Hunters' Lodge no bounties. Opened from a hall's desk (`from`), the board shows that hall's part.
+ * Answers `{ market, crafts, moved }`: whether the Market and Traders tabs stand, the crafting writ kinds shown, and the
+ * lines that say where the rest is found.
+ * @param {Set<string>} halls the guild halls in this town, by key @param {{ hall?: string, crafts?: string[] } | null} [from]
  */
 export function boardFocus(halls, from = null) {
-  if (from?.hall) return { market: true, crafts: from.crafts ?? null, moved: [] };
+  if (from?.hall) return { market: from.hall === BOARD_HOMES.market, crafts: from.crafts ?? CRAFTS_UNHOMED, moved: [] };
   const moved = [];
-  const market = !halls.has(BOARD_HOMES.market);
-  if (!market) moved.push(t('bguild.moved.market', 'Trade is done at the Merchants\' League now.'));
-  const gone = Object.entries(CRAFT_HOMES).filter(([, h]) => halls.has(h)).map(([k]) => k);
-  if (gone.length) moved.push(t('bguild.moved.crafts', 'Crafting writs for potions and repair kits are posted at their guild halls.'));
-  return { market, crafts: gone.length ? Object.keys({ potion: 1, dish: 1, kit: 1 }).filter((k) => !gone.includes(k)) : null, moved };
+  moved.push(halls.has(BOARD_HOMES.market)
+    ? t('bguild.moved.market', 'Trade is done at the Merchants\' League hall in this town.')
+    : t('bguild.moved.noMarket', 'There is no Merchants\' League here. Trade is done in towns that have one.'));
+  moved.push(t('bguild.moved.crafts', 'Crafting writs for potions and repair kits are posted at the Apothecaries\' and Artisans\' halls.'));
+  return { market: false, crafts: CRAFTS_UNHOMED, moved };
 }

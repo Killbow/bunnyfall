@@ -1015,7 +1015,8 @@ import { GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';   // th
 import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // KnightlyOrder.FreeShipTravel, the second half of hasShip; FreeTavernRooms, the trip cost's inn nights
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
-import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
+import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';
+import { bunnyGuildsOn } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
 import { RumorMill, tokensToString } from '../systems/rumorMill.js';
 import { HolidayTextTimer, holidayTextPrimesFor } from '../systems/holidays.js';   // AUDIT 64 F10: PlayerEnterExit.ShowHolidayText and its prime/drain
@@ -30169,8 +30170,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // ActivateBulletinBoard's news (:716) - the mill's SIGN face,
     // ported at TK-i and until now called by nothing.
     bulletinBoardNews: () => rumorMill.getNewsOrRumorsForBulletinBoard(),
-    // BOUNTY1: a bounty board's press - BUNNY-GUILDS: in a town with a Hunters' Lodge, its bounties are the Lodge's
-    openBountyBoard: (town) => (hallsHere().has(BOARD_HOMES.bounties) ? (townTalk.say(t('bguild.moved.bounties', 'Bounties are posted at the Hunters\' Lodge now.')), true) : bountyHost?.openBoard(town) ?? false),
+    // BOUNTY1: a bounty board's press - BUNNY-GUILDS: online, bounties are the Hunters' Lodge's alone (bunnyServices.js boardFocus)
+    openBountyBoard: (town) => (!bunnyGuildsOn() ? bountyHost?.openBoard(town) ?? false : townTalk.say(hallsHere().has(BOARD_HOMES.bounties) ? t('bguild.moved.bounties', 'Bounties are posted at the Hunters\' Lodge in this town.')
+      : t('bguild.moved.noBounties', 'There is no Hunters\' Lodge here. Bounties are posted in towns that have one.')), true),
     openNoticeBoard: (town, rumour) => openNoticeBoard(town, rumour),   // NOTICE1: a rumour board's press, online
     baseCollider: () => collider,
     // E2: one entered door -> its merged building identity. Door
