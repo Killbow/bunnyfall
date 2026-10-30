@@ -39,7 +39,7 @@
 // Breton/male/face 0 is only the PRE-CHARGEN default (chargen fronts
 // identity and this file reloads on identity change - AUDIT 23).
 
-import { createDollTracker, dollBackPixels } from './paperDollBack.js';   // DOLL-BACK: the doll seen from behind
+import { createDollTracker, dollBackPixels, dollPieceKind } from './paperDollBack.js';   // DOLL-BACK: the doll seen from behind
 import { ImgFile } from '../formats/imgFile.js';
 import { packImgTexture } from './packArt.js';   // OVH2: a worn UI pack's backdrop
 import { racialPaperDollBackground, racialOverrideHeadArt, racialSuppressPaperDollBodyAndItems } from '../systems/vampirism.js';   // V5: the curse art laws, both curses' one switch
@@ -593,7 +593,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
       // port drew it and entered nothing, so a click on the lining
       // beside the body did nothing where DFU unequips the cloak.
       layout.push({ slot: it.equipSlot ?? slot, img });
-      track?.mark('cloak');
+      track?.mark('lining');
     }
     break;   // DFU stops at the first drawn cloak interior
   }
@@ -629,12 +629,13 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     // through the palette - it hands back RGBA instead, and it is the
     // port's own art rather than DFU's, so it takes neither the dye
     // nor the helm mask.
-    if (img.bmp?.rgba) { blitRgba(out, img, { under, S }); layout.push({ slot: it.equipSlot, img }); track?.mark('item'); continue; }   // RRI1: the imported helmet's mask erases the hair under it
+    if (img.bmp?.rgba) { blitRgba(out, img, { under, S }); layout.push({ slot: it.equipSlot, img }); track?.mark(dollPieceKind(it.equipSlot)); continue; }   // RRI1: the imported helmet's mask erases the hair under it
     const remap = res.target == null ? null : (i) => applyDyeToIndex(i, res.dye, res.target);
     blit(out, img, art.palette, { remap, under, S });   // HM1: the helm's mask erases the hair
     layout.push({ slot: it.equipSlot, img });
-    track?.mark('item');
+    track?.mark(dollPieceKind(it.equipSlot));
   }
+  track?.finish();
   return { out, layout, bgSize: [bg.width, bg.height], width: OW, height: OH, back: track ? dollBackPixels(out, track) : null };
 }
 
