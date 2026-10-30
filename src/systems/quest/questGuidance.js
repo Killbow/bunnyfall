@@ -21,6 +21,7 @@
 
 import { isEnhanced } from '../uiSkin.js';
 import { getPref } from '../uiPrefs.js';
+import { clairvoyantNow } from '../spell/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance
 
 /** The prefs key (the `quest-guidance` Features row, which holds its tiers). */
 export const GUIDANCE_PREF = 'questGuidance';
@@ -30,6 +31,7 @@ export const GUIDANCE_TIERS = Object.freeze(['journal', 'town', 'exact']);
 
 /** The tier in force: 'town' or 'exact' only on the enhanced skin and only when asked for; 'journal' otherwise. */
 export const guidanceTier = () => {
+  if (clairvoyantNow()) return 'exact';   // BUNNY-SPELLS: Clairvoyance shows the quest debugger's knowledge while it lasts
   const v = isEnhanced() ? getPref(GUIDANCE_PREF) : null;
   return v === 'exact' || v === 'town' ? v : 'journal';
 };

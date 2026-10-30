@@ -3257,6 +3257,10 @@ export function validPartyPose(p) {
   // call keeps the bytes it always had.
   const rzTo = p.rz && typeof p.rz === 'object' && !Array.isArray(p.rz) ? idOf(p.rz.to) : null;
   if (rzTo && finite(p.rz.at)) out.rz = { to: rzTo, at: Math.max(0, Math.round(p.rz.at)) };
+  // BUNNY-SPELLS: a caster's Rescue call to a party member - Resurrect's shape (`to` the account, `at` the caster's stamp,
+  // read for CHANGE); the member's own client steps to the caster (scenes/rescueLink.js). Omitted when there is none.
+  const rsTo = p.rs && typeof p.rs === 'object' && !Array.isArray(p.rs) ? idOf(p.rs.to) : null;
+  if (rsTo && finite(p.rs.at)) out.rs = { to: rsTo, at: Math.max(0, Math.round(p.rs.at)) };
   // PCORPSE3: WHERE MY BODY LIES while I am dead - the room it fell in and its feet in that room's frame, and the
   // stamp of the death. A party member who missed the death pose (reconnecting after a resurrection, or joined after)
   // stands the body from this; it goes when the field does (a respawn, a rise). Omitted alive.

@@ -3550,6 +3550,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     castAtAlly: (id, frame) => !!opts.castAtAlly?.(id, frame),
     fallenTarget: (eye, dir, reach) => opts.fallenTarget?.(eye, dir, reach) ?? null,   // RESURRECT1: the fallen bodies and the call's door, beside the ally pair
     raiseFallen: (f) => !!opts.raiseFallen?.(f),
+    rescueTarget: (eye, dir, reach) => opts.rescueTarget?.(eye, dir, reach) ?? null, rescuePeer: (id) => !!opts.rescuePeer?.(id),   // BUNNY-SPELLS: Rescue
     // WB4b: the Burning Court's boss as a body my harmful spells meet (his own radius), and the door a spell that met him
     // leaves through - computed here against his stand-in and sent (spellOnBoss); outside the court, nobody
     bossMark: opts.gateBoss ? () => { const b = gateBossBody(); return b ? { feet: b.ai.feet, height: b.ai.height, radius: b.ai.radius } : null; } : null,

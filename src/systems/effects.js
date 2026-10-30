@@ -49,7 +49,7 @@ import { breakNormalPowerConcealment, handleAttackFromSource } from './concealme
 import { entityAbsorbsSpells, setEnchantmentEffectDoors } from './enchantments.js';   // E1: the AbsorbsSpells fold feeds the absorption gate
 import { markPlayerHarm } from './harmMark.js';   // REVENANT-HARM: a lingering effect's round on the player keeps its caster's mark
 import { regenShare } from './courtRules.js';   // WBX6 / EVENT-RULES: a made level holds regeneration
-import { localizedText, localizedTable } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
+import { localizedText, localizedTable, t } from './textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { HEAL_SPELL_POINTS_KEY } from './potionRecipes.js';   // PROF12: Heal-SpellPoints' key, beside the one recipe that names it
 import { isClassEnemyId } from '../characters/enemy/enemyBasics.js';   // DEX1: DFU's class test (DaggerfallEntity.IsClassEnemyId) - a mod's monster past 255 is no class
 
@@ -164,6 +164,14 @@ export const BUFF_KINDS = Object.freeze({
   // its rounds on a re-cast as every row here does (STACK-CAP); the entry's PRESENCE is the share -
   // systems/party/partyMap.js reads it, and a caster in no party (offline, solo) holds a buff that does nothing at all.
   '46,255': 'sharedCartography',
+  // BUNNY-SPELLS (systems/spell/bunnySpells.js): the lasting ones - each entry's PRESENCE is the effect, read where it acts
+  // (Slow: the foe's motor; Clairvoyance: the quest guide; Featherweight: the carried weight; Wall of Earth and Decoy: the
+  // cast engine's, scenes/bunnySpellEngine.js). Meteor, Rescue and Gravity Well act at the cast and keep nothing here.
+  '48,255': 'slowed',
+  '49,255': 'clairvoyance',
+  '51,255': 'featherweight',
+  '52,255': 'wallOfEarth',
+  '53,255': 'decoy',
 });
 
 /** DaggerfallEntity.IsInvisible / IsBlending / IsAShade, verbatim:
@@ -171,7 +179,7 @@ export const BUFF_KINDS = Object.freeze({
  *  (S21) - for the PLAYER through the senses context and, since the
  *  A5 residue pass, for a FOE target through concealmentFlags below. */
 export const isInvisible = (en) => hasActiveEffect(en, 'invisNormal') || hasActiveEffect(en, 'invisTrue');
-export const isBlending = (en) => hasActiveEffect(en, 'chameleonNormal') || hasActiveEffect(en, 'chameleonTrue');
+export const isBlending = (en) => hasActiveEffect(en, 'chameleonNormal') || hasActiveEffect(en, 'chameleonTrue') || hasActiveEffect(en, 'decoy');   // BUNNY-SPELLS: a Decoy's caster is lost to the foes as one blending is
 export const isAShade = (en) => hasActiveEffect(en, 'shadeNormal') || hasActiveEffect(en, 'shadeTrue');
 /** DaggerfallEntity.IsMagicallyConcealed (:204-207) -
  *  `MagicalConcealmentFlags != None`, i.e. ANY of the six bits. The
@@ -228,6 +236,7 @@ export const concealFlagsOfBits = (bits) => ({ invisible: !!(bits & 1), blending
 export function applyEnemyMotorEffectFlags(ai, entity) {
   if (!ai) return false;
   ai.levitating = hasActiveEffect(entity, 'levitate');
+  ai.slowed = hasActiveEffect(entity, 'slowed');   // BUNNY-SPELLS: Slow, read by the motor's speed
   return ai.levitating;
 }
 
@@ -259,6 +268,7 @@ export const MAGIC_ONLY_KEYS = new Set([
   '33,2', '33,3', '35,255', '39,0', '39,1', '39,2', '40,255',
   '43,255', '44,255',
   '46,255',   // PARTY-MAP: Shared Cartography, the port's own - a self-buff, Magic as every buff here
+  '49,255', '50,255', '51,255', '52,255', '53,255', '54,255',   // BUNNY-SPELLS: the buffs and the places, Magic as every buff here
 ]);
 
 /** THE BUFF LANDING ALERTS - every line DFU speaks on the frame a
@@ -281,6 +291,9 @@ export const BUFF_START_TEXT = localizedTable({
   shadeNormal: ['youAreAShade', 'You are a shade.'], shadeTrue: ['youAreAShade', 'You are a shade.'],
   silenced: ['youAreSilenced', 'You are silenced.'],   // Silence.cs:91-95
   sharedCartography: () => 'Your map is shared with your party.',   // PARTY-MAP: the port's own line
+  clairvoyance: () => t('spell.bunny.clairvoyance', 'Your senses reach far.'),   // BUNNY-SPELLS
+  featherweight: () => t('spell.bunny.featherweight', 'Your burden feels light.'),
+  decoy: () => t('spell.bunny.decoy', 'A double of you appears.'),
 });
 /** The name this table shipped under, kept live for its importers. */
 export const CONCEALMENT_START_TEXT = BUFF_START_TEXT;

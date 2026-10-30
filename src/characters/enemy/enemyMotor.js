@@ -36,6 +36,7 @@
 // chameleon interim is REPLACED by the verbatim illusion gate
 // (IsBlending -> an 8%-per-classic-update see-through roll).
 
+import { SLOW_FACTOR } from '../../systems/spell/bunnySpellLaw.js';   // BUNNY-SPELLS: Slow's share
 import { GLOBAL_SCALE } from '../../world/meshReader.js';
 import { dice100 } from '../../combat/formulas.js';   // PT1: Dice100 has ONE home and this file had written it out twice
 import { CLASSIC_UPDATE_INTERVAL } from '../weaponStates.js';   // single source (GameManager.cs:42)
@@ -587,7 +588,7 @@ export class EnemyAI {
   /** TakeAction:432 - `(entity.Stats.LiveSpeed + dfWalkBase) *
    *  GlobalScale`, re-derived on every pass rather than captured. A
    *  READ, not a field, so nothing can freeze it back. */
-  get speed() { return enemyMoveSpeed(this._liveSpeed() + this._edgeSpeed()); }
+  get speed() { return enemyMoveSpeed(this._liveSpeed() + this._edgeSpeed()) * (this.slowed ? SLOW_FACTOR : 1); }   // BUNNY-SPELLS: a Slow on the foe (effects.js applyEnemyMotorEffectFlags)
   /** RVN2 (bible/12-Enhanced-AI/Feud-Arc.md 13.2): an Arrow-wise revenant's Speed while its target is far (its stand's
    *  `revenant.edge`, systems/revenant/revenantFeud.js ADAPT) - none for any other body. */
   _edgeSpeed() {

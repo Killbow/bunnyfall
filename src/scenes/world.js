@@ -1015,6 +1015,7 @@ import { GUILD_GROUPS, FACTION_TYPES } from '../formats/factionFile.js';   // th
 import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../systems/guild/guildServices.js';   // KnightlyOrder.FreeShipTravel, the second half of hasShip; FreeTavernRooms, the trip cost's inn nights
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
+import { createRescueLink } from './rescueLink.js';   // BUNNY-SPELLS: Rescue between players
 import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';
 import { bunnyGuildsOn } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
@@ -12048,6 +12049,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     castAtAlly: (id, frame) => castAtAllyDoor(id, frame),
     fallenTarget: (eye, dir, reach) => fallenTargetPick(eye, dir, reach),   // RESURRECT1: lazily, as the ally pick
     raiseFallen: (f) => raiseFallenDoor(f),
+    rescueTarget: (eye, dir, reach) => allyTargetPick(eye, dir, reach), rescuePeer: (id) => rescueLink.send(id),   // BUNNY-SPELLS: Rescue (lazily, as the ally pick)
     surfacePlayer,
     // X-slice: encounter foes are spell targets too.
     //
@@ -20175,7 +20177,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  open to the F key, the Nearby list, a page and a gift. A declaration: the street's pick reads it from above. */
   function isPartyMate(id) { return !!social?.party && social.isPartyPeer(id); }
   let _rezOut = null, _rezSeen = null;   // RESURRECT1: my call to a fallen member; and, while I lie dead, what my party's poses said at my death
-  let _deadMark = null;   // PCORPSE3: where my body lies while I am dead (my party pose says so)
+  // BUNNY-SPELLS: RESCUE between players - my call on the party pose, and a call naming me answered (scenes/rescueLink.js)
+  const rescueLink = createRescueLink({
+    social: () => social, peers: () => peersNear(), accountOfPeer: (id) => social?.accountOfPeer?.(id) ?? null,
+    feet: () => player.pos, moveTo: (p) => player.spawn(p[0], p[1], p[2]), say: (text) => townTalk.say(text), sent: () => { _partyComposedAt = -Infinity; },
+  });  let _deadMark = null;   // PCORPSE3: where my body lies while I am dead (my party pose says so)
   const _partyBodies = new Set();   // PCORPSE3: the accounts whose party pose tells of a body (AUDIT CONTRIB A3: remotePlayers.partyBody keeps each death's minute)
   let _partyRestReady = false;   // PARTY-REST2: this tab's own /ready vote, broadcast in composePartyPose's own `ready` field
   let _partyRestReadyAt = 0;   // PARTY-REST2b: when it was set - on the shared clock (social.now()), broadcast as `readyAt` (AUDIT PARTY-REST)
@@ -25980,6 +25986,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // unconditionally, like restEnemyAt/restCancelAt above.
       restStartedAt: Number.isFinite(_partyRestJustStartedAt) ? _partyRestJustStartedAt : null,
       ...(_rezOut && performance.now() < _rezOut.until ? { rz: { to: _rezOut.to, at: _rezOut.at } } : {}),
+      ...rescueLink.poseField(),   // BUNNY-SPELLS: my Rescue's call
       ...(_deadMark ? { dd: _deadMark } : {}), ...(legacyHost?.raisable() === false || !hourRezOpen() ? { fg: 1 } : {}),   // PCORPSE3: my body, for a party member who missed the death   // RESURRECT1: my Resurrect's call, held a few sends   // REZ-BLOODLINE: fallen for good - no Resurrect raises me (net/wire.js validPartyPose `fg`)
       // PARTY-TRAVEL (2026-09-25, Mac: "...the option for party members to ready up and travel together"): the party's
       // journey (net/wire.js validPartyPose, systems/party/partyTravelLaw.js), each field omitted when there is none - my
@@ -28312,6 +28319,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
     return out;
   };
+
   /** RESURRECT1: the call out - onto my party pose for RESURRECT_HOLD_MS, sent at once. */
   const raiseFallenDoor = (f) => {
     if (!social?.party || !f?.acct) return false;
@@ -28776,6 +28784,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       peerBodies.destroy(); remotePlayers.sync([], onlineToScene); peerRiders?.destroy(); peerWalkers?.destroy(); peerCandlesFrame([], dt); return;   // PEERLIGHT2: and no candle hangs over the dead; AUDIT RIDE: and no rider stands frozen over it either
     }   // AUDIT WORLD B6: the dungeon's and the building's death screens stand in the mode's slot   // AUDIT MWBODY B7: and no body stands frozen over the death screen
     _rezSeen = null;   // AUDIT CONTRIB A6: alive - the next death takes its own snapshot of what the party's poses say
+    rescueLink.frame();   // BUNNY-SPELLS: a party member's Rescue naming me brings me to them
     checkpointWhenDue(now, _checkpointAt, realmSession, () => onlineCheckpoint());   // SCALE2b: the periodic one may be answered by the save the service holds (realmSaves.js idle)   // REALM P0.5: every ONLINE_CHECKPOINT_MS (five real minutes, CHECKPOINT-5), alive and in the seat (the first such frame persists the join's call-in)
     if (instanceDoor.refused(online)) modes?.forceExitToExterior?.();   // INSTANCES (the audit): alive, an instance's door shut on me (not of its owner's party - a kick, a lapse) - out, as the realm's door does, never left inside it alone
     const mode = modes?.mode ?? 'exterior';   // audit24_wave37: guarded on the OBJECT above its own declaration (the frame runs after it)
@@ -29487,6 +29496,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     castAtAlly: castAtAllyDoor,
     fallenTarget: (eye, dir, reach) => fallenTargetPick(eye, dir, reach),   // RESURRECT1: the dungeon's cast engine raises the same bodies
     raiseFallen: (f) => raiseFallenDoor(f),
+    rescueTarget: (eye, dir, reach) => allyTargetPick(eye, dir, reach), rescuePeer: (id) => rescueLink.send(id),   // BUNNY-SPELLS: Rescue, the dungeon's engine too
     plaquePeerAct: (eye, dir) => plaquePeerAct(eye ?? cam.pos, dir ?? socialFwd()),   // ACT-MENU: the building's and the dungeon's press on a player the plaque lit, on the press's own ray (AUDIT DISC7 A9)
     pointerSurfaceUp: () => pointerSurfaces.size > 0,   // AUDIT DROPS E1: the plaque comes down under the F-menu, the chat and the friends panel indoors and underground too (AUDIT-WH2 L3-F3's law, the street's own term)
     wildDungeonGate: (hit, fromLoad) => wildDungeonGate(hit, fromLoad),   // PVPDUNGEONS: only the day's halls open, an hour's lock after leaving one

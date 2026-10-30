@@ -17,6 +17,7 @@
 // plate through CalculateWeightForMaterial, chain a verbatim no-op
 // (ApplyArmorMaterial's Chain arm touches value only).
 
+import { FEATHERWEIGHT_FACTOR } from './spell/bunnySpellLaw.js';   // BUNNY-SPELLS: Featherweight's share (a leaf)
 import templates from '../characters/itemTemplates.json' with { type: 'json' };
 import { weightForMaterial, WEAPONS } from '../characters/weapons.js';   // AUDIT 68 S27-weightForMaterial-dup: CalculateWeightForMaterial and Weapons.Arrow, one home each
 // A2: SetItem's two draws-and-writes, one home each (itemTemplates.js
@@ -672,7 +673,8 @@ export const GOLD_PIECE_WEIGHT_KG = 0.0025;
  *  withdrawal weight test (DaggerfallBankManager.cs:370) and
  *  LevitateMotor's over-encumbered walk (:83). */
 export const carriedWeight = (entity) =>
-  totalWeight(entity?.items ?? []) + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG;
+  (totalWeight(entity?.items ?? []) + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG)
+  * ((entity?.activeEffects ?? []).some((a) => a.kind === 'featherweight' && !a.ended) ? FEATHERWEIGHT_FACTOR : 1);   // BUNNY-SPELLS: Featherweight
 
 /** ComputeCanHoldAmount (DaggerfallInventoryWindow.cs:1444-1455,
  *  L-slice AUDIT 23 items-9): how many units of an item fit under a

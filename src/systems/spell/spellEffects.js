@@ -113,6 +113,16 @@ const ROWS = [
   // caster reveals reach party mates in the same dungeon (systems/party/partyMap.js). Duration alone, and CRAFTABLE: a copy
   // made offline is a harmless buff (no party, nothing shared); sold ready-made at the spell shop online.
   [46, 255, 'Shared Cartography', '', [D]],
+  // BUNNY-SPELLS (2026-10-30): Bunnyfall's own eight (systems/spell/bunnySpells.js). Meteor and Rescue have no components
+  // (Teleport's shape), the rest a duration alone.
+  [47, 255, 'Meteor', '', []],
+  [48, 255, 'Slow', '', [D]],
+  [49, 255, 'Clairvoyance', '', [D]],
+  [50, 255, 'Rescue', '', []],
+  [51, 255, 'Featherweight', '', [D]],
+  [52, 255, 'Wall of Earth', '', [D]],
+  [53, 255, 'Decoy', '', [D]],
+  [54, 255, 'Gravity Well', '', [D]],
   [30, 255, 'Water Breathing', '', [D]],
   [31, 255, 'Water Walking', '', [D]],
   [33, 0, 'Pacify', 'Animal', [C]],
@@ -216,6 +226,7 @@ export const PORTED_KEYS = new Set([
   '29,255',                                                         // Morph Self (V2a - the arm calls the racial override)
   '45,255',                                                         // Resurrect (RESURRECT1 - the arm is the cast engine's, at a fallen party member's body)
   '46,255',                                                         // Shared Cartography (PARTY-MAP - BUFF_KINDS; the share is systems/party/partyMap.js)
+  '47,255', '48,255', '49,255', '50,255', '51,255', '52,255', '53,255', '54,255',   // BUNNY-SPELLS (systems/spell/bunnySpells.js)
   '30,255',                                                         // Water Breathing
   '31,255',                                                         // Water Walking
   '6,0', '6,1', '6,2',                                              // Dispel {Magic,Undead,Daedra} (X9 the sweeps, X10 the bundle picker)
@@ -455,6 +466,15 @@ export const PORT_EFFECT_DESCRIPTIONS = new Map([
     'Cast by touch at their body, and they rise where',
     'they fell, with 30% of their health.',
   ])],
+  // BUNNY-SPELLS (systems/spell/bunnySpells.js)
+  ['47,255', Object.freeze(['Meteor', 'Cast as an area at range, the spell falls', 'from the sky on the spot you aim at, and', 'its blast throws the foes in it back.'])],
+  ['48,255', Object.freeze(['Slow', 'While it lasts, the target moves at half', 'its speed.'])],
+  ['49,255', Object.freeze(['Clairvoyance', 'While it lasts, you sense where your quests\'', 'people, things and foes stand: they are', 'marked on your map and compass.'])],
+  ['50,255', Object.freeze(['Rescue', 'Pulls a party member, a companion or an', 'allied creature you can see to your side.'])],
+  ['51,255', Object.freeze(['Featherweight', 'While it lasts, what you carry weighs half.'])],
+  ['52,255', Object.freeze(['Wall of Earth', 'A wall of earth rises where you look,', 'blocking the way while it lasts.'])],
+  ['53,255', Object.freeze(['Decoy', 'A double of you appears where you look.', 'Foes nearby lose sight of you and go to it.'])],
+  ['54,255', Object.freeze(['Gravity Well', 'Where an area spell carrying it bursts, a', 'well opens that pulls the foes about it in.'])],
   ['46,255', Object.freeze([
     'Shared Cartography',
     'While it lasts, the parts of a dungeon you',

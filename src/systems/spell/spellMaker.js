@@ -80,12 +80,14 @@ const SELF_TARGET_KEYS = new Set([
   '2,255', '6,0', '6,1', '6,2', '14,255', '15,255', '16,255', '17,255', '25,255',
   '29,255', '39,0', '39,1', '39,2', '40,255', '43,255', '44,255',
   '46,255',   // PARTY-MAP: Shared Cartography, the port's own - the caster's map is the one shared
+  '49,255', '51,255', '52,255', '53,255',   // BUNNY-SPELLS: Clairvoyance, Featherweight, Wall of Earth, Decoy - the caster's own
 ]);
 const OTHER_TARGET_KEYS = new Set([
   '0,255', '1,0', '1,1', '1,2', '4,0', '4,1', '4,2', '5,255', '7,0',
   '7,1', '7,2', '7,3', '7,4', '7,5', '7,6', '7,7', '11,0', '11,1',
   '11,2', '11,3', '11,4', '11,5', '11,6', '11,7', '11,8', '11,9', '12,255',
   '33,0', '33,1', '33,2', '33,3', '34,255',
+  '47,255', '48,255', '50,255', '54,255',   // BUNNY-SPELLS: Meteor, Slow, Rescue, Gravity Well - cast at another, or a place
 ]);
 
 export const allowedTargetsOf = (type, subType) => {

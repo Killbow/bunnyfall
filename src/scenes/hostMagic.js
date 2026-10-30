@@ -51,6 +51,9 @@ import { calculateCastCost, castSchool, EFFECT_COST_TABLE } from '../systems/spe
 import { tellSpellLanded } from '../systems/spell/spellPower.js';   // SCHOOLS3: my spell landed - the paths' riders answer it
 import '../systems/arcanePowers.js';   // AUDIT SCHOOLS L2 F8: what the paths DO, registered with THE ONE CAST ENGINE every page builds - the standalone dungeon page (scenes/dungeon.js) had their price and potency and none of their powers
 import '../systems/firmamentPowers.js';   // FIRM1: what the Firmament DOES, registered with the one cast engine every page builds, as the paths' are
+import { createBunnySpellEngine } from './bunnySpellEngine.js';   // BUNNY-SPELLS: Bunnyfall's own effects in the scene
+import { RESCUE_TYPE, spellHas } from '../systems/spell/bunnySpellLaw.js';   // BUNNY-SPELLS
+import { setClairvoyanceProbe } from '../systems/spell/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance's probe
 import { applySpell, spellReflectedText, hasActiveEffect, isSoulTrapEffect, spellSways } from '../systems/effects.js';   // WBX7: a soul trap meets the court's boss too
 import { spellToFoeOwner } from '../systems/enchantments.js';   // RPT1026-FIGHTS (TRAP-TO-OWNER): the session's door to a foe another player runs
 import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
@@ -113,6 +116,7 @@ export function liveCollider(live) {
     get heightAt() { return live().heightAt; },   // AUDIT GROUND-BOLT D2: the collider's own members, as it holds them -
     get surfaceAt() { return live().surfaceAt; },   // the drawn ground where the host draws one, else null (groundAt's rule)
     get cover() { return live().cover; },   // AUDIT GROUND-BOLT D5: TACT1's cover - "trees, crates and decor flats ... stop arrows and spells" (Mac's call)
+    target: () => live(),   // BUNNY-SPELLS: the collider itself, for a Wall of Earth's own bucket (scenes/bunnySpellEngine.js)
   };
 }
 
@@ -237,6 +241,10 @@ export function createPlayerMagic({
   // the call leaves through (the caster's party pose), answering whether it went
   fallenTarget = null,
   raiseFallen = null,
+  // BUNNY-SPELLS: the party member Rescue would call (the crosshair's, `{ id, name, distance }`) and the door the call
+  // leaves through (scenes/rescueLink.js) - a host with neither rescues companions and allied creatures alone
+  rescueTarget = null,
+  rescuePeer = null,
   // ALLY-CAST + AID1 (2026-09-23, the friendly-spells drop, integrated onto ALLY-CAST): THE PARTY MATES AS BODIES.
   // `allyMarks()` answers the party mates standing in this scene - [{id, name, feet, height}] in this host's own frame,
   // or null offline / on a relay that cannot carry the cast frame. The crosshair pick above still decides a cast at
@@ -660,6 +668,14 @@ export function createPlayerMagic({
   // built on the first frame there is something to draw and drawn by the hosts right after this engine's billboards
   // (drawFx); a pass that will not build leaves the classic flash and the chunks exactly as they were.
   const fx = new SpellImpactFx();
+  // BUNNY-SPELLS (systems/spell/bunnySpells.js): Bunnyfall's own effects in the scene - Meteor, Gravity Well, Wall of
+  // Earth, Decoy and Rescue (scenes/bunnySpellEngine.js); Clairvoyance read by the quest guide off this player's buff
+  const bunny = createBunnySpellEngine({
+    collider, foes: () => foes(), playerEntity, say, companions: () => { try { return companionBodies?.() ?? []; } catch { return []; } },
+    burstFx: (kind, pos, o) => { landFx(kind, pos, o); }, glowFx: (kind, pos, o) => { try { fx.burst(kind, pos, { ground: impactGround(collider, pos), body: AREA_FX_BODY, ...o }); } catch { /* feel */ } },
+    rescueTarget, rescuePeer, casterLevel: () => effectiveLevel(playerEntity),
+  });
+  setClairvoyanceProbe(() => hasActiveEffect(playerEntity, 'clairvoyance'));
   let fxPass = null, fxBroken = false;
   // PERF-COMPILE1 (2026-10-10, stutter): the pass built at idle, not on the frame of the first spell that lands - every
   // engine (each dungeon entered makes one) paid its compile mid-fight. A browser's idle queue only (node's tests have
@@ -974,6 +990,7 @@ export function createPlayerMagic({
   }
   function explodeAt(pos, spell, casterLevel, playerFeet, caster = null, { excludeFoe = null, playerHeight = CAPSULE_HEIGHT, allies = false, duel = false, boss = duel } = {}) {
     mwFx.area(spell, pos, EXPLOSION_RADIUS);   // MW-SPELLFX1: the area visual where it goes off (explodeSpell)
+    if (caster?.entity === playerEntity) bunny.burst(pos, spell, EXPLOSION_RADIUS);   // BUNNY-SPELLS: a Meteor's throw, a Gravity Well's opening
     // SHIPMATES: a blast of the player's own crew passes the player and the rest of the crew by (combat/friendlyFire.js)
     const crewBlast = isShipmate(caster?.foe);
     for (const t of sweepFoes(pos, EXPLOSION_RADIUS, foes())) {
@@ -1144,6 +1161,14 @@ export function createPlayerMagic({
       say(sent ? RESURRECT_TEXT.cast(f.name) : f?.gone ? RESURRECT_TEXT.forGood(f.name) : RESURRECT_TEXT.noBody);
       return done(true);
     }
+    // BUNNY-SPELLS: a Rescue goes to whoever the caster sees, whatever its range type (scenes/bunnySpellEngine.js)
+    if (spellHas(sp, RESCUE_TYPE) && !readiedFree) {
+      lastCastCost = cost;
+      tallyCastSkills(sp);
+      surfacePlayer();
+      bunny.rescue(eye, dir, _doorFeet);
+      return done(true);
+    }
     const allyReach = allyReachFor(sp.rangeType);
     const ally = !readiedFree && allyReach !== null && allyCastable(sp) ? allyInReach(eye, dir, allyReach) : null;
     if (ally && castAtAlly?.(ally.id, allyCastFrame(sp, effectiveLevel(playerEntity), ally.id))) {
@@ -1170,6 +1195,7 @@ export function createPlayerMagic({
       // missile; AssignBundle at :2117.
       tallyCastSkills(sp);
       const r = applySpellToPlayer(sp, effectiveLevel(playerEntity), playerCaster(cast));
+      bunny.cast(sp, eye, dir);   // BUNNY-SPELLS: a Wall of Earth or a Decoy stands where I look
       // AUDIT 24 scenes: PlayerSpellCasting_OnReleaseFrame assigns the
       // CasterOnly bundle at :2117 and only stamps
       // `lastReadySpellCastingCost = readySpellCastingCost` at :2138 -
@@ -1231,7 +1257,8 @@ export function createPlayerMagic({
     lastCastCost = cost;
     tallyCastSkills(sp);
     surfacePlayer();
-    missiles.push({ spell: sp, cast, pos: [eye[0], eye[1], eye[2]], dir: [...dir], age: 0, batch: null, fromPlayer: true, ally: !readiedFree && allyCastable(sp), duel: !!duelSpellOf(sp), boss: !!duelSpellOf(sp) || (sp.effects ?? []).some((e) => e && isSoulTrapEffect(e)) || spellSways(sp) });
+    const meteor = bunny.meteorStart(sp, eye, dir);   // BUNNY-SPELLS: a Meteor falls from the sky on the spot aimed at
+    missiles.push({ spell: sp, cast, pos: meteor ? meteor.pos : [eye[0], eye[1], eye[2]], dir: meteor ? meteor.dir : [...dir], age: 0, batch: null, fromPlayer: true, ally: !readiedFree && allyCastable(sp), duel: !!duelSpellOf(sp), boss: !!duelSpellOf(sp) || (sp.effects ?? []).some((e) => e && isSoulTrapEffect(e)) || spellSways(sp) });
     withBolt(missiles[missiles.length - 1]);   // MW-SPELLFX1: and its bolt   // AID1 onto ALLY-CAST: may be given to a party mate it strikes (never a free ready's); DUEL1: may strike my duel opponent; AUDIT WBX F5: may meet the court's boss - a harmful spell, or a Soul Trap (at range or bursting, as by touch)
     if (sp.rangeType === 4) giveAreaToCaster(sp, cast);   // AREA-CASTER: an Area at Range spell of gifts lands on me too, wherever it bursts
     return done(true);
@@ -1451,6 +1478,7 @@ export function createPlayerMagic({
     setPlayerDoor(_door);
     stepSparks(dt);   // IMPACTFEEL (after the door: SET2 publishes it first thing each frame): the chunks' flight
     fx.step(dt);      // IMPACTFX: the light's
+    bunny.update(dt);   // BUNNY-SPELLS: the wall, the decoy and the wells
     mwFx.update(dt);  // MW-SPELLFX1: Morrowind's spell effects - their clocks, their places, their streams
     for (const m of missiles) if (!m.dead && m.spell && !m._artNoted) { m._artNoted = true; noteElementArt(m.spell.element); }   // ART-COLOUR: sampled while it flies, so its landing wears it
     // FA1: the missile flats' clock rides the module's OWN update, not
@@ -1740,6 +1768,7 @@ export function createPlayerMagic({
       for (const m of peerCandleMounts.values()) m.offsetAll(offset);   // PEERLIGHT2
       impacts.offsetAll(offset);   // F033: a flash mid-animation follows the recenter too
       shiftSparks(offset); fx.shift(offset);   // IMPACTFX: and the bursts
+      bunny.shift(offset);   // BUNNY-SPELLS: and what they placed
       for (const m of missiles) {
         if (m.dead) continue;
         for (let a = 0; a < 3; a++) {
@@ -1783,6 +1812,7 @@ export function createPlayerMagic({
       for (const m of peerCandleMounts.values()) m.clear();   // PEERLIGHT2
       peerCandleMounts.clear();
       clearSparks(); fx.clear();   // IMPACTFX: the bursts die with the engine
+      bunny.clearAll();   // BUNNY-SPELLS
       mwFx.destroy();   // MW-SPELLFX1: and the Morrowind effects, GL and all
       if (fxPass) { const p = fxPass; fxPass = null; fxBroken = true; p.destroy(); }   // IMPACTFX: and their GL pass (the slot emptied first; a draw after this builds nothing)
       impacts.clear();   // AUDIT 68 S21-magic-destroy-impacts: a flash still warming its archive is marked dead, so it publishes nothing into this dead engine
@@ -1798,6 +1828,7 @@ export function createPlayerMagic({
       for (const m of missiles) retireMissile(m);
       missiles.length = 0;
       clearSparks(); fx.clear();   // IMPACTFX: a load or a teleport leaves no burst behind in the old place
+      bunny.clearAll();   // BUNNY-SPELLS: nor a wall, a decoy or a well
       mwFx.clear();   // MW-SPELLFX1: nor a Morrowind effect
     },
     /** X11: the candle's point light, in nearestLights' own vec4 shape,

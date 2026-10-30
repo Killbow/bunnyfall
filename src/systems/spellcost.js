@@ -107,6 +107,15 @@ export const EFFECT_COST_TABLE = Object.freeze({
   '19,255': row(SKILLS.Mysticism, { duration: costs(20, 100), chance: costs(20, 100) }),    // Silence
   '43,255': row(SKILLS.Mysticism, {}),                                                      // Teleport - NO components (the fudge, at Mysticism)
   '46,255': row(SKILLS.Mysticism, { duration: costs(8, 8) }),                               // PARTY-MAP: Shared Cartography - the port's own; Light's cheap per-round price, cheap enough to keep up
+  // BUNNY-SPELLS (systems/spell/bunnySpells.js): the port's own eight, each priced beside its school's kin
+  '47,255': row(SKILLS.Destruction, {}),                                                    // Meteor - no components (the fudge, at Destruction)
+  '48,255': row(SKILLS.Destruction, { duration: costs(40, 40) }),                           // Slow - Paralyze's half-measure
+  '49,255': row(SKILLS.Mysticism, { duration: costs(20, 20) }),                             // Clairvoyance - a Detect's price
+  '50,255': row(SKILLS.Mysticism, {}),                                                      // Rescue - no components (the fudge, at Mysticism)
+  '51,255': row(SKILLS.Alteration, { duration: costs(20, 20) }),                            // Featherweight
+  '52,255': row(SKILLS.Alteration, { duration: costs(60, 60) }),                            // Wall of Earth
+  '53,255': row(SKILLS.Illusion, { duration: costs(40, 60) }),                              // Decoy - Chameleon's kin
+  '54,255': row(SKILLS.Thaumaturgy, { duration: costs(60, 60) }),                           // Gravity Well
   '44,255': row(SKILLS.Mysticism, { duration: costs(60, 68), chance: costs(40, 68) }),      // ComprehendLanguages
 
   // ---- Restoration ----
