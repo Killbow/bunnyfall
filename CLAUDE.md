@@ -8,6 +8,7 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   `selfhost/accounts.toml`. The `wrangler.toml` files in `server/` and `server-account/` are the upstream originals,
   kept as reference: change the `selfhost/` ones.
 - **The client finds its servers** through `src/net/selfHost.js`: from the page's own address, else the domain.
+- **Start with `docs/GUIDE.md`**: the short, Bunnyfall-only map of the repo, the rules and where each feature lives.
 - **The bible is upstream reference.** `bible/` describes DFO Online and keeps its name. Read it to understand a
   system, but it does not bind this fork's process (no patch notes, no STE, no upstream CI).
 - **ARENA2 is freeware**: `sh tools/fetch-data.sh` puts it at `/home/claude/dfdata/arena2` (never in the repo). Set

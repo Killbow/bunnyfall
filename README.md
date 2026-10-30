@@ -21,12 +21,11 @@ Node 20.19+ or 22.12+.
 
 - `npm run dev`: the game with hot reload. Start `node selfhost/start.mjs` beside it for the servers.
 - `npm run build`: production build into `dist/`
-- `npm test`: the test suite
 - `npm run lint`: eslint
 
 Game data (ARENA2) is never committed. Point tests at it with `ARENA2_PATH`.
 
-The `bible/` folder holds the original project's design docs. They still use its name, and are kept as reference.
+[`docs/GUIDE.md`](docs/GUIDE.md) is the short guide to the code. The `bible/` folder holds the original project's design docs, kept as reference.
 
 ## Credits
 
