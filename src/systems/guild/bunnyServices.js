@@ -26,15 +26,15 @@ import { t } from '../textManager.js';
 /** The Adventurers Guild's reputation for a quest done well. */
 export const QUEST_REP = 2;
 /** A performance: gold a note struck, and the rank's share more for each rank. */
-export const BARD_NOTE_GOLD = 6;
-export const BARD_BASE_GOLD = 8;
+export const BARD_NOTE_GOLD = 12;
+export const BARD_BASE_GOLD = 16;
 export const BARD_RANK_SHARE = 0.15;
 /** A map's price, and the share off it for each rank a member holds. */
 export const MAP_PRICE = 200;
 export const MAP_RANK_OFF = 0.08;
 /** A place's survey notes, and the rank's share more for each rank; the College's reputation is one for every
  *  SURVEY_REP_EVERY places sold, up to SURVEY_REP_MAX at a time. */
-export const SURVEY_GOLD = 20;
+export const SURVEY_GOLD = 40;
 export const SURVEY_RANK_SHARE = 0.1;
 export const SURVEY_REP_EVERY = 3;
 export const SURVEY_REP_MAX = 5;
