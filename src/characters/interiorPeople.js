@@ -19,6 +19,7 @@ import { GLOBAL_SCALE } from '../world/meshReader.js';
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { isShop } from '../systems/shopStock.js';
 import { isBuildingOpen } from '../systems/buildingLocks.js';
+import { isBunnyHall } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: a converted house that is a guild's hall
 
 /**
  * Collect the people of one building interior.
@@ -84,7 +85,7 @@ export function peopleAreVisible(building, {
   hour = 12, insideOpenShop = false,
   isHouseOwned = null, guildForBuilding = null,
 } = {}) {
-  const type = building?.buildingType ?? BUILDING_TYPES.None;
+  const type = isBunnyHall(building) ? BUILDING_TYPES.GuildHall : building?.buildingType ?? BUILDING_TYPES.None;   // BUNNY-GUILDS: a converted house keeps a hall's hours
   const factionId = building?.factionId ?? 0;
   const g = guildForBuilding?.(factionId) ?? null;
 

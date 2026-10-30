@@ -65,6 +65,7 @@ import { getLocalizedLocationName, getLocalizedRegionName } from '../systems/tex
 import { ChoiceWindow } from '../ui/talkWindow.js';
 import { buildBuildingDirectory, questorCandidateBuildings, TOPIC_CATEGORIES, whereIsAnswer, reactionTier012, buildingHint, toneTaste } from '../systems/talk/talkTopics.js';
 import { yardDirectoryRows } from '../systems/merchantYards.js';   // YARDS-FOUND: the town's yards in its directory
+import { markBunnyHallRows, bunnyHallsCaption } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the halls on the Where-is page
 import { portDirectoryRows, FOUND_KIND_ORDER, FOUND_TALK_GROUPS, lettersOnMap } from '../systems/portPlaces.js';   // SHIPYARDS-FOUND: and a port town's shipyard, crew hall, lighthouse and docks - the found places' one order
 import { OPENED_SHOP_TYPES, OPENED_SHOP_GROUPS } from '../world/buildingNames.js';   // PROF-FOUND: the shops the port opened, asked after
 import { LIST_ITEM_TYPE, QUESTION_TYPE } from '../systems/topicTree.js';   // TK-vi: the window's rows are the tree's ListItems; B6: the Work question type
@@ -352,6 +353,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
       // shipyard, its crew hall, its lighthouse and its docks (the host's `ports`, the location's frame), rows as the
       // yards' are (systems/portPlaces.js portDirectoryRows)
       directory.push(...portDirectoryRows(topics.ports));
+      markBunnyHallRows(directory);   // BUNNY-GUILDS: a converted house that is a guild's hall is asked after by its guild's name
       // QP1: GetBuildingList's questor half rides the SAME rebuild -
       // C# populates npcsWithWork inside the one building walk
       // (TalkManager.cs:2807-2874). The candidates go out through the
@@ -1080,6 +1082,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
     ...TOPIC_CATEGORIES.map((c) => ({ label: c.caption, buildings: directory.filter((b) => b.buildingType === c.type) })),
     ...OPENED_SHOP_TYPES.map((t) => ({ label: OPENED_SHOP_GROUPS[t], buildings: directory.filter((b) => b.buildingType === t) })),   // PROF-FOUND: the Furniture Store after DFU's shops, as the tree lays it
     ...FOUND_KIND_ORDER.map((k) => ({ label: FOUND_TALK_GROUPS[k], buildings: directory.filter((b) => b.yard === k) })),   // YARDS-FOUND: the tree's own groups, after the shops - SHIPYARDS-FOUND: the port's four after the yards' two
+    { label: bunnyHallsCaption(), buildings: directory.filter((b) => b.bunnyHall) },   // BUNNY-GUILDS: Bunnyfall's guild halls
   ].filter((c) => c.buildings.length);
   /** The pre-engine fallback: T3c's flat category directory. */
   function localCategories() {

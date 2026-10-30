@@ -131,3 +131,9 @@ export function stampBunnyHalls(merged, blocks, { locationIndex = 0, keyOf, hasR
   }
   return pick.size;
 }
+
+/** DFLocation.BuildingTypes.GuildHall. */
+const GUILD_HALL = 11;
+/** The type a building keeps its hours and its people by: a hall of these guilds is a guild hall, whatever house it was. */
+export const hallTypeOf = (/** @type {{ buildingType?: number, factionId?: number } | null | undefined} */ bd) =>
+  (isBunnyHall(bd) ? GUILD_HALL : bd?.buildingType ?? -1);

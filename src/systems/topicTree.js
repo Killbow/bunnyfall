@@ -70,6 +70,7 @@ import { getLocalizedFactionName } from './textManager.js';   // L10N3e: the org
 import { shownPersonName } from './quest/person.js';   // L10N3e: a quest person's caption, as shown
 import { shownItemName } from './item/itemInfo.js';   // L10N3e: a quest thing's caption, as shown
 import { FOUND_KIND_ORDER, FOUND_TALK_GROUPS } from './portPlaces.js';   // YARDS-FOUND: the town's yards on the Where-is page - SHIPYARDS-FOUND: and a port town's places after them, one order
+import { bunnyHallsCaption } from './guild/bunnyHall.js';   // BUNNY-GUILDS: the halls' Where-is group
 
 /** ListItemType (:128-133). */
 export const LIST_ITEM_TYPE = Object.freeze({ Item: 0, ItemGroup: 1, NavigationBack: 2 });
@@ -692,6 +693,14 @@ export class TopicTree {
       yardGroup.listChildItems.push(this._newBackItem());
       for (const y of yards) yardGroup.listChildItems.push(newListItem({ questionType: QUESTION_TYPE.LocalBuilding, caption: y.name, buildingKey: y.buildingKey }));
       this.listTopicLocation.push(yardGroup);
+    }
+    // BUNNY-GUILDS: Bunnyfall's guild halls (converted houses, their rows marked by systems/guild/bunnyHall.js), one group
+    const halls = this.listBuildings.filter((x) => x.bunnyHall);
+    if (halls.length) {
+      const hallGroup = newListItem({ type: LIST_ITEM_TYPE.ItemGroup, caption: bunnyHallsCaption(), listChildItems: [] });
+      hallGroup.listChildItems.push(this._newBackItem());
+      for (const h of halls) hallGroup.listChildItems.push(newListItem({ questionType: QUESTION_TYPE.LocalBuilding, caption: h.name, buildingKey: h.buildingKey }));
+      this.listTopicLocation.push(hallGroup);
     }
     // the quest-residence General section
     let alreadyCreatedGeneralSubSection = false;

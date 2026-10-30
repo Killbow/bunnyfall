@@ -46,6 +46,7 @@ import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
+import { markBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { trs } from '../world/mat4.js';
 import { buildRaceCharacter, raceOfArchive } from '../characters/raceCharacter.js';
@@ -609,6 +610,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // LAMP-KEEPER II (systems/lampKeeper.js): the host's pick - a shop's keeper standing as the lamp today keeps its born identity
   // (its name, its shop) and stands as the lamp; no Morrowind body is read for it (MWNPC8a's look, null)
   for (const pn of people) if (opts.lampPerson?.(pn)) Object.assign(pn, { lamp: true, _mwLook: null });
+  if (opts.bunnyHall) markBunnyClerk(people, opts.bunnyHall);   // BUNNY-GUILDS: a converted house's clerk speaks for its guild
   // AUDIT 24 (wave 20): AddPeople's LAST act on every person it stands
   // is `QuestMachine.Instance.SetupIndividualStaticNPC(go, obj.FactionID)`
   // (DaggerfallInterior.cs:1224) - inline, at the GameObject, BEFORE

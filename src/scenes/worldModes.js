@@ -476,6 +476,8 @@ import { bedSleepingOn, rrDouseOnDungeonExit, rrRefinedTrainingOn, rrSetting } f
 import { rrVariantPerson } from '../systems/roleplayRealism/rrVariants.js';   // RR2: the variant keepers and residents
 import { chairSeatOf, chairProbeOver, CHAIR_KIND, CHAIR_FLOOR_STEP } from '../world/chairSeat.js';   // SIT1: where on a chair the sitter's body goes
 import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a shop's keeper standing as the lamp, its words and its title
+import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
+import { bunnyClerkName, bunnyClerkGreeting } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { vendorOffice } from '../systems/festival/festivalWords.js';   // WITCH1: a Wyrd Sister is named by her office
 import { announceHonour } from '../ui/lootBanner.js';   // LAMP-KEEPER II: I Love Lamp, as a loot banner
 import { setRrHostSeams } from '../systems/roleplayRealism/rrInstall.js';   // RR1: the host's foe-spawner seam for the underworld guilds' squad
@@ -2599,7 +2601,7 @@ export function createWorldModes(host) {
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
    *  the plaque, the Info click and the talk door ask it before StaticNPC.DisplayName, so the three never disagree. */
-  const officeName = (pn) => arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
+  const officeName = (pn) => arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null) ?? (pn?.bunnyClerk ? bunnyClerkName(pn.bunnyClerk) : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
   /** FIELD BUGS 2026-10-11g QUEST-NAME ("Quest NPCs are inactive": "not being able to interact with the quest NPCs"): a
    *  quest PERSON stand named on World Tooltips' plaque as the room's own people are. The mod asks its StaticNPC arm
    *  (Modded_HUDTooltipWindow.cs:325-393, `ret = npc.DisplayName`) before its quest-resource arm, and AddQuestNPC gives a
@@ -4380,6 +4382,7 @@ export function createWorldModes(host) {
     if ((gateRole === 'redRecruiter' || gateRole === 'blueRecruiter') && host.arenaRecruiter?.(gateRole)) return;
     if (gateRole === 'bookmaker' && host.arenaBookmaker?.()) return;   // ARENA3: the bookmaker's stall (scenes/arena/arenaGate.js)
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
+    if (!info && pn?.bunnyClerk) { townTalk?.showOverlay?.(new ActionTextBox(bunnyClerkGreeting(pn.bunnyClerk))); return; }   // BUNNY-GUILDS: the hall's clerk
     if (!info && pn?.lamp) { lampChoice(pn); return; }   // LAMP-KEEPER II: the lamp's own words, its shop, and its title
     if (!info && pn?.witch && host.witches?.shop()) return;   // WITCH1: a Wyrd Sister's window (scenes/witchesHost.js) - a host with none lets her talk
     if (!info && pn?.arenaRole === 'pitMaster') { pitMasterChoice(); return; }
@@ -8632,6 +8635,7 @@ export function createWorldModes(host) {
           // RR2: Roleplay & Realism's variant keepers and residents (RoleplayRealism.cs:775-932) - the decision per person, with StaticNPC's own name seed and the location's climate
           // LAMP-KEEPER II (systems/lampKeeper.js): a shop's keeper standing as the lamp today - the town, the building, the
           // person and the day, one answer for every client in the room
+          bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
           lampPerson: (pn) => isLampKeeper(pn, {
             buildingType: building?.buildingType ?? -1, buildingFactionId: building?.factionId ?? 0, buildingKey: building?.buildingKey ?? 0,   // AUDIT FIVE-ASKS D4: the shop's own faction
             mapId: hit.dfLocation?.mapTableData?.mapId ?? 0, day: Math.floor(worldMinutes() / MINUTES_PER_DAY),
@@ -12369,7 +12373,7 @@ export function createWorldModes(host) {
       // residents back up. DFU's own deed keeps UpdateNpcPresence's unasked ownership (B5, interiorPeople.js).
       if (interiorHome || privateVisitRoom) return;
       const hour = Math.floor((Math.floor(skyMinutes()) % 1440) / 60);   // TIME1: who is in is the sky's hour
-      if (!updateNpcPresence(interiorBuilding?.buildingType ?? BUILDING_TYPES.None, {
+      if (!updateNpcPresence(hallTypeOf(interiorBuilding), {   // BUNNY-GUILDS: a guild's converted house keeps a hall's hours
         hour, insideOpenShop: !!interiorBuilding.insideOpenShop,
       })) return;
       for (const pn of interiorCtx.people) pn.host?.setActive(true);
