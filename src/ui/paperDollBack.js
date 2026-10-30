@@ -24,10 +24,11 @@ export const DOLL_BACK_TOP_LIGHT = 0.16;
 export const DOLL_BACK_OUTLINE = 0.45;
 export const DOLL_BACK_SEAM = 0.78;
 export const DOLL_BACK_SMOOTH = 2;
+/** DOLL-BACK V: how far inside the figure, and inside a piece, the light is full, pixels. */
+export const DOLL_BACK_BODY_PX = 9;
+export const DOLL_BACK_PIECE_PX = 4;
 /** The share of the head's box an item must cover to be the head's colour from behind (a helm, a hood). */
 export const DOLL_BACK_HELM_SHARE = 0.08;
-/** How many rows above and below a cloak's sides are looked for in, where an arm hides one. */
-export const DOLL_BACK_CLOAK_ROWS = 10;
 /** How far along its row a hand looks for the cloth about it, pixels. */
 export const DOLL_BACK_HAND_REACH = 16;
 /** The widest run of skin across a row that is a hand, pixels. */
@@ -160,14 +161,15 @@ export function dollBackPixels(out, track) {
     for (let y = Math.max(0, top); top >= 0 && y < h; y++) {
       for (let x = 0; x < w; x++) if (isCloak(owner[y * w + x])) { if (L[y] < 0) L[y] = x; R[y] = x; }
     }
-    for (let y = Math.max(0, top); top >= 0 && y < h; y++) {
-      if (L[y] < 0) continue;
-      let l = L[y], r = R[y];
-      for (let d = -DOLL_BACK_CLOAK_ROWS; d <= DOLL_BACK_CLOAK_ROWS; d++) {
-        const yy = y + d;
-        if (yy < top || yy >= h || L[yy] < 0) continue;
-        l = Math.min(l, L[yy]); r = Math.max(r, R[yy]);
-      }
+    // DOLL-BACK V: a cloak hangs from both shoulders, widening as it falls - each row's span the widest the cloak has
+    // been from the shoulders down to it (a cloak thrown over one shoulder in front still covers the whole back), to
+    // the cloak's lowest row
+    let last = -1;
+    for (let y = h - 1; y >= 0 && last < 0; y--) if (L[y] >= 0) last = y;
+    let l = w, r = -1;
+    for (let y = Math.max(0, top); top >= 0 && y <= last; y++) {
+      if (L[y] >= 0) { l = Math.min(l, L[y]); r = Math.max(r, R[y]); }
+      if (r < 0) continue;
       for (let x = l; x <= r; x++) {
         const p = y * w + x, k = from[p];
         if (k < 0 || kinds[k] === 'weapon' || k === headK) continue;
@@ -241,42 +243,51 @@ export function dollBackPixels(out, track) {
     const y = (p / w) | 0;
     if (y < top[k]) top[k] = y; if (y > bottom[k]) bottom[k] = y;
   }
-  const round = (/** @type {number} */ t) => Math.sqrt(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))));
+  // DOLL-BACK V: THE ROUNDING IS A DISTANCE, NOT A ROW'S RUN - how far each pixel stands inside the figure, and inside
+  // its own piece (a two-pass chamfer distance, 3 across and 4 on the diagonal), so the light is smooth both ways; a
+  // row's run jumped from row to row and striped the cloth
+  const inside = (/** @type {(p: number, q: number) => boolean} */ same) => {
+    const d = new Float32Array(w * h);
+    const BIG = 1e6;
+    for (let p = 0; p < d.length; p++) d[p] = shown(p) ? BIG : 0;
+    const step = (/** @type {number} */ p, /** @type {number} */ q, /** @type {number} */ c) => {
+      if (d[p] === 0) return;
+      const v = same(p, q) ? d[q] + c : c;
+      if (v < d[p]) d[p] = v;
+    };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const p = y * w + x;
+      if (!d[p]) continue;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1) { d[p] = 3; continue; }
+      step(p, p - 1, 3); step(p, p - w, 3); step(p, p - w - 1, 4); step(p, p - w + 1, 4);
+    }
+    for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) {
+      const p = y * w + x;
+      if (!d[p] || x === 0 || y === 0 || x === w - 1 || y === h - 1) continue;
+      step(p, p + 1, 3); step(p, p + w, 3); step(p, p + w + 1, 4); step(p, p + w - 1, 4);
+    }
+    return d;
+  };
+  const inFigure = inside((p, q) => shown(q));
+  const inPiece = inside((p, q) => shown(q) && from[q] === from[p]);
+  const ease = (/** @type {number} */ t) => { const u = Math.min(1, Math.max(0, t)); return 1 - (1 - u) * (1 - u); };
   const back = new Uint8Array(out.length);
   for (let y = 0; y < h; y++) {
-    // the runs across this row: the figure's, and each piece's
-    let x = 0;
-    while (x < w) {
-      if (!shown(y * w + x)) { x++; continue; }
-      let e = x;
-      while (e < w && shown(y * w + e)) e++;
-      const fx0 = x, fx1 = e - 1;   // the figure's run
-      let s0 = x;
-      for (let xx = x; xx < e; xx++) {
-        const p = y * w + xx;
-        if (xx + 1 < e && from[p + 1] === from[p]) continue;
-        // the piece's run [s0, xx]
-        for (let px = s0; px <= xx; px++) {
-          const q = y * w + px, i = q * 4, o = (y * w + (w - 1 - px)) * 4;   // turned left for right
-          const k = from[q];
-          const a = out[i + 3];
-          if (k < 0) { back[o] = out[i]; back[o + 1] = out[i + 1]; back[o + 2] = out[i + 2]; back[o + 3] = a; continue; }
-          const body = round((px - fx0 + 0.5) / (fx1 - fx0 + 1));
-          const piece = round((px - s0 + 0.5) / (xx - s0 + 1));
-          const above = bottom[k] > top[k] ? (y - top[k]) / (bottom[k] - top[k]) : 0.5;
-          let light = DOLL_BACK_DARK + (1 - DOLL_BACK_DARK) * (0.55 * body + 0.45 * piece);
-          light *= 1 + DOLL_BACK_TOP_LIGHT * (0.5 - above);
-          // the outline round the figure, and the seam where a piece meets another
-          const edge = (/** @type {number} */ q2) => q2 < 0 || q2 >= from.length || !shown(q2);
-          const left = px === 0 ? true : edge(q - 1), right = px === w - 1 ? true : edge(q + 1);
-          if (left || right || edge(q - w) || edge(q + w)) light *= DOLL_BACK_OUTLINE;
-          else if (from[q - w] !== k || from[q - 1] !== k) light *= DOLL_BACK_SEAM;
-          back[o] = Math.min(255, avg[k * 4] * light); back[o + 1] = Math.min(255, avg[k * 4 + 1] * light); back[o + 2] = Math.min(255, avg[k * 4 + 2] * light);
-          back[o + 3] = a;
-        }
-        s0 = xx + 1;
-      }
-      x = e;
+    for (let x = 0; x < w; x++) {
+      const q = y * w + x, i = q * 4, o = (y * w + (w - 1 - x)) * 4;   // turned left for right
+      const a = out[i + 3];
+      if (!a) continue;
+      const k = from[q];
+      if (k < 0) { back[o] = out[i]; back[o + 1] = out[i + 1]; back[o + 2] = out[i + 2]; back[o + 3] = a; continue; }
+      const body = ease(inFigure[q] / (3 * DOLL_BACK_BODY_PX)), piece = ease(inPiece[q] / (3 * DOLL_BACK_PIECE_PX));
+      const above = bottom[k] > top[k] ? (y - top[k]) / (bottom[k] - top[k]) : 0.5;
+      let light = DOLL_BACK_DARK + (1 - DOLL_BACK_DARK) * (0.55 * body + 0.45 * piece);
+      light *= 1 + DOLL_BACK_TOP_LIGHT * (0.5 - above);
+      // the outline round the figure, and the seam where a piece meets another
+      if (inFigure[q] <= 3) light *= DOLL_BACK_OUTLINE;
+      else if ((y > 0 && from[q - w] !== k) || (x > 0 && from[q - 1] !== k)) light *= DOLL_BACK_SEAM;
+      back[o] = Math.min(255, avg[k * 4] * light); back[o + 1] = Math.min(255, avg[k * 4 + 1] * light); back[o + 2] = Math.min(255, avg[k * 4 + 2] * light);
+      back[o + 3] = a;
     }
   }
   return back;
