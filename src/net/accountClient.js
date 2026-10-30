@@ -47,6 +47,7 @@ import { LETTER_SUBJECT_MAX, LETTER_BODY_MAX, LETTER_LINES_MAX, LETTERS_SENT_MAX
 import { banRangeText, bannedText } from './safety/safetyLaw.js';   // SAFE4: a ban's bound in its refusal's sentence, from its home; AUDIT SAFE CLIENT-2: and the ban itself
 import { muteRangeText } from './moderation.js';   // AUDIT 68 S14-mute-range-text-duplicated: the mute's bound in the refusal's sentence, from its home (L10N4: its reader)
 import { GUESTBOOK_TEXT_MAX } from './guestbookLaw.js';   // GUESTBOOK: its bound, in its refusal
+import { FEST_NAME_MAX, FEST_TEXT_MAX } from './playerFestivalLaw.js';   // PLAYER-FESTIVALS: their bounds, in the refusals
 import { HOME_CAP, RENT_ROOMS_MAX, RENT_HELD_MAX, RENT_DAYS_MAX } from './homeLaw.js';   // HOME1: the cap a refusal names; HOME-RENT: and the rooms'
 import { DECOR_CAP, DECOR_YARD_CAP, DECOR_YARD_HIGH_WHY, DECOR_YARDS_TOWN_MAX } from './decorLaw.js';   // DECOR1: the cap its refusal names; HOME-YARD: a yard's; YARD-TOWN: a town's
 import { MARKS_MAX, MARKS_BANK, MARKS_MOVE_MAX, MARKS_FAUCETS } from './marksLaw.js';   // MARKS1: the bounds its refusals name; CRAFT-WRITS: a crafting writ's day
@@ -338,6 +339,10 @@ const REFUSAL_WORDS = {
   // HOME-VOTE: a town's word on a player's house (server-account/src/homeVotes.js) - met at its door
   'bad-guestbook': () => t('account.refusal.badGuestbook', 'Write a line of up to {max} characters.', { max: GUESTBOOK_TEXT_MAX }),
   'guestbook-soon': () => t('account.refusal.guestbookSoon', 'You signed this guestbook not long ago. Come back later.'),
+  'bad-festival': () => t('account.refusal.badFestival', 'A festival needs a name (up to {name} characters) and a few words (up to {text}).', { name: FEST_NAME_MAX, text: FEST_TEXT_MAX }),   // PLAYER-FESTIVALS
+  'festival-have': () => t('account.refusal.festivalHave', 'You are already hosting a festival.'),
+  'festival-town': () => t('account.refusal.festivalTown', 'This town already has a festival under way.'),
+  'festival-full': () => t('account.refusal.festivalFull', 'There are too many festivals under way. Try again later.'),
   'guestbook-not-yours': () => t('account.refusal.guestbookNotYours', 'Only the people of this home read its guestbook.'),
   'vote-own': () => t('account.refusal.voteOwn', 'You cannot vote on your own home, or on the hall of your own company.'),
   'vote-rate': () => t('account.refusal.voteRate', 'You have voted on too many homes this hour. Try again later.'),
@@ -2110,6 +2115,9 @@ export function accountHomes({ fetch, storage }) {
     // GUESTBOOK: a line signed at another's door, and the book read by its insiders
     guestbookSign: ({ mapId, buildingKey, name, text }) => post('/v1/homes/guestbook/sign', { mapId, buildingKey, name, text }),
     guestbookRead: (mapId, buildingKey) => post('/v1/homes/guestbook/read', { mapId, buildingKey }),   // AUDIT HOME-VOTE II A4: the owner the door read
+    // PLAYER-FESTIVALS: a festival hosted at an innkeeper, and the ones standing now (server-account/src/playerFestival.js)
+    festivalHost: ({ mapId, town, host, name, text }) => post('/v1/festivals/host', { mapId, town, host, name, text }),
+    festivalList: () => post('/v1/festivals/list', {}),
     // ARENA4b: a home the arena displaced, moved to the house this client picked (its record named when the pieces' refund
     // comes onto it); the moves this character has not read; and one read
     arenaMove: ({ mapId, from, to, character, realm = null }) => post('/v1/homes/arena-move', { mapId, from, to, character, ...(realm ? { realm } : {}) }),

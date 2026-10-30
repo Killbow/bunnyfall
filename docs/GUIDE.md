@@ -92,6 +92,7 @@ authors to `src/ui/credits.js`.
 | Yards and their edges | `src/scenes/homeYards.js` |
 | Hiding another home's decor (only you) | `src/systems/online/homeDecorHide.js` |
 | Guestbook | see the list above |
+| Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/online/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/ink/inkMap.js` |
 | Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
 | Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/professions/` |
@@ -117,7 +118,5 @@ Checked against the real data, so worth trusting:
 
 ## Open work
 
-- Player-hosted festivals: custom name and description, costs gold, shown on the map and in chat, a small buff for
-  attendees, hosted from an innkeeper. Designed, not built. Note that `src/net/festivalLaw.js` and
-  `server-account/src/festival.js` are upstream's own festival, a different thing.
 - Small leftovers in the paperdoll back view: a stray skin block beside a loincloth, blocky hair, shields drawn flat.
+- Player festivals are `playerFestivalLaw.js`, not the Witches' Festival (`festivalLaw.js` and `server-account/src/festival.js` are upstream's calendar event, switched off).

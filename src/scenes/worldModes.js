@@ -4557,6 +4557,7 @@ export function createWorldModes(host) {
       openTavern: () => openTavern(pn), show: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), notes: BARD_NOTES,
       perform: (onDone) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, words: bardPerformanceWords() })),
       tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l),   // TAVERN-SOCIAL: a round, a tip, the crowd
+      festival: host.playerFestivals ?? null,   // PLAYER-FESTIVALS: hosted from the innkeeper
     })) return;
     if (!forceTalk && route.kind === 'merchant' && route.service === 'tavern'
       && openTavern(pn)) return;

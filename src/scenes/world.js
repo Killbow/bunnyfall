@@ -1018,6 +1018,7 @@ import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildV
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
 import { createRescueLink } from './rescueLink.js';   // BUNNY-SPELLS: Rescue between players
 import { createTavernSocial } from './tavernSocial.js';   // TAVERN-SOCIAL: rounds, bards together, tips
+import { createPlayerFestivals } from '../systems/online/playerFestivals.js';   // PLAYER-FESTIVALS: hosted at an innkeeper, on the map and in the chat
 import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';
 import { bunnyGuildsOn } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: the Adventurers Guild's reputation
 // TK-i: THE RUMOR MILL - the quest machine's rumor seams stop being silent.
@@ -16875,6 +16876,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       serpent: () => serpentOmen?.mapMark() ?? null,   // SERPENT1: the sea serpent's ring, in the sea's colours - the held map alone draws it
       sd: () => sdHost?.mapMark() ?? null,   // SD2c: a found Super dungeon's ring, in its omen's brass - the held map alone draws it
       stars: () => starfall?.mapMarks() ?? [],   // STAR6: the night's fallen stars, each its card
+      festivals: () => playerFestivals.mapMarks(),   // PLAYER-FESTIVALS: the festivals standing, each its card
       arch: () => egClient?.archMapMark() ?? null,   // EG-F: my company's Elite arch while it stands, in its gold - the held map alone draws it
       ketch: () => ketch?.mapMark() ?? null,   // KETCH: the Sky-Ketch over Daggerfall while she is in its sky - the held map alone draws it
       // GUIDE5: WHERE THE QUESTS POINT - every active quest's place the player's map holds, the followed one filled
@@ -20192,6 +20194,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     entity: () => playerEntity, online: () => !!online && online.status === 'open', peers: () => peersNear(), peerPose: (id) => online?.peers?.get(id)?.shown ?? null,
     accountOfPeer: (id) => social?.accountOfPeer?.(id) ?? null, myAccount: () => social?.acct ?? null, nameOf: (id) => peerName(id),
     feet: () => player.pos, indoors: () => modes?.mode === 'interior', say: (text) => townTalk.say(text), sent: () => {},
+  });
+  // PLAYER-FESTIVALS: a festival a player hosts - read from the service, said in the chat, marked on the map, a buff in its town (systems/online/playerFestivals.js)
+  const playerFestivals = createPlayerFestivals({
+    api: homesApi, on: () => !!online && online.status === 'open', entity: () => playerEntity, mapIdNow: () => _questLoc()?.mapTableData?.mapId ?? 0,
+    townOf: (mapId) => _townOfMapId.get(mapId >>> 0) ?? null, hostName: () => playerEntity?.name ?? '', say: (text) => chatNotice(text),
+    show: (w) => townTalk?.showOverlay?.(w), refusal: (word) => accountRefusalText(word),
   });
   let _deadMark = null;   // PCORPSE3: where my body lies while I am dead (my party pose says so)
   const _partyBodies = new Set();   // PCORPSE3: the accounts whose party pose tells of a body (AUDIT CONTRIB A3: remotePlayers.partyBody keeps each death's minute)
@@ -28797,6 +28805,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }   // AUDIT WORLD B6: the dungeon's and the building's death screens stand in the mode's slot   // AUDIT MWBODY B7: and no body stands frozen over the death screen
     _rezSeen = null;   // AUDIT CONTRIB A6: alive - the next death takes its own snapshot of what the party's poses say
     tavernSocial.frame();   // TAVERN-SOCIAL: a round near me, a tip to me
+    playerFestivals.frame();   // PLAYER-FESTIVALS: the registry read, the buff in a festival's town
     rescueLink.frame();   // BUNNY-SPELLS: a party member's Rescue naming me brings me to them
     checkpointWhenDue(now, _checkpointAt, realmSession, () => onlineCheckpoint());   // SCALE2b: the periodic one may be answered by the save the service holds (realmSaves.js idle)   // REALM P0.5: every ONLINE_CHECKPOINT_MS (five real minutes, CHECKPOINT-5), alive and in the seat (the first such frame persists the join's call-in)
     if (instanceDoor.refused(online)) modes?.forceExitToExterior?.();   // INSTANCES (the audit): alive, an instance's door shut on me (not of its owner's party - a kick, a lapse) - out, as the realm's door does, never left inside it alone
@@ -29850,6 +29859,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
     guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
     tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (worldModes.js bardTavernOffer)
+    playerFestivals,   // PLAYER-FESTIVALS: the innkeeper's Host a festival (worldModes.js bardTavernOffer)
     guildHall: {
       info: () => {
         const g = guildBook;

@@ -47,7 +47,7 @@ import { KT_MAP_INK } from '../ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch
 import { LODE_RING_CSS, LODE_FILL_CSS } from '../lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's Motherlodes, in the compass's aqua
 import { POI_RING_CSS, POI_FILL_CSS } from '../poi/poiMapMark.js';   // POI-2: the approved POIs, in their violet
 import { BOUNTY_RING_CSS, BOUNTY_FILL_CSS, REVENANT_RING_CSS, REVENANT_FILL_CSS } from '../bounty/bountyMapMark.js';   // BOUNTY1: a held bounty's black circle; RVN7c: a revenant's lair in blood red
-import { RAID_MARK_CSS } from '../eventMapMarks.js';   // EVENT-TIP: a town under attack
+import { RAID_MARK_CSS, FESTIVAL_MARK_CSS } from '../eventMapMarks.js';   // EVENT-TIP: a town under attack
 import { QUEST_MARK_CSS, QUEST_MARK_LIFT } from '../quest/questMarks.js';   // GUIDE5: where a quest points
 import { wheelPath } from '../carriageWheel.js';   // OW-HUBS: a carriage town's wheel beside its mark
 import { paintVendorMark } from '../vendor/vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint's coin
@@ -1252,6 +1252,8 @@ export function paintInkOverlay(ctx, view, opts) {
   for (const m of opts.raids ?? []) if (visible(m.x, m.y)) paintRaidMark(ctx, view, m, pulse);
   // STAR6: the night's fallen stars, beside the raids - none ever falls in a town
   for (const m of opts.stars ?? []) if (visible(m.x, m.y)) paintStarMark(ctx, view, m, pulse);
+  // PLAYER-FESTIVALS: a festival a player hosts, beside the stars
+  for (const m of opts.festivals ?? []) if (visible(m.x, m.y)) paintFestivalMark(ctx, view, m, pulse);
   // GUIDE5: where the quests point, over the raids and under the party - the diamond above its place, the followed
   // quest's filled
   for (const m of opts.quests ?? []) if (visible(m.x, m.y)) paintQuestMark(ctx, view, m);
@@ -1422,6 +1424,27 @@ export function paintStarMark(ctx, view, m, pulse = 0) {
   ctx.fillStyle = STAR_VIOLET_CSS;
   ctx.fill();
   ctx.strokeStyle = PEN.line;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** PLAYER-FESTIVALS: A FESTIVAL - a pennant on a pole in teal over its town's mark, a ring breathing about the town as
+ *  the gate's does, outlined in the pen's ink so it reads on any parchment. Skin. */
+export function paintFestivalMark(ctx, view, m, pulse = 0) {
+  const [x, y] = toPaper(view, m.x, m.y);
+  ctx.save();
+  ctx.setLineDash([]);
+  ctx.strokeStyle = FESTIVAL_MARK_CSS;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, 10 + pulse * 2, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - 16);
+  ctx.strokeStyle = PEN.line;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y - 16); ctx.lineTo(x + 9, y - 12.5); ctx.lineTo(x, y - 9); ctx.closePath();
+  ctx.fillStyle = FESTIVAL_MARK_CSS;
+  ctx.fill();
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();

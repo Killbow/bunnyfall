@@ -26,6 +26,9 @@ const BAY = Object.freeze({ width: MAP_WIDTH, height: MAP_HEIGHT });
 export const RAID_MARK_CSS = '#d8284b';
 /** What the legend calls it. */
 export const RAID_LEGEND_TEXT = 'Town under attack';
+/** PLAYER-FESTIVALS: a festival a player hosts - a teal apart from the raid's crimson, the star's violet and the rest. */
+export const FESTIVAL_MARK_CSS = '#1fa6a0';
+export const FESTIVAL_LEGEND_TEXT = 'Festival';
 /** A tip's title, in the card's own words. */
 export const RAID_TIP_TITLE = 'Raiding Party';
 /** A tip's bounds: a title and at most this many lines, each at most this long - a host's word is text, and a card that

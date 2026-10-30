@@ -135,10 +135,11 @@ export function bunnyHallServices(doors) {
  * @param {{ entity: any, where: string, day: number, openTavern: () => void, show: (view: any) => void,
  *   perform: (onDone: (hits: number) => string[]) => void, notes: number, tavern?: any, say?: (s: string) => void }} o
  */
-export function bardTavernOffer({ entity, where, day, openTavern, show, perform, notes, tavern = null, say = () => {} }) {
+export function bardTavernOffer({ entity, where, day, openTavern, show, perform, notes, tavern = null, say = () => {}, festival = null }) {
   const m = bunnyMembershipOf('bards');
   const social = tavern?.on?.() ? tavern : null;
-  if (!m && !social) return false;
+  const fest = festival?.on?.() ? festival : null;   // PLAYER-FESTIVALS: hosted from the innkeeper
+  if (!m && !social && !fest) return false;
   const played = m ? performedOn(where) === day : false;
   const lines = [];
   if (m) lines.push(played
@@ -173,6 +174,7 @@ export function bardTavernOffer({ entity, where, day, openTavern, show, perform,
       options.push({ code: `Digit${i + 1}`, label: tavernWords.tip(b.name, gold, String(i + 1)), action: later(() => { for (const l of social.tipBard(b.id, gold)) say(l); }) });
     });
   }
+  if (fest) options.push({ code: 'KeyF', label: fest.rowLabel(), action: later(() => fest.startHosting()) });
   options.push({ code: 'KeyT', label: t('bguild.bards.tavern', 'T - Rooms and drinks'), action: later(openTavern) });
   options.push({ code: 'Escape', label: undefined, action: () => {} });
   show({ lines, options });

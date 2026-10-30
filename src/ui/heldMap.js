@@ -110,7 +110,7 @@ import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KET
 import { LODE_RING_CSS, LODE_LEGEND_TEXT, lodeLegendText } from './lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's day's Motherlodes, read by the bounty's reader
 import { POI_RING_CSS, POI_MARKS_MAX, poiLegendText } from './poi/poiMapMark.js';   // POI-2: the approved POIs' marks, read by the bounty's reader
 import { readBountyMarks, bountyMarksKey, BOUNTY_RING_CSS, BOUNTY_LEGEND_TEXT, BOUNTY_LEGEND_RIM_CSS, REVENANT_RING_CSS, REVENANT_LEGEND_TEXT } from './bounty/bountyMapMark.js';   // BOUNTY1: held bounties' black circles, read as the gate's ring is
-import { readRaidMarks, raidMarksKey, placeTip, tipKey, readTip, RAID_MARK_CSS, RAID_LEGEND_TEXT, RAID_HIT_PX, SEAT_TIP_TEXT_MAX, TOWN_TIP_LINES_MAX } from './eventMapMarks.js';   // EVENT-TIP: the raided towns, and the card a world event answers a hover with
+import { readRaidMarks, raidMarksKey, placeTip, tipKey, readTip, RAID_MARK_CSS, RAID_LEGEND_TEXT, FESTIVAL_MARK_CSS, FESTIVAL_LEGEND_TEXT, RAID_HIT_PX, SEAT_TIP_TEXT_MAX, TOWN_TIP_LINES_MAX } from './eventMapMarks.js';   // EVENT-TIP: the raided towns, and the card a world event answers a hover with
 import { readVendorMark, vendorMarkKey, VENDOR_MARK_CSS, VENDOR_RIM_CSS, VENDOR_LEGEND_TEXT } from './vendor/vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint
 import { readQuestMarks, questMarksKey, QUEST_MARK_CSS, QUEST_LEGEND_TEXT, QUEST_HIT_PX, QUEST_MARK_LIFT, QUEST_RAID_LIFT, QUEST_FOLLOWED_TEXT } from './quest/questMarks.js';   // GUIDE5: where the quests point
 import {
@@ -710,6 +710,8 @@ export class HeldMapWindow {
     // STAR6: the night's fallen stars (the host's `stars`, on the same poll) - each its card, the raids' reader's
     this._stars = [];
     this._starsKey = '';
+    this._festivals = [];   // PLAYER-FESTIVALS: the festivals standing (the host's `festivals`, on the same poll)
+    this._festivalsKey = '';
     // GUIDE5: where the quests point (the host's `quests`, on the same poll) - each place the player's map holds
     this._quests = [];
     this._questsKey = '';
@@ -1366,6 +1368,7 @@ export class HeldMapWindow {
           pois: this._pois,   // POI-2
           raids: this._raids,   // EVENT-TIP: the towns under attack
           stars: this._stars,   // STAR6: the night's fallen stars
+          festivals: this._festivals,   // PLAYER-FESTIVALS: the festivals players host
           quests: this._quests,   // GUIDE5: where the quests point
           vendor: this._vendor,   // HOME-VENDOR: the trader's waypoint
           travellers: this._trav.filter((t) => playersOnMaps() && playerShown(t)).map((t) => ({ x: t.x, y: t.y, name: t.name, color: TV_KIN_COLORS[t.kin] ?? TRAVELLER_MARK_CSS, journey: t.journey, ship: t.ship })),   // TV3; OWS1: at sea, a ship; OW-WHO: the players' filters; OW-KIN: a friend's and a guild-mate's in theirs
@@ -2105,6 +2108,10 @@ export class HeldMapWindow {
     const stars = readRaidMarks(this.deps.stars, this._size);
     const starsKey = raidMarksKey(stars);
     if (starsKey !== this._starsKey) { this._starsKey = starsKey; this._stars = stars; gateMoved = true; this._dirty = true; }
+    // PLAYER-FESTIVALS: and the festivals players host - one begun or run out while the map stands open
+    const festivals = readRaidMarks(this.deps.festivals, this._size);
+    const festivalsKey = raidMarksKey(festivals);
+    if (festivalsKey !== this._festivalsKey) { this._festivalsKey = festivalsKey; this._festivals = festivals; gateMoved = true; this._dirty = true; }
     // GUIDE5: the quests' places ride the same poll (a step logged, a place found, the followed quest changed while the
     // map stands open); a card is bounded by the world events' own reader
     const quests = readQuestMarks(this.deps.quests, this._size).map((m) => ({ ...m, tip: readTip(m.tip),
@@ -2153,7 +2160,7 @@ export class HeldMapWindow {
     if (!leg) return;
     leg.innerHTML = '';
     const trav = this._trav.filter((t) => playersOnMaps() && playerShown(t));   // OW-WHO; MAP-PLAYERS: the legend speaks for the players the sheet draws
-    if (!this._party.length && !this._gate && !this._serpent && !this._sd && !this._arch && !this._ketch && !this._bounties.length && !this._revenants.length && !this._raids.length && !this._stars.length && !trav.length && !this._quests.length && !this._pois.length && !this._vendor && !this._lodes.length) { leg.classList.toggle('open', false); leg.style.display = 'none'; return; }
+    if (!this._party.length && !this._gate && !this._serpent && !this._sd && !this._arch && !this._ketch && !this._bounties.length && !this._revenants.length && !this._raids.length && !this._stars.length && !this._festivals.length && !trav.length && !this._quests.length && !this._pois.length && !this._vendor && !this._lodes.length) { leg.classList.toggle('open', false); leg.style.display = 'none'; return; }
     if (this._party.length) {
       const dot = el('span', 'hmlegdot');
       dot.style.background = this._party.some((m) => m.online) ? PARTY_MARK_CSS : PARTY_OFFLINE_CSS;
@@ -2221,6 +2228,11 @@ export class HeldMapWindow {
       const dot = el('span', 'hmlegdot');
       dot.style.background = RAID_MARK_CSS;
       leg.append(dot, el('span', 'hmlegtext', RAID_LEGEND_TEXT));
+    }
+    if (this._festivals.length) {   // PLAYER-FESTIVALS: and a festival
+      const dot = el('span', 'hmlegdot');
+      dot.style.background = FESTIVAL_MARK_CSS;
+      leg.append(dot, el('span', 'hmlegtext', FESTIVAL_LEGEND_TEXT));
     }
     if (this._stars.length) {   // STAR6: and a fallen star
       const dot = el('span', 'hmlegdot');
@@ -2513,6 +2525,17 @@ export class HeldMapWindow {
     for (const m of this._raids) {
       const [x, y] = toPaper(this._view, m.x, m.y);
       const d = Math.min((x - sx) ** 2 + (y - sy) ** 2, (x - sx) ** 2 + (y - 18 - sy) ** 2);
+      if (d < bestD) { best = m; bestD = d; }
+    }
+    return best;
+  }
+
+  /** PLAYER-FESTIVALS: the festival under the cursor - its pennant above the town's mark (inkMap.js paintFestivalMark). */
+  _festivalAt(sx, sy) {
+    let best = null, bestD = RAID_HIT_PX * RAID_HIT_PX;
+    for (const m of this._festivals) {
+      const [x, y] = toPaper(this._view, m.x, m.y);
+      const d = Math.min((x - sx) ** 2 + (y - sy) ** 2, (x - sx) ** 2 + (y - 12 - sy) ** 2);
       if (d < bestD) { best = m; bestD = d; }
     }
     return best;
@@ -3805,6 +3828,9 @@ export class HeldMapWindow {
     // STAR6: a fallen star answers as itself (its card names its town, its coven and how it stands)
     const star = this._starAt(sx, sy);
     if (star) return { label: star.label, cursor: m ? 'pointer' : '', tip: star.tip };
+    // PLAYER-FESTIVALS: a festival answers as itself (its card names its town, its host and how long it has left)
+    const festival = this._festivalAt(sx, sy);
+    if (festival) return { label: festival.label, cursor: m ? 'pointer' : '', tip: festival.tip };
     // GUIDE5: a quest's place answers as the quest (its card names the place); a press still picks the place under it
     const quest = this._questAt(sx, sy);
     if (quest) return { label: quest.label, cursor: m || this._questPlace(quest) ? 'pointer' : '', tip: quest.tip };

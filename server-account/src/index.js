@@ -190,6 +190,9 @@
 // GUESTBOOK (guestbook.js): a visitor's line at a home's door, and its insiders' read of the book:
 //   POST /v1/homes/guestbook/sign { mapId, buildingKey, name, text } -> { ok }
 //   POST /v1/homes/guestbook/read { mapId, buildingKey }             -> { ok, lines: [{ name, text, at }] }
+// PLAYER-FESTIVALS (playerFestival.js): a festival a registered account hosts, and the ones standing now:
+//   POST /v1/festivals/host { mapId, town, host, name, text } -> { ok, festival }
+//   POST /v1/festivals/list {}                                  -> { ok, festivals: [{ id, host, mapId, town, name, text, startsAt, endsAt, mine }] }
 // PATREON-LINK, a patron's own Patreon (patreon.js) - /v1/account's answer carries `patreon: { on, linked, titles,
 // link }`, `link` the authorize URL with a state sealed for the account; the next three answer a browser and Patreon:
 //   GET  /v1/patreon/callback ?code&state  -> a page asking which game account, with the yes's ticket
@@ -293,7 +296,8 @@ import { claimLamp } from './lamp.js';
 import { festivalOf, findFestival, buyFestival, festivalTown, setOffering, fillOffering, takeInOffering, takeFromOffering, FEST_STATUS } from './festival.js';   // WITCH1: the Witches' Festival   // LAMP-KEEPER II: I Love Lamp, laid on the row
 import { claimQl, QL_STATUS } from './questlines.js';   // QL12: a questline's step claimed - what the service witnessed, paid
 import { voteHome } from './homeVotes.js';   // HOME-VOTE: a town's word on a player's house
-import { signGuestbook, readGuestbook } from './guestbook.js';   // GUESTBOOK: the lines visitors sign at a home's door
+import { signGuestbook, readGuestbook } from './guestbook.js';
+import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from './rent.js';   // HOME-RENT: a home's rooms, rented
@@ -1744,6 +1748,12 @@ const service = {
       // same wall as the letters' and the saves', with its own word (a
       // guest is a device, and a home held by one a cleared browser loses
       // is a building gone from the world). homes.js holds the bounds.
+      if (path === '/v1/festivals/host' || path === '/v1/festivals/list') {   // PLAYER-FESTIVALS: hosted at an innkeeper, listed for the map and the chat
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path.endsWith('/host') ? await hostFestival(ctx, who.player, body) : await listFestivals(ctx, who.player);
+        if (!('error' in r)) return json(r, 200, origin);
+        return no(r.error, r.error === 'homes-need-account' ? 403 : r.error === 'bad-festival' ? 400 : 409, origin);
+      }
       if (path.startsWith('/v1/homes/')) {
         if (request.method !== 'POST') return no('method', 405, origin);
         if (path === '/v1/homes/town') {
