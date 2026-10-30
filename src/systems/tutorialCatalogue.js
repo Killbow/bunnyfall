@@ -642,7 +642,7 @@ export const TUTORIALS = Object.freeze([
         // AUDIT GUILD-WORDS L3-2, L3-4: the pace a quest's reward keeps (writs and receipts add beyond it - the guide says
         // so), the real day it counts by - II C-8: a UTC day, said; II C-3: no quest is free of its own guild's losses
         // (REPUTE-GATE gates the two that cost the most instead), so the page no longer says one is; II C-2: chairs
-        t('tutorials.chapters.body1', 'Online, quests raise your standing with each guild by at most {max} per real day (days start at midnight UTC). Anything over that is added on later days.', { max: ROLL_GAIN_DAY_MAX }),
+        t('tutorials.chapters.body1', 'Online, standing with a guild grows more slowly than offline: each rank takes 75% more work.'),
         t('tutorials.chapters.body2', 'Reviews promote you up to rank {cap}. Ranks {officer} and {master} are chapter chairs, won by Merit at each Sunday’s Turning. Any notice board explains chapters.', { cap: ROLL_BOOK_RANK_MAX, officer: SEAT_RANK.officer, master: SEAT_RANK.master }),
       ];
     },

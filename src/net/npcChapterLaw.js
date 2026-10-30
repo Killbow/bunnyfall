@@ -84,7 +84,10 @@ const ROLL_SET = /** @type {Set<number>} */ (new Set(ROLL_FACTIONS));
 export const isRollFaction = (/** @type {unknown} */ id) => typeof id === 'number' && ROLL_SET.has(id);
 
 /** The most a faction's reputation may RISE, net, in one UTC day for one character - three quests at DFU's +5. */
-export const ROLL_GAIN_DAY_MAX = 15;
+export const ROLL_GAIN_DAY_MAX = Number.MAX_SAFE_INTEGER;   // BUNNY-PACE (the owner, 2026-10-30): no daily cap - every gain is slowed instead (ROLL_GAIN_RATE)
+/** BUNNY-PACE (the owner: "make it at 75% more to rank up"): a gain claimed online counts 1/1.75 of itself, so every rank
+ *  takes 75% more work. The whole part is credited, the fraction by a roll the claim's own id draws (rollCredit `roll`). */
+export const ROLL_GAIN_SLOW = 1.75;
 /** A character brought in through customs from the epoch is seeded capped here: rank 4's need (RANK_REQ_REPUTATION). */
 export const ROLL_CUSTOMS_CAP = 40;
 /** CHAP1's arrival, 2026-10-08 00:00 UTC: a customs crossing before it is seeded whole. Never moved once shipped. */
@@ -190,7 +193,7 @@ const owedUnder = (/** @type {number} */ rep, /** @type {number} */ owed) => (re
  * the rest owed. Answers the row after it, and `credited` - what the reputation actually moved.
  * @param {{ rep: number, gainedDay: number, gained: number, owed?: number }} row @param {number} delta @param {number} day
  */
-export function rollCredit(row, delta, day) {
+export function rollCredit(row, delta, day, roll = 0.5) {
   const today = dayOf(row, day);
   const before = rollRep(row.rep);
   const owed = Math.max(0, whole(row.owed));
@@ -199,9 +202,11 @@ export function rollCredit(row, delta, day) {
     const rep = rollRep(before + delta + fromOwed);
     return { rep, gainedDay: day, gained: today + (rep - before), owed: owedUnder(rep, owed - fromOwed), credited: rep - before };
   }
-  const take = Math.min(delta, Math.max(0, ROLL_GAIN_DAY_MAX - today));
+  // BUNNY-PACE: the gain slowed, its fraction rounded up where the claim's roll falls under it
+  const slow = delta / ROLL_GAIN_SLOW;
+  const take = Math.floor(slow) + (roll < slow - Math.floor(slow) ? 1 : 0);
   const rep = rollRep(before + take);
-  return { rep, gainedDay: day, gained: today + (rep - before), owed: owedUnder(rep, owed + (delta - take)), credited: rep - before };
+  return { rep, gainedDay: day, gained: today + (rep - before), owed: owedUnder(rep, owed), credited: rep - before };
 }
 
 /** WHAT IS OWED, PAID: as much of a row's owed as the day's room leaves, credited to its reputation. Answers the row

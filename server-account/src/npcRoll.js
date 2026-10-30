@@ -243,6 +243,9 @@ export async function readRoll({ db, nowS, rand }, player, body) {
  * first), 'roll-busy' (another write moved the Roll between this one's read and its write - ask again).
  * @param {{ db: any, nowS: number, rand?: (b: Uint8Array) => Uint8Array }} ctx @param {{ id: string }} player @param {any} body
  */
+/** BUNNY-PACE: a claim's roll for one faction's line, 0..1 - the same for the same claim, so a repeat credits alike. */
+const claimRollOf = (/** @type {string} */ rid, /** @type {number} */ f) => (((parseInt(rid.slice(0, 8), 16) ^ Math.imul(f, 0x9e3779b1)) >>> 0) % 10_000) / 10_000;
+
 export async function claimRoll({ db, nowS, rand }, player, body) {
   if (!Number.isSafeInteger(nowS)) throw new TypeError('claimRoll needs an integer epoch-seconds clock');
   const held = await heldUnder(db, player.id, body?.character, body?.lease);
@@ -291,7 +294,7 @@ export async function claimRoll({ db, nowS, rand }, player, body) {
     }
     const asked = Number(deltas[f] ?? 0);
     if (asked) {
-      const c = rollCredit(line, asked, day);
+      const c = rollCredit(line, asked, day, claimRollOf(rid, f));   // BUNNY-PACE: the slowed gain's fraction, drawn from the claim's own id
       credited[f] = c.credited;
       line = { ...line, rep: c.rep, gainedDay: c.gainedDay, gained: c.gained, owed: c.owed };
     }
