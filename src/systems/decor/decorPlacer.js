@@ -60,6 +60,13 @@ export const DECOR_RAISE_MAX = 3;
 export const DECOR_RAISE_MIN = -1;
 export const DECOR_SCALE_STEP = 1.1;
 export const DECOR_GRID = 0.25;
+/** HOUSING-2 (the owner: "Nudge left, Nudge right, Nudge away and Nudge back"): A NUDGE moves the piece across the floor
+ *  from where the eye sets it - this far a press, DECOR_NUDGE_FINE with Shift or Ctrl held, one grid step with the grid
+ *  on. A wall stops it as a wall stops a piece set on it: a little into it at most (DECOR_WALL_CLIP, the tool's ray). */
+export const DECOR_NUDGE_STEP = 0.1;
+export const DECOR_NUDGE_FINE = 0.02;
+/** The most a piece is nudged from where the eye sets it, each way, metres. */
+export const DECOR_NUDGE_MAX = 4;
 /** DECOR-SHELL: a face whose normal (the eye's, facing it) points this far down is hung from, never stood on. */
 export const DECOR_HANG_NY = 0.5;
 /** WALL-CLEAR: how far a piece set on a wall stands clear of it, past its own reach into it (metres). */
@@ -100,7 +107,7 @@ export const decorEntrySized = (entry) => !decorIsFigure(entry);
 export function createDecorPlacer(entry, { radius = null, box = null, from = null, free = false, flat = null } = {}) {
   let measured = radius;   // the scan's, or what a copy was priced at - filled in once the scan reaches it
   const mount = !!entry.mount;
-  const s = { yaw: from ? wrapTurn((mount ? from.rot?.[2] : from.rot?.[0]) ?? 0) : 0, raise: 0, scale: from?.scale ?? 1, snap: false };
+  const s = { yaw: from ? wrapTurn((mount ? from.rot?.[2] : from.rot?.[0]) ?? 0) : 0, raise: 0, scale: from?.scale ?? 1, snap: false, nudge: [0, 0] };   // HOUSING-2: the nudge, across the floor (x, z)
   // DECOR-FIGURE: one of Daggerfall's people takes no size step - placed or moved, it stands at scale 1, one grown before
   // brought back to its own size
   const figure = !decorEntrySized(entry);
@@ -152,7 +159,16 @@ export function createDecorPlacer(entry, { radius = null, box = null, from = nul
 
   return {
     entry,
-    state: () => ({ ...s }),
+    state: () => ({ ...s, nudge: [...s.nudge] }),
+    /** HOUSING-2: one nudge along the level unit `dir` ([x, z]) - a press's step, or the grid's. Answers the step taken. */
+    nudge(dir, fine = false, room = Infinity) {
+      const step = s.snap ? DECOR_GRID : fine ? DECOR_NUDGE_FINE : DECOR_NUDGE_STEP;
+      const d = Math.max(0, Math.min(step, room));
+      s.nudge = [0, 1].map((i) => round(Math.max(-DECOR_NUDGE_MAX, Math.min(DECOR_NUDGE_MAX, s.nudge[i] + dir[i] * d)), 3));
+      return d;
+    },
+    /** HOUSING-2: how far the piece, turned and scaled, reaches from its origin toward a level `dir` ([x, z]). */
+    reachToward(dir) { return reach([-dir[0], -dir[1]]); },
     /** Turn by `deg` (a step, or a fine one). */
     turn(deg) { s.yaw = wrapTurn(round(s.yaw + deg, 1)); },
     /** Lift or lower by `d` metres, within the tool's own bound. */
@@ -216,6 +232,8 @@ export function createDecorPlacer(entry, { radius = null, box = null, from = nul
         x = round(x + n[0] * out, 3);
         z = round(z + n[1] * out, 3);
       } else if (s.snap) { x = snapTo(x, DECOR_GRID); z = snapTo(z, DECOR_GRID); }
+      x = round(x + s.nudge[0], 3);   // HOUSING-2: the nudge, after the grid (a grid step at a time with it on)
+      z = round(z + s.nudge[1], 3);
       return decorPieceOf({
         id, model: entry.model ?? null, flat: entry.flat ? [entry.flat[0], entry.flat[1]] : null, item: entry.item ?? null,
         pos: [x, hit[1] - origin[1] + up, z], rot: [s.yaw, 0, 0], scale: s.scale,

@@ -270,7 +270,9 @@ export function modelFootRects(positions, indices, cell = YARD_FOOT_CELL) {
       const q = (v) => Math.round(v * 1000);
       const ka = `${q(best[0])},${q(best[1])}`, kb = `${q(best[2])},${q(best[3])}`;
       const key = ka < kb ? `${ka}|${kb}` : `${kb}|${ka}`;
-      if (!seen.has(key)) { seen.add(key); walls.push(best); }
+      // HOUSE-GROUND (2026-10-30): only the ground floor's walls close the house - a wall starting above the roof's
+      // height (an upper storey hanging out, a gable) closes nothing
+      if (Math.min(ay, by, cy) < YARD_ROOF_Y && !seen.has(key)) { seen.add(key); walls.push(best); }
       continue;   // a wall: no ground under it
     }
     const high = ay >= YARD_ROOF_Y && by >= YARD_ROOF_Y && cy >= YARD_ROOF_Y;
@@ -292,9 +294,12 @@ export function modelFootRects(positions, indices, cell = YARD_FOOT_CELL) {
     }
     return n % 2 === 1;
   };
+  // HOUSE-GROUND (the owner: "the roof of a house does not stop decorations below it, only the walls of the ground floor
+  // are the house"): a roof marks no ground of its own - the house is what its ground floor's walls close, and a roof
+  // with no walls under it alone stands for its ground
   for (let i = 0; i < roof.length; i++) {
-    if (!roof[i] || hit[i]) continue;
-    if (!walls.length) { hit[i] = 1; continue; }
+    if (hit[i]) continue;
+    if (!walls.length) { if (roof[i]) hit[i] = 1; continue; }
     const q = i % W, r = (i / W) | 0;
     if (inside(x0 + (q + 0.5) * cell, z0 + (r + 0.5) * cell)) hit[i] = 1;
   }

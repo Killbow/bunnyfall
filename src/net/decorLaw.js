@@ -37,9 +37,9 @@ import { TROPHY_TEMPLATE } from './trophyLaw.js';   // HUNTERS-MARK: a mounted t
 export const DECOR_OWN_KEPT_BACK = Object.freeze(new Set([TEMPLATES.Spellbook, TEMPLATES.Letter_of_credit, TEMPLATES.House_Deed, TEMPLATES.Ship_Deed]));
 
 /** How many pieces one home holds - a room full of furniture, not a frame-rate. */
-export const DECOR_CAP = 200;
+export const DECOR_CAP = 400;   // HOUSING-2 (2026-10-30, the owner: "Double the amount of possible house decor"): was 200
 /** A guild hall's interior. A house stays at DECOR_CAP. The palace Charter Room keeps its own cap. */
-export const DECOR_HALL_CAP = 300;
+export const DECOR_HALL_CAP = 600;   // HOUSING-2: doubled with the house's (was 300)
 /** A piece's id: the client mints it (the save and the service key on the same one). */
 export const DECOR_ID_RE = /^[A-Za-z0-9_-]{1,24}$/;
 /** ARCH3D model ids run to six digits; TEXTURE records below 512, and archives below 512 - DECOR2c: or the port's own
@@ -397,7 +397,7 @@ export function decorHiddenOf(raw) {
 // the lot's widest.
 
 /** How many pieces one yard holds - a garden's worth, never a town's. */
-export const DECOR_YARD_CAP = 60;
+export const DECOR_YARD_CAP = 120;   // HOUSING-2: doubled (was 60); a town's yards keep DECOR_YARDS_TOWN_MAX
 /** How far from the building's origin a yard's piece may stand, on each axis, metres - past any lot. */
 export const DECOR_YARD_POS_MAX = 48;
 /**

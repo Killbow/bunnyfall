@@ -1469,6 +1469,7 @@ export function decorBarKeys(touch, sized = true) {
   if (touch) return [['Fly', t('decor.bar.keys.flyTouch', 'the stick, and hold Fly up or Fly down')], ['Look', t('decor.bar.keys.lookTouch', 'drag: the piece stands where you look')]];
   return [['Fly', t('decor.bar.keys.fly', 'walk keys, Jump up, Crouch down, Run faster')], ['Look', t('decor.bar.keys.look', 'mouse')],
     ['Turn', t('decor.bar.keys.turn', 'wheel or Turn Left/Right (Shift for fine turns, and turn a picture halfway round to flip it)')], ['Raise/lower', t('decor.bar.keys.raise', 'Float Up/Down')],
+    ['Nudge', t('decor.bar.keys.nudge', 'Numpad 4, 6, 8 and 2 (Shift or Ctrl for a short step; one grid step with the grid on)')],   // HOUSING-2
     ...(sized ? [['Size', '- and =']] : []), ['Grid', '/'], ['Place', t('decor.bar.keys.place', 'click or Interact')], ['Back', t('decor.bar.keys.back', 'right click or Escape')]];
 }
 
@@ -1535,8 +1536,11 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   const place = b('Place', 'place', 'dfdecor-btn');
   const turnLeft = b('Turn left', 'turnLeft'), turnRight = b('Turn right', 'turnRight');
   const raise = b('Raise', 'raise'), lower = b('Lower', 'lower');
-  const flightBtns = [place, turnLeft, turnRight, raise, lower, smaller, bigger, grid, preview];
-  btns.append(place, sep(), turnLeft, turnRight, sep(), raise, lower, sep(), smaller, bigger, grid, preview);
+  // HOUSING-2: the nudges - the piece moved across the floor from where the eye sets it
+  const nudgeLeft = b(t('decor.bar.nudgeLeft', 'Nudge left'), 'nudgeLeft'), nudgeRight = b(t('decor.bar.nudgeRight', 'Nudge right'), 'nudgeRight');
+  const nudgeAway = b(t('decor.bar.nudgeAway', 'Nudge away'), 'nudgeAway'), nudgeBack = b(t('decor.bar.nudgeBack', 'Nudge back'), 'nudgeBack');
+  const flightBtns = [place, turnLeft, turnRight, raise, lower, nudgeLeft, nudgeRight, nudgeAway, nudgeBack, smaller, bigger, grid, preview];
+  btns.append(place, sep(), turnLeft, turnRight, sep(), raise, lower, sep(), nudgeLeft, nudgeRight, nudgeAway, nudgeBack, sep(), smaller, bigger, grid, preview);
   if (touch) btns.append(hold('Fly up', 1), hold('Fly down', -1));
   // MENU-ORDER: the keys' legend folded behind one press - the pictured buttons are the bar; the words wait to be asked
   const keysChip = el('button', 'dfdecor-chip dfdecor-keys-toggle', DECOR_KEYS_WORD);

@@ -86,7 +86,7 @@ import { createDecorDoorways, decorDoorwaysFree, decorDoorwayAimed, decorDoorFit
 import { writeDecalQuad, clearDecalQuad, DECAL_FLOATS } from '../../combat/blood/bloodDecals.js';   // HOME-DOORS: the doorways' marks, on the decal pass
 import { rentRoomsView, rentAnchorOfRoom } from '../../systems/homeRent.js';   // HOME-RENT: the owner's rooms, offered to rent
 import { goldSum, EMPIRE_ACCOUNT_WORDS } from '../../systems/homeWords.js';   // AUDIT HOME-PRICE E4: the rent's sums and account, as the door says them
-import { createDecorPlacer, decorEntrySized, DECOR_TURN_STEP, DECOR_TURN_FINE, DECOR_RAISE_STEP, DECOR_RAISE_FINE, wrapTurn } from '../../systems/decor/decorPlacer.js';   // DECOR-FIGURE: whether a piece takes a size step
+import { createDecorPlacer, decorEntrySized, DECOR_TURN_STEP, DECOR_TURN_FINE, DECOR_RAISE_STEP, DECOR_RAISE_FINE, wrapTurn, DECOR_WALL_CLIP } from '../../systems/decor/decorPlacer.js';   // DECOR-FIGURE: whether a piece takes a size step
 import { createDecorButton, createDecorPanel, createDecorBar, createDecorHotbar, decorWhyNot } from '../../ui/decorPanel.js';
 import { DecisionBoxWindow } from '../../ui/decisionBox.js';
 import { InputMessageBoxWindow } from '../../ui/inputMessageBox.js';
@@ -124,6 +124,8 @@ import { t } from '../../systems/textManager.js';
 
 /** The free camera's pace, metres a second; Run's pace; and how far it may go from where it began. */
 export const DECOR_FLY_SPEED = 3;
+/** HOUSING-2: how solid the pale copy of a moved piece stands at its old place (the renderer's translucent share). */
+export const DECOR_PALE_COPY = 0.35;
 export const DECOR_FLY_FAST = 7;
 export const DECOR_FLY_LEASH = 40;
 /** How far the eye looks for a surface; with none, the piece hangs this far ahead. */
@@ -218,7 +220,8 @@ export const decorLookEntry = (furn, look) => ({
 /** The actions whose keys, held, fly the eye - the decorator keeps their state itself (the host never sees them). */
 export const DECOR_FLY_ACTIONS = Object.freeze(['MoveForwards', 'MoveBackwards', 'MoveLeft', 'MoveRight', 'Jump', 'Crouch', 'Run']);
 /** The keys no action is bound to by default, which the decorator keys by code: the size, and the grid. */
-export const DECOR_FREE_KEYS = Object.freeze({ Minus: 'smaller', Equal: 'bigger', Slash: 'grid' });
+export const DECOR_FREE_KEYS = Object.freeze({ Minus: 'smaller', Equal: 'bigger', Slash: 'grid',
+  Numpad4: 'nudge:left', Numpad6: 'nudge:right', Numpad8: 'nudge:away', Numpad2: 'nudge:back' });   // HOUSING-2: the nudges
 
 /** The eye's direction for a yaw and pitch - the host's own (worldModes.js eyeDir). */
 export const lookDir = (yaw, pitch) => [Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)];
@@ -643,6 +646,7 @@ export function createDecorTool(deps) {
         raise: () => placing?.placer?.raise(DECOR_RAISE_STEP), lower: () => placing?.placer?.raise(-DECOR_RAISE_STEP),
         smaller: () => placing?.placer?.rescale(false), bigger: () => placing?.placer?.rescale(true),
         grid: () => placing?.placer?.toggleSnap(),
+        nudgeLeft: () => nudgePiece('left'), nudgeRight: () => nudgePiece('right'), nudgeAway: () => nudgePiece('away'), nudgeBack: () => nudgePiece('back'),   // HOUSING-2
         preview: () => togglePreview(),
         catalog: () => openPanel(),
         confirm: () => { confirmDraft(); },
@@ -2131,6 +2135,28 @@ export function createDecorTool(deps) {
   // THE KEYS AND PRESSES WHILE THE CAMERA FLIES, taken before the host sees them
   const turn = (e, dir) => { if (!e.repeat || !placing?.door) turnPiece(dir * (e.shiftKey ? DECOR_TURN_FINE : DECOR_TURN_STEP)); };
   const lift = (e, dir) => placing?.placer?.raise(dir * (e.shiftKey ? DECOR_RAISE_FINE : DECOR_RAISE_STEP));
+  /** HOUSING-2: A NUDGE of the piece being placed - `side` 'left', 'right', 'away' or 'back' as the eye faces, snapped to
+   *  the floor's nearest axis so the grid stays whole; `fine` (Shift or Ctrl) the short step. A wall in the way stops it
+   *  a little into it (decorPlacer.js DECOR_WALL_CLIP), as a piece set on a wall stands. */
+  function nudgePiece(side, fine = false) {
+    const p = placing;
+    if (!p?.placer || p.door || p.entry?.mount || p.browse) return;
+    const yaw = p.aimYaw ?? 0;
+    const fwd = [Math.sin(yaw), Math.cos(yaw)], right = [Math.cos(yaw), -Math.sin(yaw)];
+    const raw = side === 'away' ? fwd : side === 'back' ? [-fwd[0], -fwd[1]] : side === 'right' ? right : [-right[0], -right[1]];
+    const dir = Math.abs(raw[0]) >= Math.abs(raw[1]) ? [Math.sign(raw[0]) || 1, 0] : [0, Math.sign(raw[1]) || 1];
+    let room = Infinity;
+    const piece = p.piece, origin = deps.origin?.() ?? [0, 0, 0], col = deps.collider?.();
+    if (piece && col?.raycastHit) {
+      const from = [origin[0] + piece.pos[0], origin[1] + piece.pos[1] + 0.3, origin[2] + piece.pos[2]];
+      const skip = p.editing ? [decorKeyOf(p.editing.id)] : null;
+      try {
+        const hit = col.raycastHit(from, [dir[0], 0, dir[1]], 8, skip ? { skip } : null);
+        if (hit && Number.isFinite(hit.dist)) room = Math.max(0, hit.dist - p.placer.reachToward(dir) + DECOR_WALL_CLIP);
+      } catch { /* no wall to meet */ }
+    }
+    p.placer.nudge(dir, fine, room);
+  }
   /** A press read as its action - held, a turn, a lift or a size goes on; a place, a back or the grid is once. */
   function arm(e) {
     const act = deps.actionOf?.(e) ?? null;
@@ -2146,6 +2172,7 @@ export function createDecorTool(deps) {
     }
     if (act && DECOR_FLY_ACTIONS.includes(act)) { flyHeld.add(act); return; }
     const free = act ? null : DECOR_FREE_KEYS[e.code];
+    if (free?.startsWith?.('nudge:')) { nudgePiece(free.slice(6), e.shiftKey || e.ctrlKey); return; }   // HOUSING-2: Numpad 4, 6, 8 and 2
     if (free === 'smaller') placing?.placer?.rescale(false);
     else if (free === 'bigger') placing?.placer?.rescale(true);
     else if (free === 'grid' && once) placing?.placer?.toggleSnap();
@@ -2428,11 +2455,14 @@ export function createDecorTool(deps) {
   /** The piece being placed, drawn where it will stand (a model; a flat is `batches`). */
   function draw(r = renderer, texRemap = null) {
     const p = placing;
-    if (!p || p.suspended || !p.piece || p.entry?.model == null) return false;
+    if (!p || p.suspended || p.entry?.model == null) return false;
     const m = modelFor(p.entry.model);
     if (!m || !inLaw(m.gpu, texRemap)) return false;   // AUDIT 05b A5: in the host's law first
-    r?.drawMesh?.(m.gpu, decorMatrix(p.piece, deps.origin?.() ?? [0, 0, 0]), texRemap);
-    return true;
+    if (p.piece) r?.drawMesh?.(m.gpu, decorMatrix(p.piece, deps.origin?.() ?? [0, 0, 0]), texRemap);
+    // HOUSING-2 (the owner: "When you move a part, a pale copy stays at its old position until you put the part down"):
+    // the piece being moved, pale where it stood (the renderer's translucent draw: depth tested, never written)
+    if (p.editing && p.lifted) r?.drawMesh?.(m.gpu, decorMatrix(p.editing, deps.origin?.() ?? [0, 0, 0]), texRemap, { translucent: DECOR_PALE_COPY });
+    return !!p.piece;
   }
   const batches = () => (placing && !placing.suspended && placing.piece && placing.batch ? [placing.batch] : []);
   /** DECOR2c: the mount being hung, on the host's decal pass (the room's own mounts' call). */
