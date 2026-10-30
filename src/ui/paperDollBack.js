@@ -17,10 +17,15 @@
 
 import { EQUIP_SLOTS } from '../systems/equip.js';
 
-/** How much of the front's light and shade the back keeps on cloth and armour (0 flat, 1 the front's own). */
-export const DOLL_BACK_SHADE = 0.12;
+/** DOLL-BACK IV: the back's own light - how dark a rounded edge is against its middle, how much lighter a piece's top
+ *  is than its bottom, the outline's and a seam's darkening, and the passes that smooth the pieces' borders. */
+export const DOLL_BACK_DARK = 0.62;
+export const DOLL_BACK_TOP_LIGHT = 0.16;
+export const DOLL_BACK_OUTLINE = 0.45;
+export const DOLL_BACK_SEAM = 0.78;
+export const DOLL_BACK_SMOOTH = 2;
 /** The share of the head's box an item must cover to be the head's colour from behind (a helm, a hood). */
-export const DOLL_BACK_HELM_SHARE = 0.2;
+export const DOLL_BACK_HELM_SHARE = 0.08;
 /** How many rows above and below a cloak's sides are looked for in, where an arm hides one. */
 export const DOLL_BACK_CLOAK_ROWS = 10;
 /** How far along its row a hand looks for the cloth about it, pixels. */
@@ -205,21 +210,73 @@ export function dollBackPixels(out, track) {
   }
   from.set(fill);
 
+  // DOLL-BACK IV (the owner: "a lot of the shading on the sprite is choppy or looks like the front sprite just
+  // mirrored"): NOTHING OF THE FRONT'S LIGHT IS KEPT. The back is lit on its own: each piece in its own colour, rounded
+  // across the body (the silhouette's run across each row, a cylinder's light) and across itself, lit a little from
+  // above, with a dark outline round the figure and a seam where two pieces meet. The pieces' borders are smoothed
+  // first, so a hand filled or a weapon hidden leaves no jag.
+  for (let pass = 0; pass < DOLL_BACK_SMOOTH; pass++) {
+    const next = Int16Array.from(from);
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const p = y * w + x;
+        if (from[p] < 0 || !shown(p)) continue;
+        const votes = new Map();
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const q = p + dy * w + dx, k = from[q];
+          if (k >= 0 && shown(q)) votes.set(k, (votes.get(k) ?? 0) + 1);
+        }
+        let best = from[p], most = votes.get(best) ?? 0;
+        for (const [k, v] of votes) if (v > most + 1) { best = k; most = v; }
+        next[p] = best;
+      }
+    }
+    from.set(next);
+  }
+  // each piece's rows, for its light from above
+  const top = new Int32Array(n).fill(h), bottom = new Int32Array(n).fill(-1);
+  for (let p = 0; p < from.length; p++) {
+    const k = from[p];
+    if (k < 0 || !shown(p)) continue;
+    const y = (p / w) | 0;
+    if (y < top[k]) top[k] = y; if (y > bottom[k]) bottom[k] = y;
+  }
+  const round = (/** @type {number} */ t) => Math.sqrt(Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, t)))));
   const back = new Uint8Array(out.length);
   for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const p = y * w + x, i = p * 4, o = (y * w + (w - 1 - x)) * 4;   // turned left for right
-      const a = out[i + 3];
-      if (!a) continue;
-      const k = from[p];
-      if (k < 0) { back[o] = out[i]; back[o + 1] = out[i + 1]; back[o + 2] = out[i + 2]; back[o + 3] = a; continue; }
-      // the folds of the layer that is there (its own pixel's light, when it is its own), skin and the head flat
-      const own = owner[p] === k;
-      const lum = 0.299 * out[i] + 0.587 * out[i + 1] + 0.114 * out[i + 2];
-      const m = avg[k * 4 + 3];
-      const shade = !own || skin(k) || k === headK ? 1 : Math.max(0.7, Math.min(1.3, 1 + DOLL_BACK_SHADE * (m > 1 ? lum / m - 1 : 0)));
-      back[o] = Math.min(255, avg[k * 4] * shade); back[o + 1] = Math.min(255, avg[k * 4 + 1] * shade); back[o + 2] = Math.min(255, avg[k * 4 + 2] * shade);
-      back[o + 3] = a;
+    // the runs across this row: the figure's, and each piece's
+    let x = 0;
+    while (x < w) {
+      if (!shown(y * w + x)) { x++; continue; }
+      let e = x;
+      while (e < w && shown(y * w + e)) e++;
+      const fx0 = x, fx1 = e - 1;   // the figure's run
+      let s0 = x;
+      for (let xx = x; xx < e; xx++) {
+        const p = y * w + xx;
+        if (xx + 1 < e && from[p + 1] === from[p]) continue;
+        // the piece's run [s0, xx]
+        for (let px = s0; px <= xx; px++) {
+          const q = y * w + px, i = q * 4, o = (y * w + (w - 1 - px)) * 4;   // turned left for right
+          const k = from[q];
+          const a = out[i + 3];
+          if (k < 0) { back[o] = out[i]; back[o + 1] = out[i + 1]; back[o + 2] = out[i + 2]; back[o + 3] = a; continue; }
+          const body = round((px - fx0 + 0.5) / (fx1 - fx0 + 1));
+          const piece = round((px - s0 + 0.5) / (xx - s0 + 1));
+          const above = bottom[k] > top[k] ? (y - top[k]) / (bottom[k] - top[k]) : 0.5;
+          let light = DOLL_BACK_DARK + (1 - DOLL_BACK_DARK) * (0.55 * body + 0.45 * piece);
+          light *= 1 + DOLL_BACK_TOP_LIGHT * (0.5 - above);
+          // the outline round the figure, and the seam where a piece meets another
+          const edge = (/** @type {number} */ q2) => q2 < 0 || q2 >= from.length || !shown(q2);
+          const left = px === 0 ? true : edge(q - 1), right = px === w - 1 ? true : edge(q + 1);
+          if (left || right || edge(q - w) || edge(q + w)) light *= DOLL_BACK_OUTLINE;
+          else if (from[q - w] !== k || from[q - 1] !== k) light *= DOLL_BACK_SEAM;
+          back[o] = Math.min(255, avg[k * 4] * light); back[o + 1] = Math.min(255, avg[k * 4 + 1] * light); back[o + 2] = Math.min(255, avg[k * 4 + 2] * light);
+          back[o + 3] = a;
+        }
+        s0 = xx + 1;
+      }
+      x = e;
     }
   }
   return back;
