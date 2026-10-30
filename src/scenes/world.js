@@ -888,7 +888,8 @@ import { POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, share
 import { WILD_DATA_MAX, WILD_ITEMS_MAX, POSE_RIDE } from '../net/wire.js';   // INT9 (AUDIT): a deposit's chunks, bounded by the wire's frame; COATS3D: POSE_RIDE - a peer on a horse rides the 3D one
 import { hasDaggerfallArrows } from '../combat/fpArm.js';   // MAC7 #2: the arrow bit on the wire - weaponRig's own read
 import { drawText } from '../ui/text.js';   // ONLINE1: the session's status line
-import { RemotePlayers, composeLook, createSightCache } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
+import { RemotePlayers, composeLook, createSightCache, PEER_ARCHIVE } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
+import { eotbBody } from '../player/eyeOfTheBeholder/eotbBody.js';   // BUNNYFALL: the own body's doll source
 import { createNameLayer, nameLayerWanted } from '../ui/nameLayer.js';   // NAME1 + BUBBLE1: the names and the chat bubbles, in the enhanced face; AUDIT NAME1 F7: and who gets that face
 import { enhancedHudScale, setHudSetChips, enhancedHudBottom, enhancedHudQuick } from '../ui/enhanced/enhancedHud.js';   // AUDIT NAME1 F3: the player's own HUD scale, which the names wear like every other enhanced surface; SET5: the set powers' chips
 import { makeHitPend } from '../net/hitPend.js';   // AUDIT FOES FOE2: a blow the wire refused waits and goes
@@ -3807,6 +3808,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** CARDS4b: THE REGULARS AT THE CARD TABLE (world/card/cardRegulars.js) - stood by the interior host each frame on layers of
    *  their own, seated through the pose's `st` as a seated peer is; what they say, over their heads. */
   let cardRegularBodies = null, _cardBarks = [];
+  // BUNNYFALL: the player's own third-person body, as the paperdoll the others are drawn by (player/eyeOfTheBeholder/eotbDoll.js)
+  { let _ownDolls = null; eotbBody.useDolls({ archive: PEER_ARCHIVE, dolls: () => (_ownDolls ??= new RemotePlayers({ renderer, deps: { fetchBytes, palette, getTexture, uploadRecordFrame } })), look: () => composeLook(playerEntity) }); }
   const makeFamilyBodies = () => createFamilyBodies({
     dolls: new RemotePlayers({ renderer, deps: { fetchBytes, palette, getTexture, uploadRecordFrame } }),
     bodies: new PeerBodies({ renderer, enabled: () => isEnhanced() && morrowindDataCount() > 0, generation: morrowindDataGeneration, collider: () => collider, gate: BODY_BUILD_GATE }),   // MWNPC4: on the page's one build queue

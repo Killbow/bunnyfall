@@ -56,6 +56,7 @@ import { isLayeredKey, decodeLayered, outfitOfSlots, layeredGenderOf, LAYERED_AR
 import { playerEntity } from '../../characters/playerEntity.js';   // WORN-ARMOUR: whose armour
 import { equipTableOf } from '../../systems/equip.js';   // WORN-ARMOUR: what they wear
 import { horseLookCode, horseLookOfCode, lookSuffix } from '../../systems/horse/horseCoats.js';   // COATS1: the ridden horse's look
+import { createOwnDoll } from './eotbDoll.js';   // BUNNYFALL: the paperdoll that stands for the sprite
 import { getMeleeWeaponAnimTime } from '../../characters/weaponStates.js';   // [IL] GetMeleeAnimTickTime reads FormulaHelper's own
 import { setPlayerTorchOffsetOverride, setPlayerWaistLightOverride } from '../../systems/playerTorch.js';   // [IL] TorchOffset writes PlayerTorch's position; HT-WAIST: and the lantern at the waist lights from where it hangs
 import {
@@ -128,6 +129,7 @@ function look() {
     onFoot: s['Graphics.OnFoot'] ?? 0,
     onHorse: s['Graphics.OnHorse'] ?? 0,
     readyStance: s['Graphics.ReadyStance'] ?? 2,
+    paperdoll: s['Graphics.Paperdoll'] !== false,              // BUNNYFALL: the paperdoll for the animated sprites (eotbDoll.js)
     graphic: s['Graphics.Enable'] !== false,                   // "Toggle the player graphic" - ToggleBillboard's argument
     wornArmour: layeredGenderOf(s['Graphics.LayeredGear']) != null,   // LAYERED-GEAR: the skin chosen on the profile (player/eyeOfTheBeholder/layeredArmor.js)
     layeredChoice: s['Graphics.LayeredGear'] ?? 0,                    // LAYERED-GEAR-ON: the choice, LAYERED_OWN (the default) the character's own body
@@ -224,6 +226,7 @@ const norm2 = (v) => { const l = Math.hypot(v[0], v[2]); return l > 0 ? [v[0] / 
 
 export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, decode = decodeSprite, loadLantern = loadLanternArt } = {}) {
   let renderer = null;
+  const ownDoll = createOwnDoll();   // BUNNYFALL
   /** the per-frame state thunk of the rig that owns the body (see attach) */
   let attachedState = null;
   let clipSwing = null;   // AUDIT PRE-MERGE 0929 S1: the blow the last melee or claw clip was started for
@@ -954,6 +957,8 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
     /** HT-WAIST: another body has the frame (mwView's Morrowind lane) - the sprite's lantern, its batch and the
      *  light point it wrote, stand down, so the Morrowind body's hip is lit from its own hook. */
     standDown() { dropLantern(); },
+    /** BUNNYFALL: the host's doll source (eotbDoll.js) - where the paperdoll that stands for the sprite is composed. */
+    useDolls(source) { ownDoll.setSource(source); },
     /** HORSE-FACE: the floating origin moved the world under the feet - they move with it, so the shift is no placing. */
     rebase(delta) {
       if (!delta || !cam.feet) return;
@@ -1025,16 +1030,19 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       // mirrored
       const flipView = FP && cfg.visibility === 2;
       const lk = lookNow();
-      const s = spriteFor(shown.table, shown.orientation, shown.frame, lk, { flip: shown.flip !== flipView });   // PR-WW1: the live form's archive (112381 the wereboar)
+      // BUNNYFALL: on foot, alive and in one's own form, the paperdoll stands for the sprite while its doll is up
+      const doll = cfg.paperdoll && !FP && !last.riding && !last.transformed && !last.died ? ownDoll.pick(shown.orientation, Date.now()) : null;
+      const s = doll ?? spriteFor(shown.table, shown.orientation, shown.frame, lk, { flip: shown.flip !== flipView });   // PR-WW1: the live form's archive (112381 the wereboar)
       // OW-BIG (2026-09-28, Mac: "The player sprite needs to appear larger"): under the travel view the sprite is drawn
       // `face.grow` times its size (player/travelCamera.js tvOwnGrow) - a party's icon from the Overworld's height, not
       // a speck; whole steps, the batch made again at each
       const grow = face && face.grow > 1 ? face.grow : 1;
-      const up = ensure(s);
+      const up = doll ? { w: doll.w, h: doll.h } : ensure(s);
       if (up) {
-        releaseOutfits(s, lk);   // AUDIT FB1022d D4: the new outfit up - the last one goes
-        const xml = spriteOffset(s.archive, s.record);
-        const size = spriteSize(up.w, up.h, { riding: last.riding, transformed: last.transformed, scale: cfg.scale }, xml.scale);
+        if (!doll) releaseOutfits(s, lk);   // AUDIT FB1022d D4: the new outfit up - the last one goes
+        const xml = doll ? { scale: 1 } : spriteOffset(s.archive, s.record);
+        const dollK = cfg.scale > 0 ? cfg.scale : 1;
+        const size = doll ? { w: doll.w * dollK, h: doll.h * dollK } : spriteSize(up.w, up.h, { riding: last.riding, transformed: last.transformed, scale: cfg.scale }, xml.scale);
         const key = `${cacheKey(s)}|${grow}`;
         if (!batch || batchRec !== key) {
           if (batch) renderer.destroyBillboardBatch?.(batch);
@@ -1050,7 +1058,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       const c = place();
       if (!c) return false;
       batch.origin[0] = c[0]; batch.origin[1] = c[1]; batch.origin[2] = c[2];
-      figure = last.riding || FP ? null : { base: c[1] - cam.feet[1], mpp: batchPx > 0 ? batchSize.h * grow / batchPx : 0, beast: !!last.transformed };   // SERAPH-WINGS: a rider's frame is the horse's too - no shoulders read off it; AUDIT 3: nor the first-person billboard's (the camera is in it), and its metres a pixel (the shoulders by the pixel - auraSpriteBones) and its form
+      figure = last.riding || FP || doll ? null : { base: c[1] - cam.feet[1], mpp: batchPx > 0 ? batchSize.h * grow / batchPx : 0, beast: !!last.transformed };   // SERAPH-WINGS: a rider's frame is the horse's too - no shoulders read off it; AUDIT 3: nor the first-person billboard's (the camera is in it), and its metres a pixel (the shoulders by the pixel - auraSpriteBones) and its form
       // SPRITE-FACE: AND THE WAY THIS FRAME FACES - the picture's (portrayedYaw: the shown orientation about this frame's
       // eye, the repaint that has LANDED), which the wings and the cloak hang on; and the body's own turning (turnYaw),
       // which their swing reads. In the saddle too (the horse's picture faces as the rider's does); none in first person

@@ -95,6 +95,7 @@ authors to `src/ui/credits.js`.
 | Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/online/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/ink/inkMap.js` |
 | Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
+| Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eyeOfTheBeholder/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |
 | Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/professions/` |
 | Server switches for a small server | `server-account/src/bunnyfall.js`, `selfhost/accounts.toml` |
 | Self-host, updates, the ↻ button | `selfhost/`, `src/ui/ownerUpdate.js` |

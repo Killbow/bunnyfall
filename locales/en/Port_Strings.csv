@@ -4189,6 +4189,7 @@ mods.eyeOfTheBeholder.Graphics.LayeredGear.description,"On foot Layered Gearing 
 mods.eyeOfTheBeholder.Graphics.MirrorTime.description,"Seconds before a mirrored sprite turns back. 0 turns this off."
 mods.eyeOfTheBeholder.Graphics.OnFoot.description,"Sprite when on foot"
 mods.eyeOfTheBeholder.Graphics.OnHorse.description,"Sprite when riding a horse"
+mods.eyeOfTheBeholder.Graphics.Paperdoll.description,"Draw yourself as your paperdoll, front and back, instead of the animated sprites"
 mods.eyeOfTheBeholder.Graphics.PingPongOffset.description,"Has no effect here: attacks never play backwards in this game."
 mods.eyeOfTheBeholder.Graphics.ReadyStance.description,"Whether the sprite will change states when readying a weapon or spell"
 mods.eyeOfTheBeholder.Graphics.ShowCart.description,"A 3D cart follows you when you travel with your cart"
