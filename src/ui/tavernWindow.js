@@ -54,6 +54,7 @@
 //   its "-- Taverns menu" block (:175-179) puts EXIT on G, not on the
 //   E the port had assumed.
 
+import { drawText } from './text.js';   // BUNNYFALL: the house's rows under the panel
 import { loadImg, nativeMetrics, drawImg } from './native/nativePanel.js';
 import { drawMenuBackdrop } from './chargenArt.js';
 import { ServiceFlowWindow, macroRows } from './guildServiceWindows.js';
@@ -160,6 +161,9 @@ export class TavernWindow {
   }
 
   _close() { this.done = true; this.hooks.onClose?.(); }
+
+  /** BUNNYFALL: the host's house rows now - [] where it has none (an unmodified host, offline, no guild). */
+  _houseRows() { try { return this.hooks.house?.() ?? []; } catch { return []; } }
 
   /** TavernMacroDataSource (:369-386): Amount() is the trade price and
    *  RoomHoursLeft() is GetRemainingHours on THIS inn's room. Both go
@@ -360,6 +364,9 @@ export class TavernWindow {
     // Escape/Enter are the port host's close keys, not DFU buttons.
     if (code === 'Escape' || code === 'Enter') { this._close(); return; }
     // D1: the four Hotkeys, from the table, in DFU's button ADD order.
+    // BUNNYFALL: the house's rows (perform, a round, a tip, a festival) answer their keys beside the four
+    const row = this._houseRows().find((r) => r.code === code);
+    if (row) { audio.playOneShot(SOUND.ButtonClick, 1); this._close(); row.action(); return; }
     const hit = firstHotkey(TAVERN_BUTTONS, code, e);
     if (hit === null) return;
     // F145 on the KEYBOARD side: Talk/Food/Exit play ButtonClick in
@@ -396,5 +403,8 @@ export class TavernWindow {
     // already taken it off the stack.
     if (this.flow) { this.flow.draw(renderer, canvas, font); return; }
     drawImg(renderer, _art, m, TAVERN_PANEL_X, TAVERN_PANEL_Y);
+    // BUNNYFALL: the house's rows, listed under the panel with their keys
+    let ty = m.oy + (TAVERN_PANEL_Y + TAVERN_PANEL_H + 8) * m.s;
+    for (const r of this._houseRows()) { drawText(renderer, font, r.label, m.ox + TAVERN_PANEL_X * m.s, ty, m.s, [0.86, 0.82, 0.68, 1]); ty += 9 * m.s; }
   }
 }

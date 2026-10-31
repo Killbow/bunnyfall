@@ -283,7 +283,16 @@ function mainButtons() {
   pack.onclick = buyPack;
   const exit = el('button', 'act tavern-act', 'Leave');
   exit.onclick = close;
-  wrap.append(room, talkBtn, food, pack, exit);
+  // BUNNYFALL: the house's rows (perform, a round, a tip, a festival) on the same panel as Daggerfall's own
+  const house = [];
+  let rowsNow = [];
+  try { rowsNow = deps.house?.() ?? []; } catch { rowsNow = []; }
+  for (const r of rowsNow) {
+    const b = el('button', 'act tavern-act tavern-house', String(r.label).replace(/^[A-Z0-9]+ - /, ''));
+    b.onclick = () => { close(); r.action(); };
+    house.push(b);
+  }
+  wrap.append(room, talkBtn, food, ...house, pack, exit);
   return wrap;
 }
 
@@ -459,6 +468,12 @@ function onKey(e) {
   }
   const t = e.target;
   if (t && (t.tagName === 'INPUT' || t.isContentEditable)) return;
+  if (screen === 'main' && !menu) {   // BUNNYFALL: a house row answers its key
+    let rowsNow = [];
+    try { rowsNow = deps.house?.() ?? []; } catch { rowsNow = []; }
+    const row = rowsNow.find((r) => r.code === e.code);
+    if (row) { e.preventDefault(); close(); row.action(); return; }
+  }
   if (overlayAction(e) === 'back') {
     e.preventDefault();
     if (menu) { menu = null; render(); }

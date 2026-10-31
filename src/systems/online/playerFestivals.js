@@ -24,7 +24,7 @@ export const FEST_BUFF_LOOK_MS = 5000;
 const CARD_LINE = 80;
 
 export const festivalWords = {
-  host: (/** @type {number} */ gold) => t('festival.host.row', 'F - Host a festival ({gold} gold)', { gold }),
+  host: (/** @type {number} */ gold) => t('festival.host.row', 'H - Host a festival ({gold} gold)', { gold }),
   askName: () => t('festival.host.askName', 'What is your festival called? It costs {gold} gold and lasts {hours} hours.', { gold: FEST_COST_GOLD, hours: FEST_HOURS }),
   askText: () => t('festival.host.askText', 'What is it about? A few words for the town.'),
   poor: () => t('festival.host.poor', 'You cannot afford a festival ({gold} gold).', { gold: FEST_COST_GOLD }),

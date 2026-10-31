@@ -29862,8 +29862,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     },
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
     guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
-    tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (worldModes.js bardTavernOffer)
-    playerFestivals,   // PLAYER-FESTIVALS: the innkeeper's Host a festival (worldModes.js bardTavernOffer)
+    tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (the tavern window's house rows, bunnyServices.js bunnyTavernRows)
+    playerFestivals,   // PLAYER-FESTIVALS: the innkeeper's Host a festival (the tavern window's house rows, bunnyServices.js bunnyTavernRows)
     guildHall: {
       info: () => {
         const g = guildBook;

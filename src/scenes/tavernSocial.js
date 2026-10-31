@@ -3,7 +3,7 @@
 // the room's pose (net/wire.js tavernOf): `tq` counts my rounds, `bp` says I play now, `tt`/`tn`/`tg` my last tip. Each
 // client reads the others' and decides for itself, as Rescue's call is read (scenes/rescueLink.js): a NEW round from a
 // player standing near lays the round on me; a NEW tip naming my account pays me. What was already on a pose when I
-// first saw it is never acted on. The innkeeper's menu (systems/guild/bunnyServices.js bardTavernOffer) asks here what
+// first saw it is never acted on. The innkeeper's menu (systems/guild/bunnyServices.js bunnyTavernRows, on the tavern window) asks here what
 // it can offer and pays through here.
 
 import { addGoldPieces, goldPiecesOf } from '../systems/inventory.js';

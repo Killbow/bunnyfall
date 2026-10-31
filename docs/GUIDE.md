@@ -93,7 +93,7 @@ authors to `src/ui/credits.js`.
 | Hiding another home's decor (only you) | `src/systems/online/homeDecorHide.js` |
 | Guestbook | see the list above |
 | Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/online/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/ink/inkMap.js` |
-| Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` |
+| Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` (`bunnyTavernRows`: the rows the tavern window carries beside Daggerfall's own) |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
 | Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eyeOfTheBeholder/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |
 | Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/professions/` |

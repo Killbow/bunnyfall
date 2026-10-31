@@ -482,7 +482,7 @@ import { chairSeatOf, chairProbeOver, CHAIR_KIND, CHAIR_FLOOR_STEP } from '../wo
 import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/lampKeeper.js';   // LAMP-KEEPER II: a shop's keeper standing as the lamp, its words and its title
 import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
 import { bunnyClerkName, openBunnyHall } from '../systems/guild/bunnyHall.js';
-import { bunnyHallServices, bardTavernOffer } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the guilds' services
+import { bunnyHallServices, bunnyTavernRows } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the guilds' services
 import { BardPerformanceWindow, NOTES as BARD_NOTES, bardPerformanceTitle, bardPerformanceWords } from '../ui/bardPerformanceWindow.js';   // BUNNY-GUILDS: the Bards' performance   // BUNNY-GUILDS: the hall's clerk
 import { vendorOffice } from '../systems/festival/festivalWords.js';   // WITCH1: a Wyrd Sister is named by her office
 import { announceHonour } from '../ui/lootBanner.js';   // LAMP-KEEPER II: I Love Lamp, as a loot banner
@@ -4552,14 +4552,6 @@ export function createWorldModes(host) {
       && openMerchantSell()) return;
     // U39: DaggerfallTavernWindow. Same shape as the repair arm - the
     // routing has said 'tavern' since G8 and nothing consumed it.
-    // BUNNY-GUILDS (Phase 2a): a Bards' College member is asked first whether to play for the house
-    if (!forceTalk && route.kind === 'merchant' && route.service === 'tavern' && bardTavernOffer({
-      entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${interiorBuilding?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY),
-      openTavern: () => openTavern(pn), show: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), notes: BARD_NOTES,
-      perform: (onDone) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, words: bardPerformanceWords() })),
-      tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l),   // TAVERN-SOCIAL: a round, a tip, the crowd
-      festival: host.playerFestivals ?? null,   // PLAYER-FESTIVALS: hosted from the innkeeper
-    })) return;
     if (!forceTalk && route.kind === 'merchant' && route.service === 'tavern'
       && openTavern(pn)) return;
     // TK-iv: THE QUESTOR DOOR. TalkToStaticNPC's first act, before the
@@ -5831,6 +5823,12 @@ export function createWorldModes(host) {
       advanceMinutes: (n) => interiorTicker.advance(n),
       endurance: () => liveStat(playerEntity, 'endurance'),
       onTalk: () => openStaticNpc(pn, { forceTalk: true }),
+      // BUNNYFALL: the house's own rows (perform, a round, a tip, a festival) beside the window's four - one menu
+      house: () => bunnyTavernRows({
+        entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
+        perform: (onDone) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, words: bardPerformanceWords() })),
+        tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
+      }),
       sceneCache: () => sceneCache(),   // P1: renting HOLDS the room's interior
       // The U24 identity guard: a window that dispatches to another
       // must not be nulled by its OWN onClose.

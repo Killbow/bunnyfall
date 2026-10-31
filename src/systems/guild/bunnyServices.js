@@ -127,58 +127,55 @@ export function bunnyHallServices(doors) {
 }
 
 /**
- * THE INNKEEPER'S OFFER to a Bards' College member: play for the house, or the tavern as ever. TAVERN-SOCIAL: and, online
- * (`tavern`, scenes/tavernSocial.js), to anyone: a round for the house, and a tip to a bard playing near. Answers false
- * when there is nothing to offer, so the innkeeper's own window opens unchanged. `where` names the tavern
- * (`${town}:${building}`), `day` the game's day, `openTavern()` the innkeeper's own window, `show(view)` a choice,
- * `perform(onDone)` the performance window.
- * @param {{ entity: any, where: string, day: number, openTavern: () => void, show: (view: any) => void,
- *   perform: (onDone: (hits: number) => string[]) => void, notes: number, tavern?: any, say?: (s: string) => void }} o
+ * THE INNKEEPER'S HOUSE ROWS, which join the tavern window's own (Rent a room, Talk, Food and drink): a Bards' College
+ * member may play for the house; online (`tavern`, scenes/tavernSocial.js) anyone may buy a round for the house and tip a
+ * bard playing near; and a festival may be hosted (`festival`). One menu: the window carries the rows beside Daggerfall's
+ * own, and runs `action()` once it has closed itself (a performance and a prompt open their own windows). Answers [] when
+ * there is nothing to offer. `where` names the tavern (`${town}:${building}`), `day` the game's day, `perform(onDone)` the
+ * performance window, `say` the chat line. Called again at each repaint, so a price or a bard coming near is current.
+ * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number) => string[]) => void, notes: number,
+ *   tavern?: any, say?: (s: string) => void, festival?: any }} o
+ * @returns {Array<{ code: string, label: string, action: () => void }>}
  */
-export function bardTavernOffer({ entity, where, day, openTavern, show, perform, notes, tavern = null, say = () => {}, festival = null }) {
+export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = null, say = () => {}, festival = null }) {
   const m = bunnyMembershipOf('bards');
   const social = tavern?.on?.() ? tavern : null;
   const fest = festival?.on?.() ? festival : null;   // PLAYER-FESTIVALS: hosted from the innkeeper
-  if (!m && !social && !fest) return false;
-  const played = m ? performedOn(where) === day : false;
-  const lines = [];
-  if (m) lines.push(played
-    ? t('bguild.bards.played', 'You have already played here today. Come back tomorrow.')
-    : t('bguild.bards.offer', 'A member of the College! Will you play for the house tonight?'));
-  else lines.push(t('tavern.welcome', 'What will it be?'));
   const later = (/** @type {() => void} */ fn) => () => { Promise.resolve().then(fn).catch(() => {}); };
-  const options = [];
-  if (m && !played) {
-    options.push({ code: 'KeyP', label: t('bguild.bards.perform', 'P - Perform'), action: later(() => {
-      social?.startPlaying?.();
-      perform((hits) => {
-        notePerformed(where, day);
-        const crowd = social?.stopPlaying?.() ?? { share: 1, lines: [] };   // TAVERN-SOCIAL: the bards beside me, the crowd
-        const gold = Math.round(bardPay(hits, m.rank) * crowd.share);
-        const rep = bardRep(hits, notes);
-        addGoldPieces(entity, gold);
-        gainRep(entity, 'bards', rep);
-        return [
-          t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
-          ...crowd.lines,
-          t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
-          ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),
-        ];
-      });
-    }) });
+  /** @type {Array<{ code: string, label: string, action: () => void }>} */
+  const rows = [];
+  if (m) {
+    if (performedOn(where) === day) {
+      rows.push({ code: 'KeyP', label: t('bguild.bards.playedRow', 'P - Played here today'), action: later(() => say(t('bguild.bards.played', 'You have already played here today. Come back tomorrow.'))) });
+    } else {
+      rows.push({ code: 'KeyP', label: t('bguild.bards.perform', 'P - Perform'), action: later(() => {
+        social?.startPlaying?.();
+        perform((hits) => {
+          notePerformed(where, day);
+          const crowd = social?.stopPlaying?.() ?? { share: 1, lines: [] };   // TAVERN-SOCIAL: the bards beside me, the crowd
+          const gold = Math.round(bardPay(hits, m.rank) * crowd.share);
+          const rep = bardRep(hits, notes);
+          addGoldPieces(entity, gold);
+          gainRep(entity, 'bards', rep);
+          return [
+            t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
+            ...crowd.lines,
+            t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
+            ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),
+          ];
+        });
+      }) });
+    }
   }
   if (social) {
-    options.push({ code: 'KeyR', label: tavernWords.buy(social.price()), action: later(() => { for (const l of social.buyRound()) say(l); }) });
+    rows.push({ code: 'KeyB', label: tavernWords.buy(social.price()), action: later(() => { for (const l of social.buyRound()) say(l); }) });
     social.bardsNear().slice(0, 2).forEach((/** @type {{ id: string, name: string }} */ b, /** @type {number} */ i) => {
       const gold = TIP_CHOICES[1] ?? TIP_CHOICES[0];
-      options.push({ code: `Digit${i + 1}`, label: tavernWords.tip(b.name, gold, String(i + 1)), action: later(() => { for (const l of social.tipBard(b.id, gold)) say(l); }) });
+      rows.push({ code: `Digit${i + 1}`, label: tavernWords.tip(b.name, gold, String(i + 1)), action: later(() => { for (const l of social.tipBard(b.id, gold)) say(l); }) });
     });
   }
-  if (fest) options.push({ code: 'KeyF', label: fest.rowLabel(), action: later(() => fest.startHosting()) });
-  options.push({ code: 'KeyT', label: t('bguild.bards.tavern', 'T - Rooms and drinks'), action: later(openTavern) });
-  options.push({ code: 'Escape', label: undefined, action: () => {} });
-  show({ lines, options });
-  return true;
+  if (fest) rows.push({ code: 'KeyH', label: fest.rowLabel(), action: later(() => fest.startHosting()) });
+  return rows;
 }
 
 // ─── Phases 3 and 4: the work the town's boards hand over to the halls ─────────────────────────────────────────────
