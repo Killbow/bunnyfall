@@ -15,9 +15,9 @@ import { IIL_LIGHT_ARCHIVE } from '../systems/improvedInteriorLighting.js';   //
 import { YesNoBoxWindow } from '../ui/yesNoBox.js';   // SOFTCAP3: the Master Skills offer
 import { FlatAnimator, armFlatAnim, MISSILE_FPS } from '../render/flatAnimation.js';   // FA1: the flats that move
 import { markFoeStruck, markHostStruck } from '../ui/hud/hudFoeTarget.js';   // STAND-IN-BAR (AUDIT KETCH II): an event's host struck takes the target bar
-import { combatStanding, dungeonShare, foeShare, progressionScaling, placeVeteran } from '../systems/skillSoftcap.js';   // SOFTCAP2: tougher foes, by dungeon tier; BAL3: and by the place's own threat
-import { effectiveLevel } from '../systems/mentorMode.js';   // SOFTCAP1
-import { heroThreatOf } from '../systems/heroThreat.js';   // BAL11: the hero's threat
+import { foeShare, progressionScaling, placeVeteran } from '../systems/skillSoftcap.js';   // SOFTCAP2: tougher foes, by dungeon tier; BAL3: and by the place's own threat
+import { effectiveLevel } from '../systems/mentorMode.js';
+import { dungeonBuildLevel } from '../systems/dungeonLevel.js';   // ENCOUNTER-LEVEL: the dungeon's one build level, fixed for the session   // SOFTCAP1
 import { quickslotHand } from '../ui/quickslotTags.js';   // DISC21-C: an empty quickslot press reads the hand   // PX30
 import { lycanthropeAttackVoice, lycanthropeMoveSound } from '../systems/lycanthropy.js';   // V4: the beast's attack voice; LM1: the 4-20s move-sound loop; DISC10-E L3: the inventory refusal moved INTO the window door
 import { layoutDungeon, isDungeonExitDoor } from '../world/dungeon/dungeonLayout.js';
@@ -1112,6 +1112,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // Classic billboards join the flat batches (RDB raw-pivot rule);
   // gender picks the archive; record 0 is the standing frame (no AI -
   // Characters C5 rigs replace these).
+  const _buildLevel = dungeonBuildLevel(dfLocation, playerEntity, _superTier);   // ENCOUNTER-LEVEL: the session's, for the layout, the rests and the class foes
   const _layoutEnemies = collectDungeonEnemies(
     dungeon.blocks.map((b) => ({
       markers: b.layout.markers, waterLevel: b.layout.waterLevel,
@@ -1120,7 +1121,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     {
       ...dungeonPlace(dfLocation),   // DEX3: its LocationId and the place a mod's table is picked for
       dungeonType: dfLocation.mapTableData.dungeonType,
-      playerLevel: _superTier ? superFoeLevel(effectiveLevel(playerEntity)) : effectiveLevel(playerEntity),   // SOFTCAP2: a mentor's dungeon draws the GROUP's monsters. ChooseRandomEnemyType bands on the LIVE level (wired audit 2026-08-16; was stuck at the default 1); SD4a: a Super dungeon's at the top band
+      playerLevel: _buildLevel,   // SOFTCAP2: a mentor's dungeon draws the GROUP's monsters. ChooseRandomEnemyType bands on the LIVE level (wired audit 2026-08-16; was stuck at the default 1); SD4a: a Super dungeon's at the top band
     });
   // LW14 (bible/06-Systems/Living-World-II.md "LW14"): THE DIVE'S STOPS - this dungeon's random foe and treasure markers
   // in the order a company works them (systems/livingWorld/deepRoute.js), and those a dive of the living world left
@@ -1421,7 +1422,6 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
    *  100% in a vampire haunt or a Daedra's temple); the foe's own base level gives its share (a
    *  class foe counts in full); the player's standing - veteran (75..100) and
    *  edge (past 100), both 0 while mentoring - gives the size. skillSoftcap.js has the whole law and its numbers. */
-  const _dungeonShare = dungeonShare(dfLocation.mapTableData?.dungeonType);
   /** WILD1 (systems/wild/wildZone.js): a dungeon of the open zone, online - its foes four times as strong, their loot and
    *  its piles twice as rich. Read once, at the build: the dungeon's own region, never where the player stood before. */
   const _wildRingRaw = isOnlinePage() && (isWildRegion(dfLocation?.regionIndex ?? -1) || !!dfLocation?.ether) ? wildRingAtPlace(dfLocation) : 0;   // ETHER-WILD: an isle's ruin too
@@ -1446,11 +1446,11 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
    *  (Master Skills) is the owner's, and the puppet's health the owner's record's (`k`, `h`).
    *  BAL11: and the hero's threat - mine on every foe I build, a puppet's blows alone (at me); never an ally's (`ally`). */
   function applyProgressionScalingTo(entity, basics, { puppet = false, ally = false } = {}) {
-    const place = lootRarityOn() ? _placeVeteran : 0;
-    const share = puppet ? 0 : _dungeonShare;
-    const hero = ally || _heroStage ? null : heroThreatOf(foeDeps.playerEntity, { puppet });
-    if (!(share > 0) && !(place > 0) && !hero) return;
-    const scaling = progressionScaling(puppet ? null : combatStanding(foeDeps.playerEntity), share, foeShare(basics?.level ?? entity.level, entity.isClass), place, hero);
+    // ENCOUNTER-LEVEL: ONE PROFILE - the place's (its tier, every client's alike). The player-read layers that stood on it
+    // (Master Skills' veteran and overcap, BAL11's hero threat) are gone: the world is not scaled by who walks in.
+    const place = lootRarityOn() && !ally ? _placeVeteran : 0;
+    if (!(place > 0)) return;
+    const scaling = progressionScaling(null, 0, foeShare(basics?.level ?? entity.level, entity.isClass), place, null);
     foeDeps.applyProgressionScaling?.(entity, scaling);   // lazily loaded beside makeEnemyEntity; the dungeon's own deps (the import used `D`, which only the spawn builders below bind)
   }
   function applyEliteScaling(entity, e) {
@@ -1542,7 +1542,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       const idleH = idleSpriteHeight(t);   // INCIDENT 2026-09-04: SetupDemoEnemy.cs:104 - the capsule reads the idle sprite
       if (!puppet) freeLodgedFeet(collider, pos, { height: enemyControllerHeight(idleH, basics.behaviour ?? 'General') });   // FIELD BUGS 2026-10-04d CRATE-FREE: a marker or a spot inside a crate's model stands the foe beside it, never in it (characters/foeSpacing.js)
       // E3a: the real entity - career from CLASS{ID-128}.CFG (DEX1: or a mod's), level = player level, HP/skills/LiveSpeed verbatim (SetEnemyCareer)
-      const entity = D.makeEnemyEntity(e.mobileType, basics, await D.loadEnemyCareer(e.mobileType, D.fetchBytes), e.level ?? (_superTier ? superFoeLevel(effectiveLevel(D.playerEntity)) : effectiveLevel(D.playerEntity)));   // SOFTCAP1: a mentor's dungeon is built at the group's level; ARENA2: a bout fighter at its tier's; SD4a: a Super dungeon's class foe at its band
+      const entity = D.makeEnemyEntity(e.mobileType, basics, await D.loadEnemyCareer(e.mobileType, D.fetchBytes), e.level ?? _buildLevel);   // SOFTCAP1: a mentor's dungeon is built at the group's level; ARENA2: a bout fighter at its tier's; SD4a: a Super dungeon's class foe at its band
       applyEliteScaling(entity, e); if (puppet) entity.unquiet = false;   // ELITE: double health, double damage; AUDIT UNQUIET: a puppet's mark is its owner's (each client drew its own)
       if (!puppet && e.level == null) applyProgressionScalingTo(entity, basics, { ally: !!e.allied });   // SOFTCAP1: tougher high-tier foes against skills past 100 (a puppet is its owner's build); ARENA2: never a bout fighter (the ladder is a fixed mountain)
       else if (puppet && e.level == null) applyProgressionScalingTo(entity, basics, { puppet: true, ally: !!e.allied });   // AUDIT BAL: a puppet stands at this place too - its blows on me as on its owner (BAL3)
@@ -1635,7 +1635,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       const pos = behaviour === 'Flying' ? flyerStandFeet(collider, [e.x, e.y, e.z], idleH, feetGiven) : D.floorLanding(collider, [e.x, e.y + 0.2, e.z]); if (!puppet) freeLodgedFeet(collider, pos, { height: enemyControllerHeight(idleH, behaviour), airborne: behaviour === 'Flying' });   // FIELD BUGS 2026-10-04d CRATE-FREE: the class arm's law, for a monster - a flyer freed at its own height
       const yawDeg = ((e.mobileType * 73 + Math.round(e.x + e.z)) % 8) * 45;   // deterministic facing (Ledger A rule)
       const career = await D.loadEnemyCareer(e.mobileType, D.fetchBytes);
-      const entity = D.makeEnemyEntity(e.mobileType, basics, career, e.level ?? effectiveLevel(D.playerEntity));   // SOFTCAP1: a mentor's dungeon is built at the group's level; ARENA2: a bout fighter at its tier's
+      const entity = D.makeEnemyEntity(e.mobileType, basics, career, e.level ?? _buildLevel);   // ENCOUNTER-LEVEL: the session's level; ARENA2: a bout fighter at its tier's
       applyEliteScaling(entity, e); if (puppet) entity.unquiet = false;   // ELITE: double health, double damage; AUDIT UNQUIET: a puppet's mark is its owner's (each client drew its own)
       if (!puppet && e.level == null) applyProgressionScalingTo(entity, basics, { ally: !!e.allied });   // SOFTCAP1: tougher high-tier foes against skills past 100 (a puppet is its owner's build); ARENA2: never a bout fighter
       else if (puppet && e.level == null) applyProgressionScalingTo(entity, basics, { puppet: true, ally: !!e.allied });   // AUDIT BAL: a puppet stands at this place too - its blows on me as on its owner (BAL3)
@@ -3138,7 +3138,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       restAsks: playerEntity.restAsks,   // SURV4 + SURV-TIERS: priced at the open (scenes/shared.js) - the bare floor asks twice in Hard; a fire on it, or any Casual floor, once
       enemyAlertActive: !!playerEntity.enemyAlertActive,
       dungeonType: dfLocation.mapTableData.dungeonType,
-      playerLevel: _superTier ? superFoeLevel(effectiveLevel(playerEntity)) : effectiveLevel(playerEntity),   // SOFTCAP2: mentor mode - the group's level; SD4a: a Super dungeon's at the top band
+      playerLevel: _buildLevel,   // SOFTCAP2: mentor mode - the group's level; SD4a: a Super dungeon's at the top band
     });
     // RVN7d (bible/12-Enhanced-AI/Feud-Arc.md 18.4): in its own lair a due revenant answers the rest's first roll ("You
     // wake to Grushnak standing over you."); and any roll that hits may be a due one's return - the open world's arm.

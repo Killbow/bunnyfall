@@ -25,6 +25,8 @@ import { srand, randomRangeInclusive } from '../formats/dfRandom.js';
 import { ENCOUNTER_TABLES } from './encounterTables.js';
 import { encounterTable } from './encounterTableDoor.js';   // DEX3: the dungeon's tables as a mod's pick left them
 import { MOBILE_TYPES } from './mobile/mobileTypes.js';
+import { markerTooStrong, bandedPick } from '../systems/encounterLevel.js';   // ENCOUNTER-LEVEL: a fixed marker too strong for the level is a banded draw of the table
+import { ENEMY_BASICS } from './enemy/enemyBasics.js';
 import { getBool } from '../systems/settings/settings.js';   // AUDIT 28 W3: AlternateRandomEnemySelection
 
 const EDITOR_FLATS_ARCHIVE = 199;   // TextureReader.EditorFlatsTextureArchive
@@ -186,7 +188,13 @@ export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, d
         // the 99 test; a classic one masks the garbage MSBs (WD1)
         const typeValue = marker.isCustomData ? marker.factionOrMobileId : marker.factionOrMobileId & 0xff;
         if (!marker.isCustomData && typeValue === 99) continue;
-        emit(marker, block, typeValue, true);
+        // ENCOUNTER-LEVEL rule 4: a placed monster the map never graded for this level (a lich on a level-3 party's
+        // giant hunt) is a banded draw of this dungeon's own table, seeded by the marker so every client draws alike
+        let placed = typeValue;
+        if (!marker.isCustomData && markerTooStrong(ENEMY_BASICS[typeValue]?.level, playerLevel) && dungeonType < ENCOUNTER_TABLES.length) {
+          placed = bandedPick(dungeonTable, playerLevel, makeSlotRng((((locationId ?? 0) * 31) ^ ((marker.loadID ?? 0) + 7919 * (blockIndex + 1))) >>> 0));
+        }
+        emit(marker, block, placed, true);
       } else if (marker.record === RANDOM_RECORD) {
         if (dungeonType >= ENCOUNTER_TABLES.length) continue; // verbatim per-flat guard
         const usingWater = block.waterLevel < marker.rawY;

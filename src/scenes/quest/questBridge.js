@@ -112,6 +112,7 @@ import { createQuestlineOffers, setLineBoard } from './questlineOffers.js';   //
 // are unchanged.
 import { positionHash, staticNpcData, layoutNpcData } from '../../characters/staticNpc.js';
 import { festivalQuestEnded } from '../../systems/festival/festivalClient.js';   // WITCH1: a quest done asks a find
+import { effectiveLevel } from '../../systems/mentorMode.js';   // ENCOUNTER-LEVEL: a quest's stamp is the party level at its acceptance
 import { setEscortQuestAway, setEscortQuestGone } from '../../ui/hud/hudEscortFaces.js';   // QUEST-SHELF-FACES: a quest set aside shows no faces; RPT1026-MISC FACE-ORPHAN: nor one gone
 
 export { positionHash, staticNpcData, layoutNpcData };
@@ -391,6 +392,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
     sharedClock: () => !!ctx.sharedClock?.(),   // GUARD-ONLINE: online, a guarded quest's window is the player's arrival's (quest/onlineGuard.js)
     getQuestSourceLines: (name, questlines) => ctx.data.getQuestSourceLines(name, questlines),   // AUDIT QUESTLINES BRANCH-12: a copy's script as its stamp read it (machine.js parseQuestShape)
     playerLevel: () => ctx.playerEntity?.level ?? 0,
+    questLevel: () => (ctx.playerEntity ? effectiveLevel(ctx.playerEntity) : null),   // ENCOUNTER-LEVEL: stamped on a quest at its acceptance
     playerGender: () => ctx.playerEntity?.gender ?? 'male',
     playerName: () => ctx.playerEntity?.name ?? null,
     playerRaceName: () => ctx.playerRaceName?.() ?? null,

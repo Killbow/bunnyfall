@@ -54,6 +54,8 @@
 //     weak foes teach a mentor nothing, and a mentor's overcap power does
 //     not raise the group's enemies either.
 
+import { partyThreatLevel } from './encounterLevel.js';
+
 export const MENTOR_LEVEL_ALLOWANCE = 1;
 export const MENTOR_MIN_GAP = 3;
 export const MENTOR_SKILL_BASELINE = 30;
@@ -114,16 +116,15 @@ export function mentorProfile(entity, partnerLevels) {
   };
 }
 
-/** BUNNYFALL: THE PARTY LEVEL. The plain average of every member's level, me included, so all of a party agrees. */
+/** BUNNYFALL: THE PARTY LEVEL (systems/encounterLevel.js partyThreatLevel): the median of every member's level, each
+ *  member held near it, then the mean - one outlier, a join or a leave moves it by about a level. Null alone. */
 export function partyLevel(ownLevel, partnerLevels) {
-  const ls = [ownLevel, ...(partnerLevels ?? [])].map(Number).filter((l) => Number.isFinite(l) && l >= 1);
-  if (ls.length < 2) return null;
-  return Math.max(1, Math.round(ls.reduce((a, l) => a + l, 0) / ls.length));
+  return partyThreatLevel([ownLevel, ...(partnerLevels ?? [])]);
 }
 
 /**
  * The host's per-frame door (scenes/world.js partyFrame). BUNNYFALL: nobody is scaled down; in a party, enemies and
- * loot are built for the party's average level (`_partyLevel`). Returns 'on' when it starts or changes, 'off' at its end.
+ * loot are built for the party level (`_partyLevel`). Returns 'on' when it starts or changes, 'off' at its end.
  */
 export function refreshMentor(entity, partnerLevels, enabled = true) {
   if (!entity) return null;
@@ -169,5 +170,5 @@ export const mentorDamageTakenMult = (entity) => entity?._mentor?.damageTakenMul
 export function mentorStatusText(entity) {
   const p = entity?._partyLevel;
   if (p == null) return 'No party level. Enemies and loot are built for your own level.';
-  return `Party level ${p}: enemies and loot are built for the party's average level. Your own character is unchanged.`;
+  return `Party level ${p}: enemies and loot are built for the party level. Your own character is unchanged.`;
 }

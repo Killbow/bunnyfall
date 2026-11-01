@@ -19,7 +19,8 @@ import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';   // HA
 import { foeTitle } from '../systems/foeTitle.js';   // FOE-TITLE: what a revenant, a champion or an elite is called
 import { strikeTraits, traitWireKey } from './foeTraitsHost.js';   // AUDIT WORLD-EVENTS: my blow's door - resisted, its number retold, each trait taught once; and the record key's share
 import { bossStrikeAt, bossTakeAt, eliteTraits, giveBossTraits, bossTraitsOf, bossTraitsOfMask, bossTraitMask, markBossWrath, bossWardShare, hasBossTrait, standBossWard, tickBossClock, bossClockS, bossTraitsTick, bossWardBrokeLine, bossWrathLine } from '../systems/bossTraits.js';   // BOSS-TRAITS: a hard foe's own rules (AUDIT WORLD-EVENTS: its clock, its tick, its ward on the wire, its rules taught)
-import { effectiveLevel } from '../systems/mentorMode.js';   // SOFTCAP2: mentor mode - the level the world is built around
+import { effectiveLevel } from '../systems/mentorMode.js';
+import { wildEncounterLevel, questFoeLevel } from '../systems/wildLevel.js';   // ENCOUNTER-LEVEL   // SOFTCAP2: mentor mode - the level the world is built around
 import { markFoeStruck } from '../ui/hud/hudFoeTarget.js';   // PX30
 import { damageShieldPool, playerBlowCameToNothing } from '../characters/playerEntity.js';   // AUDIT 58: DecreaseHealth's shield hook is the BASE class's (DaggerfallEntity.cs:313-328)
 import { lycanthropeAttackVoice } from '../systems/lycanthropy.js';   // V4: the beast's attack voice
@@ -44,8 +45,7 @@ import { silenceBlocksCast, attemptSoulTrap, SOUL_TRAP_TEXT, fillEmptyTrap, peer
 import { isAzurasStarEquipped, registerFoeDoor } from '../systems/artifactEffects.js';   // V3: the Star's kill capture; AUDIT PSCALE1 DOORS-2: Namira's reflection through this pool's door
 import { EnemyAttack } from '../characters/enemy/enemyAttack.js';
 import { makeEnemyEntity, loadEnemyCareer, KNIGHT_CITYWATCH_ID, applyProgressionScaling } from '../characters/enemy/enemyEntity.js';
-import { combatStanding, foeShare, progressionScaling, wildernessShare, placeVeteran, wildernessThreat } from '../systems/skillSoftcap.js';   // SOFTCAP5: tougher foes in the wilds; BAL3: the wilds' own threat
-import { heroThreatOf } from '../systems/heroThreat.js';   // BAL11: the hero's threat
+import { foeShare, progressionScaling, placeVeteran, wildernessThreat } from '../systems/skillSoftcap.js';   // SOFTCAP5: tougher foes in the wilds; BAL3: the wilds' own threat
 import { isNight } from '../world/worldClock.js';   // SOFTCAP5: the wilds' night share   // AUDIT WATCH1 A1: the watch's own puppet allowance
 import { MobileUnit, MOBILE_DAEDRA_SEDUCER, SeducerTransformBehaviour } from '../characters/mobile/mobileUnit.js';   // A5: the Seducer transform pair + its trigger
 import { spawnEnemyLoot, hasBowAttack, backstabChanceOf, zeroDamageHitSound, enemyMissSound, enemyAttackVoice, enemyPainVoice, playerAttackGrunt, tickEnemySound, playEnemyClip, tryLanguagePacification, applyDamageToNonPlayer, windupDoor, tellCues, takeAimedShot, aimedDirection, aimedArrowMeta, landBlowEffect } from './hostCombat.js';   // C2-slice (combat-9/17); MT-ii: the foe-vs-foe payload; TELL1: the poise door
@@ -454,7 +454,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         if (t >= 0 && ENEMY_BASICS[t]?.maleTexture) { mobileType = t; basics = ENEMY_BASICS[t]; }
       }
       const isClass = enemyEntityType(mobileType) === 'class', career = loadEnemyCareer(mobileType, fetchBytes);   // DEX1: SetupDemoEnemy's type, SetEnemyCareer's one career door (a mod's id too)
-      const builtLevel = level ?? effectiveLevel(playerEntity);   // SOFTCAP2: a mentor's foes at the group's level
+      const builtLevel = level ?? (questBehaviour ? questFoeLevel(questBehaviour) : null) ?? wildEncounterLevel(playerEntity);   // ENCOUNTER-LEVEL: a quest's foe at its acceptance's level, the rest the land's (the party's on the wilds' tier)
       // GRANT3: its grant (none inside GRANT_WAIT_MS: it stands as it would have with no law) - the grant's marks in place of
       // the street's rolls, through the same gates: its elite only where an elite may stand, its trait only a capped stand's
       const granted = grantAsk ? await grantAsk : null, gm = granted && 'gr' in granted ? granted : null;
@@ -479,15 +479,14 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (entity.eliteFoe && !puppet && !entity.raidLeader && !bossTraitsOf(entity).length) eliteTraits(entity);   // BOSS-TRAITS: an elite of my own carries a trait, mine to draw (its record carries it - `bt`)
       // SOFTCAP5: THE WILDS ARE AN AREA TOO - the dungeons' law, with the wilderness's share (22% by day, 44% at night):
       // my own foes only (a puppet is its owner's build), never an ally, never on a location's ground
-      if (!puppet && !allied && !inLocation()) {
+      if (!allied && !inLocation()) {
         let night = false;
         try { night = isNight((skyMinute ?? currentMinute)()); } catch { /* no clock: day */ }   // TIME1: the sky's night
-        // BAL3 (bible/05-Combat/Balance-Arc.md section 5): and the wilds' own threat - tier 5 by day, a harpy nest's 7 at night - while the ladder stands
-        // BAL11 (section 17): and the hero's threat - my level past 10 and my Renown past 15, every kind alike
-        applyProgressionScaling(entity, progressionScaling(combatStanding(playerEntity), wildernessShare(night), foeShare(basics?.level ?? entity.level, isClass), lootRarityOn() ? placeVeteran(wildernessThreat(night)) : 0, heroThreatOf(playerEntity)));
-      } else if (puppet && !allied && !inLocation()) {
-        // BAL11: a peer's foe strikes ME at MY threat - its blows alone; its maximum is its owner's word (the record's `k`)
-        applyProgressionScaling(entity, progressionScaling(null, 0, 0, 0, heroThreatOf(playerEntity, { puppet: true })));
+        // ENCOUNTER-LEVEL: ONE PROFILE, the place's (BAL3: the wilds' tier 5 by day, a harpy nest's 7 at night, while the loot
+        // ladder stands), for my own foe and a peer's puppet alike - the owner's copy and mine are the same fight. The
+        // player-read layers that stood on it (Master Skills' veteran, BAL11's hero threat) are gone: the world is not
+        // scaled by who walks in. A puppet's maximum stays its owner's word (the record's `k`).
+        applyProgressionScaling(entity, progressionScaling(null, 0, foeShare(basics?.level ?? entity.level, isClass), lootRarityOn() ? placeVeteran(wildernessThreat(night)) : 0, null));
       }
       // DW-E4: SetEnemyTeam - Entity.Team alone (the treasure guards' Undead), the MobileEnemy copy kept
       if (team) entity.team = team;

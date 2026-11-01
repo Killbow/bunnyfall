@@ -36,7 +36,7 @@ export const BAND_LEG_MS = 50 * 1000;
  *  one - campEncounters rollGroupComposition), most of them three or so, now and then a warband of six. */
 export const BAND_SIZE_WEIGHTS = Object.freeze([12, 20, 24, 20, 14, 10]);
 /** OW6: online, the level a band's tables are read at - its own (bandLevelOf), 1 to this. */
-export const BAND_LEVEL_MAX = 20;
+export const BAND_LEVEL_MAX = 16;   // ENCOUNTER-LEVEL: was 20 (a quarter of all bands 12 or over)
 /** How far a band sees a traveller (m), by day and by night. */
 export const BAND_SIGHT_DAY_M = 320;
 export const BAND_SIGHT_NIGHT_M = 190;
@@ -93,12 +93,12 @@ export function bandSizeOf(band) {
 
 /** OW6 - THE BAND'S OWN LEVEL, online: the level its tables are read at, a function of its seed alone, so every player
  *  sees the same band - the same kind, the same number. It was each viewer's own level, and two players looking at one
- *  band read different creatures over it. Skewed low, 1 + floor(20 u^2): half of all bands level 6 or under, a quarter
+ *  band read different creatures over it. Skewed low, 1 + floor(16 u^2.5): half of all bands level 4 or under, one in seven
  *  12 or over - most a traveller can face, some to run from, and the label says which. (Offline there is one player,
  *  and the band reads theirs.) */
 export function bandLevelOf(band) {
   const u = seededRng((band.seed ^ 0x4c45564c) >>> 0)();   // 'LEVL'
-  return 1 + Math.floor(BAND_LEVEL_MAX * u * u);
+  return 1 + Math.floor(BAND_LEVEL_MAX * u ** 2.5);   // ENCOUNTER-LEVEL: half of all bands level 4 or under, one in seven 12 or over
 }
 
 /**

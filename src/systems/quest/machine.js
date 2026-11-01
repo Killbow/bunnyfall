@@ -809,6 +809,7 @@ export class QuestMachine {
     // scheduled one, a list's, a start's, a restart's. A quest that already carries one (none does here: a shared copy
     // and a load restore theirs, and never pass this door) keeps it. The layer answers (scenes/quest/questBridge.js).
     if (quest.ql == null) quest.ql = this.deps.questlinesStamp?.(quest) ?? null;
+    if (quest.qlv == null) quest.qlv = this.deps.questLevel?.() ?? null;   // ENCOUNTER-LEVEL: the level its foes are built at, fixed at acceptance
     // QUEST-UID1 (2026-09-24, found tracing "two letters from the queen"): `quests.Add(quest.UID, quest)` (:725) is a
     // Dictionary.Add - a UID already on the live table THROWS, and the quest standing there stays. `set` replaced it
     // in silence, so a quest minted before a load and started after it (the offer popup a quickload runs under - see

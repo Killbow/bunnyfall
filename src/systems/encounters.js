@@ -145,7 +145,7 @@ export function chooseRandomEnemy(ctx, rolls = Math.random) {
   if (roll > 80) {
     if (roll > 95) {
       if (level <= 5) { min = 0; max = level + 2; }
-      else { min = 0; max = 19; }
+      else { min = 0; max = level + 1; }   // ENCOUNTER-LEVEL: classic's 1-in-20 unbanded draw of the whole table (any level past 5) is gone; the roll keeps the easier wide band
     } else { min = 0; max = level + 1; }
   } else { min = level - 3; max = level + 3; }
   if (min < 0) { min = 0; max = 5; }

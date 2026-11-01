@@ -172,6 +172,8 @@ export class Quest {
     // QL1 (bible/06-Systems/Questlines-Arc.md decision 1): the questlines' stamp and state - null, DFU's quest; set once,
     // at its start (machine.js startQuestImmediate), and kept for life. The machine never reads it; the layer does.
     this.ql = null;
+    // ENCOUNTER-LEVEL: the party level at the quest's acceptance (machine.js startQuestImmediate) - the level its foes are built at, whoever stands near them later. Null: an older quest (its foes at the land's level).
+    this.qlv = null;
   }
 
   // ---- Q1 structure ----
@@ -568,6 +570,7 @@ export class Quest {
       shelvedAt: this.shelvedAt ?? null,   // QUEST-SHELF: the port's own, absent in DFU's saves (an older envelope: not set aside)
       shelvedSites: this.shelvedSites ? [...this.shelvedSites] : null,
       shelvedItems: this.shelvedItems ? [...this.shelvedItems] : null,   // QUEST-SHELF-DROP
+      qlv: this.qlv ?? null,   // ENCOUNTER-LEVEL: the level its foes are built at
       ql: writeState(this.ql),   // QL1: the questlines' stamp and state - the port's own, absent in DFU's saves (an older envelope: DFU's quest)
       // TIME3: the clock its countdowns stand on - the holder's own, as it read when this was taken. A party member's copy
       // moves them onto theirs by the distance (quest/questStamps.js); an envelope without it is from before TIME3.
@@ -591,6 +594,7 @@ export class Quest {
     this.shelvedAt = Number.isFinite(data.shelvedAt) && data.shelvedAt !== 0 ? data.shelvedAt : null;   // QUEST-SHELF
     this.shelvedSites = this.shelvedAt != null && Array.isArray(data.shelvedSites) ? data.shelvedSites.filter((n) => typeof n === 'string') : null;
     this.shelvedItems = this.shelvedAt != null && Array.isArray(data.shelvedItems) ? data.shelvedItems.filter((n) => typeof n === 'string') : null;   // QUEST-SHELF-DROP
+    this.qlv = Number.isFinite(data.qlv) && data.qlv >= 1 ? data.qlv : null;   // ENCOUNTER-LEVEL
     this.ql = readState(data.ql);   // QL1: a stamp this law knows, else DFU's quest
     this.questComplete = data.questComplete;
     this.questSuccess = data.questSuccess;
