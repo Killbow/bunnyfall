@@ -856,18 +856,19 @@ export function createPlayerMagic({
     // (MakeEnemyHostileToAttacker), which is classic's own
     // "until player attacks them".
     if (r.pacify && foe.ai && !foe.entity?.pacifyImmune) foe.ai.isHostile = false;   // WB8a: never the gate's Warden
-    // X11: SPELL REFLECTION - the FOE is the reflector here, so no HUD
-    // line (TryReflection's "Spell was reflected." is gated on
-    // `IsPlayerEntity` on the REFLECTING manager, EEM:1231-1233), and
-    // the bundle goes back at whoever cast it. This function is DFU's
-    // `casterEffectManager.AssignBundle(sourceBundle)`: the seam that
-    // holds both parties, which is why the re-target lives here and
-    // not inside the effect module.
+    // X11: SPELL REFLECTION - the FOE is now the reflector here, so a HUD line IS spoken (the owner's call this round: we are
+    // changing TryReflection's `IsPlayerEntity` gate off, so foe and player reflect alike). The bundle goes back at whoever cast it.
+    // This function is DFU's `casterEffectManager.AssignBundle(sourceBundle)`: the seam that holds both parties, which is why the
+    // re-target lives here and not inside the effect module.
     if (r.reflected && caster?.entity && !peerCaster) {   // STRIKE-SHARED: a peer's caster is not in this world - its stand-in has no body to take the bundle back
+      say(spellReflectedText());
       const back = { ...(ctx ?? {}), reflectedCount: 1 };
       if (caster.entity === playerEntity) applySpellToPlayer(spell, casterLevel, caster, back);
       else applySpell(spell, casterLevel, caster.entity, caster.sinks ?? {}, rolls, caster, back);
     }
+    // X12: SPELL SAVED AGAINST. The FOE rolled a save and beat the effect - say it through the foe's own HUD channel (the seam that
+    // just gained its `say`), so a foe who shrugs off my spell speaks for itself, as DFU does on the player manager only.
+    if (r.saved) say(localizedText('saveVersusSpellMade', 'Save versus spell made.'));
     return r;
   }
 

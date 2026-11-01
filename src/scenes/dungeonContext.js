@@ -3365,6 +3365,10 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     restoreMagicka: (n) => { if (n > 0) f.entity.magicka = Math.min(f.entity.maxMagicka ?? Infinity, (f.entity.magicka ?? 0) + n); },
     drainFatigue: (n) => { if (n > 0) f.entity.fatigue = Math.max(0, (f.entity.fatigue ?? 0) - n); },
     restoreFatigue: (n) => { if (n > 0) f.entity.fatigue = Math.min(maxFatigue(f.entity), (f.entity.fatigue ?? 0) + n); },
+    // X12: the foe's own HUD channel. A spell a FOE answers - absorbed, saved against, or reflected back at its caster -
+    // speaks here through this seam (effects.js sinks.say on an absorb; applySpellToFoe's reflect/save lines). The foe is
+    // not the player, so DFU never said it for them; this host does.
+    say: (l) => hudText.add(l),
   });
   // M3: THE ONE CAST ENGINE. dungeonContext's audited player-cast stack
   // moved to scenes/hostMagic.js (M1) and every host now consumes the

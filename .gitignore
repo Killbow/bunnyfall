@@ -116,3 +116,4 @@ desktop.ini
 selfhost/.wrangler/
 .update.lock
 /updates/
+.env

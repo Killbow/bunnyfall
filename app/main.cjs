@@ -1330,6 +1330,7 @@ async function createWindow({ onShown = null } = {}) {
       // its own synchronous file IO; the navigation fences below are
       // what keep the bridge from ever facing remote content.
       sandbox: false,
+      enableRemoteModule: false,
       backgroundThrottling: false,   // BUNNYFALL BACKGROUND-PLAY: frames and timers keep their pace while the window is not in front
     },
   });

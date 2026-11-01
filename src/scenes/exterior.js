@@ -2689,6 +2689,10 @@ export async function bootExterior(canvas, renderer, params, status) {
     restoreMagicka: (n) => { if (n > 0) g.entity.magicka = Math.min(g.entity.maxMagicka ?? Infinity, (g.entity.magicka ?? 0) + n); },
     drainFatigue: (n) => { if (n > 0) g.entity.fatigue = Math.max(0, (g.entity.fatigue ?? 0) - n); },
     restoreFatigue: (n) => { if (n > 0) g.entity.fatigue = Math.min(maxFatigue(g.entity), (g.entity.fatigue ?? 0) + n); },
+    // X12: the foe's own HUD channel. A spell a FOE answers - absorbed, saved against, or reflected back at its caster -
+    // speaks here through this seam (effects.js sinks.say on an absorb; applySpellToFoe's reflect/save lines). The foe is
+    // not the player, so DFU never said it for them; this host does.
+    say: (l) => townTalk.say(l),
   });
   // ---- TP2 - THE RECALL ANCHOR, IN THE FIXED-CITY HOST ----
   //

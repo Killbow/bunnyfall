@@ -11979,6 +11979,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     restoreMagicka: (n) => { if (n > 0) g.entity.magicka = Math.min(g.entity.maxMagicka ?? Infinity, (g.entity.magicka ?? 0) + n); },
     drainFatigue: (n) => { if (n > 0) g.entity.fatigue = Math.max(0, (g.entity.fatigue ?? 0) - n); },
     restoreFatigue: (n) => { if (n > 0) g.entity.fatigue = Math.min(maxFatigue(g.entity), (g.entity.fatigue ?? 0) + n); },
+    // X12: the foe's own HUD channel. A spell a FOE answers - absorbed, saved against, or reflected back at its caster -
+    // speaks here through this seam (effects.js sinks.say on an absorb; applySpellToFoe's reflect/save lines). The foe is
+    // not the player, so DFU never said it for them; this host does.
+    say: (l) => townTalk.say(l),
   });
   // X11: hoisted out of the createPlayerMagic literal it used to be
   // written inline in. The enchantment door below needs the SAME set:
