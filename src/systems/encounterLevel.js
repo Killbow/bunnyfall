@@ -107,3 +107,9 @@ export function dungeonSessionLevel(key, fresh, now = Date.now()) {
 
 /** Forget a dungeon's session (a test, or a host that knows the session ended). */
 export const endDungeonSession = (key) => { sessions.delete(key); };
+
+/** A level handed in by the session's first builder (a joiner's door): it replaces mine, and the session keeps it. */
+export function adoptSessionLevel(key, level, now = Date.now()) {
+  if (!finite(level) || level < 1) return;
+  sessions.set(key, { level: Math.round(level), at: now });
+}

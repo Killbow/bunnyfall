@@ -656,7 +656,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // B1: the quest resource behaviour couples at the stand - the
       // activation moment, where Unity runs the deferred Start.
       if (questBehaviour) bindQuestFoeHost(f, questBehaviour, questPoolOps);
-      if (revenant && band && !puppet && !allied && entity.revenant) Promise.resolve().then(() => standBand(f, bandMembers(revenant, effectiveLevel(playerEntity))));   // RVN6: its band about it - once its own slot is let go (the finally below)
+      if (revenant && band && !puppet && !allied && entity.revenant) Promise.resolve().then(() => standBand(f, bandMembers(revenant, wildEncounterLevel(playerEntity))));   // RVN6: its band about it - once its own slot is let go (the finally below)
       return f;
     } catch (err) {
       console.error(`[encounter] mobileType ${mobileType} failed to spawn:`, err?.message ?? err);
@@ -1440,7 +1440,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const live = foes.filter((g) => g !== f && !g.dead && !g.puppet && g.retinueOf === id && !g.scattering);
     for (const g of live) { g.ai.target = f.ai.target ?? PLAYER_TARGET; g.ai.makeHostileToPlayer?.(undefined, f.ai.feet); }
     if (live.length) return live.length;
-    return standBand(f, bandMembers(revenantById(id), effectiveLevel(playerEntity), RALLY_KIN), { portal: true }).length;
+    return standBand(f, bandMembers(revenantById(id), wildEncounterLevel(playerEntity), RALLY_KIN), { portal: true }).length;
   }
   /** RVN3 (Feud-Arc.md 14.2): its will unbroken at the killing blow - it tears away into the smoke (systems/revenant/revenantFate.js
    *  beginTearAway: held, ashing out), and its escape is the hand-off. */

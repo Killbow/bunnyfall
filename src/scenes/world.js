@@ -10445,7 +10445,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // COMPANION-PORTAL: each place's portals (`fx` - the pool draws them with its foes)
     // RVN11c (bible/12-Enhanced-AI/Feud-Arc.md 22.3): `turn` - a betrayer stood HOSTILE where its body stood (its record's
     // stand at its feet: no band, no return counted)
-    const turnIn = (pool) => (r, feet, yaw) => pool.spawnFoe(r.mobileType, feet, { yaw, feetGiven: true, loose: true, band: false, turned: true, ...revenantSpawnOptions(r, effectiveLevel(playerEntity)) });   // `loose`: no encounter's slot - it stands whatever the pool holds
+    const turnIn = (pool) => (r, feet, yaw) => pool.spawnFoe(r.mobileType, feet, { yaw, feetGiven: true, loose: true, band: false, turned: true, ...revenantSpawnOptions(r, wildEncounterLevel(playerEntity)) });   // `loose`: no encounter's slot - it stands whatever the pool holds
     if (mode === 'exterior') return { key: exteriorFoes, spawn: standIn(exteriorFoes), remove: (f) => exteriorFoes.removeFoe(f), has: (f) => exteriorFoes.foes.includes(f), spot: spotOf(collider), fx: exteriorFoes.companionFx, turn: turnIn(exteriorFoes) };
     if (mode === 'interior') {
       const pool = modes?.interiorPool?.();
@@ -10459,7 +10459,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // the room stands him as my ally (dungeonContext.js companionPuppet); off the lane he was nobody's to see
       spawn: (mobile, feet, o) => d.spawnLooseFoe(mobile, feet, { yawRad: o.yaw, allied: true, gender: o.gender }),
       remove: (f) => d.removeLooseFoe(f), has: (f) => d.foes.includes(f), spot: spotOf(d.collider), fx: d.companionFx ?? null,
-      turn: (r, feet, yaw) => { const so = revenantSpawnOptions(r, effectiveLevel(playerEntity)); return d.spawnLooseFoe(r.mobileType, feet, { yawRad: yaw, revenant: r, turned: true, gender: so.gender, level: so.level }); },   // RVN11c
+      turn: (r, feet, yaw) => { const so = revenantSpawnOptions(r, wildEncounterLevel(playerEntity)); return d.spawnLooseFoe(r.mobileType, feet, { yawRad: yaw, revenant: r, turned: true, gender: so.gender, level: so.level }); },   // RVN11c
     };
   }
   /** RVN10 (bible/12-Enhanced-AI/Feud-Arc.md 21.1): FELLED - my companion knocked out by `by`'s blow (the pool's record the
@@ -12342,7 +12342,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const noticed = !fast || noticeRoll(Math.hypot(spot.x - feet[0], spot.z - feet[2]), SIGHT_RADIUS, wildStealth(), { seesThrough: !!ENEMY_BASICS[hit.mobileType]?.seesThroughInvisibility, concealment: concealmentFlags(playerEntity), rng: Math.random });   // INVIS-SWING: an illusion blinds the check
     const stood = exteriorFoes.spawnFoe(hit.mobileType, [spot.x, fly ? spot.y + 1.5 : spot.y, spot.z], {
       yaw: Math.atan2(feet[0] - spot.x, feet[2] - spot.z), grantKind: hit.revenant ? 'rev' : 'enc',   // LookAt player; GRANT3: a wanderer's grant (a revenant's its own kind)
-      ...(hit.revenant ? revenantSpawnOptions(hit.revenant, effectiveLevel(playerEntity)) : {}),   // REVENANT: a returning one - its record, its gender, a class foe's level
+      ...(hit.revenant ? revenantSpawnOptions(hit.revenant, wildEncounterLevel(playerEntity)) : {}),   // REVENANT: a returning one - its record, its gender, a class foe's level
     }).then((f) => { if (f && fast) { if (noticed) wildFoes.alert(f, performance.now() / 1000); else wildFoes.checked(f); } return f; }).catch(() => null);
     if (noticed) journeyMet();   // AUDIT OW5b E1: placed beside the traveller - a walking journey stops now, never once the foe has loaded and sensed
     return stood;
