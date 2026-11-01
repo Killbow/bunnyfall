@@ -17,7 +17,8 @@ import { FlatAnimator, armFlatAnim, MISSILE_FPS } from '../render/flatAnimation.
 import { markFoeStruck, markHostStruck } from '../ui/hud/hudFoeTarget.js';   // STAND-IN-BAR (AUDIT KETCH II): an event's host struck takes the target bar
 import { foeShare, progressionScaling, placeVeteran } from '../systems/skillSoftcap.js';   // SOFTCAP2: tougher foes, by dungeon tier; BAL3: and by the place's own threat
 import { effectiveLevel } from '../systems/mentorMode.js';
-import { dungeonBuildLevel } from '../systems/dungeonLevel.js';   // ENCOUNTER-LEVEL: the dungeon's one build level, fixed for the session   // SOFTCAP1
+import { dungeonBuildLevel } from '../systems/dungeonLevel.js';
+import { questFoeLevel } from '../systems/wildLevel.js';   // ENCOUNTER-LEVEL: the dungeon's one build level, fixed for the session   // SOFTCAP1
 import { quickslotHand } from '../ui/quickslotTags.js';   // DISC21-C: an empty quickslot press reads the hand   // PX30
 import { lycanthropeAttackVoice, lycanthropeMoveSound } from '../systems/lycanthropy.js';   // V4: the beast's attack voice; LM1: the 4-20s move-sound loop; DISC10-E L3: the inventory refusal moved INTO the window door
 import { layoutDungeon, isDungeonExitDoor } from '../world/dungeon/dungeonLayout.js';
@@ -1807,7 +1808,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     return f;
   }
   async function spawnQuestFoe({ mobileType, gender, position, yawRad = null, behaviour, marker = false }) {
-    const f = await spawnLooseFoe(mobileType, position, { gender, yawRad, questSpawn: true });
+    const f = await spawnLooseFoe(mobileType, position, { gender, yawRad, questSpawn: true, level: questFoeLevel(behaviour) });   // ENCOUNTER-LEVEL: the level its quest took at acceptance (null: the dungeon's session level)
     if (!f) { console.error(`[quest] foe ${mobileType} failed to stand in dungeon`); return null; }
     f._loose = false;   // SUMMON-SYNC: a quest's foe rides by its quest's law (ownQuestTag), never as a loose stand
     if (marker) f._questMarker = true;   // QUEST-PARTY phase 3c: a quest marker's foe - every copy of the quest stands it here
