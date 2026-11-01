@@ -24,7 +24,7 @@ export function createOwnDoll() {
     get hasSource() { return !!src; },
     /** The picture for the orientation the wheel shows (0 the front .. 4 the back, RECORD_OFFSETS), or null while the doll
      *  is composing or there is no source - the caller draws its sprite then. The last doll stands while a new look composes. */
-    pick(/** @type {number} */ orientation, /** @type {number} */ nowMs) {
+    pick(/** @type {number} */ orientation, /** @type {number} */ nowMs, /** @type {boolean} */ withBack = true) {
       if (!src) return null;
       if (nowMs - checkedAt >= DOLL_RECHECK_MS) {
         checkedAt = nowMs;
@@ -34,7 +34,9 @@ export function createOwnDoll() {
         } catch { /* a look that cannot be composed keeps the sprite */ }
       }
       if (!doll) return null;
-      const back = RECORD_OFFSETS[((orientation % 8) + 8) % 8] >= 3 && !!doll.backRec;
+      const behind = RECORD_OFFSETS[((orientation % 8) + 8) % 8] >= 3;
+      if (behind && !withBack) return null;   // the back view stays the animated sprite
+      const back = behind && !!doll.backRec;
       return { archive: src.archive, rec: back ? /** @type {string} */ (doll.backRec) : doll.rec, w: doll.w, h: doll.h };
     },
   };

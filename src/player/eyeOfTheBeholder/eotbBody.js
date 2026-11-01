@@ -129,6 +129,7 @@ function look() {
     onFoot: s['Graphics.OnFoot'] ?? 0,
     onHorse: s['Graphics.OnHorse'] ?? 0,
     readyStance: s['Graphics.ReadyStance'] ?? 2,
+    paperdollBack: s['Graphics.PaperdollBack'] !== false,       // BUNNYFALL: off keeps the animated sprites for the back view
     paperdoll: s['Graphics.Paperdoll'] !== false,              // BUNNYFALL: the paperdoll for the animated sprites (eotbDoll.js)
     graphic: s['Graphics.Enable'] !== false,                   // "Toggle the player graphic" - ToggleBillboard's argument
     wornArmour: layeredGenderOf(s['Graphics.LayeredGear']) != null,   // LAYERED-GEAR: the skin chosen on the profile (player/eyeOfTheBeholder/layeredArmor.js)
@@ -1031,7 +1032,7 @@ export function createEotbBody({ count = spriteCount, urlFor = eotbSpriteUrl, de
       const flipView = FP && cfg.visibility === 2;
       const lk = lookNow();
       // BUNNYFALL: on foot, alive and in one's own form, the paperdoll stands for the sprite while its doll is up
-      const doll = cfg.paperdoll && !FP && !last.riding && !last.transformed && !last.died ? ownDoll.pick(shown.orientation, Date.now()) : null;
+      const doll = cfg.paperdoll && !FP && !last.riding && !last.transformed && !last.died ? ownDoll.pick(shown.orientation, Date.now(), cfg.paperdollBack) : null;
       const s = doll ?? spriteFor(shown.table, shown.orientation, shown.frame, lk, { flip: shown.flip !== flipView });   // PR-WW1: the live form's archive (112381 the wereboar)
       // OW-BIG (2026-09-28, Mac: "The player sprite needs to appear larger"): under the travel view the sprite is drawn
       // `face.grow` times its size (player/travelCamera.js tvOwnGrow) - a party's icon from the Overworld's height, not
