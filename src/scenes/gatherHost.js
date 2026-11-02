@@ -61,7 +61,7 @@
 //
 // One owner: the host builds it online, and disposes it with the page.
 // ═══════════════════════════════════════════════════════════════════
-import { utcDayOfMs, pixelKey, parseNodeKey } from '../net/nodeLaw.js';
+import { utcDayOfMs, pixelKey, parseNodeKey, groundConfirmed } from '../net/nodeLaw.js';
 import { t } from '../systems/textManager.js';   // AUDIT LOCKPICK C14: the gone spot's line, in the player's language
 import { TERRAIN_SIZE } from '../world/terrain/terrainSampler.js';
 /** A map pixel's side in the scene (metres). */
@@ -589,9 +589,10 @@ export function createGatherHost(deps) {
     const bare = () => { unstand(entry); stood.set(key, rec); for (const k of kinds) k.stood?.(entry, []); };
     if (!info) { bare(); return; }
     const fact = book.pixel(entry.px, entry.py);
-    const confirmed = fact?.state === 'confirmed' || fact?.state === 'disputed';
+    const witnessed = fact?.state === 'confirmed' || fact?.state === 'disputed';
     // a pixel the witnesses confirmed as something else stands nothing: nothing here could be gathered
-    if (confirmed && (fact.climate !== info.climate || fact.region !== info.region)) { bare(); return; }
+    if (witnessed && (fact.climate !== info.climate || fact.region !== info.region)) { bare(); return; }
+    const confirmed = groundConfirmed(fact);   // BUNNYFALL WITNESSED-GROUND: off, every pixel stands as confirmed
     const ctx = { entry, px: entry.px, py: entry.py, day, info, confirmed, specs, book, near: nearRocks(entry) };   // ROCK-NEAR
     rec.nodes = kinds.flatMap((k) => k.nodesOf(ctx).map((n) => ({ ...n, kind: k.id })));
     // SETTLE-STAND (FIELD BUGS 2026-10-01): a node of the ground on a settlement's ground is never worked there - its act
@@ -659,8 +660,9 @@ export function createGatherHost(deps) {
     d.pictures = new Map();   // NODE-OUTLINE: each deep vein's own batches
     if (book.state.open !== true) return;
     const fact = book.dungeon(d.id);
-    const confirmed = fact?.state === 'confirmed' || fact?.state === 'disputed';
-    if (confirmed && (fact.climate !== d.info.climate || fact.region !== d.info.region)) return;
+    const witnessed = fact?.state === 'confirmed' || fact?.state === 'disputed';
+    if (witnessed && (fact.climate !== d.info.climate || fact.region !== d.info.region)) return;
+    const confirmed = groundConfirmed(fact);   // BUNNYFALL WITNESSED-GROUND
     const ctx = { dungeon: d.id, day, info: d.info, confirmed, specs, book, wall: d.wall };
     const nodes = kinds.flatMap((k) => (k.dungeonNodesOf?.(ctx) ?? []).map((n) => ({ ...n, kind: k.id })));
     d.nodes = nodes;
@@ -805,7 +807,7 @@ export function createGatherHost(deps) {
     if (!plan?.ready || typeof book.closed !== 'function') return plan;
     if (t.node.what === 'dvein' && book.closed('deep')) {
       const fact = t.dungeon && dungeon ? book.dungeon(dungeon.id) : null;
-      if (fact?.state !== 'confirmed' && fact?.state !== 'disputed') return { ...plan, ready: false, rest: `${DEEP_UNCONFIRMED_PER_DAY} veins today in dungeons nobody has vouched for` };
+      if (!groundConfirmed(fact)) return { ...plan, ready: false, rest: `${DEEP_UNCONFIRMED_PER_DAY} veins today in dungeons nobody has vouched for` };
     }
     return plan;
   }

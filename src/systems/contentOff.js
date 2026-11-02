@@ -27,6 +27,11 @@ export const CONTENT = Object.freeze({
   /** Permadeath: a death never ends a character or passes the line on - Daggerfall's own respawn. Family, marriage and
    *  heirs are kept for fun (scenes/legacyHost.js onDeath, systems/chargenSession.js). */
   permadeath: false,
+  /** BUNNYFALL PHASE 1: Witnessed ground. Off, every map pixel and dungeon counts as confirmed on the word of whoever
+   *  stands there (net/nodeLaw.js groundWitnessed): no waiting for three week-old accounts to vouch for a place before its
+   *  higher-tier veins, signature ore, rare wood, gems, the March's bounty and the Tide can appear. A small server never
+   *  had the crowd the rule assumed. */
+  witnessedGround: false,
 });
 
 /** Whether a piece of content is on. */
