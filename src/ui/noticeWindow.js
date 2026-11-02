@@ -510,7 +510,7 @@ export function mountNoticeBoard(host, deps) {
     if (!work) return;
     const seq = ++writsSeq;
     writsBusy = true; render();
-    const r = await work.book.writs(work.region, { force });
+    const r = await work.book.writs(work.region, { force, climate: work.climate ?? null });   // BUNNYFALL WRIT-GEN: the town's climate
     if (!alive || seq !== writsSeq) return;
     writsBusy = false;
     writs = r.data; writsError = r.error; writsStale = !!r.stale;

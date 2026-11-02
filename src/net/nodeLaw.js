@@ -708,6 +708,8 @@ export function witnessedFact(rows, parse = parseReport) {
   for (const [report, seen] of byReport) if (seen.size > bestN) { best = report; bestN = seen.size; }
   return { state: 'unconfirmed', ...parse(best) };
 }
+/** BUNNYFALL WRIT-GEN: a climate a Court's table can be drawn over - one the herbs have a table for. */
+export const climateOk = (c) => Number.isSafeInteger(c) && Object.hasOwn(HERB_TABLES, c);
 /** A confirmed answer stands for a disputed pixel too. */
 export const factConfirmed = (fact) => fact?.state === 'confirmed' || fact?.state === 'disputed';
 /** BUNNYFALL WITNESSED-GROUND: the ground as a harvest or a node's stand reads it - confirmed, or, with witnessed ground
