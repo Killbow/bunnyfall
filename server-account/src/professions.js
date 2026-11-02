@@ -79,7 +79,7 @@ import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '.
 import { signingKey } from './signing.js';
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
-  basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, WITNESS, material,
+  basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, WITNESS, material,
   regionWritTable, courtWrits, VEIN_TABLES, vein, boulder, dungeonVein, dungeonOk, veinYield, boulderYield, VEIN_YIELD,
   BOULDER_YIELD, veinGem, veinSlots, treeSlots, WOOD_TABLES, tree, TREE_YIELD, treeYield, treeFinds, hideYield, bodyFinds,
   haulYield, haulFinds, haulAtSea,   // PROF8
@@ -615,9 +615,9 @@ export async function harvestNode(ctx, player, env, body = {}) {
   ]);
   if (over) return { error: 'prof-rate' };
   const fact = key === null ? null : factsFrom([key], factRows).get(key);
-  const confirmed = factConfirmed(fact);
+  const confirmed = groundConfirmed(fact);   // BUNNYFALL WITNESSED-GROUND: off, the harvester's own ground counts
   const witness = !isBody && Number.isSafeInteger(player.registered_at) && player.registered_at <= nowS - WITNESS.ageS ? 1 : 0;
-  if (confirmed && (fact.climate !== climate || fact.region !== region)) {
+  if (factConfirmed(fact) && (fact.climate !== climate || fact.region !== region)) {
     // AUDIT 29 A4: refused - and, from an account that may witness, written down: a dissent is what a dispute is made
     // of (SEAT0 3.2), and a refusal that kept no report let the first three words stand for good
     if (witness) {

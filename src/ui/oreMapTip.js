@@ -16,7 +16,7 @@
 // dungeon's Moonstone) - is said on the state line, which had read the surface table alone: a HauntedWoodlands card
 // said "No vein here needs witnesses" over dungeons whose Moonstone did. Its words through the text core (L10N4), the
 // ores' and the lands' names DFU's own.
-import { VEIN_TABLES, DUNGEON_VEINS, deepClimateOres, regionSignature, UNCONFIRMED_VEIN_TIER, WITNESS, factConfirmed } from '../net/nodeLaw.js';
+import { VEIN_TABLES, DUNGEON_VEINS, deepClimateOres, regionSignature, UNCONFIRMED_VEIN_TIER, WITNESS, groundConfirmed } from '../net/nodeLaw.js';
 import { kingdomOf, KINGDOMS } from '../net/kingdomLaw.js';
 import { minedMaterial } from '../net/professionLaw.js';
 import { materialLabel } from '../systems/professions/profItems.js';
@@ -28,7 +28,7 @@ export const ORE_TIP_TITLE = 'Ore here';
 const WITNESS_RULE = 'Witnessed once {n} players with accounts at least a week old gather here';
 export const ORE_WITNESS_RULE = formatMessage(WITNESS_RULE, { n: WITNESS.confirm });
 /** The state line's words, each its English. */
-const WITNESSED = 'Witnessed ground: every vein can appear here';
+const WITNESSED = 'Every vein can appear here';   // BUNNYFALL WITNESSED-GROUND: the ground's word, no longer the witnesses'
 const NONE_HELD = 'No vein here needs witnesses';
 const NOT_YET = 'Not yet witnessed: no {ores} here yet';
 const ONLY_WITNESSED = '{ores} only on witnessed ground';
@@ -75,7 +75,7 @@ export function oreMapTip({ climate, region = null, fact = null, surveyed = fals
   const deepWord = deep.length ? t('ore.tip.deepWitnessed', DEEP_WITNESSED, { ores: orList(deep) }) : null;
   const withDeep = (ground) => (deepWord ? t('ore.tip.both', '{ground}. {deep}', { ground, deep: deepWord }) : ground);
   const rule = t('ore.tip.rule', WITNESS_RULE, { n: WITNESS.confirm });
-  if (factConfirmed(fact)) lines.push(withDeep(t('ore.tip.witnessed', WITNESSED)));
+  if (groundConfirmed(fact)) lines.push(t('ore.tip.witnessed', WITNESSED));   // BUNNYFALL WITNESSED-GROUND: off, every ground is
   else if (!held.length) lines.push(...(deep.length ? [t('ore.tip.deepOnly', DEEP_ONLY, { ores: orList(deep) }), rule] : [t('ore.tip.none', NONE_HELD)]));
   else lines.push(withDeep(fact ? t('ore.tip.notYet', NOT_YET, { ores: orList(held) }) : t('ore.tip.onlyWitnessed', ONLY_WITNESSED, { ores: orList(held) })), rule);
   return { title: t('ore.tip.title', ORE_TIP_TITLE), lines };

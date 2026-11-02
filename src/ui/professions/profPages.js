@@ -103,7 +103,7 @@ import { isTextEntryTarget, isDomControlTarget } from '../input.js';   // AUDIT 
 import { drawCraftWindow, CW_STATIONS } from './craftWindow.js';   // BUNNYFALL: the new crafting window
 import { createHeatAct } from '../../systems/heatAct.js';
 import { createPlaneAct } from '../../systems/planeAct.js';
-import { material } from '../../net/nodeLaw.js';
+import { material, groundWitnessed } from '../../net/nodeLaw.js';
 import { marksText } from '../../net/marksLaw.js';   // AUDIT 32 R13: "1 Drake", as the Market tab says it
 import { accountRefusalText } from '../../net/accountClient.js';
 import { chainPlan, chainNeeded, chainYield, storesRoom } from '../../net/chainLaw.js';   // CRAFT1: the works a craft's inputs want first
@@ -865,8 +865,9 @@ export function drawProfessionsPage(detail, rerender, kit) {
     const today = book.state.today?.[_sel] ?? 0;   // CAP-OFF: the day's harvests, a count against no cap
     pane.append(el('p', 'prof-today', t('prof.page.today.harvests', 'Today: {n, plural, one {# harvest} other {# harvests}}', { n: today })));
     if (GATHER_HOW[_sel]) pane.append(el('p', 'px-note', gatherHow(_sel)));   // TOOL-SAID
-    if (_sel === 'mining') pane.append(el('p', 'px-note', miningGroundLine()));   // UNWITNESSED-ORE
-    if (_sel === 'mining' && tr.specs?.[100] === SURVEYOR) pane.append(el('p', 'px-note', miningSurveyorLine()));   // MINE-PERKS
+    // BUNNYFALL WITNESSED-GROUND: the witnesses' rule is said only while it stands; off, the world map's ore card says it all
+    if (_sel === 'mining' && groundWitnessed()) pane.append(el('p', 'px-note', miningGroundLine()));   // UNWITNESSED-ORE
+    if (_sel === 'mining' && groundWitnessed() && tr.specs?.[100] === SURVEYOR) pane.append(el('p', 'px-note', miningSurveyorLine()));   // MINE-PERKS
   }
   drawRaises(pane, kit, book, _sel, tr);   // CRAFT-HALL
   // THE SPECIALISATIONS: two cards a rank (CRAFT3: a merged craft's four, each its discipline's), the chosen one lit; a

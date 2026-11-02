@@ -22,7 +22,6 @@
 // service (server-account/src/homeVotes.js, migration 0108), which reads it
 // out with the town's homes. Pure: no clock, no DOM, no network.
 // ═══════════════════════════════════════════════════════════════════
-import { WITNESS } from './nodeLaw.js';   // AUDIT HOME-VOTE A1: an account a week registered, as a witness is
 
 /** The votes an account may stand on a home - down and up; 0, sent, takes its vote back. */
 export const HOME_VOTE_DOWN = -1;
@@ -36,7 +35,7 @@ export const HOME_VOTES_WINDOW_S = 3600;
 /** AUDIT HOME-VOTE A1: HOW OLD AN ACCOUNT MUST BE TO VOTE - registered a week (WITNESS.ageS, the seats' and the
  *  market's witness's own bar). A registered account is two calls from a fresh browser, and one down-vote hides a home
  *  nobody has voted up: sixty accounts an address a quarter-hour, each with its votes, hid every home in every town. */
-export const HOME_VOTE_AGE_S = WITNESS.ageS;
+export const HOME_VOTE_AGE_S = 7 * 86_400;   // BUNNYFALL: a week, held here now WITNESS.ageS follows witnessed ground
 /** AUDIT HOME-VOTE II A4: WHOSE HOUSE A VOTE MEANT - the door's `owner` as the town answered it (a home's owner, a hall's
  *  guild), sent with every vote cast: it lands only while that is who holds the house, never on the next owner's after a
  *  sale the reader's door had not heard of yet. */

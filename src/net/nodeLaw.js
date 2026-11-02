@@ -37,7 +37,8 @@ import {
 } from './professionLaw.js';
 import { kingdomOf, FREE_LANDS, MARCH_REGIONS, isMarch } from './kingdomLaw.js';   // SEAT0 4.3's map, one home (PROF2)
 import { onBayOrEther } from '../world/ethericSea.js';   // ETHER-NODES: the Bay's map or the Eltheric Ocean's box, one home (ETHER-OW; pure: formats/ alone)
-import { banthaAreaHas } from '../world/jungle/banthaArea.js';   // JUNGLE-WOODS: the owner's jungle, one home (pure: its rows alone)
+import { banthaAreaHas } from '../world/jungle/banthaArea.js';
+import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL: witnessed ground, switched off (a leaf: no cycle)   // JUNGLE-WOODS: the owner's jungle, one home (pure: its rows alone)
 
 /** The one salt every client stands a day's nodes with. Changing it moves every node in the world. */
 export const NODE_SALT = 0x5e3d;
@@ -657,8 +658,14 @@ export function basketFood(climate, day, u) {
 
 // ─── THE WITNESSED PIXEL (SEAT0 3.2) ─────────────────────────────────
 
-/** Who may witness, and how many make a fact: an account a week registered; three agree; two dispute. */
-export const WITNESS = Object.freeze({ ageS: 7 * 86_400, confirm: 3, dispute: 2 });
+/** BUNNYFALL WITNESSED-GROUND: whether the witnessing rule stands (contentOff.js witnessedGround). Off, any account
+ *  witnesses from its first day and one report confirms a place, so what the service already keeps reads as confirmed. */
+export const groundWitnessed = () => contentOn('witnessedGround');
+/** Who may witness, and how many make a fact: an account a week registered; three agree; two dispute. BUNNYFALL: with
+ *  witnessed ground off, any account, and one report confirms. */
+export const WITNESS = Object.freeze(groundWitnessed()
+  ? { ageS: 7 * 86_400, confirm: 3, dispute: 2 }
+  : { ageS: 0, confirm: 1, dispute: 2 });
 /** A pixel's key and a report on it, as `world_witness` keeps them. */
 export const pixelKey = (x, y) => `${x},${y}`;
 export const pixelReport = (climate, region) => `${climate},${region}`;
@@ -703,6 +710,10 @@ export function witnessedFact(rows, parse = parseReport) {
 }
 /** A confirmed answer stands for a disputed pixel too. */
 export const factConfirmed = (fact) => fact?.state === 'confirmed' || fact?.state === 'disputed';
+/** BUNNYFALL WITNESSED-GROUND: the ground as a harvest or a node's stand reads it - confirmed, or, with witnessed ground
+ *  off, taken as confirmed on the client's own derivation even before anyone reported it. A confirmed answer that
+ *  disagrees with that derivation is still refused by its callers (factConfirmed above). */
+export const groundConfirmed = (fact) => factConfirmed(fact) || !groundWitnessed();
 
 // ─── A REGION'S COURT WRITS (PROF0 11, 22) ───────────────────────────
 
