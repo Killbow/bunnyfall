@@ -175,9 +175,9 @@ export const PREF_DEFAULTS = Object.freeze({
   // Defaults ON: this needs no attached data and no build step, so there is nothing to opt INTO the way Morrowind
   // assets are - only a look a player might prefer to opt OUT of.
   peerClassSprites: true,
-  // GRAPHICS-PAPERDOLL: show the equipped character figure in the inventory. This is a local presentation choice.
-  'graphics.paperdoll': true,
-  // GRAPHICS-PAPERDOLL-BACK: show the generated rear-facing view when another player's paperdoll turns away.
+  // GRAPHICS-PAPERDOLL-BACK: the generated rear-facing view of OTHER players' paperdolls when they turn away. The one
+  // paperdoll pref left (BUNNYFALL PAPERDOLL-SETTINGS): how you are drawn is the mod setting Graphics.PlayerBody, and the
+  // inventory's figure is always shown.
   'graphics.paperdollback': true,
   peerAttackSounds: true,   // PEER-FS2: other players' swing sounds - on by default
   monsterVolume: 1,   // MONSTER-VOL: a monster's calls, attack sounds and pain cries, 0..1 (systems/monsterVolume.js)

@@ -1013,8 +1013,10 @@ export const MOD_SETTINGS = Object.freeze({
       'AutoTogglePerspective.OnTransitionInterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionInterior.description', 'Which view to take on stepping indoors.'); } }),
       'AutoTogglePerspective.OnTransitionExterior': Object.freeze({ default: 0, options: EOTB_VIEWS, get description() { return t('mods.eyeOfTheBeholder.AutoTogglePerspective.OnTransitionExterior.description', 'Which view to take on stepping back outside.'); } }),
       'Graphics.Enable': Object.freeze({ default: true, get description() { return t('mods.eyeOfTheBeholder.Graphics.Enable.description', 'Show your character sprite'); } }),
-      'Graphics.Paperdoll': Object.freeze({ default: true, get description() { return t('mods.eyeOfTheBeholder.Graphics.Paperdoll.description', 'Draw yourself as your paperdoll, front and back, instead of the animated sprites'); } }),   // BUNNYFALL
-      'Graphics.PaperdollBack': Object.freeze({ default: true, get description() { return t('mods.eyeOfTheBeholder.Graphics.PaperdollBack.description', 'Draw the paperdoll from behind when you walk away. Off keeps the original animated back sprites (the front stays the paperdoll)'); } }),   // BUNNYFALL
+      // BUNNYFALL PAPERDOLL-SETTINGS: ONE setting for how YOU are drawn in third person - your paperdoll (front and back) or
+      // the eight-direction animated sprite. It replaces Graphics.Paperdoll and Graphics.PaperdollBack, which split the front
+      // from the back and left a player a mix of the two. Shown in Graphics > Character display (ui/enhanced/enhancedMenu.js).
+      'Graphics.PlayerBody': Object.freeze({ default: 0, options: lazyWords(() => t('mods.eyeOfTheBeholder.option.playerPaperdoll', 'Paperdoll for player'), () => t('mods.eyeOfTheBeholder.option.playerSprite', '8 directional animated sprite')), get description() { return t('mods.eyeOfTheBeholder.Graphics.PlayerBody.description', 'How you are drawn in third person: as your paperdoll, front and back, or as the eight-direction animated sprite'); } }),
       // DISC23-B (2026-09-24, Gryphoth and Scratchie on Discord: "EOTB comes with 16 ground models and different
       // mounted models, it would be nice to be able to change our models like in the original mod" / "the game is not
       // allowing us to choose between the different index slots"): the mod's two SLIDERS, kept sliders (0-15, 0-4, as

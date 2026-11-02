@@ -298,8 +298,7 @@ export const MOD_CURATED = Object.freeze({
   // PROFILE ("a choosable skin system in the menu player profile system itself instead of it being hidden in the
   // feature menu") - ui/skinCard.js, the picture of every set, in the window the door's profile mark opens.
   'eye-of-the-beholder': Object.freeze(['Camera.LongitudinalDistance', 'Camera.FrontalPlaneOffset',
-    'Camera.Speed', 'Animation.BillboardScale',
-    'Graphics.Paperdoll', 'Graphics.PaperdollBack']),   // BUNNYFALL: the paperdoll and its back view were declared but on no screen
+    'Camera.Speed', 'Animation.BillboardScale']),   // BUNNYFALL PAPERDOLL-SETTINGS: how you are drawn (Graphics.PlayerBody) is in Graphics > Character display, not here
   // IF1: the clip quality and the two volumes are what a player reaches for.
   'immersive-footsteps': Object.freeze(['AudioQualitySettings.SoundClipQuality', 'FootstepSettings.FootstepVolumeMulti', 'ArmorSwaySettings.ArmorSwayVolumeMulti']),
   // BA1: the footsteps switch (off beside Immersive Footsteps), the echo, the darkness. RPT1026-CLIENT (a private report:

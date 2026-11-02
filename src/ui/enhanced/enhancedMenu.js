@@ -3273,9 +3273,13 @@ export function morrowindCard({ count = morrowindDataCount(), armState = fpArm.s
 function paperdollGraphicsCard() {
   const c = el('div', 'card');
   c.append(el('h3', null, 'Character display'));
-  c.append(el('p', 'meta', 'Choose how character paperdolls are shown. These options affect your own inventory and the way other players appear from behind.'));
-  c.append(prefRow('graphics.paperdoll', 'Show your paperdoll', 'Show or hide your equipped character figure in the inventory.', { home: true }));
-  c.append(prefRow('graphics.paperdollback', 'Show paperdoll backs', 'Show the generated rear view when another player turns away from you.', { home: true }));
+  c.append(el('p', 'meta', t('menu.paperdoll.blurb', 'How characters are drawn in third person.')));
+  // BUNNYFALL PAPERDOLL-SETTINGS: the two settings there are. How YOU are drawn, and whether OTHER players show their back.
+  c.append(choiceRow('Graphics.PlayerBody', t('menu.paperdoll.player', 'Your character'),
+    t('menu.paperdoll.playerNote', 'In third person: your paperdoll, front and back, or the eight-direction animated sprite.'),
+    [[0, t('mods.eyeOfTheBeholder.option.playerPaperdoll', 'Paperdoll for player')], [1, t('mods.eyeOfTheBeholder.option.playerSprite', '8 directional animated sprite')]],
+    { home: true, read: () => modSetting('eye-of-the-beholder', 'Graphics.PlayerBody') ?? 0, write: (v) => setModSetting('eye-of-the-beholder', 'Graphics.PlayerBody', v) }));
+  c.append(prefRow('graphics.paperdollback', t('menu.paperdoll.backs', 'Paperdoll backs for other players'), t('menu.paperdoll.backsNote', 'Show the generated rear view when another player turns away from you.'), { home: true }));
   return c;
 }
 
