@@ -1,4 +1,7 @@
 // @ts-check
+import { encodeTune, validTune } from './bardTune.js';   // BARDS' COLLEGE
+/** BARDS' COLLEGE: the least gap between my tunes, ms (the relay keeps the same). */
+const BARD_SEND_GAP_MS = 15_000;
 import { selfRelayUrl } from './selfHost.js';
 import { validStaffEventIn, validStaffEventOut, relaySupportsStaffEvents } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT
 import { relaySupportsFoeInventory } from './wire.js';
@@ -711,6 +714,7 @@ export class OnlineSession {
     this._helloTok = new WeakMap();
     this.presence = !!presence;   // false: a channel's session (CHAT1) - no pose out, a ping for a heartbeat
     this.onChat = null;           // (line) => void: a chat line in - {id, name, text, at, mine}
+    this.onBard = null;           // BARDS' COLLEGE: ({ id, name, tune }) => void: a bard's tune, played in the building I stand in (net/bardTune.js)
     this.onRed = null;            // RED1: (line) => void: the SERVER's own line - {text, at}, no id and no name, because nobody is speaking it
     this.onStaffMessage = null;   // STAFF-PANEL5-MESSAGE: (mi) => void: a staff message waits for this account - its id; the words are the account service's
     this.onDm = null;             // TITLE-N: (line) => void: the Dungeon Master's line - {text, at}, as the server's: a voice over the game, not a player in it
@@ -2737,6 +2741,18 @@ export class OnlineSession {
     return true;
   }
 
+  /** BARDS' COLLEGE: my tune to the others in this building's room (net/bardTune.js), once a BARD_SEND_GAP_MS; the relay
+   *  counts every note before it carries them and drops a tune out of its law unheard. False when it did not leave. */
+  sendBard(tune) {
+    const w = encodeTune(tune);
+    if (!validTune(w)) return false;
+    const now = this._now();
+    if (now - (this._bardSentAt ?? -Infinity) < BARD_SEND_GAP_MS) return false;
+    if (!this._send({ t: 'bard', n: w.n, d: w.d })) return false;
+    this._bardSentAt = now;
+    return true;
+  }
+
   /** CARDS5: a word to the room's card table (sit, stand, act, look - net/holdemTable.js validHoldemIn), to a relay that
    *  deals; false when it is not one, the word is bad or the gate is shut. */
   sendHoldem(word) {
@@ -4039,6 +4055,11 @@ export class OnlineSession {
       const ch = CHAT_LINE_CHANNELS.includes(m.ch) ? m.ch : null;
       if (!this._lineIn(room, ch, now)) return;
       this._deliver('roll', () => this.onRoll?.({ id: m.id, name: sanitizeName(m.name), at: Number.isFinite(m.at) ? m.at : now, mine: m.id === this.id, sub: subOf(m), ch, roll: { ...roll, dice: [...roll.dice] } }));
+    } else if (m.t === 'bard') {
+      // BARDS' COLLEGE: a tune from the building's room, read by the wire's own law before anyone hears a note of it
+      const tune = validTune(m);
+      if (typeof m.id !== 'string' || !tune || m.id === this.id) return;
+      this._deliver('bard', () => this.onBard?.({ id: m.id, name: sanitizeName(m.name), tune }));
     } else if (m.t === 'red') {
       // RED1: THE SERVER SPEAKING, and the client knows it by the FRAME
       // TYPE rather than by anything on the frame. net/chat.js's own

@@ -1020,6 +1020,7 @@ import { freeShipTravel, freeTavernRooms, avoidDeath, avoidDeathText } from '../
 import { resolveVariantGuild, orderOf, getDivine } from '../systems/guild/guildVariants.js';   // TN1: GetFactionName's HolyOrder arm
 import { revealGuildHallsOnMap, revealingMemberships, revealBunnyHallsOnMap } from '../systems/guild/guildHallReveal.js';   // AUDIT 63 F9: ThievesGuild/DarkBrotherhood RevealGuildHallOnMap; AUDIT CHAP2 D4: either book's
 import { createRescueLink } from './rescueLink.js';   // BUNNY-SPELLS: Rescue between players
+import { createBardStage } from './bardStage.js';   // BARDS' COLLEGE
 import { createTavernSocial } from './tavernSocial.js';   // TAVERN-SOCIAL: rounds, bards together, tips
 import { createPlayerFestivals } from '../systems/online/playerFestivals.js';   // PLAYER-FESTIVALS: hosted at an innkeeper, on the map and in the chat
 import { bunnyQuestEnded, boardFocus, BOARD_HOMES, courtWritFilled } from '../systems/guild/bunnyServices.js';
@@ -20199,6 +20200,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     feet: () => player.pos, moveTo: (p) => player.spawn(p[0], p[1], p[2]), say: (text) => townTalk.say(text), sent: () => { _partyComposedAt = -Infinity; },
   });
   // TAVERN-SOCIAL: a round bought, a bard playing, a tip - on my pose, and the others' read (scenes/tavernSocial.js)
+  const bardStage = createBardStage({ send: (tune) => online?.sendBard?.(tune) ?? false, say: (l) => chatLog.push(chatLog.active, { text: l, system: true }) });   // BARDS' COLLEGE: a tune played here and heard by the tavern
   const tavernSocial = createTavernSocial({
     entity: () => playerEntity, online: () => !!online && online.status === 'open', peers: () => peersNear(), peerPose: (id) => online?.peers?.get(id)?.shown ?? null,
     accountOfPeer: (id) => social?.accountOfPeer?.(id) ?? null, myAccount: () => social?.acct ?? null, nameOf: (id) => peerName(id),
@@ -21401,6 +21403,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       chatLog.push(chatLog.active, { text: mutedText(until, Math.floor(Date.now() / 1000)), system: true });
     };
     online.onMuted = onMuted;   // a place room's local chat is refused the same way
+    online.onBard = (m) => bardStage.heard(m);   // BARDS' COLLEGE: a bard's tune, from the building I stand in (the relay fans it to a building's room alone)
     // CHAT-CHAN: THE LOCAL TAB IS THE PRESENCE SESSION'S ROOM. The relay fans a line said there to the peers in range
     // (a cell's RANGE_PIXELS, a building's or a dungeon's whole room - net/wire.js inRange), and a hearer's cell and
     // its halo are one socket each in the speaker's room, so a line is heard ONCE across a cell edge; what this client
@@ -29867,6 +29870,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     },
     homeVendor: { open: (o) => openHomeVendorWindow(o) },   // HOME-VENDOR: a trader pressed in its home (worldModes.js openHomeVendor)
     guestbookApi: homesApi,   // GUESTBOOK: the homes' service signs and reads a home's book (systems/online/guestbook.js)
+    bardStage,   // BARDS' COLLEGE: the performance window plays and sends through it
     tavernSocial,   // TAVERN-SOCIAL: the innkeeper's rounds and tips (the tavern window's house rows, bunnyServices.js bunnyTavernRows)
     playerFestivals,   // PLAYER-FESTIVALS: the innkeeper's Host a festival (the tavern window's house rows, bunnyServices.js bunnyTavernRows)
     guildHall: {

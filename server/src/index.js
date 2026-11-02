@@ -354,6 +354,9 @@ import { sealFeed, FEED_SIG_HEADER, FEED_BATCH, FEED_WAIT_MS, FEED_POST_MS } fro
 import { flushAtDrain } from './drainWindows.js';   // COST-1: a drained room leaves nothing armed
 import { grantGate, grantModeOf, GRANT_MODES, GRANT_CFG_TTL_MS, validGrantAsk, grantMintGate, grantMarksFor, signGrant, grantBucketIdle, GRANT_TTL_MS, GRANT_SKEW_MS, GRANT_TALLY_MS, grantRenewed, grantCarried, grantHanded, grantSignedHere, GRANT_OPEN_KINDS, grantKindRolled, grantMarksAllow } from '../../src/net/grantLaw.js';   // GRANT2: the spawn grant's law (bible/11-Multiplayer/Spawn-Grants.md)
 import { newGrantMeasure, foldGrantAsk, foldGrantTally, grantMeasureBatch, sealGrantMeasure, GRANT_MEASURE_MS, GRANT_MEASURE_SIG_HEADER, GRANT_MEASURE_POST_MS, GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';   // GRANT2: and its measure, to the service
+import { validTune } from '../../src/net/bardTune.js';   // BARDS' COLLEGE: a bard's tune, counted before it is carried
+/** BARDS' COLLEGE: the least gap between one socket's tunes, ms. */
+const BARD_GAP_MS = 15_000;
 import { foeStatsRefusal } from '../../src/net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have (GRANT9's strip reads it)
 import { seatOf, seatElder, seatStreams, seatTraffic, seatSilent, seatHeardAt, seatInAt, othersInOf } from '../../src/net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: a dungeon room's seat is a live socket's
 import { FOES_STALE_MS } from './relay.js';   // SEAT-LIVE: the seat's staleness, the page's own (net/wire.js)
@@ -4848,6 +4851,23 @@ export class Room {
     }
     if (a.hid && (m.t === 'pose' || m.t === 'ping')) return hiddenPose(this, ws, a, m);   // STAFF-PANEL5-HIDDEN: a hidden pose kept for range, never fanned
     if (m.t === 'pose' || m.t === 'ping') return this._poseFrame(ws, a, m);   // PERF-RELAY1: the room's hottest path, a method of its own
+    if (m.t === 'bard') {
+      // BARDS' COLLEGE (2026-11-02): a bard's tune, played in a tavern. ONE tune to the others in the building's room, never
+      // to a street or a channel: from a hello'd socket in an INTERIOR room, not muted, one a BARD_GAP_MS, and only a tune
+      // the wire's own law (net/bardTune.js validTune) reads whole - the relay carries notes it has counted, not a blob.
+      // Over the gap or out of law it is dropped unheard; nobody is struck for it (a tune is a courtesy, not a method).
+      const now = Date.now();
+      if (!a.id || !String(a.key ?? '').startsWith('interior:')) return;
+      if (a.mu && a.mu > Math.floor(now / 1000)) return;
+      this._bardAt = this._bardAt ?? new WeakMap();
+      if (now - (this._bardAt.get(ws) ?? 0) < BARD_GAP_MS) return;
+      const tune = validTune(m);
+      if (!tune) return;
+      this._bardAt.set(ws, now);
+      const said = JSON.stringify({ t: 'bard', id: a.id, name: a.name, n: m.n, d: m.d, at: now });
+      for (const [other, b] of [...this._all()]) if (other !== ws && b.id) this._send(other, said);
+      return;
+    }
     if (m.t === 'chat') {
       this._metrics.c.chats++;   // SCALE5b: the frames by type
       // CHAT1: the chat gate, its own bucket and strikes (a talker is not a mover)

@@ -483,7 +483,7 @@ import { isLampKeeper, lampLines, LAMP_TEXT, createLampTitle } from '../systems/
 import { bunnyGuildOfFaction, hallTypeOf } from '../systems/guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's guild halls
 import { bunnyClerkName, openBunnyHall } from '../systems/guild/bunnyHall.js';
 import { bunnyHallServices, bunnyTavernRows } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the guilds' services
-import { BardPerformanceWindow, NOTES as BARD_NOTES, bardPerformanceTitle, bardPerformanceWords } from '../ui/bardPerformanceWindow.js';   // BUNNY-GUILDS: the Bards' performance   // BUNNY-GUILDS: the hall's clerk
+import { BardPerformanceWindow, NOTES as BARD_NOTES, bardPerformanceTitle } from '../ui/bardPerformanceWindow.js';   // BUNNY-GUILDS: the Bards' performance   // BUNNY-GUILDS: the hall's clerk
 import { vendorOffice } from '../systems/festival/festivalWords.js';   // WITCH1: a Wyrd Sister is named by her office
 import { announceHonour } from '../ui/lootBanner.js';   // LAMP-KEEPER II: I Love Lamp, as a loot banner
 import { setRrHostSeams } from '../systems/roleplayRealism/rrInstall.js';   // RR1: the host's foe-spawner seam for the underworld guilds' squad
@@ -5826,7 +5826,7 @@ export function createWorldModes(host) {
       // BUNNYFALL: the house's own rows (perform, a round, a tip, a festival) beside the window's four - one menu
       house: () => bunnyTavernRows({
         entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
-        perform: (onDone) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, words: bardPerformanceWords() })),
+        perform: (onDone, hooks) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, performer: playerEntity.name, stage: host.bardStage ?? null, ...hooks })),   // BARDS' COLLEGE: a rhythm game over a MIDI the bard picks, heard by the tavern (scenes/bardStage.js)
         tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
       }),
       sceneCache: () => sceneCache(),   // P1: renting HOLDS the room's interior

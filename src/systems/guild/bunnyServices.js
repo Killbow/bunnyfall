@@ -133,7 +133,7 @@ export function bunnyHallServices(doors) {
  * own, and runs `action()` once it has closed itself (a performance and a prompt open their own windows). Answers [] when
  * there is nothing to offer. `where` names the tavern (`${town}:${building}`), `day` the game's day, `perform(onDone)` the
  * performance window, `say` the chat line. Called again at each repaint, so a price or a bard coming near is current.
- * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number) => string[]) => void, notes: number,
+ * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number) => string[], hooks?: { keepAlive: () => void, onCancel: () => void }) => void, notes: number,
  *   tavern?: any, say?: (s: string) => void, festival?: any }} o
  * @returns {Array<{ code: string, label: string, action: () => void }>}
  */
@@ -163,7 +163,7 @@ export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = n
             t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
             ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),
           ];
-        });
+        }, { keepAlive: () => social?.startPlaying?.(), onCancel: () => { social?.stopPlaying?.(); } });
       }) });
     }
   }
