@@ -79,6 +79,7 @@ import { setHotbarDropMode, hotbarSlotNode, hotbarTakesItem, hotbarDropItem, hot
   hotbarShownSlotOf, setHotbarPick } from './enhancedHotbar.js';   // DIAMOND-HB: the slot among the ones shown; point and press
 import { registerQuickAct } from '../plus/plusPad.js';   // PADPLUS5: the pad's X on a row
 import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
+import { getPref } from '../../systems/uiPrefs.js';   // GRAPHICS-PAPERDOLL
 import { dfWornEquipment } from '../../formats/morrowind/mwItemMap.js';   // PX25
 import { hasDaggerfallArrows } from '../../combat/fpArm.js';   // PX26
 import { ARMOR_ENUM } from '../../combat/enemyEquipment.js';   // PX25
@@ -2245,9 +2246,10 @@ function equippedList() {
   // DFMOD1-E: the avatar recomposes only when this window asks - so it asks when the attached texture mods changed
   // since the composite was made (a boot whose mods registered after the doll's first compose, an add or a remove).
   // The refresh repaints once when it lands, and the fresh composite is no longer stale, so this cannot loop.
-  if (paperDollStale()) refreshFigure();
-  const figure = modelFigure();
-  const dollUrl = figure ? null : paperDollDataUrl(paperDollPixels(), { scale: 4 });
+  const showPaperdoll = getPref('graphics.paperdoll') !== false;
+  if (showPaperdoll && paperDollStale()) refreshFigure();
+  const figure = showPaperdoll ? modelFigure() : null;
+  const dollUrl = showPaperdoll && !figure ? paperDollDataUrl(paperDollPixels(), { scale: 4 }) : null;
   // PX20a: the frame belongs to the PLACEHOLDER, not to the sprite -
   // with art the figure stands on the window's own glass.
   const dollFrame = el('div', `wornmap-doll${figure || dollUrl ? ' hasart' : ' noart'}${figure ? ' model' : ''}`);
