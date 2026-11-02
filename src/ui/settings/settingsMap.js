@@ -32,6 +32,8 @@ export const CATEGORIES = Object.freeze([
   tab("graphics", "Graphics", [
     sec("quality", "Quality", [
       "preset:graphics"]),
+    sec("character", "Character display", [
+      "card:paperdoll"]),
     sec("display", "Display", [
       "Video/FieldOfView", "feat:render-scale", "Video/TargetFrameRate", "Video/VSync", "port:showFps", "Video/Fullscreen",
       "Video/ExclusiveFullscreen", "Video/ResolutionWidth", "Video/ResolutionHeight", "Video/QualityLevel", "Video/RunInBackground"]),
