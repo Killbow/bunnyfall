@@ -121,21 +121,18 @@ export const dungeonPlace = (dfLocation) => ({
 
 /** Deterministic fallback that rejects over-level entries in modded tables too. */
 function safeBandedPick(table, playerLevel, seed) {
+  if (!Array.isArray(table) || !table.length) return null;
   const rng = makeSlotRng(seed);
   const last = table.length - 1;
-  if (last < 0) return 0;
   let min = playerLevel - 3, max = playerLevel + 3;
   if (min < 0) { min = 0; max = Math.min(5, last); }
   else if (max > last) { max = last; min = Math.max(0, last - 5); }
   const band = table.slice(min, max + 1);
-  const safe = band.filter((id) => !markerTooStrong(ENEMY_BASICS[id]?.level, playerLevel));
-  if (!safe.length) {
-    // A mod can provide an entirely over-level table. Pick its least
-    // dangerous entry rather than returning the original boss-class marker.
-    return table.map((id) => ({ id, level: ENEMY_BASICS[id]?.level ?? 0 }))
-      .sort((a, b) => a.level - b.level || a.id - b.id)[0]?.id ?? 0;
-  }
-  return safe[rng(0, safe.length)];
+  const safe = band.filter((id) => Number.isInteger(id)
+    && !markerTooStrong(ENEMY_BASICS[id]?.level, playerLevel));
+  // If a mod's table has no suitable foe, omit this marker. Never fall
+  // back to an over-level species merely to fill the room.
+  return safe.length ? safe[rng(0, safe.length)] : null;
 }
 
 export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, dungeon = null, playerLevel = 1,
@@ -219,7 +216,7 @@ export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, d
             placed = safeBandedPick(dungeonTable, playerLevel, seed);
           }
         }
-        emit(marker, block, placed, true);
+        if (placed != null) emit(marker, block, placed, true);
       } else if (marker.record === RANDOM_RECORD) {
         if (dungeonType >= ENCOUNTER_TABLES.length) continue; // verbatim per-flat guard
         const usingWater = block.waterLevel < marker.rawY;
@@ -227,12 +224,21 @@ export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, d
           // AddRandomRDBEnemy: no slot, no lists - the table by water
           // and the pick by the player's power.
           const table = usingWater ? underwaterTable : dungeonTable;
-          emit(marker, block, alternateRandomEnemyType(table, playerLevel, slotRng), false);
+          let selected = alternateRandomEnemyType(table, playerLevel, slotRng);
+          if (markerTooStrong(ENEMY_BASICS[selected]?.level, playerLevel)) {
+            selected = safeBandedPick(table, playerLevel, markerSpawnSeed(locationId, marker, blockIndex));
+          }
+          if (selected != null) emit(marker, block, selected, false);
           continue;
         }
         let slot = marker.flags;
         if (slot === 0) slot = slotRng(1, 7);
-        emit(marker, block, (usingWater ? water : nonWater)[slot], false);
+        let selected = (usingWater ? water : nonWater)[slot];
+        const table = usingWater ? underwaterTable : dungeonTable;
+        if (markerTooStrong(ENEMY_BASICS[selected]?.level, playerLevel)) {
+          selected = safeBandedPick(table, playerLevel, markerSpawnSeed(locationId, marker, blockIndex));
+        }
+        if (selected != null) emit(marker, block, selected, false);
       }
     }
   }
