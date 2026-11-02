@@ -118,32 +118,34 @@ const bank = {
           [one ? 'Empire account' : here ? `Account in ${here}` : 'Account balance', L.account], ...elsewhere, ['Gold carried', L.inventory],
           ['Loan owed', L.loanDue, Number(L.loanDue) > 0 ? 'warn' : ''], [empire ? 'Loan due' : 'Loan due by', L.loanByFull ?? L.loanBy],   // AUDIT LIVED1b U4 (O1): AUDIT LIVED1 S's "Loan due" is the online row's (a time left, not a date) - offline the row reads a date, as it always did
         ] },
+        // BANK-FIT: an amount being typed sits right under the figures, so it and the buttons below never scroll away
+        busy ? { type: 'field', label: BANK_FIELD_LABEL[w.transactionType] ?? 'Amount', value: w.value, active: true, numeric: true } : null,   // RPT1026-MISC TOUCH-FIELD: an amount, the number pad o
+        // BANK-FIT: three short columns instead of two long ones - the ten buttons take four rows, not six
         { type: 'cols', cols: [
           [{ type: 'group', title: 'Gold', blocks: [{ type: 'actions', layout: 'column', items: [
             btn('depositGold', 'Deposit gold'), btn('withdrawGold', 'Withdraw gold'),
             btn('depositLetters', 'Deposit letters'), btn('withdrawLetter', 'Letter of credit'),
           ] }] }],
-          [{ type: 'group', title: 'Loans & property', blocks: [{ type: 'actions', layout: 'column', items: [
+          [{ type: 'group', title: 'Loans', blocks: [{ type: 'actions', layout: 'column', items: [
             btn('loanRepay', 'Repay loan'), btn('loanBorrow', 'Borrow'),
+          ] }] }],
+          [{ type: 'group', title: 'Property', blocks: [{ type: 'actions', layout: 'column', items: [
             btn('buyHouse', 'Buy house'), btn('sellHouse', 'Sell house'),
             btn('buyShip', 'Buy ship'), btn('sellShip', 'Sell ship'),
           ] }] }],
         ] },
         // MARKS1 (PROF0 10.5): online, the Bank of the Empire buys Marks - 8 gold each, 300 a day, paid into this account
+        // BANK-FIT: the silver's figures are one short line under its two key rows, not six rows of their own
         w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Silver', blocks: [
           { type: 'stats', items: [
             ['Silver held', marksText(w.hooks.marks.balance() ?? 0)],
             ['Sold today', `${(w.hooks.marks.today()?.exchanged ?? 0)} of ${MARKS_BANK.perDay}`],
-            ['From gates, raids, serpents and the Spire today', `${(w.hooks.marks.today()?.combat ?? 0)} of ${w.hooks.marks.today()?.combatMax ?? MARKS_COMBAT.perDay}`],   // SILVER-WAYS; SERPENT-SET: the serpents' under the same cap; EG-E1: and the Spire's Redoubts'
-            ['Found in loot today', `${(w.hooks.marks.today()?.found ?? 0)} of ${w.hooks.marks.today()?.findMax ?? MARKS_FAUCETS.find.perDay}`],   // SILVER-FINDS
-            ['Found gathering today', `${(w.hooks.marks.today()?.gathered ?? 0)} of ${w.hooks.marks.today()?.gatherMax ?? MARKS_FAUCETS.gather.perDay}`],
-            ['The Bank pays', `${MARKS_BANK.goldPerMark} gold for each silver`],
           ] },
+          { type: 'text', rows: [`Today: combat ${(w.hooks.marks.today()?.combat ?? 0)} of ${w.hooks.marks.today()?.combatMax ?? MARKS_COMBAT.perDay}, loot ${(w.hooks.marks.today()?.found ?? 0)} of ${w.hooks.marks.today()?.findMax ?? MARKS_FAUCETS.find.perDay}, gathering ${(w.hooks.marks.today()?.gathered ?? 0)} of ${w.hooks.marks.today()?.gatherMax ?? MARKS_FAUCETS.gather.perDay}. The Bank pays ${MARKS_BANK.goldPerMark} gold for each silver.`] },
           { type: 'actions', layout: 'column', items: [
             { label: w.hooks.marks.pending() ? 'Counting a sale...' : 'Sell silver', act: () => w._button('sellMarks'), disabled: !w.enabled('sellMarks') },
           ] },
         ] } : null,
-        busy ? { type: 'field', label: BANK_FIELD_LABEL[w.transactionType] ?? 'Amount', value: w.value, active: true, numeric: true } : null,   // RPT1026-MISC TOUCH-FIELD: an amount, the number pad on a phone (bankWindow.js AMOUNT_FIELD)
       ],
       foot: busy
         ? [{ label: 'Confirm', key: 'Enter', primary: true, act: () => w.input('Enter') },

@@ -16,6 +16,8 @@ import { activeMemberships, GUILDS, getTitle } from './guild/guilds.js';
 import { reviewWarnings } from './guild/guildServiceFlow.js';   // AUDIT GUILD-WORDS L1-2: the review's warnings, as the hall says them
 import { standingOwedOf } from './standingOwed.js';   // STANDING-WORDS: what the Roll still owes, online
 import { templeOf, orderOf } from './guild/guildVariants.js';
+import { BUNNY_GUILDS } from './guild/bunnyGuilds.js';   // BUNNY-GUILDS: Bunnyfall's own guilds keep their own book
+import { bunnyMembershipOf, bunnyRepOf } from './guild/bunnyMembership.js';
 import { getReputation } from './faction/factionRep.js';
 import { getLocalizedFactionName } from './textManager.js';   // L10N3e: the faction's name in the player's language
 
@@ -64,6 +66,21 @@ export function affiliations(entity, { now = null, online = false } = {}) {
       probation: !!membership.probation,   // REP6: on probation - the next review below -10 expels
       owed: standingOwedOf(guild.factionId),   // STANDING-WORDS
       warnings: entity?.factionRep ? reviewWarnings(entity, guild, activeMemberships(entity), entity.factionRep, { now, online }) : [],
+    });
+  }
+  // BUNNY-GUILDS: the guilds of Bunnyfall (the Adventurers, the Bards' College ...) are kept in their own book, which the
+  // vanilla walk above never reads - so the Standing page and the sheet showed none of them. One row each, the same shape.
+  for (const g of BUNNY_GUILDS) {
+    const m = bunnyMembershipOf(g.key);
+    if (!m) continue;
+    out.push({
+      affiliation: g.name,
+      title: g.ranks[Math.min(g.ranks.length - 1, Math.max(0, m.rank))] ?? '',
+      rep: bunnyRepOf(entity, g.key),
+      factionId: g.factionId,
+      probation: false,
+      owed: standingOwedOf(g.factionId),
+      warnings: [],
     });
   }
   return out;
