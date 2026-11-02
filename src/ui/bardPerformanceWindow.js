@@ -12,7 +12,8 @@
 
 import { drawText, measureText } from './text.js';
 import { t } from '../systems/textManager.js';
-import { tuneFromMidi, houseTune, chartOf, LANES, MIDI_FILE_MAX } from '../net/bardTune.js';
+import { tuneFromMidi, houseTune, chartOf, encodeTune, validTune, LANES, MIDI_FILE_MAX } from '../net/bardTune.js';
+import { appStorage } from '../systems/appStorage.js';
 
 /** What a performance pays by: the College's notes (systems/guild/bunnyServices.js BARD_NOTE_GOLD). */
 export const NOTES = 6;
@@ -38,6 +39,15 @@ const KEYS = ['D', 'F', 'J', 'K'];
 const LANE_W = 34;   // native pixels
 const LANE_OF = new Map(KEYS.flatMap((k, i) => [[`char:${k}`, i], [`char:${k.toLowerCase()}`, i]]));
 const STOP = new Set(['Escape', 'back']);
+
+const LAST_TUNE_KEY = 'bunnyfall.bardTune';
+/** The tune this player last picked, kept across performances and sessions (the compact form, a few KB), or null. */
+export function lastTune() {
+  try { const raw = appStorage()?.getItem(LAST_TUNE_KEY); return raw ? validTune(JSON.parse(raw)) : null; } catch { return null; }
+}
+function rememberTune(/** @type {any} */ tune) {
+  try { appStorage()?.setItem(LAST_TUNE_KEY, JSON.stringify(encodeTune(tune))); } catch { /* storage full or off: the tune is simply not kept */ }
+}
 
 /** Ask the player's computer for a MIDI file: { name, bytes }, null for none, { error } for one we will not read. */
 export function pickMidiFile() {
@@ -78,6 +88,7 @@ export class BardPerformanceWindow {
     /** @type {number[]} */ this.flash = [0, 0, 0, 0];
     /** @type {string | null} */ this.notice = null;
     this.loading = false;
+    /** @type {any} */ this.last = lastTune();   // the tune picked last time: offered again, so a file is chosen once
     /** @type {string[] | null} */ this.after = null;
     this.keepAt = 0;
     this.accuracy = 0;
@@ -101,6 +112,8 @@ export class BardPerformanceWindow {
     if (got.error) { this.notice = got.error === 'big' ? t('bguild.bards.tooBig', 'That file is too big for a tavern tune.') : t('bguild.bards.unreadable', 'That file could not be read.'); return; }
     const tune = tuneFromMidi(got.bytes, got.name);
     if (!tune) { this.notice = t('bguild.bards.notMidi', 'That is not a MIDI tune the College can play.'); return; }
+    rememberTune(tune);
+    this.last = tune;
     this._load(tune);
   }
 
@@ -166,6 +179,7 @@ export class BardPerformanceWindow {
     if (this.phase === 'after') { this.done = true; return; }
     if (this.phase === 'pick') {
       if (code === 'char:f' || code === 'char:F' || code === 'confirm') void this._choose();
+      else if ((code === 'char:l' || code === 'char:L') && this.last) this._load(this.last);
       else if (code === 'char:h' || code === 'char:H') this._load(houseTune());
       return;
     }
@@ -203,7 +217,9 @@ export class BardPerformanceWindow {
     centred(this.title, y + 8 * s);
     if (this.phase === 'pick' || this.phase === 'ready') {
       const lines = this.phase === 'pick'
-        ? [t('bguild.bards.pickHelp1', 'F - choose a MIDI file from your computer'), t('bguild.bards.pickHelp2', 'H - play the house jig'), t('bguild.bards.pickHelp3', 'Everyone in the tavern will hear it. Esc cancels.')]
+        ? [t('bguild.bards.pickHelp1', 'F - choose a MIDI file from your computer'),
+          this.last ? t('bguild.bards.pickLast', 'L - play your last tune, {title}', { title: this.last.title }) : t('bguild.bards.pickHelp2', 'H - play the house jig'),
+          this.last ? t('bguild.bards.pickHelp2', 'H - play the house jig') : t('bguild.bards.pickHelp3', 'Everyone in the tavern will hear it. Esc cancels.')]
         : [this.tune.title, t('bguild.bards.ready', '{n} notes to strike. D F J K, or click the lanes.', { n: this.chart.length }), t('bguild.bards.begin', 'Enter or click to begin. F picks another tune.')];
       lines.forEach((l, i) => centred(l, y + (48 + i * 16) * s, i === 0 && this.phase === 'ready' ? PERFECT : i === 2 ? DIM : TEXT));
       if (this.notice) centred(this.notice, y + 120 * s, MISS);
