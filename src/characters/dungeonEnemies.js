@@ -119,6 +119,19 @@ export const dungeonPlace = (dfLocation) => ({
   dungeon: { unknown2: dfLocation.dungeon.recordElement.header.unknown2, region: dfLocation.regionIndex },
 });
 
+/** Stable per-marker seed shared by every peer building this dungeon. */
+function markerSpawnSeed(locationId, marker, blockIndex) {
+  const x = Math.trunc((Number(marker.x) || 0) * 1000);
+  const y = Math.trunc((Number(marker.rawY) || 0) * 1000);
+  const z = Math.trunc((Number(marker.z) || 0) * 1000);
+  return (((locationId ?? 0) * 31)
+    ^ ((marker.loadID ?? 0) + 7919 * (blockIndex + 1))
+    ^ Math.imul(x, 73856093)
+    ^ Math.imul(y, 19349663)
+    ^ Math.imul(z, 83492791)
+    ^ (marker.flags ?? 0)) >>> 0;
+}
+
 /** Deterministic fallback that rejects over-level entries in modded tables too. */
 function safeBandedPick(table, playerLevel, seed) {
   if (!Array.isArray(table) || !table.length) return null;
