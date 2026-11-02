@@ -2245,7 +2245,7 @@ function equippedList() {
   // DFMOD1-E: the avatar recomposes only when this window asks - so it asks when the attached texture mods changed
   // since the composite was made (a boot whose mods registered after the doll's first compose, an add or a remove).
   // The refresh repaints once when it lands, and the fresh composite is no longer stale, so this cannot loop.
-  const showPaperdoll = getPref('graphics.paperdoll') !== false;
+  const showPaperdoll = true;   // BUNNYFALL PAPERDOLL-SETTINGS: the inventory's figure is always shown
   if (showPaperdoll && paperDollStale()) refreshFigure();
   const figure = showPaperdoll ? modelFigure() : null;
   const dollUrl = showPaperdoll && !figure ? paperDollDataUrl(paperDollPixels(), { scale: 4 }) : null;
