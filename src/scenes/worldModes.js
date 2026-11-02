@@ -386,6 +386,7 @@ import { guildHallPrice, GUILD_HALL_ENTRY_WORDS } from '../net/hallLaw.js';   //
 import { SEAT_HALL_DECOR_CAP, SEAT_HALL_CLEAR_M, SEAT_HALL_TEXT } from '../net/townSeatLaw.js';   // SEAT-HALL: the palace as the holder's hall
 import { crownRulerFactionId, crownRulerHere, crownHallPlan, CROWN_HALL_TEXT } from '../systems/crownHall.js';   // CROWN-HALL: the castle as the crown's holder's hall
 import { hallPlaquePlan, PLAQUE_MODEL, PLAQUE_BARE_MODEL } from '../world/arena/arenaPlaques.js';   // ARENA5: the Hall of Champions' plaque wall
+import { bunnyHallInterior } from './bunnyHallDress.js';   // BUNNY-GUILDS: a hall's arms on the wall behind its clerk
 import { bannerKeyOf } from './hallBanners.js';   // CROWN-HALL: the throne room's cloth, keyed as the street's
 import { HOME_ENTRIES, homePriceOk, homeOnlinePrice, rentCost, rentDaysLeft } from '../net/homeLaw.js';   // HOME-PRICE: what a home costs online
 // HOME-RENT: a home's rooms, rented at its door and offered, priced and collected in its owner's decorator
@@ -2016,6 +2017,7 @@ export function createWorldModes(host) {
    *  after), the glass the last room met forgotten (the next building's first frame cropped to it). */
   const dropViewOut = () => { renderer.releaseOutsideView?.(); viewOut.drawn = false; renderer.takeGlassRect?.(); };
   let interiorCtx = null;
+  let interiorHallBanners = [];   // BUNNY-GUILDS: this hall's arms (scenes/bunnyHallDress.js), hung once a visit
   // WORLD6a (Mac: "Lets tackle #1 next"): THE BUILDING IS A WORLD ROOM. The live wiring the pure half
   // (world/interior/interiorShared.js) is handed: this interior's key (the relay room's own spelling), the context's stamp
   // (AUDIT WORLD B1 - its own memory back from a reconnect is refused), the containers the room has opened, the said-
@@ -8702,6 +8704,7 @@ export function createWorldModes(host) {
       exitReturn = { siblings };
       exteriorDoor = hit.door;   // IS1: SetExteriorDoors - the save's way back in
       interiorCtx = ctx;
+      interiorHallBanners = bunnyHallInterior(ctx.people, building ? bunnyGuildOfFaction(building.factionId)?.key : null, (o, d, m) => ctx.collider?.raycast?.(o, d, m) ?? Infinity);
       // AUDIT 68 S23-failed-entry-stale-building: the identity and the
       // three PlayerActivate.cs:1120-1122 latches, committed with the
       // context and not before it.
@@ -9211,7 +9214,7 @@ export function createWorldModes(host) {
     interiorHitEffects.clear();   // HE1: a splash mid-animation must not follow the player into the next building
     interiorBloodMarks.clear();   // BLOOD1a (HARD1): ...and neither do the marks. Named HERE rather than left to ride the line above: the ring is its own binding, so its end is its own line, which is what makes the ownership auditable at every teardown path.
     interiorCamps.destroyAll(); interiorHearths.length = 0;   // HEARTH1: this room's fires are this room's - one building's hearth is not the next one's
-    interiorCtx = null;
+    interiorCtx = null; interiorHallBanners = [];
     interiorBuilding = null;   // E2: the identity + overlay leave with the interior
     standFromChair();   // SIT1: nor on a chair
     standFromCardTable();   // CARDS2: and nobody stays seated in a room they left - CARDS4: the table cashed out
@@ -11167,6 +11170,7 @@ export function createWorldModes(host) {
     } finally { renderer.flushCharacterSpriteBatch?.(); }   // MWNPC2: every body's picture in one bind of the sprite target
     if (interiorCtx.staticBatch) renderer.drawMesh(interiorCtx.staticBatch, BATCH_IDENTITY, null);   // PERF6: the room's static models, one call per texture
     for (const d of interiorCtx.drawList) if (!d._batched) renderer.drawMesh(d.mesh, d.matrix, interiorCtx.texRemap);
+    if (interiorHallBanners.length) host.drawDungeonBanners?.({ proj, view, eye: mwv.eye, banners: interiorHallBanners });   // BUNNY-GUILDS: the hall's arms - opaque, before the flats
     // WM4b: the mill's machinery turns at Kamer's rate, in here too.
     for (const r of interiorCtx.rotors) {
       // #33: the rotors are movers too - the DRAW below still paints them
