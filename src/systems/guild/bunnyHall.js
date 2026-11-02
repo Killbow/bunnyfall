@@ -8,7 +8,7 @@
 import { bunnyGuildOfKey, bunnyGuildOfFaction } from './bunnyGuilds.js';
 import { isChildNPCTexture } from '../../characters/staticNpc.js';
 import { t } from '../textManager.js';
-import { bunnyMembershipOf, bunnyRepOf, joinBunnyGuild, leaveBunnyGuild, reviewBunnyRank, BUNNY_JOIN_REP, BUNNY_RANK_CEILING } from './bunnyMembership.js';
+import { bunnyMembershipOf, bunnyRepOf, joinBunnyGuild, leaveBunnyGuild, reviewBunnyRank, bunnyJoinRep, BUNNY_RANK_CEILING } from './bunnyMembership.js';
 import { RANK_REQ_REPUTATION } from './guildFactions.js';
 
 /**
@@ -103,7 +103,7 @@ export function openBunnyHall(key, entity, show, services = null, note = null) {
         ],
       })).catch(() => {});
     } });
-  } else if (rep >= BUNNY_JOIN_REP) {
+  } else if (rep >= bunnyJoinRep(key)) {
     lines.push(t('bguild.hall.invite', 'We are always looking for new members. Will you join us?'));
     options.push({ code: 'KeyJ', label: t('bguild.hall.join', 'J - Join the guild'), action: () => {
       joinBunnyGuild(entity, key);

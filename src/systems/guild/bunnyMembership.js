@@ -23,6 +23,9 @@ export const BUNNY_GUILDS_VENDOR = 'BunnyGuilds';
 export const BUNNY_RANK_CEILING = 7;
 /** The reputation a guild takes a new member at (rank 0's need). */
 export const BUNNY_JOIN_REP = RANK_REQ_REPUTATION[0];
+/** The standing a guild asks to take a member: the Bards' College takes anyone (BUNNYFALL: a carriage trip once wore a stranger's
+ *  standing below zero before they could join, and a bard earns standing only by playing, which only a member may do). */
+export const bunnyJoinRep = (/** @type {string} */ key) => (key === 'bards' ? -Infinity : BUNNY_JOIN_REP);
 
 /** @typedef {{ rank: number, joinedAt: number }} BunnyMembership */
 /** @type {Record<string, BunnyMembership>} */
@@ -87,7 +90,7 @@ export const bunnyRepOf = (/** @type {any} */ entity, /** @type {string} */ key)
 export function joinBunnyGuild(/** @type {any} */ entity, /** @type {string} */ key, nowS = Math.floor(Date.now() / 1000)) {
   if (!bunnyGuildOfKey(key)) return 'refused';
   if (book[key]) return 'already';
-  if (bunnyRepOf(entity, key) < BUNNY_JOIN_REP) return 'refused';
+  if (bunnyRepOf(entity, key) < bunnyJoinRep(key)) return 'refused';
   book[key] = { rank: 0, joinedAt: nowS };
   if (key === 'cartographers') marks.surveyed = discoveredLocationCount();   // Phase 2b: a new member's notes begin now
   return 'joined';
