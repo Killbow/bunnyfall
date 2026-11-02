@@ -105,6 +105,7 @@ import {
 } from '../../systems/inventorySession.js';
 import { isEquipped, equipItem, unequipSlot, isForbiddenEquip, isBrokenItem, EQUIP_SLOTS, FORBIDDEN_EQUIPMENT_TEXT_ID, ITEM_BROKEN_TEXT_ID, equipDelaySnapshot, billEquipDelayOnClose } from '../../systems/equip.js';   // S23; FX1 (F128): the per-visit swap-pause clock
 import { drawPaperDoll, refreshPaperDoll, slotAtPaperDoll, ARMOR_LABEL_POS } from '../paperDoll.js';
+import { getPref } from '../../systems/uiPrefs.js';   // GRAPHICS-PAPERDOLL
 import { LIST_SLOTS, scrollerHit, applyScroll, makeIconDrawer, preloadIconRecord, drawStackLabel, safeScrollIndex, beginScrollerDrag, dragScrollerIndex,   // MAC-N2: the thumb drag
   preloadScrollerArrowArt, drawScrollerArrows, drawScrollerThumb, playScrollerArrowClick,
   makeSlotToolTip, itemBackgroundColour, drawCellBackground } from '../item/itemScroller.js';
@@ -1267,7 +1268,7 @@ export class NativeInventoryWindow {
    *  and the rail - was never given a ToolTip, so it answers null. */
   _tipItemAt(vx, vy) {
     const R = INV_RECTS;
-    if (inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
+    if (getPref('graphics.paperdoll') !== false && inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
       const slot = slotAtPaperDoll(Math.floor(vx - R.paperDoll[0]), Math.floor(vy - R.paperDoll[1]));
       return { item: (slot != null ? this.hooks.entity.equip?.slots?.[slot] : null) ?? null, books: false };
     }
@@ -1449,7 +1450,7 @@ export class NativeInventoryWindow {
     // resolves to no index and an empty slot cannot be reached - the
     // panel is left alone rather than cleared, exactly as the click
     // arm treats the same miss.
-    if (inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
+    if (getPref('graphics.paperdoll') !== false && inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
       const slot = slotAtPaperDoll(Math.floor(vx - R.paperDoll[0]), Math.floor(vy - R.paperDoll[1]));
       const worn = slot != null ? this.hooks.entity.equip?.slots?.[slot] : null;
       if (worn) { this.infoItem = worn; this.infoGold = false; }
@@ -1501,7 +1502,7 @@ export class NativeInventoryWindow {
    *  doll's refresh has anything to do here. */
   _middleClick(vx, vy) {
     const R = INV_RECTS;
-    if (inRect(R.paperDoll, vx, vy)) {
+    if (getPref('graphics.paperdoll') !== false && inRect(R.paperDoll, vx, vy)) {
       audio.playOneShot(SOUND.ButtonClick, 1);   // PaperDoll_GetItem (:1920)
       if (!this.hooks.entity) return true;
       const slot = slotAtPaperDoll(Math.floor(vx - R.paperDoll[0]), Math.floor(vy - R.paperDoll[1]));
@@ -1607,7 +1608,7 @@ export class NativeInventoryWindow {
     }
     // U8g: the paperdoll takes clicks - Remove unequips the topmost
     // item layer under the point (GetEquipIndex), Info pops its panel
-    if (inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
+    if (getPref('graphics.paperdoll') !== false && inRect(R.paperDoll, vx, vy) && this.hooks.entity) {
       const slot = slotAtPaperDoll(Math.floor(vx - R.paperDoll[0]), Math.floor(vy - R.paperDoll[1]));
       const table = this.hooks.entity.equip?.slots;
       if (slot != null && table?.[slot]) {
@@ -1712,8 +1713,9 @@ export class NativeInventoryWindow {
     // (RefreshArmourValues - (100 - av)/5 per body part, plus the
     // enchantment armorMod; the drained/increased label COLOURS are
     // still unported - F164 tracks the stat-sheet half of that law)
-    drawPaperDoll(renderer, m, this.hooks.entity ?? { }, 49, 13);
-    const av = this.hooks.entity?.armorValues;
+    const showPaperdoll = getPref('graphics.paperdoll') !== false;
+    if (showPaperdoll) drawPaperDoll(renderer, m, this.hooks.entity ?? { }, 49, 13);
+    const av = showPaperdoll ? this.hooks.entity?.armorValues : null;
     // F122: the same armorMod for every body part - RefreshArmourValues
     // recomputes it inside the loop but off entity-wide channels.
     if (av) ARMOR_LABEL_POS.forEach(([lx, ly], i) =>

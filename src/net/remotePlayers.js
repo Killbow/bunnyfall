@@ -1207,7 +1207,7 @@ export class RemotePlayers {
     // DOLL-BACK: seen from behind, the doll's back - its side held until the turn is past DOLL_BACK_IN / DOLL_BACK_OUT
     const doll0 = this._dolls.get(key);
     const was = entry?.kind === 'doll' && entry.key === key ? !!entry.backSide : false;
-    const backSide = !!doll0?.backRec && dollSeenFromBehind(peerBodyYaw(peer.shown), f, eye, was);
+    const backSide = getPref('graphics.paperdollback') !== false && !!doll0?.backRec && dollSeenFromBehind(peerBodyYaw(peer.shown), f, eye, was);
     if (entry && (entry.kind === 'mobile' || entry.key !== key || !!entry.backSide !== backSide)) { this.renderer.destroyBillboardBatch?.(entry.batch); this._batches.delete(peer.id); entry = null; }
     if (!entry) {
       const doll = this._dolls.get(key);
