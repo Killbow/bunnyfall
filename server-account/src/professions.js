@@ -79,7 +79,7 @@ import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '.
 import { signingKey } from './signing.js';
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
-  basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, WITNESS, material,
+  basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, groundWitnessed, climateOk, WITNESS, material,
   regionWritTable, courtWrits, VEIN_TABLES, vein, boulder, dungeonVein, dungeonOk, veinYield, boulderYield, VEIN_YIELD,
   BOULDER_YIELD, veinGem, veinSlots, treeSlots, WOOD_TABLES, tree, TREE_YIELD, treeYield, treeFinds, hideYield, bodyFinds,
   haulYield, haulFinds, haulAtSea,   // PROF8
@@ -1752,7 +1752,7 @@ async function activeBefore(db, dayStartS) {
  * its band (npcChapterLaw.js hallWritCountIn), the week's Turning settled first (`zero` the week Season 0 began, or null).
  * AUDIT CHAP3 S2: the hall writs and their Turning only while the Chapters are not 'off' (`open`, CHAPTERS_OPEN).
  */
-async function postWrits(db, day, region, nowS, zero = null, open = 'off') {
+async function postWrits(db, day, region, nowS, zero = null, open = 'off', hint = null) {
   const courtDone = !!(await db.prepare('SELECT 1 FROM writ_days WHERE day = ?1 AND region = ?2').bind(day, region).first());
   // CHAP2a: and the region's chapters' hall writs, written down once a day beside the Court's (hall_writ_days) - none
   // while the region has no witnessed chapter, so a chapter confirmed later in the day posts that day
@@ -1765,7 +1765,12 @@ async function postWrits(db, day, region, nowS, zero = null, open = 'off') {
   // no hall_writ_days, and its every board read re-read the region's witnessed ground and the week's active accounts
   const chapters = hallDone ? [] : await regionChapters(db, region, nowS * 1000);
   if (courtDone && !chapters.length) return;
-  const table = regionWritTable(region, await regionGround(db, region), daySeason(day));
+  const ground = await regionGround(db, region);
+  // BUNNYFALL WRIT-GEN: with witnessed ground off, a board read in a town of this region is itself the ground - its
+  // climate, as the reader's own map gives it - so the Court posts on a region nobody has worked yet. The first reader of
+  // the day sets the day's table; a region with worked ground is left to that ground alone.
+  if (!groundWitnessed() && !ground.length && climateOk(hint)) ground.push({ climate: hint, confirmed: true });
+  const table = regionWritTable(region, ground, daySeason(day));
   if (!table.length) return;
   const active = await activeBefore(db, day * DAY_S);
   const expires = (day + 1) * DAY_S;
@@ -1866,7 +1871,7 @@ async function hiddenMemberships(db, player, character) {
  *  or taken, and the account's day - the one allowance both share. CHAP3a: and the reader's own writ for each of its
  *  guilds' chapters here (kind `member`, shown to its owner alone), and its account's Merit in them this week. CHAP3b:
  *  and the region's chapters' Strength and band, the underworld's to its members alone, after the Turnings due. */
-export async function listWrits({ db, nowS }, player, env, { character, region } = {}) {
+export async function listWrits({ db, nowS }, player, env, { character, region, climate = null } = {}) {
   const refused = asks(player, { character, needRid: false }) ?? shut(player, env);
   if (refused) return refused;
   if (!regionOk(region)) return { error: 'bad-region' };
@@ -1874,7 +1879,7 @@ export async function listWrits({ db, nowS }, player, env, { character, region }
   const halls = chaptersOpenFor(player, env);   // CHAP2a: a chapter's writs only where the Roll is open to the account
   const zero = seasonZeroOf(env?.SEASON_ZERO_WEEK);
   if (halls) await settleChaptersDue(db, nowS, zero, env?.CHAPTERS_OPEN);   // CHAP3b: the chapters' Strength as this week's Turning left it
-  await postWrits(db, day, region, nowS, zero, env?.CHAPTERS_OPEN);   // AUDIT CHAP3 S2: hall writs only while the Chapters are not 'off'
+  await postWrits(db, day, region, nowS, zero, env?.CHAPTERS_OPEN, climate);   // AUDIT CHAP3 S2: hall writs only while the Chapters are not 'off'; WRIT-GEN: the reader's town's climate
   const members = halls ? await membersOf(db, player.id, character) : [];   // CHAP3a: the reader's guilds on its Roll
   await postMemberWrits(db, day, region, nowS, character, members, zero);
   // CHAP3a: a member's own writ to its owner alone - never another's, never another character's of the account - and only

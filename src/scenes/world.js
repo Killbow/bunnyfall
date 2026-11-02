@@ -27495,6 +27495,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const seatAt = seatHere(town.mapId);   // SEAT1b (Seats-Arc 7.9): the Seat tab, at a seat town's board alone
     const work = profBook?.state.open === true && Number.isInteger(region) ? {
       book: profBook, region, regionName: REGION_NAMES[region] ?? 'the region', countName: materialCountLabel,
+      climate: (() => { try { return maps.getClimateIndex(town.px, town.py); } catch { return null; } })(),   // BUNNYFALL WRIT-GEN: the town's ground, so a region nobody has worked still posts its writs
       onTaken: (r) => profWritTaken(r),
       crafts: craftWrits,   // CRAFT-WRITS
       sayLate: (text) => chatNotice(text),   // AUDIT CHAP3 C5: a writ filled after the board closed says its line in the chat

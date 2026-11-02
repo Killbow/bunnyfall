@@ -1077,7 +1077,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** AUDIT 31 B7: the Work list let go - an act it shows was answered (the writs' book's, through the Work tab). */
     forgetWrits() { writCache.clear(); writGen++; },
     /** A region's Court writs through a minute's cache; `force` reads now. Answers `{ data, error, stale }`. */
-    async writs(region, { force = false } = {}) {
+    async writs(region, { force = false, climate = null } = {}) {
       const c = character();
       // AUDIT 31 B7: the list is this account's and character's (PROF6's "yours", its guild, its balance) - kept per slot
       const owner = slot();
@@ -1085,9 +1085,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       const hit = writCache.get(wk);
       if (!force && hit && now() - hit.at < PROF_WRITS_CACHE_MS) return { data: hit.data, error: hit.error, stale: false };
       const g = writGen;
-      const r = c ? await ask(() => door.writs(c, region)) : { ok: false, error: 'prof-character' };
+      const r = c ? await ask(() => door.writs(c, region, climate)) : { ok: false, error: 'prof-character' };
       if (owner !== slot()) return { data: null, error: 'elsewhere', stale: true };
-      if (g !== writGen) return book.writs(region, { force: true });   // an act answered while it was read: read again
+      if (g !== writGen) return book.writs(region, { force: true, climate });   // an act answered while it was read: read again
       if (r?.ok) {
         writCache.set(wk, { at: now(), data: r.data, error: null });
         if (r.data?.today) state.writs = { today: r.data.today.filled | 0, max: r.data.today.max | 0 };

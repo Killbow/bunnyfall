@@ -2379,7 +2379,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
     salvage: (character, pieces, rid) => post('/v1/prof/salvage', { character, pieces, rid }),   // BUNNYFALL: found gear into materials
     upgrade: (character, recipe, rid) => post('/v1/prof/upgrade', { character, recipe, rid }),   // BUNNYFALL: a found piece one metal up
-    writs: (character, region) => post('/v1/writs/list', { character, region }),
+    writs: (character, region, climate = null) => post('/v1/writs/list', { character, region, ...(Number.isSafeInteger(climate) ? { climate } : {}) }),   // BUNNYFALL WRIT-GEN: the board town's climate
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),
     craftWrit: (character, id, rid, realm, pieces = null) => post('/v1/writs/craft', { character, id, rid, realm, ...(pieces ? { pieces } : {}) }),   // CRAFT-WRITS: a crafting writ filled - its goods out of the realm record where it stands
     motherlodes: (character) => post('/v1/prof/motherlodes', { character }),   // PROF2b: today's three (a strike rides `harvest`)
