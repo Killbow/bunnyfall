@@ -97,6 +97,10 @@ export { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../systems/healCurse.js';
 import { HEAL_CURSE_ROW, HEAL_CURSE_KEY } from '../systems/healCurse.js';
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 const healCurseRect = (reforge) => Object.freeze([REFORGE_RECT[0], REFORGE_RECT[1] + (reforge ? REFORGE_RECT[3] + 2 : 0), REFORGE_RECT[2], REFORGE_RECT[3]]);
+/** BUNNYFALL GUILD-LEAVE: a member's Leave row (systems/guild/guildLeave.js), the Reforge's shape, under every other port row. */
+export { LEAVE_ROW, LEAVE_KEY } from '../systems/guild/guildLeave.js';
+import { LEAVE_ROW, LEAVE_KEY } from '../systems/guild/guildLeave.js';
+const leaveRect = (above) => Object.freeze([REFORGE_RECT[0], REFORGE_RECT[1] + above * (REFORGE_RECT[3] + 2), REFORGE_RECT[2], REFORGE_RECT[3]]);
 
 let _art = null;
 /** BOX1: the test seam every other art-gated window carries. */
@@ -164,6 +168,18 @@ export class GuildServiceWindow {
   _close() { this.done = true; noticeRelease(this); this.hooks.onClose?.(); }
 
   /** HEAL-CURSE: the temple's Heal Curse row - its offer, or its refusal, a box on the popup. */
+  /** BUNNYFALL GUILD-LEAVE: the member's Leave row - its Yes/No box on the popup. */
+  _leave() {
+    const r = this.hooks.leave?.();
+    if (isServiceBox(r)) this._push({ ...r, closesWindow: !!r.closesWindow });
+  }
+
+  /** How many port rows stand above the Leave row. */
+  _leaveAbove() { return (this.hooks.reforge || this.hooks.lift ? 1 : 0) + (this.hooks.healCurse ? 1 : 0); }
+
+  /** Whether the Leave row is shown: a member's alone, when the host offers it. */
+  _leaves() { return !!this.hooks.leave && !!this.hooks.member(); }
+
   _healCurse() {
     const r = this.hooks.healCurse?.();
     if (isServiceBox(r)) this._push({ ...r, closesWindow: !!r.closesWindow });
@@ -226,6 +242,7 @@ export class GuildServiceWindow {
     const healKey = !!this.hooks.healCurse && code === HEAL_CURSE_KEY;   // HEAL-CURSE: the temple's second row, its key H - ahead of every other, and the one sound below (AUDIT 26 D1)
     const reforgeKey = !!this.hooks.reforge && code === REFORGE_KEY;   // LOOT9: the Reforge's row, its key F - the one sound below
     const liftKey = !this.hooks.reforge && !!this.hooks.lift && code === LIFT_KEY;   // LOOT16: the temple's, its key L - after DFU's own (Teleport's L is another NPC's)
+    if (this._leaves() && code === LEAVE_KEY) { audio.playOneShot(SOUND.ButtonClick, 1); this._leave(); return; }   // BUNNYFALL GUILD-LEAVE
     const hit = healKey ? 'HealCurse' : reforgeKey ? 'Reforge' : firstHotkey(buttons, code, e) ?? (liftKey ? 'Lift' : null);
     if (hit === null) return;
     // F141 on the KEYBOARD side too: Talk/Service/Exit each play
@@ -278,6 +295,7 @@ export class GuildServiceWindow {
     if (this.hooks.reforge && inRect(REFORGE_RECT, vx, vy)) { audio.playOneShot(SOUND.ButtonClick, 1); this._reforge(); return true; }   // LOOT9
     if (this.hooks.healCurse && inRect(healCurseRect(!!this.hooks.reforge || !!this.hooks.lift), vx, vy)) { audio.playOneShot(SOUND.ButtonClick, 1); this._healCurse(); return true; }   // HEAL-CURSE
     if (!this.hooks.reforge && this.hooks.lift && inRect(REFORGE_RECT, vx, vy)) { audio.playOneShot(SOUND.ButtonClick, 1); this._lift(); return true; }   // LOOT16: the temple's, in its place
+    if (this._leaves() && inRect(leaveRect(this._leaveAbove()), vx, vy)) { audio.playOneShot(SOUND.ButtonClick, 1); this._leave(); return true; }   // BUNNYFALL GUILD-LEAVE
     return false;
   }
 
@@ -315,6 +333,11 @@ export class GuildServiceWindow {
       const [hx, hy, hw, hh] = healCurseRect(!!this.hooks.reforge || !!this.hooks.lift);
       drawRect(renderer, m, PANEL_X + hx, PANEL_Y + hy, hw, hh, REFORGE_ROW_BG);
       shadowText(renderer, font, HEAL_CURSE_ROW, m, PANEL_X + hx, PANEL_Y + hy + 2, { align: 'center', w: hw });
+    }
+    if (this._leaves()) {   // BUNNYFALL GUILD-LEAVE: the member's Leave row, under the rest
+      const [lx, ly, lw, lh] = leaveRect(this._leaveAbove());
+      drawRect(renderer, m, PANEL_X + lx, PANEL_Y + ly, lw, lh, REFORGE_ROW_BG);
+      shadowText(renderer, font, LEAVE_ROW, m, PANEL_X + lx, PANEL_Y + ly + 2, { align: 'center', w: lw });
     }
     const top = this.top;
     if (noticeFrame(this, top && top.buttons !== 'YesNo' ? latchBoxRows(top, this.hooks.rows) : null)) { this._box = null; return; }   // ENH-NOTICE2

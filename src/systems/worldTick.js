@@ -1028,7 +1028,10 @@ export function runCalendarArms(entity, lastMinutes, nowMinutes, { rolls = Math.
   const shortWaits = sharedClockOn();   // REST8: online the curse's quests come on the short wait, not 38 and 84 days
   for (let i = lastMinutes; i < nowMinutes; i++) {
     if (ownArms && i % NORMALIZE_INTERVAL_MINUTES === 0 && !entity.preventNormalizingReputations) {
-      normalizeReputations(entity, entity.factionRep ?? null);
+      // BUNNYFALL TRAVEL-STANDING: the walk pays its recovery half alone, never wearing a standing above zero down. A
+      // carriage or a ship spends the character's own days, so a long trip that crossed a 112-day boundary took a point
+      // off every guild and temple the player had earned. Standing is earned and lost by what a player does, not by the road.
+      normalizeReputations(entity, entity.factionRep ?? null, { recoveryOnly: true });
     } else if (ownArms && i % RECOVERY_INTERVAL_MINUTES === 0 && !entity.preventNormalizingReputations) {
       // REP4 (Mac: "Earn it + faster drift"): between DFU's 112-day walks, a standing below zero recovers a point every
       // seven days - the recovery half alone (a positive standing wears down on DFU's walk only). On a 112-day boundary

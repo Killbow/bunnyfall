@@ -239,6 +239,7 @@ import { mintCondition, setItemFields, itemValueOf } from '../systems/item/itemT
 import { npcServiceKind, freeHealing, freeMagickaRecharge, avoidDeath, avoidDeathText, DEITY_DESCRIPTIONS } from '../systems/guild/guildServices.js';   // MACRO-4: %gdd
 import { createGuildForGroup, ORDERS } from '../systems/guild/guildVariants.js';
 import { membershipOf, joinGuild, joinDecision, activeMemberships, membershipKey } from '../systems/guild/guilds.js';   // V2e: GuildManager.Memberships, the per-read vampire book pick; CHAP4b: a row's key, for the seated book
+import { leaveGuildBox } from '../systems/guild/guildLeave.js';   // BUNNYFALL GUILD-LEAVE
 import { ensureFactionRep } from '../systems/faction/factionRep.js';
 import { dateFromClassicMinutes, dateString, dayOfYearFromMinutes, MINUTES_PER_DAY, DAYS_PER_MONTH, isDayFromMinutes } from '../systems/gameDate.js';   // RR1: WorldTime.Now.IsDay   // B2: the loan due date   // H1: the month the houses-for-sale list turns over on
 import { serviceDestination } from '../systems/guild/guildServiceFlow.js';
@@ -6211,6 +6212,7 @@ export function createWorldModes(host) {
       // HEAL-CURSE (the owner: "Add a button to the temple services under heal disease named heal curse"): the Cure
       // Disease priest's second row - the curse's offer as a Yes/No box, its rite paid and done on the Yes
       healCurse: service === 'CureDisease' ? () => shutBox() ?? healCurseBox() : null,
+      leave: () => leaveGuildBox(memberships, guild, orderName ?? t('guild.leave.this', 'this guild')),   // BUNNYFALL GUILD-LEAVE: a member's way out
     });  win = enhancedWindow(win, 'guild');   // PORT4: the enhanced skin's face; the classic window unchanged
     mountServiceWindow(win);
   }
