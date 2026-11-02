@@ -5,7 +5,7 @@
 // roll that counts). Crafted pieces (a `provenance`) keep their own door: the Enchanting Station's disenchant.
 import { CARPENTRY_RECIPES } from './recipeLaw.js';
 import { temperRecipeOf } from './temperLaw.js';
-import { trackOf } from './professionLaw.js';
+import { trackOf, xpForRank, rankOfXp, craftXpCap, JOURNEYMAN_RANK, PROFESSIONS } from './professionLaw.js';
 
 /** The share of a recipe's inputs a salvage gives back. Always under 1, so craft-then-salvage never profits. */
 export const GEAR_SALVAGE_SHARE = 0.4;
@@ -90,6 +90,29 @@ export function rollSalvage(descriptors, rand) {
     xp[track] = (xp[track] ?? 0) + SALVAGE_XP_PER_TIER * Math.max(1, r.tier ?? 1);
   }
   return { yields: [...total].map(([key, n]) => ({ key, n })), xp, broken };
+}
+
+/** The XP a salvage of these pieces pays each craft - the roll's own, with no dice: it is the same whatever the rounding. */
+export const salvageXpOf = (/** @type {any[]} */ descriptors) => rollSalvage(descriptors, () => 0).xp;
+
+/**
+ * THE SPECIALISATION A SALVAGE MUST ASK ABOUT (PROF0 3.2): a character raises at most two crafts past Journeyman (rank 50),
+ * and a craft that crosses it takes one of the two for good - the others are held at 50 from then on. Salvage pays crafting
+ * XP, so a few pieces could carry a craft across that line with nobody choosing it. This names the crafts a salvage paying
+ * `xp` would carry across for the first time while the limit still lets it: those need the player's word first.
+ * `held` is each crafting track's XP as the character stands. Pure; the service decides on it, and the pack asks by it.
+ * @param {Record<string, number>} xp @param {Record<string, number>} held
+ * @returns {string[]}
+ */
+export function salvageCommits(xp, held) {
+  const line = xpForRank(JOURNEYMAN_RANK + 1);
+  const ranks = Object.fromEntries(PROFESSIONS.filter((p) => p.kind === 'crafting').map((p) => [p.id, rankOfXp(Number(held?.[p.id]) || 0)]));
+  return Object.entries(xp ?? {})
+    .filter(([track, gain]) => {
+      const now = Number(held?.[track]) || 0;
+      return now < line && now + gain >= line && craftXpCap(track, ranks) >= line;
+    })
+    .map(([track]) => track);
 }
 
 /** The preview the pack shows: each material's average over the pieces, to one decimal. */

@@ -566,6 +566,7 @@ const REFUSAL_WORDS = {
   'prof-upgrade': () => 'That piece cannot move up to another metal.',   // BUNNYFALL
   'prof-no-salvage': () => 'Nothing there breaks into materials.',   // BUNNYFALL
   'prof-salvage': () => 'The salvage did not go through. Nothing was broken.',   // BUNNYFALL
+  'prof-salvage-commit': () => 'That salvage would take a craft past Journeyman. Nothing was broken; confirm it to go ahead.',   // BUNNYFALL SPEC-SAFE
   'prof-temper-stale': () => t('account.refusal.profTemperStale', 'That piece\'s quality has changed. Check your Stores again.'),
   'prof-reforge': () => t('account.refusal.profReforge', 'Arcane Essence can reforge a line on a Magic or Rare piece, but never on a Legendary, Aetheric or artifact piece.'),
   'prof-no-essence': () => t('account.refusal.profNoEssence', 'That piece carries too little enchantment to give any Arcane Essence.'),
@@ -2377,7 +2378,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     master: (character, recipe, lines, name, rid, dye = null) => post('/v1/prof/master', { character, recipe, lines, name, rid, ...(dye == null ? {} : { dye }) }),   // MASTER-ART: a Master's work, its three lines chosen
     reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
-    salvage: (character, pieces, rid) => post('/v1/prof/salvage', { character, pieces, rid }),   // BUNNYFALL: found gear into materials
+    salvage: (character, pieces, rid, commit = null) => post('/v1/prof/salvage', { character, pieces, rid, ...(commit?.length ? { commit } : {}) }),   // BUNNYFALL: found gear into materials
     upgrade: (character, recipe, rid) => post('/v1/prof/upgrade', { character, recipe, rid }),   // BUNNYFALL: a found piece one metal up
     writs: (character, region, climate = null) => post('/v1/writs/list', { character, region, ...(Number.isSafeInteger(climate) ? { climate } : {}) }),   // BUNNYFALL WRIT-GEN: the board town's climate
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),

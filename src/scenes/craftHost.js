@@ -44,8 +44,9 @@ export function createCraftHost(deps) {
       return pack().filter((it) => it && !anySalvageRefusal(it)).map((it) => ({ item: it, name: deps.nameOf(it), materials: salvagesToMaterials(it) }));
     },
     /** A salvage of the chosen pieces. */
-    async salvage(items) {
-      const r = await salvageForMaterials(items, { items: pack() });
+    async salvage(items, { commit = null } = {}) {
+      const r = await salvageForMaterials(items, { items: pack(), commit });
+      if (r.needsCommit) return { ok: false, needsCommit: r.needsCommit, text: `This would take ${r.needsCommit.map((n) => n.name).join(' and ')} past Journeyman. You can raise only two crafts that far, and the others stay at rank 50.` };   // BUNNYFALL SPEC-SAFE
       if (!r.ok) return { ok: false, text: r.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(r.error) };
       deps.saved();
       const got = [r.data ? yieldsText(r.data) : '', r.shards > 0 ? shardsText(r.shards) : ''].filter(Boolean).join(' and ');

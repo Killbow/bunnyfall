@@ -9,7 +9,7 @@ import { mintId, overRate } from './accounts.js';
 import { dice } from './unitRoll.js';
 import { asks, shut, storeOf, trackRow, trackView, craftCapSql } from './professions.js';
 import { STORES_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
-import { rollSalvage, descriptorOk, SALVAGE_BATCH_MAX } from '../../src/net/salvageLaw.js';
+import { rollSalvage, descriptorOk, salvageCommits, SALVAGE_BATCH_MAX } from '../../src/net/salvageLaw.js';
 
 async function salvageAnswer(db, player, row, nowS, extra = {}) {
   const yields = JSON.parse(row.yields);
@@ -22,7 +22,7 @@ async function salvageAnswer(db, player, row, nowS, extra = {}) {
 }
 
 /** A salvage: the pieces' materials into the Stores, the XP onto their crafts' tracks, all in one batch. */
-export async function salvagePieces(ctx, player, env, { character, rid, pieces } = {}) {
+export async function salvagePieces(ctx, player, env, { character, rid, pieces, commit = [] } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
@@ -34,6 +34,12 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces }
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   const roll = rollSalvage(pieces, () => dice(rand));
   if (roll.broken < 1) return { error: 'prof-no-salvage' };
+  // BUNNYFALL SPEC-SAFE: a salvage that would carry a craft past Journeyman - one of the two a character may raise - is
+  // done only with the player's word for that craft (`commit`). Nothing has been written yet, so a refusal costs nothing.
+  const { results: heldRows = [] } = await db.prepare('SELECT profession, xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character).all();
+  const crossing = salvageCommits(roll.xp, Object.fromEntries(heldRows.map((r) => [r.profession, Number(r.xp)])));
+  const agreed = Array.isArray(commit) ? commit : [];
+  if (crossing.some((t) => !agreed.includes(t))) return { error: 'prof-salvage-commit', tracks: crossing };
   // the Stores' room: a material past it keeps only what fits
   const yields = [];
   for (const y of roll.yields) {

@@ -2,7 +2,8 @@
 // Online, any found piece of gear breaks into its recipe's materials (net/salvageLaw.js), sent to the account service
 // and banked in the Stores. A Magic-or-better piece still gives its Welkynd Shards too (systems/reforge.js). Offline,
 // or for a piece no recipe makes, the old shard-only salvage stands.
-import { salvageRecipeOf, salvageDescriptor, previewSalvage, SALVAGE_BATCH_MAX } from '../net/salvageLaw.js';
+import { salvageRecipeOf, salvageDescriptor, previewSalvage, salvageXpOf, salvageCommits, SALVAGE_BATCH_MAX } from '../net/salvageLaw.js';
+import { PROFESSIONS, professionName } from '../net/professionLaw.js';
 import { salvageShards, salvageRefusal, salvagePiece } from '../systems/reforge.js';
 import { profBookNow } from './professions/profPages.js';
 import { materialLabel } from '../systems/professions/profItems.js';
@@ -59,7 +60,18 @@ export function yieldsText(data) {
  * Answers `{ ok, count, shards, data?, error? }`.
  * @param {any[]} pieces @param {{ items: any[] }} pack
  */
-export async function salvageForMaterials(pieces, { items }) {
+/**
+ * BUNNYFALL SPEC-SAFE: the crafts a salvage of these pieces would carry past Journeyman for the first time - one of the two
+ * a character may raise - as `[{ track, name }]`, by what the book last heard of the character's tracks. Empty offline.
+ */
+export function salvageWouldCommit(pieces, book = profBookNow()) {
+  if (!book) return [];
+  const held = Object.fromEntries(PROFESSIONS.filter((p) => p.kind === 'crafting').map((p) => [p.id, Number(book.track(p.id)?.xp) || 0]));
+  const toMaterials = [...new Set(pieces)].filter(salvagesToMaterials).slice(0, SALVAGE_BATCH_MAX);
+  return salvageCommits(salvageXpOf(toMaterials.map(salvageDescriptor)), held).map((track) => ({ track, name: professionName(track) }));
+}
+
+export async function salvageForMaterials(pieces, { items, commit = null }) {
   const chosen = [...new Set(pieces)].filter((it) => items.includes(it));
   const toMaterials = chosen.filter(salvagesToMaterials).slice(0, SALVAGE_BATCH_MAX);
   const shardOnly = chosen.filter((it) => !toMaterials.includes(it) && salvageRefusal(it) == null);
@@ -67,7 +79,10 @@ export async function salvageForMaterials(pieces, { items }) {
   if (toMaterials.length) {
     const book = profBookNow();
     if (!book) return { ok: false, error: 'offline', count: 0, shards: 0 };
-    const r = await book.salvage(toMaterials.map(salvageDescriptor));
+    // BUNNYFALL SPEC-SAFE: a craft this would carry past Journeyman waits for the player's word, nothing broken until it comes
+    const needs = salvageWouldCommit(toMaterials, book).filter((n) => !(commit ?? []).includes(n.track));
+    if (needs.length) return { ok: false, needsCommit: needs, count: 0, shards: 0 };
+    const r = await book.salvage(toMaterials.map(salvageDescriptor), { commit });
     if (!r?.ok) return { ok: false, error: r?.error ?? 'offline', count: 0, shards: 0 };
     data = r.data ?? null;
     for (const it of toMaterials) {
