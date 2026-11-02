@@ -1899,7 +1899,7 @@ function itemNodes(item, ctx) {
   if (item === 'mods-index') return modsIndexRows();
   if (item === 'bindings') { const box = el('div', 'opt-bindings'); paneControls(box, { render }); return [box]; }
   if (item.startsWith('card:')) {
-    const make = { morrowind: () => morrowindCard(), packs: () => packsCard(), peerSprites: () => peerSpritesCard(), nightSounds: () => nightSoundsCard() }[item.slice(5)];
+    const make = { morrowind: () => morrowindCard(), packs: () => packsCard(), peerSprites: () => peerSpritesCard(), nightSounds: () => nightSoundsCard(), paperdoll: () => paperdollGraphicsCard() }[item.slice(5)];
     return make ? [make()] : [];
   }
   return [];
@@ -3270,6 +3270,15 @@ export function morrowindCard({ count = morrowindDataCount(), armState = fpArm.s
  *  onto, net/remotePlayers.js classMobileType) by default, or the flat paperdoll every peer used to be drawn as,
  *  unconditionally, before this. A Morrowind body (the Morrowind assets card) still takes priority over either when it
  *  applies - this only decides between the two for a peer standing in neither. */
+function paperdollGraphicsCard() {
+  const c = el('div', 'card');
+  c.append(el('h3', null, 'Character display'));
+  c.append(el('p', 'meta', 'Choose how character paperdolls are shown. These options affect your own inventory and the way other players appear from behind.'));
+  c.append(prefRow('graphics.paperdoll', 'Show your paperdoll', 'Show or hide your equipped character figure in the inventory.', { home: true }));
+  c.append(prefRow('graphics.paperdollback', 'Show paperdoll backs', 'Show the generated rear view when another player turns away from you.', { home: true }));
+  return c;
+}
+
 function peerSpritesCard() {
   const c = el('div', 'card');
   c.append(el('h3', null, t('menu.peers.title', 'Other players')));
