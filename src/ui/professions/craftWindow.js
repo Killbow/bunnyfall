@@ -34,7 +34,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, tab: 'craft', family: null, pick: null, variant: null, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '' };
+const _cw = { station: null, tab: 'craft', family: null, pick: null, variant: null, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -384,19 +384,38 @@ function drawUpgrade(root, p, station, run) {
 function drawSalvage(root, p, run) {
   if (typeof p.salvageable !== 'function') { root.append(h('div', 'cw-empty', 'Salvage is not open here.')); return; }
   const pieces = p.salvageable();
+  // BUNNYFALL SPEC-SAFE: a salvage that would carry a craft past Journeyman (one of the two a character may raise) is asked
+  // about first, and nothing is broken until the player says yes
+  const salvage = (items) => run(async () => {
+    _cw.commit = null;
+    const r = await p.salvage(items);
+    if (r?.needsCommit) _cw.commit = { items, needs: r.needsCommit };
+    return r;
+  });
+  if (_cw.commit) {
+    const box = h('div', 'cw-line');
+    const names = _cw.commit.needs.map((n) => n.name).join(' and ');
+    const main = h('div', 'cw-line-main');
+    main.append(h('b', null, `Raise ${names} past Journeyman?`), h('span', 'cw-state', 'You can raise only two crafts past rank 50. The others stay at 50 for good. Nothing has been broken yet.'));
+    const { items, needs } = _cw.commit;
+    box.append(main,
+      button('cw-btn', 'Yes, salvage', () => { _cw.commit = null; run(() => p.salvage(items, { commit: needs.map((n) => n.track) })); }, _cw.busy),
+      button('cw-btn', 'No', () => { _cw.commit = null; run(async () => ({ text: 'Nothing was salvaged.' })); }, _cw.busy));
+    root.append(box);
+  }
   root.append(h('p', 'cw-note', 'Found gear breaks into about 40% of the materials it is made of, straight into your Stores. Magic pieces also give Welkynd Shards.'));
   if (!pieces.length) { root.append(h('div', 'cw-empty', 'Nothing in your pack to salvage.')); return; }
   const plain = pieces.filter((x) => x.materials && (!x.item.rarity || x.item.rarity === 'common'));
   if (plain.length) {
     const all = h('div', 'cw-actions');
-    all.append(button('cw-btn', `Salvage all plain gear (${plain.length}): ${materialsText(plain.map((x) => x.item))}`, () => run(() => p.salvage(plain.map((x) => x.item))), _cw.busy));
+    all.append(button('cw-btn', `Salvage all plain gear (${plain.length}): ${materialsText(plain.map((x) => x.item))}`, () => salvage(plain.map((x) => x.item)), _cw.busy));
     root.append(all);
   }
   for (const x of pieces) {
     const line = h('div', 'cw-line');
     const main = h('div', 'cw-line-main');
     main.append(h('b', null, x.name), h('span', 'cw-state', x.materials ? materialsText([x.item]) : 'Welkynd Shards only'));
-    line.append(main, button('cw-btn', 'Salvage', () => run(() => p.salvage([x.item])), _cw.busy));
+    line.append(main, button('cw-btn', 'Salvage', () => salvage([x.item]), _cw.busy));
     root.append(line);
   }
 }
