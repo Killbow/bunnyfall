@@ -119,6 +119,25 @@ export const dungeonPlace = (dfLocation) => ({
   dungeon: { unknown2: dfLocation.dungeon.recordElement.header.unknown2, region: dfLocation.regionIndex },
 });
 
+/** Deterministic fallback that rejects over-level entries in modded tables too. */
+function safeBandedPick(table, playerLevel, seed) {
+  const rng = makeSlotRng(seed);
+  const last = table.length - 1;
+  if (last < 0) return 0;
+  let min = playerLevel - 3, max = playerLevel + 3;
+  if (min < 0) { min = 0; max = Math.min(5, last); }
+  else if (max > last) { max = last; min = Math.max(0, last - 5); }
+  const band = table.slice(min, max + 1);
+  const safe = band.filter((id) => !markerTooStrong(ENEMY_BASICS[id]?.level, playerLevel));
+  if (!safe.length) {
+    // A mod can provide an entirely over-level table. Pick its least
+    // dangerous entry rather than returning the original boss-class marker.
+    return table.map((id) => ({ id, level: ENEMY_BASICS[id]?.level ?? 0 }))
+      .sort((a, b) => a.level - b.level || a.id - b.id)[0]?.id ?? 0;
+  }
+  return safe[rng(0, safe.length)];
+}
+
 export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, dungeon = null, playerLevel = 1,
   alternate = getBool('Enhancements', 'AlternateRandomEnemySelection') } = {}) {
   const slotRng = makeSlotRng(locationId);
@@ -191,8 +210,14 @@ export function collectDungeonEnemies(blockLayouts, { locationId, dungeonType, d
         // ENCOUNTER-LEVEL rule 4: a placed monster the map never graded for this level (a lich on a level-3 party's
         // giant hunt) is a banded draw of this dungeon's own table, seeded by the marker so every client draws alike
         let placed = typeValue;
-        if (!marker.isCustomData && markerTooStrong(ENEMY_BASICS[typeValue]?.level, playerLevel) && dungeonType < ENCOUNTER_TABLES.length) {
-          placed = bandedPick(dungeonTable, playerLevel, makeSlotRng((((locationId ?? 0) * 31) ^ ((marker.loadID ?? 0) + 7919 * (blockIndex + 1))) >>> 0));
+        if (dungeonType < ENCOUNTER_TABLES.length) {
+          const seed = ((((locationId ?? 0) * 31) ^ ((marker.loadID ?? 0) + 7919 * (blockIndex + 1))) >>> 0);
+          // Apply the level policy to classic AND custom fixed markers. Custom
+          // world-data flats carry a full 16-bit mobile id, but are not exempt
+          // from the same encounter budget as a classic placed monster.
+          if (markerTooStrong(ENEMY_BASICS[typeValue]?.level, playerLevel)) {
+            placed = safeBandedPick(dungeonTable, playerLevel, seed);
+          }
         }
         emit(marker, block, placed, true);
       } else if (marker.record === RANDOM_RECORD) {
