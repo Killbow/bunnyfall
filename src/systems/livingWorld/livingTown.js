@@ -83,6 +83,9 @@ export const CATCH_UP = 0.35;
 export const SNAP_M = 30;
 /** A walk begun this many of the clock's minutes ago from a door is a coming-out (seen at any range). */
 export const DOOR_POP_MIN = 2;
+/** BUNNYFALL: how far off a wall a person stands (m) - past a cell's half, so beside a footprint one cell is left between - and how far off a door's own cell, the doorway. */
+export const STAND_WALL_M = 0.95;
+export const DOOR_KEEP_M = 1.5;
 /** WATCH-PROTECTS: how near a hostile monster sends one on the street running (m) - a few strides of it. */
 export const PANIC_M = 10;
 /** WATCH-PROTECTS: a townsperson running from one (m/s) - twice their walk. */
@@ -316,6 +319,8 @@ export class LivingTown {
     /** LW-STAND: the street a person stands and walks on - never in a wall nor over the water (places.js streetGeometry:
      *  the stands about a spot, the way to one) */
     this._street = streetGeometry(this.nav, this.places);
+    this._wide = streetGeometry(this.nav, this.places, STAND_WALL_M);   // BUNNYFALL: where one may STAND - well off a wall
+    /** @type {Map<string, { ix: number, iz: number, out: { x: number, z: number } }>} */ this._offKept = new Map();
     this.residents = townCensus(o.town, o.buildings, new Set(this.places.doors.keys()));   // LW-WALLS: the watch's and a traveller's home on the street
     /** WATCH-DAY: the town's watch a shift (census.js) - its companies' duties (dayPlan.js watchDuty) */
     this._watchSize = watchShiftSize(o.town);
@@ -870,7 +875,37 @@ export class LivingTown {
     const other = mine?.spot === e.at ? this._aloneAt.get(mine.other) : null;
     const loud = mine?.spot === e.at ? null : this._stirAt.get(e.at.key)?.mid;
     const yaw = other?.spot === e.at ? Math.atan2(other.x - st.x, other.z - st.z) : e.kind === 'post' && !inCircle ? e.at.yaw : loud ? Math.atan2(loud.x - st.x, loud.z - st.z) : st.yaw;
-    return { x: st.x, z: st.z, yaw, moving: false, e };   // WATCH-DAY: a post keeps the road
+    if (e.kind === 'post') return { x: st.x, z: st.z, yaw, moving: false, e };   // WATCH-DAY: a post keeps the road
+    const off = this._offWall(res.id, e.at, st);   // BUNNYFALL: and nobody stands in a wall or in a doorway
+    return off ? { x: off.x, z: off.z, yaw: Math.atan2(e.at.x - off.x, e.at.z - off.z), moving: false, e } : { x: st.x, z: st.z, yaw, moving: false, e };
+  }
+
+  /**
+   * BUNNYFALL (field report, a woman stood against a house's wall beside its door, half in it): a body is only kept
+   * STAND_REACH_M (0.4) off the grid's footprints, and a wall is drawn further out than its footprint, so a stand by a
+   * building stood in the wall. A stand within STAND_WALL_M of a covered cell - or, at a door's spot, within DOOR_KEEP_M of
+   * the door's cell, the doorway - is moved to the nearest place about it that is off both, reached along open street.
+   * Every reader's alike (the geometry's, no clock); null: it stands well, or nowhere better holds.
+   * @param {string} id @param {any} spot @param {{ x: number, z: number }} st @returns {{ x: number, z: number } | null}
+   */
+  _offWall(id, spot, st) {
+    const door = spot?.kind === 'door';
+    const bad = (x, z) => !this._wide.holds(x, z) || (door && Math.hypot(x - spot.x, z - spot.z) < DOOR_KEEP_M);
+    if (!bad(st.x, st.z)) return null;
+    const kept = this._offKept.get(id);
+    if (kept && kept.ix === st.x && kept.iz === st.z) return kept.out;
+    const out0 = Math.atan2(st.x - spot.x, st.z - spot.z);
+    /** @type {{ x: number, z: number } | null} */ let found = null;
+    for (let r = 0.2; r <= 3.2 && !found; r += 0.2) {
+      for (let j = 0; j < 16 && !found; j++) {
+        const a = out0 + (j % 2 ? 1 : -1) * Math.ceil(j / 2) * (Math.PI / 8);
+        const x = st.x + Math.sin(a) * r, z = st.z + Math.cos(a) * r;
+        if (!bad(x, z) && this._street.clear(st.x, st.z, x, z)) found = { x, z };
+      }
+    }
+    if (this._offKept.size > 4000) this._offKept.clear();
+    this._offKept.set(id, { ix: st.x, iz: st.z, out: /** @type {any} */ (found) });
+    return found;
   }
 
   /**
