@@ -17,7 +17,7 @@ import { EMPIRE_BANK_OF } from '../../world/buildingNames.js';
 import { portWindow, centreOf } from './enhancedPort.js';
 import { itemIconUrl, itemName, spellIconUrl, paintFrame } from './enhancedArt.js';
 import { serviceLabel } from '../../systems/guild/guildServiceFlow.js';
-import { GUILD_RECTS, PANEL_X as GUILD_X, PANEL_Y as GUILD_Y, REFORGE_ROW, LIFT_ROW, HEAL_CURSE_ROW } from '../guildServiceWindow.js';
+import { GUILD_RECTS, PANEL_X as GUILD_X, PANEL_Y as GUILD_Y, REFORGE_ROW, LIFT_ROW, HEAL_CURSE_ROW, LEAVE_ROW } from '../guildServiceWindow.js';
 import { COVEN_RECTS, COVEN_PANEL_X, COVEN_PANEL_Y } from '../covenWindow.js';
 import { BANK_RECTS, BANK_PANEL_X, BANK_PANEL_Y, MARKS_ENTRY } from '../bankWindow.js';
 import { MARKS_BANK, MARKS_COMBAT, MARKS_FAUCETS, marksText } from '../../net/marksLaw.js';   // MARKS1: the Bank's Marks, online; SILVER-WAYS: the day's combat cap; SILVER-FINDS: the finds' days
@@ -59,6 +59,7 @@ const guild = {
         ...(w.hooks.healCurse ? [{ label: HEAL_CURSE_ROW, act: () => w._healCurse() }] : []),   // HEAL-CURSE: the temple's, right under its Cure Disease
         ...(w.hooks.reforge ? [{ label: REFORGE_ROW, act: () => w._reforge() }] : []),   // LOOT9: the Mages Guild's Reforge, beside its Identify
         ...(!w.hooks.reforge && w.hooks.lift ? [{ label: LIFT_ROW, act: () => w._lift() }] : []),   // LOOT16: the temple's lifting, beside its Cure Disease
+        ...(member && w.hooks.leave ? [{ label: LEAVE_ROW, act: () => w._leave() }] : []),   // BUNNYFALL GUILD-LEAVE: a member's way out
       ] }],
       foot: [{ label: 'Exit', act: press(GUILD_RECTS.exit) }],
     };
