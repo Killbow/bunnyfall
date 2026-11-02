@@ -517,6 +517,7 @@ export function placeFoeFreely(env, { minDistance = PLACE_FOE_DEFAULTS.minDistan
   // Ensure this is open space
   const testPoint = { x: floorHit.point.x, y: floorHit.point.y + C.separationDistance, z: floorHit.point.z };
   if (env.overlapSphere?.(testPoint, C.overlapSphereRadius)) return null;
+  if (env.bodyClear && !env.bodyClear(floorHit.point)) return null;   // BUNNYFALL: the whole body clear, not one sphere at head height (scenes/quest/questFoeHost.js)
 
   return testPoint;
 }

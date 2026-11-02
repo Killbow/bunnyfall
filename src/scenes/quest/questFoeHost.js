@@ -35,6 +35,7 @@ import { applySpell } from '../../systems/effects.js';
 import { GENDERS } from '../../characters/nameHelper.js';
 import { mendedFoeSpot } from '../../systems/quest/markerCuration.js';
 import { placeFoeFreely, PLACE_FOE_DEFAULTS, MARKER_FLOOR_REACH } from '../../systems/quest/sceneMount.js';   // SHOP-RATS: the ring, and the room's own spots after it   // SEALED-SAVE (FIELD BUGS 2026-10-05c): a saved quest foe follows its moved marker
+import { bodyFits, lodgedIn } from '../../characters/foeSpacing.js';   // BUNNYFALL: a spot's whole body, not one sphere
 
 export function questFoeGender(foe) { return foe.gender === GENDERS.Female ? 'female' : 'male'; }
 
@@ -136,6 +137,7 @@ export function roomMarkerSpot(env, spots) {
     if (!floor) continue;
     const t = { x: floor.point.x, y: floor.point.y + C.separationDistance, z: floor.point.z };
     if (env.overlapSphere?.(t, C.overlapSphereRadius)) continue;
+    if (env.bodyClear && !env.bodyClear(floor.point)) continue;   // BUNNYFALL: and its whole body clear
     return t;
   }
   return null;
@@ -203,6 +205,10 @@ export function placeFoeEnv({ collider, playerFeet, playerYawRad, fovDegrees, ro
       };
     },
     overlapSphere: (p, r) => collider.sphereOverlaps([p.x, p.y, p.z], r) || (isOccupied?.(p, r) ?? false),
+    // BUNNYFALL (bug report: foes standing in crates and house walls): DFU tests ONE sphere, 1.25 m over the floor, so a
+    // crate lower than that or a wall slab at the knees passes. The foe's whole body is asked too: no face within its
+    // radius up its height, and not lodged in a solid (characters/foeSpacing.js).
+    bodyClear: (p) => { const f = [p.x, p.y, p.z]; return bodyFits(collider, f) && !lodgedIn(collider, f); },
   };
 }
 

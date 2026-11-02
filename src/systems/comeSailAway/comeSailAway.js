@@ -189,6 +189,8 @@ export const TERRAIN_EDGE = Math.fround(819.2);
 /** FIELD BUGS 29h (LOST-BOAT): metres of ground over a hull's place, or of sea over it, before the port calls it lost -
  *  more than a keel on a shelving beach or a hull riding a swell. */
 export const LOST_UNDER_M = 2;
+/** BUNNYFALL: how long a boat must read lost, game seconds, before it is packed (recoverLostBoats). */
+export const LOST_CONFIRM_S = 5;
 /** The placement ray's reach, and the dungeon water plane's. */
 export const PLACE_RAY_DISTANCE = 100;
 /** Update's `Time.time - placeTime > 0.2f`: the click that asked to place is not the click that places. */
@@ -1705,12 +1707,21 @@ export function createComeSailAwayRuntime(deps) {
     for (const boat of [...state.AllBoats]) {
       if (boat.groundAsked || boat.inside || boat === state.CurrentBoat || !boat.GameObject?.activeSelf) continue;
       const p = boat.GameObject.position, o = t0.position;
+      // BUNNYFALL (bug report: after a Recall "my ship packed itself into an inventory item" and the pack was pounds
+      // over): the reading is only trusted for a boat NEAR the player, whose ground is the ground just built - a Recall
+      // moves the scene's frame, and a boat read against the wrong one looked buried. And a lost reading has to HOLD
+      // LOST_CONFIRM_S of game time before the boat is packed; a transient frame never packs a hull.
+      if (Math.abs(p[0] - o[0]) > 2 * TERRAIN_EDGE || Math.abs(p[2] - o[2]) > 2 * TERRAIN_EDGE) { boat.lostAt = null; continue; }
       // the pixel under the boat, off the player's own: map x grows with the scene's x, map y against its z
       const t = deps.terrainAt(t0.mapPixelX + Math.floor((p[0] - o[0]) / TERRAIN_EDGE), t0.mapPixelY - Math.floor((p[2] - o[2]) / TERRAIN_EDGE));
       if (t == null) continue;   // its ground not built yet: asked when it is
-      boat.groundAsked = true;
       const ground = f(f(t.position[1]) + f(t.sampleHeight(p)));
-      if (!(ground > p[1] + LOST_UNDER_M || p[1] < seaTop() - LOST_UNDER_M) || boat.crewed) continue;
+      const lost = ground > p[1] + LOST_UNDER_M || p[1] < seaTop() - LOST_UNDER_M;
+      if (!lost || boat.crewed) { boat.groundAsked = true; boat.lostAt = null; continue; }
+      const now = f(deps.time());
+      boat.lostAt ??= now;
+      if (now - boat.lostAt < LOST_CONFIRM_S) continue;
+      boat.groundAsked = true;
       deps.hudText('A boat of yours was lost where no one could reach it');
       PackBoat(boat, true, true);   // HOLD-WEIGHT: lost, packed whatever her hold weighs
     }
