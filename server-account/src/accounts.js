@@ -868,7 +868,6 @@ const bannedNow = (row, nowS) => Number.isSafeInteger(row?.banned_until) && row.
  */
 export async function login({ db, subtle, rand, nowS }, { handle, password, deviceLabel = null }) {
   const lc = String(handle ?? '').toLowerCase();
-  if (await overRate({ db, nowS }, `login:${lc}`)) return { error: 'rate' };
 
   const player = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
   // The work happens either way. `verifyPassword` derives against a
@@ -876,7 +875,15 @@ export async function login({ db, subtle, rand, nowS }, { handle, password, devi
   // not a sleep pretending to be constant time - it is the same
   // derivation.
   const ok = await verifyPassword(password, player?.password ?? null, { subtle });
-  if (!player || !ok) return { error: 'bad-login' };
+
+  // The throttle is keyed on the handle, so it must bound GUESSING only and never stand between an
+  // account and its own correct password.
+  // The order matters, and the check belongs AFTER the verify, not before it.
+  // A wrong attempt is what the bucket counts and refuses; a right one always passes and clears the count.
+  if (!player || !ok) {
+    const over = await overRate({ db, nowS }, `login:${lc}`);
+    return { error: over ? 'rate' : 'bad-login' };
+  }
 
   await clearRate({ db }, `login:${lc}`);
   // AUDIT SAFE SERVICE-7 (bible/11-Multiplayer/Chat-Safety-Arc.md section 5): A BANNED ACCOUNT IS TOLD SO, and minted no
@@ -923,7 +930,6 @@ export async function login({ db, subtle, rand, nowS }, { handle, password, devi
  */
 export async function recover({ db, subtle, rand, nowS }, { handle, code, password, set = false }) {
   const lc = String(handle ?? '').toLowerCase();
-  if (await overRate({ db, nowS }, `recover:${lc}`)) return { error: 'rate' };
   const pRefusal = passwordRefusal(password);
   if (pRefusal) return { error: `password-${pRefusal}` };
 
@@ -932,7 +938,13 @@ export async function recover({ db, subtle, rand, nowS }, { handle, code, passwo
   // Same shape as login: the derivations happen whether or not there is
   // anything to compare them against (password.js matchRecoveryCode).
   const { ok, rest } = await matchRecoveryCode(canon, player?.recovery_hash ?? null, { subtle });
-  if (!player || !canon || !ok) return { error: 'bad-code' };
+
+  // As login: recovery is the way back in, so the throttle bounds wrong codes only and never refuses a correct one.
+  // The check belongs after the match, not before it. The code always proceeds and clears the bucket below.
+  if (!player || !canon || !ok) {
+    const over = await overRate({ db, nowS }, `recover:${lc}`);
+    return { error: over ? 'rate' : 'bad-code' };
+  }
   // AUDIT SAFE SERVICE-7: a banned account is told so before its code is spent - it is not signed back in
   if (bannedNow(player, nowS)) return { error: 'banned', until: player.banned_until, reason: player.ban_reason ?? null };
 
@@ -971,12 +983,18 @@ export async function changePassword({ db, subtle, rand, nowS }, player, session
   const pRefusal = passwordRefusal(password);
   if (pRefusal) return { error: `password-${pRefusal}` };
   if (!player.password) return { error: 'not-registered' };
-  // AUDIT 68 S01-changepw-unthrottled-oracle: a guess at the old password
-  // is a guess at the password, so it spends LOGIN's bucket - one password,
-  // one allowance, whichever door; this route had only the account's 240 a
-  // minute, and a stolen session could grind the password that locks the owner out
-  if (await overRate({ db, nowS }, `login:${player.handle_lc}`)) return { error: 'rate' };
-  if (!await verifyPassword(oldPassword, player.password, { subtle })) return { error: 'bad-login' };
+  // AUDIT 68 S01-changepw-unthrottled-oracle: a guess at the old password is a guess at the password, so
+  // it spends LOGIN's bucket - one password, one allowance, whichever door.
+  //
+  // As login: the bucket is checked only on an old wrong password,
+  //    so it throttles guessing without ever refusing the real one.
+  //
+  //  Keyed on the handle and checked after the verify, not before it,
+  //    so this door and the login door never lock each other's owner out.
+  if (!await verifyPassword(oldPassword, player.password, { subtle })) {
+    const over = await overRate({ db, nowS }, `login:${player.handle_lc}`);
+    return { error: over ? 'rate' : 'bad-login' };
+  }
   await clearRate({ db }, `login:${player.handle_lc}`);
   const pw = await hashPassword(password, { subtle, rand });
   // RPT1026-SECNET (from a private security report): THE CHANGE LANDS ON WHAT IT PROVED - the password it checked the
