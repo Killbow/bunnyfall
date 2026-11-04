@@ -46,6 +46,7 @@ import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
+import { furnishBunnyHall } from './bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall's braziers, board and chest
 import { ensureBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { trs } from '../world/mat4.js';
@@ -835,6 +836,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     base.addFlat(decorBaseFlatKey(bf.fi, bf.flat.archive, bf.flat.record), { flat: [bf.flat.archive, bf.flat.record], batch: bf.batch, light: own[0] ?? null, at: bf.at });
   }
   if (base) for (const f of interior.flats) if (!baseFlats.some((bf) => bf.flat === f)) lights.push(...lightsOf([f]));   // a flat whose picture this data set lacks still lights the room, as the grouped build's did
+  if (opts.bunnyHall) await furnishBunnyHall({ key: opts.bunnyHall, people, ray: (o, d, m) => collider.raycast(o, d, m), renderer, getTexture, uploadRecord, billboardSize, getGpuMesh, cpuModels, collider, drawList, billboardBatches, lights, trs, worldAabb });   // BUNNY-GUILDS: its furnishing about the clerk (scenes/bunnyHallFurnish.js)
 
   // Markers (all types - ladders climb against these too) into the
   // parent frame; enterMarkers derive from the transformed set.
