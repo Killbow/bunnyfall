@@ -18191,6 +18191,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__look = (yaw, pitch) => { cam.yaw = yaw; cam.pitch = pitch; lookFilter.settle(); };   // CSA-F probe: the view turned in place (the helm pins the body, not the look)
     window.__streamIdle = () => queue.length === 0 && !building && inFlight.size === 0;   // AUDIT EV: teleport builds count too - the probe told the truth only for pump's
     window.__builtCount = () => built.size;
+    window.__cromwark = () => cromwark;   // BUNNYFALL probe: the reach's host (its camp, its haze)
+    window.__pixelT = (px, py) => [...state.pixelTranslation(px, py)];
     // LOAD-OWED probe surface (tools/pixelBuildSweep.mjs - the frame held by the probe, so nothing else runs): THE PUMP'S
     // OWN BUILD driven over the map, one pixel at a time - the stream re-centred on it as a teleport re-centres it (every
     // pixel down, the grid inited there), then `buildPixel`, a throw answered as the pump's catch answers it (torn down,
