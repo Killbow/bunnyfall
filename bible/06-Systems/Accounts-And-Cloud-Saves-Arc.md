@@ -5550,8 +5550,7 @@ signs it.
   `nameAs`, and, where the character's name stood aside, `nameWhy` and `nameWord`.
 - **When a character's name stands aside for the account's** (wornNameRefusal). It cannot ride the wire as it stands -
   `src/net/identityToken.js` claimsValid refuses a token whose `n` is not nameIsIssuable, so a name signed past that law
-  is a player who cannot connect: `long` (past NAME_MAX, 24 - a realm name may be 32), `letters` (an accent, a symbol
-  past plain text, or no letters at all), `refused` (the name filter's, with the word it caught - NAME-F: a refusal
+  is a player who cannot connect: `long` (past NAME_MAX, 24 - a realm name may be 32), `letters` (nothing letter-like left after the dangerous characters are stripped - an accent or a symbol now rides fine, so only a name that was all control, format or surrogate comes back empty), `refused` (the name filter's, with the word it caught - NAME-F: a refusal
   names it). `email` - HANDLE-EMAIL's law, worn as it is chosen: an address is never read out. And `taken`: ANOTHER
   ACCOUNT'S USERNAME. A handle is unique and is how an account is found - a letter, a guild invitation, a commission,
   staff's `/tp @name` - and `src/net/handleShape.js` keeps the guests' generated names out of that space by their shape

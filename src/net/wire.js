@@ -988,8 +988,23 @@ const TOKEN_RE = /^[A-Za-z0-9]{1,8}\.[A-Za-z0-9_-]{1,864}\.[A-Za-z0-9_-]{1,128}$
 export const FALLBACK_NAME = 'Traveller';
 
 /**
- * A name the room will show: printable ASCII, trimmed, bounded, never
- * empty - and NAME-F2, never one the filter refuses.
+ * A name the room will show: printable, trimmed, bounded, never empty -
+ * and NAME-F2, never one the filter refuses.
+ *
+ * WHAT IT KEEPS IS NOT ASCII ANY MORE. NAMES ARE NO LONGER ASCII-ONLY:
+ * a character's own name may carry an accent or any letter of any
+ * alphabet (Ä, Ö, é, Ñ, 漢, ...), so this keeps every code point that is
+ * not dangerous - the same set visibleText() allows for chat below - and
+ * drops only the ones that are. A username still cannot: it is gated by
+ * HANDLE_RE in net/handleShape.js (letters, digits and no space at all,
+ * which happens to be ASCII), so this widening changes nothing there. The
+ * dangerous set is what stays out: C0/C1 control chars, lone surrogates
+ * (half a character - AUDIT B3) and the invisible format characters
+ * (\p{Cf}, variation selectors, E01xx marks - AUDIT CHAT A4): those are
+ * what let a name read as "Admin" while it is not, so they go whether the
+ * letter beside them is ASCII or not. The visual result of an accent this
+ * keeps (the font may draw it as '?') is the font's later problem, not a
+ * reason to strip it here - rendering is not a security property.
  *
  * THE FILTER RUNS HERE BECAUSE HERE IS THE ONLY PLACE IT CANNOT BE
  * SKIPPED. The pane refuses a bad name at entry with a reason, which
@@ -1001,11 +1016,19 @@ export const FALLBACK_NAME = 'Traveller';
  * console removes.
  *
  * Idempotent, as the rest of this module is: what comes out is a name
- * the filter allows, so running it twice changes nothing.
+ * the filter allows, so running it twice changes nothing. INVISIBLE is
+ * declared below (as every other char-set in this file is), and
+ * sanitizeName is only ever CALLED after the module has finished loading,
+ * so by then it is initialised - same shape as visibleText() and
+ * sanitizeChat(), which read INVISIBLE too.
  */
 export function sanitizeName(name) {
   let s = '';
-  for (const ch of String(name ?? '')) { const c = ch.charCodeAt(0); if (c >= 32 && c <= 126) s += ch; }
+  for (const ch of String(name ?? '')) {
+    const c = ch.codePointAt(0);
+    if (c < 32 || (c >= 0x7f && c <= 0x9f) || (c >= 0xd800 && c <= 0xdfff) || INVISIBLE.test(ch)) continue;
+    s += ch;
+  }
   s = s.trim().slice(0, NAME_MAX);
   if (!s) return FALLBACK_NAME;
   return nameAllowed(s) ? s : FALLBACK_NAME;

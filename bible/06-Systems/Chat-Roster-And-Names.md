@@ -256,11 +256,20 @@ into life.
 ### F6 - the pane promised something the code does not do
 
 Under the name field: *"Up to 24 plain letters and digits; anything else
-is dropped."* `sanitizeName` keeps every **printable ASCII** character,
-so `Bob Smith` and `Bob!!!` survive whole; what it drops is the accents
-and the emoji. A player reading that line would have expected the space
-in their name to vanish. The line now says what the function does, and
-the pin **drives `sanitizeName`** rather than reading it.
+is dropped."* `sanitizeName` keeps every character that is not dangerous -
+control chars, lone surrogates and the invisible format characters (bidi,
+zero-width marks) that let a name read as something it is not - so `Bob
+Smith`, `Äel` and `Cumberland` survive whole; what it drops is only the
+spoof set. A player reading that line would have expected the space in
+their name to vanish (it does not). The line now says what the function
+does, and the pin **drives `sanitizeName`** rather than reading it.
+
+The old ASCII ban was a visual limit, not a security one: the pixel fonts
+draw non-ASCII as '?', so an accent reached the screen wrong. That is left
+to later - rendering is not a safety property, and keeping accents on the
+wire costs nothing here. A username still cannot carry one: it is gated by
+`HANDLE_RE` in `net/handleShape.js`, which stays ASCII-only (letters,
+digits, no space), so this widening changes nothing there.
 
 Two more claims struck in the same pass, both true about the mechanism
 and false about *this* call:

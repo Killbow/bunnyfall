@@ -141,8 +141,7 @@ export const nameAsOf = (/** @type {any} */ row) => (row?.name_as === 'character
  * it would not, so a name signed past it is a player who cannot connect), its refusals told apart so the player can be
  * told which: 'email' (HANDLE-EMAIL's law, worn as it is chosen - an address is never read out, and a character's name is
  * read out to everyone), 'long' (past NAME_MAX), 'refused' (the name filter's, with the word it caught - NAME-F: a
- * refusal names it), 'letters' (characters the wire does not carry - an accent, a symbol past plain text - or no letters
- * at all). A realm name is trimmed and printable already (realm.js realmNameOf); this is the wire's narrower law.
+ * refusal names it), 'letters' (nothing letter-like left after the dangerous characters are stripped - an accent or a symbol now rides fine, so only a name that was all control, format or surrogate comes back empty). A realm name is trimmed and printable already (realm.js realmNameOf); this is the wire's narrower law.
  * @param {unknown} name
  * @returns {{ why: 'email'|'long'|'refused'|'letters', word?: string } | null}
  */
