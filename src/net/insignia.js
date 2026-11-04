@@ -37,6 +37,7 @@ export const INSIGNIA = Object.freeze([
   // own count of the coins an account found paying (server-account/src/nyx.js), never the Broker's embers
   Object.freeze({ id: 'title:cromwarksurvivor', kind: 'title', key: 'cromwarksurvivor', price: 15, currency: 'nyx' }),
   Object.freeze({ id: 'title:heartwarden', kind: 'title', key: 'heartwarden', price: 30, currency: 'nyx' }),
+  Object.freeze({ id: 'aura:nyxveil', kind: 'aura', key: 'nyxveil', price: 60, currency: 'nyx' }),
 ]);
 /** An offer by its id, or null. */
 export const insigniaById = (id) => INSIGNIA.find((r) => r.id === id) ?? null;

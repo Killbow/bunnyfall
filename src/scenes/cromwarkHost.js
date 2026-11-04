@@ -14,7 +14,7 @@ import { setCromwarkMaps } from '../systems/wild/cromwarkTowns.js';
 import { NYX_GEAR, NYX_GARMENTS, HEART_WARDEN_S, nyxSale, nyxCoinsHeld, giveNyxCoins, nyxCoinsText, spendNyxCoins } from '../systems/wild/nyxShop.js';
 import { wildMaskOf, wildInside, wildNear } from '../systems/wild/wildZone.js';
 import { INSIGNIA } from '../net/insignia.js';
-import { nyxFound, nyxTotal, buyInsignia, equipTitle } from '../net/accountClient.js';
+import { nyxFound, nyxTotal, buyInsignia, equipTitle, equipAura } from '../net/accountClient.js';
 import { registerPlayerKillListener } from '../systems/playerKills.js';
 import { powerKind } from '../systems/loot/lootPowers.js';
 import { pathsDataPoint } from '../world/road/pathData.js';
@@ -23,7 +23,7 @@ import { RAY_DISTANCE, STATIC_NPC_ACTIVATION_DISTANCE } from '../player/activate
 import { decodePng } from '../systems/textureReplacement.js';
 import { toColor32 } from '../formats/color32Order.js';
 import { bunnyNpcArtUrl } from '../systems/bunnyNpcArt.js';
-import { TITLE_TEXT } from '../ui/playerBadge.js';
+import { TITLE_TEXT, AURA_TEXT } from '../ui/playerBadge.js';
 import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
@@ -196,9 +196,9 @@ export function createCromwarkHost(deps) {
   let busy = false;
   const nyxTitles = () => INSIGNIA.filter((o) => o.currency === 'nyx');
   const titleRows = () => {
-    const w = deps.wardrobe?.() ?? { held: [], title: null };
+    const w = deps.wardrobe?.() ?? { held: [], title: null, aura: null };
     return nyxTitles().map((o) => ({
-      id: o.id, key: o.key, name: TITLE_TEXT[o.key] ?? o.key, price: o.price, owned: (w.held ?? []).includes(o.id), worn: w.title === o.key,
+      id: o.id, key: o.key, kind: o.kind, name: (o.kind === 'aura' ? AURA_TEXT : TITLE_TEXT)[o.key] ?? o.key, price: o.price, owned: (w.held ?? []).includes(o.id), worn: o.kind === 'aura' ? w.aura === o.key : w.title === o.key,
       locked: o.key === 'heartwarden' && store.get(HEART_KEY) !== '1' ? t('nyx.heartLocked', 'Stand ten minutes on the haze counter in the Heart first') : null,
     }));
   };
@@ -229,7 +229,7 @@ export function createCromwarkHost(deps) {
       spendNyxCoins(items, o.price);
       deps.adopt?.(r.data);
       deps.clink?.(); deps.saved?.();
-      return { ok: true, text: t('nyx.sold', 'Bought: {name}, for {coins}.', { name: TITLE_TEXT[o.key] ?? o.key, coins: nyxCoinsText(o.price) }) };
+      return { ok: true, text: t('nyx.sold', 'Bought: {name}, for {coins}.', { name: (o.kind === 'aura' ? AURA_TEXT : TITLE_TEXT)[o.key] ?? o.key, coins: nyxCoinsText(o.price) }) };
     } catch { return { ok: false, text: t('nyx.failed', 'Nyx could not sell that right now.') }; } finally { busy = false; }
   }
   async function wearTitle(id) {
@@ -240,7 +240,7 @@ export function createCromwarkHost(deps) {
     busy = true;
     try {
       const want = row.worn ? null : row.key;
-      const r = await equipTitle(io, want);
+      const r = row.kind === 'aura' ? await equipAura(io, want) : await equipTitle(io, want);
       if (!r?.ok) return { ok: false, text: t('nyx.failed', 'Nyx could not sell that right now.') };
       deps.adopt?.(r.data); deps.self?.(r.data, io.secret);
       return { ok: true, text: want ? t('nyx.wearing', 'Wearing {name}.', { name: row.name }) : t('nyx.takenOff', '{name} taken off.', { name: row.name }) };

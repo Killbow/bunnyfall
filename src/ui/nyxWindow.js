@@ -33,7 +33,7 @@ const NYX_CSS = `
  *   purse: () => number,
  *   gear: () => Array<{ id: string, name: string, brief: string, price: number }>,
  *   garments: () => Array<{ id: string, name: string, price: number }>,
- *   titles: () => Array<{ id: string, key: string, name: string, price: number, owned: boolean, worn: boolean, locked?: string | null }>,
+ *   titles: () => Array<{ id: string, key: string, kind?: string, name: string, price: number, owned: boolean, worn: boolean, locked?: string | null }>,
  *   buy: (id: string) => { ok: boolean, text?: string | null },
  *   buyTitle: (id: string) => Promise<{ ok: boolean, text?: string | null }>,
  *   wearTitle: (id: string) => Promise<{ ok: boolean, text?: string | null }>,
@@ -100,7 +100,7 @@ export function createNyxOverlay(deps) {
     const w = el('ul', 'broker-offers');
     for (const o of deps.garments()) w.append(row(o.name, t('nyx.garmentSub', 'Purple, bound to you'), coins(o.price), have >= o.price ? t('nyx.buy', 'Buy') : t('nyx.need', 'Need {n} more', { n: o.price - have }), () => say(deps.buy(o.id)), busy || have < o.price));
     body.append(w);
-    body.append(el('div', 'nyx-head', t('nyx.titleHead', 'Titles (kept by your account)')));
+    body.append(el('div', 'nyx-head', t('nyx.titleHead2', 'Titles and aura (kept by your account)')));
     const ti = el('ul', 'broker-offers');
     for (const o of deps.titles()) {
       const label = pending === o.id ? t('nyx.buying', 'Buying...') : o.owned ? (o.worn ? t('nyx.takeOff', 'Take off') : t('nyx.wear', 'Wear')) : o.locked ? t('nyx.locked', 'Locked') : have >= o.price ? t('nyx.buy', 'Buy') : t('nyx.need', 'Need {n} more', { n: o.price - have });
@@ -108,7 +108,7 @@ export function createNyxOverlay(deps) {
         pending = o.id; render();
         (o.owned ? deps.wearTitle(o.id) : deps.buyTitle(o.id)).then((r) => { pending = null; say(r); }, () => { pending = null; render(); });
       };
-      ti.append(row(o.name, o.locked ?? null, o.owned ? (o.worn ? t('nyx.worn', 'Worn') : t('nyx.owned', 'Owned')) : coins(o.price), label, act, busy || (!o.owned && (!!o.locked || have < o.price)), o.key));
+      ti.append(row(o.name, o.locked ?? (o.kind === 'aura' ? t('nyx.auraSub', 'An aura: the purple haze drifting about you') : null), o.owned ? (o.worn ? t('nyx.worn', 'Worn') : t('nyx.owned', 'Owned')) : coins(o.price), label, act, busy || (!o.owned && (!!o.locked || have < o.price)), o.kind === 'aura' ? null : o.key));
     }
     body.append(ti);
   }
