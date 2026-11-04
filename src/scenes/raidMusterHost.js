@@ -10,6 +10,9 @@ import { RiteSmokeRenderer, RITE_SMOKE_PROGRAMS } from '../render/riteSmoke.js';
 import { compiledPass } from '../render/glProgram.js';
 import { musterSides } from '../systems/raidMuster.js';
 
+/** BUNNYFALL (2026-11-04, the owner: "still there in a non raid city"): the raid smoke switched OFF until it is found why
+ *  it stands over towns with no raid - flip to bring it back. */
+export const RAID_SMOKE_ON = false;
 /** The pillars' sizes over the rite's (340 m): a camp's, a burning house's. */
 export const CAMP_SMOKE_SCALE = 0.42;
 export const HOUSE_SMOKE_SCALE = 0.22;
@@ -94,7 +97,7 @@ export function createRaidSmoke({ gl, raids, keyOf, sites, built, translation, n
 
   return {
     /** Whether any smoke stands - the host builds the pass's arguments only then. */
-    smoking: () => towns.size > 0 || (raids() ?? []).length > 0,
+    smoking: () => RAID_SMOKE_ON && (towns.size > 0 || (raids() ?? []).length > 0),
     /** The smoke's pass, after the world's: how many pillars it drew. */
     draw(proj, view, eye, seconds, fog = null) {
       const list = smokes();
