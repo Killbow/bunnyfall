@@ -27,6 +27,7 @@ import { TITLE_TEXT, AURA_TEXT } from '../ui/playerBadge.js';
 import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
+import { addWaypoint, setWaypointFollowed } from '../systems/map/mapWaypoints.js';   // the camp's mark on both maps
 import { t } from '../systems/textManager.js';
 
 /** A map pixel's side (m) - the pixel frame the camp is laid in (east, north from its south-west corner). */
@@ -40,6 +41,7 @@ const NYX_OFF_M = 6, TENT_OFF_M = 12, NYX_REACH = STATIC_NPC_ACTIVATION_DISTANCE
 /** The account's coins not yet heard by the service, kept across a reload. */
 const OWED_KEY = 'bunnyfall.nyx.owed';
 const HEART_KEY = 'bunnyfall.nyx.heartWarden';
+const CAMP_MARK_KEY = 'bunnyfall.nyx.campMark';
 const store = {
   get(k) { try { return globalThis.localStorage?.getItem(k) ?? null; } catch { return null; } },
   set(k, v) { try { globalThis.localStorage?.setItem(k, v); } catch { /* a private window keeps nothing */ } },
@@ -155,6 +157,17 @@ export function createCromwarkHost(deps) {
     const c = PIXEL_M / 2;
     return { px: best.px, py: best.py, nyx: [c + ux * NYX_OFF_M, c + uz * NYX_OFF_M], tent: [c + ux * TENT_OFF_M, c + uz * TENT_OFF_M], yaw: Math.atan2(-ux, -uz) };
   }
+  /** The owner: "mark it on the map in game and make it visible when travelling the overworld" - a purple waypoint on
+   *  the camp, followed (the Overworld keeps a followed waypoint on the screen's edge), laid once a device; one removed
+   *  stays removed. */
+  function markCamp(sp) {
+    if (store.get(CAMP_MARK_KEY) === '1') return;
+    const mx = sp.px + sp.nyx[0] / PIXEL_M, my = sp.py + 1 - sp.nyx[1] / PIXEL_M;
+    try {
+      const r = addWaypoint({ kind: 'personal', mx, my, name: t('nyx.campMark', 'Guild Camp (Nyx)'), color: 'purple' });
+      if (r?.waypoint) { setWaypointFollowed(r.waypoint.id, true); store.set(CAMP_MARK_KEY, '1'); }
+    } catch (e) { console.warn('[nyx] the camp mark', e?.message ?? e); }
+  }
   let at = null, batch = null, art = null, artLoading = false, tent = null, tentLoading = false, tentMat = null, box = null;
   function loadArt() {
     if (art || artLoading || !renderer?.createBillboardBatch || typeof fetch !== 'function') return;
@@ -171,7 +184,7 @@ export function createCromwarkHost(deps) {
     Promise.resolve(meshes.getGpuMesh(TENT_MODEL)).then((gpu) => { tent = { gpu: gpu ?? null }; }).catch(() => { tent = { gpu: null }; });
   }
   function campFrame() {
-    if (!site && performance.now() > siteTried) { site = findSite(); siteTried = performance.now() + 10000; }
+    if (!site && performance.now() > siteTried) { site = findSite(); siteTried = performance.now() + 10000; if (site) markCamp(site); }
     at = null;
     if (!site || deps.mode?.() !== 'exterior') return;
     const tr = deps.pixelTranslation(site.px, site.py);
