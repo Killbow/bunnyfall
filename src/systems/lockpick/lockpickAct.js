@@ -14,7 +14,7 @@
 // the next pin binds; a SPOOL (spoolPins) only false-sets the first time, clunking back to rest to be set again. Pressed
 // anywhere else - rising, falling, a free pin mid-bounce - it SLIPS: the pick may snap (slipBreakChance); if it holds,
 // the last pin set drops; if it snaps, every set pin drops and the next pick starts over. Every pin set opens the lock.
-// THE AUTO ATTEMPT is DFU's own roll (autoOpens): it opens, or the pick snaps.
+// THE AUTO ATTEMPT is DFU's own roll (autoOpens): it opens, or the pins drop and the pick holds (BUNNYFALL: it snapped).
 //
 // The machine counts what snapped (`broken`); the pack's picks are the window's (ui/lockpickDoor.js), which takes one
 // for every snap and ends the attempt when none are left. Nothing here reads the clock, the dice or the page: `rng` is
@@ -135,7 +135,8 @@ export function createLockpickAct({ lock, chance, seed, band = 1, skill = 0, ext
       if (st.next >= n) { st.open = true; st.done = true; return answer('open', i); }
       return answer('set', i);
     },
-    /** THE AUTO ATTEMPT - DFU's roll: 'open', or 'break' (every set pin down, a fresh pick next). */
+    /** THE AUTO ATTEMPT - DFU's roll: 'open', or 'slip' (every set pin down; BUNNYFALL, the owner: "avoid breaking locks
+     *  when autopicking" - the pick holds, and the roll may be tried again). */
     auto() {
       if (st.done) return null;
       if (autoOpens(st.chance, rng(), st.exterior)) {
@@ -143,8 +144,8 @@ export function createLockpickAct({ lock, chance, seed, band = 1, skill = 0, ext
         st.next = n; st.open = true; st.done = true;
         return answer('open', -1);
       }
-      st.broken++; dropAll();
-      return answer('break', -1);
+      st.slips++; dropAll();
+      return answer('slip', -1);
     },
     /** The attempt over with nothing more to do - the picks gone, or the player walked away. */
     cancel() { st.done = true; return st; },

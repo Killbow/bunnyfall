@@ -23,7 +23,7 @@
 // ESCORT_FIGHT a foe of each fight won, at the town it was bound for; broken by falling ESCORT_KEEP_M behind for
 // ESCORT_LOST_MIN of the clock.
 import { BUILDING_TYPES } from '../../world/buildingNames.js';
-import { WALK_FROM_H, WALK_TO_H, NATIVE_PER_M, NATIVE_PIXEL, partyAt, membersAt } from './trips.js';
+import { WALK_FROM_H, WALK_TO_H, NATIVE_PER_M, NATIVE_PIXEL, partyAt, membersAt, TRADER_PACE_X } from './trips.js';
 
 /** The kinds of trip that keep a counter on the road, and its kind of shop. */
 export const COUNTERS = Object.freeze({ merchant: BUILDING_TYPES.GeneralStore, carter: BUILDING_TYPES.GeneralStore, pedlar: BUILDING_TYPES.PawnShop });
@@ -114,7 +114,7 @@ export function escortOffer(trip, t) {
  *  the whole walk. @param {any} trip @param {number} level @param {number} foes @param {number} [from] */
 export function escortPay(trip, level, foes = 0, from = -Infinity) {
   const len = Math.max(0, trip.way.len - trip.trim0 - trip.trim1);
-  const walk = len / Math.max(1e-9, trip.pace);
+  const walk = (len / Math.max(1e-9, trip.pace)) * TRADER_PACE_X;   // BUNNYFALL: paid by the days the road took at the old pace - a faster caravan is no cheaper an escort
   const days = Math.max(1, Math.ceil(walk / ((WALK_TO_H - WALK_FROM_H) * 60)));
   const at = from > trip.outT0 ? partyAt(trip, from) : null;
   const ahead = at?.s != null ? Math.min(1, Math.max(0, trip.way.len - trip.trim1 - at.s) / Math.max(1e-9, len)) : 1;

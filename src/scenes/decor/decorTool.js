@@ -1034,6 +1034,9 @@ export function createDecorTool(deps) {
     if (!r || !b || !Array.isArray(keys)) return false;
     let doorsChanged = 0;
     for (const k of keys) if (interiorDoorIndex(k) != null && setRoomDoor(k, out)) doorsChanged += 1;
+    // BUNNYFALL: a cupboard, a chest or a shelf of the room's own that holds things is no longer kept in the room - what
+    // it holds goes to the owner's pack, and the piece is taken out like any other (it was refused: "it holds something")
+    if (out) for (const k of keys) { if (b.list().find((p) => p.key === k)?.holds) for (const it of b.empty?.(k) ?? []) deps.packGive?.(it); }
     const rows = new Map(b.list().map((p) => [p.key, p]));
     const moving = keys.filter((k) => { const p = rows.get(k); return p && p.hidden !== out && !(out && p.holds); });
     if (!moving.length) return doorsChanged > 0;

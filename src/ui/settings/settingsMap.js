@@ -77,7 +77,7 @@ export const CATEGORIES = Object.freeze([
       "feat:smaller-dungeons", "Experimental/SmallerDungeons", "feat:medium-dungeons", "feat:world-dungeon-sizes", "feat:varied-dungeon-monsters",
       "Enhancements/AlternateRandomEnemySelection", "feat:mod-aquatic-sprites"]),
     sec("loot", "Loot & items", [
-      "feat:quick-loot", "feat:loot-rarity", "feat:mod-unleveledloot", "feat:mod-roleplay-realism-items", "feat:mod-physical-items"]),
+      "feat:quick-loot", "feat:lockpick-minigame", "feat:loot-rarity", "feat:mod-unleveledloot", "feat:mod-roleplay-realism-items", "feat:mod-physical-items"]),
     sec("light", "Your light", [
       "feat:torches-from-items", "Enhancements/PlayerTorchFromItems", "feat:mod-handheld-torches"]),
     sec("character", "Character & survival", [

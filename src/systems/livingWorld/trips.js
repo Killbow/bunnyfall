@@ -43,7 +43,11 @@ export const NATIVE_BLOCK = 4096;
 export const WALK_FROM_H = 7;
 export const WALK_TO_H = 19;
 /** Each job's pace on the road, times the street's (a merchant's train at a cart's pace, a courier at a jog). */
-export const TRIP_PACE = Object.freeze({ merchant: 1.05, mercenary: 1.05, adventurer: 1.3, courier: 1.6, pilgrim: 1, sailor: 1.25, pedlar: 1 });
+/** BUNNYFALL (2026-11-04, the owner: "The caravans and traders move way too slowly, especially bothersome for Escort
+ *  Quests"; asked, "2x"): the traders' pace on the road - a merchant's caravan and its sellswords, a pedlar and a carter -
+ *  twice what it was. Every machine walks the same trips, so every machine walks them twice as fast. */
+export const TRADER_PACE_X = 2;
+export const TRIP_PACE = Object.freeze({ merchant: 1.05 * TRADER_PACE_X, mercenary: 1.05 * TRADER_PACE_X, adventurer: 1.3, courier: 1.6, pilgrim: 1, sailor: 1.25, pedlar: 1 * TRADER_PACE_X });
 /** Each job's cycle (days, at the calendar's walking pace). */
 export const CYCLE_DAYS = Object.freeze({ merchant: 7, adventurer: 7, pilgrim: 20, courier: 5, pedlar: 6 });
 /** The chance a traveller goes in a cycle. */
@@ -57,7 +61,7 @@ export const HIRE_MAX = 3;
 /** LW9 (bible/06-Systems/Living-World-II.md): THE ROAD'S NEW TRAFFIC's own tables, beside the first's - each job's pace,
  *  cycle (days), chance a cycle, reach (map pixels) and stay (days). A patrol's and a noble's people ride with their
  *  leader (`leaderOf`) as a sellsword rides with its merchant, and keep no tables of their own. */
-export const ROAD_PACE = Object.freeze({ carter: 0.8, hunter: 1, patrol: 1, noble: 0.85, retainer: 0.85, minstrel: 0.95 });
+export const ROAD_PACE = Object.freeze({ carter: 0.8 * TRADER_PACE_X, hunter: 1, patrol: 1, noble: 0.85, retainer: 0.85, minstrel: 0.95 });
 /** AUDIT LW-II F2: a minstrel's cycle six days - a trip fits its cycle with a day spare (estDays <= len - 1), and a day's
  *  walk each way, a night or two played and the day home is five: at four, no minstrel ever left town at the calendar's
  *  pace (offline), and a fated one died abroad with no road under them. */
