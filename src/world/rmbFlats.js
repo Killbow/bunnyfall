@@ -305,7 +305,7 @@ export function collectMiscFlats(dfBlock) {
  * @returns {Array<{archive:number,record:number,x:number,y:number,z:number,
  *   editor?:boolean}>}
  */
-export function collectBlockFlats(dfBlock, natureArchive, { climateIndex = null, solid = null } = {}) {
+export function collectBlockFlats(dfBlock, natureArchive, { climateIndex = null, solid = null, extra = null } = {}) {
   const rmb = dfBlock.rmbBlock;
   const flats = [];
 
@@ -367,5 +367,6 @@ export function collectBlockFlats(dfBlock, natureArchive, { climateIndex = null,
     }
   }
 
+  if (extra) for (const f of extra) flats.push(f);   // BUNNYFALL: flats this port stands in a block that its file does not (world/emperorMemorial.js)
   return flats;
 }

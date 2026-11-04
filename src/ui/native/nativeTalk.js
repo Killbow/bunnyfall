@@ -53,6 +53,7 @@
 // (listTopicTellMeAbout / Person / Thing and the Work question);
 // each stays a consumed no-op on a host with no engine mounted.
 
+import { hasBunnyPortrait, bunnyPortraitImage } from '../../systems/bunnyNpcArt.js';   // BUNNYFALL: Queen Barenziah's talk portrait
 import { hasDfmodCifRci, dfmodCifRciImage, dfmodGeneration } from '../../systems/dfmodTextures.js';   // DFMOD1: an attached mod's talk portraits
 import { loadImg, nativeMetrics, drawImg, drawImgCrop, drawRect, shadowText, pointToNative, DEFAULT_TEXT_COLOR, DEFAULT_SHADOW_COLOR } from './nativePanel.js';   // AUDIT 63 F5: DaggerfallDefaultShadowColor, the unmarked row's shadow
 import { CifRciFile } from '../../formats/cifRciFile.js';
@@ -375,7 +376,9 @@ export function setNpcPortrait(archive, recordId, { picture = null } = {}) {
   if (_portrait || !_portraitDeps) return;
   // DFMOD1: an attached mod's portrait of the record (DREAM's TFAC00I0.RCI_<n>-0) first - drawn into the same 64x64
   // rect at its own resolution; the classic record when no mod carries it or it will not decode
-  const modPic = hasDfmodCifRci(file, recordId, 0) ? dfmodCifRciImage(file, recordId, 0).catch(() => null) : Promise.resolve(null);
+  // BUNNYFALL: the port's own picture of the record (systems/bunnyNpcArt.js - Queen Barenziah) before a mod's
+  const own = hasBunnyPortrait(key) ? bunnyPortraitImage(key) : Promise.resolve(null);
+  const modPic = own.then((p) => p ?? (hasDfmodCifRci(file, recordId, 0) ? dfmodCifRciImage(file, recordId, 0).catch(() => null) : null));
   modPic.then((pic) => {
     if (!pic || _portraitTex.has(key)) return false;
     const c32 = toScreenOrder(pic);

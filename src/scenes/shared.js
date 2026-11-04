@@ -85,6 +85,8 @@ import { setPaintFile } from '../systems/item/itemInfo.js';
 import { music } from '../systems/music.js';
 import { setMusicReplacements } from '../systems/musicReplacement.js';   // M-EXT: SoundReplacement's registry
 import { setSoundReplacements } from '../systems/soundReplacer.js';   // SNDREP1: the player's sound pack, on the same seam
+import { installEmperorMemorial } from '../world/emperorMemorial.js';
+import { installBunnyNpcArt } from '../systems/bunnyNpcArt.js';
 import { installDiverseWeaponsIcons } from '../combat/diverseWeapons/diverseWeaponsIcons.js';
 import { installRoleplayRealismItems } from '../systems/roleplayRealismItems/rriInstall.js';
 import { installDetailedShipsArt } from '../systems/detailedShips.js';   // DS1: Detailed Ships' pictures and xml scales
@@ -1430,6 +1432,8 @@ export function ensureAudio(fetch = fetchBytes) {
   installDetailedShipsArt();   // DS1: archives 1210/1230 on the texture door (their pictures built from your own records at the archive's load) and the six xml scales
   installForaging();   // FORAGE1: the ForagingQuests list (before any quest bridge is built), the six tools' and five foods' UseItem, the seven pictures, Foraging_Tools
   installWarmAshesShips();   // WA1: the WA_Ships quest list (before any quest bridge is built - LoadQuestLists reads it) and the mod's save record
+  installEmperorMemorial();   // BUNNYFALL: the Emperor's statue (archive 9150), before the archives load
+  installBunnyNpcArt();   // BUNNYFALL: Queen Barenziah's world flat (TEXTURE.346 record 22), before the archives load
   installDiverseWeaponsIcons();   // DW3: before the archives load, so 233/234's preload carries the mod's icons
   installRoleplayRealismItems();
   installRoleplayRealism();   // RR1: the formula overrides, the guild classes, the hooks - once, in InitMod's order   // RRI1: the fourteen rows and the twenty patches before anything mints, the 280 sprites on the door
