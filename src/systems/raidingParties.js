@@ -115,7 +115,8 @@ import { RAID_KIND_ORDER, raidKindOf, raidKindAsk, raidKindName, raidWavePlan, r
   RAID_WAVE_STALL_S, RAID_SITE_AGAIN_S, RAID_REFUGEE_GAP_M } from './raidKinds.js';   // RAID5: the raid's kind; AUDIT WORLD-EVENTS: and its clocks
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // STAFF-EVENT: its lines name a kind
 import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player's language
-import { createRaidMuster, musterSides, MUSTER_GATHER_STEP_S } from './raidMuster.js';   // BUNNYFALL: the raid's camps, its waves gathering there and marching in
+import { createRaidMuster, musterSides, MUSTER_GATHER_STEP_S } from './raidMuster.js';
+import { RAID_STREETLESS } from './raidStreetless.js';   // BUNNYFALL: the towns struck off the raid table   // BUNNYFALL: the raid's camps, its waves gathering there and marching in
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -206,7 +207,7 @@ export function chooseRaider(type, random = Math.random) {
  * @param {{regionCount:number, getRegion:(r:number)=>any, baseLocationCount?:(r:number)=>number}|null} maps
  * @param {ArrayLike<number>|null} pickerData
  */
-export function raidRegions(maps, pickerData) {
+export function raidRegions(maps, pickerData, { all = false } = {}) {   // BUNNYFALL: `all` - the table with no town struck off (tools/raidStreets.mjs)
   if (!maps || !pickerData) return null;
   const count = maps.regionCount ?? 0;
   const onMap = new Set();
@@ -226,6 +227,7 @@ export function raidRegions(maps, pickerData) {
     for (let k = 0; k < base; k++) {
       const row = table[k];
       if (!row || !types.has(row.locationType)) continue;
+      if (!all && RAID_STREETLESS.has(`${r}:${k}`)) continue;   // BUNNYFALL: a town a raid cannot muster in - the roll picks another (systems/raidStreetless.js)
       const px = longitudeLatitudeToMapPixel(row.longitude, row.latitude);
       towns.push(Object.freeze({ index: k, name: String(region.mapNames?.[k] ?? ''), px: px.x, py: px.y }));
     }
@@ -398,7 +400,14 @@ const muster = createRaidMuster({
   camps: (raid) => {
     const s = host().sites?.();
     if (!s?.way) return null;
-    const c = musterSides(raid, !!s.bigTown?.(raid)).map((side) => s.way(side, raid)).filter((pts) => Array.isArray(pts) && pts.length >= 2).map((pts) => ({ pts }));
+    // the raid's own sides first, then the others in turn, until it has its camps (a side with no way is passed over)
+    const want = musterSides(raid, !!s.bigTown?.(raid));
+    const c = [];
+    for (const side of [...want, ...[0, 1, 2, 3].map((k) => (want[0] + k) % 4).filter((k) => !want.includes(k))]) {
+      if (c.length >= want.length) break;
+      const pts = s.way(side, raid);
+      if (Array.isArray(pts) && pts.length >= 2) c.push({ pts });
+    }
     return c.length ? c : null;
   },
   players: () => (host().peerFeetInTown?.() ?? []).map((x) => x[1]).filter(Array.isArray),
@@ -553,7 +562,14 @@ function sweep() {
 /** SpawnRaidEnemy [IL_0764]: one foe in flight; a spot not found costs nothing but this tick (fix 10). */
 function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const h = host();
-  if ((kind === 'raider' || kind === 'leader') && !raid.staff && !o?.at) o = muster.place(raid, kind === 'leader' ? 1 : pack?.size ?? 0) ?? o;   // BUNNYFALL: out of the raid's camp, with its wave
+  // BUNNYFALL: out of the raid's camp, with its wave - and none at all while the town shows no camp (its streets not built
+  // about the player yet): no raider stands just out of view any more (tools/raidStreets.mjs keeps towns with no streets
+  // for a camp off the raid table)
+  if ((kind === 'raider' || kind === 'leader') && !raid.staff && !o?.wave) {
+    const m = muster.place(raid, kind === 'leader' ? 1 : pack?.size ?? 0);
+    if (!m) { if (kind === 'leader') _nextSpawnIn = 1; return; }
+    o = m;
+  }
   const p = { key: raidKey(raid), age: 0, cancelled: false, boss: kind === 'boss' ? raid : null };
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
@@ -871,8 +887,9 @@ function kindPackStep(raid, room, min, max, gapS, near = undefined) {
   if (room <= 0) { _pack = null; _nextSpawnIn = 1; return 'idle'; }
   if (!_pack) { const size = Math.min(room, rangeInt(min, max + 1, rnd())); _pack = { key, left: size, size, at: null, far: true, near: near ?? staffPackPlayer()?.slice() ?? null, kind: true }; }   // AUDIT WORLD-EVENTS L4-7: its own point (the origin's shift moves it)
   const pack = _pack;
+  const o = muster.place(raid, pack.size);   // BUNNYFALL: a pack is a wave of the raid's camp - none while the town shows no camp
+  if (!o) { _nextSpawnIn = 1; return 'idle'; }
   pack.left--;
-  const o = muster.place(raid, pack.size) ?? (pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false } : { min: RAID_SPAWN_MIN_DISTANCE, max: STAFF_PACK_FAR_MAX / 2, los: false, near: pack.near });   // BUNNYFALL: a pack is a wave of the raid's camp
   _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : gapS;
   spawn(raid, 'raider', chooseRaider(raid.type, rnd()), o, pack);
   return 'raider';
