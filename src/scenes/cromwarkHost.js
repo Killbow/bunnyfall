@@ -204,7 +204,12 @@ export function createCromwarkHost(deps) {
       tents.push({ x, z, yaw: Math.atan2(-x + ux, -z + uz) + (rnd() - 0.5) * 0.6 });   // facing the camp's middle, a little askew
     }
     const guards = [];
-    for (let i = 0; i < CAMP_GUARDS; i++) { const a = base + (i / CAMP_GUARDS) * Math.PI * 2 + 0.4, r = 9 + rnd() * 4; guards.push({ x: ux + Math.sin(a) * r, z: uz + Math.cos(a) * r }); }
+    // the owner: "not in a circle around her, spread them a bit through the camp" - each by a tent of its own, a few metres
+    // to its side (a tent every other one), and one at the camp's road side
+    for (let i = 0; i < CAMP_GUARDS; i++) {
+      const tn = tents[(i * 2 + 1) % tents.length], a = rnd() * Math.PI * 2, r = 4 + rnd() * 3;
+      guards.push(i === 0 ? { x: ux * 0.3 + (rnd() - 0.5) * 4, z: uz * 0.3 + (rnd() - 0.5) * 4 } : { x: tn.x + Math.sin(a) * r, z: tn.z + Math.cos(a) * r });
+    }
     return (layout = { tents, guards });
   }
   /** The guards: the city watch's knight, standing - one billboard each, on the ground where they stand. */
