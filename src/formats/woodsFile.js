@@ -29,7 +29,7 @@ const MAP_BUFFER_LENGTH = MAP_WIDTH * MAP_HEIGHT;
 
 export class WoodsFile {
   /** BUNNYFALL PORT-CHANNELS: lay the ports' channels on the height map at load. The audit tools turn it off to read the map as the game made it. */
-  static portChannels = true;
+  static portChannels = false;   // BUNNYFALL: off - one-pixel carves drew as hard squares of water across roads (the owner, 2026-11-04); world/portChannelData.js kept for a better pass
 
   constructor() {
     this.loaded = false;
