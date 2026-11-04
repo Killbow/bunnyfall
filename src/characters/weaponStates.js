@@ -200,12 +200,10 @@ export const THUNDERLOCK_NUM_FRAMES = Object.freeze({
   Idle: 1, StrikeDown: TL_N, StrikeDownLeft: TL_N, StrikeLeft: TL_N, StrikeRight: TL_N, StrikeDownRight: TL_N, StrikeUp: TL_N,
 });
 
-// FPSWeapon.cs:71 verbatim: the unarmed strike-to-the-LEFT plays its
-// own eight-tick frame list - up and back down again - instead of the
-// generic 5-frame increment. FPSWeapon.AnimateWeapon:500-511 takes
-// this arm FIRST, for WeaponTypes.Melee and Werecreature only, and
-// cannot end before the eighth tick.
-export const LEFT_UNARMED_ANIMS = Object.freeze([0, 1, 2, 3, 4, 2, 1, 0]);
+// Fix to keep unarmed attack speed consistent.
+// Previous comment referenced this being for left arm, but this is only applying to left direction attack not dual wielding unarmed left arm attacks.
+// Probably worth removing entirely as to my knowledge it serves no purpose.
+export const LEFT_UNARMED_ANIMS = Object.freeze([1, 2, 3, 4, 0]);
 
 /** WeaponManager.cs:343 - Random.Range((int)UpRight, (int)DownRight + 1)
  *  over MouseDirections {None, UpLeft, Up, UpRight, Left, Right,
@@ -295,7 +293,7 @@ export function machineCancelBowDraw(m, liveSpeed = 50) {
  *
  * The machine steps ONCE per frame and drops the remainder (ARROW2, machineStep below), so a tick lasts the whole
  * frames it takes to cover it: given the frame's `dt`, a step is ceil(tick / dt) frames. Without one, the nominal tick.
- * The unarmed strike to the left is FPSWeapon's eight-tick list, its hit the first visit to frame 2. Null for Idle and
+ * Null for Idle and
  * for a ranged machine - the bow's hit waits for the arm's own "shoot release" (MW-D42), and its arm keeps the record's
  * pace.
  * @returns {{ seconds: number, hitAt: number, step: number } | null}
@@ -315,9 +313,7 @@ export function blowSchedule(m, liveSpeed, animCtx = null, dt = 0) {
   return { seconds: (strikeTicks(m) + holdOf(m)) * step, hitAt: Math.max(0, (m.hitFrame ?? HIT_FRAME_MELEE) - at) * step, step };
 }
 
-/** TWO-HANDS (AUDIT 2): the ticks a melee strike just begun takes from the frame it stands on to its end - FPSWeapon's
- *  eight-tick list for the unarmed strike to the left, else its frames past the one it stands on - before any held at
- *  its end (`m.hold`, machineStep). What an off-hand blow's burden is reckoned on (combat/twoHands/handsLaw.js offHandHold). */
+// Ticks left in the swing, not counting any hold at the end. Used to calculate off-hand delay.
 export function strikeTicks(m) {
   if (m.isUnarmed && m.state === 'StrikeLeft') return LEFT_UNARMED_ANIMS.length;
   const frames = (m.frames ?? MELEE_NUM_FRAMES)[m.state] ?? 5;
