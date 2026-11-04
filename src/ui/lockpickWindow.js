@@ -90,7 +90,7 @@ export const chamberAt = (n, x) => {
 export const LOCK_WORDS = Object.freeze({
   title: (/** @type {string} */ what) => t('lock.window.title', 'Picking {what}', { what }),
   start: () => t('lock.window.start', 'Lift the pins one at a time. The binding pin rises slowly and waits at the line. Press again while it waits to set it.'),
-  gentle: () => t('lock.window.gentle', 'Gentle work is on, so the pins need no timing. Auto attempt rolls your chance. A failed roll snaps a pick.'),
+  gentle: () => t('lock.window.gentle', 'Gentle work is on, so the pins need no timing. Auto attempt rolls your chance. A failed roll costs nothing, so try again.'),
   gentlePress: () => t('lock.window.gentlePress', 'Gentle work is on, so the pins are not lifted one by one. Use Auto attempt.'),
   lift: () => t('lock.word.lift', 'This pin is binding. Press again while it waits at the line.'),
   springy: () => t('lock.word.springy', 'That pin springs straight back. It is not binding yet.'),

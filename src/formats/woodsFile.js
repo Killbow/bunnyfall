@@ -22,11 +22,15 @@
 // EV7 terrain worker builds its own reader from (DFU has no second copy
 // and so needs no equivalent).
 
+import { applyPortChannels } from '../world/portChannels.js';   // BUNNYFALL PORT-CHANNELS
 export const MAP_WIDTH = 1000;
 export const MAP_HEIGHT = 500;
 const MAP_BUFFER_LENGTH = MAP_WIDTH * MAP_HEIGHT;
 
 export class WoodsFile {
+  /** BUNNYFALL PORT-CHANNELS: lay the ports' channels on the height map at load. The audit tools turn it off to read the map as the game made it. */
+  static portChannels = false;   // BUNNYFALL: off - one-pixel carves drew as hard squares of water across roads (the owner, 2026-11-04); world/portChannelData.js kept for a better pass
+
   constructor() {
     this.loaded = false;
     this.header = null;
@@ -49,6 +53,7 @@ export class WoodsFile {
       this._readDataOffsets();
       // DataSection1 unused, exactly as DFU skips it.
       this._readHeightMap();
+      if (WoodsFile.portChannels) applyPortChannels(this.heightMapBuffer);   // BUNNYFALL PORT-CHANNELS: the ports' rivers and inlets (world/portChannels.js)
       this.loaded = true;
       return true;
     } catch {

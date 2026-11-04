@@ -99,20 +99,21 @@ uniform mat4 uVP;
 uniform vec3 uOrigin;   // the circle's heart, on its ground
 uniform vec3 uEye;
 uniform float uTime;
+uniform float uScale;   // BUNNYFALL: a smaller pillar (a raid's camp, a burning house - scenes/raidMusterHost.js); the rite's is 1
 out vec2 vUV;
 out vec3 vWorld;
 out vec3 vNormal;
 out float vRad;
 ${NOISE}// the column's height up it (0..1) at a row's place on the billows' height: close at the fire, far apart at the top
 float heightOf(float y) { return (exp(clamp(y, 0.0, 1.0) * ${f1(Math.log(1 + SMOKE_BILLOW))}) - 1.0) / ${f1(SMOKE_BILLOW)}; }
-vec3 axisAt(float h) { return uOrigin + vec3(${f1(SMOKE_LEAN[0])} * h * h, h * ${f1(SMOKE_HEIGHT_M)}, ${f1(SMOKE_LEAN[1])} * h * h); }
+vec3 axisAt(float h) { return uOrigin + vec3(${f1(SMOKE_LEAN[0])} * h * h, h * ${f1(SMOKE_HEIGHT_M)}, ${f1(SMOKE_LEAN[1])} * h * h) * uScale; }
 // its radius there: the flame's width at its foot, swelling slowly as it climbs, its biggest billows bulging out of it as
 // they rise - the smoke's own first octave, so the outline swells where the smoke is thick (AUDIT WB12d G17) - and never
 // thinner than a few pixels far off
 float radiusAt(vec2 uv) {
   vec2 per = vec2(${f1(SMOKE_TILES_AROUND)}, ${f1(SMOKE_TILES_UP)});
   float lump = tnoise(vec2(uv.x * per.x, (clamp(uv.y, 0.0, 1.0) - uTime / ${f1(SMOKE_CLOCK_PERIOD)} * ${f1(SMOKE_CLIMB_HEIGHTS[0])}) * per.y), per);
-  float r = mix(${f1(SMOKE_FOOT_R)}, ${f1(SMOKE_TOP_R)}, pow(heightOf(uv.y), ${f1(SMOKE_SWELL)})) * (1.0 + ${f1(SMOKE_LUMP)} * (lump - 0.5));
+  float r = mix(${f1(SMOKE_FOOT_R)}, ${f1(SMOKE_TOP_R)} * uScale, pow(heightOf(uv.y), ${f1(SMOKE_SWELL)})) * (1.0 + ${f1(SMOKE_LUMP)} * (lump - 0.5));
   return max(r, length(uEye.xz - uOrigin.xz) * ${f1(SMOKE_WIDEN)});
 }
 vec3 placeAt(vec2 uv) {
@@ -138,6 +139,7 @@ in vec3 vNormal;
 in float vRad;
 uniform float uTime;
 uniform float uFade;
+uniform float uScale;
 uniform float uLight;   // the frame's light on it, 0..1
 ${FOG_UNIFORMS}out vec4 o;
 ${FOG_FACTOR_GLSL}
@@ -149,7 +151,7 @@ ${NOISE}void main() {
   float y = log(1.0 + ${f1(SMOKE_BILLOW)} * h) / ${f1(Math.log(1 + SMOKE_BILLOW))};
   float dy = ${f1(SMOKE_BILLOW / Math.log(1 + SMOKE_BILLOW))} / (1.0 + ${f1(SMOKE_BILLOW)} * h);
   // the coarsest billow here against the eye's few pixels at its distance (AUDIT WB12d G9)
-  float big = min(6.2831853 * vRad / per.x, ${f1(SMOKE_HEIGHT_M)} / (per.y * dy)) / max(length(uCamPos - vWorld) * ${f1(SMOKE_LOD_RAD)}, 1e-4);
+  float big = min(6.2831853 * vRad / per.x, ${f1(SMOKE_HEIGHT_M)} * uScale / (per.y * dy)) / max(length(uCamPos - vWorld) * ${f1(SMOKE_LOD_RAD)}, 1e-4);
   // each octave its own climb, a whole number of columns a period (AUDIT WB12d G17), and its mean once too fine to see
   float n = 0.5 * mix(${f1(SMOKE_LOD_MEAN)}, tnoise(vec2(vUV.x * per.x, (y - t * ${f1(SMOKE_CLIMB_HEIGHTS[0])}) * per.y), per), smoothstep(1.0, 3.0, big))
           + 0.3 * mix(${f1(SMOKE_LOD_MEAN)}, tnoise(vec2(vUV.x * per.x * 2.0, (y - t * ${f1(SMOKE_CLIMB_HEIGHTS[1])}) * per.y * 2.0), per * 2.0), smoothstep(2.0, 6.0, big))
@@ -157,13 +159,13 @@ ${NOISE}void main() {
   // thick where the eye looks through the plume's heart, thin where its surface turns edge on
   float core = smoothstep(0.0, 0.55, abs(dot(normalize(vNormal), normalize(uCamPos - vWorld))));
   float puff = smoothstep(${f1(SMOKE_COVER[0])}, ${f1(SMOKE_COVER[1])}, n) * core;
-  float body = smoothstep(0.0, ${f1(SMOKE_FOOT_FADE_M / SMOKE_HEIGHT_M)}, h) * (1.0 - smoothstep(0.5, 1.0, h));
+  float body = smoothstep(0.0, ${f1(SMOKE_FOOT_FADE_M / SMOKE_HEIGHT_M)} / uScale, h) * (1.0 - smoothstep(0.5, 1.0, h));
   float a = clamp(puff * body * ${f1(SMOKE_ALPHA)}, 0.0, 1.0);
   // the floor in a clear day's distance alone - weather's fog takes it whole (AUDIT WB12d G9)
   float f = fogFactorAt(vWorld);
   a *= (uFogMode == 1 ? max(f, ${f1(SMOKE_FOG_FLOOR)}) : f) * uFade;
   // lit as the frame is (AUDIT WB12d G8); the fire under it a glow in its first metres, light added (G3)
-  vec3 glow = ${v3(SMOKE_EMBER)} * (${f1(SMOKE_GLOW)} * exp(-h * ${f1(SMOKE_HEIGHT_M / SMOKE_EMBER_M)}) * puff * f * uFade);
+  vec3 glow = ${v3(SMOKE_EMBER)} * (${f1(SMOKE_GLOW)} * exp(-h * uScale * ${f1(SMOKE_HEIGHT_M / SMOKE_EMBER_M)}) * puff * f * uFade);
   o = vec4(${v3(SMOKE_COLOR)} * max(uLight, ${f1(SMOKE_LIGHT_MIN)}) * a + glow, a);
 }`;
 
@@ -200,13 +202,14 @@ export const RITE_SMOKE_PROGRAMS = /** @type {ReadonlyArray<readonly [string, st
 
 /** The rite's pillars of smoke, one foreign pass. */
 export class RiteSmokeRenderer {
-  /** @param {WebGL2RenderingContext} gl */
-  constructor(gl) {
+  /** @param {WebGL2RenderingContext} gl @param {{ max?: number }} [opts] `max` the most pillars a frame (BUNNYFALL: a raid's camps and houses) */
+  constructor(gl, { max = SMOKE_MAX } = {}) {
     this.gl = gl;
+    this.max = max;
     const [[vs, fs]] = RITE_SMOKE_PROGRAMS;
     this.program = buildProgram(gl, vs, fs, 'rite smoke');
     this.u = {};
-    for (const n of ['uVP', 'uOrigin', 'uEye', 'uTime', 'uFade', 'uLight', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze']) this.u[n] = gl.getUniformLocation(this.program, n);
+    for (const n of ['uVP', 'uOrigin', 'uEye', 'uTime', 'uFade', 'uLight', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze', 'uScale']) this.u[n] = gl.getUniformLocation(this.program, n);
     const verts = smokeVertices();
     this.vao = gl.createVertexArray();
     gl.bindVertexArray(this.vao);
@@ -221,13 +224,13 @@ export class RiteSmokeRenderer {
   }
 
   /**
-   * Draw the pillars: `smokes` [{ origin: [x, y, z] the circle's heart on its ground, fade 0..1 }] (at most SMOKE_MAX,
+   * Draw the pillars: `smokes` [{ origin: [x, y, z] the circle's heart on its ground, fade 0..1, scale? (1) }] (at most `max`,
    * the faded skipped), `eye` the view's own eye, `seconds` any clock (wrapped here), `fog` the frame's fog - and its
    * `light`, the frame's light on the smoke 0..1 (render/rainCurtains.js's: the ambient and the sun's share).
    */
   draw(smokes, proj, view, eye, seconds, fog = null) {
     this.drawn = 0;
-    const list = (Array.isArray(smokes) ? smokes : []).filter((s) => s && Array.isArray(s.origin) && s.origin.length === 3 && s.origin.every(Number.isFinite) && s.fade > SMOKE_FADE_MIN).slice(0, SMOKE_MAX);
+    const list = (Array.isArray(smokes) ? smokes : []).filter((s) => s && Array.isArray(s.origin) && s.origin.length === 3 && s.origin.every(Number.isFinite) && s.fade > SMOKE_FADE_MIN).slice(0, this.max);
     if (!list.length) return;
     const gl = this.gl, U = this.u;
     mat4Multiply(this._vp, proj, view);
@@ -250,6 +253,7 @@ export class RiteSmokeRenderer {
     for (const s of list) {
       gl.uniform3f(U.uOrigin, s.origin[0], s.origin[1], s.origin[2]);
       gl.uniform1f(U.uFade, Math.min(1, s.fade));
+      gl.uniform1f(U.uScale, Number.isFinite(s.scale) && s.scale > 0 ? s.scale : 1);
       gl.drawArrays(gl.TRIANGLES, 0, this.count);
       this.drawn++;
     }

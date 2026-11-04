@@ -88,6 +88,9 @@ export function createBaseRoom({ drawList, batches, lights, collider }) {
     },
     /** The cupboard, the shelf or the bed a model is - the entry in the host's index-keyed list. */
     furnish(key, entry) { const p = pieces.get(key); if (p && entry) { p.furniture = entry; entry.baseKey = key; } },
+    /** BUNNYFALL (2026-11-04, the owner: "Some default house furniture couldn't be removed"): what a piece holds, taken
+     *  out of it (its list left empty) - the host hands it to the owner's pack, and the piece can then be taken out. */
+    empty(key) { const p = pieces.get(key); return holds(p) ? p.furniture.items.splice(0) : []; },
     /** One piece the crosshair can name, or null once it is out of the room. */
     row(key) {
       const p = pieces.get(key);

@@ -7,6 +7,7 @@ import { applyClimate, getNatureArchive, getTerrainGroundArchive, INTERIOR_SEASO
 import { SEA_LEVEL_M } from '../systems/weather/airTemperature.js';   // PRECIP4: heights above the sea, the snow's
 import { ARENA_BLOCK } from '../world/arena/arenaCity.js';
 import { armFlatAnim, FlatAnimator } from '../render/flatAnimation.js';
+import { memorialFlatsFor } from '../world/emperorMemorial.js';   // BUNNYFALL: the Emperor's memorial at Daggerfall's gate
 import { billboardSize, BLOCK_FLATS_OFFSET_Y, centredBase, collectBlockFlats, isNatureArchive, NATURE_FLATS_Y } from '../world/rmbFlats.js';
 import { blockHillPatch, blockHillSeat, seatNatureFlat } from '../world/townStandIns.js';
 import { blockSolids } from '../world/flatFields.js';
@@ -654,7 +655,7 @@ export function createPixelBuild(host) {
         if (hillPatch) { addStatic(hillPatch, originMatrix, false); collider.addMesh(key, hillPatch.positions, hillPatch.indices, originMatrix, onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0]))); unionBox(transformedAabb(localAabb(hillPatch.positions), originMatrix)); }
         // FIELD BUGS 2026-10-04d CROPS: a crop field's batch reads the climate (the second desert's plant is its own) and
         // keeps a metre off the block's solids - the models this build drew and collided just above (IsOverlapping)
-        const flatOpts = { climateIndex: maps.getClimateIndex(px, py), solid: blockSolids(b.layout.models, (m) => (m.enhancedOnly && !isEnhanced() ? null : cpuModels.get(m.modelIdNum))) };
+        const flatOpts = { extra: memorialFlatsFor(dfLocation, b), climateIndex: maps.getClimateIndex(px, py), solid: blockSolids(b.layout.models, (m) => (m.enhancedOnly && !isEnhanced() ? null : cpuModels.get(m.modelIdNum))) };
         const blockFlats = collectBlockFlats(b.dfBlock, natureArchive, flatOpts);
         const block = skinBlocks.push({ dfBlock: b.dfBlock, opts: flatOpts }) - 1;   // AUDIT PRECIP HOST-7: read again in a season (the same flats, in the same order)
         // AUDIT 26 (F019): ...and the same flats' STATIC NPCs

@@ -46,6 +46,7 @@ import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
+import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from './bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
 import { ensureBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { trs } from '../world/mat4.js';
@@ -249,6 +250,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const interior = layoutInterior(dfBlock, blockIndex, recordIndex, (id) => pending.get(id));
   // WAGONS2: a flat HUNG from a ceiling (the caravan's lantern - systems/caravanRoom.js caravanRoomBlock): its y is the
   // ceiling it hangs from, and the flat (drawn about its middle) stands half its own height below it
+  if (opts.bunnyHall) stripHallFlats(interior);   // BUNNY-GUILDS: the house's clutter goes (scenes/bunnyHallFurnish.js), its lights stay
   for (const f of interior.flats) if (f.hang) { const t = await getTexture(f.archive); if (t && f.record < t.recordCount) f.y -= billboardSize(t, f.record).h / 2; }
   await Promise.all(interior.actionDoors.map((d) => collect(d.modelIdNum)));
 
@@ -359,6 +361,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const base = opts.baseEditable ? createBaseRoom({ drawList, batches: () => billboardBatches, lights: () => lights, collider }) : null;
   const iilFireplaces = [];   // IIL1: the fireplace models' centres (Improved Interior Lighting)
   for (const [pi, p] of interior.placements.entries()) {
+    if (opts.bunnyHall && isHouseFurniture(p)) continue;   // BUNNY-GUILDS: a hall stands none of the house's furniture (its index is kept: `int:${pi}`)
     const matrix = parent(p.matrix);
     // NEVER TRAPS: getGpuMesh returns NULL for a model id this data set
     // does not carry (dataPipeline.js:"const index = arch.getRecordIndex(modelIdNum)".."gpuMeshes.set(modelIdNum, null);", and it CACHES the null), and
@@ -835,6 +838,15 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     base.addFlat(decorBaseFlatKey(bf.fi, bf.flat.archive, bf.flat.record), { flat: [bf.flat.archive, bf.flat.record], batch: bf.batch, light: own[0] ?? null, at: bf.at });
   }
   if (base) for (const f of interior.flats) if (!baseFlats.some((bf) => bf.flat === f)) lights.push(...lightsOf([f]));   // a flat whose picture this data set lacks still lights the room, as the grouped build's did
+  if (opts.bunnyHall) {   // BUNNY-GUILDS: the hall's furnishing about its clerk (scenes/bunnyHallFurnish.js), the doorways and the way in kept clear
+    const enter = interior.markers.find((m) => m.type === INTERIOR_MARKER.ENTER) ?? interior.markers.find((m) => m.type === INTERIOR_MARKER.REST);
+    await furnishBunnyHall({
+      key: opts.bunnyHall, people, collider, origin,
+      avoid: [...interior.doors.map((d) => [...doorWorldPosition(d), 1.4]).map(([x, y, z, r]) => [...parentPt(x, y, z), r]), ...interior.actionDoors.map((d) => [...parentPt(d.matrix[12], d.matrix[13], d.matrix[14]), 1.4])],
+      way: enter ? [parentPt(enter.x, enter.y, enter.z)] : [],
+      renderer, getTexture, uploadRecord, billboardSize, getGpuMesh, cpuModels, drawList, billboardBatches, lights, trs, worldAabb,
+    });
+  }
 
   // Markers (all types - ladders climb against these too) into the
   // parent frame; enterMarkers derive from the transformed set.

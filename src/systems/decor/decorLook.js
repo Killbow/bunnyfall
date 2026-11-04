@@ -80,9 +80,7 @@ export function decorPlaque(named, aim) {
   if (offers.remove) actions.push({ id: 'remove', label: PLAQUE_LABEL.remove });
   if (offers.rename) actions.push({ id: 'rename', label: PLAQUE_LABEL.rename });
   if (offers.access) actions.push({ id: 'access', label: aim.use || decorUseLabel('private') });
-  if (offers.out) actions.push(aim?.holds
-    ? { id: 'out', label: PLAQUE_LABEL.out, disabled: true, why: 'it holds something' }
-    : { id: 'out', label: PLAQUE_LABEL.out });
+  if (offers.out) actions.push({ id: 'out', label: aim?.holds ? t('decor.look.takeOutHolds', 'Take out (its contents to your pack)') : PLAQUE_LABEL.out });   // BUNNYFALL: what it holds goes to the pack
   if (!actions.length) return named ?? null;
   return { ...(named && typeof named === 'object' ? named : {}), title: named?.title || aim?.name || 'Piece', actions };
 }

@@ -54,8 +54,8 @@ export const RAID_WAVES_FOR = (tg) => (tg >= 21 ? 4 : 3);
 /** The breather between two waves (s) - the next is said when it ends. */
 export const RAID_WAVE_BREATHER_S = 12;
 /** A wave's packs: RAID_WAVE_PACK_MIN to RAID_WAVE_PACK_MAX at once, RAID_WAVE_PACK_GAP_S apart. */
-export const RAID_WAVE_PACK_MIN = 3;
-export const RAID_WAVE_PACK_MAX = 5;
+export const RAID_WAVE_PACK_MIN = 5;   // BUNNYFALL: larger groups, gathered at the raid's camp (systems/raidMuster.js) - were 3 to 5
+export const RAID_WAVE_PACK_MAX = 8;
 export const RAID_WAVE_PACK_GAP_S = 6;
 /** The leader's traits (systems/bossTraits.js), drawn for it, and how long after a leader falls before another is stood
  *  for a count the town has not yet heard (s). */

@@ -757,6 +757,18 @@ export const FEATURES = Object.freeze([
   // It sits with LR1 in the `loot` group and AHEAD of it, because
   // WIND3 pins its wisps row to the seat directly after LR1's - so
   // the two loot rows stay together without moving a pinned one.
+  // BUNNYFALL (2026-11-04, the owner: "add an option to disable the lockpicking minigame ... autopick without prompt by
+  // default, if its on the behavior of having to pick the lock activates"): THE LOCK'S WINDOW, off by default - a lock
+  // met in Steal mode is picked at once on Daggerfall's own chance (scenes/lockpickHost.js), no pick ever snapped by it
+  Object.freeze({
+    id: 'lockpick-minigame',
+    group: 'loot',
+    get title() { return t('features.lockpickGame.title', 'Lockpicking minigame'); },
+    get note() { return t('features.lockpickGame.note', 'On: a locked door or chest opens the lock window, and you set the pins yourself. Off: the lock is picked at once on your Lockpicking skill, and a failed try never breaks a lockpick, so you can simply try again.'); },
+    get effect() { return t('features.effect.atOnce', 'Takes effect at once.'); },
+    kinds: Object.freeze(['enhanced', 'classic']),
+    control: Object.freeze({ store: 'prefs', key: 'lockpickMinigame', initial: false, online: 'player' }),
+  }),
   Object.freeze({
     id: 'quick-loot',
     group: 'loot',

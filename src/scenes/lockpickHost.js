@@ -23,7 +23,7 @@
 // failure") is not read here: a snapped pick is what a retry costs now (Ledger A, LOCKPICK).
 // ═══════════════════════════════════════════════════════════════════
 import { createLockpickAct } from '../systems/lockpick/lockpickAct.js';
-import { lockSeed, lockBand } from '../systems/lockpick/lockpickLaw.js';
+import { lockSeed, lockBand, autoOpens } from '../systems/lockpick/lockpickLaw.js';
 import { lockpickCount, spendLockpick } from '../systems/lockpick/lockpickItem.js';
 import { createLockEar } from '../systems/lockpick/lockpickSounds.js';
 import { createLockpickOverlay } from '../ui/lockpickDoor.js';
@@ -44,6 +44,8 @@ export const OPEN_HOLD_MS = 650;
 /** The words the host says outside the window (L10N4: read when said). */
 export const LOCKPICK_HOST_WORDS = Object.freeze({
   need: () => t('lock.need', 'You need a lockpick to pick this lock.'),
+  /** BUNNYFALL: the minigame off - a try that did not open the lock (nothing snapped: try again). */
+  failed: () => t('lock.failed', 'You fail to pick the lock.'),
   door: () => t('lock.what.door', 'the door'),
   /** A locked searchable - SEARCH1's lockable kinds, a chest or a crate - each its own words (searchables.js's names are
    *  English, and a name set into a sentence cannot take its language's article or case). */
@@ -60,7 +62,8 @@ export const LOCKPICK_HOST_WORDS = Object.freeze({
  *   `overlay` the door (a test's stand-in)
  */
 export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverlay?.(w), line = (l) => talk?.say?.(l), player = playerEntity, say = setMidScreenText, audio = bus, changed = surfacePlayer,
-  gentle = () => getPref('gentleActs') === true, reduced = defaultReduced, rolls = () => Math.random(), overlay = createLockpickOverlay }) {   // `rolls` read at the roll, not at the host's making
+  gentle = () => getPref('gentleActs') === true, reduced = defaultReduced, rolls = () => Math.random(), overlay = createLockpickOverlay,
+  minigame = () => getPref('lockpickMinigame') === true }) {   // BUNNYFALL: the lock's window only when the player asked for it (systems/features.js lockpick-minigame)   // `rolls` read at the roll, not at the host's making
   let ear = null, dead = false;
   /** @type {any} */
   let open = null;
@@ -75,6 +78,15 @@ export function createLockpickHost({ talk = null, mount = (w) => talk?.showOverl
     begin({ lock, chance, key, what = LOCKPICK_HOST_WORDS.door(), exterior = false, onOpen = () => {} }) {
       if (dead || (open && !open.done)) return true;   // one lock at a time
       if (lockpickCount(player?.items) < 1) { say(LOCKPICK_HOST_WORDS.need()); return true; }
+      // BUNNYFALL: THE MINIGAME OFF (the default) - picked at once on DFU's own roll for this lock here (the window's Auto
+      // attempt's), an attempt tallied as DFU tallies it; a failure costs nothing - no pick snaps, no lock breaks - and the
+      // press may simply be tried again
+      if (!minigame()) {
+        tallySkill(player, SKILLS.Lockpicking, 1);
+        if (autoOpens(chance, rolls(), exterior)) onOpen();
+        else say(LOCKPICK_HOST_WORDS.failed());
+        return true;
+      }
       const skill = skillValue(player, SKILLS.Lockpicking);
       const seed = lockSeed(key);
       const act = createLockpickAct({ lock, chance, seed, band: lockBand(liveStat(player, 'agility')), skill, exterior, rng: rolls });

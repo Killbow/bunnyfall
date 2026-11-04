@@ -11,6 +11,7 @@
 // grids and the town watch.
 // scenes/exterior.js - FLAGGED: the fixed-city bench runs no raid; the streaming host is where its towns are raided.
 // scenes/worldModes.js and scenes/dungeonContext.js - FLAGGED: a raid is the street's, and stands nothing indoors (RAID1).
+import { musterBigTown } from '../systems/raidMuster.js';   // BUNNYFALL: a big town musters at two camps
 import { NAV_CELL } from '../world/city/cityNavigation.js';
 import { findTownPath, pathLine } from '../systems/livingWorld/townPaths.js';
 import { streetNet } from '../systems/livingWorld/places.js';   // AUDIT WORLD-EVENTS L4-3/L4-8: the town's street net, where its living town has no places
@@ -102,6 +103,10 @@ export function createRaidSites({ townAt, townAtPixel = () => null, feet, ground
   }
   const sceneOf = (t, cell) => { const s = t.toScene((cell[0] + 0.5) * NAV_CELL, (cell[1] + 0.5) * NAV_CELL); return [s[0], groundAt(s[0], s[1]), s[1]]; };
   return {
+    /** BUNNYFALL: whether the raid's town is big enough to muster at two camps (systems/raidMuster.js). @param {any} [raid] */
+    bigTown(raid = null) { const t = townOf(raid); return t ? musterBigTown(t.nav, NAV_CELL) : false; },
+    /** BUNNYFALL: the raid's town as it stands (its walk grid, its places, its frame), or null - the muster's smoke reads it. @param {any} [raid] */
+    townOf(raid = null) { return townOf(raid) ?? null; },
     /** The town's square in the scene ([x, y, z]), or null (its town not built, or no streets). @param {any} [raid] */
     square(raid = null) {
       const t = townOf(raid);
