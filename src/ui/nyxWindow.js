@@ -25,6 +25,17 @@ const NYX_CSS = `
 #nyx-vendor .nyx-head { margin: 14px 0 4px; font-variant: small-caps; letter-spacing: 0.12em; color: #c79cff; }
 #nyx-vendor .broker-price { color: #d4a8ff; }
 #nyx-vendor .nyx-brief { opacity: 0.85; }
+/* her own layout over the Broker's grid: one column, a section's heading over its rows, a row its name, price and Buy */
+#nyx-vendor .broker-body { display: block !important; overflow-y: auto !important; overflow-x: hidden !important; max-height: 70vh; padding: 0 16px 16px; }
+#nyx-vendor .broker-offers { display: flex !important; flex-direction: column !important; gap: 6px; margin: 0; padding: 0; list-style: none; grid-template-columns: none !important; }
+#nyx-vendor .broker-offer { display: grid !important; grid-template-columns: 1fr auto auto !important; align-items: center; gap: 12px; padding: 8px 12px; min-height: 0 !important; width: auto !important; }
+#nyx-vendor .broker-frame { display: none !important; }
+#nyx-vendor .broker-offer-body { display: flex !important; flex-direction: column; gap: 2px; min-width: 0; }
+#nyx-vendor .broker-name { display: block !important; color: #efe3ff; font-size: 16px; white-space: normal; }
+#nyx-vendor .broker-set { display: block !important; font-size: 13px; white-space: normal; }
+#nyx-vendor .broker-price { white-space: nowrap; }
+#nyx-vendor .broker-buy { min-width: 110px; }
+#nyx-vendor .nyx-head { display: block; font-size: 15px; }
 `;
 
 /**
