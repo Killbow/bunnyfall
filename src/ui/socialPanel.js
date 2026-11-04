@@ -487,7 +487,7 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
    open mark and :root put these rules past every one of them (the chat's fit included, whatever size it is dragged
    to) - and nothing of the social mode's moves. Centred, or (AUDIT GUILD-WINDOW W7) beside the chat where the screen
    holds both. Its heights read 100dvh where the browser has it (W6: a phone's toolbar stood over its foot). */
-:root .dfsocial[data-mode="company"][data-open], :root .dfsocial.touch[data-mode="company"][data-open] {
+:root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
   --dfguild-w: min(1060px, calc(100vw - 28px));
   left: calc((100vw - var(--dfguild-w)) / 2); width: var(--dfguild-w);
   top: calc((100vh - min(740px, calc(100vh - 56px))) / 2); top: calc((100dvh - min(740px, calc(100dvh - 56px))) / 2);
@@ -497,24 +497,24 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
    typed into while the company is run (AUDIT SOC C13's law, the panel's own); a chat dragged too wide for both leaves the
    window 760 wide over its edge. */
 @media (min-width: 1240px) and (min-height: 521px) {
-  :root[data-dfchat-fit] .dfsocial[data-mode="company"][data-open], :root[data-dfchat-fit] .dfsocial.touch[data-mode="company"][data-open] {
+  :root[data-dfchat-fit] .dfsocial[data-mode="guild"][data-open], :root[data-dfchat-fit] .dfsocial.touch[data-mode="guild"][data-open] {
     --dfguild-l: max(calc((100vw - var(--dfguild-w)) / 2), min(calc(26px + min(var(--dfchat-w, 440px), calc(100vw - 28px)) + env(safe-area-inset-left, 0px)), calc(100vw - 774px)));
     left: var(--dfguild-l); width: min(var(--dfguild-w), calc(100vw - 14px - var(--dfguild-l))); }
 }
-.dfsocial[data-mode="company"] .dfsocial-tabs { display: none; }
+.dfsocial[data-mode="guild"] .dfsocial-tabs { display: none; }
 .dfsocial-back { display: none; flex: none; background: none; color: var(--dim, #9a9486); border: 1px solid var(--iron, #2b323b); border-radius: 3px;
   font: inherit; font-size: 12px; padding: 3px 10px; cursor: pointer; }
 .dfsocial-back:hover, .dfsocial-back:focus-visible { color: var(--bone, #e9e4d9); border-color: var(--brass, #c08a3e); outline: none; }
-.dfsocial[data-mode="company"] .dfsocial-back { display: block; }
+.dfsocial[data-mode="guild"] .dfsocial-back { display: block; }
 .dfsocial.touch .dfsocial-back { min-height: 44px; padding: 4px 12px; }   /* AUDIT SOC C8's finger, as Close has it */
 .dfguild-backbadge { margin-left: 6px; background: #c8503c; color: #f6efe2; border-radius: 8px; padding: 0 6px; font-size: 11px; }
 .dfguild-backbadge:empty { display: none; }
-.dfsocial[data-mode="company"] .dfsocial-head { padding: 8px 12px; }
-.dfsocial[data-mode="company"] .dfsocial-title { font-size: 15px; color: var(--brass, #c08a3e); }
-.dfsocial[data-mode="company"] .dfsocial-body { overflow: hidden; padding: 0; }
+.dfsocial[data-mode="guild"] .dfsocial-head { padding: 8px 12px; }
+.dfsocial[data-mode="guild"] .dfsocial-title { font-size: 15px; color: var(--brass, #c08a3e); }
+.dfsocial[data-mode="guild"] .dfsocial-body { overflow: hidden; padding: 0; }
 /* the header: the banner beside the name, and the tiles */
-.dfsocial[data-mode="company"] .dfsocial-guildhead { gap: 16px; padding: 12px 18px; background: linear-gradient(rgba(192, 138, 62, .08), rgba(192, 138, 62, 0)); }
-.dfsocial[data-mode="company"] .dfsocial-guildhead .dfsocial-subject { font-size: 22px; letter-spacing: .03em; }
+.dfsocial[data-mode="guild"] .dfsocial-guildhead { gap: 16px; padding: 12px 18px; background: linear-gradient(rgba(192, 138, 62, .08), rgba(192, 138, 62, 0)); }
+.dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 22px; letter-spacing: .03em; }
 .dfguild-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .dfguild-stat { flex: none; min-width: 84px; padding: 5px 10px; background: rgba(0, 0, 0, .3); border: 1px solid var(--iron, #2b323b); border-radius: 4px; }
 .dfguild-statlabel { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim, #9a9486); }
@@ -522,12 +522,12 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfguild-statsub { font-size: 11px; color: ${PARTY_GREEN_CSS}; }
 /* the pages beside the page */
 .dfguild-layout { flex: 1; min-height: 0; display: flex; }
-.dfsocial[data-mode="company"] .dfguild-nav { width: 232px; flex-direction: column; flex-wrap: nowrap; gap: 2px; padding: 10px 8px; overflow-y: auto;
+.dfsocial[data-mode="guild"] .dfguild-nav { width: 232px; flex-direction: column; flex-wrap: nowrap; gap: 2px; padding: 10px 8px; overflow-y: auto;
   border-bottom: 0; border-right: 1px solid var(--iron, #2b323b); }
-.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left;
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { display: flex; flex-direction: column; align-items: stretch; gap: 2px; text-align: left;
   border: 0; border-left: 3px solid transparent; border-radius: 0 4px 4px 0; padding: 8px 10px; color: var(--bone, #e9e4d9); text-transform: none; letter-spacing: 0; }
-.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab:hover, .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab:focus-visible { background: rgba(125, 116, 96, .16); outline: none; }
-.dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab.active { background: rgba(192, 138, 62, .16); border-left-color: var(--brass, #c08a3e); }
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:hover, .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab:focus-visible { background: rgba(125, 116, 96, .16); outline: none; }
+.dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { background: rgba(192, 138, 62, .16); border-left-color: var(--brass, #c08a3e); }
 .dfguild-navtop { display: flex; align-items: baseline; gap: 8px; }
 .dfguild-navlabel { flex: 1; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; }
 .dfguild-navcount { flex: none; font-size: 12px; color: var(--dim, #9a9486); }
@@ -541,51 +541,51 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 /* AUDIT GUILD-WINDOW W13: the foot - always drawn, the last act's words in it */
 .dfguild-foot { flex: none; box-sizing: border-box; min-height: 34px; display: flex; align-items: center; padding: 6px 18px;
   border-top: 1px solid var(--iron, #2b323b); background: rgba(0, 0, 0, .3); }
-.dfsocial[data-mode="company"] .dfguild-foot .dfguild-said { padding: 0; font-size: 13px; line-height: 1.4; color: var(--bone, #e9e4d9); overflow-wrap: anywhere; }
-.dfsocial[data-mode="company"] .dfguild-foot .dfguild-said.dfsocial-err { color: #e0704a; }
-.dfsocial[data-mode="company"] .dfguild-card > .dfsocial-sec { font-size: 12px; color: var(--brass, #c08a3e); padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--iron, #2b323b); }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-note { font-size: 13px; line-height: 1.5; color: #e6d3ad; padding: 3px 0; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-empty { font-size: 13px; line-height: 1.5; padding: 4px 0; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-err { font-size: 13px; padding: 4px 0; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-row { padding: 6px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-row:last-child { border-bottom: 0; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-name { font-size: 15px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-sub { font-size: 12px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-btn { font-size: 13px; padding: 5px 12px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-why { font-size: 12px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-form { max-width: 460px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-label { font-size: 11px; margin-top: 6px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-field { font-size: 14px; padding: 6px 8px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-ranks { font-size: 13px; line-height: 1.5; padding: 6px 0; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-ranks > summary { font-size: 12px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-keeps { font-size: 13px; line-height: 1.5; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-grant { padding: 0 0 8px 18px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-grant .dfsocial-field { flex: 0 1 300px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter { max-width: none; flex-direction: row; flex-wrap: wrap; gap: 6px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter .dfsocial-field { width: auto; flex: 0 1 200px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-filter .dfsocial-field[type="search"] { flex: 1 1 240px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-swatch { width: 24px; height: 24px; }
-.dfsocial[data-mode="company"] .dfguild-main .dfsocial-armspics { gap: 18px; padding: 8px 0; }
+.dfsocial[data-mode="guild"] .dfguild-foot .dfguild-said { padding: 0; font-size: 13px; line-height: 1.4; color: var(--bone, #e9e4d9); overflow-wrap: anywhere; }
+.dfsocial[data-mode="guild"] .dfguild-foot .dfguild-said.dfsocial-err { color: #e0704a; }
+.dfsocial[data-mode="guild"] .dfguild-card > .dfsocial-sec { font-size: 12px; color: var(--brass, #c08a3e); padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--iron, #2b323b); }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-note { font-size: 13px; line-height: 1.5; color: #e6d3ad; padding: 3px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-empty { font-size: 13px; line-height: 1.5; padding: 4px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-err { font-size: 13px; padding: 4px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row { padding: 6px 2px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-row:last-child { border-bottom: 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-name { font-size: 15px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-sub { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-btn { font-size: 13px; padding: 5px 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-why { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-form { max-width: 460px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-label { font-size: 11px; margin-top: 6px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-field { font-size: 14px; padding: 6px 8px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks { font-size: 13px; line-height: 1.5; padding: 6px 0; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-ranks > summary { font-size: 12px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-keeps { font-size: 13px; line-height: 1.5; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant { padding: 0 0 8px 18px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-grant .dfsocial-field { flex: 0 1 300px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter { max-width: none; flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field { width: auto; flex: 0 1 200px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-filter .dfsocial-field[type="search"] { flex: 1 1 240px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-swatch { width: 24px; height: 24px; }
+.dfsocial[data-mode="guild"] .dfguild-main .dfsocial-armspics { gap: 18px; padding: 8px 0; }
 /* AUDIT GUILD-WINDOW W2: THE FINGER'S SIZES OUTRANK THE WINDOW'S - the reading sizes above outweighed AUDIT SOC C8's touch
    rules: every swatch of the Arms 24px under a finger, and a field's 14px made a phone zoom the page into it */
-.dfsocial.touch[data-mode="company"] .dfguild-main .dfsocial-swatch { width: 44px; height: 44px; }
-.dfsocial.touch[data-mode="company"] .dfguild-main .dfsocial-field { font-size: 16px; min-height: 44px; }
+.dfsocial.touch[data-mode="guild"] .dfguild-main .dfsocial-swatch { width: 44px; height: 44px; }
+.dfsocial.touch[data-mode="guild"] .dfguild-main .dfsocial-field { font-size: 16px; min-height: 44px; }
 @media ${GUILD_SMALL_QUERY} {
-  :root .dfsocial[data-mode="company"][data-open], :root .dfsocial.touch[data-mode="company"][data-open] {
+  :root .dfsocial[data-mode="guild"][data-open], :root .dfsocial.touch[data-mode="guild"][data-open] {
     left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(6px + env(safe-area-inset-top, 0px));
     width: calc(100vw - 12px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
     height: calc(100vh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - 12px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
-  .dfsocial[data-mode="company"] .dfsocial-guildhead { padding: 8px 12px; gap: 10px; }
-  .dfsocial[data-mode="company"] .dfsocial-guildhead img { width: 20px; height: 60px; }
-  .dfsocial[data-mode="company"] .dfsocial-guildhead .dfsocial-subject { font-size: 17px; }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead { padding: 8px 12px; gap: 10px; }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead img { width: 20px; height: 60px; }
+  .dfsocial[data-mode="guild"] .dfsocial-guildhead .dfsocial-subject { font-size: 17px; }
   .dfguild-stat { min-width: 0; padding: 3px 8px; }
   .dfguild-statvalue { font-size: 13px; }
   .dfguild-layout { flex-direction: column; }
-  .dfsocial[data-mode="company"] .dfguild-nav { width: auto; flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px;
+  .dfsocial[data-mode="guild"] .dfguild-nav { width: auto; flex: none; flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 6px;
     border-right: 0; border-bottom: 1px solid var(--iron, #2b323b); background: rgba(14, 16, 19, .97); }
-  .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab { flex: none; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
-  .dfsocial[data-mode="company"] .dfguild-nav .dfsocial-subtab.active { border-bottom-color: var(--brass, #c08a3e); }
+  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab { flex: none; border-left: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 6px 10px; }
+  .dfsocial[data-mode="guild"] .dfguild-nav .dfsocial-subtab.active { border-bottom-color: var(--brass, #c08a3e); }
   .dfguild-navsub { display: none; }
   .dfguild-main { padding: 10px 10px 14px; }
   .dfguild-foot { padding: 6px 12px; }
@@ -593,11 +593,11 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 /* AUDIT GUILD-WINDOW W6: A SHORT SCREEN SCROLLS THE WINDOW AS ONE - a phone on its side kept the head, the tiles and the
    row of pages standing and left the page 99 to 169px of it; the row of pages and the foot stay in sight as it goes */
 @media (max-height: 520px) {
-  .dfsocial[data-mode="company"] .dfsocial-body { overflow-y: auto; }
-  .dfsocial[data-mode="company"] .dfguild-layout { flex: none; }
-  .dfsocial[data-mode="company"] .dfguild-main { flex: none; overflow: visible; }
-  .dfsocial[data-mode="company"] .dfguild-nav { position: sticky; top: 0; z-index: 1; }
-  .dfsocial[data-mode="company"] .dfguild-foot { position: sticky; bottom: 0; background: rgba(14, 16, 19, .97); }
+  .dfsocial[data-mode="guild"] .dfsocial-body { overflow-y: auto; }
+  .dfsocial[data-mode="guild"] .dfguild-layout { flex: none; }
+  .dfsocial[data-mode="guild"] .dfguild-main { flex: none; overflow: visible; }
+  .dfsocial[data-mode="guild"] .dfguild-nav { position: sticky; top: 0; z-index: 1; }
+  .dfsocial[data-mode="guild"] .dfguild-foot { position: sticky; bottom: 0; background: rgba(14, 16, 19, .97); }
 }
 /* AUDIT GUILD-WINDOW W1: THE TOASTS' STRIP IS THEIRS. Where the window takes a narrow screen, an invitation's toast (z 7,
    this panel's) or a duel's (z 8, ui/duelPrompt.js) at the top centre stood over its head - a press on Close landed on
@@ -605,12 +605,12 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
    duelPrompt.js already stacks a second toast, or below where this panel's toast was measured to end when a long name
    wraps it lower (--dfsocial-toast-b, paintToast); and below a second toast when it stands too. */
 @media (max-width: 600px) {
-  :root:has(.dfsocial-toast[data-up="1"]) .dfsocial[data-mode="company"][data-open], :root:has(.dfduel-toast[data-up="1"]) .dfsocial[data-mode="company"][data-open] {
+  :root:has(.dfsocial-toast[data-up="1"]) .dfsocial[data-mode="guild"][data-open], :root:has(.dfduel-toast[data-up="1"]) .dfsocial[data-mode="guild"][data-open] {
     --dfguild-t: max(calc(76px + env(safe-area-inset-top, 0px)), calc(var(--dfsocial-toast-b, 0px) + 6px));
     top: var(--dfguild-t);
     height: calc(100vh - var(--dfguild-t) - 6px - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - var(--dfguild-t) - 6px - env(safe-area-inset-bottom, 0px)); }
-  :root:has(.dfduel-toast.second[data-up="1"]) .dfsocial[data-mode="company"][data-open] {
+  :root:has(.dfduel-toast.second[data-up="1"]) .dfsocial[data-mode="guild"][data-open] {
     top: calc(144px + env(safe-area-inset-top, 0px));
     height: calc(100vh - 150px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     height: calc(100dvh - 150px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }

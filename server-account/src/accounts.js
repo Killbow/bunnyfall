@@ -47,7 +47,7 @@ import { PLAY_GRACE_S } from '../../src/net/playClock.js';   // ACC4: the widest
 import { MUTE_MAX_MIN } from '../../src/net/moderation.js';   // MOD1: the longest mute - the command and the service agree in one place
 import { verifyReceipt } from '../../src/net/gate/gateReceipt.js';   // WB5b: the relay's kill receipt, verified with its public half
 import { verifyDuelReceipt } from '../../src/net/duel/duelReceipt.js';   // INT8: a duel's result, the relay's
-import { TERMS_VERSION, PRIVACY_VERSION, LEGAL_VERSION_RE } from '../../src/net/legalLaw.js';   // TERMS1: the documents a new account agrees to - one home both ends
+import { TERMS_VERSION, PRIVACY_VERSION, LEGAL_VERSION_RE, LEGAL_REQUIRED } from '../../src/net/legalLaw.js';   // TERMS1: the documents a new account agrees to - one home both ends
 import {
   hashPassword, verifyPassword, needsRehash, passwordRefusal,
   mintRecoveryCode, codeForHashing,
@@ -676,6 +676,7 @@ export function handleRefusal(handle) {
  * (accountClient.js REFUSALS `not-found`), which is the truth.
  */
 export function legalRefusal(body) {
+  if (!LEGAL_REQUIRED) return null;   // BUNNYFALL: the boxes are switched off (net/legalLaw.js LEGAL_REQUIRED)
   const terms = body?.terms, privacy = body?.privacy;
   if (terms === TERMS_VERSION && privacy === PRIVACY_VERSION) return null;
   if (terms === undefined && privacy === undefined) return { error: 'not-found' };
@@ -689,7 +690,7 @@ export function legalRefusal(body) {
  *  calls: a row that says its player agreed to text this service does not
  *  hold is a record of something that did not happen. */
 const legalColumns = (legal, nowS) =>
-  (legal && !legalRefusal(legal) ? [legal.terms, legal.privacy, nowS] : [null, null, null]);
+  (legal && legal.terms === TERMS_VERSION && legal.privacy === PRIVACY_VERSION ? [legal.terms, legal.privacy, nowS] : [null, null, null]);   // BUNNYFALL: by the versions, not by legalRefusal (which asks nothing while the boxes are off)
 
 // ── ACC1c: USERNAME, PASSWORD, AND THE ONE WAY BACK IN ──────────────
 

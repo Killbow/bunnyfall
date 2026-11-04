@@ -58,6 +58,11 @@ export const LEGAL_VERSION_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Where each document is read. The site serves terms/index.html and
  *  privacy/index.html (vite.config.js) at these paths. */
+/** BUNNYFALL: whether a new account must tick the Terms and the Privacy Policy. Off for now (the owner, 2026-11-04: "just
+ *  remove that stuff for now"): no boxes on the Create account card and the account service asks for none. The pages
+ *  (terms/, privacy/) stay in the repo. Flip to true to bring both ends back. */
+export const LEGAL_REQUIRED = false;
+
 export const TERMS_URL = 'https://dagg.campfirerp.com/terms/';
 export const PRIVACY_URL = 'https://dagg.campfirerp.com/privacy/';
 

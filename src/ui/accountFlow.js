@@ -50,7 +50,7 @@ import {
   PASSWORD_MIN_LEN,
 } from '../net/accountClient.js';
 import { handleLooksLikeEmail } from '../net/handleShape.js';   // HANDLE-EMAIL: a new username is never an address
-import { ACCEPTED, TERMS_URL, PRIVACY_URL } from '../net/legalLaw.js';   // TERMS1: the documents a new account agrees to
+import { ACCEPTED, TERMS_URL, PRIVACY_URL, LEGAL_REQUIRED } from '../net/legalLaw.js';   // TERMS1: the documents a new account agrees to
 import { t, localizedTable } from '../systems/textManager.js';   // L10N4: the card's words in the player's language, read when they are drawn
 import { AURA_TEXT, TITLE_TEXT } from './playerBadge.js';   // SHADOW-CLOAK (AUDIT): an aura's name in the card's note - COLLECTIONS-II: and a title's
 import { ICON_TEXT } from './profileIcons.js';   // WITCH1: an icon's name in the card's note
@@ -104,7 +104,7 @@ export const FIELD_SPEC = Object.freeze({   // L10N4: the words are getters, rea
  *  one (server-account/src/accounts.js `legalRefusal`), so a client that
  *  skipped the boxes would still make nothing. */
 export const AGREEMENTS = Object.freeze({
-  register: ['terms', 'privacy'],
+  register: LEGAL_REQUIRED ? ['terms', 'privacy'] : [],   // BUNNYFALL: switched off, net/legalLaw.js LEGAL_REQUIRED
 });
 
 /** What each box agrees to, and where that document is read. */
