@@ -1174,7 +1174,7 @@ import { carvedFloorLocalY } from './deepWater/deepWatersHost.js';   // DW-D: th
 import { etherPlaceRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
 import { breathStep, setWaterBreathingRule } from '../systems/breath.js';   // DW-D: the dungeon's breath law, on the open sea; ApplyArgonianInfiniteBreath
 import { CLASSIC_UPDATE_INTERVAL } from '../characters/weaponStates.js';   // DW-D: PlayerEntity's classic cadence, the dungeon's import
-import { RACES } from '../systems/races.js';   // DW-D: ArgonianInfiniteBreath
+import { RACES, artRaceOf } from '../systems/races.js';   // DW-D: ArgonianInfiniteBreath
 import { localizedStrings, localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName, t } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the names shown
 import { stakedSaveRefusal } from '../ui/gambitTableWords.js';   // KG3: the save's refusal while gold is staked on The King's Gambit
 import { hallStepsFor, harbourPortFor, coastalAt } from '../net/fortLaw.js';   // SEAT2b part two: a seat's crafting halls, its members' Harbour, a coast
@@ -7120,7 +7120,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       spellsByIndex = sbi;
       const { added } = await applyTestCharacter(playerEntity, preset, { fetchBytes, spellsByIndex: sbi });
       preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-        { race: playerEntity.race, gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
+        { race: artRaceOf(playerEntity), gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
       surfacePlayer();
       questInitAtGameStart();
       console.log(`[testroom] ${preset.label}: ${added} armory items in the pack`);
@@ -7152,7 +7152,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!r) { legacyBirthFailed('no birth waits for this address'); return; }
       finishChargen(playerEntity, r, sbi);
       if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());   // AUDIT LIVED1b R4, as the wizard's
-      preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture }, { race: r.race, gender: r.gender, faceIndex: r.faceIndex });
+      preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture }, { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
       surfacePlayer();
       questInitAtGameStart();
       autoBuildArms(playerEntity);
@@ -7169,7 +7169,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadSpellIndex(fetchBytes).then((sbi) => { spellsByIndex = sbi; return applyHeadlessChargen(playerEntity, Number(params.get('class')), { fetchBytes, spellsByIndex: sbi }); })
       .then(() => {
         preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-          { race: playerEntity.race, gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
+          { race: artRaceOf(playerEntity), gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
         surfacePlayer();
         questInitAtGameStart();   // Q4-v: OnStartGame for the headless character
         legacyHost?.onCharacterMade();   // LEGACY1: and its family
@@ -7207,7 +7207,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           // months past it, and the six-hour gate was open at birth
           if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());
           preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-            { race: r.race, gender: r.gender, faceIndex: r.faceIndex });
+            { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
           surfacePlayer();
           questInitAtGameStart();   // Q4-v: OnStartGame for the new character
           autoBuildArms(playerEntity);   // MWA1: the new character's arms - race, sex and face are known now
@@ -25970,7 +25970,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // AUDIT SOC B5: fatigue in the DIGITS a sheet shows (ui/charsheet.js: the stored pool is x FATIGUE_MULTIPLIER) - a
       // member's card said 3200/6400 where their own sheet said 50/100
       h: playerEntity.health ?? 0, hm: playerEntity.maxHealth ?? 0, f: Math.trunc((playerEntity.fatigue ?? 0) / FATIGUE_MULTIPLIER), fm: Math.trunc(maxFatigue(playerEntity) / FATIGUE_MULTIPLIER), m: playerEntity.magicka ?? 0, mm: playerEntity.maxMagicka ?? 0,
-      race: playerEntity.race ?? 'Breton', gender: playerEntity.gender ?? 'male', face: playerEntity.faceIndex ?? 0,   // the hello's own reading (net/remotePlayers.js composeLook), without the items
+      race: artRaceOf(playerEntity), gender: playerEntity.gender ?? 'male', face: playerEntity.faceIndex ?? 0,   // the hello's own reading (net/remotePlayers.js composeLook), without the items
       // PARTY-REST1: the building key, only meaningful `in === 2` - a
       // dungeon and the open air both leave it null (net/wire.js
       // validPartyPose already zeroes it outside a building, but this

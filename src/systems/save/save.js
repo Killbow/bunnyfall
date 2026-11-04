@@ -98,6 +98,7 @@ export const QUICKSAVE_KEY = 'dagger.quicksave';   // the retired single-key qui
 
 const ENTITY_FIELDS = [
   'name', 'gender', 'race', 'raceId', 'faceIndex',   // S3c/U9: the identity rides the save
+  'lookRace',   // BUNNYFALL: and the race it is drawn as (systems/races.js artRaceOf)
   'characterId',   // CHARID1: and the id that IS the identity - minted at chargen, adopted onto a legacy character at its load
   'careerIndex', 'level', 'reflexes',
   'health', 'maxHealth', 'magicka', 'maxMagicka', 'fatigue',

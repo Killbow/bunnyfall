@@ -114,6 +114,14 @@ export const RACE_KEYS = Object.freeze(RACE_TEMPLATES.map((r) => r.key));
 export const raceByKey = (key) => RACE_TEMPLATES.find((r) => r.key === key) ?? null;
 export const raceById = (id) => RACE_TEMPLATES.find((r) => r.id === id) ?? null;
 
+/** BUNNYFALL (2026-11-04, the owner: "a special option only for killbunny if selecting redguard as a race, but the body
+ *  uses nord 9 as a skin color and head"): THE RACE A CHARACTER IS DRAWN AS - its `lookRace` where it has one (a Redguard
+ *  drawn with a Nord's body and head), else its race. Every picture of a character reads this; every rule reads `race`. */
+export const LOOK_RACES = Object.freeze(['Nord']);
+export const artRaceOf = (/** @type {any} */ e) => (e?.lookRace && LOOK_RACES.includes(e.lookRace) ? e.lookRace : e?.race ?? 'Breton');
+/** The Nord look's face: the ninth of the ten (records 0-9). */
+export const NORD_LOOK_FACE = 8;
+
 /** The paperdoll's art set for one identity. */
 export function raceArt(raceKey, gender = 'male') {
   const r = raceByKey(raceKey) ?? RACE_TEMPLATES[0];

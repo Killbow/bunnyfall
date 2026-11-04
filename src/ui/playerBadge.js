@@ -166,7 +166,7 @@ export const AURA_TEXT = Object.freeze({
   oblivionward: 'Oblivion Ward',   // AEGIS: the Aegis of Oblivion's ring of runes, granted with the title
   radiance: 'Golden Radiance',     // PRIMARCH: the Primarch's column of golden light about the body, granted with the title
   shadowcloak: 'Holo Shadow Cloak',   // SHADOW-CLOAK: the Shadow Fang's hooded cloak of shadow and crimson light, granted with the title
-  seraphwings: 'Seraph Wings',   // SERAPH-WINGS: wings of flowing golden light, the developers' own
+  seraphwings: 'Seraph Halo',   // SERAPH-WINGS: the developers' own - since BUNNYFALL a halo of gold light over the head
   resonance: 'Crystal Resonance',   // CRYSTAL-FIST: the Crystal Fist's ring of purple squares rising and falling, granted with the title
   turninghour: 'The Turning Hour',   // SD9c: the Brass Remnant's wheel of brass gears and gold light, one kill in eight
   firsthour: 'The First Hour',   // HOURS-FIRST: The Turning Hour in the first dawn's light, Hour's First's own, granted with the title

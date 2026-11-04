@@ -55,7 +55,7 @@ import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom class's own archive and record on the doll
 import { ownItemImage } from '../systems/item/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
 import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
-import { raceArt, FACES_PER_RACE, raceByKey } from '../systems/races.js';   // S3c/U9: all eight races
+import { raceArt, FACES_PER_RACE, raceByKey, artRaceOf } from '../systems/races.js';   // S3c/U9: all eight races
 import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
 
 export const PAPERDOLL_W = 110;
@@ -264,7 +264,7 @@ export function paperDollIdentityDrift(entity, ident = _ident) {
   if (!ident) return null;
   const want = {
     ...ident,
-    race: entity?.race ?? 'Breton',
+    race: artRaceOf(entity),   // BUNNYFALL: the race it is drawn as
     gender: entity?.gender ?? 'male',
     faceIndex: entity?.faceIndex ?? 0,
   };
@@ -364,7 +364,7 @@ export async function preloadPaperDollArt(deps, ident = {}) {
  *  (chargen writes race/gender/faceIndex onto it). */
 export const preloadPaperDollForEntity = (deps, entity, context = 'town') =>
   preloadPaperDollArt(deps, {
-    race: entity?.race ?? 'Breton', gender: entity?.gender ?? 'male',
+    race: artRaceOf(entity), gender: entity?.gender ?? 'male',
     faceIndex: entity?.faceIndex ?? 0, context,
   });
 export const paperDollArtLoaded = () => !!_art;
@@ -815,7 +815,7 @@ export async function composeDollFor(entity) {
 const _artSets = new Map();   // identity key -> art set, insertion-ordered (the oldest goes first)
 export const PEER_ART_SETS_MAX = 8;
 export async function composePaperDollPixels(deps, entity, { context = 'town', background = true, back = false } = {}) {
-  const ident = { race: entity?.race ?? 'Breton', gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, context };
+  const ident = { race: artRaceOf(entity), gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, context };
   const key = paperDollIdentityKey(ident);
   try {
     let art = _artSets.get(key);

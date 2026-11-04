@@ -177,6 +177,7 @@ export class ChargenFlow {
     this.gender = 'male';
     this.raceIndex = 0;      // RACE_TEMPLATES order (Breton first)
     this.faceIndex = 0;      // characterDocument.faceIndex - 0..9 within the race/gender FACE CIF
+    this.lookRace = null;    // BUNNYFALL: the Nord look (a Redguard drawn as a Nord - systems/races.js artRaceOf), the owner's alone
     // AUDIT 18: the FACE SCREEN's own picker value, which DFU keeps
     // separately from the document. SetFaceSelectWindow calls
     // SetFaceTextures on EVERY push (DaggerfallStartNewGameWizard.cs:213-224)
@@ -2256,7 +2257,7 @@ export class ChargenFlow {
 
   get done() { return this.state === 'done'; }
   result() {
-    return { name: this.name, gender: this.gender, race: this.race.key, raceId: this.race.id, faceIndex: this.faceIndex, careerIndex: this.classIndex, career: this.career, stats: this.stats, skills: this.skills, biographyEffects: this.biographyEffects, reflexes: this.reflexes, backStory: this.backStory,
+    return { name: this.name, gender: this.gender, race: this.race.key, raceId: this.race.id, faceIndex: this.faceIndex, lookRace: this.race.key === 'Redguard' ? this.lookRace : null, careerIndex: this.classIndex, career: this.career, stats: this.stats, skills: this.skills, biographyEffects: this.biographyEffects, reflexes: this.reflexes, backStory: this.backStory,
       // U20a: the custom document halves - isCustom drives the
       // starting kit + the Spellsword spell rule, customReps the
       // sGroupReputations seed (PlayerEntity.AssignCharacter :844-848)

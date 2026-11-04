@@ -155,7 +155,7 @@ import { endBundle, endedSpellText } from '../../systems/mysticism.js';   // BUF
 import { hudText } from '../../systems/notify.js';
 import { playerEntity } from '../../characters/playerEntity.js';
 import { drawVitalsBars } from './hudVitals.js';   // VB1: the nine-bar law - no cycle, hudVitals reads only the settings store
-import { raceArt } from '../../systems/races.js';
+import { raceArt, artRaceOf } from '../../systems/races.js';
 import { racialOverrideHeadArt } from '../../systems/vampirism.js';   // V5: the curse heads, DFU's override-first order
 import { getBool, getFloat, getInt } from '../../systems/settings/settings.js';
 import { retroRenderingMode, retroAspectCorrection, retroWorldAspect, retroAspectViewportRect } from '../../systems/retroMode.js';   // RETRO1: the retro texture's aspect and the pillarbox
@@ -341,7 +341,7 @@ export function largeHudClick(bar, px, py, button = 0) {
  *  FIRST, exactly as DFU orders it - the werewolf, wereboar and
  *  vampire heads through vampirism.js's one switch. */
 export const headArchiveFor = (entity) =>
-  raceArt(entity?.race ?? 'Breton', entity?.gender ?? 'male').heads;
+  raceArt(artRaceOf(entity), entity?.gender ?? 'male').heads;   // BUNNYFALL: the race it is drawn as
 
 /**
  * LoadAssets (:135-153) plus the head. Returns null (loudly, once)

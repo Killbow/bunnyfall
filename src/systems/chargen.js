@@ -239,7 +239,7 @@ export function createCharacter(playerEntity, career, careerIndex, { rolls = Mat
 /** Apply FINISHED chargen values (the U2b flow's hand-distributed
  *  stats/skills, or the headless roll above) onto the shared entity -
  *  the health/magicka/sum derivations live here ONCE. */
-export function applyCharacter(playerEntity, career, careerIndex, { name = career.name, gender, race, raceId, faceIndex, stats, skills, rolls = Math.random } = {}) {
+export function applyCharacter(playerEntity, career, careerIndex, { name = career.name, gender, race, raceId, faceIndex, lookRace = null, stats, skills, rolls = Math.random } = {}) {
   const maxHealth = rollMaxHealthLevel1(career);
   const maxMagicka = spellPoints(stats.intelligence, spellPointMultiplier(career.abilityFlagsAndSpellPointsBitfield ?? 0x1000));   // absent bitfield -> x1.00
   Object.assign(playerEntity, {
@@ -254,6 +254,7 @@ export function applyCharacter(playerEntity, career, careerIndex, { name = caree
     race: race ?? playerEntity.race ?? 'Breton',
     raceId: raceId ?? playerEntity.raceId ?? 1,
     faceIndex: faceIndex ?? playerEntity.faceIndex ?? 0,
+    lookRace: lookRace ?? null,   // BUNNYFALL: the race it is drawn as (systems/races.js artRaceOf), or none
     career,
     careerIndex,
     level: 1,
