@@ -1301,6 +1301,10 @@ export const equipGlyph = (io, glyph, on) => call(io, '/v1/account/glyph', { gly
 export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
 /** WB9g: buy a piece of the Broker's insignia (net/insignia.js INSIGNIA) for this account - the wardrobe after the sale and
  *  the `purse` its closed gates can still pay, or a refusal (`owned`, `short` with `purse` and `price`, `guest`). */
+/** BUNNYFALL (Cromwark): a Nyx coin (or a few) found in the reach - the service counts them (server-account/src/nyx.js). */
+export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
+/** BUNNYFALL (Cromwark): /nyxcoin's count - every coin the realm gathered, and the account's own. */
+export const nyxTotal = (io) => call(io, '/v1/nyx/total', {});
 export const buyInsignia = (io, item, rid = null) => call(io, '/v1/account/insignia', rid ? { item, rid } : { item });   // AUDIT FB1024 (BROKER-RID): the press's request id
 /** AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id (`{ rid, nonce }`) -
  *  server-account/src/brokerSales.js settleBrokerSale. Signed out, nothing is asked. */

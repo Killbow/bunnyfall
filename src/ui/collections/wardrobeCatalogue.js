@@ -181,6 +181,8 @@ export const WARDROBE = Object.freeze({
     shadowfang: E('bestowed', 'bestowed', bestowed, { with: ['aura:shadowcloak', 'glyph:shadowfang'] }),
     penitent: E('bestowed', 'bestowed', bestowed, { with: ['glyph:penitent'] }),
     gatebreaker: E('broker', 'open', broker('title:gatebreaker')),
+    cromwarksurvivor: E('broker', 'open', () => t('coll.how.cromwarksurvivor', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Nyx coins. Nyx coins drop from the monsters of the Wrothgarian Mountains.', { price: insigniaById('title:cromwarksurvivor')?.price ?? 0 })),
+    heartwarden: E('broker', 'open', () => t('coll.how.heartwarden', 'Stand ten minutes on the purple haze’s counter in the Heart, then buy it from Nyx for {price} Nyx coins.', { price: insigniaById('title:heartwarden')?.price ?? 0 })),
     herald: E('patrons', 'patron', patron('herald'), { with: ['glyph:herald'] }),
     // AUDIT COLLECTIONS-II (lane 1): a seat's title is worn on the guildmaster's character (the token's mint); Crowned and
     // Keeper from Season 1 on (townSeatLaw.js seasonTitles: Season 0, the beta, crowns no one); the Tourney when proclaimed

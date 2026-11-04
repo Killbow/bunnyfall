@@ -22,6 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { t } from '../textManager.js';
 import { isLetterOfCredit } from '../peerWord.js';   // BURNT-SAID: the letters a death took, by their worth
+import { cromwarkPeace, nyxCoinChance } from './cromwark.js';   // BUNNYFALL: the mountains are Cromwark's reach - no PvP, no loot ladder
 
 /** The Wrothgarian Mountains - MapsFile's region index (mapsTables.js REGION_NAMES[16]). */
 export const WILD_REGION = 16;
@@ -42,11 +43,14 @@ export const WILD_LOOT_RARE_MULT = 2;
  */
 export const WILD_RINGS = 4;
 export const WILD_RING_LOOT = Object.freeze([1.25, 1.5, 1.75, 2]);
-/** A ring's loot multiplier (1-4; anything else the heart's - a caller that cannot say is never paid less). */
-export const wildRingLoot = (ring) => WILD_RING_LOOT[(ring | 0) - 1] ?? WILD_RING_LOOT[WILD_RINGS - 1];
+/** A ring's strength share over the zone's four times (1-4; anything else the heart's) - the foes' (applyWildFoe). */
+export const wildRingTier = (ring) => WILD_RING_LOOT[(ring | 0) - 1] ?? WILD_RING_LOOT[WILD_RINGS - 1];
+/** A ring's loot multiplier (1-4; anything else the heart's - a caller that cannot say is never paid less). BUNNYFALL
+ *  (Cromwark): none in the mountains - "less of a resource farm area" (systems/wild/cromwark.js); the sea's as it was. */
+export const wildRingLoot = (ring, kind = _kind) => (cromwarkPeace(kind) ? 1 : wildRingTier(ring));
 /** A ring's word for the maps and the HUD. */
 export const wildRingName = (ring) => ['The Foothills', 'The Passes', 'The High Crags', 'The Heart'][(ring | 0) - 1] ?? 'The Heart';
-export const wildRingBonus = (ring) => `+${Math.round((wildRingLoot(ring) - 1) * 100)}% loot`;
+export const wildRingBonus = (ring) => (cromwarkPeace(WILD_KIND) ? `${Math.round(nyxCoinChance(ring) * 100)}% Nyx` : `+${Math.round((wildRingLoot(ring) - 1) * 100)}% loot`);   // BUNNYFALL: a ring's Nyx coin chance
 /** "has to wait 2mins till respawn" - and a killer's body lies as long. */
 export const WILD_DEATH_HOLD_S = 120;
 /** A blow from another player this recent at the death names them the killer (a lingering spell, a foe's last swing
@@ -471,11 +475,12 @@ export const WILD_TEXT = Object.freeze({
   // FOE-KEEPS (2026-10-24, the owner: "I dont want people to lose everything they have"): only another player's kill drops
   // what you carry (a foe's takes the usual tenth of the purse) - said so where the zone is entered, on its chip and at a
   // foe's death; through the text core (L10N4), read when they are said (a getter: a string where the callers read one)
-  get enter() { return t('wild.zone.enter', 'You enter the {zone}, an open PvP zone. Foes here are four times as strong. If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
+  // BUNNYFALL (Cromwark, systems/wild/cromwark.js): the mountains' own words now - no PvP, no loot ladder, the haze
+  get enter() { if (cromwarkPeace(WILD_KIND)) return t('wild.cromwark.enter', 'You enter the reach of Cromwark. Rodney\'s monsters roam these mountains, four times as strong. Die here and you wake outside.'); return t('wild.zone.enter', 'You enter the {zone}, an open PvP zone. Foes here are four times as strong. If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
   leave: `You leave the ${WILD_NAME}.`,
-  chip: 'Open PvP',
-  get chipTip() { return t('wild.zone.chipTip', '{zone}: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more at the edge, twice in the heart). If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
-  mapKey: 'Open PvP zone',
+  get chip() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.chip', 'Cromwark') : 'Open PvP'; },
+  get chipTip() { if (cromwarkPeace(WILD_KIND)) return t('wild.cromwark.chipTip', 'The reach of Cromwark: foes are four times as strong, stronger toward the heart. From the Passes inward a purple haze makes them hit harder every minute you stay. Kills may drop Nyx coins. Die here and you wake outside.'); return t('wild.zone.chipTip', '{zone}: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more at the edge, twice in the heart). If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
+  get mapKey() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.mapKey', 'Reach of Cromwark') : 'Open PvP zone'; },
   deathPvp: (name) => `${name || 'Another player'} may claim one piece of your worn gear.`,
   deathDrop: (n) => (n > 0 ? `${n} ${n === 1 ? 'thing you carried lies' : 'things you carried lie'} where you fell, for ten minutes.` : ''),
   // FOE-KEEPS: a foe's kill. AUDIT FOE-KEEPS O1, H5: it said "You keep what you carry" over the gold the same death
@@ -503,7 +508,7 @@ export const WILD_TEXT = Object.freeze({
     : t('wild.escrow.heldTakenAnon', 'Your killer collected your {item}.', { item: item || t('wild.escrow.gear', 'gear') })),
   collected: (item) => t('wild.escrow.collected', 'You take {item}.', { item }),
   collectLate: () => t('wild.escrow.collectLate', 'That piece was no longer held for you.'),
-  deathHold: 'In the mountains the dead wait two minutes.',
+  get deathHold() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.deathHold', 'You wake outside the reach of Cromwark.') : 'In the mountains the dead wait two minutes.'; },
   remainsName: (name) => (name ? `${name}'s remains` : 'Remains'),
   mine: 'Your remains',
   taken: 'Someone took that first.',
@@ -516,7 +521,7 @@ export const WILD_TEXT = Object.freeze({
   noFight: 'You cannot attack a member of your party.',
   // PARTY-TRUCE: a party left in the zone, and a walk that leads into it
   truce: `No longer in your party. In the ${WILD_NAME} you and they cannot fight for ten minutes. Then you are strangers.`,
-  walkInto: `It leads into the ${WILD_NAME}, an open PvP zone. Other players may kill you there and take what you carry.`,
+  get walkInto() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.walkInto', 'It leads into the reach of Cromwark. The monsters there are deadly.') : `It leads into the ${WILD_NAME}, an open PvP zone. Other players may kill you there and take what you carry.`; },
   // AUDIT SEA VENTURES C6, C7: two more of the zone's own, so a ground of its own says them its way (zoneWord) - through
   // the text core (L10N4), read when they are said (a getter: a string where the callers read one)
   get unstuckOut() { return t('wild.zone.unstuckOut', '/unstuck does not work outdoors in the mountains.'); },
@@ -538,8 +543,8 @@ export const WILD_TEXT = Object.freeze({
   companionAway: (name) => t('wild.companion.away', '{name} is waiting outside the {zone}. Come out to hand over gear.', { zone: zoneName(), name: name || t('wild.companion.yoursFirst', 'Your companion') }),
   companionLeft: (name, n) => t('wild.companion.left', '{name} hands you {n, plural, one {# item} other {# items}} before leaving.', { zone: zoneName(), name: name || t('wild.companion.yoursFirst', 'Your companion'), n }),
   // WILD2: the rings
-  ring: (r) => `${wildRingName(r)}: ${wildRingBonus(r)}.`,
-  ringCross: (r, deeper) => `${deeper ? 'Deeper' : 'Back out'} - ${wildRingName(r)}: ${wildRingBonus(r)}.`,
+  ring: (r) => (cromwarkPeace(WILD_KIND) ? (r >= 2 ? t('wild.cromwark.ringHaze', '{ring}: the purple haze. The longer you stay, the harder they hit.', { ring: wildRingName(r) }) : t('wild.cromwark.ring', '{ring}.', { ring: wildRingName(r) })) : `${wildRingName(r)}: ${wildRingBonus(r)}.`),
+  ringCross: (r, deeper) => (cromwarkPeace(WILD_KIND) ? `${deeper ? t('wild.cromwark.deeper', 'Deeper') : t('wild.cromwark.backOut', 'Back out')}: ${WILD_TEXT.ring(r)}` : `${deeper ? 'Deeper' : 'Back out'} - ${wildRingName(r)}: ${wildRingBonus(r)}.`),
 });
 
 /**
@@ -579,7 +584,7 @@ export function applyWildFoe(entity, { own = true, ring = WILD_RINGS } = {}) {
   entity.wildRing = Math.max(1, Math.min(WILD_RINGS, ring | 0 || WILD_RINGS));   // WILD2: its loot's ring
   // PVPDUNGEONS (the owner: "With the tier, enemies also get stronger on top of what they are in the zone based on the tier
   // percentage"): the ring's own share - +25% in the foothills to +100% in the heart - over the zone's four times
-  const tier = wildRingLoot(entity.wildRing);
+  const tier = wildRingTier(entity.wildRing);   // BUNNYFALL: the strength's share, never the loot's (Cromwark has none)
   entity.wildTierMult = tier;
   if (own) {
     entity.maxHealth = Math.max(1, Math.round((entity.maxHealth || 1) * WILD_FOE_HEALTH_MULT * tier));
@@ -641,6 +646,7 @@ export const wildFallHeard = () => _fell;
 /** The death screen's lines for a death in the zone (empty for any other). */
 export function wildDeathLines(d = _death) {
   if (!d) return [];
+  if (cromwarkPeace(d.kind ?? WILD_KIND)) return [zoneWord('deathHold', WILD_KIND)];   // BUNNYFALL (Cromwark): no player's kill, nothing dropped - you wake outside
   return [d.killer || d.kill ? (d.claimed ? (d.held ? WILD_TEXT.deathHeld : WILD_TEXT.deathClaim)(d.killer, d.claimed) : WILD_TEXT.deathPvp(d.killer)) : WILD_TEXT.deathKept(), WILD_TEXT.deathDrop(d.dropped),
     WILD_TEXT.deathBurnt(d.burnt ?? 0), WILD_TEXT.deathLetters(d.letters?.n ?? 0, d.letters?.gold ?? 0), WILD_TEXT.deathLettersTenth(d.letters?.tenth ?? 0), zoneWord('deathHold', d.kind ?? WILD_KIND)].filter(Boolean);
 }

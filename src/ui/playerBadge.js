@@ -83,6 +83,8 @@ export const TITLE_TEXT = Object.freeze({
   shadowfang: 'Shadow Fang',         // SHADOW-FANG (2026-09-26, Mac): SirMcMobdon's own
   penitent: 'Penitent',              // PENITENT (2026-09-29, Mac): Diggleborf's own
   gatebreaker: 'Gatebreaker',        // WB9g (2026-09-30, Mac): the Sigil Broker's, bought
+  cromwarksurvivor: 'Cromwark Survivor',   // BUNNYFALL (Cromwark): Nyx's, bought with Nyx coins
+  heartwarden: 'Warden of the Heart',      // BUNNYFALL (Cromwark): Nyx's, after ten minutes on the haze's counter in the Heart
   herald: 'Herald',                  // HERALD (2026-10-01, Mac): the Patreon tier between Disciple and Hierophant
   // SEAT1c (Seats-Arc 7.4): the seats' five - each worded off its claim where this client knows the place
   // (townSeatLaw.js seatTitleText: "Warden of Anticlere"), and these words alone where it does not
@@ -333,6 +335,8 @@ export const TITLE_RGBA = Object.freeze({
   penitent: PENITENT_GOLD,
   // WB9g: the fire at the gradient's middle - the colour a face that cannot draw a gradient uses
   gatebreaker: GATEBREAKER_FIRE,
+  cromwarksurvivor: Object.freeze([0.71, 0.42, 1, 1]),   // BUNNYFALL: the haze's purple (#b56bff)
+  heartwarden: Object.freeze([0.84, 0.6, 1, 1]),          // BUNNYFALL: the barrier's lilac (#d699ff)
   // HERALD (2026-10-01, Mac: "you'll need to develop the herald title/glyph"; no colour named): AZURE, heraldry's own
   // blue - a herald wears the arms he cries. Between the Disciple's teal and the Apostle's violet on the tiers' rise,
   // and brighter and bluer-violet than the moderator's shield, which is a shield and never a trumpet. Chosen over a

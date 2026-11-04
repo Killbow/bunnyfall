@@ -20,6 +20,7 @@
 //
 // Built once a mask, on a canvas of its own (as the fog is); nothing is computed per frame but the plaques' places.
 // ═══════════════════════════════════════════════════════════════════
+import { CROMWARK_ON } from '../../systems/wild/cromwark.js';   // BUNNYFALL: the reach's laws in the legend
 import {
   WILD_RINGS, WILD_NAME, wildRingAt, wildRingChains, wildRingAnchors, wildRingName, wildRingBonus, wildEdgeChains,
 } from '../../systems/wild/wildZone.js';
@@ -385,7 +386,16 @@ export function zoneMapLimits(mask, { paperW, paperH, legendW = ZONE_LEGEND_W })
 }
 
 /** The zone's laws, as the legend states them. */
-export const ZONE_RULES = Object.freeze([
+export const ZONE_RULES = CROMWARK_ON ? Object.freeze([   // BUNNYFALL (Cromwark, systems/wild/cromwark.js): the reach's laws
+  'Rodney\'s monsters are four times as strong, and stronger toward the heart.',
+  'From the Passes inward the purple haze runs a counter: foes hit 25% harder for every minute you stay. Leave the deep rings to reset it.',
+  'Kills may drop Nyx coins, more often toward the heart. Spend them with Nyx at the Adventurers\' Guild camp on the south-east road.',
+  'The settlements are abandoned. No one lives, trades or keeps watch there.',
+  'Two Greater Giants roam every reach, each shown on the map.',
+  'Die here and you wake in the nearest town outside the zone.',
+  'Carriages run inside the zone every 10 minutes, at higher prices.',
+  'No fast travel into or out of the zone except from the Overworld map. Walk or ride.',
+]) : Object.freeze([
   'Other players can attack you. Only your party and guild are shown on your maps here.',
   'Foes are four times as strong, elites and champions included.',
   'Two Greater Giants roam every reach, each shown on the map.',
@@ -406,7 +416,7 @@ export function buildZoneLegend(doc, { ring = 0, onBack = null, names = true, on
   root.addEventListener?.('pointerdown', (e) => e.stopPropagation?.());
   root.addEventListener?.('wheel', (e) => e.stopPropagation?.());
   const head = el('div', 'hmwild-head');
-  head.append(el('div', 'hmwild-kicker', 'Open PvP zone'), el('div', 'hmwild-title', WILD_NAME));
+  head.append(el('div', 'hmwild-kicker', CROMWARK_ON ? 'The Sorcerer of Cromwark' : 'Open PvP zone'), el('div', 'hmwild-title', WILD_NAME));
   root.append(head);
   const where = el('div', `hmwild-where${ring ? ' in' : ''}`, ring ? `You stand in ${RING_NUMERALS[ring - 1]} · ${wildRingName(ring)} · ${wildRingBonus(ring)}` : 'You stand outside the zone');
   root.append(where);

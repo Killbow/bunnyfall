@@ -21,6 +21,7 @@
 //      stay valid for the exit landing math.
 //   baseCollider() - the collider to restore on exit.
 
+import { cromwarkDoor, cromwarkTownText } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { markInteriorLoad } from '../ui/interiorLoadMark.js';   // a building's load is a ring over the hotbar, not the full screen
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
@@ -7877,6 +7878,8 @@ export function createWorldModes(host) {
     if (!isBash && (hit.door.doorType === DOOR_TYPE.DUNGEON_ENTRANCE || hit.door.doorType === DOOR_TYPE.BUILDING) && host.duelHolds?.()) { setMidScreenText(DUEL_DOOR_TEXT); return true; }
     if (hit.door.doorType === DOOR_TYPE.DUNGEON_ENTRANCE) return enterDungeonDoor(hit, entries);   // ONLINE-PUBLIC: the door opens the public room
     if (hit.door.doorType !== DOOR_TYPE.BUILDING || hit.recordIndex === undefined) return false;
+    // BUNNYFALL (Cromwark, systems/wild/cromwarkTowns.js): a desolate town's door is boarded up, or opens on nobody
+    if (cromwarkDoor(null, hit.dfLocation, hit.dfBlock?.index, hit.recordIndex) === 'boarded') { setMidScreenText(cromwarkTownText('boarded')); return true; }
     // R1: THE EXTERIOR DOOR LOCK (ActivateStaticDoor, PlayerActivate.cs
     // :512-568). Closed hours lock the town: the unlocked ladder runs
     // first, and its top two rungs - owned houses and active-quest
@@ -8607,7 +8610,9 @@ export function createWorldModes(host) {
         building.insideResidence = insideResidence;
       }
       const _dict = townTalk?.factionDict ?? null;
-      const peopleVisible = (restore?.privateRoom || hit.sailingCabin) ? false : !building ? true : peopleAreVisible(building, {
+      const _desolate = !!cromwarkDoor(null, hit.dfLocation, hit.dfBlock?.index, hit.recordIndex);   // BUNNYFALL (Cromwark): a looted room stands nobody
+      if (_desolate && !restore) townTalk?.say?.(cromwarkTownText('looted'));
+      const peopleVisible = (restore?.privateRoom || hit.sailingCabin || _desolate) ? false : !building ? true : peopleAreVisible(building, {
         hour: _hour,
         insideOpenShop,
         isHouseOwned: (key) => home !== null || houseOwnedAt(building, key),   // HOME1: a player's home - anyone's - has no residents

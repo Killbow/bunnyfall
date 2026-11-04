@@ -1480,7 +1480,7 @@ export function applyRarity(item, tier, rolls = Math.random, legendaryPool = nul
   let affixes;
   let enchantment = null;
   if (tier === 'legendary') {
-    const pool = legendaryPool ?? legendariesFor(item);
+    const pool = legendaryPool ?? legendariesFor(item).filter((l) => !l.shopOnly);   // BUNNYFALL (Nyx, systems/wild/nyxShop.js): a shop's record is never rolled
     if (!pool.length) return applyRarity(item, 'rare', rolls, null, { byLines, lean, fists });   // no record for this item: the tier below
     const rec = pickLegendary(pool, family, rolls);   // LOOT6: a source's family weighs its own records
     affixes = rec.affixes.map((a) => ({ ...a }));

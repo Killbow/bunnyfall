@@ -110,6 +110,7 @@ import { DOT_SCALE } from './travelPathsOverlay.js';
 import { TRAVEL_OPTIONS_TEXT as TO_TEXT, format as toFormat } from '../../systems/travel/travelOptionsText.js';
 import { readPartyMarks, partyMarksKey, PARTY_DOT_RGB, PARTY_OFFLINE_DOT_RGB } from '../partyMapMarks.js';   // SOC6: the party's marks, the one reading both maps share
 import { WILD_REGION, WILD_RINGS, wildInside, wildRingAt, wildRingName, wildRingBonus, wildPictureZone } from '../../systems/wild/wildZone.js';   // WILD1: the open zone on the classic map too (WILD2: and its rings)
+import { CROMWARK_ON } from '../../systems/wild/cromwark.js';   // BUNNYFALL: the purple border
 import { RING_INK, RING_NUMERALS } from '../wild/wildZoneMap.js';   // WILD2: the rings' own tones, the zone map's
 import { readGateMark, gateRingKey, gateRingTexels, GATE_DOT_RGB } from '../gate/gateMapMark.js';   // WB1: the Oblivion Gate's ring, on the open province's page
 import { readBountyMarks, bountyMarksKey, bountyRingTexels, BOUNTY_DOT_RGB, REVENANT_DOT_RGB, REVENANT_LEGEND_TEXT } from '../bounty/bountyMapMark.js';   // BOUNTY1: held bounties' black circles on the region page
@@ -818,7 +819,7 @@ export class TravelMapWindow {
   /** WILD1: the zone layer's three texels - the fog in two tones, dithered, and the edge. */
   static get WILD_TEXELS() {
     return {
-      fogA: packRGBA(92, 18, 14, 120), fogB: packRGBA(46, 40, 38, 84), edge: packRGBA(206, 44, 26, 255),
+      fogA: CROMWARK_ON ? packRGBA(62, 18, 98, 120) : packRGBA(92, 18, 14, 120), fogB: packRGBA(46, 40, 38, 84), edge: CROMWARK_ON ? packRGBA(155, 77, 255, 255) : packRGBA(206, 44, 26, 255),   // BUNNYFALL (Cromwark): the border purple
       // WILD2: each ring's tone (the zone map's, ui/wild/wildZoneMap.js RING_INK) and the line where a deeper ring begins
       rings: RING_INK.map((k) => packRGBA(k.fill[0], k.fill[1], k.fill[2], Math.round(110 + k.alpha * 160))),
       ringLine: packRGBA(48, 8, 6, 230),
