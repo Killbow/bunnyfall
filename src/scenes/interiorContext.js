@@ -392,10 +392,10 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     }
     const aabb = worldAabb(cpu.positions, matrix);
     // IIL1: ImproveFireplaces.cs finds its hearths by mesh id - the port keeps where they stand
-    if (IIL_FIREPLACE_MODELS.has(p.modelIdNum)) iilFireplaces.push({ x: (aabb.min[0] + aabb.max[0]) / 2, y: (aabb.min[1] + aabb.max[1]) / 2, z: (aabb.min[2] + aabb.max[2]) / 2, foot: aabb.min[1], w: Math.max(aabb.max[0] - aabb.min[0], aabb.max[2] - aabb.min[2]), h: aabb.max[1] - aabb.min[1] });   // BUNNYFALL: and its box, for a cooking fire
     const key = `int:${pi}`;
     const baseKey = base && p.objectType === PROP_MODEL_TYPE && p.modelIdNum !== LADDER_MODEL_ID && p.modelIdNum !== MACHINERY_MODEL_ID
       ? decorBaseModelKey(pi, p.modelIdNum) : null;   // BASE-HIDE: a piece its owner may take out
+    if (IIL_FIREPLACE_MODELS.has(p.modelIdNum)) iilFireplaces.push({ x: (aabb.min[0] + aabb.max[0]) / 2, y: (aabb.min[1] + aabb.max[1]) / 2, z: (aabb.min[2] + aabb.max[2]) / 2, foot: aabb.min[1], w: Math.max(aabb.max[0] - aabb.min[0], aabb.max[2] - aabb.min[2]), h: aabb.max[1] - aabb.min[1], baseKey });   // BUNNYFALL: and its box, for a cooking fire
     drawList.push({ mesh: gpu, matrix, key, aabb });
     // PERF6: the entry stays in drawList for the automap; the main view draws the merge
     if (!baseKey && cpu.normals && cpu.uvs) { staticBuilder.add(cpu, matrix, resolveTexKey); drawList[drawList.length - 1]._batched = true; }
@@ -974,7 +974,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     parentPt,   // Q4-v: the quest mount parents marker positions through the same transform
     lights,
     roomLamps: Object.freeze(lights.slice()),   // AUDIT RPT1026 J1: the lamps the room was built with - DARK-ROOM's law reads these (world/interior/interiorLights.js roomAmbient), never the live list a placed lamp joins and a lamp taken out leaves
-    iilFireplaces,   // IIL1
+    get iilFireplaces() { return iilFireplaces.filter((f) => !f.baseKey || !!base?.row?.(f.baseKey)); },   // IIL1; BUNNYFALL: a fireplace taken out of a home gives no light or hearth
     texRemap,
     floorMaterials,   // IF1: the combined mesh's material names, for Immersive Footsteps' floor walk
     markers,
