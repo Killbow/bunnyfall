@@ -43,7 +43,7 @@ export const NATIVE_BLOCK = 4096;
 export const WALK_FROM_H = 7;
 export const WALK_TO_H = 19;
 /** Each job's pace on the road, times the street's (a merchant's train at a cart's pace, a courier at a jog). */
-export const TRIP_PACE = Object.freeze({ merchant: 0.85, mercenary: 0.85, adventurer: 1.05, courier: 1.3, pilgrim: 0.9, sailor: 1, pedlar: 0.95 });
+export const TRIP_PACE = Object.freeze({ merchant: 1.05, mercenary: 1.05, adventurer: 1.3, courier: 1.6, pilgrim: 1, sailor: 1.25, pedlar: 1 });
 /** Each job's cycle (days, at the calendar's walking pace). */
 export const CYCLE_DAYS = Object.freeze({ merchant: 7, adventurer: 7, pilgrim: 20, courier: 5, pedlar: 6 });
 /** The chance a traveller goes in a cycle. */
