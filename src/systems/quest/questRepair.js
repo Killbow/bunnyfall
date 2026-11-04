@@ -33,7 +33,7 @@
 //
 // Not a DFU member: DFU has no such pass (its quest debugger is a developer's console). Ledger A (QREPAIR).
 import { MARKER_PREFERENCE, SITE_TYPES } from './place.js';
-import { SMALLER_DUNGEONS_STATE, portSize } from '../../world/smallerDungeons.js';   // AUDIT DELVE E1 / INSTANCES: the size a quest's markers know online (the whole dungeon's); MEDIUM-DISTINCT: the two stamps whose builds are medium
+import { ONLINE_DUNGEONS_STATE, portSize } from '../../world/smallerDungeons.js';   // AUDIT DELVE E1 / ONLINE-PUBLIC: the size a quest's markers know online (the public room's); MEDIUM-DISTINCT: the two stamps whose builds are medium
 import { isOnlinePage } from '../online/onlineLane.js';   // MEDIUM-DISTINCT's audit: offline a dungeon no link holds is built by the settings
 import { isShelved } from './quest.js';   // QUEST-SHELF's audit: the repair mends no quest set aside
 import { t } from '../textManager.js';   // QUEST-ELSEWHERE: its line in the player's language
@@ -149,12 +149,12 @@ const markerAddresses = (list) => (list ?? []).map((m) => `${m?.dungeonX},${m?.d
  * agrees, and nothing moves). A quest one of whose dungeons could not be read here (no world, no such location, a
  * throw) keeps its stamp: the size its markers there still know.
  *
- * INSTANCES (2026-10-15, bible/11-Multiplayer/Instances.md): AND THAT SIZE IS THE DUNGEON WHOLE NOW. Online a quest's
- * markers are chosen on Daggerfall's own layout (the quest's world asks smallerDungeons.js dungeonSizeFor for it whole),
- * the layout its instance builds - so every stamp but DFU's Disabled is re-laid on the whole dungeon at the load, the
- * world's sizes' ONLINE_DUNGEONS_STATE among them, and stamped Disabled. A re-laid public room stands none of a quest's
- * targets (systems/instancePlaces.js questMountsHere); its instance, or its whole room where the relay keeps no instance,
- * stands them all.
+ * ONLINE-PUBLIC (the instance system retired): THE PUBLIC ROOM'S SIZE IS THE QUEST'S. Online a quest's markers are
+ * chosen on the same layout every player in the room builds (smallerDungeons.js dungeonSizeFor's onlineDungeonSize),
+ * and every running quest is compared with it at the load whatever stamp an older build left - INSTANCES' whole-dungeon
+ * Disabled among them - then stamped ONLINE_DUNGEONS_STATE. The public room mounts the quest's own people, items and
+ * foes for this client alone (dungeonContext.js's private stands), so the player who holds the quest finds them and no
+ * one else does.
  */
 export function relayOnlineDungeons(machine, env = {}) {
   let relaid = 0;
@@ -169,9 +169,11 @@ export function relayOnlineDungeons(machine, env = {}) {
  *  and its copy pointed into blocks this page's world-sized build has not; the load's pass alone re-laid it, the next
  *  time this player loaded online. */
 export function relayQuestOnline(quest, env = {}) {
-  if (!quest || quest.smallerDungeonsState === SMALLER_DUNGEONS_STATE.Disabled) return false;   // INSTANCES: the whole dungeon's, as its markers know it
+  if (!quest) return false;
+  // ONLINE-PUBLIC: every running quest is compared with the public room's layout, whatever stamp an older build left
+  // (INSTANCES stamped the whole dungeon's Disabled); only a quest whose markers moved is put back.
   const { moved, unread } = relayDungeonPlaces(quest);
-  if (!unread) quest.smallerDungeonsState = SMALLER_DUNGEONS_STATE.Disabled;
+  if (!unread) quest.smallerDungeonsState = ONLINE_DUNGEONS_STATE;
   if (!moved) return false;
   putBackPlacements(quest, env);
   return true;
@@ -281,7 +283,7 @@ export function relayQuestMovedLayout(quest, machine, env = {}, online = isOnlin
  * Answers the counts and the line the player reads.
  */
 export function repairActiveQuests(machine, env = {}) {
-  const report = { quests: 0, people: 0, items: 0, foes: 0, relinked: 0, revealed: 0, topics: 0, failed: 0, elsewhere: false };
+  const report = { quests: 0, people: 0, items: 0, foes: 0, relinked: 0, revealed: 0, topics: 0, failed: 0 };
   // QUEST-SHELF's audit: nor one set aside - its links stood again, its things went back, while it was away. Its markers
   // still follow a moved layout (the relays above), so a reclaim finds them true.
   const quests = [...(machine?.quests?.values?.() ?? [])].filter((q) => questRunning(q) && !isShelved(q));
@@ -313,9 +315,6 @@ export function repairActiveQuests(machine, env = {}) {
         if (env.hasQuestTopics && env.addQuestTopics && !env.hasQuestTopics(quest)) { env.addQuestTopics(quest); report.topics++; }
       } catch { report.failed++; }
     }
-    // 4. where the player stands, now - QUEST-ELSEWHERE (FIELD BUGS 2026-10-16c): a re-laid public room mounts none of a
-    // quest's things (worldModes.js mountQuestResources answers 'elsewhere'), and the repair says where they are
-    try { if (env.mountCurrentSite?.() === 'elsewhere') report.elsewhere = true; } catch { report.failed++; }
   } finally {
     if (machine) machine.mountByName = was;
   }
@@ -325,15 +324,8 @@ export function repairActiveQuests(machine, env = {}) {
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-/** QUEST-ELSEWHERE (FIELD BUGS 2026-10-16c; MD-Geist, "Quest Objective only spawned in 'Instance' Dungeon, not
- *  'Public'": "the Objective just did not want to spawn (I tried the dungeon in 'Public' mode) even after 'Quest
- *  Repair'"): online, a dungeon's public room is laid smaller for most dungeons, and a quest's things stand in the dungeon
- *  laid whole - the player's instance (systems/instancePlaces.js questMountsHere). The repair found nothing missing, and
- *  said only that. */
-export const questElsewhereLine = () => t('quest.repair.elsewhere', "Your quest's targets in this dungeon are only in your own instance. Leave and enter again, choosing Your instance.");
-
-/** The line the player reads after a repair - QUEST-ELSEWHERE: where its things are, never "nothing was missing", when
- *  the room the player stands in holds none of them. */
+/** The line the player reads after a repair. ONLINE-PUBLIC: the public room mounts a quest's things for the player who
+ *  holds it, so there is no "your own instance" to point them to any more. */
 export function questRepairText(r) {
   if (!r || !r.quests) return 'You have no active quests to repair.';
   const put = [r.people ? plural(r.people, 'person', 'people') : null, r.items ? plural(r.items, 'item', 'items') : null, r.foes ? plural(r.foes, 'foe', 'foes') : null].filter(Boolean);
@@ -343,7 +335,6 @@ export function questRepairText(r) {
   if (r.revealed) parts.push(`marked ${plural(r.revealed, 'location', 'locations')} on your map`);
   if (r.topics) parts.push(`restored what people know about ${plural(r.topics, 'quest', 'quests')}`);
   const head = parts.length ? `Quests repaired: ${parts.join('; ')}.`
-    : r.elsewhere ? questElsewhereLine() : `Nothing was missing from ${r.quests === 1 ? 'your active quest' : `your ${r.quests} active quests`}.`;
-  const said = parts.length && r.elsewhere ? `${head} ${questElsewhereLine()}` : head;
-  return r.failed ? `${said} ${plural(r.failed, 'part', 'parts')} could not be checked.` : said;
+    : `Nothing was missing from ${r.quests === 1 ? 'your active quest' : `your ${r.quests} active quests`}.`;
+  return r.failed ? `${head} ${plural(r.failed, 'part', 'parts')} could not be checked.` : head;
 }

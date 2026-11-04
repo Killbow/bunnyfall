@@ -1,4 +1,8 @@
 // @ts-check
+// ONLINE-PUBLIC (the instance system retired): the generic instance room is no longer minted or admitted for dungeons
+// or buildings. What remains here is the owner/epoch spelling (a legacy save, a staff destination) and the hub's party
+// answer, which Ketch's crew law still uses. The history below is kept for the record.
+//
 // INSTANCES (2026-10-15, Mac: "Instead of one room for houses, dungeons, etc - for quests and other uses, including
 // future work, lets implement an instanced system ... The player approaches, should be met with an enhanced UI popup that
 // lets them select public or instanced (if applicable)"; bible/11-Multiplayer/Instances.md): AN INSTANCE IS A WORLD ROOM

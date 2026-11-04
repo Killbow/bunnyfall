@@ -339,7 +339,13 @@ export function announceQuestFoeSlain({ who, quest, done = 1, of = 1, key = null
     say?.(`${who} slain${count}.${quest ? ` (${quest})` : ''}`);
     return false;
   }
-  levelNotices.announceQuest(key ?? `${quest}|${who}`, questSlainTitle(), `${who}${count}${quest ? ` · ${quest}` : ''}`, now);
+  const announceKey = key ?? `${quest}|${who}`;
+  // QUEST-NOTE: a multi-foe quest shares ONE Foe resource across its instances (mintQuestFoeWave), so each instance death
+  // fires incrementKills again and _push refreshes `at`, re-staging the row on every kill of that kind. Only re-show when
+  // this is genuinely new - a different count, or the previous row has swept off the strip - not an identical repeat.
+  const sub = `${who}${count}${quest ? ` · ${quest}` : ''}`;
+  if (levelNotices.rows.some((r) => r.key === `quest:${announceKey}` && r.sub === sub)) return false;
+  levelNotices.announceQuest(announceKey, questSlainTitle(), sub, now);
   return true;
 }
 

@@ -210,7 +210,6 @@ import { GUILD_TAG_RE } from './guild/guildLaw.js';   // GUILD1c: a guild's tag 
 import { homeMapIdOk, homeBuildingKeyOk, HOME_ORDER_KEYS_MAX } from './homeLaw.js';   // QUEST-HOME: a home word's town and buildings, the homes' own shapes - homeLaw.js imports nothing, so the worker's graph stays flat
 import { RAID_KEY_RE, RAID_SIG_RE, RAID_TARGET_MIN, RAID_TARGET_MAX, RAID_TYPES, RAID_WORD_KILLS_MAX, RAID_ACCOUNTS_MAX, RAID_TOP_MAX, RAID_TOWNS_SHA_RE, RAID_TOWNS_CHUNK, RAID_TOWNS_CHUNKS_MAX } from './raid/raidLaw.js';   // RAID3: a town raid's law - raidLaw.js imports nothing, so the worker's graph stays flat
 import { SIEGE_HAND_SLOTS, SIEGE_HIT, SIEGE_WORK_IDS, SIEGE_RAMS_MAX, SIEGE_WORK_TIER_MAX, siegeGateVitality, siegeRamVitality, isSiegeNpcId, SIEGE_NPC_MAX, SIEGE_NPC_KINDS, isBattleRoom } from './siege/siegeRef.js';   // PVP-REF: a siege's blow kinds - siegeRef.js imports nothing, so the worker's graph stays flat; SEAT2b part two (b): the works a blow may name; part two (c): the relay's own fighters
-import { INSTANCE_TAG_SOURCE, isInstanceRoom } from './instanceRoom.js';   // INSTANCES: an instance's room is a world room (WORLD_ROOM) with a memory of its own length (worldTtlMsFor) - instanceRoom.js imports privateInterior.js alone, which the relay walks already
 import { privateInteriorOf } from './privateInterior.js';   // SLIM-FRAME: an owned interior's poses are MapsFile's (nativePoseRoom) - privateInterior.js imports nothing, and the relay walks it already
 import { validSdMarks, SD_ELEMENTS } from './superDungeon/sdMarks.js';   // SD18a: a Hollow's marks and its blows' elements - sdMarks.js imports nothing, so the worker's graph stays
 import { validArenaIn, validArenaOut } from './arena/arenaLaw.js';   // ARENA4: the arena's words both ways - arenaLaw.js imports nothing, so the worker's graph stays flat
@@ -558,13 +557,9 @@ export const WORLD_CHUNK = 96 * 1024;
 export const WORLD_PREFIX = '{"t":"world"';
 /** A world room's memory is forgotten this long after the room last drained, unless someone came back (AUDIT WORLD A3). */
 export const WORLD_TTL_MS = 30 * 24 * 3600 * 1000;
-/** INSTANCES (bible/11-Multiplayer/Instances.md): an instance's memory is forgotten this long after its room last drained.
- *  The public world is a bounded set of places; instances are a character's and a quest's, so they are not - and past
- *  RESPAWN-30's half-hour a room's foes and containers are back anyway. A quest that ends never keys its room again
- *  (net/instanceRoom.js, the epoch), so what it remembered goes with this clock. */
-export const INSTANCE_TTL_MS = 7 * 24 * 3600 * 1000;
-/** The memory's clock for a world room `key`: an instance's own, every other room's WORLD_TTL_MS. */
-export const worldTtlMsFor = (key) => (isInstanceRoom(key) ? INSTANCE_TTL_MS : WORLD_TTL_MS);
+/** The memory's clock for a world room `key`. ONLINE-PUBLIC: instances are retired, so every world room keeps
+ *  WORLD_TTL_MS. */
+export const worldTtlMsFor = () => WORLD_TTL_MS;
 /** WORLD8 (Mac: "I would like dungeons and the world to respawn every hour"): THE HOUR'S RESPAWN - a foe of the
  *  room's layout dead this long, and a container the room emptied this long ago, come back: the foe rebuilt fresh at
  *  its marker by the host (the stream then says so), the container this client's own roll again. The stamps are the
@@ -1122,11 +1117,8 @@ export const isRegionRoom = (key) => isChatRoom(key) && String(key).startsWith(C
 //  for WORLD_TTL_MS. So a re-laid dungeon's room carries its size, `dungeon:m<mapId>.m` or `.s` (DUNGEON_ROOM_TAGS,
 //  below), and two layouts never share a stream or a memory; a dungeon built whole keeps the room - and the memory -
 //  it always had.
-//  INSTANCES (2026-10-15, bible/11-Multiplayer/Instances.md): AND AN INSTANCE OF EITHER - the public room with its owner
-//  and epoch after it (net/instanceRoom.js INSTANCE_TAG_SOURCE, its one home), a dungeon's whole (never `.m` or `.s`).
-//  A world room like its public twin - its host, its acts, its loot, its memory (on worldTtlMsFor's clock) - which only
-//  its owner and the owner's party may enter (the relay's hello, instanceAdmits).
-const WORLD_ROOM = new RegExp(`^(?:dungeon:m[1-9]\\d{0,9}(?:\\.[ms]|${INSTANCE_TAG_SOURCE})?|interior:m[1-9]\\d{0,9}\\.[1-9]\\d{0,7}(?:${INSTANCE_TAG_SOURCE})?)$`);
+//  ONLINE-PUBLIC: a dungeon's or a building's room is the public room alone - the owner/epoch instance suffix is retired.
+const WORLD_ROOM = new RegExp(`^(?:dungeon:m[1-9]\\d{0,9}(?:\\.[ms])?|interior:m[1-9]\\d{0,9}\\.[1-9]\\d{0,7})$`);
 export const isWorldRoom = (key) => WORLD_ROOM.test(String(key ?? ''));
 /** SD-ONLINE: the tag a dungeon's room name carries for the size it was built at (smallerDungeons.js builtDungeonSize);
  *  the whole dungeon carries none. One home, both ends: roomKeyFor mints it, WORLD_ROOM admits it. */
@@ -3227,10 +3219,6 @@ export function validPartyPose(p) {
   // the full unsigned 32-bit range `roomKeyFor` itself already uses, so the wire can never disagree with the
   // room key it already agreed to share.
   out.bk = out.in === 2 ? uint(p.bk, 0xffffffff) : null;
-  // INSTANCES (bible/11-Multiplayer/Instances.md): inside, the instance room the member stands in (its key - the place's
-  // public room, owner and epoch: net/instanceRoom.js), so a partner at that very place - matched by the room, never by
-  // a pixel two places share - is offered to join it; said only when there is one, so every other pose reads as it did
-  if (out.in && isInstanceRoom(p.ins)) out.ins = p.ins;
   if (p.rest != null) {
     if (typeof p.rest !== 'object' || Array.isArray(p.rest)) return null;
     const mode = PARTY_REST_MODES.includes(p.rest.mode) ? p.rest.mode : null;

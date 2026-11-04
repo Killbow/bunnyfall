@@ -135,10 +135,10 @@ const SMALLER_LAYOUT = Object.freeze([
  *  taken offline builds the dungeon its markers know. SD-ONLINE: those are the online world's sizes (it was the whole
  *  dungeon), ONLINE_DUNGEONS_STATE - and offline too, when the world's sizes are asked for and Smaller is not on. */
 export function smallerDungeonsStateNow(enabled = getBool('Experimental', 'SmallerDungeons'), medium = mediumDungeonsWanted(), online = isOnlinePage(), world = worldDungeonSizesWanted()) {
-  // INSTANCES (bible/11-Multiplayer/Instances.md): online a quest's markers are chosen on the dungeon WHOLE (dungeonSizeFor's
-  // `whole` - the quest's world asks so), the layout its instance builds - so its stamp is the whole dungeon's, DFU's
-  // Disabled, and a copy taken offline builds the layout its markers know
-  if (online) return SMALLER_DUNGEONS_STATE.Disabled;
+  // ONLINE-PUBLIC: online a quest's markers are chosen on the PUBLIC room's layout (dungeonSizeFor's onlineDungeonSize) -
+  // the layout every player in the room builds - so its stamp is the world's sizes, and a copy taken offline builds the
+  // layout its markers know. The retired instance's whole layout is no longer a quest's.
+  if (online) return ONLINE_DUNGEONS_STATE;
   if (enabled) return SMALLER_DUNGEONS_STATE.Enabled;
   if (world) return ONLINE_DUNGEONS_STATE;
   return medium ? MEDIUM_DUNGEONS_STATE : SMALLER_DUNGEONS_STATE.Disabled;
@@ -174,7 +174,7 @@ export function useSmallerDungeon(dfLocation, { questMachine = null,
  */
 export function dungeonSizeFor(dfLocation, { questMachine = null,
   setting = getBool('Experimental', 'SmallerDungeons'), medium = mediumDungeonsWanted(), online = false,
-  world = worldDungeonSizesWanted(), whole = false } = {}) {   // INSTANCES: `whole` - online, the dungeon as Daggerfall lays it, whatever size the world gives it
+  world = worldDungeonSizesWanted(), whole = false } = {}) {   // ONLINE-PUBLIC: `whole` - a legacy save's whole layout; the instance system is retired
   if (!dfLocation?.hasDungeon || isMainStoryDungeon(dfLocation.mapTableData?.mapId)) return 'full';
   // ARENA5 (the audit, closing ARENA1's open item "Smaller Dungeons may trim the undercroft"): THE ARENA'S UNDERCROFT
   // NEVER SHRINKS. It is no keep of Daggerfall's but the fighters' hall (world/arena/arenaUndercroft.js): its people, the Pit
@@ -192,9 +192,9 @@ export function dungeonSizeFor(dfLocation, { questMachine = null,
   // large by one seeded draw on its map id (onlineDungeonSize), the same for every client (it was the dungeon as
   // MAPS.BSA has it) - and since an older page still lays the whole, a re-laid dungeon stands in a room of its own
   // (builtDungeonSize, below; net/online.js roomKeyFor), so two layouts never share a stream or a memory.
-  // INSTANCES (bible/11-Multiplayer/Instances.md): AND AN INSTANCE'S, A QUEST'S, IS THE DUNGEON WHOLE - an instance's room
-  // builds Daggerfall's own layout (net/instanceRoom.js), a quest's world enumerates its markers on it, and a quest's
-  // dungeon is entered whole where no instance can be had (an older relay: its whole room, `dungeon:m<id>`)
+  // ONLINE-PUBLIC: a legacy save made in the retired instance system may ask for the dungeon whole (`whole`), so its
+  // saved feet stand in the blocks they were taken in. Every new entry uses the world's online size; a quest's markers
+  // are enumerated on that same public layout.
   if (online) return whole ? 'full' : onlineDungeonSize(dfLocation);
   const links = questMachine?.getSiteLinks(SITE_TYPES.Dungeon, dfLocation.mapTableData?.mapId) ?? [];
   if (links.length > 0) {
