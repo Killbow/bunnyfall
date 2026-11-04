@@ -27,6 +27,10 @@ import { TITLE_TEXT, AURA_TEXT } from '../ui/playerBadge.js';
 import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
+import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
+import { IDLE_ANIMS } from '../characters/mobile/mobileUnit.js';
+import { mobileBillboardSize } from '../world/rmbFlats.js';
+import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';
 import { addWaypoint, setWaypointFollowed } from '../systems/map/mapWaypoints.js';   // the camp's mark on both maps
 import { t } from '../systems/textManager.js';
 
@@ -38,6 +42,8 @@ export const NYX_RECORD = '0#0';
 export const NYX_H = 2.15;   // the owner: "shes supposed to be a bit of a taller lady" - a head over the townsfolk's ~1.8
 /** Where she and the tent stand off the road's line (m), and how near a press reaches her. */
 const NYX_OFF_M = 6, TENT_OFF_M = 12, NYX_REACH = STATIC_NPC_ACTIVATION_DISTANCE;
+/** The camp's other tents and its guards. */
+export const CAMP_TENTS = 12, CAMP_GUARDS = 6;
 /** The account's coins not yet heard by the service, kept across a reload. */
 const OWED_KEY = 'bunnyfall.nyx.owed';
 const HEART_KEY = 'bunnyfall.nyx.heartWarden';
@@ -183,6 +189,46 @@ export function createCromwarkHost(deps) {
     tentLoading = true;
     Promise.resolve(meshes.getGpuMesh(TENT_MODEL)).then((gpu) => { tent = { gpu: gpu ?? null }; }).catch(() => { tent = { gpu: null }; });
   }
+  /** The camp's scatter, about its pixel's centre (m): CAMP_TENTS tents on the side away from the road, CAMP_GUARDS guards
+   *  round Nyx - made once a site, off a small fixed generator seeded by its pixel. */
+  let layout = null;
+  function campLayout() {
+    if (layout) return layout;
+    let seed = (site.px * 73856093) ^ (site.py * 19349663);
+    const rnd = () => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const ux = site.nyx[0] - PIXEL_M / 2, uz = site.nyx[1] - PIXEL_M / 2, base = Math.atan2(ux, uz);
+    const tents = [];
+    for (let i = 0; i < CAMP_TENTS; i++) {
+      const a = base + (i / (CAMP_TENTS - 1) - 0.5) * 2.6 + (rnd() - 0.5) * 0.25, r = 18 + rnd() * 20;
+      const x = Math.sin(a) * r, z = Math.cos(a) * r;
+      tents.push({ x, z, yaw: Math.atan2(-x + ux, -z + uz) + (rnd() - 0.5) * 0.6 });   // facing the camp's middle, a little askew
+    }
+    const guards = [];
+    for (let i = 0; i < CAMP_GUARDS; i++) { const a = base + (i / CAMP_GUARDS) * Math.PI * 2 + 0.4, r = 9 + rnd() * 4; guards.push({ x: ux + Math.sin(a) * r, z: uz + Math.cos(a) * r }); }
+    return (layout = { tents, guards });
+  }
+  /** The guards: the city watch's knight, standing - one billboard each, on the ground where they stand. */
+  let guardTex = null, guardLoading = false;
+  const guardBatches = [];
+  function standGuards(cx, cz) {
+    if (!guardTex && !guardLoading && deps.getTexture) {
+      guardLoading = true;
+      const archive = ENEMY_BASICS[KNIGHT_CITY_WATCH]?.maleTexture;
+      Promise.resolve(archive ? deps.getTexture(archive) : null).then((tex) => { guardTex = tex ? { tex, archive } : { failed: true }; }, () => { guardTex = { failed: true }; });
+    }
+    if (!guardTex?.tex || !renderer?.createBillboardBatch) return;
+    const rec = IDLE_ANIMS[0].record;
+    if (!renderer.textures?.has?.(`${guardTex.archive}_${rec}#0`)) deps.uploadRecordFrame?.(guardTex.archive, rec, 0);
+    const sz = mobileBillboardSize(guardTex.tex, rec);
+    const L = campLayout().guards;
+    for (let i = 0; i < L.length; i++) {
+      let b = guardBatches[i];
+      if (!b) { b = guardBatches[i] = renderer.createBillboardBatch(guardTex.archive, `${rec}#0`, { w: sz.w, h: sz.h }, [[0, 0, 0]]); b.origin = [0, 0, 0]; }
+      const x = cx + L[i].x, z = cz + L[i].z, y = deps.heightAt(x, z);
+      b.origin[0] = x; b.origin[1] = Number.isFinite(y) ? y : at.feet[1]; b.origin[2] = z;
+    }
+  }
+  const tentMats = [];
   function campFrame() {
     if (!site && performance.now() > siteTried) { site = findSite(); siteTried = performance.now() + 10000; if (site) markCamp(site); }
     at = null;
@@ -202,6 +248,15 @@ export function createCromwarkHost(deps) {
     }
     if (batch) { batch.origin[0] = nx; batch.origin[1] = ny; batch.origin[2] = nz; }
     tentMat = trs(at.tent[0], at.tent[1], at.tent[2], 0, (site.yaw * 180) / Math.PI, 0);
+    // the owner: "add like a dozen more random tents and npcs guarding the area" - the camp's tents on the side away from
+    // the road, and the Guild's guards round Nyx, the same on every machine (a fixed scatter off the camp's own pixel)
+    const cx = tr[0] + PIXEL_M / 2, cz = tr[2] + PIXEL_M / 2;
+    tentMats.length = 0;
+    for (const p of campLayout().tents) {
+      const x = cx + p.x, z = cz + p.z, y = deps.heightAt(x, z);
+      if (Number.isFinite(y)) tentMats.push(trs(x, y, z, 0, (p.yaw * 180) / Math.PI, 0));
+    }
+    standGuards(cx, cz);
     box = [{ key: 'nyx:camp', aabb: { min: [nx - 0.5, ny, nz - 0.5], max: [nx + 0.5, ny + NYX_H, nz + 0.5] }, distance: RAY_DISTANCE, reach: NYX_REACH, noSurface: false }];
   }
 
@@ -291,9 +346,9 @@ export function createCromwarkHost(deps) {
   return {
     frame, fog, command,
     /** Nyx's billboard, for the host's flats. */
-    batches: () => (at && batch ? [batch] : []),
+    batches: () => (at ? [...(batch ? [batch] : []), ...guardBatches] : []),
     /** The Guild's tent, in the host's world pass. */
-    draw(r = renderer) { if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return 0; r.drawMesh(tent.gpu, tentMat, null); return 1; },
+    draw(r = renderer) { if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return 0; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return 1 + tentMats.length; },
     /** The eye's box on her. */
     targets: () => (at && box ? box : []),
     hoverName: (key) => (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),

@@ -25458,7 +25458,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Nyx coins, the Guild camp and Nyx
   const cromwark = createCromwarkHost({
-    renderer, meshes: { getGpuMesh, cpuModels }, maps, roads: () => terrainGen.roads(),
+    renderer, meshes: { getGpuMesh, cpuModels }, getTexture, uploadRecordFrame, maps, roads: () => terrainGen.roads(),
     pixelTranslation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => surfaceAt(x, z),
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null), cam: () => cam.pos,
     kind: () => wildZoneKind(), ring: () => wildRing(), mode: () => _mode(), alive: () => playerEntity.health > 0 && !modes?.deathUp?.(),
