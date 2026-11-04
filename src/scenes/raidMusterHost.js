@@ -10,9 +10,10 @@ import { RiteSmokeRenderer, RITE_SMOKE_PROGRAMS } from '../render/riteSmoke.js';
 import { compiledPass } from '../render/glProgram.js';
 import { musterSides } from '../systems/raidMuster.js';
 
-/** BUNNYFALL (2026-11-04, the owner: "still there in a non raid city"): the raid smoke switched OFF until it is found why
- *  it stands over towns with no raid - flip to bring it back. */
-export const RAID_SMOKE_ON = false;
+/** The raid smoke's switch. (2026-11-04: it stood over towns with no raid - the sites read a raid's town off the player's
+ *  feet where its pixel was not built, and the first read of a raid's pillars is kept for the session; pillarsOf now
+ *  reads the raid's own built town alone, and a game reloaded keeps no stale pillar.) */
+export const RAID_SMOKE_ON = true;
 /** The pillars' sizes over the rite's (340 m): a camp's, a burning house's. */
 export const CAMP_SMOKE_SCALE = 0.42;
 export const HOUSE_SMOKE_SCALE = 0.22;

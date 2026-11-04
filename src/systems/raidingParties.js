@@ -419,13 +419,11 @@ const muster = createRaidMuster({
 export const raidMusterWaves = () => muster.waves();
 /** BUNNYFALL: the raids burning now (the day's, active, not cleansed) - the smoke over their camps (scenes/raidMusterHost.js). */
 export const raidsBurning = () => {
-  // only a raid on the town the player stands in, by the raid's own test (FindCurrentRaid's - townHere): the smoke once
-  // read a raid's town off the player's feet, and stood over every gate of every town while a raid burned elsewhere
+  // every raid burning in the world: its smoke stands over its own town alone, once that town is built about the player
+  // (scenes/raidMusterHost.js pillarsOf), so it is seen from the road in - never over the town the player stands in
   if (!raidingPartiesOn()) return [];
-  const town = host().townHere?.() ?? null;
-  if (!town) return [];
   const now = (host().now ?? worldMinutes)();
-  return state.raids.filter((r) => raidActive(r, now) && r.regionIndex === town.regionIndex && r.locationIndex === town.locationIndex);
+  return state.raids.filter((r) => raidActive(r, now));
 };
 
 // ---- the runtime (not saved - the mod's own instance fields) ----------------
