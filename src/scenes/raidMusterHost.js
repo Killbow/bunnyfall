@@ -40,6 +40,11 @@ export function createRaidSmoke({ gl, raids, keyOf, sites, built, translation, n
   function pillarsOf(raid) {
     const s = sites();
     if (!s?.way || !Number.isInteger(raid.px) || !Number.isInteger(raid.py)) return null;
+    // the raid's OWN town, built about the player - never the town the player stands in (the sites read a raid's town
+    // off the player's feet when its pixel is not built, and a raid across the Bay stood its smoke in Daggerfall)
+    let mine = false;
+    for (const p of built()) if (p.px === raid.px && p.py === raid.py) { mine = true; break; }
+    if (!mine || !s.townAtPixel?.(raid)) return null;
     const base = translation(raid.px, raid.py);
     const camps = musterSides(raid, !!s.bigTown?.(raid)).map((side) => s.way(side, raid)?.[0]).filter((p) => Array.isArray(p));
     if (!camps.length) return null;

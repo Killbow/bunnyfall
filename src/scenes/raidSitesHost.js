@@ -107,6 +107,8 @@ export function createRaidSites({ townAt, townAtPixel = () => null, feet, ground
     bigTown(raid = null) { const t = townOf(raid); return t ? musterBigTown(t.nav, NAV_CELL) : false; },
     /** BUNNYFALL: the raid's town as it stands (its walk grid, its places, its frame), or null - the muster's smoke reads it. @param {any} [raid] */
     townOf(raid = null) { return townOf(raid) ?? null; },
+    /** BUNNYFALL: the raid's own town on its own pixel, built - or null (never the player's town in its place). @param {any} raid */
+    townAtPixel(raid) { return raid && Number.isInteger(raid.px) && Number.isInteger(raid.py) ? townAtPixel(raid.px, raid.py) ?? null : null; },
     /** The town's square in the scene ([x, y, z]), or null (its town not built, or no streets). @param {any} [raid] */
     square(raid = null) {
       const t = townOf(raid);
