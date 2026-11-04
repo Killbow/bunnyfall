@@ -1151,6 +1151,7 @@ import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
 import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
 import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
 import { createRaidSites } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
+import { performingTag } from './tavernSocial.js';   // BUNNYFALL: a bard's name says they perform
 import { createRaidSmoke } from './raidMusterHost.js'; import { raidsBurning, raidKey as raidKeyOf } from '../systems/raidingParties.js';   // BUNNYFALL: the smoke over a raid's camps and the houses by them
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
 import { DUNGEON_AMBIENT } from '../world/dungeon/dungeonLights.js';   // OH-E: PlayerAmbientLight.DungeonAmbientLight, what the abyss darkens
@@ -29217,7 +29218,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       layer: nameLayer, log: chatLog, colorOf: (id) => social?.colorOf(id) ?? null, blocked,
       renderer, font: townTalk.font, scale, hudScale: enhancedHudScale(),
       extra: noticeCountPoints,   // NOTICE1: "3 new" over a Notice Board, in the names' own face and law
-      mask: wildNameMask,   // WILD3: in the open zone no name but my party's and my guild's - the rest are Strangers, in red
+      mask: (p) => { const q = wildNameMask(p); return q ? performingTag(q, (id) => online?.peers?.get(id)?.shown ?? null) : q; },   // BUNNYFALL: a bard performing says so over their head; WILD3: in the open zone no name but my party's and my guild's - the rest are Strangers, in red
     });
     if (covered) { sayNetStatus(null); return; }
     sayNetStatus(online?.statusLine());   // AUDIT ONLINE D12/E11: connecting, reconnecting, refused, replaced - said, not silent (FONT1: in the enhanced face)
