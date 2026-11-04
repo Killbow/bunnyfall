@@ -115,6 +115,7 @@ import { RAID_KIND_ORDER, raidKindOf, raidKindAsk, raidKindName, raidWavePlan, r
   RAID_WAVE_STALL_S, RAID_SITE_AGAIN_S, RAID_REFUGEE_GAP_M } from './raidKinds.js';   // RAID5: the raid's kind; AUDIT WORLD-EVENTS: and its clocks
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // STAFF-EVENT: its lines name a kind
 import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player's language
+import { createRaidMuster, musterSides, MUSTER_GATHER_STEP_S } from './raidMuster.js';   // BUNNYFALL: the raid's camps, its waves gathering there and marching in
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -391,6 +392,24 @@ const host = () => _host ?? {};
 const rnd = () => host().random ?? Math.random;
 const say = (line, raid = null) => { const id = raid ? `raid:${raidKey(raid)}` : null; (host().say ?? ((l, i) => eventNotice('raid', l, i)))(line, id); };
 const regionName = (r) => host().regionName?.(r) ?? String(r);
+/** BUNNYFALL: THE MUSTER (systems/raidMuster.js) - the raid's camps at the town's edge (the refugees' ways' starts,
+ *  scenes/raidSitesHost.js), its raiders gathered there into waves and marched in on the town. */
+const muster = createRaidMuster({
+  camps: (raid) => {
+    const s = host().sites?.();
+    if (!s?.way) return null;
+    const c = musterSides(raid, !!s.bigTown?.(raid)).map((side) => s.way(side, raid)).filter((pts) => Array.isArray(pts) && pts.length >= 2).map((pts) => ({ pts }));
+    return c.length ? c : null;
+  },
+  players: () => (host().peerFeetInTown?.() ?? []).map((x) => x[1]).filter(Array.isArray),
+  release: (raid, foe) => aimRaider(raid, foe),
+  random: () => rnd()(),
+  keyOf: (raid) => raidKey(raid),
+});
+/** For the probes: the muster's waves. */
+export const raidMusterWaves = () => muster.waves();
+/** BUNNYFALL: the raids burning now (the day's, active, not cleansed) - the smoke over their camps (scenes/raidMusterHost.js). */
+export const raidsBurning = () => (raidingPartiesOn() ? state.raids.filter((r) => raidActive(r, (host().now ?? worldMinutes)())) : []);
 
 // ---- the runtime (not saved - the mod's own instance fields) ----------------
 /** The raid's foes this session stood: { foe, key, kind: 'raider'|'defender', routed }. The mod found its actors by
@@ -448,6 +467,7 @@ function routRaid(raid) {
   const key = raidKey(raid);
   if (_pending?.key === key) cancelPending();
   _myClaims.delete(key);   // RAID2: an ended raid is run by no one
+  muster.end(key);   // BUNNYFALL: its waves let go
   for (const e of _live) if (e.key === key && (e.kind === 'raider' || e.kind === 'refugee')) e.routed = true;   // RAID5: and its refugees
 }
 
@@ -533,6 +553,7 @@ function sweep() {
 /** SpawnRaidEnemy [IL_0764]: one foe in flight; a spot not found costs nothing but this tick (fix 10). */
 function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const h = host();
+  if ((kind === 'raider' || kind === 'leader') && !raid.staff && !o?.at) o = muster.place(raid, kind === 'leader' ? 1 : pack?.size ?? 0) ?? o;   // BUNNYFALL: out of the raid's camp, with its wave
   const p = { key: raidKey(raid), age: 0, cancelled: false, boss: kind === 'boss' ? raid : null };
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
@@ -541,17 +562,17 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const boss = kind === 'boss';   // STAFF-EVENT: a staff event's mini boss - one raider, promoted
   Promise.resolve(promise).then((foe) => {
     if (_pending === p) _pending = null;
-    if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
+    if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } muster.adopt(o, null); return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
     if (pack && !pack.at && Array.isArray(foe.ai?.feet)) pack.at = [...foe.ai.feet];   // STAFF-EVENT PACKS: its pack stands around it
-    if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; return; }
+    if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; muster.adopt(o, null); return; }
     if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp }); raid.bossUp = 1; raid.bossDown = 0; }
     if (kind === 'bearer' || kind === 'refugee') foe.raidGoal = p.key;   // AUDIT WORLD-EVENTS L6-5: its raiders' quarry first (enemyTargets.js), whatever infighting reads
     if (kind === 'bearer' && foe.entity && objOf(raid).share < 1) foe.entity.health = Math.max(1, Math.round(foe.entity.maxHealth * objOf(raid).share));   // AUDIT WORLD-EVENTS L4-6: raised again as he was let go - never a whole standard for a walk-off
     if (kind === 'leader') { promoteRaidLeader(foe.entity, { name: raidLeaderNameOf(foe.mobileType ?? mobileType) }); foe.entity.bossTraits = undefined; foe.entity.bossWard = undefined; giveBossTraits(foe.entity, rollBossTraits(RAID_LEADER_TRAITS, rnd())); }   // RAID5: the party's leader - an elite with two traits (AUDIT WORLD-EVENTS L2-6: its two in place of any its stand drew as an elite)
     const fights = boss || kind === 'leader' || kind === 'raider';
     if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: fights ? 'raider' : kind, boss, leader: kind === 'leader', routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
-    if (fights) { foe.raidKey = p.key; aimRaider(raid, foe); }   // RAID2: it rides my frame tagged with its raid; RAID5: sent at its kind's objective
-  }, () => { if (_pending === p) _pending = null; if (boss) raid.bossFc = -1; });
+    if (fights) { foe.raidKey = p.key; if (!muster.adopt(o, foe)) aimRaider(raid, foe); }   // BUNNYFALL: a raider of a wave waits for it at the camp   // RAID2: it rides my frame tagged with its raid; RAID5: sent at its kind's objective
+  }, () => { if (_pending === p) _pending = null; if (boss) raid.bossFc = -1; muster.adopt(o, null); });
 }
 
 /**
@@ -578,6 +599,7 @@ export function raidFrame(dt = 0) {
   }
   staffPuppetKills(puppets, now);
   tallyDeaths(now);
+  muster.step(dt);   // BUNNYFALL: the waves gather, march and are let loose
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }
@@ -634,7 +656,7 @@ export function raidFrame(dt = 0) {
   if (!raid) { cancelPending(); for (const key of _myClaims.keys()) letGoAllies(key); _myClaims.clear(); return 'idle'; }   // AUDIT WORLD-EVENTS L4-9: the bearer and refugees go with the claim
   if (!raid.staff) sayObjective(raid, objNow(raid));   // RAID5: its waves, its standard, its refugees - said on every machine in the town
   // RAID2: online, the one who runs it stands its foes - every other player here stands them as puppets
-  if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); letGoAllies(raidKey(raid)); return 'standing-by'; }   // AUDIT WORLD-EVENTS L4-9: another runs it - mine stand down, the runner stands its own
+  if (sharedClockOn() && !runsRaid(raid)) { cancelPending(); letGoAllies(raidKey(raid)); muster.end(raidKey(raid)); return 'standing-by'; }   // AUDIT WORLD-EVENTS L4-9: another runs it - mine stand down, the runner stands its own
   // G. one foe in flight [IL_0661-IL_06d1]
   if (_pending && _pending.key !== raidKey(raid)) cancelPending();
   if (_pending) {
@@ -675,6 +697,7 @@ export function raidFrame(dt = 0) {
     const standing = liveRaiders(raidKey(raid)).length;
     if (standing < MAX_RAID_ENEMIES) {
       spawn(raid, 'raider', chooseRaider(raid.type, rnd()));
+      if (muster.gathering(raid)) _nextSpawnIn = MUSTER_GATHER_STEP_S;   // BUNNYFALL: a wave gathers quickly at its camp
       return 'raider';
     }
   }
@@ -849,7 +872,7 @@ function kindPackStep(raid, room, min, max, gapS, near = undefined) {
   if (!_pack) { const size = Math.min(room, rangeInt(min, max + 1, rnd())); _pack = { key, left: size, size, at: null, far: true, near: near ?? staffPackPlayer()?.slice() ?? null, kind: true }; }   // AUDIT WORLD-EVENTS L4-7: its own point (the origin's shift moves it)
   const pack = _pack;
   pack.left--;
-  const o = pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false } : { min: RAID_SPAWN_MIN_DISTANCE, max: STAFF_PACK_FAR_MAX / 2, los: false, near: pack.near };
+  const o = muster.place(raid, pack.size) ?? (pack.at ? { at: pack.at, min: 1.5, max: STAFF_PACK_NEAR, los: false } : { min: RAID_SPAWN_MIN_DISTANCE, max: STAFF_PACK_FAR_MAX / 2, los: false, near: pack.near });   // BUNNYFALL: a pack is a wave of the raid's camp
   _nextSpawnIn = pack.left > 0 ? STAFF_PACK_STEP_S : gapS;
   spawn(raid, 'raider', chooseRaider(raid.type, rnd()), o, pack);
   return 'raider';
@@ -979,6 +1002,7 @@ export function raidOffsetAll(d) {
     o.trail = null; o.trailAt = -1;
   }
   if (_pack?.kind) { shift(_pack.at); shift(_pack.near); }
+  muster.offsetAll(d);   // BUNNYFALL: the camps, their roads and the marching guides
 }
 
 /** Aim a raider at the objective its kind sets: the standard's bearer, or one of the walking refugees. */

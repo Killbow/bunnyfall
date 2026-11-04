@@ -1151,6 +1151,7 @@ import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
 import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
 import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
 import { createRaidSites } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
+import { createRaidSmoke } from './raidMusterHost.js'; import { raidsBurning, raidKey as raidKeyOf } from '../systems/raidingParties.js';   // BUNNYFALL: the smoke over a raid's camps and the houses by them
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
 import { DUNGEON_AMBIENT } from '../world/dungeon/dungeonLights.js';   // OH-E: PlayerAmbientLight.DungeonAmbientLight, what the abyss darkens
 import { TILE_WORLD_SIZE_F32 } from '../world/deepWater/deepWaterFloor.js';   // OH-D: RestoreOceanPosition's terrainData.size (AUDIT PRE-MERGE 0928 H4: a float)
@@ -25754,6 +25755,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** WARDEN1: the scene's x, z in a built town a watch keeps (wagonWardenHost.js wardenTownIn, over the built pixels). */
   const wardenTownAt = (x, z) => wardenTownIn(built.values(), (px, py) => state.pixelTranslation(px, py, _wardenT), TERRAIN_SIZE, x, z);
   const raidSites = createRaidSites({ townAt: wardenTownAt, townAtPixel: (px, py) => wardenTownOfPixel(built.values(), (x, y) => state.pixelTranslation(x, y, _wardenT), px, py), feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards.standBearer, spawnFoe: exteriorFoes.spawnFoe });   // RAID5: the town's square and way off its walk grid (the warden's own read)
+  const raidSmoke = createRaidSmoke({ gl: renderer.gl, raids: raidsBurning, keyOf: raidKeyOf, sites: () => raidSites, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), now: () => performance.now() / 1000 });   // BUNNYFALL: seen on every machine
   const WARDEN_CLIPS = { heave: SOUND.AnimalHorse, throw: SOUND.SwingHighPitch, land: SOUND.BodyFall };
   wardenShows = createWardenShows({
     renderer, getTexture, uploadRecordFrame,
@@ -35186,6 +35188,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // WB12d: the rite's pillar of smoke, the gate's fire's eye and fog - from the omen, before the gate stands
     if (riteHost?.smoking() && riteHost.drawSmoke(proj, view, new Float32Array(mwv.eye), now / 1000,   // AUDIT WB C7: its arguments built only while it shows
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();   // AUDIT WB12d (G8): lit as the rain's curtains are
+    // BUNNYFALL: a raid's smoke over its camps and the houses burning by them (scenes/raidMusterHost.js), the rite's eye and fog
+    if (raidSmoke?.smoking() && raidSmoke.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
+      { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();
     // SD2c: THE HOLLOW'S OMEN - a Super dungeon's column of brass-gold light, after the gate's fire, the same eye and fog
     const sdo = sdHost ? sdOmenNow() : null;
     if (sdo && sdOmenPassOf()?.draw([sdo], proj, view, new Float32Array(mwv.eye), now / 1000,
