@@ -25,8 +25,10 @@ import { APP_ROOT } from '../systems/appRoot.js';
 /** The place: Daggerfall's own city (a pack's read of it keeps both names). */
 export const MEMORIAL_REGION = REGION_NAMES.indexOf('Daggerfall');
 export const MEMORIAL_TOWN = 'Daggerfall';
-/** The block of the gate (the wall block with the north gate): its grid cell and its name. */
-export const MEMORIAL_BLOCK = Object.freeze({ x: 2, y: 0, name: 'WALLAA10.RMB' });
+/** The block of the gate (the wall block with the north gate), by its NAME: the game's own layout has it at (2, 0), the
+ *  location pack the game reads moves it to (5, 0) (found 2026-11-04: the statue stood in no block in the game). One
+ *  block of the city carries the name in either read. */
+export const MEMORIAL_BLOCK = Object.freeze({ name: 'WALLAA10.RMB' });
 /** Where it stands in that block, metres: beside the gate's line (the gate at x 38.4), before the wall (z 91.2). */
 export const MEMORIAL_X = 28.0;
 export const MEMORIAL_Z = 79.0;
@@ -49,7 +51,7 @@ export const isMemorialTown = (/** @type {any} */ dfLocation) => !!dfLocation &&
  */
 export function memorialFlatsFor(dfLocation, block) {
   if (!isMemorialTown(dfLocation) || !block) return [];
-  if (block.x !== MEMORIAL_BLOCK.x || block.y !== MEMORIAL_BLOCK.y || block.blockName !== MEMORIAL_BLOCK.name) return [];
+  if (String(block.blockName ?? '').toUpperCase() !== MEMORIAL_BLOCK.name) return [];
   return [{
     archive: MEMORIAL_ARCHIVE, record: MEMORIAL_RECORD, editor: false,
     x: MEMORIAL_X, y: (4 + BLOCK_FLATS_OFFSET_Y) * GLOBAL_SCALE, z: MEMORIAL_Z,   // y: the start marker's own (yPos -4 in the record)
