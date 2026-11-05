@@ -101,7 +101,8 @@ import { colliderBlocked, dryGround, witchesDressingBreathing } from '../world/w
 import { wodRockUvs } from '../world/worldOfDaggerfall/wodRockUv.js';
 import { WodSpawner } from '../world/worldOfDaggerfall/wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
-import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate towns
+import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';
+import { wasteRing, burnTilemap, treeStandsDead } from '../systems/wild/cromwarkWaste.js';   // BUNNYFALL (Cromwark): the reach's burnt ground and dead trees   // BUNNYFALL (Cromwark): the reach's desolate towns
 import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 
 /** @param {any} host */
@@ -364,6 +365,8 @@ export function createPixelBuild(host) {
     const terrain = renderer.createTerrainSurface(carved?.positions ?? positions, carved?.normals ?? normals,
       stride === 1 ? TERRAIN_INDICES : TERRAIN_INDICES_LOD);
     // WATER1 / WATER-AUDIT (M4): the water's own quads - null for a pixel without water, which never enters the pass
+    const wasteR = wasteRing(maps, px, py);   // BUNNYFALL (Cromwark): the reach's ring here, 0 outside
+    if (wasteR) burnTilemap(tilemapBytes, px, py, wasteR);
     const waterIndices = waterOn ? buildWaterIndices(tilemapBytes, stride) : null;
     const water = waterIndices ? renderer.createWaterSheet(waterIndices, waterSheetOf(bed, terrain)) : null;
     made.terrain = terrain; made.water = water;   // BUILD-FAIL1
@@ -1048,7 +1051,8 @@ export function createPixelBuild(host) {
       }
       // PRECIP4: on the snow lane each wears the snow at its own foot against its own draw (scenes/snowCoverHost.js flatSeason)
       // - AUDIT PRECIP HOST-6: and kept; HOST-7: once it is known to stand (a flat the verge refused turned no pixel)
-      const fSeason = snowRec ? snowRec.flat(f.x, f.z, f.y - SEA_LEVEL_M, pixelSeason) : pixelSeason;
+      let fSeason = snowRec ? snowRec.flat(f.x, f.z, f.y - SEA_LEVEL_M, pixelSeason) : pixelSeason;
+      if (wasteR && isTreeRecord(base, f.record) && treeStandsDead(wasteR, f.x, f.z)) fSeason = SEASON.Winter;   // BUNNYFALL (Cromwark): bare trees, more of them toward the heart
       const archive = getNatureArchive(base, fSeason);   // worn in its season's set
       if (archive !== natureArchive) borderNature.set(archive, base);
       // FOREST1: how wooded its tile is - Logging's trees stand in the woods; ECOTONE1: and whose climate it is (its stump);

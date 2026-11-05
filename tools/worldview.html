@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bunnyfall world view</title>
+<!-- Dev tool, not part of the build: run `ARENA2_PATH=... npx vite` and open /tools/worldview.html.
+     It boots the game's own world in shot mode inside a frame and flies a free camera over the whole map. -->
+<style>
+  :root { --bg: #14110d; --fg: #eadfc8; --dim: #9c9078; --line: #3a3226; --accent: #e8c27a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif; display: flex; height: 100vh; }
+  #view { position: relative; flex: 1; min-width: 0; }
+  iframe { width: 100%; height: 100%; border: 0; background: #000; display: block; }
+  #cross { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border: 1px solid #fff8; border-radius: 50%; pointer-events: none; }
+  #grab { position: absolute; inset: 0; cursor: grab; }
+  #grab.drag { cursor: grabbing; }
+  aside { width: 300px; padding: 12px; overflow-y: auto; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+  h1 { font-size: 15px; margin: 0; color: var(--accent); }
+  fieldset { border: 1px solid var(--line); padding: 8px; margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; }
+  legend { color: var(--dim); padding: 0 4px; }
+  input, select, button { background: #221c14; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 5px 7px; font: inherit; min-width: 0; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button.go { background: var(--accent); color: #1a1408; border-color: var(--accent); font-weight: 600; }
+  .row { grid-column: 1 / -1; display: flex; gap: 6px; } .row > * { flex: 1; }
+  #map { width: 100%; aspect-ratio: 2 / 1; background: #0c0a07; border: 1px solid var(--line); cursor: crosshair; display: block; image-rendering: pixelated; }
+  #status { color: var(--dim); font-size: 12px; white-space: pre-line; }
+  kbd { background: #221c14; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+  .hide aside { display: none; } .hide #cross { display: none; }
+</style>
+</head>
+<body>
+<div id="view">
+  <iframe id="game" allow="autoplay"></iframe>
+  <div id="grab"></div>
+  <div id="cross"></div>
+</div>
+<aside>
+  <h1>World view</h1>
+  <fieldset><legend>Boot</legend>
+    <label>Region</label><input id="region" value="Wrothgarian Mountains">
+    <label>Place</label><input id="loc" value="Wrothgaria">
+    <label>Time</label><input id="tod" value="12:00">
+    <label>Weather</label><select id="weather"><option>sunny</option><option>cloudy</option><option>rain</option><option>snow</option><option>fog</option></select>
+    <label>Season</label><select id="season"><option>summer</option><option>winter</option></select>
+    <div class="row"><button class="go" id="boot">Load world</button></div>
+  </fieldset>
+  <fieldset><legend>Travel (map pixel)</legend>
+    <label>x</label><input id="px" type="number" min="0" max="999">
+    <label>y</label><input id="py" type="number" min="0" max="499">
+    <div class="row"><button class="go" id="jump">Go</button><button id="here">Where am I</button></div>
+    <label>Find</label><input id="find" placeholder="a town, dungeon or region" autocomplete="off">
+    <div id="hits" class="row" style="flex-direction:column;gap:2px"></div>
+    <canvas id="map" width="1000" height="500"></canvas>
+    <div class="row" style="color:var(--dim)" id="hover">Click the game's own map to travel there.</div>
+  </fieldset>
+  <fieldset><legend>Camera</legend>
+    <label>Speed m/s</label><input id="speed" type="number" value="60">
+    <label>Height m</label><input id="h" type="number" value="40">
+    <label>Field</label><select id="fov"><option value="">game's</option></select>
+    <div class="row"><button id="shot">Screenshot (P)</button><button id="clean">Hide panel (H)</button></div>
+  </fieldset>
+  <div id="status">Load a world to begin.</div>
+  <div style="color:var(--dim)"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> fly, <kbd>Space</kbd> up, <kbd>C</kbd> down, <kbd>Shift</kbd> x8, drag to look, <kbd>P</kbd> save a PNG, <kbd>H</kbd> hide the panel.</div>
+</aside>
+<script type="module">
+import { MapsFile, longitudeLatitudeToMapPixel } from '/src/formats/mapsFile.js';
+import { wildMaskOf } from '/src/systems/wild/wildZone.js';
+const $ = (id) => document.getElementById(id);
+const frame = $('game');
+const cam = { x: 0, y: 0, z: 0, yaw: Math.PI, pitch: -0.12, on: false };
+const keys = new Set();
+let want = null;
+const PIXEL_M = 128 * 6.4;   // one map pixel's ground, metres
+
+const gw = () => frame.contentWindow;
+const ready = () => { try { return gw()?.__shotReady === true && typeof gw().__pose === 'function'; } catch { return false; } };
+const say = (t) => { $('status').textContent = t; };
+
+function boot() {
+  cam.on = false;
+  const q = new URLSearchParams({ tod: $('tod').value, weather: $('weather').value, season: $('season').value, region: $('region').value, loc: $('loc').value });
+  frame.src = `/play/?shot&world&class=0&noloading&${q}`;
+  say('Loading the world. The first load reads the map files and takes a while.');
+  const wait = setInterval(() => {
+    if (!ready()) return;
+    clearInterval(wait);
+    hook();
+    try { gw().document.body.addEventListener('keydown', (e) => e.stopPropagation(), true); } catch { /* same origin only */ }
+    // the quest boxes of a fresh character stand over the world: clear them
+    let n = 0; const clear = setInterval(() => { for (const k of ['Escape', 'Enter']) gw().dispatchEvent(new KeyboardEvent('keydown', { code: k, key: k, bubbles: true })); if (++n > 8) clearInterval(clear); }, 400);
+    startFromPlayer();
+  }, 700);
+}
+
+// a frame grab must run inside the game's own frame, where the canvas still holds its picture
+function hook() {
+  const w = gw(); if (w.__wvHooked) return; w.__wvHooked = true;
+  const raf = w.requestAnimationFrame.bind(w);
+  w.requestAnimationFrame = (cb) => raf((t) => { cb(t); if (want) { const done = want; want = null; try { w.document.querySelector('canvas').toBlob((b) => done(b), 'image/png'); } catch (e) { done(null); } } });
+}
+
+function startFromPlayer() {
+  try {
+    const w = gw();
+    // the page the world booted into: its pixel is the one the player stands in
+    const guess = w.__pixelT ? [...w.__pixelT(0, 0)] : null;
+    cam.on = true;
+    say('Ready. Enter a map pixel and press Go, or click the map.');
+    if (guess) { $('px').value ||= 500; $('py').value ||= 250; }
+  } catch { /* not ready */ }
+}
+
+function jump(px, py) {
+  if (!ready()) return say('The world is not loaded yet.');
+  const t = gw().__pixelT(px, py);
+  cam.x = t[0] + PIXEL_M / 2; cam.z = t[2] + PIXEL_M / 2; cam.y = t[1] + Number($('h').value || 40);
+  cam.on = true; push();
+  say(`At map pixel ${px}, ${py}.\nThe ground streams in over the next seconds.`);
+  drawMap(px, py);
+}
+function push() { if (cam.on && ready()) gw().__pose(cam.x, cam.y, cam.z, cam.yaw, cam.pitch); }
+
+// the pixel the camera is over, from the pixel origins the world itself reports
+function pixelOver() {
+  if (!ready()) return null;
+  const t0 = gw().__pixelT(500, 250), t1 = gw().__pixelT(501, 251);
+  const dx = t1[0] - t0[0], dz = t1[2] - t0[2];
+  if (!dx || !dz) return null;
+  return [500 + Math.floor((cam.x - t0[0]) / dx), 250 + Math.floor((cam.z - t0[2]) / dz)];
+}
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (cam.on && ready()) {
+    const sp = Number($('speed').value || 60) * (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 8 : 1) * dt;
+    const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);   // forward on the ground plane; flipped below if the world turns the other way
+    let f = 0, s = 0, u = 0;
+    if (keys.has('KeyW')) f += 1; if (keys.has('KeyS')) f -= 1;
+    if (keys.has('KeyD')) s += 1; if (keys.has('KeyA')) s -= 1;
+    if (keys.has('Space')) u += 1; if (keys.has('KeyC')) u -= 1;
+    if (f || s || u) {
+      cam.x += (fx * f + -fz * s) * sp * FWD; cam.z += (fz * f + fx * s) * sp * FWD; cam.y += u * sp;
+      push();
+    }
+    if (now - (tick.t ?? 0) > 500) { tick.t = now; const p = pixelOver(); if (p) { $('px').placeholder = p[0]; $('py').placeholder = p[1]; say(`Over map pixel ${p[0]}, ${p[1]}\nHeight ${cam.y.toFixed(0)} m`); drawMap(p[0], p[1]); } }
+  }
+  requestAnimationFrame(tick);
+}
+let FWD = 1;   // flipped by the first W press if the world's yaw runs the other way (see `calibrate`)
+
+function calibrate() {
+  // the world's yaw 0 looks toward -z or +z; ask it once by the pose and the player's own sight is not needed: forward in
+  // this tool is whatever the picture shows, so a "Flip" lives on the key F for a world that turns the other way
+}
+
+// THE MAP: the game's own files (region borders from POLITIC, climate from CLIMATE, every place from MAPS), read here as the
+// game reads them, so a click lands on the same pixel the game's travel map would name.
+const mapCv = $('map'), mctx = mapCv.getContext('2d');
+let base = null, places = [], regionAt = null, zone = null, cur = null;
+const REGION_TINT = (r) => `hsl(${(r * 47) % 360} 28% 30%)`;
+async function loadMap() {
+  const get = async (n) => new Uint8Array(await (await fetch('/arena2/' + n)).arrayBuffer());
+  const maps = new MapsFile(); maps.load(await get('MAPS.BSA'), await get('CLIMATE.PAK'), await get('POLITIC.PAK'));
+  zone = wildMaskOf(maps);
+  const img = mctx.createImageData(1000, 500), reg = new Int16Array(1000 * 500);
+  const tint = []; const c2 = document.createElement('canvas').getContext('2d');
+  const rgb = (css) => { c2.fillStyle = css; c2.fillRect(0, 0, 1, 1); return c2.getImageData(0, 0, 1, 1).data; };
+  for (let y = 0; y < 500; y++) for (let x = 0; x < 1000; x++) {
+    const r = maps.getRegionIndexAt(x, y); reg[y * 1000 + x] = r;
+    const sea = r < 0 || r > 61;
+    const col = sea ? [14, 24, 38] : (tint[r] ??= rgb(REGION_TINT(r)));
+    const i = (y * 1000 + x) * 4; img.data[i] = col[0]; img.data[i + 1] = col[1]; img.data[i + 2] = col[2]; img.data[i + 3] = 255;
+  }
+  for (let y = 0; y < 499; y++) for (let x = 0; x < 999; x++) {   // borders
+    const r = reg[y * 1000 + x];
+    if (r !== reg[y * 1000 + x + 1] || r !== reg[(y + 1) * 1000 + x]) { const i = (y * 1000 + x) * 4; img.data[i] = 150; img.data[i + 1] = 135; img.data[i + 2] = 105; }
+  }
+  regionAt = (x, y) => reg[y * 1000 + x];
+  for (let r = 0; r < 62; r++) {
+    let d; try { d = maps.getRegion(r); } catch { continue; }
+    if (!d?.mapTable) continue;
+    for (let i = 0; i < d.locationCount; i++) {
+      const t = d.mapTable[i]; if (!t) continue;
+      const p = longitudeLatitudeToMapPixel(t.longitude, t.latitude);
+      places.push({ region: maps.getRegionName(r), name: d.mapNames[i], x: p.x, y: p.y, type: t.locationType });
+      if (p.x >= 0 && p.x < 1000 && p.y >= 0 && p.y < 500) { const k = (p.y * 1000 + p.x) * 4; img.data[k] = 240; img.data[k + 1] = 220; img.data[k + 2] = 160; }
+    }
+  }
+  base = img; drawMap(cur?.[0], cur?.[1]);
+  $('hover').textContent = `Map read: ${places.length} places. Click to travel.`;
+}
+function drawMap(px, py) {
+  cur = px == null ? null : [px, py];
+  if (!base) { mctx.fillStyle = '#0c0a07'; mctx.fillRect(0, 0, 1000, 500); return; }
+  mctx.putImageData(base, 0, 0);
+  if (zone) {   // the reach, in the game's own purple
+    mctx.fillStyle = 'rgba(155,77,255,.45)';
+    for (let y = zone.box.y0; y <= zone.box.y1; y++) for (let x = zone.box.x0; x <= zone.box.x1; x++) if (zone.inside[y * zone.width + x] === 1) mctx.fillRect(x, y, 1, 1);
+  }
+  if (cur) { mctx.fillStyle = '#e8c27a'; mctx.beginPath(); mctx.arc(px, py, 6, 0, 7); mctx.fill(); mctx.strokeStyle = '#fff'; mctx.lineWidth = 2; mctx.stroke(); }
+}
+drawMap();
+loadMap().catch((e) => { $('hover').textContent = 'The map files would not load: ' + e.message; });
+const pixelOfEvent = (e) => { const r = mapCv.getBoundingClientRect(); return [Math.max(0, Math.min(999, Math.floor((e.clientX - r.left) / r.width * 1000))), Math.max(0, Math.min(499, Math.floor((e.clientY - r.top) / r.height * 500)))]; };
+mapCv.onclick = (e) => { const [x, y] = pixelOfEvent(e); $('px').value = x; $('py').value = y; jump(x, y); };
+mapCv.onmousemove = (e) => {
+  if (!base) return; const [x, y] = pixelOfEvent(e);
+  let near = null, bd = 9; for (const p of places) { const d = Math.abs(p.x - x) + Math.abs(p.y - y); if (d < bd) { bd = d; near = p; } }
+  $('hover').textContent = `${x}, ${y}  ${regionAt ? (REGION_LABEL(regionAt(x, y))) : ''}${near ? '  near ' + near.name : ''}`;
+};
+const REGION_LABEL = (r) => (r >= 0 && r < 62 ? 'region ' + r : 'sea');
+$('find').oninput = () => {
+  const q = $('find').value.trim().toLowerCase(), box = $('hits'); box.textContent = '';
+  if (q.length < 2) return;
+  for (const p of places.filter((p) => p.name.toLowerCase().includes(q) || p.region.toLowerCase().includes(q)).slice(0, 10)) {
+    const b = document.createElement('button'); b.textContent = `${p.name} (${p.region})`; b.style.textAlign = 'left';
+    b.onclick = () => { $('px').value = p.x; $('py').value = p.y; jump(p.x, p.y); };
+    box.append(b);
+  }
+};
+
+// look: drag on the view
+let drag = null;
+$('grab').onpointerdown = (e) => { drag = [e.clientX, e.clientY]; $('grab').classList.add('drag'); $('grab').setPointerCapture(e.pointerId); };
+$('grab').onpointermove = (e) => {
+  if (!drag) return;
+  cam.yaw -= (e.clientX - drag[0]) * 0.004; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch - (e.clientY - drag[1]) * 0.004));
+  drag = [e.clientX, e.clientY]; push();
+};
+$('grab').onpointerup = () => { drag = null; $('grab').classList.remove('drag'); };
+
+async function shot() {
+  if (!ready()) return say('Load a world first.');
+  const blob = await new Promise((res) => { want = res; setTimeout(() => { if (want === res) { want = null; res(null); } }, 4000); });
+  if (!blob) return say('The frame could not be read. Try again.');
+  const p = pixelOver() || ['x', 'y'];
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `bunnyfall-${p[0]}-${p[1]}-${Date.now()}.png`; a.click();
+  say(`Saved ${a.download}`);
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+  if (e.code === 'KeyP') return shot();
+  if (e.code === 'KeyH') return document.body.classList.toggle('hide');
+  if (e.code === 'KeyF') { FWD = -FWD; return say(FWD > 0 ? 'Forward as first set.' : 'Forward flipped.'); }
+  keys.add(e.code); if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', (e) => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+$('boot').onclick = boot;
+$('jump').onclick = () => jump(Number($('px').value), Number($('py').value));
+$('here').onclick = () => { const p = pixelOver(); if (p) { $('px').value = p[0]; $('py').value = p[1]; } };
+$('shot').onclick = shot;
+$('clean').onclick = () => document.body.classList.toggle('hide');
+requestAnimationFrame(tick);
+boot();
+</script>
+</body>
+</html>
