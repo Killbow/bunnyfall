@@ -3699,7 +3699,7 @@ function itemActs(picked, side, { qty = true } = {}) {
   // LOOT9 (the Loot arc): a laddered piece SALVAGED into Welkynd Shards (systems/reforge.js) - the Reforge's coin - asked
   // first, as the dismantle is; never a worn one (taken off first), and a piece that will never break shows no button -
   // but one that wears Magic and never will (FB1012d SALVAGE-CLASSIC: DFU's own magic) shows it, and its press says why
-  if (side === 'local' && !line.equipped && (salvagesToMaterials(picked) || ((salvageShards(picked) > 0 || salvageRefusal(picked) === 'classic') && !['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'].includes(salvageRefusal(picked) ?? '')))) {   // BUNNYFALL: any found gear, online
+  if (side === 'local' && !line.equipped && (salvagesToMaterials(picked) || ((salvageShards(picked, deps.entity?.name) > 0 || salvageRefusal(picked, deps.entity?.name) === 'classic') && !['off', 'aetheric', 'gilded', 'artifact', 'quest', 'bound'].includes(salvageRefusal(picked, deps.entity?.name) ?? '')))) {   // BUNNYFALL: any found gear, online
     const v = el('button', 'act', 'Salvage');
     v.onclick = () => askSalvage(picked);
     acts.append(v);
@@ -3805,8 +3805,7 @@ function askDismantle(item) {
 }
 /** LOOT9: THE SALVAGE'S QUESTION - the dismantle's own (askDismantle), in the one question's slot, its words the
  *  Reforge's: Salvage (or Y) breaks the piece into its shards (systems/reforge.js salvagePiece); Keep, N, Enter, Escape
- *  or a press outside keep it. A locked piece is refused in words before any question is asked. */
-export const SALVAGE_ASK = (name, n) => [`Salvage ${name}?`, `It is gone for good, and you get ${shardsText(n)}.`];
+ *  or a press outside keep it. A locked piece is refused in words before any question is asked. */export const SALVAGE_ASK = (name, n) => [`Salvage ${name}?`, `It is gone for good, and you get ${shardsText(n)}.`];
 export const SALVAGED_LINE = (name, n) => `Salvaged: ${name}, for ${shardsText(n)}.`;
 /** BUNNYFALL: the salvage into materials - asked with the average it gives, said with what it gave. */
 export const SALVAGE_MATS_ASK = (name, mats, n) => [`Salvage ${name}?`, `It is gone for good. You get ${mats}${n > 0 ? `, and ${shardsText(n)}` : ''}.`];
@@ -3821,9 +3820,9 @@ function askSalvage(item) {
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
   const name = itemLongName(item, { getQuest: deps.getQuest ?? null });
   const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
-  const why = anySalvageRefusal(item);   // BUNNYFALL: materials first, then the shard law
+  const why = anySalvageRefusal(item, deps.entity?.name);   // BUNNYFALL: materials first, then the shard law
   if (why) { refusedFor(why); return; }
-  const n = salvageShards(item);
+  const n = salvageShards(item, deps.entity?.name);
   const mats = salvagesToMaterials(item) ? materialsText([item]) : '';
   dismantleEl = el('div', 'inv-info inv-dismantle inv-salvage');
   dismantleEl.setAttribute('role', 'alertdialog');
@@ -3839,14 +3838,14 @@ function askSalvage(item) {
     closeDismantle();
     if (mats) {   // BUNNYFALL: into materials, through the account service
       notice = 'Salvaging...'; render();
-      salvageForMaterials([item], { items: deps.items?.() ?? [] }).then((m) => {
+      salvageForMaterials([item], { items: deps.items?.() ?? [] }, deps.entity?.name).then((m) => {
         if (picked === item && m.ok) picked = null;
         notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name);
         refresh(); render();
       });
       return;
     }
-    const r = salvagePiece(item, { items: deps.items?.() ?? [] });
+    const r = salvagePiece(item, { items: deps.items?.() ?? [] }, deps.entity?.name);
     if (!r.ok) return void refusedFor(r.reason);   // worn or locked since the question was asked - said
     if (picked === item) picked = null;
     notice = SALVAGED_LINE(name, r.shards);
@@ -3918,11 +3917,11 @@ export function batchRefusal(name, why) {
 /** The chosen that still stand: a piece gone from the pack, or one that would no longer break (worn, locked since), is
  *  let go of the choosing. */
 function pruneSalvage(pack) {
-  for (const it of [...salvageSel]) if (!pack.includes(it) || anySalvageRefusal(it)) salvageSel.delete(it);
+  for (const it of [...salvageSel]) if (!pack.includes(it) || anySalvageRefusal(it, deps.entity?.name)) salvageSel.delete(it);
 }
 function chooseSalvage(item) {
   hideTip();
-  const why = anySalvageRefusal(item);   // BUNNYFALL: any found gear
+  const why = anySalvageRefusal(item, deps.entity?.name);   // BUNNYFALL: any found gear - the maker's own made piece is refused 'self'
   if (why) notice = batchRefusal(itemLongName(item, { getQuest: deps.getQuest ?? null }), why);
   else { if (salvageSel.has(item)) salvageSel.delete(item); else salvageSel.add(item); notice = null; }
   render();

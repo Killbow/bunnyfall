@@ -16,16 +16,22 @@
 //     a Legendary 8, an Exalted 15. Never an Aetheric piece (the Broker's
 //     dismantle is its), an artifact, a quest's item, a bound, worn or
 //     locked one - and never a piece the ladder did not grade (DFU's own
-//     magic items, a made one), so shards come from what was FOUND.
+//     magic items, a made one), so shards come from what was FOUND. But a
+//     MADE piece now breaks for its tier's shards too (PRICE-CATCH): you may
+//     break your own work for Welkynd Shards - except the maker breaking it
+//     themselves ("you may not salvage items you've created yourself").
 //   - THE REFORGE: one line of a known Magic or Rare piece - or an
 //     Exalted Legendary's own extra line - REPLACED by a line of another
 //     kind (lootRarity.js reforgeAffix), for shards and gold. REFORGE-
 //     REPLACE (2026-10-25, the owner: "Replace, price rises"): any line,
-//     as often as the purse allows, the price doubling with every reforge
-//     the piece has taken (reforgePrice, as the hone's does).
+//     as often as the purse allows, the price rising with every reforge the
+//     piece has taken (reforgePrice). PRICE-CAP (the owner): it rises no
+//     past fifty Welkynd Shards - once a piece's reforge costs fifty shards,
+//     neither its shards nor its gold goes up again.
 //   - LOOT17 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 9):
 //     THE HONE - a line taken up its own band, never lower (lootRarity.js
-//     honeAffix), the price doubling with every hone on the piece.
+//     honeAffix), the price rising with every hone on the piece. PRICE-CAP:
+//     as the reforge's is - neither rises past fifty Welkynd Shards.
 //   - LOOT20 (section 12): THE SOCKETS - a gem from the pack set in a
 //     piece's empty socket (lootRarity.js setGem), and unset, the gem
 //     shattering. GEM1 (bible/06-Systems/Gem-Sockets.md section 3): free,
@@ -46,6 +52,7 @@ import { itemBaseValue } from './item/itemTemplates.js';   // AUDIT UPDATE L5: t
 import { rarityOf } from './loot/lootRarity.js';   // FB1012d SALVAGE-CLASSIC: the tier a piece's card wears
 import { ALL_GEM_IDS, SOCKET_EMPTY, gemKindOf, gemGrade, hasSocket, socketsOf, socketGem, socketGems, setGem, unsetGem, gemWorthOf } from './loot/lootRarity.js';
 import { PATRON_COUNTER_MARK, COUNTER_PAID_MARK, COUNTER_VALUE_MARK } from '../net/patronLaw.js';   // AUDIT TOWN-ECON 2 PRICE-2: a set stone's counter mark   // LOOT20: the sockets; GEM1: a list of them, every grade of gem
+import { makerMark, makerName } from '../net/recipeLaw.js';   // PRICE-CATCH: who made a piece - its maker mark as the tooltip reads it
 import { mintGem } from './gems.js';   // GEM1: an extracted gem, whole again
 import { welkyndShards, isWelkyndShard, WELKYND_SHARD } from './gate/gateSpoils.js';
 import { isBound } from './item/itemBound.js';
@@ -58,27 +65,28 @@ import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts,
 
 /** What a piece salvages into, by its tier (an Exalted Legendary its own). */
 export const SALVAGE_SHARDS = Object.freeze({ magic: 1, rare: 3, legendary: 8, exalted: 15 });
-/** The shards a piece salvages into - 0 for one the ladder never graded (Common, DFU's own magic), a made piece (AUDIT
- *  LOOT F2: a Superior or a Masterwork carries the ladder's `rarity` too - its quality's roll, smithItems.js mintPiece -
- *  and broke for shards, a bench turning ore into the Reforge's coin; its `provenance` says it was made), an Aetheric
- *  piece and an artifact. */
-export function salvageShards(item) {
-  if (typeof item?.provenance === 'string') return 0;
+/** The shards a piece salvages into - 0 for one the ladder never graded (Common, DFU's own magic), an Aetheric
+ *  piece and an artifact. MADE PIECES (PRICE-CATCH) give their tier's too: a made Rare breaks like a found Rare, so its
+ *  quality is worth something at the salvage - but never by its maker, who may not break what they made ("you may not
+ *  salvage items you've created yourself"). */
+export function salvageShards(item, selfName = null) {
   const t = item?.rarity;
   if (t === 'legendary') return item.exalted === true ? SALVAGE_SHARDS.exalted : SALVAGE_SHARDS.legendary;
-  return t === 'magic' || t === 'rare' ? SALVAGE_SHARDS[t] : 0;
+  if (t === 'magic' || t === 'rare') return SALVAGE_SHARDS[t];
+  return 0;
+}
+/** Whether a piece is one its maker may not salvage - it carries the ladder's `provenance` and its maker mark names the
+ *  character asking. `selfName` is that character (a name, or null for no self-check); the maker is read through the
+ *  same marks as the tooltip (`makerMark`, `pieceLines`). */
+export function isSelfMade(item, selfName) {
+  if (!item || typeof item.provenance !== 'string' || !selfName) return false;
+  const maker = typeof item.maker === 'string' && item.maker ? item.maker : null;
+  return !!maker && makerMark(maker) === makerName(selfName);
 }
 /** Why a piece may not be salvaged, or null: 'off', 'aetheric', 'gilded', 'artifact', 'quest', 'not' (nothing to salvage),
- *  'classic', 'bound', 'worn', 'locked'.
- *
- *  FB1012d SALVAGE-CLASSIC (FIELD BUGS 2026-10-12b; Discord: "magic item with only cast on use effect cannot be salvaged"
- *  - a "Blazing Holy Dagger of Fireballs", MAGIC.DEF's "Blazing %it of Fireballs" on a Holy Dagger): 'classic' is a piece
- *  whose card wears Magic (lootRarity.js rarityOf: DFU's own magic, an Item Maker's enchantment, a soul-bound piece) that
- *  the ladder never graded. LOOT9's law stands - it breaks for no shard: a guild's shelf sells that magic every day and its
- *  Item Maker makes it, a found one cannot be told from a bought one, and shards come from what was found, never bought
- *  (five of them are a Portal Stone) - and the faces now SAY so, where they listed it nowhere. A made piece (its
- *  `provenance`) stays 'not': the Enchanting Station's disenchant is its door, as the Broker's dismantle is the Aetheric's. */
-export function salvageRefusal(item) {
+ *  'classic', 'bound', 'worn', 'locked'. `selfName` is the character asking - a made piece they did not make still
+ *  breaks, but one they made themselves does not ("you may not salvage items you've created yourself"). */
+export function salvageRefusal(item, selfName = null) {
   if (!lootRarityOn()) return 'off';
   if (!item) return 'not';
   if (item.rarity === 'aetheric') return 'aetheric';
@@ -86,7 +94,12 @@ export function salvageRefusal(item) {
   if (item.artifact || item.rarity === 'artifact') return 'artifact';
   if (item.questItem) return 'quest';
   if (socketGems(item).length) return 'gems';   // AUDIT GEM: a set gem is never broken with its piece - extracted or unset first (a Magic weapon holds one since GEM1, and the bulk salvage swept it)
-  if (!salvageShards(item)) return typeof item.provenance !== 'string' && rarityOf(item) === 'magic' ? 'classic' : 'not';   // FB1012d SALVAGE-CLASSIC: it wears Magic, and is never graded
+  const made = typeof item.provenance === 'string';
+  if (!made && rarityOf(item) === 'magic') return 'classic';   // FB1012d SALVAGE-CLASSIC: it wears Magic, and is never graded
+  const shards = salvageShards(item, selfName);
+  if (shards <= 0) {   // a made piece no one may break for its tier's shards - the maker breaking their own
+    return !isSelfMade(item, selfName) ? 'not' : 'self';
+  }
   if (isBound(item)) return 'bound';
   if (isEquipped(item)) return 'worn';
   if (isLocked(item)) return 'locked';
@@ -94,12 +107,13 @@ export function salvageRefusal(item) {
 }
 /** SALVAGE, MADE, on a pack (`items`, the list itself): the piece out, its shards in (joining the pack's unlocked
  *  stack) - all of it or none of it. Answers `{ ok: true, shards }` or `{ ok: false, reason }` (salvageRefusal's,
- *  or 'gone' for a piece not in the pack). */
-export function salvagePiece(item, { items }) {
+ *  or 'gone' for a piece not in the pack). `selfName` the character salvaging - so they may break their own work, but
+ *  never one they made themselves. */
+export function salvagePiece(item, { items }, selfName = null) {
   if (!Array.isArray(items) || !items.includes(item)) return { ok: false, reason: 'gone' };
-  const why = salvageRefusal(item);
+  const why = salvageRefusal(item, selfName);
   if (why) return { ok: false, reason: why };
-  const shards = salvageShards(item);
+  const shards = salvageShards(item, selfName);
   items.splice(items.indexOf(item), 1);
   addItem(items, welkyndShards(shards));
   return { ok: true, shards };
@@ -107,18 +121,20 @@ export function salvagePiece(item, { items }) {
 /** BATCH-SALVAGE (2026-10-19, the owner: "We need to add the ability to batch salvage in the inventory"): MANY PIECES
  *  AT ONCE, on a pack - each through salvagePiece, in the order given, so every piece answers to the one law and a
  *  refusal costs only its own piece. A piece refused since it was chosen (worn, locked or gone) is kept and named.
- *  Answers `{ count, shards, refused: [{ item, reason }] }`. Not a DFU member: Daggerfall has no salvage (Loot-Arc.md). */
-export function salvageMany(pieces, { items }) {
+ *  Answers `{ count, shards, refused: [{ item, reason }] }`. Not a DFU member: Daggerfall has no salvage. `selfName` the
+ *  character salvaging - so a made piece they did not make breaks here, but one they made stays out ('self'). */
+export function salvageMany(pieces, { items }, selfName = null) {
   let count = 0, shards = 0;
   const refused = [];
   for (const it of new Set(Array.isArray(pieces) ? pieces : [])) {
-    const r = salvagePiece(it, { items });
+    const r = salvagePiece(it, { items }, selfName);
     if (r.ok) { count++; shards += r.shards; } else refused.push({ item: it, reason: r.reason });
   }
   return { count, shards, refused };
 }
-/** BATCH-SALVAGE: the pieces of a pack that would break now - salvageRefusal's null, in the pack's order. */
-export const salvageable = (items) => (Array.isArray(items) ? items : []).filter((it) => !salvageRefusal(it));
+/** BATCH-SALVAGE: the pieces of a pack that would break now - salvageRefusal's null (the maker's own made piece is not
+ *  broken here), in the pack's order. `selfName` the character salvaging. */
+export const salvageable = (items, selfName = null) => (Array.isArray(items) ? items : []).filter((it) => !salvageRefusal(it, selfName));
 
 // ── the purse ───────────────────────────────────────────────────────
 /** A shard the purse may draw on: unlocked (a locked stack is the player's word to keep it) and not WORN - a shard is a
@@ -151,15 +167,27 @@ export const REFORGE_PRICE = Object.freeze({
   rare: Object.freeze({ shards: 4, gold: 400 }),
   exalted: Object.freeze({ shards: 10, gold: 2000 }),
 });
-/** A piece's next reforge's price, or null for one the Reforge does not take. REFORGE-REPLACE: its tier's first price
- *  doubled for every reforge the piece has taken (lootRarity.js reforgeCount - an old piece's one-line mark counts as
- *  one), as the hone's doubles with every hone (honePrice): each reforge on a piece costs more than the last. */
+/** A piece's next reforge's price, or null for one the Reforge does not take. REFORGE-REPLACE (2026-10-25, the owner:
+ *  "Replace, price rises"): any line, as often as the purse allows; PRICE-CATCH: its tier's first price RISES with every
+ *  reforge the piece has taken (lootRarity.js reforgeCount - an old piece's one-line mark counts as one), a half-price a
+ *  step up each time (`ceil(base + base*reforges/2)`), as the hone's rises by its own count. PRICE-CAP: it climbs no past
+ *  fifty Welkynd Shards - once a reforge costs fifty shards, neither its shards nor its gold goes up again (the gold is
+ *  frozen at that same point). */
 export function reforgePrice(item) {
   const base = item?.rarity === 'magic' || item?.rarity === 'rare' ? REFORGE_PRICE[item.rarity]
     : item?.rarity === 'legendary' && item.exalted === true ? REFORGE_PRICE.exalted : null;
   if (!base) return null;
-  const twice = 2 ** reforgeCount(item);
-  return { shards: base.shards * twice, gold: base.gold * twice };
+  const price = reforgePriceAt(base, reforgeCount(item));
+  const shards = Math.min(price.shards, WELKYND_CAP);   // PRICE-CAP: no step past fifty Welkynd Shards
+  return { shards, gold: base.gold * (shards / base.shards) };   // and the gold freezes at that same point - neither goes up after shards hit fifty
+}
+/** PRICE-CATCH: a tier's first price raised by `count` steps of half its own - `ceil(base + base*count/2)` shards and the
+ *  same multiple of its gold. PRICE-CAP: no step past fifty Welkynd Shards, so once it hits fifty neither rises again. */
+const WELKYND_CAP = 50;
+function reforgePriceAt(base, count) {
+  const steps = Math.max(0, count);
+  const shards = Math.ceil(base.shards + (base.shards * steps) / 2);
+  return { shards, gold: base.gold * (shards / base.shards) };
 }
 /** Why a line of a piece may not be reforged now, or null: 'off', 'not' (no tier the Reforge takes, or no line it may
  *  roll), 'unknown' (not yet identified), 'worn', 'line' (a line it may not take - a record's, or one nothing else can
@@ -184,13 +212,15 @@ export const HONE_PRICE = Object.freeze({
   rare: Object.freeze({ shards: 2, gold: 150 }),
   exalted: Object.freeze({ shards: 4, gold: 500 }),
 });
-/** A piece's next hone's price, or null for one the hone does not take. */
+/** A piece's next hone's price, or null for one the hone does not take. PRICE-CATCH: its tier's first price rises by a
+ *  half-price step each time (`ceil(base + base*honed/2)`), as the reforge's does; PRICE-CAP: it climbs no past fifty
+ *  Welkynd Shards, so once a hone costs fifty shards neither its shards nor its gold goes up again. */
 export function honePrice(item) {
   const base = item?.rarity === 'magic' || item?.rarity === 'rare' ? HONE_PRICE[item.rarity]
     : item?.rarity === 'legendary' && item.exalted === true ? HONE_PRICE.exalted : null;
   if (!base) return null;
-  const twice = 2 ** Math.max(0, item.honed | 0);
-  return { shards: base.shards * twice, gold: base.gold * twice };
+  const price = reforgePriceAt(base, Math.max(0, item.honed | 0));
+  return { shards: Math.min(price.shards, WELKYND_CAP), gold: Math.min(price.gold, base.gold * (price.shards / base.shards)) };
 }
 /** Why a line of a piece may not be honed now, or null: 'off', 'not' (no tier the hone takes), 'unknown', 'worn', 'top'
  *  (the line stands at its band's top), 'line' (no roll made it - a record's), 'shards', 'gold'. */

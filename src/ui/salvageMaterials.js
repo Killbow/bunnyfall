@@ -37,11 +37,13 @@ export function materialRefusal(item) {
 /** Whether the piece breaks into materials now. */
 export const salvagesToMaterials = (item) => materialRefusal(item) == null;
 
-/** Why a piece will not salvage at all (materials or shards), or null. Materials first, then the old shard law. */
-export function anySalvageRefusal(item) {
+/** Why a piece will not salvage at all (materials or shards), or null. Materials first, then the old shard law. `selfName`
+ *  the character salvaging - so a made piece they did not make breaks here (for its tier's shards), but one they made is
+ *  refused ('self'). */
+export function anySalvageRefusal(item, selfName = null) {
   const m = materialRefusal(item);
   if (m == null) return null;
-  const s = salvageRefusal(item);
+  const s = salvageRefusal(item, selfName);
   return s == null ? null : (m === 'not' || m === 'offline' ? s : m);
 }
 
@@ -51,7 +53,6 @@ export function materialsText(items) {
   if (!list.length) return '';
   return `about ${list.map((y) => `${y.n} ${materialLabel(y.key)}`).join(', ')}`;
 }
-
 /** What the service answered, in words: "2 Dwarven Ingot, 1 Copper, and 15 Smithing experience". */
 export function yieldsText(data) {
   const parts = (data?.yields ?? []).map((y) => `${y.n} ${materialLabel(y.key)}`);
@@ -77,10 +78,10 @@ export function salvageWouldCommit(pieces, book = profBookNow()) {
   return salvageCommits(salvageXpOf(toMaterials.map(salvageDescriptor)), held).map((track) => ({ track, name: professionName(track) }));
 }
 
-export async function salvageForMaterials(pieces, { items, commit = null }) {
+export async function salvageForMaterials(pieces, { items, commit = null }, selfName = null) {
   const chosen = [...new Set(pieces)].filter((it) => items.includes(it));
   const toMaterials = chosen.filter(salvagesToMaterials).slice(0, SALVAGE_BATCH_MAX);
-  const shardOnly = chosen.filter((it) => !toMaterials.includes(it) && salvageRefusal(it) == null);
+  const shardOnly = chosen.filter((it) => !toMaterials.includes(it) && salvageRefusal(it, selfName) == null);
   let data = null, count = 0, shards = 0, lastPicks = null;
   if (toMaterials.length) {
     const book = profBookNow();
@@ -117,7 +118,7 @@ export async function salvageForMaterials(pieces, { items, commit = null }) {
     // the pieces the record gave up are out of the pack already; the Magic-or-better ones still give their shards
     if (realmAct) {
       for (const g of gone) {
-        const sh = salvageShards(g.it);
+        const sh = salvageShards(g.it, selfName);
         if (sh > 0) { addItem(items, welkyndShards(sh)); shards += sh; }
         count++;
       }
@@ -125,8 +126,8 @@ export async function salvageForMaterials(pieces, { items, commit = null }) {
     }
     for (const it of realmAct ? [] : toMaterials) {
       if (!items.includes(it)) continue;
-      if (salvageShards(it) > 0) {
-        const s = salvagePiece(it, { items });
+      if (salvageShards(it, selfName) > 0) {
+        const s = salvagePiece(it, { items }, selfName);
         if (s.ok) { shards += s.shards; count++; continue; }
       }
       items.splice(items.indexOf(it), 1);
@@ -134,7 +135,7 @@ export async function salvageForMaterials(pieces, { items, commit = null }) {
     }
   }
   for (const it of shardOnly) {
-    const s = salvagePiece(it, { items });
+    const s = salvagePiece(it, { items }, selfName);
     if (s.ok) { shards += s.shards; count++; }
   }
   return { ok: true, count, shards, data };

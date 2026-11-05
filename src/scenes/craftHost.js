@@ -14,6 +14,8 @@ import { pricedStation, itemFeeValue } from '../systems/craftFees.js';   // BUNN
  */
 export function createCraftHost(deps) {
   const pack = () => deps.player()?.items ?? [];
+  /** The character salvaging - so a made piece they did not make breaks, but one they made stays out ('self'). */
+  const playerName = () => deps.player()?.name ?? null;
   return {
     /** The pack's pieces a material upgrade takes: found metal pieces, not worn, below Daedric. */
     upgradable() {
@@ -41,11 +43,11 @@ export function createCraftHost(deps) {
     },
     /** The pack's pieces that salvage now, into materials or shards. */
     salvageable() {
-      return pack().filter((it) => it && !anySalvageRefusal(it)).map((it) => ({ item: it, name: deps.nameOf(it), materials: salvagesToMaterials(it) }));
+      return pack().filter((it) => it && !anySalvageRefusal(it, playerName())).map((it) => ({ item: it, name: deps.nameOf(it), materials: salvagesToMaterials(it) }));
     },
     /** A salvage of the chosen pieces. */
     async salvage(items, { commit = null } = {}) {
-      const r = await salvageForMaterials(items, { items: pack(), commit });
+      const r = await salvageForMaterials(items, { items: pack(), commit }, playerName());
       if (r.needsCommit) return { ok: false, needsCommit: r.needsCommit, text: `This would take ${r.needsCommit.map((n) => n.name).join(' and ')} past Journeyman. You can raise only two crafts that far, and the others stay at rank 50.` };   // BUNNYFALL SPEC-SAFE
       if (!r.ok) return { ok: false, text: r.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(r.error) };
       deps.saved();

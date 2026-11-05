@@ -6233,7 +6233,7 @@ export function createWorldModes(host) {
     const o = createReforgeOverlay({
       items: () => playerEntity.items ?? [], payer: () => playerEntity, gold: () => totalGoldAmount(playerEntity),
       reforge: (item, line) => reforgePiece(item, line, playerEntity),
-      salvage: (item) => salvagePiece(item, { items: (playerEntity.items ??= []) }),
+      salvage: (item) => salvagePiece(item, { items: (playerEntity.items ??= []) }, playerEntity.name),
       imprint: (item, id) => imprintPiece(item, id, playerEntity),   // LOOT10: a Rare takes a found Legendary's power
       hone: (item, line) => honePiece(item, line, playerEntity),   // LOOT17: a line taken up its band
       scry: (family) => { const done = scryPlace(playerEntity, family, host.scryWhere?.() ?? null); if (done.ok) surfacePlayer(); return done; },   // LOOT19: the scryers

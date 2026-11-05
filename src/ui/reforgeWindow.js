@@ -109,6 +109,7 @@ export const REFORGE_REFUSALS = Object.freeze({
   quest: "Quest items can't be salvaged", bound: "Bound items can't be salvaged", locked: 'Locked. Unlock it first',
   gems: 'Extract or unset its gem first',   // AUDIT GEM: salvage never breaks a set gem
   classic: "Classic magic items can't be salvaged. Only pieces with a rarity give shards",   // FB1012d SALVAGE-CLASSIC
+  self: "You may not salvage an item you've created yourself",   // PRICE-CATCH: the maker keeps their own work
   get cursed() { return t('reforge.refusal.cursed', 'Have the temple lift its curse first'); },   // LOOT-GATE
 });
 /** LOOT-GATE (systems/reforge.js imbuePiece): the Imbue's words, each read when it is said (L10N4). */
@@ -135,10 +136,11 @@ export function reforgeLabel(why, price, have, verb = 'Reforge') {
 export const REFORGED = (name, line) => `Reforged: ${name} - ${line}.`;
 export const HONED = (name, line) => `Honed: ${name} - ${line}.`;   // LOOT17
 /** REFORGE-REPLACE (the owner: "Replace, price rises"): the card's word on the Reforge's price - what it does, and that
- *  the next costs twice. */
-export const REFORGE_NOTE = (price) => t('reforge.note', 'A reforge costs {price}. It always replaces the line with a different kind, and the price doubles with each reforge on this piece.', { price: reforgePriceText(price) });
-/** LOOT17: the card's word on the hone's price. */
-export const HONE_NOTE = (price) => `A hone costs ${reforgePriceText(price)}. The price doubles with each hone, and a line at its highest value can't be honed.`;
+ *  the next costs more. PRICE-CATCH: it rises a half-price step each time; PRICE-CAP: no past fifty Welkynd Shards. */
+export const REFORGE_NOTE = (price) => t('reforge.note', 'A reforge costs {price}. It always replaces the line with a different kind, and the price rises by a half-step each reforge on this piece.', { price: reforgePriceText(price) });
+/** LOOT17: the card's word on the hone's price. PRICE-CATCH: it rises a half-price step each time; PRICE-CAP: no past
+ *  fifty Welkynd Shards. */
+export const HONE_NOTE = (price) => `A hone costs ${reforgePriceText(price)}. The price rises by a half-step each hone, and a line at its highest value can't be honed.`;
 export const SALVAGED = (name, n) => `Salvaged: ${name}, for ${shardsText(n)}.`;
 export const BREAK_ASK = (name, n) => `Break ${name} for ${shardsText(n)}? It is gone for good.`;
 /** LOOT18 (the Loot arc II, bible/06-Systems/Loot-II-Arc.md section 10): SALVAGE EVERY MAGIC - one press, asked first. */
@@ -188,6 +190,7 @@ function injectSkinStyle(doc = document) {
  *   unsetGem?: ((item: any, at?: number|null) => { ok: boolean, reason?: string|null }) | null,
  *   extractGem?: ((item: any, at?: number|null) => { ok: boolean, reason?: string|null, price?: number }) | null,
  *   imbue?: ((item: any) => { ok: boolean, reason?: string|null }) | null,
+ *   selfName?: (player: any) => string | null
  * }} deps
  *   LOOT10: `pages` the pages this window shows (the guild's all four; the pack's Codex its one), `imprint` the host's
  *   imprint (systems/loot/lootCodex.js imprintPiece). LOOT16: the temple's `['lift']`, and its `lift` (systems/loot/lootCurse.js
@@ -285,6 +288,7 @@ export function mountReforgeWindow(host, deps) {
     if (!alive) return;
     const items = deps.items() ?? [];
     const payer = deps.payer();
+    const selfName = deps.selfName ? deps.selfName(payer) : (payer?.name ?? null);   // PRICE-CATCH: who is asking, so a made piece they did not make breaks here but one they made does not
     const have = { shards: shardsHeld(items), gold: deps.gold() };
     const picture = deps.picture !== undefined ? deps.picture : (it) => classicPicture(it, deps.wearer, () => render());
     purse.textContent = reforgePurseText(have.shards, have.gold);
@@ -301,8 +305,8 @@ export function mountReforgeWindow(host, deps) {
     if (page === 'imbue') { renderImbue(items, payer, have, picture); return; }   // LOOT-GATE
     const rows = page === 'reforge'
       ? items.filter((it) => reforgePrice(it) && reforgeableLines(it).length)
-      : [...items.filter((it) => salvageShards(it) > 0 && !['aetheric', 'gilded', 'artifact', 'quest', 'off'].includes(salvageRefusal(it) ?? '')),
-        ...items.filter((it) => salvageRefusal(it) === 'classic')];   // FB1012d SALVAGE-CLASSIC: a piece that wears Magic and will never break is listed after them, saying why
+      : [...items.filter((it) => salvageShards(it, selfName) > 0 && !['aetheric', 'gilded', 'artifact', 'quest', 'off'].includes(salvageRefusal(it, selfName) ?? '')),
+        ...items.filter((it) => salvageRefusal(it, selfName) === 'classic')];   // FB1012d SALVAGE-CLASSIC: a piece that wears Magic and will never break is listed after them, saying why
     if (!rows.includes(picked)) picked = page === 'reforge' ? rows[0] ?? null : null;
     if (page === 'salvage') everyMagic(rows);   // LOOT18
     if (!rows.length) {
@@ -321,8 +325,8 @@ export function mountReforgeWindow(host, deps) {
         row.append(frameOf(it, picture), text, el('span', 'broker-price', reforgePriceText(reforgePrice(it))));
         pressable(row, () => { picked = it; render(); });
       } else {
-        const n = salvageShards(it);
-        const why = salvageRefusal(it);
+        const n = salvageShards(it, selfName);
+        const why = salvageRefusal(it, selfName);
         const btn = el('button', 'act broker-buy', why ? (why === 'worn' ? 'Worn' : why === 'locked' ? 'Locked' : why === 'gems' ? 'Gem set' : why === 'classic' ? 'Classic magic' : 'Cannot') : asking === it ? 'Break it' : 'Salvage');
         btn.setAttribute('type', 'button');
         btn.setAttribute('aria-label', why ? `${nameOf(it)}: ${REFORGE_REFUSALS[why] ?? ''}` : asking === it ? BREAK_ASK(nameOf(it), n) : `Salvage ${nameOf(it)} for ${shardsText(n)}`);
@@ -408,9 +412,9 @@ export function mountReforgeWindow(host, deps) {
    *  locked or bound), in one press that asks first ("Break them all" / "Keep"), through the host's own salvage a piece
    *  at a time. Two at the least: one is its own row's press. */
   function everyMagic(rows) {
-    const magics = rows.filter((it) => it.rarity === 'magic' && !salvageRefusal(it));
+    const magics = rows.filter((it) => it.rarity === 'magic' && !salvageRefusal(it, selfName));
     if (magics.length < 2) { if (asking === EVERY_MAGIC) { dropAsk(); drawNote(); } return; }   // the ask lapsed under it (B4: its question drawn away now - the line was drawn before the page)
-    const shards = magics.reduce((n, it) => n + salvageShards(it), 0);
+    const shards = magics.reduce((n, it) => n + salvageShards(it, selfName), 0);
     const head = el('li', 'broker-insignia-head salvage-every');
     head.setAttribute('role', 'presentation');
     const btn = el('button', 'act broker-buy every-magic', asking === EVERY_MAGIC ? 'Break them all' : EVERY_MAGIC_LABEL(magics.length));
