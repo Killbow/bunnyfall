@@ -10,17 +10,20 @@ cd "$(dirname "$0")/.."
 BRANCH=main
 mkdir -p updates
 LOG=updates/update.log
+# One update at a time (cron and a manual run can overlap). BUNNYFALL AUDIT L1-07: the lock comes first, so a request
+# made while a build runs is left in place for the next run, not deleted unanswered.
+exec 9>.update.lock
 if [ "${1:-}" = "--if-requested" ]; then
   [ -f updates/update-requested ] || exit 0
+  flock -n 9 || exit 0
   rm -f updates/update-requested
+  [ -L "$LOG" ] && rm -f "$LOG"   # BUNNYFALL AUDIT L1-06: never append through a link
   exec >>"$LOG" 2>&1
   echo "[bunnyfall-update] requested from the game"
+elif ! flock -n 9; then
+  echo "[bunnyfall-update $(date '+%Y-%m-%d %H:%M:%S')] another update is running, skipping"; exit 0
 fi
 LOG_TAG="[bunnyfall-update $(date '+%Y-%m-%d %H:%M:%S')]"
-
-# One update at a time (cron and a manual run can overlap).
-exec 9>.update.lock
-if ! flock -n 9; then echo "$LOG_TAG another update is running, skipping"; exit 0; fi
 
 if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "$LOG_TAG local edits on this box, not pulling. Commit them to GitHub or run: git checkout -- ."

@@ -5,7 +5,7 @@
 //   BIND=0.0.0.0 node selfhost/start.mjs   listen on all interfaces (Docker)
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startUpdater } from './updater.mjs';
@@ -40,7 +40,9 @@ async function mintPair() {
 const keyFile = join(DATA, 'keys.json');
 if (!existsSync(keyFile)) {
   const keys = { identity: await mintPair(), gate: await mintPair() };
-  writeFileSync(keyFile, JSON.stringify(keys, null, 2), { mode: 0o600 });
+  // BUNNYFALL AUDIT L1-08: written whole to a side file and renamed, so a crash leaves no half a key file
+  writeFileSync(`${keyFile}.tmp`, JSON.stringify(keys, null, 2), { mode: 0o600 });
+  renameSync(`${keyFile}.tmp`, keyFile);
   console.log(`[bunnyfall] minted new signing keys in ${keyFile}`);
 }
 const keys = JSON.parse(readFileSync(keyFile, 'utf8'));

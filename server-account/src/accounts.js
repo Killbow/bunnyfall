@@ -770,9 +770,14 @@ export async function overRate({ db, nowS }, key, max = LOGIN_MAX, windowS = LOG
  * all of them - forgetting a count frees a caller early, never refuses one.
  */
 export const ACCOUNT_RATE_KEYS = 50_000;
-const accountWindows = new Map();
+const accountWindowsAll = new Map();
+// BUNNYFALL AUDIT L1-05: the unauthenticated per-address keys (`yards:`, `poi:`) have a table of their own, so a flood of
+// addresses can only fill and clear that one, never reset the accounts' counters
+const addressWindows = new Map();
+const tableOf = (/** @type {unknown} */ id) => (typeof id === 'string' && (id.startsWith('yards:') || id.startsWith('poi:')) ? addressWindows : accountWindowsAll);
 export function overAccountRate(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_WINDOW_S) {
   const start = Math.floor(nowS / windowS) * windowS;
+  const accountWindows = tableOf(id);
   let w = accountWindows.get(id);
   if (!w || w.start < start) {
     if (!w && accountWindows.size >= ACCOUNT_RATE_KEYS) {
@@ -788,11 +793,11 @@ export function overAccountRate(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_W
 /** AUDIT PLAN-1000 C4: whether the account's next request in this window is past its rate - overAccountRate's answer,
  *  asked WITHOUT counting: the door asks a progression claim's reads of no request the rate will refuse (index.js). */
 export function accountRateFull(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_WINDOW_S) {
-  const w = accountWindows.get(id);
+  const w = tableOf(id).get(id);
   return !!w && w.start >= Math.floor(nowS / windowS) * windowS && w.count + 1 > max;
 }
 /** The accounts counted in this isolate (the pins' window). */
-export const accountRateKeys = () => accountWindows.size;
+export const accountRateKeys = () => accountWindowsAll.size;
 
 /** BUNNYFALL AUDIT L5-02: whether `key`'s failures this window already fill its allowance - asked WITHOUT counting, and before any
  *  password is derived. A bucket that is only counted after the derivation never stops a guesser: a right guess passed
@@ -1056,17 +1061,19 @@ export async function changePassword({ db, subtle, rand, nowS }, player, session
  * same way.
  */
 export async function newRecoveryCodes({ db, subtle, rand, nowS }, player, { password, code }) {
+  // BUNNYFALL AUDIT L5-05: the buckets are this signed-in account's own - a stranger's bad logins at the username, or bad
+  // recovery guesses, never lock the owner out of replacing leaked codes
   if (!player.password) return { error: 'not-registered' };
-  if (await overRate({ db, nowS }, `login:${player.handle_lc}`)) return { error: 'rate' };
+  if (await overRate({ db, nowS }, `newcodes:${player.id}`)) return { error: 'rate' };
   if (!await verifyPassword(password, player.password, { subtle })) return { error: 'bad-login' };
-  await clearRate({ db }, `login:${player.handle_lc}`);
+  await clearRate({ db }, `newcodes:${player.id}`);
   if (recoveryLeft(player.recovery_hash) !== null) {
     // a guess at a code is a guess at a code, whichever door: RECOVER's bucket, as `recover` spends it
-    if (await overRate({ db, nowS }, `recover:${player.handle_lc}`)) return { error: 'rate' };
+    if (await overRate({ db, nowS }, `newcodes-code:${player.id}`)) return { error: 'rate' };
     const canon = codeForHashing(code);
     const { ok } = await matchRecoveryCode(canon, player.recovery_hash, { subtle });
     if (!canon || !ok) return { error: 'bad-code' };
-    await clearRate({ db }, `recover:${player.handle_lc}`);
+    await clearRate({ db }, `newcodes-code:${player.id}`);
   }
   const codes = mintRecoverySet(rand);
   const rc = await hashRecoverySet(codes, { subtle, rand });

@@ -702,7 +702,7 @@ async function realmTreasury(ctx, player, me, at, kind, gold, region, letter = f
 /** PUT GOLD IN - any member. The client has already taken it from its purse, and puts it back if this refuses. A realm
  *  character's record pays it here, with the treasury (REALM P2.2). */
 export async function depositToGuild(ctx, player, { character, gold, realm = null, region = null } = {}) {
-  const { db, nowS } = ctx;
+  const { db } = ctx;
   const side = await realmActFirst(db, player.id, character, realm);   // AUDIT REALM L1-F2: where the record stands, before any other word
   if (side.error) return side;
   const a = await actorOf(db, player, character);
@@ -711,8 +711,8 @@ export async function depositToGuild(ctx, player, { character, gold, realm = nul
   if (!guildGoldOk(gold)) return { error: 'bad-gold' };
   if (await spend(ctx, player)) return { error: 'guild-rate' };
   if (side.at) return realmTreasury(ctx, player, a.me, side.at, 'deposit', gold, region);
-  const treasury = await moveTreasury(db, a.me, displayName(player), 'deposit', gold, nowS);
-  return treasury == null ? { error: 'guild-treasury-full' } : { ok: true, treasury };
+  // BUNNYFALL AUDIT L2-04: coin comes only out of a record the service can take it from - an offline character's word is no gold
+  return { error: 'realm-needed' };
 }
 
 /** TAKE GOLD OUT - the guildmaster's alone (Mac: "Guildmaster only"), never more than the treasury holds. A realm

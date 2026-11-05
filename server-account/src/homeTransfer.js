@@ -159,7 +159,7 @@ async function acceptHome(ctx, player, body) {
   let sellerKey = null;
   let buyerKey = null;
   // BUNNYFALL AUDIT: a seizure is no payment the hold looks at - a seller under a hold is paid nothing by the service
-  if (price + refund > 0) {
+  {   // (a gift at no price too: the home keeps what its giver paid, and the receiver sells it back for that)
     const sellerHeld = await realmHoldOf(db, offer.seller, offer.seller_char);
     if (sellerHeld) return sellerHeld;
   }

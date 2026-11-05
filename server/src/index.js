@@ -2970,21 +2970,34 @@ export class Room {
    *  staff socket, never the sender. On the party lines' budget. */
   async _whisperLine(ws, a, frame, now) {
     if (!isSocialRoom(a.key) || !a.acct) { this._junk(ws); return; }
-    const budget = tokenGate(this._partyChat, now, PARTY_CHAT_ROOM_HZ_MAX);
-    this._partyChat = budget.bucket;
-    if (!budget.pass) return;
+    // BUNNYFALL AUDIT L3-04: a new voice waits as it does in every room, and one socket whispers at most four times a second
+    // (a miss walks every socket) - the hub's shared party budget is spent only by a whisper that finds its player
+    const wait = this._newVoiceWait(a, now);
+    if (wait > 0) { this._send(ws, JSON.stringify({ t: 'slowed', ms: Math.ceil(wait) })); return; }
+    this._whisperAt ??= new WeakMap();
+    if (now - (this._whisperAt.get(ws) ?? 0) < 250) return;
+    this._whisperAt.set(ws, now);
     const q = foldFind(frame.to);
     if (!q) return;
-    let exact = null; const starts = new Map();
+    // BUNNYFALL AUDIT L3-03: the name as typed (case aside) is the player it names; two players whose names fold to one
+    // (Kill Bunny, Killbunny) are not told apart by the fold, so a fold that finds more than one account is 'many'
+    const raw = String(frame.to ?? '').trim().toLowerCase();
+    let exact = null; const folded = new Map(); const starts = new Map();
     for (const [w, b] of this._all()) {
       if (b.hid || !b.id || !b.acct || b.acct === a.acct || this._dead.has(w) || this._gone.has(w)) continue;
       let f = this._folds.get(b);
       if (f === undefined) this._folds.set(b, f = foldFind(b.name));
-      if (f === q) { exact = b; break; }
-      if (f.startsWith(q)) starts.set(b.acct, b);
+      if (String(b.name ?? '').trim().toLowerCase() === raw) { exact = b; break; }
+      if (f === q) folded.set(b.acct, b);
+      else if (f.startsWith(q)) starts.set(b.acct, b);
     }
-    const to = exact ?? (starts.size === 1 ? [...starts.values()][0] : null);
-    if (!to) { this._send(ws, JSON.stringify({ t: 'chat', ch: 'whisper', text: frame.text, to: frame.to, miss: starts.size > 1 ? 'many' : 'none', id: a.id, name: a.name ?? '' })); return; }
+    const near = folded.size ? folded : starts;
+    const to = exact ?? (near.size === 1 ? [...near.values()][0] : null);
+    if (!to) { this._send(ws, JSON.stringify({ t: 'chat', ch: 'whisper', text: frame.text, to: frame.to, miss: near.size > 1 ? 'many' : 'none', id: a.id, name: a.name ?? '' })); return; }
+    const budget = tokenGate(this._partyChat, now, PARTY_CHAT_ROOM_HZ_MAX);
+    this._partyChat = budget.bucket;
+    if (!budget.pass) return;
+    this._newVoiceSpends(a, now);   // SAFE6: the account's meter, spent by a whisper that went
     const said = await this._stamped(ws, a, 'whisper', frame);   // SAFE2: stamped, so a whisper can be reported as any line can
     if (!said) return;
     const line = JSON.stringify({ ...said, ch: 'whisper', to: to.name });

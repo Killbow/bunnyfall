@@ -19,6 +19,7 @@ export function createRescueLink(deps) {
   /** account -> the last `rs.at` read from it */
   const seen = new Map();
   let primed = false;
+  let lastTaken = -Infinity;   // BUNNYFALL AUDIT L4-02: one rescue in a few seconds, whoever asks
 
   return {
     /** The caster's call to the party member `id` (a peer in the room). Answers whether it went. */
@@ -50,7 +51,12 @@ export function createRescueLink(deps) {
         const d = [mine[0] - peer.feet[0], 0, mine[2] - peer.feet[2]];
         const dist = Math.hypot(d[0], d[2]);
         if (dist > RESCUE_REACH_M + 10) continue;
+        // BUNNYFALL AUDIT L4-02: a caster's claimed height is bounded too - the reach is a sphere, not a column to 100 km - and
+        // a call right after another one taken is let go
+        if (!Number.isFinite(peer.feet[1]) || Math.abs(peer.feet[1] - mine[1]) > RESCUE_REACH_M + 10) continue;
+        if (performance.now() - lastTaken < 4000) continue;
         const k = dist > 0.01 ? RESCUE_SET_DOWN_M / dist : 0;
+        lastTaken = performance.now();
         deps.moveTo([peer.feet[0] + d[0] * k, peer.feet[1], peer.feet[2] + d[2] * k]);
         deps.say(t('spell.bunny.rescued', '{name} pulls you to their side.', { name: m.name ?? t('spell.bunny.aMember', 'A party member') }));
         return;
