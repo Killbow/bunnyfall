@@ -14,7 +14,8 @@
   #view { position: relative; flex: 1; min-width: 0; }
   iframe { width: 100%; height: 100%; border: 0; background: #000; display: block; }
   #cross { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border: 1px solid #fff8; border-radius: 50%; pointer-events: none; }
-  #grab { position: absolute; inset: 0; cursor: grab; touch-action: none; }
+  #grab { position: absolute; inset: 0; cursor: grab; touch-action: none; display: none; }
+  .live #grab { display: block; }   /* only once the world stands: until then a tap reaches the game (its loading, its prompts) */
   #grab.drag { cursor: grabbing; }
   aside { width: 300px; padding: 12px; overflow-y: auto; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
   h1 { font-size: 15px; margin: 0; color: var(--accent); }
@@ -121,13 +122,23 @@ async function boot() {
   cam.on = false;
   say('Checking for the game data.');
   await haveData();
-  if (!base) loadMap().catch((e) => { $('hover').textContent = 'The map files would not load: ' + e.message; });
+  document.body.classList.remove('live');
   const q = new URLSearchParams({ tod: $('tod').value, weather: $('weather').value, season: $('season').value, region: $('region').value, loc: $('loc').value });
-  frame.src = `/play/?shot&world&class=0&noloading&${q}`;
-  say('Loading the world. The first load reads the map files and takes a while.');
+  frame.src = `/play/?shot&world&class=0&${q}`;   // the game's own loading screen shows while it loads
+  const t0 = Date.now();
+  let errs = [];
+  frame.onload = () => { try { gw().addEventListener('error', (e) => { errs.push(e.message); }); gw().addEventListener('unhandledrejection', (e) => { errs.push(String(e.reason?.message ?? e.reason)); }); } catch { /* not ours */ } };
   const wait = setInterval(() => {
-    if (!ready()) return;
+    if (!ready()) {
+      // the game's own status (it writes it into its title) and how long it has been
+      let t = ''; try { t = gw().document.title.replace(/^Bunnyfall( - )?/, ''); } catch { /* loading */ }
+      say(`Loading the world, ${Math.round((Date.now() - t0) / 1000)} s${t ? `\n${t}` : ''}${errs.length ? `\nError: ${errs[errs.length - 1]}` : ''}`);
+      return;
+    }
     clearInterval(wait);
+    document.body.classList.add('live');
+    // the map after the world: a phone has one load in it at a time
+    if (!base) loadMap().catch((e) => { $('hover').textContent = 'The map files would not load: ' + e.message; });
     hook();
     try { gw().document.body.addEventListener('keydown', (e) => e.stopPropagation(), true); } catch { /* same origin only */ }
     // a fresh character's boxes stand over the world: the name box filled and sent, the notes clicked away (never Escape,
