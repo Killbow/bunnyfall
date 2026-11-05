@@ -53,7 +53,8 @@ export const CANDLE = Object.freeze({
   archive: LIGHTS_ARCHIVE,   // 210 (MagicCandleBehaviour.cs:22)
   record: 3,                 // (:23)
   distance: 1.4,             // candleDistance (LightNormal.cs:89)
-  heightFraction: 0.25,      // candlePosition.y += height * 0.25 (:96)
+  heightFraction: 0.25,      // candlePosition.y += height * 0.25 (:96) - unused since BUNNYFALL
+  aboveHead: 0.35,           // BUNNYFALL: how far above the top of the head the candle floats
   range: 15,                 // MagicCandle.prefab m_Range
   jitterRadius: 0.125,       // Random.insideUnitSphere * 0.125 (:47)
   moveSpeed: 8,              // moveSpeed (:14), lerp units per second
@@ -72,12 +73,14 @@ export const CANDLE = Object.freeze({
  *  1.35 standing, where the port hung it at 0.45. The port keeps the
  *  FEET as every host's player origin, so the half-capsule is added
  *  here rather than assumed away. */
-export function candleBase(feet, height, forward) {
-  const f = forward ?? [0, 0, 1];
+// BUNNYFALL: the candle floats ABOVE the player's head instead of 1.4
+// units in front. `forward` is kept in the signature for the callers
+// but no longer moves it.
+export function candleBase(feet, height, _forward) {
   return [
-    feet[0] + f[0] * CANDLE.distance,
-    feet[1] + f[1] * CANDLE.distance + height / 2 + height * CANDLE.heightFraction,
-    feet[2] + f[2] * CANDLE.distance,
+    feet[0],
+    feet[1] + height + CANDLE.aboveHead,
+    feet[2],
   ];
 }
 
