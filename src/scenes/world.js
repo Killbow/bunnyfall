@@ -18194,7 +18194,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__builtCount = () => built.size;
     window.__cromwark = () => cromwark;   // BUNNYFALL probe: the reach's host (its camp, its haze)
     window.__pixelT = (px, py) => [...state.pixelTranslation(px, py)];
-    window.__heightAt = (x, z) => heightAt(x, z);   // tools/worldview.html: the ground under a point, -Infinity until its pixel is built
+    window.__heightAt = (x, z) => heightAt(x, z);   // worldview.html: the ground under a point, -Infinity until its pixel is built
     // LOAD-OWED probe surface (tools/pixelBuildSweep.mjs - the frame held by the probe, so nothing else runs): THE PUMP'S
     // OWN BUILD driven over the map, one pixel at a time - the stream re-centred on it as a teleport re-centres it (every
     // pixel down, the grid inited there), then `buildPixel`, a throw answered as the pump's catch answers it (torn down,

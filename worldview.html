@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Bunnyfall world view</title>
-<!-- Dev tool, not part of the build: run `ARENA2_PATH=... npx vite` and open /tools/worldview.html.
-     It boots the game's own world in shot mode inside a frame and flies a free camera over the whole map.
-     On a phone: start vite with `--host`, open http://<your computer's address>:5173/tools/worldview.html. -->
+<!-- BUNNYFALL world view, live at dagg.campfirerp.com/worldview.html (dev: /worldview.html on the vite server).
+     It boots the game's own world in shot mode inside a frame and flies a free camera over the whole map; the game data
+     is the player's own, picked as the game picks it. -->
 <style>
   :root { --bg: #14110d; --fg: #eadfc8; --dim: #9c9078; --line: #3a3226; --accent: #e8c27a; }
   * { box-sizing: border-box; }
@@ -24,7 +24,7 @@
   button { cursor: pointer; } button:hover { border-color: var(--accent); }
   button.go { background: var(--accent); color: #1a1408; border-color: var(--accent); font-weight: 600; }
   .row { grid-column: 1 / -1; display: flex; gap: 6px; } .row > * { flex: 1; }
-  #map { width: 100%; aspect-ratio: 2 / 1; background: #0c0a07; border: 1px solid var(--line); cursor: crosshair; display: block; image-rendering: pixelated; }
+  #map { grid-column: 1 / -1; width: 100%; aspect-ratio: 2 / 1; background: #0c0a07; border: 1px solid var(--line); cursor: crosshair; display: block; image-rendering: pixelated; }
   #status { color: var(--dim); font-size: 12px; white-space: pre-line; }
   kbd { background: #221c14; border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
   .hide aside { display: none; } .hide #cross { display: none; }
@@ -113,7 +113,7 @@ const say = (t) => { $('status').textContent = t; };
 // else the game's own picker (the ARENA2 folder, or a .zip such as DaggerfallGameFiles.zip on a phone). The game in the
 // frame is on this same site, so it reads the same stored copy.
 let dataReady = null;
-const served = async () => { try { return (await fetch('/arena2/MAPS.BSA', { method: 'HEAD' })).ok; } catch { return false; } };
+const served = async () => { try { const r = await fetch('/arena2/MAPS.BSA', { method: 'HEAD' }); return r.ok && !/text\/html/.test(r.headers.get('content-type') ?? ''); } catch { return false; } };   // a site that answers every path with a page serves no data
 const haveData = () => (dataReady ??= (async () => { if (!(await served())) await ensureArena2(); })());
 const bytes = async (n) => { try { return await getBytes(n); } catch { return new Uint8Array(await (await fetch('/arena2/' + n)).arrayBuffer()); } };
 
