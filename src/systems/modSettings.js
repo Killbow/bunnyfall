@@ -1713,6 +1713,9 @@ export const SWITCH_RESETS = Object.freeze([
   Object.freeze({ vendor: 'pcaao', key: 'equipmentDamageEnhanced', stamp: 'equipmentDamageEnhanced@WEAR-VANILLA' }),
   Object.freeze({ vendor: 'pcaao', key: 'fadingEnchantedItems', stamp: 'fadingEnchantedItems@WEAR-VANILLA' }),
   Object.freeze({ vendor: 'roleplay-realism', key: 'equipDamage', stamp: 'equipDamage@WEAR-VANILLA' }),
+  // BUNNYFALL: the heir update. A stored Project Legacy switch that went off hides the Family tab (and the adoption page), so
+  // a stored value is let go once and the shipped on applies; a choice made after is kept (setModSetting stamps it).
+  Object.freeze({ vendor: 'project-legacy', key: 'Enabled', stamp: 'Enabled@BUNNYFALL-HEIR' }),
 ]);
 /** FGH2H-R (2026-09-24, Mac: "retire it"): A SWITCH TAKEN OFF THE PANE. Roleplay & Realism's
  *  fightersTeachHandToHand swapped Giantish for HandToHand in the Fighters Guild's lists; FGH2H put HandToHand in the
@@ -1724,6 +1727,15 @@ export const RETIRED_KEYS = Object.freeze([
 ]);
 function migrate(m) {
   let changed = false;
+  // BUNNYFALL: a Project Legacy switch stored as anything but a plain true or false is damaged, so it is let go and regenerated
+  // from the shipped default.
+  const legacy = m?.['project-legacy'];
+  if (legacy && typeof legacy === 'object') {
+    for (const k of Object.keys(legacy)) {
+      const def = declaredKey('project-legacy', k);
+      if (def && typeof def.default === 'boolean' && typeof legacy[k] !== 'boolean') { delete legacy[k]; changed = true; }
+    }
+  }
   for (const { vendor, key } of RETIRED_KEYS) {
     const held = m?.[vendor];
     if (!held || !Object.hasOwn(held, key)) continue;
