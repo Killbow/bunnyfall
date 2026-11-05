@@ -207,7 +207,9 @@ export class DeathScreen {
   get wild() { return this.online ? wildDeath() : null; }
   /** DEATH6 / WILD1: the online wait - the body's minute, or the zone's two. WILD-REJOIN: less what a death the referee
    *  told this page of had lain before it came back (systems/wild/wildZone.js `served`). */
-  get holdSeconds() { return this.wild && !cromwarkPeace(this.wild.kind) ? WILD_DEATH_HOLD_S - (this.wild.served ?? 0) : ONLINE_RESPAWN_SECONDS; }   // BUNNYFALL (Cromwark): no body to loot, the usual wait
+  get holdSeconds() { return this.held ? WILD_DEATH_HOLD_S - (this.wild.served ?? 0) : ONLINE_RESPAWN_SECONDS; }   // BUNNYFALL (Cromwark): no body to loot, the usual wait
+  /** BUNNYFALL (Cromwark): the zone's two-minute hold and its no-Enter rule apply to a PvP zone's dead only; the reach's dead rise as anywhere on the map. */
+  get held() { return !!this.wild && !cromwarkPeace(this.wild.kind); }
   /** DEATH4: whole seconds left before an online respawn, or null offline. */
   get respawnIn() {
     if (!this.online) return null;
@@ -215,7 +217,7 @@ export class DeathScreen {
   }
   input(action) {
     // ENTER ends the run now; the sequence's own reset is the timer. WILD1: not in the open zone - the dead wait there
-    if (action === 'confirm' && !this.wild) this.sequence.tick(DEATH_TIME_BEFORE_RESET + 1);
+    if (action === 'confirm' && !this.held) this.sequence.tick(DEATH_TIME_BEFORE_RESET + 1);
   }
   draw(renderer, canvas, font, s) {
     // FadeHUDToBlack over the death: the world dims to black behind
@@ -229,7 +231,7 @@ export class DeathScreen {
     if (isEnhanced() && typeof document !== 'undefined') { drawEnhancedDeath(this, fade); return; }
     const died = t('death.title', 'YOU HAVE DIED');
     drawText(renderer, font, died, (canvas.width - measureText(font.fnt, died) * s) / 2, canvas.height / 2 - 10 * s, s, [0.9, 0.2, 0.15, 1]);
-    const hint = this.online ? (this.wild ? t('death.risingInWild', 'RISING IN {n}', { n: this.respawnIn }) : t('death.risingIn', 'RISING IN {n}   ENTER now', { n: this.respawnIn })) : hintText(this.rises ? riseHint(this.hint) : this.hint);   // WILD1: no Enter in the zone   // AUDIT CONTRIB A5: the hold said out loud, as the enhanced face's "Rising in"   // BAL4: a Legacy rise's Enter raises
+    const hint = this.online ? (this.held ? t('death.risingInWild', 'RISING IN {n}', { n: this.respawnIn }) : t('death.risingIn', 'RISING IN {n}   ENTER now', { n: this.respawnIn })) : hintText(this.rises ? riseHint(this.hint) : this.hint);   // WILD1: no Enter in the zone   // AUDIT CONTRIB A5: the hold said out loud, as the enhanced face's "Rising in"   // BAL4: a Legacy rise's Enter raises
     drawText(renderer, font, hint, (canvas.width - measureText(font.fnt, hint) * s) / 2, canvas.height / 2 + 6 * s, s, DIM);
     // WILD1: the zone's lines on the classic face, under the hold (the enhanced face draws its own)
     let wy = canvas.height / 2 + (this.goldLoss > 0 ? 38 : 22) * s;

@@ -21537,14 +21537,17 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           const madeUnstuck = madeRuleHere('unstuck');
           if (madeUnstuck === 'wayHome') { if (sdWayHome()) say('You find your way back outside.'); return true; }
           if (madeUnstuck === 'refused') { say(madeSaysHere('unstuck')); return true; }
+          // BUNNYFALL (Cromwark): a rock in the reach is no PvP trap - /unstuck works there outdoors too, after a short wait (the haze
+          // and the foes go on meanwhile), to the nearest town outside the reach, with a short cooldown
+          const reach = wildHere() && cromwarkPeace(wildZoneKind());
           const inZone = wildHere() && !(TEST_GODMODE && staffPowers().god);   // TESTBUILD: god mode - /unstuck at once, no cooldown
           const _godU = TEST_GODMODE && staffPowers().god;
-          if (inZone && (modes?.mode ?? 'exterior') === 'exterior') { say(zoneWord('unstuckOut')); return true; }   // PVPDUNGEONS - AUDIT SEA VENTURES C6: the ground's own words
-          const cool = inZone ? UNSTUCK_COOLDOWN_ZONE_MS : UNSTUCK_COOLDOWN_MS;
+          if (inZone && !reach && (modes?.mode ?? 'exterior') === 'exterior') { say(zoneWord('unstuckOut')); return true; }   // PVPDUNGEONS - AUDIT SEA VENTURES C6: the ground's own words
+          const cool = reach ? CROMWARK_UNSTUCK_COOLDOWN_MS : inZone ? UNSTUCK_COOLDOWN_ZONE_MS : UNSTUCK_COOLDOWN_MS;
           const wait = cool - (Date.now() - _unstuckAt);
           if (!_godU && _unstuckAt && wait > 0) { say(`/unstuck can be used again in ${Math.ceil(wait / 60000)} minute${Math.ceil(wait / 60000) === 1 ? '' : 's'}.`); return true; }
-          if (!_godU && wildStrangerWithin(UNSTUCK_ENEMY_M)) { say(`You cannot use /unstuck with another player within ${UNSTUCK_ENEMY_M} m in the open PvP zone.`); return true; }
-          if (inZone) { unstuckBegin(say); return true; }
+          if (!_godU && !reach && wildStrangerWithin(UNSTUCK_ENEMY_M)) { say(`You cannot use /unstuck with another player within ${UNSTUCK_ENEMY_M} m in the open PvP zone.`); return true; }
+          if (inZone) { unstuckBegin(say, reach ? CROMWARK_UNSTUCK_WAIT_MS : UNSTUCK_WAIT_MS); return true; }
           const moved = unstuckNow();
           if (moved) _unstuckAt = Date.now();
           say(moved ? 'You find your way free.' : 'There is nowhere to send you from out here.');
@@ -23438,8 +23441,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (why) townTalk.say(why);
   };
   /** The zone's wait: a bar with the minutes left and a Cancel; the deed at the end unless a stranger is within 600 m then. */
-  const unstuckBegin = (say) => {
-    const until = Date.now() + UNSTUCK_WAIT_MS;
+  const CROMWARK_UNSTUCK_WAIT_MS = 30_000, CROMWARK_UNSTUCK_COOLDOWN_MS = 5 * 60_000;   // BUNNYFALL (Cromwark): half a minute's wait, five minutes between
+  const unstuckBegin = (say, waitMs = UNSTUCK_WAIT_MS) => {
+    const until = Date.now() + waitMs;
     let el = null;
     if (typeof document !== 'undefined') {
       el = document.createElement('div');   // z 30: the HUD's own tier (the gate banner's, the pace box's) - under every window, and under the asset picker (test/scenes/mwattach.test.js), never 9999
@@ -23457,17 +23461,17 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (playerEntity.health <= 0) { unstuckCancel(null); return; }
       if (left <= 0) {
         unstuckCancel(null);
-        if (wildStrangerWithin(UNSTUCK_ENEMY_M)) { townTalk.say(`/unstuck failed: another player is within ${UNSTUCK_ENEMY_M} m.`); return; }
+        if (waitMs === UNSTUCK_WAIT_MS && wildStrangerWithin(UNSTUCK_ENEMY_M)) { townTalk.say(`/unstuck failed: another player is within ${UNSTUCK_ENEMY_M} m.`); return; }
         const moved = unstuckNow();
         if (moved) _unstuckAt = Date.now();
         townTalk.say(moved ? 'You find your way free.' : 'There is nowhere to send you from out here.');
         return;
       }
-      if (el) { const m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000); el._label.textContent = `Unsticking in ${m}:${String(sec).padStart(2, '0')}`; el._fill.style.width = `${Math.round(100 * (1 - left / UNSTUCK_WAIT_MS))}%`; }
+      if (el) { const m = Math.floor(left / 60000), sec = Math.floor((left % 60000) / 1000); el._label.textContent = `Unsticking in ${m}:${String(sec).padStart(2, '0')}`; el._fill.style.width = `${Math.round(100 * (1 - left / waitMs))}%`; }
     };
     _unstuckWait = { until, el, timer: setInterval(tickBar, 250) };
     tickBar();
-    say('You will be free in 5 minutes. Cancel with the bar or /unstuck cancel.');
+    say(`You will be free in ${waitMs >= 60_000 ? `${Math.round(waitMs / 60_000)} minutes` : `${Math.round(waitMs / 1000)} seconds`}. Cancel with the bar or /unstuck cancel.`);
   };
   /** PVPUNSTUCK (the owner: "3 m forward wont help, to the next town will"): outdoors, /unstuck is the walk to the nearest town -
    *  the zone's own towns too - arrived at like the guild's teleport but never asked of the zone's travel law. */
