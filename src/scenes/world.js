@@ -25652,7 +25652,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!place) return;
       _teleportToPixel(place.px, place.py, [place.x, player.pos[1] + 1, place.z], { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 25, player.pos[2] - 35]; cam.yaw = 0; cam.pitch = -0.6; }, (e2) => console.warn('[poi] going there', e2?.message ?? e2));
     }
-    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo });
+    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, dfModels: { getGpuMesh, cpuModels, getTexture, blocks }, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo });
     for (const ty of ['keydown', 'keyup']) panel.root.addEventListener(ty, route.onPanelKey);   // AUDIT POI E2: a key at the panel's controls
     editor.wantsOpen = (id) => { panel.open(id).catch((e2) => console.warn('[poi] opening it', e2?.message ?? e2)); };   // AUDIT POI E15: a live POI clicked in the world is opened for editing (its own open draft, else its live revision), as the outliner opens it
     document.body.append(panel.root);

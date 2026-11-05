@@ -51,6 +51,8 @@ import { readPackBytes } from '../../poi/poiPack.js';
 import { poiImageMetaOf } from '../../poi/poiImage.js';
 import { readGltf, bakeGltf } from '../../poi/gltfImport.js';
 import { prepareImport, uploadImport } from '../../poi/poiImport.js';
+import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   // BUNNYFALL: Daggerfall's own models
+import { renderThumb, encodePng } from '../../poi/poiThumb.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -172,7 +174,7 @@ export function createAssetFacts(fetchAsset, onLearned = () => {}) {
  *   (a library entry's id); `goTo` takes the eye to a document's place (the approver's look); `download` hands the
  *   builder a file
  */
-export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc) }) {
+export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, dfModels = null, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc) }) {
   injectPoiPanelStyle(doc);
   const el = (tag, cls = '', text = null) => { const n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   const btn = (text, onClick, cls = 'dfpoi-btn') => { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', (e) => { e.stopPropagation?.(); onClick(); }); return b; };
@@ -268,6 +270,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       el('span', 'dfpoi-sep'), undo, redo, el('span', 'dfpoi-sep'), speed, el('span', 'dfpoi-sep'),
       btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
+      ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -923,6 +926,67 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
         await library.keepNow({ name: r.asset.name, parts: r.asset.parts, lights: r.asset.lights ?? [], meshes });
       }
     }
+    dialog = box;
+    root.append(box);
+  }
+  // BUNNYFALL: A DAGGERFALL MODEL - the game's own buildings and pieces, by the kind of town block that stands them
+  // (poi/dfModelImport.js), or any model by its number; seen in a picture, then uploaded and placed as an import is
+  let dfCatalog = null;
+  function openDfModel() {
+    dialogsClosed();
+    const box = el('div', 'dfpoi-dialog');
+    for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) box.addEventListener(ty, swallow);
+    try { dfCatalog ??= dfModelCatalog(dfModels.blocks); } catch { dfCatalog = []; }
+    let kind = dfCatalog[0]?.kind ?? '', prep = null, chosen = 0, uploading = false;
+    const list = el('div', 'dfpoi-row'); list.style.cssText = 'flex-wrap:wrap;max-height:180px;overflow-y:auto;gap:4px';
+    const idIn = el('input'); idIn.type = 'number'; idIn.min = '1'; idIn.placeholder = t('poi.editor.dfModelId', 'Model number');
+    idIn.addEventListener('keydown', swallow);
+    const pic = el('img'); pic.style.cssText = 'width:192px;height:192px;image-rendering:pixelated;background:#0003;border-radius:4px';
+    const info = el('div', 'dfpoi-sub');
+    const place = btn(t('poi.editor.uploadPlace', 'Upload and place'), () => upload());
+    place.disabled = true;
+    const cancel = btn(t('poi.editor.cancel', 'Cancel'), () => closeDialog());
+    const acts = el('div', 'dfpoi-row'); acts.append(place, cancel);
+    const kindSel = select(kind, dfCatalog.map((c) => [c.kind, `${c.name} (${c.ids.length})`]), (v) => { kind = v; drawList(); });
+    function drawList() {
+      const c = dfCatalog.find((x) => x.kind === kind);
+      list.replaceChildren(...(c?.ids ?? []).map((id) => { const b = btn(String(id), () => choose(id), id === chosen ? 'dfpoi-btn dfpoi-on' : 'dfpoi-btn'); return b; }));
+    }
+    async function choose(id) {
+      if (uploading || !(id > 0)) return;
+      chosen = id; drawList(); prep = null; place.disabled = true;
+      info.textContent = t('poi.editor.dfModelReading', 'Reading model {id}...', { id });
+      const got = await dfModelAsImport(id, dfModels).catch(() => null);
+      if (chosen !== id || dialog !== box) return;
+      if (!got) { info.textContent = t('poi.editor.dfModelNone', 'The game has no model {id}.', { id }); pic.removeAttribute('src'); return; }
+      try { const img = renderThumb(got.thumb, { size: 192 }); pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); } catch { pic.removeAttribute('src'); }
+      prep = prepareImport(got.model, got.baked);
+      const p = prep.parts[0];
+      info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} pictures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })
+        : prep.refused.map((r) => `${r.name}: ${meshErrorText(r.code)}`).join(' ');
+      place.disabled = !prep.parts.length;
+    }
+    const go = btn(t('poi.editor.dfModelShow', 'Show'), () => choose(Math.trunc(Number(idIn.value))));
+    async function upload() {
+      const parts = prep;
+      if (!parts?.parts.length || uploading) return;
+      uploading = true; place.disabled = true;
+      const mine = () => dialog === box;
+      const r = await act((i) => uploadImport(parts, whileOpen(box, (bytes, k) => poiPutAsset(i, bytes, k)), (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); }));
+      uploading = false;
+      if (!mine()) return;
+      if (!r) { place.disabled = false; return; }
+      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return; }
+      for (const [sha, meta] of r.metas) facts.put(sha, meta);
+      closeDialog();
+      editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
+      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+    }
+    const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);
+    box.append(el('div', 'dfpoi-h', t('poi.editor.dfModelTitle', 'A Daggerfall model')),
+      el('div', '', t('poi.editor.dfModelHint', 'The buildings and pieces the game\'s towns are built from, by kind. Or type any model number.')),
+      field(t('poi.editor.dfModelKind', 'Kind'), kindSel), list, pick, pic, info, acts);
+    drawList();
     dialog = box;
     root.append(box);
   }
