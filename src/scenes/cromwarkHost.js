@@ -28,6 +28,7 @@ import { TITLE_TEXT, AURA_TEXT } from '../ui/playerBadge.js';
 import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
+import { createCannonHost } from './cannonHost.js';   // BUNNYFALL: the great cannon by Wayrest, the smaller event
 import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
 import { IDLE_ANIMS } from '../characters/mobile/mobileUnit.js';
 import { mobileBillboardSize } from '../world/rmbFlats.js';
@@ -67,6 +68,7 @@ export function createCromwarkHost(deps) {
   setCromwarkMaps(maps);
   setCourtMaps(maps);
   const clock = createHazeClock();
+  const cannon = createCannonHost(deps);   // the great cannon by Wayrest (scenes/cannonHost.js)
   let lastT = null, heartS = 0;
   let hud = null;
 
@@ -100,6 +102,7 @@ export function createCromwarkHost(deps) {
     if (ring === 4) { heartS = clock.seconds; if (heartS >= HEART_WARDEN_S && store.get(HEART_KEY) !== '1') { store.set(HEART_KEY, '1'); deps.say?.(t('cromwark.heartWarden', 'You have endured the Heart. Nyx will sell you the title Warden of the Heart.')); } }
     hudFrame();
     campFrame();
+    try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); }
     owedFrame(now);
   }
   /** The air in the deep rings: the fog pulled toward the haze's purple and drawn in. */
@@ -379,19 +382,20 @@ export function createCromwarkHost(deps) {
     /** Nyx's billboard, for the host's flats. */
     batches: () => (at ? [...(batch ? [batch] : []), ...guardBatches] : []),
     /** The Guild's tent, in the host's world pass. */
-    draw(r = renderer) { if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return 0; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return 1 + tentMats.length; },
+    draw(r = renderer) { const c = cannon.draw(r); if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return c; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return c + 1 + tentMats.length; },
     /** The eye's box on her. */
-    targets: () => (at && box ? box : []),
-    hoverName: (key) => (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),
+    targets: () => [...(at && box ? box : []), ...cannon.targets()],
+    hoverName: (key) => cannon.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),
     /** A press on her: Info names her, anything else opens her window. */
     activate(key, mode = 'grab') {
+      if (cannon.ours(key)) return cannon.activate(key, mode);
       if (key !== 'nyx:camp' || !at) return false;
       if (mode === 'info') deps.say?.(t('nyx.info', 'You see Nyx, the Adventurers\' Guild\'s quartermaster. She trades in Nyx coins.'));
       else if (mode === 'steal') deps.say?.(t('nyx.steal', 'Nyx keeps a hand on her purse.'));
       else open();
       return true;
     },
-    ours: (key) => key === 'nyx:camp',
+    ours: (key) => key === 'nyx:camp' || cannon.ours(key),
     /** For the probes. */
     state: () => ({ site, at, haze: { on: clock.on, s: clock.seconds, mult: clock.mult }, owed, heart: heartS }),
     /** Death resets the haze. */

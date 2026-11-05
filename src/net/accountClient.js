@@ -1305,6 +1305,10 @@ export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
 export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
 /** BUNNYFALL (Cromwark): /nyxcoin's count - every coin the realm gathered, and the account's own. */
 export const nyxTotal = (io) => call(io, '/v1/nyx/total', {});
+/** BUNNYFALL: the great cannon by Wayrest - the build as it stands (server-account/src/cannon.js). */
+export const cannonStatus = (io) => call(io, '/v1/cannon', {});
+/** BUNNYFALL: a gift to the cannon: `material` a net/cannonLaw.js key, `n` units - the build after it, `taken`, `coins`, `fired`. */
+export const cannonGive = (io, material, n) => call(io, '/v1/cannon/give', { material, n });
 export const buyInsignia = (io, item, rid = null) => call(io, '/v1/account/insignia', rid ? { item, rid } : { item });   // AUDIT FB1024 (BROKER-RID): the press's request id
 /** AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id (`{ rid, nonce }`) -
  *  server-account/src/brokerSales.js settleBrokerSale. Signed out, nothing is asked. */
