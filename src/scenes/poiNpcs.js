@@ -68,6 +68,7 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
     /** A standing POI's people this frame: `list` them (poi/poiRuntime.js npcsOf, in the pixel's frame), `t` the pixel's
      *  translation, `y` the place's height (the people's own heights ride on it). */
     sync(id, list, t) {
+      if (people.size) for (const [k, p] of people) if (p.id === id && !list.some((n) => `${id}|${n.key}` === k)) { if (p.batch) renderer.destroyBillboardBatch?.(p.batch); people.delete(k); }   // one taken out of the document
       for (const n of list) {
         const k = `${id}|${n.key}`;
         let p = people.get(k);

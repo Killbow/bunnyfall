@@ -54,6 +54,7 @@ import { prepareImport, uploadImport } from '../../poi/poiImport.js';
 import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   // BUNNYFALL: Daggerfall's own models
 import { renderThumb, encodePng } from '../../poi/poiThumb.js';
 import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
+import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
 import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
 import { SEASON } from '../../world/climateSwaps.js';
 
@@ -118,6 +119,9 @@ export function stepText(label) {
     case 'duplicate': return t('poi.editor.step.duplicate', 'duplicate');
     case 'revert': return t('poi.editor.step.revert', 'put back as saved');
     case 'light': return t('poi.editor.step.light', 'light');
+    case 'add person': return t('poi.npc.step.add', 'add person');
+    case 'person': return t('poi.npc.step.edit', 'person');
+    case 'remove person': return t('poi.npc.step.remove', 'remove person');
     case 'material': return t('poi.editor.step.material', 'material');
     case 'uv': return t('poi.editor.step.uv', 'UVs');
     default: return t('poi.editor.step.edit', 'edit');
@@ -274,7 +278,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
       ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
-      btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),   // BUNNYFALL: a PNG as a standing plane
+      btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),
+      ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
@@ -357,6 +362,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const check = (value, commit) => { const c = el('input'); c.type = 'checkbox'; c.checked = !!value; c.addEventListener('change', () => commit(!!c.checked)); return c; };
   const text = (value, commit, max) => { const i = el('input', 'dfpoi-grow'); i.type = 'text'; i.value = value ?? ''; i.maxLength = max; i.addEventListener('change', () => commit(i.value)); return i; };
 
+  // BUNNYFALL: the people (ui/poi/poiNpcUi.js), made when first asked for
+  let npcUi = null;
+  const people = () => (npcUi ??= createPoiNpcUi({
+    doc, el, btn, field, numberInput, text, select, swallow, root, say, refusal, act, poiPutAsset, facts, readFile, edit, editor,
+    getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b,
+  }));
+
   function renderRight() {
     const sel = edit.selection();
     if (!sel) { right.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.nothingSelected', 'Nothing selected')), el('div', '', t('poi.editor.selectHint', 'Click a POI in the world or the list. Click once to select the POI, and again to select a part.'))); return; }
@@ -398,6 +410,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // AUDIT POI U1: bound to the lights it was drawn with - pressed again before the inspector is, it adds no second one
     const lightsDrawn = d.lights?.length ?? 0;
     out.push(btn(t('poi.editor.addLight', 'Add a light'), () => { if ((edit.docOf(d.id)?.lights?.length ?? 0) === lightsDrawn) edit.edit(d.id, 'light', (x) => { x.lights = [...(x.lights ?? []), newLight()]; }, { id: d.id, part: null, light: lightsDrawn }); }));
+    out.push(...people().peopleRows(d, change));   // BUNNYFALL
     // POI-4b: its parts and lights kept in the library, from the POI's own origin
     if (d.parts.length) out.push(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), btn(t('poi.library.keepPoi', 'Keep it in the library...'), () => { closeDialog(); library.keep({ name: d.name, parts: structuredClone(d.parts), lights: structuredClone(d.lights ?? []) }); }));
     // POI-6: its revisions (once the store has it), and its model out as a .glb

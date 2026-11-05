@@ -35,7 +35,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import {
-  movePlace, rotatePlace, scalePlace, movePart, rotatePart, scalePart, partWorldQuat, worldToPlace, newPart, newLight,
+  movePlace, rotatePlace, scalePlace, movePart, rotatePart, scalePart, partWorldQuat, worldToPlace, newPart, newLight, newNpc,
 } from '../poi/poiEdit.js';
 import { gizmoSize, gizmoShape, pickHandle, beginGizmoDrag, dragResult, POI_SNAP_DEFAULT, POI_GIZMO_PX } from '../poi/poiGizmo.js';
 import { quatRotate } from '../world/quat.js';
@@ -222,6 +222,19 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     const lift = Number.isFinite(ground) ? Math.max(0, at[1] - ground) : 0;
     if (placing.kind === 'poi') {
       edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: placing.name });
+    } else if (placing.kind === 'npc') {
+      // BUNNYFALL: a person stands where the click landed, in the held POI (or in a new one round them)
+      const sel = edit.selection();
+      if (sel ? !originOfDoc(edit.docOf(sel.id)) : !Number.isFinite(ground)) return;
+      const who = placing.npc;
+      const fill = (doc) => {
+        const o = originOfDoc(doc);
+        if (!o) return;
+        (doc.npcs ??= []).push(newNpc(doc, { ...who, t: worldToPlace(doc.place, sub(at, o)) }));
+      };
+      const held = (id) => ({ id, part: null });
+      if (!sel) edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: who.name || placing.fallbackName || '' }, fill, held);
+      else edit.edit(sel.id, 'add person', fill);
     } else {
       const asset = placing.asset;
       const sel = edit.selection();
@@ -318,6 +331,8 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     placeNew(/** @type {string} */ name) { placing = { kind: 'poi', name }; told(); },
     /** Stand a library asset - a model's parts (`{ name, parts }`) or one part - in the selected POI where the next click
      *  is (none selected: a new POI round it, `fallbackName` its name when the model has none). */
+    /** BUNNYFALL: a person (name, look, height, lines) follows the cursor on the ground; a click stands them. */
+    placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
     cancelPlacing() { placing = null; placeAt = null; told(); },
 

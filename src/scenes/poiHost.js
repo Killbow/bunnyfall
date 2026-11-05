@@ -437,7 +437,8 @@ export function createPoiHost({
       }
     }
     s.visible = true;
-    if (s.doc.npcs?.length) npcs.sync(s.id, s.npcs ??= npcsOf(s.doc, s.place), t);   // BUNNYFALL: the people, with the pixel's live translation
+    if (s.doc.npcs?.length) { npcs.sync(s.id, s.npcs ??= npcsOf(s.doc, s.place), t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
+    else if (s.hadNpcs) { npcs.drop(s.id); s.hadNpcs = false; }
     const parts = s.parts;
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];

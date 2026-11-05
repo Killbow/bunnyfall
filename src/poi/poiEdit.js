@@ -165,6 +165,15 @@ export function uniqueKey(doc, wanted) {
   if (!taken.has(base) && POI_PART_KEY_RE.test(base)) return base;
   for (let n = 2; ; n++) { const k = `${base}-${n}`; if (!taken.has(k)) return k; }
 }
+/** BUNNYFALL: a person at a spot of the POI's own frame - a name, a look (`{ k: 'df', a, r }` a Daggerfall sprite,
+ *  `{ k: 'pic', tex }` an uploaded picture), a height in metres and the lines they say. Their key is unique among the
+ *  document's people. @param {any} doc @param {{ name?: string, t?: number[], h?: number, look: any, lines?: string[] }} o */
+export function newNpc(doc, { name = '', t = [0, 0, 0], h = 1.8, look, lines = [] }) {
+  const taken = new Set((doc.npcs ?? []).map((n) => n.key));
+  let n = 1;
+  while (taken.has(`npc-${n}`)) n++;
+  return { key: `npc-${n}`, name: lawName(name) || 'Stranger', t: t.map((c) => tidy(c)), yaw: 0, h, look: structuredClone(look), lines: lines.map((l) => String(l)) };
+}
 /** A name as the law takes it: printable, trimmed, bounded. */
 // AUDIT POI (the lead's; lane A's S13): every character the law now refuses in a name (poiLaw.js UNSAID_RE - controls, a
 // lone half of a pair, the line and paragraph separators, the bidirectional controls) made a space - a name pasted with
