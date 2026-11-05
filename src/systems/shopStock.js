@@ -247,6 +247,7 @@ export const MAGIC_ITEMS_ENUM_TEMPLATE = 0;
 import { BOOK_TEMPLATE, createRegularMagicItem, createRandomPotion, randomlyAddPotionRecipe, getMagicItemTemplates, createRandomWeapon, createRandomArmor, createRandomClothing } from './loot/loot.js';   // G4: the guild shelves' two minters (AUDIT 26 F129/F130: + the recipe arm and the registry)
 import { SPELLBOOK_TEMPLATE_INDEX } from './spell/spellMaker.js';   // G4: one home for MiscItems 132
 import { restItemsStock } from './rest/restItems.js';   // REST6: the Bedroll, the Ember Jar, Firewood and the draughts
+import { scrollShelfStock } from './scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls on the shelves
 import { isLockpick, ensureEndlessLockpicks, restockLockpicks } from './lockpick/lockpickItem.js';   // LOCKPICK: the counter's endless picks
 import { provisionsStock, campfireStock, createSurvivalItem, isSurvivalItem, isCampfireKit, TEMPLATE as SURVIVAL_TEMPLATE, ensureEndlessProvisions, ENDLESS_RATIONS_STACK } from './survival/items.js';   // SURV2: the general store's provisions shelf   // REST2: and online the Campfire alone, the arc Off
 import { sharedClockOn } from './worldTick.js';
@@ -547,6 +548,11 @@ export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { r
     for (const it of restItemsStock(buildingType === BUILDING_TYPES.GeneralStore ? 'GeneralStore' : 'Alchemist', quality, rolls)) addItem(items, it);
   }
   if (shelfIndex === 0 && buildingType === BUILDING_TYPES.PawnShop && sharedClockOn()) for (const it of campfireStock(rolls, 0, 2)) addItem(items, it);   // AUDIT REST: REST2's Pawn Shop, 0-2 online
+  // BUNNYFALL: SPELL SCROLLS (systems/scrolls/spellScrolls.js) on the first shelf of an Alchemist, a General Store and a Pawn Shop, the better the shop the dearer - after every other draw of the shelf
+  if (shelfIndex === 0 && (buildingType === BUILDING_TYPES.Alchemist || buildingType === BUILDING_TYPES.GeneralStore || buildingType === BUILDING_TYPES.PawnShop)) {
+    const kind = buildingType === BUILDING_TYPES.Alchemist ? 'Alchemist' : buildingType === BUILDING_TYPES.GeneralStore ? 'GeneralStore' : 'PawnShop';
+    for (const it of scrollShelfStock(kind, quality, rolls)) addItem(items, it);
+  }
   // ENDLESS PROVISIONS: a General Store's and a Pawn Shop's counter shelf has a Campfire Kit and a full stack of Rations in
   // every tier, Climates & Calories Off and offline too - after DFU's draws, from no roll. Online a purchase stands them
   // again (restockEndless); offline they sell out until the day's restock, as the rest of the shelf does (ENDLESS-STOCK F4)
@@ -1123,6 +1129,8 @@ export function stockGuildMagicItems({ quality = 0, gameMinutes = 0, sellsSoulGe
         : createRandomlyFilledSoulTrap(rolls, soulPointsOf));
     }
   }
+  // BUNNYFALL: the guild's spell scrolls, last of all so the draws above stay what they were (the soul gem shelf alone has none)
+  if (!onlySoulGems) for (const it of scrollShelfStock('Guild', quality, rolls)) out.push(it);
   return out;
 }
 

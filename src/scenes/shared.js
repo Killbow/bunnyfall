@@ -92,6 +92,7 @@ import { installRoleplayRealismItems } from '../systems/roleplayRealismItems/rri
 import { installDetailedShipsArt } from '../systems/detailedShips.js';   // DS1: Detailed Ships' pictures and xml scales
 import { installStudioArt } from '../systems/studioArt/studioArt.js';   // STUDIO1: the game's artists' own pictures
 import { installWarmAshesShips } from '../systems/warmAshesShips.js';   // WA1: Warm Ashes - Ships' quest list and save slot
+import { installScrollLoot } from '../systems/scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls
 import { installRestItemLoot, litCandle, meditate, snuffCandle, draughtTaken, spendDraught, DRAUGHT_SPENT_MINUTES } from '../systems/rest/restItems.js';   // REST6: the seven that fill the gaps
 import { installForaging } from '../systems/foraging/foragingInstall.js';   // FORAGE1: Foraging's quest list, tools, foods, pictures and console command
 import { installSmithing } from '../systems/smithItems.js';   // PROF3: the Repair Kit's use
@@ -1452,6 +1453,7 @@ export function ensureAudio(fetch = fetchBytes) {
   installSmithing();   // PROF3: the Repair Kit's use on the item-use door, in every host (a kit is the pack's, offline too)
   installHealingSupply();   // POTION-COMMON: Potions of Healing in the loot - after the smithing install, its field kit's roll first
   installRestItemLoot();   // REST6: the piles' and the foes' Ember Jars and Tonics - after Foraging's and the healing supply's hooks, the last draw
+  installScrollLoot();   // BUNNYFALL: spell scrolls in the piles and on the foes
   installCooking();   // PROF9: a dish eaten from the pack, in every host (a dish is the pack's, offline too)
   // MW-IMPORT: same seam, same never-traps rule - no data means the
   // opt-in layer stays inert, which is its resting state anyway.

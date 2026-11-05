@@ -47,6 +47,7 @@ import { foldStrayWeirKeys } from '../eliteGates/weirKey.js';   // KEY-FACE: a W
 import { foldStrayFaces } from '../festival/soulCake.js';   // WITCH1: and the Witches' Festival's, the same law
 import '../professions/profTemplates.js';   // PROF2: the ores, ingots and stone a pack may hold, known to every scene a save loads in
 import '../rest/restItems.js';   // REST6: the seven rest supplies (1700-1706), known to every scene a save loads in
+import '../scrolls/spellScrolls.js';   // BUNNYFALL: the spell scroll (1820), known to every scene a save loads in
 import { repairPartsWeights } from '../comeSailAway/comeSailAwayItems.js';   // PARTS-WEIGHT: a boat's parts weighed as her hull alone
 import { repairRarityNames, repairRarityBases, repairCraftedNames } from '../loot/lootRarity.js';   // DISC29-B: a Magic or Rare Roleplay & Realism: Items piece given back its make's word; RARITY-WEAR: a rolled wand worn as an Amulet
 import { SOCIAL_GROUPS } from '../../formats/factionFile.js';   // AUDIT 24

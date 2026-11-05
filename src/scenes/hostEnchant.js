@@ -28,6 +28,7 @@
 import { playerInSunlight, playerInDarkness, playerInHolyPlace } from '../systems/passiveSpecials.js';   // V2c: the E1 conditional flags (FB1024: + the dark)
 import { skyMinutes } from '../systems/worldTick.js';   // TIME1: a season's or a moon's enchantment reads the sky
 import { getBool } from '../systems/settings/settings.js';
+import { setScrollSpellSource } from '../systems/scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls
 import { seasonValue, SEASONS, dateFromClassicMinutes, lunarPhasesFromMinutes, LUNAR_PHASES } from '../systems/gameDate.js';
 import { placeFoeFreely } from '../systems/quest/sceneMount.js';   // B1: CreateFoe's raycast ring
 import { placeFoeEnv, entityOccupancy, heldSpots, holdSpotWhile } from './quest/questFoeHost.js';   // QUEST-WAVE: the held spots' one home
@@ -141,6 +142,7 @@ export function createEnchantCtx({
   bossSpell = null,
   spellToOwner = null,
 } = {}) {
+  setScrollSpellSource(spellsByIndex);   // BUNNYFALL: the classic spells the scrolls (systems/scrolls/spellScrolls.js) are made of
   // CAST-USE: an item's spell goes through the engine whose click FIRES it. A host whose modes run different
   // engines (world.js / exterior.js: their own above ground and indoors, dungeonContext's underground) hands a GETTER;
   // a fixed engine still works as before.
