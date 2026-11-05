@@ -29,10 +29,12 @@ Game data (ARENA2) is never committed. Point tests at it with `ARENA2_PATH`.
 
 ## Credits
 
+As of Thursday, November 5th 2026 Bunnyfall is licensed under the AGPL license (see [`LICENSE`](LICENSE)).
+
 Bunnyfall is a fork of [DFO Online](https://github.com/Lattymoy/daggerfall-js-source) by Lattymoy and contributors
 (MIT), which grew out of [Daggerfall Unity](https://github.com/Interkarma/daggerfall-unity) by Interkarma and
-contributors (MIT). Both notices are in [`LICENSE`](LICENSE). Mods and art bundled in `vendor/` keep their own
-authors and terms, listed in the game's credits.
+contributors (MIT). The original license along with vendors are viewable under [`LICENSE.VENDORS`](LICENSE.VENDORS).
+Mods and art bundled in `vendor/` keep their own authors and terms, listed in the game's credits.
 
 Bunnyfall is an unofficial fan project, not affiliated with or endorsed by Bethesda Softworks or ZeniMax Media.
 The Elder Scrolls and Daggerfall are trademarks of ZeniMax Media Inc.
