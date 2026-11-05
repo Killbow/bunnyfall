@@ -28,6 +28,8 @@
 // video/accessibility), with AUDIO and MODS doors of their own as before, and three new ones the port's rows earned:
 // COMBAT and WORLD (most of what the mods change), and GRAPHICS, which is DFU's Video page and every row that draws.
 
+import { EDITOR_MODS } from '../../systems/editorMods.js';   // BUNNYFALL: the Dungeon Editor's mods, each a Dungeons row
+
 export const CATEGORIES = Object.freeze([
   tab("graphics", "Graphics", [
     sec("quality", "Quality", [
@@ -75,7 +77,8 @@ export const CATEGORIES = Object.freeze([
       "GUI/QuestRumorWeight", "GUI/EnableQuestDebugger"]),
     sec("dungeons", "Dungeons", [
       "feat:smaller-dungeons", "Experimental/SmallerDungeons", "feat:medium-dungeons", "feat:world-dungeon-sizes", "feat:varied-dungeon-monsters",
-      "Enhancements/AlternateRandomEnemySelection", "feat:mod-aquatic-sprites"]),
+      "Enhancements/AlternateRandomEnemySelection", "feat:mod-aquatic-sprites", "feat:mod-bunnyfall-dungeons",
+      ...EDITOR_MODS.map((mod) => `feat:mod-${mod.vendor}`)]),   // BUNNYFALL: the Dungeon Editor's own mods (systems/editorMods.js)
     sec("loot", "Loot & items", [
       "feat:quick-loot", "feat:lockpick-minigame", "feat:loot-rarity", "feat:mod-unleveledloot", "feat:mod-roleplay-realism-items", "feat:mod-physical-items"]),
     sec("light", "Your light", [

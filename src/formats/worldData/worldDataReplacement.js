@@ -34,6 +34,8 @@ import { curateBlockPeople } from '../../world/curatedPeople.js';   // QUEST-AUD
 import { curateBlockPlacements } from '../../world/curatedPlacements.js';   // FIELD BUGS 2026-10-09e HILL-HOUSE: a house the pack's hills bury, at the same door
 
 export const AUTO_MAP_DATA_SIZE = 64 * 64;   // :45
+/** BUNNYFALL: the file-name start the Bunnyfall Dungeon Editor gives every place it exports. */
+export const EDITOR_LOCATION_PREFIX = 'locationnew-bunnyfall-';
 const NO_REPLACEMENT = Symbol('noReplacement');   // the C#'s noReplacementRegion/Location/Block/Building sentinels
 export { makeLocationKey };
 
@@ -281,6 +283,10 @@ export function getDFRegionAdditionalLocationData(regionIndex, dfRegion) {
     // skipped rather than the whole world host dying at boot - a departure, recorded
     try {
       const dfLocation = locationFromJson(json, regionIndex);
+      // BUNNYFALL: a place the Bunnyfall Dungeon Editor made (its files are `locationnew-bunnyfall-*`) is laid out as its
+      // designer built it - never re-laid smaller, never cloned as a spawned dungeon (world/smallerDungeons.js,
+      // world/spawnedDungeons.js)
+      if (name.startsWith(EDITOR_LOCATION_PREFIX)) dfLocation.editorDungeon = true;
       locationAssignmentSuccess = addLocationToRegion(regionIndex, dfRegion, dfLocation) && locationAssignmentSuccess;
     } catch (e) { console.error(`[worlddata] ${name}: ${e?.message ?? e}`); locationAssignmentSuccess = false; }
   }
