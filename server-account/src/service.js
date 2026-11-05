@@ -381,6 +381,11 @@ export const ROUTES = new Set([
   '/v1/account/title',
   // WB9g: the Broker's insignia - a title and an aura BOUGHT (a sale recorded, the account's closed gates paying),
   // and the one other thing about the wardrobe a player chooses: the aura worn.
+  // BUNNYFALL: routes the handlers serve that were never listed here, so this gate answered them `not-found` - the
+  // account vault (accountVault.js), the Nyx coins (nyx.js), the great cannon (cannon.js), player festivals and guestbooks
+  '/v1/account/vault', '/v1/account/vault/put', '/v1/account/vault/take', '/v1/account/vault/gold',
+  '/v1/nyx/found', '/v1/nyx/total', '/v1/cannon', '/v1/cannon/give',
+  '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id
   '/v1/account/icon',   // WITCH1: a profile icon worn, or none
