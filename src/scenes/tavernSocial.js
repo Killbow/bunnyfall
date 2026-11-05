@@ -25,6 +25,8 @@ export function createTavernSocial(deps) {
   /** @type {{ to: string, n: number, g: number } | null} */
   let tip = null;
   let tips = 0;
+  /** peer -> when its last round was heard (AUDIT L4-05) */
+  const heardRound = new Map();
   /** the bards heard playing while I play */
   const beside = new Set();
   /** peer -> what its pose last said (tq, tn) */
@@ -97,7 +99,10 @@ export function createTavernSocial(deps) {
         seen.set(p.id, now);
         if (pose.bp === 1 && playing() && close.has(p.id)) beside.add(p.id);
         if (!was) continue;   // first seen: what it says is from before me
-        if (now.tq && now.tq !== was.tq && close.has(p.id) && deps.indoors()) {
+        // BUNNYFALL AUDIT L4-05: a round is heard from one player once in twenty seconds - the count rides the pose, and a
+        // client could flip it every frame
+        if (now.tq && now.tq !== was.tq && close.has(p.id) && deps.indoors() && performance.now() - (heardRound.get(p.id) ?? -Infinity) > 20000) {
+          heardRound.set(p.id, performance.now());
           const had = drinkRound(deps.entity());
           deps.say(tavernWords.heard(deps.nameOf(p.id) ?? '?'));
           if (had?.quenched) deps.say(tavernWords.quenched());

@@ -20,6 +20,7 @@ export function createBardStage({ send = () => false, say = () => {} } = {}) {
     play(/** @type {any} */ tune) { if (synth.play(tune, BARD_HOUSE_VOLUME, 0.15, () => hush(false))) hush(true); return !!send(tune); },
     /** Another bard's tune, from the building I stand in. */
     heard(/** @type {{ id: string, name: string, tune: any }} */ m) {
+      if (synth.playing) return;   // BUNNYFALL AUDIT L4-06: a tune under way is not cut off by the next one - it is heard when this one ends
       if (synth.play(m.tune, BARD_HOUSE_VOLUME, 0.15, () => { hush(false); synth.applause(0.6); })) hush(true);   // BUNNYFALL: the room applauds at the end
       say(t('bguild.bards.hears', '{name} plays "{title}".', { name: m.name || '?', title: m.tune.title }));
     },
