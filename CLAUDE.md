@@ -27,5 +27,5 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   its authors to `src/ui/credits.js`.
 - **Names** (Phase 3): `src/systems/names.js`. Strangers say title + last name, NPCs who like you your first name;
   `src/ui/namePicker.js` asks a character without them once, in the world.
-- **Credits stay.** Keep `LICENSE` (MIT notices for DFO Online and Daggerfall Unity) and the authors in
-  `src/ui/credits.js` and `vendor/`.
+- **Credits stay.** Keep `LICENSE` (AGPLv3 license for Bunnyfall changes) and `LICENSE.VENDORS` (MIT notices for
+  original DFO Online repo and Daggerfall Unity) and the authors in `src/ui/credits.js` and `vendor/`.
