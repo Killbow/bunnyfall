@@ -74,7 +74,8 @@ let want = null;
 const PIXEL_M = 128 * 6.4;   // one map pixel's ground, metres
 
 const gw = () => frame.contentWindow;
-const ready = () => { try { return gw()?.__shotReady === true && typeof gw().__pose === 'function'; } catch { return false; } };
+// the pose hooks stand as soon as the world streams; the game's own ready flag waits on the opening boxes, which may never clear
+const ready = () => { try { return typeof gw()?.__pose === 'function' && typeof gw().__pixelT === 'function'; } catch { return false; } };
 const say = (t) => { $('status').textContent = t; };
 
 function boot() {
