@@ -619,7 +619,7 @@ export class TravelPopUpWindow {
       // begin button subscribes no keyboard handler at all, so B stays
       // Button.cs's "legacy support fallback" faked click on key-down.
       case 'TravelExit': this._click(); this.isCloseWindowDeferred = true; return;
-      case 'TravelSpeedToggle': this._click(); this.speedCautious = !this.speedCautious; this.refresh(); return;
+      case 'TravelSpeedToggle': this._click(); if (this.itKind === IT_POPUP.carriage) { this.speedCautious = true; this.top = 'itBox'; this._itText = IT_TEXT.carriageNoReckless; return; } this.speedCautious = !this.speedCautious; this.refresh(); return;
       // IT1: DFU routes T to the foot/horse button's ToggleTransportModeButtonOnScrollHandler and N to the inn
       // button's ToggleSleepModeButtonOnScrollHandler (DaggerfallTravelPopUp SetupButtons) - the handlers the mod
       // overrides
@@ -647,7 +647,10 @@ export class TravelPopUpWindow {
     // The click handlers ASSIGN (sender == button); only the hotkeys
     // toggle (:497-556).
     if (inRect(POPUP_RECTS.cautious, vx, vy)) { this._click(); this.speedCautious = true; this.refresh(); return true; }
-    if (inRect(POPUP_RECTS.reckless, vx, vy)) { this._click(); this.speedCautious = false; this.refresh(); return true; }
+    if (inRect(POPUP_RECTS.reckless, vx, vy)) {   // IT1: a carriage rides only cautiously - Reckless refuses with its own box
+      if (this.itKind === IT_POPUP.carriage) { this._click(); this.speedCautious = true; this.top = 'itBox'; this._itText = IT_TEXT.carriageNoReckless; return true; }
+      this._click(); this.speedCautious = false; this.refresh(); return true;
+    }
     // TO1 (:182-189, TransportModeButtonOnClickHandler): with the ports
     // restriction on, the SHIP button refuses with a message instead of
     // toggling - the mod checks before it lets the base handler run.
@@ -687,7 +690,9 @@ export class TravelPopUpWindow {
     if (!dir || this.top) return;
     const [vx, vy] = this.lastMousePos;
     if (inRect(POPUP_RECTS.cautious, vx, vy) || inRect(POPUP_RECTS.reckless, vx, vy)) {
-      this._click(); this.speedCautious = !this.speedCautious; this.refresh();
+      this._click();   // IT1: a carriage rides only cautiously - the wheel over Reckless refuses with its own box instead of flipping
+      if (this.itKind === IT_POPUP.carriage && inRect(POPUP_RECTS.reckless, vx, vy)) { this.speedCautious = true; this.top = 'itBox'; this._itText = IT_TEXT.carriageNoReckless; return; }
+      this.speedCautious = !this.speedCautious; this.refresh();
     } else if (this.itKind && (inRect(POPUP_RECTS.footHorse, vx, vy) || inRect(POPUP_RECTS.ship, vx, vy))) {
       this._itPress('transportToggle');   // IT1: ToggleTransportModeButtonOnScrollHandler, the mod's
     } else if (this.itKind && (inRect(POPUP_RECTS.inns, vx, vy) || inRect(POPUP_RECTS.campout, vx, vy))) {

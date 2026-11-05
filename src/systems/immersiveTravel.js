@@ -67,6 +67,12 @@ export const IT_TEXT = Object.freeze({
   cannotDisableShip: 'Cannot disable ship travel when travelling with a ship captain.',
   /** SeafarersPopUp.ForceCampOut, IL_1edb. */
   noInnsAtSea: 'There are no inns in the middle of the sea.',
+  // 2026-11-05 (outside a walled city): the carriage's own restriction carried here - it rides cautiously and rests only at
+  //  inns, so its map offers neither. The driver stands outside the gates; there is no reckless road or camp-out from it.
+  /** ImmersiveTravelPopUp: the speed pair refuses Reckless on a carriage trip (travelPopUp.js). */
+  carriageNoReckless: 'This carriage rides only cautiously - the driver takes no reckless road from outside the gates.',
+  /** ImmersiveTravelPopUp / CarriageMap: the sleep pair refuses Camp out on a carriage trip (itTogglePress). */
+  carriageNoCampOut: 'This carriage rests only at inns. It will not camp out beyond the city wall.'
 });
 
 // ── the settings ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -318,6 +324,12 @@ export function itTogglePress(kind, st, settings, press, { ship = false, inn = f
   if (kind === IT_POPUP.seafarer) {
     if (transport && st.travelShip) { st.travelShip = true; return 'cannotDisableShip'; }   // IL_1f33-1f41, IL_1f4c-1f5a
     if (sleep && !st.sleepModeInn) { st.sleepModeInn = false; return 'noInnsAtSea'; }       // IL_1f64-1f72, IL_1f7d-1f8b
+  } else if (kind === IT_POPUP.carriage && sleep) {
+    // 2026-11-05: a carriage rests only at inns - it offers no Camp out. Any press that would leave "At Inns" is refused and the
+    //  state forced back to At inns (carriageNoCampOut), mirroring ForceShipTravel over the ship toggle. The target of the press:
+    //  a click names it (`inn`); a scroll or hotkey toggles the current value, so its result is `!st.sleepModeInn`.
+    const wantsCampOut = press === 'sleepClick' ? !inn : st.sleepModeInn;
+    if (wantsCampOut) { st.sleepModeInn = true; return 'carriageNoCampOut'; }   // IL_1edb carried: no camp out from a carriage
   } else if (transport) {
     if (!st.travelShip && disableShip) { st.travelShip = false; return 'mustFindShip'; }   // IL_1b07-1b1c, IL_1b27-1b3c
   } else if ((press === 'sleepClick' ? !inn : campOutButton) && disableShip) {

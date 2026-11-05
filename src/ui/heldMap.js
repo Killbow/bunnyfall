@@ -3139,6 +3139,10 @@ export class HeldMapWindow {
     const st = this._panelState;
     if (!st?.opts) return;
     if (this._zoneMap) { this._forceZoneOpts(st.opts); return; }   // PVPJOURNEY: no chooseable options on the zone map
+    // 2026-11-05: a carriage rides only cautiously and rests only at inns - outside a walled city neither toggle leaves those.
+    //  The speed pair is not overridden by itTogglePress, so guard Reckless here; the sleep pair's Camp-out refusal comes back
+    //  through _itPress (its handler), which this path routes to anyway.
+    if (st.it === IT_POPUP.carriage && key === 'speedCautious') { st.notice = IT_TEXT.carriageNoReckless; this._renderCard(); return; }
     // IT1: the mod's popup - T and N are the foot/horse and inn buttons' toggles, which the mod overrides
     if (st.it && key !== 'speedCautious') {
       this._itPress(key === 'travelShip' ? 'transportToggle' : 'sleepToggle', { campOutButton: false });
@@ -3163,7 +3167,8 @@ export class HeldMapWindow {
 
   /** IT1: a press on the mod's popup (systems/immersiveTravel.js itTogglePress) - a refusal is the mod's box, on this
    *  sheet the panel's click-anywhere notice; the base arm re-bills the trip. A CLICK on either button of a pair goes
-   *  through every time, as DFU's handler runs on every click: the mod's refusal answers even the button already lit. */
+   *  through every time, as DFU's handler runs on every click: the mod's refusal answers even the button already lit. On a
+   *  carriage trip it also refuses Camp out (itTogglePress forces At inns), with its own box carried here as `carriageNoCampOut`. */
   _itPress(press, opts = {}) {
     const st = this._panelState;
     if (!st?.it) return;
