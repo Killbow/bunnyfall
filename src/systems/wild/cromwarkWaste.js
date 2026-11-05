@@ -7,7 +7,14 @@ import { cromwarkDesolateAt } from './cromwarkTowns.js';
 import { wildRingAt, wildMaskOf } from './wildZone.js';
 
 /** Share of the ground that is burnt, by ring. */
-export const BURNT_SHARE = Object.freeze([0.18, 0.34, 0.52, 0.72]);
+export const BURNT_SHARE = Object.freeze([0.3, 0.48, 0.64, 0.8]);
+/** The ground's scorch by ring (render/scorchGlsl.js): how far the burnt tiles go to char and the rest to dead straw. */
+export const SCORCH = Object.freeze([0.4, 0.6, 0.78, 0.92]);
+export const wasteScorch = (/** @type {number} */ ring) => (ring >= 1 ? SCORCH[Math.min(4, ring) - 1] : 0);
+/** The dead trees: the Haunted Woodlands' set (TEXTURE.508) and its tree records (world/terrain/terrainNature.js TREE_RECORDS). */
+export const DEAD_TREE_BASE = 508;
+export const DEAD_TREE_RECORDS = Object.freeze([13, 15, 16, 18, 24, 25, 30]);
+
 /** Share of the trees that stand dead, by ring. */
 export const DEAD_TREE_SHARE = Object.freeze([0.3, 0.62, 0.9, 1]);
 
@@ -63,4 +70,10 @@ export function burnTilemap(/** @type {Uint8Array} */ bytes, /** @type {number} 
 export function treeStandsDead(/** @type {number} */ ring, /** @type {number} */ x, /** @type {number} */ z) {
   if (ring < 1) return false;
   return hash(Math.round(x * 4), Math.round(z * 4)) < DEAD_TREE_SHARE[Math.min(4, ring) - 1];
+}
+
+/** The dead tree standing at (x, z): `{ base, record }` of the Haunted Woodlands' set, seeded by its place. */
+export function deadTreeOf(/** @type {number} */ x, /** @type {number} */ z) {
+  const i = Math.floor(hash(Math.round(z * 4) + 17, Math.round(x * 4) - 5) * DEAD_TREE_RECORDS.length);
+  return { base: DEAD_TREE_BASE, record: DEAD_TREE_RECORDS[Math.min(DEAD_TREE_RECORDS.length - 1, i)] };
 }

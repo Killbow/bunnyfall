@@ -102,7 +102,7 @@ import { wodRockUvs } from '../world/worldOfDaggerfall/wodRockUv.js';
 import { WodSpawner } from '../world/worldOfDaggerfall/wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';
-import { wasteRing, burnTilemap, treeStandsDead } from '../systems/wild/cromwarkWaste.js';   // BUNNYFALL (Cromwark): the reach's burnt ground and dead trees   // BUNNYFALL (Cromwark): the reach's desolate towns
+import { wasteRing, burnTilemap, treeStandsDead, deadTreeOf, wasteScorch } from '../systems/wild/cromwarkWaste.js';   // BUNNYFALL (Cromwark): the reach's burnt ground and dead trees   // BUNNYFALL (Cromwark): the reach's desolate towns
 import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 
 /** @param {any} host */
@@ -366,7 +366,7 @@ export function createPixelBuild(host) {
       stride === 1 ? TERRAIN_INDICES : TERRAIN_INDICES_LOD);
     // WATER1 / WATER-AUDIT (M4): the water's own quads - null for a pixel without water, which never enters the pass
     const wasteR = wasteRing(maps, px, py);   // BUNNYFALL (Cromwark): the reach's ring here, 0 outside
-    if (wasteR) burnTilemap(tilemapBytes, px, py, wasteR);
+    if (wasteR) { burnTilemap(tilemapBytes, px, py, wasteR); terrain.scorch = wasteScorch(wasteR); }   // the burnt tiles charred, the rest dried (render/scorchGlsl.js)
     const waterIndices = waterOn ? buildWaterIndices(tilemapBytes, stride) : null;
     const water = waterIndices ? renderer.createWaterSheet(waterIndices, waterSheetOf(bed, terrain)) : null;
     made.terrain = terrain; made.water = water;   // BUILD-FAIL1
@@ -1051,15 +1051,18 @@ export function createPixelBuild(host) {
       }
       // PRECIP4: on the snow lane each wears the snow at its own foot against its own draw (scenes/snowCoverHost.js flatSeason)
       // - AUDIT PRECIP HOST-6: and kept; HOST-7: once it is known to stand (a flat the verge refused turned no pixel)
-      let fSeason = snowRec ? snowRec.flat(f.x, f.z, f.y - SEA_LEVEL_M, pixelSeason) : pixelSeason;
-      if (wasteR && isTreeRecord(base, f.record) && treeStandsDead(wasteR, f.x, f.z)) fSeason = SEASON.Winter;   // BUNNYFALL (Cromwark): bare trees, more of them toward the heart
-      const archive = getNatureArchive(base, fSeason);   // worn in its season's set
-      if (archive !== natureArchive) borderNature.set(archive, base);
+      const fSeason = snowRec ? snowRec.flat(f.x, f.z, f.y - SEA_LEVEL_M, pixelSeason) : pixelSeason;
+      // BUNNYFALL (Cromwark, systems/wild/cromwarkWaste.js): a tree of the reach may stand DEAD - a Haunted Woodlands tree in its
+      // place, more of them toward the heart
+      const dead = wasteR && isTreeRecord(base, f.record) && treeStandsDead(wasteR, f.x, f.z) ? deadTreeOf(f.x, f.z) : null;
+      const wBase = dead ? dead.base : base, wRecord = dead ? dead.record : f.record;
+      const archive = getNatureArchive(wBase, fSeason);   // worn in its season's set
+      if (archive !== natureArchive) borderNature.set(archive, wBase);
       // FOREST1: how wooded its tile is - Logging's trees stand in the woods; ECOTONE1: and whose climate it is (its stump);
       // its group and place in it groupFlats' (placeTrees)
-      const tree = isTreeRecord(base, f.record) ? { id: pixelTrees.length, group: '', i: 0, x: f.x, y: f.y, z: f.z, wood: f.wood ?? 0, base, archive } : null;
+      const tree = isTreeRecord(wBase, wRecord) ? { id: pixelTrees.length, group: '', i: 0, x: f.x, y: f.y, z: f.z, wood: f.wood ?? 0, base: wBase, archive } : null;
       if (tree) pixelTrees.push(tree);
-      addFlat(archive, f.record, f.x, f.y, f.z, { wild: base, tree });   // LPT1: a wild flat - DFU's terrain variety is its, a location's flat takes none
+      addFlat(archive, wRecord, f.x, f.y, f.z, { wild: wBase, tree });   // LPT1: a wild flat - DFU's terrain variety is its, a location's flat takes none
     }
     // JUNGLE-ROADSIDE: THE ROADSIDE PAIRS (scenes/roadsidePairs.js) - whole, clear of the gate's clearing and the rocks
     // as every flat above, or not at all (their feet are off the roads by their law: no verge asks them); never in

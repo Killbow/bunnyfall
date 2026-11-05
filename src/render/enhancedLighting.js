@@ -60,6 +60,7 @@
 import { getPref } from '../systems/uiPrefs.js';
 import { BLOOD_ABSORB, BLOOD_F0, BLOOD_MENISCUS, WET_THICK_LO, WET_THICK_HI, INK_DEPTH, WET_DARKEN } from '../combat/blood/bloodArt.js';   // BLOOD3: the film's own law, beside the tints it already owns
 import { isEnhanced } from '../systems/uiSkin.js';
+import { SCORCH_GLSL } from './scorchGlsl.js';   // BUNNYFALL: the Cromwark reach's burnt ground
 import { SHADOW_GLSL, shadowCacheOn } from './shadowPass.js';   // EL2: the receiver block - the sun map on the sun term, the cube map on its lantern; SC1: the cache's door
 import { FOG_GLSL as EL_FOG_GLSL } from './fogGlsl.js';   // AUDIT 68 S17-fog-glsl-dup: the fog law's one home, the classic lane's too (the lane's five interpolate it by this name)
 import { COLUMN_GLSL } from './columnGlsl.js';   // DW-F: the water column's share, the lane's flats too
@@ -972,6 +973,7 @@ in vec3 vNormal;
 in vec3 vWorldPos;
 in vec2 vLocalXZ;
 uniform sampler2DArray uTileArr;
+${SCORCH_GLSL}
 uniform usampler2D uTilemap;
 uniform float uTileSize;
 uniform vec3 uLightDir;
@@ -1041,6 +1043,7 @@ void main() {
   tex = ecotone(tex, ew, vec3(tuv, float(layer)), gx, gy);   // ECOTONE1: a border's ground, its neighbours' share
   float snowC = snowCover(vLocalXZ, vWorldPos.y, gx, gy);   // PRECIP4: the snow the ground keeps (the bed below reads it too)
   tex = snowGround(tex, ew, snowC, vec3(tuv, float(layer)), gx, gy);
+  tex = scorched(tex, layer, vLocalXZ);   // BUNNYFALL: the reach's burnt ground (render/scorchGlsl.js)
   ${waterBedMix((t) => `elDecode(${t})`)}
   vec3 n = normalize(vNormal);
   // PERF-SUN2 (2026-09-19, Mac: "over 1000 calls and looking up in the sky

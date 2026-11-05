@@ -1018,6 +1018,7 @@ out vec4 outColor;
 ${FOG_GLSL}
 ${ecotoneGlsl()}
 ${snowCoverGlsl()}
+${SCORCH_GLSL}
 ${WATER_BED_GLSL}
 // DFU's HLSL float2x2 initializers are row-major; GLSL mat2 is
 // column-major, so these are the TRANSPOSES of the shader source
@@ -1062,6 +1063,7 @@ void main() {
   tex = ecotone(tex, ew, vec3(tuv, float(layer)), gx, gy);   // ECOTONE1: a border's ground, its neighbours' share
   float snowC = snowCover(vLocalXZ, vWorldPos.y, gx, gy);   // PRECIP4: the snow the ground keeps (the bed below reads it too)
   tex = snowGround(tex, ew, snowC, vec3(tuv, float(layer)), gx, gy);
+  tex = scorched(tex, layer, vLocalXZ);   // BUNNYFALL: the reach's burnt ground (render/scorchGlsl.js)
   ${waterBedMix()}
   vec3 n = normalize(vNormal);
   float diff = max(dot(n, uLightDir), 0.0);
@@ -1562,6 +1564,7 @@ import { pageParam } from '../systems/pageQuery.js';   // PERF-URL: the page's q
 import { SKIN_PAL_ROW, SKIN_PALETTE_UNIT } from './skinPalette.js';   // MWNPC1: the GPU skin's palette shape
 import { lightIdsOf, lightList, packLight } from './lightId.js';   // LIGHT-ID: each light's identity, lifted off its list for the shadow pass (and the flash packed through the seam)
 import { ecotoneGlsl, ECO_UNITS } from './ecotoneGlsl.js';   // ECOTONE1: the ground's share of its neighbours - the chunk, and the units their tile sets bind on
+import { SCORCH_GLSL } from './scorchGlsl.js';   // BUNNYFALL: the Cromwark reach's burnt ground
 import { snowCoverGlsl, TWIN_LAYERS, SNOW_LINES_UNIT } from './snowCoverGlsl.js';   // PRECIP4: the snow the ground keeps - the chunk, a twin set's summer half, the frame's lines' unit
 import { SNOW_VS, snowTerrainFs, SNOW_UNITS, SNOW_LAYER, snowSurfaceRise } from './snowfallGlsl.js';   // SNOWFALL1: the mod's snow surface, lit as the ground is
 import { GLOW_SPRITE_VS, GLOW_SPRITE_FS, GLOW_FIELD_VS, GLOW_FIELD_FS, GLOW_FIELDS_MAX, GLOW_REACH_MAX, glowFieldReach, GLOW_MESH_FS, GLOW_CLOCK_PERIOD, GLOW_CHARGE_PULL, GLOW_DRAWS_MAX, GLOW_DEPTH_FLOOR, glowUnit, glowMeshVs, glowRingDraws } from './weaponGlowGlsl.js';   // WEAPON-GLOW1: a weapon's element, drawn
@@ -2469,7 +2472,8 @@ export class Renderer {
     this.tUTileArr = gl.getUniformLocation(this.terrainProgram, 'uTileArr');
     this.tUTilemap = gl.getUniformLocation(this.terrainProgram, 'uTilemap');
     this.tUTileSize = gl.getUniformLocation(this.terrainProgram, 'uTileSize');
-    this.tUWaterBed = gl.getUniformLocation(this.terrainProgram, 'uWaterBed');   // WATER-NEXT 2: the bed under the water
+    this.tUWaterBed = gl.getUniformLocation(this.terrainProgram, 'uWaterBed');
+    this.tUScorch = gl.getUniformLocation(this.terrainProgram, 'uScorch'); this._tScorch = null;   // BUNNYFALL: the reach's burnt ground, a draw's   // WATER-NEXT 2: the bed under the water
     this.tUBedMask = gl.getUniformLocation(this.terrainProgram, 'uBedMask');
     // ECOTONE1 (render/ecotoneGlsl.js): the neighbours' tile sets' samplers, which set each neighbour wears, and the
     // pixel's first world tile - the installed terrain program's own, so what the last draw set them to is forgotten
@@ -7807,6 +7811,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
     this._use(this.terrainProgram);
     if (this._casting) this._shadows.recordTerrain(surface, modelMatrix, arrayTex, tilemapTex, tileSize);   // EL2
     gl.uniformMatrix4fv(this.tUModel, false, modelMatrix);
+    { const sc = surface?.scorch ?? 0; if (this._tScorch !== sc) { if (this.tUScorch) gl.uniform1f(this.tUScorch, sc); this._tScorch = sc; } }   // BUNNYFALL: the surface's scorch (render/scorchGlsl.js), shadowed
     // PERF-TEX2: the model matrix is a pixel's own; the TILE SIZE is the
     // world's, one number for all 121 of them at the default land view.
     // PERF3 left it out of the frame-constant block as "per-pixel", and
