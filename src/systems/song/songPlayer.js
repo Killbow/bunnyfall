@@ -57,11 +57,13 @@ export const MUSIC_GAIN = 0.22;
  *  two gain accessors covers all of them, including a song STARTED
  *  while the video runs. DFU's saved `oldGain` needs no port: the
  *  level is recomputed from the setting on unmute either way. */
-let musicMuted = false;
-export const isMusicMuted = () => musicMuted;
-export const setMusicMuted = (v) => { musicMuted = Boolean(v); };
+// BUNNYFALL: the mute has REASONS (the video player's, a bard's performance), so one ending never lifts the other's:
+// music is muted while any reason holds it.
+const muteReasons = new Set();
+export const isMusicMuted = () => muteReasons.size > 0;
+export const setMusicMuted = (v, reason = 'video') => { if (v) muteReasons.add(reason); else muteReasons.delete(reason); };
 
-export const musicGain = () => (musicMuted ? 0 : MUSIC_GAIN * getFloat('Controls', 'MusicVolume', 0, 1));
+export const musicGain = () => (isMusicMuted() ? 0 : MUSIC_GAIN * getFloat('Controls', 'MusicVolume', 0, 1));
 
 /** DISC20-B (2026-09-24, Mac: "Sometimes when music tracks switch, its very abrupt instead of seamlessly fading in
  *  between tracks"): THE FADER - a gain between a player's song and its master that only the transitions write. The
@@ -82,7 +84,7 @@ export function rampFader(ctx, fader, level, seconds) {
  *  the classic songs are mixed under it; a REPLACEMENT is a mastered
  *  file with its own headroom, and under the trim a user's music pack
  *  played at a fifth of itself (0.22 x the 0.5 default). */
-export const trackGain = () => (musicMuted ? 0 : getFloat('Controls', 'MusicVolume', 0, 1));
+export const trackGain = () => (isMusicMuted() ? 0 : getFloat('Controls', 'MusicVolume', 0, 1));
 
 /** WBX9 (2026-09-26, Mac: "The music needs to be louder and more intense"): A SONG'S OWN LEVEL - a song may carry
  *  `level`, how far over the player's own it is played (systems/gate/gateScore.js: the boss fight's score, over the dungeon

@@ -48,7 +48,6 @@ import { itemNameParts, itemStatRows } from './item/itemInfo.js';   // RF6: the 
 import { nextSelection, selectedRow, hoverItemAt } from './worldHover.js';   // the fold's LAW and the row -> item walk, both driven there
 import { planTake, applyTransfer, sendQuestItemClick, REFUSAL } from './item/itemTransfer.js';   // QL-WEIGHT1: the window's own plan and move - the carry gate, the summoned and quest guards, the split, the gold door
 import { isMap } from './useItem.js';   // the map the window USES rather than takes (F156) - left for the window here
-import { racialSuppressInventory } from './lycanthropy.js';   // DISC10-E L3: the beast takes nothing into a pack it cannot open
 import { audio } from './audio.js';   // SND1: the take's own sound
 import { SOUND } from './soundClips.js';
 import { lootRarityOn, rarityRank, RARITIES } from './loot/lootRarity.js';   // LOOT18: the take-all's tier
@@ -379,10 +378,8 @@ export function quickLootTake(key, hooks, playerEntity, say = () => {}, { getQue
   _pending = null;   // spent on the press it was armed for, whatever that press finds
   if (how === 'open') return null;   // J: the player asked for the window
   if (!quickLootOn() || !hooks || !playerEntity) return null;
-  // DISC10-E L3: a transformed lycanthrope's pack is refused
-  // (DaggerfallInventoryWindow.cs:583-587). Null is "open the window" -
-  // and the window's door says the line and opens nothing.
-  if (racialSuppressInventory(playerEntity)) return null;
+  // BUNNYFALL: a transformed lycanthrope takes loot like anyone (DFU refuses its pack, DaggerfallInventoryWindow.cs:583-587,
+  // and this door sent it to the window to be refused). The pack's window stays shut to it; the take does not.
   const items = hooks.items?.();
   if (!Array.isArray(items)) return null;
   if (how === 'all') {

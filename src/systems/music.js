@@ -108,8 +108,8 @@ export class MusicService {
    *  NOT `stop()`: that clears `_current`/`_pending`, so the song
    *  would restart from the top when the video ends. DFU restores the
    *  gain on a song that never stopped advancing. */
-  setMuted(v) {
-    setMusicMuted(v);
+  setMuted(v, reason = 'video') {
+    setMusicMuted(v, reason);   // BUNNYFALL: by reason - the video player's, a bard's performance
     this.resyncGain();
   }
 
