@@ -11,6 +11,7 @@
 //     it - her sprite (public/art/bunnyfall-npcs/nyx.png) - whose press opens her window (ui/nyxWindow.js).
 import { cromwarkPeace, createHazeClock, setHazeMult, hazeClockText, HAZE_CSS, nyxCoinChance, NYX_RING_LUCK, CROMWARK_CAMP_UV } from '../systems/wild/cromwark.js';
 import { setCromwarkMaps } from '../systems/wild/cromwarkTowns.js';
+import { setCourtMaps, courtPosts } from '../systems/wild/cromwarkCourts.js';   // the courts' sides of the reach
 import { NYX_GEAR, NYX_GARMENTS, HEART_WARDEN_S, nyxSale, nyxCoinsHeld, giveNyxCoins, nyxCoinsText, spendNyxCoins } from '../systems/wild/nyxShop.js';
 import { wildMaskOf, wildInside, wildNear } from '../systems/wild/wildZone.js';
 import { INSIGNIA } from '../net/insignia.js';
@@ -64,6 +65,7 @@ const store = {
 export function createCromwarkHost(deps) {
   const { renderer = null, meshes = null, maps = null } = deps;
   setCromwarkMaps(maps);
+  setCourtMaps(maps);
   const clock = createHazeClock();
   let lastT = null, heartS = 0;
   let hud = null;
@@ -174,6 +176,19 @@ export function createCromwarkHost(deps) {
       if (r?.waypoint) { setWaypointFollowed(r.waypoint.id, true); store.set(CAMP_MARK_KEY, '1'); }
     } catch (e) { console.warn('[nyx] the camp mark', e?.message ?? e); }
   }
+  /** The courts' posts, marked once a device on the Overworld map (a followed camp is the one kept in view; these are plain
+   *  marks, the owner's to remove). The same pixels the zone map's pennants stand on. */
+  const COURT_MARK_KEY = 'bunnyfall.courts.marks';
+  function markCourts() {
+    if (store.get(COURT_MARK_KEY) === '1') return;
+    const mask = wildMaskOf(maps);
+    const posts = courtPosts(mask);
+    if (!posts.length) return;
+    try {
+      for (const p of posts) addWaypoint({ kind: 'personal', mx: p.x, my: p.y, name: p.court.name, color: p.court.wp });
+      store.set(COURT_MARK_KEY, '1');
+    } catch (e) { console.warn('[courts] the posts\' marks', e?.message ?? e); }
+  }
   let at = null, batch = null, art = null, artLoading = false, tent = null, tentLoading = false, tentMat = null, box = null;
   function loadArt() {
     if (art || artLoading || !renderer?.createBillboardBatch || typeof fetch !== 'function') return;
@@ -234,7 +249,9 @@ export function createCromwarkHost(deps) {
     }
   }
   const tentMats = [];
+  let courtTried = 0;
   function campFrame() {
+    if (store.get(COURT_MARK_KEY) !== '1' && performance.now() > courtTried) { courtTried = performance.now() + 15000; markCourts(); }
     if (!site && performance.now() > siteTried) { site = findSite(); siteTried = performance.now() + 10000; if (site) markCamp(site); }
     at = null;
     if (!site || deps.mode?.() !== 'exterior') return;

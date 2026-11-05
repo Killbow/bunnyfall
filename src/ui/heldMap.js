@@ -188,7 +188,8 @@ import {
   WAYPOINT_KINDS, WAYPOINT_TEXT, shownWaypoints, onWaypoints, isWaypointFollowed, waypointKindsShown, toggleWaypointKind, listWaypoints,
 } from '../systems/map/mapWaypoints.js';   // WAYPOINTS: the flags on the sheet, and their key row
 import { openWaypointMenu, closeWaypointMenu } from './waypointMenu.js';   // WAYPOINTS: the right-click menu
-import { wildInk, paintWildZone, paintWildRemains, paintWildKeyChip, paintWildCrows, paintWildFlames, paintWildLocks, paintWildGiants } from './wild/wildMapInk.js';   // WILD1: the open zone's fog, red line and my remains
+import { courtPosts } from '../systems/wild/cromwarkCourts.js';   // BUNNYFALL: the courts' posts at the reach's border
+import { wildInk, paintWildZone, paintWildRemains, paintWildKeyChip, paintWildCrows, paintWildFlames, paintWildLocks, paintWildGiants, paintCourtPosts } from './wild/wildMapInk.js';   // WILD1: the open zone's fog, red line and my remains
 import { WILD_TEXT, wildInside, wildRingAt } from '../systems/wild/wildZone.js';   // WILD1: the zone's words on the map
 import { zoneMapInk, paintWildRings, paintZoneMapStatic, zoneMapView, zoneMapLimits, buildZoneLegend } from './wild/wildZoneMap.js';   // WILD2: the rings, and the zone's own map
 import { paintWaypointFlag, flagBox } from './waypointFlags.js';   // WAYPOINTS: the small flags
@@ -1381,6 +1382,7 @@ export class HeldMapWindow {
         // WILD1: my remains in the open zone, where they lie and for how long (net/wild/wildRemains.js, the host's word)
         const remains = this.deps.wildRemains?.() ?? [];
         if (remains.length) paintWildRemains(ctx, env.view, remains, { pulse: env.pulse, label: WILD_TEXT.mine });
+        { const cm = this.deps.wildMask?.(); const posts = cm ? courtPosts(cm) : []; if (posts.length) paintCourtPosts(ctx, env.view, posts, { paperW: env.paperW, paperH: env.paperH }); }   // BUNNYFALL: the courts' posts
         // PVPDUNGEONS: crows circling every hall a body lies in (the hub's word - everyone's deaths), over the hall's own mark;
         // and the zone's border alight while the pointer is on it - on the world map alone, never the zone's own
         const crows = this.deps.wildCrows?.();

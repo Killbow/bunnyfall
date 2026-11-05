@@ -18,7 +18,8 @@
 //
 // Pure canvas 2D over the view's own transform (ui/ink/inkMap.js toPaper); no game import beyond the zone's leaf.
 // ═══════════════════════════════════════════════════════════════════
-import { CROMWARK_ON, CROMWARK_BORDER_CSS } from '../../systems/wild/cromwark.js';   // BUNNYFALL: the purple border
+import { CROMWARK_ON, CROMWARK_BORDER_CSS } from '../../systems/wild/cromwark.js';
+import { courtRuns, courtPosts } from '../../systems/wild/cromwarkCourts.js';   // BUNNYFALL (the courts' sides of the reach)   // BUNNYFALL: the purple border
 import { wildEdgeChains } from '../../systems/wild/wildZone.js';
 import { smoothContour } from './wildZoneMap.js';   // SMOOTHZONE: the red line is a contour, not a pixel's staircase
 
@@ -172,10 +173,43 @@ export function paintWildZone(ctx, view, ink, { paperW, paperH, far = false, fog
   ctx.strokeStyle = 'rgba(28,6,4,0.22)'; ctx.lineWidth = Math.max(7, Math.min(13, view.scale * 1.7)); ctx.stroke();   // SMOOTHZONE: a wide soft shadow under the line
   ctx.strokeStyle = WILD_LINE.halo; ctx.lineWidth = Math.max(3.5, Math.min(7, view.scale * 0.9)); ctx.stroke();
   ctx.strokeStyle = WILD_LINE.red; ctx.lineWidth = Math.max(1.6, Math.min(3, view.scale * 0.38)); ctx.stroke();
+  // BUNNYFALL (the courts): the stretch of the border each court holds, tinted over the purple line (Daggerfall blue, Sentinel red, Orsinium green)
+  if (CROMWARK_ON) {
+    ink.courtRuns ??= courtRuns(ink.chains);
+    ctx.lineWidth = Math.max(1.6, Math.min(3, view.scale * 0.38));
+    for (const run of ink.courtRuns) {
+      ctx.beginPath();
+      for (let i = 0; i < run.pts.length; i++) { const [x, y] = paper(view, run.pts[i].x, run.pts[i].y); if (i === 0 || (run.pts[i].y < topY && run.pts[i - 1].y < topY)) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+      ctx.strokeStyle = run.court.css; ctx.globalAlpha = 0.85; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+  }
   if (!far) {
     ctx.setLineDash([Math.max(4, view.scale * 0.9), Math.max(3, view.scale * 0.6)]);
     ctx.strokeStyle = WILD_LINE.bright; ctx.lineWidth = Math.max(0.8, Math.min(1.4, view.scale * 0.16)); ctx.stroke();
     ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+/** BUNNYFALL (the courts): each court's post on the border it holds - a small pennant in its tint and its words under it.
+ *  `posts` `[{ court, x, y }]` (cromwarkCourts.js courtPosts). */
+export function paintCourtPosts(ctx, view, posts, { paperW = Infinity, paperH = Infinity } = {}) {
+  if (!posts?.length || !view) return;
+  ctx.save();
+  ctx.font = "600 11px 'Cormorant', Georgia, serif";
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (const p of posts) {
+    const [x, y] = paper(view, p.x, p.y);
+    if (x < -30 || y < -30 || x > paperW + 30 || y > paperH + 30) continue;
+    // a pole and a swallow-tailed pennant, edged dark so it reads on the parchment
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(20,10,10,0.8)';
+    ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 13); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y - 13); ctx.lineTo(x + 11, y - 10); ctx.lineTo(x + 7, y - 7); ctx.lineTo(x + 11, y - 4); ctx.lineTo(x, y - 6); ctx.closePath(); ctx.stroke();
+    ctx.fillStyle = p.court.css;
+    ctx.fill();
+    ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(244,234,210,0.95)'; ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.lineTo(x, y - 13); ctx.stroke();
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(244,234,210,0.85)'; ctx.strokeText(p.court.name, x, y + 5);
+    ctx.fillStyle = '#2a1410'; ctx.fillText(p.court.name, x, y + 5);
   }
   ctx.restore();
 }

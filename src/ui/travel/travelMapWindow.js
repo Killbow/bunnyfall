@@ -110,7 +110,8 @@ import { DOT_SCALE } from './travelPathsOverlay.js';
 import { TRAVEL_OPTIONS_TEXT as TO_TEXT, format as toFormat } from '../../systems/travel/travelOptionsText.js';
 import { readPartyMarks, partyMarksKey, PARTY_DOT_RGB, PARTY_OFFLINE_DOT_RGB } from '../partyMapMarks.js';   // SOC6: the party's marks, the one reading both maps share
 import { WILD_REGION, WILD_RINGS, wildInside, wildRingAt, wildRingName, wildRingBonus, wildPictureZone } from '../../systems/wild/wildZone.js';   // WILD1: the open zone on the classic map too (WILD2: and its rings)
-import { CROMWARK_ON } from '../../systems/wild/cromwark.js';   // BUNNYFALL: the purple border
+import { CROMWARK_ON } from '../../systems/wild/cromwark.js';
+import { courtRimTexel } from '../../systems/wild/cromwarkCourts.js';   // BUNNYFALL: the rim tinted by the court that holds that side   // BUNNYFALL: the purple border
 import { RING_INK, RING_NUMERALS } from '../wild/wildZoneMap.js';   // WILD2: the rings' own tones, the zone map's
 import { readGateMark, gateRingKey, gateRingTexels, GATE_DOT_RGB } from '../gate/gateMapMark.js';   // WB1: the Oblivion Gate's ring, on the open province's page
 import { readBountyMarks, bountyMarksKey, bountyRingTexels, BOUNTY_DOT_RGB, REVENANT_DOT_RGB, REVENANT_LEGEND_TEXT } from '../bounty/bountyMapMark.js';   // BOUNTY1: held bounties' black circles on the region page
@@ -847,7 +848,7 @@ export class TravelMapWindow {
         // WILD2: its ring's tone in a checker with the ash, and a dark pixel where a deeper ring begins
         const ring = wildRingAt(px, py, mask) || WILD_RINGS;
         const line = wildRingAt(px - 1, py, mask) > ring || wildRingAt(px + 1, py, mask) > ring || wildRingAt(px, py - 1, mask) > ring || wildRingAt(px, py + 1, mask) > ring;
-        this._wildBuf[offset] = rim ? edge : line ? ringLine : ((x + y) & 1 ? rings[ring - 1] : fogB);
+        this._wildBuf[offset] = rim ? (CROMWARK_ON ? courtRimTexel(px, py) ?? edge : edge) : line ? ringLine : ((x + y) & 1 ? rings[ring - 1] : fogB);
         this._wildAny = true;
       }
     }

@@ -391,6 +391,7 @@ export const ZONE_RULES = CROMWARK_ON ? Object.freeze([   // BUNNYFALL (Cromwark
   'From the Passes inward the purple haze runs a counter: foes hit 25% harder for every minute you stay. Leave the deep rings to reset it.',
   'Kills may drop Nyx coins, more often toward the heart. Spend them with Nyx at the Adventurers\' Guild camp on the south-east road.',
   'The settlements are abandoned. No one lives, trades or keeps watch there.',
+  'The courts of the Bay hold the border. Blue: Daggerfall\'s roadblock. Red: Sentinel\'s warriors. Green: Orsinium\'s claim. None will enter.',
   'Two Greater Giants roam every reach, each shown on the map.',
   'Die here and you wake in the nearest town outside the zone.',
   'Carriages run inside the zone every 10 minutes, at higher prices.',
