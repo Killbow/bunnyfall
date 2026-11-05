@@ -91,11 +91,19 @@ export function createCannonHost(deps) {
       if (seen > 0 || Date.now() / 1000 - build.firedAt < NEWS_S) fire();
     }
   }
+  /** Why the build could not be read, in words (null while it can, or before the first ask). */
+  let why = null;
   async function ask() {
     const i = io();
-    if (!i || asking) return;
+    if (!i) { why = t('cannon.signInRead', 'Sign in and go online to see how the build stands.'); return; }
+    if (asking) return;
     asking = true;
-    try { heard(await cannonStatus(i)); } catch { /* asked again later */ } finally { asking = false; }
+    try {
+      const r = await cannonStatus(i);
+      if (r?.ok) { why = null; heard(r); }
+      else why = r?.error === 'offline' ? t('cannon.offline', 'The foreman cannot be reached (the account service is offline).')
+        : t('cannon.refused', 'The foreman cannot be reached ({error}{status}). The server may need its update.', { error: r?.error ?? 'no answer', status: r?.status ? `, ${r.status}` : '' });
+    } catch (e) { why = t('cannon.refused', 'The foreman cannot be reached ({error}{status}). The server may need its update.', { error: e?.message ?? 'no answer', status: '' }); } finally { asking = false; }
   }
   /** It fires: every game hears it, and one standing near sees the barrel kick. */
   function fire() {
@@ -173,7 +181,7 @@ export function createCannonHost(deps) {
     win = createCannonOverlay({
       build: () => (build ? { round: build.round, share: cannonShare(build.got), rows: rows() ?? [] } : null),
       purse: () => nyxCoinsHeld(deps.items?.() ?? []),
-      give, busy: () => busy, load: () => ask(),
+      give, busy: () => busy, load: () => ask(), why: () => why,
       onClose: () => { win = null; },
     });
     if (win) deps.show?.(win);

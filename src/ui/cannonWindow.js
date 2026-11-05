@@ -37,14 +37,14 @@ const CANNON_CSS = `
  *   build: () => { round: number, share: number, rows: Array<{ key: string, name: string, have: number, need: number, carried: number, worth: number }> } | null,
  *   purse: () => number,
  *   give: (key: string) => Promise<{ ok: boolean, text?: string | null }>,
- *   load?: (() => Promise<void>) | null, busy?: (() => boolean) | null, onClose?: (() => void) | null,
+ *   load?: (() => Promise<void>) | null, busy?: (() => boolean) | null, onClose?: (() => void) | null, why?: (() => string | null) | null,
  * }} deps
  */
 export function createCannonOverlay(deps) {
   if (typeof document === 'undefined') return null;
   injectEnhancedStyle(); injectEnhancedFonts(); injectBrokerSkinStyle();
   if (!document.getElementById('great-cannon-style')) { const st = document.createElement('style'); st.id = 'great-cannon-style'; st.textContent = CANNON_CSS; document.head.append(st); }
-  let fired = false, note = null, pending = null;
+  let fired = false, note = null, pending = null, lastAsk = Date.now();
   const host = el('div');
   host.style.cssText = 'position:fixed;inset:0;z-index:13;background:transparent;overflow:hidden';
   document.body.append(host);
@@ -78,7 +78,10 @@ export function createCannonOverlay(deps) {
     const b = deps.build();
     if (!b) {
       sub.textContent = t('cannon.sub', 'Built by the realm for the push on Cromwark');
-      body.append(el('p', 'broker-set', t('cannon.loading', 'Asking the foreman how the build stands...')));
+      const why = deps.why?.() ?? null;
+      body.append(el('p', 'broker-set', why ?? t('cannon.loading', 'Asking the foreman how the build stands...')));
+      // asked again every few seconds while the window stands open
+      if (Date.now() - lastAsk > 5000) { lastAsk = Date.now(); Promise.resolve().then(() => deps.load?.()).catch(() => null); }
       return;
     }
     sub.textContent = t('cannon.subRound', 'Cannon {round} for the push on Cromwark · {pct}% built', { round: b.round, pct: Math.floor(b.share * 100) });
