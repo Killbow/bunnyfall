@@ -126,7 +126,7 @@ export const TITLE_TEXT = Object.freeze({
   masterwellhead: 'Master of the Wellhead',
   spirechampion: 'Spire Champion',
   spirefirst: 'First of the Spire',
-  wikimaid: 'WikiMaid',           // WIKIMAID (2026-10-17, for SylviaBun: "the WikiMaid title"): SylviaBun's own, spelled as she spelled it
+  wikimaid: 'Maid',               // WIKIMAID (2026-10-17, for SylviaBun), BUNNYFALL (2026-11-05, the owner: a custom tag called "Maid", purple): SylviaBun's own
   // QL12 (2026-10-19, bible/06-Systems/Questlines-Arc.md section 5.3): THE QUESTLINES' FIVE, a title a line, in the lines'
   // order (net/questlineClaims.js QL_TITLES) - paid by the account service on the line's last witnessed step, held for good
   doorwarden: 'Doorwarden',                // the Burning Doors
@@ -457,7 +457,7 @@ export const TITLE_GRADIENT = Object.freeze({
   hoursfirst: Object.freeze([HOUR_DAWN, HOUR_PEARL, HOUR_SUN]),   // HOURS-FIRST: rose gold into pearl into the dawn's white
   aegis: Object.freeze([OBLIVION_VOID, OBLIVION_VIOLET, OBLIVION_LILAC]),   // AEGIS: out of the void into the ward's light
   coilbreaker: Object.freeze([COIL_SEA, COIL_TIDE, COIL_FOAM]),   // SERPENT5: the open sea into the tide into the foam
-  wikimaid: Object.freeze([WARREN_AMETHYST, WARREN_LILAC, WARREN_BLUSH]),   // WIKIMAID: "Wiki" in the warren's amethyst, "Maid" into a rabbit's blush
+  wikimaid: Object.freeze([WARREN_AMETHYST, WARREN_LILAC, WARREN_LILAC]),   // BUNNYFALL: all purple now - the amethyst into the lilac (it ended in the blush);   // WIKIMAID: "Wiki" in the warren's amethyst, "Maid" into a rabbit's blush
   witchwarden: Object.freeze([WITCH_MOSS, WITCH_FIRE, WITCH_GLOW]),   // WITCH1: the moor's moss into the coven's fire into its heart
   nirnrootsage: Object.freeze([NIRN_LEAF, NIRN_GLOW, NIRN_HAZE]),   // NIRNROOT-SAGE: "Nirnroot" out of the leaf into its glow, "Sage" into the smoke's haze
 });
