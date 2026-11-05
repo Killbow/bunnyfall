@@ -379,6 +379,8 @@ export function createCromwarkHost(deps) {
 
   return {
     frame, fog, command,
+    /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
+    cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
     /** Nyx's billboard, for the host's flats. */
     batches: () => (at ? [...(batch ? [batch] : []), ...guardBatches] : []),
     /** The Guild's tent, in the host's world pass. */
