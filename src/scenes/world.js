@@ -25474,6 +25474,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Nyx coins, the Guild camp and Nyx
   const cromwark = createCromwarkHost({
+    poiNpcs: () => poiHost?.npcs ?? null,   // BUNNYFALL: the people the POIs stand, read late (the POI host is made after)
     renderer, meshes: { getGpuMesh, cpuModels }, getTexture, uploadRecordFrame, maps, roads: () => terrainGen.roads(),
     pixelTranslation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => surfaceAt(x, z),
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null), cam: () => cam.pos,
@@ -25529,6 +25530,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     },
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
     auth: () => storedSession(appStorage())?.secret ?? null,   // POI-3: a builder's drafts' assets, asked with the builder's bearer
+    getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
     collideDrafts: () => poiEditor?.collideDrafts() ?? true,   // POI-3: a draft dragged files no collider until the drag ends
   });
   if (params.has('editor')) startPoiEditor();   // POI-3: `?editor` (refused online - systems/online/onlineLane.js): a builder's editor over this world

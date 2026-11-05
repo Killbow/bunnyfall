@@ -49,8 +49,9 @@
 import { decodePoiMeshSteps } from '../poi/poiMesh.js';
 import {
   POI_TEXTURE_ARCHIVE, materialLook, samplerOf, emits, createTextureBook, bakeAlbedoSteps, bakeEmissionSteps, poiPartModelSteps,
-  placeMatrix, partMatrix, boxThrough, lightsOf,
+  placeMatrix, partMatrix, boxThrough, lightsOf, npcsOf,
 } from '../poi/poiRuntime.js';
+import { createPoiNpcs } from './poiNpcs.js';   // BUNNYFALL
 import { samplerKey } from '../render/meshAlpha.js';
 import { drawSeen, DECOR_DRAW } from './decor/decorRoom.js';
 import { invert4 } from '../player/tapRay.js';
@@ -150,7 +151,10 @@ export function sameStand(a, b) {
 export function createPoiHost({
   renderer, feed, decodeImage, pixels, translation, groundAt, collider = () => null, riding = () => null, collideDrafts = () => true,
   feet = () => null, auth = () => null, now = () => Date.now(), clock = () => performance.now(), keepDecodedBytes = POI_DECODED_KEEP_BYTES, log = console,
+  getTexture = null, uploadRecordFrame = null, say = null,   // BUNNYFALL: the people's sprites and lines
 }) {
+  /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
+  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet });
   /** id -> the POI standing (or loading) */
   const standing = new Map();
   /** AUDIT POI R12: the same POIs in an array, walked by index - no iterator, no copy a frame */
@@ -368,6 +372,7 @@ export function createPoiHost({
     for (const p of s.parts) { cancel(p.remodel); if (p.stood) col?.removeBucket?.(p.bucket); freePart(p); }
     for (const l of s.held) dropLook(l);
     s.parts = []; s.held = [];
+    npcs.drop(s.id);   // BUNNYFALL: and its people
     standing.delete(s.id);
     const i = stood.indexOf(s);
     if (i >= 0) stood.splice(i, 1);
@@ -419,6 +424,7 @@ export function createPoiHost({
       s.y = y;
       s.place = placeMatrix(s.doc.place, y);
       s.lights = lightsOf(s.doc, s.place);
+      s.npcs = null;   // BUNNYFALL: their spots are read again off the new place
       s.rows = s.lights.map((l) => ({ x: 0, y: 0, z: 0, range: 0, color: new Float32Array(l.color) }));   // AUDIT POI R12: a light's row, refilled each frame
       for (const p of s.parts) {
         // the part moves: a collider standing round the body is carried (AUDIT POI R1 - filed again at once, below);
@@ -431,6 +437,7 @@ export function createPoiHost({
       }
     }
     s.visible = true;
+    if (s.doc.npcs?.length) npcs.sync(s.id, s.npcs ??= npcsOf(s.doc, s.place), t);   // BUNNYFALL: the people, with the pixel's live translation
     const parts = s.parts;
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
@@ -486,14 +493,17 @@ export function createPoiHost({
           // AUDIT POI R1: the same place too (any approval re-reads every document: a new object, the same POI) - the
           // document replaced and nothing else; the colliders where they stand
           if (!sameStand(s.doc, e.doc)) s.place = null;
-          s.doc = e.doc; s.rev = e.rev;
+          s.doc = e.doc; s.rev = e.rev; s.npcs = null;
           for (let i = 0; i < s.parts.length; i++) s.parts[i].part = e.doc.parts[i];
           if (e.doc.place.px !== s.px || e.doc.place.py !== s.py) { unstand(s); s.px = e.doc.place.px; s.py = e.doc.place.py; s.ground = NaN; s.place = null; }
         } else takeDown(s);
       }
       want.forEach(standWanted);
       stepWork();
+      npcs.frame();   // BUNNYFALL: the people near the player, for the world's flats and its Talk key
     },
+    /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
+    npcs,
     /** The opaque parts, with the world - each by the host's view test (drawn, cast into the shadow maps alone, or neither). */
     draw(r, cull = null) {
       for (let k = 0; k < stood.length; k++) {

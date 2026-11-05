@@ -322,3 +322,9 @@ export function boxThrough(m, min, max) {
 export const lightsOf = (doc, place) => (doc.lights ?? []).map((l) => ({
   at: xform(place, l.t), range: l.radius * doc.place.s, color: l.color.map((c) => c * l.intensity), intensity: l.intensity, flicker: l.flicker,
 }));
+
+/** BUNNYFALL: the document's people in the pixel's frame: `{ key, name, at, yaw, h, look, lines }` each - a person's spot
+ *  through the place's matrix, their height scaled with the place. @param {any} doc @param {Float32Array} place */
+export const npcsOf = (doc, place) => (doc.npcs ?? []).map((n) => ({
+  key: n.key, name: n.name, at: xform(place, n.t), yaw: n.yaw, h: n.h * doc.place.s, look: n.look, lines: n.lines,
+}));

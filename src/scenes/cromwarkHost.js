@@ -382,22 +382,23 @@ export function createCromwarkHost(deps) {
     /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
     cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
     /** Nyx's billboard, for the host's flats. */
-    batches: () => (at ? [...(batch ? [batch] : []), ...guardBatches] : []),
+    batches: () => [...(at ? [...(batch ? [batch] : []), ...guardBatches] : []), ...(deps.poiNpcs?.()?.batches() ?? [])],
     /** The Guild's tent, in the host's world pass. */
     draw(r = renderer) { const c = cannon.draw(r); if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return c; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return c + 1 + tentMats.length; },
     /** The eye's box on her. */
-    targets: () => [...(at && box ? box : []), ...cannon.targets()],
-    hoverName: (key) => cannon.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),
+    targets: () => [...(at && box ? box : []), ...cannon.targets(), ...(deps.poiNpcs?.()?.targets() ?? [])],
+    hoverName: (key) => cannon.hoverName(key) ?? deps.poiNpcs?.()?.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),
     /** A press on her: Info names her, anything else opens her window. */
     activate(key, mode = 'grab') {
       if (cannon.ours(key)) return cannon.activate(key, mode);
+      if (deps.poiNpcs?.()?.ours(key)) return deps.poiNpcs().activate(key, mode);   // BUNNYFALL
       if (key !== 'nyx:camp' || !at) return false;
       if (mode === 'info') deps.say?.(t('nyx.info', 'You see Nyx, the Adventurers\' Guild\'s quartermaster. She trades in Nyx coins.'));
       else if (mode === 'steal') deps.say?.(t('nyx.steal', 'Nyx keeps a hand on her purse.'));
       else open();
       return true;
     },
-    ours: (key) => key === 'nyx:camp' || cannon.ours(key),
+    ours: (key) => key === 'nyx:camp' || cannon.ours(key) || !!deps.poiNpcs?.()?.ours(key),
     /** For the probes. */
     state: () => ({ site, at, haze: { on: clock.on, s: clock.seconds, mult: clock.mult }, owed, heart: heartS }),
     /** Death resets the haze. */

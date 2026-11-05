@@ -43,6 +43,9 @@ export const POI_LIMITS = Object.freeze({
   lights: 32,
   materials: 64,          // a part's - its mesh's submeshes, poiMesh.js POI_MESH_LIMITS.submeshes
   label: 48,
+  npcs: 32,               // BUNNYFALL: the people a POI stands
+  npcLines: 8,            // the lines one says
+  npcLine: 240,           // a line's length
   docBytes: 96 * 1024,    // the document as JSON
   note: 500,              // a review's word
 });
@@ -138,7 +141,7 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     unknownProblems(p, PLACE_KEYS, 'place', say);
   }
 
-  if (!Array.isArray(raw.parts) || !raw.parts.length) say('parts', 'parts-none');
+  if (!Array.isArray(raw.parts) || (!raw.parts.length && !(Array.isArray(raw.npcs) && raw.npcs.length))) say('parts', 'parts-none');   // BUNNYFALL: a place of people alone has no parts
   else if (raw.parts.length > POI_LIMITS.parts) say('parts', 'parts-many', { max: POI_LIMITS.parts });
   else {
     const keys = new Set();
@@ -175,6 +178,39 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     });
   }
 
+  // BUNNYFALL: THE PEOPLE A POI STANDS - a name, a spot (from the place, as a light's), the way they face, how tall, a look (one
+  // of Daggerfall's own sprites, or a picture a builder uploaded) and what they say, a line a press of Talk
+  if (raw.npcs !== undefined && !shelf) {
+    if (!Array.isArray(raw.npcs) || raw.npcs.length > POI_LIMITS.npcs) say('npcs', 'npcs', { max: POI_LIMITS.npcs });
+    else {
+      const keys = new Set();
+      raw.npcs.forEach((n, i) => {
+        const at = `npcs[${i}]`;
+        if (!n || typeof n !== 'object') { say(at, 'not-object'); return; }
+        if (typeof n.key !== 'string' || !POI_PART_KEY_RE.test(n.key)) say(`${at}.key`, 'key');
+        else if (keys.has(n.key)) say(`${at}.key`, 'key-twice', { key: n.key });
+        else keys.add(n.key);
+        if (!textOk(n.name, POI_LIMITS.label, 1)) say(`${at}.name`, 'part-name', { max: POI_LIMITS.label });
+        if (!vec(n.t, 3) || n.t.some((c) => Math.abs(c) > 2000)) say(`${at}.t`, 'offset', { max: 2000 });
+        if (!finite(n.yaw) || Math.abs(n.yaw) > 720) say(`${at}.yaw`, 'size', { max: 720 });
+        if (!finite(n.h) || n.h < 0.3 || n.h > 20) say(`${at}.h`, 'size', { min: 0.3, max: 20 });
+        const lk = n.look;
+        if (!lk || typeof lk !== 'object') say(`${at}.look`, 'not-object');
+        else if (lk.k === 'df') {
+          if (!Number.isInteger(lk.a) || lk.a < 0 || lk.a > 999) say(`${at}.look.a`, 'size', { max: 999 });
+          if (!Number.isInteger(lk.r) || lk.r < 0 || lk.r > 255) say(`${at}.look.r`, 'size', { max: 255 });
+          unknownProblems(lk, NPC_LOOK_DF, `${at}.look`, say);
+        } else if (lk.k === 'pic') {
+          if (typeof lk.tex !== 'string' || !POI_SHA_RE.test(lk.tex)) say(`${at}.look.tex`, 'texture-ref');
+          unknownProblems(lk, NPC_LOOK_PIC, `${at}.look`, say);
+        } else say(`${at}.look.k`, 'unknown');
+        if (!Array.isArray(n.lines) || n.lines.length > POI_LIMITS.npcLines) say(`${at}.lines`, 'lines', { max: POI_LIMITS.npcLines });
+        else n.lines.forEach((l, k) => { if (!textOk(l, POI_LIMITS.npcLine, 1)) say(`${at}.lines[${k}]`, 'about', { max: POI_LIMITS.npcLine }); });
+        unknownProblems(n, NPC_KEYS, at, say);
+      });
+    }
+  }
+
   if (raw.marker !== undefined && !shelf) {
     const m = raw.marker;
     if (!m || typeof m !== 'object') say('marker', 'not-object');
@@ -189,13 +225,16 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
   for (const k of Object.keys(raw)) if (!known.has(k)) say(k, 'unknown');
   return out;
 }
-const DOC_KEYS = ['v', 'id', 'name', 'about', 'tags', 'place', 'parts', 'lights', 'marker'];
+const DOC_KEYS = ['v', 'id', 'name', 'about', 'tags', 'place', 'parts', 'lights', 'npcs', 'marker'];
 const SHELF_KEYS = ['v', 'id', 'name', 'about', 'tags', 'parts', 'lights', 'thumb'];
 // AUDIT POI S2: "A field the law does not know is a problem, not a passenger" - at EVERY level, not the top and a
 // material's alone. A place, a part, a light, the marker and a material's UVs carried anything past the law: stored,
 // approved and served to every player, unseen by the approver's diff (one 1,100-deep array in `place` broke every
 // builder's list, S3). Every value the law knows is now a checked shape, so the deepest document it takes is seven
 // levels (parts[i].materials[k].uv.offset[0]) - the nesting bounded by the shape itself.
+const NPC_KEYS = new Set(['key', 'name', 't', 'yaw', 'h', 'look', 'lines']);
+const NPC_LOOK_DF = new Set(['k', 'a', 'r']);
+const NPC_LOOK_PIC = new Set(['k', 'tex']);
 const PLACE_KEYS = new Set(['px', 'py', 'x', 'z', 'y', 'ground', 'r', 's']);
 const PART_KEYS = new Set(['key', 'name', 'mesh', 't', 'r', 's', 'collide', 'shadow', 'materials']);
 const LIGHT_KEYS = new Set(['t', 'color', 'radius', 'intensity', 'flicker']);
@@ -238,6 +277,7 @@ export function poiAssetsOf(doc) {
       if (typeof m?.emissive === 'string') textures.add(m.emissive);
     }
   }
+  for (const n of doc?.npcs ?? []) if (n?.look?.k === 'pic' && typeof n.look.tex === 'string') textures.add(n.look.tex);   // BUNNYFALL: a person's picture
   return { meshes, textures };
 }
 
