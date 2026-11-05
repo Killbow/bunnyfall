@@ -552,6 +552,7 @@ export function readFamily(rec) {
     p.wedAt = Number.isFinite(raw.wedAt) ? raw.wedAt : null;
     p.childDay = Number.isInteger(raw.childDay) ? raw.childDay : null;
     p.minor = !!raw.minor;
+    p.adopted = !!raw.adopted;   // BUNNYFALL (Phase 5, adoption.js): a child taken in, not born
     p.residentFace = Number.isInteger(raw.residentFace) ? raw.residentFace : null;
     // AUDIT LEGACY III P5: when the member's own save last wrote them (the wall clock - store.js mergeFacts keeps the
     // newer save's word on them), or 0 for never

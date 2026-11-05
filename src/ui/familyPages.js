@@ -18,6 +18,7 @@
 //
 // Dressed by the stone-and-brass kit's roles (ui/enhanced/enhancedFrame.js FRAME_ROLES): this sheet writes geometry and the
 // words' colours alone.
+import { drawAdoptSection, resetAdoptPage } from './adoptHeirPage.js';   // BUNNYFALL (Phase 5): adopting an heir
 import { layoutTree } from '../systems/legacy/tree.js';
 import { MODELS, NO_LINEAGE, personOf, currentOf, isAlive, parentsOf, childrenOf, siblingsOf, fullNameOf, BLOOD_MAX, HEARTH_MAX, ESTATE_SHARE, ESTATE_MAX } from '../systems/legacy/family.js';
 import { ageOf, spanOf, isElder, isSpent, ELDER_SHARE } from '../systems/legacy/age.js';
@@ -94,7 +95,7 @@ let _seatSaid = null; // FAMILY-SEAT: the House page's word on the seat (armed: 
  *  same (scenes/legacyHost.js LEGACY_TEXT.seatNowhere). FB1012d SEAT-HOME: a home of the house's own (a farm) as well. */
 export const SEAT_HINT = 'To move the family seat, stand anywhere in another town, or at a home your family owns.';
 /** A fresh visit: nothing pressed, the tree centred, no word left over. */
-export function resetFamilyPages() { _sel = null; _zoom = 1; _pan = null; _said = null; _armed = null; _homeSaid = null; _seatSaid = null; }
+export function resetFamilyPages() { resetAdoptPage(); _sel = null; _zoom = 1; _pan = null; _said = null; _armed = null; _homeSaid = null; _seatSaid = null; }
 /** AUDIT LEGACY U8: another page or tab pressed - an armed act and its word never wait for the way back. */
 export function disarmFamilyPages() { _said = null; _armed = null; _seatSaid = null; }
 
@@ -703,6 +704,7 @@ export function drawHousePage(detail, rerender, { el, divider } = /** @type {any
   if (prov.livingWorld && !prov.livingWorld()) detail.append(el('p', 'px-note', `Your family lives in the Living World\u2019s towns. Turn on Living world (${optionPath('feat:living-world')}) to meet them there.`));
   else if (prov.inWorld && !prov.inWorld()) detail.append(el('p', 'px-note', 'Your family is hidden because "Family In World" is off in Project Legacy\'s settings.'));
   else detail.append(el('p', 'px-note', 'Your family lives in the world while you play one of them. Talk to one to play as them.'));
+  drawAdoptSection(detail, rerender, { el, prov, raceWord });   // BUNNYFALL (Phase 5): adopt an heir - the selection, and a custom one
   // the house's dead - the blood's, and a spouse's beside them (wed in: said so); one gone from the realm is no death
   const fallen = family.people.filter((p) => p.died && p.died.cause !== 'gone').sort((a, b) => (b.died.at ?? 0) - (a.died.at ?? 0));
   if (fallen.length) {

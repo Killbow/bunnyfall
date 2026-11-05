@@ -27511,6 +27511,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     inWorld: () => legacySettings().familyInWorld && livingWorldOn(),   // LEGACY-HOME; AUDIT LEGACY II B5: in the Living World's towns alone
     livingWorld: () => livingWorldOn(),
     markHome: (h) => !!legacyHost?.markHome(h),
+    adoptionOffers: () => legacyHost?.adoptionOffers() ?? [],   // BUNNYFALL (Phase 5): the House page's adoption
+    adoptionRefusal: () => legacyHost?.adoptionRefusal() ?? 'Not here.',
+    adopt: (spec) => legacyHost?.adopt(spec) ?? { ok: false, why: 'Not here.' },
     familySeatHere: () => legacyHost?.familySeatHere() ?? null,   // FAMILY-SEAT (FIELD BUGS 2026-10-07b): the House page moves the seat
     moveFamilySeat: () => legacyHost?.moveFamilySeat() ?? { ok: false, why: 'Not here.' },
     choice: () => playerEntity.legacyChoice ?? null,   // LEGACY-CHOICE: why a character has no house

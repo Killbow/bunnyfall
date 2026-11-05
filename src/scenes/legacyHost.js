@@ -46,6 +46,7 @@ import { liveLycanthropy } from '../systems/lycanthropy.js';   // AGELESS-CURSE
 import { legacySettings } from '../systems/legacy/settings.js';
 import { registerModSaveData } from '../systems/modSaveData.js';
 import { REALM_ACT_TRANSIENT } from '../systems/realmSaves.js';   // REZ-BLOODLINE AUDIT R1: a Resurrect's ask the realm never heard
+import { adoptionOffers as adoptionOffersOf, adoptChild, adoptRefusal } from '../systems/legacy/adoption.js';   // BUNNYFALL (Phase 5): heirs taken in
 import { t } from '../systems/textManager.js';   // REZ-BLOODLINE AUDIT R1: the fallen told in their own language (L10N4)
 import { repairItemLists } from '../systems/save/save.js';   // ITEM-WALK B: the load's item repairs, on what leaves the line's record
 import { rollStats, rollSkills, spendPoolLowest, STAT_KEYS_ORDER } from '../systems/chargen.js';
@@ -1584,6 +1585,20 @@ export function createLegacyHost(deps) {
     if (nameTaken) deps.say(LEGACY_TEXT.named(family.surname));
     return { ok: true };
   }
+  /** BUNNYFALL (Phase 5): THE ADOPTION - the selection of ready-made heirs for the one played, and a child taken in to the
+   *  player's word (systems/legacy/adoption.js). A child of the house, a minor until the mantle passes to them. */
+  function adoptionOffers() { const p = current(); return family && p && !past ? adoptionOffersOf(family, p, rng) : []; }
+  function adoptionRefusal() { const p = current(); return past ? 'Not while the past is played back.' : adoptRefusal(family, p); }
+  function adopt(spec) {
+    const p = current();
+    const no = adoptionRefusal();
+    if (no || !p) return { ok: false, why: no ?? 'Nobody is here to adopt.' };
+    const r = adoptChild(family, p.id, spec, { rng, at: deps.now(), settings: legacySettings() });
+    if (!r.ok) return r;
+    store();
+    deps.say(`${r.name} is taken into the house. They come of age when the mantle passes to them.`);
+    return { ok: true, name: r.name };
+  }
   /** Mark a house of the family's as its home (the House page). */
   function markHome(house) {
     if (!family || !setFamilyHome(family, house)) return false;
@@ -1604,6 +1619,7 @@ export function createLegacyHost(deps) {
     kinKilled,
     isFamilyHouse,
     markHome,
+    adoptionOffers, adoptionRefusal, adopt,
     familySeatHere,
     moveFamilySeat,
     familyHome: () => familyHome(family),
