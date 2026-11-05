@@ -42,6 +42,7 @@
 // online page never carries one.
 
 import { pageHas } from '../pageQuery.js';   // PERF-URL: the page's query, parsed once a search
+import { EDITOR_MODS } from '../editorMods.js';   // BUNNYFALL: the Dungeon Editor's mods, the room's like bunnyfall-dungeons
 
 /** The page is online: `?online` is on the URL (main.js sets it for
  *  Play Online and deletes it on every other door - and WRITES IT TO
@@ -333,6 +334,11 @@ export const ONLINE_ROOM_MOD_KEYS = Object.freeze({
   // the room's. The homes bought before them keep the towns they were bought in, for everyone (net/homeLaw.js WD3).
   'beautiful-villages': Object.freeze({ Enabled: true }),
   'beautiful-cities': Object.freeze({ Enabled: true }),
+  // BUNNYFALL: the editor's dungeons change walls, floors, doors and foes every player in a dungeon walks and fights,
+  // so two players who disagreed would stand in two dungeons. The switch is the room's.
+  'bunnyfall-dungeons': Object.freeze({ Enabled: true }),
+  // BUNNYFALL: and every mod the Dungeon Editor made (systems/editorMods.js), for the same reason.
+  ...Object.fromEntries(EDITOR_MODS.map((mod) => [mod.vendor, Object.freeze({ Enabled: true })])),
   // RAID2 (2026-09-27, Mac on World Events - Raiding Parties online: "1. Server 2. Keep"): the towns' raids are the
   // WORLD's - the day's roll is the shared day's, one player runs each raid and every other stands its raiders as
   // puppets and fights them, and a raid's deaths are every owner's summed. A player with the switch off would walk a
