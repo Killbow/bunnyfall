@@ -297,7 +297,16 @@ export function createCromwarkHost(deps) {
     if (busy) return { ok: false, text: t('nyx.busy', 'Nyx is busy.') };
     busy = true;
     try {
-      const r = await buyInsignia(io, o.id);
+      let r = await buyInsignia(io, o.id);
+      // the account's count lags the pack (coins found before the service heard of them, or while it was away): the pack is
+      // the game's word, so the gap is reported and the sale asked again, once
+      if (!r?.ok && r?.error === 'short') {
+        const tot = await nyxTotal(io).catch(() => null);
+        const mine = tot?.ok ? tot.data?.mine : null;
+        let gap = mine ? o.price - Math.max(0, (Number(mine.found) || 0) - (Number(mine.spent) || 0)) : 0;
+        while (gap > 0) { const n = Math.min(5, gap); const f = await nyxFound(io, n).catch(() => null); if (!f?.ok) break; gap -= n; }
+        if (mine && gap <= 0) r = await buyInsignia(io, o.id);
+      }
       if (!r?.ok) return { ok: false, text: r?.error === 'owned' ? t('nyx.ownedAlready', 'Your account already owns that.') : r?.error === 'short' ? t('nyx.unheard', 'The Guild has not counted enough of your coins yet. Try again in a moment.') : t('nyx.failed', 'Nyx could not sell that right now.') };
       spendNyxCoins(items, o.price);
       deps.adopt?.(r.data);
