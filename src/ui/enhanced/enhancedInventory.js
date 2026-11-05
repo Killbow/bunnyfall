@@ -3814,12 +3814,14 @@ export const SALVAGE_FAILED = (name) => `${name} could not be salvaged right now
 /** AUDIT GEM: a piece holding a set gem is never salvaged with it (systems/reforge.js salvageRefusal 'gems'). */
 export const SALVAGE_GEMS = (name) => `${name} holds a gem. Extract it at the Reforge or unset it first.`;
 /** FB1012d SALVAGE-CLASSIC: a piece that wears Magic the ladder never graded (systems/reforge.js salvageRefusal 'classic'). */
+/** BUNNYFALL (PRICE-CATCH): the maker's own work, refused. */
+export const SALVAGE_SELF = (name) => `You made ${name} yourself. You may not salvage your own work.`;
 export const SALVAGE_CLASSIC = (name) => `${name} will not break: its magic is the classic kind the guilds sell and make. Welkynd Shards come only from loot with a rarity grade.`;
 function askSalvage(item) {
   { const no = chestActRefusal(deps); if (no) return refuse(no); }   // AUDIT RPT1026 B1: the piece left the chest's copy of the pack alone, its shards on the pack's own stack
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
   const name = itemLongName(item, { getQuest: deps.getQuest ?? null });
-  const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
+  const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : why === 'self' ? SALVAGE_SELF(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
   const why = anySalvageRefusal(item, deps.entity?.name);   // BUNNYFALL: materials first, then the shard law
   if (why) { refusedFor(why); return; }
   const n = salvageShards(item, deps.entity?.name);
@@ -3906,6 +3908,7 @@ export function batchRefusal(name, why) {
   if (why === 'locked') return lockedText(name);
   if (why === 'gems') return SALVAGE_GEMS(name);
   if (why === 'classic') return SALVAGE_CLASSIC(name);
+  if (why === 'self') return SALVAGE_SELF(name);
   if (why === 'worn') return t('inventory.batch.worn', '{name} is equipped. Take it off to salvage it.', { name });
   if (why === 'bound') return t('inventory.batch.bound', '{name} is bound to you and can’t be salvaged.', { name });
   if (why === 'quest') return t('inventory.batch.quest', '{name} belongs to a quest.', { name });

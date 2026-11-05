@@ -95,11 +95,11 @@ export function salvageRefusal(item, selfName = null) {
   if (item.questItem) return 'quest';
   if (socketGems(item).length) return 'gems';   // AUDIT GEM: a set gem is never broken with its piece - extracted or unset first (a Magic weapon holds one since GEM1, and the bulk salvage swept it)
   const made = typeof item.provenance === 'string';
-  if (!made && rarityOf(item) === 'magic') return 'classic';   // FB1012d SALVAGE-CLASSIC: it wears Magic, and is never graded
-  const shards = salvageShards(item, selfName);
-  if (shards <= 0) {   // a made piece no one may break for its tier's shards - the maker breaking their own
-    return !isSelfMade(item, selfName) ? 'not' : 'self';
-  }
+  if (made && isSelfMade(item, selfName)) return 'self';   // PRICE-CATCH: never the maker breaking their own work
+  // BUNNYFALL (2026-11-06, the owner: "salvage is broken"): the shards first, then the classic refusal - PRICE-CATCH asked
+  // the classic test of every piece before its shards, and a found Magic piece of the ladder (rarity 'magic', which
+  // rarityOf answers 'magic' as it does DFU's own) was refused as classic magic: no found Magic piece broke at all
+  if (salvageShards(item, selfName) <= 0) return !made && rarityOf(item) === 'magic' ? 'classic' : 'not';   // FB1012d SALVAGE-CLASSIC: it wears Magic, and is never graded
   if (isBound(item)) return 'bound';
   if (isEquipped(item)) return 'worn';
   if (isLocked(item)) return 'locked';
