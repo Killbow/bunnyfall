@@ -83,7 +83,8 @@ import { HEARTH_NEAR } from '../systems/survival/hearth.js';   // HEARTH1: which
 import { withPlayerLights } from './magicCandle.js';   // X11/T1: the lights the PLAYER carries
 import { playerTorchLight, waistLanternPoseBit, torchPoseByte, peerTorchLight } from '../systems/playerTorch.js';   // T1; HT-WAIST-NET: the pose's lantern at the waist
 import { thunderlockMuzzleLight } from '../systems/thunderlock.js';   // FIELD-GUN13: the muzzle flash is a light the player carries, the torch's own shape
-import { applyClimate, groundIsSnowy, SEASON, climateSeasonFromMinutes, INTERIOR_SEASON } from '../world/climateSwaps.js';   // A1: the season is the calendar's, and an interior's is Summer whatever the date
+import { applyClimate, groundIsSnowy, SEASON, climateSeasonFromMinutes, INTERIOR_SEASON } from '../world/climateSwaps.js';
+import { liveSeasonPin, takeSeasonViewDirty } from '../world/seasonView.js';   // BUNNYFALL: the POI editor's season pick   // A1: the season is the calendar's, and an interior's is Summer whatever the date
 import { RMB_SIDE, layoutLocation } from '../world/locationLayout.js';
 import { lookAt, multiply, perspective, mirrorProjectionX, identity, UP_Y, wrapAngle } from '../world/mat4.js';   // HANDEDNESS: the one mirror (mat4's law)
 import { aabbOutside, localAabb, transformedAabb, flatBatchAabb, cullDisabled } from '../render/frustum.js';   // GHOST1: the plane extraction comes through bounds.js's `spherePlanes` now - `_planes` serves the sphere test too
@@ -6231,11 +6232,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }
   function refreshSeason(atMinutes = skyMinutes()) {   // TIME1: the sky's season
     const day = Math.floor(atMinutes / MINUTES_PER_DAY);
-    if (day === _seasonDay) return false;
+    const picked = takeSeasonViewDirty();   // BUNNYFALL: the POI editor's season pick turns the world on the next frame
+    if (day === _seasonDay && !picked) return false;
     _seasonDay = day;
     seasonsMonthTurn(atMinutes);
-    if (seasonPin !== null) return false;   // ?season pins the world for a shot
-    const want = climateSeasonFromMinutes(atMinutes);
+    const want = liveSeasonPin() ?? seasonPin ?? climateSeasonFromMinutes(atMinutes);   // the editor's pick, then ?season= (pins the world for a shot), then the clock
     if (want === season) return false;
     season = want;
     // SetSunlightScale (WeatherManager.cs:309-319) reads the same

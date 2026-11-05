@@ -53,6 +53,9 @@ import { readGltf, bakeGltf } from '../../poi/gltfImport.js';
 import { prepareImport, uploadImport } from '../../poi/poiImport.js';
 import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   // BUNNYFALL: Daggerfall's own models
 import { renderThumb, encodePng } from '../../poi/poiThumb.js';
+import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
+import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
+import { SEASON } from '../../world/climateSwaps.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -271,6 +274,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
       ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
+      btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),   // BUNNYFALL: a PNG as a standing plane
+      seasonPicker(),   // BUNNYFALL: the world's season in this browser
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -987,6 +992,82 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       el('div', '', t('poi.editor.dfModelHint', 'The buildings and pieces the game\'s towns are built from, by kind. Or type any model number.')),
       field(t('poi.editor.dfModelKind', 'Kind'), kindSel), list, pick, pic, info, acts);
     drawList();
+    dialog = box;
+    root.append(box);
+  }
+  // BUNNYFALL: THE SEASON, for working on the ground without the winter's snow (world/seasonView.js - this browser's view only)
+  function seasonPicker() {
+    const names = [['clock', t('poi.editor.seasonClock', 'Season: by the clock')], ['summer', t('poi.editor.seasonSummer', 'Season: summer')],
+      ['winter', t('poi.editor.seasonWinter', 'Season: winter')], ['rain', t('poi.editor.seasonRain', 'Season: rain')]];
+    const now = liveSeasonPin();
+    const cur = now === SEASON.Summer ? 'summer' : now === SEASON.Winter ? 'winter' : now === SEASON.Rain ? 'rain' : 'clock';
+    const s = el('select');
+    for (const [v, text] of names) { const o = el('option', '', text); o.value = v; if (v === cur) o.selected = true; s.append(o); }
+    s.value = cur;
+    s.title = t('poi.editor.seasonHint', 'Show the world in this season while you work. Only your screen changes.');
+    s.addEventListener('change', () => setLiveSeasonPin(s.value === 'summer' ? SEASON.Summer : s.value === 'winter' ? SEASON.Winter : s.value === 'rain' ? SEASON.Rain : null));
+    for (const ty of ['keydown', 'keyup']) s.addEventListener(ty, swallow);
+    return s;
+  }
+  // BUNNYFALL: A PICTURE - a PNG, JPEG or WebP stood as one upright plane (poi/pictureImport.js), seen, then uploaded and
+  // placed as an import is
+  function openPicture() {
+    dialogsClosed();
+    const box = el('div', 'dfpoi-dialog');
+    for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) box.addEventListener(ty, swallow);
+    let file = null, bytes = null, img = null, uploading = false, heightM = PICTURE_HEIGHT_M, alpha = 'cutout', crisp = true;
+    const pic = el('img'); pic.style.cssText = 'max-width:192px;max-height:192px;image-rendering:pixelated;background:#0003;border-radius:4px';
+    const info = el('div', 'dfpoi-sub');
+    const place = btn(t('poi.editor.uploadPlace', 'Upload and place'), () => upload());
+    place.disabled = true;
+    const cancel = btn(t('poi.editor.cancel', 'Cancel'), () => closeDialog());
+    const acts = el('div', 'dfpoi-row'); acts.append(place, cancel);
+    const hIn = numberInput(heightM, (v) => { if (v > 0) heightM = v; }, { step: 0.5, min: 0.1 });
+    const alphaSel = select(alpha, [['cutout', t('poi.editor.picCutout', 'Hard edge (cutout)')], ['blend', t('poi.editor.picBlend', 'Soft edge (blend)')], ['opaque', t('poi.editor.picOpaque', 'Solid')]], (v) => { alpha = v; });
+    const crispChk = check(crisp, (v) => { crisp = v; });
+    const choose = btn(t('poi.editor.picChoose', 'Choose a picture...'), () => {
+      const input = el('input');
+      input.type = 'file'; input.accept = '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp';
+      input.addEventListener('change', async () => {
+        const f = input.files?.[0];
+        if (!f) return;
+        file = f; place.disabled = true; img = null;
+        info.textContent = t('poi.editor.picReading', 'Reading the picture...');
+        try {
+          bytes = await readFile(f);
+          const meta = poiImageMetaOf(bytes);
+          if (meta?.error) { info.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); return; }
+          img = decodeImage ? await decodeImage(bytes) : null;
+          if (!img) { info.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); return; }
+          if (dialog !== box) return;
+          pic.src = URL.createObjectURL(new Blob([bytes], { type: meta.type ?? 'image/png' }));
+          info.textContent = t('poi.editor.picInfo', '{w} x {h} pixels', { w: img.width, h: img.height });
+          place.disabled = false;
+        } catch { info.textContent = t('poi.editor.picBad', 'That picture cannot be used.'); }
+      });
+      input.click?.();
+    });
+    async function upload() {
+      if (!img || !bytes || uploading) return;
+      uploading = true; place.disabled = true;
+      const label = (file?.name ?? 'Picture').replace(/\.[^.]*$/, '').slice(0, 48) || 'Picture';
+      const made = pictureAsImport(img, bytes, { name: label, heightM, alpha, crisp });
+      const prep = prepareImport(made.model, made.baked);
+      const mine = () => dialog === box;
+      const r = await act((i) => uploadImport(prep, whileOpen(box, (b, k) => poiPutAsset(i, b, k)), (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); }));
+      uploading = false;
+      if (!mine()) return;
+      if (!r) { place.disabled = false; return; }
+      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return; }
+      for (const [sha, meta] of r.metas) facts.put(sha, meta);
+      closeDialog();
+      editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
+      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+    }
+    box.append(el('div', 'dfpoi-h', t('poi.editor.picTitle', 'A picture, standing')),
+      el('div', '', t('poi.editor.picHint', 'A PNG, JPEG or WebP made into one upright plane. It stands the way you place it and does not turn to face the player.')),
+      choose, pic, info,
+      field(t('poi.editor.picHeight', 'Height (m)'), hIn), field(t('poi.editor.picEdge', 'Edge'), alphaSel), field(t('poi.editor.picCrisp', 'Crisp pixels'), crispChk), acts);
     dialog = box;
     root.append(box);
   }
