@@ -16,7 +16,7 @@
 //   - PRICE: the item's value is the enchantment worth a magic item of that spell has (legacyEnchantmentValue).
 //   - Indices are held to 0..127: a Cast When Used row's param is a signed byte in the item law.
 
-import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition } from '../item/itemTemplates.js';
+import { ITEM_TEMPLATES, registerCustomTemplates, setItemFields, mintCondition, registerValueLaw } from '../item/itemTemplates.js';
 import { ENCHANTMENT_TYPES } from '../../formats/magicDef.js';
 import { legacyEnchantmentValue, DURABILITY_LOSS_ON_USE } from '../enchantments.js';
 import { registerTabledLootHandler, registerEnemyLootExtra } from '../loot/loot.js';
@@ -25,6 +25,17 @@ export const SCROLL_TEMPLATE = 1820;
 export const SCROLL_GROUP = 'UselessItems2';
 const PARCHMENT_TEMPLATE = 279;   // UselessItems2.Parchment - the scroll wears its picture
 const MAX_SPELL_INDEX = 127;
+
+/** A SCROLL'S WORTH (2026-11-05, a player: "I sold a Balyna's Balm for like 800gp in the first shop ... cheap starter
+ *  spells for like 10% of that"): the enchantment worth (10 x the spell's casting cost at skill 50) scaled by how dear
+ *  the spell is - a spell of casting cost FULL_WORTH_COST or more keeps the whole of it, a cheaper one the share its cost
+ *  is of that, never under a tenth: Balyna's Balm (cost 15) 15 gold, Light 42, Heal 86, Fireball 147, Lightning 385,
+ *  Shield 721, and Paralysis, Soul Trap or Sphere of Negation their whole worth. */
+export const FULL_WORTH_COST = 150;
+export function scrollValue(/** @type {number} */ worth) {
+  const cost = worth / 10;
+  return Math.max(10, Math.round(worth * Math.min(1, Math.max(0.1, cost / FULL_WORTH_COST))));
+}
 
 /** How dear a scroll may be on a shelf of a given quality: a scroll worth `value` needs a shop of quality `tier`
  *  (1 + value / TIER_STEP, to 20). The one number to turn if the shelves run too cheap or too dear. */
@@ -72,12 +83,22 @@ export function scrollPool() {
       const name = String(rec?.name ?? '').trim();
       if (!rec || !name || name.startsWith('!')) continue;
       const ench = [{ type: ENCHANTMENT_TYPES.CastWhenUsed, param: i }];
-      const value = Math.max(10, Math.round(legacyEnchantmentValue(ench, { spellOfIndex: (n) => map.get(n) ?? null })));
+      const value = scrollValue(legacyEnchantmentValue(ench, { spellOfIndex: (n) => map.get(n) ?? null }));
       _pool.push({ index: i, record: rec, name, value, tier: Math.min(20, 1 + Math.floor(value / TIER_STEP)) });
     }
   }
   return _pool;
 }
+
+/** A scroll's worth by today's law, whatever it was minted at (a scroll bought before 2026-11-05 carries the old price):
+ *  the item a spell scroll - this template, one Cast When Used row - and its spell in the pool, else null. */
+export function scrollWorthOf(/** @type {any} */ item) {
+  if (item?.templateIndex !== SCROLL_TEMPLATE || item.group !== SCROLL_GROUP) return null;
+  const e = item.enchantments?.[0];
+  if (!e || e.type !== ENCHANTMENT_TYPES.CastWhenUsed || item.enchantments.length !== 1) return null;
+  return scrollPool().find((x) => x.index === e.param)?.value ?? null;
+}
+registerValueLaw('spellScroll', scrollWorthOf);
 
 /** One scroll of the classic spell at `spellIndex`, or null when the source has no such spell. */
 export function createSpellScroll(spellIndex) {
