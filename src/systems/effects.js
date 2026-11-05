@@ -655,10 +655,18 @@ export const settingsKeyOf = (e) => [
  *  ModifyEffectAmount (the saving throw) ONLY when the parent bundle
  *  is not CasterOnly (rangeType 0). C# int division truncates. BAL9: a
  *  damage-health effect's throw takes its caster's pierce (systems/
- *  spellPower.js spellPierce - my spell alone, at no player; 0 else). */
-function effectMagnitude(e, casterLevel, saveScaled, element, flag, target, rolls, caster = null) {
+ *  spellPower.js spellPierce - my spell alone, at no player; 0 else).
+ *  SF1/B2: the `recordSave` arm surfaces that ONE saving-throw result to
+ *  a caller that can speak it - a save rolled to 0% is "Saved!", so a
+ *  straight-on hit does not land silent. It reads the throw's percent in
+ *  place (no second roll), so feedback rides the exact dice that set n. */
+function effectMagnitude(e, casterLevel, saveScaled, element, flag, target, rolls, caster = null, recordSave = null) {
   let n = rollMagnitude(e, casterLevel, rolls);
-  if (saveScaled) n = Math.trunc(n * savingThrow(element, flag, target, 0, rolls, isDamageHealthEffect(e) ? spellPierce(caster, target) : 0) / 100);
+  if (saveScaled) {
+    const percent = savingThrow(element, flag, target, 0, rolls, isDamageHealthEffect(e) ? spellPierce(caster, target) : 0);
+    if (recordSave && typeof recordSave === 'function') recordSave(percent);
+    n = Math.trunc(n * percent / 100);
+  }
   return n;
 }
 
@@ -897,7 +905,14 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
   // same predicate, folding in Career.Magic tolerance and
   // BiographyResistMagicMod where DFU folds in Career.Fire.
   const saveFlag = () => flag;
-  const magnitude = (e) => effectMagnitude(e, casterLevel, saveScaled, saveElement(e), saveFlag(e), target, rolls, caster?.entity ?? null);   // BAL9: the caster, for a damage spell's pierce
+  // SF1/B2: the saving-throw percent this cast lands with, so a direct-damage
+  // effect that a save rolled to 0% can say "Saved!" over the foe instead of
+  // landing silent. Only damage families count - heals and shields shrink under
+  // a save too but owe no verdict; continuous rounds already show their own
+  // per-round number via the hurt/drain sinks, so they are not recorded here.
+  const isDirectDamage = (e) => isDamageHealth(e) || isDamageFatigue(e) || isDamageSpellPoints(e);
+  const saveFeedback = { saved: 0 };
+  const magnitude = (e) => effectMagnitude(e, casterLevel, saveScaled, saveElement(e), saveFlag(e), target, rolls, caster?.entity ?? null, isDirectDamage(e) ? (p) => { if (p <= 0) saveFeedback.saved++; } : null);   // BAL9: the caster, for a damage spell's pierce; SF1/B2: its saving-throw percent, when it is a direct damage
   // SCHOOLS2 (bible/06-Systems/Arcane-Specialisations.md section 4): A SCHOOL PAST 100 PAYS IN ITS OWN DIMENSION - the
   // effect's school (the one it is cast in: spellcost.js castSchool, a signature spell's path's) multiplies where the
   // target is mine to strengthen (systems/spell/spellPower.js schoolMult): on MYSELF (`self`) a heal, a Shield, a concealment's
@@ -1937,6 +1952,11 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
     }
     sinks?.say?.(localizedText('spellAbsorbed', SPELL_ABSORBED_TEXT));
   }
+  // SF1/B2: hand the saving-throw verdict to the landing so it can say "Saved!"
+  // over the foe. A saved bundle (reflected/absorbed) never reaches here with a
+  // recorded damage save; and an explicit out.saved from paralyze, disintegrate
+  // or a cure is its own verdict - this does not disturb it.
+  if (saveFeedback.saved > 0) out.damageSaved = saveFeedback.saved;
   return out;
 }
 

@@ -61,6 +61,7 @@ import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { retroScreenRect } from '../../systems/retroMode.js';   // RETRO-UI: the pillarbox's rect, DFU's CustomScreenRect
 import { stepGhost, chunkFrame, GHOST_HOLD } from '../barLoss.js';   // VB2 / FRAME1: a bar's loss (AUDIT NAV1: shared with the sea fight's card)
 import { mountHitNumbers, healNumberFor, showNumber } from '../hitNumbers.js';   // HN1; PARTY-BUFFS: the heal a frame shows
+import { mountSpellFeedback } from '../spellFeedbackIndicators.js';   // SF1: foe verdicts + spell damage numbers on the same layer
 import { maxRoundsRemaining } from '../hud/hudActiveSpells.js';
 import { hudHealth } from '../hud/hudVitals.js';   // DUEL-BAR: the health the bar reads, drawHud's or the entity's own
 import { liveBundles, canEndBundle, endBundle, endedSpellText } from '../../systems/mysticism.js'; import { shownSpellName } from '../../systems/loot/loot.js';   // PX30: the ONE bundle walk the HUD already uses; BUFF-END: and which of them the player may end; L10N3e: a spell's name as the book shows it
@@ -639,7 +640,9 @@ function build(doc) {
   // HN1: the damage numbers register with the formula seam the moment
   // the enhanced HUD exists - and only then, so the classic skin never
   // has a hook installed.
-  mountHitNumbers();
+     mountHitNumbers();
+   // SF1: foe verdicts + spell damage numbers share the same layer, mounted now.
+   mountSpellFeedback();
   const root = doc.createElement('div');
   root.className = 'hud';
   root.setAttribute('aria-hidden', 'true');   // a HUD is not a reading order

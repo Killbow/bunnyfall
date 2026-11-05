@@ -4871,6 +4871,18 @@ ${paceControlsCss('tview')}
 .hitnum-word { font-size: calc(16px * var(--hud-scale, 1)); font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #f1c04f; }
 .hitnum-perfect { top: 50%; font-size: calc(24px * var(--hud-scale, 1)); font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
   color: #fff6d8; text-shadow: 2px 2px 0 rgba(60,40,0,0.95), 0 0 12px rgba(255,236,170,0.6); }
+/* SF1: A FOE'S VERDICT over its head - bright and shadowed so they read on a sprite. immune (resist/immunity) brass-red, saved
+   (spell save beat it) pale cyan, shielded (a melee blow a Shield absorbed) ward-gold, broken (that Shield busted under the blow)
+   a hot red burst. They rise from wherever placedAt set them - left/top on the layer, the shared animation lifts them up; no
+   position at all keeps the reticle-centered base above. */
+.hitnum-immune { font-size: calc(24px * var(--hud-scale, 1)); font-weight: 700; color: #ff7a5e; text-shadow: 2px 2px 0 rgba(90,0,0,0.95), 0 0 10px rgba(255,80,50,0.5); }
+.hitnum-saved { font-size: calc(24px * var(--hud-scale, 1)); font-weight: 700; color: #9cf0ff; text-shadow: 2px 2px 0 rgba(0,50,60,0.9), 0 0 10px rgba(80,220,255,0.45); }
+.hitnum-shielded { font-size: calc(22px * var(--hud-scale, 1)); font-weight: 700; color: #ffdf8e; text-shadow: 2px 2px 0 rgba(60,40,0,0.9), 0 0 8px rgba(255,210,120,0.4); }
+.hitnum-broken { font-size: calc(22px * var(--hud-scale, 1)); font-weight: 700; color: #ff6a4a; text-shadow: 2px 2px 0 rgba(90,0,0,0.95), 0 0 10px rgba(255,80,50,0.5); }
+/* SF1 (task 3): MY SPELL'S DAMAGE over the foe - caster-only. health red, fatigue green (the heal's tone), magicka blue. */
+.hitnum-health { font-size: calc(30px * var(--hud-scale, 1)); font-weight: 700; color: #e8544a; text-shadow: 2px 2px 0 rgba(90,0,0,0.95), 0 0 10px rgba(232,60,50,0.5); }
+.hitnum-fatigue { font-size: calc(24px * var(--hud-scale, 1)); font-weight: 600; color: #8fe27f; text-shadow: 2px 2px 0 rgba(0,40,0,0.9), 0 0 8px rgba(120,220,100,0.35); }
+.hitnum-magicka { font-size: calc(24px * var(--hud-scale, 1)); font-weight: 600; color: #7ab6ff; text-shadow: 2px 2px 0 rgba(0,20,80,0.9), 0 0 8px rgba(90,150,255,0.4); }
 @keyframes hitnum-rise {
   0%   { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), 10px) scale(0.9); }
   12%  { opacity: 1; transform: translate(calc(-50% + var(--dx, 0px)), 0) scale(1); }

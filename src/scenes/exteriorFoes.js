@@ -23,6 +23,7 @@ import { effectiveLevel } from '../systems/mentorMode.js';
 import { wildEncounterLevel, questFoeLevel } from '../systems/wildLevel.js';   // ENCOUNTER-LEVEL   // SOFTCAP2: mentor mode - the level the world is built around
 import { markFoeStruck } from '../ui/hud/hudFoeTarget.js';   // PX30
 import { damageShieldPool, playerBlowCameToNothing } from '../characters/playerEntity.js';   // AUDIT 58: DecreaseHealth's shield hook is the BASE class's (DaggerfallEntity.cs:313-328)
+import { showFoeWord } from '../ui/spellFeedbackIndicators.js';   // SF1: melee shield words over a foe, local only
 import { lycanthropeAttackVoice } from '../systems/lycanthropy.js';   // V4: the beast's attack voice
 import { copyEffectEntry } from '../systems/save/save.js';   // AUDIT 26 F216: the caster-stripping effect copy, one home
 import { EnemyAI, isBackFacing, withinYaw, MELEE_DISTANCE, foeFrameDt } from '../characters/enemy/enemyMotor.js';   // AUDIT WORLD6b-iii(a) B4: the puppet's cast is read against the owner's own bands
@@ -1022,6 +1023,16 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     damage = bossTakeAt(f.entity, damage, _whole || bypassShield, bossClockS(), say, () => foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? '', { blow: fromPlayer || striker != null || kind !== 'melee', mine: fromPlayer });   // AUDIT WORLD-EVENTS L2-5: a blow alone (a fall is none), on the traits' clock, a player's starting the wrath's; L2-10: a SetHealth(0) a kill
     const warded = !_whole && damage > 0 && f.circleWard?.() ? Math.max(1, Math.round(damage * STAR_CIRCLE_SHARE)) : damage;
     const healthDamage = bypassShield ? warded : damageShieldPool(f.entity, warded);
+    // SF1: MELEE SHIELD WORDS. A melee blow on a foe carrying a live Shield (systems/effects.js kind 'shield') is absorbed here; the pool's own return does not say which it was, so read the effect BEFORE and AFTER to decide - "Shielded!" while one still holds after absorbing it,
+    // "Shield broken!" when THIS blow busted it. Spell blows are not shield words (agent C handles spell damage); a SetHealth/kill is no word. Offline this shows locally; online hostMagic/exteriorFoes also broadcast via the seam.
+    if (kind === 'melee' && !_whole && !bypassShield && warded > 0) {
+      const _shield = f.entity?.activeEffects?.find((a) => a.kind === 'shield' && !a.ended);
+      if (_shield) {
+        const _pos = f.ai?.feet ? [f.ai.feet[0], f.ai.feet[1] + 0.9, f.ai.feet[2]] : null;
+        if (_shield.ended) showFoeWord('broken', 'Shield broken!', { position: _pos });   // this blow emptied it (damageShieldPool ended it above)
+        else if (healthDamage === 0) showFoeWord('shielded', 'Shielded!', { position: _pos });   // fully absorbed, still holds
+      }
+    }
     // AUDIT PSCALE1 (Mac: "Whoever fights it"): every player's blow names a fighter - mine, and a peer's through
     // applyHit - here where the owner hears them all
     if (fromPlayer) noteFighter(f, peer ? peerId : PARTY_ME, _now());

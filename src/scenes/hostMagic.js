@@ -80,6 +80,7 @@ import { createHitEffects } from './hitEffects.js';   // AUDIT 26 F033: Daggerfa
 import { duelSpellOf } from '../combat/duelCombat.js';   // DUEL1: the harmful half of a spell, which alone may reach a duel opponent
 import { markPlayerHarm } from '../systems/harmMark.js';   // REVENANT-HARM: a foe's spell on the player leaves its mark (a death no blow names is its)
 import { knockedDown } from '../systems/blowEffects.js';   // TELL6e: knocked down, no cast
+import { showFoeWord, broadcastFoeIndicator, STATUS_WORDS, showFoeDamage } from '../ui/spellFeedbackIndicators.js';   // SF1/B: floating status words + saves + spell-shield words over a foe (commit-1325102's say() → indicators); SF1/C: color-coded spell damage numbers
 import { sparedByPlayer, isShipmate, boutTeammates } from '../combat/friendlyFire.js';   // SHIPMATES: who the player's spells pass by, and whose blasts pass the player by
 import { coverDistance, coverStep } from '../ai/cover.js';   // TACT1: billboards are cover; AUDIT TACT B5: met by touch
 import { groundAt, groundHit, rayHit } from '../player/groundRay.js';   // GROUND-BOLT: the terrain along a ray, the one march (AUDIT TECH1's)
@@ -824,12 +825,22 @@ export function createPlayerMagic({
     // a school's next uses learn by that foe, as a weapon's do; only a blow ever said so, and a fireball at an Ancient
     // Lich counted as a light cast in an empty room (the quarter, UNCHALLENGED_MAGIC_WEIGHT)
     if (mine && foe?.entity && foe.entity.team !== 'PlayerAlly') noteSkillChallenge(playerEntity, foe.entity);
-    const landing = sinks?.hurt ? { ...sinks, hurt: (n, o) => {
-      const d = o?.whole || o?.round ? n : blowTaken(n, striker, foe.entity, null, { kind: 'spell', element: spell?.element ?? null });
-      if (mine && !o?.round) noteFeudHarm(foe.entity, elementFeudClass(spell?.element), d);
-      return sinks.hurt(d, { ...(o ?? {}), element: spell?.element ?? null });   // RVN3: the element rides to the door (its weakness's weight)
-    } } : sinks;
+    const landing = sinks?.hurt ? { ...sinks,
+      hurt: (n, o) => {
+        const d = o?.whole || o?.round ? n : blowTaken(n, striker, foe.entity, null, { kind: 'spell', element: spell?.element ?? null });
+        if (mine && !o?.round) noteFeudHarm(foe.entity, elementFeudClass(spell?.element), d);
+        if (mine) showFoeDamage(d, 'health');   // SF1/C: MY spell's health loss over the foe — instant Damage Health AND continuous rounds (o.round). caster-only.
+        return sinks.hurt(d, { ...(o ?? {}), element: spell?.element ?? null });   // RVN3: the element rides to the door (its weakness's weight)
+      },
+      drainMagicka: (n) => { if (mine && n > 0) showFoeDamage(n, 'magicka');   // SF1/C: Drain/Absorb Magicka — caster-only.
+        return sinks.drainMagicka ? sinks.drainMagicka(n) : undefined; },
+      drainFatigue: (n, a) => { if (mine && n > 0) showFoeDamage(n, 'fatigue'); // SF1/C: Drain/Absorb Fatigue — caster-only.
+        return sinks.drainFatigue ? sinks.drainFatigue(n, a) : undefined; },
+    } : sinks;
     const healthBefore = foe?.entity?.health;
+    // SF1/B (spell-shield half): a foe's live Shield is read BEFORE this spell runs - its sinks route the landing through that same
+    // damage door - so we can compare after and say "Shielded!" / "Shield broken!", exactly as the melee path in exteriorFoes does.
+    const _hadSpellShield = (foe?.entity?.activeEffects ?? []).some((a) => a.kind === 'shield' && !a.ended);
     const r = applySpell(spell, casterLevel, foe.entity, landing, rolls, caster, ctx);
     // SCHOOLS3 (bible/06-Systems/Arcane-Specialisations.md section 5): MY OWN cast landed on a foe - the paths' riders
     // answer it (systems/arcanePowers.js). Never a peer's strike spell landed here (its caster is a stand-in), nor a foe's.
@@ -856,19 +867,40 @@ export function createPlayerMagic({
     // (MakeEnemyHostileToAttacker), which is classic's own
     // "until player attacks them".
     if (r.pacify && foe.ai && !foe.entity?.pacifyImmune) foe.ai.isHostile = false;   // WB8a: never the gate's Warden
+    // SF1/B: SPELL STATUS WORDS + SAVED/REFLECTED/SHIELD INDICATORS over a FOE (commit-1325102 replaced these with say()). The
+    // foe-side words float over its head and broadcast to every player via the wire seam; offline they show locally. `foeId` is the
+    // pool's own stable key (dungeonContext/FOE-ID), so a peer sees this same landing on that body - null when there is no id, where
+    // broadcastFoeIndicator then falls back to showing it only here.
+    const _foePos = foe?.ai?.feet ? [foe.ai.feet[0], foe.ai.feet[1] + (foe.ai.height ?? CAPSULE_HEIGHT), foe.ai.feet[2]] : null;
+    const _foeId = foe?.uid ?? foe?.seq ?? foe?.entity?.id ?? null;
+    if (_foePos) {
+      // SILENCED: the result flag, or a newly-live silence now on the foe's effects.
+      if (r.silenced || hasActiveEffect(foe.entity, 'silenced')) { showFoeWord('word', STATUS_WORDS.silenced, { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', STATUS_WORDS.silenced, _foePos); }
+      // PARALYZED: the result flag, or a newly-live paralyze now on the foe's effects.
+      if (r.paralyzed || hasActiveEffect(foe.entity, 'paralyze')) { showFoeWord('word', STATUS_WORDS.paralyze, { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', STATUS_WORDS.paralyze, _foePos); }
+      // PACIFIED (STATUS_WORDS): a Pacify/Charm that stopped the foe fighting.
+      if (r.pacify) { showFoeWord('word', STATUS_WORDS.pacify, { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', STATUS_WORDS.pacify, _foePos); }
+      // SAVED AGAINST: the foe rolled a save and beat the effect - "Saved!" over its head (commit-1325102's say() line).
+      if (r.saved) { showFoeWord('saved', 'Saved!', { position: _foePos }); broadcastFoeIndicator(_foeId, 'saved', 'Saved!', _foePos); }
+      // SF1/B2: DAMAGE SAVED - a direct-damage effect whose saving throw rolled to 0%. A straight-on hit that landed
+      // nothing now says "Saved!" instead of eating silently; the number sink fired for no damage, so this is its only word.
+      if (r.damageSaved) { showFoeWord('saved', 'Saved!', { position: _foePos }); broadcastFoeIndicator(_foeId, 'saved', 'Saved!', _foePos); }
+      // REFLECTED: the foe is now the reflector - "Spell reflected!" over its head (commit-1325102's say() line).
+      if (r.reflected) { showFoeWord('word', spellReflectedText(), { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', spellReflectedText(), _foePos); }
+      // SPELL SHIELD: this spell met a foe carrying a live Shield. Absorbed-and-still-holds -> "Shielded!"; THIS spell busted it -> "Shield broken!".
+      const _nowShield = (foe?.entity?.activeEffects ?? []).some((a) => a.kind === 'shield' && !a.ended);
+      if (_hadSpellShield && !_nowShield) showFoeWord('broken', 'Shield broken!', { position: _foePos });
+      else if (_hadSpellShield && _nowShield) showFoeWord('shielded', 'Shielded!', { position: _foePos });
+    }
     // X11: SPELL REFLECTION - the FOE is now the reflector here, so a HUD line IS spoken (the owner's call this round: we are
     // changing TryReflection's `IsPlayerEntity` gate off, so foe and player reflect alike). The bundle goes back at whoever cast it.
     // This function is DFU's `casterEffectManager.AssignBundle(sourceBundle)`: the seam that holds both parties, which is why the
-    // re-target lives here and not inside the effect module.
+    // re-target lives here and not inside the effect module. (The floating word above replaces commit-1325102's say() line.)
     if (r.reflected && caster?.entity && !peerCaster) {   // STRIKE-SHARED: a peer's caster is not in this world - its stand-in has no body to take the bundle back
-      say(spellReflectedText());
       const back = { ...(ctx ?? {}), reflectedCount: 1 };
       if (caster.entity === playerEntity) applySpellToPlayer(spell, casterLevel, caster, back);
       else applySpell(spell, casterLevel, caster.entity, caster.sinks ?? {}, rolls, caster, back);
     }
-    // X12: SPELL SAVED AGAINST. The FOE rolled a save and beat the effect - say it through the foe's own HUD channel (the seam that
-    // just gained its `say`), so a foe who shrugs off my spell speaks for itself, as DFU does on the player manager only.
-    if (r.saved) say(localizedText('saveVersusSpellMade', 'Save versus spell made.'));
     return r;
   }
 
@@ -886,13 +918,20 @@ export function createPlayerMagic({
     // turned back at me is no self-cast (`reflected`), and a potion's bundle has no caster
     if (caster?.entity === playerEntity && r) tellSpellLanded({ caster: playerEntity, target: playerEntity, spell, r, self: true, reflected: !!extraCtx?.reflectedCount, took: 0, cast: caster.cast ?? null });
     if (_doorFeet && !(r.saved || r.chanceFailed || r.reflected)) mwFx.hit(spell, _doorFeet);   // MW-SPELLFX1: the hit, about me
-    if (r.paralyzed) say(localizedText('youAreParalyzed', 'You are paralyzed.'));   // Paralyze.cs:93
+    if (r.paralyzed) showFoeWord('word', STATUS_WORDS.paralyze);   // Paralyze.cs:93 — the PLAYER themselves, so a local word on the reticle (no broadcast; it is their own screen). commit-1325102's say() line.
     // S19c: AssignBundle's failure messages, player hosts only -
     // CasterOnly chance fails say "Spell effect failed.", external
     // contact fails and full saves say "Save versus spell made."
     // (EntityEffectManager.cs:542, :547, :576)
-    if (r.chanceFailed) say(spell.rangeType === 0 ? localizedText('spellEffectFailed', 'Spell effect failed.') : localizedText('saveVersusSpellMade', 'Save versus spell made.'));
-    if (r.saved) say(localizedText('saveVersusSpellMade', 'Save versus spell made.'));
+    if (r.chanceFailed) {   // commit-1325102's say() line: the "Save versus spell made." variant becomes a local floating indicator on the reticle; a pure "Spell effect failed." stays as HUD text.
+      const wasSave = spell.rangeType !== 0;
+      if (wasSave) showFoeWord('saved', 'Saved!');
+      else say(localizedText('spellEffectFailed', 'Spell effect failed.'));
+    }
+    // commit-1325102's say() line: a save made on the player becomes a local floating "Saved!" on the reticle (their own screen, no broadcast).
+    if (r.saved) showFoeWord('saved', 'Saved!');
+    // SF1/B2: a foe's direct-damage spell saved to 0 by the player - same verdict, local only (no broadcast; it is their own screen).
+    else if (r.damageSaved) showFoeWord('saved', 'Saved!');
     // X3: the ARMED half of Open/Lock. Neither effect does anything at
     // cast - it waits in forcedRoundsRemaining for a door - so this
     // line is the ONLY sign the spell worked, and DFU speaks it from
@@ -949,8 +988,8 @@ export function createPlayerMagic({
     // is a foe (a self-cast never reaches the reflect gate: caster ===
     // target), so its arrival needs no HUD arms and goes through
     // applySpell directly.
-    if (r.reflected) {
-      say(spellReflectedText());
+    if (r.reflected) {   // commit-1325102's say() line: the PLAYER was the reflector, so a local floating "Spell reflected!" on the reticle (their own screen, no broadcast).
+      showFoeWord('word', spellReflectedText());
       if (caster?.entity && caster.entity !== playerEntity) {
         applySpell(spell, casterLevel, caster.entity, caster.sinks ?? {}, rolls, caster,
           { ...(extraCtx ?? {}), reflectedCount: 1 });
