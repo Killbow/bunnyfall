@@ -15,6 +15,8 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   `ARENA2_PATH` to it before work that reads the game's files.
 - **The hosts do not grow** (`bible/01-Overview/Host-Split.md`): new behaviour goes into a module the host wires, never
   into `bootWorld`, `createWorldModes`, `buildDungeonContext`, `bootExterior` and the other hosts listed there.
+- **New account-service route**: add it to `ROUTES` in `server-account/src/service.js` as well as the handler in
+  `index.js`, or the service answers `not-found`. Check with `node tools/routesCheck.mjs` (see `docs/GUIDE.md`).
 - **Before a push**: lint on the changed files and `npm run build`. There is no CI and no test suite: the old one was
   upstream's and was removed. Check a change by reading it and, when it matters, trying it in the game.
 - **Content switched off** (Phase 2) lives in `src/systems/contentOff.js`: one list the client and the relay both read.

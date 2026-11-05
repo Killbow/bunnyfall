@@ -55,6 +55,14 @@ rebuilds `dist/`. Never edit files on the box itself.
   line or two to wire it. Do not read these files whole: grep for the name you need.
 - **Text:** write English as `t('some.key', 'English words')`, then run `node tools/l10nExtract.mjs`.
 - **Network fields:** anything new on the wire passes through the validators in `src/net/wire.js`.
+- **A new account-service route goes in two places.** The handler in `server-account/src/index.js` AND the `ROUTES`
+  list in `server-account/src/service.js`. The service turns away any path not in that list as `not-found` before the
+  handler runs, so a route only in `index.js` never works, with no error anywhere. On 2026-11-05 this had silently broken
+  the account vault, the Nyx coin count, player festivals, guestbooks and the great cannon. Run
+  `node tools/routesCheck.mjs` after adding a route: it lists anything `index.js` handles that `ROUTES` lacks.
+- **Test a server feature against the real service, not only its functions.** `BUNNYFALL_DATA=/tmp/bf node
+  selfhost/start.mjs` runs both servers locally (migrations included); make a guest with
+  `POST /v1/auth/guest {"terms":true,"privacy":true}` and call the route with its `secret` as a Bearer token.
 - **Content switched off** (Phase 2) is one list, `src/systems/contentOff.js`, read by the client and the relay. Flip
   a flag to bring a piece back.
 - **Credits stay:** `LICENSE`, the authors in `src/ui/credits.js` and `vendor/`.
