@@ -47,7 +47,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { accountKind, displayName, overRate } from './accounts.js';
 import { CHAR_ID_RE, DB_ROOT } from './service.js';
-import { prepareRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE, getRealmBlob, realmSaveTextOf } from './realm.js';   // REALM P2.2b; AUDIT REALM L1-F2: the record asked first; AUDIT REALM2 S3: a landed batch's object kept; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed read off the record
+import { prepareRealmRecord, realmActFirst, realmAtOf, recordMovedOf, mustChange, dropObjects, dropIfUnnamed, REALM_ID_RE, getRealmBlob, realmSaveTextOf, realmHoldOf } from './realm.js';   // REALM P2.2b; AUDIT REALM L1-F2: the record asked first; AUDIT REALM2 S3: a landed batch's object kept; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed read off the record
 import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';   // REALM P2.2b: the wallet's own order, over the record
 import {
   HOME_CAP, HOME_ENTRY_DEFAULT, HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S, HOME_TOWN_MAX, HOME_LAYOUTS_MAX,
@@ -226,6 +226,13 @@ export async function holdDeed(ctx, player, body = {}) {
   const refused = await townLayoutRefusal(db, mapId, layout ?? null);
   if (refused) return refused;
   if (await overRate({ db, nowS }, `home:${player.id}`, HOME_CLAIMS_MAX, HOME_CLAIMS_WINDOW_S)) return { error: 'home-rate' };
+  // BUNNYFALL AUDIT BF-09: the deed is the save's own word, so it is bounded where the service can bound it - a record under a
+  // hold claims none, a character keeps at most HOME_CAP deeds, and one per region (a Seneschal grants one house to a knight
+  // in each). Without these a forged `houses` table locked twenty buildings an hour for good.
+  const heldBy = await realmHoldOf(db, player.id, character);
+  if (heldBy) return heldBy;
+  const deeds = (await db.prepare('SELECT region FROM homes WHERE player = ? AND char_id = ? AND deed = 1').bind(player.id, character).all())?.results ?? [];
+  if (deeds.length >= HOME_CAP || deeds.some((d) => d.region === region)) return { error: 'home-cap' };
   // THE RECORD HOLDS IT - the save as it stands (a read: nothing of the record moves)
   const rec = await getRealmBlob({ db, bucket }, player.id, character);
   if (rec.error === 'no-realm-character') return rec;

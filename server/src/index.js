@@ -2194,6 +2194,7 @@ export class Room {
     lane.heard = now;
     if (typeof data === 'string') data = JSON.parse(data).data;
     if (relayCfgValue(this._relayCfg, this.env, 'grantStrip') === 'on' && (kind === 'own' || isCellRoom(a.key))) data = this._grantStripped(a, data, kind, now);   // GRANT9: the switch on - a record its grant does not stand goes nowhere; FOE-BOUNDS: nor one no builder could give
+    else data = this._foesBounded(a, data, kind);   // BUNNYFALL AUDIT BF-18: with grantStrip off (this server's setting) and in a dungeon room it never ran - a health no builder could give went unchecked
     staffFoesSeen(this, a, data, now, lane);   // STAFF-PANEL5-FEEDS: a full frame's live monsters, its sender's; STAFF-PANEL5-MONSTERS: whatever grantStrip says - read, never changed, and nothing at all while STAFF_NET_FEED_URL is unset; REVIEW: one a FOES_FIRST_MS on its lane
     const out = fanOut(kind, a.id, data, length, a.gv === 1);   // AUDIT (pre-merge) O3/O4; GRANT-DOOR: vouched
     if (out == null) { this._junk(ws); return { bucket: budget.bucket, pass: true, fan: 0, junk: true }; }
@@ -11733,6 +11734,17 @@ export class Room {
       return !!v && v.gr.o === a.id && Number.isInteger(i) && i >= 0 && i < v.gr.n && (v.gr.h < 0 || i === v.gr.h) && grantMarksAllow(v.gr, i, r);
     });
     if (stripped) this._grantRelayTally(a, stripped, worst, now);
+    return keep.length === data.f.length ? data : { ...data, f: keep };
+  }
+  /** BUNNYFALL AUDIT BF-18: THE FOE BOUNDS ALONE (net/foeBounds.js), for a frame grantStrip does not read - a record whose
+   *  health no builder could give goes nowhere, as _grantStripped drops it; no tally, no grant rules. The dungeon lane is
+   *  read as `any` (a dungeon's foes are not a street's). The same frame back when nothing went. */
+  _foesBounded(a, data, kind = 'foes') {
+    if (!data || !Array.isArray(data.f)) return data;
+    const allies = new Set([data.al, data.cw, data.cp].flatMap((x) => (Array.isArray(x) ? x : [])));
+    const camps = new Set((Array.isArray(data.cz) ? data.cz : []).map((c) => (Array.isArray(c) ? c[0] : null)));
+    const lane = kind === 'own' || !isCellRoom(a.key) ? 'any' : 'street';
+    const keep = data.f.filter((r) => !!r && typeof r === 'object' && (allies.has(r.i) || !foeStatsRefusal(r, { lane, camp: camps.has(r.i) })));
     return keep.length === data.f.length ? data : { ...data, f: keep };
   }
   /** FOE-BOUNDS: a record the relay stripped for its health, counted once a sender, record and claim (bounded - the

@@ -665,7 +665,7 @@ export const groundWitnessed = () => contentOn('witnessedGround');
  *  witnessed ground off, any account, and one report confirms. */
 export const WITNESS = Object.freeze(groundWitnessed()
   ? { ageS: 7 * 86_400, confirm: 3, dispute: 2 }
-  : { ageS: 0, confirm: 1, dispute: 2 });
+  : { ageS: 86_400, confirm: 1, dispute: 2 });   // BUNNYFALL AUDIT L2-02: a day old, not a second - one new account's first report decided a seat, a hall or a hub for good
 /** A pixel's key and a report on it, as `world_witness` keeps them. */
 export const pixelKey = (x, y) => `${x},${y}`;
 export const pixelReport = (climate, region) => `${climate},${region}`;

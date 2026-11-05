@@ -2408,6 +2408,10 @@ export function parseClient(text, { hasHello = false } = {}) {
     const data = validPageData(m.data);
     return data ? { t: 'page', data } : { error: 'bad page' };
   }
+  if (m.t === 'bard') {   // BUNNYFALL AUDIT L3-02: a bard's tune (net/bardTune.js) - the relay counts its notes itself (validTune); it was missing here, so the parser refused the frame as an unknown type and struck the bard out of the room
+    if (!hasHello) return { error: 'bard before hello' };
+    return { t: 'bard', n: m.n, d: m.d };
+  }
   if (m.t === 'duel') {   // DUEL1: a duel's invite, answer, start, blow, spell, result or end - one directed frame, projected by validDuelData; the relay reads none of it
     if (!hasHello) return { error: 'duel before hello' };
     if (text.length > DUEL_FRAME_MAX) return { error: 'frame too large' };
