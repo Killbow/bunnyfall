@@ -280,7 +280,8 @@ export function verdictOff({ db }, { char, seq, key }, row, save) {
   const level = lv.level;
   const arms = Array.isArray(save?.items) ? armsOf(save.items, (/** @type {any} */ it) => { try { return lawfulItem(it); } catch { return false; } }) : [0, 0];
   const set = {
-    judged_seq: seq, held: null, held_at: null, strikes: 0, held_until: null, law_holds: 0, law_at: null,
+    // BUNNYFALL AUDIT: a hand hold by staff outlives the checkpoint, the judge being off or not (review.js keeps it the same way)
+    judged_seq: seq, held: row.held === 'staff' ? 'staff' : null, held_at: row.held === 'staff' ? row.held_at ?? null : null, strikes: 0, held_until: null, law_holds: 0, law_at: null,
     review: row.review ?? null, wealth: row.wealth ?? 0, allowance: row.allowance ?? null,
     played_at: Number.isSafeInteger(row.played_now) ? row.played_now : row.played_at ?? 0,
     clean_obj: key, clean_seq: seq, level_seen: level, level_at: lv.at, law_sig: null, law_v: null,

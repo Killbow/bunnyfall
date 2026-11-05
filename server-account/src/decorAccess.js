@@ -386,7 +386,7 @@ async function decorDeposit(ctx, player, body) {
     if (at < 0) return 'no-item';
     list.splice(at, 1);
     return null;
-  });
+  }, { outbound: true });   // BUNNYFALL AUDIT: a record under a hold lets nothing leave into a chest
   if (prep.error) return prep;
   try {
     await ctx.db.batch([
@@ -509,7 +509,7 @@ async function decorSettle(ctx, player, body) {
     }
     if (purse !== undefined && coin > 0 && !creditSave(live, coin)) return 'no-data';
     return null;
-  });
+  }, put.length ? { outbound: true } : {});   // BUNNYFALL AUDIT: a held record puts nothing into a chest
   if (prep.error) { await release.run(); return prep; }
   // Two piles of one good are one pile. The window sent each stack whole; the count is added here, once.
   const hosts = [];

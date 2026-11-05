@@ -5,7 +5,7 @@ import { CHAR_ID_RE } from './service.js';
 import { HOME_CAP, homeMapIdOk, homeBuildingKeyOk } from '../../src/net/homeLaw.js';
 import { decorRefund } from '../../src/net/decorLaw.js';
 import { decorHeldBlocks } from './decorBatch.js';
-import { dropIfUnnamed, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmSaveTextOf, seizeRealmRecord } from './realm.js';
+import { dropIfUnnamed, getRealmBlob, mustChange, prepareRealmRecord, realmActFirst, realmHoldOf, realmSaveTextOf, seizeRealmRecord } from './realm.js';
 import { payFromSave, creditSave } from '../../src/net/realm/realmGoldLaw.js';
 
 const OFFER_S = 3 * 24 * 60 * 60;
@@ -158,6 +158,11 @@ async function acceptHome(ctx, player, body) {
   const moved = [];
   let sellerKey = null;
   let buyerKey = null;
+  // BUNNYFALL AUDIT: a seizure is no payment the hold looks at - a seller under a hold is paid nothing by the service
+  if (price + refund > 0) {
+    const sellerHeld = await realmHoldOf(db, offer.seller, offer.seller_char);
+    if (sellerHeld) return sellerHeld;
+  }
   const sellerPrep = (price > 0 || refund > 0 || held.goods.length > 0 || !keepDecor) ? await seizeRealmRecord(ctx, offer.seller, offer.seller_char, (save) => {
     const again = goodsOf(save, pieceIds);
     if (again == null) return 'home-holds';
