@@ -418,7 +418,13 @@ const muster = createRaidMuster({
 /** For the probes: the muster's waves. */
 export const raidMusterWaves = () => muster.waves();
 /** BUNNYFALL: the raids burning now (the day's, active, not cleansed) - the smoke over their camps (scenes/raidMusterHost.js). */
-export const raidsBurning = () => (raidingPartiesOn() ? state.raids.filter((r) => raidActive(r, (host().now ?? worldMinutes)())) : []);
+export const raidsBurning = () => {
+  // every raid burning in the world: its smoke stands over its own town alone, once that town is built about the player
+  // (scenes/raidMusterHost.js pillarsOf), so it is seen from the road in - never over the town the player stands in
+  if (!raidingPartiesOn()) return [];
+  const now = (host().now ?? worldMinutes)();
+  return state.raids.filter((r) => raidActive(r, now));
+};
 
 // ---- the runtime (not saved - the mod's own instance fields) ----------------
 /** The raid's foes this session stood: { foe, key, kind: 'raider'|'defender', routed }. The mod found its actors by

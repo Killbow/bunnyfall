@@ -11,6 +11,8 @@
 // Drawn on the canvas as the other windows are (townTalk's overlay slot, so the world stands still under it).
 
 import { drawText, measureText } from './text.js';
+import { nativeMetrics, drawRect, shadowText, NATIVE_W } from './native/nativePanel.js';   // BUNNYFALL: drawn on the game's own native screen
+import { drawParchment } from './messageBox.js';   // BUNNYFALL: on Daggerfall's parchment, as its own windows are
 import { t } from '../systems/textManager.js';
 import { tuneFromMidi, houseTune, chartOf, encodeTune, validTune, LANES, MIDI_FILE_MAX } from '../net/bardTune.js';
 import { appStorage } from '../systems/appStorage.js';
@@ -70,8 +72,8 @@ export function pickMidiFile() {
 
 export class BardPerformanceWindow {
   /**
-   * @param {{ title: string, onDone: (hits: number) => string[], words?: any, performer?: string,
-   *   stage?: { play: (tune: any) => boolean, stop: () => void } | null,
+   * @param {{ title: string, onDone: (hits: number, song?: { perfect: number, good: number, total: number }) => string[], words?: any, performer?: string,
+   *   stage?: { play: (tune: any) => boolean, stop: () => void, applause?: (warmth: number) => void } | null,
    *   keepAlive?: () => void, onCancel?: () => void, now?: () => number, pick?: () => Promise<any> }} o
    *   `onDone` pays and answers the lines said after; `stage` plays and sends the tune; `keepAlive` says "still playing" to the tavern
    */
@@ -93,11 +95,17 @@ export class BardPerformanceWindow {
     this.keepAt = 0;
     this.accuracy = 0;
     this.done = false;
+    /** BUNNYFALL: the tune's own end (its last note's ring, ms) - the night lasts until the tune is done */
+    this.tuneEnd = 0;
+    /** BUNNYFALL: the sparks a perfect strike throws up its lane, and the run of the last notes' judgements */
+    /** @type {{ lane: number, at: number }[]} */ this.sparks = [];
+    /** @type {number[]} */ this.recent = [];
   }
 
   _load(/** @type {any} */ tune) {
     this.tune = tune;
     this.chart = chartOf(tune).map((c) => ({ ...c }));
+    this.tuneEnd = tune.notes.reduce((e, n) => Math.max(e, n.t + n.d), 0);
     if (this.chart.length < 8) { this.tune = null; this.chart = []; this.notice = t('bguild.bards.tooShort', 'That tune has too few notes to play.'); return; }
     this.phase = 'ready'; this.notice = null;
   }
@@ -143,6 +151,8 @@ export class BardPerformanceWindow {
     const perfect = bestD <= PERFECT_MS;
     this.chart[best].hit = perfect ? 2 : 1;
     if (perfect) this.perfect++; else this.good++;
+    if (perfect) this.sparks.push({ lane, at: this.now() });
+    this.recent.push(perfect ? 1 : 0.6); if (this.recent.length > 24) this.recent.shift();
     this.combo++; this.best = Math.max(this.best, this.combo);
     this.score += (perfect ? 100 : 60) * (1 + Math.min(this.combo, 40) / 20);
     this.judged = { text: perfect ? t('bguild.bards.perfect', 'Perfect') : t('bguild.bards.good', 'Good'), color: perfect ? PERFECT : GOOD, at: this.now() };
@@ -155,10 +165,10 @@ export class BardPerformanceWindow {
     if (!this.sounded && at >= -150) { this.sounded = true; this.stage?.play(this.tune); }
     while (this.note < this.chart.length && (this.chart[this.note].hit !== undefined || this.chart[this.note].t < at - GOOD_MS)) {
       const c = this.chart[this.note++];
-      if (c.hit === undefined) { c.hit = 0; this.miss++; this.combo = 0; this.judged = { text: t('bguild.bards.miss', 'Miss'), color: MISS, at: this.now() }; }
+      if (c.hit === undefined) { c.hit = 0; this.miss++; this.combo = 0; this.judged = { text: t('bguild.bards.miss', 'Miss'), color: MISS, at: this.now() }; this.recent.push(0); if (this.recent.length > 24) this.recent.shift(); }
     }
     if (this.now() - this.keepAt > 20000) { this.keepAt = this.now(); this.keepAlive(); }
-    if (this.note >= this.chart.length && at > this.chart[this.chart.length - 1].t + 1200) this._finish();
+    if (this.note >= this.chart.length && at > Math.max(this.chart[this.chart.length - 1].t + 1200, this.tuneEnd + 600)) this._finish();   // BUNNYFALL: until the tune itself is done
   }
 
   _finish() {
@@ -167,9 +177,11 @@ export class BardPerformanceWindow {
     const accuracy = (this.perfect + 0.6 * this.good) / total;
     const hits = Math.max(0, Math.min(NOTES, Math.round(accuracy * NOTES)));
     this.accuracy = accuracy;
+    this.stage?.applause?.(accuracy);   // BUNNYFALL: the house applauds, as warm as the night went
     this.after = [
       t('bguild.bards.summary', '"{title}": {perfect} perfect, {good} good, {miss} missed.', { title: this.tune?.title ?? '', perfect: this.perfect, good: this.good, miss: this.miss }),
-      ...this.onDone(hits),
+      crowdWord(accuracy),
+      ...this.onDone(hits, { perfect: this.perfect, good: this.good, total }),
     ];
   }
 
@@ -208,61 +220,80 @@ export class BardPerformanceWindow {
 
   draw(/** @type {any} */ renderer, /** @type {any} */ canvas, /** @type {any} */ font, /** @type {number} */ s) {
     this._step();
-    const w = 250 * s, h = 178 * s, x = (canvas.width - w) / 2, y = (canvas.height - h) / 2;
-    const rect = (/** @type {number} */ rx, /** @type {number} */ ry, /** @type {number} */ rw, /** @type {number} */ rh, /** @type {number[]} */ c) => renderer.drawScreenQuad(null, { x: rx, y: ry, w: rw, h: rh }, undefined, c);
-    const text = (/** @type {string} */ str, /** @type {number} */ tx, /** @type {number} */ ty, /** @type {number[]} */ c = TEXT) => drawText(renderer, font, str, tx, ty, s, c);
-    const centred = (/** @type {string} */ str, /** @type {number} */ ty, /** @type {number[]} */ c = TEXT) => text(str, x + (w - measureText(font.fnt, str) * s) / 2, ty, c);
-    rect(x - 2 * s, y - 2 * s, w + 4 * s, h + 4 * s, EDGE);
-    rect(x, y, w, h, PANEL);
-    centred(this.title, y + 8 * s);
+    // BUNNYFALL (the owner: "Bardic stuff should use the game UI"): ON THE GAME'S OWN SCREEN - Daggerfall's 320x200 native
+    // panel, its parchment and its shadowed yellow text, as every classic window is drawn (ui/native/nativePanel.js)
+    const m = nativeMetrics(canvas);
+    const X = 26, Y = 10, W = NATIVE_W - 52, H = 180;
+    const rect = (/** @type {number} */ rx, /** @type {number} */ ry, /** @type {number} */ rw, /** @type {number} */ rh, /** @type {number[]} */ c) => drawRect(renderer, m, rx, ry, rw, rh, c);
+    const text = (/** @type {string} */ str, /** @type {number} */ tx, /** @type {number} */ ty, /** @type {number[]} */ c = TEXT) => shadowText(renderer, font, str, m, tx, ty, { color: c });
+    const centred = (/** @type {string} */ str, /** @type {number} */ ty, /** @type {number[]} */ c = TEXT) => shadowText(renderer, font, str, m, X, ty, { color: c, align: 'center', w: W });
+    if (!drawParchment(renderer, m, [X, Y, W, H])) { rect(X - 2, Y - 2, W + 4, H + 4, EDGE); rect(X, Y, W, H, PANEL); }
+    centred(this.title, Y + 8, PERFECT);
     if (this.phase === 'pick' || this.phase === 'ready') {
       const lines = this.phase === 'pick'
         ? [t('bguild.bards.pickHelp1', 'F - choose a MIDI file from your computer'),
           this.last ? t('bguild.bards.pickLast', 'L - play your last tune, {title}', { title: this.last.title }) : t('bguild.bards.pickHelp2', 'H - play the house jig'),
           this.last ? t('bguild.bards.pickHelp2', 'H - play the house jig') : t('bguild.bards.pickHelp3', 'Everyone in the tavern will hear it. Esc cancels.')]
         : [this.tune.title, t('bguild.bards.ready', '{n} notes to strike. D F J K, or click the lanes.', { n: this.chart.length }), t('bguild.bards.begin', 'Enter or click to begin. F picks another tune.')];
-      lines.forEach((l, i) => centred(l, y + (48 + i * 16) * s, i === 0 && this.phase === 'ready' ? PERFECT : i === 2 ? DIM : TEXT));
-      if (this.notice) centred(this.notice, y + 120 * s, MISS);
+      lines.forEach((l, i) => centred(l, Y + 44 + i * 16, i === 0 && this.phase === 'ready' ? PERFECT : i === 2 ? DIM : TEXT));
+      if (this.notice) centred(this.notice, Y + 118, MISS);
       return;
     }
     if (this.phase === 'after') {
-      (this.after ?? []).forEach((l, i) => centred(l, y + (34 + i * 14) * s));
-      centred(t('bguild.bards.close', 'Press any key to finish.'), y + h - 18 * s, DIM);
+      (this.after ?? []).forEach((l, i) => centred(l, Y + 32 + i * 13));
+      centred(t('bguild.bards.close', 'Press any key to finish.'), Y + H - 16, DIM);
       return;
     }
-    // the highway
-    const lw = LANE_W * s, hx = x + (w - lw * LANES) / 2, top = y + 24 * s, hh = 112 * s, line = top + hh - 12 * s;
-    rect(hx - 2 * s, top - 2 * s, lw * LANES + 4 * s, hh + 4 * s, EDGE);
+    // the highway, a dark well in the parchment
+    const lw = LANE_W, hx = (NATIVE_W - lw * LANES) / 2, top = Y + 22, hh = 120, line = top + hh - 12;
+    rect(hx - 2, top - 2, lw * LANES + 4, hh + 4, EDGE);
     rect(hx, top, lw * LANES, hh, WELL);
-    for (let i = 1; i < LANES; i++) rect(hx + i * lw - 0.5 * s, top, s, hh, LANE_RULE);
+    for (let i = 1; i < LANES; i++) rect(hx + i * lw, top, 1, hh, LANE_RULE);
     const at = this.songMs(), now = this.now();
     for (let i = Math.max(0, this.note - 1); i < this.chart.length; i++) {
       const c = this.chart[i], ahead = c.t - at;
       if (ahead > APPROACH_MS) break;
       if (c.hit) continue;   // struck: gone
-      const ny = line - (ahead / APPROACH_MS) * (line - top) - 3 * s;
-      if (ny < top - 6 * s || ny > top + hh) continue;
+      const ny = line - (ahead / APPROACH_MS) * (line - top) - 3;
+      if (ny < top - 6 || ny > top + hh) continue;
       const col = LANE_COLORS[c.lane];
-      rect(hx + c.lane * lw + 3 * s, ny, lw - 6 * s, 6 * s, c.hit === 0 ? [0.3, 0.25, 0.25, 1] : col);
-      rect(hx + c.lane * lw + 3 * s, ny, lw - 6 * s, s, [1, 1, 1, 0.35]);
+      rect(hx + c.lane * lw + 3, ny, lw - 6, 6, c.hit === 0 ? [0.3, 0.25, 0.25, 1] : col);
+      rect(hx + c.lane * lw + 3, ny, lw - 6, 1, [1, 1, 1, 0.35]);
     }
-    rect(hx, line, lw * LANES, 2 * s, LINE);
+    rect(hx, line, lw * LANES, 2, LINE);
     for (let i = 0; i < LANES; i++) {
       const lit = Math.max(0, 1 - (now - this.flash[i]) / 160);
-      if (lit > 0) rect(hx + i * lw, line - 14 * s, lw, 16 * s, [LANE_COLORS[i][0], LANE_COLORS[i][1], LANE_COLORS[i][2], 0.45 * lit]);
-      text(KEYS[i], hx + i * lw + (lw - measureText(font.fnt, KEYS[i]) * s) / 2, line + 5 * s, lit > 0 ? LINE : DIM);
+      if (lit > 0) rect(hx + i * lw, line - 14, lw, 16, [LANE_COLORS[i][0], LANE_COLORS[i][1], LANE_COLORS[i][2], 0.45 * lit]);
+      text(KEYS[i], hx + i * lw + (lw - measureText(font.fnt, KEYS[i])) / 2, line + 5, lit > 0 ? LINE : DIM);
     }
-    // the sides: score and combo left, the judgement and progress right
-    text(String(Math.round(this.score)), x + 10 * s, top, PERFECT);
-    text(t('bguild.bards.score', 'Score'), x + 10 * s, top + 12 * s, DIM);
-    if (this.combo > 1) { text(`x${this.combo}`, x + 10 * s, top + 34 * s, TEXT); text(t('bguild.bards.combo', 'Run'), x + 10 * s, top + 46 * s, DIM); }
-    if (this.judged && now - this.judged.at < 700) text(this.judged.text, x + w - 10 * s - measureText(font.fnt, this.judged.text) * s, top + 40 * s, this.judged.color);
-    const last = this.chart[this.chart.length - 1]?.t ?? 1, prog = Math.max(0, Math.min(1, at / last));
-    rect(hx, y + h - 20 * s, lw * LANES, 4 * s, LANE_RULE);
-    rect(hx, y + h - 20 * s, lw * LANES * prog, 4 * s, EDGE);
-    centred(at < 0 ? t('bguild.bards.getReady', 'Get ready...') : t('bguild.bards.playing', 'Playing: {title}', { title: this.tune.title }), y + h - 13 * s, DIM);
+    // BUNNYFALL: a perfect strike throws sparks up its lane
+    this.sparks = this.sparks.filter((k) => now - k.at < 520);
+    for (const k of this.sparks) {
+      const age = (now - k.at) / 520, cx = hx + k.lane * lw + lw / 2;
+      for (let j = 0; j < 4; j++) {
+        const sx = cx + Math.sin(j * 1.9 + k.at) * 7 * age, sy = line - 4 - age * 26 - j * 3;
+        rect(sx - 1, sy - 1, 2, 2, [1, 0.9, 0.5, 1 - age]);
+      }
+    }
+    // the sides: score and run left, the judgement and the house's mood right
+    text(String(Math.round(this.score)), X + 10, top, PERFECT);
+    text(t('bguild.bards.score', 'Score'), X + 10, top + 12, DIM);
+    if (this.combo > 1) { text(`x${this.combo}`, X + 10, top + 34, TEXT); text(t('bguild.bards.combo', 'Run'), X + 10, top + 46, DIM); }
+    const rx = hx + lw * LANES + 8, rw = X + W - 8 - rx;
+    if (this.judged && now - this.judged.at < 700) shadowText(renderer, font, this.judged.text, m, rx, top + 4, { color: this.judged.color, align: 'center', w: rw });
+    const mood = this.recent.length ? this.recent.reduce((a, b) => a + b, 0) / this.recent.length : 0.7;
+    shadowText(renderer, font, moodWord(mood), m, rx, top + 40, { color: mood >= 0.75 ? GOOD : mood >= 0.45 ? TEXT : MISS, align: 'center', w: rw });
+    const last = Math.max(this.tuneEnd, this.chart[this.chart.length - 1]?.t ?? 1), prog = Math.max(0, Math.min(1, at / last));
+    rect(hx, Y + H - 22, lw * LANES, 4, LANE_RULE);
+    rect(hx, Y + H - 22, lw * LANES * prog, 4, EDGE);
+    centred(at < 0 ? t('bguild.bards.getReady', 'Get ready...') : t('bguild.bards.playing', 'Playing: {title}', { title: this.tune.title }), Y + H - 15, DIM);
   }
 }
+
+/** BUNNYFALL: the house's mood as the bard plays (the last notes' run, 0..1), and its word at the end of the night. */
+const moodWord = (/** @type {number} */ v) => (v >= 0.75 ? t('bguild.bards.moodRapt', 'Rapt') : v >= 0.45 ? t('bguild.bards.moodWarm', 'Listening') : t('bguild.bards.moodRestless', 'Restless'));
+const crowdWord = (/** @type {number} */ a) => (a >= 0.85 ? t('bguild.bards.crowdRoar', 'The house roars and stamps for more.')
+  : a >= 0.6 ? t('bguild.bards.crowdWarm', 'The house applauds warmly.') : a >= 0.3 ? t('bguild.bards.crowdPolite', 'A polite round of applause.') : t('bguild.bards.crowdCold', 'A few tired claps from the back.'));
 
 /** The window's title in the player's language. */
 export const bardPerformanceTitle = () => t('bguild.bards.title', 'Playing for the house');

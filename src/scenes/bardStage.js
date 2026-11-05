@@ -17,10 +17,12 @@ export function createBardStage({ send = () => false, say = () => {} } = {}) {
     play(/** @type {any} */ tune) { synth.play(tune, BARD_HOUSE_VOLUME, 0.15); return !!send(tune); },
     /** Another bard's tune, from the building I stand in. */
     heard(/** @type {{ id: string, name: string, tune: any }} */ m) {
-      synth.play(m.tune, BARD_HOUSE_VOLUME, 0.15);
+      synth.play(m.tune, BARD_HOUSE_VOLUME, 0.15, () => synth.applause(0.6));   // BUNNYFALL: the room applauds at the end
       say(t('bguild.bards.hears', '{name} plays "{title}".', { name: m.name || '?', title: m.tune.title }));
     },
     stop() { synth.stop(); },
+    /** BUNNYFALL: the house applauds my performance, as warm as it went (0..1). */
+    applause(/** @type {number} */ warmth) { synth.applause(warmth); },
     get playing() { return synth.playing; },
     get elapsedMs() { return synth.elapsedMs; },
   };

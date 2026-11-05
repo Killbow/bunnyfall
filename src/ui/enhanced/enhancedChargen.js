@@ -43,7 +43,9 @@
 import { RACE_TEMPLATES } from '../../systems/races.js';
 import { CLASS_DESCRIPTION_TEXT_ID, SUMMARY_BONUS_TEXT_ID, PLAYER_REFLEXES, repBoxRowsFrom } from '../chargenArt.js';   // ONE DFU MEMBER, ONE EXPORT
 import { generateBackstory } from '../../systems/biography.js';
-import { FACES_PER_RACE } from '../../systems/races.js';
+import { FACES_PER_RACE, NORD_LOOK_FACE } from '../../systems/races.js';
+import { storedSession } from '../../net/accountClient.js';   // BUNNYFALL: the owner's own face choice
+import { appStorage } from '../../systems/appStorage.js';
 import { bitmapCanvas } from '../bitmapCanvas.js';
 import { STAT_KEYS_ORDER } from '../../systems/chargen.js';
 import { overlayAction, isTextEntryTarget } from '../input.js';   // CG2: one definition of 'a DOM field's key is the field's'
@@ -1180,8 +1182,21 @@ function faceStage() {
     // and simply move into the fresh DOM on each repaint.
     if (art) b.append(art);
     else b.append(el('span', 'facenum', String(i + 1)));
-    b.onclick = () => { flow.facePick = i; paint(); };
+    if (flow.lookRace && i === flow.facePick) b.className = 'facecell';   // the Nord look is the one chosen, not this face
+    b.onclick = () => { flow.facePick = i; flow.lookRace = null; paint(); };
     grid.append(b);
+  }
+  // BUNNYFALL (the owner: "a special option only for killbunny if selecting redguard as a race, but the body uses nord 9
+  // as a skin color and head"): THE NORD LOOK - a Redguard drawn with the Nord's ninth face and its body (systems/races.js
+  // artRaceOf), offered to the owner's account alone
+  if (flow.race?.key === 'Redguard' && ownerHere()) {
+    const b = el('button', `facecell${flow.lookRace === 'Nord' ? ' on' : ''}`);
+    const art = nordFaces?.canvases?.[NORD_LOOK_FACE];
+    if (art) b.append(art); else b.append(el('span', 'facenum', 'Nord'));
+    b.title = 'Nord look';
+    b.onclick = () => { flow.facePick = NORD_LOOK_FACE; flow.lookRace = 'Nord'; paint(); };
+    grid.append(b);
+    ensureNordFaces();
   }
   wrap.append(grid);
 
@@ -1193,6 +1208,26 @@ function faceStage() {
   pane.append(wrap);
   ensureFaces();
   return pane;
+}
+
+/** BUNNYFALL: whether this game is signed in as the owner (the account the server names owner - selfhost/accounts.toml
+ *  OWNER_HANDLES). A look, nothing more: the session's own name. */
+export const OWNER_LOOK_HANDLE = 'killbunny';
+function ownerHere() {
+  try { return String(storedSession(appStorage())?.name ?? '').toLowerCase() === OWNER_LOOK_HANDLE; } catch { return false; }
+}
+/** BUNNYFALL: the Nord heads for the Nord look's cell, loaded once a gender. */
+let nordFaces = null;
+function ensureNordFaces() {
+  if (!loadFaces) return;
+  const want = `Nord|${flow.gender}`;
+  if (nordFaces?.key === want || nordFaces?.pending === want) return;
+  nordFaces = { key: null, pending: want, canvases: [] };
+  loadFaces('Nord', flow.gender).then((set) => {
+    if (nordFaces?.pending !== want) return;
+    nordFaces = { key: want, canvases: set ?? [] };
+    if (flow.state === 'face') paint();
+  }).catch(() => { nordFaces = { key: want, canvases: [] }; });
 }
 
 /** Load the identity's ten heads, once, and repaint when they land.
@@ -1441,7 +1476,7 @@ function summaryStage() {
   }
 
   const list = el('div', 'list');
-  const face = faces?.canvases?.[flow.faceIndex] ?? null;
+  const face = (flow.lookRace === 'Nord' && flow.race?.key === 'Redguard' ? nordFaces?.canvases?.[NORD_LOOK_FACE] : null) ?? faces?.canvases?.[flow.faceIndex] ?? null;   // BUNNYFALL: the Nord look's own head
   const who = el('div', 'reviewhead');
   const portrait = el('div', 'reviewface');
   if (face) portrait.append(face);

@@ -154,10 +154,10 @@ export function validTune(w) {
 
 /** @typedef {{ t: number, lane: number }} ChartNote */
 export const LANES = 4;
-/** The rhythm game's chart for a tune: the notes worth pressing (onsets at least `gap` ms apart, at most `max` of them),
+/** The rhythm game's chart for a tune: the notes worth pressing (onsets at least `gap` ms apart, at most `max` of them - the tune's own cap),
  *  each on a lane by where its key falls in the tune's own range - the same chart on every machine. Pure.
  *  @param {Tune} tune @param {{ gap?: number, max?: number }} [o] @returns {ChartNote[]} */
-export function chartOf(tune, { gap = 190, max = 360 } = {}) {
+export function chartOf(tune, { gap = 190, max = TUNE_MAX_NOTES } = {}) {   // BUNNYFALL: the whole tune charted (it stopped at 360 notes, before a long song's end)
   const ps = tune.notes.map((x) => x.p).sort((a, b) => a - b);
   const lo = ps[Math.floor(ps.length * 0.05)] ?? 0, hi = ps[Math.floor(ps.length * 0.95)] ?? 127;
   const span = Math.max(1, hi - lo + 1);

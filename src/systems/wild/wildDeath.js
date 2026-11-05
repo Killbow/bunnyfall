@@ -27,6 +27,7 @@
 // The purse: a kill drops a tenth of it into the remains in place of the death penalty (WILD GOLD, wildDropLaw.js
 // takeWildGold); any other death pays the penalty (systems/deathPenalty.js).
 // ═══════════════════════════════════════════════════════════════════
+import { CROMWARK_ON } from './cromwark.js';   // BUNNYFALL: the mountains' rise is outside them
 import { WILD_ITEMS_MAX } from '../../net/wire.js';
 import { wildCartWord } from './wildCart.js';
 import { WILD_FALL_PACKS, WILD_FALL_LETTERS } from './wildDropLaw.js';
@@ -107,6 +108,7 @@ export function wildRisePicks(mask, px, { inDungeon = false, kill = true } = {})
   const town = (/** @type {any} */ hit) => hit.kind === 'city' || hit.kind === 'temple';
   const out = (/** @type {any} */ hit) => town(hit) && !(mask && wildNear(mask, hit.mapPixel.x, hit.mapPixel.y));
   const inside = !!mask && wildInside(mask, px.x, px.y);
+  if (CROMWARK_ON) return [out];   // BUNNYFALL (Cromwark): "dying sends you OUTSIDE of the zone" - the nearest town or temple outside it
   if (inside && inDungeon) return [(hit) => hit.kind === 'city', out];
   if (inside && !kill) {
     const ring = wildRingAt(px.x, px.y, mask);

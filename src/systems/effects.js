@@ -30,6 +30,7 @@
 // counter did - a stale sentence propagates, because the next reader
 // finds it twice and believes it.
 
+import { hazeMult } from './wild/cromwark.js';   // BUNNYFALL: the haze counter on a foe's spells
 import { savingThrow, rollMagnitude, EFFECT_FLAGS, careerTolerance, isDamageHealthEffect } from './spellcast.js';   // BAL9: the damage-health pair a pierce reads
 import { mentorDamageTakenMult } from './mentorMode.js';   // SOFTCAP2: a leaf
 import { spellPowerMult, spellPierce, schoolMult } from './spell/spellPower.js';   // BAL9: my damage spell's power and pierce (a leaf); SCHOOLS2: every school past 100
@@ -713,8 +714,10 @@ export function healAttributeDamage(entity, stat, amount) {
  *  calculateAttackDamage's tail, the same rounding and floor) - so a caster in an elite dungeon is as strong with
  *  a Fireball as with its sword. The player's own casts, and every caster without a scale, are untouched here (BAL9's
  *  power is the player's own, below). */
-const casterScaledOnly = (n, ent) => (n > 0 && ent && !ent.isPlayer && Number.isFinite(ent.damageScale) && ent.damageScale !== 1
-  ? Math.max(1, Math.round(n * ent.damageScale)) : n);
+const casterScaledOnly = (n, ent) => {
+  const v = n > 0 && ent && !ent.isPlayer && Number.isFinite(ent.damageScale) && ent.damageScale !== 1 ? Math.max(1, Math.round(n * ent.damageScale)) : n;
+  return v > 0 && ent && !ent.isPlayer && hazeMult() > 1 ? Math.max(1, Math.round(v * hazeMult())) : v;   // BUNNYFALL (Cromwark): a foe's spell, the haze's counter too
+};
 /** SOFTCAP2: and a MENTORED player takes a foe's spell as it takes a foe's blow - at the mentored health pool
  *  (mentorMode.js damageTakenMult, formulas.js's own tail for blows). `target` optional: without it, as before. */
 export const casterDamageScaled = (n, ent, target = null, school = null) => {

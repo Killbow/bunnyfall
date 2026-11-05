@@ -30,6 +30,7 @@ import { drawText, measureText } from './text.js';
 import { PlayerDeathSequence, DEATH_TIME_BEFORE_RESET } from '../systems/playerDeath.js';   // D1
 import { playerEntity } from '../characters/playerEntity.js';   // D1: the death clip's race/gender
 import { audio } from '../systems/audio.js';
+import { cromwarkPeace } from '../systems/wild/cromwark.js';   // BUNNYFALL: the mountains' dead wait as anywhere
 import { isEnhanced } from '../systems/uiSkin.js';   // DEATH2: the enhanced skin paints its own
 import { drawEnhancedDeath, removeEnhancedDeath } from './enhanced/enhancedDeath.js';
 import { EYE_HEIGHT } from '../player/motor.js';   // DEATH3: the standing eye the fall starts from
@@ -206,7 +207,7 @@ export class DeathScreen {
   get wild() { return this.online ? wildDeath() : null; }
   /** DEATH6 / WILD1: the online wait - the body's minute, or the zone's two. WILD-REJOIN: less what a death the referee
    *  told this page of had lain before it came back (systems/wild/wildZone.js `served`). */
-  get holdSeconds() { return this.wild ? WILD_DEATH_HOLD_S - (this.wild.served ?? 0) : ONLINE_RESPAWN_SECONDS; }
+  get holdSeconds() { return this.wild && !cromwarkPeace(this.wild.kind) ? WILD_DEATH_HOLD_S - (this.wild.served ?? 0) : ONLINE_RESPAWN_SECONDS; }   // BUNNYFALL (Cromwark): no body to loot, the usual wait
   /** DEATH4: whole seconds left before an online respawn, or null offline. */
   get respawnIn() {
     if (!this.online) return null;

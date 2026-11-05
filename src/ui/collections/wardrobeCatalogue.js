@@ -181,6 +181,8 @@ export const WARDROBE = Object.freeze({
     shadowfang: E('bestowed', 'bestowed', bestowed, { with: ['aura:shadowcloak', 'glyph:shadowfang'] }),
     penitent: E('bestowed', 'bestowed', bestowed, { with: ['glyph:penitent'] }),
     gatebreaker: E('broker', 'open', broker('title:gatebreaker')),
+    cromwarksurvivor: E('broker', 'open', () => t('coll.how.cromwarksurvivor', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Nyx coins. Nyx coins drop from the monsters of the Wrothgarian Mountains.', { price: insigniaById('title:cromwarksurvivor')?.price ?? 0 })),
+    heartwarden: E('broker', 'open', () => t('coll.how.heartwarden', 'Stand ten minutes on the purple haze’s counter in the Heart, then buy it from Nyx for {price} Nyx coins.', { price: insigniaById('title:heartwarden')?.price ?? 0 })),
     herald: E('patrons', 'patron', patron('herald'), { with: ['glyph:herald'] }),
     // AUDIT COLLECTIONS-II (lane 1): a seat's title is worn on the guildmaster's character (the token's mint); Crowned and
     // Keeper from Season 1 on (townSeatLaw.js seasonTitles: Season 0, the beta, crowns no one); the Tourney when proclaimed
@@ -248,7 +250,7 @@ export const WARDROBE = Object.freeze({
     oblivionward: E('bestowed', 'bestowed', bestowed, { with: ['title:aegis', 'glyph:aegis'], look: () => t('coll.look.oblivionward', 'A ring of violet runes turning about your feet.') }),
     radiance: E('bestowed', 'bestowed', bestowed, { with: ['title:primarch', 'glyph:primarch'], look: () => t('coll.look.radiance', 'A column of golden light about you.') }),
     shadowcloak: E('bestowed', 'bestowed', bestowed, { with: ['title:shadowfang', 'glyph:shadowfang'], look: () => t('coll.look.shadowcloak', 'A hooded cloak of shadow and crimson light.') }),
-    seraphwings: E('staff', 'staff', developer, { with: ['title:developer', 'glyph:dev'], look: () => t('coll.look.seraphwings', 'Wings of flowing golden light.') }),
+    seraphwings: E('staff', 'staff', developer, { with: ['title:developer', 'glyph:dev'], look: () => t('coll.look.seraphwings', 'A halo of golden light over your head.') }),
     resonance: E('bestowed', 'bestowed', bestowed, { with: ['title:crystalfist', 'glyph:crystalfist'], look: () => t('coll.look.resonance', 'Tiny purple crystals rising and falling about your feet.') }),
     turninghour: E('abyss', 'chance', remnant('turninghour'), { look: () => t('coll.look.turninghour', 'A turning wheel of brass gears and gold light.') }),
     firsthour: E('abyss', 'retired', hoursFirst, { with: ['title:hoursfirst'], look: () => t('coll.look.firsthour', 'The Turning Hour’s wheel in the light of the first dawn.') }),
@@ -257,6 +259,7 @@ export const WARDROBE = Object.freeze({
     burningstair: E('spire', 'open', redoubt('burningstair'), { with: ['title:wellheadwalker'], look: () => t('coll.look.burningstair', 'Embers falling about you as if down a burning stair.') }),
     firstlight: E('spire', 'retired', spireFirst, { with: ['title:spirefirst'], look: () => t('coll.look.firstlight', 'A dawn-white ring of light.') }),
     lilacwarren: E('bestowed', 'bestowed', bestowed, { with: ['title:wikimaid', 'glyph:wikimaid'], look: () => t('coll.look.lilacwarren', 'Rabbits hopping round your feet on a ring of lilac light.') }),
+    nyxveil: E('broker', 'open', () => t('coll.how.nyxveil', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Nyx coins.', { price: insigniaById('aura:nyxveil')?.price ?? 0 }), { look: () => t('coll.look.nyxveil', 'A purple haze drifting about you, stars glinting in it.') }),
     witchfire: E('festival', 'seasonal', wyrd('aura:witchfire'), { look: () => t('coll.look.witchfire', 'A coven’s green fire round your feet, tallow candles burning in its ring.') }),
     sagesmoke: E('bestowed', 'bestowed', bestowed, { with: ['title:nirnrootsage', 'glyph:nirnrootsage'], look: () => t('coll.look.sagesmoke', 'Smoke billowing about you, nirnroots circling your waist and small green runes glowing round your feet.') }),
   }),

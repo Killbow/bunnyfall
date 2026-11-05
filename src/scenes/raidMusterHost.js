@@ -10,6 +10,10 @@ import { RiteSmokeRenderer, RITE_SMOKE_PROGRAMS } from '../render/riteSmoke.js';
 import { compiledPass } from '../render/glProgram.js';
 import { musterSides } from '../systems/raidMuster.js';
 
+/** The raid smoke's switch. (2026-11-04: it stood over towns with no raid - the sites read a raid's town off the player's
+ *  feet where its pixel was not built, and the first read of a raid's pillars is kept for the session; pillarsOf now
+ *  reads the raid's own built town alone, and a game reloaded keeps no stale pillar.) */
+export const RAID_SMOKE_ON = true;
 /** The pillars' sizes over the rite's (340 m): a camp's, a burning house's. */
 export const CAMP_SMOKE_SCALE = 0.42;
 export const HOUSE_SMOKE_SCALE = 0.22;
@@ -40,6 +44,11 @@ export function createRaidSmoke({ gl, raids, keyOf, sites, built, translation, n
   function pillarsOf(raid) {
     const s = sites();
     if (!s?.way || !Number.isInteger(raid.px) || !Number.isInteger(raid.py)) return null;
+    // the raid's OWN town, built about the player - never the town the player stands in (the sites read a raid's town
+    // off the player's feet when its pixel is not built, and a raid across the Bay stood its smoke in Daggerfall)
+    let mine = false;
+    for (const p of built()) if (p.px === raid.px && p.py === raid.py) { mine = true; break; }
+    if (!mine || !s.townAtPixel?.(raid)) return null;
     const base = translation(raid.px, raid.py);
     const camps = musterSides(raid, !!s.bigTown?.(raid)).map((side) => s.way(side, raid)?.[0]).filter((p) => Array.isArray(p));
     if (!camps.length) return null;
@@ -89,7 +98,7 @@ export function createRaidSmoke({ gl, raids, keyOf, sites, built, translation, n
 
   return {
     /** Whether any smoke stands - the host builds the pass's arguments only then. */
-    smoking: () => towns.size > 0 || (raids() ?? []).length > 0,
+    smoking: () => RAID_SMOKE_ON && (towns.size > 0 || (raids() ?? []).length > 0),
     /** The smoke's pass, after the world's: how many pillars it drew. */
     draw(proj, view, eye, seconds, fog = null) {
       const list = smokes();

@@ -247,7 +247,8 @@ export function lootBlow(weapon, damage, attacker, target, info) {
   if (mark && now < mark.until && weapon !== mark.by) { pct += mark.pct; if (!info?.estimate) _broadside.delete(target); }
   for (const { power: p } of blowPowers(attacker, weapon)) {
     switch (p.kind) {
-      case 'bane': if (target.affinity !== 'Human' && p.foes.includes(target.careerIndex)) pct += p.pct; break;   // a class foe's career index is its class's, never a monster's
+      case 'bane': if (target.affinity !== 'Human' && p.foes.includes(target.careerIndex)) pct += p.pct; break;
+      case 'cromwark': if (target.wildFoe) pct += p.pct; break;   // BUNNYFALL (Nyx's Cromwark Blade): the reach's monsters   // a class foe's career index is its class's, never a monster's
       case 'unaware': if (info?.unaware) pct += p.pct; break;
       case 'sanctified': if (group === p.group) pct += p.pct; break;
       case 'flow': pct += p.pct * flowStacks(now); break;

@@ -468,6 +468,14 @@ function drawFrame(renderer, m, box) {
   at(BL, x, y + h - SLICE); at(BR, x + w - SLICE, y + h - SLICE);
 }
 
+/** BUNNYFALL: Daggerfall's parchment panel at a native rect `[x, y, w, h]` (DFU's PopupStyle.Parchment nine-slice) -
+ *  false while the art is not up (the caller keeps its flat panel). */
+export function drawParchment(renderer, m, [x, y, w, h]) {
+  if (!_art) return false;
+  drawFrame(renderer, m, { x, y, w, h });
+  return true;
+}
+
 /** Draw a laid-out box. Returns false when the art is not up, so the
  *  caller keeps its flat-panel fallback. */
 export function drawMessageBox(renderer, m, font, box, {

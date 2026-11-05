@@ -23,6 +23,7 @@
 // optional environment-attack ray (interiors: bash/Receive on action
 // objects; open exteriors have nothing in reach).
 
+import { artRaceOf } from '../../systems/races.js';   // BUNNYFALL: the race a character is drawn as
 import { PlayerWeapon, WEAPON_REACH, setWeaponPoseProbe, weaponPoseOf, USING_RIGHT_HAND_TEXT, handDesc } from '../playerWeapon.js';   // RR1: the rig's drawn state and weapon type, for laws that ask off-rig
 import { eotbBody } from '../../player/eyeOfTheBeholder/eotbBody.js';   // EOTB5: the sprite body, for a player with no Morrowind data
 import { eotbCamera } from '../../player/eyeOfTheBeholder/eotbCamera.js';
@@ -142,7 +143,7 @@ export function armBuildOptsOf(entity) {
     werewolf: isMwWerewolf(entity),   // WEREWOLF1: a save loaded mid-transformation builds the wolf at the door
     skin: isMwWerewolf(entity) ? ownWerewolfSkin() : null,   // SHADOW-FANG: and in its skin
     vampire: !!liveVampirism(entity),   // PORTRAIT3D (the owner: "Do this"): a vampire wears the race's vampire head (getVampireHead, MWNPC14), the body as its portrait
-    race: mwRaceId(entity.race),
+    race: mwRaceId(artRaceOf(entity)),   // BUNNYFALL: the race it is drawn as
     female: entity.gender === 'female',
     faceIndex: entity.faceIndex | 0,
     armor: dfWornEquipment(equipTableOf(entity), EQUIP_SLOTS, ARMOR_ENUM),
@@ -175,7 +176,7 @@ export function buildArmsFor(entity) {
  *  the other two thirds, and setWorn/setWeapon already follow those
  *  per frame; nothing followed these. */
 export function armIdentityOf(entity) {
-  return { race: mwRaceId(entity?.race), female: entity?.gender === 'female', faceIndex: entity?.faceIndex | 0, werewolf: isMwWerewolf(entity), vampire: !!liveVampirism(entity) };   // WEREWOLF1: and the form; PORTRAIT3D: and the curse's face
+  return { race: mwRaceId(artRaceOf(entity)), female: entity?.gender === 'female', faceIndex: entity?.faceIndex | 0, werewolf: isMwWerewolf(entity), vampire: !!liveVampirism(entity) };   // WEREWOLF1: and the form; PORTRAIT3D: and the curse's face
 }
 
 /** MWA3 (Mac, 2026-09-16: "my character who is an argonian uses a human
@@ -229,7 +230,7 @@ export function saveArmsEntity(snap) {
   if (!snap || !Array.isArray(snap.items)) return null;
   const items = snap.items.map((it) => setItemFields(it));
   const li = snap.lightSourceIndex ?? -1;
-  const e = { race: snap.race, gender: snap.gender, faceIndex: snap.faceIndex, chargenDone: snap.chargenDone, items, lightSource: li >= 0 ? (items[li] ?? null) : null };
+  const e = { race: snap.race, lookRace: snap.lookRace ?? null, gender: snap.gender, faceIndex: snap.faceIndex, chargenDone: snap.chargenDone, items, lightSource: li >= 0 ? (items[li] ?? null) : null };
   fillEquipTable(equipTableOf(e), items);
   return e;
 }

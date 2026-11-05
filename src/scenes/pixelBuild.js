@@ -101,6 +101,7 @@ import { colliderBlocked, dryGround, witchesDressingBreathing } from '../world/w
 import { wodRockUvs } from '../world/worldOfDaggerfall/wodRockUv.js';
 import { WodSpawner } from '../world/worldOfDaggerfall/wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
+import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate towns
 import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 
 /** @param {any} host */
@@ -662,8 +663,10 @@ export function createPixelBuild(host) {
         // (RMBLayout.cs:366-378 / :442-454 - the non-zero FactionID
         // rule), pixel-local like everything else this host builds.
         const npcFlats = collectExteriorNpcs(blockFlats);
+        const desolate = cromwarkDesolateAt(maps, px, py);   // BUNNYFALL (Cromwark, systems/wild/cromwarkTowns.js): the reach's towns stand nobody
         const npcFlatSet = new Set(npcFlats);   // E3: identity, not coordinates - collectExteriorNpcs FILTERS the same objects
         for (const npc of npcFlats) {
+          if (desolate) continue;   // BUNNYFALL (Cromwark): no one stands in a desolate street (the flat is withheld from the draw below all the same)
           pixelNpcFlats.push({
             ...npc,
             x: locLocal[0] + b.originX + npc.x,
@@ -779,7 +782,7 @@ export function createPixelBuild(host) {
       // translation. Persons ground on the flattened location terrain
       // (blendLocationTerrain planes the rect to avg - the same base
       // the RMB flats sit on). Location-type gate verbatim.
-      if (populatesWanderingNpcs(dfLocation.mapTableData.locationType)) {
+      if (populatesWanderingNpcs(dfLocation.mapTableData.locationType) && !cromwarkDesolateAt(maps, px, py)) {   // BUNNYFALL (Cromwark): no one walks a desolate town
         await ensurePersonTex();
         const nav = new CityNavigation(loc.width, loc.height);
         for (const b of loc.blocks) {

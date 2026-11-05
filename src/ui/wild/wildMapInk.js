@@ -18,6 +18,7 @@
 //
 // Pure canvas 2D over the view's own transform (ui/ink/inkMap.js toPaper); no game import beyond the zone's leaf.
 // ═══════════════════════════════════════════════════════════════════
+import { CROMWARK_ON, CROMWARK_BORDER_CSS } from '../../systems/wild/cromwark.js';   // BUNNYFALL: the purple border
 import { wildEdgeChains } from '../../systems/wild/wildZone.js';
 import { smoothContour } from './wildZoneMap.js';   // SMOOTHZONE: the red line is a contour, not a pixel's staircase
 
@@ -27,9 +28,10 @@ export const FOG_RES = 6;
 export const FOG_FEATHER_PX = 2.5;
 /** The fog's tones: ash, and the zone's dried blood at its heart. */
 export const FOG_ASH = Object.freeze([46, 40, 38]);
-export const FOG_BLOOD = Object.freeze([92, 18, 14]);
+export const FOG_BLOOD = CROMWARK_ON ? Object.freeze([62, 18, 98]) : Object.freeze([92, 18, 14]);   // BUNNYFALL (Cromwark): the haze's purple
 /** The line's inks. */
-export const WILD_LINE = Object.freeze({ halo: 'rgba(28,6,4,0.55)', red: '#b3261a', bright: 'rgba(235,72,52,0.95)' });
+// BUNNYFALL (Cromwark, the owner: "the border should be purple to reflect the change"): the line's inks purple (the name `red` kept)
+export const WILD_LINE = CROMWARK_ON ? Object.freeze({ halo: 'rgba(18,4,30,0.55)', red: CROMWARK_BORDER_CSS, bright: 'rgba(190,120,255,0.95)' }) : Object.freeze({ halo: 'rgba(28,6,4,0.55)', red: '#b3261a', bright: 'rgba(235,72,52,0.95)' });
 
 /** A small, stable hash noise (value noise on an integer lattice), 0..1. */
 function lattice(x, y, seed) {

@@ -29,6 +29,12 @@ export const QUEST_REP = 2;
 /** A performance: gold a note struck, and the rank's share more for each rank. */
 export const BARD_NOTE_GOLD = 12;
 export const BARD_BASE_GOLD = 16;
+/** BUNNYFALL (2026-11-04, the owner: "payout should be given based on ammount of notes and be higher than the start of
+ *  today for longer songs"): a performance is paid by the notes struck - each perfect one BARD_STRUCK_GOLD, a good one
+ *  BARD_GOOD_SHARE of it - over BARD_NIGHT_GOLD for the night, so a whole long song pays far past the old ceiling (88). */
+export const BARD_NIGHT_GOLD = 24;
+export const BARD_STRUCK_GOLD = 0.5;
+export const BARD_GOOD_SHARE = 0.6;
 export const BARD_RANK_SHARE = 0.15;
 /** A map's price, and the share off it for each rank a member holds. */
 export const MAP_PRICE = 200;
@@ -48,6 +54,9 @@ const gainRep = (/** @type {any} */ entity, /** @type {string} */ key, /** @type
 /** A performance's pay, for `hits` notes struck at `rank` (-1 for none). */
 export const bardPay = (/** @type {number} */ hits, /** @type {number} */ rank) =>
   Math.round((BARD_BASE_GOLD + BARD_NOTE_GOLD * hits) * (1 + BARD_RANK_SHARE * Math.max(0, rank)));
+/** BUNNYFALL: what a performance pays by its struck notes (`perfect`, `good`) and the bard's rank. */
+export const bardSongPay = (/** @type {number} */ perfect, /** @type {number} */ good, /** @type {number} */ rank) =>
+  Math.round((BARD_NIGHT_GOLD + BARD_STRUCK_GOLD * (Math.max(0, perfect | 0) + BARD_GOOD_SHARE * Math.max(0, good | 0))) * (1 + BARD_RANK_SHARE * Math.max(0, rank)));
 /** A performance's reputation: one for a good night, two for a perfect one. */
 export const bardRep = (/** @type {number} */ hits, /** @type {number} */ notes) => (hits >= notes ? 2 : hits >= Math.ceil(notes * 0.66) ? 1 : 0);
 /** A map's price for a visitor (`rank` -1) or a member. */
@@ -133,7 +142,7 @@ export function bunnyHallServices(doors) {
  * own, and runs `action()` once it has closed itself (a performance and a prompt open their own windows). Answers [] when
  * there is nothing to offer. `where` names the tavern (`${town}:${building}`), `day` the game's day, `perform(onDone)` the
  * performance window, `say` the chat line. Called again at each repaint, so a price or a bard coming near is current.
- * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number) => string[], hooks?: { keepAlive: () => void, onCancel: () => void }) => void, notes: number,
+ * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number, song?: { perfect: number, good: number, total: number } | null) => string[], hooks?: { keepAlive: () => void, onCancel: () => void }) => void, notes: number,
  *   tavern?: any, say?: (s: string) => void, festival?: any }} o
  * @returns {Array<{ code: string, label: string, action: () => void }>}
  */
@@ -150,15 +159,15 @@ export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = n
     } else {
       rows.push({ code: 'KeyP', label: t('bguild.bards.perform', 'P - Perform'), action: later(() => {
         social?.startPlaying?.();
-        perform((hits) => {
+        perform((hits, song = null) => {
           notePerformed(where, day);
           const crowd = social?.stopPlaying?.() ?? { share: 1, lines: [] };   // TAVERN-SOCIAL: the bards beside me, the crowd
-          const gold = Math.round(bardPay(hits, m.rank) * crowd.share);
+          const gold = Math.round((song ? bardSongPay(song.perfect, song.good, m.rank) : bardPay(hits, m.rank)) * crowd.share);   // BUNNYFALL: by the notes struck
           const rep = bardRep(hits, notes);
           addGoldPieces(entity, gold);
           gainRep(entity, 'bards', rep);
           return [
-            t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
+            song ? t('bguild.bards.resultSong', 'You struck {hits} of {notes} notes.', { hits: song.perfect + song.good, notes: song.total }) : t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
             ...crowd.lines,
             t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
             ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),

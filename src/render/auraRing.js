@@ -217,6 +217,15 @@ export const AURA_DRAW_MAX = 32;
 export const AURA_RANGE_M = 90;
 /** The clock every rate is whole over (s): the ring's turn (AURA_TURN_HZ), the fire's flow and the flames' rise. */
 export const AURA_CLOCK_PERIOD = 120;
+/** BUNNYFALL (2026-11-04, the owner: "change the developer aura to be an halo instead of holy wings"): THE HALO - a ring
+ *  of gold light floating over the head: its radius, the ribbon's width (turned to the eye all round, so it reads from
+ *  any side), how far over the head's middle it floats, how far it bobs; its glint's turns round it, its breath and its
+ *  bob (Hz, whole over the clock). */
+export const HALO_R = 0.17;
+export const HALO_W = 0.05;
+export const HALO_UP = 0.3;
+export const HALO_BOB_M = 0.015;
+export const HALO_HZ = Object.freeze({ glint: 0.25, breath: 0.5, bob: 0.5 });
 export const AURA_TURN_HZ = 1 / 8;
 /** The seconds a wearer's aura takes to kindle when it first stands (or when they first put it on). */
 export const AURA_KINDLE_S = 0.8;
@@ -927,12 +936,18 @@ export function sageCardsInto(cards, looks, t, kindle, at, eye) {
  *  symbols float off it (the third draw - none for the fire). A pin walks AURAS and requires one each. SHADOW-CLOAK: and,
  *  for the cloak alone, the mesh its wall is (`mesh` - the shaped cloth, not the strip) and that it SHADES: it darkens
  *  what is behind it as well as lighting it, drawn premultiplied (ONE, ONE_MINUS_SRC_ALPHA) where the others add. */
+/** BUNNYFALL: Nyx's Veil - the mist's ring about the body (m) and how high it drifts (m). */
+export const NYX_VEIL_R = 0.6;
+export const NYX_VEIL_H = 2.1;
 export const AURA_LOOK = Object.freeze({
   dagonfire: Object.freeze({ kind: 0, ringR: AURA_RING_R, flameH: AURA_FLAME_H, glyphs: 0 }),
   oblivionward: Object.freeze({ kind: 1, ringR: WARD_RING_R, flameH: WARD_WALL_H, glyphs: WARD_GLYPHS }),   // and its floating symbols
   radiance: Object.freeze({ kind: 2, ringR: RADIANCE_R, flameH: RADIANCE_H, glyphs: 0 }),   // PRIMARCH: the column about the body
   shadowcloak: Object.freeze({ kind: 3, ringR: CLOAK_HEM_R, flameH: CLOAK_H, glyphs: CLOAK_EMBLEMS, shreds: CLOAK_SHREDS, mesh: 'cloak', shade: true }),   // SHADOW-CLOAK: the cape on the body, its emblems, and its shreds when it tears
-  seraphwings: Object.freeze({ kind: 4, ringR: WING_POOL_R, flameH: WING_REACH[1], glyphs: WING_CARDS, mesh: 'wings' }),   // SERAPH-WINGS: the wings on the body, their sparks and their backlight
+  // BUNNYFALL (2026-11-04, the owner: "change the developer aura to be an halo instead of holy wings"): the developers' aura keeps its
+  // name on the wire and in the token (net/identityToken.js AURAS, server-account titles.js DEVELOPER_AURA) and is drawn as THE HALO;
+  // the wings' look stays, unworn (SERAPH_WINGS_LOOK)
+  seraphwings: Object.freeze({ kind: 15, ringR: HALO_R, flameH: HALO_W, glyphs: 0, mesh: 'halo' }),   // SERAPH-WINGS: the wings on the body, their sparks and their backlight
   resonance: Object.freeze({ kind: 5, ringR: RESONANCE_R, flameH: RESONANCE_H, glyphs: 0, shade: true }),   // CRYSTAL-FIST: the ring of columns of squares, on the strip; AUDIT: drawn premultiplied, so the squares stay the one purple
   turninghour: Object.freeze({ kind: 6, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),   // SD9c: the wheel at the feet, its edge on the strip at its teeth's tips
   firsthour: Object.freeze({ kind: 7, ringR: TURNING_R + TURNING_TOOTH_M, flameH: TURNING_H, glyphs: 0 }),   // HOURS-FIRST: the same wheel, in the first dawn's light
@@ -942,8 +957,13 @@ export const AURA_LOOK = Object.freeze({
   firstlight: Object.freeze({ kind: 11, ringR: DAWN_R, flameH: DAWN_H, glyphs: 0 }),   // EG-E2: the dawn's ring at the feet, its veil on the strip
   lilacwarren: Object.freeze({ kind: 12, ringR: WARREN_R, flameH: WARREN_H, glyphs: WARREN_BUNNIES, shade: true }),
   witchfire: Object.freeze({ kind: 13, ringR: WITCHFIRE_R, flameH: WITCHFIRE_H, glyphs: 0 }),
+  // BUNNYFALL (Cromwark, the owner: "build the aura"): NYX'S VEIL - the reach's purple haze about the wearer, a mist
+  // drifting up round the body with stars glinting in it (Nyx's own coat's), a pool of it at the feet; added whole
+  nyxveil: Object.freeze({ kind: 16, ringR: NYX_VEIL_R, flameH: NYX_VEIL_H, glyphs: 0 }),
   sagesmoke: Object.freeze({ kind: 14, ringR: SAGE_RUNE_R, flameH: SAGE_WALL_H, glyphs: SAGE_CARDS, shade: true }),   // NIRNROOT-SAGE: the runes and the smoke's shade at the feet, the runes' light and the low smoke on the strip, the smoke's puffs and the nirnroots the third draw - premultiplied, so the smoke covers   // WITCH1: the green fire and its candles at the feet, its tongues and violet motes on the strip   // WIKIMAID: the ring and the tracks at the feet, the sparkles on the strip, the rabbits the third draw - premultiplied, so a rabbit stays lilac
 });
+/** SERAPH-WINGS: the wings' own look, kept for its pins and a later wearer (the developers wear the halo since BUNNYFALL). */
+export const SERAPH_WINGS_LOOK = Object.freeze({ kind: 4, ringR: WING_POOL_R, flameH: WING_REACH[1], glyphs: WING_CARDS, mesh: 'wings' });
 /** The look a wearer's aura is drawn with - Dagon's Fire for one that names none (the fire was the only aura before). */
 export const auraLookOf = (aura) => (typeof aura === 'string' && Object.hasOwn(AURA_LOOK, aura) ? AURA_LOOK[aura] : AURA_LOOK.dagonfire);
 
@@ -2352,6 +2372,17 @@ void main() {
     w = c + side * (across - 0.5) * width;
     vP = vec2(across, t);
     vS = vec3(k, fine, st.w);
+  } else if (uKind == 1 && uAura == 15) {
+    // BUNNYFALL: THE HALO - the strip laid round over the head (the pose's head, \`uCapeH\`), a ribbon of uFlameH turned to
+    // the eye all round, bobbing a little
+    float a = aP.x * 6.283185307179586;
+    vec3 c = uAt + vec3(cos(a) * uRingR, uCapeH.y + ${HALO_UP.toFixed(3)} + ${HALO_BOB_M.toFixed(3)} * sin(6.283185307179586 * ${HALO_HZ.bob.toFixed(3)} * uTime), sin(a) * uRingR);
+    vec3 tng = vec3(-sin(a), 0.0, cos(a));
+    vec3 side = cross(tng, uCamPos - c);
+    float sl = length(side);
+    side = sl > 1e-6 ? side / sl : vec3(0.0, 1.0, 0.0);
+    w = c + side * (aP.y - 0.5) * uFlameH;
+    vP = aP;
   } else if (uKind == 1) {
     float a = aP.x * 6.283185307179586;
     vP = aP;
@@ -2502,7 +2533,44 @@ out vec4 o;
 ${FOG_FACTOR_GLSL}${NOISE_GLSL}
 const float TAU = 6.283185307179586;
 ${WARD_GLSL}${RADIANCE_GLSL}${RESONANCE_GLSL}${TURNING_GLSL}${MAELSTROM_GLSL}${SPIRE_GLSL}${CLOAK_SHAPE_GLSL}${CLOAK_FS_GLSL}${WING_SHARED_GLSL}${WING_FS_GLSL}${WARREN_GLSL}${WITCH_GLSL}${SAGE_GLSL}
+// BUNNYFALL: THE HALO's light - a bright gold core along the ribbon's middle, a soft glow either side, a glint running
+// round it and a slow breath; nothing on the ground
+vec3 haloRing(vec2 q) {
+  float x = q.y - 0.5;
+  float core = exp(-x * x / 0.012), glow = exp(-x * x / 0.09) * 0.45;
+  float glint = pow(0.5 + 0.5 * sin(6.283185307179586 * (q.x * 2.0 - uTime * ${HALO_HZ.glint.toFixed(3)})), 10.0);
+  float breath = 0.85 + 0.15 * sin(6.283185307179586 * ${HALO_HZ.breath.toFixed(3)} * uTime);
+  return (vec3(1.0, 0.8, 0.38) * (core * 1.5 + glow) * breath + vec3(1.0, 0.97, 0.85) * glint * core * 0.8) * uKindle;
+}
+// BUNNYFALL: NYX'S VEIL - the haze's purple. The ground: a pool swirling slowly about the feet, stars glinting in it.
+// The wall: mist drifting up and round the body in two layers of noise, thinning toward the crown, and stars rising
+// through it and twinkling. Kindled within (the pool fades in, the mist rises).
+const vec3 NYX_DEEP = vec3(0.42, 0.12, 0.82), NYX_LILAC = vec3(0.76, 0.52, 1.0), NYX_STAR = vec3(1.0, 0.9, 1.0);
+float nyxHash(vec2 c) { return fract(sin(dot(c, vec2(12.9898, 78.233)) + uSeed * 17.0) * 43758.5453); }
+vec3 nyxGround(vec2 q) {
+  float r = length(q), a = atan(q.y, q.x) / TAU + 0.5;
+  float swirl = vnoiseP(vec2(a * 8.0 + r * 1.5 - uTime * 0.12, r * 3.0 - uTime * 0.2), vec2(8.0, 64.0));
+  float pool = exp(-r * r / 0.9) * (0.4 + 0.6 * swirl);
+  vec2 g = q * 9.0, f = fract(g) - 0.5;
+  float h = nyxHash(floor(g));
+  float star = step(0.93, h) * exp(-dot(f, f) / 0.01) * (0.5 + 0.5 * sin(uTime * 3.0 + h * 40.0));
+  return (NYX_DEEP * pool * 0.35 + NYX_LILAC * star * 0.8) * uKindle * (1.0 - smoothstep(uGroundR - 0.25, uGroundR, r));
+}
+vec3 nyxWall(vec2 q) {
+  float u = q.x, v = q.y;
+  float n1 = vnoiseP(vec2(u * 10.0 + uTime * 0.05, v * 3.0 - uTime * 0.35), vec2(10.0, 64.0));
+  float n2 = vnoiseP(vec2(u * 6.0 - uTime * 0.08, v * 5.0 - uTime * 0.6 + 3.0), vec2(6.0, 64.0));
+  float mist = smoothstep(0.35, 0.85, n1 * 0.6 + n2 * 0.5);
+  float body = smoothstep(0.0, 0.12, v) * (1.0 - smoothstep(0.4, 1.0, v));
+  vec2 g = vec2(u * 40.0, v * 14.0 - uTime * 0.4), f = fract(g) - 0.5;
+  float h = nyxHash(vec2(mod(floor(g.x), 40.0), floor(g.y)));
+  float star = step(0.95, h) * exp(-dot(f, f) / 0.02) * (0.5 + 0.5 * sin(uTime * 4.0 + h * 50.0)) * (1.0 - v);
+  vec3 col = mix(NYX_DEEP, NYX_LILAC, n2) * mist * body * 0.5 + NYX_STAR * star * 0.9;
+  return col * clamp((uKindle * 1.25 - v) / 0.15, 0.0, 1.0);
+}
 void main() {
+  if (uAura == 16) { vec3 c = uKind == 0 ? nyxGround(vP) : nyxWall(vP); o = vec4(c * fogFactorAt(vWorld), 1.0); return; }   // BUNNYFALL: Nyx's Veil, added whole
+  if (uAura == 15) { vec3 c = uKind == 0 ? vec3(0.0) : haloRing(vP); o = vec4(c * fogFactorAt(vWorld), 1.0); return; }   // BUNNYFALL: the halo, added whole
   if (uAura == 14) { vec4 c = uKind == 0 ? sageGround(vP) : uKind == 1 ? sageWall(vP) : sageCard(vP, vS); float f = fogFactorAt(vWorld); o = vec4(c.rgb * f, c.a * f); return; }   // NIRNROOT-SAGE: premultiplied (AURA_LOOK shade), fogged to nothing; kindled within (the shade and the runes fade in, the low smoke rises, the puffs and the nirnroots by node's law)
   if (uAura == 13) { vec3 c = uKind == 0 ? witchGround(vP) : witchWall(vP); o = vec4(c * fogFactorAt(vWorld), 1.0); return; }   // WITCH1: Witchfire, added whole, kindled within
   if (uAura == 12) { vec4 c = uKind == 0 ? warrenGround(vP) : uKind == 1 ? warrenWall(vP) : warrenBunny(vP, vS); float f = fogFactorAt(vWorld); o = vec4(c.rgb * f, c.a * f); return; }   // WIKIMAID: premultiplied (AURA_LOOK shade), fogged to nothing; kindled within (the ground fades in, the sparkles rise, the rabbits come up - node's law)

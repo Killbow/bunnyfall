@@ -6,6 +6,7 @@
 // first saw it is never acted on. The innkeeper's menu (systems/guild/bunnyServices.js bunnyTavernRows, on the tavern window) asks here what
 // it can offer and pays through here.
 
+import { t } from '../systems/textManager.js';
 import { addGoldPieces, goldPiecesOf } from '../systems/inventory.js';
 import { drinkRound, roundPrice, buskShare, tavernWords, TAVERN_NEAR_M } from '../systems/tavern/tavernLaw.js';
 
@@ -108,4 +109,12 @@ export function createTavernSocial(deps) {
       }
     },
   };
+}
+
+/** BUNNYFALL (2026-11-04, the owner: "bardic performances ... feel like meaningful public performances"): A BARD SEEN
+ *  PLAYING - a player's name over their head says so while they perform (their pose's `bp`), on every other screen.
+ *  A name point in, the same point or one wearing the line out. @param {any} p @param {(id: string) => any} poseOf */
+export function performingTag(p, poseOf) {
+  if (!p?.id || poseOf?.(p.id)?.bp !== 1) return p;
+  return { ...p, title: t('tavern.busk.performing', 'Performing for the house') };
 }

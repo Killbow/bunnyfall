@@ -394,7 +394,8 @@ import { sdVeilModelOf, sdRingsFarFirst } from './superDungeon/sdThrough.js';   
 import { sdSlotsKept } from '../systems/superDungeon/sdSlots.js';   // SD-ONELIFE: the Hollows' slots kept on the device, by the account
 import { sdCities, sdTemplates } from '../systems/superDungeon/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../systems/loot/lootDataTables.js';   // WB12d: the casket's pile, undrawn
-import { createSigilBroker } from './sigilBrokerPool.js';   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
+import { createSigilBroker } from './sigilBrokerPool.js';
+import { createCromwarkHost } from './cromwarkHost.js';   // BUNNYFALL (Cromwark): the haze's counter, the Nyx coins, the Guild camp and Nyx   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
 import { createBrokerOverlay, closeBrokerDoor } from '../ui/brokerDoor.js';   // SET7: her window, a lazy chunk behind its door
 import { panoplyRows, PANOPLY_NAMES } from '../ui/brokerWindow.js';   // EG-E1: the Broker's Panoply sink - its nine rows and their names
 import { panoplyPieceById } from '../systems/aetheric.js';   // EG15: a Panoply piece minted by its id - the sink's
@@ -962,6 +963,8 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 // WILD1 (2026-10-07, bible/11-Multiplayer/Wild-Zone.md): THE OPEN ZONE - the Wrothgarian Mountains: its law (a leaf), a
 // death's drop and its one piece, the fights between players, the room's remains as piles, and the HUD's two glyphs
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
+import { CROMWARK_ON, cromwarkPeace } from '../systems/wild/cromwark.js';
+import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL: the reach's desolate towns   // BUNNYFALL: the mountains are Cromwark's reach (no PvP)
 import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, wildDeathAtHand, wildDeathKill, wildFallHeard, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
 import { GREATER_GIANT_CALL, GREATER_GIANT_CALL_AT } from '../systems/wild/wildZone.js';   // GREATER-GIANT
@@ -1151,6 +1154,7 @@ import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
 import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
 import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
 import { createRaidSites } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
+import { performingTag } from './tavernSocial.js';   // BUNNYFALL: a bard's name says they perform
 import { createRaidSmoke } from './raidMusterHost.js'; import { raidsBurning, raidKey as raidKeyOf } from '../systems/raidingParties.js';   // BUNNYFALL: the smoke over a raid's camps and the houses by them
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
 import { DUNGEON_AMBIENT } from '../world/dungeon/dungeonLights.js';   // OH-E: PlayerAmbientLight.DungeonAmbientLight, what the abyss darkens
@@ -1173,7 +1177,7 @@ import { carvedFloorLocalY } from './deepWater/deepWatersHost.js';   // DW-D: th
 import { etherPlaceRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
 import { breathStep, setWaterBreathingRule } from '../systems/breath.js';   // DW-D: the dungeon's breath law, on the open sea; ApplyArgonianInfiniteBreath
 import { CLASSIC_UPDATE_INTERVAL } from '../characters/weaponStates.js';   // DW-D: PlayerEntity's classic cadence, the dungeon's import
-import { RACES } from '../systems/races.js';   // DW-D: ArgonianInfiniteBreath
+import { RACES, artRaceOf } from '../systems/races.js';   // DW-D: ArgonianInfiniteBreath
 import { localizedStrings, localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName, t } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the names shown
 import { stakedSaveRefusal } from '../ui/gambitTableWords.js';   // KG3: the save's refusal while gold is staked on The King's Gambit
 import { hallStepsFor, harbourPortFor, coastalAt } from '../net/fortLaw.js';   // SEAT2b part two: a seat's crafting halls, its members' Harbour, a coast
@@ -7119,7 +7123,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       spellsByIndex = sbi;
       const { added } = await applyTestCharacter(playerEntity, preset, { fetchBytes, spellsByIndex: sbi });
       preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-        { race: playerEntity.race, gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
+        { race: artRaceOf(playerEntity), gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
       surfacePlayer();
       questInitAtGameStart();
       console.log(`[testroom] ${preset.label}: ${added} armory items in the pack`);
@@ -7151,7 +7155,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!r) { legacyBirthFailed('no birth waits for this address'); return; }
       finishChargen(playerEntity, r, sbi);
       if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());   // AUDIT LIVED1b R4, as the wizard's
-      preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture }, { race: r.race, gender: r.gender, faceIndex: r.faceIndex });
+      preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture }, { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
       surfacePlayer();
       questInitAtGameStart();
       autoBuildArms(playerEntity);
@@ -7168,7 +7172,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     loadSpellIndex(fetchBytes).then((sbi) => { spellsByIndex = sbi; return applyHeadlessChargen(playerEntity, Number(params.get('class')), { fetchBytes, spellsByIndex: sbi }); })
       .then(() => {
         preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-          { race: playerEntity.race, gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
+          { race: artRaceOf(playerEntity), gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
         surfacePlayer();
         questInitAtGameStart();   // Q4-v: OnStartGame for the headless character
         legacyHost?.onCharacterMade();   // LEGACY1: and its family
@@ -7206,7 +7210,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           // months past it, and the six-hour gate was open at birth
           if (sharedClockOn()) playerEntity.lastSkillCheckTime = Math.floor(ownMinutes());
           preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-            { race: r.race, gender: r.gender, faceIndex: r.faceIndex });
+            { race: artRaceOf(r), gender: r.gender, faceIndex: r.faceIndex });
           surfacePlayer();
           questInitAtGameStart();   // Q4-v: OnStartGame for the new character
           autoBuildArms(playerEntity);   // MWA1: the new character's arms - race, sex and face are known now
@@ -10756,7 +10760,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _hoverNamers = [
     (key) => gatherHost?.hoverName?.(key) ?? yards?.hoverName?.(key) ?? null,   // PROF-MENU: a profession node, its acts the plaque's rows; HOME-YARD: a yard piece's Move, Duplicate, Remove
     (key) => gatePool?.hoverName(key) ?? null,   // WB2: the Oblivion Gate, and its countdown
-    (key) => sigilBroker?.hoverName(key) ?? null,   // SET7: the Sigil Broker (BROKER-CAGE: caged at the faithful's circle)
+    (key) => sigilBroker?.hoverName(key) ?? cromwark?.hoverName(key) ?? null,   // SET7: the Sigil Broker (BROKER-CAGE: caged at the faithful's circle); BUNNYFALL: Nyx
     (key) => riteHost?.hoverName(key) ?? null,   // WB12d: the faithful's chest - its own keys, and its pile's before the piles' word
     (key) => camps.hoverName?.(key) ?? null,
     (key) => droppedTorches.hoverName?.(key) ?? null,
@@ -11238,7 +11242,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // (PlayerGPS.cs:687-699), not "this pixel has a location" -
         // in the wilderness ring of a town's pixel the wilderness
         // tables roll, day and night.
-        inLocationRect: _musicInLocationRect(),
+        inLocationRect: _musicInLocationRect() && !cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y),   // BUNNYFALL (Cromwark): a desolate town's streets roll the wilds' tables
         climateIndex: maps.getClimateIndex(playerTravelPixel().x, playerTravelPixel().y),
         playerLevel: wildEncounterLevel(playerEntity, { night: isNight(minuteNow()) }),   // ENCOUNTER-LEVEL: the party's level on the wilds' tier
       });
@@ -18187,6 +18191,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__look = (yaw, pitch) => { cam.yaw = yaw; cam.pitch = pitch; lookFilter.settle(); };   // CSA-F probe: the view turned in place (the helm pins the body, not the look)
     window.__streamIdle = () => queue.length === 0 && !building && inFlight.size === 0;   // AUDIT EV: teleport builds count too - the probe told the truth only for pump's
     window.__builtCount = () => built.size;
+    window.__cromwark = () => cromwark;   // BUNNYFALL probe: the reach's host (its camp, its haze)
+    window.__pixelT = (px, py) => [...state.pixelTranslation(px, py)];
     // LOAD-OWED probe surface (tools/pixelBuildSweep.mjs - the frame held by the probe, so nothing else runs): THE PUMP'S
     // OWN BUILD driven over the map, one pixel at a time - the stream re-centred on it as a teleport re-centres it (every
     // pixel down, the grid inited there), then `buildPixel`, a throw answered as the pump's catch answers it (torn down,
@@ -21510,6 +21516,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at });
           return true;
         } }
+        if (cromwark.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: /nyxcoin, the Nyx coins gathered
         if (staffHost?.claims(tabId)) return staffHost.send(tabId, text);   // STAFF-PANEL5-FREEZE: the Staff tab's line goes to the service; a freeze shuts every other tab, the commands below too
         // EG-PLAY: `/breach` - answer an Elite Breach's call; `/breach rehearse` - the day's Rehearsal; `/breach home` - a
         // Redoubt's way home. Local, never sent as chat. AUDIT EG V (c, L7-1): its words WHOLE (net/chatCommands.js
@@ -22944,7 +22951,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (died) _wdunCrows.set(h, Date.now() + WILD_REMAINS_MS);
     socialLink()?.sendWdun?.({ k: died ? 'die' : 'out', h });
   };
-  const wildCan = () => !!online?.wildOk && online.status === 'open' && wildHere() && (wildOutdoors() || modes?.mode === 'dungeon') && playerEntity.health > 0 && !modes?.deathUp?.();   // PVPDUNGEON: players fight in the zone's dungeons too
+  const wildCan = () => !!online?.wildOk && online.status === 'open' && wildHere() && !cromwarkPeace(wildZoneKind()) &&   // BUNNYFALL (Cromwark): no fights between players in the mountains
+ (wildOutdoors() || modes?.mode === 'dungeon') && playerEntity.health > 0 && !modes?.deathUp?.();   // PVPDUNGEON: players fight in the zone's dungeons too
   /** Is this player one I may fight (and be fought by): standing in the zone, and never KIN - net/wild/wildRef.js wildKin, the
    *  referee's own law: my party, or one under its truce; my duel's opponent (a duel's blows are the duel's own); or, MAC'S
    *  DECISION (2026-10-14, "Guildmates are friends"), one of my guild - its tag as the relay stamped it, mine as the hub
@@ -23397,6 +23405,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (_wildMine && Date.now() > _wildMine.until) { _wildMine = null; keepMine(null); }
     remainsMarkTick(Date.now());   // WILD-WAYPOINT: the flag goes with its remains' time
     seaVentures.guns();   // AUDIT SEA VENTURES E6A: the open sea's guns every online frame - paused, a window open or below, my helm is said
+    try { cromwark.frame(); } catch (e) { console.warn('[cromwark]', e?.message ?? e); }   // BUNNYFALL: the haze's counter, the coins owed, the Guild camp
   };
   // WILD3: THE STRANGERS - every other player in the zone with me, outside my party and my guild, within WILD_STRANGER_M
   // (their bodies as the room draws them): enemies to the Overworld (marked in red, "Stranger"), to the journey's pace
@@ -23485,7 +23494,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _wildStrangerIds = new Set();
   let _wildStrangersAt = 0;
   const _wildStrangerSaid = new Map();   // id -> when last said
-  const wildIsStranger = (id, gt) => !!id && wildHere() && !social?.isPartyPeer(id) && !sameGuild(gt, myGuildTag());
+  const wildIsStranger = (id, gt) => !!id && wildHere() && !cromwarkPeace(wildZoneKind()) &&   // BUNNYFALL (Cromwark): no strangers, everyone shares the mountains
+ !social?.isPartyPeer(id) && !sameGuild(gt, myGuildTag());
   const wildStrangersFrame = () => {
     const now = performance.now();
     if (now - _wildStrangersAt < 250) return;
@@ -23529,9 +23539,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  (travellerKin), `wire` the player's world-frame point, `party` whether they are of my party. */
   const wildHidesPlayer = ({ kin = null, wire = null, pixel = null, party = false } = {}) => {
     if (party || kin === 'guild' || !_onlineWorldSession()) return false;
-    const mine = wildHere() || (wildOutdoors() && wildAtWire(campToWire(player.feetAt()), true));
+    const mine = (wildHere() && !cromwarkPeace(wildZoneKind())) || (!CROMWARK_ON && wildOutdoors() && wildAtWire(campToWire(player.feetAt()), true));   // BUNNYFALL (Cromwark): the mountains hide no one
     if (mine) return true;
-    if (pixel) { const m = wildMaskOf(maps); return (etherSea && inEther(pixel.x, pixel.y)) || (!!m && wildNear(m, pixel.x, pixel.y)); }   // a map's row: its map pixel (ETHER-WILD: anywhere past the Veil)
+    if (pixel) { const m = wildMaskOf(maps); return (etherSea && inEther(pixel.x, pixel.y)) || (!CROMWARK_ON && !!m && wildNear(m, pixel.x, pixel.y)); }   // a map's row: its map pixel (ETHER-WILD: anywhere past the Veil)
+    if (CROMWARK_ON) { if (!wire || !etherSea) return false; const px = worldCoordToMapPixel(wire[0], wire[2]); return inEther(px.x, px.y); }   // BUNNYFALL (Cromwark): only the open sea still hides
     return wildAtWire(wire, true);
   };
   /** WILD3: MAY THIS FAST JOURNEY GO (systems/wild/wildZone.js wildJourney) - from where I stand to map pixel `to`, the
@@ -25344,7 +25355,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     try { const r = await brokerOwed.settled(() => readAccount(io)); if (r.ok) insigniaAdopt(r.data?.wardrobe); } catch { /* the rows say they cannot tell */ }   // BROKER-RID: what is owed settled first
   }
   /** The rows the window draws: each offer, its word, whether the account owns and wears it. */
-  const insigniaRows = () => INSIGNIA.map((o) => ({
+  const insigniaRows = () => INSIGNIA.filter((o) => !o.currency).map((o) => ({   // BUNNYFALL: Nyx's titles are hers (scenes/cromwarkHost.js), never the Broker's
     ...o, name: o.kind === 'title' ? TITLE_TEXT[o.key] ?? o.key : AURA_TEXT[o.key] ?? o.key,
     owned: _insignia.held.includes(o.id), worn: o.kind === 'title' ? _insignia.title === o.key : _insignia.aura === o.key,
   }));
@@ -25445,6 +25456,18 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     open: openBroker,
     gone: () => closeBrokerDoor(),   // midnight took her from under her open window: it is shut, and she says so
   }) : null;
+  // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Nyx coins, the Guild camp and Nyx
+  const cromwark = createCromwarkHost({
+    renderer, meshes: { getGpuMesh, cpuModels }, getTexture, uploadRecordFrame, maps, roads: () => terrainGen.roads(),
+    pixelTranslation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => surfaceAt(x, z),
+    feet: () => (walkMode && playerSpawned ? player.feetAt() : null), cam: () => cam.pos,
+    kind: () => wildZoneKind(), ring: () => wildRing(), mode: () => _mode(), alive: () => playerEntity.health > 0 && !modes?.deathUp?.(),
+    entity: playerEntity, items: () => (playerEntity.items = playerEntity.items || []), gender: () => playerEntity.gender,
+    canCarry: (item) => planTake(item, { bag: playerEntity.items ?? [], entity: playerEntity, dryRun: true }).ok,
+    saved: () => surfacePlayer(), clink: () => audio.playOneShot(SOUND.GoldPieces, 1),
+    say: (text) => townTalk.say(text), mid: (text) => setMidScreenText(text), show: (w) => townTalk.showOverlay(w),
+    io: insigniaIo, wardrobe: () => _insignia, adopt: insigniaAdopt, self: insigniaSelf, loadWardrobe: insigniaLoad,
+  });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)
@@ -25969,7 +25992,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // AUDIT SOC B5: fatigue in the DIGITS a sheet shows (ui/charsheet.js: the stored pool is x FATIGUE_MULTIPLIER) - a
       // member's card said 3200/6400 where their own sheet said 50/100
       h: playerEntity.health ?? 0, hm: playerEntity.maxHealth ?? 0, f: Math.trunc((playerEntity.fatigue ?? 0) / FATIGUE_MULTIPLIER), fm: Math.trunc(maxFatigue(playerEntity) / FATIGUE_MULTIPLIER), m: playerEntity.magicka ?? 0, mm: playerEntity.maxMagicka ?? 0,
-      race: playerEntity.race ?? 'Breton', gender: playerEntity.gender ?? 'male', face: playerEntity.faceIndex ?? 0,   // the hello's own reading (net/remotePlayers.js composeLook), without the items
+      race: artRaceOf(playerEntity), gender: playerEntity.gender ?? 'male', face: playerEntity.faceIndex ?? 0,   // the hello's own reading (net/remotePlayers.js composeLook), without the items
       // PARTY-REST1: the building key, only meaningful `in === 2` - a
       // dungeon and the open air both leave it null (net/wire.js
       // validPartyPose already zeroes it outside a building, but this
@@ -29026,7 +29049,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (const d of drawable) if (d?.shown) _peerMapPoses.set(d.id, d.shown);
     if (hccOn()) hcc.driverGlue(drawable, { toWire: campToWire });   // WAGONS3: a driver on their bench, drawn seated there - after the map's poses, where `peerAnchor` reads the puller their wagon hangs from
     const ranged = peerRange.cut(cabin ? drawable : drawable.filter((d) => !csaPeers.isBelowDeck(d.id)), { on: !travelView?.active, me: player.pos, at: (d) => onlineToScene(d.shown), range: peerRangeOf(getPref('peerRange')), mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // PEER-RANGE (2026-10-10, the owner: "the rendering of players far out is contributing to poor performance"): past the distance on the Other players card a player stands nowhere on this screen - GATE-CROWD's cut by distance (net/peer/peerRange.js): my party and the one I duel always, nobody cut under the travel view (OW-PEERS grows them to be seen from overhead); their map marks, above, are kept
-    const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null || !(travelView?.active || wildHere() || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept); CROWD-WIDE (2026-10-23, the owner: "implement the player toggle we have for the oblivion gate into the entire game"): everywhere, not the court alone - but never where a stranger can fight me (the open zone, a battle, an arena's room) nor under the travel view; AUDIT CROWD-WIDE A2: never cut, those I fight, trade, ride or sail with and a duel's two fighters (net/gate/gateCrowd.js crowdKept)
+    const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null || !(travelView?.active || (wildHere() && !cromwarkPeace(wildZoneKind())) || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept); CROWD-WIDE (2026-10-23, the owner: "implement the player toggle we have for the oblivion gate into the entire game"): everywhere, not the court alone - but never where a stranger can fight me (the open zone, a battle, an arena's room) nor under the travel view; AUDIT CROWD-WIDE A2: never cut, those I fight, trade, ride or sail with and a duel's two fighters (net/gate/gateCrowd.js crowdKept)
     peerCastVisuals(visiblePeers);   // SPELLFX1: a peer's new cast, drawn once
     if (modes?.gateArenaDay?.() != null) gateCourt?.stepsIn(drawable, (d) => (d?.shown ? onlineToScene(d.shown) : null));   // AUDIT GATE-FBX C3: a player stepping out of the court's way in opens it - every one in the room, the crowd's cut or not (the fire is the court's, not a body this screen draws)
     _veilT += dt > 0 ? dt : 0;
@@ -29217,7 +29240,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       layer: nameLayer, log: chatLog, colorOf: (id) => social?.colorOf(id) ?? null, blocked,
       renderer, font: townTalk.font, scale, hudScale: enhancedHudScale(),
       extra: noticeCountPoints,   // NOTICE1: "3 new" over a Notice Board, in the names' own face and law
-      mask: wildNameMask,   // WILD3: in the open zone no name but my party's and my guild's - the rest are Strangers, in red
+      mask: (p) => { const q = wildNameMask(p); return q ? performingTag(q, (id) => online?.peers?.get(id)?.shown ?? null) : q; },   // BUNNYFALL: a bard performing says so over their head; WILD3: in the open zone no name but my party's and my guild's - the rest are Strangers, in red
     });
     if (covered) { sayNetStatus(null); return; }
     sayNetStatus(online?.statusLine());   // AUDIT ONLINE D12/E11: connecting, reconnecting, refused, replaced - said, not silent (FONT1: in the enhanced face)
@@ -33377,7 +33400,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           const _hccPick = pickActivatableHit(cam.pos, useFwd, hcc.targets(), collider);   // HCC: the parked wagon's box, the following team's, the standing horse's (RegisterCustomActivation at 3.2), the same one ray
           const _springPick = pickActivatableHit(cam.pos, useFwd, springTargets(), collider);   // SURV3: a fountain, a well, a trough
           const _gatePick = gatePool ? pickActivatableHit(cam.pos, useFwd, [...gatePool.targets(), ...(riteHost?.targets() ?? [])], collider) : null;   // WB2: an Oblivion Gate's fire; WB12d: and the faithful's casket, on its ray
-          const _brokerPick = sigilBroker ? pickActivatableHit(cam.pos, useFwd, sigilBroker.targets(), collider) : null;   // SET7: the Sigil Broker (BROKER-CAGE: in her cage, its whole her box)
+          const _brokerPick = pickActivatableHit(cam.pos, useFwd, [...(sigilBroker?.targets() ?? []), ...cromwark.targets()], collider);   // BUNNYFALL: and Nyx at the Guild camp, on the Broker's arm   // SET7: the Sigil Broker (BROKER-CAGE: in her cage, its whole her box)
           const _csaBoatPick = csaActivationPick(cam.pos, useFwd);   // CSA-D: a boat's box or hull (RegisterCustomActivation 112400-112406 at 3.2), the same one ray
           // HARD2: the race is ONE law now (player/activationRace.js) - the
           // body against the pile, the torch against both and the door,
@@ -33443,7 +33466,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             // EOTB-IL: the mod's cart under the same ray (RegisterCustomActivation(41239, CheckWagon, 3.2)) - Info names it, any other mode opens the pack with the wagon
             // SURV3: a camp under the ray - Info and Talk name it, any other mode opens its menu; a water source fills the skins
             if (_race.gateWins) { if (_gatePick.distance > _gatePick.reach) setMidScreenText(tooFarAwayText()); else if (!riteHost?.activate(_gatePick.key)) gatePool.activate(_gatePick.key); }   // WB2: the gate's own door; WB12d: the casket's its own
-            else if (_race.brokerWins) { if (_brokerPick.distance > _brokerPick.reach) setMidScreenText(tooFarAwayText()); else sigilBroker.activate(_brokerPick.key, getInteractionMode()); }   // SET7: Info names her, Steal is watched, anything else opens her window
+            else if (_race.brokerWins) { if (_brokerPick.distance > _brokerPick.reach) setMidScreenText(tooFarAwayText()); else if (!cromwark.activate(_brokerPick.key, getInteractionMode())) sigilBroker?.activate(_brokerPick.key, getInteractionMode()); }   // SET7 (BUNNYFALL: Nyx's press first): Info names her, Steal is watched, anything else opens her window
             else if (_race.campWins) { if (_campPick.distance > _campPick.reach) setMidScreenText(tooFarAwayText()); else camps.activate(_campPick.key, getInteractionMode(), plaqueActionFor(_campPick.key)); }   // REST2: the plaque's lit row
             else if (_race.waterWins) { if (_springPick.distance > _springPick.reach) setMidScreenText(tooFarAwayText()); else drinkAtSpring(_springPick.key); }
             else if (_race.wagonWins) { if (_wagonPick.distance > _wagonPick.reach) setMidScreenText(tooFarAwayText()); else mwViewWagonActivate(getInteractionMode(), { say: (l) => townTalk.say(l), openInventoryWithWagon: () => { const w = makeInventoryWindow(EOTB_WAGON_PACK); if (w) townTalk.showOverlay(w); } }); }   // DISC10-E L3: a refused pack is null
@@ -34104,6 +34127,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const fogColor = jungle ? jungle.haze({ fogColor: sky.fogColorFor(fogNow), fogRow: fogNow, eye: mwv.eye, dt, minute, weather, wind: wd.on ? wd.windV : null, sky }) : sky.fogColorFor(fogNow);   // DS1: the mod's own RenderSettings.fogColor while it is the sky; SetSkyFogColor over the horizon otherwise, as before; BANTHA1: and the jungle's haze over it - its uniforms, the sky's, the colour weighed with it, measured from the view's own eye (AUDIT BANTHA1 HOST-7: the fog's uCamPos)
     renderer.setFog(fogNow.mode,
       fogNow.density, fogNow.start, fogNow.end, fogColor);
+    cromwark.fog(renderer, fogNow, fogColor);   // BUNNYFALL (Cromwark): the deep rings' purple haze
     if (dwPlayer) {   // DW-D: ApplyUnderwaterPresentation - DFU's own UnderwaterFog, the mod's range and colour, over the sky's
       const _uw = dwPlayer.fog({ mode: fogNow.mode, density: fogNow.density, start: fogNow.start, end: fogNow.end, color: [...fogColor] }, cam.pos[1], daylightFactor({ night: isNight(minute), daylightScale: daylightScale(minute), weatherScale: wxNow.sun }));
       if (_uw) { renderer.setFog(_uw.mode, _uw.density, _uw.start, _uw.end, new Float32Array(_uw.color)); jungle?.under(sky); }   // AUDIT BANTHA1 HAZE-7: under the sea the sea's fog alone - the jungle's air off with the air's
@@ -34219,6 +34243,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     mwViewDrawWagon(renderer, null, yardCull);   // EOTB-IL: the cart, when the transport is the cart; PERF-WAGON: by the street's view test
     riteHost?.draw(renderer, null, mwv.eye);   // WB12d: the faithful's circle and their tents - AUDIT WB12d (G6): its sigil from near the eye alone
     sigilBroker?.draw(renderer);   // BROKER-CAGE: the Sigil Broker's cage beside it, and its door
+    cromwark.draw(renderer);   // BUNNYFALL: the Adventurers' Guild's tent at the reach's edge
     starfall?.draw(renderer);   // STAR4: the craters and their stones
     gatePool?.draw(renderer);   // WB2: the Oblivion Gate's stone
     ketch?.drawSky(renderer);   // KETCH: the Sky-Ketch over Daggerfall, and her anchor-lift let down to the fields
@@ -34826,7 +34851,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (_mode() === 'exterior') { droppedTorches.tick(dt); livePersonBatches.push(...droppedTorches.batches()); camps.tick(dt); livePersonBatches.push(...camps.batches()); livePersonBatches.push(...navalFlames.batches()); }   // SURV3: the fires burn on the same axis; NAV-B: and a burning ship's
     portalGates.tick(_mode() === 'exterior' && walkMode && playerSpawned ? player.feetAt() : null, { hold: portalHoldNow });   // PORTAL1: the portals run out, and a step in is an arrival - indoors nobody steps in
     if (_mode() === 'exterior') livePersonBatches.push(...portalGates.batches());   // PORTAL1: the vortexes on the flats' axis
-    if (sigilBroker && _mode() === 'exterior') livePersonBatches.push(...sigilBroker.batches());   // SET7: the Broker on the flats' axis, as a foe stands
+    if (sigilBroker && _mode() === 'exterior') livePersonBatches.push(...sigilBroker.batches());
+    if (_mode() === 'exterior') livePersonBatches.push(...cromwark.batches());   // BUNNYFALL: Nyx at the Guild camp   // SET7: the Broker on the flats' axis, as a foe stands
     if (lefay && _mode() === 'exterior') livePersonBatches.push(...lefay.batches());   // LEFAY1: the flowers laid at the monument, and the ones in flight
     if (merchantYards && _mode() === 'exterior') livePersonBatches.push(...merchantYards.batches());   // MERCHANT-YARDS: the keepers and the Stables' horses on the flats' axis
     portBatchesInto(livePersonBatches);   // SHIPYARDS: the port's people on the flats' axis
@@ -35504,7 +35530,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             camp: pickActivatableHit(cam.pos, _hd, [...camps.targets(), ...(yards?.targets() ?? [])], collider),
             water: pickActivatableHit(cam.pos, _hd, springTargets(), collider),
             gate: gatePool ? pickActivatableHit(cam.pos, _hd, [...gatePool.targets(), ...(riteHost?.targets() ?? [])], collider) : null,   // WB2; WB12d: the casket
-            broker: sigilBroker ? pickActivatableHit(cam.pos, _hd, sigilBroker.targets(), collider) : null,   // SET7
+            broker: pickActivatableHit(cam.pos, _hd, [...(sigilBroker?.targets() ?? []), ...cromwark.targets()], collider),   // SET7; BUNNYFALL: Nyx
             boat: csaActivationPick(cam.pos, _hd),   // CSA-D
             // WORLD-HOVER H2: the two the PRESS races in its own arms
             // above raceActivation - a live foe and a walking

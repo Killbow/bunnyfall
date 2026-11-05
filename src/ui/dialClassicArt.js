@@ -27,7 +27,7 @@
 import { ImgFile } from '../formats/imgFile.js';
 import { CifRciFile } from '../formats/cifRciFile.js';
 import { bitmapToColor32 } from '../formats/color32Order.js';
-import { raceArt } from '../systems/races.js';
+import { raceArt, artRaceOf } from '../systems/races.js';
 import { racialOverrideHeadArt } from '../systems/vampirism.js';
 import { playerHeadImage, playerHeadKey } from '../characters/headPortraits.js';   // PORTRAIT3D
 
@@ -86,7 +86,7 @@ export function cutBarIcon(bar, palette, name) {
 export function faceSourceOf(entity) {
   const ov = racialOverrideHeadArt(entity);
   if (ov) return ov;
-  return { file: raceArt(entity?.race ?? 'Breton', entity?.gender ?? 'male').heads, record: Math.max(0, entity?.faceIndex ?? 0) };
+  return { file: raceArt(artRaceOf(entity), entity?.gender ?? 'male').heads, record: Math.max(0, entity?.faceIndex ?? 0) };
 }
 const faceKey = (entity) => { const f = faceSourceOf(entity); return `${f.file}#${f.record}|mw${playerHeadKey(entity)}`; };   // PORTRAIT3D: and the Morrowind head's
 

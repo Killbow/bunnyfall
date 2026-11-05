@@ -610,13 +610,15 @@ export async function buyInsignia({ db, nowS }, player, env, id, rid = null) {
   // before - two sales of two pieces at once each read the column empty, and the second wrote its id alone over the
   // first's: both paid for, one held (the id's shape is the law's own, insigniaWith's: space-separated, in sale order)
   // AUDIT FB1024 (BROKER-RID): the request id's guard rides the one UPDATE, and its row is written by that write alone
+  // BUNNYFALL (Cromwark, server-account/src/nyx.js): Nyx's pieces are paid out of the Nyx coins the account found
+  const nyx = offer.currency === 'nyx';
   const [sold] = await db.batch([
     db.prepare(
       `UPDATE players SET insignia = CASE WHEN COALESCE(insignia, '') = '' THEN ?2 ELSE insignia || ' ' || ?2 END,
-         insignia_spent = insignia_spent + ?3, last_seen = ?4
+         ${nyx ? 'nyx_spent = nyx_spent + ?3' : 'insignia_spent = insignia_spent + ?3'}, last_seen = ?4
        WHERE id = ?1
          AND (' ' || COALESCE(insignia, '') || ' ') NOT LIKE ('% ' || ?2 || ' %')
-         AND ${EMBERS_EARNED_SQL} - insignia_spent >= ?3${rid ? `
+         AND ${nyx ? 'nyx_found - nyx_spent' : `${EMBERS_EARNED_SQL} - insignia_spent`} >= ?3${rid ? `
          AND ${brokerRidFreeSql('?1', '?5')}` : ''}
        RETURNING insignia, insignia_spent`,
     ).bind(player.id, offer.id, offer.price, nowS, ...(rid ? [rid] : [])),
@@ -627,7 +629,7 @@ export async function buyInsignia({ db, nowS }, player, env, id, rid = null) {
     if (rid && (await brokerSaleOf(db, player.id, rid))?.kind === 'fence') return { error: 'fenced' };   // fenced while it was asked
     const now = await db.prepare('SELECT * FROM players WHERE id = ?').bind(player.id).first();
     if (insigniaHeld(now?.insignia).includes(offer.id)) return { error: 'owned' };
-    return { error: 'short', purse: await insigniaPurse({ db }, now ?? player), price: offer.price };
+    return { error: 'short', purse: nyx ? Math.max(0, (Number(now?.nyx_found) || 0) - (Number(now?.nyx_spent) || 0)) : await insigniaPurse({ db }, now ?? player), price: offer.price };
   }
   const after = { ...player, insignia: row.insignia, insignia_spent: row.insignia_spent };
   return { ok: true, bought: offer.id, ...wardrobeOf(after, env, nowS), purse: await insigniaPurse({ db }, after) };

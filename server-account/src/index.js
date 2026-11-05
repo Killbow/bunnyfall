@@ -297,6 +297,7 @@ import { festivalOf, findFestival, buyFestival, festivalTown, setOffering, fillO
 import { claimQl, QL_STATUS } from './questlines.js';   // QL12: a questline's step claimed - what the service witnessed, paid
 import { voteHome } from './homeVotes.js';   // HOME-VOTE: a town's word on a player's house
 import { signGuestbook, readGuestbook } from './guestbook.js';
+import { nyxFound, nyxTotal } from './nyx.js';   // BUNNYFALL (Cromwark): the Nyx coins counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
@@ -2268,6 +2269,12 @@ const service = {
         // wornNameOf). Nothing to hold, so nothing to refuse but a word that is neither: 400 `no-name-as`.
         const r = await chooseNameAs(ctx, who.player, body.as);
         return r.error ? no(r.error, 400, origin) : json(r, 200, origin);
+      }
+
+      if (path === '/v1/nyx/found' || path === '/v1/nyx/total') {   // BUNNYFALL (Cromwark): a Nyx coin found, and /nyxcoin's count (nyx.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path.endsWith('/found') ? await nyxFound(ctx, who.player, body) : await nyxTotal(ctx, who.player);
+        return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
       }
 
       if (path === '/v1/account/insignia' && request.method === 'POST') {

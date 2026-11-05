@@ -4,6 +4,7 @@
 // selectable with ?region=<name>&loc=<name>. Ground archive comes from the
 // location's climate (CLIMATE.PAK -> GetWorldClimateSettings).
 
+import { artRaceOf } from '../systems/races.js';   // BUNNYFALL: the race a character is drawn as
 import { setAirGround } from '../systems/weather/airTemperature.js';   // PRECIP1: the air's map (none here)
 import { walkModeOn, bindWalkMode } from '../player/walkMode.js';   // PADWALK: walk mode, one button on and off
 import { YesNoBoxWindow } from '../ui/yesNoBox.js';   // SOFTCAP3: the Master Skills offer
@@ -1664,7 +1665,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     loadSpellIndex(fetchBytes).then((sbi) => { spellsByIndex = sbi; return applyHeadlessChargen(playerEntity, Number(params.get('class')), { fetchBytes, spellsByIndex: sbi }); })
       .then(() => {
         preloadPaperDollArt({ renderer, fetchBytes, palette, getTexture },
-          { race: playerEntity.race, gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
+          { race: artRaceOf(playerEntity), gender: playerEntity.gender, faceIndex: playerEntity.faceIndex });
         surfacePlayer();
         questInitAtGameStart();   // QX1: OnStartGame for the headless character
       })

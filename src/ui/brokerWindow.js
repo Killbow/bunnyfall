@@ -164,7 +164,7 @@ export function brokerSkinCss() {
     scopeRules(frameCss(), (sel) => sel.includes('broker')),
   ].join('\n');
 }
-function injectBrokerSkinStyle(doc = document) {
+export function injectBrokerSkinStyle(doc = document) {
   if (isEnhancedPlus() || doc.getElementById?.(BROKER_SKIN_STYLE_ID) || [...(doc.head?.children ?? [])].some((c) => c.id === BROKER_SKIN_STYLE_ID)) return;
   const st = doc.createElement('style');
   st.id = BROKER_SKIN_STYLE_ID;
