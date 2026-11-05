@@ -137,6 +137,10 @@ const bank = {
         ] },
         // MARKS1 (PROF0 10.5): online, the Bank of the Empire buys Marks - 8 gold each, 300 a day, paid into this account
         // BANK-FIT: the silver's figures are one short line under its two key rows, not six rows of their own
+        // BUNNYFALL (Phase 5): the account vault - items and gold shared by every character of the account
+        w.hooks.accountVault?.() ? { type: 'group', title: 'Account vault', blocks: [{ type: 'actions', layout: 'column', items: [
+          { label: 'Open the vault', act: () => w.hooks.openAccountVault?.(), disabled: !!w.box },
+        ] }] } : null,
         w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Silver', blocks: [
           { type: 'stats', items: [
             ['Silver held', marksText(w.hooks.marks.balance() ?? 0)],

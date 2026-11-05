@@ -2169,6 +2169,17 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
  * GUILD1: THE GUILDS (server-account/src/guilds.js) through the one door - the character's guild, the account's
  * invitations, and every change to one. Every answer is `call`'s shape; no session is `no-session`, never a throw.
  */
+/** BUNNYFALL (Phase 5): the account vault's door (server-account/src/accountVault.js) - the shelf and the purse every
+ *  character of the account reaches at a bank. */
+export function accountVaultDoor({ fetch, storage }) {
+  const post = sessionPost({ fetch, storage });
+  return {
+    read: () => post('/v1/account/vault', {}),
+    put: ({ character, realm, pick, item, count }) => post('/v1/account/vault/put', { character, realm, pick, item, count }),
+    take: ({ character, realm, slot, count = null, at = null }) => post('/v1/account/vault/take', { character, realm, slot, ...(count == null ? {} : { count }), ...(at == null ? {} : { at }) }),
+    gold: ({ character, realm, gold, kind, region = null, letter = false }) => post('/v1/account/vault/gold', { character, realm, gold, kind, ...(region == null ? {} : { region }), ...(letter ? { letter: true } : {}) }),
+  };
+}
 export function accountGuilds({ fetch, storage }) {
   const post = sessionPost({ fetch, storage });
   return {

@@ -356,6 +356,7 @@ import {
 import { createTavernWindow, tavernDoorReady } from '../ui/tavernDoor.js';   // the enhanced/native fork, same law as ui/tradeDoor.js
 import { freeTavernRooms } from '../systems/guild/guildServices.js';
 // B2: the bank - the window, the per-region accounts and the purse seam.
+import { createAccountVaultOverlay } from '../ui/accountVaultWindow.js';   // BUNNYFALL (Phase 5): the account vault, from the bank
 import { BankWindow, preloadBankArt, bankArtLoaded, BANK_RECTS, BANK_PANEL_X, BANK_PANEL_Y } from '../ui/bankWindow.js';
 import { BankPurchaseWindow, preloadPurchaseArt, purchaseArtLoaded } from '../ui/bankPurchaseWindow.js';   // H2
 import { titleDeed, shipLabel, BOAT_DEED_TEMPLATE as FLEET_DEED_TEMPLATE } from '../systems/fleet.js';   // HOLDINGS: a bought deed into the Fleet's book
@@ -5724,6 +5725,18 @@ export function createWorldModes(host) {
         open: () => host.marks.state.open, balance: () => host.marks.state.balance, today: () => host.marks.state.today,
         pending: () => host.marks.pending,
       } : null,
+      // BUNNYFALL (Phase 5): the account vault, from the enhanced bank - a realm character's alone; the bank is restored when it closes
+      accountVault: () => !!host.accountVault?.(),
+      openAccountVault: () => {
+        const book = host.accountVault?.();
+        if (!book) return false;
+        const bag = host.accountVaultPack();
+        let vw = null;
+        vw = createAccountVaultOverlay({ book, pack: bag.pack, refuses: bag.refuses, onClose: () => { if (interiorOverlay === vw) interiorOverlay = win; } });
+        if (!vw) return false;
+        interiorOverlay = vw;
+        return true;
+      },
       sellMarks: host.marks ? (n) => host.marks.sell(n, marksSaleCredit(() => playerEntity.bankAccounts, bankRegion, host.saveSoon), bankRegion()) : null,   // PROF-SAVE: saved soon
       onClose: () => { if (interiorOverlay === win) interiorOverlay = null; },
     });  win = enhancedWindow(win, 'bank');   // PORT4: the enhanced skin's face; the classic window unchanged

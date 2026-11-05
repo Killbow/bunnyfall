@@ -297,6 +297,8 @@ import { festivalOf, findFestival, buyFestival, festivalTown, setOffering, fillO
 import { claimQl, QL_STATUS } from './questlines.js';   // QL12: a questline's step claimed - what the service witnessed, paid
 import { voteHome } from './homeVotes.js';   // HOME-VOTE: a town's word on a player's house
 import { signGuestbook, readGuestbook } from './guestbook.js';
+import { accountVaultOf, accountVaultPut, accountVaultTake, accountVaultGold } from './accountVault.js';   // BUNNYFALL (Phase 5): the account vault
+const AVAULT_STATUS = Object.freeze({ 'avault-full': 409, 'avault-empty': 404, 'avault-moved': 409, 'avault-gold-full': 409, 'avault-gold-short': 409, 'vault-goods': 409, 'realm-only': 400, 'realm-needed': 409, 'bad-gold': 400, 'bad-vault-item': 400, 'bad-vault-count': 400, 'bad-vault-slot': 400 });
 import { nyxFound, nyxTotal } from './nyx.js';   // BUNNYFALL (Cromwark): the Nyx coins counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
@@ -2269,6 +2271,18 @@ const service = {
         // wornNameOf). Nothing to hold, so nothing to refuse but a word that is neither: 400 `no-name-as`.
         const r = await chooseNameAs(ctx, who.player, body.as);
         return r.error ? no(r.error, 400, origin) : json(r, 200, origin);
+      }
+
+      {   // BUNNYFALL (Phase 5): the account vault - a shelf and a purse every character of the account reaches (accountVault.js)
+        const vault = { '/v1/account/vault': accountVaultOf, '/v1/account/vault/put': accountVaultPut, '/v1/account/vault/take': accountVaultTake, '/v1/account/vault/gold': accountVaultGold }[path];
+        if (vault) {
+          if (request.method !== 'POST') return no('method', 405, origin);
+          if (accountKind(who.player) !== 'linked') return no('guilds-need-account', 403, origin);
+          const r = await vault({ ...ctx, env, bucket: env.SAVES }, who.player, body);
+          if (!('error' in r)) return json(r, 200, origin);
+          if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);
+          return no(r.error, AVAULT_STATUS[r.error] ?? GUILD_STATUS[r.error] ?? 400, origin);
+        }
       }
 
       if (path === '/v1/nyx/found' || path === '/v1/nyx/total') {   // BUNNYFALL (Cromwark): a Nyx coin found, and /nyxcoin's count (nyx.js)

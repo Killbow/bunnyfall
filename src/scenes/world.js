@@ -834,7 +834,7 @@ import { createFirmamentBook, setFirmamentBook } from '../net/firmament/firmamen
 import { setFirmamentTree, setFirmamentOnline, setFirmamentMentoring } from '../systems/firmamentLive.js';   // FIRM1: the tree in force, online alone
 import { starsFor } from '../net/firmament/firmamentLaw.js';   // FIRM1: the Stars a Renown level brings, said with it
 import { withoutFirmament } from '../systems/firmamentPowers.js';   // FIRM1: a strike or a spell at a player - a duel's, a siege's, the Wrothgarian zone's - is rolled with the sky off
-import { accountTokenMinter, storedSession, muteAccount, serviceBase, accountRefusalText, accountDuels, accountWild, accountRenown, accountRoll, accountHomes, accountDecor, accountGuilds, accountGates, accountMarks, accountCards, accountBoard, accountProf, accountRaids, accountMarket, accountWrits, accountSeats, accountSerpents, accountSds, accountLamp, accountFirmament, nameWhyText } from '../net/accountClient.js';   // NAME-AS: nameWhyText, why my character's name stood aside   // ACC1d: the hello's signed word, minted per connection from the account session this device holds   // ACC4's beat knocks through the tab's heartbeat (SCALE4c), not from here
+import { accountTokenMinter, storedSession, muteAccount, serviceBase, accountRefusalText, accountDuels, accountWild, accountRenown, accountRoll, accountHomes, accountDecor, accountGuilds, accountGates, accountMarks, accountCards, accountBoard, accountProf, accountRaids, accountMarket, accountWrits, accountSeats, accountSerpents, accountSds, accountLamp, accountFirmament, nameWhyText, accountVaultDoor } from '../net/accountClient.js';   // NAME-AS: nameWhyText, why my character's name stood aside   // ACC1d: the hello's signed word, minted per connection from the account session this device holds   // ACC4's beat knocks through the tab's heartbeat (SCALE4c), not from here
 import { parseModCommand, runModCommand, mutedText, mutedNotices } from '../net/moderation.js';   // MOD1: /mute and /unmute, and the line a muted player reads
 import { createHeartbeat, whileLive } from '../net/heartbeat.js';   // SCALE4c: the beat, the letterbox and the town's board in one request
 import { startPlayClock } from '../net/playClock.js';   // ACC4: time played, knocked from here and measured by the account service's clock
@@ -952,6 +952,7 @@ import { wireRealmHolds } from './realmHoldHost.js';   // INT3 + AUTO-HOLD: the 
 import { checkpointAllowed, checkpointWhenDue, checkpointedTradePack, createSaveSoon } from '../systems/online/onlineCheckpoint.js';   // REALM P0.5: the character saved as it plays online; PROF-SAVE: and at once after a professions act
 import { watchRealmUnsaved } from '../systems/online/realmUnsavedNotice.js';   // the player told while their saves do not reach the realm
 import { createTradeManager, TRADE_RANGE_M, inTradeRange, tradeDistance } from '../net/tradeSession.js';   // TRADE1: the player-to-player trade's state machine (pure)
+import { createAccountVaultBook } from '../net/accountVaultBook.js';   // BUNNYFALL (Phase 5): the account vault
 import { createTradePack, tradeRefusal, packTradeRefusal, createMarketGoods } from '../systems/tradePack.js';   // TRADE1: the trade's door into the real pack; PROF5: what may not be sold; MARKET-ANY: the pack's side of a piece from the pack
 import { isLocked } from '../systems/item/itemLock.js';   // PROF5: a locked piece is not listed
 import { createPlayerTradeWindow, playerTradeReady } from '../ui/playerTradeDoor.js';   // TRADE1: the enhanced window two players share
@@ -20252,6 +20253,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let socialPanel = null;
   let mail = null;   // MAIL1: the letterbox (net/mail.js MailBox), made with the panel that draws it
   let postBox = null;   // SERVER-POST: the server's post (net/serverPost.js PostBox), made beside the letterbox
+  let accountVault = null;   // BUNNYFALL (Phase 5): the account vault's book (net/accountVaultBook.js), made beside the guild's
   let guildBook = null;   // GUILD1b: the character's guild (net/guild/guildBook.js GuildBook), made with the panel that draws it
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
@@ -21954,6 +21956,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // town again, as onHall does - its halls' `keeper` was the town's answer's, believed a minute
       onRank: () => { onlineHomes?.bump?.(); onlineHomes?.ensure?.(_musicLoc?.mapTableData?.mapId, { force: true })?.catch?.(() => {}); },
     });
+    // BUNNYFALL (Phase 5): THE ACCOUNT VAULT - a shelf and a purse every character of the account reaches at a bank (the
+    // guild vault's own machinery, one owner; opened from the bank window, ui/accountVaultWindow.js). A realm character's alone.
+    accountVault = realmSession ? createAccountVaultBook({
+      door: accountVaultDoor({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }),
+      character: () => characterIdOf(playerEntity),
+      realm: { act: (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }), abandon: (why) => realmSession.abandon(why) },
+      pack: { items: () => (playerEntity.items ??= []), add: (rec) => { const it = { ...rec }; for (const k of RECEIVER_MARKS) delete it[k]; addItem((playerEntity.items ??= []), setItemFields(it), 'back'); }, changed: () => { saveSoon.changed(); }, refuses: (it) => !!packTradeRefusal(it, playerEntity) },
+      wallet: () => guildBook.wallet(),
+    }) : null;
     socialPanel = createSocialPanel({
       social,
       mail,
@@ -29921,6 +29932,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     hearHomeLayouts,
     holdRealmDeed: onlineHomes ? (d) => holdGrantedDeed(d) : null,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: an order's house, held by the service
     marks: marksBook,   // MARKS1: the Bank of the Empire's Marks, online
+    accountVault: () => accountVault,   // BUNNYFALL (Phase 5): the bank's vault button
+    accountVaultPack: () => ({ pack: () => (playerEntity.items ??= []), refuses: (it) => !!packTradeRefusal(it, playerEntity) }),
     saveSoon: () => saveSoon.changed(),   // PROF-SAVE: a Marks sale's gold in the Bank's account saved soon
     homeDecor,   // DECOR1c: an online home's placed pieces (null offline - the house's and the ship's are the save's)
     decorCharacter: () => characterIdOf(playerEntity),   // DECOR1d: the character an online home's placements are written as
