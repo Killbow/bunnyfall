@@ -406,7 +406,7 @@ export function drawNearDeathFlicker(renderer, canvas, cur, dt, paint = true) {
 
 /** The bows, by template (ItemEnums.cs Weapons: Short_Bow 129,
  *  Long_Bow 130). */
-export const BOW_TEMPLATES = Object.freeze([129, 130]);
+export const BOW_TEMPLATES = Object.freeze([129, 130, 563]);   // BUNNYFALL: 563 is the crossbow
 /** DaggerfallHUD.cs:27-28 - the two label colours. */
 export const REAL_ARROWS_COLOR = Object.freeze([0.6, 0.6, 0.6, 1]);
 export const CONJURED_ARROWS_COLOR = Object.freeze([0.18, 0.32, 0.48, 0.5]);

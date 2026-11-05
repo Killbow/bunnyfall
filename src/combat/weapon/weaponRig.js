@@ -36,6 +36,8 @@ import { ARMOR_ENUM } from '../enemyEquipment.js';   // MW-D32
 import { loadFpsWeaponArt, drawFpsWeapon, fpsWeaponQuad, weaponTypeForItem, WEAPON_TYPES, fpLightingOn, WEAPON_FILE, plainWeaponType, isGunType, isPistoletType } from '../fpsWeapon.js';
 import { spriteGlow, meshGlow } from '../../systems/weaponGlow.js';   // WEAPON-GLOW1: the held weapon's element, as each hand shows it
 import { loadThunderlockArt } from '../thunderlockArt.js';
+import { loadCrossbowArt } from '../crossbowArt.js';   // BUNNYFALL: the crossbow's own first-person frames
+import { CROSSBOW_TEMPLATE } from '../../characters/crossbowIds.js';
 import { THUNDERLOCK_NUM_FRAMES } from '../../characters/weaponStates.js';   // THUNDERLOCK-ART2's audit: the cycle's length, never a literal six
 import { loadPistoletArt } from '../gun/pistoletArt.js';   // PISTOLET: the second gun's strip
 import { createPistolLane } from '../gun/pistolLane.js';   // PISTOL-PORT: one Pistolet or a pair on the pistol lab's own frame, the module the rig wires (HOST-SPLIT)
@@ -932,7 +934,8 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // in a host that has not loaded ARENA2's palette yet, and a
     // classic weapon still cannot.
     const thunderlock = isGunType(type);   // PISTOLET: either gun
-    if (!thunderlock && !palette) return null;
+    const crossbow = type === WEAPON_TYPES.Bow && item?.templateIndex === CROSSBOW_TEMPLATE;   // BUNNYFALL: our own art, no palette needed
+    if (!thunderlock && !crossbow && !palette) return null;
     // DW1: the key carries the name the atlas is ASKED by. Under Diverse
     // Weapons a longsword and a broadsword are the same WEAPON_TYPE with
     // different sprite sets, and an enchanted one a third - and the flag
@@ -948,13 +951,15 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // is what the mod is for, and its author's tables are honoured over
     // DFU's cache slot.
     const gilded = thunderlock && item?.rarity === 'gilded';   // GILDED1: the Hourlock's frames in gold leaf (thunderlockArt.js gildFrame)
-    const key = `${type}:${item?.material ?? 0}:${thunderlock ? (gilded ? 'gilded' : '') : atlasFileName(item, WEAPON_FILE[type] ?? '', undefined, plain ? false : undefined)}`;
+    const key = crossbow ? 'crossbow' : `${type}:${item?.material ?? 0}:${thunderlock ? (gilded ? 'gilded' : '') : atlasFileName(item, WEAPON_FILE[type] ?? '', undefined, plain ? false : undefined)}`;
     if (!cache.has(key)) {
       cache.set(key, null);
       (isPistoletType(type)
         ? loadPistoletArt(renderer, { magic: type === WEAPON_TYPES.Pistolet_Magic, gilded })   // PISTOLET: its own strip
         : thunderlock
         ? loadThunderlockArt(renderer, { magic: type === WEAPON_TYPES.Thunderlock_Magic, gilded })
+        : crossbow
+        ? loadCrossbowArt(renderer)
         : loadFpsWeaponArt(fetchBytes, palette, renderer, type, item?.material ?? 0, item, { plain }))
         .then((art) => cache.set(key, art))
         .catch((e) => console.warn('[weaponRig] art load failed', key, e));

@@ -26,7 +26,7 @@ import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from './thunderlockIds.js';  
 export const ITEM_HANDS = Object.freeze({ None: 0, RightOnly: 1, LeftOnly: 2, Either: 3, Both: 4 });
 /** Weapons.Short_Bow / Weapons.Long_Bow - the one switch case in
  *  GetItemHands that is not a constant (ItemEquipTable.cs:633-635). */
-export const BOW_HAND_TEMPLATES = Object.freeze([129, 130]);
+export const BOW_HAND_TEMPLATES = Object.freeze([129, 130, 563]);   // BUNNYFALL: 563 is the crossbow (characters/crossbowIds.js)
 const GROUP_NAME = { [ITEM_GROUPS.Armor]: 'Armor', [ITEM_GROUPS.Jewellery]: 'Jewellery', [ITEM_GROUPS.MensClothing]: 'MensClothing', [ITEM_GROUPS.WomensClothing]: 'WomensClothing' };
 
 export function getItemHands(item, { bowLeftHand = getBool('Enhancements', 'BowLeftHandWithSwitching') } = {}) {

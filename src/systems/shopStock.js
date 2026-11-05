@@ -248,6 +248,7 @@ import { BOOK_TEMPLATE, createRegularMagicItem, createRandomPotion, randomlyAddP
 import { SPELLBOOK_TEMPLATE_INDEX } from './spell/spellMaker.js';   // G4: one home for MiscItems 132
 import { restItemsStock } from './rest/restItems.js';   // REST6: the Bedroll, the Ember Jar, Firewood and the draughts
 import { scrollShelfStock } from './scrolls/spellScrolls.js';   // BUNNYFALL: spell scrolls on the shelves
+import { crossbowShelfStock } from './crossbow.js';   // BUNNYFALL: the crossbow on the Weapon Smith's shelf
 import { isLockpick, ensureEndlessLockpicks, restockLockpicks } from './lockpick/lockpickItem.js';   // LOCKPICK: the counter's endless picks
 import { provisionsStock, campfireStock, createSurvivalItem, isSurvivalItem, isCampfireKit, TEMPLATE as SURVIVAL_TEMPLATE, ensureEndlessProvisions, ENDLESS_RATIONS_STACK } from './survival/items.js';   // SURV2: the general store's provisions shelf   // REST2: and online the Campfire alone, the arc Off
 import { sharedClockOn } from './worldTick.js';
@@ -552,6 +553,10 @@ export function stockShopShelf({ buildingType, quality }, playerEntity = {}, { r
   if (shelfIndex === 0 && (buildingType === BUILDING_TYPES.Alchemist || buildingType === BUILDING_TYPES.GeneralStore || buildingType === BUILDING_TYPES.PawnShop)) {
     const kind = buildingType === BUILDING_TYPES.Alchemist ? 'Alchemist' : buildingType === BUILDING_TYPES.GeneralStore ? 'GeneralStore' : 'PawnShop';
     for (const it of scrollShelfStock(kind, quality, rolls)) addItem(items, it);
+  }
+  // BUNNYFALL: the crossbow, on the first shelf of a Weapon Smith (and rarely a Pawn Shop), after every other draw
+  if (shelfIndex === 0 && (buildingType === BUILDING_TYPES.WeaponSmith || buildingType === BUILDING_TYPES.PawnShop)) {
+    for (const it of crossbowShelfStock(buildingType === BUILDING_TYPES.WeaponSmith ? 'WeaponSmith' : 'PawnShop', quality, rolls)) addItem(items, it);
   }
   // ENDLESS PROVISIONS: a General Store's and a Pawn Shop's counter shelf has a Campfire Kit and a full stack of Rations in
   // every tier, Climates & Calories Off and offline too - after DFU's draws, from no roll. Online a purchase stands them

@@ -31,6 +31,7 @@ import { atlasFileName } from './diverseWeapons/diverseWeapons.js';   // DW1: FP
 import { customWeaponImage } from './diverseWeapons/diverseWeaponsAssets.js';   // DW1: TryImportCifRci's answer, off the player's own bundles
 import { MATERIAL_NAMES } from '../systems/item/itemInfo.js';   // MetalTypes' names, for GetNameCifRci's suffix
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: GetWeaponType is a virtual a custom class answers
+import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';   // BUNNYFALL: the crossbow swings the bow's machine
 import { THUNDERLOCK_TEMPLATE, PISTOLET_TEMPLATE } from '../characters/thunderlockIds.js';   // the port's own weapon (a leaf - see the file)
 import { THUNDERLOCK_STRIP } from './gun/thunderlockStrip.js';   // THUNDERLOCK-ART2: each gun's cycle its strip's own frame count - leaves both
 import { PISTOL_STRIP } from './gun/pistolStrip.js';
@@ -237,6 +238,7 @@ export function weaponTypeForItem(item) {
   if (item.templateIndex === THUNDERLOCK_TEMPLATE) {
     return isEnchanted(item) ? T.Thunderlock_Magic : T.Thunderlock;
   }
+  if (item.templateIndex === CROSSBOW_TEMPLATE) return T.Bow;   // BUNNYFALL: a bow to the machine; its art is crossbowArt.js's (weaponRig)
   if (item.templateIndex === PISTOLET_TEMPLATE) return isEnchanted(item) ? T.Pistolet_Magic : T.Pistolet;   // PISTOLET: the same arm
   const cls = customItemClass(item.templateIndex);   // RRI1: an Archer's Axe swings the battleaxe sheet, a Light Flail the flail's
   if (cls?.weaponType) return T[cls.weaponType(isEnchanted(item))];

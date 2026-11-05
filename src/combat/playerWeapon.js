@@ -30,6 +30,7 @@ import { GUN_FEEL, GUN_TICK_SECONDS, thunderlockReloadSeconds, PISTOLET_FEEL } f
 import { DIRECTION_TO_STRIKE, ATTACKS_FP, sampleClip } from '../characters/anims.js';
 import { combinePose } from '../characters/animate.js';
 import { weaponTypeForItem, WEAPON_TYPES, isGunType, isPistoletType } from './fpsWeapon.js';
+import { CROSSBOW_TEMPLATE, CROSSBOW_COOLDOWN_MULT } from '../characters/crossbowIds.js';   // BUNNYFALL: the crossbow's slower cycle
 import { createPair, PAIR_TRIGGER } from './gun/pistolPair.js';   // PISTOL-PORT: a Pistolet fires on the pistol lab's own machines
 import { WEAPONS } from '../characters/weapons.js';
 import { POSES } from '../characters/poses.js';
@@ -108,7 +109,7 @@ export function playerMeleeCanHit(dist, inView, losClear) {
 // here - so binding that ONE field to the used hand carries them all.
 
 /** WeaponManager.cs:45 - the switch-delay divisor, a float. */
-import { BOW_SWITCH_DIVISOR } from '../characters/weaponStates.js';   // ONE home (WeaponManager.cs:45); a12's switch law reads it here
+import { BOW_SWITCH_DIVISOR, getBowCooldownTime } from '../characters/weaponStates.js';   // ONE home (WeaponManager.cs:45); a12's switch law reads it here
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 export { BOW_SWITCH_DIVISOR };
 
@@ -936,7 +937,7 @@ export class PlayerWeapon {
     this._bladeTurn = !!blade;
     if (pistols && !blade) return this._pistolsStep(dt);   // PISTOL-PORT: a Pistolet steps on the pistol lab's machines
     (pistols ?? this._pistolsAway)?.step(dt);   // and pistols put by for another weapon reload on (MIXED-PAIR: the pair's gun beside its blade)
-    this._tuneClassic(t);
+    this._tuneClassic(t, blade ?? this.weapon);
     const evs = machineStep(this.machine, dt, this.liveSpeed, this.animCtx?.() ?? null);
     // TWO-HANDS: a strike that ends is the one the next alternates from - its hand, and the machine time it ended
     if (evs.includes('done')) { this._lastHand = this.strike?.hand ?? this.leadHand; this._lastEnd = this.machine.now; this.strike = null; }
@@ -945,7 +946,7 @@ export class PlayerWeapon {
 
   /** The classic machine's per-weapon law for WeaponTypes `t` - the ranged half, the frame count, the gun's own cadence
    *  (update(), each step; MIXED-PAIR: and a blade's swing begun beside the gun, whose shot left the machine on its clock). */
-  _tuneClassic(t) {
+  _tuneClassic(t, held = null) {
     // THE PORT'S OWN WEAPON is RANGED but not a BOW, and the
     // difference is the whole of why it is worth saying: a bow DRAWS -
     // StrikeUp winds up, the string holds at frame 3, StrikeDown
@@ -962,7 +963,9 @@ export class PlayerWeapon {
     // BAL-ARCHERY: the reload is thunderlockReloadSeconds of live Speed, committed onto cooldownUntil
     // when the shot ends, so a Speed change mid-pump does not move the pump already running.
     this.machine.tick = thunderlock ? GUN_TICK_SECONDS : null;
-    this.machine.cooldown = thunderlock ? thunderlockReloadSeconds(this.liveSpeed) : null;
+    this.machine.cooldown = thunderlock ? thunderlockReloadSeconds(this.liveSpeed)
+      : t === WEAPON_TYPES.Bow && held?.templateIndex === CROSSBOW_TEMPLATE ? getBowCooldownTime(this.liveSpeed) * CROSSBOW_COOLDOWN_MULT   // BUNNYFALL: the crossbow takes twice the bow's rest
+      : null;
     this.machine.hitFrame = thunderlock ? GUN_FEEL.hitFrame : null;
   }
 

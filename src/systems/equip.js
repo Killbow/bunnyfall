@@ -639,7 +639,7 @@ export function getEquipSound(item) {
         case 125: return 414;                        // Flail
         case 124: case 126: return 413;              // Mace, Warhammer
         case 115: return 380;                        // Staff
-        case 129: case 130: return 416;              // Short_Bow, Long_Bow
+        case 129: case 130: case 563: return 416;    // Short_Bow, Long_Bow (BUNNYFALL: 563 the crossbow)
         default: return null;
       }
     default:
