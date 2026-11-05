@@ -969,7 +969,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BUNNYFALL: A SALVAGE - found pieces (salvageLaw.js descriptors) broken into their recipes' materials, into the
      *  Stores. The id is the ask's own until an answer comes, so a press after a lost answer is the same salvage.
      *  Answers the service's answer; the Stores and the tracks moved with it - the caller takes the pieces out of the pack. */
-    async salvage(pieces, { commit = null } = {}) {
+    async salvage(pieces, { commit = null, realm = null, picks = null } = {}) {
       const c = character();
       if (!c) return { ok: false, error: 'prof-character' };
       const origin = slot();
@@ -977,7 +977,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       const m = idFor(key, PROF_QUEUE_MS);
       if (m.promise) return m.promise;
       m.promise = (async () => {
-        const r = await ask(() => door.salvage(c, pieces, m.id, commit), origin);
+        // BF-02: a realm act asks once - the realm act asks again itself (realmSaves.js realmGoldAct), as the disenchant's does
+        const once = () => origin === slot() ? door.salvage(c, pieces, m.id, commit, realm, picks) : Promise.resolve({ ok: false, error: 'elsewhere', elsewhere: true });
+        const r = realm ? await Promise.resolve().then(once).catch(() => ({ ok: false, error: 'offline' })) : await ask(() => door.salvage(c, pieces, m.id, commit), origin);
         m.promise = null;
         if (!keptAnswer(r) && r?.error !== 'elsewhere') ids.delete(key);
         if (origin !== slot()) return { ...r, elsewhere: true };

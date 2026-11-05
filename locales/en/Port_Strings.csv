@@ -603,7 +603,7 @@ account.refusal.profNoPackForm,"That stays in the Stores and cannot go in your p
 account.refusal.profNoPiece,"Only a piece a crafter made online can be disenchanted."
 account.refusal.profNotYours,"That piece is not yours to disenchant."
 account.refusal.profPieceBusy,"That piece is listed on the market, on its way to you, or placed in a home, so it cannot be disenchanted now."
-account.refusal.profPieceGone,"That piece is not loose in your pack, so it cannot be disenchanted."
+account.refusal.profPieceGone,"That piece is not loose in your pack, so it cannot be taken apart."
 account.refusal.profPixel,"The land here does not match the server's map. The game may need updating."
 account.refusal.profRank,"Your craft is not yet skilled enough for that."
 account.refusal.profRate,"You have done too much crafting this hour. Try again later."

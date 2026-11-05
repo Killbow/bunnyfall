@@ -301,6 +301,7 @@ import { rollNoticeDoors } from './rollNoticeHost.js';   // SEAT-WORDS / STANDIN
 import { utcDayOfMs } from '../net/nodeLaw.js';   // PROF8: a haul's UTC day
 import { registerPlayerKillListener } from '../systems/playerKills.js';   // PROF7: the player's own kill stamps a body
 import { setProfessionsPages, forgeOffered, stationDoorAt, stationColdLine, disenchantableOf, BAG_PAGE_WORDS } from '../ui/professions/profPages.js';   // PROF1: the Professions and Stores pages on the character sheet's rail; CARP-YARD: the joinery's bench opens it
+import { setSalvageRealmAct } from '../ui/salvageMaterials.js';   // BF-02
 import { createCraftHost } from './craftHost.js';   // BUNNYFALL: the crafting window's upgrade and salvage
 import { materialPicture, itemPicture } from '../ui/menu/menuPicture.js';   // MENU-ORDER: a material's and a piece's picture for the menus' rows
 import { createSaddleHost } from './saddleHost.js';   // STEED-UI: the saddle panel - the horse and the wagon on screen (Enhanced Plus)
@@ -11713,6 +11714,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
        *  (fortLaw.js hallStepsFor) */
       const myHall = (profession) => hallStepsFor(seatHere(_musicLoc?.mapTableData?.mapId), guildBook?.guild?.id ?? null, profession);
       const alchemyHall = () => myHall('alchemy');
+      // BUNNYFALL AUDIT BF-02: a realm character's salvage is the record's own act - the pieces leave the saved record in the
+      // salvage's batch (ui/salvageMaterials.js), the save checkpointed first
+      setSalvageRealmAct(realmSession ? (o) => realmGoldAct({ ...o, session: realmSession, checkpoint: () => onlineCheckpoint() }) : null);
       setProfessionsPages({
         ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
         book: profBook, name: (k) => materialLabel(k), withdraw: (k, n) => profBook.withdraw(k, n, profMint),

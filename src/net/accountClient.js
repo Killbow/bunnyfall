@@ -558,7 +558,7 @@ const REFUSAL_WORDS = {
   'prof-no-piece': () => t('account.refusal.profNoPiece', 'Only a piece a crafter made online can be disenchanted.'),
   'prof-not-yours': () => t('account.refusal.profNotYours', 'That piece is not yours to disenchant.'),
   'prof-piece-busy': () => t('account.refusal.profPieceBusy', 'That piece is listed on the market, on its way to you, or placed in a home, so it cannot be disenchanted now.'),
-  'prof-piece-gone': () => t('account.refusal.profPieceGone', 'That piece is not loose in your pack, so it cannot be disenchanted.'),   // AUDIT PROF-541 B2
+  'prof-piece-gone': () => t('account.refusal.profPieceGone', 'That piece is not loose in your pack, so it cannot be taken apart.'),   // AUDIT PROF-541 B2
   // CRAFT4: the temper's and the Reforge with Essence's refusals
   'prof-temper': () => t('account.refusal.profTemper', 'That piece cannot be tempered. Smiths temper weapons and metal armor, and tailors temper leather and cloth.'),
   'prof-temper-top': () => t('account.refusal.profTemperTop', 'That piece cannot be improved any further. Masterwork is the top.'),   // BUNNYFALL: tempers reach Masterwork
@@ -2397,7 +2397,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     master: (character, recipe, lines, name, rid, dye = null) => post('/v1/prof/master', { character, recipe, lines, name, rid, ...(dye == null ? {} : { dye }) }),   // MASTER-ART: a Master's work, its three lines chosen
     reforge: (character, tier, rid, count = 0) => post('/v1/prof/reforge', { character, tier, count, rid }),   // CRAFT4: an Enchanter's Reforge for Arcane Essence - the seed its line is rolled with; REFORGE-REPLACE: the piece's reforges, its price doubled for each
     disenchant: (character, provenance, rid, realm = null) => post('/v1/prof/disenchant', { character, provenance, rid, ...(realm ? { realm } : {}) }),   // PROF12: a crafted piece into Arcane Essence; AUDIT PROF-541 B2: a realm character's record where it stands
-    salvage: (character, pieces, rid, commit = null) => post('/v1/prof/salvage', { character, pieces, rid, ...(commit?.length ? { commit } : {}) }),   // BUNNYFALL: found gear into materials
+    salvage: (character, pieces, rid, commit = null, realm = null, picks = null) => post('/v1/prof/salvage', { character, pieces, rid, ...(commit?.length ? { commit } : {}), ...(realm ? { realm, picks } : {}) }),   // BF-02: a realm character's pieces leave its record   // BUNNYFALL: found gear into materials
     upgrade: (character, recipe, rid) => post('/v1/prof/upgrade', { character, recipe, rid }),   // BUNNYFALL: a found piece one metal up
     writs: (character, region, climate = null) => post('/v1/writs/list', { character, region, ...(Number.isSafeInteger(climate) ? { climate } : {}) }),   // BUNNYFALL WRIT-GEN: the board town's climate
     deliver: (character, id, rid) => post('/v1/writs/deliver', { character, id, rid }),

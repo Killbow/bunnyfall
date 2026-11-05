@@ -11,6 +11,12 @@ import { isBound } from '../systems/item/itemBound.js';
 import { isLocked } from '../systems/item/itemLock.js';
 import { isEquipped } from '../systems/equip.js';
 import { socketGems } from '../systems/loot/lootRarity.js';
+import { welkyndShards } from '../systems/gate/gateSpoils.js';
+import { addItem } from '../systems/inventory.js';
+
+/** BUNNYFALL AUDIT BF-02: a realm character's act on its record (world.js sets it: `(o) => realmGoldAct({ ...o, session, checkpoint })`), or null. */
+let realmAct = null;
+export const setSalvageRealmAct = (/** @type {((o: any) => Promise<any>) | null} */ fn) => { realmAct = fn; };
 
 /** Why a piece will not break into materials, or null. */
 export function materialRefusal(item) {
@@ -75,17 +81,49 @@ export async function salvageForMaterials(pieces, { items, commit = null }) {
   const chosen = [...new Set(pieces)].filter((it) => items.includes(it));
   const toMaterials = chosen.filter(salvagesToMaterials).slice(0, SALVAGE_BATCH_MAX);
   const shardOnly = chosen.filter((it) => !toMaterials.includes(it) && salvageRefusal(it) == null);
-  let data = null, count = 0, shards = 0;
+  let data = null, count = 0, shards = 0, lastPicks = null;
   if (toMaterials.length) {
     const book = profBookNow();
     if (!book) return { ok: false, error: 'offline', count: 0, shards: 0 };
     // BUNNYFALL SPEC-SAFE: a craft this would carry past Journeyman waits for the player's word, nothing broken until it comes
     const needs = salvageWouldCommit(toMaterials, book).filter((n) => !(commit ?? []).includes(n.track));
     if (needs.length) return { ok: false, needsCommit: needs, count: 0, shards: 0 };
-    const r = await book.salvage(toMaterials.map(salvageDescriptor), { commit });
+    const descriptors = toMaterials.map(salvageDescriptor);
+    let r;
+    // BF-02: the realm record's own pieces - where each stands in the checkpointed save, asked once the save is checkpointed,
+    // and the pieces out of the pack inside the hold (back on a refusal), as a disenchant's piece is
+    const gone = [];
+    if (realmAct) {
+      let asked = false;
+      r = await realmAct({
+        reserve: () => () => { for (const g of gone.sort((x, y) => x.at - y.at)) items.splice(Math.min(g.at, items.length), 0, g.it); gone.length = 0; },
+        call: (at) => {
+          let picks;
+          if (!asked) {
+            asked = true;
+            picks = toMaterials.map((it) => items.indexOf(it));
+            if (picks.some((i) => i < 0)) return Promise.resolve({ ok: false, error: 'prof-piece-gone' });
+            for (const i of [...picks].sort((x, y) => y - x)) gone.push({ at: i, it: items.splice(i, 1)[0] });
+            lastPicks = picks;
+          }
+          return book.salvage(descriptors, { commit, realm: at, picks: lastPicks });
+        },
+      });
+    } else {
+      r = await book.salvage(descriptors, { commit });
+    }
     if (!r?.ok) return { ok: false, error: r?.error ?? 'offline', count: 0, shards: 0 };
     data = r.data ?? null;
-    for (const it of toMaterials) {
+    // the pieces the record gave up are out of the pack already; the Magic-or-better ones still give their shards
+    if (realmAct) {
+      for (const g of gone) {
+        const sh = salvageShards(g.it);
+        if (sh > 0) { addItem(items, welkyndShards(sh)); shards += sh; }
+        count++;
+      }
+      gone.length = 0;
+    }
+    for (const it of realmAct ? [] : toMaterials) {
       if (!items.includes(it)) continue;
       if (salvageShards(it) > 0) {
         const s = salvagePiece(it, { items });
