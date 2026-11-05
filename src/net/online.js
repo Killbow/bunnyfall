@@ -4519,7 +4519,16 @@ export class OnlineSession {
   drawable() {
     const now = this._now();
     const out = [];
-    for (const p of this.peers.values()) if (this.visible(p, now)) out.push(p);
+    for (const p of this.peers.values()) {
+      const v = this.visible(p, now);
+      if (v) out.push(p);
+      // BUNNYFALL (diagnostic, the performer-vanishes bug): a player seen performing (`bp`) who stops being drawn says why, once
+      if (v && p.shown?.bp === 1) p._bardSeen = true;
+      else if (!v && p._bardSeen) {
+        p._bardSeen = false;
+        try { console.info('[bard-vanish]', p.id, { shown: !!p.shown, silentMs: Math.round(now - (p.seenAt ?? now)), timeoutMs: PEER_TIMEOUT_MS, inRange: p.shown ? inRange(this.room, this._pose, p.shown) : null, room: this.room }); } catch { /* a log is not the frame's */ }
+      }
+    }
     return out;
   }
 
