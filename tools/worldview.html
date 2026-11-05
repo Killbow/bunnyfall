@@ -88,10 +88,26 @@ function boot() {
     clearInterval(wait);
     hook();
     try { gw().document.body.addEventListener('keydown', (e) => e.stopPropagation(), true); } catch { /* same origin only */ }
-    // the quest boxes of a fresh character stand over the world: clear them
-    let n = 0; const clear = setInterval(() => { for (const k of ['Escape', 'Enter']) gw().dispatchEvent(new KeyboardEvent('keydown', { code: k, key: k, bubbles: true })); if (++n > 8) clearInterval(clear); }, 400);
+    // a fresh character's boxes stand over the world: the name box filled and sent, the notes clicked away (never Escape,
+    // which opens the pause book)
+    let n = 0; const clear = setInterval(() => { clearBoxes(); if (++n > 20) clearInterval(clear); }, 700);
     startFromPlayer();
   }, 700);
+}
+
+function clearBoxes() {
+  const d = gw()?.document; if (!d) return;
+  const first = d.querySelector('#np-first'), last = d.querySelector('#np-last');
+  if (first && last) {
+    if (!first.value.trim()) first.value = 'Wanderer';
+    if (!last.value.trim()) last.value = 'Viewer';
+    first.dispatchEvent(new Event('input', { bubbles: true }));
+    first.closest('form')?.requestSubmit();
+    return;
+  }
+  // the tutorial and quest notes close on any key or click
+  gw().dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true }));
+  gw().dispatchEvent(new KeyboardEvent('keyup', { code: 'Enter', key: 'Enter', bubbles: true }));
 }
 
 // a frame grab must run inside the game's own frame, where the canvas still holds its picture
@@ -122,13 +138,10 @@ function jump(px, py) {
 }
 function push() { if (cam.on && ready()) gw().__pose(cam.x, cam.y, cam.z, cam.yaw, cam.pitch); }
 
-// the pixel the camera is over, from the pixel origins the world itself reports
+// the pixel the camera is over, as the world itself counts it (its floating origin moves, so no sum here can)
 function pixelOver() {
   if (!ready()) return null;
-  const t0 = gw().__pixelT(500, 250), t1 = gw().__pixelT(501, 251);
-  const dx = t1[0] - t0[0], dz = t1[2] - t0[2];
-  if (!dx || !dz) return null;
-  return [500 + Math.floor((cam.x - t0[0]) / dx), 250 + Math.floor((cam.z - t0[2]) / dz)];
+  try { const p = String(gw().__currentPixel()).split(',').map(Number); return p.every(Number.isFinite) ? p : null; } catch { return null; }
 }
 
 let last = performance.now();
@@ -142,6 +155,8 @@ function tick(now) {
     if (keys.has('KeyD')) s += 1; if (keys.has('KeyA')) s -= 1;
     if (keys.has('Space')) u += 1; if (keys.has('KeyC')) u -= 1;
     if (f || s || u) {
+      // the world re-centres its origin as the camera travels: start every step from where it says the camera is
+      try { const p = gw().__cam?.(); if (p) { cam.x = p[0]; cam.y = p[1]; cam.z = p[2]; } } catch { /* keep ours */ }
       cam.x += (fx * f + -fz * s) * sp * FWD; cam.z += (fz * f + fx * s) * sp * FWD; cam.y += u * sp;
       push();
     }
@@ -228,7 +243,9 @@ $('grab').onpointerdown = (e) => { drag = [e.clientX, e.clientY]; $('grab').clas
 $('grab').onpointermove = (e) => {
   if (!drag) return;
   cam.yaw -= (e.clientX - drag[0]) * 0.004; cam.pitch = Math.max(-1.5, Math.min(1.5, cam.pitch - (e.clientY - drag[1]) * 0.004));
-  drag = [e.clientX, e.clientY]; push();
+  drag = [e.clientX, e.clientY];
+  try { const p = gw().__cam?.(); if (p) { cam.x = p[0]; cam.y = p[1]; cam.z = p[2]; } } catch { /* keep ours */ }
+  push();
 };
 $('grab').onpointerup = () => { drag = null; $('grab').classList.remove('drag'); };
 
