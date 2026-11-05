@@ -131,8 +131,15 @@ function startFromPlayer() {
 function jump(px, py) {
   if (!ready()) return say('The world is not loaded yet.');
   const t = gw().__pixelT(px, py);
-  cam.x = t[0] + PIXEL_M / 2; cam.z = t[2] + PIXEL_M / 2; cam.y = t[1] + Number($('h').value || 40);
+  cam.x = t[0] + PIXEL_M / 2; cam.z = t[2] + PIXEL_M / 2; cam.y = t[1] + 2500;   // high first, over any mountain
   cam.on = true; push();
+  // then down to the chosen height over the ground, once the pixel under the camera is built
+  clearInterval(jump.settle); const t0 = performance.now();
+  jump.settle = setInterval(() => {
+    let h = -Infinity; try { h = gw().__heightAt?.(cam.x, cam.z) ?? -Infinity; } catch { /* not yet */ }
+    if (Number.isFinite(h)) { cam.y = h + Number($('h').value || 40); push(); clearInterval(jump.settle); say(`At map pixel ${px}, ${py}, ${$('h').value || 40} m over the ground.`); }
+    else if (performance.now() - t0 > 180000) clearInterval(jump.settle);
+  }, 500);
   say(`At map pixel ${px}, ${py}.\nThe ground streams in over the next seconds.`);
   drawMap(px, py);
 }
