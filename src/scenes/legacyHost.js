@@ -181,6 +181,9 @@ export function mergeFamily(stored, saved, cid) {
   return out;
 }
 
+/** BUNNYFALL: found a house at load for an online character that has none (see found()). */
+const ONLINE_HOUSE_AT_LOAD = true;
+
 /**
  * @param {{
  *   entity:any, storage:() => any, tab:() => any, on:() => boolean, online:() => boolean,
@@ -407,7 +410,10 @@ export function createLegacyHost(deps) {
     // ONLINE A HOUSE IS FOUNDED AT A CHARACTER'S BIRTH ALONE - one made before the question was put online, or copied in
     // from the offline lane, plays without one (it was founded Enduring at its first load: AUDIT LEGACY B4's law, gone
     // with it). Offline an older character is founded at its first load as ever (D9).
-    if (atLoad && deps.online()) return null;
+    // BUNNYFALL: this realm is a few friends' and wants the family and the heir pages for every character, so an online
+    // character with no house (and no answer of no lineage, above) is founded one at its load, Enduring as online's
+    // safe answer is. Set false to restore the upstream law.
+    if (atLoad && deps.online() && !ONLINE_HOUSE_AT_LOAD) return null;
     const s = legacySettings();
     // a birth no question was put to (the headless door) founds online's safe answer, offline its Features tile's
     const asked = isModel(chose) ? chose : deps.online() ? MODELS.enduring : s.model;
