@@ -56,6 +56,7 @@
 // inventory slice's first job.
 // ═══════════════════════════════════════════════════════════════════
 
+import { accountRefusalText } from '../../net/accountClient.js';   // BUNNYFALL: a salvage's refusal in the service's words
 import { isRestItem } from '../../systems/rest/restItems.js';   // REST6: the seven's card lines
 import { getPref, setPref } from '../../systems/uiPrefs.js';   // PLUS7: getPref, the hover card's switch; PACK-PHONE: setPref, the phone's Body
 import { USE_PENDING, powersRows, INFO_TEXT_POWERS } from '../native/nativeInventory.js';   // PLUS10: the Info box's powers record
@@ -3810,7 +3811,7 @@ export const SALVAGED_LINE = (name, n) => `Salvaged: ${name}, for ${shardsText(n
 /** BUNNYFALL: the salvage into materials - asked with the average it gives, said with what it gave. */
 export const SALVAGE_MATS_ASK = (name, mats, n) => [`Salvage ${name}?`, `It is gone for good. You get ${mats}${n > 0 ? `, and ${shardsText(n)}` : ''}.`];
 export const SALVAGED_MATS_LINE = (name, got, n) => `Salvaged: ${name}, for ${got}${n > 0 ? ` and ${shardsText(n)}` : ''}. The materials are in your Stores.`;
-export const SALVAGE_FAILED = (name) => `${name} could not be salvaged right now. It is still in your pack.`;
+export const SALVAGE_FAILED = (name, why = null) => `${name} could not be salvaged right now. It is still in your pack.${why ? ` ${why}` : ''}`;
 /** AUDIT GEM: a piece holding a set gem is never salvaged with it (systems/reforge.js salvageRefusal 'gems'). */
 export const SALVAGE_GEMS = (name) => `${name} holds a gem. Extract it at the Reforge or unset it first.`;
 /** FB1012d SALVAGE-CLASSIC: a piece that wears Magic the ladder never graded (systems/reforge.js salvageRefusal 'classic'). */
@@ -3842,7 +3843,7 @@ function askSalvage(item) {
       notice = 'Salvaging...'; render();
       salvageForMaterials([item], { items: deps.items?.() ?? [] }, deps.entity?.name).then((m) => {
         if (picked === item && m.ok) picked = null;
-        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name);
+        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name, m.needsCommit ? `It would take ${m.needsCommit.map((n) => n.name).join(' and ')} past Journeyman, and you can raise only two crafts that far. Salvage it at a crafting station, where you can choose.` : m.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(m.error));   // BUNNYFALL: the service's own reason, said
         refresh(); render();
       });
       return;
