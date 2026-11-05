@@ -3,7 +3,12 @@
 {
 	servers {
 		# the player's own address, as a proxy in front of us says it (nginx), for the services' per-address limits
-		trusted_proxies static private_ranges
+		# BUNNYFALL AUDIT L1-01: strict - the address is the right-most one a trusted proxy did not write, so a header the
+		# caller sent ahead of nginx's own entry is never taken. TRUSTED_PROXIES (in .env) is who may speak for a player:
+		# `private_ranges` behind nginx on this box (the default), but on a box that faces the internet itself set it to
+		# 127.0.0.1/32 - Docker's userland proxy (IPv6, rootless) otherwise shows callers as a private address that is trusted.
+		trusted_proxies static {$TRUSTED_PROXIES:private_ranges}
+		trusted_proxies_strict
 	}
 }
 

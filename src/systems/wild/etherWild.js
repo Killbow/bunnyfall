@@ -42,6 +42,7 @@ export const ETHER_RISE_PX = 60;
 export function etherRisePort(x, y) {
   const h = veilhaven(), far = Math.hypot(h.px - x, h.py - y);
   if (!Number.isFinite(far)) return h;
+  if (etherInPeace(x, y)) return h;   // BUNNYFALL AUDIT BF-22: a death in the peace (the Veil, Veilhaven's circle, the way home) rises in it, never in a Shallows freeport
   for (let r = ETHER_RISE_PX; ; r *= 2) {
     const port = islesNear(x, y, Math.min(r, far + 1)).find((i) => i.kind === 'port' && Math.hypot(i.px - x, i.py - y) <= r);
     if (port) return port;

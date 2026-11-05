@@ -1962,6 +1962,7 @@ export class Renderer {
     // exactly one set existed.
     this._terrainIndexSets = new Map(); // indices array -> { buffer, count }
 
+    startPrograms(this.gl, [[WATER_VS, WATER_FS], [WATER_SURFACE_VS, waterSurfaceFs(CLOUD_SHADOW_GLSL)]]);   // BUNNYFALL AUDIT STUT-1a: both handed over before either is read
     this.waterProgram = this._buildProgram(WATER_VS, WATER_FS);
     // WATER1: the exterior water surface - the terrain grid drawn again,
     // lifted, every non-water texel discarded (render/waterSurface.js).
@@ -2291,6 +2292,9 @@ export class Renderer {
    *  fragment is lit, never how a vertex lands; LA-COST3: a lane may ADD a
    *  per-quad term to the billboard's, bbVertexShader, and places nothing). */
   _buildWorldSet(src) {
+    // BUNNYFALL AUDIT STUT-1a: every program of the set is handed to the driver BEFORE the first status read, so the compiles
+    // overlap (ANGLE's worker threads) - read one at a time right after each link they were 115 ms of serial waiting at boot.
+    startPrograms(this.gl, [[VS, src.meshFs], [bbVertexShader(src.bbVs), src.bbFs], [TERRAIN_VS, src.terrainFs], [DECAL_VS, src.decalFs ?? DECAL_FS]]);
     return {
       key: src.key,
       mesh: this._buildProgram(VS, src.meshFs),

@@ -47,6 +47,7 @@ import { judgeSave, judgeProducts, STRIKES_FOR_TIMED, JUDGE_VERSION, FINDINGS_KE
 import { ledgerStep, chargeSteps } from './ledger.js';
 import { budgetConfig, bandOf, stepBudget } from './budget.js';
 import { customsAllowance } from '../../src/net/realm/realmGoldLaw.js';
+import { lawfulItem } from '../../src/systems/item/itemLaw.js';   // BUNNYFALL AUDIT BF-01
 import { armsOf } from '../../src/net/siege/siegeRef.js';   // BUNNYFALL: the arms the identity mint signs, off the pack alone
 import { censusStep } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the census's tally, on the hour's row and the character's latest
 
@@ -260,6 +261,9 @@ export async function verdictOn({ db, nowS }, { player, char, seq, key }, row, s
   return { steps: [verdictWrite(db, char, row, set), ...after], set, clean, law, copies: ledger.copies, over: budget.over, why, locked: ledger.locked };
 }
 
+/** BUNNYFALL AUDIT BF-01: the most a first checkpoint's level is trusted at, judge off or on. */
+const BIRTH_LEVEL_TRUST_MAX = 60;
+
 /**
  * BUNNYFALL: THE VERDICT WITH THE JUDGE OFF (bunnyfall.js JUDGE_OFF). The checkpoint is clean by definition: no item law,
  * no ledger, no budget, no census, no findings - one write that keeps the row's columns current (its clean object is
@@ -267,13 +271,19 @@ export async function verdictOn({ db, nowS }, { player, char, seq, key }, row, s
  * @param {any} ctx @param {{ player: string, char: string, seq: number, key: string }} at @param {any} row @param {any} save
  */
 export function verdictOff({ db }, { char, seq, key }, row, save) {
-  const level = Number.isInteger(save?.level) && save.level >= 1 ? save.level : row.level_seen ?? 1;
-  const arms = Array.isArray(save?.items) ? armsOf(save.items, () => true) : [0, 0];
+  // BUNNYFALL AUDIT BF-01: even with the judge off the identity token is signed with what the save claims, so it is bounded:
+  // the level by the same rise-over-playtime law the judge uses (a first one past BIRTH_LEVEL_TRUST_MAX is held to it), and the
+  // arms by the item law (an unbacked Daedric weapon in a level-1 pack signs no reach).
+  const playedS = Number.isSafeInteger(row.played_now) ? row.played_now : row.played_at ?? 0;
+  const seen = row.level_seen ?? (Number.isInteger(save?.level) ? Math.min(Math.max(1, save.level), BIRTH_LEVEL_TRUST_MAX) : 1);
+  const lv = trustedLevel({ seen, at: row.level_at ?? row.played_at ?? playedS, level: save?.level, played: playedS });
+  const level = lv.level;
+  const arms = Array.isArray(save?.items) ? armsOf(save.items, (/** @type {any} */ it) => { try { return lawfulItem(it); } catch { return false; } }) : [0, 0];
   const set = {
     judged_seq: seq, held: null, held_at: null, strikes: 0, held_until: null, law_holds: 0, law_at: null,
     review: row.review ?? null, wealth: row.wealth ?? 0, allowance: row.allowance ?? null,
     played_at: Number.isSafeInteger(row.played_now) ? row.played_now : row.played_at ?? 0,
-    clean_obj: key, clean_seq: seq, level_seen: level, level_at: row.level_at ?? null, law_sig: null, law_v: null,
+    clean_obj: key, clean_seq: seq, level_seen: level, level_at: lv.at, law_sig: null, law_v: null,
     arms_top: arms[0], arms_bow: arms[1],
   };
   return { steps: [verdictWrite(db, char, row, set)], set, clean: true, law: 0, copies: [], over: 0, why: null, locked: [] };

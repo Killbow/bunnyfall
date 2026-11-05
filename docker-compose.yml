@@ -27,6 +27,7 @@ services:
       - server
     environment:
       DOMAIN: ${DOMAIN:-dagg.campfirerp.com}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-private_ranges}   # BUNNYFALL AUDIT L1-01: see selfhost/Caddyfile
     # BUNNYFALL: on a box where another web server holds 80/443 (a game panel's nginx), .env moves these to
     # loopback ports that nginx proxies to (selfhost/README.md, "Behind nginx")
     ports:

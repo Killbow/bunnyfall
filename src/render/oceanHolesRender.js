@@ -23,7 +23,7 @@
 // no larger than maxParticleSize (0.08) of the view's height.
 // ═══════════════════════════════════════════════════════════════════
 
-import { buildProgram } from './glProgram.js';
+import { buildProgram, startPrograms } from './glProgram.js';
 import { FOG_GLSL } from './fogGlsl.js';
 import { COLUMN_GLSL } from './columnGlsl.js';
 import { createDiscMesh, createMiasmaTexture, MIASMA_COLOR, MIASMA_EMISSION } from '../world/oceanHoles.js';
@@ -124,6 +124,12 @@ export class OceanHolesRenderer {
     this.gl = dw.gl;
     this._res = null;
     this._stream = null;
+  }
+
+  /** BUNNYFALL AUDIT STUT-1c: the holes' two programs, started together at idle (render/warmPrograms.js `{ start, run }`). */
+  warmSteps() {
+    const pairs = [[DISC_VS, DISC_FS], [MIASMA_VS, MIASMA_FS]];
+    return [{ start: () => startPrograms(this.gl, pairs), run: () => { this._ensure(); }, need: () => !this._res }];
   }
 
   _ensure() {

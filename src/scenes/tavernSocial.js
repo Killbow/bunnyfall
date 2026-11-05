@@ -67,7 +67,7 @@ export function createTavernSocial(deps) {
       const e = deps.entity();
       const to = deps.accountOfPeer(id);
       if (!e || !to || goldPiecesOf(e) < gold) return [tavernWords.poor()];
-      addGoldPieces(e, -gold);
+      // BUNNYFALL AUDIT L4-01: nothing is taken - the receiver is no longer paid on the pose's word (see frame()), so a tip is a gesture
       tips = tips >= 255 ? 1 : tips + 1;
       tip = { to, n: tips, g: gold };
       deps.sent();
@@ -103,7 +103,8 @@ export function createTavernSocial(deps) {
           if (had?.quenched) deps.say(tavernWords.quenched());
         }
         if (now.tn && now.tn !== was.tn && me && pose.tt === me && pose.tg > 0) {
-          addGoldPieces(deps.entity(), pose.tg);
+          // BUNNYFALL AUDIT L4-01: heard, not paid. The gold rode the sender's pose with nothing to prove it left their purse, so a
+          // client could alternate the count and credit anyone in the room ~2,000g/s. The tip is a gesture until a server transfer carries it.
           deps.say(tavernWords.tipHeard(deps.nameOf(p.id) ?? '?', pose.tg));
         }
       }

@@ -376,7 +376,7 @@ import { registerPlayerDeathSave, staffFrozen } from '../characters/playerEntity
 import { registerMadeLevelHere, madeRuleHere, madeSaysHere } from '../systems/madeLevel.js';   // EG-H2 (Elite-Gates.md section 24): THE MADE LEVEL'S RULES - every per-level door below asks the one law
 import { registerJumpForgiveness } from '../player/motor.js';   // EG-H2 (section 10.8): THE FORGIVENESS - the Spire's jump buffer and late press, the made level's law's
 import { isSdRealm, realmArena, SD_REALM_TEXT, SD_REALM_FOG, SD_REALM_FLOORS, SD_ARENA_FLOORS, arenaHolds } from '../world/superDungeon/sdRealm.js';   // SD5a: the Shattered Hour - its edge, its refusals
-import { SdSkyRenderer, SD_SKY_STEPS } from '../render/superDungeon/sdSky.js';   // SD5b: the Hour's sky
+import { SdSkyRenderer, SD_SKY_STEPS, SD_SKY_VS, SD_SKY_FS } from '../render/superDungeon/sdSky.js';   // SD5b: the Hour's sky
 import { SdArenaGlowRenderer, sdArenaGlowAt, sdHourClockOf } from '../render/superDungeon/sdArenaGlow.js';   // SD-LOOK S7: the arena's floor reads the clock, and the sky's word for the fight
 import { SdStompWallRenderer, sdStompWalls, sdStompWallRecords, SD_HOLD_WALL, sdHomeBeacon } from '../render/superDungeon/sdStompWall.js';   // SD-LOOK S7: the Stomp's wall, the hold's curtain
 import { SdPillarPassRenderer } from '../render/superDungeon/sdPillarPass.js';   // SD-LOOK S7: the pillars' dials, their watching hands, their lanterns
@@ -454,7 +454,7 @@ import { createSdSpoils, clearOfPillars } from './superDungeon/sdSpoils.js';   /
 import { slainLine, serpentBossOf, serpentBossById, sameSerpentSite, SERPENT_NATIVE_PER_M } from '../net/serpent/serpentLaw.js';   // SERPENT1: the hub's word of its kill, in the chat (AUDIT SERPENT S1: my own site's alone)
 import { createGateCourt, courtSaySeconds } from './gate/gateCourt.js';   // WB4: the fight on this screen - the boss drawn, heard and read, and his blows on me
 import { arsenalSeams } from './gate/gateArsenal.js';   // WB14a: the arsenal's seams on my peer id and my body, wired in one entry
-import { DeadlandsRenderer, skyGain, anchoredClock } from '../render/deadlands.js';   // WB6a: the Deadlands' sky and sea round the Burning Court
+import { DeadlandsRenderer, skyGain, anchoredClock, DEAD_SKY_VS, DEAD_SKY_FS, DEAD_SEA_VS, DEAD_SEA_FS } from '../render/deadlands.js';   // WB6a: the Deadlands' sky and sea round the Burning Court
 import { createDeadlandsAir } from './deadlandsAir.js';   // WB6b: and their air - the wind, the fire, the thunder of the sky's strikes
 import { createSoundscapeHost } from './soundscapeHost.js';   // SOUNDSCAPE: the sea's air and songs, the shore's, the wild's and the town's (bible/08-Audio/Audio.md)
 import { createGateVeil } from '../ui/gate/gateVeil.js';   // WB6c: the step through the gate - a vortex of fire in and out
@@ -823,6 +823,7 @@ import { poiMe } from '../poi/poiService.js';   // POI-3: the store's word on wh
 import { createDataPipeline } from './dataPipeline.js';
 import { createWorldModes } from './worldModes.js';
 import { setAmbientTextHost, tickAmbientText } from '../systems/ambientText.js';   // AT2: Ambient Text's one component - this host claims it and feeds it the frame
+import { trustedServerParam } from '../net/trustedServer.js';   // BUNNYFALL AUDIT BF-16
 import { OnlineSession, steadyNow, roomKeyFor, DEFAULT_SERVER, WORLD_PUBLISH_MS, WORLD_REPUBLISH_MS, FOES_MS, FOES_FULL_MS, FOES_STALE_MS, SHOWN_MOVE_HOLD_MS } from '../net/online.js';   // ONLINE1: the session; WORLD1: the room's memory; AUDIT 637 D7: the move hold, one law both ends
 import { createSeatClock } from '../net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: the named seat's patience, which this page's own absence never spends
 import { pageWave } from '../net/reconnectWave.js';   // SCALE2c: a relay deploy's reconnect, spread by the hub's count
@@ -1000,7 +1001,7 @@ import { createSeatBanners } from './seatBanners.js';   // SEAT1a: a seat town's
 import { createFestivalStage } from './seatFestival.js';   // FESTIVAL-STAGE: a Festival's music, banners and lanterns
 import { drawBanner } from '../ui/heraldryArt.js';   // GUILD1d: ...its heraldry painted on it
 import { heraldryLookup } from '../ui/heraldrySwatch.js';   // HERALDRY-SHOWN: a guild's heraldry by its tag, off what this client holds
-import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js'; import { compiledPass } from '../render/glProgram.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves); AURA-STALL: its pass built once its program is done
+import { AuraRingRenderer, auraWearers, auraLookOf, auraBeastStep, auraMotionStep, auraCapeStep, auraSpriteBones, auraSpritePosed, auraWingLights, CLOAK_BONES, AURA_KINDLE_S, AURA_FORGET_S } from '../render/auraRing.js'; import { peerBodyYaw } from '../net/peer/peerClimb.js'; import { compiledPass, startPrograms } from '../render/glProgram.js';   // WB9g: Dagon's Fire at a wearer's feet; SHADOW-CLOAK: a peer's facing, the cloak's front (on this line, so no cite below it moves); AURA-STALL: its pass built once its program is done
 import { duelAttackerOf, duelWeaponOf, duelSwingOf, resolveDuelStrike, duelWearDamage, duelStandIn } from '../combat/duelCombat.js';   // DUEL1: the blow between two duellists - INT8/INT9: the striker's half alone, the relay referees (AUDIT C&C H5: against the neutral stand-in)
 import { createPageWindow, pageView } from '../ui/pageWindow.js';   // JOURNAL1: a page another player holds out, read and kept
 import { PageOffers, pageOfferText, pageShownText, pageTooFarText, keptPageTokens, keptLetterTokens, letterOfPage, PAGE_UNSUPPORTED_TEXT, PAGE_NO_READERS_TEXT, PAGE_GONE_TEXT } from '../net/journalPage.js';   // JOURNAL1: a page of the journal shown, and one shown to me kept
@@ -2849,7 +2850,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   void warmPrograms([
     ...renderer.warmSteps(),
     ...(renderer.lazyWarmSteps?.() ?? []),   // PERF-COMPILE1: the telegraph pass and the windows' background, at idle
-    () => { if (!precip) precip = new PrecipitationRenderer(renderer.gl, precipOpts); },
+    { start: () => startPrograms(renderer.gl, PrecipitationRenderer.PROGRAMS), run: () => { if (!precip) precip = new PrecipitationRenderer(renderer.gl, precipOpts); }, need: () => !precip },   // BUNNYFALL AUDIT STUT-1c: started, then built once the driver is done
   ]);
   const wisps = sky.enhanced ? new WindWispsRenderer(renderer.gl) : null;   // WIND3: built on the enhanced lane, so a shader fault is a boot fault; its row is read per frame
   const windAudio = createWindAudio();   // WIND3: the wind loop, ticked on the exterior frame and stopped on the modal one
@@ -4723,7 +4724,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const dwRender = deepWatersOn() ? new DeepWatersRenderer(renderer) : null;
   latchModLoaded(DEEP_WATERS_VENDOR, !!dwRender);   // AUDIT PRE-MERGE 0928 S4: the sea is built now or not at all - its fish's shelf rows answer the same (systems/deepWater/deepWatersFishItems.js)
   if (dwRender) renderer.prepareTerrainClip();   // FAR-CLIP1: the cap's clip program, built with the mod's own at mount - not inside the first frame that draws a coast
-  if (dwRender) void warmPrograms([() => dwRender._ensure()]);   // PERF-COMPILE1 (stutter): the mod's seven programs at idle - they were built inside the first frame that drew a coast, seven compiles in one frame
+  if (dwRender) void warmPrograms(dwRender.warmSteps());   // PERF-COMPILE1 (stutter): the mod's seven programs at idle - they were built inside the first frame that drew a coast, seven compiles in one frame
   // DW-E2: GameManager.IsPlayingGame for the Deep Waters runtime's gates - no window up. The overlay slot (townTalk) is
   // made further down; the first pixels promote before it exists, so the question is late-bound (nothing is up yet).
   let _dwOverlayUp = () => false;
@@ -4776,7 +4777,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // OH-B / OH-C: THE PITS - Iliac Puddle No More's dependant, cut into its floors (scenes/oceanHolesHost.js says how). Its
   // switch is read once, at the world's mount, with its dependency's: no carved sea, no pits.
   const ohRender = deepWaters && oceanHolesOn(true) ? new OceanHolesRenderer(dwRender) : null;
-  if (ohRender) void warmPrograms([() => ohRender._ensure()]);   // PERF-COMPILE1 (stutter): the holes' two programs at idle, not at the first hole drawn
+  if (ohRender) void warmPrograms(ohRender.warmSteps());   // PERF-COMPILE1 (stutter): the holes' two programs at idle, not at the first hole drawn
   let _ohTime = 0;   // OceanHoles' Time.time - the game's, held by a pause (the entrance's once-a-second)
   const _ohOrigin = [0, 0, 0];
   oceanHoles = ohRender ? createOceanHoles({
@@ -21086,7 +21087,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const grants = createGrantHost({ session: () => online, climateAt: (x, y) => maps.getClimateIndex(x, y) });   // GRANT3: the spawn grants (scenes/grantHost.js) - the pool's net and my session's answers
   const onlineStart = () => {
     online = new OnlineSession({
-      url: params.get('server') || getPref('onlineServer') || DEFAULT_SERVER,
+      // BUNNYFALL AUDIT BF-16 / L4-03: a `?server=` link names a relay only where the player already trusts it - the default's
+      // host, the one they saved in the menu, or their own machine. Any other host got the signed identity token, the
+      // peer secret and the hub pair in the hello, and the link survived a reload into character select.
+      url: trustedServerParam(params.get('server'), getPref('onlineServer'), DEFAULT_SERVER) || getPref('onlineServer') || DEFAULT_SERVER,
       // ACC1g: THE RELAY TAKES THE NAME OUT OF THE TOKEN AND IGNORES
       // THIS ONE. Two typed sources stood here - a `?name=` in the URL
       // and the `onlineName` pref - and both were the impersonation
@@ -24097,12 +24101,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  session, online or not, before it can save: a boss's spoils no save of theirs holds are handed back. */
   /** WB6a: THE DEADLANDS' SKY AND SEA (render/deadlands.js), built the first time a court is stood in - a pass that will
    *  not build costs the court its sky, never the game. */
-  let _deadlands;   // undefined: not asked yet; null: would not build
-  const deadlandsPass = () => {
-    if (_deadlands !== undefined) return _deadlands;
-    try { _deadlands = new DeadlandsRenderer(renderer.gl); } catch (e) { console.warn('[gate] the Deadlands would not build', e?.message ?? e); _deadlands = null; }
-    return _deadlands;
-  };
+  // BUNNYFALL AUDIT STUT-1b: a door that STARTS the sky's and the sea's programs at the first ask and answers the pass once the
+  // driver is done (render/glProgram.js compiledPass) - built in that frame, both compiles froze the frame the court was entered on
+  const deadlandsPass = compiledPass(renderer.gl, [[DEAD_SKY_VS, DEAD_SKY_FS], [DEAD_SEA_VS, DEAD_SEA_FS]], () => new DeadlandsRenderer(renderer.gl), (e) => console.warn('[gate] the Deadlands would not build', e?.message ?? e));
   /** WB6b: THE DEADLANDS' CLOCK - the relay's, in seconds (this page's monotonic clock carried onto it, so it never
    *  steps back between two frames): the sky's churn, its strikes, the court's flash, the shards' drift and the thunder
    *  are one moment on every screen in the court. AUDIT WB D7: ANCHORED ON THE WALL CLOCK - the page's clock is carried
@@ -24841,11 +24842,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   /** SD5b: the Hour's sky pass - built the first time the Hour is drawn; null when it would not build (its sky then the
    *  frame's clear colour, never the Hour's floors). */
-  let _sdSkyPass;
-  const sdSkyPassOf = () => {
-    if (_sdSkyPass === undefined) { try { _sdSkyPass = new SdSkyRenderer(renderer.gl); } catch (e) { console.warn('[sd] the Hour\'s sky could not be built', e); _sdSkyPass = null; } }
-    return _sdSkyPass;
-  };
+  // BUNNYFALL AUDIT STUT-1b: as the Deadlands': the Hour's sky is built once its program is done, never inside the frame that first draws it
+  const sdSkyPassOf = compiledPass(renderer.gl, [[SD_SKY_VS, SD_SKY_FS]], () => new SdSkyRenderer(renderer.gl), (e) => console.warn('[sd] the Hour\'s sky could not be built', e));
   /** SD-LOOK: the Rift's pass and the halos (render/superDungeon/sdRiftPass.js, render/superDungeon/sdHalo.js) - made the first time a Super dungeon's
    *  end is drawn, null where a context cannot (its meshes stand regardless). */
   let _sdRiftPass, _sdHaloPass;

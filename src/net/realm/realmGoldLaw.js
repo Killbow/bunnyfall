@@ -57,7 +57,7 @@ const accountsOfSave = (/** @type {any} */ save, /** @type {unknown} */ region) 
 export function payableOf(/** @type {any} */ save, /** @type {unknown} */ region = null) {
   const coins = whole(save?.goldPieces);
   const letters = (Array.isArray(save?.items) ? save.items : []).filter((it) => it?.templateIndex === REALM_LETTER_TEMPLATE).reduce((s, it) => s + whole(it.value), 0);
-  const bank = accountsOfSave(save, region).reduce((s, a) => s + Math.max(0, Number(a.accountGold) || 0), 0);
+  const bank = accountsOfSave(save, region).reduce((s, a) => s + whole(a.accountGold), 0);   // BUNNYFALL AUDIT BF-03: a balance that is not a whole count of gold (text, Infinity, 1e300) pays nothing
   return coins + letters + bank;
 }
 
@@ -75,10 +75,12 @@ export function payFromSave(save, amount, region = null) {
   let owed = amount;
   const items = Array.isArray(save.items) ? save.items : [];
   for (;;) {
-    const loc = items.find((it) => it?.templateIndex === REALM_LETTER_TEMPLATE);
+    // BUNNYFALL AUDIT BF-03: only a letter of a whole worth pays (the same count payableOf made); one that is not stays in the pack, unspent
+    const loc = items.find((it) => it?.templateIndex === REALM_LETTER_TEMPLATE && whole(it.value) > 0);
     if (!loc) break;
-    if (owed < (loc.value ?? 0)) { loc.value -= owed; owed = 0; break; }
-    owed -= loc.value ?? 0;
+    const worth = whole(loc.value);
+    if (owed < worth) { loc.value = worth - owed; owed = 0; break; }
+    owed -= worth;
     items.splice(items.indexOf(loc), 1);
   }
   if (owed > 0) {
@@ -87,11 +89,11 @@ export function payFromSave(save, amount, region = null) {
   // payableOf counted it: the accounts are there and cover it - the Empire's first (EMPIRE-ACCOUNT)
   for (const a of accountsOfSave(save, region)) {
     if (!(owed > 0)) break;
-    const take = Math.min(owed, Math.max(0, Number(a.accountGold) || 0));
-    a.accountGold -= take;
+    const take = Math.min(owed, whole(a.accountGold));
+    a.accountGold = whole(a.accountGold) - take;
     owed -= take;
   }
-  return true;
+  return owed === 0;   // BUNNYFALL AUDIT BF-03: paid in full, or not at all (a caller that gets false drops the save it holds)
 }
 
 /** CREDIT `amount` to a save, in place: the purse, or `bank`'s account (a home sold - a missing account takes it in the
@@ -102,7 +104,7 @@ export function payFromSave(save, amount, region = null) {
 export function creditSave(/** @type {any} */ save, /** @type {number} */ amount, /** @type {{ bank?: number | null, letter?: unknown }} */ { bank = null, letter = false } = {}) {
   if (!Number.isSafeInteger(amount) || amount < 0 || !save || typeof save !== 'object') return false;
   const a = bank == null ? null : accountOfSave(save, bank);
-  if (a) a.accountGold = (Number.isFinite(a.accountGold) ? a.accountGold : 0) + amount;
+  if (a) a.accountGold = whole(a.accountGold) + amount;   // BUNNYFALL AUDIT BF-03: a balance that is not a whole count starts again from none
   else if (letter === true) {
     (Array.isArray(save.items) ? save.items : (save.items = [])).unshift(realmLetterOfCredit(amount));
     // the lit light is an index into the pack (save.js lightSourceIndex): it moves with what it names

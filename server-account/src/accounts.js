@@ -794,6 +794,15 @@ export function accountRateFull(id, nowS, max = ACCOUNT_MAX, windowS = ACCOUNT_W
 /** The accounts counted in this isolate (the pins' window). */
 export const accountRateKeys = () => accountWindows.size;
 
+/** BUNNYFALL AUDIT L5-02: whether `key`'s failures this window already fill its allowance - asked WITHOUT counting, and before any
+ *  password is derived. A bucket that is only counted after the derivation never stops a guesser: a right guess passed
+ *  at any count, and every wrong one still cost the service a full derivation. */
+export async function rateFull({ db, nowS }, key, max = LOGIN_MAX, windowS = LOGIN_WINDOW_S) {
+  const start = Math.floor(nowS / windowS) * windowS;
+  const row = await db.prepare('SELECT window_start, count FROM rate_limits WHERE key = ?').bind(key).first();
+  return !!row && row.window_start >= start && row.count >= max;
+}
+
 /** A successful login forgives the key, so a player who mistyped twice
  *  and then got it right is not still on a countdown. */
 export async function clearRate({ db }, key) {
@@ -829,6 +838,9 @@ export async function register({ db, subtle, rand, nowS }, playerId, { handle, p
   const player = await db.prepare('SELECT * FROM players WHERE id = ?').bind(playerId).first();
   if (!player) return { error: 'no-account' };
   if (player.handle) return { error: 'already-registered' };
+  // BUNNYFALL AUDIT L5-01: a taken name and a guest past its allowance are told before the ~200k derivations they would cost
+  if (await db.prepare('SELECT 1 AS t FROM players WHERE handle_lc = ?').bind(handle.toLowerCase()).first()) return { error: 'handle-taken' };
+  if (await overRate({ db, nowS }, `register:${playerId}`, 10)) return { error: 'rate' };
 
   const codes = set ? mintRecoverySet(rand) : [mintRecoveryCode(rand)];
   const [pw, rc] = await Promise.all([
@@ -871,6 +883,9 @@ const bannedNow = (row, nowS) => Number.isSafeInteger(row?.banned_until) && row.
 export async function login({ db, subtle, rand, nowS }, { handle, password, deviceLabel = null }) {
   const lc = String(handle ?? '').toLowerCase();
 
+  // BUNNYFALL AUDIT L5-02: a handle whose wrong guesses fill its window is refused before any derivation, a right password too
+  // (the window is fifteen minutes) - the allowance bounds guessing only if a guess past it cannot succeed
+  if (lc && await rateFull({ db, nowS }, `login:${lc}`)) return { error: 'rate' };
   const player = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
   // The work happens either way. `verifyPassword` derives against a
   // throwaway salt when it is handed nothing it can parse, so this is
@@ -935,6 +950,7 @@ export async function recover({ db, subtle, rand, nowS }, { handle, code, passwo
   const pRefusal = passwordRefusal(password);
   if (pRefusal) return { error: `password-${pRefusal}` };
 
+  if (lc && await rateFull({ db, nowS }, `recover:${lc}`)) return { error: 'rate' };   // BUNNYFALL AUDIT L5-02: before the ~180k derivations, a right code too
   const canon = codeForHashing(code);
   const player = lc ? await db.prepare('SELECT * FROM players WHERE handle_lc = ?').bind(lc).first() : null;
   // Same shape as login: the derivations happen whether or not there is
@@ -993,6 +1009,7 @@ export async function changePassword({ db, subtle, rand, nowS }, player, session
   //
   //  Keyed on the handle and checked after the verify, not before it,
   //    so this door and the login door never lock each other's owner out.
+  if (await rateFull({ db, nowS }, `login:${player.handle_lc}`)) return { error: 'rate' };   // BUNNYFALL AUDIT L5-02: before the derivation
   if (!await verifyPassword(oldPassword, player.password, { subtle })) {
     const over = await overRate({ db, nowS }, `login:${player.handle_lc}`);
     return { error: over ? 'rate' : 'bad-login' };

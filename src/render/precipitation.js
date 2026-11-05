@@ -300,6 +300,8 @@ function mat4Multiply(out, a, b) {
 }
 
 export class PrecipitationRenderer {
+  /** BUNNYFALL AUDIT STUT-1c: the programs every renderer builds in its constructor, for the idle warm to start together. */
+  static get PROGRAMS() { return [[PRECIP_VS, PRECIP_FS]]; }
   // HARD3: the classic lane's twelve uniform locations. They are
   // ASSIGNED through a string list in the constructor (`this[u] =
   // getUniformLocation(prog, u)`), which is the honest way to say "these

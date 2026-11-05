@@ -166,12 +166,16 @@ function readPref(root, key) {
 }
 
 const TMP_MARK = '~tmp';
-function writeAtomic(file, data) {
+function writeAtomic(file, data, durable = true) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}${TMP_MARK}${process.pid}`;
   fs.writeFileSync(tmp, data);
-  const fd = fs.openSync(tmp, 'r+');
-  try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  // BUNNYFALL AUDIT BF-23: a setting's write is renamed into place without the disk flush (the rename is still atomic: a crash
+  // leaves the old file or the new one). Saves keep their fsync - that wait is what makes a finished save survive a power cut.
+  if (durable) {
+    const fd = fs.openSync(tmp, 'r+');
+    try { fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  }
   fs.renameSync(tmp, file);
 }
 
@@ -324,7 +328,7 @@ function createFileStorage(root, { scanTtlMs = 2000, readTtlMs = 1000 } = {}) {
       const at = fileOf(key);
       if (at.pref || at.file) {
         read.delete(key);   // a write that throws may still have moved the file: read it again
-        writeAtomic(at.pref ?? at.file, value);
+        writeAtomic(at.pref ?? at.file, value, !at.pref);
         read.set(key, { value, at: Date.now() });
       } else {
         // The screenshot: a decodable jpeg/png data URL becomes a

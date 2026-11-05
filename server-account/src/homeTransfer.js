@@ -139,7 +139,7 @@ async function acceptHome(ctx, player, body) {
   if (why) return { error: why };
   const rev = Number((await db.prepare('SELECT rev FROM decor_rev WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key).first())?.rev) || 0;
   if (rev !== offer.rev) return { error: 'offer-stale' };
-  const pieces = (await db.prepare('SELECT id, place FROM home_decor WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key).all())?.results ?? [];
+  const pieces = (await db.prepare('SELECT id, place, paid FROM home_decor WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key).all())?.results ?? [];
   const pieceIds = pieces.map((p) => p.id);
   const bin = Number((await db.prepare('SELECT COUNT(*) AS n FROM decor_bin WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key).first())?.n) || 0;
   const held = await heldGoods(ctx, home, pieceIds);
@@ -150,9 +150,7 @@ async function acceptHome(ctx, player, body) {
   let refund = 0;
   if (!keepDecor) {
     for (const row of pieces) {
-      let place = null;
-      try { place = JSON.parse(row.place); } catch { place = null; }
-      refund += decorRefund(place?.paid);
+      refund += decorRefund(row.paid);   // BUNNYFALL AUDIT BF-10: half of what records paid (the ledger column), never of a price the client wrote into the piece's place
     }
   }
   const price = offer.price;

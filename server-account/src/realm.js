@@ -743,6 +743,13 @@ export async function prepareRealmRecord({ db, bucket, rand, nowS }, playerId, a
   const classicBefore = outbound ? classicCount(save) : 0;
   const refused = change(save);
   if (refused) return { error: refused };
+  // BUNNYFALL AUDIT BF-03: a record under a hold is paid nothing by the service either - a house bought on a doctored purse
+  // and sold back turned it into witnessed gold, and a hold only looked at what left (`outbound`). Staff's `take` and a
+  // seizure (a death's spoils) are not a payment to it.
+  if (!outbound && !take && !seize && wealthOf(save) > before) {
+    const held = holdRefusal(row);
+    if (held) return held;
+  }
   // a classic save's piece the realm keeps its character's (itemLaw.js classicPiece - "Keep all, can't sell")
   if (outbound && classicCount(save) < classicBefore) return { error: 'piece-legacy' };
   // INT4: a piece leaves a record only as its own - held by it, unclaimed, no copy (ledger.js piecesRefusal). A Set, never
