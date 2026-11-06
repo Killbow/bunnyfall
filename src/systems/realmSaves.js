@@ -957,6 +957,14 @@ async function joinRealmBoot(/** @type {{ io: any, id: string }} */ { io, id }) 
   snap.characterId = id;
   return { ok: true, snap, lease, seq: got.seq ?? seq, origin: typeof origin === 'string' ? origin : null, gzip: joined.data?.gzip === true, ...(stranded ? { stranded: true } : {}) };   // RESTORE: the offline id it came from
 }
+/** BUNNYFALL RESTORE: A STUCK CHARACTER'S SAVE PLAYED FROM THE BOOT'S START (Gothway Garden, main.js) - its own place
+ *  (the world spot, a building, a dungeon) let go, so the load lands nowhere it could not. Everything else stands. */
+export function placeRestored(/** @type {any} */ snap) {
+  if (!snap || typeof snap !== 'object') return;
+  snap.locationKey = 'restored';
+  snap.interior = null;
+  snap.dungeon = null;
+}
 /** A save's text as the snapshot a slot load reads, or null. */
 function parseSave(/** @type {string | null} */ text) {
   let snap = null;

@@ -514,6 +514,9 @@ export function takePickedSaveKey() { const k = _pickedSaveKey; _pickedSaveKey =
 /** REALM P1.3: the realm character the Online door's Play pressed - its id rides the boot (main.js ?realm). */
 let _pickedRealmId = null;
 export function takePickedRealmId() { const id = _pickedRealmId; _pickedRealmId = null; return id; }
+/** BUNNYFALL RESTORE: the picked realm character is played from Gothway Garden, out of wherever its save stood. */
+let _pickedRealmRestore = false;
+export function takePickedRealmRestore() { const r = _pickedRealmRestore; _pickedRealmRestore = false; return r; }
 /** HOUSE-WAITS (FIELD BUGS 2026-10-09f): the member the Online page's waiting house was answered with - `{ personId,
  *  region, loc }` - taken once by the boot (main.js), which births them online through the world host's own door. */
 let _pickedLegacyBirth = null;
@@ -1378,6 +1381,8 @@ function realmCard(who) {
         actions: [
           { label: save.unfinished ? t('menu.realm.neverSaved', 'Never saved') : t('menu.realm.play', 'Play'), primary: true, disabled: realmBusy || save.unfinished, onClick: () => { _pickedRealmId = row.id; onAction('online'); } },
           { label: t('menu.realm.copyOffline', 'Copy to offline'), disabled: realmBusy || save.unfinished, onClick: () => copyToOffline(row) },
+          // BUNNYFALL RESTORE: a character that will not load where it stood - played from Gothway Garden instead
+          { label: t('menu.realm.restore', 'Restore character'), disabled: realmBusy || save.unfinished, onClick: () => ask(t('menu.realm.restoreAsk', 'Restore {name}?', { name: row.name }), t('menu.realm.restoreBody', 'Use this if {name} is stuck or sends you back to the menu. {name} joins the realm in Gothway Garden instead of where they were saved, taking over any old session. Items, gold and progress stay as they are.', { name: row.name }), t('menu.realm.restoreYes', 'Restore'), () => { _pickedRealmId = row.id; _pickedRealmRestore = true; onAction('online'); }) },
           // HOUSE-LOSS (2026-09-29, Mac: "GarySoup lost his house and furniture"): a character brought in whose first save
           // never landed is UNDONE, never deleted - its delete took the home customs had carried, and it could never come
           // in again. The undo gives back its home, its guild place and its customs (realm.js undoRealm).
