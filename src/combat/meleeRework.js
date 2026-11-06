@@ -21,14 +21,19 @@
 // other holds the shield) - the block is kept, the punches slow (characters/weaponStates.js registerSwingBurden).
 //
 // STEP 3, WHAT EACH FAMILY DOES BEST (FAMILY below; the player's blows alone):
-//   straight swords (broadsword, longsword, claymore)  STEADY: the weapon's roll never falls in its bottom third
-//   curved swords (saber, katana, dai-katana)          DRAW CUT: the first blow on a foe at full health, +50%
-//   short blades (dagger, tanto, shortsword, wakizashi) the unaware foe's blow (it had not noticed me), +50%
-//   axes (battle axe, war axe, archer's axe)           the FINISHER: a foe under half its health, +25%
-//   blunt (mace, flail, warhammer, light flail) and the crossbow   PIERCE: a third of what armour or hide takes, back
-//   flails (flail, light flail)                         the CHAIN WHIPS: one blow in seven lands twice
-//   the staff                                           the GUARD: both hands on it block as a light shield does
-// STEP 4, THE TWO-HANDER'S CLEAVE: combat/meleeCleave.js, by TWO_HANDED_CLEAVE.
+//   longsword, claymore              STEADY: the weapon's roll never falls in its bottom third
+//   broadsword                       the HEWER: a foe wearing no armour (a beast, a monster, an unarmoured man), +15%
+//   katana, dai-katana               the DRAW CUT: the first blow on a foe at full health, +50%
+//   saber                            the FLOW: each blow on the same foe +5% on the next, to +25%; a new foe or 3 s idle
+//                                    starts it again
+//   short blades (dagger, tanto, shortsword, wakizashi)  the unaware foe's blow (it had not noticed me), +50%
+//   axes (battle axe, war axe, archer's axe)             the FINISHER: a foe under half its health, +25%
+//   blunt (flail, warhammer, light flail) and the crossbow  PIERCE: a third of what armour or hide takes, back
+//   the mace                         the ARMOUR BREAKER: half of it back
+//   the flail                        the CHAIN WHIPS: one blow in seven lands twice
+//   the light flail                  QUICK: its swing's frame LIGHT_FLAIL_PACE as long (about 15% more blows)
+//   the staff                        the GUARD: both hands on it block as a light shield does
+// STEP 4, THE TWO-HANDER'S CLEAVE: combat/meleeCleave.js, by TWO_HANDED_CLEAVE - the claymore's by CLAYMORE_CLEAVE.
 // The always-on strengths (steady, pierce, the whip, the finisher over a fight) are inside each row's band - the rows were
 // measured again with them on - the rest are the family's edge where it applies.
 import { registerWeaponBlowMod } from '../systems/entityMods.js';
@@ -47,7 +52,7 @@ export const MELEE_REWORK = { on: true };
 /** Each weapon template's multiplier on the player's blow: [multiplier, measured share of a longsword before]. */
 export const WEAPON_POWER = Object.freeze({
   // one-handed long blades - 1.00
-  118: [1.06, 0.94],   // Broadsword
+  118: [1.00, 0.94],   // Broadsword (its hewer's edge on unarmoured foes keeps it in the band)
   119: [1.10, 0.95],   // Saber
   120: [1.00, 1.00],   // Longsword (the measure)
   121: [1.01, 1.03],   // Katana
@@ -76,34 +81,49 @@ export const WEAPON_POWER = Object.freeze({
 
 /** Each family's templates (the crossbow's id is RR's, characters/crossbowIds.js). */
 export const FAMILY = Object.freeze({
-  straight: Object.freeze([118, 120, 122]),
-  curved: Object.freeze([119, 121, 123]),
+  straight: Object.freeze([120, 122]),
+  hewer: Object.freeze([118]),
+  drawCut: Object.freeze([121, 123]),
+  flow: Object.freeze([119]),
   short: Object.freeze([113, 114, 116, 117]),
   axe: Object.freeze([127, 128, 513]),
-  pierce: Object.freeze([124, 125, 126, 514, CROSSBOW_TEMPLATE]),
-  flail: Object.freeze([125, 514]),
+  pierce: Object.freeze([125, 126, 514, CROSSBOW_TEMPLATE]),
+  breaker: Object.freeze([124]),
+  flail: Object.freeze([125]),
+  quick: Object.freeze([514]),
   staff: Object.freeze([115]),
 });
 const inFamily = (fam, weapon) => !!weapon && FAMILY[fam].includes(weapon.templateIndex);
 /** The strengths' numbers. */
 export const STRENGTH = Object.freeze({
   STEADY_FLOOR: 1 / 3,      // straight swords: the roll's floor, this share up the weapon's span
-  DRAW_CUT: 1.5,            // curved swords: a foe at full health
+  HEWER: 1.15,              // the broadsword: a foe wearing no armour
+  DRAW_CUT: 1.5,            // katanas: a foe at full health
+  FLOW_STEP: 0.05,          // the saber: each blow on the same foe, this more on the next...
+  FLOW_MOST: 0.25,          // ...to this
+  FLOW_SECONDS: 3,          // ...and gone after this long without a blow
   UNAWARE: 1.5,             // short blades: a foe that had not noticed me
   FINISHER_BELOW: 0.5,      // axes: under this share of its health...
   FINISHER: 1.25,           // ...this much harder
   PIERCE: 1 / 3,            // blunt and the crossbow: this share of the armour's take, back
-  WHIP_CHANCE: 1 / 7,       // flails: a blow lands twice this often
+  BREAKER: 1 / 2,           // the mace: this share
+  WHIP_CHANCE: 1 / 7,       // the flail: a blow lands twice this often
+  LIGHT_FLAIL_PACE: 0.87,   // the light flail: its swing's frame this long
   STAFF_GUARD: 10,          // the staff: per cent off a landed weapon or arrow blow, as a shield's
 });
 /** The two-hander's cleave (combat/meleeCleave.js): up to `count` more foes within `metres` of the one struck, each
  *  `share` per cent of the blow that landed. */
 export const TWO_HANDED_CLEAVE = Object.freeze({ count: 2, metres: 3, share: 50 });
+/** The claymore's own: the crowd's weapon. */
+export const CLAYMORE_CLEAVE = Object.freeze({ count: 3, metres: 3, share: 60 });
+/** The cleave a two-hander `weapon` swings with. */
+export const cleaveOf = (weapon) => (weapon?.templateIndex === 122 ? CLAYMORE_CLEAVE : TWO_HANDED_CLEAVE);
 
 /** The share of a landed weapon or arrow blow a held shield takes off, by its template (per cent). */
 export const SHIELD_BLOCK = Object.freeze({ 109: 5, 110: 8, 111: 12, 112: 18 });   // Buckler, Round, Kite, Tower
 
-/** Bare fists with a shield held: this times the swing's frame (about 13% fewer punches a second). */
+/** Bare fists with a shield held: this times the swing's frame (about 13% fewer punches a second). The swing's pace
+ *  seam (registerSwingBurden) also carries the light flail's quicker frame. */
 export const FISTS_SHIELD_SLOW = 1.15;
 
 /** The multiplier a player's blow with `weapon` takes (1 for anything not in the table, or the rework off). */
@@ -127,11 +147,34 @@ export function shieldBlockShare(entity) {
 /** A foe's share of its health (1 when it has no number). */
 const healthOf = (e) => (e && e.maxHealth > 0 ? Math.max(0, e.health ?? e.maxHealth) / e.maxHealth : 1);
 
-/** The family strengths over a player's whole blow (registered with the weapon's row): the draw cut, the unaware blow, the
- *  finisher, the whip. `info.estimate` (the Stats page) reads the whip as its mean and rolls nothing. */
+/** Does `e` wear no armour at all (a beast or a monster: no worn piece in any armour slot). */
+function unarmoured(e) {
+  if (!e || e.isPlayer) return false;
+  const slots = equipTableOf(e) ?? [];
+  for (const it of slots) if (it && it.group === 'Armor') return false;
+  return true;
+}
+/** The saber's flow: the foe it is on, its stacks, the last blow's time. */
+const _flow = { target: null, n: 0, at: -Infinity };
+const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()) / 1000;
+function flowBlow(target, estimate) {
+  const t = now();
+  if (_flow.target !== target || t - _flow.at > STRENGTH.FLOW_SECONDS) { if (estimate) return 1; _flow.target = target; _flow.n = 0; }
+  const k = 1 + Math.min(STRENGTH.FLOW_MOST, _flow.n * STRENGTH.FLOW_STEP);
+  if (!estimate) { _flow.n++; _flow.at = t; }
+  return k;
+}
+/** Tests and the measure: the saber's flow forgotten. */
+export function resetFlow() { _flow.target = null; _flow.n = 0; _flow.at = -Infinity; }
+
+/** The family strengths over a player's whole blow (registered with the weapon's row): the hewer, the draw cut, the flow,
+ *  the unaware blow, the finisher, the whip. `info.estimate` (the Stats page) reads the whip as its mean, the flow as it
+ *  stands, and rolls and keeps nothing. */
 export function familyBlow(weapon, damage, target, info) {
   let d = damage;
-  if (inFamily('curved', weapon) && target && !target.isPlayer && healthOf(target) >= 1) d *= STRENGTH.DRAW_CUT;
+  if (inFamily('hewer', weapon) && unarmoured(target)) d *= STRENGTH.HEWER;
+  if (inFamily('drawCut', weapon) && target && !target.isPlayer && healthOf(target) >= 1) d *= STRENGTH.DRAW_CUT;
+  if (inFamily('flow', weapon) && target && !target.isPlayer) d *= flowBlow(target, !!info?.estimate);
   if (inFamily('short', weapon) && info?.unaware) d *= STRENGTH.UNAWARE;
   if (inFamily('axe', weapon) && target && healthOf(target) < STRENGTH.FINISHER_BELOW) d *= STRENGTH.FINISHER;
   if (inFamily('flail', weapon)) d *= info?.estimate ? 1 + STRENGTH.WHIP_CHANCE : (Math.random() < STRENGTH.WHIP_CHANCE ? 2 : 1);
@@ -149,9 +192,14 @@ registerWeaponDamageMod('melee-steady', (weapon, roll, attacker) => {
   return Math.max(roll, Math.floor(lo + (hi - lo) * STRENGTH.STEADY_FLOOR));
 });
 // PIERCE: blunt and the crossbow take back a share of what the struck foe's armour or hide took (combat/pcaao.js)
-registerArmorPierce((attacker, _target, weapon) => (MELEE_REWORK.on && attacker?.isPlayer && inFamily('pierce', weapon) ? STRENGTH.PIERCE : 0));
+registerArmorPierce((attacker, _target, weapon) => {
+  if (!MELEE_REWORK.on || !attacker?.isPlayer) return 0;
+  return inFamily('breaker', weapon) ? STRENGTH.BREAKER : inFamily('pierce', weapon) ? STRENGTH.PIERCE : 0;
+});
 registerBlowTakenMod('shield-block', (_attacker, target, _weapon, info) => (info?.kind === 'spell' ? 1 : 1 - shieldBlockShare(target)));
 registerSwingBurden((ctx) => {
-  if (!MELEE_REWORK.on || !ctx?.entity?.isPlayer || ctx.weaponType !== 15) return 1;   // 15: WeaponTypes.Melee, the bare hand
-  return heldShield(ctx.entity) ? FISTS_SHIELD_SLOW : 1;
+  if (!MELEE_REWORK.on || !ctx?.entity?.isPlayer) return 1;
+  if (ctx.weaponType === 15) return heldShield(ctx.entity) ? FISTS_SHIELD_SLOW : 1;   // 15: WeaponTypes.Melee, the bare hand
+  const held = equipTableOf(ctx.entity)?.[ctx.usingRightHand === false ? EQUIP_SLOTS.LeftHand : EQUIP_SLOTS.RightHand];
+  return inFamily('quick', held) ? STRENGTH.LIGHT_FLAIL_PACE : 1;   // the light flail's quicker swing
 });
