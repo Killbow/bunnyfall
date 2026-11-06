@@ -4,7 +4,7 @@
 // players.nyx_found - server-account/src/nyx.js), and the shot when the build is whole: the round moves on and `fired_at`
 // says when, so every game can see it fire. A friends' server: a gift is the game's word, bounded (CANNON_GIVE_MAX) and
 // held to what the build still needs.
-import { CANNON_NEED, CANNON_KEYS, CANNON_VALUE, CANNON_GIVE_MAX, cannonCoins, cannonWhole } from '../../src/net/cannonLaw.js';
+import { CANNON_NYX_BONUS, CANNON_NEED, CANNON_KEYS, CANNON_VALUE, CANNON_GIVE_MAX, cannonCoins, cannonWhole } from '../../src/net/cannonLaw.js';
 
 async function readBuild(db) {
   const row = (await db.prepare('SELECT round, fired_at FROM cannon WHERE id = 1').first()) ?? { round: 1, fired_at: 0 };
@@ -54,7 +54,7 @@ export async function cannonGive({ db: session, primary, nowS }, player, body) {
   let fired = false;
   const after = await readBuild(db);
   if (after.round === round && cannonWhole(after.got)) {
-    const moved = await db.prepare('UPDATE cannon SET round = round + 1, fired_at = ?2 WHERE id = 1 AND round = ?1').bind(round, nowS).run();
+    const moved = await db.prepare('UPDATE cannon SET round = round + 1, fired_at = ?2, nyx_bonus = nyx_bonus + ?3 WHERE id = 1 AND round = ?1').bind(round, nowS, CANNON_NYX_BONUS).run();   // and the realm's count its 500
     fired = (moved?.meta?.changes ?? 0) > 0;
   }
   return { ok: true, ...(await readBuild(db)), need: CANNON_NEED, taken, coins: pay.coins, fired };
