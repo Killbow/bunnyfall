@@ -63,6 +63,7 @@ import { staffReactions, REACTION_ROUTES } from './staffReactions.js';   // STAF
 import { staffHidden, HIDDEN_ROUTES, hiddenEnd, hiddenSubOf } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: Hide me, and the mark's end
 import { signingKey } from './signing.js';
 import { mintHideOrder, ID_RE } from '../../src/net/identityToken.js';   // STAFF-PANEL5-CUT-FIX: a cut's hide orders
+import { staffData, DATA_ROUTES } from './staffData.js';   // BUNNYFALL: staff.html's saves and database
 import { staffFreeze, FREEZE_ROUTES, FREEZE_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE
 
 /** The header a staff session rides in - never `authorization`, which is the game's. */
@@ -121,7 +122,8 @@ export const STAFF_STATUS = Object.freeze({
   'not-developer': 403, 'no-realm-character': 404, 'no-clean': 409, 'service-moved': 409, dead: 409, 'repair-no-faction': 409, 'repair-not-set': 409,
   seq: 409, 'mend-not-negative': 409, 'mend-moved': 409, 'repair-ticket': 409, 'no-data': 409, 'no-storage': 503, 'market-gone': 409, 'bad-listing': 400,
   'staff-note': 400, 'staff-reason': 400, 'staff-remove-pending': 409, 'staff-no-piece': 409, 'staff-trail': 409, 'staff-evidence': 404, 'staff-evidence-gone': 409,
-  'no-dupes': 409,   // STAFF-PURGE-DUPES: this character has no copy marks to destroy
+  'no-dupes': 409, 'bad-query': 400,   // BUNNYFALL staffData.js: a query that is not one SELECT
+     // STAFF-PURGE-DUPES: this character has no copy marks to destroy
   // STAFF-SET-BANK (net/repairLaw.js applyBankSet): a record that keeps no Empire account, and a bank not the total staff read
   'bank-none': 409, 'bank-moved': 409,
   // GUILD-LETTER-FIX (net/repairLaw.js applyGuildLetter): a member already, the initiation quest still held, a letter on
@@ -434,6 +436,7 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   if (MONSTER_ROUTES.includes(path)) return staffMonsters(ctx, env, path, body, who, audit);
   if (REACTION_ROUTES.includes(path)) return staffReactions(ctx, env, path, body, who, audit);
   if (HIDDEN_ROUTES.includes(path)) return staffHidden(ctx, env, path, body, who, audit);   // STAFF-PANEL5-HIDDEN: Hide me and Show myself (staffHidden.js)
+  if (DATA_ROUTES.includes(path)) return staffData(ctx, env, path, body, who, audit);   // BUNNYFALL: saves (Admins) and the database (owners)
   if (FREEZE_ROUTES.includes(path)) return staffFreeze(ctx, env, path, body, who, audit);   // STAFF-PANEL5-FREEZE: freeze (Admins) and the staff chat (both)
 
   // ═══ THE ADMINS' DOORS: THE PANEL'S MODERATORS (mob, 07:42Z: "add it so admins can add or remove moderatoers") ═══
