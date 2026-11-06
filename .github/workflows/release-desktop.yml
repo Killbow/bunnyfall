@@ -276,12 +276,17 @@ jobs:
             echo "no game on the release before (${PREV:-none}) - nothing to measure against"
           fi
 
-      # BUNNYFALL: no patch notes - one plain line, no commit list.
+      # BUNNYFALL: the notes are the lines CHANGELOG.md gained since the previous release (scripts/changelogNotes.mjs);
+      # a release that gained none says "Fixes and improvements.", which the desktop app's patch notes leave out.
       - name: Write the notes
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
-        run: echo "A new version of Bunnyfall. Installed copies update themselves." > release-notes.md
+        run: |
+          PREV=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name 2>/dev/null || true)
+          if [ -n "$PREV" ]; then git fetch -q --depth=1 origin "refs/tags/$PREV:refs/tags/$PREV" 2>/dev/null || true; fi
+          node scripts/changelogNotes.mjs "$PREV" > release-notes.md
+          cat release-notes.md
 
       # AUDIT INSTALL L3-2: a tag that already has a PUBLISHED release is
       # never re-cut in place. softprops updates an existing release rather
