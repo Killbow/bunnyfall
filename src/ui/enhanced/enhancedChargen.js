@@ -43,7 +43,8 @@
 import { RACE_TEMPLATES } from '../../systems/races.js';
 import { CLASS_DESCRIPTION_TEXT_ID, SUMMARY_BONUS_TEXT_ID, PLAYER_REFLEXES, repBoxRowsFrom } from '../chargenArt.js';   // ONE DFU MEMBER, ONE EXPORT
 import { generateBackstory } from '../../systems/biography.js';
-import { FACES_PER_RACE, NORD_LOOK_FACE } from '../../systems/races.js';
+import { facesFor } from '../../systems/roxArgonians.js';   // ROX: the extra Argonian faces
+import { NORD_LOOK_FACE } from '../../systems/races.js';
 import { storedSession } from '../../net/accountClient.js';   // BUNNYFALL: the owner's own face choice
 import { appStorage } from '../../systems/appStorage.js';
 import { bitmapCanvas } from '../bitmapCanvas.js';
@@ -1170,10 +1171,10 @@ function faceStage() {
 
   if (!faces?.canvases?.length) {
     // NEVER TRAPS: no CIF, no portraits, and the wizard still walks.
-    wrap.append(el('p', 'mapnote', 'The portraits for this race could not be loaded. Any of the ten will do.'));
+    wrap.append(el('p', 'mapnote', 'The portraits for this race could not be loaded. Any of them will do.'));
   }
   const grid = el('div', 'facegrid');
-  for (let i = 0; i < FACES_PER_RACE; i++) {
+  for (let i = 0; i < facesFor(flow.race?.key); i++) {   // ROX: an Argonian has twenty (systems/roxArgonians.js)
     const b = el('button', `facecell${i === flow.facePick ? ' on' : ''}`);
     const art = faces?.canvases?.[i];
     // NOT cloneNode: cloning a canvas copies its size and NOT its

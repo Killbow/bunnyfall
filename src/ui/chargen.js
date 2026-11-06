@@ -32,7 +32,8 @@ import { tagEffect, biographySkillBonuses, digestRepChanges } from '../systems/b
 import { fullName, getNameBank, GENDERS } from '../characters/nameHelper.js';   // U15
 import { srand } from '../formats/dfRandom.js';   // AUDIT 17j F1: the name screen's reseed
 import { buildBackstory, repBoxRows, bonusPointsRows } from './chargenArt.js';   // U13 / U16
-import { RACE_TEMPLATES, FACES_PER_RACE } from '../systems/races.js';   // S3c/U9
+import { RACE_TEMPLATES } from '../systems/races.js';   // S3c/U9
+import { facesFor } from '../systems/roxArgonians.js';   // ROX: an Argonian has twenty faces
 import { audio } from '../systems/audio.js';
 import { SOUND } from '../systems/soundClips.js';
 import { SKILL_NAMES } from '../systems/skills.js';
@@ -1741,8 +1742,8 @@ export class ChargenFlow {
       return;
     }
     if (s === 'face') {
-      if (action === 'up') this.facePick = (this.facePick + FACES_PER_RACE - 1) % FACES_PER_RACE;
-      else if (action === 'down') this.facePick = (this.facePick + 1) % FACES_PER_RACE;
+      if (action === 'up') this.facePick = (this.facePick + facesFor(this.race?.key) - 1) % facesFor(this.race?.key);
+      else if (action === 'down') this.facePick = (this.facePick + 1) % facesFor(this.race?.key);
       // FaceSelectWindow_OnClose's accept arm (:496-501) is the ONE
       // place the picker's value reaches the document.
       else if (action === 'confirm') { this.faceIndex = this.facePick; this.state = 'stats'; this._enterStats(); }
@@ -2241,8 +2242,8 @@ export class ChargenFlow {
       // copies FaceIndex straight BACK (:575), so a summary face edit
       // legitimately writes the document. The face SCREEN's picker is
       // its own value until OK commits it.
-      if (this.state === 'face') this.facePick = (this.facePick + FACES_PER_RACE + hit.faceStep) % FACES_PER_RACE;
-      else this.faceIndex = (this.faceIndex + FACES_PER_RACE + hit.faceStep) % FACES_PER_RACE;
+      if (this.state === 'face') this.facePick = (this.facePick + facesFor(this.race?.key) + hit.faceStep) % facesFor(this.race?.key);
+      else this.faceIndex = (this.faceIndex + facesFor(this.race?.key) + hit.faceStep) % facesFor(this.race?.key);
       return true;
     }
     if (hit.randomName) {
@@ -2299,7 +2300,7 @@ export class ChargenFlow {
     } else if (this.state === 'face') {
       title('CHOOSE YOUR FACE');
       line(`${raceDisplayName(this.race.key)} ${this.gender}`, 0, white);
-      line(`face ${this.facePick + 1} of ${FACES_PER_RACE}`, 2, hot);
+      line(`face ${this.facePick + 1} of ${facesFor(this.race?.key)}`, 2, hot);
       line('up/down to cycle, ENTER to continue', 4, dim);
       line('(the portrait shows once the art loads)', 6, dim);
     } else if (this.state === 'class') {

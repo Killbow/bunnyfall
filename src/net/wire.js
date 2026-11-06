@@ -1,4 +1,5 @@
 // @ts-check
+import { FACE_INDEX_MAX } from '../systems/roxArgonians.js';   // ROX: the extra Argonian faces
 import { validStaffEventIn } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT: a staff event's word in
 import { validStaffTeleportIn } from './staffTeleport.js';
 import { validRelayCfgIn } from './relayCfg.js';   // SCALE5b: a relay setting, said to the hub
@@ -2246,7 +2247,7 @@ export function validLook(look) {
   if (!look || typeof look !== 'object') return null;
   const race = typeof look.race === 'string' && /^[A-Za-z]{1,16}$/.test(look.race) ? look.race : 'Breton';
   const gender = look.gender === 'female' ? 'female' : 'male';
-  const faceIndex = uint(look.faceIndex, 9) ?? 0;
+  const faceIndex = uint(look.faceIndex, FACE_INDEX_MAX) ?? 0;   // ROX: an Argonian's 10..19 (systems/roxArgonians.js)
   // TEXT-F1: a custom class's name is a player's typing that every inspector reads (ui/profileWindow.js) - one the filter
   // catches is no class at all, as an unreadable one is
   const klass = typeof look.class === 'string' && /^[A-Za-z0-9' -]{1,32}$/.test(look.class.trim()) && !textCaught(look.class) ? look.class.trim() : null;

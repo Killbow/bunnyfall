@@ -39,6 +39,7 @@
 // looks level because ITS pitch is an animation channel, where this one
 // takes the player's pitch through the neck the reference rotates.
 
+import { classicFaceRecord } from '../systems/roxArgonians.js';   // ROX: an Argonian's extra faces read their classic twin's record
 import { lookAt, multiply, ortho, perspective, transformPoint, trs, wrapAngle } from '../world/mat4.js';
 import { ClimbPose, POSE } from '../player/climb/climbPose.js';   // CLIMB6: the climb's limbs, in the world; TWO-HANDS: its limb law (LIMB_TAU) eases the mirror's compositions
 import { runWeightStep, runPhaseFollow, pumpTarget3D, RUN_3D, mirrorStrike, guardStep, GUARD, pairSpreadAngle, PAIR_SPREAD, easeTo } from './twoHands/handsLaw.js';   // TWO-HANDS: the run's pump, the sprite lane's stroke on the 3D body; a mirrored blow's way across the screen; the guard's weight; TWO-HANDS SPREAD: the pair's arms turned out
@@ -1418,6 +1419,7 @@ async function measurePart(record, archives, kind) {
  *  directory) - the ones the rows walk and the verdict's key names, so
  *  what is measured is what is chosen among, by construction. */
 export async function matchFaceFor({ race, female, faceIndex, pools, archives, deps }) {
+  faceIndex = classicFaceRecord(faceIndex);   // ROX: the CIF has ten records
   const reasons = [];
   let portrait = null;
   try {
@@ -2430,6 +2432,7 @@ async function buildCreatureBody({ creature, flies = false, deps = null }) {
  *  one door: the same pools, the same curated table, the same kept verdicts. Null halves fall back to the walk inside
  *  playerBodyRows. */
 async function faceMatchOf({ race, female, faceIndex, werewolf = false, npcFace = null, pools, archives, gen, d }) {
+  faceIndex = classicFaceRecord(faceIndex);   // ROX
   // AUDIT 32 F2: memoised per identity per data generation - a
   // rebuild happens on every equip change now (D32), and the face
   // does not change when a gauntlet does; without this, every worn
@@ -2654,6 +2657,7 @@ const beastWearPref = () => ({ feet: getPref('mwBeastFeet'), helm: getPref('mwBe
  *  or null (no data attached, no renderer, no head for the race, the skeleton or a mesh or a texture not in hand).
  *  @param {{ renderer?: any, race?: string|null, female?: boolean, faceIndex?: number, npcFace?: { head: number, hair: number }|null, ownHeads?: boolean, vampire?: boolean, werewolf?: boolean, skin?: string|null, armor?: any[]|null, px?: number, ph?: number, deps?: any }} [opts] */
 export async function headPortrait({ renderer, race, female = false, faceIndex = 0, npcFace = null, vampire = false, werewolf = false, skin = null, armor = null, ownHeads = false, px = 128, ph = px, deps = null } = {}) {
+  faceIndex = classicFaceRecord(faceIndex);   // ROX: Rox's Argonian faces (10..19) read their classic twin's record here
   if (!renderer || !race) return null;
   const d = deps || await import('../scenes/dataSource.js');
   const cat = await headCatalogOf(d);
@@ -2700,6 +2704,7 @@ export async function buildFpArm({
   ownHeads = false,   // MW-HEADS2 (the owner: "only the player Britons should recieve the new heads, not npcs"): a player's body - the local player's (weaponRig.js armBuildOptsOf) and a peer's (net/peer/peerBodies.js playerBuildOpts) - wears the port's own heads; every other the data's
   offWeapon = null,   // TWO-HANDS AUDIT 2: a pair's left-hand weapon, bound in the build on both rigs - the rig's own rebuilds hand the one it holds (setOffWeapon records it)
 } = {}) {
+  faceIndex = classicFaceRecord(faceIndex);   // ROX
   if (creature) return buildCreatureBody({ creature, flies, deps });   // MWNPC9
   const d = deps || await import('../scenes/dataSource.js');
   // WEREWOLF1: THE WOLF HOLDS NOTHING. setWerewolf's unequipAll empties both hands and every slot

@@ -68,7 +68,8 @@
 //
 // Not a DFU member: Daggerfall Unity has no parties. Ledger A row (ONLINE).
 import { CifRciFile } from '../formats/cifRciFile.js';
-import { raceArt, FACES_PER_RACE } from '../systems/races.js';
+import { raceArt } from '../systems/races.js';
+import { classicFaceRecord } from '../systems/roxArgonians.js';   // ROX
 import { bitmapToColor32 } from '../formats/color32Order.js';   // the same indexed-to-RGBA door every classic screen reads
 import { isTouchDevice } from './touch/touch.js';
 import { PARTY_GREEN_CSS, lastOnlineText } from '../net/social.js';   // one home for the green - "should turn green"
@@ -239,7 +240,7 @@ export const PARTY_VITALS = Object.freeze([
 ]);
 
 /** The portrait cache's key - a face is a race, a gender and an index, and nothing else. */
-export const faceKeyOf = (p) => `${p?.race ?? 'Breton'}|${p?.gender === 'female' ? 'female' : 'male'}|${Math.max(0, Math.min(FACES_PER_RACE - 1, (p?.face ?? 0) | 0))}`;
+export const faceKeyOf = (p) => `${p?.race ?? 'Breton'}|${p?.gender === 'female' ? 'female' : 'male'}|${classicFaceRecord(p?.face ?? 0)}`;
 
 /** Where a member is, in words: the place their pose names, plus what KIND of place it is when they are not out in
  *  the open (net/wire.js validPartyPose `in`: 1 a dungeon, 2 a building's inside). A pose with no place name at all
@@ -341,7 +342,7 @@ export function createFaceLoader({ fetchBytes, palette } = {}) {
       return bmp ? bitmapToColor32(bmp, palette) : null;
     }
     const art = raceArt(pose?.race ?? 'Breton', pose?.gender === 'female' ? 'female' : 'male');
-    const record = Math.max(0, Math.min(FACES_PER_RACE - 1, (pose?.face ?? 0) | 0));
+    const record = classicFaceRecord(pose?.face ?? 0);   // ROX: Rox's faces read their classic twin
     const cif = await load(art.heads);
     const bmp = cif.getDFBitmap(record, 0);
     return bmp ? bitmapToColor32(bmp, palette) : null;

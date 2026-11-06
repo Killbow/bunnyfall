@@ -55,6 +55,8 @@ import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom class's own archive and record on the doll
 import { ownItemImage } from '../systems/item/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
 import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { isRoxFace, wearsRox, classicFaceRecord, ROX_HEAD_RECT } from '../systems/roxArgonians.js';   // ROX: an Argonian's extra ten faces
+import { roxRgba, roxHeadUrl, roxBodyUrl } from './roxArgonianArt.js';
 import { raceArt, FACES_PER_RACE, raceByKey, artRaceOf } from '../systems/races.js';   // S3c/U9: all eight races
 import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
 
@@ -288,9 +290,10 @@ async function loadArtSet(deps, { race = 'Breton', gender = 'male', faceIndex = 
   };
   const face = new CifRciFile();
   face.load(await fetchBytes(art.heads), art.heads, palette);
-  const fi = Math.max(0, Math.min(FACES_PER_RACE - 1, faceIndex | 0));
+  const rox = isRoxFace(race, faceIndex);   // ROX: an Argonian's face 10..19 - Rox's head and body over the classic boxes
+  const fi = rox ? classicFaceRecord(faceIndex) : Math.max(0, Math.min(FACES_PER_RACE - 1, faceIndex | 0));
   const headBmp = face.getDFBitmap(fi, 0);
-  return {
+  const set = {
     palette,
     // UI3: the SETTING decides, not the caller's context word. Off -
     // which is how it ships - every race gets its own backdrop.
@@ -302,6 +305,15 @@ async function loadArtSet(deps, { race = 'Breton', gender = 'male', faceIndex = 
     clothed: await loadImgBmp(clothed),
     head: { bmp: headBmp, off: face.getOffset(fi), alt: await dfmodAlt(dfmodCifRciImage(art.heads, fi, 0), headBmp), rect: dfmodCifRciRect(art.heads, fi, 0) },   // FACE-RECT: and its sidecar's <rect>
   };
+  if (rox) {
+    // ROX (systems/roxArgonians.js): the mod's pictures in the classic layers' places - the head in its xml's box,
+    // the two body layers over the classic ones' boxes (as DFU draws a replaced IMG); a picture that fails keeps the classic
+    const [h, n, c] = await Promise.all([roxRgba(roxHeadUrl(gender, faceIndex)), roxRgba(roxBodyUrl(gender, false)), roxRgba(roxBodyUrl(gender, true))]);
+    if (h) { set.head.alt = h; set.head.rect = { ...ROX_HEAD_RECT }; }
+    if (n) set.nude.alt = n;
+    if (c) set.clothed.alt = c;
+  }
+  return set;
 }
 
 /** DFMOD1: an attached mod's picture of a classic IMG/CIF - the mod's own top-down RGBA `{ width, height, data }`,
@@ -614,7 +626,11 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     }
     // V5: the vampire's clanless head replaces the racial one
     const headOv = racialOverrideHeadArt(entity);
-    const headArt = headOv ? await loadOverrideArt(headOv.file, headOv.record, deps, art.palette) : null;
+    let headArt = headOv ? await loadOverrideArt(headOv.file, headOv.record, deps, art.palette) : null;
+    if (headArt && headOv.file === 'VAMP00I0.CIF' && wearsRox(entity)) {   // ROX: a cursed Rox face wears its own vampire face
+      const v = await roxRgba(roxHeadUrl(entity.gender, entity.faceIndex, true));
+      if (v) headArt = { bmp: headArt.bmp, off: headArt.off, alt: v, rect: { ...ROX_HEAD_RECT } };
+    }
     blit(out, headArt ?? art.head, art.palette, { S });
     track?.mark('head');
   }

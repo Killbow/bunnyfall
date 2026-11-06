@@ -159,6 +159,16 @@ export const CREDITS = Object.freeze({
       link: 'https://www.nexusmods.com/daggerfallunity/mods/242',
     }),
     Object.freeze({
+      title: "Rox's New Argonians",
+      version: '1.0',
+      author: 'SynfulRoX',
+      get what() { return t('credits.roxArgonians.what', 'Ten new Argonian heads and new Argonian bodies for both genders, with a matching vampire face for each head. In Bunnyfall they are extra choices: Argonian faces 11 to 20, beside the original ten.'); },
+      get terms() { return t('credits.roxArgonians.terms', 'Free to edit and redistribute, as long as credit to the original creator is included.'); },
+      get contact() { return t('credits.contact.nexus', '{author}, through the Nexus page ({page})', { author: 'SynfulRoX', page: 'daggerfallunity mod 1206' }); },
+      vendor: Object.freeze(['roxs-new-argonians']),
+      link: 'https://www.nexusmods.com/daggerfallunity/mods/1206',
+    }),
+    Object.freeze({
       title: 'GrimoireUI',
       version: '1.2',
       author: 'LordSquacquerone',
