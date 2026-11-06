@@ -695,6 +695,7 @@ import { createNavalCrew, CREW_RANGE, CREW_KEEP } from './naval/navalCrew.js';  
 import { asleepHour } from '../systems/naval/shipWatch.js';   // SHIP-WATCH: the crews' sleeping hours
 import { crewRoster, crewCount } from '../systems/naval/crewLife.js';
 import { createCrewAshore } from './crewAshore.js';   // CREW-COMPANIONS: the party ashore, stood in every place
+import { createNecroHost } from './necroHost.js';   // CHEB'S NECROMANCY: the raised dead at the player's side
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
 import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';   // REVENANT-COMPANION: the party card's word for one
@@ -7575,7 +7576,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     visit: { may: (t) => caravanVisitMay(t), enter: (t) => caravanVisitEnter(t) },   // WAGONS2-VISIT: another's caravan, open to me
     horses: () => horseCountOf(playerEntity.items ?? []),   // WAGONS3: my parked pair keeps its second horse while I own two
     playerCapsule: () => (walkMode && playerSpawned ? { feet: player.pos, height: player.height, radius: CAPSULE_RADIUS } : null),   // WAGONS3: my parked wagon's box never stands round me
-    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
+    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules(), ...necro.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
     renderShift: () => { if (!walkMode || !playerSpawned) return null; const f = player.feetAt(); return [f[0] - player.pos[0], 0, f[2] - player.pos[2]]; },   // WAGONS3: my driven wagon drawn where I am drawn
     peerAnchor: (id) => { const sh = _peerMapPoses.get(id); return sh && (sh.rd | 0) === 2 ? onlineToScene(sh) : null; },   // AUDIT HCC O5: the change key in the wire frame (campToWire is the pose's law, declared with the stream below; read only once frames run); WAGON-HITCH: where another player's cart rider stands as drawn this frame (`rd` 2, the cart - the pose peerRiders stands them on, boat-adjusted; the online frame fills the map before the pool steps), so their trailing wagon hangs from the rider seen here rather than easing apart from it
   });
@@ -10524,6 +10525,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     seat: (i) => wagonRiders?.companionSeat(crewCount() + i, hcc.carriesCompanions()) ?? null,   // WAGONS1: the sworn take the seats after the crew's
     seatDraw: (i) => wagonRiders?.companionSeatDrawn(crewCount() + i, hcc.carriesCompanions()) ?? null,   // WAGONS2
   });
+  // CHEB'S NECROMANCY (scenes/necroHost.js): the raised dead, stood by the same layer - every place, every door, the heel
+  const necro = createNecroHost({
+    place: () => companionPlace({ crew: false }),
+    leader: () => (playerSpawned ? { feet: [player.pos[0], player.pos[1], player.pos[2]], yaw: cam.yaw, grounded: !!player.grounded && !player.levitating && !player.swimming } : null),
+    now: () => Math.floor(playerTicker.ownMinutes),
+    say: (l) => townTalk.say(l),
+    playerEntity,
+  });
   /** REVENANT-COMPANION: a sworn one called to the player's side - it says so as it steps through. */
   const noteRevenantArrival = (id) => _revenantArrivals.add(id);
   // COMPANION-ROSTER (ui/companionRoster.js): the roster's acts heard here - a call's words wait for the stand, a
@@ -10541,7 +10550,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   /** AUDIT (2026-10-02): the sworn's layer lifted for a load - its bodies, the words still to say, and every member (so
    *  no spell the last game's body wore stands with the loaded one). */
-  const clearSworn = () => { revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
+  const clearSworn = () => { necro.clear(); revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
   setRetinueBodies((id) => revenantAshore.bodies().find((b) => b.revenantCompanion === id && !b.dead && !b._knockedOut)?.entity ?? null);   // AUDIT FEUD: a knocked-out one stands for nothing - no turning, no warning, no witness
   registerCompanionRoster('crew', () => (navalOn() ? (naval?.companions?.party ?? []).map((c) => ({ name: c.name, role: c.role })) : []));
   /** REVENANT-COMPANION: A SWORN ONE'S WORD IN A FIGHT, now and then and never a chatter - as it goes in (BARK_BATTLE), over
@@ -10640,6 +10649,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   function revenantAshoreTick() {
     if (gamePaused()) return;   // the sworn wait out a window too (AUDIT CC-A10's law: no knock, no stand, no catch-up under one)
     while (_revenantBetrayals.length) turnSworn(_revenantBetrayals.shift());   // RVN11c: before the layer's frame - its body lifted, no portal
+    necro.tick();   // CHEB'S NECROMANCY: the minions, beside the sworn
     try { revenantAshore.frame(); } catch (e) { console.warn('[companions] the sworn', e?.message ?? e); }
     while (_revenantDepartures.length) {   // COMPANION-ROSTER: its parting words, as it goes
       const d = _revenantDepartures.shift();
@@ -12035,7 +12045,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
     // DUEL1: my duel opponent's body, for my harmful spells alone, while we fight - and the door the blow leaves by
     duelMark: () => { if (!duelMgr.fighting) return siegeSpellMarks(); const b = duelBody(duelMgr.opponent); return b ? { ...b, name: peerName(b.id) ?? 'your opponent' } : null; },   // AUDIT-SEATS G5: outside a duel, a siege's foes (WILD1: and past them the open zone's fair players)
     castAtDuel: (id, sp) => duelSpellOut(id, sp),
@@ -29636,7 +29646,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     postItem: (text, item) => postItemInChat(text, item), linkItem: (item) => linkItemInChat(item), canPostItem: () => canPostItemInChat(),   // CHAT-POST: the building's and the dungeon's packs post too
     partyNear: () => partyOnMaps(), professionMarks: (feet) => professionMarks(feet),   // DISC23-A: the party's bodies, for the dungeon's and the building's plans (AUDIT pre-merge I-E: those drawn here); NODE-MARKS: the dungeon's veins (and a body the knife may skin) on its compass, at its own feet
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the dungeon's own cast engine gives to the same mates - SPELL-GIFT: and strangers, by the spell
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
     openCompanionPack: (rec) => openCompanionPack(rec),   // COMPANION-KIT: a companion activated indoors or underground - his pack
     openRevenantFate: (rec) => openRevenantFate(rec),   // REVENANT-FATE: a beaten revenant indoors or underground - its choice
     shakeCamera: (k) => betterAmbience.weaponKick(k),   // REVENANT-FATE: an execution's blow, felt

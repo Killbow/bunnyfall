@@ -866,7 +866,7 @@ export function randomlyAddPotionRecipe(chance, items, rolls = Math.random) {
  *  AFTER the equipment, as DFU does - AssignEnemyStartingEquipment
  *  has already pushed the gear into `items` by :388, so a map lands
  *  after a helmet in the list and not before it. */
-export function addEnemyLootExtras(items, basics, rolls = Math.random, { quarters = undefined } = {}) {   // PARTY-LOOT: `quarters` the roll's RENOWN-LOOT share, handed to the extras (undefined: the roller's own)
+export function addEnemyLootExtras(items, basics, rolls = Math.random, { quarters = undefined, mobileType = null } = {}) {   // PARTY-LOOT: `quarters` the roll's RENOWN-LOOT share, handed to the extras (undefined: the roller's own)
   if (!items || !basics) return items;
   randomlyAddMap(basics.mapChance ?? 0, items, rolls);
   // "if (!string.IsNullOrEmpty(mobileEnemy.LootTableKey))" - the port
@@ -877,7 +877,7 @@ export function addEnemyLootExtras(items, basics, rolls = Math.random, { quarter
     randomlyAddPotion(3, items, rolls);
     randomlyAddPotionRecipe(2, items, rolls);
     for (const fn of [..._enemyLootExtras.values()]) {   // REPAIR-EASE: the port's own extras on a looting foe (the field kit)
-      try { fn({ items, basics, rolls, quarters }); } catch (e) { console.warn('[enemyLoot] an extra threw', e); }
+      try { fn({ items, basics, rolls, quarters, mobileType }); } catch (e) { console.warn('[enemyLoot] an extra threw', e); }
     }
   }
   return items;
@@ -885,6 +885,11 @@ export function addEnemyLootExtras(items, basics, rolls = Math.random, { quarter
 /** REPAIR-EASE: the port's own extras on a foe with a loot table, by name - the pile event's shape (raiseTabledLootSpawned),
  *  for the corpse that event never covers. */
 const _enemyLootExtras = new Map();
+/** CHEB'S NECROMANCY: an extra that is the body's own (a corpse), never let go by PLAIN-LOOT's keep (hostCombat.js
+ *  spawnEnemyLoot) - marked off the record (a WeakSet), so nothing of it rides the save. */
+const _kept = new WeakSet();
+export const keepLoot = (item) => { if (item && typeof item === 'object') _kept.add(item); return item; };
+export const isLootKept = (item) => !!item && typeof item === 'object' && _kept.has(item);
 export function registerEnemyLootExtra(name, fn) { if (typeof fn === 'function') _enemyLootExtras.set(name, fn); else _enemyLootExtras.delete(name); }
 
 /** REALM P0.4 (2026-09-28, bible/06-Systems/Realm-Arc.md "Pile gold divided by level"): ONLINE A PILE'S GOLD IS NOT

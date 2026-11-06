@@ -1,0 +1,1477 @@
+{
+    "Version": "0.0.14",
+    "Sections": [
+        {
+            "Name": "General",
+            "Description": "General mod settings.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Options": [
+                        "Errors",
+                        "All",
+                        "None"
+                    ],
+                    "Value": 0,
+                    "Name": "Logging",
+                    "Description": "How much logging should appear in the Player.log for debugging purposes.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Corpse Item",
+            "Description": "Configure the custom corpse item.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Value": true,
+                    "Name": "Enabled",
+                    "Description": "If enabled, enemy humnanoids will drop corpse items and these items will be required for making minions with.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 200,
+                    "Value": 1,
+                    "Name": "Weight in KG",
+                    "Description": "How much the custom corpse item weighs.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Necromancy Effects",
+            "Description": "Configure aspects of the necromancy spell effects.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 27,
+                    "Name": "Skill",
+                    "Description": "The skill associated with necromancy.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Necromancer Class",
+            "Description": "Custom class added by the mod.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Value": true,
+                    "Name": "Enabled",
+                    "Description": "Adds the Necromancer class to the starting options. Turn off if you're using other class mods. It may conflict.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Min": 0.3,
+                    "Max": 3.0,
+                    "Value": 1.0,
+                    "Name": "Advancement Multiplier",
+                    "Description": "How quickly, or slowly, the class progresses. Leave at 1.0 for a normal experience.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderFloatKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 20,
+                    "Value": 8,
+                    "Name": "HP per Level",
+                    "Description": "How much HP is gained on level up.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 40,
+                    "Name": "Strength",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 65,
+                    "Name": "Intelligence",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 70,
+                    "Name": "Willpower",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 40,
+                    "Name": "Agility",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 50,
+                    "Name": "Endurance",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 40,
+                    "Name": "Personality",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 40,
+                    "Name": "Speed",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 50,
+                    "Name": "Luck",
+                    "Description": "Default class attribute.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 27,
+                    "Name": "Primary Skill 1",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 25,
+                    "Name": "Primary Skill 2",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 24,
+                    "Name": "Primary Skill 3",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 26,
+                    "Name": "Major Skill 1",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 22,
+                    "Name": "Major Skill 2",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 23,
+                    "Name": "Major Skill 3",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 1,
+                    "Name": "Minor Skill 1",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 14,
+                    "Name": "Minor Skill 2",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 20,
+                    "Name": "Minor Skill 3",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 28,
+                    "Name": "Minor Skill 4",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 8,
+                    "Name": "Minor Skill 5",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Medical",
+                        "Etiquette",
+                        "Streetwise",
+                        "Jumping",
+                        "Orcish",
+                        "Harpy",
+                        "Giantish",
+                        "Dragonish",
+                        "Nymph",
+                        "Daedric",
+                        "Spriggan",
+                        "Centaurian",
+                        "Impish",
+                        "Lockpicking",
+                        "Mercantile",
+                        "Pickpocket",
+                        "Stealth",
+                        "Swimming",
+                        "Climbing",
+                        "Backstabbing",
+                        "Dodging",
+                        "Running",
+                        "Destruction",
+                        "Restoration",
+                        "Illusion",
+                        "Alteration",
+                        "Thaumaturgy",
+                        "Mysticism",
+                        "ShortBlade",
+                        "LongBlade",
+                        "HandToHand",
+                        "Axe",
+                        "BluntWeapon",
+                        "Archery",
+                        "CriticalStrike"
+                    ],
+                    "Value": 32,
+                    "Name": "Minor Skill 6",
+                    "Description": "The class' first primary skill.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Paralysis",
+                    "Description": "Tolerance to paralysis.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Magic",
+                    "Description": "Tolerance to magic.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Poison",
+                    "Description": "Tolerance to poison.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Fire",
+                    "Description": "Tolerance to fire.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Frost",
+                    "Description": "Tolerance to frost.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Shock",
+                    "Description": "Tolerance to shock.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Immune",
+                        "Resistant",
+                        "Low Tolerance",
+                        "Critical Weakness"
+                    ],
+                    "Value": 0,
+                    "Name": "Disease",
+                    "Description": "Tolerance to disease.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Short Blades",
+                    "Description": "Proficiency in short blades.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Long Blades",
+                    "Description": "Proficiency in long blades.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Hand to Hand",
+                    "Description": "Proficiency in hand to hand combat.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Axes",
+                    "Description": "Proficiency in axes.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Blunt Weapons",
+                    "Description": "Proficiency in blunt weapons.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Options": [
+                        "Normal",
+                        "Expert",
+                        "Forbidden"
+                    ],
+                    "Value": 0,
+                    "Name": "Missile Weapons",
+                    "Description": "Proficiency in missile weapons.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.MultipleChoiceKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "No Regen Spell Points",
+                    "Description": "Whether magicka regenerates.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "Acute Hearing",
+                    "Description": "Acute Hearing",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "Athleticism",
+                    "Description": "Athleticism.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "Adrenaline Rush",
+                    "Description": "Adrenaline Rush.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": false,
+                    "Name": "Damage From Sunlight",
+                    "Description": "Damage from sunlight",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "Damage From Holy Places",
+                    "Description": "Damage from Holy Places.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Recall Minions",
+            "Description": "Options for the Recall Minions spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 1,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Ancient Lich",
+            "Description": "Options for the Summon Ancient Lich spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 500,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 500,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Ancient Vampire",
+            "Description": "Options for the Summon Ancient Vampire spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 250,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 250,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Ghost",
+            "Description": "Options for the Summon Ghost spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 3,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 6,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 100,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Lich",
+            "Description": "Options for the Summon Lich spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 100,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 100,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Mummy",
+            "Description": "Options for the Summon Mummy spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 50,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 50,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Skeleton",
+            "Description": "Options for the Summon Skeleton spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 1,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 1,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Vampire",
+            "Description": "Options for the Summon Vampire spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 500,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        },
+        {
+            "Name": "Summon Zombie",
+            "Description": "Options for the Summon Zombie spell effect.",
+            "IsAdvanced": false,
+            "Keys": [
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Chance Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Chance Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 10,
+                    "Name": "Chance Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to ChanceCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 10,
+                    "Name": "Magnitude Cost A",
+                    "Description": "The costA parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 100,
+                    "Value": 100,
+                    "Name": "Magnitude Cost B",
+                    "Description": "The costB parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                },
+                {
+                    "Min": 1,
+                    "Max": 1000,
+                    "Value": 500,
+                    "Name": "Magnitude Cost Offset",
+                    "Description": "The offsetGold parameter to the MakeEffectCosts assigned to MagnitudeCosts.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.SliderIntKey"
+                }
+            ],
+            "$version": "v1"
+        }
+    ]
+}

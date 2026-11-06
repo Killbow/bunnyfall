@@ -8532,7 +8532,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       }
     }
     markSearched(key, now);
-    const outcome = rollSearchOutcome();
+    const outcome = rollSearchOutcome({ kind: sb.kind });   // CHEB'S NECROMANCY: the kind, so a grave is robbed (systems/searchables.js)
     const level = effectiveLevel(playerEntity);
     let find = [];
     if (outcome === 'loot') {

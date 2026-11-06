@@ -169,6 +169,16 @@ export const CREDITS = Object.freeze({
       link: 'https://www.nexusmods.com/daggerfallunity/mods/1206',
     }),
     Object.freeze({
+      title: "Cheb's Necromancy",
+      version: '0.0.24',
+      author: 'Chebgonaz',
+      get what() { return t('credits.chebsNecromancy.what', 'Necromancy under Mysticism: spells to raise skeletons, zombies, ghosts, mummies, vampires and liches that follow you and fight for you, Recall Minions, humanoid corpses as a reagent, grave robbing and the Necromancer class.'); },
+      get terms() { return t('credits.chebsNecromancy.terms', 'Released under the Unlicense (public domain). Its C# is ported by hand.'); },
+      get contact() { return t('credits.contact.nexus', '{author}, through the Nexus page ({page})', { author: 'Chebgonaz', page: 'daggerfallunity mod 714' }); },
+      vendor: Object.freeze(['chebs-necromancy']),
+      link: 'https://github.com/jpw1991/daggerfall-chebs-necromancy',
+    }),
+    Object.freeze({
       title: 'GrimoireUI',
       version: '1.2',
       author: 'LordSquacquerone',

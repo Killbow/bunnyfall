@@ -277,6 +277,7 @@ export const MAGIC_ONLY_KEYS = new Set([
   '43,255', '44,255',
   '46,255',   // PARTY-MAP: Shared Cartography, the port's own - a self-buff, Magic as every buff here
   '49,255', '50,255', '51,255', '52,255', '53,255', '54,255',   // BUNNY-SPELLS: the buffs and the places, Magic as every buff here
+  '55,255', '56,255', '57,255', '58,255', '59,255', '60,255', '61,255', '62,255', '63,255',   // CHEB'S NECROMANCY: ElementFlags_MagicOnly (ChebEffect.cs)
 ]);
 
 /** THE BUFF LANDING ALERTS - every line DFU speaks on the frame a

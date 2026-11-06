@@ -124,8 +124,13 @@ export const searchName = (kind, locked = false) => `${locked ? 'Locked ' : ''}$
 // ── the roll ────────────────────────────────────────────────────────
 /** @typedef {'foe'|'loot'|'nothing'} SearchOutcome */
 /** A dungeon's object: a third each. A graveyard's headstone: two in three nothing, the last third split evenly. */
-export function rollSearchOutcome({ graveyard = false, rolls = Math.random } = {}) {
+/** CHEB'S NECROMANCY (systems/necromancy/necromancy.js): a grave searched - a coffin, a sarcophagus, a headstone - is told
+ *  to whoever listens (the graves robbed by the mod's roll), once a search. A leaf seam: one listener. */
+let _graveSearch = null;
+export function registerGraveSearchListener(fn) { _graveSearch = typeof fn === 'function' ? fn : null; }
+export function rollSearchOutcome({ graveyard = false, rolls = Math.random, kind = graveyard ? 'tombstone' : null } = {}) {
   noteFirstUse('searchables');   // TUT1
+  if (kind && kind !== 'shelf' && SEARCH_KINDS[kind]?.grave) { try { _graveSearch?.(kind); } catch (e) { console.warn('[search] a grave listener threw', e?.message ?? e); } }
   const r = rolls();
   if (graveyard) return r < 2 / 3 ? 'nothing' : (r < 5 / 6 ? 'loot' : 'foe');
   return r < 1 / 3 ? 'foe' : (r < 2 / 3 ? 'loot' : 'nothing');

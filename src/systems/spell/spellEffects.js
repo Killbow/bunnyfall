@@ -123,6 +123,17 @@ const ROWS = [
   [52, 255, 'Wall of Earth', '', [D]],
   [53, 255, 'Decoy', '', [D]],
   [54, 255, 'Gravity Well', '', [D]],
+  // CHEB'S NECROMANCY (systems/necromancy/necroLaw.js - Chebgonaz's mod): Recall Minions and the eight summons,
+  // instantaneous, Chance on all and Magnitude on the summons (the mod's SetProperties)
+  [55, 255, 'Recall Minions', '', [C]],
+  [56, 255, 'Summon Skeleton', '', [C, M]],
+  [57, 255, 'Summon Zombie', '', [C, M]],
+  [58, 255, 'Summon Ghost', '', [C, M]],
+  [59, 255, 'Summon Mummy', '', [C, M]],
+  [60, 255, 'Summon Vampire', '', [C, M]],
+  [61, 255, 'Summon Lich', '', [C, M]],
+  [62, 255, 'Summon Ancient Vampire', '', [C, M]],
+  [63, 255, 'Summon Ancient Lich', '', [C, M]],
   [30, 255, 'Water Breathing', '', [D]],
   [31, 255, 'Water Walking', '', [D]],
   [33, 0, 'Pacify', 'Animal', [C]],
@@ -227,6 +238,7 @@ export const PORTED_KEYS = new Set([
   '45,255',                                                         // Resurrect (RESURRECT1 - the arm is the cast engine's, at a fallen party member's body)
   '46,255',                                                         // Shared Cartography (PARTY-MAP - BUFF_KINDS; the share is systems/party/partyMap.js)
   '47,255', '48,255', '49,255', '50,255', '51,255', '52,255', '53,255', '54,255',   // BUNNY-SPELLS (systems/spell/bunnySpells.js)
+  '55,255', '56,255', '57,255', '58,255', '59,255', '60,255', '61,255', '62,255', '63,255',   // CHEB'S NECROMANCY (systems/necromancy/necroLaw.js)
   '30,255',                                                         // Water Breathing
   '31,255',                                                         // Water Walking
   '6,0', '6,1', '6,2',                                              // Dispel {Magic,Undead,Daedra} (X9 the sweeps, X10 the bundle picker)
@@ -474,6 +486,16 @@ export const PORT_EFFECT_DESCRIPTIONS = new Map([
   ['51,255', Object.freeze(['Featherweight', 'While it lasts, what you carry weighs half.'])],
   ['52,255', Object.freeze(['Wall of Earth', 'A wall of earth rises where you look,', 'blocking the way while it lasts.'])],
   ['53,255', Object.freeze(['Decoy', 'A double of you appears where you look.', 'Foes nearby lose sight of you and go to it.'])],
+  // CHEB'S NECROMANCY (systems/necromancy/necroLaw.js): the mod's own words (ChebEffect.cs and each Summon*Effect.cs)
+  ['55,255', Object.freeze(['Recall Minions', 'Recall all minions to your location.', 'Duration: Instantaneous.', 'Chance: % chance the recall will succeed.'])],
+  ['56,255', Object.freeze(['Summon Skeleton', 'Summons a skeleton to follow and guard you.', 'Needs a Humanoid Corpse, spent when it rises.', 'Magnitude: its health, and its mace.'])],
+  ['57,255', Object.freeze(['Summon Zombie', 'Summons a zombie to follow and guard you.', 'Needs a Humanoid Corpse, spent when it rises.', 'Magnitude: its health, and its mace.'])],
+  ['58,255', Object.freeze(['Summon Ghost', 'Summons a ghost to follow and guard you.', 'Needs a Humanoid Corpse and Ectoplasm.', 'Magnitude: its health.'])],
+  ['59,255', Object.freeze(['Summon Mummy', 'Summons a mummy to follow and guard you.', 'Needs a Humanoid Corpse and Oil or a Bandage.', 'Magnitude: its health.'])],
+  ['60,255', Object.freeze(['Summon Vampire', 'Summons a vampire to follow and guard you.', 'Needs a Humanoid Corpse and a Red or Yellow Rose.', 'Magnitude: its health.'])],
+  ['61,255', Object.freeze(['Summon Lich', 'Summons a lich to follow and guard you.', 'Needs a Humanoid Corpse and Lich Dust.', 'Magnitude: its health.'])],
+  ['62,255', Object.freeze(['Summon Ancient Vampire', 'Summons an ancient vampire to follow and guard you.', 'Needs a Humanoid Corpse and a Black or White Rose.', 'Magnitude: its health.'])],
+  ['63,255', Object.freeze(['Summon Ancient Lich', 'Summons an ancient lich to follow and guard you.', 'Needs a Humanoid Corpse and Lich Dust.', 'Magnitude: its health.'])],
   ['54,255', Object.freeze(['Gravity Well', 'Where an area spell carrying it bursts, a', 'well opens that pulls the foes about it in.'])],
   ['46,255', Object.freeze([
     'Shared Cartography',
