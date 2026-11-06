@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-06
 
+- Melee rework, first part: weaker weapons hit harder, nothing got weaker. Two-handers now hit about a quarter harder than a longsword, maces, axes and short blades are level with it, daggers close behind, and bows hit about a third harder.
+- Shields now block part of every weapon or arrow hit you take, by size: buckler 5%, round 8%, kite 12%, tower 18%, on top of their armour.
+- Fighting bare-handed with a shield is about 13% slower (one fist holds the shield), and you keep the shield's block.
 - The Notices of the Realm button and the tips ? can be moved, resized and hidden in the HUD editor (Alt+U), like the rest of the HUD.
 - New: the Notices of the Realm board shows the world events (Cromwark and the Great Cannon, with its progress) and our Discord when you enter the world. The scroll button at the right edge opens it again.
 - The notice board's text is readable again on every look of the game.

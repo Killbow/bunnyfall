@@ -47,7 +47,8 @@ export const STYLES = Object.freeze([
   ['Longsword + tower', T.Longsword, T.Tower], ['Dual longswords', T.Longsword, T.Longsword], ['Shortsword', T.Shortsword, null],
   ['Dual shortswords', T.Shortsword, T.Shortsword], ['Mace', T.Mace, null], ['Dual maces', T.Mace, T.Mace],
   ['Claymore (2H)', T.Claymore, null], ['Dai-katana (2H)', T.DaiKatana, null], ['Warhammer (2H)', T.Warhammer, null],
-  ['Battle axe (2H)', T.BattleAxe, null], ['Staff (2H)', T.Staff, null], ['Long bow', T.LongBow, null], ['Fists', null, null],
+  ['Battle axe', T.BattleAxe, null], ['War axe (2H)', 128, null], ['Staff (2H)', T.Staff, null], ['Long bow', T.LongBow, null], ['Fists', null, null],
+  ['Fists + tower', null, T.Tower],
   ['Fists, Hand-to-Hand 200', null, null, { [SKILLS.HandToHand]: EFFECTIVE_SKILL_MAX }],   // mastered online: what a formula reads at 200 (systems/skillSoftcap.js); level 30 alone
 ]);
 const isShield = (ti) => ti >= 109 && ti <= 112;

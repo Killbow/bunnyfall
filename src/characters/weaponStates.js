@@ -15,6 +15,18 @@ export const WEAPON_STATES = ['Idle', 'StrikeDown', 'StrikeDownLeft', 'StrikeLef
 export const CLASSIC_FRAME_UPDATE = 980;           // const int classicFrameUpdate
 export const CLASSIC_UPDATE_INTERVAL = 0.0625;     // GameManager.classicUpdateInterval (classic 16Hz); bow anim tick
 export function getMeleeWeaponAnimTime(liveSpeed, ctx = null) {
+  const t = meleeAnimTime(liveSpeed, ctx);
+  // BUNNYFALL (melee rework, 2026-11-06): a registered BURDEN slows the frame after everything else answered (bare fists
+  // with a shield on the arm - combat/meleeRework.js), bounded by the slowest frame as every swing is
+  if (!_burden || !ctx?.entity) return t;
+  let k = 1;
+  try { const v = _burden(ctx); if (Number.isFinite(v) && v > 1) k = v; } catch { /* a burden is not the swing's problem */ }
+  return k === 1 ? t : Math.min(SWING_FRAME_MAX, t * k);
+}
+/** BUNNYFALL: the swing's burden, `fn(ctx) -> multiplier` (1 or less: none), or null to clear. A leaf: the rework registers it. */
+let _burden = null;
+export function registerSwingBurden(fn) { _burden = typeof fn === 'function' ? fn : null; }
+function meleeAnimTime(liveSpeed, ctx) {
   const o = _animTimeOverride?.(liveSpeed, ctx, CLASSIC_FRAME_UPDATE);   // TryGetOverride("GetMeleeWeaponAnimTime") - RRI2's weaponBalance registers one
   // MARTIAL2: the swing's PACE, over whichever law answered - the port's own, or a mod's
   if (o != null) return paced(o, ctx, null);

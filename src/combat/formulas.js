@@ -45,6 +45,7 @@ import { liveVampirism } from '../systems/racialLive.js';   // VU1: an import-fr
 import { breakNormalPowerConcealment } from '../systems/concealment.js';   // wave 31: BreakNormalPowerConcealmentEffects, in its own leaf so this import cannot cycle
 import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language (an import-free leaf)
 import { blowTaken } from '../systems/blowTaken.js';   // TELL1: what the target takes - a leaf, for the brain that registers into it imports the motor that imports this file
+import './meleeRework.js';   // BUNNYFALL: the melee rework registers its weapon rows, the shield's block and the fists' shield burden
 import { ENEMY_GROUPS, enemyEntityGroup, _resetEnemyGroups } from './enemyGroups.js';   // AUDIT DEX C3: the group switch and its mod door, a leaf
 
 // ---- Dice100.cs verbatim ----
