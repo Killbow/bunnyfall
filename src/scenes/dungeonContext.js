@@ -920,6 +920,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         action: f.action,
         active: true, questBehaviour: null,
         arenaRole: f.role ?? null,   // ARENA-FIX 4: an undercroft person's office (the Pit Master, the Keeper of the Hall, ...)
+        editorPerson: f.editorPerson ?? null,   // BUNNYFALL: the Dungeon Editor's name and lines (world/editorPeople.js)
       } : null;
       if (pn) people.push(pn);
       // ...and the second act, for EVERY flat carrying a faction id.

@@ -21,6 +21,7 @@
 //      stay valid for the exit landing math.
 //   baseCollider() - the collider to restore on exit.
 
+import { nextPersonLine } from '../world/editorPeople.js';   // BUNNYFALL: the Dungeon Editor's people
 import { cromwarkDoor, cromwarkTownText } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { markInteriorLoad } from '../ui/interiorLoadMark.js';   // a building's load is a ring over the hotbar, not the full screen
@@ -2613,7 +2614,7 @@ export function createWorldModes(host) {
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
    *  the plaque, the Info click and the talk door ask it before StaticNPC.DisplayName, so the three never disagree. */
-  const officeName = (pn) => arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null) ?? (pn?.bunnyClerk ? bunnyClerkName(pn.bunnyClerk) : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
+  const officeName = (pn) => (pn?.editorPerson?.name || null) ?? arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null) ?? (pn?.bunnyClerk ? bunnyClerkName(pn.bunnyClerk) : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
   /** FIELD BUGS 2026-10-11g QUEST-NAME ("Quest NPCs are inactive": "not being able to interact with the quest NPCs"): a
    *  quest PERSON stand named on World Tooltips' plaque as the room's own people are. The mod asks its StaticNPC arm
    *  (Modded_HUDTooltipWindow.cs:325-393, `ret = npc.DisplayName`) before its quest-resource arm, and AddQuestNPC gives a
@@ -4405,7 +4406,17 @@ export function createWorldModes(host) {
     if (!info && pn?.arenaRole === 'hallKeeper' && host.arenaHall?.()) return;   // ARENA4b: online she reads the realm's wall (scenes/arena/arenaGate.js hall)
     if (!info && pn?.arenaRole === 'hallKeeper') { townTalk?.showOverlay?.(new ActionTextBox(hallOfChampions(playerEntity.arenaLadder, playerEntity.name || 'You', rosterGrandChampions(playerEntity.arenaLeague, Math.floor(worldMinutes()))))); return; }   // ARENA3: and the banners' Grand Champions this save has seen
     Promise.resolve(townTalk?.ensureFactions?.())
-      .then(() => (info ? presentNpcInfo(pn) : openStaticNpc(pn))).catch(() => {});
+      .then(() => (info ? presentNpcInfo(pn) : (editorPersonSays(pn) || openStaticNpc(pn)))).catch(() => {});
+  }
+
+  /** BUNNYFALL: a person with words from the Dungeon Editor says the next one (world/editorPeople.js), as a POI's person
+   *  does (scenes/poiNpcs.js). A quest's person is the quest's first; one with no lines talks as Daggerfall's people do. */
+  function editorPersonSays(pn) {
+    if (pn.questBehaviour) return false;
+    const line = nextPersonLine(pn);
+    if (line == null) return false;
+    townTalk?.say?.(`${officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)))}: ${line}`);
+    return true;
   }
 
   /** PresentNPCInfo (PlayerActivate.cs:1484-1499): one HUD line,
