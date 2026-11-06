@@ -92,7 +92,7 @@ export const PREF_DEFAULTS = Object.freeze({
   // CHAT-LANG (2026-10-11): the language channel this player chose ('' none, else a net/wire.js CHAT_LANGS code - /lang).
   // CHAT-COLOURS: each channel's lines in its own colour (World white, Region green, Guild purple, Local grey ...). PING1:
   // a line naming me with an @ chimes.
-  chatLang: '', chatChannelColours: true, chatPingSound: true,
+  chatLang: '', chatChannelColours: true, chatPingSound: true, chatChimeSound: true,
   // CHAT-TRADE (2026-10-14): the Trade and LFG channels this player joined (/join, /leave) - off until they choose one,
   // so a player who never does sees no new tab.
   chatTrade: false, chatLfg: false,

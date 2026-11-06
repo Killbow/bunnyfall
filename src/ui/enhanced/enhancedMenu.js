@@ -3337,6 +3337,8 @@ function peerSpritesCard() {
     t('menu.chat.coloursNote', 'World white, Region green, Company purple, Local gray, Party teal, Language rose, Trade gold, LFG blue.'), { home: true }));
   c.append(prefRow('chatPingSound', t('menu.chat.ping', 'Chime when someone @mentions you'),
     t('menu.chat.pingNote', 'Lines with @YourName are always marked in gold. This adds a sound.'), { home: true }));
+  c.append(prefRow('chatChimeSound', t('menu.chat.chime', 'Chime for new chat messages'),
+    t('menu.chat.chimeNote', 'A soft sound when another player says something, so you do not miss it.'), { home: true }));
   return c;
 }
 

@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-06
 
+- A soft chime plays when another player says something in chat (Settings, Chat, to turn it off).
 - Salvage works on found Magic items again; they break into Welkynd shards as before.
 - Salvaging from your pack now says why it could not be done, instead of a plain "could not be salvaged".
 - You can no longer salvage pieces you made yourself, and the game says so.

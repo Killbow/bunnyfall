@@ -28196,9 +28196,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** PING1 (2026-10-11, the players: "A unique color or alert for @name pings"): the log marks a line that names me
    *  (net/chat.js mentions - my name the presence session's); the alert is the enchanter's chime, once for a burst. */
-  let _pingHeard = 0, _pingRangAt = -Infinity;
+  let _pingHeard = 0, _pingRangAt = -Infinity, _chimeHeard = 0, _chimeAt = -Infinity;
   const chatPingFrame = (now) => {
     chatLog.self = online?.name ?? '';
+    // BUNNYFALL CHAT-CHIME (2026-11-06, the owner: "a little chime when a new chat message is typed so people dont miss
+    // them"): another player's line, a soft page's turn, once for a burst; a ping's own chime below stands over it
+    if ((chatLog.heardSeq ?? 0) > _chimeHeard) {
+      _chimeHeard = chatLog.heardSeq;
+      if (chatLog.pingSeq <= _pingHeard && getPref('chatChimeSound') !== false && now - _chimeAt >= 2000 && now - _pingRangAt >= 2000) { _chimeAt = now; audio.playOneShot(SOUND.PageTurn, 0.35); }
+    }
     if (chatLog.pingSeq <= _pingHeard) return;
     _pingHeard = chatLog.pingSeq;
     if (getPref('chatPingSound') === false || now - _pingRangAt < 2500) return;

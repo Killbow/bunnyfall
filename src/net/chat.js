@@ -249,6 +249,7 @@ export class ChatLog {
     this.self = '';
     /** PING1: the newest pinging line's seq - the host's alert sounds when it moves (0: none yet). */
     this.pingSeq = 0;
+    this.heardSeq = 0;   // BUNNYFALL CHAT-CHIME: the newest line another player said
     /** SAFE1: whether the player hears an account - (sub) => boolean, set by the host from the block list; null hears
      *  everyone. A line from an account it does not hear is never kept, so no tab, peek, bubble or search shows it. */
     this.hears = null;
@@ -299,6 +300,7 @@ export class ChatLog {
     if (!line) return null;
     this._keepOn(tab, line);
     if (!quiet && !(this.open && tab.id === this.active)) tab.unread++;
+    if (!quiet && !line.mine && !line.system) this.heardSeq = line.seq;   // BUNNYFALL CHAT-CHIME: another player's line (scenes/world.js chatPingFrame)
     // PING1: a line someone else said naming me with an @ - marked on the line, counted on its tab until it is read
     if (!line.mine && !line.system && mentions(line.text, this.self)) {
       Object.assign(line, { ping: true });   // a field only a ping carries - every other line's shape stands as it was
