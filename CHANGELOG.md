@@ -5,7 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-06
 
-- Melee rework, first part: weaker weapons hit harder, nothing got weaker. Two-handers now hit about a quarter harder than a longsword, maces, axes and short blades are level with it, daggers close behind, and bows hit about a third harder.
+- Melee rework: weaker weapons hit harder, nothing got weaker. Two-handers hit about a quarter harder than a longsword; maces, axes, short blades, daggers, bows and the crossbow were raised to sit close to it.
+- Each weapon family now has its own strength. Broadswords, longswords and claymores never roll a weak hit. Sabers, katanas and dai-katanas cut half again as hard with the first hit on an unhurt enemy. Daggers and short blades hit half again as hard on an enemy that has not noticed you. Axes hit a quarter harder on an enemy under half health. Maces, flails, warhammers and the crossbow punch through a third of the enemy's armour. Flails sometimes land a hit twice. A staff held in both hands blocks 10% of weapon and arrow hits.
+- Two-handed weapons cleave: a hit also strikes up to two enemies standing near the one you hit, for half the damage.
 - Shields now block part of every weapon or arrow hit you take, by size: buckler 5%, round 8%, kite 12%, tower 18%, on top of their armour.
 - Fighting bare-handed with a shield is about 13% slower (one fist holds the shield), and you keep the shield's block.
 - The Notices of the Realm button and the tips ? can be moved, resized and hidden in the HUD editor (Alt+U), like the rest of the HUD.

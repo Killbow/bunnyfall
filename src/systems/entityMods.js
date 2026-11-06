@@ -171,8 +171,8 @@ export function entityResistMod(entity, elements) {
 }
 /** The weapon's rolled damage through every registered modifier, in
  *  registration order. */
-export function weaponDamageMods(weapon, damage) {
+export function weaponDamageMods(weapon, damage, attacker = null) {   // BUNNYFALL (melee rework): and who swings it, for a modifier that is the player's alone
   let d = damage;
-  for (const fn of _weaponMods.values()) d = fn(weapon, d);
+  for (const fn of _weaponMods.values()) d = fn(weapon, d, attacker);
   return d;
 }

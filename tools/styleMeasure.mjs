@@ -19,6 +19,7 @@ import { isMain } from './lib/isMain.mjs';
 import { installRoleplayRealismItems } from '../src/systems/roleplayRealismItems/rriInstall.js';
 import { installRoleplayRealism } from '../src/systems/roleplayRealism/rrInstall.js';
 import '../src/combat/swingLaw.js';
+import '../src/combat/meleeRework.js';   // the melee rework's rows, strengths and shield block (the game loads it through the sigil sets)
 import { PlayerWeapon } from '../src/combat/playerWeapon.js';
 import { calculateAttackDamage, weaponKnockbackSpeed, weaponKnockbackApplies, enemyWeightClassicUnits, KB_UNIT } from '../src/combat/formulas.js';
 import { offHandToHit, OFF_HAND_BLOW } from '../src/combat/twoHands/handsLaw.js';
@@ -121,6 +122,7 @@ export function measure(L, [name, ri, li, over = null], { n = 600, rare = false,
     rate ??= blowRate(p, right, left);
     const { e, weapon } = foeAt(L, r, hero);
     foeHp += e.maxHealth;
+    e.health = Math.max(1, Math.ceil(r() * e.maxHealth));   // a blow lands anywhere in a fight: the finisher and the draw cut read the foe's health
     // three streams, so a second hand's rolls never move the foe's blow on me
     const rd = mulberry(seed * 300007 + L * 7919 + s), rt = mulberry(seed * 500009 + L * 7919 + s);
     const dfRand = () => Math.floor(rd() * 32768), dfT = () => Math.floor(rt() * 32768);

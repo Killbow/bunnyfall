@@ -93,6 +93,7 @@ import { effectiveUnitWeightInKg } from '../systems/inventory.js';
 import { templateByIndex } from '../systems/item/itemTemplates.js';
 import { enchantChanceToHitMod, isEnchantedItem, entityImprovedAdrenalineRush } from '../systems/enchantments.js';
 import { stampedTier } from '../systems/rarityTier.js';   // RARE-BREAK1: a piece off the rarity ladder, which the fading rule leaves alone (the leaf - RF1: no formula reads the ladder)
+import { armorPierceShare } from './armorPierce.js';   // BUNNYFALL (melee rework): a leaf seam
 import { entityEnchantArmorMod, entityArmorPoints, weaponDamageMods, weaponBlowMods } from '../systems/entityMods.js';   // RF1: the enchantment channels and the port's points (AUDIT SET P-M1: read apart) (SET2: and the weapon's own and the blow's, read here too)
 import { getItemHands, ITEM_HANDS } from '../characters/equipTable.js';
 import { createWeapon } from './enemyEquipment.js';
@@ -518,7 +519,7 @@ export function pcaaoWeaponAttackDamage(attacker, target, damageModifier, weapon
   // and is ON BY DEFAULT (the redone armour formula), read neither: no damage affix and no sigil ever landed in a
   // default game. They are read here at the stock's own two places - the modifiers over the roll before the damage
   // modifier, the blow modifiers after the enemy-type term and before the archery module (the stock's mod hook).
-  let damage = weaponDamageMods(weapon, range(weaponMinDamage(weapon.templateIndex), weaponMaxDamage(weapon.templateIndex), rolls)) + damageModifier;
+  let damage = weaponDamageMods(weapon, range(weaponMinDamage(weapon.templateIndex), weaponMaxDamage(weapon.templateIndex), rolls), attacker) + damageModifier;
   if (!isPlayer(target)) {
     if (target.careerIndex === SKELETAL_WARRIOR) {
       if (((weapon.flags ?? 0) & 0x10) === 0) damage = int(damage / 2);
@@ -1033,6 +1034,7 @@ export function pcaaoNaturalDamageResistance(target) {
 }
 
 // ── CalculateAttackDamage, the overhaul ───────────────────────────
+
 /**
  * The mod's CalculateAttackDamage(attacker, target, enemyAnimStateRecord,
  * weaponAnimTime, weapon), on the port's option bag: `damageMod` and
@@ -1201,6 +1203,7 @@ export function pcaaoAttackDamage(attacker, target, {
   const shared = (d) => (blowShare && d > 0 ? blowShare(d) : d);
   if (blowShare && notes) notes.shared = true;
   if (modules.equipmentDamageEnhanced) pcaaoDamageEquipment(attacker, target, shared(damage), weapon, struckBodyPart, { rolls, say, modules });
+  const unreduced = damage;   // BUNNYFALL (melee rework): what the armour below takes a share of, for a weapon that pierces it
   if (AITarget && isMonster(AITarget)) {
     if (!pcaaoArmorStruckVerification(target, struckBodyPart)) damage = pcaaoPercentageReductionCalculationForMonsters(attacker, target, damage, bluntWep, naturalDamResist);
     else if (unarmedAttack) damage = pcaaoArmorDamageReductionWithUnarmed(attacker, target, damage, struckBodyPart, naturalDamResist, modules);
@@ -1209,6 +1212,10 @@ export function pcaaoAttackDamage(attacker, target, {
     damage = pcaaoArmorDamageReductionWithUnarmed(attacker, target, damage, struckBodyPart, naturalDamResist, modules);
   } else if (weaponAttack) {
     damage = pcaaoArmorDamageReductionWithWeapon(attacker, target, damage, weapon, struckBodyPart, naturalDamResist, modules);
+  }
+  if (weaponAttack && damage < unreduced) {
+    const p = armorPierceShare(attacker, target, weapon);   // BUNNYFALL (melee rework): blunt and the crossbow pierce (combat/armorPierce.js)
+    if (p > 0) damage = Math.round(damage + (unreduced - damage) * p);
   }
   damage = shared(damage);
   // WEAR-VANILLA, the module off: FormulaHelper's DamageEquipment (formulas.js damageEquipment, Roleplay Realism's slot
