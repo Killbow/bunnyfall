@@ -41,6 +41,7 @@
 // THE WELCOME TOUR is one box of several pages (addNext, DaggerfallMessageBox.AddNextMessageBox): each dismissal
 // turns the page, and the last closes it and marks every page of it read.
 
+import { hudArranging } from './hud/hudLayout.js';   // BUNNYFALL: the ? is a HUD piece (Alt+U)
 import { ActionTextBox } from './actionText.js';
 import { mountWindow, windowHeld } from '../systems/notify.js';
 import { tutorialById, tutorialDue, tutorialRows, markTutorialsSeen, setTutorialHandler, TUTORIAL_TOUR } from '../systems/tutorials.js';
@@ -207,6 +208,9 @@ const ASK_CSS = `
 @keyframes bf-ask-glow { 0%, 100% { box-shadow: 0 0 0 1px rgb(40,28,10), 0 4px 14px rgba(0,0,0,0.55); }
   50% { box-shadow: 0 0 0 1px rgb(40,28,10), 0 0 16px 3px rgba(243,210,110,0.55); } }
 @media (prefers-reduced-motion: reduce) { #${ASK_ID} { animation: none; } }
+/* the HUD editor (Alt+U, ui/hud/hudLayout.js): a preview to move while no tip waits */
+#${ASK_ID}[data-hm-dummy] { display: block !important; }
+#${ASK_ID}[data-hm-edit] { animation: none; }
 `;
 let askTimer = null;
 /** The pages waiting to be asked for (due, and not yet asked). */
@@ -224,8 +228,9 @@ function askButton() {
   b.setAttribute('aria-label', 'Tips are waiting. Click to read them.');
   b.textContent = '?';
   const n = d.createElement('span'); n.className = 'n'; b.append(n);
-  for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => e.stopPropagation());
-  b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); askForTips(); });
+  // while the HUD is being arranged (Alt+U) the press is the editor's: a drag, not a question
+  for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => { if (!hudArranging()) e.stopPropagation(); });
+  b.addEventListener('click', (e) => { e.preventDefault(); if (hudArranging()) return; e.stopPropagation(); askForTips(); });
   d.body.append(b);
   return b;
 }
@@ -233,7 +238,7 @@ function askButton() {
 function drawAsk() {
   const waiting = waitingAsk();
   const d = deps.doc();
-  const b = d?.getElementById?.(ASK_ID) ?? null;
+  const b = d?.getElementById?.(ASK_ID) ?? askButton();   // always in the page, hidden: the HUD editor can find it
   if (!waiting.length || deps.held() || current) { if (b) b.style.display = 'none'; }
   else {
     const el = b ?? askButton();
@@ -243,6 +248,9 @@ function drawAsk() {
   if (waiting.length) askTimer = deps.setTimeout(() => { askTimer = null; drawAsk(); }, 1000);
 }
 /** The player asked: every page waiting is offered, one after another. */
+// the ? in the page from the start (hidden), so the HUD editor can place it before any tip waits
+try { deps.setTimeout(() => { try { drawAsk(); } catch { /* no page */ } }, 1500); } catch { /* no clock */ }
+
 export function askForTips() {
   for (const e of line) if (!e.forced) e.asked = true;
   offer();

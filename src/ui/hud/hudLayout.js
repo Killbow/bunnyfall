@@ -79,6 +79,11 @@ export const HUD_PIECES = Object.freeze([
   // stands under the bar wherever it is moved (ui/naval/navalHud.js drawNavalHud's `under`)
   { id: 'helm', sel: '.helmpanel .helmpanel-bar', get name() { return t('menu.hud.piece.helm', 'Helm panel'); }, ghost: 'helm' },
   { id: 'fps', sel: '#fps-counter', name: 'FPS counter' },
+  // BUNNYFALL (2026-11-06, the owner: "add the same options for the new notices of the realm button and tutorial
+  // button"): the Notices of the Realm tab (ui/worldEventsBoard.js) and the tips' ? (ui/tutorialPopup.js), each fixed at
+  // the screen's right edge; the ? stands only while tips wait, a preview until then
+  { id: 'noticesTab', sel: '#bf-events-tab', get name() { return t('menu.hud.piece.noticesTab', 'Notices of the Realm button'); } },
+  { id: 'tipsAsk', sel: '#bf-tutorial-ask', get name() { return t('menu.hud.piece.tipsAsk', 'Tips button (?)'); }, dummy: true },
   { id: 'midtext', sel: '#enhanced-midtext, .hudmid[data-hm-ghost="midtext"]', name: 'Screen messages', dummy: true, ghost: 'midtext' },
   { id: 'netstatus', sel: '#enhanced-netstatus, .hudstatus[data-hm-ghost="netstatus"]', name: 'Online status', dummy: true, ghost: 'netstatus' },
   // the Overworld

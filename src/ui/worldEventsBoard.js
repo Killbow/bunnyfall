@@ -13,7 +13,8 @@ import { nyxCoins } from '../systems/wild/nyxShop.js';
 import { mintMaterialItem } from '../systems/professions/profItems.js';
 import { dialFileUrl } from './grimoireArt.js';
 import { pauseFlowShowing } from './pauseDoor.js';
-import { loadingHeld } from './loadingScreen.js';   // the public art, addressed as the game's other windows address it
+import { loadingHeld } from './loadingScreen.js';
+import { hudArranging } from './hud/hudLayout.js';   // the tab is a HUD piece (Alt+U): moved, sized and hidden there   // the public art, addressed as the game's other windows address it
 
 export const DISCORD_URL = 'https://discord.gg/eNGsgr8BZt';
 const ID = 'bf-events-board', TAB_ID = 'bf-events-tab', SEEN_KEY = 'bunnyfall.eventsBoard.shown';
@@ -184,8 +185,8 @@ export function createWorldEventsBoard(deps = {}) {
       b.id = TAB_ID; b.setAttribute('type', 'button');
       b.title = 'Notices of the Realm: events and our Discord';
       b.setAttribute('aria-label', 'Open the notices of the realm');
-      for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => e.stopPropagation());
-      b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openBoard(); });
+      for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => { if (!hudArranging()) e.stopPropagation(); });
+      b.addEventListener('click', (e) => { e.preventDefault(); if (hudArranging()) return; e.stopPropagation(); openBoard(); });
       document.body.append(b);
     }
     b.style.display = root ? 'none' : '';
