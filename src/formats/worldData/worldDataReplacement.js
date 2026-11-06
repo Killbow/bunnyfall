@@ -723,6 +723,7 @@ function rdbResourcesFromJson(r) {
       magnitude: f?.Magnitude ?? 0, soundIndex: f?.SoundIndex ?? 0, factionOrMobileId: f?.FactionOrMobileId ?? 0,
       nextObjectOffset: f?.NextObjectOffset ?? 0, action: f?.Action ?? 0,
       isCustomData: !!f?.IsCustomData,   // DFU's own field (DFBlock.cs:1064): a custom marker's whole FactionOrMobileId is its MobileType
+      editorPerson: f?.BunnyfallPerson ?? null,   // BUNNYFALL: the Dungeon Editor's words for a person (world/editorPeople.js); DFU's reader has no such field
     },
     lightResource: { unknown1: l?.Unknown1 ?? 0, unknown2: l?.Unknown2 ?? 0, radius: l?.Radius ?? 0 },
   };
