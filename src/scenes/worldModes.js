@@ -21,6 +21,7 @@
 //      stay valid for the exit landing math.
 //   baseCollider() - the collider to restore on exit.
 
+import { readableTargets, readableName, readReadable } from './editorReadables.js';   // BUNNYFALL
 import { nextPersonLine } from '../world/editorPeople.js';   // BUNNYFALL: the Dungeon Editor's people
 import { cromwarkDoor, cromwarkTownText } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
@@ -9992,6 +9993,9 @@ export function createWorldModes(host) {
       // rays: StaticNPCActivationDistance (:87) into activateStaticNpc,
       // which carries the Info/PresentNPCInfo split.
       ctx.addActivationTargets(() => (ctx.npcTargets?.() ?? []).map((pn, i) => ({ key: `person:${i}`, aabb: personAabb(pn), distance: STATIC_NPC_ACTIVATION_DISTANCE })));
+      // BUNNYFALL: the flats the Dungeon Editor gave words (scenes/editorReadables.js)
+      ctx.addActivationTargets(() => readableTargets(ctx.editorReadables ?? [], RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE));
+      ctx.addActivationNamer((key) => readableName(ctx.editorReadables ?? [], key));
       // WORLD-HOVER: and the WORDS for the same three families, beside
       // the targets. Both halves of a family stay together, because a
       // family nobody stands is a family nobody should name - the
@@ -10284,6 +10288,7 @@ export function createWorldModes(host) {
       return true;
     }
     // ...and the NPC arm ENDS the activation, as the other two rays' do.
+    if (readReadable(dungeonCtx.editorReadables ?? [], key, (line) => townTalk?.say?.(line))) return true;   // BUNNYFALL
     if (key.startsWith('person:')) {
       activateStaticNpc((dungeonCtx.npcTargets?.() ?? [])[Number(key.split(':')[1])]);   // WORLD-HOVER: the `person:` index is the registered producer's, so the handler reads THAT list - a second local copy is how the two drift
       return true;

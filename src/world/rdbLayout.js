@@ -448,7 +448,7 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
           factionID: fr.factionOrMobileId, flags: fr.flags,
           flatPosition: fr.position,
           rawX: obj.xPos, rawY: obj.yPos, rawZ: obj.zPos,
-          editorPerson: isNpcFlat(fr.textureArchive) ? editorPersonOf(fr.editorPerson) : null,   // BUNNYFALL: the Dungeon Editor's name and lines
+          editorPerson: editorPersonOf(fr.editorPerson),   // BUNNYFALL: the Dungeon Editor's name and lines (a person's, or a flat's: scenes/editorReadables.js)
         });
         if (acts && !actionLinks.has(obj.position)) {
           actionLinks.set(obj.position, { nextKey: fr.nextObjectOffset, prevKey: -1, action });
