@@ -601,7 +601,7 @@ import { preloadChargenArt } from '../ui/chargenArt.js';   // U10
 import { preloadMessageBoxArt } from '../ui/messageBox.js';   // U11
 import { buildingDataForDoor, locationBuildings, BUILDING_KEY_0, blockBuildingCount } from '../systems/talk/talkTopics.js';   // E2: the shop identity   // H2: every building, with its key   // AUDIT 58: BuildingDirectory.buildingKey0, the key both ship interiors are filed under
 import { hitSoundFor, swingSoundFor, ENEMY_HIT_VOLUME, PLAYER_HIT_VOLUME } from '../systems/soundClips.js';   // AUDIT 58: DFU's two hit volumes
-import { isInvisible, entityIsParalyzed, concealBits } from '../systems/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
+import { isInvisible, entityIsParalyzed, concealBits, lookConcealBits } from '../systems/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
 import { concealmentFlags } from '../systems/effects.js';   // INVIS-SWING: the traveller's concealment, the wild gate's notice
 import { createSerpentSpell } from './gate/standInSpell.js';   // FIELD BUGS 2026-10-19f BOSS-DOT: my spell on the serpent's hide, its door (AUDIT SCHOOLS L2 F4's telling and its lasting harm with it)
 import { hasActiveEffect } from '../systems/effects.js';   // PEERLIGHT2: my Light spell, for the pose
@@ -28988,7 +28988,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wb: (() => { const l = liveLycanthropy(playerEntity); return l?.isTransformed ? (l.infectionType | 0) || undefined : undefined; })(),
       ...tavernSocial.poseField(),   // TAVERN-SOCIAL: my rounds, my playing, my last tip
       ef: effectVfxBits(playerEntity) || undefined,   // BUNNYFALL SPELL VISUALS: what burns, freezes or bubbles on me, for the others to draw
-      cv: concealBits(playerEntity) || undefined,   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
+      cv: lookConcealBits(playerEntity) || undefined,   // (how I look: a Decoy's caster is not drawn blended)   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
       hl: waistLanternPoseBit(playerEntity.lightSource),   // HT-WAIST-NET: a lit lantern hung at the waist, so the others' Morrowind bodies hang it at the hip - absent otherwise, the wire's omission law
       lc: hasActiveEffect(playerEntity, 'light') ? 1 : undefined,   // PEERLIGHT2: my Light spell burns, so the others hang its candle before me - absent otherwise
       lt: torchPoseByte(playerEntity),   // PEERLIGHT1: my lit torch/lantern/candle, so it lights the others' world around me - absent while nothing burns

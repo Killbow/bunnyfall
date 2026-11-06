@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-06
 
+- Casting Decoy no longer makes your character vanish in third person (or for other players). Enemies still lose track of you.
 - Fixed a crash when opening Salvage at the Reforge with two or more Magic pieces in your pack.
 - Melee rework. Weapons that fell behind were raised and nothing got weaker: two-handers now hit about a quarter harder than a longsword, one-handers sit level with it, daggers close behind, and bows and the crossbow were raised to make up for their range.
 - Every weapon has its own strength now:
