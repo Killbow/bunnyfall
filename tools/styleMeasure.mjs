@@ -34,6 +34,7 @@ import { ENCOUNTER_TABLES } from '../src/systems/encounters.js';
 import { rollAffixes } from '../src/systems/loot/lootRarity.js';
 import { computeEntityMods } from '../src/systems/entityMods.js';
 import { buildAt, bandWeights, mulberry } from './heroMeasure.mjs';
+import { EFFECTIVE_SKILL_MAX } from '../src/systems/skillSoftcap.js';
 
 installRoleplayRealismItems();
 installRoleplayRealism();
@@ -47,6 +48,7 @@ export const STYLES = Object.freeze([
   ['Dual shortswords', T.Shortsword, T.Shortsword], ['Mace', T.Mace, null], ['Dual maces', T.Mace, T.Mace],
   ['Claymore (2H)', T.Claymore, null], ['Dai-katana (2H)', T.DaiKatana, null], ['Warhammer (2H)', T.Warhammer, null],
   ['Battle axe (2H)', T.BattleAxe, null], ['Staff (2H)', T.Staff, null], ['Long bow', T.LongBow, null], ['Fists', null, null],
+  ['Fists, Hand-to-Hand 200', null, null, { [SKILLS.HandToHand]: EFFECTIVE_SKILL_MAX }],   // mastered online: what a formula reads at 200 (systems/skillSoftcap.js); level 30 alone
 ]);
 const isShield = (ti) => ti >= 109 && ti <= 112;
 const ARMOR = [[102, 'ChestArmor'], [103, 'Gloves'], [104, 'LegsArmor'], [105, 'LeftArm'], [106, 'RightArm'], [107, 'Head'], [108, 'Feet']];
@@ -62,12 +64,14 @@ function mintHand(ti, B, rare, r) {
 }
 
 /** The stated player at `B` with `right`/`left` in hand: every weapon skill at the build's Long Blade. */
-function mkPlayer(B, right, left) {
+function mkPlayer(B, right, left, over = null) {
   const skills = Object.fromEntries(Array.from({ length: 35 }, (_, i) => [i, B.other]));
   for (const s of [SKILLS.LongBlade, SKILLS.ShortBlade, SKILLS.BluntWeapon, SKILLS.Axe, SKILLS.Archery, SKILLS.HandToHand]) skills[s] = B.LB;
   skills[SKILLS.CriticalStrike] = B.crit; skills[SKILLS.Dodging] = B.dodge;
+
   const p = { isPlayer: true, level: B.level, raceId: 1, stats: { strength: B.STR, intelligence: 50, willpower: B.WIL, agility: B.AGI, endurance: B.END, personality: 50, speed: B.SPD, luck: B.LUC },
     skills, career: { weaponArmorShieldsBitfield: 0, abilityFlagsAndSpellPointsBitfield: 0 }, health: 1e6, maxHealth: 1e6, items: [], reflexes: 2, biographyAvoidHitMod: 0 };
+  if (over) p.skillOverrides = { ...over };   // skills.js skillValue: the formula's value as given (Master Skills is an online switch)
   const table = equipTableOf(p);
   for (const [ti, slot] of ARMOR) { const it = mintCondition({ group: 'Armor', templateIndex: ti, material: plateOf(B), name: `a${ti}` }); it.currentCondition = it.maxCondition; it.equipSlot = EQUIP_SLOTS[slot]; table[EQUIP_SLOTS[slot]] = it; p.items.push(it); }
   if (right) { right.equipSlot = EQUIP_SLOTS.RightHand; table[EQUIP_SLOTS.RightHand] = right; p.items.push(right); }
@@ -104,7 +108,7 @@ function foeAt(L, r, hero = null) {
 }
 
 /** One style at one level: blows a second, a blow's mean on the band, damage a second, a foe blow's mean on me. */
-export function measure(L, [name, ri, li], { n = 600, rare = false, seed = 1, renown = null } = {}) {
+export function measure(L, [name, ri, li, over = null], { n = 600, rare = false, seed = 1, renown = null } = {}) {
   const B = buildAt(L);
   const hero = renown ? heroThreat(L, renown) : null;
   let dealtR = 0, dealtL = 0, taken = 0, foeHp = 0, rate = null, landR = 0, landL = 0;
@@ -112,7 +116,7 @@ export function measure(L, [name, ri, li], { n = 600, rare = false, seed = 1, re
   for (let s = 0; s < n; s++) {
     const r = mulberry(seed * 100003 + L * 7919 + s);
     const right = mintHand(ri, B, rare, r), left = mintHand(li, B, rare, r);
-    const p = mkPlayer(B, right, left);
+    const p = mkPlayer(B, right, left, over);
     rate ??= blowRate(p, right, left);
     const { e, weapon } = foeAt(L, r, hero);
     foeHp += e.maxHealth;
@@ -185,8 +189,8 @@ if (isMain(import.meta.url)) {
     for (const L of [10, 20, 30]) {
       console.log(`\nLEVEL ${L}`);
       console.log('  style                  landed/s  DPS   +elem  x vs LS | class foe: knocked  shove m/s | monster: knocked  shove m/s');
-      const rows = STYLES.filter(([, , li]) => !isShield(li ?? 0)).map((st) => measure(L, st, { n, rare: true }));
-      const elem = (m) => (m.name.startsWith('Dual') ? m.landed * 4.5 * 0.9 : m.name === 'Fists' ? 0 : m.landed * 4.5);
+      const rows = STYLES.filter(([, , li, over]) => !isShield(li ?? 0) && (!over || L >= 30)).map((st) => measure(L, st, { n, rare: true }));
+      const elem = (m) => (m.name.startsWith('Dual') ? m.landed * 4.5 * 0.9 : m.name.startsWith('Fists') ? 0 : m.landed * 4.5);
       const base = rows[0].dps + elem(rows[0]);
       for (const m of rows) {
         const c = shove(m, { kind: 'class' }), b = shove(m, { kind: 'monster' });
@@ -200,10 +204,11 @@ if (isMain(import.meta.url)) {
     const B = buildAt(L);
     console.log(`\nLEVEL ${L}  (STR ${B.STR} AGI ${B.AGI} SPD ${B.SPD}, weapon skill ${B.LB}, ${n} foes)`);
     console.log('  style                  blows/s   blow   DPS plain | DPS rare  | foe blow on me  | vs Longsword (plain, rare)');
-    const rows = STYLES.map((s) => [measure(L, s, { n }), measure(L, s, { n, rare: true })]);
+    const styles = STYLES.filter(([, , , over]) => !over || L >= 30);
+    const rows = styles.map((s) => [measure(L, s, { n }), measure(L, s, { n, rare: true })]);
     const [base, baseR] = rows[0];
     const R = Math.round(L * 1.5) || 1;
-    const tough = STYLES.map((st) => measure(L, st, { n, renown: R }));
+    const tough = styles.map((st) => measure(L, st, { n, renown: R }));
     rows.forEach((row, i) => row.push(tough[i]));
     console.log(`  (a Renown ${R} player's foes, the hero's threat on them: a blow on me ${tough[0].taken.toFixed(1)} without a shield)`);
     for (const [a, b, c] of rows) {
