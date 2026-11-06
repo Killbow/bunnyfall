@@ -8,7 +8,9 @@
 // so the world host wires nothing new.
 import { CANNON_NEED, CANNON_KEYS, CANNON_VALUE, CANNON_GIVE_MAX, cannonMaterialName, cleanGot, cannonShare } from '../net/cannonLaw.js';
 import { cannonStatus, cannonGive } from '../net/accountClient.js';
-import { cannonModel, cannonArt, CANNON_ARCHIVE } from '../world/cannonModel.js';
+import { cannonModel, cannonArt, CANNON_ARCHIVE, MUZZLE } from '../world/cannonModel.js';
+import { createNavalEffects } from '../systems/naval/navalEffects.js';   // the shot's flash and its smoke, the sea fight's own
+import { installNavalSounds, NAVAL_SFX, navalSoundRange } from '../systems/naval/navalSounds.js';   // and its boom
 import { createCannonOverlay } from '../ui/cannonWindow.js';
 import { heldOf, takeCarried } from '../systems/materialsBag.js';
 import { giveNyxCoins, nyxCoinsHeld, nyxCoinsText } from '../systems/wild/nyxShop.js';
@@ -105,10 +107,45 @@ export function createCannonHost(deps) {
         : t('cannon.refused', 'The foreman cannot be reached ({error}{status}). The server may need its update.', { error: r?.error ?? 'no answer', status: r?.status ? `, ${r.status}` : '' });
     } catch (e) { why = t('cannon.refused', 'The foreman cannot be reached ({error}{status}). The server may need its update.', { error: e?.message ?? 'no answer', status: '' }); } finally { asking = false; }
   }
-  /** It fires: every game hears it, and one standing near sees the barrel kick. */
+  // THE SHOT (2026-11-06, the owner: "a bit more oomph when it fires, big screen shake, smoke and cannon fire sound"):
+  // the sea fight's own pieces - its muzzle flash and smoke (systems/naval/navalEffects.js, drawn in its particle pass:
+  // `particles`), its long gun's boom and blast (systems/naval/navalSounds.js) - at the cannon's size, and the one
+  // camera shaker (Better Ambience's weaponKick, under the player's own maxShake) by how near one stands.
+  const fx = createNavalEffects();
+  let fxAt = performance.now();
+  /** The shake at `d` metres: SHAKE_NEAR at the guns, nothing past SHAKE_M. */
+  const SHAKE_NEAR = 4, SHAKE_M = 450;
+  /** The muzzle's mouth and the barrel's line in the world, from the cannon at `p`. */
+  function muzzleOf(p) {
+    const sy = Math.sin(site.yaw), cy = Math.cos(site.yaw);
+    return { pos: [p[0] + sy * MUZZLE[2], p[1] + MUZZLE[1], p[2] + cy * MUZZLE[2]], dir: [sy, 0.18, cy] };
+  }
+  const play3d = (key, pos, vol) => { try { deps.audio?.play3d?.(key, pos, vol, navalSoundRange(key) ?? undefined); } catch { /* silence is no failure */ } };
+  /** It fires: every game hears it, and one standing near sees the barrel kick, the flash and the smoke, and feels it. */
   function fire() {
     deps.say?.(t('cannon.fired', 'The Great Cannon by Wayrest has fired on Cromwark! Its builders begin the next one.'));
-    if (at) { deps.mid?.(t('cannon.boom', 'BOOM')); recoilAt = performance.now(); }
+    const sounds = installNavalSounds(deps.audio);
+    if (at) {
+      deps.mid?.(t('cannon.boom', 'BOOM'));
+      recoilAt = performance.now();
+      const m = muzzleOf(at);
+      fx.muzzle(m.pos, m.dir, 4);                                              // the flash and the first gout
+      fx.smoke(m.pos, m.dir, 5, 22, true);                                     // the bank down the shot, hanging
+      fx.smoke([at[0], at[1] + 0.6, at[2]], [0, 1, 0], 3.2, 12);               // the dust the carriage throws up
+      fx.smoke([at[0] - m.dir[0] * 2, at[1] + 1.5, at[2] - m.dir[2] * 2], [-m.dir[0], 0.6, -m.dir[2]], 2.4, 8);   // the breech's own
+      sounds.then(() => { play3d(NAVAL_SFX.cannon, m.pos, 1); play3d(NAVAL_SFX.blast, m.pos, 0.9); });
+      const f = deps.feet?.() ?? deps.cam?.();
+      const d = f ? Math.hypot(f[0] - at[0], f[2] - at[2]) : 0;
+      const k = SHAKE_NEAR * Math.max(0, 1 - d / SHAKE_M);
+      if (k > 0) {
+        deps.shake?.(k);
+        setTimeout(() => deps.shake?.(k * 0.45), 280);   // the ground's answer
+      }
+    } else {
+      // far off: the boom rolls in from the distance, kept off to one side of the ear (audio.js play3d `far`)
+      const c = deps.cam?.();
+      if (c) sounds.then(() => { try { deps.audio?.play3d?.(NAVAL_SFX.cannonFar, [c[0] + 400, c[1] + 20, c[2]], 0.55, { ...(navalSoundRange(NAVAL_SFX.cannonFar) ?? {}), far: 'cannon' }); } catch { /* silence */ } });
+    }
   }
 
   // ── STANDING IT ─────────────────────────────────────────────────────────────
@@ -117,9 +154,12 @@ export function createCannonHost(deps) {
     if (gpu || !renderer?.createMesh || !renderer.uploadTexture) return;
     for (const { record, image } of cannonArt()) renderer.uploadTexture(CANNON_ARCHIVE, record, toColor32(image), { opaque: true });
     gpu = renderer.createMesh(cannonModel({ scaffold: true }));
+    installNavalSounds(deps.audio);   // its boom ready before it is wanted
   }
   function frame() {
     const now = performance.now();
+    if (fx.count) fx.step(Math.min(0.1, (now - fxAt) / 1000));
+    fxAt = now;
     if (now > nextAsk) { nextAsk = now + POLL_S * 1000; ask(); }
     if (!site && now > siteTried) { site = findSite(); siteTried = now + 10000; if (site) markSite(site); }
     at = null;
@@ -190,6 +230,8 @@ export function createCannonHost(deps) {
   return {
     frame,
     draw(r = renderer) { if (!at || !gpu || !mat || !r?.drawMesh) return 0; r.drawMesh(gpu, mat, null); return 1; },
+    /** The shot's flash and smoke for the sea fight's particle pass (render/navalRender.js), or null with none. */
+    particles: () => (fx.count && at ? fx.drawList() : null),
     targets: () => (at && box ? box : []),
     hoverName: (key) => (key === KEY && at ? { title: t('cannon.name', 'The Great Cannon'), subs: [build ? t('cannon.hover', '{pct}% built · Give ingots and planks for Nyx coins', { pct: Math.floor(cannonShare(build.got) * 100) }) : t('cannon.hoverIdle', 'Give ingots and planks for Nyx coins')] } : null),
     activate(key, mode = 'grab') {

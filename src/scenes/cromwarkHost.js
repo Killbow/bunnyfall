@@ -385,6 +385,8 @@ export function createCromwarkHost(deps) {
     frame, fog, command,
     /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
     cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
+    /** The cannon's shot, its flash and smoke, for the particle pass (null with none). */
+    particles: () => cannon.particles(),
     /** Nyx's billboard, for the host's flats. */
     batches: () => [...(at ? [...(batch ? [batch] : []), ...guardBatches] : []), ...(deps.poiNpcs?.()?.batches() ?? [])],
     /** The Guild's tent, in the host's world pass. */

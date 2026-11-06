@@ -25498,6 +25498,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     say: (text) => townTalk.say(text), mid: (text) => setMidScreenText(text), show: (w) => townTalk.showOverlay(w),
     io: insigniaIo, wardrobe: () => _insignia, adopt: insigniaAdopt, self: insigniaSelf, loadWardrobe: insigniaLoad,
     boardReady: () => walkMode && playerSpawned && !gamePaused(),   // BUNNYFALL: the realm's notices wait for the world (ui/worldEventsBoard.js)
+    audio, shake: (k) => betterAmbience.weaponKick(k),   // BUNNYFALL: the Great Cannon's boom and its shake (scenes/cannonHost.js)
   });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
@@ -25801,6 +25802,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!portHost || _mode() !== 'exterior') return;
     const glows = portHost.glows(cam.pos);
     if (glows.length) navalRender.draw({ particles: glows });
+  }
+  /** BUNNYFALL: the Great Cannon's shot - its flash and its smoke - in the same pass (scenes/cannonHost.js particles). */
+  function cannonSmoke() {
+    if (_mode() !== 'exterior') return;
+    const p = cromwark?.particles?.();
+    if (p?.length) navalRender.draw({ particles: p });
   }
   // WARDEN1 (2026-10-10, Mac: "...I want a gaurd to navigate, lift the wagon/horse on top of their sprite and yeet it far
   // away"): THE TOWN WATCH (scenes/wagon/wagonWardenHost.js) - my parked wagon stamped off the town built under it, its park
@@ -34934,6 +34941,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (naval?.enabled) navalRender.draw(naval.drawFrame());   // NAV-B: the smoke, the spray, the balls in flight and the aim's arcs and zone, over the sea's top
     if (_serpentDraw) { try { serpentRenderer()?.drawSea(_serpentDraw); } catch (e) { console.warn('[serpent] marks', e?.message ?? e); } }   // SERPENT1: its telegraphs, the maelstrom and the venom, over the sea's top
     portGlows();   // SHIPYARDS: the lighthouses' lamps and their turning beams, added light over the sea's top
+    cannonSmoke();   // BUNNYFALL: the Great Cannon's flash and smoke
     navalHud(dt);   // NAV-F: the helm's readout
     // DW-C: under the distance fog the air's own effects - the sand, the wisps, the bolts, none of which writes a depth
     // the mod's post effect would fog it by, so all of which it closes to the fog colour - are the fog's. PUDDLE-RAIN
