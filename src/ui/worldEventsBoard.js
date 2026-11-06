@@ -37,7 +37,14 @@ const CSS = () => `
   border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgb(230, 90, 70), rgb(110, 20, 12));
   box-shadow: 0 2px 3px rgba(0,0,0,0.6); }
 #${ID} .note h2 { margin: 4px 0 6px; font-size: 19px; color: rgb(92, 24, 14); letter-spacing: 0.04em; }
-#${ID} .note p { margin: 6px 0; font-size: 14.5px; line-height: 1.4; }
+#${ID} .note p { margin: 6px 0; font-size: 14.5px; line-height: 1.4; color: rgb(48, 30, 12) !important; opacity: 1 !important;
+  text-shadow: none !important; font-weight: 500; }
+/* BUNNYFALL (2026-11-06, "the notice board is bugged for some users"): the game's own skin colours every p and h a pale
+   ink for dark windows; on parchment the board says its own, and nothing the skin says may wash it out */
+#${ID} .note h2 { color: rgb(92, 24, 14) !important; opacity: 1 !important; text-shadow: none !important; }
+#${ID} .note .where { color: rgb(84, 60, 30) !important; }
+#${ID} .sub { color: rgb(226, 206, 160) !important; opacity: 1 !important; }
+#${ID} .discord b, #${ID} .discord span { color: #fff !important; opacity: 1 !important; text-shadow: none !important; }
 #${ID} .note .where { font-size: 13px; color: rgb(84, 60, 30); font-style: italic; }
 #${ID} .icons { display: flex; gap: 6px; float: right; margin: 0 0 4px 8px; }
 #${ID} .icons img { width: 40px; height: 40px; image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.45)); }
