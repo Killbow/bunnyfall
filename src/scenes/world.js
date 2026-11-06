@@ -25487,6 +25487,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     saved: () => surfacePlayer(), clink: () => audio.playOneShot(SOUND.GoldPieces, 1),
     say: (text) => townTalk.say(text), mid: (text) => setMidScreenText(text), show: (w) => townTalk.showOverlay(w),
     io: insigniaIo, wardrobe: () => _insignia, adopt: insigniaAdopt, self: insigniaSelf, loadWardrobe: insigniaLoad,
+    boardReady: () => walkMode && playerSpawned && !gamePaused(),   // BUNNYFALL: the realm's notices wait for the world (ui/worldEventsBoard.js)
   });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;

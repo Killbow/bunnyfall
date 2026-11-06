@@ -200,5 +200,8 @@ export function createCannonHost(deps) {
     },
     ours: (key) => key === KEY,
     state: () => ({ site, at, build }),
+    /** The build for the realm's notices (ui/worldEventsBoard.js): `{ round, share }`, or null before it is heard. */
+    progress: () => (build ? { round: build.round, share: cannonShare(build.got) } : null),
+    ask: () => ask(),
   };
 }
