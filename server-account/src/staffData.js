@@ -10,7 +10,7 @@
 //                                                 secret, a hash, a token or a key is answered as [hidden]) - OWNERS'
 // Every call is an audit row, as every staff act is (staff.js `audit`); an export names what it took, a query its SQL.
 import { findAccount } from './sanctions.js';
-import { realmSaveTextOf, objectBytesOf } from './realm.js';
+import { realmSaveTextOf } from './realm.js';
 import { saveKey, SAVE_PARTS } from './service.js';
 
 export const DATA_ROUTES = Object.freeze(['/v1/staff/data/saves', '/v1/staff/data/export', '/v1/staff/data/tables', '/v1/staff/data/query']);
@@ -26,6 +26,17 @@ const base64 = (/** @type {Uint8Array} */ bytes) => {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 };
+/** An object's bytes, chunk by chunk, so a body that ends short still gives what it had: `{ bytes, warning }`. */
+async function readAll(/** @type {any} */ object) {
+  const chunks = []; let n = 0; let warning = null;
+  try {
+    const reader = object.body.getReader();
+    for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); n += value.length; }
+  } catch (e) { warning = `the stored file ended short: read ${n} of ${object.size ?? '?'} bytes (${String(e?.message ?? e).slice(0, 120)})`; }
+  const bytes = new Uint8Array(n); let at = 0;
+  for (const c of chunks) { bytes.set(c, at); at += c.length; }
+  return { bytes, warning };
+}
 const str = (/** @type {unknown} */ v, max = 200) => (typeof v === 'string' && v && v.length <= max ? v : null);
 
 /**
@@ -97,11 +108,12 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
     if (!c?.obj) return { error: 'no-data' };
     const object = await bucket.get(c.obj);
     if (!object) return { error: 'no-data' };
-    const bytes = await objectBytesOf(object);
-    const text = await realmSaveTextOf({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
-    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name }).run();
+    const { bytes, warning } = await readAll(object);
+    let text = null;
+    if (!warning) try { text = await realmSaveTextOf({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }); } catch { text = null; }
+    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
     if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}.json`, encoding: 'text', data: text };
-    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(bytes) };
+    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
   }
   if (body.kind === 'cloud') {
     const characterId = str(body.characterId, 120), saveName = str(body.saveName, 200);
@@ -111,10 +123,10 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
     if (!have) return { error: 'no-data' };
     const object = await bucket.get(saveKey(p.id, characterId, saveName, part));
     if (!object) return { error: 'no-data' };
-    const bytes = new Uint8Array(await object.arrayBuffer());
-    await audit('data-export', p.id, { kind: 'cloud', characterId, saveName, part, bytes: bytes.length }).run();
+    const { bytes, warning } = await readAll(object);
+    await audit('data-export', p.id, { kind: 'cloud', characterId, saveName, part, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
     const label = `${have.character_name ?? characterId}-${saveName}-${part}`.replace(/[^\w.-]+/g, '_');
-    return { name: label, encoding: 'base64', data: base64(bytes) };
+    return { name: label, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
   }
   return { error: 'body' };
 }

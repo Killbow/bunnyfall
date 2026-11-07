@@ -98,7 +98,7 @@ async function exportSave(/** @type {any} */ body, /** @type {string} */ msgId) 
   if (j.error) return say(msgId, why(j), true);
   if (j.encoding === 'text') save(j.name, j.data, 'application/json');
   else save(j.name, Uint8Array.from(atob(j.data), (c) => c.charCodeAt(0)));
-  say(msgId, `Saved ${j.name}.`);
+  if (j.warning) say(msgId, `Saved ${j.name}, but ${j.warning}.`, true); else say(msgId, `Saved ${j.name}.`);
 }
 
 // ── saves ──
