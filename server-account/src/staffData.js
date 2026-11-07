@@ -89,14 +89,14 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
   if (path === '/v1/staff/data/saves') {
     const [cloud, realm] = await Promise.all([
       db.prepare('SELECT character_id, save_name, character_name, game_time, real_time, dfu_version, save_version, bytes, shot_bytes, created_at, updated_at FROM saves WHERE player_id = ? ORDER BY updated_at DESC LIMIT 200').bind(p.id).all(),
-      db.prepare('SELECT id, name, seq, lease, lease_at, dead_at, held, obj, updated_at, created_at FROM realm_characters WHERE player = ? ORDER BY updated_at DESC LIMIT 50').bind(p.id).all(),
+      db.prepare('SELECT id, name, seq, lease, lease_at, dead_at, held, obj, prev, updated_at, created_at FROM realm_characters WHERE player = ? ORDER BY updated_at DESC LIMIT 50').bind(p.id).all(),
     ]);
     await audit('data-saves', p.id, null, { onceIn: 60 }).run();
     return {
       player: { id: p.id, handle: p.handle ?? null, guestName: p.guest_name ?? null },
       cloud: (cloud.results ?? []).map((r) => ({ characterId: r.character_id, saveName: r.save_name, characterName: r.character_name, gameTime: r.game_time, realTime: r.real_time,
         dfuVersion: r.dfu_version, saveVersion: r.save_version, bytes: r.bytes, shotBytes: r.shot_bytes, createdAt: r.created_at, updatedAt: r.updated_at })),
-      realm: (realm.results ?? []).map((r) => ({ id: r.id, name: r.name, seq: r.seq, leased: !!r.lease, leaseAt: r.lease_at, deadAt: r.dead_at, held: !!r.held, hasSave: !!r.obj, updatedAt: r.updated_at, createdAt: r.created_at })),
+      realm: (realm.results ?? []).map((r) => ({ id: r.id, name: r.name, seq: r.seq, leased: !!r.lease, leaseAt: r.lease_at, deadAt: r.dead_at, held: !!r.held, hasSave: !!r.obj, hasPrev: !!r.prev && r.prev !== r.obj, updatedAt: r.updated_at, createdAt: r.created_at })),
     };
   }
 
@@ -104,16 +104,17 @@ async function staffDataRun(ctx, env, path, body, who, audit) {
   if (!bucket) return { error: 'no-storage' };
   if (body.kind === 'realm') {
     const id = str(body.char, 80);
-    const c = id ? await db.prepare('SELECT id, name, obj FROM realm_characters WHERE id = ? AND player = ?').bind(id, p.id).first() : null;
-    if (!c?.obj) return { error: 'no-data' };
-    const object = await bucket.get(c.obj);
+    const c = id ? await db.prepare('SELECT id, name, obj, prev FROM realm_characters WHERE id = ? AND player = ?').bind(id, p.id).first() : null;
+    const key = body.which === 'prev' ? c?.prev : c?.obj;   // the previous checkpoint, when asked
+    if (!key) return { error: 'no-data' };
+    const object = await bucket.get(key);
     if (!object) return { error: 'no-data' };
     const { bytes, warning } = await readAll(object);
     let text = null;
     if (!warning) try { text = await realmSaveTextOf({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }); } catch { text = null; }
-    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
-    if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}.json`, encoding: 'text', data: text };
-    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
+    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name, which: body.which === 'prev' ? 'prev' : 'obj', key, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
+    if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}${body.which === 'prev' ? '-prev' : ''}.json`, encoding: 'text', data: text };
+    return { name: `${c.name ?? c.id}${body.which === 'prev' ? '-prev' : ''}.bin`, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
   }
   if (body.kind === 'cloud') {
     const characterId = str(body.characterId, 120), saveName = str(body.saveName, 200);

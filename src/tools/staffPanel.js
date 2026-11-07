@@ -119,6 +119,7 @@ async function findSaves() {
       const t = el('button', 'Export JSON'); t.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id }, 'savesMsg');
       const r = el('button', 'Export raw'); r.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id, as: 'raw' }, 'savesMsg');
       row.append(t, r);
+      if (c.hasPrev) { const pv = el('button', 'Export previous'); pv.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id, which: 'prev' }, 'savesMsg'); row.append(pv); }
     } else row.append(el('span', 'no save written', 'dim'));
     out.append(row);
   }
