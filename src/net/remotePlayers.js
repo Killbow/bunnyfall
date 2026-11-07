@@ -731,6 +731,7 @@ export class RemotePlayers {
 
   /** The doll for a look: composed once per look, serialized; a failure waits DOLL_RETRY_MS before another try. */
   dollFor(look) {
+    if (look?.sk && !skinArtOf(look.sk)) return null;   // CUSTOM-SKIN: its pictures are not here yet - nothing is composed or cached under its key (a plain doll there would stay), the caller asks again
     const key = lookKey(look);
     const have = this._dolls.get(key);
     if (have && have.failedUntil != null) {
