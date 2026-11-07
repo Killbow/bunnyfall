@@ -48,4 +48,6 @@ git log --oneline "$LOCAL..HEAD" | head -20
 docker compose build
 docker compose up -d
 docker image prune -f >/dev/null
+# BUNNYFALL: every build leaves layers in the build cache (it reached 70 GB); keep the last three days so rebuilds stay quick
+docker builder prune -f --filter until=72h >/dev/null 2>&1 || true
 echo "$LOG_TAG done"
