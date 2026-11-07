@@ -211,6 +211,7 @@ import { isOnlinePage, onlineForcedPref, onlineForcedModSetting, onlineForcedSet
 import { onlineSyncPlan, applyOnlineSync, lastOnlineSync, undoOnlineSync } from '../../systems/online/onlineSync.js';   // UXB1-E: the room's rules, copied home
 import { CREDITS, translationCredits } from '../credits.js';   // CR1: who made what the port carries
 import { ownerUpdateMark } from '../ownerUpdate.js';   // BUNNYFALL: the owner's update button
+import { skinMark } from '../skinsMenu.js';   // BUNNYFALL: the custom paperdoll button
 import { SUPPORT_ASKS } from '../supportAsks.js';   // SUPPORT1: the project's asks - the website's corner and this door's
 import { t, tIn, currentLocale, localeInfo, localeTable, availableLocales, BASE_LOCALE, localizedText, formatText } from '../../systems/textManager.js';   // L10N1b: the port's own strings, the language row and the first-run offer; L10N3d: DFU's Internal_Strings
 import { localeForBrowser, catalogLocale } from '../../systems/localeCatalog.js';   // L10N1b
@@ -4611,6 +4612,7 @@ function renderHome() {
   home.append(supportMarks());
   // BUNNYFALL: the owner's update button, same corner, shown to the owner alone (ui/ownerUpdate.js)
   home.append(ownerUpdateMark({ storage: appStorage() }));
+  home.append(skinMark({ storage: appStorage() }));   // BUNNYFALL: the custom paperdoll worn online (ui/skinsMenu.js)
   // L10N1b: the first-run language offer, in the top-left corner nothing else uses
   const offer = languageOffer();
   if (offer) home.append(offer);

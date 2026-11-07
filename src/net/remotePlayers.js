@@ -21,6 +21,7 @@
 // the singleton and could hand the inventory a stranger's doll, or the
 // stranger the player's, panel and all.
 import { composePaperDollPixels } from '../ui/paperDoll.js';
+import { skinArtOf, wornSkinId } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures a look's `sk` names
 import { equipTableOf } from '../systems/equip.js';
 import { createEquipTable } from '../characters/equipTable.js';
 import { CAPSULE_HEIGHT } from '../player/motor.js';
@@ -414,7 +415,7 @@ export function ownLayeredGear(entity = null) {
 
 /** The player's look, as the hello carries it. DISC23-B: `eotbSet` the chosen sprite set (ownEotbSet, the host's read).
  *  LAYERED-GEAR: `layered` the On foot Layered Gearing Skin chosen (ownLayeredGear). */
-export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayeredGear(entity) } = {}) {
+export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayeredGear(entity), skin = wornSkinId() } = {}) {
   const items = [];
   const table = entity ? equipTableOf(entity) : [];
   for (let slot = 0; slot < table.length; slot++) {
@@ -442,7 +443,7 @@ export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayer
   const klass = careerName(entity);
   // DISC23-B: `eo` OMITTED while the mod is off, `class`'s law - a look without it keeps the bytes it always had
   // LAYERED-GEAR: `lg` OMITTED while the skin is off, the same law
-  return { race: artRaceOf(entity), gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, ...(klass ? { class: klass } : {}), ...(Number.isInteger(eotbSet) ? { eo: eotbSet } : {}), ...(layered === 1 || layered === 2 ? { lg: layered } : {}), items };
+  return { race: artRaceOf(entity), gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, ...(klass ? { class: klass } : {}), ...(Number.isInteger(eotbSet) ? { eo: eotbSet } : {}), ...(layered === 1 || layered === 2 ? { lg: layered } : {}), ...(skin ? { sk: skin } : {}), items };   // CUSTOM-SKIN: `sk` OMITTED when none, `class`'s law
 }
 
 /** One string per distinct look: the doll cache's key.
@@ -452,7 +453,7 @@ export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayer
  *  never mutated (`_peer`, `_refresh`), so its identity is exactly the key's lifetime: a WeakMap holds the string for
  *  as long as the look lives and no longer. A null look has no identity and is one constant (SLAM14 B6). */
 const _keyOf = new WeakMap();
-const _computeLookKey = (look) => `${look?.race ?? 'Breton'}|${look?.gender ?? 'male'}|${look?.faceIndex ?? 0}|${JSON.stringify((look?.items ?? []).map((it) => { const row = LOOK_ITEM_FIELDS.map((k) => it[k] ?? null); return Array.isArray(it.ap) ? [...row, it.ap] : row; }))}`;   // APPEARANCES: and a worn look, so a peer re-dressed is drawn again - a look without one keeps its key
+const _computeLookKey = (look) => `${look?.sk ? `${look.sk}|` : ''}${look?.race ?? 'Breton'}|${look?.gender ?? 'male'}|${look?.faceIndex ?? 0}|${JSON.stringify((look?.items ?? []).map((it) => { const row = LOOK_ITEM_FIELDS.map((k) => it[k] ?? null); return Array.isArray(it.ap) ? [...row, it.ap] : row; }))}`;   // APPEARANCES: and a worn look, so a peer re-dressed is drawn again - a look without one keeps its key
 const NULL_LOOK_KEY = _computeLookKey(null);   // SLAM14 (AUDIT SLAM FINAL B6): a look-less peer's key has no object to hang on - computed once, here
 export const lookKey = (look) => {
   if (!look || typeof look !== 'object') return NULL_LOOK_KEY;
@@ -472,6 +473,7 @@ const uint = (v, max = 1e6) => (Number.isFinite(v) && v >= 0 ? Math.min(max, Mat
  */
 export function peerStubEntity(look) {
   const entity = { race: typeof look?.race === 'string' ? look.race.slice(0, 16) : 'Breton', gender: look?.gender === 'female' ? 'female' : 'male', faceIndex: uint(look?.faceIndex, 9) ?? 0, class: typeof look?.class === 'string' ? look.class.slice(0, 20) : null, items: [], activeEffects: [], equip: createEquipTable() };
+  if (look?.sk) { const a = skinArtOf(look.sk); if (a) entity.skinArt = a; }   // CUSTOM-SKIN: the doll is the skin's pictures once they are here
   const slots = entity.equip.slots.length;
   for (const it of look?.items ?? []) {
     if (!it || typeof it !== 'object' || entity.items.length >= slots) continue;
@@ -574,6 +576,7 @@ export class RemotePlayers {
     this._warmedArchives = new Set();
     this._destroyed = false;
     this._now = now;
+    this._skinKeyed = new Set();   // CUSTOM-SKIN: the looks whose skin pictures have been seen here (their doll is composed from them)
     this._dolls = new Map();     // lookKey -> { rec, w, h } ready | Promise composing | { failedUntil } (insertion-ordered: the oldest first)
     this._footsteps = new Map(); // PEER-FS1: peer id -> FootstepMachine (the stride timing off their own pose)
     this._attackAn = new Map();  // PEER-FS2: peer id -> the last `an` heard, so a new swing count is a swing
@@ -733,20 +736,23 @@ export class RemotePlayers {
     if (!deps || !renderer) return null;
     const px = await this._compose(deps, peerStubEntity(look), { context: 'town', background: false, back: true });
     if (!px?.rgba) return null;
-    const r = alphaBounds(px.rgba, px.width, px.height);
+    let r = alphaBounds(px.rgba, px.width, px.height);
     if (!r) return null;
+    // CUSTOM-SKIN: its back is a picture of its own, not the front turned, so both are cropped to the union of their figures
+    if (px.skinBack) { const rb0 = alphaBounds(px.back, px.width, px.height); if (rb0) { const x0 = Math.min(r.x, rb0.x), y0 = Math.min(r.y, rb0.y), x1 = Math.max(r.x + r.w, rb0.x + rb0.w), y1 = Math.max(r.y + r.h, rb0.y + rb0.h); r = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; } }
     const crop = cropRgba(px.rgba, px.width, r, { bottomUp: true });   // OD1: the billboard samples bottom-up
     const rec = `doll_${++_dollSeq}`;
     renderer.uploadTexture(PEER_ARCHIVE, rec, { width: r.w, height: r.h, colors: new Uint32Array(crop.buffer) });
     // DOLL-BACK: the doll from behind (ui/paperDollBack.js) - turned left for right, so its bounds are the front's mirrored
     let backRec = null;
     if (px.back) {
-      const rb = { ...r, x: px.width - r.x - r.w };
+      const rb = px.skinBack ? r : { ...r, x: px.width - r.x - r.w };
       const cb = cropRgba(px.back, px.width, rb, { bottomUp: true });
       backRec = `${rec}_back`;
       renderer.uploadTexture(PEER_ARCHIVE, backRec, { width: rb.w, height: rb.h, colors: new Uint32Array(cb.buffer) });
     }
-    return { rec, backRec, w: PEER_HEIGHT * (r.w / r.h), h: PEER_HEIGHT };
+    const hs = px.heightScale ?? 1;   // CUSTOM-SKIN: how big the figure is drawn, a share of a player's height
+    return { rec, backRec, w: PEER_HEIGHT * hs * (r.w / r.h), h: PEER_HEIGHT * hs };
   }
 
   /** The mobile-unit bundle for a peer's class-enemy sprite: composed once per PEER (not shared by look, the way a
@@ -952,6 +958,13 @@ export class RemotePlayers {
       // INVIS-LOOK (2026-09-27): a CONCEALED peer (the host hands ECV1's visual) is drawn translucent, as a concealed foe
       // is on the enhanced lane - and carries no name: a name over an invisible player is the player, found
       const veil = conceal(peer.id) ?? null;
+      // CUSTOM-SKIN (2026-11-07): a peer wearing an approved custom paperdoll whose pictures are here is that picture - for
+      // everyone, whatever their class or set (the host keeps the Morrowind layers off them: scenes/world.js skinnedPeer)
+      if (peer.look?.sk && !(peer.shown.wb | 0) && skinArtOf(peer.look.sk)) {
+        const sk = lookKey(peer.look);
+        if (!this._skinKeyed.has(sk)) { this._skinKeyed.add(sk); this._dolls.delete(sk); }   // a doll composed before the pictures came is not theirs
+        live.add(peer.id); this._syncDollPeer(peer, toScene, veil, eye); continue;
+      }
       // MWBODY1: a peer standing in a Morrowind body (net/peer/peerBodies.js) draws no doll/mobile; its name still rides this pass, at the body's own head
       const bodyH = bodyHeight(peer.id);
       if (bodyH > 0) { if (!veil || /** @type {any} */ (veil).named) this._shown.push({ peer, height: bodyH }); continue; }   // AUDIT EG V (h): a veil that keeps the name (an ally drawn at 60% on the Spire's traversal ground - scenes/eliteGates/egClient.js allyVeil)

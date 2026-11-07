@@ -108,6 +108,7 @@ authors to `src/ui/credits.js`.
 | Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` (`bunnyTavernRows`: the rows the tavern window carries beside Daggerfall's own) |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
 | Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eyeOfTheBeholder/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |
+| Custom paperdolls (upload, staff review, worn online, drawn for everyone) | `src/net/skinLaw.js`, `server-account/src/skins.js`, `src/systems/online/customSkins.js`, `src/ui/skinsPanel.js`, `skins.html`, the Skins tab of `staff.html`; hooks in `src/ui/paperDoll.js` and `src/net/remotePlayers.js` |
 | Crafting rework (salvage, upgrades) | `src/net/salvageLaw.js`, `src/net/upgradeLaw.js`, `src/ui/professions/` |
 | Server switches for a small server | `server-account/src/bunnyfall.js`, `selfhost/accounts.toml` |
 | Self-host, updates, the ↻ button | `selfhost/`, `src/ui/ownerUpdate.js` |

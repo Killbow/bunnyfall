@@ -1,7 +1,7 @@
 // @ts-check
 // BUNNYFALL (2026-11-06): staff.html - the staff page of this fork. A developer signs in (password + a key this browser
 // makes), then reads an account's saves and takes them out, browses the database read-only and reads the audit log.
-/* global btoa, atob, sessionStorage, confirm, crypto */
+/* global btoa, atob, sessionStorage, confirm, crypto, prompt */
 // All of it is server-account/src/staffData.js and staff.js; this file only asks and shows.
 import { selfAccountUrl } from '../net/selfHost.js';
 
@@ -163,6 +163,35 @@ async function runSql() {
 }
 const csvCell = (/** @type {any} */ v) => { const s = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 
+// ── skins (custom paperdolls waiting for review) ──
+async function loadSkins(/** @type {string} */ status = 'pending') {
+  say('skinsMsg', 'Loading...');
+  const j = await call('/v1/staff/skins/queue', { status });
+  if (j.error) return say('skinsMsg', why(j), true);
+  say('skinsMsg', `${j.skins.length} ${status}`);
+  const out = $('skinsOut'); out.replaceChildren();
+  for (const s of j.skins) {
+    const card = el('div', '', 'skin');
+    for (const [label, data] of [['Front', s.front], ['Back', s.back]]) {
+      const box = el('div'); box.append(el('div', label, 'dim'));
+      if (data) { const img = /** @type {HTMLImageElement} */ (document.createElement('img')); img.src = `data:image/png;base64,${data}`; box.append(img); }
+      card.append(box);
+    }
+    const info = el('div');
+    info.append(el('b', s.name), el('div', `by ${s.owner}`, 'dim'), el('div', `${Math.round(s.height * 100)}% of a player's height, ${s.w} x ${s.h}`, 'dim'), el('div', `status: ${s.status}${s.note ? ` - ${s.note}` : ''}`, 'dim'));
+    const row = el('div', '', 'row');
+    const ok = el('button', 'Approve'); ok.onclick = () => reviewSkin(s.id, 'approve', '', status);
+    const no = el('button', 'Reject...'); no.onclick = () => { const n = prompt('Why is it rejected? The player sees this.'); if (n) reviewSkin(s.id, 'reject', n, status); };
+    row.append(ok, no); info.append(row); card.append(info);
+    out.append(card);
+  }
+}
+async function reviewSkin(/** @type {string} */ id, /** @type {string} */ verdict, /** @type {string} */ note, /** @type {string} */ status) {
+  const j = await call('/v1/staff/skins/review', { id, verdict, note });
+  if (j.error) return say('skinsMsg', why(j), true);
+  await loadSkins(status);
+}
+
 // ── audit ──
 async function loadAudit() {
   const j = await call('/v1/staff/audit', { limit: 100 });
@@ -185,10 +214,12 @@ $('runSql').onclick = runSql;
 $('dlJson').onclick = () => save('query.json', JSON.stringify(lastRows, null, 1), 'application/json');
 $('dlCsv').onclick = () => { const cols = lastRows[0] ? Object.keys(lastRows[0]) : []; save('query.csv', [cols.join(','), ...lastRows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\n'), 'text/csv'); };
 $('loadAudit').onclick = loadAudit;
+$('loadSkins').onclick = () => loadSkins('pending');
+$('loadSkinsOk').onclick = () => loadSkins('approved');
 for (const b of document.querySelectorAll('#tabs button')) {
   /** @type {any} */ (b).onclick = () => {
     for (const x of document.querySelectorAll('#tabs button')) x.classList.toggle('on', x === b);
-    for (const t of ['saves', 'db', 'audit']) $(`t-${t}`).hidden = t !== /** @type {any} */ (b).dataset.t;
+    for (const t of ['saves', 'db', 'skins', 'audit']) $(`t-${t}`).hidden = t !== /** @type {any} */ (b).dataset.t;
   };
 }
 showKey();
