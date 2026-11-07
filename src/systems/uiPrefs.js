@@ -179,6 +179,7 @@ export const PREF_DEFAULTS = Object.freeze({
   // paperdoll pref left (BUNNYFALL PAPERDOLL-SETTINGS): how you are drawn is the mod setting Graphics.PlayerBody, and the
   // inventory's figure is always shown.
   'graphics.paperdollback': true,
+  'graphics.customskins': true,   // CUSTOM-SKIN: draw other players' custom paperdolls (off: they are drawn as their ordinary look)
   peerAttackSounds: true,   // PEER-FS2: other players' swing sounds - on by default
   monsterVolume: 1,   // MONSTER-VOL: a monster's calls, attack sounds and pain cries, 0..1 (systems/monsterVolume.js)
   companionVolume: 1,   // COMPANION-VOL: a companion's idle calls (its moans and cries while it walks with you), 0..1, over Monster Volume

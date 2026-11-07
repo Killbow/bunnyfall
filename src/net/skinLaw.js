@@ -6,7 +6,7 @@
 // The height is how big the figure is DRAWN, 0.5 to 1.2 of a player's own height; the hitbox, the reach and the eyes stay.
 
 /** How many skins one account keeps (any status) and how many may wait for review at once. */
-export const SKIN_MAX_PER_ACCOUNT = 5;
+export const SKIN_MAX_PER_ACCOUNT = 15;
 export const SKIN_MAX_PENDING = 3;
 /** The height a skin may be drawn at, as a share of a player's height, in steps of SKIN_HEIGHT_STEP. */
 export const SKIN_HEIGHT_MIN = 0.5;

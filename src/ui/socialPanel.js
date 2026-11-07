@@ -43,6 +43,8 @@ import { overlayOpen } from './enhanced/enhancedOverlays.js';
 import { isTextEntryTarget, swallowBrowserKey } from './input.js';   // DISC25-E: a letter's keys are the letter's
 import { isTouchDevice } from './touch/touch.js';
 import { PARTY_MAX } from '../net/wire.js';
+import { customSkinsOn, skinHiddenFor, setSkinHidden } from '../systems/online/skinHide.js';   // CUSTOM-SKIN: my own switches
+import { setPref } from '../systems/uiPrefs.js';
 import { lastOnlineText, PARTY_GREEN_CSS, FRIEND_CSS } from '../net/social.js';
 import { NAME_ORDER } from '../net/roster.js';   // AUDIT 637 A11: the roster's name order, one collator
 import { PIXELIFY_FIVE_FACE, PIXEL_FONT_CSS } from './pixelifyFive.js';   // FONT1: the enhanced skin's own face, unsmoothed, with Silkscreen's five
@@ -893,6 +895,8 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     // BUNNY-GUILDS (Phase 1): a Company's invitations are answered at an Adventurers Guild hall now - said where they were seen
     const companyInvites = guild && !guild.guild ? (guild.invites?.length ?? 0) : 0;
     if (companyInvites) out.push(el('div', 'dfsocial-sec', t('social.guild.invitesAtHall', '{n, plural, one {A Company invitation waits} other {{n, number} Company invitations wait}} for you at any Adventurers Guild hall.', { n: companyInvites })));
+    // CUSTOM-SKIN: the one switch for everybody (the same as Settings > Paperdoll); a single friend's is on their row
+    out.push(btn(customSkinsOn() ? 'Custom skins: shown' : 'Custom skins: hidden', { run: () => { setPref('graphics.customskins', !customSkinsOn()); ui++; if (open) repaint(); } }));
     const ins = social.in ?? [], outs = social.out ?? [];
     if (ins.length || outs.length) {
       out.push(el('div', 'dfsocial-sec', 'Requests'));
@@ -939,6 +943,8 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       // somebody else's), so the shape of it says nothing about a username any more. A friend who is still a guest has
       // no letterbox, and the service says so in its own words (`reader-guest`).
       if (mail) acts.append(btn('Letter', { run: () => { tab = 'letters'; writeTo(r.name, '', r.acct); } }));
+      // CUSTOM-SKIN: whether their custom paperdoll is drawn for me - mine alone, they are never told
+      if (r.acct) acts.append(btn(skinHiddenFor(r.acct) ? 'Show skin' : 'Hide skin', { run: () => { setSkinHidden(r.acct, !skinHiddenFor(r.acct)); ui++; if (open) repaint(); } }));
       // ONE CLICK ARMS, THE SECOND SENDS. No `window.confirm`: it is a modal the game cannot dismiss, it steals the
       // pointer this panel just freed, and on a touch device it is a different surface entirely.
       acts.append(confirm === r.acct

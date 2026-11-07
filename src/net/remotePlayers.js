@@ -21,6 +21,7 @@
 // the singleton and could hand the inventory a stranger's doll, or the
 // stranger the player's, panel and all.
 import { composePaperDollPixels } from '../ui/paperDoll.js';
+import { skinShownFor } from '../systems/online/skinHide.js';   // CUSTOM-SKIN: my own switches (all, or one player)
 import { skinArtOf, wornSkinId } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures a look's `sk` names
 import { equipTableOf } from '../systems/equip.js';
 import { createEquipTable } from '../characters/equipTable.js';
@@ -478,7 +479,7 @@ export function peerLook(peer) {
   const look = peer?.look;
   if (!look?.sk) return look;
   const art = skinArtOf(look.sk);
-  const ok = !!art && !!peer.sub && art.owner === peer.sub;
+  const ok = !!art && !!peer.sub && art.owner === peer.sub && skinShownFor(peer.sub);   // and I have not switched it off, for all or for this player
   const c = peer._skinLook;
   if (c && c.from === look && c.ok === ok) return c.out;
   let out = look;
