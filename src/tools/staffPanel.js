@@ -52,7 +52,7 @@ async function call(/** @type {string} */ path, body = {}) {
 }
 const say = (/** @type {string} */ id, /** @type {string} */ msg, /** @type {boolean} */ bad = false) => { const e = $(id); e.textContent = msg; e.className = bad ? 'bad' : 'dim'; };
 const words = {
-  'staff-login': 'Wrong handle, password or key (or the key is not in OWNER_KEYS yet).', 'rate': 'Too many tries. Wait a few minutes.',
+  'staff-login': 'Wrong handle or password, or this account is not a developer (or the server has not been updated yet).', 'rate': 'Too many tries. Wait a few minutes.',
   'staff-admin': 'That needs a developer account.', 'staff-owner': 'That is for the owner only.', 'staff-session': 'Signed out. Sign in again.',
   'no-player': 'No such account.', 'ambiguous': 'More than one guest has that name. Use the handle.', 'no-data': 'No save data there.', 'bad-query': 'Only one SELECT.',
 };
@@ -60,13 +60,17 @@ const why = (/** @type {any} */ j) => `${words[/** @type {keyof typeof words} */
 
 // ── sign in / out ──
 async function signIn() {
-  if (!keyed) await showKey();
-  if (!keyed) return;
   const handle = $('handle').value.trim();
-  const ts = Math.floor(Date.now() / 1000);
-  const sig = b64u(new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, keyed.key, enc.encode(`dfo-staff:v1:login:${handle.toLowerCase()}:${ts}`))));
+  /** @type {any} */ let body = { handle, password: $('password').value };
+  if ($('useKey').checked) {
+    if (!keyed) await showKey();
+    if (!keyed) return;
+    const ts = Math.floor(Date.now() / 1000);
+    const sig = b64u(new Uint8Array(await crypto.subtle.sign({ name: 'Ed25519' }, keyed.key, enc.encode(`dfo-staff:v1:login:${handle.toLowerCase()}:${ts}`))));
+    body = { ...body, pub: keyed.pub, ts, sig };
+  }
   say('loginMsg', 'Signing in...');
-  const j = await call('/v1/staff/login', { handle, password: $('password').value, pub: keyed.pub, ts, sig });
+  const j = await call('/v1/staff/login', body);
   if (j.error) return say('loginMsg', why(j), true);
   session = j.session;
   try { sessionStorage.setItem(SESSION_STORE, session); } catch { /* this page only */ }

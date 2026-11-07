@@ -248,6 +248,14 @@ export async function staffLogin(ctx, env, /** @type {any} */ body, /** @type {s
   const { player, role, lc, ok } = p;
   if (!player || !role) return { error: 'staff-login' };
   const { db, rand, nowS } = ctx;
+  // BUNNYFALL: SIGN-IN BY ACCOUNT (STAFF_BY_ACCOUNT = "1" in selfhost/accounts.toml): the password of a developer account
+  // is the whole lock, no key. The role lists are still the gate, and the session is the usual one (30 min idle, 8 h).
+  if (accountSignIn(env) && typeof body.pub !== 'string') {
+    if (!ok) return refused(ctx, player, role, null);
+    if (isBanned(player, nowS)) return refused(ctx, player, role, 'banned');
+    await clearRate(ctx, `stafftry:${lc}:${ip}`);
+    return openStaff(ctx, env, player, role, { keyId: ACCOUNT_KEY, act: 'login' });
+  }
   // the key the body names: one registered to this account under this handle and not revoked (a config key's only while
   // the config names it), or this owner's config key the first time - a key with no row at all, so one revoked, or bound
   // to another account, never comes back
@@ -316,6 +324,10 @@ async function openStaff(/** @type {any} */ ctx, /** @type {any} */ env, /** @ty
   return { session: token, role, handle: player.handle, owner: isOwner(player, env), idleS: STAFF_IDLE_S, expiresAt: nowS + STAFF_MAX_S, keyId };
 }
 
+/** BUNNYFALL: the session's key id when it was opened by the account's password alone, and the switch that allows it. */
+export const ACCOUNT_KEY = 'account';
+export const accountSignIn = (/** @type {any} */ env) => env?.STAFF_BY_ACCOUNT === '1';
+
 const STAFF_WHO_SQL = `SELECT s.key_id AS s_key, s.last_act AS s_act, s.expires_at AS s_expires, k.handle_lc AS k_handle, k.cfg AS k_cfg, k.pub AS k_pub, p.*
   FROM staff_sessions s JOIN players p ON p.id = s.player_id LEFT JOIN staff_keys k ON k.id = s.key_id AND k.player_id = s.player_id AND k.revoked_at IS NULL
   WHERE s.token_hash = ?`;
@@ -363,7 +375,7 @@ export async function staffSession(ctx, env, token, { act = true } = {}) {
       .bind(nowS, hash, nowS - STAFF_TOUCH_S, nowS - STAFF_IDLE_S).run()]);
   if (!row) return null;
   const role = staffRole(row, env);
-  if (!role || row.s_expires <= nowS || row.s_act + STAFF_IDLE_S <= nowS || !row.k_handle || row.k_handle !== row.handle_lc || (row.k_cfg && !configKey(row, env, row.k_pub)) || isBanned(row, nowS)) {
+  if (!role || row.s_expires <= nowS || row.s_act + STAFF_IDLE_S <= nowS || !(row.s_key === ACCOUNT_KEY ? accountSignIn(env) : (row.k_handle && row.k_handle === row.handle_lc && !(row.k_cfg && !configKey(row, env, row.k_pub)))) || isBanned(row, nowS)) {
     // STAFF-PANEL5-HIDDEN-R2: its hidden sockets stay hidden, its game is minted nothing (staffHidden.js LAPSED_SQL), and
     // a cut or a removal finds them in the audit log (cutPush) - every other delete of a session row is the same
     await db.prepare('DELETE FROM staff_sessions WHERE token_hash = ?').bind(hash).run();

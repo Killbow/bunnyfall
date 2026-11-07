@@ -37,11 +37,11 @@
       <input id="password" type="password" placeholder="password" autocomplete="current-password" />
       <button id="go">Sign in</button></div>
     <div id="loginMsg" class="dim"></div>
-    <h2>This browser's key</h2>
-    <div class="dim">Sign-in needs a key as well as the password. This page makes one in your browser. For an owner it must be listed in
-      <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>, and the server updated.</div>
-    <pre id="keyLine"></pre>
-    <div class="row"><button id="copyKey">Copy the OWNER_KEYS line</button><button id="newKey">Make a new key</button></div>
+    <details><summary class="dim">Sign in with a key instead</summary>
+      <div class="dim">Only needed if the server has no <code>STAFF_BY_ACCOUNT</code>. The key goes in <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>.</div>
+      <pre id="keyLine"></pre>
+      <div class="row"><label><input id="useKey" type="checkbox" /> Use this key</label><button id="copyKey">Copy the OWNER_KEYS line</button><button id="newKey">Make a new key</button></div>
+    </details>
   </section>
 
   <section id="app" hidden>
