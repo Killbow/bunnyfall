@@ -81,7 +81,7 @@ export function mountSkinsPanel(box, { io, manage = false, onWorn = () => {}, do
     if (!d) { msg.textContent = 'Sign in to the game first, then come back.'; msg.className = 'bad'; return; }
     const r = await skinsMine(d).catch(() => null);
     if (!r?.ok) { msg.textContent = words(r); msg.className = 'bad'; return; }
-    state = r.data; msg.textContent = ''; draw();
+    state = r.data; msg.textContent = r.data.disabled ? `${accountRefusalText('skin-disabled')}${r.data.note ? ` (${r.data.note})` : ''}` : ''; msg.className = r.data.disabled ? 'bad' : 'dim'; if (form) form.hidden = !!r.data.disabled; draw();
   }
   async function wear(/** @type {string|null} */ id) {
     msg.textContent = 'Saving...'; msg.className = 'dim';

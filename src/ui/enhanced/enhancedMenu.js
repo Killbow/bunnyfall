@@ -3286,6 +3286,7 @@ function paperdollGraphicsCard() {
     [[0, t('mods.eyeOfTheBeholder.option.playerPaperdoll', 'Paperdoll for player')], [1, t('mods.eyeOfTheBeholder.option.playerSprite', '8 directional animated sprite')]],
     { home: true, read: () => modSetting('eye-of-the-beholder', 'Graphics.PlayerBody') ?? 0, write: (v) => setModSetting('eye-of-the-beholder', 'Graphics.PlayerBody', v) }));
   c.append(prefRow('graphics.paperdollback', t('menu.paperdoll.backs', 'Paperdoll backs for other players'), t('menu.paperdoll.backsNote', 'Show the generated rear view when another player turns away from you.'), { home: true }));
+  c.append(prefRow('graphics.customskins', t('menu.paperdoll.skins', 'Custom paperdolls of other players'), t('menu.paperdoll.skinsNote', 'Draw the custom paperdolls other players wear. Off: they appear as their ordinary look. You can also hide one player from the Social tab.'), { home: true }));
   return c;
 }
 

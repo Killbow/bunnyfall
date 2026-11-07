@@ -21,6 +21,7 @@
 // the singleton and could hand the inventory a stranger's doll, or the
 // stranger the player's, panel and all.
 import { composePaperDollPixels } from '../ui/paperDoll.js';
+import { skinShownFor } from '../systems/online/skinHide.js';   // CUSTOM-SKIN: my own switches (all, or one player)
 import { skinArtOf, wornSkinId } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures a look's `sk` names
 import { equipTableOf } from '../systems/equip.js';
 import { createEquipTable } from '../characters/equipTable.js';
@@ -471,6 +472,24 @@ const uint = (v, max = 1e6) => (Number.isFinite(v) && v >= 0 ? Math.min(max, Mat
  * doll art indexes with, a group the art does not know is dropped,
  * and the table's 27 slots bound the items.
  */
+/** CUSTOM-SKIN: the look this peer is DRAWN with. A look names a skin by id, and anyone may put any id in theirs, so the
+ *  skin stands only when its pictures are here AND its owner is the account the relay verified this peer to be (`sub`);
+ *  else the look is its own without the skin. Kept on the peer so the same look is the same object (the doll cache keys on it). */
+export function peerLook(peer) {
+  const look = peer?.look;
+  if (!look?.sk) return look;
+  const art = skinArtOf(look.sk);
+  const ok = !!art && !!peer.sub && art.owner === peer.sub && skinShownFor(peer.sub);   // and I have not switched it off, for all or for this player
+  const c = peer._skinLook;
+  if (c && c.from === look && c.ok === ok) return c.out;
+  let out = look;
+  if (!ok) { const { sk, ...rest } = look; out = rest; }  
+  peer._skinLook = { from: look, ok, out };
+  return out;
+}
+/** CUSTOM-SKIN: this peer stands as a custom paperdoll (its skin is here and is its own). */
+export const peerWearsSkin = (peer) => !!peerLook(peer)?.sk;
+
 export function peerStubEntity(look) {
   const entity = { race: typeof look?.race === 'string' ? look.race.slice(0, 16) : 'Breton', gender: look?.gender === 'female' ? 'female' : 'male', faceIndex: uint(look?.faceIndex, 9) ?? 0, class: typeof look?.class === 'string' ? look.class.slice(0, 20) : null, items: [], activeEffects: [], equip: createEquipTable() };
   if (look?.sk) { const a = skinArtOf(look.sk); if (a) entity.skinArt = a; }   // CUSTOM-SKIN: the doll is the skin's pictures once they are here
@@ -960,8 +979,8 @@ export class RemotePlayers {
       const veil = conceal(peer.id) ?? null;
       // CUSTOM-SKIN (2026-11-07): a peer wearing an approved custom paperdoll whose pictures are here is that picture - for
       // everyone, whatever their class or set (the host keeps the Morrowind layers off them: scenes/world.js skinnedPeer)
-      if (peer.look?.sk && !(peer.shown.wb | 0) && skinArtOf(peer.look.sk)) {
-        const sk = lookKey(peer.look);
+      if (!(peer.shown.wb | 0) && peerWearsSkin(peer)) {
+        const sk = lookKey(peerLook(peer));
         if (!this._skinKeyed.has(sk)) { this._skinKeyed.add(sk); this._dolls.delete(sk); }   // a doll composed before the pictures came is not theirs
         live.add(peer.id); this._syncDollPeer(peer, toScene, veil, eye); continue;
       }
@@ -1213,7 +1232,7 @@ export class RemotePlayers {
   /** The paperdoll path, unchanged in shape from before the mobile-billboard branch existed - just factored out of
    *  `sync` so the two paths (doll, mobile) share the same peer loop and the same departed-peer cleanup. */
   _syncDollPeer(peer, toScene, veil = null, eye = null) {
-    const key = lookKey(peer.look);
+    const key = lookKey(peerLook(peer));
     this._wanted.add(key); this._touch(key);   // SLAM7: asked for this frame, so it is needed and it is the newest thing in the cache
     let entry = this._batches.get(peer.id);
     const f = this._feet(peer, toScene);
@@ -1224,7 +1243,7 @@ export class RemotePlayers {
     if (entry && (entry.kind === 'mobile' || entry.key !== key || !!entry.backSide !== backSide)) { this.renderer.destroyBillboardBatch?.(entry.batch); this._batches.delete(peer.id); entry = null; }
     if (!entry) {
       const doll = this._dolls.get(key);
-      if (!doll || typeof doll.rec !== 'string') { this.dollFor(peer.look); return; }   // composing, or waiting out a failure
+      if (!doll || typeof doll.rec !== 'string') { this.dollFor(peerLook(peer)); return; }   // composing, or waiting out a failure
       const batch = this.renderer.createBillboardBatch(PEER_ARCHIVE, backSide ? doll.backRec : doll.rec, { w: doll.w, h: doll.h }, [[0, 0, 0]]);
       batch.origin = [0, 0, 0];
       entry = { kind: 'doll', batch, key, doll, peer, backSide };

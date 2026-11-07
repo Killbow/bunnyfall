@@ -11,9 +11,11 @@
 import { skinsGet, skinsMine, skinsWear } from '../../net/accountClient.js';
 import { skinIdOk } from '../../net/skinLaw.js';
 
-/** @typedef {{ id: string, name: string, height: number, w: number, h: number, front: Uint8Array, back: Uint8Array }} SkinArt */
+/** @typedef {{ id: string, owner: string, name: string, height: number, w: number, h: number, front: Uint8Array, back: Uint8Array }} SkinArt */
 const RETRY_MS = 60_000;
-/** @type {Map<string, { art?: SkinArt, loading?: boolean, failedUntil?: number }>} */
+/** How long a skin is trusted before it is asked for again: a skin staff withdrew, or an owner they switched off, stops being drawn. */
+const RECHECK_MS = 10 * 60_000;
+/** @type {Map<string, { art?: SkinArt, at?: number, loading?: boolean, failedUntil?: number }>} */
 const _skins = new Map();
 /** @type {(() => any) | null} */
 let _io = null;
@@ -47,10 +49,11 @@ async function fetchSkin(/** @type {string} */ id) {
     const io = _io?.();
     if (!io) throw new Error('no account');
     const r = await skinsGet(io, id);
-    if (!r?.ok) throw new Error(String(r?.error ?? 'refused'));
+    if (!r?.ok) { if (r?.error === 'skin-gone') { e.art = undefined; e.failedUntil = Date.now() + RETRY_MS; e.loading = false; changed(); return; } throw new Error(String(r?.error ?? 'refused')); }
     const [front, back] = await Promise.all([decode(r.data.front), decode(r.data.back)]);
     if (front.w !== back.w || front.h !== back.h) throw new Error('sizes differ');
-    e.art = { id, name: r.data.name, height: Number(r.data.height) || 1, w: front.w, h: front.h, front: front.rgba, back: back.rgba };
+    e.at = Date.now();
+    e.art = { id, owner: String(r.data.owner ?? ''), name: r.data.name, height: Number(r.data.height) || 1, w: front.w, h: front.h, front: front.rgba, back: back.rgba };
     e.failedUntil = undefined;
     changed();
   } catch { e.failedUntil = Date.now() + RETRY_MS; }
@@ -61,7 +64,7 @@ async function fetchSkin(/** @type {string} */ id) {
 export function skinArtOf(/** @type {unknown} */ id) {
   if (!skinIdOk(id)) return null;
   const e = _skins.get(id);
-  if (e?.art) return e.art;
+  if (e?.art) { if (!e.loading && Date.now() - (e.at ?? 0) > RECHECK_MS) fetchSkin(/** @type {string} */ (id)); return e.art; }   // a stale one is asked for again, drawn meanwhile
   if (!e || (!e.loading && (e.failedUntil ?? 0) <= Date.now())) fetchSkin(/** @type {string} */ (id));
   return null;
 }
