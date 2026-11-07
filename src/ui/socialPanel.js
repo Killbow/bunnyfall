@@ -944,7 +944,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       // no letterbox, and the service says so in its own words (`reader-guest`).
       if (mail) acts.append(btn('Letter', { run: () => { tab = 'letters'; writeTo(r.name, '', r.acct); } }));
       // CUSTOM-SKIN: whether their custom paperdoll is drawn for me - mine alone, they are never told
-      if (r.acct) acts.append(btn(skinHiddenFor(r.acct) ? 'Show skin' : 'Hide skin', { run: () => { setSkinHidden(r.acct, !skinHiddenFor(r.acct)); ui++; if (open) repaint(); } }));
+      if (r.acct) acts.append(btn(skinHiddenFor(r.acct) ? 'Show skin' : 'Hide skin', { run: () => { setSkinHidden(r.acct, !skinHiddenFor(r.acct), r.name); ui++; if (open) repaint(); } }));
       // ONE CLICK ARMS, THE SECOND SENDS. No `window.confirm`: it is a modal the game cannot dismiss, it steals the
       // pointer this panel just freed, and on a touch device it is a different surface entirely.
       acts.append(confirm === r.acct

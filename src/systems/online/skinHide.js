@@ -5,16 +5,18 @@ import { getPref } from '../uiPrefs.js';
 import { appStorage } from '../appStorage.js';
 
 const KEY = 'bunnyfall.skinHide';
-/** @type {Set<string>|null} */
+/** sub -> the name it was hidden under (so /showskin and /hiddenskins can say who)
+ *  @type {Map<string, string>|null} */
 let hidden = null;
 const listeners = new Set();
 
 function load() {
   if (hidden) return hidden;
-  hidden = new Set();
+  hidden = new Map();
   try {
-    const list = JSON.parse(appStorage()?.getItem?.(KEY) ?? '[]');
-    for (const s of Array.isArray(list) ? list : []) if (typeof s === 'string' && s.length <= 80) hidden.add(s);
+    const list = JSON.parse(appStorage()?.getItem?.(KEY) ?? '{}');
+    const rows = Array.isArray(list) ? list.map((s) => [s, '']) : Object.entries(list ?? {});
+    for (const [sub, name] of rows) if (typeof sub === 'string' && sub.length <= 80) hidden.set(sub, typeof name === 'string' ? name.slice(0, 40) : '');
   } catch { /* an empty list */ }
   return hidden;
 }
@@ -24,11 +26,13 @@ export const customSkinsOn = () => getPref('graphics.customskins') !== false;
 export const skinHiddenFor = (/** @type {unknown} */ sub) => typeof sub === 'string' && load().has(sub);
 /** Whether a peer's custom skin is drawn for me. */
 export const skinShownFor = (/** @type {unknown} */ sub) => customSkinsOn() && !skinHiddenFor(sub);
-export function setSkinHidden(/** @type {string} */ sub, /** @type {boolean} */ on) {
+/** Who is hidden: [[sub, name], ...]. */
+export const hiddenSkins = () => [...load()];
+export function setSkinHidden(/** @type {string} */ sub, /** @type {boolean} */ on, /** @type {string} */ name = '') {
   const h = load();
   if (!sub || h.has(sub) === !!on) return;
-  if (on) h.add(sub); else h.delete(sub);
-  try { appStorage()?.setItem?.(KEY, JSON.stringify([...h].slice(-500))); } catch { /* kept for this visit */ }
+  if (on) h.set(sub, String(name).slice(0, 40)); else h.delete(sub);
+  try { appStorage()?.setItem?.(KEY, JSON.stringify(Object.fromEntries([...h].slice(-500)))); } catch { /* kept for this visit */ }
   for (const f of listeners) f();
 }
 export const onSkinHideChange = (/** @type {() => void} */ f) => { listeners.add(f); return () => { listeners.delete(f); }; };
