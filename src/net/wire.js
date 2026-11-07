@@ -3111,7 +3111,7 @@ export function rosterFor(peers, meId, near = null) {
   // field say one thing: every peer in this room was verified to get
   // in, so a per-name verdict carries no information about any of them.
   // ACC3: and the badge, off the attachment the token wrote - omitted, not nulled, when there is none (`badged`).
-  for (const p of peers) if (p && p.id && p.id !== meId) out.push(badged({ id: p.id, name: p.name, look: p.look, pose: p.pose ?? null }, p));
+  for (const p of peers) if (p && p.id && p.id !== meId) out.push(badged({ id: p.id, name: p.name, ...(typeof p.sub === 'string' && p.sub ? { sub: p.sub } : {}), look: p.look, pose: p.pose ?? null }, p));   // CUSTOM-SKIN: and the verified account, so a viewer can tell whose skin a look names (a skin stands only for its owner)
   // SLAM5 (2026-09-16, AUDIT SLAM): ONE METRIC. This ranked by `pixelDistance` - Chebyshev on MAP PIXELS, 32768 units
   // wide - while the pose fan ranks by squared Euclidean in the pose's own frame. Two different metrics over the same
   // set DO NOT NEST, so `POSE_FAN_MAX <= ROSTER_MAX` bought nothing: measured at an event standing, only 11 of the 32
