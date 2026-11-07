@@ -10,7 +10,7 @@
 //                                                 secret, a hash, a token or a key is answered as [hidden]) - OWNERS'
 // Every call is an audit row, as every staff act is (staff.js `audit`); an export names what it took, a query its SQL.
 import { findAccount } from './sanctions.js';
-import { realmSaveTextOf } from './realm.js';
+import { realmSaveTextOf, objectBytesOf } from './realm.js';
 import { saveKey, SAVE_PARTS } from './service.js';
 
 export const DATA_ROUTES = Object.freeze(['/v1/staff/data/saves', '/v1/staff/data/export', '/v1/staff/data/tables', '/v1/staff/data/query']);
@@ -33,6 +33,14 @@ const str = (/** @type {unknown} */ v, max = 200) => (typeof v === 'string' && v
  * @param {{ player: any, role: string, owner: boolean }} who @param {Function} audit staff.js's audit(act, target, detail, how)
  */
 export async function staffData(ctx, env, path, body, who, audit) {
+  // a failure is answered with its words (this page is the developer's own), never a bare 'server'
+  try { return await staffDataRun(ctx, env, path, body, who, audit); } catch (e) {
+    console.warn('[staff data]', path, e?.stack ?? e);
+    return { error: 'staff-data', message: String(e?.message ?? e).slice(0, 300) };
+  }
+}
+
+async function staffDataRun(ctx, env, path, body, who, audit) {
   const { db } = ctx;
   const bucket = ctx.bucket ?? env?.SAVES ?? null;
   const denied = async (/** @type {string} */ error) => { await audit('refused', null, { path, need: error === 'staff-admin' ? 'admin' : 'owner' }, { outcome: 'denied' }).run(); return { error }; };
@@ -89,10 +97,11 @@ export async function staffData(ctx, env, path, body, who, audit) {
     if (!c?.obj) return { error: 'no-data' };
     const object = await bucket.get(c.obj);
     if (!object) return { error: 'no-data' };
-    const text = await realmSaveTextOf(await bucket.get(c.obj));
+    const bytes = await objectBytesOf(object);
+    const text = await realmSaveTextOf({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) });
     await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name }).run();
     if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}.json`, encoding: 'text', data: text };
-    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(new Uint8Array(await object.arrayBuffer())) };
+    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(bytes) };
   }
   if (body.kind === 'cloud') {
     const characterId = str(body.characterId, 120), saveName = str(body.saveName, 200);
