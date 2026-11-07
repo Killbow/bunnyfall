@@ -55,3 +55,7 @@ the last release (scripts/changelogNotes.mjs).
 - Stuck in the Cromwark reach? /unstuck now works there, after a short wait.
 - Respawning in the Cromwark reach takes as long as anywhere else.
 - Nyx's title shop counts your coins correctly.
+
+## 2026-11-07
+
+- Crossbows are now a quarter of what they used to be worth, and they have been giving a swap cooldown.
