@@ -62,7 +62,9 @@ export async function staffData(ctx, env, path, body, who, audit) {
 
   // the saves doors: an Admin's
   if (who.role !== 'admin') return denied('staff-admin');
-  const p = await findAccount(db, { target: body.target, name: body.name });
+  // a name first (a handle such as "Sits-With-Drink" is shaped like an id), then the same word as an id
+  let p = await findAccount(db, { name: body.name ?? body.target });
+  if ('error' in p && p.error === 'no-player') p = await findAccount(db, { target: body.target ?? body.name });
   if ('error' in p) return p;
 
   if (path === '/v1/staff/data/saves') {

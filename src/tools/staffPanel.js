@@ -107,7 +107,7 @@ async function findSaves() {
   const who = $('who2').value.trim();
   if (!who) return;
   say('savesMsg', 'Looking...');
-  const j = await call('/v1/staff/data/saves', { name: who, target: who });
+  const j = await call('/v1/staff/data/saves', { name: who });
   if (j.error) return say('savesMsg', why(j), true);
   say('savesMsg', `${j.player.handle ?? j.player.guestName} (${j.player.id})`);
   const out = $('savesOut'); out.replaceChildren();
@@ -116,8 +116,8 @@ async function findSaves() {
     const row = el('div', '', 'row');
     row.append(el('b', c.name ?? c.id), el('span', `seq ${c.seq} - saved ${when(c.updatedAt)}${c.deadAt ? ' - dead' : ''}${c.held ? ' - held' : ''}${c.leased ? ' - in play' : ''}`, 'dim'));
     if (c.hasSave) {
-      const t = el('button', 'Export JSON'); t.onclick = () => exportSave({ name: who, target: who, kind: 'realm', char: c.id }, 'savesMsg');
-      const r = el('button', 'Export raw'); r.onclick = () => exportSave({ name: who, target: who, kind: 'realm', char: c.id, as: 'raw' }, 'savesMsg');
+      const t = el('button', 'Export JSON'); t.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id }, 'savesMsg');
+      const r = el('button', 'Export raw'); r.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id, as: 'raw' }, 'savesMsg');
       row.append(t, r);
     } else row.append(el('span', 'no save written', 'dim'));
     out.append(row);
@@ -126,9 +126,9 @@ async function findSaves() {
   for (const s of j.cloud) {
     const row = el('div', '', 'row');
     row.append(el('b', `${s.characterName ?? s.characterId} / ${s.saveName}`), el('span', `${s.bytes} bytes - ${when(s.updatedAt)} - game ${s.gameTime ?? '-'}`, 'dim'));
-    const d = el('button', 'Export data'); d.onclick = () => exportSave({ name: who, target: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'data' }, 'savesMsg');
+    const d = el('button', 'Export data'); d.onclick = () => exportSave({ name: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'data' }, 'savesMsg');
     row.append(d);
-    if (s.shotBytes) { const sh = el('button', 'Screenshot'); sh.onclick = () => exportSave({ name: who, target: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'shot' }, 'savesMsg'); row.append(sh); }
+    if (s.shotBytes) { const sh = el('button', 'Screenshot'); sh.onclick = () => exportSave({ name: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'shot' }, 'savesMsg'); row.append(sh); }
     out.append(row);
   }
 }
