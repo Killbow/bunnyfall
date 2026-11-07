@@ -64,5 +64,6 @@ export const SKIN_WORDS = Object.freeze({
   'skin-pending-full': 'Three skins are already waiting for review. Wait for a decision first.',
   'skin-need-account': 'Skins belong to a registered account. Register first.',
   'skin-gone': 'That skin is not there.',
+  'skin-disabled': 'Staff have switched custom paperdolls off for your account.',
   'skin-not-approved': 'Only an approved skin can be worn.',
 });

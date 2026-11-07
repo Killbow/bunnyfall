@@ -2299,7 +2299,7 @@ const service = {
         const sctx = { ...ctx, bucket: env.SAVES };
         const r = path.endsWith('/upload') ? await skinsUpload(sctx, who.player, body) : path.endsWith('/mine') ? await skinsMine(sctx, who.player)
           : path.endsWith('/delete') ? await skinsDelete(sctx, who.player, body) : path.endsWith('/wear') ? await skinsWear(sctx, who.player, body) : await skinsGet(sctx, who.player, body);
-        return 'error' in r ? no(r.error, r.error === 'no-storage' ? 503 : r.error === 'skin-gone' ? 404 : 400, origin) : json(r, 200, origin);
+        return 'error' in r ? no(r.error, r.error === 'no-storage' ? 503 : r.error === 'skin-gone' ? 404 : r.error === 'skin-disabled' ? 403 : 400, origin) : json(r, 200, origin);
       }
 
       if (path === '/v1/nyx/found' || path === '/v1/nyx/total') {   // BUNNYFALL (Cromwark): a Nyx coin found, and /nyxcoin's count (nyx.js)

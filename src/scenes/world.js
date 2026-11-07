@@ -894,8 +894,8 @@ import { POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, share
 import { WILD_DATA_MAX, WILD_ITEMS_MAX, POSE_RIDE } from '../net/wire.js';   // INT9 (AUDIT): a deposit's chunks, bounded by the wire's frame; COATS3D: POSE_RIDE - a peer on a horse rides the 3D one
 import { hasDaggerfallArrows } from '../combat/fpArm.js';   // MAC7 #2: the arrow bit on the wire - weaponRig's own read
 import { drawText } from '../ui/text.js';   // ONLINE1: the session's status line
-import { connectSkins, onSkinsChange, skinArtOf } from '../systems/online/customSkins.js';   // BUNNYFALL: custom paperdolls (net/skinLaw.js)
-import { RemotePlayers, composeLook, createSightCache, PEER_ARCHIVE } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
+import { connectSkins, onSkinsChange } from '../systems/online/customSkins.js';   // BUNNYFALL: custom paperdolls (net/skinLaw.js)
+import { RemotePlayers, composeLook, peerWearsSkin, createSightCache, PEER_ARCHIVE } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
 import { eotbBody } from '../player/eyeOfTheBeholder/eotbBody.js';   // BUNNYFALL: the own body's doll source
 import { createNameLayer, nameLayerWanted } from '../ui/nameLayer.js';   // NAME1 + BUBBLE1: the names and the chat bubbles, in the enhanced face; AUDIT NAME1 F7: and who gets that face
 import { enhancedHudScale, setHudSetChips, enhancedHudBottom, enhancedHudQuick } from '../ui/enhanced/enhancedHud.js';   // AUDIT NAME1 F3: the player's own HUD scale, which the names wear like every other enhanced surface; SET5: the set powers' chips
@@ -29126,7 +29126,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // answer, so the frame a peer transforms, its wolf first stands or walks out of range draws it once
     // COATS3D: and a peer on a HORSE, on the lane that builds them a Morrowind body, rides the 3D horse in it - the rider
     // layer yields them (peerRidesIn3d), so they are the bodies' (net/peer/peerBodies.js) as a peer afoot is
-    const skinnedPeer = (d) => !!d.look?.sk && !(d.shown?.wb | 0) && !!skinArtOf(d.look.sk);   // BUNNYFALL: a custom paperdoll's wearer is the doll alone (net/remotePlayers.js) - no body, rider or set
+    const skinnedPeer = (d) => !(d.shown?.wb | 0) && peerWearsSkin(d);   // BUNNYFALL: a custom paperdoll's wearer is the doll alone (net/remotePlayers.js) - no body, rider or set
     const bare = seen.filter((d) => !skinnedPeer(d));
     peerRiders.sync(bare, onlineToScene, { eye: peerEye, right: peerRight, dt, defer: (d) => peerIsWolf(d.shown), yields: peerRidesIn3d, conceal: veilOf, grow: tvGrow });
     const afoot = bare.filter((d) => (peerRidesIn3d(d) || !peerRiders.isRiding(d.id)) && !d.shown?.wb || (peerIsWolf(d.shown) && !d.shown.rd));   // COATS3D (AUDIT A3): a rider on the 3D horse the bodies' whether or not its sprite stood in for it last frame   // DISC12: a beast wears no Morrowind body; PR-WW1: it stands as EOTB's lycanthrope (peerRiders), or - while that art is not up - as the beast's enemy sprite (remotePlayers); WEREWOLF1: but a werewolf on foot does, Bloodmoon's

@@ -3,12 +3,14 @@
 // height and a front and a back PNG - it waits for staff, and once approved its owner may wear it online; everyone who
 // meets the wearer reads it by its id (`get`). The pictures live in the saves bucket under `skins/<id>/front|back`.
 import { accountKind } from './accounts.js';
+import { findAccount } from './sanctions.js';
 import {
   skinName, skinHeight, skinNote, skinPngSize, skinIdOk, SKIN_MAX_PER_ACCOUNT, SKIN_MAX_PENDING, SKIN_PNG_MAX_BYTES,
 } from '../../src/net/skinLaw.js';
 
 export const SKIN_ROUTES = Object.freeze(['/v1/skins/upload', '/v1/skins/mine', '/v1/skins/delete', '/v1/skins/wear', '/v1/skins/get']);
-export const STAFF_SKIN_ROUTES = Object.freeze(['/v1/staff/skins/queue', '/v1/staff/skins/review']);
+export const STAFF_SKIN_ROUTES = Object.freeze(['/v1/staff/skins/queue', '/v1/staff/skins/review', '/v1/staff/skins/ban', '/v1/staff/skins/banned']);
+const disabledNote = async (/** @type {any} */ db, /** @type {string} */ player) => (await db.prepare('SELECT note FROM skin_ban WHERE player = ?').bind(player).first()) ?? null;
 
 const keyOf = (/** @type {string} */ id, /** @type {'front'|'back'} */ side) => `skins/${id}/${side}`;
 const fromB64 = (/** @type {unknown} */ s) => {
@@ -36,6 +38,7 @@ async function read(/** @type {any} */ bucket, /** @type {string} */ id, /** @ty
 export async function skinsUpload(/** @type {any} */ ctx, /** @type {any} */ player, /** @type {any} */ body) {
   const { db, nowS, bucket } = ctx;
   if (accountKind(player) !== 'linked') return { error: 'skin-need-account' };
+  if (await disabledNote(db, player.id)) return { error: 'skin-disabled' };
   if (!bucket) return { error: 'no-storage' };
   const name = skinName(body?.name), height = skinHeight(body?.height);
   if (!name || height == null) return { error: 'skin-bad' };
@@ -55,6 +58,8 @@ export async function skinsUpload(/** @type {any} */ ctx, /** @type {any} */ pla
 
 /** MINE `{}`: `{ skins, worn }` - the account's skins with their status and the id worn (or null). */
 export async function skinsMine({ db }, /** @type {any} */ player) {
+  const off = await disabledNote(db, player.id);
+  if (off) return { skins: [], worn: null, disabled: true, note: off.note };   // staff switched this account's skins off
   const [rows, worn] = await Promise.all([
     db.prepare('SELECT id, name, height, w, h, status, note, created_at FROM skins WHERE player = ? ORDER BY created_at DESC').bind(player.id).all(),
     db.prepare('SELECT skin_id FROM skin_worn WHERE player = ?').bind(player.id).first(),
@@ -74,6 +79,7 @@ export async function skinsDelete({ db, bucket }, /** @type {any} */ player, /**
 
 /** WEAR `{ id }` (or `{ id: null }` for none): an approved skin of the account's own. */
 export async function skinsWear({ db }, /** @type {any} */ player, /** @type {any} */ body) {
+  if (body?.id != null && await disabledNote(db, player.id)) return { error: 'skin-disabled' };
   if (body?.id == null) { await db.prepare('DELETE FROM skin_worn WHERE player = ?').bind(player.id).run(); return { ok: true, worn: null }; }
   if (!skinIdOk(body.id)) return { error: 'skin-gone' };
   const s = await db.prepare('SELECT status FROM skins WHERE id = ? AND player = ?').bind(body.id, player.id).first();
@@ -88,9 +94,10 @@ export async function skinsGet({ db, bucket }, /** @type {any} */ player, /** @t
   if (!skinIdOk(body?.id) || !bucket) return { error: 'skin-gone' };
   const s = await db.prepare('SELECT id, player, name, height, w, h, status FROM skins WHERE id = ?').bind(body.id).first();
   if (!s || (s.status !== 'approved' && s.player !== player.id)) return { error: 'skin-gone' };
+  if (await disabledNote(db, s.player)) return { error: 'skin-gone' };   // an owner staff have switched off is shown to nobody
   const [front, back] = await Promise.all([read(bucket, s.id, 'front'), read(bucket, s.id, 'back')]);
   if (!front || !back) return { error: 'skin-gone' };
-  return { id: s.id, name: s.name, height: s.height, w: s.w, h: s.h, front: toB64(front), back: toB64(back) };
+  return { id: s.id, owner: s.player, name: s.name, height: s.height, w: s.w, h: s.h, front: toB64(front), back: toB64(back) };
 }
 
 /**
@@ -109,6 +116,28 @@ export async function staffSkins(/** @type {any} */ ctx, /** @type {any} */ env,
       out.push({ ...rowOut(r), player: r.player, owner: r.handle ?? r.guest_name ?? r.player, front: front ? toB64(front) : null, back: back ? toB64(back) : null });
     }
     return { skins: out };
+  }
+  if (path === '/v1/staff/skins/banned') {
+    const rows = (await db.prepare('SELECT b.player, b.note, b.at, p.handle, p.guest_name FROM skin_ban b LEFT JOIN players p ON p.id = b.player ORDER BY b.at DESC LIMIT 100').all())?.results ?? [];
+    return { banned: rows.map((r) => ({ player: r.player, owner: r.handle ?? r.guest_name ?? r.player, note: r.note, at: r.at })) };
+  }
+  if (path === '/v1/staff/skins/ban') {
+    // { name | target, on: true|false, note }: switch one account's custom paperdolls off (or on again)
+    const p = await findAccount(db, { name: body?.name ?? body?.target });
+    const acct = 'error' in p && p.error === 'no-player' ? await findAccount(db, { target: body?.target ?? body?.name }) : p;
+    if ('error' in acct) return acct;
+    const note = skinNote(body?.note);
+    if (body?.on === false) {
+      await db.prepare('DELETE FROM skin_ban WHERE player = ?').bind(acct.id).run();
+      await audit('skin-enable', acct.id, null).run();
+      return { ok: true, disabled: false };
+    }
+    await db.batch([
+      db.prepare('INSERT INTO skin_ban (player, note, by, at) VALUES (?, ?, ?, ?) ON CONFLICT(player) DO UPDATE SET note = excluded.note, by = excluded.by, at = excluded.at').bind(acct.id, note, who?.player?.id ?? null, nowS),
+      db.prepare('DELETE FROM skin_worn WHERE player = ?').bind(acct.id),
+    ]);
+    await audit('skin-disable', acct.id, { note }).run();
+    return { ok: true, disabled: true };
   }
   // review
   if (!skinIdOk(body?.id) || !['approve', 'reject'].includes(body?.verdict)) return { error: 'skin-bad' };

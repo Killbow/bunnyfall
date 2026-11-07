@@ -192,6 +192,20 @@ async function reviewSkin(/** @type {string} */ id, /** @type {string} */ verdic
   await loadSkins(status);
 }
 
+async function banSkins(/** @type {boolean} */ on) {
+  const who = $('banWho').value.trim();
+  if (!who) return;
+  const j = await call('/v1/staff/skins/ban', { name: who, on, note: $('banNote').value.trim() });
+  if (j.error) return say('skinsMsg', why(j), true);
+  say('skinsMsg', on ? `Skins switched off for ${who}.` : `Skins switched on again for ${who}.`);
+  await loadBanned();
+}
+async function loadBanned() {
+  const j = await call('/v1/staff/skins/banned');
+  if (j.error) return say('skinsMsg', why(j), true);
+  $('bannedOut').textContent = j.banned.length ? `Disabled: ${j.banned.map((/** @type {any} */ b) => `${b.owner}${b.note ? ` (${b.note})` : ''}`).join(', ')}` : 'Nobody is disabled.';
+}
+
 // ── audit ──
 async function loadAudit() {
   const j = await call('/v1/staff/audit', { limit: 100 });
@@ -215,6 +229,9 @@ $('dlJson').onclick = () => save('query.json', JSON.stringify(lastRows, null, 1)
 $('dlCsv').onclick = () => { const cols = lastRows[0] ? Object.keys(lastRows[0]) : []; save('query.csv', [cols.join(','), ...lastRows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\n'), 'text/csv'); };
 $('loadAudit').onclick = loadAudit;
 $('loadSkins').onclick = () => loadSkins('pending');
+$('banOn').onclick = () => banSkins(true);
+$('banOff').onclick = () => banSkins(false);
+$('loadBanned').onclick = loadBanned;
 $('loadSkinsOk').onclick = () => loadSkins('approved');
 for (const b of document.querySelectorAll('#tabs button')) {
   /** @type {any} */ (b).onclick = () => {
