@@ -1004,6 +1004,9 @@ export function createPlayerMagic({
   // excludeFoe carries the enemy AreaAroundCaster's ignoreCaster -
   // DFU's caster-position AoE skips the caster itself
   // (DoAreaOfEffect(position, true), DaggerfallMissile.cs:477-495).
+  /** Forwards a local ally's spell hit on a remote enemy to that enemy's owner.
+   *  Dungeon enemies do not define `spellFromAlly`, and remote casters never forward hits. */
+  const allyToOwner = (t, casterFoe, spell, level) => !!casterFoe && !casterFoe.puppet && typeof t?.spellFromAlly === 'function' && !!t.spellFromAlly(casterFoe, spell, level);
   /** The caster wrapper a missile carries: the player's for the player's, the foe's (its entity and sinks) for an
    *  enemy's, none for an enemy missile whose caster is gone. */
   const missileCaster = (m) => (m.fromPlayer === false ? (m.casterFoe ? { entity: m.casterFoe.entity, sinks: foeSinks(m.casterFoe), foe: m.casterFoe } : null) : playerCaster(m.cast ?? null));
@@ -1038,7 +1041,7 @@ export function createPlayerMagic({
       if (caster?.entity === playerEntity && sparedFromPlayer(t)) continue;   // DISC19-F (AUDIT DISC19): my blast passes the defenders by
       if (crewBlast && isShipmate(t)) continue;
       if (caster?.foe && boutTeammates(caster.foe, t)) continue;   // ARENA-TEAMS: a bout fighter's blast passes its teammate by
-      if (t.puppet && caster?.entity && caster.entity !== playerEntity) continue;   // AUDIT WORLD6b-iii(a) C15: a FOE's blast lands nothing on a PUPPET here - its owner's world resolves that foe (my own blast on a puppet still goes to its owner as my hit)
+      if (t.puppet && caster?.entity && caster.entity !== playerEntity) { if (friendly || caster.foe?.companion != null) allyToOwner(t, caster.foe, spell, casterLevel); continue; }   // AUDIT WORLD6b-iii(a) C15: a FOE's blast lands nothing on a PUPPET here - its owner's world resolves that foe (my own blast on a puppet still goes to its owner as my hit)
       applySpellToFoe(spell, casterLevel, t, caster);
     }
     // AID1 onto ALLY-CAST: MY OWN beneficial blast reaches the party mates in it too (DoAreaOfEffect's OverlapSphere meets
@@ -1589,6 +1592,7 @@ export function createPlayerMagic({
             const fCaster = missileCaster(m);
             if (m.spell.rangeType === 4) explodeAt(m.pos, m.spell, m.casterLevel ?? 1, playerFeet, fCaster, { playerHeight, friendly: !!m.friendly });
             else if (!m.aimFoe.puppet) applySpellToFoe(m.spell, m.casterLevel ?? 1, m.aimFoe, fCaster);
+            else if (m.friendly || m.casterFoe?.companion != null) allyToOwner(m.aimFoe, m.casterFoe, m.spell, m.casterLevel ?? 1);
             showImpactFlash(m, [m.pos[0], m.pos[1], m.pos[2]]);
             retireMissile(m);
           }

@@ -73,6 +73,7 @@ import { FOES_MS } from '../net/online.js';   // AUDIT ALL B2: the watchman move
 import { applyChampion, rollStreetChampion, championIndex, championName, properName } from '../systems/champions.js';   // LOOT7: the street's champions
 import { wildHere, wildRing, wildZoneKind, applyWildFoe, wildLootOpts, wildGiantSize, WILD_GIANT, WILD_GIANT_HEALTH_MULT, WILD_GIANT_DAMAGE_MULT } from '../systems/wild/wildZone.js';   // WILD1: the open zone's foes
 import { lootCrown } from './lootLines.js';   // LOOT11: a body's line of light
+import { allySpellHit } from './allySpellHit.js';
 import { validFoeRecord, LIVING_ID_RE, REVENANT_NAME_MAX, CELL_PUPPETS_MAX, CELL_WATCH_PUPPETS_MAX, CELL_FRAME_RECORDS_MAX, FOE_SEQ_MAX, POSE_BOUND, POSE_Y_BOUND, tokenGate, FOE_HEALTH_MAX, hitPoisonOf, hitSpellOf, hitSpellFields, HIT_ARROWS_MAX, hitClassField, hitClassOf, wallMsForClassicMinutes } from '../net/wire.js';   // STRIKE-SHARED: a strike spell rides the hit
 import { blowWire, blowWireKey, applyBlowRecord, puppetBlowTurn, puppetGapLanded, blowClassOf } from '../ai/puppetBlows.js';   // TELL8: a wind-up on the wire - the owner's word, the puppet's state, each judging its own feet, a blow's class
 /** TELL8: a puppet with no wind-up state: nothing held, nothing staggered. */
@@ -631,6 +632,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // struck. (The audit lane's F041 pin caught exactly this on the
       // merge - the two laws meet here.)
       f.hurtFromFoe = (dmg, dir, striker = null) => damageFoe(f, dmg, null, dir ?? null, { fromPlayer: false, striker });   // AUDIT CC-E1: and whose blow
+      f.spellFromAlly = (ally, record, level) => { const hit = foes.includes(f) && f.mobileType !== KNIGHT_CITYWATCH_ID && _net?.onPeerHit ? allySpellHit(f, ally, record, level, _owners.get(f.puppet)?.k ?? _net.room?.() ?? null) : null; if (hit) _net.onPeerHit(hit); return !!hit; };   // Forward a local ally's spell hit on a remote foe to its owner; city watchmen ignore peer spells.
       // A5 - SetupDemoEnemy.cs:191-195: "Add special behaviour for
       // Daedra Seducer mobiles", gated on the mobile ID and nothing
       // else. RandomEncounters lists the seducer in five outdoor
