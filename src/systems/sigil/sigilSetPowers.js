@@ -410,23 +410,32 @@ const fireProof = (entity) => careerTolerance(entity?.career ?? {}, EFFECT_FLAGS
  *  formula's own `minMetalToHit` refusal, which the struck foe had to pass and its neighbour never was asked), and
  *  (AUDIT FINAL F11, the page's own word) never one behind a wall from the struck foe - the host's own ray, as the Nova
  *  asks it (`door.clear`), and only of a foe nearer than the best so far. */
-function cleave(targetEntity, amount, weapon) {
+function cleave(targetEntity, amount, weapon) { cleaveNear(targetEntity, amount, weapon); }
+/** Cleave's reach, for any caller (BUNNYFALL, the melee rework's two-handers - combat/meleeCleave.js): the `count` nearest
+ *  other live foes within `metres` of the struck one each take `amount`, by Cleave's own rules above. */
+export function cleaveNear(targetEntity, amount, weapon, { count = 1, metres = CLEAVE_METRES } = {}) {
   const door = playerDoor();
   if (!door || !(amount > 0)) return;
   const foes = door.foes();
   const struck = foes.find((f) => f.entity === targetEntity);
   if (!struck?.ai?.feet) return;
-  let best = null, bestD = CLEAVE_METRES;
+  const near = [];
   for (const f of foes) {
     if (f === struck || f.dead || !f.ai?.feet || spared(f)) continue;
     if (rise(f.ai.feet, struck.ai.feet) > REACH_RISE_M) continue;
     if ((f.entity?.minMetalToHit ?? -1) > (weapon?.material ?? 0)) continue;
     const d = flat2(f.ai.feet, struck.ai.feet);
-    if (d > bestD) continue;
-    if (door.clear && !door.clear(struck.ai.feet, f.ai.feet)) continue;
-    bestD = d; best = f;
+    if (d > metres) continue;
+    near.push([d, f]);
   }
-  if (best) door.hurtFoe(best, Math.max(1, Math.round(amount)));
+  near.sort((a, b) => a[0] - b[0]);
+  let hit = 0;
+  for (const [, f] of near) {
+    if (hit >= count) break;
+    if (door.clear && !door.clear(struck.ai.feet, f.ai.feet)) continue;
+    door.hurtFoe(f, Math.max(1, Math.round(amount)));
+    hit++;
+  }
 }
 
 // ── a foe's blow at me: struck, then landed ─────────────────────────
@@ -1013,3 +1022,4 @@ export function setHudChips(entity, now = _now()) {
 /** Tests only: a clock of their own (seconds), and every power fresh. */
 export function _setSetPowersClockForTests(fn) { _now = typeof fn === 'function' ? fn : () => performance.now() / 1000; }
 export function _resetSetPowersForTests() { _s = fresh(); _carry = new WeakMap(); _blow = null; _bossBlowAt = -Infinity; _pendingBoss = false; _spireBlowAt = -Infinity; _pendingSpire = false; _holdOwed = 0; _say = (line) => { hudText(line); }; _sound = null; _allies = null; _spireRoom = () => null; }
+import '../../combat/meleeCleave.js';   // BUNNYFALL (melee rework): the two-handers' cleave rides Cleave's reach (cleaveNear)

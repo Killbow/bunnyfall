@@ -19,7 +19,7 @@ export const CROSSBOW_ROW = Object.freeze({
   index: CROSSBOW_TEMPLATE,
   name: 'Crossbow',
   baseWeight: 4,
-  basePrice: 120,
+  basePrice: 32,
   hitPoints: 100,
   enchantmentPoints: 350,
   rarity: 1,

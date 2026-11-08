@@ -93,6 +93,13 @@ export async function loadFaceCanvases(raceKey, gender, { scale = 2 } = {}) {
   const races = await import('../systems/races.js');
   const set = [];
   for (let i = 0; i < Math.max(classic.length, races.FACES_PER_RACE); i++) set.push(await headFace(raceKey, gender, scale, i, classic[i] ?? null));
+  // ROX (systems/roxArgonians.js): an Argonian's faces 10..19 are Rox's own pictures, after the classic ten
+  const { facesFor, CLASSIC_FACES } = await import('../systems/roxArgonians.js');
+  if (facesFor(raceKey) > CLASSIC_FACES) {
+    const { roxFaceCanvases } = await import('./roxArgonianArt.js');
+    set.length = CLASSIC_FACES;
+    set.push(...(await roxFaceCanvases(gender, { scale })));
+  }
   return set;
 }
 

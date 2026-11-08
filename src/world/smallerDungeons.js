@@ -155,6 +155,7 @@ export function useSmallerDungeon(dfLocation, { questMachine = null,
   setting = getBool('Experimental', 'SmallerDungeons'), online = false } = {}) {
   if (!dfLocation?.hasDungeon || isMainStoryDungeon(dfLocation.mapTableData?.mapId)) return false;
   if (isArenaUndercroft(dfLocation)) return false;   // ARENA5: the arena's undercroft never shrinks (dungeonSizeFor, below)
+  if (dfLocation.editorDungeon) return false;   // BUNNYFALL: a dungeon built in the editor is laid out as built
   if (online) return false;   // AUDIT WORLD34 B2: online, not the setting's (dungeonSizeFor, below: SD-ONLINE, the world's sizes)
   const links = questMachine?.getSiteLinks(SITE_TYPES.Dungeon, dfLocation.mapTableData?.mapId) ?? [];
   if (links.length > 0) {
@@ -176,6 +177,9 @@ export function dungeonSizeFor(dfLocation, { questMachine = null,
   setting = getBool('Experimental', 'SmallerDungeons'), medium = mediumDungeonsWanted(), online = false,
   world = worldDungeonSizesWanted(), whole = false } = {}) {   // ONLINE-PUBLIC: `whole` - a legacy save's whole layout; the instance system is retired
   if (!dfLocation?.hasDungeon || isMainStoryDungeon(dfLocation.mapTableData?.mapId)) return 'full';
+  // BUNNYFALL: A DUNGEON BUILT IN THE EDITOR IS LAID OUT AS BUILT - offline whatever the settings say, online whatever
+  // size the world's die gives other dungeons (worldDataReplacement.js marks it, from its file name)
+  if (dfLocation.editorDungeon) return 'full';
   // ARENA5 (the audit, closing ARENA1's open item "Smaller Dungeons may trim the undercroft"): THE ARENA'S UNDERCROFT
   // NEVER SHRINKS. It is no keep of Daggerfall's but the fighters' hall (world/arena/arenaUndercroft.js): its people, the Pit
   // Master's ring and the Keeper's Hall stand by their distance out from the stair over Kamer's 32 blocks, and a five-

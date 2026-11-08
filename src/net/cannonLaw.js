@@ -24,6 +24,8 @@ export const CANNON_VALUE = Object.freeze({
 export const CANNON_POINTS_PER_COIN = 20;
 /** The most units one give may hand over. */
 export const CANNON_GIVE_MAX = 100;
+/** Each shot adds this to the realm's Nyx coin count (the owner's, 2026-11-06; server-account/src/nyx.js nyxTotal). */
+export const CANNON_NYX_BONUS = 500;
 
 /** The words for a key: 'Iron Ingots', 'Pine Planks'. */
 export function cannonMaterialName(/** @type {string} */ key) {

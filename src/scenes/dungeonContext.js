@@ -55,6 +55,7 @@ import { dfMeshToModel, GLOBAL_SCALE } from '../world/meshReader.js';
 import { customModelFor, customAliasFor, emptyModel, isClimateFreeModel, NO_CLIMATE_REMAP } from '../world/customModels.js';   // DS1: models no ARCH3D carries, and GetModelData's false; WD3: a classic model under another id; AUDIT PRE-MERGE 1003 W4: and one that wears its own pictures
 import { RDB_SIDE, MOVE_ACTION_FLAGS, ACTION_FLAGS, TRIGGER_FLAGS } from '../world/rdbLayout.js';
 import { stopsOf } from '../systems/livingWorld/deepRoute.js';   // LW14: a company's stops, and what it left   // WAVE D: the move family - an acting FLAT tweens like the model beside it
+import { standReadables } from './editorReadables.js';   // BUNNYFALL
 import { NPC_CONTEXT } from '../characters/staticNpc.js';   // AUDIT 64 F13: StaticNPC.SetLayoutData(RdbObject) stamps Context.Dungeon
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { EFFECT_ACTION_FLAGS, COLLISION_TIMEOUT_S, isActionDoorObject, hasActionCollision, walkHears, standsOnAction, actionContact, classifyPlacementAction, lookAtLockText, LOCKPICKING_SUCCESS_TEXT, LOCKPICKING_FAILURE_TEXT, DOOR_TEXT_HUD_DELAY_S, sharedRecord, validActionRecord } from '../world/actionSystem.js';   // AUDIT WORLD3 B1: the shared half of a record - the picker's latch stays home; AUDIT WORLD34 C2: and the memory's records projected like an act's
@@ -920,6 +921,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         action: f.action,
         active: true, questBehaviour: null,
         arenaRole: f.role ?? null,   // ARENA-FIX 4: an undercroft person's office (the Pit Master, the Keeper of the Hall, ...)
+        editorPerson: f.editorPerson ?? null,   // BUNNYFALL: the Dungeon Editor's name and lines (world/editorPeople.js)
       } : null;
       if (pn) people.push(pn);
       // ...and the second act, for EVERY flat carrying a faction id.
@@ -4088,6 +4090,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     armFlatAnim(pn.standBatch, t, archive, record, flatAnims, uploadRecordFrame);
     billboardBatches.push(pn.standBatch);
   }
+  const editorReadables = await standReadables(dungeon.blocks, getTexture, billboardSize);   // BUNNYFALL: flats the Dungeon Editor gave words
   // AUDIT 64 F13: the people's ACTIVATION EXTENT, off the same archive
   // the batch above read - `personAabb` wants a base and a swept
   // square, and an RDB flat's stored y is its CENTRE (the batch's own
@@ -8532,7 +8535,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       }
     }
     markSearched(key, now);
-    const outcome = rollSearchOutcome();
+    const outcome = rollSearchOutcome({ kind: sb.kind });   // CHEB'S NECROMANCY: the kind, so a grave is robbed (systems/searchables.js)
     const level = effectiveLevel(playerEntity);
     let find = [];
     if (outcome === 'loot') {
@@ -10423,6 +10426,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
      *  (ActiveGameObjectDatabase.cs:308-311). npcTargets() below is the
      *  RAY's filtered view and cannot serve either. */
     people,
+    editorReadables,   // BUNNYFALL
     /** MWNPC8b (bible/04-Characters/Morrowind-NPCs.md section 13b): THE DUNGEON'S STANDING PEOPLE IN THEIR BODIES - a host
      *  that reads a person's look (`opts.standingLook`, worldModes.js's - the building's own reading) calls this BEFORE it
      *  draws billboardBatches: each active person with a look offered (their own batch cast-only where the body stands),

@@ -18,6 +18,7 @@
 // codes, which it translates through the SHARED overlayAction table
 // rather than a second mapping of its own.
 
+import { giveNecromancerKit } from './necromancy/necromancy.js';   // CHEB'S NECROMANCY
 import { ClassFile } from '../formats/classFile.js';
 import { TextRsc } from '../formats/textRsc.js';   // U18: the class questions ride TEXT.RSC 9000
 import { parseQuestionLibrary } from './classQuestions.js';   // U18
@@ -242,6 +243,7 @@ export function applyCreationExtras(playerEntity, result, spellsByIndex = null, 
   if (result.factionDict) attachFactionRep(playerEntity, result.factionDict);
   assignStartingEquipment(playerEntity, { classIndex: result.careerIndex, isCustom: result.isCustom ?? false, rolls });
   giveBinderAtChargen(playerEntity);   // CARDS8 (AUDIT CARDS-5 C4: ungated, as the wallet's - a stale mark never takes a new character's)
+  giveNecromancerKit(playerEntity, result.career);   // CHEB'S NECROMANCY: a Necromancer's Animate Dead, Novice Recall and corpse (CustomWizard.cs :560-581)
   // StartGameBehaviour.cs:432-433 "Initialize region data" ->
   // PlayerEntity.InitializeRegionData (:2189-2218): every new character
   // is born with the 62-region condition store, so the writers that

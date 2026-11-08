@@ -32,7 +32,9 @@ import { tagEffect, biographySkillBonuses, digestRepChanges } from '../systems/b
 import { fullName, getNameBank, GENDERS } from '../characters/nameHelper.js';   // U15
 import { srand } from '../formats/dfRandom.js';   // AUDIT 17j F1: the name screen's reseed
 import { buildBackstory, repBoxRows, bonusPointsRows } from './chargenArt.js';   // U13 / U16
-import { RACE_TEMPLATES, FACES_PER_RACE } from '../systems/races.js';   // S3c/U9
+import { necromancerCareer, necromancerDescription, NECROMANCER_NAME } from '../systems/necromancy/necroCareer.js';   // CHEB'S NECROMANCY: the Necromancer
+import { RACE_TEMPLATES } from '../systems/races.js';   // S3c/U9
+import { facesFor } from '../systems/roxArgonians.js';   // ROX: an Argonian has twenty faces
 import { audio } from '../systems/audio.js';
 import { SOUND } from '../systems/soundClips.js';
 import { SKILL_NAMES } from '../systems/skills.js';
@@ -497,8 +499,12 @@ export class ChargenFlow {
    *  :66-67 appends it after the eighteen CLASS*.CFG rows). L10N3d: a
    *  class row reads its own name as its key, through the grammar
    *  (:60-61), and Custom its key (:65). */
-  classRowCount() { return this.careers.length + 1; }
+  classRowCount() { return this.careers.length + 2; }   // CHEB'S NECROMANCY: the Necromancer after the eighteen, then Custom
+  /** CHEB'S NECROMANCY: the Necromancer's row (systems/necromancy/necroCareer.js), and Custom's after it. */
+  isNecroRow(i) { return i === this.careers.length; }
+  isCustomRow(i) { return i === this.careers.length + 1; }
   classRowName(i) {
+    if (this.isNecroRow(i)) return NECROMANCER_NAME;
     const name = this.careers[i]?.name;
     if (name == null) return localizedText('Custom', 'Custom');
     return processGrammar(Object.hasOwn(CLASS_NAMES, name) ? CLASS_NAMES[name] : name);
@@ -733,10 +739,23 @@ export class ChargenFlow {
    *  page does not exist. The citation is deleted rather than kept
    *  false; adding the row is a Ledger edit, routed to that owner. */
   _acceptStandardClass() {
+    if (this.isNecroRow(this.classListIndex)) { this._acceptNecromancer(); return; }   // CHEB'S NECROMANCY
     // AUDIT 17m: the LIST's row becomes the DOCUMENT's class here and
     // ONLY here, exactly as :364 copies SelectedClassIndex across. The
     // two were one field before, so this assignment was implicit.
     this._adoptCareer(this.classListIndex);
+  }
+
+  /** CHEB'S NECROMANCY: the Necromancer taken - a custom career already built (necroCareer.js), its biography the
+   *  nearest stock class's as a custom one's is, the reputations flat. */
+  _acceptNecromancer() {
+    this.isCustom = true;
+    this.customCareer = necromancerCareer();
+    this._questionCareer = null;
+    const c = this.customCareer;
+    this.classIndex = classAffinityIndex([...c.primarySkills, ...c.majorSkills, ...c.minorSkills], this.careers);
+    this.customReps = [0, 0, 0, 0, 0];
+    this._leaveClass();
   }
 
   /** The shared tail of both accept arms: the document takes a
@@ -1741,8 +1760,8 @@ export class ChargenFlow {
       return;
     }
     if (s === 'face') {
-      if (action === 'up') this.facePick = (this.facePick + FACES_PER_RACE - 1) % FACES_PER_RACE;
-      else if (action === 'down') this.facePick = (this.facePick + 1) % FACES_PER_RACE;
+      if (action === 'up') this.facePick = (this.facePick + facesFor(this.race?.key) - 1) % facesFor(this.race?.key);
+      else if (action === 'down') this.facePick = (this.facePick + 1) % facesFor(this.race?.key);
       // FaceSelectWindow_OnClose's accept arm (:496-501) is the ONE
       // place the picker's value reaches the document.
       else if (action === 'confirm') { this.faceIndex = this.facePick; this.state = 'stats'; this._enterStats(); }
@@ -2060,7 +2079,7 @@ export class ChargenFlow {
    *  row closes STRAIGHT to the builder - no description, no drums
    *  (the :72-77 arm). */
   useClass() {
-    if (this.classListIndex === this.careers.length) {
+    if (this.isCustomRow(this.classListIndex)) {
       // :356-359 - the flag is raised HERE, at the row pick, before
       // the builder is even constructed (and is never lowered again)
       this.isCustom = true;
@@ -2070,7 +2089,7 @@ export class ChargenFlow {
     // CreateCharClassSelect (:93-94) - the pick opens the confirm under drums. UI-CALM: under the enhanced wizard
     // (`classCalm`) reading a class is quiet, and the drums sound for the choice itself (confirmClass, below)
     if (!this.classCalm) audio.playOneShot(SOUND.SelectClassDrums, 1);
-    this.classConfirm = this.describeClass?.(this.classListIndex) ?? null;
+    this.classConfirm = this.isNecroRow(this.classListIndex) ? necromancerDescription() : this.describeClass?.(this.classListIndex) ?? null;   // CHEB'S NECROMANCY: its own page
     if (!this.classConfirm) this._acceptStandardClass();   // no description available: the pick stands
   }
 
@@ -2241,8 +2260,8 @@ export class ChargenFlow {
       // copies FaceIndex straight BACK (:575), so a summary face edit
       // legitimately writes the document. The face SCREEN's picker is
       // its own value until OK commits it.
-      if (this.state === 'face') this.facePick = (this.facePick + FACES_PER_RACE + hit.faceStep) % FACES_PER_RACE;
-      else this.faceIndex = (this.faceIndex + FACES_PER_RACE + hit.faceStep) % FACES_PER_RACE;
+      if (this.state === 'face') this.facePick = (this.facePick + facesFor(this.race?.key) + hit.faceStep) % facesFor(this.race?.key);
+      else this.faceIndex = (this.faceIndex + facesFor(this.race?.key) + hit.faceStep) % facesFor(this.race?.key);
       return true;
     }
     if (hit.randomName) {
@@ -2299,7 +2318,7 @@ export class ChargenFlow {
     } else if (this.state === 'face') {
       title('CHOOSE YOUR FACE');
       line(`${raceDisplayName(this.race.key)} ${this.gender}`, 0, white);
-      line(`face ${this.facePick + 1} of ${FACES_PER_RACE}`, 2, hot);
+      line(`face ${this.facePick + 1} of ${facesFor(this.race?.key)}`, 2, hot);
       line('up/down to cycle, ENTER to continue', 4, dim);
       line('(the portrait shows once the art loads)', 6, dim);
     } else if (this.state === 'class') {

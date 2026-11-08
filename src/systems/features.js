@@ -1143,6 +1143,12 @@ export const FEATURES = Object.freeze([
   // blocks. The door caches a block once it is served, so a switch flipped
   // mid-session reaches the next load, not the dungeon you stand in.
   modFeature('aquatic-sprites', () => t('features.effect.gameLoads', 'Takes effect when the game next loads.'), 'world'),
+  // BUNNYFALL: BUNNYFALL DUNGEONS - `world`, dungeon blocks served through the world-data door, read once per load
+  // like Aquatic Sprites'.
+  modFeature('bunnyfall-dungeons', () => t('features.effect.gameLoads', 'Takes effect when the game next loads.'), 'world'),
+  // BUNNYFALL: and each mod the Dungeon Editor made (systems/editorMods.js), the same row.
+  ...Object.keys(MOD_SETTINGS).filter((vendor) => MOD_SETTINGS[vendor].editorMod)
+    .map((vendor) => modFeature(vendor, () => t('features.effect.gameLoads', 'Takes effect when the game next loads.'), 'world')),
   // DS1 (2026-09-25): DETAILED SHIPS - `world`, the two ships you can own.
   // Their building records are read through the door once per load.
   modFeature('detailed-ships', () => t('features.effect.gameLoads', 'Takes effect when the game next loads.'), 'world'),

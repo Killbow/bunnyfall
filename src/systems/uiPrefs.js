@@ -92,7 +92,7 @@ export const PREF_DEFAULTS = Object.freeze({
   // CHAT-LANG (2026-10-11): the language channel this player chose ('' none, else a net/wire.js CHAT_LANGS code - /lang).
   // CHAT-COLOURS: each channel's lines in its own colour (World white, Region green, Guild purple, Local grey ...). PING1:
   // a line naming me with an @ chimes.
-  chatLang: '', chatChannelColours: true, chatPingSound: true,
+  chatLang: '', chatChannelColours: true, chatPingSound: true, chatChimeSound: true,
   // CHAT-TRADE (2026-10-14): the Trade and LFG channels this player joined (/join, /leave) - off until they choose one,
   // so a player who never does sees no new tab.
   chatTrade: false, chatLfg: false,
@@ -179,6 +179,7 @@ export const PREF_DEFAULTS = Object.freeze({
   // paperdoll pref left (BUNNYFALL PAPERDOLL-SETTINGS): how you are drawn is the mod setting Graphics.PlayerBody, and the
   // inventory's figure is always shown.
   'graphics.paperdollback': true,
+  'graphics.customskins': true,   // CUSTOM-SKIN: draw other players' custom paperdolls (off: they are drawn as their ordinary look)
   peerAttackSounds: true,   // PEER-FS2: other players' swing sounds - on by default
   monsterVolume: 1,   // MONSTER-VOL: a monster's calls, attack sounds and pain cries, 0..1 (systems/monsterVolume.js)
   companionVolume: 1,   // COMPANION-VOL: a companion's idle calls (its moans and cries while it walks with you), 0..1, over Monster Volume

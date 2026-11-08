@@ -586,6 +586,10 @@ export const ROUTES = new Set([
   // STAFF-PANEL3-PLAYERS: the panel's players (staffPlayers.js) - the search, a profile's tabs, its devices, Sign out
   // everywhere, and a rename - Admins' alone
   '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename',
+  // BUNNYFALL: staff.html's saves and database (staffData.js)
+  '/v1/staff/data/saves', '/v1/staff/data/export', '/v1/staff/data/tables', '/v1/staff/data/query',
+  '/v1/staff/skins/queue', '/v1/staff/skins/review', '/v1/staff/skins/ban', '/v1/staff/skins/banned',   // BUNNYFALL: custom paperdolls (skins.js)
+  '/v1/skins/upload', '/v1/skins/mine', '/v1/skins/delete', '/v1/skins/wear', '/v1/skins/get',
   // STAFF-PANEL6-STATUS: the panel's server status, its Admin-set limits, and Home (staffStatus.js)
   '/v1/staff/status', '/v1/staff/home', '/v1/staff/limits', '/v1/staff/limit/set',
   // STAFF-PANEL3-REALM: the trade holds, a character's findings, a hold laid (one character, or every one of an account) and

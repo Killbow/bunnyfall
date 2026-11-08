@@ -55,8 +55,11 @@ import { ARTIFACT_MALE_TEXTURE_ARCHIVE, ARTIFACT_FEMALE_TEXTURE_ARCHIVE } from '
 import { customItemClass } from '../systems/roleplayRealismItems/rriItems.js';   // RRI1: a custom class's own archive and record on the doll
 import { ownItemImage } from '../systems/item/itemTemplates.js';   // THUNDERLOCK-ART: a weapon of the port's own wears its own doll layer
 import { clampArmorVariant, armorArchive, HUMAN_MORPHOLOGY, ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { isRoxFace, wearsRox, classicFaceRecord, ROX_HEAD_RECT } from '../systems/roxArgonians.js';   // ROX: an Argonian's extra ten faces
+import { roxRgba, roxHeadUrl, roxBodyUrl } from './roxArgonianArt.js';
 import { raceArt, FACES_PER_RACE, raceByKey, artRaceOf } from '../systems/races.js';   // S3c/U9: all eight races
 import { drawnPiece } from '../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
+import { ownSkinArt } from '../systems/online/customSkins.js';   // CUSTOM-SKIN: the pictures of the skin this player wears
 
 export const PAPERDOLL_W = 110;
 export const PAPERDOLL_H = 184;
@@ -288,9 +291,10 @@ async function loadArtSet(deps, { race = 'Breton', gender = 'male', faceIndex = 
   };
   const face = new CifRciFile();
   face.load(await fetchBytes(art.heads), art.heads, palette);
-  const fi = Math.max(0, Math.min(FACES_PER_RACE - 1, faceIndex | 0));
+  const rox = isRoxFace(race, faceIndex);   // ROX: an Argonian's face 10..19 - Rox's head and body over the classic boxes
+  const fi = rox ? classicFaceRecord(faceIndex) : Math.max(0, Math.min(FACES_PER_RACE - 1, faceIndex | 0));
   const headBmp = face.getDFBitmap(fi, 0);
-  return {
+  const set = {
     palette,
     // UI3: the SETTING decides, not the caller's context word. Off -
     // which is how it ships - every race gets its own backdrop.
@@ -302,6 +306,15 @@ async function loadArtSet(deps, { race = 'Breton', gender = 'male', faceIndex = 
     clothed: await loadImgBmp(clothed),
     head: { bmp: headBmp, off: face.getOffset(fi), alt: await dfmodAlt(dfmodCifRciImage(art.heads, fi, 0), headBmp), rect: dfmodCifRciRect(art.heads, fi, 0) },   // FACE-RECT: and its sidecar's <rect>
   };
+  if (rox) {
+    // ROX (systems/roxArgonians.js): the mod's pictures in the classic layers' places - the head in its xml's box,
+    // the two body layers over the classic ones' boxes (as DFU draws a replaced IMG); a picture that fails keeps the classic
+    const [h, n, c] = await Promise.all([roxRgba(roxHeadUrl(gender, faceIndex)), roxRgba(roxBodyUrl(gender, false)), roxRgba(roxBodyUrl(gender, true))]);
+    if (h) { set.head.alt = h; set.head.rect = { ...ROX_HEAD_RECT }; }
+    if (n) set.nude.alt = n;
+    if (c) set.clothed.alt = c;
+  }
+  return set;
 }
 
 /** DFMOD1: an attached mod's picture of a classic IMG/CIF - the mod's own top-down RGBA `{ width, height, data }`,
@@ -541,6 +554,26 @@ async function loadOverrideArt(file, record, deps, palette) {
  * while the inventory shows the player's own, untouched.
  * `background` false leaves the panel clear (a peer's billboard).
  */
+/** CUSTOM-SKIN: a skin's picture drawn over `out` (OW x OH), fitted to the panel with its aspect kept, centred, feet on
+ *  the floor - nearest sampling, so a pixel-art skin stays crisp. */
+function fitSkin(out, OW, OH, w, h, rgba) {
+  const k = Math.min(OW / w, OH / h);
+  const dw = Math.max(1, Math.floor(w * k)), dh = Math.max(1, Math.floor(h * k));
+  const x0 = Math.floor((OW - dw) / 2), y0 = OH - dh;
+  for (let y = 0; y < dh; y++) {
+    const sy = Math.min(h - 1, Math.floor(y / k));
+    for (let x = 0; x < dw; x++) {
+      const sx = Math.min(w - 1, Math.floor(x / k));
+      const si = (sy * w + sx) * 4, a = rgba[si + 3];
+      if (!a) continue;
+      const o = ((y0 + y) * OW + x0 + x) * 4;
+      if (a === 255) { out[o] = rgba[si]; out[o + 1] = rgba[si + 1]; out[o + 2] = rgba[si + 2]; out[o + 3] = 255; continue; }
+      const f = a / 255;
+      out[o] = Math.round(rgba[si] * f + out[o] * (1 - f)); out[o + 1] = Math.round(rgba[si + 1] * f + out[o + 1] * (1 - f)); out[o + 2] = Math.round(rgba[si + 2] * f + out[o + 2] * (1 - f)); out[o + 3] = 255;
+    }
+  }
+}
+
 async function composeDoll(art, deps, entity, { background = true, scale: S = 1, back = false } = {}) {
   const OW = PAPERDOLL_W * S, OH = PAPERDOLL_H * S;   // DFMOD4: the composite, S texels per doll pixel
   const out = new Uint8Array(OW * OH * 4);
@@ -572,6 +605,15 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     }
   }
   const under = out.slice();   // HM1: the background alone (or nothing), for the item masks
+  // CUSTOM-SKIN (2026-11-07): the doll of a player who wears a custom paperdoll is its picture, fitted to the panel, in
+  // place of the body and the gear (the panel's background stays): the inventory and the wardrobe show it
+  const skinArt = entity?.skinArt ?? (entity?.isPlayer === true ? ownSkinArt() : null);
+  if (skinArt) {
+    fitSkin(out, OW, OH, skinArt.w, skinArt.h, skinArt.front);
+    let skinBack = null;
+    if (back) { skinBack = under.slice(); fitSkin(skinBack, OW, OH, skinArt.w, skinArt.h, skinArt.back); }
+    return { out, layout: [], bgSize: [bg.width, bg.height], width: OW, height: OH, back: skinBack };
+  }
   if (back) track = createDollTracker(out, OW, OH);
   const table = equipTableOf(entity);
   const worn = table.filter(Boolean).map((it) => ({ it, t: getTemplate(it.templateIndex) })).filter((w) => w.t);
@@ -614,7 +656,11 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     }
     // V5: the vampire's clanless head replaces the racial one
     const headOv = racialOverrideHeadArt(entity);
-    const headArt = headOv ? await loadOverrideArt(headOv.file, headOv.record, deps, art.palette) : null;
+    let headArt = headOv ? await loadOverrideArt(headOv.file, headOv.record, deps, art.palette) : null;
+    if (headArt && headOv.file === 'VAMP00I0.CIF' && wearsRox(entity)) {   // ROX: a cursed Rox face wears its own vampire face
+      const v = await roxRgba(roxHeadUrl(entity.gender, entity.faceIndex, true));
+      if (v) headArt = { bmp: headArt.bmp, off: headArt.off, alt: v, rect: { ...ROX_HEAD_RECT } };
+    }
     blit(out, headArt ?? art.head, art.palette, { S });
     track?.mark('head');
   }
@@ -815,6 +861,9 @@ export async function composeDollFor(entity) {
 const _artSets = new Map();   // identity key -> art set, insertion-ordered (the oldest goes first)
 export const PEER_ART_SETS_MAX = 8;
 export async function composePaperDollPixels(deps, entity, { context = 'town', background = true, back = false } = {}) {
+  // CUSTOM-SKIN (2026-11-07): a peer's custom paperdoll - its own two pictures, whole (net/remotePlayers.js crops them)
+  const skin = entity?.skinArt ?? null;
+  if (skin) return { width: skin.w, height: skin.h, rgba: skin.front, back: back ? skin.back : null, skinBack: true, heightScale: skin.height };
   const ident = { race: artRaceOf(entity), gender: entity?.gender ?? 'male', faceIndex: entity?.faceIndex ?? 0, context };
   const key = paperDollIdentityKey(ident);
   try {

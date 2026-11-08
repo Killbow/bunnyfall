@@ -156,6 +156,8 @@ import { hudText } from '../../systems/notify.js';
 import { playerEntity } from '../../characters/playerEntity.js';
 import { drawVitalsBars } from './hudVitals.js';   // VB1: the nine-bar law - no cycle, hudVitals reads only the settings store
 import { raceArt, artRaceOf } from '../../systems/races.js';
+import { wearsRox, classicFaceRecord } from '../../systems/roxArgonians.js';   // ROX: the extra Argonian faces
+import { roxRgba, roxHeadUrl } from '../roxArgonianArt.js';
 import { racialOverrideHeadArt } from '../../systems/vampirism.js';   // V5: the curse heads, DFU's override-first order
 import { getBool, getFloat, getInt } from '../../systems/settings/settings.js';
 import { retroRenderingMode, retroAspectCorrection, retroWorldAspect, retroAspectViewportRect } from '../../systems/retroMode.js';   // RETRO1: the retro texture's aspect and the pillarbox
@@ -409,6 +411,11 @@ export async function loadHudLargeHead({ fetchBytes, palette, renderer }, entity
     // gender + birth race. A load failure falls to the racial head -
     // the never-traps rule.
     const ov = racialOverrideHeadArt(entity);
+    // ROX (systems/roxArgonians.js): a Rox face is the mod's picture - cursed, its own vampire face; transformed, the beast's
+    if (wearsRox(entity) && (!ov || ov.file === 'VAMP00I0.CIF')) {
+      const img = await roxRgba(roxHeadUrl(entity.gender, entity.faceIndex, !!ov));
+      if (img) return { tex: renderer.uploadTexture('img', `rox#${entity.gender}#${entity.faceIndex}#${ov ? 'v' : ''}`, toScreenOrder(img)), w: img.width, h: img.height };
+    }
     if (ov) {
       try {
         let bmp;
@@ -429,7 +436,7 @@ export async function loadHudLargeHead({ fetchBytes, palette, renderer }, entity
     const name = headArchiveFor(entity);
     const cif = new CifRciFile();
     cif.load(await fetchBytes(name), name, palette);
-    const fi = Math.max(0, entity?.faceIndex ?? 0);
+    const fi = classicFaceRecord(entity?.faceIndex ?? 0);   // ROX: a face past the CIF's ten reads its classic twin
     const bmp = cif.getDFBitmap(fi, 0);
     if (!bmp?.width) return null;
     return { tex: renderer.uploadTexture('img', `${name}#${fi}`, bitmapToColor32(bmp, palette)), w: bmp.width, h: bmp.height };

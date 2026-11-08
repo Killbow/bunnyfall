@@ -24,7 +24,8 @@ import { CLASS_CAREERS } from '../chargen.js';
 import { isAlive, personOf, fullNameOf, isCustomCareer } from './family.js';
 import { PERSON_TEXTURES, PERSON_FACE_RECORDS } from '../../characters/mobile/mobilePerson.js';
 import { GENDERS } from '../../characters/nameHelper.js';
-import { raceArt, FACES_PER_RACE } from '../races.js';
+import { raceArt } from '../races.js';
+import { classicFaceRecord } from '../roxArgonians.js';   // ROX: Rox's faces read their classic twin
 
 /** A family resident's id - `F<familyId>.<personId>`: never a census id (`L...`), so the town's books keep them apart. */
 export const familyResId = (familyId, personId) => `F${familyId}.${personId}`;
@@ -183,7 +184,7 @@ export function residentOf(family, p, home) {
     cls: stock ? CLASS_MOBILE_BASE + p.careerIndex : null, level: Math.max(1, p.level | 0), faction: 0,
     legacy: { familyId: family.id, personId: p.id },
     household: `F${family.id}`,   // AUDIT LEGACY II B2: their own household, never the census house they may be lent (livingTown.js householdKeyOf)
-    portrait: { archive: raceArt(p.race, sex).heads, record: Math.max(0, Math.min(FACES_PER_RACE - 1, p.face | 0)) },   // their own chargen head in the talk window (ui/native/nativeTalk.js setNpcPortrait)
+    portrait: { archive: raceArt(p.race, sex).heads, record: classicFaceRecord(p.face) },   // their own chargen head in the talk window (ui/native/nativeTalk.js setNpcPortrait)
     look: p.look ?? null,   // LEGACY7 part four: what they wore at their newest save - drawn in it, as an online peer is (world/familyBodies.js); none, the town's outfit
   };
 }

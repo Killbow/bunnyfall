@@ -211,6 +211,7 @@ import { isOnlinePage, onlineForcedPref, onlineForcedModSetting, onlineForcedSet
 import { onlineSyncPlan, applyOnlineSync, lastOnlineSync, undoOnlineSync } from '../../systems/online/onlineSync.js';   // UXB1-E: the room's rules, copied home
 import { CREDITS, translationCredits } from '../credits.js';   // CR1: who made what the port carries
 import { ownerUpdateMark } from '../ownerUpdate.js';   // BUNNYFALL: the owner's update button
+import { skinMark } from '../skinsMenu.js';   // BUNNYFALL: the custom paperdoll button
 import { SUPPORT_ASKS } from '../supportAsks.js';   // SUPPORT1: the project's asks - the website's corner and this door's
 import { t, tIn, currentLocale, localeInfo, localeTable, availableLocales, BASE_LOCALE, localizedText, formatText } from '../../systems/textManager.js';   // L10N1b: the port's own strings, the language row and the first-run offer; L10N3d: DFU's Internal_Strings
 import { localeForBrowser, catalogLocale } from '../../systems/localeCatalog.js';   // L10N1b
@@ -514,6 +515,9 @@ export function takePickedSaveKey() { const k = _pickedSaveKey; _pickedSaveKey =
 /** REALM P1.3: the realm character the Online door's Play pressed - its id rides the boot (main.js ?realm). */
 let _pickedRealmId = null;
 export function takePickedRealmId() { const id = _pickedRealmId; _pickedRealmId = null; return id; }
+/** BUNNYFALL RESTORE: the picked realm character is played from Gothway Garden, out of wherever its save stood. */
+let _pickedRealmRestore = false;
+export function takePickedRealmRestore() { const r = _pickedRealmRestore; _pickedRealmRestore = false; return r; }
 /** HOUSE-WAITS (FIELD BUGS 2026-10-09f): the member the Online page's waiting house was answered with - `{ personId,
  *  region, loc }` - taken once by the boot (main.js), which births them online through the world host's own door. */
 let _pickedLegacyBirth = null;
@@ -1378,6 +1382,8 @@ function realmCard(who) {
         actions: [
           { label: save.unfinished ? t('menu.realm.neverSaved', 'Never saved') : t('menu.realm.play', 'Play'), primary: true, disabled: realmBusy || save.unfinished, onClick: () => { _pickedRealmId = row.id; onAction('online'); } },
           { label: t('menu.realm.copyOffline', 'Copy to offline'), disabled: realmBusy || save.unfinished, onClick: () => copyToOffline(row) },
+          // BUNNYFALL RESTORE: a character that will not load where it stood - played from Gothway Garden instead
+          { label: t('menu.realm.restore', 'Restore character'), disabled: realmBusy || save.unfinished, onClick: () => ask(t('menu.realm.restoreAsk', 'Restore {name}?', { name: row.name }), t('menu.realm.restoreBody', 'Use this if {name} is stuck or sends you back to the menu. {name} joins the realm in Gothway Garden instead of where they were saved, taking over any old session. Items, gold and progress stay as they are.', { name: row.name }), t('menu.realm.restoreYes', 'Restore'), () => { _pickedRealmId = row.id; _pickedRealmRestore = true; onAction('online'); }) },
           // HOUSE-LOSS (2026-09-29, Mac: "GarySoup lost his house and furniture"): a character brought in whose first save
           // never landed is UNDONE, never deleted - its delete took the home customs had carried, and it could never come
           // in again. The undo gives back its home, its guild place and its customs (realm.js undoRealm).
@@ -3280,6 +3286,7 @@ function paperdollGraphicsCard() {
     [[0, t('mods.eyeOfTheBeholder.option.playerPaperdoll', 'Paperdoll for player')], [1, t('mods.eyeOfTheBeholder.option.playerSprite', '8 directional animated sprite')]],
     { home: true, read: () => modSetting('eye-of-the-beholder', 'Graphics.PlayerBody') ?? 0, write: (v) => setModSetting('eye-of-the-beholder', 'Graphics.PlayerBody', v) }));
   c.append(prefRow('graphics.paperdollback', t('menu.paperdoll.backs', 'Paperdoll backs for other players'), t('menu.paperdoll.backsNote', 'Show the generated rear view when another player turns away from you.'), { home: true }));
+  c.append(prefRow('graphics.customskins', t('menu.paperdoll.skins', 'Custom paperdolls of other players'), t('menu.paperdoll.skinsNote', 'Draw the custom paperdolls other players wear. Off: they appear as their ordinary look. You can also hide one player from the Social tab.'), { home: true }));
   return c;
 }
 
@@ -3332,6 +3339,8 @@ function peerSpritesCard() {
     t('menu.chat.coloursNote', 'World white, Region green, Company purple, Local gray, Party teal, Language rose, Trade gold, LFG blue.'), { home: true }));
   c.append(prefRow('chatPingSound', t('menu.chat.ping', 'Chime when someone @mentions you'),
     t('menu.chat.pingNote', 'Lines with @YourName are always marked in gold. This adds a sound.'), { home: true }));
+  c.append(prefRow('chatChimeSound', t('menu.chat.chime', 'Chime for new chat messages'),
+    t('menu.chat.chimeNote', 'A soft sound when another player says something, so you do not miss it.'), { home: true }));
   return c;
 }
 
@@ -4604,6 +4613,7 @@ function renderHome() {
   home.append(supportMarks());
   // BUNNYFALL: the owner's update button, same corner, shown to the owner alone (ui/ownerUpdate.js)
   home.append(ownerUpdateMark({ storage: appStorage() }));
+  home.append(skinMark({ storage: appStorage() }));   // BUNNYFALL: the custom paperdoll worn online (ui/skinsMenu.js)
   // L10N1b: the first-run language offer, in the top-left corner nothing else uses
   const offer = languageOffer();
   if (offer) home.append(offer);

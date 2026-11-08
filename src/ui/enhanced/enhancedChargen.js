@@ -43,7 +43,9 @@
 import { RACE_TEMPLATES } from '../../systems/races.js';
 import { CLASS_DESCRIPTION_TEXT_ID, SUMMARY_BONUS_TEXT_ID, PLAYER_REFLEXES, repBoxRowsFrom } from '../chargenArt.js';   // ONE DFU MEMBER, ONE EXPORT
 import { generateBackstory } from '../../systems/biography.js';
-import { FACES_PER_RACE, NORD_LOOK_FACE } from '../../systems/races.js';
+import { necromancerCareer } from '../../systems/necromancy/necroCareer.js';   // CHEB'S NECROMANCY: the Necromancer's profile
+import { facesFor } from '../../systems/roxArgonians.js';   // ROX: the extra Argonian faces
+import { NORD_LOOK_FACE } from '../../systems/races.js';
 import { storedSession } from '../../net/accountClient.js';   // BUNNYFALL: the owner's own face choice
 import { appStorage } from '../../systems/appStorage.js';
 import { bitmapCanvas } from '../bitmapCanvas.js';
@@ -520,15 +522,16 @@ function classStage() {
   let way = null;
   for (let i = 0; i < flow.classRowCount(); i++) {
     const name = flow.classRowName(i);
-    const custom = i === flow.careers.length;
+    const custom = flow.isCustomRow(i), necro = flow.isNecroRow(i);   // CHEB'S NECROMANCY: the Necromancer's row before Custom
     // UI-CALM: a head where the way changes (the careers stand in the ways' own order, CLASS00..17)
-    const w = custom ? 'Your own' : classWayOf(flow.careers[i]?.name);   // AUDIT UICALM-FIRM1 L3 M3: by the career's own key - its shown name is the player's language's
+    const w = custom ? 'Your own' : necro ? 'The dark arts' : classWayOf(flow.careers[i]?.name);   // AUDIT UICALM-FIRM1 L3 M3: by the career's own key - its shown name is the player's language's
     if (w && w !== way) list.append(el('div', 'classway', w));
     way = w;
     const row = el('div', `row${i === flow.classListIndex ? ' on' : ''}`);
     const main = el('button', 'row-main');
     main.append(el('div', 'row-name', name));
     if (custom) main.append(el('div', 'row-sub', 'Build a class of your own'));
+    else if (necro) main.append(el('div', 'row-sub', 'Raises the dead · Cheb\u2019s Necromancy'));
     else {
       const lead = leadingAttributes(flow.careers[i]?.career);
       if (lead.length) main.append(el('div', 'row-sub', lead.join(' · ')));
@@ -546,7 +549,7 @@ function classStage() {
   const d = el('div', 'dcard');
   const picked = flow.classRowName(flow.classListIndex);
   d.append(el('h3', null, picked));
-  const pickedWay = flow.classListIndex === flow.careers.length ? null : classWayOf(flow.careers[flow.classListIndex]?.name);
+  const pickedWay = flow.isCustomRow(flow.classListIndex) ? null : flow.isNecroRow(flow.classListIndex) ? 'The dark arts' : classWayOf(flow.careers[flow.classListIndex]?.name);
   if (pickedWay) d.append(el('div', 'cprof-way', pickedWay));
   if (flow.classConfirm) {
     const body = el('div', 'dscroll');   // UI-CALM: the words scroll, the presses stand (the race's card, above)
@@ -568,14 +571,14 @@ function classStage() {
     a.append(yes, no);
     d.append(a);
   } else {
-    const career = flow.classListIndex === flow.careers.length ? null : flow.careers[flow.classListIndex]?.career;
+    const career = flow.isCustomRow(flow.classListIndex) ? null : flow.isNecroRow(flow.classListIndex) ? necromancerCareer() : flow.careers[flow.classListIndex]?.career;   // CHEB'S NECROMANCY: its profile too
     if (career) d.append(classProfile(career));
-    d.append(el('p', null, flow.classListIndex === flow.careers.length
+    d.append(el('p', null, flow.isCustomRow(flow.classListIndex)
       ? 'Twelve skills, your own attributes, your own advantages, and a difficulty that moves as you spend.'
       : 'Read what this class is before you commit to it.'));
     const a = el('div', 'acts');
     const read = el('button', 'act primary',
-      flow.classListIndex === flow.careers.length ? 'Build it' : `Read about the ${picked}`);
+      flow.isCustomRow(flow.classListIndex) ? 'Build it' : `Read about the ${picked}`);
     read.onclick = () => { flow.useClass(); paint(); };
     a.append(read);
     d.append(a);
@@ -1170,10 +1173,10 @@ function faceStage() {
 
   if (!faces?.canvases?.length) {
     // NEVER TRAPS: no CIF, no portraits, and the wizard still walks.
-    wrap.append(el('p', 'mapnote', 'The portraits for this race could not be loaded. Any of the ten will do.'));
+    wrap.append(el('p', 'mapnote', 'The portraits for this race could not be loaded. Any of them will do.'));
   }
   const grid = el('div', 'facegrid');
-  for (let i = 0; i < FACES_PER_RACE; i++) {
+  for (let i = 0; i < facesFor(flow.race?.key); i++) {   // ROX: an Argonian has twenty (systems/roxArgonians.js)
     const b = el('button', `facecell${i === flow.facePick ? ' on' : ''}`);
     const art = faces?.canvases?.[i];
     // NOT cloneNode: cloning a canvas copies its size and NOT its
@@ -1494,7 +1497,7 @@ function summaryStage() {
   const idcol = el('div', 'reviewid');
   idcol.append(box);
   idcol.append(el('div', 'reviewsub',
-    `${PROVINCE_NAMES[flow.race.key] ?? ''} \u00b7 ${raceDisplayName(flow.race.key)} \u00b7 ${flow.classRowName(flow.classIndex)}`));
+    `${PROVINCE_NAMES[flow.race.key] ?? ''} \u00b7 ${raceDisplayName(flow.race.key)} \u00b7 ${flow.customCareer?.name || flow.classRowName(flow.classIndex)}`));   // a custom career's own name (the Necromancer's too), never its biography's class
   who.append(idcol);
   list.append(who);
 

@@ -23,7 +23,7 @@ import { RACES } from '../systems/races.js';   // C2-slice: the player grunt's r
 import { assignEnemyStartingEquipment, equipmentVariantFor, equipmentItems } from '../combat/enemyEquipment.js';   // RRI2: EnemyEntity.AssignEnemyEquipment, the delegate
 import { rollEnemyWeaponPoison } from '../systems/poisons.js';
 import { EQUIP_SLOTS, equipTableOf, getEquipSlot } from '../systems/equip.js';
-import { generateItems, addEnemyLootExtras, enemyLootTableKey, createRandomWeapon, createRandomArmor } from '../systems/loot/loot.js';   // RF2: the spawn chain's DFU half, in its one home; RRI2: MobLootKeys; LOOT7: a champion's minted piece
+import { generateItems, addEnemyLootExtras, enemyLootTableKey, createRandomWeapon, createRandomArmor, isLootKept } from '../systems/loot/loot.js';   // RF2: the spawn chain's DFU half, in its one home; RRI2: MobLootKeys; LOOT7: a champion's minted piece
 import { isAmmunition } from '../systems/item/itemTemplates.js';   // LOOT7: a champion's minted piece is never ammunition
 import { enemyLootSpawned } from '../characters/enemy/enemyEntity.js';   // OH-E: EnemyEntity.OnLootSpawned
 import { conditionBasedPricesOn, randomConditionLootItems } from '../systems/roleplayRealismItems/rriRealism.js';   // RRI2: EnemyEntity.OnLootSpawned's subscriber
@@ -156,9 +156,9 @@ export function spawnEnemyLoot(entity, mobileType, basics, player, { rolls = Mat
   const ease = quarters;   // RENOWN-LOOT: the roller's Renown, read once for the keep and the ladder alike (PARTY-LOOT: the caller's terms)
   entity.items = generateItems(enemyLootTableKey(mobileType, basics?.lootTableKey ?? '-'), { level: effectiveLevel(player), gender: player.gender }, rolls, { itemChanceScale, mobileType });   // PARTY-LOOT: on the caller's dice (it rolled Math.random whatever `rolls` said)
   const eq = equipEnemy(entity, mobileType, effectiveLevel(player), rolls, { player });   // SOFTCAP2: a mentor's foes carry the GROUP's loot and gear
-  addEnemyLootExtras(entity.items, basics, rolls, { quarters: ease });
+  addEnemyLootExtras(entity.items, basics, rolls, { quarters: ease, mobileType });   // CHEB'S NECROMANCY: and whose body it is (a humanoid's carries a corpse)
   const keep = plainFoeLootKeep(ease);
-  if (!eliteLooted(entity)) entity.items = entity.items.filter((it) => { if (isGoldPieces(it) || rolls() < keep) return true; rejects?.push(it); return false; });   // PLAIN-LOOT: three pieces in four (LOOT-EASE; RENOWN-LOOT: by the roller's Renown), on the host's stream as the kit's cut is; PARTY-LOOT: what it let go, for the bonus
+  if (!eliteLooted(entity)) entity.items = entity.items.filter((it) => { if (isGoldPieces(it) || isLootKept(it) || rolls() < keep) return true; rejects?.push(it); return false; });   // an extra that is the body's own (a corpse) is never PLAIN-LOOT's to let go   // PLAIN-LOOT: three pieces in four (LOOT-EASE; RENOWN-LOOT: by the roller's Renown), on the host's stream as the kit's cut is; PARTY-LOOT: what it let go, for the bonus
   // RRI2: EnemyEntity.OnLootSpawned (EnemyEntity.cs:399) fires here, after
   // the trio and with the kit already in Items - the mod's
   // RandomConditionEnemyItems (RoleplayRealismItemsMod.cs:222-245) wears

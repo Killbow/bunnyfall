@@ -56,6 +56,7 @@
 // inventory slice's first job.
 // ═══════════════════════════════════════════════════════════════════
 
+import { accountRefusalText } from '../../net/accountClient.js';   // BUNNYFALL: a salvage's refusal in the service's words
 import { isRestItem } from '../../systems/rest/restItems.js';   // REST6: the seven's card lines
 import { getPref, setPref } from '../../systems/uiPrefs.js';   // PLUS7: getPref, the hover card's switch; PACK-PHONE: setPref, the phone's Body
 import { USE_PENDING, powersRows, INFO_TEXT_POWERS } from '../native/nativeInventory.js';   // PLUS10: the Info box's powers record
@@ -3810,16 +3811,18 @@ export const SALVAGED_LINE = (name, n) => `Salvaged: ${name}, for ${shardsText(n
 /** BUNNYFALL: the salvage into materials - asked with the average it gives, said with what it gave. */
 export const SALVAGE_MATS_ASK = (name, mats, n) => [`Salvage ${name}?`, `It is gone for good. You get ${mats}${n > 0 ? `, and ${shardsText(n)}` : ''}.`];
 export const SALVAGED_MATS_LINE = (name, got, n) => `Salvaged: ${name}, for ${got}${n > 0 ? ` and ${shardsText(n)}` : ''}. The materials are in your Stores.`;
-export const SALVAGE_FAILED = (name) => `${name} could not be salvaged right now. It is still in your pack.`;
+export const SALVAGE_FAILED = (name, why = null) => `${name} could not be salvaged right now. It is still in your pack.${why ? ` ${why}` : ''}`;
 /** AUDIT GEM: a piece holding a set gem is never salvaged with it (systems/reforge.js salvageRefusal 'gems'). */
 export const SALVAGE_GEMS = (name) => `${name} holds a gem. Extract it at the Reforge or unset it first.`;
 /** FB1012d SALVAGE-CLASSIC: a piece that wears Magic the ladder never graded (systems/reforge.js salvageRefusal 'classic'). */
+/** BUNNYFALL (PRICE-CATCH): the maker's own work, refused. */
+export const SALVAGE_SELF = (name) => `You made ${name} yourself. You may not salvage your own work.`;
 export const SALVAGE_CLASSIC = (name) => `${name} will not break: its magic is the classic kind the guilds sell and make. Welkynd Shards come only from loot with a rarity grade.`;
 function askSalvage(item) {
   { const no = chestActRefusal(deps); if (no) return refuse(no); }   // AUDIT RPT1026 B1: the piece left the chest's copy of the pack alone, its shards on the pack's own stack
   hideTip(); closeMenu(); closeInfo(); closeDismantle();
   const name = itemLongName(item, { getQuest: deps.getQuest ?? null });
-  const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
+  const refusedFor = (why) => { notice = why === 'locked' ? lockedText(name) : why === 'gems' ? SALVAGE_GEMS(name) : why === 'classic' ? SALVAGE_CLASSIC(name) : why === 'self' ? SALVAGE_SELF(name) : null; refresh(); render(); };   // AUDIT GEM: the gems, said; FB1012d: classic magic
   const why = anySalvageRefusal(item, deps.entity?.name);   // BUNNYFALL: materials first, then the shard law
   if (why) { refusedFor(why); return; }
   const n = salvageShards(item, deps.entity?.name);
@@ -3840,7 +3843,7 @@ function askSalvage(item) {
       notice = 'Salvaging...'; render();
       salvageForMaterials([item], { items: deps.items?.() ?? [] }, deps.entity?.name).then((m) => {
         if (picked === item && m.ok) picked = null;
-        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name);
+        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name, m.needsCommit ? `It would take ${m.needsCommit.map((n) => n.name).join(' and ')} past Journeyman, and you can raise only two crafts that far. Salvage it at a crafting station, where you can choose.` : m.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(m.error));   // BUNNYFALL: the service's own reason, said
         refresh(); render();
       });
       return;
@@ -3906,6 +3909,7 @@ export function batchRefusal(name, why) {
   if (why === 'locked') return lockedText(name);
   if (why === 'gems') return SALVAGE_GEMS(name);
   if (why === 'classic') return SALVAGE_CLASSIC(name);
+  if (why === 'self') return SALVAGE_SELF(name);
   if (why === 'worn') return t('inventory.batch.worn', '{name} is equipped. Take it off to salvage it.', { name });
   if (why === 'bound') return t('inventory.batch.bound', '{name} is bound to you and can’t be salvaged.', { name });
   if (why === 'quest') return t('inventory.batch.quest', '{name} belongs to a quest.', { name });

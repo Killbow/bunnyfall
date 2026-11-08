@@ -592,7 +592,7 @@ import { isEnchanted } from '../systems/inventory.js';   // UI1: the use path's 
 import { useQuickslot, swapQuickslot, offHandQuickslot, spellQuickslotPress, offHandOffersSwap, tickQuickslotHold } from '../systems/quickslots.js';   // QS2: the diamond's two performers - the window's own use ladder, and the one equipItem   // QS6: the spell slot's press, the off hand's swap question, and the hold machine the frame drives
 import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';   // U8e: the ground piles; G5: the pile's DaggerfallLoot identity
 import { CONTAINER_IMAGES } from '../ui/targetIconPanel.js';   // DW-E3: a fish's DaggerfallLoot keeps the field's default picture (Chest) under its icon
-import { preloadPaperDollArt } from '../ui/paperDoll.js';   // U8f: the avatar base
+import { preloadPaperDollArt, refreshPaperDoll } from '../ui/paperDoll.js';   // U8f: the avatar base
 import { seedStartingEquipment } from '../systems/equip.js';   // U8h: the worn-weapon binding
 import { createChargenFlow, createChargenWindow, finishChargen, loadSpellIndex, applyHeadlessChargen, handHeroGenderToGrammar } from '../systems/chargenSession.js';   // S3c/U9; L10N3g: the hero's gender to the grammar
 import { testEntryById, applyTestCharacter, seedTestMount, seedTestLoot, testRoomOnlineRefused, TEST_ROOM_OFFLINE_TEXT, TEST_SEA, TEST_SEA_TEXT, enableTestSea } from '../systems/testRoom.js';   // TR3: the Test Room's one home; TSR4: the ride; AUDIT SET D4: its character's online refusal
@@ -601,7 +601,7 @@ import { preloadChargenArt } from '../ui/chargenArt.js';   // U10
 import { preloadMessageBoxArt } from '../ui/messageBox.js';   // U11
 import { buildingDataForDoor, locationBuildings, BUILDING_KEY_0, blockBuildingCount } from '../systems/talk/talkTopics.js';   // E2: the shop identity   // H2: every building, with its key   // AUDIT 58: BuildingDirectory.buildingKey0, the key both ship interiors are filed under
 import { hitSoundFor, swingSoundFor, ENEMY_HIT_VOLUME, PLAYER_HIT_VOLUME } from '../systems/soundClips.js';   // AUDIT 58: DFU's two hit volumes
-import { isInvisible, entityIsParalyzed, concealBits } from '../systems/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
+import { isInvisible, entityIsParalyzed, concealBits, lookConcealBits } from '../systems/effects.js';   // AUDIT 39: the S19 gate is host-agnostic in DFU
 import { concealmentFlags } from '../systems/effects.js';   // INVIS-SWING: the traveller's concealment, the wild gate's notice
 import { createSerpentSpell } from './gate/standInSpell.js';   // FIELD BUGS 2026-10-19f BOSS-DOT: my spell on the serpent's hide, its door (AUDIT SCHOOLS L2 F4's telling and its lasting harm with it)
 import { hasActiveEffect } from '../systems/effects.js';   // PEERLIGHT2: my Light spell, for the pose
@@ -695,6 +695,7 @@ import { createNavalCrew, CREW_RANGE, CREW_KEEP } from './naval/navalCrew.js';  
 import { asleepHour } from '../systems/naval/shipWatch.js';   // SHIP-WATCH: the crews' sleeping hours
 import { crewRoster, crewCount } from '../systems/naval/crewLife.js';
 import { createCrewAshore } from './crewAshore.js';   // CREW-COMPANIONS: the party ashore, stood in every place
+import { createNecroHost } from './necroHost.js';   // CHEB'S NECROMANCY: the raised dead at the player's side
 import { revenantParty, setRetinuePlayer, setRetinueListener, setRetinueBodies, revenantsWithYou, leaveRefusal, isRevenantCompanionKey, revenantIdOfKey, applySwornStrength, sendRevenantAway, forgetSwornMember, swornFightStep, swornFightWon, devotedWithYou } from '../systems/revenant/revenantCompanions.js';   // REVENANT-COMPANION: the sworn, stood by the same layer
 import { registerCompanionCount, registerCompanionRoster, companionsWithYou, COMPANION_SLOTS } from '../systems/companionSlots.js';   // COMPANION-SLOTS: the crew's hands ashore counted with the sworn
 import { PERSONALITIES } from '../systems/revenant/revenantPersonality.js';   // REVENANT-COMPANION: the party card's word for one
@@ -878,7 +879,7 @@ import { trivialOnRoad, roadCompany, wandererCount } from '../systems/roadEncoun
 import { partySizeOf, partyExtraFoes, partyGroupMembers } from '../systems/party/partyScale.js';   // PSCALE1: a fight weighs the party - its count, and the foes more an outdoor encounter stands
 import { GROUP_ROLL_RADIUS } from '../systems/campEncounters.js';   // PSCALE1: outdoors, the party a roll stands for is the camp's own group
 import {
-  realmIo, openRealmBoot, createRealmSession, realmSummaryOf, setRealmNotice, realmCreate, realmPut, realmBootSearch, realmRefusalText,
+  realmIo, openRealmBoot, placeRestored, createRealmSession, realmSummaryOf, setRealmNotice, realmCreate, realmPut, realmBootSearch, realmRefusalText,
   sayRealmSave, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, realmDoorShut,
   REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList, realmUnions,
   realmFetch,   // PERMADEATH-HOUSES: a fallen member's record read, for their home's cupboards
@@ -893,7 +894,8 @@ import { POSE_STRIKES, isWorldRoom, isCellRoom, cellHaloFor, actFrameFits, share
 import { WILD_DATA_MAX, WILD_ITEMS_MAX, POSE_RIDE } from '../net/wire.js';   // INT9 (AUDIT): a deposit's chunks, bounded by the wire's frame; COATS3D: POSE_RIDE - a peer on a horse rides the 3D one
 import { hasDaggerfallArrows } from '../combat/fpArm.js';   // MAC7 #2: the arrow bit on the wire - weaponRig's own read
 import { drawText } from '../ui/text.js';   // ONLINE1: the session's status line
-import { RemotePlayers, composeLook, createSightCache, PEER_ARCHIVE } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
+import { connectSkins, onSkinsChange } from '../systems/online/customSkins.js';   // BUNNYFALL: custom paperdolls (net/skinLaw.js)
+import { RemotePlayers, composeLook, peerWearsSkin, createSightCache, PEER_ARCHIVE } from '../net/remotePlayers.js';   // ONLINE1: the others, drawn; NAME1: and the sight test their names take, cached and hysteresised (AUDIT NAME1 F2/F5)
 import { eotbBody } from '../player/eyeOfTheBeholder/eotbBody.js';   // BUNNYFALL: the own body's doll source
 import { createNameLayer, nameLayerWanted } from '../ui/nameLayer.js';   // NAME1 + BUBBLE1: the names and the chat bubbles, in the enhanced face; AUDIT NAME1 F7: and who gets that face
 import { enhancedHudScale, setHudSetChips, enhancedHudBottom, enhancedHudQuick } from '../ui/enhanced/enhancedHud.js';   // AUDIT NAME1 F3: the player's own HUD scale, which the names wear like every other enhanced surface; SET5: the set powers' chips
@@ -1357,6 +1359,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let bootSnapRead;
   const bootSnap = () => (bootSnapRead === undefined ? (bootSnapRead = pickedSaveSnap(bootLoadPick ?? {})) : bootSnapRead);
   if (realmBoot) { bootSnapRead = realmBoot.snap; realmBoot.snap = null; }   // REALM P1.3: the realm's save, parsed at the join, IS the one parse - held here alone, so the door lets it go
+  if (realmBoot && params.has('restore')) { placeRestored(bootSnapRead); params.delete('restore'); publishBootParams(params); }   // BUNNYFALL RESTORE: from Gothway Garden, once
   const realmGiven = realmBoot?.origin ? reclaimFromDevice(bootSnapRead, realmBoot.origin) : null;   // RESTORE: what customs once kept, back into the one parse (systems/realmCustoms.js)
   // AUDIT SET D4: A TEST ROOM CHARACTER STAYS OFFLINE - asked before anything below reads `online` (the lane reads the
   // published URL, so the drop is published too), and said once the world stands
@@ -7574,7 +7577,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     visit: { may: (t) => caravanVisitMay(t), enter: (t) => caravanVisitEnter(t) },   // WAGONS2-VISIT: another's caravan, open to me
     horses: () => horseCountOf(playerEntity.items ?? []),   // WAGONS3: my parked pair keeps its second horse while I own two
     playerCapsule: () => (walkMode && playerSpawned ? { feet: player.pos, height: player.height, radius: CAPSULE_RADIUS } : null),   // WAGONS3: my parked wagon's box never stands round me
-    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
+    bodyCapsules: () => [...crewAshore.capsules(), ...revenantAshore.capsules(), ...necro.capsules()],   // FIELD BUGS 2026-10-18 WAGON-ALIGHT: nor round my companions (both layers stand below; the pool steps only once frames run)
     renderShift: () => { if (!walkMode || !playerSpawned) return null; const f = player.feetAt(); return [f[0] - player.pos[0], 0, f[2] - player.pos[2]]; },   // WAGONS3: my driven wagon drawn where I am drawn
     peerAnchor: (id) => { const sh = _peerMapPoses.get(id); return sh && (sh.rd | 0) === 2 ? onlineToScene(sh) : null; },   // AUDIT HCC O5: the change key in the wire frame (campToWire is the pose's law, declared with the stream below; read only once frames run); WAGON-HITCH: where another player's cart rider stands as drawn this frame (`rd` 2, the cart - the pose peerRiders stands them on, boat-adjusted; the online frame fills the map before the pool steps), so their trailing wagon hangs from the rider seen here rather than easing apart from it
   });
@@ -10523,6 +10526,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     seat: (i) => wagonRiders?.companionSeat(crewCount() + i, hcc.carriesCompanions()) ?? null,   // WAGONS1: the sworn take the seats after the crew's
     seatDraw: (i) => wagonRiders?.companionSeatDrawn(crewCount() + i, hcc.carriesCompanions()) ?? null,   // WAGONS2
   });
+  // CHEB'S NECROMANCY (scenes/necroHost.js): the raised dead, stood by the same layer - every place, every door, the heel
+  const necro = createNecroHost({
+    place: () => companionPlace({ crew: false }),
+    leader: () => (playerSpawned ? { feet: [player.pos[0], player.pos[1], player.pos[2]], yaw: cam.yaw, grounded: !!player.grounded && !player.levitating && !player.swimming } : null),
+    now: () => Math.floor(playerTicker.ownMinutes),
+    say: (l) => townTalk.say(l),
+    playerEntity,
+  });
   /** REVENANT-COMPANION: a sworn one called to the player's side - it says so as it steps through. */
   const noteRevenantArrival = (id) => _revenantArrivals.add(id);
   // COMPANION-ROSTER (ui/companionRoster.js): the roster's acts heard here - a call's words wait for the stand, a
@@ -10540,7 +10551,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   /** AUDIT (2026-10-02): the sworn's layer lifted for a load - its bodies, the words still to say, and every member (so
    *  no spell the last game's body wore stands with the loaded one). */
-  const clearSworn = () => { revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
+  const clearSworn = () => { necro.clear(); revenantAshore.clear(); _revenantArrivals.clear(); _revenantDepartures.length = 0; _revenantBetrayals.length = 0; forgetSwornMember(); };   // AUDIT FEUD: and a turning queued under a window - the loaded game's is its own
   setRetinueBodies((id) => revenantAshore.bodies().find((b) => b.revenantCompanion === id && !b.dead && !b._knockedOut)?.entity ?? null);   // AUDIT FEUD: a knocked-out one stands for nothing - no turning, no warning, no witness
   registerCompanionRoster('crew', () => (navalOn() ? (naval?.companions?.party ?? []).map((c) => ({ name: c.name, role: c.role })) : []));
   /** REVENANT-COMPANION: A SWORN ONE'S WORD IN A FIGHT, now and then and never a chatter - as it goes in (BARK_BATTLE), over
@@ -10639,6 +10650,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   function revenantAshoreTick() {
     if (gamePaused()) return;   // the sworn wait out a window too (AUDIT CC-A10's law: no knock, no stand, no catch-up under one)
     while (_revenantBetrayals.length) turnSworn(_revenantBetrayals.shift());   // RVN11c: before the layer's frame - its body lifted, no portal
+    necro.tick();   // CHEB'S NECROMANCY: the minions, beside the sworn
     try { revenantAshore.frame(); } catch (e) { console.warn('[companions] the sworn', e?.message ?? e); }
     while (_revenantDepartures.length) {   // COMPANION-ROSTER: its parting words, as it goes
       const d = _revenantDepartures.shift();
@@ -12034,7 +12046,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     lairHere: createLairDoor({ maps, blocks, arch, locations: locationIndex, dungeons: _bountyDungeonPixels, regions: _dungeonRegionPixels, here: playerTravelPixel }),
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the party mates' bodies, for a beneficial touch, missile or blast (declared beside allyTargetPick, below) - SPELL-GIFT: the spell rides, for the strangers its list may reach
     peerBodies: () => peersNear(),   // SPELLFX1: every player's body, where a peer's drawn missile stops (declared below this engine's build)
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions here - my healing and buffs reach them (REVENANT-COMPANION: the sworn too)
     // DUEL1: my duel opponent's body, for my harmful spells alone, while we fight - and the door the blow leaves by
     duelMark: () => { if (!duelMgr.fighting) return siegeSpellMarks(); const b = duelBody(duelMgr.opponent); return b ? { ...b, name: peerName(b.id) ?? 'your opponent' } : null; },   // AUDIT-SEATS G5: outside a duel, a siege's foes (WILD1: and past them the open zone's fair players)
     castAtDuel: (id, sp) => duelSpellOut(id, sp),
@@ -25365,6 +25377,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  sees it from the next hello the token signs (AURA-LIVE: said again at once - auraFrame's online.rehello). */
   let _insignia = { loaded: false, busy: false, held: [], title: null, aura: null };
   const insigniaIo = () => { const st = appStorage(); const ses = storedSession(st); return ses ? { fetch: (u, i) => globalThis.fetch(u, i), base: serviceBase(st), secret: ses.secret, account: ses.id ?? null } : null; };   // AUDIT FB1024: and the account an owed sale is settled under
+  connectSkins(insigniaIo); onSkinsChange(() => { try { refreshPaperDoll(playerEntity); } catch { /* the doll redraws on its next ask */ } });   // BUNNYFALL: the worn custom paperdoll, read from the account; the inventory doll redraws when its pictures land
   const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById, insigniaIo, settleBrokerSale);   // BROKER-RID (AUDIT FB1024): her sales by their request ids - an unheard one owed, settled as her window opens
   const insigniaAdopt = (w) => { if (w && typeof w === 'object') _insignia = { ..._insignia, loaded: true, held: Array.isArray(w.insignia) ? w.insignia : _insignia.held, title: w.title ?? null, aura: w.aura ?? null }; };
   async function insigniaLoad() {
@@ -25486,6 +25499,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     saved: () => surfacePlayer(), clink: () => audio.playOneShot(SOUND.GoldPieces, 1),
     say: (text) => townTalk.say(text), mid: (text) => setMidScreenText(text), show: (w) => townTalk.showOverlay(w),
     io: insigniaIo, wardrobe: () => _insignia, adopt: insigniaAdopt, self: insigniaSelf, loadWardrobe: insigniaLoad,
+    boardReady: () => walkMode && playerSpawned && !gamePaused(),   // BUNNYFALL: the realm's notices wait for the world (ui/worldEventsBoard.js)
+    audio, shake: (k) => betterAmbience.weaponKick(k),   // BUNNYFALL: the Great Cannon's boom and its shake (scenes/cannonHost.js)
   });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
@@ -25789,6 +25804,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!portHost || _mode() !== 'exterior') return;
     const glows = portHost.glows(cam.pos);
     if (glows.length) navalRender.draw({ particles: glows });
+  }
+  /** BUNNYFALL: the Great Cannon's shot - its flash and its smoke - in the same pass (scenes/cannonHost.js particles). */
+  function cannonSmoke() {
+    if (_mode() !== 'exterior') return;
+    const p = cromwark?.particles?.();
+    if (p?.length) navalRender.draw({ particles: p });
   }
   // WARDEN1 (2026-10-10, Mac: "...I want a gaurd to navigate, lift the wagon/horse on top of their sprite and yeet it far
   // away"): THE TOWN WATCH (scenes/wagon/wagonWardenHost.js) - my parked wagon stamped off the town built under it, its park
@@ -28195,9 +28216,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** PING1 (2026-10-11, the players: "A unique color or alert for @name pings"): the log marks a line that names me
    *  (net/chat.js mentions - my name the presence session's); the alert is the enchanter's chime, once for a burst. */
-  let _pingHeard = 0, _pingRangAt = -Infinity;
+  let _pingHeard = 0, _pingRangAt = -Infinity, _chimeHeard = 0, _chimeAt = -Infinity;
   const chatPingFrame = (now) => {
     chatLog.self = online?.name ?? '';
+    // BUNNYFALL CHAT-CHIME (2026-11-06, the owner: "a little chime when a new chat message is typed so people dont miss
+    // them"): another player's line, a soft page's turn, once for a burst; a ping's own chime below stands over it
+    if ((chatLog.heardSeq ?? 0) > _chimeHeard) {
+      _chimeHeard = chatLog.heardSeq;
+      if (chatLog.pingSeq <= _pingHeard && getPref('chatChimeSound') !== false && now - _chimeAt >= 2000 && now - _pingRangAt >= 2000) { _chimeAt = now; audio.playOneShot(SOUND.PageTurn, 0.35); }
+    }
     if (chatLog.pingSeq <= _pingHeard) return;
     _pingHeard = chatLog.pingSeq;
     if (getPref('chatPingSound') === false || now - _pingRangAt < 2500) return;
@@ -28980,7 +29007,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wb: (() => { const l = liveLycanthropy(playerEntity); return l?.isTransformed ? (l.infectionType | 0) || undefined : undefined; })(),
       ...tavernSocial.poseField(),   // TAVERN-SOCIAL: my rounds, my playing, my last tip
       ef: effectVfxBits(playerEntity) || undefined,   // BUNNYFALL SPELL VISUALS: what burns, freezes or bubbles on me, for the others to draw
-      cv: concealBits(playerEntity) || undefined,   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
+      cv: lookConcealBits(playerEntity) || undefined,   // (how I look: a Decoy's caster is not drawn blended)   // INVIS-NET: my magical concealment (1 invisible, 2 blending, 4 a shade), so the others draw me as DFU draws every concealed entity that is not the player - absent when none, the wire's omission law
       hl: waistLanternPoseBit(playerEntity.lightSource),   // HT-WAIST-NET: a lit lantern hung at the waist, so the others' Morrowind bodies hang it at the hip - absent otherwise, the wire's omission law
       lc: hasActiveEffect(playerEntity, 'light') ? 1 : undefined,   // PEERLIGHT2: my Light spell burns, so the others hang its candle before me - absent otherwise
       lt: torchPoseByte(playerEntity),   // PEERLIGHT1: my lit torch/lantern/candle, so it lights the others' world around me - absent while nothing burns
@@ -29071,7 +29098,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _peerMapPoses.clear();
     for (const d of drawable) if (d?.shown) _peerMapPoses.set(d.id, d.shown);
     if (hccOn()) hcc.driverGlue(drawable, { toWire: campToWire });   // WAGONS3: a driver on their bench, drawn seated there - after the map's poses, where `peerAnchor` reads the puller their wagon hangs from
-    const ranged = peerRange.cut(cabin ? drawable : drawable.filter((d) => !csaPeers.isBelowDeck(d.id)), { on: !travelView?.active, me: player.pos, at: (d) => onlineToScene(d.shown), range: peerRangeOf(getPref('peerRange')), mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent });   // PEER-RANGE (2026-10-10, the owner: "the rendering of players far out is contributing to poor performance"): past the distance on the Other players card a player stands nowhere on this screen - GATE-CROWD's cut by distance (net/peer/peerRange.js): my party and the one I duel always, nobody cut under the travel view (OW-PEERS grows them to be seen from overhead); their map marks, above, are kept
+    const ranged = peerRange.cut(cabin ? drawable : drawable.filter((d) => !csaPeers.isBelowDeck(d.id)), { on: !travelView?.active, me: player.pos, at: (d) => onlineToScene(d.shown), range: peerRangeOf(getPref('peerRange')), mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent || online?.peers?.get?.(id)?.shown?.bp === 1 });   // BUNNYFALL: a bard performing is never cut by distance; PEER-RANGE (2026-10-10, the owner: "the rendering of players far out is contributing to poor performance"): past the distance on the Other players card a player stands nowhere on this screen - GATE-CROWD's cut by distance (net/peer/peerRange.js): my party and the one I duel always, nobody cut under the travel view (OW-PEERS grows them to be seen from overhead); their map marks, above, are kept
     const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null || !(travelView?.active || (wildHere() && !cromwarkPeace(wildZoneKind())) || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept); CROWD-WIDE (2026-10-23, the owner: "implement the player toggle we have for the oblivion gate into the entire game"): everywhere, not the court alone - but never where a stranger can fight me (the open zone, a battle, an arena's room) nor under the travel view; AUDIT CROWD-WIDE A2: never cut, those I fight, trade, ride or sail with and a duel's two fighters (net/gate/gateCrowd.js crowdKept)
     peerCastVisuals(visiblePeers);   // SPELLFX1: a peer's new cast, drawn once
     if (modes?.gateArenaDay?.() != null) gateCourt?.stepsIn(drawable, (d) => (d?.shown ? onlineToScene(d.shown) : null));   // AUDIT GATE-FBX C3: a player stepping out of the court's way in opens it - every one in the room, the crowd's cut or not (the fire is the court's, not a body this screen draws)
@@ -29099,12 +29126,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // answer, so the frame a peer transforms, its wolf first stands or walks out of range draws it once
     // COATS3D: and a peer on a HORSE, on the lane that builds them a Morrowind body, rides the 3D horse in it - the rider
     // layer yields them (peerRidesIn3d), so they are the bodies' (net/peer/peerBodies.js) as a peer afoot is
-    peerRiders.sync(seen, onlineToScene, { eye: peerEye, right: peerRight, dt, defer: (d) => peerIsWolf(d.shown), yields: peerRidesIn3d, conceal: veilOf, grow: tvGrow });
-    const afoot = seen.filter((d) => (peerRidesIn3d(d) || !peerRiders.isRiding(d.id)) && !d.shown?.wb || (peerIsWolf(d.shown) && !d.shown.rd));   // COATS3D (AUDIT A3): a rider on the 3D horse the bodies' whether or not its sprite stood in for it last frame   // DISC12: a beast wears no Morrowind body; PR-WW1: it stands as EOTB's lycanthrope (peerRiders), or - while that art is not up - as the beast's enemy sprite (remotePlayers); WEREWOLF1: but a werewolf on foot does, Bloodmoon's
+    const skinnedPeer = (d) => !(d.shown?.wb | 0) && peerWearsSkin(d);   // BUNNYFALL: a custom paperdoll's wearer is the doll alone (net/remotePlayers.js) - no body, rider or set
+    const bare = seen.filter((d) => !skinnedPeer(d));
+    peerRiders.sync(bare, onlineToScene, { eye: peerEye, right: peerRight, dt, defer: (d) => peerIsWolf(d.shown), yields: peerRidesIn3d, conceal: veilOf, grow: tvGrow });
+    const afoot = bare.filter((d) => (peerRidesIn3d(d) || !peerRiders.isRiding(d.id)) && !d.shown?.wb || (peerIsWolf(d.shown) && !d.shown.rd));   // COATS3D (AUDIT A3): a rider on the 3D horse the bodies' whether or not its sprite stood in for it last frame   // DISC12: a beast wears no Morrowind body; PR-WW1: it stands as EOTB's lycanthrope (peerRiders), or - while that art is not up - as the beast's enemy sprite (remotePlayers); WEREWOLF1: but a werewolf on foot does, Bloodmoon's
     peerBodies.sync(afoot, onlineToScene, dt, player.pos, { priority: (id) => !!social?.isPartyPeer(id), conceal: veilOf });   // the nearest first, the far ones asleep; AUDIT PARTY8: a party mate before a stranger
     // DISC23-B: a peer on foot who stands in no Morrowind body here stands as the Eye Of The Beholder set they chose -
     // after the bodies (a Morrowind player's own choice for everyone they meet), before the class sprite and the doll
-    peerWalkers.sync(seen, onlineToScene, { eye: peerEye, right: peerRight, dt, skip: (id) => peerBodies.heightOf(id) > 0, hurt: (id) => peerHurtAge(id) < PEER_FLINCH_S, conceal: veilOf, grow: tvGrow });   // PEERFX3: a class skin's hurt pose
+    peerWalkers.sync(bare, onlineToScene, { eye: peerEye, right: peerRight, dt, skip: (id) => peerBodies.heightOf(id) > 0, hurt: (id) => peerHurtAge(id) < PEER_FLINCH_S, conceal: veilOf, grow: tvGrow });   // PEERFX3: a class skin's hurt pose
     peerRiders.settle((id) => peerBodies.wolfStands(id), (id) => peerBodies.has(id));   // COATS3D (AUDIT A3): a rider on the 3D horse whose body did not stand is drawn as the sprite rider   // WEREWOLF1 (AUDIT E4): the deferred werewolves, now the bodies have stood - before anything reads the riders
     auraFrame(seen); effectVfx.peers(seen);   // BUNNYFALL SPELL VISUALS: the drawn peers' effects too   // WB9g: the auras at the feet - mine and the drawn peers' - gathered with the rest
     // PCORPSE1: a body heard in a room this scene has left for another KIND of space (a dungeon's local frame, the
@@ -29628,7 +29657,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     postItem: (text, item) => postItemInChat(text, item), linkItem: (item) => linkItemInChat(item), canPostItem: () => canPostItemInChat(),   // CHAT-POST: the building's and the dungeon's packs post too
     partyNear: () => partyOnMaps(), professionMarks: (feet) => professionMarks(feet),   // DISC23-A: the party's bodies, for the dungeon's and the building's plans (AUDIT pre-merge I-E: those drawn here); NODE-MARKS: the dungeon's veins (and a body the knife may skin) on its compass, at its own feet
     allyMarks: (sp) => allyMarksNear(sp),   // AID1 onto ALLY-CAST: the dungeon's own cast engine gives to the same mates - SPELL-GIFT: and strangers, by the spell
-    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
+    companionBodies: () => [...crewAshore.bodies(), ...revenantAshore.bodies(), ...necro.bodies()],   // COMPANION-KIT: my companions underground, for the dungeon's own cast engine (REVENANT-COMPANION: the sworn too)
     openCompanionPack: (rec) => openCompanionPack(rec),   // COMPANION-KIT: a companion activated indoors or underground - his pack
     openRevenantFate: (rec) => openRevenantFate(rec),   // REVENANT-FATE: a beaten revenant indoors or underground - its choice
     shakeCamera: (k) => betterAmbience.weaponKick(k),   // REVENANT-FATE: an execution's blow, felt
@@ -34916,6 +34945,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (naval?.enabled) navalRender.draw(naval.drawFrame());   // NAV-B: the smoke, the spray, the balls in flight and the aim's arcs and zone, over the sea's top
     if (_serpentDraw) { try { serpentRenderer()?.drawSea(_serpentDraw); } catch (e) { console.warn('[serpent] marks', e?.message ?? e); } }   // SERPENT1: its telegraphs, the maelstrom and the venom, over the sea's top
     portGlows();   // SHIPYARDS: the lighthouses' lamps and their turning beams, added light over the sea's top
+    cannonSmoke();   // BUNNYFALL: the Great Cannon's flash and smoke
     navalHud(dt);   // NAV-F: the helm's readout
     // DW-C: under the distance fog the air's own effects - the sand, the wisps, the bolts, none of which writes a depth
     // the mod's post effect would fog it by, so all of which it closes to the fog colour - are the fog's. PUDDLE-RAIN

@@ -308,7 +308,7 @@ export function mountReforgeWindow(host, deps) {
       : [...items.filter((it) => salvageShards(it, selfName) > 0 && !['aetheric', 'gilded', 'artifact', 'quest', 'off'].includes(salvageRefusal(it, selfName) ?? '')),
         ...items.filter((it) => salvageRefusal(it, selfName) === 'classic')];   // FB1012d SALVAGE-CLASSIC: a piece that wears Magic and will never break is listed after them, saying why
     if (!rows.includes(picked)) picked = page === 'reforge' ? rows[0] ?? null : null;
-    if (page === 'salvage') everyMagic(rows);   // LOOT18
+    if (page === 'salvage') everyMagic(rows, selfName);   // LOOT18 (the asker's name handed in: it is render's own, not this file's)
     if (!rows.length) {
       const empty = el('li', 'broker-insignia-head reforge-empty', page === 'reforge' ? 'Nothing in your pack can be reforged. The Reforge takes Magic and Rare pieces and Exalted Legendaries.' : 'Nothing in your pack can be salvaged. Salvage takes Magic pieces or better.');
       empty.setAttribute('role', 'presentation');
@@ -411,7 +411,7 @@ export function mountReforgeWindow(host, deps) {
   /** LOOT18: SALVAGE EVERY MAGIC, at the head of the Salvage page - every Magic piece the page could break now (not worn,
    *  locked or bound), in one press that asks first ("Break them all" / "Keep"), through the host's own salvage a piece
    *  at a time. Two at the least: one is its own row's press. */
-  function everyMagic(rows) {
+  function everyMagic(rows, selfName = null) {
     const magics = rows.filter((it) => it.rarity === 'magic' && !salvageRefusal(it, selfName));
     if (magics.length < 2) { if (asking === EVERY_MAGIC) { dropAsk(); drawNote(); } return; }   // the ask lapsed under it (B4: its question drawn away now - the line was drawn before the page)
     const shards = magics.reduce((n, it) => n + salvageShards(it, selfName), 0);

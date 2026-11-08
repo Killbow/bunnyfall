@@ -478,7 +478,7 @@ export function silverDoubles(target) {
  *  NOTHING in the codebase mints - as this arm's fallback. */
 export function weaponAttackDamage(attacker, target, damageMod, weapon, rolls = Math.random, weaponAnimTime = 0, info = undefined) {
   const wMin = baseDamageMin(weapon), wMax = baseDamageMax(weapon);
-  let damage = weaponDamageMods(weapon, wMin + Math.floor(rolls() * (wMax + 1 - wMin))) + damageMod;   // RF1: the weapon's own modifiers over ITS roll, before the swing's mods
+  let damage = weaponDamageMods(weapon, wMin + Math.floor(rolls() * (wMax + 1 - wMin)), attacker) + damageMod;   // RF1: the weapon's own modifiers over ITS roll, before the swing's mods
   if (!target.isPlayer && isSkeletalTarget(target)) {   // DEX4b: a mod's skeletal enemy too
     if ((weapon.flags & 0x10) === 0) damage = Math.trunc(damage / 2);   // edged-weapon rule
     if (weapon.material === 2 && silverDoubles(target)) damage *= 2;    // Silver (RVN2: unless a veto keeps it plain)

@@ -44,6 +44,8 @@ import { thumbSpan, drawScrollThumb } from './verticalScrollBar.js';   // ROAD-D
 import { drawText, measureText, makeFont } from './text.js';   // U15: the RANDOM button label; U18: the black scroll text; AUDIT 18: SmallFont
 import { FntFile } from '../formats/fntFile.js';   // AUDIT 18: FONT0002, DaggerfallUI.SmallFont
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS } from './messageBox.js';   // U11
+import { facesFor, classicFaceRecord } from '../systems/roxArgonians.js';   // ROX
+import { roxRgba, roxHeadUrl } from './roxArgonianArt.js';
 import { FACES_PER_RACE, raceById, raceArt } from '../systems/races.js';
 import { SKILL_NAMES } from '../systems/skills.js';
 import { reviseClassDescription } from '../systems/stockClasses.js';   // CLASS-USE: the description names the revised skills
@@ -481,6 +483,12 @@ export async function loadFaceSet(raceKey, gender) {
         set.tex.push(_deps.renderer.uploadTexture('img', `face:${want}:${i}`, bitmapToColor32(bmp, _deps.palette)));
         set.size.push([bmp.width, bmp.height]);
       }
+      // ROX (systems/roxArgonians.js): an Argonian's faces 10..19, Rox's pictures; one that fails is its classic twin
+      for (let i = FACES_PER_RACE; i < facesFor(wantRace); i++) {
+        const img = await roxRgba(roxHeadUrl(wantGender, i));
+        if (img) { set.tex.push(_deps.renderer.uploadTexture('img', `face:${want}:${i}`, toScreenOrder(img))); set.size.push([img.width, img.height]); }
+        else { set.tex.push(set.tex[classicFaceRecord(i)]); set.size.push(set.size[classicFaceRecord(i)]); }
+      }
       if (_facePending !== want) continue;   // a newer identity arrived mid-load
       _faces = set;
       headFaces(set, wantRace, wantGender);   // PORTRAIT3D
@@ -497,7 +505,7 @@ export async function loadFaceSet(raceKey, gender) {
 async function headFaces(set, race, gender) {
   try {
     const { playerHeadImage } = await import('../characters/headPortraits.js');
-    for (let i = 0; i < set.tex.length; i++) {
+    for (let i = 0; i < Math.min(set.tex.length, FACES_PER_RACE); i++) {   // ROX: Rox's faces keep their own pictures
       if (_faces !== set) return;
       const [w, h] = set.size[i];
       if (!(w > 0 && h > 0)) continue;
@@ -755,7 +763,7 @@ function drawFaceBlock(renderer, m, flow) {
     // AUDIT 18: the face SCREEN draws its own picker value (reset to 0
     // on every push, CreateCharFaceSelect.cs:65-69); the SUMMARY's
     // picker is seeded from the document (CreateCharSummary.cs:132).
-    const i = Math.max(0, Math.min(FACES_PER_RACE - 1, flow.state === 'face' ? flow.facePick : flow.faceIndex));
+    const i = Math.max(0, Math.min(_faces.tex.length - 1, flow.state === 'face' ? flow.facePick : flow.faceIndex));   // ROX: twenty for an Argonian
     const [fw, fh] = _faces.size[i];
     renderer.drawScreenQuad(_faces.tex[i], {
       x: m.ox + Math.round(px + (pw - fw) / 2) * m.s,

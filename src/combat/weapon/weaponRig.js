@@ -88,7 +88,7 @@ import { createHandheldTorches, isHeldLight } from '../../systems/handheldTorche
 import { lanternAtWaist } from '../../systems/playerTorch.js';   // HT-WAIST: a lantern hung at the waist is in no hand - the ladder, the Morrowind body and the sprite ask the one question
 import { liveVampirism } from '../../systems/racialLive.js';   // PORTRAIT3D: a vampire's body wears the race's vampire head
 import { isTransformedLycanthrope, liveLycanthropy } from '../../systems/lycanthropy.js';   // WW1: Weapon Widget's FPSWeaponClone, beside the machine; AUDIT-EOTB2: the sprite's form
-import { concealmentFlags } from '../../systems/effects.js';   // EOTB-IL: PlayerBillboard.UpdateMaterial reads the player's own IsInvisible / IsAShade / IsBlending
+import { lookConcealmentFlags } from '../../systems/effects.js';   // EOTB-IL: PlayerBillboard.UpdateMaterial reads the player's own IsInvisible / IsAShade / IsBlending
 import { getBool, getInt } from '../../systems/settings/settings.js';   // EOTB-IL: PlayerBillboard.LateUpdate reads DaggerfallUnity.Settings.BowDrawback
 import { modSetting } from '../../systems/modSettings.js';   // WW1: its Enabled
 import { takeFrameLook } from '../../player/lookFilter.js';   // WW1: the frame's look for the widget's inertia
@@ -838,7 +838,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     // times the blow. Handed only the Speed, the body took DFU's line while the blow took the override: one blow, two
     // swings on screen.
     animCtx: playerWeapon.animCtx(),
-    concealment: entity ? concealmentFlags(entity) : null,
+    concealment: entity ? lookConcealmentFlags(entity) : null,   // how I LOOK: a Decoy hides me from the foes, not from the camera
     hipLantern: !!entity && lanternAtWaist(entity.lightSource),   // HT-WAIST: the lit lantern hangs at the sprite's hip, and swings as it walks
   });
   const bindBody = () => eotbBody.attach(renderer, eotbState);

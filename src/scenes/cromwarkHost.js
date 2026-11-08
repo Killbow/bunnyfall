@@ -9,7 +9,7 @@
 //     /nyxcoin can say how many were gathered.
 //   THE CAMP: the Adventurers' Guild's tent on the road at the zone's south-east corner (the owner's spot), and Nyx before
 //     it - her sprite (public/art/bunnyfall-npcs/nyx.png) - whose press opens her window (ui/nyxWindow.js).
-import { cromwarkPeace, createHazeClock, setHazeMult, hazeClockText, HAZE_CSS, nyxCoinChance, NYX_RING_LUCK, CROMWARK_CAMP_UV } from '../systems/wild/cromwark.js';
+import { CROMWARK_ON, cromwarkPeace, createHazeClock, setHazeMult, hazeClockText, HAZE_CSS, nyxCoinChance, NYX_RING_LUCK, CROMWARK_CAMP_UV } from '../systems/wild/cromwark.js';
 import { setCromwarkMaps } from '../systems/wild/cromwarkTowns.js';
 import { setCourtMaps, courtPosts } from '../systems/wild/cromwarkCourts.js';   // the courts' sides of the reach
 import { NYX_GEAR, NYX_GARMENTS, HEART_WARDEN_S, nyxSale, nyxCoinsHeld, giveNyxCoins, nyxCoinsText, spendNyxCoins } from '../systems/wild/nyxShop.js';
@@ -28,7 +28,8 @@ import { TITLE_TEXT, AURA_TEXT } from '../ui/playerBadge.js';
 import { createNyxOverlay } from '../ui/nyxWindow.js';
 import { TENT_MODEL } from '../systems/survival/camp.js';
 import { trs } from '../world/mat4.js';
-import { createCannonHost } from './cannonHost.js';   // BUNNYFALL: the great cannon by Wayrest, the smaller event
+import { createCannonHost } from './cannonHost.js';
+import { createWorldEventsBoard } from '../ui/worldEventsBoard.js';   // BUNNYFALL: the realm's notices - its events and the Discord   // BUNNYFALL: the great cannon by Wayrest, the smaller event
 import { ENEMY_BASICS } from '../characters/enemy/enemyBasics.js';
 import { IDLE_ANIMS } from '../characters/mobile/mobileUnit.js';
 import { mobileBillboardSize } from '../world/rmbFlats.js';
@@ -69,6 +70,8 @@ export function createCromwarkHost(deps) {
   setCourtMaps(maps);
   const clock = createHazeClock();
   const cannon = createCannonHost(deps);   // the great cannon by Wayrest (scenes/cannonHost.js)
+  // the board of the realm's events, once a session as the world stands (ui/worldEventsBoard.js)
+  const board = createWorldEventsBoard({ cannon: () => cannon.progress(), askCannon: () => cannon.ask(), cromwark: CROMWARK_ON, ready: () => !!deps.boardReady?.() });
   let lastT = null, heartS = 0;
   let hud = null;
 
@@ -103,6 +106,7 @@ export function createCromwarkHost(deps) {
     hudFrame();
     campFrame();
     try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); }
+    try { board.frame(); } catch (e) { console.warn('[events board]', e?.message ?? e); }
     owedFrame(now);
   }
   /** The air in the deep rings: the fog pulled toward the haze's purple and drawn in. */
@@ -381,6 +385,8 @@ export function createCromwarkHost(deps) {
     frame, fog, command,
     /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
     cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
+    /** The cannon's shot, its flash and smoke, for the particle pass (null with none). */
+    particles: () => cannon.particles(),
     /** Nyx's billboard, for the host's flats. */
     batches: () => [...(at ? [...(batch ? [batch] : []), ...guardBatches] : []), ...(deps.poiNpcs?.()?.batches() ?? [])],
     /** The Guild's tent, in the host's world pass. */

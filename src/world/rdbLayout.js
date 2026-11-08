@@ -71,6 +71,7 @@ import { RANDOM_TREASURE_ARCHIVE as FIXED_TREASURE_FLATS_ARCHIVE } from '../syst
 // RDBLayout.NPCFlatArchives / IsNPCFlat (RDBLayout.cs:1250-1254) - their one home is the leaf world/npcFlatArchives.js
 // (DECOR-FIGURE: the decor law, which the account service reads, names a person's flat by them).
 import { isNpcFlat } from './npcFlatArchives.js';
+import { editorPersonOf } from './editorPeople.js';   // BUNNYFALL
 export { NPC_FLAT_ARCHIVES, isNpcFlat } from './npcFlatArchives.js';
 
 export const ACTION_FLAGS = Object.freeze({
@@ -447,6 +448,7 @@ export function layoutRdbBlock(dfBlock, blockIndex, allowExitDoors, getModel) {
           factionID: fr.factionOrMobileId, flags: fr.flags,
           flatPosition: fr.position,
           rawX: obj.xPos, rawY: obj.yPos, rawZ: obj.zPos,
+          editorPerson: editorPersonOf(fr.editorPerson),   // BUNNYFALL: the Dungeon Editor's name and lines (a person's, or a flat's: scenes/editorReadables.js)
         });
         if (acts && !actionLinks.has(obj.position)) {
           actionLinks.set(obj.position, { nextKey: fr.nextObjectOffset, prevKey: -1, action });

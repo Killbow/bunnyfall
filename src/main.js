@@ -243,6 +243,8 @@ async function boot() {
     // boot, which joins it and reads its save from the service; a character born online boots the online lane with no
     // save, its chargen, and the realm makes it (world.js realmBirth). The same SET-or-DELETE law.
     const realmId = choice === 'online' ? takePickedRealmId() : null;
+    const { takePickedRealmRestore } = await import('./ui/enhanced/enhancedMenu.js');
+    const realmRestore = !!realmId && takePickedRealmRestore();
     if (realmId) params.set('realm', realmId);
     else params.delete('realm');
     if (choice === 'online-new') params.set('realmnew', '1');
@@ -280,6 +282,10 @@ async function boot() {
     // birth names (`region`/`loc` - the line's seat), as the world's own Succession's birth is (places.js birthSearch drops
     // `classic`). With the classic start asked, the world host stood them in the start cell's Privateer's Hold first.
     if (legacyBirth) params.delete('classic');
+    // BUNNYFALL RESTORE: a realm character restored from the Online page starts in Gothway Garden, as a birth starts at
+    // its seat (world.js drops the save's own place - realmSaves.js placeRestored)
+    if (realmRestore) { params.set('restore', '1'); params.set('region', 'Daggerfall'); params.set('loc', 'Gothway Garden'); params.delete('classic'); }
+    else params.delete('restore');
     // MAC-N3: THE DECIDED PARAMS ARE THE URL before the world boots.
     // `online` above was set on this in-memory copy alone, and the
     // online lane (systems/online/onlineLane.js isOnlinePage - the read under

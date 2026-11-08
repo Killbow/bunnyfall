@@ -12,6 +12,8 @@
 //   DECOY         a double stands where the caster looks while the buff does; the caster is lost to the foes as one
 //                 blending is (effects.js isBlending), and the foes about it go to it (their last known place of the
 //                 target, the motor's own pursuit).
+//   NECROMANCY    Cheb's summons and Recall Minions (systems/necromancy/necromancy.js necroCast) - the minions stand
+//                 through scenes/necroHost.js.
 //   RESCUE        the party member, companion or allied creature the caster can see (`rescue`) is brought to their side
 //                 - another player through their own client (the host's `rescuePeer`), anyone this engine runs here.
 // The shapes are drawn with the impact light's bursts (the engine's `burst`), a shimmer where they stand.
@@ -22,6 +24,7 @@ import {
 } from '../systems/spell/bunnySpellLaw.js';
 import { hasActiveEffect, rollDuration } from '../systems/effects.js';
 import { t } from '../systems/textManager.js';
+import { necroCast, isNecroSpell } from '../systems/necromancy/necromancy.js';   // CHEB'S NECROMANCY: the summons and the recall
 
 /** How often a standing shape shimmers, seconds. */
 const SHIMMER_S = 0.45;
@@ -133,6 +136,8 @@ export function createBunnySpellEngine(deps) {
   }
   /** A caster-only cast just landed (the cast engine's CasterOnly arm): what it placed, where the caster looks. */
   function cast(sp, eye, dir) {
+    // CHEB'S NECROMANCY (systems/necromancy/necromancy.js): a summon or a recall in the spell, wherever the caster looks
+    if (isNecroSpell(sp)) { try { necroCast(sp, { entity: playerEntity, level: deps.casterLevel(), say }); } catch (e) { console.warn('[necromancy] the cast', e?.message ?? e); } }
     if (!eye || !dir) return;
     if (spellHas(sp, WALL_TYPE) && hasActiveEffect(playerEntity, 'wallOfEarth')) raiseWall(eye, dir);
     if (spellHas(sp, DECOY_TYPE) && hasActiveEffect(playerEntity, 'decoy')) {

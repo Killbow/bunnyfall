@@ -12,6 +12,7 @@ import { appStorage } from './appStorage.js';   // the one storage seam - localS
 import { onlineForcedModSetting, onlineWholeModKey } from './online/onlineLane.js';   // MODS-ONLINE-2: online, the room's ground is forced and every other switch is the player's; REALM P0.2: and the balance mods whole
 import { FOOT_SKIN_COUNT, CLASS_SKINS, classSkinLabel } from '../player/classSkins.js';   // SKIN2: the class skins past the mod's sixteen
 import { t, localizedText } from './textManager.js';   // L10N4: every setting's description and option names in the player's language, read when they are read; DFU's own key where it has the same word
+import { EDITOR_MODS } from './editorMods.js';   // BUNNYFALL: the mods the Dungeon Editor made, each one switch
 
 const STORE_KEY = 'dfjs-mod-settings';
 
@@ -37,7 +38,7 @@ const EOTB_VIEWS = lazyWords(() => t('mods.eyeOfTheBeholder.option.dontChange', 
  *  a description that read as a note to a developer (the port's codes, "INERT", engine terms, a typo, "|| Default =
  *  True") is reworded for a player - an inert key says "Has no effect" and why. A description that already read plainly
  *  is still the mod's own; the tests pin each reworded one by its words. */
-export const MOD_SETTINGS = Object.freeze({
+const DECLARED_MOD_SETTINGS = Object.freeze({
   // DS1: DYNAMIC SKIES 2.3.4 (BadLuckBurt and carademono). Its own two
   // sections, names and descriptions as modsettings.json ships them
   // (FogDensity/densitySetting; SnowSizeAndNumberOfParticles/*), plus
@@ -198,6 +199,21 @@ export const MOD_SETTINGS = Object.freeze({
         get description() {
           return t('mods.aquaticSprites.Enabled.description', 'Seaweed, coral and shells in 3 flooded dungeon areas. The original game has these sprites but '
             + 'never uses them.');
+        },
+      }),
+    }),
+  }),
+  // BUNNYFALL: BUNNYFALL DUNGEONS - the dungeon blocks and places the Bunnyfall Dungeon Editor exports
+  // (vendor/bunnyfall-dungeons: WorldData/ and WorldDataPatches/). World data only, so one switch, read at the door
+  // like Aquatic Sprites' (scenes/modWorldData.js).
+  'bunnyfall-dungeons': Object.freeze({
+    title: 'Bunnyfall Dungeons',
+    author: 'Bunnyfall',
+    keys: Object.freeze({
+      Enabled: Object.freeze({
+        default: true,
+        get description() {
+          return t('mods.bunnyfallDungeons.Enabled.description', 'Dungeons built with the Bunnyfall Dungeon Editor.');
         },
       }),
     }),
@@ -1676,6 +1692,28 @@ export const MOD_SETTINGS = Object.freeze({
       }),
     }),
   }),
+});
+
+/** BUNNYFALL: every mod the Dungeon Editor made (systems/editorMods.js) gets the switch `bunnyfall-dungeons` has, read
+ *  at the world-data door the same way. A mod declared above always wins over a manifest of the same name. */
+const editorModSettings = (mod) => Object.freeze({
+  title: mod.title,
+  author: mod.author,
+  editorMod: true,
+  keys: Object.freeze({
+    Enabled: Object.freeze({
+      default: true,
+      get description() {
+        return mod.description || t('mods.editorDungeons.Enabled.description', 'Dungeons built with the Bunnyfall Dungeon Editor.');
+      },
+    }),
+  }),
+});
+
+export const MOD_SETTINGS = Object.freeze({
+  ...DECLARED_MOD_SETTINGS,
+  ...Object.fromEntries(EDITOR_MODS.filter((mod) => !Object.hasOwn(DECLARED_MOD_SETTINGS, mod.vendor))
+    .map((mod) => [mod.vendor, editorModSettings(mod)])),
 });
 
 let memory = null;

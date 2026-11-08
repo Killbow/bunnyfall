@@ -31,9 +31,17 @@
 // IT WAITS FOR THE WORLD. Never while the pause window stands, and never while the loading screen does - a scene's
 // page (a gate's court, a dungeon) is asked for at the door and offered once the far side is up.
 //
+// BUNNYFALL ASK-FIRST (2026-11-06, the owner: "the tutorial popups are annoying, i want to change the behavior to a ?
+// icon in the corner that players can click to bring up the popup instead of being pulled away from what they were
+// doing"): A PAGE WAITS TO BE ASKED FOR. A page that came due stands in the line as before, but is offered only once the
+// player has asked: a ? at the screen's right edge, its count the pages waiting, and a press of it offers them all, one
+// after another as before. A page asked for by name (showTutorialNow, the menu's "show me in game") is offered at once.
+// The ? stands only while the world does (never over the menu or the loading screen).
+//
 // THE WELCOME TOUR is one box of several pages (addNext, DaggerfallMessageBox.AddNextMessageBox): each dismissal
 // turns the page, and the last closes it and marks every page of it read.
 
+import { hudArranging } from './hud/hudLayout.js';   // BUNNYFALL: the ? is a HUD piece (Alt+U)
 import { ActionTextBox } from './actionText.js';
 import { mountWindow, windowHeld } from '../systems/notify.js';
 import { tutorialById, tutorialDue, tutorialRows, markTutorialsSeen, setTutorialHandler, TUTORIAL_TOUR } from '../systems/tutorials.js';
@@ -186,12 +194,78 @@ function rowsOf(entry) {
   return pages.map((t, i) => tutorialRows(t, { keyName: deps.keyName, page: i + 1, pages: pages.length }));
 }
 
+// ── BUNNYFALL ASK-FIRST: the ? that holds the waiting pages ───────────────────────────────────────────────────────
+const ASK_ID = 'bf-tutorial-ask';
+const ASK_CSS = `
+#${ASK_ID} { position: fixed; right: 14px; top: 38%; z-index: 40; width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgb(201,164,74); background: radial-gradient(circle at 35% 30%, rgb(78,58,28), rgb(32,22,10));
+  color: rgb(243,226,150); font: 700 26px/40px Georgia, 'Times New Roman', serif; text-align: center; cursor: pointer;
+  box-shadow: 0 0 0 1px rgb(40,28,10), 0 4px 14px rgba(0,0,0,0.55); text-shadow: 1px 1px 0 rgb(60,40,10); padding: 0;
+  animation: bf-ask-glow 2.4s ease-in-out infinite; }
+#${ASK_ID}:hover { transform: scale(1.08); }
+#${ASK_ID} .n { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; border-radius: 9px;
+  background: rgb(176,42,30); color: #fff; font: 700 11px/18px system-ui, sans-serif; padding: 0 4px; }
+@keyframes bf-ask-glow { 0%, 100% { box-shadow: 0 0 0 1px rgb(40,28,10), 0 4px 14px rgba(0,0,0,0.55); }
+  50% { box-shadow: 0 0 0 1px rgb(40,28,10), 0 0 16px 3px rgba(243,210,110,0.55); } }
+@media (prefers-reduced-motion: reduce) { #${ASK_ID} { animation: none; } }
+/* the HUD editor (Alt+U, ui/hud/hudLayout.js): a preview to move while no tip waits */
+#${ASK_ID}[data-hm-dummy] { display: block !important; }
+#${ASK_ID}[data-hm-edit] { animation: none; }
+`;
+let askTimer = null;
+/** The pages waiting to be asked for (due, and not yet asked). */
+const waitingAsk = () => line.filter((e) => !e.forced && !e.asked && e.ids.some((id) => tutorialDue(id)));
+function askButton() {
+  const d = deps.doc();
+  if (!d?.createElement || !d.body) return null;
+  let b = d.getElementById?.(ASK_ID);
+  if (b) return b;
+  if (!d.getElementById?.(`${ASK_ID}-style`)) { const st = d.createElement('style'); st.id = `${ASK_ID}-style`; st.textContent = ASK_CSS; (d.head ?? d.body).append(st); }
+  b = d.createElement('button');
+  b.id = ASK_ID;
+  b.type = 'button';
+  b.title = 'Tips are waiting: click to read them';
+  b.setAttribute('aria-label', 'Tips are waiting. Click to read them.');
+  b.textContent = '?';
+  const n = d.createElement('span'); n.className = 'n'; b.append(n);
+  // while the HUD is being arranged (Alt+U) the press is the editor's: a drag, not a question
+  for (const ty of ['pointerdown', 'mousedown', 'mouseup', 'touchstart']) b.addEventListener(ty, (e) => { if (!hudArranging()) e.stopPropagation(); });
+  b.addEventListener('click', (e) => { e.preventDefault(); if (hudArranging()) return; e.stopPropagation(); askForTips(); });
+  d.body.append(b);
+  return b;
+}
+/** Show, count or hide the ?, as the line and the world stand; asked again each second while pages wait. */
+function drawAsk() {
+  const waiting = waitingAsk();
+  const d = deps.doc();
+  const b = d?.getElementById?.(ASK_ID) ?? askButton();   // always in the page, hidden: the HUD editor can find it
+  if (!waiting.length || deps.held() || current) { if (b) b.style.display = 'none'; }
+  else {
+    const el = b ?? askButton();
+    if (el) { el.style.display = ''; const c = waiting.reduce((k, e) => k + e.ids.filter((id) => tutorialDue(id)).length, 0); el.querySelector('.n').textContent = String(c); }
+  }
+  if (askTimer != null) { deps.clearTimeout(askTimer); askTimer = null; }
+  if (waiting.length) askTimer = deps.setTimeout(() => { askTimer = null; drawAsk(); }, 1000);
+}
+/** The player asked: every page waiting is offered, one after another. */
+// the ? in the page from the start (hidden), so the HUD editor can place it before any tip waits
+try { deps.setTimeout(() => { try { drawAsk(); } catch { /* no page */ } }, 1500); } catch { /* no clock */ }
+
+export function askForTips() {
+  for (const e of line) if (!e.forced) e.asked = true;
+  offer();
+  drawAsk();
+}
+
 /** Offer the line's first entry to the live host. */
 function offer() {
-  if (current || !line.length) return;
+  if (current || !line.length) { drawAsk(); return; }
   const now = deps.now();
-  const i = line.findIndex((e) => e.at <= now);
-  if (i < 0) { schedule(Math.max(0, Math.min(...line.map((e) => e.at)) - now)); return; }
+  // BUNNYFALL ASK-FIRST: only a page asked for (or asked for by name) is offered; the rest wait behind the ?
+  const askable = line.filter((e) => e.forced || e.asked);
+  if (!askable.length) { drawAsk(); return; }
+  const i = line.findIndex((e) => (e.forced || e.asked) && e.at <= now);
+  if (i < 0) { schedule(Math.max(0, Math.min(...askable.map((e) => e.at)) - now)); return; }
   if (i > 0) line.unshift(...line.splice(i, 1));   // a page that is due goes before one still held back
   if (deps.held()) { schedule(RETRY_MS); return; }   // the menu stands: the page waits for it, and costs no retry
   const entry = line[0];
@@ -216,6 +290,7 @@ function offer() {
   ensureStyle();
   line.shift();
   current = { entry, box };
+  drawAsk();
   let taken = false;
   try { taken = !!deps.mount(box); } catch (e) { console.warn('[tutorial] a host refused the page', e); }
   if (taken) { watchPresses(); watch(); return; }
@@ -280,6 +355,7 @@ export const tutorialLine = () => ({ waiting: line.map((e) => [...e.ids]), showi
 /** Drop everything waiting (the popups turned off, a new game). A box on screen stays until it is put away. */
 export function clearTutorialLine() {
   line.length = 0;
+  drawAsk();
   if (timer != null) { deps.clearTimeout(timer); timer = null; }
   if (watchTimer != null) { deps.clearTimeout(watchTimer); watchTimer = null; }
   timerAt = Infinity;

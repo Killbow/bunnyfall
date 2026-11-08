@@ -243,6 +243,12 @@ export const DEFAULT_SERVER = selfRelayUrl();   // BUNNYFALL: this copy's own re
 // last pose; SLAM8/13 pin the ratio (a standing peer is heard at least three times before it could vanish), and a
 // literal here went quietly wrong the day the heartbeat moved. Four heartbeats, the margin the 20000/5000 pair had.
 export const PEER_TIMEOUT_MS = 4 * HEARTBEAT_MS;
+/** BUNNYFALL (2026-11-05, the owner: "make sure the player is not despawned at all when playing bardic music for the other
+ *  people"): A BARD PERFORMING (`bp`) is said every BARD_HEARTBEAT_MS while they play, and a bard last seen performing
+ *  stays drawn for BARD_TIMEOUT_MS of silence - a song outlasts PEER_TIMEOUT_MS, and the audience lost the bard until the
+ *  tune ended. A bard who leaves the room is still gone at once: a leave is its own word, not a silence. */
+export const BARD_HEARTBEAT_MS = 5000;
+export const BARD_TIMEOUT_MS = 15 * 60 * 1000;
 /** WILD1: how long a fallen player's room still carries a directed wild frame to them - the zone's body lies two
  *  minutes (systems/wild/wildZone.js WILD_DEATH_HOLD_S), with a margin for the clocks. */
 export const WILD_GHOST_MS = 150_000;
@@ -2627,7 +2633,8 @@ export class OnlineSession {
     if (!refereed && this._ws && this._rfOn.get(this._ws)) refereed = true;
     if (!refereed) for (const h of this._halo.values()) if (h.ws && this._rfOn.get(h.ws)) { refereed = true; break; }
     const aloneQuiet = !refereed && this.othersHere === 0 && this.peers.size === 0 && (isCellRoom(this.room) || isWorldRoom(this.room));   // HIBERNATE: a cell, a building or an ordinary dungeon with nobody else sends no standing pose; a boss room, a battle and a refereed cell still do; a peer in a halo still hears my heartbeat (peers holds every room's)
-    if (!poseChanged(this._lastSent, pose) && (now - this._lastSentAt < HEARTBEAT_MS || aloneQuiet)) return false;
+    const beat = pose?.bp === 1 ? BARD_HEARTBEAT_MS : HEARTBEAT_MS;   // BUNNYFALL: a bard performing is said more often
+    if (!poseChanged(this._lastSent, pose) && (now - this._lastSentAt < beat || aloneQuiet)) return false;
     // WORLD6b-iii(b): the halo rooms hear my pose too - their fans range me by it and their rosters place me - each when it
     // is due (HALO-THIN, haloPoseDue); AUDIT WORLD6b-iii(b) A5: through every OPEN socket, my own cell's down or not (the
     // halos rode out nothing while the fan sat behind the primary's send), and then whole
@@ -4508,7 +4515,7 @@ export class OnlineSession {
   /** Is a peer one to draw: a pose, seen within PEER_TIMEOUT_MS, and
    *  (a world cell) within the relay's range of the player. */
   visible(p, now = this._now()) {
-    if (!p.shown || now - p.seenAt > PEER_TIMEOUT_MS) return false;
+    if (!p.shown || now - p.seenAt > (p.shown.bp === 1 ? BARD_TIMEOUT_MS : PEER_TIMEOUT_MS)) return false;   // BUNNYFALL: a bard performing is never timed out mid-song
     return inRange(this.room, this._pose, p.shown);
   }
 

@@ -116,6 +116,16 @@ export const EFFECT_COST_TABLE = Object.freeze({
   '52,255': row(SKILLS.Alteration, { duration: costs(60, 60) }),                            // Wall of Earth
   '53,255': row(SKILLS.Illusion, { duration: costs(40, 60) }),                              // Decoy - Chameleon's kin
   '54,255': row(SKILLS.Thaumaturgy, { duration: costs(60, 60) }),                           // Gravity Well
+  // CHEB'S NECROMANCY (systems/necromancy/necroLaw.js): the mod's config, Chance and Magnitude Costs A, B and Offset
+  '55,255': row(SKILLS.Mysticism, { chance: costs(1, 10, 10) }),                                                // Recall Minions
+  '56,255': row(SKILLS.Mysticism, { chance: costs(1, 10, 10), magnitude: costs(1, 10, 10) }),                   // Summon Skeleton
+  '57,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 10), magnitude: costs(10, 100, 500) }),              // Summon Zombie
+  '58,255': row(SKILLS.Mysticism, { chance: costs(3, 6, 10), magnitude: costs(10, 100, 100) }),                 // Summon Ghost
+  '59,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 50), magnitude: costs(10, 100, 50) }),               // Summon Mummy
+  '60,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 10), magnitude: costs(10, 100, 500) }),              // Summon Vampire
+  '61,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 100), magnitude: costs(10, 100, 100) }),             // Summon Lich
+  '62,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 250), magnitude: costs(10, 100, 250) }),             // Summon Ancient Vampire
+  '63,255': row(SKILLS.Mysticism, { chance: costs(10, 100, 500), magnitude: costs(10, 100, 500) }),             // Summon Ancient Lich
   '44,255': row(SKILLS.Mysticism, { duration: costs(60, 68), chance: costs(40, 68) }),      // ComprehendLanguages
 
   // ---- Restoration ----

@@ -213,6 +213,13 @@ export const concealmentFlags = (en) => ({
  *  blending, 4 a shade; 0 (omitted) for none. The sender packs its own entity's; a reader unpacks a peer's for the
  *  foes' senses (a peer candidate's concealment() closure) and for the draw. */
 export const concealBits = (en) => (isInvisible(en) ? 1 : 0) | (isBlending(en) ? 2 : 0) | (isAShade(en) ? 4 : 0);
+/** BUNNYFALL (2026-11-06, "Casting Decoy makes 3rd person sprite disappear"): HOW ONE LOOKS, apart from how the foes sense
+ *  one. A Decoy loses its caster to the foes as blending does (isBlending, the senses' flag), but the caster is not
+ *  chameleon-skinned - the double is the trick, not the body. The draw (my own body, my pose's `cv` that the others draw
+ *  me by) reads these: Chameleon alone blends the look. */
+export const looksBlending = (en) => hasActiveEffect(en, 'chameleonNormal') || hasActiveEffect(en, 'chameleonTrue');
+export const lookConcealmentFlags = (en) => ({ invisible: isInvisible(en), blending: looksBlending(en), shade: isAShade(en) });
+export const lookConcealBits = (en) => (isInvisible(en) ? 1 : 0) | (looksBlending(en) ? 2 : 0) | (isAShade(en) ? 4 : 0);
 export const concealFlagsOfBits = (bits) => ({ invisible: !!(bits & 1), blending: !!(bits & 2), shade: !!(bits & 4) });
 
 /**
@@ -270,6 +277,7 @@ export const MAGIC_ONLY_KEYS = new Set([
   '43,255', '44,255',
   '46,255',   // PARTY-MAP: Shared Cartography, the port's own - a self-buff, Magic as every buff here
   '49,255', '50,255', '51,255', '52,255', '53,255', '54,255',   // BUNNY-SPELLS: the buffs and the places, Magic as every buff here
+  '55,255', '56,255', '57,255', '58,255', '59,255', '60,255', '61,255', '62,255', '63,255',   // CHEB'S NECROMANCY: ElementFlags_MagicOnly (ChebEffect.cs)
 ]);
 
 /** THE BUFF LANDING ALERTS - every line DFU speaks on the frame a

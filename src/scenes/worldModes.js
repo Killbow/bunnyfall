@@ -21,6 +21,8 @@
 //      stay valid for the exit landing math.
 //   baseCollider() - the collider to restore on exit.
 
+import { readableTargets, readableName, readReadable } from './editorReadables.js';   // BUNNYFALL
+import { nextPersonLine } from '../world/editorPeople.js';   // BUNNYFALL: the Dungeon Editor's people
 import { cromwarkDoor, cromwarkTownText } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL (Cromwark): the reach's desolate doors
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { markInteriorLoad } from '../ui/interiorLoadMark.js';   // a building's load is a ring over the hotbar, not the full screen
@@ -31,7 +33,8 @@ import { privateInteriorOf, privateInteriorMatches } from '../net/privateInterio
 import { iilActive, iilInteriorLights, iilDungeonLights, iilTorch, iilSyncLane } from '../systems/improvedInteriorLighting.js';   // IIL1: Improved Interior Lighting on the classic lane
 import { resurrectionSpell } from '../systems/resurrect.js';   // RESURRECT1
 import { sharedCartographySpell } from '../systems/party/partyMap.js';   // PARTY-MAP
-import { bunnySpells } from '../systems/spell/bunnySpells.js';   // BUNNY-SPELLS: Bunnyfall's own, on the shelf online
+import { bunnySpells } from '../systems/spell/bunnySpells.js';
+import { necroSpells } from '../systems/necromancy/necromancy.js';   // CHEB'S NECROMANCY   // BUNNY-SPELLS: Bunnyfall's own, on the shelf online
 import { signatureOffers } from '../systems/signatureSpells.js';   // SCHOOLS3: a path's signature spell on the Buy Spells shelf
 import { isOnlinePage } from '../systems/online/onlineLane.js';   // RESURRECT1: the shelf's online arm
 import { horseCareRules } from '../systems/upkeep/upkeepSwitch.js';   // STEED1: a Stable prices its horses by what they are while horses are cared for (HORSE-TIERS: any tier but Off, through the one accessor)
@@ -2612,7 +2615,7 @@ export function createWorldModes(host) {
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
    *  the plaque, the Info click and the talk door ask it before StaticNPC.DisplayName, so the three never disagree. */
-  const officeName = (pn) => arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null) ?? (pn?.bunnyClerk ? bunnyClerkName(pn.bunnyClerk) : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
+  const officeName = (pn) => (pn?.editorPerson?.name || null) ?? arenaGatePersonName(pn) ?? (pn?.arenaRole ? ARENA_TEXT.undercroft.names[pn.arenaRole] ?? null : null) ?? (pn?.lamp ? LAMP_TEXT.name() : null) ?? (pn?.witch ? vendorOffice() : null) ?? (pn?.bunnyClerk ? bunnyClerkName(pn.bunnyClerk) : null);   // ARENA-FIX 4: the undercroft's people with an office; LAMP-KEEPER II: a keeper standing as the lamp is the Lamp; WITCH1: a Wyrd Sister
   /** FIELD BUGS 2026-10-11g QUEST-NAME ("Quest NPCs are inactive": "not being able to interact with the quest NPCs"): a
    *  quest PERSON stand named on World Tooltips' plaque as the room's own people are. The mod asks its StaticNPC arm
    *  (Modded_HUDTooltipWindow.cs:325-393, `ret = npc.DisplayName`) before its quest-resource arm, and AddQuestNPC gives a
@@ -4404,7 +4407,17 @@ export function createWorldModes(host) {
     if (!info && pn?.arenaRole === 'hallKeeper' && host.arenaHall?.()) return;   // ARENA4b: online she reads the realm's wall (scenes/arena/arenaGate.js hall)
     if (!info && pn?.arenaRole === 'hallKeeper') { townTalk?.showOverlay?.(new ActionTextBox(hallOfChampions(playerEntity.arenaLadder, playerEntity.name || 'You', rosterGrandChampions(playerEntity.arenaLeague, Math.floor(worldMinutes()))))); return; }   // ARENA3: and the banners' Grand Champions this save has seen
     Promise.resolve(townTalk?.ensureFactions?.())
-      .then(() => (info ? presentNpcInfo(pn) : openStaticNpc(pn))).catch(() => {});
+      .then(() => (info ? presentNpcInfo(pn) : (editorPersonSays(pn) || openStaticNpc(pn)))).catch(() => {});
+  }
+
+  /** BUNNYFALL: a person with words from the Dungeon Editor says the next one (world/editorPeople.js), as a POI's person
+   *  does (scenes/poiNpcs.js). A quest's person is the quest's first; one with no lines talks as Daggerfall's people do. */
+  function editorPersonSays(pn) {
+    if (pn.questBehaviour) return false;
+    const line = nextPersonLine(pn);
+    if (line == null) return false;
+    townTalk?.say?.(`${officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)))}: ${line}`);
+    return true;
   }
 
   /** PresentNPCInfo (PlayerActivate.cs:1484-1499): one HUD line,
@@ -6762,7 +6775,7 @@ export function createWorldModes(host) {
         spells: () => (playerEntity.spells ??= []),
         entity: playerEntity,
         castCost: (sp) => calculateCastCost(sp, playerEntity).sp,
-        offered: () => [...sbi.values(), ...(isOnlinePage() ? [resurrectionSpell(), sharedCartographySpell(), ...bunnySpells()] : []), ...signatureOffers(playerEntity)],   // RESURRECT1: online, the ready-made Resurrection is on the shelf; PARTY-MAP: and Shared Cartography beside it; SCHOOLS3: and my awake path's signature spell, to me alone
+        offered: () => [...sbi.values(), ...(isOnlinePage() ? [resurrectionSpell(), sharedCartographySpell(), ...bunnySpells()] : []), ...necroSpells(), ...signatureOffers(playerEntity)],   // CHEB'S NECROMANCY: the mod's ready-made spells, on every counter (its SpellsForSale offers)   // RESURRECT1: online, the ready-made Resurrection is on the shelf; PARTY-MAP: and Shared Cartography beside it; SCHOOLS3: and my awake path's signature spell, to me alone
         buildingQuality: () => b?.quality ?? 0,
         priceFactor: () => bookFactor,   // CHAP3c: the hall's chapter's band on a spell's price
         shopName: () => b?.name ?? '',
@@ -9980,6 +9993,9 @@ export function createWorldModes(host) {
       // rays: StaticNPCActivationDistance (:87) into activateStaticNpc,
       // which carries the Info/PresentNPCInfo split.
       ctx.addActivationTargets(() => (ctx.npcTargets?.() ?? []).map((pn, i) => ({ key: `person:${i}`, aabb: personAabb(pn), distance: STATIC_NPC_ACTIVATION_DISTANCE })));
+      // BUNNYFALL: the flats the Dungeon Editor gave words (scenes/editorReadables.js)
+      ctx.addActivationTargets(() => readableTargets(ctx.editorReadables ?? [], RAY_DISTANCE, DEFAULT_ACTIVATION_DISTANCE));
+      ctx.addActivationNamer((key) => readableName(ctx.editorReadables ?? [], key));
       // WORLD-HOVER: and the WORDS for the same three families, beside
       // the targets. Both halves of a family stay together, because a
       // family nobody stands is a family nobody should name - the
@@ -10272,6 +10288,7 @@ export function createWorldModes(host) {
       return true;
     }
     // ...and the NPC arm ENDS the activation, as the other two rays' do.
+    if (readReadable(dungeonCtx.editorReadables ?? [], key, (line) => townTalk?.say?.(line))) return true;   // BUNNYFALL
     if (key.startsWith('person:')) {
       activateStaticNpc((dungeonCtx.npcTargets?.() ?? [])[Number(key.split(':')[1])]);   // WORLD-HOVER: the `person:` index is the registered producer's, so the handler reads THAT list - a second local copy is how the two drift
       return true;

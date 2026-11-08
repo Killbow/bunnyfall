@@ -17,6 +17,8 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   into `bootWorld`, `createWorldModes`, `buildDungeonContext`, `bootExterior` and the other hosts listed there.
 - **New account-service route**: add it to `ROUTES` in `server-account/src/service.js` as well as the handler in
   `index.js`, or the service answers `not-found`. Check with `node tools/routesCheck.mjs` (see `docs/GUIDE.md`).
+- **Changelog**: a change players will notice gets a plain-words line in `CHANGELOG.md` (newest day first). Each desktop
+  release's patch notes are the lines added since the previous release (`scripts/changelogNotes.mjs`).
 - **Before a push**: lint on the changed files and `npm run build`. There is no CI and no test suite: the old one was
   upstream's and was removed. Check a change by reading it and, when it matters, trying it in the game.
 - **Content switched off** (Phase 2) lives in `src/systems/contentOff.js`: one list the client and the relay both read.
@@ -27,5 +29,5 @@ Live at https://dagg.campfirerp.com, served from the owner's Linux box with Dock
   its authors to `src/ui/credits.js`.
 - **Names** (Phase 3): `src/systems/names.js`. Strangers say title + last name, NPCs who like you your first name;
   `src/ui/namePicker.js` asks a character without them once, in the world.
-- **Credits stay.** Keep `LICENSE` (MIT notices for DFO Online and Daggerfall Unity) and the authors in
-  `src/ui/credits.js` and `vendor/`.
+- **Credits stay.** Keep `LICENSE` (AGPLv3 license for Bunnyfall changes) and `LICENSE.VENDORS` (MIT notices for
+  original DFO Online repo and Daggerfall Unity) and the authors in `src/ui/credits.js` and `vendor/`.

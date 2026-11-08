@@ -172,7 +172,13 @@ export function setItemFields(item) {
  *  READ. DFU's `item.value` is always an int; the port's can be absent (an item saved before MAC-N1 set every minter)
  *  or, worse, NaN (a sum over an absent term), and `??` lets NaN through. A value that is not a finite number is no
  *  value: the template's base price answers, as SetItem's own write does. Every price arm reads through here. */
-export const itemValueOf = (item) => (Number.isFinite(item?.value) ? item.value : itemBaseValue(item ?? {}));
+/** BUNNYFALL: an item kind whose worth is its own law's, not the number it was minted with (a spell scroll's -
+ *  scrolls/spellScrolls.js, repriced 2026-11-05 so the ones already in packs follow the new prices). `fn(item)` answers
+ *  the worth, or null for an item it does not price. */
+const _valueLaws = new Map();
+export function registerValueLaw(name, fn) { if (typeof fn === 'function') _valueLaws.set(name, fn); else _valueLaws.delete(name); }
+const lawValue = (item) => { for (const fn of _valueLaws.values()) { const v = fn(item); if (Number.isFinite(v)) return v; } return null; };
+export const itemValueOf = (item) => (_valueLaws.size && lawValue(item)) ?? (Number.isFinite(item?.value) ? item.value : itemBaseValue(item ?? {}));
 
 // ---- AUDIT 17e F9: GetItemImage's INVENTORY branch, verbatim ----
 // (ItemHelper.cs:399-430 + DaggerfallUnityItem.GetInventoryTexture*
