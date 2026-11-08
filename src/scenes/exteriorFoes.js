@@ -2648,11 +2648,10 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     puppetOf: (from, i) => _pupIndex.get(pupKey(from, i)) ?? null, ownBody: (i) => foes.find((x) => !x.puppet && !_questLike(x) && x.seq === i) ?? null,
     peerCandidate, foesSeq: () => _foesSeq, takeRange: CORPSE_TAKE_RANGE, leapSlack: PUPPET_LEAP_SLACK,
   });
-  /** AUDIT CC-E1: the other clients' bodies a foe of mine may fight - my companion, their foes; a hostile foe of mine,
-   *  their companions. Every other puppet stays out of my hunt, as it was (the place's own candidates decide). */
+  /** Remote targets `f` may fight: local allies target peers' enemies; local enemies target peers' companions. */
   function coopCandidates(f) {
     if (!_pupIndex.size) return [];
-    const mine = f.companion != null;
+    const mine = f.companion != null || f.entity?.team === 'PlayerAlly';
     if (!mine && (f.entity?.team === 'PlayerAlly' || !f.ai?.isHostile)) return [];
     const out = [];
     for (const p of _pupIndex.values()) {
