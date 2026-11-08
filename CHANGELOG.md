@@ -5,6 +5,11 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-07
 
+- Your raised dead, companions, crew, and allied guards now remember how to aim outside dungeons, hitting enemies outdoors and inside buildings instead of firing politely through them.
+- Fixed: Allied spells now land on enemies in interiors or while in the overworld.
+- Fixed: Your allies' spells no longer have a chance to hit you or your other allies.
+- Fixed: Your allies' spells and melee attacks now land on enemies owned by other players.
+- Fixed: Other players' summoned creatures are now recognized as allies instead of hostile enemies, so your minions and summons fight real enemies instead of each other.
 - Fixed: other players' custom paperdolls were not drawn in the world. The server now tells everyone whose skin is whose (this needs the server updated).
 - Fixed: your own custom paperdoll sometimes did not show on your character in the world (the desktop app most often), while it showed in the inventory.
 - You can keep up to 15 custom paperdolls per account now.
