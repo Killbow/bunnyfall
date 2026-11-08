@@ -1840,7 +1840,12 @@ export function applySpell(spell, casterLevel, target, sinks, rolls = Math.rando
           // it, which is this port's `manager.EntityBehaviour ==
           // PlayerEntityBehaviour`.
           const msg = BUFF_START_TEXT[kind];
-          if (msg) sinks?.say?.(msg);
+          // DFU speaks a concealment's landing alert only when the effect sits on the PLAYER entity (manager.EntityBehaviour
+          // == PlayerEntityBehaviour). The foe sink routes say -> hudText.add, the SAME channel as the player's own, so an
+          // enemy self-casting Chameleon would tell YOU "You are blending." - which is this port's bug. Gate it on the target
+          // being the player: only the bearer of a NEW incumbency hears its own concealment (an ally or foe never does). The
+          // "Blending!" word over that foe's head is shown separately by applySpellToFoe, which reads the newly-live incumbent.
+          if (msg && target?.isPlayer) sinks?.say?.(msg);
         }
         out.buffs = (out.buffs ?? 0) + 1;
       }

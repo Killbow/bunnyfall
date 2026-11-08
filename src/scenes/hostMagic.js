@@ -54,7 +54,7 @@ import '../systems/firmamentPowers.js';   // FIRM1: what the Firmament DOES, reg
 import { createBunnySpellEngine } from './bunnySpellEngine.js';   // BUNNY-SPELLS: Bunnyfall's own effects in the scene
 import { RESCUE_TYPE, spellHas } from '../systems/spell/bunnySpellLaw.js';   // BUNNY-SPELLS
 import { setClairvoyanceProbe } from '../systems/spell/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance's probe
-import { applySpell, spellReflectedText, hasActiveEffect, isSoulTrapEffect, spellSways } from '../systems/effects.js';   // WBX7: a soul trap meets the court's boss too
+import { applySpell, spellReflectedText, hasActiveEffect, looksBlending, isSoulTrapEffect, spellSways } from '../systems/effects.js';   // WBX7: a soul trap meets the court's boss too; BLENDING: read a foe's live Chameleon to show "Blending!" over its head
 import { spellToFoeOwner } from '../systems/enchantments.js';   // RPT1026-FIGHTS (TRAP-TO-OWNER): the session's door to a foe another player runs
 import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { potionBundle } from '../systems/potions.js';   // U44: DrinkPotion's bundle
@@ -874,6 +874,10 @@ export function createPlayerMagic({
     const _foePos = foe?.ai?.feet ? [foe.ai.feet[0], foe.ai.feet[1] + (foe.ai.height ?? CAPSULE_HEIGHT), foe.ai.feet[2]] : null;
     const _foeId = foe?.uid ?? foe?.seq ?? foe?.entity?.id ?? null;
     if (_foePos) {
+      // BLENDING: a foe's own Chameleon (self-cast) now hides it - the player must NOT get "You are blending." (that line is
+      // suppressed in effects.js sinks.say for a non-player target), so this is its only sign. A caster-only spell on a foe, so
+      // it floats over THAT foe's head and broadcasts to every player like the other status words.
+      if (looksBlending(foe.entity)) { showFoeWord('word', STATUS_WORDS.blending, { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', STATUS_WORDS.blending, _foePos); }
       // SILENCED: the result flag, or a newly-live silence now on the foe's effects.
       if (r.silenced || hasActiveEffect(foe.entity, 'silenced')) { showFoeWord('word', STATUS_WORDS.silenced, { position: _foePos }); broadcastFoeIndicator(_foeId, 'word', STATUS_WORDS.silenced, _foePos); }
       // PARALYZED: the result flag, or a newly-live paralyze now on the foe's effects.

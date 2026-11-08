@@ -48,6 +48,7 @@ export const STATUS_WORDS = Object.freeze({
   paralyze: 'Paralyzed!',
   pacify: 'Pacified!',   // SF1/B (agent B extends): a Pacify/Charm that stops the foe fighting reads as a status word over its head
   saved: 'Saved!',        // SF1/B2: a direct-damage effect whose saving throw rolled to 0% - nothing landed
+  blending: 'Blending!',  // BLENDING: a foe's own Chameleon self-cast now hides it; the player never hears "You are blending." (suppressed), so this word over its head is the only sign
 });
 
 /** The spell-damage kinds a caster-only number may show. */
