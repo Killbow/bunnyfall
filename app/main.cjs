@@ -1447,7 +1447,7 @@ const LAUNCHER_LINKS = Object.freeze({
   steam: 'https://store.steampowered.com/app/1812390/',
   gog: 'https://www.gog.com/game/the_elder_scrolls_chapter_ii_daggerfall',
   site: 'https://dagg.campfirerp.com/',
-  discord: 'https://discord.gg/jM2JdwSM8w',
+  discord: 'https://discord.gg/67SutBvbvV',
   // the landing page's own link for the game files a Mac player can get (L5-3)
   zip: 'https://forums.dfworkshop.net/viewtopic.php?t=2360',
 });
