@@ -831,11 +831,25 @@ export function createRealmSession({
       const r = await realmWedHalf(io, id, lease, sid, partner, partnerChar, opts);
       return r.ok ? { ok: true, wed: r.data?.wed === true, union: r.data?.union ?? null } : { ok: false, error: r.error };
     },
-    /** The session's end: what is waiting is sent first (unless the page is going - `keepalive` sends the leave alone,
-     *  which a browser can finish after the page is gone), then the lease given up. */
+    /** The session's end: what is waiting is sent first (unless the page is going - `keepalive` sends it and the leave,
+     *  which a browser can finish after the page is gone), then the lease given up.
+     *
+     * SAVE-ON-CLOSE (2026-11-08): whatever never reached the realm while playing was left to the device's copy alone on a
+     * close, and a copy only ever replays if it equals what the realm holds - so a hard exit, the Exit button or the
+     * window's close undid every minute since the last landed checkpoint (up to ONLINE_CHECKPOINT_MS). Now `leave` sends
+     * ONE FINAL CHECKPOINT of the newest save (`latest`, whatever was handed most recently and is still waiting) with
+     * keepalive before it gives up the lease, so the realm gets that save on a close too - not the device's copy of it.
+     * The put rides ahead of the leave: if it lands, the realm holds the newest save; if the page goes first, the keepalive
+     * finishes it and the next join reads it straight from the realm, no restore needed. Nothing is awaited here (a close may
+     * not wait), so a large save never blocks the going - the browser sends both with keepalive. `keepNow` still runs too:
+     * a copy on the device costs nothing and covers a page that cannot finish even a keepalive put. */
     async leave({ keepalive = false } = {}) {
       if (lost) return { ok: false, error: lost };
       if (!keepalive) { if (running) await running; if (pending) await session.checkpoint(pending.text, pending.summary); }
+      // SAVE-ON-CLOSE: send the newest save to the realm before the lease goes - only when there is one still waiting, and
+      // with keepalive so a going page can finish it after itself. A checkpoint of nothing new (nothing queued or in flight)
+      // is skipped; an already-landed save needs no final put.
+      if (keepalive && !running && pending) await session.checkpoint(pending.text, pending.summary);
       keepNow();   // RESCUE-SAVE: whatever never landed is on the device before the lease goes
       lost = 'left';
       return realmLeave(io, id, lease, { keepalive });

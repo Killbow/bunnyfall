@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-08
+
+- Playing online, your progress is now saved to the realm when you leave - closing the window, force-exiting or pressing Exit. Nothing since your last save is lost any more on a hard exit (previously up to five minutes of play could be undone).
+
 ## 2026-11-07
 
 - Your raised dead, companions, crew, and allied guards now remember how to aim outside dungeons, hitting enemies outdoors and inside buildings instead of firing politely through them.
@@ -64,6 +68,10 @@ the last release (scripts/changelogNotes.mjs).
 - Stuck in the Cromwark reach? /unstuck now works there, after a short wait.
 - Respawning in the Cromwark reach takes as long as anywhere else.
 - Nyx's title shop counts your coins correctly.
+
+## 2026-11-08
+
+- Playing online, your progress is now saved to the realm when you leave - closing the window, force-exiting or pressing Exit. Nothing since your last save is lost any more on a hard exit (previously up to five minutes of play could be undone).
 
 ## 2026-11-07
 
