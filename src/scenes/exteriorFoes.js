@@ -73,6 +73,7 @@ import { FOES_MS } from '../net/online.js';   // AUDIT ALL B2: the watchman move
 import { applyChampion, rollStreetChampion, championIndex, championName, properName } from '../systems/champions.js';   // LOOT7: the street's champions
 import { wildHere, wildRing, wildZoneKind, applyWildFoe, wildLootOpts, wildGiantSize, WILD_GIANT, WILD_GIANT_HEALTH_MULT, WILD_GIANT_DAMAGE_MULT } from '../systems/wild/wildZone.js';   // WILD1: the open zone's foes
 import { lootCrown } from './lootLines.js';   // LOOT11: a body's line of light
+import { allySpellHit } from './allySpellHit.js';
 import { validFoeRecord, LIVING_ID_RE, REVENANT_NAME_MAX, CELL_PUPPETS_MAX, CELL_WATCH_PUPPETS_MAX, CELL_FRAME_RECORDS_MAX, FOE_SEQ_MAX, POSE_BOUND, POSE_Y_BOUND, tokenGate, FOE_HEALTH_MAX, hitPoisonOf, hitSpellOf, hitSpellFields, HIT_ARROWS_MAX, hitClassField, hitClassOf, wallMsForClassicMinutes } from '../net/wire.js';   // STRIKE-SHARED: a strike spell rides the hit
 import { blowWire, blowWireKey, applyBlowRecord, puppetBlowTurn, puppetGapLanded, blowClassOf } from '../ai/puppetBlows.js';   // TELL8: a wind-up on the wire - the owner's word, the puppet's state, each judging its own feet, a blow's class
 /** TELL8: a puppet with no wind-up state: nothing held, nothing staggered. */
@@ -631,6 +632,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // struck. (The audit lane's F041 pin caught exactly this on the
       // merge - the two laws meet here.)
       f.hurtFromFoe = (dmg, dir, striker = null) => damageFoe(f, dmg, null, dir ?? null, { fromPlayer: false, striker });   // AUDIT CC-E1: and whose blow
+      f.spellFromAlly = (ally, record, level) => { const hit = foes.includes(f) && f.mobileType !== KNIGHT_CITYWATCH_ID && _net?.onPeerHit ? allySpellHit(f, ally, record, level, _owners.get(f.puppet)?.k ?? _net.room?.() ?? null) : null; if (hit) _net.onPeerHit(hit); return !!hit; };   // Forward a local ally's spell hit on a remote foe to its owner; city watchmen ignore peer spells.
       // A5 - SetupDemoEnemy.cs:191-195: "Add special behaviour for
       // Daedra Seducer mobiles", gated on the mobile ID and nothing
       // else. RandomEncounters lists the seducer in five outdoor
@@ -963,7 +965,9 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // WORLD6b: a PUPPET takes no damage here - the blow goes to its owner as a hit (the owner's door applies it and
     // the owner's next frame says so); the striker's own ring, blood and pain played before this door, as ever
     if (f.puppet) {
-      if (!fromPlayer && striker && !striker.puppet && !striker.dead && (striker.companion != null || f.companion != null)) {
+      // Forwards melee hits from any local ally to the foe's owner
+      const allyBlow = !!striker && (striker.companion != null || (striker.entity?.team === 'PlayerAlly' && striker.entity !== playerEntity && f.entity?.team !== 'PlayerAlly'));
+      if (!fromPlayer && striker && !striker.puppet && !striker.dead && (allyBlow || f.companion != null)) {
         // AUDIT CC-E1 (Mac: "Full co-op combat now"): the companions' fights cross the clients. MY companion's blow on
         // another's foe goes to its owner as an ALLY's (`al`, `ac` his number - the owner's foe turns on him, no blow of
         // mine); a foe of mine mauling ANOTHER's companion sends the blow to the companion's owner (`fb`, `sf` the
@@ -971,7 +975,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         const hit = { to: f.puppet, k: _owners.get(f.puppet)?.k ?? _net?.room?.() ?? null, i: f.seq, dmg: Math.max(0, Math.round(Number(damage) || 0)), kind,
           ...(knockDir ? { d: [q3(knockDir[0]), q3(knockDir[1]), q3(knockDir[2])] } : {}) };
         if (f.companion != null) _net?.onPeerHit?.({ ...hit, fb: 1, ...(striker.seq != null ? { sf: striker.seq } : {}) });
-        else if (striker.companion != null) _net?.onPeerHit?.({ ...hit, al: 1, ...(striker.seq != null ? { ac: striker.seq } : {}) });
+        else if (allyBlow) _net?.onPeerHit?.({ ...hit, al: 1, ...(striker.seq != null ? { ac: striker.seq } : {}) });
         return;
       }
       // AUDIT WORLD6b B1: THE DIVERT HAS THE DUNGEON DOOR'S PROVENANCE GATE - only this PLAYER's own blow goes to the
@@ -2625,7 +2629,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const cz = campTagsOf(out, (r) => src.get(r));   // OW6: a camp's members, by number, camp and kind - a reader marks the camp on its Overworld, an heir takes it as one
     const al = out.filter((r) => r.t === KNIGHT_CITYWATCH_ID && r.d !== 1 && src.get(r)?.defender).map((r) => r.i);   // RAID2: the watchmen who are MY allies (DISC19-F's defenders, a raid's among them) - a reader stands them as its allies, where a watch record carried no team
     const cw = out.filter((r) => r.d !== 1 && isShipmate(src.get(r))).map((r) => r.i);
-    const rf = out.filter((r) => r.d !== 1 && src.get(r)?.refugee).map((r) => r.i);   // RAID5: a raid's refugees, my allies - a reader stands them as its own
+    const rf = out.filter((r) => { const f = src.get(r); return r.d !== 1 && (f?.refugee || (f?.entity?.team === 'PlayerAlly' && f.companion == null && !isShipmate(f))); }).map((r) => r.i);   // Includes raid refugees and summons so other clients treat them as allies instead of hostile enemies
     const mates = out.filter((r) => r.d !== 1 && src.get(r)?.companion != null);
     const cp = mates.map((r) => r.i);   // AUDIT CC-E1: my companions, by number - a reader marks them so its foes may fight them
     const cn = mates.map((r) => src.get(r)?.entity?.name ?? '');   // AUDIT WK-U3: and their names, in that order   // SHIPMATES: my crew on a deck (combat/friendlyFire.js) - a reader stands them as its allies and its own harm passes them by
@@ -2644,16 +2648,15 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     puppetOf: (from, i) => _pupIndex.get(pupKey(from, i)) ?? null, ownBody: (i) => foes.find((x) => !x.puppet && !_questLike(x) && x.seq === i) ?? null,
     peerCandidate, foesSeq: () => _foesSeq, takeRange: CORPSE_TAKE_RANGE, leapSlack: PUPPET_LEAP_SLACK,
   });
-  /** AUDIT CC-E1: the other clients' bodies a foe of mine may fight - my companion, their foes; a hostile foe of mine,
-   *  their companions. Every other puppet stays out of my hunt, as it was (the place's own candidates decide). */
+  /** Remote targets `f` may fight: local allies target peers' enemies; local enemies target peers' companions. */
   function coopCandidates(f) {
     if (!_pupIndex.size) return [];
-    const mine = f.companion != null;
+    const mine = f.companion != null || f.entity?.team === 'PlayerAlly';
     if (!mine && (f.entity?.team === 'PlayerAlly' || !f.ai?.isHostile)) return [];
     const out = [];
     for (const p of _pupIndex.values()) {
       if (p.dead || !p.ai) continue;
-      if (mine ? p.companion == null && !p.shipmate : p.companion != null) out.push(p);
+      if (mine ? p.companion == null && !p.shipmate && p.entity?.team !== 'PlayerAlly' : p.companion != null) out.push(p);
     }
     return out;
   }
