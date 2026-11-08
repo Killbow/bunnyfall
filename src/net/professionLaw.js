@@ -1042,7 +1042,7 @@ export const SMELT_RECIPES = Object.freeze([
   ingot('ingot:adamantium', [['ore:adamantium', 2]]),
   ingot('ingot:ebony', [['ore:ebony', 2]]),
   ingot('ingot:orichalcum', [['ore:orichalcum', 2]]),
-  ingot('ingot:daedric', [['ingot:ebony', 1], [DAEDRA_HEART.key, 1, true]], { embers: DAEDRIC_EMBERS }),
+  ingot('ingot:daedric', [['ingot:ebony', 1], [DAEDRA_HEART.key, 1, true]]),
 ]);
 /** PROF4 (PROF0 4.2, 25): a log burns to a Charcoal at a forge (a Charcoal Burner's two); a log saws to two planks of its
  *  wood at a workbench (a Timberwright's three). No XP. */

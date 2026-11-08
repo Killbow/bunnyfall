@@ -6028,7 +6028,7 @@ prof.page.forge.away,"Smelting is done at a forge: a Weaponsmith’s or an Armor
 prof.page.forge.burn,"Burn"
 prof.page.forge.burning,"Burning..."
 prof.page.forge.charcoal,"Steel needs Charcoal. Burn a log here to make it, or buy it from the smith."
-prof.page.forge.daedric,"A Daedric Ingot takes an Ebony Ingot, a Daedra’s Heart and a Deadlands Ember. Daedra you kill and Dagon’s Breaches give Hearts. Embers come from closing Breaches, killing Sea Serpents and taking Elite Breach Redoubts, and each one is spent from what your account has won."
+prof.page.forge.daedric,"A Daedric Ingot takes an Ebony Ingot and a Daedra’s Heart. Daedra you kill give Hearts."
 prof.page.forge.home,"Your forge."
 prof.page.forge.shop,"The smith’s forge: a tenth of what you smelt, at most {fee} gold."
 prof.page.forge.smelt,"Smelt"
