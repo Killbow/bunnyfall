@@ -352,6 +352,7 @@ import { NEW_VOICE_GAP_MS, SAFE_LAW_PATH } from './relay.js';   // SAFE6: a new 
 import { mintStamp, stampTabOf, PUBLIC_TABS } from '../../src/net/safety/chatStamp.js';   // SAFE2: the relay's stamp on every line it relays
 import { sealFeed, FEED_SIG_HEADER, FEED_BATCH, FEED_WAIT_MS, FEED_POST_MS } from '../../src/net/safety/chatFeed.js';   // SAFE5: the reviewer's feed
 import { flushAtDrain } from './drainWindows.js';   // COST-1: a drained room leaves nothing armed
+import { takeRestartOrder, sayRestartTo } from './restartNotice.js';   // BUNNYFALL: server restart warnings
 import { grantGate, grantModeOf, GRANT_MODES, GRANT_CFG_TTL_MS, validGrantAsk, grantMintGate, grantMarksFor, signGrant, grantBucketIdle, GRANT_TTL_MS, GRANT_SKEW_MS, GRANT_TALLY_MS, grantRenewed, grantCarried, grantHanded, grantSignedHere, GRANT_OPEN_KINDS, grantKindRolled, grantMarksAllow } from '../../src/net/grantLaw.js';   // GRANT2: the spawn grant's law (bible/11-Multiplayer/Spawn-Grants.md)
 import { newGrantMeasure, foldGrantAsk, foldGrantTally, grantMeasureBatch, sealGrantMeasure, GRANT_MEASURE_MS, GRANT_MEASURE_SIG_HEADER, GRANT_MEASURE_POST_MS, GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';   // GRANT2: and its measure, to the service
 import { validTune } from '../../src/net/bardTune.js';   // BARDS' COLLEGE: a bard's tune, counted before it is carried
@@ -609,7 +610,7 @@ async function lawDoor(request, env) {
   const order = body?.order;
   if (typeof order !== 'string' || !order || order.length > 1024) return json({ error: 'bad law' }, 400);
   const kind = lawKindOf(order);
-  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide' && kind !== 'sevent' && !STAFF_ORDER_KINDS.includes(kind)) return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE), staff cut (STAFF-PANEL2-FIX) a hidden mark's lapse (STAFF-PANEL5-HIDDEN, the hub's `hiddenLapse`), a freeze or a staff line's nudge (STAFF-PANEL5-FREEZE)
+  if (kind !== 'ban' && kind !== 'mute' && kind !== 'smsg' && kind !== 'staffcut' && kind !== 'hide' && kind !== 'sevent' && kind !== 'restart' && !STAFF_ORDER_KINDS.includes(kind)) return json({ error: 'bad law' }, 403);   // no verify spent on what is no mute, ban, staff message (STAFF-PANEL5-MESSAGE), staff cut (STAFF-PANEL2-FIX) a hidden mark's lapse (STAFF-PANEL5-HIDDEN, the hub's `hiddenLapse`), a freeze or a staff line's nudge (STAFF-PANEL5-FREEZE)
   const key = await lawKeyOf(env);
   if (!key) return json({ error: 'unavailable' }, 503);
   const nowS = Math.floor(Date.now() / 1000);
@@ -625,7 +626,7 @@ async function lawDoor(request, env) {
     if (said?.ok !== true) return json({ ok: false, error: 'not taken', ...(kind === 'sevent' ? { why: said?.why ?? null, l: said?.l ?? null } : {}) }, 409);
     if (lawSeen.size >= LAW_SEEN_MAX) lawSeen.delete(lawSeen.keys().next().value);
     lawSeen.set(sig, r.claims.e);
-    return json({ ok: true, ...(kind === 'smsg' ? { n: said.n, old: said.old } : {}), ...(kind === 'sevent' ? { l: said.l } : {}) });   // STAFF-EVENT: the book, with each event's meter   // STAFF-PANEL5-MESSAGE: the hub's own count, for the panel's Delivered
+    return json({ ok: true, ...(kind === 'smsg' ? { n: said.n, old: said.old } : {}), ...(kind === 'sevent' ? { l: said.l } : {}), ...(kind === 'restart' ? { n: said.n } : {}) });   // STAFF-EVENT: the book, with each event's meter   // STAFF-PANEL5-MESSAGE: the hub's own count, for the panel's Delivered
   } catch (e) { console.warn('[law] the hub', e?.message ?? e); return json({ error: 'unavailable' }, 503); }
 }
 /** AUDIT SAFE RELAY-10: the orders this isolate handed the hub and the hub took - signature -> when the order expires,
@@ -1399,6 +1400,7 @@ export class Room {
     // welcome before its picture lands; a hello naming none is a build before this slice, admitted as it was
     if (m.acct) { try { await this._helloAccount(ws, m, now); } catch (e) { console.warn('[hub] account hello failed', e?.message ?? e); } }   // AUDIT SOC A2: contained, as the acts and the leave are
     followHello(this, ws, now);   // STAFF-PANEL5-FOLLOW: a spectator's hub link (it names no account), held as following its account and told what the hub knows
+    { try { await sayRestartTo(this, ws, now); } catch (e) { console.warn('[hub] restart word failed', e?.message ?? e); } }   // BUNNYFALL: a restart counting down now (restartNotice.js)
     // WB3: a gate's kill said while this player was away, while that gate still stands - so it collapses on their screen too
     { try { const g = await this._gateFellOf(); if (g && gateHolds(g.d, now)) this._send(ws, JSON.stringify({ t: 'gate', ...g })); } catch (e) { console.warn('[hub] gate word failed', e?.message ?? e); } }
     // SERPENT1: and a sea serpent's, while its day holds - its ring on their map reads slain, its lines are not said;
@@ -3095,6 +3097,7 @@ export class Room {
     if (lawKindOf(body?.order) === 'hide') { const ok = await hiddenLapse(this, body.order, Date.now()); await this._reap(); return json({ ok }); }   // STAFF-PANEL5-HIDDEN: a hidden mark's lapse - its sockets closed, never shown
     if (lawKindOf(body?.order) === 'smsg') return json(await takeStaffMessage(this, body.order, Date.now()));   // STAFF-PANEL5-MESSAGE (staffMessage.js)
     if (lawKindOf(body?.order) === 'sevent') return json(await takeStaffEventLaw(this, body.order, Date.now()));   // STAFF-EVENT (staffEvents.js)
+    if (lawKindOf(body?.order) === 'restart') return json(await takeRestartOrder(this, body.order, Date.now()));   // BUNNYFALL: a restart warning from the box (restartNotice.js)
     const ok = await this._takeOrder(body?.order, Date.now(), ['ban', 'mute', 'staffcut'], true);   // STAFF-PANEL2-FIX: and a staff member cut off
     await this._reap();
     return json({ ok });

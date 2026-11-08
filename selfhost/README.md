@@ -74,6 +74,20 @@ request file in `updates/`.
 */5 * * * * cd /path/to/bunnyfall && sh selfhost/update.sh >> updates/update.log 2>&1
 ```
 
+## Restarting with a warning
+
+To restart the server without catching players by surprise, run this on the box, from the repo folder:
+
+```sh
+sh selfhost/restart.sh -5min     # warn everyone now, restart in 5 minutes (also -30s, -90s, -1h)
+sh selfhost/restart.sh cancel    # call it off
+```
+
+Everyone online sees a countdown above their hotbar and reminders in chat, and anyone who comes online during the
+countdown sees it too. At zero the server restarts (`docker compose restart server`) and players reconnect on their own.
+The countdown keeps going after you log out; its log is `updates/restart.log`. Running it again replaces the countdown.
+It restarts the version already running: to pull a new one from GitHub, use `update.sh` as above.
+
 **Do not edit files directly on the box.** The script refuses to pull while there are local edits, so it never
 overwrites your work. Make changes on GitHub instead (or run `git checkout -- .` on the box to throw local edits away).
 

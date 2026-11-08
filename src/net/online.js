@@ -97,6 +97,7 @@ import { MUTE_HZ_MAX, CHAT_HZ_MAX, CHAT_MAX, relaySupportsBan } from './wire.js'
 import { REALM_CHARACTER_RE, tokenBodyOf, TOKEN_MAX_CHARS } from './identityToken.js';   // AUDIT LEGACY III O1: a wed frame's stamped realm character, by the token's own shape; HIDDEN-UNCOUNTED: a token's hidden mark (tokenHidden)
 import { leaseRoom, relaySupportsLease, LEASE_MS, LEASE_HELD_MS, LEASE_HAND_MIN_MS, LEASE_FRAME_MIN_MS } from './roomLease.js';   // LEASE1: my hub's lease, handed to every lease room I hold
 import { LEASE_WIRE_MAX } from './wire.js';
+import { restartFrameIn } from './wire.js';   // BUNNYFALL: server restart warnings
 /** LEASE1: the frames a lease room's socket sends with no lease ahead of them - the runtime's ping, the hello, a lease. */
 const LEASE_QUIET_RE = /^\{"t":"(?:ping|hello|lease)"/;
 /** STAFF-FREEZE-ASK: past the hub's lease meter by this much - the meter is read where the frame lands, a little after it left. */
@@ -718,6 +719,7 @@ export class OnlineSession {
     this.onDm = null;             // TITLE-N: (line) => void: the Dungeon Master's line - {text, at}, as the server's: a voice over the game, not a player in it
     this.dmOk = false;            // TITLE-N: the relay that welcomed this socket carries /dm (relaySupportsDm) - an older one CLOSES the socket on the frame
     this.onEvent = null;          // EVENT1: (ev, {live}) => void - the server-wide live event now ({kind, at}) or null; live: it changed while I watched (a welcome's word is not)
+    this.onRestart = null;        // BUNNYFALL: (ms) => void - a server restart in `ms` milliseconds, 0 when none is pending
     this.eventOk = false;         // EVENT1: the relay that welcomed this socket knows the `stage` frame (relaySupportsEvent) - an older one CLOSES the socket on it
     this.eventV = null;           // SUNBABY1: the version that welcomed it - which event WORDS it knows (relayKnowsLiveEvent): a word it does not know CLOSES the socket too
     this.liveEvent = null;        // EVENT1: the hub's live event as last said - {kind, at} or null
@@ -4079,6 +4081,11 @@ export class OnlineSession {
       // game ask again (and the ask is paced there).
       if (!primary || !isSocialRoom(room) || typeof m.mi !== 'string' || m.mi.length > 64) return;
       this._deliver('smsg', () => this.onStaffMessage?.(m.mi));
+    } else if (m.t === 'restart') {
+      // BUNNYFALL: a server restart warning, from the hub alone (net/restartLaw.js) - milliseconds left, 0 for none
+      if (!primary || !isSocialRoom(room)) return;
+      const ms = restartFrameIn(m);
+      if (ms !== null) this._deliver('restart', () => this.onRestart?.(ms));
     } else if (m.t === 'event') {
       // EVENT1: THE LIVE EVENT STAGED OR ENDED, by the hub alone - known by the frame type, as the server's line is. A
       // word this build does not know is no event (LIVE_EVENTS: a new one is safe against an old build).
