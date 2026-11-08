@@ -2629,7 +2629,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const cz = campTagsOf(out, (r) => src.get(r));   // OW6: a camp's members, by number, camp and kind - a reader marks the camp on its Overworld, an heir takes it as one
     const al = out.filter((r) => r.t === KNIGHT_CITYWATCH_ID && r.d !== 1 && src.get(r)?.defender).map((r) => r.i);   // RAID2: the watchmen who are MY allies (DISC19-F's defenders, a raid's among them) - a reader stands them as its allies, where a watch record carried no team
     const cw = out.filter((r) => r.d !== 1 && isShipmate(src.get(r))).map((r) => r.i);
-    const rf = out.filter((r) => r.d !== 1 && src.get(r)?.refugee).map((r) => r.i);   // RAID5: a raid's refugees, my allies - a reader stands them as its own
+    const rf = out.filter((r) => { const f = src.get(r); return r.d !== 1 && (f?.refugee || (f?.entity?.team === 'PlayerAlly' && f.companion == null && !isShipmate(f))); }).map((r) => r.i);   // Includes raid refugees and summons so other clients treat them as allies instead of hostile enemies
     const mates = out.filter((r) => r.d !== 1 && src.get(r)?.companion != null);
     const cp = mates.map((r) => r.i);   // AUDIT CC-E1: my companions, by number - a reader marks them so its foes may fight them
     const cn = mates.map((r) => src.get(r)?.entity?.name ?? '');   // AUDIT WK-U3: and their names, in that order   // SHIPMATES: my crew on a deck (combat/friendlyFire.js) - a reader stands them as its allies and its own harm passes them by
@@ -2657,7 +2657,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const out = [];
     for (const p of _pupIndex.values()) {
       if (p.dead || !p.ai) continue;
-      if (mine ? p.companion == null && !p.shipmate : p.companion != null) out.push(p);
+      if (mine ? p.companion == null && !p.shipmate && p.entity?.team !== 'PlayerAlly' : p.companion != null) out.push(p);
     }
     return out;
   }
