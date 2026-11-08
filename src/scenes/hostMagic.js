@@ -1040,6 +1040,7 @@ export function createPlayerMagic({
       if (excludeFoe && t === excludeFoe) continue;
       if (caster?.entity === playerEntity && sparedFromPlayer(t)) continue;   // DISC19-F (AUDIT DISC19): my blast passes the defenders by
       if (crewBlast && isShipmate(t)) continue;
+      if (friendly && t.entity?.team === 'PlayerAlly') continue;
       if (caster?.foe && boutTeammates(caster.foe, t)) continue;   // ARENA-TEAMS: a bout fighter's blast passes its teammate by
       if (t.puppet && caster?.entity && caster.entity !== playerEntity) { if (friendly || caster.foe?.companion != null) allyToOwner(t, caster.foe, spell, casterLevel); continue; }   // AUDIT WORLD6b-iii(a) C15: a FOE's blast lands nothing on a PUPPET here - its owner's world resolves that foe (my own blast on a puppet still goes to its owner as my hit)
       applySpellToFoe(spell, casterLevel, t, caster);
@@ -1587,7 +1588,9 @@ export function createPlayerMagic({
       // arm: the caster wrapper rides the impact; foe-vs-foe
       // friendly fire pends the target sweep, the shared residual).
       if (m.fromPlayer === false) {
-        if (m.aimFoe && !m.aimFoe.dead) {
+        // Enemy attacks stop on the first player hit instead of sailing right through
+        const blockedByMe = !m.friendly && playerFeet && missileHitsCapsule(m.pos, playerFeet, playerHeight, PLAYER_BODY_RADIUS);
+        if (m.aimFoe && !m.aimFoe.dead && !blockedByMe) {
           if (missileHitsFoe(m.pos, m.aimFoe)) {
             const fCaster = missileCaster(m);
             if (m.spell.rangeType === 4) explodeAt(m.pos, m.spell, m.casterLevel ?? 1, playerFeet, fCaster, { playerHeight, friendly: !!m.friendly });
