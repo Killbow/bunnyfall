@@ -211,6 +211,7 @@ import { isOnlinePage, onlineForcedPref, onlineForcedModSetting, onlineForcedSet
 import { onlineSyncPlan, applyOnlineSync, lastOnlineSync, undoOnlineSync } from '../../systems/online/onlineSync.js';   // UXB1-E: the room's rules, copied home
 import { CREDITS, translationCredits } from '../credits.js';   // CR1: who made what the port carries
 import { ownerUpdateMark } from '../ownerUpdate.js';   // BUNNYFALL: the owner's update button
+import { skinMark } from '../skinsMenu.js';   // BUNNYFALL: the custom paperdoll button
 import { SUPPORT_ASKS } from '../supportAsks.js';   // SUPPORT1: the project's asks - the website's corner and this door's
 import { t, tIn, currentLocale, localeInfo, localeTable, availableLocales, BASE_LOCALE, localizedText, formatText } from '../../systems/textManager.js';   // L10N1b: the port's own strings, the language row and the first-run offer; L10N3d: DFU's Internal_Strings
 import { localeForBrowser, catalogLocale } from '../../systems/localeCatalog.js';   // L10N1b
@@ -3285,6 +3286,7 @@ function paperdollGraphicsCard() {
     [[0, t('mods.eyeOfTheBeholder.option.playerPaperdoll', 'Paperdoll for player')], [1, t('mods.eyeOfTheBeholder.option.playerSprite', '8 directional animated sprite')]],
     { home: true, read: () => modSetting('eye-of-the-beholder', 'Graphics.PlayerBody') ?? 0, write: (v) => setModSetting('eye-of-the-beholder', 'Graphics.PlayerBody', v) }));
   c.append(prefRow('graphics.paperdollback', t('menu.paperdoll.backs', 'Paperdoll backs for other players'), t('menu.paperdoll.backsNote', 'Show the generated rear view when another player turns away from you.'), { home: true }));
+  c.append(prefRow('graphics.customskins', t('menu.paperdoll.skins', 'Custom paperdolls of other players'), t('menu.paperdoll.skinsNote', 'Draw the custom paperdolls other players wear. Off: they appear as their ordinary look. You can also hide one player from the Social tab.'), { home: true }));
   return c;
 }
 
@@ -4611,6 +4613,7 @@ function renderHome() {
   home.append(supportMarks());
   // BUNNYFALL: the owner's update button, same corner, shown to the owner alone (ui/ownerUpdate.js)
   home.append(ownerUpdateMark({ storage: appStorage() }));
+  home.append(skinMark({ storage: appStorage() }));   // BUNNYFALL: the custom paperdoll worn online (ui/skinsMenu.js)
   // L10N1b: the first-run language offer, in the top-left corner nothing else uses
   const offer = languageOffer();
   if (offer) home.append(offer);

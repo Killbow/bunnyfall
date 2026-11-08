@@ -1004,6 +1004,9 @@ export function createPlayerMagic({
   // excludeFoe carries the enemy AreaAroundCaster's ignoreCaster -
   // DFU's caster-position AoE skips the caster itself
   // (DoAreaOfEffect(position, true), DaggerfallMissile.cs:477-495).
+  /** Forwards a local ally's spell hit on a remote enemy to that enemy's owner.
+   *  Dungeon enemies do not define `spellFromAlly`, and remote casters never forward hits. */
+  const allyToOwner = (t, casterFoe, spell, level) => !!casterFoe && !casterFoe.puppet && typeof t?.spellFromAlly === 'function' && !!t.spellFromAlly(casterFoe, spell, level);
   /** The caster wrapper a missile carries: the player's for the player's, the foe's (its entity and sinks) for an
    *  enemy's, none for an enemy missile whose caster is gone. */
   const missileCaster = (m) => (m.fromPlayer === false ? (m.casterFoe ? { entity: m.casterFoe.entity, sinks: foeSinks(m.casterFoe), foe: m.casterFoe } : null) : playerCaster(m.cast ?? null));
@@ -1028,7 +1031,7 @@ export function createPlayerMagic({
     const r = applySpellToPlayer({ ...sp, rangeType: 0 }, effectiveLevel(playerEntity), playerCaster(cast));
     if (r.healed > 0) say(`You are healed ${r.healed} points.`);
   }
-  function explodeAt(pos, spell, casterLevel, playerFeet, caster = null, { excludeFoe = null, playerHeight = CAPSULE_HEIGHT, allies = false, duel = false, boss = duel } = {}) {
+  function explodeAt(pos, spell, casterLevel, playerFeet, caster = null, { excludeFoe = null, playerHeight = CAPSULE_HEIGHT, allies = false, duel = false, boss = duel, friendly = false } = {}) {
     mwFx.area(spell, pos, EXPLOSION_RADIUS);   // MW-SPELLFX1: the area visual where it goes off (explodeSpell)
     if (caster?.entity === playerEntity) bunny.burst(pos, spell, EXPLOSION_RADIUS);   // BUNNY-SPELLS: a Meteor's throw, a Gravity Well's opening
     // SHIPMATES: a blast of the player's own crew passes the player and the rest of the crew by (combat/friendlyFire.js)
@@ -1037,8 +1040,9 @@ export function createPlayerMagic({
       if (excludeFoe && t === excludeFoe) continue;
       if (caster?.entity === playerEntity && sparedFromPlayer(t)) continue;   // DISC19-F (AUDIT DISC19): my blast passes the defenders by
       if (crewBlast && isShipmate(t)) continue;
+      if (friendly && t.entity?.team === 'PlayerAlly') continue;
       if (caster?.foe && boutTeammates(caster.foe, t)) continue;   // ARENA-TEAMS: a bout fighter's blast passes its teammate by
-      if (t.puppet && caster?.entity && caster.entity !== playerEntity) continue;   // AUDIT WORLD6b-iii(a) C15: a FOE's blast lands nothing on a PUPPET here - its owner's world resolves that foe (my own blast on a puppet still goes to its owner as my hit)
+      if (t.puppet && caster?.entity && caster.entity !== playerEntity) { if (friendly || caster.foe?.companion != null) allyToOwner(t, caster.foe, spell, casterLevel); continue; }   // AUDIT WORLD6b-iii(a) C15: a FOE's blast lands nothing on a PUPPET here - its owner's world resolves that foe (my own blast on a puppet still goes to its owner as my hit)
       applySpellToFoe(spell, casterLevel, t, caster);
     }
     // AID1 onto ALLY-CAST: MY OWN beneficial blast reaches the party mates in it too (DoAreaOfEffect's OverlapSphere meets
@@ -1050,7 +1054,7 @@ export function createPlayerMagic({
     // WB4b: and the court's boss, whose flank is in it (his own radius)
     if (boss && caster?.entity === playerEntity) for (const t of sweepFoes(pos, EXPLOSION_RADIUS, bossMarksFor(spell))) giveToBoss(t, spell, caster);   // AUDIT WBX F5: `boss` - a Soul Trap is no duel spell, and it meets him too
     // ROAD-H H2: the player is a COLLIDER in DFU's OverlapSphere like every foe (DaggerfallMissile.cs:481) - its CharacterController capsule, at the LIVE height PlayerHeightChanger keeps (:54-57/:475-478). This measured ONE POINT at the STANDING half-capsule, feet + 0.9: a metre and a half wrong on a mount, half a metre wrong crouched, and short of DFU's catch by a whole body radius in every stance. AUDIT 65 CV-2: and that body is the PLAYER's 0.35 (PlayerAdvanced.prefab:82), not the foe's 0.45 - the rim is 4.35.
-    if (playerFeet && !crewBlast && sphereOverlapsCapsule(pos, EXPLOSION_RADIUS, playerFeet, playerHeight, PLAYER_BODY_RADIUS)) {
+    if (playerFeet && !crewBlast && !friendly && sphereOverlapsCapsule(pos, EXPLOSION_RADIUS, playerFeet, playerHeight, PLAYER_BODY_RADIUS)) {
       // AREA-SELF (FIELD BUGS 2026-10-01, Opaldes: "Big Regen Spell doesnt do anything" - Area at Range, Regenerate and
       // Fortify): MY OWN BLAST OF GIFTS IS NEVER SAVED AGAINST BY ME - DFU save-scales every bundle that is not
       // CasterOnly, so its caster resisted their own Regenerate round by round (two rounds in three for a Breton) and
@@ -1553,7 +1557,7 @@ export function createPlayerMagic({
           // AUDIT WORLD6b-iii(a) A1: an ENEMY missile's blast on a wall is the ENEMY's - its caster's level and sinks
           // (the flight's own arm below had them); this arm credited every enemy blast to ME at MY level, with the
           // reflect chain and the skill tallies mine to pay
-          explodeAt(impact, m.spell, m.fromPlayer === false ? (m.casterLevel ?? 1) : effectiveLevel(playerEntity), playerFeet, missileCaster(m), { playerHeight, allies: !!m.ally, duel: !!m.duel, boss: m.boss ?? !!m.duel });   // ROAD-H H2: the blast's OverlapSphere meets the player's LIVE capsule
+          explodeAt(impact, m.spell, m.fromPlayer === false ? (m.casterLevel ?? 1) : effectiveLevel(playerEntity), playerFeet, missileCaster(m), { playerHeight, allies: !!m.ally, duel: !!m.duel, boss: m.boss ?? !!m.duel, friendly: !!m.friendly });   // ROAD-H H2: the blast's OverlapSphere meets the player's LIVE capsule
         }
         showImpactFlash(m, impact);   // F033: DFU flashes on ANY wall hit, AoE or not
         retireMissile(m);
@@ -1584,7 +1588,20 @@ export function createPlayerMagic({
       // arm: the caster wrapper rides the impact; foe-vs-foe
       // friendly fire pends the target sweep, the shared residual).
       if (m.fromPlayer === false) {
-        if (playerFeet && !isShipmate(m.casterFoe)) {   // SHIPMATES: a crewman's missile flies past the player
+        // Enemy attacks stop on the first player hit instead of sailing right through
+        const blockedByMe = !m.friendly && playerFeet && missileHitsCapsule(m.pos, playerFeet, playerHeight, PLAYER_BODY_RADIUS);
+        if (m.aimFoe && !m.aimFoe.dead && !blockedByMe) {
+          if (missileHitsFoe(m.pos, m.aimFoe)) {
+            const fCaster = missileCaster(m);
+            if (m.spell.rangeType === 4) explodeAt(m.pos, m.spell, m.casterLevel ?? 1, playerFeet, fCaster, { playerHeight, friendly: !!m.friendly });
+            else if (!m.aimFoe.puppet) applySpellToFoe(m.spell, m.casterLevel ?? 1, m.aimFoe, fCaster);
+            else if (m.friendly || m.casterFoe?.companion != null) allyToOwner(m.aimFoe, m.casterFoe, m.spell, m.casterLevel ?? 1);
+            showImpactFlash(m, [m.pos[0], m.pos[1], m.pos[2]]);
+            retireMissile(m);
+          }
+          continue;
+        }
+        if (playerFeet && !m.friendly && !isShipmate(m.casterFoe)) {   // SHIPMATES: a crewman's missile flies past the player
           // AUDIT 62 F21 (review): the player's CAPSULE, DaggerfallMissile
           // .cs:339's SphereCast into its CharacterController, at the LIVE
           // height - the shared engine's copy of the dungeon's arm.
@@ -1864,6 +1881,15 @@ export function createPlayerMagic({
      *  load or a teleport. destroy() above is terminal and takes the
      *  candle and the impact batches with it; the engine outlives a
      *  fast travel, so this frees the flights alone. */
+    /** Removes in-flight enemy missiles when leaving an interior, since destroyed interior
+     *  foes are not marked dead and their bolts would otherwise keep flying outdoors. */
+    clearEnemyMissiles() {
+      for (let i = missiles.length - 1; i >= 0; i--) {
+        if (missiles[i].fromPlayer !== false) continue;
+        retireMissile(missiles[i]);
+        missiles.splice(i, 1);
+      }
+    },
     clearMissiles() {
       for (const m of missiles) retireMissile(m);
       missiles.length = 0;
@@ -1982,7 +2008,14 @@ export function createPlayerMagic({
     fireEnemyMissile(from, dir, spell, casterLevel, casterFoe) {
       // MW-SPELLFX1: the caster's casting effects (CastSpell::cast plays a caster's that no character controller does)
       if (casterFoe?.ai?.feet) mwFx.cast(spell, casterFoe.ai.feet, { body: { height: casterFoe.ai.height ?? CAPSULE_HEIGHT, radius: casterFoe.ai.radius ?? PLAYER_BODY_RADIUS } });
-      missiles.push(withBolt({ spell, casterLevel, casterFoe, pos: [...from], dir: [...dir], age: 0, batch: null, fromPlayer: false }));   // MW-SPELLFX1: and its bolt
+      // Record a non-player foe target when the spell is cast; bolts aimed at the player
+      // are handled by the player capsule check in update().
+      const t = casterFoe?.ai?._armedTargeting ? casterFoe.ai.target : null;
+      const aimFoe = t && t.isPlayer !== true && t.ai ? t : null;
+      // Latch friendly status when fired so an ally's or crewmate's bolt still spares the
+      // player even if its target or caster dies while the bolt is in flight.
+      const friendly = isShipmate(casterFoe) || (aimFoe != null && casterFoe?.entity?.team === 'PlayerAlly');
+      missiles.push(withBolt({ spell, casterLevel, casterFoe, aimFoe, friendly, pos: [...from], dir: [...dir], age: 0, batch: null, fromPlayer: false }));   // MW-SPELLFX1: and its bolt
     },
     /** MW-SPELLFX1: the Morrowind spell effects layer, for the console and a pin. */
     mwFx,

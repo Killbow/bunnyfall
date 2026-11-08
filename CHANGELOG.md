@@ -3,6 +3,19 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-07
+
+- Your raised dead, companions, crew, and allied guards now remember how to aim outside dungeons, hitting enemies outdoors and inside buildings instead of firing politely through them.
+- Fixed: Allied spells now land on enemies in interiors or while in the overworld.
+- Fixed: Your allies' spells no longer have a chance to hit you or your other allies.
+- Fixed: Your allies' spells and melee attacks now land on enemies owned by other players.
+- Fixed: Other players' summoned creatures are now recognized as allies instead of hostile enemies, so your minions and summons fight real enemies instead of each other.
+- Fixed: other players' custom paperdolls were not drawn in the world. The server now tells everyone whose skin is whose (this needs the server updated).
+- Fixed: your own custom paperdoll sometimes did not show on your character in the world (the desktop app most often), while it showed in the inventory.
+- You can keep up to 15 custom paperdolls per account now.
+- You can stop drawing other players' custom paperdolls: one switch at the top of the Social tab (also in Settings), and a Hide skin button on each friend. A hidden player is drawn as their ordinary look; they are never told. In chat, `/hideskin <name>`, `/showskin <name>` and `/hiddenskins` do the same by name, and a chat line's name menu has Hide skin.
+- Custom paperdolls: upload a front and a back picture to your account on the new skins page (`/skins.html`), choose how tall it is drawn (half to one and a fifth of a player), and send it to staff. Once approved, pick it with the new Paperdoll button on the main menu and it becomes your paperdoll in the inventory and your body in the world for everyone who sees you. Only the drawing changes: hit box, reach and eye height stay the same.
+
 ## 2026-11-06
 
 - The Great Cannon by Wayrest now fires with a muzzle flash, a bank of smoke, a cannon boom and a big screen shake for anyone nearby, and players far away hear it rumble. A few seconds later its shell lands on Cromwark in a huge explosion that everyone in the reach can see, hear and feel, and each shot adds 500 to the realm's Nyx coin count.
@@ -51,3 +64,7 @@ the last release (scripts/changelogNotes.mjs).
 - Stuck in the Cromwark reach? /unstuck now works there, after a short wait.
 - Respawning in the Cromwark reach takes as long as anywhere else.
 - Nyx's title shop counts your coins correctly.
+
+## 2026-11-07
+
+- Crossbows are now a quarter of what they used to be worth, and they have been giving a swap cooldown.

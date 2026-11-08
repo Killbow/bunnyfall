@@ -26,6 +26,17 @@ const base64 = (/** @type {Uint8Array} */ bytes) => {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(s);
 };
+/** An object's bytes, chunk by chunk, so a body that ends short still gives what it had: `{ bytes, warning }`. */
+async function readAll(/** @type {any} */ object) {
+  const chunks = []; let n = 0; let warning = null;
+  try {
+    const reader = object.body.getReader();
+    for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); n += value.length; }
+  } catch (e) { warning = `the stored file ended short: read ${n} of ${object.size ?? '?'} bytes (${String(e?.message ?? e).slice(0, 120)})`; }
+  const bytes = new Uint8Array(n); let at = 0;
+  for (const c of chunks) { bytes.set(c, at); at += c.length; }
+  return { bytes, warning };
+}
 const str = (/** @type {unknown} */ v, max = 200) => (typeof v === 'string' && v && v.length <= max ? v : null);
 
 /**
@@ -33,6 +44,14 @@ const str = (/** @type {unknown} */ v, max = 200) => (typeof v === 'string' && v
  * @param {{ player: any, role: string, owner: boolean }} who @param {Function} audit staff.js's audit(act, target, detail, how)
  */
 export async function staffData(ctx, env, path, body, who, audit) {
+  // a failure is answered with its words (this page is the developer's own), never a bare 'server'
+  try { return await staffDataRun(ctx, env, path, body, who, audit); } catch (e) {
+    console.warn('[staff data]', path, e?.stack ?? e);
+    return { error: 'staff-data', message: String(e?.message ?? e).slice(0, 300) };
+  }
+}
+
+async function staffDataRun(ctx, env, path, body, who, audit) {
   const { db } = ctx;
   const bucket = ctx.bucket ?? env?.SAVES ?? null;
   const denied = async (/** @type {string} */ error) => { await audit('refused', null, { path, need: error === 'staff-admin' ? 'admin' : 'owner' }, { outcome: 'denied' }).run(); return { error }; };
@@ -62,20 +81,22 @@ export async function staffData(ctx, env, path, body, who, audit) {
 
   // the saves doors: an Admin's
   if (who.role !== 'admin') return denied('staff-admin');
-  const p = await findAccount(db, { target: body.target, name: body.name });
+  // a name first (a handle such as "Sits-With-Drink" is shaped like an id), then the same word as an id
+  let p = await findAccount(db, { name: body.name ?? body.target });
+  if ('error' in p && p.error === 'no-player') p = await findAccount(db, { target: body.target ?? body.name });
   if ('error' in p) return p;
 
   if (path === '/v1/staff/data/saves') {
     const [cloud, realm] = await Promise.all([
       db.prepare('SELECT character_id, save_name, character_name, game_time, real_time, dfu_version, save_version, bytes, shot_bytes, created_at, updated_at FROM saves WHERE player_id = ? ORDER BY updated_at DESC LIMIT 200').bind(p.id).all(),
-      db.prepare('SELECT id, name, seq, lease, lease_at, dead_at, held, obj, updated_at, created_at FROM realm_characters WHERE player = ? ORDER BY updated_at DESC LIMIT 50').bind(p.id).all(),
+      db.prepare('SELECT id, name, seq, lease, lease_at, dead_at, held, obj, prev, updated_at, created_at FROM realm_characters WHERE player = ? ORDER BY updated_at DESC LIMIT 50').bind(p.id).all(),
     ]);
     await audit('data-saves', p.id, null, { onceIn: 60 }).run();
     return {
       player: { id: p.id, handle: p.handle ?? null, guestName: p.guest_name ?? null },
       cloud: (cloud.results ?? []).map((r) => ({ characterId: r.character_id, saveName: r.save_name, characterName: r.character_name, gameTime: r.game_time, realTime: r.real_time,
         dfuVersion: r.dfu_version, saveVersion: r.save_version, bytes: r.bytes, shotBytes: r.shot_bytes, createdAt: r.created_at, updatedAt: r.updated_at })),
-      realm: (realm.results ?? []).map((r) => ({ id: r.id, name: r.name, seq: r.seq, leased: !!r.lease, leaseAt: r.lease_at, deadAt: r.dead_at, held: !!r.held, hasSave: !!r.obj, updatedAt: r.updated_at, createdAt: r.created_at })),
+      realm: (realm.results ?? []).map((r) => ({ id: r.id, name: r.name, seq: r.seq, leased: !!r.lease, leaseAt: r.lease_at, deadAt: r.dead_at, held: !!r.held, hasSave: !!r.obj, hasPrev: !!r.prev && r.prev !== r.obj, updatedAt: r.updated_at, createdAt: r.created_at })),
     };
   }
 
@@ -83,14 +104,17 @@ export async function staffData(ctx, env, path, body, who, audit) {
   if (!bucket) return { error: 'no-storage' };
   if (body.kind === 'realm') {
     const id = str(body.char, 80);
-    const c = id ? await db.prepare('SELECT id, name, obj FROM realm_characters WHERE id = ? AND player = ?').bind(id, p.id).first() : null;
-    if (!c?.obj) return { error: 'no-data' };
-    const object = await bucket.get(c.obj);
+    const c = id ? await db.prepare('SELECT id, name, obj, prev FROM realm_characters WHERE id = ? AND player = ?').bind(id, p.id).first() : null;
+    const key = body.which === 'prev' ? c?.prev : c?.obj;   // the previous checkpoint, when asked
+    if (!key) return { error: 'no-data' };
+    const object = await bucket.get(key);
     if (!object) return { error: 'no-data' };
-    const text = await realmSaveTextOf(await bucket.get(c.obj));
-    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name }).run();
-    if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}.json`, encoding: 'text', data: text };
-    return { name: `${c.name ?? c.id}.bin`, encoding: 'base64', data: base64(new Uint8Array(await object.arrayBuffer())) };
+    const { bytes, warning } = await readAll(object);
+    let text = null;
+    if (!warning) try { text = await realmSaveTextOf({ arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) }); } catch { text = null; }
+    await audit('data-export', p.id, { kind: 'realm', char: c.id, name: c.name, which: body.which === 'prev' ? 'prev' : 'obj', key, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
+    if (body.as !== 'raw' && text != null) return { name: `${c.name ?? c.id}${body.which === 'prev' ? '-prev' : ''}.json`, encoding: 'text', data: text };
+    return { name: `${c.name ?? c.id}${body.which === 'prev' ? '-prev' : ''}.bin`, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
   }
   if (body.kind === 'cloud') {
     const characterId = str(body.characterId, 120), saveName = str(body.saveName, 200);
@@ -100,10 +124,10 @@ export async function staffData(ctx, env, path, body, who, audit) {
     if (!have) return { error: 'no-data' };
     const object = await bucket.get(saveKey(p.id, characterId, saveName, part));
     if (!object) return { error: 'no-data' };
-    const bytes = new Uint8Array(await object.arrayBuffer());
-    await audit('data-export', p.id, { kind: 'cloud', characterId, saveName, part, bytes: bytes.length }).run();
+    const { bytes, warning } = await readAll(object);
+    await audit('data-export', p.id, { kind: 'cloud', characterId, saveName, part, bytes: bytes.length, ...(warning ? { warning } : {}) }, { outcome: warning ? 'failed' : 'ok' }).run();
     const label = `${have.character_name ?? characterId}-${saveName}-${part}`.replace(/[^\w.-]+/g, '_');
-    return { name: label, encoding: 'base64', data: base64(bytes) };
+    return { name: label, encoding: 'base64', data: base64(bytes), ...(warning ? { warning } : {}) };
   }
   return { error: 'body' };
 }

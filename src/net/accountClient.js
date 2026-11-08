@@ -74,6 +74,7 @@ import { ARENA_TEXT } from '../systems/arena/arenaText.js';   // ARENA4b: the ar
 import { cardById } from './iliac/iliacCards.js';   // AUDIT CARDS-6 D7: the card a short deck lacks, said by its name
 import { jittered } from './backoff.js';   // STORM-SHED: a failed mint's hold, jittered as every book's wait is
 import { tradeHeldSaid } from './realm/realmTradeLaw.js';   // RPT1026-MARKET HOLD-SAID: the standing hold's own notice
+import { SKIN_WORDS } from './skinLaw.js';   // BUNNYFALL: custom paperdolls' refusals
 import { MINT_VERSION } from './productRecord.js';   // AUDIT FB1026d C3: a craft asks its record be stamped with the version this build mints
 
 /** WHERE THE SERVICE IS. Its own constant beside the relay's
@@ -128,6 +129,7 @@ export const SERVICE_KEY = 'dagger.account.service';
 /** L10N4: another table's sentences, each read from it when it is read here, so a table routed in its own home stays routed. */
 const readEach = (table) => Object.fromEntries(Object.keys(table).map((k) => [k, () => table[k]]));
 const REFUSAL_WORDS = {
+  ...readEach(SKIN_WORDS),   // BUNNYFALL: custom paperdolls (net/skinLaw.js)
   'handle-shape': () => t('account.refusal.handleShape', 'A username is one word, 3 to {max} characters, starting with a letter, and no spaces.', { max: HANDLE_MAX_LEN }),
   'handle-refused': () => t('account.refusal.handleRefused', 'That username is not allowed. Pick another.'),
   'handle-email': () => t('account.refusal.handleEmail', 'A username cannot be an email address, because other players see it. Pick another name.'),   // HANDLE-EMAIL
@@ -1303,6 +1305,12 @@ export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
  *  the `purse` its closed gates can still pay, or a refusal (`owned`, `short` with `purse` and `price`, `guest`). */
 /** BUNNYFALL (Cromwark): a Nyx coin (or a few) found in the reach - the service counts them (server-account/src/nyx.js). */
 export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
+/** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
+export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
+export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);
+export const skinsDelete = (io, id) => call(io, '/v1/skins/delete', { id });
+export const skinsWear = (io, id) => call(io, '/v1/skins/wear', { id: id ?? null });
+export const skinsGet = (io, id) => call(io, '/v1/skins/get', { id });
 /** BUNNYFALL (Cromwark): /nyxcoin's count - every coin the realm gathered, and the account's own. */
 export const nyxTotal = (io) => call(io, '/v1/nyx/total', {});
 /** BUNNYFALL: the great cannon by Wayrest - the build as it stands (server-account/src/cannon.js). */

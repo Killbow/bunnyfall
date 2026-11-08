@@ -25,6 +25,8 @@
     th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     th { color: var(--dim); position: sticky; top: 0; background: var(--card); }
     .scroll { overflow: auto; max-height: 460px; }
+    .skin { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line); padding: 8px; margin: 8px 0; flex-wrap: wrap; }
+    .skin img { max-height: 220px; image-rendering: pixelated; background: repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -37,16 +39,16 @@
       <input id="password" type="password" placeholder="password" autocomplete="current-password" />
       <button id="go">Sign in</button></div>
     <div id="loginMsg" class="dim"></div>
-    <h2>This browser's key</h2>
-    <div class="dim">Sign-in needs a key as well as the password. This page makes one in your browser. For an owner it must be listed in
-      <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>, and the server updated.</div>
-    <pre id="keyLine"></pre>
-    <div class="row"><button id="copyKey">Copy the OWNER_KEYS line</button><button id="newKey">Make a new key</button></div>
+    <details><summary class="dim">Sign in with a key instead</summary>
+      <div class="dim">Only needed if the server has no <code>STAFF_BY_ACCOUNT</code>. The key goes in <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>.</div>
+      <pre id="keyLine"></pre>
+      <div class="row"><label><input id="useKey" type="checkbox" /> Use this key</label><button id="copyKey">Copy the OWNER_KEYS line</button><button id="newKey">Make a new key</button></div>
+    </details>
   </section>
 
   <section id="app" hidden>
     <div class="row"><span id="who"></span><span style="flex:1"></span><button id="out">Sign out</button></div>
-    <div class="row" id="tabs"><button data-t="saves" class="on">Saves</button><button data-t="db">Database</button><button data-t="audit">Audit log</button></div>
+    <div class="row" id="tabs"><button data-t="saves" class="on">Saves</button><button data-t="db">Database</button><button data-t="skins">Skins</button><button data-t="audit">Audit log</button></div>
 
     <div id="t-saves" class="card">
       <div class="row"><input id="who2" type="text" placeholder="handle or guest name" /><button id="findSaves">Find saves</button></div>
@@ -60,6 +62,14 @@
       <textarea id="sql" spellcheck="false" placeholder="SELECT * FROM players LIMIT 20"></textarea>
       <div class="row"><button id="runSql">Run</button><button id="dlJson">Download JSON</button><button id="dlCsv">Download CSV</button><span id="sqlMsg" class="dim"></span></div>
       <div id="sqlOut" class="scroll"></div>
+    </div>
+
+    <div id="t-skins" class="card" hidden>
+      <div class="row"><button id="loadSkins">Skins waiting</button><button id="loadSkinsOk">Approved</button><span id="skinsMsg" class="dim"></span></div>
+      <div class="row"><input id="banWho" type="text" placeholder="handle, guest name or id" /><input id="banNote" type="text" placeholder="note (optional)" />
+        <button id="banOn">Disable their skins</button><button id="banOff">Enable again</button><button id="loadBanned">Who is disabled</button></div>
+      <div id="bannedOut" class="dim"></div>
+      <div id="skinsOut"></div>
     </div>
 
     <div id="t-audit" class="card" hidden>

@@ -223,6 +223,7 @@ import { validGateMods, GATE_FEEDS_MAX, validGatePortents } from './gate/gateMod
 import { egStampOk } from './eliteGates/egShape.js';   // EG-FULL: a Spire blow's FULL shape stamp, checked as the wire carries it - egShape.js imports nothing, so the worker's graph stays flat
 import { KT_WATCH_WAVES } from './ketch/ketchLaw.js';   // AUDIT KETCH II L2-2: the Watch's waves, one number for the `wave` and the `st` words (the `st`'s stood at three) - ketchLaw.js imports instanceRoom.js alone, which the relay walks already
 import { validWireAppearance } from './appearanceLaw.js';   // APPEARANCES: a worn piece's look on a look's item - appearanceLaw.js imports systems/armorMaterials.js alone, a leaf, so the worker's graph stays flat
+import { skinIdOk } from './skinLaw.js';   // CUSTOM-SKIN: the id a look names - skinLaw.js imports nothing
 export { validRollSpec, validRoll, rollDice, ROLL_DICE_MAX, ROLL_SIDES_MAX, ROLL_MOD_MAX };
 export { validHoldemIn, validHoldemOut };
 export { validIliacIn, validIliacOut };
@@ -2271,7 +2272,10 @@ export function validLook(look) {
   // (net/peer/peerRiders.js createPeerWalkers). OMITTED when off, `class`'s law. A relay before this one drops it: the
   // player is then seen in their set or class, as before.
   const lg = uint(look.lg, 2);
-  return { race, gender, faceIndex, ...(klass ? { class: klass } : {}), ...(eo != null ? { eo } : {}), ...(lg ? { lg } : {}), items };
+  // CUSTOM-SKIN (2026-11-07): `sk` - the id of the approved custom paperdoll the player wears online (net/skinLaw.js). OMITTED when none,
+  // `class`'s law. A client or relay before this one drops it: the player is then seen as they were.
+  const sk = skinIdOk(look.sk) ? look.sk : null;
+  return { race, gender, faceIndex, ...(klass ? { class: klass } : {}), ...(eo != null ? { eo } : {}), ...(lg ? { lg } : {}), ...(sk ? { sk } : {}), items };
 }
 /** DISC23-B's `eo` bound, widened by SKIN2: every on-foot skin - Eye Of The Beholder's sixteen sets (archives
  *  112364-112379) and Daggerfall's twenty classes after them. A literal, because the relay imports this file and not the skin table (test/net/skin2_class_skins.test.js pins it equal to
@@ -3107,7 +3111,7 @@ export function rosterFor(peers, meId, near = null) {
   // field say one thing: every peer in this room was verified to get
   // in, so a per-name verdict carries no information about any of them.
   // ACC3: and the badge, off the attachment the token wrote - omitted, not nulled, when there is none (`badged`).
-  for (const p of peers) if (p && p.id && p.id !== meId) out.push(badged({ id: p.id, name: p.name, look: p.look, pose: p.pose ?? null }, p));
+  for (const p of peers) if (p && p.id && p.id !== meId) out.push(badged({ id: p.id, name: p.name, ...(typeof p.sub === 'string' && p.sub ? { sub: p.sub } : {}), look: p.look, pose: p.pose ?? null }, p));   // CUSTOM-SKIN: and the verified account, so a viewer can tell whose skin a look names (a skin stands only for its owner)
   // SLAM5 (2026-09-16, AUDIT SLAM): ONE METRIC. This ranked by `pixelDistance` - Chebyshev on MAP PIXELS, 32768 units
   // wide - while the pose fan ranks by squared Euclidean in the pose's own frame. Two different metrics over the same
   // set DO NOT NEST, so `POSE_FAN_MAX <= ROSTER_MAX` bought nothing: measured at an event standing, only 11 of the 32

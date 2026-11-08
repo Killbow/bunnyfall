@@ -24,6 +24,8 @@
 //
 // Not a DFU member: Daggerfall Unity has no chat. Ledger A, the ONLINE row's CHAT SAFETY bracket (AUDIT SAFE DOC-15: this
 // said "Ledger A row (CHAT SAFETY)", and there is no such row - the arc is a bracket inside ONLINE's).
+import { parseSkinCommand } from '../net/skinCommands.js';   // CUSTOM-SKIN: /hideskin, /showskin, /hiddenskins
+import { hiddenSkins, skinHiddenFor, setSkinHidden } from '../systems/online/skinHide.js';
 import { parseSafetyCommand, reportReasonLabel, orderKindOf, REPORT_REASONS, REPORT_LINES_MAX, untilText, modHelpLines } from '../net/safety/safetyLaw.js';
 import { CONDUCT_VERSION } from '../net/safety/conduct.js';
 import { PUBLIC_TABS } from '../net/safety/chatStamp.js';   // AUDIT SAFE CLIENT-12: the tabs a new voice is paced on
@@ -62,6 +64,10 @@ const NAMED = Object.freeze({
   block: {
     many: (count, name) => t('net.safety.manyBlock', '{count} players are called {name}. Nobody was blocked. Click the name on one of their chat lines to block that player.', { count, name }),
     none: (name) => t('net.safety.noneBlock', 'Nobody called {name} is here or said anything in your chat. Nobody was blocked.', { name }),
+  },
+  skin: {
+    many: (count, name) => t('net.safety.manySkin', '{count} players are called {name}. Click the name on one of their chat lines to hide that player\'s skin.', { count, name }),
+    none: (name) => t('net.safety.noneSkin', 'Nobody called {name} is here or said anything in your chat.', { name }),
   },
   report: {
     many: (count, name) => t('net.safety.manyReport', '{count} players are called {name}. Nothing was reported. Click the name on one of their chat lines to report that player.', { count, name }),
@@ -222,7 +228,7 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
    * the Bob standing in my region and not the Bob who said it on World; and past a peers' ambiguity the heard lines picked
    * one. Two accounts of one name, anywhere this page can see, is a refusal - never a guess (section 2's own law).
    * `{ sub, name }`, or `{ error, why }` - why 'many', 'none' or 'unaccounted' (a peer whose account the room did not say).
-   * @param {string} name @param {'block'|'report'|'mod'} op
+   * @param {string} name @param {'block'|'report'|'mod'|'skin'} op
    */
   const accountOf = (name, op) => {
     const want = sanitizeName(name).toLowerCase();
@@ -240,6 +246,29 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     if (found.size > 1) return { error: NAMED[op].many(found.size, name), why: 'many' };
     if (unaccounted) return { error: t('net.safety.unaccounted', '{name} cannot be named from here yet. Try again in a moment.', { name }), why: 'unaccounted' };
     return { error: NAMED[op].none(name), why: 'none' };
+  };
+
+  /** CUSTOM-SKIN: a skin command, run (skinHide.js keeps the list on this device). @param {string} tabId @param {any} cmd */
+  const skinCommand = (tabId, cmd) => {
+    if ('error' in cmd) { say(tabId, cmd.error); return; }
+    if (cmd.op === 'list') {
+      const names = hiddenSkins().map(([sub, n]) => n || sub);
+      say(tabId, names.length ? t('net.safety.skinList', 'Skins hidden: {names}', { names: names.join(', ') }) : t('net.safety.skinNone', 'You have hidden nobody\'s skin.'));
+      return;
+    }
+    const want = sanitizeName(cmd.name).toLowerCase();
+    if (cmd.op === 'show') {
+      const hit = hiddenSkins().find(([, n]) => sanitizeName(n).toLowerCase() === want);
+      const who = hit ? { sub: hit[0], name: hit[1] } : accountOf(cmd.name, 'skin');
+      if ('error' in who || !skinHiddenFor(who.sub)) { say(tabId, t('net.safety.skinNotHidden', 'You have not hidden a skin of {name}. /hiddenskins lists them.', { name: cmd.name })); return; }
+      setSkinHidden(who.sub, false);
+      say(tabId, t('net.safety.skinShown', 'You will see the skin of {name} again.', { name: who.name || cmd.name }));
+      return;
+    }
+    const who = accountOf(cmd.name, 'skin');
+    if ('error' in who) { say(tabId, who.error); return; }
+    setSkinHidden(who.sub, true, who.name);
+    say(tabId, t('net.safety.skinHidden', 'You will not see the skin of {name}. /showskin {name} undoes it.', { name: who.name }));
   };
 
   const block = async (sub, name) => {
@@ -505,6 +534,9 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
         run: () => { void report(line.sub, name, reason, log()?.reportLines?.(line.sub, { seq: line.seq }) ?? []); },
       }));
       rows.push(...staffRows(line, name));
+      rows.push(skinHiddenFor(line.sub)
+        ? { label: t('net.safety.skinShowLabel', 'Show skin'), run: () => { setSkinHidden(line.sub, false); } }
+        : { label: t('net.safety.skinHideLabel', 'Hide skin'), run: () => { setSkinHidden(line.sub, true, name); } });
       rows.push(blocked.has(line.sub)
         ? { label: t('net.safety.unblockLabel', 'Unblock'), run: () => { void unblock(line.sub, name); } }
         : { label: t('net.safety.blockLabel', 'Block'), run: () => { void block(line.sub, name); } });
@@ -516,6 +548,8 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
      * @param {string} tabId @param {string} text
      */
     onSend(tabId, text) {
+      const skin = parseSkinCommand(text);   // CUSTOM-SKIN: /hideskin, /showskin, /hiddenskins - mine alone, nothing is sent
+      if (skin) { skinCommand(tabId, skin); return true; }
       const cmd = parseSafetyCommand(text);
       if (cmd) { void host.command(tabId, cmd); return true; }
       notePublic(tabId, text);
