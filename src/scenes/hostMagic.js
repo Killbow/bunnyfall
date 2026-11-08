@@ -1584,6 +1584,16 @@ export function createPlayerMagic({
       // arm: the caster wrapper rides the impact; foe-vs-foe
       // friendly fire pends the target sweep, the shared residual).
       if (m.fromPlayer === false) {
+        if (m.aimFoe && !m.aimFoe.dead) {
+          if (missileHitsFoe(m.pos, m.aimFoe)) {
+            const fCaster = missileCaster(m);
+            if (m.spell.rangeType === 4) explodeAt(m.pos, m.spell, m.casterLevel ?? 1, playerFeet, fCaster, { playerHeight });
+            else if (!m.aimFoe.puppet) applySpellToFoe(m.spell, m.casterLevel ?? 1, m.aimFoe, fCaster);
+            showImpactFlash(m, [m.pos[0], m.pos[1], m.pos[2]]);
+            retireMissile(m);
+          }
+          continue;
+        }
         if (playerFeet && !isShipmate(m.casterFoe)) {   // SHIPMATES: a crewman's missile flies past the player
           // AUDIT 62 F21 (review): the player's CAPSULE, DaggerfallMissile
           // .cs:339's SphereCast into its CharacterController, at the LIVE
@@ -1982,7 +1992,11 @@ export function createPlayerMagic({
     fireEnemyMissile(from, dir, spell, casterLevel, casterFoe) {
       // MW-SPELLFX1: the caster's casting effects (CastSpell::cast plays a caster's that no character controller does)
       if (casterFoe?.ai?.feet) mwFx.cast(spell, casterFoe.ai.feet, { body: { height: casterFoe.ai.height ?? CAPSULE_HEIGHT, radius: casterFoe.ai.radius ?? PLAYER_BODY_RADIUS } });
-      missiles.push(withBolt({ spell, casterLevel, casterFoe, pos: [...from], dir: [...dir], age: 0, batch: null, fromPlayer: false }));   // MW-SPELLFX1: and its bolt
+      // Record a non-player foe target when the spell is cast; bolts aimed at the player
+      // are handled by the player capsule check in update().
+      const t = casterFoe?.ai?._armedTargeting ? casterFoe.ai.target : null;
+      const aimFoe = t && t.isPlayer !== true && t.ai ? t : null;
+      missiles.push(withBolt({ spell, casterLevel, casterFoe, aimFoe, pos: [...from], dir: [...dir], age: 0, batch: null, fromPlayer: false }));   // MW-SPELLFX1: and its bolt
     },
     /** MW-SPELLFX1: the Morrowind spell effects layer, for the console and a pin. */
     mwFx,
