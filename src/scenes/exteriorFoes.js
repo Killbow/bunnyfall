@@ -965,7 +965,9 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // WORLD6b: a PUPPET takes no damage here - the blow goes to its owner as a hit (the owner's door applies it and
     // the owner's next frame says so); the striker's own ring, blood and pain played before this door, as ever
     if (f.puppet) {
-      if (!fromPlayer && striker && !striker.puppet && !striker.dead && (striker.companion != null || f.companion != null)) {
+      // Forwards melee hits from any local ally to the foe's owner
+      const allyBlow = !!striker && (striker.companion != null || (striker.entity?.team === 'PlayerAlly' && striker.entity !== playerEntity && f.entity?.team !== 'PlayerAlly'));
+      if (!fromPlayer && striker && !striker.puppet && !striker.dead && (allyBlow || f.companion != null)) {
         // AUDIT CC-E1 (Mac: "Full co-op combat now"): the companions' fights cross the clients. MY companion's blow on
         // another's foe goes to its owner as an ALLY's (`al`, `ac` his number - the owner's foe turns on him, no blow of
         // mine); a foe of mine mauling ANOTHER's companion sends the blow to the companion's owner (`fb`, `sf` the
@@ -973,7 +975,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         const hit = { to: f.puppet, k: _owners.get(f.puppet)?.k ?? _net?.room?.() ?? null, i: f.seq, dmg: Math.max(0, Math.round(Number(damage) || 0)), kind,
           ...(knockDir ? { d: [q3(knockDir[0]), q3(knockDir[1]), q3(knockDir[2])] } : {}) };
         if (f.companion != null) _net?.onPeerHit?.({ ...hit, fb: 1, ...(striker.seq != null ? { sf: striker.seq } : {}) });
-        else if (striker.companion != null) _net?.onPeerHit?.({ ...hit, al: 1, ...(striker.seq != null ? { ac: striker.seq } : {}) });
+        else if (allyBlow) _net?.onPeerHit?.({ ...hit, al: 1, ...(striker.seq != null ? { ac: striker.seq } : {}) });
         return;
       }
       // AUDIT WORLD6b B1: THE DIVERT HAS THE DUNGEON DOOR'S PROVENANCE GATE - only this PLAYER's own blow goes to the
