@@ -916,6 +916,7 @@ import { partyRosterSource, localRosterSource, guildRosterSource, placedRosterSo
 import { partyCompassPoints } from '../ui/partyMapMarks.js';   // COMPASS-PARTY: the party's points on the compass
 import { SocialState, accountId, accountSecret } from '../net/social.js';   // SOC2: the friends and the party, as the hub says them; the account the hub's hello carries; SOC3: and the two colours a name wears in the DOM - my party's green, a friend's blue
 import { SOCIAL_ROOM, PARTY_SEND_MS, chatRegionRoom, relaySupportsRite, relaySupportsCage } from '../net/wire.js';   // CHAT-CHAN: a region's channel
+import { hearRestart } from '../ui/restartCountdown.js';   // BUNNYFALL: server restart warnings
 import { cellRoomOfWire, seaVaultRoomId, seaRoomOf } from '../net/wire.js';   // HCC-PARK: the cell a parked team's anchor stands in; AUDIT SEA VENTURES D7, D8: a vault's own room
 import { parkKeyOf } from '../net/wire.js';   // WAGONS2-VISIT: my caravan's room is named by my park key
 import { caravanRoomOf, caravanKeyOf } from '../net/privateInterior.js';   // WAGONS2-VISIT: a caravan's own room
@@ -21510,6 +21511,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       link.onSuperseded = () => seatLostNow();
       if (tab.room === SOCIAL_ROOM) link.onEvent = (ev, o) => { dread.set(ev, o); sunbaby.set(ev, o); rocket.set(ev, o); };   // SUNBABY1: and the sun baby; ROCKET1: and the rocket   // EVENT1: the hub - the one room every online player holds - says the live event
       if (tab.room === SOCIAL_ROOM) link.onHome = (words) => { onlineHomes?.hearHome(words); };   // QUEST-HOME: and a home that moved since the boot's read, every page told
+      if (tab.room === SOCIAL_ROOM) link.onRestart = (ms) => hearRestart(ms, (text) => chatLog?.pushAll({ text, red: true }));   // BUNNYFALL: a server restart counting down (ui/restartCountdown.js)
     }
     // SRV-N: the PRESENCE session hears the relay too, and it is usually
     // the first back after a deploy. Both arms run the same detector,

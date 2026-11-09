@@ -518,6 +518,8 @@ export const EVENT_HZ_MAX = 1;
  *  sweep deletes (`hellos`, `look:`, `secret:`, `party:`, `world:`, `acct:`): an event outlives the players who saw it
  *  begin, and ends when a dev ends it. */
 export const EVENT_KEY = 'event:live';
+/** BUNNYFALL: the server restart warning's frame `{t:'restart', in}` and the hub's key for it (net/restartLaw.js). */
+export { restartFrameIn, RESTART_KEY } from './restartLaw.js';
 /** EVENT1: a live event as the relay says it - `{kind, at}`, a known word and the relay's ms it was staged; null is none. */
 export const validLiveEvent = (e) => e != null && typeof e === 'object' && !Array.isArray(e) && LIVE_EVENTS.includes(e.kind) && Number.isSafeInteger(e.at) && e.at > 0;
 /** Over-rate chat lines dropped in a row before the socket is closed. */

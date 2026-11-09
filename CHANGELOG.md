@@ -6,6 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-08
 
 - Playing online, your progress is now saved to the realm when you leave - closing the window, force-exiting or pressing Exit. Nothing since your last save is lost any more on a hard exit (previously up to five minutes of play could be undone).
+- Before a planned server restart you now get a warning: a countdown above the hotbar and checkpoints in chat, so you can find a safe place to stop.
 
 ## 2026-11-07
 

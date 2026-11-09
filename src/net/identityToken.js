@@ -126,6 +126,7 @@ import { GUILD_ID_RE, GUILD_TAG_RE, GUILD_MEMBER_RE } from './guild/guildLaw.js'
 import { ribbonClaimOk } from './heraldryLaw.js';   // SEASON1 part two: a Season's banner ribbon - heraldryLaw.js imports nothing, so the worker's graph stays flat
 import { worksOf } from './siege/siegeRef.js';   // SEAT2b part two (b): a siege's works on its pass - siegeRef.js imports nothing
 import { houseClaimOk } from './houseLaw.js';   // LEGACY7: a house rides the token - houseLaw.js imports nothing, so the worker's graph stays flat
+import { RESTART_SUBJECT } from './restartLaw.js';   // BUNNYFALL: server restart warnings - restartLaw.js imports nothing
 import { homeMapIdOk, homeBuildingKeyOk, HOME_ORDER_KEYS_MAX } from './homeLaw.js';   // QUEST-HOME: a home order names a town and its buildings in the homes' own shapes - homeLaw.js imports nothing
 
 /** The only version this file will read or write. It names the
@@ -608,7 +609,7 @@ async function openSealed(token, publicKey, { subtle, nowS, skewS, valid }) {
  *  second: 'renown', a character's Renown that ROSE while its player was
  *  already in a room, carried in by that player's own client (the token
  *  that let them in said the Renown they had then). */
-export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban', 'smsg', 'staffcut', 'hide', 'freeze', 'staffline', 'sevent']);   // STAFF-PANEL5-MESSAGE: a staff message stored for account `s` (`mi` its id) - the hub nudges that account's own sockets   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass   // STAFF-PANEL2-FIX: a staff member cut off, the service's word that the account's sockets close   // STAFF-PANEL5-HIDDEN: a hidden staff subject's mark ended (Show myself, the staff session's end) - its sockets closed, never shown   // STAFF-PANEL5-FREEZE: a staff freeze - its end, the service's word that the account may only look around - and a staff line's nudge, the service's word that a staff chat thread has a new line
+export const ORDER_KINDS = Object.freeze(['mute', 'renown', 'guild', 'guildout', 'siege', 'stake', 'deck', 'remains', 'home', 'egopen', 'egadmit', 'ban', 'smsg', 'staffcut', 'hide', 'freeze', 'staffline', 'sevent', 'restart']);   // STAFF-PANEL5-MESSAGE: a staff message stored for account `s` (`mi` its id) - the hub nudges that account's own sockets   // SAFE4: a ban - its end, the service's word that the account may no longer play   // EG-PLAY: an Elite Breach's open and a member's admission   // QUEST-HOME: a town's homes moved, the service's word for every page online   // INT9: a fall's drop, the service's word on what it took   // CARDS10: a ranked seat's deck, vouched for   // GUILD1c: a character's guild now, and a member or a guild gone   // SEAT2a: a battle's pass   // STAFF-PANEL2-FIX: a staff member cut off, the service's word that the account's sockets close   // STAFF-PANEL5-HIDDEN: a hidden staff subject's mark ended (Show myself, the staff session's end) - its sockets closed, never shown   // STAFF-PANEL5-FREEZE: a staff freeze - its end, the service's word that the account may only look around - and a staff line's nudge, the service's word that a staff chat thread has a new line
 /** An order lives a minute - long enough to be carried to every room
  *  the moderator holds, short enough that a leaked one is stale before
  *  anyone could use it for anything but what it already said. */
@@ -682,9 +683,27 @@ export function orderValid(c) {
   // event's id - and carries nothing else; no other kind carries `op`, `ev` or `ei`
   if (c.o !== 'sevent' && (c.op !== undefined || c.ev !== undefined || c.ei !== undefined)) return false;
   if (c.o === 'sevent' && !staffEventOrderValid(c)) return false;
+  // BUNNYFALL: a restart warning is `{o:'restart', s:'server', ra, i, e}` - `ra` the restart's time in epoch seconds, 0 to
+  // call it off - and carries nothing else; no other kind carries `ra`
+  if (c.o !== 'restart' && c.ra !== undefined) return false;
+  if (c.o === 'restart' && !restartOrderValid(c)) return false;
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i || c.e - c.i > ORDER_TTL_S) return false;
   return true;
+}
+/** BUNNYFALL: a restart order's fields, and its check. */
+const RESTART_ORDER_KEYS = Object.freeze(['o', 's', 'ra', 'i', 'e']);
+function restartOrderValid(c) {
+  if (Object.keys(c).some((k) => !RESTART_ORDER_KEYS.includes(k))) return false;
+  return c.s === RESTART_SUBJECT && Number.isSafeInteger(c.ra) && c.ra >= 0;
+}
+/** BUNNYFALL: sign a restart warning - the admin's command on the box (selfhost/restartNotice.mjs) is the only caller.
+ *  `ra` is the restart's time in epoch seconds, or 0 to call a pending one off. */
+export async function mintRestartOrder({ ra }, privateKey, { subtle, nowS, ttlS = ORDER_TTL_S }) {
+  if (!Number.isSafeInteger(nowS)) throw new TypeError('mintRestartOrder needs an integer epoch-seconds clock');
+  const claims = { o: 'restart', s: RESTART_SUBJECT, ra, i: nowS, e: nowS + ttlS };
+  if (!orderValid(claims)) throw new TypeError('mintRestartOrder refused an order it could not verify');
+  return sealClaims(claims, privateKey, subtle);
 }
 /** STAFF-EVENT: a staff event order's own fields (net/staffEvent/staffEventLaw.js). */
 const SEVENT_ORDER_KEYS = Object.freeze(['o', 's', 'op', 'ev', 'ei', 'i', 'e']);
