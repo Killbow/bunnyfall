@@ -1279,6 +1279,19 @@ function statsStage() {
     label: 'attribute total',
     value: flow.statPool > 0 ? `${flow.statTotalNow} \u2192 ${flow.statTotalFinal}` : flow.statTotalNow,
   }));
+  // UXB-ROLLAGAIN: the actions live HERE in the list column, right under the
+  // points bar - not in the detail card's .dcard. On a two-column desk layout
+  // the detail was its own column beside the list, so Roll again sat BESIDE the
+  // points box and jumped to BELOW it on phone (one scroll). One place, always
+  // below the box, no matter how many points are left or wide the screen is.
+  const a = el('div', 'acts');
+  const ok = el('button', 'act primary', flow.statPool > 0 ? `${flow.statPool} left to spend` : 'Continue');
+  ok.disabled = flow.statPool > 0;
+  ok.onclick = () => { flow.input('confirm'); paint(); };
+  const again = el('button', 'act', 'Roll again');
+  again.onclick = () => { flow.reroll(); paint(); };
+  a.append(ok, again);
+  list.append(a);
   STAT_KEYS_ORDER.forEach((key, i) => {
     const row = el('div', `row${i === flow.statCursor ? ' on' : ''}`);
     const main = el('button', 'row-main');
@@ -1308,14 +1321,6 @@ function statsStage() {
     dl.append(el('dt', null, label), el('dd', null, derived[k]));
   }
   d.append(dl);
-  const a = el('div', 'acts');
-  const ok = el('button', 'act primary', flow.statPool > 0 ? `${flow.statPool} left to spend` : 'Continue');
-  ok.disabled = flow.statPool > 0;
-  ok.onclick = () => { flow.input('confirm'); paint(); };
-  const again = el('button', 'act', 'Roll again');
-  again.onclick = () => { flow.reroll(); paint(); };
-  a.append(ok, again);
-  d.append(a);
   detail.append(d);
   pane.append(detail);
   return pane;
