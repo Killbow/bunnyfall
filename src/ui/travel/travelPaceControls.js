@@ -7,6 +7,7 @@
 import {
   TRAVEL_PACE_DIALS, TRAVEL_PACE_TEXT, PACE_STEPS, OPEN_PACE_MAX, paceNow, paceCanRise, paceOnRoad, stepTravelPace, onTravelPace,
 } from '../../systems/travel/travelPace.js';
+import { travelMapPopUpState, setTravelSpeedCautious } from '../../systems/travel/travelMapState.js';
 
 /**
  * Build the steppers. `cls` prefixes every class (`tview` gives `tview-pace`, `tview-pace-row`, ...). Returns the root,
@@ -38,6 +39,16 @@ export function buildPaceControls(doc, cls) {
     rows[k] = { row, down, up, num };
     root.append(row);
   }
+  // Cautiously or Recklessly: shares the travel map's Speed choice and switches any journey already under way
+  const wayRow = el('div', `${cls}-pace-row`);
+  wayRow.title = TRAVEL_PACE_TEXT.tip.way;
+  const way = el('button', `${cls}-pace-num ${cls}-pace-way`);
+  way.type = 'button';
+  way.tabIndex = -1;
+  way.onpointerdown = (e) => e.preventDefault?.();
+  way.onclick = (e) => { e.preventDefault(); e.stopPropagation?.(); setTravelSpeedCautious(!travelMapPopUpState().speedCautious); paint(); };
+  wayRow.append(el('span', `${cls}-pace-word`, TRAVEL_PACE_TEXT.way), way);
+  root.append(wayRow);
   // a press in here is the dials' - never the world's swing or the map's pick
   const own = (e) => e.stopPropagation?.();
   root.addEventListener?.('mousedown', own);
@@ -54,6 +65,8 @@ export function buildPaceControls(doc, cls) {
       r.up.title = !rise && !paceOnRoad() && v >= OPEN_PACE_MAX ? TRAVEL_PACE_TEXT.roadOnly : `${TRAVEL_PACE_TEXT.faster} - ${TRAVEL_PACE_TEXT[k].toLowerCase()}`;
       r.down.title = `${TRAVEL_PACE_TEXT.slower} - ${TRAVEL_PACE_TEXT[k].toLowerCase()}`;
     }
+    const w = travelMapPopUpState().speedCautious ? TRAVEL_PACE_TEXT.cautious : TRAVEL_PACE_TEXT.reckless;
+    if (way.textContent !== w) way.textContent = w;
   };
   const stop = onTravelPace(paint);
   paint();
@@ -77,6 +90,7 @@ ${w('pace-step')} { pointer-events: auto; height: 30px; padding: 0; cursor: poin
   color: var(--bone, #e9e4d9); background: rgba(43,50,59,0.9); border: 1px solid rgba(192,138,62,0.4); border-radius: 2px; }
 ${w('pace-step')}:hover:not(:disabled) { border-color: var(--verdigris, #4e7f72); color: rgb(243,239,44); }
 ${w('pace-step')}:disabled { cursor: default; color: #6c6552; }
+${w('pace-way')} { grid-column: 2 / span 3; margin: 0; pointer-events: auto; cursor: pointer; font-family: inherit; }
 `;
 }
 

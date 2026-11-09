@@ -47,6 +47,15 @@ export function setTravelMapPopUpState({ speedCautious, sleepModeInn, travelShip
   };
 }
 
+let _speedHook = null;
+/** Updates the stored Speed choice from the travel speed panel (persisted on save) and notifies the host so any active journey switches too. */
+export function setTravelSpeedCautious(on) {
+  _popUp = { ..._popUp, speedCautious: !!on };
+  _speedHook?.(!!on);
+}
+/** Registers the host callback for setTravelSpeedCautious. */
+export function onTravelSpeedCautious(fn) { _speedHook = typeof fn === 'function' ? fn : null; }
+
 /** GetTravelMapSaveData (DaggerfallTravelMapWindow.cs:1318-1339).
  *  `live` is the open popup's choices when one is up - DFU reads the
  *  window's popUp field and leaves the struct's defaults when it is
