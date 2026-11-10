@@ -3,6 +3,12 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-09
+
+- Fixed: enemies in shared dungeons no longer go out of sync between players (a party member fighting something you can't see). When you enter a dungeon someone else is already in, its enemies appear a moment later, once the game has the room's state from them, and they match on everyone's screen. Everyone in the dungeon fights enemies built for the same level.
+- Fixed: removed the rocket live event (the poop mounds and flying farting horses). `/event rocket` no longer exists.
+- Resting at a fire, tent or bed now asks whether you want a Long Rest (8 hours pass) or a Short Rest (heal and catch some sleep, no time passes). The 10-minute wait between long rests is gone. A party member's long rest no longer pulls you into it; you only sleep when you choose to rest.
+
 ## 2026-11-08
 
 - Playing online, your progress is now saved to the realm when you leave - closing the window, force-exiting or pressing Exit. Nothing since your last save is lost any more on a hard exit (previously up to five minutes of play could be undone).

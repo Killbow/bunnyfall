@@ -4,7 +4,7 @@
 // (encounterLevel.js dungeonSessionLevel: a join, a leave or a level-up after the first build changes nothing), and a
 // Super dungeon's floor on top (sdDungeon.js superFoeLevel). One answer for the build, the rest spawns and the elites.
 import { effectiveLevel } from './mentorMode.js';
-import { placeLevel, dungeonSessionLevel, adoptSessionLevel } from './encounterLevel.js';
+import { placeLevel, dungeonSessionLevel, adoptSessionLevel, endDungeonSession } from './encounterLevel.js';
 import { dungeonRarityTier } from './loot/lootRarity.js';
 import { superFoeLevel } from '../world/superDungeon/sdDungeon.js';
 
@@ -20,3 +20,6 @@ export function dungeonBuildLevel(dfLocation, entity, superTier) {
 
 /** A joiner takes the host's session level for this dungeon (the host's full frame says it). @param {any} dfLocation @param {number} level */
 export const adoptDungeonSessionLevel = (dfLocation, level) => adoptSessionLevel(sessionKey(dfLocation), level);
+
+/** ENTRY-HOLD: a visit that built at the host's level forgets it on leaving, so its next visit builds at its own. @param {any} dfLocation */
+export const endDungeonSessionFor = (dfLocation) => endDungeonSession(sessionKey(dfLocation));

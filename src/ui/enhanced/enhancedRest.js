@@ -201,12 +201,30 @@ export function mountEnhancedRest(hostEl, deps, ignoreAllocatedBed = false) {
     if (!act.point) { overlay._refusalLines = [REST_ACT_TEXT.noPoint]; overlay.state = 'refused'; return; }
     if (!canRestNow(false)) return;
     overlay._loiterOffer = false;
+    overlay.state = 'restChoice';   // every check passed: the player picks a long or a short rest
+  }
+  /** The rest chosen: hold the channel for a long rest (the night) or a short one. */
+  let _longRest = false;
+  function beginChannel(long) {
+    _longRest = long;
     moveToBed();
     overlay.mode = 'act';
     overlay.state = 'channel';
     overlay._actHealth = deps.vitals?.()?.health;   // AUDIT REST-PARTY A5: a blow while holding interrupts
     deps.restChannelOpen?.();   // REST-CHANNEL-HEAL: the bar heals as it fills (restAct.js openChannelHeal)
-    deps.camp?.open?.(!!act.night);   // CAMP-ROLL: my act is open on a night - the camp's roll may be mine (restWindow.js _openAct)
+    deps.camp?.open?.(long && !!act.night);   // CAMP-ROLL: a long rest may be the camp's roll
+    render();
+  }
+  function restChoiceCard() {
+    const c = el('div', 'card');
+    c.append(el('h2', null, REST_ACT_TEXT.choose));
+    const acts = el('div', 'acts selection-acts');
+    const btn = (label, onClick) => { const b = el('button', 'act', label); b.onclick = onClick; acts.append(b); };
+    btn(REST_ACT_TEXT.longChoice, () => beginChannel(true));
+    btn(REST_ACT_TEXT.shortChoice, () => beginChannel(false));
+    btn('Cancel', () => close());
+    c.append(acts);
+    return c;
   }
   /** REST1: the channel held to its end - enemies, or the night, or the short rest. */
   function finishAct() {
@@ -219,7 +237,7 @@ export function mountEnhancedRest(hostEl, deps, ignoreAllocatedBed = false) {
     const at = actAtChannelEnd(act, deps.restAct?.() ?? null, overlay._actHealth, deps.vitals?.()?.health);   // AUDIT REST-PARTY A5: the point asked again
     if (!at) { overlay._end({ textId: null, text: REST_ACT_TEXT.interrupted, enemyBroke: false, died: false }); return; }
     if (at.meditate) { overlay._end(deps.restMeditate?.() ?? { textId: REST_TEXT.wakeUp, enemyBroke: false, died: false }); return; }
-    _actPlan = at;
+    _actPlan = { ...at, night: _longRest && !!at.night };   // a short rest is never a night
     campStep();
   }
   /** CAMP-ROLL: the night is the camp's (restAct.js campNightStep) - restWindow.js _campStep, this skin's card. */
@@ -468,6 +486,7 @@ export function mountEnhancedRest(hostEl, deps, ignoreAllocatedBed = false) {
             : overlay.state === 'refused' ? refusedCard()
               : overlay.state === 'hoursRefused' ? hoursRefusedCard()
               : overlay.state === 'resting' ? restingCard()
+                : overlay.state === 'restChoice' ? restChoiceCard()
                 : overlay.state === 'channel' ? channelCard()
                 : overlay.state === 'campWait' ? campWaitCard()
                 : endedCard(),

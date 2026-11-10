@@ -19,7 +19,7 @@ import { FlatAnimator, armFlatAnim, MISSILE_FPS } from '../render/flatAnimation.
 import { markFoeStruck, markHostStruck } from '../ui/hud/hudFoeTarget.js';   // STAND-IN-BAR (AUDIT KETCH II): an event's host struck takes the target bar
 import { foeShare, progressionScaling, placeVeteran } from '../systems/skillSoftcap.js';   // SOFTCAP2: tougher foes, by dungeon tier; BAL3: and by the place's own threat
 import { effectiveLevel } from '../systems/mentorMode.js';
-import { dungeonBuildLevel, adoptDungeonSessionLevel } from '../systems/dungeonLevel.js';
+import { dungeonBuildLevel, adoptDungeonSessionLevel, endDungeonSessionFor } from '../systems/dungeonLevel.js';
 import { questFoeLevel } from '../systems/wildLevel.js';   // ENCOUNTER-LEVEL: the dungeon's one build level, fixed for the session   // SOFTCAP1
 import { quickslotHand } from '../ui/quickslotTags.js';   // DISC21-C: an empty quickslot press reads the hand   // PX30
 import { lycanthropeAttackVoice, lycanthropeMoveSound } from '../systems/lycanthropy.js';   // V4: the beast's attack voice; LM1: the 4-20s move-sound loop; DISC10-E L3: the inventory refusal moved INTO the window door
@@ -321,7 +321,7 @@ import { createDungeonCorpsePrefabs } from './corpsePrefabHost.js';   // DEX5 / 
 import { egFindStruck, egFindKill } from '../systems/eliteGates/egFind.js';   // EG-E3: the dungeon's find - a joiner's kill, asked by the joiner; PARTY-LOOT: a room's body's kill
 import { rollCorpseKit, capFoeLoot, summonedWord, summonedRecord, markSummoned } from '../systems/foeLootCap.js';   // KIT-ROLL: a foe's kit, laddered at its death by every body door; AUDIT 625 L5: a copy's cap; RPT1026-PROGRESS: and a summon's puppet bare on every machine
 import { dropFoeCard } from '../systems/card/cardSources.js';   // AUDIT CARDS-6 A3: a joiner's copy of a body draws for its own card
-import { FOE_LEVEL_MAX, CELL_LOOSE_PUPPETS, sharedClassicMinutes, hitClassField, hitClassOf } from '../net/wire.js';   // TELL8: a blow's class on a hit   // SEARCH1: a room's search stamp, read as the world minute it was searched at   // AUDIT RENOWN1 GAME-3: the stream's bound on a class foe's level; SUMMON-SYNC: an owner's loose stands a reader stands, the cell's allowance
+import { FOES_STALE_MS, FOE_LEVEL_MAX, CELL_LOOSE_PUPPETS, sharedClassicMinutes, hitClassField, hitClassOf } from '../net/wire.js';   // TELL8: a blow's class on a hit   // SEARCH1: a room's search stamp, read as the world minute it was searched at   // AUDIT RENOWN1 GAME-3: the stream's bound on a class foe's level; SUMMON-SYNC: an owner's loose stands a reader stands, the cell's allowance
 import { grantKindOf } from '../net/grantLaw.js';   // GRANT4: the own lane's stands on their grants (bible/11-Multiplayer/Spawn-Grants.md section 14)
 /** DESYNC-ZERO: a reader's allowance for one owner's loose stands in a room (a Greater Giant's call of ten, summons, Mark's
  *  stands) - CELL_LOOSE_PUPPETS (four) left most of a call unseen by the rest of the room. Reader-side only: the relay never
@@ -5247,7 +5247,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (from !== _foesFrom) { clearSurplus(); _foesFrom = from; _foesSeqIn = -1; for (let i = 0; i < _layoutFoes; i++) { const f = foes[i]; if (f) { f._pup = null; f._pupMismatch = false; } } for (const f of _sharedById.values()) f._pup = null; }   // REST-SYNC: the room's encounters re-latch too
     if (Number.isFinite(data.n)) { if (data.n <= _foesSeqIn) return false; _foesSeqIn = data.n; }
     if (data.k != null && data.k !== _locationKey) { if (!_keyMismatchSaid) { _keyMismatchSaid = true; console.warn(`[online] the host streams ${data.k}, this dungeon is ${_locationKey} - the stream is refused`); } return false; }   // C8: another dungeon's stream; AUDIT WORLD34 B2: said once
-    if (Number.isInteger(data.sl) && data.sl >= 1 && data.sl <= FOE_LEVEL_MAX && data.sl !== _buildLevel) { _buildLevel = data.sl; adoptDungeonSessionLevel(dfLocation, data.sl); }   // ENCOUNTER-LEVEL: the host's session level
+    if (Number.isInteger(data.sl) && data.sl >= 1 && data.sl <= FOE_LEVEL_MAX && data.sl !== _buildLevel) { _buildLevel = data.sl; _levelAdopted = true; adoptDungeonSessionLevel(dfLocation, data.sl); }   // ENCOUNTER-LEVEL: the host's session level
     if (Number.isInteger(data.lc) && data.lc >= 0) hideBeyondHostLayout(data.lc);   // DESYNC-ZERO: my layout foes the host has none of
     const listed = data.full === 1 || Number.isInteger(data.lc) ? new Set() : null;
     for (const r of data.f) {
@@ -5258,25 +5258,27 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (!f || i >= _layoutFoes) { surplusRecord(i, r); continue; }   // DESYNC-ZERO: a host's foe my layout never built - stood as a puppet, never dropped
       if (r.t != null && r.t !== f.mobileType) {   // another species at this index - REBUILT as the room's (WORLD3); the blow goes meanwhile (AUDIT FOES FOE4)
         f._pupMismatch = true;
-        // AUDIT WORLD3 E2: the record that triggered the rebuild lands ON the rebuilt foe. The build stands a FRESH
-        // record - alive, at full health, at its marker - and the host re-sends this index only on its next full
-        // frame (and, once I take the seat, never), so a foe the room knows is dead stood up, and after a handover
-        // became my simulation's live foe and went back out to the whole room that way.
-        // AUDIT FOES FOE4: and the rebuild is BOUNDED. A refusal (a texture or a career
-        // read that fails on this machine alone, a species no art can stand) left the
-        // flag set and the host kept re-offering the index - the full frame carries
-        // every layout foe every FOES_FULL_MS - so a failing index asked for a fresh
-        // build for ever, several times a second, for the life of the dungeon. Past
-        // RETYPE_TRIES it stands as it is, said once: the body is wrong and the blows
-        // still land, which is the right way round.
+        // The copy follows the host while its body is rebuilt: a live record moves it and carries its health, a death
+        // lays the body where it stands (no rebuild for a body). Before, the record was skipped until the rebuild landed,
+        // and for good when it failed - the copy stood frozen, alive, where nothing on the host was.
+        // A dead copy is not stood up in its wrong body (the un-death path would rebuild it as its own species); the
+        // rebuild stands it as the room's.
+        if (r.d === 1) { applyFoeRecord(f, r); continue; }
+        if (!f.dead) applyFoeRecord(f, r);
+        // AUDIT WORLD3 E2: the newest record lands on the rebuilt foe, so it never stands fresh where the room's is not.
+        _retypeNewest.set(i, r);
+        // AUDIT FOES FOE4: the rebuild is BOUNDED - past RETYPE_TRIES real failures the foe keeps the body it has. A
+        // rebuild already under way is no failure: it is waited for, not asked again.
         const tries = (_retypeFails.get(i) ?? 0);
-        if (tries < RETYPE_TRIES) {
+        if (tries < RETYPE_TRIES && !_retyping.has(i)) {
           retypeFoe(i, r.t, GENDER_BIT[r.x === 1 ? 1 : 0]).then((ok) => {
-            if (ok) { _retypeFails.delete(i); if (!_authority && foes[i]) applyFoeRecord(foes[i], r); return; }
+            const newest = _retypeNewest.get(i) ?? r;
+            _retypeNewest.delete(i);
+            if (ok) { _retypeFails.delete(i); if (!_authority && foes[i]) applyFoeRecord(foes[i], newest); return; }
             const n = (_retypeFails.get(i) ?? 0) + 1;
             _retypeFails.set(i, n);
-            if (n === RETYPE_TRIES) console.warn(`[online] the foe at ${i} cannot be rebuilt as species ${r.t} on this client - it keeps the body it has; blows still go to the host`);
-          }).catch((e) => console.error('[online] the rebuilt foe could not take the record - the foe stands as it is:', e));   // AUDIT ONCRASH1 A1
+            if (n === RETYPE_TRIES) console.warn(`[online] the foe at ${i} cannot be rebuilt as species ${r.t} on this client - it keeps the body it has and follows the host in it`);
+          }).catch((e) => { _retypeNewest.delete(i); console.error('[online] the rebuilt foe could not take the record - the foe stands as it is:', e); });   // AUDIT ONCRASH1 A1
         }
         continue;
       }
@@ -5291,6 +5293,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     }
     applySharedRecords(Array.isArray(data.x) ? data.x : [], data.xf === XF_WHOLE || data.xf === XF_STANDING ? data.xf : 0);   // REST-SYNC; RPT1026-ITEMS BODY-CAP: 2, whole for the standing
     if (listed) for (const [i, f] of [..._surplus]) if (!listed.has(i) && !_surplusPending.has(i)) dropSurplus(i, f);   // DESYNC-ZERO: a host's surplus foe it no longer lists
+    if (listed && _entryHeld && _entryFullAt == null) _entryFullAt = performance.now();   // ENTRY-HOLD: the host's whole room has landed
     return true;
   }
 
@@ -6025,6 +6028,34 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // and decide nothing, and my blows on them go out as hits for the host's own damage door. The seat's handover
   // turns _authority on and the puppets live, from the pose the stream left them in.
   let _authority = true;
+  // ENTRY-HOLD (net/entryHold.js): on entering a shared dungeon online, the layout foes are held - not drawn, deciding
+  // nothing - until the room's host is known and, for a mirror, its data has landed. The host's records still apply
+  // while held, so the foes appear as the host has them.
+  let _entryHeld = false;
+  let _entryHeldAt = 0;
+  let _entryFullAt = null;   // when the host's first full frame landed during the hold
+  let _levelAdopted = false;   // this visit builds at the host's session level, not its own - forgotten on leaving
+  const ENTRY_SYNC_GRACE_MS = 1500;   // the longest the hold waits on rebuilds after the host's full frame
+  const ENTRY_HOLD_SAFETY_MS = 2 * FOES_STALE_MS;   // a hold nobody ends (the online frame stopped) ends itself
+  function setEntryHold(on) {
+    on = !!on;
+    if (on === _entryHeld) return;
+    _entryHeld = on;
+    _entryHeldAt = performance.now();
+    _entryFullAt = null;
+    // released: each copy stands where the host's records last put it, rather than easing there from its marker in view
+    if (!on) for (const f of [...foes.slice(0, _layoutFoes), ..._sharedById.values()]) {
+      const p = f?._pup;
+      if (!p || f.dead || !f.ai) continue;
+      f.ai.feet[0] = p.feet[0]; f.ai.feet[1] = p.feet[1]; f.ai.feet[2] = p.feet[2]; f.ai.yaw = p.yaw;
+    }
+  }
+  /** Whether the host's data has landed: its full frame applied, and the rebuilds and stands it asked for done (or
+   *  ENTRY_SYNC_GRACE_MS spent on them - a rebuild that fails leaves its foe following the host in the body it has). */
+  function entrySynced() {
+    if (_entryFullAt == null) return false;
+    return (_retyping.size === 0 && _surplusPending.size === 0 && _sharedPending.size === 0) || performance.now() - _entryFullAt >= ENTRY_SYNC_GRACE_MS;
+  }
   let _foesSeq = 0;        // the host's frame counter out
   let _foesSeqIn = -1;     // the last frame counter in (an older frame is stale, not the world)
   let _foesFrom = null;    // AUDIT WORLD2 A1: whose stream the counter counts - a new host's starts over
@@ -6361,6 +6392,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
    *  ever, so a build that cannot succeed on this machine must stop being asked. Cleared by a rebuild that lands. */
   const _retypeFails = new Map();
   const RETYPE_TRIES = 3;
+  const _retypeNewest = new Map();   // layout index -> the newest host record while its rebuild runs
   async function retypeFoe(i, mobileType, gender = null, { anyFoe = false, at = null } = {}) {
     const f = foes[i];
     // AUDIT WORLD3 E3: the same guard buildFoeAt uses. ENEMY_BASICS[39] exists with maleTexture 0, so both build
@@ -7732,9 +7764,12 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     spaceFoes(foes, collider, foeFrameDt(dt), (f, i) => spacingSkips(f) || f._ownFrom != null || (!_authority && isRoomFoe(f, i)));   // AUDIT (pre-merge) D4: a party member's own foe (QUEST-PARTY 3c, SUMMON-SYNC) is a puppet too - its runner's frame places it
     // AUDIT TACT C7: and no foe holds a dungeon's (or a castle's) doorway - TACT3's rule, always on, on the level's action doors
     clearDoorways(foes, actionDoorSpots(actions.objects, playerFeet, 30), collider, foeFrameDt(dt), (f) => spacingSkips(f) || f._ownFrom != null || (!_authority && isRoomFoe(f, foes.indexOf(f))));
+    // ENTRY-HOLD: a hold the online frame never ended (it stopped) ends itself, the foes this client's again
+    if (_entryHeld && performance.now() - _entryHeldAt > ENTRY_HOLD_SAFETY_MS) { _entryHeld = false; setAuthority(true); }
     for (const f of foes) {
       _fi++;
       if (f.dead) continue;
+      if (_entryHeld && isRoomFoe(f, _fi)) continue;   // ENTRY-HOLD: not drawn and deciding nothing until the host's word
       if (revenantStale(f.entity)) { for (const g of foes) if (g.retinueOf === f.entity.revenant.id) questPoolOps.removeFoe(g); questPoolOps.removeFoe(f); continue; }   // LAIR-HOME (Field-Bugs-2026-10-19.md): a body its revenant left - a later stand stands it elsewhere - gone, its band with it
       // S19: a paralyzed foe freezes - EnemyMotor (CanAct = false,
       // FreezeAnims) stops senses/pursuit and EnemyAttack returns
@@ -9925,6 +9960,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     applyFoes,
     applyHit,
     setAuthority,
+    setEntryHold, entrySynced,   // ENTRY-HOLD (net/entryHold.js)
     // QUEST-PARTY phase 3c: the room's own lane - my shared quest's foes out, a party member's in, a blow on mine in,
     // the owners swept, the handover
     ownFrame, applyOwnFrame, applyOwnHit, pruneOwnOwners, clearOwnPuppets, ownHandOverFrame, dropOwnHanded,
@@ -10761,6 +10797,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     colliderTris,
     destroy() {
       _ctxDead = true;   // NT1 (F213): before anything frees - the warm-window continuations read it
+      if (_levelAdopted) endDungeonSessionFor(dfLocation);   // ENTRY-HOLD: the host's level was this visit's; the next visit builds at its own
       _unregisterPresenter();   // ENH-NOTICE3: the registration leaves with the context (the dead latch above is what REFUSES a box in the meantime - pushDungeonWindow reads it, AUDIT ENH-NOTICE3 F2)
       // PX21c: the plaque leaves with the host that raised it - AFTER
       // the latch, which NT1 pins as the first act of this function.

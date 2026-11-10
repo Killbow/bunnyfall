@@ -271,6 +271,7 @@ export class RestWindow {
     // Offline restAct is null and nothing below changes a byte of DFU's window.
     this._act = this.deps.restAct?.() ?? null;
     this._actT = 0;
+    this._longRest = false;
     if (this._act) this._openAct();
   }
 
@@ -287,12 +288,18 @@ export class RestWindow {
     if (!this._act.point) { this.refusalLines = [REST_ACT_TEXT.noPoint]; this.state = 'refused'; return; }
     if (!this._canRest(false)) return;
     this._loiterOffer = false;   // LOITER-ANYWHERE: the act holds - Loiter is still a key away (the channel's RestLoiter)
+    this.state = 'restChoice';   // every check passed: the player picks a long or a short rest
+  }
+
+  /** The rest chosen: hold the channel for a long rest (the night) or a short one. */
+  _beginChannel(long) {
+    this._longRest = long;
     this._moveToBed();
     this.mode = 'act';
     this.state = 'channel';
     this._actHealth = this.deps.vitals?.()?.health;   // AUDIT REST-PARTY A5: a blow while holding interrupts
     this.deps.restChannelOpen?.();   // REST-CHANNEL-HEAL: the bar heals as it fills (restAct.js openChannelHeal)
-    this.deps.camp?.open?.(!!this._act.night);   // CAMP-ROLL: my act is open on a night - the camp's roll may be mine
+    this.deps.camp?.open?.(long && !!this._act.night);   // CAMP-ROLL: a long rest may be the camp's roll
   }
 
   /** REST1: the channel held to its end - an enemy in reach (or a spawn latched while holding) is the enemies line;
@@ -307,7 +314,7 @@ export class RestWindow {
     const act = actAtChannelEnd(this._act, this.deps.restAct?.() ?? null, this._actHealth, this.deps.vitals?.()?.health);   // AUDIT REST-PARTY A5: the point asked again
     if (!act) { this._end({ textId: null, text: REST_ACT_TEXT.interrupted, enemyBroke: false, died: false }); return; }
     if (act.meditate) { this._end(this.deps.restMeditate?.() ?? { textId: REST_TEXT.wakeUp, enemyBroke: false, died: false }); return; }
-    this._actPlan = act;
+    this._actPlan = { ...act, night: !!this._longRest && !!act.night };   // a short rest is never a night
     this._campStep();
   }
 
@@ -520,7 +527,7 @@ export class RestWindow {
    * `back` - so one spelling serves both.
    */
   keyup(action, e = null) {
-    if (this.state !== 'selection' && this.state !== 'resting' && this.state !== 'channel' && this.state !== 'campWait') return;   // REST1: the act's channel is the window too   // CAMP-ROLL: and its wait
+    if (this.state !== 'selection' && this.state !== 'resting' && this.state !== 'channel' && this.state !== 'campWait' && this.state !== 'restChoice') return;   // REST1: the act's channel is the window too   // CAMP-ROLL: and its wait
     if (this.state === 'resting' && this.isCloseWindowDeferred
       && hotkeyHit('RestStop', action, e)) {
       this.isCloseWindowDeferred = false;
@@ -584,7 +591,7 @@ export class RestWindow {
     // `GetBackButtonDown() || GetKeyDown(automapBinding)`). It does NOT
     // consume the press: the button hotkeys below must still see a
     // colliding binding, which is the whole point of E1's split.
-    if ((this.state === 'selection' || this.state === 'resting' || this.state === 'channel' || this.state === 'campWait')
+    if ((this.state === 'selection' || this.state === 'resting' || this.state === 'channel' || this.state === 'campWait' || this.state === 'restChoice')
       && (normalizeCode(action, e) === 'Escape' || this._togglePressed(action, e))) {
       this._toggleArmed = true;
     }
@@ -593,6 +600,11 @@ export class RestWindow {
     if ((this.state === 'channel' || (this.state === 'refused' && this._loiterOffer)) && (action === 'char:3' || hot('RestLoiter'))) {
       audio.playOneShot(SOUND.ButtonClick, 1);
       this._loiter();
+      return;
+    }
+    if (this.state === 'restChoice') {   // 1: long rest, 2: short rest; Esc closes (keyup)
+      if (action === 'char:1') { audio.playOneShot(SOUND.ButtonClick, 1); this._beginChannel(true); }
+      else if (action === 'char:2') { audio.playOneShot(SOUND.ButtonClick, 1); this._beginChannel(false); }
       return;
     }
     if (this.state === 'channel' || this.state === 'campWait') return;   // REST1: the channel answers only its release (keyup)   // CAMP-ROLL: and its wait
@@ -993,6 +1005,8 @@ export class RestWindow {
       // F144: the refusal alone - no field, no cursor; the original
       // prompt self-closed before the handler ever saw the number.
       lines = [...(this.notice ?? [])];
+    } else if (this.state === 'restChoice') {
+      lines = [REST_ACT_TEXT.choose, '', `1. ${REST_ACT_TEXT.longChoice}`, `2. ${REST_ACT_TEXT.shortChoice}`, '', 'Esc: cancel'];
     } else if (this.state === 'channel') {
       lines = this.actLines();   // REST1
     } else if (this.state === 'campWait') {

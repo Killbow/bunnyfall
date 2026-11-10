@@ -250,8 +250,8 @@ import { mintQuestFoeWave, placeFoeEnv, entityOccupancy, questFoeGender, reviveQ
 import { ENEMY_BASICS, enemyLevelOf } from '../characters/enemy/enemyBasics.js';   // MERGE: FinalizeFoe's Flying lift reads the behaviour flag
 import { markFoeReach } from '../systems/foeReach.js';   // WATER-FOES: a foe in the water reaches no one aboard
 import { intermittentEnemySpawn, setEnemyAlert, areEnemiesNearby, foeHostile, foeAlerted, fightNear } from '../systems/encounters.js';   // OW6: foeHostile, the one hostility gate   // CAMP-ROLL: REST5's quietNights moved with the carried night's sequence (scenes/shared.js restCampNight)
-import { nightDue, setNightListener, nightStamp, nightKindOf, isNightStamp, carriedNightEnd, REST_ACT_TEXT, campStamp, campMarkOf } from '../systems/rest/restAct.js';   // REST5: the party's night   // AUDIT REST-PARTY: and where it was slept   // AUDIT REST II: the mark asked lazily (P5), and what a carried night says (P3)
-import { createNightWatch, carriedNightAction, createCampWatch, campPasses } from '../systems/party/partyRestLaw.js';   // AUDIT REST-PARTY: the party's night, pinned by execution   // AUDIT REST II P1/P2: its watch   // CAMP-ROLL: the camp's one roll
+import { setNightListener, nightStamp, nightKindOf, REST_ACT_TEXT, campStamp, campMarkOf } from '../systems/rest/restAct.js';   // REST5: the party's night   // AUDIT REST-PARTY: and where it was slept   // AUDIT REST II: the mark asked lazily (P5), and what a carried night says (P3)
+import { createCampWatch, campPasses } from '../systems/party/partyRestLaw.js';   // AUDIT REST-PARTY: the party's night, pinned by execution   // AUDIT REST II P1/P2: its watch   // CAMP-ROLL: the camp's one roll
 import { ambushNight } from '../systems/rest/restAct.js';   // AUDIT REST-PARTY A1: a resting encounter stood breaks the night that rolled it
 import { createStandingWatch, installLegalNotices } from './standingHost.js';   // REP1: the watch's stop; REP5: the law's notices
 import { chooseRandomEnemy } from '../systems/encounters.js';   // LW6: a dungeon's own foes for a dive's trouble
@@ -355,7 +355,6 @@ import { createGateOmen, insideGateRing, gateSceneXZ, fellLine, courtFellLine, O
 import { gateScanner, findGateSite, gateSeaPixel, politicClaimed } from '../systems/gate/gateSite.js';   // WB1: where the day's gate stands, over the map files every client holds alike
 import { createGatePool, GATE_TEXT } from './gate/gatePool.js';   // WB2: the gate the world stands - its stone, its fire and beacon, its collider and its door
 import { createStarfallHost } from './starfall/starfallHost.js';   // STAR4-STAR6: the Witches' Festival's fallen stars - in the sky, in the world, defended
-import { createRocketHost } from './rocketHost.js';   // ROCKET1: /event rocket - the mounds, their poop, the farting horses and the frenzy
 import { createRiteHost, RITE_TEXT } from './riteHost.js';   // WB12d: the faithful's rite - its circle, its smoke, its faithful, its word and its chest
 import { createSdHost } from './superDungeon/sdHost.js';   // SD2b: the Hollow in the world - the hub's record in, the Hollow stood at its pixel, the find, the lines
 import { sdOmenSeen, sdNoticeCard, SD_COMPASS_M, sdAirWeight, sdBrassLight, sdBannerText, SD_BANNER_M } from '../systems/superDungeon/sdOmen.js';   // SD2c: the Hollow seen and heard of - its column, its note, its compass's reach
@@ -827,7 +826,8 @@ import { createWorldModes } from './worldModes.js';
 import { setAmbientTextHost, tickAmbientText } from '../systems/ambientText.js';   // AT2: Ambient Text's one component - this host claims it and feeds it the frame
 import { trustedServerParam } from '../net/trustedServer.js';   // BUNNYFALL AUDIT BF-16
 import { OnlineSession, steadyNow, roomKeyFor, DEFAULT_SERVER, WORLD_PUBLISH_MS, WORLD_REPUBLISH_MS, FOES_MS, FOES_FULL_MS, FOES_STALE_MS, SHOWN_MOVE_HOLD_MS } from '../net/online.js';   // ONLINE1: the session; WORLD1: the room's memory; AUDIT 637 D7: the move hold, one law both ends
-import { createSeatClock } from '../net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: the named seat's patience, which this page's own absence never spends
+import { createSeatClock, seatStreams } from '../net/seatLive.js';   // FIELD BUGS 2026-10-18d SEAT-LIVE: the named seat's patience, which this page's own absence never spends
+import { createEntryHold } from '../net/entryHold.js';   // ENTRY-HOLD: a shared dungeon's enemies wait for the room's host
 import { pageWave } from '../net/reconnectWave.js';   // SCALE2c: a relay deploy's reconnect, spread by the hub's count
 import { quietFoesGate } from '../net/foesQuiet.js';   // SCALE2c: a full foes frame that says nothing, said once
 import { createSeatLock, SEAT_NOTICE, SEAT_MID_TEXT, PLAY_HERE_LABEL } from '../net/oneSeat.js';   // ONE-SEAT: one tab of a player online - the browser's arm, beside the hub's
@@ -20554,6 +20554,19 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  socket, a terminal close or a silent host left a joiner's dungeon frozen with every blow dropped). Read every
    *  frame, not on a host change alone. */
   const dungeonAuthority = (now = performance.now()) => !(online?.room && isWorldRoom(online.room) && online.status === 'open' && online.host && !online.isHost() && seatClock.live(now));
+  // ENTRY-HOLD (net/entryHold.js): a dungeon built online holds its layout foes until the room's host is known and, for a
+  // mirror, its data has landed. Begun by the build (worldModes), ended by dungeonHoldFrame at the head of every online frame.
+  const _entryHold = createEntryHold();
+  const dungeonEntryHold = () => { if (!onlineOn) return false; _entryHold.begin(performance.now()); return true; };
+  const dungeonHoldFrame = (now) => {
+    if (!_entryHold.held) return;
+    const ident = modes?.mode === 'dungeon' ? modes?.roomIdentity?.() : null;
+    const shared = ident?.kind === 'dungeon' && !ident.private;
+    const joined = online.status === 'open' && seatStreams(online.room) && !!online.host;
+    if (_entryHold.step({ now, shared, joined, mine: joined && online.isHost(), synced: !!modes?.dungeonEntrySynced?.() })) return;
+    modes?.setDungeonHold?.(false);
+    modes?.setDungeonAuthority?.(dungeonAuthority(now));
+  };
   let onlineToScene = (p) => [p.x, p.y, p.z];
   // AUDIT MERGE-PLUS B1: ...and its inverse, for a POINT I send (PEERFX1's struck point) - the pose's own per-mode law,
   // written beside the pose each frame. The blow's point went through the overworld's mapping in every mode, so in a
@@ -21151,7 +21164,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // WORLD1: the room's memory in - a welcome that carries the world the room keeps lands on the standing dungeon
     // (the mode machine refuses another dungeon's); a new host publishes at once
     online.onWorld = (shared) => { if (modes?.restorePlaceSharedWorld?.(shared)) console.info('[online] the room\'s memory restored'); };   // WORLD6a: on the standing place, a dungeon or a building
-    online.onHost = (id, mine) => { if (mine) { _worldPublishedAt = -Infinity; _foesFullAt = -Infinity; } else if (id && isWorldRoom(online.room)) seatClock.heard(performance.now()); modes?.setDungeonAuthority?.(dungeonAuthority()); };   // AUDIT WORLD6b A9: a cell's seat is no heartbeat   // WORLD2: the seat decides who steps the foes; a new host streams every foe at once; another's word is its first heartbeat
+    online.onHost = (id, mine) => { if (mine) { _worldPublishedAt = -Infinity; _foesFullAt = -Infinity; } else if (id && isWorldRoom(online.room)) seatClock.heard(performance.now()); modes?.setDungeonAuthority?.(!_entryHold.held && dungeonAuthority()); };   // AUDIT WORLD6b A9: a cell's seat is no heartbeat   // WORLD2: the seat decides who steps the foes; a new host streams every foe at once; another's word is its first heartbeat
     online.onFoes = (id, data) => {
       if (isCellRoom(online.room)) {
         if ((modes?.mode ?? 'exterior') === 'exterior') exteriorFoes.applyFoes(id, data);
@@ -21509,7 +21522,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // EVERY link, not the hub's alone - a close that marks the Region link (this tab's id taken in its channel) left
       // it shut for the page's life, with no Play online here to open it again
       link.onSuperseded = () => seatLostNow();
-      if (tab.room === SOCIAL_ROOM) link.onEvent = (ev, o) => { dread.set(ev, o); sunbaby.set(ev, o); rocket.set(ev, o); };   // SUNBABY1: and the sun baby; ROCKET1: and the rocket   // EVENT1: the hub - the one room every online player holds - says the live event
+      if (tab.room === SOCIAL_ROOM) link.onEvent = (ev, o) => { dread.set(ev, o); sunbaby.set(ev, o); };   // SUNBABY1: and the sun baby   // EVENT1: the hub - the one room every online player holds - says the live event
       if (tab.room === SOCIAL_ROOM) link.onHome = (words) => { onlineHomes?.hearHome(words); };   // QUEST-HOME: and a home that moved since the boot's read, every page told
       if (tab.room === SOCIAL_ROOM) link.onRestart = (ms) => hearRestart(ms, (text) => chatLog?.pushAll({ text, red: true }));   // BUNNYFALL: a server restart counting down (ui/restartCountdown.js)
     }
@@ -24804,9 +24817,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // STAR7: the rewards' (scenes/starfall/starRewards.js) - the pack's door, the relay's clock, the silver, the Renown
     takeSpoil, relayNowS, marksBook, renownXpAdopt, renownAdopt, renownRose, get renownSaid() { return renownSaid; },
   }) : null;
-  /** ROCKET1: THE ROCKET (scenes/rocketHost.js) - the hub's third live event word: mounds round the traveller on the world's
-   *  own grid, their poop, the horses farting across the sky and the diarrhea frenzy, on the shared clock. Offline nothing sets it. */
-  const rocket = createRocketHost(renderer, sunbabyGround, state);
   /** SD2b: THE HOLLOW IN THE WORLD (scenes/superDungeon/sdHost.js) - online alone: the hub's record of the Super dungeon (its hub link's
    *  onSd), the Hollow it names found over this client's own map files (the gate's scan, the game's own rows) and stood in
    *  the index at its pixel while its phase stands - built there as a spawned dungeon is, its pixel built again when it
@@ -26478,72 +26488,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  (TAVERN-REST1/GUILD-REST1, every member sleeps for themselves there). The same two questions partyRestGate asks
    *  before it asks the party anything; ui/restDoor.js reads it (the rest deps' `partyRest`) to open the party card
    *  on either skin. */
-  // REST5 (2026-10-03, bible/06-Systems/Rest-Arc.md 2.6; OPEN 11 and 15): ONLINE THE NIGHT CARRIES THE PARTY. The vote,
-  // the gather and the mirrors retire online (partyRestGate and partyRestHere answer nothing there, and
-  // markPartyRestSpent stamps no start - the stamp is the night's):
-  // a rest is an act at a rest point, and when a member sleeps a NIGHT through to its end, the pose's `restStartedAt`
-  // - already on the wire, on the shared clock - is stamped with it (setNightListener; createRestDeps' restNight calls
-  // it, never for a carried night). Every member within 15 m who keeps "Rest with my party" on (nearRestMembers: here,
-  // the same place, not resting alone) sees the stamp move and sleeps the same night in the same step, through their
-  // OWN host's bag - their own clock, their own rest kind and yield, their own night interval (inside it, a short
-  // rest) - and wakes to no ambush (encounters.js quietNights: only the rester rolls). A member mid-fight, swimming,
-  // in a window or resting already is skipped and told, never refused. No relay bump: an older client reads the stamp
-  // as its own "a rest just happened" cooldown, at worst.
-  // AUDIT REST-PARTY (2026-10-03): the decision is systems/party/partyRestLaw.js's now (nightMoved, carriedNightAction,
-  // carriedRestKind), run on a table there - a tavern, temple or guild hall carries nobody (TAVERN-REST1/GUILD-REST1),
-  // a carried night is slept at the rester's spot or my own, whichever is better (PARTY-REST4's per-request), the dead
-  // are not told they slept, and a mate who rests a night here beyond the party's reach is said once (PARTY-REST-FAR1).
+  // REST5: online there is no party vote, gather or mirror (partyRestGate and partyRestHere answer nothing there). A
+  // long rest stamps the pose's `restStartedAt` (setNightListener; createRestDeps' restNight calls it) for the camp roll
+  // below; it no longer carries nearby party members into the night - each player chooses their own rest.
   const hostRestDeps = () => {
     const mode = modes?.mode ?? 'exterior';
     return mode === 'interior' ? modes?.restDeps?.() ?? null : mode === 'dungeon' ? modes?.dungeonCtx?.restDeps?.() ?? null : outdoorRestDeps;
   };
   /** A rest point everyone may use - a fire, a tent, a bed; never a Bedroll, which keeps the stranger rule. */
   const publicRestPoint = () => { const pt = hostRestDeps()?.restAct?.()?.point; return !!pt && pt.where !== 'bedroll'; };
-  // AUDIT REST II (2026-10-03): a member's stamp is watched by partyRestLaw.js's night watch - over its high-water mark,
-  // at most one move a minute answered, a missing pose leaving the mark where it was, a mate who left forgotten (P1/P2);
-  // the mark asked only of a stamp that moved (P5); the act's town law asked of a member it would carry (P4).
-  const _nightWatch = createNightWatch();   // acct -> the highest night stamp seen on that member's pose, and when one was last answered
-  const carryPartyNight = () => {
-    if (!social?.party) { _nightWatch.clear(); return; }
-    const now = social.now();
-    const others = social.others();
-    _nightWatch.keep(others);   // AUDIT REST II P2: a mate who left the party is a first sight when they come back
-    for (const m of others) {
-      const at = stampOf(m.p?.restStartedAt, now);
-      if (!_nightWatch.moved(m.acct, !!m.p, at, now, isNightStamp, () => nightDue(playerEntity, ownMinutes()))) continue;   // AUDIT REST F7: a night's, never an older build's open - AUDIT REST II: over the mark, once a minute, the mark asked last - AUDIT REST III C1: a night my clock owes me inside the minute
-      const present = memberPresent(m);
-      const dead = playerEntity.health <= 0 || !!modes?.deathUp?.();
-      const act = carriedNightAction({
-        withParty: restsWithParty(), resterAlone: restsAlone(m), exempt: !!modes?.insidePartyRestExempt, dead,
-        near: present && nearAccount(m.acct, m.p),
-        here: present && samePlace(myPartyLocation(), { px: m.p.px, py: m.p.py, in: m.p.in, bk: m.p.bk }),
-        busy: () => playerEntity.isResting || playerEntity.isLoitering || !!townTalk.overlay || mirrorRestRefused(),
-        town: () => !!hostRestDeps()?.restPlace?.()?.inTownOutside,   // AUDIT REST II P4: the act's own first refusal (restWindow.js _openAct)
-      });
-      if (!act || (act === 'busy' && _campWatch.isOpen())) continue;   // CAMP-ROLL: my rest window is watching the camp - it sleeps that night itself (restAct.js campNightStep), so nothing is said
-      const name = m.name || 'A party member';
-      if (act === 'far') setMidScreenText(REST_ACT_TEXT.carriedFar(name), 4);   // PARTY-REST-FAR1's word and its four seconds, said once a night
-      else if (act === 'busy') setMidScreenText(REST_ACT_TEXT.carriedSkipped(name), 4);
-      else if (act === 'town') setMidScreenText(REST_ACT_TEXT.carriedTown(name), 4);
-      else sleepCarriedNight(name, nightKindOf(at));
-      return;   // one night a frame
-    }
-  };
-  const sleepCarriedNight = (name, theirs) => {
-    const bag = hostRestDeps();
-    if (!bag?.restCampNight) return;
-    const night = nightDue(playerEntity, ownMinutes());
-    let r = null;
-    // AUDIT REST-PARTY: by their fire, not on the ground beside it; CAMP-ROLL: the carried night's one sequence
-    // (scenes/shared.js restCampNight - the kind read, the override, the open, the night, its rolls quiet), the rest
-    // windows' camp wait its other caller; the close is mine
-    try { r = bag.restCampNight(theirs, night); } finally { bag.setResting(false); }
-    // AUDIT REST II P3: a night slept whole says so; one a foe broke or a prevent-rest condition cut says its own line -
-    // AUDIT REST III C3: and each raises the skills, as the window's close gives the rester (EndRest's every arm)
-    const end = carriedNightEnd(name, night, r, bag.endLines);
-    if (end.raise) bag.onRestFinished?.();
-    if (end.text) setMidScreenText(end.text, 5);
-  };
   setNightListener((kind) => { if (social && sharedClockOn()) { _partyRestJustStartedAt = nightStamp(social.now(), kind ?? undefined); _partyComposedAt = -Infinity; } });
   // CAMP-ROLL (2026-10-04, the player: "In a party, or with other players. Every player spawns their own enemies when
   // resting"; then "Do it"): ONE ROLL A CAMP - systems/party/partyRestLaw.js's own note says the whole of it. This is the
@@ -27005,7 +26958,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // PARTY-REST15: runs from EVERY near member's own client now, each pushing its own local notice - see
     // this function's own doc comment above for why that's safe (no leader restriction needed anymore).
     _partyRestVoteTrackTick();
-    if (sharedClockOn()) { carryPartyNight(); return; }   // REST5: online a member's night carries me - no mirror, no vote (carryPartyNight)
+    if (sharedClockOn()) return;   // online there is no mirror, no vote, and a member's night carries nobody
     const ov = townTalk.overlay;
     const mirroring = !!(ov?.isRestWindow && ov.isPartyRestMirror);
     if (mirroring && ov.state !== 'resting') return;   // already finishing on its own (the wake message shown, refused, ...) - townTalk's own drain closes it; leave it be
@@ -28823,6 +28776,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     seatLock?.claim();
   };
   const onlineFrame = (now, dt) => {
+    dungeonHoldFrame(now);   // ENTRY-HOLD: first, so no early return below keeps a dungeon's enemies held
     if (!modes?.sailingCabin || seatOut() || playerEntity.health <= 0 || modes?.deathUp?.()) cabinLink.close();
     chatFrame();   // CHAT1: before the dead return, so the channels keep their heartbeat and their reconnect while the death screen is up (the panel itself is paused away like any HUD - AUDIT CHAT B7)
     tradeFrame();   // TRADE1: retries, timeouts, a peer gone or out of reach - before the dead return, as the chat's is
@@ -29071,7 +29025,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     ownStream(now);    // QUEST-PARTY phase 3b: mine in a building, on the room's own lane
     actFlush();        // AUDIT WORLD3 A3: an act the wire refused, re-read and re-sent
     hitFlush(now);     // AUDIT FOES FOE2: and a BLOW the wire refused - a joiner applies none locally, so a lost frame is a lost blow
-    seatClock.frame(now); modes?.setDungeonAuthority?.(dungeonAuthority(now));   // SEAT-LIVE: this frame told the clock first (a gap is the page away, not the seat); AUDIT WORLD2 C2: the seat re-read every frame - a dead socket, a terminal close or a silent host hands the foes back
+    seatClock.frame(now); modes?.setDungeonAuthority?.(!_entryHold.held && dungeonAuthority(now));   // SEAT-LIVE: this frame told the clock first (a gap is the page away, not the seat); AUDIT WORLD2 C2: the seat re-read every frame - a dead socket, a terminal close or a silent host hands the foes back
     hccParkTick(now); doorToken.frame();   // HCC-PARK: my parked team's word to the cell it stands in, when it changed   // DOOR-TOKEN: the way out approached - its token minted on the walk to the door
     overworldLedgerFrame(now); searchPartyFrame(now);   // OW6L: what I spent and my spawns' clocks, to the cell that keeps them; GRAVE-PARTY: and the stones I searched
     caravanDecorTick(now);   // WAGONS2-VISIT: what I placed in my caravan, to its room, when it changed
@@ -29665,6 +29619,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     shakeCamera: (k) => betterAmbience.weaponKick(k),   // REVENANT-FATE: an execution's blow, felt
     selfId: () => online?.id ?? null,
     dungeonAuthority,   // WORLD2: a dungeon built while another hosts starts as puppets
+    dungeonEntryHold,   // ENTRY-HOLD: online, the dungeon's enemies wait for the room's host
     // TTL1: the two spawned-dungeon clocks, from the mode machine's
     // dungeon. `onDungeonSpawned` only fires for a synthesized one, so
     // the note is unconditional; `onDungeonCleared` fires for ANY
@@ -34096,7 +34051,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // player online sees one drop in the same second, each round themselves), drawn by the spell engine, burning no one
     if (jump) sunbabyRain.reset();
     for (const fb of sunbabyRain.tick({ sharedMs: Date.now() + _sharedOffsetMs, eye: tvStand, fire: sunbaby.on && sunbabyFace.fire, ground: sunbabyGround })) magic.skyFire(fb);
-    rocket.frame(dt, Date.now() + _sharedOffsetMs, tvStand, townTalk);   // ROCKET1: the rocket's weight, its line owed, its mounds round the traveller and its sounds
     // WBX8: THE GATE'S RED STORM - the same strikes' law on a schedule of its own, round the gate's site (so its
     // lightning shows where the gate stands), its thunder from each strike's distance to the ear; ticked every frame,
     // at nothing when no gate burns, so a gate coming into reach fires no backlog
@@ -35281,7 +35235,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
     // STAR4: THE STARFALL'S SKY - the omens, the falls, the flashes and their rings, the beacons - the same eye and fog
     if (starfall?.showing() && starfall.drawSky(proj, view, new Float32Array(mwv.eye), now / 1000)) renderer.markForeignPass();
-    rocket.draw(proj, view, mwv.eye);   // ROCKET1: the rocket - its brown sky, mounds, poop, horses and their clouds, the same eye and fog
     // LOOT11 (the Loot arc): THE LINES OF LIGHT over my bodies and the street's piles holding a Rare or better - after the
     // gate's fire, the same eye and fog (scenes/lootLines.js: the nearest eight within 40 m)
     if (lootLines.draw(() => [...exteriorFoes.lootFinds(), ...droppedLoot.lootFinds()], proj, view, new Float32Array(mwv.eye), now / 1000,

@@ -151,9 +151,11 @@ export function installWindowMotion(doc = globalThis.document) {
   }, { capture: true, passive: true });
   installed = new Observer((records) => {
     const added = [], removed = [];
+    // afterimages are not windows: this one's own, and the Grimoire dress's scroll roll-up (data-grim-ghost)
+    const copy = (n) => n.classList?.contains('wm-ghost') || n.dataset?.grimGhost != null;
     for (const r of records) {
-      for (const n of r.addedNodes) if (windowsIn(n).length && !n.classList?.contains('wm-ghost')) added.push(n);
-      for (const n of r.removedNodes) if (windowsIn(n).length && !n.classList?.contains('wm-ghost')) removed.push(n);
+      for (const n of r.addedNodes) if (windowsIn(n).length && !copy(n)) added.push(n);
+      for (const n of r.removedNodes) if (windowsIn(n).length && !copy(n)) removed.push(n);
     }
     // a swap of like for like in one tick is a re-render, not an open and a close
     const addedKinds = new Set(added.map(kindOf));

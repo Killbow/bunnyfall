@@ -12,10 +12,10 @@
 // drift from what an eight-hour rest does everywhere else. The resting encounter roll still rides each sub-tick's
 // advance at the odds it always had; a foe it spawns breaks the night at the hour it lands, as it always did.
 //
-// THE NIGHT INTERVAL. A night passes at most once per NIGHT_INTERVAL_MINUTES of the character's clock since the last
-// one ended (two hours: ten real minutes of play, the character's clock running at TimeScale 12). Inside it a rest is
-// a SHORT REST: it heals and it sleeps - the sleep need paid as a night of its kind pays it (REST-SLEEP1) - and nothing
-// else: no clock moves, nothing ages, no encounter rolls. A fire is a place to recover, never a fast-forward button.
+// LONG OR SHORT. At a rest point the player picks a LONG REST (the eight-hour night) or a SHORT REST: it heals and it
+// sleeps - the sleep need paid as a night of its kind pays it (REST-SLEEP1) - and nothing else: no clock moves,
+// nothing ages, no encounter rolls. There is no wait between long rests (NIGHT_INTERVAL_MINUTES is 0); the rest
+// point, town and building checks still decide where a rest may happen.
 //
 // THE YIELD. A night at a bed or a fire, or any rest the tier prices whole (Casual's rough, or the arc off), ends full:
 // health, fatigue and magicka (online no career rests short of its magicka - REST-MANA1). A rough night the tier prices
@@ -34,8 +34,8 @@ import { BY_FIRE_REACH } from '../survival/camp.js';   // FIELD BUGS 2026-10-05 
 /** A night: DFU's customary eight hours, on the character's own clock. */
 export const NIGHT_HOURS = 8;
 export const NIGHT_MINUTES = NIGHT_HOURS * 60;
-/** Two hours of the character's clock between nights - ten real minutes of play. */
-export const NIGHT_INTERVAL_MINUTES = 120;
+/** Character-clock minutes required between long rests. 0: no wait (the player chooses long or short instead). */
+export const NIGHT_INTERVAL_MINUTES = 0;
 /** The character's clock runs at TimeScale 12 while they play: twelve of its minutes a real minute. */
 export const OWN_MINUTES_PER_REAL_MINUTE = 12;
 /** The act's hold, in real seconds: long enough to need safety, short enough not to bore. */
@@ -45,11 +45,14 @@ export const REST_ACT_TEXT = Object.freeze({
   noPoint: 'Find a fire or a bed to rest.',
   inTown: 'It is illegal to camp in town.',
   shortRest: 'You rest a while.',
+  choose: 'How would you like to rest?',
+  longChoice: 'Long Rest',
+  shortChoice: 'Short Rest',
   interrupted: 'Your rest is interrupted.',
   channel: (where) => `Resting by the ${where}...`,
   channelBed: 'Resting...',
   meditating: 'Meditating by the candle...',   // REST6: the Meditation Candle's kneel
-  noVote: 'Online there is no vote. Rest at a fire, tent or bed, and party members within 15 m rest with you.',   // AUDIT REST: /ready online
+  noVote: 'Online there is no vote. Each player rests for themselves at a fire, tent or bed.',   // AUDIT REST: /ready online
   nextNight: (minutes) => `A night can pass again in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`,
   rested: 'Next night',   // AUDIT C&C (lens S): the interval's tile (ui/hud/hudStatus.js) - "Rested" stood beside Boons' Well rested
   carried: (name) => `${name} rests here, and you rest with them through the night.`,   // REST5: a member's night, carried

@@ -10027,7 +10027,7 @@ export function createWorldModes(host) {
         return t ? { title: t } : null;
       });
       ctx.addActivationNamer(dungeonQuestFlatName);   // .cs:483-512 - a quest ITEM stand's long name (the namer is hoisted above; GUIDE8's marks ask it too)
-      _dungeonAuthority = host.dungeonAuthority?.() ?? true; ctx.setAuthority?.(_dungeonAuthority);   // WORLD2: a dungeon built while another hosts starts as puppets
+      { const held = host.dungeonEntryHold?.() ?? false; ctx.setEntryHold?.(held); _dungeonAuthority = !held && (host.dungeonAuthority?.() ?? true); ctx.setAuthority?.(_dungeonAuthority); }   // WORLD2: a dungeon built while another hosts starts as puppets; ENTRY-HOLD: online, held until the room's host is known
       // P10 host parity (2026-08-16 audit: only the standalone scene
       // installed the warp - a world-mode teleporter logged and
       // no-opped): Teleport actions move the modal player.
@@ -13406,6 +13406,8 @@ export function createWorldModes(host) {
     /** WORLD2: who runs the layout's foes - me (the AI steps) or the room's host (my layout foes are puppets). Kept
      *  here so a dungeon built later starts under the seat as it stands. */
     setDungeonAuthority(on) { _dungeonAuthority = !!on; dungeonCtx?.setAuthority?.(_dungeonAuthority); },
+    setDungeonHold(on) { dungeonCtx?.setEntryHold?.(on); },   // ENTRY-HOLD (net/entryHold.js)
+    dungeonEntrySynced() { return mode === 'dungeon' && !!dungeonCtx?.entrySynced?.(); },
     /** WORLD1: the room's memory over the standing dungeon; false outside one or for another dungeon's. */
     restoreDungeonSharedWorld(shared) { return mode === 'dungeon' && dungeonCtx ? dungeonCtx.restoreSharedWorld(shared) : false; },
     // WORLD6a: THE PLACE - a dungeon's or a building's - for the world host's ONE publish, restore and act path. The
