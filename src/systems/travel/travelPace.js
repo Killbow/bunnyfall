@@ -41,9 +41,13 @@ export const TRAVEL_PACE_TEXT = Object.freeze({
   title: 'Travel speed',
   speed: 'Speed',
   foe: 'Near enemies',
+  way: 'Travel',
+  cautious: 'Cautiously',
+  reckless: 'Recklessly',
   tip: {
     speed: `How fast a journey runs (×${ROAD_PACE_MAX} on roads only, ×${OPEN_PACE_MAX} off them)`,
     foe: `The slowest the clock runs while enemies are near (×${ROAD_PACE_MAX} on a road only)`,
+    way: 'Traveling Cautiously rolls on your Luck and Stealth to slip past enemies that reach you; Recklessly always stops to fight. Click to switch, including mid-journey.',
   },
   roadOnly: `×${ROAD_PACE_MAX} only on a road`,
   slower: 'Slower',
