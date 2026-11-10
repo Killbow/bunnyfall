@@ -2024,6 +2024,8 @@ ${at(['.rest-win', '.dlg-win', '.port-win.size-narrow', '.sb-ask > .card'])} { b
 ${G} [data-grim-unroll="open"] { animation: grim-unroll 560ms cubic-bezier(0.25, 0.8, 0.3, 1) both; }
 /* ...and rolls shut as it closes: its likeness, where it stood, the rods coming back together over it */
 ${G} [data-grim-unroll="closing"] { animation: grim-unroll 380ms cubic-bezier(0.6, 0, 0.8, 0.3) reverse both; }
+/* a scroll's close is its roll-up alone: window motion's fold afterimage of it is not shown */
+${G} .wm-ghost:has(${UNROLL_SEL}) { display: none !important; }
 ${G} [data-grim-unroll="closing"] > .grim-rod { animation-duration: 380ms; animation-direction: reverse; animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.3); }
 /* the writing comes up as the parchment opens out and goes as it rolls in - never a sliver of a word left between the
    rods */
@@ -2418,9 +2420,12 @@ export function mountGrimoireDress(doc = globalThis.document) {
       let sheets = false;
       // what was taken away first (a scroll or a book re-drawn is taken away and drawn again in one beat: GRIM3)
       const gone = [];
-      for (const r of recs) for (const n of r.removedNodes ?? []) if (n.nodeType === 1 && !n.classList?.contains('grim-rod') && n.dataset?.grimGhost == null) { noteGrimoireRemoved(n); gone.push([n, r.target]); }
+      // window motion's close afterimages (ui/windowMotion.js, .wm-ghost) are copies, not windows: their removal is not a
+      // scroll closing (it rolled the scroll up a second time) and their arrival is not a scroll drawn
+      const copy = (n) => n.dataset?.grimGhost != null || n.classList?.contains('wm-ghost');
+      for (const r of recs) for (const n of r.removedNodes ?? []) if (n.nodeType === 1 && !n.classList?.contains('grim-rod') && !copy(n)) { noteGrimoireRemoved(n); gone.push([n, r.target]); }
       // a scroll taken away with none drawn in this same batch was CLOSED: it rolls up
-      const drawn = recs.some((r) => [...(r.addedNodes ?? [])].some((n) => n.nodeType === 1 && (n.matches?.(UNROLL_SEL) || n.querySelector?.(UNROLL_SEL))));
+      const drawn = recs.some((r) => [...(r.addedNodes ?? [])].some((n) => n.nodeType === 1 && !copy(n) && (n.matches?.(UNROLL_SEL) || n.querySelector?.(UNROLL_SEL))));
       if (!drawn) for (const [n, from] of gone) rollUpGrimoireScroll(n, doc, from);
       if (gone.length) bookClosedCheck();
       for (const r of recs) {

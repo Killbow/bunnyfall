@@ -511,7 +511,7 @@ export function validHomeFrame(m) {
  * the relay carries one of these names and nothing a stager could shape into anything else. Appended, never
  * reordered or renamed - a client that does not know a word shows no event, so a new one is safe against an old build.
  */
-export const LIVE_EVENTS = Object.freeze(['dread', 'sunbaby', 'rocket']);   // SUNBABY1: the sun baby's sky of flowers (world/sunbabySky.js), world163; ROCKET1: the rocket's mounds, farting horses and frenzy (world/rocketEvent.js), world253
+export const LIVE_EVENTS = Object.freeze(['dread', 'sunbaby']);   // SUNBABY1: the sun baby's sky of flowers (world/sunbabySky.js), world163
 /** EVENT1: stages a second - a dev's deliberate act, and tokenGate cannot go lower (RED_HZ_MAX's reason). */
 export const EVENT_HZ_MAX = 1;
 /** EVENT1: the hub's storage key for the event staged now - its own prefix, apart from every one a drain or the hub's
@@ -3814,7 +3814,7 @@ export const relaySupportsEvent = (v) => { const m = /^world(\d+)$/.exec(typeof 
 /** SUNBABY1: THE FIRST RELAY THAT KNOWS EACH LIVE EVENT'S WORD. A relay's parseClient answers a word it does not know
  *  with 'bad stage' and CLOSES the socket, so knowing the frame (EVENT_RELAY_MIN) is not knowing every word on it: a
  *  word is staged only on a relay at or past its own row. One row a word of LIVE_EVENTS, appended with it. */
-export const LIVE_EVENT_RELAY_MIN = Object.freeze({ dread: EVENT_RELAY_MIN, sunbaby: 163, rocket: 253 });
+export const LIVE_EVENT_RELAY_MIN = Object.freeze({ dread: EVENT_RELAY_MIN, sunbaby: 163 });
 export const relayKnowsLiveEvent = (v, kind) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Object.hasOwn(LIVE_EVENT_RELAY_MIN, kind) && Number(m[1]) >= LIVE_EVENT_RELAY_MIN[kind]; };
 export const relaySupportsPark = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= PARK_RELAY_MIN; };
 export const relaySupportsCast = (v) => { const m = /^world(\d+)$/.exec(typeof v === 'string' ? v : ''); return !!m && Number(m[1]) >= CAST_RELAY_MIN; };
