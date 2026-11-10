@@ -333,7 +333,7 @@ import { partyFoeLoses, partyFoeHits, partyFoeHeals, noteFighter, foeFighters, t
 import { renownFoeStruck, renownFoeDied, renownFoeCarry, renownFoeRevived } from '../net/renownTracker.js';   // RENOWN1: a foe the player fought pays its Renown XP when it dies, by any hand   // AUDIT RENOWN1 GAME-10: a rebuilt foe keeps my blows, a revived one forgets them
 import { reportPlayerKill } from '../systems/playerKills.js';   // SET2: my own kills, told
 import { hearEliteFoesIn } from '../systems/questlines/qlEliteFoe.js';   // QL11: an elite foe of an Elite dungeon, slain - the act's own module (AUDIT QUESTLINES ACTS-8)
-import { sparedByPlayer } from '../combat/friendlyFire.js';   // AUDIT CC-B6: the thrown torch's pass
+import { sparedByPlayer, isShipmate } from '../combat/friendlyFire.js';   // AUDIT CC-B6: the thrown torch's pass
 /** AUDIT SET P-M3: a kill the host's record names me for - its kind, as the exterior owner's `slain` word says it. */
 const REMOTE_KILL = Object.freeze({ kind: 'remote' });
 /** WB8b: a gate Warden's frost, lightning and venom, heard as they land on me - each element's own cast
@@ -3949,7 +3949,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       explodeAt: magic.explodeAt,
       hitEffects,   // AUDIT 24 (wave 44): ShowMagicSparkles on the caster
       fireMissile: (from, spell2, casterLevel, foe) =>
-        missiles.push({ spell: spell2, casterLevel, casterFoe: foe, pos: from, dir: null, age: 0, batch: null, fromPlayer: false }),
+        missiles.push({ spell: spell2, casterLevel, casterFoe: foe, pos: from, dir: null, age: 0, batch: null, fromPlayer: false,
+          // an ally's bolt passes the player even if its target dies in flight (hostMagic.js fireEnemyMissile's rule)
+          friendly: isShipmate(foe) || (foe?.entity?.team === 'PlayerAlly' && !!foe.ai?._armedTargeting && foe.ai.target?.isPlayer !== true && !!foe.ai.target?.ai) }),
     });
   }
   async function ensureArrowModel(m) {
@@ -4801,7 +4803,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         const impact = [m.pos[0] + _unit[0] * hitWall, m.pos[1] + _unit[1] * hitWall, m.pos[2] + _unit[2] * hitWall];   // ROAD-H tail (review): the collider answers in the RAY's own units, and the ray is `_unit` - `m.dir` would scale the impact point by |dir| (`colliderPosition += direction.normalized * hitInfo.distance`, DaggerfallMissile.cs:347)
         if (m.spell?.rangeType === 4) {
           const wCaster = m.casterFoe ? { entity: m.casterFoe.entity, sinks: foeSinks(m.casterFoe), foe: m.casterFoe } : null;   // ARENA-TEAMS: and its foe - whose blast it is (hostMagic.js missileCaster's shape)
-          magic.explodeAt(impact, m.spell, m.casterLevel ?? effectiveLevel(playerEntity), playerFeet, wCaster, { playerHeight });   // ROAD-H H2: the blast's OverlapSphere meets the player's LIVE capsule
+          magic.explodeAt(impact, m.spell, m.casterLevel ?? effectiveLevel(playerEntity), playerFeet, wCaster, { playerHeight, friendly: !!m.friendly });   // ROAD-H H2: the blast's OverlapSphere meets the player's LIVE capsule
         }
         // AUDIT 26 F033: DoCollision swaps the billboard to record 1 of
         // the missile's own element archive, one-shot at 15fps
@@ -5025,14 +5027,14 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         const af = m.aimFoe;
         if (missileHitsFoe(m.pos, af)) {
           const fCaster = m.casterFoe ? { entity: m.casterFoe.entity, sinks: foeSinks(m.casterFoe), foe: m.casterFoe } : null;   // ARENA-TEAMS
-          if (m.spell.rangeType === 4) magic.explodeAt(m.pos, m.spell, m.casterLevel ?? effectiveLevel(playerEntity), playerFeet, fCaster, { playerHeight });   // ROAD-H H2
+          if (m.spell.rangeType === 4) magic.explodeAt(m.pos, m.spell, m.casterLevel ?? effectiveLevel(playerEntity), playerFeet, fCaster, { playerHeight, friendly: !!m.friendly });   // ROAD-H H2
           else applySpell(m.spell, m.casterLevel ?? effectiveLevel(playerEntity), af.entity, foeSinks(af, false), Math.random, fCaster);   // AUDIT WORLD2 B7: a foe's missile
           showImpactFlash(m, [m.pos[0], m.pos[1], m.pos[2]]);   // F033
           retireMissile(m);
         }
         continue;
       }
-      if (!m.aimFoe?.isPeer && missileHitsCapsule(m.pos, playerFeet, playerHeight, PLAYER_BODY_RADIUS)) {   // the player's capsule at the player's own radius, DaggerfallMissile.cs:339 (AUDIT 65 CV-2); WORLD3: a cast at a peer pays nothing here
+      if (!m.friendly && !m.aimFoe?.isPeer && missileHitsCapsule(m.pos, playerFeet, playerHeight, PLAYER_BODY_RADIUS)) {   // the player's capsule at the player's own radius, DaggerfallMissile.cs:339 (AUDIT 65 CV-2); WORLD3: a cast at a peer pays nothing here
         // S16: enemy missiles carry their caster (level + the
         // transfer heal-back pair); trap casts stay casterless (DFU
         // action casters are null) on the S4b player-level shape.
