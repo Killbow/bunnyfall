@@ -536,6 +536,7 @@ import { walkBegin, leaderWalkStep, walkHeard, memberAnswer, memberFollowing, me
 import { rollGroupComposition, PACK_SPACING, PACK_ALERT_RADIUS } from '../systems/campEncounters.js';   // TV7: a band is a themed group
 import { seededRng } from '../systems/wind/wind.js';   // TV7: a band's make, rolled from its own seed
 import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // TV7: a band's words
+import { bandTrailLine } from '../systems/travel/bandTrail.js';
 import { groupCamps } from '../world/campShared.js';   // OW6: the camps on the Overworld
 import { travellerMarkOf, travellerDue, createTravellerBook, isShipMark } from '../systems/travellerMarks.js';   // TV3: the region's travellers; OWS1: at sea, a ship
 import { RainCurtainsRenderer, curtainsOf, CURTAIN_FOOT_MARGIN_M } from '../render/rainCurtains.js';   // TV4: the weather's curtains, stood in the world for the view
@@ -936,7 +937,7 @@ import { createPartyTravel } from '../systems/party/partyTravel.js';   // PARTY-
 import { TravelPopUpWindow } from '../ui/travel/travelPopUp.js';   // PARTY-TRAVEL: the map's own popup prices a party journey, headless
 import { YesNoBoxWindow } from '../ui/yesNoBox.js';   // PARTY-TRAVEL: the journey's prompts - UXB1-M's box, either skin
 import { guildFastTravel } from '../systems/guild/guildVariants.js';   // PARTY-TRAVEL: the popup's own blessed minutes, handed over as it hands them
-import { travelMapPopUpState } from '../systems/travel/travelMapState.js';   // PARTY-TRAVEL: the toggles my own map last left - my way of travelling to the leader
+import { travelMapPopUpState, onTravelSpeedCautious } from '../systems/travel/travelMapState.js';   // PARTY-TRAVEL: the toggles my own map last left - my way of travelling to the leader
 import { createChatPanel } from '../ui/chatPanel.js';   // CHAT1: the enhanced skin's chat over the world
 import { makeVideoQueue } from '../systems/quest/videoQueue.js';   // CRUX1: the quest videos in turn
 import { createPartyPanel } from '../ui/partyPanel.js';   // SOC4: the party HUD - my party's portraits and their health / stamina / magicka
@@ -12402,7 +12403,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     for (let i = 0; i < LOOSE_FOE_PLACE_ATTEMPTS && !anchor; i++) {
       anchor = campAnchorSpot({ feet, yawRad: hit.yawRad ?? cam.yaw, fovDegrees: fieldOfView() * 180 / Math.PI, groundAt: collider.heightAt, minDistance: hit.minDistance, maxDistance: hit.maxDistance, bearingDegrees: hit.bearingDegrees });   // CAMP-RING: each group on its own bearing
       if (anchor && _inAnyLocationRect([anchor.x, anchor.y, anchor.z])) anchor = null;   // DISC19-F: a camp is a wilderness thing - never pitched in a town's rect from a player standing at its edge
-      if (anchor && _nearRoad([anchor.x, anchor.y, anchor.z], (hit.spacing ?? 0) + CAMP_ROAD_CLEAR_M)) anchor = null;   // ROADS-CLEAR: pitched off the road, its whole ring clear of it
+      if (anchor && !hit.roadOk && _nearRoad([anchor.x, anchor.y, anchor.z], (hit.spacing ?? 0) + CAMP_ROAD_CLEAR_M)) anchor = null;   // ROADS-CLEAR: pitched off the road, its whole ring clear of it
       if (anchor && _overDeepWater(anchor.x, anchor.z)) anchor = null;   // AUDIT (pre-merge) P4: never on the carved seabed - a player on the shore rolled land camps 100-150 m out, under the sea
       if (anchor && hit.spotOk && !hit.spotOk(anchor.x, anchor.z)) anchor = null;   // BOUNTY-FARM-CLEAR: the caller's own ground law (never inside a farm building)
       if (anchor && _inRock(anchor.x, anchor.y, anchor.z)) anchor = null;   // BOUNTY-ROCK: never pitched inside a rock
@@ -12430,7 +12431,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // point that is not the player.
         spot = placeFoeFreely(memberEnv, { minDistance: 1, maxDistance: hit.spacing, lineOfSightCheck: false });
         if (spot && _inAnyLocationRect([spot.x, spot.y, spot.z])) spot = null;   // DISC19-F: nor a member over its line
-        if (spot && _nearRoad([spot.x, spot.y, spot.z], CAMP_ROAD_CLEAR_M)) spot = null;   // ROADS-CLEAR: nor on a road
+        if (spot && !hit.roadOk && _nearRoad([spot.x, spot.y, spot.z], CAMP_ROAD_CLEAR_M)) spot = null;   // ROADS-CLEAR: nor on a road
         if (spot && _overDeepWater(spot.x, spot.z)) spot = null;   // AUDIT (pre-merge) P4: nor a member in the water
         if (spot && hit.spotOk && !hit.spotOk(spot.x, spot.z)) spot = null;   // BOUNTY-FARM-CLEAR: nor a member inside a building
         if (spot && _inRock(spot.x, spot.y, spot.z)) spot = null;   // BOUNTY-ROCK: nor a member inside a rock
@@ -30736,6 +30737,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   // health and fatigue as the mod's does (it went reckless always, and never stopped); X-7: its arrival is a line while
   // the view is up, the mod's box once the player has come down
   const tvCautious = () => !!travelMapPopUpState().speedCautious;
+  onTravelSpeedCautious((on) => { if (travelOptions?.state) travelOptions.state.destinationCautious = on; });   // the panel's Travel switch reaches the journey under way
   const tvQuiet = () => !!travelView?.active;
   const tvTrip = { plan: null, natives: [], end: null, line: '' };   // the journey the view began (null once it ends)
   // (tvPlates - the known places about the traveller - is hoisted beside `travelView`: a load clears it, BOOT-TDZ)
@@ -31765,13 +31767,15 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   function bandStand(mk, yaw, dist) {
     if (!bandRoom(mk)) return false;
     const fx = player.feetAt();
-    // AUDIT OW5b B2: WHERE IT IS - its anchor at the band's own distance, a pack's spacing about it (never nearer than
-    // BAND_STAND_MIN_M). Every band stood at 18-32 m: a band met with the view down at BAND_STAND_M (140 m, Mac's
-    // CAMP-FAR - no pack lands beside the player out of nowhere) was brought a hundred metres nearer and stood beside them
-    const minDistance = Math.max(BAND_STAND_MIN_M, dist - PACK_SPACING), maxDistance = Math.max(BAND_STAND_MIN_M, dist) + PACK_SPACING;
-    for (const turn of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
+    // a pack that catches you in first person appears as close as one on the Overworld: within BAND_CONTACT_M, give or
+    // take PACK_SPACING, and never closer than BAND_STAND_MIN_M
+    const near = Math.min(dist, BAND_CONTACT_M);
+    const minDistance = Math.max(BAND_STAND_MIN_M, near - PACK_SPACING), maxDistance = Math.max(BAND_STAND_MIN_M, near) + PACK_SPACING;
+    // Look for ground in four directions, away from roads first; if none is found, look again allowing roads, so a nearby
+    // road can't stop the pack from appearing.
+    for (const roadOk of [false, true]) for (const turn of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
       const stood = _standCampEncounter({ kind: 'band', mobileTypes: mk.mobileTypes, spacing: PACK_SPACING, alertRadius: PACK_ALERT_RADIUS,
-        minDistance, maxDistance, bearingDegrees: 0, yawRad: yaw + turn }, fx);
+        minDistance, maxDistance, bearingDegrees: 0, yawRad: yaw + turn, roadOk }, fx);
       if (!stood) continue;
       // AUDIT-F2: A BAND THAT CAUGHT ME STANDS ON ME - it chased me: each member alerted (never the gate's) and come for me,
       // as a noticed foe comes (exteriorFoes.js noticedPlayer). Stood unaware, the gate held them off me and the keys'
@@ -31789,6 +31793,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   }
   /** AUDIT OW3 T7-7: every chase ended at once - SPENT, never forgotten (a dip in the water was a fresh chase). */
   function bandDrop() { for (const id of _bandChase.keys()) bandSpend(id); _bandChase.clear(); }
+  /** Shows the "lose your trail" notice on the HUD and in chat when a chasing band slips past, fails to place, or gives up. */
+  const bandTrailSay = (mk) => { const line = bandTrailLine(mk?.mobileTypes, enemyDisplayName); tvSay(line); chatNotice(line); };
   /** TV7b: a peer's chase of a band, while their word is fresh. */
   function bandPeerChase(id) {
     const p = _bandPeer.get(id);
@@ -31865,20 +31871,23 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     for (const [id, c] of _bandChase) {
       const s = bandChaseStep({ pos: c.pos, feet, dt, scale: worldTimeScale(), contact: up ? BAND_CONTACT_M : BAND_STAND_M, gainAt: c.gainAt, now: _bandClock, best: c.best });
       c.pos = s.pos; c.best = s.best; c.gainAt = s.gainAt; c.dist = s.dist;
-      if (s.what === 'lost') { _bandChase.delete(id); bandSpend(id); }
+      if (s.what === 'lost') { _bandChase.delete(id); bandSpend(id); bandTrailSay(bandMake(c.band)); }
       else if (s.what === 'contact' && !(c.retryAt > now)) {
         // AUDIT OW5b E1 (Mac: "Need to get pullout of fast travel little sooner for encounters. U run thru them"): THE
         // CONTACT IS THE ENCOUNTER - a walking journey is stopped HERE, the frame the band reaches the traveller and before
         // a member stands; it was stopped by the members' own senses, which in this port answer after their loads and a
         // real-time classic tick, and at the journey's scale the traveller ran on through the band (on a horse, out of its
         // members' sight for good). A cautious traveller's won roll: the band loses the trail, and never stands. A won
-        // roll's grace still running: the chase runs on and asks again. A band the full foe pool cannot stand meets nobody
+        // roll's grace still running: the chase runs on and asks again. If there is no room for the pack among the enemies
+        // already nearby, it keeps chasing and tries again shortly.
         const mk = bandMake(c.band);
-        const met = bandRoom(mk) ? journeyMet() : null;
-        if (met === 'avoided') { _bandChase.delete(id); bandSpend(id); continue; }
+        if (!bandRoom(mk)) { c.retryAt = now + BAND_STAND_RETRY_MS; continue; }   // no room in the enemy pool yet: it keeps chasing
+        const met = journeyMet();
+        if (met === 'avoided') { _bandChase.delete(id); bandSpend(id); bandTrailSay(mk); continue; }
         if (met === 'ignored') { c.retryAt = now + BAND_STAND_RETRY_MS; continue; }
         c.yaw ??= bandYaw(c.pos);   // AUDIT OW4 B4
-        if (bandStand(mk, c.yaw, c.dist) || ++c.tries >= BAND_STAND_TRIES) { _bandChase.delete(id); bandSpend(id); }   // AUDIT OW3 T7-1: spent once it STOOD
+        const stood = bandStand(mk, c.yaw, c.dist);
+        if (stood || ++c.tries >= BAND_STAND_TRIES) { _bandChase.delete(id); bandSpend(id); if (!stood) bandTrailSay(mk); }   // AUDIT OW3 T7-1: spent once it STOOD
         else c.retryAt = now + BAND_STAND_RETRY_MS;
       }
     }

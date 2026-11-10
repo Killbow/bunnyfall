@@ -403,6 +403,7 @@ export function showTravelViewHud(hooks = {}, doc = globalThis.document) {
   }
   wpHooks = hooks;   // WAYPOINTS: the followed list's Go
   paintModes(travelPathMode());
+  parts.pace.paint();   // refresh Cautiously/Recklessly in case it changed on the travel map
   paintFilters(travelViewFilters());
   paintWaypoints();
   paintSideFold();
