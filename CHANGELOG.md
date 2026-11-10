@@ -6,6 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-09
 
 - The Overworld travel panel now lets you see and switch between Cautiously and Recklessly, slipping past a pack now shows a message ("The Orcs lose your trail."), and packs no longer vanish in crowded areas or spawn out of sight in first person.
+- Fixed: In dungeons, your minions' and allies' spells no longer hit you when their target dies before the spell lands (a Vampire's Sleep, for example), and their fireballs no longer catch you in the blast.
 
 ## 2026-11-08
 
