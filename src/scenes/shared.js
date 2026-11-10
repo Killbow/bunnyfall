@@ -65,7 +65,7 @@ import { killIfAnyLiveStatZero } from '../systems/statMods.js';   // AUDIT 24 (w
 import { hasSpecialAbility, SPECIAL_ABILITY, healthRecoveryRate, fatigueRecoveryRate, spellPointRecoveryRate, restIgnoresNoRegen } from '../systems/rest/rest.js';
 import { entityImprovedAthleticism } from '../systems/enchantments.js';   // AUDIT 26 F044: the ImprovesTalents fatigue arm   // the rested hour's three rates, one home for every host (V5 + S40, same line from two lanes)
 import { getPreventedRestMessage } from '../systems/rest/restSession.js';
-import { nightDue, nightRealMinutesLeft, stampNight, runRestNight, topUpRest, sleepShortRest, spendRoomNight, roomNightsLeft, heardNight, REST_CHANNEL_SECONDS, REST_ACT_TEXT, NIGHT_HOURS, openChannelHeal, stepChannelHeal } from '../systems/rest/restAct.js';   // REST1: the rest act online
+import { nightDue, nightRealMinutesLeft, stampNight, runRestNight, topUpRest, spendRoomNight, roomNightsLeft, heardNight, REST_CHANNEL_SECONDS, REST_ACT_TEXT, NIGHT_HOURS, SHORT_REST_HOURS, openChannelHeal, stepChannelHeal } from '../systems/rest/restAct.js';   // REST1: the rest act online
 import { registerPreventRestCondition } from '../systems/rest/restSession.js';   // SURV7: the survival rest gate's seam
 import { quietNights } from '../systems/encounters.js';   // CAMP-ROLL: a camp mate's night rolls nothing of mine
 import { carriedRestKind } from '../systems/party/partyRestLaw.js';   // CAMP-ROLL: and is slept at the better of their spot and mine
@@ -2613,8 +2613,8 @@ export function createRestDeps(entity, opts = {}) {
   // share one law (systems/rest/restAct.js). `restAct` answers the plan the window opens on - null offline, where the
   // window is DFU's own; `restNight` runs the night through THIS bag (the timed rest's own session, its sub-ticks,
   // quest ticks, hourly checks and vitals, in one call), stamps it, tops the yield up and spends a rented room's
-  // night; `restShort` is the rest inside the night interval - the yield's healing and the sleep need paid as a night
-  // of its kind pays it (REST-SLEEP1), and nothing else.
+  // night; `restShort` runs a SHORT_REST_HOURS session through the same bag (the character's clock, effects, needs
+  // and the encounter roll move as in a night), then tops the short rest's yield up.
   // REST6: a lit Meditation Candle makes the next rest its kneel, online or off (restMeditate); a Bedroll's point names
   // its own longer channel.
   out.restAct = () => {
@@ -2659,14 +2659,23 @@ export function createRestDeps(entity, opts = {}) {
     quietNights(() => {
       if (kind) _restKindOverride = () => kind;
       out.setResting(true);
-      r = night ? out.restNight({ carried: true }) : out.restShort();
+      r = night ? out.restNight({ carried: true }) : out.restShort({ carried: true });
     });
     return r;
   };
-  out.restShort = () => {
-    topUpRest(entity, _kind, _rules, { night: false, maxFatigueOf: maxFatigue });
-    sleepShortRest(entity, _kind, _rules, Math.floor(ownMinutes()));   // REST-SLEEP1: and it sleeps - a Tired or Drowsy sleeper is not kept waiting out the interval
+  // A short rest is two hours of the same session a night runs, so timed effects (buffs included) run down and the
+  // sleep need is paid by the minute for those hours only. `carried` - a camp mate's roll covered it: no stamp of mine.
+  out.restShort = ({ carried = false } = {}) => {
+    const spot = carried ? null : _spot;
+    const { result, hours } = runRestNight(out, { hours: SHORT_REST_HOURS });
+    const cut = !!result?.rentExpired && hours < SHORT_REST_HOURS;
+    const whole = !result?.died && !result?.enemyBroke && !result?.prevented && !cut;
+    if (whole) {
+      topUpRest(entity, _kind, _rules, { night: false, maxFatigueOf: maxFatigue });
+      if (!carried) heardNight(spot, false);   // the camp hears a short rest landed (world.js)
+    }
     surfacePlayer();
+    if (!whole) return result;
     const left = nightRealMinutesLeft(entity, ownMinutes());
     return { textId: null, text: REST_ACT_TEXT.shortRest, extra: left > 0 ? REST_ACT_TEXT.nextNight(left) : null, enemyBroke: false, died: false };
   };

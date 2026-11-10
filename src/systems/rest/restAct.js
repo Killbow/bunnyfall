@@ -12,10 +12,12 @@
 // drift from what an eight-hour rest does everywhere else. The resting encounter roll still rides each sub-tick's
 // advance at the odds it always had; a foe it spawns breaks the night at the hour it lands, as it always did.
 //
-// LONG OR SHORT. At a rest point the player picks a LONG REST (the eight-hour night) or a SHORT REST: it heals and it
-// sleeps - the sleep need paid as a night of its kind pays it (REST-SLEEP1) - and nothing else: no clock moves,
-// nothing ages, no encounter rolls. There is no wait between long rests (NIGHT_INTERVAL_MINUTES is 0); the rest
-// point, town and building checks still decide where a rest may happen.
+// LONG OR SHORT. At a rest point the player picks a LONG REST (the eight-hour night) or a SHORT REST: two hours on the
+// character's own clock, run through the same session as the night (runRestNight with SHORT_REST_HOURS), so buffs and
+// other timed effects run down, the sleep need is paid for those two hours, and the resting encounter roll applies.
+// A short rest used to move no clock at all, which let players recast buffs and rest them back without any of them
+// expiring. There is no wait between long rests (NIGHT_INTERVAL_MINUTES is 0); the rest point, town and building
+// checks still decide where a rest may happen.
 //
 // THE YIELD. A night at a bed or a fire, or any rest the tier prices whole (Casual's rough, or the arc off), ends full:
 // health, fatigue and magicka (online no career rests short of its magicka - REST-MANA1). A rough night the tier prices
@@ -26,7 +28,6 @@
 
 import { RestSession, REST_TEXT, REST_WAIT_PER_HOUR, MINUTES_PER_TICK } from './restSession.js';
 import { restCost, REST_KIND } from '../survival/rest.js';
-import { paySleep } from '../survival/needs.js';   // REST-SLEEP1: the short rest sleeps by the minute law's own pay
 import { liveVampirism } from '../racialLive.js';
 import { roomRemainingHours } from '../tavern.js';   // AUDIT REST II P6: an old save's room, its nights read off its hours
 import { BY_FIRE_REACH } from '../survival/camp.js';   // FIELD BUGS 2026-10-05 DUNGEON-BEDS: a bed's reach is a fire's
@@ -34,6 +35,8 @@ import { BY_FIRE_REACH } from '../survival/camp.js';   // FIELD BUGS 2026-10-05 
 /** A night: DFU's customary eight hours, on the character's own clock. */
 export const NIGHT_HOURS = 8;
 export const NIGHT_MINUTES = NIGHT_HOURS * 60;
+/** A short rest: two hours on the character's own clock. */
+export const SHORT_REST_HOURS = 2;
 /** Character-clock minutes required between long rests. 0: no wait (the player chooses long or short instead). */
 export const NIGHT_INTERVAL_MINUTES = 0;
 /** The character's clock runs at TimeScale 12 while they play: twelve of its minutes a real minute. */
@@ -44,7 +47,7 @@ export const REST_CHANNEL_SECONDS = 6;
 export const REST_ACT_TEXT = Object.freeze({
   noPoint: 'Find a fire or a bed to rest.',
   inTown: 'It is illegal to camp in town.',
-  shortRest: 'You rest a while.',
+  shortRest: 'You rest for a moment..',
   choose: 'How would you like to rest?',
   longChoice: 'Long Rest',
   shortChoice: 'Short Rest',
@@ -56,7 +59,7 @@ export const REST_ACT_TEXT = Object.freeze({
   nextNight: (minutes) => `A night can pass again in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`,
   rested: 'Next night',   // AUDIT C&C (lens S): the interval's tile (ui/hud/hudStatus.js) - "Rested" stood beside Boons' Well rested
   carried: (name) => `${name} rests here, and you rest with them through the night.`,   // REST5: a member's night, carried
-  carriedShort: (name) => `${name} rests here, and you rest a while with them.`,
+  carriedShort: (name) => `${name} rests here, and you rest for a moment with them.`,
   carriedSkipped: (name) => `${name} rests here, but you are too busy to rest with them.`,
   carriedFar: (name) => `${name} rested a night without you. Come within 15 m of them to rest with the party.`,   // AUDIT REST-PARTY: PARTY-REST-FAR1's word, online
   carriedTown: (name) => `${name} rests here, but it is illegal to camp in town.`,   // AUDIT REST II P4: the act's own town law, for a member it would carry
@@ -247,22 +250,6 @@ export function channelHealTick(opened, deps, t, mark) {
   return Number.isFinite(hp) ? hp : mark;
 }
 
-/** REST-SLEEP1 (2026-10-04, from play: "if you have to wait for night to pass you cannot rest again to remove the
- *  tiredness/drowsy debuffs until the time passes"): A SHORT REST SLEEPS. Inside the night interval a rest paid nothing
- *  of the sleep need, and the need has no other payer (the arc's census, row 9) - so a night that left its sleeper
- *  Tired or Drowsy (a foe's break in its first hour, which still stamps the interval; a rough night's third of a bed's
- *  rate; a debt past the twelve hours a night pays) held the attributes down for the whole ten real minutes, at the
- *  fire, with nothing to do but wait. A short rest pays the debt as a night of its kind would - its eight hours at the
- *  kind's rate through the minute law's own pay (survival/needs.js paySleep), the tier's rough floor kept - and still
- *  moves no clock. `rules` are the tier's (null with the arc off: no need to pay); a vampire has no need (the minute
- *  law freezes the debt). Answers whether it slept. */
-export function sleepShortRest(entity, kind, rules, now) {
-  const s = entity?.survival;
-  if (!rules || !s || typeof s !== 'object' || liveVampirism(entity)) return false;
-  paySleep(s, kind, NIGHT_MINUTES, now, rules);
-  return true;
-}
-
 /** AUDIT REST II P6: A ROOM COUNTS NIGHTS (the arc's OPEN 10, section 5: "a room rented for N days buys N nights ... and
  *  the room also lapses after N days lived, whichever comes first"). The night spent was a day off the room's expiry:
  *  its eight hours ran it down while slept and sixteen more went at the wake, so the play between nights spent the
@@ -294,7 +281,8 @@ export function spendRoomNight(room, nowMinutes) {
  *  it at the rester's fire and not on the ground beside it. */
 let _nightListener = null;
 export function setNightListener(fn) { const prev = _nightListener; _nightListener = typeof fn === 'function' ? fn : null; return prev; }
-export const heardNight = (kind = null) => { _nightListener?.(kind); };
+/** `long` false: a short rest slept whole (createRestDeps restShort), stamped with the short marks so the camp can tell. */
+export const heardNight = (kind = null, long = true) => { _nightListener?.(kind, long); };
 
 /** AUDIT REST II P3: A NIGHT SLEPT WHOLE - the session ended on its own: not in death, not broken by a foe, not cut by a
  *  prevent-rest condition (RestSession _prevented) - whatever the shape answers, the night was not slept to its end.
@@ -314,8 +302,7 @@ export const nightWhole = (r) => !!r && !r.died && !r.enemyBroke && !r.prevented
  *  nothing. */
 export function carriedNightEnd(name, night, r, endLines = null) {
   const raise = !!r;
-  if (!night) return { raise, text: REST_ACT_TEXT.carriedShort(name) };
-  if (nightWhole(r)) return { raise, text: REST_ACT_TEXT.carried(name) };
+  if (nightWhole(r)) return { raise, text: night ? REST_ACT_TEXT.carried(name) : REST_ACT_TEXT.carriedShort(name) };
   if (!r || r.died) return { raise, text: null };
   const own = r.text ?? (endLines?.(r.textId) ?? []).join(' ');
   return { raise, text: own || null };
@@ -343,34 +330,50 @@ export const nightKindOf = (t) => {
   return null;
 };
 export const isNightStamp = (t) => nightKindOf(t) !== null;
+/** A short rest slept whole: the same stamp law as a night's, with its own marks, one per rest kind. A camp mate's
+ *  short rest landing lets my short rest skip its roll, but never my long one (partyRestLaw.js createCampWatch). */
+export const SHORT_REST_MARKS = Object.freeze({ [REST_KIND.Rough]: 778, [REST_KIND.Camp]: 779, [REST_KIND.Bed]: 780 });
+const SHORT_KINDS = Object.freeze(Object.keys(SHORT_REST_MARKS));
+export const shortRestStamp = (t, kind = REST_KIND.Camp) => Math.floor(t / 1000) * 1000 + (typeof kind === 'string' && Object.hasOwn(SHORT_REST_MARKS, kind) ? SHORT_REST_MARKS[kind] : SHORT_REST_MARKS[REST_KIND.Camp]);
+/** The rest kind a short rest's stamp names, or null for a stamp that is no short rest's. */
+export const shortRestKindOf = (t) => {
+  if (!Number.isFinite(t)) return null;
+  const ms = ((t % 1000) + 1000) % 1000;
+  for (const kind of SHORT_KINDS) if (SHORT_REST_MARKS[kind] === ms) return kind;
+  return null;
+};
 
-/** CAMP-ROLL (2026-10-04): THE CAMP'S TWO MARKS, on the same field and the same law as a night's - `open`, my act's
- *  channel opened on a night (I may roll the camp's night), and `done`, it ended with no night heard (a short rest, a
- *  stop, a foe, a prevent-rest condition). Neither is a night: nightKindOf answers null for both, so the party's night
- *  watch never carries anyone on one. An older build's window open lands on `open` one time in a thousand, and costs a
- *  follower at most CAMP_WAIT_MS (partyRestLaw.js). */
-export const CAMP_MARKS = Object.freeze({ open: 774, done: 773 });
-export const campStamp = (t, which) => Math.floor(t / 1000) * 1000 + (which === 'open' ? CAMP_MARKS.open : CAMP_MARKS.done);
-/** 'open', 'done', or null for a stamp that is neither. */
+/** CAMP-ROLL: the camp marks, on the same field as a night's stamp. `open` - my long rest's channel is open;
+ *  `openShort` - my short rest's channel is open (either may roll the camp's ambush; a long rest is preferred as the
+ *  roller, so the shared roll covers the longest rest in the camp); `done` - my rest ended without landing (a stop, a
+ *  foe, a prevent-rest condition). None of them is a night stamp (nightKindOf answers null). An older build's window
+ *  open can land on one of these by chance, and costs a follower at most CAMP_WAIT_MS (partyRestLaw.js). */
+export const CAMP_MARKS = Object.freeze({ open: 774, openShort: 772, done: 773 });
+export const campStamp = (t, which) => Math.floor(t / 1000) * 1000 + (CAMP_MARKS[which] ?? CAMP_MARKS.done);
+/** 'open', 'openShort', 'done', or null for a stamp that is none of them. */
 export const campMarkOf = (t) => {
   if (!Number.isFinite(t)) return null;
   const ms = ((t % 1000) + 1000) % 1000;
-  return ms === CAMP_MARKS.open ? 'open' : ms === CAMP_MARKS.done ? 'done' : null;
+  return ms === CAMP_MARKS.open ? 'open' : ms === CAMP_MARKS.openShort ? 'openShort' : ms === CAMP_MARKS.done ? 'done' : null;
 };
+/** Whether a camp mark is an open rest (long or short). */
+export const campOpenMark = (mark) => mark === 'open' || mark === 'openShort';
 
-/** CAMP-ROLL: THE ACT'S NIGHT IS THE CAMP'S. At the channel's end, and every frame of the wait after it, both rest
+/** CAMP-ROLL: THE CAMP SHARES ONE AMBUSH ROLL. At the channel's end, and every frame of the wait after it, both rest
  *  windows (restWindow.js, enhancedRest.js) hand the act's plan here, and the host's camp (`deps.camp`, world.js
- *  campRest) answers whose night it is: mine to roll (no camp, no party, offline, or I am the camp's roller), a camp
- *  mate's to await (`wait`), a camp mate's that landed (`night` - slept as theirs: their spot, no roll of mine), or a
- *  camp mate's that a foe broke (`enemy`). A short rest and a candle's kneel roll nothing and ask nothing. Answers
- *  `{ wait: name }` while the wait holds, else `{ r }` - the result the window ends on. */
+ *  campRest) answers who rolls: me (no camp, no party, offline, or I am the camp's roller), a camp mate I wait on
+ *  (`wait`), a camp mate whose rest landed (`night` - I rest my own long or short rest at the better of our spots, with
+ *  no roll of mine), or a camp mate whose rest a foe broke (`enemy` - mine breaks with it). Long and short rests share
+ *  the roll alike; a candle's kneel rolls nothing and asks nothing. Answers `{ wait: name }` while the wait holds,
+ *  else `{ r }` - the result the window ends on. */
 export function campNightStep(deps, act, rentedHours = -1) {
-  const v = act?.night && !act.meditate ? deps.camp?.verdict?.() ?? null : null;
+  const v = act && !act.meditate ? deps.camp?.verdict?.() ?? null : null;
   if (v?.act === 'wait') return { wait: v.name || 'A party member' };
   if (v?.act === 'enemy') { deps.onEnemyBreak?.(); return { r: { textId: REST_TEXT.enemiesNearby, enemyBroke: true, died: false } }; }
   if (v?.act === 'night') {
-    const r = deps.restCampNight?.(v.kind, true) ?? null;
-    const end = carriedNightEnd(v.name || 'A party member', true, r, deps.endLines);
+    const night = !!act.night;
+    const r = deps.restCampNight?.(v.kind, night) ?? null;
+    const end = carriedNightEnd(v.name || 'A party member', night, r, deps.endLines);
     return { r: r && end.text ? { ...r, textId: null, text: end.text } : r };
   }
   return { r: act?.night ? deps.restNight?.({ rentedHours }) : deps.restShort?.() };

@@ -275,6 +275,11 @@ export function carriedRestKind(own, theirs) {
 // or the roller's leaving ends (a `done` mark, `rs` dropped: the next lowest rolls), or CAMP_WAIT_MS ends (my own
 // roll, today's behaviour - the fail-open). A member resting alone (`nr`) is a camp of their own, as STRANGER-REST's
 // gate already keeps them.
+//
+// 2026-11-10: short rests join the camp too, since a short rest now passes two hours and rolls for ambush. A long and
+// a short rest at the same fire share one roll. The roller is the camp's longest rest - any long rest outranks every
+// short one, then the lowest account id - so the shared roll covers the most hours anyone in the camp rests. When the
+// roller's rest lands, each member rests their own chosen length with no roll of their own.
 
 /** How long a member waits on the camp's roller, from the end of their own channel, before rolling their own night. */
 export const CAMP_WAIT_MS = 15_000;
@@ -289,19 +294,25 @@ const campSnap = (m, now) => ({ at: stampOf(m?.p?.restStartedAt, now), enemy: Nu
 /** THE CAMP WATCH - one rest window's view of its camp. `open` at the channel's open snapshots every party mate's
  *  stamps (a move is a move SINCE my act began: a mate's night that lands while I hold the channel is mine to sleep);
  *  `verdict` is asked at the channel's end and every frame after; `close` with the window. `kindOf` answers a night
- *  stamp's rest kind or null (restAct.js nightKindOf), `campOf` a stamp's camp mark or null (restAct.js campMarkOf) -
+ *  stamp's rest kind or null (restAct.js nightKindOf), `shortKindOf` a short rest's (restAct.js shortRestKindOf),
+ *  `campOf` a stamp's camp mark or null (restAct.js campMarkOf) -
  *  handed in, as the night watch's predicate is.
- *  @param {{ kindOf: (t: number) => string|null, campOf: (t: number) => string|null, waitMs?: number, freshMs?: number }} o */
-export function createCampWatch({ kindOf, campOf, waitMs = CAMP_WAIT_MS, freshMs = CAMP_OPEN_FRESH_MS }) {
+ *  @param {{ kindOf: (t: number) => string|null, campOf: (t: number) => string|null, shortKindOf?: (t: number) => string|null, waitMs?: number, freshMs?: number }} o */
+export function createCampWatch({ kindOf, campOf, shortKindOf = () => null, waitMs = CAMP_WAIT_MS, freshMs = CAMP_OPEN_FRESH_MS }) {
   /** @type {Map<string, { at: number, enemy: number|null }>|null} */
   let base = null;
   /** @type {number|null} */
   let firstAsk = null;
+  let myLong = true;
+  /** Whether a camp mate's open rest (`mateLong`, account `acct`) outranks `other` (`{ long, acct }`) as the roller. */
+  const outranks = (mateLong, acct, other) => (mateLong !== other.long ? mateLong : acct < other.acct);
   return {
-    /** My act's channel opened: every mate's stamps as they stand now. @param {any[]} members @param {number} now */
-    open(members, now) {
+    /** My act's channel opened: every mate's stamps as they stand now. `long` - my rest is a long rest.
+     *  @param {any[]} members @param {number} now @param {boolean} [long] */
+    open(members, now, long = true) {
       base = new Map();
       firstAsk = null;
+      myLong = !!long;
       for (const m of members ?? []) if (m?.acct) base.set(m.acct, campSnap(m, now));
     },
     isOpen: () => base !== null,
@@ -322,13 +333,17 @@ export function createCampWatch({ kindOf, campOf, waitMs = CAMP_WAIT_MS, freshMs
         const cur = campSnap(m, now);
         if (!was) { base.set(m.acct, cur); continue; }
         if (cur.enemy !== null && cur.enemy !== was.enemy) return { act: 'enemy', acct: m.acct, name: m.name };
-        const kind = cur.at > was.at && now - cur.at <= freshMs ? kindOf(cur.at) : null;
+        // a mate's long rest landing covers my rest of either length; a short rest's covers only my short rest
+        const kind = cur.at > was.at && now - cur.at <= freshMs ? kindOf(cur.at) ?? (myLong ? null : shortKindOf(cur.at)) : null;
         if (kind && !night) night = { act: 'night', acct: m.acct, name: m.name, kind };
-        if (m.p?.rs && campOf(cur.at) === 'open' && now - cur.at <= freshMs && m.acct < me && (!leader || m.acct < leader.acct)) leader = m;
+        const mark = campOf(cur.at);
+        if (!m.p?.rs || (mark !== 'open' && mark !== 'openShort') || now - cur.at > freshMs) continue;
+        const mateLong = mark === 'open';
+        if (outranks(mateLong, m.acct, { long: myLong, acct: me }) && (!leader || outranks(mateLong, m.acct, leader))) leader = { m, long: mateLong, acct: m.acct };
       }
       if (night) return night;
       if (now - firstAsk >= waitMs || !leader) return { act: 'roll' };
-      return { act: 'wait', acct: leader.acct, name: leader.name };
+      return { act: 'wait', acct: leader.acct, name: leader.m.name };
     },
   };
 }

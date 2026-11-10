@@ -3,6 +3,11 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-10
+
+- A Short Rest now passes 2 hours. Buffs and other timed effects run down during it, it catches up 2 hours of sleep, and enemies can ambush you while you rest. Before, no time passed, so buffs never ran out and could be stacked.
+- Party members resting at the same fire now share one ambush roll, whether each of you picks a Long or a Short Rest. If the camp is ambushed, everyone's rest is interrupted.
+
 ## 2026-11-09
 
 - Fixed: enemies in shared dungeons no longer go out of sync between players (a party member fighting something you can't see). When you enter a dungeon someone else is already in, its enemies appear a moment later, once the game has the room's state from them, and they match on everyone's screen. Everyone in the dungeon fights enemies built for the same level.

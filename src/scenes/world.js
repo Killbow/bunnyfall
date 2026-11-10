@@ -250,7 +250,7 @@ import { mintQuestFoeWave, placeFoeEnv, entityOccupancy, questFoeGender, reviveQ
 import { ENEMY_BASICS, enemyLevelOf } from '../characters/enemy/enemyBasics.js';   // MERGE: FinalizeFoe's Flying lift reads the behaviour flag
 import { markFoeReach } from '../systems/foeReach.js';   // WATER-FOES: a foe in the water reaches no one aboard
 import { intermittentEnemySpawn, setEnemyAlert, areEnemiesNearby, foeHostile, foeAlerted, fightNear } from '../systems/encounters.js';   // OW6: foeHostile, the one hostility gate   // CAMP-ROLL: REST5's quietNights moved with the carried night's sequence (scenes/shared.js restCampNight)
-import { setNightListener, nightStamp, nightKindOf, REST_ACT_TEXT, campStamp, campMarkOf } from '../systems/rest/restAct.js';   // REST5: the party's night   // AUDIT REST-PARTY: and where it was slept   // AUDIT REST II: the mark asked lazily (P5), and what a carried night says (P3)
+import { setNightListener, nightStamp, nightKindOf, shortRestStamp, shortRestKindOf, REST_ACT_TEXT, campStamp, campMarkOf, campOpenMark } from '../systems/rest/restAct.js';   // REST5: the party's night   // AUDIT REST-PARTY: and where it was slept   // AUDIT REST II: the mark asked lazily (P5), and what a carried night says (P3)
 import { createCampWatch, campPasses } from '../systems/party/partyRestLaw.js';   // AUDIT REST-PARTY: the party's night, pinned by execution   // AUDIT REST II P1/P2: its watch   // CAMP-ROLL: the camp's one roll
 import { ambushNight } from '../systems/rest/restAct.js';   // AUDIT REST-PARTY A1: a resting encounter stood breaks the night that rolled it
 import { createStandingWatch, installLegalNotices } from './standingHost.js';   // REP1: the watch's stop; REP5: the law's notices
@@ -13370,7 +13370,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // PARTY-REST19: see checkCanceledByFollower's own doc comment above.
     canceledByFollower: () => checkCanceledByFollower(),
     // CAMP-ROLL: the camp's one roll (campRest, below - read at the call, after it stands)
-    camp: { open: (night) => campRest.open(night), verdict: () => campRest.verdict(), settle: () => campRest.settle(), close: () => campRest.close() },
+    camp: { open: (long) => campRest.open(long), verdict: () => campRest.verdict(), settle: () => campRest.settle(), close: () => campRest.close() },
     place: () => ({
       inTownOutside: _isPlayerInTownStrict(),
       inTownLocation: isPlayerInTown(_musicLocationType()),
@@ -26498,7 +26498,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
   /** A rest point everyone may use - a fire, a tent, a bed; never a Bedroll, which keeps the stranger rule. */
   const publicRestPoint = () => { const pt = hostRestDeps()?.restAct?.()?.point; return !!pt && pt.where !== 'bedroll'; };
-  setNightListener((kind) => { if (social && sharedClockOn()) { _partyRestJustStartedAt = nightStamp(social.now(), kind ?? undefined); _partyComposedAt = -Infinity; } });
+  setNightListener((kind, long = true) => { if (social && sharedClockOn()) { _partyRestJustStartedAt = (long ? nightStamp : shortRestStamp)(social.now(), kind ?? undefined); _partyComposedAt = -Infinity; } });
   // CAMP-ROLL (2026-10-04, the player: "In a party, or with other players. Every player spawns their own enemies when
   // resting"; then "Do it"): ONE ROLL A CAMP - systems/party/partyRestLaw.js's own note says the whole of it. This is the
   // host's half: the rest windows (both skins) open the camp when an act's channel opens on a night (my stamp takes the
@@ -26507,19 +26507,21 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // A camp mate is a present member here within the party's 15 m (nearAccount, the night's own reach), not resting
   // alone. The outdoor host and the dungeon's carry it (createRestDeps `camp`); a building rolls nothing (encounters.js:
   // inside and no dungeon), so worldModes' interior bag carries none; the ?exterior dev host has no party.
-  const _campWatch = createCampWatch({ kindOf: nightKindOf, campOf: campMarkOf });
+  // 2026-11-10: short rests open the camp as well (they pass two hours and roll for ambush); a long rest is preferred
+  // as the roller, and a mate's short rest landing covers only a short rest (partyRestLaw.js createCampWatch).
+  const _campWatch = createCampWatch({ kindOf: nightKindOf, campOf: campMarkOf, shortKindOf: shortRestKindOf });
   const campStampNow = (which) => { _partyRestJustStartedAt = campStamp(social.now(), which); _partyComposedAt = -Infinity; };
   const campRest = {
-    open: (night) => {
-      if (!night || !social?.party || !sharedClockOn() || !restTogether()) { _campWatch.close(); return; }
-      _campWatch.open(social.others(), social.now());
-      campStampNow('open');
+    open: (long) => {
+      if (!social?.party || !sharedClockOn() || !restTogether()) { _campWatch.close(); return; }
+      _campWatch.open(social.others(), social.now(), !!long);
+      campStampNow(long ? 'open' : 'openShort');
     },
     verdict: () => (social?.party && sharedClockOn() ? _campWatch.verdict({
       me: social.acct, members: social.others(), now: social.now(),
       inCamp: (m) => memberPresent(m) && nearAccount(m.acct, m.p),
     }) : null),
-    settle: () => { if (social && campMarkOf(_partyRestJustStartedAt) === 'open') campStampNow('done'); },
+    settle: () => { if (social && campOpenMark(campMarkOf(_partyRestJustStartedAt))) campStampNow('done'); },
     close: () => { campRest.settle(); _campWatch.close(); },
   };
   /** CAMP-ROLL: the feet of the camp mates beside me - the band an ambush I roll at rest keeps from each of them. */

@@ -212,7 +212,7 @@ export function mountEnhancedRest(hostEl, deps, ignoreAllocatedBed = false) {
     overlay.state = 'channel';
     overlay._actHealth = deps.vitals?.()?.health;   // AUDIT REST-PARTY A5: a blow while holding interrupts
     deps.restChannelOpen?.();   // REST-CHANNEL-HEAL: the bar heals as it fills (restAct.js openChannelHeal)
-    deps.camp?.open?.(long && !!act.night);   // CAMP-ROLL: a long rest may be the camp's roll
+    deps.camp?.open?.(long && !!act.night);   // CAMP-ROLL: a long or short rest may be the camp's roll (a long one first)
     render();
   }
   function restChoiceCard() {

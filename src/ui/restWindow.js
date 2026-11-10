@@ -299,7 +299,7 @@ export class RestWindow {
     this.state = 'channel';
     this._actHealth = this.deps.vitals?.()?.health;   // AUDIT REST-PARTY A5: a blow while holding interrupts
     this.deps.restChannelOpen?.();   // REST-CHANNEL-HEAL: the bar heals as it fills (restAct.js openChannelHeal)
-    this.deps.camp?.open?.(long && !!this._act.night);   // CAMP-ROLL: a long rest may be the camp's roll
+    this.deps.camp?.open?.(long && !!this._act.night);   // CAMP-ROLL: a long or short rest may be the camp's roll (a long one first)
   }
 
   /** REST1: the channel held to its end - an enemy in reach (or a spawn latched while holding) is the enemies line;
