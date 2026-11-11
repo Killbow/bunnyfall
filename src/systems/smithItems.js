@@ -83,7 +83,7 @@ import {
   jewelHandOk,   // AUDIT PROF-541 J6: the hand a piece keeps, one its recipe takes
 } from '../net/recipeLaw.js';
 import { enchantmentRowCost } from './enchanting.js';   // AUDIT PROF-541 J4: a Rare roll the piece's points hold
-import { minedMaterial } from '../net/professionLaw.js';
+import { minedMaterial, WOODS } from '../net/professionLaw.js';
 import { weaponOfMaterial, armorOfMaterial, createWeapon } from '../combat/enemyEquipment.js';
 import { setItemFields, mintCondition, templateByIndex, registerItemUseHandler, conditionPercentage, conditionShare, mendOrder, itemBaseValue } from './item/itemTemplates.js';
 import { creditOwnMend, scaleFoundMark } from './item/foundMark.js';   // MEND-THIRD: a kit's mend credited; AUDIT MEND-THIRD L1-6: a temper moves the mark   // AUDIT ECON R2: the card's own percentage; MEND-WORN: the mend order's one home
@@ -174,6 +174,9 @@ function applyMasterWork(item, lines) {
  * @param {{ recipe: string, quality: number, seed: number, maker?: string|null, marked?: boolean, dye?: number|null, hand?: number|null, version?: number, lines?: any[]|null }} made
  * @param {string} provenance
  */
+/** BUNNYFALL CRAFTING REWORK: a wood's name by its id (recipeLaw WOODS), for a crafted bow's or staff's long name. */
+const WOOD_NAMES = Object.freeze(Object.fromEntries(WOODS.map((w) => [w.id, w.name])));
+
 export function mintPiece({ recipe, quality, seed, maker = null, marked = false, dye = null, hand = null, version = 0, lines = null }, provenance) {
   const r = recipeById(recipe);
   if (!r || typeof provenance !== 'string' || !PROVENANCE_RE.test(provenance)) return null;
@@ -250,6 +253,7 @@ export function mintPiece({ recipe, quality, seed, maker = null, marked = false,
     if (q === MASTERWORK && mark) item.name = templateByIndex(r.templateIndex)?.name ?? item.name;   // the mark is its name (itemNameParts)
     if (r.kind === 'jewel') setJewel(item, r, hand);   // PROF10: its metal's and its gem's name, points and worth
   }
+  if ((r.kind === 'staff' || r.kind === 'bow') && typeof r.wood === 'string') item.woodName = WOOD_NAMES[r.wood] ?? null;   // BUNNYFALL: the wood the grade came from
   item.quality = q;
   item.recipe = r.id;   // AUDIT 31 H3: an Ebony and a Warforged piece mint the same template and material
   item.provenance = provenance;

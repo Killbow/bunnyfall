@@ -659,6 +659,11 @@ export function resolveItemName(item) {
  *  with no quest machine passes none and the plain name stands, which
  *  is questLetterName's own null answer. */
 export function itemLongName(item, opts) {
+  const long = itemLongNameBare(item, opts);
+  // BUNNYFALL CRAFTING REWORK: a crafted bow's or staff's wood after its grade - "Steel Long Bow, Oak"
+  return typeof item?.woodName === 'string' && item.woodName && !long.endsWith(`, ${item.woodName}`) ? `${long}, ${item.woodName}` : long;
+}
+function itemLongNameBare(item, opts) {
   const { name, material } = itemNameParts(item, opts);
   // MAT-SHOW: the metal stays off the front of a name the ladder keeps bare — an unidentified drop, an
   // artifact, and a record's own name (Legendary, Aetheric, Gilded). The part still carries it, so the

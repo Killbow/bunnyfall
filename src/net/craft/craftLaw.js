@@ -122,6 +122,19 @@ export function qualityCap(/** @type {Plan} */ plan, /** @type {boolean} */ focu
  * each for a clean act, the craft's perk and a seat's halls) held under the cap. The old Warforged and Hardened Leather
  * steps are gone: those materials earn their place in Potential instead. `u` a die in [0, 1).
  */
+/**
+ * The odds of each quality (Crude to Masterwork, percent) a craft by plan is made at - the same roll, steps and cap
+ * craftedQuality takes, so the card shows what the server rolls. `halls` the Company halls' steps where they are known.
+ */
+export function craftOdds(/** @type {Plan} */ plan, { rank, clean = false, spec50 = null, spec100 = null, halls = 0, focus = false }) {
+  const r = { ...plan.legacy, metal: null, leather: null };
+  const base = qualityOdds(rank - r.rank, { masterwright: masterworkSpec(spec100, r) });
+  const steps = qualitySteps(r, { clean, spec50, heartwood: false }) + halls;
+  const cap = qualityCap(plan, focus);
+  const out = [0, 0, 0, 0, 0];
+  base.forEach((o, q) => { out[Math.min(craftQuality(q, steps), cap)] += o; });
+  return out;
+}
 export function craftedQuality(/** @type {Plan} */ plan, { u, rank, clean = false, spec50 = null, spec100 = null, halls = 0, focus = false }) {
   const r = { ...plan.legacy, metal: null, leather: null };   // no ingot's or leather's own step (qualitySteps)
   const rolled = rollQuality(u, qualityOdds(rank - r.rank, { masterwright: masterworkSpec(spec100, r) }));

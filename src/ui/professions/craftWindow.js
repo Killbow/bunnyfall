@@ -15,7 +15,9 @@ import { materialsText } from '../salvageMaterials.js';
 import { mountAct } from './craftActs.js';
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, FOCUS_MAX } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, FOCUS_MAX } from '../../net/craft/craftLaw.js';
+import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
+import { itemLongName } from '../../systems/item/itemInfo.js';
 import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 
@@ -80,6 +82,7 @@ const CSS = `
 .cw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cw-word { padding: 8px 12px; border-left: 3px solid #d9b45a; background: rgba(217,180,90,0.08); }
 .cw-note { color: #b8b09a; font-size: 13px; margin: 0; }
+.cw-make { color: #f0d58a; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
 .cw-empty { color: #b8b09a; padding: 12px 0; }
 .cw-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(10,12,17,0.45); border: 2px solid #3d3a30; padding: 8px 12px; flex-wrap: wrap; }
 .cw-line-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -440,6 +443,11 @@ function drawCraft(root, rerender, p, station, run, away = false) {
   root.append(body);
 }
 
+/** The name the mint gives a piece of `r`, at Standard (a Rare's own name aside), or null. */
+function previewName(r) {
+  try { const it = mintPiece({ recipe: r.id, quality: 1, seed: 1 }, '0000000000000000'); return it ? itemLongName(it) : null; } catch { return null; }
+}
+
 function drawFormCard(card, rerender, p, station, form, rank, specs, run, away = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
@@ -505,11 +513,15 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     lab.append(sel);
     card.append(lab);
   }
+  const preview = previewName(r);
+  if (preview) card.append(h('p', 'cw-make', `You will make: ${preview}`));
   if (pot) card.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
   if (cap < (pot?.quality ?? 4)) card.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
   if (rollsQuality(r)) {
-    const odds = qualityOdds(rank - r.rank);
-    card.append(h('div', 'cw-label', `Quality odds at your rank, held at ${QUALITY_NAMES[cap]} (a clean minigame adds a step)`));
+    const odds = craftOdds(plan, { rank, clean: false, spec50: specs?.[50], spec100: specs?.[100], focus });   // the server's roll, steps and cap
+    const clean = craftOdds(plan, { rank, clean: true, spec50: specs?.[50], spec100: specs?.[100], focus });
+    const best = clean.findLastIndex((o) => o > 0);
+    card.append(h('div', 'cw-label', `Quality odds at your rank, held at ${QUALITY_NAMES[cap]}. A clean minigame raises them (up to ${QUALITY_NAMES[best]} ${clean[best]}%); a Company hall where your guild holds the town adds more.`));
     const bar = h('div', 'cw-odds');
     const key = h('div', 'cw-odds-key');
     odds.forEach((o, q) => {
