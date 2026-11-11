@@ -292,3 +292,18 @@ test('the diff names v2 entities and the people v1 never showed', async () => {
   assert.equal(poiDiff(null, a)[0].code, 'new');
   assert.ok(poiDiff(null, a).some((c) => c.code === 'collection' && c.kind === 'trades' && c.count === 2));
 });
+
+test('events may give and take items and gold, checked like trades', () => {
+  const run = (a) => edit((d) => { d.events[2].then.push(a); });
+  assert.deepEqual(run({ k: 'give_item', item: { template: 62, count: 1 } }), []);
+  assert.deepEqual(run({ k: 'take_item', item: { template: 71, count: 10 } }), []);
+  assert.deepEqual(run({ k: 'give_gold', amount: 250 }), []);
+  assert.deepEqual(run({ k: 'take_gold', amount: 5 }), []);
+  assert.ok(run({ k: 'give_gold', amount: 0 }).includes('events[2].then[2].amount:gold'));
+  assert.ok(run({ k: 'take_item', item: { template: 71, count: 0 } }).includes('events[2].then[2].item.count:count'));
+  assert.ok(run({ k: 'take_item', item: { template: 71, count: 1, enchant: [] } }).includes('events[2].then[2].item.enchant:unknown'));
+  assert.ok(run({ k: 'give_gold', amount: 5, extra: 1 }).includes('events[2].then[2].extra:unknown'));
+  const d = poiV2Example();
+  d.events[2].then.push({ k: 'give_item', item: { template: 9000, count: 1 } });
+  assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[2].then[2].item.template:item-template']);
+});

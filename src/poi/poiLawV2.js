@@ -79,7 +79,7 @@ export const POI_VAR_OPS = Object.freeze(['eq', 'ne', 'gt', 'ge', 'lt', 'le']);
 export const POI_LIMIT_MODES = Object.freeze(['unlimited', 'once_per_char', 'once_per_account', 'daily_per_char', 'global_stock']);
 export const POI_TRIGGER_KINDS = Object.freeze(['enter_area', 'interact', 'npc_talk', 'waypoint_reached', 'chained']);
 export const POI_CONDITION_KINDS = Object.freeze(['all', 'any', 'has_item', 'has_gold', 'var']);
-export const POI_ACTION_KINDS = Object.freeze(['say', 'set_var', 'set_state', 'start_encounter', 'end_encounter', 'start_route', 'stop_route', 'spawn_npc', 'despawn_npc', 'open_dialogue', 'open_trade', 'trigger_event']);
+export const POI_ACTION_KINDS = Object.freeze(['say', 'set_var', 'set_state', 'start_encounter', 'end_encounter', 'start_route', 'stop_route', 'spawn_npc', 'despawn_npc', 'open_dialogue', 'open_trade', 'give_item', 'take_item', 'give_gold', 'take_gold', 'trigger_event']);
 export const POI_OPTION_KINDS = Object.freeze(['goto', 'close', 'open_trade', 'run_trade_recipe', 'trigger_event']);
 
 // every key set the law knows, so an unknown field is a problem at any depth
@@ -258,6 +258,8 @@ export function poiV2Problems(raw, kit) {
       case 'stop_route': case 'spawn_npc': case 'despawn_npc': ref(a.npc, ctx.npcs, `${at}.npc`); only('npc'); break;
       case 'open_dialogue': ref(a.dialogue, ctx.dialogues, `${at}.dialogue`); only('dialogue'); break;
       case 'open_trade': ref(a.trade, ctx.trades, `${at}.trade`); only('trade'); break;
+      case 'give_item': case 'take_item': stack(a.item, `${at}.item`, a.k === 'give_item'); only('item'); break;
+      case 'give_gold': case 'take_gold': if (!int(a.amount, 1, P.goldMax)) say(`${at}.amount`, 'gold', { max: P.goldMax }); only('amount'); break;
       default: {   // trigger_event
         ref(a.event, ctx.events, `${at}.event`);
         if (!int(a.delayS, 0, 86400)) say(`${at}.delayS`, 'seconds', { max: 86400 });

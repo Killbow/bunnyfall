@@ -35,7 +35,8 @@ weapon (not arrows), a piece of armour or a trophy. A `paperdoll` is any other i
 
 Events: triggers are `enter_area`, `interact`, `npc_talk`, `waypoint_reached` and `chained`. Conditions are `all`, `any`,
 `has_item`, `has_gold` and `var`, at most 16 checks and 4 levels. Actions are `say, set_var, set_state, start_encounter,
-end_encounter, start_route, stop_route, spawn_npc, despawn_npc, open_dialogue, open_trade, trigger_event`, at most 32 in
+end_encounter, start_route, stop_route, spawn_npc, despawn_npc, open_dialogue, open_trade, give_item, take_item, give_gold,
+take_gold, trigger_event`, at most 32 in
 `then` and `else` together. A `chained` event that nothing starts is refused. Events that start each other with no delay in a
 circle are refused.
 
@@ -43,8 +44,8 @@ circle are refused.
 
 These are my readings where the spec was silent or the code disagreed.
 
-1. **No item or gold actions in events.** The spec lists give and remove actions. Only trades are settled on the server, so
-   v2 moves items and gold only through trades. Otherwise an event is an unchecked faucet.
+1. **Events may give and take items and gold** (your decision). The law checks their shape and the items against the game.
+   The server has to settle them like trades, with a claim per event and character, before the runtime may run them.
 2. **Limits are per parent.** "128 waypoints" is per route and "32 spawn points" is per encounter. I added 24 creatures per
    encounter and 16 per spawn. `GRANT_KINDS.site.max` is 9, so these need checking when the runtime lands.
 3. **Foe names and levels.** There is no custom name for a foe, so "Bandit Leader" shows as its class name. A spawn may set

@@ -47,7 +47,7 @@ export function stackProblems(s, at, out) {
 
 /**
  * Every item stack a v2 document names, against the game's catalogues: trade requirements and rewards, interactive key
- * items and the stacks in conditions. Run it after poiDocProblems finds nothing, so the shapes can be trusted.
+ * items, the stacks in conditions and the items events give or take. Run it after poiDocProblems finds nothing, so the shapes can be trusted.
  * @param {any} doc @returns {PoiProblem[]}
  */
 export function poiTradeProblems(doc) {
@@ -67,6 +67,9 @@ export function poiTradeProblems(doc) {
   (doc?.interactives ?? []).forEach((/** @type {any} */ o, /** @type {number} */ i) => { if (o?.keyItem) stackProblems(o.keyItem, `interactives[${i}].keyItem`, out); });
   const walk = (/** @type {any[] | undefined} */ rows, /** @type {string} */ name, /** @type {(row: any) => any} */ pick) => rows?.forEach((r, i) => tree(pick(r), `${name}[${i}]`));
   walk(doc?.events, 'events', (e) => e?.when);
+  (doc?.events ?? []).forEach((/** @type {any} */ e, /** @type {number} */ i) => {
+    for (const list of ['then', 'else']) (e?.[list] ?? []).forEach((/** @type {any} */ a, /** @type {number} */ k) => { if (a?.item) stackProblems(a.item, `events[${i}].${list}[${k}].item`, out); });
+  });
   walk(doc?.npcs, 'npcs', (n) => n?.showWhen);
   (doc?.dialogues ?? []).forEach((/** @type {any} */ d, /** @type {number} */ i) => (d?.nodes ?? []).forEach((/** @type {any} */ n, /** @type {number} */ k) => (n?.options ?? []).forEach((/** @type {any} */ o, /** @type {number} */ m) => tree(o?.when, `dialogues[${i}].nodes[${k}].options[${m}].when`))));
   return out;
