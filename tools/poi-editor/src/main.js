@@ -157,7 +157,11 @@ async function boot() {
     exportPack: () => transfer.exportPack(),
     async goToPlace() {
       const d = getDoc(); if (!d) return;
-      if (places.state() !== 'loaded') { say('The game\'s places are not loaded. Use File, Game files... and pick the ARENA2 folder (it needs MAPS.BSA and BLOCKS.BSA).'); return; }
+      if (places.state() !== 'loaded') {
+        say(`The game's places are not loaded (${places.why() || 'no game files'}).`);
+        if (await confirmBox('Game files needed', `The places need MAPS.BSA, BLOCKS.BSA, CLIMATE.PAK and POLITIC.PAK from your ARENA2 folder (${places.why() || 'not found'}). Pick the folder now?`, 'Pick folder')) await A.gameFiles();
+        return;
+      }
       const v = await ask('Go to a place', [{ name: 'q', label: 'Name', value: '', hint: 'Part of a name is enough, for example: menevia' }], { ok: 'Find', validate: (x) => (!places.find(x.q, 1).length ? 'No place has that name.' : null) });
       if (!v) return;
       const found = places.find(v.q, 40);

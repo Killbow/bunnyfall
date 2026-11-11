@@ -21,7 +21,7 @@ const WORLD_HEIGHT = MAX_TERRAIN_HEIGHT * STREAMING_TERRAIN_SCALE;
  */
 export function createPlaces(read, getWoods = () => null) {
   /** @type {'unknown' | 'loaded' | 'missing'} */
-  let status = 'unknown';
+  let status = 'unknown', why = '';
   /** @type {any} */ let maps = null;
   /** @type {any} */ let blocks = null;
   /** @type {{ name: string, region: string, regionIndex: number, locationIndex: number, px: number, py: number, type: number }[]} */
@@ -31,6 +31,8 @@ export function createPlaces(read, getWoods = () => null) {
 
   return {
     state: () => status,
+    /** Why the places could not be loaded (the file that was missing), or ''. */
+    why: () => why,
     /** Load the map tables and the block library, and list every place. Answers whether they are there. */
     async open() {
       try {
@@ -51,7 +53,7 @@ export function createPlaces(read, getWoods = () => null) {
           }
         }
         status = 'loaded';
-      } catch { status = 'missing'; maps = null; blocks = null; list = []; }
+      } catch (e) { status = 'missing'; why = String(e?.message ?? e); maps = null; blocks = null; list = []; }
       return status === 'loaded';
     },
     /** Places whose name has every word of `text`, best (shortest name) first. */
