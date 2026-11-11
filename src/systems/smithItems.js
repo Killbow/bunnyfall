@@ -253,7 +253,7 @@ export function mintPiece({ recipe, quality, seed, maker = null, marked = false,
     if (q === MASTERWORK && mark) item.name = templateByIndex(r.templateIndex)?.name ?? item.name;   // the mark is its name (itemNameParts)
     if (r.kind === 'jewel') setJewel(item, r, hand);   // PROF10: its metal's and its gem's name, points and worth
   }
-  if ((r.kind === 'staff' || r.kind === 'bow') && typeof r.wood === 'string') item.woodName = WOOD_NAMES[r.wood] ?? null;   // BUNNYFALL: the wood the grade came from
+  if ((r.kind === 'staff' || r.kind === 'bow') && typeof r.wood === 'string') item.woodName = WOOD_NAMES[r.wood.replace(/^plank:/, '')] ?? null;   // BUNNYFALL: the wood the grade came from
   item.quality = q;
   item.recipe = r.id;   // AUDIT 31 H3: an Ebony and a Warforged piece mint the same template and material
   item.provenance = provenance;

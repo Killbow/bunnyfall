@@ -12,6 +12,7 @@ the last release (scripts/changelogNotes.mjs).
 - Companies with a hall now have a territory on the world map, a patch around the hall's town in the Company's colours. It grows as members earn Renown in the hall's region and shrinks back over the weeks when they stop. Territories can overlap. Inside your own Company's territory you gather 10% more and find 10% more gold in loot.
 - /dm now shows its line as a banner across the top of everyone's screen as well as in chat, in a colour of choice: /dm purple Rodney: You will all kneel!, or a #rrggbb code. Developers can use it as well as Dungeon Masters.
 - Staff commands: /vanish hides a staff member from players and monsters until used again, /spawn <monster> [count] stands monsters nearby, and /greed <player> <amount> [gold|nyx] sends gold or Nyx coins to a player (Admins only), which arrive in their game within a minute.
+- New things to craft: the Archer's Axe and Light Flail, the Roleplay Realism chain and light armour sets, and the Crossbow. Crafted bows, staves and crossbows are named for their grade and then their wood ("Steel Long Bow, Oak"). The craft card now names exactly what you will make, shows its damage or armour, weight and condition at each quality you can roll, and its odds match the real roll.
 
 ## 2026-11-11
 

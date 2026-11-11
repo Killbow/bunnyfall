@@ -17,7 +17,10 @@ import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK
 import { statsOf } from '../../net/craft/materialStats.js';
 import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, FOCUS_MAX } from '../../net/craft/craftLaw.js';
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
+import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
 import { itemLongName } from '../../systems/item/itemInfo.js';
+import { itemArmorValue } from '../../systems/armorMaterials.js';
+import { unitWeightInKg } from '../../systems/inventory.js';   // the stats table: the armour a piece gives
 import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 
@@ -82,6 +85,9 @@ const CSS = `
 .cw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .cw-word { padding: 8px 12px; border-left: 3px solid #d9b45a; background: rgba(217,180,90,0.08); }
 .cw-note { color: #b8b09a; font-size: 13px; margin: 0; }
+.cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
+.cw-stats th { text-align: left; color: #d9b45a; font-weight: 600; border-bottom: 1px solid #6b5228; padding: 3px 6px; }
+.cw-stats td { padding: 3px 6px; border-bottom: 1px solid rgba(107,82,40,.35); color: #e8e2d0; }
 .cw-make { color: #f0d58a; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
 .cw-empty { color: #b8b09a; padding: 12px 0; }
 .cw-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(10,12,17,0.45); border: 2px solid #3d3a30; padding: 8px 12px; flex-wrap: wrap; }
@@ -411,7 +417,7 @@ function drawCraft(root, rerender, p, station, run, away = false) {
   const prof = S.prof;
   const rank = rankOf(book, prof), specs = specsOf(book, prof);
   drawFocus(root, rerender, p);
-  const forms = FORMS.filter((f) => f.discipline === prof && f.kind !== 'dish');
+  const forms = FORMS.filter((f) => f.discipline === prof && f.kind !== 'dish' && (!RRI_FORMS.has(f.id) || rriEnabled()));
   const standingOf = (f) => {
     const top = [...f.slots[0].options].map((o) => planOf(f.id, { ...startPicks(f, book, rank, specs), [f.slots[0].id]: o })).filter((x) => x.ok).map((x) => ({ x, st: planStanding(x, book, rank, specs) }));
     const best = top.filter((t) => t.st.s === 'ready').at(-1) ?? top.filter((t) => t.st.s !== 'locked').at(-1) ?? top[0];
@@ -442,6 +448,43 @@ function drawCraft(root, rerender, p, station, run, away = false) {
   body.append(card);
   root.append(body);
 }
+
+/**
+ * THE FINISHED PIECE, BY QUALITY: what each quality the craft can roll mints (the mint's own numbers - smithItems.js
+ * mintPiece), with its odds skipping the game and playing it clean. Damage and armour are the item's and its grade's; a
+ * quality changes its condition and weight, and Superior and Masterwork roll an enchantment at the craft.
+ */
+function drawStatsTable(card, r, odds, clean) {
+  const rows = [];
+  for (let q = 0; q < 5; q++) {
+    if (!(odds[q] > 0) && !(clean[q] > 0)) continue;
+    let it = null;
+    try { it = mintPiece({ recipe: r.id, quality: q, seed: 1 }, '0000000000000000'); } catch { it = null; }
+    if (it) rows.push({ q, it });
+  }
+  if (!rows.length) return;
+  const weapon = rows[0].it.group === 'Weapons';
+  const armour = rows[0].it.group === 'Armor';
+  const table = h('table', 'cw-stats');
+  const head = h('tr');
+  for (const t of ['Quality', 'Odds', 'Clean', weapon ? 'Damage' : armour ? 'Armour' : null, 'Weight', 'Condition', 'Extra']) if (t) head.append(h('th', null, t));
+  table.append(head);
+  for (const { q, it } of rows) {
+    const tr = h('tr', `cw-q${q}-row`);
+    tr.append(h('td', null, QUALITY_NAMES[q]), h('td', null, `${odds[q]}%`), h('td', null, `${clean[q]}%`));
+    if (weapon) tr.append(h('td', null, `${it.minDamage ?? 0}-${it.maxDamage ?? 0}`));
+    else if (armour) { let a = null; try { a = itemArmorValue(it); } catch { a = null; } tr.append(h('td', null, a == null ? '-' : String(a))); }
+    let kg = NaN;
+    try { kg = Number(unitWeightInKg(it)); } catch { kg = NaN; }
+    tr.append(h('td', null, Number.isFinite(kg) ? `${kg.toFixed(2)} kg` : '-'), h('td', null, String(it.maxCondition ?? '-')),
+      h('td', null, q === 4 ? 'Rare enchantment, your mark' : q === 3 ? 'Magic enchantment' : ''));
+    table.append(tr);
+  }
+  card.append(h('div', 'cw-label', 'The finished piece by quality (enchantments are rolled when it is made)'), table);
+}
+
+/** Roleplay Realism Items' forms (templates 513-526): drawn only while the mod is on, as its art and its numbers are. */
+const RRI_FORMS = new Set(RECIPES.filter((r) => r.templateIndex >= 513 && r.templateIndex <= 526).map((r) => r.product));
 
 /** The name the mint gives a piece of `r`, at Standard (a Rare's own name aside), or null. */
 function previewName(r) {
@@ -530,6 +573,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
       const k = h('span'); k.append(h('span', `cw-sw cw-q${q}`), globalThis.document.createTextNode(`${QUALITY_NAMES[q]} ${o}%`)); key.append(k);
     });
     card.append(bar, key);
+    drawStatsTable(card, r, odds, clean);
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
   card.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));

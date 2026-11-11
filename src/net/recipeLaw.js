@@ -22,6 +22,7 @@
 // THE PIECE IS DFU'S. A recipe names a DFU template and a DFU material (ItemEnums.cs WeaponMaterialTypes; armour's
 // ArmorMaterialTypes - plate 0x0200 + the metal, chain 0x0100); the item is minted by DFU's own law and the quality
 // laid on it after. Not a DFU member: DFU crafts nothing. Ledger A (the professions' row).
+import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';   // BUNNYFALL: the Crossbow, a leaf
 import {
   INGOTS, TIER_RANKS, topTierOf, actBand, minedMaterial, WOODS, PINE_PLANK, RESIN, HEARTWOOD, LINEN, WOOL, BEAR_HIDE, CLOTHS, HIDES,
   CURED_LEATHER, HARDENED_LEATHER, SKINNING_KNIFE, COUNTER_ONLY, CUT_STONE, MORTAR, PROF_RANK_MAX,   // PROF11: the mason's stone
@@ -76,6 +77,9 @@ export const WEAPON_PRODUCTS = Object.freeze([
   product('waraxe', 'War Axe', 'weapon', 128, 4, [[COPPER, 1], [OAK, 1]]),
   product('claymore', 'Claymore', 'weapon', 122, 5, [[COPPER, 1], [LEATHER, 1]]),
   product('daikatana', 'Dai-katana', 'weapon', 123, 5, [[COPPER, 1], [LEATHER, 1]]),
+  // BUNNYFALL: Roleplay Realism Items' two weapons (rriItems.js 513, 514), sized as their nearest classic piece
+  product('archersaxe', "Archer's Axe", 'weapon', 513, 3, [[COPPER, 1], [OAK, 1]]),
+  product('lightflail', 'Light Flail', 'weapon', 514, 2, [[COPPER, 1], [LEATHER, 1]]),
 ]);
 /** The plate (DFU 102-108): Cuirass 6 and 2 Cured Leather, Greaves 4, Helm 2, the pauldrons, Gauntlets and Boots 2. */
 export const PLATE = Object.freeze([
@@ -90,7 +94,13 @@ export const SHIELDS = Object.freeze([
   product('kiteshield', 'Kite Shield', 'shield', 111, 4, [[OAK, 1]]), product('towershield', 'Tower Shield', 'shield', 112, 5, [[OAK, 1]]),
 ]);
 /** The chain (the plate's seven - DFU has no chain shield): the plate piece's ingots x 0.75 rounded up, nothing else. */
-export const CHAIN = Object.freeze(PLATE.map((p) => product(`chain-${p.id}`, p.name, 'chain', p.templateIndex, Math.ceil(p.ingots * 0.75))));
+export const CHAIN = Object.freeze([
+  ...PLATE.map((p) => product(`chain-${p.id}`, p.name, 'chain', p.templateIndex, Math.ceil(p.ingots * 0.75))),
+  // BUNNYFALL: Roleplay Realism Items' chain set (rriItems.js 515-519), at the chain's rule from its plate counterpart
+  product('chain-hauberk', 'Hauberk', 'chain', 515, 5), product('chain-chausses', 'Chausses', 'chain', 516, 3),
+  product('chain-lspaulder', 'Left Spaulder', 'chain', 517, 2), product('chain-rspaulder', 'Right Spaulder', 'chain', 518, 2),
+  product('chain-sollerets', 'Sollerets', 'chain', 519, 2),
+]);
 /** Foraging's tools (FORAGE0 14.7), at Iron: their templates are Foraging's own (foragingLaw.js FT). PROF7: and the
  *  Skinning Knife (603, the port's own - FORAGE0 14.7's row), 1 Iron Ingot and 1 Pine Plank at rank 0. */
 export const TOOLS = Object.freeze([
@@ -206,6 +216,8 @@ export const CARPENTRY_RECIPES = Object.freeze([
   ...WOODS.map((w) => carpentry({ id: `staff:${w.id}`, name: `${w.name} Staff`, kind: 'staff', family: 'staves', templateIndex: STAFF_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 3]], pattern: 'Staff' })),
   ...WOODS.map((w) => carpentry({ id: `shortbow:${w.id}`, name: `${w.name} Short Bow`, kind: 'bow', family: 'bows', templateIndex: SHORT_BOW_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 3], [RESIN.key, 1]], pattern: 'Short Bow' })),
   ...WOODS.map((w) => carpentry({ id: `longbow:${w.id}`, name: `${w.name} Long Bow`, kind: 'bow', family: 'bows', templateIndex: LONG_BOW_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 4], [RESIN.key, 1]], pattern: 'Long Bow' })),
+  // BUNNYFALL: the Crossbow (crossbowIds.js 563), the Long Bow's wood and an iron prod
+  ...WOODS.map((w) => carpentry({ id: `crossbow:${w.id}`, name: `${w.name} Crossbow`, kind: 'bow', family: 'bows', templateIndex: CROSSBOW_TEMPLATE, wood: w.id, material: WOOD_MATERIAL[w.id], inputs: [[plank(w.id), 3], [RESIN.key, 1], ['ingot:iron', 1]], pattern: 'Crossbow' })),
   carpentry({ id: 'arrows:north', name: 'Arrows (northern Twigs)', kind: 'arrows', family: 'arrows', templateIndex: ARROWS_TEMPLATE, wood: 'pine', stack: ARROWS_STACK, inputs: [[PINE_PLANK.key, 1], ['ingot:iron', 1], [TWIGS_NORTH, 4]], pattern: 'Arrows', madeOf: 'northern Twigs' }),
   carpentry({ id: 'arrows:south', name: 'Arrows (southern Twigs)', kind: 'arrows', family: 'arrows', templateIndex: ARROWS_TEMPLATE, wood: 'pine', stack: ARROWS_STACK, inputs: [[PINE_PLANK.key, 1], ['ingot:iron', 1], [TWIGS_SOUTH, 4]], pattern: 'Arrows', madeOf: 'southern Twigs' }),
   // BUNNYFALL: the Harpy Feathers' arrows are gone - the feathers are too rare for a quiver; the Twigs' two remain
@@ -223,6 +235,9 @@ export const CARPENTRY_RECIPES = Object.freeze([
 export const LEATHER_PIECES = Object.freeze([
   ['cuirass', 'Cuirass', 102, 6], ['greaves', 'Greaves', 104, 4], ['helm', 'Helm', 107, 2], ['lpauldron', 'Left Pauldron', 105, 2],
   ['rpauldron', 'Right Pauldron', 106, 2], ['gauntlets', 'Gauntlets', 103, 2], ['boots', 'Boots', 108, 2],
+  // BUNNYFALL: Roleplay Realism Items' light set (rriItems.js 520-526), sized as the leather piece of the same place
+  ['jerkin', 'Jerkin', 520, 6], ['cuisse', 'Cuisse', 521, 4], ['helmet', 'Helmet', 522, 2], ['lightboots', 'Boots (light)', 523, 2],
+  ['gloves', 'Gloves', 524, 2], ['lvambrace', 'Left Vambrace', 525, 2], ['rvambrace', 'Right Vambrace', 526, 2],
 ].map((a) => Object.freeze(a)));
 /**
  * DFU's CLOTHING (MensClothing 141-181, WomensClothing 182-216), each its 9.3 size - small a bolt, middle two, large
