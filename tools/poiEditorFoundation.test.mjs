@@ -279,3 +279,20 @@ test('placing: models, billboards and items become lawful rows; the rest say why
   assert.ok(placeAsset(d, cat.get('entity:foe-7'), [0, 0, 0]).refused);
   assert.ok(placeAsset(d, cat.assets.find((a) => a.namespace === 'repo-3d'), [0, 0, 0]).refused);
 });
+
+test('scene: moving to a group, refused cycles, renaming', async () => {
+  const S = await import('./poi-editor/src/scene.js');
+  const d = doc();
+  S.groupNodes(d, ['part:stall'], 'Inner');
+  const inner = d.groups.find((g) => g.name === 'Inner').key;
+  assert.equal(S.moveToGroup(d, ['group:market'], inner).refused, 'cycle');
+  assert.ok(S.moveToGroup(d, ['npc:merchant'], inner).ok);
+  assert.equal(find(d, 'npc:merchant').row.group, inner);
+  assert.ok(S.moveToGroup(d, ['npc:merchant'], null).ok);
+  assert.equal(find(d, 'npc:merchant').row.group, undefined);
+  assert.equal(S.moveToGroup(d, ['npc:merchant'], 'nope').refused, 'nogroup');
+  assert.ok(S.renameNode(d, 'part:stall', '  Market   stall  '));
+  assert.equal(find(d, 'part:stall').row.name, 'Market stall');
+  assert.equal(S.renameNode(d, 'part:stall', '   '), false);
+  assert.deepEqual(bad(d), []);
+});

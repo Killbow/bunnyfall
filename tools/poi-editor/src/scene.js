@@ -139,3 +139,28 @@ export function removeNodes(doc, ids) {
   if (doc.groups) { n += doc.groups.filter((g) => groupKeys.has(g.key)).length; doc.groups = doc.groups.filter((g) => !groupKeys.has(g.key)); }
   return n;
 }
+
+/** Move nodes into a group (null: out of every group). A group cannot go into itself or what is inside it, nor deeper than the law's depth. */
+export function moveToGroup(doc, ids, groupKey) {
+  const target = groupKey && (doc.groups ?? []).find((g) => g.key === groupKey) ? groupKey : null;
+  if (groupKey && !target) return { refused: 'nogroup' };
+  for (const id of ids) {
+    const f = find(doc, id);
+    if (!f) continue;
+    if (f.kind === 'group') {
+      for (let k = target, n = 0; k && n < 16; n++) { if (k === f.row.key) return { refused: 'cycle' }; k = doc.groups.find((g) => g.key === k)?.parent ?? null; }
+      if (target && depthOf(doc, target) + 1 >= POI_V2_LIMITS.groupDepth) return { refused: 'depth' };
+      f.row.parent = target;
+    } else if (target) f.row.group = target; else delete f.row.group;
+  }
+  return { ok: true };
+}
+
+/** Rename a node. Groups and rows share the `name` field. */
+export function renameNode(doc, id, name) {
+  const f = find(doc, id);
+  const clean = String(name).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 64);
+  if (!f || !clean) return false;
+  f.row.name = clean;
+  return true;
+}

@@ -165,7 +165,24 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
   }
 
   // ── drawing ──
+  /** The view matrix of the frame being drawn: lines are cut at the near plane here, because some drivers drop a line that crosses the eye. */
+  let curView = null;
+  function nearClip(pts) {
+    if (!curView || cam.mode !== 'persp') return pts;
+    const v = curView, zOf = (x, y, z) => v[2] * x + v[6] * y + v[10] * z + v[14], near = 0.2, out = [];
+    for (let i = 0; i + 5 < pts.length; i += 6) {
+      let a = [pts[i], pts[i + 1], pts[i + 2]], b = [pts[i + 3], pts[i + 4], pts[i + 5]];
+      const za = zOf(...a), zb = zOf(...b);
+      if (za < near && zb < near) continue;
+      if (za < near) a = a.map((c, k) => c + (b[k] - c) * ((near - za) / (zb - za)));
+      else if (zb < near) b = b.map((c, k) => c + (a[k] - c) * ((near - zb) / (za - zb)));
+      out.push(...a, ...b);
+    }
+    return out;
+  }
+
   function lines(pts, color, width = 1) {
+    pts = nearClip(pts);
     if (!pts.length) return;
     g.bindBuffer(g.ARRAY_BUFFER, lineBuf); g.bufferData(g.ARRAY_BUFFER, new Float32Array(pts), g.DYNAMIC_DRAW);
     const loc = g.getAttribLocation(lineP, 'aPos'); g.enableVertexAttribArray(loc); g.vertexAttribPointer(loc, 3, g.FLOAT, false, 0, 0);
@@ -215,6 +232,7 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     g.viewport(0, 0, W, H); g.clearColor(0.13, 0.14, 0.17, 1); g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
     g.enable(g.DEPTH_TEST); g.disable(g.CULL_FACE); g.enable(g.BLEND); g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA);
     const aspect = W / H, mm = matrices(cam, aspect), sel = new Set(getSel());
+    curView = mm.view;
     g.useProgram(lineP); g.uniformMatrix4fv(U.lvp, false, mm.vp);
     if (state.showGrid) gridLines(mm);
     const list = nodes();
