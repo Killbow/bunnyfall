@@ -15,19 +15,40 @@ import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
 import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
 import { weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';
 import { createPoiDmPanel } from '../ui/poiDmPanel.js';
+import { t as tr } from '../systems/textManager.js';
 
 const byKey = (/** @type {any} */ rows, /** @type {string} */ key) => (Array.isArray(rows) ? rows.find((r) => r?.key === key) : undefined);
 
 /** Whether a document carries anything this runtime runs. @param {any} doc */
 export const hasDm = (doc) => doc?.v === 2 && ['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length);
 
-/** The words a refusal is said in. */
+/** The words a refusal is said in: the short ones beside a trade's offer, the service's answers as sentences. @type {Record<string, () => string>} */
 const WHY_TEXT = Object.freeze({
-  when: 'not now', items: 'missing items', gold: 'not enough gold', limit: 'already done', cooldown: 'not yet', stock: 'sold out',
-  'poi-when': 'not now', 'poi-items': 'You are missing items.', 'poi-gold': 'You do not have enough gold.', 'poi-limit': 'You have already done that.',
-  'poi-cooldown': 'Not yet.', 'poi-stock': 'There is none left.', 'poi-not-live': 'This place has changed. Come back later.', offline: 'The realm is not answering. Nothing was traded.',
+  when: () => tr('poi.dm.why.when', 'not now'),
+  items: () => tr('poi.dm.why.items', 'missing items'),
+  gold: () => tr('poi.dm.why.gold', 'not enough gold'),
+  limit: () => tr('poi.dm.why.limit', 'already done'),
+  cooldown: () => tr('poi.dm.why.cooldown', 'not yet'),
+  stock: () => tr('poi.dm.why.stock', 'sold out'),
+  'poi-when': () => tr('poi.dm.why.when', 'not now'),
+  'poi-items': () => tr('poi.dm.refusal.items', 'You are missing items.'),
+  'poi-gold': () => tr('poi.dm.refusal.gold', 'You do not have enough gold.'),
+  'poi-limit': () => tr('poi.dm.refusal.limit', 'You have already done that.'),
+  'poi-cooldown': () => tr('poi.dm.refusal.cooldown', 'Not yet.'),
+  'poi-stock': () => tr('poi.dm.refusal.stock', 'There is none left.'),
+  'poi-not-live': () => tr('poi.dm.refusal.notLive', 'This place has changed. Come back later.'),
+  offline: () => tr('poi.dm.refusal.offline', 'The realm is not answering. Nothing was traded.'),
 });
-const whyText = (/** @type {string} */ w) => /** @type {any} */ (WHY_TEXT)[w] ?? 'That cannot be done now.';
+const whyText = (/** @type {string} */ w) => WHY_TEXT[w]?.() ?? tr('poi.dm.refusal.other', 'That cannot be done now.');
+
+/** `out` set to the point `p` of a POI's own frame, placed by its matrix `m` and moved by `t`: no new array. @param {number[]} out @param {ArrayLike<number>} m @param {ArrayLike<number>} p @param {ArrayLike<number>} t */
+function placeInto(out, m, p, t) {
+  out[0] = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12] + t[0];
+  out[1] = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13] + t[1];
+  out[2] = m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14] + t[2];
+  return out;
+}
+const NO_MOVE = Object.freeze([0, 0, 0]);
 
 /**
  * An offline stack, made as the service's mintGift makes a plain one (no enchantments, no ledger id: those are the realm's).
@@ -73,6 +94,8 @@ export function createPoiDm(deps) {
   const txn = deps.txn ?? (() => `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
   /** @type {Map<string, any>} id -> the run of one standing POI */
   const runs = new Map();
+  /** A point worked out and read at once (a trigger zone's, an encounter's center). */
+  const spot = [0, 0, 0];
   let busy = false;
 
   /** The pack, as the conditions read it. @param {any} dm */
@@ -93,7 +116,7 @@ export function createPoiDm(deps) {
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
     dm.service = !!deps.act;
-    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), last: now(), extras: [], loaded: false, timers: new Map() };
+    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), last: now(), extras: [], extraOf: new Map(), shown: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
     runs.set(s.id, r);
     loadVars(r);
@@ -160,7 +183,7 @@ export function createPoiDm(deps) {
         const k = `${trade}/${recipe}|${c.scope}`;
         r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now };
       }
-      say(`${rec.name}: done.`);
+      say(tr('poi.dm.done', '{name}: done.', { name: rec.name }));
       if (rec.onSuccessEvent) runEvent(r.dm, rec.onSuccessEvent);
       saveVars(r);
     } finally { busy = false; }
@@ -235,7 +258,7 @@ export function createPoiDm(deps) {
       if (!t) { r.dm.trade = null; panel.close(); return; }
       const rows = (t.recipes ?? []).map((/** @type {any} */ x) => {
         const why = recipeBlock(r.dm, t.key, x.key);
-        return { key: x.key, text: x.name, why: why && why !== 'limit' && why !== 'cooldown' && why !== 'stock' ? /** @type {any} */ (WHY_TEXT)[why] ?? why : null };
+        return { key: x.key, text: x.name, why: why && why !== 'limit' && why !== 'cooldown' && why !== 'stock' ? whyText(why) : null };
       });
       panel.trade(t.name, rows, (k) => { runTrade(r, t.key, k).then(() => show(r)); }, () => { r.dm.trade = null; panel.close(); });
       return;
@@ -269,20 +292,23 @@ export function createPoiDm(deps) {
     // the trigger zones the player stepped into
     for (const o of r.doc.interactives ?? []) {
       if (o.kind !== 'trigger' || !f) continue;
-      const at = xform(s.place, o.t);
-      const inNow = r.dm.states[o.key] !== 'inactive' && Math.hypot(f[0] - at[0] - t[0], f[2] - at[2] - t[2]) <= o.radius;
+      const at = placeInto(spot, s.place, o.t, t);
+      const inNow = r.dm.states[o.key] !== 'inactive' && Math.hypot(f[0] - at[0], f[2] - at[2]) <= o.radius;
       if (inNow && !r.inside.has(o.key)) { r.inside.add(o.key); fire(r.dm, { k: 'enter_area', interactive: o.key }); }
       else if (!inNow) r.inside.delete(o.key);
     }
-    // the objects to use, as targets the world's Use key reaches
+    // the objects to use, as targets the world's Use key reaches: each made once a run, moved each frame
     r.extras.length = 0;
     for (const o of r.doc.interactives ?? []) {
       if (o.kind === 'trigger') continue;
-      const at = xform(s.place, o.t);
-      r.extras.push({ key: `poidm:${r.id}:${o.key}`, name: o.name, at: [at[0] + t[0], at[1] + t[1], at[2] + t[2]], h: 1.5, w: Math.min(3, o.radius ?? 1), activate: () => useObject(r, o) });
+      let x = r.extraOf.get(o.key);
+      if (!x) { x = { key: `poidm:${r.id}:${o.key}`, name: o.name, at: [0, 0, 0], h: 1.5, w: Math.min(3, o.radius ?? 1), activate: () => useObject(r, o) }; r.extraOf.set(o.key, x); }
+      placeInto(x.at, s.place, o.t, t);
+      r.extras.push(x);
     }
     // the walkers
-    const list = [];
+    const list = r.shown;
+    list.length = 0;
     for (const p of people ?? []) {
       const st = r.dm.npcs[p.key];
       if (st && !st.on) continue;
@@ -297,8 +323,7 @@ export function createPoiDm(deps) {
             if (ev) runEvent(r.dm, ev);
           }
         }
-        const at = xform(s.place, w.pos);
-        p.at = at;
+        p.at = placeInto(w.scene ??= [0, 0, 0], s.place, w.pos, NO_MOVE);
       }
       list.push(p);
     }
@@ -312,10 +337,10 @@ export function createPoiDm(deps) {
   function useObject(r, o) {
     if (o.keyItem && r.dm.states[o.key] === 'locked') {
       const p = pack();
-      if (!p || countOf(p, o.keyItem) < (o.keyItem.count ?? 1)) { say(`${o.name} is locked.`); return; }
+      if (!p || countOf(p, o.keyItem) < (o.keyItem.count ?? 1)) { say(tr('poi.dm.locked', '{name} is locked.', { name: o.name })); return; }
       r.dm.states[o.key] = 'closed';
     }
-    if (!fire(r.dm, { k: 'interact', interactive: o.key }).length && r.dm.states[o.key] === 'locked') say(`${o.name} is locked.`);
+    if (!fire(r.dm, { k: 'interact', interactive: o.key }).length && r.dm.states[o.key] === 'locked') say(tr('poi.dm.locked', '{name} is locked.', { name: o.name }));
     show(r);
   }
 
@@ -327,9 +352,8 @@ export function createPoiDm(deps) {
   function inArea(s, t, e) {
     const f = feet();
     if (!f || !e.center) return false;
-    const m = s.place, c = e.center;
-    const x = m[0] * c[0] + m[4] * c[1] + m[8] * c[2] + m[12] + t[0], z = m[2] * c[0] + m[6] * c[1] + m[10] * c[2] + m[14] + t[2];
-    return Math.hypot(f[0] - x, f[2] - z) <= e.radius;
+    const at = placeInto(spot, s.place, e.center, t);
+    return Math.hypot(f[0] - at[0], f[2] - at[2]) <= e.radius;
   }
 
   /**

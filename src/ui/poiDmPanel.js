@@ -3,6 +3,8 @@
 // person's line with the replies to pick, or a list of what a trader offers with a button for each. Plain DOM, no state of
 // its own: the runtime calls `dialogue` or `trade` again after every pick, and `close` when the talk is over.
 
+import { t } from '../systems/textManager.js';
+
 /** @param {{ parent?: HTMLElement, doc?: Document }} [o] */
 export function createPoiDmPanel({ parent = undefined, doc = globalThis.document } = {}) {
   /** @type {HTMLElement | null} */
@@ -34,7 +36,7 @@ export function createPoiDmPanel({ parent = undefined, doc = globalThis.document
       b.replaceChildren(head(name));
       const p = doc.createElement('div'); p.textContent = line; p.style.marginBottom = '0.5rem'; b.appendChild(p);
       for (const o of options) b.appendChild(button(o.text, () => onPick(o.i)));
-      b.appendChild(button('Leave', onClose));
+      b.appendChild(button(t('poi.dm.leave', 'Leave'), onClose));
     },
     /** A trader's offers: `recipes` each `{ key, text, why }` - `why` set when it cannot be done now; `onRun(key)`. */
     trade(/** @type {string} */ name, /** @type {{ key: string, text: string, why: string | null }[]} */ recipes, /** @type {(key: string) => void} */ onRun, /** @type {() => void} */ onClose, /** @type {string} */ note = '') {
@@ -42,7 +44,7 @@ export function createPoiDmPanel({ parent = undefined, doc = globalThis.document
       b.replaceChildren(head(name));
       if (note) { const n = doc.createElement('div'); n.textContent = note; n.style.marginBottom = '0.4rem'; b.appendChild(n); }
       for (const r of recipes) b.appendChild(button(r.why ? `${r.text} (${r.why})` : r.text, () => onRun(r.key), !r.why));
-      b.appendChild(button('Leave', onClose));
+      b.appendChild(button(t('poi.dm.leave', 'Leave'), onClose));
     },
     close() { box?.remove(); box = null; },
     open: () => !!box,
