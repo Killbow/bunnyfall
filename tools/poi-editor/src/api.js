@@ -32,7 +32,9 @@ export function cleanBase(text) {
 export function createApi({ storage = globalThis.localStorage, fetch = globalThis.fetch?.bind(globalThis) } = {}) {
   const read = (k) => { try { return JSON.parse(storage?.getItem(k) ?? 'null'); } catch { return null; } };
   const write = (k, v) => { try { storage?.setItem(k, JSON.stringify(v)); } catch { /* blocked storage: sign in again next time */ } };
-  let env = read(ENV_KEY) ?? { id: 'local', base: ENVIRONMENTS[0].base };
+  // served from a real host (the /builder/ page), it starts on that host; on localhost it starts on Local dev
+  const here = typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? location.origin : null;
+  let env = read(ENV_KEY) ?? (here ? { id: 'custom', base: here } : { id: 'local', base: ENVIRONMENTS[0].base });
   /** @type {Record<string, string>} secrets by base */
   let sessions = read(SESSION_KEY) ?? {};
   /** @type {{ handle: string | null, builder: boolean, approver: boolean } | null} */

@@ -43,6 +43,10 @@
 			import player
 		}
 	}
+	# the World Builder: /builder and /builder/ open its page
+	@builder path /builder /builder/
+	redir @builder /builder/editor.html 302
+
 	handle {
 		root * /srv
 		file_server

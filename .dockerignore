@@ -5,3 +5,4 @@ dist
 data
 selfhost/.wrangler
 .wrangler
+dist-poi-editor

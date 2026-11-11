@@ -12,6 +12,8 @@ COPY . .
 FROM base AS build
 # vite directly: the npm "build" script stamps the git commit, and the image has no .git
 RUN npx vite build
+# the World Builder (tools/poi-editor/) is its own app, served at /builder/ next to the game
+RUN npx vite build --config tools/poi-editor/vite.config.js
 
 FROM base AS server
 ENV BIND=0.0.0.0 BUNNYFALL_DATA=/data BUNNYFALL_UPDATES=/updates NODE_ENV=production
@@ -22,3 +24,4 @@ CMD ["node", "selfhost/start.mjs"]
 FROM caddy:2-alpine AS web
 COPY selfhost/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
+COPY --from=build /app/dist-poi-editor /srv/builder
