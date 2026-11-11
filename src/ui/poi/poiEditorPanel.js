@@ -476,6 +476,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     out.push(btn(t('poi.library.keepPart', 'Keep this part in the library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
     // AUDIT POI U1: the part it was drawn for - it read the selection, and the second press of a double one, the part gone
     // and its POI selected, took the whole new POI
+    out.push(btn(t('poi.editor.copyPart', 'Copy this part (Ctrl+C)'), () => copySelection(false)));
+    out.push(btn(t('poi.editor.pastePart', 'Paste (Ctrl+V)'), () => pasteSelection()));
     out.push(btn(t('poi.editor.removePart', 'Remove this part'), () => removePart(sel.id, part.key)));
     return out;
   }
@@ -741,6 +743,56 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     else if (sel.light != null) edit.edit(sel.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: sel.id, part: null, light: null });
     else if (edit.entryOf(sel.id)?.state === 'new' && !edit.entryOf(sel.id)?.saved) edit.remove(sel.id);
     else say(t('poi.editor.deleteSaved', 'To take a saved POI out of the world, ask to retire it.'), 'bad');
+  }
+  // COPY AND PASTE: a part, a light, or a whole POI's parts and lights, kept as they stood and stood again in the selected POI
+  // (the same one: stepped a metre east and north each paste; another: at the same spot from its origin). The clipboard is
+  // this page's: it survives opening other POIs, not a reload.
+  /** @type {{ from: string, parts: any[], lights: any[], n: number } | null} */
+  let clip = null;
+  function copySelection(cut = false) {
+    const sel = edit.selection();
+    const d = sel ? edit.docOf(sel.id) : null;
+    if (!sel || !d) { say(t('poi.editor.copyNone', 'Select a part or a POI first.'), 'bad'); return false; }
+    if (sel.part != null) {
+      const p = d.parts.find((q) => q.key === sel.part);
+      if (!p) return false;
+      clip = { from: sel.id, parts: [structuredClone(p)], lights: [], n: 0 };
+    } else if (sel.light != null) {
+      const l = d.lights?.[sel.light];
+      if (!l) return false;
+      clip = { from: sel.id, parts: [], lights: [structuredClone(l)], n: 0 };
+    } else clip = { from: sel.id, parts: structuredClone(d.parts), lights: structuredClone(d.lights ?? []), n: 0 };
+    say(t('poi.editor.copied', 'Copied {n, plural, one {# thing} other {# things}}. Ctrl+V pastes them into the selected POI.', { n: clip.parts.length + clip.lights.length }));
+    if (cut && (sel.part != null || sel.light != null)) removeSelection();
+    return true;
+  }
+  function pasteSelection() {
+    const sel = edit.selection();
+    const d = sel ? edit.docOf(sel.id) : null;
+    if (!clip || !(clip.parts.length + clip.lights.length)) { say(t('poi.editor.pasteNone', 'Nothing copied yet. Select a part and press Ctrl+C.'), 'bad'); return false; }
+    if (!sel || !d) { say(t('poi.editor.pasteWhere', 'Select the POI to paste into first.'), 'bad'); return false; }
+    clip.n += 1;
+    const step = clip.from === sel.id ? clip.n : 0;
+    const at = (v) => [v[0] + step, v[1], v[2] + step].map((c) => Math.round(c * 1000) / 1000);
+    let lastKey = null, skipped = 0;
+    edit.edit(sel.id, 'paste', (x) => {
+      const taken = new Set(x.parts.map((q) => q.key));
+      for (const src of clip.parts) {
+        if (x.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
+        const copy = structuredClone(src);
+        let key = copy.key, n = 2;
+        while (taken.has(key)) key = `${copy.key}-${n++}`.slice(0, 32);
+        copy.key = key; taken.add(key); copy.t = at(copy.t ?? [0, 0, 0]);
+        x.parts.push(copy); lastKey = key;
+      }
+      x.lights ??= [];
+      for (const src of clip.lights) {
+        if (x.lights.length >= POI_LIMITS.lights) { skipped++; continue; }
+        const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); x.lights.push(copy);
+      }
+    }, { id: sel.id, part: lastKey });
+    if (skipped) say(t('poi.editor.pasteFull', 'The POI is full: {n, plural, one {# thing was} other {# things were}} left out.', { n: skipped }), 'bad');
+    return true;
   }
   function duplicateSelection() {
     const sel = edit.selection();
@@ -1102,7 +1154,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     refresh: () => schedule(),
     say,
     /** The keyboard's acts the editor hands back (Ctrl+S, Delete, Ctrl+D). */
-    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection() },
+    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection(), copy: () => copySelection(false), cut: () => copySelection(true), paste: () => pasteSelection() },
     open: (id) => openPoi(id),
     /** POI-5: the UV editor over a part's material, and a picture taken from bytes - the panel's own buttons' doors, a
      *  test's too. */

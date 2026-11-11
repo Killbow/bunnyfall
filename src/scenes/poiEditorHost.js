@@ -488,6 +488,9 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       if (mod && e.code === 'KeyY') { edit.redo(); told(); return true; }
       if (mod && e.code === 'KeyS') { acts.save?.(); return true; }
       if (mod && e.code === 'KeyD') { acts.duplicate?.(); return true; }
+      if (mod && e.code === 'KeyC') { acts.copy?.(); return true; }
+      if (mod && e.code === 'KeyX') { acts.cut?.(); return true; }
+      if (mod && e.code === 'KeyV') { acts.paste?.(); return true; }
       if (mod || e.altKey) return false;   // AUDIT POI E16: every other chord the browser's
       switch (e.code) {
         case 'KeyQ': api.setMode('select'); return true;
