@@ -46,8 +46,22 @@ export function mintStack(s) {
 }
 
 /**
+ * The outdoor enemy pool as the runtime uses it: a POI's enemy stands as a placed, unsaved enemy, counts as down once
+ * it is a corpse, and is removed with no corpse when its encounter resets or its POI is taken down.
+ * @param {any} pool scenes/exteriorFoes.js createExteriorFoes
+ */
+export function poolFoes(pool) {
+  return {
+    spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => pool.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } }),
+    isDown: (/** @type {any} */ f) => !!f?.corpse,
+    removeFoe: (/** @type {any} */ f) => pool.removeFoe(f),
+  };
+}
+
+/**
  * The runtime for every v2 POI the host stands. `act(path, body, opts)` is the realm session's act (null offline);
- * `pack()` the live player entity; `give` puts records and gold into it; `spawnFoe`/`isDown` the outdoor foe pool's.
+ * `pack()` returns the live player entity; `give` puts records and gold into it; `spawnFoe`, `isDown`, and `removeFoe`
+ * come from the outdoor enemy pool (`poolFoes`).
  * @param {any} deps
  */
 export function createPoiDm(deps) {
@@ -65,14 +79,18 @@ export function createPoiDm(deps) {
   };
   const storeKey = (/** @type {any} */ r) => `bunnyfall.poi.${r.id}.${deps.character?.() ?? 'local'}`;
 
-  /** A run made for a POI the first time it stands, and made again when its revision changes. @param {any} s */
+  /**
+   * A run made for a POI the first time it stands, and made again when its revision changes. An approved revision never
+   * changes, so the feed reading the same revision again (a new document object) keeps the run and its fights.
+   * @param {any} s
+   */
   function runOf(s) {
     let r = runs.get(s.id);
-    if (r && r.rev === s.rev && r.doc === s.doc) return r;
+    if (r && r.rev === s.rev) return r;
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
     dm.service = !!deps.act;
-    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), inside: new Set(), last: now(), extras: [], loaded: false, timers: new Map() };
+    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), inside: new Set(), last: now(), extras: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
     runs.set(s.id, r);
     loadVars(r);
@@ -80,6 +98,7 @@ export function createPoiDm(deps) {
   }
   function dropRun(/** @type {any} */ r) {
     for (const list of r.foes.values()) for (const f of list) deps.removeFoe?.(f);
+    for (const list of r.left.values()) for (const f of list) deps.removeFoe?.(f);
     runs.delete(r.id);
   }
 
@@ -303,6 +322,9 @@ export function createPoiDm(deps) {
       const state = r.dm.encounters[e.key];
       const have = r.foes.get(e.key);
       if (state === 'active' && !have && deps.spawnFoe) {
+        // the enemies still standing from the encounter's last win go before it stands again, so two groups never stack
+        for (const f of r.left.get(e.key) ?? []) deps.removeFoe?.(f);
+        r.left.delete(e.key);
         /** @type {any[]} */
         const list = [];
         r.foes.set(e.key, list);
@@ -313,7 +335,12 @@ export function createPoiDm(deps) {
             const local = [sp.at[0] + Math.cos(a) * (sp.spread ?? 0), sp.at[1], sp.at[2] + Math.sin(a) * (sp.spread ?? 0)];
             const at = xform(s.place, local);
             deps.spawnFoe(sp.foe, [at[0] + t[0], at[1] + t[1], at[2] + t[2]], { level: sp.level, hostile: e.aggression !== 'passive' })
-              .then((f) => { if (f) { f.poiSpawn = sp.key; list.push(f); } }, () => {});
+              .then((f) => {
+                if (!f) return;
+                // an enemy that finishes spawning after its encounter was reset or its POI taken down is removed at once
+                if (runs.get(r.id) !== r || r.foes.get(e.key) !== list) { deps.removeFoe?.(f); return; }
+                f.poiSpawn = sp.key; list.push(f);
+              }, () => {});
           }
         }
         continue;
@@ -331,7 +358,9 @@ export function createPoiDm(deps) {
       else done = have.length >= asked && have.every(down);
       if (done) {
         completeEncounter(r.dm, e.key);
-        if (r.dm.encounters[e.key] !== 'active') r.foes.delete(e.key);
+        // a won encounter's living enemies stay where they are; they go when it stands again, when its POI goes, or
+        // when a new revision replaces the POI's run
+        if (r.dm.encounters[e.key] !== 'active') { r.left.set(e.key, have); r.foes.delete(e.key); }
       }
     }
   }
