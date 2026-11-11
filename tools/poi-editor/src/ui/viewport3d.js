@@ -367,11 +367,11 @@ export function createViewport({ canvas, hud, arena, terrain, getDm = () => null
     const text = (s, x, y, c = '#cfd3dc') => { hctx.fillStyle = c; hctx.fillText(s, x * dpr, y * dpr); };
     if (!doc) { text('No POI open. Create one or open a draft from the File menu.', 14, 14); return; }
     text(`${cam.mode === 'persp' ? 'Perspective' : cam.mode[0].toUpperCase() + cam.mode.slice(1)}  |  ${state.mode}  |  ${state.space}  |  snap ${state.snapOn ? `${state.snap.move} m, ${state.snap.turn} deg` : 'off'}`, 12, 10, '#9aa3b5');
-    if (arena.state() !== 'loaded') text('Game files not found: models and pictures show as boxes. Set ARENA2_PATH and restart.', 12, 28, '#e8c26a');
+    if (arena.state() !== 'loaded') text('Game files not found: models and pictures show as boxes. Use File, Game files....', 12, 28, '#e8c26a');
     if (terrain?.state() === 'loaded') {
       if (state.showTerrain && !terrainLines()) text('No ground here: this pixel is off the map. The grid is metres from the POI.', 12, H / dpr - 22, '#e8c26a');
       else text('Ground is the game\'s base terrain: hills, road cuts and town flattening are not shown.', 12, H / dpr - 22, '#b9c78a');
-    } else text('No ground data: the grid is exact metres from the POI (x east, z north), but it is not the terrain. Set ARENA2_PATH and restart to see the ground.', 12, H / dpr - 22, '#e8c26a');
+    } else text('No ground data: the grid is exact metres from the POI (x east, z north), but it is not the terrain. Use File, Game files... to see the ground.', 12, H / dpr - 22, '#e8c26a');
     const [mx, mz] = mapMetresOf(doc.place);
     if (cursor) { const gp = groundAt(rayAt(cam, aspect, cursor.nx, cursor.ny), 0); if (gp) { const X = mx + gp[0], Z = mz + gp[2]; text(`x ${gp[0].toFixed(2)}  z ${gp[2].toFixed(2)}  |  map ${X.toFixed(1)}, ${Z.toFixed(1)} m  |  pixel ${(X / POI_PIXEL_M).toFixed(2)}, ${(-Z / POI_PIXEL_M).toFixed(2)}${terrain?.state() === 'loaded' ? (() => { const gh = groundInFrame(terrain, doc.place, gp[0], gp[2]); return gh == null ? '' : `  |  ground y ${gh.toFixed(2)}`; })() : ''}`, 12, H / dpr - 40, '#9aa3b5'); } }
     if (box) { hctx.strokeStyle = '#ffb347'; hctx.fillStyle = 'rgba(255,179,71,0.12)'; const x = Math.min(box.x0, box.x1) * dpr, y = Math.min(box.y0, box.y1) * dpr, w = Math.abs(box.x1 - box.x0) * dpr, h = Math.abs(box.y1 - box.y0) * dpr; hctx.fillRect(x, y, w, h); hctx.strokeRect(x, y, w, h); }

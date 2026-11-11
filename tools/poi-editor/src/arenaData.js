@@ -8,6 +8,7 @@ import { Arch3dFile } from '../../../src/formats/arch3dFile.js';
 import { TextureFile } from '../../../src/formats/textureFile.js';
 import { DFPalette } from '../../../src/formats/dfPalette.js';
 import { dfMeshToModel } from '../../../src/world/meshReader.js';
+import { readGameFile } from './gameFiles.js';
 
 /** @param {(url: string) => Promise<any>} [fetcher] */
 export function createArenaData(fetcher = (u) => fetch(u)) {
@@ -24,11 +25,7 @@ export function createArenaData(fetcher = (u) => fetch(u)) {
   const models = new Map();
   const pictures = new Map();
 
-  const get = async (name) => {
-    const r = await fetcher(`./arena2/${name}`);
-    if (!r.ok) throw new Error(`${name} ${r.status}`);
-    return new Uint8Array(await r.arrayBuffer());
-  };
+  const get = (name) => readGameFile(name, fetcher);
 
   return {
     state: () => status,

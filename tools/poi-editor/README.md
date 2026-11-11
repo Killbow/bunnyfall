@@ -9,6 +9,9 @@ Milestone 4 and the game runtime in Milestone 5, so they are not in the editor y
     ARENA2_PATH=/path/to/arena2 npm run poi-editor      # http://localhost:5180/editor.html
     npm run build:poi-editor                            # builds to dist-poi-editor/
 
+On the live page (`/builder/`) there is no ARENA2 folder: File, Game files... asks for yours once and keeps the few files
+the editor reads (models, palette, textures, WOODS.WLD) in this browser only.
+
 The dev server serves ARENA2 at `/arena2` (any file-name case). Without it the editor still runs, but models and
 pictures are boxes and the banner says the game files were not found.
 

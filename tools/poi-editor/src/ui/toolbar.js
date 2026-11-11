@@ -32,6 +32,7 @@ export function createToolbar({ host, actions, getState }) {
         { label: 'New POI...', run: 'newDoc' }, { label: 'Open from the store...', run: 'openDoc', why: s.signedIn ? '' : 'Sign in first.' },
         { label: 'Save draft', run: 'save', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : '' },
         { label: 'Submit for approval', run: 'submit', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : s.problems ? 'Fix the problems first.' : '' },
+        { label: 'Game files (ARENA2 folder)...', run: 'gameFiles' },
         { label: 'Close POI', run: 'closeDoc', why: isOpen ? '' : 'No POI is open.' },
         { label: 'Withdraw submission', run: 'withdraw', why: s.state === 'submitted' ? '' : 'Only a submitted revision can be withdrawn.' },
         { label: 'Try in the Sandbox', run: 'sandbox', why: isOpen ? '' : 'Open a POI first.' },

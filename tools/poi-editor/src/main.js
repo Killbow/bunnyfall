@@ -9,6 +9,7 @@ import { problemText } from '../../../src/poi/poiText.js';
 import { createApi, cleanBase } from './api.js';
 import { createCatalogue, createAssetPrefs } from './catalogue.js';
 import { createArenaData } from './arenaData.js';
+import { readGameFile, pickGameFolder } from './gameFiles.js';
 import { createTerrain, dropOnGround, groundInFrame } from './terrain.js';
 import { find, flatOrder, groupNodes, ungroup, removeNodes } from './scene.js';
 import { copyNodes, pasteClip, duplicateNodes, readClip, clipText } from './clipboard.js';
@@ -42,7 +43,7 @@ async function boot() {
   const api = createApi();
   const edit = createPoiEdit();
   const arena = createArenaData();
-  const terrain = createTerrain(async (name) => { const r = await fetch(`./arena2/${name}`); if (!r.ok) throw new Error(`${name} ${r.status}`); return new Uint8Array(await r.arrayBuffer()); });
+  const terrain = createTerrain((name) => readGameFile(name));
   const log = { lines: /** @type {string[]} */ ([]) };
   const stepsLog = /** @type {string[]} */ ([]);
   const say = (m) => { log.lines.push(`${new Date().toLocaleTimeString('en')}  ${m}`); queue(); };
@@ -152,6 +153,7 @@ async function boot() {
       queue();
     },
     exportPack: () => transfer.exportPack(),
+    gameFiles: async () => { const n = await pickGameFolder(); if (!n) { say('No game files were found in that folder. Pick the ARENA2 folder (it holds ARCH3D.BSA and WOODS.WLD).'); return; } say(`Kept ${n} game files in this browser. Reloading to read them.`); setTimeout(() => location.reload(), 600); },
     importPack: () => transfer.importPack(),
     importGlb: () => transfer.importGlb(),
     review: () => transfer.review(),
@@ -273,7 +275,7 @@ async function boot() {
 
   await arena.open();
   await terrain.open();
-  say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Set ARENA2_PATH to the ARENA2 folder and restart.');
+  say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Use File, Game files... to pick your ARENA2 folder (or set ARENA2_PATH for the dev server).');
   if (api.signedIn()) api.refreshMe();
   /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, dm: dmPanel };   // for the headless probe
   refresh();
