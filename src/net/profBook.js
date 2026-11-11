@@ -183,7 +183,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     made: /** @type {{ crafts: Set<string>, works: Set<string>, brews: Set<string> }|null} */ (null),
     /** MASTER-ART: whether today's Master's work is made (null unknown - an older service), and the last one's answer */
     master: /** @type {{ made: boolean|null, last: any }} */ ({ made: null, last: null }),
-    focus: /** @type {{ crafts: string[], until: number|null }} */ ({ crafts: [], until: null }),   // BUNNYFALL CRAFTING REWORK
+    focus: /** @type {{ crafts: string[], cost: number }} */ ({ crafts: [], cost: 100 }),   // BUNNYFALL CRAFTING REWORK
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -324,7 +324,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     applyFocus(data?.focus);
   }
   /** BUNNYFALL CRAFTING REWORK: the Focus as the service says it. */
-  function applyFocus(f) { state.focus = { crafts: Array.isArray(f?.crafts) ? f.crafts.filter((x) => typeof x === 'string') : [], until: Number.isFinite(f?.until) ? f.until : null }; }
+  function applyFocus(f) { state.focus = { crafts: Array.isArray(f?.crafts) ? f.crafts.filter((x) => typeof x === 'string') : [], cost: Number.isSafeInteger(f?.cost) ? f.cost : 100 }; }
   /** CRAFT-HALL: the state's `made` as Sets, or null when the service sent none. */
   function madeOf(m) {
     if (!m || typeof m !== 'object') return null;
@@ -463,14 +463,15 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** A track as the service last said it (never null: a profession not worked yet is at nothing). */
     /** A track as the service said it - CRAFT3: a discipline's its craft's ('jewelcrafting' the Smithing track). */
     /** BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus, and when a drop is free again (seconds, or null). */
-    focus() { return { crafts: [...state.focus.crafts], until: state.focus.until }; },
+    focus() { return { crafts: [...state.focus.crafts], cost: state.focus.cost }; },
     isFocus(profession) { return state.focus.crafts.includes(trackOf(profession)); },
     /** Pledge `crafts` (at most two). Answers the service's answer; the Focus moves with it. */
     async chooseFocus(crafts) {
       const c = character();
       if (!c) return { ok: false, error: 'prof-character' };
       const origin = slot();
-      const r = await ask(() => door.focus(c, crafts), origin);
+      const id = rid();   // one change, one id: asked again it is answered, never charged twice
+      const r = await ask(() => door.focus(c, crafts, id), origin);
       if (origin !== slot()) return { ...r, elsewhere: true };
       if (r?.ok) applyFocus(r.data?.focus); else shutBy(r);
       return r;

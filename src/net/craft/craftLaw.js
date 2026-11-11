@@ -22,8 +22,8 @@ import { formById, buildSuitability, potentialOf } from './forms.js';
 
 /** How many crafts a character can pledge as Focus. */
 export const FOCUS_MAX = 2;
-/** A character may change its Focus once in this long (a week), and the first pledge is free of it. */
-export const FOCUS_COOLDOWN_S = 7 * 86_400;
+/** What dropping a Focus craft costs, in silver (Marks). Pledging into a free place costs nothing. */
+export const FOCUS_CHANGE_MARKS = 100;
 /** What a Focus craft's XP is multiplied by, and what any other craft's is. */
 export const FOCUS_XP = Object.freeze({ focus: 1, other: 0.5 });
 /** The highest quality a craft that is not a Focus can reach (Superior; Masterwork is Focus alone). */

@@ -513,7 +513,6 @@ const REFUSAL_WORDS = {
   'prof-night': () => t('account.refusal.profNight', 'You need daylight to gather.'),   // ANY-HOUR: the service says it no more - kept for one not yet redeployed
   'prof-rank': () => t('account.refusal.profRank', 'Your craft is not yet skilled enough for that.'),
   'prof-focus': () => t('account.refusal.profFocus', 'Only a Focus craft can take a rank 100 perk. A character has at most two.'),
-  'prof-focus-wait': () => t('account.refusal.profFocusWait', 'You dropped a Focus craft recently. Wait a week between drops.'),
   'craft-form': () => t('account.refusal.craftForm', 'That is not something you can make.'),
   'craft-picks': () => t('account.refusal.craftPicks', 'Pick the materials first.'),
   'craft-pick': () => t('account.refusal.craftPick', 'That material does not go there.'),
@@ -2408,7 +2407,7 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     smelt: (character, recipe, count, rid, clean = false) => post('/v1/prof/smelt', { character, recipe, count, rid, ...(clean === true ? { clean: true } : {}) }),   // PROF2: the forge; PROF11: the mason's bench, `clean` the chisel's report
     craft: (character, recipe, clean, name, rid, heartwood = false, dye = null, seat = null, cracked = false) => post('/v1/prof/craft', { character, recipe, clean, name, rid, heartwood, ...(dye == null ? {} : { dye }), ...(seat == null ? {} : { seat }), ...(cracked === true ? { cracked: true } : {}), mint: MINT_VERSION }),   // AUDIT FB1026d C3: `mint` the version this build mints at - its record is stamped with it   // SEAT2b part two: `seat` the held town the station stands in   // PROF3: the anvil - `clean` the act's report, `name` the maker's mark; PROF4: the workbench, `heartwood` for a plank; PROF7: the loom, a garment's `dye`; PROF10: the jeweller's bench, `cracked` a Lapidary's Siege-cracked Gem for the gem
     make: (character, form, picks, clean, name, rid, dye = null, seat = null, cracked = false) => post('/v1/prof/make', { character, form, picks, clean, name, rid, ...(dye == null ? {} : { dye }), ...(seat == null ? {} : { seat }), ...(cracked ? { cracked: true } : {}) }),   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
-    focus: (character, crafts) => post('/v1/prof/focus', { character, crafts }),   // BUNNYFALL CRAFTING REWORK: the Focus
+    focus: (character, crafts, rid) => post('/v1/prof/focus', { character, crafts, rid }),   // BUNNYFALL CRAFTING REWORK: the Focus
     stock: (character, material, qty, rid) => post('/v1/prof/stock', { character, material, qty, rid }),   // PROF3: the smith's stock
     brew: (character, potion, keys, rid, seat = null) => post('/v1/prof/brew', { character, potion, keys, rid, ...(seat == null ? {} : { seat }) }),   // PROF12: the alchemy station's brew - `keys` the cauldron as the Stores hold it, `seat` the held town it stands in
     temper: (character, recipe, quality, provenance, rid) => post('/v1/prof/temper', { character, recipe, quality, rid, ...(provenance ? { provenance } : {}) }),   // CRAFT4: a piece a quality step better

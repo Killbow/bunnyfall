@@ -77,7 +77,7 @@ import {
 import { mintProductRecord, readProductRecord, craftMintVersion } from '../../src/net/productRecord.js';   // CRAFT4: a tempered piece's record re-signed; CRAFT-PROCS: the mint's version (AUDIT FB1026d C3: the client's, at most ours)
 import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '../../src/net/temperLaw.js';   // CRAFT4: the temper
 import { signingKey } from './signing.js';
-import { planOf, inputsOf, craftedQuality, craftValueXp, focusOk, FOCUS_COOLDOWN_S } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks, the Focus
+import { planOf, inputsOf, craftedQuality, craftValueXp, focusOk, FOCUS_CHANGE_MARKS } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks, the Focus
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
   basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, groundWitnessed, climateOk, WITNESS, material,
@@ -321,7 +321,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
   // GATHER-SPEED: the state's reads in ONE round trip - the tracks, the Stores, the day's nodes, the carried count,
   // the day's harvests, the Court's writs and the hides and hauls - where they were eight trips in a row (WOVEN-PAYS adds
   // the cloth's silver counts, CRAFT-HALL `made`; MASTER-ART today's Master's work)
-  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made, master, focusRows, focusChange] = await readAll(db, [
+  const [rows, stores, taken, carriedRows, today, writs, hunt, hauls, silverRows, made, master, focusRows] = await readAll(db, [
     db.prepare('SELECT * FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character),
     db.prepare('SELECT material, origin, qty FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND qty > 0 ORDER BY material').bind(player.id, character),
     db.prepare('SELECT node, kind FROM node_harvests WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day),
@@ -336,7 +336,6 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     madeStatement(db, player.id, character),   // CRAFT-HALL
     db.prepare('SELECT 1 FROM prof_masters WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day),   // MASTER-ART: one a day
     db.prepare('SELECT profession FROM prof_focus WHERE player = ?1 AND char_id = ?2 ORDER BY profession').bind(player.id, character),   // BUNNYFALL: the Focus
-    db.prepare('SELECT changed_at FROM prof_focus_change WHERE player = ?1 AND char_id = ?2').bind(player.id, character),
   ]);
   const byProf = new Map(rows.map((r) => [r.profession, r]));
   const held = new Map();
@@ -365,7 +364,7 @@ export async function profState({ db, nowS }, player, env, { character } = {}) {
     silver: Object.fromEntries(silverRows.map((r) => [r.material, Number(r.qty)])),   // WOVEN-PAYS: the cloth's silver counts standing
     made: madeFrom(made),   // CRAFT-HALL
     master: { made: master.length > 0 },   // MASTER-ART (Professions-Arc 57): whether today's Master's work is made
-    focus: focusFrom(focusRows, focusChange[0]),   // BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus
+    focus: focusFrom(focusRows),   // BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus
   };
 }
 
@@ -1352,15 +1351,11 @@ export function provenanceId(rand) {
 
 /** The five crafting tracks - the crafts a Focus is chosen from. */
 const CRAFT_TRACKS = PROFESSIONS.filter((p) => p.kind === 'crafting').map((p) => p.id);
-/** A character's Focus as its rows say it: the crafts, when one was last dropped, and when a drop is free again. */
-const focusFrom = (/** @type {any[]} */ rows, /** @type {any} */ change) => {
-  const changedAt = change ? Number(change.changed_at) : null;
-  return { crafts: (rows ?? []).map((r) => r.profession), changedAt, until: changedAt == null ? null : changedAt + FOCUS_COOLDOWN_S };
-};
+/** A character's Focus as its rows say it: the crafts pledged, and what dropping one costs. */
+const focusFrom = (/** @type {any[]} */ rows) => ({ crafts: (rows ?? []).map((r) => r.profession), cost: FOCUS_CHANGE_MARKS });
 export async function focusOf(db, player, character) {
   const { results = [] } = await db.prepare('SELECT profession FROM prof_focus WHERE player = ?1 AND char_id = ?2 ORDER BY profession').bind(player, character).all();
-  const change = await db.prepare('SELECT changed_at FROM prof_focus_change WHERE player = ?1 AND char_id = ?2').bind(player, character).first();
-  return focusFrom(results, change);
+  return focusFrom(results);
 }
 /** The form and picks a piece was made of, as the answer says them, or nothing for a piece made the old way. */
 function picksView(/** @type {unknown} */ text) {
@@ -1368,27 +1363,49 @@ function picksView(/** @type {unknown} */ text) {
   try { const j = JSON.parse(text); return j && typeof j.f === 'string' && j.p && typeof j.p === 'object' ? { form: j.f, picks: j.p } : {}; } catch { return {}; }
 }
 /**
- * CHOOSE THE FOCUS: `{ character, crafts }` - the crafts to pledge, at most two of the five (craftLaw focusOk). Adding a
- * craft is free; dropping one waits a week from the last drop (`prof-focus-wait`, with `until`). Asking for the Focus
- * already held answers as it stands, so a repeat does no harm.
+ * CHOOSE THE FOCUS: `{ character, crafts, rid }` - the crafts to pledge, at most two of the five (craftLaw focusOk).
+ * Pledging into a free place costs nothing; dropping a pledged craft costs FOCUS_CHANGE_MARKS silver, once for the whole
+ * change. The Marks held and the pledges dropped are read in the decision itself, so a change is paid once. Asking for
+ * the Focus already held answers as it stands; the same `rid` asked again answers the change made.
  */
-export async function chooseFocus(ctx, player, env, { character, crafts } = {}) {
-  const { db, nowS } = ctx;
-  const refused = asks(player, { character, needRid: false }) ?? shut(player, env);
+export async function chooseFocus(ctx, player, env, { character, crafts, rid } = {}) {
+  const { db, nowS, rand } = ctx;
+  const refused = asks(player, { character, rid }) ?? shut(player, env);
   if (refused) return refused;
   if (!focusOk(crafts, CRAFT_TRACKS)) return { error: 'prof-focus' };
+  const prior = await db.prepare('SELECT 1 FROM prof_focus_paid WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
+  if (prior) return { ok: true, repeat: true, focus: await focusOf(db, player.id, character), balance: await balanceOf(db, player.id) };
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   const now = await focusOf(db, player.id, character);
   const dropped = now.crafts.filter((c) => !crafts.includes(c));
   const added = crafts.filter((c) => !now.crafts.includes(c));
-  if (!dropped.length && !added.length) return { ok: true, focus: now };
-  if (dropped.length && now.until != null && nowS < now.until) return { error: 'prof-focus-wait', until: now.until, at: now.until };   // `at`: the door passes it to the client
-  await db.batch([
-    ...dropped.map((c) => db.prepare('DELETE FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = ?3').bind(player.id, character, c)),
-    ...added.map((c) => db.prepare('INSERT OR IGNORE INTO prof_focus (player, char_id, profession, set_at) VALUES (?1, ?2, ?3, ?4)').bind(player.id, character, c, nowS)),
-    ...(dropped.length ? [db.prepare('INSERT INTO prof_focus_change (player, char_id, changed_at) VALUES (?1, ?2, ?3) ON CONFLICT (player, char_id) DO UPDATE SET changed_at = excluded.changed_at').bind(player.id, character, nowS)] : []),
-  ]);
-  return { ok: true, focus: await focusOf(db, player.id, character) };
+  if (!dropped.length && !added.length) return { ok: true, focus: now, balance: await balanceOf(db, player.id) };
+  const putIn = (/** @type {string} */ c, /** @type {string} */ guard, /** @type {any[]} */ binds) => db.prepare(`INSERT OR IGNORE INTO prof_focus (player, char_id, profession, set_at)
+    SELECT ?1, ?2, ?3, ?4 WHERE (SELECT COUNT(*) FROM prof_focus WHERE player = ?1 AND char_id = ?2) < ?5${guard}`).bind(player.id, character, c, nowS, 2, ...binds);
+  if (!dropped.length) {
+    await db.batch(added.map((c) => putIn(c, '', [])));
+  } else {
+    if (!marksOpenFor(player, env)) return { error: 'marks-closed' };
+    const nonce = mintId(rand);
+    const cost = FOCUS_CHANGE_MARKS;
+    await db.batch([
+      // THE DECISION: the Marks held, and every craft to drop still pledged
+      db.prepare(`INSERT OR IGNORE INTO prof_focus_paid (player, rid, char_id, marks, at, n)
+        SELECT ?1, ?3, ?2, ?4, ?5, ?6 WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) >= ?4
+          AND (SELECT COUNT(*) FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession IN (${dropped.map((_, i) => `?${7 + i}`).join(', ')})) = ${dropped.length}`)
+        .bind(player.id, character, rid, cost, nowS, nonce, ...dropped),
+      // the Marks burnt, one line named for the change
+      db.prepare(`INSERT INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)
+        SELECT 'account', ?1, 'burn', NULL, 'focus', marks, ?2, at, ?1, 'focus', rid || ':focus' FROM prof_focus_paid WHERE player = ?1 AND rid = ?3 AND n = ?4`)
+        .bind(player.id, utcDay(nowS), rid, nonce),
+      ...dropped.map((c) => db.prepare(`DELETE FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = ?3
+        AND EXISTS (SELECT 1 FROM prof_focus_paid WHERE player = ?1 AND rid = ?4 AND n = ?5)`).bind(player.id, character, c, rid, nonce)),
+      ...added.map((c) => putIn(c, ' AND EXISTS (SELECT 1 FROM prof_focus_paid WHERE player = ?6 AND rid = ?7 AND n = ?8)', [player.id, rid, nonce])),
+    ]);
+    const made = await db.prepare('SELECT n FROM prof_focus_paid WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
+    if (made?.n !== nonce) return { error: (await balanceOf(db, player.id)) < cost ? 'marks-short' : 'prof-focus' };
+  }
+  return { ok: true, focus: await focusOf(db, player.id, character), balance: await balanceOf(db, player.id) };
 }
 
 /** A craft's answer, read back from its row: the pieces it made, each its provenance and its signed record; PROF4:

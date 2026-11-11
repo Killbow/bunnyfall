@@ -37,7 +37,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -360,32 +360,45 @@ function startPicks(form, book, rank, specs) {
   return picks;
 }
 
-/** When a Focus craft can be dropped again, in words; a date the service did not send is said without one. */
-const focusWaitWord = (s) => (Number.isFinite(s) && s > 0 ? `You can drop a Focus craft again on ${new Date(s * 1000).toLocaleDateString()}.` : 'You dropped a Focus craft recently. Try again in a few days.');
-
 export function drawFocus(root, rerender, p, showWord = false) {
   const book = p.book;
   if (typeof book?.focus !== 'function' || typeof book.chooseFocus !== 'function') return;
   const f = book.focus();
+  const word = (c) => `${c[0].toUpperCase()}${c.slice(1)}`;
   const box = h('div', 'cw-focus');
-  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior.`));
+  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior. Dropping one costs ${f.cost} silver.`));
+  const ask = _cw.focusAsk;
   const chips = h('div', 'cw-chips');
   for (const c of ['smithing', 'building', 'outfitting', 'provisioning', 'enchanting']) {
     const on = f.crafts.includes(c);
     const full = !on && f.crafts.length >= FOCUS_MAX;
-    chips.append(button(`cw-chip${on ? ' cw-on' : ''}`, `${c[0].toUpperCase()}${c.slice(1)}${on ? ' ✓' : ''}`, async () => {
+    chips.append(button(`cw-chip${on ? ' cw-on' : ''}${ask?.craft === c ? ' cw-asked' : ''}`, `${word(c)}${on ? ' ✓' : ''}`, () => {
       if (_cw.busy || full) return;
-      const next = on ? f.crafts.filter((x) => x !== c) : [...f.crafts, c];
-      _cw.busy = true; rerender();
-      const r = await book.chooseFocus(next).catch(() => null);
-      _cw.busy = false;
-      _cw.word = r?.ok ? (on ? 'Focus dropped. Dropping another waits a week.' : `${c[0].toUpperCase()}${c.slice(1)} is a Focus craft.`)
-        : r?.error === 'prof-focus-wait' ? focusWaitWord(r.at ?? r.until ?? book.focus().until) : 'That did not go through. Try again.';
+      _cw.focusAsk = ask?.craft === c ? null : { craft: c, drop: on };   // a press asks; Confirm does it
       rerender();
     }, full));
   }
   box.append(chips);
-  if (showWord && _cw.word) box.append(h('div', 'cw-word', _cw.word));
+  if (ask) {
+    const line = h('div', 'cw-word', ask.drop
+      ? `Drop ${word(ask.craft)} from your Focus? It costs ${f.cost} silver.`
+      : `Make ${word(ask.craft)} a Focus craft? You pick up to ${FOCUS_MAX}, and dropping one later costs ${f.cost} silver.`);
+    const row = h('div', 'cw-actions');
+    row.append(
+      button('cw-btn cw-primary', ask.drop ? `Drop for ${f.cost} silver` : 'Make it my Focus', async () => {
+        if (_cw.busy) return;
+        const next = ask.drop ? f.crafts.filter((x) => x !== ask.craft) : [...f.crafts, ask.craft];
+        _cw.focusAsk = null; _cw.busy = true; rerender();
+        const r = await book.chooseFocus(next).catch(() => null);
+        _cw.busy = false;
+        _cw.word = r?.ok ? (ask.drop ? `${word(ask.craft)} is no longer a Focus craft.` : `${word(ask.craft)} is a Focus craft.`)
+          : r?.error === 'marks-short' ? `You need ${f.cost} silver to drop a Focus craft.` : 'That did not go through. Try again.';
+        rerender();
+      }, !!_cw.busy),
+      button('cw-btn', 'Cancel', () => { _cw.focusAsk = null; rerender(); }));
+    box.append(line, row);
+  }
+  if (showWord && _cw.word && !ask) box.append(h('div', 'cw-word', _cw.word));
   root.append(box);
 }
 
