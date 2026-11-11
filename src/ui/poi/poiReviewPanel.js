@@ -20,9 +20,9 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
-import { POI_LIMITS, poiDocProblems, poiAssetProblems } from '../../poi/poiLaw.js';
+import { POI_LIMITS, poiDocProblems } from '../../poi/poiLaw.js';
 import { poiDiff } from '../../poi/poiDiff.js';
-import { diffText, problemText, problemWhere } from '../../poi/poiText.js';
+import { diffText, problemText, problemWhere, uncheckedRows } from '../../poi/poiText.js';
 import { poiQueue, poiReview, poiHistory, poiRollback } from '../../poi/poiService.js';
 import { agoText } from '../saveTile.js';   // the port's one "how long ago"
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI T8: a word being typed keeps its field
@@ -40,7 +40,7 @@ export const revStateText = (state) => (state === 'draft' ? t('poi.editor.state.
  * @param {{
  *   doc?: Document, host: any, me: { handle: string | null, builder: boolean, approver: boolean },
  *   act: (fn: (io: any) => Promise<any>) => Promise<any>, say: (text: string, kind?: string) => void, refusal: (r: any) => string,
- *   edit: any, facts: { of: (sha: string) => any }, goTo: (place: any) => void, feed?: { refresh?: () => any } | null,
+ *   edit: any, facts: { check: (d: any, own: any[]) => { list: any[], checking: boolean, unchecked: boolean, unloaded: { path: string, passes: boolean }[] }, retry: () => void }, goTo: (place: any) => void, feed?: { refresh?: () => any } | null,
  *   now?: () => number,
  * }} deps `goTo` takes the eye to a document's place; `facts` the panel's asset facts (the law's asset check); `feed` the
  *   game's feed, asked again once the world changed (a verdict, a put-back)
@@ -87,13 +87,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     drawQueue();
   }
   /** The law's report on a submission: its own problems, then its assets' once every one is known. */
-  function lawOf(d) {
-    const own = poiDocProblems(d);
-    const shas = [];
-    for (const part of d.parts ?? []) { shas.push(part.mesh); for (const m of part.materials ?? []) { if (m.texture) shas.push(m.texture); if (m.emissive) shas.push(m.emissive); } }
-    const known = shas.every((s) => facts.of(s) !== undefined);
-    return { list: known ? [...own, ...poiAssetProblems(d, (s) => facts.of(s))] : own, checking: !known };
-  }
+  const lawOf = (d) => facts.check(d, poiDocProblems(d));
   function drawQueue() {
     if (!dialog || dialog.dataset.kind !== 'queue') return;
     const rows = [el('div', 'dfpoi-h', t('poi.review.title', 'Approvals')), el('div', 'dfpoi-sub', t('poi.review.hint', 'Look at each one in the world, then approve it or send it back with a note.'))];
@@ -121,9 +115,10 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     r.append(el('div', 'dfpoi-h', t('poi.review.changes', 'What it changes')), list);
     // the law's report
     if (item.doc) {
-      const { list: ps, checking } = lawOf(item.doc);
+      const { list: ps, checking, unchecked, unloaded } = lawOf(item.doc);
       r.append(el('div', 'dfpoi-h', t('poi.review.law', 'Checks')));
-      if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.review.lawOk', 'Nothing wrong.')));
+      if (unchecked) r.append(...uncheckedRows(item.doc, unloaded, el, btn, () => facts.retry()));
+      else if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.review.lawOk', 'Nothing wrong.')));
       for (const p of ps.slice(0, 12)) { const where = problemWhere(p.path, item.doc); r.append(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p))); }
     }
     // looking, then the word

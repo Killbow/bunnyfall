@@ -300,6 +300,21 @@ export const diffText = (c) => said(DIFF, unknownCode)(c.code, c);
 export const packErrorText = (r) => said(PACK, unknownCode)(r.code, r);
 /** A picture's refusal (poiImage.js poiImageMetaOf's). @param {string} code */
 export const imageErrorText = (code) => said(IMAGE, unknownCode)(code, { max: POI_IMAGE_LIMITS.side });
+/** A model or picture that would not load, so the asset check could not finish: `passes` when it is tried again by
+ *  itself (offline, the store busy or failing), else the builder asks again. @param {boolean} passes */
+export const assetsUncheckedText = (passes) => (passes
+  ? t('poi.editor.uncheckedRetry', 'Its model or picture would not load, so it could not be checked yet. Trying again shortly.')
+  : t('poi.editor.unchecked', 'Its model or picture would not load, so it could not be checked.'));
+
+/** The rows that say which models and pictures would not load: where each is, whether it is tried again by itself, and
+ *  Check again when one is not. @param {any} d @param {{ path: string, passes: boolean }[]} unloaded
+ *  @param {(tag: string, cls?: string, text?: string | null) => any} el @param {(text: string, fn: () => void) => any} btn
+ *  @param {() => void} retry */
+export function uncheckedRows(d, unloaded, el, btn, retry) {
+  const out = unloaded.slice(0, 6).map(({ path, passes }) => el('div', 'dfpoi-warn', `${problemWhere(path, d)}: ${assetsUncheckedText(passes)}`));
+  if (unloaded.some((u) => !u.passes)) out.push(btn(t('poi.editor.checkAgain', 'Check again'), retry));
+  return out;
+}
 
 /**
  * Where a problem is, as the builder sees it - "Part Roof · material 2", "Light 3" - or '' for the POI itself.

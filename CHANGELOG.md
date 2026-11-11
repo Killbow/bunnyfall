@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: The in-game POI editor no longer breaks on a World Builder POI that holds a Daggerfall model: selecting that part shows what it is, and the model check finishes, so the POI can be saved and sent for approval.
 - Fixed: In the in-game POI editor, pasting or duplicating a part with a long key no longer freezes the page, and a paste now selects what it pasted.
 - Fixed: Opening the in-game POI editor with no character yet no longer puts the editor over character creation; it waits until you stand in the world, after the name picker and the opening message.
 - Choosing a Focus craft now asks you to confirm first. Dropping a Focus craft costs 100 silver, with no weekly wait. Pledging into a free place stays free.
