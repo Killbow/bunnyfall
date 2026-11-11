@@ -5,7 +5,8 @@
 // there is no terrain here, and the banner says so. It reads the document and the selection each frame
 // and tells the editor what the builder did through `on`.
 
-import { surfaceGrid, groundInFrame } from '../terrain.js';
+import { surfaceGrid, groundInFrame, pixelToPoiMatrix } from '../terrain.js';
+import { multiply } from '../../../../src/world/mat4.js';
 import { rayBox, mountOnSurface, lightSpot } from '../interior.js';
 import { splinePoints, segments } from '../spline.js';
 import { createCamera, matrices, rayAt, orbit, pan, zoom, fly, frame, project, groundAt } from '../camera.js';
@@ -65,13 +66,13 @@ const ring = (c, r, axis, n = 40) => {
  * @param {{ canvas: HTMLCanvasElement, hud: HTMLCanvasElement, arena: any, getDoc: () => any, getSel: () => string[],
  *   edit: any, docId: () => string | null, on: { select: (ids: string[], how: 'set' | 'add' | 'toggle') => void, cursor?: (text: string) => void, changed?: () => void, hang?: (id: string, at: { rot: number[], t: number[] }) => void } }} o
  */
-export function createViewport({ canvas, hud, arena, terrain, getDm = () => null, getDoc, getSel, edit, docId, on }) {
+export function createViewport({ canvas, hud, arena, terrain, places = null, getDm = () => null, getDoc, getSel, edit, docId, on }) {
   const gl = /** @type {WebGL2RenderingContext | null} */ (canvas.getContext('webgl2', { antialias: true }));
   if (!gl) { const c = hud.getContext('2d'); if (c) { c.fillStyle = '#ddd'; c.fillText('WebGL2 is not available in this browser.', 12, 24); } return null; }
   const g = gl;
   const hctx = /** @type {CanvasRenderingContext2D} */ (hud.getContext('2d'));
   const cam = createCamera();
-  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, showDm: true, showTerrain: true, showCollision: false, wire: false, dirty: true };
+  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, showDm: true, showTerrain: true, showCollision: false, showSurround: true, wire: false, dirty: true };
   const meshP = program(g, VS, FS), lineP = program(g, LVS, LFS);
   const uni = (p, n) => g.getUniformLocation(p, n);
   const U = { vp: uni(meshP, 'uVP'), model: uni(meshP, 'uModel'), tex: uni(meshP, 'uTex'), tint: uni(meshP, 'uTint'), has: uni(meshP, 'uHasTex'), lvp: uni(lineP, 'uVP'), color: uni(lineP, 'uColor') };
@@ -201,7 +202,7 @@ export function createViewport({ canvas, hud, arena, terrain, getDm = () => null
     const p = doc.place, key = JSON.stringify([p.px, p.py, p.x, p.z, p.y, p.ground, p.r, p.s]);
     if (key === terrainKey) return terrainPts;
     terrainKey = key; terrainPts = null;
-    const grid = surfaceGrid(terrain, p, 90, 3);
+    const grid = surfaceGrid(terrain, p, 300, 6);
     if (!grid) return null;
     const { n, step, half, heights } = grid, pts = [];
     const at = (i, j) => [-half + i * step, heights[i * n + j], -half + j * step];
@@ -211,6 +212,20 @@ export function createViewport({ canvas, hud, arena, terrain, getDm = () => null
     }
     terrainPts = pts;
     return pts;
+  }
+
+  /** The game's own buildings round the POI, in the POI's frame: `{ name, items: [{ id, m }], box }`; rebuilt when the place moves. */
+  let surroundKey = '', surround = /** @type {any} */ (null);
+  function surroundings() {
+    const doc = getDoc();
+    if (!doc || !places || places.state() !== 'loaded' || !terrain || terrain.state() !== 'loaded') return null;
+    const p = doc.place, key = JSON.stringify([p.px, p.py, p.x, p.z, p.y, p.ground, p.r, p.s]);
+    if (key === surroundKey) return surround;
+    surroundKey = key; surround = null;
+    const at = places.at(p.px, p.py), to = pixelToPoiMatrix(terrain, p);
+    if (!at || !to) return null;
+    surround = { name: at.name, items: at.models.map((o) => ({ id: o.id, m: multiply(to, o.m) })) };
+    return surround;
   }
 
   function gridLines(m) {
@@ -260,6 +275,8 @@ export function createViewport({ canvas, hud, arena, terrain, getDm = () => null
     if (state.showGrid) gridLines(mm);
     const tp = state.showTerrain ? terrainLines() : null;
     if (tp) lines(tp, [0.42, 0.62, 0.34, 0.75]);
+    const around = state.showSurround ? surroundings() : null;
+    if (around) for (const it of around.items) { const gm = gpuModel(it.id); if (gm) drawMeshNode({ pl: { model3d: gm, model: it.m } }, mm.vp, [0.82, 0.84, 0.9, 1]); }
     const list = nodes();
     for (const n of list) {
       if (n.hidden) continue;
@@ -515,8 +532,8 @@ export function createViewport({ canvas, hud, arena, terrain, getDm = () => null
     setMode(m) { state.mode = m; dirty(); },
     setCamera(mode) { cam.mode = mode; dirty(); },
     /** Show or hide the grid, the ground and the collision overlay. */
-    setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision', 'showDm']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
-    show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision, dm: state.showDm }),
+    setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision', 'showDm', 'showSurround']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
+    show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision, dm: state.showDm, surround: state.showSurround }),
     refresh: dirty,
     /** The next click hangs this mount on the surface it hits (a part's face, or the ground). */
     armHang(id) { hangFor = id; canvas.style.cursor = 'crosshair'; dirty(); },

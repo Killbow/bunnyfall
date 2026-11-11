@@ -5,7 +5,7 @@
 // into this browser (IndexedDB) and never leave it.
 
 const DB = 'bunnyfall.worldbuilder.files';
-const NEEDED = /^(ARCH3D\.BSA|ART_PAL\.COL|WOODS\.WLD|TEXTURE\.\d{3})$/i;
+const NEEDED = /^(ARCH3D\.BSA|ART_PAL\.COL|WOODS\.WLD|BLOCKS\.BSA|MAPS\.BSA|CLIMATE\.PAK|POLITIC\.PAK|TEXTURE\.\d{3})$/i;
 
 /** @returns {Promise<IDBDatabase>} */
 function open() {

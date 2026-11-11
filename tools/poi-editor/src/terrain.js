@@ -69,6 +69,8 @@ export function createTerrain(read = async () => { throw new Error('no reader');
       return status === 'loaded';
     },
     /** Use an already loaded WoodsFile (tests). */
+    /** The loaded WoodsFile, or null. */
+    woods: () => woods,
     useWoods(w) { woods = w; status = w ? 'loaded' : 'missing'; cache.clear(); },
     groundAt,
     /** The ground under the POI's own spot, or null. */
@@ -133,4 +135,17 @@ export function dropOnGround(terrain, place, rows, lift = 0) {
     n++;
   }
   return n;
+}
+
+/**
+ * The 4 x 4 (column-major) that takes a point of the pixel's frame into the POI's own frame: the place's origin (and
+ * the height it stands at) taken off, its turn about up undone, its size divided out. Null when the height is unknown.
+ */
+export function pixelToPoiMatrix(terrain, place) {
+  const H = originHeight(terrain, place);
+  if (H == null) return null;
+  const [qx, qy, qz, qw] = place.r;
+  const yaw = Math.atan2(2 * (qw * qy + qx * qz), 1 - 2 * (qy * qy + qx * qx));
+  const c = Math.cos(yaw), s = Math.sin(yaw), S = place.s, X = place.x, Z = place.z;
+  return new Float32Array([c / S, 0, s / S, 0, 0, 1 / S, 0, 0, -s / S, 0, c / S, 0, -(c * X - s * Z) / S, -H / S, -(s * X + c * Z) / S, 1]);
 }

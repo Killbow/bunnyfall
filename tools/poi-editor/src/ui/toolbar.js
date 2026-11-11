@@ -32,6 +32,7 @@ export function createToolbar({ host, actions, getState }) {
         { label: 'New POI...', run: 'newDoc' }, { label: 'Open from the store...', run: 'openDoc', why: s.signedIn ? '' : 'Sign in first.' },
         { label: 'Save draft', run: 'save', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : '' },
         { label: 'Submit for approval', run: 'submit', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : s.problems ? 'Fix the problems first.' : '' },
+        { label: 'Go to a place (a town or city)...', run: 'goToPlace', why: isOpen ? '' : 'Open a POI first.' },
         { label: 'Game files (ARENA2 folder)...', run: 'gameFiles' },
         { label: 'Close POI', run: 'closeDoc', why: isOpen ? '' : 'No POI is open.' },
         { label: 'Withdraw submission', run: 'withdraw', why: s.state === 'submitted' ? '' : 'Only a submitted revision can be withdrawn.' },
@@ -67,6 +68,7 @@ export function createToolbar({ host, actions, getState }) {
       menu('View', [
         { label: `${s.show.grid ? 'Hide' : 'Show'} grid`, run: 'show:grid' },
         { label: `${s.show.terrain ? 'Hide' : 'Show'} ground`, run: 'show:ground', why: s.ground ? '' : 'No ground data (WOODS.WLD).' },
+        { label: `${s.show.surround ? 'Hide' : 'Show'} the game's buildings`, run: 'show:surround' },
         { label: `${s.show.collision ? 'Hide' : 'Show'} collision`, run: 'show:collision' },
         { label: `${s.show.dm ? 'Hide' : 'Show'} routes, zones and encounters`, run: 'show:dm' },
       ]),

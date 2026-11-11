@@ -10,6 +10,7 @@ import { createApi, cleanBase } from './api.js';
 import { createCatalogue, createAssetPrefs } from './catalogue.js';
 import { createArenaData } from './arenaData.js';
 import { readGameFile, pickGameFolder } from './gameFiles.js';
+import { createPlaces } from './places.js';
 import { createTerrain, dropOnGround, groundInFrame } from './terrain.js';
 import { find, flatOrder, groupNodes, ungroup, removeNodes } from './scene.js';
 import { copyNodes, pasteClip, duplicateNodes, readClip, clipText } from './clipboard.js';
@@ -44,6 +45,7 @@ async function boot() {
   const edit = createPoiEdit();
   const arena = createArenaData();
   const terrain = createTerrain((name) => readGameFile(name));
+  const places = createPlaces((name) => readGameFile(name), () => terrain.woods());
   const log = { lines: /** @type {string[]} */ ([]) };
   const stepsLog = /** @type {string[]} */ ([]);
   const say = (m) => { log.lines.push(`${new Date().toLocaleTimeString('en')}  ${m}`); queue(); };
@@ -73,7 +75,7 @@ async function boot() {
   const hierarchy = createHierarchy({ host: layout.leftBottom, getDoc, docId, edit, getSel, select, say });
   const inspector = createInspector({ host: layout.right, getDoc, docId, edit, getSel });
   const bottom = createBottom({ host: layout.bottom, getDoc, docId, api, log, steps: () => stepsLog });
-  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, terrain, getDm: () => dmPanel?.show() ?? null, getDoc, getSel, edit, docId: () => S.docId, on: { select, hang: (id, at) => act('hang mount', (d) => { const r = find(d, id); if (r) { r.row.rot = at.rot; r.row.t = at.t; } }), changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
+  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, terrain, places, getDm: () => dmPanel?.show() ?? null, getDoc, getSel, edit, docId: () => S.docId, on: { select, hang: (id, at) => act('hang mount', (d) => { const r = find(d, id); if (r) { r.row.rot = at.rot; r.row.t = at.t; } }), changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
   /** @type {ReturnType<typeof createDm> | null} */ let dmPanel = null;
   const c2d = createCanvas2d({ host: stage2d, arena, getDoc, getSel, catalogue, edit, docId, select, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  2d edit`); queue(); } });
   const here = () => { const t = viewport?.camera.target ?? [0, 0, 0], d = getDoc(), x = Math.round(t[0] * 4) / 4, z = Math.round(t[2] * 4) / 4; const gh = d && terrain.state() === 'loaded' ? groundInFrame(terrain, d.place, x, z) : null; return [x, Math.round((gh ?? 0) * 100) / 100, z]; };
@@ -153,6 +155,22 @@ async function boot() {
       queue();
     },
     exportPack: () => transfer.exportPack(),
+    async goToPlace() {
+      const d = getDoc(); if (!d) return;
+      if (places.state() !== 'loaded') { say('The game\'s places are not loaded. Use File, Game files... and pick the ARENA2 folder (it needs MAPS.BSA and BLOCKS.BSA).'); return; }
+      const v = await ask('Go to a place', [{ name: 'q', label: 'Name', value: '', hint: 'Part of a name is enough, for example: menevia' }], { ok: 'Find', validate: (x) => (!places.find(x.q, 1).length ? 'No place has that name.' : null) });
+      if (!v) return;
+      const found = places.find(v.q, 40);
+      let pick = found[0];
+      if (found.length > 1) {
+        const w = await ask('Which place?', [{ name: 'i', label: 'Place', options: found.map((p, i) => [String(i), `${p.name}, ${p.region}  (pixel ${p.px}, ${p.py})`]) }], { ok: 'Go' });
+        if (!w) return; pick = found[+w.i];
+      }
+      const c = places.centreOf(pick);
+      act('go to place', (doc) => { doc.place.px = pick.px; doc.place.py = pick.py; doc.place.x = Math.round((c?.x ?? 0) * 4) / 4; doc.place.z = Math.round((c?.z ?? 0) * 4) / 4; });
+      say(`Moved the POI to ${pick.name}, ${pick.region} (pixel ${pick.px}, ${pick.py}), at the middle of the place.`);
+      viewport?.frameSelection();
+    },
     gameFiles: async () => { const n = await pickGameFolder(); if (!n) { say('No game files were found in that folder. Pick the ARENA2 folder (it holds ARCH3D.BSA and WOODS.WLD).'); return; } say(`Kept ${n} game files in this browser. Reloading to read them.`); setTimeout(() => location.reload(), 600); },
     importPack: () => transfer.importPack(),
     importGlb: () => transfer.importGlb(),
@@ -210,7 +228,7 @@ async function boot() {
       if (!f || f.kind !== 'flat' || f.row.kind !== 'mount') { say('Select a mount (a weapon, armour or trophy picture) first.'); return; }
       viewport?.armHang(S.sel[0]); say('Click a wall, floor or ceiling to hang it there.');
     },
-    show(k) { if (!viewport) return; const o = viewport.show(); const key = { grid: 'showGrid', ground: 'showTerrain', collision: 'showCollision', dm: 'showDm' }[k]; if (key) viewport.setShow({ [key]: !o[{ grid: 'grid', ground: 'terrain', collision: 'collision', dm: 'dm' }[k]] }); queue(); },
+    show(k) { if (!viewport) return; const o = viewport.show(); const key = { grid: 'showGrid', ground: 'showTerrain', collision: 'showCollision', dm: 'showDm', surround: 'showSurround' }[k]; if (key) viewport.setShow({ [key]: !o[{ grid: 'grid', ground: 'terrain', collision: 'collision', dm: 'dm', surround: 'surround' }[k]] }); queue(); },
     reset() { act('reset turn and size', (d) => { resetNodes(d, S.sel); }); },
     async env(id) {
       if (id === 'custom') { const v = await ask('Server', [{ name: 'base', label: 'Address', value: api.environment().id === 'custom' ? api.environment().base : 'https://', hint: 'The account service, for example https://staging.example.org' }], { validate: (x) => (cleanBase(x.base) ? null : 'That is not an http or https address.') }); if (!v) { queue(); return; } api.setEnvironment('custom', v.base); } else api.setEnvironment(id);
@@ -275,9 +293,10 @@ async function boot() {
 
   await arena.open();
   await terrain.open();
+  await places.open();
   say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Use File, Game files... to pick your ARENA2 folder (or set ARENA2_PATH for the dev server).');
   if (api.signedIn()) api.refreshMe();
-  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, dm: dmPanel };   // for the headless probe
+  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, places, dm: dmPanel };   // for the headless probe
   refresh();
 }
 boot();
