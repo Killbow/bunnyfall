@@ -11778,7 +11778,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           const paid = f.fee > 0 && !r.elsewhere;
           const rec = recipeById(recipe);
           const made = rec?.kind === 'siege' ? storedText(rec.name, Number(r.data.count) || 1) : craftedText(mintPieces(r.data));   // SEAT2b part two: a Ram Kit is the Stores'
-          return { ok: true, text: `${chain ? `${chain} ` : ''}${made} ${craftXpText(rec, r.data, st.xp, profBook.limit(rec?.profession))}${paid ? `, and paid the ${f.who ?? st.who} ${f.fee} gold` : ''}.` };   // CRAFT-LIMIT-SAID: and the crafter's limit, where it now holds the track
+          return { ok: true, text: `${chain ? `${chain} ` : ''}${made} ${more.form ? `+${Number(r.data.xp) || 0} ${trackOf(rec?.profession ?? 'smithing')} experience` : craftXpText(rec, r.data, st.xp, profBook.limit(rec?.profession))}${paid ? `, and paid the ${f.who ?? st.who} ${f.fee} gold` : ''}.` };   // CRAFT-LIMIT-SAID: and the crafter's limit, where it now holds the track
         },
         stock: async (material, qty, counter = stockOf(material)?.counter) => {
           const r = await profBook.stock(material, qty);
