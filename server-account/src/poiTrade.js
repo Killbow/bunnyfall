@@ -84,16 +84,34 @@ function claimSteps(db, poi, claim, rules, nowS) {
 }
 
 /**
- * The shared settle: the record changed by `change(save)`, the act's own statements beside it, one batch. `change` answers
- * null or a refusal's word; `after` is what the act writes (`steps`) and answers (`result`), built when the change is done.
+ * The word for a settle's batch refused by a limit: a rule of the act whose row has no room now answers its own word, the
+ * one recipeWhy gives; null when every rule had room (the database failed instead).
+ * @param {any} db @param {string} poi @param {{ claim: string, rules: { scope: string, max: number, cooldownS?: number }[] }} limits @param {number} nowS
+ */
+async function limitWord(db, poi, limits, nowS) {
+  if (!limits.rules.length) return null;
+  const rows = await keptClaims(db, poi, limits.claim, limits.rules);
+  for (const r of limits.rules) {
+    const c = rows.get(r.scope);
+    if (!c) continue;
+    if (r.cooldownS !== undefined) { if (nowS - c.last < r.cooldownS) return WHY.cooldown; }
+    else if (c.n >= r.max) return r.scope === 'global' ? WHY.stock : WHY.limit;
+  }
+  return null;
+}
+
+/**
+ * The shared settle: the record changed by `change(save)`, the act's own statements beside it, one batch. `change`
+ * answers null or a refusal's word; `after` is what the act writes (`steps`), answers (`result`), and counts against
+ * (`limits`, the claim and its rules), built when the change is done.
  * @param {any} ctx @param {string} player @param {{ poi: string, rev: number, id: string, lease: string, seq: number, txnId: string }} a @param {'trade' | 'event'} kind
- * @param {(save: any) => string | null} change @param {() => { steps: any[], result: any }} after
+ * @param {(save: any) => string | null} change @param {() => { steps: any[], result: any, limits: { claim: string, rules: any[] } }} after
  */
 async function settle(ctx, player, a, kind, change, after) {
   const { db, bucket, nowS } = ctx;
   const prep = await prepareRealmRecord(ctx, player, { id: a.id, lease: a.lease, seq: a.seq }, change, { outbound: true, escrow: false });
   if ('error' in prep) return prep;
-  const { steps, result } = after();
+  const { steps, result, limits } = after();
   const answer = { ok: true, seq: prep.seq, realm: { seq: prep.seq }, ...result };   // `realm.seq`: where the record stands now, as every realm act answers it (systems/realmSaves.js realmGoldAct)
   try {
     await db.batch([
@@ -102,14 +120,19 @@ async function settle(ctx, player, a, kind, change, after) {
       db.prepare('INSERT INTO poi_txn_log (txn_id, player, char_id, poi_id, rev, kind, result, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         .bind(a.txnId, player, a.id, a.poi, a.rev, kind, JSON.stringify(answer), nowS),
     ]);
-  } catch {
-    // the record moved under the settle, a limit had no room left, or it all landed and the answer was lost: the record's
-    // own object goes only if no row names it (realm.js dropIfUnnamed), and a logged txn is answered as it was
+  } catch (e) {
+    // the record moved under the settle, a limit had no room left, it all landed and the answer was lost, or the database
+    // failed: the record's own object goes only if no row names it (realm.js dropIfUnnamed), a logged txn is answered as it
+    // was, a limit with no room by its own word, and a database failure is thrown to the service's one answer to a fault
+    // (index.js thrown), which the client asks again with the same txn
     await dropIfUnnamed(db, bucket, player, a.id, prep.key);
     const again = await replayOf(db, a.txnId, player);
     if (again) return again;
     const moved = await recordMovedOf(db, player, { id: a.id, lease: a.lease, seq: a.seq });
-    return moved ?? { error: 'poi-limit' };
+    if (moved) return moved;
+    const word = await limitWord(db, a.poi, limits, nowS);
+    if (word) return { error: word };
+    throw e;
   }
   await dropObjects(bucket, [prep.prev]);
   return answer;
@@ -182,6 +205,7 @@ export async function tradePoi(ctx, player, body) {
   };
   return settle(ctx, player, a, 'trade', change, () => ({
     steps: claimSteps(db, a.poi, claim, rules, nowS),
+    limits: { claim, rules },
     result: { took: { items: recipe.requireItems ?? [], gold: recipe.requireGold ?? 0 }, gave: { items: given, gold: recipe.rewardGold ?? 0 }, vars: kept },
   }));
 }
@@ -280,6 +304,7 @@ export async function eventClaimPoi(ctx, player, body) {
     }
     return {
       steps,
+      limits: { claim: claimName, rules: value?.rules ?? [] },
       result: { branch, took: { items: value?.takeStacks ?? [], gold: value?.takeAmount ?? 0 }, gave: { items: given, gold: value?.giveAmount ?? 0 }, vars: now },
     };
   });

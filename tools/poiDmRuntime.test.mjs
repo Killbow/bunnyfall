@@ -2,7 +2,8 @@
 // the ambush, the foes fall and the gate opens; the supplier's trade moves the real pack; a walker reports its waypoints.
 // The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal; a
 // passive encounter's enemies stand non-hostile; the completion rules count only the enemies that stood, and a survival
-// timer counts only the time the player spends in the encounter's area.
+// timer counts only the time the player spends in the encounter's area. Online, a settle that failed is reported by its
+// cause.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -14,7 +15,7 @@ const poolFoes = (/** @type {any} */ pool) => dmRuntime.poolFoes(pool);
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const fakePanel = () => { const seen = []; return { seen, dialogue: (n, l, o, pick) => seen.push({ k: 'd', l, o, pick }), trade: (n, rows, run) => seen.push({ k: 't', rows, run }), close: () => seen.push({ k: 'x' }), open: () => false }; };
 
-function setup(edit = () => {}, { spawnFoe = null } = {}) {
+function setup(edit = () => {}, { spawnFoe = null, act = null } = {}) {
   const doc = poiV2Example();
   edit(doc);
   const said = [], foes = [], removed = [];
@@ -25,7 +26,7 @@ function setup(edit = () => {}, { spawnFoe = null } = {}) {
     say: (l) => said.push(l), pack: () => player, give: (recs, g) => { player.items.push(...recs); player.goldPieces += g; },
     feet: () => feet, now: () => clock, panel, store: null,
     spawnFoe: spawnFoe ?? (async (foe, at, o) => { const f = { foe, at, o, corpse: false }; foes.push(f); return f; }), isDown: (f) => f.corpse,
-    removeFoe: (f) => removed.push(f),
+    removeFoe: (f) => removed.push(f), act,
   });
   const s = { id: doc.id, rev: 1, doc, place: I, draft: false };
   const step = async (dt = 0.1) => { clock += dt; rt.frame(s, [0, 0, 0], []); await new Promise((r) => setTimeout(r, 0)); };
@@ -166,6 +167,22 @@ test('timer survived: the time counts only while the player is in the encounter\
   w.at([35, 0, 10]);
   await w.step(0.5); await w.step(0.1);
   assert.equal(dm.encounters.ambush, 'done', 'a second there in all');
+});
+
+test('online, a trade the realm did not settle is never said as done already', async () => {
+  const answers = [];
+  const act = async (path, body, o) => (o?.read ? { ok: true, data: { vars: {} } } : answers.shift());
+  const w = setup(undefined, { act });
+  await w.step();
+  for (const [answer, words] of [[{ ok: false, error: 'offline', unknown: true }, /may or may not/], [{ ok: false, error: 'busy' }, /still being settled/], [{ ok: false, error: 'poi-limit' }, /already done/]]) {
+    answers.push(answer);
+    w.said.length = 0;
+    w.rt.talk(w.doc.id, 'supplier');
+    w.panel.seen.findLast((x) => x.k === 't').run('delivery');
+    await new Promise((r) => setTimeout(r, 10));
+    assert.match(w.said.join(' | '), words, answer.error);
+    if (answer.error !== 'poi-limit') assert.doesNotMatch(w.said.join(' | '), /already done|Nothing was traded/);
+  }
 });
 
 test('the feed reading the same revision again keeps the run and its fight', async () => {

@@ -38,8 +38,13 @@ const WHY_TEXT = Object.freeze({
   'poi-stock': () => tr('poi.dm.refusal.stock', 'There is none left.'),
   'poi-not-live': () => tr('poi.dm.refusal.notLive', 'This place has changed. Come back later.'),
   offline: () => tr('poi.dm.refusal.offline', 'The realm is not answering. Nothing was traded.'),
+  busy: () => tr('poi.dm.refusal.busy', 'Your last dealing with the realm is still being settled. Try again in a moment.'),
+  lease: () => tr('poi.dm.refusal.lease', 'This character is now being played in another tab or on another device.'),
+  unknown: () => tr('poi.dm.refusal.unknown', 'The realm did not answer, so this may or may not have gone through.'),
 });
 const whyText = (/** @type {string} */ w) => WHY_TEXT[w]?.() ?? tr('poi.dm.refusal.other', 'That cannot be done now.');
+/** A refused act's words: an answer that never came (`unknown`) is not said as nothing traded. @param {any} a */
+const refusalOf = (a) => (a?.unknown ? 'unknown' : a?.error ?? 'offline');
 
 /** `out` set to the point `p` of a POI's own frame, placed by its matrix `m` and moved by `t`: no new array. @param {number[]} out @param {ArrayLike<number>} m @param {ArrayLike<number>} p @param {ArrayLike<number>} t */
 function placeInto(out, m, p, t) {
@@ -169,7 +174,7 @@ export function createPoiDm(deps) {
     try {
       if (deps.act) {
         const a = await deps.act('/v1/poi/trade', { poi: r.id, rev: r.rev, trade, recipe, txnId: txn() }, {});
-        if (!a?.ok) { say(whyText(a?.error ?? 'offline')); return; }
+        if (!a?.ok) { say(whyText(refusalOf(a))); return; }
         applyLocal(a.data?.took ?? { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, a.data?.gave ?? { items: [], gold: 0 });
       } else {
         if (why) { say(whyText(why)); return; }
@@ -199,7 +204,8 @@ export function createPoiDm(deps) {
     try {
       if (deps.act) {
         const a = await deps.act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn() }, {});
-        if (!a?.ok) { if (a?.error && a.error !== 'poi-limit') say(whyText(a.error)); return; }
+        // an event already claimed is passed over in silence
+        if (!a?.ok) { if (a?.error !== 'poi-limit') say(whyText(refusalOf(a))); return; }
         const d = a.data ?? {};
         if (!d.nothing) applyLocal(d.took ?? { items: [], gold: 0 }, d.gave ?? { items: [], gold: 0 });
         for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
