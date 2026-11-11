@@ -93,7 +93,7 @@ export function createPoiDm(deps) {
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
     dm.service = !!deps.act;
-    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), inside: new Set(), last: now(), extras: [], loaded: false, timers: new Map() };
+    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), last: now(), extras: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
     runs.set(s.id, r);
     loadVars(r);
@@ -332,6 +332,8 @@ export function createPoiDm(deps) {
         const list = [];
         r.foes.set(e.key, list);
         r.timers.set(e.key, now());
+        r.waiting.set(e.key, (e.spawns ?? []).reduce((/** @type {number} */ n, /** @type {any} */ sp) => n + sp.count, 0));
+        const settled = () => { if (r.foes.get(e.key) === list) r.waiting.set(e.key, (r.waiting.get(e.key) ?? 1) - 1); };
         for (const sp of e.spawns ?? []) {
           for (let i = 0; i < sp.count; i++) {
             const a = (i / Math.max(1, sp.count)) * Math.PI * 2;
@@ -339,11 +341,12 @@ export function createPoiDm(deps) {
             const at = xform(s.place, local);
             deps.spawnFoe(sp.foe, [at[0] + t[0], at[1] + t[1], at[2] + t[2]], { level: sp.level, hostile: e.aggression !== 'passive' })
               .then((f) => {
+                settled();
                 if (!f) return;
                 // an enemy that finishes spawning after its encounter was reset or its POI taken down is removed at once
                 if (runs.get(r.id) !== r || r.foes.get(e.key) !== list) { deps.removeFoe?.(f); return; }
                 f.poiSpawn = sp.key; list.push(f);
-              }, () => {});
+              }, settled);
           }
         }
         continue;
@@ -354,11 +357,17 @@ export function createPoiDm(deps) {
       }
       const c = e.complete ?? { rule: 'all_dead' };
       const down = (/** @type {any} */ f) => deps.isDown?.(f) ?? false;
-      const asked = (e.spawns ?? []).reduce((/** @type {number} */ n, /** @type {any} */ sp) => n + sp.count, 0);
       let done = false;
       if (c.rule === 'timer_survived') done = now() - (r.timers.get(e.key) ?? now()) >= c.seconds;
       else if (c.rule === 'leader_dead') done = have.some((f) => f.poiSpawn === c.leader && down(f));
-      else done = have.length >= asked && have.every(down);
+      else if (r.waiting.get(e.key) === 0 && !have.length) {
+        // every spawn answered and none stood: nothing was fought, so the encounter waits for its next start
+        r.dm.encounters[e.key] = 'idle';
+        r.foes.delete(e.key);
+        continue;
+      }
+      // every spawn answered, and every enemy that stood is down: a spawn the pool could not place is not waited for
+      else done = r.waiting.get(e.key) === 0 && have.every(down);
       if (done) {
         completeEncounter(r.dm, e.key);
         // a won encounter's living enemies stay where they are; they go when it stands again, when its POI goes, or

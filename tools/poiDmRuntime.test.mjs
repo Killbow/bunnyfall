@@ -1,7 +1,7 @@
 // The game-side runtime (src/poi/poiDmRuntime.js) on the example POI, offline (no realm session): a trigger zone starts
 // the ambush, the foes fall and the gate opens; the supplier's trade moves the real pack; a walker reports its waypoints.
 // The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal; a
-// passive encounter's enemies stand non-hostile.
+// passive encounter's enemies stand non-hostile; the completion rules count only the enemies that stood.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -119,6 +119,33 @@ test('a passive encounter stands its enemies not hostile; a hostile one keeps th
     assert.equal(stood.length, 5);
     assert.ok(stood.every((f) => f.ai.isHostile === (aggression === 'hostile')), aggression);
   }
+});
+
+test('all dead: a spawn the pool could not stand is not waited for', async () => {
+  let n = 0;
+  const stood = [];
+  const w = setup(undefined, { spawnFoe: async (foe) => { if (n++ === 0) return null; const f = { foe, corpse: false }; stood.push(f); return f; } });
+  await ambush(w);
+  assert.equal(stood.length, 4);
+  for (const f of stood) f.corpse = true;
+  await w.step(); await w.step();
+  const dm = w.rt.modelOf(w.doc.id);
+  assert.equal(dm.encounters.ambush, 'done');
+  assert.equal(dm.states.gate, 'open');
+});
+
+test('all dead: an encounter is not done while an enemy is still on its way; with no enemy stood it waits to start again', async () => {
+  const late = [];
+  const w = setup(undefined, { spawnFoe: (foe) => new Promise((ok) => { late.push(() => ok({ foe, corpse: true })); }) });
+  await ambush(w);
+  late.shift()();
+  await w.step(); await w.step();
+  assert.equal(w.rt.modelOf(w.doc.id).encounters.ambush, 'active', 'four still on their way');
+  const none = setup(undefined, { spawnFoe: async () => null });
+  await ambush(none);
+  await none.step(); await none.step();
+  assert.equal(none.rt.modelOf(none.doc.id).encounters.ambush, 'idle', 'nothing stood: it waits for its next start, unpaid');
+  assert.equal(none.said.some((l) => /clear/.test(l)), false);
 });
 
 test('the feed reading the same revision again keeps the run and its fight', async () => {
