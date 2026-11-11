@@ -7,6 +7,7 @@
 
 import { surfaceGrid, groundInFrame } from '../terrain.js';
 import { rayBox, mountOnSurface, lightSpot } from '../interior.js';
+import { splinePoints, segments } from '../spline.js';
 import { createCamera, matrices, rayAt, orbit, pan, zoom, fly, frame, project, groundAt } from '../camera.js';
 import { buildTree, find } from '../scene.js';
 import { mat4FromQuatPosScale } from '../../../../src/world/quat.js';
@@ -64,13 +65,13 @@ const ring = (c, r, axis, n = 40) => {
  * @param {{ canvas: HTMLCanvasElement, hud: HTMLCanvasElement, arena: any, getDoc: () => any, getSel: () => string[],
  *   edit: any, docId: () => string | null, on: { select: (ids: string[], how: 'set' | 'add' | 'toggle') => void, cursor?: (text: string) => void, changed?: () => void, hang?: (id: string, at: { rot: number[], t: number[] }) => void } }} o
  */
-export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, edit, docId, on }) {
+export function createViewport({ canvas, hud, arena, terrain, getDm = () => null, getDoc, getSel, edit, docId, on }) {
   const gl = /** @type {WebGL2RenderingContext | null} */ (canvas.getContext('webgl2', { antialias: true }));
   if (!gl) { const c = hud.getContext('2d'); if (c) { c.fillStyle = '#ddd'; c.fillText('WebGL2 is not available in this browser.', 12, 24); } return null; }
   const g = gl;
   const hctx = /** @type {CanvasRenderingContext2D} */ (hud.getContext('2d'));
   const cam = createCamera();
-  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, showTerrain: true, showCollision: false, wire: false, dirty: true };
+  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, showDm: true, showTerrain: true, showCollision: false, wire: false, dirty: true };
   const meshP = program(g, VS, FS), lineP = program(g, LVS, LFS);
   const uni = (p, n) => g.getUniformLocation(p, n);
   const U = { vp: uni(meshP, 'uVP'), model: uni(meshP, 'uModel'), tex: uni(meshP, 'uTex'), tint: uni(meshP, 'uTint'), has: uni(meshP, 'uHasTex'), lvp: uni(lineP, 'uVP'), color: uni(lineP, 'uColor') };
@@ -277,8 +278,46 @@ export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, ed
       if (isSel && n.kind !== 'part') lines(boxLines(n.box.lo, n.box.hi), c);
       if (state.showCollision && (n.kind === 'part' ? n.row.collide !== 'none' : n.kind === 'flat' && n.row.collide)) lines(boxLines(n.box.lo, n.box.hi), [0.2, 0.9, 0.85, 0.95], 2);
     }
+    drawDm();
     drawGizmo(mm, H);
     drawHud(W, H, aspect, mm);
+  }
+
+  /** The DM's content in the scene: routes as splines, encounters, zones and objects. The selected one is orange. */
+  function drawDm() {
+    const doc = getDoc();
+    if (!doc || doc.v !== 2 || !state.showDm) return;
+    const dm = getDm(), isSel = (tab, key) => dm?.tab === tab && dm?.key === key;
+    for (const r of doc.routes ?? []) {
+      const c = isSel('routes', r.key) ? [1, 0.62, 0.15, 1] : [0.4, 0.85, 0.55, 0.9];
+      const pts = r.waypoints.map((wp) => wp.t);
+      if (pts.length >= 2) lines(segments(splinePoints(pts, r.mode === 'loop', 10)), c, 2);
+      for (const wp of r.waypoints) lines([...ring(wp.t, Math.max(0.3, wp.radius), 1), wp.t[0], wp.t[1], wp.t[2], wp.t[0], wp.t[1] + 1.2, wp.t[2]], [c[0], c[1], c[2], 0.7]);
+    }
+    for (const n of doc.npcs ?? []) {
+      const r = n.route ? doc.routes?.find((x) => x.key === n.route) : null;
+      if (r?.waypoints[0]) lines([...n.t, ...r.waypoints[0].t], [0.4, 0.85, 0.55, 0.35]);
+    }
+    for (const e of doc.encounters ?? []) {
+      const c = isSel('encounters', e.key) ? [1, 0.62, 0.15, 1] : [0.95, 0.35, 0.3, 0.85];
+      lines([...ring(e.center, e.radius, 1), e.center[0], e.center[1], e.center[2], e.center[0], e.center[1] + 2, e.center[2]], [c[0], c[1], c[2], 0.5]);
+      for (const sp of e.spawns) lines([...ring(sp.at, Math.max(0.4, sp.spread), 1), sp.at[0], sp.at[1], sp.at[2], sp.at[0], sp.at[1] + 1.8, sp.at[2]], c, 1);
+    }
+    for (const o of doc.interactives ?? []) {
+      const c = isSel('interactives', o.key) ? [1, 0.62, 0.15, 1] : o.kind === 'trigger' ? [0.7, 0.5, 0.95, 0.8] : [0.95, 0.85, 0.4, 0.9];
+      lines([...ring(o.t, o.radius, 1), ...(o.kind === 'trigger' ? [] : boxLines([o.t[0] - 0.4, o.t[1], o.t[2] - 0.4], [o.t[0] + 0.4, o.t[1] + 1.2, o.t[2] + 0.4]))], c, 1);
+    }
+  }
+
+  /** Text for the DM's content: where each thing is, named, so the picture can be read. */
+  function dmLabels(text, aspect, dpr) {
+    const doc = getDoc();
+    if (!doc || doc.v !== 2 || !state.showDm) return;
+    const put = (p, s, c) => { const q = project(cam, aspect, p); if (q && q.z < 1) hctx.fillStyle = c, hctx.fillText(s, ((q.x + 1) / 2) * canvas.clientWidth * dpr + 6, ((1 - q.y) / 2) * canvas.clientHeight * dpr - 14); };
+    void text;
+    for (const r of doc.routes ?? []) r.waypoints.forEach((wp, i) => put([wp.t[0], wp.t[1] + 1.2, wp.t[2]], `${i + 1} ${wp.name}${wp.waitS ? `  ${wp.waitS}s` : ''}`, '#8fd6a3'));
+    for (const e of doc.encounters ?? []) put([e.center[0], e.center[1] + 2, e.center[2]], `${e.name}  ${e.spawns.reduce((n, sp) => n + sp.count, 0)} foes`, '#f08a80');
+    for (const o of doc.interactives ?? []) put([o.t[0], o.t[1] + 1.2, o.t[2]], `${o.name}  ${o.kind}, ${o.state}`, '#d9c06a');
   }
 
   function drawFlat(n, mm, c) {
@@ -336,6 +375,8 @@ export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, ed
     const [mx, mz] = mapMetresOf(doc.place);
     if (cursor) { const gp = groundAt(rayAt(cam, aspect, cursor.nx, cursor.ny), 0); if (gp) { const X = mx + gp[0], Z = mz + gp[2]; text(`x ${gp[0].toFixed(2)}  z ${gp[2].toFixed(2)}  |  map ${X.toFixed(1)}, ${Z.toFixed(1)} m  |  pixel ${(X / POI_PIXEL_M).toFixed(2)}, ${(-Z / POI_PIXEL_M).toFixed(2)}${terrain?.state() === 'loaded' ? (() => { const gh = groundInFrame(terrain, doc.place, gp[0], gp[2]); return gh == null ? '' : `  |  ground y ${gh.toFixed(2)}`; })() : ''}`, 12, H / dpr - 40, '#9aa3b5'); } }
     if (box) { hctx.strokeStyle = '#ffb347'; hctx.fillStyle = 'rgba(255,179,71,0.12)'; const x = Math.min(box.x0, box.x1) * dpr, y = Math.min(box.y0, box.y1) * dpr, w = Math.abs(box.x1 - box.x0) * dpr, h = Math.abs(box.y1 - box.y0) * dpr; hctx.fillRect(x, y, w, h); hctx.strokeRect(x, y, w, h); }
+    dmLabels(text, aspect, dpr);
+    if (pickFor) text(`Click the ground to place ${pickFor.what}. Esc cancels.`, 12, 46, '#ffb347');
     void mm;
   }
 
@@ -343,6 +384,7 @@ export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, ed
   /** @type {{ nx: number, ny: number } | null} */ let cursor = null;
   /** @type {string | null} */ let hover = null;
   /** @type {string | null} */ let hangFor = null;
+  /** @type {{ what: string, done: (p: number[]) => void } | null} */ let pickFor = null;
   /** @type {{ handle: string, s: any, ids: string[], pivot: number[] } | null} */ let drag = null;
   /** @type {{ x0: number, y0: number, x1: number, y1: number } | null} */ let box = null;
   /** @type {{ kind: 'orbit' | 'pan', x: number, y: number } | null} */ let cam_drag = null;
@@ -376,6 +418,16 @@ export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, ed
     if (e.button === 2 || (e.button === 0 && e.altKey)) { cam_drag = { kind: 'orbit', x: e.clientX, y: e.clientY }; return; }
     if (e.button === 1) { cam_drag = { kind: 'pan', x: e.clientX, y: e.clientY }; return; }
     if (e.button !== 0) return;
+    if (pickFor) {
+      const job = pickFor; pickFor = null; canvas.style.cursor = '';
+      const gp = groundAt(rayAt(cam, aspectNow(), p.nx, p.ny), 0);
+      if (gp) {
+        const st = state.snapOn ? state.snap.move : 0, sn = (v) => (st > 0 ? Math.round(v / st) * st : v);
+        const x = sn(gp[0]), z = sn(gp[2]), doc = getDoc(), gh = doc && terrain?.state() === 'loaded' ? groundInFrame(terrain, doc.place, x, z) : null;
+        job.done([Math.round(x * 1000) / 1000, Math.round((gh ?? 0) * 1000) / 1000, Math.round(z * 1000) / 1000]);
+      } else on.cursor?.('The click did not land on the ground.');
+      dirty(); return;
+    }
     if (hangFor) {
       const id = hangFor; hangFor = null; canvas.style.cursor = '';
       const ray = rayAt(cam, aspectNow(), p.nx, p.ny);
@@ -463,12 +515,16 @@ export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, ed
     setMode(m) { state.mode = m; dirty(); },
     setCamera(mode) { cam.mode = mode; dirty(); },
     /** Show or hide the grid, the ground and the collision overlay. */
-    setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
-    show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision }),
+    setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision', 'showDm']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
+    show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision, dm: state.showDm }),
     refresh: dirty,
     /** The next click hangs this mount on the surface it hits (a part's face, or the ground). */
     armHang(id) { hangFor = id; canvas.style.cursor = 'crosshair'; dirty(); },
     hanging: () => hangFor,
+    /** The next click gives a point on the ground (snapped, on the terrain when there is one) to `done`. */
+    armPick(what, done) { pickFor = { what, done }; canvas.style.cursor = 'crosshair'; dirty(); },
+    cancelPick() { pickFor = null; hangFor = null; canvas.style.cursor = ''; dirty(); },
+    picking: () => pickFor !== null,
     /** Frame the selection, or everything. */
     frameSelection() {
       const sel = new Set(getSel());

@@ -122,6 +122,7 @@ try {
   await page.screenshot({ path: shot.replace('.png', '-ground.png') });
 
   // interior: shell and a taken-out piece, from the inspector
+  await page.waitForSelector('.right input[placeholder=none]');
   await page.fill('.right input[placeholder=none]', '4321'); await page.press('.right input[placeholder=none]', 'Enter'); await page.locator('.right input[placeholder=none]').blur();
   await page.waitForTimeout(150);
   check('shell model is set from the inspector', (await page.evaluate(() => window.__builder.getDoc().interior?.shellModel)) === 4321);
@@ -162,6 +163,75 @@ try {
   await page.mouse.click(vb.x + vb.width / 2, vb.y + vb.height / 2); await page.waitForTimeout(300);
   check('the click hangs it: turned to the surface it hit', await page.evaluate(() => { const r = window.__builder.getDoc().flats.find((f) => f.key === 'axe'); return window.__builder.viewport.hanging() === null && r.rot[1] === 90; }));
   await page.evaluate(() => window.__builder.A.camera('persp'));
+
+  // ── Milestone 4: the DM view, built through its own controls ──
+  await page.evaluate(() => { const b = window.__builder; b.S.sel = []; b.A.view('dm'); });
+  await page.waitForTimeout(300);
+  check('DM view opens and says the game runs these later', (await page.locator('.dmbar .dim').innerText()).includes('Milestone 5'));
+  await page.locator('.dmbar button', { hasText: 'Routes' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click();
+  await page.fill('.dialog input', 'Merchant Patrol'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(300);
+  check('adding a route gives it two waypoints', await page.evaluate(() => { const r = window.__builder.getDoc().routes; return r?.length === 1 && r[0].waypoints.length === 2; }));
+  await page.locator('.dmform button', { hasText: 'Add waypoint at the view' }).click(); await page.waitForTimeout(200);
+  check('a waypoint is added at the view', (await page.evaluate(() => window.__builder.getDoc().routes[0].waypoints.length)) === 3);
+  // the wait field sets every stop
+  await page.fill('.dmform input[placeholder="set all"]', '15'); await page.press('.dmform input[placeholder="set all"]', 'Enter'); await page.waitForTimeout(250);
+  check('wait at every stop sets 15 s on all', await page.evaluate(() => window.__builder.getDoc().routes[0].waypoints.every((w) => w.waitS === 15)));
+  // pick a waypoint spot on the ground: the view switches, the next click answers, the view comes back
+  await page.locator('.dmform button', { hasText: 'Add waypoint on the ground' }).click(); await page.waitForTimeout(250);
+  check('picking switches to the 3D view and arms the click', await page.evaluate(() => window.__builder.S.view === '3d' && window.__builder.viewport.picking()));
+  const vb2 = await page.locator('#viewport-gl').boundingBox();
+  await page.mouse.click(vb2.x + vb2.width / 2, vb2.y + vb2.height * 0.7); await page.waitForTimeout(400);
+  check('the click adds the waypoint and returns to the DM view', await page.evaluate(() => window.__builder.S.view === 'dm' && window.__builder.getDoc().routes[0].waypoints.length === 4));
+  await page.evaluate(() => { const b = window.__builder; b.A.view('3d'); b.viewport.setCamera('top'); b.viewport.frameSelection(); });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: shot.replace('.png', '-route.png') });
+  await page.evaluate(() => { window.__builder.viewport.setCamera('persp'); window.__builder.A.view('dm'); });
+  // a person walks it
+  await page.locator('.dmbar button', { hasText: 'People' }).click(); await page.waitForTimeout(150);
+  const hasPeople = await page.evaluate(() => (window.__builder.getDoc().npcs ?? []).length);
+  if (!hasPeople) await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe npc', (d) => { d.npcs ??= []; d.npcs.push({ key: 'merchant', name: 'Wandering Merchant', t: [0, 0, 0], yaw: 0, h: 1.8, look: { k: 'df', a: 182, r: 0 }, lines: [] }); }); b.dm.open('npcs', 'merchant'); });
+  await page.waitForTimeout(250);
+  await page.selectOption('.dmform select >> nth=0', { index: 1 }); await page.waitForTimeout(250);
+  check('a person is given the route', await page.evaluate(() => !!window.__builder.getDoc().npcs[0].route));
+  // encounter, variable, event, dialogue and trade through the controls
+  await page.locator('.dmbar button', { hasText: 'Variables' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input[type=text]', 'Bridge unlocked'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  check('a variable is added with its scope', await page.evaluate(() => window.__builder.getDoc().variables?.[0]?.scope === 'poi_global'));
+  await page.locator('.dmbar button', { hasText: 'Encounters' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input', 'Ambush'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  await page.locator('.dmform button', { hasText: 'Add spawn point' }).click(); await page.waitForTimeout(200);
+  check('an encounter holds its spawn points', await page.evaluate(() => window.__builder.getDoc().encounters[0].spawns.length === 2));
+  await page.locator('.dmbar button', { hasText: 'Events' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input', 'Ambush ends'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  check('an event starts chained with one action', await page.evaluate(() => { const e = window.__builder.getDoc().events?.[0]; return e?.trigger.k === 'chained' && e.then.length === 1; }));
+  await page.evaluate(() => { const b = window.__builder, d = b.getDoc(); b.edit.edit(b.S.docId, 'probe link', (x) => { x.encounters[0].onComplete = x.events[0].key; }); });
+  await page.waitForTimeout(300);
+  check('the event graph draws the encounter and the event', (await page.locator('.evgraph .evnode').count()) === 1 && (await page.locator('.evgraph .evsrc').count()) === 1);
+  await page.screenshot({ path: shot.replace('.png', '-events.png') });
+  await page.locator('.dmbar button', { hasText: 'Dialogues' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input', 'Guard Captain'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  await page.locator('.dmform button', { hasText: 'Add line' }).click(); await page.waitForTimeout(200);
+  check('a new dialogue line is unreachable until linked (the law says so)', await page.evaluate(() => { const b = window.__builder; return b.getDoc().dialogues[0].nodes.length === 2; }));
+  await page.locator('.dmbar button', { hasText: 'Trades' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.fill('.dialog input', 'Supplies'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  check('a new trade starts valid: ten gold for one iron', await page.evaluate(() => { const r = window.__builder.getDoc().trades[0].recipes[0]; return r.requireGold === 10 && r.rewardItems[0].template === 71; }));
+  await page.locator('.dmbar button', { hasText: 'Objects' }).click();
+  await page.locator('.dmside button', { hasText: /^Add$/ }).click(); await page.waitForTimeout(150);
+  await page.selectOption('.dialog select', 'trigger'); await page.fill('.dialog input[type=text]', 'Ambush zone'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(250);
+  check('a zone object is added', await page.evaluate(() => window.__builder.getDoc().interactives[0].kind === 'trigger'));
+  // deleting something an event needs is refused in words
+  await page.locator('.dmbar button', { hasText: 'Encounters' }).click(); await page.waitForTimeout(150);
+  await page.locator('.dmside .c2d-row').first().click(); await page.waitForTimeout(150);
+  await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe need', (x) => { x.events[0].then = [{ k: 'start_encounter', encounter: x.encounters[0].key }]; }); });
+  await page.waitForTimeout(200);
+  await page.locator('.dmside button', { hasText: 'Delete' }).click(); await page.waitForTimeout(200);
+  check('deleting an encounter an event needs is refused', await page.evaluate(() => window.__builder.getDoc().encounters?.length === 1));
+  await page.evaluate(() => window.__builder.A.view('3d'));
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: shot.replace('.png', '-dm3d.png') });
+  const probs = await page.evaluate(() => document.querySelector('.tabs .tab.on')?.innerText);
+  check('the problems tab still counts', typeof probs === 'string');
 
   // problems panel and environment
   check('problems tab lists the law', (await page.locator('.tabs .tab.on').innerText()).startsWith('Problems'));

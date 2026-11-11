@@ -60,3 +60,8 @@ input[type=number] { width: 70px; }
 .c2d-stack { width: 180px; border-left: 1px solid var(--line); overflow: auto; padding: 4px; background: var(--panel); display: flex; flex-direction: column; gap: 2px; }
 .c2d-title { color: #9aa3b5; font-size: 11px; padding: 2px 4px; } .c2d-empty { color: #7d8496; padding: 4px; }
 .c2d-row { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .c2d-row.on { outline: 1px solid var(--accent); } .c2d-row .n { display: inline-block; min-width: 2.2em; color: #9aa3b5; }
+.stageDm { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dmbar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--line); background: var(--panel); } .dmbar .dim { margin-left: auto; color: #9aa3b5; font-size: 11px; }
+.dmbody { flex: 1; min-height: 0; display: flex; } .dmside { width: 190px; border-right: 1px solid var(--line); padding: 4px; display: flex; flex-direction: column; gap: 4px; overflow: auto; background: var(--panel); } .dmlist { display: flex; flex-direction: column; gap: 2px; }
+.dmform { flex: 1; min-width: 0; overflow: auto; padding: 6px 10px; } .dmgraph { width: 46%; min-width: 280px; border-left: 1px solid var(--line); overflow: auto; background: #15161a; } .evwrap { padding: 6px; }
+.stageDm > .dmbody { flex-direction: row; } .card { border: 1px solid var(--line); border-radius: 6px; padding: 6px; margin: 6px 0; background: #1b1d23; } .nest { margin-left: 10px; padding-left: 8px; border-left: 2px solid var(--line); } .cond { margin: 2px 0; } .row2 { display: flex; gap: 4px; align-items: center; } .row2 input[type=text] { flex: 1; }

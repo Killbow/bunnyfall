@@ -23,6 +23,7 @@ import { createInspector } from './ui/inspector.js';
 import { createBottom, problemsOf } from './ui/bottom.js';
 import { createViewport } from './ui/viewport3d.js';
 import { createCanvas2d } from './ui/canvas2d.js';
+import { createDm } from './ui/dm.js';
 import { ask, confirmBox } from './ui/dialog.js';
 
 const CLIP_KEY = 'bunnyfall.worldbuilder.clip';
@@ -64,13 +65,24 @@ async function boot() {
   const hudCanvas = /** @type {HTMLCanvasElement} */ (h('canvas', { class: 'hud' }));
   const stage2d = h('div', { class: 'stage2d', style: { display: 'none' } });
   stage.append(glCanvas, hudCanvas);
-  layout.center.append(stage, stage2d);
+  const stageDm = h('div', { class: 'stageDm', style: { display: 'none' } });
+  layout.center.append(stage, stage2d, stageDm);
   const browser = createAssetBrowser({ host: layout.leftTop, catalogue, prefs, onPlace: (a) => place(a, null) });
   const hierarchy = createHierarchy({ host: layout.leftBottom, getDoc, docId, edit, getSel, select, say });
   const inspector = createInspector({ host: layout.right, getDoc, docId, edit, getSel });
   const bottom = createBottom({ host: layout.bottom, getDoc, docId, api, log, steps: () => stepsLog });
-  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, terrain, getDoc, getSel, edit, docId: () => S.docId, on: { select, hang: (id, at) => act('hang mount', (d) => { const r = find(d, id); if (r) { r.row.rot = at.rot; r.row.t = at.t; } }), changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
+  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, terrain, getDm: () => dmPanel?.show() ?? null, getDoc, getSel, edit, docId: () => S.docId, on: { select, hang: (id, at) => act('hang mount', (d) => { const r = find(d, id); if (r) { r.row.rot = at.rot; r.row.t = at.t; } }), changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
+  /** @type {ReturnType<typeof createDm> | null} */ let dmPanel = null;
   const c2d = createCanvas2d({ host: stage2d, arena, getDoc, getSel, catalogue, edit, docId, select, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  2d edit`); queue(); } });
+  const here = () => { const t = viewport?.camera.target ?? [0, 0, 0], d = getDoc(), x = Math.round(t[0] * 4) / 4, z = Math.round(t[2] * 4) / 4; const gh = d && terrain.state() === 'loaded' ? groundInFrame(terrain, d.place, x, z) : null; return [x, Math.round((gh ?? 0) * 100) / 100, z]; };
+  /** Ask for a point on the ground: show the 3D view, take the next click, come back to where we were. */
+  const pick = (what, done) => {
+    if (!viewport) return;
+    const back = S.view;
+    A.view('3d'); say(`Click the ground to place ${what}. Esc cancels.`);
+    viewport.armPick(what, (p) => { done(p); A.view(back); });
+  };
+  dmPanel = createDm({ host: stageDm, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  DM edit`); queue(); } });
 
   // ── clipboard ──
   const remember = async (clip) => { const t = clipText(clip); try { globalThis.localStorage?.setItem(CLIP_KEY, t); } catch { /* blocked */ } try { await navigator.clipboard?.writeText(t); } catch { /* the page may not write the system clipboard */ } };
@@ -163,7 +175,7 @@ async function boot() {
     snapStep(k, v) { if (viewport && Number.isFinite(v) && v >= 0) { viewport.state.snap[k] = v; viewport.dirty(); } queue(); },
     camera(m) { S.camera = m; viewport?.setCamera(m); queue(); },
     frame() { viewport?.frameSelection(); },
-    view(v) { S.view = v; stage.style.display = v === '3d' ? '' : 'none'; stage2d.style.display = v === '2d' ? '' : 'none'; if (v === '2d') c2d.draw(); queue(); },
+    view(v) { S.view = v; stage.style.display = v === '3d' ? '' : 'none'; stage2d.style.display = v === '2d' ? '' : 'none'; stageDm.style.display = v === 'dm' ? '' : 'none'; if (v === '2d') c2d.draw(); if (v === 'dm') dmPanel?.render(); queue(); },
     align(i, mode) { act('align', (d) => { alignNodes(d, S.sel, Number(i), mode); }); },
     distribute(i) { act('distribute', (d) => { distributeNodes(d, S.sel, Number(i)); }); },
     ground() { act('set height', (d) => { groundNodes(d, S.sel, 0); }); },
@@ -187,7 +199,7 @@ async function boot() {
       if (!f || f.kind !== 'flat' || f.row.kind !== 'mount') { say('Select a mount (a weapon, armour or trophy picture) first.'); return; }
       viewport?.armHang(S.sel[0]); say('Click a wall, floor or ceiling to hang it there.');
     },
-    show(k) { if (!viewport) return; const o = viewport.show(); const key = { grid: 'showGrid', ground: 'showTerrain', collision: 'showCollision' }[k]; if (key) viewport.setShow({ [key]: !o[{ grid: 'grid', ground: 'terrain', collision: 'collision' }[k]] }); queue(); },
+    show(k) { if (!viewport) return; const o = viewport.show(); const key = { grid: 'showGrid', ground: 'showTerrain', collision: 'showCollision', dm: 'showDm' }[k]; if (key) viewport.setShow({ [key]: !o[{ grid: 'grid', ground: 'terrain', collision: 'collision', dm: 'dm' }[k]] }); queue(); },
     reset() { act('reset turn and size', (d) => { resetNodes(d, S.sel); }); },
     async env(id) {
       if (id === 'custom') { const v = await ask('Server', [{ name: 'base', label: 'Address', value: api.environment().id === 'custom' ? api.environment().base : 'https://', hint: 'The account service, for example https://staging.example.org' }], { validate: (x) => (cleanBase(x.base) ? null : 'That is not an http or https address.') }); if (!v) { queue(); return; } api.setEnvironment('custom', v.base); } else api.setEnvironment(id);
@@ -218,12 +230,13 @@ async function boot() {
 
   let pending = false;
   function queue() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; refresh(); }); }
-  function refresh() { alive(); toolbar.render(); hierarchy.render(); inspector.render(); bottom.render(); viewport?.dirty(); if (S.view === '2d') c2d.draw(); }
+  function refresh() { alive(); toolbar.render(); hierarchy.render(); inspector.render(); bottom.render(); viewport?.dirty(); if (S.view === '2d') c2d.draw(); if (S.view === 'dm') dmPanel?.render(); }
   edit.onChange(queue); api.onChange(queue);
 
   // ── keyboard and drops ──
   document.addEventListener('keydown', (e) => {
     const t = /** @type {HTMLElement} */ (e.target);
+    if (e.key === 'Escape' && viewport?.picking()) { viewport.cancelPick(); say('Cancelled.'); if (S.view === '3d' && dmPanel) { /* stays in the 3D view */ } return; }
     if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return;
     const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
     if (mod && k === 'z') { e.preventDefault(); if (e.shiftKey) A.redo(); else A.undo(); }
@@ -249,7 +262,7 @@ async function boot() {
   await terrain.open();
   say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Set ARENA2_PATH to the ARENA2 folder and restart.');
   if (api.signedIn()) api.refreshMe();
-  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser };   // for the headless probe
+  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser, dm: dmPanel };   // for the headless probe
   refresh();
 }
 boot();

@@ -401,3 +401,18 @@ test('a mount hangs on the face a ray hits, facing out and a hair off it', () =>
   assert.ok(Math.abs(f.normal[2] - -1) < 1e-9 && Math.abs(f.normal[0]) < 1e-9);
   const ceil = mountOnSurface([0, 3, 0], [0, -1, 0]); assert.equal(ceil.rot[1], -90);
 });
+
+// ── route splines (spline.js) ──
+import { splinePoints, segments } from './poi-editor/src/spline.js';
+
+test('a route\'s spline passes through every waypoint and closes for a loop', () => {
+  const pts = [[0, 0, 0], [10, 0, 10], [20, 0, 10]];
+  const open = splinePoints(pts, false, 4);
+  assert.deepEqual(open[0], pts[0]); assert.deepEqual(open.at(-1), pts[2]);
+  assert.ok(open.some((p) => Math.abs(p[0] - 10) < 1e-9 && Math.abs(p[2] - 10) < 1e-9), 'passes the middle waypoint');
+  const loop = splinePoints(pts, true, 4);
+  assert.deepEqual(loop.at(-1), pts[0]);
+  assert.equal(loop.length, 3 * 4 + 1);
+  assert.equal(segments(open).length, (open.length - 1) * 6);
+  assert.deepEqual(splinePoints([[1, 2, 3]], false), [[1, 2, 3]]);
+});
