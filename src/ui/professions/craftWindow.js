@@ -360,6 +360,9 @@ function startPicks(form, book, rank, specs) {
   return picks;
 }
 
+/** When a Focus craft can be dropped again, in words; a date the service did not send is said without one. */
+const focusWaitWord = (s) => (Number.isFinite(s) && s > 0 ? `You can drop a Focus craft again on ${new Date(s * 1000).toLocaleDateString()}.` : 'You dropped a Focus craft recently. Try again in a few days.');
+
 function drawFocus(root, rerender, p) {
   const book = p.book;
   if (typeof book?.focus !== 'function' || typeof book.chooseFocus !== 'function') return;
@@ -377,7 +380,7 @@ function drawFocus(root, rerender, p) {
       const r = await book.chooseFocus(next).catch(() => null);
       _cw.busy = false;
       _cw.word = r?.ok ? (on ? 'Focus dropped. Dropping another waits a week.' : `${c[0].toUpperCase()}${c.slice(1)} is a Focus craft.`)
-        : r?.error === 'prof-focus-wait' ? `You can drop a Focus craft again ${new Date(r.until * 1000).toLocaleDateString()}.` : 'That did not go through. Try again.';
+        : r?.error === 'prof-focus-wait' ? focusWaitWord(r.at ?? r.until ?? book.focus().until) : 'That did not go through. Try again.';
       rerender();
     }, full));
   }

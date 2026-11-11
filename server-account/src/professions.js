@@ -1382,7 +1382,7 @@ export async function chooseFocus(ctx, player, env, { character, crafts } = {}) 
   const dropped = now.crafts.filter((c) => !crafts.includes(c));
   const added = crafts.filter((c) => !now.crafts.includes(c));
   if (!dropped.length && !added.length) return { ok: true, focus: now };
-  if (dropped.length && now.until != null && nowS < now.until) return { error: 'prof-focus-wait', until: now.until };
+  if (dropped.length && now.until != null && nowS < now.until) return { error: 'prof-focus-wait', until: now.until, at: now.until };   // `at`: the door passes it to the client
   await db.batch([
     ...dropped.map((c) => db.prepare('DELETE FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = ?3').bind(player.id, character, c)),
     ...added.map((c) => db.prepare('INSERT OR IGNORE INTO prof_focus (player, char_id, profession, set_at) VALUES (?1, ?2, ?3, ?4)').bind(player.id, character, c, nowS)),
