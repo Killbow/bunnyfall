@@ -400,7 +400,7 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
 
 const STAT_WORDS = Object.freeze({ h: 'Hardness', t: 'Toughness', l: 'Lightness', a: 'Arcanism' });
 const statLine = (s) => (s ? `H ${s.h} · T ${s.t} · L ${s.l} · A ${s.a}` : '');
-// HTLA: the four always in one order - Hardness, Toughness, Lightness, Affinity (STAT_WORDS' own)
+// HTLA: the four always in one order - Hardness, Toughness, Lightness, Arcanism (STAT_WORDS' own)
 const weightLine = (w) => Object.entries(STAT_WORDS).filter(([k]) => w?.[k] > 0).map(([k, n]) => `${n} (${k.toUpperCase()}) ${Math.round(w[k] * 100)}%`).join(', ');
 
 /** A plan's standing at the player's rank and Stores: 'ready', 'missing' (what is short) or 'locked'. */
