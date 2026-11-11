@@ -826,6 +826,8 @@ import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js'; 
 import { poiMapMarks } from '../ui/poi/poiMapMark.js';   // POI-2: their marks on both world maps
 import { createPoiEdit } from '../poi/poiEdit.js';   // POI-3: the editor's documents and their undo
 import { createPoiEditorHost, createPoiEditorRouter, POI_EDITOR_EVENTS, POI_PICK_REACH } from './poiEditorHost.js';   // POI-3: the editor's eye, cursor and handles; AUDIT POI E2/E14/E16: its input, routed
+// the editor opens once the player stands in the world
+import { openPoiEditorWhenStanding } from './poiEditorDoor.js';
 import { holdHotbarKeys } from '../ui/enhanced/enhancedHotbar.js';   // AUDIT POI E1: the bar's keys stood down under the editor
 import { createPoiEditorPanel } from '../ui/poi/poiEditorPanel.js';   // POI-3: its panel
 import { PoiGizmoPass } from '../render/poiGizmoPass.js';   // POI-3: its lines over the world
@@ -25756,7 +25758,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     poiMe(first).then((r) => {
       if (!r.ok) { townTalk.say(accountRefusalText(r.error)); return; }
       if (!r.data.builder) { townTalk.say(accountRefusalText('poi-not-builder')); return; }
-      mountPoiEditor(r.data, io);
+      openPoiEditorWhenStanding({ entity: () => playerEntity, standing: () => (playerSpawned || !walkMode) && !townTalk.overlayActive, open: () => mountPoiEditor(r.data, io), say: (line) => townTalk.say(line) });
     }, (e) => console.warn('[poi] the editor\'s door', e?.message ?? e));
   }
   /** POI-3: THE EDITOR MADE - its documents, its eye and handles over this host's frame, its panel, its lines. The body
