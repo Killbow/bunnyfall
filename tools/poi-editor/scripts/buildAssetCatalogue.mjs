@@ -15,6 +15,7 @@ const SRC = (p) => join(ROOT, 'src', p);
 const arena = process.env.ARENA2_PATH && existsSync(process.env.ARENA2_PATH) ? process.env.ARENA2_PATH : null;
 
 const { Arch3dFile } = await import(SRC('formats/arch3dFile.js'));
+const { GLOBAL_SCALE } = await import(SRC('world/meshReader.js'));   // a model's units to metres
 const { TextureFile } = await import(SRC('formats/textureFile.js'));
 const { DFPalette } = await import(SRC('formats/dfPalette.js'));
 const { FlatsFile } = await import(SRC('formats/flatsFile.js'));
@@ -99,7 +100,7 @@ if (arena) {
     add({
       id: `df-arch3d:${rid}`, namespace: 'df-arch3d', name: `Model ${rid}`, sourcePath: 'ARCH3D.BSA',
       dimensionMode: '3d', category: 'models', subcategory: String(Math.floor(rid / 100) * 100), tags: [],
-      dimensions: { size: [m.size.x / 256, m.size.y / 256, m.size.z / 256].map((v) => +v.toFixed(3)), radius: +(m.radius / 256).toFixed(3), vertices: m.totalVertices, triangles: m.totalTriangles },
+      dimensions: { size: [m.size.x, m.size.y, m.size.z].map((v) => +(v * GLOBAL_SCALE).toFixed(3)), radius: +(m.radius * GLOBAL_SCALE).toFixed(3), vertices: m.totalVertices, triangles: m.totalTriangles },
       textures: texRefs, preview: null, oldEditorExposes: OLD_EXPOSES['df-arch3d'], runtime: 'arch3d part (v2) or a part mesh', modelId: rid,
     });
   }

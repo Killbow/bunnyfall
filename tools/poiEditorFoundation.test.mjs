@@ -157,3 +157,101 @@ test('virtual rows: only the visible slice is drawn', () => {
   assert.ok(v.to - v.from < 100);
   assert.equal(v.height, Math.ceil(10000 / 6) * 100);
 });
+
+test('api: environments, sign-in, roles and a refused session', async () => {
+  const { createApi, cleanBase, ENVIRONMENTS } = await import('./poi-editor/src/api.js');
+  assert.equal(cleanBase('https://example.org/some/path?x=1'), 'https://example.org');
+  assert.equal(cleanBase('javascript:alert(1)'), null);
+  assert.equal(cleanBase('not a url'), null);
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
+  const calls = [];
+  let refuse = false;
+  const fetch = async (url, init) => {
+    calls.push(`${init?.method ?? 'GET'} ${url}`);
+    const body = url.endsWith('/v1/auth/login') ? { secret: 'sek', id: 'a', name: 'n', kind: 'account', sessionId: 's' }
+      : url.endsWith('/v1/poi/me') ? { handle: 'Killbunny', builder: true, approver: false } : {};
+    if (url.endsWith('/v1/poi/me') && refuse) return { ok: false, status: 401, json: async () => ({ error: 'unauthorized' }) };
+    return { ok: true, status: 200, headers: new Map(), json: async () => body };
+  };
+  const api = createApi({ storage, fetch });
+  assert.equal(api.environment().base, ENVIRONMENTS[0].base);
+  assert.equal(api.setEnvironment('custom', 'ftp://x'), false);
+  assert.ok(api.setEnvironment('custom', 'https://stage.example.org/x'));
+  assert.equal(api.environment().base, 'https://stage.example.org');
+  const r = await api.signIn('Killbunny', 'password1');
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(api.me().builder, true);
+  assert.ok(calls.some((c) => c.startsWith('POST https://stage.example.org/v1/auth/login')));
+  const again = createApi({ storage, fetch });
+  assert.ok(again.setEnvironment('custom', 'https://stage.example.org'));
+  assert.equal(again.signedIn(), true);
+  refuse = true;
+  await again.refreshMe();
+  assert.equal(again.signedIn(), false);
+});
+
+test('camera: east is right, north is up from above, rays hit what they aim at', async () => {
+  const C = await import('./poi-editor/src/camera.js');
+  const cam = C.createCamera();
+  cam.mode = 'persp'; cam.yaw = Math.PI; cam.pitch = 0; cam.target = [0, 0, 0]; cam.dist = 10;
+  const east = C.project(cam, 1, [3, 0, 0]);
+  assert.ok(east && east.x > 0.05, `east x=${east?.x}`);
+  const mid = C.project(cam, 1, [0, 0, 0]);
+  assert.ok(Math.abs(mid.x) < 1e-6 && Math.abs(mid.y) < 1e-6);
+  cam.mode = 'top';
+  const north = C.project(cam, 1, [0, 0, 5]);
+  assert.ok(north.y > 0.05, `north y=${north.y}`);
+  assert.ok(C.project(cam, 1, [4, 0, 0]).x > 0);
+  for (const mode of ['persp', 'top', 'front', 'side']) {
+    cam.mode = mode; cam.yaw = 0.7; cam.pitch = 0.4; cam.target = [5, 2, -3];
+    const p = [6, 1, -2];
+    const s = C.project(cam, 1.5, p);
+    const ray = C.rayAt(cam, 1.5, s.x, s.y);
+    const v = [p[0] - ray.o[0], p[1] - ray.o[1], p[2] - ray.o[2]];
+    const t = v[0] * ray.d[0] + v[1] * ray.d[1] + v[2] * ray.d[2];
+    const off = Math.hypot(v[0] - ray.d[0] * t, v[1] - ray.d[1] * t, v[2] - ray.d[2] * t);
+    assert.ok(off < 1e-3, `${mode} ray misses by ${off}`);
+  }
+  cam.mode = 'persp'; cam.pitch = 0.5; cam.target = [0, 0, 0];
+  const g = C.groundAt(C.rayAt(cam, 1, 0, 0), 0);
+  assert.ok(g && Math.hypot(...g) < 1e-3);
+});
+
+test('transforms: move, turn, size, reset, align and distribute; frozen nodes stay put', async () => {
+  const T = await import('./poi-editor/src/transforms.js');
+  const d = doc();
+  const stall = find(d, 'part:stall').row;
+  const t0 = [...stall.t];
+  assert.equal(T.moveNodes(d, ['part:stall'], [1, 0, 2]), 1);
+  assert.deepEqual(stall.t, [t0[0] + 1, t0[1], t0[2] + 2]);
+  T.turnNodes(d, ['part:stall'], [0, 1, 0], 90, stall.t);
+  assert.ok(Math.abs(stall.r[1] - Math.sin(Math.PI / 4)) < 1e-3, JSON.stringify(stall.r));
+  T.sizeNodes(d, ['part:stall'], [2, 1, 1]);
+  assert.deepEqual(stall.s, [2, 1, 1]);
+  T.resetNodes(d, ['part:stall']);
+  assert.deepEqual(stall.r, [0, 0, 0, 1]);
+  assert.deepEqual(bad(d), []);
+  setFlag(d, ['part:stall'], 'locked', true);
+  assert.equal(T.moveNodes(d, ['part:stall'], [5, 5, 5]), 0);
+  setFlag(d, ['part:stall'], 'locked', false);
+  const g = T.alignNodes(d, ['part:stall', 'npc:merchant'], 0, 'max');
+  assert.equal(g, 2);
+  assert.equal(find(d, 'part:stall').row.t[0], find(d, 'npc:merchant').row.t[0]);
+  assert.equal(T.snap(1.13, 0.25), 1.25);
+  assert.equal(T.snap(1.13, 0), 1.13);
+  assert.equal(T.setNumber(d, 'part:stall', 't.1', 3.14159), true);
+  assert.equal(find(d, 'part:stall').row.t[1], 3.142);
+});
+
+test('transforms: a figure flat keeps scale 1 and a group moves its members', async () => {
+  const T = await import('./poi-editor/src/transforms.js');
+  const d = doc();
+  d.flats = [{ key: 'person', name: 'P', kind: 'billboard', flat: [182, 0], t: [0, 0, 0], rot: [0, 0, 0], scale: 1, layer: 0, collide: false }];
+  T.sizeNodes(d, ['flat:person'], [3, 3, 3]);
+  assert.equal(d.flats[0].scale, 1);
+  assert.deepEqual(bad(d), []);
+  const before = [...find(d, 'part:stall').row.t];
+  T.moveNodes(d, ['group:market'], [1, 0, 0]);
+  assert.equal(find(d, 'part:stall').row.t[0], before[0] + 1);
+});
