@@ -40,20 +40,13 @@ take_gold, trigger_event`, at most 32 in
 `then` and `else` together. A `chained` event that nothing starts is refused. Events that start each other with no delay in a
 circle are refused.
 
-## Choices to confirm
+## Decisions
 
-These are my readings where the spec was silent or the code disagreed.
-
-1. **Events may give and take items and gold** (your decision). The law checks their shape and the items against the game.
-   The server has to settle them like trades, with a claim per event and character, before the runtime may run them.
-2. **Limits are per parent.** "128 waypoints" is per route and "32 spawn points" is per encounter. I added 24 creatures per
-   encounter and 16 per spawn. `GRANT_KINDS.site.max` is 9, so these need checking when the runtime lands.
-3. **Foe names and levels.** There is no custom name for a foe, so "Bandit Leader" shows as its class name. A spawn may set
-   an exact `level`.
-4. **No `factionId`, quest conditions, timers, `storage` or `station` on flats, and no chest contents.** None has a runtime.
-   They can be added when one does.
-5. **Gold bound.** A recipe may ask for or give up to the save's gold limit (2,147,483,647). Approvers decide what is sane.
-6. **Enchantments on rewards** are allowed in shape. The key and parameter are checked against the item maker's catalogue.
-7. **Approving v2 before the runtime exists.** The server would accept a v2 draft and the game would show only the v1 parts.
-   I have not added a gate. A one-line flag in `poi.js` could refuse v2 submissions until Milestone 5.
-8. **Potions.** A mixed potion cannot be a reward, only an empty bottle. The example uses Elixir Vitae.
+1. **Events may give and take items and gold.** The server settles them like trades, with a claim per event and character, before the runtime runs them.
+2. **Limits are per parent.** 128 waypoints per route, 32 spawn points per encounter, 24 creatures per encounter, 16 per spawn.
+3. **Foe names and levels.** No custom foe name. A spawn may set an exact `level`.
+4. **Runtimes to build** for `factionId`, quest conditions, timers, `storage`, `station` on flats and chest contents. Each gets its schema fields in the same milestone as its runtime, not before.
+5. **Gold bound.** Up to the save's gold limit. Approvers decide what is sane.
+6. **Item stacks are plain.** No `enchant` key anywhere. Done in the law and tests.
+7. **No v2 submission gate.** The old editor goes after the push, so nothing needs gating.
+8. **Potions** are given as the item reward of a quest, once the quest runtime (4) exists. Until then a trade can only hand out an empty bottle.

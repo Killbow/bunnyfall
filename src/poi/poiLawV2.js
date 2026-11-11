@@ -25,7 +25,6 @@ export const POI_V2_LIMITS = Object.freeze({
   trades: 32,
   recipes: 8,              // in one trade
   stacks: 8,               // required or rewarded item stacks in one recipe
-  enchants: 8,
   variables: 64,
   events: 64,
   conditions: 16,          // leaves in one condition tree
@@ -103,8 +102,7 @@ const KEYS = Object.freeze({
   variable: set('key', 'name', 'type', 'scope', 'initial'),
   trade: set('key', 'name', 'recipes'),
   recipe: set('key', 'name', 'requireItems', 'requireGold', 'when', 'rewardItems', 'rewardGold', 'limitMode', 'maxStock', 'cooldownS', 'onSuccessEvent'),
-  stack: set('template', 'group', 'material', 'count', 'enchant'),
-  enchant: set('key', 'param'),
+  stack: set('template', 'group', 'material', 'count'),
   event: set('key', 'name', 'trigger', 'when', 'then', 'else'),
 });
 /** Keys v2 adds to v1 parts, lights and people. poiLaw.js reads these. */
@@ -178,21 +176,12 @@ export function poiV2Problems(raw, kit) {
     : type === 'number' ? finite(v) && Math.abs(v) <= 1e9 : type === 'string' ? textOk(v, 64) : false);
 
   /** an item stack: the game's own numbers, as the server mints them */
-  const stack = (/** @type {any} */ s, /** @type {string} */ at, /** @type {boolean} */ reward) => {
+  const stack = (/** @type {any} */ s, /** @type {string} */ at) => {
     if (!isObj(s)) { say(at, 'not-object'); return; }
     if (!int(s.template, 0, P.decorTemplateMax)) say(`${at}.template`, 'template', { max: P.decorTemplateMax });
     if (s.group !== undefined && !(typeof s.group === 'string' && /^[A-Za-z0-9]{1,32}$/.test(s.group))) say(`${at}.group`, 'item-group');
     if (s.material !== undefined && !int(s.material, 0, 0xffff)) say(`${at}.material`, 'size', { max: 0xffff });
     count(s.count, `${at}.count`, 9999);
-    if (s.enchant !== undefined) {
-      const rows = reward ? list(s.enchant, L.enchants, `${at}.enchant`, 'enchants') : (say(`${at}.enchant`, 'unknown'), null);
-      rows?.forEach((e, i) => {
-        if (!isObj(e)) { say(`${at}.enchant[${i}]`, 'not-object'); return; }
-        if (!textOk(e.key, 48, 1)) say(`${at}.enchant[${i}].key`, 'key');
-        if (e.param !== null && !int(e.param, 0, 0xffff)) say(`${at}.enchant[${i}].param`, 'size', { max: 0xffff });
-        unknown(e, KEYS.enchant, `${at}.enchant[${i}]`);
-      });
-    }
     unknown(s, KEYS.stack, at);
   };
 
@@ -209,7 +198,7 @@ export function poiV2Problems(raw, kit) {
       return;
     }
     if (++budget.n > L.conditions) { say(at, 'conditions', { max: L.conditions }); return; }
-    if (c.k === 'has_item') { stack(c.item, `${at}.item`, false); unknown(c, set('k', 'item'), at); }
+    if (c.k === 'has_item') { stack(c.item, `${at}.item`); unknown(c, set('k', 'item'), at); }
     else if (c.k === 'has_gold') { if (!int(c.amount, 1, P.goldMax)) say(`${at}.amount`, 'gold', { max: P.goldMax }); unknown(c, set('k', 'amount'), at); }
     else {
       ref(c.var, new Set(ctx.vars.keys()), `${at}.var`);
@@ -258,7 +247,7 @@ export function poiV2Problems(raw, kit) {
       case 'stop_route': case 'spawn_npc': case 'despawn_npc': ref(a.npc, ctx.npcs, `${at}.npc`); only('npc'); break;
       case 'open_dialogue': ref(a.dialogue, ctx.dialogues, `${at}.dialogue`); only('dialogue'); break;
       case 'open_trade': ref(a.trade, ctx.trades, `${at}.trade`); only('trade'); break;
-      case 'give_item': case 'take_item': stack(a.item, `${at}.item`, a.k === 'give_item'); only('item'); break;
+      case 'give_item': case 'take_item': stack(a.item, `${at}.item`); only('item'); break;
       case 'give_gold': case 'take_gold': if (!int(a.amount, 1, P.goldMax)) say(`${at}.amount`, 'gold', { max: P.goldMax }); only('amount'); break;
       default: {   // trigger_event
         ref(a.event, ctx.events, `${at}.event`);
@@ -423,7 +412,7 @@ export function poiV2Problems(raw, kit) {
       at3(o.t, `${at}.t`);
       if (!finite(o.yaw) || Math.abs(o.yaw) > 720) say(`${at}.yaw`, 'size', { max: 720 });
       if (!finite(o.radius) || o.radius < 0.5 || o.radius > 200) say(`${at}.radius`, 'radius', { min: 0.5, max: 200 });
-      if (o.keyItem !== undefined) stack(o.keyItem, `${at}.keyItem`, false);
+      if (o.keyItem !== undefined) stack(o.keyItem, `${at}.keyItem`);
       layout(o, at);
       unknown(o, KEYS.interactive, at);
     });
@@ -447,9 +436,9 @@ export function poiV2Problems(raw, kit) {
         keyed(r, rat, rseen);
         if (!textOk(r.name, 48, 1)) say(`${rat}.name`, 'part-name', { max: 48 });
         const needs = list(r.requireItems, L.stacks, `${rat}.requireItems`, 'stacks');
-        needs?.forEach((s, n) => stack(s, `${rat}.requireItems[${n}]`, false));
+        needs?.forEach((s, n) => stack(s, `${rat}.requireItems[${n}]`));
         const gives = list(r.rewardItems, L.stacks, `${rat}.rewardItems`, 'stacks');
-        gives?.forEach((s, n) => stack(s, `${rat}.rewardItems[${n}]`, true));
+        gives?.forEach((s, n) => stack(s, `${rat}.rewardItems[${n}]`));
         if (!int(r.requireGold, 0, P.goldMax)) say(`${rat}.requireGold`, 'gold', { max: P.goldMax });
         if (!int(r.rewardGold, 0, P.goldMax)) say(`${rat}.rewardGold`, 'gold', { max: P.goldMax });
         if (gives && int(r.rewardGold, 0, P.goldMax) && !gives.length && r.rewardGold === 0) say(rat, 'no-reward');

@@ -180,11 +180,10 @@ test('trade law: templates, groups, materials, stacking and enchantments are che
   assert.ok(run((r) => { r.rewardItems[0].material = 3; }).includes('trades[0].recipes[0].rewardItems[0].material:item-material'));
   assert.ok(run((r) => { r.rewardItems = [{ template: 122, count: 2 }]; }).includes('trades[0].recipes[0].rewardItems[0].count:item-stack'));
   assert.deepEqual(run((r) => { r.rewardItems = [{ template: 122, count: 1 }]; }), []);
-  assert.ok(run((r) => { r.rewardItems[0].enchant = [{ key: 'NoSuchEnchantment', param: null }]; }).includes('trades[0].recipes[0].rewardItems[0].enchant[0]:item-enchant'));
 });
 
-test('enchantments are for rewards only', () => {
-  assert.ok(edit((d) => { d.trades[0].recipes[0].requireItems[0].enchant = []; }).includes('trades[0].recipes[0].requireItems[0].enchant:unknown'));
+test('item stacks carry no enchantments', () => {
+  assert.ok(edit((d) => { d.trades[0].recipes[0].rewardItems[0].enchant = []; }).includes('trades[0].recipes[0].rewardItems[0].enchant:unknown'));
 });
 
 test('groups: parents must exist and cycles are refused', () => {

@@ -11,19 +11,14 @@ import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
 import { isStackable } from '../systems/inventory.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
-import { pickEnchantment } from '../systems/enchantmentCatalogue.js';
-import { MAX_ENCHANTMENTS } from '../systems/enchanting.js';
 
 /** @typedef {import('./poiLaw.js').PoiProblem} PoiProblem */
 
 /** The material numbers a weapon or a piece of armour may be made of, as the item maker takes them. */
 const WEAPON_MATS = new Set(Object.values(WEAPON_MATERIALS).filter((v) => v >= 0));
 const ARMOR_MATS = new Set(Object.entries(ARMOR_MATERIAL).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([, v]) => v));
-/** The most enchantments one rewarded piece may carry: the item maker's limit and one more for a bound soul. */
-export const POI_TRADE_ENCHANT_MAX = MAX_ENCHANTMENTS + 1;
-
 /**
- * Whether one stack names an item that could exist, as problems at `at`. `reward` stacks may carry enchantments.
+ * Whether one stack names an item that could exist, as problems at `at`.
  * @param {any} s @param {string} at @param {PoiProblem[]} out
  */
 export function stackProblems(s, at, out) {
@@ -36,13 +31,6 @@ export function stackProblems(s, at, out) {
   if (mats && s.material !== undefined && !mats.has(s.material)) say(`${at}.material`, 'item-material');
   if (!mats && s.material !== undefined) say(`${at}.material`, 'item-material');
   if (s.count > 1 && !isStackable({ group, templateIndex: s.template })) say(`${at}.count`, 'item-stack');
-  if (Array.isArray(s.enchant)) {
-    if (s.enchant.length > POI_TRADE_ENCHANT_MAX) say(`${at}.enchant`, 'enchants', { max: POI_TRADE_ENCHANT_MAX });
-    s.enchant.forEach((/** @type {any} */ e, /** @type {number} */ i) => {
-      const pick = typeof e?.key === 'string' ? pickEnchantment(e.key, e.param) : null;
-      if (!pick || pick.kind !== 'add') say(`${at}.enchant[${i}]`, 'item-enchant');
-    });
-  }
 }
 
 /**
