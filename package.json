@@ -10,6 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "poi-editor": "vite --config tools/poi-editor/vite.config.js",
+    "build:poi-editor": "vite build --config tools/poi-editor/vite.config.js",
     "lint": "eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/ src/ server/src/ server-account/src/ tools/ scripts/ app/ *.config.js",
     "types": "tsc -p tsconfig.json",
     "check": "npm run lint && npm run types && npm run build",
