@@ -5,6 +5,8 @@
 // there is no terrain here, and the banner says so. It reads the document and the selection each frame
 // and tells the editor what the builder did through `on`.
 
+import { surfaceGrid, groundInFrame } from '../terrain.js';
+import { rayBox, mountOnSurface, lightSpot } from '../interior.js';
 import { createCamera, matrices, rayAt, orbit, pan, zoom, fly, frame, project, groundAt } from '../camera.js';
 import { buildTree, find } from '../scene.js';
 import { mat4FromQuatPosScale } from '../../../../src/world/quat.js';
@@ -60,15 +62,15 @@ const ring = (c, r, axis, n = 40) => {
 
 /**
  * @param {{ canvas: HTMLCanvasElement, hud: HTMLCanvasElement, arena: any, getDoc: () => any, getSel: () => string[],
- *   edit: any, docId: () => string | null, on: { select: (ids: string[], how: 'set' | 'add' | 'toggle') => void, cursor?: (text: string) => void, changed?: () => void } }} o
+ *   edit: any, docId: () => string | null, on: { select: (ids: string[], how: 'set' | 'add' | 'toggle') => void, cursor?: (text: string) => void, changed?: () => void, hang?: (id: string, at: { rot: number[], t: number[] }) => void } }} o
  */
-export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId, on }) {
+export function createViewport({ canvas, hud, arena, terrain, getDoc, getSel, edit, docId, on }) {
   const gl = /** @type {WebGL2RenderingContext | null} */ (canvas.getContext('webgl2', { antialias: true }));
   if (!gl) { const c = hud.getContext('2d'); if (c) { c.fillStyle = '#ddd'; c.fillText('WebGL2 is not available in this browser.', 12, 24); } return null; }
   const g = gl;
   const hctx = /** @type {CanvasRenderingContext2D} */ (hud.getContext('2d'));
   const cam = createCamera();
-  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, wire: false, dirty: true };
+  const state = { mode: /** @type {'select' | 'move' | 'turn' | 'size'} */ ('move'), space: /** @type {'world' | 'local'} */ ('world'), snap: { ...POI_SNAP_DEFAULT }, snapOn: true, showGrid: true, showTerrain: true, showCollision: false, wire: false, dirty: true };
   const meshP = program(g, VS, FS), lineP = program(g, LVS, LFS);
   const uni = (p, n) => g.getUniformLocation(p, n);
   const U = { vp: uni(meshP, 'uVP'), model: uni(meshP, 'uModel'), tex: uni(meshP, 'uTex'), tint: uni(meshP, 'uTint'), has: uni(meshP, 'uHasTex'), lvp: uni(lineP, 'uVP'), color: uni(lineP, 'uColor') };
@@ -190,6 +192,26 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     g.drawArrays(g.LINES, 0, pts.length / 3);
   }
 
+  /** The ground around the POI as lines, in the POI's frame; rebuilt only when the place changes. */
+  let terrainKey = '', terrainPts = /** @type {number[] | null} */ (null);
+  function terrainLines() {
+    const doc = getDoc();
+    if (!doc || !terrain || terrain.state() !== 'loaded') return null;
+    const p = doc.place, key = JSON.stringify([p.px, p.py, p.x, p.z, p.y, p.ground, p.r, p.s]);
+    if (key === terrainKey) return terrainPts;
+    terrainKey = key; terrainPts = null;
+    const grid = surfaceGrid(terrain, p, 90, 3);
+    if (!grid) return null;
+    const { n, step, half, heights } = grid, pts = [];
+    const at = (i, j) => [-half + i * step, heights[i * n + j], -half + j * step];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      if (i + 1 < n) pts.push(...at(i, j), ...at(i + 1, j));
+      if (j + 1 < n) pts.push(...at(i, j), ...at(i, j + 1));
+    }
+    terrainPts = pts;
+    return pts;
+  }
+
   function gridLines(m) {
     const step = cam.mode === 'persp' ? (cam.dist > 120 ? 10 : 1) : Math.pow(10, Math.max(0, Math.floor(Math.log10(cam.orthoH / 3))));
     const span = Math.min(200, step * 50);
@@ -235,6 +257,8 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     curView = mm.view;
     g.useProgram(lineP); g.uniformMatrix4fv(U.lvp, false, mm.vp);
     if (state.showGrid) gridLines(mm);
+    const tp = state.showTerrain ? terrainLines() : null;
+    if (tp) lines(tp, [0.42, 0.62, 0.34, 0.75]);
     const list = nodes();
     for (const n of list) {
       if (n.hidden) continue;
@@ -248,9 +272,10 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
       const t = n.row.t ?? [0, 0, 0];
       if (n.kind === 'light') { const r = n.row.radius ?? 5; lines([...ring(t, 0.3, 1), ...ring(t, 0.3, 0)], c); lines([...ring(t, r, 1), ...ring(t, r, 0), ...ring(t, r, 2)], [n.row.color?.[0] ?? 1, n.row.color?.[1] ?? 0.85, n.row.color?.[2] ?? 0.6, 0.35]); }
       else if (n.kind === 'npc') { const h = n.row.h ?? 1.8; lines([...ring(t, 0.3, 1), ...ring([t[0], t[1] + h, t[2]], 0.3, 1), t[0] - 0.3, t[1], t[2], t[0] - 0.3, t[1] + h, t[2], t[0] + 0.3, t[1], t[2], t[0] + 0.3, t[1] + h, t[2]], c); }
-      else if (n.kind === 'flat') { drawFlat(n, mm, c); }
+      else if (n.kind === 'flat') { drawFlat(n, mm, c); if (n.row.light) { const ls = lightSpot(n.row, flatSize(n.row)[1]), lr = n.row.light.radius ?? 5; lines([...ring(ls, 0.15, 1), ...ring(ls, lr, 1), ...ring(ls, lr, 0)], [...(n.row.light.color ?? [1, 0.85, 0.6]), 0.4]); } }
       else if (n.kind === 'part' && (!n.pl.model3d || isSel)) lines(boxLines(n.box.lo, n.box.hi), n.pl.model3d ? c : [0.6, 0.5, 0.9, 0.9]);
       if (isSel && n.kind !== 'part') lines(boxLines(n.box.lo, n.box.hi), c);
+      if (state.showCollision && (n.kind === 'part' ? n.row.collide !== 'none' : n.kind === 'flat' && n.row.collide)) lines(boxLines(n.box.lo, n.box.hi), [0.2, 0.9, 0.85, 0.95], 2);
     }
     drawGizmo(mm, H);
     drawHud(W, H, aspect, mm);
@@ -304,9 +329,12 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     if (!doc) { text('No POI open. Create one or open a draft from the File menu.', 14, 14); return; }
     text(`${cam.mode === 'persp' ? 'Perspective' : cam.mode[0].toUpperCase() + cam.mode.slice(1)}  |  ${state.mode}  |  ${state.space}  |  snap ${state.snapOn ? `${state.snap.move} m, ${state.snap.turn} deg` : 'off'}`, 12, 10, '#9aa3b5');
     if (arena.state() !== 'loaded') text('Game files not found: models and pictures show as boxes. Set ARENA2_PATH and restart.', 12, 28, '#e8c26a');
-    text('No terrain here: the grid is metres from the POI, not the ground.', 12, H / dpr - 22, '#e8c26a');
+    if (terrain?.state() === 'loaded') {
+      if (state.showTerrain && !terrainLines()) text('No ground here: this pixel is off the map. The grid is metres from the POI.', 12, H / dpr - 22, '#e8c26a');
+      else text('Ground is the game\'s base terrain: hills, road cuts and town flattening are not shown.', 12, H / dpr - 22, '#b9c78a');
+    } else text('No ground data: the grid is exact metres from the POI (x east, z north), but it is not the terrain. Set ARENA2_PATH and restart to see the ground.', 12, H / dpr - 22, '#e8c26a');
     const [mx, mz] = mapMetresOf(doc.place);
-    if (cursor) { const gp = groundAt(rayAt(cam, aspect, cursor.nx, cursor.ny), 0); if (gp) { const X = mx + gp[0], Z = mz + gp[2]; text(`x ${gp[0].toFixed(2)}  z ${gp[2].toFixed(2)}  |  map ${X.toFixed(1)}, ${Z.toFixed(1)} m  |  pixel ${(X / POI_PIXEL_M).toFixed(2)}, ${(-Z / POI_PIXEL_M).toFixed(2)}`, 12, H / dpr - 40, '#9aa3b5'); } }
+    if (cursor) { const gp = groundAt(rayAt(cam, aspect, cursor.nx, cursor.ny), 0); if (gp) { const X = mx + gp[0], Z = mz + gp[2]; text(`x ${gp[0].toFixed(2)}  z ${gp[2].toFixed(2)}  |  map ${X.toFixed(1)}, ${Z.toFixed(1)} m  |  pixel ${(X / POI_PIXEL_M).toFixed(2)}, ${(-Z / POI_PIXEL_M).toFixed(2)}${terrain?.state() === 'loaded' ? (() => { const gh = groundInFrame(terrain, doc.place, gp[0], gp[2]); return gh == null ? '' : `  |  ground y ${gh.toFixed(2)}`; })() : ''}`, 12, H / dpr - 40, '#9aa3b5'); } }
     if (box) { hctx.strokeStyle = '#ffb347'; hctx.fillStyle = 'rgba(255,179,71,0.12)'; const x = Math.min(box.x0, box.x1) * dpr, y = Math.min(box.y0, box.y1) * dpr, w = Math.abs(box.x1 - box.x0) * dpr, h = Math.abs(box.y1 - box.y0) * dpr; hctx.fillRect(x, y, w, h); hctx.strokeRect(x, y, w, h); }
     void mm;
   }
@@ -314,6 +342,7 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
   // ── input ──
   /** @type {{ nx: number, ny: number } | null} */ let cursor = null;
   /** @type {string | null} */ let hover = null;
+  /** @type {string | null} */ let hangFor = null;
   /** @type {{ handle: string, s: any, ids: string[], pivot: number[] } | null} */ let drag = null;
   /** @type {{ x0: number, y0: number, x1: number, y1: number } | null} */ let box = null;
   /** @type {{ kind: 'orbit' | 'pan', x: number, y: number } | null} */ let cam_drag = null;
@@ -347,6 +376,16 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     if (e.button === 2 || (e.button === 0 && e.altKey)) { cam_drag = { kind: 'orbit', x: e.clientX, y: e.clientY }; return; }
     if (e.button === 1) { cam_drag = { kind: 'pan', x: e.clientX, y: e.clientY }; return; }
     if (e.button !== 0) return;
+    if (hangFor) {
+      const id = hangFor; hangFor = null; canvas.style.cursor = '';
+      const ray = rayAt(cam, aspectNow(), p.nx, p.ny);
+      let best = null;
+      for (const n of nodes()) { if (n.hidden || n.kind !== 'part') continue; const hit = rayBox(ray.o, ray.d, n.box.lo, n.box.hi); if (hit && (!best || hit.dist < best.dist)) best = hit; }
+      const gp = groundAt(ray, 0);
+      if (gp) { const dist = Math.hypot(gp[0] - ray.o[0], gp[1] - ray.o[1], gp[2] - ray.o[2]); if (!best || dist < best.dist) best = { dist, point: gp, normal: [0, 1, 0] }; }
+      if (best) on.hang?.(id, mountOnSurface(best.point, best.normal)); else on.cursor?.('Nothing there to hang it on.');
+      dirty(); return;
+    }
     const gz = gizmo(aspectNow(), canvas.clientHeight);
     if (gz) {
       const ray = rayAt(cam, aspectNow(), p.nx, p.ny);
@@ -423,6 +462,13 @@ export function createViewport({ canvas, hud, arena, getDoc, getSel, edit, docId
     camera: cam, state, dirty,
     setMode(m) { state.mode = m; dirty(); },
     setCamera(mode) { cam.mode = mode; dirty(); },
+    /** Show or hide the grid, the ground and the collision overlay. */
+    setShow(o) { for (const k of ['showGrid', 'showTerrain', 'showCollision']) if (typeof o?.[k] === 'boolean') state[k] = o[k]; dirty(); },
+    show: () => ({ grid: state.showGrid, terrain: state.showTerrain, collision: state.showCollision }),
+    refresh: dirty,
+    /** The next click hangs this mount on the surface it hits (a part's face, or the ground). */
+    armHang(id) { hangFor = id; canvas.style.cursor = 'crosshair'; dirty(); },
+    hanging: () => hangFor,
     /** Frame the selection, or everything. */
     frameSelection() {
       const sel = new Set(getSel());

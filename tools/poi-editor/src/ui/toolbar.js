@@ -50,7 +50,15 @@ export function createToolbar({ host, actions, getState }) {
       h('input', { type: 'number', value: s.snap.turn, step: 1, min: 0, title: 'Turn step (deg)', on: { change: (e) => actions.snapStep('turn', Number(e.target.value)) } }),
       menu('Arrange', [
         ...['x', 'y', 'z'].flatMap((a, i) => [{ label: `Align ${a} to min`, run: `align:${i}:min`, why: s.sel > 1 ? '' : 'Select two or more.' }, { label: `Align ${a} to middle`, run: `align:${i}:mid`, why: s.sel > 1 ? '' : 'Select two or more.' }, { label: `Align ${a} to max`, run: `align:${i}:max`, why: s.sel > 1 ? '' : 'Select two or more.' }, { label: `Distribute along ${a}`, run: `distribute:${i}`, why: s.sel > 2 ? '' : 'Select three or more.' }]),
+        { label: 'Drop to ground', run: 'drop', why: !s.sel ? 'Select something first.' : s.ground ? '' : 'No ground data (WOODS.WLD).' },
+        { label: 'Hang on a surface', run: 'hang', why: s.sel === 1 ? '' : 'Select one mount first.' },
+        { label: 'Move by...', run: 'moveBy', why: s.sel ? '' : 'Select something first.' },
         { label: 'Set height to 0', run: 'ground', why: s.sel ? '' : 'Select something first.' }, { label: 'Reset turn and size', run: 'reset', why: s.sel ? '' : 'Select something first.' },
+      ]),
+      menu('View', [
+        { label: `${s.show.grid ? 'Hide' : 'Show'} grid`, run: 'show:grid' },
+        { label: `${s.show.terrain ? 'Hide' : 'Show'} ground`, run: 'show:ground', why: s.ground ? '' : 'No ground data (WOODS.WLD).' },
+        { label: `${s.show.collision ? 'Hide' : 'Show'} collision`, run: 'show:collision' },
       ]),
       h('span', { class: 'sep' }),
       ...[['persp', '3D'], ['top', 'Top'], ['front', 'Front'], ['side', 'Side']].map(([m, t]) => h('button', { class: s.camera === m ? 'on' : '', text: t, on: { click: () => actions.camera(m) } })),

@@ -296,3 +296,108 @@ test('scene: moving to a group, refused cycles, renaming', async () => {
   assert.equal(S.renameNode(d, 'part:stall', '   '), false);
   assert.deepEqual(bad(d), []);
 });
+
+// ── the 2D canvas's edits (flat2d.js) ──
+import { isMirrored, setMirrored, turnFlat, pivotAt, setPivot, layerStack, shiftLayer, layerEnd } from './poi-editor/src/flat2d.js';
+
+const flatDoc = () => ({ flats: [
+  { key: 'a', name: 'A', kind: 'billboard', flat: [200, 1], rot: [0, 0, 0], scale: 1, layer: 0, collide: false, t: [0, 0, 0] },
+  { key: 'b', name: 'B', kind: 'billboard', flat: [200, 2], rot: [0, 0, 0], scale: 1, layer: 1, collide: false, t: [0, 0, 0] },
+  { key: 'c', name: 'C', kind: 'mount', item: { t: 1, g: 3 }, rot: [0, 0, 0], scale: 1, layer: 1, collide: false, t: [0, 0, 0] },
+], parts: [], lights: [], npcs: [], groups: [] });
+
+test('mirroring follows the game rule: more than a quarter turn faces the other way, a mount never does', () => {
+  const d = flatDoc();
+  assert.equal(isMirrored(d.flats[0]), false);
+  assert.equal(setMirrored(d.flats[0], true), true);
+  assert.equal(isMirrored(d.flats[0]), true);
+  assert.deepEqual(d.flats[0].rot, [180, 0, 0]);
+  setMirrored(d.flats[0], false);
+  assert.equal(isMirrored(d.flats[0]), false);
+  assert.equal(setMirrored(d.flats[2], true), false);
+  assert.equal(isMirrored(d.flats[2]), false);
+  turnFlat(d.flats[0], 100);
+  assert.equal(isMirrored(d.flats[0]), true);
+});
+
+test('a turn wraps, and a mount spins on its wall rather than about up', () => {
+  const d = flatDoc();
+  turnFlat(d.flats[0], 270); assert.equal(d.flats[0].rot[0], -90);
+  turnFlat(d.flats[2], 90); assert.deepEqual(d.flats[2].rot, [0, 0, 90]);
+});
+
+test('the pivot comes from a point of the picture, snapped, and stays inside it', () => {
+  const pic = { width: 40, height: 80 };
+  assert.deepEqual(pivotAt(pic, 20, 80), [0.5, 1]);
+  assert.deepEqual(pivotAt(pic, 21.4, 33.2, 'pixel'), [0.525, 0.413]);
+  assert.deepEqual(pivotAt(pic, 19, 65, 'quarter'), [0.5, 0.75]);
+  assert.deepEqual(pivotAt(pic, 18, 78, 'centre'), [0.5, 1]);
+  assert.deepEqual(pivotAt(pic, -50, 500, 'off'), [0, 1]);
+  const row = {};
+  assert.equal(setPivot(row, [0.25, 1]), true); assert.deepEqual(row.pivot, [0.25, 1]);
+  assert.equal(setPivot(row, [1.2, 0]), false);
+});
+
+test('layers reorder back to front and stay inside the law\'s range', () => {
+  const d = flatDoc();
+  assert.deepEqual(layerStack(d).map((s) => s.id), ['flat:a', 'flat:b', 'flat:c']);
+  assert.equal(shiftLayer(d, 'flat:a', 1), true);
+  assert.deepEqual(layerStack(d).map((s) => s.id), ['flat:b', 'flat:a', 'flat:c']);
+  assert.equal(layerEnd(d, 'flat:b', true), true);
+  assert.equal(layerStack(d).at(-1).id, 'flat:b');
+  assert.equal(layerEnd(d, 'flat:b', false), true);
+  assert.equal(layerStack(d)[0].id, 'flat:b');
+  const e = flatDoc(); e.flats[0].layer = 100; e.flats.splice(1);
+  assert.equal(shiftLayer(e, 'flat:a', 1), false);
+  assert.equal(e.flats[0].layer, 100);
+});
+
+// ── interior decoration (interior.js) ──
+import { interiorOf, setShell, hideBase, showBase, showAllBase, describeBase, setFlatLight, editFlatLight, lightSpot, rayBox, mountOnSurface } from './poi-editor/src/interior.js';
+import { decorMountFrame } from '../src/net/decorLaw.js';
+
+test('the room shell and the hidden built-in pieces follow the game\'s names and limits', () => {
+  const d = {};
+  assert.deepEqual(interiorOf(d), { shellModel: null, hiddenBaseKeys: [] });
+  assert.ok(setShell(d, 0.5).refused); assert.ok(setShell(d, 0).refused); assert.ok(setShell(d, 1000000).refused);
+  assert.equal(setShell(d, 4321).ok, true); assert.equal(d.interior.shellModel, 4321);
+  assert.ok(hideBase(d, 'chair').refused); assert.ok(hideBase(d, 'm01:5').refused);
+  assert.equal(hideBase(d, 'm12:456').ok, true); assert.equal(hideBase(d, 'f3:200.4').ok, true);
+  assert.ok(hideBase(d, 'm12:456').refused);
+  assert.deepEqual(describeBase('f3:200.4'), { kind: 'flat', archive: 200, record: 4 });
+  assert.deepEqual(describeBase('m12:456'), { kind: 'model', model: 456 });
+  assert.equal(describeBase('nope'), null);
+  assert.equal(showBase(d, 'm12:456').ok, true); assert.ok(showBase(d, 'm12:456').refused);
+  setShell(d, null); showAllBase(d);
+  assert.equal('interior' in d, false);
+  const many = {};
+  let refused = 0;
+  for (let i = 0; i < 205; i++) if (hideBase(many, `m${i}:${i + 1}`).refused) refused++;
+  assert.ok(refused >= 5 && many.interior.hiddenBaseKeys.length <= 200);
+});
+
+test('a flat\'s light stays inside the law and hangs at the flame for a lantern on a chain', () => {
+  const row = { kind: 'billboard', flat: [210, 24], t: [1, 0, 2], rot: [0, 0, 0] };
+  assert.equal(setFlatLight(row, true), true);
+  assert.deepEqual(Object.keys(row.light), ['color', 'radius', 'intensity', 'flicker']);
+  assert.equal(editFlatLight(row, 'radius', 99), true); assert.equal(row.light.radius, 30);
+  assert.equal(editFlatLight(row, 'intensity', -2), true); assert.equal(row.light.intensity, 0);
+  assert.equal(editFlatLight(row, 'color', [2, 0.5, -1]), true); assert.deepEqual(row.light.color, [1, 0.5, 0]);
+  assert.equal(editFlatLight(row, 'radius', NaN), false);
+  const spot = lightSpot(row, 2);
+  assert.ok(Math.abs(spot[1] - 0.2) < 1e-9 && spot[0] === 1 && spot[2] === 2, `${spot}`);
+  assert.equal(lightSpot({ kind: 'billboard', flat: [200, 1], t: [0, 0, 0] }, 2)[1], 1);
+  setFlatLight(row, false); assert.equal('light' in row, false);
+});
+
+test('a mount hangs on the face a ray hits, facing out and a hair off it', () => {
+  const hit = rayBox([0, 1, -5], [0, 0, 1], [-1, 0, -1], [1, 3, 1]);
+  assert.deepEqual(hit.normal, [0, 0, -1]); assert.ok(Math.abs(hit.dist - 4) < 1e-9);
+  assert.equal(rayBox([0, 1, -5], [0, 0, -1], [-1, 0, -1], [1, 3, 1]), null);
+  const m = mountOnSurface(hit.point, hit.normal);
+  assert.deepEqual(m.rot, [180, 0, 0]);
+  assert.ok(Math.abs(m.t[2] - (-1 - 0.02)) < 1e-9);
+  const f = decorMountFrame(m.rot);
+  assert.ok(Math.abs(f.normal[2] - -1) < 1e-9 && Math.abs(f.normal[0]) < 1e-9);
+  const ceil = mountOnSurface([0, 3, 0], [0, -1, 0]); assert.equal(ceil.rot[1], -90);
+});

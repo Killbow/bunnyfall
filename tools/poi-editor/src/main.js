@@ -9,9 +9,10 @@ import { problemText } from '../../../src/poi/poiText.js';
 import { createApi, cleanBase } from './api.js';
 import { createCatalogue, createAssetPrefs } from './catalogue.js';
 import { createArenaData } from './arenaData.js';
+import { createTerrain, dropOnGround, groundInFrame } from './terrain.js';
 import { find, flatOrder, groupNodes, ungroup, removeNodes } from './scene.js';
 import { copyNodes, pasteClip, duplicateNodes, readClip, clipText } from './clipboard.js';
-import { alignNodes, distributeNodes, groundNodes, resetNodes } from './transforms.js';
+import { alignNodes, distributeNodes, groundNodes, resetNodes, moveNodes, movable } from './transforms.js';
 import { placeAsset } from './place.js';
 import { h } from './ui/dom.js';
 import { createLayout } from './ui/layout.js';
@@ -39,6 +40,7 @@ async function boot() {
   const api = createApi();
   const edit = createPoiEdit();
   const arena = createArenaData();
+  const terrain = createTerrain(async (name) => { const r = await fetch(`./arena2/${name}`); if (!r.ok) throw new Error(`${name} ${r.status}`); return new Uint8Array(await r.arrayBuffer()); });
   const log = { lines: /** @type {string[]} */ ([]) };
   const stepsLog = /** @type {string[]} */ ([]);
   const say = (m) => { log.lines.push(`${new Date().toLocaleTimeString('en')}  ${m}`); queue(); };
@@ -60,15 +62,15 @@ async function boot() {
   const stage = h('div', { class: 'stage' });
   const glCanvas = /** @type {HTMLCanvasElement} */ (h('canvas', { id: 'viewport-gl' }));
   const hudCanvas = /** @type {HTMLCanvasElement} */ (h('canvas', { class: 'hud' }));
-  const stage2d = h('div', { class: 'stage', style: { display: 'none' } });
+  const stage2d = h('div', { class: 'stage2d', style: { display: 'none' } });
   stage.append(glCanvas, hudCanvas);
   layout.center.append(stage, stage2d);
   const browser = createAssetBrowser({ host: layout.leftTop, catalogue, prefs, onPlace: (a) => place(a, null) });
   const hierarchy = createHierarchy({ host: layout.leftBottom, getDoc, docId, edit, getSel, select, say });
   const inspector = createInspector({ host: layout.right, getDoc, docId, edit, getSel });
   const bottom = createBottom({ host: layout.bottom, getDoc, docId, api, log, steps: () => stepsLog });
-  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, getDoc, getSel, edit, docId: () => S.docId, on: { select, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
-  const c2d = createCanvas2d({ host: stage2d, arena, getDoc, getSel, catalogue });
+  const viewport = createViewport({ canvas: glCanvas, hud: hudCanvas, arena, terrain, getDoc, getSel, edit, docId: () => S.docId, on: { select, hang: (id, at) => act('hang mount', (d) => { const r = find(d, id); if (r) { r.row.rot = at.rot; r.row.t = at.t; } }), changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  transform`); queue(); } } });
+  const c2d = createCanvas2d({ host: stage2d, arena, getDoc, getSel, catalogue, edit, docId, select, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  2d edit`); queue(); } });
 
   // ── clipboard ──
   const remember = async (clip) => { const t = clipText(clip); try { globalThis.localStorage?.setItem(CLIP_KEY, t); } catch { /* blocked */ } try { await navigator.clipboard?.writeText(t); } catch { /* the page may not write the system clipboard */ } };
@@ -78,6 +80,8 @@ async function boot() {
     if (!S.docId) { say('Open or create a POI first.'); return; }
     let spot = at;
     if (!spot) { const t = viewport?.camera.target ?? [0, 0, 0]; spot = [Math.round(t[0] * 4) / 4, 0, Math.round(t[2] * 4) / 4]; }
+    const d0 = getDoc();
+    if (d0 && spot && spot[1] === 0) { const gh = terrain.state() === 'loaded' ? groundInFrame(terrain, d0.place, spot[0], spot[2]) : null; if (gh != null) spot = [spot[0], Math.round(gh * 100) / 100, spot[2]]; }
     let made = null;
     act(`place ${asset.name}`, (d) => { made = placeAsset(d, asset, spot); }, () => (made?.id ? [made.id] : null));
     if (made?.refused) { say(made.refused); return; }
@@ -163,6 +167,27 @@ async function boot() {
     align(i, mode) { act('align', (d) => { alignNodes(d, S.sel, Number(i), mode); }); },
     distribute(i) { act('distribute', (d) => { distributeNodes(d, S.sel, Number(i)); }); },
     ground() { act('set height', (d) => { groundNodes(d, S.sel, 0); }); },
+    drop() {
+      const d = getDoc(); if (!d || !S.sel.length) return;
+      if (terrain.state() !== 'loaded') { say('No ground data, so nothing can be dropped onto the ground. Set ARENA2_PATH and restart; "Set height to 0" puts things on the POI\'s own floor.'); return; }
+      let n = 0;
+      act('drop to ground', (doc) => { const rows = movable(doc, S.sel).map((id) => find(doc, id)?.row).filter(Boolean); n = dropOnGround(terrain, doc.place, rows, 0); });
+      say(n ? `Dropped ${n} onto the game's base ground.` : 'Nothing dropped.');
+    },
+    async moveBy() {
+      if (!S.sel.length) return;
+      const v = await ask('Move by', [{ name: 'dx', label: 'East (m)', type: 'number', value: '0' }, { name: 'dy', label: 'Up (m)', type: 'number', value: '0' }, { name: 'dz', label: 'North (m)', type: 'number', value: '0' }], { ok: 'Move' });
+      if (!v) return;
+      const dv = [Number(v.dx), Number(v.dy), Number(v.dz)];
+      if (dv.some((x) => !Number.isFinite(x))) { say('Those are not numbers.'); return; }
+      act('move by', (d) => { moveNodes(d, S.sel, dv); });
+    },
+    hang() {
+      const f = S.sel.length === 1 ? find(getDoc(), S.sel[0]) : null;
+      if (!f || f.kind !== 'flat' || f.row.kind !== 'mount') { say('Select a mount (a weapon, armour or trophy picture) first.'); return; }
+      viewport?.armHang(S.sel[0]); say('Click a wall, floor or ceiling to hang it there.');
+    },
+    show(k) { if (!viewport) return; const o = viewport.show(); const key = { grid: 'showGrid', ground: 'showTerrain', collision: 'showCollision' }[k]; if (key) viewport.setShow({ [key]: !o[{ grid: 'grid', ground: 'terrain', collision: 'collision' }[k]] }); queue(); },
     reset() { act('reset turn and size', (d) => { resetNodes(d, S.sel); }); },
     async env(id) {
       if (id === 'custom') { const v = await ask('Server', [{ name: 'base', label: 'Address', value: api.environment().id === 'custom' ? api.environment().base : 'https://', hint: 'The account service, for example https://staging.example.org' }], { validate: (x) => (cleanBase(x.base) ? null : 'That is not an http or https address.') }); if (!v) { queue(); return; } api.setEnvironment('custom', v.base); } else api.setEnvironment(id);
@@ -188,7 +213,7 @@ async function boot() {
         : st === 'draft' ? { cls: 'draft', text: `DRAFT REV ${e?.rev}`, why: 'Saved as a draft. Not submitted.' }
           : st === 'submitted' ? { cls: 'draft', text: 'SUBMITTED', why: 'Waiting for an approver.' }
             : st === 'approved' ? { cls: 'live', text: 'LIVE', why: 'Approved by an approver and shown to players.' } : { cls: 'draft', text: String(st).toUpperCase(), why: '' };
-    return { docId: S.docId, sel: S.sel.length, mode: S.mode, space: S.space, camera: S.camera, view: S.view, snapOn: viewport?.state.snapOn ?? true, snap: viewport?.state.snap ?? { move: 0.25, turn: 15 }, env: api.environment(), signedIn: api.signedIn(), me: api.me(), canUndo: edit.canUndo(), canRedo: !!edit.redoLabel(), problems: d ? problemsOf(d).length : 0, badge };
+    return { docId: S.docId, sel: S.sel.length, mode: S.mode, space: S.space, camera: S.camera, view: S.view, show: viewport?.show() ?? { grid: true, terrain: true, collision: false }, ground: terrain.state() === 'loaded', snapOn: viewport?.state.snapOn ?? true, snap: viewport?.state.snap ?? { move: 0.25, turn: 15 }, env: api.environment(), signedIn: api.signedIn(), me: api.me(), canUndo: edit.canUndo(), canRedo: !!edit.redoLabel(), problems: d ? problemsOf(d).length : 0, badge };
   } });
 
   let pending = false;
@@ -221,9 +246,10 @@ async function boot() {
   addEventListener('beforeunload', (e) => { if (S.docId && edit.dirty(S.docId)) e.preventDefault(); });
 
   await arena.open();
-  say(arena.state() === 'loaded' ? 'Game files found.' : 'Game files not found. Set ARENA2_PATH to the ARENA2 folder and restart.');
+  await terrain.open();
+  say(arena.state() === 'loaded' ? `Game files found.${terrain.state() === 'loaded' ? ' Ground: the game\'s base terrain.' : ' No ground data.'}` : 'Game files not found. Set ARENA2_PATH to the ARENA2 folder and restart.');
   if (api.signedIn()) api.refreshMe();
-  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, prefs, browser };   // for the headless probe
+  /** @type {any} */ (globalThis).__builder = { S, A, edit, catalogue, viewport, getDoc, api, arena, terrain, prefs, browser };   // for the headless probe
   refresh();
 }
 boot();

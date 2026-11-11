@@ -54,3 +54,9 @@ input[type=number] { width: 70px; }
 .dialog { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .dialog > div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 340px; max-width: 520px; } .dialog h3 { margin: 0 0 10px; } .dialog .field { padding: 3px 0; } .dialog .acts { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; }
 .err { color: var(--bad); margin-top: 6px; }
+.stage2d { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.c2d-bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.c2d-body { flex: 1; min-height: 0; display: flex; } .c2d-area { flex: 1; min-width: 0; position: relative; } .c2d-area canvas { position: absolute; inset: 0; }
+.c2d-stack { width: 180px; border-left: 1px solid var(--line); overflow: auto; padding: 4px; background: var(--panel); display: flex; flex-direction: column; gap: 2px; }
+.c2d-title { color: #9aa3b5; font-size: 11px; padding: 2px 4px; } .c2d-empty { color: #7d8496; padding: 4px; }
+.c2d-row { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .c2d-row.on { outline: 1px solid var(--accent); } .c2d-row .n { display: inline-block; min-width: 2.2em; color: #9aa3b5; }

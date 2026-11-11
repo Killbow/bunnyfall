@@ -106,6 +106,63 @@ try {
   for (let i = 0; i < 12; i++) await page.keyboard.press('Control+z');
   check('undo history reaches back', (await page.evaluate(() => window.__builder.getDoc())) !== null);
 
+  // ── Milestone 3: ground, drop, view toggles, 2D tools, interior, hanging ──
+  const hasGround = await page.evaluate(() => window.__builder.terrain.state());
+  check(haveGame ? 'ground loads from WOODS.WLD' : 'no ground without game files says so', haveGame ? hasGround === 'loaded' : hasGround === 'missing', hasGround);
+  await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe', (d) => { d.parts.push({ key: 'rock', name: 'Rock', arch3d: 44010, t: [10, 50, 10], r: [0, 0, 0, 1], s: [1, 1, 1], collide: 'mesh', shadow: true }); }); b.S.sel = ['part:rock']; });
+  await page.evaluate(() => window.__builder.A.drop()); await page.waitForTimeout(200);
+  const droppedY = await page.evaluate(() => { const b = window.__builder, d = b.getDoc(); return { y: d.parts.find((p) => p.key === 'rock').t[1], ground: b.terrain.state() === 'loaded' }; });
+  check(haveGame ? 'drop to ground puts it on the ground' : 'drop without ground leaves it alone', haveGame ? droppedY.y < 49 || droppedY.y > 51 : droppedY.y === 50, `y ${droppedY.y}`);
+  await page.evaluate(() => { window.__builder.A.show('collision'); window.__builder.A.show('grid'); });
+  check('view toggles flip', await page.evaluate(() => { const s = window.__builder.viewport.show(); return s.collision === true && s.grid === false; }));
+  await page.evaluate(() => { window.__builder.A.show('collision'); window.__builder.A.show('grid'); });
+  await page.evaluate(() => window.__builder.A.moveBy?.length >= 0);
+  await page.evaluate(() => { const b = window.__builder; b.S.sel = []; });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: shot.replace('.png', '-ground.png') });
+
+  // interior: shell and a taken-out piece, from the inspector
+  await page.fill('.right input[placeholder=none]', '4321'); await page.press('.right input[placeholder=none]', 'Enter'); await page.locator('.right input[placeholder=none]').blur();
+  await page.waitForTimeout(150);
+  check('shell model is set from the inspector', (await page.evaluate(() => window.__builder.getDoc().interior?.shellModel)) === 4321);
+  await page.fill('.right input[placeholder^="m12"]', 'm12:456'); await page.press('.right input[placeholder^="m12"]', 'Enter'); await page.waitForTimeout(150);
+  check('a built-in piece is taken out', await page.evaluate(() => window.__builder.getDoc().interior?.hiddenBaseKeys?.[0] === 'm12:456'));
+  await page.fill('.right input[placeholder^="m12"]', 'chair'); await page.press('.right input[placeholder^="m12"]', 'Enter'); await page.waitForTimeout(100);
+  check('a bad piece name is refused with a reason', (await page.locator('.right .err').innerText()).includes('m<placement>'));
+  await page.locator('.right button', { hasText: 'Put all back' }).click(); await page.waitForTimeout(100);
+  check('putting all back leaves no hidden pieces', await page.evaluate(() => !(window.__builder.getDoc().interior?.hiddenBaseKeys?.length)));
+
+  // 2D canvas: pivot by click, mirror, layers
+  await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe flats', (d) => { d.flats ??= []; d.flats.push({ key: 'lamp', name: 'Lamp', kind: 'billboard', flat: [210, 24], t: [0, 0, 0], rot: [0, 0, 0], scale: 1, layer: 0, collide: false }, { key: 'pot', name: 'Pot', kind: 'billboard', flat: [210, 22], t: [1, 0, 0], rot: [0, 0, 0], scale: 1, layer: 1, collide: false }); }); b.S.sel = ['flat:lamp']; b.A.view('2d'); });
+  await page.waitForTimeout(600);
+  check('layer list shows both flats, front first', (await page.locator('.c2d-row').allInnerTexts()).map((t) => t.replace(/^\d+\s*/, '').trim()).join(',') === 'Pot,Lamp');
+  await page.locator('.c2d-bar button', { hasText: 'Mirror' }).first().click(); await page.waitForTimeout(250);
+  check('Mirror turns the flat to face the other way', (await page.evaluate(() => window.__builder.getDoc().flats[0].rot[0])) === 180);
+  await page.keyboard.press('Control+z'); await page.waitForTimeout(150);
+  check('mirror undoes', (await page.evaluate(() => window.__builder.getDoc().flats[0].rot[0])) === 0);
+  await page.locator('.c2d-bar button', { hasText: 'Forward' }).click(); await page.waitForTimeout(250);
+  check('Forward moves the flat in front', await page.evaluate(() => { const f = window.__builder.getDoc().flats; return f[0].layer > f[1].layer || f[0].layer === 1; }));
+  if (haveGame) {
+    await page.locator('.c2d-bar button', { hasText: 'Fit' }).click(); await page.waitForTimeout(250);
+    await page.locator('.c2d-bar button', { hasText: /^Pivot$/ }).click();
+    const cb = await page.locator('.c2d-area canvas').boundingBox();
+    await page.mouse.click(cb.x + cb.width / 2, cb.y + cb.height / 2); await page.waitForTimeout(300);
+    const pv = await page.evaluate(() => window.__builder.getDoc().flats[0].pivot);
+    check('clicking in the Pivot tool sets the pivot', Array.isArray(pv) && Math.abs(pv[0] - 0.5) < 0.2 && Math.abs(pv[1] - 0.5) < 0.2, JSON.stringify(pv));
+    await page.screenshot({ path: shot.replace('.png', '-2d.png') });
+  } else console.log('skip: the game files are not set, so the pivot click needs a picture and is not tried');
+  await page.evaluate(() => window.__builder.A.view('3d'));
+
+  // hanging a mount on a part's face
+  await page.evaluate(() => { const b = window.__builder; b.edit.edit(b.S.docId, 'probe mount', (d) => { d.flats.push({ key: 'axe', name: 'Axe', kind: 'mount', item: { t: 1, g: 3 }, t: [0, 1, 0], rot: [0, 0, 0], scale: 1, layer: 0, collide: false }); }); b.S.sel = ['flat:axe']; b.viewport.setCamera('top'); b.viewport.frameSelection(); });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => window.__builder.A.hang());
+  check('hang arms the next click', await page.evaluate(() => window.__builder.viewport.hanging() === 'flat:axe'));
+  const vb = await page.locator('#viewport-gl').boundingBox();
+  await page.mouse.click(vb.x + vb.width / 2, vb.y + vb.height / 2); await page.waitForTimeout(300);
+  check('the click hangs it: turned to the surface it hit', await page.evaluate(() => { const r = window.__builder.getDoc().flats.find((f) => f.key === 'axe'); return window.__builder.viewport.hanging() === null && r.rot[1] === 90; }));
+  await page.evaluate(() => window.__builder.A.camera('persp'));
+
   // problems panel and environment
   check('problems tab lists the law', (await page.locator('.tabs .tab.on').innerText()).startsWith('Problems'));
   await page.selectOption('.toolbar select[title=Server]', 'production');

@@ -7,6 +7,8 @@ import { h, clear } from './dom.js';
 import { find } from '../scene.js';
 import { setNumber, isFigure } from '../transforms.js';
 import { eulerOfQuat, quatOfEuler } from '../../../../src/poi/poiEdit.js';
+import { setPivot, isMirrored } from '../flat2d.js';
+import { interiorOf, setShell, hideBase, showBase, showAllBase, describeBase, baseKeyWhy, setFlatLight, editFlatLight, LIGHT_LIMITS } from '../interior.js';
 
 /**
  * @param {{ host: HTMLElement, getDoc: () => any, docId: () => string | null, edit: any, getSel: () => string[] }} o
@@ -47,7 +49,18 @@ export function createInspector({ host, getDoc, docId, edit, getSel }) {
       host.append(h('div', { class: 'field' }, h('label', { text: 'Scale' }), isFigure(row) ? h('span', { class: 'dim', text: '1 (a person keeps their size)' }) : num(row.scale, (v) => run('size', (d) => setNumber(d, id, 'scale', Math.min(4, Math.max(0.25, v)))), 0.05, 0.25, 4)));
       host.append(h('div', { class: 'field' }, h('label', { text: 'Layer' }), num(row.layer, (v) => run('layer', (d) => setNumber(d, id, 'layer', Math.round(v))), 1, -100, 100)));
       host.append(check('Collides', row.collide, (v) => run('collide', (d) => { const r = find(d, id); if (r) r.row.collide = v; })));
-      host.append(h('div', { class: 'field' }, h('label', { text: 'Kind' }), h('span', { text: row.kind })));
+      host.append(h('div', { class: 'field' }, h('label', { text: 'Kind' }), h('span', { text: `${row.kind}${isMirrored(row, [0, 0]) ? ' (mirrored)' : ''}` })));
+      const pv = row.pivot ?? [0.5, 1];
+      host.append(vec('Pivot (0 to 1)', pv, (i, v) => run('pivot', (d) => { const r = find(d, id); if (r) { const n = [...(r.row.pivot ?? [0.5, 1])]; n[i] = Math.min(1, Math.max(0, v)); setPivot(r.row, n); } }), 0.05));
+      host.append(check('Gives light', !!row.light, (v) => run('flat light', (d) => { const r = find(d, id); if (r) setFlatLight(r.row, v); })));
+      if (row.light) {
+        const l = row.light;
+        host.append(h('div', { class: 'field' }, h('label', { text: 'Light colour' }), h('div', { class: 'vec' }, ...l.color.map((c, i) => num(c, (x) => run('light colour', (d) => { const r = find(d, id); if (r?.row.light) editFlatLight(r.row, 'color', r.row.light.color.map((y, k) => (k === i ? x : y))); }), 0.05, 0, 1)))));
+        host.append(h('div', { class: 'field' }, h('label', { text: 'Light radius (m)' }), num(l.radius, (v) => run('light radius', (d) => { const r = find(d, id); if (r) editFlatLight(r.row, 'radius', v); }), 0.5, LIGHT_LIMITS.radius[0], LIGHT_LIMITS.radius[1])));
+        host.append(h('div', { class: 'field' }, h('label', { text: 'Light strength' }), num(l.intensity, (v) => run('light strength', (d) => { const r = find(d, id); if (r) editFlatLight(r.row, 'intensity', v); }), 0.1, LIGHT_LIMITS.intensity[0], LIGHT_LIMITS.intensity[1])));
+        host.append(check('Light flickers', l.flicker, (v) => run('light flicker', (d) => { const r = find(d, id); if (r) editFlatLight(r.row, 'flicker', v); })));
+      }
+      if (row.kind === 'mount') host.append(h('div', { class: 'pane dim', text: 'Use Arrange > Hang on a surface to put this on a wall, floor or ceiling.' }));
     } else if (f.kind === 'light') {
       host.append(h('div', { class: 'field' }, h('label', { text: 'Radius (m)' }), num(row.radius, (v) => run('radius', (d) => setNumber(d, id, 'radius', Math.max(1, Math.min(30, v)))), 0.5, 1, 30)));
       host.append(h('div', { class: 'field' }, h('label', { text: 'Intensity' }), num(row.intensity, (v) => run('intensity', (d) => setNumber(d, id, 'intensity', Math.max(0, Math.min(4, v)))), 0.1, 0, 4)));
@@ -66,6 +79,26 @@ export function createInspector({ host, getDoc, docId, edit, getSel }) {
     host.append(h('div', { class: 'field' }, h('label', { text: 'Map pixel' }), h('span', { text: `${doc.place.px}, ${doc.place.py}` })));
     host.append(vec('Offset (m)', [doc.place.x, doc.place.y, doc.place.z], (i, v) => run('place', (d) => { d.place[['x', 'y', 'z'][i]] = Math.round(v * 1000) / 1000; })));
     host.append(h('div', { class: 'field' }, h('label', { text: 'Id' }), h('span', { class: 'dim', text: doc.id })));
+    interiorFields(doc);
+  }
+
+  /** The room: its shell model and the built-in pieces taken out of it. */
+  function interiorFields(doc) {
+    const it = interiorOf(doc);
+    host.append(h('div', { class: 'section', text: 'Interior' }));
+    const note = h('div', { class: 'err' });
+    const show = (r) => { note.textContent = r?.refused ?? ''; };
+    host.append(h('div', { class: 'field' }, h('label', { text: 'Shell model' }), h('input', { type: 'number', value: it.shellModel ?? '', placeholder: 'none', min: 1, max: 999999, step: 1, on: { change: (e) => { const raw = e.target.value.trim(); let r = null; run('room shell', (d) => { r = setShell(d, raw === '' ? null : Number(raw)); }); show(r); } } })));
+    host.append(h('div', { class: 'field' }, h('label', { text: 'Take out a built-in piece' }), h('input', { type: 'text', placeholder: 'm12:456 or f3:200.4', maxLength: 24, on: { keydown: (e) => { if (e.key !== 'Enter') return; const k = e.target.value.trim(); const why = baseKeyWhy(k); if (why) { note.textContent = why; return; } let r = null; run('take out piece', (d) => { r = hideBase(d, k); }); show(r); e.target.value = ''; } } })));
+    host.append(note);
+    if (it.hiddenBaseKeys.length) {
+      host.append(h('div', { class: 'dim', text: `${it.hiddenBaseKeys.length} taken out` }));
+      for (const k of it.hiddenBaseKeys) {
+        const w = describeBase(k);
+        host.append(h('div', { class: 'field' }, h('span', { text: w?.kind === 'model' ? `${k}  (model ${w.model})` : w ? `${k}  (picture ${w.archive}.${w.record})` : k }), h('button', { text: 'Put back', on: { click: () => run('put back piece', (d) => { showBase(d, k); }) } })));
+      }
+      host.append(h('button', { text: 'Put all back', on: { click: () => run('put back all', (d) => { showAllBase(d); }) } }));
+    } else host.append(h('div', { class: 'pane dim', text: 'Nothing taken out. Built-in pieces are named in the game as m<placement>:<model> and f<flat>:<archive>.<record>.' }));
   }
   return { render };
 }
