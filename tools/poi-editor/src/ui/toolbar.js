@@ -68,6 +68,7 @@ export function createToolbar({ host, actions, getState }) {
       menu('View', [
         { label: `${s.show.grid ? 'Hide' : 'Show'} grid`, run: 'show:grid' },
         { label: `${s.show.terrain ? 'Hide' : 'Show'} ground`, run: 'show:ground', why: s.ground ? '' : 'No ground data (WOODS.WLD).' },
+        { label: 'Live view in the game', run: 'liveView', why: isOpen ? '' : 'Open a POI first.' },
         { label: `${s.show.surround ? 'Hide' : 'Show'} the game's buildings`, run: 'show:surround' },
         { label: `${s.show.collision ? 'Hide' : 'Show'} collision`, run: 'show:collision' },
         { label: `${s.show.dm ? 'Hide' : 'Show'} routes, zones and encounters`, run: 'show:dm' },

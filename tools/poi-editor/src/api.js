@@ -63,6 +63,8 @@ export function createApi({ storage = globalThis.localStorage, fetch = globalThi
       sessions = { ...sessions, [env.base]: r.data.secret }; write(SESSION_KEY, sessions);
       return api.refreshMe();
     },
+    /** The kept session's bearer for the chosen service, or null (the live view hands it to the game for draft models). */
+    bearer: () => sessions[env.base] ?? null,
     /** Ask `/v1/poi/me`. A refused session is dropped. */
     async refreshMe() {
       const r = await poiMe(io());

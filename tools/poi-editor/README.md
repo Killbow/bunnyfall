@@ -12,6 +12,10 @@ Milestone 4 and the game runtime in Milestone 5, so they are not in the editor y
 On the live page (`/builder/`) there is no ARENA2 folder: File, Game files... asks for yours once and keeps the few files
 the editor reads (models, palette, textures, WOODS.WLD, MAPS.BSA, BLOCKS.BSA) in this browser only.
 
+View, Live view in the game opens `/play/?live` in another tab (the game runs offline there) and streams the open draft to it,
+so the POI stands in the real world, on that screen alone. Edits follow a moment later; choosing it again takes the body
+back to the POI. The viewport's own buildings and ground are only a rough guide next to it.
+
 File, Go to a place... finds a town or city by name and moves the open POI to its middle. The game's own buildings for the
 POI's map pixel are drawn round it (View, buildings), laid out by the game's `layoutLocation`, on the flat plane the game
 cuts for the place. Streets' ground, trees and people are not drawn.

@@ -114,6 +114,7 @@ authors to `src/ui/credits.js`.
 | Self-host, updates, the ↻ button | `selfhost/`, `src/ui/ownerUpdate.js` |
 | Desktop app | `app/`, `.github/workflows/release-desktop.yml` |
 | Logo and brand mark | `src/assets/branding/`, `src/ui/brandMark.js`, `public/icons/` |
+| World Builder live view (`/play/?live`: the open draft over the real world) | `src/scenes/poiLive.js` (game half), `tools/poi-editor/src/liveLink.js` (builder half) |
 | World Builder (POIs: build, review, DM content, Sandbox) | `tools/poi-editor/` (the editor, see its README), `src/poi/` (the law, `poiLawV2.js`; the game logic, `poiDmCore.js`) |
 | POI trades and events in the world, paid by the server | `src/poi/poiDmRuntime.js`, `src/scenes/poiHost.js`, `server-account/src/poiTrade.js` |
 | What level a fight is built at (party level, dungeon session, wilds, quests) | `src/systems/encounterLevel.js` (all the numbers), `dungeonLevel.js`, `wildLevel.js`, `mentorMode.js` `partyLevel` |

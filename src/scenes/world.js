@@ -813,6 +813,7 @@ import { spaceAcross, clearDoorways, doorSpotsNear, spacingSkips } from '../char
 import { Collider } from '../player/collider.js';
 import { onFloatingFrame } from '../player/collider.js';   // PERF-COL2: a streamed pixel's buckets ride the floating origin
 import { createPoiHost } from './poiHost.js';
+import { createPoiLive } from './poiLive.js';   // the World Builder's live view (`?live`)
 import { call as accountCall } from '../net/accountClient.js';   // POI v2: a live POI's trades and events, settled on the realm record   // POI-2: the approved POIs, standing in the streamed world
 import { createPoiFeed, browserPoiCache } from '../poi/poiFeed.js';   // POI-2: the approved set, read live and kept
 import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
@@ -25537,6 +25538,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // stood on its pixel while the streamer holds it built: on the drawn ground, its colliders riding the pixel's floating
   // translation (one provider a pixel, as the streamed buckets'), drawn with the world and, translucent, after the water
   const _poiRides = new Map();
+  let poiLive = null;   // the World Builder's live view (scenes/poiLive.js), `?live` alone
   poiFeed = createPoiFeed({ base: () => serviceBase(appStorage()), cache: browserPoiCache() });
   poiFeed.start().catch((e) => console.warn('[poi] the kept feed', e?.message ?? e));
   poiHost = createPoiHost({
@@ -25552,7 +25554,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       return ride;
     },
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
-    auth: () => storedSession(appStorage())?.secret ?? null,   // POI-3: a builder's drafts' assets, asked with the builder's bearer
+    auth: () => poiLive?.auth() ?? storedSession(appStorage())?.secret ?? null,   // POI-3 (the live view's bearer first): a builder's drafts' assets, asked with the builder's bearer
     getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
     // POI v2 (World Builder M5): a POI's patrols, talk, trades, objects and encounters - its module loaded only once one stands
     dm: () => import('../poi/poiDmRuntime.js').then((m) => m.createPoiDm({
@@ -25568,6 +25570,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       store: { get: (k) => { try { return JSON.parse(appStorage().getItem(k) ?? 'null'); } catch { return null; } }, set: (k, v) => { try { appStorage().setItem(k, JSON.stringify(v)); } catch { /* full */ } } },
     })),
   });
+  if (params.has('live')) {   // the World Builder's live view: its draft laid over the feed, the body taken to its spot (scenes/poiLive.js)
+    poiLive = createPoiLive({ feed: poiFeed, say: (line) => townTalk.say(line),
+      goTo: (p, tries = 0) => {   // the body is taken once the player stands (a tab still on the menu tries again for a while)
+        if (!playerSpawned || _mode() !== 'exterior') { if (tries < 40) setTimeout(() => poiLive?.goTo?.(p, tries + 1), 1500); return; }
+        _teleportToPixel(p.px, p.py, [p.x, player.pos[1] + 1, p.z], { grounded: true }).catch((e) => console.warn('[poi] live view', e?.message ?? e));
+      } });
+  }
   // MERCHANT-YARDS: THE TOWNS' STABLES AND WAGON YARDS (scenes/merchantYardsHost.js) - each where its pixel's build
   // placed it (`p.merchantYards`, the location frame), carried by the live floating-origin translation; its horses Horse
   // Cart and Cargo's standing horse, its wagons on show the pool's own wagons; its trade the modes' counter

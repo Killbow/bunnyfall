@@ -11,6 +11,7 @@ import { createCatalogue, createAssetPrefs } from './catalogue.js';
 import { createArenaData } from './arenaData.js';
 import { readGameFile, pickGameFolder } from './gameFiles.js';
 import { createPlaces } from './places.js';
+import { createLiveLink } from './liveLink.js';
 import { createTerrain, dropOnGround, groundInFrame } from './terrain.js';
 import { find, flatOrder, groupNodes, ungroup, removeNodes } from './scene.js';
 import { copyNodes, pasteClip, duplicateNodes, readClip, clipText } from './clipboard.js';
@@ -175,6 +176,12 @@ async function boot() {
       say(`Moved the POI to ${pick.name}, ${pick.region} (pixel ${pick.px}, ${pick.py}), at the middle of the place.`);
       viewport?.frameSelection();
     },
+    liveView() {
+      if (!getDoc()) { say('Open a POI first.'); return; }
+      if (!live.supported()) { say('Live view needs a browser with BroadcastChannel.'); return; }
+      live.open();
+      say('Live view: the game opened in another tab with this draft over the real world. Edits here appear there a moment later. Move the body with WASD there; "Live view" again brings it back to the POI.');
+    },
     gameFiles: async () => { const n = await pickGameFolder(); if (!n) { say('No game files were found in that folder. Pick the ARENA2 folder (it holds ARCH3D.BSA and WOODS.WLD).'); return; } say(`Kept ${n} game files in this browser. Reloading to read them.`); setTimeout(() => location.reload(), 600); },
     importPack: () => transfer.importPack(),
     importGlb: () => transfer.importGlb(),
@@ -268,7 +275,8 @@ async function boot() {
   let pending = false;
   function queue() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; refresh(); }); }
   function refresh() { alive(); toolbar.render(); hierarchy.render(); inspector.render(); bottom.render(); viewport?.dirty(); if (S.view === '2d') c2d.draw(); if (S.view === 'dm') dmPanel?.render(); }
-  edit.onChange(queue); api.onChange(queue);
+  const live = createLiveLink({ getDoc: () => getDoc(), getId: () => S.docId, getRev: () => (S.docId ? edit.entryOf(S.docId)?.rev ?? 0 : 0), getAuth: () => api.bearer() });
+  edit.onChange(() => { queue(); live.changed(); }); api.onChange(queue);
 
   // ── keyboard and drops ──
   document.addEventListener('keydown', (e) => {
