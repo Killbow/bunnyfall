@@ -69,6 +69,7 @@ import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again 
 import { t } from '../systems/textManager.js';   // L10N4: the Stores' words in the player's language
 import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN: a page's day turns at its own moment past midnight
+import { planOf, inputsOf } from './craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
 
 /** Where this device keeps the acts whose answers did not come: { [account|character]: { harvests, withdrawals } }. */
 export const PROF_KEPT_KEY = 'prof1.kept';
@@ -182,6 +183,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     made: /** @type {{ crafts: Set<string>, works: Set<string>, brews: Set<string> }|null} */ (null),
     /** MASTER-ART: whether today's Master's work is made (null unknown - an older service), and the last one's answer */
     master: /** @type {{ made: boolean|null, last: any }} */ ({ made: null, last: null }),
+    focus: /** @type {{ crafts: string[], until: number|null }} */ ({ crafts: [], until: null }),   // BUNNYFALL CRAFTING REWORK
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -319,7 +321,10 @@ export function createProfBook({ door, storage = null, character = () => null, n
     state.made = madeOf(data?.made);   // CRAFT-HALL
     // MASTER-ART: the day's work as the service says it; the last one's card kept for its own character alone
     state.master = { made: typeof data?.master?.made === 'boolean' ? data.master.made : null, last: was === state.character ? state.master.last : null };
+    applyFocus(data?.focus);
   }
+  /** BUNNYFALL CRAFTING REWORK: the Focus as the service says it. */
+  function applyFocus(f) { state.focus = { crafts: Array.isArray(f?.crafts) ? f.crafts.filter((x) => typeof x === 'string') : [], until: Number.isFinite(f?.until) ? f.until : null }; }
   /** CRAFT-HALL: the state's `made` as Sets, or null when the service sent none. */
   function madeOf(m) {
     if (!m || typeof m !== 'object') return null;
@@ -457,6 +462,19 @@ export function createProfBook({ door, storage = null, character = () => null, n
     closed(key) { return state.closed.get(key) === dayOf(now()); },
     /** A track as the service last said it (never null: a profession not worked yet is at nothing). */
     /** A track as the service said it - CRAFT3: a discipline's its craft's ('jewelcrafting' the Smithing track). */
+    /** BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus, and when a drop is free again (seconds, or null). */
+    focus() { return { crafts: [...state.focus.crafts], until: state.focus.until }; },
+    isFocus(profession) { return state.focus.crafts.includes(trackOf(profession)); },
+    /** Pledge `crafts` (at most two). Answers the service's answer; the Focus moves with it. */
+    async chooseFocus(crafts) {
+      const c = character();
+      if (!c) return { ok: false, error: 'prof-character' };
+      const origin = slot();
+      const r = await ask(() => door.focus(c, crafts), origin);
+      if (origin !== slot()) return { ...r, elsewhere: true };
+      if (r?.ok) applyFocus(r.data?.focus); else shutBy(r);
+      return r;
+    },
     track(profession) {
       const p = trackOf(profession);
       const t = state.tracks.get(p);
@@ -857,7 +875,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
      * works before it done (`refined`). `chain: false` asks none.
      * @returns {Promise<{ ok: boolean, data?: any, error?: string, kept?: boolean, elsewhere?: boolean, refined?: { id: string, count: number, xp: number, made: number }[] }>}
      */
-    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true, master = null } = {}, mint) {
+    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true, master = null, form = null, picks = null } = {}, mint) {
       if (_craftBusy) return { ok: false, error: 'prof-busy' };
       const key = slot();
       const c = character();
@@ -865,7 +883,9 @@ export function createProfBook({ door, storage = null, character = () => null, n
       _craftBusy = (async () => {
         // BAG1: what the Stores lack, from the bag and the pack first - the anvil's route spends the Stores
         const r0 = recipeById(recipe);
-        const inputs = !r0 ? [] : Array.isArray(master) ? recipeInputs(r0)   // MASTER-ART: a Master's work spends its recipe's own goods, no stand-in
+        const plan = form ? planOf(form, picks) : null;   // BUNNYFALL CRAFTING REWORK: a craft by form and picks - the plan's inputs, the legacy recipe its id
+        if (form && (!plan?.ok || plan.legacy?.id !== recipe)) return { ok: false, error: plan?.error ?? 'craft-recipe' };
+        const inputs = plan ? inputsOf(plan, { joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true }) : !r0 ? [] : Array.isArray(master) ? recipeInputs(r0)   // MASTER-ART: a Master's work spends its recipe's own goods, no stand-in
           : recipeInputs(r0, { heartwood: heartwood === true, joiner: book.track(r0.profession ?? 'smithing').specs?.[50] === 'joiner', cracked: cracked === true });
         // CRAFT1: the chain's works first, their products kept in the Stores for the craft
         /** @type {{ id: string, count: number, xp: number, made: number }[]} */
@@ -902,6 +922,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
           ...(lines ? { master: lines } : {}),   // MASTER-ART: a Master's work, its lines chosen
           fee: Number.isSafeInteger(fee) && fee > 0 ? fee : 0, ...(Number.isInteger(dye) ? { dye } : {}),   // PROF7: a garment's dye
           ...(Number.isSafeInteger(seat) && seat >= 0 ? { seat } : {}),   // SEAT2b part two: the held town the station stands in (its crafting halls' steps)
+          ...(plan ? { form, picks: plan.picks } : {}),   // BUNNYFALL CRAFTING REWORK: kept with the craft, asked again as made
           ...(cracked === true ? { cracked: true } : {}) };   // PROF10: a Lapidary's Siege-cracked Gem for the piece's gem
         const kept = keptOf(key);
         kept.crafts.push(w);
@@ -1370,6 +1391,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
   async function craftOne(w, key, mint) {
     const r = await ask(() => (w.brew === true   // PROF12: a brew kept as a craft is
       ? door.brew(w.character, w.recipe, w.keys, w.rid, Number.isSafeInteger(w.seat) ? w.seat : null)
+      : typeof w.form === 'string' ? door.make(w.character, w.form, w.picks, w.clean, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true)   // BUNNYFALL CRAFTING REWORK
       : Array.isArray(w.master) ? door.master(w.character, w.recipe, w.master, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null)   // MASTER-ART
       : door.craft(w.character, w.recipe, w.clean, w.name, w.rid, w.heartwood === true, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true)), key);   // PROF10: the cracked gem
     // AUDIT 32 B5: heard after a switch, the craft waits kept for its own character's settle - asked again there, the

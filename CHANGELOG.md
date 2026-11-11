@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Crafting is reworked: you now pick the item and the materials for each part (blade, flux, grip, lining), and the materials decide the best quality the piece can reach. Pledge up to two crafts as your Focus for full experience and Masterwork; other crafts earn half and top out at Superior. All five crafting ranks start again; items you already own stay as they are.
 - Places built with the World Builder can now come alive: people walk their patrol routes, talk with you through branching conversations, and trade with you; stepping into an area can start an ambush; doors, chests and switches can be used. Every trade and reward is checked and paid by the server, once.
 - The POI editor can copy, cut and paste: Ctrl+C, Ctrl+X and Ctrl+V on a part, a light or a whole POI, into the same POI or another one. The in-game POI editor (`/play/?editor`) stays alongside the World Builder. A builder in it cannot be hurt and meets no foes, so edits are never lost to a fight; the World Builder's "Live view" shows its drafts in the same world.
 

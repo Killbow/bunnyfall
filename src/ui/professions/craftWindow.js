@@ -13,6 +13,9 @@ import { DYE_NAMES } from '../../characters/dyes.js';
 import { getPref } from '../../systems/uiPrefs.js';
 import { materialsText } from '../salvageMaterials.js';
 import { mountAct } from './craftActs.js';
+import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
+import { statsOf } from '../../net/craft/materialStats.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, FOCUS_MAX } from '../../net/craft/craftLaw.js';
 import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 
@@ -34,8 +37,8 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, tab: 'craft', family: null, pick: null, variant: null, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
-export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, act: null, busy: false, word: null, count: 1, query: '' }); }
+const _cw = { station: null, form: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
 const CSS = `
@@ -202,7 +205,7 @@ export function drawCraftWindow(detail, rerender, p, station, toOld) {
   const say = (text) => { _cw.word = text; _cw.busy = false; rerender(); };
   const run = async (fn) => { if (_cw.busy) return; _cw.busy = true; rerender(); try { const r = await fn(); say(r?.text ?? 'Done.'); } catch { say('That did not go through. Try again.'); } };
 
-  if (_cw.tab === 'craft') drawCraft(root, rerender, p, station, run);
+  if (_cw.tab === 'craft') (S.prof === 'cooking' ? drawCraftOld : drawCraft)(root, rerender, p, station, run);   // Cooking keeps its recipes until its own rework
   else if (_cw.tab === 'upgrade') drawUpgrade(root, p, station, run);
   else if (_cw.tab === 'salvage') drawSalvage(root, p, run);
   else if (_cw.tab === 'refine') drawRefine(root, rerender, p, station, run);
@@ -214,7 +217,7 @@ export function drawCraftWindow(detail, rerender, p, station, toOld) {
   detail.append(root);
 }
 
-function drawCraft(root, rerender, p, station, run) {
+function drawCraftOld(root, rerender, p, station, run) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const prof = S.prof;
@@ -243,12 +246,12 @@ function drawCraft(root, rerender, p, station, run) {
   }
   body.append(col);
   const card = h('div', 'cw-card');
-  if (pick) drawRecipeCard(card, rerender, p, station, pick, rank, specs, run);
+  if (pick) drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run);
   body.append(card);
   root.append(body);
 }
 
-function drawRecipeCard(card, rerender, p, station, pick, rank, specs, run) {
+function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const v = pick.variants.find((x) => x.r.id === _cw.variant) ?? pick.best;
@@ -318,6 +321,195 @@ function drawRecipeCard(card, rerender, p, station, pick, rank, specs, run) {
   const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
   const ready = v.st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
   const craft = (clean) => run(() => p.craft(r.id, { clean, heartwood, ...(r.dyes ? { dye } : {}) }));
+  if (_cw.act) { card.append(_cw.act.el); return; }
+  const actions = h('div', 'cw-actions');
+  const gentle = getPref('gentleActs') === true;
+  actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
+    if (gentle) { craft(false); return; }
+    _cw.act = mountAct(S.act, actOptions(S.act, r, rank, p), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
+    rerender();
+  }, !ready));
+  if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
+  card.append(actions);
+}
+
+// ─── THE CRAFT TAB BY FORM AND PICKS (BUNNYFALL CRAFTING REWORK) ─────────────────────────────
+
+const STAT_WORDS = Object.freeze({ h: 'Hardness', t: 'Toughness', l: 'Lightness', a: 'Affinity' });
+const statLine = (s) => (s ? `Hardness ${s.h} · Toughness ${s.t} · Lightness ${s.l} · Affinity ${s.a}` : '');
+const weightLine = (w) => Object.entries(STAT_WORDS).filter(([k]) => w?.[k] > 0).sort((a, b) => w[b[0]] - w[a[0]]).map(([k, n]) => `${n} ${Math.round(w[k] * 100)}%`).join(', ');
+
+/** A plan's standing at the player's rank and Stores: 'ready', 'missing' (what is short) or 'locked'. */
+function planStanding(plan, book, rank, specs) {
+  const r = plan.legacy;
+  if (r.later || !recipeOpen(r, rank, specs)) return { s: 'locked', short: [] };
+  const short = inputsOf(plan, { joiner: specs?.[50] === 'joiner' }).filter((i) => workOf(book, i.key) < i.n).map((i) => ({ key: i.key, n: i.n - workOf(book, i.key) }));
+  return short.length ? { s: 'missing', short } : { s: 'ready', short: [] };
+}
+
+/** The picks the card starts from: an opened slot its old default, the primary the best material the player can make it of. */
+function startPicks(form, book, rank, specs) {
+  const picks = {};
+  for (const slot of form.slots) {
+    if (slot.optional) continue;
+    picks[slot.id] = slot.defaultKey;
+  }
+  const primary = form.slots[0];
+  const ok = [...primary.options].reverse().find((o) => { const pl = planOf(form.id, { ...picks, [primary.id]: o }); return pl.ok && planStanding(pl, book, rank, specs).s === 'ready'; });
+  if (ok) picks[primary.id] = ok;
+  return picks;
+}
+
+function drawFocus(root, rerender, p) {
+  const book = p.book;
+  if (typeof book?.focus !== 'function' || typeof book.chooseFocus !== 'function') return;
+  const f = book.focus();
+  const box = h('div', 'cw-focus');
+  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior.`));
+  const chips = h('div', 'cw-chips');
+  for (const c of ['smithing', 'building', 'outfitting', 'provisioning', 'enchanting']) {
+    const on = f.crafts.includes(c);
+    const full = !on && f.crafts.length >= FOCUS_MAX;
+    chips.append(button(`cw-chip${on ? ' cw-on' : ''}`, `${c[0].toUpperCase()}${c.slice(1)}${on ? ' ✓' : ''}`, async () => {
+      if (_cw.busy || full) return;
+      const next = on ? f.crafts.filter((x) => x !== c) : [...f.crafts, c];
+      _cw.busy = true; rerender();
+      const r = await book.chooseFocus(next).catch(() => null);
+      _cw.busy = false;
+      _cw.word = r?.ok ? (on ? 'Focus dropped. Dropping another waits a week.' : `${c[0].toUpperCase()}${c.slice(1)} is a Focus craft.`)
+        : r?.error === 'prof-focus-wait' ? `You can drop a Focus craft again ${new Date(r.until * 1000).toLocaleDateString()}.` : 'That did not go through. Try again.';
+      rerender();
+    }, full));
+  }
+  box.append(chips);
+  root.append(box);
+}
+
+function drawCraft(root, rerender, p, station, run) {
+  const S = CW_STATIONS[station];
+  const book = p.book;
+  const prof = S.prof;
+  const rank = rankOf(book, prof), specs = specsOf(book, prof);
+  drawFocus(root, rerender, p);
+  const forms = FORMS.filter((f) => f.discipline === prof && f.kind !== 'dish');
+  const standingOf = (f) => {
+    const top = [...f.slots[0].options].map((o) => planOf(f.id, { ...startPicks(f, book, rank, specs), [f.slots[0].id]: o })).filter((x) => x.ok).map((x) => ({ x, st: planStanding(x, book, rank, specs) }));
+    const best = top.filter((t) => t.st.s === 'ready').at(-1) ?? top.filter((t) => t.st.s !== 'locked').at(-1) ?? top[0];
+    return best?.st ?? { s: 'locked', short: [] };
+  };
+  const rows = forms.map((f) => ({ f, st: standingOf(f) }));
+  const families = [...new Set(forms.map((f) => f.family))];
+  if (families.length > 1) {
+    const chips = h('div', 'cw-chips');
+    chips.append(button(`cw-chip${_cw.family == null ? ' cw-on' : ''}`, 'All', () => { _cw.family = null; rerender(); }));
+    for (const f of families) chips.append(button(`cw-chip${_cw.family === f ? ' cw-on' : ''}`, familyWord(f), () => { _cw.family = f; rerender(); }));
+    root.append(chips);
+  }
+  const list = rows.filter((x) => _cw.family == null || x.f.family === _cw.family)
+    .sort((a, b) => ORDER[a.st.s] - ORDER[b.st.s] || String(a.f.name).localeCompare(String(b.f.name)));
+  const body = h('div', 'cw-body');
+  const col = h('div', 'cw-list');
+  if (!list.length) col.append(h('div', 'cw-empty', 'Nothing to make here yet.'));
+  const pick = list.find((x) => x.f.id === _cw.pick) ?? list[0] ?? null;
+  for (const x of list) {
+    const row = button(`cw-row cw-${x.st.s}${pick === x ? ' cw-on' : ''}`, '', () => { if (_cw.act) return; _cw.pick = x.f.id; _cw.picks = {}; rerender(); });
+    row.append(h('b', null, x.f.name), h('span', 'cw-state', x.st.s === 'ready' ? 'Ready' : x.st.s === 'missing' ? `Missing ${x.st.short.map((s) => `${s.n} ${p.name(s.key)}`).join(', ')}` : `Needs ${prof} rank ${x.f.rankMin}`));
+    col.append(row);
+  }
+  body.append(col);
+  const card = h('div', 'cw-card');
+  if (pick) drawFormCard(card, rerender, p, station, pick.f, rank, specs, run);
+  body.append(card);
+  root.append(body);
+}
+
+function drawFormCard(card, rerender, p, station, form, rank, specs, run) {
+  const S = CW_STATIONS[station];
+  const book = p.book;
+  if (_cw.form !== form.id) { _cw.form = form.id; _cw.picks = {}; }
+  const base = startPicks(form, book, rank, specs);
+  const chosen = { ...base, ..._cw.picks };
+  for (const slot of form.slots) if (slot.optional && _cw.picks[slot.id] == null) delete chosen[slot.id];
+  card.append(h('h3', null, form.name));
+  const wl = weightLine(form.weights);
+  if (wl) card.append(h('p', 'cw-note', `This item wants: ${wl}. Better-suited materials raise the best quality it can reach.`));
+  for (const slot of form.slots) {
+    if (slot.role === 'fixed') continue;
+    card.append(h('div', 'cw-label', `${slot.label}${slot.optional ? ' (optional)' : ''}`));
+    const options = slot.options;
+    const cur = chosen[slot.id] ?? null;
+    const nameOf = (o) => `${p.name(o)}${workOf(book, o) >= slot.n ? ' ✓' : ` (${workOf(book, o)})`}`;
+    if (options.length > 12) {
+      const sel = h('select', 'cw-search');
+      if (slot.optional) { const o = h('option', null, 'None'); o.value = ''; sel.append(o); }
+      for (const o of options) { const e = h('option', null, nameOf(o)); e.value = o; sel.append(e); }
+      sel.value = cur ?? '';
+      sel.disabled = !!_cw.act;
+      sel.onchange = () => { _cw.picks = { ..._cw.picks, [slot.id]: sel.value || null }; rerender(); };
+      card.append(sel);
+    } else {
+      const chips = h('div', 'cw-chips');
+      if (slot.optional) chips.append(button(`cw-chip${cur == null ? ' cw-on' : ''}`, 'None', () => { if (_cw.act) return; _cw.picks = { ..._cw.picks, [slot.id]: null }; rerender(); }));
+      for (const o of options) {
+        const c = button(`cw-chip${o === cur ? ' cw-on' : ''}${workOf(book, o) < slot.n ? ' cw-locked' : ''}`, nameOf(o), () => { if (_cw.act) return; _cw.picks = { ..._cw.picks, [slot.id]: o }; rerender(); });
+        c.title = statLine(statsOf(o));
+        chips.append(c);
+      }
+      card.append(chips);
+    }
+    if (cur && statsOf(cur)) card.append(h('p', 'cw-note', statLine(statsOf(cur))));
+  }
+  const asked = Object.fromEntries(Object.entries(chosen).filter(([, v]) => v != null));
+  const plan = planOf(form.id, asked);
+  if (!plan.ok) { card.append(h('p', 'cw-note', plan.error === 'craft-recipe' ? 'No one makes it of that.' : 'Pick the materials.')); return; }
+  const r = plan.legacy;
+  const st = planStanding(plan, book, rank, specs);
+  const focus = typeof book.isFocus === 'function' ? book.isFocus(S.prof) : true;
+  const pot = potentialOfPlan(plan);
+  const cap = qualityCap(plan, focus);
+  const inputs = inputsOf(plan, { joiner: specs?.[50] === 'joiner' });
+  card.append(h('div', 'cw-label', 'Needs, from your Stores, bag and pack'));
+  const box = h('div', 'cw-inputs');
+  for (const i of inputs) {
+    const have = workOf(book, i.key);
+    const line = h('div', `cw-input${have < i.n ? ' cw-short' : ''}`);
+    line.append(h('span', null, `${i.n} ${p.name(i.key)}`), h('span', 'cw-have', `have ${have}`));
+    box.append(line);
+  }
+  card.append(box);
+  if (r.dyes === true) {
+    const sel = h('select', 'cw-search');
+    const opt = (text, value) => { const o = h('option', null, text); o.value = value; return o; };
+    sel.append(opt('Undyed', ''));
+    for (const d of GARMENT_DYES) sel.append(opt(DYE_NAMES[d] ?? String(d), String(d)));
+    sel.value = _cw.dye == null ? '' : String(_cw.dye);
+    sel.onchange = () => { _cw.dye = sel.value === '' ? null : Number(sel.value); };
+    const lab = h('label', 'cw-note', 'Dye ');
+    lab.append(sel);
+    card.append(lab);
+  }
+  if (pot) card.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
+  if (cap < (pot?.quality ?? 4)) card.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
+  if (rollsQuality(r)) {
+    const odds = qualityOdds(rank - r.rank);
+    card.append(h('div', 'cw-label', `Quality odds at your rank, held at ${QUALITY_NAMES[cap]} (a clean minigame adds a step)`));
+    const bar = h('div', 'cw-odds');
+    const key = h('div', 'cw-odds-key');
+    odds.forEach((o, q) => {
+      if (!(o > 0)) return;
+      const seg = h('span', `cw-q${q}`); seg.style.width = `${o}%`; bar.append(seg);
+      const k = h('span'); k.append(h('span', `cw-sw cw-q${q}`), globalThis.document.createTextNode(`${QUALITY_NAMES[q]} ${o}%`)); key.append(k);
+    });
+    card.append(bar, key);
+  }
+  const fee = valueFee(recipeValue(r.id), feeOf(p, station));
+  card.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
+  if (st.s === 'locked') card.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
+  const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
+  if (!purseOk) card.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
+  const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
+  const ready = st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
+  const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(r.dyes ? { dye } : {}) }));
   if (_cw.act) { card.append(_cw.act.el); return; }
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
