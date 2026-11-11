@@ -474,7 +474,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
      * keeps its own (F5, F12)".
      * @param {{ code: string, key?: string, ctrlKey?: boolean, metaKey?: boolean, altKey?: boolean, shiftKey?: boolean, repeat?: boolean }} e
      * @param {any} cam
-     * @param {{ save?: () => void, del?: () => void, duplicate?: () => void }} [acts] the UI's own acts
+     * @param {{ save?: () => void, del?: () => void, duplicate?: () => void, copy?: () => void, cut?: () => void, paste?: () => void }} [acts] the UI's own acts
      */
     keyDown(e, cam, acts = {}) {
       if (!on) return false;
