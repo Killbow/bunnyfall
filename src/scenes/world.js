@@ -818,6 +818,11 @@ import { call as accountCall } from '../net/accountClient.js';   // POI v2: a li
 import { createPoiFeed, browserPoiCache } from '../poi/poiFeed.js';   // POI-2: the approved set, read live and kept
 import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
 import { poiMapMarks } from '../ui/poi/poiMapMark.js';   // POI-2: their marks on both world maps
+import { createPoiEdit } from '../poi/poiEdit.js';   // POI-3: the editor's documents and their undo
+import { createPoiEditorHost, createPoiEditorRouter, POI_EDITOR_EVENTS, POI_PICK_REACH } from './poiEditorHost.js';   // POI-3: the editor's eye, cursor and handles; AUDIT POI E2/E14/E16: its input, routed
+import { holdHotbarKeys } from '../ui/enhanced/enhancedHotbar.js';   // AUDIT POI E1: the bar's keys stood down under the editor
+import { createPoiEditorPanel } from '../ui/poi/poiEditorPanel.js';   // POI-3: its panel
+import { PoiGizmoPass } from '../render/poiGizmoPass.js';   // POI-3: its lines over the world
 import { poiMe } from '../poi/poiService.js';   // POI-3: the store's word on who may build
 import { createDataPipeline } from './dataPipeline.js';
 import { createWorldModes } from './worldModes.js';
@@ -1368,7 +1373,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const loansForgiven = realmBoot ? forgiveLoans(bootSnapRead) : null;   // LOAN-AMNESTY: the Empire's amnesty, into the one parse before it is restored and before the join settles a loan (systems/banking.js)
   const releveled = realmBoot && bootSnapRead ? crossLeveling(bootSnapRead) : false;   // LEVEL-ONLINE-3: an Oblivion-levelling realm character onto Daggerfall's leveling, into the one parse before it is restored (systems/realmCustoms.js)
   const empireFolded = realmBoot ? foldEmpireAccounts(bootSnapRead) : null;   // EMPIRE-ACCOUNT: every branch's gold into the Empire's one account, before it is restored and before the join settles a loan (systems/banking.js)
-  if (refuseOnlinePowerFlags(params).length) publishBootParams(params);   // REALM P0.1: ?shot, ?fly, ?nofoes and the rest - dropped online before anything below reads them
+  if (refuseOnlinePowerFlags(params).length) publishBootParams(params);
+  if (params.has('editor') && !params.has('online')) params.set('nofoes', '1');   // POI editor session (offline only): no hostile foes while a builder edits   // REALM P0.1: ?shot, ?fly, ?nofoes and the rest - dropped online before anything below reads them
   const regionName = params.get('region') || 'Daggerfall';
   const locationName = params.get('loc') || 'Daggerfall';
   // WORLD5 (Mac: "the shared clock and weather, and the quest clocks stood down online"): ONLINE, THE WORLD'S CLOCK IS
@@ -1777,6 +1783,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let lefay = null;   // LEFAY1: the monument to Julian LeFay (scenes/lefayMonumentHost.js), made beside the Sigil Broker; read late (a transition, a load, the frame)
   let poiHost = null;   // POI-2: the approved POIs (scenes/poiHost.js), made beside the monument; read late (a transition, a load, the frame)
   let poiFeed = null;   // POI-2: the approved set they are read from (poi/poiFeed.js) - the editor's drafts laid over it (POI-3)
+  let poiEditor = null;   // POI-3: the editor in the world (scenes/poiEditorHost.js) - `?editor` alone, a builder's; read late (the frame)
+  let poiEditorLeave = null;   // AUDIT POI E14: its door out (mountPoiEditor's exit) - a death leaves it, read late as the editor is
   let merchantYards = null;   // MERCHANT-YARDS: the towns' Stables and Wagon Yards (scenes/merchantYardsHost.js), made beside the monument; read late as it is
   let portHost = null;   // SHIPYARDS: the port towns' shipyards and lighthouses (scenes/portHost.js), made beside the yards; read late as they are
   let witches = null;   // WITCH1: the Witches' Festival in the streets (scenes/witchesHost.js), made before the modes host; read late as it is
@@ -6581,6 +6589,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // door in playerEntity.js; the door calls this. Registered here rather than
   // passed down four call chains, because there is one player and one death.
   setDeathPresenter(() => {
+    poiEditorLeave?.('back');   // AUDIT POI E14: a death ends the POI editor - the eye back in the body the sequence sinks from, the motor its own again
     if (csaRuntime) csaCall(() => csaRuntime.OnPlayerDeath());   // CSA-D: PlayerEntity.OnDeath -> ComeSailAway.OnPlayerDeath
     // DC1: the sequence starts from the LIVE eye and capsule, the way
     // PlayerEntity_OnDeath reads mainCamera.localPosition.y and
@@ -17767,8 +17776,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // AUDIT POI E1: and the POI editor's - both listeners are the window's capture phase from boot, ahead of the editor's
   // own (added when it opens), so its stopImmediatePropagation never reached them: its Ctrl+Y redo (Y is FreeMouse), a
   // plain Y and Enter took the free cursor away and asked for the pointer lock over the editor; the walk toggle flipped
-  bindCursorToggle(canvas, () => gamePaused() || (modes?.modalWindowUp?.() ?? false) || !!travelView?.active, (e) => actionsOf(e, keys));   // TV1: the view's cursor is its own   // KB1: the host's held Set, so a combo'd FreeMouse resolves
-  bindWalkMode((e) => actionsOf(e, keys), () => gamePaused() || (modes?.modalWindowUp?.() ?? false));   // PADWALK: walk mode on and off, one button (player/walkMode.js)
+  bindCursorToggle(canvas, () => gamePaused() || (modes?.modalWindowUp?.() ?? false) || !!travelView?.active || !!poiEditor?.active(), (e) => actionsOf(e, keys));   // TV1: the view's cursor is its own   // KB1: the host's held Set, so a combo'd FreeMouse resolves
+  bindWalkMode((e) => actionsOf(e, keys), () => gamePaused() || (modes?.modalWindowUp?.() ?? false) || !!poiEditor?.active());   // PADWALK: walk mode on and off, one button (player/walkMode.js)
   // AUDIT 24 (wave 37) - THE LIVE CRASH. `modes` is a VAR, deliberately
   // hoisted so these two listeners can be installed HERE and still reach
   // the mode machine that is not built until ~600 lines below. `var`
@@ -25556,6 +25565,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
     auth: () => poiLive?.auth() ?? storedSession(appStorage())?.secret ?? null,   // POI-3 (the live view's bearer first): a builder's drafts' assets, asked with the builder's bearer
     getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
+    collideDrafts: () => poiEditor?.collideDrafts() ?? true,   // POI-3: a draft dragged files no collider until the drag ends
     // POI v2 (World Builder M5): a POI's patrols, talk, trades, objects and encounters - its module loaded only once one stands
     dm: () => import('../poi/poiDmRuntime.js').then((m) => m.createPoiDm({
       say: (line) => townTalk.say(line),
@@ -25576,6 +25586,136 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         if (!playerSpawned || _mode() !== 'exterior') { if (tries < 40) setTimeout(() => poiLive?.goTo?.(p, tries + 1), 1500); return; }
         _teleportToPixel(p.px, p.py, [p.x, player.pos[1] + 1, p.z], { grounded: true }).catch((e) => console.warn('[poi] live view', e?.message ?? e));
       } });
+  }
+  if (params.has('editor')) startPoiEditor();   // POI-3: `?editor` (refused online - systems/online/onlineLane.js): a builder's editor over this world
+  /** POI-3: THE EDITOR'S DOOR (bible/06-Systems/POI-Editor-Arc.md POI-3b) - the store asked who this account is, and only a
+   *  builder's editor is made (the store asks the role again at every write: this is the door's courtesy, not its lock). */
+  function startPoiEditor() {
+    const io = () => { const s = storedSession(appStorage()); return s ? { fetch: (u, i) => fetch(u, i), base: serviceBase(appStorage()), secret: s.secret } : null; };
+    const first = io();
+    if (!first) { townTalk.say(accountRefusalText('no-session')); return; }
+    poiMe(first).then((r) => {
+      if (!r.ok) { townTalk.say(accountRefusalText(r.error)); return; }
+      if (!r.data.builder) { townTalk.say(accountRefusalText('poi-not-builder')); return; }
+      mountPoiEditor(r.data, io);
+    }, (e) => console.warn('[poi] the editor\'s door', e?.message ?? e));
+  }
+  /** POI-3: THE EDITOR MADE - its documents, its eye and handles over this host's frame, its panel, its lines. The body
+   *  stands where the builder left it while the editor is open: the motor held (frameMotor), no blow lands on it (the
+   *  damage fold), the eye the world's own `cam` so the streamer and the floating origin follow it as they follow the dev
+   *  fly-cam. Leaving: back to the body (fetched by a teleport if its pixel went while the eye was away), or stood on
+   *  what is under the eye. */
+  function mountPoiEditor(me, io) {
+    const edit = createPoiEdit();
+    const S = TERRAIN_SIZE;
+    /** A scene point as its map pixel and the spot in that pixel's frame (streamingWorld.js pixelTranslation, inverted). */
+    const sceneToPixel = (p) => {
+      const t0 = state.pixelTranslation(0, 0, [0, 0, 0]);
+      const px = Math.floor((p[0] - t0[0]) / S), py = Math.ceil((t0[2] - p[2]) / S);
+      return { px, py, x: p[0] - (t0[0] + px * S), z: p[2] - (t0[2] - py * S) };
+    };
+    let panel = null;
+    let openedAt = restoresSoFar();   // AUDIT POI E14: the loads made when the editor last opened (save.js restoresSoFar: every load passes its one door)
+    const editor = createPoiEditorHost({
+      edit, feed: poiFeed, host: poiHost,
+      view: () => (_lastProj && _lastView ? { proj: _lastProj, view: _lastView, eye: cam.pos, fovY: fieldOfView() + climbFeel.fovRad(), w: canvas.clientWidth, h: canvas.clientHeight, rect: worldViewportRect(canvas.clientWidth, canvas.clientHeight), canvasRect: canvas.getBoundingClientRect() } : null),
+      translation: (px, py, out) => state.pixelTranslation(px, py, out),
+      sceneToPixel,
+      // the ground under a ray, or a model standing on it, whichever is nearer (a part placed on a roof stands on the roof)
+      groundHit: (o, d) => {
+        const g = groundHit(o, d, surfaceAt);
+        const m = collider.raycastHit(o, d, Math.min(g.dist, POI_PICK_REACH));
+        return m && m.dist < g.dist ? { point: [o[0] + d[0] * m.dist, o[1] + d[1] * m.dist, o[2] + d[2] * m.dist], dist: m.dist } : g;
+      },
+      surfaceAt: (x, z) => surfaceAt(x, z),
+      onChange: () => panel?.refresh(),
+      pass: new PoiGizmoPass(renderer.gl),
+      actionOf: (e) => actionOf(e, keys),   // the eye flies by the registry's actions - the builder's own bindings
+      viewport: () => renderer.worldViewportPx,   // AUDIT POI E18: the lines' pixels the world pass's own (the strip above a docked large HUD)
+      // AUDIT POI E14: THE WORLD GONE FROM UNDER IT - a mode changed (a building or a dungeon entered by any door: the
+      // editor's listener ate every key in it, the motor held on the way back out) or a game loaded: the editor left,
+      // its eye and body where the change put them
+      gone: () => _mode() !== 'exterior' || restoresSoFar() !== openedAt,
+      onGone: () => exit('away'),
+    });
+    registerPlayerDamageMod('poi-editor', () => 0);   // the editor's builder takes no blow for the whole `?editor` session (offline only): panel open or closed, edits are never lost to a fight
+    let from = null, cursorWas = false, hotbarKeysBack = null;
+    // the editor's input (scenes/poiEditorHost.js createPoiEditorRouter): the window's events in their capture phase, and a
+    // key typed at the panel's own controls (AUDIT POI E2) on the panel's root
+    const route = createPoiEditorRouter({ editor, canvas, cam, acts: () => panel.acts, owns: (target) => panel.owns(target), overlayUp: () => townTalk.overlayActive, textEntry: isTextEntryTarget, win: window });
+    const onEvent = route.onEvent;
+    /** AUDIT POI E3: the world's held keys and its key edges let go - a key held as the editor opened stayed held after it
+     *  closed (the editor ate its keyup, and only the world's own keyup empties the set): the body walked on its own. */
+    const worldKeysUp = () => { keys.clear(); for (const ring of Object.values(latch.edge)) ring.clear(); };
+    function enter() {
+      if (editor.active()) return;
+      // AUDIT POI E12: on foot alone - a bench sets the eye on itself every frame after the editor's, a saddle's rig draws
+      // over the view, and a helm is a ship's
+      if (_mode() !== 'exterior' || travelView?.active || !isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { townTalk.say(t('poi.editor.outdoorsOnly', 'The POI editor opens outdoors, on foot.')); return; }
+      from = { yaw: cam.yaw, pitch: cam.pitch };
+      openedAt = restoresSoFar();
+      cursorWas = cursorActive(); setCursorActive(true); releaseLook();
+      hotbarKeysBack = holdHotbarKeys();   // AUDIT POI E1: the bar's digits are not the body's while the editor is open
+      worldKeysUp();
+      for (const ty of POI_EDITOR_EVENTS) window.addEventListener(ty, onEvent, { capture: true, passive: false });
+      editor.enter(); panel.setOn(true);
+    }
+    /** Leaving: 'back' to the body, 'here' onto the ground under the eye, 'away' as the world changed under it (a mode, a
+     *  load - the eye and the body are where that put them). */
+    function exit(how) {
+      if (!editor.active()) return;
+      let landing = null;
+      if (how === 'here' && walkMode) {
+        // stood on what is under the eye - the ground, a roof, a POI's own floor
+        const below = surfaceAt(cam.pos[0], cam.pos[2]);
+        // AUDIT POI E13: over ground not yet built, refused - the landing reached 15 m, found no floor and stood the body in
+        // the air at the eye (the editor's guard against blows already down: the fall hurt)
+        if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or exit to where you were standing.'), 'bad'); return; }
+        landing = floorLanding(collider, [cam.pos[0], cam.pos[1], cam.pos[2]], Math.max(10, cam.pos[1] - below + 5), 0);
+        // ...and the teleport's own check (UNSTUCK-OUT): a floor inside a rock is no place to stand - the nearest open ground
+        if (heldInSolid(collider, landing)) landing = openGroundNear(collider, landing[0], landing[2], { dry: (floor) => floor >= tvSeaY() }) ?? landing;
+      }
+      for (const ty of POI_EDITOR_EVENTS) window.removeEventListener(ty, onEvent, { capture: true });
+      editor.exit(); panel.setOn(false);
+      hotbarKeysBack?.(); hotbarKeysBack = null;
+      worldKeysUp();   // AUDIT POI E3: the keys held under the editor are not the world's on the way out
+      if (landing) {
+        player.spawn(landing[0], landing[1], landing[2]); playerSpawned = true;
+      } else if (from && how !== 'away') {
+        cam.yaw = from.yaw; cam.pitch = from.pitch;
+        const at = sceneToPixel(player.pos);
+        // the body's pixel went while the eye was away: fetched back by the one door that rebuilds a place
+        if (walkMode && !built.has(`${at.px},${at.py}`)) _teleportToPixel(at.px, at.py, [at.x, player.pos[1] + 1, at.z], { grounded: true })   /* ohTeleportToWorld's way: the pixel's own spot, the frame's height, landed on what is under it */.catch((e2) => console.warn('[poi] back to the body', e2?.message ?? e2));
+      }
+      if (walkMode && how !== 'away') cam.pos = player.eyeAt();
+      setCursorActive(cursorWas);
+      if (!cursorWas && !gamePaused() && !pointerSurfaces.size && !(modes?.modalWindowUp?.() ?? false) && !overlayOpen()) requestLook(canvas);
+    }
+    function jump() {
+      // the map, armed: the body taken to the square picked (the one door that rebuilds a place far off), the eye above it
+      const win = buildTravelMapWindow({
+        onTeleport: (pick) => {
+          const p = pick?.pixel;
+          if (!p) return;
+          _teleportToPixel(p.x, p.y, null, { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 40, player.pos[2]]; cam.pitch = -0.6; }, (e2) => console.warn('[poi] the jump', e2?.message ?? e2));
+        },
+      });
+      win?.activateTeleportationTravel();
+      if (win) townTalk.showOverlay(win);
+    }
+    /** POI-6: the eye to a POI's place (the approver's look) - the body taken there by the same door as the map's jump,
+     *  the eye south of the place and above it, looking north and down at it. */
+    function goTo(place) {
+      if (!place) return;
+      _teleportToPixel(place.px, place.py, [place.x, player.pos[1] + 1, place.z], { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 25, player.pos[2] - 35]; cam.yaw = 0; cam.pitch = -0.6; }, (e2) => console.warn('[poi] going there', e2?.message ?? e2));
+    }
+    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, dfModels: { getGpuMesh, cpuModels, getTexture, blocks }, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo });
+    for (const ty of ['keydown', 'keyup']) panel.root.addEventListener(ty, route.onPanelKey);   // AUDIT POI E2: a key at the panel's controls
+    editor.wantsOpen = (id) => { panel.open(id).catch((e2) => console.warn('[poi] opening it', e2?.message ?? e2)); };   // AUDIT POI E15: a live POI clicked in the world is opened for editing (its own open draft, else its live revision), as the outliner opens it
+    document.body.append(panel.root);
+    poiEditor = editor;
+    poiEditorLeave = exit;
+    enter();
   }
   // MERCHANT-YARDS: THE TOWNS' STABLES AND WAGON YARDS (scenes/merchantYardsHost.js) - each where its pixel's build
   // placed it (`p.merchantYards`, the location frame), carried by the live floating-origin translation; its horses Horse
@@ -32694,7 +32834,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     meterFor(renderer.gl)?.markCpu('motor');   // PERF-SIM1: the old 'sim' in parts (Dudey's readout in a live town: sim 9-16 ms of a 19-28 ms frame) - the player's motor, the activation, the walk's own hosts
 
     const frameMotor = () => {   // PERF-V8: each `// PERF-V8` statement runs as a closure of its own, so the frame stays under V8's optimizing ceiling (bible/07-Rendering/Performance-Priority.md)
-    if (walkMode) {
+    if (poiEditor?.active()) poiEditor.cameraFrame(dt, cam);   // POI-3: the editor open - its eye flies, the body stands held (the closure's one statement still: the walk and the fly-cam its else)
+    else if (walkMode) {
       // ROAD-Ar (R0): the season re-skin's hold, released the moment
       // the player's own pixel is BUILT again - the same shape as the
       // boot gate right below, which holds the motor until the start
@@ -33756,6 +33897,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       seaReach: csaHelm ? csaSeaReach(csaHelm) : 0,   // #3
     });
     if (yards?.flying()) { const c = { pos: mwv0.eye }; yards.cameraOverride(c); mwv0.eye = c.pos; }
+    if (poiEditor?.active()) mwv0.eye = [cam.pos[0], cam.pos[1], cam.pos[2]];   // POI-3: the editor's eye is the frame's, never the body's   // HOME-YARD: the decorator's free eye, while a piece is placed outside (no travel view is up then)
     egWitnessEye(mwv0);   // EG-FULL: the witness's eye, behind a living companion
     // TV1: THE TRAVEL VIEW'S EYE, when it is up - risen out of the body's own camera (`ownEye`, the one the frame would
     // draw) and blended back into it on the way down. Every reader below that asks where the picture is taken from
@@ -34049,7 +34191,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (_mode() === 'exterior') camps.ride(dt);   // DECK-CAMP: the camps on a boat's deck posed off her - after she moved, before the lights (a fire's) and the world pass
     try { quays?.frame(); } catch (e) { console.warn('[quays] pool', e?.message ?? e); }   // QUAYS: the harbours' quays stood or taken down, before the lights (their lanterns) and the world pass
     try { lefay?.frame(); } catch (e) { console.warn('[lefay] monument', e?.message ?? e); }   // LEFAY1: the monument stood where Privateer's Hold is built, its flowers in flight and laid
-    try { poiHost?.frame(); } catch (e) { console.warn('[poi] host', e?.message ?? e); }   // POI-2: the approved POIs on the built pixels - stood, placed, collided; the feed asked each minute
+    try { poiEditor?.frame(); poiHost?.frame(); } catch (e) { console.warn('[poi] host', e?.message ?? e); }   // POI-3: the editor's drafts laid over the feed first   // POI-2: the approved POIs on the built pixels - stood, placed, collided; the feed asked each minute
     try { merchantYards?.frame(); } catch (e) { console.warn('[yards] the yards', e?.message ?? e); }   // MERCHANT-YARDS: each town's Stable and Wagon Yard stood where it is built
     portFrame();   // SHIPYARDS: each port town's shipyard and lighthouse stood where it is built, before the lights (its lamp)
     witches?.frame();   // WITCH1: the town underfoot's Hearth Offerings stood, before the lights (their lanterns)
@@ -35090,6 +35232,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     frameHaze();
     renderer.drawHeld(camRight, bbUp);   // GRASS-PORTAL: the street's blended flats, over the grass behind them
     poiHost?.drawTranslucent(renderer, mwv.eye, yardCull);   // POI-2: a POI's glass and its like, after every opaque thing and the sea's top, the farthest first; AUDIT POI R4: and after the grass, the banners, the Windfall and the haze, which write depth its glass does not (RAIN-OVER-GRASS's law) - and R14: the farthest from the view's own eye
+    if (poiEditor?.drawLines(proj, view)) renderer.markForeignPass();   // POI-3: the editor's boxes where the models stand, then its handles over everything (AUDIT POI R4: over the glass too, moved with it)
     drawFalling();   // RAIN-OVER-GRASS: after the grass and the banners, before the translucent bodies and the fires
     exteriorFoes.drawVeiledBodies();   // MWNPC5c: the concealed foes' bodies, beside the peers'
     cityGuards.drawVeiledBodies();   // MWNPC6: and the watch's
@@ -35384,7 +35527,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // weapons draw OVER the mount. OnGUI puts the horse at GUI.depth 2, "behind other HUD elements & weapons"
       // (TransportManager's own comment, and EnhancedRiding.cs:234-235's), and the rig drew first, so the horse's
       // head covered the hand and the blade's root. Drawn here, after the mount and before drawHud.
-      if (walkMode && playerSpawned && !tvf) weaponRig.draw({ paralyzed });   // TV1: no hand on a camera 450 m up; POI-3: nor on the editor's eye
+      if (!poiEditor?.active()) { if (walkMode && playerSpawned && !tvf) weaponRig.draw({ paralyzed }); }   // TV1: no hand on a camera 450 m up; POI-3: nor on the editor's eye
       drawPeerNames(proj, view, mwv.eye);   // ONLINE1: the names over the heads
       navalTags(proj, view, mwv.eye);   // AUDIT NAV1 (#14): the ships' tags
       navalCrewBars(proj, view, mwv.eye);   // SHIPMATES: the crew's green bars

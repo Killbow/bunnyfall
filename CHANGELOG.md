@@ -6,7 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-11
 
 - Places built with the World Builder can now come alive: people walk their patrol routes, talk with you through branching conversations, and trade with you; stepping into an area can start an ambush; doors, chests and switches can be used. Every trade and reward is checked and paid by the server, once.
-- The old in-game POI editor (`?editor`) is gone. Builders use the new World Builder instead.
+- The in-game POI editor (`/play/?editor`) stays alongside the World Builder. A builder in it cannot be hurt and meets no foes, so edits are never lost to a fight; the World Builder's "Live view" shows its drafts in the same world.
 
 ## 2026-11-09
 
