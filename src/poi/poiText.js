@@ -78,6 +78,7 @@ const PROBLEM = {
   'item-group': () => t('poi.problem.itemGroup', 'This item does not come in that group.'),
   'item-material': () => t('poi.problem.itemMaterial', 'This item cannot be made of that material.'),
   'item-stack': () => t('poi.problem.itemStack', 'This kind of item cannot be given in a stack.'),
+  'settle-var': (a) => t('poi.problem.settleVar', 'The realm decides this, so its condition can only read variables kept for a character or the whole POI, not {key}.', a),
   'item-ref': () => t('poi.problem.itemRef', 'This picture needs an item.'),
   'no-reward': () => t('poi.problem.noReward', 'A recipe must give something: an item or gold.'),
   'free-unlimited': () => t('poi.problem.freeUnlimited', 'A recipe that asks for nothing must have a limit.'),

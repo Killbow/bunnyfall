@@ -11,6 +11,7 @@ import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
 import { isStackable } from '../systems/inventory.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { varsRead, persists, needsService } from './poiDmCore.js';
 
 /** @typedef {import('./poiLaw.js').PoiProblem} PoiProblem */
 
@@ -62,3 +63,30 @@ export function poiTradeProblems(doc) {
   (doc?.dialogues ?? []).forEach((/** @type {any} */ d, /** @type {number} */ i) => (d?.nodes ?? []).forEach((/** @type {any} */ n, /** @type {number} */ k) => (n?.options ?? []).forEach((/** @type {any} */ o, /** @type {number} */ m) => tree(o?.when, `dialogues[${i}].nodes[${k}].options[${m}].when`))));
   return out;
 }
+
+/**
+ * Every recipe, and every event whose branch the service settles (items, gold, or a kept variable moved), whose
+ * condition reads a variable the service does not keep (`instance` or `event` scope): online the service refuses to
+ * judge such a condition, so the recipe or the event could never run. Run it after poiDocProblems finds nothing.
+ * @param {any} doc @returns {PoiProblem[]}
+ */
+export function poiSettleProblems(doc) {
+  /** @type {PoiProblem[]} */
+  const out = [];
+  const vars = new Map((doc?.variables ?? []).map((/** @type {any} */ v) => [v?.key, v]));
+  const read = (/** @type {any} */ c, /** @type {string} */ at) => {
+    for (const k of varsRead(c)) if (!persists(vars.get(k))) out.push({ path: at, code: 'settle-var', key: k });
+  };
+  (doc?.trades ?? []).forEach((/** @type {any} */ t, /** @type {number} */ i) => (t?.recipes ?? []).forEach((/** @type {any} */ r, /** @type {number} */ k) => read(r?.when, `trades[${i}].recipes[${k}].when`)));
+  (doc?.events ?? []).forEach((/** @type {any} */ e, /** @type {number} */ i) => {
+    if (needsService(doc, e?.then ?? []) || needsService(doc, e?.else ?? [])) read(e?.when, `events[${i}].when`);
+  });
+  return out;
+}
+
+/**
+ * The problems a save, a submission, and an approval are refused for, before the assets are looked at: `own` (the shape
+ * law's, poiDocProblems), else what settlement would refuse. The service and the in-game editor say the same list.
+ * @param {any} doc @param {PoiProblem[]} own @returns {PoiProblem[]}
+ */
+export const poiPayProblems = (doc, own) => (own.length ? own : [...poiTradeProblems(doc), ...poiSettleProblems(doc)]);

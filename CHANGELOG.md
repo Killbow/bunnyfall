@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: A POI whose trades or events name an item the game cannot make, or check a variable the server does not keep, is now refused with a list of problems when saved, submitted, or approved instead of failing when a player tries it.
 - Fixed: An encounter you win by surviving for a time now counts only the time you spend in its area, so it no longer ends while you are far away.
 - Fixed: An encounter that ends when all its enemies are dead now finishes even if some enemies failed to appear, and resets to start again if none appeared.
 - Fixed: Enemies from an encounter set to passive no longer attack on sight; they fight back once you attack them.

@@ -25,6 +25,7 @@ import { poiDiff } from '../../poi/poiDiff.js';
 import { diffText, problemText, problemWhere, uncheckedRows } from '../../poi/poiText.js';
 import { poiQueue, poiReview, poiHistory, poiRollback } from '../../poi/poiService.js';
 import { agoText } from '../saveTile.js';   // the port's one "how long ago"
+import { poiPayProblems } from '../../poi/poiTradeLaw.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI T8: a word being typed keeps its field
 
 /** A revision's state as the history says it. @param {string} state */
@@ -87,7 +88,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     drawQueue();
   }
   /** The law's report on a submission: its own problems, then its assets' once every one is known. */
-  const lawOf = (d) => facts.check(d, poiDocProblems(d));
+  const lawOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function drawQueue() {
     if (!dialog || dialog.dataset.kind !== 'queue') return;
     const rows = [el('div', 'dfpoi-h', t('poi.review.title', 'Approvals')), el('div', 'dfpoi-sub', t('poi.review.hint', 'Look at each one in the world, then approve it or send it back with a note.'))];

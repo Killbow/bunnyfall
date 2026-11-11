@@ -43,6 +43,7 @@ import { eulerOfQuat, quatOfEuler, lawName, newLight, uniqueKey } from '../../po
 import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
+import { poiPayProblems } from '../../poi/poiTradeLaw.js';
 import { createPoiUvPanel } from './poiUvPanel.js';   // POI-5: the UV editor
 import { createPoiLibrary } from './poiLibraryPanel.js';   // POI-4b: the library's shelf
 import { createPoiReview } from './poiReviewPanel.js';   // POI-6: the approver's queue, a POI's history
@@ -450,6 +451,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     else out.push(...poiFields(d, change));
     out.push(...problemRows(d, sel.id));
     out.push(...actRows(sel.id, d, entry));
+    out.push(...refusedRows(d, sel.id));
     right.replaceChildren(...out);
   }
 
@@ -584,7 +586,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   }
 
   /** The document's problems: the law's, then its assets' once every asset is known. */
-  const problemsOf = (d) => facts.check(d, poiDocProblems(d));
+  const problemsOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function problemRows(d, id) {
     const { list: ps, checking, unchecked, unloaded } = problemsOf(d);
     const out = [el('div', 'dfpoi-h', t('poi.editor.problems', 'What is wrong'))];
@@ -598,6 +600,24 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const pi = /^parts\[(\d+)\]/.exec(p.path);
       if (pi) row.addEventListener('click', () => edit.select({ id, part: d.parts[Number(pi[1])]?.key ?? null }));
       out.push(row);
+    }
+    return out;
+  }
+
+  /** The problems the store answered a save or a submission with, by POI, until its next save or submission. */
+  const refused = new Map();
+  /** @param {string} id @param {any} r the store's answer */
+  function refusedFor(id, r) {
+    if (!r.ok && r.problems?.length) refused.set(id, r.problems); else refused.delete(id);
+    schedule();
+  }
+  function refusedRows(d, id) {
+    const ps = refused.get(id);
+    if (!ps) return [];
+    const out = [el('div', 'dfpoi-h', t('poi.editor.refused', 'Why the store refused it'))];
+    for (const p of ps.slice(0, 12)) {
+      const where = problemWhere(p.path, d);
+      out.push(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p)));
     }
     return out;
   }
@@ -665,6 +685,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const sent = structuredClone(d);
     const r = await act((i) => poiSaveDraft(i, sent, e.base));
     if (!r) return false;
+    refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return false; }
     edit.markSaved(id, { rev: r.data.rev, state: 'draft', doc: sent });
     say(t('poi.editor.saved', 'Saved: draft {rev}.', { rev: r.data.rev }));
@@ -681,6 +702,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const rev = e.rev, held = heldDoc(e);
     const r = await act((i) => poiSubmit(i, id, rev));
     if (!r) return;
+    refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return; }
     edit.markSaved(id, { rev, state: 'submitted', doc: held });
     say(t('poi.editor.submitted', 'Sent for approval. An approver will look at it.'));
