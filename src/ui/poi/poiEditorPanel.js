@@ -39,7 +39,7 @@ import { t } from '../../systems/textManager.js';   // L10N4: the words through 
 import { accountRefusalText } from '../../net/accountClient.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U1: a dock held while a field in it is typed in, and then alone
 import { poiDocProblems, poiAssetProblems, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
-import { eulerOfQuat, quatOfEuler, lawName, newLight } from '../../poi/poiEdit.js';
+import { eulerOfQuat, quatOfEuler, lawName, newLight, uniqueKey } from '../../poi/poiEdit.js';
 import { problemText, problemWhere, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
@@ -774,23 +774,29 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     clip.n += 1;
     const step = clip.from === sel.id ? clip.n : 0;
     const at = (v) => [v[0] + step, v[1], v[2] + step].map((c) => Math.round(c * 1000) / 1000);
-    let lastKey = null, skipped = 0;
+    // the copies are made against the POI as it stands, so the edit step records the new selection (undo restores the
+    // prior selection and redo selects the pasted copy again)
+    const parts = [], lights = [], keys = { parts: [...d.parts] };
+    let skipped = 0;
+    for (const src of clip.parts) {
+      if (keys.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
+      const copy = structuredClone(src);
+      // a key already in the POI is made unique: shortened to leave room for a number, then numbered while taken
+      if (keys.parts.some((q) => q.key === copy.key)) copy.key = uniqueKey(keys, copy.key);
+      copy.t = at(copy.t ?? [0, 0, 0]);
+      keys.parts.push(copy); parts.push(copy);
+    }
+    const lightsBefore = d.lights?.length ?? 0;
+    for (const src of clip.lights) {
+      if (lightsBefore + lights.length >= POI_LIMITS.lights) { skipped++; continue; }
+      const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); lights.push(copy);
+    }
+    // what was pasted is selected: the last part, or the last light when only lights were pasted
+    const pastedSel = parts.length ? { id: sel.id, part: parts[parts.length - 1].key } : lights.length ? { id: sel.id, part: null, light: lightsBefore + lights.length - 1 } : undefined;
     edit.edit(sel.id, 'paste', (x) => {
-      const taken = new Set(x.parts.map((q) => q.key));
-      for (const src of clip.parts) {
-        if (x.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
-        const copy = structuredClone(src);
-        let key = copy.key, n = 2;
-        while (taken.has(key)) key = `${copy.key}-${n++}`.slice(0, 32);
-        copy.key = key; taken.add(key); copy.t = at(copy.t ?? [0, 0, 0]);
-        x.parts.push(copy); lastKey = key;
-      }
-      x.lights ??= [];
-      for (const src of clip.lights) {
-        if (x.lights.length >= POI_LIMITS.lights) { skipped++; continue; }
-        const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); x.lights.push(copy);
-      }
-    }, { id: sel.id, part: lastKey });
+      x.parts.push(...structuredClone(parts));
+      if (lights.length) { x.lights ??= []; x.lights.push(...structuredClone(lights)); }
+    }, pastedSel);
     if (skipped) say(t('poi.editor.pasteFull', 'The POI is full: {n, plural, one {# thing was} other {# things were}} left out.', { n: skipped }), 'bad');
     return true;
   }
@@ -801,9 +807,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const p = x.parts.find((q) => q.key === sel.part);
       if (!p) return;
       const copy = structuredClone(p);
-      const taken = new Set(x.parts.map((q) => q.key));
-      let n = 2; while (taken.has(`${p.key}-${n}`.slice(0, 32))) n++;
-      copy.key = `${p.key}-${n}`.slice(0, 32);
+      copy.key = uniqueKey(x, p.key);
       x.parts.push(copy);
     });
   }

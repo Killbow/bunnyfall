@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: In the in-game POI editor, pasting or duplicating a part with a long key no longer freezes the page, and a paste now selects what it pasted.
 - Fixed: Opening the in-game POI editor with no character yet no longer puts the editor over character creation; it waits until you stand in the world, after the name picker and the opening message.
 - Choosing a Focus craft now asks you to confirm first. Dropping a Focus craft costs 100 silver, with no weekly wait. Pledging into a free place stays free.
 - Crafting has its own tab in the pause menu, next to Growth. Professions, the Bench, the Stations and your Stores are on its rail, and they no longer sit under Stats and Holdings. The Bench lists every station's items, so you can plan a craft anywhere and make it when you stand at the station.
