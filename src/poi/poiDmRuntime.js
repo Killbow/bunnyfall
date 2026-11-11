@@ -47,12 +47,15 @@ export function mintStack(s) {
 
 /**
  * The outdoor enemy pool as the runtime uses it: a POI's enemy stands as a placed, unsaved enemy, counts as down once
- * it is a corpse, and is removed with no corpse when its encounter resets or its POI is taken down.
+ * it is a corpse, and is removed with no corpse when its encounter resets or its POI is taken down. A passive
+ * encounter's enemy (`hostile: false`) spawns non-hostile like a non-hostile quest enemy: it stays peaceful until the
+ * player attacks any non-hostile enemy in the area, which turns the area's peaceful enemies hostile.
  * @param {any} pool scenes/exteriorFoes.js createExteriorFoes
  */
 export function poolFoes(pool) {
   return {
-    spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => pool.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } }),
+    spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => pool.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } })
+      .then((/** @type {any} */ f) => { if (f?.ai && o.hostile === false) f.ai.isHostile = false; return f; }),
     isDown: (/** @type {any} */ f) => !!f?.corpse,
     removeFoe: (/** @type {any} */ f) => pool.removeFoe(f),
   };

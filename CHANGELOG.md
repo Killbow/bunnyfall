@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: Enemies from an encounter set to passive no longer attack on sight; they fight back once you attack them.
 - Fixed: An encounter's enemies now leave when the place calls the encounter off or resets it, or when the place is taken out of the world, and an encounter that starts again no longer adds a second group to enemies left from last time.
 - Fixed: With the in-game POI editor open, game messages such as a new quest show beside its right panel instead of sliding in under it.
 - Fixed: A POI with a part the game cannot load, such as a Daggerfall model placed in the World Builder, now stands without that part, with its people and everything that happens there, instead of not appearing at all.

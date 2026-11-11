@@ -1,6 +1,7 @@
 // The game-side runtime (src/poi/poiDmRuntime.js) on the example POI, offline (no realm session): a trigger zone starts
 // the ambush, the foes fall and the gate opens; the supplier's trade moves the real pack; a walker reports its waypoints.
-// The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal.
+// The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal; a
+// passive encounter's enemies stand non-hostile.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -107,6 +108,17 @@ test('the outdoor pool stands a POI enemy placed and unsaved, and takes it away 
   assert.equal(asked[0].level, 4);
   foes.removeFoe(f);
   assert.deepEqual(gone, [f]);
+});
+
+test('a passive encounter stands its enemies not hostile; a hostile one keeps them hostile', async () => {
+  for (const aggression of ['passive', 'hostile']) {
+    const stood = [];
+    const foes = poolFoes({ spawnFoe: async (foe) => { const f = { foe, ai: { isHostile: true } }; stood.push(f); return f; }, removeFoe: () => {} });
+    const w = setup((d) => { d.encounters[0].aggression = aggression; }, { spawnFoe: foes.spawnFoe });
+    await ambush(w);
+    assert.equal(stood.length, 5);
+    assert.ok(stood.every((f) => f.ai.isHostile === (aggression === 'hostile')), aggression);
+  }
 });
 
 test('the feed reading the same revision again keeps the run and its fight', async () => {
