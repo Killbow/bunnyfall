@@ -36,7 +36,7 @@ The audit found these problems in the current system:
 
 - A **form** is a DFU template with **slots** (see `src/net/craft/forms.js`). Sizes, dyes and gems are options on the
   form, not separate recipes.
-- Every material has four visible stats, 0 to 10: **Hardness, Toughness, Lightness, Affinity** (see
+- Every material has four visible stats, 0 to 10: **Hardness, Toughness, Lightness, Arcanism** (see
   `src/net/craft/materialStats.js`).
 - The **primary slot** picks the DFU material, so combat numbers stay DFU's and old items stay valid. Other slots and the
   stats decide condition, weight, enchant points and quality.

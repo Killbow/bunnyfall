@@ -6,12 +6,12 @@
 //   h  Hardness   the edge or the plate: damage and armor value
 //   t  Toughness  how long it lasts: condition
 //   l  Lightness  higher is lighter: weight
-//   a  Affinity   how well it holds magic: enchantment points
+//   a  Arcanism   how readily it takes and holds magic: enchantment points
 //
 // BUDGET. A material's four stats add up to 8 + 3 x its tier (a tier 1 material 11, a tier 6 one 26), so a higher
 // tier is better overall. STRONG SKEW: inside a tier the stats are spread hard (a 9 beside a 0), so two materials of the
 // same tier are good at different things (Dwarven is heavy and tough, Moonstone light and magical) and choosing between
-// them always matters. Gems are the exception: only Affinity counts for a gem.
+// them always matters. Gems are the exception: only Arcanism counts for a gem.
 //
 // SUITABILITY, NOT RAW POWER. A piece's base power already comes from its DFU material (its tier), so the stats are read
 // as how well the material suits the form compared with the best that tier's budget could do for it (suitabilityOf).
@@ -86,7 +86,7 @@ export const MATERIAL_STATS = Object.freeze([
   // BINDERS (carpentry). What holds a bow together; leather and linen also serve (see forms.js GROUPS).
   m('wood:resin', 'Resin', 'binder', 1, 1, 4, 2, 4),
 
-  // GEMS. Only Affinity counts: it is what a set gem adds to the piece's enchantment points. Graded gems (chipped to
+  // GEMS. Only Arcanism counts: it is what a set gem adds to the piece's enchantment points. Graded gems (chipped to
   // flawless) follow their kind and add the grade; that ladder is not in this draft, and gathered-material grades are
   // left out of the first version altogether.
   m('gem:jade', 'Jade', 'gem', 2, 0, 0, 0, 3),

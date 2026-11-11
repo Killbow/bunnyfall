@@ -14,7 +14,7 @@ the last release (scripts/changelogNotes.mjs).
 - Staff commands: /vanish hides a staff member from players and monsters until used again, /spawn <monster> [count] stands monsters nearby, and /greed <player> <amount> [gold|nyx] sends gold or Nyx coins to a player (Admins only), which arrive in their game within a minute.
 - Choose the look of armour and clothing before you craft it: the card shows each of the piece's styles as it will look on you, and the piece is made in the one you pick.
 - A new crafting minigame at the Bench, The Work: one turn of the dial for each part of the piece, faster as you go, with sparks for a true strike. Better-suited materials give you a wider mark.
-- Material stats are always listed in the same order: Hardness, Toughness, Lightness, Affinity (H T L A).
+- Material stats are always listed in the same order: Hardness, Toughness, Lightness, Arcanism (H T L A); Arcanism, once Affinity, is how readily a material takes and holds magic.
 - New things to craft: the Archer's Axe and Light Flail, the Roleplay Realism chain and light armour sets, and the Crossbow. Crafted bows, staves and crossbows are named for their grade and then their wood ("Steel Long Bow, Oak"). The craft card now names exactly what you will make, shows its damage or armour, weight and condition at each quality you can roll, and its odds match the real roll.
 
 ## 2026-11-11

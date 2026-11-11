@@ -23,7 +23,7 @@ const FAMILIES_OF_KIND = {
 };
 line('## Material stats');
 line();
-line('Hardness (H), Toughness (T), Lightness (L, higher is lighter), Affinity (A). `Sum` is the four added up against the');
+line('Hardness (H), Toughness (T), Lightness (L, higher is lighter), Arcanism (A, how readily it takes and holds magic). `Sum` is the four added up against the');
 line('tier budget (8 + 3 x tier). `Suits` is how well the material suits a family compared with the best its own tier could');
 line('do: 100% is as suited as that tier allows, so a perfect iron piece is as suited as a perfect daedric one.');
 line();
@@ -42,7 +42,7 @@ for (const kind of ['ingot', 'plank', 'wood', 'leather', 'cloth', 'metal', 'flux
 }
 line('### gem');
 line();
-line('Only Affinity counts: it is what a set gem adds to the piece\'s enchantment points.');
+line('Only Arcanism counts: it is what a set gem adds to the piece\'s enchantment points.');
 line();
 line('| Gem | Key | Tier | A |');
 line('|---|---|---|---|');

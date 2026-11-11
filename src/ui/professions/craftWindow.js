@@ -398,7 +398,7 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
 
 // ─── THE CRAFT TAB BY FORM AND PICKS (BUNNYFALL CRAFTING REWORK) ─────────────────────────────
 
-const STAT_WORDS = Object.freeze({ h: 'Hardness', t: 'Toughness', l: 'Lightness', a: 'Affinity' });
+const STAT_WORDS = Object.freeze({ h: 'Hardness', t: 'Toughness', l: 'Lightness', a: 'Arcanism' });
 const statLine = (s) => (s ? `H ${s.h} · T ${s.t} · L ${s.l} · A ${s.a}` : '');
 // HTLA: the four always in one order - Hardness, Toughness, Lightness, Affinity (STAT_WORDS' own)
 const weightLine = (w) => Object.entries(STAT_WORDS).filter(([k]) => w?.[k] > 0).map(([k, n]) => `${n} (${k.toUpperCase()}) ${Math.round(w[k] * 100)}%`).join(', ');

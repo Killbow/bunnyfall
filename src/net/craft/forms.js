@@ -24,7 +24,7 @@ import { MATERIAL_STATS, statsOf, suitabilityOf } from './materialStats.js';
 /** @typedef {import('./materialStats.js').StatWeights} StatWeights */
 
 /**
- * What each family wants of its materials, h t l a (Hardness, Toughness, Lightness, Affinity). A dish has none: cooking
+ * What each family wants of its materials, h t l a (Hardness, Toughness, Lightness, Arcanism: how readily a material takes and holds magic). A dish has none: cooking
  * and alchemy are Phase 4.
  * @type {Readonly<Record<string, Readonly<StatWeights> | null>>}
  */
@@ -128,7 +128,7 @@ function slotsOf(rs) {
       share: 0,
     });
   }
-  // The suitability shares: every slot whose materials all have stats counts, a gem (Affinity only) does not.
+  // The suitability shares: every slot whose materials all have stats counts, a gem (Arcanism only) does not.
   const counts = (/** @type {Slot} */ s) => !s.optional && s.categories.every((c) => c !== 'gem') && s.options.every((k) => statsOf(k));
   const secondaries = slots.filter((s, i) => i > 0 && counts(s));
   if (counts(slots[0])) {

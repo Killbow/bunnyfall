@@ -5,7 +5,7 @@ These are drafts for review. Nothing in the game reads them yet.
 
 ## Material stats
 
-Hardness (H), Toughness (T), Lightness (L, higher is lighter), Affinity (A). `Sum` is the four added up against the
+Hardness (H), Toughness (T), Lightness (L, higher is lighter), Arcanism (A, how readily it takes and holds magic). `Sum` is the four added up against the
 tier budget (8 + 3 x tier). `Suits` is how well the material suits a family compared with the best its own tier could
 do: 100% is as suited as that tier allows, so a perfect iron piece is as suited as a perfect daedric one.
 
@@ -87,7 +87,7 @@ do: 100% is as suited as that tier allows, so a perfect iron piece is as suited 
 
 ### gem
 
-Only Affinity counts: it is what a set gem adds to the piece's enchantment points.
+Only Arcanism counts: it is what a set gem adds to the piece's enchantment points.
 
 | Gem | Key | Tier | A |
 |---|---|---|---|
@@ -143,21 +143,21 @@ An input the old recipes always made of one material becomes a choice among its 
 
 ## Forms
 
-161 forms replace 1202 recipes.
+176 forms replace 1250 recipes.
 
 | Track | Family | Forms | Old recipes | Weights H / T / L / A |
 |---|---|---|---|---|
-| smithing | weapons | 15 | 165 | 0.5 / 0.3 / 0.15 / 0.05 |
-| smithing | armour | 18 | 128 | 0.25 / 0.5 / 0.2 / 0.05 |
+| smithing | weapons | 17 | 187 | 0.5 / 0.3 / 0.15 / 0.05 |
+| smithing | armour | 23 | 133 | 0.25 / 0.5 / 0.2 / 0.05 |
 | smithing | tools | 5 | 5 | 0.3 / 0.6 / 0.1 / 0 |
 | smithing | kits | 1 | 10 | 0.1 / 0.7 / 0.1 / 0.1 |
 | building | staves | 1 | 7 | 0 / 0.2 / 0.2 / 0.6 |
-| building | bows | 2 | 14 | 0.1 / 0.25 / 0.5 / 0.15 |
+| building | bows | 3 | 21 | 0.1 / 0.25 / 0.5 / 0.15 |
 | building | arrows | 1 | 2 | 0.4 / 0.1 / 0.5 / 0 |
 | building | furniture | 7 | 16 | 0.2 / 0.5 / 0 / 0.3 |
 | building | tools | 1 | 1 | 0.3 / 0.6 / 0.1 / 0 |
 | building | siege | 1 | 1 | 0.3 / 0.5 / 0 / 0.2 |
-| outfitting | leather | 7 | 14 | 0.2 / 0.5 / 0.3 / 0 |
+| outfitting | leather | 14 | 28 | 0.2 / 0.5 / 0.3 / 0 |
 | outfitting | clothing | 76 | 304 | 0 / 0.25 / 0.35 / 0.4 |
 | outfitting | furnishings | 9 | 19 | 0 / 0.4 / 0.2 / 0.4 |
 | outfitting | tools | 1 | 1 | 0.3 / 0.6 / 0.1 / 0 |
@@ -188,6 +188,8 @@ has, and `(optional)` marks a slot only some old recipes had.
 | War Axe (`waraxe`) | 128 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Flux (flux) x1 [7]; secondary Haft (haft) x1 [7] |
 | Claymore (`claymore`) | 122 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
 | Dai-katana (`daikatana`) | 123 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Archer's Axe (`archersaxe`) | 513 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Haft (haft) x1 [7] |
+| Light Flail (`lightflail`) | 514 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
 
 ### smithing / armour
 
@@ -211,6 +213,11 @@ has, and `(optional)` marks a slot only some old recipes had.
 | Chain Right Pauldron (`chain-rpauldron`) | 106 | 2 | 10 | 1 | primary ingot x2 |
 | Chain Gauntlets (`chain-gauntlets`) | 103 | 2 | 10 | 1 | primary ingot x2 |
 | Chain Boots (`chain-boots`) | 108 | 2 | 10 | 1 | primary ingot x2 |
+| Chain Hauberk (`chain-hauberk`) | 515 | 2 | 10 | 1 | primary ingot x5 |
+| Chain Chausses (`chain-chausses`) | 516 | 2 | 10 | 1 | primary ingot x3 |
+| Chain Left Spaulder (`chain-lspaulder`) | 517 | 2 | 10 | 1 | primary ingot x2 |
+| Chain Right Spaulder (`chain-rspaulder`) | 518 | 2 | 10 | 1 | primary ingot x2 |
+| Chain Sollerets (`chain-sollerets`) | 519 | 2 | 10 | 1 | primary ingot x2 |
 
 ### smithing / tools
 
@@ -240,6 +247,7 @@ has, and `(optional)` marks a slot only some old recipes had.
 |---|---|---|---|---|---|
 | Short Bow (`shortbow`) | 129 | 1-6 | 0-70 | 7 | primary plank x3 [7]; secondary Binder (binder) x1 [3] |
 | Long Bow (`longbow`) | 130 | 1-6 | 0-70 | 7 | primary plank x4 [7]; secondary Binder (binder) x1 [3] |
+| Crossbow (`crossbow`) | 563 | 1-6 | 0-70 | 7 | primary plank x3 [7]; secondary Binder (binder) x1 [3]; secondary Fittings (head) x1 [11] |
 
 ### building / arrows
 
@@ -282,87 +290,94 @@ has, and `(optional)` marks a slot only some old recipes had.
 | Right Pauldron (`leather-rpauldron`) | 106 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
 | Gauntlets (`leather-gauntlets`) | 103 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
 | Boots (`leather-boots`) | 108 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
+| Jerkin (`leather-jerkin`) | 520 | 2-5 | 10-55 | 2 | primary leather x6 [2] |
+| Cuisse (`leather-cuisse`) | 521 | 2-5 | 10-55 | 2 | primary leather x4 [2] |
+| Helmet (`leather-helmet`) | 522 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
+| Boots (light) (`leather-lightboots`) | 523 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
+| Gloves (`leather-gloves`) | 524 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
+| Left Vambrace (`leather-lvambrace`) | 525 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
+| Right Vambrace (`leather-rvambrace`) | 526 | 2-5 | 10-55 | 2 | primary leather x2 [2] |
 
 ### outfitting / clothing
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Straps (`garment-141`) | 141 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Armbands (`garment-142`) | 142 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Kimono (`garment-143`) | 143 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Fancy Armbands (`garment-144`) | 144 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Sash (`garment-145`) | 145 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Eodoric (`garment-146`) | 146 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Shoes (`garment-147`) | 147 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Tall Boots (`garment-148`) | 148 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
-| Boots (`garment-149`) | 149 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
-| Sandals (`garment-150`) | 150 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Casual Pants (`garment-151`) | 151 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Breeches (`garment-152`) | 152 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Skirt (`garment-153`) | 153 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Casual Cloak (`garment-154`) | 154 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Formal Cloak (`garment-155`) | 155 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Khajiit Suit (`garment-156`) | 156 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Dwynnen Surcoat (`garment-157`) | 157 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Short Tunic (`garment-158`) | 158 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Formal Tunic (`garment-159`) | 159 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Toga (`garment-160`) | 160 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Reversible Tunic (`garment-161`) | 161 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Loincloth (`garment-162`) | 162 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Plain Robes (`garment-163`) | 163 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Priest Robes (`garment-164`) | 164 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Short Shirt (`garment-165`) | 165 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, belted (`garment-166`) | 166 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt (`garment-167`) | 167 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, belted (`garment-168`) | 168 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, closed (`garment-169`) | 169 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, closed (second cut) (`garment-170`) | 170 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, closed (`garment-171`) | 171 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, closed (second cut) (`garment-172`) | 172 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Open Tunic (`garment-173`) | 173 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Wrap (`garment-174`) | 174 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Skirt (`garment-175`) | 175 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Anticlere Surcoat (`garment-176`) | 176 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Challenger Straps (`garment-177`) | 177 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Short Shirt, unchangeable (`garment-178`) | 178 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, unchangeable (`garment-179`) | 179 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Vest (`garment-180`) | 180 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Champion Straps (`garment-181`) | 181 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Brassiere (`garment-182`) | 182 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Formal Brassiere (`garment-183`) | 183 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Peasant Blouse (`garment-184`) | 184 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Eodoric (`garment-185`) | 185 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Shoes (`garment-186`) | 186 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Tall Boots (`garment-187`) | 187 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
-| Boots (`garment-188`) | 188 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
-| Sandals (`garment-189`) | 189 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Casual Pants (`garment-190`) | 190 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Casual Cloak (`garment-191`) | 191 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Formal Cloak (`garment-192`) | 192 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Khajiit Suit (`garment-193`) | 193 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Formal Eodoric (`garment-194`) | 194 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Evening Gown (`garment-195`) | 195 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Day Gown (`garment-196`) | 196 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Casual Dress (`garment-197`) | 197 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Strapless Dress (`garment-198`) | 198 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Loincloth (`garment-199`) | 199 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Plain Robes (`garment-200`) | 200 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Priestess Robes (`garment-201`) | 201 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
-| Short Shirt (`garment-202`) | 202 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, belted (`garment-203`) | 203 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt (`garment-204`) | 204 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, belted (`garment-205`) | 205 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, closed (`garment-206`) | 206 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Short Shirt, closed and belted (`garment-207`) | 207 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, closed (`garment-208`) | 208 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, closed and belted (`garment-209`) | 209 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Open Tunic (`garment-210`) | 210 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Wrap (`garment-211`) | 211 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Skirt (`garment-212`) | 212 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Tights (`garment-213`) | 213 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Short Shirt, unchangeable (`garment-214`) | 214 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Long Shirt, unchangeable (`garment-215`) | 215 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
-| Vest (`garment-216`) | 216 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Straps (men's) (`garment-141`) | 141 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Armbands (men's) (`garment-142`) | 142 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Kimono (men's) (`garment-143`) | 143 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Fancy Armbands (men's) (`garment-144`) | 144 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Sash (men's) (`garment-145`) | 145 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Eodoric (men's) (`garment-146`) | 146 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Shoes (men's) (`garment-147`) | 147 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Tall Boots (men's) (`garment-148`) | 148 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Boots (men's) (`garment-149`) | 149 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Sandals (men's) (`garment-150`) | 150 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Casual Pants (men's) (`garment-151`) | 151 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Breeches (men's) (`garment-152`) | 152 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Skirt (men's) (`garment-153`) | 153 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Casual Cloak (men's) (`garment-154`) | 154 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Formal Cloak (men's) (`garment-155`) | 155 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Khajiit Suit (men's) (`garment-156`) | 156 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Dwynnen Surcoat (men's) (`garment-157`) | 157 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Short Tunic (men's) (`garment-158`) | 158 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Formal Tunic (men's) (`garment-159`) | 159 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Toga (men's) (`garment-160`) | 160 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Reversible Tunic (men's) (`garment-161`) | 161 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Loincloth (men's) (`garment-162`) | 162 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Plain Robes (men's) (`garment-163`) | 163 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Priest Robes (men's) (`garment-164`) | 164 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Short Shirt (men's) (`garment-165`) | 165 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, belted (men's) (`garment-166`) | 166 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt (men's) (`garment-167`) | 167 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, belted (men's) (`garment-168`) | 168 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, closed (men's) (`garment-169`) | 169 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, closed (second cut) (men's) (`garment-170`) | 170 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, closed (men's) (`garment-171`) | 171 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, closed (second cut) (men's) (`garment-172`) | 172 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Open Tunic (men's) (`garment-173`) | 173 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Wrap (men's) (`garment-174`) | 174 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Skirt (men's) (`garment-175`) | 175 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Anticlere Surcoat (men's) (`garment-176`) | 176 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Challenger Straps (men's) (`garment-177`) | 177 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Short Shirt, unchangeable (men's) (`garment-178`) | 178 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, unchangeable (men's) (`garment-179`) | 179 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Vest (men's) (`garment-180`) | 180 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Champion Straps (men's) (`garment-181`) | 181 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Brassiere (women's) (`garment-182`) | 182 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Formal Brassiere (women's) (`garment-183`) | 183 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Peasant Blouse (women's) (`garment-184`) | 184 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Eodoric (women's) (`garment-185`) | 185 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Shoes (women's) (`garment-186`) | 186 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Tall Boots (women's) (`garment-187`) | 187 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Boots (women's) (`garment-188`) | 188 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Sandals (women's) (`garment-189`) | 189 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Casual Pants (women's) (`garment-190`) | 190 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Casual Cloak (women's) (`garment-191`) | 191 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Formal Cloak (women's) (`garment-192`) | 192 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Khajiit Suit (women's) (`garment-193`) | 193 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Formal Eodoric (women's) (`garment-194`) | 194 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Evening Gown (women's) (`garment-195`) | 195 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Day Gown (women's) (`garment-196`) | 196 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Casual Dress (women's) (`garment-197`) | 197 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Strapless Dress (women's) (`garment-198`) | 198 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Loincloth (women's) (`garment-199`) | 199 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Plain Robes (women's) (`garment-200`) | 200 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Priestess Robes (women's) (`garment-201`) | 201 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
+| Short Shirt (women's) (`garment-202`) | 202 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, belted (women's) (`garment-203`) | 203 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt (women's) (`garment-204`) | 204 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, belted (women's) (`garment-205`) | 205 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, closed (women's) (`garment-206`) | 206 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Short Shirt, closed and belted (women's) (`garment-207`) | 207 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, closed (women's) (`garment-208`) | 208 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, closed and belted (women's) (`garment-209`) | 209 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Open Tunic (women's) (`garment-210`) | 210 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Wrap (women's) (`garment-211`) | 211 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Skirt (women's) (`garment-212`) | 212 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Tights (women's) (`garment-213`) | 213 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
+| Short Shirt, unchangeable (women's) (`garment-214`) | 214 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Long Shirt, unchangeable (women's) (`garment-215`) | 215 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
+| Vest (women's) (`garment-216`) | 216 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 
 ### outfitting / furnishings
 
