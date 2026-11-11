@@ -512,6 +512,14 @@ const REFUSAL_WORDS = {
   'prof-late': () => t('account.refusal.profLate', 'That gathering arrived too late to count.'),
   'prof-night': () => t('account.refusal.profNight', 'You need daylight to gather.'),   // ANY-HOUR: the service says it no more - kept for one not yet redeployed
   'prof-rank': () => t('account.refusal.profRank', 'Your craft is not yet skilled enough for that.'),
+  'prof-focus': () => t('account.refusal.profFocus', 'Only a Focus craft can take a rank 100 perk. A character has at most two.'),
+  'prof-focus-wait': () => t('account.refusal.profFocusWait', 'You dropped a Focus craft recently. Wait a week between drops.'),
+  'craft-form': () => t('account.refusal.craftForm', 'That is not something you can make.'),
+  'craft-picks': () => t('account.refusal.craftPicks', 'Pick the materials first.'),
+  'craft-pick': () => t('account.refusal.craftPick', 'That material does not go there.'),
+  'craft-missing': () => t('account.refusal.craftMissing', 'Pick a material for every part.'),
+  'craft-recipe': () => t('account.refusal.craftRecipe', 'No one makes it of that.'),
+  'craft-later': () => t('account.refusal.craftLater', 'Dishes are cooked at a fire.'),
   // CAP-OFF (2026-10-07): the day's cap's four - this one, `prof-account-cap`, `prof-hunt-cap` and `prof-fish-cap` - the
   // service says no more; kept, without the numbers it no longer holds, for one not yet redeployed
   'prof-cap': () => t('account.refusal.profCap', 'You have gathered all a day allows.'),

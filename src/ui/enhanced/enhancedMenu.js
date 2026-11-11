@@ -165,8 +165,8 @@ import { drawPixelGround } from '../pixelGround.js';
 // Both are plain modules with no game data; the boot door never
 // renders the tab, so the front door still reads no game state.
 import { sheetModel } from './enhancedCharSheet.js';
-import { profPagesShown, PROF_PAGE_SECTIONS, drawProfessionsPage, drawStoresPage, resetProfPages, profActUnderWay, setDownProfAct } from '../professions/profPages.js';   // PROF1: the Professions and Stores pages, online
-import { drawCraftingPage, PROF_STATS_PAGES } from '../professions/profPages.js';   // CRAFT-HALL
+import { resetProfPages, profActUnderWay, setDownProfAct } from '../professions/profPages.js';   // PROF1: the Professions and Stores pages, online
+import { drawCraftTab, resetCraftTab, setCraftSection, craftPageAt, craftTabShown } from '../crafting/craftTab.js';   // the Crafting tab, with the Professions, Stations and Stores pages it took
 import { boundKeyName } from '../tutorialPopup.js';   // CRAFT-HALL: names the Professions key on the Crafting page
 import { vendorPageShown, VENDOR_PAGE_SECTIONS, drawVendorPage } from '../vendor/vendorPage.js';   // HOME-VENDOR: the Vendor page
 import { REVENANT_PAGE_SECTIONS, revenantPageShown, drawRevenantsPage } from '../revenant/revenantPage.js';
@@ -4768,18 +4768,19 @@ let footObs = /** @type {ResizeObserver|null} */ (null);
 // GROWTH1 (2026-10-17, the owner: "give the firmament, level up page, and specializations its own tab within the pause
 // menu"): how a character grows - the Ascension, the specialisations' guide, the Firmament and the captain's stars, the
 // skies drawn in the tab (pauseGrowth, below; ui/growth/growthTab.js), after the Stats it grew out of.
-const PAUSE_TABS = Object.freeze([['quests', 'Quests'], ['stats', 'Stats'], ['growth', 'Growth'], ['holdings', 'Holdings'], ['family', 'Family'], ['tutorials', 'Tutorials'], ['system', 'System']]);
+const PAUSE_TABS = Object.freeze([['quests', 'Quests'], ['stats', 'Stats'], ['growth', 'Growth'], ['craft', 'Crafting'], ['holdings', 'Holdings'], ['family', 'Family'], ['tutorials', 'Tutorials'], ['system', 'System']]);
 /** HOLDINGS: every tab a landing may name (mountEnhancedMenu's `at`). */
 export const PAUSE_TAB_IDS = Object.freeze(PAUSE_TABS.map(([id]) => id));
 /** LEGACY3: a tab drawn now - the Family tab while the game is played with Project Legacy (FAMILY-TAB: the mod on AND a
  *  house for the game played - ui/familyPages.js familyTabShown); a landing on it otherwise lands on System. */
-const pauseTabShown = (id) => id !== 'family' || familyTabShown();
+const pauseTabShown = (id) => (id !== 'family' || familyTabShown()) && (id !== 'craft' || craftTabShown());
 /** L10N4: the pause window's tab and page words in the player's language, by id - the tables keep the English ids'
  *  labels; a page another module adds (the professions', the revenants', the companions') shows its own label. */
 const PAUSE_TEXT = Object.freeze({
   quests: () => t('pause.tab.quests', 'Quests'),
   stats: () => t('pause.tab.stats', 'Stats'),
   growth: () => t('pause.tab.growth', 'Growth'),
+  craft: () => t('pause.tab.craft', 'Crafting'),
   holdings: () => t('pause.tab.holdings', 'Holdings'),
   family: () => t('pause.tab.family', 'Family'),
   tutorials: () => t('pause.tab.tutorials', 'Tutorials'),
@@ -4810,7 +4811,7 @@ function pauseWindow() {
   win.append(tabs);
 
   const body = el('div', 'px-body');
-  ({ quests: pauseQuests, stats: pauseStats, growth: pauseGrowth, holdings: pauseHoldings, family: pauseFamily, tutorials: drawTutorialsPane, system: pauseSystem })[pauseTab](body);   // TUT1 - GROWTH1
+  ({ quests: pauseQuests, stats: pauseStats, growth: pauseGrowth, craft: pauseCraft, holdings: pauseHoldings, family: pauseFamily, tutorials: drawTutorialsPane, system: pauseSystem })[pauseTab](body);   // TUT1 - GROWTH1
   if (pauseTab === 'growth') win.classList.add('px-win-growth');   // GROWTH-BOOK: one size for every page of the tab (was GROWTH3's px-win-wide, a face up only)
   win.append(body);
   return win;
@@ -4825,6 +4826,12 @@ function pauseGrowth(body) {
     el, divider: pxDivider, skillMeter, askCard, entity: playerEntity, render, hooks, captain: holdingsProvider()?.captain ?? null,
     openMaster: () => { releaseGrowthTab(); pauseTab = 'stats'; statsSec = 'master'; _masterNote = null; render(); },
   });
+}
+
+// ── THE CRAFTING PAGE ───────────────────────────────────────────
+// The professions' pages on a tab of their own (ui/crafting/craftTab.js), after the Growth tab's pattern.
+function pauseCraft(body) {
+  drawCraftTab(body, { el, divider: pxDivider, meter: pxMeter, keyName: (/** @type {string} */ a) => boundKeyName(a), render });
 }
 
 // ── HOLDINGS: THE HOLDINGS PAGE ──────────────────────────────────
@@ -4859,7 +4866,6 @@ function pauseHoldings(body) {
     captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { handoff(fn); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
     companions: (d) => drawCompanionsPage(d, render, { ...kit, kindName: enemyDisplayName, here: swornBodyOf, stars: typeof hooks.openRevenantStars === 'function' ? hooks.openRevenantStars : null }),   // COMPANION-ROSTER - RVN-STARS: a sworn one's stars, over this window
     revenants: (d) => drawRevenantsPage(d, render, { ...kit, player: playerEntity, kindName: enemyDisplayName }),   // REVENANT-PAGE
-    stores: (d) => drawStoresPage(d, render, kit),   // PROF1
     collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity, account: newAccountFlow }),   // COLLECTIONS: the codex and the cards - COLLECTIONS-II: and the account's wardrobe, read through its own flow
   }[holdSec];
   draw?.(detail);
@@ -5016,18 +5022,15 @@ function meterRow(label, now, max, tone) {
 /** PROF1: the rail's pages - the sheet's six, and online, while the professions are this account's, the Professions
  *  page (ui/professions/profPages.js). HOLDINGS: the Stores page, the Revenants and the Companions went to the Holdings rail.
  *  CRAFT-HALL: the Crafting page joins Professions on the Stats rail. */
-const PROF_STATS_SECTIONS = Object.freeze(PROF_PAGE_SECTIONS.filter(([id]) => PROF_STATS_PAGES.includes(id)));
-const PROF_HOLD_SECTIONS = Object.freeze(PROF_PAGE_SECTIONS.filter(([id]) => !PROF_STATS_PAGES.includes(id)));
-/** CRAFT-HALL: opens a professions page from another one, on whichever rail it lives. */
+/** The professions' pages live on the Crafting tab: a page opened from another one goes there. */
 function profGo(at) {
-  if (PROF_STATS_SECTIONS.some(([id]) => id === at)) { pauseTab = 'stats'; statsSec = at; }
-  else if (PROF_HOLD_SECTIONS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = at; }
+  if (craftPageAt(at)) { pauseTab = 'craft'; setCraftSection(at); }
   render();
 }
-const statsSections = () => [...STATS_SECTIONS, ...(profPagesShown() ? PROF_STATS_SECTIONS : []), ...(vendorPageShown() ? VENDOR_PAGE_SECTIONS : [])];   // HOME-VENDOR: the Vendor page, under the Professions
+const statsSections = () => [...STATS_SECTIONS, ...(vendorPageShown() ? VENDOR_PAGE_SECTIONS : [])];   // HOME-VENDOR: the Vendor page, under the Professions
 /** HOLDINGS: the Holdings rail's pages - what the player owns (the Stable, the Fleet while ships sail, the Stores
  *  online) and who follows them (the Companions, the Revenants), each while it has a thing to show. */
-const holdingsSections = () => [...(stablePageShown() ? STABLE_PAGE_SECTIONS : []), ...(fleetPageShown() ? FLEET_PAGE_SECTIONS : []), ...(captainPageShown() ? CAPTAIN_PAGE_SECTIONS : []), ...(companionPageShown() ? COMPANION_PAGE_SECTIONS : []), ...(revenantPageShown(playerEntity) ? REVENANT_PAGE_SECTIONS : []), ...(profPagesShown() ? PROF_HOLD_SECTIONS : []), ...(collectionsPageShown(playerEntity) ? COLLECTION_PAGE_SECTIONS : [])];   // COLLECTIONS
+const holdingsSections = () => [...(stablePageShown() ? STABLE_PAGE_SECTIONS : []), ...(fleetPageShown() ? FLEET_PAGE_SECTIONS : []), ...(captainPageShown() ? CAPTAIN_PAGE_SECTIONS : []), ...(companionPageShown() ? COMPANION_PAGE_SECTIONS : []), ...(revenantPageShown(playerEntity) ? REVENANT_PAGE_SECTIONS : []), ...(collectionsPageShown(playerEntity) ? COLLECTION_PAGE_SECTIONS : [])];   // COLLECTIONS
 
 function pauseStats(body) {
   const m = sheetModel(playerEntity);
@@ -5050,12 +5053,9 @@ function pauseStats(body) {
   // pauseSystem) carries. The kit's button role (enhancedFrame.js FRAME_ROLES) reads `.px-sys .act`,
   // so without it these four fell through to the bare, unpainted base .act under Plus.
   const detail = el('div', 'px-qdetail px-sys');   // DROPS-AUDIT F3: the system-page dress (Plus's; PLUS-DEAD: the only one)
-  if (statsSec === 'professions' || statsSec === 'crafting' || statsSec === 'stores') detail.classList.add('prof-detail');
-  const profKit = { el, divider: pxDivider, meter: pxMeter, go: profGo, keyName: (/** @type {string} */ a) => boundKeyName(a) };   // CRAFT-HALL: page links and the key's name
+  const profKit = { el, divider: pxDivider, meter: pxMeter, go: profGo, keyName: (/** @type {string} */ a) => boundKeyName(a) };   // the Vendor page's: page links and the key's name
   ({
     character: statsCharacter, attributes: statsAttributes, skills: statsSkills, specials: statsSpecials, standing: statsStanding, effects: statsEffects, master: statsMaster,   // SOFTCAP4: `master` - the Master Skills door's page
-    professions: (d) => drawProfessionsPage(d, render, profKit),
-    crafting: (d) => drawCraftingPage(d, render, profKit),   // CRAFT-HALL
     vendor: (d) => drawVendorPage(d, render, profKit),   // HOME-VENDOR
   })[statsSec](detail, m);
   // PX25: THE DOORS THE F5 SHEET CARRIED. The classic character sheet
@@ -6435,6 +6435,7 @@ export function mountEnhancedMenu(host, {
   famSec = 'tree';   // LEGACY3: the Family rail opens on the tree, centred on the one played
   resetFamilyPages();
   resetHoldingsPages(); resetFleetPage(); resetCollectionsPage();   // ...and an act's word, an open name field, an armed press never outlive the visit
+  resetCraftTab(at);   // the Crafting tab on its landing's page
   resetGrowthTab(at);   // GROWTH1: the Growth rail on its landing's page (else the Level), the guide fresh, no face up
   statsAllSkills = false;
   sysSec = 'save';
@@ -6451,8 +6452,7 @@ export function mountEnhancedMenu(host, {
   // PROF2: a landing on a professions page - the Stats tab at it (a home forge's press opens the Stores' forge); the
   // draw falls back to the character's own page when the professions are not the account's
   // HOLDINGS: the Professions page is the Stats rail's, the Stores page the Holdings rail's
-  if (PROF_STATS_SECTIONS.some(([id]) => id === at)) { pauseTab = 'stats'; statsSec = at; }
-  else if (PROF_HOLD_SECTIONS.some(([id]) => id === at)) { pauseTab = 'holdings'; holdSec = at; }
+  if (craftPageAt(at)) { pauseTab = 'craft'; }
   else if (FAMILY_PAGE_SECTIONS.some(([id]) => id === at)) { pauseTab = 'family'; famSec = at; }   // LEGACY3: a Family page by name
   else if (growthPageAt(at)) pauseTab = 'growth';   // GROWTH1: a Growth page by name (its rail set by resetGrowthTab, above)
   else if (at === 'mailbox') postOpen = true;   // SERVER-POST: the mailbox's door (/mail, either skin) - the pause face with its window open

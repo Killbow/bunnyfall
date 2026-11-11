@@ -100,7 +100,7 @@ import { tradeRefusal } from '../../systems/tradePack.js';   // DISENCHANT-SAID:
 import { isLocked } from '../../systems/item/itemLock.js';   // DISENCHANT-SAID: nor a locked one (PROF5)
 import { DYE_NAMES } from '../../characters/dyes.js';
 import { isTextEntryTarget, isDomControlTarget } from '../input.js';   // AUDIT 30 A9: a field's keys and a button's are their own
-import { drawCraftWindow, CW_STATIONS } from './craftWindow.js';   // BUNNYFALL: the new crafting window
+import { drawBench, drawFocus } from './craftWindow.js';   // BUNNYFALL: the new crafting window
 import { createHeatAct } from '../../systems/heatAct.js';
 import { createPlaneAct } from '../../systems/planeAct.js';
 import { material, groundWitnessed } from '../../net/nodeLaw.js';
@@ -190,7 +190,6 @@ const workOf = (/** @type {any} */ book, /** @type {string} */ k) => (typeof boo
 /** The host's book, or null to take the pages down (offline, a closed switch, the host gone). */
 export function setProfessionsPages(p) { _provider = p ?? null; }
 /** BUNNYFALL: the classic station pages asked for instead of the crafting window. */
-let _classicView = false;
 /** BUNNYFALL: the host's profession book, or null offline (the pack's salvage asks it). */
 export const profBookNow = () => (_provider?.book?.state?.open === true ? _provider.book : null);
 /** What a locked specialisation's card says it waits for (professionLaw.js `later`). */
@@ -1004,9 +1003,7 @@ export function drawCraftingPage(detail, rerender, kit) {
   if (!p) return;
   // BUNNYFALL: at a crafting station, the new crafting window (ui/professions/craftWindow.js); the classic pages a press away
   const here = stationHere();
-  if (here && CW_STATIONS[here] && !_classicView) { drawCraftWindow(detail, rerender, p, here, () => { _classicView = true; rerender(); }); return; }
   const { el, divider } = kit;
-  if (here && CW_STATIONS[here]) { const back = el('button', 'act', 'Back to the crafting window'); back.type = 'button'; back.onclick = () => { _classicView = false; rerender(); }; detail.append(back); }
   const book = p.book;
   readStale(book, rerender);
   detail.append(divider(t('prof.page.crafting.title', 'Your crafts')));
@@ -1029,6 +1026,19 @@ export function drawCraftingPage(detail, rerender, kit) {
     doors.append(profs, stores);
     detail.append(doors);
   }
+}
+
+/** THE CRAFTING TAB'S BENCH PAGE: the station lists (ui/professions/craftWindow.js), read anywhere and made at the station. */
+export function drawBenchPage(detail, rerender, kit) {
+  const p = _provider;
+  if (!p) return;
+  drawBench(detail, rerender, p, stationHere(), () => kit.go?.('crafting'));
+}
+/** THE CRAFTING TAB'S FIRST PAGE: the Focus on top of the Professions page. */
+export function drawOverviewPage(detail, rerender, kit) {
+  const p = _provider;
+  if (p) drawFocus(detail, rerender, p, true);
+  drawProfessionsPage(detail, rerender, kit);
 }
 
 /** The Stores' materials as the page lists them: filtered by family and search, sorted by tier, name or count. */

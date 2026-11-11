@@ -184,7 +184,7 @@ function patterns(station, book) {
  * THE WINDOW. `p` the professions provider (profPages.js ProfPagesProvider and craftHost.js), `station` where the player
  * stands, `toOld` the way back to the classic pages.
  */
-export function drawCraftWindow(detail, rerender, p, station, toOld) {
+export function drawCraftWindow(detail, rerender, p, station, toOld, away = false) {
   ensureStyle();
   if (_cw.station !== station) { resetCraftWindow(); _cw.station = station; }
   const S = CW_STATIONS[station];
@@ -197,7 +197,8 @@ export function drawCraftWindow(detail, rerender, p, station, toOld) {
   head.append(h('div', 'cw-title', S.name), h('div', 'cw-sub', `${prof[0].toUpperCase()}${prof.slice(1)} rank ${rank}${fee ? ` · fee 10% of the piece, up to ${fee} gold` : ''} · ${p.purse?.() ?? 0} gold carried`));
   root.append(head);
   const tabs = h('div', 'cw-tabs');
-  const shown = TABS.filter(([id]) => id !== 'upgrade' || S.temper || S.upgrade).filter(([id]) => id !== 'refine' || S.refine().length);
+  // the Stores have a page of their own; away from the station only the list is read (its other acts need the station)
+  const shown = TABS.filter(([id]) => id !== 'stores' && (!away || id === 'craft')).filter(([id]) => id !== 'upgrade' || S.temper || S.upgrade).filter(([id]) => id !== 'refine' || S.refine().length);
   if (!shown.some(([id]) => id === _cw.tab)) _cw.tab = 'craft';
   for (const [id, word] of shown) tabs.append(button(`cw-tab${_cw.tab === id ? ' cw-on' : ''}`, word, () => { if (_cw.act) return; _cw.tab = id; _cw.word = null; rerender(); }));
   root.append(tabs);
@@ -205,11 +206,10 @@ export function drawCraftWindow(detail, rerender, p, station, toOld) {
   const say = (text) => { _cw.word = text; _cw.busy = false; rerender(); };
   const run = async (fn) => { if (_cw.busy) return; _cw.busy = true; rerender(); try { const r = await fn(); say(r?.text ?? 'Done.'); } catch { say('That did not go through. Try again.'); } };
 
-  if (_cw.tab === 'craft') (S.prof === 'cooking' ? drawCraftOld : drawCraft)(root, rerender, p, station, run);   // Cooking keeps its recipes until its own rework
+  if (_cw.tab === 'craft') (S.prof === 'cooking' ? drawCraftOld : drawCraft)(root, rerender, p, station, run, away);   // Cooking keeps its recipes until its own rework
   else if (_cw.tab === 'upgrade') drawUpgrade(root, p, station, run);
   else if (_cw.tab === 'salvage') drawSalvage(root, p, run);
   else if (_cw.tab === 'refine') drawRefine(root, rerender, p, station, run);
-  else drawStores(root, rerender, p, run);
 
   const foot = h('div', 'cw-foot');
   foot.append(button('cw-link', 'Open the classic station pages', () => toOld()));
@@ -363,7 +363,7 @@ function startPicks(form, book, rank, specs) {
 /** When a Focus craft can be dropped again, in words; a date the service did not send is said without one. */
 const focusWaitWord = (s) => (Number.isFinite(s) && s > 0 ? `You can drop a Focus craft again on ${new Date(s * 1000).toLocaleDateString()}.` : 'You dropped a Focus craft recently. Try again in a few days.');
 
-function drawFocus(root, rerender, p) {
+export function drawFocus(root, rerender, p, showWord = false) {
   const book = p.book;
   if (typeof book?.focus !== 'function' || typeof book.chooseFocus !== 'function') return;
   const f = book.focus();
@@ -385,10 +385,11 @@ function drawFocus(root, rerender, p) {
     }, full));
   }
   box.append(chips);
+  if (showWord && _cw.word) box.append(h('div', 'cw-word', _cw.word));
   root.append(box);
 }
 
-function drawCraft(root, rerender, p, station, run) {
+function drawCraft(root, rerender, p, station, run, away = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const prof = S.prof;
@@ -421,12 +422,12 @@ function drawCraft(root, rerender, p, station, run) {
   }
   body.append(col);
   const card = h('div', 'cw-card');
-  if (pick) drawFormCard(card, rerender, p, station, pick.f, rank, specs, run);
+  if (pick) drawFormCard(card, rerender, p, station, pick.f, rank, specs, run, away);
   body.append(card);
   root.append(body);
 }
 
-function drawFormCard(card, rerender, p, station, form, rank, specs, run) {
+function drawFormCard(card, rerender, p, station, form, rank, specs, run, away = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   if (_cw.form !== form.id) { _cw.form = form.id; _cw.picks = {}; }
@@ -511,7 +512,8 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run) {
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
   if (!purseOk) card.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
   const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
-  const ready = st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
+  if (away) card.append(h('p', 'cw-note', `Stand at the ${S.name} to craft this.`));
+  const ready = !away && st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
   const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(r.dyes ? { dye } : {}) }));
   if (_cw.act) { card.append(_cw.act.el); return; }
   const actions = h('div', 'cw-actions');
@@ -639,26 +641,21 @@ function drawRefine(root, rerender, p, station, run) {
   }
 }
 
-function drawStores(root, rerender, p, run) {
-  const book = p.book;
-  const search = h('input', 'cw-search');
-  search.placeholder = 'Search materials';
-  search.value = _cw.query;
-  search.oninput = () => { _cw.query = search.value; rerender(); };
-  root.append(search);
-  const q = _cw.query.trim().toLowerCase();
-  const rows = [...(book?.state?.stores?.values?.() ?? [])]
-    .map((s) => ({ key: s.material, name: p.name(s.material), total: (s.own | 0) + (s.bought | 0) + (s.gold | 0) + (s.loose | 0) }))
-    .filter((s) => s.total > 0 && (!q || s.name.toLowerCase().includes(q)))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  if (!rows.length) root.append(h('div', 'cw-empty', q ? 'No material matches.' : 'Your Stores are empty.'));
-  for (const s of rows) {
-    const line = h('div', 'cw-line');
-    const main = h('div', 'cw-line-main');
-    main.append(h('b', null, s.name), h('span', 'cw-state', `${s.total} stored`));
-    const acts = h('div', 'cw-actions');
-    for (const n of [1, 10]) acts.append(button('cw-btn', `Take ${n}`, () => run(() => p.withdraw(s.key, n)), _cw.busy || s.total < 1 || typeof p.withdraw !== 'function'));
-    line.append(main, acts);
-    root.append(line);
-  }
+
+// ─── THE BENCH PAGE (the Crafting tab): every station's list, read anywhere, made at the station ─────────
+
+const _bench = { station: null, followed: null };
+const BENCH_STATIONS = Object.freeze(['anvil', 'workbench', 'loom', 'mason', 'jeweller']);
+/** `here` the station the player stands at (profPages stationHere), or null. Away, the lists are read and nothing is made. */
+export function drawBench(detail, rerender, p, here, toOld) {
+  ensureStyle();
+  const stand = here && CW_STATIONS[here] ? here : null;
+  const list = stand === 'fire' ? [...BENCH_STATIONS, 'fire'] : BENCH_STATIONS;
+  if (stand && _bench.followed !== stand) { _bench.station = stand; _bench.followed = stand; }   // arriving shows that station
+  if (!stand) _bench.followed = null;
+  if (!list.includes(_bench.station)) _bench.station = list[0];
+  const chips = h('div', 'cw-chips');
+  for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${s === stand ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
+  detail.append(chips);
+  drawCraftWindow(detail, rerender, p, _bench.station, toOld, _bench.station !== stand);
 }
