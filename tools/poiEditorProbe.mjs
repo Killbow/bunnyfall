@@ -117,7 +117,7 @@ try {
   check('view toggles flip', await page.evaluate(() => { const s = window.__builder.viewport.show(); return s.collision === true && s.grid === false; }));
   await page.evaluate(() => { window.__builder.A.show('collision'); window.__builder.A.show('grid'); });
   await page.evaluate(() => window.__builder.A.moveBy?.length >= 0);
-  await page.evaluate(() => { const b = window.__builder; b.S.sel = []; });
+  await page.evaluate(() => { const b = window.__builder; b.S.sel = []; b.A.mode('select'); });
   await page.waitForTimeout(250);
   await page.screenshot({ path: shot.replace('.png', '-ground.png') });
 
@@ -167,7 +167,7 @@ try {
   // ── Milestone 4: the DM view, built through its own controls ──
   await page.evaluate(() => { const b = window.__builder; b.S.sel = []; b.A.view('dm'); });
   await page.waitForTimeout(300);
-  check('DM view opens and says the game runs these later', (await page.locator('.dmbar .dim').innerText()).includes('Milestone 5'));
+  check('DM view opens and points to the Sandbox', (await page.locator('.dmbar .dim').innerText()).includes('Sandbox'));
   await page.locator('.dmbar button', { hasText: 'Routes' }).click();
   await page.locator('.dmside button', { hasText: /^Add$/ }).click();
   await page.fill('.dialog input', 'Merchant Patrol'); await page.locator('.dialog button', { hasText: 'Add' }).click(); await page.waitForTimeout(300);
@@ -232,6 +232,29 @@ try {
   await page.screenshot({ path: shot.replace('.png', '-dm3d.png') });
   const probs = await page.evaluate(() => document.querySelector('.tabs .tab.on')?.innerText);
   check('the problems tab still counts', typeof probs === 'string');
+
+  // ── Milestone 5: the Sandbox plays the example POI; the badge says SANDBOX; the File menu offers packs and .glb import ──
+  await page.evaluate(async (root) => {
+    const b = window.__builder;
+    const { poiV2Example } = await import(`/@fs${root}/tools/poiV2Examples.mjs`);
+    const ex = poiV2Example();
+    b.edit.edit(b.S.docId, 'probe example', (d) => { for (const k of ['npcs', 'routes', 'variables', 'interactives', 'encounters', 'trades', 'dialogues', 'events']) d[k] = ex[k]; });
+    b.A.sandbox();
+  }, process.cwd());
+  await page.waitForTimeout(300);
+  check('the Sandbox tab opens', (await page.locator('.sbx-banner').count()) === 1);
+  await page.locator('.sbx button', { hasText: 'Start the sandbox' }).click(); await page.waitForTimeout(200);
+  check('the badge says SANDBOX', (await page.locator('.toolbar .badge').innerText()).includes('SANDBOX'));
+  await page.locator('.sbx button', { hasText: 'Ambush zone' }).click(); await page.waitForTimeout(150);
+  check('walking into the zone starts the ambush', await page.evaluate(() => window.__builder.dm.sandbox.model().encounters.ambush === 'active'));
+  await page.locator('.sbx-sec', { hasText: 'Win the fight' }).locator('button').first().click(); await page.waitForTimeout(150);
+  check('the ambush opens the gate in the Sandbox', await page.evaluate(() => window.__builder.dm.sandbox.model().states.gate === 'open'));
+  check('the Sandbox log tells each step', (await page.locator('.sbx-log').innerText()).includes('The bridge is clear.'));
+  check('the Sandbox changed nothing in the document', await page.evaluate(() => window.__builder.getDoc().interactives.find((o) => o.key === 'gate').state === 'locked'));
+  await page.locator('.toolbar .menu button', { hasText: 'File' }).click();
+  check('the File menu offers pack export and .glb import', (await page.locator('.toolbar .menu.open').innerText()).includes('Export as a POI pack') && (await page.locator('.toolbar .menu.open').innerText()).includes('Import a .glb'));
+  await page.mouse.click(5, 300);
+  await page.evaluate(() => window.__builder.A.view('3d'));
 
   // problems panel and environment
   check('problems tab lists the law', (await page.locator('.tabs .tab.on').innerText()).startsWith('Problems'));

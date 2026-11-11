@@ -77,6 +77,9 @@ function bundle(name, toml) {
   const main = readdirSync(out).find((f) => /\.m?js$/.test(f) && !f.endsWith('.map'));
   return { out, main: join(out, main) };
 }
+// Opt-in, for tests: BUNNYFALL_ACCOUNT_VARS="JUDGE_OFF=off,OTHER=x" overrides account-service vars for this run only
+// (tools/poiV2ServerProbe.mjs boots an isolated stack with the judge ON). Unset in normal running.
+const extraAccountVars = Object.fromEntries((process.env.BUNNYFALL_ACCOUNT_VARS || '').split(',').filter((p) => p.includes('=')).map((p) => [p.slice(0, p.indexOf('=')).trim(), p.slice(p.indexOf('=') + 1).trim()]));
 function workerFrom(toml, name, varsFile, port) {
   const { workerOptions } = wr.unstable_getMiniflareWorkerOptions(toml);
   const b = bundle(name, toml);
@@ -87,7 +90,7 @@ function workerFrom(toml, name, varsFile, port) {
     name,
     modulesRoot: b.out,
     modules: [{ type: 'ESModule', path: b.main }],
-    bindings: { ...opts.bindings, ...parseVars(varsFile) },
+    bindings: { ...opts.bindings, ...parseVars(varsFile), ...(name === 'daggerfall-accounts' ? extraAccountVars : {}) },
     unsafeDirectSockets: [{ host: BIND, port: Number(port) }],
   };
 }

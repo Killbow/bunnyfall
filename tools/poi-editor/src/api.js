@@ -5,7 +5,7 @@
 // kept session per environment and a plain status for the toolbar.
 
 import { login, logout } from '../../../src/net/accountClient.js';
-import { poiMe, poiList, poiQueue, poiHistory, poiSaveDraft, poiShelf, poiSubmit } from '../../../src/poi/poiService.js';
+import { poiMe, poiList, poiQueue, poiHistory, poiSaveDraft, poiShelf, poiSubmit, poiWithdraw, poiReview, poiRollback, poiShelfEntry, poiShelve, poiPutAsset } from '../../../src/poi/poiService.js';
 
 /** The environments the toolbar offers. `custom` takes the builder's own URL. */
 export const ENVIRONMENTS = Object.freeze([
@@ -79,6 +79,19 @@ export function createApi({ storage = globalThis.localStorage, fetch = globalThi
     saveDraft: (doc, base = null) => poiSaveDraft(io(), doc, base),
     submit: (id, rev) => poiSubmit(io(), id, rev),
     shelf: () => poiShelf(io()),
+    withdraw: (id, rev) => poiWithdraw(io(), id, rev),
+    review: (id, rev, verdict, note, docSha) => poiReview(io(), id, rev, verdict, note, docSha),
+    rollback: (id, rev) => poiRollback(io(), id, rev),
+    shelfEntry: (id) => poiShelfEntry(io(), id),
+    shelve: (item) => poiShelve(io(), item),
+    putAsset: (bytes, kind) => poiPutAsset(io(), bytes, kind),
+    /** An asset's bytes (a draft's with this session's bearer). Throws on a refusal: the pack export stops and says which. */
+    async assetBytes(sha) {
+      const secret = sessions[env.base];
+      const r = await fetch(`${env.base}/v1/poi/asset/${sha}`, { headers: secret ? { authorization: `Bearer ${secret}` } : {} });
+      if (!r.ok) throw new Error(`asset ${sha}: ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    },
   };
   return api;
 }

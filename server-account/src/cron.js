@@ -74,6 +74,7 @@ import { profSwitchOf } from '../../src/net/professionLaw.js';
 import { GUILD_INVITE_TTL_S } from '../../src/net/guild/guildLaw.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { arenaSeasonOf } from '../../src/net/arena/arenaLaw.js';
+import { POI_TXN_KEEP_S } from './poiTrade.js';   // POI v2: how long a settled act's answer is kept
 import { REALM_FINDINGS_KEEP_S, REALM_WEALTH_KEEP_S } from './review.js';   // INT2/INT5: the judge's record's keeping
 import { WILD_FALLS_KEEP_S } from './wild.js';   // INT9: a death's drop's keeping
 import { settleHolds, REZ_SETTLE_MAX } from './legacy.js';   // REZ-BLOODLINE AUDIT R1: a held fall's window closed
@@ -231,6 +232,9 @@ export const HOUR_JOBS = Object.freeze([
   // window staff set the budget's line from
   ['realm-findings', (ctx) => rounds(() => deleted(ctx.db,
     'DELETE FROM realm_findings WHERE id IN (SELECT id FROM realm_findings WHERE at < ?1 LIMIT ?2)', ctx.nowS - REALM_FINDINGS_KEEP_S), SWEEP_ROWS)],
+  // POI v2: a settled trade's or event's answer, kept for a client asking again after a lost answer (poiTrade.js)
+  ['poi-txn-log', (ctx) => rounds(() => deleted(ctx.db,
+    'DELETE FROM poi_txn_log WHERE rowid IN (SELECT rowid FROM poi_txn_log WHERE created_at < ?1 LIMIT ?2)', ctx.nowS - POI_TXN_KEEP_S), SWEEP_ROWS)],
   ['realm-wealth-hours', (ctx) => rounds(() => deleted(ctx.db,
     'DELETE FROM realm_wealth_hours WHERE rowid IN (SELECT rowid FROM realm_wealth_hours WHERE hour < ?1 LIMIT ?2)', ctx.nowS - REALM_WEALTH_KEEP_S), SWEEP_ROWS)],
   // INT17: the progression claims' hours, kept as the wealth's are - the window staff set the line from (progress.js)

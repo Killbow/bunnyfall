@@ -812,7 +812,8 @@ import { weaponTypeForItem } from '../combat/fpsWeapon.js';
 import { spaceAcross, clearDoorways, doorSpotsNear, spacingSkips } from '../characters/foeSpacing.js';   // TACT3: the crowd and the door
 import { Collider } from '../player/collider.js';
 import { onFloatingFrame } from '../player/collider.js';   // PERF-COL2: a streamed pixel's buckets ride the floating origin
-import { createPoiHost } from './poiHost.js';   // POI-2: the approved POIs, standing in the streamed world
+import { createPoiHost } from './poiHost.js';
+import { call as accountCall } from '../net/accountClient.js';   // POI v2: a live POI's trades and events, settled on the realm record   // POI-2: the approved POIs, standing in the streamed world
 import { createPoiFeed, browserPoiCache } from '../poi/poiFeed.js';   // POI-2: the approved set, read live and kept
 import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
 import { poiMapMarks } from '../ui/poi/poiMapMark.js';   // POI-2: their marks on both world maps
@@ -25562,6 +25563,19 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     auth: () => storedSession(appStorage())?.secret ?? null,   // POI-3: a builder's drafts' assets, asked with the builder's bearer
     getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
     collideDrafts: () => poiEditor?.collideDrafts() ?? true,   // POI-3: a draft dragged files no collider until the drag ends
+    // POI v2 (World Builder M5): a POI's patrols, talk, trades, objects and encounters - its module loaded only once one stands
+    dm: () => import('../poi/poiDmRuntime.js').then((m) => m.createPoiDm({
+      say: (line) => townTalk.say(line),
+      pack: () => playerEntity,
+      give: (records, gold) => { for (const it of records) addItem(playerEntity.items ??= [], it); if (gold) addGoldPieces(playerEntity, gold); },
+      feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
+      spawnFoe: (foe, at, o) => exteriorFoes.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } }),
+      isDown: (f) => !!f?.corpse,
+      act: realmSession ? (path, body, o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), read: !!o?.read,
+        call: (at) => accountCall(realmIoNow(), path, { ...body, id: at.id, lease: at.lease, seq: at.seq }) }) : null,
+      character: () => params.get('realm') ?? null,
+      store: { get: (k) => { try { return JSON.parse(appStorage().getItem(k) ?? 'null'); } catch { return null; } }, set: (k, v) => { try { appStorage().setItem(k, JSON.stringify(v)); } catch { /* full */ } } },
+    })),
   });
   if (params.has('editor')) startPoiEditor();   // POI-3: `?editor` (refused online - systems/online/onlineLane.js): a builder's editor over this world
   /** POI-3: THE EDITOR'S DOOR (bible/06-Systems/POI-Editor-Arc.md POI-3b) - the store asked who this account is, and only a

@@ -705,12 +705,13 @@ export function realmPathOf(path) {
  *   GET /v1/poi/live | GET /v1/poi/asset/<sha> | PUT /v1/poi/asset/<sha>?kind=mesh|texture
  *   GET /v1/poi/me | /v1/poi/list | /v1/poi/queue | /v1/poi/doc/<id>
  *   PUT /v1/poi/draft { doc, base } | POST /v1/poi/{submit,withdraw,retire,review,rollback}
+ *   POST /v1/poi/trade | POST /v1/poi/event-claim (a player's: a live POI's trade or event settled on a realm character, poiTrade.js)
  * @param {string} path
  */
 export function poiPathOf(path) {
   if (typeof path !== 'string' || !path.startsWith('/v1/poi/')) return null;
   const rest = path.slice('/v1/poi/'.length);
-  if (['live', 'me', 'list', 'queue', 'draft', 'submit', 'withdraw', 'retire', 'review', 'rollback', 'shelf', 'unshelve'].includes(rest)) return { route: rest };
+  if (['live', 'me', 'list', 'queue', 'draft', 'submit', 'withdraw', 'retire', 'review', 'rollback', 'shelf', 'unshelve', 'trade', 'event-claim'].includes(rest)) return { route: rest };
   let m = /^asset\/([0-9a-f]{64})$/.exec(rest);
   if (m) return { route: 'asset', sha: m[1] };
   m = /^doc\/(poi-[0-9a-f]{12})$/.exec(rest);

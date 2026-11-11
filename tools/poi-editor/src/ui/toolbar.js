@@ -33,7 +33,15 @@ export function createToolbar({ host, actions, getState }) {
         { label: 'Save draft', run: 'save', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : '' },
         { label: 'Submit for approval', run: 'submit', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : s.problems ? 'Fix the problems first.' : '' },
         { label: 'Close POI', run: 'closeDoc', why: isOpen ? '' : 'No POI is open.' },
-        { note: 'Packs, .glb export and the sandbox come in later milestones.' },
+        { label: 'Withdraw submission', run: 'withdraw', why: s.state === 'submitted' ? '' : 'Only a submitted revision can be withdrawn.' },
+        { label: 'Try in the Sandbox', run: 'sandbox', why: isOpen ? '' : 'Open a POI first.' },
+        { label: 'Import a .glb model...', run: 'importGlb', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first (the model is uploaded).' : '' },
+        { label: 'Import a POI pack (.zip)...', run: 'importPack', why: s.signedIn ? '' : 'Sign in first.' },
+        { label: 'Export as a POI pack (.zip)', run: 'exportPack', why: !isOpen ? 'Open a POI first.' : !s.signedIn ? 'Sign in first.' : '' },
+      ]),
+      menu('Review', [
+        { label: 'Review submissions...', run: 'review', why: s.me?.approver ? '' : 'Approvers only.' },
+        { label: 'Roll back to an approved revision...', run: 'rollback', why: !s.me?.approver ? 'Approvers only.' : !isOpen ? 'Open a POI first.' : '' },
       ]),
       menu('Edit', [
         { label: 'Undo  Ctrl+Z', run: 'undo', why: s.canUndo ? '' : 'Nothing to undo.' }, { label: 'Redo  Ctrl+Shift+Z', run: 'redo', why: s.canRedo ? '' : 'Nothing to redo.' },

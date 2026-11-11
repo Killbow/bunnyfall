@@ -366,7 +366,8 @@ import { passRoute, passKey, mintPass, readPass, passMintable } from './sessionP
 import { SESSION_PASS_HEADER } from '../../src/net/sessionPassLaw.js';   // SESSION-SIGN: its one name on the wire
 import { PROGRESS_ROUTES, seatRefusalOf, progressConfig, progressRoom, progressSpent } from './progress.js';   // INT16-INT17: a progression claim's seat, and the play that pays for it
 import { isGzip, gzipSizeOf, gunzipText, REALM_TEXT_MAX_BYTES } from '../../src/net/realm/realmSaveCodec.js';   // REALM-GZIP: a save rides packed
-import { tradeRealm, REALM_TRADE_BODY_MAX } from './realmTrade.js';   // REALM P2.1: a trade, settled here
+import { tradeRealm, REALM_TRADE_BODY_MAX } from './realmTrade.js';
+import { tradePoi, eventClaimPoi } from './poiTrade.js';   // POI v2: a live POI's trades and events, settled on a realm character   // REALM P2.1: a trade, settled here
 import { wildFall, wildCollect, wildReclaim, wildEscrows } from './wild.js';   // INT9: a death in the open zone's drop, taken off the record; MAC (2026-10-14): its killer's piece in escrow - collected, taken back, listed
 import { listLineages, putLineage, realmDie, realmRaise, realmWed, listUnions, LINEAGE_BODY_MAX } from './legacy.js';   // LEGACY7: Project Legacy's lines and the tombstone; REZ-BLOODLINE AUDIT R1: a Resurrect inside its hold
 import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every request counted (Workers Analytics Engine); AUDIT SCALE II A-3: a heartbeat's parts, of the body the route read
@@ -415,7 +416,7 @@ const no = (why, status, origin) => json({ error: why }, status, origin);
  *  `poi-shelf-full` and `poi-shelf-spent` (S10), `poi-gone` (U13). */
 const POI_STATUS = {
   'poi-not-builder': 403, 'poi-not-approver': 403, 'poi-not-author': 403, 'not-found': 404, 'poi-gone': 410, 'poi-state': 409, 'poi-changed': 409, 'poi-pending': 409, 'poi-not-live': 409,
-  'poi-drafts-full': 409, 'poi-shelf-full': 409, 'poi-shelf-spent': 409, 'poi-quota': 429, 'no-storage': 503,
+  'poi-drafts-full': 409, 'poi-shelf-full': 409, 'lease': 409, 'no-realm-character': 404, 'txn-spent': 409, 'poi-when': 409, 'poi-items': 409, 'poi-gold': 409, 'poi-limit': 409, 'poi-cooldown': 409, 'poi-stock': 409, 'poi-no-recipe': 404, 'poi-no-event': 404, 'poi-shelf-spent': 409, 'poi-quota': 429, 'no-storage': 503,
 };
 /** POI-1: what one address may ask of the POI store's open reads in a window - a game streaming a town's models at once. */
 const POI_OPEN_MAX = 600;
@@ -2584,6 +2585,13 @@ const service = {
           return answer(await savePoiDraft(pctx, me, env, { doc: draft.doc, base: draft.base ?? null }));
         }
         if (request.method === 'POST') {
+          // POI v2: a PLAYER'S doors, not a builder's - a live POI's trade or event, settled on the caller's own realm character
+          // (poiTrade.js asks the live revision, the lease, the sequence and the hold itself). A moved record says the service's seq.
+          if (route === 'trade' || route === 'event-claim') {
+            const r = route === 'trade' ? await tradePoi({ ...pctx, rand: ctx.rand }, me.id, body) : await eventClaimPoi({ ...pctx, rand: ctx.rand }, me.id, body);
+            if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);
+            return answer(r);
+          }
           if (route === 'submit') return answer(await submitPoi(pctx, me, env, { id: body.id, rev: body.rev }));
           if (route === 'withdraw') return answer(await withdrawPoi(pctx, me, env, { id: body.id, rev: body.rev }));
           if (route === 'retire') return answer(await requestRetire(pctx, me, env, { id: body.id }));

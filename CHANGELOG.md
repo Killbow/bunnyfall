@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-11
+
+- Places built with the World Builder can now come alive: people walk their patrol routes, talk with you through branching conversations, and trade with you; stepping into an area can start an ambush; doors, chests and switches can be used. Every trade and reward is checked and paid by the server, once.
+
 ## 2026-11-09
 
 - Fixed: enemies in shared dungeons no longer go out of sync between players (a party member fighting something you can't see). When you enter a dungeon someone else is already in, its enemies appear a moment later, once the game has the room's state from them, and they match on everyone's screen. Everyone in the dungeon fights enemies built for the same level.

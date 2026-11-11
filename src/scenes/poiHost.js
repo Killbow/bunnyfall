@@ -152,9 +152,18 @@ export function createPoiHost({
   renderer, feed, decodeImage, pixels, translation, groundAt, collider = () => null, riding = () => null, collideDrafts = () => true,
   feet = () => null, auth = () => null, now = () => Date.now(), clock = () => performance.now(), keepDecodedBytes = POI_DECODED_KEEP_BYTES, log = console,
   getTexture = null, uploadRecordFrame = null, say = null,   // BUNNYFALL: the people's sprites and lines
+  dm = null,   // POI v2: `() => Promise<runtime>` (poi/poiDmRuntime.js createPoiDm), asked the first time a POI with DM content stands
 }) {
   /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
-  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet });
+  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => dmRt?.talk(id, key) ?? false });
+  /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */
+  let dmRt = null, dmAsked = false;
+  const dmContent = (doc) => doc?.v === 2 && ['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length);
+  function dmOf(s) {
+    if (!dm || s.draft || !dmContent(s.doc)) return null;
+    if (!dmRt && !dmAsked) { dmAsked = true; dm().then((rt) => { dmRt = rt; }, (e) => { if (log) console.warn('[poi] the DM runtime', e?.message ?? e); }); }
+    return dmRt;
+  }
   /** id -> the POI standing (or loading) */
   const standing = new Map();
   /** AUDIT POI R12: the same POIs in an array, walked by index - no iterator, no copy a frame */
@@ -373,6 +382,7 @@ export function createPoiHost({
     for (const l of s.held) dropLook(l);
     s.parts = []; s.held = [];
     npcs.drop(s.id);   // BUNNYFALL: and its people
+    npcs.setExtras(s.id, null); dmRt?.drop(s.id);   // POI v2: and its run
     standing.delete(s.id);
     const i = stood.indexOf(s);
     if (i >= 0) stood.splice(i, 1);
@@ -437,7 +447,11 @@ export function createPoiHost({
       }
     }
     s.visible = true;
-    if (s.doc.npcs?.length) { npcs.sync(s.id, s.npcs ??= npcsOf(s.doc, s.place), t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
+    const rt = dmOf(s);   // POI v2: its patrols, triggers, objects and encounters (poi/poiDmRuntime.js)
+    const people = s.doc.npcs?.length ? (s.npcs ??= npcsOf(s.doc, s.place)) : null;
+    const shown = rt ? rt.frame(s, t, people) : people;
+    if (rt) npcs.setExtras(s.id, rt.extras(s.id));
+    if (shown?.length || people?.length) { npcs.sync(s.id, shown ?? [], t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
     else if (s.hadNpcs) { npcs.drop(s.id); s.hadNpcs = false; }
     const parts = s.parts;
     for (let i = 0; i < parts.length; i++) {

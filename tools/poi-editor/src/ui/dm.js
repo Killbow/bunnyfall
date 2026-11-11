@@ -6,13 +6,14 @@
 // validates them, and the banner says so.
 
 import { h, clear } from './dom.js';
+import { createSandbox } from './sandbox.js';
 import { find } from '../scene.js';
 import { POI_ROUTE_MODES, POI_AGGRESSION, POI_RESPAWN, POI_COMPLETE_RULES, POI_INTERACTIVE_KINDS, POI_INTERACTIVE_STATES, POI_VAR_TYPES, POI_VAR_SCOPES, POI_VAR_OPS, POI_LIMIT_MODES, POI_ACTION_KINDS, POI_OPTION_KINDS, POI_V2_LIMITS as LIM } from '../../../../src/poi/poiLawV2.js';
 import * as DM from '../dm.js';
 import { eventGraphSvg } from './eventGraph.js';
 import { ask } from './dialog.js';
 
-const TABS = [['npcs', 'People'], ['routes', 'Routes'], ['encounters', 'Encounters'], ['interactives', 'Objects'], ['dialogues', 'Dialogues'], ['trades', 'Trades'], ['events', 'Events'], ['variables', 'Variables']];
+const TABS = [['npcs', 'People'], ['routes', 'Routes'], ['encounters', 'Encounters'], ['interactives', 'Objects'], ['dialogues', 'Dialogues'], ['trades', 'Trades'], ['events', 'Events'], ['variables', 'Variables'], ['sandbox', 'Sandbox']];
 const WORD = { loop: 'Loop', pingpong: 'There and back', once: 'Once', hostile: 'Hostile', passive: 'Passive', never: 'Never', on_reentry: 'When a player comes back', all_dead: 'All dead', leader_dead: 'The leader dies', timer_survived: 'A timer runs out',
   chest: 'Chest', door: 'Door or gate', switch: 'Switch', quest_object: 'Quest object', trigger: 'Zone (trigger)', boolean: 'True or false', number: 'Number', string: 'Text', event: 'This event only', instance: 'This visit', character: 'Each character', poi_global: 'Everyone, kept',
   unlimited: 'No limit', once_per_char: 'Once per character', once_per_account: 'Once per account', daily_per_char: 'Once a day per character', global_stock: 'Limited stock', eq: 'is', ne: 'is not', gt: '>', ge: '>=', lt: '<', le: '<=' };
@@ -25,7 +26,9 @@ const w = (k) => /** @type {any} */ (WORD)[k] ?? k;
  * @param {{ host: HTMLElement, getDoc: () => any, docId: () => string | null, edit: any, catalogue: any, say: (m: string) => void,
  *   pick: (what: string, done: (p: number[]) => void) => void, here: () => number[], getSel: () => string[], changed: () => void }} o
  */
-export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed }) {
+export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed, onSandbox = () => {} }) {
+  const sandboxBox = h('div', { class: 'sbx' });
+  const sandbox = createSandbox({ host: sandboxBox, getDoc, catalogue, onChange: onSandbox });
   const ui = { tab: 'routes', key: /** @type {string | null} */ (null), sub: /** @type {string | null} */ (null) };
 
   // ── reading and writing the document by path ──
@@ -301,12 +304,13 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
     clear(host);
     const d = doc();
     host.append(h('div', { class: 'dmbar' }, ...TABS.map(([k, t]) => h('button', { class: ui.tab === k ? 'on' : '', text: t, on: { click: () => { ui.tab = k; ui.key = null; render(); changed(); } } })),
-      h('span', { class: 'dim', text: 'The game runs these from Milestone 5. Until then they are saved and checked here.' })));
+      h('span', { class: 'dim', text: 'The game runs these on approved POIs. Try them in the Sandbox first.' })));
     if (!d) { host.append(note('No POI open.')); return; }
     if (d.v !== 2) { host.append(note('This POI is version 1. Open or create a version 2 POI to use the DM tools.')); return; }
+    if (ui.tab === 'sandbox') { sandbox.render(); host.append(sandboxBox); return; }
     if (ui.tab === 'npcs' && !ui.key) ui.key = d.npcs?.[0]?.key ?? null;
     host.append(tabs[/** @type {keyof typeof tabs} */ (ui.tab)]());
   }
   void find; void getSel;
-  return { render, show: () => ({ tab: ui.tab, key: ui.key }), open: (tab, key) => { ui.tab = tab; ui.key = key ?? null; render(); } };
+  return { render, sandbox, show: () => ({ tab: ui.tab, key: ui.key }), open: (tab, key) => { ui.tab = tab; ui.key = key ?? null; render(); } };
 }

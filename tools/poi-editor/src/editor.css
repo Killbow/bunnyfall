@@ -65,3 +65,12 @@ input[type=number] { width: 70px; }
 .dmbody { flex: 1; min-height: 0; display: flex; } .dmside { width: 190px; border-right: 1px solid var(--line); padding: 4px; display: flex; flex-direction: column; gap: 4px; overflow: auto; background: var(--panel); } .dmlist { display: flex; flex-direction: column; gap: 2px; }
 .dmform { flex: 1; min-width: 0; overflow: auto; padding: 6px 10px; } .dmgraph { width: 46%; min-width: 280px; border-left: 1px solid var(--line); overflow: auto; background: #15161a; } .evwrap { padding: 6px; }
 .stageDm > .dmbody { flex-direction: row; } .card { border: 1px solid var(--line); border-radius: 6px; padding: 6px; margin: 6px 0; background: #1b1d23; } .nest { margin-left: 10px; padding-left: 8px; border-left: 2px solid var(--line); } .cond { margin: 2px 0; } .row2 { display: flex; gap: 4px; align-items: center; } .row2 input[type=text] { flex: 1; }
+/* Milestone 5: the Sandbox */
+.badge.sandbox { background: #1f3550; color: #9fd0ff; }
+.sbx { padding: 8px 12px; overflow: auto; height: 100%; box-sizing: border-box; }
+.sbx-banner { background: #1f3550; color: #9fd0ff; padding: 6px 10px; border-radius: 4px; font-weight: 700; margin-bottom: 8px; }
+.sbx-sec { margin: 8px 0; } .sbx-h { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+.sbx-sec button { margin: 2px 4px 2px 0; } .sbx-say { font-style: italic; margin-bottom: 4px; }
+.sbx-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sbx-log { max-height: 240px; overflow: auto; background: #15171d; padding: 6px; font-size: 12px; white-space: pre-wrap; }
+.chip { display: inline-block; background: #2a2d37; border-radius: 10px; padding: 1px 6px; margin: 2px; }

@@ -24,6 +24,7 @@ import { createBottom, problemsOf } from './ui/bottom.js';
 import { createViewport } from './ui/viewport3d.js';
 import { createCanvas2d } from './ui/canvas2d.js';
 import { createDm } from './ui/dm.js';
+import { createTransfer } from './transfer.js';
 import { ask, confirmBox } from './ui/dialog.js';
 
 const CLIP_KEY = 'bunnyfall.worldbuilder.clip';
@@ -82,7 +83,8 @@ async function boot() {
     A.view('3d'); say(`Click the ground to place ${what}. Esc cancels.`);
     viewport.armPick(what, (p) => { done(p); A.view(back); });
   };
-  dmPanel = createDm({ host: stageDm, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  DM edit`); queue(); } });
+  dmPanel = createDm({ host: stageDm, getDoc, docId, edit, catalogue, say, pick, here, getSel, changed: () => { stepsLog.push(`${new Date().toLocaleTimeString('en')}  DM edit`); queue(); }, onSandbox: () => queue() });
+  const transfer = createTransfer({ api, edit, getDoc, docId: () => S.docId, say, act, opened: (id) => { S.docId = id; S.sel = []; stepsLog.length = 0; }, refresh: () => queue() });
 
   // ── clipboard ──
   const remember = async (clip) => { const t = clipText(clip); try { globalThis.localStorage?.setItem(CLIP_KEY, t); } catch { /* blocked */ } try { await navigator.clipboard?.writeText(t); } catch { /* the page may not write the system clipboard */ } };
@@ -149,6 +151,13 @@ async function boot() {
       if (r.ok) { edit.markSaved(S.docId, { rev: saved.rev, state: 'submitted' }); say(`Submitted revision ${saved.rev}.`); } else say(`Not submitted: ${r.error}`);
       queue();
     },
+    exportPack: () => transfer.exportPack(),
+    importPack: () => transfer.importPack(),
+    importGlb: () => transfer.importGlb(),
+    review: () => transfer.review(),
+    rollback: () => transfer.rollback(),
+    withdraw: () => transfer.withdraw(),
+    sandbox() { A.view('dm'); dmPanel?.open('sandbox'); },
     closeDoc() { if (S.docId) edit.close(S.docId); S.docId = null; S.sel = []; queue(); },
     undo() { const l = edit.undo(); if (l) say(`Undid ${l}.`); alive(); queue(); },
     redo() { const l = edit.redo(); if (l) say(`Redid ${l}.`); alive(); queue(); },
@@ -220,12 +229,16 @@ async function boot() {
   const toolbar = createToolbar({ host: layout.toolbar, actions: /** @type {any} */ (A), getState: () => {
     const d = getDoc(), e = S.docId ? edit.entryOf(S.docId) : null, dirtyNow = !!S.docId && edit.dirty(S.docId);
     const st = e?.state ?? 'none';
+    const live = e?.base ?? null;
     const badge = !d ? { cls: 'none', text: 'NO POI', why: 'Open or create a POI.' }
+      : dmPanel?.sandbox.active() && S.view === 'dm' ? { cls: 'sandbox', text: 'SANDBOX', why: 'Trying the POI here. Nothing is saved or sent to players.' }
+      : st === 'approved' && live !== null && live !== e?.rev ? { cls: 'draft', text: `APPROVED REV ${e?.rev}, NOT LIVE`, why: `Revision ${live} is the one players see.` }
+      : st === 'rejected' ? { cls: 'draft', text: 'REJECTED', why: 'An approver rejected this revision. Fix it and submit again.' }
       : st === 'new' || dirtyNow ? { cls: 'draft', text: dirtyNow && st !== 'new' ? 'DRAFT, UNSAVED CHANGES' : 'DRAFT, NOT SAVED', why: 'Only you can see this. Nothing is published.' }
         : st === 'draft' ? { cls: 'draft', text: `DRAFT REV ${e?.rev}`, why: 'Saved as a draft. Not submitted.' }
           : st === 'submitted' ? { cls: 'draft', text: 'SUBMITTED', why: 'Waiting for an approver.' }
             : st === 'approved' ? { cls: 'live', text: 'LIVE', why: 'Approved by an approver and shown to players.' } : { cls: 'draft', text: String(st).toUpperCase(), why: '' };
-    return { docId: S.docId, sel: S.sel.length, mode: S.mode, space: S.space, camera: S.camera, view: S.view, show: viewport?.show() ?? { grid: true, terrain: true, collision: false }, ground: terrain.state() === 'loaded', snapOn: viewport?.state.snapOn ?? true, snap: viewport?.state.snap ?? { move: 0.25, turn: 15 }, env: api.environment(), signedIn: api.signedIn(), me: api.me(), canUndo: edit.canUndo(), canRedo: !!edit.redoLabel(), problems: d ? problemsOf(d).length : 0, badge };
+    return { docId: S.docId, state: st, sel: S.sel.length, mode: S.mode, space: S.space, camera: S.camera, view: S.view, show: viewport?.show() ?? { grid: true, terrain: true, collision: false }, ground: terrain.state() === 'loaded', snapOn: viewport?.state.snapOn ?? true, snap: viewport?.state.snap ?? { move: 0.25, turn: 15 }, env: api.environment(), signedIn: api.signedIn(), me: api.me(), canUndo: edit.canUndo(), canRedo: !!edit.redoLabel(), problems: d ? problemsOf(d).length : 0, badge };
   } });
 
   let pending = false;

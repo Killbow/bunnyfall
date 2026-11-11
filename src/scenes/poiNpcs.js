@@ -16,8 +16,8 @@ export const POI_NPC_ARCHIVE = 9920;
 /** How near a person is drawn and can be talked to (m). */
 const SEEN_M = 400, REACH_M = 4;
 
-/** @param {any} deps `{ renderer, getTexture, uploadRecordFrame, asset, auth, say, feet }` */
-export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame = null, asset = null, auth = () => null, say = null, feet = () => null }) {
+/** @param {any} deps `{ renderer, getTexture, uploadRecordFrame, asset, auth, say, feet, talk }` - `talk(poiId, npcKey)` a POI runtime's word on Talk (true: it answered) */
+export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame = null, asset = null, auth = () => null, say = null, feet = () => null, talk = null }) {
   /** @type {Map<string, any>} `${poi}|${key}` -> the person standing */
   const people = new Map();
   /** sha -> { record, w, h } | { failed } | null (loading): a builder's pictures */
@@ -25,6 +25,8 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
   /** archive -> texture file | { failed } | null (loading) */
   const texes = new Map();
   let picN = 0;
+  /** poi id -> the objects a POI's runtime stands as targets (poi/poiDmRuntime.js): `{ key, name, at, h, w, activate(mode) }`, `at` in scene space */
+  const extras = new Map();
   /** @type {any[]} this frame's batches, targets */
   const out = { batches: [], targets: [] };
 
@@ -63,6 +65,8 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
     }
     return null;
   }
+
+  const extraOf = (/** @type {string} */ key) => { if (typeof key === 'string' && key.startsWith('poidm:')) for (const list of extras.values()) for (const x of list) if (x.key === key) return x; return null; };
 
   return {
     /** A standing POI's people this frame: `list` them (poi/poiRuntime.js npcsOf, in the pixel's frame), `t` the pixel's
@@ -108,20 +112,35 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
         a.max[0] = p.at[0] + hw; a.max[1] = p.at[1] + p.h; a.max[2] = p.at[2] + hw;
         out.targets.push(p.tgt);
       }
+      for (const list of extras.values()) {
+        for (const x of list) {
+          if (f && Math.hypot(f[0] - x.at[0], f[2] - x.at[2]) > REACH_M * 4) continue;
+          x.tgt ??= { key: x.key, aabb: { min: [0, 0, 0], max: [0, 0, 0] }, distance: REACH_M + 2, reach: REACH_M, noSurface: false };
+          const a = x.tgt.aabb, hw = Math.max(0.4, (x.w ?? 1) / 2);
+          a.min[0] = x.at[0] - hw; a.min[1] = x.at[1]; a.min[2] = x.at[2] - hw;
+          a.max[0] = x.at[0] + hw; a.max[1] = x.at[1] + (x.h ?? 1); a.max[2] = x.at[2] + hw;
+          out.targets.push(x.tgt);
+        }
+      }
     },
     batches: () => out.batches,
     targets: () => out.targets,
-    ours: (/** @type {string} */ key) => typeof key === 'string' && key.startsWith('poinpc:') && people.has(key.slice(7)),
+    ours: (/** @type {string} */ key) => (typeof key === 'string' && key.startsWith('poinpc:') && people.has(key.slice(7))) || !!extraOf(key),
     hoverName(/** @type {string} */ key) {
+      const x = extraOf(key);
+      if (x) return { title: x.name, subs: [] };
       const p = typeof key === 'string' && key.startsWith('poinpc:') ? people.get(key.slice(7)) : null;
       return p ? { title: p.name, subs: [] } : null;
     },
     /** Talk: their next line, said. */
     activate(/** @type {string} */ key, mode = 'grab') {
+      const x = extraOf(key);
+      if (x) { if (mode === 'info') say?.(x.name); else x.activate?.(mode); return true; }
       const p = typeof key === 'string' && key.startsWith('poinpc:') ? people.get(key.slice(7)) : null;
       if (!p) return false;
       if (mode === 'steal') { say?.(`${p.name} keeps a hand on their purse.`); return true; }
       if (mode === 'info') { say?.(p.name); return true; }
+      if (talk?.(p.id, p.key.slice(p.id.length + 1))) return true;   // a v2 POI's person: its dialogue or trade
       const lines = p.lines ?? [];
       if (!lines.length) return true;
       say?.(`${p.name}: ${lines[p.said % lines.length]}`);
@@ -129,5 +148,7 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
       return true;
     },
     count: () => people.size,
+    /** A POI's own targets (its objects to use), replaced each frame by its runtime; none, and they go. */
+    setExtras(/** @type {string} */ id, /** @type {any[] | null} */ list) { if (list?.length) extras.set(id, list); else extras.delete(id); },
   };
 }
