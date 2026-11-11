@@ -491,7 +491,7 @@ function drawCraft(root, rerender, p, station, run, away = false) {
   search.setAttribute('aria-label', 'Search the items');
   search.oninput = () => { _cw.q = search.value; _cw.qFocus = true; rerender(); };
   root.append(search);
-  if (_cw.qFocus) { _cw.qFocus = false; queueMicrotask?.(() => { search.focus?.(); search.setSelectionRange?.(search.value.length, search.value.length); }); }
+  if (_cw.qFocus) { _cw.qFocus = false; globalThis.queueMicrotask?.(() => { search.focus?.(); search.setSelectionRange?.(search.value.length, search.value.length); }); }
   const q = String(_cw.q ?? '').trim().toLowerCase();
   const list = rows.filter((x) => (_cw.family == null || x.f.family === _cw.family) && (!q || x.f.name.toLowerCase().includes(q)))
     .sort((a, b) => ORDER[a.st.s] - ORDER[b.st.s] || String(a.f.name).localeCompare(String(b.f.name)));
