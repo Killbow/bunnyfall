@@ -302,7 +302,7 @@ export function createPoiDm(deps) {
       }
       list.push(p);
     }
-    tickEncounters(r, s, t);
+    tickEncounters(r, s, t, dt);
     sayLog(r);
     drain(r);
     return list;
@@ -319,8 +319,25 @@ export function createPoiDm(deps) {
     show(r);
   }
 
-  /** Encounters started by events: their foes stood, then watched until the rule is met. @param {any} r @param {any} s @param {number[]} t */
-  function tickEncounters(r, s, t) {
+  /**
+   * Whether the player stands in an encounter's own area (its `center` and `radius`, on the ground plane, as trigger zones
+   * are measured).
+   * @param {any} s @param {number[]} t @param {any} e
+   */
+  function inArea(s, t, e) {
+    const f = feet();
+    if (!f || !e.center) return false;
+    const m = s.place, c = e.center;
+    const x = m[0] * c[0] + m[4] * c[1] + m[8] * c[2] + m[12] + t[0], z = m[2] * c[0] + m[6] * c[1] + m[10] * c[2] + m[14] + t[2];
+    return Math.hypot(f[0] - x, f[2] - z) <= e.radius;
+  }
+
+  /**
+   * Encounters started by events: spawns their enemies, then watches them until the completion rule is met. A survival
+   * timer counts only the time the player spends in the encounter's area.
+   * @param {any} r @param {any} s @param {number[]} t @param {number} dt
+   */
+  function tickEncounters(r, s, t, dt) {
     for (const e of r.doc.encounters ?? []) {
       const state = r.dm.encounters[e.key];
       const have = r.foes.get(e.key);
@@ -331,7 +348,7 @@ export function createPoiDm(deps) {
         /** @type {any[]} */
         const list = [];
         r.foes.set(e.key, list);
-        r.timers.set(e.key, now());
+        r.timers.set(e.key, 0);
         r.waiting.set(e.key, (e.spawns ?? []).reduce((/** @type {number} */ n, /** @type {any} */ sp) => n + sp.count, 0));
         const settled = () => { if (r.foes.get(e.key) === list) r.waiting.set(e.key, (r.waiting.get(e.key) ?? 1) - 1); };
         for (const sp of e.spawns ?? []) {
@@ -358,7 +375,11 @@ export function createPoiDm(deps) {
       const c = e.complete ?? { rule: 'all_dead' };
       const down = (/** @type {any} */ f) => deps.isDown?.(f) ?? false;
       let done = false;
-      if (c.rule === 'timer_survived') done = now() - (r.timers.get(e.key) ?? now()) >= c.seconds;
+      if (c.rule === 'timer_survived') {
+        const held = (r.timers.get(e.key) ?? 0) + (inArea(s, t, e) ? dt : 0);
+        r.timers.set(e.key, held);
+        done = held >= c.seconds;
+      }
       else if (c.rule === 'leader_dead') done = have.some((f) => f.poiSpawn === c.leader && down(f));
       else if (r.waiting.get(e.key) === 0 && !have.length) {
         // every spawn answered and none stood: nothing was fought, so the encounter waits for its next start

@@ -1,7 +1,8 @@
 // The game-side runtime (src/poi/poiDmRuntime.js) on the example POI, offline (no realm session): a trigger zone starts
 // the ambush, the foes fall and the gate opens; the supplier's trade moves the real pack; a walker reports its waypoints.
 // The encounters' lifecycle: enemies are taken away on a reset or a take-down through the outdoor pool's own removal; a
-// passive encounter's enemies stand non-hostile; the completion rules count only the enemies that stood.
+// passive encounter's enemies stand non-hostile; the completion rules count only the enemies that stood, and a survival
+// timer counts only the time the player spends in the encounter's area.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
@@ -146,6 +147,25 @@ test('all dead: an encounter is not done while an enemy is still on its way; wit
   await none.step(); await none.step();
   assert.equal(none.rt.modelOf(none.doc.id).encounters.ambush, 'idle', 'nothing stood: it waits for its next start, unpaid');
   assert.equal(none.said.some((l) => /clear/.test(l)), false);
+});
+
+test('timer survived: the time counts only while the player is in the encounter\'s area', async () => {
+  const w = setup((d) => { d.encounters[0].complete = { rule: 'timer_survived', seconds: 1 }; });
+  await ambush(w);
+  const dm = w.rt.modelOf(w.doc.id);
+  // far away
+  w.at([5000, 0, 5000]);
+  for (let i = 0; i < 10; i++) await w.step(0.5);
+  assert.equal(dm.encounters.ambush, 'active', 'five seconds away from it count nothing');
+  // back inside its 20 m
+  w.at([35, 0, 10]);
+  await w.step(0.5);
+  assert.equal(dm.encounters.ambush, 'active', 'half a second there');
+  w.at([5000, 0, 5000]);
+  await w.step(0.5);
+  w.at([35, 0, 10]);
+  await w.step(0.5); await w.step(0.1);
+  assert.equal(dm.encounters.ambush, 'done', 'a second there in all');
 });
 
 test('the feed reading the same revision again keeps the run and its fight', async () => {

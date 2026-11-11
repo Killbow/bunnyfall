@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: An encounter you win by surviving for a time now counts only the time you spend in its area, so it no longer ends while you are far away.
 - Fixed: An encounter that ends when all its enemies are dead now finishes even if some enemies failed to appear, and resets to start again if none appeared.
 - Fixed: Enemies from an encounter set to passive no longer attack on sight; they fight back once you attack them.
 - Fixed: An encounter's enemies now leave when the place calls the encounter off or resets it, or when the place is taken out of the world, and an encounter that starts again no longer adds a second group to enemies left from last time.
