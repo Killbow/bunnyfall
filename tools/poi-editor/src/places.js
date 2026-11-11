@@ -56,11 +56,23 @@ export function createPlaces(read, getWoods = () => null) {
       } catch (e) { status = 'missing'; why = String(e?.message ?? e); maps = null; blocks = null; list = []; }
       return status === 'loaded';
     },
-    /** Places whose name has every word of `text`, best (shortest name) first. */
+    /**
+     * Places matching `text`, best first: the name itself (exact, then all words in the name), then places only the region
+     * name matches. "wayrest, wayrest" or "wayrest in wayrest" asks for a name inside a region.
+     */
     find(text, max = 40) {
-      const words = String(text).toLowerCase().split(/\s+/).filter(Boolean);
-      if (!words.length) return [];
-      return list.filter((p) => words.every((w) => `${p.name} ${p.region}`.toLowerCase().includes(w))).sort((a, b) => a.name.length - b.name.length).slice(0, max);
+      const parts = String(text).toLowerCase().split(/,|\bin\b/).map((x) => x.trim()).filter(Boolean);
+      const nameWords = (parts[0] ?? '').split(/\s+/).filter(Boolean), regionWords = (parts[1] ?? '').split(/\s+/).filter(Boolean);
+      if (!nameWords.length) return [];
+      const rank = (p) => {
+        const n = p.name.toLowerCase(), r = p.region.toLowerCase();
+        if (regionWords.length && !regionWords.every((w) => r.includes(w))) return -1;
+        if (n === nameWords.join(' ')) return 0;
+        if (nameWords.every((w) => n.includes(w))) return 1;
+        if (!regionWords.length && nameWords.every((w) => `${n} ${r}`.includes(w))) return 2;
+        return -1;
+      };
+      return list.map((p) => ({ p, k: rank(p) })).filter((x) => x.k >= 0).sort((a, b) => a.k - b.k || a.p.name.length - b.p.name.length).slice(0, max).map((x) => x.p);
     },
     /**
      * Where a place's middle is in its pixel's frame (x east, z north of the pixel's south-west corner), and its size.
