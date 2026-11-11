@@ -255,3 +255,27 @@ test('transforms: a figure flat keeps scale 1 and a group moves its members', as
   T.moveNodes(d, ['group:market'], [1, 0, 0]);
   assert.equal(find(d, 'part:stall').row.t[0], before[0] + 1);
 });
+
+test('placing: models, billboards and items become lawful rows; the rest say why not', async () => {
+  const { placeAsset, whyNotPlaceable } = await import('./poi-editor/src/place.js');
+  const file = new URL('./poi-editor/public/asset-catalogue.json', import.meta.url);
+  if (!existsSync(file)) return;
+  const cat = createCatalogue(JSON.parse(readFileSync(file, 'utf8')));
+  const d = doc();
+  const model = cat.get('df-arch3d:44010');
+  assert.ok(placeAsset(d, model, [1, 0, 1], 'market').id);
+  const flat = cat.get('df-flat:182.0');
+  assert.ok(placeAsset(d, flat, [2, 0, 2]).id);
+  const sword = cat.assets.find((a) => a.namespace === 'paperdoll-item' && a.category === 'Weapons');
+  assert.ok(sword);
+  const r = placeAsset(d, sword, [3, 0, 3]);
+  assert.equal(d.flats.at(-1).kind, 'mount');
+  const plant = cat.assets.find((a) => a.namespace === 'paperdoll-item' && a.category === 'PlantIngredients1');
+  placeAsset(d, plant, [4, 0, 3]);
+  assert.equal(d.flats.at(-1).kind, 'paperdoll');
+  assert.ok(r.id);
+  assert.deepEqual(bad(d), []);
+  assert.ok(whyNotPlaceable(cat.get('df-flat:0.0')));
+  assert.ok(placeAsset(d, cat.get('entity:foe-7'), [0, 0, 0]).refused);
+  assert.ok(placeAsset(d, cat.assets.find((a) => a.namespace === 'repo-3d'), [0, 0, 0]).refused);
+});

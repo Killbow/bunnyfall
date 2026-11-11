@@ -158,6 +158,7 @@ for (const e of entries) {
   const sh = (shared[e.namespace] ??= { ...e });
   for (const k of Object.keys(sh)) if (JSON.stringify(sh[k]) !== JSON.stringify(e[k])) delete sh[k];
 }
+for (const sh of Object.values(shared)) delete sh.namespace;   // an entry keeps its namespace: it is the key into `shared`
 for (const e of entries) for (const k of Object.keys(shared[e.namespace])) delete e[k];
 const out = { version: 1, generated: 'by tools/poi-editor/scripts/buildAssetCatalogue.mjs', arena2: !!arena, counts: byNs, shared, missingReferences: missing, duplicates, entries };
 writeFileSync(join(OUT, 'public', 'asset-catalogue.json'), JSON.stringify(out));
