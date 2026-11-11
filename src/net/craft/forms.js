@@ -151,7 +151,7 @@ function build() {
     const r = rs[0];
     return {
       id,
-      name: r.pattern ?? r.name,
+      name: r.kind === 'garment' ? `${r.pattern ?? r.name} (${r.group === 'WomensClothing' ? "women's" : "men's"})` : r.pattern ?? r.name,   // BUNNYFALL: DFU's two clothing sets, told apart
       discipline: r.profession,
       track: trackOf(r.profession),
       family: r.family,

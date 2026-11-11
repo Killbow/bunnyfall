@@ -46,7 +46,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, look: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -92,6 +92,21 @@ const CSS = `
 .cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
 .cw-stats th { text-align: left; color: #d9b45a; font-weight: 600; border-bottom: 1px solid #6b5228; padding: 3px 6px; }
 .cw-stats td { padding: 3px 6px; border-bottom: 1px solid rgba(107,82,40,.35); color: #e8e2d0; }
+.cw-card.cw-ws { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: "piece mats" "sum sum"; gap: 12px 16px; background: #1c150e; border: 2px solid #6b5228; box-shadow: inset 0 0 0 1px #2a1f14; }
+.cw-ws-piece { grid-area: piece; display: flex; flex-direction: column; gap: 8px; background: #e6d6b0; color: #2b2116; border: 2px solid #8a6a32; box-shadow: inset 0 0 0 3px #e6d6b0, inset 0 0 0 4px #a8844a; padding: 14px 16px; min-width: 0; }
+.cw-ws-piece h3 { color: #6a4e26; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
+.cw-ws-piece .cw-make { color: #2b2116; font-size: 21px; }
+.cw-ws-piece .cw-note, .cw-ws-piece .cw-label { color: #4a3a26; }
+.cw-ws-piece .cw-stats th { color: #6a4e26; border-bottom-color: #a8844a; }
+.cw-ws-piece .cw-stats td { color: #2b2116; border-bottom-color: rgba(168,132,74,.4); }
+.cw-ws-piece .cw-look { background: rgba(60,40,20,.1); border-color: #a8844a; color: #4a3a26; }
+.cw-ws-piece .cw-look.cw-on { border-color: #6a4e26; background: rgba(106,78,38,.18); color: #2b2116; }
+.cw-ws-piece .cw-act { background: #1c150e; padding: 8px; border: 1px solid #6b5228; color: #e8e2d0; }
+.cw-ws-mats { grid-area: mats; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cw-ws-title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #d9b45a; border-bottom: 1px solid #6b5228; padding-bottom: 3px; }
+.cw-ws-sum { grid-area: sum; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
+.cw-ws-sum .cw-actions { justify-content: flex-end; }
+@media (max-width: 900px) { .cw-card.cw-ws { grid-template-columns: 1fr; grid-template-areas: "piece" "mats" "sum"; } }
 .cw-looks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
 .cw-look { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 84px; padding: 4px; background: rgba(0,0,0,.25); border: 1px solid #4a3820; color: #b8b09a; cursor: pointer; transition: border-color .15s, transform .15s; }
 .cw-look img { max-width: 72px; max-height: 72px; image-rendering: pixelated; }
@@ -471,7 +486,14 @@ function drawCraft(root, rerender, p, station, run, away = false) {
     for (const f of families) chips.append(button(`cw-chip${_cw.family === f ? ' cw-on' : ''}`, familyWord(f), () => { _cw.family = f; rerender(); }));
     root.append(chips);
   }
-  const list = rows.filter((x) => _cw.family == null || x.f.family === _cw.family)
+  const search = h('input', 'cw-search');
+  search.type = 'search'; search.placeholder = 'Search: bow, boots, ring'; search.value = _cw.q ?? '';
+  search.setAttribute('aria-label', 'Search the items');
+  search.oninput = () => { _cw.q = search.value; _cw.qFocus = true; rerender(); };
+  root.append(search);
+  if (_cw.qFocus) { _cw.qFocus = false; queueMicrotask?.(() => { search.focus?.(); search.setSelectionRange?.(search.value.length, search.value.length); }); }
+  const q = String(_cw.q ?? '').trim().toLowerCase();
+  const list = rows.filter((x) => (_cw.family == null || x.f.family === _cw.family) && (!q || x.f.name.toLowerCase().includes(q)))
     .sort((a, b) => ORDER[a.st.s] - ORDER[b.st.s] || String(a.f.name).localeCompare(String(b.f.name)));
   const body = h('div', 'cw-body');
   const col = h('div', 'cw-list');
@@ -575,12 +597,19 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   const base = startPicks(form, book, rank, specs);
   const chosen = { ...base, ..._cw.picks };
   for (const slot of form.slots) if (slot.optional && _cw.picks[slot.id] == null) delete chosen[slot.id];
-  card.append(h('h3', null, form.name));
+  // THE WORKSTATION: the piece (its name, looks, what it wants, what it will be) beside the materials, the summary below
+  card.classList.add('cw-ws');
+  const piece = h('div', 'cw-ws-piece'), mats = h('div', 'cw-ws-mats'), sum = h('div', 'cw-ws-sum');
+  const pHead = h('div'), pLooks = h('div'), pWants = h('div'), pStats = h('div');
+  piece.append(pHead, pLooks, pWants, pStats);
+  card.append(piece, mats, sum);
+  pHead.append(h('h3', null, form.name));
   const wl = weightLine(form.weights);
-  if (wl) card.append(h('p', 'cw-note', `This item wants: ${wl}. Better-suited materials raise the best quality it can reach.`));
+  if (wl) pWants.append(h('p', 'cw-note', `This item wants: ${wl}. Better-suited materials raise the best quality it can reach; they do not change its damage, armour or weight.`));
+  mats.append(h('div', 'cw-ws-title', 'Materials'));
   for (const slot of form.slots) {
     if (slot.role === 'fixed') continue;
-    card.append(h('div', 'cw-label', `${slot.label}${slot.optional ? ' (optional)' : ''}`));
+    mats.append(h('div', 'cw-label', `${slot.label}${slot.optional ? ' (optional)' : ''}`));
     const options = slot.options;
     const cur = chosen[slot.id] ?? null;
     const nameOf = (o) => `${p.name(o)}${workOf(book, o) >= slot.n ? ' ✓' : ` (${workOf(book, o)})`}`;
@@ -591,7 +620,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
       sel.value = cur ?? '';
       sel.disabled = !!_cw.act;
       sel.onchange = () => { _cw.picks = { ..._cw.picks, [slot.id]: sel.value || null }; rerender(); };
-      card.append(sel);
+      mats.append(sel);
     } else {
       const chips = h('div', 'cw-chips');
       if (slot.optional) chips.append(button(`cw-chip${cur == null ? ' cw-on' : ''}`, 'None', () => { if (_cw.act) return; _cw.picks = { ..._cw.picks, [slot.id]: null }; rerender(); }));
@@ -600,20 +629,20 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
         c.title = statLine(statsOf(o));
         chips.append(c);
       }
-      card.append(chips);
+      mats.append(chips);
     }
-    if (cur && statsOf(cur)) card.append(h('p', 'cw-note', statLine(statsOf(cur))));
+    if (cur && statsOf(cur)) mats.append(h('p', 'cw-note', statLine(statsOf(cur))));
   }
   const asked = Object.fromEntries(Object.entries(chosen).filter(([, v]) => v != null));
   const plan = planOf(form.id, asked);
-  if (!plan.ok) { card.append(h('p', 'cw-note', plan.error === 'craft-recipe' ? 'No one makes it of that.' : 'Pick the materials.')); return; }
+  if (!plan.ok) { mats.append(h('p', 'cw-note', plan.error === 'craft-recipe' ? 'No one makes it of that.' : 'Pick the materials.')); return; }
   const r = plan.legacy;
   const st = planStanding(plan, book, rank, specs);
   const focus = typeof book.isFocus === 'function' ? book.isFocus(S.prof) : true;
   const pot = potentialOfPlan(plan);
   const cap = qualityCap(plan, focus);
   const inputs = inputsOf(plan, { joiner: specs?.[50] === 'joiner' });
-  card.append(h('div', 'cw-label', 'Needs, from your Stores, bag and pack'));
+  mats.append(h('div', 'cw-label', 'Needs, from your Stores, bag and pack'));
   const box = h('div', 'cw-inputs');
   for (const i of inputs) {
     const have = workOf(book, i.key);
@@ -621,7 +650,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     line.append(h('span', null, `${i.n} ${p.name(i.key)}`), h('span', 'cw-have', `have ${have}`));
     box.append(line);
   }
-  card.append(box);
+  mats.append(box);
   if (r.dyes === true) {
     const sel = h('select', 'cw-search');
     const opt = (text, value) => { const o = h('option', null, text); o.value = value; return o; };
@@ -631,21 +660,21 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     sel.onchange = () => { _cw.dye = sel.value === '' ? null : Number(sel.value); };
     const lab = h('label', 'cw-note', 'Dye ');
     lab.append(sel);
-    card.append(lab);
+    mats.append(lab);
   }
   const looks = LOOK_KINDS.includes(r.kind) ? looksOf(r) : [];
   if (looks.length && !looks.some((l) => l.look === _cw.look)) _cw.look = looks[0].look;
   const look = looks.length ? _cw.look : null;
   const preview = previewName(r, look);
-  if (preview) card.append(h('p', 'cw-make', `You will make: ${preview}`));
-  if (looks.length) drawLooks(card, rerender, p, r, looks, look);
-  if (pot) card.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
-  if (cap < (pot?.quality ?? 4)) card.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
+  if (preview) pHead.append(h('p', 'cw-make', `You will make: ${preview}`));
+  if (looks.length) drawLooks(pLooks, rerender, p, r, looks, look);
+  if (pot) sum.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
+  if (cap < (pot?.quality ?? 4)) sum.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
   if (rollsQuality(r)) {
     const odds = craftOdds(plan, { rank, clean: false, spec50: specs?.[50], spec100: specs?.[100], focus });   // the server's roll, steps and cap
     const clean = craftOdds(plan, { rank, clean: true, spec50: specs?.[50], spec100: specs?.[100], focus });
     const best = clean.findLastIndex((o) => o > 0);
-    card.append(h('div', 'cw-label', `Quality odds at your rank, held at ${QUALITY_NAMES[cap]}. A clean minigame raises them (up to ${QUALITY_NAMES[best]} ${clean[best]}%); a Company hall where your guild holds the town adds more.`));
+    sum.append(h('div', 'cw-label', `Quality odds at your rank, held at ${QUALITY_NAMES[cap]}. A clean minigame raises them (up to ${QUALITY_NAMES[best]} ${clean[best]}%); a Company hall where your guild holds the town adds more.`));
     const bar = h('div', 'cw-odds');
     const key = h('div', 'cw-odds-key');
     odds.forEach((o, q) => {
@@ -653,19 +682,19 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
       const seg = h('span', `cw-q${q}`); seg.style.width = `${o}%`; bar.append(seg);
       const k = h('span'); k.append(h('span', `cw-sw cw-q${q}`), globalThis.document.createTextNode(`${QUALITY_NAMES[q]} ${o}%`)); key.append(k);
     });
-    card.append(bar, key);
-    drawStatsTable(card, r, odds, clean);
+    sum.append(bar, key);
+    drawStatsTable(pStats, r, odds, clean);
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
-  card.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
-  if (st.s === 'locked') card.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
+  sum.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
+  if (st.s === 'locked') sum.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
-  if (!purseOk) card.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
+  if (!purseOk) sum.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
   const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
-  if (away) card.append(h('p', 'cw-note', `Stand at the ${S.name} to craft this.`));
+  if (away) sum.append(h('p', 'cw-note', `Stand at the ${S.name} to craft this.`));
   const ready = !away && st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
   const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}), ...(r.dyes ? { dye } : {}) }));
-  if (_cw.act) { card.append(_cw.act.el); return; }
+  if (_cw.act) { piece.replaceChildren(pHead, _cw.act.el); return; }   // the work takes the piece's place while it runs
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
   actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
@@ -674,7 +703,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     rerender();
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
-  card.append(actions);
+  sum.append(actions);
 }
 
 /** THE WORK's options for a plan: a part a chosen slot, its arc wider for a better-suited material and a higher rank. */
