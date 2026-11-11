@@ -79,6 +79,7 @@ export const PROGRESS_ROUTES = Object.freeze({
   '/v1/prof/harvest': Object.freeze(['prof', true]),
   '/v1/prof/smelt': Object.freeze(['prof', true]),
   '/v1/prof/craft': Object.freeze(['prof', true]),
+  '/v1/prof/make': Object.freeze(['prof', true]),   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
   '/v1/prof/brew': Object.freeze(['prof', true]),
   '/v1/prof/disenchant': Object.freeze(['prof', true]),
   '/v1/prof/temper': Object.freeze(['prof', true]),

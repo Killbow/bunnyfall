@@ -94,7 +94,7 @@ export const SECONDARY_SHARE = 0.1;
 
 /**
  * @typedef {{ id: string, label: string, role: 'primary'|'secondary'|'fixed', group: string|null, categories: string[],
- *   options: string[], n: number, nMax: number, optional: boolean, share: number }} Slot
+ *   options: string[], defaultKey: string, n: number, nMax: number, optional: boolean, share: number }} Slot
  * @typedef {{ id: string, name: string, discipline: string, track: string, family: string, kind: string,
  *   templateIndex: number, tierMin: number, tierMax: number, rankMin: number, rankMax: number, recipes: number,
  *   slots: Slot[], weights: Readonly<StatWeights> | null }} Form
@@ -121,6 +121,7 @@ function slotsOf(rs) {
       group,
       categories: [...new Set(options.map(categoryOf))],
       options,
+      defaultKey: group ? keys[0] : options[0],   // what the old recipes always used there (a fixed or an opened slot's)
       n: Math.min(...counts),
       nMax: Math.max(...counts),
       optional: have.length < rs.length,
