@@ -104,7 +104,7 @@ export function publishBootParams(params, { history = globalThis.history, locati
  *  - `?tod`, `?timescale`, `?weather`, `?wseed` and `?season` stand against the shared clock and sky.
  *  An online boot drops every one of them before anything reads them (scenes/world.js, beside the Test Room's refusal),
  *  and publishes the drop so every later reader of the URL agrees. Offline, F304 stands (bible/06-Systems/Realm-Arc.md). */
-export const ONLINE_REFUSED_FLAGS = Object.freeze(['shot', 'fly', 'nofoes', 'tp', 'class', 'spell', 'weapon', 'spawn', 'region', 'loc', 'tod', 'timescale', 'weather', 'wseed', 'season', 'editor']);   // POI-3: the POI editor's free eye and its map jump are powers too - a builder edits offline
+export const ONLINE_REFUSED_FLAGS = Object.freeze(['shot', 'fly', 'nofoes', 'tp', 'class', 'spell', 'weapon', 'spawn', 'region', 'loc', 'tod', 'timescale', 'weather', 'wseed', 'season']);
 /** Drops the refused flags from an online boot's params, in place. Answers the flags it dropped (none offline). */
 export function refuseOnlinePowerFlags(params) {
   if (!params?.has?.('online')) return [];

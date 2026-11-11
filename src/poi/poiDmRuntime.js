@@ -1,16 +1,9 @@
 // @ts-check
-// A v2 POI's game logic, running in the world (World Builder, Milestone 5). Loaded only when a standing POI carries DM
-// content (scenes/poiHost.js asks for it the first time one does), so the world's own bundle does not grow.
-//
-// What it does each frame for every standing v2 POI: walks the people along their routes and reports the waypoints they
-// reach, fires `enter_area` when the player steps into a trigger zone, offers the POI's objects as things to use,
-// answers Talk with the person's dialogue or trade, stands encounters' foes and watches them fall, and runs the clock for
-// delayed events. The rules are poiDmCore.js's, the same ones the editor's Sandbox runs.
-//
-// Items and gold never move on the client's word when a realm character plays: a recipe is settled by
-// POST /v1/poi/trade and an event that gives or takes by POST /v1/poi/event-claim (server-account/src/poiTrade.js), each
-// through the realm session's act (systems/realmSaves.js realmGoldAct), and the pack follows the service's answer. An
-// offline character runs the same rules on its own pack (poiSettle.js).
+// A v2 POI's game logic in the world (World Builder M5), loaded only when a POI with DM content stands. Each frame it
+// walks people along routes, fires trigger zones, offers objects to use, answers Talk with a dialogue or a trade, stands
+// encounters and runs delayed events, by poiDmCore.js's rules (the Sandbox's too). A realm character's items and gold
+// move only on the service's answer (server-account/src/poiTrade.js, through realmGoldAct); offline, the same rules run
+// on the character's own pack.
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
@@ -53,23 +46,9 @@ export function mintStack(s) {
 }
 
 /**
- * The runtime for every v2 POI the host stands.
- * @param {{
- *   say: (line: string) => void,
- *   pack: () => ({ items: any[], goldPieces?: number } | null),
- *   give: (records: any[], gold: number) => void,
- *   changed?: () => void,
- *   feet: () => (number[] | null),
- *   spawnFoe?: ((foe: number, at: number[], o: { level?: number, hostile: boolean }) => Promise<any>) | null,
- *   isDown?: (foe: any) => boolean,
- *   removeFoe?: ((foe: any) => void) | null,
- *   act?: ((path: string, body: any, opts: { reserve?: () => (() => void) }) => Promise<any>) | null,
- *   character?: () => (string | null),
- *   store?: { get: (k: string) => any, set: (k: string, v: any) => void } | null,
- *   now?: () => number,
- *   panel?: ReturnType<typeof createPoiDmPanel>,
- *   txn?: () => string,
- * }} deps `act` the realm session's act (null offline): `act(path, body)` answers the service's `{ ok, data }` or `{ ok: false, error }`
+ * The runtime for every v2 POI the host stands. `act(path, body, opts)` is the realm session's act (null offline);
+ * `pack()` the live player entity; `give` puts records and gold into it; `spawnFoe`/`isDown` the outdoor foe pool's.
+ * @param {any} deps
  */
 export function createPoiDm(deps) {
   const { say, pack, give, feet, now = () => performance.now() / 1000 } = deps;

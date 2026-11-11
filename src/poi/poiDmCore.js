@@ -1,13 +1,9 @@
 // @ts-check
 
-// The rules of a v2 POI's game logic, as plain functions over data: conditions, events, dialogues, trades, limits and
-// patrols. No DOM, no network, no game imports. Three places run it: the editor's Sandbox (to try a POI without
-// publishing it), the game (src/poi/poiDmRuntime.js, which settles items and gold on the service) and the account service
-// (which asks the same condition and limit rules before it moves anything).
-//
-// The state it keeps (`createDm`) is a model of one visit: the items and gold the visitor holds, the variables, the
-// state of each object, which people are out and which encounters are running, how many times each trade ran. Events
-// change the model and note what they did in `log`, so a sandbox can show every step.
+// A v2 POI's game logic as plain functions over data: conditions, events, dialogues, trades, limits and patrols. No DOM,
+// network or game imports, so the editor's Sandbox, the game (poiDmRuntime.js) and the service read the same rules.
+// `createDm` models one visit (items, gold, variables, object states, people, encounters, trade counts); events change
+// it and write what they did to `log`.
 
 /** How deep events may start events with no delay in one go; the law refuses a cycle, this stops a mistake the law cannot see. */
 export const EVENT_DEPTH_MAX = 16;

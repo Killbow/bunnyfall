@@ -704,8 +704,7 @@ export function realmPathOf(path) {
  * live asset; a draft's needs a builder's), the rest behind one.
  *   GET /v1/poi/live | GET /v1/poi/asset/<sha> | PUT /v1/poi/asset/<sha>?kind=mesh|texture
  *   GET /v1/poi/me | /v1/poi/list | /v1/poi/queue | /v1/poi/doc/<id>
- *   PUT /v1/poi/draft { doc, base } | POST /v1/poi/{submit,withdraw,retire,review,rollback}
- *   POST /v1/poi/trade | POST /v1/poi/event-claim (a player's: a live POI's trade or event settled on a realm character, poiTrade.js)
+ *   PUT /v1/poi/draft { doc, base } | POST /v1/poi/{submit,withdraw,retire,review,rollback,trade,event-claim} (poiTrade.js)
  * @param {string} path
  */
 export function poiPathOf(path) {

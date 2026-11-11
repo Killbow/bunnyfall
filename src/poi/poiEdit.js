@@ -4,7 +4,7 @@
 //
 // Mac: "POI Tool (General Map Editor) - Realtime editor ... I want this to be a tool my developers can use without having
 // to access the codebase ... No short cuts or band aids" (bible/06-Systems/POI-Editor-Arc.md). The editor's model, pure
-// (no DOM, no GL, no network) so the in-game editor (scenes/poiEditorHost.js) and the tests read it the same way:
+// (no DOM, no GL, no network) so the World Builder (tools/poi-editor) and the tests read it the same way:
 //
 //   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law keeps it (poi/poiLaw.js) -
 //     opened from the live set or a draft, or made new - beside the document as it was last SAVED, so "unsaved" is a

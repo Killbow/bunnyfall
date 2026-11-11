@@ -13,7 +13,7 @@
 //     store answers `existed` for bytes it has, so a model imported twice costs nothing the second time), the
 //     materials' image indices turned into the pictures' names, each meta kept for the law's asset check
 //     (poiAssetProblems). A refusal stops the import and says which part, in the store's word.
-//   - THE ASSET (`{ name, parts, lights }`): what the editor places (scenes/poiEditorHost.js placeAsset) - each part's
+//   - THE ASSET (`{ name, parts, lights }`): what the World Builder places (tools/poi-editor/src/transfer.js) - each part's
 //     mesh, its submeshes, its materials and where it stands from the model's origin; the model's point lights where they
 //     stand from it (gltfImport.js poiLightOf).
 //

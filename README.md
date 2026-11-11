@@ -22,6 +22,7 @@ Node 20.19+ or 22.12+.
 - `npm run dev`: the game with hot reload. Start `node selfhost/start.mjs` beside it for the servers.
 - `npm run build`: production build into `dist/`
 - `npm run lint`: eslint
+- `npm run poi-editor` / `npm run build:poi-editor`: the World Builder, the standalone POI and DM editor (`tools/poi-editor/`)
 
 Game data (ARENA2) is never committed. Point tests at it with `ARENA2_PATH`.
 

@@ -1,28 +1,11 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI v2 (World Builder, Milestone 5): A LIVE POI'S TRADES AND EVENTS, SETTLED HERE.
-//
-//   POST /v1/poi/trade        { poi, rev, id, lease, seq, txnId, trade, recipe }
-//   POST /v1/poi/event-claim  { poi, rev, id, lease, seq, txnId, event }   (no `event`: the variables the character holds)
-//
-// A recipe that takes a player's items or gold and gives others, and an event that gives or takes them, never run on the
-// client's word. The client asks, and the service - as it does for every other act that pays a realm character
-// (realm.js prepareRealmRecord, staffRealm.js Add item, realmTrade.js) - reads the character's own last checkpoint, takes
-// what the recipe takes out of THAT record, mints what it gives with the item maker's own producers (staffGive.js
-// mintGift), asks the item law of every piece before it is handed over, and writes the record one sequence on in ONE
-// batch with the recipe's count, the variables and the act's log row. The batch is guarded: a record that moved under the
-// settle (a checkpoint, another tab, a second act at the same sequence) rolls the whole of it back.
-//
-// WHAT MAKES IT SAFE
-//   - only a POI that is LIVE at the revision named (poi_docs.live_rev === rev) settles anything: a draft, a submission,
-//     a rejected or a rolled-back revision moves nothing;
-//   - the character must be the caller's, under the caller's lease, at the sequence the caller names, and not held by the
-//     judge; the worth the settle moves is witnessed on the row, so the judge never charges it as play;
-//   - the limit of a recipe (once per character or account, daily, a global stock, a cooldown) is counted in the same
-//     batch, with a condition on the count - two settles at once never both pass;
-//   - a `txnId` settles once: asked again (a lost answer) the same answer is given back, whatever the record is now.
-// The save's schema is unchanged: items are the records it already holds, gold its `goldPieces`.
-// ═══════════════════════════════════════════════════════════════════
+// POI v2 (World Builder M5): a live POI's trades and events, settled here. POST /v1/poi/trade and /v1/poi/event-claim.
+// Items and gold never move on the client's word: the character's own last checkpoint is read, the recipe's goods taken
+// out of it, rewards minted by staffGive.js mintGift and held to the item law, and the record written one sequence on in
+// one guarded batch with the limit's count, the kept variables and the act's log row (realm.js prepareRealmRecord).
+// Only a POI live at the named revision settles; the character must be the caller's, under its lease, at its sequence,
+// and not held by the judge; the worth moved is witnessed. A `txnId` settles once: asked again, it is answered the same.
+// The save's schema is unchanged.
 
 import { REALM_ID_RE, LEASE_RE, realmSaveTextOf, dropObjects, dropIfUnnamed, mustChange, prepareRealmRecord, recordMovedOf } from './realm.js';
 import { mintGift } from './staffGive.js';
