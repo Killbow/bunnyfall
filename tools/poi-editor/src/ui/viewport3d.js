@@ -202,7 +202,7 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     const p = doc.place, key = JSON.stringify([p.px, p.py, p.x, p.z, p.y, p.ground, p.r, p.s]);
     if (key === terrainKey) return terrainPts;
     terrainKey = key; terrainPts = null;
-    const grid = surfaceGrid(terrain, p, 300, 6);
+    const grid = surfaceGrid(terrain, p, 120, 6);
     if (!grid) return null;
     const { n, step, half, heights } = grid, pts = [];
     const at = (i, j) => [-half + i * step, heights[i * n + j], -half + j * step];
@@ -212,6 +212,31 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     }
     terrainPts = pts;
     return pts;
+  }
+
+  /** The land round the POI as a lit surface (about 1.2 km each way), in the POI's frame; rebuilt when the place moves. */
+  let landKey = '', land = /** @type {any} */ (null);
+  function landMesh() {
+    const doc = getDoc();
+    if (!doc || !terrain || terrain.state() !== 'loaded') return null;
+    const p = doc.place, key = JSON.stringify([p.px, p.py, p.x, p.z, p.y, p.ground, p.r, p.s]);
+    if (key === landKey) return land;
+    landKey = key; land = null;
+    const grid = surfaceGrid(terrain, p, 1200, 16);
+    if (!grid) return null;
+    const { n, step, half, heights } = grid, pos = new Float32Array(n * n * 3), nrm = new Float32Array(n * n * 3), uv = new Float32Array(n * n * 2);
+    const hAt = (i, j) => heights[Math.min(n - 1, Math.max(0, i)) * n + Math.min(n - 1, Math.max(0, j))];
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const k = i * n + j;
+      pos[k * 3] = -half + i * step; pos[k * 3 + 1] = heights[k] - 0.3; pos[k * 3 + 2] = -half + j * step;
+      const dx = hAt(i + 1, j) - hAt(i - 1, j), dz = hAt(i, j + 1) - hAt(i, j - 1), l = Math.hypot(dx, 2 * step, dz);
+      nrm[k * 3] = -dx / l; nrm[k * 3 + 1] = (2 * step) / l; nrm[k * 3 + 2] = -dz / l;
+    }
+    const idx = new Uint32Array((n - 1) * (n - 1) * 6);
+    let w = 0;
+    for (let i = 0; i < n - 1; i++) for (let j = 0; j < n - 1; j++) { const a = i * n + j, b = a + n, c = a + 1, d = b + 1; idx.set([a, b, c, c, b, d], w); w += 6; }
+    land = upload({ positions: pos, normals: nrm, uvs: uv, indices: idx, subMeshes: [{ textureArchive: -1, textureRecord: -1, startIndex: 0, primitiveCount: idx.length / 3 }] });
+    return land;
   }
 
   /** The game's own buildings round the POI, in the POI's frame: `{ name, items: [{ id, m }], box }`; rebuilt when the place moves. */
@@ -247,6 +272,7 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     void m;
   }
 
+  const IDENT = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
   function drawMeshNode(n, vp, tint) {
     const gm = n.pl.model3d;
     if (!gm) return;
@@ -275,6 +301,8 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     if (state.showGrid) gridLines(mm);
     const tp = state.showTerrain ? terrainLines() : null;
     if (tp) lines(tp, [0.42, 0.62, 0.34, 0.75]);
+    const lm = state.showTerrain ? landMesh() : null;
+    if (lm) drawMeshNode({ pl: { model3d: lm, model: IDENT } }, mm.vp, [0.36, 0.5, 0.3, 1]);
     const around = state.showSurround ? surroundings() : null;
     if (around) for (const it of around.items) { const gm = gpuModel(it.id); if (gm) drawMeshNode({ pl: { model3d: gm, model: it.m } }, mm.vp, [0.82, 0.84, 0.9, 1]); }
     const list = nodes();
@@ -385,6 +413,7 @@ export function createViewport({ canvas, hud, arena, terrain, places = null, get
     if (!doc) { text('No POI open. Create one or open a draft from the File menu.', 14, 14); return; }
     text(`${cam.mode === 'persp' ? 'Perspective' : cam.mode[0].toUpperCase() + cam.mode.slice(1)}  |  ${state.mode}  |  ${state.space}  |  snap ${state.snapOn ? `${state.snap.move} m, ${state.snap.turn} deg` : 'off'}`, 12, 10, '#9aa3b5');
     if (arena.state() !== 'loaded') text('Game files not found: models and pictures show as boxes. Use File, Game files....', 12, 28, '#e8c26a');
+    { const dc = getDoc(), sr = state.showSurround ? surroundings() : null; if (dc && sr) text(`Place: ${sr.name}  (map pixel ${dc.place.px}, ${dc.place.py}), ${sr.items.length} buildings from the game's own layout`, 12, 46, '#9fd0ff'); }
     if (terrain?.state() === 'loaded') {
       if (state.showTerrain && !terrainLines()) text('No ground here: this pixel is off the map. The grid is metres from the POI.', 12, H / dpr - 22, '#e8c26a');
       else text('Ground is the game\'s base terrain: hills, road cuts and town flattening are not shown.', 12, H / dpr - 22, '#b9c78a');
