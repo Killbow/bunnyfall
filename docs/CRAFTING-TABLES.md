@@ -6,65 +6,84 @@ These are drafts for review. Nothing in the game reads them yet.
 ## Material stats
 
 Hardness (H), Toughness (T), Lightness (L, higher is lighter), Affinity (A). `Sum` is the four added up against the
-tier budget (8 + 3 x tier). `Fit` is how well the material suits a family: 1.00 is neutral, higher is better suited.
+tier budget (8 + 3 x tier). `Suits` is how well the material suits a family compared with the best its own tier could
+do: 100% is as suited as that tier allows, so a perfect iron piece is as suited as a perfect daedric one.
 
 ### ingot
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Iron | `ingot:iron` | 1 | 3 | 4 | 3 | 1 | 11 / 11 | weapons 1.13, armour 1.16 |
-| Steel | `ingot:steel` | 2 | 5 | 5 | 3 | 1 | 14 / 14 | weapons 1.20, armour 1.20 |
-| Silver | `ingot:silver` | 3 | 3 | 3 | 4 | 7 | 17 / 17 | weapons 0.85, armour 0.85 |
-| Moonstone (Elven) | `ingot:moonstone` | 4 | 4 | 4 | 7 | 5 | 20 / 20 | weapons 0.94, armour 0.94 |
-| Dwarven | `ingot:dwarven` | 4 | 7 | 7 | 2 | 4 | 20 / 20 | weapons 1.14, armour 1.14 |
-| Mithril | `ingot:mithril` | 5 | 6 | 6 | 7 | 4 | 23 / 23 | weapons 1.04, armour 1.04 |
-| Adamantium | `ingot:adamantium` | 6 | 9 | 8 | 3 | 6 | 26 / 26 | weapons 1.11, armour 1.09 |
-| Ebony | `ingot:ebony` | 6 | 10 | 5 | 4 | 7 | 26 / 26 | weapons 1.08, armour 1.00 |
-| Orichalcum (Orcish) | `ingot:orichalcum` | 6 | 8 | 9 | 4 | 5 | 26 / 26 | weapons 1.11, armour 1.12 |
-| Warforged Steel | `ingot:warforged` | 6 | 7 | 10 | 3 | 6 | 26 / 26 | weapons 1.08, armour 1.12 |
-| Daedric | `ingot:daedric` | 7 | 10 | 8 | 5 | 6 | 29 / 29 | weapons 1.10, armour 1.08 |
+| Iron | `ingot:iron` | 1 | 3 | 7 | 1 | 0 | 11 / 11 | weapons 71%, armour 85% |
+| Steel | `ingot:steel` | 2 | 7 | 6 | 1 | 0 | 14 / 14 | weapons 88%, armour 83% |
+| Silver | `ingot:silver` | 3 | 2 | 2 | 5 | 8 | 17 / 17 | weapons 39%, armour 43% |
+| Moonstone (Elven) | `ingot:moonstone` | 4 | 3 | 2 | 9 | 6 | 20 / 20 | weapons 47%, armour 51% |
+| Dwarven | `ingot:dwarven` | 4 | 8 | 9 | 0 | 3 | 20 / 20 | weapons 86%, armour 89% |
+| Mithril | `ingot:mithril` | 5 | 5 | 6 | 8 | 4 | 23 / 23 | weapons 67%, armour 75% |
+| Adamantium | `ingot:adamantium` | 6 | 10 | 9 | 2 | 5 | 26 / 26 | weapons 93%, armour 88% |
+| Ebony | `ingot:ebony` | 6 | 10 | 3 | 5 | 8 | 26 / 26 | weapons 79%, armour 62% |
+| Orichalcum (Orcish) | `ingot:orichalcum` | 6 | 8 | 10 | 3 | 5 | 26 / 26 | weapons 87%, armour 90% |
+| Warforged Steel | `ingot:warforged` | 6 | 6 | 10 | 6 | 4 | 26 / 26 | weapons 80%, armour 91% |
+| Daedric | `ingot:daedric` | 7 | 10 | 9 | 4 | 6 | 29 / 29 | weapons 92%, armour 87% |
 
 ### plank
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Pine | `plank:pine` | 1 | 2 | 3 | 5 | 1 | 11 / 11 | bows 1.09, staves 0.91, furniture 0.80 |
-| Oak | `plank:oak` | 2 | 4 | 5 | 3 | 2 | 14 / 14 | bows 1.03, staves 0.94, furniture 1.11 |
-| Cherry | `plank:cherry` | 3 | 4 | 4 | 5 | 4 | 17 / 17 | bows 1.01, staves 0.99, furniture 0.94 |
-| Teak | `plank:teak` | 4 | 5 | 7 | 3 | 5 | 20 / 20 | bows 1.00, staves 1.04, furniture 1.20 |
-| Mahogany | `plank:mahogany` | 5 | 6 | 6 | 5 | 6 | 23 / 23 | bows 0.99, staves 1.01, furniture 1.04 |
-| Ironwood | `plank:ironwood` | 6 | 9 | 8 | 4 | 5 | 26 / 26 | bows 0.98, staves 0.94, furniture 1.12 |
-| Ghostwood | `plank:ghostwood` | 6 | 5 | 5 | 8 | 8 | 26 / 26 | bows 1.00, staves 1.05, furniture 0.91 |
+| Pine | `plank:pine` | 1 | 1 | 2 | 7 | 1 | 11 / 11 | bows 81%, staves 39%, furniture 28% |
+| Oak | `plank:oak` | 2 | 4 | 7 | 2 | 1 | 14 / 14 | bows 55%, staves 35%, furniture 74% |
+| Cherry | `plank:cherry` | 3 | 3 | 3 | 7 | 4 | 17 / 17 | bows 76%, staves 59%, furniture 46% |
+| Teak | `plank:teak` | 4 | 4 | 10 | 2 | 4 | 20 / 20 | bows 60%, staves 60%, furniture 88% |
+| Mahogany | `plank:mahogany` | 5 | 4 | 6 | 5 | 8 | 23 / 23 | bows 70%, staves 81%, furniture 72% |
+| Ironwood | `plank:ironwood` | 6 | 10 | 10 | 1 | 5 | 26 / 26 | bows 57%, staves 57%, furniture 92% |
+| Ghostwood | `plank:ghostwood` | 6 | 3 | 4 | 9 | 10 | 26 / 26 | bows 87%, staves 93%, furniture 61% |
 
 ### wood
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Heartwood | `wood:heartwood` | 4 | 5 | 6 | 4 | 5 | 20 / 20 | bows 1.00, furniture 1.10 |
+| Heartwood | `wood:heartwood` | 4 | 6 | 4 | 2 | 8 | 20 / 20 | bows 51%, furniture 70% |
 
 ### leather
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Cured Leather | `leather:cured` | 2 | 3 | 6 | 4 | 1 | 14 / 14 | leather 1.23 |
-| Hardened Leather | `leather:hardened` | 5 | 6 | 9 | 4 | 4 | 23 / 23 | leather 1.11 |
+| Cured Leather | `leather:cured` | 2 | 3 | 8 | 3 | 0 | 14 / 14 | leather 89% |
+| Hardened Leather | `leather:hardened` | 5 | 8 | 10 | 2 | 3 | 23 / 23 | leather 84% |
 
 ### cloth
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Linen | `cloth:linen` | 1 | 1 | 3 | 7 | 0 | 11 / 11 | clothing 1.35, furnishings 0.95 |
-| Wool | `cloth:wool` | 2 | 2 | 4 | 5 | 3 | 14 / 14 | clothing 1.17, furnishings 1.09 |
-| Silk | `cloth:silk` | 4 | 2 | 4 | 7 | 7 | 20 / 20 | clothing 1.22, furnishings 1.16 |
-| Standard Silk | `cloth:standard` | 5 | 3 | 5 | 8 | 7 | 23 / 23 | clothing 1.18, furnishings 1.11 |
+| Linen | `cloth:linen` | 1 | 0 | 4 | 7 | 0 | 11 / 11 | clothing 79%, furnishings 68% |
+| Wool | `cloth:wool` | 2 | 1 | 5 | 4 | 4 | 14 / 14 | clothing 79%, furnishings 79% |
+| Silk | `cloth:silk` | 4 | 0 | 3 | 9 | 8 | 20 / 20 | clothing 95%, furnishings 78% |
+| Standard Silk | `cloth:standard` | 5 | 2 | 4 | 9 | 8 | 23 / 23 | clothing 89%, furnishings 77% |
 
 ### metal
 
-| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
 |---|---|---|---|---|---|---|---|---|
-| Silver | `metal:silver` | 3 | 3 | 3 | 4 | 7 | 17 / 17 | jewellery 1.39 |
-| Gold | `metal:gold` | 4 | 2 | 5 | 3 | 10 | 20 / 20 | jewellery 1.60 |
-| Platinum | `metal:platinum` | 5 | 4 | 6 | 3 | 10 | 23 / 23 | jewellery 1.44 |
+| Silver | `metal:silver` | 3 | 2 | 2 | 5 | 8 | 17 / 17 | jewellery 81% |
+| Gold | `metal:gold` | 4 | 1 | 6 | 3 | 10 | 20 / 20 | jewellery 97% |
+| Platinum | `metal:platinum` | 5 | 3 | 8 | 2 | 10 | 23 / 23 | jewellery 97% |
+
+### flux
+
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
+|---|---|---|---|---|---|---|---|---|
+| Tin | `metal:tin` | 1 | 1 | 3 | 6 | 1 | 11 / 11 | weapons 44% |
+| Copper | `metal:copper` | 1 | 2 | 3 | 1 | 5 | 11 / 11 | weapons 43% |
+| Lead | `metal:lead` | 1 | 0 | 7 | 0 | 4 | 11 / 11 | weapons 43% |
+| Sulphur | `metal:sulphur` | 1 | 6 | 0 | 3 | 2 | 11 / 11 | weapons 67% |
+| Brass | `metal:brass` | 2 | 4 | 5 | 2 | 3 | 14 / 14 | weapons 64% |
+| Lodestone | `metal:lodestone` | 2 | 1 | 2 | 1 | 10 | 14 / 14 | weapons 28% |
+| Mercury | `metal:mercury` | 2 | 0 | 1 | 7 | 6 | 14 / 14 | weapons 27% |
+
+### binder
+
+| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |
+|---|---|---|---|---|---|---|---|---|
+| Resin | `wood:resin` | 1 | 1 | 4 | 2 | 4 | 11 / 11 | bows 51% |
 
 ### gem
 
@@ -82,68 +101,109 @@ Only Affinity counts: it is what a set gem adds to the piece's enchantment point
 | Emerald | `gem:emerald` | 6 | 8 |
 | Diamond | `gem:diamond` | 6 | 9 |
 
+## Potential
+
+Potential is the quality ceiling a build allows, read from its suitability. The bands are a draft to tune.
+
+| Suitability from | Potential |
+|---|---|
+| 88% | Masterwork |
+| 78% | Superior |
+| 64% | Fine |
+| 48% | Standard |
+| 0% | Crude |
+
+A build's suitability blends its slots: the primary slot has the rest, each other slot with stats has 10%.
+
+## Slot groups
+
+An input the old recipes always made of one material becomes a choice among its group.
+
+| Group | Used for | Choices |
+|---|---|---|
+| flux | weapon flux | Tin, Copper, Lead, Sulphur, Brass, Lodestone, Mercury |
+| wrap | grips, linings, straps, wraps | Cured Leather, Hardened Leather, Linen, Wool, Silk, Standard Silk |
+| haft | axe, hammer and tool hafts | Pine, Oak, Cherry, Teak, Mahogany, Ironwood, Ghostwood |
+| binder | bows | Resin, Linen, Cured Leather |
+| head | arrowheads, ram fittings | Iron, Steel, Silver, Moonstone (Elven), Dwarven, Mithril, Adamantium, Ebony, Orichalcum (Orcish), Warforged Steel, Daedric |
+
+## Worked builds
+
+| Build | Picks | Suitability | Potential |
+|---|---|---|---|
+| Longsword: Dwarven blade, copper flux, cured grip | Dwarven, Copper, Cured Leather | 80% | Superior |
+| Longsword: Moonstone blade, copper flux, cured grip | Moonstone (Elven), Copper, Cured Leather | 49% | Standard |
+| Longsword: Steel blade, sulphur flux, hardened grip | Steel, Sulphur, Hardened Leather | 86% | Superior |
+| Longsword: Iron blade, sulphur flux, hardened grip | Iron, Sulphur, Hardened Leather | 72% | Fine |
+| Cuirass: Iron plate, hardened lining | Iron, Hardened Leather | 86% | Superior |
+| Cuirass: Orichalcum plate, hardened lining | Orichalcum (Orcish), Hardened Leather | 91% | Masterwork |
+| Cuirass: Ebony plate, cured lining | Ebony, Cured Leather | 65% | Fine |
+| Short Bow: Ghostwood stave, resin | Ghostwood, Resin | 83% | Superior |
+| Short Bow: Ironwood stave, resin | Ironwood, Resin | 56% | Standard |
+
 ## Forms
 
 161 forms replace 1202 recipes.
 
 | Track | Family | Forms | Old recipes | Weights H / T / L / A |
 |---|---|---|---|---|
-| smithing | weapons | 15 | 165 | 0.4 / 0.3 / 0.2 / 0.1 |
-| smithing | armour | 18 | 128 | 0.3 / 0.4 / 0.2 / 0.1 |
-| smithing | tools | 5 | 5 | 0.3 / 0.5 / 0.1 / 0.1 |
-| smithing | kits | 1 | 10 | 0.1 / 0.6 / 0.1 / 0.2 |
-| building | staves | 1 | 7 | 0.1 / 0.3 / 0.2 / 0.4 |
-| building | bows | 2 | 14 | 0.2 / 0.3 / 0.3 / 0.2 |
-| building | arrows | 1 | 2 | 0.4 / 0.2 / 0.4 / 0 |
+| smithing | weapons | 15 | 165 | 0.5 / 0.3 / 0.15 / 0.05 |
+| smithing | armour | 18 | 128 | 0.25 / 0.5 / 0.2 / 0.05 |
+| smithing | tools | 5 | 5 | 0.3 / 0.6 / 0.1 / 0 |
+| smithing | kits | 1 | 10 | 0.1 / 0.7 / 0.1 / 0.1 |
+| building | staves | 1 | 7 | 0 / 0.2 / 0.2 / 0.6 |
+| building | bows | 2 | 14 | 0.1 / 0.25 / 0.5 / 0.15 |
+| building | arrows | 1 | 2 | 0.4 / 0.1 / 0.5 / 0 |
 | building | furniture | 7 | 16 | 0.2 / 0.5 / 0 / 0.3 |
-| building | tools | 1 | 1 | 0.3 / 0.5 / 0.1 / 0.1 |
+| building | tools | 1 | 1 | 0.3 / 0.6 / 0.1 / 0 |
 | building | siege | 1 | 1 | 0.3 / 0.5 / 0 / 0.2 |
-| outfitting | leather | 7 | 14 | 0.2 / 0.4 / 0.3 / 0.1 |
-| outfitting | clothing | 76 | 304 | 0 / 0.3 / 0.4 / 0.3 |
+| outfitting | leather | 7 | 14 | 0.2 / 0.5 / 0.3 / 0 |
+| outfitting | clothing | 76 | 304 | 0 / 0.25 / 0.35 / 0.4 |
 | outfitting | furnishings | 9 | 19 | 0 / 0.4 / 0.2 / 0.4 |
-| outfitting | tools | 1 | 1 | 0.3 / 0.5 / 0.1 / 0.1 |
+| outfitting | tools | 1 | 1 | 0.3 / 0.6 / 0.1 / 0 |
 | building | stonework | 4 | 4 | 0.3 / 0.5 / 0 / 0.2 |
 | provisioning | dishes | 4 | 7 | none yet |
-| smithing | jewellery | 8 | 504 | 0.1 / 0.1 / 0.1 / 0.7 |
+| smithing | jewellery | 8 | 504 | 0.05 / 0.15 / 0.1 / 0.7 |
 
-A slot reads `primary`, `secondary` (takes a choice of materials) or `fixed` (always the same input). The number is the
-amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how many different materials the old recipes used.
+A slot reads `primary`, `secondary` (a choice of materials) or `fixed` (always the same input). A slot opened from an old
+fixed input shows its name and group, for example `Grip (wrap)`. The number is the amount, `[n]` is how many choices it
+has, and `(optional)` marks a slot only some old recipes had.
 
 ### smithing / weapons
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Dagger (`dagger`) | 113 | 1-7 | 0-90 | 11 | primary ingot x1 [11]; fixed metal:tin x1 |
-| Tanto (`tanto`) | 114 | 1-7 | 0-90 | 11 | primary ingot x1 [11]; fixed metal:tin x1 |
-| Shortsword (`shortsword`) | 116 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed metal:tin x1 |
-| Wakizashi (`wakizashi`) | 117 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed metal:tin x1 |
-| Broadsword (`broadsword`) | 118 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Saber (`saber`) | 119 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Longsword (`longsword`) | 120 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Katana (`katana`) | 121 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Mace (`mace`) | 124 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Flail (`flail`) | 125 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Warhammer (`warhammer`) | 126 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; fixed metal:copper x1; fixed plank:oak x1 |
-| Battle Axe (`battleaxe`) | 127 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; fixed metal:copper x1; fixed plank:oak x1 |
-| War Axe (`waraxe`) | 128 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; fixed metal:copper x1; fixed plank:oak x1 |
-| Claymore (`claymore`) | 122 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; fixed metal:copper x1; fixed leather:cured x1 |
-| Dai-katana (`daikatana`) | 123 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; fixed metal:copper x1; fixed leather:cured x1 |
+| Dagger (`dagger`) | 113 | 1-7 | 0-90 | 11 | primary ingot x1 [11]; secondary Flux (flux) x1 [7] |
+| Tanto (`tanto`) | 114 | 1-7 | 0-90 | 11 | primary ingot x1 [11]; secondary Flux (flux) x1 [7] |
+| Shortsword (`shortsword`) | 116 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Flux (flux) x1 [7] |
+| Wakizashi (`wakizashi`) | 117 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Flux (flux) x1 [7] |
+| Broadsword (`broadsword`) | 118 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Saber (`saber`) | 119 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Longsword (`longsword`) | 120 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Katana (`katana`) | 121 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Mace (`mace`) | 124 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Flail (`flail`) | 125 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Warhammer (`warhammer`) | 126 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Flux (flux) x1 [7]; secondary Haft (haft) x1 [7] |
+| Battle Axe (`battleaxe`) | 127 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Flux (flux) x1 [7]; secondary Haft (haft) x1 [7] |
+| War Axe (`waraxe`) | 128 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Flux (flux) x1 [7]; secondary Haft (haft) x1 [7] |
+| Claymore (`claymore`) | 122 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
+| Dai-katana (`daikatana`) | 123 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; secondary Flux (flux) x1 [7]; secondary Grip (wrap) x1 [6] |
 
 ### smithing / armour
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Cuirass (`cuirass`) | 102 | 1-7 | 0-90 | 11 | primary ingot x6 [11]; fixed leather:cured x2 |
-| Greaves (`greaves`) | 104 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; fixed leather:cured x1 |
-| Helm (`helm`) | 107 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed leather:cured x1 |
-| Left Pauldron (`lpauldron`) | 105 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed leather:cured x1 |
-| Right Pauldron (`rpauldron`) | 106 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed leather:cured x1 |
-| Gauntlets (`gauntlets`) | 103 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed leather:cured x1 |
-| Boots (`boots`) | 108 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; fixed leather:cured x1 |
-| Buckler (`buckler`) | 109 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed leather:cured x1 |
-| Round Shield (`roundshield`) | 110 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; fixed plank:oak x1 |
-| Kite Shield (`kiteshield`) | 111 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; fixed plank:oak x1 |
-| Tower Shield (`towershield`) | 112 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; fixed plank:oak x1 |
+| Cuirass (`cuirass`) | 102 | 1-7 | 0-90 | 11 | primary ingot x6 [11]; secondary Lining (wrap) x2 [6] |
+| Greaves (`greaves`) | 104 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Lining (wrap) x1 [6] |
+| Helm (`helm`) | 107 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Lining (wrap) x1 [6] |
+| Left Pauldron (`lpauldron`) | 105 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Lining (wrap) x1 [6] |
+| Right Pauldron (`rpauldron`) | 106 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Lining (wrap) x1 [6] |
+| Gauntlets (`gauntlets`) | 103 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Lining (wrap) x1 [6] |
+| Boots (`boots`) | 108 | 1-7 | 0-90 | 11 | primary ingot x2 [11]; secondary Lining (wrap) x1 [6] |
+| Buckler (`buckler`) | 109 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Lining (wrap) x1 [6] |
+| Round Shield (`roundshield`) | 110 | 1-7 | 0-90 | 11 | primary ingot x3 [11]; secondary Haft (haft) x1 [7] |
+| Kite Shield (`kiteshield`) | 111 | 1-7 | 0-90 | 11 | primary ingot x4 [11]; secondary Haft (haft) x1 [7] |
+| Tower Shield (`towershield`) | 112 | 1-7 | 0-90 | 11 | primary ingot x5 [11]; secondary Haft (haft) x1 [7] |
 | Chain Cuirass (`chain-cuirass`) | 102 | 2 | 10 | 1 | primary ingot x5 |
 | Chain Greaves (`chain-greaves`) | 104 | 2 | 10 | 1 | primary ingot x3 |
 | Chain Helm (`chain-helm`) | 107 | 2 | 10 | 1 | primary ingot x2 |
@@ -156,17 +216,17 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Wood-Axe (`woodaxe`) | 1600 | 1 | 0 | 1 | primary ingot x2; fixed plank:pine x1 |
-| Pick-Axe (`pickaxe`) | 1601 | 1 | 0 | 1 | primary ingot x2; fixed plank:pine x1 |
-| Sickle (`sickle`) | 1602 | 1 | 0 | 1 | primary ingot x1; fixed plank:pine x1 |
-| Spade (`spade`) | 1606 | 2 | 10 | 1 | primary ingot x2; fixed plank:oak x1 |
-| Skinning Knife (`knife`) | 603 | 1 | 0 | 1 | primary ingot x1; fixed plank:pine x1 |
+| Wood-Axe (`woodaxe`) | 1600 | 1 | 0 | 1 | primary ingot x2; secondary Haft (haft) x1 [7] |
+| Pick-Axe (`pickaxe`) | 1601 | 1 | 0 | 1 | primary ingot x2; secondary Haft (haft) x1 [7] |
+| Sickle (`sickle`) | 1602 | 1 | 0 | 1 | primary ingot x1; secondary Haft (haft) x1 [7] |
+| Spade (`spade`) | 1606 | 2 | 10 | 1 | primary ingot x2; secondary Haft (haft) x1 [7] |
+| Skinning Knife (`knife`) | 603 | 1 | 0 | 1 | primary ingot x1; secondary Haft (haft) x1 [7] |
 
 ### smithing / kits
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Repair Kit (`kit`) | 692 | 1-7 | 0-90 | 10 | primary ingot x1 [10]; fixed leather:cured x1 |
+| Repair Kit (`kit`) | 692 | 1-7 | 0-90 | 10 | primary ingot x1 [10]; secondary Wrap (wrap) x1 [6] |
 
 ### building / staves
 
@@ -178,14 +238,14 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Short Bow (`shortbow`) | 129 | 1-6 | 0-70 | 7 | primary plank x3 [7]; fixed wood:resin x1 |
-| Long Bow (`longbow`) | 130 | 1-6 | 0-70 | 7 | primary plank x4 [7]; fixed wood:resin x1 |
+| Short Bow (`shortbow`) | 129 | 1-6 | 0-70 | 7 | primary plank x3 [7]; secondary Binder (binder) x1 [3] |
+| Long Bow (`longbow`) | 130 | 1-6 | 0-70 | 7 | primary plank x4 [7]; secondary Binder (binder) x1 [3] |
 
 ### building / arrows
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Arrows (`arrows`) | 131 | 1 | 0 | 2 | primary plank x1; fixed ingot:iron x1; secondary herb x4 [2] |
+| Arrows (`arrows`) | 131 | 1 | 0 | 2 | primary plank x1; secondary Arrowhead (head) x1 [11]; secondary herb x4 [2] |
 
 ### building / furniture
 
@@ -194,10 +254,10 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 | Large Table (`table-large`) | 221 | 2-5 | 10-55 | 4 | primary plank x6 [4] |
 | Small Table (`table-small`) | 225 | 2-5 | 10-55 | 4 | primary plank x3 [4] |
 | Chair (`chair`) | 229 | 2-5 | 10-55 | 4 | primary plank x2 [4] |
-| Plain Single Bed (`bed-plain-single`) | 217 | 1 | 0 | 1 | primary plank x8; fixed cloth:linen x2 |
-| Plain Double Bed (`bed-plain-double`) | 219 | 2 | 10 | 1 | primary plank x8; fixed cloth:linen x2 |
-| Fancy Single Bed (`bed-fancy-single`) | 218 | 3 | 25 | 1 | primary plank x8; fixed cloth:linen x2 |
-| Fancy Double Bed (`bed-fancy-double`) | 220 | 4 | 40 | 1 | primary plank x8; fixed cloth:linen x2 |
+| Plain Single Bed (`bed-plain-single`) | 217 | 1 | 0 | 1 | primary plank x8; secondary Wrap (wrap) x2 [6] |
+| Plain Double Bed (`bed-plain-double`) | 219 | 2 | 10 | 1 | primary plank x8; secondary Wrap (wrap) x2 [6] |
+| Fancy Single Bed (`bed-fancy-single`) | 218 | 3 | 25 | 1 | primary plank x8; secondary Wrap (wrap) x2 [6] |
+| Fancy Double Bed (`bed-fancy-double`) | 220 | 4 | 40 | 1 | primary plank x8; secondary Wrap (wrap) x2 [6] |
 
 ### building / tools
 
@@ -209,7 +269,7 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 
 | Form | Template | Tier | Rank | Old recipes | Slots |
 |---|---|---|---|---|---|
-| Ram Kit (`ramkit`) | 690 | 5 | 60 | 1 | primary plank x40; fixed ingot:iron x20; fixed hide:bear x4 |
+| Ram Kit (`ramkit`) | 690 | 5 | 60 | 1 | primary plank x40; secondary Fittings (head) x20 [11]; fixed hide:bear x4 |
 
 ### outfitting / leather
 
@@ -234,8 +294,8 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 | Sash (`garment-145`) | 145 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
 | Eodoric (`garment-146`) | 146 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 | Shoes (`garment-147`) | 147 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Tall Boots (`garment-148`) | 148 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; fixed leather:cured x1 |
-| Boots (`garment-149`) | 149 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; fixed leather:cured x1 |
+| Tall Boots (`garment-148`) | 148 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Boots (`garment-149`) | 149 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
 | Sandals (`garment-150`) | 150 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
 | Casual Pants (`garment-151`) | 151 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 | Breeches (`garment-152`) | 152 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
@@ -273,8 +333,8 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 | Peasant Blouse (`garment-184`) | 184 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 | Eodoric (`garment-185`) | 185 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 | Shoes (`garment-186`) | 186 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
-| Tall Boots (`garment-187`) | 187 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; fixed leather:cured x1 |
-| Boots (`garment-188`) | 188 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; fixed leather:cured x1 |
+| Tall Boots (`garment-187`) | 187 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
+| Boots (`garment-188`) | 188 | 1-5 | 0-55 | 4 | primary cloth x1 [4]; secondary Straps (wrap) x1 [6] |
 | Sandals (`garment-189`) | 189 | 1-5 | 0-55 | 4 | primary cloth x1 [4] |
 | Casual Pants (`garment-190`) | 190 | 1-5 | 0-55 | 4 | primary cloth x2 [4] |
 | Casual Cloak (`garment-191`) | 191 | 1-5 | 0-55 | 4 | primary cloth x3 [4] |
@@ -349,7 +409,7 @@ amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how ma
 | Ring (`ring`) | 135 | 1-5 | 0-55 | 126 | primary metal x1 [3]; secondary gem x1 [41] (optional) |
 | Mark (`mark`) | 137 | 1-5 | 0-55 | 123 | primary metal x1 [3]; secondary gem x1 [41] |
 | Bracelet (`bracelet`) | 136 | 1-5 | 0-55 | 3 | primary metal x2 [3] |
-| Bracer (`bracer`) | 134 | 1-5 | 0-55 | 3 | primary metal x2 [3]; fixed leather:cured x1 |
+| Bracer (`bracer`) | 134 | 1-5 | 0-55 | 3 | primary metal x2 [3]; secondary Wrap (wrap) x1 [6] |
 | Amulet (`amulet`) | 133 | 1-5 | 0-55 | 123 | primary metal x2 [3]; secondary gem x1 [41] |
 | Torc (`torc`) | 138 | 1-5 | 0-55 | 3 | primary metal x3 [3] |
 | Cloth Amulet (`clothamulet`) | 139 | 1 | 0 | 41 | primary cloth x1; secondary gem x1 [41] |

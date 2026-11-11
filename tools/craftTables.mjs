@@ -2,12 +2,13 @@
 // Run: node tools/craftTables.mjs
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { MATERIAL_STATS, statBudget, statTotal, fitOf } from '../src/net/craft/materialStats.js';
-import { FORMS, FAMILY_WEIGHTS } from '../src/net/craft/forms.js';
+import { MATERIAL_STATS, statBudget, statTotal, suitabilityOf } from '../src/net/craft/materialStats.js';
+import { FORMS, FAMILY_WEIGHTS, GROUPS, POTENTIAL_BANDS, SECONDARY_SHARE, formById, buildSuitability, potentialOf } from '../src/net/craft/forms.js';
 
 const out = [];
 const line = (s = '') => out.push(s);
-const f2 = (x) => x.toFixed(2);
+const pct = (x) => `${Math.round(x * 100)}%`;
+const nameOf = (key) => MATERIAL_STATS.find((s) => s.key === key)?.name ?? key;
 
 line('# Crafting rework: draft tables');
 line();
@@ -18,22 +19,23 @@ line();
 // ─── materials ───
 const FAMILIES_OF_KIND = {
   ingot: ['weapons', 'armour'], plank: ['bows', 'staves', 'furniture'], wood: ['bows', 'furniture'], leather: ['leather'],
-  cloth: ['clothing', 'furnishings'], metal: ['jewellery'],
+  cloth: ['clothing', 'furnishings'], metal: ['jewellery'], flux: ['weapons'], binder: ['bows'],
 };
 line('## Material stats');
 line();
 line('Hardness (H), Toughness (T), Lightness (L, higher is lighter), Affinity (A). `Sum` is the four added up against the');
-line('tier budget (8 + 3 x tier). `Fit` is how well the material suits a family: 1.00 is neutral, higher is better suited.');
+line('tier budget (8 + 3 x tier). `Suits` is how well the material suits a family compared with the best its own tier could');
+line('do: 100% is as suited as that tier allows, so a perfect iron piece is as suited as a perfect daedric one.');
 line();
-for (const kind of ['ingot', 'plank', 'wood', 'leather', 'cloth', 'metal']) {
+for (const kind of ['ingot', 'plank', 'wood', 'leather', 'cloth', 'metal', 'flux', 'binder']) {
   const rows = MATERIAL_STATS.filter((s) => s.kind === kind);
   if (!rows.length) continue;
   line(`### ${kind}`);
   line();
-  line('| Material | Key | Tier | H | T | L | A | Sum / budget | Fit |');
+  line('| Material | Key | Tier | H | T | L | A | Sum / budget | Suits |');
   line('|---|---|---|---|---|---|---|---|---|');
   for (const s of rows) {
-    const fit = FAMILIES_OF_KIND[kind].map((fam) => `${fam} ${f2(fitOf(s, /** @type {any} */ (FAMILY_WEIGHTS[fam])))}`).join(', ');
+    const fit = FAMILIES_OF_KIND[kind].map((fam) => `${fam} ${pct(suitabilityOf(s, /** @type {any} */ (FAMILY_WEIGHTS[fam])))}`).join(', ');
     line(`| ${s.name} | \`${s.key}\` | ${s.tier} | ${s.h} | ${s.t} | ${s.l} | ${s.a} | ${statTotal(s)} / ${statBudget(s.tier)} | ${fit} |`);
   }
   line();
@@ -45,6 +47,52 @@ line();
 line('| Gem | Key | Tier | A |');
 line('|---|---|---|---|');
 for (const s of MATERIAL_STATS.filter((x) => x.kind === 'gem')) line(`| ${s.name} | \`${s.key}\` | ${s.tier} | ${s.a} |`);
+line();
+
+// ─── Potential ───
+line('## Potential');
+line();
+line('Potential is the quality ceiling a build allows, read from its suitability. The bands are a draft to tune.');
+line();
+line('| Suitability from | Potential |');
+line('|---|---|');
+for (const b of POTENTIAL_BANDS) line(`| ${pct(b.from)} | ${b.name} |`);
+line();
+line(`A build's suitability blends its slots: the primary slot has the rest, each other slot with stats has ${pct(SECONDARY_SHARE)}.`);
+line();
+
+// ─── slot groups ───
+line('## Slot groups');
+line();
+line('An input the old recipes always made of one material becomes a choice among its group.');
+line();
+line('| Group | Used for | Choices |');
+line('|---|---|---|');
+const usedFor = { flux: 'weapon flux', wrap: 'grips, linings, straps, wraps', haft: 'axe, hammer and tool hafts', binder: 'bows', head: 'arrowheads, ram fittings' };
+for (const [g, keys] of Object.entries(GROUPS)) line(`| ${g} | ${usedFor[g]} | ${keys.map(nameOf).join(', ')} |`);
+line();
+
+// ─── worked builds ───
+line('## Worked builds');
+line();
+line('| Build | Picks | Suitability | Potential |');
+line('|---|---|---|---|');
+const builds = [
+  ['longsword', 'Dwarven blade, copper flux, cured grip', { ingot0: 'ingot:dwarven', metal1: 'metal:copper', leather2: 'leather:cured' }],
+  ['longsword', 'Moonstone blade, copper flux, cured grip', { ingot0: 'ingot:moonstone', metal1: 'metal:copper', leather2: 'leather:cured' }],
+  ['longsword', 'Steel blade, sulphur flux, hardened grip', { ingot0: 'ingot:steel', metal1: 'metal:sulphur', leather2: 'leather:hardened' }],
+  ['longsword', 'Iron blade, sulphur flux, hardened grip', { ingot0: 'ingot:iron', metal1: 'metal:sulphur', leather2: 'leather:hardened' }],
+  ['cuirass', 'Iron plate, hardened lining', { ingot0: 'ingot:iron', leather1: 'leather:hardened' }],
+  ['cuirass', 'Orichalcum plate, hardened lining', { ingot0: 'ingot:orichalcum', leather1: 'leather:hardened' }],
+  ['cuirass', 'Ebony plate, cured lining', { ingot0: 'ingot:ebony', leather1: 'leather:cured' }],
+  ['shortbow', 'Ghostwood stave, resin', { plank0: 'plank:ghostwood', wood1: 'wood:resin' }],
+  ['shortbow', 'Ironwood stave, resin', { plank0: 'plank:ironwood', wood1: 'wood:resin' }],
+];
+for (const [id, label, picks] of builds) {
+  const form = formById(id);
+  const s = form ? buildSuitability(form, picks) : null;
+  line(`| ${form?.name ?? id}: ${label} | ${Object.values(picks).map(nameOf).join(', ')} | ${s == null ? 'invalid' : pct(s)} | ${s == null ? '-' : potentialOf(s).name} |`);
+}
 line();
 
 // ─── forms ───
@@ -66,12 +114,13 @@ for (const g of groups.values()) {
   line(`| ${g.track} | ${g.family} | ${g.forms.length} | ${g.recipes} | ${w ? `${w.h} / ${w.t} / ${w.l} / ${w.a}` : 'none yet'} |`);
 }
 line();
-line('A slot reads `primary`, `secondary` (takes a choice of materials) or `fixed` (always the same input). The number is the');
-line('amount, `(optional)` marks a slot only some old recipes had, and `[n]` is how many different materials the old recipes used.');
+line('A slot reads `primary`, `secondary` (a choice of materials) or `fixed` (always the same input). A slot opened from an old');
+line('fixed input shows its name and group, for example `Grip (wrap)`. The number is the amount, `[n]` is how many choices it');
+line('has, and `(optional)` marks a slot only some old recipes had.');
 line();
 const slotText = (s) => {
   const amount = s.n === s.nMax ? `x${s.n}` : `x${s.n}-${s.nMax}`;
-  const what = s.role === 'fixed' ? s.options[0] : s.categories.join('/');
+  const what = s.role === 'fixed' ? s.options[0] : s.group ? `${s.label} (${s.group})` : s.categories.join('/');
   return `${s.role} ${what} ${amount}${s.options.length > 1 ? ` [${s.options.length}]` : ''}${s.optional ? ' (optional)' : ''}`;
 };
 for (const g of groups.values()) {

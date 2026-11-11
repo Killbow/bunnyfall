@@ -43,11 +43,21 @@ The audit found these problems in the current system:
 - Each family reads the stats with its own weights (a weapon wants Hardness, armor wants Toughness, a bow wants
   Lightness). The weights are in `forms.js`.
 
+- Slots that the old recipes always filled the same way (the flux in a weapon, the grip, a plate's lining, a haft, a
+  bow's binder, arrowheads) are real choices now, from a group of materials (see `GROUPS` in `forms.js`). Each such slot
+  has a tenth of the suitability; the main slot has the rest. Things with no stats yet (herbs, foods, stone, mortar,
+  hides) stay fixed.
+- The stats are strongly skewed inside a tier: a material is clearly good at some things and poor at others, so the
+  choice always matters.
+
 ## Quality
 
-- **Potential**: how well the chosen materials fit the form. It sets the quality ceiling and is shown before crafting.
+- **Potential**: how well the chosen materials *suit* the form, compared with the best that material's tier could do.
+  It is not raw power. A piece's base power already comes from its DFU material, so a perfect iron piece is as suitable
+  as a perfect daedric one (and far weaker). Potential sets the quality ceiling and is shown before crafting.
 - **Execution**: rank against the form's difficulty, plus the minigame.
 - The result is the lower of the two. The five quality names stay.
+- The bands from suitability to Potential are a draft (`POTENTIAL_BANDS`); tuning them is part of review.
 
 ## XP
 
@@ -84,6 +94,10 @@ The audit found these problems in the current system:
 
 - How stats turn into item values without breaking DFU's combat formulas (draft: primary slot picks the DFU material,
   stats move condition, weight and enchant points inside a bounded band).
-- Whether a gathered material has a grade (purity) on top of its tier. Left out of v1: it touches the Stores, the market
-  and salvage.
-- Thresholds that turn Potential into a quality name. See the fit columns in `CRAFTING-TABLES.md`.
+- Gathered-material grades (purity) on top of tier are decided out of v1: they touch the Stores, the market and salvage.
+  They can be added later as a Potential bonus.
+- The bands that turn suitability into a quality name. See the Potential and Worked builds sections of
+  `CRAFTING-TABLES.md`.
+- Binder and flux have few real materials today (resin, tin, copper); the flux group borrows the other metals, and the
+  binder group borrows linen and cured leather. Better binders could come with new gatherable materials.
+- Stonework, dishes and potions have no stats yet.
