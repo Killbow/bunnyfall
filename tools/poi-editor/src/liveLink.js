@@ -1,6 +1,6 @@
 // @ts-check
 
-// THE LIVE VIEW'S BUILDER SIDE: opens the game at /play/?live in another tab and streams the open draft to it on a
+// THE LIVE VIEW'S BUILDER SIDE: opens the game at /play/?live&nointro in another tab and streams the open draft to it on a
 // same-origin BroadcastChannel (src/scenes/poiLive.js is the game's half). The game lays the draft over the real world on
 // its own screen; nothing is saved or sent to players. The bearer goes along only so a draft's uploaded models can load.
 
@@ -8,9 +8,9 @@ export const POI_LIVE_CHANNEL = 'bunnyfall-poi-live';
 
 /** Where the game's live page is: next to /builder/ on a host, the dev game's port on localhost. */
 export function liveUrl(loc = globalThis.location) {
-  if (!loc) return '/play/?live';
-  if (/^(localhost|127\.0\.0\.1)$/.test(loc.hostname)) return `${loc.protocol}//${loc.hostname}:5173/play/?live`;
-  return new URL('../play/?live', loc.href).href;
+  if (!loc) return '/play/?live&nointro';
+  if (/^(localhost|127\.0\.0\.1)$/.test(loc.hostname)) return `${loc.protocol}//${loc.hostname}:5173/play/?live&nointro`;
+  return new URL('../play/?live&nointro', loc.href).href;
 }
 
 /**
