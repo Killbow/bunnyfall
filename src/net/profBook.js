@@ -876,7 +876,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
      * works before it done (`refined`). `chain: false` asks none.
      * @returns {Promise<{ ok: boolean, data?: any, error?: string, kept?: boolean, elsewhere?: boolean, refined?: { id: string, count: number, xp: number, made: number }[] }>}
      */
-    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true, master = null, form = null, picks = null } = {}, mint) {
+    async craft(recipe, { clean = false, name = null, heartwood = false, fee = 0, dye = null, seat = null, cracked = false, chain = true, master = null, form = null, picks = null, look = null } = {}, mint) {
       if (_craftBusy) return { ok: false, error: 'prof-busy' };
       const key = slot();
       const c = character();
@@ -923,7 +923,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
           ...(lines ? { master: lines } : {}),   // MASTER-ART: a Master's work, its lines chosen
           fee: Number.isSafeInteger(fee) && fee > 0 ? fee : 0, ...(Number.isInteger(dye) ? { dye } : {}),   // PROF7: a garment's dye
           ...(Number.isSafeInteger(seat) && seat >= 0 ? { seat } : {}),   // SEAT2b part two: the held town the station stands in (its crafting halls' steps)
-          ...(plan ? { form, picks: plan.picks } : {}),   // BUNNYFALL CRAFTING REWORK: kept with the craft, asked again as made
+          ...(plan ? { form, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}) } : {}),   // BUNNYFALL CRAFTING REWORK: kept with the craft, asked again as made
           ...(cracked === true ? { cracked: true } : {}) };   // PROF10: a Lapidary's Siege-cracked Gem for the piece's gem
         const kept = keptOf(key);
         kept.crafts.push(w);
@@ -1393,7 +1393,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
   async function craftOne(w, key, mint) {
     const r = await ask(() => (w.brew === true   // PROF12: a brew kept as a craft is
       ? door.brew(w.character, w.recipe, w.keys, w.rid, Number.isSafeInteger(w.seat) ? w.seat : null)
-      : typeof w.form === 'string' ? door.make(w.character, w.form, w.picks, w.clean, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true)   // BUNNYFALL CRAFTING REWORK
+      : typeof w.form === 'string' ? door.make(w.character, w.form, w.picks, w.clean, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true, Number.isInteger(w.look) ? w.look : null)   // BUNNYFALL CRAFTING REWORK
       : Array.isArray(w.master) ? door.master(w.character, w.recipe, w.master, w.name, w.rid, Number.isInteger(w.dye) ? w.dye : null)   // MASTER-ART
       : door.craft(w.character, w.recipe, w.clean, w.name, w.rid, w.heartwood === true, Number.isInteger(w.dye) ? w.dye : null, Number.isSafeInteger(w.seat) ? w.seat : null, w.cracked === true)), key);   // PROF10: the cracked gem
     // AUDIT 32 B5: heard after a switch, the craft waits kept for its own character's settle - asked again there, the

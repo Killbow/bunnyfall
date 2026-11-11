@@ -7,6 +7,7 @@ import { createPanAct } from '../../systems/panAct.js';
 import { createFacetAct } from '../../systems/facetAct.js';
 import { createChiselAct } from '../../systems/chiselAct.js';
 import { createPlaneAct } from '../../systems/planeAct.js';
+import { createWorkAct } from '../../systems/workAct.js';   // BUNNYFALL: the Bench's work, part by part
 import { HEAT_ACT, STITCH_ACT, PLANE_ACT } from '../../net/recipeLaw.js';
 import { capturePointer } from '../pointerCapture.js';
 
@@ -17,6 +18,7 @@ export const ACT_WORDS = Object.freeze({
   pan: { title: 'The pan', hint: 'Take the pan off while the heat is in the gold band.', press: 'Take off' },
   facet: { title: 'The facet', hint: 'Cut when the gem turns into the light.', press: 'Cut' },
   chisel: { title: 'The chisel', hint: 'Aim at the marked line, then strike.', press: 'Strike' },
+  work: { title: 'The work', hint: 'Strike as the needle crosses the marked arc. Two strikes finish a part; the bright middle is a true strike.', press: 'Strike' },
   plane: { title: 'The plane', hint: 'Press at the left end and draw along the grain, steadily, to the right.', press: '' },
 });
 
@@ -27,6 +29,7 @@ function engineOf(kind, o) {
   if (kind === 'pan') return createPanAct({ pans: o.pans, done: o.done });
   if (kind === 'facet') return createFacetAct({ facets: o.facets, windowDeg: o.windowDeg });
   if (kind === 'chisel') return createChiselAct({ strikes: o.strikes, markS: o.markS });
+  if (kind === 'work') return createWorkAct({ parts: o.parts });
   if (kind === 'plane') return createPlaneAct({ rank: o.rank ?? 0, band: o.band ?? 1 });
   return null;
 }
@@ -74,7 +77,7 @@ export function mountAct(kind, o, onDone) {
     doc.removeEventListener('keydown', onKey, true);
     onDone(rep);
   };
-  const results = () => (act.state.strikes ?? act.state.stitches ?? act.state.takes ?? act.state.cuts ?? []);
+  const results = () => (kind === 'work' ? act.state.results.filter((x) => x !== 'miss') : act.state.strikes ?? act.state.stitches ?? act.state.takes ?? act.state.cuts ?? []);
   const need = () => act.state.need ?? (kind === 'heat' ? HEAT_ACT.strikes : kind === 'stitch' ? STITCH_ACT.stitches : 1);
 
   // the stage, by kind
@@ -124,6 +127,8 @@ export function mountAct(kind, o, onDone) {
       lanes.push(lane); stage.append(lane);
     }
     draw = () => lanes.forEach((l, i) => { l.classList.toggle('cw-marked', i === act.mark); l.classList.toggle('cw-aimed', i === act.state.at); });
+  } else if (kind === 'work') {
+    draw = drawWork(doc, stage, act, o.theme);
   } else if (kind === 'plane') {
     const board = doc.createElement('div'); board.className = 'cw-board';
     const svg = doc.createElementNS(SVG, 'svg'); svg.setAttribute('viewBox', '0 0 100 40'); svg.setAttribute('preserveAspectRatio', 'none');
@@ -158,7 +163,7 @@ export function mountAct(kind, o, onDone) {
   };
   const act1 = () => {
     if (finished) return;
-    const r = kind === 'heat' || kind === 'chisel' ? act.strike() : kind === 'stitch' ? act.stitch() : kind === 'pan' ? act.take() : kind === 'facet' ? act.stop() : null;
+    const r = kind === 'heat' || kind === 'chisel' || kind === 'work' ? act.strike() : kind === 'stitch' ? act.stitch() : kind === 'pan' ? act.take() : kind === 'facet' ? act.stop() : null;
     if (r === null && !act.state.done) return;
     drawDots();
     if (act.state.done) finish(act.report());
@@ -188,4 +193,77 @@ export function mountAct(kind, o, onDone) {
   draw();
   raf = requestAnimationFrame(frame);
   return { el: box, stop() { act.cancel(); finish(null); } };
+}
+
+// ─── THE WORK'S DIAL ────────────────────────────────────────────────────────────
+
+/** A point on the dial: degrees from the top, clockwise. */
+const onDial = (/** @type {number} */ deg, /** @type {number} */ r) => { const a = ((deg - 90) * Math.PI) / 180; return [Math.cos(a) * r, Math.sin(a) * r]; };
+const arcPath = (/** @type {number} */ from, /** @type {number} */ to, /** @type {number} */ r) => {
+  const [x1, y1] = onDial(from, r), [x2, y2] = onDial(to, r);
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${r} ${r} 0 ${to - from > 180 ? 1 : 0} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+};
+/**
+ * Draws the work into `stage`: the dial, the arc, the needle, a pip a part round the rim, the part's name in the middle,
+ * and the strike's answer (sparks, a shake, a flash). `theme` the station's ('anvil', 'workbench', ...). Returns draw().
+ */
+function drawWork(doc, stage, act, theme = 'anvil') {
+  stage.classList.add(`cw-work-${theme}`);
+  const mk = (/** @type {string} */ tag, /** @type {Record<string,string>} */ at = {}) => { const e = doc.createElementNS(SVG, tag); for (const k in at) e.setAttribute(k, at[k]); return e; };
+  const svg = mk('svg', { viewBox: '-62 -62 124 124', class: 'cw-work', role: 'img', 'aria-label': 'The work dial' });
+  const track = mk('circle', { r: '44', class: 'cw-work-track' });
+  const ticks = mk('g', { class: 'cw-work-ticks' });
+  for (let d = 0; d < 360; d += 15) { const [a, b] = onDial(d, 39), [c, e] = onDial(d, d % 90 ? 41.5 : 37); ticks.append(mk('line', { x1: a.toFixed(2), y1: b.toFixed(2), x2: c.toFixed(2), y2: e.toFixed(2) })); }
+  const arc = mk('path', { class: 'cw-work-arc' });
+  const truth = mk('path', { class: 'cw-work-true' });
+  const pips = mk('g', { class: 'cw-work-pips' });
+  const parts = act.state.parts;
+  const span = 360 / parts.length;
+  const pipEls = parts.map((_, i) => { const p = mk('path', { d: arcPath(i * span + 3, (i + 1) * span - 3, 55), class: 'cw-work-pip' }); pips.append(p); return p; });
+  const needle = mk('g', { class: 'cw-work-needle' });
+  needle.append(mk('line', { x1: '0', y1: '6', x2: '0', y2: '-47' }), mk('circle', { cx: '0', cy: '-47', r: '2.6', class: 'cw-work-tip' }));
+  const hub = mk('circle', { r: '20', class: 'cw-work-hub' });
+  const label = mk('text', { y: '-2', class: 'cw-work-label' });
+  const sub = mk('text', { y: '9', class: 'cw-work-sub' });
+  const sparks = mk('g', { class: 'cw-work-sparks' });
+  svg.append(track, ticks, pips, arc, truth, hub, label, sub, needle, sparks);
+  stage.append(svg);
+  let seen = 0, shownPart = -1;
+  const burst = (/** @type {string} */ kind) => {
+    const [x, y] = onDial(act.state.angle, 46);
+    const count = kind === 'true' ? 14 : kind === 'part' ? 22 : 8;
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2, dist = 8 + Math.random() * (kind === 'true' ? 18 : 11);
+      const c = mk('circle', { cx: x.toFixed(2), cy: y.toFixed(2), r: (0.8 + Math.random() * 1.2).toFixed(2), class: `cw-spark cw-spark-${kind}` });
+      c.style.setProperty('--dx', `${(Math.cos(a) * dist).toFixed(1)}px`);
+      c.style.setProperty('--dy', `${(Math.sin(a) * dist).toFixed(1)}px`);
+      sparks.append(c);
+      setTimeout(() => c.remove(), 700);
+    }
+  };
+  const pulse = (/** @type {string} */ cls, /** @type {number} */ ms) => { stage.classList.remove(cls); void stage.getBoundingClientRect?.(); stage.classList.add(cls); setTimeout(() => stage.classList.remove(cls), ms); };
+  return () => {
+    const st = act.state;
+    const w = act.width;
+    if (w > 0 && !st.done) {
+      arc.setAttribute('d', arcPath(st.target - w / 2, st.target + w / 2, 44));
+      const t = (w / 2) * (1 / 3);
+      truth.setAttribute('d', arcPath(st.target - t, st.target + t, 44));
+    }
+    needle.setAttribute('transform', `rotate(${st.angle.toFixed(2)})`);
+    svg.classList.toggle('cw-hot', act.onArc);
+    if (shownPart !== st.part) {
+      shownPart = st.part;
+      const p = parts[Math.min(st.part, parts.length - 1)];
+      label.textContent = st.part >= parts.length ? 'Done' : p.label;
+      sub.textContent = st.part >= parts.length ? '' : `${p.material ? `${p.material} · ` : ''}part ${st.part + 1} of ${parts.length}`;
+      pipEls.forEach((e, i) => { e.classList.toggle('cw-done', i < st.part); e.classList.toggle('cw-now', i === st.part); });
+    }
+    if (st.last && st.last.n !== seen) {
+      seen = st.last.n;
+      if (st.last.kind === 'miss') pulse('cw-shake', 360);
+      else if (st.last.kind === 'part') { burst('part'); pulse('cw-flash', 520); }
+      else burst(st.last.kind);
+    }
+  };
 }

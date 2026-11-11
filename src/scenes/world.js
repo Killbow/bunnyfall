@@ -11748,7 +11748,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       setSalvageRealmAct(realmSession ? (o) => realmGoldAct({ ...o, session: realmSession, checkpoint: () => onlineCheckpoint() }) : null);
       setProfessionsPages({
         ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
-        book: profBook, name: (k) => materialLabel(k), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
+        book: profBook, name: (k) => materialLabel(k), wearer: () => ({ gender: playerEntity.gender ?? 'male', race: artRaceOf(playerEntity) }), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
         picture: (k, wake) => materialPicture(k, { onReady: wake }),   // MENU-ORDER: a material card's picture
         settle: () => profBook.settle(profMint, profMintCraft),   // AUDIT 29 C4: a kept withdrawal asked again when the Stores page opens; PROF3: and a kept craft
         // BAG1 (bible/06-Systems/Materials-Bag.md): THE STORES PAGE'S OTHER HALF - what is carried put in (the bag's first,

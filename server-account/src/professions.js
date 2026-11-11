@@ -77,6 +77,7 @@ import {
 import { mintProductRecord, readProductRecord, craftMintVersion } from '../../src/net/productRecord.js';   // CRAFT4: a tempered piece's record re-signed; CRAFT-PROCS: the mint's version (AUDIT FB1026d C3: the client's, at most ours)
 import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '../../src/net/temperLaw.js';   // CRAFT4: the temper
 import { signingKey } from './signing.js';
+import { lookOk } from '../../src/net/productRecord.js';   // BUNNYFALL: the look a piece is made in
 import { planOf, inputsOf, craftedQuality, craftValueXp, focusOk, FOCUS_CHANGE_MARKS } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks, the Focus
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
@@ -1497,7 +1498,7 @@ export async function makeAtBench(ctx, player, env, body = {}) {
   return craftCore(ctx, player, env, body, plan);
 }
 
-async function craftCore(ctx, player, env, { character, recipe: id, clean, name, heartwood = false, dye = null, rid, seat = null, cracked = false, mint = null } = {}, /** @type {any} */ plan = null) {
+async function craftCore(ctx, player, env, { character, recipe: id, clean, name, heartwood = false, dye = null, rid, seat = null, cracked = false, mint = null, look = null } = {}, /** @type {any} */ plan = null) {
   const { db, nowS, rand, subtle } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
@@ -1545,7 +1546,7 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   const key = await signingKey(env, subtle);
   const u = dye ?? null;
   const hand = dishHand(r, specs[100]) ?? jewelHand(r, specs[50]);   // PROF9: a Chef's feast, a Provisioner's dish - the dish's wherever it goes; PROF10: a Goldsmith's Silver, a Gemcutter's gem
-  const records = await Promise.all(provs.map((p) => mintProductRecord({ p, s: player.id, h: character, r: r.id, q: quality, m: maker, c: seed, a: marked === 1 && maker !== null, u, f: hand, v: craftMintVersion(mint) }, key, { subtle, nowS })));   // AUDIT 30 L4: the mark signed; PROF7: the dye; PROF9: the hand; CRAFT-PROCS: the law it mints under (its last pass) - AUDIT FB1026d C3: the one its client mints
+  const records = await Promise.all(provs.map((p) => mintProductRecord({ p, s: player.id, h: character, r: r.id, q: quality, m: maker, c: seed, a: marked === 1 && maker !== null, u, f: hand, v: craftMintVersion(mint), x: plan && lookOk(r, look) ? look : null }, key, { subtle, nowS })));   // AUDIT 30 L4: the mark signed; PROF7: the dye; PROF9: the hand; CRAFT-PROCS: the law it mints under (its last pass) - AUDIT FB1026d C3: the one its client mints
   const nonce = mintId(rand);
   // ?1 player ?2 character ?3 rid ?4 recipe ?5 quality ?6 count ?7 provenance ?8 provenance2 ?9 seed ?10 the XP before the
   // first craft's ?13 (AUDIT 32 S1: CLOTH-GEMS - laid on a recipe wholly of the counter's goods only where its units are

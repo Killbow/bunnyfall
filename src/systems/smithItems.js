@@ -83,6 +83,7 @@ import {
   jewelHandOk,   // AUDIT PROF-541 J6: the hand a piece keeps, one its recipe takes
 } from '../net/recipeLaw.js';
 import { enchantmentRowCost } from './enchanting.js';   // AUDIT PROF-541 J4: a Rare roll the piece's points hold
+import { clampArmorVariant } from './armorMaterials.js';   // BUNNYFALL: a chosen look held to the material's
 import { minedMaterial, WOODS } from '../net/professionLaw.js';
 import { weaponOfMaterial, armorOfMaterial, createWeapon } from '../combat/enemyEquipment.js';
 import { setItemFields, mintCondition, templateByIndex, registerItemUseHandler, conditionPercentage, conditionShare, mendOrder, itemBaseValue } from './item/itemTemplates.js';
@@ -93,7 +94,7 @@ import './professions/profTemplates.js';   // the Repair Kit's row (692), regist
 import { applyRarity, rarityEligible, RARE_FLAVOURS, reforgeAffix, reforgeableLines, lastPass, rarityName, affixesWorth } from './loot/lootRarity.js';   // CRAFT4: and the Reforge with Essence's roll; CRAFT-PROCS: the last pass; MASTER-ART: a Master's work's name and worth
 import { pieceQuality, temperRefusal, temperStep, reforgeEssence } from '../net/temperLaw.js';   // CRAFT4: the temper
 import { upgradeRecipeOf, upgradeRefusal } from '../net/upgradeLaw.js';   // BUNNYFALL: the material upgrade
-import { readProductRecord, mintVersionOf, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_ARMOR_LEAN, MINT_V_JEWEL_KIN, MINT_V_MASTER, masterLinesOf } from '../net/productRecord.js';   // CRAFT4: a tempered piece's record, re-signed; CRAFT-PROCS: the mint's version; AFFIX-LINES: its lines' law; MASTER-ART: a Master's lines
+import { readProductRecord, mintVersionOf, MINT_V_LAST_PASS, MINT_V_LINES, MINT_V_ARMOR_LEAN, MINT_V_JEWEL_KIN, MINT_V_MASTER, masterLinesOf, lookOf } from '../net/productRecord.js';   // CRAFT4: a tempered piece's record, re-signed; CRAFT-PROCS: the mint's version; AFFIX-LINES: its lines' law; MASTER-ART: a Master's lines
 import { masterLinesOfRecord } from '../net/masterLaw.js';   // MASTER-ART: a Master's work's lines, as its record signs them
 import { itemIsIdentified } from './tradeModes.js';   // CRAFT4: a line the Reforge sees, known
 import { isEquipped } from './equip.js';   // CRAFT4: and never on a worn piece
@@ -115,10 +116,11 @@ const kitValue = (tier) => 10 + 10 * tier;
  * record's seed's, so every client mints the same one), then its dye (the record's, `u`; an undyed garment none).
  * @param {import('../net/recipeLaw.js').Recipe} r @param {number} seed @param {number|null} dye
  */
-export function garmentItem(r, seed, dye = null) {
+export function garmentItem(r, seed, dye = null, look = null) {
   const variants = Math.max(1, templateByIndex(r.templateIndex)?.variants ?? 0);
+  const v = Number.isInteger(look) ? look % variants : (seed >>> 0) % variants;   // BUNNYFALL: the look chosen, else the seed's
   /** @type {any} */
-  const item = mintCondition(setItemFields({ group: r.group, templateIndex: r.templateIndex, material: 0, flags: 0, variant: (seed >>> 0) % variants, message: 0, stackCount: 1 }));
+  const item = mintCondition(setItemFields({ group: r.group, templateIndex: r.templateIndex, material: 0, flags: 0, variant: v, message: 0, stackCount: 1 }));
   if (r.dyes === true && Number.isInteger(dye)) item.dye = dye;
   return item;
 }
@@ -174,10 +176,14 @@ function applyMasterWork(item, lines) {
  * @param {{ recipe: string, quality: number, seed: number, maker?: string|null, marked?: boolean, dye?: number|null, hand?: number|null, version?: number, lines?: any[]|null }} made
  * @param {string} provenance
  */
+/** BUNNYFALL CRAFTING REWORK: a chosen look as a piece of armour can wear it - within its template's variants, then held
+ *  to what its material allows (DFU's ItemBuilder clamps, armorMaterials.js clampArmorVariant). */
+const armourLook = (r, look) => clampArmorVariant(r.templateIndex, r.material, Math.min(look, Math.max(1, templateByIndex(r.templateIndex)?.variants ?? 1) - 1));
+
 /** BUNNYFALL CRAFTING REWORK: a wood's name by its id (recipeLaw WOODS), for a crafted bow's or staff's long name. */
 const WOOD_NAMES = Object.freeze(Object.fromEntries(WOODS.map((w) => [w.id, w.name])));
 
-export function mintPiece({ recipe, quality, seed, maker = null, marked = false, dye = null, hand = null, version = 0, lines = null }, provenance) {
+export function mintPiece({ recipe, quality, seed, maker = null, marked = false, dye = null, hand = null, version = 0, lines = null, look = null }, provenance) {
   const r = recipeById(recipe);
   if (!r || typeof provenance !== 'string' || !PROVENANCE_RE.test(provenance)) return null;
   const mark = makerMark(maker);   // TEXT-F1
@@ -223,9 +229,9 @@ export function mintPiece({ recipe, quality, seed, maker = null, marked = false,
     item.maxCondition = item.currentCondition = TOOL_LIFE[q];   // FORAGE0 14.7: a tool's quality is its life
   } else {
     item = r.kind === 'weapon' || r.kind === 'staff' || r.kind === 'bow' ? weaponOfMaterial(r.templateIndex, r.material)   // PROF4: a staff's or a bow's material its wood's
-      : r.kind === 'garment' ? garmentItem(r, seed, dye)   // PROF7: DFU's clothing, its variant and dye the record's
+      : r.kind === 'garment' ? garmentItem(r, seed, dye, look)   // PROF7: DFU's clothing, its variant and dye the record's
         : r.kind === 'jewel' ? jewelItem(r)   // PROF10: DFU's jewellery
-          : armorOfMaterial(r.templateIndex, r.material);   // PROF7: leather armour at Leather (0)
+          : armorOfMaterial(r.templateIndex, r.material, Number.isInteger(look) ? armourLook(r, look) : null);   // BUNNYFALL: the look chosen   // PROF7: leather armour at Leather (0)
     const eff = QUALITY_EFFECTS[q];
     // AUDIT PROF-541 J4: a jewel's Rare roll one its points hold (a Cloth Amulet's 660 never carries Tongues' 1,590)
     const fits = r.kind === 'jewel' ? ((f) => (enchantmentRowCost(f) ?? Infinity) <= jewelPoints(r, templateByIndex(r.templateIndex)?.enchantmentPoints ?? 0, hand)) : null;
@@ -280,7 +286,7 @@ export function asMinted(item) {
 
 /** Every piece of a craft's answer, minted - two of a Quartermaster's kit. CRAFT-PROCS: each at the mint version its
  *  own record names. @param {any} data */
-export const mintPieces = (data) => (data?.pieces ?? []).map((p) => mintPiece({ ...data, version: mintVersionOf(p.record), lines: masterLinesOf(p.record) }, p.provenance)).filter(Boolean);   // MASTER-ART: a Master's lines
+export const mintPieces = (data) => (data?.pieces ?? []).map((p) => mintPiece({ ...data, version: mintVersionOf(p.record), lines: masterLinesOf(p.record), look: lookOf(p.record) }, p.provenance)).filter(Boolean);   // MASTER-ART: a Master's lines
 
 /** PROF6 (Professions-Arc 28): whether a crafted piece is of a recipe - DFU's group, template and material (a kit's
  *  metal) as the recipe mints them - so the Work tab offers a commission only the pieces that answer it (the service
@@ -314,7 +320,7 @@ export function temperItem(item, { quality, record = null } = {}, rolls = Math.r
   const share = item.maxCondition > 0 ? conditionShare(item) : 1, oldMax = item.maxCondition;
   const c = typeof item.provenance === 'string' && asMinted(item) ? readProductRecord(record) : null;
   const fresh = c && c.p === item.provenance && c.r === item.recipe && c.q === quality
-    ? mintPiece({ recipe: c.r, quality: c.q, seed: c.c, maker: c.m, marked: c.a === 1, dye: c.u ?? null, hand: c.f ?? null, version: c.v ?? 0, lines: c.l ?? null }, c.p) : null;   // CRAFT-PROCS: at its record's mint version
+    ? mintPiece({ recipe: c.r, quality: c.q, seed: c.c, maker: c.m, marked: c.a === 1, dye: c.u ?? null, hand: c.f ?? null, version: c.v ?? 0, lines: c.l ?? null, look: Number.isInteger(c.x) ? c.x : null }, c.p) : null;   // CRAFT-PROCS: at its record's mint version
   if (fresh) {
     for (const k of TEMPER_MINTED) { if (fresh[k] === undefined) delete item[k]; else item[k] = fresh[k]; }
   } else {

@@ -13,6 +13,7 @@ import { DYE_NAMES } from '../../characters/dyes.js';
 import { getPref } from '../../systems/uiPrefs.js';
 import { materialsText } from '../salvageMaterials.js';
 import { mountAct } from './craftActs.js';
+import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
 import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, FOCUS_MAX } from '../../net/craft/craftLaw.js';
@@ -20,7 +21,10 @@ import { mintPiece } from '../../systems/smithItems.js';   // the card's "You wi
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
 import { itemLongName } from '../../systems/item/itemInfo.js';
 import { itemArmorValue } from '../../systems/armorMaterials.js';
-import { unitWeightInKg } from '../../systems/inventory.js';   // the stats table: the armour a piece gives
+import { unitWeightInKg } from '../../systems/inventory.js';
+import { paperdollItemImage } from '../paperDoll.js';   // the look's preview, as the doll draws it
+import { requestIcon } from '../textureCanvas.js';
+import { LOOK_KINDS } from '../../net/productRecord.js';   // the stats table: the armour a piece gives
 import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
 
@@ -42,7 +46,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, look: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -88,6 +92,11 @@ const CSS = `
 .cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
 .cw-stats th { text-align: left; color: #d9b45a; font-weight: 600; border-bottom: 1px solid #6b5228; padding: 3px 6px; }
 .cw-stats td { padding: 3px 6px; border-bottom: 1px solid rgba(107,82,40,.35); color: #e8e2d0; }
+.cw-looks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.cw-look { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 84px; padding: 4px; background: rgba(0,0,0,.25); border: 1px solid #4a3820; color: #b8b09a; cursor: pointer; transition: border-color .15s, transform .15s; }
+.cw-look img { max-width: 72px; max-height: 72px; image-rendering: pixelated; }
+.cw-look:hover { border-color: #b08a3e; transform: translateY(-1px); }
+.cw-look.cw-on { border: 2px solid #d9b45a; color: #f0d58a; background: rgba(217,180,90,.12); }
 .cw-make { color: #f0d58a; font-size: 17px; font-weight: 700; margin: 2px 0 4px; }
 .cw-empty { color: #b8b09a; padding: 12px 0; }
 .cw-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(10,12,17,0.45); border: 2px solid #3d3a30; padding: 8px 12px; flex-wrap: wrap; }
@@ -105,6 +114,36 @@ const CSS = `
 .cw-beat { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #7d7460; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
 .cw-beat-pulse { width: 60px; height: 60px; border-radius: 50%; background: #d9b45a; }
 .cw-beat.cw-hot { border-color: #9cc98a; }
+.cw-act-stage.cw-work-anvil { --wk: #f0a040; --wk2: #ffd890; }
+.cw-act-stage.cw-work-workbench { --wk: #c8a070; --wk2: #f0dcb0; }
+.cw-act-stage.cw-work-loom { --wk: #8fb0e0; --wk2: #dbe8ff; }
+.cw-act-stage.cw-work-mason { --wk: #b8b09a; --wk2: #f0ece0; }
+.cw-act-stage.cw-work-jeweller { --wk: #c9a0f0; --wk2: #f4e8ff; }
+.cw-work { width: 240px; height: 240px; display: block; margin: 4px auto; overflow: visible; }
+.cw-work-track { fill: #15100b; stroke: #6b5228; stroke-width: 3; }
+.cw-work-ticks line { stroke: #6b5228; stroke-width: 0.8; }
+.cw-work-arc { fill: none; stroke: var(--wk, #d9b45a); stroke-width: 8; stroke-linecap: butt; opacity: .85; animation: cw-arcpulse 1.1s ease-in-out infinite; }
+.cw-work-true { fill: none; stroke: var(--wk2, #f0d58a); stroke-width: 8; }
+.cw-work.cw-hot .cw-work-arc { opacity: 1; filter: drop-shadow(0 0 3px var(--wk, #d9b45a)); }
+.cw-work-pip { fill: none; stroke: #3d3a30; stroke-width: 3.5; transition: stroke .3s; }
+.cw-work-pip.cw-now { stroke: #b08a3e; }
+.cw-work-pip.cw-done { stroke: var(--wk, #d9b45a); }
+.cw-work-needle line { stroke: #e8e2d0; stroke-width: 1.6; stroke-linecap: round; }
+.cw-work-tip { fill: var(--wk2, #f0d58a); filter: drop-shadow(0 0 2px var(--wk, #d9b45a)); }
+.cw-work-hub { fill: #241a12; stroke: #b08a3e; stroke-width: 1.2; }
+.cw-work-label { fill: #f0d58a; font: 700 7px Georgia, serif; text-anchor: middle; }
+.cw-work-sub { fill: #b8b09a; font: 4.2px Georgia, serif; text-anchor: middle; }
+.cw-spark { fill: var(--wk2, #f0d58a); animation: cw-spark .6s ease-out forwards; }
+.cw-spark-true { fill: #fff6d8; }
+.cw-spark-part { fill: var(--wk, #d9b45a); }
+.cw-act-stage.cw-shake .cw-work { animation: cw-shake .36s ease-in-out; }
+.cw-act-stage.cw-shake .cw-work-track { stroke: #c0503a; }
+.cw-act-stage.cw-flash .cw-work-hub { animation: cw-flash .52s ease-out; }
+@keyframes cw-spark { from { transform: translate(0,0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)); opacity: 0; } }
+@keyframes cw-shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-5px) rotate(-1deg); } 50% { transform: translateX(4px) rotate(1deg); } 80% { transform: translateX(-2px); } }
+@keyframes cw-flash { 0% { fill: var(--wk2, #f0d58a); } 100% { fill: #241a12; } }
+@keyframes cw-arcpulse { 0%,100% { stroke-width: 7; } 50% { stroke-width: 9; } }
+@media (prefers-reduced-motion: reduce) { .cw-work-arc, .cw-spark, .cw-act-stage.cw-shake .cw-work, .cw-act-stage.cw-flash .cw-work-hub { animation: none; } }
 .cw-facet { width: 140px; height: 140px; display: block; margin: 0 auto; }
 .cw-facet-rim { fill: rgba(10,12,17,0.6); stroke: #7d7460; stroke-width: 2; }
 .cw-facet-light { fill: rgba(240,213,138,0.45); }
@@ -345,8 +384,9 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
 // ─── THE CRAFT TAB BY FORM AND PICKS (BUNNYFALL CRAFTING REWORK) ─────────────────────────────
 
 const STAT_WORDS = Object.freeze({ h: 'Hardness', t: 'Toughness', l: 'Lightness', a: 'Affinity' });
-const statLine = (s) => (s ? `Hardness ${s.h} · Toughness ${s.t} · Lightness ${s.l} · Affinity ${s.a}` : '');
-const weightLine = (w) => Object.entries(STAT_WORDS).filter(([k]) => w?.[k] > 0).sort((a, b) => w[b[0]] - w[a[0]]).map(([k, n]) => `${n} ${Math.round(w[k] * 100)}%`).join(', ');
+const statLine = (s) => (s ? `H ${s.h} · T ${s.t} · L ${s.l} · A ${s.a}` : '');
+// HTLA: the four always in one order - Hardness, Toughness, Lightness, Affinity (STAT_WORDS' own)
+const weightLine = (w) => Object.entries(STAT_WORDS).filter(([k]) => w?.[k] > 0).map(([k, n]) => `${n} (${k.toUpperCase()}) ${Math.round(w[k] * 100)}%`).join(', ');
 
 /** A plan's standing at the player's rank and Stores: 'ready', 'missing' (what is short) or 'locked'. */
 function planStanding(plan, book, rank, specs) {
@@ -487,14 +527,51 @@ function drawStatsTable(card, r, odds, clean) {
 const RRI_FORMS = new Set(RECIPES.filter((r) => r.templateIndex >= 513 && r.templateIndex <= 526).map((r) => r.product));
 
 /** The name the mint gives a piece of `r`, at Standard (a Rare's own name aside), or null. */
-function previewName(r) {
-  try { const it = mintPiece({ recipe: r.id, quality: 1, seed: 1 }, '0000000000000000'); return it ? itemLongName(it) : null; } catch { return null; }
+function previewName(r, look = null) {
+  try { const it = mintPiece({ recipe: r.id, quality: 1, seed: 1, look }, '0000000000000000'); return it ? itemLongName(it) : null; } catch { return null; }
+}
+
+/**
+ * THE LOOKS a piece of clothing or armour can be made in: the template's own variants (DFU's), each as the mint makes
+ * it - armour's held to what its material allows (armorMaterials.js clampArmorVariant), so two asks that mint the same
+ * variant are one look. Every crafter chooses from the same list; the wearer's body only draws the preview.
+ */
+function looksOf(r) {
+  const out = [];
+  const seen = new Set();
+  for (let look = 0; look < 16; look++) {
+    let it = null;
+    try { it = mintPiece({ recipe: r.id, quality: 1, seed: 0, look }, '0000000000000000'); } catch { it = null; }
+    if (!it) break;
+    const v = it.variant ?? 0;
+    if (seen.has(v)) { if (look >= 8) break; continue; }
+    seen.add(v);
+    out.push({ look, variant: v, item: it });
+  }
+  return out.length > 1 ? out : [];
+}
+/** The look picker: a picture of each, drawn on the wearer's body as the paper doll would, its dye the chosen one. */
+function drawLooks(card, rerender, p, r, looks, chosen) {
+  const who = p.wearer?.() ?? { gender: 'male', race: 'Breton' };
+  card.append(h('div', 'cw-label', `Look (${looks.length} to choose from)`));
+  const row = h('div', 'cw-looks');
+  looks.forEach((l, i) => {
+    const b = button(`cw-look${l.look === chosen ? ' cw-on' : ''}`, '', () => { if (_cw.act) return; _cw.look = l.look; rerender(); });
+    b.setAttribute('aria-label', `Look ${i + 1}`);
+    const it = r.dyes && Number.isInteger(_cw.dye) ? { ...l.item, dye: _cw.dye } : l.item;
+    let url = null;
+    try { const img = paperdollItemImage(it, who); url = img ? requestIcon(img.archive, img.record, { scale: 1, dye: img.dye, dyeTarget: img.target, onReady: rerender }) : null; } catch { url = null; }
+    if (url) { const pic = h('img'); pic.src = url; pic.alt = ''; b.append(pic); }
+    b.append(h('span', null, String(i + 1)));
+    row.append(b);
+  });
+  card.append(row);
 }
 
 function drawFormCard(card, rerender, p, station, form, rank, specs, run, away = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
-  if (_cw.form !== form.id) { _cw.form = form.id; _cw.picks = {}; }
+  if (_cw.form !== form.id) { _cw.form = form.id; _cw.picks = {}; _cw.look = null; }
   const base = startPicks(form, book, rank, specs);
   const chosen = { ...base, ..._cw.picks };
   for (const slot of form.slots) if (slot.optional && _cw.picks[slot.id] == null) delete chosen[slot.id];
@@ -556,8 +633,12 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     lab.append(sel);
     card.append(lab);
   }
-  const preview = previewName(r);
+  const looks = LOOK_KINDS.includes(r.kind) ? looksOf(r) : [];
+  if (looks.length && !looks.some((l) => l.look === _cw.look)) _cw.look = looks[0].look;
+  const look = looks.length ? _cw.look : null;
+  const preview = previewName(r, look);
   if (preview) card.append(h('p', 'cw-make', `You will make: ${preview}`));
+  if (looks.length) drawLooks(card, rerender, p, r, looks, look);
   if (pot) card.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
   if (cap < (pot?.quality ?? 4)) card.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
   if (rollsQuality(r)) {
@@ -583,17 +664,29 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
   if (away) card.append(h('p', 'cw-note', `Stand at the ${S.name} to craft this.`));
   const ready = !away && st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
-  const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(r.dyes ? { dye } : {}) }));
+  const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}), ...(r.dyes ? { dye } : {}) }));
   if (_cw.act) { card.append(_cw.act.el); return; }
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
   actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
-    _cw.act = mountAct(S.act, actOptions(S.act, r, rank, p), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
+    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
   card.append(actions);
+}
+
+/** THE WORK's options for a plan: a part a chosen slot, its arc wider for a better-suited material and a higher rank. */
+const STATION_BAND = Object.freeze({ anvil: 'heatBand', loom: 'stitchBand', workbench: 'planeBand', mason: 'chiselBand', jeweller: 'facetBand', fire: 'panBand' });
+function workOptions(plan, rank, p, station) {
+  const band = p[STATION_BAND[station]]?.() ?? 1;
+  const suit = potentialOfPlan(plan)?.suitability ?? 0.6;
+  const margin = rank - plan.legacy.rank;
+  const parts = plan.form.slots.filter((sl) => sl.role !== 'fixed' && plan.picks[sl.id]).map((sl) => ({
+    label: sl.label, material: p.name(plan.picks[sl.id]), width: workWidth(margin, band, sl.role === 'primary' ? suit : Math.min(1, suit + 0.15)),
+  }));
+  return { parts: parts.length ? parts : [{ label: plan.form.name, material: '', width: workWidth(margin, band, suit) }], theme: station };
 }
 
 /** The minigame's options for a recipe, at the player's rank and attributes (the provider's bands). */
