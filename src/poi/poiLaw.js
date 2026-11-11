@@ -25,7 +25,14 @@
 // read by the same law with `place` and `marker` left out (`poiShelfProblems`): what a POI may wear, an entry may hold.
 // ═══════════════════════════════════════════════════════════════════
 
+import { POI_V2_LIMITS, POI_V2_PART_KEYS, POI_V2_LIGHT_KEYS, POI_V2_NPC_KEYS, POI_V2_DOC_KEYS, poiV2Problems, poiArch3dOk } from './poiLawV2.js';
+
+/** The version the legacy editor still writes. A v2 document is what the standalone builder writes. */
 export const POI_DOC_VERSION = 1;
+/** Every version the law reads. A stored v1 document stays valid as it is. */
+export const POI_DOC_VERSIONS = Object.freeze([1, 2]);
+/** The most a document of each version may weigh as JSON. */
+export const poiDocBytesOf = (/** @type {number} */ v) => (v === 2 ? POI_V2_LIMITS.docBytes : POI_LIMITS.docBytes);
 /** A pixel's side in metres (world/terrain/terrainSampler.js TERRAIN_SIZE, held here so the law stands alone in the service). */
 export const POI_PIXEL_M = 819.2;
 export const POI_ID_RE = /^poi-[0-9a-f]{12}$/;
@@ -115,8 +122,11 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [{ path: 'doc', code: 'not-object' }];
   let bytes = 0;
   try { bytes = new TextEncoder().encode(JSON.stringify(raw)).byteLength; } catch { return [{ path: 'doc', code: 'not-json' }]; }
-  if (bytes > POI_LIMITS.docBytes) say('doc', 'too-large', { bytes, max: POI_LIMITS.docBytes });
-  if (raw.v !== POI_DOC_VERSION) say('v', 'version', { want: POI_DOC_VERSION });
+  // a shelf entry is always v1; a POI may be v1 or v2, and an unknown version is judged as v1 for the rest
+  const v2 = !shelf && raw.v === 2;
+  const maxBytes = poiDocBytesOf(v2 ? 2 : 1);
+  if (bytes > maxBytes) say('doc', 'too-large', { bytes, max: maxBytes });
+  if (!(shelf ? [POI_DOC_VERSION] : POI_DOC_VERSIONS).includes(raw.v)) say('v', 'version', { want: shelf ? POI_DOC_VERSION : POI_DOC_VERSIONS[POI_DOC_VERSIONS.length - 1] });
   if (typeof raw.id !== 'string' || !(shelf ? POI_SHELF_ID_RE : POI_ID_RE).test(raw.id)) say('id', 'id');
   if (!textOk(raw.name, POI_LIMITS.name, 1)) say('name', 'name', { max: POI_LIMITS.name });
   // the one field written as prose: lines allowed, nothing else UNSAID_RE refuses (AUDIT POI S13)
@@ -141,7 +151,9 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     unknownProblems(p, PLACE_KEYS, 'place', say);
   }
 
-  if (!Array.isArray(raw.parts) || (!raw.parts.length && !(Array.isArray(raw.npcs) && raw.npcs.length))) say('parts', 'parts-none');   // BUNNYFALL: a place of people alone has no parts
+  // BUNNYFALL: a place of people alone has no parts; in v2 so has one of flat pictures alone
+  const stands = (Array.isArray(raw.npcs) && raw.npcs.length) || (v2 && Array.isArray(raw.flats) && raw.flats.length);
+  if (!Array.isArray(raw.parts) || (!raw.parts.length && !stands)) say('parts', 'parts-none');
   else if (raw.parts.length > POI_LIMITS.parts) say('parts', 'parts-many', { max: POI_LIMITS.parts });
   else {
     const keys = new Set();
@@ -152,15 +164,19 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
       else if (keys.has(part.key)) say(`${at}.key`, 'key-twice', { key: part.key });
       else keys.add(part.key);
       if (part.name !== undefined && !textOk(part.name, POI_LIMITS.name)) say(`${at}.name`, 'part-name', { max: POI_LIMITS.name });
-      if (typeof part.mesh !== 'string' || !POI_SHA_RE.test(part.mesh)) say(`${at}.mesh`, 'mesh-ref');
+      // v2: a part is a model of the game's own (arch3d) or a builder's mesh, never both
+      const arch = v2 && part.arch3d !== undefined;
+      if (arch) { if (!poiArch3dOk(part.arch3d)) say(`${at}.arch3d`, 'model'); if (part.mesh !== undefined) say(`${at}.mesh`, 'unknown'); }
+      else if (typeof part.mesh !== 'string' || !POI_SHA_RE.test(part.mesh)) say(`${at}.mesh`, 'mesh-ref');
       if (!vec(part.t, 3) || part.t.some((c) => Math.abs(c) > 2000)) say(`${at}.t`, 'offset', { max: 2000 });
       if (!unitQuat(part.r)) say(`${at}.r`, 'quat');
       if (!vec(part.s, 3) || part.s.some((c) => Math.abs(c) < 0.001 || Math.abs(c) > 1000)) say(`${at}.s`, 'scale', { min: 0.001, max: 1000 });
       if (!enumOk(part.collide, POI_COLLIDE)) say(`${at}.collide`, 'collide');
       if (typeof part.shadow !== 'boolean') say(`${at}.shadow`, 'bool');
-      if (!Array.isArray(part.materials) || !part.materials.length || part.materials.length > POI_LIMITS.materials) say(`${at}.materials`, 'materials', { max: POI_LIMITS.materials });
+      if (arch) { if (part.materials !== undefined) say(`${at}.materials`, 'unknown'); }
+      else if (!Array.isArray(part.materials) || !part.materials.length || part.materials.length > POI_LIMITS.materials) say(`${at}.materials`, 'materials', { max: POI_LIMITS.materials });
       else part.materials.forEach((m, k) => materialProblems(m, `${at}.materials[${k}]`, say));
-      unknownProblems(part, PART_KEYS, at, say);
+      unknownProblems(part, v2 ? PART_KEYS_V2 : PART_KEYS, at, say);
     });
   }
 
@@ -174,7 +190,7 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
       if (!finite(l.radius) || l.radius < 0.5 || l.radius > 100) say(`${at}.radius`, 'radius', { min: 0.5, max: 100 });
       if (!finite(l.intensity) || l.intensity < 0 || l.intensity > 10) say(`${at}.intensity`, 'intensity', { max: 10 });
       if (typeof l.flicker !== 'boolean') say(`${at}.flicker`, 'bool');
-      unknownProblems(l, LIGHT_KEYS, at, say);
+      unknownProblems(l, v2 ? LIGHT_KEYS_V2 : LIGHT_KEYS, at, say);
     });
   }
 
@@ -206,7 +222,7 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
         } else say(`${at}.look.k`, 'unknown');
         if (!Array.isArray(n.lines) || n.lines.length > POI_LIMITS.npcLines) say(`${at}.lines`, 'lines', { max: POI_LIMITS.npcLines });
         else n.lines.forEach((l, k) => { if (!textOk(l, POI_LIMITS.npcLine, 1)) say(`${at}.lines[${k}]`, 'about', { max: POI_LIMITS.npcLine }); });
-        unknownProblems(n, NPC_KEYS, at, say);
+        unknownProblems(n, v2 ? NPC_KEYS_V2 : NPC_KEYS, at, say);
       });
     }
   }
@@ -221,11 +237,13 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
     }
   }
 
-  const known = new Set(shelf ? SHELF_KEYS : DOC_KEYS);
+  if (v2) poiV2Problems(raw, { say, textOk, vec, finite, enumOk, keyRe: POI_PART_KEY_RE, unknown: (o, known, at) => unknownProblems(o, known, at, say) });
+  const known = new Set(shelf ? SHELF_KEYS : v2 ? DOC_KEYS_V2 : DOC_KEYS);
   for (const k of Object.keys(raw)) if (!known.has(k)) say(k, 'unknown');
   return out;
 }
 const DOC_KEYS = ['v', 'id', 'name', 'about', 'tags', 'place', 'parts', 'lights', 'npcs', 'marker'];
+const DOC_KEYS_V2 = [...DOC_KEYS, ...POI_V2_DOC_KEYS];
 const SHELF_KEYS = ['v', 'id', 'name', 'about', 'tags', 'parts', 'lights', 'thumb'];
 // AUDIT POI S2: "A field the law does not know is a problem, not a passenger" - at EVERY level, not the top and a
 // material's alone. A place, a part, a light, the marker and a material's UVs carried anything past the law: stored,
@@ -238,6 +256,9 @@ const NPC_LOOK_PIC = new Set(['k', 'tex']);
 const PLACE_KEYS = new Set(['px', 'py', 'x', 'z', 'y', 'ground', 'r', 's']);
 const PART_KEYS = new Set(['key', 'name', 'mesh', 't', 'r', 's', 'collide', 'shadow', 'materials']);
 const LIGHT_KEYS = new Set(['t', 'color', 'radius', 'intensity', 'flicker']);
+const PART_KEYS_V2 = new Set([...PART_KEYS, ...POI_V2_PART_KEYS]);
+const LIGHT_KEYS_V2 = new Set([...LIGHT_KEYS, ...POI_V2_LIGHT_KEYS]);
+const NPC_KEYS_V2 = new Set([...NPC_KEYS, ...POI_V2_NPC_KEYS]);
 const MARKER_KEYS = new Set(['show', 'label']);
 const MATERIAL_KEYS = new Set(['texture', 'color', 'emissive', 'emissiveColor', 'alpha', 'cutoff', 'twoSided', 'wrap', 'filter', 'uv']);
 const UV_KEYS = new Set(['offset', 'scale', 'rotation']);
@@ -271,7 +292,7 @@ export function poiAssetsOf(doc) {
   const meshes = new Set(), textures = new Set();
   if (typeof doc?.thumb === 'string') textures.add(doc.thumb);   // a shelf entry's picture
   for (const part of doc?.parts ?? []) {
-    if (typeof part?.mesh === 'string') meshes.add(part.mesh);
+    if (typeof part?.mesh === 'string') meshes.add(part.mesh);   // a v2 arch3d part has no mesh
     for (const m of part?.materials ?? []) {
       if (typeof m?.texture === 'string') textures.add(m.texture);
       if (typeof m?.emissive === 'string') textures.add(m.emissive);
@@ -342,6 +363,7 @@ export function poiAssetProblems(doc, metaOf) {
     else distinct.set(doc.thumb, t);
   }
   (doc?.parts ?? []).forEach((part, i) => {
+    if (part?.arch3d !== undefined) return;   // the game's own model: nothing stored, nothing to count
     const mesh = metaOf(part?.mesh);
     if (!mesh) out.push({ path: `parts[${i}].mesh`, code: 'not-uploaded' });
     else if (mesh.kind !== 'mesh') out.push({ path: `parts[${i}].mesh`, code: 'not-a-mesh' });
@@ -361,6 +383,14 @@ export function poiAssetProblems(doc, metaOf) {
         else distinct.set(m[field], t);
       }
     });
+  });
+  // a person's picture is a stored texture like any other, and counts in the budget
+  (doc?.npcs ?? []).forEach((n, i) => {
+    if (n?.look?.k !== 'pic') return;
+    const t = metaOf(n.look.tex);
+    if (!t) out.push({ path: `npcs[${i}].look.tex`, code: 'not-uploaded' });
+    else if (t.kind !== 'texture') out.push({ path: `npcs[${i}].look.tex`, code: 'not-a-texture' });
+    else distinct.set(n.look.tex, t);
   });
   let bytes = 0, pixels = 0;
   for (const f of distinct.values()) {

@@ -14,6 +14,9 @@
 import { POI_PIXEL_M } from './poiLaw.js';
 import { quatMultiply } from '../world/quat.js';
 
+/** The v2 collections the approver reads by key. The people (v1 and v2) are among them: v1's diff never named them. */
+export const POI_DIFF_KINDS = Object.freeze(['npcs', 'groups', 'flats', 'routes', 'encounters', 'interactives', 'dialogues', 'trades', 'variables', 'events']);
+
 /** A spot's distance under which it has not moved, in metres; a turn's, in degrees; a size's ratio. */
 const MOVE_EPS = 0.005, TURN_EPS = 0.05, SIZE_EPS = 1e-4;
 
@@ -41,8 +44,15 @@ const mapSpot = (p) => [p.px * POI_PIXEL_M + p.x, p.y, -p.py * POI_PIXEL_M + p.z
  */
 export function poiDiff(before, after) {
   if (!after) return [{ code: 'retire' }];
-  if (!before) return [{ code: 'new', parts: after.parts?.length ?? 0, lights: after.lights?.length ?? 0 }];
+  if (!before) {
+    /** @type {{ code: string, [arg: string]: any }[]} */
+    const made = [{ code: 'new', parts: after.parts?.length ?? 0, lights: after.lights?.length ?? 0 }];
+    for (const kind of POI_DIFF_KINDS) if (after[kind]?.length) made.push({ code: 'collection', kind, count: after[kind].length });
+    if (after.interior) made.push({ code: 'interior' });
+    return made;
+  }
   const out = [];
+  if (before.v !== after.v) out.push({ code: 'upgraded', from: before.v, to: after.v });
   if (before.name !== after.name) out.push({ code: 'name', from: before.name, to: after.name });
   if ((before.about ?? '') !== (after.about ?? '')) out.push({ code: 'about' });
   // the tags themselves (AUDIT POI U13, the lead's join): the reader's language lists them (poiText.js diffText), never an
@@ -63,7 +73,7 @@ export function poiDiff(before, after) {
     const name = q.name || key;
     if (!old) { out.push({ code: 'part-added', name }); continue; }
     const what = [];
-    if (old.mesh !== q.mesh) what.push('model');
+    if (old.mesh !== q.mesh || old.arch3d !== q.arch3d) what.push('model');
     // AUDIT POI P12: a part's offset is in its POI's frame, under the POI's size - measured in the world, where the
     // approver sees it (at size 100 a 0.4 m move is an offset of 4 mm, under the bound read in metres of the frame)
     if (dist3(old.t, q.t) * p1.s > MOVE_EPS) what.push('moved');
@@ -72,10 +82,34 @@ export function poiDiff(before, after) {
     if (!same(old.materials, q.materials)) what.push('materials');
     if (old.collide !== q.collide || old.shadow !== q.shadow) what.push('solidity');
     if ((old.name ?? '') !== (q.name ?? '')) what.push('name');
+    if (old.group !== q.group || old.visible !== q.visible || old.locked !== q.locked) what.push('layout');
     if (what.length) out.push({ code: 'part-changed', name, what });
   }
   for (const [key, q] of was) if (!now.has(key)) out.push({ code: 'part-removed', name: q.name || key });
   if (!same(before.lights ?? [], after.lights ?? [])) out.push({ code: 'lights', from: before.lights?.length ?? 0, to: after.lights?.length ?? 0 });
   if (!same(before.marker ?? { show: false }, after.marker ?? { show: false })) out.push({ code: 'marker', show: !!after.marker?.show, label: after.marker?.label ?? '' });
+  if (!same(before.interior, after.interior)) out.push({ code: 'interior' });
+  for (const kind of POI_DIFF_KINDS) out.push(...keyedDiff(kind, before[kind], after[kind]));
+  return out;
+}
+
+/**
+ * One keyed collection's changes: what was added, which fields of an entry changed, what was taken away. Entries are
+ * matched by `key`, and an entry's fields are compared as written, so a change deep inside a dialogue or a trade names the
+ * field (`recipes`, `nodes`) and the approver opens the entry to read the rest.
+ * @param {string} kind @param {any[] | undefined} was @param {any[] | undefined} now
+ */
+function keyedDiff(kind, was, now) {
+  const out = [];
+  const old = new Map((was ?? []).map((o) => [o.key, o]));
+  const cur = new Map((now ?? []).map((o) => [o.key, o]));
+  const nameOf = (o) => o.name || o.key;
+  for (const [key, o] of cur) {
+    const prev = old.get(key);
+    if (!prev) { out.push({ code: 'item-added', kind, name: nameOf(o) }); continue; }
+    const what = [...new Set([...Object.keys(prev), ...Object.keys(o)])].filter((f) => f !== 'key' && !same(prev[f], o[f]));
+    if (what.length) out.push({ code: 'item-changed', kind, name: nameOf(o), what });
+  }
+  for (const [key, o] of old) if (!cur.has(key)) out.push({ code: 'item-removed', kind, name: nameOf(o) });
   return out;
 }

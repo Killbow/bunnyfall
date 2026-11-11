@@ -43,6 +43,71 @@ const PROBLEM = {
   'mesh-ref': () => t('poi.problem.meshRef', 'A part names no model.'),
   offset: (a) => t('poi.problem.offset', 'It is too far from the POI\'s origin (at most {max} m).', a),
   scale: (a) => t('poi.problem.scale', 'Each side\'s scale is between {min} and {max}.', a),
+  // v2: what the standalone builder adds
+  'ref-missing': (a) => t('poi.problem.refMissing', 'It names {key}, which does not exist in this POI.', a),
+  model: (a) => t('poi.problem.model', 'The model number must be between 1 and {max}.', a),
+  groups: (a) => t('poi.problem.groups', 'At most {max} groups.', a),
+  flats: (a) => t('poi.problem.flats', 'At most {max} flat pictures.', a),
+  routes: (a) => t('poi.problem.routes', 'At most {max} routes.', a),
+  waypoints: (a) => t('poi.problem.waypoints', 'A route holds at most {max} waypoints.', a),
+  'waypoints-few': (a) => t('poi.problem.waypointsFew', 'A route needs at least {min} waypoints.', a),
+  'route-mode': () => t('poi.problem.routeMode', 'Choose how the route repeats: loop, back and forth, or once.'),
+  encounters: (a) => t('poi.problem.encounters', 'At most {max} encounters.', a),
+  spawns: (a) => t('poi.problem.spawns', 'An encounter needs between 1 and {max} spawn points.', a),
+  foe: () => t('poi.problem.foe', 'This is not a creature the game has.'),
+  'foes-many': (a) => t('poi.problem.foesMany', 'One encounter may spawn at most {max} creatures in all.', a),
+  aggression: () => t('poi.problem.aggression', 'Choose whether the creatures are hostile or passive.'),
+  respawn: () => t('poi.problem.respawn', 'Choose when the creatures return.'),
+  'complete-rule': () => t('poi.problem.completeRule', 'Choose how the encounter ends.'),
+  interactives: (a) => t('poi.problem.interactives', 'At most {max} interactive objects.', a),
+  'interactive-kind': () => t('poi.problem.interactiveKind', 'This kind of object does not exist.'),
+  state: () => t('poi.problem.state', 'This state does not suit this kind of object.'),
+  'wrong-kind': () => t('poi.problem.wrongKind', 'This kind of object cannot be used here.'),
+  dialogues: (a) => t('poi.problem.dialogues', 'At most {max} dialogues.', a),
+  nodes: (a) => t('poi.problem.nodes', 'A dialogue needs between 1 and {max} lines of speech.', a),
+  options: (a) => t('poi.problem.options', 'A line of speech needs between 1 and {max} replies.', a),
+  'node-unreachable': () => t('poi.problem.nodeUnreachable', 'No reply leads to this line of speech.'),
+  text: (a) => t('poi.problem.text', 'The text must be 1 to {max} characters.', a),
+  trades: (a) => t('poi.problem.trades', 'At most {max} trades.', a),
+  recipes: (a) => t('poi.problem.recipes', 'A trade needs between 1 and {max} recipes.', a),
+  stacks: (a) => t('poi.problem.stacks', 'At most {max} kinds of item.', a),
+  enchants: (a) => t('poi.problem.enchants', 'At most {max} enchantments on one item.', a),
+  count: (a) => t('poi.problem.count', 'The number must be between 1 and {max}.', a),
+  gold: (a) => t('poi.problem.gold', 'The gold must be a whole number up to {max}.', a),
+  template: (a) => t('poi.problem.template', 'The item number must be between 0 and {max}.', a),
+  'item-template': () => t('poi.problem.itemTemplate', 'The game has no such item.'),
+  'item-group': () => t('poi.problem.itemGroup', 'This item does not come in that group.'),
+  'item-material': () => t('poi.problem.itemMaterial', 'This item cannot be made of that material.'),
+  'item-stack': () => t('poi.problem.itemStack', 'This kind of item cannot be given in a stack.'),
+  'item-enchant': () => t('poi.problem.itemEnchant', 'The item maker has no such enchantment.'),
+  'item-ref': () => t('poi.problem.itemRef', 'This picture needs an item.'),
+  'no-reward': () => t('poi.problem.noReward', 'A recipe must give something: an item or gold.'),
+  'free-unlimited': () => t('poi.problem.freeUnlimited', 'A recipe that asks for nothing must have a limit.'),
+  'limit-mode': () => t('poi.problem.limitMode', 'Choose how often this recipe can be used.'),
+  stock: (a) => t('poi.problem.stock', 'The stock must be a whole number from 1 to {max}.', a),
+  seconds: (a) => t('poi.problem.seconds', 'The time must be a whole number of seconds up to {max}.', a),
+  variables: (a) => t('poi.problem.variables', 'At most {max} variables.', a),
+  'var-type': () => t('poi.problem.varType', 'A variable is true or false, a number, or text.'),
+  'var-scope': () => t('poi.problem.varScope', 'Choose who the variable belongs to.'),
+  'var-value': (a) => t('poi.problem.varValue', 'This value does not suit a variable of type {type}.', a),
+  'set-var-one': () => t('poi.problem.setVarOne', 'Set a variable to a value, or add to it, not both.'),
+  op: () => t('poi.problem.op', 'This comparison does not suit the variable.'),
+  events: (a) => t('poi.problem.events', 'At most {max} events.', a),
+  actions: (a) => t('poi.problem.actions', 'An event may do at most {max} things in all.', a),
+  'actions-none': () => t('poi.problem.actionsNone', 'An event must do at least one thing.'),
+  conditions: (a) => t('poi.problem.conditions', 'A condition holds between 1 and {max} checks.', a),
+  'too-deep': (a) => t('poi.problem.tooDeep', 'This is nested too deeply (at most {max} levels).', a),
+  'event-unreachable': () => t('poi.problem.eventUnreachable', 'Nothing starts this event, so it would never run.'),
+  'event-cycle': () => t('poi.problem.eventCycle', 'These events start each other with no wait, so they would never stop.'),
+  'group-cycle': () => t('poi.problem.groupCycle', 'Groups cannot be inside each other in a circle.'),
+  'hidden-many': (a) => t('poi.problem.hiddenMany', 'At most {max} pieces of the room may be hidden.', a),
+  'base-key': () => t('poi.problem.baseKey', 'This is not the name of a piece of the room.'),
+  'flat-kind': () => t('poi.problem.flatKind', 'This kind of picture does not suit its item.'),
+  'flat-ref': () => t('poi.problem.flatRef', 'This is not a picture the game has.'),
+  'figure-scale': () => t('poi.problem.figureScale', 'A person\'s picture keeps its own size.'),
+  turn: (a) => t('poi.problem.turn', 'The turn must be within {max} degrees.', a),
+  layer: (a) => t('poi.problem.layer', 'The layer must be a whole number from -{max} to {max}.', a),
+  pivot: () => t('poi.problem.pivot', 'The pivot is two numbers from 0 to 1.'),
   collide: () => t('poi.problem.collide', 'Choose whether it is solid.'),
   bool: () => t('poi.problem.bool', 'A switch is neither on nor off.'),
   materials: (a) => t('poi.problem.materials', 'A part has 1 to {max} materials.', a),
@@ -159,6 +224,12 @@ const DIFF = {
   'part-removed': (a) => t('poi.diff.partRemoved', 'Part taken away: {name}.', a),
   // AUDIT POI U13: what changed listed as the reader's language lists it, not with an English comma
   'part-changed': (a) => t('poi.diff.partChanged', 'Part {name}: {what}.', { name: a.name, what: listText(a.what.map((w) => PART_WHAT[w]?.() ?? w)) }),
+  upgraded: (a) => t('poi.diff.upgraded', 'Moved from version {from} to version {to} of the format.', a),
+  interior: () => t('poi.diff.interior', 'Its interior changed.'),
+  collection: (a) => t('poi.diff.collection', 'Holds {count, plural, one {# {kind}} other {# {kind}}}.', { count: a.count, kind: KIND_WORD[a.kind]?.(a.count) ?? a.kind }),
+  'item-added': (a) => t('poi.diff.itemAdded', '{kind} added: {name}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name }),
+  'item-removed': (a) => t('poi.diff.itemRemoved', '{kind} taken away: {name}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name }),
+  'item-changed': (a) => t('poi.diff.itemChanged', '{kind} {name} changed: {what}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name, what: listText(a.what) }),
   lights: (a) => t('poi.diff.lights', 'Its lights changed ({from} to {to}).', a),
   // AUDIT POI U13: a mark with no label said so (it read 'shown, ""')
   marker: (a) => (!a.show ? t('poi.diff.markerHidden', 'Its mark on the map: hidden.')
@@ -169,6 +240,19 @@ const DIFF = {
 function listText(words) {
   try { return new Intl.ListFormat(intlLocale(), { type: 'unit', style: 'short' }).format(words); } catch { return words.join(', '); }
 }
+/** The v2 collections, one thing and many, for the diff's lines. */
+const KIND_ONE = {
+  npcs: () => t('poi.kind.npc', 'Person'), groups: () => t('poi.kind.group', 'Group'), flats: () => t('poi.kind.flat', 'Picture'),
+  routes: () => t('poi.kind.route', 'Route'), encounters: () => t('poi.kind.encounter', 'Encounter'), interactives: () => t('poi.kind.interactive', 'Object'),
+  dialogues: () => t('poi.kind.dialogue', 'Dialogue'), trades: () => t('poi.kind.trade', 'Trade'), variables: () => t('poi.kind.variable', 'Variable'), events: () => t('poi.kind.event', 'Event'),
+};
+const KIND_WORD = {
+  npcs: (n) => t('poi.kinds.npcs', '{n, plural, one {person} other {people}}', { n }), groups: (n) => t('poi.kinds.groups', '{n, plural, one {group} other {groups}}', { n }),
+  flats: (n) => t('poi.kinds.flats', '{n, plural, one {picture} other {pictures}}', { n }), routes: (n) => t('poi.kinds.routes', '{n, plural, one {route} other {routes}}', { n }),
+  encounters: (n) => t('poi.kinds.encounters', '{n, plural, one {encounter} other {encounters}}', { n }), interactives: (n) => t('poi.kinds.interactives', '{n, plural, one {object} other {objects}}', { n }),
+  dialogues: (n) => t('poi.kinds.dialogues', '{n, plural, one {dialogue} other {dialogues}}', { n }), trades: (n) => t('poi.kinds.trades', '{n, plural, one {trade} other {trades}}', { n }),
+  variables: (n) => t('poi.kinds.variables', '{n, plural, one {variable} other {variables}}', { n }), events: (n) => t('poi.kinds.events', '{n, plural, one {event} other {events}}', { n }),
+};
 /** What changed in a part, in a word each. */
 const PART_WHAT = {
   model: () => t('poi.diff.what.model', 'its model'),
@@ -178,6 +262,7 @@ const PART_WHAT = {
   materials: () => t('poi.diff.what.materials', 'its materials'),
   solidity: () => t('poi.diff.what.solidity', 'its solidity or shadow'),
   name: () => t('poi.diff.what.name', 'its name'),
+  layout: () => t('poi.diff.what.layout', 'its group, visibility or lock'),
 };
 
 /** POI-6: a pack refused (poi/poiPack.js codes). @type {Record<string, (a: any) => string>} */
@@ -231,6 +316,13 @@ export function problemWhere(path, doc = null) {
     bits.push(name ? t('poi.where.partNamed', 'Part {name}', { name }) : t('poi.where.part', 'Part {n}', { n: Number(part[1]) + 1 }));
     const mat = /\.materials\[(\d+)\]/.exec(path);
     if (mat) bits.push(t('poi.where.material', 'material {n}', { n: Number(mat[1]) + 1 }));
+  }
+  const coll = /^(npcs|groups|flats|routes|encounters|interactives|dialogues|trades|variables|events)\[(\d+)\]/.exec(path);
+  if (coll) {
+    const o = doc?.[coll[1]]?.[Number(coll[2])];
+    const name = (o?.name || o?.key) ?? null;
+    const kind = KIND_ONE[/** @type {keyof typeof KIND_ONE} */ (coll[1])]();
+    bits.push(name ? `${kind} ${name}` : `${kind} ${Number(coll[2]) + 1}`);
   }
   const light = /^lights\[(\d+)\]/.exec(path);
   if (light) bits.push(t('poi.where.light', 'Light {n}', { n: Number(light[1]) + 1 }));

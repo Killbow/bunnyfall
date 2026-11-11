@@ -28,7 +28,7 @@
 // until a live POI names them.
 // ═══════════════════════════════════════════════════════════════════
 
-import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, POI_ID_RE, POI_SHELF_ID_RE, POI_SHA_RE, POI_LIMITS } from '../../src/poi/poiLaw.js';
+import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, poiDocBytesOf, POI_ID_RE, POI_SHELF_ID_RE, POI_SHA_RE, POI_LIMITS } from '../../src/poi/poiLaw.js';
 import { decodePoiMesh, poiMeshFacts, POI_MESH_LIMITS } from '../../src/poi/poiMesh.js';
 import { poiImageMetaOf, POI_IMAGE_LIMITS, POI_IMAGE_TYPES } from '../../src/poi/poiImage.js';
 import { developerHandles } from './titles.js';
@@ -54,7 +54,7 @@ export const poiAssetKey = (/** @type {string} */ sha) => `poi/a/${sha}`;
 export const POI_UPLOAD_DAY_BYTES = 1024 * 1024 * 1024;
 /** The bounds a request's raw body is read to: a mesh, a texture, a draft. */
 export const POI_ASSET_MAX = Object.freeze({ mesh: POI_MESH_LIMITS.bytes, texture: POI_IMAGE_LIMITS.bytes });
-export const POI_DRAFT_BODY_MAX = POI_LIMITS.docBytes + 1024;
+export const POI_DRAFT_BODY_MAX = Math.max(poiDocBytesOf(1), poiDocBytesOf(2)) + 1024;   // the larger of the versions' bounds, and room for the draft's note
 /** AUDIT POI S10: the revisions one builder may hold open at once - drafts and submissions waiting, every POI's (a new
  *  POI is founded by its first draft, so this bounds those too) - a bound on a slip, not on a builder's work. */
 export const POI_OPEN_REVS = 200;

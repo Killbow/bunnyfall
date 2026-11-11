@@ -22,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { zipStore } from '../systems/save/saveTransfer.js';
-import { poiDocProblems, poiShelfProblems, poiAssetsOf, poiAssetProblems, POI_LIMITS } from './poiLaw.js';
+import { poiDocProblems, poiShelfProblems, poiAssetsOf, poiAssetProblems, poiDocBytesOf } from './poiLaw.js';
 import { decodePoiMesh, poiMeshFacts, POI_MESH_LIMITS } from './poiMesh.js';
 import { poiImageMetaOf, POI_IMAGE_LIMITS } from './poiImage.js';
 import { poiSha256 } from './poiService.js';
@@ -32,12 +32,12 @@ export const POI_PACK_KIND = 'poi-pack';
 const MAX_POIS = 500, MAX_SHELF = 2000;
 /**
  * A pack's bounds: its documents and entries, and its files; AUDIT POI P5: and its bytes as read - `pack.json` at most
- * every document and entry at the law's own bound (poiLaw.js POI_LIMITS.docBytes), the whole at most what a builder may
+ * every document and entry at the law's own bound (poiLaw.js poiDocBytesOf), the whole at most what a builder may
  * upload in a day (server-account/src/poi.js POI_UPLOAD_DAY_BYTES, held here so the reader stands alone).
  */
 export const POI_PACK_LIMITS = Object.freeze({
   pois: MAX_POIS, shelf: MAX_SHELF, files: 20000,
-  headBytes: (MAX_POIS + MAX_SHELF) * POI_LIMITS.docBytes + 65536, bytes: 1024 * 1024 * 1024,
+  headBytes: MAX_POIS * poiDocBytesOf(2) + MAX_SHELF * poiDocBytesOf(1) + 65536, bytes: 1024 * 1024 * 1024,
 });
 const EXT = { png: 'png', jpeg: 'jpg', webp: 'webp' };
 const ASSET_RE = /^assets\/([0-9a-f]{64})\.(mesh|png|jpg|webp)$/;
