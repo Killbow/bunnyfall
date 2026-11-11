@@ -204,7 +204,9 @@ export function keptEnchantments(item) {
  *  never registers. */
 export function itemEnchantmentPower(item, lookup = templateByIndex) {
   if (!item) throw new Error('itemEnchantmentPower: item is null');
-  const basePower = craftedJewelPoints(item) ?? lookup(item.templateIndex)?.enchantmentPoints ?? 0;
+  const raw = craftedJewelPoints(item) ?? lookup(item.templateIndex)?.enchantmentPoints ?? 0;
+  // BUNNYFALL CRAFTING REWORK: a crafted piece's Arcanism effect (craftMods.a, percent) on its power
+  const basePower = Number.isInteger(item.craftMods?.a) && item.craftMods.a !== 0 ? Math.max(0, Math.round(raw * (1 + item.craftMods.a / 100))) : raw;
   const cls = customItemClass(item.templateIndex);
   if (cls?.enchantmentPower) return cls.enchantmentPower(item, { enchantmentPoints: basePower, armorEnchantmentMultiplier });
   let multiplier = 0;

@@ -14,6 +14,7 @@
 import { RECIPES, recipeInputs, rollQuality, qualityOdds, qualitySteps, craftQuality, masterworkSpec } from '../recipeLaw.js';
 import { materialOf, topTierOf } from '../professionLaw.js';
 import { formById, buildSuitability, potentialOf } from './forms.js';
+import { statsOf, statBudget, STAT_IDS } from './materialStats.js';   // the materials' effects on the piece
 
 /** @typedef {import('./forms.js').Form} Form */
 /** @typedef {{ ok: true, form: Form, legacy: any, picks: Record<string, string> }} Plan */
@@ -163,3 +164,59 @@ export function craftValueXp(/** @type {Plan} */ plan, /** @type {{ key: string,
   return focus ? xp : Math.ceil(xp * FOCUS_XP.other);
 }
 
+
+// ─── BUNNYFALL CRAFTING REWORK: WHAT THE MATERIALS DO TO THE PIECE ─────────────────────────────
+//
+// Each of the four stats moves one thing on the finished piece, by at most CRAFT_SWING percent either way:
+//   Hardness  a weapon's damage, a piece of armour's armour
+//   Toughness its condition
+//   Lightness its weight (a light material makes it lighter)
+//   Arcanism  its enchantment power
+// A material is measured against the average of its own tier (statBudget / 4), so a strongly skewed material is good at
+// one thing and poor at another whatever its tier. The slots count by their suitability shares. The service rolls where
+// in the range a piece lands; INSPIRATION - the true strikes of The Work - pushes that roll to the top of its range.
+
+/** The most a stat moves the piece, in percent. */
+export const CRAFT_SWING = 20;
+/** The kinds a piece's material effects are made for: what has damage, armour, condition, weight or power to move. */
+export const MOD_KINDS = Object.freeze(['weapon', 'staff', 'bow', 'plate', 'chain', 'shield', 'leather', 'garment', 'jewel']);
+
+/** A plan's lean, stat by stat, -1 to 1: the chosen materials against their tiers' average, by their slots' shares. */
+export function leanOfPlan(/** @type {Plan} */ plan) {
+  const out = { h: 0, t: 0, l: 0, a: 0 };
+  let total = 0;
+  for (const slot of plan.form.slots) {
+    const key = plan.picks[slot.id];
+    const s = statsOf(key);
+    if (!s || !(slot.share > 0)) continue;
+    const avg = statBudget(s.tier) / 4;
+    for (const k of STAT_IDS) out[k] += slot.share * Math.max(-1, Math.min(1, (s[k] - avg) / avg));
+    total += slot.share;
+  }
+  if (total > 0) for (const k of STAT_IDS) out[k] /= total;
+  return out;
+}
+/** How inspired a work was, 0 to 1: its true strikes over the strikes it took (two a part). */
+export const inspirationOf = (/** @type {number} */ trues, /** @type {number} */ parts) => (parts > 0 && Number.isFinite(trues) ? Math.max(0, Math.min(1, trues / (parts * 2))) : 0);
+/** The parts The Work has for a plan: its chosen, non-fixed slots (ui/professions/craftWindow.js workOptions). */
+export const workPartsOf = (/** @type {Plan} */ plan) => Math.max(1, plan.form.slots.filter((s) => s.role !== 'fixed' && plan.picks[s.id]).length);
+/**
+ * The piece's material effects, percent by stat (-CRAFT_SWING to CRAFT_SWING): `u` the service's roll (0 to 1),
+ * `inspired` 0 to 1. A good lean lands between half and all of its swing, a poor one between all and half of its cost:
+ * the roll and inspiration both push toward the better end.
+ */
+export function craftModsOf(/** @type {Plan} */ plan, /** @type {number} */ u, /** @type {number} */ inspired = 0) {
+  const lean = leanOfPlan(plan);
+  const roll = Math.max(0, Math.min(1, u)) + (1 - Math.max(0, Math.min(1, u))) * Math.max(0, Math.min(1, inspired));
+  const out = { h: 0, t: 0, l: 0, a: 0 };
+  for (const k of STAT_IDS) {
+    const d = lean[k];
+    out[k] = Math.round(CRAFT_SWING * d * (d >= 0 ? 0.5 + 0.5 * roll : 1 - 0.5 * roll));
+  }
+  return out;
+}
+/** The range each effect can land in for a plan, worst roll to best: what the card shows before the craft. */
+export function craftModRange(/** @type {Plan} */ plan) {
+  const lo = craftModsOf(plan, 0, 0), hi = craftModsOf(plan, 1, 0);
+  return Object.fromEntries(STAT_IDS.map((k) => [k, [Math.min(lo[k], hi[k]), Math.max(lo[k], hi[k])]]));
+}

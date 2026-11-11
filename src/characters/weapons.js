@@ -281,3 +281,9 @@ export function weaponMaterialRamp(material, palGet) {
   const idx = getDyeColorTable(weaponDyeColor(material), DYE_TARGETS.WeaponsAndArmor);
   return idx.map((i) => { const c = palGet(i); return [c.r, c.g, c.b]; });
 }
+
+/** BUNNYFALL CRAFTING REWORK: a weapon's span with its Hardness effect (a crafted piece's craftMods.h, percent) - every
+ *  reader of a held weapon's damage asks these, never the template's alone. */
+const hardened = (item, v) => (Number.isInteger(item?.craftMods?.h) && item.craftMods.h !== 0 ? Math.max(1, Math.round(v * (1 + item.craftMods.h / 100))) : v);
+export const itemMinDamage = (item) => hardened(item, weaponMinDamage(item?.templateIndex));
+export const itemMaxDamage = (item) => hardened(item, weaponMaxDamage(item?.templateIndex));

@@ -96,15 +96,17 @@ export const isShieldTemplate = (templateIndex) => SHIELD_VALUES.has(templateInd
  *  registered here by its installer (this file is a leaf and stays one). */
 let _customArmorValue = null;
 export function registerCustomArmorValue(fn) { _customArmorValue = typeof fn === 'function' ? fn : null; }
+/** BUNNYFALL CRAFTING REWORK: a crafted piece's Hardness effect (craftMods.h, percent) on its armour. */
+const hardArmour = (item, v) => (Number.isInteger(item?.craftMods?.h) && item.craftMods.h !== 0 && v > 0 ? Math.max(1, Math.round(v * (1 + item.craftMods.h / 100))) : v);
 export function itemArmorValue(item) {
   const custom = _customArmorValue?.(item);
-  if (custom != null) return custom;
+  if (custom != null) return hardArmour(item, custom);
   if (item?.group === 'Armor' && isShieldTemplate(item?.templateIndex)) {
-    return SHIELD_VALUES.get(item.templateIndex) ?? 0;   // :1049-1052
+    return hardArmour(item, SHIELD_VALUES.get(item.templateIndex) ?? 0);   // :1049-1052
   }
   let result = materialArmorValue(item?.material ?? ARMOR_MATERIAL.Leather);
   if (item?.artifact && item?.group === 'Armor') result = Math.trunc(result / 2);   // :1054-1056
-  return result;
+  return hardArmour(item, result);
 }
 
 /** ItemBuilder.SetVariant's material-family clamps

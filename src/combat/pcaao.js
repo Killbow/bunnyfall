@@ -85,7 +85,7 @@ import { liveStat } from '../systems/statMods.js';
 import { skillValue, SKILLS } from '../systems/skills.js';
 import { RACES } from '../systems/races.js';
 import { SPECIAL_ABILITY_BITS } from '../systems/specialAdvantages.js';
-import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed } from '../characters/weapons.js';
+import { WEAPONS, weaponMinDamage, weaponMaxDamage, weaponSkillUsed, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
 import { equipTableOf, lowerCondition, blowWear, slotForBodyPart, EQUIP_SLOTS, weaponProficiencyFlag } from '../systems/equip.js';
 import { SHIELD_PARTS, isShieldTemplate, itemArmorValue } from '../systems/armorMaterials.js';
 import { conditionPercentage, itemLongName, shownItemName } from '../systems/item/itemInfo.js';   // L10N3e: and the short name, as shown
@@ -519,7 +519,7 @@ export function pcaaoWeaponAttackDamage(attacker, target, damageModifier, weapon
   // and is ON BY DEFAULT (the redone armour formula), read neither: no damage affix and no sigil ever landed in a
   // default game. They are read here at the stock's own two places - the modifiers over the roll before the damage
   // modifier, the blow modifiers after the enemy-type term and before the archery module (the stock's mod hook).
-  let damage = weaponDamageMods(weapon, range(weaponMinDamage(weapon.templateIndex), weaponMaxDamage(weapon.templateIndex), rolls), attacker) + damageModifier;
+  let damage = weaponDamageMods(weapon, range(itemMinDamage(weapon), itemMaxDamage(weapon), rolls), attacker) + damageModifier;
   if (!isPlayer(target)) {
     if (target.careerIndex === SKELETAL_WARRIOR) {
       if (((weapon.flags ?? 0) & 0x10) === 0) damage = int(damage / 2);
@@ -1063,7 +1063,7 @@ export function pcaaoAttackDamage(attacker, target, {
   const AIAttacker = isPlayer(attacker) ? null : attacker;
   // an enemy's weapon loses to its own natural attack when that averages higher
   if (AIAttacker && weapon) {
-    const wepAvg = int((weaponMinDamage(weapon.templateIndex) + weaponMaxDamage(weapon.templateIndex)) / 2);
+    const wepAvg = int((itemMinDamage(weapon) + itemMaxDamage(weapon)) / 2);
     const b = AIAttacker.basics ?? {};
     if (int(((b.minDamage ?? 0) + (b.maxDamage ?? 0)) / 2) > wepAvg) weapon = null;
   }

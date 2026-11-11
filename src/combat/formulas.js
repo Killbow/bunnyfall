@@ -36,7 +36,7 @@ import { SPECIAL_ABILITY_BITS, PROFICIENCY_BITS } from '../systems/specialAdvant
 // hasSpecialAbility back out of it makes a cycle, and the ESM binding lands in
 // the temporal dead zone: the helper reads `undefined` at call time and the
 // bonus silently never applies. specialAdvantages.js is a leaf.
-import { weaponMinDamage, weaponMaxDamage, weaponSkillUsed } from '../characters/weapons.js';   // AUDIT 18: GetBaseDamageMin/Max and GetWeaponSkillIDAsShort resolve the TEMPLATE, never a baked field or a display name
+import { weaponMinDamage, weaponMaxDamage, weaponSkillUsed, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';   // AUDIT 18: GetBaseDamageMin/Max and GetWeaponSkillIDAsShort resolve the TEMPLATE, never a baked field or a display name
 import { equipTableOf, lowerCondition, dfuBlowWear, slotForBodyPart, EQUIP_SLOTS, weaponProficiencyFlag } from '../systems/equip.js';   // C-slice: DamageEquipment; CF1: GetWeaponSkillUsed as a ProficiencyFlag, -1 quirk included
 import { SHIELD_PARTS } from '../systems/armorMaterials.js';
 import { clawMetalDamage } from './clawMetal.js';   // BAL6-GAUNTLETS: the beast's claws take its gauntlets' metal
@@ -163,8 +163,8 @@ export const WEAPON_MAX_DAMAGE = Object.freeze({
  *  dagger, EVERY armed player swing computed `undefined + ...` = NaN.
  *  Deriving from the template, as DFU does, is both the fix and the
  *  reason a baked field can never rot again. */
-export const baseDamageMin = (weapon) => weaponMinDamage(weapon?.templateIndex);
-export const baseDamageMax = (weapon) => weaponMaxDamage(weapon?.templateIndex);
+export const baseDamageMin = (weapon) => itemMinDamage(weapon);   // BUNNYFALL: with a crafted piece's Hardness
+export const baseDamageMax = (weapon) => itemMaxDamage(weapon);
 
 // ---- DaggerfallUnityItem.GetWeaponMaterialModifier (index = material 0..9) ----
 export const WEAPON_MATERIAL_MODIFIER = Object.freeze([-1, 0, 0, 1, 2, 3, 3, 4, 5, 6]);

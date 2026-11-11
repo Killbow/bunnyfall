@@ -16,7 +16,7 @@ import { mountAct } from './craftActs.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, FOCUS_MAX } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX } from '../../net/craft/craftLaw.js';
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
 import { itemLongName } from '../../systems/item/itemInfo.js';
@@ -107,6 +107,10 @@ const CSS = `
 .cw-ws-sum { grid-area: sum; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
 .cw-ws-sum .cw-actions { justify-content: flex-end; }
 @media (max-width: 900px) { .cw-card.cw-ws { grid-template-columns: 1fr; grid-template-areas: "piece" "mats" "sum"; } }
+.cw-effects { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin: 2px 0 6px; }
+.cw-effect { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border-bottom: 1px dotted #a8844a; padding: 2px 0; }
+.cw-effect.cw-good b { color: #2f6a2a; }
+.cw-effect.cw-bad b { color: #8a2a1a; }
 .cw-looks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
 .cw-look { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 84px; padding: 4px; background: rgba(0,0,0,.25); border: 1px solid #4a3820; color: #b8b09a; cursor: pointer; transition: border-color .15s, transform .15s; }
 .cw-look img { max-width: 72px; max-height: 72px; image-rendering: pixelated; }
@@ -545,6 +549,31 @@ function drawStatsTable(card, r, odds, clean) {
   card.append(h('div', 'cw-label', 'The finished piece by quality (enchantments are rolled when it is made)'), table);
 }
 
+/**
+ * WHAT THE MATERIALS DO TO THE PIECE (craftLaw.js craftModsOf): each effect's range, worst roll to best. The service rolls
+ * where it lands; The Work's true strikes push it to the best. The stats table above is the piece before them.
+ */
+function drawEffects(card, r, plan) {
+  const rng = craftModRange(plan);
+  const weapon = ['weapon', 'staff', 'bow'].includes(r.kind), armour = ['plate', 'chain', 'shield', 'leather'].includes(r.kind);
+  const pct = ([lo, hi]) => (lo === hi ? `${lo > 0 ? '+' : ''}${lo}%` : `${lo > 0 ? '+' : ''}${lo}% to ${hi > 0 ? '+' : ''}${hi}%`);
+  const rows = [
+    weapon ? ['Damage (H)', rng.h] : armour ? ['Armour (H)', rng.h] : null,
+    ['Condition (T)', rng.t],
+    ['Weight (L)', [-rng.l[1], -rng.l[0]]],
+    ['Enchantment power (A)', rng.a],
+  ].filter(Boolean);
+  const box = h('div', 'cw-effects');
+  for (const [label, range] of rows) {
+    const good = label.startsWith('Weight') ? range[1] <= 0 : range[0] >= 0;
+    const bad = label.startsWith('Weight') ? range[0] > 0 : range[1] < 0;
+    const line = h('div', `cw-effect${good ? ' cw-good' : bad ? ' cw-bad' : ''}`);
+    line.append(h('span', null, label), h('b', null, pct(range)));
+    box.append(line);
+  }
+  card.append(h('div', 'cw-label', 'What these materials do to it (true strikes in the minigame push each toward its best)'), box);
+}
+
 /** Roleplay Realism Items' forms (templates 513-526): drawn only while the mod is on, as its art and its numbers are. */
 const RRI_FORMS = new Set(RECIPES.filter((r) => r.templateIndex >= 513 && r.templateIndex <= 526).map((r) => r.product));
 
@@ -684,6 +713,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     });
     sum.append(bar, key);
     drawStatsTable(pStats, r, odds, clean);
+    if (MOD_KINDS.includes(r.kind)) drawEffects(pStats, r, plan);
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
   sum.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
@@ -693,13 +723,13 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   const dye = dyeOk(r, _cw.dye) ? _cw.dye : null;
   if (away) sum.append(h('p', 'cw-note', `Stand at the ${S.name} to craft this.`));
   const ready = !away && st.s === 'ready' && purseOk && !_cw.busy && !_cw.act && typeof p.craft === 'function';
-  const craft = (clean) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}), ...(r.dyes ? { dye } : {}) }));
+  const craft = (clean, inspired = 0) => run(() => p.craft(r.id, { clean, form: form.id, picks: plan.picks, ...(Number.isInteger(look) ? { look } : {}), ...(inspired > 0 ? { inspired } : {}), ...(r.dyes ? { dye } : {}) }));
   if (_cw.act) { piece.replaceChildren(pHead, _cw.act.el); return; }   // the work takes the piece's place while it runs
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
   actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
-    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
+    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));

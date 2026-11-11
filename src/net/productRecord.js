@@ -32,6 +32,7 @@
 // the product row stands; only `verifyProductRecord` says one is the service's word.
 //
 // PURE; the account service mints, the client reads. Not a DFU member. Ledger A (the professions' row).
+import { CRAFT_SWING, MOD_KINDS } from './craft/craftLaw.js';   // BUNNYFALL: the materials' effects' bound
 import { _b64url, SIG_BYTES, ID_RE } from './identityToken.js';
 import { PROVENANCE_RE, MAKER_MAX, recipeById, MASTERWORK, rollsQuality, dyeOk, HAND_CHEF, HAND_PROVISIONER, dishOf, jewelHandOk } from './recipeLaw.js';
 import { masterRecordLinesValid } from './masterLaw.js';   // MASTER-ART: a Master's work's lines, as signed
@@ -104,13 +105,18 @@ export function productRecordValid(c) {
   if (c.u !== undefined && (c.u === null || !dyeOk(r, c.u))) return false;   // PROF7: a garment's dye, of its ten
   if (c.f !== undefined && !handOk(r, c.f)) return false;   // PROF9: a dish's cook's hand; PROF10: a jeweller's
   if (c.v !== undefined && !(Number.isSafeInteger(c.v) && c.v >= MINT_V_LAST_PASS)) return false;   // CRAFT-PROCS: the mint's version
-  if (c.x !== undefined && !lookOk(r, c.x)) return false;   // BUNNYFALL CRAFTING REWORK: the look the crafter chose
+  if (c.x !== undefined && !lookOk(r, c.x)) return false;
+  if (c.g !== undefined && !modsOk(r, c.g)) return false;   // BUNNYFALL CRAFTING REWORK: the materials' effects on the piece   // BUNNYFALL CRAFTING REWORK: the look the crafter chose
   if (c.l !== undefined && !(c.q === MASTERWORK && c.v >= MINT_V_MASTER && masterRecordLinesValid(c.l))) return false;   // MASTER-ART: a Master's lines; AUDIT HORIZONTAL B1: their shape, never today's pool
   return true;
 }
 /** BUNNYFALL CRAFTING REWORK: a look (DFU's variant) a piece of armour or clothing may be made in - 0 to 15; the mint
  *  holds it to the template's own (smithItems.js). */
 export const LOOK_KINDS = Object.freeze(['garment', 'plate', 'chain', 'leather']);
+/** BUNNYFALL CRAFTING REWORK: a piece's material effects, h t l a in percent (craftLaw.js craftModsOf), as a record signs them. */
+export const modsOk = (/** @type {any} */ r, /** @type {unknown} */ g) => Array.isArray(g) && g.length === 4 && g.every((v) => Number.isInteger(v) && Math.abs(v) <= CRAFT_SWING) && MOD_KINDS.includes(r?.kind);
+/** The effects a record signs, `{ h, t, l, a }`, or null. @param {unknown} rec */
+export function modsOf(rec) { const c = readProductRecord(rec); return Array.isArray(c?.g) && c.g.length === 4 ? { h: c.g[0], t: c.g[1], l: c.g[2], a: c.g[3] } : null; }
 export const lookOk = (/** @type {any} */ r, /** @type {unknown} */ x) => Number.isInteger(x) && /** @type {number} */ (x) >= 0 && /** @type {number} */ (x) < 16 && LOOK_KINDS.includes(r?.kind);
 /** The look a record signs, or null. @param {unknown} rec */
 export function lookOf(rec) { const c = readProductRecord(rec); return Number.isInteger(c?.x) ? c.x : null; }
@@ -125,13 +131,13 @@ function handOk(r, f) {
 
 /**
  * MINT - the account service's half. With no key the record goes out unsigned (`p1.<body>.`).
- * @param {{p: string, s: string, h: string, r: string, q: number, m: string|null, c: number, a?: boolean, u?: number|null, f?: number|null, v?: number|null, l?: (string|number)[][]|null, x?: number|null}} what
+ * @param {{p: string, s: string, h: string, r: string, q: number, m: string|null, c: number, a?: boolean, u?: number|null, f?: number|null, v?: number|null, l?: (string|number)[][]|null, x?: number|null, g?: number[]|null}} what
  * @param {CryptoKey|null} privateKey the service's Ed25519 identity key (server-account/src/signing.js), or null
  * @param {{subtle: SubtleCrypto, nowS: number}} env
  * @returns {Promise<string>}
  */
-export async function mintProductRecord({ p, s, h, r, q, m, c, a = false, u = null, f = null, v = null, l = null, x = null }, privateKey, { subtle, nowS }) {
-  const claims = { p, s, h, r, q, m, c, i: nowS, ...(a ? { a: 1 } : {}), ...(u == null ? {} : { u }), ...(f == null ? {} : { f }), ...(v == null ? {} : { v }), ...(l == null ? {} : { l }), ...(x == null ? {} : { x }) };   // PROF9: a dish's hand; CRAFT-PROCS: the mint's version; MASTER-ART: a Master's lines
+export async function mintProductRecord({ p, s, h, r, q, m, c, a = false, u = null, f = null, v = null, l = null, x = null, g = null }, privateKey, { subtle, nowS }) {
+  const claims = { p, s, h, r, q, m, c, i: nowS, ...(a ? { a: 1 } : {}), ...(u == null ? {} : { u }), ...(f == null ? {} : { f }), ...(v == null ? {} : { v }), ...(l == null ? {} : { l }), ...(x == null ? {} : { x }), ...(g == null ? {} : { g }) };   // PROF9: a dish's hand; CRAFT-PROCS: the mint's version; MASTER-ART: a Master's lines
   if (!productRecordValid(claims)) throw new TypeError('mintProductRecord refused a claim set it could not verify');
   const body = _b64url.encode(enc.encode(JSON.stringify(claims)));
   if (!privateKey) return `${PRODUCT_RECORD_V}.${body}.`;

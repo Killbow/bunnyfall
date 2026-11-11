@@ -43,7 +43,7 @@ import { equipTableOf, EQUIP_SLOTS } from '../systems/equip.js';
 import { isShieldTemplate } from '../systems/armorMaterials.js';
 import { registerWeaponDamageMod } from '../systems/entityMods.js';
 import { registerArmorPierce } from './armorPierce.js';
-import { weaponMinDamage, weaponMaxDamage } from '../characters/weapons.js';
+import { weaponMinDamage, weaponMaxDamage, itemMinDamage, itemMaxDamage } from '../characters/weapons.js';
 import { CROSSBOW_TEMPLATE } from '../characters/crossbowIds.js';
 
 /** The switch: off, every row reads 1, no shield blocks and no fist slows. */
@@ -188,7 +188,7 @@ registerWeaponBlowMod('melee-rework', (weapon, damage, attacker, target, info) =
 // STEADY: the straight sword's roll, lifted to its floor (the roll's own seam - entityMods.js weaponDamageMods)
 registerWeaponDamageMod('melee-steady', (weapon, roll, attacker) => {
   if (!MELEE_REWORK.on || !attacker?.isPlayer || !inFamily('straight', weapon)) return roll;
-  const lo = weaponMinDamage(weapon.templateIndex), hi = weaponMaxDamage(weapon.templateIndex);
+  const lo = itemMinDamage(weapon), hi = itemMaxDamage(weapon);
   return Math.max(roll, Math.floor(lo + (hi - lo) * STRENGTH.STEADY_FLOOR));
 });
 // PIERCE: blunt and the crossbow take back a share of what the struck foe's armour or hide took (combat/pcaao.js)

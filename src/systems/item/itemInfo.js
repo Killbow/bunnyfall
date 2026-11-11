@@ -32,7 +32,7 @@ import { templateByIndex, itemValueOf, conditionPercentage, isAmmunition } from 
 import { isPotion, isPotionRecipe, isParchment, TEMPLATES } from '../useItem.js';
 import { expandLetterSignoff } from '../quest/questMacros.js';   // ResolveItemLongName's quest-letter arm (ItemHelper.cs:335-348)
 import { itemArmorValue, isShieldTemplate } from '../armorMaterials.js';
-import { weaponMaterialModifier, weaponMinDamage, weaponMaxDamage, WEAPON_MATERIALS } from '../../characters/weapons.js';
+import { weaponMaterialModifier, weaponMinDamage, weaponMaxDamage, WEAPON_MATERIALS, itemMinDamage, itemMaxDamage } from '../../characters/weapons.js';
 import { getItemHands, ITEM_HANDS } from '../../characters/equipTable.js';   // MAC-M2: GetItemHands, the one home
 import { ARMOR_MATERIAL, familyOfNative } from '../armorMaterials.js';
 import { rriNativeMaterialValue } from '../roleplayRealismItems/rriItems.js';   // ARMOR-TYPE: the class's NativeMaterialValue, the family the equip gate reads
@@ -324,7 +324,7 @@ export function itemArmorTypeLine(item) {
  *  weapon a wear would replace (ui/armourCard.js), so the card's Damage row and its comparison are one law. */
 export function weaponDamageRange(item) {
   const mod = weaponMaterialModifier(item?.material ?? WEAPON_MATERIALS.Iron);
-  return [weaponMinDamage(item.templateIndex) + mod, weaponMaxDamage(item.templateIndex) + mod];
+  return [itemMinDamage(item) + mod, itemMaxDamage(item) + mod];
 }
 
 /** The material NAMES the %mat macro resolves (TextProvider's
