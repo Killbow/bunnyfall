@@ -25738,6 +25738,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
     auth: () => poiLive?.auth() ?? storedSession(appStorage())?.secret ?? null,   // POI-3 (the live view's bearer first): a builder's drafts' assets, asked with the builder's bearer
     getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
+    // a POI's flat pictures (scenes/poiFlats.js); a flame's frames step with the other animated flats on its map square
+    uploadRecord, flatAnims: (px, py) => built.get(`${px},${py}`)?.flatAnims ?? null,
     collideDrafts: () => poiEditor?.collideDrafts() ?? true,   // POI-3: a draft dragged files no collider until the drag ends
     // the editor's Test: the draft under test runs its DM content in preview, and live POIs none
     dmTest: (id) => poiTest?.runtimeFor(id) ?? null, dmHeld: () => !!poiTest?.active(),
@@ -34615,6 +34617,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (siegeNpcs) for (const b of siegeNpcs.batches()) allBatches.push(b);   // SEAT2b part two (c): the guards, the rebels
     for (const b of arenaBouts.batches()) { if (cullOn && billboardOutside(b)) continue; allBatches.push(b); }   // ARENA2: the crowd in the colosseum's tiers, and what it throws (no shadow: a crowd of hundreds would fill the casters)
     if (yards) for (const b of yards.batches()) { if (cullOn && billboardOutside(b)) { if (renderer.shadowReachBatch(b)) castBatches.push(b); continue; } allBatches.push(b); }   // HOME-YARD: the yards' flats, and the one being placed; AUDIT FLICKER R3: off screen, a shadow still in reach
+    // a POI's flat pictures (scenes/poiFlats.js), culled as the yards' flats are (off screen, a batch still casts its
+    // shadow when in reach)
+    if (poiHost) for (const b of poiHost.batches()) { if (cullOn && billboardOutside(b)) { if (renderer.shadowReachBatch(b)) castBatches.push(b); continue; } allBatches.push(b); }
     // NEAR-FIRST (2026-09-21): THE PIXELS ARE WALKED NEAREST FIRST. The
     // map's insertion order is the order the pixels streamed in, which
     // is nothing to do with where the eye is - so a far town's walls
@@ -35169,6 +35174,10 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (deepWaters && livePersonBatches.length) dwFlagColumnFlats(livePersonBatches);   // DW-F: the foes, the corpses and the piles in a carved sea take the column's share
     renderer.holdBlended(livePersonBatches);   // GRASS-PORTAL (FIELD BUGS 2026-10-12b): the blended flats write no depth - drawn after the grass (drawHeld)
     if (livePersonBatches.length) renderer.drawBillboards(livePersonBatches, camRight, bbUp);
+    // a POI's mounted weapons, armor, and trophies (scenes/poiFlats.js), drawn on the decal pass after billboards and
+    // the live crowd: the decal pass writes no depth, so any billboard drawn after a mount would cover it even when
+    // behind it
+    poiHost?.drawMounts(renderer);
     if (castBatches.length) renderer.recordShadowBillboards(castBatches, camRight, UP_Y);   // SHADOW-REACH: the flats the view cull rejected, for the maps alone (the wind is the frame's, set above)
     if (deepWaters) drawDeepWatersSurfaces(now);   // DW-C: the sea's surface - the mod's Transparent queue, after every opaque thing and every cut-out flat
     if (oceanHoles) drawOceanHolesTransparent();   // OH-C: the blue hole's core over it (3001), then the miasma (3002)

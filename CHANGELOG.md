@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: A POI's flat pictures, placed items, and mounted weapons and armor now show in the game with their lights.
 - Fixed: The in-game POI editor has an Assets browser that lists the game's models, pictures, items, and creatures, with search, filters, favorites, recent picks, and a preview.
 - Fixed: A Daggerfall model can be placed from the in-game POI editor's Assets browser with Place or by dragging its card onto the world.
 - Fixed: Offline, a POI's rewards and costs now reach your character: its events give and take your real gold and items, and a gift is given only once on each device.

@@ -77,6 +77,14 @@ export function decorPieceSeen(half, dx, dy, dz, minAngle) {
   const d = Math.hypot(dx, dy, dz);
   return half >= d * minAngle;
 }
+/** Returns whether a placed entry's picture is large enough to see from `eye` (decorPieceSeen at its drawn size,
+ *  measured from its base), or true when there is no `eye` or the picture has not loaded yet. Defined at module
+ *  scope so batch culling does not allocate a closure per call. */
+const entrySeen = (e, eye, minAngle) => {
+  if (!eye || !e.size) return true;
+  const p = e.piece.pos;
+  return decorPieceSeen(Math.max(Math.abs(e.size.w), e.size.h) / 2, e.o[0] + p[0] - eye[0], e.o[1] + p[1] - eye[1], e.o[2] + p[2] - eye[2], minAngle);
+};
 /** YARD-RANGE: decorPieceSeen of a box in the world ([minX, minY, minZ, maxX, maxY, maxZ]), from its middle. */
 export const decorBoxSeen = (b, eye, minAngle) => decorPieceSeen(Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]) / 2,
   (b[0] + b[3]) / 2 - eye[0], (b[1] + b[4]) / 2 - eye[1], (b[2] + b[5]) / 2 - eye[2], minAngle);
@@ -358,6 +366,10 @@ export function createDecorRoom({
   const models = new Map();   // model id -> Promise<{gpu, cpu, box}>
   const flats = new Map();    // "a.r" -> Promise<{t, w, h} | null>
   const arts = new Map();     // DECOR2c: "a.r|t.g.m.v.a" -> Promise<{tex, w, h} | null>, a mount's picture (MW-MOUNT: its Morrowind one, or its pack's)
+  // the resolved results of `flats` and `arts`, by the same keys: a piece whose picture has already loaded is built in
+  // the same `put()` call, not a microtask later, so a dragged piece (put again every frame) still draws every frame
+  const flatsDone = new Map();
+  const artsDone = new Map();
   // AUDIT DYE-ICON 5: the Morrowind pictures asked for here, by the key each goes up under (fpArm.js mountPicture's -
   // per record and generation). Nothing let them go, so each Remove data or re-attach left one texture per mounted
   // record; refreshMounts does, once the mounts that drew them are down.
@@ -383,15 +395,15 @@ export function createDecorRoom({
     }
     return stands.get(k);
   };
+  const artKey = (piece) => { const it = piece.item ?? {}; return `${piece.flat[0]}.${piece.flat[1]}|${it.t}.${it.g}.${it.m}.${it.v}.${it.a}`; };
   const artOf = (piece) => {
-    const it = piece.item ?? {};
-    const k = `${piece.flat[0]}.${piece.flat[1]}|${it.t}.${it.g}.${it.m}.${it.v}.${it.a}`;
+    const k = artKey(piece);
     if (!arts.has(k)) {
       const got = loadMountPicture({ getTexture, uploadRecord, renderer, mwPicture: mwAsk }, piece.flat, piece.item);
       arts.set(k, got);
       // AUDIT DYE-ICON 3: a picture that would not load is not remembered as none for the session (modelOf's
       // DECOR-SHELL law) - one blip, and that item never hung again, re-put, a second of it or a later visit
-      got.then((art) => { if (!art && arts.get(k) === got) arts.delete(k); });
+      got.then((art) => { if (!art) { if (arts.get(k) === got) arts.delete(k); } else if (arts.get(k) === got) artsDone.set(k, art); });
     }
     return arts.get(k);
   };
@@ -418,7 +430,7 @@ export function createDecorRoom({
         uploadRecord?.(a, r);
         const { w, h } = billboardSize(t, r);
         return { t, w, h };
-      }).catch(() => null));
+      }).catch(() => null).then((f) => { flatsDone.set(k, f); return f; }));
     }
     return flats.get(k);
   }
@@ -492,14 +504,16 @@ export function createDecorRoom({
     standing.set(piece.id, entry);
     if (decorIsFigure(piece)) figs.add(entry);   // MWNPC18: one of Daggerfall's people - the people lane's
     if (decorIsMount(piece)) {   // DECOR2c: hung flat on its surface, as its pack picture (MW-MOUNT: or its Morrowind one)
-      artOf(piece).then((art) => {
+      const hang = (art) => {
         if (standing.get(piece.id) !== entry || !art || !renderer?.createDecalBatch) return;
         entry.size = { w: art.w * piece.scale, h: art.h * piece.scale };
         const quad = decorMountQuad(piece, o, entry.size);
         entry.mount = { batch: renderer.createDecalBatch(1), tex: art.tex, quad };
         renderer.writeDecalSlot?.(entry.mount.batch, 0, decorMountFloats(quad));
         mountLight(entry, o, 0);   // a lit one's light at its middle - the centre is where it stands
-      });
+      };
+      const known = artsDone.get(artKey(piece));
+      if (known) hang(known); else artOf(piece).then(hang);
     } else if (piece.model != null) {
       mountLight(entry, o, decorLightLift(piece, null));
       const stand = (wait = DECOR_MODEL_RETRY_MS) => modelOf(piece.model).then((m) => {
@@ -533,8 +547,8 @@ export function createDecorRoom({
       const [a, r] = drawnFlat(piece.flat[0], piece.flat[1]);
       // MW-ASSIGN: one's own thing set down stands as its Morrowind picture while a build stands (a garment, not the
       // classic pile of cloth), on the billboard pass as every flat - else as its own world picture, as ever
-      const mw = decorStandsOwn(piece) ? standArtOf(piece.item) : Promise.resolve(null);
-      Promise.all([flatOf(a, r), mw]).then(([f, pic]) => {
+      const ownPic = decorStandsOwn(piece) && !!standAsk;
+      const stand = ([f, pic]) => {
         if (standing.get(piece.id) !== entry || !f || !renderer?.createBillboardBatch) return;
         const [da, dr, seen] = pic ? [MW_STAND_ARCHIVE, pic.key, pic] : [a, r, f];   // MW-ASSIGN: its own picture, its own size
         // DECOR-FIGURE: one of Daggerfall's people at its own size - one grown or shrunk before stands as it was made
@@ -550,7 +564,10 @@ export function createDecorRoom({
         if (!pic && armFlatAnim(entry.batch, f.t, a, r, anims, uploadRecordFrame ?? null)) entry.anims = anims;   // FA1: a lamp's flame moves as the room's own do
         changed();   // YARD-MERGE: a flat standing - the pool's to merge once it settles
         mountLight(entry, at, decorLightLift(piece, entry.size));
-      });
+      };
+      const fk = `${a}.${r}`;
+      if (!ownPic && flatsDone.has(fk)) stand([flatsDone.get(fk), null]);
+      else Promise.all([flatOf(a, r), ownPic ? standArtOf(piece.item) : null]).then(stand);
     }
     return entry;
   }
@@ -647,15 +664,12 @@ export function createDecorRoom({
   /** YARD-RANGE: the flats' batches pushed onto `out`, each only while it is no smaller from `eye` than `minAngle`
    *  (decorPieceSeen) - no eye, every one. A town's yards answer theirs every frame, so nothing is made but the push. */
   function batchesSeen(out, eye = null, minAngle = 0) {
-    const seen = (e) => {
-      if (!eye || !e.size) return true;
-      const p = e.piece.pos;
-      return decorPieceSeen(Math.max(Math.abs(e.size.w), e.size.h) / 2, e.o[0] + p[0] - eye[0], e.o[1] + p[1] - eye[1], e.o[2] + p[2] - eye[2], minAngle);
-    };
     // YARD-MERGE: a group's batch while any of its flats is big enough to see - its flats not again on their own
-    for (const g of flatGroups) if (g.members.some(seen)) out.push(g.batch);
+    for (const g of flatGroups) {
+      for (let i = 0; i < g.members.length; i++) if (entrySeen(g.members[i], eye, minAngle)) { out.push(g.batch); break; }
+    }
     for (const e of standing.values()) {
-      if (e.quiet || !e.batch || e.merged || !seen(e)) continue;
+      if (e.quiet || !e.batch || e.merged || !entrySeen(e, eye, minAngle)) continue;
       out.push(e.batch);
     }
     return out;
@@ -823,6 +837,7 @@ export function createDecorRoom({
     mwKeys.clear();
     standKeys.clear();
     arts.clear();
+    artsDone.clear();
     stands.clear();
     for (const e of [...standing.values()]) if (decorIsMount(e.piece) || decorStandsOwn(e.piece)) put(e.piece);
     for (const k of was) renderer?.releaseTexture?.('mw-mount', k);   // AUDIT DYE-ICON 5: the old pictures, their mounts down (one asked again uploads anew)

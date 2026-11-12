@@ -53,6 +53,8 @@ import {
   placeMatrix, partMatrix, boxThrough, lightsOf, npcsOf,
 } from '../poi/poiRuntime.js';
 import { createPoiNpcs } from './poiNpcs.js';   // BUNNYFALL
+// Renders a v2 POI's flat pictures through a house-decor room.
+import { createPoiFlats } from './poiFlats.js';
 import { samplerKey } from '../render/meshAlpha.js';
 import { drawSeen, DECOR_DRAW } from './decor/decorRoom.js';
 import { invert4 } from '../player/tapRay.js';
@@ -162,19 +164,21 @@ export function sameStand(a, b) {
  *   groundAt: (x: number, z: number) => number,
  *   collider?: () => any, riding?: (px: number, py: number) => any,
  *   feet?: () => (number[] | null), auth?: () => (string | null), collideDrafts?: () => boolean,
- *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any, dmTest?: ((id: string) => any) | null, dmHeld?: () => boolean,
- * }} deps `decodeImage` a picture's bytes to its raster (`{ width, height, data }`, top row first) - a promise of it, or
- *   its decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
- *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating
- *   translation provider for the collider; `auth` a builder's bearer (the editor's drafts' assets); `collideDrafts`
- *   false while the editor drags (a draft moved every frame would file its collider every frame - it is registered once
- *   the drag ends); `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's;
- *   `keepDecodedBytes` the decoded pictures' cache limit in bytes (POI_DECODED_KEEP_BYTES)
+ *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any, dmTest?: ((id: string) => any) |
+ * null, dmHeld?: () => boolean, uploadRecord?: any, flatAnims?: ((px: number, py: number) => any) | null, }} deps
+ *   `decodeImage` a picture's bytes to its raster (`{ width, height, data }`, top row first) - a promise of it, or its
+ *   decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
+ *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating translation
+ *   provider for the collider; `auth` a builder's bearer (the editor's drafts' assets); `collideDrafts` false while the
+ *   editor drags (a draft moved every frame would file its collider every frame - it is registered once the drag ends);
+ *   `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's; `keepDecodedBytes` the decoded pictures' keep (POI_DECODED_KEEP_BYTES)
  */
 export function createPoiHost({
   renderer, feed, decodeImage, pixels, translation, groundAt, collider = () => null, riding = () => null, collideDrafts = () => true,
   feet = () => null, auth = () => null, now = () => Date.now(), clock = () => performance.now(), keepDecodedBytes = POI_DECODED_KEEP_BYTES, log = console,
   getTexture = null, uploadRecordFrame = null, say = null,   // BUNNYFALL: the people's sprites and lines
+  // texture uploader and per-map-square flat animator for POI flat pictures (scenes/poiFlats.js)
+  uploadRecord = null, flatAnims = null,
   dm = null,   // POI v2: `() => Promise<runtime>` (poi/poiDmRuntime.js createPoiDm), asked the first time a POI with DM content stands
   // the editor's Test (poi/poiDmTest.js): `(id) => runtime | null`, the preview runtime of the one draft under test
   dmTest = null,
@@ -184,6 +188,8 @@ export function createPoiHost({
 }) {
   /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
   const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => (dmTest?.(id) ?? (dmHeld() ? null : dmRt))?.talk(id, key) ?? false });
+  /** POI v2: flat pictures (scenes/poiFlats.js), with one decor room per POI that has flats */
+  const flats = createPoiFlats({ renderer, getTexture, uploadRecord, uploadRecordFrame, flatAnims, now });
   /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */
   let dmRt = null, dmAsked = false, wasHeld = false;
   const dmContent = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length) || doc.npcs?.some((n) => n?.showWhen));
@@ -480,6 +486,8 @@ export function createPoiHost({
     for (const l of s.held) dropLook(l);
     s.parts = []; s.held = [];
     npcs.drop(s.id);   // BUNNYFALL: and its people
+    // its flat pictures
+    flats.drop(s.id);
     npcs.setExtras(s.id, null); dmRt?.drop(s.id);   // POI v2: and its run
     // a draft under test: its preview run and its enemies
     if (s.draft) dmTest?.(s.id)?.drop(s.id);
@@ -559,6 +567,8 @@ export function createPoiHost({
       s.joining = [];
     }
     s.visible = true;
+    // sync its flat pictures when its position or document changes
+    flats.sync(s, t);
     const rt = dmOf(s);   // POI v2: its patrols, triggers, objects and encounters (poi/poiDmRuntime.js)
     const people = s.doc.npcs?.length ? (s.npcs ??= npcsOf(s.doc, s.place)) : null;
     const shown = rt ? rt.frame(s, t, people) : people;
@@ -611,6 +621,7 @@ export function createPoiHost({
     frame() {
       frameN++;
       until = clock() + POI_STAND_BUDGET_MS; units = 0;
+      flats.frame();
       feed.tick?.();
       want.clear();
       for (const px of pixels()) {
@@ -699,8 +710,14 @@ export function createPoiHost({
           out.push(row);
         }
       }
+      // and their flat pictures' lights
+      flats.lights(out);
       return out;
     },
+    /** Returns the flat picture batches for the world's billboard pass (reusing one array each frame). */
+    batches: () => flats.batches(),
+    /** Returns the mounted flat pictures for the world's decal pass. */
+    drawMounts: (r) => flats.drawMounts(r),
     /** Every standing POI's mark for the maps (`{ px, py, label, id }`) - built pixel or not: the map shows the realm. */
     marks() {
       const out = [];
@@ -713,10 +730,12 @@ export function createPoiHost({
     /** What stands, for the editor's outliner and a test: `[{ id, rev, status, visible, parts }]`. */
     standing() { return [...standing.values()].map((s) => ({ id: s.id, rev: s.rev, status: s.status, visible: !!s.visible, draft: s.draft, parts: s.parts.length })); },
     /**
-     * POI-3: THE PART UNDER A RAY - the nearest standing part whose triangles the ray (scene frame: `o` the eye, `d` a
-     * direction) meets within `max` metres, its box asked first: `{ id, key, dist, draft }`, or null. Exact, over the
-     * part's own triangles through the inverse of its drawn matrix (a model with no collider is picked as one with).
-     * `skip(id, key)` passes a part by (the editor's hidden or locked parts), so what stands behind it is picked.
+     * POI-3: THE PART UNDER A RAY - the nearest loaded part whose triangles the ray (scene frame: `o` the origin, `d`
+     * the direction) hits within `max` meters, checking its bounding box first: `{ id, key, dist, draft }`, or null.
+     * Tests the part's exact triangles through the inverse of its drawn matrix (whether or not the part has a
+     * collider). If a flat picture's bounding box is closer than any part, returns that hit instead with `kind: 'flat'`
+     * (scenes/poiFlats.js pick). Rows for which `skip(id, key, kind)` returns true (the editor's hidden or locked
+     * parts, `kind` undefined, and flats, `'flat'`) are passed over, so what is behind them can be picked.
      */
     pick(o, d, max = 6000, skip = null) {
       let best = null;
@@ -732,10 +751,16 @@ export function createPoiHost({
           if (t !== null) best = { id: s.id, key: p.key, dist: t, draft: s.draft };   // nearer than any before: its reach was theirs
         }
       }
+      // a flat picture nearer than any part
+      const f = flats.pick(o, d, best ? best.dist : max, skip);
+      if (f) best = { ...f, draft: !!standing.get(f.id)?.draft };
       return best;
     },
     /** A part's drawn matrix and box (the editor's gizmo and pick). */
     partOf(id, key) { const s = standing.get(id); const p = s?.parts.find((x) => x.key === key); return p ? { scene: p.scene, box: p.box, local: p.local } : null; },
+    /** Returns a flat picture's bounding box in the scene once its texture has loaded (used for editor selection
+     *  boxes and picking). */
+    flatBox: (id, key) => flats.boxOf(id, key),
     /** Everything down - a re-anchor, a load; the next frame stands what is still wanted. */
     destroyAll() { for (const s of [...standing.values()]) takeDown(s); },
     /**
@@ -745,6 +770,7 @@ export function createPoiHost({
      */
     standDown() {
       const col = collider();
+      flats.hideAll();
       for (const s of stood) {
         s.visible = false;
         for (const p of s.parts) if (p.stood) { col?.removeBucket?.(p.bucket); p.stood = false; p.carry = false; }
