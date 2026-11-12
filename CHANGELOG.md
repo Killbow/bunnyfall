@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Staff: the staff panel is reworked. It opens on a Home page (who is playing, open reports, live events, quick actions), finds any character as you type, and each character has its own page with plain buttons: give an item, gold or Nyx coins, set bank gold, roll back, message, mute, freeze, ban, notes. Events and notices are simple forms now.
 - Staff: the whole staff panel now opens inside the game from a movable ST button (web and desktop app), with players, moderation, items, economy, reports, events, the live map, Follow and Hide me in one place. The staff bar in game is back while it is open. staff.html is the same panel in a browser.
 - /vanish no longer cuts a staff member off the network: monsters, chat and everything else keep working while players and monsters simply can't see them.
 - The chat no longer stars out swear words: what you type is what everyone sees. Names, guild names, notes and letters are still filtered.

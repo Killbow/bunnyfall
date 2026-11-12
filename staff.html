@@ -6,117 +6,114 @@
   <meta name="robots" content="noindex" />
   <title>Bunnyfall staff</title>
   <style>
-    :root { color-scheme: dark; --bg:#0d1014; --card:#161b21; --line:#2b323b; --ink:#e9e4d9; --dim:#8b8578; --gold:#c08a3e; --bad:#d4614f; --ok:#6fae6a; }
+    :root { color-scheme: dark; --bg:#0c0f13; --card:#151a20; --card2:#1b2129; --line:#29313b; --ink:#ebe6db; --dim:#8d877a; --gold:#d19a4a; --gold2:#f0cf8a;
+      --bad:#e0705c; --ok:#79b874; --blue:#6aa6d8; --r: 8px; }
+    * { box-sizing: border-box; }
     html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
-    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    body.embed main { max-width: none; padding: 8px 10px; }
-    body.embed h1 { display: none; }
-    h1 { font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
-    h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 14px 0 6px; }
-    h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 10px 0 4px; }
-    .card { background: var(--card); border: 1px solid var(--line); padding: 12px; margin-bottom: 12px; }
-    input, textarea, button, select { font: inherit; color: var(--ink); background: #0a0d11; border: 1px solid var(--line); padding: 5px 8px; }
-    input[type=text], input[type=password] { width: 200px; }
-    input[type=number] { width: 90px; }
-    textarea { width: 100%; box-sizing: border-box; min-height: 80px; font-family: ui-monospace, monospace; }
-    button { cursor: pointer; } button:hover { border-color: var(--gold); }
-    button.on { border-color: var(--gold); color: var(--gold); }
-    button.warn { border-color: #6b3a32; } button.warn:hover { border-color: var(--bad); color: var(--bad); }
-    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 5px 0; }
+    a { color: var(--gold2); }
+    input, textarea, button, select { font: inherit; color: var(--ink); background: #0a0d11; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--gold); }
+    textarea { width: 100%; min-height: 90px; resize: vertical; }
+    button { cursor: pointer; background: var(--card2); }
+    button:hover { border-color: var(--gold); }
+    button.primary { background: var(--gold); color: #1b1309; border-color: var(--gold); font-weight: 600; }
+    button.primary:hover { background: var(--gold2); }
+    button.danger { color: var(--bad); border-color: #5a3029; }
+    button.danger:hover { border-color: var(--bad); }
+    button.ghost { background: transparent; }
+    button:disabled { opacity: .45; cursor: default; }
     .dim { color: var(--dim); } .bad { color: var(--bad); } .ok { color: var(--ok); }
-    code, pre { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
-    pre { background: #0a0d11; border: 1px solid var(--line); padding: 8px; overflow: auto; white-space: pre-wrap; }
-    table { border-collapse: collapse; width: 100%; font-size: 12px; }
-    th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    th { color: var(--dim); position: sticky; top: 0; background: var(--card); }
-    td button { padding: 1px 6px; font-size: 11px; }
-    .scroll { overflow: auto; max-height: 460px; }
-    .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 12px; }
-    .kv b { color: var(--dim); font-weight: 500; }
-    .act { border: 1px solid var(--line); padding: 8px; margin: 6px 0; }
-    .act > .row:first-child b { min-width: 130px; color: var(--gold); font-weight: 600; }
-    .act label { font-size: 12px; color: var(--dim); display: inline-flex; gap: 4px; align-items: center; }
-    .pickbar { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 4px 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
-    .skin { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line); padding: 8px; margin: 8px 0; flex-wrap: wrap; }
-    .skin img { max-height: 220px; image-rendering: pixelated; background: repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); }
-    #gameLink { font-size: 12px; }
     [hidden] { display: none !important; }
+
+    /* top bar */
+    header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; padding: 8px 14px; background: #0f1318; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+    header .brand { font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); font-size: 13px; }
+    nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    nav button { background: transparent; border-color: transparent; padding: 6px 11px; }
+    nav button.on { background: var(--card2); border-color: var(--line); color: var(--gold2); }
+    .search { position: relative; flex: 1; min-width: 220px; max-width: 420px; }
+    .search input { width: 100%; }
+    .drop { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); max-height: 380px; overflow: auto; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    .drop { min-width: 360px; }
+    .drop .item { padding: 7px 10px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; white-space: nowrap; }
+    .drop .item:hover, .drop .item.hi { background: var(--card2); }
+    .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 99px; font-size: 11px; border: 1px solid var(--line); color: var(--dim); white-space: nowrap; }
+    .chip.on { color: var(--ok); border-color: #355a33; } .chip.bad { color: var(--bad); border-color: #5a3029; } .chip.warn { color: var(--gold2); border-color: #6a5326; }
+    .me { display: flex; gap: 6px; align-items: center; margin-left: auto; font-size: 12px; }
+
+    main { padding: 16px; max-width: 1280px; margin: 0 auto; }
+    body.embed main { padding: 10px; max-width: none; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    h2 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 0 0 10px; font-weight: 600; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; }
+    .card + .card { margin-top: 12px; }
+    .grid .card + .card { margin-top: 0; }
+    .big { font-size: 28px; font-weight: 700; color: var(--gold2); line-height: 1; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .list { display: flex; flex-direction: column; }
+    .li { display: flex; gap: 8px; align-items: center; padding: 7px 4px; border-bottom: 1px solid var(--line); }
+    .li:last-child { border-bottom: 0; }
+    .li.click { cursor: pointer; } .li.click:hover { background: var(--card2); }
+    .li .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .actions button { min-width: 120px; }
+    .section { margin-top: 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th { color: var(--dim); font-weight: 500; position: sticky; top: 0; background: var(--card); cursor: default; }
+    tr.click { cursor: pointer; } tr.click:hover td { background: var(--card2); }
+    .scroll { overflow: auto; max-height: 560px; }
+    .kv { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; font-size: 13px; }
+    .kv b { color: var(--dim); font-weight: 500; }
+    .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tabs button.on { border-color: var(--gold); color: var(--gold2); }
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+    .field > span { font-size: 12px; color: var(--dim); }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0 12px; }
+    pre { background: #0a0d11; border: 1px solid var(--line); border-radius: 6px; padding: 8px; overflow: auto; white-space: pre-wrap; font-size: 12px; }
+
+    /* dialogs */
+    .veil { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 12px; overflow: auto; }
+    .dialog { background: var(--card); border: 1px solid var(--line); border-radius: 10px; width: min(560px, 100%); padding: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+    .dialog h3 { margin: 0 0 4px; font-size: 17px; }
+    .dialog .sub { color: var(--dim); margin-bottom: 14px; font-size: 13px; }
+    .dialog .foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; align-items: center; }
+    .dialog .foot .msg { margin-right: auto; font-size: 13px; }
+    .picklist { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; }
+    .picklist .item { padding: 6px 10px; cursor: pointer; }
+    .picklist .item:hover { background: var(--card2); } .picklist .item.on { background: #2a2214; color: var(--gold2); }
+    .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--gold); padding: 9px 16px; border-radius: 8px; z-index: 60; }
+    .toast.bad { border-color: var(--bad); }
+
+    #login { max-width: 420px; margin: 10vh auto; }
+    .skin { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line); border-radius: 6px; padding: 8px; margin: 8px 0; flex-wrap: wrap; }
+    .skin img { max-height: 220px; image-rendering: pixelated; background: repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); }
   </style>
 </head>
 <body>
-<main>
+<section id="login" class="card">
   <h1>Bunnyfall staff</h1>
+  <div class="dim" style="margin-bottom:12px">Sign in with your staff account.</div>
+  <div class="field"><span>Handle</span><input id="handle" type="text" autocomplete="username" /></div>
+  <div class="field"><span>Password</span><input id="password" type="password" autocomplete="current-password" /></div>
+  <div class="row"><button id="go" class="primary">Sign in</button><span id="loginMsg" class="dim"></span></div>
+  <details style="margin-top:14px"><summary class="dim">Sign in with a key instead</summary>
+    <div class="dim">Only needed if the server has no <code>STAFF_BY_ACCOUNT</code>. The key goes in <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>.</div>
+    <pre id="keyLine"></pre>
+    <div class="row"><label><input id="useKey" type="checkbox" /> Use this key</label><button id="copyKey">Copy the line</button><button id="newKey">New key</button></div>
+  </details>
+</section>
 
-  <section id="login" class="card">
-    <div class="row"><input id="handle" type="text" placeholder="staff handle" autocomplete="username" />
-      <input id="password" type="password" placeholder="password" autocomplete="current-password" />
-      <button id="go">Sign in</button></div>
-    <div id="loginMsg" class="dim"></div>
-    <details><summary class="dim">Sign in with a key instead</summary>
-      <div class="dim">Only needed if the server has no <code>STAFF_BY_ACCOUNT</code>. The key goes in <code>OWNER_KEYS</code> in <code>selfhost/accounts.toml</code> as <code>Handle:key</code>.</div>
-      <pre id="keyLine"></pre>
-      <div class="row"><label><input id="useKey" type="checkbox" /> Use this key</label><button id="copyKey">Copy the OWNER_KEYS line</button><button id="newKey">Make a new key</button></div>
-    </details>
-  </section>
-
-  <section id="app" hidden>
-    <div class="row"><span id="who"></span><span id="gameLink" class="dim"></span><span style="flex:1"></span><button id="out">Sign out</button></div>
-    <div class="pickbar">
-      <div class="row" id="tabs">
-        <button data-t="map" class="on">Live map</button><button data-t="players">Players</button><button data-t="items">Items &amp; economy</button>
-        <button data-t="reports">Reports &amp; events</button><button data-t="saves">Saves</button><button data-t="db">Database</button>
-        <button data-t="skins">Skins</button><button data-t="audit">Audit log</button>
-      </div>
-      <div class="row"><span class="dim">Player</span><input id="pick" type="text" placeholder="handle or guest name" /><button id="pickLoad">Open</button>
-        <span class="dim">Character</span><input id="pickChar" type="text" placeholder="character id (pick one from a card)" /><span id="pickMsg" class="dim"></span></div>
-    </div>
-
-    <div id="t-map" class="card">
-      <div id="mapNoGame" class="dim" hidden>The live map, Follow and the staff tags need the game: open this panel from the ST button in game.</div>
-      <div id="mapGame">
-        <div class="row"><b>Hide me</b><span id="hideState" class="dim">...</span><button id="hideOn">Hide me</button><button id="hideOff">Show myself</button>
-          <span class="dim">Hidden staff are kept out of every room's lists (the follow eye always is).</span></div>
-        <div class="row"><b>Follow</b><button id="followPick">Follow the picked player</button><button id="unlock">Let go</button><span id="followMsg" class="dim"></span></div>
-        <div class="row"><b>Live map</b><select id="region"><option value="">regions load in game</option></select><button id="watchRegion">Watch</button><button id="stopRegion">Stop</button>
-          <span id="mapMsg" class="dim"></span></div>
-        <div id="mapOut" class="scroll"></div>
-        <h2>Staff tags</h2>
-        <div class="dim">Players on your watch list get a tag over their heads in game (Shift+M toggles the staff view). Add them under Players.</div>
-      </div>
-    </div>
-
-    <div id="t-players" class="card" hidden></div>
-    <div id="t-items" class="card" hidden></div>
-    <div id="t-reports" class="card" hidden></div>
-
-    <div id="t-saves" class="card" hidden>
-      <div class="row"><button id="findSaves">Find the picked player's saves</button></div>
-      <div id="savesMsg" class="dim"></div>
-      <div id="savesOut"></div>
-    </div>
-
-    <div id="t-db" class="card" hidden>
-      <div class="row"><button id="loadTables">Tables</button><span class="dim">Read only, one SELECT, 500 rows at most. Secrets, hashes and keys show as [hidden].</span></div>
-      <div id="tables" class="row"></div>
-      <textarea id="sql" spellcheck="false" placeholder="SELECT * FROM players LIMIT 20"></textarea>
-      <div class="row"><button id="runSql">Run</button><button id="dlJson">Download JSON</button><button id="dlCsv">Download CSV</button><span id="sqlMsg" class="dim"></span></div>
-      <div id="sqlOut" class="scroll"></div>
-    </div>
-
-    <div id="t-skins" class="card" hidden>
-      <div class="row"><button id="loadSkins">Skins waiting</button><button id="loadSkinsOk">Approved</button><span id="skinsMsg" class="dim"></span></div>
-      <div class="row"><input id="banNote" type="text" placeholder="note (optional)" />
-        <button id="banOn">Disable the picked player's skins</button><button id="banOff">Enable again</button><button id="loadBanned">Who is disabled</button></div>
-      <div id="bannedOut" class="dim"></div>
-      <div id="skinsOut"></div>
-    </div>
-
-    <div id="t-audit" class="card" hidden>
-      <div class="row"><button id="loadAudit">Load the newest rows</button><span id="auditMsg" class="dim"></span></div>
-      <div id="auditOut" class="scroll"></div>
-    </div>
-  </section>
-</main>
+<div id="app" hidden>
+  <header>
+    <span class="brand">Staff</span>
+    <nav id="nav"></nav>
+    <div class="search"><input id="q" type="search" placeholder="Search a character or player..." autocomplete="off" /><div id="drop" class="drop" hidden></div></div>
+    <div class="me"><span id="gameBits" class="row"></span><span id="who" class="dim"></span><button id="out" class="ghost">Sign out</button></div>
+  </header>
+  <main id="page"></main>
+</div>
 <script type="module" src="/src/tools/staffPanel.js"></script>
 </body>
 </html>

@@ -44,7 +44,9 @@ async function accountByName(db, name) {
   const byHandle = await db.prepare('SELECT id, handle FROM players WHERE lower(handle) = lower(?)').bind(n).first();
   if (byHandle) return { id: byHandle.id, name: byHandle.handle };
   const byChar = await db.prepare('SELECT player, name FROM realm_characters WHERE lower(name) = lower(?) ORDER BY updated_at DESC LIMIT 1').bind(n).first();
-  return byChar ? { id: byChar.player, name: byChar.name } : null;
+  if (byChar) return { id: byChar.player, name: byChar.name };
+  const byId = await db.prepare('SELECT id, handle, guest_name FROM players WHERE id = ?').bind(n).first();   // the staff panel's pick names the account
+  return byId ? { id: byId.id, name: displayName(byId) } : null;
 }
 
 /**
