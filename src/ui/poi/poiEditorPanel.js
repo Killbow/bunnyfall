@@ -86,6 +86,11 @@ export const POI_PANEL_CSS = `
 /* the game's messages (ui/enhanced/enhancedStyle.js .notice-stack, under the docks' layer) stand left of the right dock while
    the editor is open: a message that waits for a key or a click would otherwise hold the editor's clicks out of sight */
 body:has(> .dfpoi[data-on="1"]) .notice-stack { right: 316px; }
+/* the game's tips button (ui/tutorialPopup.js #bf-tutorial-ask, above the docks' layer) sits to the left of the
+   right dock while the editor is open, and above the DM panel while that is open, so it does not cover them or
+   intercept their clicks */
+body:has(> .dfpoi[data-on="1"]) #bf-tutorial-ask { right: 330px; }
+body:has(> .dfpoi[data-on="1"] > .dfpoi-dm:not([hidden])) #bf-tutorial-ask { top: min(38%, max(56px, calc(100vh - 92px - min(56vh, 600px)))); }
 .dfpoi-status { bottom: 8px; left: 50%; transform: translateX(-50%); padding: 4px 10px; max-width: calc(100vw - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dfpoi-status[data-kind="bad"] { border-color: #b4483c; color: #f2b7ae; }
 .dfpoi-btn { font: inherit; color: inherit; background: #2a2620; border: 1px solid #6b5230; border-radius: 4px; padding: 3px 7px; cursor: pointer; }
