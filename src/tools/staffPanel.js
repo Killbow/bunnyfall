@@ -1,9 +1,15 @@
 // @ts-check
-// BUNNYFALL (2026-11-06): staff.html - the staff page of this fork. A developer signs in (password + a key this browser
-// makes), then reads an account's saves and takes them out, browses the database read-only and reads the audit log.
+// BUNNYFALL (2026-11-06): staff.html - the staff page of this fork. A staff member signs in (password, or password + a
+// key this browser makes), then reads an account's saves and takes them out, browses the database read-only and reads
+// the audit log.
+// BUNNYFALL (2026-11-12, the owner: "make the entire staff panel and staff.html merged into one staff panel i can access
+// in game"): THE ONE STAFF PANEL. The same page opens on its own in a browser and inside the game's staff window
+// (ui/staffDock.js, `?embed=1`): every staff door of the account service as a form (staffPanelActions.js), a picked
+// player and character the forms share, and - in game - the staff hook's half the old browser extension held
+// (net/staffHook.js): Follow, the live map, Hide me and the staff tags, through the dock's relay.
 /* global btoa, atob, sessionStorage, confirm, crypto, prompt */
-// All of it is server-account/src/staffData.js and staff.js; this file only asks and shows.
 import { selfAccountUrl } from '../net/selfHost.js';
+import { STAFF_TABS, showAnswer, buildActs } from './staffPanelActions.js';
 
 const $ = (/** @type {string} */ id) => /** @type {any} */ (document.getElementById(id));
 const KEY_STORE = 'bunnyfall-staff-key';
@@ -12,6 +18,9 @@ const enc = new TextEncoder();
 const b64u = (/** @type {Uint8Array} */ b) => btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const el = (/** @type {string} */ tag, /** @type {string} */ text = '', /** @type {string} */ cls = '') => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
 
+/** In game: inside the staff dock's window (ui/staffDock.js), which carries the game's staff hook. */
+const embedded = new URLSearchParams(location.search).has('embed') && window.parent !== window;
+if (embedded) document.body.classList.add('embed');
 let session = '';
 try { session = sessionStorage.getItem(SESSION_STORE) ?? ''; } catch { /* no storage */ }
 
@@ -55,6 +64,8 @@ const words = {
   'staff-login': 'Wrong handle or password, or this account is not a developer (or the server has not been updated yet).', 'rate': 'Too many tries. Wait a few minutes.',
   'staff-admin': 'That needs a developer account.', 'staff-owner': 'That is for the owner only.', 'staff-session': 'Signed out. Sign in again.',
   'no-player': 'No such account.', 'ambiguous': 'More than one guest has that name. Use the handle.', 'no-data': 'No save data there.', 'bad-query': 'Only one SELECT.',
+  'staff-reason': 'Pick a reason.', 'staff-note': 'Write a note: it goes in the audit log.', 'seq': 'Their save moved since the check. Check again.', 'body': 'A field is missing or not valid.',
+  'no-realm-character': 'No such character (pick one from a player card).', 'staff-self': 'Not on yourself.', 'not-found': 'This server does not know that door yet.',
 };
 const why = (/** @type {any} */ j) => `${words[/** @type {keyof typeof words} */ (j.error)] ?? j.error}${j.message ? ` (${j.message})` : ''}`;
 
@@ -80,6 +91,7 @@ async function signIn() {
 function opened(/** @type {any} */ me) {
   $('login').hidden = true; $('app').hidden = false;
   $('who').textContent = `${me.handle} (${me.owner ? 'owner' : me.role})`;
+  doorOpen();
 }
 function signedOut() {
   session = '';
@@ -104,10 +116,10 @@ async function exportSave(/** @type {any} */ body, /** @type {string} */ msgId) 
 // ── saves ──
 const when = (/** @type {any} */ s) => (s ? new Date(s * 1000).toLocaleString() : '-');
 async function findSaves() {
-  const who = $('who2').value.trim();
-  if (!who) return;
+  const who = await pickedId();
+  if (!who) return say('savesMsg', 'Pick a player first (the Player box above).', true);
   say('savesMsg', 'Looking...');
-  const j = await call('/v1/staff/data/saves', { name: who });
+  const j = await call('/v1/staff/data/saves', { target: who });
   if (j.error) return say('savesMsg', why(j), true);
   say('savesMsg', `${j.player.handle ?? j.player.guestName} (${j.player.id})`);
   const out = $('savesOut'); out.replaceChildren();
@@ -116,10 +128,10 @@ async function findSaves() {
     const row = el('div', '', 'row');
     row.append(el('b', c.name ?? c.id), el('span', `seq ${c.seq} - saved ${when(c.updatedAt)}${c.deadAt ? ' - dead' : ''}${c.held ? ' - held' : ''}${c.leased ? ' - in play' : ''}`, 'dim'));
     if (c.hasSave) {
-      const t = el('button', 'Export JSON'); t.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id }, 'savesMsg');
-      const r = el('button', 'Export raw'); r.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id, as: 'raw' }, 'savesMsg');
+      const t = el('button', 'Export JSON'); t.onclick = () => exportSave({ target: who, kind: 'realm', char: c.id }, 'savesMsg');
+      const r = el('button', 'Export raw'); r.onclick = () => exportSave({ target: who, kind: 'realm', char: c.id, as: 'raw' }, 'savesMsg');
       row.append(t, r);
-      if (c.hasPrev) { const pv = el('button', 'Export previous'); pv.onclick = () => exportSave({ name: who, kind: 'realm', char: c.id, which: 'prev' }, 'savesMsg'); row.append(pv); }
+      if (c.hasPrev) { const pv = el('button', 'Export previous'); pv.onclick = () => exportSave({ target: who, kind: 'realm', char: c.id, which: 'prev' }, 'savesMsg'); row.append(pv); }
     } else row.append(el('span', 'no save written', 'dim'));
     out.append(row);
   }
@@ -127,9 +139,9 @@ async function findSaves() {
   for (const s of j.cloud) {
     const row = el('div', '', 'row');
     row.append(el('b', `${s.characterName ?? s.characterId} / ${s.saveName}`), el('span', `${s.bytes} bytes - ${when(s.updatedAt)} - game ${s.gameTime ?? '-'}`, 'dim'));
-    const d = el('button', 'Export data'); d.onclick = () => exportSave({ name: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'data' }, 'savesMsg');
+    const d = el('button', 'Export data'); d.onclick = () => exportSave({ target: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'data' }, 'savesMsg');
     row.append(d);
-    if (s.shotBytes) { const sh = el('button', 'Screenshot'); sh.onclick = () => exportSave({ name: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'shot' }, 'savesMsg'); row.append(sh); }
+    if (s.shotBytes) { const sh = el('button', 'Screenshot'); sh.onclick = () => exportSave({ target: who, kind: 'cloud', characterId: s.characterId, saveName: s.saveName, part: 'shot' }, 'savesMsg'); row.append(sh); }
     out.append(row);
   }
 }
@@ -193,11 +205,11 @@ async function reviewSkin(/** @type {string} */ id, /** @type {string} */ verdic
 }
 
 async function banSkins(/** @type {boolean} */ on) {
-  const who = $('banWho').value.trim();
-  if (!who) return;
-  const j = await call('/v1/staff/skins/ban', { name: who, on, note: $('banNote').value.trim() });
+  const id = await pickedId();
+  if (!id) return say('skinsMsg', 'Pick a player first (the Player box above).', true);
+  const j = await call('/v1/staff/skins/ban', { target: id, on, note: $('banNote').value.trim() });
   if (j.error) return say('skinsMsg', why(j), true);
-  say('skinsMsg', on ? `Skins switched off for ${who}.` : `Skins switched on again for ${who}.`);
+  say('skinsMsg', on ? `Skins switched off for ${picked.name}.` : `Skins switched on again for ${picked.name}.`);
   await loadBanned();
 }
 async function loadBanned() {
@@ -222,7 +234,6 @@ $('copyKey').onclick = () => navigator.clipboard?.writeText($('keyLine').textCon
 $('newKey').onclick = async () => { if (confirm('A new key has to be put into OWNER_KEYS again. Make one?')) { keyed = await makeKey(); showKey(); } };
 $('out').onclick = async () => { await call('/v1/staff/logout', {}); signedOut(); };
 $('findSaves').onclick = findSaves;
-$('who2').addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => { if (e.key === 'Enter') findSaves(); });
 $('loadTables').onclick = loadTables;
 $('runSql').onclick = runSql;
 $('dlJson').onclick = () => save('query.json', JSON.stringify(lastRows, null, 1), 'application/json');
@@ -233,11 +244,163 @@ $('banOn').onclick = () => banSkins(true);
 $('banOff').onclick = () => banSkins(false);
 $('loadBanned').onclick = loadBanned;
 $('loadSkinsOk').onclick = () => loadSkins('approved');
+const TABS = ['map', 'players', 'items', 'reports', 'saves', 'db', 'skins', 'audit'];
 for (const b of document.querySelectorAll('#tabs button')) {
   /** @type {any} */ (b).onclick = () => {
     for (const x of document.querySelectorAll('#tabs button')) x.classList.toggle('on', x === b);
-    for (const t of ['saves', 'db', 'skins', 'audit']) $(`t-${t}`).hidden = t !== /** @type {any} */ (b).dataset.t;
+    for (const t of TABS) $(`t-${t}`).hidden = t !== /** @type {any} */ (b).dataset.t;
   };
 }
+
+// ── the picked player and character, which every form shares ──
+const picked = { id: '', name: '', char: '', charName: '' };
+function pickPlayer(/** @type {string} */ id, /** @type {string} */ name) {
+  if (picked.id !== id) { picked.char = ''; picked.charName = ''; $('pickChar').value = ''; }
+  picked.id = id; picked.name = name; $('pick').value = name;
+  say('pickMsg', `picked ${name}`);
+}
+function pickChar(/** @type {string} */ id, /** @type {string} */ name) {
+  picked.char = id; picked.charName = name; $('pickChar').value = id;
+  say('pickMsg', `picked ${picked.name || 'a player'} / ${name}`);
+}
+/** The picked player's account id: looked up by the name typed when it is not the one picked from a list. */
+async function pickedId() {
+  const typed = $('pick').value.trim();
+  if (!typed) return null;
+  if (picked.id && (typed === picked.name || typed === picked.id)) return picked.id;
+  const j = await call('/v1/staff/player', { name: typed });
+  if (j.error || typeof j.account?.id !== 'string') { say('pickMsg', why(j.error ? j : { error: 'no-player' }), true); return null; }
+  pickPlayer(j.account.id, j.account.handle ?? j.account.guestName ?? typed);
+  return picked.id;
+}
+const picks = { pickPlayer, pickChar };
+$('pickChar').addEventListener('input', () => { picked.char = $('pickChar').value.trim(); });
+async function openCard() {
+  const id = await pickedId();
+  if (!id) return;
+  for (const x of document.querySelectorAll('#tabs button')) if (/** @type {any} */ (x).dataset.t === 'players') /** @type {any} */ (x).click();
+  const out = $('cardOut');
+  out.replaceChildren(el('div', 'Loading...', 'dim'));
+  const j = await call('/v1/staff/player', { target: id });
+  if (j.error) out.replaceChildren(el('div', why(j), 'bad')); else showAnswer(out, j, picks);
+}
+$('pickLoad').onclick = openCard;
+$('pick').addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => { if (e.key === 'Enter') openCard(); });
+
+// ── the action tabs (staffPanelActions.js) ──
+async function send(/** @type {any} */ act, /** @type {any} */ body, /** @type {HTMLElement} */ out) {
+  out.replaceChildren(el('div', 'Working...', 'dim'));
+  const j = await call(act.p, body);
+  if (j.error) out.replaceChildren(el('div', why(j), 'bad'));
+  else showAnswer(out, j, picks);
+  if (!j.error && (act.p === '/v1/staff/watch/add' || act.p === '/v1/staff/watch/remove')) sendTags();
+  return j;
+}
+const cardBox = el('div'); cardBox.id = 'cardOut';
+$('t-players').append(el('h2', 'Player card'), el('div', 'Type a name in the Player box and press Open, or Pick one from a list.', 'dim'), cardBox);
+for (const tab of ['players', 'items', 'reports']) {
+  buildActs($(`t-${tab}`), STAFF_TABS[tab], {
+    send, who: pickedId, char: () => picked.char,
+    extra: (act, row, _read, fields) => {
+      if (act.fixed && /** @type {any} */ (act.fixed).op === 'start' && embedded) {   // an event's place, from where I stand in game
+        const b = el('button', 'Where I stand');
+        b.onclick = async () => {
+          const h = await ask({ dfoStaff: 'here?' }, 'here');
+          const box = /** @type {any} */ (fields.get('ev'));
+          if (!h || h.region == null) { say('pickMsg', 'The game did not say where you stand (outdoors only).', true); return; }
+          let ev = {}; try { ev = JSON.parse(box.value || '{}'); } catch { /* start again */ }
+          box.value = JSON.stringify({ ...ev, rg: h.region, loc: h.loc ?? undefined, nm: h.place ?? h.name ?? undefined, px: h.px, py: h.py }, null, 1);
+        };
+        row.append(b);
+      }
+    },
+  });
+}
+
+// ── the game's staff hook, through the dock (in game only) ──
+const toGame = (/** @type {object} */ m) => { if (embedded) window.parent.postMessage(m, location.origin); };
+/** @type {Map<string, (m: any) => void>} */
+const answers = new Map();
+/** Ask the game and wait for its answer word (up to 4 s). @param {object} m @param {string} word */
+const ask = (m, word) => new Promise((resolve) => {
+  const t = setTimeout(() => { answers.delete(word); resolve(null); }, 4000);
+  answers.set(word, (a) => { clearTimeout(t); answers.delete(word); resolve(a); });
+  toGame(m);
+});
+let doorUp = false;
+function doorOpen() {
+  if (!embedded) { $('mapNoGame').hidden = false; $('mapGame').hidden = true; $('gameLink').textContent = ''; return; }
+  $('mapNoGame').hidden = true; $('mapGame').hidden = false;
+  toGame({ dfoStaff: 'hook?' });
+  toGame({ dfoStaff: 'regions?' });
+  hideRead();
+}
+async function hideRead() {
+  const j = await call('/v1/staff/hide', {});
+  $('hideState').textContent = j.error ? why(j) : j.hidden ? 'hidden' : 'shown';
+}
+async function hideSet(/** @type {boolean} */ on) {
+  const j = await call('/v1/staff/hide', { on });
+  if (!j.error) toGame({ dfoStaff: 'relink' });
+  $('hideState').textContent = j.error ? why(j) : j.hidden ? 'hidden' : 'shown';
+  return !j.error;
+}
+async function sendTags() {
+  if (!embedded || !session) return;
+  const j = await call('/v1/staff/watch', {});
+  const list = (j.watch ?? []).slice(0, 200).map((/** @type {any} */ w) => ({ sub: w.sub, level: 'medium', why: 'watched', watch: true }));
+  toGame({ dfoStaff: 'tags', dist: 100, list });
+}
+function showMap(/** @type {any} */ m) {
+  say('mapMsg', `${m.name ?? ''} - ${m.state === 'open' ? 'live' : m.state === 'hide' ? 'turn Hide me on to watch' : m.state ?? ''} - ${m.list?.length ?? 0} players`);
+  const out = $('mapOut');
+  const t = document.createElement('table');
+  const head = t.createTHead().insertRow();
+  for (const c of ['', 'name', 'x', 'y', 'road', 'seen']) head.append(el('th', c));
+  const body = t.createTBody();
+  for (const p of m.list ?? []) {
+    const tr = body.insertRow();
+    const td = tr.insertCell();
+    const f = el('button', 'Follow'); f.onclick = () => { toGame({ dfoStaff: 'follow', sub: p.sub }); say('followMsg', `following ${p.name}`); };
+    const pk = el('button', 'Pick'); pk.onclick = () => pickPlayer(p.sub, p.name);
+    td.append(f, ' ', pk);
+    for (const v of [p.name, p.px, p.py, p.road ?? '', `${p.ageS ?? 0}s ago`]) tr.append(el('td', String(v ?? '')));
+  }
+  out.replaceChildren(t);
+}
+window.addEventListener('message', async (e) => {
+  if (!embedded || e.source !== window.parent || e.origin !== location.origin) return;
+  const m = /** @type {any} */ (e.data);
+  if (!m || typeof m.dfoStaff !== 'string') return;
+  answers.get(m.dfoStaff)?.(m);
+  if (m.dfoStaff === 'hook') { doorUp = true; $('gameLink').textContent = `game hook v${m.v}`; sendTags(); }
+  else if (m.dfoStaff === 'regions' && Array.isArray(m.names)) {
+    const sel = $('region'); sel.replaceChildren();
+    m.names.forEach((/** @type {string} */ n, /** @type {number} */ i) => { const o = /** @type {HTMLOptionElement} */ (el('option', n)); o.value = String(i); sel.append(o); });
+  } else if (m.dfoStaff === 'map') showMap(m);
+  else if (m.dfoStaff === 'act' && m.act === 'follow' && typeof m.sub === 'string') { pickPlayer(m.sub, m.name ?? m.sub); say('followMsg', `following ${m.name ?? m.sub}`); }
+  else if (m.dfoStaff === 'tags?') sendTags();
+  else if (m.dfoStaff === 'token' && !('tok' in m) && session) {
+    // the hook asks a follow token for a room: minted on this staff session (server-account/src/staffFollow.js)
+    const j = await call('/v1/staff/follow', { sub: m.sub, ...(m.room ? { room: m.room } : {}) });
+    toGame({ dfoStaff: 'token', sub: m.sub, room: m.room, tok: typeof j.token === 'string' ? j.token : null });
+  } else if (m.dfoStaff === 'hide' && !('ok' in m) && typeof m.on === 'boolean') {
+    const ok = session ? await hideSet(m.on) : false;
+    toGame({ dfoStaff: 'hide', on: m.on, ok });
+  }
+});
+$('hideOn').onclick = () => hideSet(true);
+$('hideOff').onclick = () => hideSet(false);
+$('followPick').onclick = async () => {
+  const id = await pickedId();
+  if (!id) return say('followMsg', 'Pick a player first.', true);
+  toGame({ dfoStaff: 'follow', sub: id }); say('followMsg', doorUp ? `following ${picked.name}` : 'asked (the game has not answered yet)');
+};
+$('unlock').onclick = () => { toGame({ dfoStaff: 'unlock' }); say('followMsg', 'let go'); };
+$('watchRegion').onclick = () => { const v = $('region').value; if (v !== '') toGame({ dfoStaff: 'map?', region: Number(v) }); };
+$('stopRegion').onclick = () => { toGame({ dfoStaff: 'map?', region: null }); say('mapMsg', 'stopped'); };
+setInterval(() => { if (doorUp && session) sendTags(); }, 60_000);
+if (embedded) window.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.parent.postMessage({ dfoStaffDock: 'close' }, location.origin); });
+
 showKey();
 if (session) call('/v1/staff/me').then((j) => { if (!j.error) opened(j); else signedOut(); });

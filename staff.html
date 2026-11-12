@@ -9,24 +9,37 @@
     :root { color-scheme: dark; --bg:#0d1014; --card:#161b21; --line:#2b323b; --ink:#e9e4d9; --dim:#8b8578; --gold:#c08a3e; --bad:#d4614f; --ok:#6fae6a; }
     html, body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
     main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    body.embed main { max-width: none; padding: 8px 10px; }
+    body.embed h1 { display: none; }
     h1 { font-size: 18px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
-    h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 18px 0 6px; }
+    h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 14px 0 6px; }
+    h3 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin: 10px 0 4px; }
     .card { background: var(--card); border: 1px solid var(--line); padding: 12px; margin-bottom: 12px; }
-    input, textarea, button, select { font: inherit; color: var(--ink); background: #0a0d11; border: 1px solid var(--line); padding: 6px 9px; }
-    input[type=text], input[type=password] { width: 220px; }
-    textarea { width: 100%; box-sizing: border-box; min-height: 90px; font-family: ui-monospace, monospace; }
+    input, textarea, button, select { font: inherit; color: var(--ink); background: #0a0d11; border: 1px solid var(--line); padding: 5px 8px; }
+    input[type=text], input[type=password] { width: 200px; }
+    input[type=number] { width: 90px; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 80px; font-family: ui-monospace, monospace; }
     button { cursor: pointer; } button:hover { border-color: var(--gold); }
     button.on { border-color: var(--gold); color: var(--gold); }
-    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; }
+    button.warn { border-color: #6b3a32; } button.warn:hover { border-color: var(--bad); color: var(--bad); }
+    .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 5px 0; }
     .dim { color: var(--dim); } .bad { color: var(--bad); } .ok { color: var(--ok); }
     code, pre { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
     pre { background: #0a0d11; border: 1px solid var(--line); padding: 8px; overflow: auto; white-space: pre-wrap; }
     table { border-collapse: collapse; width: 100%; font-size: 12px; }
     th, td { border: 1px solid var(--line); padding: 3px 6px; text-align: left; vertical-align: top; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     th { color: var(--dim); position: sticky; top: 0; background: var(--card); }
+    td button { padding: 1px 6px; font-size: 11px; }
     .scroll { overflow: auto; max-height: 460px; }
+    .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 12px; }
+    .kv b { color: var(--dim); font-weight: 500; }
+    .act { border: 1px solid var(--line); padding: 8px; margin: 6px 0; }
+    .act > .row:first-child b { min-width: 130px; color: var(--gold); font-weight: 600; }
+    .act label { font-size: 12px; color: var(--dim); display: inline-flex; gap: 4px; align-items: center; }
+    .pickbar { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 4px 0 6px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
     .skin { display: flex; gap: 14px; align-items: flex-start; border: 1px solid var(--line); padding: 8px; margin: 8px 0; flex-wrap: wrap; }
     .skin img { max-height: 220px; image-rendering: pixelated; background: repeating-conic-gradient(#222 0 25%, #2c2c2c 0 50%) 0 0 / 16px 16px; border: 1px solid var(--line); }
+    #gameLink { font-size: 12px; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -35,7 +48,7 @@
   <h1>Bunnyfall staff</h1>
 
   <section id="login" class="card">
-    <div class="row"><input id="handle" type="text" placeholder="developer handle" autocomplete="username" />
+    <div class="row"><input id="handle" type="text" placeholder="staff handle" autocomplete="username" />
       <input id="password" type="password" placeholder="password" autocomplete="current-password" />
       <button id="go">Sign in</button></div>
     <div id="loginMsg" class="dim"></div>
@@ -47,11 +60,37 @@
   </section>
 
   <section id="app" hidden>
-    <div class="row"><span id="who"></span><span style="flex:1"></span><button id="out">Sign out</button></div>
-    <div class="row" id="tabs"><button data-t="saves" class="on">Saves</button><button data-t="db">Database</button><button data-t="skins">Skins</button><button data-t="audit">Audit log</button></div>
+    <div class="row"><span id="who"></span><span id="gameLink" class="dim"></span><span style="flex:1"></span><button id="out">Sign out</button></div>
+    <div class="pickbar">
+      <div class="row" id="tabs">
+        <button data-t="map" class="on">Live map</button><button data-t="players">Players</button><button data-t="items">Items &amp; economy</button>
+        <button data-t="reports">Reports &amp; events</button><button data-t="saves">Saves</button><button data-t="db">Database</button>
+        <button data-t="skins">Skins</button><button data-t="audit">Audit log</button>
+      </div>
+      <div class="row"><span class="dim">Player</span><input id="pick" type="text" placeholder="handle or guest name" /><button id="pickLoad">Open</button>
+        <span class="dim">Character</span><input id="pickChar" type="text" placeholder="character id (pick one from a card)" /><span id="pickMsg" class="dim"></span></div>
+    </div>
 
-    <div id="t-saves" class="card">
-      <div class="row"><input id="who2" type="text" placeholder="handle or guest name" /><button id="findSaves">Find saves</button></div>
+    <div id="t-map" class="card">
+      <div id="mapNoGame" class="dim" hidden>The live map, Follow and the staff tags need the game: open this panel from the ST button in game.</div>
+      <div id="mapGame">
+        <div class="row"><b>Hide me</b><span id="hideState" class="dim">...</span><button id="hideOn">Hide me</button><button id="hideOff">Show myself</button>
+          <span class="dim">Hidden staff are kept out of every room's lists (the follow eye always is).</span></div>
+        <div class="row"><b>Follow</b><button id="followPick">Follow the picked player</button><button id="unlock">Let go</button><span id="followMsg" class="dim"></span></div>
+        <div class="row"><b>Live map</b><select id="region"><option value="">regions load in game</option></select><button id="watchRegion">Watch</button><button id="stopRegion">Stop</button>
+          <span id="mapMsg" class="dim"></span></div>
+        <div id="mapOut" class="scroll"></div>
+        <h2>Staff tags</h2>
+        <div class="dim">Players on your watch list get a tag over their heads in game (Shift+M toggles the staff view). Add them under Players.</div>
+      </div>
+    </div>
+
+    <div id="t-players" class="card" hidden></div>
+    <div id="t-items" class="card" hidden></div>
+    <div id="t-reports" class="card" hidden></div>
+
+    <div id="t-saves" class="card" hidden>
+      <div class="row"><button id="findSaves">Find the picked player's saves</button></div>
       <div id="savesMsg" class="dim"></div>
       <div id="savesOut"></div>
     </div>
@@ -66,8 +105,8 @@
 
     <div id="t-skins" class="card" hidden>
       <div class="row"><button id="loadSkins">Skins waiting</button><button id="loadSkinsOk">Approved</button><span id="skinsMsg" class="dim"></span></div>
-      <div class="row"><input id="banWho" type="text" placeholder="handle, guest name or id" /><input id="banNote" type="text" placeholder="note (optional)" />
-        <button id="banOn">Disable their skins</button><button id="banOff">Enable again</button><button id="loadBanned">Who is disabled</button></div>
+      <div class="row"><input id="banNote" type="text" placeholder="note (optional)" />
+        <button id="banOn">Disable the picked player's skins</button><button id="banOff">Enable again</button><button id="loadBanned">Who is disabled</button></div>
       <div id="bannedOut" class="dim"></div>
       <div id="skinsOut"></div>
     </div>
