@@ -1555,6 +1555,9 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   if (closed) return closed;
   const r = plan ? plan.legacy : recipeById(id);
   if (!r) return { error: 'bad-recipe' };
+  // BUNNYFALL CRAFTING REWORK: the old station menus are gone - every piece is made at the Bench (by form and picks, its
+  // Potential the cap); a recipe asked plainly is the classic cook's dish alone (a kept old craft is answered above by its row)
+  if (!plan && r.kind !== 'dish') return { error: 'prof-bench' };
   if (r.later) return { error: 'prof-later' };   // PROF4: a recipe named before its slice (the Ram Kit until SEAT2b part two - none now)
   if (!dyeOk(r, dye)) return { error: 'prof-dye' };   // PROF7: a garment's dye, of its ten - nothing else is dyed
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };

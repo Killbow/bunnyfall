@@ -554,6 +554,7 @@ const REFUSAL_WORDS = {
   // PROF3: one craft at a time; AUDIT PROF-541 R2-C2: one latch for every craft and brew (profBook.js _craftBusy) - the
   // anvil's word named the wrong work at the fire, the loom and the cauldron, so the words name none
   'prof-busy': () => t('account.refusal.profBusy', 'Your hands are busy with another craft.'),
+  'prof-bench': () => t('account.refusal.profBench', 'Pieces are made at the Bench now: stand at the station and open the Bench in the Crafting tab.'),   // BUNNYFALL: the old menus gone
   'prof-later': () => t('account.refusal.profLater', 'That is made when the sieges come.'),   // PROF4: the Ram Kit (PROF0 25)
   // PROF7: Hunting's day - the account's, every character's together (PROF0 6)
   'prof-hunt-cap': () => t('account.refusal.profHuntCap', 'Your account has taken all the hides a day allows, across your characters.'),   // CAP-OFF: kept for one not yet redeployed

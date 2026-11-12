@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- The old crafting menus at the anvil, workbench, loom, mason's bench and jeweller's bench no longer make pieces. Everything is made at the Bench now, so material Potential applies the same way for everyone. Cooking at a fire and Master's work are unchanged.
 - Crafting writs now take what the pot and the cauldron make. A potion writ takes your one-trait cauldron bottles of that potion (mixed bottles don't count), a dish writ your pot dishes of its kind: stew, supper, tart or feast. Provisioning also goes up to rank 100 by every way of making, no matter your other crafts. At an alchemy table, option 2 now says it opens the Provisioning page.
 - Provisioning is its own system now, on its own line of the Crafting tab. Put ingredients in a pot (at a fire) or a cauldron with a base (at an alchemy table): every ingredient has hidden traits, and what you make keeps every trait two of them share. You learn traits as you make things, and your recipe book keeps every combination you find. The Simmer is its minigame: hold the heat inside the band to make it stronger.
 - Dishes and potions grow stronger with your Provisioning rank: dishes up to +15 to an attribute, and your potions start as good as the shops' and end far better. Two-trait potions and trait dishes can only be made by players.

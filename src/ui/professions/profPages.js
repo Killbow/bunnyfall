@@ -228,6 +228,8 @@ const wordRow = (id, label) => {
   Object.defineProperty(row, 1, { enumerable: true, get: label });
   return Object.freeze(row);
 };
+/** BUNNYFALL CRAFTING REWORK: the old station pages make nothing - the Bench does (craftWindow.js), its Potential the cap. */
+export const BENCH_NOTE = 'Pieces are made at the Bench now: stand at the station and open the Bench in the Crafting tab.';
 /** STATION-DOOR (bible/01-Overview/bugs/Field-Bugs-2026-10-11f.md): the home stations whose press opens Daggerfall's maker AND
  *  whose profession's act is this page's - each the act's word, as the press's chooser offers it beside the maker. A
  *  200,000-gold enchanting station opened the item maker alone, and Disenchanting stood at the foot of this page with no
@@ -1913,10 +1915,7 @@ function drawAnvil(detail, rerender, kit) {
       quick.type = 'button';
       quick.disabled = !ready;
       quick.onclick = () => { void finish(false); };
-      box.append(go, quick);
-      // CRAFT-HALL: Craft x N
-      const wood = _anvil.heartwood && takesHeartwood(r);
-      craftTimes(box, el, _anvil, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(forge, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });
+      box.append(el('p', 'px-note', BENCH_NOTE));   // BUNNYFALL: the old menu's craft is the Bench's now
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_anvil.busy && !_anvil.crafting && !_anvil.act;
       drawMasterBox(box, kit, r, { station: 'anvil', book, state: _anvil, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
@@ -2134,9 +2133,7 @@ function drawWorkbench(detail, rerender, kit) {
       quick.type = 'button';
       quick.disabled = !ready;
       quick.onclick = () => { void finish(false); };
-      box.append(go, quick);
-      const wood = _bench.heartwood && takesHeartwood(r);
-      craftTimes(box, el, _bench, rerender, { ready, most: !r.later && recipeOpen(r, rank) ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood }) });   // CRAFT-HALL
+      box.append(el('p', 'px-note', BENCH_NOTE));   // BUNNYFALL: the old menu's craft is the Bench's now
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = !r.later && recipeOpen(r, rank) && !elsewhere && !short && !_bench.busy && !_bench.crafting && !_bench.act;
       drawMasterBox(box, kit, r, { station: 'workbench', book, state: _bench, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
@@ -2388,8 +2385,7 @@ function drawLoom(detail, rerender, kit) {
       quick.type = 'button';
       quick.disabled = !ready;
       quick.onclick = () => { void finish(false); };
-      box.append(go, quick);
-      craftTimes(box, el, _loom, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(loom, recipeValue(r.id)), craftsHeld(r.inputs, book)) : 0, once: () => p.craft(r.id, { clean: false, dye }) });   // CRAFT-HALL: in the dye chosen
+      box.append(el('p', 'px-note', BENCH_NOTE));   // BUNNYFALL: the old menu's craft is the Bench's now
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_loom.busy && !_loom.crafting && !_loom.act;
       drawMasterBox(box, kit, r, { station: 'loom', book, state: _loom, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, dye, master: lines }) });   // MASTER-ART: in the dye chosen
@@ -2647,8 +2643,7 @@ function drawMasonBench(detail, rerender, kit) {
     quick.type = 'button';
     quick.disabled = !ready;
     quick.onclick = () => { if (!quick.disabled) void finishFor({ kind: 'carve', id: r.id, count: 1 })(false); };
-    box.append(go, quick);
-    craftTimes(box, el, _mason, rerender, { ready, most: open ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(r.inputs, book)) : 0, once: () => p.craft?.(r.id, { clean: false }) ?? Promise.resolve(null) });   // CRAFT-HALL: carvings x N
+    box.append(el('p', 'px-note', BENCH_NOTE));   // BUNNYFALL: the old menu's carving is the Bench's now
     detail.append(box);
   }
   if (_mason.word) detail.append(el('p', 'prof-word', _mason.word));
@@ -3113,8 +3108,7 @@ function drawJewellerBench(detail, rerender, kit) {
       quick.type = 'button';
       quick.disabled = !ready;
       quick.onclick = () => { if (!quick.disabled) void finishFor(r.id, wood, crack)(false); };
-      box.append(go, quick);
-      craftTimes(box, el, _jewel, rerender, { ready, most: recipeOpen(r, rank) ? feesPaid(pricedStation(bench, recipeValue(r.id)), craftsHeld(spends, book)) : 0, once: () => p.craft(r.id, { clean: false, heartwood: wood, cracked: crack }) });   // CRAFT-HALL
+      box.append(el('p', 'px-note', BENCH_NOTE));   // BUNNYFALL: the old menu's craft is the Bench's now
       // AUDIT HORIZONTAL B4: the station free, its goods aside - a Master's work spends its recipe's own, never a stand-in's
       const free = recipeOpen(r, rank) && !elsewhere && !short && !_jewel.crafting && !_jewel.act;
       drawMasterBox(box, kit, r, { station: 'jeweller', book, state: _jewel, free, rerender, name: p.name, go: (lines) => p.craft(r.id, { clean: false, master: lines }) });   // MASTER-ART
