@@ -423,7 +423,7 @@ export function createPoiHost({
       const joined = new Set(got.map((p) => p.index));
       s.missing = [...new Set([...still, ...s.missing])].filter((i) => !joined.has(i));
       s.skipped = s.skipped.filter((i) => !joined.has(i));
-      // a revision that came meanwhile keeps its ask at once
+      // a revision that arrives meanwhile keeps its ask at once
       if (s.missingAt !== -Infinity) s.missingAt = now();
       // the parts join at the next place(), placed there with the rest before anything draws or picks them
       s.joining.push(...got);
