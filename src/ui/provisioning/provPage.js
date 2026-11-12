@@ -272,6 +272,9 @@ export function drawProvPage(detail, rerender, p, here, kit) {
       if (gentle) { make(0); return; }
       _pv.act = mountSimmer(rank, (rep) => { _pv.act = null; if (rep && !rep.cancelled) make(rep.simmer); else { _pv.word = 'You took it off the heat. Nothing was spent.'; rerender(); } }, rerender);
       rerender();
+      // the Simmer sits above the button, in the vessel: bring it into view (a scaled pause book, a long page)
+      const sim = _pv.act.el;
+      globalThis.requestAnimationFrame?.(() => sim?.scrollIntoView?.({ block: 'center', behavior: 'smooth' }));
     }, !ready));
     if (!gentle) go.append(button('pv-btn', `${verb}, skip the game`, () => make(0), !ready));
     sum.append(go);
