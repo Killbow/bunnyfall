@@ -519,9 +519,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b,
   }));
 
-  // flat pictures (ui/poi/poiFlatUi.js), made when first asked for
+  // flat-picture UI (ui/poi/poiFlatUi.js), created lazily or immediately when game files are available so its asset
+  // placers can be registered below
   let flatUiMade = null;
   const flatUi = () => (flatUiMade ??= createPoiFlatUi({ doc, el, btn, field, numberInput, text, select, check, swallow, root, say, edit, editor, getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b }));
+  // the asset browser's game pictures and items, placed as flat pictures (poi/poiAssetPlace.js)
+  const offFlats = dfModels ? Object.entries(flatUi().placers()).map(([placing, p]) => setPoiAssetPlacer(placing, p)) : [];
   // the scene tools: the outliner's rows and the inspector for several things, a group, a person, or a flat picture
   let scenePanel = null;
   const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule(), flatFields: (d, sel, one) => flatUi().fields(d, sel, one) }));
@@ -1332,7 +1335,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     openPack: (bytes) => openPack(bytes),
     /** Whether a press landed on the panel (the world leaves it alone). */
     owns: (target) => !!target && typeof root.contains === 'function' && root.contains(target),
-    destroy() { gone = true; offEdit(); offUpload(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
+    destroy() { gone = true; offEdit(); offUpload(); for (const off of offFlats) off(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
     /** The DM panel (its tabs, the Sandbox). */
     dm,
     /** The Test button's press, a test's door too. */

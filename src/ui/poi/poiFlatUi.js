@@ -396,5 +396,43 @@ export function createPoiFlatUi(c) {
     fit();
   }
 
-  return { openFlat, fields, open2d };
+  /**
+   * Returns the asset browser placers (poi/poiAssetPlace.js) for `'billboard'`, `'mount'`, and `'paperdoll'` entries.
+   * Drag-and-drop places the flat immediately at the drop point, while the Place button arms placement for the next
+   * ground click. Each `place()` call resolves to true once the row is placed, or false if placement is canceled (via
+   * Esc, starting another placement, or closing the editor).
+   */
+  function placers() {
+    const full = () => { const s = c.edit.selection(); return s && !flatRoom(c.edit.docOf(s.id)) ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats }) : null; };
+    const itemOf = (a) => (Number.isInteger(a?.template) ? { t: a.template, ...(Number.isInteger(a.group) && a.group >= 0 ? { g: a.group } : {}) } : null);
+    const stand = (want, ctx) => new Promise((resolve) => {
+      let placed = false;
+      const armed = { ...want, onPlaced: () => { placed = true; } };
+      c.dialogsClosed();
+      c.editor.placeFlat(armed, want.name || t('poi.flat.defaultPoi', 'New place'));
+      if (ctx.at && c.editor.standAt?.(ctx.at.x, ctx.at.y) && placed) { resolve(true); return; }
+      ctx.say(t('poi.flat.placeHint', 'Click the ground to place it. Press Esc to cancel.'));
+      // polls until this placement finishes, either because a ground click placed it or because placement was canceled
+      const wait = () => { if (c.editor.active?.() !== false && c.editor.placing?.()?.flat === armed) setTimeout(wait, 100); else resolve(placed); };
+      setTimeout(wait, 100);
+    });
+    const billboard = {
+      whyNot: (a) => (!Array.isArray(a?.flat) ? t('poi.flat.noPicture', 'Missing image') : full()),
+      place: (a, ctx) => {
+        const l = decorFlatLight(a.flat);
+        return stand({ kind: 'billboard', flat: [a.flat[0], a.flat[1]], name: a.name ?? '', light: l ? { color: l.color, radius: l.range, intensity: l.intensity, flicker: true } : null }, ctx);
+      },
+    };
+    const item = (kind) => ({
+      whyNot: (a) => {
+        const it = itemOf(a);
+        if (it && poiFlatPicture({ kind, item: it })) return full();
+        return it?.t === P.trophyTemplate ? t('poi.flat.trophyNeedsBeast', 'A trophy needs its beast, which this editor cannot choose yet.') : t('poi.flat.itemNoPicture', 'This item has no world sprite.');
+      },
+      place: (a, ctx) => { const it = itemOf(a); return stand({ kind: 'item', item: it, flat: poiFlatPicture({ kind, item: it }), name: a.name ?? '' }, ctx); },
+    });
+    return { billboard, mount: item('mount'), paperdoll: item('paperdoll') };
+  }
+
+  return { openFlat, fields, open2d, placers };
 }

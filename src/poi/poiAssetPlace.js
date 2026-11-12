@@ -1,8 +1,9 @@
 // @ts-check
-// Placement registry for asset browser entries. Each entry names a `placing` mode (`poi/poiAssetCatalogue.js`), and the
-// module that can place that mode registers a placer here. The in-game editor panel registers `'upload'` (Daggerfall
-// models, uploaded as meshes). `'billboard'`, `'mount'`, and `'paperdoll'` have no placer yet, so those entries can
-// only be browsed and previewed. `'encounter'` entries (creatures) are chosen in a DM encounter, never placed here.
+// How an asset browser entry is placed in a POI. Each entry names its placement mode (`placing` in
+// poi/poiAssetCatalogue.js), and the module that handles that mode registers a placer here. The in-game editor panel
+// registers 'upload' (a Daggerfall model uploaded as a mesh) and 'billboard', 'mount', and 'paperdoll' (flat pictures
+// in ui/poi/poiFlatUi.js); modes without a registered placer are listed and previewed only. 'encounter' (an enemy) is
+// chosen in a DM encounter, never placed directly from the browser.
 
 import { t } from '../systems/textManager.js';
 
