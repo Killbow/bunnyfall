@@ -7,7 +7,7 @@
 import { mintId, overRate } from './accounts.js';
 import { asks, shut, trackView, trackRow, storeOf, workableSql, workStatements, workHeld } from './professions.js';
 import { rankOfXp, PROF_XP_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, STORES_MAX } from '../../src/net/professionLaw.js';
-import { provPlan, provXp, provSig, traitsOf, PREPARES } from '../../src/net/provision/provisionLaw.js';
+import { provPlan, provXp, provSig, traitsOf, PREPARES, dishTemplateOf } from '../../src/net/provision/provisionLaw.js';
 import { firmStatsOf } from './firmament.js';
 import { xpPct, scaleXp } from '../../src/net/firmament/firmamentLaw.js';
 
@@ -80,13 +80,13 @@ export async function provMake(ctx, player, env, { character, kind, keys, base =
   const learnt = plan.keys.flatMap((/** @type {string} */ k) => plan.traits.filter((/** @type {string} */ t) => traitsOf(k, plan.kind).includes(t)).map((/** @type {string} */ t) => [k, t]));
   await db.batch([
     // THE DECISION: every ingredient held
-    db.prepare(`INSERT OR IGNORE INTO prov_makes (player, rid, char_id, kind, keys, base, traits, name, potent, magnitude, resist, minutes, count, party, drink, xp, at, n)
-      SELECT ?1, ?3, ?2, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+    db.prepare(`INSERT OR IGNORE INTO prov_makes (player, rid, char_id, kind, keys, base, traits, name, potent, magnitude, resist, minutes, count, party, drink, dish, xp, at, n)
+      SELECT ?1, ?3, ?2, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?19,
         MAX(0, MIN(?17, ${PROF_XP_MAX} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${TRACK}'), 0))), ?18, ?4
       WHERE ${held.join(' AND ')}`)
       .bind(player.id, character, rid, nonce, plan.kind, JSON.stringify(plan.keys), plan.base, JSON.stringify(plan.traits), plan.name,
         plan.potent ?? 0, plan.magnitude ?? 0, plan.resistPct ?? 0, plan.minutes ?? 0, plan.count, plan.party ? 1 : 0, plan.drink ? 1 : 0, xp, nowS,
-        null, null, ...inputs.map((i) => i.key)),
+        plan.kind === 'pot' ? dishTemplateOf(plan) : null, null, ...inputs.map((i) => i.key)),
     // the ingredients out
     ...inputs.flatMap((inp) => workStatements(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: decided.replace('?3', '?5').replace('?4', '?6'), binds: [inp.key, inp.n, rid, nonce] })),
     // the XP

@@ -126,6 +126,9 @@ export function drawProvPage(detail, rerender, p, here, kit) {
     row.append(h('b', null, b.name), h('small', null, `${b.traits.map(traitName).join(', ') || 'no traits'} · made ${b.made}`));
     bk.append(row);
   }
+  bk.append(h('small', null, kind === 'pot'
+    ? 'Crafting writs: a dish writ takes your pot dishes of its kind (stew, supper, tart or feast) or the classic dish.'
+    : 'Crafting writs: a potion writ takes your one-trait bottles of that potion or the classic potion. Mixed bottles don’t count.'));
   bk.append(h('div', 'pv-title', 'Classic recipes'));
   const classics = kind === 'pot' ? DISHES.map((d) => [d.name, 'the classic dish']) : POTION_RECIPES.map((r) => [r.displayName ?? r.name, 'the classic potion']);
   for (const [n, w] of classics) {

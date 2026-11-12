@@ -53,7 +53,7 @@ import {
   STORES_MAX, WITHDRAW_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, HARVEST_LATE_S, HARVEST_EARLY_S,
   PROF_RID_RE, PROF_XP_MAX, profSwitchOf, basketStep, herbKey, professionOfFamily, courtWritCount, COURT_WRITS_PER_DAY,
   glintsMax, smeltRecipe, SMELT_MAX, smeltXp, DEEP_UNCONFIRMED_PER_DAY,   // CAP-OFF: no day's cap to import
-  xpForRank, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN,   // AUDIT FB1018f L5-1: the crafter's limit read in the decision (craftCapSql)
+  xpForRank, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN, LIMIT_FREE,   // AUDIT FB1018f L5-1: the crafter's limit read in the decision (craftCapSql)
   stockOf, STOCK_MAX, withdrawable, cutsMax, workPer, workSpecRank, hideOfFoe, HIGH_HIDES_PER_DAY, HIGH_HIDE_TIER,
   HAUL_YIELD, FISH_KEY, haulTier,   // PROF8
   herbXpTier,   // HERB-XP
@@ -261,7 +261,8 @@ export const workableSql = (p, c, m) => `COALESCE((SELECT SUM(qty) FROM prof_sto
  *  character's SQL. Pinned to craftXpCap over every craft and every standing of the others (fb1018f_craftlimit.test.js). */
 export function craftCapSql(p, c, profession) {
   const own = trackOf(profession), past = xpForRank(JOURNEYMAN_RANK + 1);
-  const others = PROFESSIONS.filter((x) => x.kind === 'crafting' && x.id !== own).map((x) => `'${x.id}'`).join(', ');
+  if (own === LIMIT_FREE) return String(PROF_XP_MAX);   // BUNNYFALL PROVISIONING: outside the limit
+  const others = PROFESSIONS.filter((x) => x.kind === 'crafting' && x.id !== own && x.id !== LIMIT_FREE).map((x) => `'${x.id}'`).join(', ');
   return `(CASE WHEN (SELECT COUNT(*) FROM prof_tracks WHERE player = ${p} AND char_id = ${c} AND profession IN (${others}) AND xp >= ${past}) >= ${CRAFTS_ABOVE_JOURNEYMAN} THEN ${past - 1} ELSE ${PROF_XP_MAX} END)`;
 }
 /** A character's harvests today, by profession. */

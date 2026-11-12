@@ -135,7 +135,12 @@ Each make pays by its ingredients' worth and its trait count, with no first-time
 - Every dish and potion players own stays as it is and works.
 - The four dishes and twenty potions are in every book from the start, so nothing that can be made today is lost.
 - Characters with Provisioning pledged as Focus get that place back.
-- The old cooking and brewing pages are removed once the new page covers them.
+- The old cooking and brewing pages stay: the classic dishes and potions are still made there.
+- Crafting writs take both ways. A potion writ counts the classic brews and the cauldron's one-trait bottles of that
+  potion (`prov_makes`, `traits` = [the potion]); a bottle of two traits or more fills none. A dish writ takes the classic
+  dish's own pieces, or the pot's dishes of its kind (`prov_makes.dish`, migration 0205: stew 685, supper 686, tart 687,
+  feast 688), counted against the character's pot-filled writs (`goods` NULL).
+- Provisioning is outside the old crafter's limit (two crafts past rank 50): every way of raising it goes to 100.
 
 ## Phases
 

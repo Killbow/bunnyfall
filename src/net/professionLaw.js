@@ -1195,13 +1195,17 @@ export function smeltOrigin(r, count, bought) {
   b = Math.min(count, b);
   return { own: count - b, bought: b };
 }
+/** BUNNYFALL PROVISIONING: its own system, outside the crafter's limit - the pot and the cauldron, the old potion maker
+ *  and its writs all raise it to Master, and it holds no other craft at 50. */
+export const LIMIT_FREE = 'provisioning';
 /** THE CRAFTER'S LIMIT (PROF0 3.2): a character raises at most two crafts past Journeyman. A craft that is not one of
  *  them while two others are stops at rank 50 - the XP one short of rank 51. `ranks` every crafting track's rank.
  *  CRAFT3 (41.2: "the crafter's limit stays two above Journeyman - of five, a real choice"): the five crafts' tracks; a
  *  discipline asked is its craft's. */
 export function craftXpCap(profession, ranks) {
   const own = trackOf(profession);
-  const past = Object.entries(ranks ?? {}).filter(([p, r]) => p !== own && BY_ID.get(p)?.kind === 'crafting' && r > JOURNEYMAN_RANK).length;
+  if (own === LIMIT_FREE) return PROF_XP_MAX;
+  const past = Object.entries(ranks ?? {}).filter(([p, r]) => p !== own && p !== LIMIT_FREE && BY_ID.get(p)?.kind === 'crafting' && r > JOURNEYMAN_RANK).length;
   return past >= CRAFTS_ABOVE_JOURNEYMAN ? xpForRank(JOURNEYMAN_RANK + 1) - 1 : PROF_XP_MAX;
 }
 /** CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f; the Discord, "Smithing stuck at 50": "it is literally 1xp off of levelling

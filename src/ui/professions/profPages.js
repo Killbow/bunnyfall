@@ -234,7 +234,7 @@ const wordRow = (id, label) => {
  *  door from the station to it. */
 export const STORES_ACT_STATIONS = Object.freeze({ alchemy: 'Brew', enchant: 'Disenchant' });
 /** AUDIT HORIZONTAL A7: the press's chooser's option for that act, in the player's language ('' for any other station). */
-export const stationActLabel = (/** @type {string} */ kind) => (kind === 'alchemy' ? t('prof.page.stationAct.brew', '2: Brew (Crafting page)')
+export const stationActLabel = (/** @type {string} */ kind) => (kind === 'alchemy' ? t('prof.page.stationAct.brew', '2: Brew (Provisioning page)')
   : kind === 'enchant' ? t('prof.page.stationAct.disenchant', '2: Disenchant (Crafting page)') : '');
 /** STATION-DOOR: the station whose section the next draw of this page scrolls to - set by a station's press, read once. */
 let _storesFocus = /** @type {string|null} */ (null);

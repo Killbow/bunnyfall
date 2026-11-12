@@ -13,7 +13,7 @@
 
 import { craftWritDelivered } from '../systems/guild/bunnyServices.js';   // BUNNY-GUILDS: the crafters' halls
 import { realmGoldAct } from '../systems/realmSaves.js';
-import { craftGoodsPick, craftGoodsHeld, pieceOf } from '../net/craftWritLaw.js';
+import { craftGoodsPick, craftGoodsHeld, craftPotHeld, pieceOf } from '../net/craftWritLaw.js';
 import { recordCount } from '../net/realm/realmTradeLaw.js';
 
 /**
@@ -43,7 +43,11 @@ export function createCraftWritHost({ player, session, checkpoint, saved, book }
         return { pack, made, ready: pack >= w.qty && made >= w.qty };
       }
       const made = piecesOf(w).length;
-      return { pack: craftGoodsHeld(player()?.items ?? [], w), made, ready: made >= w.qty };
+      // BUNNYFALL PROVISIONING: a dish writ filled from the pot instead - its dishes of the kind, made by this character
+      const potPack = craftPotHeld(player()?.items ?? [], w);
+      const pot = Math.max(0, Number(w.pot) || 0);
+      if (made < w.qty && w.kind === 'dish' && potPack >= w.qty && pot >= w.qty) return { pack: potPack, made: pot, ready: true, pot: true };
+      return { pack: craftGoodsHeld(player()?.items ?? [], w), made: Math.max(made, Math.min(pot, potPack)), ready: made >= w.qty };
     },
     /**
      * A WRIT DELIVERED: its goods picked from the pack as the service picks them from the record (craftWritLaw.js
@@ -58,7 +62,9 @@ export function createCraftWritHost({ player, session, checkpoint, saved, book }
       const pack = p?.items;
       const s = session();
       if (!s || !Array.isArray(pack)) return { ok: false, error: 'realm-needed' };
-      const pieces = w.kind === 'potion' ? null : piecesOf(w).slice(0, w.qty);
+      const own = w.kind === 'potion' ? [] : piecesOf(w);
+      // BUNNYFALL PROVISIONING: a dish writ the pack's own pieces cannot fill goes from the pot's dishes (no pieces)
+      const pieces = w.kind === 'potion' || (w.kind === 'dish' && own.length < w.qty) ? null : own.slice(0, w.qty);
       const pick = craftGoodsPick(pack, w, pieces);
       if (!pick) return { ok: false, error: w.kind === 'potion' ? 'craft-goods-gone' : 'craft-pieces' };
       // AUDIT CRAFT-WRITS C9: the records out from the last index first, and back from the first - each where it stood

@@ -30,7 +30,7 @@ import { RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import { PROF_OPS_MAX, PROF_OPS_WINDOW_S, rankOfXp } from '../../src/net/professionLaw.js';
 import { HALL_WRIT_REP } from '../../src/net/npcChapterLaw.js';
 import { MAX_REPUTATION } from '../../src/systems/guild/guildFactions.js';
-import { COOKING_RECIPES } from '../../src/net/recipeLaw.js';
+import { COOKING_RECIPES, DISHES } from '../../src/net/recipeLaw.js';
 import { craftWritsFor, craftWritId, CRAFT_WRIT_ID_RE, CRAFT_WRITS_PER_DAY, CRAFT_WRIT_SLOTS, craftProductOf, takeCraftGoods } from '../../src/net/craftWritLaw.js';
 
 const DAY_S = 86_400;
@@ -46,7 +46,8 @@ const recipesOf = (/** @type {string} */ product) => {
   return p.kind === 'dish' ? COOKING_RECIPES.filter((r) => r.product === p.id).map((r) => r.id) : [p.key];
 };
 
-/** SQL: the potions of `potion` a character's brews made that no crafting writ it filled has taken yet - EVERY brew a
+/** SQL: the potions of `potion` a character's brews made (BUNNYFALL PROVISIONING: the cauldron's single-trait bottles of
+ *  it as well - a bottle of two traits or more is no plain potion and fills no writ, craftWritLaw.js bottleOf) that no crafting writ it filled has taken yet - EVERY brew a
  *  station made for it, its cauldron's goods from wherever they came (ANY-GOODS, FIELD BUGS 2026-10-26, the owner:
  *  "Crafting writs should work with even store bought ingredients" - migration 0145's `witnessed` is no longer asked).
  *  `p`, `c` the player's and the character's SQL; `potion` the recipe's name's,
@@ -54,7 +55,19 @@ const recipesOf = (/** @type {string} */ product) => {
  *  decision's UPDATE, SQLite read it as the subquery's own row's, and every writ the character had filled, of any
  *  product, was taken from its brews. */
 export const brewedLeftSql = (p, c, potion, product) => `(COALESCE((SELECT SUM(count) FROM prof_brews WHERE player = ${p} AND char_id = ${c} AND potion = ${potion}), 0)
+  + COALESCE((SELECT SUM(count) FROM prov_makes WHERE player = ${p} AND char_id = ${c} AND kind = 'cauldron' AND traits = json_array(${potion})), 0)
   - COALESCE((SELECT SUM(qty) FROM craft_writs WHERE player = ${p} AND filled_char = ${c} AND product = ${product} AND filled_at IS NOT NULL), 0))`;
+
+/** The pot's dish template a dish writ takes (recipeLaw DISHES - provisionLaw.js dishTemplateOf sorts the pot's makes
+ *  into the same four), or null. */
+const potDishOf = (/** @type {string} */ product) => {
+  const p = craftProductOf(product);
+  return p?.kind === 'dish' ? DISHES.find((d) => d.id === p.id)?.templateIndex ?? null : null;
+};
+/** SQL: BUNNYFALL PROVISIONING - the pot's dishes of template `dish` a character made that no writ it filled with pot
+ *  dishes (`goods` NULL) has taken yet. `product` bound, as brewedLeftSql's. */
+export const potLeftSql = (p, c, dish, product) => `(COALESCE((SELECT SUM(count) FROM prov_makes WHERE player = ${p} AND char_id = ${c} AND kind = 'pot' AND dish = ${dish}), 0)
+  - COALESCE((SELECT SUM(qty) FROM craft_writs WHERE player = ${p} AND filled_char = ${c} AND product = ${product} AND filled_at IS NOT NULL AND goods IS NULL), 0))`;
 
 /** SQL: a crafted piece (`pv`, a provenance's SQL) that may fill a writ - the account's (a sold one is its buyer's), this
  *  character's make (`c` - a piece bought on the market keeps its maker's), of an answering recipe (`recipes`, a JSON
@@ -113,7 +126,9 @@ async function craftWritView(db, player, row, character) {
   }
   const { results = [] } = await db.prepare(`SELECT pr.provenance FROM products pr WHERE pr.owner = ?1 AND pr.char_id = ?2 AND pr.recipe IN (SELECT value FROM json_each(?3))
     AND ${pieceOkSql('?1', '?2', 'pr.provenance', '?3')} ORDER BY pr.made_at DESC, pr.rowid DESC LIMIT ?4`).bind(player, character, JSON.stringify(recipesOf(row.product)), CRAFT_PIECES_SHOWN).all();
-  return { ...view, pieces: results.map((x) => String(x.provenance)) };
+  const dish = potDishOf(row.product);
+  const pot = dish == null ? 0 : Number((await db.prepare(`SELECT ${potLeftSql('?1', '?2', '?3', '?4')} AS n`).bind(player, character, dish, row.product).first())?.n ?? 0);
+  return { ...view, pieces: results.map((x) => String(x.provenance)), ...(dish == null ? {} : { pot: Math.max(0, pot) }) };
 }
 
 /**
@@ -174,7 +189,9 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
   const p = craftProductOf(w.product);
   if (!p) return { error: 'no-writ' };
   const qty = Number(w.qty);
-  const goods = p.kind === 'potion' ? null : pieces;
+  // BUNNYFALL PROVISIONING: a dish writ with no pieces is filled with the pot's dishes of its kind
+  const potDish = p.kind === 'dish' && pieces == null ? potDishOf(w.product) : null;
+  const goods = p.kind === 'potion' || potDish != null ? null : pieces;
   if (goods !== null && (!Array.isArray(goods) || goods.length !== qty || new Set(goods).size !== qty)) return { error: 'craft-pieces' };
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   // THE RECORD'S OWN GOODS, out of it in the fill's own batch (GUARDED: no fill, nothing out) - INT3's outbound hold:
@@ -188,6 +205,7 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
   // piece writ's every piece its own (?11 the answering recipes)
   const goodsOk = p.kind === 'potion'
     ? `${brewedLeftSql('?1', '?2', '?10', '?11')} >= craft_writs.qty`
+    : potDish != null ? `${potLeftSql('?1', '?2', '?10', '?11')} >= craft_writs.qty`
     : `(SELECT COUNT(*) FROM json_each(?10) g WHERE ${pieceOkSql('?1', '?2', 'g.value', '?11')}) = craft_writs.qty`;
   const batch = [
     ...prep.steps,
@@ -201,8 +219,8 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
         AND (SELECT COUNT(*) FROM craft_writs WHERE player = ?1 AND day = ?7 AND filled_at IS NOT NULL) < ?8
         AND COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + craft_writs.pay <= ?9
         AND ${goodsOk}`)
-      .bind(player.id, character, nowS, rid, id, nonce, day, CRAFT_WRITS_PER_DAY, MARKS_MAX, p.kind === 'potion' ? p.id : JSON.stringify(goods),
-        p.kind === 'potion' ? w.product : JSON.stringify(recipesOf(w.product)), goods ? JSON.stringify(goods) : null),
+      .bind(player.id, character, nowS, rid, id, nonce, day, CRAFT_WRITS_PER_DAY, MARKS_MAX, p.kind === 'potion' ? p.id : potDish != null ? potDish : JSON.stringify(goods),
+        p.kind === 'potion' || potDish != null ? w.product : JSON.stringify(recipesOf(w.product)), goods ? JSON.stringify(goods) : null),
     mustChange(db),   // no fill, no goods out of the record - the record's step rolls back with it
     // a dish's or a kit's pieces gone with it, as a disenchant's
     db.prepare(`DELETE FROM products WHERE provenance IN (SELECT value FROM json_each((SELECT goods FROM craft_writs WHERE id = ?1 AND n = ?2)))`).bind(id, nonce),
@@ -255,7 +273,7 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
   if (Number(now?.expires_at ?? 0) <= nowS) return { error: 'writ-expired' };
   if ((await craftWritsToday(db, player.id, day)) >= CRAFT_WRITS_PER_DAY) return { error: 'craft-writ-cap' };
   if ((await balanceOf(db, player.id)) + Number(w.pay) > MARKS_MAX) return { error: 'marks-full' };
-  return { error: p.kind === 'potion' ? 'craft-unbrewed' : 'craft-pieces' };
+  return { error: p.kind === 'potion' || potDish != null ? 'craft-unbrewed' : 'craft-pieces' };
 }
 
 /** THE HOUR'S SWEEP (cron.js): an unfilled writ the day after its own, `limit` at once; a filled one stays - a potion

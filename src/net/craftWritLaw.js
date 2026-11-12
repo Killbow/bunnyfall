@@ -240,7 +240,27 @@ const mayGo = (/** @type {any} */ rec) => tradeableRecord(rec) && !isLocked(rec)
 /** A potion record of `key` that may leave: a BOTTLE of its recipe (AUDIT CRAFT-WRITS E3: a recipe sheet names the potion's
  *  key too - never the potion itself) that may go. */
 const bottleOf = (/** @type {any} */ rec, /** @type {number} */ key) => rec?.group === 'UselessItems1' && rec.templateIndex === POTION_BOTTLE
-  && Number.isSafeInteger(rec.potionRecipeKey) && rec.potionRecipeKey === key && mayGo(rec);
+  && Number.isSafeInteger(rec.potionRecipeKey) && rec.potionRecipeKey === key && !(Array.isArray(rec.prov?.t) && rec.prov.t.length > 1) && mayGo(rec);
+/** BUNNYFALL PROVISIONING: a dish writ's DFU template (recipeLaw DISHES), the pot's dishes of which fill it, or null. */
+export const writDishTemplate = (/** @type {string} */ product) => {
+  const p = craftProductOf(product);
+  return p?.kind === 'dish' ? DISHES.find((d) => d.id === p.id)?.templateIndex ?? null : null;
+};
+/** A pot's dish (provItems.js, `prov.k` 'd') of a dish writ's template that may go. */
+const potDishOf = (/** @type {any} */ rec, /** @type {number} */ tpl) => rec?.prov?.k === 'd' && rec.templateIndex === tpl && mayGo(rec);
+/** The records of a pack matching `ok`, counted out to `qty`: `{ at, n }[]`, or null where too few. */
+function countOut(/** @type {any[]} */ list, /** @type {(rec: any) => boolean} */ ok, /** @type {number} */ qty, /** @type {(rec: any) => number} */ rankOf = () => 0) {
+  const order = list.map((rec, at) => ({ rec, at })).filter((x) => ok(x.rec)).sort((a, b) => rankOf(a.rec) - rankOf(b.rec) || a.at - b.at);
+  const out = [];
+  let left = qty;
+  for (const { rec, at } of order) {
+    if (left <= 0) break;
+    const n = Math.min(left, recordCount(rec));
+    out.push({ at, n });
+    left -= n;
+  }
+  return left > 0 ? null : out;
+}
 /** A crafted piece's record answering a dish or kit writ, that may go. */
 export const pieceOf = (/** @type {any} */ rec, /** @type {string} */ product) => typeof rec?.provenance === 'string' && mayGo(rec) && pieceAnswers(product, rec?.recipe);
 /**
@@ -252,19 +272,10 @@ export const pieceOf = (/** @type {any} */ rec, /** @type {string} */ product) =
 export function craftGoodsPick(items, w, pieces = null) {
   const list = Array.isArray(items) ? items : [];
   const key = writPotionKey(w.product);
-  if (key != null) {
-    const order = list.map((rec, at) => ({ rec, at })).filter((x) => bottleOf(x.rec, key))
-      .sort((a, b) => (a.rec.potent ? 1 : 0) - (b.rec.potent ? 1 : 0) || a.at - b.at);
-    const out = [];
-    let left = w.qty;
-    for (const { rec, at } of order) {
-      if (left <= 0) break;
-      const n = Math.min(left, recordCount(rec));
-      out.push({ at, n });
-      left -= n;
-    }
-    return left > 0 ? null : out;
-  }
+  if (key != null) return countOut(list, (rec) => bottleOf(rec, key), w.qty, (rec) => (rec.potent ? 1 : 0));
+  // BUNNYFALL PROVISIONING: a dish writ given no pieces takes the pot's dishes of its kind
+  const tpl = pieces == null ? writDishTemplate(w.product) : null;
+  if (tpl != null) return countOut(list, (rec) => potDishOf(rec, tpl), w.qty);
   if (!Array.isArray(pieces) || pieces.length !== w.qty || new Set(pieces).size !== pieces.length || !pieces.every((p) => typeof p === 'string' && PROVENANCE_RE.test(p))) return null;
   const out = [];
   for (const pv of pieces) {
@@ -280,7 +291,13 @@ export function craftGoodsHeld(/** @type {any[]} */ items, /** @type {{ product:
   const list = Array.isArray(items) ? items : [];
   const key = writPotionKey(w.product);
   if (key != null) return list.filter((rec) => bottleOf(rec, key)).reduce((s, rec) => s + recordCount(rec), 0);
-  return list.filter((rec) => pieceOf(rec, w.product)).length;
+  return list.filter((rec) => pieceOf(rec, w.product)).length + craftPotHeld(list, w);
+}
+/** BUNNYFALL PROVISIONING: how many of the pot's dishes answering a dish writ the pack holds that may leave. */
+export function craftPotHeld(/** @type {any[]} */ items, /** @type {{ product: string }} */ w) {
+  const tpl = writDishTemplate(w.product);
+  if (tpl == null) return 0;
+  return (Array.isArray(items) ? items : []).filter((rec) => potDishOf(rec, tpl)).reduce((s, rec) => s + recordCount(rec), 0);
 }
 /**
  * TAKE A WRIT'S GOODS OUT OF A SAVE, in place - the trade's own take (realmTradeLaw takeTradeGoods: the very records
@@ -341,9 +358,10 @@ export function craftHeldText(/** @type {{ kind: string }} */ w, /** @type {{ pa
  *  a potion maker anywhere else is the client's mix (POTION-DOOR), which the service never sees. */
 export function craftShortText(/** @type {{ kind: string, qty: number }} */ w, /** @type {{ pack: number, made: number }} */ h) {
   if (w.kind === 'potion') {
-    if (h.made < w.qty) return t('prof.craftWrit.shortBrew', 'Brew {n, number} more yourself at an alchemy station. Found or bought bottles don’t count', { n: w.qty - h.made });
+    if (h.made < w.qty) return t('prof.craftWrit.shortBrew', 'Brew {n, number} more yourself, at an alchemy station or in the cauldron with only this trait. Found, bought or mixed bottles don’t count', { n: w.qty - h.made });
     return t('prof.craftWrit.shortCarry', 'Carry {n, number} more of these bottles in your pack', { n: w.qty - h.pack });
   }
+  if (w.kind === 'dish') return t('prof.craftWrit.shortDish', 'Make {n, number} more yourself, at a fire or in the pot. Dishes you bought or sold don’t count', { n: w.qty - h.made });
   return t('prof.craftWrit.shortMake', 'Make {n, number} more yourself. Pieces you bought or sold don’t count', { n: w.qty - h.made });
 }
 /** A writ filled, said: "The Mages Guild thanks you: 156 silver, 312 Provisioning experience and 234 Renown." */
