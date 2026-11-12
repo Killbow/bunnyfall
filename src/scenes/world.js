@@ -1101,6 +1101,9 @@ import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word stag
 import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
 import { gameMaps } from '../net/staffPlaces.js';   // STAFF-EVENT: the game's maps, for the Staff Panel's place picker
 import { createStaffCommands } from './staffCommandsHost.js';   // BUNNYFALL: staff /vanish, /spawn, /greed
+import { createDmBanner } from '../ui/dmBanner.js';   // BUNNYFALL /dm: the banner across the top of the screen
+import { dmLineOf, DM_DEFAULT } from '../net/dmLaw.js';
+const dmBanner = createDmBanner();
 import { staffFollowOnPage, relinkGame } from './staffFollowHost.js';   // STAFF-PANEL5-FOLLOW: the game's staff hook (net/staffHook.js) and the host's half of a follow; STAFF-HIDE-TOGGLE: and the panel's relink
 import { createStaffViewHost } from './staffViewHost.js';   // STAFF-VIEW1: the staff tags, Shift+M and a tag's follow
 import { privateInteriorPrefix, privateInteriorRoom, privateBoatRoom, privateInteriorOf } from '../net/privateInterior.js';
@@ -21514,7 +21517,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // below is: CHAT1's pin holds those five lines as they stand, and
       // the hello is built when the socket opens, a turn later.
       link.mintToken = identityMinter;
-      link.onDm = (line) => chatLog.pushAll({ text: line.text, at: line.at, dm: true });   // TITLE-N: the Dungeon Master's line, on every tab as /red's is
+      link.onDm = (line) => { chatLog.pushAll({ text: line.text, at: line.at, dm: true }); dmBanner.show(line.text, line.c ?? DM_DEFAULT); };   // BUNNYFALL /dm: and across the top of the screen in its colour (ui/dmBanner.js)   // TITLE-N: the Dungeon Master's line, on every tab as /red's is
       // SOC2: the HUB tab's link carries the account (net/social.js accountId - the profile's, not the tab's); the
       // presence session never does, and a later channel tab would not either: the hub is the one room that checks
       // it. Set after the join, which is safe because a socket opens on a later turn and the hello is built when it
@@ -21607,8 +21610,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // /red)"): /red's law below, one frame over - parsed here and never guarded: whether this player may is the
         // RELAY's question, asked of their signed token, and it ignores anyone else in silence. From any tab, on the
         // World channel, the one room every player online is in.
+        // BUNNYFALL /dm (net/dmLaw.js): `/dm [colour] <text>` - the first word a colour name or #rrggbb, else the orange
         const dm = /^\/dm\s+([\s\S]+)$/i.exec(text.trim());
-        if (dm) return chatLinks.get('world')?.sendDm(dm[1]) ?? false;
+        if (dm) { const d = dmLineOf(dm[1]); return d.text ? chatLinks.get('world')?.sendDm(d.text, d.colour) ?? false : false; }
         // RED1 (Mac: "a red text system (kind of like warframe) where I
         // can message chat as the server"). THE COMMAND IS ALWAYS
         // PARSED AND NEVER GUARDED HERE: whether this player may speak

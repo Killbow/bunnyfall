@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- /dm now shows its line as a banner across the top of everyone's screen as well as in chat, in a colour of choice: /dm purple Rodney: You will all kneel!, or a #rrggbb code. Developers can use it as well as Dungeon Masters.
 - Staff commands: /vanish hides a staff member from players and monsters until used again, /spawn <monster> [count] stands monsters nearby, and /greed <player> <amount> [gold|nyx] sends gold or Nyx coins to a player (Admins only), which arrive in their game within a minute.
 
 ## 2026-11-11

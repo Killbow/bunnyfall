@@ -4994,14 +4994,14 @@ export class Room {
       // the VERIFIED claims - granted by a handle in the account
       // service's config, revoked by taking it off - and nothing else on
       // this socket can write it.
-      if (!Array.isArray(a.glyphs) || !a.glyphs.includes('dm')) return;   // silently, as /red is
+      if (!Array.isArray(a.glyphs) || !(a.glyphs.includes('dm') || a.glyphs.includes('dev'))) return;   // silently, as /red is - BUNNYFALL: a developer may too
       const now = Date.now();
       const meters = this._meterOf(ws);
       const gate = dmGate(meters.dbucket, now);   // its own bucket: narrating spends none of the server line's
       meters.dbucket = gate.bucket;
       if (!gate.pass) return;
       // its own FRAME TYPE, for /red's reason: the client marks the line from the type, which no player can send
-      const said = JSON.stringify({ t: 'dm', text: m.text, at: now });
+      const said = JSON.stringify({ t: 'dm', text: m.text, at: now, ...(m.c ? { c: m.c } : {}) });   // BUNNYFALL /dm: and its colour, the wire's checked `#rrggbb`
       for (const [other, b] of [...this._all()]) if (b.id) this._send(other, said);   // everyone in this room, the sender included
     }
     if (m.t === 'stage') {

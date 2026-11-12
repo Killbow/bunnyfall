@@ -1,4 +1,5 @@
 // @ts-check
+import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { FACE_INDEX_MAX } from '../systems/roxArgonians.js';   // ROX: the extra Argonian faces
 import { validStaffEventIn } from './staffEvent/staffEventLaw.js';   // STAFF-EVENT: a staff event's word in
 import { validStaffTeleportIn } from './staffTeleport.js';
@@ -2700,7 +2701,9 @@ export function parseClient(text, { hasHello = false } = {}) {
     // may is the relay's question, asked of the signed token it alone holds the key to.
     if (!hasHello) return { error: 'narrate before hello' };
     const text = typeof m.text === 'string' ? sanitizeChat(m.text) : '';
-    return text ? { t: 'narrate', text } : { error: 'bad narrate' };
+    const c = m.c == null ? null : dmColourOf(m.c);   // BUNNYFALL /dm: its colour (net/dmLaw.js), or none - a bad one is the frame's error
+    if (m.c != null && !c) return { error: 'bad narrate' };
+    return text ? { t: 'narrate', text, ...(c ? { c } : {}) } : { error: 'bad narrate' };
   }
   if (m.t === 'stage') {
     // EVENT1: A LIVE EVENT, ASKED FOR - `say`'s law exactly: the shape here (a known event, or '' to end one), and

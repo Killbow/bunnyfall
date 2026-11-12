@@ -1,4 +1,5 @@
 // @ts-check
+import { dmColourOf } from './dmLaw.js';   // BUNNYFALL /dm: the Dungeon Master's colours
 import { encodeTune, validTune } from './bardTune.js';   // BARDS' COLLEGE
 /** BARDS' COLLEGE: the least gap between my tunes, ms (the relay keeps the same). */
 const BARD_SEND_GAP_MS = 15_000;
@@ -3058,12 +3059,13 @@ export class OnlineSession {
    *  this player may is their TOKEN's `dm` glyph, which only the relay can verify, and it ignores anybody else in
    *  silence. Sent only to a relay that carries it (an older one closes the socket on the frame); a line refused here
    *  stays in the field. */
-  sendDm(text) {
+  sendDm(text, colour = null) {
     const line = sanitizeChat(text);
     if (!line || !this.dmOk) return false;
     const gate = dmGate(this._dbucket, this._now());
     if (!gate.pass) return false;
-    if (!this._send({ t: 'narrate', text: line })) return false;
+    const c = colour == null ? null : dmColourOf(colour);   // BUNNYFALL /dm: the banner's colour (net/dmLaw.js)
+    if (!this._send({ t: 'narrate', text: line, ...(c ? { c } : {}) })) return false;
     this._dbucket = gate.bucket;
     return true;
   }
@@ -4111,7 +4113,8 @@ export class OnlineSession {
       const g = chatInGate(this._inChat.get(room), now);
       this._inChat.set(room, g.bucket);
       if (!g.pass) { this.stats.chatsDropped++; return; }
-      this._deliver('chat', () => this.onDm?.({ text, at: Number.isFinite(m.at) ? m.at : now }));
+      const c = dmColourOf(m.c);   // BUNNYFALL /dm: its colour, or none - the banner's own orange
+      this._deliver('chat', () => this.onDm?.({ text, at: Number.isFinite(m.at) ? m.at : now, ...(c ? { c } : {}) }));
     } else if (m.t === 'frozen') {
       // STAFF-PANEL5-FREEZE (net/staffChat.js): STAFF FROZE MY ACCOUNT until then (epoch seconds), or 0: lifted. The screen
       // is mine alone - the relay and the service hold me to it whatever it shows. On the relay's word's own bucket; my hub's
