@@ -302,6 +302,7 @@ const AVAULT_STATUS = Object.freeze({ 'avault-full': 409, 'avault-empty': 404, '
 import { nyxFound, nyxTotal } from './nyx.js';
 import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
 import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
+import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Nyx coins counted
@@ -2313,7 +2314,12 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
       }
-      if (path === '/v1/charters/found' || path === '/v1/charters/invite' || path === '/v1/charters/answer' || path === '/v1/charters/leave') {   // BUNNYFALL COMPANIES: City Charters (charters.js)
+      if (path === '/v1/blight' || path === '/v1/blight/push') {   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path === '/v1/blight' ? await blightRead(ctx) : await blightPush(ctx, who.player, body ?? {});
+        return 'error' in r ? no(r.error, r.error === 'blight-not-cleared' ? 403 : 400, origin) : json(r, 200, origin);
+      }
+      if (path === '/v1/charters/found' ||path === '/v1/charters/invite' || path === '/v1/charters/answer' || path === '/v1/charters/leave') {   // BUNNYFALL COMPANIES: City Charters (charters.js)
         if (request.method !== 'POST') return no('method', 405, origin);
         const act = { '/v1/charters/found': foundCharter, '/v1/charters/invite': inviteToCharter, '/v1/charters/answer': answerCharter, '/v1/charters/leave': leaveCharter }[path];
         const r = await act(ctx, who.player, body ?? {});

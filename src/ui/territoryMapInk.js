@@ -86,3 +86,52 @@ export function paintTerritories(ctx, view, marks, { paperW, paperH, far = false
   }
   ctx.restore();
 }
+
+// ═══ RODNEY'S BLIGHT (net/blightLaw.js, systems/rodneyBlight.js) ═════════════════════════════════════════════════════
+/** The blight's colour (Cromwark's own purple - systems/wild/cromwark.js CROMWARK_BORDER_CSS) and the front's ink. */
+export const BLIGHT_CSS = '#9b4dff';
+export const BLIGHT_FRONT_CSS = '#781c14';
+
+/**
+ * THE BLIGHT AND ITS FRONT on the held map: a purple wash and edge through each slice's held radius, smoothed, and a
+ * heavy red line along every slice a territory holds it at. Under the territories, which wash over its edge.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ ox: number, oy: number, scale: number }} view
+ * @param {{ centre: { x: number, y: number }, edge: { r: number, held: boolean }[] }|null} shape
+ * @param {{ paperW: number, paperH: number }} opts
+ */
+export function paintBlight(ctx, view, shape, { paperW, paperH }) {
+  if (!shape?.edge?.length || !view) return;
+  const n = shape.edge.length, step = (Math.PI * 2) / n;
+  const pt = (r, a) => paper(view, shape.centre.x + Math.cos(a) * r, shape.centre.y + Math.sin(a) * r);
+  const pts = shape.edge.map((e, i) => pt(e.r, (i + 0.5) * step));
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  if (Math.max(...xs) < 0 || Math.max(...ys) < 0 || Math.min(...xs) > paperW || Math.min(...ys) > paperH) return;
+  ctx.save();
+  ctx.beginPath();
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const m0 = mid(pts[n - 1], pts[0]);
+  ctx.moveTo(m0[0], m0[1]);
+  for (let i = 0; i < n; i++) { const m = mid(pts[i], pts[(i + 1) % n]); ctx.quadraticCurveTo(pts[i][0], pts[i][1], m[0], m[1]); }
+  ctx.closePath();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = BLIGHT_CSS;
+  ctx.fill();
+  ctx.globalAlpha = 0.85;
+  ctx.strokeStyle = BLIGHT_CSS;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // THE FRONT: each held slice's arc, at its held radius
+  ctx.globalAlpha = 0.95;
+  ctx.strokeStyle = BLIGHT_FRONT_CSS;
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  shape.edge.forEach((e, i) => {
+    if (!e.held) return;
+    ctx.beginPath();
+    const r = e.r * view.scale, [cx, cy] = paper(view, shape.centre.x, shape.centre.y);
+    ctx.arc(cx, cy, r, i * step + step * 0.08, (i + 1) * step - step * 0.08);
+    ctx.stroke();
+  });
+  ctx.restore();
+}

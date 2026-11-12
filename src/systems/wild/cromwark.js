@@ -65,6 +65,25 @@ export const cromwarkFoeTint = (/** @type {any} */ entity, /** @type {string | n
 let _hazeMult = 1;
 export const setHazeMult = (/** @type {number} */ m) => { _hazeMult = Number.isFinite(m) && m >= 1 ? m : 1; };
 export const hazeMult = () => _hazeMult;
+
+// ── RODNEY'S BLIGHT (net/blightLaw.js, systems/rodneyBlight.js) ─────────────────────────────────────────────────────
+/** How much harder a foe strikes while the player stands in the blight (net/blightLaw.js BLIGHT_FOE_MULT - repeated
+ *  here so this file stays a leaf). */
+export const BLIGHT_FOE_MULT = 1.25;
+/** The host's word on whether the player stands in the blight - asked at most every BLIGHT_PROBE_MS (it walks the edge). */
+const BLIGHT_PROBE_MS = 500;
+let _blightProbe = () => false, _blightAt = -Infinity, _blight = false;
+export const setBlightProbe = (/** @type {() => boolean} */ fn) => { _blightProbe = typeof fn === 'function' ? fn : () => false; _blightAt = -Infinity; };
+/** Whether the player stands in Rodney's blight now. */
+export function blightHere() {
+  const now = Date.now();
+  if (now - _blightAt >= BLIGHT_PROBE_MS) { _blightAt = now; try { _blight = _blightProbe() === true; } catch { _blight = false; } }
+  return _blight;
+}
+/** Every multiplier on a foe's blow at the player: the haze's counter, and the blight's. */
+export const foeDamageMult = () => _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
+/** A foe's wash where the blight stands: Cromwark's purple on every hostile foe while the player is in it, or null. */
+export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && blightHere() ? CROMWARK_FOE_TINT : null);
 /** The counter's words: "mm:ss" on it and the blows' share ("+75%"). */
 export const hazeClockText = (/** @type {number} */ s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 

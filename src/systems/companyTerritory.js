@@ -103,6 +103,7 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
         const counted = members.filter((m) => m.region === c.region).map((m) => m.strength);
         placedCharters.push({
           mapId: c.mapId, region: c.region, name: c.name, town: town.name ?? '', x: town.px + 0.5, y: town.py + 0.5, r: charterRadius(counted),
+          strength: counted.reduce((a, s) => a + (Number(s) || 0), 0),   // the blight reads how firmly it holds (net/blightLaw.js)
           members: members.map((m) => ({ id: m.id, tag: m.tag, name: m.name, fill: hexOf(m.field) ?? DEFAULT_COLOUR })),
           invites: (c.invites ?? []).map((i) => ({ ...i, tag: companyOf(i.id)?.tag ?? '?', name: companyOf(i.id)?.name ?? 'A Company' })),
         });

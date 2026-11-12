@@ -9,7 +9,7 @@
 //     /nyxcoin can say how many were gathered.
 //   THE CAMP: the Adventurers' Guild's tent on the road at the zone's south-east corner (the owner's spot), and Nyx before
 //     it - her sprite (public/art/bunnyfall-npcs/nyx.png) - whose press opens her window (ui/nyxWindow.js).
-import { CROMWARK_ON, cromwarkPeace, createHazeClock, setHazeMult, hazeClockText, HAZE_CSS, nyxCoinChance, NYX_RING_LUCK, CROMWARK_CAMP_UV } from '../systems/wild/cromwark.js';
+import { CROMWARK_ON, cromwarkPeace, createHazeClock, setHazeMult, hazeClockText, HAZE_CSS, nyxCoinChance, NYX_RING_LUCK, CROMWARK_CAMP_UV, blightHere } from '../systems/wild/cromwark.js';
 import { setCromwarkMaps } from '../systems/wild/cromwarkTowns.js';
 import { setCourtMaps, courtPosts } from '../systems/wild/cromwarkCourts.js';   // the courts' sides of the reach
 import { NYX_GEAR, NYX_GARMENTS, HEART_WARDEN_S, nyxSale, nyxCoinsHeld, giveNyxCoins, nyxCoinsText, spendNyxCoins } from '../systems/wild/nyxShop.js';
@@ -133,9 +133,11 @@ export function createCromwarkHost(deps) {
     }, () => { owedAt = now + 30; }).finally(() => { owedBusy = false; });
   }
   registerPlayerKillListener('cromwark', (foe) => {
-    if (!foe?.wildFoe || !cromwarkPeace(deps.kind?.())) return;
+    // and in Rodney's blight past the zone (systems/rodneyBlight.js): the outer ring's chance
+    const inZone = !!foe?.wildFoe && cromwarkPeace(deps.kind?.());
+    if (!inZone && !(foe && !foe.isPlayer && blightHere())) return;
     const luck = powerKind(deps.entity, 'nyxluck') ? NYX_RING_LUCK : 0;
-    if (Math.random() >= nyxCoinChance(foe.wildRing || deps.ring?.() || 1, luck)) return;
+    if (Math.random() >= nyxCoinChance(inZone ? (foe.wildRing || deps.ring?.() || 1) : 1, luck)) return;
     const items = deps.items?.();
     if (!items) return;
     giveNyxCoins(items, 1);

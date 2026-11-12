@@ -973,7 +973,7 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 // WILD1 (2026-10-07, bible/11-Multiplayer/Wild-Zone.md): THE OPEN ZONE - the Wrothgarian Mountains: its law (a leaf), a
 // death's drop and its one piece, the fights between players, the room's remains as piles, and the HUD's two glyphs
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
-import { CROMWARK_ON, cromwarkPeace } from '../systems/wild/cromwark.js';
+import { CROMWARK_ON, cromwarkPeace, setBlightProbe } from '../systems/wild/cromwark.js';
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL: the reach's desolate towns   // BUNNYFALL: the mountains are Cromwark's reach (no PvP)
 import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, wildDeathAtHand, wildDeathKill, wildFallHeard, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
@@ -991,6 +991,7 @@ import { setLootMarksLive } from './lootLines.js';   // WILD1: my remains' line 
 import { WILD_REMAINS_MS, WDUN_SALT, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_HERE_MS, spawnedHallMapId } from '../net/wire.js';
 import { validLootList, setLootGoldMult } from '../systems/loot/loot.js';   // BUNNYFALL COMPANIES: loot gold inside one's territory
 import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BUNNYFALL COMPANIES: every Company's territory
+import { createRodneyBlight } from '../systems/rodneyBlight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { stacksWith } from '../systems/inventory.js';
 import { setHudZone } from '../ui/enhanced/enhancedHud.js';
 import { setHudPauseAt } from '../ui/hud/hudAdvance.js';   // FIRM-STARS: the stars' tile beside the Renown bar opens the Firmament page
@@ -16902,6 +16903,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wildMask: () => wildMapMask(),   // WILD1: the open zone's fog and red line (ui/wild/wildMapInk.js)
       territories: () => companyTerritory?.marks() ?? [],   // BUNNYFALL COMPANIES: the Companies' territories (ui/territoryMapInk.js)
       charters: () => companyTerritory?.charterMarks() ?? [],   // BUNNYFALL COMPANIES: the City Charters round their capitals
+      blight: () => rodneyBlight?.shape() ?? null,   // the war against Rodney: the blight and its front (ui/territoryMapInk.js paintBlight)
+      blightSig: () => { rodneyBlight?.refresh(); return rodneyBlight?.sig() ?? ''; },
       territorySig: () => { companyTerritory?.refresh(); return companyTerritory?.sig() ?? ''; },
       wildDungeons: () => wildActiveNow(),
       wildGiants: () => wildGiantMarks(),
@@ -20284,6 +20287,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let accountVault = null;   // BUNNYFALL (Phase 5): the account vault's book (net/accountVaultBook.js), made beside the guild's
   let guildBook = null;   // GUILD1b: the character's guild (net/guild/guildBook.js GuildBook), made with the panel that draws it
   let companyTerritory = null;   // BUNNYFALL COMPANIES: every Company's territory (systems/companyTerritory.js), made beside Cromwark's host
+  let rodneyBlight = null;   // BUNNYFALL COMPANIES: Rodney's blight (systems/rodneyBlight.js), made beside the territories
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -23901,7 +23905,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const raidClaims = params.has('online') ? createRaidClaims({
     // CHAP2b: and the town defended remembered by its chapters - AUDIT CHAP3 C4: said, and the Roll refreshed, on the page
     // of the character that fought (a kept claim lands under whichever plays)
-    claim: (r, ch, ...a) => _accountRaids.claim(r, ch, ...a).then((x) => (ch === characterIdOf(playerEntity) ? rollHeard(x) : x)),
+    claim: (r, ch, ...a) => _accountRaids.claim(r, ch, ...a).then((x) => {
+      // THE WAR AGAINST RODNEY: a raid counted for this account, near the blight's edge, pushes it back (systems/rodneyBlight.js)
+      if (x?.ok && x.data?.recorded === true) {
+        const w = readRaidReceipt(r)?.w;
+        if (w) rodneyBlight?.raidCleared(w).then((p) => { if (p?.pushed) chatNotice(t('blight.pushed', 'The town held. Rodney\'s blight falls back from it.')); }, () => {});
+      }
+      return ch === characterIdOf(playerEntity) ? rollHeard(x) : x;
+    }),
     me: _accountRaids.me,
     nowS: relayNowS,
     store: _spoilsStore,
@@ -25536,6 +25547,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     here: () => playerTravelPixel(),
   });
   setLootGoldMult(() => companyTerritory?.yieldMult() ?? 1);
+  // THE WAR AGAINST RODNEY (systems/rodneyBlight.js): the blight round Cromwark, grown daily, held by the territories;
+  // standing in it, foes wear Cromwark's purple and strike harder (systems/wild/cromwark.js setBlightProbe)
+  rodneyBlight = createRodneyBlight({
+    io: () => (isOnlinePage() ? insigniaIo() : null),
+    mask: () => wildMapMask(),
+    territory: () => companyTerritory,
+    here: () => playerTravelPixel(),
+    townPixel: (region, location) => { const loc = maps.getLocation(region, location); return loc?.mapTableData ? longitudeLatitudeToMapPixel(loc.mapTableData.longitude, loc.mapTableData.latitude) : null; },
+  });
+  setBlightProbe(() => !!rodneyBlight?.here());
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)

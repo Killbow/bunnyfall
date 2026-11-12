@@ -20,7 +20,7 @@
 // biography adjustments and per-part armor SHIPPED - the first two
 // live in this very file.)
 
-import { hazeMult } from '../systems/wild/cromwark.js';   // BUNNYFALL: the haze counter's blows
+import { foeDamageMult } from '../systems/wild/cromwark.js';   // BUNNYFALL: the haze counter's blows
 import { MELEE_DISTANCE } from '../characters/enemy/enemyMotor.js';   // single source (EnemyAttack.cs:30)
 import { CLASSIC_TO_UNITY_RATIO } from '../player/motor.js';   // C15 knockback units
 import { rand } from '../formats/dfRandom.js';
@@ -769,7 +769,7 @@ export function calculateAttackDamage(attacker, target, { weapon = null, damageM
     damage = Math.max(1, Math.round(damage * attacker.damageScale));
   }
   // BUNNYFALL (Cromwark, systems/wild/cromwark.js): the purple haze's counter - a foe's blow on me lands harder each minute
-  if (!attacker.isPlayer && target?.isPlayer && damage > 0 && hazeMult() > 1) damage = Math.max(1, Math.round(damage * hazeMult()));
+  if (!attacker.isPlayer && target?.isPlayer && damage > 0 && foeDamageMult() > 1) damage = Math.max(1, Math.round(damage * foeDamageMult()));   // and Rodney's blight's
   // SOFTCAP1: MENTOR MODE at the same tail - a mentored player's weapon lands
   // at its gear scale, and a mentored player takes blows as if carrying the
   // mentored health pool (mentorMode.js: rawMax / mentoredMax). Both are 1

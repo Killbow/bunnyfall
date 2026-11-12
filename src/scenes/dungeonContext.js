@@ -8,7 +8,7 @@
 // original-archive sizes while pixels come from the table archive,
 // which is exactly the dungeon convention already on record.
 
-import { cromwarkFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
+import { cromwarkFoeTint, blightFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
 import { wildZoneKind } from '../systems/wild/wildZone.js';   // BUNNYFALL: which zone the player stands in
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
@@ -8114,7 +8114,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         setBatchHitFlash(f.batch, foeHitFlash(f, performance.now() / 1000));   // HITFLASH1: a foe struck flashes red - any blow, mine, a peer's, or its owner's stream
         setBatchGlint(f.batch, foeGlint(f.ai, undefined, prefersReducedMotion()) ?? lastStandGlint(f.entity));   // TELL2: a wind-up's glint on the body; RVN4: else phase two's ember rim
         setBatchEliteGlow(f.batch, eliteGlow(f.entity, performance.now() / 1000, (f.mobileType * 1.7) % 6.28), performance.now() / 1000);   // ELITE FOES: the pulse
-        { const tn = cromwarkFoeTint(f.entity, wildZoneKind()); if (tn || f.batch.tint === CROMWARK_FOE_TINT) f.batch.tint = tn ?? undefined; }   // BUNNYFALL (Cromwark): the mountains' monsters in purple
+        { const tn = cromwarkFoeTint(f.entity, wildZoneKind()) ?? blightFoeTint(f.companion == null && f.entity?.team !== 'PlayerAlly' && f.ai?.isHostile !== false); if (tn || f.batch.tint === CROMWARK_FOE_TINT) f.batch.tint = tn ?? undefined; }   // and Rodney's blight's   // BUNNYFALL (Cromwark): the mountains' monsters in purple
         const _dv = f.executing || f.sparing || f.portalFx ? fateDissolve(f, Date.now()) : null;   // REVENANT-FATE / COMPANION-PORTAL: burning away, or through a portal
         if (!_dv && f.portalFx && f.portalFx.dir === 'in') f.portalFx = null;
         setBatchDissolve(f.batch, _dv ? _dv[0] : 0, _dv ? _dv.slice(1) : undefined);
