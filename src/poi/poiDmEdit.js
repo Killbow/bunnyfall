@@ -15,6 +15,7 @@ import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { t } from '../systems/textManager.js';
+import { freshKey } from './poiScene.js';
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const keysOf = (rows) => new Set((rows ?? []).map((r) => r.key));
@@ -22,13 +23,9 @@ const list = (doc, name) => (doc[name] ??= []);
 const plus = (p, dx = 0, dy = 0, dz = 0) => [r3(p[0] + dx), r3(p[1] + dy), r3(p[2] + dz)];
 const refuse = (why) => ({ refused: why });
 
-const KEY_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
-/** A key for a new row from the name it is given: lower case, plain letters, and a number added when it is taken. */
-export function freshKey(wanted, taken) {
-  const base = String(wanted ?? '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^[^a-z0-9]+/, '').replace(/-+$/, '').slice(0, 26) || 'item';
-  if (!taken.has(base) && KEY_RE.test(base)) return base;
-  for (let n = 2; ; n++) { const k = `${base}-${n}`; if (!taken.has(k)) return k; }
-}
+/** A key for a new row from the name it is given (poiScene.js's: lower case, plain letters, and a number added when it is
+ *  taken), passed on for the World Builder's scene.js and the tests. */
+export { freshKey };
 
 /** The collections the DM suite edits, with the most each may hold. */
 export const DM_COLLECTIONS = Object.freeze({

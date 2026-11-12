@@ -702,13 +702,15 @@ export function createPoiHost({
      * POI-3: THE PART UNDER A RAY - the nearest standing part whose triangles the ray (scene frame: `o` the eye, `d` a
      * direction) meets within `max` metres, its box asked first: `{ id, key, dist, draft }`, or null. Exact, over the
      * part's own triangles through the inverse of its drawn matrix (a model with no collider is picked as one with).
+     * `skip(id, key)` passes a part by (the editor's hidden or locked parts), so what stands behind it is picked.
      */
-    pick(o, d, max = 6000) {
+    pick(o, d, max = 6000, skip = null) {
       let best = null;
       for (const s of standing.values()) {
         if (s.status !== 'ready' || !s.visible) continue;
         for (const p of s.parts) {
           if (!p.box || !rayBox(o, d, p.box, best ? best.dist : max)) continue;
+          if (skip?.(s.id, p.key)) continue;
           const inv = invert4(p.scene, _inv);
           if (!inv) continue;
           const lo = xformPoint(inv, o), ld = xformDir(inv, d);

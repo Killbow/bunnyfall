@@ -34,6 +34,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor no longer draws things marked hidden, lets you pick hidden or locked things in the world, or lets you move locked things; the game still shows hidden things.
+- Fixed: The in-game POI editor can now select several things at once with Shift+click or by dragging a box, move, turn, and size them together with the gizmo, and pick and move people in the world.
 - Fixed: A POI dialogue answer that opens a trade now shows the trade instead of leaving the talk on screen.
 - Fixed: The in-game POI editor has a Sandbox that plays a POI's people, dialogues, trades, and events on a test visitor, with a log, and never touches your character.
 - Fixed: The in-game POI editor draws a POI's routes, waypoints, encounter areas, zones, and objects in the world while its DM tools are open, and a spot can be picked with a click on the ground.

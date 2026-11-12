@@ -27,6 +27,7 @@
 import { POI_DOC_VERSION, POI_PIXEL_M, POI_MAP, POI_PART_KEY_RE, POI_LIMITS, DEFAULT_MATERIAL, mintPoiId, poiDocBytesOf } from './poiLaw.js';
 import { POI_V2_DOC_KEYS } from './poiLawV2.js';
 import { quatMultiply, quatAngleAxis, quatRotate } from '../world/quat.js';
+import { find as findNode, parseId } from './poiScene.js';
 
 /** The steps the undo stack keeps before the oldest is let go. */
 export const POI_UNDO_DEPTH = 200;
@@ -248,7 +249,27 @@ const text = (d) => (d == null ? null : JSON.stringify(d));
 const sameSel = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**
- * @typedef {{ id: string, part?: string | null, light?: number | null } | null} PoiSelection
+ * A selection: the POI `id` and the things selected in it, `items`, as scene ids (poiScene.js: `part:key`, `flat:key`,
+ * `light:i`, `npc:key`, `group:key`), the last one the primary. No items: the POI itself. `part` and `light` name the
+ * primary when it is a part or a light (else null), so a caller that reads one selected thing reads it as before.
+ * @param {string} id @param {string[]} items
+ */
+export function selectionOf(id, items = []) {
+  const list = [...new Set(items.map(String))];
+  const last = list.length ? parseId(list[list.length - 1]) : null;
+  return { id, items: list, part: last?.kind === 'part' ? last.key : null, light: last?.kind === 'light' ? Number(last.key) : null };
+}
+/** The items a selection names, read from `items`, else from the one `part` or `light` it was given. @param {any} s */
+export function selItems(s) {
+  if (!s) return [];
+  if (Array.isArray(s.items)) return s.items;
+  if (s.part != null) return [`part:${s.part}`];
+  if (s.light != null) return [`light:${s.light}`];
+  return [];
+}
+
+/**
+ * @typedef {{ id: string, items?: string[], part?: string | null, light?: number | null } | null} PoiSelection
  * @typedef {{ doc: any, saved: string | null, base: number | null, rev: number | null, state: string }} PoiEntry
  *   `saved` the document as last saved (null: never - a new POI); `base` the live revision it was made from; `rev` its
  *   own draft's revision once saved; `state` the service's word for that revision ('new' until it has one)
@@ -285,14 +306,13 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
     if (undo.length > depth) undo.splice(0, undo.length - depth);
     redo = [];
   };
-  /** A selection that still names something (an undo may take away the part it named). */
+  /** Normalizes a selection and drops any item whose row no longer exists in the document (for example, after an
+   *  undo removes a part). Accepts `{ id, part }` or `{ id, light }` as a single-item selection. */
   const validSel = (s) => {
     if (!s) return null;
     const e = docs.get(s.id);
     if (!e) return null;
-    if (s.part != null && !e.doc.parts.some((p) => p.key === s.part)) return { id: s.id, part: null, light: null };
-    if (s.light != null && !(s.light < (e.doc.lights?.length ?? 0))) return { id: s.id, part: null, light: null };
-    return { id: s.id, part: s.part ?? null, light: s.light ?? null };
+    return selectionOf(s.id, selItems(s).filter((i) => !!findNode(e.doc, i)));
   };
 
   const api = {
@@ -343,7 +363,7 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       fill?.(doc);
       const selBefore = sel;
       setDoc(id, text(doc));
-      sel = validSel((typeof select === 'function' ? select(id) : select) ?? { id, part: null, light: null });
+      sel = validSel((typeof select === 'function' ? select(id) : select) ?? { id, items: [] });
       push({ id, label: 'create', before: null, after: text(doc), selBefore, selAfter: sel, entryAfter: { saved: null, base: null, rev: null, state: 'new' } });
       changed();
       return id;
@@ -365,8 +385,9 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
 
     /**
      * Applies one undoable edit step: `fn` mutates a copy of the working document, and the step is recorded on the undo
-     * the selection the step leaves (else the one it found). Answers whether anything changed.
-     * @param {string} id @param {string} label @param {(doc: any) => void} fn @param {PoiSelection} [select]
+     * stack only if the document changed. `select` sets the resulting selection (defaulting to the prior selection) or
+     * computes it after `fn` runs (for example, to select newly pasted rows). Returns whether anything changed.
+     * @param {string} id @param {string} label @param {(doc: any) => void} fn @param {PoiSelection | ((doc: any) => PoiSelection)} [select]
      */
     edit(id, label, fn, select = undefined) {
       if (drag) api.commit();
@@ -376,6 +397,7 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       const doc = JSON.parse(before);
       const wasV = doc.v;
       fn(doc);
+      if (typeof select === 'function') select = select(doc);
       let after = text(doc);
       if (after === before) { if (select !== undefined) api.select(select); return false; }
       const v = doc.v;
