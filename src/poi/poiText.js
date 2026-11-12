@@ -43,7 +43,7 @@ const PROBLEM = {
   'mesh-ref': () => t('poi.problem.meshRef', 'A part names no model.'),
   offset: (a) => t('poi.problem.offset', 'It is too far from the POI\'s origin (at most {max} m).', a),
   scale: (a) => t('poi.problem.scale', 'Each side\'s scale is between {min} and {max}.', a),
-  // v2: what the standalone builder adds
+  // v2: the problems the v2 law adds
   'ref-missing': (a) => t('poi.problem.refMissing', 'It names {key}, which does not exist in this POI.', a),
   model: (a) => t('poi.problem.model', 'The model number must be between 1 and {max}.', a),
   groups: (a) => t('poi.problem.groups', 'At most {max} groups.', a),

@@ -13,9 +13,10 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 - Size: 96 KiB for v1, 256 KiB for v2 (`poiDocBytesOf`). Library shelf entries stay v1: a part or light saved to the library from a v2
   POI loses its group, visibility, and lock.
 - The in-game editor edits the DM content in its DM panel (`src/ui/poi/poiDmPanel.js`), except a spawn point's `route`, an
-  object's `yaw`, and a `flat` appearance, which the game does not act on yet. It preserves those and every other v2 key it cannot
-  edit yet (the interior, and a flat's picture and `scale`, which it can only reset to one) and lists them, read-only, in the
-  POI's inspector.
+  object's `yaw`, and a `flat` appearance, which the game does not act on yet. It preserves those and the interior, which
+  it cannot edit yet, and lists them, read-only, in the POI's inspector. It places and edits flat pictures, items, and
+  mounts (`src/ui/poi/poiFlatUi.js`); a flat's `layer`, `pivot`, and `collide` are preserved when saving, and the flat's
+  inspector says the game does not use them.
 - The game runs a POI's DM content for its approved revision. A draft runs it only in the in-game editor's Test (offline),
   where trades and events settle on a test copy of the builder's gold and items by the service's rules (an event that only
   gives, once), and persistent variables and claims are not stored. The service still refuses a draft's trade or event claim
@@ -53,9 +54,9 @@ circle are refused.
 
 ## Decisions
 
-1. **Events may give and take items and gold.** The server settles them like trades, with a claim per event and character, before the runtime runs them.
+1. **Events may give and take items and gold.** The server settles them like trades before the runtime runs them. An event that gives items or gold and takes nothing is settled once per character.
 2. **Limits are per parent.** 128 waypoints per route, 32 spawn points per encounter, 24 creatures per encounter, 16 per spawn.
-3. **Foe names and levels.** No custom foe name. A spawn may set an exact `level`.
+3. **Enemy names and levels.** No custom enemy name. A spawn may set an exact `level`.
 4. **Runtimes to build** for `factionId`, quest conditions, timers, `storage`, `station` on flats and chest contents. Each gets its schema fields in the same milestone as its runtime, not before.
 5. **Gold bound.** Up to the save's gold limit. Approvers decide what is sane.
 6. **Item stacks are plain.** No `enchant` key anywhere. Done in the law and tests.
