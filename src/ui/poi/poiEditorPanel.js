@@ -45,7 +45,7 @@ import { marksOf } from '../../poi/poiScene.js';
 import { createPoiSceneActs, lockedIn } from './poiSceneActs.js';
 // the outliner's scene rows and the selection's inspector
 import { createPoiScenePanel } from './poiScenePanel.js';
-import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText, heldLines, docSizeText } from '../../poi/poiText.js';
+import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText, heldLines, docSizeText, flatCountText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
 import { poiPayProblems } from '../../poi/poiTradeLaw.js';
@@ -61,6 +61,9 @@ import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   
 import { renderThumb, encodePng } from '../../poi/poiThumb.js';
 import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
 import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
+// flat pictures: the picker, inspector rows, and 2D view
+import { createPoiFlatUi } from './poiFlatUi.js';
+import { POI_V2_LIMITS } from '../../poi/poiLawV2.js';
 // the DM content, in a wide dock
 import { createPoiDmPanel, heldNotEditable, dmHeldLines } from './poiDmPanel.js';
 // the Test: a draft played with its DM content
@@ -138,6 +141,8 @@ export function stepText(label) {
     case 'revert': return t('poi.editor.step.revert', 'put back as saved');
     case 'light': return t('poi.editor.step.light', 'light');
     case 'add person': return t('poi.npc.step.add', 'add person');
+    case 'add flat': return t('poi.flat.step.add', 'add flat picture');
+    case 'flat': return t('poi.flat.step.edit', 'flat picture');
     case 'person': return t('poi.npc.step.edit', 'person');
     case 'remove person': return t('poi.npc.step.remove', 'remove person');
     case 'material': return t('poi.editor.step.material', 'material');
@@ -417,6 +422,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       (() => { const b = btn(t('poi.assets.button', 'Assets'), () => { void assetBrowser().then((a) => a?.toggle()); }); b.setAttribute('aria-pressed', String(!!assets?.isOpen())); b.title = t('poi.assets.buttonHint', 'Browse the game\'s models, pictures, items, and creatures.'); return b; })(),
       btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),
       ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
+      // places a game picture or item as a flat decoration
+      ...(dfModels ? [btn(t('poi.flat.button', 'Flat picture'), () => flatUi().openFlat())] : []),
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
       (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'The selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
       ...(test ? [(() => { const b = btn(t('poi.test.button', 'Test'), () => startTest()); b.title = t('poi.test.buttonHint', 'Play the selected POI in the world with its DM content, on a test copy of your gold and items.'); return b; })()] : []),
@@ -512,9 +519,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b,
   }));
 
-  // the scene tools: the outliner's rows and the inspector for several things, a group, or a person
+  // flat pictures (ui/poi/poiFlatUi.js), made when first asked for
+  let flatUiMade = null;
+  const flatUi = () => (flatUiMade ??= createPoiFlatUi({ doc, el, btn, field, numberInput, text, select, check, swallow, root, say, edit, editor, getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b }));
+  // the scene tools: the outliner's rows and the inspector for several things, a group, a person, or a flat picture
   let scenePanel = null;
-  const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule() }));
+  const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule(), flatFields: (d, sel, one) => flatUi().fields(d, sel, one) }));
 
   function renderRight() {
     if (testing() && testPanel) { right.replaceChildren(testPanel.view()); return; }
@@ -580,6 +590,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const held = heldLines(heldNotEditable(poiHeldOf(d)), dmHeldLines(d));
     if (held.length) out.push(el('div', 'dfpoi-h', t('poi.held.title', 'Not editable here yet')), ...held.map((l) => el('div', 'dfpoi-sub', l)));
     out.push(el('div', 'dfpoi-sub', docSizeText(poiDocSizeOf(d), d.v)));
+    if (flats) out.push(el('div', 'dfpoi-sub', flatCountText(flats, POI_V2_LIMITS.flats)));
     return out;
   }
 

@@ -51,8 +51,9 @@ export function pickNpc(doc, origin, o, d, max = 6000) {
 }
 
 /**
- * The ids of `doc`'s rows whose middle the frame shows inside a screen rect (canvas px), not hidden or locked: parts by
- * the middle of their drawn box (`boxOf(key)`), lights where they shine from, and people at half their height.
+ * Returns the IDs of unlocked, visible rows in `doc` whose centers project inside screen rectangle `r` (in canvas
+ * pixels): parts by the center of their bounding box (`boxOf(key)`), lights by their position, NPCs at half height, and
+ * flat pictures by their placement position.
  * @param {any} doc @param {number[]} origin @param {{ x0: number, y0: number, x1: number, y1: number }} r
  * @param {any} v the frame (proj, view, w, h, rect) @param {(key: string) => (number[] | null)} boxOf
  */
@@ -74,6 +75,7 @@ export function rowsInRect(doc, origin, r, v, boxOf) {
     const { feet, head } = npcLine(doc, origin, n);
     if (inside(mul(add(feet, head), 0.5))) out.push(id);
   });
+  (doc.flats ?? []).forEach((f, i) => { const id = nodeId('flat', doc, i); if (ok(id) && Array.isArray(f?.t) && inside(spotOf(doc, origin, f.t))) out.push(id); });
   return out;
 }
 

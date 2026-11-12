@@ -225,11 +225,11 @@ export function poiDocSizeOf(doc) {
 /** People's v2 links: a route, a dialogue, a trade, a reach, or a condition (poiLawV2.js POI_V2_NPC_KEYS less the layout). */
 const NPC_LINKS = ['route', 'dialogue', 'trade', 'radius', 'showWhen'];
 /**
- * Summarizes what a v2 document holds beyond what the outliner edits: each v2 collection's count (apart from groups and
- * flat pictures, which the outliner edits), whether it has an interior, and how many people are linked. The DM panel
- * edits the DM collections and people's links, so the inspector removes those (ui/poi/poiDmPanel.js heldNotEditable)
- * and lists the rest, which are preserved unchanged. `flats` counts the flat pictures, whose image this editor still
- * cannot change and whose size it can only reset to 1.
+ * Returns a summary of v2 document content outside the outliner's scope: each v2 collection's count (excluding groups
+ * and flat pictures, which the outliner and flat-picture UI edit), whether the POI has an interior, and how many NPCs
+ * have DM links. The DM panel filters out the fields it edits (ui/poi/poiDmPanel.js heldNotEditable) so the inspector
+ * can list the remaining read-only content. `flats` counts the flat pictures, which the editor places and edits itself
+ * (ui/poi/poiFlatUi.js), so the read-only lines leave them out.
  * @param {any} doc
  */
 export function poiHeldOf(doc) {

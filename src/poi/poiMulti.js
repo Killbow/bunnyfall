@@ -1,15 +1,16 @@
 // @ts-check
-// The gizmo over several things at once: a drag's answer (poiGizmo.js dragResult, in world terms) applied to every row
-// of a selection about one pivot, which scenes/poiEditorHost.js measures when the drag begins. Pure (no DOM, no GL).
-// Move: every row by the same world delta. Turn: every row's spot about the pivot, and every part's own turn with it;
-// people, lights, and flat pictures keep their facing (the game draws a person facing the eye and ignores `yaw`; a
-// light has no turn; a flat picture's `rot` is left as it is). Size: every spot from the pivot along the gizmo's axes,
-// and every part's own size by the factor of the gizmo axis nearest each of its own axes (exact for parts turned with
-// the gizmo's axes, and for the all-axes handle).
+// Applies a gizmo drag result (poiGizmo.js dragResult, in world space) to every selected row around one pivot, which
+// scenes/poiEditorHost.js measures at drag start. Pure (no DOM or WebGL). Move: every row by the world delta. Turn:
+// every row's position orbits the pivot and each part turns with it; NPCs and lights keep their facing (the game draws
+// NPCs facing the camera, and lights have no rotation); a flat picture turns its facing around the vertical axis, and a
+// mount its whole frame. Size: positions scale from the pivot along the gizmo axes, each part's own axes by the nearest
+// gizmo axis's factor (exact for aligned parts and the all-axes handle), and a flat row by the dragged handle's factor
+// (poiFlatRows.js).
 
 import { quatAngleAxis, quatRotate } from '../world/quat.js';
 import { movePart, rotatePart, scalePart } from './poiEdit.js';
 import { find, parseId } from './poiScene.js';
+import { turnFlatRow, scaleFlatRow } from './poiFlatRows.js';
 
 const conj = (q) => [-q[0], -q[1], -q[2], q[3]];
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
@@ -52,6 +53,7 @@ export function applyMulti(doc, ids, r, { pivot, axes }) {
       const off = f.row.t.map((c, k) => c - pivot[k]);
       f.row.t = quatRotate(q, off).map((c, k) => r4(clampT(c + pivot[k])));
       if (f.kind === 'part') rotatePart(place, f.row, r.turn.axis, r.turn.deg);
+      else if (f.kind === 'flat') turnFlatRow(place, f.row, r.turn.axis, r.turn.deg);
     }
   }
   if (r.size && r.size.some((x) => x !== 1)) {
@@ -65,7 +67,7 @@ export function applyMulti(doc, ids, r, { pivot, axes }) {
       if (f.kind === 'part') {
         const own = [[1, 0, 0], [0, 1, 0], [0, 0, 1]].map((e) => quatRotate(f.row.r, e));
         scalePart(f.row, own.map((a) => { let best = 0, j0 = 0; for (let j = 0; j < 3; j++) { const d = Math.abs(dot(a, la[j])); if (d > best) { best = d; j0 = j; } } return r.size?.[j0] ?? 1; }));
-      }
+      } else if (f.kind === 'flat') scaleFlatRow(f.row, r.size.find((x) => x !== 1) ?? 1);
     }
   }
 }

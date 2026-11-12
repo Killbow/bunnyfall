@@ -36,7 +36,8 @@ const DRAG_TYPE = 'text/x-bunnyfall-poi-rows';
 
 /**
  * @param {{ doc: Document, el: Function, btn: Function, field: Function, numberInput: Function, text: Function, check: Function,
- *   edit: any, acts: any, redraw?: () => void }} c the panel's helpers, the scene acts, and the panel's redraw (a group opened or closed)
+ *   edit: any, acts: any, redraw?: () => void, flatFields?: (d: any, sel: any, one: any) => any[] }} c the panel's helpers, the scene
+ *   acts, the panel's redraw (a group opened or closed), and a flat picture's own inspector rows (ui/poi/poiFlatUi.js fields)
  */
 export function createPoiScenePanel(c) {
   const { doc, el, btn, field, numberInput, text, check, edit, acts } = c;
@@ -219,6 +220,9 @@ export function createPoiScenePanel(c) {
       if (marksOf(d).get(items[0])?.frozen) { for (const i of offset.querySelectorAll?.('input') ?? []) i.disabled = true; out.push(el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.'))); }
       out.push(offset);
       out.push(el('div', 'dfpoi-sub', t('poi.scene.personFacing', 'People always face the player, so they have no turn.')));
+    } else if (one?.kind === 'flat' && c.flatFields) {
+      // a flat picture's own rows (ui/poi/poiFlatUi.js)
+      out.push(...c.flatFields(d, sel, one));
     } else {
       out.push(el('div', 'dfpoi-h', t('poi.scene.many', '{n, plural, one {# thing} other {# things}} selected', { n: items.length })));
       out.push(el('div', 'dfpoi-sub', t('poi.scene.manyHint', 'Move, turn, and size them together with the gizmo. Shift+click in the world or Ctrl+click in the list adds or removes one; Shift+click in the list selects a range.')));

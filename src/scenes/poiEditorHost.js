@@ -19,8 +19,8 @@
 //   - THE HANDLES: move (W), turn (E), size (R), select (Q) - the world's axes or the thing's own (X); snapped when snap
 //     is on, or while Ctrl is held. Every drag is ONE step of the editor's undo (poiEdit.js begin / preview / commit);
 //     Escape lets it go. A POI sizes uniformly, a part along its own axes, several things about their middle.
-//   - PLACING (`placeNew`, `placeAsset`): a new POI, or a part from the library, follows the cursor on the ground and
-//     stands where the click is.
+//   - PLACING (`placeNew`, `placeAsset`, `placeFlat`): a new POI, a part from the library, or a flat picture follows
+//     the cursor on the ground and is placed where the click is.
 //   - THE DRAFTS ON SCREEN: the working set laid over the live POIs (poiFeed.js setOverlay) whenever it moves - the drag
 //     is drawn as it is made; a draft's colliders wait for the drag to end (poiHost.js collideDrafts).
 //
@@ -38,7 +38,8 @@ import {
   movePlace, rotatePlace, scalePlace, movePart, rotatePart, scalePart, partWorldQuat, worldToPlace, newPart, newLight, newNpc, selItems, selectionOf,
 } from '../poi/poiEdit.js';
 import { find, marksOf, movable, parseId } from '../poi/poiScene.js';
-import { applyMulti, kindsOf, pivotOf, singleItem } from '../poi/poiMulti.js';
+import { applyMulti, pivotOf, singleItem } from '../poi/poiMulti.js';
+import { placeFlatAt } from '../poi/poiFlatRows.js';
 import { boxPick, editorView, liftOf, npcLine, pickNpc, rectLines, spotOf } from './poiEditorSelect.js';
 import { gizmoSize, gizmoShape, pickHandle, beginGizmoDrag, dragResult, POI_SNAP_DEFAULT, POI_GIZMO_PX } from '../poi/poiGizmo.js';
 import { quatRotate } from '../world/quat.js';
@@ -112,7 +113,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let drag = null;
   /** @type {null | { x: number, y: number, moved: boolean, button: number, shift?: boolean, at?: number[] }} */
   let press = null;
-  /** @type {null | { kind: 'poi', name: string } | { kind: 'part', asset: any, fallbackName?: string } | { kind: 'spot', id: string, done: (p: number[]) => void }} */
+  /** @type {null | { kind: 'poi', name: string } | { kind: 'part', asset: any, fallbackName?: string } | { kind: 'spot', id: string, done: (p: number[]) => void } | { kind: 'flat', flat: any, fallbackName?: string }} */
   let placing = null;
   /** The DM panel's lines (ui/poi/poiDmPanel.js): `(placeOf) => ({ inWorld, onTop }) | null`, drawn with the editor's own. */
   let overlay = null;
@@ -161,7 +162,8 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       const lastPart = [...ids].reverse().map((i) => find(doc, i)).find((f) => f?.kind === 'part')?.row;
       const q = lastPart ? partWorldQuat(doc.place, lastPart) : doc.place.r;
       const axes = space === 'local' || mode === 'size' ? AXES_WORLD.map((a) => quatRotate(q, a)) : AXES_WORLD;
-      return { c: spotOf(doc, origin, pivot), axes, doc, sel, multi: { ids, pivot }, moveOnly: kindsOf(ids).parts === 0 };
+      // lights and people can only move; parts and flat pictures also rotate and scale
+      return { c: spotOf(doc, origin, pivot), axes, doc, sel, multi: { ids, pivot }, moveOnly: !ids.some((i) => i.startsWith('part:') || i.startsWith('flat:')) };
     }
     if (sel.light != null) {
       // a light: where it shines from, moved alone (it has no turn and no size of its own)
@@ -216,11 +218,12 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     // a hidden or locked part is passed through (it cannot be picked); a person of the held POI is picked by their line
     const held = edit.selection();
     const heldDoc = held ? edit.docOf(held.id) : null;
-    const skip = (id, key) => { const d = edit.docOf(id); if (!d) return false; const m = marksOf(d).get(`part:${key}`); return !!m && (m.hidden || m.frozen); };
+    const skip = (id, key, kind) => { const d = edit.docOf(id); if (!d) return false; const m = marksOf(d).get(`${kind ?? 'part'}:${key}`); return !!m && (m.hidden || m.frozen); };
     let hit = host.pick(ray.o, ray.d, POI_PICK_REACH, skip);
     const o = heldDoc ? originOfDoc(heldDoc) : null;
     const person = heldDoc && o ? pickNpc(heldDoc, o, ray.o, ray.d, hit ? hit.dist : POI_PICK_REACH) : null;
-    const item = person ? `npc:${person.key}` : hit ? `part:${hit.key}` : null;
+    // a part, or a flat picture (poiHost.js pick)
+    const item = person ? `npc:${person.key}` : hit ? `${hit.kind ?? 'part'}:${hit.key}` : null;
     if (person) hit = { id: held.id, key: person.key, dist: person.dist };
     if (!hit) {
       // a click on a locked or hidden part holds its POI, as a first click on the POI does
@@ -288,6 +291,9 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       const held = (id) => ({ id, part: null });
       if (!sel) edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: who.name || placing.fallbackName || '' }, fill, held);
       else edit.edit(sel.id, 'add person', fill);
+    } else if (placing.kind === 'flat') {
+      // place the flat picture at the clicked point in the selected POI (or in a new POI around it) and select it
+      if (!placeFlatAt({ edit, originOf: originOfDoc, at, spot: px, lift, ground, want: placing.flat, fallbackName: placing.fallbackName })) return;
     } else {
       const asset = placing.asset;
       const sel = edit.selection();
@@ -387,6 +393,10 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     /** BUNNYFALL: a person (name, look, height, lines) follows the cursor on the ground; a click stands them. */
     placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
+    /** Arms placement for a flat picture (`{ kind, flat, item, name, light }`, passed to poiFlatRows.js newFlat) so
+     *  it follows the ground cursor; a click places it in the selected POI, or, with none selected, in a new POI
+     *  named after the picture or `fallbackName`. */
+    placeFlat(flat, fallbackName = '') { placing = { kind: 'flat', flat, fallbackName }; told(); },
     cancelPlacing() { placing = null; placeAt = null; told(); },
     /** Places whatever is armed for placing on the ground under client point `(x, y)`, as a click there would (used
      *  when an asset is dropped from the browser), and returns whether it was placed. */
@@ -470,9 +480,9 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       if (sel.part != null && !tg.multi) { const p = host.partOf(sel.id, sel.part); if (p?.box) r = Math.hypot(p.box[3] - p.box[0], p.box[4] - p.box[1], p.box[5] - p.box[2]) / 2; }
       else {
         // the POI's parts, or those of several things selected
-        const keys = tg.multi ? tg.multi.ids.filter((i) => i.startsWith('part:')).map((i) => parseId(i).key) : tg.doc.parts.map((p) => p.key);
+        const ids = tg.multi ? tg.multi.ids.filter((i) => i.startsWith('part:') || i.startsWith('flat:')) : tg.doc.parts.map((p) => `part:${p.key}`);
         let any = false; const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
-        for (const key of keys) { const p = host.partOf(sel.id, key); if (p?.box) { any = true; for (let i = 0; i < 3; i++) { b[i] = Math.min(b[i], p.box[i]); b[i + 3] = Math.max(b[i + 3], p.box[i + 3]); } } }
+        for (const id of ids) { const { kind, key } = parseId(id); const box = kind === 'flat' ? host.flatBox?.(sel.id, key) : host.partOf(sel.id, key)?.box; if (box) { any = true; for (let i = 0; i < 3; i++) { b[i] = Math.min(b[i], box[i]); b[i + 3] = Math.max(b[i + 3], box[i + 3]); } } }
         if (any) r = Math.hypot(b[3] - b[0], b[4] - b[1], b[5] - b[2]) / 2;
       }
       const f = lookDir(cam.yaw, cam.pitch), d = Math.max(2, r * 3);
@@ -624,12 +634,13 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       const doc = sel ? edit.docOf(sel.id) : null;
       const picked = new Set(doc ? movable(doc, items) : []);
       const marks = doc ? marksOf(doc) : new Map();
-      for (const part of doc?.parts ?? []) {
-        const p = host.partOf(sel.id, part.key);
-        if (!p?.box) continue;
-        const id = `part:${part.key}`, on2 = picked.has(id) || items.includes(id);
+      // draws bounding boxes for parts and for flat pictures whose textures have loaded
+      const boxed = [...(doc?.parts ?? []).map((p) => [`part:${p.key}`, host.partOf(sel.id, p.key)?.box]), ...(doc?.flats ?? []).map((f) => [`flat:${f?.key}`, host.flatBox?.(sel.id, f?.key)])];
+      for (const [id, box] of boxed) {
+        if (!box || marks.get(id)?.hidden) continue;
+        const on2 = picked.has(id) || items.includes(id);
         const color = marks.get(id)?.frozen ? POI_BOX_COLOR.locked : on2 ? POI_BOX_COLOR.part : POI_BOX_COLOR.poi;
-        if (!items.length || on2) { inWorld.push(...boxLines(p.box, color)); onTop.push(...boxLines(p.box, [color[0], color[1], color[2], 0.22])); }
+        if (!items.length || on2) { inWorld.push(...boxLines(box, color)); onTop.push(...boxLines(box, [color[0], color[1], color[2], 0.22])); }
       }
       // the selected POI's lights, each a small star where it shines from, and its people, each an upright line - the
       // selected ones lit; hidden ones not drawn

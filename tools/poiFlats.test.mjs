@@ -176,6 +176,47 @@ test('a POI with no flats does not create a decor room', () => {
   assert.deepEqual(flats.standing(), []);
 });
 
+// ── the editor's edits of a flat row (src/poi/poiFlatRows.js, src/poi/poiMulti.js) ──
+
+test('the editor builds valid flat rows for a billboard, a paperdoll item, and a mounted item', async () => {
+  const { newFlat } = await import('../src/poi/poiFlatRows.js');
+  const d = newPoiDoc({ id: 'poi-f1a700000003', px: 600, py: 250, x: 10, z: 10, name: 'Flats' });
+  d.flats = [];
+  d.flats.push(newFlat(d, { flat: [210, 1], t: [1, 0, 0], light: { color: [1, 0.9, 0.7], radius: 5, intensity: 1, flicker: true } }));
+  d.flats.push(newFlat(d, { kind: 'item', item: { t: 200 }, flat: [204, 0], t: [2, 0, 0] }));
+  d.flats.push(newFlat(d, { kind: 'item', item: { t: 113, g: 3 }, flat: [234, 5], t: [3, 1, 0] }));
+  d.flats.push(newFlat(d, { flat: [210, 1], t: [4, 0, 0] }));
+  assert.deepEqual(d.flats.map((f) => f.kind), ['billboard', 'paperdoll', 'mount', 'billboard']);
+  assert.equal(new Set(d.flats.map((f) => f.key)).size, 4, 'each its own key');
+  assert.deepEqual(poiDocProblems(d), []);
+});
+
+test('the gizmo rotates and scales a flat row; a figure keeps its scale; mirroring follows the POI\'s rotation', async () => {
+  const { applyMulti } = await import('../src/poi/poiMulti.js');
+  const { setFlatMirrored, flatMirrored } = await import('../src/poi/poiFlatRows.js');
+  const d = newPoiDoc({ id: 'poi-f1a700000004', px: 600, py: 250, x: 10, z: 10, name: 'Flats' });
+  d.flats = [structuredClone(billboard), structuredClone(dagger), structuredClone(figure)];
+  const axes = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  applyMulti(d, ['flat:lamp'], { turn: { axis: [0, 1, 0], deg: 90 } }, { pivot: billboard.t, axes });
+  assert.equal(d.flats[0].rot[0], 90);
+  close(d.flats[0].t, billboard.t, 'turned about its own spot');
+  applyMulti(d, ['flat:dagger'], { turn: { axis: [0, 1, 0], deg: 90 } }, { pivot: dagger.t, axes });
+  const f = decorMountFrame(d.flats[1].rot), g = decorMountFrame(dagger.rot), q = quatAngleAxis(90, [0, 1, 0]);
+  close(f.normal, quatRotate(q, g.normal), 'the mount\'s normal'); close(f.right, quatRotate(q, g.right), 'the mount\'s right side');
+  applyMulti(d, ['flat:lamp', 'flat:guard'], { size: [2, 2, 2] }, { pivot: [0, 0, 0], axes });
+  assert.equal(d.flats[0].scale, 3);
+  assert.equal(d.flats[2].scale, 1, 'a person\'s picture keeps its own size');
+  assert.deepEqual(poiDocProblems(d), []);
+  // mirrored as the game draws it when the POI is rotated 180 degrees
+  d.place.r = TURNED;
+  d.flats[0].rot = [0, 0, 0];
+  assert.equal(flatMirrored(d.flats[0], d.place), true);
+  setFlatMirrored(d.place, d.flats[0], false);
+  assert.equal(flatMirrored(d.flats[0], d.place), false);
+  assert.equal(decorFlatMirrored(poiFlatPiece(d.flats[0], d.place)), false, 'the game agrees');
+  assert.equal(setFlatMirrored(d.place, d.flats[1], true), false, 'a mount never mirrors');
+});
+
 test('a trophy resolves to its beast plaque sprite or null without a beast; a billboard of any archive uses its own archive and record', async () => {
   const { trophyArchiveOf } = await import('../src/systems/hunt/trophies.js');
   assert.equal(poiFlatPicture({ kind: 'mount', item: { t: 601 } }), null);

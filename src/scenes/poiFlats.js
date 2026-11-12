@@ -4,15 +4,18 @@
 // mirror past 90 degrees, person sprites stay at scale 1, paperdoll items render as their world sprites, mounts
 // (weapons, armor, and trophies) render flat on the decal pass, and lit flats contribute to the POI's lights. Owned by
 // scenes/poiHost.js. The runtime ignores `layer` (flats sort by depth), `pivot` (flats sit on their base and mounts
-// hang from their center), and `collide` (flats have no colliders).
+// hang from their center), and `collide` (flats have no colliders), as noted in the inspector (ui/poi/poiFlatUi.js).
 
 import { createDecorRoom, decorIdOfKey } from './decor/decorRoom.js';
-import { decorMountFrame, decorIsFigure } from '../net/decorLaw.js';
+import { decorIsFigure } from '../net/decorLaw.js';
 import { decorItemFlat, decorMountItem } from '../systems/decor/decorItems.js';
 import { inventoryItemImage } from '../systems/item/itemTemplates.js';
 import { trophyArchiveOf } from '../systems/hunt/trophies.js';
 import { TROPHY_TEMPLATE } from '../net/trophyLaw.js';
 import { quatRotate } from '../world/quat.js';
+import { flatYawThrough, mountRotThrough } from '../poi/poiFlatRows.js';
+
+export { flatYawThrough, mountRotThrough };
 
 /** Maximum number of lit flats per POI: only the first `POI_FLAT_LIGHTS_MAX` lit rows in room order emit light
  *  (matching scenes/homeYards.js YARD_LAMPS_MAX), and any remaining rows render unlit. */
@@ -23,13 +26,6 @@ export const POI_FLAT_MERGES_A_FRAME = 1;
 /** Flicker rate in steps per second and maximum range reduction for flickering flat lights (matching
  *  scenes/poiHost.js). */
 const FLICKER_HZ = 12, FLICKER_DEPTH = 0.25;
-
-const RAD = Math.PI / 180, DEG = 180 / Math.PI;
-const r4 = (v) => { const r = Math.round(v * 1e4) / 1e4; return r === 0 ? 0 : r; };
-const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-/** An angle in degrees, into (-180, 180]. */
-export const wrapDeg = (d) => { let v = d % 360; if (v > 180) v -= 360; if (v <= -180) v += 360; return v; };
 
 /**
  * Resolves the `[archive, record]` texture of a flat row, or null. Uses `row.flat` when set; otherwise uses `row.item`:
@@ -53,31 +49,6 @@ export function poiFlatPicture(row) {
     return pic && Number.isInteger(pic.archive) && Number.isInteger(pic.record) ? [pic.archive, pic.record] : null;
   }
   return decorItemFlat({ templateIndex: it.t });
-}
-
-/** A row's facing (`yaw`, degrees, about up) turned by the place's turn `q`: the heading of the turned facing, in
- *  (-180, 180]. A facing turned straight up or down keeps its own yaw. */
-export function flatYawThrough(q, yaw) {
-  const y = (Number.isFinite(yaw) ? yaw : 0) * RAD;
-  const d = quatRotate(q, [Math.sin(y), 0, Math.cos(y)]);
-  if (Math.hypot(d[0], d[2]) < 1e-9) return r4(wrapDeg(Number.isFinite(yaw) ? yaw : 0));
-  return r4(wrapDeg(Math.atan2(d[0], d[2]) * DEG));
-}
-
-/**
- * A mount's turn `[heading, tilt, spin]` (degrees, net/decorLaw.js decorMountFrame) turned by the place's turn `q`:
- * the angles whose frame is the row's own frame turned by `q`. Exact for every turn: the normal gives the heading and
- * the tilt, and the spin is read off where the turned picture's right side points.
- */
-export function mountRotThrough(q, rot) {
-  const f = decorMountFrame(rot);
-  const n = quatRotate(q, f.normal), right = quatRotate(q, f.right);
-  const pitch = Math.asin(Math.max(-1, Math.min(1, n[1])));
-  const yaw = Math.atan2(n[0], n[2]);
-  const r0 = [-Math.cos(yaw), 0, Math.sin(yaw)];
-  const u0 = cross(r0, n);
-  const spin = Math.atan2(-dot(right, u0), dot(right, r0));
-  return [r4(yaw * DEG), r4(pitch * DEG), r4(spin * DEG)];
 }
 
 /**

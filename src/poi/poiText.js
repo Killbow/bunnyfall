@@ -306,10 +306,9 @@ export const meshErrorText = (code) => said(MESH, () => t('poi.mesh.malformed', 
 /** POI-6: a change a submission makes, as the approver reads it. @param {{ code: string, [k: string]: any }} c */
 export const diffText = (c) => said(DIFF, unknownCode)(c.code, c);
 /**
- * Formats the read-only summary lines for v2 content that the in-game editor preserves unchanged but cannot edit yet
- * (poiEdit.js poiHeldOf), followed by `more` (caller-supplied lines such as DM fields the DM panel leaves out), the
- * note stating that they are preserved on save, and the flat-picture note, or returns an empty list when the POI has
- * none.
+ * Formats the read-only summary lines for v2 POI fields that the in-game editor preserves but cannot edit yet
+ * (poiEdit.js poiHeldOf), followed by any caller-supplied `more` lines and the read-only notice; returns an empty array
+ * when none are present. Flat pictures are editable in the editor and formatted separately by flatCountText.
  * @param {ReturnType<typeof import('./poiEdit.js').poiHeldOf>} h @param {string[]} [more]
  */
 export function heldLines(h, more = []) {
@@ -321,9 +320,10 @@ export function heldLines(h, more = []) {
   if (h.linked) out.push(t('poi.held.linked', '{n, plural, one {# person has} other {# people have}} a route, dialogue, trade, reach, or condition.', { n: h.linked }));
   out.push(...more);
   if (out.length) out.push(t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.'));
-  if (h.flats) out.push(t('poi.held.flatsPart', '{n, plural, one {Its flat picture can be moved, grouped, hidden, locked, copied, and deleted here. Its picture cannot be changed, and its size can only be reset to one.} other {Its # flat pictures can be moved, grouped, hidden, locked, copied, and deleted here. Their pictures cannot be changed, and their sizes can only be reset to one.}}', { n: h.flats }));
   return out;
 }
+/** Formats a POI's flat-picture count against the schema limit `max`. @param {number} n @param {number} max */
+export const flatCountText = (n, max) => t('poi.flat.countOf', 'Flat pictures: {n, number} of {max, number}.', { n, max });
 /** A document's size against its version's limit (poiEdit.js poiDocSizeOf). @param {{ bytes: number, max: number }} s @param {number} v */
 export const docSizeText = (s, v) => t('poi.editor.docSize', 'Size: {kib, number} of {max, number} KiB (format version {v}).', { kib: Math.ceil(s.bytes / 102.4) / 10, max: Math.round(s.max / 1024), v });
 
