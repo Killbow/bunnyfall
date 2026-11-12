@@ -300,6 +300,7 @@ import { signGuestbook, readGuestbook } from './guestbook.js';
 import { accountVaultOf, accountVaultPut, accountVaultTake, accountVaultGold } from './accountVault.js';   // BUNNYFALL (Phase 5): the account vault
 const AVAULT_STATUS = Object.freeze({ 'avault-full': 409, 'avault-empty': 404, 'avault-moved': 409, 'avault-gold-full': 409, 'avault-gold-short': 409, 'vault-goods': 409, 'realm-only': 400, 'realm-needed': 409, 'bad-gold': 400, 'bad-vault-item': 400, 'bad-vault-count': 400, 'bad-vault-slot': 400 });
 import { nyxFound, nyxTotal } from './nyx.js';
+import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Nyx coins counted
@@ -1694,6 +1695,8 @@ const service = {
         // SEAT1b (Seats-Arc 4.2: "The Renown report grows `region`"): what this report CREDITED - never what it asked, and
         // nothing for a repeat - kept for the character's war-guild where it pledged in that region
         if (body.region != null && r.credited > 0 && !r.repeat) await creditRenown(ctx, who.player, env, { character: body.character, region: body.region, xp: r.credited });
+        // BUNNYFALL COMPANIES (territory): and to the character's Company's week in that region (territory.js)
+        if (body.region != null && r.credited > 0 && !r.repeat) await creditTerritory(ctx, who.player, { character: body.character, region: body.region, xp: r.credited }).catch((e) => console.warn('[territory] credit failed', e?.message ?? e));
         await progressSpent(ctx, who.player.id, path, r);   // INT17: what it credited, measured against the play that paid for it
         let order = null;
         if (r.rose || (r.repeat && r.level > 1)) {
@@ -2303,6 +2306,11 @@ const service = {
         const r = path.endsWith('/upload') ? await skinsUpload(sctx, who.player, body) : path.endsWith('/mine') ? await skinsMine(sctx, who.player)
           : path.endsWith('/delete') ? await skinsDelete(sctx, who.player, body) : path.endsWith('/wear') ? await skinsWear(sctx, who.player, body) : await skinsGet(sctx, who.player, body);
         return 'error' in r ? no(r.error, r.error === 'no-storage' ? 503 : r.error === 'skin-gone' ? 404 : r.error === 'skin-disabled' ? 403 : 400, origin) : json(r, 200, origin);
+      }
+
+      if (path === '/v1/territories') {   // BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (territory.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        return json(await territoriesRead(ctx), 200, origin);
       }
 
       if (path === '/v1/nyx/found' || path === '/v1/nyx/total') {   // BUNNYFALL (Cromwark): a Nyx coin found, and /nyxcoin's count (nyx.js)

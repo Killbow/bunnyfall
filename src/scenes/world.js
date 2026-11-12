@@ -989,7 +989,8 @@ import { createWildRemains, WILD_PILE_ICON, WILD_NO_STORE } from '../net/wild/wi
 import { markRemains, remainsMarkTick, remainsGone, keepMine, keptMine, forgetMine } from '../systems/wild/wildRemainsWaypoint.js';   // WILD-KEEP: and my remains' record, kept on the device
 import { setLootMarksLive } from './lootLines.js';   // WILD1: my remains' line with the rarity row off
 import { WILD_REMAINS_MS, WDUN_SALT, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_HERE_MS, spawnedHallMapId } from '../net/wire.js';
-import { validLootList } from '../systems/loot/loot.js';
+import { validLootList, setLootGoldMult } from '../systems/loot/loot.js';   // BUNNYFALL COMPANIES: loot gold inside one's territory
+import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BUNNYFALL COMPANIES: every Company's territory
 import { stacksWith } from '../systems/inventory.js';
 import { setHudZone } from '../ui/enhanced/enhancedHud.js';
 import { setHudPauseAt } from '../ui/hud/hudAdvance.js';   // FIRM-STARS: the stars' tile beside the Renown bar opens the Firmament page
@@ -11695,6 +11696,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         built: () => built, pixelTranslation: (x, y, out) => state.pixelTranslation(x, y, out),
         pixelInfo: (x, y) => { try { return { climate: maps.getClimateIndex(x, y), region: maps.getRegionIndexAt(x, y) }; } catch { return null; } }, settled: (pos) => { const wc = state.worldCoords(pos), p = worldCoordToMapPixel(wc.x, wc.z), loc = locationIndex.get(`${p.x},${p.y}`); return !!loc?.exterior?.exteriorData && isPlayerInTown(loc.mapTableData?.locationType, { mustBeInLocationRect: true, mustBeOutside: true, inLocationRect: isInLocationRect(wc.x, wc.z, locationWorldRect(loc, p.x, p.y)), inside: false }); },   // SETTLE-STAND: the acts' own settlement check (Foraging's 'town'), asked of a node's place
         nowMs: () => Date.now() + _sharedOffsetMs, haul: (entries) => showHaul(entries),   // HAUL-CARDS: a harvest's goods and XP as one card (the enhanced skin's)
+        inTerritory: () => !!companyTerritory?.inMine(),   // BUNNYFALL COMPANIES: gathered inside my Company's territory, +10%
         audio,   // GATHER-FEEL: the bus the gathering's ear says the acts on (systems/gatherSounds.js) - in the street, a dungeon and a building alike, the one host's
         marks: marksBook,   // SILVER-FINDS: a harvest's find said, its balance kept
         eye: () => ({ pos: cam.pos, dir: [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)] }),
@@ -16898,6 +16900,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       travellers: () => travellerBook.live(Date.now()).filter((t) => !social?.inMyParty(social.accountOfPeer(t.id))).map((t) => ({ id: t.id, name: t.name, ...t.p, ship: isShipMark(t.p), kin: travellerKin({ friend: !!social?.isFriendPeer(t.id), gt: t.gt }, myGuildTag()), lv: t.lv ?? null })),   // OW-KIN / OW-WHO: who they are to me, and their Renown   // OWS1: one at sea drawn as a ship   // TV3: the region's travellers, as the view draws them - AUDIT DEEP T3-9: bar my party, whom the map already rings as theirs
       travellerHidden: (t) => wildHidesPlayer({ kin: t.kin, pixel: t }),   // WILD1: in or near the open zone only my party and my guild are seen (the map asks of each row)
       wildMask: () => wildMapMask(),   // WILD1: the open zone's fog and red line (ui/wild/wildMapInk.js)
+      territories: () => companyTerritory?.marks() ?? [],   // BUNNYFALL COMPANIES: the Companies' territories (ui/territoryMapInk.js)
+      territorySig: () => { companyTerritory?.refresh(); return companyTerritory?.sig() ?? ''; },
       wildDungeons: () => wildActiveNow(),
       wildGiants: () => wildGiantMarks(),
       zoneFirst: () => wildHere() && !!wildMapMask() && modes?.mode !== 'dungeon',   // ZONE-FIRST: V in the zone opens the zone map   // ZONE-GIANTS: the zone's eight giants where they walk
@@ -20278,6 +20282,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let postBox = null;   // SERVER-POST: the server's post (net/serverPost.js PostBox), made beside the letterbox
   let accountVault = null;   // BUNNYFALL (Phase 5): the account vault's book (net/accountVaultBook.js), made beside the guild's
   let guildBook = null;   // GUILD1b: the character's guild (net/guild/guildBook.js GuildBook), made with the panel that draws it
+  let companyTerritory = null;   // BUNNYFALL COMPANIES: every Company's territory (systems/companyTerritory.js), made beside Cromwark's host
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -25518,6 +25523,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     boardReady: () => walkMode && playerSpawned && !gamePaused(),   // BUNNYFALL: the realm's notices wait for the world (ui/worldEventsBoard.js)
     audio, shake: (k) => betterAmbience.weaponKick(k),   // BUNNYFALL: the Great Cannon's boom and its shake (scenes/cannonHost.js)
   });
+  // BUNNYFALL COMPANIES (systems/companyTerritory.js): every Company's territory, painted on the held map and worth
+  // +10% gathering and loot gold to a member standing in their own. Online only.
+  companyTerritory = createCompanyTerritory({
+    io: () => (isOnlinePage() ? insigniaIo() : null),
+    townOf: (mapId) => _townOfMapId.get(mapId),
+    myGuildId: () => guildBook?.guild?.id ?? null,
+    here: () => playerTravelPixel(),
+  });
+  setLootGoldMult(() => companyTerritory?.yieldMult() ?? 1);
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)

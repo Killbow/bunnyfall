@@ -1312,6 +1312,8 @@ export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
  *  the `purse` its closed gates can still pay, or a refusal (`owned`, `short` with `purse` and `price`, `guest`). */
 /** BUNNYFALL (Cromwark): a Nyx coin (or a few) found in the reach - the service counts them (server-account/src/nyx.js). */
 export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
+/** BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (server-account/src/territory.js). */
+export const territoriesRead = (io) => call(io, '/v1/territories', {});
 /** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
 export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
 export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);

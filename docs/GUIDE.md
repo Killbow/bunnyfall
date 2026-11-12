@@ -97,6 +97,7 @@ authors to `src/ui/credits.js`.
 | Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
 | Emperor's statue at Daggerfall's north gate | `src/world/emperorMemorial.js`, `public/art/bunnyfall-npcs/` |
 | Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Nyx coins and shop, purple border) | `src/systems/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/scenes/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
+| Company territories on the held map, +10% yield inside your own (grown by members' Renown in the hall's region) | `src/net/territoryLaw.js` (numbers), `src/systems/companyTerritory.js`, `src/ui/territoryMapInk.js`, `server-account/src/territory.js`, migration `0197_company_territory.sql` |
 | Names (first and last, how NPCs address you) | `src/systems/names.js`, `src/ui/namePicker.js` |
 | Content switched off | `src/systems/contentOff.js` |
 | Homes: buying, votes, who may enter | `src/net/homeLaw.js`, `server-account/src/homes.js`, `homeVotes.js`, `src/systems/online/onlineHomes.js` |

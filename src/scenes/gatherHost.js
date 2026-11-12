@@ -885,6 +885,7 @@ export function createGatherHost(deps) {
       // AUDIT BAG1 B4: the material the act's goods are, where the kind knows it - the book reads what the bag and the pack
       // hold of it (`held`); no kind named one, and no carried harvest ever cut the count to the pack
       ...(actMaterial(a) ? { material: actMaterial(a) } : {}),
+      ...(deps.inTerritory?.() ? { territory: true } : {}),   // BUNNYFALL COMPANIES: inside my Company's territory (systems/companyTerritory.js)
     }).then((r) => answered(a, r, before), () => {});
     // GATHER-SPEED (2026-10-11, Mac: "look at gathering minigame performance and how the server affects it/slows down"):
     // THE NODE GOES WITH THE ACT. The book counts the harvest from the ask (net/profBook.js `gone`: taken, or being

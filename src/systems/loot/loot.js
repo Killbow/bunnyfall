@@ -211,10 +211,17 @@ export function createRandomClothing(gender, rolls = Math.random) {
  *  does not name, is untouched. */
 /** LootTables.GenerateRandomLoot, verbatim flow. `who` = { level,
  *  gender } (race feeds clothing variants later - S2). */
+/** BUNNYFALL COMPANIES (territory): the host's word on loot gold here - 1, or more inside one's own Company's territory
+ *  (systems/companyTerritory.js yieldMult). A bad answer is 1. */
+let _lootGoldMult = () => 1;
+export function setLootGoldMult(fn) { _lootGoldMult = typeof fn === 'function' ? fn : () => 1; }
+function lootGoldMult() { try { const m = Number(_lootGoldMult()); return Number.isFinite(m) && m >= 1 && m <= 2 ? m : 1; } catch { return 1; } }
+
 export function generateRandomLoot(matrix, who, rolls = Math.random, { itemChanceScale = 1, mobileType = null } = {}) {
   const items = [];
   const level = Math.max(1, who.level | 0);
-  const gold = (matrix.MinGold + Math.floor(rolls() * (matrix.MaxGold + 1 - matrix.MinGold))) * level;
+  // BUNNYFALL COMPANIES: inside one's own Company's territory the gold is TERRITORY_YIELD_PCT more (setLootGoldMult)
+  const gold = Math.round((matrix.MinGold + Math.floor(rolls() * (matrix.MaxGold + 1 - matrix.MinGold))) * level * lootGoldMult());
   // ItemBuilder.CreateGoldPieces = CreateItem(Currency, Gold_pieces).
   // AUDIT 18: this minted a bare Currency row with NO templateIndex,
   // so inventory.stacksWith could never merge it with the player's

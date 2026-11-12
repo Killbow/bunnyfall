@@ -1292,6 +1292,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
       ...(h.foe === undefined ? {} : { foe: h.foe }),   // PROF7: the foe a body is (PROF0 6: the client's claim)
       ...(typeof h.watch === 'string' ? { watch: h.watch } : {}),   // PROF2b: a Motherlode's - the relay's Watch receipt for its pixel
       ...(h.carry === true ? { carry: true, ...heldBody(h) } : {}),   // BAG1: into the bag or the pack
+      ...(h.territory === true ? { territory: true } : {}),   // BUNNYFALL COMPANIES: gathered inside the Company's own territory
     };
     let r;
     sending.add(h.rid);

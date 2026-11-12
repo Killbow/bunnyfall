@@ -93,6 +93,7 @@ import { tideNow } from './tides.js';   // SEASON1 part two: the land's Tide (9.
 import { tideYield } from '../../src/net/tideLaw.js';
 import { firmStatement, firmStatsFrom, firmStatsOf } from './firmament.js';   // FIRM1: the Firmament's hand on a harvest and a craft
 import { yieldPct, xpPct, scaleQty, scaleXp } from '../../src/net/firmament/firmamentLaw.js';
+import { TERRITORY_YIELD_PCT } from '../../src/net/territoryLaw.js';   // BUNNYFALL COMPANIES: a harvest inside one's own territory
 import { stationSteps } from '../../src/net/fortLaw.js';   // SEAT2b part two (7.5): a seat's crafting halls
 import { fortTiersOf } from './seatForts.js';   // SEAT2b part two: the halls standing at the seat
 import { RAM_KIT } from '../../src/net/professionLaw.js';   // SEAT2b part two: a siege work's place in the Stores
@@ -752,6 +753,9 @@ export async function harvestNode(ctx, player, env, body = {}) {
   const firm = firmStatsFrom(firmRows?.[0], player, env);
   const firmYield = yieldPct(firm, profession);
   if (firmYield) qty = scaleQty(qty, firmYield, dice(rand));   // a die drawn only for a tree that moves the yield
+  // BUNNYFALL COMPANIES (territory): inside the gatherer's own Company's territory, TERRITORY_YIELD_PCT more - the client's
+  // word (it alone places the hall on the map), as a friends' server takes it; a die drawn only when it is said
+  if (body?.territory === true) qty = scaleQty(qty, TERRITORY_YIELD_PCT, dice(rand));
   const xp = scaleXp(harvestXp(xpTier ?? tier, rank, clean), xpPct(firm, profession));
   const nonce = mintId(rand);
   // SEAT1d (SEAT0 7.6): THE LEVY - a tenth of a harvest on ground in the bailiwick of a seat whose Levy rules this week
