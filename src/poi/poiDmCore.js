@@ -5,6 +5,8 @@
 // `createDm` models one visit (items, gold, variables, object states, people, encounters, trade counts); events change
 // it and write what they did to `log`.
 
+import { POI_INTERACTIVE_STATES } from './poiLawV2.js';
+
 /** How deep events may start events with no delay in one go; the law refuses a cycle, this stops a mistake the law cannot see. */
 export const EVENT_DEPTH_MAX = 16;
 export const DAY_S = 86400;
@@ -138,6 +140,7 @@ export function createDm(doc, start = {}) {
     /** @type {string[]} */ pending: [],
     /** @type {{ dialogue: string, node: string } | null} */ dialogue: null,
     /** @type {string | null} */ trade: null,
+    /** @type {Record<string, any>} the kept variable each object with a `stateVar` last followed, by object key */ keptSeen: {},
     now: start.now ?? 0,
     char: start.char ?? 'sandbox', player: start.player ?? 'sandbox',
   };
@@ -250,6 +253,10 @@ export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
   const ev = byKey(dm.doc.events, key);
   if (!ev) return { ran: false, why: 'missing' };
   if (depth > EVENT_DEPTH_MAX) { note(dm, { k: 'refused', event: key, why: 'depth' }); return { ran: false, why: 'depth' }; }
+  // a run that nothing else started (a trigger, a waypoint, a delay come due, an answer, a trade, walking into or
+  // winning an encounter, or the service's settling) starts the `event` variables from their own values; an event that
+  // another runs at once shares its run's
+  if (depth === 0) for (const v of dm.doc.variables ?? []) if (v.scope === 'event') dm.vars[v.key] = v.initial;
   const taken = branch ?? branchOf(ev, dm);
   const actions = (taken === 'then' ? ev.then : ev.else) ?? [];
   if (!settled && dm.service && needsService(dm.doc, actions)) {
@@ -307,6 +314,19 @@ function startEncounter(dm, key, depth) {
   if (e.onStart) runEvent(dm, e.onStart, { depth: depth + 1 });
 }
 
+/**
+ * The player walks into an encounter's area (its `center` and `radius`): an idle encounter starts. One that is active, or
+ * done for good (`respawn: 'never'` once won), does not. Answers whether it started.
+ * @param {Dm} dm @param {string} key
+ */
+export function enterEncounter(dm, key) {
+  if (dm.encounters[key] !== 'idle' || !byKey(dm.doc.encounters, key)) return false;
+  note(dm, { k: 'enter_encounter', encounter: key });
+  // a walk-in start is a run of its own: its start event runs at the top, as a trigger's does
+  startEncounter(dm, key, -1);
+  return true;
+}
+
 /** The encounter's rule is met (the game saw it; a sandbox presses the button): it ends and its completion event runs. @param {Dm} dm @param {string} key */
 export function completeEncounter(dm, key) {
   const e = byKey(dm.doc.encounters, key);
@@ -315,6 +335,57 @@ export function completeEncounter(dm, key) {
   note(dm, { k: 'encounter_done', encounter: key });
   if (e.onComplete) runEvent(dm, e.onComplete);
   return true;
+}
+
+// ── objects ─────────────────────────────────────────────────────
+
+/** Whether the visitor holds an object's key item. @param {Dm} dm @param {any} o */
+const holdsKey = (dm, o) => !!o.keyItem && ctxOf(dm).count(o.keyItem) >= (o.keyItem.count ?? 1);
+
+/**
+ * A player uses an object. A locked door or chest with a key item opens when the visitor holds the key and stays shut
+ * otherwise (no events run); one locked with no key item runs its events, which may unlock it. A closed door or chest
+ * opens, an open door shuts, and a switch flips between off (`inactive`) and on (`active`). An inactive quest object, or
+ * a keyed switch or quest object used without the key, does nothing. Then the `interact` events run. Answers
+ * `{ locked, ran }`: `locked` when it is still locked, or needs a key the visitor lacks. @param {Dm} dm @param {string} key
+ */
+export function useInteractive(dm, key) {
+  const o = byKey(dm.doc.interactives, key);
+  if (!o) return { locked: false, ran: /** @type {string[]} */ ([]) };
+  const door = o.kind === 'door', chest = o.kind === 'chest';
+  const was = dm.states[key];
+  if (!door && !chest) {
+    if (o.kind === 'quest_object' && was === 'inactive') { note(dm, { k: 'inactive', interactive: key }); return { locked: false, ran: [] }; }
+    if (o.keyItem && !holdsKey(dm, o)) { note(dm, { k: 'locked', interactive: key }); return { locked: true, ran: [] }; }
+    if (o.kind === 'switch') setState(dm, key, was === 'active' ? 'inactive' : 'active');
+  } else if (was === 'locked' && o.keyItem) {
+    if (!holdsKey(dm, o)) { note(dm, { k: 'locked', interactive: key }); return { locked: true, ran: [] }; }
+    if (door || chest) setState(dm, key, 'open');
+  } else if (was === 'closed' && (door || chest)) setState(dm, key, 'open');
+  else if (was === 'open' && door) setState(dm, key, 'closed');
+  const ran = fire(dm, { k: 'interact', interactive: key });
+  const locked = dm.states[key] === 'locked';
+  if (locked) note(dm, { k: 'locked', interactive: key });
+  return { locked, ran };
+}
+/** @param {Dm} dm @param {string} key @param {string} state */
+function setState(dm, key, state) { dm.states[key] = state; note(dm, { k: 'set_state', interactive: key, state }); }
+
+/**
+ * Updates the interactive objects that take their state from a variable (`stateVar`): each takes the variable's value
+ * when it names one of the object's states and has changed since the object last checked (including on the first check
+ * of a visit). A persistent variable set by an event carries the object's state across visits without undoing uses in
+ * between.
+ * @param {Dm} dm
+ */
+export function followKeptStates(dm) {
+  for (const o of dm.doc.interactives ?? []) {
+    if (typeof o.stateVar !== 'string') continue;
+    const v = dm.vars[o.stateVar];
+    if (o.key in dm.keptSeen && dm.keptSeen[o.key] === v) continue;
+    dm.keptSeen[o.key] = v;
+    if (/** @type {Record<string, readonly string[]>} */ (POI_INTERACTIVE_STATES)[o.kind]?.includes(v) && dm.states[o.key] !== v) setState(dm, o.key, v);
+  }
 }
 
 // ── dialogues ───────────────────────────────────────────────────

@@ -62,6 +62,7 @@ const PROBLEM = {
   interactives: (a) => t('poi.problem.interactives', 'At most {max} interactive objects.', a),
   'interactive-kind': () => t('poi.problem.interactiveKind', 'This kind of object does not exist.'),
   state: () => t('poi.problem.state', 'This state does not suit this kind of object.'),
+  'state-var': () => t('poi.problem.stateVar', 'An object can take its state only from a persistent text variable, for everyone or for each character.'),
   'wrong-kind': () => t('poi.problem.wrongKind', 'This kind of object cannot be used here.'),
   dialogues: (a) => t('poi.problem.dialogues', 'At most {max} dialogues.', a),
   nodes: (a) => t('poi.problem.nodes', 'A dialogue needs between 1 and {max} lines of speech.', a),

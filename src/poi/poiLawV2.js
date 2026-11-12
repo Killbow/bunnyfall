@@ -94,7 +94,7 @@ const KEYS = Object.freeze({
   encounter: set('key', 'name', 'center', 'radius', 'aggression', 'spawns', 'respawn', 'complete', 'onStart', 'onComplete'),
   spawn: set('key', 'foe', 'count', 'level', 'at', 'spread', 'route'),
   complete: set('rule', 'leader', 'seconds'),
-  interactive: set('key', 'name', 'kind', 'appearance', 't', 'yaw', 'radius', 'state', 'keyItem', 'group', 'visible', 'locked'),
+  interactive: set('key', 'name', 'kind', 'appearance', 't', 'yaw', 'radius', 'state', 'keyItem', 'stateVar', 'group', 'visible', 'locked'),
   appearance: set('k', 'key', 'flat'),
   dialogue: set('key', 'name', 'start', 'nodes'),
   node: set('key', 'say', 'options'),
@@ -413,6 +413,12 @@ export function poiV2Problems(raw, kit) {
       if (!finite(o.yaw) || Math.abs(o.yaw) > 720) say(`${at}.yaw`, 'size', { max: 720 });
       if (!finite(o.radius) || o.radius < 0.5 || o.radius > 200) say(`${at}.radius`, 'radius', { min: 0.5, max: 200 });
       if (o.keyItem !== undefined) stack(o.keyItem, `${at}.keyItem`);
+      // the persistent text variable the object takes its state from (poiDmCore.js followKeptStates)
+      if (o.stateVar !== undefined) {
+        ref(o.stateVar, /** @type {any} */ (ctx.vars), `${at}.stateVar`);
+        const v = ctx.vars.get(o.stateVar);
+        if (v && (v.type !== 'string' || !(v.scope === 'character' || v.scope === 'poi_global'))) say(`${at}.stateVar`, 'state-var');
+      }
       layout(o, at);
       unknown(o, KEYS.interactive, at);
     });

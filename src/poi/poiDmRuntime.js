@@ -7,7 +7,7 @@
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
-  createWalker, stepWalker, persists, evalWhen,
+  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates,
 } from './poiDmCore.js';
 import { takeStacks, takeGold, countOf, goldOf } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
@@ -20,7 +20,8 @@ import { t as tr } from '../systems/textManager.js';
 const byKey = (/** @type {any} */ rows, /** @type {string} */ key) => (Array.isArray(rows) ? rows.find((r) => r?.key === key) : undefined);
 
 /** Whether a document carries anything this runtime runs. @param {any} doc */
-export const hasDm = (doc) => doc?.v === 2 && ['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length);
+export const hasDm = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length)
+  || !!doc.npcs?.some((/** @type {any} */ n) => n?.showWhen));
 
 /** The words a refusal is said in: the short ones beside a trade's offer, the service's answers as sentences. @type {Record<string, () => string>} */
 const WHY_TEXT = Object.freeze({
@@ -121,7 +122,7 @@ export function createPoiDm(deps) {
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
     dm.service = !!deps.act;
-    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), last: now(), extras: [], extraOf: new Map(), shown: [], loaded: false, timers: new Map() };
+    r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), inEnc: new Set(), off: new Set(), last: now(), extras: [], extraOf: new Map(), shown: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
     runs.set(s.id, r);
     loadVars(r);
@@ -247,6 +248,8 @@ export function createPoiDm(deps) {
 
   /** The panel as the run stands: a dialogue, a trade, or nothing. @param {any} r */
   function show(r) {
+    // what is on the screen, so the frame does not show it again
+    r.opened = r.dm.dialogue ?? r.dm.trade;
     sayLog(r);
     if (r.dm.dialogue) {
       const d = dialogueNow(r.dm);
@@ -294,6 +297,7 @@ export function createPoiDm(deps) {
     const nowS = now(), dt = Math.min(1, Math.max(0, nowS - r.last));
     r.last = nowS;
     advance(r.dm, dt);
+    followKeptStates(r.dm);
     const f = feet();
     // the trigger zones the player stepped into
     for (const o of r.doc.interactives ?? []) {
@@ -306,18 +310,27 @@ export function createPoiDm(deps) {
     // the objects to use, as targets the world's Use key reaches: each made once a run, moved each frame
     r.extras.length = 0;
     for (const o of r.doc.interactives ?? []) {
-      if (o.kind === 'trigger') continue;
+      // a zone is no object to use, nor is an inactive quest object (a switch is used off or on)
+      if (o.kind === 'trigger' || (o.kind === 'quest_object' && r.dm.states[o.key] === 'inactive')) continue;
       let x = r.extraOf.get(o.key);
-      if (!x) { x = { key: `poidm:${r.id}:${o.key}`, name: o.name, at: [0, 0, 0], h: 1.5, w: Math.min(3, o.radius ?? 1), activate: () => useObject(r, o) }; r.extraOf.set(o.key, x); }
-      placeInto(x.at, s.place, o.t, t);
+      if (!x) { x = { key: `poidm:${r.id}:${o.key}`, name: o.name, at: [0, 0, 0], h: 1.5, w: Math.min(3, o.radius ?? 1), reach: o.radius, activate: () => useObject(r, o) }; r.extraOf.set(o.key, x); }
+      // an object that looks like one of the POI's parts is used where that part stands
+      const look = o.appearance?.k === 'part' ? byKey(r.doc.parts, o.appearance.key) : null;
+      placeInto(x.at, s.place, look?.t ?? o.t, t);
       r.extras.push(x);
     }
-    // the walkers
+    // an open door whose look is one of the POI's parts: that part is not drawn and does not block (the host reads `off`)
+    r.off.clear();
+    for (const o of r.doc.interactives ?? []) if (o.kind === 'door' && o.appearance?.k === 'part' && r.dm.states[o.key] === 'open') r.off.add(o.appearance.key);
+    // the walkers, and the people shown only while their condition holds (read once a frame, and only when one has one)
     const list = r.shown;
     list.length = 0;
+    const seen = r.doc.npcs?.some((/** @type {any} */ n) => n?.showWhen) ? r.dm.read() : null;
     for (const p of people ?? []) {
       const st = r.dm.npcs[p.key];
       if (st && !st.on) continue;
+      const when = seen ? byKey(r.doc.npcs, p.key)?.showWhen : null;
+      if (when && !evalWhen(when, seen)) continue;
       const route = st?.route ? byKey(r.doc.routes, st.route) : null;
       if (route) {
         let w = r.walkers.get(p.key);
@@ -334,19 +347,22 @@ export function createPoiDm(deps) {
       list.push(p);
     }
     tickEncounters(r, s, t, dt);
+    // a dialogue or trade an event opened (a zone, a waypoint, a timer, an encounter) is shown, once, as Talk's is
+    const opened = r.dm.dialogue ?? r.dm.trade;
+    if (opened && opened !== r.opened) show(r);
+    r.opened = opened;
     sayLog(r);
     drain(r);
+    // offline, a persistent variable an event set with nothing to settle is saved on this device at once
+    if (!deps.act && r.dm.dirty.size) { if ((r.doc.variables ?? []).some((/** @type {any} */ v) => r.dm.dirty.has(v.key) && persists(v))) saveVars(r); r.dm.dirty.clear(); }
     return list;
   }
 
-  /** Use an object: its key, if it needs one, then its `interact` events. @param {any} r @param {any} o */
+  /** Use an object: a door or chest opens (with its key item when it is locked), a door shuts, or a switch flips,
+   *  then its `interact` events run, by poiDmCore.js useInteractive. @param {any} r @param {any} o */
   function useObject(r, o) {
-    if (o.keyItem && r.dm.states[o.key] === 'locked') {
-      const p = pack();
-      if (!p || countOf(p, o.keyItem) < (o.keyItem.count ?? 1)) { say(tr('poi.dm.locked', '{name} is locked.', { name: o.name })); return; }
-      r.dm.states[o.key] = 'closed';
-    }
-    if (!fire(r.dm, { k: 'interact', interactive: o.key }).length && r.dm.states[o.key] === 'locked') say(tr('poi.dm.locked', '{name} is locked.', { name: o.name }));
+    const u = useInteractive(r.dm, o.key);
+    if (u.locked && !u.ran.length) say(tr('poi.dm.locked', '{name} is locked.', { name: o.name }));
     show(r);
   }
 
@@ -363,12 +379,15 @@ export function createPoiDm(deps) {
   }
 
   /**
-   * Encounters started by events: spawns their enemies, then watches them until the completion rule is met. A survival
-   * timer counts only the time the player spends in the encounter's area.
+   * Encounters started by events or by the player walking into their area: spawns their enemies, then watches them
+   * until the completion rule is met. A survival timer counts only the time the player spends in the encounter's area.
    * @param {any} r @param {any} s @param {number[]} t @param {number} dt
    */
   function tickEncounters(r, s, t, dt) {
     for (const e of r.doc.encounters ?? []) {
+      // walking into its area starts an idle encounter (one set to come back starts again on the next walk in)
+      if (inArea(s, t, e)) { if (!r.inEnc.has(e.key)) { r.inEnc.add(e.key); enterEncounter(r.dm, e.key); } }
+      else r.inEnc.delete(e.key);
       const state = r.dm.encounters[e.key];
       const have = r.foes.get(e.key);
       if (state === 'active' && !have && deps.spawnFoe) {
@@ -434,6 +453,8 @@ export function createPoiDm(deps) {
     talk,
     /** The objects a POI offers to use this frame (scenes/poiNpcs.js setExtras). @param {string} id */
     extras: (id) => runs.get(id)?.extras ?? null,
+    /** The keys of a POI's parts that are not drawn and do not block this frame: the looks of its open doors. @param {string} id */
+    off: (id) => runs.get(id)?.off ?? null,
     /** A POI taken down: its run, its foes and its panel go. @param {string} id */
     drop(id) { const r = runs.get(id); if (r) { dropRun(r); panel.close(); } },
     /** For tests: a POI's model. @param {string} id */

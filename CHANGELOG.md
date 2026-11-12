@@ -34,6 +34,13 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: A dialogue or trade that a POI event opens from a zone, a waypoint, an encounter, or a delay now shows on the screen.
+- Fixed: A POI variable set to last one event run now starts again at each run, and a persistent variable that an event sets while playing offline is now saved.
+- Fixed: A POI object that looks like one of the POI's models is now used where that model sits, can be used from as far as its reach, and can take its state from a persistent variable that lasts from visit to visit.
+- Fixed: POI doors and chests now open when used, a locked one opens with its key item, and an open door's model no longer blocks the way.
+- Fixed: A POI switch now flips on or off each time it is used, an inactive POI quest object can no longer be used, and a switch or quest object that needs a key item now works only for a player who holds it.
+- Fixed: A POI person's talk range and their "shown only when" condition now work in the game.
+- Fixed: A POI encounter now starts when you walk into its area, and one set to come back starts again the next time you walk in.
 - Fixed: Saving a whole World Builder POI to the library from the in-game POI editor no longer fails when its lights are in a group, hidden, or locked; the library saves its parts and lights, and the dialog says what it leaves out.
 - Fixed: The in-game POI editor now says when a POI's flat pictures are left out of its .glb export and the library, as it already did for Daggerfall models.
 - Fixed: A part copied from one POI and pasted into another in the in-game POI editor no longer names a group the other POI lacks, which stopped that POI from being saved.

@@ -181,7 +181,7 @@ export function createPoiHost({
   const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => dmRt?.talk(id, key) ?? false });
   /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */
   let dmRt = null, dmAsked = false;
-  const dmContent = (doc) => doc?.v === 2 && ['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length);
+  const dmContent = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length) || doc.npcs?.some((n) => n?.showWhen));
   function dmOf(s) {
     if (!dm || s.draft || !dmContent(s.doc)) return null;
     if (!dmRt && !dmAsked) { dmAsked = true; dm().then((rt) => { dmRt = rt; }, (e) => { if (log) console.warn('[poi] the DM runtime', e?.message ?? e); }); }
@@ -554,18 +554,22 @@ export function createPoiHost({
     const people = s.doc.npcs?.length ? (s.npcs ??= npcsOf(s.doc, s.place)) : null;
     const shown = rt ? rt.frame(s, t, people) : people;
     if (rt) npcs.setExtras(s.id, rt.extras(s.id));
+    // the parts that are open doors' looks: not drawn and not blocking
+    const off = rt?.off?.(s.id) ?? null;
     if (shown?.length || people?.length) { npcs.sync(s.id, shown ?? [], t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
     else if (s.hadNpcs) { npcs.drop(s.id); s.hadNpcs = false; }
     const parts = s.parts;
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
+      p.off = !!off?.size && off.has(p.part.key);
+      if (p.off && p.stood) { col?.removeBucket?.(p.bucket); p.stood = false; }
       p.scene.set(p.local);
       p.scene[12] += t[0]; p.scene[13] += t[1]; p.scene[14] += t[2];
       drawnOf(p);
       const sk = p.baked;
       const lb = p.localBox, bx = p.box ??= [0, 0, 0, 0, 0, 0];   // AUDIT POI R12: refilled, never made again a frame
       bx[0] = lb[0] + t[0]; bx[1] = lb[1] + t[1]; bx[2] = lb[2] + t[2]; bx[3] = lb[3] + t[0]; bx[4] = lb[4] + t[1]; bx[5] = lb[5] + t[2];
-      if (p.collide && !p.stood && col?.addMesh && (p.carry || !inside(p.localBox, f, t)) && (!s.draft || collideDrafts())) {
+      if (p.collide && !p.stood && !p.off && col?.addMesh && (p.carry || !inside(p.localBox, f, t)) && (!s.draft || collideDrafts())) {
         // AUDIT POI R8: a first filing waits its turn in the frame's budget; one carried round the body never waits
         if (p.carry || turn()) {
           col.addMesh(p.bucket, p.positions, p.indices, p.local, riding(s.px, s.py));
@@ -636,7 +640,7 @@ export function createPoiHost({
         if (s.status !== 'ready' || !s.visible) continue;
         for (let i = 0; i < s.parts.length; i++) {
           const p = s.parts[i];
-          if (p.opaque && p.wound) drawSeen(r, cull, p.box, p.opaque, p.drawn, p.remap, p.shadow ? undefined : NO_SHADOW);
+          if (p.opaque && p.wound && !p.off) drawSeen(r, cull, p.box, p.opaque, p.drawn, p.remap, p.shadow ? undefined : NO_SHADOW);
         }
       }
     },
@@ -650,7 +654,7 @@ export function createPoiHost({
         if (s.status !== 'ready' || !s.visible) continue;
         for (let i = 0; i < s.parts.length; i++) {
           const p = s.parts[i];
-          if (!p.translucent || !p.wound || (cull && cull(p.box) !== DECOR_DRAW)) continue;
+          if (!p.translucent || !p.wound || p.off || (cull && cull(p.box) !== DECOR_DRAW)) continue;
           const b = p.box, e = _far[n] ?? (_far[n] = { p: null, d: 0 });
           n++;
           e.p = p;

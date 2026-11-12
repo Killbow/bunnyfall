@@ -24,11 +24,11 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 | `lights[]`, `npcs[]` | 32 | `group, visible, locked`. People also take `route, dialogue, trade, radius (1..20), showWhen`. |
 | `flats` | 200 | `kind` is `billboard`, `mount` or `paperdoll`. See below. |
 | `routes` | 32, 2..128 waypoints each | `{ key, name, mode: loop, pingpong or once, waypoints[{ key, name, t, radius, waitS, onArriveEvent? }] }` |
-| `encounters` | 16, 32 spawns each | Centre, radius, `aggression` (hostile or passive), `respawn`, `complete`, `onStart`, `onComplete`. |
-| `interactives` | 64 | `chest, door, switch, quest_object, trigger`, each with its own states, an appearance and a radius. |
+| `encounters` | 16, 32 spawns each | Center, radius, `aggression` (hostile or passive), `respawn`, `complete`, `onStart`, `onComplete`. The game starts an idle encounter when the player walks within its radius, or by a `start_encounter` action; `respawn: on_reentry` starts it again on the next walk in. |
+| `interactives` | 64 | `chest, door, switch, quest_object, trigger`, each with its own states, an appearance, a radius, an optional `keyItem`, and an optional `stateVar`: the key of a persistent text variable (`character` or `poi_global`) whose value, when it names one of the object's states, the object takes when the POI loads and when the variable changes. A door or chest opens when used (a locked one with its key item), an open door shuts, and an open door's `part` appearance is not drawn and does not block. A switch is off (`inactive`) or on (`active`), off by default in both editors, and each use flips it. A quest object cannot be used while `inactive`. A switch or quest object with a `keyItem` is used only by a holder of the key. A use changes the state, not the `stateVar` variable: events set that. |
 | `dialogues` | 32, 64 nodes each | Nodes of speech with 1..8 replies. A reply goes to a node, closes, opens a trade, runs a recipe or starts an event. |
 | `trades` | 32, 8 recipes each | Required and rewarded item stacks, gold, a limit mode, cooldown and success event. |
-| `variables` | 64 | Boolean, number or string. Scope is `event`, `instance`, `character` or `poi_global`. |
+| `variables` | 64 | Boolean, number, or string. Scope is `event` (starts again from `initial` at each event run that nothing else started), `instance`, `character`, or `poi_global`. |
 | `events` | 64 | A trigger, an optional condition tree, then and else action lists. |
 
 Flat pictures follow `decorLaw.js`. A `billboard` has `flat: [archive 0..99999, record 0..511]` and no item. A `mount` is a
