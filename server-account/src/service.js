@@ -386,6 +386,7 @@ export const ROUTES = new Set([
   '/v1/account/vault', '/v1/account/vault/put', '/v1/account/vault/take', '/v1/account/vault/gold',
   '/v1/nyx/found', '/v1/nyx/total', '/v1/cannon', '/v1/cannon/give',
   '/v1/territories',   // BUNNYFALL COMPANIES: every Company's territory (territory.js)
+  '/v1/charters/found', '/v1/charters/invite', '/v1/charters/answer', '/v1/charters/leave',   // BUNNYFALL COMPANIES: City Charters (charters.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id

@@ -856,7 +856,7 @@ import { createRollTracker, rollEntityDoors, rollPaceOf } from '../net/npcRollTr
 import { rollKeptOf, ROLL_KEPT_VENDOR, hallPosterName, hallRememberLine, isChapterWrit, seatLinesOf, seatRankAt, chapterRollTitle, chapterRollLines, chapterBandOf } from '../net/npcChapterLaw.js';   // AUDIT CHAP: the pace's line; the last adoption, kept in the save; CHAP2a: a hall writ's guild, named; CHAP3a: a member's own writ too; CHAP5a: the hall's roll; CHAP5b: a chapter's band, the living town's
 import { chapterSeasonLines } from '../net/chapterEvents.js';   // CHAP6c: a chapter's Season in words, its candidates named
 import { setHudRenown } from '../ui/hud/hudRenown.js';   // RENOWN4: my own Renown and its bar, under the vitals
-import { pickRegionHubs, hubAtMapId, hubArrivalLine, hubClaim } from '../systems/region/regionHubs.js';   // HUB1: every region's main city, its hub; SD2b: a populated place's claim (the Hollow's cities)
+import { pickRegionHubs, hubAtMapId, hubOfRegion, hubArrivalLine, hubClaim } from '../systems/region/regionHubs.js';   // HUB1: every region's main city, its hub; SD2b: a populated place's claim (the Hollow's cities)
 import { dungeonTier, tierPhrase } from '../systems/dungeon/dungeonTier.js';   // TIER1: a dungeon's tier, said online...
 import { dungeonTierLabel } from '../world/dungeon/dungeonLabel.js';   // ...with its size, never over a place the port made
 import { deriveTownSeats, seatAtMapId } from '../systems/town/townSeats.js';   // SEAT1a: every palace a seat, the three capitals crowns
@@ -16901,6 +16901,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       travellerHidden: (t) => wildHidesPlayer({ kin: t.kin, pixel: t }),   // WILD1: in or near the open zone only my party and my guild are seen (the map asks of each row)
       wildMask: () => wildMapMask(),   // WILD1: the open zone's fog and red line (ui/wild/wildMapInk.js)
       territories: () => companyTerritory?.marks() ?? [],   // BUNNYFALL COMPANIES: the Companies' territories (ui/territoryMapInk.js)
+      charters: () => companyTerritory?.charterMarks() ?? [],   // BUNNYFALL COMPANIES: the City Charters round their capitals
       territorySig: () => { companyTerritory?.refresh(); return companyTerritory?.sig() ?? ''; },
       wildDungeons: () => wildActiveNow(),
       wildGiants: () => wildGiantMarks(),
@@ -22014,6 +22015,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       social,
       mail,
       guild: guildBook,
+      territory: () => companyTerritory,   // BUNNYFALL COMPANIES: the City Charter on the Company page (systems/companyTerritory.js)
       send: (act) => socialLink()?.sendSocial(act) ?? false,   // false is the rate gate's answer: the panel keeps the button and says "try again"
       keepLetter: (letter) => keepLetterInJournal(letter),   // JOURNAL1: a letter kept in my journal, as a page is
       journey: () => partyTravel,   // PARTY-UI: the Party tab's Journey - the session is made later in this host, so it is read when drawn
@@ -25528,7 +25530,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   companyTerritory = createCompanyTerritory({
     io: () => (isOnlinePage() ? insigniaIo() : null),
     townOf: (mapId) => _townOfMapId.get(mapId),
+    capitalOf: (region) => { const h = hubOfRegion(regionHubs, region); return h ? { mapId: h.mapId, name: String(h.name ?? '') } : null; },   // City Charters: the region's hub
     myGuildId: () => guildBook?.guild?.id ?? null,
+    character: () => characterIdOf(playerEntity),
     here: () => playerTravelPixel(),
   });
   setLootGoldMult(() => companyTerritory?.yieldMult() ?? 1);

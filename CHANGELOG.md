@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- City Charters: up to three Companies with halls in the same region can hold its capital together. A Captain founds the Charter from the Company page and invites the others by tag. The Charter shows on the world map as one dashed outline round the city, sized by its Companies' territories together, and its members gather and loot 10% more anywhere inside it.
 - Companies with a hall now have a territory on the world map, a patch around the hall's town in the Company's colours. It grows as members earn Renown in the hall's region and shrinks back over the weeks when they stop. Territories can overlap. Inside your own Company's territory you gather 10% more and find 10% more gold in loot.
 
 ## 2026-11-11

@@ -8,6 +8,7 @@
 import { seatWeekOf } from '../../src/net/townSeatLaw.js';
 import { TERRITORY_WEEK_WEIGHTS, TERRITORY_XP_REPORT_MAX, territoryStrength } from '../../src/net/territoryLaw.js';
 import { heraldryOfRow } from './halls.js';
+import { chartersRead } from './charters.js';
 
 const regionOk = (r) => Number.isSafeInteger(r) && r >= 0 && r <= 61;
 
@@ -58,5 +59,7 @@ export async function territoriesRead({ db, nowS }) {
       strength: territoryStrength(weeks.get(h.id) ?? []),
     };
   });
-  return { ok: true, week, territories };
+  // BUNNYFALL COMPANIES (City Charters): and every Charter, which the maps draw round its capital (charters.js)
+  const charters = await chartersRead({ db, nowS }).catch(() => []);   // none before migration 0198
+  return { ok: true, week, territories, charters };
 }

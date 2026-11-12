@@ -301,6 +301,7 @@ import { accountVaultOf, accountVaultPut, accountVaultTake, accountVaultGold } f
 const AVAULT_STATUS = Object.freeze({ 'avault-full': 409, 'avault-empty': 404, 'avault-moved': 409, 'avault-gold-full': 409, 'avault-gold-short': 409, 'vault-goods': 409, 'realm-only': 400, 'realm-needed': 409, 'bad-gold': 400, 'bad-vault-item': 400, 'bad-vault-count': 400, 'bad-vault-slot': 400 });
 import { nyxFound, nyxTotal } from './nyx.js';
 import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
+import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Nyx coins counted
@@ -2311,6 +2312,12 @@ const service = {
       if (path === '/v1/territories') {   // BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (territory.js)
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
+      }
+      if (path === '/v1/charters/found' || path === '/v1/charters/invite' || path === '/v1/charters/answer' || path === '/v1/charters/leave') {   // BUNNYFALL COMPANIES: City Charters (charters.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const act = { '/v1/charters/found': foundCharter, '/v1/charters/invite': inviteToCharter, '/v1/charters/answer': answerCharter, '/v1/charters/leave': leaveCharter }[path];
+        const r = await act(ctx, who.player, body ?? {});
+        return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
 
       if (path === '/v1/nyx/found' || path === '/v1/nyx/total') {   // BUNNYFALL (Cromwark): a Nyx coin found, and /nyxcoin's count (nyx.js)

@@ -1314,6 +1314,11 @@ export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
 export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
 /** BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (server-account/src/territory.js). */
 export const territoriesRead = (io) => call(io, '/v1/territories', {});
+/** BUNNYFALL COMPANIES: City Charters (server-account/src/charters.js) - found, invite, answer, leave. */
+export const charterFound = (io, body) => call(io, '/v1/charters/found', body);
+export const charterInvite = (io, body) => call(io, '/v1/charters/invite', body);
+export const charterAnswer = (io, body) => call(io, '/v1/charters/answer', body);
+export const charterLeave = (io, body) => call(io, '/v1/charters/leave', body);
 /** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
 export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
 export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);

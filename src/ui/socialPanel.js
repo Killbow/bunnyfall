@@ -72,6 +72,8 @@ import { bannerSvg, shieldSvg } from './heraldryArt.js';   // GUILD1d: the guild
 import { GUILD_HALL_PRICE_MULT, GUILD_HALL_ENTRIES, GUILD_HALL_ENTRY_WORDS, hallMay } from '../net/hallLaw.js';   // GUILD1d: the hall
 import { homeSaleRefund } from '../net/homeLaw.js';   // GUILD1d: what the hall sells back for
 import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the hall stands
+import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
+import { TERRITORY_YIELD_PCT } from '../net/territoryLaw.js';
 import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { t } from '../systems/textManager.js';
@@ -323,6 +325,7 @@ export function guildWordText(error, r = null, nowS = Math.floor(Date.now() / 10
   if (error === 'guild-name-word' && typeof r?.why === 'string' && r.why) return `A company's name and tag may not contain "${r.why}". That word is not allowed in names.`;
   if (error === 'guild-rank-word' && typeof r?.why === 'string' && r.why) return `A rank's name may not contain "${r.why}". That word is not allowed in names.`;   // TEXT-F1
   if (error === 'guild-rename-soon' && Number.isSafeInteger(r?.at) && r.at > nowS) return guildRenameSoonText(r.at, nowS);
+  if (typeof error === 'string' && error.startsWith('charter-')) return charterWordText(error);   // BUNNYFALL COMPANIES: City Charters
   return accountRefusalText(error);
 }
 /** GUILD-LETTER (FIELD BUGS 2026-09-30): a guild act's word once done - and a withdrawal paid as a letter of credit (the
@@ -710,7 +713,7 @@ export function friendOrder(friends) {
  * a panel with something above it IGNORES the key (does not close, does not stop it), and the one that handles it
  * calls `stopImmediatePropagation` so no other window listener - the host's pause door included - sees that press.
  */
-export function createSocialPanel({ social, send = null, mail = null, guild = null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD } = {}) {
+export function createSocialPanel({ social, send = null, mail = null, guild = null, territory = () => null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD } = {}) {
   injectSocialStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
 
@@ -1556,12 +1559,70 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return strip;
   };
 
+  /** BUNNYFALL COMPANIES (net/charterLaw.js): THE CITY CHARTER - the Charter the Company is in, its Companies and its
+   *  invitations, and the Captain's acts: invite by tag, leave; with none, the invitations to the Company and the
+   *  founding at the hall region's capital. The book is systems/companyTerritory.js; its answer repaints the page. */
+  const guildCharterNodes = (g, v, me) => {
+    const T = territory?.();
+    if (!T) return [];
+    const before = T.sig();
+    Promise.resolve(T.refresh()).then(() => { if (T.sig() !== before) { ui++; if (open) repaint(); } }, () => {});
+    const out = [el('div', 'dfsocial-sec', 'City Charter')];
+    const d = guildUi.draft;
+    const captain = me === GUILD_RANK_MASTER;
+    const c = T.myCharter();
+    if (c) {
+      out.push(personRow({ name: `${c.name}, ${c.town}`, sub: `${c.members.length} of ${CHARTER_COMPANIES_MAX} Companies. Members gather and loot ${TERRITORY_YIELD_PCT}% more inside its territory.` }));
+      for (const m of c.members) out.push(personRow({ name: `${m.name} [${m.tag}]`, sub: m.id === v.id ? 'Your Company' : 'Company' }));
+      for (const i of c.invites) out.push(personRow({ name: `${i.name} [${i.tag}]`, sub: `Invited by ${i.by}` }));
+      if (!captain) return out;
+      const form = el('div', 'dfsocial-form');
+      guildField(form, 'Invite a Company by its tag', d.charterTag ?? '', 4, (x) => { d.charterTag = x; });
+      out.push(form);
+      const acts = el('div', 'dfsocial-acts');
+      acts.append(liveBtn('Invite', () => ({ enabled: !g.busy && !!guildTagOf(d.charterTag ?? '') && c.members.length + c.invites.length < CHARTER_COMPANIES_MAX,
+        why: c.members.length + c.invites.length >= CHARTER_COMPANIES_MAX ? `the Charter holds ${CHARTER_COMPANIES_MAX} Companies` : 'a tag of 2 to 4 letters or digits' }), {
+        run: () => { const tag = guildTagOf(d.charterTag ?? ''); if (tag) guildDo(T.invite(tag), `[${tag}] is invited to ${c.name}.`, () => { d.charterTag = ''; }); },
+      }));
+      acts.append(armed('charter-leave')
+        ? btn(c.members.length === 1 ? 'Sure? The Charter ends with you' : 'Sure? Your Company leaves the Charter', { warn: true, enabled: !g.busy, why: 'a moment', run: () => guildDo(T.leave(), `Your Company left ${c.name}.`) })
+        : btn('Leave the Charter', { enabled: !g.busy, why: 'a moment', run: () => arm('charter-leave') }));
+      out.push(acts);
+      return out;
+    }
+    for (const i of T.invitesToMe()) {
+      const r = personRow({ name: `${i.name}, ${i.town}`, sub: `${i.by} invites your Company to hold the city together` });
+      if (captain) {
+        const acts = rowActs(r);
+        acts.append(btn('Accept', { enabled: !g.busy, why: 'a moment', run: () => guildDo(T.answer(i.mapId, true), `Your Company joined ${i.name}.`) }));
+        acts.append(btn('Decline', { enabled: !g.busy, why: 'a moment', run: () => guildDo(T.answer(i.mapId, false), 'Invitation declined.') }));
+      }
+      out.push(r);
+    }
+    if (!v.hall) { out.push(el('div', 'dfsocial-note', 'A Company needs a hall to found or join a City Charter.')); return out; }
+    const at = T.foundingAt();
+    if (!at) { out.push(el('div', 'dfsocial-note', 'Your hall\'s region has no capital for a Charter.')); return out; }
+    if (at.held) { out.push(el('div', 'dfsocial-note', `${at.name} already has a Charter. Its Captains can invite your Company.`)); return out; }
+    out.push(el('div', 'dfsocial-note', `Up to ${CHARTER_COMPANIES_MAX} Companies with halls in this region can hold ${at.name} together under a City Charter. Their territories join round the city, and members gather and loot ${TERRITORY_YIELD_PCT}% more anywhere inside it.`));
+    if (!captain) return out;
+    const form = el('div', 'dfsocial-form');
+    guildField(form, 'Charter name', d.charterName ?? '', 32, (x) => { d.charterName = x; });
+    out.push(form);
+    const acts = el('div', 'dfsocial-acts');
+    acts.append(liveBtn(`Found the Charter of ${at.name}`, () => ({ enabled: !g.busy && !!charterNameOf(d.charterName ?? ''), why: g.busy ? 'a moment' : 'a name of 3 to 32 characters' }), {
+      run: () => { const nm = charterNameOf(d.charterName ?? ''); if (nm) guildDo(T.found(nm, at), `${nm} holds ${at.name}.`, () => { d.charterName = ''; }); },
+    }));
+    out.push(acts);
+    return out;
+  };
+
   /** OVERVIEW: the arms in words, the hall, and where the reader stands at the vault. */
   const guildOverviewNodes = (g, v, me) => {
     const out = [el('div', 'dfsocial-sec', 'The company')];
     out.push(el('div', 'dfsocial-note', v.heraldry ? heraldryText(v.heraldry) : GUILD_HERALDRY_NONE_TEXT));
     if (v.vault?.me) out.push(el('div', 'dfsocial-note', `At the vault: ${vaultStandingText(v.vault.me)}.`));
     out.push(...guildHallNodes(g, v, me));
+    out.push(...guildCharterNodes(g, v, me));   // BUNNYFALL COMPANIES: the City Charter
     out.push(el('div', 'dfsocial-sec', 'Elsewhere'), el('div', 'dfsocial-empty', GUILD_ELSEWHERE_TEXT));   // GUILD3c: where the rest is run
     return out;
   };

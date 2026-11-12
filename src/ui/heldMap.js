@@ -1331,7 +1331,7 @@ export class HeldMapWindow {
           // WILD2: and its four rings - their lines and bonuses here, filled and named on the zone map
           underMarks: (c) => {
             // BUNNYFALL COMPANIES: the Companies' territories, washed in their arms under every mark (not on the zone map)
-            if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far' });
+            if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', charters: this.deps.charters?.() ?? [] });
             const ink = this._wildInk();
             if (!ink) return;
             const zone = this._zoneInk();
