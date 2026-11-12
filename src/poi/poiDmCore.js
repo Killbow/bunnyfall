@@ -133,7 +133,8 @@ export function createDm(doc, start = {}) {
     /** @type {{ at: number, event: string }[]} */ queue: [],
     /** @type {any[]} */ log: [],
     /** @type {Set<string>} */ dirty: new Set(),
-    /** The game sets this: an event whose branch moves items, gold or a kept variable is not run here but handed to `pending`, for the service to settle. */
+    /** True in the game runtime: events that move items, gold, or persistent variables wait in `pending` to be settled
+     *  by the server's rules (by the server online, against the inventory offline, and against the test purse in Test). */
     service: false,
     /** The game sets this: what a condition reads of the live pack (`{ count, gold, getVar }`). */
     /** @type {null | (() => { count: (s: any) => number, gold: number, getVar: (k: string) => any })} */ read: null,

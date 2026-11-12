@@ -9,13 +9,16 @@
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
-  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule,
+  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead,
 } from './poiDmCore.js';
 import { takeStacks, takeGold, countOf, goldOf } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
-import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
-import { weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';
+import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../systems/item/itemLaw.js';
+import { isStackable, ARROW_TEMPLATE } from '../systems/inventory.js';
+import { WEAPON_MATERIALS } from '../characters/weapons.js';
+import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
+import { createWeapon, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';
 import { createPoiDmPanel } from '../ui/poiDmPanel.js';
 import { t as tr } from '../systems/textManager.js';
 
@@ -59,7 +62,9 @@ function placeInto(out, m, p, t) {
 const NO_MOVE = Object.freeze([0, 0, 0]);
 
 /**
- * An offline stack, made as the service's mintGift makes a plain one (no enchantments, no ledger id: those are the realm's).
+ * Mints a plain item stack offline the way `mintGift` does on the server (no enchantments and no realm ledger ID). An
+ * arrow comes from `createWeapon`'s arrow branch, as on the server, so its `material` is ignored and the stack holds
+ * `s.count` arrows.
  * @param {{ template: number, group?: string, material?: number, count: number }} s
  */
 export function mintStack(s) {
@@ -67,12 +72,55 @@ export function mintStack(s) {
   const group = s.group ?? templateGroups(s.template)[0];
   /** @type {any} */
   let item;
+  if (group === 'Weapons' && s.template === ARROW_TEMPLATE) return { ...createWeapon(ARROW_TEMPLATE, 0, () => 0), stackCount: s.count };
   if (group === 'Weapons') item = weaponOfMaterial(s.template, s.material ?? 0);
   else if (group === 'Armor') item = armorOfMaterial(s.template, s.material ?? 0);
   else item = mintCondition(setItemFields({ group, templateIndex: s.template }));
   if (s.count > 1) item.stackCount = s.count;
   return item;
 }
+
+/** Maximum item records one event or trade can grant offline, matching `GIVE_MAX` in
+ *  `server-account/src/poiTrade.js`. */
+const GIVE_MAX = 40;
+/** Allowed weapon and armor material IDs for item rewards, matching `mintGift` in `server-account/src/staffGive.js`. */
+const MATERIALS = Object.freeze({
+  Weapons: new Set(Object.values(WEAPON_MATERIALS).filter((v) => v >= 0)),
+  Armor: new Set(Object.entries(ARMOR_MATERIAL).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([, v]) => v)),
+});
+
+/**
+ * Mints the reward stacks for an event or trade offline, or returns null if the server would reject any stack (`mint`
+ * in `server-account/src/poiTrade.js`): an unknown template, a group not valid for that template, a material not valid
+ * for that group, a count above 1 for a non-stackable item, an item that fails `itemFindings`, or more than `GIVE_MAX`
+ * records in total.
+ * @param {{ template: number, group?: string, material?: number, count: number }[]} stacks
+ */
+function mintEvent(stacks) {
+  /** @type {any[]} */
+  const out = [];
+  for (const s of stacks) {
+    if (!lawTemplate(s.template)) return null;
+    const group = s.group ?? templateGroups(s.template)[0];
+    const mats = /** @type {Record<string, Set<number>>} */ (MATERIALS)[group];
+    if (!templateGroups(s.template).includes(group) || (mats ? s.material !== undefined && !mats.has(s.material) : s.material !== undefined)) return null;
+    const it = mintStack(s);
+    if (!it || (s.count > 1 && !isStackable(it)) || itemFindings(it).length) return null;
+    out.push(it);
+  }
+  return out.length > GIVE_MAX ? null : out;
+}
+
+/**
+ * Returns whether inventory `p` can satisfy all required stacks under `takeStacks` (counting only tradeable items
+ * across all stacks combined), tested on a shallow copy so `p` is not modified.
+ * @param {any} p @param {{ template: number, group?: string, material?: number, count: number }[]} stacks
+ */
+const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p.items.map((/** @type {any} */ it) => ({ ...it })) : p?.items, lightSourceIndex: p?.lightSourceIndex }, stacks).ok;
+
+/** Returns whether condition `c` reads only persistent variables (`character` and `poi_global` scopes), which are
+ *  the only scopes the server evaluates. @param {any} doc @param {any} c */
+const readsOnlyKept = (doc, c) => [...varsRead(c)].every((k) => persists(byKey(doc.variables, k)));
 
 /**
  * The outdoor enemy pool as the runtime uses it: a POI's enemy stands as a placed, unsaved enemy, counts as down once
@@ -124,6 +172,9 @@ export function createPoiDm(deps) {
     return { count: (/** @type {any} */ s) => countOf(p, s), gold: goldOf(p), getVar: (/** @type {string} */ k) => dm.vars[k] };
   };
   const storeKey = (/** @type {any} */ r) => `bunnyfall.poi.${r.id}.${deps.character?.() ?? 'local'}`;
+  /** Storage key for one-time gift event claims saved on this device when offline, alongside persistent variables.
+   *  @param {any} r */
+  const claimsKey = (/** @type {any} */ r) => `${storeKey(r)}.claims`;
 
   /**
    * A run made for a POI the first time it stands, and made again when its revision changes. An approved revision never
@@ -135,8 +186,10 @@ export function createPoiDm(deps) {
     if (r && r.rev === s.rev) return r;
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
-    // in preview an event that moves items or gold is settled on the throwaway purse, by the service's rules
-    dm.service = preview || !!act;
+    // Events that move items, gold, or a persistent variable are settled through `drain` under the server's rules: on
+    // the server when online, against the character's inventory when offline, and against the temporary purse in
+    // preview mode.
+    dm.service = true;
     if (preview) { if (!claimsKept.has(s.id)) claimsKept.set(s.id, dm.claims); dm.claims = claimsKept.get(s.id); }
     r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), inEnc: new Set(), off: new Set(), last: now(), extras: [], extraOf: new Map(), shown: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
@@ -159,6 +212,11 @@ export function createPoiDm(deps) {
     } else {
       const was = store?.get(storeKey(r));
       if (was && typeof was === 'object') for (const [k, v] of Object.entries(was)) if (k in r.dm.vars) r.dm.vars[k] = v;
+      // Offline, a gift-only event can be claimed once across visits, matching the server's once-per-character rule
+      // (since every offline character uses ID `local`, that means once per device). In preview mode, claims live in
+      // `claimsKept` for the duration of the test. Entries without a positive integer count `n` are ignored.
+      const claimed = preview ? null : store?.get(claimsKey(r));
+      if (claimed && typeof claimed === 'object') for (const [k, c] of Object.entries(claimed)) if (k.startsWith('event/') && Number.isSafeInteger(c?.n) && c.n > 0) r.dm.claims[k] = { n: c.n, last: Number(c.last) || 0 };
     }
     r.loaded = true;
   }
@@ -195,10 +253,22 @@ export function createPoiDm(deps) {
         applyLocal(a.data?.took ?? { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, a.data?.gave ?? { items: [], gold: 0 });
       } else {
         if (why) { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, why }); return; }
+        // Offline and in preview, validate all server trade rules (`tradePoi` in `poiTrade.js`) against the local
+        // inventory before mutating anything: the condition may read only persistent variables, required items and gold
+        // must be available, all reward items must be valid to mint, and the resulting gold must not exceed
+        // `GOLD_INT_MAX`.
+        const refuse = (/** @type {string} */ w, /** @type {string} */ word) => { say(whyText(word)); logSettle(r, { k: 'trade_refused', trade, why: w }); };
+        if (!readsOnlyKept(r.doc, rec.when)) { refuse('scope', 'poi-var-scope'); return; }
         const p = pack();
         if (!p) return;
-        if (!takeStacks(p, rec.requireItems ?? []).ok || !takeGold(p, rec.requireGold ?? 0)) { say(whyText('items')); logSettle(r, { k: 'trade_refused', trade, why: 'items' }); return; }
-        give((rec.rewardItems ?? []).map(mintStack).filter(Boolean), rec.rewardGold ?? 0);
+        const needGold = rec.requireGold ?? 0, giveGold = rec.rewardGold ?? 0;
+        if (!takesHeld(p, rec.requireItems ?? [])) { refuse('items', 'poi-items'); return; }
+        if (goldOf(p) < needGold) { refuse('gold', 'gold'); return; }
+        const records = mintEvent(rec.rewardItems ?? []);
+        if (!records) { refuse('reward', 'poi-reward'); return; }
+        if (goldOf(p) - needGold + giveGold > GOLD_INT_MAX) { refuse('goldFull', 'poi-gold-full'); return; }
+        takeStacks(p, rec.requireItems ?? []); takeGold(p, needGold);
+        give(records, giveGold);
         deps.changed?.();
         logSettle(r, { k: 'trade', name: rec.name, took: { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, gave: { items: rec.rewardItems ?? [], gold: rec.rewardGold ?? 0 } });
       }
@@ -229,28 +299,45 @@ export function createPoiDm(deps) {
         for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
         runEvent(r.dm, key, { branch: d.branch ?? 'then', settled: !d.nothing });
       } else {
-        // offline: the same rules, on this pack; an event that only gives (it takes nothing) is claimed once per
-        // character, as the service claims it, and one already claimed is passed over (the service's answer is
-        // `poi-limit`)
+        // Offline and in preview, run the server's event settlement rules (`eventClaimPoi` in `poiTrade.js`) against
+        // the local inventory. The condition may read only persistent variables; a gift-only event (one that takes no
+        // items or gold) can be claimed once per character (once per device offline, where every character is `local`),
+        // and a repeat claim is silently skipped (`poi-limit` on the server); required tradeable items and gold must be
+        // available across all `take_item` and `take_gold` actions; all rewards must be valid to mint; and the
+        // resulting gold must not exceed `GOLD_INT_MAX`. A rejected event changes nothing.
+        const refuse = (/** @type {string} */ why, /** @type {string} */ word) => { if (word) say(whyText(word)); logSettle(r, { k: 'refused', event: key, why }); };
+        if (!readsOnlyKept(r.doc, ev.when)) { refuse('scope', 'poi-var-scope'); return; }
         const branch = evalWhen(ev.when, r.dm.read()) ? 'then' : 'else';
         const actions = ev[branch] ?? [];
         const rules = eventRule(actions, r.dm.char);
-        if (rules.some((c) => (r.dm.claims[`event/${key}|${c.scope}`]?.n ?? 0) >= c.max)) { logSettle(r, { k: 'refused', event: key, why: 'limit' }); return; }
+        if (rules.some((c) => (r.dm.claims[`event/${key}|${c.scope}`]?.n ?? 0) >= c.max)) { refuse('limit', ''); return; }
         const p = pack();
         const takes = actions.filter((/** @type {any} */ x) => x.k === 'take_item').map((/** @type {any} */ x) => x.item);
         const gold = actions.filter((/** @type {any} */ x) => x.k === 'take_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
-        if (!p || countShort(p, takes) || goldOf(p) < gold) { say(whyText('poi-items')); logSettle(r, { k: 'refused', event: key, why: !p || countShort(p, takes) ? 'items' : 'gold' }); return; }
+        const giveGold = actions.filter((/** @type {any} */ x) => x.k === 'give_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
+        if (!p || !takesHeld(p, takes)) { refuse('items', 'poi-items'); return; }
+        if (goldOf(p) < gold) { refuse('gold', 'poi-gold'); return; }
+        const records = mintEvent(actions.filter((/** @type {any} */ x) => x.k === 'give_item').map((/** @type {any} */ x) => x.item));
+        if (!records) { refuse('reward', 'poi-reward'); return; }
+        if (goldOf(p) - gold + giveGold > GOLD_INT_MAX) { refuse('goldFull', 'poi-gold-full'); return; }
         takeStacks(p, takes); takeGold(p, gold);
-        give(actions.filter((/** @type {any} */ x) => x.k === 'give_item').map((/** @type {any} */ x) => mintStack(x.item)).filter(Boolean),
-          actions.filter((/** @type {any} */ x) => x.k === 'give_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0));
+        give(records, giveGold);
         deps.changed?.();
         for (const c of rules) { const k = `event/${key}|${c.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
+        if (rules.length && !preview) saveClaims(r);
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
       }
     } finally { busy = false; }
   }
-  const countShort = (/** @type {any} */ p, /** @type {any[]} */ stacks) => stacks.some((s) => countOf(p, s) < s.count);
+  /** Saves one-time gift event claims to device storage when offline. @param {any} r */
+  function saveClaims(r) {
+    if (!store) return;
+    /** @type {Record<string, { n: number, last: number }>} */
+    const out = {};
+    for (const [k, c] of Object.entries(r.dm.claims)) if (k.startsWith('event/')) out[k] = c;
+    store.set(claimsKey(r), out);
+  }
 
   // ── what the player sees ───────────────────────────────────────
 
@@ -375,8 +462,6 @@ export function createPoiDm(deps) {
     r.opened = opened;
     sayLog(r);
     drain(r);
-    // offline, a persistent variable an event set with nothing to settle is saved on this device at once
-    if (!act && r.dm.dirty.size) { if ((r.doc.variables ?? []).some((/** @type {any} */ v) => r.dm.dirty.has(v.key) && persists(v))) saveVars(r); r.dm.dirty.clear(); }
     return list;
   }
 
