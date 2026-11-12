@@ -56,25 +56,28 @@ export async function firmStatsOf(db, player, env, charId) {
   return firmStatsFrom(await firmStatement(db, player.id, charId).first(), player, env);
 }
 
-/** A character's purses as this service counts them: `{ renown, stars, craft, ranks }`. */
+/** A character's purses as this service counts them: `{ renown, stars, craft, ranks, freeRespec }` - `freeRespec` whether
+ *  it holds the one respec that costs no gold (migration 0206). */
 async function pursesOf(ctx, playerId, charId) {
-  const [track, profs] = await Promise.all([
+  const [track, profs, free] = await Promise.all([
     renownTrackOf(ctx, playerId, charId),
     ctx.db.prepare('SELECT profession, xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(playerId, charId).all(),
+    ctx.db.prepare('SELECT 1 AS held FROM firmament_free_respec WHERE player = ?1 AND char_id = ?2').bind(playerId, charId).first(),
   ]);
   const known = new Set(PROFESSIONS.map((p) => p.id));
   /** @type {Record<string, number>} */
   const ranks = {};
   for (const r of profs?.results ?? []) if (known.has(r.profession)) ranks[r.profession] = rankOfXp(Number(r.xp ?? 0));
   const renown = track?.level ?? 1;
-  return { renown, stars: starsFor(renown), craft: craftPointsFor(Object.values(ranks)), ranks };
+  return { renown, stars: starsFor(renown), craft: craftPointsFor(Object.values(ranks)), ranks, freeRespec: !!free };
 }
 
-/** What the window reads: the tree, the purses and what is left in them, and the refund's price. */
+/** What the window reads: the tree, the purses and what is left in them, the refund's price, and whether the next
+ *  respec is free. */
 function view(tree, purses, extra = {}) {
   return {
     tree: packTree(tree), renown: purses.renown, stars: purses.stars, craft: purses.craft, ranks: purses.ranks,
-    left: pointsLeft(tree.keys, purses.stars, purses.craft),
+    left: pointsLeft(tree.keys, purses.stars, purses.craft), freeRespec: purses.freeRespec === true,
     refund: { freeBelow: REFUND_FREE_BELOW_RENOWN, perStar: REFUND_SILVER_PER_STAR, respecGold: FIRM_RESPEC_GOLD },
     ...extra,
   };
@@ -171,14 +174,21 @@ export async function setFirmament(ctx, player, env, body = {}) {
 }
 
 /**
- * POST /v1/firmament/respec { character, rid, realm?, region? } - THE WHOLE SKY TAKEN BACK for FIRM_RESPEC_GOLD gold: every
- * star and the birthsign, to choose again. A realm character's record pays the gold in the respec's own batch (realm.js
- * prepareRealmRecord, the wallet's own order - its purse, its letters, then `region`'s account), asked first where the
- * record stands (realmActFirst: a respec asked again after its answer was lost finds its record one on - that is it,
- * landed); one with no realm record is refused ('realm-needed' - AUDIT UICALM-FIRM1 L2 L1). Answers the view (`respec`,
- * `gold`, and `realm: { seq }`); `repeat` for a request already made. Refusals: 'firm-character', 'firm-rid',
- * 'firm-closed', 'firm-rate', 'firm-respec-empty' (a sky with nothing in it), 'firm-stale', the realm's ('realm-needed',
- * 'lease', 'seq', 'realm-gold', 'no-realm-character', 'no-data', 'no-storage').
+ * POST /v1/firmament/respec { character, rid, realm?, region?, free? } - THE WHOLE SKY TAKEN BACK for FIRM_RESPEC_GOLD
+ * gold, or once for free (below): every star and the birthsign, to choose again. A realm character's record pays the
+ * gold in the respec's own batch (realm.js prepareRealmRecord, the wallet's own order - its purse, its letters, then
+ * `region`'s account), asked first where the record stands (realmActFirst: a respec asked again after its answer was
+ * lost finds its record one on - that is it, landed); one with no realm record is refused ('realm-needed' - AUDIT
+ * UICALM-FIRM1 L2 L1).
+ * THE FREE RESPEC: a character with a row in firmament_free_respec (migration 0206, the view's `freeRespec`) pays no
+ * gold, and the request must send `free: true`. No realm record is written, so the answer has no `realm`. The row is
+ * deleted in the same batch that clears the tree, so a failed batch keeps it. A request whose `free` does not match the
+ * row is refused ('firm-respec-price'). The client reserves the gold it expects to pay before it asks, so the service
+ * must never charge gold the client did not reserve, or skip gold it did.
+ * Answers the view (`respec`, `gold`, and `realm: { seq }` when the record paid); `repeat` for a request already made.
+ * Refusals: 'firm-character', 'firm-rid', 'firm-closed', 'firm-rate', 'firm-respec-empty' (a sky with nothing in it),
+ * 'firm-respec-price', 'firm-stale', the realm's ('realm-needed', 'lease', 'seq', 'realm-gold', 'no-realm-character',
+ * 'no-data', 'no-storage').
  */
 export async function respecFirmament(ctx, player, env, body = {}) {
   const { db, nowS, rand } = ctx;
@@ -203,26 +213,32 @@ export async function respecFirmament(ctx, player, env, body = {}) {
   const [row, purses] = await Promise.all([firmStatement(db, player.id, character).first(), pursesOf(ctx, player.id, character)]);
   const prevPacked = String(row?.tree ?? '');
   if (!unpackTree(prevPacked).start) return { error: 'firm-respec-empty' };
-  const prep = await prepareRealmRecord(ctx, player.id, side.at, (save) => (payFromSave(save, FIRM_RESPEC_GOLD, region ?? null) ? null : 'realm-gold'));
-  if (prep.error) return prep;
+  const free = purses.freeRespec;
+  if ((body.free === true) !== free) return { error: 'firm-respec-price' };
+  // a free respec moves no gold, so the record is not written
+  const prep = free ? null : await prepareRealmRecord(ctx, player.id, side.at, (save) => (payFromSave(save, FIRM_RESPEC_GOLD, region ?? null) ? null : 'realm-gold'));
+  if (prep?.error) return prep;
   const nonce = mintId(rand);
   try {
     await db.batch([
-      ...prep.steps,
+      ...(prep ? prep.steps : []),
       // THE RESPEC'S ROW: over the tree it was asked over - a change landed first fails the whole batch, gold and all
       db.prepare(`INSERT INTO firmament_sets (player, rid, char_id, prev, tree, silver, at, n)
         SELECT ?1, ?4, ?2, ?3, '', 0, ?5, ?6
         WHERE COALESCE((SELECT tree FROM firmament WHERE player = ?1 AND char_id = ?2), '') = ?3`)
         .bind(player.id, character, prevPacked, rid, nowS, nonce),
       mustChange(db),
+      // THE FREE RESPEC'S MARK, used up with the tree: a mark already gone fails the whole batch
+      ...(free ? [db.prepare('DELETE FROM firmament_free_respec WHERE player = ?1 AND char_id = ?2').bind(player.id, character), mustChange(db)] : []),
       db.prepare("UPDATE firmament SET tree = '', updated_at = ?3 WHERE player = ?1 AND char_id = ?2").bind(player.id, character, nowS),
     ]);
   } catch {
-    await dropIfUnnamed(db, ctx.bucket, player.id, character, prep.key);   // a batch that landed and lost its answer keeps its save
+    if (prep) await dropIfUnnamed(db, ctx.bucket, player.id, character, prep.key);   // a batch that landed and lost its answer keeps its save
     const moved = await recordMovedOf(db, player.id, side.at);
     if (moved) return moved;
     return { error: 'firm-stale' };
   }
+  if (!prep) return view({ start: null, keys: [] }, purses, { respec: true, gold: 0, freeRespec: false });
   await dropObjects(ctx.bucket, [prep.prev]);
   return view({ start: null, keys: [] }, purses, { respec: true, gold: FIRM_RESPEC_GOLD, realm: { seq: prep.seq } });
 }
@@ -231,5 +247,5 @@ export async function respecFirmament(ctx, player, env, body = {}) {
 export const FIRM_STATUS = Object.freeze({
   'firm-character': 400, 'firm-rid': 400, 'firm-key': 400, 'firm-start': 400, 'firm-path': 400, 'firm-points': 409,
   'firm-closed': 403, 'firm-rate': 429, 'firm-stale': 409, 'marks-closed': 403, 'marks-short': 409,
-  'firm-respec-empty': 409, 'realm-needed': 400, 'realm-gold': 409, lease: 409, seq: 409, 'no-realm-character': 404, 'no-data': 404, 'no-storage': 503, body: 400,
+  'firm-respec-empty': 409, 'firm-respec-price': 409, 'realm-needed': 400, 'realm-gold': 409, lease: 409, seq: 409, 'no-realm-character': 404, 'no-data': 404, 'no-storage': 503, body: 400,
 });
