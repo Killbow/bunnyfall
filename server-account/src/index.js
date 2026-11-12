@@ -304,6 +304,7 @@ import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFAL
 import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { garrisonsRead, garrisonRecruit, garrisonOrders } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
+import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Nyx coins counted
@@ -2314,6 +2315,12 @@ const service = {
       if (path === '/v1/territories') {   // BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (territory.js)
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
+      }
+      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore') {   // BUNNYFALL COMPANIES: farms (farms.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore }[path];
+        const r = await act(ctx, who.player, body ?? {});
+        return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/garrisons' || path === '/v1/garrisons/recruit' || path === '/v1/garrisons/orders') {   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
         if (request.method !== 'POST') return no('method', 405, origin);

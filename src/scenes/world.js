@@ -994,6 +994,9 @@ import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BU
 import { createRodneyBlight } from '../systems/rodneyBlight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL COMPANIES: garrisons
 import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
+import { createFarmBook } from '../systems/farmBook.js';   // BUNNYFALL COMPANIES: farms
+import { HERALDRY_COLOURS as _FARM_COLOURS } from '../net/heraldryLaw.js';
+const heraldryHexOf = (key) => _FARM_COLOURS.find((c) => c.key === key)?.hex ?? null;   // BUNNYFALL COMPANIES: a farm's mark in its Company's colour
 import { stacksWith } from '../systems/inventory.js';
 import { setHudZone } from '../ui/enhanced/enhancedHud.js';
 import { setHudPauseAt } from '../ui/hud/hudAdvance.js';   // FIRM-STARS: the stars' tile beside the Renown bar opens the Firmament page
@@ -16907,7 +16910,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       charters: () => companyTerritory?.charterMarks() ?? [],   // BUNNYFALL COMPANIES: the City Charters round their capitals
       blight: () => rodneyBlight?.shape() ?? null,   // the war against Rodney: the blight and its front (ui/territoryMapInk.js paintBlight)
       blightSig: () => { rodneyBlight?.refresh(); return rodneyBlight?.sig() ?? ''; },
-      territorySig: () => { companyTerritory?.refresh(); return companyTerritory?.sig() ?? ''; },
+      territorySig: () => { companyTerritory?.refresh(); farmBook?.refresh(); return `${companyTerritory?.sig() ?? ''}|${farmBook?.sig() ?? ''}`; },
+      farms: () => (farmBook?.marks() ?? []).map((f) => ({ ...f, fill: heraldryHexOf(f.field) ?? heraldryHexOf(f.border) })),   // BUNNYFALL COMPANIES: the Companies' farms
       wildDungeons: () => wildActiveNow(),
       wildGiants: () => wildGiantMarks(),
       zoneFirst: () => wildHere() && !!wildMapMask() && modes?.mode !== 'dungeon',   // ZONE-FIRST: V in the zone opens the zone map   // ZONE-GIANTS: the zone's eight giants where they walk
@@ -20292,6 +20296,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let rodneyBlight = null;   // BUNNYFALL COMPANIES: Rodney's blight (systems/rodneyBlight.js), made beside the territories
   let garrisonBook = null;   // BUNNYFALL COMPANIES: the garrisons (systems/garrisonBook.js)
   let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
+  let farmBook = null;   // BUNNYFALL COMPANIES: the Company farms (systems/farmBook.js)
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -22025,6 +22030,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       guild: guildBook,
       territory: () => companyTerritory,   // BUNNYFALL COMPANIES: the City Charter on the Company page (systems/companyTerritory.js)
       garrison: () => garrisonBook,   // BUNNYFALL COMPANIES: the Garrison page (systems/garrisonBook.js)
+      farms: () => farmBook,   // BUNNYFALL COMPANIES: the Farms page (systems/farmBook.js)
       send: (act) => socialLink()?.sendSocial(act) ?? false,   // false is the rate gate's answer: the panel keeps the button and says "try again"
       keepLetter: (letter) => keepLetterInJournal(letter),   // JOURNAL1: a letter kept in my journal, as a page is
       journey: () => partyTravel,   // PARTY-UI: the Party tab's Journey - the session is made later in this host, so it is read when drawn
@@ -25568,6 +25574,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     io: () => (isOnlinePage() ? insigniaIo() : null),
     character: () => characterIdOf(playerEntity),
     sectorOf: (mapId) => { const tw = _townOfMapId.get(mapId >>> 0); return tw ? rodneyBlight?.sectorAt(tw.px, tw.py) ?? null : null; },
+  });
+  // COMPANY FARMS (systems/farmBook.js): the map's farms a Company buys inside its territory, worked for its Stores
+  let _farmPlaces = null;
+  farmBook = createFarmBook({
+    io: () => (isOnlinePage() ? insigniaIo() : null),
+    character: () => characterIdOf(playerEntity),
+    territory: () => companyTerritory,
+    places: () => (_farmPlaces ??= [..._townOfMapId].filter(([, tw]) => tw.type === LOCATION_TYPES.HomeFarms).map(([mapId, tw]) => ({ mapId, px: tw.px, py: tw.py, name: tw.name || 'A farm', region: tw.region }))),
+    climateAt: (px, py) => maps.getClimateIndex(px, py),
+    here: () => playerTravelPixel(),
   });
   garrisonPatrols = createGarrisonPatrols({
     built: () => built.values(),

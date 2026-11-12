@@ -1333,7 +1333,7 @@ export class HeldMapWindow {
           underMarks: (c) => {
             // BUNNYFALL COMPANIES: the Companies' territories, washed in their arms under every mark (not on the zone map)
             if (!this._zoneMap) paintBlight(c, env.view, this.deps.blight?.() ?? null, { paperW: env.paperW, paperH: env.paperH });   // the war against Rodney: the blight and its front
-            if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', charters: this.deps.charters?.() ?? [] });
+            if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', charters: this.deps.charters?.() ?? [], farms: this.deps.farms?.() ?? [] });
             const ink = this._wildInk();
             if (!ink) return;
             const zone = this._zoneInk();

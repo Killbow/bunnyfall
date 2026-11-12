@@ -16,8 +16,8 @@ const paper = (view, x, y) => [(x - view.ox) * view.scale, (y - view.oy) * view.
  * @param {{ x: number, y: number, r: number, fill: string, ring: string, tag?: string, mine?: boolean }[]} marks
  * @param {{ paperW: number, paperH: number, far?: boolean }} opts
  */
-export function paintTerritories(ctx, view, marks, { paperW, paperH, far = false, charters = [] }) {
-  if ((!marks?.length && !charters?.length) || !view) return;
+export function paintTerritories(ctx, view, marks, { paperW, paperH, far = false, charters = [], farms = [] }) {
+  if ((!marks?.length && !charters?.length && !farms?.length) || !view) return;
   ctx.save();
   // CITY CHARTERS: each Charter one dashed outline in the pen round its capital, over a faint wash, under its Companies'
   // own patches; its name over it past the far band
@@ -53,6 +53,19 @@ export function paintTerritories(ctx, view, marks, { paperW, paperH, far = false
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
+  // COMPANY FARMS: each held farm a small square in its Company's colours, past the far band
+  if (!far) {
+    for (const f of farms ?? []) {
+      const [x, y] = paper(view, f.x, f.y);
+      if (x < -8 || y < -8 || x > paperW + 8 || y > paperH + 8) continue;
+      const s = Math.max(4, Math.min(9, view.scale * 1.2));
+      ctx.fillStyle = f.fill ?? '#8a8a8a';
+      ctx.fillRect(x - s / 2, y - s / 2, s, s);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = 'rgba(46, 32, 18, 0.95)';
+      ctx.strokeRect(x - s / 2, y - s / 2, s, s);
+    }
+  }
   if (!far) {
     ctx.font = "600 13px 'Cormorant', Georgia, serif";
     ctx.textAlign = 'center';

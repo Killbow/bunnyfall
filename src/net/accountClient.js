@@ -1326,6 +1326,12 @@ export const blightPush = (io, raid, sector) => call(io, '/v1/blight/push', { ra
 export const garrisonsRead = (io, character) => call(io, '/v1/garrisons', { character });
 export const garrisonRecruit = (io, body) => call(io, '/v1/garrisons/recruit', body);
 export const garrisonOrders = (io, body) => call(io, '/v1/garrisons/orders', body);
+/** BUNNYFALL COMPANIES: farms (server-account/src/farms.js) - read, buy, crop, release, chore. */
+export const farmsRead = (io, character) => call(io, '/v1/farms', { character });
+export const farmBuy = (io, body) => call(io, '/v1/farms/buy', body);
+export const farmCrop = (io, body) => call(io, '/v1/farms/crop', body);
+export const farmRelease = (io, body) => call(io, '/v1/farms/release', body);
+export const farmChore = (io, body) => call(io, '/v1/farms/chore', body);
 /** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
 export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
 export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);

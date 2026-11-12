@@ -160,6 +160,8 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
     invite: (tag) => act(charterInvite, { tag }),
     answer: (mapId, accept) => act(charterAnswer, { mapId, accept: accept === true }),
     leave: () => act(charterLeave, {}),
+    /** Whether the territories have been heard at least once (the farms let none go before). */
+    loaded: () => version > 0,
     /** A town's name by its map id (the Garrison page's). */
     townName: (mapId) => townOf(Number(mapId) >>> 0)?.name ?? null,
     /** The yield multiplier here: 1 + TERRITORY_YIELD_PCT inside one's own territory or Charter, else 1. */
