@@ -19,7 +19,7 @@
 // handed. Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { poiShelfProblems, POI_DOC_VERSION, POI_LIMITS } from './poiLaw.js';
+import { poiShelfProblems, POI_SHELF_VERSION, POI_LIMITS } from './poiLaw.js';
 import { newPart, lawName } from './poiEdit.js';
 import { renderThumb, encodePng } from './poiThumb.js';
 
@@ -38,7 +38,7 @@ export function shelfEntryOf({ id, name, about = '', tags = [], parts, lights = 
   const words = String(about ?? '').trim();
   const tagList = [...new Set(tags.map((tg) => lawName(tg, POI_LIMITS.tag)).filter(Boolean))].slice(0, POI_LIMITS.tags);
   return {
-    v: POI_DOC_VERSION, id, name: lawName(name), ...(words ? { about: words.slice(0, POI_LIMITS.about) } : {}), ...(tagList.length ? { tags: tagList } : {}),
+    v: POI_SHELF_VERSION, id, name: lawName(name), ...(words ? { about: words.slice(0, POI_LIMITS.about) } : {}), ...(tagList.length ? { tags: tagList } : {}),
     parts: scratch.parts, lights: lights.map((l) => structuredClone(l)), thumb: null,
   };
 }

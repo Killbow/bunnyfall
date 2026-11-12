@@ -8,9 +8,9 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 
 - `POI_DOC_VERSIONS = [1, 2]`. A stored v1 document stays valid. v2 keys are unknown to it, so a v1 document that carries
   `groups` is still refused.
-- `POI_DOC_VERSION` stays `1`, because the legacy editor writes it. The standalone builder writes `2`.
+- `POI_DOC_VERSION` is `2`: both editors write v2. The in-game editor stamps a new POI v2 and writes a v1 POI as v2 at its
+  first change (opening one changes nothing). `POI_SHELF_VERSION` is `1`.
 - Size: 96 KiB for v1, 256 KiB for v2 (`poiDocBytesOf`). Library shelf entries stay v1.
-- Nothing writes v2 yet. The game reads a v2 document through the law, but its runtime ignores the new keys.
 
 ## What v2 adds
 
@@ -48,5 +48,5 @@ circle are refused.
 4. **Runtimes to build** for `factionId`, quest conditions, timers, `storage`, `station` on flats and chest contents. Each gets its schema fields in the same milestone as its runtime, not before.
 5. **Gold bound.** Up to the save's gold limit. Approvers decide what is sane.
 6. **Item stacks are plain.** No `enchant` key anywhere. Done in the law and tests.
-7. **No v2 submission gate.** The old editor goes after the push, so nothing needs gating.
+7. **No v2 submission gate.** Both editors write v2 and the in-game editor preserves the v2 keys it cannot edit, so nothing needs gating.
 8. **Potions** are given as the item reward of a quest, once the quest runtime (4) exists. Until then a trade can only hand out an empty bottle.

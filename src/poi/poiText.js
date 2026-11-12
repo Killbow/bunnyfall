@@ -223,7 +223,7 @@ const DIFF = {
   'part-removed': (a) => t('poi.diff.partRemoved', 'Part taken away: {name}.', a),
   // AUDIT POI U13: what changed listed as the reader's language lists it, not with an English comma
   'part-changed': (a) => t('poi.diff.partChanged', 'Part {name}: {what}.', { name: a.name, what: listText(a.what.map((w) => PART_WHAT[w]?.() ?? w)) }),
-  upgraded: (a) => t('poi.diff.upgraded', 'Moved from version {from} to version {to} of the format.', a),
+  upgraded: (a) => t('poi.diff.upgraded', 'Now saved in format version {to} (it was version {from}). That alone changes nothing in the game.', a),
   interior: () => t('poi.diff.interior', 'Its interior changed.'),
   collection: (a) => t('poi.diff.collection', 'Holds {count, plural, one {# {kind}} other {# {kind}}}.', { count: a.count, kind: KIND_WORD[a.kind]?.(a.count) ?? a.kind }),
   'item-added': (a) => t('poi.diff.itemAdded', '{kind} added: {name}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name }),

@@ -4,7 +4,7 @@
 //
 // Mac: "POI Tool (General Map Editor) - Realtime editor ... I want this to be a tool my developers can use without having
 // to access the codebase ... No short cuts or band aids" (bible/06-Systems/POI-Editor-Arc.md). The editor's model, pure
-// (no DOM, no GL, no network) so the World Builder (tools/poi-editor) and the tests read it the same way:
+// (no DOM, no GL, no network) so the in-game editor, the World Builder (tools/poi-editor), and the tests read it alike:
 //
 //   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law defines it (poi/poiLaw.js) -
 //     opened from the live set or a draft, or made new - beside the document as it was last SAVED, so "unsaved" is a
@@ -207,6 +207,15 @@ export function newPoiDoc({ id, px, py, x, z, y = 0, name }) {
   return { v: POI_DOC_VERSION, id, name: lawName(name), place, parts: [], lights: [], marker: { show: false } };
 }
 
+// ── VERSIONS ──────────────────────────────────────────────────────
+/** Upgrades a modified v1 document to v2 (which holds all v1 fields unchanged). A document that was not v1 before
+ *  the edit retains its version, and a change whose result matches `saved` (the last saved JSON) stays v1 and clean.
+ *  @param {any} doc @param {any} wasV @param {string | null} [saved] */
+export function upgradeChanged(doc, wasV, saved = null) {
+  if (wasV === 1 && doc && doc.v === 1 && JSON.stringify(doc) !== saved) doc.v = POI_DOC_VERSION;
+  return doc;
+}
+
 // ── THE WORKING SET AND ITS UNDO ──────────────────────────────────
 const text = (d) => (d == null ? null : JSON.stringify(d));
 const sameSel = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
@@ -338,10 +347,13 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       if (!e || shown.has(id)) return false;   // AUDIT POI E17: shown as another (showAs), its working copy is not what is seen - not changed unseen
       const before = text(e.doc);
       const doc = JSON.parse(before);
+      const wasV = doc.v;
       fn(doc);
-      const after = text(doc);
-      const selBefore = sel;
+      let after = text(doc);
       if (after === before) { if (select !== undefined) api.select(select); return false; }
+      const v = doc.v;
+      if (upgradeChanged(doc, wasV, e.saved).v !== v) after = text(doc);
+      const selBefore = sel;
       e.doc = doc;
       sel = validSel(select === undefined ? sel : select);
       push({ id, label, before, after, selBefore, selAfter: sel });
@@ -363,8 +375,10 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       const e = docs.get(drag.id);
       if (!e) { drag = null; return false; }
       const doc = JSON.parse(drag.start);
+      const wasV = doc.v;
       fn(doc);
-      e.doc = doc;
+      // a v1 document is written as v2 once the drag has moved it (a drag that has not moved it yet changes nothing)
+      e.doc = wasV === 1 && text(doc) !== drag.start ? upgradeChanged(doc, wasV, e.saved) : doc;
       changed();
       return true;
     },
