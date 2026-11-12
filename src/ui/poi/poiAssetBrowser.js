@@ -3,13 +3,15 @@
 // search, kind/category/tag filters, saved favorites and recent picks, and a detail pane with a preview. Entries can be
 // placed via the Place button or double-click (following the cursor until a ground click) or by dragging a card onto
 // the world canvas, delegated through `poi/poiAssetPlace.js`. Card thumbnails load on demand with bounded concurrency
-// and stay cached until `destroy()`.
+// and stay cached until `destroy()`. Model cards show a picture rendered in the page by `poi/poiModelThumbs.js`, or the
+// model number when nothing can be rendered.
 
 import { t } from '../../systems/textManager.js';
 import { createPoiAssetCatalogue, createPoiAssetPrefs, loadPoiAssetCatalogue, visibleRows, POI_ASSET_CATEGORIES } from '../../poi/poiAssetCatalogue.js';
 import { poiAssetWhyNot } from '../../poi/poiAssetPlace.js';
 import { dfTexturePng, dfModelAsImport } from '../../poi/dfModelImport.js';
 import { renderThumb, encodePng } from '../../poi/poiThumb.js';
+import { createPoiModelThumbs } from '../../poi/poiModelThumbs.js';
 import { isNudeFlat, showNudity } from '../../characters/nudeFlats.js';
 
 export const POI_ASSET_DRAG_TYPE = 'application/x-bunnyfall-poi-asset';
@@ -35,6 +37,7 @@ const CSS = `
 .dfpoi-assets-cards.grid .dfpoi-asset-pic { width: 56px; height: 56px; }
 .dfpoi-assets-cards.list .dfpoi-asset-pic { width: 22px; height: 22px; font-size: 9px; }
 .dfpoi-asset-pic img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.dfpoi-asset-pic img.dfpoi-asset-3d { image-rendering: auto; }
 .dfpoi-asset-nm { font-size: 11px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .dfpoi-assets-cards.grid .dfpoi-asset-nm { text-align: center; }
 .dfpoi-asset-mark { position: absolute; top: 1px; right: 3px; font-size: 10px; color: #e8cf8a; }
@@ -46,9 +49,9 @@ const CSS = `
 
 /**
  * Creates the asset browser dock inside `host`. `getTexture` loads classic and mod texture archives for thumbnails,
- * thumbnails, `dfModels` renders 3D model previews, `storage` persists favorites and recent picks, `place` places an
- * entry (`at` is the drop position, or null when started from the Place button or double-click), `load` fetches the
- * catalog JSON, and `onToggle` runs when the browser opens or closes.
+ * `dfModels` (with `arch`) supplies the models for model pictures, `storage` persists favorites and recent picks,
+ * `place` places an entry (`at` is the drop position, or null when started from the Place button or double-click),
+ * `load` fetches the catalog JSON, and `onToggle` runs when the browser opens or closes.
  * @param {{ doc?: Document, host: HTMLElement, getTexture?: ((archive: number) => Promise<any>) | null, dfModels?: any, storage?: any, load?: () => Promise<any>, onToggle?: () => void,
  *   place: (asset: import('../../poi/poiAssetCatalogue.js').PoiAsset, at: { x: number, y: number } | null) => Promise<boolean> | boolean }} o
  */
@@ -201,10 +204,17 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
         .finally(() => { loadsRunning--; pump(); });
     }
   }
+  // ── a model's card picture, drawn in the page (poi/poiModelThumbs.js): wanted while its card is on screen ──
+  const thumbs = dfModels?.arch ? createPoiModelThumbs({
+    arch: dfModels.arch, palette: dfModels.palette ?? null, cpuModels: dfModels.cpuModels ?? null, textureFiles: dfModels.textureFiles ?? null, getTexture,
+    wanted: (id) => onScreen.has(`model:${id}`),
+    onReady: (id) => { const b = onScreen.get(`model:${id}`); const e = cat?.get(`model:${id}`); if (b && e) fillPic(b, e); },
+  }) : null;
   const glyph = (/** @type {any} */ a) => (a.kind === 'model' ? t('poi.assets.glyphModel', '3D') : a.kind === 'creature' ? t('poi.assets.glyphCreature', 'enemy') : a.kind === 'item' ? t('poi.assets.glyphItem', 'item') : '');
   function fillPic(/** @type {HTMLElement} */ box, /** @type {any} */ a) {
-    const url = pics.get(picKey(a) ?? '');
-    if (url) { const img = /** @type {HTMLImageElement} */ (el('img')); img.alt = ''; img.src = url; box.replaceChildren(img); } else box.textContent = a.kind === 'model' ? `${glyph(a)} ${a.model}` : glyph(a);
+    const shot = a.kind === 'model' && thumbs ? thumbs.url(a.model) : null;
+    const url = shot ?? pics.get(picKey(a) ?? '');
+    if (url) { const img = /** @type {HTMLImageElement} */ (el('img', shot ? 'dfpoi-asset-3d' : '')); img.alt = ''; img.src = url; box.replaceChildren(img); } else box.textContent = a.kind === 'model' ? `${glyph(a)} ${a.model}` : glyph(a);
   }
 
   function draw() {
@@ -229,7 +239,8 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
       const pic = el('div', 'dfpoi-asset-pic');
       fillPic(pic, a);
       onScreen.set(a.id, pic);
-      wantPic(a);
+      if (a.kind === 'model') thumbs?.want(a.model);
+      else wantPic(a);
       card.append(pic, el('div', 'dfpoi-asset-nm', a.name));
       const marks = `${prefs.isFavorite(a.id) ? '★' : ''}${a.duplicate || a.missing ? ' !' : ''}`;
       if (marks) card.append(el('span', `dfpoi-asset-mark${a.duplicate || a.missing ? ' dfpoi-asset-flag' : ''}`, marks));
@@ -337,6 +348,7 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
     pics.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     previewUrl = null;
+    thumbs?.destroy();
     box.remove();
   }
   return {

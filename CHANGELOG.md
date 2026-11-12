@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: Model cards in the in-game POI editor's Assets browser now show a picture of the model instead of its number.
 - Fixed: The in-game POI editor's history panel can now compare two revisions of a POI and show what changed between them.
 - Fixed: The in-game POI editor can now duplicate an entire POI, including its groups, parts, pictures, people, lights, and DM content, as a new draft beside the original.
 - Fixed: The in-game POI editor's side panels and DM tools can now be resized by dragging their edges, and the editor saves their sizes, snap steps, and camera speed between sessions.
