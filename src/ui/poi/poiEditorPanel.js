@@ -75,6 +75,7 @@ import { SEASON } from '../../world/climateSwaps.js';
 import { setPoiAssetPlacer, placePoiAsset } from '../../poi/poiAssetPlace.js';
 // the panel splitters, and the saved panel sizes, snap steps, and camera speed
 import { createPoiLayout, createPoiPrefs } from './poiLayout.js';
+import { duplicatePoiDoc, duplicateName } from '../../poi/poiDuplicate.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -595,6 +596,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // POI-6: its revisions (once the store has it), and its model out as a .glb
     const more = el('div', 'dfpoi-row');
     if (edit.entryOf(d.id)?.state !== 'new' || edit.entryOf(d.id)?.saved) more.append(btn(t('poi.review.history', 'History...'), () => { dialogsClosed(); review.openHistory(d.id); }));
+    more.append(btn(t('poi.editor.duplicatePoi', 'Duplicate this POI'), () => duplicatePoi(d.id)));
     if (ownParts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: ownParts, lights: d.lights ?? [] })));
     out.push(more);
     if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
@@ -886,6 +888,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     edit.open(id, { doc: pick.doc, ...(others ? { saved: null } : {}), base: mine ? (mine.base ?? null) : sentBack ? (pick.base ?? null) : (h.liveRev ?? null), rev: mine ? mine.rev : null, state: mine ? mine.state : live ? 'live' : sentBack ? 'rejected' : 'draft' });
     edit.select({ id, part: null });
     say(t('poi.editor.opened', 'Opened {name}.', { name: pick.doc.name }));
+  }
+  /** Duplicates open POI `id` (including any unsaved edits) as a new draft beside the original in one undo step, and
+   *  selects the copy. */
+  function duplicatePoi(id) {
+    const d = edit.docOf(id);
+    if (!d) return null;
+    const name = duplicateName(d.name, (base) => t('poi.editor.copyName', '{name} (copy)', { name: base }));
+    const { px, py, x, z, y } = d.place;
+    const made = edit.create({ px, py, x, z, y, name }, (doc) => { const c = duplicatePoiDoc(d, { id: doc.id, name }); for (const k of Object.keys(doc)) delete doc[k]; Object.assign(doc, c); });
+    say(t('poi.editor.duplicated', 'Created {name} as a new draft. Save it to keep it.', { name }));
+    return made;
   }
   /** A picture from a file: read by its header (refused in words), uploaded by its name, handed to `use`. */
   async function takePicture(bytes, use) {
@@ -1334,6 +1347,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     /** The scene acts (groups, marks, and arranging), for the panel's buttons and tests. */
     scene: sceneActs,
     open: (id) => openPoi(id),
+    /** Duplicates POI `id` (used by the inspector's "Duplicate this POI" button and by tests), returning the new
+     *  draft's ID or null. */
+    duplicatePoi: (id) => duplicatePoi(id),
     /** POI-5: the UV editor over a part's material, and a picture taken from bytes - the panel's own buttons' doors, a
      *  test's too. */
     openUv: (id, key, k) => openUv(id, key, k),
