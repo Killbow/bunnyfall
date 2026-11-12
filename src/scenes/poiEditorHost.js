@@ -388,6 +388,24 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
     cancelPlacing() { placing = null; placeAt = null; told(); },
+    /** Places whatever is armed for placing on the ground under client point `(x, y)`, as a click there would (used
+     *  when an asset is dropped from the browser), and returns whether it was placed. */
+    standAt(/** @type {number} */ x, /** @type {number} */ y) { return api.standOn(api.spotAt(x, y)); },
+    /** Samples the ground point under client coordinates `(x, y)` along with its map-pixel translation, so `standOn`
+     *  can resolve the same world position even if the camera moves or the floating origin shifts before async
+     *  upload finishes; returns null if no ground is hit. */
+    spotAt(/** @type {number} */ x, /** @type {number} */ y) {
+      const at = on ? groundUnder(x, y) : null, px = at ? sceneToPixel(at) : null;
+      return at && px ? { at, px: px.px, py: px.py, x: px.x, z: px.z, frame: translation(px.px, px.py, [0, 0, 0]) } : null;
+    },
+    /** Places whatever is armed for placing at a ground point captured by `spotAt`, and returns whether it was
+     *  placed. @param {any} spot */
+    standOn(spot) {
+      if (!on || !placing || !spot) return false;
+      const now = translation(spot.px, spot.py, [0, 0, 0]);
+      place(spot.at.map((/** @type {number} */ v, /** @type {number} */ i) => v + now[i] - spot.frame[i]));
+      return !placing;
+    },
     /** The next click on the ground answers `done` with that spot in POI `id`'s own frame (Esc lets it go). */
     pickSpot(/** @type {string} */ id, /** @type {(p: number[]) => void} */ done) { placing = { kind: 'spot', id, done }; told(); },
     /** The ground under the eye, in POI `id`'s own frame (null while its ground is not built). @param {string} id */

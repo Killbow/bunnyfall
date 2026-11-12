@@ -68,6 +68,8 @@ import { createPoiTestPanel } from './poiTestPanel.js';
 import { testable } from '../../poi/poiDmTest.js';
 import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
 import { SEASON } from '../../world/climateSwaps.js';
+// the game's catalog, browsed and placed (the browser itself, ui/poi/poiAssetBrowser.js, loads on its first open)
+import { setPoiAssetPlacer, placePoiAsset } from '../../poi/poiAssetPlace.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -302,6 +304,22 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'That did not go through.'));
   // POI-4b: the library's dialogs, laid in the panel, through its own door to the store
   const library = createPoiLibrary({ doc, host: root, io, feed, me, act: (fn) => act(fn), say, refusal, editor, decodeImage, rand, exportGlb: (model) => exportGlb(model) });
+  // the asset browser: its code is fetched the first time Assets is pressed, so a player who never opens it never loads
+  // it; a Daggerfall model is placed through the model dialog below, uploaded as a mesh
+  /** @type {any} */
+  let assets = null;
+  /** @type {Promise<any> | null} */
+  let assetsLoading = null;
+  function assetBrowser() {
+    assetsLoading ??= import('./poiAssetBrowser.js').then(({ createPoiAssetBrowser }) => {
+      if (gone) return null;
+      assets = createPoiAssetBrowser({ doc, host: root, getTexture: dfModels?.getTexture ?? null, dfModels, storage: (() => { try { return globalThis.localStorage ?? null; } catch { return null; } })(),
+        place: (a, at) => placePoiAsset(a, { editor, edit, at, say }), onToggle: () => schedule() });
+      return assets;
+    }, () => { assetsLoading = null; say(t('poi.assets.codeFailed', 'The asset browser could not be loaded.'), 'bad'); return null; });
+    return assetsLoading;
+  }
+  const offUpload = dfModels ? setPoiAssetPlacer('upload', { place: (a, ctx) => openDfModel(a.model ?? 0, ctx.at ? editor.spotAt(ctx.at.x, ctx.at.y) : null) }) : () => {};
   // POI-6: the approver's queue and a POI's history, laid in the panel the same way (the feed asked again after a verdict)
   review = createPoiReview({ doc, host: root, me, act: (fn) => act(fn), say, refusal, edit, facts, goTo, feed });
   const dialogsClosed = () => { closeDialog(); library.close(); review.close(); };
@@ -396,6 +414,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
       ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
+      (() => { const b = btn(t('poi.assets.button', 'Assets'), () => { void assetBrowser().then((a) => a?.toggle()); }); b.setAttribute('aria-pressed', String(!!assets?.isOpen())); b.title = t('poi.assets.buttonHint', 'Browse the game\'s models, pictures, items, and creatures.'); return b; })(),
       btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),
       ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
@@ -1112,10 +1131,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     dialog = box;
     root.append(box);
   }
-  // BUNNYFALL: A DAGGERFALL MODEL - the game's own buildings and pieces, by the kind of town block that stands them
-  // (poi/dfModelImport.js), or any model by its number; seen in a picture, then uploaded and placed as an import is
+  // BUNNYFALL: A DAGGERFALL MODEL - imports a classic Daggerfall building or piece by the kind of town block that uses
+  // it (`poi/dfModelImport.js`) or by model ID, previews it, and uploads and places it like an imported mesh. When
+  // called from the asset browser with `first`, it loads and uploads that model immediately, places it at `spot` if
+  // `editor.spotAt` captured a drop position, and returns a promise resolving to whether the model was placed.
   let dfCatalog = null;
-  function openDfModel() {
+  function openDfModel(first = 0, /** @type {any} */ spot = null) {
     dialogsClosed();
     const box = el('div', 'dfpoi-dialog');
     for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) box.addEventListener(ty, swallow);
@@ -1152,18 +1173,21 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const go = btn(t('poi.editor.dfModelShow', 'Show'), () => choose(Math.trunc(Number(idIn.value))));
     async function upload() {
       const parts = prep;
-      if (!parts?.parts.length || uploading) return;
+      if (!parts?.parts.length || uploading) return false;
       uploading = true; place.disabled = true;
       const mine = () => dialog === box;
       const r = await act((i) => uploadImport(parts, whileOpen(box, (bytes, k) => poiPutAsset(i, bytes, k)), (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); }));
       uploading = false;
-      if (!mine()) return;
-      if (!r) { place.disabled = false; return; }
-      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return; }
+      if (!mine()) return false;
+      if (!r) { place.disabled = false; return false; }
+      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return false; }
       for (const [sha, meta] of r.metas) facts.put(sha, meta);
       closeDialog();
+      const before = partCount();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
+      if (spot && editor.standOn(spot)) return true;
       say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      return placedFrom(editor.placing(), before);
     }
     const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);
     box.append(el('div', 'dfpoi-h', t('poi.editor.dfModelTitle', 'A Daggerfall model')),
@@ -1172,6 +1196,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     drawList();
     dialog = box;
     root.append(box);
+    if (first > 0) { idIn.value = String(first); return choose(first).then(() => (prep?.parts.length ? upload() : false)); }
+    return Promise.resolve(false);
+  }
+  // Counts total parts across open POIs and resolves once the placement state `armed` ends, returning true if a ground
+  // click added a part or false if placement was canceled by Esc, another tool, or closing the panel.
+  const partCount = () => edit.ids().reduce((n, id) => n + (edit.docOf(id)?.parts?.length ?? 0), 0);
+  function placedFrom(/** @type {any} */ armed, /** @type {number} */ before) {
+    return new Promise((done) => {
+      const look = () => { if (gone) done(false); else if (editor.placing() !== armed) done(partCount() > before); else setTimeout(look, 200); };
+      look();
+    });
   }
   // BUNNYFALL: THE SEASON, for working on the ground without the winter's snow (world/seasonView.js - this browser's view only)
   function seasonPicker() {
@@ -1286,7 +1321,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     openPack: (bytes) => openPack(bytes),
     /** Whether a press landed on the panel (the world leaves it alone). */
     owns: (target) => !!target && typeof root.contains === 'function' && root.contains(target),
-    destroy() { gone = true; offEdit(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
+    destroy() { gone = true; offEdit(); offUpload(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
     /** The DM panel (its tabs, the Sandbox). */
     dm,
     /** The Test button's press, a test's door too. */

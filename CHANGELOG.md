@@ -34,6 +34,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor has an Assets browser that lists the game's models, pictures, items, and creatures, with search, filters, favorites, recent picks, and a preview.
+- Fixed: A Daggerfall model can be placed from the in-game POI editor's Assets browser with Place or by dragging its card onto the world.
 - Fixed: Offline, a POI's rewards and costs now reach your character: its events give and take your real gold and items, and a gift is given only once on each device.
 - Fixed: The in-game POI editor's Test plays the selected POI's DM content in the world: people walk their routes, zones and objects work, dialogues and trades open, events run, and encounters spawn real enemies that leave when the test stops, while other POIs run none of theirs.
 - Fixed: Trades and events in the in-game POI editor's Test use a test copy of your gold and items, shown with a log in the Test panel; the game is not saved while a test runs, and when it ends your character is put back as it was when it started, though a quest step taken in a test stays done.
