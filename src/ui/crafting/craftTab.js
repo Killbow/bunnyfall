@@ -8,7 +8,7 @@
 // The sections keep the old pages' ids, so every door that named one (the Professions key, a shop's or a home's station)
 // still lands on it.
 import { t } from '../../systems/textManager.js';
-import { drawOverviewPage, drawBenchPage, drawCraftingPage, drawStoresPage, stationHere, profPagesShown } from '../professions/profPages.js';
+import { drawOverviewPage, drawBenchPage, drawCraftingPage, drawStoresPage, drawProvisioningPage, stationHere, profPagesShown } from '../professions/profPages.js';
 
 /** The rail's pages: id, then its words in the player's language. */
 export const CRAFT_TAB_SECTIONS = Object.freeze([
@@ -16,12 +16,14 @@ export const CRAFT_TAB_SECTIONS = Object.freeze([
   ['bench', () => t('craft.tab.bench', 'Bench')],
   ['crafting', () => t('craft.tab.stations', 'Stations')],
   ['stores', () => t('craft.tab.stores', 'Stores')],
+  ['provisioning', () => t('craft.tab.provisioning', 'Provisioning')],   // BUNNYFALL PROVISIONING: its own system
 ]);
 const SUB = Object.freeze({
   professions: () => t('craft.tab.professionsSub', 'Ranks, perks, Focus'),
   bench: () => t('craft.tab.benchSub', 'Choose and make'),
   crafting: () => t('craft.tab.stationsSub', 'Cooking, brewing, smelting'),
   stores: () => t('craft.tab.storesSub', 'Materials you hold'),
+  provisioning: () => t('craft.tab.provisioningSub', 'The pot and the cauldron'),
 });
 const ids = CRAFT_TAB_SECTIONS.map(([id]) => id);
 /** Whether a landing names one of the tab's pages. */
@@ -33,7 +35,8 @@ let sec = 'professions';
 /** A new visit: its landing's page. A landing on the Stations page while standing at a station reads as the Bench. */
 export function resetCraftTab(at = null) {
   sec = craftPageAt(at) ? /** @type {string} */ (at) : 'professions';
-  if (sec === 'crafting' && stationHere()) sec = 'bench';
+  if (sec === 'crafting' && (stationHere() === 'fire' || stationHere() === 'alchemy')) sec = 'provisioning';   // a fire or a cauldron opens the pot
+  else if (sec === 'crafting' && stationHere()) sec = 'bench';
 }
 export const craftSection = () => sec;
 export function setCraftSection(/** @type {string} */ id) { if (ids.includes(id)) sec = id; }
@@ -62,6 +65,7 @@ export function drawCraftTab(body, kit) {
     bench: drawBenchPage,
     crafting: drawCraftingPage,
     stores: drawStoresPage,
+    provisioning: drawProvisioningPage,
   })[sec]?.(detail, render, pageKit);
   wrap.append(detail);
   body.append(wrap);

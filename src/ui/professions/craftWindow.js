@@ -112,6 +112,9 @@ const CSS = `
 .cw-ws-title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #d9b45a; border-bottom: 1px solid #6b5228; padding-bottom: 3px; }
 .cw-ws-sum { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
 .cw-ws-sum .cw-actions { justify-content: flex-end; }
+.cw, .cw *, .cw-focus, .cw-focus *, .pv, .pv * { font-family: inherit; }
+.cw-ws-piece, .cw-ws-piece *, .pv-parch, .pv-parch * { text-shadow: none !important; }
+.cw-ws-piece .cw-make { font-weight: 700; letter-spacing: 0; }
 .cw-ws-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
 .cw-ws-head > div:last-child { flex: 1 1 140px; min-width: 0; }
 .cw-ws-pic { width: 96px; height: 96px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #a8844a; background: rgba(60,40,20,.12); }
@@ -161,8 +164,8 @@ const CSS = `
 .cw-work-needle line { stroke: #e8e2d0; stroke-width: 1.6; stroke-linecap: round; }
 .cw-work-tip { fill: var(--wk2, #f0d58a); filter: drop-shadow(0 0 2px var(--wk, #d9b45a)); }
 .cw-work-hub { fill: #241a12; stroke: #b08a3e; stroke-width: 1.2; }
-.cw-work-label { fill: #f0d58a; font: 700 7px Georgia, serif; text-anchor: middle; }
-.cw-work-sub { fill: #b8b09a; font: 4.2px Georgia, serif; text-anchor: middle; }
+.cw-work-label { fill: #f0d58a; font-family: inherit; font-weight: 700; font-size: 7px; text-anchor: middle; }
+.cw-work-sub { fill: #b8b09a; font-family: inherit; font-size: 4.2px; text-anchor: middle; }
 .cw-spark { fill: var(--wk2, #f0d58a); animation: cw-spark .6s ease-out forwards; }
 .cw-spark-true { fill: #fff6d8; }
 .cw-spark-part { fill: var(--wk, #d9b45a); }
@@ -448,7 +451,7 @@ export function drawFocus(root, rerender, p, showWord = false) {
   box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior. Dropping one costs ${f.cost} silver.`));
   const ask = _cw.focusAsk;
   const chips = h('div', 'cw-chips');
-  for (const c of ['smithing', 'building', 'outfitting', 'provisioning', 'enchanting']) {
+  for (const c of ['smithing', 'building', 'outfitting', 'enchanting']) {   // Provisioning is its own system (docs/PROVISIONING.md)
     const on = f.crafts.includes(c);
     const full = !on && f.crafts.length >= FOCUS_MAX;
     chips.append(button(`cw-chip${on ? ' cw-on' : ''}${ask?.craft === c ? ' cw-asked' : ''}`, `${word(c)}${on ? ' ✓' : ''}`, () => {

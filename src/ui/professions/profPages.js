@@ -101,7 +101,8 @@ import { tradeRefusal } from '../../systems/tradePack.js';   // DISENCHANT-SAID:
 import { isLocked } from '../../systems/item/itemLock.js';   // DISENCHANT-SAID: nor a locked one (PROF5)
 import { DYE_NAMES } from '../../characters/dyes.js';
 import { isTextEntryTarget, isDomControlTarget } from '../input.js';   // AUDIT 30 A9: a field's keys and a button's are their own
-import { drawBench, drawFocus } from './craftWindow.js';   // BUNNYFALL: the new crafting window
+import { drawBench, drawFocus } from './craftWindow.js';
+import { drawProvPage } from '../provisioning/provPage.js';   // BUNNYFALL PROVISIONING   // BUNNYFALL: the new crafting window
 import { createHeatAct } from '../../systems/heatAct.js';
 import { createPlaneAct } from '../../systems/planeAct.js';
 import { material, groundWitnessed } from '../../net/nodeLaw.js';
@@ -1034,6 +1035,10 @@ export function drawBenchPage(detail, rerender, kit) {
   const p = _provider;
   if (!p) return;
   drawBench(detail, rerender, p, stationHere(), () => kit.go?.('crafting'));
+}
+/** BUNNYFALL PROVISIONING: its own line on the Crafting rail (ui/provisioning/provPage.js). */
+export function drawProvisioningPage(detail, rerender, kit) {
+  drawProvPage(detail, rerender, _provider, stationHere(), kit);
 }
 /** THE CRAFTING TAB'S FIRST PAGE: the Focus on top of the Professions page. */
 export function drawOverviewPage(detail, rerender, kit) {

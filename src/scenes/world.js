@@ -11748,7 +11748,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       setSalvageRealmAct(realmSession ? (o) => realmGoldAct({ ...o, session: realmSession, checkpoint: () => onlineCheckpoint() }) : null);
       setProfessionsPages({
         ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
-        book: profBook, name: (k) => materialLabel(k), wearer: () => ({ gender: playerEntity.gender ?? 'male', race: artRaceOf(playerEntity) }), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
+        book: profBook, name: (k) => materialLabel(k), provision: (body) => profBook.provMake({ ...body, seat: alchemyHall().seat }, profMintCraft), wearer: () => ({ gender: playerEntity.gender ?? 'male', race: artRaceOf(playerEntity) }), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
         picture: (k, wake) => materialPicture(k, { onReady: wake }),   // MENU-ORDER: a material card's picture
         settle: () => profBook.settle(profMint, profMintCraft),   // AUDIT 29 C4: a kept withdrawal asked again when the Stores page opens; PROF3: and a kept craft
         // BAG1 (bible/06-Systems/Materials-Bag.md): THE STORES PAGE'S OTHER HALF - what is carried put in (the bag's first,
@@ -11795,7 +11795,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         stock: async (material, qty, counter = stockOf(material)?.counter) => {
           const r = await profBook.stock(material, qty);
           toldBalance(r?.data?.balance);   // PROF5 (FOUND): the Bank's balance told too; AUDIT 32 B3: and the market's
-          const who = counter === 'furnisher' ? 'furnisher' : counter === 'weavers' ? 'Weavers' : counter === 'apothecaries' ? 'Apothecaries' : 'smith';   // PROF12: the Apothecaries' sixteen   // PROF4: the furnisher's Linen; PROF7: the Weavers' at the tailor's
+          const who = counter === 'furnisher' ? 'furnisher' : counter === 'weavers' ? 'Weavers' : counter === 'apothecaries' ? 'Apothecaries' : counter === 'grocers' ? 'Grocers' : 'smith';   // BUNNYFALL PROVISIONING: the Grocers' pantry   // PROF12: the Apothecaries' sixteen   // PROF4: the furnisher's Linen; PROF7: the Weavers' at the tailor's
           return r?.ok ? { ok: true, text: `Bought ${r.data.qty} ${materialCountLabel(material, r.data.qty)} from the ${who} for ${r.data.marks} silver.` } : { ok: false, text: accountRefusalText(r?.error) };
         },
         heatBand: () => heatBand({ strength: liveStat(playerEntity, 'strength'), agility: liveStat(playerEntity, 'agility') }),

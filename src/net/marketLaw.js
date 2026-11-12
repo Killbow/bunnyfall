@@ -21,7 +21,7 @@
 // Pure: no clock, no DOM, no network. Both ends read it.
 // ═══════════════════════════════════════════════════════════════════
 
-import { STORES_MAX, MATERIAL_FAMILIES, MINED_KEYS, FOOD_KEYS, PLANT_GROUP_TEMPLATES } from './professionLaw.js';   // MARKET-ANY: and the Stores' forms
+import { STORES_MAX, MATERIAL_FAMILIES, MINED_KEYS, FOOD_KEYS, PANTRY_KEYS, PLANT_GROUP_TEMPLATES } from './professionLaw.js';   // MARKET-ANY: and the Stores' forms
 import { PROVENANCE_RE, recipeById, takesQuality, MASTERWORK, RECIPES } from './recipeLaw.js';   // BOARD-SIFT: a search's recipes
 import { MARKS_MAX } from './marksLaw.js';
 import { witnessedFact, factConfirmed, material } from './nodeLaw.js';
@@ -299,7 +299,7 @@ export const pieceListable = (recipeId) => CRAFTED_FAMILIES.some(([f]) => f === 
  *  gives a tier - each `material()`'s standing, in the families' order - less what nothing yields yet. */
 export function marketCatalogue() {
   const herbs = Object.entries(PLANT_GROUP_TEMPLATES).flatMap(([g, ts]) => ts.map((t) => `${g}:${t}`));
-  const all = [...MINED_KEYS, ...FOOD_KEYS, ...herbs].filter((k) => !UNYIELDED.includes(k)).map((k) => material(k)).filter(Boolean);
+  const all = [...MINED_KEYS, ...FOOD_KEYS, ...PANTRY_KEYS, ...herbs].filter((k) => !UNYIELDED.includes(k)).map((k) => material(k)).filter(Boolean);
   const order = MATERIAL_FAMILIES.map(([f]) => f);
   return all.sort((a, b) => (order.indexOf(a.family) - order.indexOf(b.family)) || (a.tier - b.tier));
 }

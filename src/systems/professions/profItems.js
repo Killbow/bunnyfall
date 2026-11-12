@@ -34,6 +34,7 @@ import { setItemFields, mintCondition, templateByIndex } from '../item/itemTempl
 import { addItem } from '../inventory.js';
 import { itemNameParts } from '../item/itemInfo.js';
 import { FT, fruitTemplate, fishTemplate } from '../foraging/foragingLaw.js';
+import { pantryOf } from '../../net/professionLaw.js';   // BUNNYFALL PROVISIONING
 import { TEMPLATE as CC_TEMPLATE } from '../survival/food.js';   // PROF7: C&C's Raw Meat
 import { createForagingItem } from '../foraging/foragingInstall.js';
 import { survivalOn } from '../survival/switch.js';
@@ -49,7 +50,7 @@ export function foodTemplate(key, cc) {
   if (key === 'food:egg') return FT.Egg;
   if (key === 'food:meat') return CC_TEMPLATE.RawMeat;
   if (key === 'food:fish') return fishTemplate(cc);
-  return null;
+  return pantryOf(key)?.templateIndex ?? null;   // BUNNYFALL PROVISIONING: the pantry's own
 }
 
 /** One item of a material, as DFU (or Foraging) mints it - or null for a key the Stores never hold. */

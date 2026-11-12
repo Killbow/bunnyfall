@@ -515,6 +515,11 @@ const REFUSAL_WORDS = {
   'prof-focus': () => t('account.refusal.profFocus', 'Only a Focus craft can take a rank 100 perk. A character has at most two.'),
   'prof-craftwork': () => t('account.refusal.profCraftwork', 'Only Smithing, Carpentry and Outfitting can go into Craftwork.'),
   'prof-craftwork-done': () => t('account.refusal.profCraftworkDone', 'That skill has already been through Craftwork.'),
+  'prov-count': () => t('account.refusal.provCount', 'That is more ingredients than your rank allows (2, 3 from rank 40, 4 from rank 75).'),
+  'prov-twice': () => t('account.refusal.provTwice', 'Each ingredient goes in once.'),
+  'prov-key': () => t('account.refusal.provKey', 'That does not go in this pot.'),
+  'prov-base': () => t('account.refusal.provBase', 'A potion needs one base: a water or an essence.'),
+  'prov-nothing': () => t('account.refusal.provNothing', 'Nothing in the cauldron shares a trait, so it would make nothing.'),
   'craft-form': () => t('account.refusal.craftForm', 'That is not something you can make.'),
   'craft-picks': () => t('account.refusal.craftPicks', 'Pick the materials first.'),
   'craft-pick': () => t('account.refusal.craftPick', 'That material does not go there.'),
@@ -2436,7 +2441,10 @@ export function accountProf({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS }) {
     craft: (character, recipe, clean, name, rid, heartwood = false, dye = null, seat = null, cracked = false) => post('/v1/prof/craft', { character, recipe, clean, name, rid, heartwood, ...(dye == null ? {} : { dye }), ...(seat == null ? {} : { seat }), ...(cracked === true ? { cracked: true } : {}), mint: MINT_VERSION }),   // AUDIT FB1026d C3: `mint` the version this build mints at - its record is stamped with it   // SEAT2b part two: `seat` the held town the station stands in   // PROF3: the anvil - `clean` the act's report, `name` the maker's mark; PROF4: the workbench, `heartwood` for a plank; PROF7: the loom, a garment's `dye`; PROF10: the jeweller's bench, `cracked` a Lapidary's Siege-cracked Gem for the gem
     make: (character, form, picks, clean, name, rid, dye = null, seat = null, cracked = false, look = null, inspired = 0) => post('/v1/prof/make', { character, form, picks, clean, name, rid, ...(dye == null ? {} : { dye }), ...(look == null ? {} : { look }), ...(inspired > 0 ? { inspired } : {}), ...(seat == null ? {} : { seat }), ...(cracked ? { cracked: true } : {}) }),   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
     focus: (character, crafts, rid) => post('/v1/prof/focus', { character, crafts, rid }),
-    craftwork: (character, profession, rid) => post('/v1/prof/craftwork', { character, profession, rid }),   // BUNNYFALL CRAFTWORK   // BUNNYFALL CRAFTING REWORK: the Focus
+    craftwork: (character, profession, rid) => post('/v1/prof/craftwork', { character, profession, rid }),   // BUNNYFALL CRAFTWORK
+    provState: (character) => post('/v1/prov/state', { character }),   // BUNNYFALL PROVISIONING
+    provMake: (character, body, rid) => post('/v1/prov/make', { ...body, character, rid }),
+    provPrepare: (character, prep, count, rid) => post('/v1/prov/prepare', { character, prep, count, rid }),   // BUNNYFALL CRAFTING REWORK: the Focus
     stock: (character, material, qty, rid) => post('/v1/prof/stock', { character, material, qty, rid }),   // PROF3: the smith's stock
     brew: (character, potion, keys, rid, seat = null) => post('/v1/prof/brew', { character, potion, keys, rid, ...(seat == null ? {} : { seat }) }),   // PROF12: the alchemy station's brew - `keys` the cauldron as the Stores hold it, `seat` the held town it stands in
     temper: (character, recipe, quality, provenance, rid) => post('/v1/prof/temper', { character, recipe, quality, rid, ...(provenance ? { provenance } : {}) }),   // CRAFT4: a piece a quality step better

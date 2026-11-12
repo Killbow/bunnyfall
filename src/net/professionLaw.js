@@ -389,6 +389,26 @@ export const herbKey = (templateIndex, region) => {
 /** The Basket's foods, as the Stores keep them - the template is chosen when one is withdrawn (FORAGE0 14.6). */
 export const FOOD_KEYS = Object.freeze(['food:apple', 'food:orange', 'food:mushroom', 'food:egg', 'food:meat', 'food:fish']);   // PROF7: a body's butchery - C&C's Raw Meat, and a Slaughterfish's Raw Fish (5.2's Fishing keeps the same)
 /** Foraging's food code (BASKET_BLOCKS: 2 fruit, 3 Mushroom, 4 Egg) and the block's fruit, as a material key. */
+// ─── BUNNYFALL PROVISIONING: THE PANTRY (docs/PROVISIONING.md) - the new foods, Stores rows on templates 705-713 ───
+
+/** `icon` names the template whose picture it borrows (survival/food.js TEMPLATE, a DFU ingredient's index). */
+export const PANTRY = Object.freeze([
+  Object.freeze({ key: 'food:grain', name: 'Grain', templateIndex: 705, value: 2, icon: 534 }),
+  Object.freeze({ key: 'food:flour', name: 'Flour', templateIndex: 706, value: 3, icon: 534 }),
+  Object.freeze({ key: 'food:milk', name: 'Milk', templateIndex: 707, value: 2, icon: 539 }),
+  Object.freeze({ key: 'food:cheese', name: 'Cheese', templateIndex: 708, value: 5, icon: 534 }),
+  Object.freeze({ key: 'food:honey', name: 'Honey', templateIndex: 709, value: 4, icon: 63 }),
+  Object.freeze({ key: 'food:salt', name: 'Salt', templateIndex: 710, value: 2, icon: 531 }),
+  Object.freeze({ key: 'food:boar', name: 'Boar Meat', templateIndex: 711, value: 4, icon: 538 }),
+  Object.freeze({ key: 'food:bear', name: 'Bear Meat', templateIndex: 712, value: 5, icon: 538 }),
+  Object.freeze({ key: 'food:crab', name: 'Crab Meat', templateIndex: 713, value: 3, icon: 535 }),
+]);
+export const PANTRY_KEYS = Object.freeze(PANTRY.map((p) => p.key));
+export const pantryOf = (/** @type {string} */ key) => PANTRY.find((p) => p.key === key) ?? null;
+/** The Grocers' counter: the pantry a general store sells, for silver (Marks), as the Weavers' and Apothecaries'. */
+export const GROCER_STOCK = Object.freeze(['food:grain', 'food:milk', 'food:honey', 'food:salt'].map((key) => Object.freeze({ key, marks: pantryOf(key)?.value ?? 2, counter: 'grocers' })));
+
+
 export const foodKey = (code, fruit) => (code === 2 ? (fruit === 'Apple' ? 'food:apple' : 'food:orange') : code === 3 ? 'food:mushroom' : code === 4 ? 'food:egg' : null);
 /** Marks value by tier (PROF0 4.8) - an herb's by its own rarity: common 1, uncommon 2, rare 5. */
 export const TIER_VALUES = Object.freeze([1, 2, 4, 6, 9, 14, 40]);
@@ -612,7 +632,7 @@ const hide = (key, templateIndex, name, tier, icon, foes, part, meat, cures) =>
 export const HIDES = Object.freeze([
   hide('hide:rat', 655, 'Rat Pelt', 1, ICON_HAIR, [MOB.Rat], null, 'food:meat', 'leather:cured'),
   hide('hide:bat', 656, 'Bat Leather', 2, ICON_HAIR, [MOB.GiantBat, DEX.Bat], null, 'food:meat', 'leather:cured'),
-  hide('hide:bear', 657, 'Bear Hide', 2, ICON_HAIR, [MOB.GrizzlyBear], 'part:tooth', 'food:meat', 'leather:cured'),
+  hide('hide:bear', 657, 'Bear Hide', 2, ICON_HAIR, [MOB.GrizzlyBear], 'part:tooth', 'food:bear', 'leather:cured'),
   hide('hide:tiger', 658, 'Tiger Pelt', 3, ICON_HAIR, [MOB.SabertoothTiger, DEX.MountainLion], 'part:tooth', 'food:meat', 'leather:cured'),
   hide('hide:spider', 659, 'Spider Silk', 3, ICON_WRAPPINGS, [MOB.Spider, DEX.BloodSpider], 'part:venom', 'food:meat', null),
   hide('hide:scorpion', 660, 'Scorpion Chitin', 4, ICON_SCALES, [MOB.GiantScorpion], 'part:stinger', 'food:meat', 'leather:hardened'),
@@ -621,8 +641,8 @@ export const HIDES = Object.freeze([
   hide('hide:dreugh', 663, 'Dreugh Shell', 5, ICON_SCALES, [MOB.Dreugh, DEX.LandDreugh], null, null, 'leather:hardened'),
   hide('hide:dragonling', 664, 'Dragonling Scale', 6, ICON_SCALES, [MOB.Dragonling, MOB.DragonlingAlternate], 'part:dragonscale', null, 'leather:hardened'),
   hide('hide:wolf', 681, 'Wolf Pelt', 2, ICON_HAIR, [DEX.Wolf, DEX.SnowWolf, DEX.Dog], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:boar', 682, 'Boar Hide', 2, ICON_HAIR, [DEX.Boar], 'part:tooth', 'food:meat', 'leather:cured'),
-  hide('hide:mudcrab', 683, 'Mudcrab Chitin', 1, ICON_SCALES, [DEX.Mudcrab], null, 'food:meat', 'leather:cured'),
+  hide('hide:boar', 682, 'Boar Hide', 2, ICON_HAIR, [DEX.Boar], 'part:tooth', 'food:boar', 'leather:cured'),
+  hide('hide:mudcrab', 683, 'Mudcrab Chitin', 1, ICON_SCALES, [DEX.Mudcrab], null, 'food:crab', 'leather:cured'),
 ]);
 /** The hide a foe's body gives, by its MobileTypes value (or, DEX-HIDES, Daggerfall Enemy Expansion's own id), or null for a
  *  body no knife takes a hide from. */
@@ -857,7 +877,7 @@ export function keyTemplate(key) {
 }
 /** Every counter's goods. The service cannot see a counter (as it cannot see the forge): it sells any of them wherever
  *  it is asked, and the client asks at the counter's shop - a lie buys the same goods at the same price. */
-export const STOCKS = Object.freeze([...SMITH_STOCK, ...FURNISHER_STOCK, ...WEAVERS_STOCK, ...APOTHECARY_STOCK]);   // PROF12: the Apothecaries'
+export const STOCKS = Object.freeze([...SMITH_STOCK, ...FURNISHER_STOCK, ...WEAVERS_STOCK, ...APOTHECARY_STOCK, ...GROCER_STOCK]);   // BUNNYFALL: the Grocers' pantry   // PROF12: the Apothecaries'
 export const stockOf = (key) => STOCKS.find((s) => s.key === key) ?? null;
 /** Units a purchase, at most. */
 export const STOCK_MAX = 100;
@@ -899,6 +919,7 @@ export function materialOf(key, herbTier) {
     return { key, family: 'herbs', tier, value: HERB_VALUES[tier - 1], group: PLANT_GROUPS[m[1]], templateIndex };
   }
   if (FOOD_KEYS.includes(key)) return { key, family: 'food', tier: 1, value: TIER_VALUES[0] };
+  if (PANTRY_KEYS.includes(key)) return { key, family: 'food', tier: 1, value: TIER_VALUES[0], templateIndex: /** @type {any} */ (pantryOf(key)).templateIndex };   // BUNNYFALL PROVISIONING
   const r = MINED.get(key) ?? LOOSE.get(key);   // CLOTH-GEMS: a graded gem's row too
   if (r) return { key, family: r.family, tier: r.tier, value: r.value ?? TIER_VALUES[r.tier - 1], ...(r.group ? { group: r.group } : {}), templateIndex: r.templateIndex };   // SEAT2b part two: a row's own worth (the Ram Kit's)
   return null;

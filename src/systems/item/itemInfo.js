@@ -540,6 +540,7 @@ export function paintingMacros(info, readVariant) {
  *  at all and the caller falls back to the item's own name. */
 export function potionMacroName(item) {
   if (!isPotion(item) && !isPotionRecipe(item)) return null;
+  if (isPotion(item) && item?.prov?.k === 'c' && typeof item.name === 'string') return item.name;   // BUNNYFALL PROVISIONING: a cauldron's own name
   const name = potionRecipeByKey(item?.potionRecipeKey)?.displayName ?? localizedText('unknownPowers', 'Unknown Powers');
   return isPotionRecipe(item) ? name : localizedText('potionOf', 'Potion of %po').replaceAll('%po', () => name);
 }

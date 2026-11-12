@@ -29,7 +29,8 @@
 // and recorded in the Ledger; the port's startPoison refuses an
 // unregistered type the same way rather than indexing past its
 // tables.
-import { templateByIndex, itemUseHandler } from './item/itemTemplates.js';   // RRI2: ItemHelper's registered use handlers
+import { templateByIndex, itemUseHandler } from './item/itemTemplates.js';
+import { isProvPotion, provPotionParts } from './provItems.js';   // BUNNYFALL PROVISIONING   // RRI2: ItemHelper's registered use handlers
 import './fletching.js';   // FLETCH: the pack's arrow craft - its wood's handlers, registered before the ladder asks
 import { doItemEnchantmentPayloads, PAYLOAD } from './enchantments.js';   // E2: the Used payload arm
 import { inflictPoison } from './poisons.js';
@@ -322,7 +323,7 @@ export function useItem(item, collection, {
   // RETURNS - past the ladder and past the Used-payload tail alike.
   const handler = itemUseHandler(item.templateIndex);
   if (handler) {
-    const handled = handler(item, collection, { entity, rolls, nowMinute, localItems: bag, target, chooseTarget });   // MEND-AIM: the pack, the aim, and whether it may be asked
+    const handled = handler(item, collection, { entity, rolls, nowMinute, localItems: bag, target, chooseTarget, drinkPotion });   // PROVISIONING: a dish's resists drink as potions   // MEND-AIM: the pack, the aim, and whether it may be asked
     if (handled) return questItem ? { ...handled, questItem: true } : handled;
   }
 
@@ -361,7 +362,9 @@ export function useItem(item, collection, {
     // DrinkPotion's own guard is `PotionRecipeKey == 0` (:906), so a
     // bottle naming no recipe is drunk and does nothing, exactly as
     // here.
-    const drank = drinkPotion ? drinkPotion(item.potionRecipeKey ?? 0, Number.isInteger(item.potent) ? item.potent : 0) : null;   // PROF12: a Potent potion's share
+    const drank = !drinkPotion ? null : isProvPotion(item)   // BUNNYFALL PROVISIONING: every trait as its classic potion, at the make's strength
+      ? provPotionParts(item).map((p) => drinkPotion(p.key, item.prov.p)).filter(Boolean).join(', ') || null
+      : drinkPotion(item.potionRecipeKey ?? 0, Number.isInteger(item.potent) ? item.potent : 0);   // PROF12: a Potent potion's share
     spirePotionDrunk(item);   // EG-FULL: a restoring one counted against the hall's two
     out = drank ? { kind: 'potion', potion: drank } : { kind: 'potion', pending: true };
   }

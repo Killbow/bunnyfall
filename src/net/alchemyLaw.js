@@ -154,6 +154,13 @@ const chanceOwn = (s) => CHANCE_FIELDS.some((f) => (s?.[f] ?? 1) !== 1);
  */
 export function potentEffect(effect, pct, casterLevel = 1) {
   if (!effect || !potentOk(pct)) return effect;
+  return scaleEffect(effect, pct, casterLevel);
+}
+/** BUNNYFALL PROVISIONING: an effect at any strength (-90% to +200%) - Potent's rule (potentEffect) without its two fixed
+ *  shares: a crafted potion's and a dish's resists grow with the maker's rank. */
+export function scaleEffect(effect, pct, casterLevel = 1) {
+  if (!effect || !Number.isFinite(pct) || pct === 0) return effect;
+  pct = Math.max(-90, Math.min(200, Math.round(pct)));
   const out = { ...effect };
   if (!magnitudeDefault(out)) {
     for (const f of POTENT_FIELDS) if (Number.isFinite(out[f])) out[f] = Math.round((out[f] * (100 + pct)) / 100);

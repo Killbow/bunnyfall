@@ -184,7 +184,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** MASTER-ART: whether today's Master's work is made (null unknown - an older service), and the last one's answer */
     master: /** @type {{ made: boolean|null, last: any }} */ ({ made: null, last: null }),
     focus: /** @type {{ crafts: string[], cost: number }} */ ({ crafts: [], cost: 100 }),
-    craftwork: /** @type {string[]} */ ([]),   // BUNNYFALL CRAFTWORK: the skills gone into it   // BUNNYFALL CRAFTING REWORK
+    craftwork: /** @type {string[]} */ ([]),   // BUNNYFALL CRAFTWORK: the skills gone into it
+    prov: /** @type {null|{ learnt: Set<string>, book: any[] }} */ (null),   // BUNNYFALL PROVISIONING   // BUNNYFALL CRAFTING REWORK
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -467,6 +468,52 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus, and when a drop is free again (seconds, or null). */
     focus() { return { crafts: [...state.focus.crafts], cost: state.focus.cost }; },
     isFocus(profession) { return state.focus.crafts.includes(trackOf(profession)); },
+    // ─── BUNNYFALL PROVISIONING (docs/PROVISIONING.md) ───
+    /** The character's Provisioning as the service last said it: `{ learnt: Set, book: [] }`, or null before it is read. */
+    provState() { return state.prov; },
+    /** Read the learnt traits and the book again. */
+    async provRefresh() {
+      const c = character();
+      if (!c || !account()) return { ok: false, error: 'no-session' };
+      const origin = slot();
+      const r = await ask(() => door.provState(c), origin);
+      if (origin !== slot()) return { ...r, elsewhere: true };
+      if (r?.ok) { state.prov = { learnt: new Set(r.data?.learnt ?? []), book: r.data?.book ?? [] }; applyTrack(r.data?.track); }
+      return r;
+    },
+    /** A MAKE at the pot or cauldron: `{ kind, keys, base?, simmer?, seat? }` - what is short moved into the Stores first
+     *  from the bag and pack; `mint(data)` gives what was made. Safe to repeat: the service answers a repeat. */
+    async provMake(body, mint) {
+      if (_craftBusy) return { ok: false, error: 'prof-busy' };
+      const c = character();
+      if (!c || !account()) return { ok: false, error: 'no-session' };
+      _craftBusy = (async () => {
+        const inputs = [...(body?.keys ?? []), ...(body?.base ? [body.base] : [])].map((key) => ({ key, n: 1 }));
+        const ready = await book.ensureInStores(inputs, { work: true });
+        if (!ready.ok) return { ok: false, error: ready.error ?? 'materials-short', material: ready.material };
+        const origin = slot();
+        const r = await ask(() => door.provMake(c, body, rid()), origin);
+        if (origin !== slot()) return { ...r, elsewhere: true };
+        if (r?.ok) {
+          for (const s of r.data?.stores ?? []) applyStore(s);
+          applyTrack(r.data?.track);
+          await book.provRefresh().catch(() => null);
+          try { mint?.({ ...r.data, potion: 'provision' }); } catch { /* the pack's add is the host's */ }
+        } else shutBy(r);
+        return r;
+      })().finally(() => { _craftBusy = null; });
+      return _craftBusy;
+    },
+    /** PREPARING: Flour of Grain, Cheese of Milk, `count` at once, in the Stores. */
+    async provPrepare(prep, count = 1) {
+      const c = character();
+      if (!c || !account()) return { ok: false, error: 'no-session' };
+      const origin = slot();
+      const r = await ask(() => door.provPrepare(c, prep, count, rid()), origin);
+      if (origin !== slot()) return { ...r, elsewhere: true };
+      if (r?.ok) for (const s of r.data?.stores ?? []) applyStore(s); else shutBy(r);
+      return r;
+    },
     /** CRAFTWORK: whether a skill has gone into it. */
     isCraftwork(profession) { return state.craftwork.includes(trackOf(profession)); },
     /** CRAFTWORK: take a Focus craft at rank 100 into it - rank and XP back to 0, perks kept. Answers the service's answer. */

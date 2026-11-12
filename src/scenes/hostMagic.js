@@ -58,7 +58,7 @@ import { applySpell, spellReflectedText, hasActiveEffect, looksBlending, isSoulT
 import { spellToFoeOwner } from '../systems/enchantments.js';   // RPT1026-FIGHTS (TRAP-TO-OWNER): the session's door to a foe another player runs
 import { localizedText } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { potionBundle } from '../systems/potions.js';   // U44: DrinkPotion's bundle
-import { potentEffect } from '../net/alchemyLaw.js';   // PROF12: a Potent potion's magnitudes
+import { potentEffect, potentOk, scaleEffect } from '../net/alchemyLaw.js';   // PROF12: a Potent potion's magnitudes
 import { SPELL_CAST_SOUND } from '../systems/enemySpells.js';
 import { tallySkill } from '../systems/skills.js';
 import { morphSelf } from '../systems/lycanthropy.js';   // V2a: the MorphSelf arm the ONE cast engine wires
@@ -1770,7 +1770,7 @@ export function createPlayerMagic({
       if (!plain) return null;
       // PROF12: a Potent potion (an alchemy station's brew) lays its share on every magnitude (alchemyLaw potentEffect) -
       // AUDIT PROF12 A3: on its duration (and chance) where its magnitude is DFU's default, at the drinker's level
-      const bundle = potent ? { ...plain, effects: plain.effects.map((e) => potentEffect(e, potent, effectiveLevel(playerEntity))) } : plain;
+      const bundle = potent ? { ...plain, effects: plain.effects.map((e) => (potentOk(potent) ? potentEffect : scaleEffect)(e, potent, effectiveLevel(playerEntity))) } : plain;   // PROVISIONING: a crafted potion's own strength
       applySpellToPlayer(bundle, effectiveLevel(playerEntity), null,
         { bypassSavingThrows: true, bypassChance: true });
       audio.playOneShotId(SPELL_CAST_SOUND[bundle.element] ?? SPELL_CAST_SOUND[4], 1);   // AUDIT 58: the same ID door

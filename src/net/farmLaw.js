@@ -25,7 +25,7 @@ export const FARM_DAYS_MAX = 7;
 
 /** The crops: what a day yields with nobody there, and what it yields - by the day, so the Stores get a spread. */
 export const CROPS = Object.freeze([
-  Object.freeze({ key: 'food', name: 'Food', base: 6, note: 'Apples, eggs, meat and mushrooms' }),
+  Object.freeze({ key: 'food', name: 'Food', base: 6, note: 'Apples, eggs, meat, mushrooms, grain and milk' }),
   Object.freeze({ key: 'herbs', name: 'Herbs', base: 3, note: 'The common herbs of its land' }),
   Object.freeze({ key: 'hides', name: 'Hides and wool', base: 2, note: 'Wool bolts and cured leather' }),
   Object.freeze({ key: 'timber', name: 'Timber', base: 4, note: 'Pine and oak logs' }),
@@ -33,7 +33,7 @@ export const CROPS = Object.freeze([
 export const CROP_KEYS = Object.freeze(CROPS.map((c) => c.key));
 export const cropOf = (k) => CROPS.find((c) => c.key === k) ?? null;
 
-const FOODS = Object.freeze(['food:apple', 'food:egg', 'food:meat', 'food:mushroom']);
+const FOODS = Object.freeze(['food:apple', 'food:egg', 'food:meat', 'food:mushroom', 'food:grain', 'food:milk']);   // BUNNYFALL PROVISIONING: and the pantry's grain and milk
 const HIDES = Object.freeze(['cloth:wool', 'leather:cured']);
 const WOODS = Object.freeze(['log:pine', 'log:oak']);
 

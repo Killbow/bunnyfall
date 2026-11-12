@@ -1358,7 +1358,7 @@ export function provenanceId(rand) {
 // ─── BUNNYFALL CRAFTING REWORK: THE FOCUS ────────────────────────────
 
 /** The five crafting tracks - the crafts a Focus is chosen from. */
-const CRAFT_TRACKS = PROFESSIONS.filter((p) => p.kind === 'crafting').map((p) => p.id);
+const CRAFT_TRACKS = PROFESSIONS.filter((p) => p.kind === 'crafting' && p.id !== 'provisioning').map((p) => p.id);   // BUNNYFALL PROVISIONING: its own system, out of the Focus
 /** A character's Focus as its rows say it: the crafts pledged, and what dropping one costs. */
 const focusFrom = (/** @type {any[]} */ rows) => ({ crafts: (rows ?? []).map((r) => r.profession), cost: FOCUS_CHANGE_MARKS });
 export async function focusOf(db, player, character) {

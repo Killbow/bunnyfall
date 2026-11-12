@@ -21,6 +21,7 @@
 // crafted piece the market mints again (NOT YET - Professions-Arc 37).
 // ═══════════════════════════════════════════════════════════════════
 import { createPotion } from './loot/loot.js';
+import { provItems, provText } from './provItems.js';   // BUNNYFALL PROVISIONING
 import { potionById, potentOk, potentLasts, potentAble } from '../net/alchemyLaw.js';
 
 /** What the station says of a brew whose answer did not come (smithItems.js's kept words' shape). */
@@ -28,6 +29,7 @@ export const BREW_KEPT_TEXT = 'The cauldron bubbled, but no word came back. The 
 /** The potions a brew's answer makes (`{ potion, count, potent }`), each DFU's own potion - or none for an answer that
  *  names no potion. */
 export function brewItems(data) {
+  if (data?.prov) return provItems(data);   // BUNNYFALL PROVISIONING: the pot's and the cauldron's
   const p = potionById(data?.potion);
   if (!p) return [];
   const n = Number.isSafeInteger(data?.count) ? Math.max(1, Math.min(3, data.count)) : 1;
@@ -47,6 +49,7 @@ export function brewItems(data) {
 /** What a brew says: "You brewed 2 Potent Potions of Healing (+25% magnitude)" - AUDIT PROF12 A3: a potion whose
  *  magnitude is DFU's default "(lasts 25% longer)" (alchemyLaw potentLasts). */
 export function brewedText(data) {
+  if (data?.prov) return provText(data);
   const p = potionById(data?.potion);
   if (!p) return 'You brewed nothing.';
   const n = Number.isSafeInteger(data?.count) ? data.count : 1;

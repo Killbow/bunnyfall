@@ -1,6 +1,18 @@
 # Provisioning: the pot and the cauldron
 
-Status: design, waiting on the owner's approval. Nothing here is built yet.
+Status: built (2026-11-12). Law `src/net/provision/provisionLaw.js`; service `server-account/src/provisioning.js`
+(routes `/v1/prov/state`, `/v1/prov/make`, `/v1/prov/prepare`, migration 0204); page `src/ui/provisioning/provPage.js`;
+items `src/systems/provItems.js`; The Simmer `src/systems/simmerAct.js`.
+
+As built, where it differs from the design below:
+- Strength grows with rank: a dish's stat trait is +4 at rank 0 and +15 at 100 (The Simmer up to a quarter more); a
+  crafted potion is the shop's at rank 0 and 60% stronger at 100, the base adding up to 30% and The Simmer 25%.
+- The four classic dishes and twenty classic potions are listed in the book and made the classic way on the Stations
+  page (their recipes have more ingredients than a pot holds).
+- Spoilage is the survival rules' own food rot, as every dish already had; no second clock.
+- A feast is a four-ingredient pot made from rank 75 in a town the character's Company holds. No daily limit yet.
+- The Grocers' pantry (Grain, Milk, Honey, Salt) is bought from the page and delivered to the Stores.
+- Butchery gives Boar, Bear and Crab Meat; Company farms grow Grain and Milk among their food.
 
 Provisioning leaves the crafting system (docs/CRAFTING.md) and becomes its own system: its own line on the Crafting rail,
 its own rules, its own minigame. The only things kept are the skill (Provisioning, rank 1 to 100) and every character's

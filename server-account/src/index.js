@@ -350,6 +350,7 @@ import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrik
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
 import { profState, profPixels, harvestNode, chooseSpec, withdrawStores, depositStores, smeltAtForge, craftAtAnvil, temperPiece, buyStock, listWrits, deliverWrit, makeAtBench, chooseFocus, enterCraftwork } from './professions.js';   // BAG1: a deposit   // PROF1: the professions; PROF2: the forge; PROF3: the anvil and the smith's stock
+import { provState, provMake, provPrepare } from './provisioning.js';   // BUNNYFALL PROVISIONING
 import { masterWork } from './masterWork.js';   // MASTER-ART: a Master's work (bible/06-Systems/Professions-Arc.md section 57)
 import { brewAtStation, disenchantPiece, reforgeWithEssence } from './alchemy.js';   // PROF12: Alchemy's brew, Enchanting's disenchant
 import { salvagePieces } from './salvage.js';   // BUNNYFALL: salvage anything
@@ -2076,6 +2077,9 @@ const service = {
           '/v1/prof/make': () => makeAtBench(ctx, who.player, env, body),   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
           '/v1/prof/focus': () => chooseFocus(ctx, who.player, env, body),   // BUNNYFALL CRAFTING REWORK: the Focus
           '/v1/prof/craftwork': () => enterCraftwork(ctx, who.player, env, body),   // BUNNYFALL CRAFTWORK
+          '/v1/prov/state': () => provState(ctx, who.player, env, body),   // BUNNYFALL PROVISIONING
+          '/v1/prov/make': () => provMake(ctx, who.player, env, body),
+          '/v1/prov/prepare': () => provPrepare(ctx, who.player, env, body),
           '/v1/prof/brew': () => brewAtStation(ctx, who.player, env, body),   // PROF12: the alchemy station's brew
           '/v1/prof/disenchant': () => disenchantPiece({ ...ctx, bucket: env.SAVES }, who.player, env, body),   // PROF12: an enchanting station's disenchant; AUDIT PROF-541 B2: a realm character's record, in R2
           '/v1/prof/stock': () => buyStock(ctx, who.player, env, body),   // PROF3: the smith's stock; PROF4: the furnisher's

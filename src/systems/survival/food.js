@@ -67,6 +67,7 @@ export const foodOf = (item) => (item ? FOOD[item.templateIndex] ?? MORE_FOOD.ge
 export const foodStage = (item) => Math.min(FOOD_STAGE.Putrid, Math.max(0, item?.foodStage ?? 0));
 /** The name with its stage: "Soft Apple", "Mouldy Bread", "Putrid Meat". */
 export function foodName(item) {
+  if (item?.prov && typeof item.name === 'string') return item.name;   // BUNNYFALL PROVISIONING: a pot's dish is called what it is
   const f = foodOf(item);
   if (!f) return item?.name ?? '';
   const s = foodStage(item);

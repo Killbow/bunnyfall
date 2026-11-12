@@ -26,7 +26,7 @@
 // writes; nothing here asks the network.
 // ═══════════════════════════════════════════════════════════════════
 import { BAG_KG_LIMIT, BAG_WORDS, CARRIED_MAX, hasBag, isBagItem, depositOrderOk } from '../net/bagLaw.js';
-import { PLANT_GROUP_TEMPLATES, FOOD_KEYS, MINED_KEYS, LOOSE_ONLY_KEYS, withdrawable } from '../net/professionLaw.js';   // CLOTH-GEMS: and the loose door's graded gems
+import { PLANT_GROUP_TEMPLATES, FOOD_KEYS, PANTRY_KEYS, MINED_KEYS, LOOSE_ONLY_KEYS, withdrawable } from '../net/professionLaw.js';   // CLOTH-GEMS: and the loose door's graded gems
 import { material } from '../net/nodeLaw.js';
 import { mintMaterialItem, withdrawIntoPack } from './professions/profItems.js';
 import { addItem, totalWeight, effectiveUnitWeightInKg, canHoldAmount, carriedWeight, isSummoned, isEnchanted } from './inventory.js';
@@ -53,7 +53,7 @@ export function bagItemsOf(entity) {
  *  GRADED_GEMS), so a Flawless Ruby looted into the pack IS one at a jeweller's bench, put in by the loose door. */
 export function materialKeys() {
   const herbs = Object.entries(PLANT_GROUP_TEMPLATES).flatMap(([g, list]) => list.map((t) => `${g}:${t}`));
-  return [...herbs, ...FOOD_KEYS, ...MINED_KEYS, ...LOOSE_ONLY_KEYS].filter((k) => !!material(k));
+  return [...herbs, ...FOOD_KEYS, ...PANTRY_KEYS, ...MINED_KEYS, ...LOOSE_ONLY_KEYS].filter((k) => !!material(k));
 }
 
 /** @type {Map<string, string>|null} `group|templateIndex` -> the material key. */

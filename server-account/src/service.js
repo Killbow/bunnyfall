@@ -632,7 +632,7 @@ export const ROUTES = new Set([
   // PROF1: the professions (professions.js) - a character's tracks, Stores and day, the witnessed pixels, a harvest,
   // a specialisation, a withdrawal to the pack, a region's Court writs and a delivery. Every one behind a session, a
   // registered account's alone, and PROFESSIONS_OPEN's.
-  '/v1/prof/state', '/v1/prof/pixels', '/v1/prof/harvest', '/v1/prof/spec', '/v1/prof/smelt', '/v1/prof/craft', '/v1/prof/make', '/v1/prof/focus', '/v1/prof/craftwork', '/v1/prof/stock', '/v1/stores/withdraw', '/v1/writs/list', '/v1/writs/deliver',
+  '/v1/prof/state', '/v1/prof/pixels', '/v1/prof/harvest', '/v1/prof/spec', '/v1/prof/smelt', '/v1/prof/craft', '/v1/prof/make', '/v1/prof/focus', '/v1/prof/craftwork', '/v1/prov/state', '/v1/prov/make', '/v1/prov/prepare', '/v1/prof/stock', '/v1/stores/withdraw', '/v1/writs/list', '/v1/writs/deliver',
   // PROF12: the alchemy station's brew and an enchanting station's disenchant (alchemy.js) - the same doors
   '/v1/prof/brew', '/v1/prof/disenchant',
   // CRAFT4: a temper (professions.js) and an Enchanter's Reforge with Essence (alchemy.js) - the same doors

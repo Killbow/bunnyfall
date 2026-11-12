@@ -45,9 +45,9 @@
 // keeping - imported, never typed again), and each a FOOD by C&C's own
 // law (survival/food.js registerFoods): eaten, spoiled and named by it.
 // ═══════════════════════════════════════════════════════════════════
-import { registerCustomTemplates, registerKitDye, registerCustomItemsForGroup } from '../item/itemTemplates.js';
+import { registerCustomTemplates, registerKitDye, registerCustomItemsForGroup, templateByIndex } from '../item/itemTemplates.js';
 import { DYE_COLORS } from '../../characters/dyes.js';
-import { ORES, INGOTS, STONES, TIER_VALUES, WOOD_TEMPLATES, HIDE_TEMPLATES, SKINNING_KNIFE, SIEGE_GEM, MASONRY_TEMPLATES, ICON_LODESTONE, ESSENCE_TEMPLATES } from '../../net/professionLaw.js';   // PROF11: Mortar; PROF12: Arcane Essence
+import { ORES, INGOTS, STONES, TIER_VALUES, WOOD_TEMPLATES, HIDE_TEMPLATES, SKINNING_KNIFE, SIEGE_GEM, MASONRY_TEMPLATES, ICON_LODESTONE, ESSENCE_TEMPLATES, PANTRY } from '../../net/professionLaw.js';   // PROF11: Mortar; PROF12: Arcane Essence
 import { REPAIR_KIT_TEMPLATE, STONE_DECOR, DISHES } from '../../net/recipeLaw.js';   // PROF11: the Sculptor's four; PROF9: the dishes
 import { SURVIVAL_TEMPLATES } from '../survival/items.js';   // PROF9: C&C's food rows the dishes stand on
 import { TEMPLATE as CC, FOOD, registerFoods } from '../survival/food.js';
@@ -234,3 +234,15 @@ registerFoods(DISH_FOOD_ROWS);
 /** A named mark's payday and a Trophy Hunter's clean pelt: one plaque template, its beast on the item (net/trophyLaw.js) -
  *  registered here, so the save and the item law know it in any scene, as the rows above. */
 registerCustomTemplates([TROPHY_ROW]);
+
+// ─── BUNNYFALL PROVISIONING: THE PANTRY (705-713) ───────────────────
+// The new foods (net/professionLaw.js PANTRY), each on the picture of the template it names: Bread's, a Waterskin's,
+// Nectar's, Rations', Raw Meat's, Raw Fish's. Food, stacking, light.
+const pantryIcon = (t) => { const r = templateByIndex(t); return [r?.worldTextureArchive ?? 211, r?.worldTextureRecord ?? 31]; };
+export const PANTRY_TEMPLATE_ROWS = Object.freeze(PANTRY.map((m) => { const [a, r] = pantryIcon(m.icon); return Object.freeze({
+  index: m.templateIndex, name: m.name, baseWeight: 0.25, hitPoints: 60, capacityOrTarget: 0, basePrice: m.value * 4,
+  enchantmentPoints: 0, rarity: 5, variants: 0, drawOrderOrEffect: 0, isBluntWeapon: false, isLiquid: false,
+  isOneHanded: false, isIngredient: false, worldTextureArchive: a, worldTextureRecord: r,
+  playerTextureArchive: 0, playerTextureRecord: 0, stackable: true,
+}); }));
+registerCustomTemplates(PANTRY_TEMPLATE_ROWS);

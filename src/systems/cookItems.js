@@ -37,6 +37,9 @@ import {
 } from '../net/recipeLaw.js';
 import { setItemFields, mintCondition, registerItemUseHandler } from './item/itemTemplates.js';
 import { eatFood } from './survival/items.js';
+import { isProvDish, provDishDef, provDishResists } from './provItems.js';   // BUNNYFALL PROVISIONING
+import { survivalOf } from './survival/needs.js';
+import { DRINK_RELIEF } from './survival/food.js';
 import { foodName } from './survival/food.js';
 import { survivalOn, survivalRules } from './survival/switch.js';
 import { SURVIVAL_RULES } from './survival/difficulty.js';
@@ -197,9 +200,10 @@ export function feastSharedLine(names) {
  * own), simply eaten where it is off; its effect laid on; a feast shared with the party at the table. useItem's shape.
  * @param {any} item @param {any[]} collection @param {{ entity?: any, nowMinute?: number, rolls?: () => number }} [opts]
  */
-export function dishUse(item, collection, { entity = null, nowMinute = 0, rolls = Math.random } = {}) {
-  if (!isDish(item)) return null;
-  const d = dishOf(item.recipe);
+export function dishUse(item, collection, { entity = null, nowMinute = 0, rolls = Math.random, drinkPotion = null } = {}) {
+  const prov = isProvDish(item);   // BUNNYFALL PROVISIONING: a pot's dish, its effect its own
+  if (!prov && !isDish(item)) return null;
+  const d = prov ? provDishDef(item) : dishOf(item.recipe);
   if (!d) return null;
   let out;
   if (survivalOn()) {
@@ -210,16 +214,27 @@ export function dishUse(item, collection, { entity = null, nowMinute = 0, rolls 
     if (i >= 0) collection.splice(i, 1);
     out = { kind: 'ate', text: `You eat the ${foodName(item)}.` };
   }
-  const hand = handOfDish(item);
-  const laid = feedEffect(entity, d, hand, rolls);
+  const hand = prov ? null : handOfDish(item);
+  // a pot's dish lays on the dishes' frame only what it has: no stats and no Restful is no bundle (never the Tart's by default)
+  const laid = prov && !d.effect.stats && !d.effect.stamina ? [] : feedEffect(entity, d, hand, rolls);
+  if (prov) {
+    // Restful beside stats: its own bundle; Warming and Cooling drink as their potions at the dish's strength; Refreshing
+    // quenches thirst (survival/needs.js), a drink twice over
+    if (d.effect.stats && d.effect.stamina) feedEffect(entity, { ...d, name: `${d.name} (rest)`, effect: { stamina: d.effect.stamina, minutes: d.effect.minutes } }, null, rolls);
+    for (const p of provDishResists(item)) drinkPotion?.(p.key, item.prov.r);
+    if (item.prov.t.includes('refreshing') && entity) {
+      const s = survivalOf(entity, nowMinute);
+      if (s && Number.isFinite(s.thirst)) s.thirst = Math.max(0, s.thirst - DRINK_RELIEF * (item.prov.drink ? 3 : 2));
+    }
+  }
   const lines = [out.text];
-  if (entity && !laid.length) lines.push(dishStandsLine(d));   // AUDIT PROF-541 R2-K10: eaten, and nothing laid on - said (the mates still get a feast)
+  if (entity && !laid.length && !prov) lines.push(dishStandsLine(d));   // AUDIT PROF-541 R2-K10: eaten, and nothing laid on - said (the mates still get a feast)
   if (d.effect.party === true) {
     const sp = dishSpell(d, hand);
     const line = feastSharedLine(sp && _share ? _share(sp, d.name) : []);
     if (line) lines.push(line);
   }
-  return { ...out, text: lines.join(' '), dish: d.id };
+  return { ...out, text: lines.join(' '), dish: prov ? 'prov' : d.id };
 }
 
 /** Every host's install (scenes/shared.js): the dishes' use on the item-use door - offline as online, a dish is the

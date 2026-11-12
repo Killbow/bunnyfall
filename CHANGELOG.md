@@ -5,6 +5,10 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Provisioning is its own system now, on its own line of the Crafting tab. Put ingredients in a pot (at a fire) or a cauldron with a base (at an alchemy table): every ingredient has hidden traits, and what you make keeps every trait two of them share. You learn traits as you make things, and your recipe book keeps every combination you find. The Simmer is its minigame: hold the heat inside the band to make it stronger.
+- Dishes and potions grow stronger with your Provisioning rank: dishes up to +15 to an attribute, and your potions start as good as the shops' and end far better. Two-trait potions and trait dishes can only be made by players.
+- New foods: Grain, Flour, Milk, Cheese, Honey and Salt (the Grocers sell some, Company farms grow Grain and Milk), and Boar, Bear and Crab Meat from butchery. Drinks too: put a water in the pot for Ale, Mead, Cider or Tea.
+- Provisioning is no longer a Focus choice. If you had pledged it, that place is free again. Your rank and experience are kept.
 - Craftwork: once a Focus craft (Smithing, Carpentry or Outfitting) reaches rank 100, you can take it into Craftwork from the Focus bar. It asks you first. Your rank goes back to 0 and you keep your perks; from then on that craft earns half the experience, and the materials' effects on what you make reach up to 40% instead of 20%. Once per craft.
 - Mail and Brigandine armour in every metal can now be crafted and salvaged, from Iron to Daedric, including pieces you found.
 - No more first-time craft bonuses. Their experience is now spread over every craft, so crafting levels go up much faster: a crafting skill reaches Master in about the same number of crafts as before.
