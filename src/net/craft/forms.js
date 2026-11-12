@@ -217,8 +217,16 @@ export function buildSuitability(/** @type {Form} */ form, /** @type {Record<str
     sum += slot.share * slotMix(form, picks, slot).reduce((a, [m, part]) => a + part * suitabilityOf(m, form.weights), 0);   // HEARTWOOD: blended in
     share += slot.share;
   }
-  return share > 0 ? sum / share : null;
+  if (share <= 0) return null;
+  // BUNNYFALL: the four best metals for the forge lift a build toward Masterwork (TOP_METAL_LIFT)
+  const main = form.slots.reduce((a, slot) => ((slot.share ?? 0) > (a?.share ?? 0) ? slot : a), null);   // the piece's own metal, not a fitting
+  const lift = main && TOP_METALS.has(picks[main.id]) ? TOP_METAL_LIFT : 0;
+  return Math.min(1, sum / share + lift);
 }
+/** BUNNYFALL: the four metals of the best Potential on average (Adamantium, Daedric, Orichalcum, Dwarven) - a piece of
+ *  one of them reaches Masterwork's Potential with any fair secondary pick, the rest of the climb the crafter's. */
+export const TOP_METALS = Object.freeze(new Set(['ingot:adamantium', 'ingot:daedric', 'ingot:orichalcum', 'ingot:dwarven']));
+export const TOP_METAL_LIFT = 0.09;
 
 /**
  * POTENTIAL: the quality ceiling a suitability allows, as the five quality names' indexes (0 Crude to 4 Masterwork,
