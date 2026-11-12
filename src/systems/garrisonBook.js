@@ -27,17 +27,19 @@ export function createGarrisonBook({ io, character, sectorOf = () => null, nowMs
   let asking = null;
   let version = 0;
   let whose = '';
+  /** Whether the service has answered at least once (`mine` null after it: the character keeps no garrison). */
+  let loaded = false;
 
   function refresh(force = false) {
     const t = nowMs();
     const ch = character?.() ?? null;
-    if (ch !== whose) { whose = ch ?? ''; force = true; }
+    if (ch !== whose) { whose = ch ?? ''; force = true; loaded = false; mine = null; }
     if (asking) return asking;
     if (!force && t < nextAt) return Promise.resolve(null);
     const door = io?.();
     if (!door) { nextAt = t + GARRISON_RETRY_MS; return Promise.resolve(null); }
     asking = garrisonsRead(door, ch).then((r) => {
-      if (r?.ok && Array.isArray(r.data?.all)) { all = r.data.all; mine = r.data.mine ?? null; version++; nextAt = nowMs() + GARRISON_REFRESH_MS; }
+      if (r?.ok && Array.isArray(r.data?.all)) { all = r.data.all; mine = r.data.mine ?? null; loaded = true; version++; nextAt = nowMs() + GARRISON_REFRESH_MS; }
       else nextAt = nowMs() + GARRISON_RETRY_MS;
       return r;
     }, () => { nextAt = nowMs() + GARRISON_RETRY_MS; return null; }).finally(() => { asking = null; });
@@ -67,5 +69,6 @@ export function createGarrisonBook({ io, character, sectorOf = () => null, nowMs
       return act(garrisonOrders, { which, routes: orders.routes, march: orders.march, ...(Number.isSafeInteger(sector) ? { sector } : {}) });
     },
     sig: () => `${version}|${whose}`,
+    loaded: () => loaded,
   };
 }
