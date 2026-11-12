@@ -1634,7 +1634,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const before = B.sig();
     Promise.resolve(B.refresh()).then(() => { if (B.sig() !== before) { ui++; if (open) repaint(); } }, () => {});
     const mine = B.mine();
-    if (!mine) return [el('div', 'dfsocial-empty', 'Reading the garrison...')];
+    if (!mine) return [el('div', 'dfsocial-empty', B.loaded?.() ? 'This character keeps no garrison (join a Company with a hall first).' : 'Reading the garrison...')];
     const out = [];
     const d = guildUi.draft;
     const townName = (mapId) => territory?.()?.townName?.(mapId) ?? 'the town';
