@@ -25734,7 +25734,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       give: (records, gold) => { for (const it of records) addItem(playerEntity.items ??= [], it); if (gold) addGoldPieces(playerEntity, gold); },
       feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
       ...m.poolFoes(exteriorFoes),
-      act: realmSession ? (path, body, o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), read: !!o?.read,
+      act: realmSession ? (path, body, o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), read: !!o?.read, needsAnswer: true,
         call: (at) => accountCall(realmIoNow(), path, { ...body, id: at.id, lease: at.lease, seq: at.seq }) }) : null,
       character: () => params.get('realm') ?? null,
       store: { get: (k) => { try { return JSON.parse(appStorage().getItem(k) ?? 'null'); } catch { return null; } }, set: (k, v) => { try { appStorage().setItem(k, JSON.stringify(v)); } catch { /* full */ } } },
