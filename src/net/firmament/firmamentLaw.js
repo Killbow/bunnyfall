@@ -31,6 +31,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { FIRM_NODES, FIRM_ADJ, START_KEYS, firmNode } from './firmamentTree.js';
+import { CRAFT_PACE, trackOf } from '../professionLaw.js';   // BUNNYFALL: the crafting tracks' pace
 
 // ─── THE PURSES ──────────────────────────────────────────────────────
 
@@ -446,7 +447,11 @@ export function overCap(raw) {
 /** A gathering profession's yield and XP, and a craft's XP, as the account service applies them: the percent, and the
  *  quantity a harvest's `qty` becomes - whole units, the fraction a chance (`roll` the service's die in [0, 1)). */
 export const yieldPct = (c, profession) => c[`yield.${profession}`] ?? 0;
-export const xpPct = (c, profession) => c[`xp.${profession}`] ?? 0;
+export const xpPct = (c, profession) => {
+  const base = c[`xp.${profession}`] ?? 0;
+  const pace = /** @type {Record<string, number>} */ (CRAFT_PACE)[trackOf(profession)] ?? 1;   // BUNNYFALL: the first-time bonuses spread over every craft
+  return pace === 1 ? base : Math.round((100 + base) * pace - 100);
+};
 /** `qty` with `pct` percent more (less, below zero), never under 1 where it was at least 1. */
 export function scaleQty(qty, pct, roll) {
   const q = Math.max(0, Math.trunc(Number(qty) || 0));

@@ -13,6 +13,8 @@ import { DYE_NAMES } from '../../characters/dyes.js';
 import { getPref } from '../../systems/uiPrefs.js';
 import { materialsText } from '../salvageMaterials.js';
 import { mountAct } from './craftActs.js';
+import { scaleXp, xpPct } from '../../net/firmament/firmamentLaw.js';   // the XP as the service pays it: the pace and the stars
+import { firmamentStats } from '../../systems/firmamentLive.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
@@ -64,8 +66,9 @@ const CSS = `
 .cw-primary { border-color: #d9b45a; background: rgba(217,180,90,0.18); font-weight: 600; }
 .cw-chip { padding: 3px 10px; font-size: 13px; }
 .cw-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.cw-body { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.4fr); gap: 14px; align-items: start; }
-@media (max-width: 760px) { .cw-body { grid-template-columns: 1fr; } }
+.cw-body { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+.cw-body > .cw-list { flex: 1 1 200px; min-width: 0; }
+.cw-body > .cw-card { flex: 999 1 460px; min-width: 0; }
 .cw-list { display: flex; flex-direction: column; gap: 6px; max-height: 60vh; overflow-y: auto; padding-right: 4px; }
 .cw-row { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; background: rgba(10,12,17,0.45); border: 2px solid #3d3a30; color: #e8e2d0; padding: 8px 12px; font: inherit; cursor: pointer; }
 .cw-row:hover { border-color: #7d7460; }
@@ -93,22 +96,23 @@ const CSS = `
 .cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
 .cw-stats th { text-align: left; color: #d9b45a; font-weight: 600; border-bottom: 1px solid #6b5228; padding: 3px 6px; }
 .cw-stats td { padding: 3px 6px; border-bottom: 1px solid rgba(107,82,40,.35); color: #e8e2d0; }
-.cw-card.cw-ws { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-areas: "piece mats" "sum sum"; gap: 12px 16px; background: #1c150e; border: 2px solid #6b5228; box-shadow: inset 0 0 0 1px #2a1f14; }
-.cw-ws-piece { grid-area: piece; display: flex; flex-direction: column; gap: 8px; background: #e6d6b0; color: #2b2116; border: 2px solid #8a6a32; box-shadow: inset 0 0 0 3px #e6d6b0, inset 0 0 0 4px #a8844a; padding: 14px 16px; min-width: 0; }
+.cw-card.cw-ws { display: flex; flex-flow: row wrap; align-items: flex-start; gap: 12px 16px; background: #1c150e; border: 2px solid #6b5228; box-shadow: inset 0 0 0 1px #2a1f14; }
+.cw-ws-piece { flex: 3 1 300px; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 8px; background: #e6d6b0; color: #2b2116; border: 2px solid #8a6a32; box-shadow: inset 0 0 0 3px #e6d6b0, inset 0 0 0 4px #a8844a; padding: 14px 16px; min-width: 0; }
 .cw-ws-piece h3 { color: #6a4e26; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
-.cw-ws-piece .cw-make { color: #2b2116; font-size: 21px; }
+.cw-ws-piece .cw-make { color: #2b2116; font-size: 1.2em; line-height: 1.2; }
+.cw-ws-piece .cw-stats { display: block; overflow-x: auto; }
 .cw-ws-piece .cw-note, .cw-ws-piece .cw-label { color: #4a3a26; }
 .cw-ws-piece .cw-stats th { color: #6a4e26; border-bottom-color: #a8844a; }
 .cw-ws-piece .cw-stats td { color: #2b2116; border-bottom-color: rgba(168,132,74,.4); }
 .cw-ws-piece .cw-look { background: rgba(60,40,20,.1); border-color: #a8844a; color: #4a3a26; }
 .cw-ws-piece .cw-look.cw-on { border-color: #6a4e26; background: rgba(106,78,38,.18); color: #2b2116; }
 .cw-ws-piece .cw-act { background: #1c150e; padding: 8px; border: 1px solid #6b5228; color: #e8e2d0; }
-.cw-ws-mats { grid-area: mats; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cw-ws-mats { flex: 2 1 220px; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .cw-ws-title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #d9b45a; border-bottom: 1px solid #6b5228; padding-bottom: 3px; }
-.cw-ws-sum { grid-area: sum; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
+.cw-ws-sum { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
 .cw-ws-sum .cw-actions { justify-content: flex-end; }
-@media (max-width: 900px) { .cw-card.cw-ws { grid-template-columns: 1fr; grid-template-areas: "piece" "mats" "sum"; } }
-.cw-ws-head { display: flex; align-items: center; gap: 14px; }
+.cw-ws-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.cw-ws-head > div:last-child { flex: 1 1 140px; min-width: 0; }
 .cw-ws-pic { width: 96px; height: 96px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #a8844a; background: rgba(60,40,20,.12); }
 .cw-ws-pic img { max-width: 88px; max-height: 88px; image-rendering: pixelated; }
 .cw-effects { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin: 2px 0 6px; }
@@ -735,7 +739,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     if (MOD_KINDS.includes(r.kind)) drawEffects(pStats, r, plan);
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
-  sum.append(h('p', 'cw-note', `+${craftValueXp(plan, inputs, rank, focus)} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
+  sum.append(h('p', 'cw-note', `+${scaleXp(craftValueXp(plan, inputs, rank, focus), xpPct(firmamentStats(), S.prof))} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
   if (st.s === 'locked') sum.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
   if (!purseOk) sum.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));

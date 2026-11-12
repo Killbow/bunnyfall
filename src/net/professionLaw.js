@@ -83,6 +83,15 @@ export const isGathering = (id) => BY_ID.get(trackOf(id))?.kind === 'gathering';
 
 // ─── RANKS, XP, TIERS (PROF0 3.2) ────────────────────────────────────
 
+/**
+ * BUNNYFALL CRAFTING REWORK: THE PACE - the first-time bonuses are gone (recipeLaw FIRST_MAKE_SHARE) and their XP is spread
+ * over every craft instead: each crafting track's XP is multiplied by its pace, so a level takes as many crafts as it did
+ * with the bonuses. Each is the multiplier that brings the track to Master in Smithing's 172 crafts at the Bench (Cooking
+ * for Provisioning), making the best piece its rank opens on its Focus - tools/craftPace.mjs. Gathering is untouched.
+ * Applied with the Firmament's own XP percent (firmament/firmamentLaw.js xpPct), so the service and every page agree.
+ */
+export const CRAFT_PACE = Object.freeze({ smithing: 5.74, outfitting: 8.25, building: 5.6, provisioning: 4.33 });
+
 /** A track runs 0 to 100. */
 export const PROF_RANK_MAX = 100;
 /** The rank names, each from the rank it starts at. */

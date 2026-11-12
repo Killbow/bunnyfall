@@ -88,6 +88,18 @@ export const PLATE = Object.freeze([
   product('rpauldron', 'Right Pauldron', 'plate', 106, 2, [[LEATHER, 1]]), product('gauntlets', 'Gauntlets', 'plate', 103, 2, [[LEATHER, 1]]),
   product('boots', 'Boots', 'plate', 108, 2, [[LEATHER, 1]]),
 ]);
+/** BUNNYFALL: Roleplay Realism Items' sets in every metal (rriItems.js) - its chain set (515-519) of a plate metal is Mail, its
+ *  light set (520-526) of a plate metal is Brigandine. Sized as their chain and leather counterparts, a Brigandine with its
+ *  leather backing. Crafted and salvaged by template and material, as every plate piece. */
+export const RRI_METAL = Object.freeze([
+  product('mail-hauberk', 'Mail Hauberk', 'plate', 515, 5), product('mail-chausses', 'Mail Chausses', 'plate', 516, 3),
+  product('mail-lspaulder', 'Mail Left Spaulder', 'plate', 517, 2), product('mail-rspaulder', 'Mail Right Spaulder', 'plate', 518, 2),
+  product('mail-sollerets', 'Mail Sollerets', 'plate', 519, 2),
+  product('brig-jerkin', 'Brigandine Jerkin', 'plate', 520, 4, [[LEATHER, 2]]), product('brig-cuisse', 'Brigandine Cuisse', 'plate', 521, 3, [[LEATHER, 1]]),
+  product('brig-helmet', 'Brigandine Helmet', 'plate', 522, 2, [[LEATHER, 1]]), product('brig-boots', 'Brigandine Boots', 'plate', 523, 2, [[LEATHER, 1]]),
+  product('brig-gloves', 'Brigandine Gloves', 'plate', 524, 1, [[LEATHER, 1]]), product('brig-lvambrace', 'Brigandine Left Vambrace', 'plate', 525, 1, [[LEATHER, 1]]),
+  product('brig-rvambrace', 'Brigandine Right Vambrace', 'plate', 526, 1, [[LEATHER, 1]]),
+]);
 /** The shields (DFU 109-112): the Buckler 3 and Cured Leather; Round, Kite and Tower 3, 4 and 5 and an Oak Plank. */
 export const SHIELDS = Object.freeze([
   product('buckler', 'Buckler', 'shield', 109, 3, [[LEATHER, 1]]), product('roundshield', 'Round Shield', 'shield', 110, 3, [[OAK, 1]]),
@@ -168,7 +180,7 @@ function recipeOf(p, metal) {
 /** EVERY RECIPE the anvil knows, in its window's order: the weapons, the plate, the shields at every metal; the chain
  *  at Steel; the tools at Iron; the kits at every metal. */
 export const SMITH_RECIPES = Object.freeze([
-  ...[...WEAPON_PRODUCTS, ...PLATE, ...SHIELDS].flatMap((p) => SMITH_INGOTS.map((metal) => recipeOf(p, metal))),
+  ...[...WEAPON_PRODUCTS, ...PLATE, ...RRI_METAL, ...SHIELDS].flatMap((p) => SMITH_INGOTS.map((metal) => recipeOf(p, metal))),
   ...CHAIN.map((p) => recipeOf(p, 'ingot:steel')),
   ...TOOLS.map((p) => recipeOf(p, 'ingot:iron')),
   ...KIT_INGOTS.map((metal) => recipeOf(KIT_PRODUCT, metal)),
@@ -835,7 +847,9 @@ export const FIRST_MAKE_FLOOR = 500;
 /** FIRST-BUDGET RETUNED: what one first-make pays on each crafting track - Smithing's 500, and each other track's the
  *  least share that brings it to Master in Smithing's 172 crafts (tools/craftPace.mjs firstShares, on this recipe set;
  *  a change to a track's recipes, its pool or its XP moves the derivation, and the law's test says by how much). */
-export const FIRST_MAKE_SHARE = Object.freeze({ smithing: 500, outfitting: 511, building: 1823, provisioning: 3155 });
+// BUNNYFALL CRAFTING REWORK: NO FIRST-TIME BONUSES - every first-make pays nothing; their XP is in each craft instead
+// (professionLaw.js CRAFT_PACE), so a track still reaches Master in about Smithing's 172 crafts.
+export const FIRST_MAKE_SHARE = Object.freeze({ smithing: 0, outfitting: 0, building: 0, provisioning: 0 });
 /** Each track's first-makes, in the tables' order: RECIPES, then the mason's works, then DFU's twenty. */
 const FIRST_MAKES = new Map();
 const firstMake = (/** @type {string} */ track, /** @type {string} */ key) => {

@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Mail and Brigandine armour in every metal can now be crafted and salvaged, from Iron to Daedric, including pieces you found.
+- No more first-time craft bonuses. Their experience is now spread over every craft, so crafting levels go up much faster: a crafting skill reaches Master in about the same number of crafts as before.
+- The crafting Bench fits the pause window at any interface size: the item list, the piece and its materials stack when there is not room side by side.
 - Company farms: Captains and Officers can buy up to three of the world's farms inside their Company's or Charter's territory, for 6,000 gold each, from the new Farms page of the Company window. Each farm grows food, herbs, hides and wool, or timber, and puts its harvest into the Company Stores every day. Every member who does the day's chore while standing at the farm adds half again. Farms show on the world map in the Company's colours and are lost if the territory stops reaching them.
 - Garrisons: a Company can keep up to 12 soldiers at its hall's town and a City Charter up to 60 at its capital, from the new Garrison page of the Company window. Captains and Officers recruit Spearmen, Crossbowmen, Knights, Battlemages and Healers with treasury gold. Soldiers eat food, ingots, planks or herbs from the Company Stores every day, and unfed soldiers desert. Put them on the city's patrol routes and you'll see them walking the streets in your colours, or send them to the front to push Rodney's blight back.
 - Rodney's blight now spreads out of Cromwark, a little further every day, and shows in purple on the world map. Inside it monsters turn purple, hit 25% harder and can drop Nyx coins. Clearing a town raid near its edge pushes it back, and strong Company and Charter territories stop it at their borders. Where a territory holds it, the front is drawn in red.
