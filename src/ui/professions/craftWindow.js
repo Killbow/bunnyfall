@@ -24,6 +24,7 @@ import { itemArmorValue } from '../../systems/armorMaterials.js';
 import { unitWeightInKg } from '../../systems/inventory.js';
 import { paperdollItemImage } from '../paperDoll.js';   // the look's preview, as the doll draws it
 import { requestIcon } from '../textureCanvas.js';
+import { inventoryItemImage } from '../../systems/item/itemTemplates.js';   // the piece's own picture, as the pack shows it
 import { LOOK_KINDS } from '../../net/productRecord.js';   // the stats table: the armour a piece gives
 import { valueFee, recipeValue, itemFeeValue } from '../../systems/craftFees.js';   // BUNNYFALL CRAFT FEES: a tenth of the piece, the station's fee its ceiling
 
@@ -107,6 +108,9 @@ const CSS = `
 .cw-ws-sum { grid-area: sum; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
 .cw-ws-sum .cw-actions { justify-content: flex-end; }
 @media (max-width: 900px) { .cw-card.cw-ws { grid-template-columns: 1fr; grid-template-areas: "piece" "mats" "sum"; } }
+.cw-ws-head { display: flex; align-items: center; gap: 14px; }
+.cw-ws-pic { width: 96px; height: 96px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #a8844a; background: rgba(60,40,20,.12); }
+.cw-ws-pic img { max-width: 88px; max-height: 88px; image-rendering: pixelated; }
 .cw-effects { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin: 2px 0 6px; }
 .cw-effect { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border-bottom: 1px dotted #a8844a; padding: 2px 0; }
 .cw-effect.cw-good b { color: #2f6a2a; }
@@ -695,7 +699,22 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   if (looks.length && !looks.some((l) => l.look === _cw.look)) _cw.look = looks[0].look;
   const look = looks.length ? _cw.look : null;
   const preview = previewName(r, look);
-  if (preview) pHead.append(h('p', 'cw-make', `You will make: ${preview}`));
+  if (preview) {
+    // the piece's picture beside its name: the pack's icon of the piece as it will be minted, in its look and dye
+    const row = h('div', 'cw-ws-head');
+    const pic = h('div', 'cw-ws-pic');
+    let url = null;
+    try {
+      const it = mintPiece({ recipe: r.id, quality: 1, seed: 0, look, dye: dyeOk(r, _cw.dye) ? _cw.dye : null }, '0000000000000000');
+      const img = it ? inventoryItemImage(it) : null;
+      url = img?.archive != null ? requestIcon(img.archive, img.record, { scale: 2, dye: img.dye, dyeTarget: img.dyeTarget, onReady: rerender }) : null;
+    } catch { url = null; }
+    if (url) { const im = h('img'); im.src = url; im.alt = preview; pic.append(im); }
+    const words = h('div');
+    words.append(h('span', 'cw-note', 'You will make'), h('p', 'cw-make', preview));
+    row.append(pic, words);
+    pHead.append(row);
+  }
   if (looks.length) drawLooks(pLooks, rerender, p, r, looks, look);
   if (pot) sum.append(h('p', 'cw-note', `Potential: ${pot.name} (${Math.round(pot.suitability * 100)}% suited). Your skill rolls the quality; Potential is the most this material can give.`));
   if (cap < (pot?.quality ?? 4)) sum.append(h('p', 'cw-note', `Not a Focus craft: quality tops out at ${QUALITY_NAMES[cap]}.`));
