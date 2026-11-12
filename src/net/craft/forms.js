@@ -17,8 +17,8 @@
 // In Phase 5, when recipeLaw.js goes, this file is frozen into literal data.
 //
 // Each family reads the four material stats (materialStats.js) with its own weights, which add up to 1.
-import { RECIPES } from '../recipeLaw.js';
-import { trackOf } from '../professionLaw.js';
+import { RECIPES, takesHeartwood } from '../recipeLaw.js';
+import { trackOf, HEARTWOOD } from '../professionLaw.js';
 import { MATERIAL_STATS, statsOf, suitabilityOf } from './materialStats.js';
 
 /** @typedef {import('./materialStats.js').StatWeights} StatWeights */
@@ -135,7 +135,31 @@ function slotsOf(rs) {
     for (const s of secondaries) s.share = SECONDARY_SHARE;
     slots[0].share = 1 - SECONDARY_SHARE * secondaries.length;
   }
+  // BUNNYFALL CRAFTING REWORK: HEARTWOOD - where a piece takes planks (recipeLaw takesHeartwood), a Heartwood may stand in
+  // for one of them. It is an extra pick, never a recipe of its own: it counts through its stats alone, blended into the
+  // wood part it stands in for (one plank in that part's count), and spends one plank fewer.
+  const woodSlot = slots.find((s) => s.options.some((k) => k.startsWith('plank:')));
+  if (woodSlot && rs.some((r) => takesHeartwood(r))) {
+    slots.push({
+      id: 'heartwood', label: `Heartwood (for one ${woodSlot.label === 'Main' ? 'plank' : woodSlot.label.toLowerCase()})`, role: 'extra', group: null,
+      categories: ['wood'], options: [HEARTWOOD.key], defaultKey: HEARTWOOD.key, n: 1, nMax: 1, optional: true, share: 0, extra: true, standsIn: woodSlot.id,
+    });
+  }
   return slots;
+}
+
+/**
+ * The materials a slot is made of, each with its part of the slot: one material, or (HEARTWOOD) the planks and the one
+ * Heartwood standing in among them.
+ * @returns {[any, number][]}
+ */
+export function slotMix(/** @type {Form} */ form, /** @type {Record<string, string>} */ picks, /** @type {Slot} */ slot) {
+  const s = statsOf(picks[slot.id]);
+  if (!s) return [];
+  const heart = picks.heartwood ? form.slots.find((x) => x.id === 'heartwood') : null;
+  if (!heart || heart.standsIn !== slot.id) return [[s, 1]];
+  const n = Math.max(1, slot.n);
+  return n === 1 ? [[statsOf(HEARTWOOD.key), 1]] : [[s, (n - 1) / n], [statsOf(HEARTWOOD.key), 1 / n]];
 }
 
 /** @returns {Form[]} */
@@ -190,7 +214,7 @@ export function buildSuitability(/** @type {Form} */ form, /** @type {Record<str
     const key = picks[slot.id];
     const s = statsOf(key);
     if (!s || !slot.options.includes(key)) return null;
-    sum += slot.share * suitabilityOf(s, form.weights);
+    sum += slot.share * slotMix(form, picks, slot).reduce((a, [m, part]) => a + part * suitabilityOf(m, form.weights), 0);   // HEARTWOOD: blended in
     share += slot.share;
   }
   return share > 0 ? sum / share : null;

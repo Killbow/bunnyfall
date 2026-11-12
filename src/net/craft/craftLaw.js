@@ -13,7 +13,7 @@
 // All numbers here are drafts to tune (docs/CRAFTING.md). No clock, no DOM, no network.
 import { RECIPES, recipeInputs, rollQuality, qualityOdds, qualitySteps, craftQuality, masterworkSpec } from '../recipeLaw.js';
 import { materialOf, topTierOf } from '../professionLaw.js';
-import { formById, buildSuitability, potentialOf } from './forms.js';
+import { formById, buildSuitability, potentialOf, slotMix } from './forms.js';
 import { statsOf, statBudget, STAT_IDS } from './materialStats.js';   // the materials' effects on the piece
 
 /** @typedef {import('./forms.js').Form} Form */
@@ -39,7 +39,7 @@ export function focusOk(/** @type {unknown} */ list, /** @type {readonly string[
 // ─── FORM AND PICKS TO THE LEGACY RECIPE ─────────────────────────────
 
 /** The key an old recipe is found by: its product and the inputs of the slots that were not opened. */
-const legacyKey = (/** @type {Form} */ form, /** @type {(i: number) => string} */ at) => `${form.id}|${form.slots.map((s, i) => (s.group ? '' : at(i))).join('|')}`;
+const legacyKey = (/** @type {Form} */ form, /** @type {(i: number) => string} */ at) => `${form.id}|${form.slots.map((s, i) => (s.group || s.extra ? '' : at(i))).join('|')}`;   // HEARTWOOD: an extra pick names no recipe
 
 /** @type {Map<string, any>} */
 const LEGACY = new Map();
@@ -69,6 +69,7 @@ export function planOf(/** @type {unknown} */ formId, /** @type {unknown} */ ask
   for (const slot of form.slots) {
     const pick = given[slot.id];
     if (pick == null) {
+      if (slot.extra) continue;   // HEARTWOOD: an extra left alone is none
       if (slot.group) picks[slot.id] = slot.defaultKey;   // an opened slot left alone is the old recipe's
       else if (slot.role === 'fixed') picks[slot.id] = slot.defaultKey;
       else if (!slot.optional) return { ok: false, error: 'craft-missing', slot: slot.id };
@@ -89,7 +90,7 @@ export function planOf(/** @type {unknown} */ formId, /** @type {unknown} */ ask
  */
 export function inputsOf(/** @type {Plan} */ plan, { joiner = false, cracked = false } = {}) {
   const { form, legacy, picks } = plan;
-  let inputs = recipeInputs(legacy, { joiner, cracked });
+  let inputs = recipeInputs(legacy, { joiner, cracked, heartwood: !!picks.heartwood });   // HEARTWOOD: one plank fewer, the Heartwood spent
   form.slots.forEach((slot, i) => {
     const old = legacy.inputs[i]?.key;
     const pick = picks[slot.id];
@@ -189,8 +190,10 @@ export function leanOfPlan(/** @type {Plan} */ plan) {
     const key = plan.picks[slot.id];
     const s = statsOf(key);
     if (!s || !(slot.share > 0)) continue;
-    const avg = statBudget(s.tier) / 4;
-    for (const k of STAT_IDS) out[k] += slot.share * Math.max(-1, Math.min(1, (s[k] - avg) / avg));
+    for (const [m, part] of slotMix(plan.form, plan.picks, slot)) {   // HEARTWOOD: blended into its part
+      const avg = statBudget(m.tier) / 4;
+      for (const k of STAT_IDS) out[k] += slot.share * part * Math.max(-1, Math.min(1, (m[k] - avg) / avg));
+    }
     total += slot.share;
   }
   if (total > 0) for (const k of STAT_IDS) out[k] /= total;
