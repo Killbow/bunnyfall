@@ -992,6 +992,8 @@ import { WILD_REMAINS_MS, WDUN_SALT, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_HERE_MS, sp
 import { validLootList, setLootGoldMult } from '../systems/loot/loot.js';   // BUNNYFALL COMPANIES: loot gold inside one's territory
 import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BUNNYFALL COMPANIES: every Company's territory
 import { createRodneyBlight } from '../systems/rodneyBlight.js';   // BUNNYFALL COMPANIES: Rodney's blight
+import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL COMPANIES: garrisons
+import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
 import { stacksWith } from '../systems/inventory.js';
 import { setHudZone } from '../ui/enhanced/enhancedHud.js';
 import { setHudPauseAt } from '../ui/hud/hudAdvance.js';   // FIRM-STARS: the stars' tile beside the Renown bar opens the Firmament page
@@ -20288,6 +20290,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let guildBook = null;   // GUILD1b: the character's guild (net/guild/guildBook.js GuildBook), made with the panel that draws it
   let companyTerritory = null;   // BUNNYFALL COMPANIES: every Company's territory (systems/companyTerritory.js), made beside Cromwark's host
   let rodneyBlight = null;   // BUNNYFALL COMPANIES: Rodney's blight (systems/rodneyBlight.js), made beside the territories
+  let garrisonBook = null;   // BUNNYFALL COMPANIES: the garrisons (systems/garrisonBook.js)
+  let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -22020,6 +22024,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       mail,
       guild: guildBook,
       territory: () => companyTerritory,   // BUNNYFALL COMPANIES: the City Charter on the Company page (systems/companyTerritory.js)
+      garrison: () => garrisonBook,   // BUNNYFALL COMPANIES: the Garrison page (systems/garrisonBook.js)
       send: (act) => socialLink()?.sendSocial(act) ?? false,   // false is the rate gate's answer: the panel keeps the button and says "try again"
       keepLetter: (letter) => keepLetterInJournal(letter),   // JOURNAL1: a letter kept in my journal, as a page is
       journey: () => partyTravel,   // PARTY-UI: the Party tab's Journey - the session is made later in this host, so it is read when drawn
@@ -25557,6 +25562,33 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     townPixel: (region, location) => { const loc = maps.getLocation(region, location); return loc?.mapTableData ? longitudeLatitudeToMapPixel(loc.mapTableData.longitude, loc.mapTableData.latitude) : null; },
   });
   setBlightProbe(() => !!rodneyBlight?.here());
+  // GARRISONS AND PATROLS (systems/garrisonBook.js, scenes/garrisonPatrols.js): the soldiers a Company keeps at its hall's
+  // town and a Charter at its capital, walking the town's set routes in their owner's colours
+  garrisonBook = createGarrisonBook({
+    io: () => (isOnlinePage() ? insigniaIo() : null),
+    character: () => characterIdOf(playerEntity),
+    sectorOf: (mapId) => { const tw = _townOfMapId.get(mapId >>> 0); return tw ? rodneyBlight?.sectorAt(tw.px, tw.py) ?? null : null; },
+  });
+  garrisonPatrols = createGarrisonPatrols({
+    built: () => built.values(),
+    garrisons: () => (isOnlinePage() ? garrisonBook.all() : []),
+    townPixel: (mapId) => _townOfMapId.get(mapId >>> 0) ?? null,
+    fieldOf: (mapId) => (siegeFieldsByTown.get(mapId) ?? siegeFieldsByTown.get(mapId | 0) ?? siegeFieldsByTown.get(mapId >>> 0))?.field ?? null,
+    renderer,
+    frameCount: (rec, a) => personTex.get(a)?.getFrameCount(rec) ?? 1,
+    draw: (person, batch, out, p) => {   // the townsfolk's own dressing (framePopulation's), for a patrol walker
+      const pt = personTex.get(person.archive);
+      if (!pt) return false;
+      if (!renderer.textures.has(personTextureKey(person.archive, out.record, out.frame))) uploadRecordFrame(person.archive, out.record, out.frame);
+      const sz = mobileBillboardSize(pt, out.record);
+      const t = state.pixelTranslation(p.px, p.py);
+      batch.archive = person.archive;
+      batch.record = `${out.record}#${out.frame}`;
+      batch.size = { w: out.flip ? -sz.w : sz.w, h: sz.h };
+      batch.origin = [person.pos[0] + p.locOrigin[0] + t[0], person.pos[1] + t[1], person.pos[2] + p.locOrigin[2] + t[2]];
+      return true;
+    },
+  });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)
@@ -34860,6 +34892,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     };
     framePopulation();
+    // BUNNYFALL COMPANIES: the garrisons' patrols on their routes (scenes/garrisonPatrols.js)
+    if (garrisonPatrols) livePersonBatches.push(...garrisonPatrols.frame(townTalk.overlayActive ? 0 : dt, (p) => { const t = state.pixelTranslation(p.px, p.py); return [cam.pos[0] - t[0] - p.locOrigin[0], cam.pos[1] - t[1], cam.pos[2] - t[2] - p.locOrigin[2]]; }));
     // AUDIT LEGACY III W4: held under a talk window, as the street is (the member met walked on the spot behind their card)
     if (familyStreet) { familyStreet.end(townTalk.overlayActive ? 0 : dt, cam.pos); livePersonBatches.push(...familyStreet.batches()); }
     folkStreet.draw(canvas, proj, view, mwv.eye, townTalk.overlayActive ? 0 : dt);   // MWNPC7: the walkers' bodies - held under a talk, as the street is

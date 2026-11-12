@@ -60,3 +60,18 @@ export async function blightPush({ db, nowS }, player, { raid, sector } = {}) {
   }
   return { ok: true, pushed: false };
 }
+
+/**
+ * GARRISONS AT THE FRONT (garrisons.js): slice `sector` pushed back `px` - a day's march, the service's own reckoning.
+ * @param {any} db
+ * @param {number} nowS
+ */
+export async function blightNudge(db, nowS, sector, px) {
+  if (!Number.isSafeInteger(sector) || sector < 0 || sector >= BLIGHT_SECTORS || !(px > 0)) return false;
+  for (let tries = 0; tries < 3; tries++) {
+    const b = await blightNow(db, nowS);
+    const r = await db.prepare('UPDATE rodney_blight SET extras = ?1 WHERE id = 1 AND day = ?2 AND extras = ?3').bind(JSON.stringify(blightPushed(b.extras, sector, px)), b.day, b.text).run();
+    if (r?.meta?.changes) return true;
+  }
+  return false;
+}

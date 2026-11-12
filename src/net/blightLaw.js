@@ -50,13 +50,13 @@ export function blightExtrasOf(raw) {
 }
 /** The extras `days` days on. */
 export const blightGrown = (extras, days) => extras.map((e) => Math.min(BLIGHT_EXTRA_MAX, e + BLIGHT_GROW_PX_DAY * Math.max(0, days)));
-/** The extras after a raid cleared in slice `s`: it and its two neighbours pushed back. */
-export function blightPushed(extras, s) {
+/** The extras after a raid cleared in slice `s`: it and its two neighbours pushed back (`px`, a raid's by default). */
+export function blightPushed(extras, s, px = BLIGHT_PUSH_PX) {
   const out = extras.slice();
   const at = (k) => ((k % BLIGHT_SECTORS) + BLIGHT_SECTORS) % BLIGHT_SECTORS;
-  out[at(s)] = Math.max(0, out[at(s)] - BLIGHT_PUSH_PX);
-  out[at(s - 1)] = Math.max(0, out[at(s - 1)] - BLIGHT_PUSH_PX / 2);
-  out[at(s + 1)] = Math.max(0, out[at(s + 1)] - BLIGHT_PUSH_PX / 2);
+  out[at(s)] = Math.max(0, out[at(s)] - px);
+  out[at(s - 1)] = Math.max(0, out[at(s - 1)] - px / 2);
+  out[at(s + 1)] = Math.max(0, out[at(s + 1)] - px / 2);
   return out;
 }
 

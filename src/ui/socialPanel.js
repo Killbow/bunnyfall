@@ -74,6 +74,7 @@ import { homeSaleRefund } from '../net/homeLaw.js';   // GUILD1d: what the hall 
 import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the hall stands
 import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
 import { TERRITORY_YIELD_PCT } from '../net/territoryLaw.js';
+import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText } from '../net/garrisonLaw.js';   // BUNNYFALL COMPANIES: garrisons
 import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { t } from '../systems/textManager.js';
@@ -183,6 +184,7 @@ export const guildPageWords = () => ({
   treasury: t('social.guild.page.treasury', 'Gold and silver, and their ledgers'),
   vault: t('social.guild.page.vault', 'The pieces the company keeps'),
   stores: t('social.guild.page.stores', 'Materials, and the writ budget'),
+  garrison: t('social.guild.page.garrison', 'Soldiers, their supplies and their orders'),
   arms: t('social.guild.page.arms', 'The banner, the shield and the tag'),
   settings: t('social.guild.page.settings', 'A new name, the rank names, and leaving'),
 });
@@ -267,7 +269,7 @@ export function armsWhy(h) {
 /** AUDIT SILVER-WAYS A3: the day's guild deeds, as the Guild tab says them (marksLaw.js MARKS_FAUCETS.deed). */
 export const guildDeedsText = (n, max) => `Company deeds today: ${Math.max(0, Number(n) || 0)} of ${max}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
 /** GUILD1d: a treasury ledger line's verb - a deposit and a withdrawal, and the hall's own moves (0043's `moved_kind`). */
-export const GUILD_LEDGER_WORDS = Object.freeze({ deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
+export const GUILD_LEDGER_WORDS = Object.freeze({ garrison: 'recruited soldiers for', deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
 /** AUDIT GUILD1d R5: a Drakes ledger line's verb - a heraldry changed is the treasury paying, never a deposit. */
 export const GUILD_MARKS_LEDGER_WORDS = Object.freeze({
   deposit: 'put in', withdraw: 'took out', heraldry: 'changed the company\'s arms for',   // AUDIT GUILD3 W6: the page is "Arms"
@@ -326,6 +328,7 @@ export function guildWordText(error, r = null, nowS = Math.floor(Date.now() / 10
   if (error === 'guild-rank-word' && typeof r?.why === 'string' && r.why) return `A rank's name may not contain "${r.why}". That word is not allowed in names.`;   // TEXT-F1
   if (error === 'guild-rename-soon' && Number.isSafeInteger(r?.at) && r.at > nowS) return guildRenameSoonText(r.at, nowS);
   if (typeof error === 'string' && error.startsWith('charter-')) return charterWordText(error);   // BUNNYFALL COMPANIES: City Charters
+  if (typeof error === 'string' && error.startsWith('garrison-')) return garrisonWordText(error);   // and garrisons
   return accountRefusalText(error);
 }
 /** GUILD-LETTER (FIELD BUGS 2026-09-30): a guild act's word once done - and a withdrawal paid as a letter of credit (the
@@ -713,7 +716,7 @@ export function friendOrder(friends) {
  * a panel with something above it IGNORES the key (does not close, does not stop it), and the one that handles it
  * calls `stopImmediatePropagation` so no other window listener - the host's pause door included - sees that press.
  */
-export function createSocialPanel({ social, send = null, mail = null, guild = null, territory = () => null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD } = {}) {
+export function createSocialPanel({ social, send = null, mail = null, guild = null, territory = () => null, garrison = () => null, keepLetter = null, journey = () => null, canLead = () => false, canOpen = () => true, onOpen = null, onClose = null, above = () => false, overlay = overlayOpen, doc = document, win = globalThis, touch = isTouchDevice(), itemCard = ITEM_CARD } = {}) {
   injectSocialStyle(doc);
   const el = (tag, cls, text) => { const n = doc.createElement(tag); n.className = cls; if (text != null) n.textContent = text; return n; };
 
@@ -1472,6 +1475,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   const guildPagesOf = (g) => [
     ['overview', 'Overview'], ['members', 'Members'], ['treasury', 'Treasury'], ['vault', 'Vault'],
     ...(g.profStores?.writs && g.profStores.open?.() === true ? [['stores', 'Stores']] : []),
+    ['garrison', 'Garrison'],   // BUNNYFALL COMPANIES: the Company guard and the Charter garrison
     ['arms', 'Arms'], ['settings', 'Settings'],
   ];
   /** Our own drawing as a picture - never markup (SOC3). */
@@ -1613,6 +1617,81 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
       run: () => { const nm = charterNameOf(d.charterName ?? ''); if (nm) guildDo(T.found(nm, at), `${nm} holds ${at.name}.`, () => { d.charterName = ''; }); },
     }));
     out.push(acts);
+    return out;
+  };
+
+  /** BUNNYFALL COMPANIES (net/garrisonLaw.js): THE GARRISON - the Company's guard at its hall's town and its Charter's
+   *  garrison at the capital, each: its soldiers (recruited by a Captain or an Officer with treasury gold), its supplies
+   *  out of the Company Stores and how long they last, the last day's news, and its orders - soldiers on each set route
+   *  and at the front. The book is systems/garrisonBook.js; its answer repaints the page. */
+  const guildGarrisonNodes = (g, v, me) => {
+    const B = garrison?.();
+    if (!B) return [el('div', 'dfsocial-empty', 'Garrisons are kept online.')];
+    const before = B.sig();
+    Promise.resolve(B.refresh()).then(() => { if (B.sig() !== before) { ui++; if (open) repaint(); } }, () => {});
+    const mine = B.mine();
+    if (!mine) return [el('div', 'dfsocial-empty', 'Reading the garrison...')];
+    const out = [];
+    const d = guildUi.draft;
+    const townName = (mapId) => territory?.()?.townName?.(mapId) ?? 'the town';
+    const one = (which, gv) => {
+      const title = which === 'charter' ? 'Charter garrison' : 'Company guard';
+      out.push(el('div', 'dfsocial-sec', title));
+      if (!gv) {
+        out.push(el('div', 'dfsocial-note', which === 'charter' ? 'Your Company is in no City Charter. A Charter keeps up to 60 soldiers at its capital.' : 'Your Company has no hall. A Company keeps up to 12 soldiers at its hall\'s town.'));
+        return;
+      }
+      out.push(personRow({ name: `${townName(gv.mapId)}: ${gv.total} of ${gv.max} soldiers`, sub: gv.days == null ? 'Nothing to feed yet.' : `Supplies from the Company Stores last ${gv.days} ${gv.days === 1 ? 'day' : 'days'}.` }));
+      // the soldiers, and recruiting
+      for (const tr of TROOPS) {
+        const r = personRow({ name: `${tr.name}: ${gv.troops[tr.key]}`, sub: `${tr.gold.toLocaleString('en-US')} gold each. ${tr.note}. Eats ${Object.entries(tr.upkeep).map(([k, n]) => `${n} ${k}`).join(' and ')} a day.` });
+        if (mine.command) {
+          const acts = rowActs(r);
+          for (const n of [1, 5]) {
+            const room = gv.max - gv.total;
+            acts.append(btn(`Recruit ${n}`, { enabled: !g.busy && room >= n, why: room < n ? 'the garrison is full' : 'a moment', run: () => guildDo(B.recruit(which, tr.key, n), `${n} ${n === 1 ? tr.one : tr.name} recruited for ${(tr.gold * n).toLocaleString('en-US')} gold.`) }));
+          }
+        }
+        out.push(r);
+      }
+      // the supplies
+      out.push(el('div', 'dfsocial-label', 'Supplies in the Company Stores'));
+      out.push(el('div', 'dfsocial-note', SUPPLIES.map((sp) => `${sp.name} ${Number(gv.have?.[sp.key] ?? 0).toLocaleString('en-US')}${gv.upkeep?.[sp.key] ? ` (${gv.upkeep[sp.key]} a day)` : ''}`).join(' · ')));
+      const rep = gv.report;
+      if (rep && (rep.deserted || rep.lost || rep.pushed)) {
+        const bits = [];
+        if (rep.deserted) bits.push(`${rep.deserted} deserted for want of supplies`);
+        if (rep.lost) bits.push(`${rep.lost} fell at the front`);
+        if (rep.pushed) bits.push('the blight was pushed back');
+        out.push(el('div', 'dfsocial-note', `Since the last count: ${bits.join(', ')}.`));
+      }
+      // the orders
+      out.push(el('div', 'dfsocial-label', 'Orders'));
+      const key = `garrison:${which}`;
+      d[key] ??= { routes: { ...gv.orders.routes }, march: gv.orders.march };
+      const draft = d[key];
+      const used = () => ROUTE_KEYS.reduce((a, k) => a + draft.routes[k], 0) + draft.march;
+      const row = (label, get, set) => {
+        const r = personRow({ name: `${label}: ${get()}` });
+        if (mine.command) {
+          const acts = rowActs(r);
+          acts.append(btn('-', { enabled: get() > 0, why: 'none on it', run: () => { set(get() - 1); ui++; if (open) repaint(); } }));
+          acts.append(btn('+', { enabled: used() < gv.total, why: 'every soldier has an order', run: () => { set(get() + 1); ui++; if (open) repaint(); } }));
+        }
+        out.push(r);
+      };
+      for (const rt of ROUTES) row(rt.name, () => draft.routes[rt.key], (n) => { draft.routes[rt.key] = Math.max(0, n); });
+      row('To the front', () => draft.march, (n) => { draft.march = Math.max(0, n); });
+      out.push(el('div', 'dfsocial-note', `${Math.max(0, gv.total - used())} hold the barracks. Soldiers at the front push Rodney's blight back each day and lose a tenth of their number.`));
+      if (mine.command) {
+        const acts = el('div', 'dfsocial-acts');
+        acts.append(btn('Give these orders', { enabled: !g.busy, why: 'a moment', run: () => guildDo(B.orders(which, draft), 'Orders given.', () => { delete d[key]; }) }));
+        out.push(acts);
+      }
+    };
+    one('company', mine.company);
+    one('charter', mine.charter);
+    if (!mine.command) out.push(el('div', 'dfsocial-note', 'Only the Captain and the Officers recruit and give orders.'));
     return out;
   };
 
@@ -2133,6 +2212,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     else if (page === 'treasury') out.push(...guildTreasuryNodes(g, v, me));
     else if (page === 'vault') out.push(...guildVaultNodes(g, v, me));
     else if (page === 'stores') out.push(...guildStoresNodes(g, g.profStores, me));   // PROF6 (Professions-Arc 7, 28)
+    else if (page === 'garrison') out.push(...guildGarrisonNodes(g, v, me));   // BUNNYFALL COMPANIES
     else if (page === 'arms') out.push(...guildArmsNodes(g, v, me));
     else if (page === 'settings') out.push(...guildSettingsNodes(g, v, me));
     else out.push(...guildOverviewNodes(g, v, me));

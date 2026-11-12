@@ -122,6 +122,8 @@ export function createRodneyBlight({ io, mask, territory, here, townPixel, nowMs
       if (r?.ok && r.data?.pushed) { await refresh(true); return { pushed: true }; }
       return null;
     },
+    /** The slice a map pixel faces from Cromwark (garrisons marching to the front), or null before the zone is known. */
+    sectorAt: (x, y) => { const g = geometry(); return g ? sectorOf(x + 0.5 - g.centre.x, y + 0.5 - g.centre.y) : null; },
     sig: () => `${version}|${territory?.()?.sig?.() ?? ''}`,
   };
 }

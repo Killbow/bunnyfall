@@ -1322,6 +1322,10 @@ export const charterLeave = (io, body) => call(io, '/v1/charters/leave', body);
 /** BUNNYFALL COMPANIES: Rodney's blight (server-account/src/blight.js) - read, and a cleared raid's push. */
 export const blightRead = (io) => call(io, '/v1/blight', {});
 export const blightPush = (io, raid, sector) => call(io, '/v1/blight/push', { raid, sector });
+/** BUNNYFALL COMPANIES: garrisons and patrols (server-account/src/garrisons.js) - read, recruit, give orders. */
+export const garrisonsRead = (io, character) => call(io, '/v1/garrisons', { character });
+export const garrisonRecruit = (io, body) => call(io, '/v1/garrisons/recruit', body);
+export const garrisonOrders = (io, body) => call(io, '/v1/garrisons/orders', body);
 /** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
 export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
 export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);
