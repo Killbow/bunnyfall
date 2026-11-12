@@ -172,6 +172,8 @@ export const FIRM_CSS = `
 :root[data-plus-dress="grimoire"] .fmt-owe { font-family: ${GRIMOIRE_STACK}; }
 :root[data-plus-dress="grimoire"] .fmt-root .fmt-owe { color: #a3200f !important; }
 :root[data-plus-dress="grimoire"] .fmt-btn.fmt-go, :root[data-plus-dress="grimoire"] .fmt-btn.fmt-exit { color: ${G.yellow}; }
+/* Properly dims the Accept button */
+:root[data-plus-dress="grimoire"] .fmt-btn.fmt-go:is(:disabled, [disabled]) { opacity: 0.45 !important; filter: grayscale(0.7) !important; cursor: default; }
 :root[data-plus-dress="grimoire"] .fmt-side li.capped { color: ${G.red}; }
 :root[data-plus-dress="grimoire"] .fmt-side .fmt-live { color: inherit; }
 :root[data-plus-dress="grimoire"] .fmt-side .fmt-live.off { color: ${G.redHi}; }
