@@ -56,7 +56,7 @@ import { heraldryOfRow } from './halls.js';   // AUDIT-SEATS G11: a writ's guild
 import { creditSeatWrit } from './seatInfluence.js';   // SEAT2b: a seat writ's delivery as influence
 import { saleTax, saleTaxOn, provenanceOk, pieceListable, UNYIELDED, WEAR_WHOLE, wearOf } from '../../src/net/marketLaw.js';
 import {
-  WRIT_S, GUILD_WRITS_MAX, WRIT_POSTS_MAX, WRIT_OPS_MAX, WRIT_WINDOW_S, WRIT_SETTLE_MAX, WRIT_SHOWN, WRIT_RECENT_S, WRIT_RID_RE,
+  WRIT_S, GUILD_WRITS_MAX, WRIT_POSTS_MAX, WRIT_OPS_MAX, GUILD_STORES_OPS_MAX, WRIT_WINDOW_S, WRIT_SETTLE_MAX, WRIT_SHOWN, WRIT_RECENT_S, WRIT_RID_RE,
   WRIT_ID_RE, GUILD_STORES_MAX, GUILD_STORE_MOVES_SHOWN, COMMISSIONS_MAX, COMMISSIONS_FOR_MAX,
   writMaterialOk, writUnitsOk, writPayOk, writBudgetOk, seatWeek, guildMoveOk, commissionPayOk, commissionable,
   commissionUnyielded, commissionQualityOk, commissionFilledBy, writMay, guildTakeMay, writDeliverMay, WRIT_POWERS,
@@ -858,7 +858,7 @@ async function moveGuildStores(ctx, player, env, { character, material: key, uni
   // AUDIT CRAFT-HOLD (the exploit audit): nor go into its guild's Stores - where an Officer, another of the account's
   // characters among them, takes them out as bought units its own
   if (kind === 'deposit') { const held = await realmHoldOf(db, me, character); if (held) return held; }
-  if (await acting(ctx, player)) return { error: 'writ-rate' };
+  if (await overRate(ctx, `guild-stores:${player.id}`, GUILD_STORES_OPS_MAX, WRIT_WINDOW_S)) return { error: 'writ-rate' };   // BUNNYFALL: the Stores' own count, not the writs'
   const who = displayName(player);
   const nonce = mintId(rand);
   const moved = 'EXISTS (SELECT 1 FROM guild_store_moves WHERE player = ?1 AND rid = ?5 AND n = ?6)';

@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Moving goods in and out of the company Stores no longer counts toward the hourly writs limit, so Put in all and taking everything back out can't lock you out of writs for an hour anymore.
 - Fixed the Garrison page stuck on "Reading the garrison..." when a Company's Stores held flowers, twigs or other gathered plants. Those plants now count as herbs for Battlemages and Healers.
 - You can hide pieces of gear. In the inventory, each worn piece of armour, clothing or a shield has a small eye: click it and the piece stays worn (its armour, warmth and enchantments still count) but nobody sees it, you included: not on your paperdoll, your body, your portrait or to other players. Click it again to show it. Weapons always show.
 - Mastered skills past 100 level up far faster. A point used to cost 4x, 8x and then 16x the uses (100-125, 125-150, 150-200), and the cost kept growing with your character level. Now it is 2x, 3x and 4x, and past 100 your level stops making it dearer after level 20. At level 37, a point at 160 drops from about 6 hours of fighting to about 45 minutes. Progress you had banked toward the next point is kept.

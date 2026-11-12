@@ -40,6 +40,10 @@ export const WRIT_POSTS_MAX = 20;
  *  (the market's acts' number, 20: PROF5's 120). */
 export const WRIT_OPS_MAX = 120;
 export const WRIT_WINDOW_S = 3600;
+/** BUNNYFALL (2026-11-12, a player stuck for an hour: Put in all, then taking each material back out, ran past the 120
+ *  above and locked every writ act with it): a guild Stores move is counted on its own, and a Put in all of a full
+ *  Stores page and taking it all back fits many times over. */
+export const GUILD_STORES_OPS_MAX = 1000;
 /** The rows one sweep of expired writs and one settle of an account's commissions work, at most (the market's). */
 export const WRIT_SETTLE_MAX = 20;
 /** The most a region's board shows of each kind, and how long a closed commission stays in "Yours". */
