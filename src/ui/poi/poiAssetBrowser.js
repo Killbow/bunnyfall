@@ -3,14 +3,13 @@
 // search, kind/category/tag filters, saved favorites and recent picks, and a detail pane with a preview. Entries can be
 // placed via the Place button or double-click (following the cursor until a ground click) or by dragging a card onto
 // the world canvas, delegated through `poi/poiAssetPlace.js`. Card thumbnails load on demand with bounded concurrency
-// and stay cached until `destroy()`. Model cards show a picture rendered in the page by `poi/poiModelThumbs.js`, or the
-// model number when nothing can be rendered.
+// and stay cached until `destroy()`. Model cards and the detail pane show a picture rendered in the page by
+// `poi/poiModelThumbs.js`; a card shows the model number when nothing can be rendered.
 
 import { t } from '../../systems/textManager.js';
 import { createPoiAssetCatalogue, createPoiAssetPrefs, loadPoiAssetCatalogue, visibleRows, POI_ASSET_CATEGORIES } from '../../poi/poiAssetCatalogue.js';
 import { poiAssetWhyNot } from '../../poi/poiAssetPlace.js';
-import { dfTexturePng, dfModelAsImport } from '../../poi/dfModelImport.js';
-import { renderThumb, encodePng } from '../../poi/poiThumb.js';
+import { dfTexturePng } from '../../poi/dfModelImport.js';
 import { createPoiModelThumbs } from '../../poi/poiModelThumbs.js';
 import { isNudeFlat, showNudity } from '../../characters/nudeFlats.js';
 
@@ -210,6 +209,13 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
     wanted: (id) => onScreen.has(`model:${id}`),
     onReady: (id) => { const b = onScreen.get(`model:${id}`); const e = cat?.get(`model:${id}`); if (b && e) fillPic(b, e); },
   }) : null;
+  // the detail pane's larger preview of the selected model, rendered the same way and cached only in page memory
+  const previews = dfModels?.arch ? createPoiModelThumbs({
+    arch: dfModels.arch, palette: dfModels.palette ?? null, cpuModels: dfModels.cpuModels ?? null, textureFiles: dfModels.textureFiles ?? null, getTexture,
+    size: 128, store: null, keep: 32,
+    wanted: (id) => st.sel === `model:${id}`,
+    onReady: (id) => { if (st.sel === `model:${id}`) showInfo(); },
+  }) : null;
   const glyph = (/** @type {any} */ a) => (a.kind === 'model' ? t('poi.assets.glyphModel', '3D') : a.kind === 'creature' ? t('poi.assets.glyphCreature', 'enemy') : a.kind === 'item' ? t('poi.assets.glyphItem', 'item') : '');
   function fillPic(/** @type {HTMLElement} */ box, /** @type {any} */ a) {
     const shot = a.kind === 'model' && thumbs ? thumbs.url(a.model) : null;
@@ -253,23 +259,12 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
   }
 
   // ── the information pane ──
-  let previewFor = '';
-  let previewUrl = /** @type {string | null} */ (null);
-  async function modelPreview(/** @type {any} */ a) {
-    if (!dfModels || previewFor === a.id) return;
-    previewFor = a.id;
-    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
-    const got = await dfModelAsImport(a.model, dfModels).catch(() => null);
-    if (previewFor !== a.id) return;
-    if (got) { try { previewUrl = URL.createObjectURL(new Blob([/** @type {any} */ (encodePng(renderThumb(got.thumb, { size: 128 })))], { type: 'image/png' })); } catch { previewUrl = null; } }
-    if (st.sel === a.id) showInfo();
-  }
   function showInfo() {
     const a = st.sel ? cat?.get(st.sel) : null;
     if (!a) { info.replaceChildren(el('div', 'dfpoi-sub', t('poi.assets.pick', 'Select an asset to preview it.'))); return; }
     const kv = (/** @type {string} */ k, /** @type {string} */ v) => { const d = el('div'); d.append(el('span', 'dfpoi-assets-kv', `${k}: `), v); return d; };
     const nodes = [];
-    const src = a.kind === 'model' ? (previewFor === a.id ? previewUrl : null) : pics.get(picKey(a) ?? '') ?? null;
+    const src = a.kind === 'model' ? previews?.url(a.model) ?? null : pics.get(picKey(a) ?? '') ?? null;
     if (src) { const img = /** @type {HTMLImageElement} */ (el('img')); img.alt = ''; img.src = src; nodes.push(img); }
     const nm = el('div', '', a.name);
     nm.style.fontWeight = '600';
@@ -291,7 +286,7 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
     acts.append(placeBtn, fav);
     nodes.push(acts);
     info.replaceChildren(...nodes);
-    if (a.kind === 'model') void modelPreview(a);
+    if (a.kind === 'model') previews?.want(a.model);
     else wantPic(a);
   }
   function select(/** @type {string} */ id) {
@@ -346,9 +341,8 @@ export function createPoiAssetBrowser({ doc = document, host, getTexture = null,
     close();
     for (const url of pics.values()) if (url) URL.revokeObjectURL(url);
     pics.clear();
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
     thumbs?.destroy();
+    previews?.destroy();
     box.remove();
   }
   return {

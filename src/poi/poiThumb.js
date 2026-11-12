@@ -136,6 +136,24 @@ export function renderThumb(pieces, { size = POI_THUMB_SIZE } = {}) {
 }
 
 /**
+ * Renders a model thumbnail with `renderThumb`, retrying with all materials set to two-sided if the initial pass
+ * produces only transparent pixels (because the camera looks down from above with back-face culling and models such as
+ * ceiling pieces face downward). Returns null if both passes are empty, without mutating `pieces`.
+ * @param {ThumbPiece[]} pieces @param {{ size?: number }} [opts]
+ * @returns {{ width: number, height: number, data: Uint8Array } | null}
+ */
+export function renderThumbShown(pieces, opts = {}) {
+  const shows = (/** @type {{ data: Uint8Array }} */ img) => {
+    for (let i = 3; i < img.data.length; i += 4) if (img.data[i]) return true;
+    return false;
+  };
+  const img = renderThumb(pieces, opts);
+  if (shows(img)) return img;
+  const again = renderThumb(pieces.map((p) => ({ ...p, materials: p.materials.map((m) => ({ ...m, twoSided: true })) })), opts);
+  return shows(again) ? again : null;
+}
+
+/**
  * The pixels a triangle covers on a `W`-square buffer, by their centres, either winding: `visit(x, y, w0, w1, w2)` with
  * its barycentres (w0 a's). A centre inside it, or on an edge that is its TOP or its LEFT. AUDIT POI M12: a centre on an
  * edge was every triangle's on it, so a centre on an edge two triangles share was drawn twice - a see-through surface

@@ -58,7 +58,7 @@ import { poiImageMetaOf } from '../../poi/poiImage.js';
 import { readGltf, bakeGltf } from '../../poi/gltfImport.js';
 import { prepareImport, uploadImport } from '../../poi/poiImport.js';
 import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   // BUNNYFALL: Daggerfall's own models
-import { renderThumb, encodePng } from '../../poi/poiThumb.js';
+import { renderThumbShown, encodePng } from '../../poi/poiThumb.js';
 import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
 import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
 // flat pictures: the picker, inspector rows, and 2D view
@@ -1199,10 +1199,15 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       if (uploading || !(id > 0)) return;
       chosen = id; drawList(); prep = null; place.disabled = true;
       info.textContent = t('poi.editor.dfModelReading', 'Reading model {id}...', { id });
-      const got = await dfModelAsImport(id, dfModels).catch(() => null);
+      // read through poiModelImportPipe (poi/poiModelThumbs.js) so previewing a model does not upload or retain it on
+      // the GPU, falling back to dfModels if arch is missing or the module fails to load
+      const pipe = dfModels.arch ? await import('../../poi/poiModelThumbs.js').then((m) => m.poiModelImportPipe(dfModels), () => dfModels) : dfModels;
+      const got = await dfModelAsImport(id, pipe).catch(() => null);
+      pipe.done?.();
       if (chosen !== id || dialog !== box) return;
       if (!got) { info.textContent = t('poi.editor.dfModelNone', 'The game has no model {id}.', { id }); pic.removeAttribute('src'); return; }
-      try { const img = renderThumb(got.thumb, { size: 192 }); pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); } catch { pic.removeAttribute('src'); }
+      // a model that renders nothing even two-sided shows no picture; the line below it still describes the model
+      try { const img = renderThumbShown(got.thumb, { size: 192 }); if (img) pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); else pic.removeAttribute('src'); } catch { pic.removeAttribute('src'); }
       prep = prepareImport(got.model, got.baked);
       const p = prep.parts[0];
       info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} pictures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })

@@ -34,6 +34,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: Looking at Daggerfall models in the in-game POI editor's Assets browser or its Daggerfall model window no longer leaves each one in graphics memory for the rest of the session.
+- Fixed: Ceiling pieces and other models whose faces point away from the camera no longer show a blank preview in the in-game POI editor's Daggerfall model window.
 - Fixed: Model cards in the in-game POI editor's Assets browser now show a picture of the model instead of its number.
 - Fixed: The in-game POI editor's history panel can now compare two revisions of a POI and show what changed between them.
 - Fixed: The in-game POI editor can now duplicate an entire POI, including its groups, parts, pictures, people, lights, and DM content, as a new draft beside the original.

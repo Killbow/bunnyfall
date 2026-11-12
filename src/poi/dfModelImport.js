@@ -1,15 +1,11 @@
 // @ts-check
-// BUNNYFALL (2026-11-05, the owner: "a map editor for the overworld of daggerfall ... build new buildings", asked: the
-// models from Daggerfall's own files): A DAGGERFALL MODEL AS AN IMPORT. The game's own model (ARCH3D.BSA through the data
-// pipeline - scenes/dataPipeline.js getGpuMesh, its `cpuModels` the same arrays dfMeshToModel built) handed to the POI
-// importer in the shape the glTF reader hands it (poi/poiImport.js prepareImport's `model` and `baked`): one part, its
-// submeshes a run per picture, each picture the game's texture record as a PNG. Then the import goes the way a GLB does:
-// held to the mesh law, uploaded by its hash, placed, approved and stood by the POI runtime.
-//
-// The frames agree: a POI mesh is in dfMeshToModel's frame (poi/poiMesh.js). Only V differs - a game model's V runs
-// negative from the picture's bottom (world/meshReader.js), a POI's down from its top (glTF's) - so V' = 1 - V, and the
-// picture's rows go top first (the game's Color32 rows run from the bottom).
-// Also its catalogue: the building models Daggerfall's town blocks stand, by the kind of block (`dfModelCatalog`).
+// A DAGGERFALL MODEL AS AN IMPORT. The game's model (ARCH3D.BSA, through a pipe like the data pipeline's; the editor's
+// own, poi/poiModelThumbs.js poiModelImportPipe, uploads nothing) reaches the POI importer in the glTF reader's shape
+// (poi/poiImport.js prepareImport's `model` and `baked`): one part, one submesh run per texture, and each texture
+// record as a PNG. Like a GLB, it is checked against the mesh limits, uploaded by its hash, placed, approved, and shown
+// in the world by the POI runtime. POI meshes use dfMeshToModel's frame (poi/poiMesh.js) except for V: a game model's V
+// runs negative from the texture's bottom (world/meshReader.js) and a POI's runs down from its top, so V' = 1 - V, and
+// texture rows are written top first. It also builds `dfModelCatalog`: town-block building models by block kind.
 import { encodePng } from './poiThumb.js';
 import { RMB_BLOCK_PREFIXES } from '../formats/mapsFile.js';
 

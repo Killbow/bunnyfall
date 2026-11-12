@@ -7,7 +7,7 @@
 // longer wanted is skipped. The page caches PAGE_KEEP pictures and Cache Storage saves STORE_KEEP, under a cache name
 // that changes with each build; when storage is blocked, pictures are drawn but not saved.
 
-import { renderThumb, encodePng } from './poiThumb.js';
+import { renderThumbShown, encodePng } from './poiThumb.js';
 import { TextureFile, texName, LAST_CLASSIC_TEXTURE_ARCHIVE } from '../formats/textureFile.js';
 import { dfMeshToModel } from '../world/meshReader.js';
 import { patchSeams } from '../world/arch3dSeams.js';
@@ -45,13 +45,6 @@ function idleSlot(/** @type {number} */ need) {
     const ask = () => ric((/** @type {any} */ d) => (d.didTimeout ? ok(null) : d.timeRemaining() >= need ? ok(d) : ask()), { timeout: 1000 });
     ask();
   });
-}
-
-/** Counts the pixels of an RGBA picture that are not fully transparent. */
-function coveredPixels(/** @type {{ data: ArrayLike<number> }} */ img) {
-  let n = 0;
-  for (let i = 3; i < img.data.length; i += 4) if (img.data[i]) n++;
-  return n;
 }
 
 /** Returns whether `bytes` is longer than the 8-byte PNG signature and starts with it. */
@@ -258,8 +251,8 @@ export function createPoiModelReader({ arch, palette = null, cpuModels = null, t
 }
 
 /**
- * Model pictures of one size. `wanted(id)` answers whether model `id`'s picture is still wanted (for the browser's cards:
- * on screen); `onReady(id)` is told when its picture (or its failure) is known.
+ * Creates a cache of model pictures at one `size`. `wanted(id)` returns whether model `id` still needs its picture (its
+ * card is on screen, or it is selected), and `onReady(id)` runs once the picture, or its absence, is known.
  * @param {{ arch: any, palette?: any, cpuModels?: Map<number, any> | null, textureFiles?: Map<number, any> | null,
  *   getTexture?: ((archive: number) => Promise<any>) | null, fetch?: (name: string) => Promise<Uint8Array>, forget?: (name: string) => void,
  *   store?: ReturnType<typeof browserThumbStore>, idle?: (need: number) => Promise<any>, size?: number, keep?: number,
@@ -293,16 +286,9 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
     await room();
     if (gone || !wanted(id)) return undefined;
     const t0 = performance.now();
-    const pieces = /** @type {any} */ (modelThumbPieces(m, reader.pictureOf));
-    let img = renderThumb(pieces, { size });
-    // The camera looks down from above and back faces are culled, so a model whose faces all point away (such as a
-    // ceiling piece facing down) renders nothing. Render it again two-sided; if it is still empty, the card shows its
-    // number.
-    if (!coveredPixels(img)) {
-      for (const p of pieces) for (const mat of p.materials) mat.twoSided = true;
-      img = renderThumb(pieces, { size });
-      if (!coveredPixels(img)) return null;
-    }
+    // a model that renders nothing even two-sided has no picture, and its card shows its number
+    const img = renderThumbShown(/** @type {any} */ (modelThumbPieces(m, reader.pictureOf)), { size });
+    if (!img) return null;
     const png = encodePng(img);
     const ms = performance.now() - t0;
     counts.drawMs += ms;
@@ -372,5 +358,23 @@ export function createPoiModelThumbs({ arch, palette = null, cpuModels = null, t
       made.clear();
       reader.release();
     },
+  };
+}
+
+/**
+ * Builds a one-model pipe (`{ getGpuMesh, cpuModels, getTexture, done }`) for `dfModelAsImport` in
+ * `poi/dfModelImport.js`, served by its own `createPoiModelReader`, so reading a model for the editor uploads and pins
+ * nothing on the GPU. `done()` releases the model and texture files it read.
+ * @param {{ arch: any, palette?: any, cpuModels?: Map<number, any> | null, textureFiles?: Map<number, any> | null, getTexture?: ((archive: number) => Promise<any>) | null }} o
+ */
+export function poiModelImportPipe(o) {
+  const reader = createPoiModelReader(o);
+  /** @type {Map<number, any>} */
+  const cpuModels = new Map();
+  return {
+    getGpuMesh: async (/** @type {number} */ id) => { const m = await reader.read(id); if (m) cpuModels.set(id, m); },
+    cpuModels,
+    getTexture: (/** @type {number} */ a) => reader.textureFile(a),
+    done() { cpuModels.clear(); reader.release(); },
   };
 }
