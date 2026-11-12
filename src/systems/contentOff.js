@@ -32,6 +32,10 @@ export const CONTENT = Object.freeze({
    *  higher-tier veins, signature ore, rare wood, gems, the March's bounty and the Tide can appear. A small server never
    *  had the crowd the rule assumed. */
   witnessedGround: false,
+  /** BUNNYFALL (2026-11-12, the owner: "we need to disable the nsfw filter on the chat"): the chat's word filter. Off, a
+   *  chat line is sent as typed: no word starred (net/wire.js sanitizeChat). Names, guild names, notes and letters keep
+   *  the filter. */
+  chatFilter: false,
 });
 
 /** Whether a piece of content is on. */

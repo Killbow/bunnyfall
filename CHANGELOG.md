@@ -7,6 +7,7 @@ the last release (scripts/changelogNotes.mjs).
 
 - Staff: the whole staff panel now opens inside the game from a movable ST button (web and desktop app), with players, moderation, items, economy, reports, events, the live map, Follow and Hide me in one place. The staff bar in game is back while it is open. staff.html is the same panel in a browser.
 - /vanish no longer cuts a staff member off the network: monsters, chat and everything else keep working while players and monsters simply can't see them.
+- The chat no longer stars out swear words: what you type is what everyone sees. Names, guild names, notes and letters are still filtered.
 - Starting to cook or brew on the Provisioning page now scrolls to The Simmer.
 - The old crafting menus are gone. The Anvil, Workbench, Loom and Jeweler's bench pages are removed from Stations, and the Mason's bench only cuts stone. Every piece is made at the Bench now, so material Potential applies the same way for everyone. Cooking at a fire is unchanged.
 - Crafting writs now take what the pot and the cauldron make. A potion writ takes your one-trait cauldron bottles of that potion (mixed bottles don't count), a dish writ your pot dishes of its kind: stew, supper, tart or feast. Provisioning also goes up to rank 100 by every way of making, no matter your other crafts. At an alchemy table, option 2 now says it opens the Provisioning page.

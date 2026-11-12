@@ -205,6 +205,7 @@ import { HUB_SHARD_ROOMS, isHubShard, HUB_FIND_Q_MAX, REGION_SHARD_ROOMS } from 
 
 import { wrapAngle } from '../world/mat4.js';   // ONCRASH1: the port's one angle wrap. The relay re-exports this module (server/src/relay.js), so this reaches the worker too - mat4.js imports nothing itself.
 import { TITLES, GLYPHS, GLYPHS_MAX, AURAS, ICONS, titleClaimed, seatTitleClaimOk, renownIssuable } from './identityToken.js';   // ACC3: the badge vocabulary, closed - `badged` writes it and `readBadge` checks it back   // RENOWN1: and the level's bound, `badged` and `readRenown` alike
+import { contentOn } from '../systems/contentOff.js';   // BUNNYFALL: the chat filter's switch (a leaf, as nameFilter.js)
 import { nameAllowed, maskText, textCaught } from './nameFilter.js';   // NAME-F2: the filter runs INSIDE sanitizeName, so the relay carries it; TEXT-F1: and a player's words are starred inside sanitizeChat and wordsLine, the same way - nameFilter.js imports nothing, same as mat4.js above, so the worker's graph stays flat
 import { validRollSpec, validRoll, rollDice, ROLL_DICE_MAX, ROLL_SIDES_MAX, ROLL_MOD_MAX } from './dice.js';   // DICE1: the dice's law - one home for both ends (dice.js imports nothing, so the worker's graph stays flat)
 import { ribbonClaimOk } from './heraldryLaw.js';   // SEASON1 part two: a Season's banner ribbon - heraldryLaw.js imports nothing, so the worker's graph stays flat
@@ -1092,7 +1093,7 @@ export function sanitizeChat(text) {
   // the bound can fall inside a pair (no half of a character) or just past a joiner, whose pictograph it cut away
   // (EMOTE1: a joiner with nothing after it joins nothing) - either leaves a tail a second pass would take; it goes now
   while (/[\uD800-\uDBFF]$/.test(s) || s.endsWith('\u200d')) s = s.slice(0, -1);
-  return maskText(s.trim());
+  return contentOn('chatFilter') ? maskText(s.trim()) : s.trim();   // BUNNYFALL: the chat filter, off by default (systems/contentOff.js)
 }
 
 /** MAIL1 + JOURNAL1: ONE LINE OF A PLAYER'S WORDS WHERE THE WORDS KEEP THEIR LINES - a letter's (net/letterLaw.js) and a
