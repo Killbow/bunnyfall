@@ -21,6 +21,7 @@ refused online (`ONLINE_REFUSED_FLAGS` in `src/systems/online/onlineLane.js`). I
 | Approver queue, diff in words, history, rollback | `src/ui/poi/poiReviewPanel.js`, `poiDiff.js`, `poiText.js` |
 | UV editor (select, unwrap on a worker, project, pack) | `src/ui/poi/poiUvPanel.js`, `src/poi/uv/*`, `sparseCholesky.js` |
 | Export as GLB, export and import as a zip pack | `src/poi/poiTransfer.js`, `gltfExport.js`, `poiPack.js` |
+| DM content (people's links, routes, encounters, objects, dialogues, trades, events, variables), the event graph, the routes and zones drawn in the world, the Sandbox | `src/ui/poi/poiDmPanel.js`, `poiSandbox.js`, `src/poi/poiDmEdit.js`, `poiDmLines.js` |
 
 The spec does not list these files, but the editor uses them: `poiNpcUi.js`, `poiImport.js`, `poiShelf.js`,
 `dfModelImport.js`, `pictureImport.js`, `src/scenes/poiNpcs.js` and `src/world/seasonView.js`.

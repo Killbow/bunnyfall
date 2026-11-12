@@ -9,7 +9,7 @@ import { h, clear } from './dom.js';
 import { createSandbox } from './sandbox.js';
 import { find } from '../scene.js';
 import { POI_ROUTE_MODES, POI_AGGRESSION, POI_RESPAWN, POI_COMPLETE_RULES, POI_INTERACTIVE_KINDS, POI_INTERACTIVE_STATES, POI_VAR_TYPES, POI_VAR_SCOPES, POI_VAR_OPS, POI_LIMIT_MODES, POI_ACTION_KINDS, POI_OPTION_KINDS, POI_V2_LIMITS as LIM } from '../../../../src/poi/poiLawV2.js';
-import * as DM from '../dm.js';
+import * as DM from '../../../../src/poi/poiDmEdit.js';
 import { eventGraphSvg } from './eventGraph.js';
 import { ask } from './dialog.js';
 

@@ -47,7 +47,7 @@ World and decoration (Milestone 3):
 - **2D canvas** (`src/flat2d.js`, `ui/canvas2d.js`): pivot by click with snapping and presets, mirror (the game's own rule: more than a quarter turn faces the other way; mounts never mirror), turn or spin, layer back/forward/to front/to back with a layer list, backdrops, pixel read-out.
 - **Interior** (`src/interior.js`): the room shell and the built-in pieces taken out (the game's `m<placement>:<model>` and `f<flat>:<archive>.<record>` names, at most 200), a flat's own light, the hanging-lantern flame height, and mounts hung off a surface's normal.
 
-DM suite (Milestone 4), in the DM view (`src/dm.js`, `ui/dm.js`, `ui/eventGraph.js`, `src/spline.js`):
+DM suite (Milestone 4), in the DM view (`ui/dm.js`, `ui/eventGraph.js`, `src/spline.js`, and the game's `src/poi/poiDmEdit.js`, which the in-game editor's DM panel uses too):
 
 - One tab each for people (route, dialogue, trade, talk range, shown-when), routes and waypoints, encounters and spawn points (the game's own foes, optional exact level), objects (chest, door, switch, quest object, zone), dialogues (lines, answers, conditions, cooldowns), trades (recipes with item stacks from the catalogue, gold, limits, stock), events (trigger, condition tree, then and else actions) and variables.
 - Picking a spot (waypoint, spawn, centre, object) switches to the 3D view, takes one click on the ground (snapped, on the terrain when there is one) and comes back. Esc cancels.
@@ -62,7 +62,7 @@ Uploaded model parts (`mesh`) are drawn as boxes until their import lands.
 
 ## Files
 
-- `src/scene.js`, `clipboard.js`, `catalogue.js`, `place.js`, `transforms.js`, `camera.js`, `api.js`, `terrain.js`, `flat2d.js`, `interior.js`, `dm.js`, `spline.js`: pure modules, tested.
+- `src/scene.js`, `clipboard.js`, `catalogue.js`, `place.js`, `transforms.js`, `camera.js`, `api.js`, `terrain.js`, `flat2d.js`, `interior.js`, `spline.js`: pure modules, tested.
 - `src/ui/`: the panels and the WebGL viewport.
 - `scripts/buildAssetCatalogue.mjs`: rebuilds `public/asset-catalogue.json` and `public/thumbs/` from ARENA2.
 - `SCHEMA-V2.md`, `AUDIT-MAP.md`, `ASSET-AUDIT.md`: the document law, the repo audit and the asset audit.

@@ -109,8 +109,10 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let drag = null;
   /** @type {null | { x: number, y: number, moved: boolean, button: number }} */
   let press = null;
-  /** @type {null | { kind: 'poi', name: string } | { kind: 'part', asset: any, fallbackName?: string }} */
+  /** @type {null | { kind: 'poi', name: string } | { kind: 'part', asset: any, fallbackName?: string } | { kind: 'spot', id: string, done: (p: number[]) => void }} */
   let placing = null;
+  /** The DM panel's lines (ui/poi/poiDmPanel.js): `(placeOf) => ({ inWorld, onTop }) | null`, drawn with the editor's own. */
+  let overlay = null;
   /** @type {number[] | null} */
   let placeAt = null;   // where the placing mark stands (scene frame)
   let overlayGen = -1;
@@ -217,6 +219,14 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   function place(at) {
     const px = sceneToPixel(at);
     if (!px || !placing) return;
+    if (placing.kind === 'spot') {
+      // a spot picked for the DM panel: handed back in its POI's own frame
+      const { id, done } = placing, doc = edit.docOf(id), o = doc ? originOfDoc(doc) : null;
+      placing = null; placeAt = null;
+      if (o) done(worldToPlace(doc.place, sub(at, o)));
+      told();
+      return;
+    }
     // a model's spot is on the ground (or on what it was dropped on): a snap POI's height its lift above the ground
     const ground = surfaceAt(at[0], at[2]);
     const lift = Number.isFinite(ground) ? Math.max(0, at[1] - ground) : 0;
@@ -335,6 +345,17 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
     cancelPlacing() { placing = null; placeAt = null; told(); },
+    /** The next click on the ground answers `done` with that spot in POI `id`'s own frame (Esc lets it go). */
+    pickSpot(/** @type {string} */ id, /** @type {(p: number[]) => void} */ done) { placing = { kind: 'spot', id, done }; told(); },
+    /** The ground under the eye, in POI `id`'s own frame (null while its ground is not built). @param {string} id */
+    spotUnderEye(id) {
+      const v = view(), doc = edit.docOf(id), o = doc ? originOfDoc(doc) : null;
+      if (!v || !o) return null;
+      const g = surfaceAt(v.eye[0], v.eye[2]);
+      return worldToPlace(doc.place, sub([v.eye[0], Number.isFinite(g) ? g : o[1], v.eye[2]], o));
+    },
+    /** The DM panel's lines, or null for none. @param {any} fn */
+    setOverlay(fn) { overlay = fn ?? null; },
 
     /**
      * The eye this frame (the world's `cam`): flown while the right button is held.
@@ -552,6 +573,12 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
             for (const a of AXES_WORLD) onTop.push({ a: sub(c, mul(a, k)), b: add(c, mul(a, k)), color });
           });
         }
+      }
+      if (overlay) {
+        // a point of POI `id`'s own frame in the scene's, through its place (null while its ground is not built)
+        const placeOf = (/** @type {string} */ id) => { const doc = edit.docOf(id), o = doc ? originOfDoc(doc) : null; return o ? (/** @type {number[]} */ p) => add(o, mul(quatRotate(doc.place.r, p), doc.place.s)) : null; };
+        const more = overlay(placeOf);
+        if (more) { for (const l of more.inWorld) inWorld.push(l); for (const l of more.onTop) onTop.push(l); }
       }
       const g = gizmo();
       if (g) {

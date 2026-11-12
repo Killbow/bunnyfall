@@ -11,7 +11,7 @@ import { createCatalogue } from './poi-editor/src/catalogue.js';
 import {
   addVariable, addRoute, addWaypoint, setWaitAll, addEncounter, addSpawn, setComplete, addInteractive, addDialogue, addNode, addOption, thenOf, addTrade, addRecipe, setLimit,
   addStack, addEvent, addAction, conditionOf, removeRow, removeWaypoint, removeRecipe, referrers, refsOf, eventGraph, actionText, conditionText, foeName, FOES, foeCount, removeNode, shiftWaypoint,
-} from './poi-editor/src/dm.js';
+} from '../src/poi/poiDmEdit.js';
 
 const cat = createCatalogue(JSON.parse(fs.readFileSync(new URL('./poi-editor/public/asset-catalogue.json', import.meta.url), 'utf8')));
 const item = (name) => { const a = cat.assets.find((x) => x.namespace === 'paperdoll-item' && x.name === name); assert.ok(a, `catalogue has ${name}`); return a.template; };

@@ -12,7 +12,9 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   first change (opening one changes nothing). `POI_SHELF_VERSION` is `1`.
 - Size: 96 KiB for v1, 256 KiB for v2 (`poiDocBytesOf`). Library shelf entries stay v1: a part or light saved to the library from a v2
   POI loses its group, visibility, and lock.
-- The in-game editor preserves every v2 key it cannot edit yet and lists them, read-only, in the POI's inspector.
+- The in-game editor edits the DM content in its DM panel (`src/ui/poi/poiDmPanel.js`), except a spawn point's `route`, an
+  object's `yaw`, and a `flat` appearance, which the game does not act on yet. It preserves those and every other v2 key it cannot
+  edit yet (groups, flats, the interior, `visible`, and `locked`) and lists them, read-only, in the POI's inspector.
 
 ## What v2 adds
 

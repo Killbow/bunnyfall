@@ -1,0 +1,104 @@
+// Tests the DM editing module (src/poi/poiDmEdit.js), which both POI editors use: new rows pass the document law, the
+// item picker offers the game's items with their groups and materials, a stack retains only the group and material its
+// item supports, removing a referenced row is refused with the referrer's name, and DM fields that the in-game panel
+// does not edit are counted.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { poiDocProblems } from '../src/poi/poiLaw.js';
+import { poiTradeProblems } from '../src/poi/poiTradeLaw.js';
+import * as DM from '../src/poi/poiDmEdit.js';
+import { poiV2Example } from './poiV2Examples.mjs';
+
+const blank = () => ({
+  v: 2, id: 'poi-0123456789ab', name: 'Test', about: '', tags: [],
+  place: { px: 500, py: 250, x: 100, z: 100, y: 0, ground: 'snap', r: [0, 0, 0, 1], s: 1 },
+  parts: [], lights: [], npcs: [{ key: 'keeper', name: 'Keeper', t: [0, 0, 0], yaw: 0, h: 1.8, look: { k: 'df', a: 184, r: 0 }, lines: [] }],
+});
+const problems = (d) => { const p = poiDocProblems(d); return p.length ? p : poiTradeProblems(d); };
+
+test('every kind of row it adds stands to the law as it is made', () => {
+  const d = blank();
+  DM.addVariable(d, 'Gate open', 'string', 'poi_global');
+  DM.addRoute(d, 'Patrol', [1, 0, 1]);
+  DM.addEncounter(d, 'Ambush', [5, 0, 5]);
+  DM.addInteractive(d, 'door', 'Gate', [2, 0, 2]);
+  DM.addInteractive(d, 'trigger', 'Zone', [3, 0, 3]);
+  DM.addDialogue(d, 'Greeting');
+  DM.addTrade(d, 'Shop');
+  DM.addEvent(d, 'Opens', 'interact');
+  assert.deepEqual(problems(d), []);
+  assert.equal(d.routes[0].waypoints.length, 2);
+  assert.equal(d.events[0].trigger.interactive, 'gate');
+});
+
+test('the item picker offers the game\'s items by group, without the currency, and materials for weapons and armor only', () => {
+  const items = DM.itemChoices();
+  const iron = items.find((x) => x.template === 71);
+  assert.ok(iron && iron.name === 'Iron', 'iron is offered');
+  assert.ok(!items.some((x) => x.group === 'Currency'));
+  assert.ok(items.some((x) => x.group === 'Weapons') && items.some((x) => x.group === 'Armor'));
+  assert.deepEqual(DM.materialChoices('Weapons').map(([v]) => v), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(DM.materialChoices('Armor').length, 12);
+  assert.deepEqual(DM.materialChoices('MetalIngredients'), []);
+});
+
+test('a stack includes a material only when its item takes one, and the law accepts what is left', () => {
+  const d = blank();
+  DM.addTrade(d, 'Smith');
+  const rec = d.trades[0].recipes[0];
+  const sword = DM.itemChoices().find((x) => x.group === 'Weapons');
+  DM.setStackItem(rec.rewardItems[0], { template: sword.template, material: 9 });
+  assert.equal(rec.rewardItems[0].material, 9);
+  assert.deepEqual(problems(d), []);
+  DM.setStackItem(rec.rewardItems[0], { template: 71 });
+  assert.equal(rec.rewardItems[0].material, undefined, 'iron ore has no material');
+  DM.setStackItem(rec.rewardItems[0], { material: 3 });
+  assert.equal(rec.rewardItems[0].material, undefined);
+  assert.deepEqual(problems(d), []);
+});
+
+test('removing a row something needs is refused with who needs it; links that may go are dropped with it', () => {
+  const d = poiV2Example();
+  const r = DM.removeRow(structuredClone(d), 'encounters', 'ambush');
+  assert.match(r.refused, /Still used by event "Ambush starts"/);
+  const v = DM.addVariable(d, 'Gate state', 'string', 'poi_global').row;
+  d.interactives[0].stateVar = v.key;
+  assert.deepEqual(problems(d), []);
+  const out = DM.removeRow(d, 'variables', v.key);
+  assert.equal(out.ok, true);
+  assert.equal(d.interactives[0].stateVar, undefined, 'the object no longer takes its state from it');
+});
+
+test('an object takes its state only from a persistent text variable', () => {
+  const d = poiV2Example();
+  // a boolean
+  d.interactives[0].stateVar = 'bridge_unlocked';
+  assert.deepEqual(poiDocProblems(d).map((p) => [p.path, p.code]), [['interactives[0].stateVar', 'state-var']]);
+  d.interactives[0].stateVar = 'nobody';
+  assert.deepEqual(poiDocProblems(d).map((p) => p.code), ['ref-missing']);
+});
+
+test('it counts the DM fields the in-game panel does not offer', () => {
+  const d = poiV2Example();
+  assert.deepEqual(DM.dmHeldOf(d), { patrols: 0, facing: 0, flatLooks: 0 });
+  d.encounters[0].spawns[0].route = 'patrol';
+  d.interactives[0].yaw = 90;
+  d.interactives[1].appearance = { k: 'flat', flat: [200, 0] };
+  assert.deepEqual(DM.dmHeldOf(d), { patrols: 1, facing: 1, flatLooks: 1 });
+});
+
+test('the event graph and the plain words read the example', () => {
+  const d = poiV2Example();
+  const g = DM.eventGraph(d);
+  assert.ok(g.nodes.some((n) => n.id === 'event:ambush-start'));
+  assert.ok(g.edges.some((e) => e.to === 'event:ambush-start' && e.label === 'enters'));
+  assert.equal(DM.actionText(d, { k: 'give_gold', amount: 250 }), 'give 250 gold');
+  assert.equal(DM.actionText(d, { k: 'take_item', item: { template: 71, count: 10 } }), 'take 10 x Iron');
+  assert.equal(DM.conditionText(d, { k: 'all', of: [{ k: 'has_gold', amount: 5 }, { k: 'has_item', item: { template: 72, count: 5 } }] }), 'all of (has 5 gold and has 5 x Copper)');
+});
+
+test('keys come from names, unique among those taken', () => {
+  assert.equal(DM.freshKey('Gate Open', new Set()), 'gate-open');
+  assert.equal(DM.freshKey('Gate Open', new Set(['gate-open'])), 'gate-open-2');
+  assert.equal(DM.freshKey('', new Set()), 'item');
+});

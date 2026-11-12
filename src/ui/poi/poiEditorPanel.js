@@ -56,6 +56,8 @@ import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   
 import { renderThumb, encodePng } from '../../poi/poiThumb.js';
 import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
 import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
+// the DM content, in a wide dock
+import { createPoiDmPanel, heldNotEditable, dmHeldLines } from './poiDmPanel.js';
 import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
 import { SEASON } from '../../world/climateSwaps.js';
 
@@ -283,6 +285,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   // POI-6: the approver's queue and a POI's history, laid in the panel the same way (the feed asked again after a verdict)
   review = createPoiReview({ doc, host: root, me, act: (fn) => act(fn), say, refusal, edit, facts, goTo, feed });
   const dialogsClosed = () => { closeDialog(); library.close(); review.close(); };
+  const dm = createPoiDmPanel({ doc, root, edit, editor, say });
 
   // ── RENDERING ────────────────────────────────────────────────────
   let queued = false;
@@ -352,6 +355,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),
       ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
+      (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'The selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -496,8 +500,11 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
     const flats = Array.isArray(d.flats) ? d.flats.length : 0;
     if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', 'Its {n, plural, one {flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
-    // what a v2 POI holds that this editor cannot change yet, read-only, and its size against its version's limit
-    const held = heldLines(poiHeldOf(d));
+    // what a v2 POI holds that this editor cannot change yet (groups, flat pictures, an interior, marks, and the DM fields the
+    // DM panel leaves out), read-only, and its size against its version's limit
+    const held = heldLines(heldNotEditable(poiHeldOf(d)));
+    const dmHeld = dmHeldLines(d);
+    if (dmHeld.length) { if (held.length) held.splice(held.length - 1, 0, ...dmHeld); else held.push(...dmHeld, t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.')); }
     if (held.length) out.push(el('div', 'dfpoi-h', t('poi.held.title', 'Not editable here yet')), ...held.map((l) => el('div', 'dfpoi-sub', l)));
     out.push(el('div', 'dfpoi-sub', docSizeText(poiDocSizeOf(d), d.v)));
     return out;
@@ -605,6 +612,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       row.append(problemText(p));
       const pi = /^parts\[(\d+)\]/.exec(p.path);
       if (pi) row.addEventListener('click', () => edit.select({ id, part: d.parts[Number(pi[1])]?.key ?? null }));
+      // a DM row's problem opens it in the DM panel
+      else row.addEventListener('click', () => { if (dm.jumpTo(p.path)) schedule(); });
       out.push(row);
     }
     return out;
@@ -1260,7 +1269,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       if (on) { schedule(); return; }
       // AUDIT POI U8: leaving the editor lets go of what was open over it - the UV editor (it stood on over the game), the
       // library, the approver's queue and its look (the screen shows the world as it stands again), the panel's own dialog
-      dialogsClosed(); uvDialog?.close(); closing = null;
+      dialogsClosed(); uvDialog?.close(); closing = null; dm.close();
     },
     /** The editor's own change (a tool, the hover, the selection made in the world). */
     refresh: () => schedule(),
@@ -1283,7 +1292,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     openPack: (bytes) => openPack(bytes),
     /** Whether a press landed on the panel (the world leaves it alone). */
     owns: (target) => !!target && typeof root.contains === 'function' && root.contains(target),
-    destroy() { gone = true; offEdit(); facts.stop(); dialogsClosed(); uvDialog?.close(); root.remove?.(); },
+    destroy() { gone = true; offEdit(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
+    /** The DM panel (its tabs, the Sandbox). */
+    dm,
   };
 }
 
