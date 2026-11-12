@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Staff: Open reports are readable now. Each case says what kind it is and why it has its level, and opens in place to the reported chat or spawn findings and the reporters' notes. From there you can Dismiss, Mute, Ban or open the player. Ticked cases, or every automatic spawn check nobody reported, can be dismissed in one go.
 - Moving goods in and out of the company Stores no longer counts toward the hourly writs limit, so Put in all and taking everything back out can't lock you out of writs for an hour anymore.
 - Fixed the Garrison page stuck on "Reading the garrison..." when a Company's Stores held flowers, twigs or other gathered plants. Those plants now count as herbs for Battlemages and Healers.
 - You can hide pieces of gear. In the inventory, each worn piece of armour, clothing or a shield has a small eye: click it and the piece stays worn (its armour, warmth and enchantments still count) but nobody sees it, you included: not on your paperdoll, your body, your portrait or to other players. Click it again to show it. Weapons always show.

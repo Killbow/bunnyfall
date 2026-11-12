@@ -14,6 +14,7 @@
 /* global btoa, atob, sessionStorage, confirm, crypto, Node */
 import { selfAccountUrl } from '../net/selfHost.js';
 import { STAFF_TABS, showAnswer, buildActs } from './staffPanelActions.js';
+import { reportsView } from './staffReports.js';   // BUNNYFALL: the open reports, readable and closable
 import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
 
 const $ = (/** @type {string} */ id) => /** @type {any} */ (document.getElementById(id));
@@ -96,6 +97,8 @@ const WORDS = {
   'staff-item-unlawful': 'The game would flag that item as impossible.', dead: 'That character is dead.', 'no-clean': 'There is no clean save to roll back to.',
   'service-moved': 'The server moved items since the clean save (a sale or trade), so a rollback would duplicate them.', 'bank-moved': 'Their bank changed meanwhile. Open it again.',
   'greed-amount': 'Give between 1 and 1,000,000 gold, or 1 and 1,000 Nyx coins.', 'greed-no-player': 'No such player.', 'bad-minutes': 'Pick a time.', 'bad-days': 'A ban is 1 to 365 days, or forever.',
+  'no-case': 'That case is already closed.', 'case-closed': 'That case is already closed.', 'case-acted': 'Someone is acting on that case right now. Refresh.',
+  'staff-claimed': 'Another staff member has taken that case.', 'not-developer': 'Only a developer can close a spawn check.', 'not-moderator': 'Only a moderator can do that.',
   'watch-full': 'Your watch list is full.', 'not-watched': 'Not on your watch list.', 'staff-message-long': 'Keep it under 200 characters.',
 };
 const why = (/** @type {any} */ j) => {
@@ -282,7 +285,7 @@ function homePage(/** @type {HTMLElement} */ root) {
       const j = await call('/v1/staff/cases');
       if (j.error) { nReports.textContent = '-'; return why(j); }
       nReports.textContent = String(j.total ?? j.cases?.length ?? 0);
-      return (j.cases ?? []).slice(0, 8).map((c) => h('div', { class: 'li click', onclick: () => openAccount(c.target, c.name) },
+      return (j.cases ?? []).slice(0, 8).map((c) => h('div', { class: 'li click', onclick: () => go('more:reports') },   // BUNNYFALL: to the case, readable
         h('span', { class: `chip ${c.level === 'high' ? 'bad' : c.level === 'medium' ? 'warn' : ''}` }, c.level),
         h('span', { class: 'grow' }, h('b', null, c.name), ' ', h('span', { class: 'dim' }, `${c.reports} report${c.reports === 1 ? '' : 's'} · ${(c.reasons ?? []).join(', ')}`)),
         h('span', { class: 'dim' }, ago(c.lastReport || c.openedAt))));
@@ -706,7 +709,7 @@ function morePage(/** @type {HTMLElement} */ root) {
 function moreTool(/** @type {HTMLElement} */ root, /** @type {string} */ k) {
   const card = h('div', { class: 'card' });
   root.append(h('div', { class: 'row', style: 'margin-bottom:10px' }, h('button', { class: 'ghost', onclick: () => go('more') }, '< More'), h('b', null, TOOLS.find((t) => t[0] === k)?.[1] ?? k)), card);
-  if (k === 'reports') return answerTabs(card, [['Open reports', '/v1/staff/cases'], ['Banned players', '/v1/staff/banned'], ['Frozen players', '/v1/staff/freezes'], ['Reported board posts', '/v1/staff/board/reported'], ['My watch list', '/v1/staff/watch']]);
+  if (k === 'reports') { reportsView(card, { h, call, toast, why, ago, when, rid, openAccount }); const rest = h('div', { class: 'card' }); root.append(rest); return answerTabs(rest, [['Banned players', '/v1/staff/banned'], ['Frozen players', '/v1/staff/freezes'], ['Reported board posts', '/v1/staff/board/reported'], ['My watch list', '/v1/staff/watch']]); }
   if (k === 'economy') return answerTabs(card, [['Economy (7 days)', '/v1/staff/econ/economy', { days: 7 }], ['Who got rich fast', '/v1/staff/gains', { days: 7 }], ['Trade holds', '/v1/staff/trade-holds'], ['Reported listings', '/v1/staff/market/reported'], ['Guilds', '/v1/staff/econ/guilds'], ['Item census', '/v1/staff/census']]);
   if (k === 'team') return answerTabs(card, [['Team', '/v1/staff/team'], ['Moderators', '/v1/staff/mods'], ['Server status', '/v1/staff/status'], ['My keys', '/v1/staff/keys']]);
   if (k === 'saves') { const out = h('div'); const box = charChooser(null); card.append(box.el, h('button', { class: 'primary', onclick: () => { const x = box.get(); if (x) savesOf(x.account.id, out); } }, 'Show their saves'), h('div', { class: 'section' }, out)); return; }
