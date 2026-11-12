@@ -4,10 +4,12 @@
 // member types (local, never said to the room). The account service says who is staff (server-account/src/staffCommands.js);
 // a player who is not hears that the command is staff-only.
 //
-//   /vanish                  on, then off again. On, the game leaves every room and opens each again on a fresh token,
-//                            which the service mints hidden: the relay names and passes on nothing of it (players see
-//                            nothing), and the game, holding a hidden token, is no one to a monster (staffFollowHost.js
-//                            `unseen`). While vanished only the Staff channel hears you.
+//   /vanish                  on, then off again. On, the game leaves every room and opens each again on a fresh token
+//                            that carries the vanish mark (`vn`, signed by the service). The relay plays the socket as
+//                            ever - monsters, chat, trade and everything else stay networked - and passes the mark on
+//                            the join: every other game leaves the player undrawn, out of its lists and no foe's quarry
+//                            (net/online.js `visible`, the foes' peer lists), and this game, holding the mark, is no one
+//                            to its own monsters (staffFollowHost.js `unseen`).
 //   /spawn <monster> [n]     n (1-10, 1 by default) of a monster stood near you through the game's own placement
 //                            (hostEnchant.js standLooseFoe) - outdoors, in a dungeon or indoors. The monster by its
 //                            name, spaces ignored ("giant bat", "orcwarlord", "fire daedra"), or its number.
@@ -61,7 +63,7 @@ export function createStaffCommands({ io, relink, spawn, entity, saved }) {
     const r = await staffVanish(door, !now.data.vanished);
     if (!r?.ok) { say('The server could not be reached.'); return; }
     relink();
-    say(r.data.vanished ? 'You vanish. Players and monsters no longer see you, and only the Staff channel hears you. /vanish again to come back.' : 'You are visible again.');
+    say(r.data.vanished ? 'You vanish. Players and monsters no longer see you; everything else plays on as usual. /vanish again to come back.' : 'You are visible again.');
   }
 
   async function spawnCmd(arg, say) {

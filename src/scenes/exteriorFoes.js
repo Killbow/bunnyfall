@@ -1230,6 +1230,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const seen = new Set();
     for (const q of list) {
       if (!q || typeof q.id !== 'string' || !Array.isArray(q.feet) || q.feet.length !== 3 || !q.feet.every(Number.isFinite)) continue;
+      if (q.vn) continue;   // BUNNYFALL /vanish: a vanished staff member is no foe's quarry
       seen.add(q.id);
       let c = _peerCands.get(q.id);
       if (!c) { c = { isPlayer: true, isPeer: true, id: q.id, feet: [0, 0, 0], height: CAPSULE_HEIGHT, health: 1, cv: 0, concealment: () => concealFlagsOfBits(c.cv) }; _peerCands.set(q.id, c); }   // INVIS-NET: its concealment, off its pose - EnemySenses.BlockedByIllusionEffect reads a peer as it reads any target

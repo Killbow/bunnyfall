@@ -118,7 +118,8 @@ export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink 
   const map = createStaffMap({ main, post: door.post, ...(Session ? { Session } : {}) });
   // FOLLOW-HIDDEN-REJOIN: whether the game is hidden now, read off each token its presence session mints (noteHidden wraps once)
   let hiddenNow = false;
-  const watch = () => { const m = main(); if (m && typeof m.mintToken === 'function') m.mintToken = noteHidden(m.mintToken, (/** @type {boolean} */ h) => { hiddenNow = h; }); };
+  let vanishedNow = false;   // BUNNYFALL /vanish: the token's `vn` - drawn by no one, and no monster's quarry
+  const watch = () => { const m = main(); if (m && typeof m.mintToken === 'function') m.mintToken = noteHidden(m.mintToken, (/** @type {boolean} */ h, /** @type {boolean} */ v) => { hiddenNow = h; vanishedNow = !!v; }); };
   const host = createStaffFollowHost({ hook, prepare, mode, where: () => `${mode()}|${pixel().x},${pixel().y}`, toScene, eyeHeight: (p) => (p.rd ? RIDE_EYE_HEIGHT : CAPSULE_HEIGHT - 0.2), hidden: () => hiddenNow });
   // STAFF-FOLLOW-UNLOCK and STAFF-HIDE-IN-GAME: once a panel has spoken here, the staff bar on the game's own screen - Hide
   // me or Show myself, and while a follow is locked its Unlock; a press waits on the panel's answer (the relink follows it)
@@ -132,7 +133,7 @@ export function staffFollowOnPage({ main, prepare, mode, pixel, toScene, relink 
   // STAFF-UNSEEN (mob: "staff in overworld and flat need to stay in it and not have mobs pull them out"; the card's pick
   // "Monsters ignore hidden staff"): hidden, the game's player is no one to a foe (scenes/shared.js sensesContext's
   // `playerUnseen`) - and no foe near keeps the Overworld down or brings it down (world.js, the travel view's `danger`)
-  const unseen = () => { if (entity) entity.staffHidden = hiddenNow && !!main(); };
+  const unseen = () => { if (entity) entity.staffHidden = (hiddenNow || vanishedNow) && !!main(); };
   const barFrame = () => { if (door.panel()) bar.show({ following: hook.locked(), hidden: hiddenNow, asking, seeing: host.seeing() }); else bar.hide(); };
   return {
     hook, map, frame: () => { watch(); map.tick(); const out = host.frame(); barFrame(); unseen(); return out; }, eye: host.eye, locked: () => hook.locked(),

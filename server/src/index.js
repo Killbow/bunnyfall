@@ -3521,7 +3521,7 @@ export class Room {
     // INT7: and its ARMS (`wa`, the judged pack's most reach and its bow) - every referee's clip of a blow between players
     if (c.fo) house.fo = c.fo;   // STAFF-PANEL5-FOLLOW: `fo`, the account a hidden spectator follows (beside `hd` alone - claimsValid); set here, as the return's literal is pinned by other mutant lists
     if (c.hd === 1) this._hidHellos.add(m);   // STAFF-PANEL5-HIDDEN: `hd`, a hidden staff spectator's token - the hello marked off the signature (staffHidden.js hiddenHello)
-    return { name: c.n, kind: c.k, subject: c.s, title: c.t, ts: c.ts, glyphs: c.g, gx: c.gx, au: c.au, pi: c.pi, rb: c.rb, mu, lt, lv: c.lv, ...guild, gio: c.i, ar: c.ar, cl: c.cl, ...house, ci: c.ci, wa: c.wa };   // ARENA4: the season's rating, the hall's queue's   // ARENA4b: `cl` the character's level, a ladder fighter's vitality's
+    return { name: c.n, kind: c.k, subject: c.s, title: c.t, ts: c.ts, glyphs: c.g, gx: c.gx, au: c.au, pi: c.pi, rb: c.rb, mu, lt, lv: c.lv, ...guild, gio: c.i, ar: c.ar, cl: c.cl, ...house, ci: c.ci, wa: c.wa, ...(c.vn === 1 ? { vn: 1 } : {}) };   // ARENA4: the season's rating, the hall's queue's   // ARENA4b: `cl` the character's level, a ladder fighter's vitality's
   }
 
   /** The verifying key, imported once. Shared by the hello and by

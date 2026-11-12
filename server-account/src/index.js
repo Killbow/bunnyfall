@@ -382,7 +382,7 @@ import { runCron } from './cron.js';   // SCALE4b: the service's own clock
 import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, modCases, modCase, modDismiss, modAct, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { strikesLook, isBanned } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
 import { freezeRefusal, frozenAnswer, playerStaffChat, isFrozen, STAFF_CHAT_ROUTES, STAFF_CHAT_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: the freeze gate and the player's staff chat
-import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER, auditStatement } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
+import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER, auditStatement, staffRole } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
 import { staffMessagesFor, staffMessageOk } from './staffMessage.js';   // STAFF-PANEL5-MESSAGE: the game's two doors
 import { hiddenToken, takeHiddenSeen } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff member's token, and a private home it entered
 import { HIDDEN_SEEN_PATH, HIDDEN_SEEN_MAX_BYTES, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
@@ -1243,6 +1243,9 @@ const service = {
         // rights read (/red, /dm); `gx` is paint, which every face that draws a badge leaves out. Absent for none.
         const gx = glyphsHidden(who.player, env, nowS);
         if (gx.length) wardrobe.gx = gx;
+        // BUNNYFALL /vanish (staffCommands.js): a vanished staff member's ordinary token carries `vn` - every room plays them
+        // as ever, and every game leaves them undrawn and untargeted (net/online.js `visible`, the foes' peer lists)
+        if (Number(who.player.vanish_on ?? 0) === 1 && staffRole(who.player, env)) wardrobe.vn = 1;
         // MOD1: A MUTE RIDES THE TOKEN, so a reconnect cannot shed one -
         // every room reads it off the signature at the hello. Only while
         // it runs: a mute that has ended is simply absent.

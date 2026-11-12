@@ -3049,8 +3049,13 @@ export function badged(row, from) {
   // (net/houseLaw.js: `hn`, and `hc`, `hb`, `hg` beside it)
   const house = readHouse(from);
   if (house) Object.assign(row, house);
+  // BUNNYFALL /vanish: AND A VANISHED STAFF MEMBER'S MARK, off the verified token alone - every game leaves them undrawn
+  if (from?.vn === 1) row.vn = 1;
   return row;
 }
+
+/** BUNNYFALL /vanish: whether a row names a vanished staff member - `badged`'s other half. */
+export const readVanished = (row) => row?.vn === 1;
 
 /** RENOWN1: the level a row carries, as a client reads it back - `badged`'s other half, as `readBadge` is the badge's;
  *  null for none, and for anything the bound does not admit (a stranger's word about themselves). */

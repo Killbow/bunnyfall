@@ -3,9 +3,10 @@
 // to spawn enemies and a greed command to give gold to players or nyx coins") - the account service's half. Staff are the
 // accounts staff.js staffRole names (an Admin - DEVELOPER_HANDLES - or a Moderator); /greed is an Admin's alone.
 //
-//   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on the game's mint makes a
-//             hidden spectator's token (staffHidden.js hiddenToken): the relay names and passes on nothing of it, and the
-//             game, seeing its own token hidden, is no one to a monster (scenes/staffFollowHost.js `unseen`).
+//   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on, the game's ordinary
+//             token carries the vanish mark (`vn`, index.js /v1/auth/token): the relay passes it on the join and every game
+//             leaves the player undrawn and untargeted, while the socket plays on as any other - the monsters' sync and
+//             everything else unchanged.
 //   /spawn    the game's own (scenes/world.js): staff-only, asked of `vanishSet`'s answer's `staff` - nothing here.
 //   /greed    greedGive: gold and Nyx coins kept for a player (staff_gifts) until their game takes them (greedClaim) -
 //             the gold into the character's purse, the coins into the pack; the account's Nyx count and the character's

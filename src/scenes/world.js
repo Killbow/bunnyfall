@@ -10874,7 +10874,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  (`player.collider`: the street's, the building's, the dungeon's), the same rule the plaque's other racers keep
    *  (pickActivatableHit's wall test). A player behind a wall is not named, lit or pressed. */
   const peerInSight = (eye, dir) => {
-    const hit = pickPeerInFront(eye, dir, openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), SOCIAL_REACH, rayPersonDistance);   // INVIS-NET: a player concealed is not there to press - CONCEAL-MATE: unless they are in my party; GATE-CROWD: nor one a gate's crowd leaves undrawn
+    const hit = pickPeerInFront(eye, dir, openPeers((peersNear() ?? []).filter((q) => !q.vn), isPartyMate).filter(crowdDrawnHere), SOCIAL_REACH, rayPersonDistance);   // INVIS-NET: a player concealed is not there to press - CONCEAL-MATE: unless they are in my party; GATE-CROWD: nor one a gate's crowd leaves undrawn
     if (!hit) return null;
     const col = player?.collider ?? collider;
     const wall = col?.raycast ? col.raycast(eye, dir, hit.distance) : Infinity;
@@ -28401,10 +28401,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const out = [];
     for (const p of online.peers.values()) {
       if (!presenceOnly && !modes?.sailingCabin && csaPeers.isBelowDeck(p.id)) continue;
-      if (!online.visible(p)) continue;   // AUDIT PSCALE1 NET-2: on the session's OWN clock (steadyNow, AUDIT ONLINE 3 F2) - performance.now() against its stamps never timed a silent peer out
+      if (!online.visible(p, undefined, true)) continue;   // BUNNYFALL /vanish: the vanished counted here (rolls, owners), flagged `vn` below - AUDIT PSCALE1 NET-2: on the session's OWN clock (steadyNow, AUDIT ONLINE 3 F2) - performance.now() against its stamps never timed a silent peer out
       const h = peerBodies?.heightOf(p.id) || 0;
       if (h > 0) _peerHeights.set(p.id, h);
-      out.push({ id: p.id, feet: onlineToScene(p.shown), height: _peerHeights.get(p.id), cv: p.shown?.cv | 0 });   // INVIS-NET: and the peer's concealment, for the foes' senses
+      out.push({ id: p.id, feet: onlineToScene(p.shown), height: _peerHeights.get(p.id), cv: p.shown?.cv | 0, ...(p.vn ? { vn: true } : {}) });   // BUNNYFALL /vanish: no foe's quarry, nobody's pick   // INVIS-NET: and the peer's concealment, for the foes' senses
     }
     // SLAM4 (2026-09-16, the 30th-anniversary slam): AND THE REMEMBERED HEIGHTS GO WITH THE PEERS. This map only
     // ever grew: every id that has ever stood in the room stayed in it for the life of the session. A twenty-minute
