@@ -97,6 +97,7 @@ authors to `src/ui/credits.js`.
 | Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
 | Emperor's statue at Daggerfall's north gate | `src/world/emperorMemorial.js`, `public/art/bunnyfall-npcs/` |
 | Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Nyx coins and shop, purple border) | `src/systems/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/scenes/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
+| Staff chat commands /vanish, /spawn, /greed | `src/scenes/staffCommandsHost.js`, `server-account/src/staffCommands.js`, migration `0202_staff_commands.sql`, `server-account/src/staffHidden.js` (hiddenToken reads `vanish_on`) |
 | Names (first and last, how NPCs address you) | `src/systems/names.js`, `src/ui/namePicker.js` |
 | Content switched off | `src/systems/contentOff.js` |
 | Homes: buying, votes, who may enter | `src/net/homeLaw.js`, `server-account/src/homes.js`, `homeVotes.js`, `src/systems/online/onlineHomes.js` |

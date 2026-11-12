@@ -385,6 +385,7 @@ export const ROUTES = new Set([
   // account vault (accountVault.js), the Nyx coins (nyx.js), the great cannon (cannon.js), player festivals and guestbooks
   '/v1/account/vault', '/v1/account/vault/put', '/v1/account/vault/take', '/v1/account/vault/gold',
   '/v1/nyx/found', '/v1/nyx/total', '/v1/cannon', '/v1/cannon/give',
+  '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id
