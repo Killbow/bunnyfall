@@ -24,7 +24,8 @@
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { POI_DOC_VERSION, POI_PIXEL_M, POI_MAP, POI_PART_KEY_RE, POI_LIMITS, DEFAULT_MATERIAL, mintPoiId } from './poiLaw.js';
+import { POI_DOC_VERSION, POI_PIXEL_M, POI_MAP, POI_PART_KEY_RE, POI_LIMITS, DEFAULT_MATERIAL, mintPoiId, poiDocBytesOf } from './poiLaw.js';
+import { POI_V2_DOC_KEYS } from './poiLawV2.js';
 import { quatMultiply, quatAngleAxis, quatRotate } from '../world/quat.js';
 
 /** The steps the undo stack keeps before the oldest is let go. */
@@ -207,13 +208,39 @@ export function newPoiDoc({ id, px, py, x, z, y = 0, name }) {
   return { v: POI_DOC_VERSION, id, name: lawName(name), place, parts: [], lights: [], marker: { show: false } };
 }
 
-// ── VERSIONS ──────────────────────────────────────────────────────
+// ── VERSIONS AND WHAT A DOCUMENT HOLDS ────────────────────────────
 /** Upgrades a modified v1 document to v2 (which holds all v1 fields unchanged). A document that was not v1 before
  *  the edit retains its version, and a change whose result matches `saved` (the last saved JSON) stays v1 and clean.
  *  @param {any} doc @param {any} wasV @param {string | null} [saved] */
 export function upgradeChanged(doc, wasV, saved = null) {
   if (wasV === 1 && doc && doc.v === 1 && JSON.stringify(doc) !== saved) doc.v = POI_DOC_VERSION;
   return doc;
+}
+/** A document's size as JSON and the most its version may weigh (poiLaw.js poiDocBytesOf). @param {any} doc */
+export function poiDocSizeOf(doc) {
+  const bytes = new TextEncoder().encode(JSON.stringify(doc)).byteLength;
+  return { bytes, max: poiDocBytesOf(doc?.v === 2 ? 2 : 1) };
+}
+/** People's v2 links: a route, a dialogue, a trade, a reach, or a condition (poiLawV2.js POI_V2_NPC_KEYS less the layout). */
+const NPC_LINKS = ['route', 'dialogue', 'trade', 'radius', 'showWhen'];
+/**
+ * Summarizes the v2 content that the in-game editor shows read-only and preserves unchanged on save: each v2
+ * collection's count, whether it has an interior, and how many parts, lights, and people are grouped, hidden, locked,
+ * or (for people) linked.
+ * @param {any} doc
+ */
+export function poiHeldOf(doc) {
+  /** @type {Record<string, number>} */
+  const kinds = {};
+  for (const k of POI_V2_DOC_KEYS) if (k !== 'interior' && Array.isArray(doc?.[k]) && doc[k].length) kinds[k] = doc[k].length;
+  const rows = [...(doc?.parts ?? []), ...(doc?.lights ?? []), ...(doc?.npcs ?? [])].filter((o) => o && typeof o === 'object');
+  return {
+    kinds, interior: !!doc?.interior,
+    grouped: rows.filter((o) => o.group !== undefined).length,
+    hidden: rows.filter((o) => o.visible === false).length,
+    locked: rows.filter((o) => o.locked === true).length,
+    linked: (doc?.npcs ?? []).filter((n) => n && NPC_LINKS.some((k) => n[k] !== undefined)).length,
+  };
 }
 
 // ── THE WORKING SET AND ITS UNDO ──────────────────────────────────

@@ -7,6 +7,7 @@ import * as Law from '../src/poi/poiLaw.js';
 import * as Edit from '../src/poi/poiEdit.js';
 import * as Shelf from '../src/poi/poiShelf.js';
 import { poiDiff } from '../src/poi/poiDiff.js';
+import * as Text from '../src/poi/poiText.js';
 import { poiV2Example } from './poiV2Examples.mjs';
 
 const SHA = 'a'.repeat(64);
@@ -138,4 +139,16 @@ test('the review reads a first change to a v1 POI as the upgrade and that change
   edit.open(v2.id, { doc: v2 });
   edit.edit(v2.id, 'rename', (x) => { x.name = 'Bridge Fair'; });
   assert.deepEqual(poiDiff(v2, edit.docOf(v2.id)).map((c) => c.code), ['name']);
+});
+
+test('what the editor cannot change yet is counted, and the size follows the version', () => {
+  const h = Edit.poiHeldOf(poiV2Example());
+  assert.deepEqual(h.kinds, { groups: 2, routes: 1, encounters: 1, interactives: 2, dialogues: 1, trades: 2, variables: 2, events: 4 });
+  assert.equal(h.grouped, 3);
+  assert.equal(h.linked, 3);
+  assert.deepEqual(Edit.poiHeldOf(v1Doc()), { kinds: {}, interior: false, grouped: 0, hidden: 0, locked: 0, linked: 0 });
+  assert.equal(Edit.poiDocSizeOf(v1Doc()).max, 96 * 1024);
+  assert.equal(Edit.poiDocSizeOf(poiV2Example()).max, 256 * 1024);
+  assert.equal(Text.heldLines(Edit.poiHeldOf({ ...poiV2Example(), interior: {} }))[0],
+    'It holds 2 groups, 1 route, 1 encounter, 2 objects, 1 dialogue, 2 trades, 2 variables, 4 events, and an interior.');
 });

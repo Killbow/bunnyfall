@@ -39,8 +39,8 @@ import { t } from '../../systems/textManager.js';   // L10N4: the words through 
 import { accountRefusalText } from '../../net/accountClient.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U1: a dock held while a field in it is typed in, and then alone
 import { poiDocProblems, poiAssetProblems, POI_SHA_RE, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
-import { eulerOfQuat, quatOfEuler, lawName, newLight, uniqueKey } from '../../poi/poiEdit.js';
-import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText } from '../../poi/poiText.js';
+import { eulerOfQuat, quatOfEuler, lawName, newLight, uniqueKey, poiDocSizeOf, poiHeldOf } from '../../poi/poiEdit.js';
+import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText, heldLines, docSizeText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
 import { poiPayProblems } from '../../poi/poiTradeLaw.js';
@@ -494,6 +494,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (ownParts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: ownParts, lights: d.lights ?? [] })));
     out.push(more);
     if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
+    const flats = Array.isArray(d.flats) ? d.flats.length : 0;
+    if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', 'Its {n, plural, one {flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
+    // what a v2 POI holds that this editor cannot change yet, read-only, and its size against its version's limit
+    const held = heldLines(poiHeldOf(d));
+    if (held.length) out.push(el('div', 'dfpoi-h', t('poi.held.title', 'Not editable here yet')), ...held.map((l) => el('div', 'dfpoi-sub', l)));
+    out.push(el('div', 'dfpoi-sub', docSizeText(poiDocSizeOf(d), d.v)));
     return out;
   }
 
@@ -875,6 +881,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // the copies are made against the POI as it stands, so the edit step records the new selection (undo restores the
     // prior selection and redo selects the pasted copy again)
     const parts = [], lights = [], keys = { parts: [...d.parts] };
+    // a copy keeps its group only where the POI pasted into has that group (another POI may not)
+    const groups = new Set((d.groups ?? []).map((g) => g?.key));
+    const ungroup = (o) => { if (o.group !== undefined && !groups.has(o.group)) delete o.group; };
     let skipped = 0;
     for (const src of clip.parts) {
       if (keys.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
@@ -882,12 +891,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       // a key already in the POI is made unique: shortened to leave room for a number, then numbered while taken
       if (keys.parts.some((q) => q.key === copy.key)) copy.key = uniqueKey(keys, copy.key);
       copy.t = at(copy.t ?? [0, 0, 0]);
+      ungroup(copy);
       keys.parts.push(copy); parts.push(copy);
     }
     const lightsBefore = d.lights?.length ?? 0;
     for (const src of clip.lights) {
       if (lightsBefore + lights.length >= POI_LIMITS.lights) { skipped++; continue; }
-      const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); lights.push(copy);
+      const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); ungroup(copy); lights.push(copy);
     }
     // what was pasted is selected: the last part, or the last light when only lights were pasted
     const pastedSel = parts.length ? { id: sel.id, part: parts[parts.length - 1].key } : lights.length ? { id: sel.id, part: null, light: lightsBefore + lights.length - 1 } : undefined;
