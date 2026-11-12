@@ -19,7 +19,7 @@ import { createPoiSandbox } from './poiSandbox.js';
 export const POI_DM_STYLE_ID = 'dfpoi-dm-style';
 export const POI_DM_CSS = `
 .dfpoi-dm[hidden] { display: none; }
-.dfpoi-dm { left: 266px; right: 316px; bottom: 40px; height: min(56vh, 600px); padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.dfpoi-dm { left: calc(16px + var(--dfpoi-left-w, 250px)); right: calc(16px + var(--dfpoi-right-w, 300px)); bottom: 40px; height: var(--dfpoi-dm-h, min(56vh, 600px)); padding: 6px; display: flex; flex-direction: column; gap: 4px; }
 .dfpoi-dm-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
 .dfpoi-dm-body { display: flex; gap: 8px; flex: 1 1 auto; min-height: 0; }
 .dfpoi-dm-list { flex: 0 0 180px; overflow: auto; }

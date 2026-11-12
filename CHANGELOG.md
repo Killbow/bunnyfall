@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor's side panels and DM tools can now be resized by dragging their edges, and the editor saves their sizes, snap steps, and camera speed between sessions.
 - Fixed: The game's tips button no longer covers the in-game POI editor's right side or its DM tools; while the editor is open, it sits beside the right side, and above the DM tools when they are open.
 - Fixed: The in-game POI editor's Assets browser can now place pictures, items, and mounted weapons and armor in the world by clicking Place or dragging a card.
 - Fixed: The in-game POI editor can now place, move, turn, size, mirror, and light flat pictures, items, and mounted weapons and armor, and show each picture in a 2D view.

@@ -73,6 +73,8 @@ import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   /
 import { SEASON } from '../../world/climateSwaps.js';
 // the game's catalog, browsed and placed (the browser itself, ui/poi/poiAssetBrowser.js, loads on its first open)
 import { setPoiAssetPlacer, placePoiAsset } from '../../poi/poiAssetPlace.js';
+// the panel splitters, and the saved panel sizes, snap steps, and camera speed
+import { createPoiLayout, createPoiPrefs } from './poiLayout.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -81,16 +83,16 @@ export const POI_PANEL_CSS = `
 .dfpoi * { box-sizing: border-box; }
 .dfpoi-dock { pointer-events: auto; position: absolute; background: rgba(14, 16, 19, .93); border: 1px solid #6b5230; border-radius: 6px; overflow: auto; }
 .dfpoi-bar { top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; padding: 4px 6px; flex-wrap: wrap; max-width: calc(100vw - 16px); }
-.dfpoi-left { top: 56px; left: 8px; width: 250px; bottom: 40px; padding: 6px; }
-.dfpoi-right { top: 56px; right: 8px; width: 300px; bottom: 40px; padding: 6px; }
-/* the game's messages (ui/enhanced/enhancedStyle.js .notice-stack, under the docks' layer) stand left of the right dock while
-   the editor is open: a message that waits for a key or a click would otherwise hold the editor's clicks out of sight */
-body:has(> .dfpoi[data-on="1"]) .notice-stack { right: 316px; }
-/* the game's tips button (ui/tutorialPopup.js #bf-tutorial-ask, above the docks' layer) sits to the left of the
-   right dock while the editor is open, and above the DM panel while that is open, so it does not cover them or
-   intercept their clicks */
-body:has(> .dfpoi[data-on="1"]) #bf-tutorial-ask { right: 330px; }
-body:has(> .dfpoi[data-on="1"] > .dfpoi-dm:not([hidden])) #bf-tutorial-ask { top: min(38%, max(56px, calc(100vh - 92px - min(56vh, 600px)))); }
+.dfpoi-left { top: var(--dfpoi-left-top, 56px); left: 8px; width: var(--dfpoi-left-w, 250px); bottom: 40px; padding: 6px; }
+.dfpoi-right { top: var(--dfpoi-right-top, 56px); right: 8px; width: var(--dfpoi-right-w, 300px); bottom: 40px; padding: 6px; }
+/* the game's notices (ui/enhanced/enhancedStyle.js .notice-stack, below the docks' layer) and its tips button
+   (ui/tutorialPopup.js #bf-tutorial-ask, above the docks' layer) sit left of the right dock, offset by its width
+   (ui/poi/poiLayout.js), while the editor is open, so the dock does not hide the notices and the tips button does
+   not cover the dock or intercept its clicks */
+body:has(> .dfpoi[data-on="1"]) .notice-stack { right: calc(16px + var(--dfpoi-right-w, 300px)); }
+body:has(> .dfpoi[data-on="1"]) #bf-tutorial-ask { right: calc(30px + var(--dfpoi-right-w, 300px)); }
+/* and above the DM panel while it is open (poiLayout.js caps the DM panel height to leave room for it) */
+body:has(> .dfpoi[data-on="1"] > .dfpoi-dm:not([hidden])) #bf-tutorial-ask { top: min(38%, max(56px, calc(100vh - 92px - var(--dfpoi-dm-h, min(56vh, 600px))))); }
 .dfpoi-status { bottom: 8px; left: 50%; transform: translateX(-50%); padding: 4px 10px; max-width: calc(100vw - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dfpoi-status[data-kind="bad"] { border-color: #b4483c; color: #f2b7ae; }
 .dfpoi-btn { font: inherit; color: inherit; background: #2a2620; border: 1px solid #6b5230; border-radius: 4px; padding: 3px 7px; cursor: pointer; }
@@ -299,6 +301,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   // closed, the editor is one button in the corner: the world plays, the drafts still stand on this screen
   const launch = btn(t('poi.editor.open', 'POI editor'), () => onEnter(), 'dfpoi-btn dfpoi-launch');
   root.append(bar, left, right, status, launch);
+  const layout = createPoiLayout({ doc, root });
+  root.append(...layout.splitters);
+  const prefs = createPoiPrefs();
   /** @type {any} */
   let dialog = null;
   let list = null;           // the store's POIs (poiList), once asked
@@ -386,6 +391,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     renderLeft();
     // a field being typed in keeps its text: the inspector is drawn again once it lets go of the keyboard
     if (!typingIn(right)) renderRight();
+    layout.setDm(dm.isOn() && !testing());
+    prefs.note(editor);
   }
   for (const d of [bar, left, right]) d.addEventListener('focusout', () => schedule());
 
@@ -1306,6 +1313,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   function closeDialog() { dialog?.remove?.(); dialog = null; }
 
   const offEdit = edit.onChange(() => schedule());
+  // restores the saved snap steps and camera speed from browser storage
+  prefs.restore(editor);
   render();
   return {
     root,
@@ -1340,7 +1349,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     openPack: (bytes) => openPack(bytes),
     /** Whether a press landed on the panel (the world leaves it alone). */
     owns: (target) => !!target && typeof root.contains === 'function' && root.contains(target),
-    destroy() { gone = true; offEdit(); offUpload(); for (const off of offFlats) off(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
+    destroy() { gone = true; offEdit(); offUpload(); for (const off of offFlats) off(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); layout.destroy(); root.remove?.(); },
     /** The DM panel (its tabs, the Sandbox). */
     dm,
     /** The Test button's press, a test's door too. */

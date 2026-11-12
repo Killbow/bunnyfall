@@ -7,6 +7,7 @@
 // is saved, and with neither, the system clipboard.
 
 import { t } from '../../systems/textManager.js';
+import { pageStorage } from './poiStorage.js';
 import { selItems, selectionOf } from '../../poi/poiEdit.js';
 import { find, groupNodes, marksOf, movable, moveToGroup, parseId, removeNodes, renameNode, reorderNode, setFlag, ungroup } from '../../poi/poiScene.js';
 import { CLIP_STORE_KEY, clipRows, clipText, copyNodes, duplicateNodes, pasteClip, readClip, topIds } from '../../poi/poiClip.js';
@@ -24,7 +25,7 @@ const partsLast = (ids) => [...ids.filter((i) => !i.startsWith('part:')), ...ids
  *   `facts` the asset facts (a row whose model or picture the store does not have is left out of a paste); `editor` the
  *   world host (the ground under a row, for drop to ground)
  */
-export function createPoiSceneActs({ edit, say, facts = null, editor = null, storage = globalThis.localStorage ?? null, clipboard = globalThis.navigator?.clipboard ?? null }) {
+export function createPoiSceneActs({ edit, say, facts = null, editor = null, storage = pageStorage(), clipboard = globalThis.navigator?.clipboard ?? null }) {
   /** The last copy made on this page (the stored one is read first: another tab may have copied since). */
   let held = null;
   /** How many times the copy was pasted into the POI it came from (each one a meter further east and north). */
