@@ -6,9 +6,10 @@
 // THE FOUR NUMBERS A PLAYER IS TOLD, AND WHERE EACH LIVES
 //
 //   1..100    exactly DFU's law (advancement.js, untouched below 100)
-//   100..125  a point costs  4x the uses          SOFTCAP_TIERS (Mac, 2026-09-29: 4 / 8 / 16)
-//   125..150  a point costs  8x the uses
-//   150..200  a point costs 16x the uses          SKILL_HARD_CAP = 200
+//   100..125  a point costs  2x the uses          SOFTCAP_TIERS (Mac, 2026-09-29: 4 / 8 / 16; BUNNYFALL 2026-11-12: 2 / 3 / 4)
+//   125..150  a point costs  3x the uses
+//   150..200  a point costs  4x the uses          SKILL_HARD_CAP = 200
+//   and past 100 DFU's level factor (1.04^level) stops growing at OVERCAP_LEVEL_CAP
 //
 //   Past 100 a point is worth a QUARTER of a point below it
 //   (OVERCAP_POINT_WEIGHT), plus the milestone bonuses at 125/150/175/200.
@@ -47,12 +48,17 @@ export const SKILL_HARD_CAP = 200;
 export const OVERCAP_POINT_WEIGHT = 0.25;
 
 /** The cost ladder: the uses a raise needs, multiplied, by the value the
- *  skill is LEAVING (100 -> 101 is the first 4x point). */
+ *  skill is LEAVING (100 -> 101 is the first 2x point). */
 export const SOFTCAP_TIERS = Object.freeze([
-  Object.freeze({ from: 100, to: 125, mult: 4 }),
-  Object.freeze({ from: 125, to: 150, mult: 8 }),
-  Object.freeze({ from: 150, to: 200, mult: 16 }),
+  Object.freeze({ from: 100, to: 125, mult: 2 }),
+  Object.freeze({ from: 125, to: 150, mult: 3 }),
+  Object.freeze({ from: 150, to: 200, mult: 4 }),
 ]);
+/** BUNNYFALL (2026-11-12, players: "the XP requirements for mastered skills become excessively grindy, especially once
+ *  you're level 30+" - about six hours of fighting for one point at 160, level 37): past 100 a raise's cost reads the
+ *  character's level no higher than this (advancement.js softcapUsesForAdvancement), so the 1.04^level factor and the
+ *  ladder above no longer stack without end. With the ladder at 2 / 3 / 4, a point at 160 is about 45 minutes. */
+export const OVERCAP_LEVEL_CAP = 20;
 
 /** The milestones: effective points granted ON TOP of the quarter-weight
  *  climb, each once reached, plus the title the notice prints. */

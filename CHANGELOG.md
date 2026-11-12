@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Mastered skills past 100 level up far faster. A point used to cost 4x, 8x and then 16x the uses (100-125, 125-150, 150-200), and the cost kept growing with your character level. Now it is 2x, 3x and 4x, and past 100 your level stops making it dearer after level 20. At level 37, a point at 160 drops from about 6 hours of fighting to about 45 minutes. Progress you had banked toward the next point is kept.
 - Staff: the staff panel is reworked. It opens on a Home page (who is playing, open reports, live events, quick actions), finds any character as you type, and each character has its own page with plain buttons: give an item, gold or Nyx coins, set bank gold, roll back, message, mute, freeze, ban, notes. Events and notices are simple forms now.
 - Staff: the whole staff panel now opens inside the game from a movable ST button (web and desktop app), with players, moderation, items, economy, reports, events, the live map, Follow and Hide me in one place. The staff bar in game is back while it is open. staff.html is the same panel in a browser.
 - /vanish no longer cuts a staff member off the network: monsters, chat and everything else keep working while players and monsters simply can't see them.

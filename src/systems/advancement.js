@@ -24,7 +24,7 @@
 import { OGHMA_BONUS_POOL } from './artifactEffects.js';   // V3: the sheet's oghmaBonusPool (:44)
 import { SKILLS, setSkillRecentlyIncreased, levelUpSkillSum } from './skills.js';
 // SOFTCAP1: skills past 100 - the cost ladder and the milestones (a leaf)
-import { SKILL_SOFT_CAP, SKILL_HARD_CAP, softcapCostMultiplier, milestoneAt } from './skillSoftcap.js';
+import { SKILL_SOFT_CAP, SKILL_HARD_CAP, OVERCAP_LEVEL_CAP, softcapCostMultiplier, milestoneAt } from './skillSoftcap.js';
 import { masterSkillsActive, skillCanPassCap, masteryRefusal } from './masterSkills.js';   // SOFTCAP3: the climb past 100 and the lifted 95 lock are Master Skills'
 import { hitPointsPerLevelUp, spendPoolLowest } from './chargen.js';
 import { ONLINE_BONUS_POOL } from './levelEven.js';   // LEVEL-EVEN: online, every level's pool is 5
@@ -97,10 +97,12 @@ export function alreadyMasteredASkill(entity) {
 }
 
 /** SOFTCAP1: the uses a raise FROM `skillValue` needs - DFU's number,
- *  times the softcap's ladder (4x / 8x / 16x past 100). May exceed the
- *  20000 tally clamp; raiseSkills spends such a cost as progress. */
+ *  times the softcap's ladder (2x / 3x / 4x past 100). May exceed the
+ *  20000 tally clamp; raiseSkills spends such a cost as progress.
+ *  BUNNYFALL: past 100 the level it reads stops at OVERCAP_LEVEL_CAP. */
 export function softcapUsesForAdvancement(skillValue, skillMult, careerAdvMult, level) {
-  return skillUsesForAdvancement(skillValue, skillMult, careerAdvMult, level) * softcapCostMultiplier(skillValue);
+  const lv = skillValue >= SKILL_SOFT_CAP ? Math.min(level, OVERCAP_LEVEL_CAP) : level;
+  return skillUsesForAdvancement(skillValue, skillMult, careerAdvMult, lv) * softcapCostMultiplier(skillValue);
 }
 
 // ── skillsRecentlyRaised ──────────────────────────────────────────
@@ -165,7 +167,7 @@ export function raiseSkills(entity, classicTimeMinutes, rolls = Math.random, onL
       // re-priced at the next point's cost (it was capped at 0.99, so a long run's second point was thrown away, and a
       // pass with no new uses never landed a banked one). Still one point a pass.
       const uses = Math.floor((entity.skillUses[i] * reflexesMod) / 0x10000);
-      const cost = needed * softcapCostMultiplier(entity.skills[i]);
+      const cost = softcapUsesForAdvancement(entity.skills[i], SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career.advancementMultiplier, earnedLevel(entity));
       const prog = (entity.skillProgress ??= new Array(entity.skillUses.length).fill(0));
       prog[i] = (prog[i] ?? 0) + uses / cost;
       entity.skillUses[i] = 0;
@@ -261,7 +263,7 @@ export function skillAdvanceProgress(entity, i, { now = null } = {}) {
   const tally = entity.skillUses?.[i] ?? 0;
   if (value >= SKILL_SOFT_CAP && skillCanPassCap(entity, i)) {
     if (value >= SKILL_HARD_CAP) return { have: 0, need: 0, ready: false, held: 'cap', wait };
-    const cost = needed * softcapCostMultiplier(value);
+    const cost = softcapUsesForAdvancement(value, SKILL_ADVANCEMENT_MULTIPLIER[i], entity.career?.advancementMultiplier ?? 1, earnedLevel(entity));
     const uses = Math.floor((tally * reflexesMod) / 0x10000), banked = entity.skillProgress?.[i] ?? 0;
     return { have: Math.floor(banked * cost) + uses, need: cost, ready: banked + uses / cost >= 1, held: null, wait };   // the pass's own test
   }
