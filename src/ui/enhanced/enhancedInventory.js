@@ -80,6 +80,7 @@ import { setHotbarDropMode, hotbarSlotNode, hotbarTakesItem, hotbarDropItem, hot
   hotbarShownSlotOf, setHotbarPick } from './enhancedHotbar.js';   // DIAMOND-HB: the slot among the ones shown; point and press
 import { registerQuickAct } from '../plus/plusPad.js';   // PADPLUS5: the pad's X on a row
 import { EQUIP_SLOTS } from '../../characters/paperdoll/paperdoll.js';
+import { lookHideable, lookHiddenOf, toggleLookHidden } from '../../systems/lookHidden.js';   // BUNNYFALL: hidden gear
 import { dfWornEquipment } from '../../formats/morrowind/mwItemMap.js';   // PX25
 import { hasDaggerfallArrows } from '../../combat/fpArm.js';   // PX26
 import { ARMOR_ENUM } from '../../combat/enemyEquipment.js';   // PX25
@@ -2366,6 +2367,23 @@ function wornPanel(fam, byLabel, area) {
   // none); a bare panel is a hood down. "Cloaks · hood up" beside the family word was wider than a panel's text line
   // (72px on the desk), and a "Hood down" plate covered the word on a 360px phone.
   if (hoodUp(top.item)) b.append(el('span', 'wornhood', 'Hood'));
+  // BUNNYFALL HIDDEN GEAR (systems/lookHidden.js): the shown piece's eye - hide it from every picture (the doll, the body,
+  // the portrait, other players) while it stays worn, or show it again. Armour, clothes and a shield; never a weapon.
+  if (lookHideable(top.item)) {
+    const off = lookHiddenOf(top.item);
+    const eye = el('span', `wornhide${off ? ' off' : ''}`, off ? 'Hidden' : '\u{1F441}');
+    eye.title = off ? `${line.name} is hidden: worn, but nobody sees it. Click to show it.` : `Hide ${line.name}: still worn, but drawn nowhere.`;
+    eye.setAttribute('role', 'button');
+    for (const ty of ['pointerdown', 'mousedown', 'touchstart']) eye.addEventListener(ty, (e) => e.stopPropagation());
+    eye.addEventListener('click', (e) => {
+      e.stopPropagation(); e.preventDefault();
+      toggleLookHidden(top.item);
+      deps.onLookChanged?.(top.item);
+      refresh(); refreshFigure(); render();
+    });
+    b.append(eye);
+    if (off) b.classList.add('lookhidden');
+  }
   // MAC-M2 (Mac: "hold to drag ... doesn't work when trying to take
   // items off your character"): A FILLED PANEL DRAGS, on the same hold
   // and the same threshold a pack row takes. INV1 attached `dragFrom`
