@@ -15,6 +15,7 @@ refused online (`ONLINE_REFUSED_FLAGS` in `src/systems/online/onlineLane.js`). I
 | Undo and redo (200 steps), save, duplicate, delete | `src/poi/poiEdit.js`, `poiEditorHost.js` |
 | Place a new POI, library piece or person under the cursor | `poiEditorHost.js` (`placeNew`, `placeAsset`, `placeNpc`) |
 | Outliner, inspector, problems list, save, submit, withdraw, retire | `src/ui/poi/poiEditorPanel.js` |
+| Several things selected, box select, groups, hide and lock, arrange, clipboard saved across reloads | `src/poi/poiScene.js`, `poiMulti.js`, `poiArrange.js`, `poiClip.js`, `src/scenes/poiEditorSelect.js`, `src/ui/poi/poiScenePanel.js`, `poiSceneActs.js` |
 | glTF and GLB import, Daggerfall ARCH3D model import, picture import | `src/poi/gltfImport.js`, `poiImport.js`, `dfModelImport.js`, `pictureImport.js` |
 | People (name, lines, look, height) | `src/ui/poi/poiNpcUi.js`, `src/scenes/poiNpcs.js` |
 | Library shelf with thumbnails | `src/ui/poi/poiLibraryPanel.js`, `src/poi/poiShelf.js`, `poiThumb.js` |

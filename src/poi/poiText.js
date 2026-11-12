@@ -241,9 +241,11 @@ function listText(words) {
   try { return new Intl.ListFormat(intlLocale(), { type: 'unit', style: 'short' }).format(words); } catch { return words.join(', '); }
 }
 /** Things as one list joined with "and", the reader's language's way (Intl.ListFormat's conjunction, ui/credits.js's
- *  way). @param {string[]} words */
+ *  way); "a, b, and c" where the runtime has none. @param {string[]} words */
 function andList(words) {
-  try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(words); } catch { return words.join(', '); }
+  try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(words); } catch {
+    return words.length < 3 ? words.join(' and ') : `${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}`;
+  }
 }
 /** The v2 collections, one thing and many, for the diff's lines. */
 const KIND_ONE = {
@@ -305,20 +307,21 @@ export const meshErrorText = (code) => said(MESH, () => t('poi.mesh.malformed', 
 export const diffText = (c) => said(DIFF, unknownCode)(c.code, c);
 /**
  * Formats the read-only summary lines for v2 content that the in-game editor preserves unchanged but cannot edit yet
- * (poiEdit.js poiHeldOf), or returns an empty list when the POI has none. @param {ReturnType<typeof
- * import('./poiEdit.js').poiHeldOf>} h
+ * (poiEdit.js poiHeldOf), followed by `more` (caller-supplied lines such as DM fields the DM panel leaves out), the
+ * note stating that they are preserved on save, and the flat-picture note, or returns an empty list when the POI has
+ * none.
+ * @param {ReturnType<typeof import('./poiEdit.js').poiHeldOf>} h @param {string[]} [more]
  */
-export function heldLines(h) {
-  const word = (k, n) => (k === 'flats' ? t('poi.held.flats', '{n, plural, one {flat picture} other {flat pictures}}', { n }) : KIND_WORD[k]?.(n) ?? k);
+export function heldLines(h, more = []) {
+  const word = (k, n) => KIND_WORD[k]?.(n) ?? k;
   const things = Object.entries(h.kinds).map(([k, n]) => t('poi.held.count', '{n, number} {kind}', { n, kind: word(k, n) }));
   if (h.interior) things.push(t('poi.held.interior', 'an interior'));
   const out = [];
   if (things.length) out.push(t('poi.held.kinds', 'It holds {list}.', { list: andList(things) }));
-  if (h.grouped) out.push(t('poi.held.grouped', '{n, plural, one {# part, light, or person is} other {# parts, lights, or people are}} in a group.', { n: h.grouped }));
-  if (h.hidden) out.push(t('poi.held.hidden', '{n, plural, one {# part, light, or person is} other {# parts, lights, or people are}} marked hidden.', { n: h.hidden }));
-  if (h.locked) out.push(t('poi.held.locked', '{n, plural, one {# part, light, or person is} other {# parts, lights, or people are}} marked locked.', { n: h.locked }));
   if (h.linked) out.push(t('poi.held.linked', '{n, plural, one {# person has} other {# people have}} a route, dialogue, trade, reach, or condition.', { n: h.linked }));
+  out.push(...more);
   if (out.length) out.push(t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.'));
+  if (h.flats) out.push(t('poi.held.flatsPart', '{n, plural, one {Its flat picture can be moved, grouped, hidden, locked, copied, and deleted here. Its picture cannot be changed, and its size can only be reset to one.} other {Its # flat pictures can be moved, grouped, hidden, locked, copied, and deleted here. Their pictures cannot be changed, and their sizes can only be reset to one.}}', { n: h.flats }));
   return out;
 }
 /** A document's size against its version's limit (poiEdit.js poiDocSizeOf). @param {{ bytes: number, max: number }} s @param {number} v */

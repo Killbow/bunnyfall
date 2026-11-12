@@ -7,6 +7,7 @@
 // (scenes/poiNpcs.js is where they stand in the world, poi/poiLaw.js what the store accepts).
 import { t } from '../../systems/textManager.js';
 import { lawName } from '../../poi/poiEdit.js';
+import { marksOf } from '../../poi/poiScene.js';
 import { POI_LIMITS } from '../../poi/poiLaw.js';
 import { poiImageMetaOf } from '../../poi/poiImage.js';
 import { mobileBillboardSize } from '../../world/rmbFlats.js';
@@ -186,14 +187,16 @@ export function createPoiNpcUi(c) {
     const drawn = JSON.stringify(d.npcs ?? []);
     const same = () => JSON.stringify(c.edit.docOf(d.id)?.npcs ?? []) === drawn;
     out.push(btn(t('poi.npc.add', 'Add a person...'), () => openPerson()));
+    const marks = marksOf(d);
     (d.npcs ?? []).forEach((n, i) => {
       out.push(el('div', 'dfpoi-sub', `${n.name} (${n.lines.length === 1 ? t('poi.npc.oneLine', '1 line') : t('poi.npc.nLines', '{n} lines', { n: n.lines.length })})`));
-      out.push(field(t('poi.editor.offset', 'Offset (m)'), ...n.t.map((v, k) => numberInput(v, (x) => { if (same()) change('person', (doc) => { const q = doc.npcs[i]; if (q) q.t = q.t.map((o, j) => (j === k ? x : o)); }); }, { step: 0.1, min: -2000, max: 2000 }))));
+      const offset = field(t('poi.editor.offset', 'Offset (m)'), ...n.t.map((v, k) => numberInput(v, (x) => { if (same()) change('person', (doc) => { const q = doc.npcs[i]; if (q) q.t = q.t.map((o, j) => (j === k ? x : o)); }); }, { step: 0.1, min: -2000, max: 2000 })));
+      out.push(offset);
       const row = el('div', 'dfpoi-row');
-      row.append(
-        btn(t('poi.npc.edit', 'Change...'), () => openPerson({ index: i })),
-        btn(t('poi.npc.remove', 'Remove'), () => { if (same()) change('remove person', (doc) => { doc.npcs.splice(i, 1); if (!doc.npcs.length) delete doc.npcs; }); }),
-      );
+      const remove = btn(t('poi.npc.remove', 'Remove'), () => { if (same()) change('remove person', (doc) => { doc.npcs.splice(i, 1); if (!doc.npcs.length) delete doc.npcs; }); });
+      // a locked person (by their own lock or a group's) is neither moved nor removed here
+      if (marks.get(`npc:${n.key}`)?.frozen) { for (const inp of offset.querySelectorAll?.('input') ?? []) inp.disabled = true; remove.disabled = true; remove.title = t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'); }
+      row.append(btn(t('poi.npc.edit', 'Change...'), () => openPerson({ index: i })), remove);
       out.push(row);
     });
     return out;

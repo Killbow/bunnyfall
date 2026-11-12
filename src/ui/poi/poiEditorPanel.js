@@ -9,7 +9,7 @@
 //     its steps, undo and redo with what they would undo, the camera speed, a new POI, an import, the map, and the way
 //     out (back to where the body is, or down to the ground under the eye).
 //   - THE OUTLINER (left): the POIs being edited - each its state (new, a draft, sent for approval, live, changed) and
-//     its parts and lights to select - and every POI the store holds, searched, to open.
+//     its groups, parts, flat pictures, lights, and people (ui/poi/poiScenePanel.js) - and every POI the store holds, searched, to open.
 //   - THE INSPECTOR (right): the selection's every field, each change one step of the undo: a POI's name, words, tags,
 //     place (its height above the ground or fixed, its turn as Unity's three angles, its size), its mark on the map and
 //     its lights; a part's name, offset, turn, size, solidity, shadow and materials. Then what is wrong with it - the
@@ -39,7 +39,12 @@ import { t } from '../../systems/textManager.js';   // L10N4: the words through 
 import { accountRefusalText } from '../../net/accountClient.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U1: a dock held while a field in it is typed in, and then alone
 import { poiDocProblems, poiAssetProblems, POI_SHA_RE, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
-import { eulerOfQuat, quatOfEuler, lawName, newLight, uniqueKey, poiDocSizeOf, poiHeldOf } from '../../poi/poiEdit.js';
+import { eulerOfQuat, quatOfEuler, lawName, newLight, poiDocSizeOf, poiHeldOf, selItems } from '../../poi/poiEdit.js';
+import { marksOf } from '../../poi/poiScene.js';
+// copy, paste, groups, marks, and arranging a selection
+import { createPoiSceneActs, lockedIn } from './poiSceneActs.js';
+// the outliner's scene rows and the selection's inspector
+import { createPoiScenePanel } from './poiScenePanel.js';
 import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText, heldLines, docSizeText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
@@ -130,6 +135,16 @@ export function stepText(label) {
     case 'remove person': return t('poi.npc.step.remove', 'remove person');
     case 'material': return t('poi.editor.step.material', 'material');
     case 'uv': return t('poi.editor.step.uv', 'UVs');
+    case 'paste': return t('poi.editor.step.paste', 'paste');
+    case 'delete': return t('poi.editor.step.delete', 'delete');
+    case 'group': return t('poi.editor.step.group', 'group');
+    case 'ungroup': return t('poi.editor.step.ungroup', 'ungroup');
+    case 'regroup': return t('poi.editor.step.regroup', 'move to a group');
+    case 'reorder': return t('poi.editor.step.reorder', 'reorder');
+    case 'visibility': return t('poi.editor.step.visibility', 'hide or show');
+    case 'lock': return t('poi.editor.step.lock', 'lock or unlock');
+    case 'arrange': return t('poi.editor.step.arrange', 'arrange');
+    case 'rename': return t('poi.editor.step.rename', 'rename');
     default: return t('poi.editor.step.edit', 'edit');
   }
 }
@@ -370,25 +385,19 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const out = [el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing'))];
     const ids = edit.ids();
     if (!ids.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.editingNone', 'Nothing open. Open a POI below, or make a new one.')));
+    else out.push(scene().searchRow());
     for (const id of ids) {
       const d = edit.docOf(id), e = edit.entryOf(id);
       const row = el('div', 'dfpoi-item');
-      row.setAttribute('aria-selected', String(sel?.id === id && sel.part == null && sel.light == null));
+      row.setAttribute('aria-selected', String(sel?.id === id && !selItems(sel).length));
       row.append(el('span', '', d.name || id), el('span', 'dfpoi-chip', stateText(e, edit.dirty(id))));
-      row.addEventListener('click', () => edit.select({ id, part: null }));
+      row.addEventListener('click', () => edit.select({ id, items: [] }));
+      // a row dropped on the POI's own row leaves every group
+      row.addEventListener('dragover', (ev) => ev.preventDefault());
+      row.addEventListener('drop', (ev) => { ev.preventDefault(); let got = null; try { got = JSON.parse(ev.dataTransfer?.getData('text/x-bunnyfall-poi-rows') ?? 'null'); } catch { got = null; } if (got?.id === id) sceneActs.regroup(id, got.ids, null); });
       out.push(row);
-      for (const part of d.parts) {
-        const pr = el('div', 'dfpoi-item dfpoi-sub', part.name || part.key);
-        pr.setAttribute('aria-selected', String(sel?.id === id && sel.part === part.key));
-        pr.addEventListener('click', () => edit.select({ id, part: part.key }));
-        out.push(pr);
-      }
-      (d.lights ?? []).forEach((_, i) => {
-        const lr = el('div', 'dfpoi-item dfpoi-sub', t('poi.where.light', 'Light {n}', { n: i + 1 }));
-        lr.setAttribute('aria-selected', String(sel?.id === id && sel.light === i));
-        lr.addEventListener('click', () => edit.select({ id, part: null, light: i }));
-        out.push(lr);
-      });
+      // its groups, parts, flat pictures, lights, and people
+      out.push(...scene().rows(id, d));
     }
     out.push(el('div', 'dfpoi-h', t('poi.editor.all', 'All POIs')));
     const listBox = el('div', 'dfpoi-listbox');
@@ -444,14 +453,20 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b,
   }));
 
+  // the scene tools: the outliner's rows and the inspector for several things, a group, or a person
+  let scenePanel = null;
+  const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule() }));
+
   function renderRight() {
     const sel = edit.selection();
     if (!sel) { right.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.nothingSelected', 'Nothing selected')), el('div', '', t('poi.editor.selectHint', 'Click a POI in the world or the list. Click once to select the POI, and again to select a part.'))); return; }
     const d = edit.docOf(sel.id), entry = edit.entryOf(sel.id);
     const change = (label, fn) => edit.edit(sel.id, label, fn);
     const out = [];
-    if (sel.part != null) out.push(...partFields(d, sel, change));
-    else if (sel.light != null) out.push(...lightFields(d, sel, change));
+    const many = scene().inspector(d, sel);
+    if (many) out.push(...many);
+    else if (sel.part != null) out.push(...partFields(d, sel, change), ...scene().extras(d, sel));
+    else if (sel.light != null) out.push(...lightFields(d, sel, change), ...scene().extras(d, sel));
     else out.push(...poiFields(d, change));
     out.push(...problemRows(d, sel.id));
     out.push(...actRows(sel.id, d, entry));
@@ -500,11 +515,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
     const flats = Array.isArray(d.flats) ? d.flats.length : 0;
     if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', 'Its {n, plural, one {flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
-    // what a v2 POI holds that this editor cannot change yet (groups, flat pictures, an interior, marks, and the DM fields the
-    // DM panel leaves out), read-only, and its size against its version's limit
-    const held = heldLines(heldNotEditable(poiHeldOf(d)));
-    const dmHeld = dmHeldLines(d);
-    if (dmHeld.length) { if (held.length) held.splice(held.length - 1, 0, ...dmHeld); else held.push(...dmHeld, t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.')); }
+    // what a v2 POI holds that this editor cannot change yet (an interior, the DM fields the DM panel leaves out, and a
+    // flat picture's picture and size), read-only, and its size against its version's limit
+    const held = heldLines(heldNotEditable(poiHeldOf(d)), dmHeldLines(d));
     if (held.length) out.push(el('div', 'dfpoi-h', t('poi.held.title', 'Not editable here yet')), ...held.map((l) => el('div', 'dfpoi-sub', l)));
     out.push(el('div', 'dfpoi-sub', docSizeText(poiDocSizeOf(d), d.v)));
     return out;
@@ -517,9 +530,10 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const out = [el('div', 'dfpoi-h', t('poi.editor.part', 'Part'))];
     out.push(field(t('poi.editor.name', 'Name'), text(part.name ?? '', (v) => change('rename', at((p) => { const n = lawName(v); if (n) p.name = n; else delete p.name; })), POI_LIMITS.name)));
     out.push(field(t('poi.editor.key', 'Key'), el('span', '', part.key)));
-    out.push(field(t('poi.editor.offset', 'Offset (m)'), ...vec(part.t, (v) => change('move', at((p) => { p.t = v; })), { step: 0.05, min: -2000, max: 2000 })));
-    out.push(field(t('poi.editor.turn', 'Turn (degrees)'), ...vec(eulerOfQuat(part.r), (e) => change('turn', at((p) => { p.r = quatOfEuler(e); })), { step: 1 })));
-    out.push(field(t('poi.editor.scale', 'Scale'), ...vec(part.s, (v) => change('size', at((p) => { p.s = v.map((c) => (Math.abs(c) < 0.001 ? 0.001 : c)); })), { step: 0.05, min: -1000, max: 1000 })));
+    const placed = [field(t('poi.editor.offset', 'Offset (m)'), ...vec(part.t, (v) => change('move', at((p) => { p.t = v; })), { step: 0.05, min: -2000, max: 2000 })),
+      field(t('poi.editor.turn', 'Turn (degrees)'), ...vec(eulerOfQuat(part.r), (e) => change('turn', at((p) => { p.r = quatOfEuler(e); })), { step: 1 })),
+      field(t('poi.editor.scale', 'Scale'), ...vec(part.s, (v) => change('size', at((p) => { p.s = v.map((c) => (Math.abs(c) < 0.001 ? 0.001 : c)); })), { step: 0.05, min: -1000, max: 1000 }))];
+    out.push(...lockedRows(d, `part:${part.key}`, placed));
     out.push(field(t('poi.editor.solid', 'Solid'), check(part.collide === 'mesh', (v) => change('solid', at((p) => { p.collide = v ? 'mesh' : 'none'; })))));
     out.push(field(t('poi.editor.shadow', 'Casts a shadow'), check(part.shadow, (v) => change('shadow', at((p) => { p.shadow = v; })))));
     // a part with no uploaded model of its own (a World Builder part that stands a Daggerfall model) has no materials,
@@ -582,7 +596,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (!l) return [];
     const at = (fn) => (x) => { const q = x.lights[sel.light]; if (q) fn(q); };
     const out = [el('div', 'dfpoi-h', t('poi.where.light', 'Light {n}', { n: sel.light + 1 }))];
-    out.push(field(t('poi.editor.offset', 'Offset (m)'), ...vec(l.t, (v) => change('light', at((q) => { q.t = v; })), { step: 0.1, min: -2000, max: 2000 })));
+    out.push(...lockedRows(d, `light:${sel.light}`, [field(t('poi.editor.offset', 'Offset (m)'), ...vec(l.t, (v) => change('light', at((q) => { q.t = v; })), { step: 0.1, min: -2000, max: 2000 }))]));
     const colour = el('input');
     colour.type = 'color';
     colour.value = `#${l.color.map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`;
@@ -594,8 +608,15 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // AUDIT POI U1: the light it was drawn for - by its place in the list, the lights as they were: pressed twice it took
     // the next light too, by then at that place
     const drawn = JSON.stringify(d.lights);
-    out.push(btn(t('poi.editor.removeLight', 'Remove this light'), () => { if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
+    out.push(btn(t('poi.editor.removeLight', 'Remove this light'), () => { if (lockedIn(d, [`light:${sel.light}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return; } if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
     return out;
+  }
+
+  /** A row's place fields, read-only while it is locked (by its own mark or a group's), with a line that says why. */
+  function lockedRows(d, rowId, rows) {
+    if (!marksOf(d).get(rowId)?.frozen) return rows;
+    for (const r of rows) for (const i of r.querySelectorAll?.('input') ?? []) i.disabled = true;
+    return [el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.')), ...rows];
   }
 
   /** The document's problems: the law's, then its assets' once every asset is known. */
@@ -847,87 +868,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   /** AUDIT POI U1: a part taken out by its key - once; gone, the press does nothing. */
   function removePart(id, key) {
     if (!edit.docOf(id)?.parts.some((p) => p.key === key)) return false;
+    if (lockedIn(edit.docOf(id), [`part:${key}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return false; }
     return edit.edit(id, 'remove part', (x) => { x.parts = x.parts.filter((p) => p.key !== key); }, { id, part: null });
   }
-  function removeSelection() {
-    const sel = edit.selection();
-    if (!sel) return;
-    if (sel.part != null) removePart(sel.id, sel.part);
-    else if (sel.light != null) edit.edit(sel.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: sel.id, part: null, light: null });
-    else if (edit.entryOf(sel.id)?.state === 'new' && !edit.entryOf(sel.id)?.saved) edit.remove(sel.id);
-    else say(t('poi.editor.deleteSaved', 'To take a saved POI out of the world, ask to retire it.'), 'bad');
-  }
-  // COPY AND PASTE: a part, a light, or a whole POI's parts and lights, kept as they stood and stood again in the selected POI
-  // (the same one: stepped a metre east and north each paste; another: at the same spot from its origin). The clipboard is
-  // this page's: it survives opening other POIs, not a reload.
-  /** @type {{ from: string, parts: any[], lights: any[], n: number } | null} */
-  let clip = null;
-  function copySelection(cut = false) {
-    const sel = edit.selection();
-    const d = sel ? edit.docOf(sel.id) : null;
-    if (!sel || !d) { say(t('poi.editor.copyNone', 'Select a part or a POI first.'), 'bad'); return false; }
-    if (sel.part != null) {
-      const p = d.parts.find((q) => q.key === sel.part);
-      if (!p) return false;
-      clip = { from: sel.id, parts: [structuredClone(p)], lights: [], n: 0 };
-    } else if (sel.light != null) {
-      const l = d.lights?.[sel.light];
-      if (!l) return false;
-      clip = { from: sel.id, parts: [], lights: [structuredClone(l)], n: 0 };
-    } else clip = { from: sel.id, parts: structuredClone(d.parts), lights: structuredClone(d.lights ?? []), n: 0 };
-    say(t('poi.editor.copied', 'Copied {n, plural, one {# thing} other {# things}}. Ctrl+V pastes them into the selected POI.', { n: clip.parts.length + clip.lights.length }));
-    if (cut && (sel.part != null || sel.light != null)) removeSelection();
-    return true;
-  }
-  function pasteSelection() {
-    const sel = edit.selection();
-    const d = sel ? edit.docOf(sel.id) : null;
-    if (!clip || !(clip.parts.length + clip.lights.length)) { say(t('poi.editor.pasteNone', 'Nothing copied yet. Select a part and press Ctrl+C.'), 'bad'); return false; }
-    if (!sel || !d) { say(t('poi.editor.pasteWhere', 'Select the POI to paste into first.'), 'bad'); return false; }
-    clip.n += 1;
-    const step = clip.from === sel.id ? clip.n : 0;
-    const at = (v) => [v[0] + step, v[1], v[2] + step].map((c) => Math.round(c * 1000) / 1000);
-    // the copies are made against the POI as it stands, so the edit step records the new selection (undo restores the
-    // prior selection and redo selects the pasted copy again)
-    const parts = [], lights = [], keys = { parts: [...d.parts] };
-    // a copy keeps its group only where the POI pasted into has that group (another POI may not)
-    const groups = new Set((d.groups ?? []).map((g) => g?.key));
-    const ungroup = (o) => { if (o.group !== undefined && !groups.has(o.group)) delete o.group; };
-    let skipped = 0;
-    for (const src of clip.parts) {
-      if (keys.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
-      const copy = structuredClone(src);
-      // a key already in the POI is made unique: shortened to leave room for a number, then numbered while taken
-      if (keys.parts.some((q) => q.key === copy.key)) copy.key = uniqueKey(keys, copy.key);
-      copy.t = at(copy.t ?? [0, 0, 0]);
-      ungroup(copy);
-      keys.parts.push(copy); parts.push(copy);
-    }
-    const lightsBefore = d.lights?.length ?? 0;
-    for (const src of clip.lights) {
-      if (lightsBefore + lights.length >= POI_LIMITS.lights) { skipped++; continue; }
-      const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); ungroup(copy); lights.push(copy);
-    }
-    // what was pasted is selected: the last part, or the last light when only lights were pasted
-    const pastedSel = parts.length ? { id: sel.id, part: parts[parts.length - 1].key } : lights.length ? { id: sel.id, part: null, light: lightsBefore + lights.length - 1 } : undefined;
-    edit.edit(sel.id, 'paste', (x) => {
-      x.parts.push(...structuredClone(parts));
-      if (lights.length) { x.lights ??= []; x.lights.push(...structuredClone(lights)); }
-    }, pastedSel);
-    if (skipped) say(t('poi.editor.pasteFull', 'The POI is full: {n, plural, one {# thing was} other {# things were}} left out.', { n: skipped }), 'bad');
-    return true;
-  }
-  function duplicateSelection() {
-    const sel = edit.selection();
-    if (!sel || sel.part == null) return;
-    edit.edit(sel.id, 'duplicate', (x) => {
-      const p = x.parts.find((q) => q.key === sel.part);
-      if (!p) return;
-      const copy = structuredClone(p);
-      copy.key = uniqueKey(x, p.key);
-      x.parts.push(copy);
-    });
-  }
+  // COPY, CUT, PASTE, DUPLICATE, AND DELETE of the whole selection (ui/poi/poiSceneActs.js): the copy is saved in this
+  // browser's localStorage (so it survives a reload and is shared across tabs) and written to the system clipboard when
+  // permitted
+  const sceneActs = createPoiSceneActs({ edit, say, facts, editor });
+  const removeSelection = () => sceneActs.remove();
+  const copySelection = (cut = false) => sceneActs.copy(cut);
+  const pasteSelection = () => sceneActs.paste();
+  const duplicateSelection = () => sceneActs.duplicate();
 
   // ── OUT AND BACK IN (POI-6) ──────────────────────────────────────
   const fetchAsset = (sha) => feed.asset(sha, { auth: io()?.secret ?? null });
@@ -1275,7 +1226,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     refresh: () => schedule(),
     say,
     /** The keyboard's acts the editor hands back (Ctrl+S, Delete, Ctrl+D). */
-    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection(), copy: () => copySelection(false), cut: () => copySelection(true), paste: () => pasteSelection() },
+    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection(), copy: () => copySelection(false), cut: () => copySelection(true), paste: () => pasteSelection(), group: () => sceneActs.group(), ungroup: () => sceneActs.ungroup() },
+    /** The scene acts (groups, marks, and arranging), for the panel's buttons and tests. */
+    scene: sceneActs,
     open: (id) => openPoi(id),
     /** POI-5: the UV editor over a part's material, and a picture taken from bytes - the panel's own buttons' doors, a
      *  test's too. */

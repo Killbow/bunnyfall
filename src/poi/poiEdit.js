@@ -225,21 +225,19 @@ export function poiDocSizeOf(doc) {
 /** People's v2 links: a route, a dialogue, a trade, a reach, or a condition (poiLawV2.js POI_V2_NPC_KEYS less the layout). */
 const NPC_LINKS = ['route', 'dialogue', 'trade', 'radius', 'showWhen'];
 /**
- * Summarizes the v2 content that the in-game editor shows read-only and preserves unchanged on save: each v2
- * collection's count, whether it has an interior, and how many parts, lights, and people are grouped, hidden, locked,
- * or (for people) linked.
+ * Summarizes what a v2 document holds beyond what the outliner edits: each v2 collection's count (apart from groups and
+ * flat pictures, which the outliner edits), whether it has an interior, and how many people are linked. The DM panel
+ * edits the DM collections and people's links, so the inspector removes those (ui/poi/poiDmPanel.js heldNotEditable)
+ * and lists the rest, which are preserved unchanged. `flats` counts the flat pictures, whose image this editor still
+ * cannot change and whose size it can only reset to 1.
  * @param {any} doc
  */
 export function poiHeldOf(doc) {
   /** @type {Record<string, number>} */
   const kinds = {};
-  for (const k of POI_V2_DOC_KEYS) if (k !== 'interior' && Array.isArray(doc?.[k]) && doc[k].length) kinds[k] = doc[k].length;
-  const rows = [...(doc?.parts ?? []), ...(doc?.lights ?? []), ...(doc?.npcs ?? [])].filter((o) => o && typeof o === 'object');
+  for (const k of POI_V2_DOC_KEYS) if (!['interior', 'groups', 'flats'].includes(k) && Array.isArray(doc?.[k]) && doc[k].length) kinds[k] = doc[k].length;
   return {
-    kinds, interior: !!doc?.interior,
-    grouped: rows.filter((o) => o.group !== undefined).length,
-    hidden: rows.filter((o) => o.visible === false).length,
-    locked: rows.filter((o) => o.locked === true).length,
+    kinds, interior: !!doc?.interior, flats: Array.isArray(doc?.flats) ? doc.flats.length : 0,
     linked: (doc?.npcs ?? []).filter((n) => n && NPC_LINKS.some((k) => n[k] !== undefined)).length,
   };
 }

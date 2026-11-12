@@ -34,6 +34,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: Copy and paste in the in-game POI editor now take a whole selection with its groups and people, save the copy so it is still there after a reload and in other tabs, use the system clipboard where the browser allows it, and name anything left out because its model or picture is missing.
+- Fixed: The in-game POI editor can now group and ungroup what is selected, align and spread it, reset its turn and size, move it by an amount, and drop it to the ground.
+- Fixed: The in-game POI editor's list now shows groups and people, with a button on each row and group to hide or lock it, a search inside the open POIs, and dragging to regroup or reorder.
 - Fixed: The in-game POI editor no longer draws things marked hidden, lets you pick hidden or locked things in the world, or lets you move locked things; the game still shows hidden things.
 - Fixed: The in-game POI editor can now select several things at once with Shift+click or by dragging a box, move, turn, and size them together with the gizmo, and pick and move people in the world.
 - Fixed: A POI dialogue answer that opens a trade now shows the trade instead of leaving the talk on screen.
@@ -50,7 +53,7 @@ the last release (scripts/changelogNotes.mjs).
 - Fixed: Saving a whole World Builder POI to the library from the in-game POI editor no longer fails when its lights are in a group, hidden, or locked; the library saves its parts and lights, and the dialog says what it leaves out.
 - Fixed: The in-game POI editor now says when a POI's flat pictures are left out of its .glb export and the library, as it already did for Daggerfall models.
 - Fixed: A part copied from one POI and pasted into another in the in-game POI editor no longer names a group the other POI lacks, which stopped that POI from being saved.
-- Fixed: The in-game POI editor now lists what a POI from the World Builder holds that it cannot change yet, such as groups, routes, and events, and shows each POI's size against its limit.
+- Fixed: The in-game POI editor now lists what a POI from the World Builder holds that it cannot change yet, such as an interior, and shows each POI's size against its limit.
 - Fixed: After the crafting rank reset, the Firmament could show 0 Stars, give nothing for new Renown levels, and refuse your changes with "Not enough points." It now shows how many stars you are over and keeps Accept off until they fit, and every character gets one free respec.
 - Staff: the AI chat reviewer is gone, and so are the automatic spawn-check cases. Reports now only hold what players report, and the open automatic cases have been closed. A Monster watch flag now leaves a staff note on the player instead of opening a case.
 - Staff: Open reports are readable now. Each case says what kind it is and why it has its level, and opens in place to the reported chat or spawn findings and the reporters' notes. From there you can Dismiss, Mute, Ban or open the player. Ticked cases, or every automatic spawn check nobody reported, can be dismissed in one go.

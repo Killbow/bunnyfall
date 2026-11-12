@@ -14,7 +14,10 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   POI loses its group, visibility, and lock.
 - The in-game editor edits the DM content in its DM panel (`src/ui/poi/poiDmPanel.js`), except a spawn point's `route`, an
   object's `yaw`, and a `flat` appearance, which the game does not act on yet. It preserves those and every other v2 key it cannot
-  edit yet (groups, flats, the interior, `visible`, and `locked`) and lists them, read-only, in the POI's inspector.
+  edit yet (the interior, and a flat's picture and `scale`, which it can only reset to one) and lists them, read-only, in the
+  POI's inspector.
+- The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
+  the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 
 ## What v2 adds
 
