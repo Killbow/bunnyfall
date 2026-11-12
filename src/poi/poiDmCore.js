@@ -425,7 +425,8 @@ export function choose(dm, i, { run = true } = {}) {
   const th = o.then;
   if (th.k === 'goto') { dm.dialogue.node = th.node; note(dm, { k: 'dialogue', dialogue: dm.dialogue.dialogue, node: th.node }); }
   else if (th.k === 'close') dm.dialogue = null;
-  else if (th.k === 'open_trade') { dm.trade = th.trade; note(dm, { k: 'open_trade', trade: th.trade }); }
+  // the talk ends, so the trade is what shows
+  else if (th.k === 'open_trade') { dm.dialogue = null; dm.trade = th.trade; note(dm, { k: 'open_trade', trade: th.trade }); }
   else if (run && th.k === 'run_trade_recipe') runRecipe(dm, th.trade, th.recipe);
   else if (run && th.k === 'trigger_event') runEvent(dm, th.event);
   return th;

@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: A POI dialogue answer that opens a trade now shows the trade instead of leaving the talk on screen.
 - Fixed: The in-game POI editor has a Sandbox that plays a POI's people, dialogues, trades, and events on a test visitor, with a log, and never touches your character.
 - Fixed: The in-game POI editor draws a POI's routes, waypoints, encounter areas, zones, and objects in the world while its DM tools are open, and a spot can be picked with a click on the ground.
 - Fixed: The in-game POI editor's DM tools can now make a POI's routes, encounters, objects, dialogues, trades, events, and variables, link its people to them, and show where each has a problem.

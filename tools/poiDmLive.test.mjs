@@ -209,3 +209,26 @@ test('talking draws the dialogue once', async () => {
   shown.push(w.shown.length - n0);
   assert.deepEqual(shown, [1], 'the dialogue is drawn once');
 });
+
+test('a dialogue answer that opens a trade ends the talk, so the trade shows', async () => {
+  const w = setup((d) => { d.dialogues.find((x) => x.key === 'captain').nodes[0].options.push({ text: 'Show me your wares.', then: { k: 'open_trade', trade: 'nyra' } }); });
+  await w.step();
+  w.rt.talk(w.doc.id, 'captain');
+  const dm = w.dm();
+  const { choose, dialogueNow } = await import('../src/poi/poiDmCore.js');
+  const i = dialogueNow(dm).options.find((o) => o.text === 'Show me your wares.').i;
+  choose(dm, i, { run: false });
+  assert.equal(dm.dialogue, null);
+  assert.equal(dm.trade, 'nyra');
+});
+
+test('an answer that opens a trade, picked on the screen, draws the trade once', async () => {
+  const w = setup((d) => { d.dialogues.find((x) => x.key === 'captain').nodes[0].options.push({ text: 'Wares?', then: { k: 'open_trade', trade: 'nyra' } }); });
+  await w.step();
+  w.rt.talk(w.doc.id, 'captain');
+  await w.step();
+  const d = w.last();
+  d.pick(d.opts.find((o) => o.text === 'Wares?').i);
+  await w.step(); await w.step();
+  assert.equal(w.shown.filter((x) => /^trade /.test(x)).length, 1);
+});
