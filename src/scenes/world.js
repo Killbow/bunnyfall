@@ -1107,6 +1107,10 @@ import { createSunbaby, sunbabyLight, SUNBABY_WEATHER, sunbabyKey, createSunbaby
 import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word staged only on a relay that knows it
 import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
 import { gameMaps } from '../net/staffPlaces.js';   // STAFF-EVENT: the game's maps, for the Staff Panel's place picker
+import { createStaffCommands } from './staffCommandsHost.js';   // BUNNYFALL: staff /vanish, /spawn, /greed
+import { createDmBanner } from '../ui/dmBanner.js';   // BUNNYFALL /dm: the banner across the top of the screen
+import { dmLineOf, DM_DEFAULT } from '../net/dmLaw.js';
+const dmBanner = createDmBanner();
 import { staffFollowOnPage, relinkGame } from './staffFollowHost.js';   // STAFF-PANEL5-FOLLOW: the game's staff hook (net/staffHook.js) and the host's half of a follow; STAFF-HIDE-TOGGLE: and the panel's relink
 import { createStaffViewHost } from './staffViewHost.js';   // STAFF-VIEW1: the staff tags, Shift+M and a tag's follow
 import { privateInteriorPrefix, privateInteriorRoom, privateBoatRoom, privateInteriorOf } from '../net/privateInterior.js';
@@ -20297,6 +20301,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let garrisonBook = null;   // BUNNYFALL COMPANIES: the garrisons (systems/garrisonBook.js)
   let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
   let farmBook = null;   // BUNNYFALL COMPANIES: the Company farms (systems/farmBook.js)
+  let staffCommands = null;   // BUNNYFALL: /vanish, /spawn and /greed (scenes/staffCommandsHost.js), made beside Cromwark's host
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -21531,7 +21536,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // below is: CHAT1's pin holds those five lines as they stand, and
       // the hello is built when the socket opens, a turn later.
       link.mintToken = identityMinter;
-      link.onDm = (line) => chatLog.pushAll({ text: line.text, at: line.at, dm: true });   // TITLE-N: the Dungeon Master's line, on every tab as /red's is
+      link.onDm = (line) => { chatLog.pushAll({ text: line.text, at: line.at, dm: true }); dmBanner.show(line.text, line.c ?? DM_DEFAULT); };   // BUNNYFALL /dm: and across the top of the screen in its colour (ui/dmBanner.js)   // TITLE-N: the Dungeon Master's line, on every tab as /red's is
       // SOC2: the HUB tab's link carries the account (net/social.js accountId - the profile's, not the tab's); the
       // presence session never does, and a later channel tab would not either: the hub is the one room that checks
       // it. Set after the join, which is safe because a socket opens on a later turn and the hello is built when it
@@ -21578,6 +21583,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           return true;
         } }
         if (cromwark.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: /nyxcoin, the Nyx coins gathered
+        if (staffCommands?.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: staff /vanish, /spawn, /greed
         if (staffHost?.claims(tabId)) return staffHost.send(tabId, text);   // STAFF-PANEL5-FREEZE: the Staff tab's line goes to the service; a freeze shuts every other tab, the commands below too
         // EG-PLAY: `/breach` - answer an Elite Breach's call; `/breach rehearse` - the day's Rehearsal; `/breach home` - a
         // Redoubt's way home. Local, never sent as chat. AUDIT EG V (c, L7-1): its words WHOLE (net/chatCommands.js
@@ -21623,8 +21629,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         // /red)"): /red's law below, one frame over - parsed here and never guarded: whether this player may is the
         // RELAY's question, asked of their signed token, and it ignores anyone else in silence. From any tab, on the
         // World channel, the one room every player online is in.
+        // BUNNYFALL /dm (net/dmLaw.js): `/dm [colour] <text>` - the first word a colour name or #rrggbb, else the orange
         const dm = /^\/dm\s+([\s\S]+)$/i.exec(text.trim());
-        if (dm) return chatLinks.get('world')?.sendDm(dm[1]) ?? false;
+        if (dm) { const d = dmLineOf(dm[1]); return d.text ? chatLinks.get('world')?.sendDm(d.text, d.colour) ?? false : false; }
         // RED1 (Mac: "a red text system (kind of like warframe) where I
         // can message chat as the server"). THE COMMAND IS ALWAYS
         // PARSED AND NEVER GUARDED HERE: whether this player may speak
@@ -25605,6 +25612,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       return true;
     },
   });
+  // BUNNYFALL STAFF COMMANDS (scenes/staffCommandsHost.js): /vanish - hidden from players (a hidden token, the relay's) and
+  // monsters (staffFollowHost.js `unseen`, off that token); /spawn - monsters near you; /greed - gold or Nyx coins to a player
+  staffCommands = createStaffCommands({
+    io: () => (isOnlinePage() ? insigniaIo() : null),
+    relink: () => relinkGame(identityMinter, online, chatLinks?.values()),
+    spawn: (mobileType) => _standLooseFoe(mobileType),
+    entity: () => playerEntity,
+    saved: () => surfacePlayer(),
+  });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)
@@ -29083,6 +29099,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...climbPoseOf(player),   // CLIMB5: my climb and the way my body faces on it, so the others turn me to the wall, pose me off the ground and hear me climb - absent off the wall
     };   // the wire's move bit: 1 walking, 2 running (the peers' bodies pick the clip off it)
     if (seated) arm.st = seated.st;   // CARDS2b: seated, and the table's top above the feet - absent standing, the wire's omission law
+    staffCommands?.tick(Date.now(), (line) => chatNotice(line));   // BUNNYFALL: a staff member's /greed for me, taken
     if (staffFollow.frame()) key = null;   // STAFF-PANEL5-FOLLOW: a follow's body stands in no room - the hook's hidden links watch (above HALO-THIN's word, which stands over WAGONS2-VISIT's close and the join: test/net/halothin.test.js, test/systems/wagons2_visit.test.js)
     online.haloWhole = !!duelMgr.duel || _serpentFight;   // HALO-THIN (net/online.js haloPoseDue): a halo hears my pose when it is due - every pose while a referee may stand in one (a duel's bout is refereed in the room my opponent is heard through, a serpent's trail in the fight's); never the open zone's - its referee holds me by the zone word, which my own cell's socket alone says (AUDIT B F4)
     if (!modes?.caravanVisit) caravanVisitLink.close();   // WAGONS2-VISIT: no visit, no listener - closed before my primary joins the cell it heard (never replaced by my own id)

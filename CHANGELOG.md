@@ -10,6 +10,8 @@ the last release (scripts/changelogNotes.mjs).
 - Rodney's blight now spreads out of Cromwark, a little further every day, and shows in purple on the world map. Inside it monsters turn purple, hit 25% harder and can drop Nyx coins. Clearing a town raid near its edge pushes it back, and strong Company and Charter territories stop it at their borders. Where a territory holds it, the front is drawn in red.
 - City Charters: up to three Companies with halls in the same region can hold its capital together. A Captain founds the Charter from the Company page and invites the others by tag. The Charter shows on the world map as one dashed outline round the city, sized by its Companies' territories together, and its members gather and loot 10% more anywhere inside it.
 - Companies with a hall now have a territory on the world map, a patch around the hall's town in the Company's colours. It grows as members earn Renown in the hall's region and shrinks back over the weeks when they stop. Territories can overlap. Inside your own Company's territory you gather 10% more and find 10% more gold in loot.
+- /dm now shows its line as a banner across the top of everyone's screen as well as in chat, in a colour of choice: /dm purple Rodney: You will all kneel!, or a #rrggbb code. Developers can use it as well as Dungeon Masters.
+- Staff commands: /vanish hides a staff member from players and monsters until used again, /spawn <monster> [count] stands monsters nearby, and /greed <player> <amount> [gold|nyx] sends gold or Nyx coins to a player (Admins only), which arrive in their game within a minute.
 
 ## 2026-11-11
 

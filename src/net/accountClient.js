@@ -1332,6 +1332,12 @@ export const farmBuy = (io, body) => call(io, '/v1/farms/buy', body);
 export const farmCrop = (io, body) => call(io, '/v1/farms/crop', body);
 export const farmRelease = (io, body) => call(io, '/v1/farms/release', body);
 export const farmChore = (io, body) => call(io, '/v1/farms/chore', body);
+/** BUNNYFALL STAFF COMMANDS (server-account/src/staffCommands.js): /vanish's switch (and whether this account is staff),
+ *  /greed's gift, and the gifts waiting for this account and their claim. */
+export const staffVanish = (io, on = undefined) => call(io, '/v1/staffcmd/vanish', typeof on === 'boolean' ? { on } : {});
+export const staffGreed = (io, body) => call(io, '/v1/staffcmd/greed', body);
+export const greedMine = (io) => call(io, '/v1/greed/mine', {});
+export const greedClaim = (io, id) => call(io, '/v1/greed/claim', { id });
 /** BUNNYFALL: custom paperdolls (server-account/src/skins.js): the account's skins, an upload, a delete, the one worn, one by id. */
 export const skinsMine = (io) => call(io, '/v1/skins/mine', {});
 export const skinsUpload = (io, body) => call(io, '/v1/skins/upload', body);
