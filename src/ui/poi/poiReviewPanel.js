@@ -22,6 +22,7 @@
 import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
 import { POI_LIMITS, poiDocProblems } from '../../poi/poiLaw.js';
 import { poiDiff } from '../../poi/poiDiff.js';
+import { comparableRevs, compareRevisions, defaultPair } from '../../poi/poiRevCompare.js';
 import { diffText, problemText, problemWhere, uncheckedRows } from '../../poi/poiText.js';
 import { poiQueue, poiReview, poiHistory, poiRollback } from '../../poi/poiService.js';
 import { agoText } from '../saveTile.js';   // the port's one "how long ago"
@@ -57,7 +58,8 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
   let queue = null;
   let looking = null;        // the submission being looked at: `{ id, rev, before, after }`
   let showing = 'after';
-  let history = null;        // `{ id, h }`
+  // the open history, `{ id, h, pair }`, where `pair` holds the two revisions being compared (`{ from, to }`)
+  let history = null;
   let puttingBack = null;    // the revision whose putting back asks again
   let rolling = false;       // AUDIT POI U12: a put-back out - the put-back buttons held until it answers
   let more = false;          // AUDIT POI C3: more submissions wait than the store sent
@@ -209,7 +211,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     dialog = box();
     dialog.dataset.kind = 'history';
     host.append(dialog);
-    history = { id, h: null };
+    history = { id, h: null, pair: null };
     drawHistory();
     await loadHistory(id);
   }
@@ -218,7 +220,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const r = await act((i) => poiHistory(i, id));
     if (!r) return;
     if (!r.ok) { say(refusal(r), 'bad'); return; }
-    if (history?.id === id) { history.h = r.data; drawHistory(); }
+    if (history?.id === id) { history.h = r.data; history.pair = keptPair(r.data, history.pair); drawHistory(); }
   }
   function drawHistory() {
     if (!dialog || dialog.dataset.kind !== 'history' || !history) return;
@@ -226,8 +228,41 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const named = h?.revs?.slice().reverse().find((x) => x.doc)?.doc?.name ?? history.id;
     const rows = [el('div', 'dfpoi-h', t('poi.review.historyTitle', 'History: {name}', { name: named })), btn(t('poi.review.close', 'Close'), () => close())];
     if (!h) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...')));
-    else for (const rev of [...h.revs].reverse()) rows.push(historyRow(h, rev));
+    else { rows.push(...compareRows(h)); for (const rev of [...h.revs].reverse()) rows.push(historyRow(h, rev)); }
     dialog.replaceChildren(...rows);
+  }
+  /** Preserves the previously selected revision pair across a history reload if both revisions are still in
+   *  `comparableRevs(h)`; otherwise falls back to `defaultPair(h)`. */
+  function keptPair(h, pair) {
+    const revs = new Set(comparableRevs(h).map((x) => x.rev));
+    return pair && revs.has(pair.from) && revs.has(pair.to) ? pair : defaultPair(h);
+  }
+  /** Builds the revision-comparison controls and diff list (poi/poiRevCompare.js) for the history dialog, or returns
+   *  an empty array when fewer than two revisions can be compared. */
+  function compareRows(h) {
+    const pair = history?.pair;
+    if (!pair) return [];
+    // labels rollback and retirement revisions by their action, matching their history rows
+    const options = comparableRevs(h).map((x) => [x.rev, x.kind === 'retire' || x.kind === 'rollback' ? t('poi.review.rev', 'Revision {rev}: {what}', { rev: x.rev, what: x.kind === 'retire' ? t('poi.review.kindRetire', 'take out of the world') : t('poi.review.kindRollback', 'put revision {rev} back in the world', { rev: x.base }) })
+      : t('poi.review.compareRev', 'Revision {rev} ({state})', { rev: x.rev, state: revStateText(x.state) })]);
+    const pick = (side) => {
+      const s = el('select');
+      s.dataset.side = side;
+      for (const [rev, text] of options) { const o = el('option', '', text); o.value = String(rev); if (rev === pair[side]) o.selected = true; s.append(o); }
+      s.value = String(pair[side]);
+      s.addEventListener('change', () => { if (history) { history.pair = { ...history.pair, [side]: Number(s.value) }; drawHistory(); } });
+      // keeps key presses in the dropdown, such as the arrow keys, from reaching the editor's own key handling
+      for (const ty of ['keydown', 'keyup']) s.addEventListener(ty, swallow);
+      return s;
+    };
+    const head = el('div', 'dfpoi-row');
+    head.append(el('span', '', t('poi.review.compareFrom', 'From')), pick('from'), el('span', '', t('poi.review.compareTo', 'to')), pick('to'));
+    const changes = compareRevisions(h, pair.from, pair.to) ?? [];
+    const list = el('div', 'dfpoi-sub dfpoi-compare');
+    if (pair.from === pair.to) list.append(el('div', '', t('poi.review.compareSame', 'Pick two different revisions.')));
+    else if (!changes.length) list.append(el('div', '', t('poi.review.compareNone', 'Nothing differs between these two.')));
+    for (const c of changes) list.append(el('div', '', diffText(c)));
+    return [el('div', 'dfpoi-h', t('poi.review.compare', 'Compare two revisions')), head, list];
   }
   function historyRow(h, rev) {
     const r = el('div', 'dfpoi-review');
