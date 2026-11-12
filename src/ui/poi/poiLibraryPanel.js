@@ -23,7 +23,7 @@ import { lawName } from '../../poi/poiEdit.js';
 import { problemText, problemWhere } from '../../poi/poiText.js';
 import { poiShelf, poiShelfEntry, poiShelve, poiUnshelve, poiPutAsset } from '../../poi/poiService.js';
 import { decodePoiMesh } from '../../poi/poiMesh.js';
-import { shelfEntryOf, putOnShelf } from '../../poi/poiShelf.js';
+import { shelfEntryOf, putOnShelf, shelfDropsOf } from '../../poi/poiShelf.js';
 import { bytesToBase64 } from '../../systems/save/saveTransfer.js';   // the port's one base64 (no atob/btoa in every host)
 
 export const POI_LIBRARY_STYLE_ID = 'dfpoi-library-style';
@@ -292,6 +292,8 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
       el('div', 'dfpoi-h', t('poi.library.keepTitle', 'Save to library')),
       el('div', 'dfpoi-sub', t('poi.library.keepHint', 'Every builder can place it. Its picture is drawn from its parts.')),
       el('div', 'dfpoi-sub', t('poi.library.keepWhat', '{parts, plural, one {# part} other {# parts}}, {lights, plural, one {# light} other {# lights}}', { parts: source.parts.length, lights: source.lights?.length ?? 0 })),
+      // a library entry is v1: the groups, visibility, and locks of a v2 POI's parts and lights stay in the POI only
+      ...(shelfDropsOf(source) ? [el('div', 'dfpoi-sub', t('poi.library.keepDrops', 'The library does not save groups or hidden and locked marks. Only the parts and lights are saved.'))] : []),
       field(t('poi.editor.name', 'Name'), name), field(t('poi.editor.tags', 'Tags'), tags), el('div', 'dfpoi-row', t('poi.editor.about', 'Description')), about, said, acts,
     );
     host.append(dialog);

@@ -5671,6 +5671,7 @@ poi.library.empty,"The shelf is empty. Save a model to the library from its insp
 poi.library.facts,"by {by} · {parts, plural, one {# part} other {# parts}} · {triangles, plural, one {# triangle} other {# triangles}}"
 poi.library.hint,"Models shared by every builder. Place one, then click where it should stand."
 poi.library.keep,"Save"
+poi.library.keepDrops,"The library does not save groups or hidden and locked marks. Only the parts and lights are saved."
 poi.library.keepHint,"Every builder can place it. Its picture is drawn from its parts."
 poi.library.keepImport,"Save to library too"
 poi.library.keepPart,"Save this part to library..."

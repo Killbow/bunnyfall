@@ -10,7 +10,8 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   `groups` is still refused.
 - `POI_DOC_VERSION` is `2`: both editors write v2. The in-game editor stamps a new POI v2 and writes a v1 POI as v2 at its
   first change (opening one changes nothing). `POI_SHELF_VERSION` is `1`.
-- Size: 96 KiB for v1, 256 KiB for v2 (`poiDocBytesOf`). Library shelf entries stay v1.
+- Size: 96 KiB for v1, 256 KiB for v2 (`poiDocBytesOf`). Library shelf entries stay v1: a part or light saved to the library from a v2
+  POI loses its group, visibility, and lock.
 - The in-game editor preserves every v2 key it cannot edit yet and lists them, read-only, in the POI's inspector.
 
 ## What v2 adds

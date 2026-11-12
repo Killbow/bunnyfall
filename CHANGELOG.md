@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: Saving a whole World Builder POI to the library from the in-game POI editor no longer fails when its lights are in a group, hidden, or locked; the library saves its parts and lights, and the dialog says what it leaves out.
 - Fixed: The in-game POI editor now says when a POI's flat pictures are left out of its .glb export and the library, as it already did for Daggerfall models.
 - Fixed: A part copied from one POI and pasted into another in the in-game POI editor no longer names a group the other POI lacks, which stopped that POI from being saved.
 - Fixed: The in-game POI editor now lists what a POI from the World Builder holds that it cannot change yet, such as groups, routes, and events, and shows each POI's size against its limit.

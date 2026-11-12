@@ -141,6 +141,16 @@ test('the review reads a first change to a v1 POI as the upgrade and that change
   assert.deepEqual(poiDiff(v2, edit.docOf(v2.id)).map((c) => c.code), ['name']);
 });
 
+test('a library entry from a v2 POI leaves out groups, visibility, and locks', () => {
+  const parts = [{ ...Edit.newPart({ parts: [] }, { mesh: SHA, submeshes: 1, name: 'Stall' }), group: 'g', visible: false, locked: true }];
+  const lights = [{ ...Edit.newLight(), group: 'g', locked: true }];
+  assert.equal(Shelf.shelfDropsOf({ parts, lights }), 2);
+  const entry = Shelf.shelfEntryOf({ id: 'lib-0123456789ab', name: 'Stall', parts, lights });
+  assert.deepEqual(Law.poiShelfProblems(entry), []);
+  assert.equal(entry.lights[0].group, undefined);
+  assert.equal(entry.parts[0].visible, undefined);
+});
+
 test('what the editor cannot change yet is counted, and the size follows the version', () => {
   const h = Edit.poiHeldOf(poiV2Example());
   assert.deepEqual(h.kinds, { groups: 2, routes: 1, encounters: 1, interactives: 2, dialogues: 1, trades: 2, variables: 2, events: 4 });
