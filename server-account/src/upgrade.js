@@ -6,6 +6,8 @@
 // piece (upgradeRecipeOf). The service cannot see the pack, so the piece is the save's word, as a temper's found piece is
 // (professions.js temperPiece); the Stores' spend is the bound. It asks the new recipe's rank of Smithing, spends 80% of
 // the new metal's main input, and pays the craft's XP at its tier.
+import { craftworkPct } from '../../src/net/craft/craftLaw.js';   // CRAFTWORK: half its XP
+import { inCraftwork } from './professions.js';
 import { mintId, overRate } from './accounts.js';
 import { asks, shut, storeOf, trackRow, trackView, craftCapSql, workableSql, workStatements, workHeld } from './professions.js';
 import { firmStatsOf } from './firmament.js';
@@ -39,7 +41,7 @@ export async function upgradeMaterial(ctx, player, env, { character, recipe: id,
   if (rank < r.rank) return { error: 'prof-rank' };
   const cost = metalUpgradeCost(r);
   const cap = craftCapSql('?1', '?2', craft);
-  const xp = scaleXp(upgradeXp(r, rank), xpPct(await firmStatsOf(db, player, env, character), craft));
+  const xp = scaleXp(upgradeXp(r, rank), craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));   // CRAFTWORK: half
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_upgrades WHERE player = ?1 AND rid = ?5 AND n = ?6)';
   await db.batch([

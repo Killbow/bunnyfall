@@ -101,3 +101,8 @@ The audit found these problems in the current system:
 - Binder and flux have few real materials today (resin, tin, copper); the flux group borrows the other metals, and the
   binder group borrows linen and cured leather. Better binders could come with new gatherable materials.
 - Stonework, dishes and potions have no stats yet.
+
+
+## Craftwork
+
+A Focus craft whose materials shape what it makes (Smithing, Carpentry, Outfitting) may go into Craftwork at rank 100, once a character. Rank and XP go back to 0, the perks stay, the tiers are earned again. From then on the craft earns half its XP everywhere (craftLaw.js craftworkPct, on the Firmament's percent) and its pieces' material effects reach 40% (CRAFTWORK_SWING) instead of 20. The service decides it in one batch (professions.js enterCraftwork; migration 0203); the Focus bar asks the player before it is sent.

@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Craftwork: once a Focus craft (Smithing, Carpentry or Outfitting) reaches rank 100, you can take it into Craftwork from the Focus bar. It asks you first. Your rank goes back to 0 and you keep your perks; from then on that craft earns half the experience, and the materials' effects on what you make reach up to 40% instead of 20%. Once per craft.
 - Mail and Brigandine armour in every metal can now be crafted and salvaged, from Iron to Daedric, including pieces you found.
 - No more first-time craft bonuses. Their experience is now spread over every craft, so crafting levels go up much faster: a crafting skill reaches Master in about the same number of crafts as before.
 - The crafting Bench fits the pause window at any interface size: the item list, the piece and its materials stack when there is not room side by side.

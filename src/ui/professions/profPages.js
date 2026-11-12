@@ -66,7 +66,8 @@ import {
 } from '../../net/professionLaw.js';
 import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SAID: the Firmament's hand on a craft's XP, as the service applies it
 import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
-import { firmamentStats } from '../../systems/firmamentLive.js';   // CRAFT-LIMIT-SAID: the stars in force
+import { firmamentStats } from '../../systems/firmamentLive.js';
+import { craftworkPct } from '../../net/craft/craftLaw.js';   // CRAFTWORK: half its XP   // CRAFT-LIMIT-SAID: the stars in force
 import {
   POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstXp, ingredientKeys, DISTILLER, POTENT,   // FIRST-BUDGET: a brew's first, Provisioning's first-make share
   enchantDiscountPct, DISENCHANTER, disenchantXp, essenceOf,
@@ -782,7 +783,7 @@ export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).le
  *  crafter's limit over the craft's track, off the book's tracks (professionLaw craftLimitOf; the service's decisions bind
  *  craftXpCap of the same ranks), and the Firmament's percent on its XP (FIRM1: the stars in force; the service scales by
  *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
-export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: xpPct(firmamentStats(), trackOf(id)) });
+export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: craftworkPct(xpPct(firmamentStats(), trackOf(id)), !!book?.isCraftwork?.(id)) });   // CRAFTWORK: half
 /** CLOTH-GEMS (AUDIT 32 S1 - bible/06-Systems/Professions-Arc.md 50): WHAT KEEPS A CRAFT OF `r` FROM ITS FIRST, as the book
  *  reads it - WOVEN-PAYS (AUDIT WOVEN-PAYS): the silver count of its cloth (net/profBook.js silver - the bolts bought with
  *  silver its stations have not used since; the most of its inputs'), 0 where none stands, whatever the units' origins.

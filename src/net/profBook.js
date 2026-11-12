@@ -183,7 +183,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     made: /** @type {{ crafts: Set<string>, works: Set<string>, brews: Set<string> }|null} */ (null),
     /** MASTER-ART: whether today's Master's work is made (null unknown - an older service), and the last one's answer */
     master: /** @type {{ made: boolean|null, last: any }} */ ({ made: null, last: null }),
-    focus: /** @type {{ crafts: string[], cost: number }} */ ({ crafts: [], cost: 100 }),   // BUNNYFALL CRAFTING REWORK
+    focus: /** @type {{ crafts: string[], cost: number }} */ ({ crafts: [], cost: 100 }),
+    craftwork: /** @type {string[]} */ ([]),   // BUNNYFALL CRAFTWORK: the skills gone into it   // BUNNYFALL CRAFTING REWORK
     /** PROF3: the account's Marks as the smith's stock last answered them, or null */
     marks: /** @type {number|null} */ (null),
     /** PROF7: the account's hides today, every character's together, and of them those of tiers 5-6 (PROF0 6: 3 a day -
@@ -322,6 +323,7 @@ export function createProfBook({ door, storage = null, character = () => null, n
     // MASTER-ART: the day's work as the service says it; the last one's card kept for its own character alone
     state.master = { made: typeof data?.master?.made === 'boolean' ? data.master.made : null, last: was === state.character ? state.master.last : null };
     applyFocus(data?.focus);
+    state.craftwork = Array.isArray(data?.craftwork) ? data.craftwork.filter((x) => typeof x === 'string') : [];
   }
   /** BUNNYFALL CRAFTING REWORK: the Focus as the service says it. */
   function applyFocus(f) { state.focus = { crafts: Array.isArray(f?.crafts) ? f.crafts.filter((x) => typeof x === 'string') : [], cost: Number.isSafeInteger(f?.cost) ? f.cost : 100 }; }
@@ -465,6 +467,18 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus, and when a drop is free again (seconds, or null). */
     focus() { return { crafts: [...state.focus.crafts], cost: state.focus.cost }; },
     isFocus(profession) { return state.focus.crafts.includes(trackOf(profession)); },
+    /** CRAFTWORK: whether a skill has gone into it. */
+    isCraftwork(profession) { return state.craftwork.includes(trackOf(profession)); },
+    /** CRAFTWORK: take a Focus craft at rank 100 into it - rank and XP back to 0, perks kept. Answers the service's answer. */
+    async enterCraftwork(profession) {
+      const c = character();
+      if (!c) return { ok: false, error: 'prof-character' };
+      const origin = slot();
+      const r = await ask(() => door.craftwork(c, trackOf(profession), rid()), origin);
+      if (origin !== slot()) return { ...r, elsewhere: true };
+      if (r?.ok) { if (Array.isArray(r.data?.craftwork)) state.craftwork = r.data.craftwork; applyTrack(r.data?.track); } else shutBy(r);
+      return r;
+    },
     /** Pledge `crafts` (at most two). Answers the service's answer; the Focus moves with it. */
     async chooseFocus(crafts) {
       const c = character();

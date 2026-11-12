@@ -32,7 +32,7 @@
 // the product row stands; only `verifyProductRecord` says one is the service's word.
 //
 // PURE; the account service mints, the client reads. Not a DFU member. Ledger A (the professions' row).
-import { CRAFT_SWING, MOD_KINDS } from './craft/craftLaw.js';   // BUNNYFALL: the materials' effects' bound
+import { CRAFTWORK_SWING, MOD_KINDS } from './craft/craftLaw.js';   // BUNNYFALL: the materials' effects' bound
 import { _b64url, SIG_BYTES, ID_RE } from './identityToken.js';
 import { PROVENANCE_RE, MAKER_MAX, recipeById, MASTERWORK, rollsQuality, dyeOk, HAND_CHEF, HAND_PROVISIONER, dishOf, jewelHandOk } from './recipeLaw.js';
 import { masterRecordLinesValid } from './masterLaw.js';   // MASTER-ART: a Master's work's lines, as signed
@@ -114,7 +114,7 @@ export function productRecordValid(c) {
  *  holds it to the template's own (smithItems.js). */
 export const LOOK_KINDS = Object.freeze(['garment', 'plate', 'chain', 'leather']);
 /** BUNNYFALL CRAFTING REWORK: a piece's material effects, h t l a in percent (craftLaw.js craftModsOf), as a record signs them. */
-export const modsOk = (/** @type {any} */ r, /** @type {unknown} */ g) => Array.isArray(g) && g.length === 4 && g.every((v) => Number.isInteger(v) && Math.abs(v) <= CRAFT_SWING) && MOD_KINDS.includes(r?.kind);
+export const modsOk = (/** @type {any} */ r, /** @type {unknown} */ g) => Array.isArray(g) && g.length === 4 && g.every((v) => Number.isInteger(v) && Math.abs(v) <= CRAFTWORK_SWING)   // CRAFTWORK's reach the most && MOD_KINDS.includes(r?.kind);
 /** The effects a record signs, `{ h, t, l, a }`, or null. @param {unknown} rec */
 export function modsOf(rec) { const c = readProductRecord(rec); return Array.isArray(c?.g) && c.g.length === 4 ? { h: c.g[0], t: c.g[1], l: c.g[2], a: c.g[3] } : null; }
 export const lookOk = (/** @type {any} */ r, /** @type {unknown} */ x) => Number.isInteger(x) && /** @type {number} */ (x) >= 0 && /** @type {number} */ (x) < 16 && LOOK_KINDS.includes(r?.kind);

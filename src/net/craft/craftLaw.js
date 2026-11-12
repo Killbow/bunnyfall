@@ -179,6 +179,13 @@ export function craftValueXp(/** @type {Plan} */ plan, /** @type {{ key: string,
 
 /** The most a stat moves the piece, in percent. */
 export const CRAFT_SWING = 20;
+/** CRAFTWORK: the most a stat moves a piece a skill in Craftwork makes, in percent. */
+export const CRAFTWORK_SWING = 40;
+/** CRAFTWORK: the skills that may enter it - the ones whose materials shape what they make (the Bench's). Its XP is halved. */
+export const CRAFTWORK_TRACKS = Object.freeze(['smithing', 'building', 'outfitting']);
+export const CRAFTWORK_XP = 0.5;
+/** A Firmament XP percent with Craftwork's half laid on (scaleXp's own shape). */
+export const craftworkPct = (/** @type {number} */ pct, /** @type {boolean} */ on) => (on ? Math.round((100 + (pct || 0)) * CRAFTWORK_XP - 100) : pct);
 /** The kinds a piece's material effects are made for: what has damage, armour, condition, weight or power to move. */
 export const MOD_KINDS = Object.freeze(['weapon', 'staff', 'bow', 'plate', 'chain', 'shield', 'leather', 'garment', 'jewel']);
 
@@ -208,18 +215,18 @@ export const workPartsOf = (/** @type {Plan} */ plan) => Math.max(1, plan.form.s
  * `inspired` 0 to 1. A good lean lands between half and all of its swing, a poor one between all and half of its cost:
  * the roll and inspiration both push toward the better end.
  */
-export function craftModsOf(/** @type {Plan} */ plan, /** @type {number} */ u, /** @type {number} */ inspired = 0) {
+export function craftModsOf(/** @type {Plan} */ plan, /** @type {number} */ u, /** @type {number} */ inspired = 0, /** @type {number} */ swing = CRAFT_SWING) {
   const lean = leanOfPlan(plan);
   const roll = Math.max(0, Math.min(1, u)) + (1 - Math.max(0, Math.min(1, u))) * Math.max(0, Math.min(1, inspired));
   const out = { h: 0, t: 0, l: 0, a: 0 };
   for (const k of STAT_IDS) {
     const d = lean[k];
-    out[k] = Math.round(CRAFT_SWING * d * (d >= 0 ? 0.5 + 0.5 * roll : 1 - 0.5 * roll));
+    out[k] = Math.round(swing * d * (d >= 0 ? 0.5 + 0.5 * roll : 1 - 0.5 * roll));
   }
   return out;
 }
 /** The range each effect can land in for a plan, worst roll to best: what the card shows before the craft. */
-export function craftModRange(/** @type {Plan} */ plan) {
-  const lo = craftModsOf(plan, 0, 0), hi = craftModsOf(plan, 1, 0);
+export function craftModRange(/** @type {Plan} */ plan, /** @type {number} */ swing = CRAFT_SWING) {
+  const lo = craftModsOf(plan, 0, 0, swing), hi = craftModsOf(plan, 1, 0, swing);
   return Object.fromEntries(STAT_IDS.map((k) => [k, [Math.min(lo[k], hi[k]), Math.max(lo[k], hi[k])]]));
 }

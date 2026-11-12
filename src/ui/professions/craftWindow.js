@@ -18,7 +18,8 @@ import { firmamentStats } from '../../systems/firmamentLive.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
+import { PROF_RANK_MAX } from '../../net/professionLaw.js';   // CRAFTWORK: entered at the top rank
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
 import { itemLongName } from '../../systems/item/itemInfo.js';
@@ -49,7 +50,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -115,6 +116,8 @@ const CSS = `
 .cw-ws-head > div:last-child { flex: 1 1 140px; min-width: 0; }
 .cw-ws-pic { width: 96px; height: 96px; flex: none; display: flex; align-items: center; justify-content: center; border: 1px solid #a8844a; background: rgba(60,40,20,.12); }
 .cw-ws-pic img { max-width: 88px; max-height: 88px; image-rendering: pixelated; }
+.cw-cwask { border: 2px solid #c0503a; background: rgba(60,20,10,.35); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+.cw-cwask p { margin: 0; font-size: 14px; line-height: 1.4; }
 .cw-effects { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin: 2px 0 6px; }
 .cw-effect { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; border-bottom: 1px dotted #a8844a; padding: 2px 0; }
 .cw-effect.cw-good b { color: #2f6a2a; }
@@ -474,6 +477,34 @@ export function drawFocus(root, rerender, p, showWord = false) {
       button('cw-btn', 'Cancel', () => { _cw.focusAsk = null; rerender(); }));
     box.append(line, row);
   }
+  // CRAFTWORK: a Focus craft at rank 100 may go into it, once - asked first, in plain words, before anything changes
+  for (const c of f.crafts) {
+    if (!CRAFTWORK_TRACKS.includes(c)) continue;
+    const isCw = typeof book.isCraftwork === 'function' && book.isCraftwork(c);
+    const rank = rankOf(book, c);
+    if (isCw) { box.append(h('div', 'cw-note', `${word(c)} is in Craftwork: half experience, material effects up to 40%.`)); continue; }
+    if (rank < PROF_RANK_MAX || typeof book.enterCraftwork !== 'function') continue;
+    if (_cw.cwAsk !== c) {
+      box.append(button('cw-btn', `Enter Craftwork with ${word(c)}...`, () => { _cw.cwAsk = c; _cw.focusAsk = null; rerender(); }, !!_cw.busy));
+      continue;
+    }
+    const sure = h('div', 'cw-cwask');
+    sure.append(h('b', null, `Enter Craftwork with ${word(c)}?`),
+      h('p', null, `Your ${word(c)} goes back to rank 0 and you climb it again from the start, re-earning its items as you level. You keep your perks. From then on ${word(c)} earns half the experience, and the materials' effects on what you make reach up to 40% instead of 20%. You can do this once for ${word(c)}, and it cannot be undone.`));
+    const row = h('div', 'cw-actions');
+    row.append(
+      button('cw-btn cw-primary', `Yes, reset ${word(c)} to 0`, async () => {
+        if (_cw.busy) return;
+        _cw.busy = true; _cw.cwAsk = null; rerender();
+        const r = await book.enterCraftwork(c).catch(() => null);
+        _cw.busy = false;
+        _cw.word = r?.ok ? `${word(c)} is in Craftwork. Back to rank 0.` : 'That did not go through. Nothing changed.';
+        rerender();
+      }, !!_cw.busy),
+      button('cw-btn', 'No, keep my rank', () => { _cw.cwAsk = null; rerender(); }));
+    sure.append(row);
+    box.append(sure);
+  }
   if (showWord && _cw.word && !ask) box.append(h('div', 'cw-word', _cw.word));
   root.append(box);
 }
@@ -561,8 +592,8 @@ function drawStatsTable(card, r, odds, clean) {
  * WHAT THE MATERIALS DO TO THE PIECE (craftLaw.js craftModsOf): each effect's range, worst roll to best. The service rolls
  * where it lands; The Work's true strikes push it to the best. The stats table above is the piece before them.
  */
-function drawEffects(card, r, plan) {
-  const rng = craftModRange(plan);
+function drawEffects(card, r, plan, craftwork = false) {
+  const rng = craftModRange(plan, craftwork ? CRAFTWORK_SWING : CRAFT_SWING);
   const weapon = ['weapon', 'staff', 'bow'].includes(r.kind), armour = ['plate', 'chain', 'shield', 'leather'].includes(r.kind);
   const pct = ([lo, hi]) => (lo === hi ? `${lo > 0 ? '+' : ''}${lo}%` : `${lo > 0 ? '+' : ''}${lo}% to ${hi > 0 ? '+' : ''}${hi}%`);
   const rows = [
@@ -579,7 +610,7 @@ function drawEffects(card, r, plan) {
     line.append(h('span', null, label), h('b', null, pct(range)));
     box.append(line);
   }
-  card.append(h('div', 'cw-label', 'What these materials do to it (true strikes in the minigame push each toward its best)'), box);
+  card.append(h('div', 'cw-label', `What these materials do to it${craftwork ? ', up to 40% in Craftwork' : ''} (true strikes in the minigame push each toward its best)`), box);
 }
 
 /** Roleplay Realism Items' forms (templates 513-526): drawn only while the mod is on, as its art and its numbers are. */
@@ -736,10 +767,11 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     });
     sum.append(bar, key);
     drawStatsTable(pStats, r, odds, clean);
-    if (MOD_KINDS.includes(r.kind)) drawEffects(pStats, r, plan);
+    if (MOD_KINDS.includes(r.kind)) drawEffects(pStats, r, plan, typeof book.isCraftwork === 'function' && book.isCraftwork(S.prof));
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
-  sum.append(h('p', 'cw-note', `+${scaleXp(craftValueXp(plan, inputs, rank, focus), xpPct(firmamentStats(), S.prof))} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
+  const cw = typeof book.isCraftwork === 'function' && book.isCraftwork(S.prof);
+  sum.append(h('p', 'cw-note', `+${scaleXp(craftValueXp(plan, inputs, rank, focus), craftworkPct(xpPct(firmamentStats(), S.prof), cw))} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
   if (st.s === 'locked') sum.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
   if (!purseOk) sum.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
