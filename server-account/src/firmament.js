@@ -26,7 +26,7 @@ import { isDeveloper } from './titles.js';
 import { marksOpenFor, balanceOf } from './marks.js';
 import { renownTrackOf, renownCharacterOk } from './renownTracks.js';
 import { utcDay } from '../../src/net/marksLaw.js';
-import { rankOfXp, PROFESSIONS } from '../../src/net/professionLaw.js';
+import { rankOfXp, PROFESSIONS, PROF_RANK_MAX } from '../../src/net/professionLaw.js';
 import {
   starsFor, craftPointsFor, treeFault, unpackTree, packTree, treeDiff, refundSilver, treeStats, pointsLeft, cleanKeys,
   FIRM_RID_RE, REFUND_FREE_BELOW_RENOWN, REFUND_SILVER_PER_STAR, FIRM_RESPEC_GOLD,
@@ -59,17 +59,21 @@ export async function firmStatsOf(db, player, env, charId) {
 /** A character's purses as this service counts them: `{ renown, stars, craft, ranks, freeRespec }` - `freeRespec` whether
  *  it holds the one respec that costs no gold (migration 0206). */
 async function pursesOf(ctx, playerId, charId) {
-  const [track, profs, free] = await Promise.all([
+  const [track, profs, free, craftwork] = await Promise.all([
     renownTrackOf(ctx, playerId, charId),
     ctx.db.prepare('SELECT profession, xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(playerId, charId).all(),
     ctx.db.prepare('SELECT 1 AS held FROM firmament_free_respec WHERE player = ?1 AND char_id = ?2').bind(playerId, charId).first(),
+    ctx.db.prepare('SELECT profession FROM prof_craftwork WHERE player = ?1 AND char_id = ?2').bind(playerId, charId).all(),
   ]);
   const known = new Set(PROFESSIONS.map((p) => p.id));
   /** @type {Record<string, number>} */
   const ranks = {};
   for (const r of profs?.results ?? []) if (known.has(r.profession)) ranks[r.profession] = rankOfXp(Number(r.xp ?? 0));
   const renown = track?.level ?? 1;
-  return { renown, stars: starsFor(renown), craft: craftPointsFor(Object.values(ranks)), ranks, freeRespec: !!free };
+  // a craft in Craftwork was rank 100 when it went back to 0, so its craft points count it at rank 100
+  const counted = { ...ranks };
+  for (const r of craftwork?.results ?? []) if (known.has(r.profession)) counted[r.profession] = PROF_RANK_MAX;
+  return { renown, stars: starsFor(renown), craft: craftPointsFor(Object.values(counted)), ranks, freeRespec: !!free };
 }
 
 /** What the window reads: the tree, the purses and what is left in them, the refund's price, and whether the next
