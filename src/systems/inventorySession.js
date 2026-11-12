@@ -198,11 +198,11 @@ export function remoteTarget(deps = {}, state = {}) {
 
 /** HOUSE-DROP (2026-09-27, Mac relaying reports: "In houses, players can drop items and the owner cannot see them";
  *  asked, "Block visitor drops"): the host's word against a drop, asked only when the destination IS the ground - the
- *  session's dropped list, or a pile the player dropped before (DaggerfallLoot.playerOwned) - never a wagon, a chest, a
- *  corpse or a merchant. Null: the ground takes it. */
+ *  session's dropped list, or a pile the player dropped before (DaggerfallLoot.playerOwned); a chest or a corpse not the
+ *  player's asks the host's `storeRefusal` instead (the POI editor's Test). Null: the ground or the container takes it. */
 export function groundRefusalOf(deps = {}, state = {}) {
   if (state.usingWagon || state.usingBag || state.chooseOne) return null;   // BAG1: the bag is no floor
-  if (deps.loot && !deps.loot.playerOwned) return null;
+  if (deps.loot && !deps.loot.playerOwned) return deps.storeRefusal?.() ?? null;
   return deps.dropRefusal?.() ?? null;
 }
 

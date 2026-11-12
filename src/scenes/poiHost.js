@@ -162,7 +162,7 @@ export function sameStand(a, b) {
  *   groundAt: (x: number, z: number) => number,
  *   collider?: () => any, riding?: (px: number, py: number) => any,
  *   feet?: () => (number[] | null), auth?: () => (string | null), collideDrafts?: () => boolean,
- *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any,
+ *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any, dmTest?: ((id: string) => any) | null, dmHeld?: () => boolean,
  * }} deps `decodeImage` a picture's bytes to its raster (`{ width, height, data }`, top row first) - a promise of it, or
  *   its decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
  *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating
@@ -176,14 +176,21 @@ export function createPoiHost({
   feet = () => null, auth = () => null, now = () => Date.now(), clock = () => performance.now(), keepDecodedBytes = POI_DECODED_KEEP_BYTES, log = console,
   getTexture = null, uploadRecordFrame = null, say = null,   // BUNNYFALL: the people's sprites and lines
   dm = null,   // POI v2: `() => Promise<runtime>` (poi/poiDmRuntime.js createPoiDm), asked the first time a POI with DM content stands
+  // the editor's Test (poi/poiDmTest.js): `(id) => runtime | null`, the preview runtime of the one draft under test
+  dmTest = null,
+  // while the editor's Test runs: live POIs stand without their DM content (nothing of theirs runs or is stored); a
+  // dialogue or trade of theirs open as the hold begins is closed
+  dmHeld = () => false,
 }) {
   /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
-  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => dmRt?.talk(id, key) ?? false });
+  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => (dmTest?.(id) ?? (dmHeld() ? null : dmRt))?.talk(id, key) ?? false });
   /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */
-  let dmRt = null, dmAsked = false;
+  let dmRt = null, dmAsked = false, wasHeld = false;
   const dmContent = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length) || doc.npcs?.some((n) => n?.showWhen));
+  /** The runtime a stand runs on: a live POI the game's (none while a Test runs), a draft only while the editor tests it (its preview runtime). */
   function dmOf(s) {
-    if (!dm || s.draft || !dmContent(s.doc)) return null;
+    if (s.draft) return dmContent(s.doc) ? dmTest?.(s.id) ?? null : null;
+    if (!dm || dmHeld() || !dmContent(s.doc)) return null;
     if (!dmRt && !dmAsked) { dmAsked = true; dm().then((rt) => { dmRt = rt; }, (e) => { if (log) console.warn('[poi] the DM runtime', e?.message ?? e); }); }
     return dmRt;
   }
@@ -474,6 +481,8 @@ export function createPoiHost({
     s.parts = []; s.held = [];
     npcs.drop(s.id);   // BUNNYFALL: and its people
     npcs.setExtras(s.id, null); dmRt?.drop(s.id);   // POI v2: and its run
+    // a draft under test: its preview run and its enemies
+    if (s.draft) dmTest?.(s.id)?.drop(s.id);
     standing.delete(s.id);
     const i = stood.indexOf(s);
     if (i >= 0) stood.splice(i, 1);
@@ -553,7 +562,8 @@ export function createPoiHost({
     const rt = dmOf(s);   // POI v2: its patrols, triggers, objects and encounters (poi/poiDmRuntime.js)
     const people = s.doc.npcs?.length ? (s.npcs ??= npcsOf(s.doc, s.place)) : null;
     const shown = rt ? rt.frame(s, t, people) : people;
-    if (rt) npcs.setExtras(s.id, rt.extras(s.id));
+    // no runtime (a test stopped): no objects to use
+    npcs.setExtras(s.id, rt ? rt.extras(s.id) : null);
     // the parts that are open doors' looks: not drawn and not blocking
     const off = rt?.off?.(s.id) ?? null;
     if (shown?.length || people?.length) { npcs.sync(s.id, shown ?? [], t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
@@ -627,6 +637,10 @@ export function createPoiHost({
           if (e.doc.place.px !== s.px || e.doc.place.py !== s.py) { unstand(s); s.px = e.doc.place.px; s.py = e.doc.place.py; s.ground = NaN; s.place = null; }
         } else takeDown(s);
       }
+      const held = dmHeld();
+      // the hold begins: no live dialogue or trade stays on screen to be answered
+      if (held && !wasHeld) dmRt?.close?.();
+      wasHeld = held;
       want.forEach(standWanted);
       stepWork();
       npcs.frame();   // BUNNYFALL: the people near the player, for the world's flats and its Talk key

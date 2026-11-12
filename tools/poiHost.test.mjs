@@ -49,7 +49,7 @@ const keeper = (d) => { d.npcs = [newNpc(d, { name: 'Keeper', t: [2, 0, 0], look
  * A store, a feed, and a host over `docs` (live, rev `live.rev`) and `drafts` (laid over the feed). `roof(n)` answers
  * the n-th ask for ROOF_SHA: a Response, or it throws (a fetch that got no answer).
  */
-async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF) } = {}) {
+async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dmTest = null, dmHeld = undefined } = {}) {
   const live = { rev: 1, docs };
   const asked = new Map();
   const fetch = async (u) => {
@@ -72,10 +72,10 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF) } =
   const asset = feed.asset;
   feed.asset = (sha, o) => { wanted.set(sha, (wanted.get(sha) ?? 0) + 1); return asset(sha, o); };
   if (drafts.length) feed.setOverlay(new Map(drafts.map((d) => [d.id, { doc: d, rev: 0 }])));
-  const people = {}, dmFrames = {};
+  const people = {}, dmFrames = {}, dmCloses = { n: 0 };
   const dm = () => Promise.resolve({
     frame: (s, t, shown) => { dmFrames[s.id] = (dmFrames[s.id] ?? 0) + 1; return shown; },
-    extras: () => [], talk: () => false, drop: () => {},
+    extras: () => [], talk: () => false, drop: () => {}, close: () => { dmCloses.n++; },
   });
   let clock = 1_000_000;
   const renderer = new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : () => ({})) });
@@ -87,7 +87,7 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF) } =
   const host = createPoiHost({
     renderer, feed, decodeImage,
     pixels: () => pixels, translation: (px, py, out = [0, 0, 0]) => { out[0] = 0; out[1] = 0; out[2] = 0; return out; },
-    groundAt: () => 0, clock: () => 0, now: () => clock, dm,
+    groundAt: () => 0, clock: () => 0, now: () => clock, dm, dmTest, dmHeld,
     getTexture: async () => null, uploadRecordFrame: () => null, log,
   });
   // the people each POI shows this frame, as the host hands them to its people pass
@@ -113,7 +113,7 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF) } =
   const of = (id) => host.standing().find((s) => s.id === id);
   /** A new revision of the live set: `change` applied to each document, the feed asked again. */
   const revise = async (change) => { live.docs = live.docs.map((d) => change(structuredClone(d))); live.rev++; await feed.refresh(); };
-  return { host, feed, asked, wanted, warnings, translucent: () => translucentDrawn, people, dmFrames, frames, of, revise, later: (ms) => { clock += ms; } };
+  return { host, feed, asked, wanted, warnings, translucent: () => translucentDrawn, people, dmFrames, dmCloses, frames, of, revise, later: (ms) => { clock += ms; } };
 }
 
 test('the fixtures are lawful POIs', () => {
@@ -277,4 +277,58 @@ test('a draft laid over the feed stands as a draft, with no DM runtime, and a Da
   assert.equal(r.dmFrames[draft.id], undefined, 'a draft runs no DM content');
   assert.equal(r.people[draft.id], draft.npcs.length);
   assert.deepEqual(r.of(live.id), { id: live.id, rev: 0, status: 'ready', visible: true, draft: true, parts: 1 }, 'the draft stands in place of the live one');
+});
+
+test('the draft under the editor\'s Test runs its preview runtime; other drafts run none, and live POIs stay on the game\'s runtime', async () => {
+  const tested = mixedPoi('poi-aaaaaaaaaaa1', 509);
+  const other = mixedPoi('poi-aaaaaaaaaaa2', 510);
+  const live = mixedPoi('poi-aaaaaaaaaaa3', 511);
+  const frames = {}, talks = [], drops = [];
+  let on = true;
+  const preview = {
+    frame: (s, t, shown) => { frames[s.id] = (frames[s.id] ?? 0) + 1; return shown; },
+    extras: () => [], off: () => null, talk: (id, key) => { talks.push(`${id} ${key}`); return true; }, drop: (id) => { drops.push(id); },
+  };
+  const r = await rig({ docs: [live], drafts: [tested, other], dmTest: (id) => (on && id === tested.id ? preview : null) });
+  await r.frames();
+  assert.ok(frames[tested.id] > 0, 'the draft under test runs on the preview runtime');
+  assert.equal(frames[other.id], undefined, 'another draft runs nothing');
+  assert.equal(r.dmFrames[tested.id], undefined, 'the game\'s runtime does not run the draft');
+  assert.ok(r.dmFrames[live.id] > 0, 'a live POI runs on the game\'s runtime');
+  assert.equal(frames[live.id], undefined, 'and never on the preview');
+  assert.equal(r.host.npcs.activate(`poinpc:${tested.id}|${tested.npcs[0].key}`), true);
+  assert.deepEqual(talks, [`${tested.id} ${tested.npcs[0].key}`], 'Talk to a person of the draft under test goes to the preview runtime');
+  on = false;
+  const before = frames[tested.id];
+  await r.frames(5);
+  assert.equal(frames[tested.id], before, 'once the test stops, the draft runs nothing');
+  r.feed.setOverlay(new Map([[other.id, { doc: other, rev: 0 }]]));
+  on = true;
+  await r.frames(3);
+  assert.deepEqual(drops, [tested.id], 'the draft under test taken down drops its preview run');
+});
+
+test('while a Test runs a live POI stands with no DM runtime, and its people\'s Talk reaches none; after it, the runtime runs again', async () => {
+  const live = mixedPoi('poi-bbbbbbbbbbb1', 512);
+  let held = true;
+  const r = await rig({ docs: [live], dmTest: () => null, dmHeld: () => held });
+  await r.frames();
+  assert.equal(r.dmFrames[live.id], undefined, 'no live DM content runs in a Test');
+  assert.equal(r.people[live.id], live.npcs.length, 'its people still stand');
+  held = false;
+  await r.frames(5);
+  assert.ok(r.dmFrames[live.id] > 0, 'after the Test the live runtime runs again');
+});
+
+test('as a Test\'s hold begins, the live runtime\'s open dialogue or trade is closed, once', async () => {
+  const live = mixedPoi('poi-bbbbbbbbbbb2', 513);
+  let held = false;
+  const r = await rig({ docs: [live], dmTest: () => null, dmHeld: () => held });
+  await r.frames(10);
+  assert.equal(r.dmCloses.n, 0);
+  held = true;
+  await r.frames(5);
+  assert.equal(r.dmCloses.n, 1, 'closed when the hold begins');
+  held = false; await r.frames(3); held = true; await r.frames(3);
+  assert.equal(r.dmCloses.n, 2, 'and again at the next test');
 });

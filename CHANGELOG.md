@@ -34,6 +34,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor's Test plays the selected POI's DM content in the world: people walk their routes, zones and objects work, dialogues and trades open, events run, and encounters spawn real enemies that leave when the test stops, while other POIs run none of theirs.
+- Fixed: Trades and events in the in-game POI editor's Test use a test copy of your gold and items, shown with a log in the Test panel; the game is not saved while a test runs, and when it ends your character is put back as it was when it started, though a quest step taken in a test stays done.
 - Fixed: Copy and paste in the in-game POI editor now take a whole selection with its groups and people, save the copy so it is still there after a reload and in other tabs, use the system clipboard where the browser allows it, and name anything left out because its model or picture is missing.
 - Fixed: The in-game POI editor can now group and ungroup what is selected, align and spread it, reset its turn and size, move it by an amount, and drop it to the ground.
 - Fixed: The in-game POI editor's list now shows groups and people, with a button on each row and group to hide or lock it, a search inside the open POIs, and dragging to regroup or reorder.

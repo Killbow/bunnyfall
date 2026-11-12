@@ -3,11 +3,13 @@
 // frame it walks people along routes, fires trigger zones, offers objects to use, answers Talk with a dialogue or a
 // trade, spawns encounters, and runs delayed events, following poiDmCore.js's rules (shared with the Sandbox). A realm
 // character's items and gold move only on the service's response (server-account/src/poiTrade.js, via realmGoldAct);
-// on the character's own pack.
+// offline, the same rules run on the character's own pack. In preview mode (the in-game editor's Test,
+// poi/poiDmTest.js), `pack` and `give` operate on a throwaway purse, nothing is sent to the service, persistent
+// variables and claims stay in memory, and each settlement is logged.
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
-  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates,
+  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule,
 } from './poiDmCore.js';
 import { takeStacks, takeGold, countOf, goldOf } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
@@ -89,13 +91,25 @@ export function poolFoes(pool) {
 }
 
 /**
- * The runtime for every v2 POI the host stands. `act(path, body, opts)` is the realm session's act (null offline);
- * `pack()` returns the live player entity; `give` puts records and gold into it; `spawnFoe`, `isDown`, and `removeFoe`
- * come from the outdoor enemy pool (`poolFoes`).
+ * The runtime for every v2 POI the host runs. `act(path, body, opts)` is the realm session's act (null offline);
+ * `pack()` returns the live player entity; `give` adds items and gold to it; `spawnFoe`, `isDown`, and `removeFoe` come
+ * from the outdoor enemy pool (`poolFoes`). With `preview: true` (the editor's Test), `act` and `store` are unused,
+ * persistent variables and claims stay in memory, an event that moves items, gold, or a persistent variable settles on
+ * `pack()` by the service's rules (a gift-only event, once), and the log records trades and settles.
  * @param {any} deps
  */
 export function createPoiDm(deps) {
   const { say, pack, give, feet, now = () => performance.now() / 1000 } = deps;
+  const preview = !!deps.preview;
+  const act = preview ? null : deps.act ?? null;
+  /** @type {Map<string, any>} */
+  const kept = new Map();
+  const store = preview ? { get: (/** @type {string} */ k) => kept.get(k) ?? null, set: (/** @type {string} */ k, /** @type {any} */ v) => { kept.set(k, structuredClone(v)); } } : deps.store;
+  /** In preview mode, holds each POI's claims in memory across runs for the runtime's lifetime. @type {Map<string,
+   *  any>} */
+  const claimsKept = new Map();
+  /** A settle's line in the run's log, in preview alone (the Test panel reads it). @param {any} r @param {any} line */
+  const logSettle = (r, line) => { if (preview) r.dm.log.push(line); };
   const panel = deps.panel ?? createPoiDmPanel();
   const txn = deps.txn ?? (() => `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
   /** @type {Map<string, any>} id -> the run of one standing POI */
@@ -121,7 +135,9 @@ export function createPoiDm(deps) {
     if (r && r.rev === s.rev) return r;
     if (r) dropRun(r);
     const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
-    dm.service = !!deps.act;
+    // in preview an event that moves items or gold is settled on the throwaway purse, by the service's rules
+    dm.service = preview || !!act;
+    if (preview) { if (!claimsKept.has(s.id)) claimsKept.set(s.id, dm.claims); dm.claims = claimsKept.get(s.id); }
     r = { id: s.id, rev: s.rev, doc: s.doc, dm, walkers: new Map(), foes: new Map(), left: new Map(), waiting: new Map(), inside: new Set(), inEnc: new Set(), off: new Set(), last: now(), extras: [], extraOf: new Map(), shown: [], loaded: false, timers: new Map() };
     dm.read = reader(dm);
     runs.set(s.id, r);
@@ -136,22 +152,22 @@ export function createPoiDm(deps) {
 
   /** The kept variables: the service's for a realm character, this device's offline. @param {any} r */
   async function loadVars(r) {
-    if (deps.act) {
-      const a = await deps.act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, txnId: txn() }, { read: true }).catch(() => null);
+    if (act) {
+      const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, txnId: txn() }, { read: true }).catch(() => null);
       const vars = a?.ok ? a.data?.vars : null;
       if (vars) for (const [k, v] of Object.entries(vars)) if (k in r.dm.vars) r.dm.vars[k] = v;
     } else {
-      const kept = deps.store?.get(storeKey(r));
-      if (kept && typeof kept === 'object') for (const [k, v] of Object.entries(kept)) if (k in r.dm.vars) r.dm.vars[k] = v;
+      const was = store?.get(storeKey(r));
+      if (was && typeof was === 'object') for (const [k, v] of Object.entries(was)) if (k in r.dm.vars) r.dm.vars[k] = v;
     }
     r.loaded = true;
   }
   function saveVars(/** @type {any} */ r) {
-    if (deps.act || !deps.store) return;
+    if (act || !store) return;
     /** @type {Record<string, any>} */
     const out = {};
     for (const v of r.doc.variables ?? []) if (persists(v)) out[v.key] = r.dm.vars[v.key];
-    deps.store.set(storeKey(r), out);
+    store.set(storeKey(r), out);
   }
 
   // ── settling items and gold ────────────────────────────────────
@@ -170,20 +186,21 @@ export function createPoiDm(deps) {
     const rec = byKey(byKey(r.doc.trades, trade)?.recipes, recipe);
     if (!rec) return;
     const why = recipeBlock(r.dm, trade, recipe);
-    if (why && why !== 'limit' && why !== 'cooldown' && why !== 'stock') { say(whyText(why)); return; }   // the service keeps the counts; the pack's own lacks are said here
+    if (why && why !== 'limit' && why !== 'cooldown' && why !== 'stock') { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, why }); return; }   // the service keeps the counts; the pack's own lacks are said here
     busy = true;
     try {
-      if (deps.act) {
-        const a = await deps.act('/v1/poi/trade', { poi: r.id, rev: r.rev, trade, recipe, txnId: txn() }, {});
+      if (act) {
+        const a = await act('/v1/poi/trade', { poi: r.id, rev: r.rev, trade, recipe, txnId: txn() }, {});
         if (!a?.ok) { say(whyText(refusalOf(a))); return; }
         applyLocal(a.data?.took ?? { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, a.data?.gave ?? { items: [], gold: 0 });
       } else {
-        if (why) { say(whyText(why)); return; }
+        if (why) { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, why }); return; }
         const p = pack();
         if (!p) return;
-        if (!takeStacks(p, rec.requireItems ?? []).ok || !takeGold(p, rec.requireGold ?? 0)) { say(whyText('items')); return; }
+        if (!takeStacks(p, rec.requireItems ?? []).ok || !takeGold(p, rec.requireGold ?? 0)) { say(whyText('items')); logSettle(r, { k: 'trade_refused', trade, why: 'items' }); return; }
         give((rec.rewardItems ?? []).map(mintStack).filter(Boolean), rec.rewardGold ?? 0);
         deps.changed?.();
+        logSettle(r, { k: 'trade', name: rec.name, took: { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, gave: { items: rec.rewardItems ?? [], gold: rec.rewardGold ?? 0 } });
       }
       for (const c of claimRule(rec, { char: r.dm.char, player: r.dm.player, nowS: r.dm.now })) {
         const k = `${trade}/${recipe}|${c.scope}`;
@@ -203,8 +220,8 @@ export function createPoiDm(deps) {
     if (!ev) return;
     busy = true;
     try {
-      if (deps.act) {
-        const a = await deps.act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn() }, {});
+      if (act) {
+        const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn() }, {});
         // an event already claimed is passed over in silence
         if (!a?.ok) { if (a?.error !== 'poi-limit') say(whyText(refusalOf(a))); return; }
         const d = a.data ?? {};
@@ -212,17 +229,22 @@ export function createPoiDm(deps) {
         for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
         runEvent(r.dm, key, { branch: d.branch ?? 'then', settled: !d.nothing });
       } else {
-        // offline: the same rules, on this pack
+        // offline: the same rules, on this pack; an event that only gives (it takes nothing) is claimed once per
+        // character, as the service claims it, and one already claimed is passed over (the service's answer is
+        // `poi-limit`)
         const branch = evalWhen(ev.when, r.dm.read()) ? 'then' : 'else';
         const actions = ev[branch] ?? [];
+        const rules = eventRule(actions, r.dm.char);
+        if (rules.some((c) => (r.dm.claims[`event/${key}|${c.scope}`]?.n ?? 0) >= c.max)) { logSettle(r, { k: 'refused', event: key, why: 'limit' }); return; }
         const p = pack();
         const takes = actions.filter((/** @type {any} */ x) => x.k === 'take_item').map((/** @type {any} */ x) => x.item);
         const gold = actions.filter((/** @type {any} */ x) => x.k === 'take_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
-        if (!p || countShort(p, takes) || goldOf(p) < gold) { say(whyText('poi-items')); return; }
+        if (!p || countShort(p, takes) || goldOf(p) < gold) { say(whyText('poi-items')); logSettle(r, { k: 'refused', event: key, why: !p || countShort(p, takes) ? 'items' : 'gold' }); return; }
         takeStacks(p, takes); takeGold(p, gold);
         give(actions.filter((/** @type {any} */ x) => x.k === 'give_item').map((/** @type {any} */ x) => mintStack(x.item)).filter(Boolean),
           actions.filter((/** @type {any} */ x) => x.k === 'give_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0));
         deps.changed?.();
+        for (const c of rules) { const k = `event/${key}|${c.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
       }
@@ -354,7 +376,7 @@ export function createPoiDm(deps) {
     sayLog(r);
     drain(r);
     // offline, a persistent variable an event set with nothing to settle is saved on this device at once
-    if (!deps.act && r.dm.dirty.size) { if ((r.doc.variables ?? []).some((/** @type {any} */ v) => r.dm.dirty.has(v.key) && persists(v))) saveVars(r); r.dm.dirty.clear(); }
+    if (!act && r.dm.dirty.size) { if ((r.doc.variables ?? []).some((/** @type {any} */ v) => r.dm.dirty.has(v.key) && persists(v))) saveVars(r); r.dm.dirty.clear(); }
     return list;
   }
 
@@ -455,6 +477,8 @@ export function createPoiDm(deps) {
     extras: (id) => runs.get(id)?.extras ?? null,
     /** The keys of a POI's parts that are not drawn and do not block this frame: the looks of its open doors. @param {string} id */
     off: (id) => runs.get(id)?.off ?? null,
+    /** Every run's dialogue and trade closed and the panel put away (the editor's Test holding the live POIs). */
+    close() { for (const r of runs.values()) { r.dm.dialogue = null; r.dm.trade = null; r.opened = null; } panel.close(); },
     /** A POI taken down: its run, its foes and its panel go. @param {string} id */
     drop(id) { const r = runs.get(id); if (r) { dropRun(r); panel.close(); } },
     /** For tests: a POI's model. @param {string} id */

@@ -16,6 +16,10 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   object's `yaw`, and a `flat` appearance, which the game does not act on yet. It preserves those and every other v2 key it cannot
   edit yet (the interior, and a flat's picture and `scale`, which it can only reset to one) and lists them, read-only, in the
   POI's inspector.
+- The game runs a POI's DM content for its approved revision. A draft runs it only in the in-game editor's Test (offline),
+  where trades and events settle on a test copy of the builder's gold and items by the service's rules (an event that only
+  gives, once), and persistent variables and claims are not stored. The service still refuses a draft's trade or event claim
+  with `poi-not-live`.
 - The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
   the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 

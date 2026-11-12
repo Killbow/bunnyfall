@@ -63,6 +63,9 @@ import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js'; 
 import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
 // the DM content, in a wide dock
 import { createPoiDmPanel, heldNotEditable, dmHeldLines } from './poiDmPanel.js';
+// the Test: a draft played with its DM content
+import { createPoiTestPanel } from './poiTestPanel.js';
+import { testable } from '../../poi/poiDmTest.js';
 import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
 import { SEASON } from '../../world/climateSwaps.js';
 
@@ -106,6 +109,8 @@ body:has(> .dfpoi[data-on="1"]) .notice-stack { right: 316px; }
 .dfpoi[data-on="0"] .dfpoi-dock, .dfpoi[data-on="0"] .dfpoi-dialog, .dfpoi[data-on="0"] .dfpoi-uv { display: none; }
 .dfpoi-launch { pointer-events: auto; position: absolute; left: 8px; bottom: 8px; display: none; }
 .dfpoi[data-on="0"] .dfpoi-launch { display: block; }
+.dfpoi-testing { color: #e8cf8a; font-weight: 600; max-width: 520px; }
+.dfpoi[data-test="1"] .dfpoi-left .dfpoi-item { cursor: default; }
 `;
 
 /** The sheet, once. */
@@ -263,13 +268,13 @@ export function createAssetFacts(fetchAsset, onLearned = () => {}, { timer = glo
  *   io: () => (import('../../poi/poiService.js').PoiIo | null), me: { handle: string | null, builder: boolean, approver: boolean },
  *   onExit: (how: 'back' | 'here') => void, onEnter?: () => void, onJump?: () => void, readFile?: (f: any) => Promise<Uint8Array>,
  *   decodeImage?: ((bytes: Uint8Array) => Promise<{ width: number, height: number, data: Uint8Array | Uint8ClampedArray }>) | null,
- *   rand?: (b: Uint8Array) => Uint8Array, goTo?: (place: any) => void, download?: (name: string, bytes: Uint8Array, type: string) => void,
+ *   rand?: (b: Uint8Array) => Uint8Array, goTo?: (place: any) => void, download?: (name: string, bytes: Uint8Array, type: string) => void, test?: any, onTest?: (id: string | null) => boolean,
  * }} deps `onEnter` the launcher's press (the editor opened again after an exit); `decodeImage` a picture decoded (the UV
  *   editor draws the material's under its UVs, the library a model's picture - poi/poiImageDecode.js); `rand` fills bytes
  *   (a library entry's id); `goTo` takes the eye to a document's place (the approver's look); `download` hands the
- *   builder a file
+ *   builder a file; `test` the Test (poi/poiDmTest.js), `onTest(id)` the world's door into it (`null` stops it)
  */
-export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, dfModels = null, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc) }) {
+export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, dfModels = null, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc), test = null, onTest = () => false }) {
   injectPoiPanelStyle(doc);
   const el = (tag, cls = '', text = null) => { const n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   const btn = (text, onClick, cls = 'dfpoi-btn') => { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', (e) => { e.stopPropagation?.(); onClick(); }); return b; };
@@ -301,6 +306,23 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   review = createPoiReview({ doc, host: root, me, act: (fn) => act(fn), say, refusal, edit, facts, goTo, feed });
   const dialogsClosed = () => { closeDialog(); library.close(); review.close(); };
   const dm = createPoiDmPanel({ doc, root, edit, editor, say });
+  // the Test: editing is paused while it runs, the bar says what is tested, and the right dock is its panel
+  const testing = () => !!test?.active();
+  // whether the DM dock was open when the test started, so Stop test opens it again
+  let dmWasOn = false;
+  const stopTest = () => { onTest(null); if (dmWasOn && !testing() && !dm.isOn()) dm.toggle(); dmWasOn = false; schedule(); };
+  const testPanel = test ? createPoiTestPanel({ test, el, btn, redraw: () => schedule(), onStop: stopTest }) : null;
+  function startTest() {
+    const sel = edit.selection();
+    if (!sel || !testable(edit.docOf(sel.id))) { say(t('poi.test.nothing', 'Select a POI that has DM content to test it.'), 'bad'); return; }
+    // the runtime's module first: the body is moved only once the test can start
+    if (!test.ready()) { test.prepare().then(() => startTest(), () => say(t('poi.test.loadFailed', 'The test could not start. Try again.'), 'bad')); return; }
+    const dmOn = dm.isOn();
+    dialogsClosed(); dm.close();
+    if (onTest(sel.id)) { dmWasOn = dmOn; say(t('poi.test.started', 'Testing. Walk, talk, and use things as a player would. Stop test to go back to editing.')); }
+    else if (dmOn) dm.toggle();
+    schedule();
+  }
 
   // ── RENDERING ────────────────────────────────────────────────────
   let queued = false;
@@ -340,6 +362,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   for (const d of [bar, left, right]) d.addEventListener('focusout', () => schedule());
 
   function renderBar() {
+    root.dataset.test = testing() ? '1' : '0';
+    if (testing()) {
+      bar.replaceChildren(el('span', 'dfpoi-testing', testPanel?.banner() ?? ''), el('span', 'dfpoi-sep'),
+        btn(t('poi.test.stop', 'Stop test'), stopTest),
+        btn(t('poi.editor.exitBack', 'Exit to where I stood'), () => { onTest(null); onExit('back'); }));
+      return;
+    }
     const tool = (m, text, key) => { const b = btn(`${text} (${key})`, () => editor.setMode(m)); b.setAttribute('aria-pressed', String(editor.mode() === m)); return b; };
     const undo = btn(t('poi.editor.undo', 'Undo'), () => { edit.undo(); });
     undo.disabled = !edit.canUndo();
@@ -371,6 +400,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
       (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'The selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
+      ...(test ? [(() => { const b = btn(t('poi.test.button', 'Test'), () => startTest()); b.title = t('poi.test.buttonHint', 'Play the selected POI in the world with its DM content, on a test copy of your gold and items.'); return b; })()] : []),
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -381,6 +411,16 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   }
 
   function renderLeft() {
+    if (testing()) {
+      // the open POIs, read-only: the one under test says so
+      const on = test.testing();
+      left.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing')), ...edit.ids().map((id) => {
+        const row = el('div', 'dfpoi-item');
+        row.append(el('span', '', edit.docOf(id).name || id), el('span', 'dfpoi-chip', id === on?.id ? t('poi.editor.state.testing', 'testing') : stateText(edit.entryOf(id), edit.dirty(id))));
+        return row;
+      }), el('div', 'dfpoi-sub', t('poi.test.paused', 'Editing is paused while a test runs.')));
+      return;
+    }
     const sel = edit.selection();
     const out = [el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing'))];
     const ids = edit.ids();
@@ -458,6 +498,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule() }));
 
   function renderRight() {
+    if (testing() && testPanel) { right.replaceChildren(testPanel.view()); return; }
     const sel = edit.selection();
     if (!sel) { right.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.nothingSelected', 'Nothing selected')), el('div', '', t('poi.editor.selectHint', 'Click a POI in the world or the list. Click once to select the POI, and again to select a part.'))); return; }
     const d = edit.docOf(sel.id), entry = edit.entryOf(sel.id);
@@ -1248,6 +1289,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     destroy() { gone = true; offEdit(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); root.remove?.(); },
     /** The DM panel (its tabs, the Sandbox). */
     dm,
+    /** The Test button's press, a test's door too. */
+    startTest: () => startTest(),
   };
 }
 

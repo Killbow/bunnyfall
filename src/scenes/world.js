@@ -830,6 +830,8 @@ import { createPoiEditorHost, createPoiEditorRouter, POI_EDITOR_EVENTS, POI_PICK
 import { openPoiEditorWhenStanding } from './poiEditorDoor.js';
 import { holdHotbarKeys } from '../ui/enhanced/enhancedHotbar.js';   // AUDIT POI E1: the bar's keys stood down under the editor
 import { createPoiEditorPanel } from '../ui/poi/poiEditorPanel.js';   // POI-3: its panel
+// the editor's Test: a draft's DM content played on a throwaway purse
+import { createPoiTest, keepSpot, spotScene } from '../poi/poiDmTest.js';
 import { PoiGizmoPass } from '../render/poiGizmoPass.js';   // POI-3: its lines over the world
 import { poiMe } from '../poi/poiService.js';   // POI-3: the store's word on who may build
 import { createDataPipeline } from './dataPipeline.js';
@@ -1807,6 +1809,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let poiHost = null;   // POI-2: the approved POIs (scenes/poiHost.js), made beside the monument; read late (a transition, a load, the frame)
   let poiFeed = null;   // POI-2: the approved set they are read from (poi/poiFeed.js) - the editor's drafts laid over it (POI-3)
   let poiEditor = null;   // POI-3: the editor in the world (scenes/poiEditorHost.js) - `?editor` alone, a builder's; read late (the frame)
+  // the editor's Test (poi/poiDmTest.js), made with the editor; read late (the frame, a save, the POI host)
+  let poiTest = null;
   let poiEditorLeave = null;   // AUDIT POI E14: its door out (mountPoiEditor's exit) - a death leaves it, read late as the editor is
   let merchantYards = null;   // MERCHANT-YARDS: the towns' Stables and Wagon Yards (scenes/merchantYardsHost.js), made beside the monument; read late as it is
   let portHost = null;   // SHIPYARDS: the port towns' shipyards and lighthouses (scenes/portHost.js), made beside the yards; read late as they are
@@ -11608,6 +11612,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // REP5: a changed legal standing is said - the crime's charge, the debt paid, a penance, a contract's thanks
   installLegalNotices({ playerEntity, say: (l) => townTalk.say(l), regionName: (r) => REGION_NAMES[r] ?? 'this region' });
   const weaponRig = createWeaponRig({
+    // the POI editor's Test: no light is dropped or thrown
+    dropRefusal: () => poiTest?.dropRefusal() ?? null,
     activateHeld: () => held(keys, 'ActivateCenterObject') || _tapArmed > 0,   // AUDIT 62 F8: the finger's press too (it was 'Mouse0' in the held set until the tap stopped speaking a literal code)   // AUDIT 28 W12: the drawn bow's un-draw key
     renderer, canvas, fetchBytes, palette, audio, entity: playerEntity,
     collider: () => collider, missEffect: (k, p, o) => hitEffects.showMissEffect(k, p, o),   // WW1: the weapon widget's recoil doors
@@ -13031,6 +13037,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   };
 
   const makeInventoryWindow = (extra = {}) => createInventoryWindow({
+    // the POI editor's Test: nothing is dropped or put in a chest or a body (the character is put back when it ends)
+    dropRefusal: () => poiTest?.dropRefusal() ?? null, storeRefusal: () => poiTest?.storeRefusal() ?? null,
     ...packDoors,   // UI2: the book, the camp and the spellbook - one bag with the hotbar's Use
     postItem: (text, item) => postItemInChat(text, item), linkItem: (item) => linkItemInChat(item), canPostItem: () => canPostItemInChat(),   // CHAT-POST: post or link into the field
     say: (l) => townTalk.say(l),   // FX1 (F128): the "Equipping %s" cue on close
@@ -15316,6 +15324,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // a save between them (the online checkpoint, the page's exit save, a key) wrote the arrival's place with the
     // departure's clock and needs, and a load of it was there for nothing. The checkpoint tries again when next due.
     if (_traveling) { if (!quiet) townTalk.say('You cannot save now.'); return false; }
+    // the editor's Test: no save is written while it runs
+    if (poiTest?.active()) { if (!quiet) townTalk.say(t('poi.test.noSave', 'You cannot save while testing a POI.')); return false; }
     // AUDIT NAV1 (B14): nor in a boarding or on a ship of the sea's deck - the sea is never a save's, and the load set the
     // player over open water, the ship and her prize gone
     if (naval?.saveRefused?.()) { if (!quiet) townTalk.say('You cannot save now.'); return false; }
@@ -17274,7 +17284,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     quickSave: worldQuickSave,
     quickLoad: worldQuickLoad,
     relock: () => requestLook(canvas),   // MAC1: the pointer comes back with the resume gesture (ui/pauseDoor.js)
-    savingPrevented: () => !!naval?.saveRefused?.() || !!modes?.cardTableLive?.() || !!modes?.gambitStaked?.() || !!modes?.iliacStaked?.(),   // AUDIT NAV1 (B14): the pause's Save says why, as worldQuickSave refuses it; AUDIT CARDS-2 H1: and chips on a card table
+    savingPrevented: () => !!naval?.saveRefused?.() || !!modes?.cardTableLive?.() || !!modes?.gambitStaked?.() || !!modes?.iliacStaked?.() || !!poiTest?.active(),   // AUDIT NAV1 (B14): the pause's Save says why, as worldQuickSave refuses it; AUDIT CARDS-2 H1: and chips on a card table
     // ONLINE-LOAD1: this host's own live-session flag (`online`,
     // not `onlineOn` - see worldQuickLoad's own header for why),
     // for the enhanced Load pane (enhancedMenu.js paneLoad) to
@@ -17977,6 +17987,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // AUDIT ONESEAT H4: and never from a tab another took the seat from (ONE-SEAT) - it is offline, and its every slot
     // of the character would be written over what the tab that has the seat saved (the same character, played on there)
     if (!playerSpawned || seatOut()) return;
+    // the editor's Test ends first: the body back where it stood before it
+    if (poiTest?.active()) poiEditorLeave?.('back');
     // BUNNYFALL SAVE-ON-EXIT: offline, the character's AutoSave slot only (systems/save/exitSave.js) - quiet, synchronous
     if (!online) return void offlineExitSave(playerEntity, townTalk.overlay instanceof DeathScreen || !!modes?.deathUp?.() || successionOpen(), (n, o) => (modes ? modes?.quickSaveNow(n, o) : worldQuickSave(n, o)));   // `?.` inside the ternary: audit24 wave37's gate
     // AUDIT DUEL1 D5 + B4: a duel in play ends here as `left` (the opponent is told now, not after DUEL_GONE_MS) and its
@@ -25727,6 +25739,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     auth: () => poiLive?.auth() ?? storedSession(appStorage())?.secret ?? null,   // POI-3 (the live view's bearer first): a builder's drafts' assets, asked with the builder's bearer
     getTexture, uploadRecordFrame, say: (line) => townTalk.say(line),   // BUNNYFALL: the people a POI stands (scenes/poiNpcs.js)
     collideDrafts: () => poiEditor?.collideDrafts() ?? true,   // POI-3: a draft dragged files no collider until the drag ends
+    // the editor's Test: the draft under test runs its DM content in preview, and live POIs none
+    dmTest: (id) => poiTest?.runtimeFor(id) ?? null, dmHeld: () => !!poiTest?.active(),
     // POI v2 (World Builder M5): a POI's patrols, talk, trades, objects and encounters - its module loaded only once one stands
     dm: () => import('../poi/poiDmRuntime.js').then((m) => m.createPoiDm({
       say: (line) => townTalk.say(line),
@@ -25823,20 +25837,23 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     /** Leaving: 'back' to the body, 'here' onto the ground under the eye, 'away' as the world changed under it (a mode, a
      *  load - the eye and the body are where that put them). */
     function exit(how) {
-      if (!editor.active()) return;
+      // leaving the editor ends a test first
+      if (poiTest?.active()) test(null);
+      if (!editor.active()) return false;
       let landing = null;
-      if (how === 'here' && walkMode) {
+      if ((how === 'here' || how === 'test') && walkMode) {
         // stood on what is under the eye - the ground, a roof, a POI's own floor
         const below = surfaceAt(cam.pos[0], cam.pos[2]);
         // AUDIT POI E13: over ground not yet built, refused - the landing reached 15 m, found no floor and stood the body in
         // the air at the eye (the editor's guard against blows already down: the fall hurt)
-        if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or exit to where you were standing.'), 'bad'); return; }
+        if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or exit to where you were standing.'), 'bad'); return false; }
         landing = floorLanding(collider, [cam.pos[0], cam.pos[1], cam.pos[2]], Math.max(10, cam.pos[1] - below + 5), 0);
         // ...and the teleport's own check (UNSTUCK-OUT): a floor inside a rock is no place to stand - the nearest open ground
         if (heldInSolid(collider, landing)) landing = openGroundNear(collider, landing[0], landing[2], { dry: (floor) => floor >= tvSeaY() }) ?? landing;
       }
       for (const ty of POI_EDITOR_EVENTS) window.removeEventListener(ty, onEvent, { capture: true });
-      editor.exit(); panel.setOn(false);
+      // during a test, the panel stays open so its bar and the Test panel remain visible
+      editor.exit(); if (how !== 'test') panel.setOn(false);
       hotbarKeysBack?.(); hotbarKeysBack = null;
       worldKeysUp();   // AUDIT POI E3: the keys held under the editor are not the world's on the way out
       if (landing) {
@@ -25848,9 +25865,51 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         if (walkMode && !built.has(`${at.px},${at.py}`)) _teleportToPixel(at.px, at.py, [at.x, player.pos[1] + 1, at.z], { grounded: true })   /* ohTeleportToWorld's way: the pixel's own spot, the frame's height, landed on what is under it */.catch((e2) => console.warn('[poi] back to the body', e2?.message ?? e2));
       }
       if (walkMode && how !== 'away') cam.pos = player.eyeAt();
+      // the cursor stays for the Test panel; the game's own key frees the look
+      if (how === 'test') return true;
       setCursorActive(cursorWas);
       if (!cursorWas && !gamePaused() && !pointerSurfaces.size && !(modes?.modalWindowUp?.() ?? false) && !overlayOpen()) requestLook(canvas);
+      return true;
     }
+    /** The editor's Test (poi/poiDmTest.js): `id` plays the open draft from the ground under the eye; `null` stops
+     *  it, puts the character back (the session's unseal), sets the body down where it stood (outdoors alone;
+     *  `exit('back')` fetches it if its pixel unloaded), puts the eye back, and reopens the editor; inside, mounted,
+     *  or sailing, the body stays where it is. A door ends the test as it is taken, and a load or travel ends it
+     *  where the world puts the body. */
+    let testBack = null;
+    const tr = (px, py, out) => state.pixelTranslation(px, py, out);
+    function test(id) {
+      if (id) {
+        if (!editor.active() || poiTest.active() || !poiTest.ready() || !edit.docOf(id)) return false;
+        if (!isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { panel.say(t('poi.test.onFoot', 'A test starts on foot, not mounted or sailing.'), 'bad'); return false; }
+        const back = { body: keepSpot(player.pos, sceneToPixel, tr), eye: keepSpot(cam.pos, sceneToPixel, tr), yaw: cam.yaw, pitch: cam.pitch, from, cursorWas, restores: restoresSoFar() };
+        if (!exit('test')) return false;
+        testBack = back;
+        return poiTest.start(id, edit.docOf(id));
+      }
+      if (!poiTest.active()) return false;
+      poiTest.stop();
+      const back = testBack;
+      testBack = null;
+      // inside, mounted, or sailing (if the body mounts a horse in the test): it stays where it is, and the editor
+      // stays closed
+      if (_mode() !== 'exterior' || !isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { panel.setOn(false); setCursorActive(back.cursorWas); return true; }
+      const body = spotScene(back.body, tr);
+      player.spawn(body[0], body[1], body[2]); playerSpawned = true;
+      cam.yaw = back.yaw; cam.pitch = back.pitch;
+      enter();
+      // the editor would not open here (on a horse, a ship): it stays closed
+      if (!editor.active()) { panel.setOn(false); return true; }
+      from = back.from; cursorWas = back.cursorWas;
+      cam.pos = spotScene(back.eye, tr);
+      return true;
+    }
+    poiTest = createPoiTest({
+      pack: () => playerEntity, say: (line) => townTalk.say(line), feet: () => (walkMode && playerSpawned ? player.feetAt() : null), pool: exteriorFoes,
+      save: { snapshotPlayer, restorePlayer }, minutes: () => Math.floor(playerTicker.ownMinutes), spells: () => spellsByIndex, deathHook: setAvoidDeathHook, onSpared: () => test(null),
+      gone: () => (restoresSoFar() !== testBack?.restores ? 'load' : _mode() !== 'exterior' || _traveling || !!travelView?.active ? 'away' : null),
+      onEnd: () => { const back = testBack; testBack = null; panel.setOn(false); setCursorActive(back?.cursorWas ?? false); panel.refresh(); }, onChange: () => panel?.refresh(),
+    });
     function jump() {
       // the map, armed: the body taken to the square picked (the one door that rebuilds a place far off), the eye above it
       const win = buildTravelMapWindow({
@@ -25869,7 +25928,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (!place) return;
       _teleportToPixel(place.px, place.py, [place.x, player.pos[1] + 1, place.z], { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 25, player.pos[2] - 35]; cam.yaw = 0; cam.pitch = -0.6; }, (e2) => console.warn('[poi] going there', e2?.message ?? e2));
     }
-    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, dfModels: { getGpuMesh, cpuModels, getTexture, blocks }, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo });
+    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, dfModels: { getGpuMesh, cpuModels, getTexture, blocks }, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo, test: poiTest, onTest: test });
     for (const ty of ['keydown', 'keyup']) panel.root.addEventListener(ty, route.onPanelKey);   // AUDIT POI E2: a key at the panel's controls
     editor.wantsOpen = (id) => { panel.open(id).catch((e2) => console.warn('[poi] opening it', e2?.message ?? e2)); };   // AUDIT POI E15: a live POI clicked in the world is opened for editing (its own open draft, else its live revision), as the outliner opens it
     document.body.append(panel.root);
@@ -27281,6 +27340,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  journey begun off the map must also be: outdoors (the map opens nowhere else), alive, and not already moving.
    *  The words are the door's own. Null when nothing refuses. */
   function partyTravelRefusal() {
+    if (poiTest?.active()) return t('poi.test.noTravel', 'Stop the POI test before you travel.');
     if ((modes?.mode ?? 'exterior') !== 'exterior') return PARTY_TRAVEL_TEXT.inside;
     if (!(playerEntity.health > 0) || worldMoveBusy()) return PARTY_TRAVEL_TEXT.off;
     if (duelEnemyNear() || areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]) || navalHostileNear()) return localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT);   // NAV-H: a hostile ship in reach too
@@ -30203,7 +30263,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // owns the motor, the animator and the mount's art together.
     setTransportMode: (mode) => setTransportModeHere(mode),
     horseCart: hccRuntimeOn,   // HCC: the runtime's transition handlers and storage-access word, when the mod is on
-    onPreTransition: () => { const n = handOverFoes(); if (n) console.info(`[foes] handed ${n} foe(s) at the door`); doorToken.entering(); },   // AUDIT PSCALE1 NET-3: a door out of the open country hands my foes to the players outside   // DOOR-TOKEN: and the room behind it has its token minted while the place builds
+    // the editor's Test: no save in any mode while it runs (the dungeon's own included)
+    savesHeld: () => !!poiTest?.active(),
+    onPreTransition: () => { poiTest?.end('door'); const n = handOverFoes(); if (n) console.info(`[foes] handed ${n} foe(s) at the door`); doorToken.entering(); },   // AUDIT PSCALE1 NET-3: a door out of the open country hands my foes to the players outside   // DOOR-TOKEN: and the room behind it has its token minted while the place builds
     horseCartSave: () => hccRuntime.getSaveData(),   // AUDIT HCC H3: the record a dungeon save carries (DFU's per-mod slot, whatever the switch says)
     deepCleared: (loc, stops, entry) => livingDeepCleared(loc, stops, entry),   // LW14: the stops a company left, at a dungeon's build
     openLivingDiver: (rec) => (livingWorldOn() && rec?.living ? !!livingDivers?.offers(rec, () => modes?.dungeonCtx?.hudSay?.(`${firstNameOf(rec.living.res?.name ?? '')}: "Keep your blade up down here."`)) : false),   // LW14: a company below, pressed
@@ -32859,6 +32921,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (restoresSoFar() !== _portalRestores) { _portalRestores = restoresSoFar(); portalGates.clear(); livingDivers?.clear(); livingRemains?.clear(); _livingRemainsPlace.clear(); }   // PORTAL1: A LOAD ENDS EVERY PORTAL STANDING - asked at the one door every load passes (save.js restorePlayer: the world's, a classic import, a dungeon's own), so no branch of any load keeps one (AUDIT PORTAL1 U9); the save's pack is the truth. AUDIT LW-II-2 D2: and LETS THE DEEP'S LAYERS GO - a same-dungeon load keeps the pool, so the divers read the bodies its rewind cut as cut down beside the player (a death, a slaying, in the loaded game) and the remains a pile it wiped as taken (spent); met and laid again from the save's world
     if (_bootLoaded) { const gift = takePortalGiftNotice(); if (gift) townTalk.say(PORTAL_TEXT.gift(gift)); }   // PORTAL-GIFT: the stones a load gave, said once the world stands - every load's (the boot's, F9's, a dungeon's own), in every mode
     if (_mode() !== _torchesMode) { droppedTorches.destroyAll(); weaponRig.silenceTorch();   /* DISC6: the street's rig leaves (or retakes) the frame - its torch loop falls silent, and the rig that ticks starts its own */ if (_torchesMode === 'exterior') { closeBrokerDoor(); sigilBroker?.destroyAll(); }   /* AUDIT SET W2: the street left (the gate's court entered under the veil's 1.2 s, an interior, a travel) - her window shut and her post down, never carried in */ if (_torchesMode === 'exterior') lefay?.destroyAll();   /* LEFAY1: the monument's collider down, never carried in */ if (_torchesMode === 'exterior') poiHost?.standDown();   /* POI-2: the POIs' colliders down, never carried in - AUDIT POI R8: their models kept, placed again on the way out */ portalGates.forgetSteps(); _torchesMode = _mode(); }   // HT1; PORTAL1: the step forgotten at every change of place
+    // the editor's Test, in every mode: when the world changes under it, it ends
+    poiTest?.frame();
     if (modes.frame(dt, now)) {
       if (_wodInside) { _wodInside = false; _wodArrival = wodArrivalOf([]); }   // WOD6: inside - the arrival's markers meet Start on the way out, from the player
       if (!skyInside) { skyInside = true; sky.setInside(true); }   // DS1: InteriorTransitionEvent

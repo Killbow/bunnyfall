@@ -344,7 +344,7 @@ const GATE_STRIKE_CAST = Object.freeze({ frost: SPELL_CAST_SOUND[1], poison: SPE
 import { lootPile } from '../player/lootStack.js';   // LOOT-STACK: the pile under the reticle, as the loot window's tabs
 import { rollLootRarity, pileSource, dungeonRarityTier, dungeonFamily, stampWonWeapons, lootRarityOn } from '../systems/loot/lootRarity.js';   // LR1: the item ladder over every list this host mints (a foe's through hostCombat.spawnEnemyLoot, RF2); BAL3: its switch, the place's threat's
 import { foeHitFlash, setBatchHitFlash, puppetHurtStep, setBatchGlint, prefersReducedMotion } from '../systems/hitFlash.js';   // HITFLASH1; TELL2: a wind-up's glint
-import { localizedText, getLocalizedLocationName, getLocalizedRegionName } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
+import { localizedText, getLocalizedLocationName, getLocalizedRegionName, t as tr } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
 import { createCoverIndex, isCoverFlat, coverProxy } from '../ai/cover.js';   // TACT1: billboards are cover
 import { flatBodies } from '../world/propBodies.js';   // PROP-BODIES: the solid flats' bodies, beside their cover
 import { blowConnects, blowScaled } from '../ai/foeBlows.js';   // TACT4
@@ -9646,6 +9646,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // WB3b: a save made in the court would load into a place that no longer stands (the court is the day's alone)
       if (madeLevelRule(_made, 'save') === 'refused') { if (!quiet) hudText.add(madeLevelSays(_made, 'save')); return false; }   // SD5a, EG-PLAY: nor the Hour nor the Spire - EG-H2: the law's
       if (isArenaFloor(dfLocation)) { if (!quiet) hudText.add(ARENA_TEXT.refuse.save); return false; }   // ARENA2: a made level no save re-enters
+      // the POI editor's Test: a test ends at the door, so this refusal is only a guard
+      if (opts.savesHeld?.()) { if (!quiet) hudText.add(tr('poi.test.noSave', 'You cannot save while testing a POI.')); return false; }
       const snap = snapshotPlayer(playerEntity, {
         position: lastPlayerFeet, classicMinutes: classicMinutesRef.value,
         readiedSpellIndex: magic.readiedIndex(),
