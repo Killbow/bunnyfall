@@ -75,6 +75,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: With the in-game POI editor open, game messages such as a new quest show beside its right panel instead of sliding in under it.
 - Fixed: A POI with a part the game cannot load, such as a Daggerfall model placed in the World Builder, now stands without that part, with its people and everything that happens there, instead of not appearing at all.
 - Fixed: The in-game POI editor no longer breaks on a World Builder POI that holds a Daggerfall model: selecting that part shows what it is, and the model check finishes, so the POI can be saved and sent for approval.
 - Fixed: In the in-game POI editor, pasting or duplicating a part with a long key no longer freezes the page, and a paste now selects what it pasted.

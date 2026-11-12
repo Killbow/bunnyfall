@@ -67,6 +67,9 @@ export const POI_PANEL_CSS = `
 .dfpoi-bar { top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; padding: 4px 6px; flex-wrap: wrap; max-width: calc(100vw - 16px); }
 .dfpoi-left { top: 56px; left: 8px; width: 250px; bottom: 40px; padding: 6px; }
 .dfpoi-right { top: 56px; right: 8px; width: 300px; bottom: 40px; padding: 6px; }
+/* the game's messages (ui/enhanced/enhancedStyle.js .notice-stack, under the docks' layer) stand left of the right dock while
+   the editor is open: a message that waits for a key or a click would otherwise hold the editor's clicks out of sight */
+body:has(> .dfpoi[data-on="1"]) .notice-stack { right: 316px; }
 .dfpoi-status { bottom: 8px; left: 50%; transform: translateX(-50%); padding: 4px 10px; max-width: calc(100vw - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dfpoi-status[data-kind="bad"] { border-color: #b4483c; color: #f2b7ae; }
 .dfpoi-btn { font: inherit; color: inherit; background: #2a2620; border: 1px solid #6b5230; border-radius: 4px; padding: 3px 7px; cursor: pointer; }
