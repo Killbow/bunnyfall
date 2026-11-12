@@ -10,8 +10,7 @@
 //     reports only, because trades, sales and the other flags are Admin-only data (design doc, Watchlist). Read only from
 //     the open panel, never from a login, a trade or a checkpoint (design doc, Server load).
 //   - YOUR SETTINGS: one bounded JSON document a member, its keys the design doc's Your settings list (staff_settings).
-//   - AND THE ADMINS' DOORS: the server's notice on every board (board.js postNotice), the AI check's scorecard against
-//     what staff decided, and the reported board notes (Remove and Restore, board.js moderateNote) and market listings.
+//   - AND THE ADMINS' DOORS: the server's notice on every board (board.js postNotice), and the reported board notes (Remove and Restore, board.js moderateNote) and market listings.
 //
 // NOTHING NEW IS JUDGED: a notice, a note's removal or restoration is the game's own act (board.js), made as this member
 // and written in the audit log beside it. Pulling a listing is another door's (the market's).
@@ -21,7 +20,6 @@ import { displayName } from './accounts.js';
 import { findAccount } from './sanctions.js';
 import { postNotice, moderateNote } from './board.js';
 import { REALM_PLAYING_S } from './realm.js';
-import { FLAG_SEVERITY } from './modAi.js';
 import { maskText } from '../../src/net/nameFilter.js';
 
 /** A staff note's longest words. */
@@ -43,9 +41,6 @@ export const WATCH_BIG_MARKS = 25_000;
 /** A settings document's largest JSON - inside the service's body bound (service.js MAX_BODY_BYTES, 4 KiB) with room for
  *  the body's own wrapper. shortcut: the whole document rides one ordinary body; past it, give the save its own bound. */
 export const STAFF_SETTINGS_BYTES = 4000;
-/** The scorecard's longest reach, in days, and its default. */
-export const AI_SCORE_DAYS_MAX = 90;
-export const AI_SCORE_DAYS = 30;
 /** Reported notes and listings one page answers. */
 export const REPORTED_PAGE = 25;
 /** A read of a player's data is written once in this, a member and a view (staff.js STAFF_READ_ROW_S's rule). */
@@ -54,9 +49,9 @@ const READ_ROW_S = 10 * 60;
 export const DESK_ROUTES = Object.freeze(['/v1/staff/notes', '/v1/staff/notes/add',
   '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
   '/v1/staff/settings', '/v1/staff/settings/save',
-  '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate', '/v1/staff/market/reported']);
+  '/v1/staff/notice', '/v1/staff/board/reported', '/v1/staff/board/moderate', '/v1/staff/market/reported']);
 /** The doors a Moderator may not open (design doc: everything but reports, notes and their own watchlist is Admin's). */
-const ADMIN_ONLY = Object.freeze(['/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate', '/v1/staff/market/reported']);
+const ADMIN_ONLY = Object.freeze(['/v1/staff/notice', '/v1/staff/board/reported', '/v1/staff/board/moderate', '/v1/staff/market/reported']);
 
 // ═══ YOUR SETTINGS: the design doc's list, each key's shape. The panel owns what sits inside a list's columns and filters;
 // the service bounds the whole and refuses a key the list does not name. The watchlist is its own table, and Hide me is the
@@ -329,37 +324,6 @@ export async function staffDesk(ctx, env, path, body, who, audit) {
     }
     if (!r.repeat) await audit('notice', null, { ...detail, id: r.id }).run();
     return r;
-  }
-
-  if (path === '/v1/staff/ai-score') {
-    // HOW OFTEN THE AI CHECK AGREED WITH STAFF (design doc, Reports and notifications): the cases staff decided in the last
-    // `days` that the reviewer had read in `mode` ('shadow' today, MOD_AI) - the clock's expiries are nobody's decision. The
-    // reviewer "said act" at FLAG_SEVERITY or more; staff acted (`actioned`) or dismissed. By the reviewer's category, 'none'
-    // where it found nothing.
-    const days = body.days === undefined ? AI_SCORE_DAYS : body.days;
-    if (!Number.isSafeInteger(days) || days < 1 || days > AI_SCORE_DAYS_MAX) return { error: 'bad-days' };
-    const mode = body.mode === 'on' ? 'on' : 'shadow';
-    const [found] = await db.batch([db.prepare(`SELECT COALESCE(ai_category, 'none') AS category, status, (ai_category IS NOT NULL AND ai_severity >= ?3) AS said, COUNT(*) AS n
-      FROM mod_cases WHERE resolved_at > ?1 AND status IN ('actioned', 'dismissed') AND resolved_by IS NOT 'the clock' AND ai_state = 'done' AND ai_mode = ?2
-      GROUP BY 1, 2, 3`).bind(nowS - days * 86400, mode, FLAG_SEVERITY), audit('ai-score-read', null, { days, mode }, { onceIn: READ_ROW_S })]);   // STAFF-PANEL-SPEED: one trip
-    const r = found?.results ?? [];
-    const blank = () => ({ cases: 0, saidActed: 0, saidDismissed: 0, clearActed: 0, clearDismissed: 0, agreed: 0, rate: /** @type {number|null} */ (null) });
-    /** @type {Map<string, ReturnType<typeof blank>>} */
-    const by = new Map();
-    const total = blank();
-    for (const x of r) {
-      const n = Number(x.n);
-      const key = `${x.said ? 'said' : 'clear'}${x.status === 'actioned' ? 'Acted' : 'Dismissed'}`;
-      const cat = by.get(x.category) ?? blank();
-      by.set(x.category, cat);
-      for (const c of [cat, total]) {
-        c.cases += n;
-        /** @type {any} */ (c)[key] += n;
-        if (key === 'saidActed' || key === 'clearDismissed') c.agreed += n;
-      }
-    }
-    for (const c of [...by.values(), total]) c.rate = c.cases ? Math.round((c.agreed / c.cases) * 1000) / 1000 : null;
-    return { days, mode, severity: FLAG_SEVERITY, categories: [...by.entries()].map(([category, c]) => ({ category, ...c })).sort((a, b) => b.cases - a.cases), total };
   }
 
   if (path === '/v1/staff/board/reported' || path === '/v1/staff/market/reported') {

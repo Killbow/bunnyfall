@@ -45,7 +45,7 @@
 // module's `HOME_WATCH = { id, label, role, top(ctx, env, who, n) }` answering `{ items: [{ level, why, sub, name }],
 // high, total }` (`role` 'moderator' shows it to every staff member, anything else to Admins alone). Moderators see
 // Reports only. A watch that throws is answered `failed: true` and sorts as a medium one - never as an empty, quiet one.
-import { HOME_WATCH as REPORTS_WATCH, AI_WAIT_S } from './staffCases.js';
+import { HOME_WATCH as REPORTS_WATCH } from './staffCases.js';
 import { HOME_WATCH as WATCHLIST_WATCH } from './staffDesk.js';
 import { HOME_WATCH as ECONOMY_WATCH } from './staffEconomy.js';
 import { HOME_WATCH as GAINS_WATCH } from './staffRealm.js';
@@ -53,7 +53,6 @@ import { HOME_WATCH as CONTESTED_WATCH } from './staffCensus.js';
 import { HOME_WATCH as BURSTS_WATCH } from './staffNet.js';   // STAFF-PANEL5-FEEDS: packet bursts
 import { HOME_WATCH as MONSTERS_WATCH } from './staffMonsters.js';   // STAFF-PANEL5-FEEDS: monster owners
 import { HOME_WATCH as FREEZE_WATCH } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: freezes not live, players waiting
-import { modAiOn } from './modAi.js';
 import { utcDay } from '../../src/net/marksLaw.js';
 import { PLAY_GRACE_S } from '../../src/net/playClock.js';
 
@@ -187,10 +186,7 @@ async function fastPart(/** @type {any} */ ctx, /** @type {any} */ env) {
   try {
     const [h, l] = await db.batch([
       db.prepare(`SELECT
-          (SELECT COUNT(*) FROM players WHERE handle IS NOT NULL AND played_at > ?1) AS registered,
-          (SELECT COUNT(*) FROM mod_cases WHERE status = 'open' AND ai_state = 'failed') AS ai_failed,
-          (SELECT MIN(updated_at) FROM mod_cases WHERE ai_state IN ('due', 'reading') AND status = 'open') AS case_wait,
-          (SELECT MIN(at) FROM mod_feed WHERE state IN ('due', 'reading')) AS feed_wait`).bind(nowS - PLAY_GRACE_S),
+          (SELECT COUNT(*) FROM players WHERE handle IS NOT NULL AND played_at > ?1) AS registered`).bind(nowS - PLAY_GRACE_S),
       db.prepare(LIMITS_SQL),
     ]);
     health = h?.results?.[0] ?? null;
@@ -300,20 +296,14 @@ export async function statusNow(ctx, env) {
     trades: a ? num(a.trades) : null, minted: a ? num(a.minted) : null, burned: a ? num(a.burned) : null,
   }, limits, { db: act.state }, act.at);
 
-  // HEALTH: red on its own, no limit - a failed cron job, the relay or the service not answering, the reviewer failing
+  // HEALTH: red on its own, no limit - a failed cron job, the relay or the service not answering
   const failedJobs = ok(slow.cron) ? slow.cron.rows.filter((r) => num(r.failed) > 0).map((r) => String(r.job).replace(/^cron:/, '')) : null;
-  const aiOn = modAiOn(env);
-  const waited = h ? Math.max(0, ...[h.case_wait, h.feed_wait].filter((t) => t != null).map((t) => nowS - Number(t))) : null;
   const checks = [
     { id: 'cron', ok: failedJobs ? !failedJobs.length : null, why: failedJobs ? (failedJobs.length ? `cron failed in the last hour: ${failedJobs.join(', ')}` : '') : `cron: ${slow.cron.state}` },
     { id: 'relay', ok: ok(fast.relay) ? fast.relay.body.ok === true : fast.relay.state === 'missing' ? false : null,
       why: ok(fast.relay) ? (fast.relay.body.ok === true ? '' : 'relay /health not ok') : fast.relay.state === 'missing' ? 'relay /health did not answer' : 'relay: not-configured',
       version: ok(fast.relay) ? fast.relay.body.version ?? null : null },
     { id: 'service', ok: fast.db === 'ok', why: fast.db === 'ok' ? '' : 'the service\'s database read failed' },
-    { id: 'ai', ok: !aiOn ? null : h ? !(num(h.ai_failed) > 0) && !(waited != null && waited >= AI_WAIT_S) : null,
-      why: !aiOn ? 'reviewer off' : !h ? '' : [num(h.ai_failed) > 0 ? `${num(h.ai_failed)} open case${num(h.ai_failed) === 1 ? '' : 's'} the AI check failed to read` : '',
-        waited != null && waited >= AI_WAIT_S ? `AI check waiting ${Math.floor(waited / 60)} min` : ''].filter(Boolean).join(' · '),
-      failed: h ? num(h.ai_failed) : null, waitingS: waited },
   ];
   const sick = checks.filter((c) => c.ok === false);
   const health = { id: 'health', label: 'Health', level: /** @type {TileLevel} */ (sick.length ? 'red' : 'grey'), why: sick.map((c) => c.why), checks, asOf: Math.min(fast.at, slow.at) };

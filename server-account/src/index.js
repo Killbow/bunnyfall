@@ -64,7 +64,6 @@
 //   POST /v1/mod/ban { target?, name?, days, reason? } -> { ok, target, name, until, reason, order }   (SAFE4: a moderator's; days 0 for good)
 //   POST /v1/mod/unban { target?, name? }            -> { ok, target, name, until: 0, order }
 //   POST /v1/mod/strikes { target?, name? }          -> { ok, target, name, strikes, next, mutedUntil, bannedUntil, banReason, history }
-//   POST /v1/mod/feed  <batch>                       -> { ok, read }   (SAFE5: the relay's public lines, signed - x-relay-feed-sig)
 //   POST /v1/mod/grant-feed  <batch>                 -> { ok, read }   (GRANT2: a cell's window of spawn grant asks, signed - x-relay-grant-sig)
 //   POST /v1/discord/interactions <interaction>      -> Discord's answer   (SAFE8: signed - x-signature-ed25519, x-signature-timestamp)
 // A BANNED ACCOUNT is answered 403 { error: 'banned', until, reason } on every door behind a session but signing out.
@@ -379,7 +378,7 @@ import { wildFall, wildCollect, wildReclaim, wildEscrows } from './wild.js';   /
 import { listLineages, putLineage, realmDie, realmRaise, realmWed, listUnions, LINEAGE_BODY_MAX } from './legacy.js';   // LEGACY7: Project Legacy's lines and the tombstone; REZ-BLOODLINE AUDIT R1: a Resurrect inside its hold
 import { measured, heartbeatPartsOf } from './metrics.js';   // SCALE1: every request counted (Workers Analytics Engine); AUDIT SCALE II A-3: a heartbeat's parts, of the body the route read
 import { runCron } from './cron.js';   // SCALE4b: the service's own clock
-import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, takeFeed, bannedAnswer, modCases, modCase, modDismiss, modAct, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
+import { blocksOf, blockAccount, unblockAccount, fileReport, agreeConduct, conductAgreed, bannedAnswer, modCases, modCase, modDismiss, modAct, REPORT_BODY_MAX } from './safety.js';   // SAFE1-SAFE7: the chat's safety
 import { strikesLook, isBanned } from './sanctions.js';   // SAFE4: the record, the ladder and the ban
 import { freezeRefusal, frozenAnswer, playerStaffChat, isFrozen, STAFF_CHAT_ROUTES, STAFF_CHAT_STATUS } from './staffFreeze.js';   // STAFF-PANEL5-FREEZE: the freeze gate and the player's staff chat
 import { staffRoute, STAFF_STATUS, STAFF_SESSION_HEADER, auditStatement, staffRole } from './staff.js';   // STAFF-PANEL1: the staff panel's sign-in, sessions, roles and audit log
@@ -387,7 +386,6 @@ import { staffMessagesFor, staffMessageOk } from './staffMessage.js';   // STAFF
 import { hiddenToken, takeHiddenSeen } from './staffHidden.js';   // STAFF-PANEL5-HIDDEN: a hidden staff member's token, and a private home it entered
 import { HIDDEN_SEEN_PATH, HIDDEN_SEEN_MAX_BYTES, HIDDEN_SEEN_SIG_HEADER } from '../../src/net/hiddenSeen.js';
 import { discordSigned, discordInteraction, DISCORD_BODY_MAX } from './discord.js';   // SAFE8: the moderators' queue in Discord
-import { FEED_MAX_BYTES, FEED_SIG_HEADER } from '../../src/net/safety/chatFeed.js';   // SAFE5: the relay's feed of public lines
 import { heartbeat } from './heartbeat.js';   // SCALE4c: one request for a tab's three clocks
 import { ADMIT_ROUTES, admitWait } from './admit.js';   // ADMIT-LINE: the sign-in line
 export { AdmitGate } from './admit.js';   // ADMIT-LINE: the line's Durable Object (wrangler.toml binds it from this module)
@@ -974,12 +972,8 @@ const service = {
       // Neither is JSON a session carries; each is proven by a signature over its exact bytes, checked before a byte is read.
       if (SAFE_OPEN_ROUTES.has(path)) {
         if (request.method !== 'POST') return no('method', 405, origin);
-        const bytes = await readCapped(request, path === '/v1/mod/feed' ? FEED_MAX_BYTES : DISCORD_BODY_MAX);
+        const bytes = await readCapped(request, DISCORD_BODY_MAX);
         if (!bytes) return no('too-large', 413, origin);
-        if (path === '/v1/mod/feed') {
-          const r = await takeFeed(ctx, env, new Uint8Array(bytes), request.headers.get(FEED_SIG_HEADER));
-          return 'error' in r ? no(r.error, r.error === 'feed-signature' ? 401 : 400, origin) : json(r, 202, origin);
-        }
         if (!(await discordSigned(env, new Uint8Array(bytes), request.headers.get('x-signature-ed25519'), request.headers.get('x-signature-timestamp'), { subtle, nowS }))) return no('signature', 401, origin);
         let interaction = null;
         try { interaction = JSON.parse(new TextDecoder().decode(bytes)); } catch { interaction = null; }

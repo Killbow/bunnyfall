@@ -112,7 +112,6 @@ export const STAFF_TABS = {
       { t: 'Send a notice to everyone', p: '/v1/staff/notice', f: [['subject', 't', 'subject'], ['body', 'x', 'the notice'], ['days', 'n', 'days shown']], danger: 'Send this notice to every player?' },
       { t: 'My settings', p: '/v1/staff/settings' },
       { t: 'Save my settings', p: '/v1/staff/settings/save', f: [['settings', 'j', '{ ... }']] },
-      { t: 'AI score', p: '/v1/staff/ai-score', f: [['days', 'n', 'days']] },
     ] },
     { h: 'Server', acts: [
       { t: 'Status', p: '/v1/staff/status' },

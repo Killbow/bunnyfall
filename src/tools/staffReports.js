@@ -6,10 +6,10 @@
 // the service's own (server-account/src/staffCases.js): /v1/staff/cases, /v1/staff/case, /v1/staff/dismiss, /mute, /ban.
 // staffPanel.js wires it, its helpers handed in (`kit`).
 
-const KIND = { chat: 'Chat report', spawn: 'Spawn check' };
+const KIND = { chat: 'Chat report', spawn: 'Spawn check (old)' };
 const KIND_WHAT = {
   chat: 'Players reported what this account said in chat.',
-  spawn: 'Automatic: other players\' games refused monsters this account spawned, or the server counted too many, or an Admin flagged it. Often lag or a busy dungeon, not cheating.',
+  spawn: 'An old automatic spawn check, from before only player reports opened cases.',
 };
 const TAB = { grant: 'Spawn check', chat: 'Chat' };
 const MUTES = [[10, '10 minutes'], [60, '1 hour'], [360, '6 hours'], [1440, '1 day'], [10080, '1 week']];
@@ -123,7 +123,6 @@ export function reportsView(card, kit) {
       (k.notes ?? []).length || (k.reasons ?? []).length ? h('div', null, h('b', null, 'What the reporters said'),
         h('div', { class: 'dim' }, `Reasons: ${(k.reasons ?? []).join(', ') || '-'}`),
         (k.notes ?? []).map((/** @type {string} */ t) => h('div', { style: 'white-space:normal' }, `"${t}"`))) : null,
-      k.ai ? h('div', null, h('b', null, 'AI check: '), h('span', null, typeof k.ai === 'object' ? [k.ai.category, k.ai.severity != null ? `severity ${k.ai.severity}` : null, k.ai.reason].filter(Boolean).join(', ') : String(k.ai))) : null,
       strikes != null ? h('div', { class: 'dim' }, `Strikes on record: ${strikes}`) : null,
       h('div', { class: 'row', style: 'gap:8px;flex-wrap:wrap;align-items:center' },
         h('button', { class: 'primary', onclick: async () => { if (await dismiss(c)) { toast(`${c.name}: dismissed, no action.`); done(); } } }, 'Dismiss (not a problem)'),

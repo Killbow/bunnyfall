@@ -574,7 +574,7 @@ export const ROUTES = new Set([
   // a moderator's ban, unban and look; and the two doors a stranger reaches that prove themselves (SAFE_OPEN_ROUTES);
   // AUDIT SAFE DOC-4: the moderators' read of the cases in the game - the open ones, one, and its dismissal
   '/v1/safety/blocks', '/v1/safety/block', '/v1/safety/unblock', '/v1/safety/report', '/v1/safety/conduct',
-  '/v1/mod/ban', '/v1/mod/unban', '/v1/mod/strikes', '/v1/mod/feed', '/v1/discord/interactions',
+  '/v1/mod/ban', '/v1/mod/unban', '/v1/mod/strikes', '/v1/discord/interactions',
   '/v1/mod/cases', '/v1/mod/case', '/v1/mod/dismiss',
   // STAFF-PANEL1: the staff panel's doors (staff.js) - its own sign-in and session, never a game session (STAFF_ROUTES)
   '/v1/staff/login', '/v1/staff/enroll', '/v1/staff/me', '/v1/staff/logout', '/v1/staff/keys', '/v1/staff/key/forget',
@@ -587,7 +587,7 @@ export const ROUTES = new Set([
   // STAFF-PANEL3-DESK: staff notes, the watchlist and its events, your settings; the Admins' server notice, AI check
   // scorecard, and reported board notes (Remove, Restore) and market listings (staffDesk.js)
   '/v1/staff/notes', '/v1/staff/notes/add', '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
-  '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate',
+  '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/board/reported', '/v1/staff/board/moderate',
   '/v1/staff/market/reported',
   // STAFF-PANEL3-PLAYERS: the panel's players (staffPlayers.js) - the search, a profile's tabs, its devices, Sign out
   // everywhere, and a rename - Admins' alone
@@ -740,7 +740,7 @@ export const PATREON_OPEN_ROUTES = new Set(['/v1/patreon/callback', '/v1/patreon
 /** SAFE5 + SAFE8: the chat safety's two doors a stranger reaches, NOT the JSON ladder's - the relay's feed of public
  *  lines and Discord's presses and commands. Each proves itself by a signature over its exact bytes (the relay's receipt
  *  key, the Discord application's key), never a session. */
-export const SAFE_OPEN_ROUTES = new Set(['/v1/mod/feed', '/v1/discord/interactions']);
+export const SAFE_OPEN_ROUTES = new Set(['/v1/discord/interactions']);   // BUNNYFALL: the AI reviewer's feed door gone
 
 /** STAFF-PANEL1: the staff panel's doors (staff.js), NOT the JSON ladder's - none takes a game session. Two prove themselves by
  *  a password and an extension's signature (login, enroll); the rest by a staff session in `x-staff-session`. */

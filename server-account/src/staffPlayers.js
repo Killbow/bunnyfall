@@ -503,7 +503,7 @@ async function tabOf(ctx, env, tab, p, chars, body, row) {
   return sectionsOf(db, {
     findings: [`SELECT id, char_id AS char, seq, at, kind, detail FROM realm_findings WHERE char_id IN (${marks(ids.length)}) ORDER BY at DESC, id DESC`, ids],
     acts: ['SELECT id, kind, until, reason, actor_name AS actorName, case_id AS caseId, at, void_at AS voidAt FROM mod_actions WHERE target = ?1 ORDER BY at DESC, id DESC', [p.id]],
-    against: [`SELECT id, source, status, opened_at AS openedAt, reports, ai_category AS aiCategory, ai_severity AS aiSeverity, resolution, resolved_by AS resolvedBy,
+    against: [`SELECT id, source, status, opened_at AS openedAt, reports, resolution, resolved_by AS resolvedBy,
       resolved_at AS resolvedAt FROM mod_cases WHERE target = ?1 ORDER BY opened_at DESC, id DESC`, [p.id]],
     filed: [`SELECT r.case_id AS caseId, r.reason, r.at, r.counted, c.target, x.handle AS targetHandle, c.status FROM mod_reports r JOIN mod_cases c ON c.id = r.case_id
       LEFT JOIN players x ON x.id = c.target WHERE r.reporter = ?1 ORDER BY r.at DESC, r.case_id DESC`, [p.id]],
