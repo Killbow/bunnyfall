@@ -1777,7 +1777,7 @@ const service = {
         if (!('error' in r)) return json(r, 200, origin);
         return no(r.error, r.error === 'homes-need-account' ? 403 : r.error === 'bad-festival' ? 400 : 409, origin);
       }
-      if (path.startsWith('/v1/homes/')) {
+      if (path.startsWith('/v1/homes/') || path.startsWith('/v1/camps/')) {   // BUNNYFALL CAMPS: /v1/camps/ lives in this block (its handlers below were never reached: 405)
         if (request.method !== 'POST') return no('method', 405, origin);
         if (path === '/v1/homes/town') {
           const r = await homesInTown(ctx, who.player, body, { seats: seatsOpenFor(who.player, env) });   // SEAT1d: Open Gates
