@@ -65,8 +65,11 @@ export function createPoiTest({ pack, say, feet, pool = null, gone = () => null,
   let rt = null, mod = null;
   /** @type {any} */
   let purse = null, first = null;
-  /** the enemies the test stood, until they are taken away */
+  /** Tracks enemies spawned by the test, keeping dead ones until the test ends so their bodies are cleared. */
   const stood = new Set();
+  /** Removes an enemy spawned by the test, or clears its corpse and loot if it died.
+   *  @param {any} f */
+  const takeAway = (f) => { if (f?.dead) pool?.removeCorpse?.(f); else if (pool?.foes?.includes(f)) pool.removeFoe(f); };
   let shownSig = '';
 
   /** Ends the test: its run and enemies go, and the character is put back unless `restore` is false (a load). */
@@ -74,8 +77,8 @@ export function createPoiTest({ pack, say, feet, pool = null, gone = () => null,
     if (!on) return;
     const was = on;
     if (rt) rt.drop(was.id);
-    // an enemy the run no longer holds (a spawn answered late) goes too
-    for (const f of stood) if (pool?.foes?.includes(f)) pool.removeFoe(f);
+    // Also remove any late-spawning enemy no longer held by the run, along with every corpse and its loot.
+    for (const f of stood) takeAway(f);
     stood.clear();
     on = null; rt = null; purse = null; first = null; shownSig = '';
     freeDeath();
@@ -100,7 +103,8 @@ export function createPoiTest({ pack, say, feet, pool = null, gone = () => null,
       ...(foes ? {
         spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => foes.spawnFoe(foe, at, o).then((/** @type {any} */ f) => { if (f) stood.add(f); return f; }),
         isDown: foes.isDown,
-        removeFoe: (/** @type {any} */ f) => { stood.delete(f); foes.removeFoe(f); },
+        // The run lets an enemy go when its encounter resets or the run ends; a dead one stays until the test ends.
+        removeFoe: (/** @type {any} */ f) => { if (!f?.dead) stood.delete(f); foes.removeFoe(f); },
       } : {}),
     });
     on = { id, name: doc?.name || id, doc, sealed: snap };
