@@ -278,9 +278,14 @@ export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
 
 /** Fire a trigger - `{ k: 'interact', interactive }`, `{ k: 'enter_area', interactive }`, `{ k: 'npc_talk', npc }`, `{ k: 'waypoint_reached', route, waypoint }` - and run each event listening to it. Answers the keys run. @param {Dm} dm @param {any} trigger */
 export function fire(dm, trigger) {
+  note(dm, { k: 'trigger', trigger });
+  return runTrigger(dm, trigger);
+}
+/** Runs each event listening to a trigger without logging the trigger itself, and returns the keys that ran.
+ *  @param {Dm} dm @param {any} trigger */
+function runTrigger(dm, trigger) {
   /** @type {string[]} */
   const ran = [];
-  note(dm, { k: 'trigger', trigger });
   for (const ev of dm.doc.events ?? []) {
     const t = ev.trigger;
     if (!t || t.k !== trigger.k) continue;
@@ -355,6 +360,9 @@ export function useInteractive(dm, key) {
   if (!o) return { locked: false, ran: /** @type {string[]} */ ([]) };
   const door = o.kind === 'door', chest = o.kind === 'chest';
   const was = dm.states[key];
+  // Log the use before what it changes, then run the interact events, as fire() does.
+  const trigger = { k: 'interact', interactive: key };
+  note(dm, { k: 'trigger', trigger });
   if (!door && !chest) {
     if (o.kind === 'quest_object' && was === 'inactive') { note(dm, { k: 'inactive', interactive: key }); return { locked: false, ran: [] }; }
     if (o.keyItem && !holdsKey(dm, o)) { note(dm, { k: 'locked', interactive: key }); return { locked: true, ran: [] }; }
@@ -364,7 +372,7 @@ export function useInteractive(dm, key) {
     if (door || chest) setState(dm, key, 'open');
   } else if (was === 'closed' && (door || chest)) setState(dm, key, 'open');
   else if (was === 'open' && door) setState(dm, key, 'closed');
-  const ran = fire(dm, { k: 'interact', interactive: key });
+  const ran = runTrigger(dm, trigger);
   const locked = dm.states[key] === 'locked';
   if (locked) note(dm, { k: 'locked', interactive: key });
   return { locked, ran };
