@@ -284,6 +284,7 @@ import { chapterSheet, chapterSeatsOf, chapterTitlesOpenFor, chapterTitlesOfAcco
 import { contractRegionOfRaid } from '../../src/net/writLaw.js';   // CHAP2b: the region a raid's key names   // CHAP2a: a town's guild halls, witnessed; AUDIT CHAP2 E1: audited and struck
 import { claimRaid, raidRecordOf } from './raids.js';   // RAID4: the towns defended
 import { claimSerpent, serpentRecordOf } from './serpents.js';   // SERPENT1: the serpents slain
+import { claimEventPay } from './staffEventPay.js';   // EVENT-EXTRAS: a staff event's silver
 import { claimStar, starRecordOf } from './stars.js';   // STAR7: the fallen stars held
 import { claimSd, sdRecordOf } from './sds.js';   // SD9b: the Hours broken
 import { claimKetch, ketchRecordOf } from './ketch.js';   // KETCH: the Ketchmaster's hold, once a voyage - and the voyages sailed, on the cards
@@ -1535,6 +1536,14 @@ const service = {
           if (marks) answer.marks = marks;
         }
         return json({ ...answer, order }, 200, origin);
+      }
+
+      if (path === '/v1/event/claim' && request.method === 'POST') {
+        // EVENT-EXTRAS: A STAFF EVENT'S RECEIPT carried here by the account it names - staffEventPay.js verifies it with the
+        // relay's key, reads the pay off the event's own row and pays the silver once an (event, account). The gold is the receipt's own and the game's.
+        const r = await claimEventPay(ctx, who.player, env, { receipt: body.receipt }, await gatePublicKey(env, subtle));
+        if (r.error) return json({ error: r.error, ...(r.why ? { why: r.why } : {}) }, r.error === 'no-gate-key' ? 503 : r.error === 'not-yours' ? 403 : 400, origin);
+        return json(r, 200, origin);
       }
 
       if (path === '/v1/serpent/claim' && request.method === 'POST') {

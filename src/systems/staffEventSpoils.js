@@ -76,19 +76,19 @@ export function rollStaffSpoils(seed, level, rank) {
 }
 
 /** The spoils as the spoils pool hands them over (scenes/spoilsPool.js's pieces): each item, then the gold. Pure. */
-export function staffSpoilsList(/** @type {number} */ seed, /** @type {number} */ level, /** @type {number} */ rank) {
-  const s = rollStaffSpoils(seed, level, rank);
-  return [...s.pieces.map((p) => ({ kind: 'item', item: p.item, tier: p.tier })), { kind: 'gold', gold: s.gold, tier: 'common' }];
+export function staffSpoilsList(/** @type {number} */ seed, /** @type {number} */ level, /** @type {number} */ rank, /** @type {number} */ bonusGold = 0) {
+  const s = rollStaffSpoils(seed, level, rank);   // EVENT-EXTRAS: `bonusGold` the event's own gold (the receipt's `g`), on top of the table's
+  return [...s.pieces.map((p) => ({ kind: 'item', item: p.item, tier: p.tier })), { kind: 'gold', gold: s.gold + Math.max(0, Math.floor(Number(bonusGold) || 0)), tier: 'common' }];
 }
 
 /**
  * A RECEIPT'S SPOILS INTO THE PACK (scenes/world.js onRaidReceipt, for an `e1`): through `pool` (the town's thanks'
  * pool) under `lock` (the world's spoils lock), at `level`, once a receipt and account.
  * @param {{ grant: (o: any) => any }} pool @param {(f: () => any) => Promise<any>} lock
- * @param {{ v: string, s: string, c: number, r: number }} c the receipt's claims (readStaffReceipt) @param {number} level
+ * @param {{ v: string, s: string, c: number, r: number, g?: number }} c the receipt's claims (readStaffReceipt) @param {number} level
  */
 export function grantStaffSpoils(pool, lock, c, level) {
   const lv = Math.max(1, Math.floor(Number(level) || 1));
-  return lock(() => pool.grant({ day: staffSpoilsDay(c.v), acct: c.s, roll: () => staffSpoilsList(c.c, lv, c.r), text: STAFF_SPOILS_TEXT.granted() }))
+  return lock(() => pool.grant({ day: staffSpoilsDay(c.v), acct: c.s, roll: () => staffSpoilsList(c.c, lv, c.r, c.g ?? 0), text: STAFF_SPOILS_TEXT.granted() }))
     .catch((e) => console.warn('[sev] spoils', e?.message ?? e));
 }

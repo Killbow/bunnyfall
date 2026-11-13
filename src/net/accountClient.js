@@ -1965,6 +1965,8 @@ export function accountSerpents({ fetch, storage }) {
 /** STAR7: a fallen star's receipt the relay signed for this account, carried to the service with the character that held
  *  it and this device's claim id (the spoils' key) - `{ recorded, held, renown, spoils, marks, order }`, or
  *  `{ recorded: false, why, held, spoils }` (`claimed`, `guest`, `day-full`). */
+/** EVENT-EXTRAS: a staff event's receipt (`e1`) carried to the service, which pays its silver once. */
+export const claimEventReceipt = (io, receipt) => call(io, '/v1/event/claim', { receipt });
 export const claimStarReceipt = (io, receipt, character, name = null, cid = null) => call(io, '/v1/star/claim', { receipt, character, name, ...(cid ? { cid } : {}) });
 
 /**

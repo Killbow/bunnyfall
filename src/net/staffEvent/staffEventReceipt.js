@@ -8,6 +8,8 @@
 //         v the event's id   s the account (the identity token's sub)
 //         c a seed (32 bits, the relay's CSPRNG) - the reward rolls off it (systems/staffEventSpoils.js)
 //         r the account's rank on the board (1 to STAFF_EVENT_BOARD_MAX, 0 an earner past it)
+//         h the kills the ledger credited the account (EVENT-EXTRAS: the silver claim checks it against the event's `rk`)
+//         g the gold the event pays an earner (EVENT-EXTRAS, the event's `gd`; absent on a receipt from before it: none)
 //         i issued, epoch seconds   e expires (i + STAFF_RECEIPT_TTL_S)
 //
 // ONE KEY, THREE THINGS, NEVER CONFUSED. The relay's one secret (GATE_SIGNING_KEY) signs this as it signs a gate's kill
@@ -22,7 +24,7 @@
 //
 // Not a DFU member. Ledger A (STAFF-EVENT's row).
 import { _b64url, SIG_BYTES, SKEW_S, ID_RE } from '../identityToken.js';
-import { STAFF_EVENT_ID_RE, STAFF_EVENT_BOARD_MAX, STAFF_RECEIPT_WIRE_MAX } from './staffEventLaw.js';
+import { STAFF_EVENT_ID_RE, STAFF_EVENT_BOARD_MAX, STAFF_RECEIPT_WIRE_MAX, STAFF_EVENT_WORD_KILLS_MAX, STAFF_EVENT_GOLD_MAX } from './staffEventLaw.js';
 
 /** The only version this file reads or writes. */
 export const STAFF_RECEIPT_V = 'e1';
@@ -46,6 +48,8 @@ export function staffReceiptValid(c) {
   if (typeof c.s !== 'string' || !ID_RE.test(c.s)) return false;
   if (!Number.isSafeInteger(c.c) || c.c < 0 || c.c > 0xffffffff) return false;
   if (!Number.isInteger(c.r) || c.r < 0 || c.r > STAFF_EVENT_BOARD_MAX) return false;
+  if (c.h !== undefined && (!Number.isSafeInteger(c.h) || c.h < 0 || c.h > STAFF_EVENT_WORD_KILLS_MAX)) return false;
+  if (c.g !== undefined && (!Number.isSafeInteger(c.g) || c.g < 0 || c.g > STAFF_EVENT_GOLD_MAX)) return false;
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i || c.e - c.i > STAFF_RECEIPT_TTL_S) return false;
   return true;
@@ -53,14 +57,14 @@ export function staffReceiptValid(c) {
 
 /**
  * MINT - the relay's half. With no key the receipt goes out unsigned (`e1.<body>.`).
- * @param {{v: string, s: string, c: number, r: number}} what
+ * @param {{v: string, s: string, c: number, r: number, h?: number, g?: number}} what
  * @param {CryptoKey|null} privateKey an Ed25519 private key (net/gate/gateReceipt.js importReceiptKey), or null for none
  * @param {{subtle: SubtleCrypto, nowS: number}} env
  * @returns {Promise<string>}
  */
-export async function mintStaffReceipt({ v, s, c, r }, privateKey, { subtle, nowS }) {
+export async function mintStaffReceipt({ v, s, c, r, h = 0, g = 0 }, privateKey, { subtle, nowS }) {
   if (!Number.isSafeInteger(nowS)) throw new TypeError('mintStaffReceipt needs an integer epoch-seconds clock');
-  const claims = { v, s, c, r, i: nowS, e: nowS + STAFF_RECEIPT_TTL_S };
+  const claims = { v, s, c, r, h, g, i: nowS, e: nowS + STAFF_RECEIPT_TTL_S };
   if (!staffReceiptValid(claims)) throw new TypeError('mintStaffReceipt refused a claim set it could not verify');
   const body = _b64url.encode(enc.encode(JSON.stringify(claims)));
   if (!privateKey) return `${STAFF_RECEIPT_V}.${body}.`;

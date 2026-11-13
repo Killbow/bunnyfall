@@ -587,7 +587,7 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
     if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } muster.adopt(o, null); return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
     if (pack && !pack.at && Array.isArray(foe.ai?.feet)) pack.at = [...foe.ai.feet];   // STAFF-EVENT PACKS: its pack stands around it
     if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; muster.adopt(o, null); return; }
-    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp }); raid.bossUp = 1; raid.bossDown = 0; }
+    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp, name: raid.staff.bn }); raid.bossUp = 1; raid.bossDown = 0; }
     if (kind === 'bearer' || kind === 'refugee') foe.raidGoal = p.key;   // AUDIT WORLD-EVENTS L6-5: its raiders' quarry first (enemyTargets.js), whatever infighting reads
     if (kind === 'bearer' && foe.entity && objOf(raid).share < 1) foe.entity.health = Math.max(1, Math.round(foe.entity.maxHealth * objOf(raid).share));   // AUDIT WORLD-EVENTS L4-6: raised again as he was let go - never a whole standard for a walk-off
     if (kind === 'leader') { promoteRaidLeader(foe.entity, { name: raidLeaderNameOf(foe.mobileType ?? mobileType) }); foe.entity.bossTraits = undefined; foe.entity.bossWard = undefined; giveBossTraits(foe.entity, rollBossTraits(RAID_LEADER_TRAITS, rnd())); }   // RAID5: the party's leader - an elite with two traits (AUDIT WORLD-EVENTS L2-6: its two in place of any its stand drew as an elite)
@@ -625,7 +625,7 @@ export function raidFrame(dt = 0) {
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }
-  for (const r of staffRaidsEnded()) { r.routed = true; routRaid(r); if (r.announced) say(staffEndLine(r), r); }   // STAFF-EVENT: an event the hub ended - its monsters stand down out of sight
+  for (const r of staffRaidsEnded()) { r.routed = true; routRaid(r); if (r.announced || r.staff.an) say(staffEndLine(r), r); }   // STAFF-EVENT: an event the hub ended - its monsters stand down out of sight
 
   // B. the day's roll [IL_0498-IL_0540]: the old day's raids expire first (fix 9), then the day's are rolled (fix 1).
   // The mod rolls only on a LATER day. RAID2: online the day is the world's, and a save made on a clock of its own can
@@ -1336,13 +1336,14 @@ const kindName = (t) => enemyDisplayName(t) ?? 'monster';
 /** Is a staff event's place a city? The panel's word (`ct`, off the game's map), or a town of my own map. Anything else
  *  is said as an area (mob 2026-10-24: "make sure to add that it is a city ... and make sure to say its an area if it not"). */
 const staffCity = (r) => r.locationIndex >= 0 && (r.staff?.ct === 1 || !!regionsNow()?.find((x) => x.region === r.regionIndex)?.towns.some((t) => t.index === r.locationIndex));
-export const staffAttackLine = (r) => (staffCity(r)
+export const staffAttackLine = (r) => r.staff?.tx || (staffCity(r)
   ? t('staffEvent.attackCity', 'The city of {place} is under attack!', { place: staffPlaceName(r) })
   : t('staffEvent.attackArea', 'The area of {place} is under attack!', { place: staffPlaceName(r) }));
-export const staffBossLine = (r) => (staffCity(r)
+export const staffBossLine = (r) => r.staff?.bl || (staffCity(r)
   ? t('staffEvent.bossCity', 'A mighty {kind} has come to the city of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) })
   : t('staffEvent.bossArea', 'A mighty {kind} has come to the area of {place}!', { kind: kindName(r.staff.b), place: staffPlaceName(r) }));
 export function staffEndLine(r) {
+  if (r.staff?.el) return r.staff.el;   // EVENT-EXTRAS: staff's own words
   const city = staffCity(r), args = { kind: kindName(r.staff.b), place: staffPlaceName(r) };
   if (r.bossDown) return city ? t('staffEvent.bossFellCity', 'The {kind} has fallen. The city of {place} is safe.', args) : t('staffEvent.bossFellArea', 'The {kind} has fallen. The area of {place} is safe.', args);
   return city ? t('staffEvent.overCity', 'The attack on the city of {place} is over.', args) : t('staffEvent.overArea', 'The attack on the area of {place} is over.', args);
@@ -1363,6 +1364,13 @@ let _lastStaffWord = null;
 function staffRelayWord(sev, room) {
   if (!sev) return false;
   if (sev.k === 'ev') { staffEventBook(sev.l); return true; }
+  if (sev.k === 'an') {   // EVENT-EXTRAS: an event just begun, said to everyone online - its own words, or the attack line (once; the region's say then keeps quiet)
+    const r = staffRaidOfKey(staffEventKey(sev.id));
+    if (!r || r.announced || !r.staff.an) return false;
+    r.announced = true;
+    say(staffAttackLine(r), r);
+    return true;
+  }
   if (sev.k === 'end') return staffEventEnd(sev.id, sev.why);
   if (sev.k === 'st') return typeof room === 'string' && isCellRoom(room) && staffEventLedger(sev);
   if (sev.k === 'bd') {   // THE REWARD: the board, said where the boss fell

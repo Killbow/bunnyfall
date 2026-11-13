@@ -100,7 +100,7 @@ const WORDS = {
 };
 const why = (/** @type {any} */ j) => {
   const e = String(j?.error ?? '');
-  if (e.startsWith('event-bad-')) return `The event's ${e.slice(10)} is not right.`;
+  if (e.startsWith('event-bad-')) return `The event's ${({ paykills: 'kills needed', bossname: 'boss name', words: 'text', label: 'map label', announce: 'announce switch' })[e.slice(10)] ?? e.slice(10)} is not right.`;
   return `${WORDS[/** @type {keyof typeof WORDS} */ (e)] ?? e}${j?.message ? ` (${j.message})` : ''}`;
 };
 let toastTimer = 0;
@@ -641,12 +641,26 @@ async function startEventDialog() {
   const health = h('input', { type: 'number', value: '10', min: '1', max: '100' });
   const mins = sel([[30, '30 minutes'], [60, '1 hour'], [120, '2 hours'], [240, '4 hours'], [0, 'Until I end it']], 60);
   const endAtBoss = h('input', { type: 'checkbox', checked: true });
+  // announcements, the map label, the boss's name and the pay (all optional)
+  const announce = h('input', { type: 'checkbox', checked: true });
+  const txt = (/** @type {string} */ ph, max = 140) => h('input', { type: 'text', maxLength: max, placeholder: ph });
+  const tx = txt('Start line, e.g. Sifrit stirs beneath Daggerfall!'), bl = txt('Line when the boss appears'), el = txt('Line when it ends');
+  const lb = txt('Map label, e.g. The siege of Daggerfall', 40), bn = txt('Boss name, e.g. Sifrit the Forbidden One', 32);
+  const rk = h('input', { type: 'number', value: '3', min: '3', max: '500' });
+  const gd = h('input', { type: 'number', value: '0', min: '0', max: '100000' }), sv = h('input', { type: 'number', value: '0', min: '0', max: '100' });
+  const extras = h('details', null, h('summary', { class: 'dim' }, 'Announcements, map label, boss name and rewards (optional)'),
+    h('div', { class: 'fields' }, field('Tell everyone online', h('label', null, announce, ' say it when it starts and ends')), field('Map label', lb)),
+    field('Start line', tx), h('div', { class: 'fields' }, field('Boss line', bl), field('End line', el)),
+    field('Boss name', bn),
+    h('div', { class: 'dim' }, 'Pay for the players who fought: every one with enough kills gets it when the event ends (silver goes to the account, gold to the character, on top of the usual loot).'),
+    h('div', { class: 'fields' }, field('Kills needed (3+)', rk), field('Gold each', gd), field('Silver each (max 100)', sv)));
   dialog('Start an event', 'Monsters keep coming at the place until enough fall, then the boss shows up.', [
     field('Where', h('div', null, placeBits, placeLine)),
     field('Name', name),
     field('Monsters', h('div', null, chips, h('div', { style: 'height:6px' }), mq, mlist)),
     h('div', { class: 'fields' }, field('Monsters in all', total), field('Kills before the boss', meter), field('Boss', boss), field('Boss health (x its normal)', health)),
     h('div', { class: 'fields' }, field('Boss size', h('div', { class: 'row' }, size, sizeTxt)), field('Runs for', mins), field('Ends', h('label', null, endAtBoss, ' when the boss falls'))),
+    extras,
   ], {
     label: 'Start', run: async () => {
       if (place.rg == null || place.px == null) return 'Pick where it happens.';
@@ -655,7 +669,9 @@ async function startEventDialog() {
       if (!name.value.trim()) return 'Give it a name.';
       const n = Number(total.value), m = Math.min(Number(meter.value), n);
       const ev = { rg: place.rg, loc: place.loc ?? -1, px: place.px, py: place.py, nm: name.value.trim(), ct: place.loc >= 0 && place.kind === 'town' ? 1 : 0, mt: picked, n, m,
-        b: Number(boss.value), bs: Number(size.value), bh: Number(health.value), mins: Number(mins.value), eb: endAtBoss.checked ? 1 : 0 };
+        b: Number(boss.value), bs: Number(size.value), bh: Number(health.value), mins: Number(mins.value), eb: endAtBoss.checked ? 1 : 0,
+        an: announce.checked ? 1 : 0, tx: tx.value.trim(), bl: bl.value.trim(), el: el.value.trim(), lb: lb.value.trim(), bn: bn.value.trim(),
+        rk: Number(rk.value) || 3, gd: Math.floor(Number(gd.value)) || 0, sv: Math.floor(Number(sv.value)) || 0 };
       const j = await call('/v1/staff/event', { op: 'start', ev });
       if (j.error) return why(j);
       toast(`${ev.nm} has begun.`);

@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-13
+
+- Staff events can now announce themselves to everyone online when they start and end (with a line of staff's own words if they like), show a label and the time left on the map while they run, name the mini boss, and pay the players who fought: gold to the character and silver to the account, once the event ends, to everyone with enough kills. An event that ends without its boss falling now pays too.
+
 ## 2026-11-12
 
 - Moving goods in and out of the company Stores no longer counts toward the hourly writs limit, so Put in all and taking everything back out can't lock you out of writs for an hour anymore.

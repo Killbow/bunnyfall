@@ -609,6 +609,8 @@ import { combatVisualsOn, peerDraw } from '../systems/combatVisuals.js';   // IN
 import { isEntityWaterWalking, assignModBundle, removeBundleNamed, WATER_WALKING_SILENT_KIND } from '../systems/effects.js';   // CSA-I: the boat's water walk
 import { pointNearPath, UNITS_PER_METRE, CAMP_ROAD_CLEAR_M } from '../world/road/roadClearance.js';   // FOREST1: and which picks are sites, and a site's footprint   // ROADS-CLEAR: WoD sites and pieces, and the camps, off the painted roads
 import { gateClearFor, createGateClearSweep } from '../world/gate/gateClearance.js';   // GATE-CLEAR: WoD's rock off the day's Oblivion Gate
+import { claimEventReceipt } from '../net/accountClient.js';   // EVENT-EXTRAS: a staff event's silver
+import { staffMapMarks, staffRaidOfKey as staffEventRaidOf } from '../systems/staffEvents.js';   // EVENT-EXTRAS: the staff events' map marks
 import { raidMapMarks } from '../ui/eventMapMarks.js';   // EVENT-TIP: the towns under attack, on the held map
 import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, isInLocationRect, mapPixelToWorldCoords, SCENE_MAP_RATIO, nearestFirstFrom } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
 import { horseNameTooltip } from '../ui/horseNameTooltip.js';   // AUDIT HCC U6: the mod's HUD label, both skins
@@ -16930,7 +16932,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // EVENT-TIP (Mac: "add a tooltip to the map for these type of events"): THE TOWNS UNDER ATTACK - every raid
       // running now on the raids' own clock, at its town, with the card a hover asks for (ui/eventMapMarks.js). A
       // function for the gate's reason; none while the mod is off. The enhanced map alone draws them.
-      raids: () => (raidingPartiesOn() ? raidMapMarks(raidState().raids, worldMinutes(), { regionName: (r) => REGION_NAMES[r] ?? '', localTime: sharedClockOn() ? eventLocalTime : null, relay: raidRelayState }) : []),   // TIME1: online the withdrawal in local time
+      raids: () => (raidingPartiesOn() ? [...raidMapMarks(raidState().raids, worldMinutes(), { regionName: (r) => REGION_NAMES[r] ?? '', localTime: sharedClockOn() ? eventLocalTime : null, relay: raidRelayState }), ...staffMapMarks(Date.now(), (r) => REGION_NAMES[r] ?? '')] : []),   // EVENT-EXTRAS: and the staff events' own, with staff's label   // TIME1: online the withdrawal in local time
       serpent: () => serpentOmen?.mapMark() ?? null,   // SERPENT1: the sea serpent's ring, in the sea's colours - the held map alone draws it
       sd: () => sdHost?.mapMark() ?? null,   // SD2c: a found Super dungeon's ring, in its omen's brass - the held map alone draws it
       stars: () => starfall?.mapMarks() ?? [],   // STAR6: the night's fallen stars, each its card
@@ -20118,7 +20120,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     relayRaids: () => !!online?.raidOk,
     sendRaid: (w, cell) => !!online?.sendRaid(w, cell),
     // RAID4: my receipt for a town I held - to the account service with the character that fought it
-    onRaidReceipt: (r, c, held) => { (c?.v ? grantStaffSpoils(raidSpoils, spoilsLock, c, playerEntity?.level ?? 1) : raidClaims?.add(r, characterIdOf(playerEntity), typeof playerEntity?.name === 'string' ? playerEntity.name : null, playerEntity?.level ?? 1, held === true)); },   // AUDIT WORLD-EVENTS L3-14: and whether the town was held, kept with the receipt for the character that fought; RAID4: to the account service - AUDIT RAID R4: whose answer gives the town's thanks (onSpoils); STAFF-EVENT THE REWARD: an event's receipt (`e1`, its claims name `v`) rolls its spoils here (systems/staffEventSpoils.js)
+    onRaidReceipt: (r, c, held) => { (c?.v ? (grantStaffSpoils(raidSpoils, spoilsLock, c, playerEntity?.level ?? 1), claimStaffEventSilver(r, c)) : raidClaims?.add(r, characterIdOf(playerEntity), typeof playerEntity?.name === 'string' ? playerEntity.name : null, playerEntity?.level ?? 1, held === true)); },   // AUDIT WORLD-EVENTS L3-14: and whether the town was held, kept with the receipt for the character that fought; RAID4: to the account service - AUDIT RAID R4: whose answer gives the town's thanks (onSpoils); STAFF-EVENT THE REWARD: an event's receipt (`e1`, its claims name `v`) rolls its spoils here (systems/staffEventSpoils.js)
   });
   // E3: the pixels this host laid BEFORE the bridge existed - the start
   // pixel is built during init, above - get RMBLayout's third act now.
@@ -25430,6 +25432,15 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  one is the account card's own door (equipTitle, equipAura), and my own name and feet show it at once - the room
    *  sees it from the next hello the token signs (AURA-LIVE: said again at once - auraFrame's online.rehello). */
   let _insignia = { loaded: false, busy: false, held: [], title: null, aura: null };
+  /** EVENT-EXTRAS: a staff event's receipt carried to the account service for its silver, once a receipt and only where the event pays silver. */
+  const _eventClaimed = new Set();
+  const claimStaffEventSilver = (/** @type {string} */ r, /** @type {any} */ c) => {
+    const ev = staffEventRaidOf(`s.${c?.v}`)?.staff;
+    const io = insigniaIo();
+    if (!ev?.sv || !io || _eventClaimed.has(c.v)) return;
+    _eventClaimed.add(c.v);
+    claimEventReceipt(io, r).then((a) => { if (a?.paid > 0) townTalk.say(`You are paid ${a.paid} silver for the fight.`); else _eventClaimed.delete(c.v); }).catch(() => _eventClaimed.delete(c.v));
+  };
   const insigniaIo = () => { const st = appStorage(); const ses = storedSession(st); return ses ? { fetch: (u, i) => globalThis.fetch(u, i), base: serviceBase(st), secret: ses.secret, account: ses.id ?? null } : null; };   // AUDIT FB1024: and the account an owed sale is settled under
   connectSkins(insigniaIo); onSkinsChange(() => { try { refreshPaperDoll(playerEntity); } catch { /* the doll redraws on its next ask */ } });   // BUNNYFALL: the worn custom paperdoll, read from the account; the inventory doll redraws when its pictures land
   const brokerOwed = brokerOwedDoor(playerEntity, saveSoon, panoplyPieceById, insigniaIo, settleBrokerSale);   // BROKER-RID (AUDIT FB1024): her sales by their request ids - an unheard one owed, settled as her window opens
