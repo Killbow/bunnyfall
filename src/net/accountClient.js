@@ -912,6 +912,7 @@ const REFUSAL_WORDS = {
   'firm-rate': () => t('account.refusal.firmRate', 'Too many changes this hour. Try again later.'),
   'firm-stale': () => t('account.refusal.firmStale', 'Your stars changed in another session. Check them and try again.'),
   'firm-respec-empty': () => t('account.refusal.firmRespecEmpty', 'Nothing is learned yet.'),
+  'firm-respec-price': () => t('account.refusal.firmRespecPrice', 'The price of a respec changed. Check it and try again.'),
   'repair-no-faction': () => t('account.refusal.repairNoFaction', 'That character\'s record holds no such faction, so nothing was repaired.'),   // SUMMON-REPAIR: the review's repair (tools/realmReview.mjs)
   'repair-not-set': () => t('account.refusal.repairNotSet', 'That faction does not have that flag on this character, so nothing was repaired. Check that it is the right character.'),   // SUMMON-REPAIR: a repair aimed at the wrong character mends nothing
   'mend-not-negative': () => t('account.refusal.mendNotNegative', 'That character\'s gold is not below zero, so nothing was mended. Check that it is the right character.'),   // PURSE-MEND: the review's mend (tools/realmReview.mjs)
@@ -2494,7 +2495,7 @@ export function accountFirmament({ fetch, storage, waitMs = ACCOUNT_ACT_WAIT_MS 
     account: () => storedSession(storage)?.id ?? null,
     state: (character) => post('/v1/firmament/state', { character }),
     set: (character, tree, rid) => post('/v1/firmament/set', { character, tree, rid }),
-    respec: (character, rid, realm = null, region = null) => post('/v1/firmament/respec', { character, rid, ...(realm ? { realm } : {}), ...(Number.isSafeInteger(region) ? { region } : {}) }),   // the whole sky back for gold
+    respec: (character, rid, realm = null, region = null, free = false) => post('/v1/firmament/respec', { character, rid, ...(realm ? { realm } : {}), ...(Number.isSafeInteger(region) ? { region } : {}), ...(free ? { free: true } : {}) }),   // the whole sky back for gold, or for nothing with the free respec
   };
 }
 

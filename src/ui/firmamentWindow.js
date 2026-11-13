@@ -95,9 +95,9 @@ export const FIRM_CSS = `
 @media (min-width: 761px) {
   .fmt-root.fmt-embed .fmt-side { width: 280px; }
   .fmt-root.fmt-embed .fmt-hint { left: 12px; right: 304px; transform: none; white-space: normal; max-width: none; text-align: center; line-height: 1.4; }
-  .fmt-root.fmt-embed .fmt-say { left: calc((100% - 292px) / 2); max-width: calc(100% - 316px); }
+  .fmt-root.fmt-embed .fmt-say, .fmt-root.fmt-embed .fmt-owe { left: calc((100% - 292px) / 2); max-width: calc(100% - 316px); min-width: 0; }
   .fmt-root.fmt-embed:has(.fmt-side.shut) .fmt-hint { right: 12px; }
-  .fmt-root.fmt-embed:has(.fmt-side.shut) .fmt-say { left: 50%; max-width: calc(100% - 32px); }
+  .fmt-root.fmt-embed:has(.fmt-side.shut) .fmt-say, .fmt-root.fmt-embed:has(.fmt-side.shut) .fmt-owe { left: 50%; max-width: calc(100% - 32px); }
 }
 .fmt-root canvas.fmt-sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
 .fmt-root canvas.fmt-sky.drag { cursor: grabbing; }
@@ -109,6 +109,11 @@ export const FIRM_CSS = `
 .fmt-purse b { font-size: 18px; font-weight: 600; color: #f3cf86; }
 .fmt-purse.life b { color: #9fe8cc; }
 .fmt-purse .of { color: #b9b2a1; font-size: 12px; }
+.fmt-purse.owe b { color: #ff8a78; }
+.fmt-owe { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); pointer-events: none; padding: 7px 16px; font-family: var(--data); font-size: 14px; color: #ffb4a6;
+  display: none; max-width: calc(100vw - 32px); box-sizing: border-box; text-align: center; line-height: 1.4; }
+.fmt-owe.on { display: block; }
+@media (min-width: 761px) { .fmt-owe { max-width: calc(100vw - 680px); min-width: 280px; } }
 .fmt-btn { font: inherit; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; padding: 6px 12px; cursor: pointer; color: #e9e4d9; }
 .fmt-btn[disabled] { opacity: 0.45; cursor: default; }
 .fmt-find { font: inherit; font-size: 13px; padding: 5px 8px; width: 180px; color: #e9e4d9; background: transparent; }
@@ -163,7 +168,12 @@ export const FIRM_CSS = `
 :root[data-plus-dress="grimoire"] .fmt-tip .nm.life { color: #2f6a22; }
 :root[data-plus-dress="grimoire"] .fmt-purse b { color: ${G.yellow}; }
 :root[data-plus-dress="grimoire"] .fmt-purse.life b { color: #c8f0a0; }
+:root[data-plus-dress="grimoire"] .fmt-purse.owe b { color: #ff9a86; }
+:root[data-plus-dress="grimoire"] .fmt-owe { font-family: ${GRIMOIRE_STACK}; }
+:root[data-plus-dress="grimoire"] .fmt-root .fmt-owe { color: #a3200f !important; }
 :root[data-plus-dress="grimoire"] .fmt-btn.fmt-go, :root[data-plus-dress="grimoire"] .fmt-btn.fmt-exit { color: ${G.yellow}; }
+/* Properly dims the Accept button */
+:root[data-plus-dress="grimoire"] .fmt-btn.fmt-go:is(:disabled, [disabled]) { opacity: 0.45 !important; filter: grayscale(0.7) !important; cursor: default; }
 :root[data-plus-dress="grimoire"] .fmt-side li.capped { color: ${G.red}; }
 :root[data-plus-dress="grimoire"] .fmt-side .fmt-live { color: inherit; }
 :root[data-plus-dress="grimoire"] .fmt-side .fmt-live.off { color: ${G.redHi}; }
@@ -174,16 +184,17 @@ export const FIRM_CSS = `
    are written on a little scroll, its wooden rods down the sides - once its art is read, the pack's own (REPR01I0, the
    item scroll the shelves hold out - grimoireDress.js THE ITEM SCROLLS); until then, this one. Enhanced Plus keeps its
    stone panels. */
-:root[data-plus-dress="grimoire"] .fmt-tip, :root[data-plus-dress="grimoire"] .fmt-say { background: radial-gradient(ellipse at 50% 45%, #f1deb1 0%, #e6cb93 62%, #d2ae72 100%) !important;
+:root[data-plus-dress="grimoire"] .fmt-tip, :root[data-plus-dress="grimoire"] .fmt-say, :root[data-plus-dress="grimoire"] .fmt-owe { background: radial-gradient(ellipse at 50% 45%, #f1deb1 0%, #e6cb93 62%, #d2ae72 100%) !important;
   border: 0 !important; border-image: none !important; border-radius: 2px !important; outline: none !important;
   box-shadow: inset 0 0 0 1px rgba(92,56,24,0.35), inset 0 0 14px rgba(120,76,30,0.35) !important;
   filter: drop-shadow(1px 2px 0 rgba(0,0,0,0.45)) drop-shadow(3px 7px 8px rgba(0,0,0,0.45));
   color: #2b1a0c !important; text-shadow: none !important; }
-:root[data-plus-dress="grimoire"] .fmt-tip::before, :root[data-plus-dress="grimoire"] .fmt-tip::after, :root[data-plus-dress="grimoire"] .fmt-say::before, :root[data-plus-dress="grimoire"] .fmt-say::after { content: ''; position: absolute; top: -7px; bottom: -7px; width: 13px; border-radius: 7px;
+:root[data-plus-dress="grimoire"] .fmt-tip::before, :root[data-plus-dress="grimoire"] .fmt-tip::after, :root[data-plus-dress="grimoire"] .fmt-say::before, :root[data-plus-dress="grimoire"] .fmt-say::after,
+:root[data-plus-dress="grimoire"] .fmt-owe::before, :root[data-plus-dress="grimoire"] .fmt-owe::after { content: ''; position: absolute; top: -7px; bottom: -7px; width: 13px; border-radius: 7px;
   background: linear-gradient(90deg, #2a170a 0%, #6b4220 30%, #a8743d 48%, #6b4220 70%, #2a170a 100%);
   box-shadow: 0 -3px 0 -1px #1d0f05, 0 3px 0 -1px #1d0f05; pointer-events: none; }
-:root[data-plus-dress="grimoire"] .fmt-tip::before, :root[data-plus-dress="grimoire"] .fmt-say::before { left: -11px; }
-:root[data-plus-dress="grimoire"] .fmt-tip::after, :root[data-plus-dress="grimoire"] .fmt-say::after { right: -11px; }
+:root[data-plus-dress="grimoire"] .fmt-tip::before, :root[data-plus-dress="grimoire"] .fmt-say::before, :root[data-plus-dress="grimoire"] .fmt-owe::before { left: -11px; }
+:root[data-plus-dress="grimoire"] .fmt-tip::after, :root[data-plus-dress="grimoire"] .fmt-say::after, :root[data-plus-dress="grimoire"] .fmt-owe::after { right: -11px; }
 :root[data-plus-dress="grimoire"] .fmt-tip .nm { color: #8e1b10 !important; }
 :root[data-plus-dress="grimoire"] .fmt-tip .nm.life { color: #2f5f1e !important; }
 :root[data-plus-dress="grimoire"] .fmt-tip .kd { color: #6a4a2a !important; }
@@ -192,11 +203,12 @@ export const FIRM_CSS = `
 :root[data-plus-dress="grimoire"] .fmt-tip .tx { color: #4a3420 !important; }
 :root[data-plus-dress="grimoire"] .fmt-tip .ft { color: #5a3e22 !important; border-top: 1px solid rgba(92,56,24,0.4); padding-top: 5px; }
 :root[data-plus-dress="grimoire"] .fmt-say { color: #2b1a0c !important; padding: 7px 20px !important; }
-:root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-tip, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say {
+:root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-tip, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-owe {
   background: none !important; border: 2px solid transparent !important; border-radius: 0 !important; box-shadow: none !important;
   border-image: var(${artVar('sideScroll')}, none) 15 fill / ${px(15, 'gq')} / 0 round !important; padding: ${px(6, 'gq')} ${px(16, 'gq')} !important; }
 :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-tip::before, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-tip::after,
-:root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say::before, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say::after { display: none; }
+:root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say::before, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-say::after,
+:root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-owe::before, :root[data-plus-dress="grimoire"][data-grim-art="ready"] .fmt-owe::after { display: none; }
 `;
 function ensureStyle(doc) {
   if (!doc?.getElementById || doc.getElementById(FIRM_STYLE_ID)) return;
@@ -252,11 +264,27 @@ export function refusalOf(tree, key, stars, craft) {
   if (c.combat > left.stars) return t('firmament.no.stars', 'You need {need} {need, plural, one {Star} other {Stars}} and have {have}. Craft points can only be spent on craft stars.', { need: c.combat, have: Math.max(0, left.stars) });
   return t('firmament.no.points', 'You need {need} {need, plural, one {point} other {points}} and have {have}.', { need: c.combat + c.life, have: Math.max(0, left.stars) + left.craft });
 }
+/** The stars to remove before the stars learned under `keys` fit the purses: 0 when they fit (firmamentLaw.js fits).
+ *  Each star costs one point, and the Stars purse pays whatever the Craft points cannot, so it is the Stars left below 0. */
+export function starsOwed(keys, stars, craft) { return Math.max(0, -pointsLeft(keys, stars, craft).stars); }
+/** The line under the bar while the stars learned cost more than the purses hold (the Craft points follow the
+ *  profession ranks, so they can fall below what was spent), or null when they fit. `free` the character's free respec. */
+export function oweText(keys, stars, craft, free = false) {
+  const n = starsOwed(keys, stars, craft);
+  if (!n) return null;
+  const owe = t('firmament.owe.remove', 'Your stars cost more points than you have. Remove {n, plural, one {# star} other {# stars}} to fit.', { n });
+  return free ? `${owe} ${t('firmament.owe.free', 'Your next respec is free.')}` : owe;
+}
 /** Why a star other than a sign cannot be taken before a sign is - the refusal's words and the press's. */
 const signFirst = () => t('firmament.no.signFirst', 'Choose a birthsign first: one of the seven large stars.');
 /** The respec with nothing to take back, and without the gold - the press's title and the service's refusal. */
 const respecNone = () => t('firmament.respec.none', 'Nothing to reset yet.');
 const needGold = () => t('firmament.respec.needGold', 'You need {gold, number} gold to respec.', GOLD);
+/** The reason Accept is off while the learned stars cost more than the purses hold. */
+const oweAccept = () => t('firmament.owe.accept', 'You can\'t accept yet: your stars cost more points than you have. Remove stars until they fit, or use a respec.');
+/** The respec's offer, as the press's title says it: for the gold, or free. */
+const respecTip = (free) => (free ? t('firmament.respec.tipFree', 'Remove all your stars and your birthsign for free.')
+  : t('firmament.respec.tip', 'Remove all your stars and your birthsign for {gold, number} gold.', GOLD));
 
 // ─── THE WINDOW ─────────────────────────────────────────────────────
 
@@ -292,8 +320,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const still = typeof globalThis.matchMedia === 'function' && globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // ── the purses and the trees ──
-  const purse = () => (preview ? { stars: preview.stars ?? 0, craft: preview.craft ?? 0, renown: preview.renown ?? 1, refund: preview.refund ?? { freeBelow: 10, perStar: 10 } }
-    : { stars: book?.state?.stars ?? 0, craft: book?.state?.craft ?? 0, renown: book?.state?.renown ?? 1, refund: book?.state?.refund ?? { freeBelow: 10, perStar: 10 } });
+  const purse = () => (preview ? { stars: preview.stars ?? 0, craft: preview.craft ?? 0, renown: preview.renown ?? 1, refund: preview.refund ?? { freeBelow: 10, perStar: 10 }, freeRespec: preview.freeRespec === true }
+    : { stars: book?.state?.stars ?? 0, craft: book?.state?.craft ?? 0, renown: book?.state?.renown ?? 1, refund: book?.state?.refund ?? { freeBelow: 10, perStar: 10 }, freeRespec: book?.state?.freeRespec === true });
   let committed = cloneTree(preview ? preview.tree : book?.current?.());
   let pending = cloneTree(committed);
   const online = !!book || !!preview;
@@ -325,7 +353,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const goBtn = btn(t('firmament.accept', 'Accept'), 'fmt-go', () => openConfirm());
   const sideBtn = btn(t('firmament.summary', 'Summary'), '', () => { side.classList.toggle('shut'); });
   const signBtn = btn(t('firmament.signBtn', 'Birthsign'), '', () => focusSign(), t('firmament.signAria', 'Center on your birthsign'));
-  const respecBtn = btn(t('firmament.respecBtn', 'Respec'), '', () => openRespec(), t('firmament.respec.tip', 'Remove all your stars and your birthsign for {gold, number} gold.', GOLD));
+  const respecBtn = btn(t('firmament.respecBtn', 'Respec'), '', () => openRespec(), respecTip(false));
   const shareBtn = btn(t('firmament.shareBtn', 'Share'), '', () => openShare(), t('firmament.shareAria', 'Copy your build code, or load one'));
   const exitBtn = btn(t('firmament.close', 'Close'), 'fmt-exit', () => close());
   bar.append(title, starsChip, craftChip, find, signBtn, sideBtn, shareBtn, undoBtn, respecBtn, goBtn, exitBtn);
@@ -341,9 +369,13 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   const sayBox = el('div', 'fmt-say');
   sayBox.setAttribute('data-grim', 'ink');
   sayBox.setAttribute('role', 'status');
+  /** The line under the bar while the stars learned cost more than the purses hold (oweText). */
+  const oweBox = el('div', 'fmt-owe');
+  oweBox.setAttribute('data-grim', 'ink');
+  oweBox.setAttribute('role', 'status');
   const confirmBox = el('div', 'fmt-confirmbox');
   confirmBox.setAttribute('data-grim', 'ink');
-  root.append(canvas, bar, side, tip, hint, sayBox, confirmBox);
+  root.append(canvas, bar, side, tip, hint, oweBox, sayBox, confirmBox);
   if (embed) { root.classList.add('fmt-embed'); root.setAttribute('aria-modal', 'false'); exitBtn.hidden = true; }   // GROWTH3
   host.append(root);
 
@@ -403,7 +435,12 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   /** AUDIT GROWTH LANE2-6: the line under the bar, in the root's own frame - in the tab the root is not at the screen's
    *  top (it stood 200 px low, or off a short stage), and again whenever the window is resized (a phone's face measured
    *  while it waited, detached, for its door). */
-  const placeSay = () => { sayBox.style.top = `${Math.round((barFoot() || 66) + 10)}px`; };
+  const placeSay = () => {
+    const top = Math.round((barFoot() || 66) + 10);
+    oweBox.style.top = `${top}px`;
+    // the line over the sky stands under the owed line while that one shows
+    sayBox.style.top = `${oweBox.classList.contains('on') ? top + Math.round(oweBox.getBoundingClientRect?.().height ?? 0) + 6 : top}px`;
+  };
   function say(text, refused = false, stay = false) {
     sayBox.textContent = text;
     // always under the bar, however tall it has wrapped
@@ -414,6 +451,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     if (!stay) sayTimer = /** @type {any} */ (setTimeout(() => sayBox.classList.remove('on'), refused ? 3200 : 2200));
   }
 
+  /** The stars the pending tree needs removed before it fits the purses (starsOwed). */
+  function oweOf() { const p = purse(); return starsOwed(pending.keys, p.stars, p.craft); }
   /** Whether anything the player chose is not accepted yet - a star, a refund, a birthsign. */
   function unaccepted() { const c = changes(); return !!(c.added || c.removed || (c.startChanged && pending.start)); }
   function changes() {
@@ -428,18 +467,26 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   function refresh() {
     const p = purse();
     const left = pointsLeft(pending.keys, p.stars, p.craft);
-    starsChip.replaceChildren(el('span', null, `★ ${t('firmament.purse.stars', 'Stars')}`), el('b', null, String(Math.max(0, left.stars))), el('span', 'of', t('firmament.purse.of', 'of {n}', { n: p.stars })));
+    // the Stars left as they are, below 0 too: a tree learned when the profession ranks were higher can cost more than the purses
+    starsChip.replaceChildren(el('span', null, `★ ${t('firmament.purse.stars', 'Stars')}`), el('b', null, String(left.stars)), el('span', 'of', t('firmament.purse.of', 'of {n}', { n: p.stars })));
+    starsChip.classList.toggle('owe', left.stars < 0);
+    const owe = oweText(pending.keys, p.stars, p.craft, p.freeRespec);
+    oweBox.textContent = owe ?? '';
+    oweBox.classList.toggle('on', !!owe);
+    placeSay();
     craftChip.replaceChildren(el('span', null, `✦ ${t('firmament.purse.craft', 'Craft')}`), el('b', null, String(left.craft)), el('span', 'of', t('firmament.purse.of', 'of {n}', { n: p.craft })));
     starsChip.title = t('firmament.purse.starsTip', 'Stars: 2 for each Renown level after the first (your Renown is {renown}). They can be spent on any star.', { renown: p.renown });
     craftChip.title = t('firmament.purse.craftTip', 'Craft points: 1 for every 8 ranks, counting all your professions. They can only be spent on craft stars (the outer ring).');
     const c = changes();
     const n = c.added + c.removed + (c.startChanged && pending.start ? 1 : 0);   // AUDIT UICALM-FIRM1 L4 M5: a birthsign alone is a change
     goBtn.textContent = n ? t('firmament.acceptN', 'Accept ({n})', { n }) : t('firmament.accept', 'Accept');
-    goBtn.disabled = !n || !online || respecking;   // AUDIT UICALM-FIRM1 L2 M1: no change while the sky is being taken back
+    goBtn.disabled = !n || !online || respecking || !!owe;   // AUDIT UICALM-FIRM1 L2 M1: no change while the sky is being taken back; none the purses cannot pay
+    goBtn.title = owe ? oweAccept() : '';
     undoBtn.disabled = !n;
-    // THE RESPEC: a sky with something learned in it, and (online) the gold in the purse
+    // THE RESPEC: a sky with something learned in it, and (online) the gold in the purse or a free respec
     respecBtn.disabled = !committed.start || (!preview && !book?.canRespec?.());
-    respecBtn.title = !committed.start ? respecNone() : respecBtn.disabled ? needGold() : t('firmament.respec.tip', 'Remove all your stars and your birthsign for {gold, number} gold.', GOLD);
+    respecBtn.textContent = p.freeRespec ? t('firmament.respecBtnFree', 'Respec (free)') : t('firmament.respecBtn', 'Respec');
+    respecBtn.title = !committed.start ? respecNone() : respecBtn.disabled && !p.freeRespec ? needGold() : respecTip(p.freeRespec);
     drawSide();
     dirty = true;
   }
@@ -473,7 +520,9 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     parts.push(el('p', 'fmt-note', `${t('firmament.side.caps', 'Limits for all stars together: +30% weapon damage (up to +50% against unaware foes, or while you are below half Health), +30% spell damage, 15% less damage taken.')} ${t('firmament.side.where', 'Stars work only online, and not while you mentor. Combat stars do nothing in duels or Arena fights, and never add damage against other players.')}`));
     parts.push(el('p', 'fmt-note', `${p.renown < p.refund.freeBelow
       ? t('firmament.side.refundFree', 'Removing stars is free until Renown {renown}.', { renown: p.refund.freeBelow })
-      : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} silver.', { silver: p.refund.perStar })} ${t('firmament.side.respec', 'A respec removes all your stars and your birthsign for {gold, number} gold.', GOLD)}`));
+      : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} silver.', { silver: p.refund.perStar })} ${p.freeRespec
+      ? t('firmament.side.respecFree', 'A respec removes all your stars and your birthsign. Your next respec is free.')
+      : t('firmament.side.respec', 'A respec removes all your stars and your birthsign for {gold, number} gold.', GOLD)}`));
     side.replaceChildren(...parts);
   }
 
@@ -645,13 +694,15 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   function openRespec() {
     if (respecBtn.disabled) return;
     confirming = 'respec';
+    const free = purse().freeRespec;
     const row = el('div', 'row');
-    const yes = btn(t('firmament.respec.go', 'Respec · {gold, number} gold', GOLD), 'fmt-go', () => respec());
+    const yes = btn(free ? t('firmament.respec.goFree', 'Respec · free') : t('firmament.respec.go', 'Respec · {gold, number} gold', GOLD), 'fmt-go', () => respec());
     const no = btn(t('firmament.back', 'Back'), '', () => confirmBox.classList.remove('on'));
     row.append(no, yes);
     confirmBox.replaceChildren(el('h3', null, t('firmament.respec.ask', 'Reset all stars?')),
       el('p', null, t('firmament.respec.what', 'This removes all your stars and your birthsign and gives back their points, so you can choose again.')),
-      el('p', null, t('firmament.respec.cost', 'It costs {gold, number} gold, taken from the gold you carry first, then from your bank account.', GOLD)), row);
+      el('p', null, free ? t('firmament.respec.costFree', 'This respec is free. After it, a respec costs {gold, number} gold.', GOLD)
+        : t('firmament.respec.cost', 'It costs {gold, number} gold, taken from the gold you carry first, then from your bank account.', GOLD)), row);
     confirmBox.classList.add('on');
     yes.focus?.({ preventScroll: true });
   }
@@ -674,6 +725,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     confirming = 'accept';
     const c = changes();
     if (!c.added && !c.removed && !(c.startChanged && pending.start)) return;
+    if (oweOf()) { say(oweAccept(), true); return; }   // the service refuses a tree the purses cannot pay
     const lines = [el('h3', null, t('firmament.confirm.ask', 'Accept these changes?'))];
     if (c.startChanged && pending.start) lines.push(el('p', null, t('firmament.confirm.sign', 'Birthsign: {name}.', { name: FIRM_NODES.get(pending.start)?.name })));
     if (c.added) lines.push(el('p', null, t('firmament.confirm.learn', 'Learn {n, plural, one {# star} other {# stars}}.', { n: c.added })));
@@ -699,7 +751,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     offline: () => t('firmament.refusal.offline', 'The server didn\'t answer. Your change is saved and will be sent again.'),
     'no-session': () => t('firmament.refusal.session', 'Sign in to save your stars.'), 'firm-rate': () => t('firmament.refusal.rate', 'Too many changes this hour. Try again later.'),
     'firm-gold': () => needGold(), 'realm-gold': () => needGold(),
-    'firm-respec-empty': () => respecNone(), 'firm-busy': () => t('firmament.refusal.busy', 'A change is still being sent. Try again in a moment.'),
+    'firm-respec-empty': () => respecNone(), 'firm-respec-price': () => t('firmament.refusal.respecPrice', 'The price of a respec changed. Check it and try again.'),
+    'firm-busy': () => t('firmament.refusal.busy', 'A change is still being sent. Try again in a moment.'),
   }));
   /** AUDIT UICALM-FIRM1 L4 L3-L4, L2 L5: EVERY REFUSAL SAYS WHY - the window's own words where it has them, else the
    *  account's (accountClient.js REFUSALS, in the player's language); a change the book keeps (no word on it - the net,
@@ -730,6 +783,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
   }
   async function commit() {
     confirmBox.classList.remove('on');
+    if (oweOf()) { say(oweAccept(), true); return; }
     const want = cloneTree(pending);
     const added = treeDiff(committed, want).added;
     goBtn.disabled = true;

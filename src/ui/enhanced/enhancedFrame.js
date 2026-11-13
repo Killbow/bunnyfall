@@ -135,9 +135,9 @@ export const FRAME_ROLES = {
     'body .dfcards .seat', 'body .dfiliac .hold', '.px-sys .binder-deck',
     'body .dfgambit-sec', 'body .dfgambit-info', 'body .dfgambit-result',   // KG3: a section, the information box, the result
     '.px-win .card.acctin ul.acctfacts.acctrecord li',   // PROFILE-MENU: the profile's record, a tile a deed   // ARENA3: the Arena window's cards - a bout, a tier, a banner, a board, a rule   // ARENA2: the versus bar's plate - a stone panel over the sand
-    // FIRM1: the Firmament's window (ui/firmamentWindow.js) - its card, its word, its hint (under the Grimoire the card
-    // and the word are scrolls of its own)
-    'body .fmt-tip', 'body .fmt-say', 'body .fmt-hint',
+    // FIRM1: the Firmament's window (ui/firmamentWindow.js) - its card, its word, its owed line, its hint (under the
+    // Grimoire the card, the word and the owed line are scrolls of its own)
+    'body .fmt-tip', 'body .fmt-say', 'body .fmt-owe', 'body .fmt-hint',
     // EG-PLUS: the call's tracker, a plate over the world, and a section inside a breach window
     'body .eg-hud', 'body .eg-k-sec',
     // STAR6: the fallen star's tracker, a plate over the world (ui/starfall/starTracker.js)

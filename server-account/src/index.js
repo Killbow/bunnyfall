@@ -148,9 +148,9 @@
 // FIRM1, THE FIRMAMENT (firmament.js; the law src/net/firmament/firmamentLaw.js): a character's passive tree, its Stars the Renown
 // track's and its Craft points the profession tracks', every change the whole tree judged by the law, a refund's silver
 // burnt in the change's batch. Behind FIRMAMENT_OPEN:
-//   POST /v1/firmament/state { character }            -> { tree, renown, stars, craft, ranks, left, refund }
+//   POST /v1/firmament/state { character }            -> { tree, renown, stars, craft, ranks, left, freeRespec, refund }
 //   POST /v1/firmament/set { character, tree, rid }   -> { ...state, silver, balance? } | { repeat, ... }
-//   POST /v1/firmament/respec { character, rid, realm?, region? } -> { ...state, respec, gold, realm? } (the whole sky back for 10,000 gold)
+//   POST /v1/firmament/respec { character, rid, realm?, region?, free? } -> { ...state, respec, gold, realm? } (the whole sky back for 10,000 gold, or free once with the 0206 mark)
 //   POST /v1/auth/token { character? }    -> { ..., level, xp }   (RENOWN4: xp, the track's total)
 //   (REALM-DOOR: the token says whether that character is one of the account's realm characters, `rc`)
 //   (ARENA4b: and, for a realm character, the level on its tile - its summary's - as `cl`, 1..1000)

@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: After the crafting rank reset, the Firmament could show 0 Stars, give nothing for new Renown levels, and refuse your changes with "Not enough points." It now shows how many stars you are over and keeps Accept off until they fit, and every character gets one free respec.
 - Staff: the AI chat reviewer is gone, and so are the automatic spawn-check cases. Reports now only hold what players report, and the open automatic cases have been closed. A Monster watch flag now leaves a staff note on the player instead of opening a case.
 - Staff: Open reports are readable now. Each case says what kind it is and why it has its level, and opens in place to the reported chat or spawn findings and the reporters' notes. From there you can Dismiss, Mute, Ban or open the player. Ticked cases, or every automatic spawn check nobody reported, can be dismissed in one go.
 - Moving goods in and out of the company Stores no longer counts toward the hourly writs limit, so Put in all and taking everything back out can't lock you out of writs for an hour anymore.

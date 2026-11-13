@@ -54,10 +54,11 @@ export function mintFirmRid(rand = (b) => globalThis.crypto.getRandomValues(b)) 
  * THE RESPEC (`respec`): the whole sky back for FIRM_RESPEC_GOLD gold. A realm character's record pays on the service in
  * the respec's own batch (`realm.act`, systems/realmSaves.js realmGoldAct - the purse checkpointed and reserved first, a
  * refusal giving back exactly what it took); with no realm there is no respec ('realm-needed' - online play is the
- * realm's). `wallet()` is the host's: `{ gold, pay, credit?, region? }`. `later(fn, ms)` runs `fn` after `ms`
- * milliseconds - the retry's timer (FIRM-RETRY).
+ * realm's). While the service says `freeRespec`, the respec costs nothing: no gold is reserved, and the request says
+ * `free` so the service uses the character's free respec. `wallet()` is the host's: `{ gold, pay, credit?, region? }`.
+ * `later(fn, ms)` runs `fn` after `ms` milliseconds - the retry's timer (FIRM-RETRY).
  * @param {{ door: { account?: () => string|null, state: (character: string) => Promise<any>, set: (character: string, tree: string, rid: string) => Promise<any>,
- *   respec?: (character: string, rid: string, realm?: any, region?: number|null) => Promise<any> },
+ *   respec?: (character: string, rid: string, realm?: any, region?: number|null, free?: boolean) => Promise<any> },
  *   storage?: any, character?: () => string|null, rid?: () => string, realm?: { act: (o: any) => Promise<any> } | null, wallet?: (() => any) | null,
  *   later?: (fn: () => void, ms: number) => void }} o
  */
@@ -69,6 +70,8 @@ export function createFirmamentBook({ door, storage = null, character = () => nu
     error: /** @type {string|null} */ (null),
     tree: /** @type {{ start: string|null, keys: string[] }} */ ({ start: null, keys: [] }),
     renown: 1, stars: 0, craft: 0,
+    /** whether the character's next respec is free (the service's `freeRespec`) */
+    freeRespec: false,
     /** @type {Record<string, number>} */
     ranks: {},
     refund: { freeBelow: 10, perStar: 10 },
@@ -124,6 +127,7 @@ export function createFirmamentBook({ door, storage = null, character = () => nu
     state.stars = Number.isSafeInteger(data?.stars) ? data.stars : state.stars;
     state.craft = Number.isSafeInteger(data?.craft) ? data.craft : state.craft;
     if (data?.ranks && typeof data.ranks === 'object') state.ranks = { ...data.ranks };
+    state.freeRespec = data?.freeRespec === true;
     if (data?.refund) state.refund = { freeBelow: Number(data.refund.freeBelow) || 10, perStar: Number(data.refund.perStar) || 10 };
     state.open = true;
     state.error = null;
@@ -225,29 +229,32 @@ export function createFirmamentBook({ door, storage = null, character = () => nu
       while (queued) { const next = queued; queued = null; r = await send(next); }
       return r;
     },
-    /** Whether a respec can be paid now: a sky with something in it, the gold in the wallet, nothing on its way. */
+    /** Whether a respec can be paid now: a sky with something in it, the gold in the wallet (none for a free respec),
+     *  nothing on its way. */
     canRespec() {
       const w = wallet?.();
-      return !!state.tree?.start && !state.sending && !!realm && !!w && w.gold() >= FIRM_RESPEC_GOLD && typeof door.respec === 'function';
+      const paid = state.freeRespec || (!!w && w.gold() >= FIRM_RESPEC_GOLD);
+      return !!state.tree?.start && !state.sending && !!realm && paid && typeof door.respec === 'function';
     },
-    /** THE RESPEC: every star and the birthsign back, for FIRM_RESPEC_GOLD gold. */
+    /** THE RESPEC: every star and the birthsign back, for FIRM_RESPEC_GOLD gold, or for nothing while it is free. */
     async respec() {
       const who = character();
       if (!who) return { ok: false, error: 'firm-character' };
       if (state.sending) return { ok: false, error: 'firm-busy' };
       if (!state.tree?.start) return { ok: false, error: 'firm-respec-empty' };
+      const free = state.freeRespec;
       const w = wallet?.();
-      if (!w || w.gold() < FIRM_RESPEC_GOLD) return { ok: false, error: 'firm-gold' };
+      if (!free && (!w || w.gold() < FIRM_RESPEC_GOLD)) return { ok: false, error: 'firm-gold' };
       if (typeof door.respec !== 'function') return { ok: false, error: 'server' };
       if (!realm) return { ok: false, error: 'realm-needed' };   // AUDIT UICALM-FIRM1 L2 L1: the gold is a realm record's, paid on the service
       const id = rid();
-      const region = Number.isSafeInteger(w.region?.()) ? w.region() : null;
+      const region = Number.isSafeInteger(w?.region?.()) ? w?.region?.() : null;
       state.sending = { start: null, keys: [] };
       respecking = true;
       tell();
       let r;
       try {
-        r = await realm.act({ reserve: walletReserve(w, FIRM_RESPEC_GOLD).reserve, call: (/** @type {any} */ at) => door.respec(who, id, at, region) });
+        r = await realm.act({ reserve: free || !w ? null : walletReserve(w, FIRM_RESPEC_GOLD).reserve, call: (/** @type {any} */ at) => door.respec(who, id, at, region, free) });
       } finally { state.sending = null; respecking = false; }
       if (r?.ok) {
         keep(null);   // a change kept from before is over a sky that is gone
@@ -256,6 +263,7 @@ export function createFirmamentBook({ door, storage = null, character = () => nu
         return { ok: true };
       }
       state.error = r?.error ?? 'server';
+      if (state.error === 'firm-respec-price') { await book.read(); state.error = 'firm-respec-price'; }   // the price changed: read it again
       tell();
       return { ok: false, error: state.error };
     },
