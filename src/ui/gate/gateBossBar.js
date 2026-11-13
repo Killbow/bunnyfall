@@ -189,6 +189,12 @@ export const BOSS_BAR_CSS = `
 .wb-boss-bar.star .wb-boss-track { border-color: rgba(170,140,255,0.55); background: rgba(12,6,24,0.75); }
 .wb-boss-bar.star .wb-boss-fill { background: linear-gradient(180deg, #c7b0ff 0%, #7a52e0 55%, #2c1660 100%); }
 .wb-boss-bar.star .wb-boss-tag { background: rgba(12,6,24,0.55); border-color: rgba(170,140,255,0.25); }
+.wb-boss-bar.necro { color: #eadcff; }
+.wb-boss-bar.necro .wb-boss-name { color: #d7a8ff; text-shadow: 0 0 3px #000, 0 0 12px rgba(168,56,250,0.65); }
+.wb-boss-bar.necro .wb-boss-sub { color: #bba0dc; }
+.wb-boss-bar.necro .wb-boss-track { border-color: rgba(168,90,250,0.6); background: rgba(10,4,20,0.78); }
+.wb-boss-bar.necro .wb-boss-fill { background: linear-gradient(180deg, #d58cff 0%, #8a2be2 55%, #2a0a52 100%); }
+.wb-boss-bar.necro .wb-boss-tag { background: rgba(10,4,20,0.55); border-color: rgba(168,90,250,0.25); }
 @media (max-width: 640px) {
   .wb-boss-bar { top: 72px; }
   .wb-boss-marks { column-gap: 10px; }

@@ -20,7 +20,7 @@
 import { tacticsNow } from './tacticsClock.js';   // AUDIT TACT: the foes' own time
 import { TELL, isElite } from './tells.js';   // TELL7: the tier, the cooldowns' one home
 
-export { BLOW, blowShapesOf, blowFamily, extraShapesOf, inBlow } from './blowShapes.js';   // the shapes' one home - a leaf the ground's pass reads too; AUDIT ARENA-LADDER: the families and the verdict too (the relay reads them); TELL7's whole set beside them
+export { BLOW, blowShapesOf, blowFamily, extraShapesOf, inBlow, bossifyBlow, blowDimOf } from './blowShapes.js';   // the shapes' one home - a leaf the ground's pass reads too; AUDIT ARENA-LADDER: the families and the verdict too (the relay reads them); TELL7's whole set beside them
 import { BLOW, blowShapesOf, TELL_NEAR_M, TELL_NEAR_FLOOR, TELL_IRON_EXTRA, TELL_FEINT_FADE as FEINT_FADE } from './blowShapes.js';
 export const BLOW_TIER_LEVEL = 10;      // Mac: level 10 and up, or an elite
 export const BLOW_COOLDOWN_MIN = TELL.COOLDOWN.ordinary[0];   // seconds between one foe's blows (TELL7: an ordinary foe's; ai/tells.js blowCooldown by tier)

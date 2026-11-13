@@ -245,7 +245,7 @@ export function withdrawEliteLoot(entity) {
 export function eliteGlow(entity, nowSeconds, phase = 0) {
   if (!entity?.eliteFoe) return 0;
   const k = 0.775 + 0.225 * Math.sin(nowSeconds * 3.2 + phase);
-  return entity.staffBoss ? STAFF_BOSS_GLOW + k : k;
+  return entity.staffBoss ? (entity.staffBoss.purple ? SIFRIT_GLOW : STAFF_BOSS_GLOW) + k : k;   // SIFRIT: hers is the purple one
 }
 /** Put the glow on a billboard batch (written only when it changes - the draw reads 0 for undefined). */
 /** How far an elite's quad reaches past its sprite (left, bottom, right, top, as fractions of the sprite): room for the
@@ -265,12 +265,12 @@ export function setBatchEliteGlow(batch, k, nowSeconds = 0) {
 export const ELITE_CORPSE_GLOW = 0.85;
 export const ELITE_CORPSE_PAD = Object.freeze([0.08, 0.03, 0.08, 0.03]);
 export const isEliteCorpse = (entity) => !!entity?.eliteFoe;
-export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false) {
+export function markEliteCorpseBatch(batch, phase = Math.random(), boss = false) {   // `boss` true: a staff mini boss's (yellow), 'purple': Sifrit's
   if (!batch) return;
   // negative: a corpse - its magnitude is the pulse's phase (0.05..1), so bodies side by side do not breathe in step;
   // the shader runs the pulse off its own clock (systems/hitFlash.js eliteRimK). STAFF-EVENT: a mini boss's past
   // STAFF_BOSS_GLOW - its outline stays yellow
-  batch.eliteGlow = -((boss ? STAFF_BOSS_GLOW : 0) + 0.05 + 0.95 * Math.min(1, Math.max(0, phase)));
+  batch.eliteGlow = -((boss === 'purple' ? SIFRIT_GLOW : boss ? STAFF_BOSS_GLOW : 0) + 0.05 + 0.95 * Math.min(1, Math.max(0, phase)));
   batch.elitePad = ELITE_CORPSE_PAD;
 }
 /** An elite's body lies a quarter larger too, like the elite that fell (STAFF-EVENT: a mini boss's as large as it stood). */
@@ -302,6 +302,8 @@ export function promoteRaidLeader(entity, { own = true, name = '' } = {}) {
 /** The glow's offset that says a mini boss to the shaders (systems/hitFlash.js STAFF_BOSS_RIM): a living one's pulse is
  *  2.55..3, its corpse's -2.05..-3. */
 export const STAFF_BOSS_GLOW = 2;
+/** SIFRIT: the offset that says PURPLE to the shaders (systems/hitFlash.js SIFRIT_RIM): her pulse is 4.55-5, a corpse's -4.05 to -5. */
+export const SIFRIT_GLOW = 4;
 export const STAFF_BOSS_HEALTH_MULT = 10;
 export const STAFF_BOSS_DAMAGE_MULT = ELITE_FOE_DAMAGE_MULT;
 // BOSS-HARD (2026-10-25, mob: "apply this logic to all mini bosses we spawn we want them to be very hard for the players"):
@@ -331,11 +333,11 @@ export const isStaffBoss = (entity) => !!entity?.staffBoss;
  * Make a freshly built foe a staff event's mini boss: an elite (the flag, the blows, the drop), `healthX` times its health
  * (staff's pick on the start form, 1-100; STAFF_BOSS_HEALTH_MULT unset) or BOSS-HP's `hp`, the exact health staff typed (it
  * wins; 0 none), at `sizePct` of its kind's size, held to the Troll's Silver and armour (BOSS-HARD). `own` false for a puppet - its maximum is its owner's word (the record's `k`). Idempotent.
- * @param {any} entity @param {{ own?: boolean, sizePct?: number, healthX?: number, hp?: number, level?: number, name?: string }} [o]
+ * @param {any} entity @param {{ own?: boolean, sizePct?: number, healthX?: number, hp?: number, level?: number, name?: string, purple?: boolean }} [o]
  */
-export function promoteStaffBoss(entity, { own = true, sizePct = 200, healthX = STAFF_BOSS_HEALTH_MULT, hp = 0, level, name = '' } = {}) {
+export function promoteStaffBoss(entity, { own = true, sizePct = 200, healthX = STAFF_BOSS_HEALTH_MULT, hp = 0, level, name = '', purple = false } = {}) {
   if (!entity || entity.staffBoss) return !!entity;
-  entity.staffBoss = { size: Math.max(1.5, Math.min(3, sizePct / 100)), ...(typeof name === 'string' && name ? { name: name.slice(0, 32) } : {}) };   // EVENT-EXTRAS: `name` staff's own name for it
+  entity.staffBoss = { size: Math.max(1.5, Math.min(3, sizePct / 100)), ...(typeof name === 'string' && name ? { name: name.slice(0, 32) } : {}), ...(purple ? { purple: true } : {}) };   // EVENT-EXTRAS: `name` staff's own name for it
   entity.eliteFoe = true;
   if (own) {
     const base = entity.maxHealth || 1;

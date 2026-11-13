@@ -1,7 +1,8 @@
 // @ts-check
 // TACT4 - THE SHAPES (three at TACT4, bible/12-Enhanced-AI/Tactics-Arc.md; four more since TELL6), a LEAF: the ground's pass (render/foeTelegraph.js) is
 // on the renderer's boot graph and must not bring the brain with it (test/render/boot2.test.js holds the entry's reach), so the
-// numbers both read live here, importing nothing. ai/foeBlows.js re-exports them.
+// numbers both read live here, importing nothing but Sifrit's own leaf (systems/sifrit/sifritLaw.js, which imports none). ai/foeBlows.js re-exports them.
+import { SIFRIT_ID, SIFRIT_BLOWS, SIFRIT_PURPLE, SIFRIT_BLOW_X } from '../systems/sifrit/sifritLaw.js';
 
 /** The shapes, and every number they carry. Metres, seconds, damage multipliers on the foe's own blow. */
 export const BLOW = Object.freeze({
@@ -54,6 +55,7 @@ export const BLOW_FAMILY = Object.freeze(new Map([
   [4, BEAST], [5, BEAST], [6, BEAST], [9, BEAST], [14, BEAST], [20, BEAST], [34, BEAST], [40, BEAST], [8, BLADE],
   [16, BRUTE], [24, BRUTE], [27, BRUTE], [31, BRUTE], [36, BRUTE], [37, BRUTE], [22, BRUTE], [41, BRUTE],
   [7, BLADE], [12, BLADE], [15, BLADE], [19, BLADE], [28, BLADE], [30, BLADE], [25, BLADE], [26, BLADE], [29, BLADE], [42, BLADE],
+  [SIFRIT_ID, BLADE],   // SIFRIT: the lane and the cone (the sweep and the lunge), the ring beside them (extraShapesOf) - hers, far larger (bossifyBlow)
 ]));
 /** The casters among the classes - Mage 128, Sorcerer 131, Healer 132 - throw none. */
 export const BLOW_CASTERS = Object.freeze(new Set([128, 131, 132]));
@@ -83,7 +85,7 @@ export const wholeSet = (ent) => isElite(ent) || !!ent?.champion || !!ent?.reven
  *  chargers: GrizzlyBear 4, SabertoothTiger 5, Wereboar 14, Centaur 8, OrcWarlord 24), the leap (the leapers: Spider 6,
  *  Werewolf 9, SabertoothTiger 5, Vampire 28). A shape joins only once it exists (TELL6 brings them; `BLOW` is their one
  *  home). The archers' aimed shot is a ranged token's, not a family's. */
-const RING_KINDS = Object.freeze(new Set([16, 36, 37, 31]));
+const RING_KINDS = Object.freeze(new Set([16, 36, 37, 31, SIFRIT_ID]));
 const CHARGERS = Object.freeze(new Set([4, 5, 14, 8, 24]));
 const LEAPERS = Object.freeze(new Set([6, 9, 5, 28]));
 /** TELL7: the shapes the whole set adds to this kind's family, whether or not they exist yet. */
@@ -103,21 +105,41 @@ export function blowShapesOf(mobileType, entity = null) {
   const add = extraShapesOf(mobileType).filter((k) => k in BLOW && !base.includes(k));
   return add.length ? [...base, ...add] : base;
 }
+/**
+ * SIFRIT (the owner: "the aoes should damage a lot more"): A BOSS'S BLOW, the shape its kind throws made its own - the
+ * geometry (`dim`: the shape's numbers over BLOW's), the colour, the weight and a wind-up long enough to leave. Applied by the
+ * brain at the owner's wind-up and by the puppet at its owner's word (ai/puppetBlows.js) - the same numbers on both, since
+ * both derive them from the kind alone. `b` returned (unchanged for any other kind).
+ * @param {any} b a blow (makeBlow's) @param {number} mobileType @param {boolean} [keepLand] true for a puppet's: its landing stays its owner's
+ */
+export function bossifyBlow(b, mobileType, keepLand = false) {
+  if (mobileType !== SIFRIT_ID || !b) return b;
+  const B = /** @type {any} */ (SIFRIT_BLOWS)[b.kind];
+  if (!B) return b;
+  b.dim = B.dim;
+  b.mult = BLOW[b.kind].mult * SIFRIT_BLOW_X;
+  b.color = SIFRIT_PURPLE;
+  if (!keepLand) b.land = Math.max(b.land, b.start + B.windup);   // a puppet's landing is its owner's word (`wl`)
+  return b;
+}
+/** A blow's shape numbers: BLOW's for its kind, over which a boss's `dim` (bossifyBlow) stands. @param {any} b */
+export const blowDimOf = (b) => (b?.dim ? { ...BLOW[b.kind], ...b.dim } : BLOW[b?.kind]);
+
 /** Is the point (px, pz) inside the blow's shape (`{ kind, origin: [x, y, z], yaw }`, yaw atan2(dx, dz))? The verdict
  *  at the landing. */
 export function inBlow(b, px, pz) {
   const fx = Math.sin(b.yaw), fz = Math.cos(b.yaw);
   const rx = px - b.origin[0], rz = pz - b.origin[2];
   const along = rx * fx + rz * fz, across = -rx * fz + rz * fx;
-  if (b.kind === 'lunge' || b.kind === 'charge') { const P = BLOW[b.kind]; return along >= -0.3 && along <= P.len && Math.abs(across) <= P.halfW; }   // TELL6: the charge's lane is a lunge's, longer and wider
+  if (b.kind === 'lunge' || b.kind === 'charge') { const P = blowDimOf(b); return along >= -0.3 && along <= P.len && Math.abs(across) <= P.halfW; }   // TELL6: the charge's lane is a lunge's, longer and wider
   if (b.kind === 'sweep') {
-    const P = BLOW.sweep, d = Math.hypot(rx, rz);
+    const P = blowDimOf(b), d = Math.hypot(rx, rz);
     if (d > P.r) return false;
     if (d < 0.5) return true;   // at its feet
     return Math.acos(Math.max(-1, Math.min(1, along / d))) <= P.halfArc;
   }
   if (b.kind === 'slam') { const P = BLOW.slam; return Math.hypot(along - P.ahead, across) <= P.r; }
-  if (b.kind === 'ring') { const P = BLOW.ring, d = Math.hypot(rx, rz); return d >= P.rIn && d <= P.rOut; }   // TELL6: safe at its feet
+  if (b.kind === 'ring') { const P = blowDimOf(b), d = Math.hypot(rx, rz); return d >= P.rIn && d <= P.rOut; }   // TELL6: safe at its feet
   if (b.kind === 'leap') return Math.hypot(along - (b.ahead ?? 0), across) <= BLOW.leap.r;   // TELL6: a disc at its point
   if (b.kind === 'aimed') return along >= -0.3 && along <= (b.ahead ?? 0) && Math.abs(across) <= BLOW.aimed.halfW;   // TELL6: its line to its target
   if (b.kind === 'pyre') return Math.hypot(along - (b.ahead ?? 0), across) <= BLOW.pyre.r;   // RVN5: a disc at its target's feet

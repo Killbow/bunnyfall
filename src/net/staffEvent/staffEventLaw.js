@@ -57,6 +57,10 @@ export const STAFF_BOSS_HP_MAX = 1000000;
 export const STAFF_EVENT_TEXT_MAX = 140;
 export const STAFF_EVENT_LABEL_MAX = 40;
 export const STAFF_BOSS_NAME_MAX = 32;
+/** MID-BOSSES and WAVES (2026-11-13, mob: "mid bosses ... smaller extra bosses at kill meter points, waves of enemies that spawn with the boss"):
+ *  `mb` smaller bosses the meter calls on the way to the big one (spread evenly under its fill), `wv` monsters that stand with the boss. */
+export const STAFF_MID_MAX = 5;
+export const STAFF_WAVE_MAX = 20;
 /** The kills an account needs on the board to be paid: STAFF_EVENT_EARN_KILLS (3) up to the meter's own bound. */
 export const STAFF_EVENT_PAY_KILLS_MAX = 500;
 /** What an earner is paid in gold (to the character, in the pack with its spoils) and in silver (the account's Marks). */
@@ -110,7 +114,7 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
  *   `fb` how many times staff called the boss by hand (Spawn mini boss now) - each call is one more boss.
  *   EVENT-EXTRAS: `an` 1 says its start and end to everyone online (0 to its region's alone), `tx` its start line, `bl` the line
  *   its mini boss comes with, `el` its end line (each a custom text; '' the game's own), `lb` its label on the map, `bn` the
- *   mini boss's name (''  "Mighty KIND"), `rk` the kills an earner needs to be paid, `gd` its gold and `sv` its silver.
+ *   mini boss's name (''  "Mighty KIND"), `rk` the kills an earner needs to be paid, `gd` its gold and `sv` its silver, `mb` its mid bosses and `wv` the wave that stands with its boss.
  */
 
 /**
@@ -122,7 +126,7 @@ export function validStaffEvent(e) {
   const mt = [...new Set(/** @type {number[]} */ (e.mt))];
   return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, hp: e.hp ?? 0, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX),
     an: e.an === 0 ? 0 : 1, tx: clean(e.tx, STAFF_EVENT_TEXT_MAX), bl: clean(e.bl, STAFF_EVENT_TEXT_MAX), el: clean(e.el, STAFF_EVENT_TEXT_MAX),
-    lb: clean(e.lb, STAFF_EVENT_LABEL_MAX), bn: clean(e.bn, STAFF_BOSS_NAME_MAX), rk: e.rk ?? STAFF_EVENT_EARN_KILLS, gd: e.gd ?? 0, sv: e.sv ?? 0 };
+    lb: clean(e.lb, STAFF_EVENT_LABEL_MAX), bn: clean(e.bn, STAFF_BOSS_NAME_MAX), rk: e.rk ?? STAFF_EVENT_EARN_KILLS, gd: e.gd ?? 0, sv: e.sv ?? 0, mb: e.mb ?? 0, wv: e.wv ?? 0 };
 }
 /**
  * EVENT-FAULT (mob 2026-10-25: "service refused", "toop of event menu says the refusal"): the first field validStaffEvent
@@ -149,6 +153,8 @@ export function staffEventFault(e) {
   if (!intIn(e.rk ?? STAFF_EVENT_EARN_KILLS, STAFF_EVENT_EARN_KILLS, STAFF_EVENT_PAY_KILLS_MAX)) return 'paykills';
   if (!intIn(e.gd ?? 0, 0, STAFF_EVENT_GOLD_MAX)) return 'gold';
   if (!intIn(e.sv ?? 0, 0, STAFF_EVENT_SILVER_MAX)) return 'silver';
+  if (!intIn(e.mb ?? 0, 0, STAFF_MID_MAX)) return 'mids';
+  if (!intIn(e.wv ?? 0, 0, STAFF_WAVE_MAX)) return 'wave';
   return null;
 }
 /** Is the event over by its own clock at `nowMs`? @param {StaffEvent} e @param {number} nowMs */
@@ -169,9 +175,9 @@ export const isAreaEvent = (e) => e.loc < 0;
 export function validStaffEventIn(m) {
   if (!m || typeof m !== 'object' || m.k !== 'w') return null;
   if (typeof m.id !== 'string' || !STAFF_EVENT_ID_RE.test(m.id)) return null;
-  if (!intIn(m.px, 0, 999) || !intIn(m.py, 0, 499) || !intIn(m.n, 0, STAFF_EVENT_WORD_KILLS_MAX) || !intIn(m.fb ?? 0, 0, 99) || !intIn(m.h ?? 0, 0, STAFF_EVENT_WORD_KILLS_MAX)) return null;
+  if (!intIn(m.px, 0, 999) || !intIn(m.py, 0, 499) || !intIn(m.n, 0, STAFF_EVENT_WORD_KILLS_MAX) || !intIn(m.fb ?? 0, 0, 99) || !intIn(m.h ?? 0, 0, STAFF_EVENT_WORD_KILLS_MAX) || !intIn(m.mu ?? 0, 0, STAFF_MID_MAX)) return null;
   for (const k of ['s', 'bu', 'bk']) if (m[k] !== undefined && m[k] !== 0 && m[k] !== 1) return null;
-  return { k: 'w', id: m.id, px: m.px, py: m.py, n: m.n, s: bit(m.s), bu: bit(m.bu), bk: bit(m.bk), fb: m.fb ?? 0, h: m.h ?? 0 };
+  return { k: 'w', id: m.id, px: m.px, py: m.py, n: m.n, s: bit(m.s), bu: bit(m.bu), bk: bit(m.bk), fb: m.fb ?? 0, h: m.h ?? 0, mu: m.mu ?? 0 };
 }
 
 /** The bound on a receipt's length on the wire (staffEventReceipt.js STAFF_RECEIPT_MAX - this file imports nothing). */
@@ -201,8 +207,8 @@ export function validStaffEventOut(m) {
   if (m.k === 'end') return { k: 'end', id: m.id, why: ['staff', 'boss', 'time', 'done'].includes(m.why) ? m.why : 'staff' };
   if (m.k === 'bd') { const top = validStaffBoard(m.top); return top ? { k: 'bd', id: m.id, top } : null; }   // THE REWARD: the board, at the fall
   if (m.k === 'rc') return typeof m.r === 'string' && m.r.length <= STAFF_RECEIPT_WIRE_MAX ? { k: 'rc', id: m.id, r: m.r } : null;   // and my receipt
-  if (!intIn(m.n, 0, STAFF_EVENT_TOTAL_MAX) || !intIn(m.fc ?? 0, 0, 99)) return null;
-  return { k: 'st', id: m.id, n: m.n, bd: bit(m.bd), bu: bit(m.bu), bk: bit(m.bk), fc: m.fc ?? 0 };
+  if (!intIn(m.n, 0, STAFF_EVENT_TOTAL_MAX) || !intIn(m.fc ?? 0, 0, 99) || !intIn(m.md ?? 0, 0, STAFF_MID_MAX) || !intIn(m.mu ?? 0, 0, STAFF_MID_MAX)) return null;
+  return { k: 'st', id: m.id, n: m.n, bd: bit(m.bd), bu: bit(m.bu), bk: bit(m.bk), fc: m.fc ?? 0, md: m.md ?? 0, mu: m.mu ?? 0 };
 }
 
 // ═══ THE CELL'S LEDGER ═══════════════════════════════════════════════════════════════════════════
@@ -212,7 +218,7 @@ export function validStaffEventOut(m) {
  *   `h` its kills (a word's `h`, the board's), `t` the words that counted toward its stand (one a STAFF_EVENT_STAND_TICK_MS), `tAt` the last of them.
  * @typedef {{ id: string, first: number, n: number, a: Record<string, StaffEventAccount>, bd: 0|1, bu: 0|1, bk: 0|1,
  *   fc: number, bossN: number, ended: 0|1, kb?: string, fellAt?: number, rw?: 0|1, top?: StaffBoardRow[],
- *   rc?: Record<string, string>, hc?: number, mc?: number }} StaffEventLedger
+ *   rc?: Record<string, string>, hc?: number, mc?: number, md?: number, mu?: number }} StaffEventLedger
  *   `fc` the boss call now (each call one more boss, by the meter or staff's hand); `hc` the hand calls taken (the book's
  *   `fb`); `mc` the meter's calls (BOSS-AGAIN); `bossN` the bosses that fell; THE
  *   REWARD's: `kb` the account whose word felled the first boss and `fellAt` when, `rw` 1 once it was paid, `top` the
@@ -240,6 +246,8 @@ export function staffBossCall(led, e) {
   if ((!led.bd || led.bk) && led.n >= e.m * (mc + 1)) { led.hc = hc; led.mc = mc + 1; nextStaffBoss(led); return true; }   // the meter, each time it fills
   return false;
 }
+/** MID-BOSSES: how many mid bosses `n` kills have called - the i-th at i/(mb+1) of the meter. @param {number} n @param {{ m: number, mb?: number }} e */
+export const staffMidsDue = (n, e) => { const mb = e.mb ?? 0; let d = 0; for (let i = 1; i <= mb; i++) if (n >= Math.max(1, Math.round(e.m * i / (mb + 1)))) d = i; return d; };
 /** The next call: the one after the last, a new boss due. @param {StaffEventLedger} led */
 function nextStaffBoss(led) {
   if (led.bd) led.fc = Math.min(99, led.fc + 1);
@@ -272,6 +280,9 @@ export function foldStaffWord(led, e, acct, name, w, nowMs) {
     led.n += out.credited;
   }
   if (staffBossCall(led, e)) out.boss = true;
+  const md = staffMidsDue(led.n, e);   // MID-BOSSES: the meter's smaller calls on the way up
+  if (md > (led.md ?? 0)) { led.md = md; out.boss = true; }
+  if ((w.mu ?? 0) > (led.mu ?? 0) && (w.mu ?? 0) <= (led.md ?? 0)) { led.mu = w.mu; out.boss = true; }   // and the one a player stood
   // the boss's moments, said by the player who stands it, for the call it answers (an old call's word moves nothing)
   if ((w.fb ?? 0) === led.fc && led.bd) {
     if (w.bu === 1 && !led.bu) { led.bu = 1; out.boss = true; }
@@ -316,7 +327,7 @@ export function validStaffBoard(top) {
 }
 
 /** The ledger as a cell says it to the place. @param {StaffEventLedger} led */
-export const staffLedgerState = (led) => ({ k: 'st', id: led.id, n: led.n, bd: led.bd, bu: led.bu, bk: led.bk, fc: led.fc });
+export const staffLedgerState = (led) => ({ k: 'st', id: led.id, n: led.n, bd: led.bd, bu: led.bu, bk: led.bk, fc: led.fc, md: led.md ?? 0, mu: led.mu ?? 0 });
 /** The accounts fighting now (a word within STAFF_EVENT_PRESENT_MS). @param {StaffEventLedger} led @param {number} nowMs */
 export const staffEventFighters = (led, nowMs) => Object.values(led.a).filter((r) => nowMs - r.last <= STAFF_EVENT_PRESENT_MS).length;
 /** What a cell tells the hub, and the hub tells staff: the count, the boss, who is fighting. @param {StaffEventLedger} led @param {number} nowMs */

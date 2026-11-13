@@ -441,6 +441,7 @@ import { drawSdTitleCard } from '../ui/superDungeon/sdTitleCard.js';   // SD15: 
 import { titleCardModel } from '../ui/gate/gateTitleCard.js';   // SD15: the card's pure model, the Warden's
 import { remnantBarModel, sdBarNear } from '../ui/superDungeon/sdRemnantBar.js';   // SD8c: the Brass Remnant's bar, the gate's in brass
 import { createSdVoice, SD_VOICE_RANK } from './superDungeon/sdVoice.js';   // AUDIT SD II (SD11d): the Hour's lines over the screen, paced
+import { createSifritFight, sifritBarOf } from '../systems/sifrit/sifritFight.js'; import { sifritBarModel } from '../ui/sifritBar.js';   // SIFRIT: her summons and her bar
 import { serpentBarModel } from '../ui/serpentBar.js'; import { drawGateBossBar } from '../ui/gate/gateBossBar.js';   // SERPENT1: its boss bar, in the sea's colours - the gate's bar, its one node
 import { playSerpentSound, SERPENT_VOICE_ROWS } from '../systems/serpent/serpentSounds.js';   // SERPENT1: its voice - DAGGER.SND's own, pitched for its size
 import { serpentSpoilsList, serpentSpoilsDay, SERPENT_SPOILS_KEYS, SERPENT_SPOILS_TEXT, SERPENT_SPOILS_RECORDS_MAX } from '../systems/serpent/serpentSpoils.js';   // SERPENT1: the Old Coil's hoard
@@ -12710,6 +12711,22 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
     if (!stands.length) return null;
     return { foes: Promise.all(stands), dx: anchorFeet[0] - feet[0], dz: anchorFeet[2] - feet[2] };
+  };
+  // SIFRIT: the Forbidden One's summons and her boss bar (systems/sifrit/sifritFight.js). The mummies stand about her through the
+  // street's own pool; her fall sends them back. The bar reads the nearest of her, mine or a peer's puppet.
+  const sifritFight = createSifritFight({
+    foes: () => exteriorFoes.foes,
+    stand: (mt, at) => exteriorFoes.spawnFoe(mt, at, { loose: true, transient: true }),
+    remove: (m) => exteriorFoes.damageFoe(m, 1e9, m.ai?.feet ?? [0, 0, 0], null, { fromPlayer: false, whole: true }),
+  });
+  let _sifritBarUp = false;
+  const sifritFrame = (dt, at) => {
+    try { sifritFight.frame(dt); } catch (e) { console.warn('[sifrit] frame', e?.message ?? e); }
+    const b = playerSpawned && playerEntity.health > 0 ? sifritBarOf(exteriorFoes.foes, at) : null;
+    if (b || _sifritBarUp) {
+      drawGateBossBar(b ? sifritBarModel(b) : null, { hidden: gamePaused() || !!townTalk.hudHidden });
+      _sifritBarUp = !!b;
+    }
   };
   const _standLooseFoe = (mobileType, opts = {}) => {
     const mode = _mode();
@@ -34995,6 +35012,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const framePools = () => {   // PERF-V8
     if ((modes?.mode ?? 'exterior') === 'exterior') {
       if (_deckBodies.size) navalCarry();   // DECK-WALK: the bodies on a ship's deck carried by her - after the ships moved, before the foes do
+      sifritFrame(foeDt, _pf);   // SIFRIT: her mummies and her bar (systems/sifrit/sifritFight.js) - before the foes move
       exteriorFoes.update(foeDt, _pf, cam.pos, _foeSenses());   // WINFOE1: a window no longer zeroes the foes' clock (QUEST-POPUP-PAUSE: offline, a quest box does)
       if (_deckBodies.size) navalLeash();   // DECK-WALK: the bodies on a ship's deck kept on it - after they moved, before they are drawn
       // TACT3 (bible/12-Enhanced-AI/Tactics-Arc.md; Mac's call: the classic lane too): the watch and the street's foes keep

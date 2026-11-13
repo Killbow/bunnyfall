@@ -14,7 +14,7 @@ import { validStaffEvent, staffEventKey, staffEventIdOf, isAreaEvent, STAFF_EVEN
  * @typedef {{ staff: import('../net/staffEvent/staffEventLaw.js').StaffEvent, key: string, regionIndex: number,
  *   locationIndex: number, locationName: string, px: number, py: number, startMinute: number, endMinute: number,
  *   attackAmount: number, type: number, killed: number, struck: boolean, announced: boolean, cleansed: boolean,
- *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, clearSince?: number, clearWait?: Set<any> }} StaffRaid
+ *   routed: boolean, bossFc: number, bossUp: 0|1, bossDown: 0|1, bossSaid: number, mine: number, fillS?: number, bossLostAt?: number, handSeen: number, midStood?: number, clearSince?: number, clearWait?: Set<any> }} StaffRaid
  *   `fillS` STAFF-EVENT PACKS' pace: the seconds its packs take to stand the cap, rolled once (raidingParties.js).
  *   `mine` THE REWARD's: its monsters that fell after a blow of mine, mine to stand or a puppet of another's.
  *   `bossFc` the boss call (the ledger's `fc`) whose boss I stood, -1 none; `bossSaid` the call whose boss was announced;
@@ -68,7 +68,7 @@ export const staffEventEnd = (/** @type {string} */ id) => { endOne(id); return 
 /** A CELL'S LEDGER (`{k:'st'}`) for an event I hold. @param {{ id: string, n: number, bd: 0|1, bu: 0|1, bk: 0|1, fc: number }} st */
 export function staffEventLedger(st) {
   if (!_raids.has(st.id)) return false;
-  _ledgers.set(st.id, { n: st.n, bd: st.bd, bu: st.bu, bk: st.bk, fc: st.fc });
+  _ledgers.set(st.id, { n: st.n, bd: st.bd, bu: st.bu, bk: st.bk, fc: st.fc, md: st.md ?? 0, mu: st.mu ?? 0 });
   return true;
 }
 /** The cell's last word on an event, or null. @param {string} id */
@@ -115,6 +115,13 @@ export function staffRaidRoom(r, standing, cap) {
   if (standing >= cap) return false;
   const n = Math.max(_ledgers.get(r.staff.id)?.n ?? 0, r.killed);
   return n + standing < r.staff.n;
+}
+/** MID-BOSSES: the mid boss the meter has called that nobody has stood - its number (1..) - or 0. @param {StaffRaid} r */
+export function staffMidWanted(r) {
+  const led = _ledgers.get(r.staff.id);
+  if (!led || !(r.staff.mb > 0)) return 0;
+  const next = Math.max(led.mu ?? 0, r.midStood ?? 0) + 1;
+  return next <= (led.md ?? 0) ? next : 0;
 }
 /** The boss call I should answer now - its ledger's `fc` - or -1: the cell called a boss nobody stood, and I have not
  *  stood one for this call. @param {StaffRaid} r */

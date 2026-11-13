@@ -33,7 +33,7 @@
 import { getPref } from '../systems/uiPrefs.js';
 import { ENEMY_BASICS, isClassEnemyId } from '../characters/enemy/enemyBasics.js';
 import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
-import { throwsBlows, blowShapesOf, blowFamily, makeBlow, fitBlowToGround, inBlow, setLiveBlow, shatterBlow, windupNear, offsetBlows, BLOW, BLOW_CHANCE, BLOW_COLOR, IRON_COLOR, BLOW_VERDICT_LIFE, BLOW_STALE, setBlowTargetOf } from './foeBlows.js';   // TACT4; TELL3: iron; TELL5: the family, the shapes' lengths
+import { throwsBlows, blowShapesOf, blowFamily, makeBlow, fitBlowToGround, inBlow, setLiveBlow, shatterBlow, windupNear, offsetBlows, BLOW, BLOW_CHANCE, BLOW_COLOR, IRON_COLOR, BLOW_VERDICT_LIFE, BLOW_STALE, setBlowTargetOf, bossifyBlow } from './foeBlows.js';   // TACT4; TELL3: iron; TELL5: the family, the shapes' lengths
 import { coverDistance } from './cover.js';   // TELL6: a charge's lane must be free of cover
 import { GRAVITY } from '../player/motor.js';   // TELL6c: a leap's hop on the motor's own gravity
 import { tacticsNow, setTacticsClock, tickTactics } from './tacticsClock.js';   // AUDIT TACT D10/A3
@@ -569,6 +569,7 @@ function beginWindup(ai, s, ent, shape, dx, dz, now, chain = 0, sig = null) {
     ? windupSeconds(TELL.CHAIN_WINDUP, ent, { guard, roll: null, floor: TELL.CHAIN_FLOOR })
     : windupSeconds(BLOW[shape].windup, ent, { guard });
   const b = fitBlowToGround(makeBlow(shape, ai.feet, Math.atan2(dx, dz), now, sig ? sig.color : guard === 'iron' ? IRON_COLOR : BLOW_COLOR, guard, windup), ai.collider);   // AUDIT TACT D8: on the ground it marks; RVN5: a signature in its ember
+  bossifyBlow(b, ent.mobileType);   // SIFRIT: her blows far larger, purple and heavier
   b.chain = chain; b.trackedAt = now;
   b.n = ai._blowN = ((ai._blowN ?? 0) + 1) & 255;   // AUDIT TELL O2: its serial on the wire (ai/puppetBlows.js `wn`)
   b.key = targetKey(ai);   // AUDIT TELL B8: whom it is aimed at - a foe that turns on another breaks it (the owner and the struck peer agree)

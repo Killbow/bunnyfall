@@ -18,13 +18,14 @@
 //                            (`tick`): the gold into the purse, the coins into the pack.
 import { staffVanish, staffGreed, greedMine, greedClaim } from '../net/accountClient.js';
 import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
+import { SIFRIT_ID } from '../systems/sifrit/sifritLaw.js';   // SIFRIT: she is no DFU monster - staff's list adds her
 import { addGoldPieces } from '../systems/inventory.js';
 import { giveNyxCoins, nyxCoinsText } from '../systems/wild/nyxShop.js';
 
 export const SPAWN_MAX = 10;
 export const GIFT_POLL_MS = 60_000;
 const key = (s) => String(s ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
-const MONSTERS = Object.entries(MOBILE_TYPES).filter(([n, id]) => id !== MOBILE_TYPES.None && !/invalid/i.test(n));
+const MONSTERS = Object.entries(MOBILE_TYPES).filter(([n, id]) => id !== MOBILE_TYPES.None && !/invalid/i.test(n)).concat([['Sifrit', SIFRIT_ID]]);
 
 /** A monster's mobile type by a typed name or number, or null - an exact name first, then the one name it begins. */
 export function monsterOf(raw) {

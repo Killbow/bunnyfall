@@ -102,7 +102,7 @@ import { readRaidReceipt } from '../net/raid/raidReceipt.js';
 import { worldRoom, isCellRoom } from '../net/wire.js';
 import { isWildRegion } from './wild/wildZone.js';   // PVPDUNGEONS: no world event in the open zone
 import { noteAct } from './questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
-import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffBossLost, staffBossByHand, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
+import { staffRaids, staffRaidsEnded, staffRaidHere, staffRaider, staffRaidRoom, staffBossWanted, staffMidWanted, staffBossLost, staffBossByHand, staffBossToSay, staffEventBook, staffEventEnd, staffEventLedger, staffRaidOfKey } from './staffEvents.js';   // STAFF-EVENT: a staff event runs as a raid
 import { validStaffEventIn, staffEventKey } from '../net/staffEvent/staffEventLaw.js';
 import { readStaffReceipt } from '../net/staffEvent/staffEventReceipt.js';   // STAFF-EVENT THE REWARD: my receipt
 import { promoteStaffBoss, promoteRaidLeader } from './eliteFoes.js';   // STAFF-EVENT: its mini boss; RAID5: a raid's leader
@@ -582,16 +582,18 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
   const sites = h.sites?.() ?? null;   // RAID5: the town's square, its way, its bearer and its refugees (scenes/raidSitesHost.js)
   const promise = kind === 'defender' ? h.standDefender?.(threats()) : kind === 'bearer' ? sites?.standBearer(o) : kind === 'refugee' ? sites?.standRefugee(o.at, o.follow) : h.standRaider?.(mobileType, o);   // STAFF-EVENT PACKS: where, for a pack's
   const boss = kind === 'boss';   // STAFF-EVENT: a staff event's mini boss - one raider, promoted
+  const mid = kind === 'mid';   // MID-BOSSES: a smaller one, the meter's
   Promise.resolve(promise).then((foe) => {
     if (_pending === p) _pending = null;
-    if (!foe) { if (boss) raid.bossFc = -1; if (pack && !pack.at) { pack.left++; pack.far = false; } muster.adopt(o, null); return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
+    if (!foe) { if (boss) raid.bossFc = -1; if (mid) raid.midStood = Math.max(0, (raid.midStood ?? 1) - 1); if (pack && !pack.at) { pack.left++; pack.far = false; } muster.adopt(o, null); return; }   // STAFF-EVENT: no spot - the call is answered again; a pack's leader tried again, nearer
     if (pack && !pack.at && Array.isArray(foe.ai?.feet)) pack.at = [...foe.ai.feet];   // STAFF-EVENT PACKS: its pack stands around it
-    if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; muster.adopt(o, null); return; }
-    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp, name: raid.staff.bn }); raid.bossUp = 1; raid.bossDown = 0; }
+    if (p.cancelled && kind !== 'defender') { h.removeFoe?.(foe); if (boss) raid.bossFc = -1; if (mid) raid.midStood = Math.max(0, (raid.midStood ?? 1) - 1); muster.adopt(o, null); return; }
+    if (boss) { promoteStaffBoss(foe.entity, { sizePct: raid.staff.bs, healthX: raid.staff.bh, hp: raid.staff.hp, name: raid.staff.bn }); raid.bossUp = 1; raid.bossDown = 0; if (raid.staff.wv > 0 && Array.isArray(foe.ai?.feet)) _wave = { key: p.key, left: raid.staff.wv, at: foe.ai.feet.slice() }; }   // WAVES: a wave stands with it
+    if (mid) { promoteStaffBoss(foe.entity, { sizePct: Math.max(150, Math.round(raid.staff.bs * 0.6)), healthX: Math.max(2, Math.round(raid.staff.bh * 0.3)), hp: raid.staff.hp > 0 ? Math.max(1, Math.floor(raid.staff.hp * 0.25)) : 0 }); if (foe.entity?.staffBoss) foe.entity.staffBoss.mid = true; }   // MID-BOSSES: a quarter of the big one's health, three fifths its size, no name of its own
     if (kind === 'bearer' || kind === 'refugee') foe.raidGoal = p.key;   // AUDIT WORLD-EVENTS L6-5: its raiders' quarry first (enemyTargets.js), whatever infighting reads
     if (kind === 'bearer' && foe.entity && objOf(raid).share < 1) foe.entity.health = Math.max(1, Math.round(foe.entity.maxHealth * objOf(raid).share));   // AUDIT WORLD-EVENTS L4-6: raised again as he was let go - never a whole standard for a walk-off
     if (kind === 'leader') { promoteRaidLeader(foe.entity, { name: raidLeaderNameOf(foe.mobileType ?? mobileType) }); foe.entity.bossTraits = undefined; foe.entity.bossWard = undefined; giveBossTraits(foe.entity, rollBossTraits(RAID_LEADER_TRAITS, rnd())); }   // RAID5: the party's leader - an elite with two traits (AUDIT WORLD-EVENTS L2-6: its two in place of any its stand drew as an elite)
-    const fights = boss || kind === 'leader' || kind === 'raider';
+    const fights = boss || mid || kind === 'leader' || kind === 'raider';
     if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: fights ? 'raider' : kind, boss, leader: kind === 'leader', routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
     if (fights) { foe.raidKey = p.key; if (!muster.adopt(o, foe)) aimRaider(raid, foe); }   // BUNNYFALL: a raider of a wave waits for it at the camp   // RAID2: it rides my frame tagged with its raid; RAID5: sent at its kind's objective
   }, () => { if (_pending === p) _pending = null; if (boss) raid.bossFc = -1; muster.adopt(o, null); });
@@ -696,6 +698,13 @@ export function raidFrame(dt = 0) {
     if (fc >= 0 && !waits) { raid.bossFc = fc; raid.handSeen = raid.staff.fb ?? 0; raid.clearSince = undefined; raid.clearWait = undefined; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
     const lost = staffBossLost(raid, staffBossStanding(raid, h), localNow());   // BOSS-LOST: stood, then gone without falling
     if (lost >= 0) { raid.bossFc = lost; spawn(raid, 'boss', raid.staff.b, staffBossPlace()); return 'boss'; }
+    const mid = staffMidWanted(raid);   // MID-BOSSES: a smaller boss the meter called on its way up - one of the event's kinds, and the first to see the call stands it
+    if (mid > 0) { raid.midStood = mid; spawn(raid, 'mid', staffRaider(raid, rnd()), staffBossPlace()); return 'boss'; }
+    if (_wave && _wave.key === raidKey(raid) && _wave.left > 0) {   // WAVES: the monsters that stand with the boss, about it, one a step
+      _wave.left--;
+      spawn(raid, 'raider', staffRaider(raid, rnd()), { at: _wave.at, min: 1.5, max: STAFF_PACK_NEAR, los: false });
+      return 'raider';
+    }
   }
   // H. a defender first [IL_06d1-IL_0712]; the clock is rescheduled even at the cap
   if (!raid.staff && _nextDefenderIn <= 0) {
@@ -1318,7 +1327,7 @@ function staffBossStanding(raid, h) {
 }
 /** A foe of mine taken over from a fallen runner: its event's mini boss is still the boss I stand now. */
 function tookStaffBoss(f) {
-  if (!f?.entity?.staffBoss) return false;
+  if (!f?.entity?.staffBoss || f.entity.staffBoss.mid) return !!f?.entity?.staffBoss;   // MID-BOSSES: a mid boss is no call's boss
   const r = staffRaids().find((x) => x.key === f.raidKey);
   if (r) { r.bossUp = 1; r.bossDown = 0; }
   return true;
@@ -1351,15 +1360,17 @@ export function staffEndLine(r) {
 /** My word on the staff event I stand in, to its place's cell - at once when my deaths, my strike or my boss moved, else
  *  every STAFF_EVENT_WORD_MS (the raid's RAID_WORD_MS); the session sends it where the relay keeps events. */
 function sayToCell(raid, t = localNow()) {
-  const w = validStaffEventIn({ k: 'w', id: raid.staff.id, px: raid.px, py: raid.py, n: Math.min(raid.killed, 9999), s: raid.struck ? 1 : 0, bu: raid.bossUp, bk: raid.bossDown, fb: Math.max(0, raid.bossFc), h: Math.min(raid.mine ?? 0, 9999) });
+  const w = validStaffEventIn({ k: 'w', id: raid.staff.id, px: raid.px, py: raid.py, n: Math.min(raid.killed, 9999), s: raid.struck ? 1 : 0, bu: raid.bossUp, bk: raid.bossDown, fb: Math.max(0, raid.bossFc), h: Math.min(raid.mine ?? 0, 9999), mu: raid.midStood ?? 0 });
   if (!w) return false;
-  const sig = `${w.n}.${w.s}.${w.bu}.${w.bk}.${w.fb}.${w.h}`;
+  const sig = `${w.n}.${w.s}.${w.bu}.${w.bk}.${w.fb}.${w.h}.${w.mu}`;
   if (_lastStaffWord && _lastStaffWord.id === w.id && _lastStaffWord.sig === sig && t - _lastStaffWord.at < RAID_WORD_MS) return false;
   if (!host().sendRaid?.(w, worldRoom(raid.px, raid.py))) return false;   // the session knows a staff word by its shape (net/online.js sendRaid)
   _lastStaffWord = { id: w.id, sig, at: t };
   return true;
 }
 let _lastStaffWord = null;
+/** WAVES: the monsters still to stand about the boss I stood. @type {{ key: string, left: number, at: number[] }|null} */
+let _wave = null;
 /** The relay's word on the staff events: the hub's book (`ev`) and an end (`end`), a cell's ledger (`st`). */
 function staffRelayWord(sev, room) {
   if (!sev) return false;
