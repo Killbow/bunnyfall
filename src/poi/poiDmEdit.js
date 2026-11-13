@@ -648,6 +648,17 @@ export const stateWord = (s, kind) => (kind === 'switch' && s === 'inactive' ? t
 const kindOf = (doc, key) => (doc.interactives ?? []).find((o) => o.key === key)?.kind;
 
 // ── the event graph ──
+/** @param {any} doc @param {any} ev */
+export function asksAway(doc, ev) {
+  const takes = ['then', 'else'].some((b) => (ev?.[b] ?? []).some((/** @type {any} */ a) => a.k === 'take_item' || a.k === 'take_gold'));
+  if (!takes) return false;
+  if (ev.trigger?.k === 'waypoint_reached') return true;
+  const named = (/** @type {any} */ k) => k === ev.key;
+  if ((doc.routes ?? []).some((/** @type {any} */ r) => (r.waypoints ?? []).some((/** @type {any} */ w) => named(w.onArriveEvent)))) return true;
+  if ((doc.encounters ?? []).some((/** @type {any} */ e) => named(e.onStart) || named(e.onComplete))) return true;
+  return (doc.events ?? []).some((/** @type {any} */ e) => ['then', 'else'].some((b) => (e[b] ?? []).some((/** @type {any} */ a) => a.k === 'trigger_event' && a.delayS > 0 && named(a.event))));
+}
+
 /**
  * The events and what starts them, as a graph for an editor to draw. Nodes: every event, plus a source node for each
  * thing that starts one (a zone, an object, a person, a route, an encounter, a trade, or an answer in a dialogue).

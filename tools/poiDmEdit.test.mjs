@@ -157,3 +157,23 @@ test('keys come from names, unique among those taken', () => {
   assert.equal(DM.freshKey('Gate Open', new Set(['gate-open'])), 'gate-open-2');
   assert.equal(DM.freshKey('', new Set()), 'item');
 });
+
+test('the editor says when an event that takes items or gold is started by a waypoint, a delay, or an encounter', () => {
+  const take = [{ k: 'take_item', item: { template: 71, count: 1 } }];
+  const doc = {
+    routes: [{ key: 'r', waypoints: [{ key: 'a', onArriveEvent: 'arrive' }] }],
+    encounters: [{ key: 'e', onComplete: 'won' }],
+    events: [
+      { key: 'arrive', trigger: { k: 'chained' }, then: take },
+      { key: 'won', trigger: { k: 'chained' }, then: [{ k: 'take_gold', amount: 5 }] },
+      { key: 'later', trigger: { k: 'chained' }, then: take },
+      { key: 'soon', trigger: { k: 'chained' }, then: take },
+      { key: 'walk', trigger: { k: 'waypoint_reached', route: 'r', waypoint: 'a' }, then: [], else: take },
+      { key: 'zone', trigger: { k: 'enter_area', interactive: 'z' }, then: [...take, { k: 'trigger_event', event: 'later', delayS: 5 }, { k: 'trigger_event', event: 'soon' }] },
+      { key: 'gift', trigger: { k: 'chained' }, then: [{ k: 'give_gold', amount: 1 }] },
+    ],
+  };
+  doc.encounters[0].onStart = 'gift';
+  const says = Object.fromEntries(doc.events.map((e) => [e.key, DM.asksAway(doc, e)]));
+  assert.deepEqual(says, { arrive: true, won: true, later: true, soon: false, walk: true, zone: false, gift: false });
+});

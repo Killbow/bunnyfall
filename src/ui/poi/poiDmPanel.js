@@ -541,6 +541,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         tg.k === 'waypoint_reached' ? select(t('poi.dm.route', 'Route'), null, tg.route, rowsOf('routes'), { onPick: (v) => put([...p, 'trigger'], { k: tg.k, route: v, waypoint: getDoc().routes.find((/** @type {any} */ r) => r.key === v)?.waypoints[0]?.key ?? '' }) }) : null,
         tg.k === 'waypoint_reached' ? select(t('poi.dm.waypoint', 'Waypoint'), [...p, 'trigger', 'waypoint'], tg.waypoint, (d.routes?.find((/** @type {any} */ r) => r.key === tg.route)?.waypoints ?? []).map((/** @type {any} */ x) => /** @type {[string, string]} */ ([x.key, x.name]))) : null,
         tg.k === 'chained' ? note(t('poi.dm.chainedHint', 'It runs when another event, a waypoint, an encounter, a trade, or an answer starts it.')) : null,
+        DM.asksAway(d, e) ? note(t('poi.dm.asksAway', 'A waypoint, a delay, or an encounter starts this event, so the game asks the player for the items or gold wherever they are.')) : null,
         cond(t('poi.dm.onlyWhen', 'Only when'), [...p, 'when'], e.when),
         section(t('poi.dm.thenN', 'Then ({n, number} of {max, number} actions in all)', { n: (e.then ?? []).length + (e.else ?? []).length, max: LIM.actions })), ...actions('then'), addAction('then'),
         section(t('poi.dm.otherwise', 'Otherwise (when the condition is not met)')), ...actions('else'), addAction('else'),

@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: The in-game POI editor now says when a waypoint, a delay, or an encounter starts an event that takes items or gold, since the player is asked for them wherever they are.
 - Fixed: The in-game POI editor no longer offers the Materials Bag or a boat's parts or deed as items a POI takes, since no player can hand them over.
 - Fixed: The in-game POI editor's Sandbox can now play a visitor who cancels every hand-over.
 - Fixed: A POI trade or event that takes items or gold now asks before it takes anything, and takes only the items you choose.
