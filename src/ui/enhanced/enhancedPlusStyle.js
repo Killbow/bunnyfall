@@ -2617,6 +2617,14 @@ export const ARMOUR_CSS = `
   color: #efe8d6; background: rgba(5,6,8,0.8); border: 1px solid rgba(192,138,62,0.8); border-radius: 7px 7px 1px 1px;
   text-shadow: 1px 1px 0 #050608; }
 .pack-shell .equipped .worncount ~ .wornhood { right: 20px; }
+/* BUNNYFALL HIDDEN GEAR: the eye on a worn panel's lower right; a hidden piece's panel dimmed, its eye a plate that says so */
+.pack-shell .equipped .wornhide { position: absolute; right: 3px; bottom: 3px; z-index: 3; min-width: 18px; height: 16px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; cursor: pointer; opacity: 0.55;
+  color: #efe8d6; background: rgba(5,6,8,0.8); border: 1px solid rgba(192,138,62,0.6); border-radius: 3px; }
+.pack-shell .equipped .wornrow:hover .wornhide, .pack-shell .equipped .wornhide.off { opacity: 1; }
+.pack-shell .equipped .wornhide:hover { border-color: #f0cf8a; }
+.pack-shell .equipped .wornhide.off { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; color: #f0cf8a; }
+.pack-shell .equipped .wornrow.lookhidden .worntile { opacity: 0.45; }
 /* AUDIT C&C S1: THE PLAQUES' ROW - the figure's first cell named whole (ui/enhanced/enhancedInventory.js: '1 / 2 / 2 / 3'; on
    '1 / 2' an absolutely placed grid child's end lines ran to the map's edge, and the Felt plaque's right corner stood on
    the R-Weapon panel), the Armour plaque at its left and the Felt plaque at its right, the Felt one under the Armour one

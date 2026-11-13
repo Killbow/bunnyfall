@@ -18,7 +18,7 @@ import { firmamentStats } from '../../systems/firmamentLive.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, FOCUS_CHANGE_MARKS, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
 import { PROF_RANK_MAX } from '../../net/professionLaw.js';   // CRAFTWORK: entered at the top rank
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
@@ -50,7 +50,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, toActions: false, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -92,23 +92,30 @@ const CSS = `
 .cw-q0 { background: #6b5d4a; } .cw-q1 { background: #8a8a80; } .cw-q2 { background: #6aa0c8; } .cw-q3 { background: #9b7ad0; } .cw-q4 { background: #e0b050; }
 .cw-sw { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
 .cw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cw-help-btn { margin-bottom: 8px; }
+.cw-help { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.cw-help .cw-help-p { font-size: 14px; color: #d8d0bc; margin: 0 0 4px; }
 .cw-word { padding: 8px 12px; border-left: 3px solid #d9b45a; background: rgba(217,180,90,0.08); }
 .cw-note { color: #b8b09a; font-size: 13px; margin: 0; }
 .cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
 .cw-stats th { text-align: left; color: #d9b45a; font-weight: 600; border-bottom: 1px solid #6b5228; padding: 3px 6px; }
 .cw-stats td { padding: 3px 6px; border-bottom: 1px solid rgba(107,82,40,.35); color: #e8e2d0; }
 .cw-card.cw-ws { display: flex; flex-flow: row wrap; align-items: flex-start; gap: 12px 16px; background: #1c150e; border: 2px solid #6b5228; box-shadow: inset 0 0 0 1px #2a1f14; }
-.cw-ws-piece { flex: 3 1 300px; min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 8px; background: #e6d6b0; color: #2b2116; border: 2px solid #8a6a32; box-shadow: inset 0 0 0 3px #e6d6b0, inset 0 0 0 4px #a8844a; padding: 14px 16px; min-width: 0; }
+.cw-ws-piece { flex: 3 1 460px; min-width: 0; overflow-wrap: break-word; display: flex; flex-direction: column; gap: 8px; background: #e6d6b0; color: #2b2116; border: 2px solid #8a6a32; box-shadow: inset 0 0 0 3px #e6d6b0, inset 0 0 0 4px #a8844a; padding: 14px 16px; min-width: 0; }
 .cw-ws-piece h3 { color: #6a4e26; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
 .cw-ws-piece .cw-make { color: #2b2116; font-size: 1.2em; line-height: 1.2; }
 .cw-ws-piece .cw-stats { display: block; overflow-x: auto; }
+.cw-stats th, .cw-stats td { white-space: nowrap; }
+.cw-stats td:last-child { white-space: normal; min-width: 90px; }   /* a narrow book scrolls the table, never breaks a word in it */
+.cw-effects { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.cw-effect > * { overflow-wrap: normal; }
 .cw-ws-piece .cw-note, .cw-ws-piece .cw-label { color: #4a3a26; }
 .cw-ws-piece .cw-stats th { color: #6a4e26; border-bottom-color: #a8844a; }
 .cw-ws-piece .cw-stats td { color: #2b2116; border-bottom-color: rgba(168,132,74,.4); }
 .cw-ws-piece .cw-look { background: rgba(60,40,20,.1); border-color: #a8844a; color: #4a3a26; }
 .cw-ws-piece .cw-look.cw-on { border-color: #6a4e26; background: rgba(106,78,38,.18); color: #2b2116; }
 .cw-ws-piece .cw-act { background: #1c150e; padding: 8px; border: 1px solid #6b5228; color: #e8e2d0; }
-.cw-ws-mats { flex: 2 1 220px; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cw-ws-mats { flex: 2 1 220px; overflow-wrap: break-word; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .cw-ws-title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #d9b45a; border-bottom: 1px solid #6b5228; padding-bottom: 3px; }
 .cw-ws-sum { flex: 1 1 100%; min-width: 0; display: flex; flex-direction: column; gap: 6px; border-top: 2px solid #6b5228; padding-top: 10px; background: rgba(0,0,0,.25); padding: 10px 12px; }
 .cw-ws-sum .cw-actions { justify-content: flex-end; }
@@ -409,6 +416,7 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
     if (gentle) { craft(false); return; }
     _cw.act = mountAct(S.act, actOptions(S.act, r, rank, p), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
+    seeIt(_cw.act?.el);
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
   card.append(actions);
@@ -435,6 +443,12 @@ function startPicks(form, book, rank, specs) {
   for (const slot of form.slots) {
     if (slot.optional) continue;
     picks[slot.id] = slot.defaultKey;
+    // BUNNYFALL (Atin'ora: "missing a tin, but for flux i can choose a different one"): a fitting the player holds none of
+    // the default for starts at one they hold - the list's state and the card's first picks say what can be made
+    if (slot !== form.slots[0] && slot.group && workOf(book, slot.defaultKey) < (slot.n ?? 1)) {
+      const held = slot.options.find((o) => workOf(book, o) >= (slot.n ?? 1));
+      if (held) picks[slot.id] = held;
+    }
   }
   const primary = form.slots[0];
   const ok = [...primary.options].reverse().find((o) => { const pl = planOf(form.id, { ...picks, [primary.id]: o }); return pl.ok && planStanding(pl, book, rank, specs).s === 'ready'; });
@@ -787,11 +801,18 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   const gentle = getPref('gentleActs') === true;
   actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
-    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
+    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; _cw.toActions = true; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
+    seeIt(_cw.act?.el);   // BUNNYFALL (Sits-With-Drink): the game opens at the piece's top - brought into view
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
+  if (_cw.word) sum.append(h('div', 'cw-word', _cw.word));   // BUNNYFALL: what the last craft made, by the buttons for the next
   sum.append(actions);
+  if (_cw.toActions) { _cw.toActions = false; seeIt(actions); }   // and the buttons again when it ends, for the next craft
+}
+/** BUNNYFALL: bring an element of the page into view once it is drawn (a scaled pause book, a long page). */
+function seeIt(/** @type {any} */ el) {
+  globalThis.requestAnimationFrame?.(() => el?.isConnected && el.scrollIntoView?.({ block: 'center', behavior: 'smooth' }));
 }
 
 /** THE WORK's options for a plan: a part a chosen slot, its arc wider for a better-suited material and a higher rank. */
@@ -923,18 +944,40 @@ function drawRefine(root, rerender, p, station, run) {
 
 // ─── THE BENCH PAGE (the Crafting tab): every station's list, read anywhere, made at the station ─────────
 
-const _bench = { station: null, followed: null };
+const _bench = { station: null, followed: null, help: false };
 const BENCH_STATIONS = Object.freeze(['anvil', 'workbench', 'loom', 'mason', 'jeweller']);
 /** `here` the station the player stands at (profPages stationHere), or null. Away, the lists are read and nothing is made. */
-export function drawBench(detail, rerender, p, here, toOld) {
+export function drawBench(detail, rerender, p, here, toOld, all = null) {
   ensureStyle();
   const stand = here && CW_STATIONS[here] ? here : null;
+  const at = (/** @type {string} */ s) => s === stand || !!all?.has?.(s);   // BUNNYFALL: every station of the room, not the first
   const list = stand === 'fire' ? [...BENCH_STATIONS, 'fire'] : BENCH_STATIONS;
   if (stand && _bench.followed !== stand) { _bench.station = stand; _bench.followed = stand; }   // arriving shows that station
   if (!stand) _bench.followed = null;
   if (!list.includes(_bench.station)) _bench.station = list[0];
+  // BUNNYFALL (Killbunny: "on the craft page can you add a tutorial button that explains the system"): how the Bench works
+  detail.append(button(`cw-chip cw-help-btn${_bench.help ? ' cw-on' : ''}`, _bench.help ? 'Hide how crafting works' : 'How crafting works', () => { _bench.help = !_bench.help; rerender(); }));
+  if (_bench.help) detail.append(benchHelp());
   const chips = h('div', 'cw-chips');
-  for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${s === stand ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
+  for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${at(s) ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
   detail.append(chips);
-  drawCraftWindow(detail, rerender, p, _bench.station, toOld, _bench.station !== stand);
+  drawCraftWindow(detail, rerender, p, _bench.station, toOld, !at(_bench.station));
+}
+
+/** BUNNYFALL: THE BENCH'S HOW-TO - the crafting rework in a player's words (Potential, quality, Focus, The Work, the
+ *  materials' effects, Craftwork). Every number is the law's own (craftLaw.js FOCUS_MAX, FOCUS_CHANGE_MARKS). */
+const BENCH_HELP = Object.freeze([
+  ['The Bench', 'Every piece is made here. Pick a station at the top, then an item from the list. You can read any list anywhere, but you craft at the matching station: a shop (it takes a fee), your home, your company hall or a caravan. Materials come from your Stores, your Materials Bag and your pack.'],
+  ['Materials', 'The main material makes the piece (Steel makes a Steel Dagger). Fittings such as a flux, a grip or a lining are your choice: any one you hold works. Each item says what it wants, for example hardness and lightness. Materials that suit it better give it a higher Potential.'],
+  ['Potential and quality', 'Potential is the best quality the materials can give. Your rank over the item\'s rank rolls the quality, and it never goes above Potential. Your perk at rank 50 adds a step, and so does a Company hall in a town your guild holds. The odds bar shows your chances before you craft.'],
+  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, on the Professions page of this tab or at the top of the list here. Only a Focus craft can reach Masterwork and earns full experience. Anything else stops at Superior and earns half. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} silver.`],
+  ['The Work (the minigame)', 'Craft (minigame) plays The Work. A clean run raises your quality odds, and every true strike pushes the material effects toward their best. Craft, skip the game makes the piece at your plain odds.'],
+  ['Material effects', `Each material leans a piece four ways. H is damage or armour, T is condition, L is weight and A is enchantment power, each up to ${CRAFT_SWING}% better or worse. The card shows the range before you craft.`],
+  ['Craftwork', `At rank 100 a Focus craft (${CRAFTWORK_TRACKS.map((x) => x[0].toUpperCase() + x.slice(1)).join(', ')}) can enter Craftwork once. Its rank goes back to 0 and it keeps its perks. It earns half experience, and its material effects reach up to ${CRAFTWORK_SWING}%.`],
+  ['The other tabs', 'Upgrade raises the quality of a piece you carry. Salvage breaks gear into materials. Refine turns raw goods into materials at the stations that do it.'],
+]);
+function benchHelp() {
+  const box = h('div', 'cw-card cw-help');
+  for (const [title, text] of BENCH_HELP) box.append(h('div', 'cw-ws-title', title), h('p', 'cw-note cw-help-p', text));
+  return box;
 }

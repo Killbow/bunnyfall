@@ -54,7 +54,8 @@ import { spriteFor, eotbSpriteUrl, spriteCount, spriteSize, spriteOffset, flipRo
 import { decodePng } from '../../systems/textureReplacement.js';   // EOTB-FLIP: the one PNG decoder the world's other PNG billboards take
 import { isLayeredKey, decodeLayered, outfitOfSlots, layeredGenderOf, LAYERED_ARCHIVE } from './layeredArmor.js';   // WORN-ARMOUR: the body in the armour it wears
 import { playerEntity } from '../../characters/playerEntity.js';   // WORN-ARMOUR: whose armour
-import { equipTableOf } from '../../systems/equip.js';   // WORN-ARMOUR: what they wear
+import { equipTableOf } from '../../systems/equip.js';
+import { shownEquipTable } from '../../systems/lookHidden.js';   // BUNNYFALL: hidden gear draws nowhere   // WORN-ARMOUR: what they wear
 import { horseLookCode, horseLookOfCode, lookSuffix } from '../../systems/horse/horseCoats.js';   // COATS1: the ridden horse's look
 import { createOwnDoll } from './eotbDoll.js';   // BUNNYFALL: the paperdoll that stands for the sprite
 import { getMeleeWeaponAnimTime } from '../../characters/weaponStates.js';   // [IL] GetMeleeAnimTickTime reads FormulaHelper's own
@@ -153,7 +154,7 @@ function look() {
  *  character's own). An equip table that cannot be read is plain leather. */
 function wornOutfit(gender) {
   let slots = null;
-  try { slots = equipTableOf(playerEntity); } catch { slots = null; }
+  try { slots = shownEquipTable(equipTableOf(playerEntity)); } catch { slots = null; }
   return { outfit: outfitOfSlots(slots), gender };
 }
 

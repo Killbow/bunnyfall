@@ -133,7 +133,8 @@ export const RESERVES = Object.freeze({
   skirt: [4, 21, 22],
 });
 import { DF_TO_MW_WEAPON, DF_TO_MW_MATERIAL, ARM_PARTS, MOD_WEAPON_TO_MW } from './mwFirstPerson.js';   // WEREWOLF1: ARM_PARTS, addPartGroup's first-person fallback parts; MW-ASSIGN: a mod's weapons
-import { drawnPiece } from '../../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
+import { drawnPiece } from '../../net/appearanceLaw.js';
+import { shownEquipTable } from '../../systems/lookHidden.js';   // BUNNYFALL: hidden gear draws nowhere   // APPEARANCES: a worn piece's look
 
 /** DF armor material -> the token MW armor record ids carry. */
 // MW-D37: colour truth (see DF_MATERIAL_RGB): Elven is silver-white in
@@ -568,6 +569,7 @@ export const ARMO_PART = Object.freeze([
  *  GARMENTS from the clothing slots - chest, legs, feet, and the two
  *  cloak slots the robes-and-cloaks judgement dresses as robes. */
 export function dfWornEquipment(slots, EQUIP_SLOTS, ARMOR_ENUM_) {
+  slots = shownEquipTable(slots);   // BUNNYFALL: a hidden piece is worn, not drawn (systems/lookHidden.js)
   const worn = dfWornArmor(slots, EQUIP_SLOTS, ARMOR_ENUM_).map((p) => ({ ...p, kind: 'armor' }));
   const S = EQUIP_SLOTS;
   for (const k of ['ChestClothes', 'LegsClothes', 'Feet', 'Cloak1', 'Cloak2']) {

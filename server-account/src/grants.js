@@ -12,9 +12,7 @@
 import { openGrantMeasure, GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';
 import { GRANT_KINDS, GRANT_CELL_CEILING, GRANT_CASE_REASONS } from '../../src/net/grantLaw.js';
 import { gatePublicKey } from './signing.js';
-import { openCaseFor, keepCaseLines, credibleReporter } from './safety.js';
-import { displayName, overRate } from './accounts.js';
-import { discordOn } from './discord.js';
+import { credibleReporter } from './safety.js';
 
 /** The door's path - the relay's GRANT_FEED_URL names it (server/wrangler.toml). */
 export const GRANT_FEED_PATH = '/v1/mod/grant-feed';
@@ -135,21 +133,10 @@ export async function grantCases(ctx, env, senders) {
  * @param {Map<string, { texts: string[], readers: boolean }>} found
  */
 export async function grantCaseLines(ctx, env, found) {
-  const { db, nowS } = ctx;
-  const since = nowS - GRANT_CASE_WINDOW_S;
-  let touched = 0;
-  for (const [sender, f] of [...found].slice(0, GRANT_CASE_SENDERS_MAX)) {
-    const target = await db.prepare('SELECT * FROM players WHERE id = ?1').bind(sender).first();
-    if (!target) continue;
-    if (!f.readers && !(await db.prepare("SELECT 1 AS y FROM mod_cases WHERE target = ?1 AND kind = 'spawn' AND status = 'open'").bind(sender).first())
-      && await overRate(ctx, 'grant-own-cases', GRANT_OWN_CASES_HOUR, 3600)) continue;
-    const caseId = await openCaseFor(ctx, env, sender, 'review', 'spawn');   // STAFF-PANEL2-FIX: a spawn case, never a chat report's
-    if (await db.prepare('SELECT 1 AS y FROM mod_case_lines WHERE case_id = ?1 AND tab = ?2 AND at > ?3').bind(caseId, GRANT_CASE_TAB, since).first()) continue;   // one line a window
-    await keepCaseLines(db, caseId, [{ tab: GRANT_CASE_TAB, sub: sender, name: displayName(target), at: nowS, text: f.texts.join('; ') }], sender);
-    await db.prepare("UPDATE mod_cases SET updated_at = ?2, discord_state = CASE WHEN ?3 = 1 THEN 'due' ELSE discord_state END WHERE id = ?1").bind(caseId, nowS, discordOn(env) ? 1 : 0).run();
-    touched++;
-  }
-  return touched;
+  // BUNNYFALL (Killbunny, 2026-11-12: only official reports stay): the spawn count opens no case - the findings stay on
+  // the Monster reports page, where staff read them
+  void ctx; void env; void found;
+  return 0;
 }
 
 /**

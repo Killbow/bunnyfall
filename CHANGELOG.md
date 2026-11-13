@@ -3,9 +3,29 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-13
+
+- Camps: pitch a tent with Camping Equipment outdoors and it stays as your camp after you log off. Stand in it to decorate it with the same pieces as a yard, up to 100 and free. Everyone passing by sees it, tent and fire included. Packing the tent takes the camp and its decorations down. You can keep 3 camps.
+- The Bench has a "How crafting works" button that explains materials, Potential and quality, Focus, the minigame, material effects and Craftwork.
+- The Bench now works at every crafting station in a room, so a home with a forge and a jeweller's bench lets you craft at both.
+- The crafting minigame scrolls into view when it starts, and the page scrolls back to the Craft buttons when it ends. What you just made shows by the buttons.
+- A flux, lining or other fitting now starts at one you actually hold, so the list no longer says "Missing 1 Tin" when another flux would do.
+
 ## 2026-11-12
 
 - Fixed: After the crafting rank reset, the Firmament could show 0 Stars, give nothing for new Renown levels, and refuse your changes with "Not enough points." It now shows how many stars you are over and keeps Accept off until they fit, and every character gets one free respec.
+- Staff: the AI chat reviewer is gone, and so are the automatic spawn-check cases. Reports now only hold what players report, and the open automatic cases have been closed. A Monster watch flag now leaves a staff note on the player instead of opening a case.
+- Staff: Open reports are readable now. Each case says what kind it is and why it has its level, and opens in place to the reported chat or spawn findings and the reporters' notes. From there you can Dismiss, Mute, Ban or open the player. Ticked cases, or every automatic spawn check nobody reported, can be dismissed in one go.
+- Moving goods in and out of the company Stores no longer counts toward the hourly writs limit, so Put in all and taking everything back out can't lock you out of writs for an hour anymore.
+- Fixed the Garrison page stuck on "Reading the garrison..." when a Company's Stores held flowers, twigs or other gathered plants. Those plants now count as herbs for Battlemages and Healers.
+- You can hide pieces of gear. In the inventory, each worn piece of armour, clothing or a shield has a small eye: click it and the piece stays worn (its armour, warmth and enchantments still count) but nobody sees it, you included: not on your paperdoll, your body, your portrait or to other players. Click it again to show it. Weapons always show.
+- Mastered skills past 100 level up far faster. A point used to cost 4x, 8x and then 16x the uses (100-125, 125-150, 150-200), and the cost kept growing with your character level. Now it is 2x, 3x and 4x, and past 100 your level stops making it dearer after level 20. At level 37, a point at 160 drops from about 6 hours of fighting to about 45 minutes. Progress you had banked toward the next point is kept.
+- The Bench's piece panel no longer gets squeezed into a thin column on smaller screens, and its quality table no longer breaks words in half.
+- Staff: the staff panel is reworked. It opens on a Home page (who is playing, open reports, live events, quick actions), finds any character as you type, and each character has its own page with plain buttons: give an item, gold or Nyx coins, set bank gold, roll back, message, mute, freeze, ban, notes. Events and notices are simple forms now.
+- Adamantium, Daedric, Orichalcum and Dwarven pieces now reach Masterwork Potential on the Bench with ordinary secondary picks. You still need the rank and Smithing Focus to roll it.
+- Staff: the whole staff panel now opens inside the game from a movable ST button (web and desktop app), with players, moderation, items, economy, reports, events, the live map, Follow and Hide me in one place. The staff bar in game is back while it is open. staff.html is the same panel in a browser.
+- /vanish no longer cuts a staff member off the network: monsters, chat and everything else keep working while players and monsters simply can't see them.
+- The chat no longer stars out swear words: what you type is what everyone sees. Names, guild names, notes and letters are still filtered.
 - Starting to cook or brew on the Provisioning page now scrolls to The Simmer.
 - The old crafting menus are gone. The Anvil, Workbench, Loom and Jeweler's bench pages are removed from Stations, and the Mason's bench only cuts stone. Every piece is made at the Bench now, so material Potential applies the same way for everyone. Cooking at a fire is unchanged.
 - Crafting writs now take what the pot and the cauldron make. A potion writ takes your one-trait cauldron bottles of that potion (mixed bottles don't count), a dish writ your pot dishes of its kind: stew, supper, tart or feast. Provisioning also goes up to rank 100 by every way of making, no matter your other crafts. At an alchemy table, option 2 now says it opens the Provisioning page.

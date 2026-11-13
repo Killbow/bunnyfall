@@ -120,13 +120,10 @@ export async function hiddenToken(ctx, env, player, key) {
     await auditStatement(db, nowS, { actor: player, role, act: 'hidden-lapsed', outcome: 'denied', onceIn: 60 }).run();
     return { error: 'staff-session-lapsed' };
   }
-  // BUNNYFALL (/vanish): a staff member who vanished from chat (players.vanish_on, migration 0202) is minted hidden without
-  // a staff panel session - the same spectator's token, its subject the account's own vanish mark (staffVanish.js)
-  const vanished = Number((await db.prepare('SELECT vanish_on FROM players WHERE id = ?').bind(player.id).first().catch(() => null))?.vanish_on ?? 0) === 1;
-  if ((!live || live.staff_hide_on !== 1) && !vanished) return null;
-  const sub = live?.staff_hide_on === 1 ? await hiddenSubOf(live.token_hash, subtle) : await hiddenSubOf(`vanish:${player.id}`, subtle);
+  if (!live || live.staff_hide_on !== 1) return null;
+  const sub = await hiddenSubOf(live.token_hash, subtle);
   // written BEFORE the token is: a token the log does not name is never handed out
-  await auditStatement(db, nowS, { actor: player, role, act: 'hidden-token', detail: { sub, ...(live?.staff_hide_on === 1 ? {} : { vanish: true }) }, keyId: live?.staff_hide_on === 1 ? live.key_id : null }).run();
+  await auditStatement(db, nowS, { actor: player, role, act: 'hidden-token', detail: { sub }, keyId: live.key_id }).run();
   const g = glyphsOf(player, env, nowS).filter((x) => HIDDEN_GLYPHS.includes(x));
   const mu = isMuted(player, nowS) ? mutedUntil(player) : undefined;
   const token = await mintToken({ s: sub, n: HIDDEN_NAME, k: accountKind(player), ...(g.length ? { g } : {}), ...(mu ? { mu } : {}), hd: 1 }, key, { subtle, nowS });

@@ -38,6 +38,7 @@
 // once" a sentence rather than a fact.
 // ═══════════════════════════════════════════════════════════════════
 
+import { CAMPS_MAX, CAMP_CAP } from './campLaw.js';   // BUNNYFALL CAMPS: the refusals' numbers
 import { selfAccountUrl } from './selfHost.js';
 import { HANDLE_RE } from './handleShape.js';
 import { SESSION_PASS_HEADER } from './sessionPassLaw.js';   // SESSION-SIGN: the pass's one name on the wire
@@ -353,6 +354,11 @@ const REFUSAL_WORDS = {
   // HOME-LOOK: an online home's outside (server-account/src/homes.js setHomeLook)
   'bad-look': () => t('account.refusal.badLook', 'The account service could not read that look. The game may need updating.'),
   // DECOR1: an online home's decor (server-account/src/decor.js)
+  'camps-max': () => t('account.refusal.campsMax', 'You already keep {max} camps. Pack one up first.', { max: CAMPS_MAX }),   // BUNNYFALL CAMPS
+  'camp-too-near': () => t('account.refusal.campTooNear', 'Another camp is too close. Pitch further away to keep it.'),
+  'camp-full': () => t('account.refusal.campFull', 'Your camp already holds {max} pieces.', { max: CAMP_CAP }),
+  'no-camp': () => t('account.refusal.noCamp', 'That camp is gone.'),
+  'bad-camp': () => t('account.refusal.badCamp', 'A camp cannot stand there.'),
   'decor-cap': () => t('account.refusal.decorCap', 'A home holds at most {max} pieces. Remove one to place another.', { max: DECOR_CAP }),
   'yard-cap': () => t('account.refusal.yardCap', 'A yard holds at most {max} pieces. Remove one to place another.', { max: DECOR_YARD_CAP }),   // HOME-YARD
   'yard-town-full': () => t('account.refusal.yardTownFull', "This town's yards hold {max} pieces between them, the most a town can. Remove one of yours to place another.", { max: DECOR_YARDS_TOWN_MAX }),   // YARD-TOWN
@@ -2216,6 +2222,14 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
     use: (body) => post('/v1/homes/decor/use', body),   // DECOR-ACCESS
     // BASE-HIDE: the room's own furniture taken out - the whole list, written by the owner
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
+    // BUNNYFALL CAMPS (server-account/src/camps.js): the camps round a pixel, a kit's camp pitched and struck, its pieces
+    campsNear: (px, py) => waited('/v1/camps/near', { px, py }),
+    campPitch: ({ character, rec, px, py, at, yaw }) => post('/v1/camps/pitch', { character, rec, px, py, at, yaw }),
+    campStrike: (id) => post('/v1/camps/strike', { id }),
+    campRename: (id, name) => post('/v1/camps/rename', { id, name }),
+    campPlace: ({ id, character, piece }) => post('/v1/camps/place', { id, character, piece }),
+    campMove: ({ id, character, pieceId, place }) => post('/v1/camps/move', { id, character, pieceId, place }),
+    campRemove: ({ id, character, pieceId }) => post('/v1/camps/remove', { id, character, pieceId }),
   };
 }
 

@@ -26,9 +26,7 @@
 import { GRANT_KINDS, GRANT_CASE_REASONS } from '../../src/net/grantLaw.js';
 import { GRANT_RELAY_READER } from '../../src/net/grantMeasure.js';
 import { FOE_HOT } from '../../server/src/staffFeedLaw.js';
-import { GRANT_ASK_CASE_TIMES, GRANT_CASE_READERS, GRANT_CASE_TAB } from './grants.js';
-import { openCaseFor, keepCaseLines } from './safety.js';
-import { discordOn } from './discord.js';
+import { GRANT_ASK_CASE_TIMES, GRANT_CASE_READERS } from './grants.js';
 import { findAccount } from './sanctions.js';
 import { displayName } from './accounts.js';
 import { NET_READ_S, NET_WAVE_S, NET_READ_MAX } from './staffNet.js';
@@ -153,13 +151,13 @@ export async function staffMonsters(ctx, env, path, body, who, audit) {
   const note = typeof body.note === 'string' ? body.note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 200) : '';
   const detail = { name: displayName(row), ...(note ? { note } : {}) };
   try {
-    const caseId = await openCaseFor(ctx, env, row.id, 'review', 'spawn');   // STAFF-PANEL2-FIX: a spawn case, an Admin's, never a chat report's - or the one open already
-    const text = `flagged from the staff panel's Monster watch by ${displayName(who.player)}${note ? `: ${note}` : ''}`;
-    // a line is its case's, second and account's: one there this second already (another Flag, a finding) is said, never dropped
-    if (!(await keepCaseLines(db, caseId, [{ tab: GRANT_CASE_TAB, sub: row.id, name: detail.name, at: nowS, text }], row.id))) throw new Error('a line this second already: flag again');
-    await db.prepare("UPDATE mod_cases SET updated_at = ?2, discord_state = CASE WHEN ?3 = 1 THEN 'due' ELSE discord_state END WHERE id = ?1").bind(caseId, nowS, discordOn(env) ? 1 : 0).run();   // grants.js grantCaseLines' touch
-    await audit('monster-flag', row.id, { ...detail, case: caseId }).run();
-    return { ok: true, case: caseId };
+    // BUNNYFALL (only official reports open cases): a flag is a staff note on the player, every staff member reading it
+    const text = `Flagged from Monster watch by ${displayName(who.player)}${note ? `: ${note}` : ''}`;
+    await db.batch([
+      db.prepare('INSERT INTO staff_notes (target, author, author_name, text, at) VALUES (?1, ?2, ?3, ?4, ?5)').bind(row.id, who.player.id, displayName(who.player), text, nowS),
+      audit('monster-flag', row.id, detail),
+    ]);
+    return { ok: true };
   } catch (e) {
     await audit('monster-flag', row.id, { ...detail, error: String(/** @type {any} */ (e)?.message ?? e).slice(0, 120) }, { outcome: 'failed' }).run();
     return { error: 'flag-failed' };

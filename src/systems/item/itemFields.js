@@ -119,6 +119,7 @@ export const ITEM_FIELDS = Object.freeze({
   gilded: str(),   // GILDED1: a Gilded piece's record (systems/gilded.js) - the Hourlock
   affixes: list(validAffix),
   qlNamed: bool(),   // AUDIT QUESTLINES REWARD-5: a questline's named piece - its name stands without a metal before it (itemInfo.js withholdsMaterialPrefix)
+  lookHidden: bool(),   // BUNNYFALL: worn but drawn nowhere - the inventory's eye (systems/lookHidden.js)
   exalted: bool(),   // LOOT2 (bible/06-Systems/Loot-Arc.md section 4): a Legendary minted Exalted - one line more, true or absent
   untaken: bool(),   // LOOT8 (bible/06-Systems/Loot-Arc.md section 10): a piece a source door rolled that no player has taken - true or absent; its first take clears it and counts for the drought
   reforged: int({ min: 0, max: 15 }),   // LOOT9 (bible/06-Systems/Loot-Arc.md section 11): the one line the Reforge had rolled again (its index) - REFORGE-REPLACE: an old piece's, read as one reforge taken (lootRarity.js reforgeCount), never a lock; a reforge folds it into `reforges`

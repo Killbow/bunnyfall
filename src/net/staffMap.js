@@ -13,7 +13,7 @@
 // WHAT IT CANNOT SEE (said on the panel's page, never hidden): a mark is a traveller's own - a player indoors or in a
 // dungeon sends none, a standing one refreshes every TRAV_KEEPALIVE_MS, and one alone in their region sends nothing
 // until someone they can see arrives (wire.js TV3); a mark older than TRAV_STALE_MS is gone.
-import { OnlineSession, peerId, peerSecret, tokenHidden } from './online.js';   // HIDDEN-UNCOUNTED: the token's mark, the session's own now
+import { OnlineSession, peerId, peerSecret, tokenHidden, tokenVanished } from './online.js';   // HIDDEN-UNCOUNTED: the token's mark, the session's own now
 import { chatRegionRoom, CHAT_REGION_COUNT, TRAV_STALE_MS, TRAV_WELCOME_MAX, TRAV_MODES } from './wire.js';
 import { REGION_NAMES } from '../formats/mapsTables.js';
 import { hiddenSeat } from './staffHook.js';
@@ -53,7 +53,7 @@ const NOTED = Symbol('staff-noted');
  *  minter's own. @param {any} minter @param {(hidden: boolean) => void} heard */
 export function noteHidden(minter, heard) {
   if (minter?.[NOTED]) return minter;
-  const mint = async (/** @type {string|null} */ room) => { const tok = await minter(room); if (tok) heard(tokenHidden(tok)); return tok; };
+  const mint = async (/** @type {string|null} */ room) => { const tok = await minter(room); if (tok) heard(tokenHidden(tok), tokenVanished(tok)); return tok; };   // BUNNYFALL /vanish: and the vanish mark
   return Object.defineProperties(mint, Object.getOwnPropertyDescriptors({
     [NOTED]: true,
     get lastWhy() { return minter.lastWhy ?? null; },

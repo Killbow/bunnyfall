@@ -44,14 +44,12 @@ export const CLAIM_S = 30 * 60;
 export const CASES_PAGE = 25;
 /** The open cases one read ranks at most - the ranking is the whole list's, so it is read whole. */
 export const CASES_RANKED_MAX = 500;
-/** A reviewer's read still waiting this long is itself a reason to look. */
-export const AI_WAIT_S = 10 * 60;
 /** A case nobody has touched this long goes up one level. */
 export const STALE_S = 24 * 60 * 60;
 /** Reporters who count, inside one hour, that make a case high. */
 export const CREDIBLE_WAVE = 3;
 /** STAFF-PANEL2-FIX (Weak spots: "One reporter's own 'threat' pick can make a case High. It can raise a case to Medium
- *  at most"): reporters who must say "threat" before the reviewer reads it for the case to be high. */
+ *  at most"): reporters who must say "threat" for the case to be high. */
 export const THREAT_HIGH = 2;
 /** STAFF-PANEL2-FIX (Weak spots: "A claimed High case returns to the top after 5 minutes with no action"): how long a
  *  claimed high case may stand untouched by its holder before it sorts as if nobody held it. */
@@ -61,7 +59,6 @@ export const CASE_ROUTES = Object.freeze(['/v1/staff/cases', '/v1/staff/case', '
   '/v1/staff/strikes', '/v1/staff/mute', '/v1/staff/ban', '/v1/staff/unban', '/v1/staff/dismiss', '/v1/staff/banned']);   // STAFF-BANNED: the Banned tab
 
 const LEVELS = Object.freeze(['low', 'medium', 'high']);
-const SEVERITY_WORD = Object.freeze({ 1: 'low', 2: 'medium', 3: 'high' });
 
 /**
  * A CASE'S LEVEL, and why - the design doc's rules, from the row and its reports.
@@ -75,21 +72,12 @@ export function caseUrgency(c, { reports, strikes, nowS }) {
   const raise = (/** @type {number} */ to, /** @type {string} */ word) => { if (to > rank) rank = to; why.push(word); };
   const n = Number(c.reports) || reports.length;
   why.push(`${n} reporter${n === 1 ? '' : 's'}`);
-  const sev = c.ai_category ? Number(c.ai_severity) : 0;
-  if (sev) {
-    const word = `AI check: ${c.ai_category}, ${SEVERITY_WORD[/** @type {1|2|3} */ (sev)] ?? sev}`;
-    if (sev >= 3 || (sev === 2 && (c.ai_category === 'threat' || c.ai_category === 'personal-info'))) raise(2, word);
-    else raise(sev === 2 ? 1 : 0, word);
-  } else {
-    // before the reviewer has read it, the reporters' own reason stands in
-    const said = new Set(reports.map((r) => r.reason));
-    const threats = reports.filter((r) => r.reason === 'threat').length;
-    if (threats) raise(threats >= THREAT_HIGH ? 2 : 1, 'reported as a threat');
-    else if (said.has('hate') || said.has('sexual')) raise(1, `reported as ${said.has('hate') ? 'hate' : 'sexual'}`);
-    else if (said.has('harassment') && n >= 2) raise(1, 'reported as harassment');
-  }
-  if (c.ai_state === 'failed') raise(2, 'AI check failed');
-  else if ((c.ai_state === 'due' || c.ai_state === 'reading') && nowS - Number(c.updated_at) >= AI_WAIT_S) raise(1, 'AI check still waiting');
+  // the reporters' own reasons (BUNNYFALL: no AI reviewer)
+  const said = new Set(reports.map((r) => r.reason));
+  const threats = reports.filter((r) => r.reason === 'threat').length;
+  if (threats) raise(threats >= THREAT_HIGH ? 2 : 1, 'reported as a threat');
+  else if (said.has('hate') || said.has('sexual')) raise(1, `reported as ${said.has('hate') ? 'hate' : 'sexual'}`);
+  else if (said.has('harassment') && n >= 2) raise(1, 'reported as harassment');
   if (c.auto) raise(2, 'muted automatically, unchecked');
   const counted = reports.filter((r) => r.counted === 1).map((r) => r.at).sort((a, b) => a - b);
   let wave = 0;
@@ -161,14 +149,13 @@ export async function staffCases(ctx, env, path, body, who, audit) {
         idle: u.level === 'high' && nowS - (Number(c.claim_until) - CLAIM_S) >= HIGH_IDLE_S } : null;
       return {
         id: c.id, target: c.target, kind: c.kind, name: displayName(c), reports: c.reports, credible: c.credible, reasons: [...new Set(mine.map((r) => String(r.reason)))],
-        level: u.level, why: u.why, ai: c.ai_category ? { category: c.ai_category, severity: c.ai_severity, confidence: c.ai_confidence, state: c.ai_state } : null,
+        level: u.level, why: u.why,
         auto: c.auto ?? null, openedAt: c.opened_at, updatedAt: c.updated_at, lastReport: mine.reduce((a, r) => Math.max(a, r.at), 0), claim,
       };
     });
     const lvl = (/** @type {any} */ x) => LEVELS.indexOf(x.level);
     ranked.sort(sort === 'newest' ? (a, b) => b.openedAt - a.openedAt : (a, b) => lvl(b) - lvl(a)
       || (a.claim && !a.claim.idle ? 1 : 0) - (b.claim && !b.claim.idle ? 1 : 0)   // a claimed case sorts below the rest of its level, unless left idle
-      || (b.ai?.confidence ?? 0) - (a.ai?.confidence ?? 0)
       || (nowS - b.lastReport < 3600 ? 1 : 0) - (nowS - a.lastReport < 3600 ? 1 : 0)   // reports still coming in
       || a.openedAt - b.openedAt);
     const page = ranked.slice(from, from + CASES_PAGE);

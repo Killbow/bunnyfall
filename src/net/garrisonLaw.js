@@ -44,7 +44,9 @@ export function supplyOf(material) {
   if (typeof material !== 'string') return null;
   if (material.startsWith('ingot:')) return 'ingots';
   if (material.startsWith('plank:')) return 'planks';
-  const fam = materialOf(material)?.family;
+  // a plant's key (p1:/p2:) asks its herb tier of a function: one is given, or materialOf throws and the whole garrison
+  // read failed for every Company whose Stores held a single flower (the field, 2026-11-12: "Reading the garrison...")
+  const fam = materialOf(material, () => 1)?.family;
   return fam === 'food' ? 'food' : fam === 'herbs' ? 'herbs' : null;
 }
 

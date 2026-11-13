@@ -135,19 +135,18 @@ export function caseCard({ c, name, target = null, lines, reasons, notes = [], s
   // FOE-BOUNDS (bible/11-Multiplayer/Spawn-Grants.md section 21): a case the spawn grants' count opened (its lines under
   // GRANT_CASE_TAB, no report, no chat verdict) says so - the chat reviewer never read it, so "found nothing against the
   // code" read as a verdict it never gave
-  const spawn = c.source === 'review' && !c.ai_category && lines.some((l) => l.tab === GRANT_CASE_TAB);
+  const spawn = c.source === 'review' && lines.some((l) => l.tab === GRANT_CASE_TAB);
   const shown = [];
   let size = 0;
   for (const l of [...lines].reverse().slice(0, CARD_LINES_MAX)) {
-    const flagged = c.ai_line_at != null && l.at === c.ai_line_at && l.sub === c.ai_line_sub;
-    const row = `${flagged ? '!' : l.sub === c.target ? '>' : ' '} [${l.tab}] ${plain(l.name)}: ${plain(l.text)}`;
+    const row = `${l.sub === c.target ? '>' : ' '} [${l.tab}] ${plain(l.name)}: ${plain(l.text)}`;
     if (size + row.length + 1 > CARD_TEXT_MAX) break;
     shown.unshift(row);
     size += row.length + 1;
   }
   const fields = [
     { name: 'Player', value: `${md(name) || '?'} (\`${c.target}\`)`, inline: true },
-    { name: 'Reports', value: c.reports ? `${c.reports} (${c.credible} counted)` : spawn ? 'none - the spawn grants\' count opened it' : 'none - the reviewer opened it', inline: true },
+    { name: 'Reports', value: c.reports ? `${c.reports} (${c.credible} counted)` : spawn ? 'none - the spawn grants\' count opened it' : 'none', inline: true },
     { name: 'Strikes (90 days)', value: `${strikes} - next: ${strikes >= LADDER_BAN_AT ? 'a ban' : minutesWord(ladderMinutes(strikes))}`, inline: true },
   ];
   const standing = target ? standingOf(target, nowS) : null;
@@ -155,16 +154,11 @@ export function caseCard({ c, name, target = null, lines, reasons, notes = [], s
   if (reasons.length) fields.push({ name: 'Reported for', value: [...new Set(reasons)].map(reportReasonLabel).join(', '), inline: false });
   const said = notes.map(plain).filter(Boolean);
   if (said.length) fields.push({ name: 'Reporters\' notes', value: `\`\`\`\n${said.join('\n').slice(0, 1000)}\n\`\`\``, inline: false });
-  if (c.ai_state === 'done' && c.ai_category) {
-    const shadow = c.ai_mode === 'shadow' ? 'SHADOW - nothing was done on it. ' : '';
-    fields.push({ name: 'Reviewer', value: `${shadow}${c.ai_category}, severity ${c.ai_severity}, ${Math.round(Number(c.ai_confidence) * 100)}% sure${c.ai_line_at != null ? ' (the line marked !)' : ''}: ${md(c.ai_reason)}`.slice(0, 1024), inline: false });
-  } else if (spawn) fields.push({ name: 'Spawn grants', value: 'what the relay or players\' games counted against this account\'s foes (the lines above) - the chat reviewer did not read it. A moderator decides.', inline: false });
-  else if (c.ai_state === 'done') fields.push({ name: 'Reviewer', value: `${c.ai_mode === 'shadow' ? 'SHADOW - ' : ''}found nothing against the code.`, inline: false });
-  else if (c.ai_state === 'failed') fields.push({ name: 'Reviewer', value: 'could not read this case - read it yourself.', inline: false });
-  if (c.auto) fields.push({ name: 'Done automatically', value: c.auto === 'reports' ? 'Muted 30 min - three reports that count.' : 'Muted 30 min - the reviewer\'s verdict, read twice.', inline: false });
-  const color = c.status !== 'open' ? 0x808080 : (c.ai_severity ?? 0) >= 3 ? 0xd03030 : (c.ai_severity ?? 0) === 2 ? 0xe08020 : 0x3070d0;
+  if (spawn) fields.push({ name: 'Spawn grants', value: 'what the relay or players\' games counted against this account\'s foes (the lines above). A moderator decides.', inline: false });
+  if (c.auto) fields.push({ name: 'Done automatically', value: 'Muted 30 min - three reports that count.', inline: false });
+  const color = c.status !== 'open' ? 0x808080 : c.auto ? 0xe08020 : 0x3070d0;
   const embed = {
-    title: `Case ${c.id}${spawn ? ' (opened by the spawn grants)' : c.source === 'review' ? ' (opened by the reviewer)' : ''}`,
+    title: `Case ${c.id}${spawn ? ' (opened by the spawn grants)' : ''}`,
     description: c.lines_kept === 0 ? 'Its lines were deleted ninety days after it closed.' : shown.length ? `\`\`\`\n${shown.join('\n')}\n\`\`\`` : 'No lines kept.',
     color,
     fields,

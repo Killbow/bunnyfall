@@ -92,6 +92,7 @@ authors to `src/ui/credits.js`.
 
 | Feature | Files |
 |---|---|
+| Camps: a camping kit's tent kept as a camp and decorated (100 pieces, free, until packed) | `src/net/campLaw.js`, `server-account/src/camps.js` (migration 0207), stood and furnished through `src/scenes/homeYards.js` |
 | Seven new guilds and their halls (online only) | `src/net/bunnyGuildLaw.js`, `src/systems/guild/bunny*.js`, `src/scenes/bunnyHallBanners.js`, `src/ui/town/hallAutomap.js` |
 | Guild hall interiors (house stripped, each guild's trade furnished about the clerk) | `src/scenes/bunnyHallFurnish.js`, wired in `src/scenes/interiorContext.js` |
 | Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
@@ -103,6 +104,7 @@ authors to `src/ui/credits.js`.
 | Garrisons and patrols (Company guard, Charter garrison; daily upkeep from the Company Stores; patrol walkers on set routes; march pushes the blight) | `src/net/garrisonLaw.js` (numbers), `server-account/src/garrisons.js`, migration `0200_garrisons.sql`, `src/systems/garrisonBook.js`, `src/scenes/garrisonPatrols.js`, `src/ui/socialPanel.js` (guildGarrisonNodes) |
 | Company farms (map farms bought inside the territory, daily harvest into the Company Stores, member chores, lost when the territory shrinks) | `src/net/farmLaw.js` (numbers), `server-account/src/farms.js`, migration `0201_company_farms.sql`, `src/systems/farmBook.js`, `src/ui/socialPanel.js` (guildFarmsNodes), `src/ui/territoryMapInk.js` (the marks) |
 | Staff chat commands /vanish, /spawn, /greed | `src/scenes/staffCommandsHost.js`, `server-account/src/staffCommands.js`, migration `0202_staff_commands.sql`, `server-account/src/staffHidden.js` (hiddenToken reads `vanish_on`) |
+| Staff panel (in game and staff.html) | `staff.html`, `src/tools/staffPanel.js` (sign-in, picks, the game hook's half: Follow, live map, Hide me, tags), `src/tools/staffPanelActions.js` (More > All tools: every staff route as a form), `server-account/src/staffPanelDesk.js` (`/v1/staff/chars`, `/v1/staff/greed`), `src/ui/staffDock.js` (the ST button, the window, the message relay to `src/net/staffHook.js`) |
 | /dm banner (coloured line across the top of every screen; developers and Dungeon Masters) | `src/net/dmLaw.js` (colours), `src/ui/dmBanner.js`, the narrate arm in `server/src/index.js` and `src/net/wire.js` |
 | Names (first and last, how NPCs address you) | `src/systems/names.js`, `src/ui/namePicker.js` |
 | Content switched off | `src/systems/contentOff.js` |

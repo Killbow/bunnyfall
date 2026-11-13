@@ -74,6 +74,8 @@ import { homeOutsideKept, homeYardWhere, homeCandidate } from '../systems/online
 import { homeDecorShown } from '../net/homeVoteLaw.js';
 import { homeDecorSeenByMe } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE   // HOME-VOTE: a shunned home's yard stands for its insiders alone
 import { createYardNature, isNaturePiece, yardNatureFlat, yardTreeSet } from './yardNature.js';   // DECOR-OUTDOOR: a yard's trees and plants, in its town's season; DECOR-LPT: as Low Poly Trees' own
+import { CAMP_CAP, CAMP_RADIUS, CAMP_PIXEL_M, campOf, campKitPieces } from '../net/campLaw.js';   // BUNNYFALL CAMPS: a kit's camp, kept and furnished
+import { CAMP_KIND } from '../systems/survival/camp.js';
 import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yard's models in its town's climate
 import { applyClimate } from '../world/climateSwaps.js';
 import { isNatureArchive, BLOCK_FLATS_OFFSET_Y } from '../world/rmbFlats.js';   // AUDIT YARD-LIGHT: and how far the town's flats stand below their lights
@@ -201,6 +203,24 @@ export const YARD_RETRY_MAX_MS = 300_000;
 export const yardRetryMs = (n) => Math.min(YARD_RETRY_MAX_MS, YARD_RETRY_MS * 2 ** Math.max(0, n - 1));
 /** How often the yards are brought in line with the town, seconds. */
 export const YARD_SYNC_S = 0.5;
+/** BUNNYFALL CAMPS: how often the camps round the player are read; how often my kit's tents and my camps are brought in
+ *  line, how near me (metres) a tent or a camp must stand for that, and how long a refused tent waits to be asked again. */
+export const CAMP_READ_MS = 15_000;
+export const CAMP_LINE_S = 3;
+export const CAMP_LINE_M = 60;
+export const CAMP_REFUSED_MS = 5 * 60_000;
+/** BUNNYFALL CAMPS: off a camp's marked ground. */
+export const CAMP_OFF_GROUND = 'Outside your camp. Keep it within the marked edge.';
+/** BUNNYFALL CAMPS: why a piece cannot stand in a camp (`pos` from the fire, `foot` the ground it covers as offsets), or
+ *  null - all of it within CAMP_RADIUS each way of the fire, and no higher than a yard's piece. */
+export function campWhyNot(piece, foot = []) {
+  const pos = piece?.pos;
+  if (!Array.isArray(pos)) return CAMP_OFF_GROUND;
+  const pts = [[pos[0], pos[2]], ...(foot ?? []).map(([dx, dz]) => [pos[0] + dx, pos[2] + dz])];
+  if (!pts.every(([x, z]) => Math.abs(x) <= CAMP_RADIUS && Math.abs(z) <= CAMP_RADIUS)) return CAMP_OFF_GROUND;
+  if (!decorYardHighOk({ pos })) return YARD_TOO_HIGH;
+  return null;
+}
 /** YARD-MERGE: how many yards' models are merged in one frame (decorRoom.js DECOR_MERGE_SETTLE_MS) - a town streaming in
  *  stands every yard at once, and its merges are spread a frame each. */
 export const YARD_MERGES_A_FRAME = 1;
@@ -585,6 +605,99 @@ export function createHomeYards(deps) {
   /** @type {Map<number, Map<number, {n: number, at: number, list: any[]}>>} */
   const writes = new Map();
 
+  // ═══ BUNNYFALL CAMPS (net/campLaw.js) ═══ a tent pitched with the camping kit outdoors is a camp kept on the service,
+  // its ground furnished as a yard is and stood for every passer-by; the kit's tent and fire stand for them too while
+  // nobody's live record of it does. The camps of the 3 x 3 pixels round the player are read every CAMP_READ_MS; mine
+  // are brought in line with my kit's tents every CAMP_LINE_MS - a tent near me with no camp pitched one, a camp near me
+  // whose tent was packed struck.
+  /** @type {Map<string, any>} */
+  const campsById = new Map();
+  let campRead = { key: '', at: -Infinity, asking: false, ready: false };
+  let campLineIn = 0;
+  const campAsking = new Set(), campStriking = new Set();
+  /** @type {Map<string, number>} a kit's record the service refused a camp for, and when - asked again after CAMP_REFUSED_MS */
+  const campRefused = new Map();
+  /** The map pixel a scene point stands in, and its place in it (pixel-local metres) - of the pixels built, or null. */
+  function campPixelOf(pos) {
+    if (!Array.isArray(pos)) return null;
+    for (const [, p] of deps.built?.() ?? []) {
+      if (!Number.isSafeInteger(p?.px) || !Number.isSafeInteger(p?.py)) continue;
+      const t = deps.translation(p.px, p.py);
+      const lx = pos[0] - t[0], lz = pos[2] - t[2];
+      if (lx >= 0 && lx < CAMP_PIXEL_M && lz >= 0 && lz < CAMP_PIXEL_M) return { px: p.px, py: p.py, at: [lx, pos[1] - t[1], lz] };
+    }
+    return null;
+  }
+  /** A camp's fire, in the scene now - or null while its pixel is not built. */
+  function campOriginOf(c) {
+    if (!deps.built?.()?.get?.(`${c.px},${c.py}`)) return null;
+    const t = deps.translation(c.px, c.py);
+    return [t[0] + c.at[0], t[1] + c.at[1], t[2] + c.at[2]];
+  }
+  /** The camps round the player read again - every CAMP_READ_MS, or at once when `force` (a write of mine). */
+  function readCamps(force = false) {
+    if (!deps.api?.campsNear || campRead.asking) return;
+    const here = campPixelOf(deps.feet?.() ?? null);
+    if (!here) return;
+    const key = `${here.px},${here.py}`;
+    if (!force && key === campRead.key && now() - campRead.at < CAMP_READ_MS) return;
+    campRead = { ...campRead, key, at: now(), asking: true };
+    Promise.resolve(deps.api.campsNear(here.px, here.py)).then((r) => {
+      const list = r?.ok ? r.data?.camps : null;
+      if (!Array.isArray(list)) return;
+      const held = (id) => cur?.camp?.id === id && busyWriting();   // the decorator's own camp stands as it is being written
+      for (const [id, c] of campsById) {
+        const inWindow = Math.abs(c.px - here.px) <= 1 && Math.abs(c.py - here.py) <= 1;
+        if ((inWindow || Math.abs(c.px - here.px) > 2 || Math.abs(c.py - here.py) > 2) && !held(id)) campsById.delete(id);
+      }
+      for (const raw of list) { const c = campOf(raw); if (c && !held(c.id)) campsById.set(c.id, c); }
+      campRead.ready = true;
+    }, () => {}).finally(() => { campRead.asking = false; });
+  }
+  /** Whether a kit's record stands in the camps pool now (mine, or a passer-by's heard live) - its tent drawn there. */
+  const kitStands = (rec) => !!rec && !!deps.campPool?.()?.camps?.some?.((x) => x?.rec?.id === rec);
+  /** MY KIT'S TENTS AND MY CAMPS BROUGHT IN LINE, near me, for the character I play. */
+  function lineUpCamps() {
+    const pool = deps.campPool?.();
+    const char = deps.character?.() ?? null;
+    const feet = deps.feet?.() ?? null;
+    if (!pool?.own || !char || !feet || !campRead.ready || !deps.api?.campPitch || !deps.outside?.()) return;
+    const tents = pool.own().filter((r) => r?.kind === CAMP_KIND.Tent && !r.deck && Array.isArray(r.pos) && typeof r.id === 'string');
+    const recs = new Set(tents.map((r) => r.id));
+    const mine = [...campsById.values()].filter((c) => c.mine && c.char === char);
+    for (const r of tents) {
+      if (Math.hypot(r.pos[0] - feet[0], r.pos[2] - feet[2]) > CAMP_LINE_M || mine.some((c) => c.rec === r.id) || campAsking.has(r.id)) continue;
+      const refused = campRefused.get(r.id);
+      if (refused != null && now() - refused < CAMP_REFUSED_MS) continue;
+      const at = campPixelOf(r.pos);
+      if (!at) continue;
+      campAsking.add(r.id);
+      Promise.resolve(deps.api.campPitch({ character: char, rec: r.id, px: at.px, py: at.py, at: at.at, yaw: Number.isFinite(r.yaw) ? r.yaw : 0 })).then((res) => {
+        const c = res?.ok ? campOf(res.data?.camp) : null;
+        if (c) {
+          campsById.set(c.id, c);
+          if (!res.data?.repeat) deps.say?.(`Your camp will stay when you leave. Stand in it to decorate it (up to ${CAMP_CAP} pieces).`);
+          return;
+        }
+        campRefused.set(r.id, now());
+        if (res?.error && res.error !== 'homes-need-account' && res.error !== 'offline') deps.say?.(`Your tent stands, but it will not stay as a camp. ${deps.refusal?.(res.error) ?? ''}`.trim());
+      }, () => {}).finally(() => { campAsking.delete(r.id); });
+    }
+    for (const c of mine) {
+      if (!c.rec || recs.has(c.rec) || campStriking.has(c.id)) continue;
+      const o = campOriginOf(c);
+      if (!o || Math.hypot(o[0] - feet[0], o[2] - feet[2]) > CAMP_LINE_M) continue;
+      campStriking.add(c.id);
+      Promise.resolve(deps.api.campStrike(c.id)).then((res) => {
+        if (!res?.ok && res?.error !== 'no-camp') return;
+        campsById.delete(c.id);
+        if (c.pieces.length) deps.say?.('Your camp is packed up, and its decorations with it.');
+      }, () => {}).finally(() => { campStriking.delete(c.id); });
+    }
+  }
+  /** The pieces a camp stands: its own, and the kit's tent and fire while nobody's live record of them stands. */
+  const campPiecesOf = (c) => (!c.mine && !kitStands(c.rec) ? [...c.pieces, ...campKitPieces(c.yaw)] : c.pieces);
+
   function ensure(mapId) {
     if (deps.heard?.() === false) return;   // WD3 (AUDIT WD3 R6): a yard is laid out on its town's layout - none asked before it is heard
     const had = towns.get(mapId);
@@ -637,8 +750,8 @@ export function createHomeYards(deps) {
     const f = y.frame;
     return [t[0] + f.at[0], t[1] + f.at[1], t[2] + f.at[2]];
   };
-  function makeYard(key, p, bk, frame) {
-    const y = { key, px: p.px, py: p.py, mapId: p.homeTown, bk, frame, t: [...deps.translation(p.px, p.py)], sig: '', src: null, srcSig: '', kept: false, lot: yardLot(frame.at, frame.box, YARD_MARGIN, frame.rects), pool: null, entry: p, skin: p._skinGen ?? 0, trees: new Map(), treeSet: null };
+  function makeYard(key, p, bk, frame, margin = YARD_MARGIN) {
+    const y = { key, px: p.px, py: p.py, mapId: p.homeTown, bk, frame, t: [...deps.translation(p.px, p.py)], sig: '', src: null, srcSig: '', kept: false, lot: yardLot(frame.at, frame.box, margin, frame.rects), pool: null, entry: p, skin: p._skinGen ?? 0, trees: new Map(), treeSet: null };
     y.pool = createDecorRoom({
       meshes: deps.meshes, renderer: deps.renderer, getTexture: deps.getTexture, uploadRecord: deps.uploadRecord, uploadRecordFrame: deps.uploadRecordFrame,
       collider: () => deps.collider?.() ?? null, origin: () => originOf(y),
@@ -724,6 +837,34 @@ export function createHomeYards(deps) {
         }
       }
     }
+    // BUNNYFALL CAMPS: each camp read stood in its pixel, as a home's yard is
+    for (const c of campsById.values()) {
+      const p = deps.built?.()?.get?.(`${c.px},${c.py}`);
+      if (!p || (!c.mine && range() === 0)) continue;
+      const key = `camp:${c.id}`;
+      live.add(key);
+      let y = yards.get(key);
+      if (!y) {
+        const a = c.at;
+        y = makeYard(key, p, 0, { at: [...a], box: [a[0] - 0.01, a[1], a[2] - 0.01, a[0] + 0.01, a[1] + 2, a[2] + 0.01], rects: null }, CAMP_RADIUS);
+      }
+      y.camp = c;
+      y.mapId = null;
+      y.kept = c.mine;
+      const pieces = campPiecesOf(c);
+      const t = deps.translation(p.px, p.py);
+      const moved = t[0] !== y.t[0] || t[1] !== y.t[1] || t[2] !== y.t[2];
+      const rebuilt = y.entry !== p || y.skin !== (p._skinGen ?? 0);
+      const holding = cur?.yard === y && busyWriting();
+      const sig = JSON.stringify(pieces);
+      if (moved || rebuilt || (sig !== y.sig && !holding)) {
+        y.t = [...t];
+        y.entry = p;
+        y.skin = p._skinGen ?? 0;
+        if (!holding) y.sig = sig;
+        y.pool.set(holding ? y.pool.list() : pieces);
+      }
+    }
     for (const [key, y] of yards) if (!live.has(key)) { y.pool.destroyAll(); yards.delete(key); }
     return behind;
   }
@@ -748,7 +889,7 @@ export function createHomeYards(deps) {
       const rank = (yardHolds(y.lot, o, feet) ? 0 : YARD_NEAR_ONLY) + away;
       if (rank < bestRank) { best = { y, home }; bestRank = rank; }
     }
-    if (!best) return null;
+    if (!best) return ownCampHere(feet);   // BUNNYFALL CAMPS: no yard of mine underfoot - a camp of mine, then
     const { y, home } = best;
     const others = [], lines = [];
     const p = deps.built?.()?.get?.(`${y.px},${y.py}`);
@@ -769,6 +910,19 @@ export function createHomeYards(deps) {
     return { yard: y, others, lines, roads: yardRoadsOf(p, y.frame.at, y.lot), hall: !!home.hall };   // FB1001 ROAD-LOT: the road under the lot; GUILD-YARD: a hall's
   }
 
+  /** BUNNYFALL CAMPS: the camp of mine the player stands in (within its marked ground), or null. */
+  function ownCampHere(feet) {
+    let best = null, bestD = Infinity;
+    for (const y of yards.values()) {
+      if (!y.camp?.mine) continue;
+      const o = originOf(y);
+      const dx = Math.abs(feet[0] - o[0]), dz = Math.abs(feet[2] - o[2]);
+      if (dx > CAMP_RADIUS + YARD_NEAR || dz > CAMP_RADIUS + YARD_NEAR) continue;
+      if (dx + dz < bestD) { best = y; bestD = dx + dz; }
+    }
+    return best ? { yard: best, others: [], lines: [], roads: [], hall: false, camp: best.camp } : null;
+  }
+
   // THE DECORATOR OUTSIDE: the room's own tool over the yard the owner stands on - its pool the yard's, its writes the
   // yard's (`yard` on the service), a piece refused off the lot, the lot's edge marked while a piece is placed
   const pool = {
@@ -783,6 +937,13 @@ export function createHomeYards(deps) {
   function keep() {
     const y = cur?.yard;
     if (!y) return;
+    if (y.camp) {   // BUNNYFALL CAMPS: the owner's write stands in the camp read, and the next read is asked at once
+      const list = y.pool.list();
+      y.camp.pieces = list;
+      y.sig = JSON.stringify(list);
+      campRead.at = -Infinity;
+      return;
+    }
     const town = towns.get(y.mapId);
     const list = y.pool.list();
     if (town) town.byKey.set(y.bk, list);
@@ -790,10 +951,11 @@ export function createHomeYards(deps) {
     if (!writes.has(y.mapId)) writes.set(y.mapId, new Map());
     writes.get(y.mapId).set(y.bk, { n: ++wrote, at: now(), list });   // FB1001 YARD-STALE
   }
+  const campOn = () => (cur?.camp ? cur.camp.id : null);   // BUNNYFALL CAMPS: the decorator in a camp writes the camp's
   const homeDecor = deps.api ? {
-    place: (a) => deps.api.place({ ...a, yard: true }),
-    move: (a) => deps.api.move(a),
-    remove: (a) => deps.api.remove(a),
+    place: (a) => (campOn() ? deps.api.campPlace({ id: campOn(), character: a.character, piece: a.piece }) : deps.api.place({ ...a, yard: true })),
+    move: (a) => (campOn() ? deps.api.campMove({ id: campOn(), character: a.character, pieceId: a.id, place: a.place }) : deps.api.move(a)),
+    remove: (a) => (campOn() ? deps.api.campRemove({ id: campOn(), character: a.character, pieceId: a.id }) : deps.api.remove(a)),
     hidden: async () => ({ ok: false, error: 'bad-decor' }),
     // HOME-YARD: the street's Confirm is the room's draft, over the yard's pieces and the same revision
     ...(typeof deps.api.list === 'function' && typeof deps.api.batch === 'function' ? {
@@ -811,7 +973,8 @@ export function createHomeYards(deps) {
     doc: deps.doc ?? null, win: deps.win ?? null, canvas: deps.canvas ?? null, touch: !!deps.touch, renderer: deps.renderer, pool, names,
     // GUILD-YARD: a hall's yard is `hall` - a piece's half goes to the guild's treasury, never the purse (decorTool.js)
     // DECOR-OUTDOOR: `natureBase` - its climate's nature set, the one its catalogue offers trees and plants of
-    room: () => (cur ? { kind: 'home', yard: true, ...(cur.hall ? { hall: true } : {}), where: homeYardWhere(cur), mapId: cur.yard.mapId, buildingKey: cur.yard.bk, natureBase: entryOf(cur.yard)?.forest?.base ?? null } : null),
+    room: () => (cur?.camp ? { kind: 'home', yard: true, free: true, cap: CAMP_CAP, where: cur.camp.name, mapId: 0, buildingKey: 0, camp: cur.camp.id, natureBase: entryOf(cur.yard)?.forest?.base ?? null }   // BUNNYFALL CAMPS
+      : cur ? { kind: 'home', yard: true, ...(cur.hall ? { hall: true } : {}), where: homeYardWhere(cur), mapId: cur.yard.mapId, buildingKey: cur.yard.bk, natureBase: entryOf(cur.yard)?.forest?.base ?? null } : null),
     // DECOR-OUTDOOR: and the picture a nature piece is - in the ghost and the lists - in the yard's season
     flatAs: (flat) => (cur && isNatureArchive(flat?.[0]) ? yardNatureFlat(flat, entryOf(cur.yard)?.season ?? 0) : flat),
     // DECOR-LPT: the ghost of a tree or a plant is the picture it will stand as - the one door its piece asks
@@ -832,7 +995,7 @@ export function createHomeYards(deps) {
     openSlot: (o) => deps.openSlot?.(o), closeSlot: () => {},
     say: (l) => deps.say?.(l), refusal: (w) => deps.refusal?.(w) ?? null, now,
     // HOME-YARD: the lot - a piece off it refused, its edge marked
-    placeOk: (piece, foot) => (cur ? hallWords(yardWhyNot(piece.pos, cur.yard.lot, cur.others, foot, cur.roads, cur.lines)) : YARD_OFF_LOT),   // FB1001 ROAD-LOT: off the road
+    placeOk: (piece, foot) => (cur?.camp ? campWhyNot(piece, foot) : cur ? hallWords(yardWhyNot(piece.pos, cur.yard.lot, cur.others, foot, cur.roads, cur.lines)) : YARD_OFF_LOT),   // FB1001 ROAD-LOT: off the road
     lot: () => {   // YARD-SPLIT: and the midline to each neighbour - worked out again only when the yard or its place moved
       if (!cur) return [];
       const o = originOf(cur.yard), key = `${o.join(',')}|${cur.lines.length}|${cur.roads.length}`;
@@ -843,7 +1006,7 @@ export function createHomeYards(deps) {
     },   // FB1001 ROAD-LOT: the edge along the road's side
     yardCap: DECOR_YARD_CAP,
     // HOME-LOOK: the house's outside, painted from the yard's panel
-    look: () => (cur && deps.look ? lookDoor(cur.yard) : null),
+    look: () => (cur && !cur.camp && deps.look ? lookDoor(cur.yard) : null),   // BUNNYFALL CAMPS: a camp has no house to paint
   });
 
   /** HOME-LOOK (AUDIT): how many styles a roof's or a door's family holds in a climate (in the season's archive) - asked
@@ -885,7 +1048,12 @@ export function createHomeYards(deps) {
     // AUDIT: the world recentred - every yard stood again this frame, never half a second in the old place; DECOR-OUTDOOR:
     // nor half a second out of its rebuilt pixel's climate and season (AUDIT PRECIP HOST-7: nor its re-skinned one's)
     if (syncIn > 0) for (const y of yards.values()) { const t = deps.translation(y.px, y.py), e = entryOf(y); if (t[0] !== y.t[0] || t[1] !== y.t[1] || t[2] !== y.t[2] || e !== y.entry || (e?._skinGen ?? 0) !== y.skin) { syncIn = 0; break; } }
-    if (syncIn <= 0) syncIn = sync() ? 0 : YARD_SYNC_S;   // YARD-TOWN: a town not yet stood syncs again next frame
+    if (syncIn <= 0) {
+      if (deps.outside?.()) readCamps();   // BUNNYFALL CAMPS: the camps round the player, read as the street's yards are
+      syncIn = sync() ? 0 : YARD_SYNC_S;   // YARD-TOWN: a town not yet stood syncs again next frame
+    }
+    campLineIn -= dt > 0 ? dt : 0;
+    if (campLineIn <= 0) { campLineIn = CAMP_LINE_S; lineUpCamps(); }
     if (!tool.flying() && !tool.panelOpen()) cur = ownYardHere();   // the yard is held while the decorator is up
     else if (cur && yards.get(cur.yard.key) !== cur.yard) {
       // AUDIT: its pixel was built again under the open decorator (a painted home leaving the merge, a season) - the

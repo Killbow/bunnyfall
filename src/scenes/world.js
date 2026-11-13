@@ -1108,6 +1108,7 @@ import { relayKnowsLiveEvent } from '../net/wire.js';   // SUNBABY1: a word stag
 import { createStaffTeleportClient, validStaffDestination, staffDestinationKey, followStaffPlayer, staffTpLine } from '../net/staffTeleport.js';   // STAFF-PANEL5-FOLLOW: and the line a /tp @player ends on
 import { gameMaps } from '../net/staffPlaces.js';   // STAFF-EVENT: the game's maps, for the Staff Panel's place picker
 import { createStaffCommands } from './staffCommandsHost.js';   // BUNNYFALL: staff /vanish, /spawn, /greed
+import { createStaffDock } from '../ui/staffDock.js';   // BUNNYFALL: the staff panel in game (staff.html in a movable window)
 import { createDmBanner } from '../ui/dmBanner.js';   // BUNNYFALL /dm: the banner across the top of the screen
 import { dmLineOf, DM_DEFAULT } from '../net/dmLaw.js';
 const dmBanner = createDmBanner();
@@ -10874,7 +10875,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  (`player.collider`: the street's, the building's, the dungeon's), the same rule the plaque's other racers keep
    *  (pickActivatableHit's wall test). A player behind a wall is not named, lit or pressed. */
   const peerInSight = (eye, dir) => {
-    const hit = pickPeerInFront(eye, dir, openPeers(peersNear(), isPartyMate).filter(crowdDrawnHere), SOCIAL_REACH, rayPersonDistance);   // INVIS-NET: a player concealed is not there to press - CONCEAL-MATE: unless they are in my party; GATE-CROWD: nor one a gate's crowd leaves undrawn
+    const hit = pickPeerInFront(eye, dir, openPeers((peersNear() ?? []).filter((q) => !q.vn), isPartyMate).filter(crowdDrawnHere), SOCIAL_REACH, rayPersonDistance);   // INVIS-NET: a player concealed is not there to press - CONCEAL-MATE: unless they are in my party; GATE-CROWD: nor one a gate's crowd leaves undrawn
     if (!hit) return null;
     const col = player?.collider ?? collider;
     const wall = col?.raycast ? col.raycast(eye, dir, hit.distance) : Infinity;
@@ -12597,6 +12598,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     seasonal: () => (seasonsActive ? seasons : null),   // DECOR-OUTDOOR: a yard's trees in Seasons of the Iliac Bay's season, as the town's
     trees: lowPolyTrees ? { door: lowPolyTrees, sway: (proto, share) => _lptSway.set(proto, Math.max(_lptSway.get(proto) ?? 0, share)), windfall: (proto, share) => _lptWindfall.set(proto, Math.max(_lptWindfall.get(proto) ?? 0, share)) } : null,   // DECOR-LPT: a yard's tree as Low Poly Trees' own - its 3D tree in the near set (scenes/treesHost.js frame)
     character: () => characterIdOf(playerEntity),
+    campPool: () => camps,   // BUNNYFALL CAMPS: the kit's tents, kept as camps (homeYards.js)
     realm: () => (realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null),
     wallet: (region) => homeYardWallet(playerEntity, region), regionOf: (y) => built.get(`${y.px},${y.py}`)?.homeRegion ?? 0,   // INSTANCES' HOST-SPLIT: the wallet's body in scenes/homeYards.js
     doc: typeof document !== 'undefined' ? document : null, win: typeof window !== 'undefined' ? window : null, canvas, touch: isTouchDevice(),
@@ -20302,6 +20304,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
   let farmBook = null;   // BUNNYFALL COMPANIES: the Company farms (systems/farmBook.js)
   let staffCommands = null;   // BUNNYFALL: /vanish, /spawn and /greed (scenes/staffCommandsHost.js), made beside Cromwark's host
+  let staffDock = null;   // BUNNYFALL: the staff panel's button and window (ui/staffDock.js)
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
   // QUEST-HOME (Mac, 2026-10-15: "Close both"): every answer of the service's that moved a home (net/accountClient.js
   // onHomeOrders - a door's claim or sale, a deed, a hall, an arena move, a character deleted) carried to the hub, whose
@@ -25621,6 +25624,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     entity: () => playerEntity,
     saved: () => surfacePlayer(),
   });
+  staffDock = createStaffDock({ io: () => (isOnlinePage() ? insigniaIo() : null), ready: () => walkMode && playerSpawned });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;
   // the flowers a press throws there laid in the character's own pile (systems/save/save.js carries it)
@@ -28401,10 +28405,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const out = [];
     for (const p of online.peers.values()) {
       if (!presenceOnly && !modes?.sailingCabin && csaPeers.isBelowDeck(p.id)) continue;
-      if (!online.visible(p)) continue;   // AUDIT PSCALE1 NET-2: on the session's OWN clock (steadyNow, AUDIT ONLINE 3 F2) - performance.now() against its stamps never timed a silent peer out
+      if (!online.visible(p, undefined, true)) continue;   // BUNNYFALL /vanish: the vanished counted here (rolls, owners), flagged `vn` below - AUDIT PSCALE1 NET-2: on the session's OWN clock (steadyNow, AUDIT ONLINE 3 F2) - performance.now() against its stamps never timed a silent peer out
       const h = peerBodies?.heightOf(p.id) || 0;
       if (h > 0) _peerHeights.set(p.id, h);
-      out.push({ id: p.id, feet: onlineToScene(p.shown), height: _peerHeights.get(p.id), cv: p.shown?.cv | 0 });   // INVIS-NET: and the peer's concealment, for the foes' senses
+      out.push({ id: p.id, feet: onlineToScene(p.shown), height: _peerHeights.get(p.id), cv: p.shown?.cv | 0, ...(p.vn ? { vn: true } : {}) });   // BUNNYFALL /vanish: no foe's quarry, nobody's pick   // INVIS-NET: and the peer's concealment, for the foes' senses
     }
     // SLAM4 (2026-09-16, the 30th-anniversary slam): AND THE REMEMBERED HEIGHTS GO WITH THE PEERS. This map only
     // ever grew: every id that has ever stood in the room stayed in it for the life of the session. A twenty-minute
@@ -29100,6 +29104,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     };   // the wire's move bit: 1 walking, 2 running (the peers' bodies pick the clip off it)
     if (seated) arm.st = seated.st;   // CARDS2b: seated, and the table's top above the feet - absent standing, the wire's omission law
     staffCommands?.tick(Date.now(), (line) => chatNotice(line));   // BUNNYFALL: a staff member's /greed for me, taken
+    staffDock?.frame();   // BUNNYFALL: the staff panel's button, staff only
     if (staffFollow.frame()) key = null;   // STAFF-PANEL5-FOLLOW: a follow's body stands in no room - the hook's hidden links watch (above HALO-THIN's word, which stands over WAGONS2-VISIT's close and the join: test/net/halothin.test.js, test/systems/wagons2_visit.test.js)
     online.haloWhole = !!duelMgr.duel || _serpentFight;   // HALO-THIN (net/online.js haloPoseDue): a halo hears my pose when it is due - every pose while a referee may stand in one (a duel's bout is refereed in the room my opponent is heard through, a serpent's trail in the fight's); never the open zone's - its referee holds me by the zone word, which my own cell's socket alone says (AUDIT B F4)
     if (!modes?.caravanVisit) caravanVisitLink.close();   // WAGONS2-VISIT: no visit, no listener - closed before my primary joins the cell it heard (never replaced by my own id)

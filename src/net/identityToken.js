@@ -451,6 +451,7 @@ export function claimsValid(c, { maxTtlS = MAX_TTL_S } = {}) {
   // builder's): `hd` 1 a hidden staff spectator's socket, minted only by the account service's staff doors - absent for
   // every player; `fo` the account a hidden spectator follows, beside `hd` alone and never its own subject
   if (c.hd !== undefined && c.hd !== 1) return false;
+  if (c.vn !== undefined && c.vn !== 1) return false;   // BUNNYFALL /vanish: a staff member vanished - 1 or absent
   if (c.fo !== undefined && !(c.hd === 1 && typeof c.fo === 'string' && ID_RE.test(c.fo) && c.fo !== c.s)) return false;
   if (!Number.isSafeInteger(c.i) || !Number.isSafeInteger(c.e)) return false;
   if (c.e <= c.i) return false;                 // a token that is born dead
@@ -506,6 +507,7 @@ export async function mintToken(who, privateKey, { subtle, nowS, ttlS = MAX_TTL_
   // LEGACY7: only for a realm character of a Project Legacy line - a character of none, the bytes as before
   if (who?.hn !== undefined) { claims.hn = who.hn; for (const k of /** @type {const} */ (['hc', 'hb', 'hg'])) if (who[k] !== undefined) claims[k] = who[k]; }
   if (who?.hd !== undefined) claims.hd = who.hd;   // STAFF-PANEL5: a hidden staff spectator alone - a player mints the bytes they always did
+  if (who?.vn !== undefined) claims.vn = who.vn;   // BUNNYFALL /vanish: a vanished staff member alone - everyone else, the bytes as before
   if (who?.fo !== undefined) claims.fo = who.fo;   // STAFF-PANEL5-FOLLOW: the account it follows, beside `hd` alone
   // A BAD CLAIM SET IS REFUSED AT THE MINTER. The verifier would refuse
   // it too, but at the player's machine, where the only thing anyone

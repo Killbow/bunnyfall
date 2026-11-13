@@ -70,6 +70,7 @@ import { billboardSize } from '../world/rmbFlats.js';   // PCORPSE1: a corpse st
 import { raceGenderPain3Sound, CLASSIC_PLAYER_DEATH_SOUND } from '../systems/playerDeath.js';   // PCORPSE1: the fallen player's own cry
 import { SEAT_HIP_DROP } from '../player/seatPose.js';   // CARDS2c: a seated sprite sinks by the seat's own drop
 import { RACES, artRaceOf } from '../systems/races.js'; import { PeerClimbSounds, peerBodyYaw, peerMoving } from './peer/peerClimb.js';   // CLIMB5: a peer on the wall faces it, takes no stride, and is heard climbing
+import { shownEquipTable } from '../systems/lookHidden.js';   // BUNNYFALL: a hidden piece is in no look
 import { peerHeard } from './peer/peerFx.js';   // EG-ZH: every peer sound through the place's scope (Elite-Gates.md section 26)
 import { PeerGatherSounds, peerGatherSwing, peerKneeling } from './peer/peerGather.js';   // PEER-ACTS: a peer gathering is seen at it and heard
 
@@ -418,7 +419,7 @@ export function ownLayeredGear(entity = null) {
  *  LAYERED-GEAR: `layered` the On foot Layered Gearing Skin chosen (ownLayeredGear). */
 export function composeLook(entity, { eotbSet = ownEotbSet(), layered = ownLayeredGear(entity), skin = wornSkinId() } = {}) {
   const items = [];
-  const table = entity ? equipTableOf(entity) : [];
+  const table = entity ? shownEquipTable(equipTableOf(entity)) : [];   // BUNNYFALL: hidden gear is not drawn for anyone
   for (let slot = 0; slot < table.length; slot++) {
     const it = table[slot];
     if (!it) continue;

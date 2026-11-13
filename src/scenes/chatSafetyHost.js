@@ -94,15 +94,11 @@ const actText = (/** @type {any} */ h) => {
 const dayText = (s) => new Date(s * 1000).toLocaleDateString(intlLocale());
 /** AUDIT SAFE DOC-4: a case line's moment, in the player's language. @param {number} ms */
 const momentText = (ms) => new Date(ms).toLocaleString(intlLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-/** AUDIT SAFE DOC-4: a case's reasons in the player's language - or, for a case the reviewer opened, that it did. */
+/** AUDIT SAFE DOC-4: a case's reasons in the player's language. */
 const reasonsText = (/** @type {unknown} */ reasons) => {
   const said = (Array.isArray(reasons) ? reasons : []).map((x) => reportReasonLabel(String(x)));
-  return said.length ? said.join(', ') : t('net.safety.byReviewer', 'opened by the reviewer');
+  return said.length ? said.join(', ') : '-';
 };
-/** AUDIT SAFE DOC-4: the reviewer's word on a case, or ''. @param {any} ai */
-const verdictText = (ai) => (ai && typeof ai === 'object'
-  ? `${t('net.safety.caseVerdict', 'The reviewer says {category}, severity {severity}, confidence {confidence}.', { category: reportReasonLabel(String(ai.category ?? '')), severity: Number(ai.severity) || 0, confidence: `${Math.round((Number(ai.confidence) || 0) * 100)}%` })}${ai.mode === 'shadow' ? ` ${t('net.safety.shadow', '(shadow mode: no action taken)')}` : ''}`
-  : '');
 
 /**
  * STAFF-PANEL2-CHATMENU (2026-10-22, mob: "remove the report buttons iunch for admin and mods as well", "chat they arnt
@@ -646,24 +642,19 @@ export function createChatSafetyHost({ log, links, social = () => null, minter =
     say(tabId, t('net.safety.casesHead', '{count, plural, one {# open case} other {# open cases}}, the most credible first:', { count: cases.length }));
     for (const c of cases) {
       const row = t('net.safety.caseRow', '{name} (#{account}): {reports, plural, one {# report} other {# reports}}, {credible} credible. {reasons}.', { name: c.name, account: c.target, reports: Number(c.reports) || 0, credible: Number(c.credible) || 0, reasons: reasonsText(c.reasons) });
-      const ai = verdictText(c.ai);
-      say(tabId, `${row}${ai ? ` ${ai}` : ''}${c.auto ? ` ${t('net.safety.caseAuto', 'Muted automatically.')}` : ''}`);
+      say(tabId, `${row}${c.auto ? ` ${t('net.safety.caseAuto', 'Muted automatically.')}` : ''}`);
     }
   }
-  /** AUDIT SAFE DOC-4: /case <name> - the case's lines (the account's marked >, the line the reviewer flagged !), its
-   *  reasons and notes, and the reviewer's verdict. */
+  /** AUDIT SAFE DOC-4: /case <name> - the case's lines (the account's marked >), its reasons and notes. */
   function showCase(tabId, c) {
     if (!c || typeof c !== 'object') return;
     say(tabId, t('net.safety.caseHead', 'The case on {name} (#{account}): {reports, plural, one {# report} other {# reports}}, {credible} credible. Why: {reasons}.', { name: c.name, account: c.target, reports: Number(c.reports) || 0, credible: Number(c.credible) || 0, reasons: reasonsText(c.reasons) }));
     for (const note of Array.isArray(c.notes) ? c.notes : []) say(tabId, t('net.safety.caseNote', 'Note: {note}', { note: String(note) }));
-    const ai = verdictText(c.ai);
-    if (ai) say(tabId, `${ai}${c.ai?.reason ? ` ${String(c.ai.reason)}` : ''}`);
     if (c.auto) say(tabId, t('net.safety.caseAuto', 'Muted automatically.'));
     const lines = Array.isArray(c.lines) ? c.lines : [];
     if (!lines.length) { say(tabId, t('net.safety.caseNoLines', 'No lines are kept on this case.')); return; }
-    const flagged = c.ai?.line ?? null;
     for (const l of lines) {
-      const mark = flagged && flagged.at === l.at && flagged.sub === l.sub ? '!' : l.sub === c.target ? '>' : '-';
+      const mark = l.sub === c.target ? '>' : '-';
       say(tabId, `${mark} ${momentText(l.at)} ${l.name}: ${l.text}`);
     }
   }

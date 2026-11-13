@@ -57,7 +57,7 @@ import { settleDueOnce } from './seatTurning.js';
 import { keepSeatFacts } from './townSeats.js';   // SEAT-FACTS: the seats' facts, kept once for the service
 import { motherlodesOf } from './motherlodes.js';
 import { sweepBoard } from './board.js';
-import { safetyMinute, safetySweep } from './safetyClock.js';   // SAFE5 + SAFE8: the reviewer's reads and the moderators' cards; the hour's sweep
+import { safetyMinute, safetySweep } from './safetyClock.js';   // SAFE8: the moderators' cards; the hour's sweep
 import { sweepGuildNotes } from './guildBoard.js';
 import { sweepHarvests } from './professions.js';
 import { sweepCraftWrits } from './craftWrits.js';   // CRAFT-WRITS: an unfilled crafting writ the day after its own

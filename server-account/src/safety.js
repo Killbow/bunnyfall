@@ -50,11 +50,9 @@ import { SPROUT_S, canModerate, isDeveloper } from './titles.js';
 import { gatePublicKey } from './signing.js';
 import { autoMute, autoMutable, lawOrder, pushLaw, bannedUntil, findAccount, actionStatement, voidAutoMutes, banAccount, unbanAccount, reasonOf, muteMinutesOk } from './sanctions.js';
 import { STAFF_IDLE_S, auditStatement, staffRole } from './staff.js';   // STAFF-PANEL2-FIX: a claim lives while the staff session that took it does; an act's audit row (each read at a call, never at load)
-import { modAiOn } from './modAi.js';
 import { discordOn } from './discord.js';
 import { ID_RE } from '../../src/net/identityToken.js';
 import { verifyStamp } from '../../src/net/safety/chatStamp.js';
-import { openFeed } from '../../src/net/safety/chatFeed.js';
 import { BLOCKS_MAX, reportShape } from '../../src/net/safety/safetyLaw.js';
 import { CONDUCT_VERSION } from '../../src/net/safety/conduct.js';
 
@@ -146,7 +144,7 @@ export async function openCaseFor({ db, nowS, rand }, env, target, source, kind 
   // ONE OPEN CASE AN ACCOUNT A KIND, by the index (mod_cases_open): two reports at once open one case, the second's
   // insert ignored and the first's case read back
   await db.prepare('INSERT OR IGNORE INTO mod_cases (id, target, source, status, opened_at, updated_at, ai_state, discord_state, kind) VALUES (?1, ?2, ?3, \'open\', ?4, ?4, ?5, ?6, ?7)')
-    .bind(caseIdOf(rand), target, source, nowS, source === 'review' ? 'done' : modAiOn(env) ? 'due' : 'off', discordOn(env) ? 'due' : 'off', kind).run();
+    .bind(caseIdOf(rand), target, source, nowS, 'off', discordOn(env) ? 'due' : 'off', kind).run();   // BUNNYFALL: no AI reviewer - a case is read by people
   const open = await db.prepare("SELECT id FROM mod_cases WHERE target = ?1 AND kind = ?2 AND status = 'open'").bind(target, kind).first();
   return String(open.id);
 }
@@ -186,9 +184,8 @@ export async function keepCaseLines(db, caseId, lines, target = null) {
 export const touchCase = (db, env, caseId, nowS) => db.prepare(`UPDATE mod_cases SET updated_at = ?2,
     reports = (SELECT COUNT(*) FROM mod_reports WHERE case_id = ?1),
     credible = (SELECT COUNT(*) FROM mod_reports WHERE case_id = ?1 AND counted = 1 AND at > ?3),
-    ai_state = CASE WHEN ?4 = 1 THEN 'due' ELSE ai_state END,
     discord_state = CASE WHEN ?5 = 1 THEN 'due' ELSE discord_state END
-  WHERE id = ?1`).bind(caseId, nowS, nowS - REPORT_AUTO_WINDOW_S, modAiOn(env) ? 1 : 0, discordOn(env) ? 1 : 0).run();
+  WHERE id = ?1`).bind(caseId, nowS, nowS - REPORT_AUTO_WINDOW_S, 0, discordOn(env) ? 1 : 0).run();
 
 /**
  * A CASE CLOSED - by its id, or the account's open one: actioned or dismissed, by whom and how. The reviewer's read is
@@ -264,11 +261,6 @@ export async function fileReport(ctx, reporter, env, body, { fetchFn = (u, i) =>
 
 /** The open cases one look lists. */
 export const CASES_LIST_MAX = 10;
-/** The reviewer's word on a case as a moderator reads it, or null. @param {any} c @param {boolean} [full] */
-const verdictOf = (c, full = false) => (c.ai_state === 'done' && c.ai_category
-  ? { category: c.ai_category, severity: c.ai_severity, confidence: c.ai_confidence, mode: c.ai_mode ?? null,
-    ...(full ? { reason: c.ai_reason ?? null, line: c.ai_line_at != null ? { at: c.ai_line_at, sub: c.ai_line_sub } : null } : {}) }
-  : null);
 
 /** THE OPEN CASES, the most reporters who count first - a moderator's: chat cases, and a developer's spawn cases too
  *  (STAFF-PANEL2-FIX). @param {{ db: any }} ctx @param {any} actor @param {any} env */
@@ -280,7 +272,7 @@ export async function modCases({ db }, actor, env) {
   return {
     ok: true,
     cases: rows.map((c) => ({ id: c.id, target: c.target, kind: c.kind, name: displayName(c), reports: c.reports, credible: c.credible,
-      reasons: [...new Set(reasons.filter((r) => r.case_id === c.id).map((r) => String(r.reason)))], ai: verdictOf(c), auto: c.auto ?? null, openedAt: c.opened_at, updatedAt: c.updated_at })),
+      reasons: [...new Set(reasons.filter((r) => r.case_id === c.id).map((r) => String(r.reason)))], auto: c.auto ?? null, openedAt: c.opened_at, updatedAt: c.updated_at })),
   };
 }
 
@@ -306,7 +298,7 @@ export const caseReads = (db, caseId) => [
 ];
 /** @param {any} row the account @param {any} c its case's row @param {any[]} lines @param {any[]} reports caseReads' rows */
 export const caseView = (row, c, lines, reports) => ({ id: c.id, target: row.id, kind: c.kind, name: displayName(row), status: c.status, reports: c.reports, credible: c.credible,
-  reasons: [...new Set(reports.map((r) => String(r.reason)))], notes: reports.map((r) => r.note).filter(Boolean), ai: verdictOf(c, true), auto: c.auto ?? null,
+  reasons: [...new Set(reports.map((r) => String(r.reason)))], notes: reports.map((r) => r.note).filter(Boolean), auto: c.auto ?? null,
   lines: lines.map((l) => ({ at: l.at, sub: l.sub, name: l.name, tab: l.tab, text: l.text })) });
 
 /** DISMISS the account's open case - a moderator's: the act recorded, the case's automatic mutes voided (one still
@@ -497,18 +489,6 @@ async function actOnce(ctx, actor, env, ask, push, at) {
 
 /* ═══ SAFE5 - THE REVIEWER'S FEED IN ═══ */
 
-/**
- * A BATCH OF PUBLIC LINES, from the relay: kept for the minute's clock while the reviewer is on - checked with the
- * relay's public half first, a batch seen before kept once. While the reviewer is off it is answered and dropped
- * unread. @param {{ db: any, nowS: number, subtle: SubtleCrypto }} ctx @param {any} env @param {Uint8Array} bytes @param {unknown} sig
- */
-export async function takeFeed({ db, nowS, subtle }, env, bytes, sig) {
-  if (!modAiOn(env)) return { ok: true, read: false };
-  const opened = await openFeed(bytes, sig, await gatePublicKey(env, subtle), { subtle, nowMs: nowS * 1000 });
-  if ('error' in opened) return opened;
-  await db.prepare("INSERT OR IGNORE INTO mod_feed (id, at, lines, state) VALUES (?1, ?2, ?3, 'due')").bind(opened.batch.id, nowS, JSON.stringify(opened.batch.lines)).run();
-  return { ok: true, read: true };
-}
 
 /** What a banned account is told on every door it knocks at. @param {any} player */
 export const bannedAnswer = (player) => ({ error: 'banned', until: bannedUntil(player), reason: player?.ban_reason ?? null });

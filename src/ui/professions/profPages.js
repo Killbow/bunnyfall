@@ -267,6 +267,12 @@ export function stationHere() {
   for (const [ask, focus] of STATION_FOCUS) if (typeof p?.[ask] === 'function' && p[ask]()) return focus;
   return null;
 }
+/** BUNNYFALL (General Teddie: "I can't really access the jewel crafting bench even though I own one"): every station the
+ *  player stands at - a home with a forge and a jeweller's bench holds both, where stationHere names the first alone. */
+export function stationsHere() {
+  const p = /** @type {any} */ (_provider);
+  return new Set(STATION_FOCUS.filter(([ask]) => typeof p?.[ask] === 'function' && p[ask]()).map(([, focus]) => focus));
+}
 /** CRAFT-HALL: where a station's own press lands - the Crafting page, scrolled to that station. */
 export function stationDoorAt(kind) { focusStoresStation(kind === 'forge' ? 'anvil' : kind); return 'crafting'; }
 /** CRAFT-HALL: where the Professions key lands - the Crafting page at the station the player stands at, else the
@@ -1036,7 +1042,7 @@ export function drawCraftingPage(detail, rerender, kit) {
 export function drawBenchPage(detail, rerender, kit) {
   const p = _provider;
   if (!p) return;
-  drawBench(detail, rerender, p, stationHere(), () => kit.go?.('crafting'));
+  drawBench(detail, rerender, p, stationHere(), () => kit.go?.('crafting'), stationsHere());
 }
 /** BUNNYFALL PROVISIONING: its own line on the Crafting rail (ui/provisioning/provPage.js). */
 export function drawProvisioningPage(detail, rerender, kit) {

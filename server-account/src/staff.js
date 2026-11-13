@@ -50,6 +50,7 @@ import { isBanned, pushLaw, staffCutOrder } from './sanctions.js';
 import { staffCases, CASE_ROUTES } from './staffCases.js';
 import { staffDesk, DESK_ROUTES } from './staffDesk.js';   // STAFF-PANEL3-DESK: notes, the watchlist, your settings, and the Admins' notice, scorecard and reported notes
 import { staffPlayers, PLAYER_ROUTES } from './staffPlayers.js';
+import { staffPanelDesk, PANEL_ROUTES } from './staffPanelDesk.js';   // BUNNYFALL: the panel's character list and gold/Nyx gifts
 import { staffStatus, STATUS_ROUTES } from './staffStatus.js';   // STAFF-PANEL6-STATUS: server status, its limits, Home
 import { staffRealm, REALM_ROUTES } from './staffRealm.js';
 import { staffCensus, CENSUS_ROUTES } from './staffCensus.js';   // STAFF-PANEL4-CENSUS: the item and gold census, the contested pieces
@@ -435,7 +436,8 @@ export async function staffRoute(ctx, env, path, body, { ip, token }) {
   // ═══ STAFF-PANEL2: THE REPORTS, Mute, Ban and the claims - Admins and Moderators both (staffCases.js) ═══
   if (CASE_ROUTES.includes(path)) return staffCases(ctx, env, path, body, who, audit);
   if (DESK_ROUTES.includes(path)) return staffDesk(ctx, env, path, body, who, audit);   // STAFF-PANEL3-DESK (staffDesk.js): each door checks its role
-  if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
+  if (PLAYER_ROUTES.includes(path)) return staffPlayers(ctx, env, path, body, who, audit);
+  if (PANEL_ROUTES.includes(path)) return staffPanelDesk(ctx, env, path, body, who, audit);   // BUNNYFALL: the panel's list of characters, /greed from the panel   // STAFF-PANEL3-PLAYERS: search, profile, devices, rename - Admins'
   if (STATUS_ROUTES.includes(path)) return staffStatus(ctx, env, path, body, who, audit);   // STAFF-PANEL6-STATUS (staffStatus.js)
   if (REALM_ROUTES.includes(path)) return staffRealm(ctx, env, path, body, who, audit);   // STAFF-PANEL3-REALM: trade holds, rollbacks, fixes, gains, removals - Admins'
   if (CENSUS_ROUTES.includes(path)) return staffCensus(ctx, env, path, body, who, audit);   // STAFF-PANEL4-CENSUS: Admin only

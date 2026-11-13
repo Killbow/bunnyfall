@@ -192,6 +192,7 @@ export const REPLICA_ROUTES = new Map([
   ['/v1/homes/mine', 'POST'],
   ['/v1/homes/rooms', 'POST'],
   ['/v1/homes/decor', 'POST'],
+  ['/v1/camps/near', 'POST'],   // BUNNYFALL CAMPS: the camps round a pixel
   ['/v1/prof/pixels', 'POST'],
   ['/v1/market/vendors', 'POST'],
   ['/v1/marks/balance', 'POST'],
@@ -484,6 +485,8 @@ export const ROUTES = new Set([
   '/v1/homes/decor', '/v1/homes/decor/place', '/v1/homes/decor/move', '/v1/homes/decor/remove', '/v1/homes/decor/batch', '/v1/homes/decor/use',
   // BASE-HIDE: what the owner took out of the room's own furniture - read with the pieces, written by the owner
   '/v1/homes/decor/hidden',
+  // BUNNYFALL CAMPS (camps.js): a player's camp in the open world - read by every session, the rest its owner's
+  '/v1/camps/near', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove',
   // HOME-RENT: a home's rooms (rent.js) - read by every session at its door; offered and withdrawn by its owner, rented by
   // another player's realm character, the rent collected by the owner
   '/v1/homes/rooms', '/v1/homes/rooms/offer', '/v1/homes/rooms/withdraw', '/v1/homes/rooms/rent', '/v1/homes/rooms/collect',
@@ -574,7 +577,7 @@ export const ROUTES = new Set([
   // a moderator's ban, unban and look; and the two doors a stranger reaches that prove themselves (SAFE_OPEN_ROUTES);
   // AUDIT SAFE DOC-4: the moderators' read of the cases in the game - the open ones, one, and its dismissal
   '/v1/safety/blocks', '/v1/safety/block', '/v1/safety/unblock', '/v1/safety/report', '/v1/safety/conduct',
-  '/v1/mod/ban', '/v1/mod/unban', '/v1/mod/strikes', '/v1/mod/feed', '/v1/discord/interactions',
+  '/v1/mod/ban', '/v1/mod/unban', '/v1/mod/strikes', '/v1/discord/interactions',
   '/v1/mod/cases', '/v1/mod/case', '/v1/mod/dismiss',
   // STAFF-PANEL1: the staff panel's doors (staff.js) - its own sign-in and session, never a game session (STAFF_ROUTES)
   '/v1/staff/login', '/v1/staff/enroll', '/v1/staff/me', '/v1/staff/logout', '/v1/staff/keys', '/v1/staff/key/forget',
@@ -587,14 +590,15 @@ export const ROUTES = new Set([
   // STAFF-PANEL3-DESK: staff notes, the watchlist and its events, your settings; the Admins' server notice, AI check
   // scorecard, and reported board notes (Remove, Restore) and market listings (staffDesk.js)
   '/v1/staff/notes', '/v1/staff/notes/add', '/v1/staff/watch', '/v1/staff/watch/add', '/v1/staff/watch/remove', '/v1/staff/watch/events',
-  '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/ai-score', '/v1/staff/board/reported', '/v1/staff/board/moderate',
+  '/v1/staff/settings', '/v1/staff/settings/save', '/v1/staff/notice', '/v1/staff/board/reported', '/v1/staff/board/moderate',
   '/v1/staff/market/reported',
   // STAFF-PANEL3-PLAYERS: the panel's players (staffPlayers.js) - the search, a profile's tabs, its devices, Sign out
   // everywhere, and a rename - Admins' alone
   '/v1/staff/players', '/v1/staff/player', '/v1/staff/player/devices', '/v1/staff/player/signout', '/v1/staff/player/rename',
   // BUNNYFALL: staff.html's saves and database (staffData.js)
   '/v1/staff/data/saves', '/v1/staff/data/export', '/v1/staff/data/tables', '/v1/staff/data/query',
-  '/v1/staff/skins/queue', '/v1/staff/skins/review', '/v1/staff/skins/ban', '/v1/staff/skins/banned',   // BUNNYFALL: custom paperdolls (skins.js)
+  '/v1/staff/skins/queue', '/v1/staff/skins/review', '/v1/staff/skins/ban', '/v1/staff/skins/banned',
+  '/v1/staff/chars', '/v1/staff/greed',   // BUNNYFALL: the staff panel's character list and gold/Nyx gifts (staffPanelDesk.js)   // BUNNYFALL: custom paperdolls (skins.js)
   '/v1/skins/upload', '/v1/skins/mine', '/v1/skins/delete', '/v1/skins/wear', '/v1/skins/get',
   // STAFF-PANEL6-STATUS: the panel's server status, its Admin-set limits, and Home (staffStatus.js)
   '/v1/staff/status', '/v1/staff/home', '/v1/staff/limits', '/v1/staff/limit/set',
@@ -739,7 +743,7 @@ export const PATREON_OPEN_ROUTES = new Set(['/v1/patreon/callback', '/v1/patreon
 /** SAFE5 + SAFE8: the chat safety's two doors a stranger reaches, NOT the JSON ladder's - the relay's feed of public
  *  lines and Discord's presses and commands. Each proves itself by a signature over its exact bytes (the relay's receipt
  *  key, the Discord application's key), never a session. */
-export const SAFE_OPEN_ROUTES = new Set(['/v1/mod/feed', '/v1/discord/interactions']);
+export const SAFE_OPEN_ROUTES = new Set(['/v1/discord/interactions']);   // BUNNYFALL: the AI reviewer's feed door gone
 
 /** STAFF-PANEL1: the staff panel's doors (staff.js), NOT the JSON ladder's - none takes a game session. Two prove themselves by
  *  a password and an extension's signature (login, enroll); the rest by a staff session in `x-staff-session`. */

@@ -39,6 +39,7 @@
 // Breton/male/face 0 is only the PRE-CHARGEN default (chargen fronts
 // identity and this file reloads on identity change - AUDIT 23).
 
+import { shownEquipTable } from '../systems/lookHidden.js';   // BUNNYFALL: hidden gear draws nowhere
 import { createDollTracker, dollBackPixels, dollPieceKind } from './paperDollBack.js';   // DOLL-BACK: the doll seen from behind
 import { ImgFile } from '../formats/imgFile.js';
 import { packImgTexture } from './packArt.js';   // OVH2: a worn UI pack's backdrop
@@ -615,7 +616,7 @@ async function composeDoll(art, deps, entity, { background = true, scale: S = 1,
     return { out, layout: [], bgSize: [bg.width, bg.height], width: OW, height: OH, back: skinBack };
   }
   if (back) track = createDollTracker(out, OW, OH);
-  const table = equipTableOf(entity);
+  const table = shownEquipTable(equipTableOf(entity));   // BUNNYFALL: hidden gear (systems/lookHidden.js)
   const worn = table.filter(Boolean).map((it) => ({ it, t: getTemplate(it.templateIndex) })).filter((w) => w.t);
   // cloak interiors first (BlitCloakInterior: cloak2 then cloak1,
   // the template's own record = the interior image)

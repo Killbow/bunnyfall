@@ -3,9 +3,10 @@
 // to spawn enemies and a greed command to give gold to players or nyx coins") - the account service's half. Staff are the
 // accounts staff.js staffRole names (an Admin - DEVELOPER_HANDLES - or a Moderator); /greed is an Admin's alone.
 //
-//   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on the game's mint makes a
-//             hidden spectator's token (staffHidden.js hiddenToken): the relay names and passes on nothing of it, and the
-//             game, seeing its own token hidden, is no one to a monster (scenes/staffFollowHost.js `unseen`).
+//   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on, the game's ordinary
+//             token carries the vanish mark (`vn`, index.js /v1/auth/token): the relay passes it on the join and every game
+//             leaves the player undrawn and untargeted, while the socket plays on as any other - the monsters' sync and
+//             everything else unchanged.
 //   /spawn    the game's own (scenes/world.js): staff-only, asked of `vanishSet`'s answer's `staff` - nothing here.
 //   /greed    greedGive: gold and Nyx coins kept for a player (staff_gifts) until their game takes them (greedClaim) -
 //             the gold into the character's purse, the coins into the pack; the account's Nyx count and the character's
@@ -43,7 +44,9 @@ async function accountByName(db, name) {
   const byHandle = await db.prepare('SELECT id, handle FROM players WHERE lower(handle) = lower(?)').bind(n).first();
   if (byHandle) return { id: byHandle.id, name: byHandle.handle };
   const byChar = await db.prepare('SELECT player, name FROM realm_characters WHERE lower(name) = lower(?) ORDER BY updated_at DESC LIMIT 1').bind(n).first();
-  return byChar ? { id: byChar.player, name: byChar.name } : null;
+  if (byChar) return { id: byChar.player, name: byChar.name };
+  const byId = await db.prepare('SELECT id, handle, guest_name FROM players WHERE id = ?').bind(n).first();   // the staff panel's pick names the account
+  return byId ? { id: byId.id, name: displayName(byId) } : null;
 }
 
 /**
