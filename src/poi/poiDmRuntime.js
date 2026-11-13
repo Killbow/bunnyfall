@@ -9,7 +9,7 @@
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
-  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead,
+  createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
 } from './poiDmCore.js';
 import { takeStacks, takeGold, countOf, goldOf } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
@@ -60,6 +60,13 @@ function placeInto(out, m, p, t) {
   return out;
 }
 const NO_MOVE = Object.freeze([0, 0, 0]);
+/**
+ * Returns whether a claim key (`${what}|${scope}`) is saved in device storage when offline: per-character (a gift-only
+ * event or a recipe), per-account, limited-stock, daily, or cooldown claims. Offline, the runtime clock uses the wall
+ * clock, so daily and cooldown timestamps stay valid across visits.
+ * @param {string} k
+ */
+export const keptClaim = (k) => /\|(char:|acct:|day:|cool:|global$)/.test(k);
 
 /**
  * Mints a plain item stack offline the way `mintGift` does on the server (no enchantments and no realm ledger ID). An
@@ -150,6 +157,8 @@ export function createPoiDm(deps) {
   const { say, pack, give, feet, now = () => performance.now() / 1000 } = deps;
   const preview = !!deps.preview;
   const act = preview ? null : deps.act ?? null;
+  /** Offline, the run's clock starts at the wall clock (seconds), so daily and cooldown limits hold across visits. */
+  const wall = deps.wall ?? (() => Date.now() / 1000);
   /** @type {Map<string, any>} */
   const kept = new Map();
   const store = preview ? { get: (/** @type {string} */ k) => kept.get(k) ?? null, set: (/** @type {string} */ k, /** @type {any} */ v) => { kept.set(k, structuredClone(v)); } } : deps.store;
@@ -185,7 +194,7 @@ export function createPoiDm(deps) {
     let r = runs.get(s.id);
     if (r && r.rev === s.rev) return r;
     if (r) dropRun(r);
-    const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local' });
+    const dm = createDm(s.doc, { char: deps.character?.() ?? 'local', player: 'local', ...(!act && !preview ? { now: wall() } : {}) });
     // Events that move items, gold, or a persistent variable are settled through `drain` under the server's rules: on
     // the server when online, against the character's inventory when offline, and against the temporary purse in
     // preview mode.
@@ -212,11 +221,12 @@ export function createPoiDm(deps) {
     } else {
       const was = store?.get(storeKey(r));
       if (was && typeof was === 'object') for (const [k, v] of Object.entries(was)) if (k in r.dm.vars) r.dm.vars[k] = v;
-      // Offline, a gift-only event can be claimed once across visits, matching the server's once-per-character rule
-      // (since every offline character uses ID `local`, that means once per device). In preview mode, claims live in
+      // Offline, a gift-only event can be claimed once across visits, matching the server's once-per-character rule,
+      // and a recipe's counts, days, and cooldowns also last across visits (keptClaim). Every offline character uses ID
+      // `local`, so each limit applies to the device as a whole, not to each character. In preview mode, claims live in
       // `claimsKept` for the duration of the test. Entries without a positive integer count `n` are ignored.
       const claimed = preview ? null : store?.get(claimsKey(r));
-      if (claimed && typeof claimed === 'object') for (const [k, c] of Object.entries(claimed)) if (k.startsWith('event/') && Number.isSafeInteger(c?.n) && c.n > 0) r.dm.claims[k] = { n: c.n, last: Number(c.last) || 0 };
+      if (claimed && typeof claimed === 'object') for (const [k, c] of Object.entries(claimed)) if (keptClaim(k) && Number.isSafeInteger(c?.n) && c.n > 0) r.dm.claims[k] = { n: c.n, last: Number(c.last) || 0 };
     }
     r.loaded = true;
   }
@@ -272,10 +282,12 @@ export function createPoiDm(deps) {
         deps.changed?.();
         logSettle(r, { k: 'trade', name: rec.name, took: { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, gave: { items: rec.rewardItems ?? [], gold: rec.rewardGold ?? 0 } });
       }
-      for (const c of claimRule(rec, { char: r.dm.char, player: r.dm.player, nowS: r.dm.now })) {
+      const rules = claimRule(rec, { char: r.dm.char, player: r.dm.player, nowS: r.dm.now });
+      for (const c of rules) {
         const k = `${trade}/${recipe}|${c.scope}`;
         r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now };
       }
+      if (rules.length && !act && !preview) saveClaims(r);
       say(tr('poi.dm.done', '{name}: done.', { name: rec.name }));
       if (rec.onSuccessEvent) runEvent(r.dm, rec.onSuccessEvent);
       saveVars(r);
@@ -334,12 +346,17 @@ export function createPoiDm(deps) {
       if (runs.get(r.id) === r && (r.dm.dialogue || r.dm.trade)) show(r);
     }
   }
-  /** Saves one-time gift event claims to device storage when offline. @param {any} r */
+  /** Saves this device's claims to device storage when offline (keptClaim), dropping daily claims of past days.
+   *  @param {any} r */
   function saveClaims(r) {
     if (!store) return;
     /** @type {Record<string, { n: number, last: number }>} */
     const out = {};
-    for (const [k, c] of Object.entries(r.dm.claims)) if (k.startsWith('event/')) out[k] = c;
+    const today = Math.floor(r.dm.now / DAY_S);
+    for (const [k, c] of Object.entries(r.dm.claims)) {
+      const day = /\|day:[^|]*:(\d+)$/.exec(k);
+      if (keptClaim(k) && !(day && Number(day[1]) < today)) out[k] = c;
+    }
     store.set(claimsKey(r), out);
   }
 
@@ -409,7 +426,9 @@ export function createPoiDm(deps) {
     if (!r.loaded) return people;
     const nowS = now(), dt = Math.min(1, Math.max(0, nowS - r.last));
     r.last = nowS;
-    advance(r.dm, dt);
+    // Offline, the run's clock follows the wall clock, so time while the tab is hidden counts for claims and delays;
+    // the frame step stays capped for walking and encounter timers.
+    advance(r.dm, !act && !preview ? Math.max(0, wall() - r.dm.now) : dt);
     followKeptStates(r.dm);
     const f = feet();
     // the trigger zones the player stepped into

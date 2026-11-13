@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: Offline, a POI trade's once-per-character, limited-stock, daily, and cooldown limits now last after a reload, on each device.
 - Fixed: A POI dialogue now drops an answer as soon as the event it started is done, instead of showing it until the next talk.
 - Fixed: Bodies of enemies killed in the in-game POI editor's Test no longer stay behind to be looted after the test ends.
 - Fixed: A POI's person walking a route over sloping ground no longer sinks into the ground.
