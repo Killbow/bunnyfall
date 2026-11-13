@@ -385,6 +385,12 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         section(e.name), text(t('poi.dm.name', 'Name'), [...p, 'name'], e.name), point(t('poi.dm.center', 'Center'), [...p, 'center'], e.center),
         num(t('poi.dm.encRadius', 'Starts when a player comes within (m)'), [...p, 'radius'], e.radius, { min: 1, max: 500, whole: false }),
         select(t('poi.dm.aggression', 'Its enemies'), [...p, 'aggression'], e.aggression, words(POI_AGGRESSION)),
+        (() => {
+          const c = /** @type {HTMLInputElement} */ (el('input')); c.type = 'checkbox'; c.checked = e.pacifiable !== false;
+          c.title = t('poi.dm.pacifiableHint', 'When unchecked, language skills and Pacify or Charm spells do not work on these enemies.');
+          c.addEventListener('change', () => run((dd) => { DM.setPacifiable(get(dd, p), c.checked); }));
+          return row(t('poi.dm.pacifiable', 'Enemies can be pacified'), c);
+        })(),
         select(t('poi.dm.respawn', 'Starts again'), [...p, 'respawn'], e.respawn, words(POI_RESPAWN)),
         ...wonRows(d, e),
         select(t('poi.dm.endsWhen', 'Ends when'), null, e.complete.rule, words(POI_COMPLETE_RULES), { onPick: (v) => run((dd) => { DM.setComplete(get(dd, p), v); }) }),

@@ -196,6 +196,10 @@ export function addSpawn(enc, foe, count, at, wanted = foeName(foe)) {
   enc.spawns.push(s);
   return { row: s };
 }
+/** @param {any} enc @param {boolean} on */
+export function setPacifiable(enc, on) {
+  if (on) delete enc.pacifiable; else enc.pacifiable = false;
+}
 /** The rule that ends an encounter. A leader rule names one spawn point; a timer rule a number of seconds. */
 export function setComplete(enc, rule, extra) {
   if (rule === 'all_dead') enc.complete = { rule };
@@ -404,11 +408,7 @@ export function addStack(rec, side, template, count = 1) {
   rows.push(s);
   return { row: s };
 }
-/**
- * Updates a stack's item, group, or material together: an invalid group falls back to the item's first group (omitted
- * when the item has only one), and a material is included only when the group offers it.
- * @param {any} s @param {{ template?: number, group?: string | null, material?: number | null }} to
- */
+/** @param {any} s @param {{ template?: number, group?: string | null, material?: number | null }} to */
 export function setStackItem(s, to) {
   if (to.template !== undefined) s.template = to.template;
   const groups = itemGroups(s.template);

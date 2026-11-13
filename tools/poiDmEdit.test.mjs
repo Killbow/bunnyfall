@@ -57,6 +57,20 @@ test('a stack includes a material only when its item takes one, and the law acce
   assert.deepEqual(problems(d), []);
 });
 
+test('an encounter is pacifiable unless set otherwise: turning it off writes the key, turning it on removes it', () => {
+  const d = poiV2Example();
+  const e = d.encounters[0];
+  const before = JSON.stringify(d);
+  DM.setPacifiable(e, true);
+  assert.equal(JSON.stringify(d), before, 'turning it on, the default, writes nothing');
+  DM.setPacifiable(e, false);
+  assert.equal(e.pacifiable, false);
+  assert.deepEqual(problems(d), []);
+  DM.setPacifiable(e, true);
+  assert.equal('pacifiable' in e, false);
+  assert.equal(JSON.stringify(d), before, 'the document is as it was');
+});
+
 test('removing a row something needs is refused with who needs it; links that may go are dropped with it', () => {
   const d = poiV2Example();
   const r = DM.removeRow(structuredClone(d), 'encounters', 'ambush');

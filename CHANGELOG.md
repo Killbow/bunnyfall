@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: The in-game POI editor can now set an encounter so that language skills and spells cannot pacify its enemies.
 - Fixed: The in-game POI editor draws routes as wide bands that rise over hills, with slow arrows that show which way people walk.
 - Fixed: The in-game POI editor's move, turn, and size handles brighten and grow under the cursor, with size boxes on the selection's faces and corners.
 - Fixed: A recipe in a POI trade named Event no longer shares its limit with a POI event that has the recipe's name, online or offline.

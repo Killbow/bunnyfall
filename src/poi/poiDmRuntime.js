@@ -13,6 +13,7 @@ import {
 } from './poiDmCore.js';
 import { takeStacks, takeGold, countOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
+import { encounterPacifiable } from './poiLawV2.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
 import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../systems/item/itemLaw.js';
 import { isStackable, ARROW_TEMPLATE, GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
@@ -147,7 +148,11 @@ const readsOnlyKept = (doc, c) => [...varsRead(c)].every((k) => persists(byKey(d
 export function poolFoes(pool) {
   return {
     spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => pool.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } })
-      .then((/** @type {any} */ f) => { if (f?.ai && o.hostile === false) f.ai.isHostile = false; return f; }),
+      .then((/** @type {any} */ f) => {
+        if (f?.ai && o.hostile === false) f.ai.isHostile = false;
+        if (f?.entity && o.pacifiable === false) f.entity.pacifyImmune = true;
+        return f;
+      }),
     isDown: (/** @type {any} */ f) => !!f?.corpse,
     removeFoe: (/** @type {any} */ f) => pool.removeFoe(f),
   };
@@ -544,7 +549,7 @@ export function createPoiDm(deps) {
             const a = (i / Math.max(1, sp.count)) * Math.PI * 2;
             const local = [sp.at[0] + Math.cos(a) * (sp.spread ?? 0), sp.at[1], sp.at[2] + Math.sin(a) * (sp.spread ?? 0)];
             const at = xform(s.place, local);
-            deps.spawnFoe(sp.foe, [at[0] + t[0], at[1] + t[1], at[2] + t[2]], { level: sp.level, hostile: e.aggression !== 'passive' })
+            deps.spawnFoe(sp.foe, [at[0] + t[0], at[1] + t[1], at[2] + t[2]], { level: sp.level, hostile: e.aggression !== 'passive', pacifiable: encounterPacifiable(e) })
               .then((f) => {
                 settled();
                 if (!f) return;

@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
 import * as dmRuntime from '../src/poi/poiDmRuntime.js';
+import { tryLanguagePacification } from '../src/scenes/hostCombat.js';
 
 const { createPoiDm, mintStack } = dmRuntime;
 const poolFoes = (/** @type {any} */ pool) => dmRuntime.poolFoes(pool);
@@ -120,6 +121,23 @@ test('a passive encounter stands its enemies not hostile; a hostile one keeps th
     await ambush(w);
     assert.equal(stood.length, 5);
     assert.ok(stood.every((f) => f.ai.isHostile === (aggression === 'hostile')), aggression);
+  }
+});
+
+test('an encounter with pacifiable false spawns enemies that language skills cannot pacify; by default they can be', async () => {
+  for (const pacifiable of [false, true, undefined]) {
+    const stood = [];
+    const foes = poolFoes({ spawnFoe: async (foe) => { const f = { foe, mobileType: foe, ai: { isHostile: true }, entity: {} }; stood.push(f); return f; }, removeFoe: () => {} });
+    const w = setup((d) => { if (pacifiable !== undefined) d.encounters[0].pacifiable = pacifiable; }, { spawnFoe: foes.spawnFoe });
+    await ambush(w);
+    assert.equal(stood.length, 5);
+    for (const f of stood) {
+      f.ai.justEncountered = true;
+      const got = tryLanguagePacification(f.ai, f.entity, f.mobileType, { skills: {} }, { enemyLanguageSkill: () => 1, calculateEnemyPacification: () => true });
+      assert.equal(f.ai.isHostile, pacifiable === false, `pacifiable ${pacifiable}`);
+      assert.equal(got?.pacified ?? false, pacifiable !== false);
+      assert.equal(f.entity.pacifyImmune, pacifiable === false ? true : undefined);
+    }
   }
 });
 
