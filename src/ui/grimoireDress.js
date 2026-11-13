@@ -2361,8 +2361,52 @@ ${sel('.hud-fill')} { background: ${longUp(k)}, var(--v-body); }`; }).join('\n')
 `;
 }
 
+/** BUNNYFALL READABLE-SHAPE (Killbunny: "its not only font, buttons are different, messy, causes the ui that looks good to
+ *  get distorted"): the kit sizes its presses, chips and words for the pack's pixel lettering (16 pixels, a plate's
+ *  padding to match). Worn with Enhanced Plus's lettering those sizes crowd and clip it. So the SHAPE a kit rule gives
+ *  (a word's size, a press's padding, height and gap) is said again under the lettering scope (GF) and left off
+ *  otherwise: Readable text lays a window out as Enhanced Plus does, in the Grimoire's paint; the pack's lettering
+ *  keeps its grid. Art cut to a size (the HUD, the level-up pages, the doors, the pack's spellbook, the doll's slots)
+ *  and the dress's own Alagard heads keep their sizes either way. */
+const SHAPE_ART = /\.hud|hud-|\.hb\b|\.lv-|\.px-home|px-dial|pace-step|wornrow|wornslot|shelflabel|rvncard|data-grim-spellbook|grim-sbarrow|\.sb-|px-qrail|px-qdetail|px-skillmeter|\.notice|px-title|\.px-menu|doorbtn|bigbtn|bigchoice|px-mhead|::-webkit|data-grim-cancel|data-grim-icon|packtab|\.px-tabs|\.px-win\b.*>\s*\.px-(body|tabs)|\.px-journal\s*(>|\{|$)|remotehead|rest-win\s+h2|packtip.*h3|inv-tip.*h3/;
+const SHAPE_PRESS = /subbtn|subrail|opt-search|opt-tools|opt-filters|\.chip\b|sec-jump|\.act\b|statflip-btn|dlg-btn|inv-menu|goldacts|actionbar|\.acts\b/;
+const SHAPE_ALWAYS = /^(font-size|line-height|letter-spacing)$/;
+const SHAPE_PRESSED = /^(padding(-(top|right|bottom|left))?|min-height|gap|row-gap|column-gap)$/;
+export function readableShape(css) {
+  const text = String(css).replace(/\/\*[\s\S]*?\*\//g, '');
+  let out = '', i = 0;
+  while (i < text.length) {
+    const open = text.indexOf('{', i);
+    if (open < 0) { out += text.slice(i); break; }
+    const prelude = text.slice(i, open).trim();
+    let depth = 1, j = open + 1;
+    while (j < text.length && depth) { if (text[j] === '{') depth++; else if (text[j] === '}') depth--; j++; }
+    const inner = text.slice(open + 1, j - 1);
+    i = j;
+    if (/^@(media|supports)\b/.test(prelude)) { out += `${prelude} {\n${readableShape(inner)}}\n`; continue; }
+    if (prelude.startsWith('@')) { out += `${prelude} {${inner}}\n`; continue; }
+    const sels = splitSelectors(prelude);
+    const art = sels.some((s) => SHAPE_ART.test(s)) || !sels.every((s) => s.startsWith(G) && !s.startsWith(GF) && !s.startsWith(GC));
+    const press = sels.some((s) => SHAPE_PRESS.test(s));
+    const all = decls(inner);
+    // a rule that writes the pack's lettering itself (the dress's Alagard heads) keeps its sizes
+    const lettered = all.some((d) => d.prop === 'font-family' && d.value.includes(GRIMOIRE_FAMILY));
+    if (art || lettered) { out += `${prelude} {${inner}}\n`; continue; }
+    const shape = [], keep = [];
+    for (const d of all) {
+      const text = `${d.prop}: ${d.value}`;
+      const moved = (SHAPE_ALWAYS.test(d.prop) && !(d.prop === 'font-size' && /^0(px)?(\s*!important)?$/.test(d.value)))
+        || (press && SHAPE_PRESSED.test(d.prop));
+      (moved ? shape : keep).push(text);
+    }
+    if (!shape.length) { out += `${prelude} {${inner}}\n`; continue; }
+    if (keep.length) out += `${prelude} { ${keep.join('; ')} }\n`;
+    out += `${sels.map((s) => GF + s.slice(G.length)).join(',\n')} { ${shape.join('; ')} }\n`;
+  }
+  return out;
+}
 /** The dress's whole static sheet: the face, the kit and the rosters. */
-export const grimoireKitCss = () => snapCss(`${faceCss()}\n${kitCss()}\n${rosterCss()}`);
+export const grimoireKitCss = () => snapCss(readableShape(`${faceCss()}\n${kitCss()}\n${rosterCss()}`));
 /** Every whole-pixel font size in a sheet moved to the face's grid (the kit's own, so it obeys its own law). */
 export const snapCss = (css) => css.replace(/font-size:\s*([\d.]+)px/g, (m, n) => `font-size: ${snapSize(+n)}px`);
 /** HUD-CLASS: the sheet evaluated once, as the dress lays it - the text the audit of the game's sheets reads
