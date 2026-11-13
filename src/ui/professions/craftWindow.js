@@ -50,7 +50,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, toActions: false, busy: false, word: null, count: 1, query: '', commit: null };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -413,6 +413,7 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
     if (gentle) { craft(false); return; }
     _cw.act = mountAct(S.act, actOptions(S.act, r, rank, p), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
+    seeIt(_cw.act?.el);
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
   card.append(actions);
@@ -439,6 +440,12 @@ function startPicks(form, book, rank, specs) {
   for (const slot of form.slots) {
     if (slot.optional) continue;
     picks[slot.id] = slot.defaultKey;
+    // BUNNYFALL (Atin'ora: "missing a tin, but for flux i can choose a different one"): a fitting the player holds none of
+    // the default for starts at one they hold - the list's state and the card's first picks say what can be made
+    if (slot !== form.slots[0] && slot.group && workOf(book, slot.defaultKey) < (slot.n ?? 1)) {
+      const held = slot.options.find((o) => workOf(book, o) >= (slot.n ?? 1));
+      if (held) picks[slot.id] = held;
+    }
   }
   const primary = form.slots[0];
   const ok = [...primary.options].reverse().find((o) => { const pl = planOf(form.id, { ...picks, [primary.id]: o }); return pl.ok && planStanding(pl, book, rank, specs).s === 'ready'; });
@@ -791,11 +798,18 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   const gentle = getPref('gentleActs') === true;
   actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
-    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
+    _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; _cw.toActions = true; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
+    seeIt(_cw.act?.el);   // BUNNYFALL (Sits-With-Drink): the game opens at the piece's top - brought into view
   }, !ready));
   if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
+  if (_cw.word) sum.append(h('div', 'cw-word', _cw.word));   // BUNNYFALL: what the last craft made, by the buttons for the next
   sum.append(actions);
+  if (_cw.toActions) { _cw.toActions = false; seeIt(actions); }   // and the buttons again when it ends, for the next craft
+}
+/** BUNNYFALL: bring an element of the page into view once it is drawn (a scaled pause book, a long page). */
+function seeIt(/** @type {any} */ el) {
+  globalThis.requestAnimationFrame?.(() => el?.isConnected && el.scrollIntoView?.({ block: 'center', behavior: 'smooth' }));
 }
 
 /** THE WORK's options for a plan: a part a chosen slot, its arc wider for a better-suited material and a higher rank. */
@@ -930,15 +944,16 @@ function drawRefine(root, rerender, p, station, run) {
 const _bench = { station: null, followed: null };
 const BENCH_STATIONS = Object.freeze(['anvil', 'workbench', 'loom', 'mason', 'jeweller']);
 /** `here` the station the player stands at (profPages stationHere), or null. Away, the lists are read and nothing is made. */
-export function drawBench(detail, rerender, p, here, toOld) {
+export function drawBench(detail, rerender, p, here, toOld, all = null) {
   ensureStyle();
   const stand = here && CW_STATIONS[here] ? here : null;
+  const at = (/** @type {string} */ s) => s === stand || !!all?.has?.(s);   // BUNNYFALL: every station of the room, not the first
   const list = stand === 'fire' ? [...BENCH_STATIONS, 'fire'] : BENCH_STATIONS;
   if (stand && _bench.followed !== stand) { _bench.station = stand; _bench.followed = stand; }   // arriving shows that station
   if (!stand) _bench.followed = null;
   if (!list.includes(_bench.station)) _bench.station = list[0];
   const chips = h('div', 'cw-chips');
-  for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${s === stand ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
+  for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${at(s) ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
   detail.append(chips);
-  drawCraftWindow(detail, rerender, p, _bench.station, toOld, _bench.station !== stand);
+  drawCraftWindow(detail, rerender, p, _bench.station, toOld, !at(_bench.station));
 }

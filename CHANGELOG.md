@@ -3,6 +3,12 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-13
+
+- The Bench now works at every crafting station in a room, so a home with a forge and a jeweller's bench lets you craft at both.
+- The crafting minigame scrolls into view when it starts, and the page scrolls back to the Craft buttons when it ends. What you just made shows by the buttons.
+- A flux, lining or other fitting now starts at one you actually hold, so the list no longer says "Missing 1 Tin" when another flux would do.
+
 ## 2026-11-12
 
 - Staff: the AI chat reviewer is gone, and so are the automatic spawn-check cases. Reports now only hold what players report, and the open automatic cases have been closed. A Monster watch flag now leaves a staff note on the player instead of opening a case.
