@@ -66,10 +66,10 @@ weapon (not arrows), a piece of armour or a trophy. A `paperdoll` is any other i
 
 An item stack is `{ template, group?, material?, count, recipe? }`. `recipe` names one of the game's 20 potions by its
 recipe name (`healing`, `healTrue`: the `name` field in `src/systems/potionRecipes.js`) and goes only on the Glass Bottle
-(template 83). The service mints that potion with the game's own potion maker; offline play and the in-game editor's
-Test still give an empty bottle for it. In the game and on the service, a stack with a `recipe` counts that recipe's
-plain and Potent potions, and a take spends Potent ones only when no plain one is left; a Glass Bottle stack without
-one matches only empty bottles. The Sandbox does not tell potions apart yet.
+(template 83). The service, offline play, and the in-game editor's Test mint that potion with the game's own potion
+maker. In the game and on the service, a stack with a `recipe` counts that recipe's plain and Potent potions, and a
+take spends Potent ones only when no plain one is left. A Glass Bottle stack without a `recipe` matches only empty
+bottles. The Sandbox tells potions apart by `recipe` (it holds no Potent potions).
 
 Events: triggers are `enter_area`, `interact`, `npc_talk`, `waypoint_reached` and `chained`. Conditions are `all`, `any`,
 `has_item`, `has_gold` and `var`, at most 16 checks and 4 levels. Actions are `say, set_var, set_state, start_encounter,

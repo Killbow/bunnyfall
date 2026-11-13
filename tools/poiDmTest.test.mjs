@@ -134,6 +134,10 @@ test('a reset copies the purse again and starts the run as authored', async () =
   assert.equal(session.addStack({ template: 71, count: 3 }), true);
   assert.equal(session.purse().now.goldPieces, 500);
   assert.equal(session.purse().now.items.length, 1);
+  assert.equal(session.addStack({ template: 83, recipe: 'healTrue', count: 2 }), true, 'a potion by name');
+  assert.deepEqual(session.purse().now.items[1], mintStack({ template: 83, recipe: 'healTrue', count: 2 }));
+  assert.equal(session.purse().now.items[1].value, 100);
+  assert.equal(session.addStack({ template: 83, recipe: 'nonsense', count: 1 }), false, 'a recipe the game does not know');
   session.reset();
   assert.deepEqual(session.purse().now, purseOf(character));
   assert.deepEqual(character, { items: [], goldPieces: 12 });

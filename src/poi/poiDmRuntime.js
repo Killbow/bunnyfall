@@ -11,11 +11,12 @@ import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
   createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
 } from './poiDmCore.js';
-import { takeStacks, takeGold, countOf, goldOf, eventClaim, recipeClaim } from './poiSettle.js';
+import { takeStacks, takeGold, countOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
 import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../systems/item/itemLaw.js';
-import { isStackable, ARROW_TEMPLATE } from '../systems/inventory.js';
+import { isStackable, ARROW_TEMPLATE, GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
+import { createPotion } from '../systems/loot/loot.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { createWeapon, weaponOfMaterial, armorOfMaterial } from '../combat/enemyEquipment.js';
@@ -89,14 +90,17 @@ export function deviceClaims(saved) {
   return out;
 }
 
-/** @param {{ template: number, group?: string, material?: number, count: number }} s */
+/** @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }} s */
 export function mintStack(s) {
   if (!lawTemplate(s.template)) return null;
   const group = s.group ?? templateGroups(s.template)[0];
   /** @type {any} */
   let item;
+  const potion = s.recipe === undefined ? null : potionKeyOf(s.recipe);
+  if (s.recipe !== undefined && (potion === null || group !== 'UselessItems1' || s.template !== GLASS_BOTTLE_TEMPLATE)) return null;
   if (group === 'Weapons' && s.template === ARROW_TEMPLATE) return { ...createWeapon(ARROW_TEMPLATE, 0, () => 0), stackCount: s.count };
-  if (group === 'Weapons') item = weaponOfMaterial(s.template, s.material ?? 0);
+  if (potion !== null) item = createPotion(potion);
+  else if (group === 'Weapons') item = weaponOfMaterial(s.template, s.material ?? 0);
   else if (group === 'Armor') item = armorOfMaterial(s.template, s.material ?? 0);
   else item = mintCondition(setItemFields({ group, templateIndex: s.template }));
   if (s.count > 1) item.stackCount = s.count;
@@ -112,7 +116,7 @@ const MATERIALS = Object.freeze({
   Armor: new Set(Object.entries(ARMOR_MATERIAL).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([, v]) => v)),
 });
 
-/** @param {{ template: number, group?: string, material?: number, count: number }[]} stacks */
+/** @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks */
 function mintEvent(stacks) {
   /** @type {any[]} */
   const out = [];

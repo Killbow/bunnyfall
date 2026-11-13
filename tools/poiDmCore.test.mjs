@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
-import { createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance, claimRule, eventRule, evalWhen, createWalker, stepWalker, needsService, valueOf } from '../src/poi/poiDmCore.js';
+import { createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance, claimRule, eventRule, evalWhen, ctxOf, createWalker, stepWalker, needsService, valueOf } from '../src/poi/poiDmCore.js';
 import { takeStacks, takeGold, giveGoods, countOf } from '../src/poi/poiSettle.js';
 
 const doc = () => poiV2Example();
@@ -128,6 +128,20 @@ test('the Sandbox counts a recipe in a trade keyed event separately from the eve
   assert.equal(runRecipe(dm, 'event', 'brew').ok, true);
   assert.deepEqual(dm.claims['trade/event/brew|char:sandbox'], { n: 1, last: 0 });
   assert.equal(recipeBlock(dm, 'event', 'brew'), 'limit');
+});
+
+test('the Sandbox tells potions apart by recipe, and a Glass Bottle without one is an empty bottle', () => {
+  const d = doc();
+  d.trades[0].recipes[0].requireItems = [{ template: 83, count: 1 }];
+  const dm = createDm(d, { items: [{ template: 83, recipe: 'healTrue', count: 2 }] });
+  assert.equal(recipeBlock(dm, 'nyra', 'brew'), 'items', 'a potion is not an empty bottle');
+  assert.equal(evalWhen({ k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 2 } }, ctxOf(dm)), true);
+  assert.equal(ctxOf(dm).count({ template: 83, count: 1 }), 0);
+  dm.items.push({ template: 83, count: 1 });
+  assert.equal(runRecipe(dm, 'nyra', 'brew').ok, true);
+  assert.deepEqual(dm.items, [{ template: 83, recipe: 'healTrue', count: 3 }], 'the empty bottle is taken and the brewed potion joins the others');
+  d.trades[0].recipes[0].requireItems = [{ template: 83, recipe: 'healing', count: 1 }];
+  assert.equal(recipeBlock(dm, 'nyra', 'brew'), 'items', 'a potion with another recipe does not count');
 });
 
 test('a stock runs out for everyone', () => {

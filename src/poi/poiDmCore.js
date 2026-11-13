@@ -107,7 +107,7 @@ export function recipeWhy(recipe, who, ctx, claimOf) {
 // ── the model of one visit ──────────────────────────────────────
 
 /**
- * @typedef {{ template: number, group?: string, material?: number, count: number }} Stack
+ * @typedef {{ template: number, group?: string, material?: number, recipe?: string, count: number }} Stack
  * @typedef {ReturnType<typeof createDm>} Dm
  */
 
@@ -151,8 +151,9 @@ export function createDm(doc, start = {}) {
   };
 }
 
-/** Is a held stack the item another names? A group or material counts only where both give one. @param {any} it @param {any} s */
-const itemIs = (it, s) => it.template === s.template && (s.group === undefined || it.group === undefined || it.group === s.group) && (s.material === undefined || it.material === s.material);
+/** @param {any} it @param {any} s */
+const itemIs = (it, s) => it.template === s.template && (s.group === undefined || it.group === undefined || it.group === s.group) && (s.material === undefined || it.material === s.material)
+  && it.recipe === s.recipe;
 
 /** What a model's items and gold look like to a condition. @param {Dm} dm */
 export function ctxOf(dm) {
@@ -175,7 +176,7 @@ const bump = (/** @type {Dm} */ dm, /** @type {string} */ claim, /** @type {{ sc
 
 /** Add a stack to the model's items, merging a plain one. @param {Dm} dm @param {Stack} s */
 export function giveStack(dm, s) {
-  const same = dm.items.find((it) => it.template === s.template && it.group === s.group && it.material === s.material);
+  const same = dm.items.find((it) => it.template === s.template && it.group === s.group && it.material === s.material && it.recipe === s.recipe);
   if (same) same.count += s.count; else dm.items.push({ ...s });
 }
 /** Take a stack from the model's items; false, and nothing taken, when it holds fewer. @param {Dm} dm @param {Stack} s */

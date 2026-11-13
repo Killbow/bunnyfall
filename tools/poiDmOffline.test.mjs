@@ -13,6 +13,7 @@ import { createPoiDm, mintStack, deviceClaims } from '../src/poi/poiDmRuntime.js
 import { createWeapon } from '../src/combat/enemyEquipment.js';
 import { ARROW_TEMPLATE } from '../src/systems/inventory.js';
 import { GOLD_INT_MAX } from '../src/systems/item/itemLaw.js';
+import { mintGift } from '../server-account/src/staffGive.js';
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -271,4 +272,28 @@ test('device claims carry an old name over with the larger count and the later t
   assert.deepEqual(got['trade/event/b|cool:local'], { n: 1, last: 7 });
   assert.equal(got['trade/x/y|char:local'], undefined, 'other names are not copied');
   assert.deepEqual(Object.keys(deviceClaims({ names: 2, 'event/a|global': { n: 2, last: 5 } })), ['event/a|global'], 'a store saved after the change is read as it is');
+});
+
+test('offline, a POI gives a named potion as the service mints it, and refuses a recipe the service refuses', async () => {
+  const gift = (item) => [{ key: 'potion', name: 'Potion', trigger: ZONE, then: [{ k: 'give_item', item }, { k: 'give_gold', amount: 1 }] }];
+  const w = setup(gift({ template: 83, recipe: 'healTrue', count: 2 }));
+  await w.visit();
+  const got = w.player.items.filter((it) => it.templateIndex === 83);
+  assert.deepEqual(got, [mintGift({ template: 83, recipe: 'healTrue', count: 2 }).item], 'two Heal True potions, as the service makes them');
+  assert.equal(got[0].value, 100);
+  for (const item of [{ template: 83, recipe: 'nonsense', count: 1 }, { template: 71, recipe: 'healTrue', count: 1 }]) {
+    const bad = setup(gift(item));
+    await bad.visit();
+    assert.deepEqual([bad.player.items.length, bad.player.goldPieces], [0, 0], `refused: ${JSON.stringify(item)}`);
+    assert.equal(mintGift(item).error, 'staff-item-template', 'the service refuses it too');
+  }
+});
+
+test('offline, a POI that takes a named potion takes only that potion, not empty bottles or other potions', async () => {
+  const take = [{ key: 'drink', name: 'Drink', trigger: ZONE, then: [{ k: 'take_item', item: { template: 83, recipe: 'healTrue', count: 1 } }, { k: 'give_gold', amount: 5 }] }];
+  const items = [mintStack({ template: 83, count: 3 }), mintStack({ template: 83, recipe: 'healing', count: 1 }), mintStack({ template: 83, recipe: 'healTrue', count: 2 })];
+  const w = setup(take, { items });
+  await w.visit();
+  assert.equal(w.player.goldPieces, 5);
+  assert.deepEqual(w.player.items.map((it) => [it.potionRecipeKey ?? 0, it.stackCount ?? 1]), [[0, 3], [items[1].potionRecipeKey, 1], [items[2].potionRecipeKey, 1]]);
 });

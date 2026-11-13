@@ -142,7 +142,7 @@ export function createPoiTest({ pack, say, feet, pool = null, gone = () => null,
     enemies: () => [...stood].filter((f) => (!pool || pool.foes?.includes(f)) && !f?.corpse).length,
     /** Starts the same test again: the character put back, a new copy of its purse and pack, and the draft as authored. */
     reset() { const was = on; if (!was) return false; stop(); return start(was.id, was.doc, was.sealed); },
-    /** Adds a stack to the throwaway pack (an item the builder wants to try a trade with). @param {{ template: number, count: number }} s */
+    /** @param {{ template: number, recipe?: string, count: number }} s */
     addStack(s) { const it = purse && mod?.mintStack(s); if (it) { giveGoods(purse, [it], 0); onChange(); } return !!it; },
     /** Sets the throwaway purse's gold. @param {number} n */
     setGold(n) { if (purse) { purse.goldPieces = Math.max(0, Math.floor(n) || 0); onChange(); } },
