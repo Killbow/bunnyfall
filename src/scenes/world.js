@@ -241,7 +241,7 @@ import { windDrive, floraSwayOn, gustPhaseAfterShift, gustClock } from '../syste
 import { WindWispsRenderer, wispsOn, SAND_LOOK } from '../render/windWisps.js';   // WIND3: the wind, seen; WEATHER2d: the sandstorm's sand in the same program
 import { HeatHazeRenderer } from '../render/heatHaze.js';   // HAZE1: Heat Haze's ring, drawn
 import { createHeatHaze, hazeFrameSettings } from '../systems/heatHaze.js';   // HAZE1: Heat Haze's law (demifiend000, vendor/heat-haze/)
-import { createEventPillar } from './eventPillarHost.js';   // BUNNYFALL: a purple column of light over each staff event running (visual only)
+import { playCry as playStaffCry } from '../systems/staffCries.js'; import { createEventPillar } from './eventPillarHost.js';   // BUNNYFALL: a purple column of light over each staff event running (visual only)
 import { createAtmosphereHost } from './atmosphereHost.js';   // ATMO1: the air's small life - fireflies, butterflies, petals, dust, shafts, far birds (visual only)
 import { createWindfallHost } from './windfallHost.js';   // WINDFALL1: Windfall (demifiend000, vendor/windfall/) - its wind, its sounds, its leaves
 import { createSnowfallHost, snowfallNetwork, authoredTiles, settlementsIn } from './snowfallHost.js';   // SNOWFALL1: Snowfall (demifiend000, vendor/snowfall/) - the snow on the ground, its tracks
@@ -20134,6 +20134,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     selfId: () => online?.id ?? null,
     wallNow: () => performance.now(),
     peersInTown: () => (peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => p.id),   // FIELD-RAID-FT: no room open (a fast travel between the old cell's room and the new) is nobody in town, never a null walked - the crash Discord reported arriving in a raided town
+    eventFoot: (raid) => eventPillar.footOf(raid),   // BUNNYFALL: a staff event's pillar foot - its monsters walk there first (systems/staffRally.js)
+    cry: (kind, raid) => { try { playStaffCry(audio, kind, eventPillar.footOf(raid) ?? [...enchantFeet()]); } catch (e) { console.warn('[event] cry', e?.message ?? e); } },   // BUNNYFALL: the town's screams as an event begins, the Forbidden One's cackle (systems/staffCries.js)
     sites: () => raidSites,   // RAID5: the town's places and people a raid's kind stands (scenes/raidSitesHost.js)
     peerFeetInTown: () => [[online?.id ?? '', player.feetAt(), playerEntity.level ?? 1], ...(peersNear() ?? []).filter((p) => _foeInTownRect({ ai: { feet: p.feet } })).map((p) => [p.id, p.feet, online?.peers.get(p.id)?.lv ?? 0])],   // PACK-SPREAD: where each player in the town stands, for its share of the packs; BOSS-SPOT: me first, and each one's level
     raidPuppets: () => exteriorFoes.foes.filter((f) => f.puppet && f._pupRaid),   // STAFF-EVENT THE REWARD: the fallen too - a puppet I fought that fell is my kill on the board
@@ -34312,7 +34314,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // DaggerfallSky.SetSkyFogColor (:318-325): anything denser than
     // heavy rain fogs to Color.gray, not to the sky tint.
     const fogNow = horizonFog(wxNow.fog, tvf);   // WX2: the row on the front (the table's own row, classic and settled); OW-HORIZON: under the travel view a linear row's haze runs on to the horizon (scenes/travelHorizon.js) - the same row on the ground
-    const fogColor = jungle ? jungle.haze({ fogColor: sky.fogColorFor(fogNow), fogRow: fogNow, eye: mwv.eye, dt, minute, weather, wind: wd.on ? wd.windV : null, sky }) : sky.fogColorFor(fogNow);   // DS1: the mod's own RenderSettings.fogColor while it is the sky; SetSkyFogColor over the horizon otherwise, as before; BANTHA1: and the jungle's haze over it - its uniforms, the sky's, the colour weighed with it, measured from the view's own eye (AUDIT BANTHA1 HOST-7: the fog's uCamPos)
+    const fogColor0 = jungle ? jungle.haze({ fogColor: sky.fogColorFor(fogNow), fogRow: fogNow, eye: mwv.eye, dt, minute, weather, wind: wd.on ? wd.windV : null, sky }) : sky.fogColorFor(fogNow);   // DS1: the mod's own RenderSettings.fogColor while it is the sky; SetSkyFogColor over the horizon otherwise, as before; BANTHA1: and the jungle's haze over it - its uniforms, the sky's, the colour weighed with it, measured from the view's own eye (AUDIT BANTHA1 HOST-7: the fog's uCamPos)
+    const eventSkyW = eventPillar.showing() ? eventPillar.skyWeight(mwv.eye) : 0;   // BUNNYFALL: the sky goes dark purple about a staff event's pillar (scenes/eventPillarHost.js)
+    const fogColor = eventSkyW > 0 ? eventPillar.tint(fogColor0, eventSkyW) : fogColor0;
     renderer.setFog(fogNow.mode,
       fogNow.density, fogNow.start, fogNow.end, fogColor);
     cromwark.fog(renderer, fogNow, fogColor);   // BUNNYFALL (Cromwark): the deep rings' purple haze
@@ -34323,6 +34327,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     sky.renderer.fogColor = fogColor;
     sky.renderer.fogMix = fogNow.excludeSky ? 0 : 1 - fogFactor(fogNow, 800);
+    if (eventSkyW > 0) sky.renderer.fogMix = Math.max(sky.renderer.fogMix, eventSkyW * 0.88);   // BUNNYFALL: the sky itself takes the purple
 
     meterFor(renderer.gl)?.markCpu('pools');   // PERF-SIM2: the gates, the Broker, the rite, the harbours, the camps, the quays, the monument
     // WB2: the gate stood for this frame - before the lights (its fire lights the ground) and the world pass (its stone)
@@ -35412,7 +35417,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();
     // BUNNYFALL: a staff event's pillar of purple light over its town (scenes/eventPillarHost.js), the same eye and fog
     if (eventPillar.showing() && eventPillar.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
-      { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
+      { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();
     // SD2c: THE HOLLOW'S OMEN - a Super dungeon's column of brass-gold light, after the gate's fire, the same eye and fog
     const sdo = sdHost ? sdOmenNow() : null;
     if (sdo && sdOmenPassOf()?.draw([sdo], proj, view, new Float32Array(mwv.eye), now / 1000,

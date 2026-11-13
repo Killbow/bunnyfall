@@ -117,6 +117,8 @@ import { enemyDisplayName } from '../characters/enemy/enemyBasics.js';   // STAF
 import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player's language
 import { createRaidMuster, musterSides, MUSTER_GATHER_STEP_S } from './raidMuster.js';
 import { RAID_STREETLESS } from './raidStreetless.js';   // BUNNYFALL: the towns struck off the raid table   // BUNNYFALL: the raid's camps, its waves gathering there and marching in
+import { SIFRIT_ID } from './sifrit/sifritLaw.js';
+import { rallyFoe, rallyStep } from './staffRally.js';   // BUNNYFALL: a staff event's monsters walk to its pillar first
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -593,6 +595,11 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
     if (kind === 'bearer' || kind === 'refugee') foe.raidGoal = p.key;   // AUDIT WORLD-EVENTS L6-5: its raiders' quarry first (enemyTargets.js), whatever infighting reads
     if (kind === 'bearer' && foe.entity && objOf(raid).share < 1) foe.entity.health = Math.max(1, Math.round(foe.entity.maxHealth * objOf(raid).share));   // AUDIT WORLD-EVENTS L4-6: raised again as he was let go - never a whole standard for a walk-off
     if (kind === 'leader') { promoteRaidLeader(foe.entity, { name: raidLeaderNameOf(foe.mobileType ?? mobileType) }); foe.entity.bossTraits = undefined; foe.entity.bossWard = undefined; giveBossTraits(foe.entity, rollBossTraits(RAID_LEADER_TRAITS, rnd())); }   // RAID5: the party's leader - an elite with two traits (AUDIT WORLD-EVENTS L2-6: its two in place of any its stand drew as an elite)
+    if (raid.staff && (kind === 'raider' || boss || mid)) {   // BUNNYFALL: a staff event's monsters head for its pillar first, so the players can find them; the Forbidden One laughs as she stands
+      const foot = () => h.eventFoot?.(raid) ?? null;
+      rallyFoe(foe, foot);
+      if ((boss || mid) && (foe.mobileType ?? mobileType) === SIFRIT_ID) h.cry?.('cackle', raid);
+    }
     const fights = boss || mid || kind === 'leader' || kind === 'raider';
     if (!_live.some((e) => e.foe === foe)) _live.push({ foe, key: p.key, kind: fights ? 'raider' : kind, boss, leader: kind === 'leader', routed: false, counted: false });   // WATCH-LEAVES: a defender called back from his walk off is the one already held
     if (fights) { foe.raidKey = p.key; if (!muster.adopt(o, foe)) aimRaider(raid, foe); }   // BUNNYFALL: a raider of a wave waits for it at the camp   // RAID2: it rides my frame tagged with its raid; RAID5: sent at its kind's objective
@@ -624,6 +631,7 @@ export function raidFrame(dt = 0) {
   staffPuppetKills(puppets, now);
   tallyDeaths(now);
   muster.step(dt);   // BUNNYFALL: the waves gather, march and are let loose
+  if (state.raids.some((r) => r.staff)) rallyStep(_live.map((e) => e.foe), (h.peerFeetInTown?.() ?? []).map((x) => x[1]));   // BUNNYFALL: a rallying monster fights once a player is near or it has come to the pillar
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }
@@ -663,7 +671,7 @@ export function raidFrame(dt = 0) {
     }
   }
   // STAFF-EVENT: an event in my region, said once
-  if (region >= 0) for (const r of staffRaids()) if (r.regionIndex === region && !r.announced) { r.announced = true; say(staffAttackLine(r), r); }
+  if (region >= 0) for (const r of staffRaids()) if (r.regionIndex === region && !r.announced) { r.announced = true; say(staffAttackLine(r), r); host().cry?.('scream', r); }
   // F. is the player standing in a raid [IL_0de4]? STAFF-EVENT: in a staff event first - a town's, as a raid's; an
   // area's, outdoors on its pixel (the host's `townHere(true)`: outdoors at all)
   const town = h.townHere?.() ?? null;
@@ -1380,6 +1388,7 @@ function staffRelayWord(sev, room) {
     if (!r || r.announced || !r.staff.an) return false;
     r.announced = true;
     say(staffAttackLine(r), r);
+    host().cry?.('scream', r);
     return true;
   }
   if (sev.k === 'end') return staffEventEnd(sev.id, sev.why);
