@@ -656,7 +656,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     /** Shown or put away (the bar's DM button). */
     toggle() { if (ui.on) api.close(); else api.open(ui.tab, ui.key); },
     /** Shown at a tab and row. @param {string} tab @param {string | null} [key] */
-    open(tab, key = null) { ui.on = true; ui.tab = tab in TAB ? tab : 'routes'; ui.key = key; editor.setOverlay?.((/** @type {(id: string) => any} */ placeOf) => lines(placeOf)); render(); },
+    open(tab, key = null) { ui.on = true; ui.tab = tab in TAB ? tab : 'routes'; ui.key = key; editor.setOverlay?.((/** @type {(id: string) => any} */ placeOf, /** @type {(x: number, z: number) => number} */ groundAt, /** @type {number} */ epoch) => lines(placeOf, groundAt, epoch)); render(); },
     close() { ui.on = false; editor.setOverlay?.(null); sandbox.stop(); render(); },
     isOn: () => ui.on,
     /** A problem's path (`events[2].then[0].var`): its tab and row opened, when it is a DM row. @param {string} path */
@@ -671,12 +671,13 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     sandbox,
     destroy() { gone = true; offEdit(); editor.setOverlay?.(null); dock.remove?.(); },
   };
-  /** The world's lines for the selected POI while the panel is open. @param {(id: string) => any} placeOf */
-  function lines(placeOf) {
+  /** @param {(id: string) => any} placeOf
+   *  @param {(x: number, z: number) => number} [groundAt] @param {number} [epoch] */
+  function lines(placeOf, groundAt, epoch = 0) {
     const i = id(), d = getDoc();
     const toScene = i ? placeOf(i) : null;
     if (!ui.on || !d || !toScene) return null;
-    return dmLines(d, { tab: ui.tab, key: ui.key }, toScene);
+    return dmLines(d, { tab: ui.tab, key: ui.key }, toScene, groundAt, epoch);
   }
   return api;
 }

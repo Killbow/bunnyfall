@@ -57,11 +57,9 @@ export const POI_EYE_ACTIONS = Object.freeze(['MoveForwards', 'MoveBackwards', '
 export const POI_PICK_REACH = 6000;
 /** A drag begins once the pointer has moved this far (CSS px) - a click that wobbled is still a click. */
 export const POI_CLICK_SLOP = 4;
-/** The handles' colours: x red, y green, z blue, the view's and all-axes white, a hovered one yellow. */
 export const POI_HANDLE_COLOR = Object.freeze({
-  x: [0.93, 0.27, 0.27, 1], y: [0.45, 0.85, 0.3, 1], z: [0.3, 0.55, 0.98, 1],
-  xy: [0.3, 0.55, 0.98, 0.9], yz: [0.93, 0.27, 0.27, 0.9], xz: [0.45, 0.85, 0.3, 0.9],
-  view: [0.95, 0.95, 0.95, 1], all: [0.95, 0.95, 0.95, 1], hover: [1, 0.86, 0.2, 1],
+  x: [0.9, 0.16, 0.14, 1], y: [0.2, 0.38, 1, 1], z: [0.2, 0.78, 0.18, 1],
+  view: [0.92, 0.92, 0.92, 1], all: [0.85, 0.85, 0.85, 1], hover: [1, 0.86, 0.2, 1],
 });
 /** A selected POI's boxes, a selected part's, and the placing mark. */
 export const POI_BOX_COLOR = Object.freeze({ poi: [1, 0.7, 0.25, 0.9], part: [1, 0.86, 0.2, 1], ghost: [0.6, 0.9, 1, 1], person: [0.75, 0.6, 1, 0.9], locked: [0.6, 0.6, 0.6, 0.7] });
@@ -112,7 +110,6 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let press = null;
   /** @type {null | { kind: 'poi', name: string } | { kind: 'part', asset: any, fallbackName?: string } | { kind: 'spot', id: string, done: (p: number[]) => void } | { kind: 'flat', flat: any, fallbackName?: string }} */
   let placing = null;
-  /** The DM panel's lines (ui/poi/poiDmPanel.js): `(placeOf) => ({ inWorld, onTop }) | null`, drawn with the editor's own. */
   let overlay = null;
   /** @type {number[] | null} */
   let placeAt = null;   // where the placing mark stands (scene frame)
@@ -423,7 +420,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       const g = surfaceAt(v.eye[0], v.eye[2]);
       return worldToPlace(doc.place, sub([v.eye[0], Number.isFinite(g) ? g : o[1], v.eye[2]], o));
     },
-    /** The DM panel's lines, or null for none. @param {any} fn */
+    /** @param {any} fn */
     setOverlay(fn) { overlay = fn ?? null; },
 
     /**
@@ -659,7 +656,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       if (overlay) {
         // a point of POI `id`'s own frame in the scene's, through its place (null while its ground is not built)
         const placeOf = (/** @type {string} */ id) => { const doc = edit.docOf(id), o = doc ? originOfDoc(doc) : null; return o ? (/** @type {number[]} */ p) => add(o, mul(quatRotate(doc.place.r, p), doc.place.s)) : null; };
-        const more = overlay(placeOf);
+        const more = overlay(placeOf, surfaceAt);
         if (more) { for (const l of more.inWorld) inWorld.push(l); for (const l of more.onTop) onTop.push(l); }
       }
       // the box being drawn
@@ -670,7 +667,8 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       }
       const g = gizmo();
       const sweep = g && drag?.state?.mode === 'turn' && !drag.state.along && drag.last?.turn ? { handle: drag.handle, from: sub(drag.state.hit0, drag.state.c), axis: drag.state.axis, deg: drag.last.turn.deg } : null;
-      const gizmoSet = g ? gizmoDraw(g, { hot: drag ? drag.handle : hover, colors: POI_HANDLE_COLOR, sweep, snapDeg: snapNow()?.turn ?? 0 }) : null;
+      const guide = g && drag?.state?.mode === 'move' && drag.state.axis ? { axis: drag.state.axis, from: sub(g.c, drag.last?.move ?? [0, 0, 0]), step: snapNow()?.move ?? 0 } : null;
+      const gizmoSet = g ? gizmoDraw(g, { hot: drag ? drag.handle : hover, colors: POI_HANDLE_COLOR, sweep, snapDeg: snapNow()?.turn ?? 0, guide }) : null;
       return { inWorld, onTop, gizmo: gizmoSet };
     },
     // Single call from world.js's frame loop to stay under V8's function-size limit; returns whether any batch drew.
@@ -683,7 +681,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       const v = view(), scale = v && vh ? vh / (v.h * (v.rect?.h ?? 1)) : 0, px = 3;
       const a = pass.draw(proj, viewM, inWorld, { onTop: false, vw, vh, scale, px, toEye: 0.4 }), b = pass.draw(proj, viewM, onTop, { onTop: true, vw, vh, scale, px });
       const c = gz ? pass.draw(proj, viewM, gz.lines, { onTop: true, vw, vh, scale, alpha: GIZMO_DIM, tris: gz.tris }) : false;
-      const d = gz ? pass.draw(proj, viewM, gz.lines, { onTop: false, vw, vh, scale, tris: gz.tris, toEye: gz.L * 0.5 }) : false;
+      const d = gz ? pass.draw(proj, viewM, gz.lines, { onTop: false, vw, vh, scale, tris: gz.tris, toEye: gz.L }) : false;
       return a || b || c || d;
     },
     /** The selection's pivot (the gizmo's centre) - the UI's readout and a test's. */

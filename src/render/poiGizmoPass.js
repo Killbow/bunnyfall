@@ -13,21 +13,22 @@
 import { buildProgram } from './glProgram.js';
 import { telegraphLineW } from './gate/gateTelegraph.js';
 
-const FLOATS = 13;   // aA xyz, aB xyz, aM (side, end), aC rgba, aW
+const FLOATS = 14;   // aA xyz, aB xyz, aM (side, end), aC rgba, aW, aF
 const VERTS = 6;     // two triangles a segment
 const CORNERS = Object.freeze([-1, 0, 1, 0, 1, 1, -1, 0, 1, 1, -1, 1]);
-const MESH_FLOATS = 13;   // aP xyz, aD xyz, aO (along, across), aC rgba, aE
+export const MESH_FLOATS = 14;
 
 export const ROUTE_BAND = Object.freeze({ width: 0.3, minPx: 8, speed: 0.8, spacing: 1.6 });
 export const ARROW_VERTS = 12;
-const DISC = 8;   // sectors of the half disc at each end of a band segment
+const DISC = 8;
+const LINE_FEATHER = 0.35;   // sectors of the half disc at each end of a band segment
 const NO_TRIS = Object.freeze([]);
 
 const LINES_OUT = { data: /** @type {Float32Array} */ (new Float32Array(0)), count: 0 };
 const MESH_OUT = { data: /** @type {Float32Array} */ (new Float32Array(0)), count: 0, arrows: 0, arrowAt: 0 };
 
 /**
- * @param {ReadonlyArray<{ a: number[], b: number[], color: number[], w?: number, band?: any }>} lines
+ * @param {ReadonlyArray<{ a: number[], b: number[], color: number[], w?: number, feather?: number, tube?: boolean, band?: any }>} lines
  * @param {Float32Array | null} [out] @param {number} [px]
  */
 export function packLines(lines, out = null, px = 2) {
@@ -39,12 +40,13 @@ export function packLines(lines, out = null, px = 2) {
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (l.band) continue;
-    const a = l.a, b = l.b, color = l.color, w = l.w ?? px;
+    // a tube's feather is written negative
+    const a = l.a, b = l.b, color = l.color, w = l.w ?? px, f = (l.feather ?? LINE_FEATHER) * (l.tube ? -1 : 1);
     for (let k = 0; k < 12; k += 2) {
       data[o++] = a[0]; data[o++] = a[1]; data[o++] = a[2]; data[o++] = b[0]; data[o++] = b[1]; data[o++] = b[2];
       data[o++] = CORNERS[k]; data[o++] = CORNERS[k + 1];
       data[o++] = color[0]; data[o++] = color[1]; data[o++] = color[2]; data[o++] = color[3] ?? 1;
-      data[o++] = w;
+      data[o++] = w; data[o++] = f;
     }
   }
   LINES_OUT.data = data; LINES_OUT.count = n * VERTS;
@@ -62,8 +64,8 @@ function setColor(c) { VX[8] = c[0]; VX[9] = c[1]; VX[10] = c[2]; VX[11] = c[3] 
 const WING_ALONG = Object.freeze([0, 1, 2, 0, 2, 3]), WING_OUT = Object.freeze([0, 1, 1, 0, 1, 0]);
 
 /**
- * @param {ReadonlyArray<{ a: number[], b: number[], c: number[], color: number[] }>} tris @param {number} t
- * @param {ReadonlyArray<{ a: number[], b: number[], color: number[], band?: { s: number, total: number, flow: string } }>} lines @param {Float32Array | null} [out]
+ * @param {ReadonlyArray<{ a: number[], b: number[], c: number[], color: number[], ca?: number[], cb?: number[], cc?: number[] }>} tris @param {number} t
+ * @param {ReadonlyArray<{ a: number[], b: number[], color: number[], band?: { s: number, total: number, flow: string, d?: number } }>} lines @param {Float32Array | null} [out]
  */
 export function packMesh(tris, lines, t, out = null) {
   const SP = ROUTE_BAND.spacing;
@@ -71,8 +73,8 @@ export function packMesh(tris, lines, t, out = null) {
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i], bd = l.band;
     if (!bd) continue;
-    const x = l.b[0] - l.a[0], y = l.b[1] - l.a[1], z = l.b[2] - l.a[2];
-    need += 6 + 2 * DISC * 3 + (bd.flow === 'pingpong' ? 2 : 1) * (Math.floor((1.5 * Math.sqrt(x * x + y * y + z * z)) / SP) + 2) * ARROW_VERTS;
+    const x = l.b[0] - l.a[0], y = l.b[1] - l.a[1], z = l.b[2] - l.a[2], ln = Math.max(Math.sqrt(x * x + y * y + z * z), bd.d ?? 0);
+    need += 6 + 2 * DISC * 3 + (bd.flow === 'pingpong' ? 2 : 1) * (Math.floor((1.5 * ln) / SP) + 2) * ARROW_VERTS;
   }
   need *= MESH_FLOATS;
   const data = out && out.length >= need ? out : new Float32Array(Math.max(need, (out?.length ?? 0) * 2, 256 * MESH_FLOATS));
@@ -80,12 +82,12 @@ export function packMesh(tris, lines, t, out = null) {
   VX.fill(0);
   for (let i = 0; i < tris.length; i++) {
     const q = tris[i];
-    setColor(q.color);
-    setP(q.a); o = emit(data, o);
-    setP(q.b); o = emit(data, o);
-    setP(q.c); o = emit(data, o);
+    setColor(q.ca ?? q.color); setP(q.a); o = emit(data, o);
+    setColor(q.cb ?? q.color); setP(q.b); o = emit(data, o);
+    setColor(q.cc ?? q.color); setP(q.c); o = emit(data, o);
   }
   const H = ROUTE_BAND.width / 2;
+  VX[13] = 1;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (!l.band) continue;
@@ -111,7 +113,6 @@ export function packMesh(tris, lines, t, out = null) {
   }
   const arrowAt = o / MESH_FLOATS;
   let arrows = 0;
-  VX[12] = 0;
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i];
     if (!l.band) continue;
@@ -121,19 +122,21 @@ export function packMesh(tris, lines, t, out = null) {
     VX[3] = dx; VX[4] = dy; VX[5] = dz;
     VX[8] = col[0] + (1 - col[0]) * 0.8; VX[9] = col[1] + (1 - col[1]) * 0.8; VX[10] = col[2] + (1 - col[2]) * 0.8; VX[11] = col[3] ?? 1;
     const bd = l.band, P = bd.flow === 'loop' && bd.total > SP ? bd.total / Math.round(bd.total / SP) : SP;
-    const s0 = bd.s, both = bd.flow === 'pingpong';
+    const s0 = bd.s, both = bd.flow === 'pingpong', dn = bd.d > 0 ? bd.d : ln, stretch = ln / dn;
     const phase = (((ROUTE_BAND.speed * t) % P) + P) % P;
     for (let lane = 0; lane < (both ? 2 : 1); lane++) {
       const dir = lane ? -1 : 1, c = both ? (lane ? H / 2 : -H / 2) : 0, h = both ? H * 0.45 : H * 0.75;
       const depth = h * 1.2 * dir, thick = h * 0.85 * dir, first = dir > 0 ? phase : P - phase;
-      for (let s = first + Math.ceil((s0 - first) / P) * P; s < s0 + ln; s += P) {
-        const at = s - s0;
+      VX[13] = (0.5 * Math.abs(thick) * h) / Math.sqrt(depth * depth + h * h) / H;
+      for (let s = first + Math.ceil((s0 - first) / P) * P; s < s0 + dn; s += P) {
+        const at = (s - s0) * stretch;
         VX[0] = a[0] + dx * at; VX[1] = a[1] + dy * at; VX[2] = a[2] + dz * at;
         for (let side = -1; side <= 1; side += 2) {
           for (let v = 0; v < 6; v++) {
             const w = WING_ALONG[v];
             VX[6] = w === 0 ? 0 : w === 1 ? -depth : w === 2 ? -depth - thick : -thick;
             VX[7] = WING_OUT[v] ? c + side * h : c;
+            VX[12] = w < 2 ? 1 : -1;
             o = emit(data, o);
           }
         }
@@ -152,6 +155,7 @@ layout(location = 1) in vec3 aB;
 layout(location = 2) in vec2 aM;   // its side (-1, 1), its end (0, 1)
 layout(location = 3) in vec4 aC;
 layout(location = 4) in float aW;  // CSS px
+layout(location = 5) in float aF;  // the share of the half-width faded at each edge, negative for a tube
 uniform mat4 uVP;
 uniform vec2 uViewport;   // px
 uniform float uScale;     // px a CSS px
@@ -160,12 +164,16 @@ uniform vec3 uEye;
 uniform float uToEye;     // meters each end is moved toward the eye along its own ray, for the depth test alone
 out vec4 vC;
 out float vSide;   // -1 to 1 across the line: its edges feathered (a handle's line reads smooth at any angle)
+out float vF;
+out float vTube;
 vec3 nearer(vec3 p) { vec3 e = uEye - p; float l = length(e); return l > 1e-6 ? p + e / l * min(uToEye, l * 0.5) : p; }
 void main() {
   vec4 ca = uVP * vec4(nearer(aA), 1.0), cb = uVP * vec4(nearer(aB), 1.0);
   const float E = 0.01;   // an end behind the eye: the segment cut at the near side
   vC = vec4(aC.rgb, aC.a * uAlpha);
   vSide = aM.x;
+  vF = max(abs(aF), 1e-3);
+  vTube = aF < 0.0 ? 1.0 : 0.0;
   if (ca.w < E && cb.w < E) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
   if (ca.w < E) ca = mix(ca, cb, (E - ca.w) / (cb.w - ca.w));
   else if (cb.w < E) cb = mix(cb, ca, (E - cb.w) / (ca.w - cb.w));
@@ -182,9 +190,14 @@ export const POI_LINES_FS = `#version 300 es
 precision highp float;
 in vec4 vC;
 in float vSide;
+in float vF;
+in float vTube;
 layout(location = 0) out vec4 o;
-const float FEATHER = 0.35;   // the share of the half-width faded out at each edge
-void main() { o = vec4(vC.rgb, vC.a * clamp((1.0 - abs(vSide)) / FEATHER, 0.0, 1.0)); }`;
+// a tube is lit across its width as a round bar seen side on: brightest along its middle, darker toward its edges
+void main() {
+  float k = vTube > 0.5 ? 0.62 + 0.38 * sqrt(max(0.0, 1.0 - vSide * vSide)) : 1.0;
+  o = vec4(vC.rgb * k, vC.a * clamp((1.0 - abs(vSide)) / vF, 0.0, 1.0));
+}`;
 
 export const POI_MESH_VS = `#version 300 es
 precision highp float;
@@ -193,6 +206,7 @@ layout(location = 1) in vec3 aD;
 layout(location = 2) in vec2 aO;
 layout(location = 3) in vec4 aC;
 layout(location = 4) in float aE;
+layout(location = 5) in float aK;
 uniform mat4 uVP;
 uniform vec3 uEye;
 uniform float uFocal;     // px a meter at one meter
@@ -202,6 +216,7 @@ uniform float uAlpha;
 uniform float uToEye;
 out vec4 vC;
 out float vE;
+out float vK;
 out float vHalfPx;   // the band's half-width on screen here, px
 void main() {
   vec3 side = cross(aD, uEye - aP);
@@ -215,14 +230,19 @@ void main() {
   gl_Position = uVP * vec4(el > 1e-6 ? p + e / el * min(uToEye, el * 0.5) : p, 1.0);
   vC = vec4(aC.rgb, aC.a * uAlpha);
   vE = aE;
+  vK = aK;
 }`;
 export const POI_MESH_FS = `#version 300 es
 precision highp float;
 in vec4 vC;
 in float vE;
+in float vK;
 in float vHalfPx;
 layout(location = 0) out vec4 o;
-void main() { o = vec4(vC.rgb, vC.a * clamp((1.0 - abs(vE)) * vHalfPx, 0.0, 1.0)); }`;
+void main() {
+  float d = (1.0 - abs(vE)) * vK * vHalfPx;
+  o = vec4(vC.rgb, vC.a * (vK > 0.0 ? clamp(d + 0.5, 0.0, 1.0) : 1.0));
+}`;
 
 export class PoiGizmoPass {
   /** @param {WebGL2RenderingContext} gl */
@@ -244,6 +264,7 @@ export class PoiGizmoPass {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, S, 24);
     gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, S, 32);
     gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, S, 48);
+    gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, S, 52);
     const M = MESH_FLOATS * 4;
     this.meshVao = gl.createVertexArray();
     gl.bindVertexArray(this.meshVao);
@@ -254,6 +275,7 @@ export class PoiGizmoPass {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, M, 24);
     gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.FLOAT, false, M, 32);
     gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 1, gl.FLOAT, false, M, 48);
+    gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, M, 52);
     gl.bindVertexArray(null);
     /** @type {Float32Array | null} */
     this.data = null;
