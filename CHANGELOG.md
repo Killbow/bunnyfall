@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: A POI that asks for a Glass Bottle now counts and takes only empty bottles, never one of your potions.
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.
 - A staff event's monsters now stand near its pillar, so players can find them there. The Forbidden One lets out an evil cackle when she appears. (The voices are the game's existing clips for now.)
 - A staff event now shows a column of purple light rising from its town, seen from a few map pixels away, so players can find it.

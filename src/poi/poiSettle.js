@@ -7,14 +7,29 @@
 
 import { templateGroups } from '../systems/item/itemLaw.js';
 import { tradeableRecord, recordCount } from '../net/realm/realmTradeLaw.js';
+import { GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
+import { POTION_RECIPES, potionRecipeKey } from '../systems/potionRecipes.js';
 
 /** The group an item stack names: its own, or its template's first. @param {any} s */
 const groupOf = (s) => s.group ?? templateGroups(s.template)[0];
 
-/** Does this record hold the item a stack names? A material only counts where the stack gives one. @param {any} rec @param {any} s */
+/** Maps each potion recipe name (`healing`, `healTrue`) to its numeric recipe key. */
+const POTION_KEYS = new Map(POTION_RECIPES.map((r) => [r.name, potionRecipeKey(r.ingredients)]));
+/** Returns the numeric recipe key for a stack's `recipe` name, or null if unknown. @param {unknown} name */
+export const potionKeyOf = (name) => (typeof name === 'string' ? POTION_KEYS.get(name) ?? null : null);
+
+/**
+ * Does this record hold the item a stack names? A material only counts where the stack gives one. On a potion (the
+ * Glass Bottle template) a stack with a `recipe` matches only that recipe's plain potion, never a Potent one, and a
+ * stack without one matches only an empty bottle, so a take never removes a potion the stack did not name.
+ * @param {any} rec @param {any} s
+ */
 export function recordMatches(rec, s) {
   if (!rec || rec.templateIndex !== s.template || rec.group !== groupOf(s)) return false;
-  return s.material === undefined || rec.material === s.material;
+  if (s.material !== undefined && rec.material !== s.material) return false;
+  if (rec.group !== 'UselessItems1' || rec.templateIndex !== GLASS_BOTTLE_TEMPLATE) return true;
+  if (s.recipe === undefined) return !rec.potionRecipeKey;
+  return potionKeyOf(s.recipe) !== null && rec.potionRecipeKey === potionKeyOf(s.recipe) && !rec.potent;
 }
 
 /** How many of a stack's item a save holds, worn or not. @param {any} save @param {any} s */
@@ -32,7 +47,7 @@ export const goldOf = (save) => (Number.isSafeInteger(save?.goldPieces) && save.
  * smallest stack first. The list and the records that stay keep their identity (a live pack is held by reference
  * elsewhere), so a stack that gives part of itself is counted down and one that gives all is removed. Answers
  * `{ ok: true }`, or `{ ok: false, why: 'items' }` with nothing changed.
- * @param {any} save @param {{ template: number, group?: string, material?: number, count: number }[]} stacks
+ * @param {any} save @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
  */
 export function takeStacks(save, stacks) {
   if (!Array.isArray(save?.items)) return stacks.length ? { ok: false, why: 'items' } : { ok: true };
