@@ -18,7 +18,7 @@ import { firmamentStats } from '../../systems/firmamentLive.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, FOCUS_CHANGE_MARKS, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
 import { PROF_RANK_MAX } from '../../net/professionLaw.js';   // CRAFTWORK: entered at the top rank
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
@@ -92,6 +92,9 @@ const CSS = `
 .cw-q0 { background: #6b5d4a; } .cw-q1 { background: #8a8a80; } .cw-q2 { background: #6aa0c8; } .cw-q3 { background: #9b7ad0; } .cw-q4 { background: #e0b050; }
 .cw-sw { display: inline-block; width: 10px; height: 10px; margin-right: 4px; vertical-align: -1px; }
 .cw-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.cw-help-btn { margin-bottom: 8px; }
+.cw-help { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.cw-help .cw-help-p { font-size: 14px; color: #d8d0bc; margin: 0 0 4px; }
 .cw-word { padding: 8px 12px; border-left: 3px solid #d9b45a; background: rgba(217,180,90,0.08); }
 .cw-note { color: #b8b09a; font-size: 13px; margin: 0; }
 .cw-stats { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0 8px; }
@@ -941,7 +944,7 @@ function drawRefine(root, rerender, p, station, run) {
 
 // ─── THE BENCH PAGE (the Crafting tab): every station's list, read anywhere, made at the station ─────────
 
-const _bench = { station: null, followed: null };
+const _bench = { station: null, followed: null, help: false };
 const BENCH_STATIONS = Object.freeze(['anvil', 'workbench', 'loom', 'mason', 'jeweller']);
 /** `here` the station the player stands at (profPages stationHere), or null. Away, the lists are read and nothing is made. */
 export function drawBench(detail, rerender, p, here, toOld, all = null) {
@@ -952,8 +955,29 @@ export function drawBench(detail, rerender, p, here, toOld, all = null) {
   if (stand && _bench.followed !== stand) { _bench.station = stand; _bench.followed = stand; }   // arriving shows that station
   if (!stand) _bench.followed = null;
   if (!list.includes(_bench.station)) _bench.station = list[0];
+  // BUNNYFALL (Killbunny: "on the craft page can you add a tutorial button that explains the system"): how the Bench works
+  detail.append(button(`cw-chip cw-help-btn${_bench.help ? ' cw-on' : ''}`, _bench.help ? 'Hide how crafting works' : 'How crafting works', () => { _bench.help = !_bench.help; rerender(); }));
+  if (_bench.help) detail.append(benchHelp());
   const chips = h('div', 'cw-chips');
   for (const s of list) chips.append(button(`cw-chip${_bench.station === s ? ' cw-on' : ''}`, `${CW_STATIONS[s].name}${at(s) ? ' (here)' : ''}`, () => { if (_cw.act) return; _bench.station = s; rerender(); }));
   detail.append(chips);
   drawCraftWindow(detail, rerender, p, _bench.station, toOld, !at(_bench.station));
+}
+
+/** BUNNYFALL: THE BENCH'S HOW-TO - the crafting rework in a player's words (Potential, quality, Focus, The Work, the
+ *  materials' effects, Craftwork). Every number is the law's own (craftLaw.js FOCUS_MAX, FOCUS_CHANGE_MARKS). */
+const BENCH_HELP = Object.freeze([
+  ['The Bench', 'Every piece is made here. Pick a station at the top, then an item from the list. You can read any list anywhere, but you craft at the matching station: a shop (it takes a fee), your home, your company hall or a caravan. Materials come from your Stores, your Materials Bag and your pack.'],
+  ['Materials', 'The main material makes the piece (Steel makes a Steel Dagger). Fittings such as a flux, a grip or a lining are your choice: any one you hold works. Each item says what it wants, for example hardness and lightness. Materials that suit it better give it a higher Potential.'],
+  ['Potential and quality', 'Potential is the best quality the materials can give. Your rank over the item\'s rank rolls the quality, and it never goes above Potential. Your perk at rank 50 adds a step, and so does a Company hall in a town your guild holds. The odds bar shows your chances before you craft.'],
+  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, on the Professions page of this tab or at the top of the list here. Only a Focus craft can reach Masterwork and earns full experience. Anything else stops at Superior and earns half. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} silver.`],
+  ['The Work (the minigame)', 'Craft (minigame) plays The Work. A clean run raises your quality odds, and every true strike pushes the material effects toward their best. Craft, skip the game makes the piece at your plain odds.'],
+  ['Material effects', `Each material leans a piece four ways. H is damage or armour, T is condition, L is weight and A is enchantment power, each up to ${CRAFT_SWING}% better or worse. The card shows the range before you craft.`],
+  ['Craftwork', `At rank 100 a Focus craft (${CRAFTWORK_TRACKS.map((x) => x[0].toUpperCase() + x.slice(1)).join(', ')}) can enter Craftwork once. Its rank goes back to 0 and it keeps its perks. It earns half experience, and its material effects reach up to ${CRAFTWORK_SWING}%.`],
+  ['The other tabs', 'Upgrade raises the quality of a piece you carry. Salvage breaks gear into materials. Refine turns raw goods into materials at the stations that do it.'],
+]);
+function benchHelp() {
+  const box = h('div', 'cw-card cw-help');
+  for (const [title, text] of BENCH_HELP) box.append(h('div', 'cw-ws-title', title), h('p', 'cw-note cw-help-p', text));
+  return box;
 }

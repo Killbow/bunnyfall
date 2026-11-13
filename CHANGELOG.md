@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- The Bench has a "How crafting works" button that explains materials, Potential and quality, Focus, the minigame, material effects and Craftwork.
 - The Bench now works at every crafting station in a room, so a home with a forge and a jeweller's bench lets you craft at both.
 - The crafting minigame scrolls into view when it starts, and the page scrolls back to the Craft buttons when it ends. What you just made shows by the buttons.
 - A flux, lining or other fitting now starts at one you actually hold, so the list no longer says "Missing 1 Tin" when another flux would do.
