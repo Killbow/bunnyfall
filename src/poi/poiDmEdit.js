@@ -18,6 +18,7 @@ import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { t } from '../systems/textManager.js';
 import { freshKey } from './poiScene.js';
+import { POI_PART_KEY_RE } from './poiLaw.js';
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
 const keysOf = (rows) => new Set((rows ?? []).map((r) => r.key));
@@ -125,6 +126,24 @@ export function addStateVariable(doc, objectKey) {
   o.stateVar = r.row.key;
   return r;
 }
+/**
+ * Renames a variable's key to a valid unused key (1 to 32 of a-z, 0-9, hyphen, and underscore, starting with a letter
+ * or digit) and updates every reference to it across conditions, set actions, and objects that take their state from
+ * it. Returns `{ ok, key, moved }` (where `moved` is the number of references updated) or a refusal.
+ * @param {any} doc @param {string} from @param {string} to
+ */
+export function renameVariableKey(doc, from, to) {
+  const v = doc.variables?.find((x) => x.key === from);
+  if (!v) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  const k = String(to ?? '').trim();
+  if (k === from) return { ok: true, key: k, moved: 0 };
+  const why = keyProblem(k, keysOf(doc.variables));
+  if (why) return refuse(why);
+  const uses = refsOf(doc).filter((r) => r.coll === 'variables' && r.key === from);
+  for (const u of uses) u.set?.(k);
+  v.key = k;
+  return { ok: true, key: k, moved: uses.length };
+}
 
 // ── routes ──
 export function addRoute(doc, name, at = [0, 0, 0]) {
@@ -182,6 +201,43 @@ export function setComplete(enc, rule, extra) {
   if (rule === 'all_dead') enc.complete = { rule };
   else if (rule === 'leader_dead') enc.complete = { rule, leader: extra ?? enc.spawns[0]?.key ?? '' };
   else enc.complete = { rule, seconds: Number.isFinite(extra) ? extra : 60 };
+}
+/** Returns why a key is refused (invalid format or already used in this list), or null. */
+function keyProblem(k, taken) {
+  if (!POI_PART_KEY_RE.test(k)) return t('poi.dm.edit.badKey', 'A key is up to 32 lowercase letters, digits, hyphens, and underscores, and starts with a letter or digit.');
+  if (taken.has(k)) return t('poi.dm.edit.keyTakenHere', 'Another row here has the key {key}.', { key: k });
+  return null;
+}
+/**
+ * Renames a spawn point's key to a valid key unused in its encounter, updating the encounter's leader rule if it
+ * named the old key. Returns `{ ok, key }` or a refusal.
+ * @param {any} enc @param {string} from @param {string} to
+ */
+export function renameSpawnKey(enc, from, to) {
+  const s = enc?.spawns?.find((x) => x.key === from);
+  if (!s) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  const k = String(to ?? '').trim();
+  if (k === from) return { ok: true, key: k };
+  const why = keyProblem(k, keysOf(enc.spawns));
+  if (why) return refuse(why);
+  s.key = k;
+  if (enc.complete?.leader === from) enc.complete.leader = k;
+  return { ok: true, key: k };
+}
+/**
+ * Sets a spawn point's enemy. If its key still matches the default derived from the old enemy's name (such as `rogue`
+ * or `rogue-2`), renames it to match the new enemy; a custom key stays as set.
+ * @param {any} enc @param {string} key @param {number} foe
+ */
+export function setSpawnFoe(enc, key, foe) {
+  const s = enc?.spawns?.find((x) => x.key === key);
+  if (!s) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  const was = freshKey(foeName(s.foe), new Set());
+  s.foe = foe;
+  if (s.key === was || (s.key.startsWith(`${was}-`) && /^\d+$/.test(s.key.slice(was.length + 1)))) {
+    renameSpawnKey(enc, s.key, freshKey(foeName(foe), keysOf(enc.spawns.filter((x) => x !== s))));
+  }
+  return { ok: true, key: s.key };
 }
 export const foeCount = (enc) => enc.spawns.reduce((n, s) => n + (Number.isInteger(s.count) ? s.count : 0), 0);
 /** Removes a spawn point (refused when the encounter has only one left); a leader rule that named it switches to the
@@ -429,20 +485,22 @@ export function conditionSize(c) {
 
 // ── who points at what ──
 /**
- * Every place the document names a DM row by key. Each is `{ coll, key, where, optional, clear }`: `optional` ones may
- * be left out, and `clear()` drops them; the rest are part of an action, a trigger, an answer, or a condition that
- * cannot stand without it.
+ * Lists every place where the document names a DM row by key, each as `{ coll, key, where, optional, clear }`. An
+ * `optional` one may be left out, and `clear()` drops it; the rest belong to an action, trigger, answer, or condition
+ * that needs them. A variable's reference also has `set(key)`, which points it at another variable.
  */
 export function refsOf(doc) {
-  /** @type {{ coll: string, key: string, sub?: string, where: string, optional: boolean, clear: () => void }[]} */
+  /** @type {{ coll: string, key: string, sub?: string, where: string, optional: boolean, clear: () => void, set?: (key: string) => void }[]} */
   const out = [];
-  const add = (coll, key, where, optional, clear, sub) => { if (typeof key === 'string') out.push({ coll, key, where, optional, clear, ...(sub ? { sub } : {}) }); };
+  const add = (coll, key, where, optional, clear, sub, set) => { if (typeof key === 'string') out.push({ coll, key, where, optional, clear, ...(sub ? { sub } : {}), ...(set ? { set } : {}) }); };
+  /** Returns a setter that updates field `f` on `o` to a new variable key. @param {any} o @param {string} f */
+  const setField = (o, f) => (/** @type {string} */ k) => { o[f] = k; };
   const dropField = (o, f) => () => { delete o[f]; };
   const none = () => {};
   const FIELD = { route: t('poi.dm.ref.route', 'route'), dialogue: t('poi.dm.ref.dialogue', 'dialogue'), trade: t('poi.dm.ref.trade', 'trade') };
   for (const n of doc.npcs ?? []) {
     for (const [f, coll] of [['route', 'routes'], ['dialogue', 'dialogues'], ['trade', 'trades']]) add(coll, n[f], `${n.name} (${FIELD[f]})`, true, dropField(n, f));
-    walkWhen(n.showWhen, (c) => add('variables', c.var, t('poi.dm.ref.shownWhen', '{name} (shown when)', { name: n.name }), false, none));
+    walkWhen(n.showWhen, (c) => add('variables', c.var, t('poi.dm.ref.shownWhen', '{name} (shown when)', { name: n.name }), false, none, undefined, setField(c, 'var')));
   }
   for (const r of doc.routes ?? []) for (const w of r.waypoints ?? []) add('events', w.onArriveEvent, t('poi.dm.ref.onArrive', '{route}, {waypoint} (on arrival)', { route: r.name, waypoint: w.name }), true, dropField(w, 'onArriveEvent'));
   for (const e of doc.encounters ?? []) {
@@ -450,17 +508,17 @@ export function refsOf(doc) {
     add('events', e.onComplete, t('poi.dm.ref.onComplete', '{name} (on end)', { name: e.name }), true, dropField(e, 'onComplete'));
     for (const s of e.spawns ?? []) add('routes', s.route, t('poi.dm.ref.patrol', '{name}, {spawn} (patrol)', { name: e.name, spawn: s.key }), true, dropField(s, 'route'));
   }
-  for (const o of doc.interactives ?? []) add('variables', o.stateVar, t('poi.dm.ref.keptIn', '{name} (state saved in)', { name: o.name }), true, dropField(o, 'stateVar'));
+  for (const o of doc.interactives ?? []) add('variables', o.stateVar, t('poi.dm.ref.keptIn', '{name} (state saved in)', { name: o.name }), true, dropField(o, 'stateVar'), undefined, setField(o, 'stateVar'));
   for (const tr of doc.trades ?? []) for (const r of tr.recipes ?? []) {
     add('events', r.onSuccessEvent, t('poi.dm.ref.onSuccess', '{trade}, {recipe} (on success)', { trade: tr.name, recipe: r.name }), true, dropField(r, 'onSuccessEvent'));
-    walkWhen(r.when, (c) => add('variables', c.var, t('poi.dm.ref.onlyWhen', '{trade}, {recipe} (only when)', { trade: tr.name, recipe: r.name }), false, none));
+    walkWhen(r.when, (c) => add('variables', c.var, t('poi.dm.ref.onlyWhen', '{trade}, {recipe} (only when)', { trade: tr.name, recipe: r.name }), false, none, undefined, setField(c, 'var')));
   }
   for (const d of doc.dialogues ?? []) for (const n of d.nodes ?? []) (n.options ?? []).forEach((o, i) => {
     const at = t('poi.dm.ref.answer', '{dialogue}, {line}, answer {n}', { dialogue: d.name, line: n.key, n: i + 1 }), th = o.then ?? {};
     if (th.k === 'open_trade') add('trades', th.trade, at, false, none);
     if (th.k === 'run_trade_recipe') { add('trades', th.trade, at, false, none); add('recipes', th.recipe, at, false, none, th.trade); }
     if (th.k === 'trigger_event') add('events', th.event, at, false, none);
-    walkWhen(o.when, (c) => add('variables', c.var, t('poi.dm.ref.answerWhen', '{at} (shown when)', { at }), false, none));
+    walkWhen(o.when, (c) => add('variables', c.var, t('poi.dm.ref.answerWhen', '{at} (shown when)', { at }), false, none, undefined, setField(c, 'var')));
   });
   for (const e of doc.events ?? []) {
     const tg = e.trigger ?? {}, at = t('poi.dm.ref.event', 'event "{name}"', { name: e.name ?? e.key });
@@ -468,9 +526,9 @@ export function refsOf(doc) {
     if (tg.k === 'enter_area' || tg.k === 'interact') add('interactives', tg.interactive, trig, false, none);
     if (tg.k === 'npc_talk') add('npcs', tg.npc, trig, false, none);
     if (tg.k === 'waypoint_reached') { add('routes', tg.route, trig, false, none); add('waypoints', tg.waypoint, trig, false, none, tg.route); }
-    walkWhen(e.when, (c) => add('variables', c.var, t('poi.dm.ref.eventWhen', '{at} (only when)', { at }), false, none));
+    walkWhen(e.when, (c) => add('variables', c.var, t('poi.dm.ref.eventWhen', '{at} (only when)', { at }), false, none, undefined, setField(c, 'var')));
     for (const a of [...(e.then ?? []), ...(e.else ?? [])]) {
-      if (a.k === 'set_var') add('variables', a.var, at, false, none);
+      if (a.k === 'set_var') add('variables', a.var, at, false, none, undefined, setField(a, 'var'));
       if (a.k === 'set_state') add('interactives', a.interactive, at, false, none);
       if (a.k === 'start_encounter' || a.k === 'end_encounter') add('encounters', a.encounter, at, false, none);
       if (a.k === 'start_route') { add('npcs', a.npc, at, false, none); add('routes', a.route, at, false, none); }

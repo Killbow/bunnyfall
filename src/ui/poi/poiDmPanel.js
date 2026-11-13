@@ -399,8 +399,12 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
           const head = el('div', 'dfpoi-row');
           const del = btn('x', () => run((dd) => { DM.removeSpawn(get(dd, p), s.key); })); del.disabled = e.spawns.length < 2;
           head.append(el('b', '', s.key), del);
+          // Let the builder edit the spawn key; default keys still follow the chosen enemy's name.
+          const key = keyInput(s.key, () => !!getDoc()?.encounters?.find((/** @type {any} */ x) => x.key === e.key)?.spawns?.some((/** @type {any} */ x) => x.key === s.key),
+            (to) => run((dd) => DM.renameSpawnKey(get(dd, p), s.key, to)));
           card.append(head,
-            select(t('poi.dm.enemy', 'Enemy'), null, s.foe, DM.FOES.map((f) => /** @type {[number, string]} */ ([f.id, f.name])), { onPick: (v) => put([...sp, 'foe'], Number(v)) }),
+            select(t('poi.dm.enemy', 'Enemy'), null, s.foe, DM.FOES.map((f) => /** @type {[number, string]} */ ([f.id, f.name])), { onPick: (v) => run((dd) => DM.setSpawnFoe(get(dd, p), s.key, Number(v))) }),
+            row(t('poi.dm.key', 'Key'), key),
             num(t('poi.dm.howMany', 'How many'), [...sp, 'count'], s.count, { min: 1, max: LIM.foesPerSpawn }),
             num(t('poi.dm.level', 'Level (optional)'), [...sp, 'level'], s.level, { min: 1, max: 99, none: true }),
             point(t('poi.dm.spot', 'Spot'), [...sp, 'at'], s.at),
@@ -542,7 +546,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     variables() {
       const d = getDoc(), v = d.variables?.find((/** @type {any} */ x) => x.key === ui.key) ?? null, p = ['variables', { key: ui.key }];
       return listPane('variables', v ? [
-        section(v.name ?? v.key), text(t('poi.dm.name', 'Name'), [...p, 'name'], v.name),
+        section(v.name ?? v.key), text(t('poi.dm.name', 'Name'), [...p, 'name'], v.name), keyRow(v),
         select(t('poi.dm.holds', 'Holds'), null, v.type, words(POI_VAR_TYPES), { onPick: (x) => run((dd) => { DM.setVariableType(dd, v.key, x); }) }),
         select(t('poi.dm.keptFor', 'Lasts for'), [...p, 'scope'], v.scope, words(POI_VAR_SCOPES)), valueIn(t('poi.dm.startsAs', 'Starts as'), [...p, 'initial'], v.initial, v.type),
         note(t('poi.dm.scopeHintEvent', 'One event run: fresh for each event started by a trigger, waypoint, delay, answer, or trade, or by walking into or winning an encounter. Events it runs at once share it.')),
@@ -568,6 +572,36 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       note(t('poi.dm.respawnHint', 'A won encounter set to never start again stays won while the POI stays loaded. Once the player has gone far enough for it to unload, it can start again unless a persistent variable remembers the win.')),
       btn(t('poi.dm.keepWon', 'Keep won across visits'), () => run((dd) => DM.keepWon(dd, e.key))),
     ];
+  }
+
+  /** Returns whether the open POI has a live approved revision (or is a draft of one). */
+  const isLive = () => { const i = id(), e = i ? edit.entryOf?.(i) : null; return !!e && (e.state === 'live' || e.base != null); };
+  /**
+   * Builds a key input field that lowercases typed text and passes it to `rename`, unless the row's key has already
+   * changed since the field was rendered (such as on blur after Enter).
+   * @param {string} key @param {() => boolean} stillThere @param {(to: string) => any} rename
+   */
+  const keyInput = (key, stillThere, rename) => {
+    const i = input('text', key, (raw) => { if (stillThere()) rename(raw.trim().toLowerCase()); schedule(); });
+    i.maxLength = 32; i.className = 'dfpoi-grow';
+    return i;
+  };
+  /**
+   * Builds a variable's key field and hint. Renaming the key updates every condition, set action, and object that
+   * takes its state from the variable; on a live POI, the hint warns that renaming resets saved values.
+   * @param {any} v
+   */
+  function keyRow(v) {
+    const i = keyInput(v.key, () => !!getDoc()?.variables?.some((/** @type {any} */ x) => x.key === v.key), (to) => {
+      const r = run((dd) => DM.renameVariableKey(dd, v.key, to));
+      if (r?.ok && r.key !== v.key) { ui.key = r.key; say(t('poi.dm.keyChanged', 'The key is now {key}, and {n, plural, one {# place} other {# places}} that named it changed with it.', { key: r.key, n: r.moved })); }
+    });
+    const box = el('div');
+    box.append(row(t('poi.dm.key', 'Key'), i));
+    const kept = v.scope === 'character' || v.scope === 'poi_global';
+    if (kept && isLive()) box.append(note(t('poi.dm.keyLive', 'This POI is live, and players\' saved values are stored under this key. With a new key, every saved value of {name} resets to {initial} once the change is approved.', { name: v.name ?? v.key, initial: JSON.stringify(v.initial) })));
+    else box.append(note(t('poi.dm.keyHint', 'The key is how the POI names this variable. Changing it changes every place that uses it.')));
+    return box;
   }
 
   /** The fields one action asks for. @param {any} a @param {any[]} ap */
