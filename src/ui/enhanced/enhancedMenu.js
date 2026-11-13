@@ -4814,7 +4814,7 @@ function pauseWindow() {
 
   const body = el('div', 'px-body');
   ({ quests: pauseQuests, stats: pauseStats, growth: pauseGrowth, craft: pauseCraft, holdings: pauseHoldings, family: pauseFamily, tutorials: drawTutorialsPane, system: pauseSystem })[pauseTab](body);   // TUT1 - GROWTH1
-  if (pauseTab === 'growth') win.classList.add('px-win-growth');   // GROWTH-BOOK: one size for every page of the tab (was GROWTH3's px-win-wide, a face up only)
+  if (pauseTab === 'growth' || pauseTab === 'craft') win.classList.add('px-win-growth');   // BUNNYFALL: the Crafting tab is as wide as Growth
   win.append(body);
   return win;
 }

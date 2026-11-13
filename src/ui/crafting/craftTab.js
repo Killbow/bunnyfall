@@ -8,7 +8,9 @@
 // The sections keep the old pages' ids, so every door that named one (the Professions key, a shop's or a home's station)
 // still lands on it.
 import { t } from '../../systems/textManager.js';
-import { drawOverviewPage, drawBenchPage, drawCraftingPage, drawStoresPage, drawProvisioningPage, stationHere, profPagesShown } from '../professions/profPages.js';
+import { drawOverviewPage, drawCraftingPage, drawStoresPage, stationHere, profPagesShown } from '../professions/profPages.js';
+import { ensureGrowthStyle } from '../growth/growthTab.js';
+import { openWorkstation } from '../workstation/workstationModal.js';
 
 /** The rail's pages: id, then its words in the player's language. */
 export const CRAFT_TAB_SECTIONS = Object.freeze([
@@ -32,11 +34,14 @@ export const craftPageAt = (/** @type {unknown} */ at) => typeof at === 'string'
 export const craftTabShown = () => profPagesShown();
 
 let sec = 'professions';
+/** A landing at a station opens its window once, as the press of the station's key always opened its page. */
+let arrived = false;
 /** A new visit: its landing's page. A landing on the Stations page while standing at a station reads as the Bench. */
 export function resetCraftTab(at = null) {
   sec = craftPageAt(at) ? /** @type {string} */ (at) : 'professions';
-  if (sec === 'crafting' && (stationHere() === 'fire' || stationHere() === 'alchemy')) sec = 'provisioning';   // a fire or a cauldron opens the pot
-  else if (sec === 'crafting' && stationHere()) sec = 'bench';
+  arrived = false;
+  if (sec === 'crafting' && (stationHere() === 'fire' || stationHere() === 'alchemy')) { sec = 'provisioning'; arrived = true; }   // a fire or a cauldron opens the pot
+  else if (sec === 'crafting' && stationHere()) { sec = 'bench'; arrived = true; }
 }
 export const craftSection = () => sec;
 export function setCraftSection(/** @type {string} */ id) { if (ids.includes(id)) sec = id; }
@@ -48,7 +53,8 @@ export function setCraftSection(/** @type {string} */ id) { if (ids.includes(id)
  */
 export function drawCraftTab(body, kit) {
   const { el, render } = kit;
-  const wrap = el('div', 'px-journal');
+  ensureGrowthStyle();   // the Growth book's window and page rules: the Crafting tab is the same size and scrolls the same way
+  const wrap = el('div', 'px-journal gr-book');
   const rail = el('div', 'px-qrail');
   for (const [id, label] of CRAFT_TAB_SECTIONS) {
     const b = el('button', `px-qrow${id === sec ? ' on' : ''}`);
@@ -58,15 +64,33 @@ export function drawCraftTab(body, kit) {
     rail.append(b);
   }
   wrap.append(rail);
-  const detail = el('div', 'px-qdetail px-sys prof-detail');
+  const detail = el('div', 'px-qdetail px-sys prof-detail gr-pane gr-scrolls');
   const pageKit = { el, divider: kit.divider, meter: kit.meter, keyName: kit.keyName, go: (/** @type {string} */ id) => { setCraftSection(id); render(); } };
   ({
     professions: drawOverviewPage,
-    bench: drawBenchPage,
+    bench: (d, r, k) => drawDoor(d, k, 'bench'),
     crafting: drawCraftingPage,
     stores: drawStoresPage,
-    provisioning: drawProvisioningPage,
+    provisioning: (d, r, k) => drawDoor(d, k, 'prov'),
   })[sec]?.(detail, render, pageKit);
+  if (arrived && (sec === 'bench' || sec === 'provisioning')) { arrived = false; openWorkstation(sec === 'bench' ? 'bench' : 'prov'); }
   wrap.append(detail);
   body.append(wrap);
+}
+
+const DOORS = Object.freeze({
+  bench: ['The Bench', 'Every piece is made here: pick it from the list, choose its materials, see the odds and the price, then make it. You can read the lists anywhere and make at the matching station.', 'Open the Bench'],
+  prov: ['Provisioning', 'The pot cooks dishes and the cauldron brews potions from ingredients you put together. Your recipe book fills as you discover what they make.', 'Open the pot and cauldron'],
+});
+/** The Bench and Provisioning are windows of their own (ui/workstation/workstationModal.js): their page is the door. */
+function drawDoor(/** @type {HTMLElement} */ detail, /** @type {{ el: Function, divider: Function }} */ kit, /** @type {'bench'|'prov'} */ kind) {
+  const [title, words, label] = DOORS[kind];
+  detail.append(kit.divider(title));
+  detail.append(kit.el('p', 'px-note', words));
+  const go = kit.el('button', 'act', label);
+  go.type = 'button';
+  go.onclick = () => openWorkstation(kind);
+  const row = kit.el('div', 'prof-doors');
+  row.append(go);
+  detail.append(row);
 }

@@ -191,6 +191,8 @@ let _provider = /** @type {ProfPagesProvider|null} */ (null);
 const workOf = (/** @type {any} */ book, /** @type {string} */ k) => (typeof book?.workable === 'function' ? book.workable(k) : book.held(k));
 /** The host's book, or null to take the pages down (offline, a closed switch, the host gone). */
 export function setProfessionsPages(p) { _provider = p ?? null; }
+/** The provider the pages draw from (the workstation window's). */
+export const profProvider = () => _provider;
 /** BUNNYFALL: the classic station pages asked for instead of the crafting window. */
 /** BUNNYFALL: the host's profession book, or null offline (the pack's salvage asks it). */
 export const profBookNow = () => (_provider?.book?.state?.open === true ? _provider.book : null);
@@ -1016,11 +1018,7 @@ export function drawCraftingPage(detail, rerender, kit) {
   const { el, divider } = kit;
   const book = p.book;
   readStale(book, rerender);
-  detail.append(divider(t('prof.page.crafting.title', 'Your crafts')));
-  const strip = el('div', 'prof-trackstrip');
-  for (const id of CRAFT_TRACKS) strip.append(trackHeader(kit, book, id, { onOpen: kit.go ? () => { selectProfession(id); kit.go?.('professions'); } : null }));
-  detail.append(strip);
-  detail.append(el('p', 'prof-limit prof-rule', limitRuleLine(craftsPastJourneyman(book.state.tracks))));
+  detail.append(divider(t('prof.page.crafting.title', 'Stations')));
   const key = kit.keyName?.('Professions') ?? null;
   if (!stationHere()) detail.append(el('p', 'px-note', key ? t('prof.page.crafting.away', 'Stand at a station to craft. Press {key} there to open this page on it.', { key })
     : t('prof.page.crafting.awayKeyless', 'Stand at a station to craft. Your Professions key opens this page on it.')));
@@ -1168,7 +1166,7 @@ export function drawStoresPage(detail, rerender, kit) {
     if ((pick.loose | 0) > 0) detail.append(el('p', 'px-note', looseGoodsLine(pick.material)));   // AUDIT BAG-CRAFT A1: an older book's page (another device's put-in)
   }
   if (_stores.word) detail.append(el('p', 'prof-word', _stores.word));
-  drawStations(detail, rerender, kit);
+  if (!kit.go) drawStations(detail, rerender, kit);   // the Crafting tab has its own Stations page
 }
 /** Every station, tiled (MENU-ORDER). One list for both the Stores page and the Crafting page (CRAFT-HALL). */
 function drawStations(detail, rerender, kit) {
@@ -1416,7 +1414,7 @@ function drawCarryStores(detail, rerender, kit) {
     if ((pick.loose | 0) > 0) detail.append(el('p', 'px-note', looseGoodsLine(pick.material)));   // AUDIT BAG-CRAFT A1: a carrying book's page
   }
   if (_stores.word) detail.append(el('p', 'prof-word', _stores.word));
-  drawStations(detail, rerender, kit);   // MENU-ORDER; FB1020c TEMPER-CARRIED: CRAFT4's tempers here too - every live book carries
+  if (!kit.go) drawStations(detail, rerender, kit);   // MENU-ORDER; FB1020c TEMPER-CARRIED: CRAFT4's tempers here too - every live book carries
 }
 
 /** What the Stores make of a recipe now: the most it can smelt (every input's units over its need), to SMELT_MAX.
