@@ -195,3 +195,22 @@ test('settling on a save: items leave from records that may leave, the smallest 
   assert.equal(save.goldPieces, 40);
   assert.equal(save.items.at(-1).templateIndex, 16);
 });
+
+test('a visitor who keeps the items declines every take: the event and the recipe do not run, and nothing moves', () => {
+  const doc = { v: 2, variables: [], interactives: [], npcs: [], encounters: [],
+    events: [{ key: 'toll', name: 'Toll', trigger: { k: 'chained' }, then: [{ k: 'take_item', item: { template: 71, count: 1 } }, { k: 'say', text: 'Paid.' }] },
+      { key: 'fee', name: 'Fee', trigger: { k: 'chained' }, then: [{ k: 'take_gold', amount: 5 }] },
+      { key: 'gift', name: 'Gift', trigger: { k: 'chained' }, then: [{ k: 'give_gold', amount: 5 }] }],
+    trades: [{ key: 'shop', name: 'Shop', recipes: [{ key: 'buy', name: 'Buy', requireItems: [{ template: 71, count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 2, limitMode: 'unlimited' }] }] };
+  const dm = createDm(doc, { items: [{ template: 71, count: 2 }], gold: 10, keeps: true });
+  assert.deepEqual(runEvent(dm, 'toll'), { ran: false, why: 'declined' });
+  assert.deepEqual(runEvent(dm, 'fee'), { ran: false, why: 'declined' });
+  assert.deepEqual(runRecipe(dm, 'shop', 'buy'), { ok: false, why: 'declined' });
+  assert.equal(runEvent(dm, 'gift').ran, true, 'a gift takes nothing, so it runs');
+  assert.deepEqual([dm.items, dm.gold], [[{ template: 71, count: 2 }], 15]);
+  assert.ok(!dm.log.some((l) => l.k === 'say'));
+  dm.keeps = false;
+  assert.equal(runEvent(dm, 'toll').ran, true, 'handed over, it runs');
+  assert.equal(runRecipe(dm, 'shop', 'buy').ok, true);
+  assert.deepEqual([dm.items, dm.gold], [[], 17]);
+});

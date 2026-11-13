@@ -208,16 +208,17 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   const here = () => { const i = id(); const p = i ? editor.spotUnderEye?.(i) : null; if (!p) { say(t('poi.dm.noGround', 'The ground under the eye is not ready yet.'), 'bad'); return null; } return p.map(r3); };
 
   // an item stack: the game's item, its group where it has more than one, its material where it takes one, a count
-  const itemPick = (/** @type {any} */ stack, /** @type {any[]} */ path, /** @type {string} */ label, { counted = true } = {}) => {
+  const itemPick = (/** @type {any} */ stack, /** @type {any[]} */ path, /** @type {string} */ label, { counted = true, takes = false } = {}) => {
     const s = /** @type {HTMLSelectElement} */ (el('select'));
     let group = null, og = null;
     const now = DM.choiceValue(stack);
-    for (const it of DM.itemChoices()) {
+    const offer = takes ? DM.takeChoices() : DM.itemChoices();
+    for (const it of offer) {
       if (it.group !== group) { group = it.group; og = /** @type {HTMLOptGroupElement} */ (el('optgroup')); og.label = DM.groupWord(group); s.append(og); }
       const op = /** @type {HTMLOptionElement} */ (el('option', '', it.name)); op.value = DM.choiceValue(it); if (op.value === now) op.selected = true; og?.append(op);
     }
     const off = /** @type {HTMLOptGroupElement} */ (el('optgroup')); off.label = t('poi.dm.notOffered', 'Not offered');
-    if (!DM.itemChoices().some((it) => DM.choiceValue(it) === now)) {
+    if (!offer.some((it) => DM.choiceValue(it) === now)) {
       const name = DM.stackItemName(stack);
       const op = /** @type {HTMLOptionElement} */ (el('option', '', name ?? t('poi.dm.itemUnknown', 'Unknown item {n}', { n: stack.template }))); op.value = now; op.selected = true; off.append(op);
     }
@@ -248,9 +249,9 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     }
     return r;
   };
-  const stacks = (/** @type {string} */ label, /** @type {any[]} */ path, /** @type {any[]} */ list) => {
+  const stacks = (/** @type {string} */ label, /** @type {any[]} */ path, /** @type {any[]} */ list, takes = false) => {
     const box = el('div');
-    list.forEach((s, i) => { const r = itemPick(s, [...path, i], label); r.append(btn('x', () => run((d) => { get(d, path).splice(i, 1); }))); box.append(r); });
+    list.forEach((s, i) => { const r = itemPick(s, [...path, i], label, { takes }); r.append(btn('x', () => run((d) => { get(d, path).splice(i, 1); }))); box.append(r); });
     const add = btn(t('poi.dm.addItem', 'Add an item'), () => run((d) => { const a = get(d, path); if (a.length < LIM.stacks) a.push({ template: 71, count: 1 }); else return { refused: t('poi.dm.maxHere', 'At most {max, number} here.', { max: LIM.stacks }) }; return null; }));
     add.disabled = list.length >= LIM.stacks;
     box.append(add);
@@ -500,7 +501,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
           name.className = 'dfpoi-grow';
           const x = btn('x', () => tryRun((dd) => DM.removeRecipe(dd, tr.key, r.key))); x.disabled = tr.recipes.length < 2;
           card.append(row(t('poi.dm.recipe', 'Recipe'), name, x),
-            section(t('poi.dm.playerGives', 'The player gives')), stacks(t('poi.dm.item', 'Item'), [...rp, 'requireItems'], r.requireItems), num(t('poi.dm.gold', 'Gold'), [...rp, 'requireGold'], r.requireGold, { min: 0, max: 1_000_000 }),
+            section(t('poi.dm.playerGives', 'The player gives')), stacks(t('poi.dm.item', 'Item'), [...rp, 'requireItems'], r.requireItems, true), num(t('poi.dm.gold', 'Gold'), [...rp, 'requireGold'], r.requireGold, { min: 0, max: 1_000_000 }),
             section(t('poi.dm.playerGets', 'The player gets')), stacks(t('poi.dm.reward', 'Reward'), [...rp, 'rewardItems'], r.rewardItems), num(t('poi.dm.gold', 'Gold'), [...rp, 'rewardGold'], r.rewardGold, { min: 0, max: 1_000_000 }),
             select(t('poi.dm.howOften', 'How often'), null, r.limitMode, words(POI_LIMIT_MODES), { onPick: (v) => run((dd) => { DM.setLimit(get(dd, rp), v); }) }),
             ...(r.limitMode === 'global_stock' ? [num(t('poi.dm.stock', 'Stock'), [...rp, 'maxStock'], r.maxStock, { min: 1, max: 1_000_000 })] : []),
@@ -633,7 +634,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       case 'stop_route': case 'spawn_npc': case 'despawn_npc': return [select(t('poi.dm.person', 'Person'), [...ap, 'npc'], a.npc, people)];
       case 'open_dialogue': return [ref(t('poi.dm.dialogue', 'Dialogue'), [...ap, 'dialogue'], a.dialogue, 'dialogues')];
       case 'open_trade': return [ref(t('poi.dm.trade', 'Trade'), [...ap, 'trade'], a.trade, 'trades')];
-      case 'give_item': case 'take_item': return [itemPick(a.item, [...ap, 'item'], t('poi.dm.item', 'Item'))];
+      case 'give_item': case 'take_item': return [itemPick(a.item, [...ap, 'item'], t('poi.dm.item', 'Item'), { takes: a.k === 'take_item' })];
       case 'give_gold': case 'take_gold': return [num(t('poi.dm.gold', 'Gold'), [...ap, 'amount'], a.amount, { min: 1, max: 1_000_000 })];
       default: return [ref(t('poi.dm.event', 'Event'), [...ap, 'event'], a.event, 'events'), num(t('poi.dm.after', 'After (s)'), [...ap, 'delayS'], a.delayS, { min: 0, max: 86400 })];
     }

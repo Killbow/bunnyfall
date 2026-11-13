@@ -30,3 +30,9 @@ test('the list leaves out gold, bound items, and templates the service does not 
   assert.ok(![...listed].some((i) => lawTemplate(i)?.bound));
   assert.ok(!listed.has(6666), 'the Humanoid Corpse is registered only in the browser');
 });
+
+test('the picker for a take or requirement leaves out what no player can hand over (the Materials Bag, a boat\'s parts and deed)', async () => {
+  const { itemChoices, takeChoices } = await import('../src/poi/poiDmEdit.js');
+  const out = new Set(takeChoices());
+  assert.deepEqual(itemChoices().filter((r) => !out.has(r)).map((r) => r.template).sort((a, b) => a - b), [600, 1320, 1321]);
+});

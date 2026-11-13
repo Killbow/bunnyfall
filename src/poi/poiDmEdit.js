@@ -16,6 +16,7 @@ import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
 import { POTION_RECIPES } from '../systems/potionRecipes.js';
 import { GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
 import { templateGroups } from '../systems/item/itemLaw.js';
+import { tradeableRecord } from '../net/realm/realmTradeLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { t } from '../systems/textManager.js';
@@ -65,6 +66,7 @@ export function itemChoices() {
   ].sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
   return itemRows;
 }
+export const takeChoices = () => itemChoices().filter((r) => tradeableRecord({ templateIndex: r.template, group: r.group }));
 /** @param {{ template: number, recipe?: string }} s */
 export const choiceValue = (s) => (s.recipe === undefined ? String(s.template) : `${s.template}:${s.recipe}`);
 /** @param {string} v */

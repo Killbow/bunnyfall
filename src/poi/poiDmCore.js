@@ -111,7 +111,7 @@ export function recipeWhy(recipe, who, ctx, claimOf) {
  */
 
 /**
- * @param {any} doc @param {{ items?: Stack[], gold?: number, vars?: Record<string, any>, char?: string, player?: string, now?: number }} [start]
+ * @param {any} doc @param {{ items?: Stack[], gold?: number, vars?: Record<string, any>, char?: string, player?: string, now?: number, keeps?: boolean }} [start]
  */
 export function createDm(doc, start = {}) {
   /** @type {Record<string, any>} */
@@ -145,6 +145,7 @@ export function createDm(doc, start = {}) {
     /** @type {Record<string, any>} the kept variable each object with a `stateVar` last followed, by object key */ keptSeen: {},
     now: start.now ?? 0,
     char: start.char ?? 'sandbox', player: start.player ?? 'sandbox',
+    keeps: !!start.keeps,
   };
 }
 
@@ -283,6 +284,7 @@ export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
     if (v.takeGold > dm.gold) { note(dm, { k: 'refused', event: key, why: 'gold' }); return { ran: false, why: 'gold' }; }
     const c = ctxOf(dm);
     for (const s of v.takeItems) if (c.count(s) < s.count) { note(dm, { k: 'refused', event: key, why: 'items' }); return { ran: false, why: 'items' }; }
+    if (dm.keeps && (v.takeItems.length || v.takeGold)) { note(dm, { k: 'refused', event: key, why: 'declined' }); return { ran: false, why: 'declined' }; }
   }
   note(dm, { k: 'event', event: key, name: ev.name ?? key, branch: taken });
   for (const a of actions) act(dm, a, depth, settled);
@@ -468,6 +470,7 @@ export function runRecipe(dm, tradeKey, recipeKey) {
   const why = recipeBlock(dm, tradeKey, recipeKey);
   if (why) { note(dm, { k: 'trade_refused', trade: tradeKey, recipe: recipeKey, why }); return { ok: false, why }; }
   const r = byKey(byKey(dm.doc.trades, tradeKey)?.recipes, recipeKey);
+  if (dm.keeps && (r.requireItems?.length || r.requireGold)) { note(dm, { k: 'trade_refused', trade: tradeKey, recipe: recipeKey, why: 'declined' }); return { ok: false, why: 'declined' }; }
   for (const s of r.requireItems ?? []) takeStack(dm, s);
   dm.gold -= r.requireGold ?? 0;
   for (const s of r.rewardItems ?? []) giveStack(dm, s);

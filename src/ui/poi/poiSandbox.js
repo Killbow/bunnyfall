@@ -83,7 +83,7 @@ export function createPoiSandbox({ doc, getDoc, el, btn, redraw }) {
   /** @type {any} */
   let dm = null;
   /** what the test visitor starts with */
-  const start = { items: /** @type {any[]} */ ([]), gold: 100, vars: /** @type {Record<string, any>} */ ({}) };
+  const start = { items: /** @type {any[]} */ ([]), gold: 100, vars: /** @type {Record<string, any>} */ ({}), keeps: false };
   /** Creates a button that runs `fn`, syncs objects with their persistent state variables (`followKeptStates`), and
    *  redraws the panel. @param {string} text @param {() => void} fn */
   const press = (text, fn) => btn(text, () => { fn(); if (dm) followKeptStates(dm); redraw(); });
@@ -93,7 +93,7 @@ export function createPoiSandbox({ doc, getDoc, el, btn, redraw }) {
   function restart() {
     const d = getDoc();
     if (!d) { dm = null; return; }
-    dm = createDm(structuredClone(d), { items: structuredClone(start.items), gold: start.gold, vars: { ...start.vars }, char: 'sandbox', player: 'sandbox' });
+    dm = createDm(structuredClone(d), { items: structuredClone(start.items), gold: start.gold, vars: { ...start.vars }, char: 'sandbox', player: 'sandbox', keeps: start.keeps });
     followKeptStates(dm);
   }
 
@@ -120,8 +120,13 @@ export function createPoiSandbox({ doc, getDoc, el, btn, redraw }) {
       const l = el('label', '', v.name ?? v.key);
       return row(l, i);
     });
+    const hands = el('input');
+    hands.type = 'checkbox'; hands.checked = !start.keeps;
+    hands.title = t('poi.sandbox.handsHint', 'When off, the visitor cancels every hand-over, so events and trades that take items or gold do not run.');
+    hands.addEventListener('change', () => { start.keeps = !hands.checked; if (dm) dm.keeps = start.keeps; });
     return section(t('poi.sandbox.startsWith', 'The visitor starts with'),
       row(el('label', '', t('poi.sandbox.gold', 'Gold')), gold),
+      row(el('label', '', t('poi.sandbox.hands', 'Visitor hands over items')), hands),
       held.length ? row(...held) : null,
       row(el('label', '', t('poi.sandbox.addItem', 'Add item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
         start.items.push({ ...choiceItem(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
