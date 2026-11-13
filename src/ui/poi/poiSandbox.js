@@ -7,7 +7,7 @@
 // character, stock) start empty each time the sandbox starts again.
 
 import { t } from '../../systems/textManager.js';
-import { itemName, itemChoices, stateWord, groupWord } from '../../poi/poiDmEdit.js';
+import { itemName, itemChoices, stateWord, groupWord, waypointName } from '../../poi/poiDmEdit.js';
 import {
   createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance,
   enterEncounter, useInteractive, followKeptStates,
@@ -34,7 +34,7 @@ export function logText(doc, l) {
       if (tg.k === 'enter_area') return t('poi.sandbox.log.enters', 'The visitor walks into {name}.', { name: nameIn(doc, 'interactives', tg.interactive) });
       if (tg.k === 'interact') return t('poi.sandbox.log.uses', 'The visitor uses {name}.', { name: nameIn(doc, 'interactives', tg.interactive) });
       if (tg.k === 'npc_talk') return t('poi.sandbox.log.talks', 'The visitor talks to {name}.', { name: nameIn(doc, 'npcs', tg.npc) });
-      if (tg.k === 'waypoint_reached') return t('poi.sandbox.log.reaches', 'A walker reaches {waypoint} on {route}.', { waypoint: tg.waypoint, route: nameIn(doc, 'routes', tg.route) });
+      if (tg.k === 'waypoint_reached') return t('poi.sandbox.log.reaches', 'A walker reaches {waypoint} on {route}.', { waypoint: waypointName(doc, tg.route, tg.waypoint), route: nameIn(doc, 'routes', tg.route) });
       return t('poi.sandbox.log.trigger', 'Something starts an event.');
     }
     case 'event': return l.branch === 'then' ? t('poi.sandbox.log.eventThen', 'Event "{name}" runs.', { name: l.name }) : t('poi.sandbox.log.eventElse', 'Event "{name}" runs its Otherwise actions.', { name: l.name });

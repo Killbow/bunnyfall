@@ -394,6 +394,8 @@ export function removeRow(doc, coll, key) {
 
 // ── plain words ──
 const nameOf = (doc, coll, key) => (doc[coll] ?? []).find((r) => r.key === key)?.name ?? key ?? '?';
+/** Returns a waypoint's display name for the given route and waypoint key, falling back to the key. */
+export const waypointName = (doc, route, key) => (doc.routes ?? []).find((r) => r.key === route)?.waypoints?.find((w) => w.key === key)?.name ?? key ?? '?';
 /**
  * A stack as words: "2 x Iron". `names` is the World Builder's asset catalog, or null for the game's own item names.
  * @param {any} names @param {any} s
@@ -439,7 +441,7 @@ export const triggerText = (doc, tg) => {
     case 'enter_area': return t('poi.dm.text.enters', 'enters {name}', { name: nameOf(doc, 'interactives', tg.interactive) });
     case 'interact': return t('poi.dm.text.uses', 'uses {name}', { name: nameOf(doc, 'interactives', tg.interactive) });
     case 'npc_talk': return t('poi.dm.text.talksTo', 'talks to {name}', { name: nameOf(doc, 'npcs', tg.npc) });
-    case 'waypoint_reached': return t('poi.dm.text.reaches', '{route} reaches {waypoint}', { route: nameOf(doc, 'routes', tg.route), waypoint: tg.waypoint });
+    case 'waypoint_reached': return t('poi.dm.text.reaches', '{route} reaches {waypoint}', { route: nameOf(doc, 'routes', tg.route), waypoint: waypointName(doc, tg.route, tg.waypoint) });
     case 'chained': return t('poi.dm.text.chained', 'started by something else');
     default: return '?';
   }
@@ -475,7 +477,7 @@ export function eventGraph(doc, names = null) {
     const tg = e.trigger ?? {};
     if (tg.k === 'enter_area' || tg.k === 'interact') link(node(`obj:${tg.interactive}`, 'source', nameOf(doc, 'interactives', tg.interactive)), e.key, tg.k === 'enter_area' ? t('poi.dm.graph.enters', 'enters') : t('poi.dm.graph.uses', 'uses'));
     else if (tg.k === 'npc_talk') link(node(`npc:${tg.npc}`, 'source', nameOf(doc, 'npcs', tg.npc)), e.key, t('poi.dm.graph.talks', 'talks'));
-    else if (tg.k === 'waypoint_reached') link(node(`wp:${tg.route}.${tg.waypoint}`, 'source', `${nameOf(doc, 'routes', tg.route)}: ${tg.waypoint}`), e.key, t('poi.dm.graph.reached', 'reached'));
+    else if (tg.k === 'waypoint_reached') link(node(`wp:${tg.route}.${tg.waypoint}`, 'source', `${nameOf(doc, 'routes', tg.route)}: ${waypointName(doc, tg.route, tg.waypoint)}`), e.key, t('poi.dm.graph.reached', 'reached'));
     for (const a of [...(e.then ?? []), ...(e.else ?? [])]) if (a.k === 'trigger_event') link(evId(e.key), a.event, a.delayS ? t('poi.dm.graph.after', 'after {s, number} s', { s: a.delayS }) : t('poi.dm.graph.then', 'then'));
   }
   for (const r of doc.routes ?? []) for (const w of r.waypoints ?? []) if (w.onArriveEvent) link(node(`wp:${r.key}.${w.key}`, 'source', `${r.name}: ${w.name}`), w.onArriveEvent, t('poi.dm.graph.arrive', 'arrive'));
