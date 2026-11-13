@@ -328,7 +328,11 @@ export function createPoiDm(deps) {
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
       }
-    } finally { busy = false; }
+    } finally {
+      busy = false;
+      // Redraw an open talk or trade so it shows what the settle changed, such as a spent answer or a new value.
+      if (runs.get(r.id) === r && (r.dm.dialogue || r.dm.trade)) show(r);
+    }
   }
   /** Saves one-time gift event claims to device storage when offline. @param {any} r */
   function saveClaims(r) {

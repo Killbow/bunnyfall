@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: A POI dialogue now drops an answer as soon as the event it started is done, instead of showing it until the next talk.
 - Fixed: Bodies of enemies killed in the in-game POI editor's Test no longer stay behind to be looted after the test ends.
 - Fixed: A POI's person walking a route over sloping ground no longer sinks into the ground.
 - Fixed: Looking at Daggerfall models in the in-game POI editor's Assets browser or its Daggerfall model window no longer leaves each one in graphics memory for the rest of the session.
