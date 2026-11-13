@@ -1,10 +1,10 @@
 // @ts-check
 
-// Builds 3D line segments for a POI's DM content while the in-game editor's DM panel is open: each route as the
-// straight path a person walks through its waypoints with a ring and a post at every waypoint, each encounter's area
-// and spawn points, each trigger zone's ring, and each object's ring and post. Points are in the POI's own frame and go
-// to the scene through `toScene` (the editor host's placement of the POI); rings are drawn level in the scene with
-// their radius in meters, as the game measures zones and encounter areas (poiDmRuntime.js). The open row is drawn in
+// The DM content of one POI as lines in the world, while the in-game editor's DM panel is open: each route along the
+// straight path a person walks, with a ring and a post at every waypoint (its segments carry `band`, which
+// render/poiGizmoPass.js draws as a band with moving arrows), each encounter's area and spawn points, each trigger
+// zone's ring, and each object's ring and post. Points are in the POI's frame and reach the scene through `toScene`;
+// rings lie level with their radius in meters, as poiDmRuntime.js measures zones and areas. The open row is drawn in
 // orange. Pure module with no DOM or WebGL dependencies (scenes/poiEditorHost.js passes the lines to poiGizmoPass.js).
 
 /** Colors by kind, and the open row's. */
@@ -13,6 +13,7 @@ export const DM_LINE_COLOR = Object.freeze({
   object: Object.freeze([0.95, 0.85, 0.4, 0.9]), open: Object.freeze([1, 0.62, 0.15, 1]),
 });
 const RING_STEPS = 32;
+export const WAYPOINT_MARK = Object.freeze({ w: 4, post: 2, ring: 0.5 });
 
 /**
  * Returns the polyline a person walks along a route: straight from each waypoint to the next (poiDmCore.js stepWalker),
@@ -26,36 +27,42 @@ export function walkPath(pts, closed) {
 }
 
 /**
- * The lines for a document. `open` names the row the panel shows (`{ tab, key }`), drawn in orange.
  * @param {any} doc @param {{ tab: string, key: string | null } | null} open @param {(p: number[]) => number[]} toScene
- * @returns {{ inWorld: { a: number[], b: number[], color: number[] }[], onTop: { a: number[], b: number[], color: number[] }[] }}
+ * @returns {{ inWorld: { a: number[], b: number[], color: number[], w?: number, band?: { s: number, total: number, flow: string } }[], onTop: { a: number[], b: number[], color: number[], w?: number, band?: { s: number, total: number, flow: string } }[] }}
  */
 export function dmLines(doc, open, toScene) {
-  /** @type {{ a: number[], b: number[], color: number[] }[]} */
+  /** @type {{ a: number[], b: number[], color: number[], w?: number, band?: { s: number, total: number, flow: string } }[]} */
   const inWorld = [], onTop = [];
   if (!doc || doc.v !== 2) return { inWorld, onTop };
   const isOpen = (/** @type {string} */ tab, /** @type {string} */ key) => open?.tab === tab && open?.key === key;
-  const seg = (/** @type {number[]} */ a, /** @type {number[]} */ b, /** @type {readonly number[]} */ color) => {
-    inWorld.push({ a, b, color: [...color] });
-    // faint through what stands in front
-    onTop.push({ a, b, color: [color[0], color[1], color[2], 0.25] });
+  /** @param {number[]} a @param {number[]} b @param {readonly number[]} color @param {object | null} [more] a width or a band */
+  const seg = (a, b, color, more = null) => {
+    inWorld.push({ a, b, color: [...color], ...more });
+    onTop.push({ a, b, color: [color[0], color[1], color[2], more ? 0.6 : 0.25], ...more });
   };
-  const ring = (/** @type {number[]} */ c, /** @type {number} */ r, /** @type {readonly number[]} */ color) => {
+  /** @param {number[]} c @param {number} r @param {readonly number[]} color @param {object | null} [more] */
+  const ring = (c, r, color, more = null) => {
     let prev = null;
     for (let i = 0; i <= RING_STEPS; i++) {
       const a = (i / RING_STEPS) * Math.PI * 2, p = [c[0] + Math.cos(a) * r, c[1] + 0.05, c[2] + Math.sin(a) * r];
-      if (prev) seg(prev, p, color);
+      if (prev) seg(prev, p, color, more);
       prev = p;
     }
   };
-  const post = (/** @type {number[]} */ c, /** @type {number} */ h, /** @type {readonly number[]} */ color) => seg(c, [c[0], c[1] + h, c[2]], color);
+  /** @param {number[]} c @param {number} h @param {readonly number[]} color @param {object | null} [more] */
+  const post = (c, h, color, more = null) => seg(c, [c[0], c[1] + h, c[2]], color, more);
 
   for (const r of doc.routes ?? []) {
     const color = isOpen('routes', r.key) ? DM_LINE_COLOR.open : DM_LINE_COLOR.route;
     const pts = (r.waypoints ?? []).map((/** @type {any} */ w) => toScene(w.t));
     const path = walkPath(pts, r.mode === 'loop');
-    for (let i = 0; i + 1 < path.length; i++) seg(path[i], path[i + 1], color);
-    pts.forEach((/** @type {number[]} */ p, /** @type {number} */ i) => { ring(p, Math.max(0.3, r.waypoints[i].radius ?? 0.5), color); post(p, 1.2, color); });
+    const gap = (/** @type {number} */ i) => Math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1], path[i + 1][2] - path[i][2]);
+    let total = 0;
+    for (let i = 0; i + 1 < path.length; i++) total += gap(i);
+    const flow = r.mode === 'loop' || r.mode === 'pingpong' ? r.mode : 'once';
+    for (let i = 0, s = 0; i + 1 < path.length; s += gap(i), i++) seg(path[i], path[i + 1], color, { band: { s, total, flow } });
+    const mark = { w: WAYPOINT_MARK.w };
+    pts.forEach((/** @type {number[]} */ p, /** @type {number} */ i) => { ring(p, Math.max(WAYPOINT_MARK.ring, r.waypoints[i].radius ?? 0.5), color, mark); post(p, WAYPOINT_MARK.post, color, mark); });
   }
   for (const e of doc.encounters ?? []) {
     const color = isOpen('encounters', e.key) ? DM_LINE_COLOR.open : DM_LINE_COLOR.encounter;

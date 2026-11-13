@@ -13,6 +13,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: The in-game POI editor draws routes as wide bands with slow arrows moving the way the person walks, and draws their waypoints larger.
+- Fixed: The in-game POI editor's move, turn, and size handles are thicker and solid, show the angle while turning, and respond exactly where they are drawn.
 - Fixed: Online, a recipe in a POI trade named Event no longer shares its limit with a POI event that has the recipe's name.
 - Fixed: A POI that asks for a Glass Bottle now counts and takes only empty bottles, never one of your potions.
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.

@@ -1,28 +1,8 @@
 // @ts-check
-// ═══════════════════════════════════════════════════════════════════
-// POI-3 (2026-10-14) - THE GIZMO: THE HANDLES A BUILDER DRAGS, AS GEOMETRY.
-//
-// The editor's move, turn and size handles (bible/06-Systems/POI-Editor-Arc.md POI-3), pure: which handle a screen ray
-// is over, and what a drag on it means - the editor (poi/poiEdit.js) applies the answer, the gizmo pass
-// (render/poiGizmoPass.js) draws the same handles from `gizmoShape`. Everything is in WORLD metres round the gizmo's
-// origin, at a size that keeps it the same on screen (`gizmoSize`), its axes the world's or the thing's own (`axes`).
-//
-//   - MOVE: an arrow an axis (along it), a square a plane (across it, the two axes), the centre (the screen's plane).
-//     An axis drag is read on the plane through the axis that faces the eye best - never a plane seen edge on, so an
-//     arrow pointing at the eye still drags along itself.
-//   - TURN: a ring an axis, and the outer ring the eye's own axis. The angle is the one swept round the centre on the
-//     ring's plane; a ring seen edge on (no sweep to read on a line) by the cursor's travel along its near side's
-//     tangent, the arc over the radius (AUDIT POI E5).
-//   - SIZE: a box an axis (that side alone), the centre all three. An axis's factor is the grab point's distance from the
-//     centre now over at the grab, along the axis; all three's the cursor's travel across the screen, right and up
-//     growing it, an arm's length doubling it (AUDIT POI E10 - the centre is grabbed beside the centre).
-//   - SNAP: a move to its step along each handle axis, a turn to its degrees, a size to its step of the factor.
-//   - A HANDLE THAT CANNOT BE DRAGGED IS NOT OFFERED: an arrow or a box pointing at the eye (every plane that holds its
-//     axis holds the ray too - there is nothing to read the drag on) and a square seen edge on are `hidden`, neither
-//     drawn nor picked, as the engines' own gizmos do; turn the view a little and they are back.
-//
-// Not a DFU member. Ledger A (POI).
-// ═══════════════════════════════════════════════════════════════════
+// Pure geometry and drag math for the POI editor's move, turn, and size handles in world meters around `c`, scaled by
+// `gizmoSize` to stay a constant CSS-pixel size on screen (poi/poiEdit.js applies the drag result). The World Builder
+// uses `gizmoShape` and `pickHandle`; the in-game editor uses poiGizmoLook.js and shares `END_ON` and `EDGE_ON` to hide
+// axes pointing at the camera and planes seen edge-on.
 
 /** The gizmo's arm on screen (CSS pixels): every handle's size follows it. */
 export const POI_GIZMO_PX = 110;
@@ -47,7 +27,7 @@ const norm = (a) => { const l = len(a); return l > 0 ? mul(a, 1 / l) : [0, 0, 0]
 const AX = { x: 0, y: 1, z: 2 };
 const PLANE = { xy: [0, 1, 2], yz: [1, 2, 0], xz: [0, 2, 1] };   // the plane's two axes, then its normal's
 /** An axis this near the eye's line (|cos|) is end on; a plane's normal this far from it (|cos|), edge on. */
-const END_ON = 0.985, EDGE_ON = 0.035;
+export const END_ON = 0.985, EDGE_ON = 0.035;
 
 /** The world length that is `px` CSS pixels on screen at `origin`: the eye's distance along its view, the vertical field
  *  of view (radians) and the viewport's height. */

@@ -41,7 +41,8 @@ import { find, marksOf, movable, parseId } from '../poi/poiScene.js';
 import { applyMulti, pivotOf, singleItem } from '../poi/poiMulti.js';
 import { placeFlatAt } from '../poi/poiFlatRows.js';
 import { boxPick, editorView, liftOf, npcLine, pickNpc, rectLines, spotOf } from './poiEditorSelect.js';
-import { gizmoSize, gizmoShape, pickHandle, beginGizmoDrag, dragResult, POI_SNAP_DEFAULT, POI_GIZMO_PX } from '../poi/poiGizmo.js';
+import { gizmoSize, beginGizmoDrag, dragResult, POI_SNAP_DEFAULT, POI_GIZMO_PX } from '../poi/poiGizmo.js';
+import { pickGizmo, gizmoDraw, viewForward, GIZMO_DIM } from '../poi/poiGizmoLook.js';
 import { quatRotate } from '../world/quat.js';
 import { lookDir } from './decor/decorTool.js';
 import { rayDirFromScreen } from '../player/tapRay.js';
@@ -91,11 +92,7 @@ export function boxLines(b, color) {
  *   surfaceAt: (x: number, z: number) => number,
  *   onChange?: () => void, pass?: any, actionOf?: (e: any) => (string | null),
  *   viewport?: () => (ArrayLike<number> | null), gone?: () => boolean, onGone?: () => void,
- * }} deps `view` the frame the world last drew (its matrices, eye and canvas); `groundHit` the ground (and the world's
- *   meshes) under a ray; `sceneToPixel` a scene point as a map pixel and the spot in its frame; `pass` the lines' pass
- *   (render/poiGizmoPass.js) the frame's `drawLines` draws through; `viewport` the pixel rect the world pass draws into
- *   (`[x, y, w, h]`, null the whole drawing buffer); `gone` whether the world went from under the open editor (a mode
- *   changed, a game loaded) and `onGone` its leaving then
+ * }} deps
  */
 export function createPoiEditorHost({ edit, feed, host, view, translation, sceneToPixel, groundHit, surfaceAt, onChange = () => {}, pass = null, actionOf = () => null, viewport = () => null, gone = () => false, onGone = () => {} }) {
   let on = false;
@@ -109,7 +106,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let ctrlHeld = false;
   /** @type {string | null} */
   let hover = null;
-  /** @type {null | { handle: string, state: any, id: string, part: string | null, light: number | null, start: any, px: number, py: number, frame: number[], now: number[], multi: null | { ids: string[], pivot: number[], axes: number[][] } }} */
+  /** @type {null | { handle: string, state: any, id: string, part: string | null, light: number | null, start: any, px: number, py: number, frame: number[], now: number[], multi: null | { ids: string[], pivot: number[], axes: number[][] }, last: any }} */
   let drag = null;
   /** @type {null | { x: number, y: number, moved: boolean, button: number, shift?: boolean, at?: number[] }} */
   let press = null;
@@ -194,7 +191,8 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     const l = Math.hypot(vd[0], vd[1], vd[2]) || 1;
     const viewDir = mul(vd, 1 / l);
     const L = gizmoSize(v.eye, viewDir, tg.c, v.fovY, v.h);
-    return { mode, c: tg.c, axes: tg.axes, L, viewDir, pxWorld: L / POI_GIZMO_PX, tg };
+    const F = (v.proj[5] * v.h * (v.rect?.h ?? 1)) / 2;
+    return { mode, c: tg.c, axes: tg.axes, L, viewDir, pxWorld: L / POI_GIZMO_PX, tg, eye: v.eye, fwd: viewForward(v.view, viewDir), F };
   }
 
   /** Apply a drag's answer to a document - absolute from the drag's start (edit.preview hands the start's copy). */
@@ -511,7 +509,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
           // recentre mid-drag (the wheel's dolly across a pixel's edge, 500 m of height) moves the eye and every pixel by
           // its offset, and the next ray, read in the new frame against the grab in the old, carried the POI ~819 m off
           const { px, py } = g.tg.doc.place;
-          drag = { handle: hover, state, id: sel.id, part: sel.part ?? null, light: sel.light ?? null, start: null, px, py, frame: translation(px, py, [0, 0, 0]), now: [0, 0, 0], multi: g.tg.multi ? { ...g.tg.multi, axes: g.axes } : null };
+          drag = { handle: hover, state, id: sel.id, part: sel.part ?? null, light: sel.light ?? null, start: null, px, py, frame: translation(px, py, [0, 0, 0]), now: [0, 0, 0], multi: g.tg.multi ? { ...g.tg.multi, axes: g.axes } : null, last: null };
           told();
           return true;
         }
@@ -530,7 +528,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
         const ray = rayAt(e.clientX, e.clientY);
         if (ray) { translation(drag.px, drag.py, drag.now); for (let a = 0; a < 3; a++) ray.o[a] -= drag.now[a] - drag.frame[a]; }   // AUDIT POI E7: the ray read in the frame the drag began in
         const r = ray ? dragResult(drag.state, ray.o, ray.d, snapNow()) : null;
-        if (r) { const sel = { id: drag.id, part: drag.part, light: drag.light, multi: drag.multi }; edit.preview((doc) => apply(doc, r, sel)); }
+        if (r) { drag.last = r; const sel = { id: drag.id, part: drag.part, light: drag.light, multi: drag.multi }; edit.preview((doc) => apply(doc, r, sel)); }
         return true;
       }
       if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > POI_CLICK_SLOP) press.moved = true;
@@ -540,7 +538,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       // the handle under the cursor, lit
       const g = gizmo();
       const ray = g ? rayAt(e.clientX, e.clientY) : null;
-      const h = g && ray ? pickHandle(g, ray.o, ray.d) : null;
+      const h = g && ray ? pickGizmo(g, ray.o, ray.d) : null;
       if (h !== hover) { hover = h; told(); }
       return true;
     },
@@ -623,8 +621,6 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     /** Whether a draft's colliders may stand now (poiHost.js collideDrafts): not while it is dragged. */
     collideDrafts: () => !drag,
 
-    /** The lines to draw this frame: `{ inWorld, onTop }` - the selection's boxes where the models stand, the gizmo and
-     *  the placing mark over everything. */
     lineSets() {
       const inWorld = [], onTop = [];
       if (!on) return { inWorld, onTop };
@@ -668,31 +664,27 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       }
       // the box being drawn
       if (press?.moved && press.at) onTop.push(...rectLines({ x0: press.x, y0: press.y, x1: press.at[0], y1: press.at[1] }, rayAt, POI_HANDLE_COLOR.view));
-      const g = gizmo();
-      if (g) {
-        for (const s of gizmoShape(g.mode, g.c, g.axes, g.L, g.viewDir)) {
-          if (s.hidden) continue;
-          const color = (drag ? drag.handle === s.handle : hover === s.handle) ? POI_HANDLE_COLOR.hover : POI_HANDLE_COLOR[s.handle];
-          for (const [a, b] of s.segs) onTop.push({ a, b, color });
-        }
-      }
       if (placing && placeAt) {
         const k = 0.6, c = POI_BOX_COLOR.ghost;
         onTop.push({ a: add(placeAt, [-k, 0, 0]), b: add(placeAt, [k, 0, 0]), color: c }, { a: add(placeAt, [0, 0, -k]), b: add(placeAt, [0, 0, k]), color: c }, { a: placeAt, b: add(placeAt, [0, 2, 0]), color: c });
       }
-      return { inWorld, onTop };
+      const g = gizmo();
+      const sweep = g && drag?.state?.mode === 'turn' && !drag.state.along && drag.last?.turn ? { handle: drag.handle, from: sub(drag.state.hit0, drag.state.c), axis: drag.state.axis, deg: drag.last.turn.deg } : null;
+      const gizmoSet = g ? gizmoDraw(g, { hot: drag ? drag.handle : hover, colors: POI_HANDLE_COLOR, sweep, snapDeg: snapNow()?.turn ?? 0 }) : null;
+      return { inWorld, onTop, gizmo: gizmoSet };
     },
-    /** Draw this frame's lines through the pass: the boxes where the models stand, then the handles over everything.
-     *  Answers whether anything drew (the host marks its foreign pass then). One call from the frame (PERF-V8: the
-     *  world's frame stays under V8's ceiling). */
+    // Single call from world.js's frame loop to stay under V8's function-size limit; returns whether any batch drew.
     drawLines(proj, viewM) {
       if (!on || !pass) return false;
-      const { inWorld, onTop } = api.lineSets();
+      const { inWorld, onTop, gizmo: gz } = api.lineSets();
       // AUDIT POI E18: the lines' widths are pixels of the rect the world pass draws into - the strip above the docked
       // large HUD, a retro or scaled image - never the whole drawing buffer's (they drew thinner, and unequal across)
       const vp = viewport(), vw = vp ? vp[2] : 0, vh = vp ? vp[3] : 0;
-      const a = pass.draw(proj, viewM, inWorld, { onTop: false, vw, vh }), b = pass.draw(proj, viewM, onTop, { onTop: true, vw, vh });
-      return a || b;
+      const v = view(), scale = v && vh ? vh / (v.h * (v.rect?.h ?? 1)) : 0, px = 3;
+      const a = pass.draw(proj, viewM, inWorld, { onTop: false, vw, vh, scale, px, toEye: 0.4 }), b = pass.draw(proj, viewM, onTop, { onTop: true, vw, vh, scale, px });
+      const c = gz ? pass.draw(proj, viewM, gz.lines, { onTop: true, vw, vh, scale, alpha: GIZMO_DIM, tris: gz.tris }) : false;
+      const d = gz ? pass.draw(proj, viewM, gz.lines, { onTop: false, vw, vh, scale, tris: gz.tris, toEye: gz.L * 0.5 }) : false;
+      return a || b || c || d;
     },
     /** The selection's pivot (the gizmo's centre) - the UI's readout and a test's. */
     pivot: () => target()?.c ?? null,
