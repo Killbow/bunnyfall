@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- A staff event now shows a column of purple light rising from its town, seen from a few map pixels away, so players can find it.
 - Camps work again: a pitched tent is kept as a camp and can be decorated (the server was not routing camp requests). Needs a server update.
 - Provisioning works again: the pot, the cauldron, milling flour and setting cheese were being refused by the server (it never routed them). Needs a server update.
 - Milling flour and setting cheese now work from the grain and milk in your pack and bag, not only your Stores. Cooking and brewing that are refused now say why. The Bench and Provisioning window uses the game's own buttons and chips and scrolls as one page.

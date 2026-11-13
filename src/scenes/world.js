@@ -241,6 +241,7 @@ import { windDrive, floraSwayOn, gustPhaseAfterShift, gustClock } from '../syste
 import { WindWispsRenderer, wispsOn, SAND_LOOK } from '../render/windWisps.js';   // WIND3: the wind, seen; WEATHER2d: the sandstorm's sand in the same program
 import { HeatHazeRenderer } from '../render/heatHaze.js';   // HAZE1: Heat Haze's ring, drawn
 import { createHeatHaze, hazeFrameSettings } from '../systems/heatHaze.js';   // HAZE1: Heat Haze's law (demifiend000, vendor/heat-haze/)
+import { createEventPillar } from './eventPillarHost.js';   // BUNNYFALL: a purple column of light over each staff event running (visual only)
 import { createAtmosphereHost } from './atmosphereHost.js';   // ATMO1: the air's small life - fireflies, butterflies, petals, dust, shafts, far birds (visual only)
 import { createWindfallHost } from './windfallHost.js';   // WINDFALL1: Windfall (demifiend000, vendor/windfall/) - its wind, its sounds, its leaves
 import { createSnowfallHost, snowfallNetwork, authoredTiles, settlementsIn } from './snowfallHost.js';   // SNOWFALL1: Snowfall (demifiend000, vendor/snowfall/) - the snow on the ground, its tracks
@@ -612,7 +613,7 @@ import { isEntityWaterWalking, assignModBundle, removeBundleNamed, WATER_WALKING
 import { pointNearPath, UNITS_PER_METRE, CAMP_ROAD_CLEAR_M } from '../world/road/roadClearance.js';   // FOREST1: and which picks are sites, and a site's footprint   // ROADS-CLEAR: WoD sites and pieces, and the camps, off the painted roads
 import { gateClearFor, createGateClearSweep } from '../world/gate/gateClearance.js';   // GATE-CLEAR: WoD's rock off the day's Oblivion Gate
 import { claimEventReceipt } from '../net/accountClient.js';   // EVENT-EXTRAS: a staff event's silver
-import { staffMapMarks, staffRaidOfKey as staffEventRaidOf } from '../systems/staffEvents.js';   // EVENT-EXTRAS: the staff events' map marks
+import { staffMapMarks, staffRaids as staffEventRaids, staffRaidOfKey as staffEventRaidOf } from '../systems/staffEvents.js';   // EVENT-EXTRAS: the staff events' map marks
 import { raidMapMarks } from '../ui/eventMapMarks.js';   // EVENT-TIP: the towns under attack, on the held map
 import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, isInLocationRect, mapPixelToWorldCoords, SCENE_MAP_RATIO, nearestFirstFrom } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
 import { horseNameTooltip } from '../ui/horseNameTooltip.js';   // AUDIT HCC U6: the mod's HUD label, both skins
@@ -25995,6 +25996,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const wardenTownAt = (x, z) => wardenTownIn(built.values(), (px, py) => state.pixelTranslation(px, py, _wardenT), TERRAIN_SIZE, x, z);
   const raidSites = createRaidSites({ townAt: wardenTownAt, townAtPixel: (px, py) => wardenTownOfPixel(built.values(), (x, y) => state.pixelTranslation(x, y, _wardenT), px, py), feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards.standBearer, spawnFoe: exteriorFoes.spawnFoe });   // RAID5: the town's square and way off its walk grid (the warden's own read)
   const raidSmoke = createRaidSmoke({ gl: renderer.gl, raids: raidsBurning, keyOf: raidKeyOf, sites: () => raidSites, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), now: () => performance.now() / 1000 });   // BUNNYFALL: seen on every machine
+  const eventPillar = createEventPillar({ gl: renderer.gl, events: staffEventRaids, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), pixel: () => playerTravelPixel(), now: () => performance.now() / 1000 });   // BUNNYFALL: a staff event's purple pillar (scenes/eventPillarHost.js)
   const WARDEN_CLIPS = { heave: SOUND.AnimalHorse, throw: SOUND.SwingHighPitch, land: SOUND.BodyFall };
   wardenShows = createWardenShows({
     renderer, getTexture, uploadRecordFrame,
@@ -35408,6 +35410,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // BUNNYFALL: a raid's smoke over its camps and the houses burning by them (scenes/raidMusterHost.js), the rite's eye and fog
     if (raidSmoke?.smoking() && raidSmoke.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();
+    // BUNNYFALL: a staff event's pillar of purple light over its town (scenes/eventPillarHost.js), the same eye and fog
+    if (eventPillar.showing() && eventPillar.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
+      { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
     // SD2c: THE HOLLOW'S OMEN - a Super dungeon's column of brass-gold light, after the gate's fire, the same eye and fog
     const sdo = sdHost ? sdOmenNow() : null;
     if (sdo && sdOmenPassOf()?.draw([sdo], proj, view, new Float32Array(mwv.eye), now / 1000,

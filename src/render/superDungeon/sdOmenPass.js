@@ -20,13 +20,13 @@ const NO_FOG_RANGE = new Float32Array([0, 1]);
 const NO_FOCUS = new Float32Array(4);
 const NO_HAZE = new Float32Array(8);   // AUDIT BANTHA1 HAZE-3: uJungleHaze off ([1].x 0)
 const WHITE = new Float32Array([1, 1, 1]);
-const COLOR = new Float32Array(SD_OMEN_COLOR);
 
 /** The Hollow's column, one foreign pass. */
 export class SdOmenPassRenderer {
-  /** @param {WebGL2RenderingContext} gl */
-  constructor(gl) {
+  /** @param {WebGL2RenderingContext} gl @param {ArrayLike<number>} [color] the column's light (BUNNYFALL: a staff event's pillar is this pass in purple) */
+  constructor(gl, color = SD_OMEN_COLOR) {
     this.gl = gl;
+    this._color = new Float32Array(color);
     this.program = buildProgram(gl, BEACON_VS, BEACON_FS, 'sd omen');
     this.u = {};
     for (const n of ['uVP', 'uOrigin', 'uEye', 'uRadius', 'uTime', 'uFade', 'uColor', 'uFogMode', 'uFogDensity', 'uFogRange', 'uCamPos', 'uFocus', 'uJungleHaze']) this.u[n] = gl.getUniformLocation(this.program, n);
@@ -62,7 +62,7 @@ export class SdOmenPassRenderer {
     gl.uniform1f(U.uTime, gateClock(seconds));
     gl.uniform1f(U.uRadius, BEACON_RADIUS_M);
     gl.uniform3fv(U.uEye, eye ?? fog?.camPos ?? WHITE);
-    gl.uniform3fv(U.uColor, COLOR);
+    gl.uniform3fv(U.uColor, this._color);
     gl.uniform1i(U.uFogMode, fog ? fog.mode : 0);
     gl.uniform1f(U.uFogDensity, fog?.density ?? 0);
     gl.uniform2fv(U.uFogRange, fog?.range ?? NO_FOG_RANGE);
