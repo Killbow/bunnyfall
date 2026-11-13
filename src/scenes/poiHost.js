@@ -757,7 +757,7 @@ export function createPoiHost({
       return best;
     },
     /** A part's drawn matrix and box (the editor's gizmo and pick). */
-    partOf(id, key) { const s = standing.get(id); const p = s?.parts.find((x) => x.key === key); return p ? { scene: p.scene, box: p.box, local: p.local } : null; },
+    partOf(id, key) { const s = standing.get(id); const p = s?.parts.find((x) => x.key === key); return p ? { scene: p.scene, box: p.box, local: p.local, min: p.min, max: p.max } : null; },
     /** Returns a flat picture's bounding box in the scene once its texture has loaded (used for editor selection
      *  boxes and picking). */
     flatBox: (id, key) => flats.boxOf(id, key),

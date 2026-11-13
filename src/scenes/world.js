@@ -4738,6 +4738,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // over it on the other. The capsule keeps its floor; what is PLACED
   // asks this.
   const _stT = [0, 0, 0];
+  // Counts terrain detail rebuilds, and with built.changes (pixels built or evicted) forms the POI editor's epoch.
+  let groundEpoch = 0;
   const surfaceAt = (x, z) => {
     const c = state.compensation;
     const px = state.mapOrigin.x + Math.floor((x - c[0]) / TERRAIN_SIZE);
@@ -6099,7 +6101,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const bed = waterOn ? hostBed(grid, grid.bed) : null;   // WATER-NEXT 2: the bed at the new ring class - AUDIT WATER-NEXT P1/H1: the kernel's, by the TileMap the water draws from
     p._bed = bed;
     p.terrain = renderer.createTerrainSurface(grid.bed?.positions ?? grid.positions, grid.bed?.normals ?? grid.normals,
-      stride === 1 ? TERRAIN_INDICES : TERRAIN_INDICES_LOD);
+      stride === 1 ? TERRAIN_INDICES : TERRAIN_INDICES_LOD); groundEpoch++;
     const waterIndices = waterOn ? buildWaterIndices(p._dwBytes ?? p.tilemapBytes, stride) : null;   // DW-F: the cap's TileMap, where it patched one
     p.water = waterIndices ? renderer.createWaterSheet(waterIndices, waterSheetOf(bed, p.terrain)) : null;
     p._stride = stride;
@@ -25803,7 +25805,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const m = collider.raycastHit(o, d, Math.min(g.dist, POI_PICK_REACH));
         return m && m.dist < g.dist ? { point: [o[0] + d[0] * m.dist, o[1] + d[1] * m.dist, o[2] + d[2] * m.dist], dist: m.dist } : g;
       },
-      surfaceAt: (x, z) => surfaceAt(x, z),
+      surfaceAt: (x, z) => surfaceAt(x, z), groundEpoch: () => groundEpoch + built.changes, snowRise: () => renderer._snowRise,
       onChange: () => panel?.refresh(),
       pass: new PoiGizmoPass(renderer.gl),
       actionOf: (e) => actionOf(e, keys),   // the eye flies by the registry's actions - the builder's own bindings
