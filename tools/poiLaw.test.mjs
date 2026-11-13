@@ -349,7 +349,7 @@ test('a stack may name a potion\'s recipe on the Glass Bottle; the trade law ref
   d.trades[0].recipes[0].requireItems = [{ template: 83, recipe: 'healing', count: 1 }];
   d.events[0].when = { k: 'has_item', item: { template: 83, recipe: 'nonsense', count: 1 } };
   assert.deepEqual(codes(d), []);
-  assert.deepEqual(poiTradeProblems(d).map((p) => p.code), ['item-recipe']);
+  assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[0].when.item.recipe:item-recipe']);
 });
 
 test('an encounter may say whether its enemies can be pacified; left out, they can, as before', () => {
@@ -367,4 +367,12 @@ test('an encounter may say whether its enemies can be pacified; left out, they c
 test('the new problem codes have sentences of their own', async () => {
   const { problemText } = await import('../src/poi/poiText.js');
   for (const code of ['item-recipe', 'pacifiable']) assert.ok(!problemText({ path: 'x', code }).startsWith('Something is wrong'), code);
+});
+
+test('the trade law names a problem in an event\'s condition or a person\'s showWhen at its own path', () => {
+  const d = poiV2Example();
+  d.events[3].when.of[1].item.template = 9000;
+  d.npcs[0].showWhen = { k: 'has_item', item: { template: 9000, count: 1 } };
+  assert.deepEqual(codes(d), []);
+  assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[3].when.of[1].item.template:item-template', 'npcs[0].showWhen.item.template:item-template']);
 });

@@ -58,12 +58,12 @@ export function poiTradeProblems(doc) {
     tree(r?.when, `${at}.when`);
   }));
   (doc?.interactives ?? []).forEach((/** @type {any} */ o, /** @type {number} */ i) => { if (o?.keyItem) stackProblems(o.keyItem, `interactives[${i}].keyItem`, out); });
-  const walk = (/** @type {any[] | undefined} */ rows, /** @type {string} */ name, /** @type {(row: any) => any} */ pick) => rows?.forEach((r, i) => tree(pick(r), `${name}[${i}]`));
-  walk(doc?.events, 'events', (e) => e?.when);
+  const walk = (/** @type {any[] | undefined} */ rows, /** @type {string} */ name, /** @type {string} */ key) => rows?.forEach((r, i) => tree(r?.[key], `${name}[${i}].${key}`));
+  walk(doc?.events, 'events', 'when');
   (doc?.events ?? []).forEach((/** @type {any} */ e, /** @type {number} */ i) => {
     for (const list of ['then', 'else']) (e?.[list] ?? []).forEach((/** @type {any} */ a, /** @type {number} */ k) => { if (a?.item) stackProblems(a.item, `events[${i}].${list}[${k}].item`, out); });
   });
-  walk(doc?.npcs, 'npcs', (n) => n?.showWhen);
+  walk(doc?.npcs, 'npcs', 'showWhen');
   (doc?.dialogues ?? []).forEach((/** @type {any} */ d, /** @type {number} */ i) => (d?.nodes ?? []).forEach((/** @type {any} */ n, /** @type {number} */ k) => (n?.options ?? []).forEach((/** @type {any} */ o, /** @type {number} */ m) => tree(o?.when, `dialogues[${i}].nodes[${k}].options[${m}].when`))));
   return out;
 }
