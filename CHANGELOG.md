@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor's item picker now offers the game's added items, such as foods, gems, and the crossbow, and says why potions are not offered.
 - Fixed: Offline, a POI trade's once-per-character, limited-stock, daily, and cooldown limits now last after a reload, on each device.
 - Fixed: A POI dialogue now drops an answer as soon as the event it started is done, instead of showing it until the next talk.
 - Fixed: Bodies of enemies killed in the in-game POI editor's Test no longer stay behind to be looted after the test ends.

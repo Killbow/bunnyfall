@@ -9,9 +9,10 @@
 // `conditionText`, `eventGraph`), through the text core.
 
 import { POI_V2_LIMITS as L, POI_INTERACTIVE_STATES, POI_FOE_RANGES } from './poiLawV2.js';
+import { POI_ITEM_CHOICES } from './poiItemChoices.js';
 import { ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
 import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
-import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
+import { templateGroups } from '../systems/item/itemLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { t } from '../systems/textManager.js';
@@ -49,18 +50,23 @@ function room(doc, name, wanted) {
 /** @type {{ template: number, name: string, group: string }[] | null} */
 let itemRows = null;
 /**
- * The game's items a POI may name (a trade's stacks, a key, a condition, or a gift), by the item law: every classic
- * template the law knows, in its first group, sorted by group then name. Gold is a number of its own, so the currency
- * is left out.
+ * Returns the items a POI may name in a trade stack, key item, condition, or gift: the classic items and the game's
+ * added items that the account service can give from a POI, each in its first group, sorted by group, then name. The
+ * list comes from poiItemChoices.js, which tools/poiItemChoices.mjs generates with the service's own rules, because the
+ * browser registers templates that the service does not know. It leaves out gold (given as an amount), templates with
+ * no item group, bound items, items with no name on the service, and potions, which are bottles that carry a recipe.
  */
 export function itemChoices() {
-  itemRows ??= ITEM_TEMPLATES.flatMap((row, i) => {
-    if (!row || !lawTemplate(i)) return [];
-    const group = templateGroups(i)[0];
-    return group && group !== 'Currency' ? [{ template: i, name: row.name, group }] : [];
-  }).sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
+  itemRows ??= POI_ITEM_CHOICES.map(([template, group, name]) => ({ template, name, group }));
   return itemRows;
 }
+/** Returns an item's name from the picker list, or from the classic item table. @param {number} template */
+const itemNameOf = (template) => {
+  itemNames ??= new Map(itemChoices().map((r) => [r.template, r.name]));
+  return itemNames.get(template) ?? ITEM_TEMPLATES[template]?.name ?? null;
+};
+/** @type {Map<number, string> | null} */
+let itemNames = null;
 /** The groups an item may be made in (a few templates are minted in more than one). @param {number} template */
 export const itemGroups = (template) => templateGroups(template).filter((g) => g !== 'Currency');
 /** @type {Record<string, () => string>} */
@@ -401,7 +407,7 @@ export const waypointName = (doc, route, key) => (doc.routes ?? []).find((r) => 
  * @param {any} names @param {any} s
  */
 export const itemName = (names, s) => {
-  const known = names ? names.assets?.find((a) => a.namespace === 'paperdoll-item' && a.template === s.template)?.name : ITEM_TEMPLATES[s.template]?.name;
+  const known = names ? names.assets?.find((a) => a.namespace === 'paperdoll-item' && a.template === s.template)?.name : itemNameOf(s.template);
   return t('poi.dm.text.stack', '{count, number} x {item}', { count: s.count ?? 1, item: known ?? t('poi.dm.text.itemN', 'item {n}', { n: s.template }) });
 };
 const OP_WORD = { eq: () => t('poi.dm.op.eq', 'is'), ne: () => t('poi.dm.op.ne', 'is not'), gt: () => '>', ge: () => '>=', lt: () => '<', le: () => '<=' };

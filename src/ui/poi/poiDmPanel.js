@@ -216,6 +216,12 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       const op = /** @type {HTMLOptionElement} */ (el('option', '', it.name)); op.value = String(it.template); if (it.template === stack.template) op.selected = true; og?.append(op);
     }
     if (!DM.itemChoices().some((it) => it.template === stack.template)) { const op = /** @type {HTMLOptionElement} */ (el('option', '', t('poi.dm.itemUnknown', 'item {n} (not known)', { n: stack.template }))); op.value = String(stack.template); op.selected = true; s.append(op); }
+    // Explain in the picker why potions and gold are not offered (see DM.itemChoices).
+    const off = /** @type {HTMLOptGroupElement} */ (el('optgroup')); off.label = t('poi.dm.notOffered', 'Not offered');
+    for (const tx of [t('poi.dm.noPotion', 'Potions: a potion is a bottle with a recipe, and a recipe cannot be set here'), t('poi.dm.noGold', 'Gold: give or take it as an amount')]) {
+      const op = /** @type {HTMLOptionElement} */ (el('option', '', tx)); op.disabled = true; op.value = ''; off.append(op);
+    }
+    s.append(off);
     const change = (/** @type {any} */ to) => run((d) => { const x = get(d, path); if (x) DM.setStackItem(x, to); });
     s.addEventListener('change', () => change({ template: Number(s.value) }));
     const r = row(label, s);
