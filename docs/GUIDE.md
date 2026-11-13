@@ -127,6 +127,7 @@ authors to `src/ui/credits.js`.
 | World Builder (POIs: build, review, DM content, Sandbox) | `tools/poi-editor/` (the editor, see its README), `src/poi/` (the law, `poiLawV2.js`; the game logic, `poiDmCore.js`) |
 | POI trades and events in the world, paid by the server | `src/poi/poiDmRuntime.js`, `src/scenes/poiHost.js`, `server-account/src/poiTrade.js` |
 | What level a fight is built at (party level, dungeon session, wilds, quests) | `src/systems/encounterLevel.js` (all the numbers), `dungeonLevel.js`, `wildLevel.js`, `mentorMode.js` `partyLevel` |
+| The air's small life: fireflies, butterflies, petals, dust, sun shafts, far birds (visual only, OFF unless `?atmo=on`) | `src/render/atmosphere.js` (sim and draw), `src/scenes/atmosphereHost.js` (the host), six lines in `world.js` marked `ATMO1` |
 
 ## Folders in `src/`
 
@@ -147,3 +148,11 @@ Checked against the real data, so worth trusting:
 
 - Small leftovers in the paperdoll back view: a stray skin block beside a loincloth, blocky hair, shields drawn flat.
 - Player festivals are `playerFestivalLaw.js`, not the Witches' Festival (`festivalLaw.js` and `server-account/src/festival.js` are upstream's calendar event, switched off).
+- **Atmosphere (ATMO1) is written but has never been seen running in the real game**, so it ships off. Try it with
+  `?atmo=on` (`&atmoSeason=spring|summer|autumn|winter` pins the season, `&atmoDebug` exposes `window.__atmo`). Known
+  gaps: the sun shafts stand in the open as well as under trees (they should be tied to woods and capped at canopy height),
+  fireflies and butterflies ignore where flowers, woods and water are, and the open-land wish list (denser forest floor,
+  mountains, streams, wildlife) is not started. The exterior host (`exterior.js`) has no hook yet.
+- Mothsbee's "Decor & Miscellanea" sprite pack (113 sprites: anvils and cauldrons in five metals, potions, jars, food,
+  lanterns, mannequins) is not in the repo: its licence was not checked. Import it with `node tools/importDfmod.mjs`
+  once the licence is known and add it to `src/ui/credits.js`.

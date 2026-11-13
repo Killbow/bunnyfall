@@ -241,6 +241,7 @@ import { windDrive, floraSwayOn, gustPhaseAfterShift, gustClock } from '../syste
 import { WindWispsRenderer, wispsOn, SAND_LOOK } from '../render/windWisps.js';   // WIND3: the wind, seen; WEATHER2d: the sandstorm's sand in the same program
 import { HeatHazeRenderer } from '../render/heatHaze.js';   // HAZE1: Heat Haze's ring, drawn
 import { createHeatHaze, hazeFrameSettings } from '../systems/heatHaze.js';   // HAZE1: Heat Haze's law (demifiend000, vendor/heat-haze/)
+import { createAtmosphereHost } from './atmosphereHost.js';   // ATMO1: the air's small life - fireflies, butterflies, petals, dust, shafts, far birds (visual only)
 import { createWindfallHost } from './windfallHost.js';   // WINDFALL1: Windfall (demifiend000, vendor/windfall/) - its wind, its sounds, its leaves
 import { createSnowfallHost, snowfallNetwork, authoredTiles, settlementsIn } from './snowfallHost.js';   // SNOWFALL1: Snowfall (demifiend000, vendor/snowfall/) - the snow on the ground, its tracks
 import { createWindAudio, windSoundOn } from '../systems/wind/windAudio.js';   // WIND3: the wind, heard
@@ -2885,6 +2886,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // the enhanced outdoors' (scenes/windfallHost.js): ticked on every frame, outdoors and in; its law handed to the flats'
   // call in WIND3's place while the mod is on, its leaves and snow drawn with the opaque world.
   const windfall = createWindfallHost({ gl: renderer.gl, enhanced: !!sky.enhanced });
+  const atmosphere = createAtmosphereHost({ gl: renderer.gl, enhanced: !!sky.enhanced, heightAt: (x, z) => heightAt(x, z) });   // ATMO1: beside Windfall's; OFF unless ?atmo=on
   // SNOWFALL1 (Mac: "These should be on by default and integrate into our enhanced environments seamlessly"): SNOWFALL -
   // the enhanced outdoors' snow (scenes/snowfallHost.js) on the streamed ground as it is DRAWN: each pixel's own
   // surface at its stride and its TileMap (the cap's, where Deep Waters patched one), the sea it carved bare, the roads
@@ -13888,6 +13890,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // places - and the leaves in the air blew on at the new pixel. The arrival's haze reads its layer afresh.
     snowfall.offsetOrigin(state.initOffset);
     windfall.offsetOrigin(state.initOffset);
+    atmosphere.offsetOrigin(state.initOffset);   // ATMO1
     hazeGl?.offsetOrigin(state.initOffset);
     heatHaze.reset();
     _streamSince = null;   // PERF-EXT24 (the review): the sweep ended the old world's stream - the new one's two seconds start at its first pump
@@ -33793,6 +33796,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       offsetTechniques(r.offset);   // TECH1: and the player's own - an aim, a leap's landing, a Volley's falling shafts
       hazeGl?.offsetOrigin(r.offset);   // HAZE1: the shimmer's noise stands on the land, not the scene
       heatHaze.offsetOrigin(r.offset);   // HAZE1 (AUDIT ENVIRONS I7): and the ring's layer, held while airborne, with it
+      atmosphere.offsetOrigin(r.offset);   // ATMO1
       windfall.offsetOrigin(r.offset);   // WINDFALL1: the trees' places in the mod's wind, and its leaves, stand on the land
       snowfall.offsetOrigin(r.offset);   // SNOWFALL1: FloatingOrigin.OnPositionUpdate - the tiers' centres, their tracks and their pending stamps stand on the land
       droppedLoot.offsetAll(r.offset);
@@ -34119,6 +34123,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const _wfPx = playerTravelPixel();
     const windfallLaw = windfall.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: true, weather, minutes: skyMinutes(), climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), mapPixel: _wfPx,
       heading: wd.on ? wd.dir : null, feet: walkMode && playerSpawned ? player.pos : cam.pos, height: player.height });   // WINDFALL1: the mod's frame - its sounds and leaves, and the law the flora lean by (one wind: WIND1's heading); AUDIT ENVIRONS W1: WindMod.Update's Time.deltaTime, held by a pause and scaled with the world
+    atmosphere.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: true, weather, minutes: skyMinutes(), dayMinute: minute, windV: [wd.windV[0] * wd.gust, wd.windV[1] * wd.gust], gust: Math.max(0, wd.gust - 0.8), feet: walkMode && playerSpawned ? player.pos : cam.pos });   // ATMO1: the air's small life, off the same wind
     soundscape.frame(dt, { wd, weather: ambientWord, minute, climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), winter: season === SEASON.Winter, paused: gamePaused() });   // SOUNDSCAPE: beside the wind and DFU's ambience, never inside it - its ear the listener's, set above
     meterFor(renderer.gl)?.markCpu('snow');   // PERF-SIM1: the snow layer's frame
     _snowPixels.clear();
@@ -35331,6 +35336,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // WINDFALL1: WINDFALL's LEAVES AND SNOW - cutouts that write depth, so with the opaque world and before the haze grabs
     // it; lit as the flats round the player are. Not under the travel view's camera (they ride the player's place).
     if (windfall.particles && !tvf && windfall.draw(proj, view, renderer.flatLightAt(walkMode && playerSpawned ? player.pos : cam.pos))) renderer.markForeignPass();
+    if (!tvf && atmosphere.draw(proj, view, renderer.flatLightAt(walkMode && playerSpawned ? player.pos : cam.pos))) renderer.markForeignPass();   // ATMO1: after Windfall's leaves, with the opaque world
     const frameHaze = () => {   // PERF-V8
     if (hazeGl) {
       const _hzFoot = walkMode && playerSpawned ? player.pos : cam.pos;
