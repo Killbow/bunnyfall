@@ -4371,7 +4371,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // so this arms nothing today, but DFU gives corpses the same
     // billboard and lets the data decide, and so does this.
     armFlatAnim(batch, t, ct.archive, ct.record, flatAnims, uploadRecordFrame);
-    if (isEliteCorpse(f.entity)) markEliteCorpseBatch(batch, Math.random(), !!f.entity.staffBoss);   // ELITE FOES: the blue outline stays, the embers stop
+    if (isEliteCorpse(f.entity)) markEliteCorpseBatch(batch, Math.random(), f.entity.staffBoss ? (f.entity.staffBoss.purple ? 'purple' : true) : false);   // ELITE FOES: the blue outline stays, the embers stop
     f.corpseBatch = batch;   // SL2: the rewind frees a corpse BY ITS FOE
     batch.castOnly = !!_npcLane?.has('foe', foeId(f));   // AUDIT MW-NPC II H3: the body stands from the kill - the flat minted under it casts alone from its first frame (the level's pass draws it before drawFoes marks it)
     billboardBatches.push(batch);   // hosts draw + destroy() frees

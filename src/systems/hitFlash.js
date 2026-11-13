@@ -123,15 +123,19 @@ float eliteRim(sampler2D t, vec2 uv) {
 // have a yellow glow") - its glow is an elite's past STAFF_BOSS_GLOW (systems/eliteFoes.js), kept through the pulse here
 // so the colour reads it: a living one's 2.55..3, a corpse's -2.05..-3.
 const vec3 STAFF_BOSS_RIM = vec3(1.0, 0.82, 0.18);   // the outline: a bright yellow
+// SIFRIT (2026-11-13): a necromancer's mini boss glows PURPLE - the glow's offset 4 (systems/eliteFoes.js SIFRIT_GLOW), its pulse 4.55..5
+const vec3 SIFRIT_RIM = vec3(0.72, 0.28, 1.0);
 float eliteRimK(float g, float secs) {
   if (g > 0.0) return g;
-  float boss = -g >= 2.0 ? 2.0 : 0.0;
+  float boss = -g >= 4.0 ? 4.0 : (-g >= 2.0 ? 2.0 : 0.0);
   return boss + 0.775 + 0.225 * sin(secs * 3.2 + (-g - boss) * 6.2831853);
 }
 vec3 eliteRimColor(float k) {
-  bool boss = k >= 2.0;
+  bool purple = k >= 4.0;
+  if (purple) k -= 4.0;
+  bool boss = !purple && k >= 2.0;
   if (boss) k -= 2.0;
-  vec3 full = min((boss ? STAFF_BOSS_RIM : ELITE_RIM) * 2.0, vec3(1.0));   // the brightest it reaches: the outline as it was
+  vec3 full = min((purple ? SIFRIT_RIM : boss ? STAFF_BOSS_RIM : ELITE_RIM) * 2.0, vec3(1.0));   // the brightest it reaches: the outline as it was
   float s = clamp((k - 0.55) / 0.45, 0.0, 1.0);
   return full * mix(0.4, 1.0, s);
 }
@@ -166,10 +170,13 @@ float eliteEmber(sampler2D t, vec2 uv, float secs) {
 // the sprite's own colours (k at its low, 0.55) to a light yellow warmth (k at 1) - a tint, never a wash.
 vec3 eliteGlowLit(vec3 lit, vec3 albedo, float k) {
   if (k <= 0.0) return lit;
-  if (k >= 2.0) k -= 2.0;   // STAFF-EVENT: a mini boss's pulse, warmed as an elite's
+  bool purple = k >= 4.0;
+  if (purple) k -= 4.0;
+  else if (k >= 2.0) k -= 2.0;   // STAFF-EVENT: a mini boss's pulse, warmed as an elite's
   const vec3 LUM = vec3(0.299, 0.587, 0.114);
   float l = dot(albedo, LUM);
   float s = clamp((k - 0.55) / 0.45, 0.0, 1.0);
+  if (purple) return lit * mix(vec3(1.0), vec3(1.04, 0.86, 1.14), s) + vec3(0.42, 0.12, 0.62) * (0.05 * s * l);   // SIFRIT: a tint of violet, never a wash
   return lit * mix(vec3(1.0), vec3(1.10, 1.04, 0.82), s) + ELITE_GOLD * (0.035 * s * l);
 }`;
 

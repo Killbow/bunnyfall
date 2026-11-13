@@ -571,7 +571,7 @@ async function quickRefresh(/** @type {any} */ c) { await loadChars(true); const
 
 // ── Events ──
 const MONSTERS = Object.entries(MOBILE_TYPES).filter(([n, v]) => v !== MOBILE_TYPES.None && !/invalid/i.test(n) && v !== 39 && v !== 146)
-  .map(([n, v]) => ({ v, name: pretty(n).replace(/ +/g, ' ').trim() })).sort((a, b) => a.name.localeCompare(b.name));
+  .map(([n, v]) => ({ v, name: pretty(n).replace(/ +/g, ' ').trim() })).concat([{ v: 3072, name: 'Sifrit the Forbidden One' }]).sort((a, b) => a.name.localeCompare(b.name));
 const monsterName = (/** @type {number} */ v) => MONSTERS.find((m) => m.v === v)?.name ?? `#${v}`;
 function eventRow(/** @type {any} */ e) {
   const ev = e.ev ?? {};

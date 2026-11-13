@@ -9,7 +9,7 @@
 // TELL9: the player's telegraph contrast (a part of the Enhanced AI row) bolder over all of it.
 import { buildProgram } from './glProgram.js';
 import { FOG_FACTOR_GLSL } from './labGrass.js';   // AUDIT TACT D9: the renderer's one fog block
-import { BLOW, TELL_NOW } from '../ai/blowShapes.js';   // the leaf - the brain stays off the renderer's boot graph
+import { BLOW, TELL_NOW, blowDimOf } from '../ai/blowShapes.js';   // the leaf - the brain stays off the renderer's boot graph
 import { TELEGRAPH_STYLE_GLSL } from './telegraphStyle.js';   // TELL2: the boss's readable line, at a foe's scale (a leaf)
 import { getPref } from '../systems/uiPrefs.js';   // TELL9: the telegraph contrast, the player's own
 
@@ -25,6 +25,8 @@ const REACH = Object.freeze({ lunge: BLOW.lunge.len, sweep: BLOW.sweep.r, slam: 
  *  long shape does not enlarge every quad. A leap's by its own point (`ahead`). */
 export const quadHalf = (kind, ahead = null) => (Number.isFinite(ahead) && (kind === 'leap' || kind === 'aimed' || kind === 'pyre') ? ahead + (kind === 'leap' ? BLOW.leap.r : kind === 'pyre' ? BLOW.pyre.r : 0) : REACH[kind] ?? BLOW_QUAD_HALF) + 0.6;   // the aimed line: its own length; RVN5: a pyre's by its point
 /** The quad's half-extent about the foe's feet - every shape fits (TELL6: the charge's lane is the longest). */
+/** SIFRIT: a boss's blow's quad half-extent from its own numbers (`dim`), as quadHalf's - its reach and the line's glow past it. */
+export const dimQuadHalf = (b) => { const P = blowDimOf(b); return (b.kind === 'lunge' ? Math.max(P.len, P.halfW) : b.kind === 'sweep' ? P.r : b.kind === 'ring' ? P.rOut : 4) + 0.6; };
 export const BLOW_QUAD_HALF = Math.max(...Object.values(REACH)) + 0.3;
 
 /** TECH1 (bible/05-Combat/Weapon-Techniques.md): THE PLAYER'S OWN MARK (combat/techniques.js techniqueMarks - `technique`
@@ -223,8 +225,8 @@ export class FoeTelegraphPass {
       gl.uniform1f(U.uYaw, b.yaw);
       gl.uniform2f(U.uSlope, b.slope?.[0] ?? 0, b.slope?.[1] ?? 0);
       gl.uniform1i(U.uKind, BLOW_KIND[b.kind] ?? 0);
-      gl.uniform1f(U.uHalf, quadHalf(b.kind, b.ahead));   // TELL6: each its own size
-      const P = BLOW[b.kind];
+      gl.uniform1f(U.uHalf, b.dim ? dimQuadHalf(b) : quadHalf(b.kind, b.ahead));   // TELL6: each its own size; SIFRIT: a boss's blow its own
+      const P = blowDimOf(b);
       if (b.kind === 'lunge' || b.kind === 'charge') gl.uniform4f(U.uP, P.len, P.halfW, 0, 0);
       else if (b.kind === 'sweep') gl.uniform4f(U.uP, P.r, P.halfArc, 0, 0);
       else if (b.kind === 'ring') gl.uniform4f(U.uP, P.rIn, P.rOut, 0, 0);

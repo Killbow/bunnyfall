@@ -21,6 +21,7 @@
 //     its back flag (my feet against the puppet's facing) and its weakness flag, so the owner's poise meter weighs it as
 //     its own (10.4).
 import { BLOW, TELL_IRON_EXTRA } from './blowShapes.js';
+import { bossifyBlow } from './blowShapes.js';   // SIFRIT: a boss's blow, its numbers its kind's
 import { makeBlow, setLiveBlow, shatterBlow, liveBlows, inBlow, fitBlowToGround, BLOW_COLOR, IRON_COLOR, BLOW_VERDICT_LIFE } from './foeBlows.js';
 import { TELL, blowK, behind } from './tells.js';
 import { tacticsNow } from './tacticsClock.js';
@@ -111,6 +112,7 @@ export function applyBlowRecord(ai, r, { origin = null, me = false, entity = nul
         const total = Math.max(BLOW[kind].windup + (iron ? TELL_IRON_EXTRA : 0), left);   // the shape's nominal length: a late record starts part-filled
         const b = makeBlow(kind, origin, r.wy, now + left - total, signature ? sig.COLOR : iron ? IRON_COLOR : BLOW_COLOR, iron ? 'iron' : 'poise', total);
         b.n = n;
+        bossifyBlow(b, entity?.mobileType ?? -1, true);   // SIFRIT: her lane, her cone, her ring - larger and purple on my screen as on her owner's
         if (signature) { b.sig = true; b.mult = sig.MULT; b.windPitch = sig.WIND_PITCH; }   // FEUD WIRE: its owner's signature - x2.0 on my feet as on its owner's
         if (feint) b.feint = true;   // a feint never glints (the glint is the honest tell)
         if (Number.isFinite(r.wp)) b.ahead = r.wp;
