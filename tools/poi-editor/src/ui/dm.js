@@ -15,7 +15,7 @@ import { ask } from './dialog.js';
 
 const TABS = [['npcs', 'People'], ['routes', 'Routes'], ['encounters', 'Encounters'], ['interactives', 'Objects'], ['dialogues', 'Dialogues'], ['trades', 'Trades'], ['events', 'Events'], ['variables', 'Variables'], ['sandbox', 'Sandbox']];
 const WORD = { loop: 'Loop', pingpong: 'There and back', once: 'Once', hostile: 'Hostile', passive: 'Passive', never: 'Never', on_reentry: 'When a player comes back', all_dead: 'All dead', leader_dead: 'The leader dies', timer_survived: 'A timer runs out',
-  chest: 'Chest', door: 'Door or gate', switch: 'Switch', quest_object: 'Quest object', trigger: 'Zone (trigger)', boolean: 'True or false', number: 'Number', string: 'Text', event: 'This event only', instance: 'This visit', character: 'Each character', poi_global: 'Everyone, kept',
+  chest: 'Chest', door: 'Door or gate', switch: 'Switch', quest_object: 'Quest object', trigger: 'Zone (trigger)', boolean: 'True or false', number: 'Number', string: 'Text', event: 'This event only', instance: 'This visit', character: 'Each character, saved', poi_global: 'Everyone, saved',
   unlimited: 'No limit', once_per_char: 'Once per character', once_per_account: 'Once per account', daily_per_char: 'Once a day per character', global_stock: 'Limited stock', eq: 'is', ne: 'is not', gt: '>', ge: '>=', lt: '<', le: '<=' };
 const ACTION_WORD = { say: 'Say a line', set_var: 'Set a variable', set_state: 'Change an object', start_encounter: 'Start an encounter', end_encounter: 'End an encounter', start_route: 'Start a person walking', stop_route: 'Stop a person', spawn_npc: 'Show a person', despawn_npc: 'Hide a person', open_dialogue: 'Open a dialogue', open_trade: 'Open a trade', give_item: 'Give an item', take_item: 'Take an item', give_gold: 'Give gold', take_gold: 'Take gold', trigger_event: 'Run another event' };
 const OPTION_WORD = { goto: 'Go to another line', close: 'Close the talk', open_trade: 'Open a trade', run_trade_recipe: 'Run a trade recipe', trigger_event: 'Run an event' };
@@ -266,10 +266,10 @@ export function createDm({ host, getDoc, docId, edit, catalogue, say, pick, here
       return listPane('variables', 'Variables', v ? [
         section(v.name ?? v.key), text('Name', [...p, 'name'], v.name),
         select('Holds', [], v.type, words(POI_VAR_TYPES), { onPick: (x) => run('variable type', (dd) => { DM.setVariableType(dd, v.key, x); }) }),
-        select('Kept for', [...p, 'scope'], v.scope, words(POI_VAR_SCOPES)), valueIn('Starts as', [...p, 'initial'], v.initial, v.type),
-        note('Only "Everyone, kept" and "Each character" survive a visit. Conditions and events read and set variables by name.'),
+        select('Saved for', [...p, 'scope'], v.scope, words(POI_VAR_SCOPES)), valueIn('Starts as', [...p, 'initial'], v.initial, v.type),
+        note('Only "Everyone, saved" and "Each character, saved" survive a visit. Conditions and events read and set variables by name.'),
       ] : [note('Pick a variable or add one.')], { add: async () => {
-        const x = await ask('New variable', [{ name: 'name', label: 'Name', value: 'Variable' }, { name: 'type', label: 'Holds', options: words(POI_VAR_TYPES), value: 'boolean' }, { name: 'scope', label: 'Kept for', options: words(POI_VAR_SCOPES), value: 'poi_global' }], { ok: 'Add', validate: (y) => (!y.name.trim() ? 'Give it a name.' : null) });
+        const x = await ask('New variable', [{ name: 'name', label: 'Name', value: 'Variable' }, { name: 'type', label: 'Holds', options: words(POI_VAR_TYPES), value: 'boolean' }, { name: 'scope', label: 'Saved for', options: words(POI_VAR_SCOPES), value: 'poi_global' }], { ok: 'Add', validate: (y) => (!y.name.trim() ? 'Give it a name.' : null) });
         if (!x) return;
         let made = null; run('add variable', (dd) => { made = DM.addVariable(dd, x.name.trim(), x.type, x.scope); });
         if (made?.refused) say(made.refused); else { ui.key = made?.row?.key ?? null; render(); changed(); }
