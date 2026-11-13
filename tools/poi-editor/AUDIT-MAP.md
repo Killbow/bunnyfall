@@ -132,7 +132,7 @@ World Builder (`tools/poi-editor`) stays as it is and gets no new work. Both wri
 5. There is no level range. v2 takes an optional exact `level` per spawn.
 6. `foeBounds.js` bounds enemy health. It is not a spawn limit.
 7. Item `group` is a name such as `'Weapons'` in the item law and `mintGift`, and a number in a decor item.
-8. `mintGift` makes an empty bottle for template 83. A mixed potion cannot be given as a reward today.
+8. `mintGift` makes an empty bottle for template 83, or the named potion when the stack has a `recipe`.
 9. `poiAssetProblems` never looked at a person's picture. It does now.
 10. `poiDiff` never showed people. It does now.
 11. The spec's `POI_DRAFT_BODY_MAX` is derived from `POI_LIMITS.docBytes`, so it needed an explicit larger bound.

@@ -332,3 +332,27 @@ test('the law a save is refused for: the shape law first, else the item and sett
   const shape = [{ path: 'name', code: 'text' }];
   assert.deepEqual(poiPayProblems(d, shape), shape, 'a shape problem is said alone, as the service says it');
 });
+
+test('a stack may name a potion\'s recipe on the Glass Bottle; the trade law refuses an unknown name or another item', () => {
+  const pay = (fn) => { const d = poiV2Example(); fn(d.trades[0].recipes[0]); return poiPayProblems(d, poiDocProblems(d)).map((p) => `${p.path}:${p.code}`); };
+  const at = 'trades[0].recipes[0].rewardItems[0]';
+  assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, group: 'UselessItems1', recipe: 'healing', count: 1 }]; }), []);
+  // the shape law only knows the key, so the game's re-check of live POIs refuses nothing new
+  assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 3, count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 71, recipe: 'healing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  // the same stack works wherever stacks go: a requirement, a condition, an event's give and take
+  const d = poiV2Example();
+  d.trades[0].recipes[0].requireItems = [{ template: 83, recipe: 'healing', count: 1 }];
+  d.events[0].when = { k: 'has_item', item: { template: 83, recipe: 'nonsense', count: 1 } };
+  assert.deepEqual(codes(d), []);
+  assert.deepEqual(poiTradeProblems(d).map((p) => p.code), ['item-recipe']);
+});
+
+test('the new problem code has a sentence of its own', async () => {
+  const { problemText } = await import('../src/poi/poiText.js');
+  for (const code of ['item-recipe']) assert.ok(!problemText({ path: 'x', code }).startsWith('Something is wrong'), code);
+});

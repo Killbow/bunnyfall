@@ -1,17 +1,19 @@
 // @ts-check
 
-// What an item named by a POI trade, key or condition must be, checked against the game's own item law.
-// poiLawV2.js checks a stack's shape: a template number, a group name, a material, a count, some enchantments. This file
-// asks the game's catalogues whether that stack could exist, in the terms the server uses when it mints a reward
+// Validates items named by a POI trade, key item, or condition against the game's item law.
+// poiLawV2.js checks a stack's shape: a template number, a group name, a material, and a count. This file
+// asks the game's catalogs whether that stack could exist, in the terms the server uses when it mints a reward
 // (server-account/src/staffGive.js mintGift). The server still mints the piece and runs the item law over it at
-// settlement; this check lets the editor and the approval step refuse what settlement would refuse.
-// Everything imported here lives under src/, so the account service, the editor and an offline game can all load it.
+// settlement; this check lets the editor and the approval step refuse what settlement would refuse. It also checks a
+// stack's `recipe`, which the shape law knows only by key.
+// Everything imported here lives under src/, so the account service, the editor, and an offline game can all load it.
 
 import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
-import { isStackable } from '../systems/inventory.js';
+import { isStackable, GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
 import { varsRead, persists, needsService } from './poiDmCore.js';
+import { potionKeyOf } from './poiSettle.js';
 
 /** @typedef {import('./poiLaw.js').PoiProblem} PoiProblem */
 
@@ -32,6 +34,8 @@ export function stackProblems(s, at, out) {
   if (mats && s.material !== undefined && !mats.has(s.material)) say(`${at}.material`, 'item-material');
   if (!mats && s.material !== undefined) say(`${at}.material`, 'item-material');
   if (s.count > 1 && !isStackable({ group, templateIndex: s.template })) say(`${at}.count`, 'item-stack');
+  // a recipe names one of the game's potions, and only a potion (a Glass Bottle) carries one
+  if (s.recipe !== undefined && (potionKeyOf(s.recipe) === null || group !== 'UselessItems1' || s.template !== GLASS_BOTTLE_TEMPLATE)) say(`${at}.recipe`, 'item-recipe');
 }
 
 /**

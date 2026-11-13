@@ -19,9 +19,10 @@ const POTION_KEYS = new Map(POTION_RECIPES.map((r) => [r.name, potionRecipeKey(r
 export const potionKeyOf = (name) => (typeof name === 'string' ? POTION_KEYS.get(name) ?? null : null);
 
 /**
- * Does this record hold the item a stack names? A material only counts where the stack gives one. On a potion (the
- * Glass Bottle template) a stack with a `recipe` matches only that recipe's plain potion, never a Potent one, and a
- * stack without one matches only an empty bottle, so a take never removes a potion the stack did not name.
+ * Returns whether a record holds exactly the item a stack names. A material counts only where the stack gives one. For
+ * the Glass Bottle, a stack with a `recipe` matches only that recipe's plain potion (recordAccepts also takes its
+ * Potent ones), and a stack without one matches only an empty bottle, so a take never removes a potion the stack did
+ * not name.
  * @param {any} rec @param {any} s
  */
 export function recordMatches(rec, s) {
@@ -32,10 +33,21 @@ export function recordMatches(rec, s) {
   return potionKeyOf(s.recipe) !== null && rec.potionRecipeKey === potionKeyOf(s.recipe) && !rec.potent;
 }
 
-/** How many of a stack's item a save holds, worn or not. @param {any} save @param {any} s */
+/** Returns whether `rec` is a Potent potion of the recipe that `s` names. @param {any} rec @param {any} s */
+const potentOf = (rec, s) => s.recipe !== undefined && !!rec?.potent && recordMatches({ ...rec, potent: undefined }, s);
+
+/**
+ * Returns whether a record may count toward a stack: what recordMatches accepts, and also a Potent potion of the
+ * stack's recipe. A Potent potion counts for a condition and a requirement, and a take spends it only after the plain
+ * ones (takeStacks).
+ * @param {any} rec @param {any} s
+ */
+export const recordAccepts = (rec, s) => recordMatches(rec, s) || potentOf(rec, s);
+
+/** Returns how many of a stack's item a save holds, worn or not (recordAccepts). @param {any} save @param {any} s */
 export function countOf(save, s) {
   let n = 0;
-  for (const rec of Array.isArray(save?.items) ? save.items : []) if (recordMatches(rec, s)) n += recordCount(rec);
+  for (const rec of Array.isArray(save?.items) ? save.items : []) if (recordAccepts(rec, s)) n += recordCount(rec);
   return n;
 }
 
@@ -43,11 +55,12 @@ export function countOf(save, s) {
 export const goldOf = (save) => (Number.isSafeInteger(save?.goldPieces) && save.goldPieces > 0 ? save.goldPieces : 0);
 
 /**
- * Take the stacks out of a save, in place: only from records that may leave (not worn, not a quest's, not bound), the
- * smallest stack first. The list and the records that stay keep their identity (a live pack is held by reference
- * elsewhere), so a stack that gives part of itself is counted down and one that gives all is removed. Answers
- * `{ ok: true }`, or `{ ok: false, why: 'items' }` with nothing changed.
- * @param {any} save @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
+ * Takes the stacks out of a save, in place: only from records that may leave (not worn, not a quest's, not bound),
+ * plain potions before Potent ones, then the smallest stack first. The list and the records that stay remain the same
+ * objects, since a live pack is held by reference elsewhere: a stack that gives part of itself is counted down, and one
+ * that gives all is removed. Returns `{ ok: true }`, or `{ ok: false, why: 'items' }` with nothing changed.
+ * @param {any} save
+ * @param {{ template: number, group?: string, material?: number, recipe?: string, count: number }[]} stacks
  */
 export function takeStacks(save, stacks) {
   if (!Array.isArray(save?.items)) return stacks.length ? { ok: false, why: 'items' } : { ok: true };
@@ -55,8 +68,8 @@ export function takeStacks(save, stacks) {
   /** what each record has given so far, by index - decided first, applied only when every stack is covered */
   const gives = new Map();
   for (const s of stacks) {
-    const from = list.map((rec, i) => ({ rec, i })).filter(({ rec, i }) => tradeableRecord(rec) && recordMatches(rec, s) && recordCount(rec) - (gives.get(i) ?? 0) > 0)
-      .sort((a, b) => (recordCount(a.rec) - (gives.get(a.i) ?? 0)) - (recordCount(b.rec) - (gives.get(b.i) ?? 0)));
+    const from = list.map((rec, i) => ({ rec, i })).filter(({ rec, i }) => tradeableRecord(rec) && recordAccepts(rec, s) && recordCount(rec) - (gives.get(i) ?? 0) > 0)
+      .sort((a, b) => (+potentOf(a.rec, s) - +potentOf(b.rec, s)) || (recordCount(a.rec) - (gives.get(a.i) ?? 0)) - (recordCount(b.rec) - (gives.get(b.i) ?? 0)));
     let need = s.count;
     for (const { rec, i } of from) {
       if (need <= 0) break;

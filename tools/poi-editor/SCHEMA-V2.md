@@ -21,6 +21,8 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   where trades and events settle on a test copy of the builder's gold and items by the service's rules (an event that only
   gives, once), and persistent variables and claims are not stored. The service still refuses a draft's trade or event claim
   with `poi-not-live`.
+- A document with a stack's `recipe` is refused by an older law. Deploy the account service before the site; an older
+  game skips such a POI until it updates.
 - The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
   the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 
@@ -45,6 +47,13 @@ Flat pictures follow `decorLaw.js`. A `billboard` has `flat: [archive 0..99999, 
 weapon (not arrows), a piece of armour or a trophy. A `paperdoll` is any other item shown as its picture. A person's flat
 (`NPC_FLAT_ARCHIVES`) keeps scale 1. Other scales run 0.25 to 4.
 
+An item stack is `{ template, group?, material?, count, recipe? }`. `recipe` names one of the game's 20 potions by its
+recipe name (`healing`, `healTrue`: the `name` field in `src/systems/potionRecipes.js`) and goes only on the Glass Bottle
+(template 83). The service mints that potion with the game's own potion maker; offline play and the in-game editor's
+Test still give an empty bottle for it. In the game and on the service, a stack with a `recipe` counts that recipe's
+plain and Potent potions, and a take spends Potent ones only when no plain one is left; a Glass Bottle stack without
+one matches only empty bottles. The Sandbox does not tell potions apart yet.
+
 Events: triggers are `enter_area`, `interact`, `npc_talk`, `waypoint_reached` and `chained`. Conditions are `all`, `any`,
 `has_item`, `has_gold` and `var`, at most 16 checks and 4 levels. Actions are `say, set_var, set_state, start_encounter,
 end_encounter, start_route, stop_route, spawn_npc, despawn_npc, open_dialogue, open_trade, give_item, take_item, give_gold,
@@ -61,4 +70,4 @@ circle are refused.
 5. **Gold bound.** Up to the save's gold limit. Approvers decide what is sane.
 6. **Item stacks are plain.** No `enchant` key anywhere. Done in the law and tests.
 7. **No v2 submission gate.** Both editors write v2 and the in-game editor preserves the v2 keys it cannot edit, so nothing needs gating.
-8. **Potions** are given as the item reward of a quest, once the quest runtime (4) exists. Until then a trade can only hand out an empty bottle.
+8. **Potions** are named by recipe on a Glass Bottle stack (`recipe`), wherever a stack goes: trades, conditions, key items, and event actions. A bottle stack without a recipe gives and takes only empty bottles. A recipe stack counts Potent potions of its recipe too, and a take spends them only after the plain ones.

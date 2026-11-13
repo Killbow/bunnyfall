@@ -102,7 +102,7 @@ const KEYS = Object.freeze({
   variable: set('key', 'name', 'type', 'scope', 'initial'),
   trade: set('key', 'name', 'recipes'),
   recipe: set('key', 'name', 'requireItems', 'requireGold', 'when', 'rewardItems', 'rewardGold', 'limitMode', 'maxStock', 'cooldownS', 'onSuccessEvent'),
-  stack: set('template', 'group', 'material', 'count'),
+  stack: set('template', 'group', 'material', 'count', 'recipe'),
   event: set('key', 'name', 'trigger', 'when', 'then', 'else'),
 });
 /** Keys v2 adds to v1 parts, lights and people. poiLaw.js reads these. */
@@ -175,7 +175,9 @@ export function poiV2Problems(raw, kit) {
   const valueOk = (/** @type {any} */ v, /** @type {string} */ type) => (type === 'boolean' ? typeof v === 'boolean'
     : type === 'number' ? finite(v) && Math.abs(v) <= 1e9 : type === 'string' ? textOk(v, 64) : false);
 
-  /** an item stack: the game's own numbers, as the server mints them */
+  // an item stack: the game's own numbers, as the server mints them. A potion's `recipe` is only a known key here:
+  // poiTradeLaw.js checks its value at save, submission, and approval, so this law, which the game runs over every
+  // live POI, refuses nothing new.
   const stack = (/** @type {any} */ s, /** @type {string} */ at) => {
     if (!isObj(s)) { say(at, 'not-object'); return; }
     if (!int(s.template, 0, P.decorTemplateMax)) say(`${at}.template`, 'template', { max: P.decorTemplateMax });

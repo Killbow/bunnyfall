@@ -148,7 +148,7 @@ function mint(stacks, rand) {
   /** @type {any[]} */
   const records = [];
   for (const s of stacks) {
-    const g = mintGift({ template: s.template, group: s.group, material: s.material, count: s.count }, rand);
+    const g = mintGift({ template: s.template, group: s.group, material: s.material, recipe: s.recipe, count: s.count }, rand);
     if ('error' in g) return { error: 'poi-reward' };
     if (g.findings.length) return { error: 'poi-unlawful' };
     records.push(g.item);

@@ -1,8 +1,9 @@
 // The account service's half of POI v2, tried on an isolated local stack: draft, submit and approve; a trade and an event
 // settled once on a synthetic realm character; the save's schema untouched; a lost answer answered the same; two settles
 // at one sequence, one wins; nothing settles on a POI that is not live; a checkpoint of the settled record is clean through
-// the judge (the stack runs with it ON). Never a real player's save: the data directory is a temp one and both accounts and
-// the character are made here.
+// the judge (the stack runs with it ON); a trade that gives a potion named by recipe, a condition on it, a take of an
+// empty bottle, and Potent potions counted and taken last. Never a real player's save: the data directory is a temp
+// one and the accounts and characters are made here.
 //
 //   node --test tools/poiV2ServerProbe.mjs
 //
@@ -282,4 +283,83 @@ test('a rollback is a revision of its own, and only the revision live now settle
   assert.ok(JSON.stringify(revs).includes('rollback'), 'the rollback is on record as its own revision');
   const back = await trade(state.player, { id: state.poi.id, rev: state.poi.rev }, c, ['supplies', 'delivery']);
   assert.notEqual(back.json.error, 'poi-not-live', 'revision 1 is live again');
+});
+
+/** A second POI: a potion trade, a condition on that potion, and an empty-bottle take. */
+function potionDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ac';
+  d.interactives.push({ key: 'shrine', name: 'Shrine', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 6], yaw: 0, radius: 2, state: 'inactive' });
+  d.trades.push(
+    { key: 'potions', name: 'Healer', recipes: [
+      { key: 'heal', name: 'Heal True', requireItems: [], requireGold: 10, rewardItems: [{ template: 83, recipe: 'healTrue', count: 1 }], rewardGold: 0, limitMode: 'unlimited' },
+      { key: 'bottle', name: 'Return a bottle', requireItems: [{ template: 83, count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
+      { key: 'spend', name: 'Spend a Heal True', requireItems: [{ template: 83, recipe: 'healTrue', count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
+    ] },
+  );
+  d.events.push(
+    { key: 'healed', name: 'Healed', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 1 } },
+      then: [{ k: 'give_gold', amount: 5 }], else: [{ k: 'say', text: 'Bring a potion.' }] },
+    { key: 'pair', name: 'Two potions', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 2 } },
+      then: [{ k: 'give_gold', amount: 4 }], else: [{ k: 'say', text: 'Bring two.' }] },
+  );
+  return d;
+}
+
+test('potions: a trade gives a Heal True potion, a has_item on it settles, and a bottle take leaves the potions', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: potionDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = state.potions = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = state.healer = await account('ProbeHealer');
+  const purification = mintGift({ template: 83, recipe: 'purification' }).item;
+  const c = state.hc = await character(t, 'Healer', [mintGift({ template: 83, count: 2 }).item, purification], 100);
+  const before = await claim(t, poi, c, 'healed');
+  assert.equal(before.json.branch, 'else', 'no Heal True held yet');
+  c.seq = before.json.seq;
+  const a = await trade(t, poi, c, ['potions', 'heal']);
+  assert.equal(a.status, 200, a.text);
+  c.seq = a.json.seq;
+  const got = a.json.gave.items[0];
+  assert.equal(got.templateIndex, 83);
+  assert.equal(got.value, 100);
+  assert.equal(got.potionRecipeKey, mintGift({ template: 83, recipe: 'healTrue' }).item.potionRecipeKey);
+  assert.deepEqual(itemFindings(got), []);
+  const h = await claim(t, poi, c, 'healed');
+  assert.equal(h.status, 200, h.text);
+  assert.equal(h.json.branch, 'then');
+  assert.equal(h.json.gave.gold, 5);
+  c.seq = h.json.seq;
+  const b = await trade(t, poi, c, ['potions', 'bottle']);
+  assert.equal(b.status, 200, b.text);
+  c.seq = b.json.seq;
+  const now = await saveOf(t, c.id);
+  const keys = now.items.filter((r) => r.templateIndex === 83).map((r) => [r.potionRecipeKey ?? 0, r.stackCount ?? 1]).sort((x, y) => x[0] - y[0]);
+  assert.deepEqual(keys, [[0, 1], [got.potionRecipeKey, 1], [purification.potionRecipeKey, 1]].sort((x, y) => x[0] - y[0]), 'one empty bottle taken, both potions left');
+  const put = await checkpoint(t, c, now);
+  assert.equal(put.status, 200, put.text);
+  assert.ok(!put.json.tradeHeld, `the potions pass the judge: ${put.text}`);
+  c.seq = put.json.seq;
+});
+
+test('potions: a Potent potion of the recipe counts for has_item, and a take spends it only when no plain one is left', async () => {
+  const t = await account('ProbePotent');
+  const plain = mintGift({ template: 83, recipe: 'healTrue' }).item;
+  const c = await character(t, 'Potent', [{ ...plain, potent: 40 }, { ...plain }], 100);
+  const has = await claim(t, state.potions, c, 'pair');
+  assert.equal(has.status, 200, has.text);
+  assert.equal(has.json.branch, 'then', 'the plain and the Potent one make two');
+  c.seq = has.json.seq;
+  const potentLeft = (save) => save.items.filter((r) => r.templateIndex === 83 && r.potionRecipeKey === plain.potionRecipeKey).map((r) => r.potent ?? 0);
+  const one = await trade(t, state.potions, c, ['potions', 'spend']);
+  assert.equal(one.status, 200, one.text);
+  c.seq = one.json.seq;
+  assert.deepEqual(potentLeft(await saveOf(t, c.id)), [40], 'the plain one is taken first');
+  const two = await trade(t, state.potions, c, ['potions', 'spend']);
+  assert.equal(two.status, 200, two.text);
+  c.seq = two.json.seq;
+  assert.deepEqual(potentLeft(await saveOf(t, c.id)), [], 'then the Potent one');
+  assert.equal((await trade(t, state.potions, c, ['potions', 'spend'])).json.error, 'poi-items');
 });
