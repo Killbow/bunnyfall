@@ -503,7 +503,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
             section(t('poi.dm.playerGives', 'The player gives')), stacks(t('poi.dm.item', 'Item'), [...rp, 'requireItems'], r.requireItems), num(t('poi.dm.gold', 'Gold'), [...rp, 'requireGold'], r.requireGold, { min: 0, max: 1_000_000 }),
             section(t('poi.dm.playerGets', 'The player gets')), stacks(t('poi.dm.reward', 'Reward'), [...rp, 'rewardItems'], r.rewardItems), num(t('poi.dm.gold', 'Gold'), [...rp, 'rewardGold'], r.rewardGold, { min: 0, max: 1_000_000 }),
             select(t('poi.dm.howOften', 'How often'), null, r.limitMode, words(POI_LIMIT_MODES), { onPick: (v) => run((dd) => { DM.setLimit(get(dd, rp), v); }) }),
-            r.limitMode === 'global_stock' ? num(t('poi.dm.stock', 'Stock'), [...rp, 'maxStock'], r.maxStock, { min: 1, max: 1_000_000 }) : null,
+            ...(r.limitMode === 'global_stock' ? [num(t('poi.dm.stock', 'Stock'), [...rp, 'maxStock'], r.maxStock, { min: 1, max: 1_000_000 })] : []),
             num(t('poi.dm.cooldown', 'Cooldown (s)'), [...rp, 'cooldownS'], r.cooldownS, { min: 0, max: 2_592_000, none: true }),
             cond(t('poi.dm.onlyWhen', 'Only when'), [...rp, 'when'], r.when),
             ref(t('poi.dm.onSuccess', 'On success, run'), [...rp, 'onSuccessEvent'], r.onSuccessEvent, 'events', t('poi.dm.nothing', 'nothing')));
