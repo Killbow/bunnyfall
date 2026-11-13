@@ -24,10 +24,18 @@ function doors() {
     give: () => { used.push('give'); },
   };
 }
+function handOver(name, line, view, on) {
+  if (view.ready) { on.give(); return; }
+  for (const [k, sec] of view.sections.entries()) {
+    const r = sec.chosen < sec.count && sec.rows.find((x) => !x.why && x.n < x.max);
+    if (r) { on.set(k, r.g, Math.min(r.max, r.n + sec.count - sec.chosen)); return; }
+  }
+}
+
 /** Creates a mock panel that records what it shows and holds the last dialogue and trade callbacks. */
 function panelRec() {
   const rec = { shown: [], pick: null, tradePick: null };
-  rec.panel = { dialogue: (n, l, opts, pick) => { rec.shown.push(l); rec.pick = pick; }, trade: (n, rows, pick) => { rec.shown.push(`trade ${n}`); rec.tradePick = pick; }, close: () => {} };
+  rec.panel = { dialogue: (n, l, opts, pick) => { rec.shown.push(l); rec.pick = pick; }, trade: (n, rows, pick) => { rec.shown.push(`trade ${n}`); rec.tradePick = pick; }, hand: handOver, close: () => {} };
   return rec;
 }
 /** An enemy pool as scenes/exteriorFoes.js answers it. */

@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: A POI trade or event that takes items or gold now asks before it takes anything, and takes only the items you choose.
 - Fixed: A POI trade now shows items you are wearing and quest items as missing, instead of offering the trade and then refusing it.
 - Fixed: A trade recipe's form in the in-game POI editor no longer shows the word null under How often.
 - Fixed: The in-game POI editor's item picker now offers the game's potions by name, in place of the empty Glass Bottle and a Potion Recipe sheet that teaches nothing.

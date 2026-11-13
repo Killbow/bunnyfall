@@ -1,17 +1,17 @@
 // @ts-check
-// Runs a v2 POI's game logic in the world (World Builder M5), loaded only when a POI with DM content is present. Each
-// frame it walks people along routes, fires trigger zones, offers objects to use, answers Talk with a dialogue or a
-// trade, spawns encounters, and runs delayed events, following poiDmCore.js's rules (shared with the Sandbox). A realm
-// character's items and gold move only on the service's response (server-account/src/poiTrade.js, via realmGoldAct);
-// offline, the same rules run on the character's own pack. In preview mode (the in-game editor's Test,
-// poi/poiDmTest.js), `pack` and `give` operate on a throwaway purse, nothing is sent to the service, persistent
-// variables and claims stay in memory, and each settlement is logged.
+// Runs a v2 POI's people, zones, objects, talk, trades, encounters, and events in the world, by poiDmCore.js's rules.
+// Before a trade or event takes items or gold, the player chooses what to hand over. Online, the account service
+// settles them (server-account/src/poiTrade.js); offline and in Test, tradeCheck and drain repeat its checks.
 
 import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
   createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
+  takesOf, branchOf,
 } from './poiDmCore.js';
-import { takeStacks, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
+import { takeStacks, takeChosen, handRecord, recordAccepts, leavesOf, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
+import { tradeableRecord, recordIsOffered, recordCount, boundRecord, loadedWagonOf } from '../net/realm/realmTradeLaw.js';
+import { itemLongName, conditionWord } from '../systems/item/itemInfo.js';
+import { stampItemIds } from '../systems/item/itemIds.js';
 import { xform } from './poiRuntime.js';
 import { encounterPacifiable } from './poiLawV2.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
@@ -49,6 +49,7 @@ const WHY_TEXT = Object.freeze({
   busy: () => tr('poi.dm.refusal.busy', 'Your last dealing with the realm is still being settled. Try again in a moment.'),
   lease: () => tr('poi.dm.refusal.lease', 'This character is now being played in another tab or on another device.'),
   unknown: () => tr('poi.dm.refusal.unknown', 'The realm did not answer, so this may or may not have gone through.'),
+  'poi-hand': () => tr('poi.dm.hand.changed', 'Your items changed. Nothing was handed over.'),
 });
 const whyText = (/** @type {string} */ w) => WHY_TEXT[w]?.() ?? tr('poi.dm.refusal.other', 'That cannot be done now.');
 /** A refused act's words: an answer that never came (`unknown`) is not said as nothing traded. @param {any} a */
@@ -140,6 +141,44 @@ function mintEvent(stacks) {
  */
 const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p.items.map((/** @type {any} */ it) => ({ ...it })) : p?.items, wagonItems: p?.wagonItems, lightSourceIndex: p?.lightSourceIndex }, stacks).ok;
 
+export const HAND_IDLE_S = 60;
+const goldTaken = (/** @type {any[]} */ actions) => actions.filter((a) => a.k === 'take_gold').reduce((n, a) => n + a.amount, 0);
+const goldGiven = (/** @type {any[]} */ actions) => actions.filter((a) => a.k === 'give_gold').reduce((n, a) => n + a.amount, 0);
+/** @param {any} rec @param {any} loaded the save's loaded wagon (loadedWagonOf) */
+const lockedWhy = (rec, loaded) => (rec.equipSlot != null ? 'worn' : rec.questItem ? 'quest' : boundRecord(rec) ? 'bound' : rec === loaded ? 'loaded' : tradeableRecord(rec) ? null : 'other');
+/** @type {Record<string, () => string>} */
+const LOCKED_TEXT = Object.freeze({
+  worn: () => tr('poi.dm.hand.worn', 'Worn'),
+  quest: () => tr('poi.dm.hand.quest', 'Quest item'),
+  bound: () => tr('poi.dm.hand.bound', 'Bound'),
+  loaded: () => tr('poi.dm.hand.loaded', 'Carrying goods'),
+});
+
+/** @param {any} p the pack @param {any[]} stacks */
+function handRows(p, stacks) {
+  /** @type {{ recs: any[], why: string | null, total: number }[]} */
+  const rows = [];
+  const loaded = loadedWagonOf(p);
+  for (const rec of Array.isArray(p?.items) ? p.items : []) {
+    const why = lockedWhy(rec, loaded);
+    if (why === 'other' || !stacks.some((s) => recordAccepts(rec, s))) continue;
+    const row = rows.find((x) => x.why === why && recordIsOffered(x.recs[0], rec));
+    if (row) { row.recs.push(rec); row.total += recordCount(rec); } else rows.push({ recs: [rec], why, total: recordCount(rec) });
+  }
+  const chosen = stacks.map(() => rows.map(() => 0));
+  stacks.forEach((s, k) => {
+    const mine = rows.filter((x) => recordAccepts(x.recs[0], s));
+    if (!mine.length || !mine.every((x) => recordIsOffered(x.recs[0], mine[0].recs[0]))) return;
+    for (const x of mine) {
+      if (x.why) continue;
+      const g = rows.indexOf(x);
+      const used = chosen.reduce((n, c) => n + c[g], 0);
+      chosen[k][g] = Math.min(s.count - chosen[k].reduce((a, b) => a + b, 0), x.total - used);
+    }
+  });
+  return { rows, chosen };
+}
+
 /** Returns whether condition `c` reads only persistent variables (`character` and `poi_global` scopes), which are
  *  the only scopes the server evaluates. @param {any} doc @param {any} c */
 const readsOnlyKept = (doc, c) => [...varsRead(c)].every((k) => persists(byKey(doc.variables, k)));
@@ -213,6 +252,7 @@ export function createPoiDm(deps) {
     return r;
   }
   function dropRun(/** @type {any} */ r) {
+    if (asking?.r === r) endHand(null, false);
     for (const list of r.foes.values()) for (const f of list) deps.removeFoe?.(f);
     for (const list of r.left.values()) for (const f of list) deps.removeFoe?.(f);
     runs.delete(r.id);
@@ -245,48 +285,213 @@ export function createPoiDm(deps) {
 
   // ── settling items and gold ────────────────────────────────────
 
-  /** The pack follows a settled answer: what it took, out; what it gave, in. @param {{ items: any[], gold: number }} took @param {{ items: any[], gold: number }} gave */
-  function applyLocal(took, gave) {
+  /**
+   * An older service ignores the hand and sends no `picks`, so the reserved records go back and the pack follows it.
+   * @param {{ items: any[], gold: number, picks?: any[] }} took @param {{ items: any[], gold: number }} gave @param {any} [held]
+   */
+  function applyLocal(took, gave, held = null) {
     const p = pack();
-    if (p) { takeStacks(p, took.items); takeGold(p, took.gold); }
+    if (p) {
+      if (held && !took.picks) held.undo?.();
+      if (!held || !took.picks) takeStacks(p, took.items);
+      takeGold(p, took.gold);
+    }
     give(gave.items, gave.gold);
     deps.changed?.();
+  }
+
+  // ── the hand-over ──────────────────────────────────────────────
+
+  let asking = /** @type {any} */ (null);
+
+  /**
+   * @param {any} r @param {string} title @param {string} line @param {any[]} stacks @param {number} gold @param {() => boolean} still
+   */
+  function askHand(r, title, line, stacks, gold, still) {
+    return new Promise((done) => {
+      const p = pack();
+      asking = { r, title, line, stacks, gold, still, done, at: now(), note: '', ...handRows(p, stacks) };
+      drawHand();
+    });
+  }
+  /** @param {any} answer @param {boolean} [redraw] */
+  function endHand(answer, redraw = true) {
+    const a = asking;
+    if (!a) return;
+    asking = null;
+    if (redraw && (a.r.dm.dialogue || a.r.dm.trade)) show(a.r); else panel.close();
+    a.done(answer);
+  }
+  function declineHand() { say(tr('poi.dm.hand.declined', 'Nothing was handed over.')); endHand(null); }
+
+  /** @param {any} a */
+  function picksNow(a) {
+    const p = pack();
+    const list = Array.isArray(p?.items) ? p.items : [];
+    const leaves = leavesOf(p);
+    if (goldOf(p) < a.gold) return null;
+    /** @type {Map<any, number>} */
+    const used = new Map();
+    /** @type {{ rec: any, at: number, n: number }[][]} */
+    const out = [];
+    for (let k = 0; k < a.stacks.length; k++) {
+      const picks = [];
+      for (let g = 0; g < a.rows.length; g++) {
+        let left = a.chosen[k][g];
+        for (const rec of a.rows[g].recs) {
+          if (left <= 0) break;
+          const at = list.indexOf(rec);
+          if (at < 0 || !leaves(rec) || !recordAccepts(rec, a.stacks[k])) continue;
+          const n = Math.min(left, recordCount(rec) - (used.get(rec) ?? 0));
+          if (n <= 0) continue;
+          used.set(rec, (used.get(rec) ?? 0) + n);
+          picks.push({ rec, at, n });
+          left -= n;
+        }
+        if (left > 0) return null;
+      }
+      out.push(picks);
+    }
+    return out;
+  }
+  function giveHand() {
+    const a = asking;
+    if (!a) return;
+    if (!a.still()) { say(whyText('poi-hand')); endHand(null); return; }
+    const picks = picksNow(a);
+    if (!picks) {
+      const p = pack();
+      Object.assign(a, handRows(p, a.stacks), { note: tr('poi.dm.hand.redo', 'Your items changed. Choose again.'), at: now() });
+      drawHand();
+      return;
+    }
+    endHand({ picks });
+  }
+  function setHand(/** @type {number} */ k, /** @type {number} */ g, /** @type {number} */ n) {
+    const a = asking;
+    if (!a || !a.rows[g] || a.rows[g].why) return;
+    const others = a.chosen.reduce((m, c, j) => m + (j === k ? 0 : c[g]), 0);
+    const mine = a.chosen[k].reduce((m, x, j) => m + (j === g ? 0 : x), 0);
+    a.chosen[k][g] = Math.max(0, Math.min(n, a.rows[g].total - others, a.stacks[k].count - mine));
+    a.at = now();
+    a.note = '';
+    drawHand();
+  }
+  function drawHand() {
+    const a = asking;
+    if (!a) return;
+    const nameOf = (/** @type {any} */ s) => { const it = mintStack(s); return it ? itemLongName(it) : tr('poi.dm.hand.item', 'Item'); };
+    const sections = a.stacks.map((s, k) => {
+      const chosen = a.chosen[k].reduce((m, x) => m + x, 0);
+      const rows = a.rows.flatMap((x, g) => {
+        if (!recordAccepts(x.recs[0], s)) return [];
+        const rec = x.recs[0];
+        const cond = rec.maxCondition > 0 && (rec.group === 'Weapons' || rec.group === 'Armor') ? conditionWord(rec) : '';
+        const others = a.chosen.reduce((m, c, j) => m + (j === k ? 0 : c[g]), 0);
+        return [{ g, text: cond ? `${itemLongName(rec)} (${cond})` : itemLongName(rec), n: a.chosen[k][g], max: x.why ? 0 : Math.min(x.total - others, s.count - chosen + a.chosen[k][g]), total: x.total, why: x.why ? LOCKED_TEXT[x.why]?.() ?? null : null }];
+      });
+      return { text: tr('poi.dm.hand.stack', '{count} × {name}', { count: s.count, name: nameOf(s) }), chosen, count: s.count, rows };
+    });
+    const ready = sections.every((x) => x.chosen === x.count);
+    panel.hand?.(a.title, a.line, { sections, gold: a.gold, note: a.note, ready }, { set: setHand, give: giveHand, cancel: declineHand });
+  }
+  /**
+   * Stamp item ids before handRecord copies rec, so hand matches the ids onlineCheckpoint stamps.
+   * @param {{ rec: any, at: number, n: number }[][]} picks
+   */
+  function handOf(picks) {
+    if (act) stampItemIds({ items: picks.flat().map((x) => x.rec) });
+    return picks.map((l) => l.map((x) => ({ at: x.at, n: x.n, rec: handRecord(x.rec) })));
+  }
+  /** @param {{ rec: any, n: number }[][]} picks */
+  function holdOf(picks) {
+    /** @type {any} */
+    const held = { undo: null };
+    held.reserve = () => {
+      const p = pack();
+      if (!Array.isArray(p?.items)) return null;
+      const lit = p.items[p.lightSourceIndex];
+      /** @type {Map<any, number>} */
+      const n = new Map();
+      for (const x of picks.flat()) n.set(x.rec, (n.get(x.rec) ?? 0) + x.n);
+      /** @type {{ rec: any, n: number, at: number, whole: boolean }[]} */
+      const out = [];
+      for (const [rec, k] of n) {
+        const at = p.items.indexOf(rec);
+        if (at < 0) continue;
+        const whole = k >= recordCount(rec);
+        if (whole) p.items.splice(at, 1); else rec.stackCount = recordCount(rec) - k;
+        out.push({ rec, n: k, at, whole });
+      }
+      const relight = (/** @type {any} */ to) => { if (Number.isSafeInteger(p.lightSourceIndex)) p.lightSourceIndex = to ? p.items.indexOf(to) : -1; };
+      relight(lit);
+      deps.changed?.();
+      held.undo = () => {
+        held.undo = null;
+        for (const x of [...out].reverse()) {
+          if (x.whole) p.items.splice(Math.min(x.at, p.items.length), 0, x.rec);
+          else if (p.items.includes(x.rec)) x.rec.stackCount = recordCount(x.rec) + x.n;
+          else p.items.push({ ...x.rec, stackCount: x.n });
+        }
+        relight(lit);
+        deps.changed?.();
+      };
+      return held.undo;
+    };
+    return held;
+  }
+
+  /** @param {any} r @param {any} rec */
+  function tradeCheck(r, rec) {
+    if (!readsOnlyKept(r.doc, rec.when)) return { why: 'scope', word: 'poi-var-scope' };
+    const p = pack();
+    if (!p) return { why: 'pack', word: '' };
+    if (!takesHeld(p, rec.requireItems ?? [])) return { why: 'items', word: 'poi-items' };
+    if (goldOf(p) < (rec.requireGold ?? 0)) return { why: 'gold', word: 'gold' };
+    const records = mintEvent(rec.rewardItems ?? []);
+    if (!records) return { why: 'reward', word: 'poi-reward' };
+    if (goldOf(p) - (rec.requireGold ?? 0) + (rec.rewardGold ?? 0) > GOLD_INT_MAX) return { why: 'goldFull', word: 'poi-gold-full' };
+    return { p, records };
   }
 
   /** A recipe, settled. @param {any} r @param {string} trade @param {string} recipe */
   async function runTrade(r, trade, recipe) {
     if (busy) return;
-    const rec = byKey(byKey(r.doc.trades, trade)?.recipes, recipe);
+    const t = byKey(r.doc.trades, trade);
+    const rec = byKey(t?.recipes, recipe);
     if (!rec) return;
     const why = recipeBlock(r.dm, trade, recipe);
     // Limits, cooldowns, and stock wait for the service or the offline check below; other refusals are reported here.
-    if (why && why !== 'limit' && why !== 'cooldown' && why !== 'stock') { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, recipe, why }); return; }
+    const later = (/** @type {string | null} */ w) => !w || w === 'limit' || w === 'cooldown' || w === 'stock';
+    if (!later(why)) { say(whyText(/** @type {string} */ (why))); logSettle(r, { k: 'trade_refused', trade, recipe, why }); return; }
+    const refuse = (/** @type {string} */ w, /** @type {string} */ word) => { if (word) say(whyText(word)); logSettle(r, { k: 'trade_refused', trade, recipe, why: w }); };
     busy = true;
     try {
+      if (!act) {
+        if (why) { refuse(why, why); return; }
+        const c = tradeCheck(r, rec);
+        if (!c.p) { refuse(c.why, c.word); return; }
+      }
+      const stacks = rec.requireItems ?? [], needGold = rec.requireGold ?? 0;
+      let chosen = null;
+      if (stacks.length || needGold) {
+        if (act && (!takesHeld(pack(), stacks) || goldOf(pack()) < needGold)) { say(whyText(stacks.length && !takesHeld(pack(), stacks) ? 'poi-items' : 'poi-gold')); return; }
+        chosen = await askHand(r, r.talkingTo ?? t.name ?? '', rec.name ?? recipe, stacks, needGold, () => later(recipeBlock(r.dm, trade, recipe)));
+        if (!chosen) { logSettle(r, { k: 'trade_refused', trade, recipe, why: 'declined' }); return; }
+      }
       if (act) {
-        const a = await act('/v1/poi/trade', { poi: r.id, rev: r.rev, trade, recipe, txnId: txn() }, {});
+        const held = chosen ? holdOf(chosen.picks) : null;
+        const a = await act('/v1/poi/trade', { poi: r.id, rev: r.rev, trade, recipe, txnId: txn(), ...(chosen ? { hand: handOf(chosen.picks) } : {}) }, held ? { reserve: held.reserve } : {});
         if (!a?.ok) { say(whyText(refusalOf(a))); return; }
-        applyLocal(a.data?.took ?? { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, a.data?.gave ?? { items: [], gold: 0 });
+        applyLocal(a.data?.took ?? { items: stacks, gold: needGold }, a.data?.gave ?? { items: [], gold: 0 }, held);
       } else {
-        if (why) { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, recipe, why }); return; }
-        // Offline and in preview, validate all server trade rules (`tradePoi` in `poiTrade.js`) against the local
-        // inventory before mutating anything: the condition may read only persistent variables, required items and gold
-        // must be available, all reward items must be valid to mint, and the resulting gold must not exceed
-        // `GOLD_INT_MAX`.
-        const refuse = (/** @type {string} */ w, /** @type {string} */ word) => { say(whyText(word)); logSettle(r, { k: 'trade_refused', trade, recipe, why: w }); };
-        if (!readsOnlyKept(r.doc, rec.when)) { refuse('scope', 'poi-var-scope'); return; }
-        const p = pack();
-        if (!p) return;
-        const needGold = rec.requireGold ?? 0, giveGold = rec.rewardGold ?? 0;
-        if (!takesHeld(p, rec.requireItems ?? [])) { refuse('items', 'poi-items'); return; }
-        if (goldOf(p) < needGold) { refuse('gold', 'gold'); return; }
-        const records = mintEvent(rec.rewardItems ?? []);
-        if (!records) { refuse('reward', 'poi-reward'); return; }
-        if (goldOf(p) - needGold + giveGold > GOLD_INT_MAX) { refuse('goldFull', 'poi-gold-full'); return; }
-        takeStacks(p, rec.requireItems ?? []); takeGold(p, needGold);
-        give(records, giveGold);
+        const c = tradeCheck(r, rec);
+        if (!c.p) { refuse(c.why, c.word); return; }
+        if (chosen && !takeChosen(c.p, stacks, handOf(chosen.picks)).ok) { refuse('hand', 'poi-hand'); return; }
+        takeGold(c.p, needGold);
+        give(c.records, rec.rewardGold ?? 0);
         deps.changed?.();
-        logSettle(r, { k: 'trade', name: rec.name, took: { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, gave: { items: rec.rewardItems ?? [], gold: rec.rewardGold ?? 0 } });
+        logSettle(r, { k: 'trade', name: rec.name, took: { items: stacks, gold: needGold }, gave: { items: rec.rewardItems ?? [], gold: rec.rewardGold ?? 0 } });
       }
       const rules = claimRule(rec, { char: r.dm.char, player: r.dm.player, nowS: r.dm.now });
       for (const c of rules) {
@@ -300,6 +505,13 @@ export function createPoiDm(deps) {
     } finally { busy = false; }
   }
 
+  function eventTitle(/** @type {any} */ r, /** @type {any} */ ev) {
+    const tg = ev.trigger ?? {};
+    if (tg.k === 'interact') return byKey(r.doc.interactives, tg.interactive)?.name ?? r.doc.name ?? '';
+    if (tg.k === 'npc_talk') return byKey(r.doc.npcs, tg.npc)?.name ?? r.doc.name ?? '';
+    return r.doc.name ?? '';
+  }
+
   /** The events the core handed to the service, settled one at a time. @param {any} r */
   async function drain(r) {
     if (busy || !r.dm.pending.length) return;
@@ -308,34 +520,49 @@ export function createPoiDm(deps) {
     if (!ev) return;
     busy = true;
     try {
+      const refuse = (/** @type {string} */ why, /** @type {string} */ word) => { if (word) say(whyText(word)); logSettle(r, { k: 'refused', event: key, why }); };
+      if (!act && !readsOnlyKept(r.doc, ev.when)) { refuse('scope', 'poi-var-scope'); return; }
+      const branch = branchOf(ev, r.dm);
+      const actions = ev[branch] ?? [];
+      const takes = takesOf(actions), gold = goldTaken(actions);
+      const rules = eventRule(actions, r.dm.char);
+      const check = () => {
+        if (rules.some((c) => (r.dm.claims[`${eventClaim(key)}|${c.scope}`]?.n ?? 0) >= c.max)) return { why: 'limit', word: '' };
+        const p = pack();
+        if (!p || !takesHeld(p, takes)) return { why: 'items', word: 'poi-items' };
+        if (goldOf(p) < gold) return { why: 'gold', word: 'poi-gold' };
+        const records = mintEvent(actions.filter((/** @type {any} */ x) => x.k === 'give_item').map((/** @type {any} */ x) => x.item));
+        if (!records) return { why: 'reward', word: 'poi-reward' };
+        if (goldOf(p) - gold + goldGiven(actions) > GOLD_INT_MAX) return { why: 'goldFull', word: 'poi-gold-full' };
+        return { p, records };
+      };
+      if (!act) { const c = check(); if (!c.p) { refuse(c.why, c.word); return; } }
+      let chosen = null;
+      if (takes.length || gold) {
+        if (act && (!takesHeld(pack(), takes) || goldOf(pack()) < gold)) { say(whyText(!takesHeld(pack(), takes) ? 'poi-items' : 'poi-gold')); return; }
+        chosen = await askHand(r, eventTitle(r, ev), ev.name ?? key, takes, gold, () => branchOf(ev, r.dm) === branch);
+        for (let i; (i = r.dm.pending.indexOf(key)) >= 0;) r.dm.pending.splice(i, 1);
+        if (!chosen) { logSettle(r, { k: 'refused', event: key, why: 'declined' }); return; }
+      }
       if (act) {
-        const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn() }, {});
+        const held = chosen ? holdOf(chosen.picks) : null;
+        // Send the branch and a hand (even empty) when either branch takes, so the service never picks for itself.
+        const asks = ['then', 'else'].some((b) => (ev[b] ?? []).some((/** @type {any} */ x) => x.k === 'take_item' || x.k === 'take_gold'));
+        const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn(), ...(asks ? { branch, hand: chosen ? handOf(chosen.picks) : [] } : {}) }, held ? { reserve: held.reserve } : {});
         // an event already claimed is passed over in silence
         if (!a?.ok) { if (a?.error !== 'poi-limit') say(whyText(refusalOf(a))); return; }
         const d = a.data ?? {};
-        if (!d.nothing) applyLocal(d.took ?? { items: [], gold: 0 }, d.gave ?? { items: [], gold: 0 });
+        if (!d.nothing) applyLocal(d.took ?? { items: [], gold: 0 }, d.gave ?? { items: [], gold: 0 }, held);
         for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
         runEvent(r.dm, key, { branch: d.branch ?? 'then', settled: !d.nothing });
       } else {
-        const refuse = (/** @type {string} */ why, /** @type {string} */ word) => { if (word) say(whyText(word)); logSettle(r, { k: 'refused', event: key, why }); };
-        if (!readsOnlyKept(r.doc, ev.when)) { refuse('scope', 'poi-var-scope'); return; }
-        const branch = evalWhen(ev.when, r.dm.read()) ? 'then' : 'else';
-        const actions = ev[branch] ?? [];
-        const rules = eventRule(actions, r.dm.char);
-        if (rules.some((c) => (r.dm.claims[`${eventClaim(key)}|${c.scope}`]?.n ?? 0) >= c.max)) { refuse('limit', ''); return; }
-        const p = pack();
-        const takes = actions.filter((/** @type {any} */ x) => x.k === 'take_item').map((/** @type {any} */ x) => x.item);
-        const gold = actions.filter((/** @type {any} */ x) => x.k === 'take_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
-        const giveGold = actions.filter((/** @type {any} */ x) => x.k === 'give_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
-        if (!p || !takesHeld(p, takes)) { refuse('items', 'poi-items'); return; }
-        if (goldOf(p) < gold) { refuse('gold', 'poi-gold'); return; }
-        const records = mintEvent(actions.filter((/** @type {any} */ x) => x.k === 'give_item').map((/** @type {any} */ x) => x.item));
-        if (!records) { refuse('reward', 'poi-reward'); return; }
-        if (goldOf(p) - gold + giveGold > GOLD_INT_MAX) { refuse('goldFull', 'poi-gold-full'); return; }
-        takeStacks(p, takes); takeGold(p, gold);
-        give(records, giveGold);
+        const c = check();
+        if (!c.p) { refuse(c.why, c.word); return; }
+        if (chosen && !takeChosen(c.p, takes, handOf(chosen.picks)).ok) { refuse('hand', 'poi-hand'); return; }
+        takeGold(c.p, gold);
+        give(c.records, goldGiven(actions));
         deps.changed?.();
-        for (const c of rules) { const k = `${eventClaim(key)}|${c.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
+        for (const x of rules) { const k = `${eventClaim(key)}|${x.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
         if (rules.length && !preview) saveClaims(r);
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
@@ -377,6 +604,7 @@ export function createPoiDm(deps) {
 
   /** The panel as the run stands: a dialogue, a trade, or nothing. @param {any} r */
   function show(r) {
+    if (asking) return;
     // what is on the screen, so the frame does not show it again
     r.opened = r.dm.dialogue ?? r.dm.trade;
     sayLog(r);
@@ -423,6 +651,10 @@ export function createPoiDm(deps) {
   function frame(s, t, people) {
     const r = runOf(s);
     if (!r.loaded) return people;
+    if (asking?.r === r) {
+      if (deps.alive?.() === false) endHand(null);
+      else if (now() - asking.at >= HAND_IDLE_S) declineHand();
+    }
     const nowS = now(), dt = Math.min(1, Math.max(0, nowS - r.last));
     r.last = nowS;
     // Offline, the run's clock follows the wall clock, so time while the tab is hidden counts for claims and delays;
@@ -482,8 +714,11 @@ export function createPoiDm(deps) {
     tickEncounters(r, s, t, dt);
     // a dialogue or trade an event opened (a zone, a waypoint, a timer, an encounter) is shown, once, as Talk's is
     const opened = r.dm.dialogue ?? r.dm.trade;
-    if (opened && opened !== r.opened) show(r);
-    r.opened = opened;
+    // Leave r.opened unchanged while asking, so a dialogue or trade opened during the hand-over is drawn afterward.
+    if (!asking) {
+      if (opened && opened !== r.opened) show(r);
+      r.opened = opened;
+    }
     sayLog(r);
     drain(r);
     return list;
@@ -587,7 +822,7 @@ export function createPoiDm(deps) {
     /** The keys of a POI's parts that are not drawn and do not block this frame: the looks of its open doors. @param {string} id */
     off: (id) => runs.get(id)?.off ?? null,
     /** Every run's dialogue and trade closed and the panel put away (the editor's Test holding the live POIs). */
-    close() { for (const r of runs.values()) { r.dm.dialogue = null; r.dm.trade = null; r.opened = null; } panel.close(); },
+    close() { endHand(null, false); for (const r of runs.values()) { r.dm.dialogue = null; r.dm.trade = null; r.opened = null; } panel.close(); },
     /** A POI taken down: its run, its foes and its panel go. @param {string} id */
     drop(id) { const r = runs.get(id); if (r) { dropRun(r); panel.close(); } },
     /** For tests: a POI's model. @param {string} id */

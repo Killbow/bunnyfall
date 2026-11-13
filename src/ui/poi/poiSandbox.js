@@ -19,7 +19,7 @@ const WHY = {
   limit: () => t('poi.sandbox.why.limit', 'already done'), cooldown: () => t('poi.sandbox.why.cooldown', 'cooling down'), stock: () => t('poi.sandbox.why.stock', 'sold out'),
   missing: () => t('poi.sandbox.why.missing', 'it is missing'), depth: () => t('poi.sandbox.why.depth', 'too many events started one another'), service: () => t('poi.sandbox.why.service', 'the realm settles it'),
   scope: () => t('poi.sandbox.why.scope', 'its condition reads a variable the realm does not save'), reward: () => t('poi.sandbox.why.reward', 'an item it gives cannot be made'),
-  goldFull: () => t('poi.sandbox.why.goldFull', 'the purse cannot hold that much gold'),
+  goldFull: () => t('poi.sandbox.why.goldFull', 'the purse cannot hold that much gold'), declined: () => t('poi.sandbox.why.declined', 'the visitor cancels the hand-over'),
 };
 const why = (/** @type {string} */ w) => WHY[w]?.() ?? w;
 const kindIn = (/** @type {any} */ doc, /** @type {string} */ key) => (doc.interactives ?? []).find((/** @type {any} */ o) => o.key === key)?.kind;

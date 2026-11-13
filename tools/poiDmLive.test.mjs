@@ -14,6 +14,14 @@ import { createPoiNpcs } from '../src/scenes/poiNpcs.js';
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
+function handOver(name, line, view, on) {
+  if (view.ready) { on.give(); return; }
+  for (const [k, sec] of view.sections.entries()) {
+    const r = sec.chosen < sec.count && sec.rows.find((x) => !x.why && x.n < x.max);
+    if (r) { on.set(k, r.g, Math.min(r.max, r.n + sec.count - sec.chosen)); return; }
+  }
+}
+
 function setup(edit = () => {}, { items = [], store = null } = {}) {
   const doc = poiV2Example();
   edit(doc);
@@ -21,7 +29,7 @@ function setup(edit = () => {}, { items = [], store = null } = {}) {
   const player = { items: items.map((s) => mintStack(s)), goldPieces: 0 };
   let feet = [500, 0, 500], clock = 0;
   let last = null;
-  const panel = { dialogue: (n, l, opts, pick) => { shown.push(l); last = { opts, pick }; }, trade: (n) => shown.push(`trade ${n}`), close: () => {}, open: () => false };
+  const panel = { dialogue: (n, l, opts, pick) => { shown.push(l); last = { opts, pick }; }, trade: (n) => shown.push(`trade ${n}`), hand: handOver, close: () => {}, open: () => false };
   const rt = createPoiDm({
     say: (l) => said.push(l), pack: () => player, give: (recs, g) => { player.items.push(...recs); player.goldPieces += g; },
     feet: () => feet, now: () => clock, panel, store,

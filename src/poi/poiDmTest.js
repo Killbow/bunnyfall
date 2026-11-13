@@ -17,8 +17,8 @@ export const testable = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trade
 /** A deep copy of plain data. @param {any} v */
 const copy = (v) => { try { return structuredClone(v); } catch { return JSON.parse(JSON.stringify(v)); } };
 
-/** A throwaway purse and pack copied from the character's: its items and its gold pieces. @param {any} p */
-export const purseOf = (p) => ({ items: copy(Array.isArray(p?.items) ? p.items : []), goldPieces: goldOf(p) });
+/** Copies wagonItems too, so a loaded wagon still cannot leave in Test. @param {any} p */
+export const purseOf = (p) => ({ items: copy(Array.isArray(p?.items) ? p.items : []), goldPieces: goldOf(p), wagonItems: copy(Array.isArray(p?.wagonItems) ? p.wagonItems : []) });
 
 /**
  * Converts a scene position to its map pixel's local coordinates, so a floating-origin shift does not invalidate it.

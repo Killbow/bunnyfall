@@ -14,7 +14,15 @@ const { createPoiDm, mintStack } = dmRuntime;
 const poolFoes = (/** @type {any} */ pool) => dmRuntime.poolFoes(pool);
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-const fakePanel = () => { const seen = []; return { seen, dialogue: (n, l, o, pick) => seen.push({ k: 'd', l, o, pick }), trade: (n, rows, run) => seen.push({ k: 't', rows, run }), close: () => seen.push({ k: 'x' }), open: () => false }; };
+function handOver(name, line, view, on) {
+  if (view.ready) { on.give(); return; }
+  for (const [k, sec] of view.sections.entries()) {
+    const r = sec.chosen < sec.count && sec.rows.find((x) => !x.why && x.n < x.max);
+    if (r) { on.set(k, r.g, Math.min(r.max, r.n + sec.count - sec.chosen)); return; }
+  }
+}
+
+const fakePanel = () => { const seen = []; return { seen, dialogue: (n, l, o, pick) => seen.push({ k: 'd', l, o, pick }), trade: (n, rows, run) => seen.push({ k: 't', rows, run }), hand: (n, l, v, on) => { seen.push({ k: 'h', v }); handOver(n, l, v, on); }, close: () => seen.push({ k: 'x' }), open: () => false }; };
 
 function setup(edit = () => {}, { spawnFoe = null, act = null } = {}) {
   const doc = poiV2Example();

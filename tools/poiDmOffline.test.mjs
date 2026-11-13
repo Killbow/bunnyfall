@@ -19,6 +19,14 @@ const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const ZONE = { k: 'enter_area', interactive: 'ambush-zone' };
 
+function handOver(name, line, view, on) {
+  if (view.ready) { on.give(); return; }
+  for (const [k, sec] of view.sections.entries()) {
+    const r = sec.chosen < sec.count && sec.rows.find((x) => !x.why && x.n < x.max);
+    if (r) { on.set(k, r.g, Math.min(r.max, r.n + sec.count - sec.chosen)); return; }
+  }
+}
+
 /** The example POI with its zone's events replaced by `events`, run offline over a pack holding `gold` and `items`. */
 function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {} } = {}) {
   const doc = poiV2Example();
@@ -30,7 +38,7 @@ function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {
   let trade = null, offers = [];
   const rt = createPoiDm({
     act: null, say: (l) => said.push(l), now: () => clock, character: () => null,
-    panel: { dialogue: () => {}, trade: (n, rows, run) => { trade = run; offers = rows; }, close: () => {} },
+    panel: { dialogue: () => {}, trade: (n, rows, run) => { trade = run; offers = rows; }, hand: handOver, close: () => {} },
     pack: () => player,
     give: (recs, g) => { player.items.push(...recs); player.goldPieces += g; },
     feet: () => feet,
