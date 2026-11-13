@@ -23,6 +23,20 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   with `poi-not-live`.
 - A document with a stack's `recipe` or an encounter's `pacifiable` is refused by an older law. Deploy the account service
   before the site; an older game skips such a POI until it updates.
+- Migration 0209 copies every `event/<key>` claim row to `trade/event/<key>`, the name a recipe in a trade keyed `event`
+  now counts under. Production's deploy applies migrations before the Worker deploy, so in the minutes between, the old
+  code can still count such a recipe under the old name. Before the deploy, list the live POIs that have a trade keyed
+  `event` (read-only):
+
+  ```
+  npx wrangler d1 execute daggerfall-accounts --remote --command "SELECT d.id, d.live_rev FROM poi_docs d JOIN poi_revs r ON r.poi_id = d.id AND r.rev = d.live_rev AND r.kind = 'doc' WHERE EXISTS (SELECT 1 FROM json_each(r.doc, '$.trades') t WHERE json_extract(t.value, '$.key') = 'event')"
+  ```
+
+  If it lists none, the gap has no effect. If it lists any, run the migration once more right after the Worker deploy
+  (`npx wrangler d1 execute daggerfall-accounts --remote --file server-account/migrations/0209_poi_claim_names.sql`).
+  It takes the larger count, so it never allows an extra claim. A limit that the old code in the gap and the new code
+  both counted can still end up over by one. The gap also includes the deploy's wait for the relay, not only the Worker
+  upload.
 - The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
   the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 

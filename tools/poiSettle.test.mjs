@@ -1,9 +1,10 @@
 // Tests the shared settlement rules (src/poi/poiSettle.js) and the account service's reward mint, run with:
 //   node --test tools/poiSettle.test.mjs
-// They cover potions named by recipe (the mint, matching, has and take, Potent ones last) and empty bottles.
+// Covers potions named by recipe (minting, matching, counting and taking, spending Potent ones last), empty bottles,
+// and the names claims are counted under.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recordMatches, recordAccepts, countOf, takeStacks, potionKeyOf } from '../src/poi/poiSettle.js';
+import { recordMatches, recordAccepts, countOf, takeStacks, potionKeyOf, eventClaim, recipeClaim } from '../src/poi/poiSettle.js';
 import { mintGift } from '../server-account/src/staffGive.js';
 import { createPotion } from '../src/systems/loot/loot.js';
 import { POTION_RECIPES, potionRecipeKey } from '../src/systems/potionRecipes.js';
@@ -81,4 +82,12 @@ test('recipe names are the game\'s twenty, by their keys', () => {
   for (const r of POTION_RECIPES) assert.equal(potionKeyOf(r.name), potionRecipeKey(r.ingredients));
   assert.equal(potionKeyOf('Heal True'), null);
   assert.equal(potionKeyOf(undefined), null);
+});
+
+test('an event\'s claim and a recipe\'s claim never share a name, and other names stay as stored', () => {
+  assert.notEqual(eventClaim('gift'), recipeClaim('event', 'gift'));
+  assert.equal(eventClaim('gift'), 'event/gift');
+  assert.equal(recipeClaim('nyra', 'brew'), 'nyra/brew');
+  assert.equal(recipeClaim('trade', 'event'), 'trade/event');
+  assert.notEqual(recipeClaim('event', 'x'), recipeClaim('trade', 'event'));
 });

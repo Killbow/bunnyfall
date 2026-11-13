@@ -11,7 +11,7 @@ import { REALM_ID_RE, LEASE_RE, realmSaveTextOf, dropObjects, dropIfUnnamed, mus
 import { mintGift } from './staffGive.js';
 import { POI_ID_RE } from '../../src/poi/poiLaw.js';
 import { evalWhen, varsRead, persists, claimRule, eventRule, recipeWhy} from '../../src/poi/poiDmCore.js';
-import { takeStacks, takeGold, giveGoods, countOf, goldOf } from '../../src/poi/poiSettle.js';
+import { takeStacks, takeGold, giveGoods, countOf, goldOf, eventClaim, recipeClaim } from '../../src/poi/poiSettle.js';
 import { GOLD_INT_MAX } from '../../src/systems/item/itemLaw.js';
 
 /** How long a settled act's answer is kept for a client asking again (cron.js poi-txn-log). */
@@ -185,7 +185,7 @@ export async function tradePoi(ctx, player, body) {
   if (!readsOnlyKept(doc, recipe.when)) return { error: 'poi-var-scope' };
   const char = a.id;
   const who = { char, player, nowS };
-  const claim = `${body.trade}/${body.recipe}`;
+  const claim = recipeClaim(body.trade, body.recipe);
   const rules = claimRule(recipe, who);
   const [claims, kept] = await Promise.all([keptClaims(db, a.poi, claim, rules), keptVars(db, a.poi, char)]);
   /** @type {any[]} */
@@ -247,7 +247,7 @@ export async function eventClaimPoi(ctx, player, body) {
   // the branch is chosen from the record, then the act is shaped by it - so the rules (the once an event gives in) are
   // read with the actions in hand, and the claim row for them read before the record is touched
   const rulesFor = (/** @type {any[]} */ actions) => eventRule(actions, char);
-  const claimName = `event/${body.event}`;
+  const claimName = eventClaim(body.event);
   const claims = await keptClaims(db, a.poi, claimName, [...rulesFor(ev.then ?? []), ...rulesFor(ev.else ?? [])]);
   const change = (/** @type {any} */ save) => {
     branch = evalWhen(ev.when, ctxOfSave(save, doc, kept)) ? 'then' : 'else';

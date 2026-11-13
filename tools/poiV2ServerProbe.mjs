@@ -1,12 +1,10 @@
-// The account service's half of POI v2, tried on an isolated local stack: draft, submit and approve; a trade and an event
-// settled once on a synthetic realm character; the save's schema untouched; a lost answer answered the same; two settles
-// at one sequence, one wins; nothing settles on a POI that is not live; a checkpoint of the settled record is clean through
-// the judge (the stack runs with it ON); a trade that gives a potion named by recipe, a condition on it, a take of an
-// empty bottle, and Potent potions counted and taken last. Never a real player's save: the data directory is a temp
-// one and the accounts and characters are made here.
-//
+// The account service's half of POI v2, tried on an isolated local stack: draft, submit, and approve; trade and event
+// settlement on a synthetic realm character, with the save's schema untouched; idempotent retries, and one winner of
+// two settles at one sequence; refusal on a POI that is not live; a judge-clean checkpoint (the stack runs with the
+// judge on); named potions, `has_item` checks, empty-bottle takes, and Potent potions counted and spent last; and
+// separate trade and event claim limits. Never a real player's save: the data directory is temporary, and the accounts
+// and characters are made here.
 //   node --test tools/poiV2ServerProbe.mjs
-//
 // Needs `npm --prefix server ci` once (wrangler and miniflare), and takes a minute to bundle the two Workers.
 
 import test, { before, after } from 'node:test';
@@ -285,7 +283,7 @@ test('a rollback is a revision of its own, and only the revision live now settle
   assert.notEqual(back.json.error, 'poi-not-live', 'revision 1 is live again');
 });
 
-/** A second POI: a potion trade, a condition on that potion, and an empty-bottle take. */
+/** Builds a test POI with a potion trade, a potion condition, an empty-bottle take, and a trade keyed `event`. */
 function potionDoc() {
   const d = poiV2Example();
   d.id = 'poi-0123456789ac';
@@ -296,12 +294,14 @@ function potionDoc() {
       { key: 'bottle', name: 'Return a bottle', requireItems: [{ template: 83, count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
       { key: 'spend', name: 'Spend a Heal True', requireItems: [{ template: 83, recipe: 'healTrue', count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
     ] },
+    { key: 'event', name: 'Event', recipes: [{ key: 'blessing', name: 'Blessing', requireItems: [], requireGold: 1, rewardItems: [], rewardGold: 2, limitMode: 'once_per_char' }] },
   );
   d.events.push(
     { key: 'healed', name: 'Healed', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 1 } },
       then: [{ k: 'give_gold', amount: 5 }], else: [{ k: 'say', text: 'Bring a potion.' }] },
     { key: 'pair', name: 'Two potions', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 2 } },
       then: [{ k: 'give_gold', amount: 4 }], else: [{ k: 'say', text: 'Bring two.' }] },
+    { key: 'blessing', name: 'Blessing', trigger: { k: 'interact', interactive: 'shrine' }, then: [{ k: 'give_gold', amount: 3 }] },
   );
   return d;
 }
@@ -362,4 +362,16 @@ test('potions: a Potent potion of the recipe counts for has_item, and a take spe
   c.seq = two.json.seq;
   assert.deepEqual(potentLeft(await saveOf(t, c.id)), [], 'then the Potent one');
   assert.equal((await trade(t, state.potions, c, ['potions', 'spend'])).json.error, 'poi-items');
+});
+
+test('an event and a recipe of a trade keyed `event` count their limits apart', async () => {
+  const t = state.healer, c = state.hc, poi = state.potions;
+  const g = await claim(t, poi, c, 'blessing');
+  assert.equal(g.status, 200, g.text);
+  c.seq = g.json.seq;
+  const r = await trade(t, poi, c, ['event', 'blessing']);
+  assert.equal(r.status, 200, `the event's claim does not spend the recipe's: ${r.text}`);
+  c.seq = r.json.seq;
+  assert.equal((await trade(t, poi, c, ['event', 'blessing'])).json.error, 'poi-limit');
+  assert.equal((await claim(t, poi, c, 'blessing')).json.error, 'poi-limit');
 });
