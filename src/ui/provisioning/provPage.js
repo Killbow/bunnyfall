@@ -13,6 +13,10 @@ import { createSimmer } from '../../systems/simmerAct.js';
 import { scaleXp, xpPct } from '../../net/firmament/firmamentLaw.js';
 import { firmamentStats } from '../../systems/firmamentLive.js';
 import { getPref } from '../../systems/uiPrefs.js';
+import { accountRefusalText } from '../../net/accountClient.js';
+
+/** What a refused answer says: its own words, else the service's word for its error. */
+const refusal = (/** @type {any} */ r, /** @type {string} */ fallback) => r?.text ?? (r?.error ? `${accountRefusalText(r.error)} Nothing was spent.` : fallback);
 
 const _pv = { kind: /** @type {'pot'|'cauldron'} */ ('pot'), keys: /** @type {string[]} */ ([]), base: /** @type {string|null} */ (null), q: '', word: '', busy: false, act: /** @type {any} */ (null), asked: false, followed: /** @type {string|null} */ (null) };
 
@@ -176,7 +180,7 @@ export function drawProvPage(detail, rerender, p, here, kit) {
         if (_pv.busy) return;
         _pv.busy = true;
         const r = await book.provPrepare?.(pr.id, 1).catch(() => null);
-        _pv.busy = false; _pv.word = r?.ok ? `You made ${name(pr.out)}.` : 'You do not have enough for that.'; rerender();
+        _pv.busy = false; _pv.word = r?.ok ? `You made ${name(pr.out)}.` : refusal(r, 'That did not go through.'); rerender();
       }, held(inp.key) < inp.n));
     }
     mid.append(prep);
@@ -264,7 +268,7 @@ export function drawProvPage(detail, rerender, p, here, kit) {
       _pv.busy = true; rerender();
       const r = await p.provision({ kind, keys: _pv.keys, base: _pv.base, simmer }).catch(() => null);
       _pv.busy = false;
-      _pv.word = r?.ok ? `Made: ${r.data?.prov?.name ?? 'it'} (+${r.data?.xp ?? 0} Provisioning XP).` : r?.text ?? 'That did not go through. Nothing was spent.';
+      _pv.word = r?.ok ? `Made: ${r.data?.prov?.name ?? 'it'} (+${r.data?.xp ?? 0} Provisioning XP).` : refusal(r, 'That did not go through. Nothing was spent.');
       rerender();
     };
     const gentle = getPref('gentleActs') === true;

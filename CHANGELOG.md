@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Milling flour and setting cheese now work from the grain and milk in your pack and bag, not only your Stores. Cooking and brewing that are refused now say why. The Bench and Provisioning window uses the game's own buttons and chips and scrolls as one page.
 - The Bench and Provisioning (pot and cauldron) now open in a window of their own that fits your screen at any UI scale, with one scrollbar per list instead of two side by side. The Crafting tab's Bench and Provisioning rows open it, and so does pressing the station's key. The Crafting tab is now as wide as the Growth tab. The Stations page is just the stations now, and the Stores page no longer repeats them.
 - Two currencies are renamed everywhere you read them: silver is now Imperial Argents, and Nyx coins are now Dusk Tokens. The Dusk Token has its own picture in your pack and shop, and the Imperial Argent has its coin on the loot and haul cards. (Silver the metal, in armour, weapons and ingots, is unchanged.)
 - Bunnyfall Grimoire with Readable text now lays out buttons, chips, search boxes and small texts the way Enhanced Plus does, so windows that looked fine in Plus no longer get squeezed or messy. The Grimoire's paint stays; the HUD and the pack's own art screens keep their sizes.

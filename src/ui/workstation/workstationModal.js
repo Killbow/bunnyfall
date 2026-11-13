@@ -11,30 +11,27 @@ const ID = 'bf-workstation';
 const W = 1280, H = 800;
 
 const CSS = `
-#${ID} { position: fixed; inset: 0; z-index: 99990; display: flex; align-items: center; justify-content: center; background: rgba(6,7,10,.82);
-  font-family: var(--dfo-text-font, 'Alegreya', Georgia, serif); color: #e8e2d0; }
-#${ID} .wsm-stage { width: ${W}px; height: ${H}px; flex: none; transform-origin: center center; display: flex; flex-direction: column;
-  background: #16130e; border: 2px solid #8a6a32; box-shadow: 0 10px 50px rgba(0,0,0,.7); overflow: hidden; }
-#${ID} .wsm-top { flex: none; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 2px solid #6b5228; background: #1c150e; }
-#${ID} .wsm-title { font-size: 24px; letter-spacing: 1px; color: #d9b45a; font-variant: small-caps; }
-#${ID} .wsm-sub { color: #b8b09a; font-size: 14px; }
-#${ID} .wsm-x { margin-left: auto; font: inherit; font-size: 15px; padding: 5px 14px; color: #e8e2d0; background: rgba(10,12,17,.55); border: 1px solid #6b5228; cursor: pointer; }
-#${ID} .wsm-x:hover { border-color: #d9b45a; }
-#${ID} .wsm-body { flex: 1 1 auto; min-height: 0; padding: 12px 16px; display: flex; flex-direction: column; overflow: hidden; font-size: 15px; }
-/* one scrollbar per pane: the pages' own lists and cards scroll, the body does not */
-#${ID} .wsm-body > .cw, #${ID} .wsm-body > .pv, #${ID} .wsm-body > div { flex: 1 1 auto; min-height: 0; }
-#${ID} .wsm-body .cw, #${ID} .wsm-body .pv { display: flex; flex-direction: column; gap: 10px; min-height: 0; height: 100%; }
-#${ID} .wsm-body .cw-body, #${ID} .wsm-body .pv-body { flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: nowrap; align-items: stretch; gap: 14px; }
-#${ID} .wsm-body .cw-list { flex: 0 0 250px; max-height: none; min-height: 0; overflow-y: auto; }
-#${ID} .wsm-body .cw-body > .cw-card { flex: 1 1 0; min-width: 0; min-height: 0; overflow-y: auto; }
-#${ID} .wsm-body .cw-card.cw-ws { display: grid; grid-template-columns: 1.3fr 1fr; grid-auto-rows: min-content; align-content: start; gap: 12px 16px; }
+#${ID} { position: fixed; inset: 0; z-index: 99990; display: flex; align-items: center; justify-content: center; background: rgba(6,7,10,.82); }
+#${ID} .wsm-stage { width: ${W}px; height: ${H}px; max-width: none; max-height: none; flex: none; transform-origin: center center; display: flex; flex-direction: column; }
+#${ID} .wsm-top { flex: none; display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 2px solid #7d7460; }
+#${ID} .wsm-title { font-size: 24px; letter-spacing: .12em; text-transform: uppercase; color: rgb(243,239,44); text-shadow: 1px 1px 0 rgb(93,77,12); }
+#${ID} .wsm-sub { color: #b9ab93; font-size: 15px; }
+#${ID} .wsm-x { margin: 0 0 0 auto; }
+/* one scroll for the whole window: the body scrolls, no list or card inside it does */
+#${ID} .wsm-body { flex: 1 1 auto; min-height: 0; padding: 12px 16px 16px; overflow-y: auto; overflow-x: hidden; }
+#${ID} .wsm-body .cw, #${ID} .wsm-body .pv { display: flex; flex-direction: column; gap: 10px; }
+#${ID} .wsm-body .cw-body, #${ID} .wsm-body .pv-body { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: 14px; }
+#${ID} .wsm-body .cw-list, #${ID} .wsm-body .pv-book, #${ID} .wsm-body .pv-ings { max-height: none; overflow: visible; padding: 0; }
+#${ID} .wsm-body .cw-list, #${ID} .wsm-body .pv-book { flex: 0 0 250px; }
+#${ID} .wsm-body .pv-ings { flex: 0 0 300px; }
+#${ID} .wsm-body .cw-body > .cw-card, #${ID} .wsm-body .pv-mid { flex: 1 1 0; min-width: 0; overflow: visible; }
+#${ID} .wsm-body .cw-card.cw-ws { display: grid; grid-template-columns: 1.3fr 1fr; align-content: start; gap: 12px 16px; }
 #${ID} .wsm-body .cw-ws-sum { grid-column: 1 / -1; }
-#${ID} .wsm-body .pv-book { flex: 0 0 250px; max-height: none; min-height: 0; overflow-y: auto; }
-#${ID} .wsm-body .pv-mid { flex: 1 1 0; min-width: 0; min-height: 0; overflow-y: auto; }
-#${ID} .wsm-body .pv-ings { flex: 0 0 300px; max-height: none; min-height: 0; overflow-y: auto; }
-#${ID} .wsm-body .pv-sum { flex: none; }
-#${ID} .wsm-body .cw-help-btn { align-self: flex-start; margin-bottom: 0; }
-#${ID} .wsm-body .cw-help { max-height: 260px; overflow-y: auto; }
+#${ID} .wsm-body .cw-help-btn { align-self: flex-start; }
+#${ID} .wsm-body .cw-help { max-height: none; overflow: visible; }
+#${ID} .wsm-body .prof-family, #${ID} .wsm-body .act { font-size: 15px; }
+#${ID} .wsm-body .prof-family { padding: 5px 11px; }
+#${ID} .wsm-body .prof-search { font-size: 15px; padding: 6px 10px; }
 `;
 
 /** @type {{ root: HTMLElement, host: HTMLElement, kind: string } | null} */
@@ -69,7 +66,7 @@ export function openWorkstation(/** @type {'bench'|'prov'} */ kind) {
   if (!doc.getElementById(`${ID}-style`)) { const st = doc.createElement('style'); st.id = `${ID}-style`; st.textContent = CSS; doc.head.append(st); }
   const root = doc.createElement('div');
   root.id = ID;
-  root.innerHTML = `<div class="wsm-stage"><div class="wsm-top"><span class="wsm-title"></span><span class="wsm-sub"></span><button type="button" class="wsm-x">Close (Esc)</button></div><div class="wsm-body"></div></div>`;
+  root.innerHTML = `<div class="wsm-stage px-win px-sys"><div class="wsm-top"><span class="wsm-title"></span><span class="wsm-sub"></span><button type="button" class="act wsm-x">Close (Esc)</button></div><div class="wsm-body"></div></div>`;
   root.addEventListener('mousedown', (e) => { if (e.target === root) closeWorkstation(); });
   /** @type {HTMLElement} */ (root.querySelector('.wsm-x')).onclick = closeWorkstation;
   // the game's keys stay out of the window (the search boxes), Esc closes it
@@ -82,18 +79,24 @@ export function openWorkstation(/** @type {'bench'|'prov'} */ kind) {
   fit();
 }
 
+/** The pages' own buttons, chips and boxes wear the game's: the pause window's Act, chip and search. */
+function dress(/** @type {HTMLElement} */ host) {
+  for (const e of host.querySelectorAll('.cw-btn, .cw-tab, .pv-btn')) { e.classList.add('act'); if (e.classList.contains('cw-primary') || e.classList.contains('primary') || e.classList.contains('cw-on')) e.classList.add('primary'); }
+  for (const e of host.querySelectorAll('.cw-chip, .pv-chip:not(input), .cw-look-chip')) { e.classList.add('prof-family'); if (e.classList.contains('cw-on') || e.classList.contains('on')) e.classList.add('on'); }
+  for (const e of host.querySelectorAll('input.cw-search, input.pv-chip')) e.classList.add('prof-search');
+}
+
 function draw() {
   if (!_open) return;
   const p = profProvider();
   const { host, root, kind } = _open;
-  const keep = /** @type {HTMLElement[]} */ ([...host.querySelectorAll('.cw-list, .cw-card, .pv-book, .pv-mid, .pv-ings')]);
-  const tops = keep.map((e) => e.scrollTop);
+  const top = host.scrollTop;
   host.replaceChildren();
   const rerender = () => draw();
   /** @type {HTMLElement} */ (root.querySelector('.wsm-title')).textContent = kind === 'bench' ? 'The Bench' : 'Provisioning';
   /** @type {HTMLElement} */ (root.querySelector('.wsm-sub')).textContent = kind === 'bench' ? 'Choose a piece, pick its materials, make it' : 'The pot and the cauldron';
   if (kind === 'bench') drawBench(host, rerender, p, stationHere(), () => closeWorkstation(), stationsHere());
   else drawProvPage(host, rerender, p, stationHere(), { go: () => closeWorkstation() });
-  const now = /** @type {HTMLElement[]} */ ([...host.querySelectorAll('.cw-list, .cw-card, .pv-book, .pv-mid, .pv-ings')]);
-  now.forEach((e, i) => { if (tops[i]) e.scrollTop = tops[i]; });
+  dress(host);
+  host.scrollTop = top;
 }

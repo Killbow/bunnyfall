@@ -69,6 +69,7 @@ import { ASK_AGAIN_NOW, jittered } from './backoff.js';   // SCALE1: asks again 
 import { t } from '../systems/textManager.js';   // L10N4: the Stores' words in the player's language
 import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN: a page's day turns at its own moment past midnight
+import { PREPARES } from './provision/provisionLaw.js';   // BUNNYFALL PROVISIONING: milling and setting, moved in from the pack first
 import { planOf, inputsOf } from './craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
 
 /** Where this device keeps the acts whose answers did not come: { [account|character]: { harvests, withdrawals } }. */
@@ -508,6 +509,11 @@ export function createProfBook({ door, storage = null, character = () => null, n
     async provPrepare(prep, count = 1) {
       const c = character();
       if (!c || !account()) return { ok: false, error: 'no-session' };
+      const p = PREPARES.find((x) => x.id === prep);
+      if (p) {   // what the pack and the bag hold goes into the Stores first, as a make does: the service spends the Stores alone
+        const ready = await book.ensureInStores(p.inputs.map((i) => ({ key: i.key, n: i.n * Math.max(1, count | 0) })), { work: true });
+        if (!ready.ok) return { ok: false, error: ready.error ?? 'materials-short', material: ready.material };
+      }
       const origin = slot();
       const r = await ask(() => door.provPrepare(c, prep, count, rid()), origin);
       if (origin !== slot()) return { ...r, elsewhere: true };
