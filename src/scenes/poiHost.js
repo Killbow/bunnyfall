@@ -187,7 +187,7 @@ export function createPoiHost({
   dmHeld = () => false,
 }) {
   /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
-  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => (dmTest?.(id) ?? (dmHeld() ? null : dmRt))?.talk(id, key) ?? false });
+  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, groundAt, talk: (id, key) => (dmTest?.(id) ?? (dmHeld() ? null : dmRt))?.talk(id, key) ?? false });
   /** POI v2: flat pictures (scenes/poiFlats.js), with one decor room per POI that has flats */
   const flats = createPoiFlats({ renderer, getTexture, uploadRecord, uploadRecordFrame, flatAnims, now });
   /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */

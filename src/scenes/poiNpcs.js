@@ -16,8 +16,13 @@ export const POI_NPC_ARCHIVE = 9920;
 /** How near a person is drawn and, unless their POI gives them a talk range of their own (`reach`), talked to (m). */
 const SEEN_M = 400, REACH_M = 4;
 
-/** @param {any} deps `{ renderer, getTexture, uploadRecordFrame, asset, auth, say, feet, talk }` - `talk(poiId, npcKey)` a POI runtime's word on Talk (true: it answered) */
-export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame = null, asset = null, auth = () => null, say = null, feet = () => null, talk = null }) {
+/**
+ * Creates the POI NPC billboard manager. `talk(poiId, npcKey)` handles talking to a person and returns true when a POI
+ * runtime handled it; `groundAt(x, z)` returns the drawn ground's height at a scene point (not finite where the ground
+ * is not built).
+ * @param {any} deps `{ renderer, getTexture, uploadRecordFrame, asset, auth, say, feet, talk, groundAt }`
+ */
+export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame = null, asset = null, auth = () => null, say = null, feet = () => null, talk = null, groundAt = null }) {
   /** @type {Map<string, any>} `${poi}|${key}` -> the person standing */
   const people = new Map();
   /** sha -> { record, w, h } | { failed } | null (loading): a builder's pictures */
@@ -69,8 +74,8 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
   const extraOf = (/** @type {string} */ key) => { if (typeof key === 'string' && key.startsWith('poidm:')) for (const list of extras.values()) for (const x of list) if (x.key === key) return x; return null; };
 
   return {
-    /** A standing POI's people this frame: `list` them (poi/poiRuntime.js npcsOf, in the pixel's frame), `t` the pixel's
-     *  translation, `y` the place's height (the people's own heights ride on it). */
+    /** Syncs a loaded POI's people for this frame: `list` holds its NPCs in the pixel's frame (with `walks` set when a
+     *  route moves the person), and `t` is the pixel's scene translation. */
     sync(id, list, t) {
       if (people.size) for (const [k, p] of people) if (p.id === id && !list.some((n) => `${id}|${n.key}` === k)) { if (p.batch) renderer.destroyBillboardBatch?.(p.batch); people.delete(k); }   // one taken out of the document
       for (const n of list) {
@@ -84,6 +89,9 @@ export function createPoiNpcs({ renderer, getTexture = null, uploadRecordFrame =
         if (p.tgt && p.tgt.reach !== reach) { p.tgt.reach = reach; p.tgt.distance = reach + 2; }
         p.reach = reach;
         p.at[0] = n.at[0] + t[0]; p.at[1] = n.at[1] + t[1]; p.at[2] = n.at[2] + t[2];
+        // a person walking a route keeps the route's height between its waypoints, and walks on the ground where the
+        // ground rises above that line (a route laid flat over a slope would take them under it)
+        if (n.walks && groundAt) { const g = groundAt(p.at[0], p.at[2]); if (Number.isFinite(g) && g > p.at[1]) p.at[1] = g; }
         p.seen = true;
         if (!p.batch) {
           const s = spriteOf(n.look, n.h);

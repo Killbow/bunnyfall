@@ -452,6 +452,8 @@ export function createPoiDm(deps) {
           }
         }
         p.at = placeInto(w.scene ??= [0, 0, 0], s.place, w.pos, NO_MOVE);
+        // the people's host (scenes/poiNpcs.js) raises a walker to the ground where the ground rises above the route
+        p.walks = true;
       }
       list.push(p);
     }
