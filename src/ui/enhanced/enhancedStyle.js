@@ -47,6 +47,7 @@ import { STAR_VIOLET_CSS } from '../starfall/starMapMark.js';   // STAR6: a fall
 import { EG_ARCH_RING_CSS } from '../eliteGates/egArchMapMark.js';   // TIMERS2: an Elite Breach's row in its arch's gold
 import { heraldCss } from '../../net/herald/heraldCard.js';   // TIMERS2 / HERALD-CARDS: the gate's red, the one its Discord card wears
 import { TIER_MARKS, tierMarkCss } from '../lootTierMarks.js';   // LOOT-MARKS: the quick loot's tier gem and wash
+import { argentUrl } from '../../systems/currencyUrls.js';   // BUNNYFALL: the Imperial Argent's coin
 import { SUPPORT_MARKS_CSS } from '../supportAsks.js';   // SUPPORT1: the asks' marks - the door's icons and the website's corner, one drawing
 
 /**
@@ -4992,6 +4993,8 @@ ${paceControlsCss('tview')}
 .pack-shell .walletsheet .wallet-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
   padding: 3px 0; font-size: 14px; line-height: 1.35; }
 .pack-shell .walletsheet .wallet-k { color: var(--dim); }
+.pack-shell .walletsheet .wallet-row[data-key="silver"] .wallet-k::before { content: ''; display: inline-block; width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px;
+  background: url("${argentUrl()}") center / contain no-repeat; image-rendering: pixelated; }   /* BUNNYFALL: the Imperial Argent's own coin */
 .pack-shell .walletsheet .wallet-kg { margin-left: 4px; font-size: 12px; opacity: 0.75; font-variant-numeric: tabular-nums; white-space: pre; }
 .pack-shell .walletsheet .wallet-v { color: var(--bone); text-align: right; font-variant-numeric: tabular-nums; }
 .pack-shell .walletsheet .wallet-row.none .wallet-v, .pack-shell .walletsheet .wallet-v.why { color: var(--dim); opacity: 0.75; }

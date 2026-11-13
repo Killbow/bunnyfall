@@ -141,7 +141,7 @@ const bank = {
         w.hooks.accountVault?.() ? { type: 'group', title: 'Account vault', blocks: [{ type: 'actions', layout: 'column', items: [
           { label: 'Open the vault', act: () => w.hooks.openAccountVault?.(), disabled: !!w.box },
         ] }] } : null,
-        w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Imperial Argents', blocks: [
+        w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Imperial Argents', cls: 'port-argent', blocks: [
           { type: 'stats', items: [
             ['Argents held', marksText(w.hooks.marks.balance() ?? 0)],
             ['Sold today', `${(w.hooks.marks.today()?.exchanged ?? 0)} of ${MARKS_BANK.perDay}`],

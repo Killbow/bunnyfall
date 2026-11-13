@@ -23,12 +23,12 @@ import { DYE_COLORS } from '../../characters/dyes.js';
 import { addItem } from '../inventory.js';
 import { t } from '../textManager.js';
 
-/** The coin's row: a gem's weight, a gem's art (TEXTURE.254 record 1), bound, stacking with its own kind. */
+/** The coin's row: a gem's weight, the Dusk Token's own card (systems/currencyArt.js), bound, stacking with its own kind. */
 export const NYX_COIN_TEMPLATE = 2100;
 export const NYX_COIN = Object.freeze({ name: 'Dusk Token', value: 100 });
 registerCustomTemplates([{
   index: NYX_COIN_TEMPLATE, name: NYX_COIN.name, baseWeight: 0.05, hitPoints: 1000, basePrice: NYX_COIN.value, rarity: 20,
-  worldTextureArchive: 254, worldTextureRecord: 1, stackable: true, bound: true,
+  worldTextureArchive: CURRENCY_ARCHIVE, worldTextureRecord: DUSK_TOKEN_RECORD, stackable: true, bound: true,
 }]);
 // BUNNYFALL: the Dusk Token's own picture in every item list (the pack, the Stores, the shop), not the gem's it borrowed
 installCurrencyArt();

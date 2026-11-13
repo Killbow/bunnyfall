@@ -9,18 +9,14 @@
 // world/eliteGates/pseudoArchives.js), record 0, registered as a stand-in the way the Emperor's statue is
 // (world/emperorMemorial.js). The pack, the Stores and the shop draw it through `registerOwnItemImage`
 // (systems/wild/nyxShop.js).
-import { APP_ROOT } from './appRoot.js';
+import { argentUrl, duskTokenUrl } from './currencyUrls.js';
 import { addVendorTextures, decodePng } from './textureReplacement.js';
 
 /** The currencies' pseudo-archive: record 0 the Dusk Token's picture. */
 export const CURRENCY_ARCHIVE = 38331;
 export const DUSK_TOKEN_RECORD = 0;
 
-const root = () => APP_ROOT ?? globalThis.document?.baseURI ?? 'http://localhost/';
-/** The Imperial Argent's coin, as a page picture. */
-export const argentUrl = (r = root()) => new URL('art/bunnyfall-currency/imperial-argent.png', r).href;
-/** The Dusk Token's card, as a page picture. */
-export const duskTokenUrl = (r = root()) => new URL('art/bunnyfall-currency/dusk-token.png', r).href;
+export { argentUrl, duskTokenUrl };
 
 let _installed = false;
 /** Register the Dusk Token's picture once, before the archives load. `fetchBytes()` is the test seam. @returns {number} */

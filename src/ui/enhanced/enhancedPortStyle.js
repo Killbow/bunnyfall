@@ -3,6 +3,7 @@
 // appends it, and the stone-and-brass kit (ui/enhanced/enhancedFrame.js) dresses
 // its frames, buttons, tiles and wells by role like every other screen.
 import { PIXEL_STACK } from '../pixelifyFive.js';
+import { argentUrl } from '../../systems/currencyUrls.js';   // BUNNYFALL: the Imperial Argent's coin on the Bank's heading
 
 export const PORT_CSS = `
 /* ── PORT5: THE PORTED WINDOWS ─────────────────────────────────────── */
@@ -38,6 +39,8 @@ export const PORT_CSS = `
 .port-stat dd { margin: 0; font-size: 16px; color: #efe8d6; font-variant-numeric: tabular-nums; }
 .port-stat.warn dd { color: #e0584a; }
 .port-heading { margin: 0 0 8px; font: inherit; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: #a89f88; }
+.port-argent > .port-heading::before { content: ''; display: inline-block; width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px;
+  background: url("${argentUrl()}") center / contain no-repeat; image-rendering: pixelated; }   /* BUNNYFALL: the Bank's Imperial Argents, with their coin */
 
 .port-cols { display: grid; grid-template-columns: var(--port-cols); gap: 18px; align-items: start; }
 .port-col, .port-group { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
