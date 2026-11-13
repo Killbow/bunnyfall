@@ -160,7 +160,7 @@ export function chapterGuide() {
     ['Band', `Strength's name: ${bands}. The band sets the halls' prices, what they stock and how many chapter writs they post. Each card says what its band does.`],
     ['The chairs', `Rank ${SEAT_RANK.master} (the Master) and rank ${SEAT_RANK.officer} (${CHAPTER_SEATS.officer} council chairs) go at each Turning to the members with the most Merit over the last ${SEAT_MERIT_WEEKS} weeks. A member needs ${days(SEAT_TENURE_S)} real days in the company, enough standing for rank ${SEAT_RANK.officer} and an account ${days(SEAT_ACCOUNT_AGE_S)} real days old. The Master picks the week's Focus: the goods the chapter writs ask for.`],
     ['Season', `Each Season a chapter draws one event: ${events.slice(0, -1).join(', ')} or ${events[events.length - 1]}. A Schism or a Succession asks members to back a side. The card says what this Season's event does.`],
-    ['Patron', `A player company's Captain can bid silver (at least ${n(CHAPTER_PATRON_MIN)}) to be a chapter's patron next Season. The highest bid is spent and the others are returned. The patron's members pay ${patronBand} prices for training and spells in its halls, or the chapter's own prices if lower.`],
+    ['Patron', `A player company's Captain can bid Imperial Argents (at least ${n(CHAPTER_PATRON_MIN)}) to be a chapter's patron next Season. The highest bid is spent and the others are returned. The patron's members pay ${patronBand} prices for training and spells in its halls, or the chapter's own prices if lower.`],
   ];
 }
 
@@ -539,7 +539,7 @@ export function mountNoticeBoard(host, deps) {
     // AUDIT CHAP3 C8: a member's own writ promises Merit only where the account's Merit line here says it can earn some
     const m = own ? (writs?.merit ?? []).find((x) => x.faction === w.faction) : null;
     const earns = meritEarnsOf(m);   // AUDIT GUILD3 L2: the law's one rule, the Duties line's too
-    li.append(el('p', 'writ-pay', `Pays ${w.pay.toLocaleString('en-US')} silver, ${w.renown.toLocaleString('en-US')} Renown${own && earns ? `, standing and Merit with the ${poster}` : poster ? ` and standing with the ${poster}` : ''}`));
+    li.append(el('p', 'writ-pay', `Pays ${w.pay.toLocaleString('en-US')} Imperial Argents, ${w.renown.toLocaleString('en-US')} Renown${own && earns ? `, standing and Merit with the ${poster}` : poster ? ` and standing with the ${poster}` : ''}`));
     li.append(el('p', 'writ-left', w.state === 'mine' ? 'Taken by you' : w.state === 'taken' ? 'Filled by another' : timeLeftText(w.expiresAt, nowS())));
     const held = work.book.held(w.material);
     // WRIT-WALL (FIELD BUGS 2026-10-13e, "Cant turn in writs": 100 Iron in the pack, "0 held" on the card and nothing
@@ -672,7 +672,7 @@ export function mountNoticeBoard(host, deps) {
     if (bidLine) {
       card.append(el('p', 'notice-chapter notice-patron', bidLine));
       const row = el('p', 'notice-chapter notice-patron-pick', c.patronBid.marks > 0 ? 'Raise the bid to: ' : 'Bid for it: ');
-      for (const m of chapterPatronBidsOf(c.patronBid)) row.append(button('', `${m.toLocaleString('en-US')} silver`, () => bidPatron(c, m)));
+      for (const m of chapterPatronBidsOf(c.patronBid)) row.append(button('', `${m.toLocaleString('en-US')} Imperial Argents`, () => bidPatron(c, m)));
       card.append(row);
     }
     // GUILD3d: its Duties - a gate held, a raid defended - and the reader's first of each today (CHAP2b's asks)
@@ -730,7 +730,7 @@ export function mountNoticeBoard(host, deps) {
     busy = false;
     if (r?.ok) {
       writs = work.book.state && writs ? { ...writs, writs: writs.writs.map((x) => (x.id === w.id ? { ...x, state: 'mine' } : x)), today: r.data?.today ?? writs.today } : writs;
-      word = { ok: true, text: said || `Writ filled: ${r.data?.pay ?? w.pay} silver.` };
+      word = { ok: true, text: said || `Writ filled: ${r.data?.pay ?? w.pay} Imperial Argents.` };
     } else {
       word = { ok: false, text: `${accountRefusalText(r?.error)}${movedFirstText(r)}` };
       // AUDIT CHAP3 C7: and a writ no longer the reader's (no-writ) or the Chapters shut: the list read again, its Take gone

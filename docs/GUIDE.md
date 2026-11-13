@@ -58,7 +58,7 @@ rebuilds `dist/`. Never edit files on the box itself.
 - **A new account-service route goes in two places.** The handler in `server-account/src/index.js` AND the `ROUTES`
   list in `server-account/src/service.js`. The service turns away any path not in that list as `not-found` before the
   handler runs, so a route only in `index.js` never works, with no error anywhere. On 2026-11-05 this had silently broken
-  the account vault, the Nyx coin count, player festivals, guestbooks and the great cannon. Run
+  the account vault, the Dusk Token count, player festivals, guestbooks and the great cannon. Run
   `node tools/routesCheck.mjs` after adding a route: it lists anything `index.js` handles that `ROUTES` lacks.
 - **Test a server feature against the real service, not only its functions.** `BUNNYFALL_DATA=/tmp/bf node
   selfhost/start.mjs` runs both servers locally (migrations included); make a guest with
@@ -97,10 +97,10 @@ authors to `src/ui/credits.js`.
 | Guild hall interiors (house stripped, each guild's trade furnished about the clerk) | `src/scenes/bunnyHallFurnish.js`, wired in `src/scenes/interiorContext.js` |
 | Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
 | Emperor's statue at Daggerfall's north gate | `src/world/emperorMemorial.js`, `public/art/bunnyfall-npcs/` |
-| Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Nyx coins and shop, purple border) | `src/systems/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/scenes/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
+| Wrothgarian Mountains as the reach of Cromwark (no PvP, haze counter, desolate towns, Dusk Tokens and shop, purple border) | `src/systems/wild/cromwark.js` (switch and numbers), `cromwarkTowns.js`, `nyxShop.js`, `src/scenes/cromwarkHost.js`, `src/ui/nyxWindow.js`, `server-account/src/nyx.js` |
 | Company territories on the held map, +10% yield inside your own (grown by members' Renown in the hall's region) | `src/net/territoryLaw.js` (numbers), `src/systems/companyTerritory.js`, `src/ui/territoryMapInk.js`, `server-account/src/territory.js`, migration `0197_company_territory.sql` |
 | City Charters (up to 3 Companies holding a regional capital; outline on the held map, Charter section on the Company page) | `src/net/charterLaw.js`, `server-account/src/charters.js`, migration `0198_city_charters.sql`, `src/systems/companyTerritory.js`, `src/ui/socialPanel.js` (guildCharterNodes) |
-| Rodney's blight (spreads daily round Cromwark, held by territories, pushed back by raids; purple foes +25% damage and Nyx coins inside) | `src/net/blightLaw.js` (numbers), `src/systems/rodneyBlight.js`, `server-account/src/blight.js`, migration `0199_rodney_blight.sql`, `src/ui/territoryMapInk.js` (paintBlight), `src/systems/wild/cromwark.js` (blightHere, foeDamageMult) |
+| Rodney's blight (spreads daily round Cromwark, held by territories, pushed back by raids; purple foes +25% damage and Dusk Tokens inside) | `src/net/blightLaw.js` (numbers), `src/systems/rodneyBlight.js`, `server-account/src/blight.js`, migration `0199_rodney_blight.sql`, `src/ui/territoryMapInk.js` (paintBlight), `src/systems/wild/cromwark.js` (blightHere, foeDamageMult) |
 | Garrisons and patrols (Company guard, Charter garrison; daily upkeep from the Company Stores; patrol walkers on set routes; march pushes the blight) | `src/net/garrisonLaw.js` (numbers), `server-account/src/garrisons.js`, migration `0200_garrisons.sql`, `src/systems/garrisonBook.js`, `src/scenes/garrisonPatrols.js`, `src/ui/socialPanel.js` (guildGarrisonNodes) |
 | Company farms (map farms bought inside the territory, daily harvest into the Company Stores, member chores, lost when the territory shrinks) | `src/net/farmLaw.js` (numbers), `server-account/src/farms.js`, migration `0201_company_farms.sql`, `src/systems/farmBook.js`, `src/ui/socialPanel.js` (guildFarmsNodes), `src/ui/territoryMapInk.js` (the marks) |
 | Staff chat commands /vanish, /spawn, /greed | `src/scenes/staffCommandsHost.js`, `server-account/src/staffCommands.js`, migration `0202_staff_commands.sql`, `server-account/src/staffHidden.js` (hiddenToken reads `vanish_on`) |

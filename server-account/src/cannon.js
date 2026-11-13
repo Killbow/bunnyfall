@@ -1,6 +1,6 @@
 // @ts-check
 // BUNNYFALL (2026-11-05): THE GREAT CANNON BY WAYREST, KEPT (src/net/cannonLaw.js says the law). One build the realm gives
-// ingots and planks to: what this round holds, who gave what, the Nyx coins a gift pays (counted as the reach's coins are,
+// ingots and planks to: what this round holds, who gave what, the Dusk Tokens a gift pays (counted as the reach's coins are,
 // players.nyx_found - server-account/src/nyx.js), and the shot when the build is whole: the round moves on and `fired_at`
 // says when, so every game can see it fire. A friends' server: a gift is the game's word, bounded (CANNON_GIVE_MAX) and
 // held to what the build still needs.

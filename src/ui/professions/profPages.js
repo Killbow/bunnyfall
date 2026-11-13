@@ -908,8 +908,8 @@ export function drawProfessionsPage(detail, rerender, kit) {
       if (!locked && chosen && chosen !== s.id && !waits) {
         card.append(el('i', 'prof-cost', free ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecFree', 'Change: free, once'))
           : trial ? (armedHere ? t('prof.page.specs.respecFreeArmed', 'Press again: free, in effect at once') : t('prof.page.specs.respecTrial', 'Change: free until {date}', { date: when(tr.trial[r]) }))
-            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} silver, in effect at once. The next change waits {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })   // AUDIT PERK-TRIAL P5: the lock said before it is paid for
-              : t('prof.page.specs.respec', 'Change: {cost, number} silver', { cost: RESPEC.marks })));
+            : armedHere ? t('prof.page.specs.respecNowArmed', 'Press again: {cost, number} Imperial Argents, in effect at once. The next change waits {days, plural, one {# day} other {# days}}', { cost: RESPEC.marks, days: RESPEC.days })   // AUDIT PERK-TRIAL P5: the lock said before it is paid for
+              : t('prof.page.specs.respec', 'Change: {cost, number} Imperial Argents', { cost: RESPEC.marks })));
       }
       if (chosen === s.id && waits && lock !== null) card.append(el('i', 'prof-cost', t('prof.page.specs.lockedUntil', 'Next change from {date}', { date: when(lock) })));   // PERK-TRIAL
       if (tr.respec?.to === s.id && tr.respec?.rank === r) card.append(el('i', 'prof-cost', t('prof.page.specs.inEffect', 'In effect from {date}', { date: new Date(tr.respec.at * 1000).toUTCString().slice(0, 16) })));
@@ -1080,10 +1080,10 @@ export function storesSplit(r) {
     loose ? fromPack() : null].filter(Boolean).join(' · ');
 }
 /** GOLD-MARKET: what the page says of a material gold bought (Professions-Arc 10.8's wall). */
-export const GOLD_GOODS_LINE = 'Bought with gold. It can go to your pack or be sold on the market for gold, but no station, craft, writ or silver sale takes it.';
+export const GOLD_GOODS_LINE = 'Bought with gold. It can go to your pack or be sold on the market for gold, but no station, craft, writ or Imperial Argents sale takes it.';
 /** FB1020h ESSENCE-LOOSE: and of one with no pack form (Arcane Essence of a piece bought with gold) - it never goes to the
  *  pack (AUDIT PROF12 E1), so the line no longer says it can. */
-export const GOLD_STAYS_LINE = 'Bought with gold, or made from a piece bought with gold. It can be sold on the market for gold, but no station, craft, writ or silver sale takes it.';
+export const GOLD_STAYS_LINE = 'Bought with gold, or made from a piece bought with gold. It can be sold on the market for gold, but no station, craft, writ or Imperial Argents sale takes it.';
 const goldGoodsLine = (/** @type {string} */ m) => (withdrawable(m) ? t('prof.page.stores.goldGoods', GOLD_GOODS_LINE) : t('prof.page.stores.goldStays', GOLD_STAYS_LINE));
 /** AUDIT BAG-CRAFT A1: what the page says of a material a station's put-in brought from the pack - the stations' wall. */
 export const LOOSE_GOODS_LINE = 'From your pack. Stations can use it, or it can go back to your pack. Writs, guilds and sales only take what you gathered or took from your Stores.';
@@ -1144,7 +1144,7 @@ export function drawStoresPage(detail, rerender, kit) {
   const pick = rows.find((r) => r.material === _stores.picked);
   if (pick) {
     const bar = el('div', 'prof-matbar');
-    bar.append(el('span', 'prof-matline', t('prof.page.stores.matLine', '{name} x{n}, grade {tier}, {value} silver each', { name: pick.name, n: pick.total, tier: pick.tier, value: pick.value })));
+    bar.append(el('span', 'prof-matline', t('prof.page.stores.matLine', '{name} x{n}, grade {tier}, {value} Imperial Argents each', { name: pick.name, n: pick.total, tier: pick.tier, value: pick.value })));
     const qty = el('input', 'prof-qty');
     qty.type = 'number'; qty.min = '1'; qty.max = String(Math.min(WITHDRAW_MAX, pick.total)); qty.value = String(Math.min(_stores.qty, pick.total, WITHDRAW_MAX));
     qty.oninput = () => { _stores.qty = Math.max(1, Math.min(WITHDRAW_MAX, pick.total, Math.floor(Number(qty.value) || 1))); };
@@ -1365,7 +1365,7 @@ function drawCarryStores(detail, rerender, kit) {
   const pick = rows.find((r) => r.material === _stores.picked);
   if (pick) {
     const bar = el('div', 'prof-matbar');
-    bar.append(el('span', 'prof-matline', `${pick.name} - ${pick.total} stored, ${pick.carried} carried - tier ${pick.tier} - ${pick.value} silver each`));
+    bar.append(el('span', 'prof-matline', `${pick.name} - ${pick.total} stored, ${pick.carried} carried - tier ${pick.tier} - ${pick.value} Imperial Argents each`));
     const room = Math.max(0, p.room?.(pick.material) ?? 0);
     const outMost = Math.min(WITHDRAW_MAX, pick.total, room);
     const inMost = Math.min(DEPOSIT_MAX, pick.carried + (pick.uncounted | 0), storesRoomOf(book, pick));   // AUDIT2 BAG1 U1: and the Stores' room; LOOT-LOOSE: and the loose
@@ -1503,7 +1503,7 @@ function counterBuy(line, { el, p, state, rerender, key, need, sale, who, counte
   if (!p.stock || p.marksOpen?.() === false) return;
   const balance = p.marks?.() ?? null;
   const shortOf = Number.isSafeInteger(balance) && balance < sale.marks * need;
-  const buy = el('button', 'act', t('prof.page.buy', 'Buy {n} from {who, select, smith {the smith} furnisher {the furnisher} weavers {the Weavers} other {the Apothecaries}} for {cost} silver', { n: need, who, cost: sale.marks * need }));
+  const buy = el('button', 'act', t('prof.page.buy', 'Buy {n} from {who, select, smith {the smith} furnisher {the furnisher} weavers {the Weavers} other {the Apothecaries}} for {cost} Imperial Argents', { n: need, who, cost: sale.marks * need }));
   buy.type = 'button';
   buy.disabled = state.busy || shortOf;
   if (shortOf) line.append(el('span', 'prof-split', t('prof.page.buy.hold', 'you hold {balance}', { balance: marksText(balance) })));   // AUDIT 32 R13: "1 Drake"

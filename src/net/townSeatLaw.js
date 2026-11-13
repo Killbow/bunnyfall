@@ -398,7 +398,7 @@ export const SEAT_PLEDGE_WORDS = Object.freeze({
 });
 /** Tribute's line for the guildmaster: its room in silver. BOARD-UI: in plain words. */
 export const seatTributeLine = (room) => (room > 0
-  ? `Tribute: up to ${room.toLocaleString('en-US')} silver more this week, 1 influence per ${TRIBUTE_MARKS_PER_INFLUENCE} silver (the silver is spent).`
+  ? `Tribute: up to ${room.toLocaleString('en-US')} Imperial Argents more this week, 1 influence per ${TRIBUTE_MARKS_PER_INFLUENCE} Imperial Argents (the Imperial Argents are spent).`
   : 'Tribute: no room left this week. It may be no more than a fifth of your company\'s influence here.');
 
 // ═══ SEAT1c: THE TURNING (SEAT0 5.2, Appendix B) ════════════════════
@@ -735,7 +735,7 @@ export function seatTipOf(seat, nowMs = Date.now()) {
 export const SEAT_RELINQUISH_WORDS = Object.freeze({ arm: 'Give up the Charter', sure: 'Press again to give up the Charter' });
 /** The claim line under the standings: the threshold an unheld seat's claimant must pass, or the holder's defence. */
 export const seatClaimLine = (seat, defence = null) => (defence == null
-  ? `To claim it at the Turning: ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence, and ${CLAIM_FEE[seat.tier].toLocaleString('en-US')} silver from the company's treasury.`
+  ? `To claim it at the Turning: ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence, and ${CLAIM_FEE[seat.tier].toLocaleString('en-US')} Imperial Argents from the company's treasury.`
   : `To win a Right of Siege: more than the holder's defense of ${defence.toLocaleString('en-US')}, and at least ${CLAIM_THRESHOLD[seat.tier].toLocaleString('en-US')} influence.`);
 
 // ─── SEAT1c: THE TITLES AND GLYPHS A CHARTER GIVES (SEAT0 7.4) ─────
@@ -977,7 +977,7 @@ export const EDICT_WORDS = Object.freeze({
   curfew: 'The guards are stronger at night and every crime costs twice the reputation. Standing -2.',
   festival: 'Music and banners. Everyone in the town is Festive, +5 to every attribute for a day. Standing +10.',
   levy: 'A tenth of what is gathered near the town goes to its stockpile. Standing -2.',
-  bounty: 'Camps near the town yield double, and the treasury pays 20 silver a camp cleared, from what is set aside.',
+  bounty: 'Camps near the town yield double, and the treasury pays 20 Imperial Argents a camp cleared, from what is set aside.',
   conscription: 'The kingdom\'s palace seats held by other companies pay the crown 2% of their week\'s Tithe, a March\'s 1%. Standing -5 at every seat that pays.',
   'royal-tourney': 'A refereed duel ladder runs all week in the castle’s square. The week’s champion takes the prize and keeps the title Champion of the kingdom for good.',
 });
@@ -986,7 +986,7 @@ export function edictLine(edict, tier, tide = 'calm') {   // SEASON1 part two: `
   const e = EDICTS[edict];
   if (!e) return null;
   const cost = edictCost(edict, tier, tide);
-  return `${e.name}: ${EDICT_WORDS[edict]}${cost ? ` Costs ${cost.toLocaleString('en-US')} silver.` : ''}`;
+  return `${e.name}: ${EDICT_WORDS[edict]}${cost ? ` Costs ${cost.toLocaleString('en-US')} Imperial Argents.` : ''}`;
 }
 /**
  * THE HOLDER'S OWN LINES on the Seat tab, for its members (SEAT0 7.9) - `h` the standings answer's `holding`
@@ -1008,8 +1008,8 @@ export function seatHoldingLines(seat, h) {
   if (!h) return [];
   const out = [h.next ? `Proclaimed for next week: ${EDICTS[h.next]?.name ?? h.next}.` : 'No Edict is proclaimed for next week.'];
   if (seatInUnrest(h.standing)) out.push(`Unrest: challengers earn a quarter more influence at ${seat.name}.`);
-  out.push(`Upkeep at the Turning: ${Number(h.upkeep ?? 0).toLocaleString('en-US')} silver from the treasury (the Tithe at most ${seatTitheCap(seat)}%).`);
-  if (h.owed > 0) out.push(`Neglect: ${Number(h.owed).toLocaleString('en-US')} silver of upkeep is owed with it, or the Charter lapses.`);
+  out.push(`Upkeep at the Turning: ${Number(h.upkeep ?? 0).toLocaleString('en-US')} Imperial Argents from the treasury (the Tithe at most ${seatTitheCap(seat)}%).`);
+  if (h.owed > 0) out.push(`Neglect: ${Number(h.owed).toLocaleString('en-US')} Imperial Argents of upkeep is owed with it, or the Charter lapses.`);
   return out;
 }
 /** The Seat tab's line for everyone under the holder's (SEAT0 7.9: "Standing and its trend, the Tithe, this week's
@@ -1359,7 +1359,7 @@ export function royalStandings(bouts) {
  *  lost` - or that no bout is won yet. `r` the standings' `royal` (`{ prize, ladder }`), or null for none. */
 export function royalTourneyLines(r) {
   if (!r) return [];
-  const out = [`A Royal Tourney is proclaimed: a duel ladder all week at the castle's square, every blow refereed. The week's champion takes ${Number(r.prize ?? 0).toLocaleString('en-US')} silver and the title for good.`];
+  const out = [`A Royal Tourney is proclaimed: a duel ladder all week at the castle's square, every blow refereed. The week's champion takes ${Number(r.prize ?? 0).toLocaleString('en-US')} Imperial Argents and the title for good.`];
   const rows = (r.ladder ?? []).map((x, i) => `${i + 1}. ${x.name || 'Someone'} - ${x.wins} won, ${x.losses} lost`);
   return [...out, ...(rows.length ? rows : ['No bout has been won yet.'])];
 }

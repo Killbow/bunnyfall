@@ -345,7 +345,7 @@ export function craftMadeText(/** @type {string} */ product) {
 }
 /** The card's pay: "Pays 156 silver, 312 Provisioning experience, 234 Renown and standing with the Mages Guild". */
 export const craftPayText = (/** @type {{ pay: number, xp: number, renown: number, faction: number, track: string }} */ w) =>
-  t('prof.craftWrit.pay', 'Pays {pay, number} silver, {xp, number} {track} experience, {renown, number} Renown and standing with the {guild}',
+  t('prof.craftWrit.pay', 'Pays {pay, number} Imperial Argents, {xp, number} {track} experience, {renown, number} Renown and standing with the {guild}',
     { pay: w.pay, xp: w.xp, track: professionName(w.track), renown: w.renown, guild: craftGuildName(w.faction) });
 /** What a card says the character holds toward a writ (craftWritHost.js held): "3 brewed by you, 5 in your pack" for a
  *  potion writ, "2 of your own in your pack" for a dish or kit writ. */
@@ -368,6 +368,6 @@ export function craftShortText(/** @type {{ kind: string, qty: number }} */ w, /
 export function craftFilledText(/** @type {{ faction: number, track: string }} */ w, /** @type {any} */ d) {
   const guild = craftGuildName(w.faction);
   if (!d || !Number.isSafeInteger(d.pay)) return t('prof.craftWrit.delivered', 'Delivered to the {guild}.', { guild });   // a realm act that landed, its answer lost
-  return t('prof.craftWrit.filled', 'The {guild} thanks you: {pay, number} silver, {xp, number} {track} experience and {renown, number} Renown.',
+  return t('prof.craftWrit.filled', 'The {guild} thanks you: {pay, number} Imperial Argents, {xp, number} {track} experience and {renown, number} Renown.',
     { guild, pay: d.pay, xp: Number(d.xp ?? 0), track: professionName(w.track), renown: Number(d.renown?.credited ?? 0) });
 }

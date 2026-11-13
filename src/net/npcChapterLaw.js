@@ -1444,7 +1444,7 @@ export function chapterPatronBidsOf(/** @type {any} */ bid) {
   const offers = now ? CHAPTER_PATRON_RAISES.map((r) => now + r) : [1, 2, 5].map((k) => k * CHAPTER_PATRON_MIN);
   return offers.filter((m) => patronBidOk(m, now));
 }
-const silverOf = (/** @type {number} */ n) => `${n.toLocaleString('en-US')} silver`;
+const silverOf = (/** @type {number} */ n) => `${n.toLocaleString('en-US')} Imperial Argents`;
 /** The board's line for a chapter's patron this Season: "Its patron this Season: Grey Lanterns [GLN]." - null for none. */
 export function chapterPatronSheetLine(/** @type {any} */ patron, /** @type {unknown} */ faction = null) {
   const p = chapterPatronOf(patron);

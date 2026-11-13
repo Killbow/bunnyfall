@@ -1,6 +1,6 @@
 // @ts-check
 // BUNNYFALL STAFF COMMANDS (2026-11-12, the owner: "a vanish to disappear from both players and enemies, a spawn command
-// to spawn enemies and a greed command to give gold to players or nyx coins") - the game's half, three chat lines a staff
+// to spawn enemies and a greed command to give gold to players or dusk tokens") - the game's half, three chat lines a staff
 // member types (local, never said to the room). The account service says who is staff (server-account/src/staffCommands.js);
 // a player who is not hears that the command is staff-only.
 //
@@ -13,7 +13,7 @@
 //   /spawn <monster> [n]     n (1-10, 1 by default) of a monster stood near you through the game's own placement
 //                            (hostEnchant.js standLooseFoe) - outdoors, in a dungeon or indoors. The monster by its
 //                            name, spaces ignored ("giant bat", "orcwarlord", "fire daedra"), or its number.
-//   /greed <player> <n> [gold|nyx]   n gold (the default) or Nyx coins kept for the player (a handle or a character's
+//   /greed <player> <n> [gold|nyx]   n gold (the default) or Dusk Tokens kept for the player (a handle or a character's
 //                            name, "me" yourself) - an Admin's. Their game takes it within a minute while they play
 //                            (`tick`): the gold into the purse, the coins into the pack.
 import { staffVanish, staffGreed, greedMine, greedClaim } from '../net/accountClient.js';
@@ -89,7 +89,7 @@ export function createStaffCommands({ io, relink, spawn, entity, saved }) {
     const n = Number(m[2]);
     const r = await staffGreed(door, { to: m[1], ...(nyx ? { nyx: n } : { gold: n }) });
     if (!r?.ok) {
-      say(r?.error === 'staff-admin' ? '/greed is for Admins.' : r?.error === 'greed-no-player' ? `No player named ${m[1]}.` : r?.error === 'greed-amount' ? 'Give between 1 and 1,000,000 gold, or 1 and 1,000 Nyx coins.' : 'The server could not be reached.');
+      say(r?.error === 'staff-admin' ? '/greed is for Admins.' : r?.error === 'greed-no-player' ? `No player named ${m[1]}.` : r?.error === 'greed-amount' ? 'Give between 1 and 1,000,000 gold, or 1 and 1,000 Dusk Tokens.' : 'The server could not be reached.');
       return;
     }
     say(`${nyx ? nyxCoinsText(n) : `${n.toLocaleString('en-US')} gold`} on its way to ${r.data.to}. Their game takes it within a minute while they play.`);

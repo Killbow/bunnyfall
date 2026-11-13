@@ -67,7 +67,7 @@ export function createCannonOverlay(deps) {
   const body = el('div', 'broker-body');
   win.append(head, body);
   host.append(shell);
-  const coins = (/** @type {number} */ n) => t('nyx.coins', '{n, plural, one {# Nyx coin} other {# Nyx coins}}', { n });
+  const coins = (/** @type {number} */ n) => t('nyx.coins', '{n, plural, one {# Dusk Token} other {# Dusk Tokens}}', { n });
   function render() {
     if (fired) return;
     purse.textContent = coins(deps.purse());
@@ -85,7 +85,7 @@ export function createCannonOverlay(deps) {
       return;
     }
     sub.textContent = t('cannon.subRound', 'Cannon {round} for the push on Cromwark · {pct}% built', { round: b.round, pct: Math.floor(b.share * 100) });
-    body.append(el('p', 'broker-set gc-total', t('cannon.how', 'Give ingots and planks. Every gift pays Nyx coins, the rarer the metal or the wood the more. When the cannon is whole it fires on Cromwark and the next one is begun.')));
+    body.append(el('p', 'broker-set gc-total', t('cannon.how', 'Give ingots and planks. Every gift pays Dusk Tokens, the rarer the metal or the wood the more. When the cannon is whole it fires on Cromwark and the next one is begun.')));
     const bar = el('div', 'gc-bar'); const fill = el('i'); fill.style.width = `${Math.round(b.share * 100)}%`; bar.append(fill); body.append(bar);
     const busy = !!pending || !!deps.busy?.();
     for (const [label, kind] of [[t('cannon.metals', 'Metals'), 'ingot'], [t('cannon.woods', 'Woods'), 'plank']]) {

@@ -80,7 +80,7 @@ export const TIDE_WORDS = Object.freeze({
   blight: 'Herbs and wood yield a quarter less.',
   plague: 'The Watch counts half, and Festivals cost double.',
   orcs: 'Each World of Daggerfall camp cleared gives your guild 50 influence at its seat in the region (up to 5 camps a day, 250 influence a week).',
-  daedra: 'Gate kills give double influence and double silver.',   // AUDIT SEATS-2 L7: 9.3's Marks, paid since AUDIT-SEATS (seatIncursion.js)
+  daedra: 'Gate kills give double influence and double Imperial Argents.',   // AUDIT SEATS-2 L7: 9.3's Marks, paid since AUDIT-SEATS (seatIncursion.js)
   wedding: 'Festivals cost half, and every held seat gains 3 Standing.',
   bandits: 'Couriers into the land take twice as long.',
   storms: 'Fishing yields half again, and the sea is slow.',

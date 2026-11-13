@@ -86,7 +86,7 @@ export function seatGuide(seat) {
     // AUDIT 657 B9: Tribute is the Guildmaster's, paid from the treasury - never a member's earning; D6: the wait the law's
     ['Earn', `Members ${n(SEAT_MEMBER_WAIT_S / 86400)} days in the company earn influence in the seat's region: walking the town (the Watch), closing Dagon's Breaches, a home in the town, Renown and seat writs. The Captain adds Tribute from the treasury. One account counts for at most ${n(ACCOUNT_SEAT_WEEK_CAP)} a week at a seat.`],
     // AUDIT 657 B9: the law's taker - the strongest past the line whose treasury holds the fee (townSeatLaw.js turningPlan)
-    ['Claim', `At the Turning, Sunday 18:00 UTC, an unheld Charter goes to the strongest company with at least ${n(CLAIM_THRESHOLD[t])} influence whose treasury can pay ${n(CLAIM_FEE[t])} silver. Two companies within ${Math.round(CONTESTED_MARGIN * 100)}% of each other meet in a Tourney for it.`],
+    ['Claim', `At the Turning, Sunday 18:00 UTC, an unheld Charter goes to the strongest company with at least ${n(CLAIM_THRESHOLD[t])} influence whose treasury can pay ${n(CLAIM_FEE[t])} Imperial Argents. Two companies within ${Math.round(CONTESTED_MARGIN * 100)}% of each other meet in a Tourney for it.`],
     ['Siege', `A held Charter is challenged by beating the holder's defense with at least ${n(CLAIM_THRESHOLD[t])}: the strongest challenger wins a Right of Siege, fought in the holder's battle window. Sign for your side on this tab.`],
     ['Hold', 'The holder sets the Tithe and an Edict and pays upkeep each week. Keeping the town raises its Standing. At a Standing of 0 the town revolts.'],
   ];
@@ -161,11 +161,11 @@ export function seatWords(seat) {
     ['Standing', `How the town feels about its holder, from 0 to 100. A new Charter starts at ${STANDING_START}. Under ${STANDING_UNREST} the town is in Unrest and challengers earn ${Math.round(UNREST_BONUS * 100)}% more influence. At 0 it revolts.`],
     ['Tithe', `The holder's cut of each sale at the Notice Boards of its part of the region, set once a week (at most ${TITHE_CAP[t]}% here, more with a Market Hall).`],
     ['Edict', 'A law the holder proclaims for the coming week, such as a Market Day, a Curfew or a Festival. Some raise the town\'s Standing, some lower it.'],
-    ['Tribute', `Silver the Captain pays from the treasury for influence: 1 for every ${TRIBUTE_MARKS_PER_INFLUENCE} silver, at most a fifth of the company's influence here a week. The silver is spent.`],
+    ['Tribute', `Imperial Argents the Captain pays from the treasury for influence: 1 for every ${TRIBUTE_MARKS_PER_INFLUENCE} Imperial Argents, at most a fifth of the company's influence here a week. The Imperial Argents are spent.`],
     // AUDIT PLAIN-UI W7: a player of neither guild in the battle - a third guild's member may be one
     ['Sellsword', 'A player of neither company in the battle, hired for a fee by one side\'s Captain to fight on that side.'],
     // AUDIT PLAIN-UI T6: the Works and crown politics are on this tab too
-    ['The Works', 'The seat\'s own buildings, such as Walls, a Gatehouse, Watchtowers, Barracks and a Market Hall. The holder builds them with silver and the goods in its stockpile. They stay with the seat when the Charter changes hands, and each drops a grade.'],
+    ['The Works', 'The seat\'s own buildings, such as Walls, a Gatehouse, Watchtowers, Barracks and a Market Hall. The holder builds them with Imperial Argents and the goods in its stockpile. They stay with the seat when the Charter changes hands, and each drops a grade.'],
     ['Fealty and Pacts', 'A company holding a palace in a crown\'s kingdom can swear fealty to the crown\'s holder. The vassal pays the crown a share of its Tithe and gains half the crown\'s reach in its defense, and neither can pledge against the other. A Pact of non-aggression stops two companies pledging against each other\'s seats for the rest of a Season.'],
     ['Season and Tide', 'A Season is a run of weeks, and This week shows which week of it this is. A Tide is the week\'s change of fortune in a land, such as a Harvest, a Blight or a Plague.'],
   ];
@@ -304,7 +304,7 @@ export function createSeatTab(host, ui) {
         n.type = 'number'; n.min = String(TRIBUTE_MARKS_PER_INFLUENCE); n.step = String(TRIBUTE_MARKS_PER_INFLUENCE); n.max = String(room);
         if (!tributeDrakes || tributeDrakes > room) tributeDrakes = Math.min(100, room - (room % TRIBUTE_MARKS_PER_INFLUENCE));
         n.value = String(tributeDrakes);
-        n.setAttribute('aria-label', 'Silver for Tribute');
+        n.setAttribute('aria-label', 'Argents for Tribute');
         n.setAttribute('data-focus', 'seat-tribute');
         n.oninput = () => { tributeDrakes = Math.floor(Number(n.value) || 0); };
         const pay = button('notice-seat-tribute', 'Pay Tribute', () => {
@@ -354,7 +354,7 @@ export function createSeatTab(host, ui) {
     if (chosen === 'bounty') {
       const a = /** @type {HTMLInputElement} */ (el('input', 'notice-input notice-seat-bounty'));
       a.type = 'number'; a.min = String(BOUNTY_MARKS); a.step = String(BOUNTY_MARKS); a.value = String(bountyAside);
-      a.setAttribute('aria-label', 'Silver set aside for the Bounty');
+      a.setAttribute('aria-label', 'Argents set aside for the Bounty');
       a.oninput = () => { bountyAside = Math.floor(Number(a.value) || 0); };
       out.append(a);
     }
@@ -480,7 +480,7 @@ export function createSeatTab(host, ui) {
       out.append(el('p', 'notice-seat-mine', `You are signed for the ${mine.side === 'attack' ? sideWords[0] : sideWords[1]}${mine.sellsword ? ' as a Sellsword' : ''}.`));
       if (f.open) { const b = button('notice-seat-unsign', 'Give back your place', () => act(() => book.unsign(seat))); b.disabled = busy; out.append(b); }
     } else if (f.open && (mine?.side || mine?.hire)) {
-      const words = mine.hire ? `Sign as a Sellsword${mine.hire.fee ? ` (${mine.hire.fee} silver)` : ''}` : 'Sign for your side';
+      const words = mine.hire ? `Sign as a Sellsword${mine.hire.fee ? ` (${mine.hire.fee} Imperial Argents)` : ''}` : 'Sign for your side';
       const b = button('notice-seat-sign', words, () => act(() => book.sign(seat)));
       b.disabled = busy;
       out.append(b);
@@ -498,7 +498,7 @@ export function createSeatTab(host, ui) {
     }
     if (mine?.hires && f.open) {
       for (const h of mine.hires) {
-        const p = el('p', 'notice-seat-mine', `${h.handle} - ${h.state === 'signed' ? 'signed' : 'offered'}${h.fee ? `, ${h.fee} silver` : ''}.`);
+        const p = el('p', 'notice-seat-mine', `${h.handle} - ${h.state === 'signed' ? 'signed' : 'offered'}${h.fee ? `, ${h.fee} Imperial Argents` : ''}.`);
         if (h.state === 'offered') { const w = button('notice-seat-withdraw', 'Withdraw', () => act(() => book.withdrawHire(seat, h.handle))); w.disabled = busy; p.append(w); }
         out.append(p);
       }
@@ -508,7 +508,7 @@ export function createSeatTab(host, ui) {
         n.oninput = () => { hireHandle = n.value.trim(); };
         const fee = /** @type {HTMLInputElement} */ (el('input', 'notice-input notice-seat-hire-fee'));
         fee.type = 'number'; fee.min = '0'; fee.max = String(SELLSWORD_FEE_MAX); fee.value = String(hireFee);
-        fee.setAttribute('aria-label', 'The Sellsword\'s fee in silver'); fee.setAttribute('data-focus', 'seat-hire-fee');
+        fee.setAttribute('aria-label', 'The Sellsword\'s fee in Imperial Argents'); fee.setAttribute('data-focus', 'seat-hire-fee');
         fee.oninput = () => { hireFee = Math.max(0, Math.floor(Number(fee.value) || 0)); };
         const hire = button('notice-seat-hire', 'Hire a Sellsword', () => (hireHandle
           ? act(() => book.hire(seat, hireHandle, Math.min(SELLSWORD_FEE_MAX, hireFee)))

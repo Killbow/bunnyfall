@@ -83,7 +83,7 @@ export const TITLE_TEXT = Object.freeze({
   shadowfang: 'Shadow Fang',         // SHADOW-FANG (2026-09-26, Mac): SirMcMobdon's own
   penitent: 'Penitent',              // PENITENT (2026-09-29, Mac): Diggleborf's own
   gatebreaker: 'Gatebreaker',        // WB9g (2026-09-30, Mac): the Sigil Broker's, bought
-  cromwarksurvivor: 'Cromwark Survivor',   // BUNNYFALL (Cromwark): Nyx's, bought with Nyx coins
+  cromwarksurvivor: 'Cromwark Survivor',   // BUNNYFALL (Cromwark): Nyx's, bought with Dusk Tokens
   heartwarden: 'Warden of the Heart',      // BUNNYFALL (Cromwark): Nyx's, after ten minutes on the haze's counter in the Heart
   herald: 'Herald',                  // HERALD (2026-10-01, Mac): the Patreon tier between Disciple and Hierophant
   // SEAT1c (Seats-Arc 7.4): the seats' five - each worded off its claim where this client knows the place

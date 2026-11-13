@@ -41,7 +41,7 @@ const RANKS = Object.freeze([GUILD_RANK_MASTER, GUILD_RANK_OFFICER, GUILD_RANK_M
  *  `{ vault: true }` the rank's place at the vault by default (VAULT_RANK_DEFAULTS - its own words, guildVaultActsOf). */
 /** @type {readonly Readonly<{ table?: string, power?: string, any?: boolean, master?: boolean, rule?: string, vault?: boolean, words?: string }>[]} */
 export const GUILD_RANK_ACTS = Object.freeze([
-  Object.freeze({ table: 'guild', power: 'deposit', words: 'put gold and silver into the treasuries' }),
+  Object.freeze({ table: 'guild', power: 'deposit', words: 'put gold and Imperial Argents into the treasuries' }),
   Object.freeze({ vault: true }),
   Object.freeze({ any: true, words: 'pin notes on the guild\'s board' }),
   Object.freeze({ any: true, words: 'put materials into the guild Stores, and take their own back out' }),
@@ -57,8 +57,8 @@ export const GUILD_RANK_ACTS = Object.freeze([
   Object.freeze({ table: 'writ', power: 'storesWithdraw', words: 'take any materials out of the guild Stores' }),
   Object.freeze({ table: 'seat', power: 'pledge', words: 'pledge the guild to a seat in the Muster' }),
   Object.freeze({ table: 'levers', power: 'levers', words: 'run a held seat: its Tithe, Edict, battle window, Works, fealty and Pacts' }),
-  Object.freeze({ table: 'guild', power: 'withdraw', words: 'take gold and silver out of the treasuries' }),
-  Object.freeze({ table: 'writ', power: 'writBudget', words: 'set the Officers\' weekly silver budget for guild writs and contracts' }),
+  Object.freeze({ table: 'guild', power: 'withdraw', words: 'take gold and Imperial Argents out of the treasuries' }),
+  Object.freeze({ table: 'writ', power: 'writBudget', words: 'set the Officers\' weekly Imperial Argents budget for guild writs and contracts' }),
   Object.freeze({ master: true, words: 'withdraw any guild writ or contract' }),
   Object.freeze({ table: 'seat', power: 'tribute', words: 'pay Tribute at the seat the guild pledged' }),
   Object.freeze({ master: true, words: 'hire Sellswords for the guild\'s battles' }),

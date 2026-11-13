@@ -4,7 +4,7 @@
 //
 //   THE HAZE: from the Passes inward a purple counter on the screen, the foes' blows on me growing +25% a minute
 //     (combat/formulas.js reads hazeMult), reset when I leave the deep rings or die; the air purple (`fog`).
-//   THE COINS: a kill of the reach's may drop a Nyx coin into my pack (1/3/6/12% by ring, Selantha's Ring +1%), and the
+//   THE COINS: a kill of the reach's may drop a Dusk Token into my pack (1/3/6/12% by ring, Selantha's Ring +1%), and the
 //     account service is told (server-account/src/nyx.js), so Nyx's titles are paid out of coins it knows of and
 //     /nyxcoin can say how many were gathered.
 //   THE CAMP: the Adventurers' Guild's tent on the road at the zone's south-east corner (the owner's spot), and Nyx before
@@ -143,7 +143,7 @@ export function createCromwarkHost(deps) {
     giveNyxCoins(items, 1);
     owed++; store.set(OWED_KEY, String(owed));
     deps.clink?.();
-    deps.say?.(t('cromwark.coin', 'A Nyx coin! You carry {coins}.', { coins: nyxCoinsText(nyxCoinsHeld(items)) }));
+    deps.say?.(t('cromwark.coin', 'A Dusk Token! You carry {coins}.', { coins: nyxCoinsText(nyxCoinsHeld(items)) }));
     deps.saved?.();
   });
 
@@ -369,17 +369,17 @@ export function createCromwarkHost(deps) {
   }
 
   // ── /nyxcoin ──────────────────────────────────────────────────────────────────────────────────────────────────
-  /** A chat line: `/nyxcoin` - how many Nyx coins the realm has gathered. True when it was the command. */
+  /** A chat line: `/nyxcoin` - how many Dusk Tokens the realm has gathered. True when it was the command. */
   function command(text, out) {
     if (!/^\/nyxcoins?$/i.test(String(text ?? '').trim())) return false;
     const io = deps.io?.();
-    if (!io) { out(t('nyx.cmdOffline', 'Sign in to read the Nyx coin count.')); return true; }
+    if (!io) { out(t('nyx.cmdOffline', 'Sign in to read the Dusk Token count.')); return true; }
     nyxTotal(io).then((r) => {
-      if (!r?.ok) { out(t('nyx.cmdFailed', 'The Nyx coin count could not be read.')); return; }
+      if (!r?.ok) { out(t('nyx.cmdFailed', 'The Dusk Token count could not be read.')); return; }
       const d = r.data ?? {};
-      out(t('nyx.cmd', 'Nyx coins gathered: {total} by {players, plural, one {# adventurer} other {# adventurers}} ({spent} spent on titles). Yours: {mine}. In your pack: {pack}.',
+      out(t('nyx.cmd', 'Dusk Tokens gathered: {total} by {players, plural, one {# adventurer} other {# adventurers}} ({spent} spent on titles). Yours: {mine}. In your pack: {pack}.',
         { total: d.total ?? 0, players: d.players ?? 0, spent: d.spent ?? 0, mine: d.mine?.found ?? 0, pack: nyxCoinsHeld(deps.items?.() ?? []) }));
-    }, () => out(t('nyx.cmdFailed', 'The Nyx coin count could not be read.')));
+    }, () => out(t('nyx.cmdFailed', 'The Dusk Token count could not be read.')));
     return true;
   }
 
@@ -395,13 +395,13 @@ export function createCromwarkHost(deps) {
     draw(r = renderer) { const c = cannon.draw(r); if (!at || !tent?.gpu || !tentMat || !r?.drawMesh) return c; r.drawMesh(tent.gpu, tentMat, null); for (const m of tentMats) r.drawMesh(tent.gpu, m, null); return c + 1 + tentMats.length; },
     /** The eye's box on her. */
     targets: () => [...(at && box ? box : []), ...cannon.targets(), ...(deps.poiNpcs?.()?.targets() ?? [])],
-    hoverName: (key) => cannon.hoverName(key) ?? deps.poiNpcs?.()?.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Nyx coins')] } : null),
+    hoverName: (key) => cannon.hoverName(key) ?? deps.poiNpcs?.()?.hoverName(key) ?? (key === 'nyx:camp' && at ? { title: 'Nyx', subs: [t('nyx.hover', 'Adventurers\' Guild · Trades in Dusk Tokens')] } : null),
     /** A press on her: Info names her, anything else opens her window. */
     activate(key, mode = 'grab') {
       if (cannon.ours(key)) return cannon.activate(key, mode);
       if (deps.poiNpcs?.()?.ours(key)) return deps.poiNpcs().activate(key, mode);   // BUNNYFALL
       if (key !== 'nyx:camp' || !at) return false;
-      if (mode === 'info') deps.say?.(t('nyx.info', 'You see Nyx, the Adventurers\' Guild\'s quartermaster. She trades in Nyx coins.'));
+      if (mode === 'info') deps.say?.(t('nyx.info', 'You see Nyx, the Adventurers\' Guild\'s quartermaster. She trades in Dusk Tokens.'));
       else if (mode === 'steal') deps.say?.(t('nyx.steal', 'Nyx keeps a hand on her purse.'));
       else open();
       return true;

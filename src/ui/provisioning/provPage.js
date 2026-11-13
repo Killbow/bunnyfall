@@ -184,7 +184,7 @@ export function drawProvPage(detail, rerender, p, here, kit) {
     if (typeof p.stock === 'function' && p.marksOpen?.() !== false) {
       const shop = h('div', 'pv-chips');
       for (const g of GROCER_STOCK) {
-        shop.append(button('pv-chip', `Buy 5 ${name(g.key)} from the Grocers (${g.marks * 5} silver)`, async () => {
+        shop.append(button('pv-chip', `Buy 5 ${name(g.key)} from the Grocers (${g.marks * 5} Imperial Argents)`, async () => {
           if (_pv.busy) return;
           _pv.busy = true; rerender();
           const r = await p.stock(g.key, 5, 'grocers').catch(() => null);

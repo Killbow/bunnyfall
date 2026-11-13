@@ -9,7 +9,7 @@
 //   - "once you get into the deeper zones a counter in purple appears on the screen, terrain and enemies in this are all
 //     should have a purple haze, each minute the enemies deal more damage to you" - from ring II, +25% a minute, reset on
 //     leaving the deep rings.
-//   - "a 1% chance to drop a Nyx coin when killing enemies in there and the chance increases when going in the middle" -
+//   - "a 1% chance to drop a Dusk Token when killing enemies in there and the chance increases when going in the middle" -
 //     1 / 3 / 6 / 12% by ring.
 //   - "every village and settlement in the area is a desolated mess": no townsfolk, shops, guards or quest givers.
 //   - "the border should be purple to reflect the change".
@@ -87,8 +87,8 @@ export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && bli
 /** The counter's words: "mm:ss" on it and the blows' share ("+75%"). */
 export const hazeClockText = (/** @type {number} */ s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-// ── NYX COINS ───────────────────────────────────────────────────────────────────────────────────────────────────────
-/** A kill's chance of a Nyx coin, by ring (I the Foothills to IV the Heart). */
+// ── DUSK TOKENS ───────────────────────────────────────────────────────────────────────────────────────────────────────
+/** A kill's chance of a Dusk Token, by ring (I the Foothills to IV the Heart). */
 export const NYX_COIN_CHANCE = Object.freeze([0.01, 0.03, 0.06, 0.12]);
 /** Selantha's Ring: +1% on every ring. */
 export const NYX_RING_LUCK = 0.01;

@@ -55,6 +55,7 @@ import { crosshairCentreY, CROSSHAIR_ARM } from './hud/hudCrosshair.js';
 import { hudReticle } from './hud/hud.js';   // the reticle's own two terms, from their home (the plaque's anchor reads the same)
 import { armDrawWatchdog, disarmDraw } from './drawWatchdog.js';
 import { haulWords, HAUL_ICON_BOX, LODE_ICON_BOX } from './haulCards.js';   // HAUL-CARDS: a gather's, a strike's and a claim's cards - their words
+import { argentUrl } from '../systems/currencyArt.js';   // BUNNYFALL: the Imperial Argent's coin on a feed card
 
 /** Four cards at most (the oldest goes past four). */
 export const PICKUP_FEED_MAX = 4;
@@ -259,7 +260,7 @@ ${rarityVarsCss('.pickfeed ')}
 @keyframes pickfeed-bump-b { from { color: ${T.brassHi}; transform: scale(1.3); } to { transform: none; } }
 .pickfeed-count, .pickfeed-name { display: inline-block; transform-origin: center; }
 /* HAUL-CARDS (ui/haulCards.js): a gather's goods, a strike's silver, a claim's deed and contracts - the card's family, two
-   lines: a head over the line where there is one, the XP or the day's combat silver a bar under it */
+   lines: a head over the line where there is one, the XP or the day's combat Imperial Argents a bar under it */
 .pickfeed-card.haul { align-items: center; line-height: 18px; padding-top: 3px; padding-bottom: 3px; }
 .pickfeed-card.haul .pickfeed-icon { width: 36px; height: 36px; }
 .pickfeed-card.haul .pickfeed-icon img { max-width: 32px; max-height: 32px; }
@@ -279,9 +280,9 @@ ${rarityVarsCss('.pickfeed ')}
 .haul-row[hidden] { display: none; }
 .haul-bar { flex: 1 1 auto; min-width: 36px; height: 4px; background: rgba(5,6,8,0.9); box-shadow: 0 0 0 1px ${T.outline}; }
 .haul-fill { display: block; height: 4px; width: 0; background: ${T.brass}; transition: width 300ms ease-out; }
-.haul-coin { flex: 0 0 auto; display: inline-block; box-sizing: border-box; width: 18px; height: 18px; border-radius: 50%;
-  background: #c9d1d9; box-shadow: inset 0 0 0 3px #8d97a1, 0 0 0 1px ${T.outline}; }
-.haul-row .haul-coin { width: 10px; height: 10px; box-shadow: inset 0 0 0 2px #8d97a1, 0 0 0 1px ${T.outline}; }
+.haul-coin { flex: 0 0 auto; display: inline-block; box-sizing: border-box; width: 18px; height: 18px;
+  background: url("${argentUrl()}") center / contain no-repeat; image-rendering: pixelated; }   /* BUNNYFALL: the Imperial Argent's own coin */
+.haul-row .haul-coin { width: 12px; height: 12px; }
 .haul-chest { flex: 0 0 auto; display: inline-block; width: 18px; height: 14px; background: ${T.brass};
   box-shadow: inset 0 4px 0 ${T.brassHi}, inset 0 -2px 0 ${T.brassLo}, 0 0 0 1px ${T.outline}; }
 .pickfeed-card.haul.is-silver { --pf-edge: #c9d1d9; }

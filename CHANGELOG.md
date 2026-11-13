@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Two currencies are renamed everywhere you read them: silver is now Imperial Argents, and Nyx coins are now Dusk Tokens. The Dusk Token has its own picture in your pack and shop, and the Imperial Argent has its coin on the loot and haul cards. (Silver the metal, in armour, weapons and ingots, is unchanged.)
 - Bunnyfall Grimoire with Readable text now lays out buttons, chips, search boxes and small texts the way Enhanced Plus does, so windows that looked fine in Plus no longer get squeezed or messy. The Grimoire's paint stays; the HUD and the pack's own art screens keep their sizes.
 - Bunnyfall Grimoire is easier to read: by default its words now use Enhanced Plus's lettering and sizes, in the Grimoire's ink. Page titles keep the Grimoire font. The old all-Grimoire lettering is still there as Text: Grimoire lettering on the Grimoire's card. The card also has a new Compass option to use Enhanced Plus's compass.
 - Camps: pitch a tent with Camping Equipment outdoors and it stays as your camp after you log off. Stand in it to decorate it with the same pieces as a yard, up to 100 and free. Everyone passing by sees it, tent and fire included. Packing the tent takes the camp and its decorations down. You can keep 3 camps.

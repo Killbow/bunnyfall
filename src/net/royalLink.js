@@ -68,7 +68,7 @@ const daysHours = (ms) => { const h = Math.max(0, Math.floor(ms / 3_600_000)); r
  */
 export function royalHudModel(s, t, me, now, { watching = false, name = () => '' } = {}) {
   const who = (id) => (id === me ? 'You' : name(id) || 'a contender');
-  const title = `THE ROYAL TOURNEY OF ${String(t.seat ?? '').toUpperCase()}   prize ${Number(t.prize ?? 0).toLocaleString('en-US')} silver   ends in ${daysHours((t.endsMs ?? now) - now)}`;
+  const title = `THE ROYAL TOURNEY OF ${String(t.seat ?? '').toUpperCase()}   prize ${Number(t.prize ?? 0).toLocaleString('en-US')} Imperial Argents   ends in ${daysHours((t.endsMs ?? now) - now)}`;
   const b = s.bout;
   const ring = !b ? 'The ring is empty. Challenge a contender from their card.'
     : now < b.s ? `BOUT ${b.n}: ${who(b.a)} against ${who(b.b)}, begins in ${Math.max(1, Math.ceil((b.s - now) / 1000))}`

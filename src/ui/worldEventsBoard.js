@@ -4,7 +4,7 @@
 // assets", "the event board should also really push for our discord"; asked: once a session, on entering the world):
 // THE WORLD EVENTS BOARD. A town crier's board of the realm's standing events - the Purple Haze over Cromwark (Nyx's
 // coins and titles) and the Great Cannon by Wayrest (its build as it stands) - and the Discord, pinned largest. Dressed
-// in the game's own wood and parchment (public/art) with its own item pictures (a Nyx coin, an ingot, a plank). It
+// in the game's own wood and parchment (public/art) with its own item pictures (a Dusk Token, an ingot, a plank). It
 // opens itself once a session (sessionStorage), and a notice tab at the screen's edge opens it again. A plain DOM layer:
 // it takes no host slot, and Esc, its Close or a click outside put it away.
 import { registerOverlay } from './enhanced/enhancedOverlays.js';
@@ -118,7 +118,7 @@ export function createWorldEventsBoard(deps = {}) {
     if (deps.cromwark !== false) {
       const n = el('section', 'note'); n.style.setProperty('--tilt', '-1.2deg');
       n.append(icons([p.coin]), el('h2', null, 'The Purple Haze over Cromwark'),
-        el('p', null, 'A daedric haze has swallowed the Cromwark reach. Its foes come back stronger, and they drop Nyx coins, more of them the deeper you go.'),
+        el('p', null, 'A daedric haze has swallowed the Cromwark reach. Its foes come back stronger, and they drop Dusk Tokens, more of them the deeper you go.'),
         el('p', null, 'Spend the coins at Nyx\'s camp by the reach for titles and gear no shop sells. No teleporting in or out: walk, and mind the haze timer.'),
         el('p', 'where', 'Where: the Wrothgarian Mountains, east of Wrothgaria. For seasoned adventurers.'));
       notes.append(n);
@@ -128,7 +128,7 @@ export function createWorldEventsBoard(deps = {}) {
       const c = deps.cannon?.() ?? null;
       n.append(icons([p.ingot, p.plank]), el('h2', null, 'The Great Cannon of Wayrest'),
         el('p', null, 'The realm is building a cannon to fire on Cromwark, and every pair of hands counts. Bring ingots and planks, from iron and pine up to ebony and ironwood.'),
-        el('p', null, 'Every gift pays Nyx coins, the rarer the material the more. When the cannon is whole it fires, and a new one is begun.'));
+        el('p', null, 'Every gift pays Dusk Tokens, the rarer the material the more. When the cannon is whole it fires, and a new one is begun.'));
       if (c) {
         const bar = el('div', 'bar'); const fill = el('i'); fill.style.width = `${Math.round(c.share * 100)}%`; bar.append(fill);
         n.append(bar, el('p', 'where', `Cannon ${c.round}: ${Math.floor(c.share * 100)}% built.`));

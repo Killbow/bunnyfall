@@ -520,7 +520,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     parts.push(el('p', 'fmt-note', `${t('firmament.side.caps', 'Limits for all stars together: +30% weapon damage (up to +50% against unaware foes, or while you are below half Health), +30% spell damage, 15% less damage taken.')} ${t('firmament.side.where', 'Stars work only online, and not while you mentor. Combat stars do nothing in duels or Arena fights, and never add damage against other players.')}`));
     parts.push(el('p', 'fmt-note', `${p.renown < p.refund.freeBelow
       ? t('firmament.side.refundFree', 'Removing stars is free until Renown {renown}.', { renown: p.refund.freeBelow })
-      : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} silver.', { silver: p.refund.perStar })} ${p.freeRespec
+      : t('firmament.side.refundCost', 'Removing an accepted star costs {silver} Imperial Argents.', { silver: p.refund.perStar })} ${p.freeRespec
       ? t('firmament.side.respecFree', 'A respec removes all your stars and your birthsign. Your next respec is free.')
       : t('firmament.side.respec', 'A respec removes all your stars and your birthsign for {gold, number} gold.', GOLD)}`));
     side.replaceChildren(...parts);
@@ -548,7 +548,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
         const silver = committed.start ? refundSilver(paid, p.renown) : 0;
         foot = takes.length > 1 ? t('firmament.tip.removeWith', 'Right-click to remove it and {n, plural, one {the star that depends on it} other {the # stars that depend on it}}.', { n: takes.length - 1 })
           : t('firmament.tip.remove', 'Right-click to remove.');
-        if (silver) foot += ` ${t('firmament.tip.removeCost', 'Costs {silver} silver.', { silver })}`;
+        if (silver) foot += ` ${t('firmament.tip.removeCost', 'Costs {silver} Imperial Argents.', { silver })}`;
       }
     } else {
       const why = refusalOf(pending, key, p.stars, p.craft);
@@ -686,7 +686,7 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     focusSign();
     const c = changes();
     say(!(c.added || c.removed) ? t('firmament.build.same', 'You already have that build.')
-      : c.silver ? t('firmament.build.loadedCost', 'Build loaded. Press {accept} to keep it. Removing the stars it leaves out costs {silver} silver.', { silver: c.silver, accept: t('firmament.accept', 'Accept') })
+      : c.silver ? t('firmament.build.loadedCost', 'Build loaded. Press {accept} to keep it. Removing the stars it leaves out costs {silver} Imperial Argents.', { silver: c.silver, accept: t('firmament.accept', 'Accept') })
         : t('firmament.build.loaded', 'Build loaded. Press {accept} to keep it.', { accept: t('firmament.accept', 'Accept') }));
     return true;
   }
@@ -729,10 +729,10 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     const lines = [el('h3', null, t('firmament.confirm.ask', 'Accept these changes?'))];
     if (c.startChanged && pending.start) lines.push(el('p', null, t('firmament.confirm.sign', 'Birthsign: {name}.', { name: FIRM_NODES.get(pending.start)?.name })));
     if (c.added) lines.push(el('p', null, t('firmament.confirm.learn', 'Learn {n, plural, one {# star} other {# stars}}.', { n: c.added })));
-    if (c.removed) lines.push(el('p', null, c.silver ? t('firmament.confirm.removeCost', 'Remove {n, plural, one {# star} other {# stars}} for {silver} silver.', { n: c.removed, silver: c.silver })
+    if (c.removed) lines.push(el('p', null, c.silver ? t('firmament.confirm.removeCost', 'Remove {n, plural, one {# star} other {# stars}} for {silver} Imperial Argents.', { n: c.removed, silver: c.silver })
       : t('firmament.confirm.removeFree', 'Remove {n, plural, one {# star} other {# stars}} for free.', { n: c.removed })));
     const row = el('div', 'row');
-    const yes = btn(c.silver ? t('firmament.acceptSilver', 'Accept · {silver} silver', { silver: c.silver }) : t('firmament.accept', 'Accept'), 'fmt-go', () => commit());
+    const yes = btn(c.silver ? t('firmament.acceptSilver', 'Accept · {silver} Imperial Argents', { silver: c.silver }) : t('firmament.accept', 'Accept'), 'fmt-go', () => commit());
     const no = btn(t('firmament.back', 'Back'), '', () => confirmBox.classList.remove('on'));
     row.append(no, yes);
     lines.push(row);
@@ -746,8 +746,8 @@ export function mountFirmamentWindow(host, { book = firmamentBook(), preview = n
     'firm-key': () => t('firmament.refusal.key', 'One of those stars is unknown.'), 'firm-start': () => t('firmament.refusal.start', 'Choose a birthsign first.'),
     'firm-closed': () => t('firmament.refusal.closed', 'The Firmament isn\'t available to you right now.'),
     'firm-stale': () => t('firmament.refusal.stale', 'Your stars changed in another session. Check them and try again.'),
-    'marks-short': () => t('firmament.refusal.silver', 'Not enough silver to remove those stars.'),
-    'marks-closed': () => t('firmament.refusal.silverClosed', 'Silver can\'t be spent on this server right now.'),
+    'marks-short': () => t('firmament.refusal.silver', 'Not enough Imperial Argents to remove those stars.'),
+    'marks-closed': () => t('firmament.refusal.silverClosed', 'Imperial Argents can\'t be spent on this server right now.'),
     offline: () => t('firmament.refusal.offline', 'The server didn\'t answer. Your change is saved and will be sent again.'),
     'no-session': () => t('firmament.refusal.session', 'Sign in to save your stars.'), 'firm-rate': () => t('firmament.refusal.rate', 'Too many changes this hour. Try again later.'),
     'firm-gold': () => needGold(), 'realm-gold': () => needGold(),

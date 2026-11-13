@@ -34,7 +34,7 @@ import { MARKS_COMBAT, MARKS_FAUCETS } from '../net/marksLaw.js';
 /** A strike the day's combat cap refused, as its muted card says it - the chat's own line keeps the whole of it.
  *  SERPENT-SET: the serpents strike under the same cap; EG-E1: and the Spire's Redoubts; STAR7: and the held stars.
  *  AUDIT STAR (W2): a label, through the text core, read when the card is made - the chat's line names the cap. */
-export const haulCappedText = () => t('haul.capped', 'Daily silver cap reached');
+export const haulCappedText = () => t('haul.capped', 'Daily Imperial Argents cap reached');
 /** A gather card holds a little longer than a pickup's (ui/pickupFeed.js PICKUP_FEED_HOLD_MS) - it says more. */
 export const HAUL_HOLD_MS = 3200;
 /** A Motherlode's card stands longer still - the day's one. */
@@ -215,12 +215,12 @@ export function haulWords(l) {
   if (l.haul === 'note') return { note: String(l.text ?? '') };
   if (l.haul === 'silver') {
     const row = Number.isSafeInteger(l.earned) && l.max > 0 ? { text: l.bar ?? COMBAT_BAR_TEXT, fill: Math.max(0, Math.min(1, l.earned / l.max)), end: `${num(l.earned)} / ${num(l.max)}` } : null;   // SILVER-FINDS: a find's day its own words
-    return { head: '', plus: `+${num(l.count)}`, name: 'silver', sub: l.source || '', tag: '', end: Number.isSafeInteger(l.balance) ? num(l.balance) : '', row, lode: null };
+    return { head: '', plus: `+${num(l.count)}`, name: 'Argents', sub: l.source || '', tag: '', end: Number.isSafeInteger(l.balance) ? num(l.balance) : '', row, lode: null };
   }
   const name = l.name ?? materialCountLabel(l.material, l.count);
   const row = l.xp > 0 ? { text: `+${num(l.xp)} ${professionName(l.profession)} XP`, fill: Math.max(0, Math.min(1, Number(l.progress) || 0)), end: l.rank ? `${l.rank}` : '' } : null;
   return {
     head: l.head ?? '', plus: `+${num(l.count)}`, name, sub: l.sub ?? '', tag: Number.isSafeInteger(l.held) ? `${l.where ?? 'Stores'} ${num(l.held)}` : (l.where ?? 'Stores'), end: '', row,   // BAG1: 'Carried 41'
-    lode: l.lode ? { silver: l.silver > 0 ? `+${num(l.silver)} silver` : '', held: l.silver > 0 && Number.isSafeInteger(l.balance) ? `you hold ${num(l.balance)}` : '', miners: l.miners ?? '' } : null,
+    lode: l.lode ? { silver: l.silver > 0 ? `+${num(l.silver)} Imperial Argents` : '', held: l.silver > 0 && Number.isSafeInteger(l.balance) ? `you hold ${num(l.balance)}` : '', miners: l.miners ?? '' } : null,
   };
 }

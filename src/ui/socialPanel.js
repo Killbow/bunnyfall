@@ -172,7 +172,7 @@ export const guildRealmGoldText = (hallGold, treasury, hall = false) => (Number.
   : null);
 /** GUILD3c: A GUILD IN ONE LOOK, for a character in none - what one is for, before the invitations and the founding. */
 export const GUILD_PRIMER_LINES = Object.freeze([   // AUDIT GUILD3 W10: one reading each, and no town promised that is no seat
-  'Company members share a gold treasury, a silver treasury and a vault for items. A company can also buy a hall under its own arms.',
+  'Company members share a gold treasury, an Imperial Argents treasury and a vault for items. A company can also buy a hall under its own arms.',
   'Together they can hold seats of the Iliac Bay: a palace\'s or a crown\'s Charter, contested from that town\'s Notice Board.',
 ]);
 /** GUILD3c: where the rest of a guild is run - said on the Overview, so a member is never left to find the boards. */
@@ -182,7 +182,7 @@ export const GUILD_ELSEWHERE_TEXT = 'Seats and sieges are run from the Seat tab 
 export const guildPageWords = () => ({
   overview: t('social.guild.page.overview', 'The arms, the hall, and where the rest is run'),
   members: t('social.guild.page.members', 'The roster, its ranks, and invitations'),
-  treasury: t('social.guild.page.treasury', 'Gold and silver, and their ledgers'),
+  treasury: t('social.guild.page.treasury', 'Gold and Imperial Argents, and their ledgers'),
   vault: t('social.guild.page.vault', 'The pieces the company keeps'),
   stores: t('social.guild.page.stores', 'Materials, and the writ budget'),
   garrison: t('social.guild.page.garrison', 'Soldiers, their supplies and their orders'),
@@ -217,7 +217,7 @@ export const GUILD_HOLD_CODES = Object.freeze(['guild-treasury', 'guild-stores',
 /** AUDIT GUILD3 S3: a hold the Settings list says in the going's own terms where the service's sentence is a general one
  *  (an account's cap, said of any silver it is paid). */
 export const GUILD_KEEPS_WORDS = Object.freeze({
-  'marks-full': `The company's silver goes to you when it is disbanded, but your account cannot hold it (the most is ${MARKS_MAX.toLocaleString('en-US')} silver). Spend some of yours first.`,
+  'marks-full': `The company's Imperial Argents go to you when it is disbanded, but your account cannot hold it (the most is ${MARKS_MAX.toLocaleString('en-US')} Imperial Argents). Spend some of yours first.`,
 });
 /**
  * GUILD3c: EVERYTHING THAT STILL HOLDS A GUILD THAT WOULD GO, as refusal codes in the service's order: the guildmaster's
@@ -290,7 +290,7 @@ export const GUILD_SILVER_LINE_WORDS = Object.freeze({
   'writ-escrow': 'set aside a company writ\'s pay of', 'writ-return': 'had a company writ\'s unpaid pay come home:',
   tribute: 'paid Tribute of', 'seat-claim': 'paid a Charter\'s claim fee of', 'seat-upkeep': 'paid a Charter\'s upkeep of',
   'seat-edict': 'paid for an Edict:', fort: 'paid for the Works:', 'seat-strike-refund': 'had a struck Charter\'s fee refunded:',
-  tithe: 'collected a Tithe of', 'bounty-escrow': 'set a Bounty aside:', 'bounty-return': 'had a Bounty\'s unpaid silver come home:',
+  tithe: 'collected a Tithe of', 'bounty-escrow': 'set a Bounty aside:', 'bounty-return': 'had a Bounty\'s unpaid Imperial Argents come home:',
   'sellsword-escrow': 'hired a Sellsword for', 'sellsword-return': 'had a Sellsword\'s unpaid fee come home:',
   'royal-escrow': 'put up a Royal Tourney prize of', 'royal-return': 'had a Royal Tourney prize come home:',
   'patron-escrow': 'bid for a chapter\'s patronage:', 'patron-return': 'had a patronage bid come home:',
@@ -1426,9 +1426,9 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const b = W.state.writBudget;
     if (writMay(me, 'writBudget')) {
       out.push(el('div', 'dfsocial-sec', 'Writ budget'));
-      out.push(el('div', 'dfsocial-note', `The silver your Officers may spend on company writs each week, from the silver treasury${b ? ` (${marksText(b.budget)}, ${marksText(b.spent)} posted this week)` : ''}. Your own writs do not count.`));
+      out.push(el('div', 'dfsocial-note', `The Imperial Argents your Officers may spend on company writs each week, from the Imperial Argents treasury${b ? ` (${marksText(b.budget)}, ${marksText(b.spent)} posted this week)` : ''}. Your own writs do not count.`));
       const bform = el('div', 'dfsocial-form');
-      guildField(bform, 'Silver a week', d.budget ?? '', String(WRIT_BUDGET_MAX).length, (x) => { d.budget = x; });
+      guildField(bform, 'Argents a week', d.budget ?? '', String(WRIT_BUDGET_MAX).length, (x) => { d.budget = x; });
       out.push(bform);
       const typed = () => { const t = String(d.budget ?? '').trim(); const n = /^\d+$/.test(t) ? Number(t) : null; return n != null && writBudgetOk(n) ? n : null; };
       const bacts = el('div', 'dfsocial-acts');
@@ -1515,7 +1515,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     };
     stat(t('social.guild.stat.rank', 'Rank'), rankName(v, me));
     stat(t('social.guild.stat.gold', 'Gold'), Number(v.treasury).toLocaleString('en-US'));
-    if (g.marks?.state?.open === true) stat(t('social.guild.stat.silver', 'Silver'), Number(v.marks ?? 0).toLocaleString('en-US'));
+    if (g.marks?.state?.open === true) stat(t('social.guild.stat.silver', 'Argents'), Number(v.marks ?? 0).toLocaleString('en-US'));
     stat(t('social.guild.stat.members', 'Members'), `${v.members.length}/${GUILD_MEMBERS_MAX}`, () => guildOnlineText(g.guild?.members ?? v.members, g.now()));
     stat(t('social.guild.stat.vault', 'Vault'), `${v.vault?.used ?? 0}/${v.vault?.max ?? GUILD_VAULT_SLOTS}`);
     stat(t('social.guild.stat.hall', 'Hall'), v.hall ? REGION_NAMES[v.hall.region] ?? t('social.guild.stat.bay', 'Iliac Bay') : t('social.guild.stat.noHall', 'None'));
@@ -1898,11 +1898,11 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     // MARKS1 (PROF0 10.5): THE MARKS TREASURY beside the gold one - any member puts Marks in from the account's balance,
     // the guildmaster alone takes them out; shown where Marks are this account's (the service's switch)
     if (g.marks?.state?.open === true) {
-      out.push(el('div', 'dfsocial-sec', 'Silver treasury'));
+      out.push(el('div', 'dfsocial-sec', 'Argents treasury'));
       out.push(el('div', 'dfsocial-note', `The treasury holds ${marksText(Number(v.marks ?? 0))}. You hold ${marksText(Number(g.marks.state.balance ?? 0))}.`));
       if (Number.isSafeInteger(v.deedsMax)) out.push(el('div', 'dfsocial-note', guildDeedsText(v.deeds, v.deedsMax)));   // AUDIT SILVER-WAYS A3
       const mform = el('div', 'dfsocial-form');
-      guildField(mform, 'Silver', d.marks ?? '', 7, (x) => { d.marks = x; });
+      guildField(mform, 'Argents', d.marks ?? '', 7, (x) => { d.marks = x; });
       out.push(mform);
       const marksTyped = () => (/^\d{1,7}$/.test(String(d.marks ?? '').trim()) ? Number(String(d.marks).trim()) : 0);
       const macts = el('div', 'dfsocial-acts');
@@ -2146,14 +2146,14 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     swatches('Border', 'border', h.border, (k, t) => { t.border = k; });
     tiles('Device', 'device', HERALDRY_DEVICES, h.device, (x) => shieldSvg(asDrawn({ device: x }), { size: 28 }), heraldryDeviceName, (x) => { h.device = x; });
     swatches('Device color (matches the border unless chosen)', 'charge', ink(), (k, t) => { t.charge = k === t.border ? null : k; });
-    out.push(el('div', 'dfsocial-empty', v.heraldry ? `A change costs ${marksText(HERALDRY_CHANGE_DRAKES)} from the silver treasury.` : 'The first choice is free.'));
+    out.push(el('div', 'dfsocial-empty', v.heraldry ? `A change costs ${marksText(HERALDRY_CHANGE_DRAKES)} from the Imperial Argents treasury.` : 'The first choice is free.'));
     const acts = el('div', 'dfsocial-acts');
     const raise = liveBtn(v.heraldry ? 'Change it' : 'Raise it', () => {
       const nh = heraldryOf(d.heraldry);
       const why = g.busy ? 'a moment' : !nh ? armsWhy(d.heraldry)
         : heraldrySame(nh, v.heraldry) ? 'already your heraldry'
           : v.heraldry && !('marks' in v) ? accountRefusalText('marks-closed')   // AUDIT GUILD1d R12: Drakes not this account's
-            : v.heraldry && Number(v.marks ?? 0) < HERALDRY_CHANGE_DRAKES ? `${marksText(HERALDRY_CHANGE_DRAKES)} in the silver treasury` : '';
+            : v.heraldry && Number(v.marks ?? 0) < HERALDRY_CHANGE_DRAKES ? `${marksText(HERALDRY_CHANGE_DRAKES)} in the Imperial Argents treasury` : '';
       return { enabled: !why, why };
     }, { run: () => guildDo(g.setHeraldry(d.heraldry), 'The company\'s banner is raised.', () => { d.heraldry = null; }) });
     liveBtns[liveBtns.length - 1].arms = true;

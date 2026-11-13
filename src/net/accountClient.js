@@ -438,18 +438,18 @@ const REFUSAL_WORDS = {
   'escrow-late': () => t('account.refusal.escrowLate', 'That piece was collected too late and goes back to the one who fell.'),
   'escrow-wait': () => t('account.refusal.escrowWait', 'That piece is still held for its killer. It comes back to you shortly.'),
   // MARKS1: Marks, the server's currency (server-account/src/marks.js)
-  'marks-need-account': () => t('account.refusal.marksNeedAccount', 'Silver is kept by registered accounts. Add a username to hold it.'),
-  'marks-closed': () => t('account.refusal.marksClosed', 'Silver is not available yet.'),
+  'marks-need-account': () => t('account.refusal.marksNeedAccount', 'Imperial Argents are kept by registered accounts. Add a username to hold them.'),
+  'marks-closed': () => t('account.refusal.marksClosed', 'Imperial Argents are not available yet.'),
   'marks-rid': () => t('account.refusal.marksRid', 'That request could not be read. Try again.'),
-  'bad-marks': () => t('account.refusal.badMarks', 'Silver moves 1 to {max, number} at a time, and the Bank buys at most {perDay} a day.', { max: MARKS_MOVE_MAX, perDay: MARKS_BANK.perDay }),
-  'marks-short': () => t('account.refusal.marksShort', 'You do not hold that much silver.'),
-  'marks-bank-cap': () => t('account.refusal.marksBankCap', 'The Bank buys at most {perDay} silver from you a day.', { perDay: MARKS_BANK.perDay }),
-  'marks-full': () => t('account.refusal.marksFull', 'An account holds at most {max, number} silver.', { max: MARKS_MAX }),
-  'guild-marks-short': () => t('account.refusal.guildMarksShort', 'The treasury does not hold that much silver.'),
-  'guild-marks-full': () => t('account.refusal.guildMarksFull', 'A company\'s treasury holds at most {max, number} silver.', { max: MARKS_MAX }),
-  'marks-rate': () => t('account.refusal.marksRate', 'You have moved too much silver this hour. Try again later.'),
+  'bad-marks': () => t('account.refusal.badMarks', 'Imperial Argents move 1 to {max, number} at a time, and the Bank buys at most {perDay} a day.', { max: MARKS_MOVE_MAX, perDay: MARKS_BANK.perDay }),
+  'marks-short': () => t('account.refusal.marksShort', 'You do not hold that many Imperial Argents.'),
+  'marks-bank-cap': () => t('account.refusal.marksBankCap', 'The Bank buys at most {perDay} Imperial Argents from you a day.', { perDay: MARKS_BANK.perDay }),
+  'marks-full': () => t('account.refusal.marksFull', 'An account holds at most {max, number} Imperial Argents.', { max: MARKS_MAX }),
+  'guild-marks-short': () => t('account.refusal.guildMarksShort', 'The treasury does not hold that many Imperial Argents.'),
+  'guild-marks-full': () => t('account.refusal.guildMarksFull', 'A company\'s treasury holds at most {max, number} Imperial Argents.', { max: MARKS_MAX }),
+  'marks-rate': () => t('account.refusal.marksRate', 'You have moved too many Imperial Argents this hour. Try again later.'),
   'bad-find': () => t('account.refusal.badFind', 'That find could not be read.'),   // SILVER-FINDS: a loot find of no kind the service knows
-  'marks-young': () => t('account.refusal.marksYoung', 'Silver turns up in finds and gathering once your account is a week old.'),   // AUDIT 625 S1: the witnesses' own age
+  'marks-young': () => t('account.refusal.marksYoung', 'Imperial Argents turn up in finds and gathering once your account is a week old.'),   // AUDIT 625 S1: the witnesses' own age
   'not-developer': () => t('account.refusal.notDeveloper', 'Only a developer may do that.'),   // MARKS1's report, NOTICE1's notices, CUSTOMS-PASS's grant
   // SEAT1a: the seats' registry (server-account/src/townSeats.js)
   'seats-need-account': () => t('account.refusal.seatsNeedAccount', 'The seats are witnessed by registered accounts. Add a username to witness one.'),
@@ -464,7 +464,7 @@ const REFUSAL_WORDS = {
   'seat-pledges-full': () => t('account.refusal.seatPledgesFull', 'Your company has pledged in five regions this week. Take one pledge down first.'),
   'seat-no-pledge': () => t('account.refusal.seatNoPledge', 'Your company is not pledged to that seat this week.'),
   'seat-tribute-cap': () => t('account.refusal.seatTributeCap', 'Tribute is at most a fifth of your company\'s week at a seat. Earn more influence there first.'),
-  'bad-tribute': () => t('account.refusal.badTribute', 'Tribute is paid in multiples of 10 silver.'),
+  'bad-tribute': () => t('account.refusal.badTribute', 'Tribute is paid in multiples of 10 Imperial Argents.'),
   'bad-watch': () => t('account.refusal.badWatch', 'Those watch records could not be read.'),
   // SEAT1c: the Charters
   'seat-not-held': () => t('account.refusal.seatNotHeld', 'Your company does not hold that Charter.'),
@@ -476,11 +476,11 @@ const REFUSAL_WORDS = {
   'edict-twice': () => t('account.refusal.edictTwice', 'That Edict rules this week, and only Market Day may be proclaimed two weeks running.'),
   'edict-tier': () => t('account.refusal.edictTier', 'Only a crown may proclaim that Edict.'),
   'seat-no-edict': () => t('account.refusal.seatNoEdict', 'No Edict is proclaimed for next week.'),
-  'bad-bounty': () => t('account.refusal.badBounty', 'A Bounty sets aside at least 20 silver, and at most 100,000.'),
+  'bad-bounty': () => t('account.refusal.badBounty', 'A Bounty sets aside at least 20 Imperial Argents, and at most 100,000.'),
   'bad-orc-camp': () => t('account.refusal.badOrcCamp', 'That camp is not one the Orc Raids count.'),   // SEASON1 part two
   // SEAT2a: the battles' week - the window, the rosters, the Sellswords (the board's own words: townSeatLaw.js SIGN_WHY)
   'bad-window': () => t('account.refusal.badWindow', 'A window is a day from Wednesday to Saturday and a start from 16:00 to 02:00 UTC.'),
-  'bad-fee': () => t('account.refusal.badFee', 'A Sellsword\'s fee is a whole amount of silver, at most {max, number}.', { max: SELLSWORD_FEE_MAX }),
+  'bad-fee': () => t('account.refusal.badFee', 'A Sellsword\'s fee is a whole amount of Imperial Argents, at most {max, number}.', { max: SELLSWORD_FEE_MAX }),
   'bad-handle': () => t('account.refusal.badHandle', 'Name the account by its username.'),
   'no-such-account': () => t('account.refusal.noSuchAccount', 'There is no account by that name.'),
   'hire-none': () => t('account.refusal.hireNone', 'That Sellsword has no contract to withdraw.'),
@@ -615,7 +615,7 @@ const REFUSAL_WORDS = {
   'prof-rate': () => t('account.refusal.profRate', 'You have done too much crafting this hour. Try again later.'),
   // PROF5: the market (server-account/src/market.js)
   'market-closed': () => t('account.refusal.marketClosed', 'The market is not open yet.'),
-  'bad-price': () => t('account.refusal.badPrice', 'A price is 1 to {max, number} silver.', { max: MARKET_PRICE_MAX }),
+  'bad-price': () => t('account.refusal.badPrice', 'A price is 1 to {max, number} Imperial Argents.', { max: MARKET_PRICE_MAX }),
   'bad-units': () => t('account.refusal.badUnits', 'A number of units is 1 to {max, number} at a time.', { max: MARKET_UNITS_MAX }),   // AUDIT 31 L6: a listing's, an order's, a writ's, a guild Stores move's
   'bad-provenance': () => t('account.refusal.badProvenance', 'Only crafted pieces with a maker\'s record can be listed on the market.'),
   'bad-wear': () => t('account.refusal.badWear', 'That piece\'s wear could not be checked for the market.'),
@@ -628,7 +628,7 @@ const REFUSAL_WORDS = {
   'market-short': () => t('account.refusal.marketShort', 'There are not that many left.'),
   'market-no-road': () => t('account.refusal.marketNoRoad', 'The couriers do not know the road there yet.'),
   'market-price-moved': () => t('account.refusal.marketPriceMoved', 'Prices have changed since you looked. Look again.'),
-  'market-seller-full': () => t('account.refusal.marketSellerFull', 'The seller cannot hold any more silver just now.'),
+  'market-seller-full': () => t('account.refusal.marketSellerFull', 'The seller cannot hold any more Imperial Argents just now.'),
   'market-listings-max': () => t('account.refusal.marketListingsMax', 'You have as many listings up as this board allows ({max}, more in a town with a Market Hall). Cancel one first.', { max: MARKET_LISTINGS_MAX }),   // AUDIT SEATS-3 D2: a Market Hall's town lists more
   'market-orders-max': () => t('account.refusal.marketOrdersMax', 'You have {max} buy orders up already. Withdraw one first.', { max: MARKET_ORDERS_MAX }),
   // MARKET-KEEP: the piece stays with its holder - said so, and where it may still go
@@ -649,9 +649,9 @@ const REFUSAL_WORDS = {
   // GOLD-MARKET: gold is a realm character's, and what gold bought stays gold's (Professions-Arc 10.8)
   'market-gold-realm': () => t('account.refusal.marketGoldRealm', 'Gold changes hands on the market only between characters of the online realm.'),
   'market-currency': () => t('account.refusal.marketCurrency', 'That listing is priced in the other currency. Look again.'),
-  'market-gold-goods': () => t('account.refusal.marketGoldGoods', 'Goods you bought with gold, or made from goods that did not come from your Stores, can only go to your pack or back on the market for gold. They cannot be sold for silver or used at a station, in a craft or for a writ.'),   // AUDIT BAG-CRAFT A1: a piece of loose goods is walled to gold
+  'market-gold-goods': () => t('account.refusal.marketGoldGoods', 'Goods you bought with gold, or made from goods that did not come from your Stores, can only go to your pack or back on the market for gold. They cannot be sold for Imperial Argents or used at a station, in a craft or for a writ.'),   // AUDIT BAG-CRAFT A1: a piece of loose goods is walled to gold
   // AUDIT PROF-541 R2-S3 (Mac: B7's wider wall kept, its word made plain): a piece made of goods a counter sold for silver is silver's
-  'market-drakes-goods': () => t('account.refusal.marketDrakesGoods', 'Goods bought with silver, and pieces made with them, sell only for silver. What you gathered, or made of your own or gold-bought goods, sells for gold.'),
+  'market-drakes-goods': () => t('account.refusal.marketDrakesGoods', 'Goods bought with Imperial Argents, and pieces made with them, sell only for Imperial Argents. What you gathered, or made of your own or gold-bought goods, sells for gold.'),
   'market-gold-none': () => t('account.refusal.marketGoldNone', 'Your sales hold no gold for you just now.'),
   'market-gold-full': () => t('account.refusal.marketGoldFull', 'The seller cannot hold any more gold from the market just now.'),
   // MARKET-ANY: a piece from the pack
@@ -670,7 +670,7 @@ const REFUSAL_WORDS = {
   'auction-bid-standing': () => t('account.refusal.auctionBidStanding', 'It already has a bid, so it cannot be withdrawn now.'),
   // AUDIT 31
   'auction-moved': () => t('account.refusal.auctionMoved', 'Another bid came in at the same time as yours. Check the auction and bid again if you still want it.'),
-  'bad-bid': () => t('account.refusal.badBid', 'A bid is 1 to {max, number} silver.', { max: AUCTION_BID_MAX }),
+  'bad-bid': () => t('account.refusal.badBid', 'A bid is 1 to {max, number} Imperial Argents.', { max: AUCTION_BID_MAX }),
   'market-no-record': () => t('account.refusal.marketNoRecord', 'There is no record of that piece, so it cannot be sold or traded.'),
   'piece-kept': () => t('account.refusal.pieceKept', 'That piece is still in another trade. Try again in a moment.'),
   'other-character': () => t('account.refusal.otherCharacter', 'That was begun by another of your characters. It settles when they next open the board.'),
@@ -689,7 +689,7 @@ const REFUSAL_WORDS = {
   'fort-not-here': () => t('account.refusal.fortNotHere', 'That work cannot be raised at this seat.'),
   'fort-building': () => t('account.refusal.fortBuilding', 'That work is being raised already.'),
   'fort-max': () => t('account.refusal.fortMax', 'That work has reached its final stage.'),
-  'seat-treasury': () => t('account.refusal.seatTreasury', 'The company\'s treasury does not hold the silver that project asks.'),
+  'seat-treasury': () => t('account.refusal.seatTreasury', 'The company\'s treasury does not hold the Imperial Argents that project asks.'),
   'bad-rid': () => t('account.refusal.badRid', 'That request could not be read. Try again.'),
   'writ-rate': () => t('account.refusal.writRate', 'You have reached the hourly limit for writs and commissions ({posts} posted, {acts} other actions). Try again later.', { posts: WRIT_POSTS_MAX, acts: WRIT_OPS_MAX }),
   'writ-busy': () => t('account.refusal.writBusy', 'Your last writ is still being settled. Try again in a moment.'),
@@ -698,7 +698,7 @@ const REFUSAL_WORDS = {
   'guild-stores-short': () => t('account.refusal.guildStoresShort', 'The company Stores do not hold that many.'),
   'guild-stores': () => t('account.refusal.guildStores', 'Empty the company Stores first.'),
   'guild-writs': () => t('account.refusal.guildWrits', 'Withdraw the company\'s writs first.'),
-  'guild-writ-escrow': () => t('account.refusal.guildWritEscrow', 'A withdrawn writ\'s or contract\'s pay is still waiting to go back to the silver treasury, which is full. Take silver out of the treasury first.'),   // AUDIT 31 A15; SILVER-WAYS: or a contract's
+  'guild-writ-escrow': () => t('account.refusal.guildWritEscrow', 'A withdrawn writ\'s or contract\'s pay is still waiting to go back to the Imperial Argents treasury, which is full. Take Imperial Argents out of the treasury first.'),   // AUDIT 31 A15; SILVER-WAYS: or a contract's
   // PROF2b: a Motherlode's strike
   'motherlode-closed': () => t('account.refusal.motherlodeClosed', 'There is no Motherlode right now. It has not appeared yet, or it is gone.'),
   'motherlode-watch': () => t('account.refusal.motherlodeWatch', 'The Watch did not see you on the Motherlode\'s ground. Stand on it a moment and strike again.'),
@@ -708,7 +708,7 @@ const REFUSAL_WORDS = {
   'guild-contracts': () => t('account.refusal.guildContracts', 'Withdraw the company\'s contracts first.'),
   'guild-contracts-max': () => t('account.refusal.guildContractsMax', 'A company may have {max} contracts posted at once.', { max: GUILD_CONTRACTS_MAX }),
   'contract-kind': () => t('account.refusal.contractKind', 'A company contract pays for towns defended.'),
-  'contract-pay': () => t('account.refusal.contractPay', 'A contract pays 1 to {max} silver a defender.', { max: CONTRACT_PAY_MAX }),
+  'contract-pay': () => t('account.refusal.contractPay', 'A contract pays 1 to {max} Imperial Argents a defender.', { max: CONTRACT_PAY_MAX }),
   'contract-deeds': () => t('account.refusal.contractDeeds', 'A contract pays 1 to {max} defenders.', { max: CONTRACT_DEEDS_MAX }),
   'contract-gone': () => t('account.refusal.contractGone', 'That contract is no longer posted.'),
   'no-contract': () => t('account.refusal.noContract', 'There is no such contract.'),
@@ -745,12 +745,12 @@ const REFUSAL_WORDS = {
   'bad-vault-grant': () => t('account.refusal.badVaultGrant', 'The account service could not read that grant.'),
   'heraldry-same': () => t('account.refusal.heraldrySame', 'That is already your company\'s heraldry.'),
   'heraldry-moved': () => t('account.refusal.heraldryMoved', 'The company\'s heraldry changed meanwhile. Look again.'),
-  'heraldry-drakes': () => t('account.refusal.heraldryDrakes', 'Changing the heraldry costs {cost} silver from the company\'s silver treasury, and it holds less.', { cost: HERALDRY_CHANGE_DRAKES }),
+  'heraldry-drakes': () => t('account.refusal.heraldryDrakes', 'Changing the heraldry costs {cost} Imperial Argents from the company\'s Imperial Argents treasury, and it holds less.', { cost: HERALDRY_CHANGE_DRAKES }),
   'writ-own-guild': () => t('account.refusal.writOwnGuild', 'Officers and the Captain can take from the company Stores, so they cannot deliver to the company\'s own writs.'),   // AUDIT 31 S6
   'guild-stores-mine': () => t('account.refusal.guildStoresMine', 'A member can only take out what they put in. The Officers and the Captain can take the rest.'),   // AUDIT 31 R1
-  'bad-budget': () => t('account.refusal.badBudget', 'A writ budget is 0 to {max, number} silver.', { max: MARKS_MAX }),
+  'bad-budget': () => t('account.refusal.badBudget', 'A writ budget is 0 to {max, number} Imperial Argents.', { max: MARKS_MAX }),
   'bad-quality': () => t('account.refusal.badQuality', 'Choose a quality from Crude to Masterwork, or none for a piece without quality.'),
-  'bad-pay': () => t('account.refusal.badPay', 'A commission pays 1 to {max, number} silver.', { max: MARKET_PRICE_MAX }),
+  'bad-pay': () => t('account.refusal.badPay', 'A commission pays 1 to {max, number} Imperial Argents.', { max: MARKET_PRICE_MAX }),
   'commission-recipe': () => t('account.refusal.commissionRecipe', 'Only pieces the market lists may be commissioned. Arrows and siege works cannot.'),
   'commission-crafter': () => t('account.refusal.commissionCrafter', 'There is no crafter by that name.'),
   'commission-self': () => t('account.refusal.commissionSelf', 'You cannot commission yourself.'),
@@ -852,7 +852,7 @@ const REFUSAL_WORDS = {
   // CHAP7a: a guild's bid for a chapter's patronage - for the Season after this one, the guildmaster's, more than it stood at
   'no-season': () => t('account.refusal.noSeason', 'No Season is counted yet, so there is no patronage to bid for.'),
   'no-chapter': () => t('account.refusal.noChapter', 'There is no chapter there whose patronage a company may bid for.'),
-  'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 silver, and more than your company bid before.'),
+  'patron-low': () => t('account.refusal.patronLow', 'A bid for a patronage is at least 1,000 Imperial Argents, and more than your company bid before.'),
   // CARDS6: a gold card table's stake and its cash-out (server-account/src/cards.js)
   'cards-realm': () => t('account.refusal.cardsRealm', 'Only an online character of the realm can play a card table for gold.'),
   // SEA-BOUNTY (server-account/src/seaBounty.js): a freeport's bounty board
@@ -1325,7 +1325,7 @@ export const equipGlyph = (io, glyph, on) => call(io, '/v1/account/glyph', { gly
 export const chooseNameAs = (io, as) => call(io, '/v1/account/name', { as });
 /** WB9g: buy a piece of the Broker's insignia (net/insignia.js INSIGNIA) for this account - the wardrobe after the sale and
  *  the `purse` its closed gates can still pay, or a refusal (`owned`, `short` with `purse` and `price`, `guest`). */
-/** BUNNYFALL (Cromwark): a Nyx coin (or a few) found in the reach - the service counts them (server-account/src/nyx.js). */
+/** BUNNYFALL (Cromwark): a Dusk Token (or a few) found in the reach - the service counts them (server-account/src/nyx.js). */
 export const nyxFound = (io, n = 1) => call(io, '/v1/nyx/found', { n });
 /** BUNNYFALL COMPANIES: every Company's territory, as the maps paint it (server-account/src/territory.js). */
 export const territoriesRead = (io) => call(io, '/v1/territories', {});

@@ -161,7 +161,7 @@ export function kindOf(/** @type {unknown} */ v) {
 }
 const templateOfKind = (/** @type {string} */ kind) => (kind.startsWith('t') ? Number(kind.slice(1)) : null);
 /** A kind's name as the panel shows it. */
-export const kindName = (/** @type {string} */ kind) => (kind === 'gold' ? 'Gold' : kind === 'marks' ? 'Marks (silver)'
+export const kindName = (/** @type {string} */ kind) => (kind === 'gold' ? 'Gold' : kind === 'marks' ? 'Marks (Imperial Argents)'
   : String(lawTemplate(templateOfKind(kind))?.name ?? kind));
 /** The tally's JSON path for a kind ('g' is gold). */
 const pathOf = (/** @type {string} */ kind) => (kind === 'gold' ? '$.g' : `$.${kind}`);
@@ -175,7 +175,7 @@ export function findKinds(/** @type {unknown} */ q) {
   /** @type {{ kind: string, name: string }[]} */
   const out = [];
   if ('gold'.includes(s)) out.push({ kind: 'gold', name: kindName('gold') });
-  if (['marks', 'silver', 'drakes'].some((w) => w.includes(s))) out.push({ kind: 'marks', name: kindName('marks') });
+  if (['marks', 'silver', 'argents', 'drakes'].some((w) => w.includes(s))) out.push({ kind: 'marks', name: kindName('marks') });
   const exact = kindOf(s);
   if (exact) out.push({ kind: exact, name: kindName(exact) });
   named ??= Array.from({ length: TEMPLATE_SCAN }, (_, t) => ({ t, name: String(lawTemplate(t)?.name ?? '') })).filter((x) => x.name);

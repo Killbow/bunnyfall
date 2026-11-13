@@ -93,17 +93,17 @@ export const MARKS_TEXT = Object.freeze({
   struck: (n, balance) => `${marksText(n)} added to your account. You now hold ${marksText(balance)}.`,
   // WB12a; WB13b: the record's own line says it is recorded; SILVER: the currency's name; SILVER-WAYS: the day's cap is
   // the gates' and the raids' together - SERPENT-SET: and the serpents' - EG-E1: and the Spire's Redoubts'
-  capped: `No silver for this breach. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedRaid: `No silver for this town. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedSerpent: `No silver for this serpent. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
-  cappedEg: `No silver for this Redoubt. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,   // EG-E1: a Redoubt of the Elite Breach
-  cappedStar: () => t('marks.capped.star', 'No silver for this star. You\'ve reached today\'s limit of {cap, number} silver.', { cap: MARKS_COMBAT.perDay }),   // STAR7: a held star, through the text core; AUDIT STAR (W2): the number handed in, the language's own words round it
+  capped: `No Imperial Argents for this breach. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
+  cappedRaid: `No Imperial Argents for this town. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
+  cappedSerpent: `No Imperial Argents for this serpent. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,
+  cappedEg: `No Imperial Argents for this Redoubt. You can earn at most ${marksText(MARKS_COMBAT.perDay)} a day from breaches, town defenses, serpents, Redoubts and fallen stars.`,   // EG-E1: a Redoubt of the Elite Breach
+  cappedStar: () => t('marks.capped.star', 'No Imperial Argents for this star. You\'ve reached today\'s limit of {cap, number} Imperial Argents.', { cap: MARKS_COMBAT.perDay }),   // STAR7: a held star, through the text core; AUDIT STAR (W2): the number handed in, the language's own words round it
   /** SILVER-WAYS: a guild deed this claim completed - three of the guild's accounts on one raid or gate. */
   deed: (n, guild) => `A deed for ${guild?.name ?? 'your guild'}: three of its members fought together. ${marksText(n)} added to its treasury.`,
   /** SILVER-WAYS: a guild contract's pay for a town defended. */
   contract: (pay, guild) => `${guild?.name ?? 'A guild'} pays you ${marksText(pay)} under its contract.`,
   sold: (marks, gold) => `The Bank buys ${marksText(marks)} for ${gold.toLocaleString('en-US')} gold, paid into your account here.`,
-  kept: 'The Bank has your silver and will pay when the counting-house answers.',
+  kept: 'The Bank has your Imperial Argents and will pay when the counting-house answers.',
   settled: (marks, gold) => `The Bank has finished counting: ${marksText(marks)} bought for ${gold.toLocaleString('en-US')} gold, paid into your account.`,
   movedIn: (marks) => `${marksText(marks)} put in.`,
   movedOut: (marks) => `${marksText(marks)} taken out.`,

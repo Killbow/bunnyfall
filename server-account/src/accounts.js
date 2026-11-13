@@ -610,7 +610,7 @@ export async function buyInsignia({ db, nowS }, player, env, id, rid = null) {
   // before - two sales of two pieces at once each read the column empty, and the second wrote its id alone over the
   // first's: both paid for, one held (the id's shape is the law's own, insigniaWith's: space-separated, in sale order)
   // AUDIT FB1024 (BROKER-RID): the request id's guard rides the one UPDATE, and its row is written by that write alone
-  // BUNNYFALL (Cromwark, server-account/src/nyx.js): Nyx's pieces are paid out of the Nyx coins the account found
+  // BUNNYFALL (Cromwark, server-account/src/nyx.js): Nyx's pieces are paid out of the Dusk Tokens the account found
   const nyx = offer.currency === 'nyx';
   const [sold] = await db.batch([
     db.prepare(

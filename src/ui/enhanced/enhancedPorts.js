@@ -90,7 +90,7 @@ const BANK_FIELD_LABEL = Object.freeze({
   [TRANSACTION_TYPE.Withdrawing_Letter]: 'Letter of credit for',
   [TRANSACTION_TYPE.Repaying_loan]: 'Amount to repay',
   [TRANSACTION_TYPE.Borrowing_loan]: 'Amount to borrow',
-  [MARKS_ENTRY]: 'Silver to sell',   // MARKS1
+  [MARKS_ENTRY]: 'Argents to sell',   // MARKS1
 });
 const bank = {
   kind: 'bank',
@@ -141,14 +141,14 @@ const bank = {
         w.hooks.accountVault?.() ? { type: 'group', title: 'Account vault', blocks: [{ type: 'actions', layout: 'column', items: [
           { label: 'Open the vault', act: () => w.hooks.openAccountVault?.(), disabled: !!w.box },
         ] }] } : null,
-        w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Silver', blocks: [
+        w.hooks.marks && w.hooks.marks.open() === true ? { type: 'group', title: 'Imperial Argents', blocks: [
           { type: 'stats', items: [
-            ['Silver held', marksText(w.hooks.marks.balance() ?? 0)],
+            ['Argents held', marksText(w.hooks.marks.balance() ?? 0)],
             ['Sold today', `${(w.hooks.marks.today()?.exchanged ?? 0)} of ${MARKS_BANK.perDay}`],
           ] },
-          { type: 'text', rows: [`Today: combat ${(w.hooks.marks.today()?.combat ?? 0)} of ${w.hooks.marks.today()?.combatMax ?? MARKS_COMBAT.perDay}, loot ${(w.hooks.marks.today()?.found ?? 0)} of ${w.hooks.marks.today()?.findMax ?? MARKS_FAUCETS.find.perDay}, gathering ${(w.hooks.marks.today()?.gathered ?? 0)} of ${w.hooks.marks.today()?.gatherMax ?? MARKS_FAUCETS.gather.perDay}. The Bank pays ${MARKS_BANK.goldPerMark} gold for each silver.`] },
+          { type: 'text', rows: [`Today: combat ${(w.hooks.marks.today()?.combat ?? 0)} of ${w.hooks.marks.today()?.combatMax ?? MARKS_COMBAT.perDay}, loot ${(w.hooks.marks.today()?.found ?? 0)} of ${w.hooks.marks.today()?.findMax ?? MARKS_FAUCETS.find.perDay}, gathering ${(w.hooks.marks.today()?.gathered ?? 0)} of ${w.hooks.marks.today()?.gatherMax ?? MARKS_FAUCETS.gather.perDay}. The Bank pays ${MARKS_BANK.goldPerMark} gold for each Imperial Argent.`] },
           { type: 'actions', layout: 'column', items: [
-            { label: w.hooks.marks.pending() ? 'Counting a sale...' : 'Sell silver', act: () => w._button('sellMarks'), disabled: !w.enabled('sellMarks') },
+            { label: w.hooks.marks.pending() ? 'Counting a sale...' : 'Sell Imperial Argents', act: () => w._button('sellMarks'), disabled: !w.enabled('sellMarks') },
           ] },
         ] } : null,
       ],

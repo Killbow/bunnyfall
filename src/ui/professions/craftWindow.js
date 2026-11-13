@@ -462,7 +462,7 @@ export function drawFocus(root, rerender, p, showWord = false) {
   const f = book.focus();
   const word = (c) => `${c[0].toUpperCase()}${c.slice(1)}`;
   const box = h('div', 'cw-focus');
-  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior. Dropping one costs ${f.cost} silver.`));
+  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior. Dropping one costs ${f.cost} Imperial Argents.`));
   const ask = _cw.focusAsk;
   const chips = h('div', 'cw-chips');
   for (const c of ['smithing', 'building', 'outfitting', 'enchanting']) {   // Provisioning is its own system (docs/PROVISIONING.md)
@@ -477,18 +477,18 @@ export function drawFocus(root, rerender, p, showWord = false) {
   box.append(chips);
   if (ask) {
     const line = h('div', 'cw-word', ask.drop
-      ? `Drop ${word(ask.craft)} from your Focus? It costs ${f.cost} silver.`
-      : `Make ${word(ask.craft)} a Focus craft? You pick up to ${FOCUS_MAX}, and dropping one later costs ${f.cost} silver.`);
+      ? `Drop ${word(ask.craft)} from your Focus? It costs ${f.cost} Imperial Argents.`
+      : `Make ${word(ask.craft)} a Focus craft? You pick up to ${FOCUS_MAX}, and dropping one later costs ${f.cost} Imperial Argents.`);
     const row = h('div', 'cw-actions');
     row.append(
-      button('cw-btn cw-primary', ask.drop ? `Drop for ${f.cost} silver` : 'Make it my Focus', async () => {
+      button('cw-btn cw-primary', ask.drop ? `Drop for ${f.cost} Imperial Argents` : 'Make it my Focus', async () => {
         if (_cw.busy) return;
         const next = ask.drop ? f.crafts.filter((x) => x !== ask.craft) : [...f.crafts, ask.craft];
         _cw.focusAsk = null; _cw.busy = true; rerender();
         const r = await book.chooseFocus(next).catch(() => null);
         _cw.busy = false;
         _cw.word = r?.ok ? (ask.drop ? `${word(ask.craft)} is no longer a Focus craft.` : `${word(ask.craft)} is a Focus craft.`)
-          : r?.error === 'marks-short' ? `You need ${f.cost} silver to drop a Focus craft.` : 'That did not go through. Try again.';
+          : r?.error === 'marks-short' ? `You need ${f.cost} Imperial Argents to drop a Focus craft.` : 'That did not go through. Try again.';
         rerender();
       }, !!_cw.busy),
       button('cw-btn', 'Cancel', () => { _cw.focusAsk = null; rerender(); }));
@@ -970,7 +970,7 @@ const BENCH_HELP = Object.freeze([
   ['The Bench', 'Every piece is made here. Pick a station at the top, then an item from the list. You can read any list anywhere, but you craft at the matching station: a shop (it takes a fee), your home, your company hall or a caravan. Materials come from your Stores, your Materials Bag and your pack.'],
   ['Materials', 'The main material makes the piece (Steel makes a Steel Dagger). Fittings such as a flux, a grip or a lining are your choice: any one you hold works. Each item says what it wants, for example hardness and lightness. Materials that suit it better give it a higher Potential.'],
   ['Potential and quality', 'Potential is the best quality the materials can give. Your rank over the item\'s rank rolls the quality, and it never goes above Potential. Your perk at rank 50 adds a step, and so does a Company hall in a town your guild holds. The odds bar shows your chances before you craft.'],
-  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, on the Professions page of this tab or at the top of the list here. Only a Focus craft can reach Masterwork and earns full experience. Anything else stops at Superior and earns half. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} silver.`],
+  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, on the Professions page of this tab or at the top of the list here. Only a Focus craft can reach Masterwork and earns full experience. Anything else stops at Superior and earns half. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} Imperial Argents.`],
   ['The Work (the minigame)', 'Craft (minigame) plays The Work. A clean run raises your quality odds, and every true strike pushes the material effects toward their best. Craft, skip the game makes the piece at your plain odds.'],
   ['Material effects', `Each material leans a piece four ways. H is damage or armour, T is condition, L is weight and A is enchantment power, each up to ${CRAFT_SWING}% better or worse. The card shows the range before you craft.`],
   ['Craftwork', `At rank 100 a Focus craft (${CRAFTWORK_TRACKS.map((x) => x[0].toUpperCase() + x.slice(1)).join(', ')}) can enter Craftwork once. Its rank goes back to 0 and it keeps its perks. It earns half experience, and its material effects reach up to ${CRAFTWORK_SWING}%.`],

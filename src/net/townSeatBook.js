@@ -326,7 +326,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
     },
     /** A Sellsword hired by name at a fee in Drakes - the side's Guildmaster's. */
     hire(seat, handle, fee) {
-      return this.battleAct(seat, () => door.hire(character(), seat.key, handle, fee), () => `${handle} is offered a Sellsword's contract${fee ? ` at ${fee} silver` : ''}.`);
+      return this.battleAct(seat, () => door.hire(character(), seat.key, handle, fee), () => `${handle} is offered a Sellsword's contract${fee ? ` at ${fee} Imperial Argents` : ''}.`);
     },
     /** A Sellsword's contract withdrawn before it is signed. */
     withdrawHire(seat, handle) {
@@ -498,7 +498,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       const name = fortWork(work)?.name ?? 'work';
       const forts = r.data?.forts ?? null;
       if (r.data?.repeat) return { ok: true, text: `Work on the ${name} at ${seat.name} was already begun.`, forts };
-      return { ok: true, text: `Work on the ${name} at ${seat.name} is begun toward grade ${r.data?.tier}: ${Number(r.data?.marks ?? 0).toLocaleString('en-US')} silver from the treasury. Seat writs deliver what they need.`, forts };
+      return { ok: true, text: `Work on the ${name} at ${seat.name} is begun toward grade ${r.data?.tier}: ${Number(r.data?.marks ?? 0).toLocaleString('en-US')} Imperial Argents from the treasury. Seat writs deliver what they need.`, forts };
     },
     /** A pledge to `seat` for this week (an Officer's or the guildmaster's) - `{ ok, text }`, the standings read afresh after. */
     async pledge(seat) {
@@ -526,7 +526,7 @@ export function createTownSeatBook({ door, storage = null, nowMs = () => Date.no
       if (r?.ok || (r?.error && !['offline', 'server', 'timeout'].includes(r.error))) { if (tributeAsk?.rid === id) tributeAsk = null; }
       standingsAt.clear();
       if (!r?.ok) return { ok: false, text: accountRefusalText(r?.error) };
-      return { ok: true, text: r.data?.repeat ? 'That Tribute was already paid.' : `Tribute paid to ${seat.name}: ${marks} silver burned, ${r.data?.influence ?? marks / 10} influence.` };
+      return { ok: true, text: r.data?.repeat ? 'That Tribute was already paid.' : `Tribute paid to ${seat.name}: ${marks} Imperial Argents burned, ${r.data?.influence ?? marks / 10} influence.` };
     },
     /**
      * THE WATCH'S TICK, KEPT (net/online.js `onWatch`): a signed receipt for the signed-in account, in a seat's own pixel as

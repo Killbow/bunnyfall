@@ -50,7 +50,7 @@ export const wildRingTier = (ring) => WILD_RING_LOOT[(ring | 0) - 1] ?? WILD_RIN
 export const wildRingLoot = (ring, kind = _kind) => (cromwarkPeace(kind) ? 1 : wildRingTier(ring));
 /** A ring's word for the maps and the HUD. */
 export const wildRingName = (ring) => ['The Foothills', 'The Passes', 'The High Crags', 'The Heart'][(ring | 0) - 1] ?? 'The Heart';
-export const wildRingBonus = (ring) => (cromwarkPeace(WILD_KIND) ? `${Math.round(nyxCoinChance(ring) * 100)}% Nyx` : `+${Math.round((wildRingLoot(ring) - 1) * 100)}% loot`);   // BUNNYFALL: a ring's Nyx coin chance
+export const wildRingBonus = (ring) => (cromwarkPeace(WILD_KIND) ? `${Math.round(nyxCoinChance(ring) * 100)}% Dusk` : `+${Math.round((wildRingLoot(ring) - 1) * 100)}% loot`);   // BUNNYFALL: a ring's Dusk Token chance
 /** "has to wait 2mins till respawn" - and a killer's body lies as long. */
 export const WILD_DEATH_HOLD_S = 120;
 /** A blow from another player this recent at the death names them the killer (a lingering spell, a foe's last swing
@@ -479,7 +479,7 @@ export const WILD_TEXT = Object.freeze({
   get enter() { if (cromwarkPeace(WILD_KIND)) return t('wild.cromwark.enter', 'You enter the reach of Cromwark. Rodney\'s monsters roam these mountains, four times as strong. Die here and you wake outside.'); return t('wild.zone.enter', 'You enter the {zone}, an open PvP zone. Foes here are four times as strong. If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
   leave: `You leave the ${WILD_NAME}.`,
   get chip() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.chip', 'Cromwark') : 'Open PvP'; },
-  get chipTip() { if (cromwarkPeace(WILD_KIND)) return t('wild.cromwark.chipTip', 'The reach of Cromwark: foes are four times as strong, stronger toward the heart. From the Passes inward a purple haze makes them hit harder every minute you stay. Kills may drop Nyx coins. Die here and you wake outside.'); return t('wild.zone.chipTip', '{zone}: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more at the edge, twice in the heart). If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
+  get chipTip() { if (cromwarkPeace(WILD_KIND)) return t('wild.cromwark.chipTip', 'The reach of Cromwark: foes are four times as strong, stronger toward the heart. From the Passes inward a purple haze makes them hit harder every minute you stay. Kills may drop Dusk Tokens. Die here and you wake outside.'); return t('wild.zone.chipTip', '{zone}: other players may attack you. Foes are four times as strong and drop up to twice the loot (25% more at the edge, twice in the heart). If another player kills you, you drop what you carry.', { zone: WILD_NAME }); },
   get mapKey() { return cromwarkPeace(WILD_KIND) ? t('wild.cromwark.mapKey', 'Reach of Cromwark') : 'Open PvP zone'; },
   deathPvp: (name) => `${name || 'Another player'} may claim one piece of your worn gear.`,
   deathDrop: (n) => (n > 0 ? `${n} ${n === 1 ? 'thing you carried lies' : 'things you carried lie'} where you fell, for ten minutes.` : ''),

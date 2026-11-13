@@ -174,9 +174,9 @@ export const SILVER_WHY = Object.freeze({ offline: 'held in your online account'
 export function walletLedger(c) {
   const count = (/** @type {string} */ key, /** @type {string} */ label, /** @type {number} */ n, /** @type {number} */ kg, /** @type {string|null} */ note = null) =>
     ({ key, label, figure: n ? num(n) : 'none', none: !n, note: n ? note : null, weight: n ? walletKg(kg) : null });
-  const silver = c.silver != null ? { key: 'silver', label: 'Silver', figure: num(c.silver), none: false, note: null, weight: null }
-    : c.silverWhy === 'none' ? { key: 'silver', label: 'Silver', figure: 'none', none: true, note: null, weight: null }
-      : { key: 'silver', label: 'Silver', figure: null, none: false, note: SILVER_WHY[c.silverWhy] ?? SILVER_WHY.offline, weight: null };
+  const silver = c.silver != null ? { key: 'silver', label: 'Imperial Argents', figure: num(c.silver), none: false, note: null, weight: null }
+    : c.silverWhy === 'none' ? { key: 'silver', label: 'Imperial Argents', figure: 'none', none: true, note: null, weight: null }
+      : { key: 'silver', label: 'Imperial Argents', figure: null, none: false, note: SILVER_WHY[c.silverWhy] ?? SILVER_WHY.offline, weight: null };
   return [
     { head: 'Coin', rows: [{ key: 'gold', label: 'Gold', figure: num(c.gold), none: false, note: null, weight: null }, silver] },
     { head: 'In the wallet', rows: [
@@ -198,7 +198,7 @@ export function walletLines(/** @type {ReturnType<typeof walletContents>} */ c) 
 /** The card's lines (systems/item/itemInfo.js): what a wallet is for. */
 export const WALLET_CARD_LINES = Object.freeze([
   'Holds your letters of credit, Deadlands Embers and Welkynd Shards,',
-  'and counts your gold and your silver.',
+  'and counts your gold and your Imperial Argents.',
 ]);
 
 /** The pack's Use: the wallet opened - its sheet on the enhanced skin, its box on the classic (the readers route

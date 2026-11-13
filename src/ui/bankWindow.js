@@ -95,7 +95,7 @@ const OPENS = Object.freeze({
  *  the Empire buys Marks for gold; PROF0 10.5). Reached from the enhanced face's "Sell Marks" alone. */
 export const MARKS_ENTRY = 'marks';
 /** The line under the counting while the service answers. */
-export const MARKS_COUNTING = 'The Bank counts your silver...';
+export const MARKS_COUNTING = 'The Bank counts your Imperial Argents...';
 
 /** "cannotCarryGold" - the one result that is NOT a TEXT.RSC record,
  *  so the window supplies its own line (:308-309). */

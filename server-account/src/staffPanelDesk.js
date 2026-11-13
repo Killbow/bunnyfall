@@ -3,7 +3,7 @@
 // complete rework for ease of use"; asked: "a dashboard home page and lets me search from a list of proper chars",
 // "Events and notices, Give and fix"): THE STAFF PANEL'S OWN DOORS, beside the older ones.
 //   /v1/staff/chars   every realm character with its account - the panel's list to search as you type (any staff)
-//   /v1/staff/greed   gold or Nyx coins to an account, waiting for them in game: /greed's own gift (staffCommands.js
+//   /v1/staff/greed   gold or Dusk Tokens to an account, waiting for them in game: /greed's own gift (staffCommands.js
 //                     greedGive), from the panel's staff session (Admins)
 import { displayName } from './accounts.js';
 import { REALM_PLAYING_S } from './realm.js';

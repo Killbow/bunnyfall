@@ -684,7 +684,7 @@ export function accountCard(doc, flow, { onClose = null, face = null, character 
       if (voyages) row(t('account.card.voyages', 'Voyages sailed'), voyages);
       // MARKS1: the account's Marks - the server's currency, struck for acts a server witnessed (PROF0 10.5). Null where
       // Marks are not this account's (a guest, the service's switch), and a service from before it says nothing.
-      if (Number.isSafeInteger(flow.account.marks)) row(t('account.card.silver', 'Silver'), marksText(flow.account.marks));
+      if (Number.isSafeInteger(flow.account.marks)) row(t('account.card.silver', 'Imperial Argents'), marksText(flow.account.marks));
       keep(deeds, record);
 
       // RENOWN1: each character's Renown and how far into it they are - online's own level, never the save's. The

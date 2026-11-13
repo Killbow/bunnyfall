@@ -93,7 +93,7 @@ export const kindWord = (/** @type {string} */ k) => (k === 'court' ? t('notice.
   : k === 'guild' ? t('notice.sift.guild', 'Guild writs') : k === 'contract' ? t('notice.sift.contract', 'Guild contracts')
     : k === 'commission' ? t('notice.sift.commission', 'Commissions') : t('notice.sift.all', 'All work'));
 /** An order's name on the bar. */
-export const sortWord = (/** @type {string} */ k) => (k === 'pay' ? t('notice.sift.pay', 'Most silver') : k === 'name' ? t('notice.sift.name', 'A to Z')
+export const sortWord = (/** @type {string} */ k) => (k === 'pay' ? t('notice.sift.pay', 'Most Imperial Argents') : k === 'name' ? t('notice.sift.name', 'A to Z')
   : t('notice.sift.ending', 'Ending soonest'));
 
 /**

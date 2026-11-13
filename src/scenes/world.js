@@ -396,7 +396,7 @@ import { sdSlotsKept } from '../systems/superDungeon/sdSlots.js';   // SD-ONELIF
 import { sdCities, sdTemplates } from '../systems/superDungeon/sdSite.js';   // SD2b: the Hollow's cities and templates, over the game's own rows
 import { RANDOM_TREASURE_ARCHIVE } from '../systems/loot/lootDataTables.js';   // WB12d: the casket's pile, undrawn
 import { createSigilBroker } from './sigilBrokerPool.js';
-import { createCromwarkHost } from './cromwarkHost.js';   // BUNNYFALL (Cromwark): the haze's counter, the Nyx coins, the Guild camp and Nyx   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
+import { createCromwarkHost } from './cromwarkHost.js';   // BUNNYFALL (Cromwark): the haze's counter, the Dusk Tokens, the Guild camp and Nyx   // SET7: the Sigil Broker - her body, her box and name, her press; BROKER-CAGE: caged at the faithful's circle
 import { createBrokerOverlay, closeBrokerDoor } from '../ui/brokerDoor.js';   // SET7: her window, a lazy chunk behind its door
 import { panoplyRows, PANOPLY_NAMES } from '../ui/brokerWindow.js';   // EG-E1: the Broker's Panoply sink - its nine rows and their names
 import { panoplyPieceById } from '../systems/aetheric.js';   // EG15: a Panoply piece minted by its id - the sink's
@@ -11797,7 +11797,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           const r = await profBook.stock(material, qty);
           toldBalance(r?.data?.balance);   // PROF5 (FOUND): the Bank's balance told too; AUDIT 32 B3: and the market's
           const who = counter === 'furnisher' ? 'furnisher' : counter === 'weavers' ? 'Weavers' : counter === 'apothecaries' ? 'Apothecaries' : counter === 'grocers' ? 'Grocers' : 'smith';   // BUNNYFALL PROVISIONING: the Grocers' pantry   // PROF12: the Apothecaries' sixteen   // PROF4: the furnisher's Linen; PROF7: the Weavers' at the tailor's
-          return r?.ok ? { ok: true, text: `Bought ${r.data.qty} ${materialCountLabel(material, r.data.qty)} from the ${who} for ${r.data.marks} silver.` } : { ok: false, text: accountRefusalText(r?.error) };
+          return r?.ok ? { ok: true, text: `Bought ${r.data.qty} ${materialCountLabel(material, r.data.qty)} from the ${who} for ${r.data.marks} Imperial Argents.` } : { ok: false, text: accountRefusalText(r?.error) };
         },
         heatBand: () => heatBand({ strength: liveStat(playerEntity, 'strength'), agility: liveStat(playerEntity, 'agility') }),
         // PROF4 (bible/06-Systems/Professions-Arc.md 25): THE WORKBENCH the player stands at, and the plane's band
@@ -21585,7 +21585,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
           if (!modes?.openPauseAt?.(at)) hudCtx.togglePause({ at });
           return true;
         } }
-        if (cromwark.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: /nyxcoin, the Nyx coins gathered
+        if (cromwark.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: /nyxcoin, the Dusk Tokens gathered
         if (staffCommands?.command(text, (line) => chatLog.push(tabId, { text: line, system: true }))) return true;   // BUNNYFALL: staff /vanish, /spawn, /greed
         if (staffHost?.claims(tabId)) return staffHost.send(tabId, text);   // STAFF-PANEL5-FREEZE: the Staff tab's line goes to the service; a freeze shuts every other tab, the commands below too
         // EG-PLAY: `/breach` - answer an Elite Breach's call; `/breach rehearse` - the day's Rehearsal; `/breach home` - a
@@ -25542,7 +25542,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     open: openBroker,
     gone: () => closeBrokerDoor(),   // midnight took her from under her open window: it is shut, and she says so
   }) : null;
-  // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Nyx coins, the Guild camp and Nyx
+  // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Dusk Tokens, the Guild camp and Nyx
   const cromwark = createCromwarkHost({
     poiNpcs: () => poiHost?.npcs ?? null,   // BUNNYFALL: the people the POIs stand, read late (the POI host is made after)
     renderer, meshes: { getGpuMesh, cpuModels }, getTexture, uploadRecordFrame, maps, roads: () => terrainGen.roads(),
@@ -25616,7 +25616,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     },
   });
   // BUNNYFALL STAFF COMMANDS (scenes/staffCommandsHost.js): /vanish - hidden from players (a hidden token, the relay's) and
-  // monsters (staffFollowHost.js `unseen`, off that token); /spawn - monsters near you; /greed - gold or Nyx coins to a player
+  // monsters (staffFollowHost.js `unseen`, off that token); /spawn - monsters near you; /greed - gold or Dusk Tokens to a player
   staffCommands = createStaffCommands({
     io: () => (isOnlinePage() ? insigniaIo() : null),
     relink: () => relinkGame(identityMinter, online, chatLinks?.values()),
@@ -27693,7 +27693,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       stock: async (key, n) => {
         const r = await profBook.stock(key, n);
         toldBalance(r?.data?.balance);   // AUDIT 30 U6
-        return r?.ok ? { ok: true, text: `Bought ${r.data.qty} ${materialCountLabel(key, r.data.qty)} at the ${stockOf(key)?.counter === 'apothecaries' ? 'Apothecaries\'' : 'Weavers\''} counter for ${r.data.marks} silver.` } : { ok: false, text: accountRefusalText(r?.error) };
+        return r?.ok ? { ok: true, text: `Bought ${r.data.qty} ${materialCountLabel(key, r.data.qty)} at the ${stockOf(key)?.counter === 'apothecaries' ? 'Apothecaries\'' : 'Weavers\''} counter for ${r.data.marks} Imperial Argents.` } : { ok: false, text: accountRefusalText(r?.error) };
       },
     } : null;
     return showNoticeWindow({
@@ -27784,7 +27784,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (isChapterWrit(d.writ?.kind)) rollTracker?.refresh();
     const hall = isChapterWrit(d.writ?.kind) && !d.repeat && rollTracker?.held ? hallPosterName(d.writ.faction) : null;
     const merit = hall && Number(d.merit) > 0 ? `, ${Number(d.merit).toLocaleString('en-US')} Merit to its chapter here` : '';
-    return `Writ filled: ${Number(d.pay ?? 0).toLocaleString('en-US')} silver struck to your account, ${Number(d.renown?.credited ?? 0).toLocaleString('en-US')} Renown and ${Number(d.pay ?? 0) * 2} ${prof} XP.${hall ? ` The ${hall} will remember it${merit}.` : ''}`;
+    return `Writ filled: ${Number(d.pay ?? 0).toLocaleString('en-US')} Imperial Argents struck to your account, ${Number(d.renown?.credited ?? 0).toLocaleString('en-US')} Renown and ${Number(d.pay ?? 0) * 2} ${prof} XP.${hall ? ` The ${hall} will remember it${merit}.` : ''}`;
   };
   /** SD2c: the server's word on a found Super dungeon while it stands - the map's own mark, under the red seal. */
   const noticeSdCard = () => sdNoticeCard(sdHost?.mapMark() ?? null, sdHost?.hollow()?.site?.cityName ?? '');

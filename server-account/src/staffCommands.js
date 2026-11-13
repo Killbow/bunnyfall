@@ -1,6 +1,6 @@
 // @ts-check
 // BUNNYFALL STAFF COMMANDS (2026-11-12, the owner: "a vanish to disappear from both players and enemies, a spawn command
-// to spawn enemies and a greed command to give gold to players or nyx coins") - the account service's half. Staff are the
+// to spawn enemies and a greed command to give gold to players or dusk tokens") - the account service's half. Staff are the
 // accounts staff.js staffRole names (an Admin - DEVELOPER_HANDLES - or a Moderator); /greed is an Admin's alone.
 //
 //   /vanish   vanishSet: the account's switch (players.vanish_on, migration 0202). While it is on, the game's ordinary
@@ -8,7 +8,7 @@
 //             leaves the player undrawn and untargeted, while the socket plays on as any other - the monsters' sync and
 //             everything else unchanged.
 //   /spawn    the game's own (scenes/world.js): staff-only, asked of `vanishSet`'s answer's `staff` - nothing here.
-//   /greed    greedGive: gold and Nyx coins kept for a player (staff_gifts) until their game takes them (greedClaim) -
+//   /greed    greedGive: gold and Dusk Tokens kept for a player (staff_gifts) until their game takes them (greedClaim) -
 //             the gold into the character's purse, the coins into the pack; the account's Nyx count and the character's
 //             wealth allowance move with them, so neither the Nyx titles nor the integrity measure miss them.
 import { staffRole } from './staff.js';

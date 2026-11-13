@@ -577,7 +577,7 @@ export function createMarketTab(m, ui) {
   /** GOLD-MARKET: the currency switch - a realm character's alone; a view shows one currency at a time. */
   function currencyNode() {
     if (!goldOk() || !CURRENCY_VIEWS.includes(st.view)) return null;
-    return select([['marks', 'Silver'], ['gold', 'Gold']], st.currency, (v) => { st.currency = v === 'gold' ? 'gold' : 'marks'; refilter(); }, 'Currency');   // AUDIT BOARD-SIFT (lane B M1): from the first page
+    return select([['marks', 'Argents'], ['gold', 'Gold']], st.currency, (v) => { st.currency = v === 'gold' ? 'gold' : 'marks'; refilter(); }, 'Currency');   // AUDIT BOARD-SIFT (lane B M1): from the first page
   }
 
   const pick = (row) => { st.picked = st.picked === row.id ? null : row.id; st.qty = pickOf(row); ui.rerender(); };
@@ -699,7 +699,7 @@ export function createMarketTab(m, ui) {
     } else {
       const courier = courierOf({ ...a, kind: 'piece' }, 1);
       const amountNow = () => Math.max(a.next, intOf(st.bid[a.id] ?? a.next, a.next, AUCTION_BID_MAX));
-      const n = numberInput(amountNow(), a.next, AUCTION_BID_MAX, 'Your bid in silver', `bid|${a.id}`);
+      const n = numberInput(amountNow(), a.next, AUCTION_BID_MAX, 'Your bid in Imperial Argents', `bid|${a.id}`);
       const ask = el('span', 'market-ask');
       ask.setAttribute('aria-live', 'polite');
       const go = button('primary market-bid', 'Bid', () => {
@@ -833,10 +833,10 @@ export function createMarketTab(m, ui) {
     // GOLD-MARKET: a realm character prices a Stores material or a piece in Drakes or gold (an auction stays Drakes')
     const gold = goldOk() && st.list.kind !== 'auction' && (st.list.currency === 'gold' || st.list.kind === 'item');
     if (goldOk() && st.list.kind !== 'auction' && st.list.kind !== 'item') {
-      fields.append(field('Priced in', select([['marks', 'Priced in silver'], ['gold', 'Priced in gold']], st.list.currency, (v) => { st.list.currency = v === 'gold' ? 'gold' : 'marks'; ui.rerender(); }, 'Currency')));
+      fields.append(field('Priced in', select([['marks', 'Priced in Imperial Argents'], ['gold', 'Priced in gold']], st.list.currency, (v) => { st.list.currency = v === 'gold' ? 'gold' : 'marks'; ui.rerender(); }, 'Currency')));
     }
     const cur = gold ? 'gold' : 'marks';
-    const unitWord = gold ? 'gold' : 'silver';
+    const unitWord = gold ? 'gold' : 'Imperial Argents';
     const price = numberInput(st.list.price, 1, MARKET_PRICE_MAX, `Price in ${unitWord}`, 'list-price');
     const hint = el('p', 'notice-tip');
     const notes = el('div', 'market-formnotes');
@@ -921,7 +921,7 @@ export function createMarketTab(m, ui) {
         empty: auction ? t('market.list.mwEmpty', 'You carry no Masterwork to auction.') : t('market.list.craftedEmpty', 'You carry no crafted piece to sell.'), refusedWhat: t('market.list.refused', 'Not for the market'), redraw: () => ui.rerender() }),
       packCardNode(entries.find((e) => e.item === chosen?.item) ?? null, { picture: m.itemPicture ?? null, wake, look: itemLookRows,
         none: auction ? t('market.list.pickMw', 'Press a Masterwork above to look at it and set its opening bid.') : t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
-      fields.append(field(auction ? 'Opening bid (silver)' : `Price in ${unitWord}`, price));
+      fields.append(field(auction ? 'Opening bid (Imperial Argents)' : `Price in ${unitWord}`, price));
       const them = (n) => (n === 1 ? 'it' : 'them');
       if (others) notes.append(el('p', 'notice-tip', `${plural(others, 'crafted piece')} you hold ${others === 1 ? 'is' : 'are'} made by another player, and only the maker can sell ${them(others)} as crafted.${goldOk() && m.goods ? ` List ${them(others)} from your pack for gold instead.` : ''}`));
       if (elsewhere) notes.append(el('p', 'notice-tip', `${plural(elsewhere, 'crafted piece')} you hold ${elsewhere === 1 ? 'is' : 'are'} already listed, on the road or in a home.`));
@@ -949,7 +949,7 @@ export function createMarketTab(m, ui) {
         // MARKET-ANY: a piece from the pack - where it goes, and why gold alone
         // AUDIT 657 B9: the 1% is a fee - the sale's (goldSaleOf), never the listing's
         : st.list.kind === 'item' ? `No fee to list. Up for 72 hours on every board. If it sells you get ${goldGets} (after a 1% fee and ${saleTax(100)}% tax), collected at a bank. It leaves your pack now and comes back if it does not sell.`
-        : gold ? `No fee to list. Up for 72 hours on every board. If it all sells you get ${goldGets} (after a 1% fee and ${saleTax(100)}% tax), collected at a bank. Goods bought with silver, and pieces made with them, sell only for silver.`
+        : gold ? `No fee to list. Up for 72 hours on every board. If it all sells you get ${goldGets} (after a 1% fee and ${saleTax(100)}% tax), collected at a bank. Goods bought with Imperial Argents, and pieces made with them, sell only for Imperial Argents.`
         : st.list.kind === 'auction'
           ? `Fee ${marksText(fee)}, kept if you cancel (only before the first bid). Runs ${AUCTION_S / 3600} hours on every board. Each bid beats the last by ${AUCTION_RAISE_PCT}%, and a bid in the last ${AUCTION_LATE_S / 60} minutes adds ${AUCTION_ADD_S / 60} minutes. You get the top bid, less ${less}${pct == null ? ' and any Tithe' : ''}.`
           : `Fee ${marksText(fee)}, kept if you cancel. Up for 72 hours on every board. If it all sells you get ${marksText(sellerGets(worth(), pct ?? 0))}, after ${less}${pct == null ? ', before any Tithe' : ''}.`;
@@ -968,10 +968,10 @@ export function createMarketTab(m, ui) {
     const cat = marketCatalogue();
     if (!st.post.material) st.post.material = cat[0]?.key ?? '';
     const units = numberInput(st.post.units, 1, MARKET_UNITS_MAX, 'Units wanted', 'post-units');
-    const price = numberInput(st.post.price, 1, MARKET_PRICE_MAX, 'Silver each', 'post-price');
+    const price = numberInput(st.post.price, 1, MARKET_PRICE_MAX, 'Argents each', 'post-price');
     const fields = el('div', 'market-fields');
     fields.append(field('Material', select(cat.map((c) => [c.key, `${m.name(c.key)} (tier ${c.tier})`]), st.post.material, (v) => { st.post.material = v; ui.rerender(); }, 'Material wanted'), 'market-field-wide'),
-      field('Units', units), field('Silver each', price));
+      field('Units', units), field('Argents each', price));
     const hint = el('p', 'notice-tip');
     const full = (m.book.state.counts?.orders ?? 0) >= MARKET_ORDERS_MAX;
     const b = button('primary market-post', 'Post the order', () => act(() => m.book.order({ region: m.region, material: st.post.material, units: st.post.units, price: st.post.price, hubs: m.hubs }),
@@ -1082,8 +1082,8 @@ export function createMarketTab(m, ui) {
           : b.state === 'won' ? 'won, and it is on its way to you'
             // AUDIT 31 S3: a void bid is a removed auction's, or a won one its seller could not be paid for in seven days;
             // U13: its Marks come back when this tab is next read - never "when you next open the market", which it is
-            : b.state === 'void' ? (b.returned ? 'void. Your silver is back' : 'void. Your silver comes back the next time you look')
-              : b.returned ? 'outbid. Your silver is back' : 'outbid. Your silver comes back the next time you look';
+            : b.state === 'void' ? (b.returned ? 'void. Your Imperial Argents are back' : 'void. Your Imperial Argents come back the next time you look')
+              : b.returned ? 'outbid. Your Imperial Argents are back' : 'outbid. Your Imperial Argents come back the next time you look';
         bl.append(el('li', `market-listing state-${b.state}`, `${m.pieceName(b.piece)} - ${marksText(b.amount)}${b.courier ? ` + ${b.courier} courier` : ''} - ${word}`));
       }
       box.append(bl);

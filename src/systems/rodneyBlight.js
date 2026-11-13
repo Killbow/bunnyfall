@@ -3,7 +3,7 @@
 // the account service keeps it (server-account/src/blight.js), laid round Cromwark's zone (its mask, measured here once)
 // and held back by the Companies' and Charters' territories (systems/companyTerritory.js), by the law
 // (net/blightLaw.js). The held map paints it and its front (ui/territoryMapInk.js paintBlight); the host asks whether the
-// player stands in it (foes in purple, harder blows, Nyx coins); a raid this device claimed near its edge pushes it back.
+// player stands in it (foes in purple, harder blows, Dusk Tokens); a raid this device claimed near its edge pushes it back.
 //
 // Online only: offline `io` answers nothing and the book stays empty (no blight drawn, no foe changed).
 import { blightRead, blightPush } from '../net/accountClient.js';

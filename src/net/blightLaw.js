@@ -1,7 +1,7 @@
 // @ts-check
 // BUNNYFALL COMPANIES (2026-11-12, the war against Rodney): RODNEY'S BLIGHT - the purple land spreading out of Cromwark.
 //
-// Asked: the blight spreads "Daily"; inside it "Purple tint + tougher foes" (and Nyx coins); it is pushed back by
+// Asked: the blight spreads "Daily"; inside it "Purple tint + tougher foes" (and Dusk Tokens); it is pushed back by
 // "Beating raids at the front" and held by "Company territory nearby".
 //
 //   - THE SHAPE: BLIGHT_SECTORS slices round Cromwark's middle. Each slice's edge is the Cromwark zone's own edge that
@@ -15,7 +15,7 @@
 //     The extras keep growing behind a held patch, so a Company that stops playing is flooded. Where a patch holds it,
 //     that is THE FRONT, drawn on the map.
 //   - INSIDE (outside Cromwark itself): foes wear Cromwark's purple and strike BLIGHT_FOE_MULT harder; a kill may drop
-//     a Nyx coin at Cromwark's outer ring's chance.
+//     a Dusk Token at Cromwark's outer ring's chance.
 //
 // Pure: no clock, no DOM, no network. Both ends read it; every number is balance.
 import { territoryFill } from './territoryLaw.js';

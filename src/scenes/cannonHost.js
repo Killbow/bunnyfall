@@ -2,7 +2,7 @@
 // BUNNYFALL (2026-11-05, the owner: "another smaller event for lower level players, some sort of cannon being built in the
 // empty area near Wayrest ... giving materials gives you coins", and "the cannon should be near Wayrest"): THE GREAT
 // CANNON BY WAYREST. One build the whole realm gives ingots and planks to (net/cannonLaw.js; the account service keeps it,
-// server-account/src/cannon.js), each gift paying Nyx coins at about the reach's rate; when it is whole it fires toward
+// server-account/src/cannon.js), each gift paying Dusk Tokens at about the reach's rate; when it is whole it fires toward
 // Cromwark and the next one is begun. It stands on the open ground nearest Wayrest, by a road where one runs: the map
 // files say where, so every game stands it in the same place. A leaf the Cromwark host carries (scenes/cromwarkHost.js),
 // so the world host wires nothing new.
@@ -271,7 +271,7 @@ export function createCannonHost(deps) {
       if (!got) return { ok: false, text: t('cannon.enough', 'The build has all it needs of that.') };
       return { ok: true, text: coins > 0
         ? t('cannon.thanks', 'You give {n} {name}. The foreman pays you {coins}.', { n: got, name: cannonMaterialName(key), coins: nyxCoinsText(coins) })
-        : t('cannon.thanksNoCoin', 'You give {n} {name}. It counts toward your next Nyx coin.', { n: got, name: cannonMaterialName(key) }) };
+        : t('cannon.thanksNoCoin', 'You give {n} {name}. It counts toward your next Dusk Token.', { n: got, name: cannonMaterialName(key) }) };
     } catch {
       take.back();
       return { ok: false, text: t('cannon.failed', 'The gift did not reach the foreman. Nothing was taken.') };
@@ -294,7 +294,7 @@ export function createCannonHost(deps) {
     /** The shot's flash and smoke for the sea fight's particle pass (render/navalRender.js), or null with none. */
     particles: () => (fx.count ? fx.drawList() : null),
     targets: () => (at && box ? box : []),
-    hoverName: (key) => (key === KEY && at ? { title: t('cannon.name', 'The Great Cannon'), subs: [build ? t('cannon.hover', '{pct}% built · Give ingots and planks for Nyx coins', { pct: Math.floor(cannonShare(build.got) * 100) }) : t('cannon.hoverIdle', 'Give ingots and planks for Nyx coins')] } : null),
+    hoverName: (key) => (key === KEY && at ? { title: t('cannon.name', 'The Great Cannon'), subs: [build ? t('cannon.hover', '{pct}% built · Give ingots and planks for Dusk Tokens', { pct: Math.floor(cannonShare(build.got) * 100) }) : t('cannon.hoverIdle', 'Give ingots and planks for Dusk Tokens')] } : null),
     activate(key, mode = 'grab') {
       if (key !== KEY || !at) return false;
       if (mode === 'info') deps.say?.(t('cannon.info', 'You see the Great Cannon, built by the realm to fire on Cromwark.'));

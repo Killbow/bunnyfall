@@ -1,6 +1,6 @@
 // @ts-check
-// BUNNYFALL (2026-11-04, the owner: "a 1% chance to drop a Nyx coin when killing enemies in there and the chance
-// increases when going in the middle, a new event vendor Nyx should be added to the guild camp"): NYX COINS AND WHAT
+// BUNNYFALL (2026-11-04, the owner: "a 1% chance to drop a Dusk Token when killing enemies in there and the chance
+// increases when going in the middle, a new event vendor Nyx should be added to the guild camp"): DUSK TOKENS AND WHAT
 // NYX SELLS FOR THEM (systems/wild/cromwark.js says the reach's laws; scenes/cromwarkHost.js stands her camp).
 //
 //   THE COIN is its own template (NYX_COIN_TEMPLATE, past every other custom row), bound and stacking with its own kind
@@ -13,7 +13,8 @@
 //   the account service counted: server-account/src/nyx.js).
 //
 // Prices are the owner's: the gear tripled, Selantha's Ring 75; titles 15 and 30; a garment 20.
-import { registerCustomTemplates, setItemFields, mintCondition } from '../item/itemTemplates.js';
+import { registerCustomTemplates, setItemFields, mintCondition, registerOwnItemImage } from '../item/itemTemplates.js';
+import { installCurrencyArt, CURRENCY_ARCHIVE, DUSK_TOKEN_RECORD } from '../currencyArt.js';
 import { registerLegendary, applyRarity, legendaryById } from '../loot/lootRarity.js';
 import { createWeapon, WEAPONS_ENUM, ARMOR_ENUM } from '../../combat/enemyEquipment.js';
 import { WEAPON_MATERIALS } from '../../characters/weapons.js';
@@ -24,11 +25,14 @@ import { t } from '../textManager.js';
 
 /** The coin's row: a gem's weight, a gem's art (TEXTURE.254 record 1), bound, stacking with its own kind. */
 export const NYX_COIN_TEMPLATE = 2100;
-export const NYX_COIN = Object.freeze({ name: 'Nyx Coin', value: 100 });
+export const NYX_COIN = Object.freeze({ name: 'Dusk Token', value: 100 });
 registerCustomTemplates([{
   index: NYX_COIN_TEMPLATE, name: NYX_COIN.name, baseWeight: 0.05, hitPoints: 1000, basePrice: NYX_COIN.value, rarity: 20,
   worldTextureArchive: 254, worldTextureRecord: 1, stackable: true, bound: true,
 }]);
+// BUNNYFALL: the Dusk Token's own picture in every item list (the pack, the Stores, the shop), not the gem's it borrowed
+installCurrencyArt();
+registerOwnItemImage(NYX_COIN_TEMPLATE, () => ({ archive: CURRENCY_ARCHIVE, record: DUSK_TOKEN_RECORD }));
 export const isNyxCoin = (/** @type {any} */ item) => item?.templateIndex === NYX_COIN_TEMPLATE;
 /** `n` coins, one stack. */
 export const nyxCoins = (n = 1) => Object.assign(mintCondition(setItemFields({ group: 'UselessItems2', templateIndex: NYX_COIN_TEMPLATE })), { stackCount: Math.max(1, Math.trunc(Number(n) || 1)) });
@@ -49,11 +53,11 @@ export function spendNyxCoins(/** @type {any[]} */ items, /** @type {number} */ 
 }
 /** One coin (or more) into the pack, joined to its stack. */
 export const giveNyxCoins = (/** @type {any[]} */ items, n = 1) => addItem(items, nyxCoins(n));
-export const nyxCoinsText = (/** @type {number} */ n) => t('nyx.coins', '{n, plural, one {# Nyx coin} other {# Nyx coins}}', { n });
+export const nyxCoinsText = (/** @type {number} */ n) => t('nyx.coins', '{n, plural, one {# Dusk Token} other {# Dusk Tokens}}', { n });
 
 // ── THE GEAR: Legendary records nothing rolls ─────────────────────────────────────────────────────────────────────
 const W = WEAPONS_ENUM, A = ARMOR_ENUM;
-const NYX_HINT = 'Sold by Nyx at the Adventurers\' Guild camp, for Nyx coins';
+const NYX_HINT = 'Sold by Nyx at the Adventurers\' Guild camp, for Dusk Tokens';
 /** The six, in the shop's order. `make` the piece before its tier: a template and a make. */
 export const NYX_GEAR = Object.freeze([
   Object.freeze({ id: 'nyxaratahs-splinter', name: 'Nyxaratah\'s Splinter', group: 'Weapons', templates: [W.Staff], shopOnly: true, price: 240,
@@ -90,7 +94,7 @@ export const NYX_GEAR = Object.freeze([
     make: { kind: 'jewellery', templateIndex: 135 },
     enchantment: { type: 13, param: 1 },   // the same DFU line as the ladder's own record of the kind
     affixes: [{ id: 'stat', param: 'luck', value: 15 }, { id: 'stat', param: 'personality', value: 10 }, { id: 'resist', param: 'magic', value: 35 }],
-    power: Object.freeze({ name: 'Guildmaster\'s Favour', kind: 'nyxluck', pct: 1, brief: '+1% Nyx coin chance', text: 'While you wear it, every kill in the reach of Cromwark is 1% more likely to drop a Nyx coin' }),
+    power: Object.freeze({ name: 'Guildmaster\'s Favour', kind: 'nyxluck', pct: 1, brief: '+1% Dusk Token chance', text: 'While you wear it, every kill in the reach of Cromwark is 1% more likely to drop a Dusk Token' }),
     lore: 'Selantha Virelith gives these to the adventurers she trusts. Nyx sells the rest.', hint: NYX_HINT }),
 ]);
 for (const g of NYX_GEAR) registerLegendary({ id: g.id, name: g.name, group: g.group, templates: g.templates, shopOnly: true, affixes: g.affixes, enchantment: g.enchantment, power: g.power, lore: g.lore, hint: g.hint });

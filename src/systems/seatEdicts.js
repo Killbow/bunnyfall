@@ -23,7 +23,7 @@ import { isNight } from '../world/worldClock.js';
 export const FESTIVE_FOLD = 'seat-festive';
 /** What the HUD says as the Festive buff takes, and as a Bounty pays. */
 export const FESTIVE_TEXT = 'The town is at Festival. You feel Festive.';
-export const bountyPaidText = (n) => `The Bounty pays you ${n} silver for the camp.`;
+export const bountyPaidText = (n) => `The Bounty pays you ${n} Imperial Argents for the camp.`;
 const MINUTES_A_DAY = 1440;
 
 /** The Festive buff's mods: +5 to every attribute (`keys` statMods.js STAT_KEYS_ORDER). */

@@ -171,7 +171,7 @@ export const TUTORIALS = Object.freeze([
   page({
     id: 'wallet', group: 'character', title: 'Your Wallet', trigger: 'When you first open your wallet.',
     body: [
-      'Your wallet holds your gold, letters of credit, Deadlands Embers and Welkynd Shards. Online, it also shows your account\'s silver.',
+      'Your wallet holds your gold, letters of credit, Deadlands Embers and Welkynd Shards. Online, it also shows your account\'s Imperial Argents.',
     ],
   }),
   page({

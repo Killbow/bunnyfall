@@ -118,8 +118,8 @@ export function craftXpLine(r, rank, profession, pay = {}, silver = 0, owed = nu
       : t('prof.page.craft.xpFirst', '{xp} {profession} experience, and {more, number} more the first time you make this piece at this grade.', { xp, profession, more }));
   }
   return capLine(profession, pay, xp + more) || (walled
-    ? t('prof.page.craft.xpBought', '{xp} {profession} experience. Bolts of this cloth bought with silver and not yet used: {silver, number}. Until you have used that many, no piece of it earns a first-time bonus.', { xp, profession, silver })
-    : t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth not bought with silver.', { xp, profession, more }));
+    ? t('prof.page.craft.xpBought', '{xp} {profession} experience. Bolts of this cloth bought with Imperial Argents and not yet used: {silver, number}. Until you have used that many, no piece of it earns a first-time bonus.', { xp, profession, silver })
+    : t('prof.page.craft.xpFirstOwn', '{xp} {profession} experience, and {more} more the first time you make this piece at this grade from cloth not bought with Imperial Argents.', { xp, profession, more }));
 }
 
 /**
@@ -177,5 +177,5 @@ export function craftXpText(r, data, profession, limit = null) {
   if (!r || data?.first !== true) return t('prof.craft.xp', '(+{xp} {profession} experience)', { xp, profession });
   return (typeof data.firstPaid === 'boolean' ? data.firstPaid : firstCraftPays(r))
     ? t('prof.craft.xpFirst', '(+{xp} {profession} experience, with the first-time bonus)', { xp, profession })
-    : t('prof.craft.xpFirstBought', '(+{xp} {profession} experience. Cloth bought with silver earns no first-time bonus, so this piece\'s is still yours to earn)', { xp, profession });
+    : t('prof.craft.xpFirstBought', '(+{xp} {profession} experience. Cloth bought with Imperial Argents earns no first-time bonus, so this piece\'s is still yours to earn)', { xp, profession });
 }

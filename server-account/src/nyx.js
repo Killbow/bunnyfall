@@ -1,5 +1,5 @@
 // @ts-check
-// BUNNYFALL (2026-11-04, Cromwark - src/systems/wild/cromwark.js): THE NYX COINS THE SERVICE COUNTS. A kill in the reach
+// BUNNYFALL (2026-11-04, Cromwark - src/systems/wild/cromwark.js): THE DUSK TOKENS THE SERVICE COUNTS. A kill in the reach
 // of Cromwark may drop a coin into the killer's pack (scenes/cromwarkHost.js); the game tells this service each one
 // found, so the account's titles from Nyx are paid out of coins it knows of (accounts.js buyInsignia, `currency: 'nyx'`),
 // and the owner's /nyxcoin reads how many have been gathered (the realm's sum with the Great Cannon's shots, and the account's own).

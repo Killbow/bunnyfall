@@ -153,7 +153,7 @@ export function seasonBookModel(/** @type {any} */ src) {
       sub: t('season.book.seats.sub', 'Week {week} of {weeks}', { week: seat.week, weeks: seat.weeks }),
       at: seat.endMs, atLabel: 'ends',
       lead: seat.trial
-        ? t('season.book.seats.trialLead', 'Season 0 is the beta. When it ends, the seats\' war is wiped and no one is crowned. Silver, the Stores and your professions stay.')
+        ? t('season.book.seats.trialLead', 'Season 0 is the beta. When it ends, the seats\' war is wiped and no one is crowned. Imperial Argents, the Stores and your professions stay.')
         : t('season.book.seats.lead', 'The companies\' war for the towns. A Season ends at its last Sunday Turning.'),
       rows: [
         ...(seat.trial ? [] : [

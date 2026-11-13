@@ -1,7 +1,7 @@
 // @ts-check
 // BUNNYFALL (2026-11-05, the owner: "another smaller event for lower level players, some sort of cannon being built in the
 // empty area near Wayrest, this cannon requires metals and woods of multiple kinds and giving materials gives you coins
-// (similar rate of the big combat area)"; asked: one shared build, ingots and planks, anyone, Nyx coins, and "it fires
+// (similar rate of the big combat area)"; asked: one shared build, ingots and planks, anyone, Dusk Tokens, and "it fires
 // towards the Cromwark zone and then the build restarts"): THE GREAT CANNON'S LAW. Pure and shared: the game reads it to
 // draw the build's window (scenes/cannonHost.js), the account service to keep the build and pay for it
 // (server-account/src/cannon.js).
@@ -13,18 +13,18 @@ export const CANNON_NEED = Object.freeze({
 });
 export const CANNON_KEYS = Object.freeze(Object.keys(CANNON_NEED));
 
-/** What a unit of each is worth toward the Nyx coins: the material's own worth (net/nodeLaw.js `value`, 1 to 14). */
+/** What a unit of each is worth toward the Dusk Tokens: the material's own worth (net/nodeLaw.js `value`, 1 to 14). */
 export const CANNON_VALUE = Object.freeze({
   'ingot:iron': 1, 'ingot:steel': 2, 'ingot:silver': 4, 'ingot:dwarven': 6, 'ingot:mithril': 9, 'ingot:ebony': 14,
   'plank:pine': 1, 'plank:oak': 2, 'plank:cherry': 4, 'plank:teak': 6, 'plank:mahogany': 9, 'plank:ironwood': 14,
 });
-/** A Nyx coin for every this much worth given (20 iron ingots, or under two of ebony): the reach's outer rings pay a coin
+/** A Dusk Token for every this much worth given (20 iron ingots, or under two of ebony): the reach's outer rings pay a coin
  *  in about a hundred kills, its heart in about ten, so a coin here costs about what a short hunt does. The rest is kept
  *  toward the next coin. */
 export const CANNON_POINTS_PER_COIN = 20;
 /** The most units one give may hand over. */
 export const CANNON_GIVE_MAX = 100;
-/** Each shot adds this to the realm's Nyx coin count (the owner's, 2026-11-06; server-account/src/nyx.js nyxTotal). */
+/** Each shot adds this to the realm's Dusk Token count (the owner's, 2026-11-06; server-account/src/nyx.js nyxTotal). */
 export const CANNON_NYX_BONUS = 500;
 
 /** The words for a key: 'Iron Ingots', 'Pine Planks'. */

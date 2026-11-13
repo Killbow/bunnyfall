@@ -1,7 +1,7 @@
 // @ts-check
 // BUNNYFALL (2026-11-04, Cromwark): NYX'S WINDOW - the event vendor at the Adventurers' Guild camp (scenes/cromwarkHost.js),
 // in the Sigil Broker's own dress (ui/brokerWindow.js's sheet, its classes): her gear, her dyed garments and her two titles,
-// each a row with its price in Nyx coins and a Buy that says why it cannot. The purse in the header, the last sale's word
+// each a row with its price in Dusk Tokens and a Buy that says why it cannot. The purse in the header, the last sale's word
 // under it. Everything it shows and does is handed in (`deps`), so this file draws and asks, and never touches a pack.
 import { registerOverlay, closeOnOutsideTap } from './enhanced/enhancedOverlays.js';
 import { overlayAction } from './input.js';
@@ -69,7 +69,7 @@ export function createNyxOverlay(deps) {
   const title = el('div', 'broker-title');
   const noteLine = el('p', 'broker-note');
   noteLine.setAttribute('aria-live', 'polite');
-  title.append(el('h2', null, 'Nyx'), el('p', 'broker-sub', t('nyx.sub', 'Adventurers\' Guild camp · Trades in Nyx coins')), noteLine);
+  title.append(el('h2', null, 'Nyx'), el('p', 'broker-sub', t('nyx.sub', 'Adventurers\' Guild camp · Trades in Dusk Tokens')), noteLine);
   const purse = el('span', 'broker-purse');
   const closeBtn = el('button', 'act broker-close', t('nyx.close', 'Close'));
   closeBtn.setAttribute('type', 'button');
@@ -78,7 +78,7 @@ export function createNyxOverlay(deps) {
   win.append(head, body);
   host.append(shell);
   let note = null, pending = null;
-  const coins = (n) => t('nyx.coins', '{n, plural, one {# Nyx coin} other {# Nyx coins}}', { n });
+  const coins = (n) => t('nyx.coins', '{n, plural, one {# Dusk Token} other {# Dusk Tokens}}', { n });
   const say = (r) => { note = { ok: !!r?.ok, text: r?.text ?? '' }; render(); };
   const row = (name, sub, price, label, act, disabled = false, sign = null) => {
     const li = el('li', 'broker-offer');
