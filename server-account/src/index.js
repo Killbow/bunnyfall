@@ -2078,7 +2078,7 @@ const service = {
       // A registered account's character's alone, and the switch's (professions.js asks both first). A delivery that
       // raised the character's Renown level carries a signed order, as a Renown report's answer does (RENOWN1), so the
       // level beside its name moves in the rooms it is in now.
-      if (path.startsWith('/v1/prof/') || path.startsWith('/v1/stores/') || path.startsWith('/v1/writs/')) {
+      if (path.startsWith('/v1/prof/') || path.startsWith('/v1/prov/') || path.startsWith('/v1/stores/') || path.startsWith('/v1/writs/')) {   // BUNNYFALL: /v1/prov/ (Provisioning) is not /v1/prof/ - its handlers below were never reached (405)
         if (request.method !== 'POST') return no('method', 405, origin);
         const act = {
           '/v1/prof/state': () => profState(ctx, who.player, env, body),

@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Provisioning works again: the pot, the cauldron, milling flour and setting cheese were being refused by the server (it never routed them). Needs a server update.
 - Milling flour and setting cheese now work from the grain and milk in your pack and bag, not only your Stores. Cooking and brewing that are refused now say why. The Bench and Provisioning window uses the game's own buttons and chips and scrolls as one page.
 - The Bench and Provisioning (pot and cauldron) now open in a window of their own that fits your screen at any UI scale, with one scrollbar per list instead of two side by side. The Crafting tab's Bench and Provisioning rows open it, and so does pressing the station's key. The Crafting tab is now as wide as the Growth tab. The Stations page is just the stations now, and the Stores page no longer repeats them.
 - Staff events can now have mid bosses (smaller bosses that appear as the kills build up, before the big one) and a wave of extra monsters that arrives with the boss.
