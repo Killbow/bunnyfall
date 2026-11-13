@@ -87,14 +87,13 @@ export function eventRule(/** @type {any[]} */ actions, /** @type {string} */ ch
 }
 
 /**
- * Why a recipe cannot run now, or null: 'when', 'items', 'gold', 'limit', 'cooldown', 'stock'.
- * `claimOf(scope)` is the `{ n, last }` kept for a scope, or null.
  * @param {any} recipe @param {{ char: string, player: string, nowS: number }} who
- * @param {{ count: (s: any) => number, gold: number, getVar: (k: string) => any }} ctx @param {(scope: string) => ({ n: number, last: number } | null)} claimOf
+ * @param {{ count: (s: any) => number, takeable?: (s: any) => number, gold: number, getVar: (k: string) => any }} ctx @param {(scope: string) => ({ n: number, last: number } | null)} claimOf
  */
 export function recipeWhy(recipe, who, ctx, claimOf) {
-  if (!evalWhen(recipe.when, ctx)) return 'when';
-  for (const s of recipe.requireItems ?? []) if (ctx.count(s) < s.count) return 'items';
+  if (!evalWhen(recipe.when, gateCtx(ctx, recipe.requireItems ?? []))) return 'when';
+  const held = ctx.takeable ?? ctx.count;
+  for (const s of recipe.requireItems ?? []) if (held(s) < s.count) return 'items';
   if (ctx.gold < (recipe.requireGold ?? 0)) return 'gold';
   for (const r of claimRule(recipe, who)) {
     const c = claimOf(r.scope);
@@ -112,8 +111,6 @@ export function recipeWhy(recipe, who, ctx, claimOf) {
  */
 
 /**
- * A visit's model over a document. `start`: `items` (stacks), `gold`, `vars` (values that replace a variable's own start),
- * and who is playing (`char`, `player`) for the limits.
  * @param {any} doc @param {{ items?: Stack[], gold?: number, vars?: Record<string, any>, char?: string, player?: string, now?: number }} [start]
  */
 export function createDm(doc, start = {}) {
@@ -141,7 +138,7 @@ export function createDm(doc, start = {}) {
      *  by the server's rules (by the server online, against the inventory offline, and against the test purse in Test). */
     service: false,
     /** The game sets this: what a condition reads of the live pack (`{ count, gold, getVar }`). */
-    /** @type {null | (() => { count: (s: any) => number, gold: number, getVar: (k: string) => any })} */ read: null,
+    /** @type {null | (() => { count: (s: any) => number, takeable?: (s: any) => number, gold: number, getVar: (k: string) => any })} */ read: null,
     /** @type {string[]} */ pending: [],
     /** @type {{ dialogue: string, node: string } | null} */ dialogue: null,
     /** @type {string | null} */ trade: null,
@@ -154,6 +151,16 @@ export function createDm(doc, start = {}) {
 /** @param {any} it @param {any} s */
 const itemIs = (it, s) => it.template === s.template && (s.group === undefined || it.group === undefined || it.group === s.group) && (s.material === undefined || it.material === s.material)
   && it.recipe === s.recipe;
+
+/**
+ * A check on an item the take also takes counts only records it may spend, so worn or quest items fail it.
+ * @param {any} ctx @param {any[]} takes
+ */
+export function gateCtx(ctx, takes) {
+  if (!ctx.takeable || !takes.length) return ctx;
+  const held = ctx.takeable;
+  return { ...ctx, count: (/** @type {any} */ s) => (takes.some((x) => itemIs(x, s)) ? held(s) : ctx.count(s)) };
+}
 
 /** What a model's items and gold look like to a condition. @param {Dm} dm */
 export function ctxOf(dm) {
@@ -196,13 +203,16 @@ export function takeStack(dm, s) {
 // ── events ──────────────────────────────────────────────────────
 
 /** The actions of the branch an event takes, given what the model holds now. @param {any} ev @param {Dm} dm */
-export function branchOf(ev, dm) { return evalWhen(ev.when, ctxOf(dm)) ? 'then' : 'else'; }
+export function branchOf(ev, dm) { return evalWhen(ev.when, gateCtx(ctxOf(dm), takesOf(ev.then ?? []))) ? 'then' : 'else'; }
 
 /** Whether an event's branch moves the player's items or gold, or a variable the service keeps: those are settled on the service. @param {any} doc @param {any[]} actions */
 export function needsService(doc, actions) {
   return actions.some((a) => a.k === 'give_item' || a.k === 'take_item' || a.k === 'give_gold' || a.k === 'take_gold'
     || (a.k === 'set_var' && persists(byKey(doc.variables, a.var))));
 }
+
+/** @param {any[]} actions */
+export const takesOf = (actions) => actions.filter((a) => a.k === 'take_item').map((a) => a.item);
 
 /** The totals an action list takes and gives. @param {any[]} actions */
 export function valueOf(actions) {
@@ -251,8 +261,6 @@ function act(dm, a, depth, settled) {
 }
 
 /**
- * Run an event. `branch` forces the branch (the service decided it), `settled` says the items and gold of the branch were
- * moved already. Answers `{ ran, branch }` or `{ ran: false, why }` ('missing', 'depth', 'items', 'gold', 'service': handed to the service).
  * @param {Dm} dm @param {string} key @param {{ branch?: 'then' | 'else', settled?: boolean, depth?: number }} [opts]
  */
 export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {

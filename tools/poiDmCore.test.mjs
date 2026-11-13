@@ -185,7 +185,7 @@ test('settling on a save: items leave from records that may leave, the smallest 
   const before = JSON.stringify(save);
   assert.deepEqual(takeStacks(save, [{ template: 71, group: 'Gems', count: 8 }]), { ok: false, why: 'items' }, 'the quest stack cannot be given');
   assert.equal(JSON.stringify(save), before);
-  assert.deepEqual(takeStacks(save, [{ template: 71, group: 'Gems', count: 6 }]), { ok: true });
+  assert.deepEqual(takeStacks(save, [{ template: 71, group: 'Gems', count: 6 }]), { ok: true, picks: [{ at: 0, n: 4 }, { at: 1, n: 2 }] }, 'the indices it gave from');
   assert.deepEqual(save.items.map((r) => r.stackCount), [1, 9, 1]);
   assert.equal(save.lightSourceIndex, 0, 'the lit item moved with its record');
   assert.equal(takeStacks(save, [{ template: 72, group: 'Gems', count: 1 }]).ok, false, 'worn gear stays');

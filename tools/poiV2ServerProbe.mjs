@@ -1,9 +1,5 @@
-// The account service's half of POI v2, tried on an isolated local stack: draft, submit, and approve; trade and event
-// settlement on a synthetic realm character, with the save's schema untouched; idempotent retries, and one winner of
-// two settles at one sequence; refusal on a POI that is not live; a judge-clean checkpoint (the stack runs with the
-// judge on); named potions, `has_item` checks, empty-bottle takes, and Potent potions counted and spent last; and
-// separate trade and event claim limits. Never a real player's save: the data directory is temporary, and the accounts
-// and characters are made here.
+// Probes the account service's POI v2 routes on an isolated local stack whose data directory is temporary, never a
+// real save: draft, submit, and approve; trade and event settlement, retries, races, limits, potions, and hand-overs.
 //   node --test tools/poiV2ServerProbe.mjs
 // Needs `npm --prefix server ci` once (wrangler and miniflare), and takes a minute to bundle the two Workers.
 
@@ -18,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { poiV2Example } from './poiV2Examples.mjs';
 import { mintGift } from '../server-account/src/staffGive.js';
 import { itemFindings } from '../src/systems/item/itemLaw.js';
+import { handRecord } from '../src/poi/poiSettle.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const freePort = () => new Promise((ok) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = /** @type {any} */ (s.address()); s.close(() => ok(port)); }); });
@@ -376,4 +373,121 @@ test('an event and a recipe of a trade keyed `event` count their limits apart', 
   c.seq = r.json.seq;
   assert.equal((await trade(t, poi, c, ['event', 'blessing'])).json.error, 'poi-limit');
   assert.equal((await claim(t, poi, c, 'blessing')).json.error, 'poi-limit');
+});
+
+function handDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ad';
+  d.interactives.push({ key: 'rack', name: 'Rack', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 7], yaw: 0, radius: 2, state: 'inactive' });
+  const sword = { template: 120, group: 'Weapons', count: 1 };
+  d.trades.push({ key: 'smith', name: 'Smith', recipes: [{ key: 'sword', name: 'Sell a sword', requireItems: [sword], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' }] });
+  d.events.push({ key: 'offer', name: 'Offer a sword', trigger: { k: 'interact', interactive: 'rack' }, when: { k: 'has_item', item: sword },
+    then: [{ k: 'take_item', item: sword }, { k: 'give_gold', amount: 3 }], else: [{ k: 'say', text: 'Bring a sword.' }] });
+  return d;
+}
+function cartDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ae';
+  d.trades.push({ key: 'carts', name: 'Cart buyer', recipes: [{ key: 'cart', name: 'Sell a cart', requireItems: [{ template: 93, group: 'Transportation', count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' }] });
+  return d;
+}
+const longsword = (/** @type {any} */ extra = {}) => ({ ...mintGift({ template: 120, group: 'Weapons', material: 0, count: 1 }).item, ...extra });
+const pickOf = (save, at, n = 1) => ({ at, n, rec: handRecord(save.items[at]) });
+const conditions = (save) => save.items.filter((r) => r.templateIndex === 120).map((r) => r.currentCondition).sort((a, b) => a - b);
+
+test('hand-over: a trade and an event take exactly the record handed over, and refuse one that may not leave or is not held', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: handDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = state.hand = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = state.hander = await account('ProbeHander');
+  const c = state.hdc = await character(t, 'Hander', [longsword(), longsword({ currentCondition: 800 }), longsword({ currentCondition: 1200, equipSlot: 1 }), longsword({ currentCondition: 400 })], 0);
+  let s = await saveOf(t, c.id);
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 2)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[{ ...pickOf(s, 1), rec: { ...pickOf(s, 1).rec, currentCondition: 799 } }]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 0), pickOf(s, 1)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 0)], [pickOf(s, 1)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[{ at: -1, n: 1, rec: {} }]] })).json.error, 'body');
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 800, 1200, 1600]);
+  const body = { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), trade: 'smith', recipe: 'sword', hand: [[pickOf(s, 1)]] };
+  const a = await call('/v1/poi/trade', { method: 'POST', token: t, body });
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(a.json.took.picks, [{ at: 1, n: 1 }]);
+  assert.equal(a.json.gave.gold, 5);
+  c.seq = a.json.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 1200, 1600]);
+  const again = await call('/v1/poi/trade', { method: 'POST', token: t, body });
+  assert.equal(again.json.replayed, true);
+  assert.deepEqual(again.json.took, a.json.took);
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 1200, 1600]);
+  s = await saveOf(t, c.id);
+  const at400 = s.items.findIndex((r) => r.currentCondition === 400);
+  assert.equal((await claim(t, poi, c, 'offer', { branch: 'else', hand: [] })).json.error, 'poi-hand');
+  assert.equal((await claim(t, poi, c, 'offer', { hand: [[pickOf(s, at400)]] })).json.error, 'body', 'a hand without its branch is refused');
+  const e = await claim(t, poi, c, 'offer', { branch: 'then', hand: [[pickOf(s, at400)]] });
+  assert.equal(e.status, 200, e.text);
+  assert.equal(e.json.branch, 'then');
+  assert.deepEqual(e.json.took.picks, [{ at: at400, n: 1 }]);
+  c.seq = e.json.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [1200, 1600]);
+  assert.equal((await saveOf(t, c.id)).goldPieces, 8);
+});
+
+test('hand-over: for a client that sends no hand, the service chooses the records, and the answer names them', async () => {
+  const t = state.hander, c = state.hdc, poi = state.hand;
+  const a = await trade(t, poi, c, ['smith', 'sword']);
+  assert.equal(a.status, 200, a.text);
+  const s = await saveOf(t, c.id);
+  assert.deepEqual(a.json.took.picks.length, 1);
+  c.seq = a.json.seq;
+  assert.deepEqual(conditions(s), [1200], 'the loose one went, the worn one stays');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'])).json.error, 'poi-items', 'a worn record does not count for a requirement');
+  const e = await claim(t, poi, c, 'offer');
+  assert.equal(e.status, 200, e.text);
+  assert.equal(e.json.branch, 'else', 'nor for the condition of an event that takes it');
+  c.seq = e.json.seq ?? c.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [1200], 'nothing moves');
+});
+
+test('hand-over: the wagon a character drives while it holds goods is not taken, with a hand or without; an empty one is', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: cartDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = await account('ProbeCarter');
+  const cart = mintGift({ template: 93, group: 'Transportation', count: 1 }).item;
+  const made = await call('/v1/realm/create', { method: 'POST', token: t, body: { name: 'Carter' } });
+  assert.equal(made.status, 200, made.text);
+  const c = { id: made.json.id, lease: made.json.lease, seq: 0 };
+  const put = await checkpoint(t, c, { level: 1, name: 'Carter', goldPieces: 0, items: [cart], wagonItems: items([71, 40]), lightSourceIndex: -1 });
+  assert.equal(put.status, 200, put.text);
+  c.seq = put.json.seq;
+  const s = await saveOf(t, c.id);
+  const before = JSON.stringify(s);
+  assert.equal((await trade(t, poi, c, ['carts', 'cart'], { hand: [[pickOf(s, 0)]] })).json.error, 'poi-items', 'with a hand');
+  assert.equal((await trade(t, poi, c, ['carts', 'cart'])).json.error, 'poi-items', 'and with none (an old client)');
+  assert.equal(JSON.stringify(await saveOf(t, c.id)), before, 'the cart and its load stay');
+  const put2 = await checkpoint(t, c, { ...s, wagonItems: [] });
+  assert.equal(put2.status, 200, put2.text);
+  c.seq = put2.json.seq;
+  const a = await trade(t, poi, c, ['carts', 'cart'], { hand: [[pickOf(await saveOf(t, c.id), 0)]] });
+  assert.equal(a.status, 200, a.text);
+  assert.equal(countIn(await saveOf(t, c.id), 93), 0, 'an empty cart may go');
+});
+
+test('hand-over: the two routes read a body of whole records up to 32 KiB, and refuse a larger one', async () => {
+  const t = await account('ProbeBig'), poi = state.hand;
+  const c = await character(t, 'Big', [longsword()], 0);
+  const big = (/** @type {number} */ chars) => ({ at: 0, n: 1, rec: { templateIndex: 120, group: 'Weapons', name: 'x'.repeat(chars) } });
+  const eight = Array.from({ length: 8 }, () => big(3600));
+  assert.ok(JSON.stringify(eight).length > 28 * 1024);
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [eight] })).json.error, 'poi-hand', 'read in full, then refused because the save holds no such record');
+  assert.equal((await claim(t, poi, c, 'offer', { branch: 'then', hand: [eight] })).json.error, 'poi-hand');
+  const r = await trade(t, poi, c, ['smith', 'sword'], { hand: [Array.from({ length: 10 }, () => big(3600))] });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'body');
 });

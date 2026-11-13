@@ -11,7 +11,7 @@ import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
   createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
 } from './poiDmCore.js';
-import { takeStacks, takeGold, countOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
+import { takeStacks, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
 import { encounterPacifiable } from './poiLawV2.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
@@ -138,7 +138,7 @@ function mintEvent(stacks) {
  * across all stacks combined), tested on a shallow copy so `p` is not modified.
  * @param {any} p @param {{ template: number, group?: string, material?: number, count: number }[]} stacks
  */
-const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p.items.map((/** @type {any} */ it) => ({ ...it })) : p?.items, lightSourceIndex: p?.lightSourceIndex }, stacks).ok;
+const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p.items.map((/** @type {any} */ it) => ({ ...it })) : p?.items, wagonItems: p?.wagonItems, lightSourceIndex: p?.lightSourceIndex }, stacks).ok;
 
 /** Returns whether condition `c` reads only persistent variables (`character` and `poi_global` scopes), which are
  *  the only scopes the server evaluates. @param {any} doc @param {any} c */
@@ -158,14 +158,7 @@ export function poolFoes(pool) {
   };
 }
 
-/**
- * The runtime for every v2 POI the host runs. `act(path, body, opts)` is the realm session's act (null offline);
- * `pack()` returns the live player entity; `give` adds items and gold to it; `spawnFoe`, `isDown`, and `removeFoe` come
- * from the outdoor enemy pool (`poolFoes`). With `preview: true` (the editor's Test), `act` and `store` are unused,
- * persistent variables and claims stay in memory, an event that moves items, gold, or a persistent variable settles on
- * `pack()` by the service's rules (a gift-only event, once), and the log records trades and settles.
- * @param {any} deps
- */
+/** @param {any} deps */
 export function createPoiDm(deps) {
   const { say, pack, give, feet, now = () => performance.now() / 1000 } = deps;
   const preview = !!deps.preview;
@@ -191,7 +184,7 @@ export function createPoiDm(deps) {
   /** The pack, as the conditions read it. @param {any} dm */
   const reader = (dm) => () => {
     const p = pack() ?? { items: [], goldPieces: 0 };
-    return { count: (/** @type {any} */ s) => countOf(p, s), gold: goldOf(p), getVar: (/** @type {string} */ k) => dm.vars[k] };
+    return { count: (/** @type {any} */ s) => countOf(p, s), takeable: (/** @type {any} */ s) => takeableOf(p, s), gold: goldOf(p), getVar: (/** @type {string} */ k) => dm.vars[k] };
   };
   const storeKey = (/** @type {any} */ r) => `bunnyfall.poi.${r.id}.${deps.character?.() ?? 'local'}`;
   /** Storage key for one-time gift event claims saved on this device when offline, alongside persistent variables.
@@ -324,12 +317,6 @@ export function createPoiDm(deps) {
         for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
         runEvent(r.dm, key, { branch: d.branch ?? 'then', settled: !d.nothing });
       } else {
-        // Offline and in preview, run the server's event settlement rules (`eventClaimPoi` in `poiTrade.js`) against
-        // the local inventory. The condition may read only persistent variables; a gift-only event (one that takes no
-        // items or gold) can be claimed once per character (once per device offline, where every character is `local`),
-        // and a repeat claim is silently skipped (`poi-limit` on the server); required tradeable items and gold must be
-        // available across all `take_item` and `take_gold` actions; all rewards must be valid to mint; and the
-        // resulting gold must not exceed `GOLD_INT_MAX`. A rejected event changes nothing.
         const refuse = (/** @type {string} */ why, /** @type {string} */ word) => { if (word) say(whyText(word)); logSettle(r, { k: 'refused', event: key, why }); };
         if (!readsOnlyKept(r.doc, ev.when)) { refuse('scope', 'poi-var-scope'); return; }
         const branch = evalWhen(ev.when, r.dm.read()) ? 'then' : 'else';

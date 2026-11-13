@@ -139,6 +139,8 @@ export function tradeableRecord(/** @type {any} */ rec) {
   return true;
 }
 
+export const loadedWagonOf = (/** @type {any} */ save) => ((Array.isArray(save?.wagonItems) ? save.wagonItems.length : 0) > 0 && Array.isArray(save?.items) ? activeWagonItem(save.items) : null);
+
 /** Is `rec` what `offered` describes? The offer must name a template, and every field but the volatile ones is the
  *  same on both - the offer's and the record's alike.
  *  AUDIT REALM2 S4: BOTH WAYS. The fields the offer named were compared, and then the RECORD moved - so the giver chose
@@ -174,7 +176,7 @@ export function takeTradeGoods(save, side, pick) {
   // WAGONS2 (FINAL AUDIT): and the wagon the save drives while its store holds goods gives nothing - the client's
   // refusal (systems/tradePack.js wagonLoadedHeld) was the only one, so a modified client sold a loaded caravan and kept
   // its 2000 kg in a 750 kg cart
-  const loaded = (Array.isArray(save.wagonItems) ? save.wagonItems.length : 0) > 0 ? activeWagonItem(items) : null;
+  const loaded = loadedWagonOf(save);
   if (loaded) left[items.indexOf(loaded)] = 0;
   const had = left.slice();   // what each record could give - a record that gave none of it is untouched, below
   /** @type {{ at: number, n: number }[]} */

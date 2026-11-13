@@ -23,6 +23,9 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   with `poi-not-live`.
 - A document with a stack's `recipe` or an encounter's `pacifiable` is refused by an older law. Deploy the account service
   before the site; an older game skips such a POI until it updates.
+- The service's trade and event-claim routes take `hand`, the records a player hands over, and take exactly those. An
+  older service ignores `hand` and chooses the records itself, so deploy the account service before the site. During
+  the rollout only, the service still chooses the records when a request has no `hand`; a later update refuses that.
 - Migration 0209 copies every `event/<key>` claim row to `trade/event/<key>`, the name a recipe in a trade keyed `event`
   now counts under. Production's deploy applies migrations before the Worker deploy, so in the minutes between, the old
   code can still count such a recipe under the old name. Before the deploy, list the live POIs that have a trade keyed
@@ -68,8 +71,8 @@ An item stack is `{ template, group?, material?, count, recipe? }`. `recipe` nam
 recipe name (`healing`, `healTrue`: the `name` field in `src/systems/potionRecipes.js`) and goes only on the Glass Bottle
 (template 83). The service, offline play, and the in-game editor's Test mint that potion with the game's own potion
 maker. In the game and on the service, a stack with a `recipe` counts that recipe's plain and Potent potions, and a
-take spends Potent ones only when no plain one is left. A Glass Bottle stack without a `recipe` matches only empty
-bottles. The Sandbox tells potions apart by `recipe` (it holds no Potent potions).
+hand-over may name either. A Glass Bottle stack without a `recipe` matches only empty bottles. The Sandbox tells
+potions apart by `recipe` (it holds no Potent potions).
 
 Events: triggers are `enter_area`, `interact`, `npc_talk`, `waypoint_reached` and `chained`. Conditions are `all`, `any`,
 `has_item`, `has_gold` and `var`, at most 16 checks and 4 levels. Actions are `say, set_var, set_state, start_encounter,
@@ -87,4 +90,5 @@ circle are refused.
 5. **Gold bound.** Up to the save's gold limit. Approvers decide what is sane.
 6. **Item stacks are plain.** No `enchant` key anywhere. Done in the law and tests.
 7. **No v2 submission gate.** Both editors write v2 and the in-game editor preserves the v2 keys it cannot edit, so nothing needs gating.
-8. **Potions** are named by recipe on a Glass Bottle stack (`recipe`), wherever a stack goes: trades, conditions, key items, and event actions. A bottle stack without a recipe gives and takes only empty bottles. A recipe stack counts Potent potions of its recipe too, and a take spends them only after the plain ones.
+8. **Potions** are named by recipe on a Glass Bottle stack (`recipe`), wherever a stack goes: trades, conditions, key items, and event actions. A bottle stack without a recipe gives and takes only empty bottles. A recipe stack counts Potent potions of its recipe too. When the player does not choose the records, a take spends them only after the plain ones.
+9. **A take names its records.** The service takes the records a hand-over names, each checked against the save. A requirement counts only records that may leave (not worn, a quest's, bound, or a wagon that carries goods), and so does a condition's check on an item that its event's Then actions or its recipe take; any other condition counts every record held.

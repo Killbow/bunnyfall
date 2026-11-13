@@ -27,10 +27,10 @@ function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {
   const player = { items: items.map((s) => (s.templateIndex !== undefined ? s : mintStack(s))), goldPieces: gold };
   const said = [];
   let feet = [500, 0, 500], clock = 0;
-  let trade = null;
+  let trade = null, offers = [];
   const rt = createPoiDm({
     act: null, say: (l) => said.push(l), now: () => clock, character: () => null,
-    panel: { dialogue: () => {}, trade: (n, rows, run) => { trade = run; }, close: () => {} },
+    panel: { dialogue: () => {}, trade: (n, rows, run) => { trade = run; offers = rows; }, close: () => {} },
     pack: () => player,
     give: (recs, g) => { player.items.push(...recs); player.goldPieces += g; },
     feet: () => feet,
@@ -50,7 +50,7 @@ function setup(events, { gold = 0, items = [], store = new Map(), edit = () => {
   const count = (t) => player.items.filter((it) => it.templateIndex === t).reduce((n, it) => n + (it.stackCount ?? 1), 0);
   /** Talk to the supplier and run one of its recipes. @param {string} recipe */
   const buy = async (recipe) => { await step(); rt.talk(doc.id, 'supplier'); trade?.(recipe); await tick(); await tick(); };
-  return { doc, rt, player, said, store, visit, count, buy, leave: () => rt.drop(doc.id) };
+  return { doc, rt, player, said, store, visit, count, buy, offers: () => offers, leave: () => rt.drop(doc.id) };
 }
 
 test('offline, a gift event gives the character its gold and item once, on this visit and the next', async () => {
@@ -222,12 +222,13 @@ test('offline, a trade whose condition reads a non-persistent variable is refuse
   assert.equal(kept.player.goldPieces, 250, 'a condition on a persistent variable settles');
 });
 
-test('offline, a trade whose goods are worn is refused in the service\'s words', async () => {
+test('offline, a trade whose goods are worn shows as missing items and is refused', async () => {
   const w = setup([], { items: [Object.assign(mintStack({ template: 71, count: 10 }), { equipSlot: 1 }), { template: 72, count: 5 }] });
   await w.buy('delivery');
   assert.equal(w.player.goldPieces, 0);
   assert.equal(w.count(71), 10);
-  assert.ok(w.said.includes('You are missing items.'), w.said.join(' | '));
+  assert.equal(w.offers().find((r) => r.key === 'delivery')?.why, 'missing items', 'worn goods do not count for a requirement');
+  assert.ok(w.said.includes('missing items'), w.said.join(' | '));
 });
 
 const eventTrade = (d) => {

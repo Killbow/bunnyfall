@@ -79,7 +79,7 @@ content, and for a draft only in the in-game editor's Test.
 | Paperdoll people | None. `src/characters/paperdoll/` is the player's inventory doll. |
 | Dialogue windows, quests, factions | A POI person's Talk opens their dialogue or trade (`poiDmRuntime.js`). Quests and factions: none. |
 | Placed creatures | A POI's encounters spawn enemies from the outdoor enemy pool (`poiDmRuntime.js`). World of Daggerfall markers and covens use `spawnFoe` with `placed: true`. |
-| Server-settled trades | Yes: `server-account/src/poiTrade.js` settles a live POI's trades and event claims. |
+| Server-settled trades | Yes: `server-account/src/poiTrade.js` settles a live POI's trades and event claims, taking the records a hand-over names. |
 | Persistent world variables | `character` and `poi_global` variables are stored in `poi_state_vars` (`server-account/src/poiTrade.js`). |
 
 Creatures: monsters 0 to 42 (39 is the horse), classes 128 to 146, Enemy Expansion 256 to 290 and 384 to 398. There is no
