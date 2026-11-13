@@ -167,6 +167,84 @@ export function removeSpawn(enc, key) {
   return true;
 }
 
+/** Returns whether a variable is persistent across visits (for each character, or for everyone). */
+const keptVar = (v) => v?.scope === 'character' || v?.scope === 'poi_global';
+/** Returns the branches an event can take (`['then']`, or `['then', 'else']` when it has a condition). */
+const endBranches = (ev) => (ev?.when ? ['then', 'else'] : ['then']);
+/** Returns whether an event sets the given variable to true in every branch it can take. */
+const setsTrue = (ev, key) => endBranches(ev).every((b) => (ev[b] ?? []).some((a) => a.k === 'set_var' && a.var === key && a.to === true));
+/** Returns the start event that keepWon made for an encounter (ending it while a variable is true), or null. */
+export const wonStartEvent = (doc, enc) => {
+  const ev = doc.events?.find((e) => e.key === enc?.onStart);
+  const c = ev?.when;
+  return ev && c?.k === 'var' && c.op === 'eq' && c.value === true && (ev.then ?? []).some((a) => a.k === 'end_encounter' && a.encounter === enc.key) ? ev : null;
+};
+/**
+ * Returns the persistent true-or-false variable that keeps an encounter won across visits, or null. The encounter's
+ * start event ends it at once while that variable is true, so no enemy spawns, and its end event sets the variable
+ * true in every branch.
+ * @param {any} doc @param {any} enc
+ */
+export function wonKeeper(doc, enc) {
+  const ev = wonStartEvent(doc, enc);
+  if (!ev) return null;
+  const v = doc.variables?.find((x) => x.key === ev.when.var);
+  const end = doc.events?.find((e) => e.key === enc.onComplete);
+  return v && v.type === 'boolean' && keptVar(v) && end && setsTrue(end, v.key) ? v : null;
+}
+/**
+ * Keeps a won encounter won across visits. An encounter's runtime state lasts only while its POI stays loaded, so a
+ * persistent true-or-false variable records the win: the end event sets it true in each branch (reusing one it already
+ * sets true, or creating a per-character variable), and a new start event ends the encounter at once while the
+ * variable is true or runs the previous start event otherwise.
+ * @param {any} doc @param {string} encKey
+ */
+export function keepWon(doc, encKey) {
+  const e = doc.encounters?.find((x) => x.key === encKey);
+  if (!e) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  if (wonKeeper(doc, e)) return { ok: true };
+  const events = list(doc, 'events');
+  if (events.length + (e.onComplete ? 1 : 2) > L.events) return refuse(noRoom(L.events));
+  let end = events.find((x) => x.key === e.onComplete) ?? null;
+  // Reuse a persistent true-or-false variable the end event already sets true, or create one for it.
+  let v = (doc.variables ?? []).find((x) => x.type === 'boolean' && keptVar(x) && end && (end.then ?? []).some((a) => a.k === 'set_var' && a.var === x.key && a.to === true)) ?? null;
+  const missing = end ? endBranches(end).filter((b) => !v || !(end[b] ?? []).some((a) => a.k === 'set_var' && a.var === v.key && a.to === true)) : ['then'];
+  if (end && (end.then?.length ?? 0) + (end.else?.length ?? 0) + missing.length > L.actions) return refuse(t('poi.dm.edit.fullEvent', 'Its end event already holds {max, number} actions.', { max: L.actions }));
+  if (!v) {
+    const r = addVariable(doc, t('poi.dm.edit.wonName', '{name} won', { name: e.name }), 'boolean', 'character', `${e.key}-won`);
+    if (r.refused) return r;
+    v = r.row;
+  }
+  if (!end) {
+    const made = addEvent(doc, t('poi.dm.edit.wonName', '{name} won', { name: e.name }));
+    if (made.refused) return made;
+    end = made.row;
+    end.then = [];
+    e.onComplete = end.key;
+  }
+  for (const b of missing) (end[b] ??= []).push({ k: 'set_var', var: v.key, to: true });
+  const start = addEvent(doc, t('poi.dm.edit.wonAlready', '{name} already won', { name: e.name }));
+  if (start.refused) return start;
+  start.row.when = { k: 'var', var: v.key, op: 'eq', value: true };
+  start.row.then = [{ k: 'end_encounter', encounter: e.key }];
+  if (e.onStart) start.row.else = [{ k: 'trigger_event', event: e.onStart, delayS: 0 }];
+  e.onStart = start.row.key;
+  return { ok: true, row: v };
+}
+/**
+ * Removes the start event that keepWon added to an encounter and restores the previous start event, if any. The
+ * variable and the end event's set action are left in place in case the builder uses them elsewhere.
+ * @param {any} doc @param {string} encKey
+ */
+export function unkeepWon(doc, encKey) {
+  const e = doc.encounters?.find((x) => x.key === encKey);
+  const ev = e ? wonStartEvent(doc, e) : null;
+  if (!ev) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  return removeRow(doc, 'events', ev.key);
+}
+/** Returns the prior start event that a keepWon start event chains to, or undefined. @param {any} ev */
+const wonStartsInstead = (ev) => (ev?.else?.length === 1 && ev.else[0].k === 'trigger_event' ? ev.else[0].event : undefined);
+
 // ── interactive objects ──
 export const DEFAULT_STATE = Object.freeze({ chest: 'closed', door: 'closed', switch: 'inactive', quest_object: 'active', trigger: 'active' });
 export function addInteractive(doc, kind, name, p = [0, 0, 0]) {
@@ -392,7 +470,11 @@ export function removeRow(doc, coll, key) {
   const uses = refsOf(doc).filter((r) => r.coll === coll && r.key === key);
   const hard = uses.filter((u) => !u.optional);
   if (hard.length) return refuse(stillUsed([...new Set(hard.map((u) => u.where))].slice(0, 4)));
+  // When removing a start event made by keepWon, restore the prior start event it chained to.
+  const relink = coll === 'events' ? (doc.encounters ?? []).filter((e) => e.onStart === key && wonStartEvent(doc, e)) : [];
+  const instead = relink.length ? wonStartsInstead(rows.find((r) => r.key === key)) : undefined;
   for (const u of uses) u.clear();
+  if (instead) for (const e of relink) e.onStart = instead;
   doc[coll] = rows.filter((r) => r.key !== key);
   if (!doc[coll].length) delete doc[coll];
   return { ok: true, cleared: uses.length };

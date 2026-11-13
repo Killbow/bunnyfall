@@ -285,10 +285,22 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       : (() => { const i = input('text', value, (v) => put(path, v.slice(0, 48))); i.maxLength = 48; return row(label, i); })());
 
   // ── the open row's problems, said where they are ──
+  /** Returns the keys of an encounter's start and end events, and of any events those trigger directly.
+   *  @param {any} d @param {any} e */
+  function linkedEvents(d, e) {
+    const out = new Set([e?.onStart, e?.onComplete].filter(Boolean));
+    for (const k of [...out]) for (const a of [...(d.events?.find((/** @type {any} */ x) => x.key === k)?.then ?? []), ...(d.events?.find((/** @type {any} */ x) => x.key === k)?.else ?? [])]) if (a.k === 'trigger_event') out.add(a.event);
+    return out;
+  }
   function rowProblems(/** @type {string} */ coll, /** @type {number} */ index) {
     const d = getDoc();
     if (!d || index < 0) return [];
-    const ps = poiPayProblems(d, poiDocProblems(d)).filter((p) => p.path === `${coll}[${index}]` || p.path.startsWith(`${coll}[${index}].`) || p.path.startsWith(`${coll}[${index}][`));
+    const own = (/** @type {string} */ c, /** @type {number} */ i) => (/** @type {any} */ p) => p.path === `${c}[${i}]` || p.path.startsWith(`${c}[${i}].`) || p.path.startsWith(`${c}[${i}][`);
+    // An encounter's form also lists problems on its start and end events and the events they trigger, so it does
+    // not report "Nothing is wrong with it." while a linked event blocks saving.
+    const mine = [own(coll, index)];
+    if (coll === 'encounters') for (const k of linkedEvents(d, d.encounters[index])) mine.push(own('events', (d.events ?? []).findIndex((/** @type {any} */ x) => x.key === k)));
+    const ps = poiPayProblems(d, poiDocProblems(d)).filter((p) => mine.some((f) => f(p)));
     if (!ps.length) return [el('div', 'dfpoi-ok', t('poi.dm.rowOk', 'Nothing is wrong with it.'))];
     return [section(t('poi.editor.problems', 'What is wrong')), ...ps.slice(0, 20).map((p) => { const r = el('div', 'dfpoi-problem'); const where = problemWhere(p.path, d); r.textContent = where ? `${where}: ${problemText(p)}` : problemText(p); r.title = p.path; return r; })];
   }
@@ -373,7 +385,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         num(t('poi.dm.encRadius', 'Starts when a player comes within (m)'), [...p, 'radius'], e.radius, { min: 1, max: 500, whole: false }),
         select(t('poi.dm.aggression', 'Its enemies'), [...p, 'aggression'], e.aggression, words(POI_AGGRESSION)),
         select(t('poi.dm.respawn', 'Starts again'), [...p, 'respawn'], e.respawn, words(POI_RESPAWN)),
-        note(t('poi.dm.respawnHint', 'A won encounter set to never start again stays won while the POI stays loaded. Once the player has gone far enough for it to unload, it can start again.')),
+        ...wonRows(d, e),
         select(t('poi.dm.endsWhen', 'Ends when'), null, e.complete.rule, words(POI_COMPLETE_RULES), { onPick: (v) => run((dd) => { DM.setComplete(get(dd, p), v); }) }),
         e.complete.rule === 'leader_dead' ? select(t('poi.dm.leader', 'Leader'), [...p, 'complete', 'leader'], e.complete.leader, e.spawns.map((/** @type {any} */ s) => /** @type {[string, string]} */ ([s.key, `${s.key} (${DM.foeName(s.foe)})`]))) : null,
         e.complete.rule === 'timer_survived' ? num(t('poi.dm.seconds', 'Seconds inside its area'), [...p, 'complete', 'seconds'], e.complete.seconds, { min: 1, max: 3600 }) : null,
@@ -533,6 +545,24 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       ] : [note(t('poi.dm.pickVariable', 'Pick a variable or add one.'))], { add: adder((dd, name) => DM.addVariable(dd, name, 'boolean', 'poi_global'), t('poi.dm.newVariable', 'Variable')) });
     },
   };
+
+  /**
+   * Builds the encounter form's rows for keeping a win across visits. For Never, they say whether a persistent variable
+   * keeps it won and offer to set that up (DM.keepWon); once it is set up, they offer to take it back (DM.unkeepWon).
+   * @param {any} d @param {any} e
+   */
+  function wonRows(d, e) {
+    const made = DM.wonStartEvent(d, e);
+    const undo = () => btn(t('poi.dm.letStartAgain', 'Let it start again'), () => run((dd) => DM.unkeepWon(dd, e.key)));
+    // the start event keepWon made still ends the encounter after Starts again leaves Never: say so, and offer removal
+    if (e.respawn !== 'never') return made ? [note(t('poi.dm.wonStillKept', 'Its start event still ends it while {name} is true, so once won it does not start again.', { name: d.variables?.find((/** @type {any} */ x) => x.key === made.when.var)?.name ?? made.when.var })), undo()] : [];
+    const v = DM.wonKeeper(d, e);
+    if (v) return [note(t('poi.dm.wonKept', 'It stays won across visits. Winning it sets {name}, and while that is true it ends as soon as it starts, with no enemies.', { name: v.name ?? v.key })), undo()];
+    return [
+      note(t('poi.dm.respawnHint', 'A won encounter set to never start again stays won while the POI stays loaded. Once the player has gone far enough for it to unload, it can start again unless a persistent variable remembers the win.')),
+      btn(t('poi.dm.keepWon', 'Keep won across visits'), () => run((dd) => DM.keepWon(dd, e.key))),
+    ];
+  }
 
   /** The fields one action asks for. @param {any} a @param {any[]} ap */
   function actionFields(a, ap) {
