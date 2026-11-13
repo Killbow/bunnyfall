@@ -231,7 +231,7 @@ import { plusTheme, setPlusTheme } from './enhancedPlusStyle.js';
 import { plusCursorOn, setPlusCursor } from '../plus/plusCursor.js';   // OVH1: the three looks
 import { CHAT_LANGS } from '../../net/wire.js';   // CHAT-LANG: the language channels, for the Chat rows
 import { TEXT_FONTS, textFont, textFontSystem, setTextFont, setTextFontSystem, cleanFamily, canListFonts, installedFamilies, fontMatches } from '../textFont.js';   // TEXT-FONT: the words' face
-import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
+import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, GRIMOIRE_TEXTS, GRIMOIRE_COMPASSES, grimoireText, grimoireCompass, setGrimoireText, setGrimoireCompass, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
 import { UI_PACKS, packUrl } from '../../systems/uiPack.js';   // OVH2: a pack's own picture on its card
 import { FEATURES, KINDS, KIND_ORDER, featureForControl, resolveControl, modModules, modDials, featureSearchText } from '../../systems/features.js';   // FT14: each mod's curated keys (ORG2: the map places the rows, ui/settings/settingsMap.js)
 import '../../world/landView.js';   // RF4: the land-view lane registers itself with the registry
@@ -4172,7 +4172,9 @@ function overhaulPanel(p) {
       card.append(choiceRow('Backdrop', GRIMOIRE_BACKDROPS, grimoireBackdrop(), (id) => setGrimoireBackdrop(id)));
       card.append(choiceRow('Vitals', GRIMOIRE_VITALS, grimoireVitals(), (id) => setGrimoireVitals(id)));
       card.append(choiceRow('Spellbook', GRIMOIRE_SPELLBOOKS, grimoireSpellbook(), (id) => setGrimoireSpellbook(id)));   // GRIM3: a player: "(optionally) retain the look of the original GrimoireUI spellbook"
-      card.append(choiceRow('Tab dial', GRIMOIRE_DIALS, grimoireDial(), (id) => setGrimoireDial(id)));   // DIAL-PACK: Daggerfall's own icons, or the pack's paintings
+      card.append(choiceRow('Tab dial', GRIMOIRE_DIALS, grimoireDial(), (id) => setGrimoireDial(id)));
+      card.append(choiceRow('Text', GRIMOIRE_TEXTS, grimoireText(), (id) => setGrimoireText(id)));   // BUNNYFALL READABLE-TEXT
+      card.append(choiceRow('Compass', GRIMOIRE_COMPASSES, grimoireCompass(), (id) => setGrimoireCompass(id)));   // BUNNYFALL: Enhanced Plus's compass   // DIAL-PACK: Daggerfall's own icons, or the pack's paintings
     } else {
     const row = el('div', 'look-colours');
     row.setAttribute('role', 'group');

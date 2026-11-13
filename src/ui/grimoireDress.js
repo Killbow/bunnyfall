@@ -41,6 +41,14 @@ export const GRIMOIRE_DRESS = 'grimoire';
 export const G = ':root[data-plus-dress="grimoire"]';
 /** DIAL-PACK: the Tab dial's doors in Daggerfall's own art unless the card's row keeps the pack's paintings. */
 const DIAL_CLASSIC = `${G}:not([data-grim-dial="pack"])`;
+/** BUNNYFALL READABLE-TEXT (Killbunny: "bunnyfall grimoire is harder to read than enhanced plus, we must figure out a way
+ *  to normalize them"): the pack's lettering - Alagard over every word, its sizes snapped to its 16-pixel grid, drawn
+ *  unsmoothed - is worn only where the card asks for it. Read as Enhanced Plus reads (the default), every word keeps
+ *  Plus's own face and size in the Grimoire's ink; the page heads the dress letters itself stay Alagard. */
+const GF = `${G}:not([data-grim-text="plus"])`;
+/** BUNNYFALL (Killbunny: "an option for bunnyfall grimoire to have enhanced plus compass"): the pack's boxed compass, or
+ *  Enhanced Plus's own strip. */
+const GC = `${G}:not([data-grim-compass="plus"])`;
 export const GRIMOIRE_FAMILY = 'DFO Alagard';
 export const GRIMOIRE_STACK = `'${GRIMOIRE_FAMILY}', 'Alagard', Georgia, serif`;
 
@@ -65,6 +73,11 @@ export const GRIMOIRE_SPELLBOOKS = Object.freeze({ book: 'DFO book', pack: 'Grim
  *  Daggerfall's own art (the face and the HUD bar's icons - ui/dialClassicArt.js, the default) or the pack's paintings
  *  (GRIM4's helm, book, chest and map). */
 export const GRIMOIRE_DIALS = Object.freeze({ classic: 'Daggerfall icons', pack: 'Grimoire paintings' });
+/** READABLE-TEXT and the compass: the card's two Bunnyfall rows. */
+export const GRIMOIRE_TEXTS = Object.freeze({ plus: 'Readable', pack: 'Grimoire lettering' });
+export const GRIMOIRE_COMPASSES = Object.freeze({ pack: 'Grimoire', plus: 'Enhanced Plus' });
+export const grimoireText = () => (Object.hasOwn(GRIMOIRE_TEXTS, getPref('grimoireText')) ? getPref('grimoireText') : 'plus');
+export const grimoireCompass = () => (Object.hasOwn(GRIMOIRE_COMPASSES, getPref('grimoireCompass')) ? getPref('grimoireCompass') : 'pack');
 export const grimoireDial = () => (Object.hasOwn(GRIMOIRE_DIALS, getPref('grimoireDial')) ? getPref('grimoireDial') : 'classic');
 export const grimoireSpellbook = () => (Object.hasOwn(GRIMOIRE_SPELLBOOKS, getPref('grimoireSpellbook')) ? getPref('grimoireSpellbook') : 'book');
 export const grimoireVitals = () => (Object.hasOwn(GRIMOIRE_VITALS, getPref('grimoireVitals')) ? getPref('grimoireVitals') : 'upright');
@@ -638,7 +651,7 @@ export function inkCss(css) {
       if (!sels.length) continue;
       const said = sayRule(inner, { state });
       if (!said.face && !said.ink && !said.wash && !said.wood && !said.woodGround) continue;
-      if (said.face) out += `${sels.map((s) => (/^(:root|html)\b/.test(s) ? s.replace(/^(:root|html)/, G) : `${G} ${s}`)).join(',\n')} { ${said.face} }\n`;
+      if (said.face) out += `${sels.map((s) => (/^(:root|html)\b/.test(s) ? s.replace(/^(:root|html)/, GF) : `${GF} ${s}`)).join(',\n')} { ${said.face} }\n`;   // READABLE-TEXT: the pack's lettering only where it is asked
       const paged = sels.filter((x) => !SKIP_INK.test(x));
       if (!paged.length) continue;
       if (said.ink) out += `${paged.map((s) => `${G} ${splice(s, `${IN_INK}${NOT_WOOD}`)}`).join(',\n')} { ${said.ink} }\n`;
@@ -655,8 +668,8 @@ export function inkCss(css) {
 // ── THE FACE ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 export const faceCss = (url = grimoireFontUrl()) => `
 @font-face { font-family: '${GRIMOIRE_FAMILY}'; src: url("${url}") format('truetype'); font-display: swap; }
-${G} { --display: ${GRIMOIRE_STACK}; --data: ${GRIMOIRE_STACK}; --brand: ${GRIMOIRE_STACK}; -webkit-font-smoothing: none; font-synthesis: none; }
-${G} body, ${G} .hud, ${G} #enhanced-menu, ${G} .shell, ${G} .px-win { font-family: ${GRIMOIRE_STACK}; }`;
+${GF} { --display: ${GRIMOIRE_STACK}; --data: ${GRIMOIRE_STACK}; --brand: ${GRIMOIRE_STACK}; -webkit-font-smoothing: none; font-synthesis: none; }
+${GF} body, ${GF} .hud, ${GF} #enhanced-menu, ${GF} .shell, ${GF} .px-win { font-family: ${GRIMOIRE_STACK}; }`;
 
 // ── THE KIT ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 const at = (sels, suffix = '') => sels.map((s) => `${G} ${s}${suffix}`).join(',\n');
@@ -1175,28 +1188,28 @@ ${G} .hud-renownbox { color: ${T.yellow}; text-shadow: ${WORD_ON_WOOD}; }
    screen's edge, its dome bowing down, the gold needle pointing down at the heading from above. Only the box is turned;
    the strip reads the right way up, its letters let down under the needle, sliding under the dome as you turn (the HUD says the heading, --hud-heading). The
    quest's, the party's and Detect's marks still ride the strip; the HUD's word points go - the strip writes its own. */
-${G} .hud-top { top: 0 !important; }
-${G} .hud-compass { --gcm: calc(var(--gq, 2px) * 1.25); width: calc(69 * var(--gcm)); height: calc(17 * var(--gcm)); background: none; border: 0; box-shadow: none;
+${GC} .hud-top { top: 0 !important; }
+${GC} .hud-compass { --gcm: calc(var(--gq, 2px) * 1.25); width: calc(69 * var(--gcm)); height: calc(17 * var(--gcm)); background: none; border: 0; box-shadow: none;
   filter: drop-shadow(${px(1, 'gq')} ${px(1, 'gq')} 0 rgba(0,0,0,0.55)); }
 /* GRIM4 (Dudey: "The compass looks blurry make better readable"): the box and the strip are the pack's own pictures at
    ITS resolution - three of its pixels to one of the game's - drawn smooth at the compass's size, never the game-grid
    cut stretched pixel for pixel by two and a half (which smeared every letter): N, E, S and W keep the pack's own
    strokes. */
-${G} .hud-compass::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; image-rendering: auto;
+${GC} .hud-compass::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; image-rendering: auto;
   background: url("${grimoireImg('COMPBOX')}") 0 0 / 100% 100% no-repeat; transform: scaleY(-1); }
-${G} .hud-compass .hud-strip { left: calc(2 * var(--gcm)); right: calc(2 * var(--gcm)); top: calc(2 * var(--gcm)); bottom: var(--gcm); image-rendering: auto;
+${GC} .hud-compass .hud-strip { left: calc(2 * var(--gcm)); right: calc(2 * var(--gcm)); top: calc(2 * var(--gcm)); bottom: var(--gcm); image-rendering: auto;
   background: url("${grimoireImg('COMPASS')}") no-repeat #bc8941;
   background-size: calc(322 * var(--gcm)) calc(14 * var(--gcm));
   background-position: calc((32.5 - 32.83 - var(--hud-heading, 0) * 257) * var(--gcm)) calc(4 * var(--gcm)); }
 /* TURN1 (Dudey: "let the players rotate the compass with alt + u"): unlocked, the compass carries a turn-over press
    beside its X; turned, the box stands the way the pack painted it - the dome up, the needle under it - and the strip's
    letters rise to meet the needle. */
-${G} #hud-layout-handles i[data-hm-handle="turn"] { display: block; }
-${G} .hud-compass[data-hm-turn]::after { transform: none; }
-${G} .hud-compass[data-hm-turn] .hud-strip { top: var(--gcm); bottom: calc(2 * var(--gcm));
+${GC} #hud-layout-handles i[data-hm-handle="turn"] { display: block; }
+${GC} .hud-compass[data-hm-turn]::after { transform: none; }
+${GC} .hud-compass[data-hm-turn] .hud-strip { top: var(--gcm); bottom: calc(2 * var(--gcm));
   background-position-y: calc(0.5 * var(--gcm)); }
-${G} .hud-compass .hud-point { visibility: hidden; }
-${G} .hud-needle { display: none; }
+${GC} .hud-compass .hud-point { visibility: hidden; }
+${GC} .hud-needle { display: none; }
 /* GRIM-MARKS (2026-10-13, field video: "what are those colored edges, the blue and greenish ones"): the strip's marks
    (ui/enhanced/enhancedHud.js - Detect, the party, the professions' nodes, a ship, a boat, the gate, the quest) are laid by
    left: 0..100% OF THE COMPASS BOX and stood on its foot. Here the box is the wooden frame, the parchment two --gcm in
@@ -1209,14 +1222,14 @@ ${G} .hud-needle { display: none; }
    markers on the bottom"), so the triangles hang from the box's FLAT side - its top, where the needle hangs, pointing
    down at the bearing as the needle does - and turned over (dome up) they stand on its flat foot. A ship's bow rides
    the row just under them. All over the frame's rim. */
-${G} .hud-compass { --gcm-mark: calc(3 * var(--gcm) + 7px); width: calc(69 * var(--gcm) - 2 * var(--gcm-mark)); margin-left: var(--gcm-mark); margin-right: var(--gcm-mark); }
-${G} .hud-compass::after { left: calc(-1 * var(--gcm-mark)); right: calc(-1 * var(--gcm-mark)); }
-${G} .hud-compass .hud-strip { left: calc(2 * var(--gcm) - var(--gcm-mark)); right: calc(2 * var(--gcm) - var(--gcm-mark)); }
-${G} .hud-compass .hud-detect, ${G} .hud-compass .hud-party, ${G} .hud-compass .hud-node { top: calc(2 * var(--gcm)) !important; bottom: auto !important; z-index: 4; }
-${G} .hud-compass .hud-ship { top: calc(2 * var(--gcm) + 6px) !important; z-index: 4; }
-${G} .hud-compass .hud-boat, ${G} .hud-compass .hud-gate, ${G} .hud-compass .hud-serpent, ${G} .hud-compass .hud-sd, ${G} .hud-compass .hud-quest { z-index: 4; }
-${G} .hud-compass[data-hm-turn] .hud-detect, ${G} .hud-compass[data-hm-turn] .hud-party, ${G} .hud-compass[data-hm-turn] .hud-node { top: auto !important; bottom: calc(2 * var(--gcm)) !important; }
-${G} .hud-compass[data-hm-turn] .hud-ship { top: auto !important; bottom: calc(2 * var(--gcm) + 6px) !important; }
+${GC} .hud-compass { --gcm-mark: calc(3 * var(--gcm) + 7px); width: calc(69 * var(--gcm) - 2 * var(--gcm-mark)); margin-left: var(--gcm-mark); margin-right: var(--gcm-mark); }
+${GC} .hud-compass::after { left: calc(-1 * var(--gcm-mark)); right: calc(-1 * var(--gcm-mark)); }
+${GC} .hud-compass .hud-strip { left: calc(2 * var(--gcm) - var(--gcm-mark)); right: calc(2 * var(--gcm) - var(--gcm-mark)); }
+${GC} .hud-compass .hud-detect, ${GC} .hud-compass .hud-party, ${GC} .hud-compass .hud-node { top: calc(2 * var(--gcm)) !important; bottom: auto !important; z-index: 4; }
+${GC} .hud-compass .hud-ship { top: calc(2 * var(--gcm) + 6px) !important; z-index: 4; }
+${GC} .hud-compass .hud-boat, ${GC} .hud-compass .hud-gate, ${GC} .hud-compass .hud-serpent, ${GC} .hud-compass .hud-sd, ${GC} .hud-compass .hud-quest { z-index: 4; }
+${GC} .hud-compass[data-hm-turn] .hud-detect, ${GC} .hud-compass[data-hm-turn] .hud-party, ${GC} .hud-compass[data-hm-turn] .hud-node { top: auto !important; bottom: calc(2 * var(--gcm)) !important; }
+${GC} .hud-compass[data-hm-turn] .hud-ship { top: auto !important; bottom: calc(2 * var(--gcm) + 6px) !important; }
 
 /* THE HOTBAR - a row of the inventory's shelf boxes; the key in yellow on the lip, what is in hand framed in gold */
 ${G} .hb .hb-slot { background: rgba(14,8,3,0.82); border-image: ${v('cubby')} 5 5 7 6 fill / ${px(5, 'gq')} ${px(5, 'gq')} ${px(7, 'gq')} ${px(6, 'gq')} stretch;
@@ -2381,6 +2394,8 @@ export function mountGrimoireDress(doc = globalThis.document) {
   root.dataset.grimVitals = grimoireVitals();
   root.dataset.grimSpellbook = grimoireSpellbook();
   root.dataset.grimDial = grimoireDial();   // DIAL-PACK
+  root.dataset.grimText = grimoireText();   // READABLE-TEXT
+  root.dataset.grimCompass = grimoireCompass();   // BUNNYFALL: the compass
   let kit = doc.getElementById(GRIM_KIT_ID);
   if (!kit) { kit = doc.createElement('style'); kit.id = GRIM_KIT_ID; kit.textContent = GRIMOIRE_KIT_CSS; }
   let ink = doc.getElementById(GRIM_INK_ID);
@@ -2472,6 +2487,18 @@ export function setGrimoireVitals(id, doc = globalThis.document) {
   if (!Object.hasOwn(GRIMOIRE_VITALS, id)) return false;
   setPref('grimoireVitals', id);
   if (doc?.documentElement?.dataset) doc.documentElement.dataset.grimVitals = id;
+  return true;
+}
+export function setGrimoireText(id, doc = globalThis.document) {
+  if (!Object.hasOwn(GRIMOIRE_TEXTS, id)) return false;
+  setPref('grimoireText', id);
+  if (doc?.documentElement?.dataset) doc.documentElement.dataset.grimText = id;
+  return true;
+}
+export function setGrimoireCompass(id, doc = globalThis.document) {
+  if (!Object.hasOwn(GRIMOIRE_COMPASSES, id)) return false;
+  setPref('grimoireCompass', id);
+  if (doc?.documentElement?.dataset) doc.documentElement.dataset.grimCompass = id;
   return true;
 }
 export function setGrimoireDial(id, doc = globalThis.document) {
