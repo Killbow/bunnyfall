@@ -11,6 +11,7 @@
 import { POI_V2_LIMITS as L, POI_INTERACTIVE_STATES, POI_FOE_RANGES } from './poiLawV2.js';
 import { POI_ITEM_CHOICES } from './poiItemChoices.js';
 import { ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
+import { dexEnemyNameText } from '../systems/enemyExpansion/dexNames.js';
 import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
 import { templateGroups } from '../systems/item/itemLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
@@ -33,8 +34,8 @@ export const DM_COLLECTIONS = Object.freeze({
   routes: L.routes, encounters: L.encounters, interactives: L.interactives, dialogues: L.dialogues, trades: L.trades, variables: L.variables, events: L.events,
 });
 
-/** What an enemy id is called: a monster or a class by the game's own name. */
-export const foeName = (id) => (id <= 42 ? ENEMY_NAMES[id] : id >= 128 && id <= 146 ? ENEMY_NAMES[43 + id - 128] : null) ?? t('poi.dm.edit.foeN', 'Enemy {id}', { id });
+/** Returns the display name for an enemy ID, from the base game or Daggerfall Enemy Expansion. */
+export const foeName = (id) => (id <= 42 ? ENEMY_NAMES[id] : id >= 128 && id <= 146 ? ENEMY_NAMES[43 + id - 128] : dexEnemyNameText(id)) ?? t('poi.dm.edit.foeN', 'Enemy {id}', { id });
 /** Every enemy id the law allows, with its name, in order. */
 export const FOES = Object.freeze(POI_FOE_RANGES.flatMap(([a, b]) => Array.from({ length: b - a + 1 }, (_, i) => ({ id: a + i, name: foeName(a + i) }))));
 
