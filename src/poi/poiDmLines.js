@@ -1,11 +1,11 @@
 // @ts-check
 
-// The DM content of one POI as lines in the world, for the in-game editor while its DM panel is open: each route as a
-// smooth path through its waypoints with a ring and a post at every waypoint, each encounter's area and spawn points,
-// each trigger zone's ring, and each object's ring and post. Points are in the POI's own frame and go to the scene
-// through `toScene` (the editor host's place of the POI); rings are drawn level in the scene with their radius in meters,
-// as the game measures zones and encounter areas (poiDmRuntime.js). The row the panel has open is drawn in orange.
-// Pure: no DOM, no GL (scenes/poiEditorHost.js hands the lines to poiGizmoPass.js).
+// Builds 3D line segments for a POI's DM content while the in-game editor's DM panel is open: each route as the
+// straight path a person walks through its waypoints with a ring and a post at every waypoint, each encounter's area
+// and spawn points, each trigger zone's ring, and each object's ring and post. Points are in the POI's own frame and go
+// to the scene through `toScene` (the editor host's placement of the POI); rings are drawn level in the scene with
+// their radius in meters, as the game measures zones and encounter areas (poiDmRuntime.js). The open row is drawn in
+// orange. Pure module with no DOM or WebGL dependencies (scenes/poiEditorHost.js passes the lines to poiGizmoPass.js).
 
 /** Colors by kind, and the open row's. */
 export const DM_LINE_COLOR = Object.freeze({
@@ -15,22 +15,13 @@ export const DM_LINE_COLOR = Object.freeze({
 const RING_STEPS = 32;
 
 /**
- * A smooth path through points: Catmull-Rom through each (the uniform form, enough for a preview), closed for a loop.
- * @param {number[][]} pts @param {boolean} closed @param {number} [steps] segments per span
+ * Returns the polyline a person walks along a route: straight from each waypoint to the next (poiDmCore.js stepWalker),
+ * and from the last back to the first for a loop. A ping-pong route retraces the same segments.
+ * @param {number[][]} pts @param {boolean} closed
  */
-export function splinePoints(pts, closed, steps = 10) {
-  const n = pts.length;
-  if (n < 2) return pts.map((p) => [...p]);
-  const at = (/** @type {number} */ i) => (closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
-  const spans = closed ? n : n - 1, out = [];
-  for (let i = 0; i < spans; i++) {
-    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
-    for (let s = 0; s < steps; s++) {
-      const u = s / steps, u2 = u * u, u3 = u2 * u;
-      out.push([0, 1, 2].map((k) => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * u + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * u2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * u3)));
-    }
-  }
-  out.push([...at(closed ? 0 : n - 1)]);
+export function walkPath(pts, closed) {
+  const out = pts.map((p) => [...p]);
+  if (closed && pts.length > 1) out.push([...pts[0]]);
   return out;
 }
 
@@ -62,7 +53,7 @@ export function dmLines(doc, open, toScene) {
   for (const r of doc.routes ?? []) {
     const color = isOpen('routes', r.key) ? DM_LINE_COLOR.open : DM_LINE_COLOR.route;
     const pts = (r.waypoints ?? []).map((/** @type {any} */ w) => toScene(w.t));
-    const path = splinePoints(pts, r.mode === 'loop', 10);
+    const path = walkPath(pts, r.mode === 'loop');
     for (let i = 0; i + 1 < path.length; i++) seg(path[i], path[i + 1], color);
     pts.forEach((/** @type {number[]} */ p, /** @type {number} */ i) => { ring(p, Math.max(0.3, r.waypoints[i].radius ?? 0.5), color); post(p, 1.2, color); });
   }
