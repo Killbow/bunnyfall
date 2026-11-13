@@ -43,12 +43,12 @@ test('the delivery recipe takes the goods, pays once per character and runs its 
   assert.equal(recipeBlock(dm, 'supplies', 'delivery'), 'limit', 'once per character');
 });
 
-test('the brew: unlimited, needs every ingredient, gives the elixir', () => {
+test('the brew: unlimited, needs every ingredient, gives the Heal True potion', () => {
   const dm = createDm(doc(), { items: [{ template: 16, count: 10 }, { template: 42, count: 5 }] });
   assert.equal(runRecipe(dm, 'nyra', 'brew').ok, true);
   assert.equal(runRecipe(dm, 'nyra', 'brew').ok, true, 'unlimited with a price');
   assert.equal(runRecipe(dm, 'nyra', 'brew').why, 'items');
-  assert.equal(dm.items.find((s) => s.template === 62).count, 2);
+  assert.deepEqual(dm.items.find((s) => s.template === 83), { template: 83, recipe: 'healTrue', count: 2 });
 });
 
 test('a dialogue walks its nodes, offers only the options that hold, and a pick runs its recipe', () => {

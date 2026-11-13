@@ -90,6 +90,8 @@ const tx = () => `probe-txn-${Date.now().toString(36)}-${++txn}`;
 const trade = (token, poi, c, recipe, extra = {}) => call('/v1/poi/trade', { method: 'POST', token, body: { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), trade: recipe[0], recipe: recipe[1], ...extra } });
 const claim = (token, poi, c, event, extra = {}) => call('/v1/poi/event-claim', { method: 'POST', token, body: { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), ...(event ? { event } : {}), ...extra } });
 const countIn = (save, template) => save.items.filter((r) => r.templateIndex === template).reduce((n, r) => n + (r.stackCount ?? 1), 0);
+const HEAL_TRUE = mintGift({ template: 83, recipe: 'healTrue' }).item.potionRecipeKey;
+const healTrueIn = (save) => save.items.filter((r) => r.templateIndex === 83 && r.potionRecipeKey === HEAL_TRUE && !r.potent).reduce((n, r) => n + (r.stackCount ?? 1), 0);
 
 /** The probe's POI: the example's four scenarios, plus a gift, a toll, a stock and a counter. */
 function doc(id = 'poi-0123456789ab') {
@@ -145,7 +147,7 @@ test('a trade settles once: its items leave, its reward arrives, the save keeps 
   const after1 = await saveOf(state.player, c.id);
   assert.equal(countIn(after1, 16), 1, 'five berries left');
   assert.equal(countIn(after1, 42), 0, 'both blood left');
-  assert.equal(countIn(after1, 62), 1, 'the elixir arrived');
+  assert.equal(healTrueIn(after1), 1, 'the Heal True potion arrived');
   assert.equal(after1.goldPieces, before.goldPieces);
   assert.deepEqual(Object.keys(after1).sort(), Object.keys(before).sort(), 'no new save field');
   for (const r of after1.items) assert.deepEqual(itemFindings(r), []);
@@ -154,7 +156,7 @@ test('a trade settles once: its items leave, its reward arrives, the save keeps 
   assert.equal(again.json.replayed, true);
   assert.equal(again.json.seq, a.json.seq);
   assert.deepEqual(again.json.gave, a.json.gave);
-  assert.equal(countIn(await saveOf(state.player, c.id), 62), 1);
+  assert.equal(healTrueIn(await saveOf(state.player, c.id)), 1);
   // another account cannot use the txn
   const other = await account('ProbeOther');
   assert.equal((await call('/v1/poi/trade', { method: 'POST', token: other, body })).json.error, 'txn-spent');
@@ -222,7 +224,7 @@ test('a record moved under an act refuses it: a stale sequence, another lease, a
   assert.ok(lost.json.error === 'seq' || lost.json.error === 'poi-limit' || lost.json.error === 'lease', lost.text);
   const now = await saveOf(racer, c.id);
   assert.equal(countIn(now, 16), 15, 'taken once');
-  assert.equal(countIn(now, 62), 1, 'given once');
+  assert.equal(healTrueIn(now), 1, 'given once');
   assert.equal((await trade(racer, state.poi, { ...c, seq: c.seq }, ['nyra', 'brew'])).json.error, 'seq', 'the sequence is the record\'s own');
   assert.equal((await trade(racer, state.poi, { ...c, lease: '0'.repeat(32), seq: wins[0].json.seq }, ['nyra', 'brew'])).json.error, 'lease');
   assert.equal((await trade(state.player, state.poi, { ...c, seq: wins[0].json.seq }, ['nyra', 'brew'])).json.error, 'no-realm-character');
