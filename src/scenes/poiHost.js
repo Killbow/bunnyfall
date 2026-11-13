@@ -167,9 +167,9 @@ export function sameStand(a, b) {
  *   its decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
  *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating
  *   translation provider for the collider; `auth` a builder's bearer (the editor's drafts' assets); `collideDrafts`
- *   false while the editor drags (a draft moved every frame would file its collider every frame - it is stood once the
- *   drag ends); `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's; `keepDecodedBytes`
- *   the decoded pictures' keep (POI_DECODED_KEEP_BYTES)
+ *   false while the editor drags (a draft moved every frame would file its collider every frame - it is registered once
+ *   the drag ends); `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's;
+ *   `keepDecodedBytes` the decoded pictures' cache limit in bytes (POI_DECODED_KEEP_BYTES)
  */
 export function createPoiHost({
   renderer, feed, decodeImage, pixels, translation, groundAt, collider = () => null, riding = () => null, collideDrafts = () => true,

@@ -467,11 +467,9 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       return true;
     },
     /**
-     * A key pressed. Answers whether the editor ACTED on it - the host then keeps it from the browser too. Whatever it
-     * answers, the world hears no key while the editor is open (the host stops every one); AUDIT POI E16: a key the
-     * editor does nothing with is the browser's (find, reload, the address bar, zoom, Tab, back) - every chord and every
-     * key the editor had no use for was answered "taken" and its default prevented, beyond the bible's "the browser
-     * keeps its own (F5, F12)".
+     * Handles a key press while the editor is open and returns whether the editor acted on it (in which case the host
+     * also calls `preventDefault()`). The world receives no key events while the editor is open, and keys the editor
+     * does not use (such as find, reload, address bar, zoom, Tab, and back) are left for the browser.
      * @param {{ code: string, key?: string, ctrlKey?: boolean, metaKey?: boolean, altKey?: boolean, shiftKey?: boolean, repeat?: boolean }} e
      * @param {any} cam
      * @param {{ save?: () => void, del?: () => void, duplicate?: () => void, copy?: () => void, cut?: () => void, paste?: () => void }} [acts] the UI's own acts

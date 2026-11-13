@@ -6,20 +6,20 @@
 // to access the codebase ... No short cuts or band aids" (bible/06-Systems/POI-Editor-Arc.md). The editor's model, pure
 // (no DOM, no GL, no network) so the World Builder (tools/poi-editor) and the tests read it the same way:
 //
-//   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law keeps it (poi/poiLaw.js) -
+//   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law defines it (poi/poiLaw.js) -
 //     opened from the live set or a draft, or made new - beside the document as it was last SAVED, so "unsaved" is a
 //     comparison, never a flag someone forgot to clear.
 //   - EVERY CHANGE IS ONE STEP (`edit`): the document before and after, as text, on one undo stack across the whole
 //     set (the order the builder made them, whichever POI each touched), with the selection each step left. A step that
 //     changes nothing is no step. A drag (`begin` / `preview` / `commit`) is ONE step however many frames it moved: each
 //     preview is applied to the document as the drag found it - absolute from its start, so a long drag gathers no error
-//     - and `cancel` puts it back. The stack holds POI_UNDO_DEPTH steps; the oldest go first.
-//   - THE TRANSFORMS (`movePlace`, `rotatePlace`, `movePart`, ...): a POI stands in its PIXEL's frame (east x, north z,
-//     metres from the south-west corner - scenes/poiHost.js), so a move is made in map metres and the place renormalised:
+//     - and `cancel` restores it. The stack holds POI_UNDO_DEPTH steps; the oldest go first.
+//   - THE TRANSFORMS (`movePlace`, `rotatePlace`, `movePart`, ...): a POI sits in its PIXEL's frame (east x, north z,
+//     meters from the southwest corner - scenes/poiHost.js), so a move is made in map meters and the place renormalized:
 //     a POI dragged over a pixel's edge belongs to the next pixel, its numbers in that one's frame. A part's transform is
 //     in its POI's frame (after the place's turn and size), so a world move or turn is carried into it.
-//   - UNITY'S EULER ANGLES (`eulerOfQuat`, `quatOfEuler`): the inspector's three numbers, in the engine's own order - Z,
-//     then X, then Y (Transform.eulerAngles) - over the quaternion the document keeps.
+//   - UNITY'S EULER ANGLES (`eulerOfQuat`, `quatOfEuler`): the inspector's three numbers, in the engine's own order -
+//     Z, then X, then Y (Transform.eulerAngles) - over the quaternion the document stores.
 //
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
@@ -328,7 +328,7 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
     },
 
     /**
-     * One step: `fn` changes the working document (a copy - the step is kept only if it changed something). `select`
+     * Applies one undoable edit step: `fn` mutates a copy of the working document, and the step is recorded on the undo
      * the selection the step leaves (else the one it found). Answers whether anything changed.
      * @param {string} id @param {string} label @param {(doc: any) => void} fn @param {PoiSelection} [select]
      */

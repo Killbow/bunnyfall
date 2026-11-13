@@ -1,8 +1,8 @@
 // @ts-check
-// A v2 POI's game logic in the world (World Builder M5), loaded only when a POI with DM content stands. Each frame it
-// walks people along routes, fires trigger zones, offers objects to use, answers Talk with a dialogue or a trade, stands
-// encounters and runs delayed events, by poiDmCore.js's rules (the Sandbox's too). A realm character's items and gold
-// move only on the service's answer (server-account/src/poiTrade.js, through realmGoldAct); offline, the same rules run
+// Runs a v2 POI's game logic in the world (World Builder M5), loaded only when a POI with DM content is present. Each
+// frame it walks people along routes, fires trigger zones, offers objects to use, answers Talk with a dialogue or a
+// trade, spawns encounters, and runs delayed events, following poiDmCore.js's rules (shared with the Sandbox). A realm
+// character's items and gold move only on the service's response (server-account/src/poiTrade.js, via realmGoldAct);
 // on the character's own pack.
 
 import {

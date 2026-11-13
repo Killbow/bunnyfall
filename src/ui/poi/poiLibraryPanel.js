@@ -133,7 +133,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     if (!items) { list.replaceChildren(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...'))); return; }
     const hits = items.filter((it) => (!mineOnly || mine(it)) && shelfMatches(it, query));
     const rows = hits.slice(0, shown).map((it) => (editing?.id === it.id ? editRow(it) : row(it)));
-    if (!rows.length) rows.push(el('div', 'dfpoi-sub', items.length ? t('poi.library.none', 'Nothing on the shelf matches.') : t('poi.library.empty', 'The shelf is empty. Keep a model from its inspector, or as you import it.')));
+    if (!rows.length) rows.push(el('div', 'dfpoi-sub', items.length ? t('poi.library.none', 'Nothing on the shelf matches.') : t('poi.library.empty', 'The shelf is empty. Save a model to the library from its inspector, or as you import it.')));
     if (hits.length > shown) rows.push(btn(t('poi.library.more', 'Show more ({n} more)', { n: hits.length - shown }), () => { shown += SHELF_PAGE; drawList(list); }));
     list.replaceChildren(...rows);
   }
@@ -263,7 +263,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
       say(r.problems?.length ? problemLine(r.problems[0], entry) : refusal(r), 'bad');
       return { ok: false, problems: r.problems ?? [] };
     }
-    say(t('poi.library.kept', 'Kept in the library: {name}.', { name: entry.name }));
+    say(t('poi.library.kept', 'Saved to the library: {name}.', { name: entry.name }));
     if (items) await refresh();
     return { ok: true, id: r.id };
   }
@@ -277,7 +277,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     const about = el('textarea'); about.maxLength = POI_LIMITS.about;
     const said = el('div');
     const self = dialog;
-    const go = btn(t('poi.library.keep', 'Keep it'), async () => {
+    const go = btn(t('poi.library.keep', 'Save'), async () => {
       go.disabled = true;
       const r = await keepNow(source, { name: name.value, tags: tagsOf(tags.value), about: about.value });
       go.disabled = false;
@@ -289,7 +289,7 @@ export function createPoiLibrary({ doc = document, host, io, feed, me, act, say,
     const acts = el('div', 'dfpoi-row');
     acts.append(go, btn(t('poi.editor.cancel', 'Cancel'), () => close()));
     dialog.append(
-      el('div', 'dfpoi-h', t('poi.library.keepTitle', 'Keep in the library')),
+      el('div', 'dfpoi-h', t('poi.library.keepTitle', 'Save to library')),
       el('div', 'dfpoi-sub', t('poi.library.keepHint', 'Every builder can place it. Its picture is drawn from its parts.')),
       el('div', 'dfpoi-sub', t('poi.library.keepWhat', '{parts, plural, one {# part} other {# parts}}, {lights, plural, one {# light} other {# lights}}', { parts: source.parts.length, lights: source.lights?.length ?? 0 })),
       field(t('poi.editor.name', 'Name'), name), field(t('poi.editor.tags', 'Tags'), tags), el('div', 'dfpoi-row', t('poi.editor.about', 'Description')), about, said, acts,

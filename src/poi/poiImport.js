@@ -9,13 +9,13 @@
 //     a limit is refused by its code, not uploaded half-made - and its glTF materials as the document's (poiMaterialOf:
 //     the textures still the images' indices). Each image read by its own header (poi/poiImage.js): one the store
 //     would refuse is set aside with a warning, and the materials that wore it go plain.
-//   - UPLOADED (`uploadImport`): every mesh and every image put once, by its sha256 (poi/poiService.js poiPutAsset - the
-//     store answers `existed` for bytes it has, so a model imported twice costs nothing the second time), the
-//     materials' image indices turned into the pictures' names, each meta kept for the law's asset check
+//   - UPLOADED (`uploadImport`): every mesh and every image put once, by its sha256 (poi/poiService.js poiPutAsset -
+//     the store answers `existed` for bytes it has, so a model imported twice costs nothing the second time), the
+//     materials' image indices turned into the pictures' names, each one's meta recorded for the law's asset check
 //     (poiAssetProblems). A refusal stops the import and says which part, in the store's word.
 //   - THE ASSET (`{ name, parts, lights }`): what the World Builder places (tools/poi-editor/src/transfer.js) - each part's
-//     mesh, its submeshes, its materials and where it stands from the model's origin; the model's point lights where they
-//     stand from it (gltfImport.js poiLightOf).
+//     mesh, its submeshes, its materials, and where it sits relative to the model's origin; and the model's point lights
+//     and where they sit relative to it (gltfImport.js poiLightOf).
 //
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════

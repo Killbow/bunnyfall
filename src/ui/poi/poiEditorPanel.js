@@ -6,30 +6,30 @@
 // POI-Editor-Arc.md POI-3). The editor's screen over the world (scenes/poiEditorHost.js draws the handles in it):
 //
 //   - THE BAR (top): the tools (select, move, turn, size - Q W E R), the space (world or the thing's own - X), snap and
-//     its steps, undo and redo with what they would undo, the eye's speed, a new POI, an import, the map, and the way
-//     out (back to where the body stands, or down to the ground under the eye).
+//     its steps, undo and redo with what they would undo, the camera speed, a new POI, an import, the map, and the way
+//     out (back to where the body is, or down to the ground under the eye).
 //   - THE OUTLINER (left): the POIs being edited - each its state (new, a draft, sent for approval, live, changed) and
 //     its parts and lights to select - and every POI the store holds, searched, to open.
 //   - THE INSPECTOR (right): the selection's every field, each change one step of the undo: a POI's name, words, tags,
 //     place (its height above the ground or fixed, its turn as Unity's three angles, its size), its mark on the map and
 //     its lights; a part's name, offset, turn, size, solidity, shadow and materials. Then what is wrong with it - the
 //     law's every problem in the builder's language, each said where it is (poi/poiText.js) - and the store's acts:
-//     save the draft, send it for approval, take it back, ask for a live POI's retirement, put back what was saved.
+//     save the draft, send it for approval, take it back, ask for a live POI's retirement, restore what was saved.
 //   - THE IMPORT (a dialog): a .glb, or a .gltf with its files; its parts, what was left out and why, what is past a
-//     limit; uploaded once each by name (poi/poiImport.js) and placed where the next click is - and kept in the library
-//     too, unless the builder says not (POI-4b).
-//   - THE LIBRARY (POI-4b, ui/poi/poiLibraryPanel.js): the bar's Library - every model the builders keep, to place again; a
-//     POI or a part kept in it from its inspector.
+//     limit; uploaded once each by name (poi/poiImport.js) and placed where the next click is - and saved to the
+//     library too, unless the builder says not (POI-4b).
+//   - THE LIBRARY (POI-4b, ui/poi/poiLibraryPanel.js): the bar's Library - every model the builders save there, to
+//     place again; a POI or a part saved to it from its inspector.
 //   - APPROVALS AND HISTORY (POI-6, ui/poi/poiReviewPanel.js): an approver's queue - what each submission changes, the
-//     law's report, before and after where it stands, approve or send back with a word; a POI's every revision, to open
-//     again or (an approver) put back in the world.
+//     law's report, before and after where it sits, approve or send back with a word; a POI's every revision, to open
+//     again or (an approver) restore in the world.
 //   - OUT AND BACK IN (POI-6, poi/poiTransfer.js): a POI's model - or a library entry's - written as a .glb for the
-//     builder's own modelling tool; the POIs open in the editor written as a PACK (a .zip with every asset they name),
+//     builder's own modeling tool; the POIs open in the editor written as a PACK (a .zip with every asset they name),
 //     and a pack read back - checked whole, its assets uploaded, its POIs opened as changes to what the store holds.
 //
 // A REFUSAL IS A SENTENCE: the store's word through the account client's own table (accountRefusalText); a problem
 // through the law's. TEXT, NEVER MARKUP: every name a builder typed is written with `textContent`. The panel takes no
-// press it does not use - everything else falls through to the editor's world - and its fields keep the keyboard
+// press it does not use - everything else falls through to the editor's world - and its fields hold the keyboard focus
 // while they have it (the editor's keys are not heard while one is focused: ui/input.js isTextEntryTarget).
 //
 // Not a DFU member. Ledger A (POI).
@@ -487,13 +487,13 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // own go to the library and the .glb; a Daggerfall model part from the World Builder is left out, with a note
     // saying so.
     const ownParts = d.parts.filter(hasOwnModel);
-    if (ownParts.length) out.push(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), btn(t('poi.library.keepPoi', 'Keep it in the library...'), () => { closeDialog(); library.keep({ name: d.name, parts: structuredClone(ownParts), lights: structuredClone(d.lights ?? []) }); }));
+    if (ownParts.length) out.push(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), btn(t('poi.library.keepPoi', 'Save to library...'), () => { closeDialog(); library.keep({ name: d.name, parts: structuredClone(ownParts), lights: structuredClone(d.lights ?? []) }); }));
     // POI-6: its revisions (once the store has it), and its model out as a .glb
     const more = el('div', 'dfpoi-row');
     if (edit.entryOf(d.id)?.state !== 'new' || edit.entryOf(d.id)?.saved) more.append(btn(t('poi.review.history', 'History...'), () => { dialogsClosed(); review.openHistory(d.id); }));
     if (ownParts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: ownParts, lights: d.lights ?? [] })));
     out.push(more);
-    if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not kept in the library or exported.')));
+    if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
     return out;
   }
 
@@ -555,7 +555,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       out.push(btn(t('poi.editor.editUvs', 'Edit UVs...'), () => openUv(sel.id, part.key, k)));
     });
     // POI-4b: the part alone kept in the library - its own turn and size, standing at the entry's origin
-    if (hasOwnModel(part)) out.push(btn(t('poi.library.keepPart', 'Keep this part in the library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
+    if (hasOwnModel(part)) out.push(btn(t('poi.library.keepPart', 'Save this part to library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
     // AUDIT POI U1: the part it was drawn for - it read the selection, and the second press of a double one, the part gone
     // and its POI selected, took the whole new POI
     out.push(btn(t('poi.editor.copyPart', 'Copy this part (Ctrl+C)'), () => copySelection(false)));
@@ -1008,7 +1008,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     }
     closeDialog();
     if (r.open[0] && edit.has(r.open[0].id)) edit.select({ id: r.open[0].id, part: null });
-    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}} and kept {entries, plural, one {# library entry} other {# library entries}}. Save each as a draft to send it.', { n: opened, entries: r.shelved })
+    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}}; {entries, plural, one {# library entry is} other {# library entries are}} now in the library. Save each POI as a draft to send it.', { n: opened, entries: r.shelved })
       + (kept ? ` ${t('poi.pack.keptOpen', '{n, plural, one {# POI was} other {# POIs were}} left as you had them (unsaved changes).', { n: kept })}` : ''));
     return true;
   }
@@ -1035,7 +1035,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // POI-4b: kept in the library as it is placed, unless the builder says not
     const keepToo = check(true, () => {});
     box.append(el('div', 'dfpoi-h', t('poi.editor.importTitle', 'Import a model (glTF 2.0)')), el('div', '', t('poi.editor.importHint', 'Choose a .glb, or a .gltf with its .bin and pictures.')), files, field(t('poi.editor.split', 'Make'), splitSel),
-      field(t('poi.library.keepImport', 'Keep it in the library too'), keepToo), body, acts);
+      field(t('poi.library.keepImport', 'Save to library too'), keepToo), body, acts);
     files.addEventListener('change', async () => {
       const list = [...(files.files ?? [])];
       const main = list.find((f) => /\.(glb|gltf)$/i.test(f.name));
