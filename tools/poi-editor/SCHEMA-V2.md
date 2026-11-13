@@ -21,8 +21,8 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   where trades and events settle on a test copy of the builder's gold and items by the service's rules (an event that only
   gives, once), and persistent variables and claims are not stored. The service still refuses a draft's trade or event claim
   with `poi-not-live`.
-- A document with a stack's `recipe` is refused by an older law. Deploy the account service before the site; an older
-  game skips such a POI until it updates.
+- A document with a stack's `recipe` or an encounter's `pacifiable` is refused by an older law. Deploy the account service
+  before the site; an older game skips such a POI until it updates.
 - The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
   the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 
@@ -36,7 +36,7 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 | `lights[]`, `npcs[]` | 32 | `group, visible, locked`. People also take `route, dialogue, trade, radius (1..20), showWhen`. |
 | `flats` | 200 | `kind` is `billboard`, `mount` or `paperdoll`. See below. |
 | `routes` | 32, 2..128 waypoints each | `{ key, name, mode: loop, pingpong or once, waypoints[{ key, name, t, radius, waitS, onArriveEvent? }] }` |
-| `encounters` | 16, 32 spawns each | Center, radius, `aggression` (hostile or passive), `respawn`, `complete`, `onStart`, `onComplete`. The game starts an idle encounter when the player walks within its radius, or by a `start_encounter` action; `respawn: on_reentry` starts it again on the next walk in. |
+| `encounters` | 16, 32 spawns each | Center, radius, `aggression` (hostile or passive), `pacifiable`, `respawn`, `complete`, `onStart`, `onComplete`. The game starts an idle encounter when the player walks within its radius, or by a `start_encounter` action; `respawn: on_reentry` starts it again on the next walk in. `pacifiable` is optional, true or false; left out, the enemies can be pacified as before. The game does not act on it yet. |
 | `interactives` | 64 | `chest, door, switch, quest_object, trigger`, each with its own states, an appearance, a radius, an optional `keyItem`, and an optional `stateVar`: the key of a persistent text variable (`character` or `poi_global`) whose value, when it names one of the object's states, the object takes when the POI loads and when the variable changes. A door or chest opens when used (a locked one with its key item), an open door shuts, and an open door's `part` appearance is not drawn and does not block. A switch is off (`inactive`) or on (`active`), off by default in both editors, and each use flips it. A quest object cannot be used while `inactive`. A switch or quest object with a `keyItem` is used only by a holder of the key. A use changes the state, not the `stateVar` variable: events set that. |
 | `dialogues` | 32, 64 nodes each | Nodes of speech with 1..8 replies. A reply goes to a node, closes, opens a trade, runs a recipe or starts an event. |
 | `trades` | 32, 8 recipes each | Required and rewarded item stacks, gold, a limit mode, cooldown and success event. |

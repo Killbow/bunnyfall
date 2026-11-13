@@ -57,6 +57,7 @@ const PROBLEM = {
   foe: () => t('poi.problem.foe', 'This is not a creature the game has.'),
   'foes-many': (a) => t('poi.problem.foesMany', 'One encounter may spawn at most {max} creatures in all.', a),
   aggression: () => t('poi.problem.aggression', 'Choose whether the creatures are hostile or passive.'),
+  pacifiable: () => t('poi.problem.pacifiable', 'Choose whether language skills can pacify these enemies.'),
   respawn: () => t('poi.problem.respawn', 'Choose when the creatures return.'),
   'complete-rule': () => t('poi.problem.completeRule', 'Choose how the encounter ends.'),
   interactives: (a) => t('poi.problem.interactives', 'At most {max} interactive objects.', a),

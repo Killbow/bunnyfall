@@ -61,6 +61,8 @@ export const poiFoeIdOk = (/** @type {any} */ id) => Number.isInteger(id) && POI
 export const POI_FLAT_KINDS = Object.freeze(['billboard', 'mount', 'paperdoll']);
 export const POI_ROUTE_MODES = Object.freeze(['loop', 'pingpong', 'once']);
 export const POI_AGGRESSION = Object.freeze(['hostile', 'passive']);
+/** Returns whether language skills can pacify an encounter's enemies (true unless `pacifiable` is false). */
+export const encounterPacifiable = (/** @type {any} */ e) => e?.pacifiable !== false;
 export const POI_RESPAWN = Object.freeze(['never', 'on_reentry']);
 export const POI_COMPLETE_RULES = Object.freeze(['all_dead', 'leader_dead', 'timer_survived']);
 export const POI_INTERACTIVE_KINDS = Object.freeze(['chest', 'door', 'switch', 'quest_object', 'trigger']);
@@ -91,7 +93,7 @@ const KEYS = Object.freeze({
   flatLight: set('color', 'radius', 'intensity', 'flicker'),
   route: set('key', 'name', 'mode', 'waypoints'),
   waypoint: set('key', 'name', 't', 'radius', 'waitS', 'onArriveEvent'),
-  encounter: set('key', 'name', 'center', 'radius', 'aggression', 'spawns', 'respawn', 'complete', 'onStart', 'onComplete'),
+  encounter: set('key', 'name', 'center', 'radius', 'aggression', 'pacifiable', 'spawns', 'respawn', 'complete', 'onStart', 'onComplete'),
   spawn: set('key', 'foe', 'count', 'level', 'at', 'spread', 'route'),
   complete: set('rule', 'leader', 'seconds'),
   interactive: set('key', 'name', 'kind', 'appearance', 't', 'yaw', 'radius', 'state', 'keyItem', 'stateVar', 'group', 'visible', 'locked'),
@@ -175,9 +177,9 @@ export function poiV2Problems(raw, kit) {
   const valueOk = (/** @type {any} */ v, /** @type {string} */ type) => (type === 'boolean' ? typeof v === 'boolean'
     : type === 'number' ? finite(v) && Math.abs(v) <= 1e9 : type === 'string' ? textOk(v, 64) : false);
 
-  // an item stack: the game's own numbers, as the server mints them. A potion's `recipe` is only a known key here:
-  // poiTradeLaw.js checks its value at save, submission, and approval, so this law, which the game runs over every
-  // live POI, refuses nothing new.
+  // Checks an item stack against the game's own numbers, as the server mints them. A potion's `recipe` and an
+  // encounter's `pacifiable` are only known keys here: poiTradeLaw.js checks their values at save, submission, and
+  // approval, so this law, which the game runs over every live POI, refuses nothing new.
   const stack = (/** @type {any} */ s, /** @type {string} */ at) => {
     if (!isObj(s)) { say(at, 'not-object'); return; }
     if (!int(s.template, 0, P.decorTemplateMax)) say(`${at}.template`, 'template', { max: P.decorTemplateMax });

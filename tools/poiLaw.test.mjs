@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, POI_DOC_VERSIONS, POI_LIMITS, poiDocBytesOf } from '../src/poi/poiLaw.js';
-import { POI_V2_LIMITS, POI_V2_PINS, POI_FOE_RANGES, poiFoeIdOk } from '../src/poi/poiLawV2.js';
+import { POI_V2_LIMITS, POI_V2_PINS, POI_FOE_RANGES, poiFoeIdOk, encounterPacifiable } from '../src/poi/poiLawV2.js';
 import * as tradeLaw from '../src/poi/poiTradeLaw.js';
 import { poiV2Example } from './poiV2Examples.mjs';
 
@@ -352,7 +352,19 @@ test('a stack may name a potion\'s recipe on the Glass Bottle; the trade law ref
   assert.deepEqual(poiTradeProblems(d).map((p) => p.code), ['item-recipe']);
 });
 
-test('the new problem code has a sentence of its own', async () => {
+test('an encounter may say whether its enemies can be pacified; left out, they can, as before', () => {
+  const pay = (fn) => { const d = poiV2Example(); fn(d.encounters[0]); return poiPayProblems(d, poiDocProblems(d)).map((p) => `${p.path}:${p.code}`); };
+  assert.equal(poiV2Example().encounters[0].pacifiable, undefined);
+  assert.equal(encounterPacifiable(poiV2Example().encounters[0]), true);
+  assert.equal(encounterPacifiable({ pacifiable: true }), true);
+  assert.equal(encounterPacifiable({ pacifiable: false }), false);
+  assert.deepEqual(pay((e) => { e.pacifiable = false; }), []);
+  assert.deepEqual(pay((e) => { e.pacifiable = true; }), []);
+  assert.deepEqual(edit((d) => { d.encounters[0].pacifiable = 'no'; }), [], 'the shape law only knows the key');
+  assert.deepEqual(pay((e) => { e.pacifiable = 'no'; }), ['encounters[0].pacifiable:pacifiable']);
+});
+
+test('the new problem codes have sentences of their own', async () => {
   const { problemText } = await import('../src/poi/poiText.js');
-  for (const code of ['item-recipe']) assert.ok(!problemText({ path: 'x', code }).startsWith('Something is wrong'), code);
+  for (const code of ['item-recipe', 'pacifiable']) assert.ok(!problemText({ path: 'x', code }).startsWith('Something is wrong'), code);
 });

@@ -4,8 +4,8 @@
 // poiLawV2.js checks a stack's shape: a template number, a group name, a material, and a count. This file
 // asks the game's catalogs whether that stack could exist, in the terms the server uses when it mints a reward
 // (server-account/src/staffGive.js mintGift). The server still mints the piece and runs the item law over it at
-// settlement; this check lets the editor and the approval step refuse what settlement would refuse. It also checks a
-// stack's `recipe`, which the shape law knows only by key.
+// settlement; this check lets the editor and the approval step refuse what settlement would refuse. It also checks the
+// values of the fields the shape law knows only by key (a stack's `recipe`, an encounter's `pacifiable`).
 // Everything imported here lives under src/, so the account service, the editor, and an offline game can all load it.
 
 import { lawTemplate, templateGroups } from '../systems/item/itemLaw.js';
@@ -69,6 +69,20 @@ export function poiTradeProblems(doc) {
 }
 
 /**
+ * Validates encounter fields whose values the shape law leaves to this file (`pacifiable`, when given, must be a
+ * boolean). Run this after poiDocProblems finds no shape problems.
+ * @param {any} doc @returns {PoiProblem[]}
+ */
+export function poiEncounterProblems(doc) {
+  /** @type {PoiProblem[]} */
+  const out = [];
+  (doc?.encounters ?? []).forEach((/** @type {any} */ e, /** @type {number} */ i) => {
+    if (e?.pacifiable !== undefined && typeof e.pacifiable !== 'boolean') out.push({ path: `encounters[${i}].pacifiable`, code: 'pacifiable' });
+  });
+  return out;
+}
+
+/**
  * Every recipe, and every event whose branch the service settles (items, gold, or a kept variable moved), whose
  * condition reads a variable the service does not keep (`instance` or `event` scope): online the service refuses to
  * judge such a condition, so the recipe or the event could never run. Run it after poiDocProblems finds nothing.
@@ -93,4 +107,4 @@ export function poiSettleProblems(doc) {
  * law's, poiDocProblems), else what settlement would refuse. The service and the in-game editor say the same list.
  * @param {any} doc @param {PoiProblem[]} own @returns {PoiProblem[]}
  */
-export const poiPayProblems = (doc, own) => (own.length ? own : [...poiTradeProblems(doc), ...poiSettleProblems(doc)]);
+export const poiPayProblems = (doc, own) => (own.length ? own : [...poiTradeProblems(doc), ...poiSettleProblems(doc), ...poiEncounterProblems(doc)]);
