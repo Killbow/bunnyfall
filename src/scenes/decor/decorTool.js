@@ -900,7 +900,7 @@ export function createDecorTool(deps) {
   }
 
   /** HOME-YARD: how many pieces this place holds - a yard its own, a room its own cap, a guild hall DECOR_HALL_CAP, else DECOR_CAP. */
-  const capHere = (r) => (r?.yard && Number.isSafeInteger(deps.yardCap) ? deps.yardCap : Number.isSafeInteger(r?.cap) ? r.cap : r?.hall ? DECOR_HALL_CAP : DECOR_CAP);   // SEAT-HALL: a room's own cap (the Charter Room's hundred) wins before the hall's
+  const capHere = (r) => (r?.free && Number.isSafeInteger(r.cap) ? r.cap : r?.yard && Number.isSafeInteger(deps.yardCap) ? deps.yardCap : Number.isSafeInteger(r?.cap) ? r.cap : r?.hall ? DECOR_HALL_CAP : DECOR_CAP);   // SEAT-HALL: a room's own cap (the Charter Room's hundred) wins before the hall's
   /** HOME-LOOK: A LOOK TRIED ON THE HOUSE (`preview`, the owner's own screen), PUT AWAY (`reset`), or PAINTED (`commit` -
    *  written to the service, said). */
   async function paintAct(what, look) {
@@ -1077,6 +1077,7 @@ export function createDecorTool(deps) {
     const entry0 = editing ? { ...catalogueEntry, light: editing.light ?? null, storage: !!editing.storage, station: editing.station ?? null } : catalogueEntry;   // AUDIT HOME-STATIONS S1: a moved station stays one
     const entry = yard ? { ...entry0, storage: false, light: null, station: null } : entry0;
     const free = entry.kind === 'own';   // DECOR2a: the player's own item - no price, whatever its size
+    const gratis = free || !!deps.room?.()?.free;   // BUNNYFALL CAMPS: a camp's pieces cost nothing
     // a move, and a duplicate, already paid for a size: the scan may not have reached it yet
     const priced = editing ?? (Number.isSafeInteger(pose?.paid) && pose.paid > 0 && pose.scale > 0 ? pose : null);
     const radius = free ? null : s.radiusOf(catalogueEntry) ?? (priced ? priced.paid / (DECOR_PRICE_PER_METRE * priced.scale) : null);
@@ -1084,7 +1085,7 @@ export function createDecorTool(deps) {
     const at = Array.isArray(pose?.at) && pose.at.length >= 3 ? pose.at : null;
     const eye = at ? [at[0], at[1], at[2]] : flightStart(editing);   // DECOR-ROOMS: in the room chosen - else at the eye; a hotbar piece keeps the flight's eye
     placing = {
-      entry, radius, editing, pose: from, through: pose?.through ?? null, hotbar: !!pose?.hotbar, free, placer: null, fly: [...eye], start: [...eye], id: editing ? editing.id : mintDecorId(), piece: null,
+      entry, radius, editing, pose: from, through: pose?.through ?? null, hotbar: !!pose?.hotbar, free: gratis, placer: null, fly: [...eye], start: [...eye], id: editing ? editing.id : mintDecorId(), piece: null,
       refused: null, busy: false, batch: null, flatSize: null, rise: 0, art: null, decal: null, inside: [], mirrors: true, release: null,   // DECOR-LPT: the host's picture's
       door: entry.kind === 'door', flip: false, marks: null, markSig: '',   // HOME-DOORS: hung in a doorway, its marks
       lotMarks: null, lotSig: '', lifted: !!editing,   // HOME-YARD: the lot's edge; a move hides the piece where it stood
@@ -1333,7 +1334,7 @@ export function createDecorTool(deps) {
    *  (ledger.js, a key shown twice); a piece put in since was gone. In the #1223 build the draft outlived the room, and a
    *  Discard in the ship's or the caravan's decorator stood the home's chests there with a copy of all they held. */
   let draft = null;
-  const usesBatch = (r) => !!(r && r.kind === 'home' && !r.seat && typeof deps.homeDecor?.batch === 'function');
+  const usesBatch = (r) => !!(r && r.kind === 'home' && !r.seat && !r.free && typeof deps.homeDecor?.batch === 'function');   // BUNNYFALL CAMPS: a camp writes a piece at a time
   const stages = (r) => usesBatch(r) || r?.kind === 'caravan';
   const roomKey = (r) => `${deps.visit?.() ?? 0}:${r?.kind ?? ''}:${r?.mapId ?? ''}:${r?.buildingKey ?? ''}:${r?.yard ? 1 : 0}`;
   /** The draft of the room standing now. A hall's picture is never written into a wagon. */
@@ -1734,7 +1735,7 @@ export function createDecorTool(deps) {
         deps.wallet().pay(price);
         standRound(p, piece);
       }
-      deps.say?.(`${p.entry.name} placed for ${price} gold.`);
+      deps.say?.(price > 0 ? `${p.entry.name} placed for ${price} gold.` : `${p.entry.name} placed.`);
       if (p.door) forgetRooms(true);   // HOME-DOORS: a door shut in its doorway parts the rooms either side
       p.id = mintDecorId();   // the next of the same piece is a new piece
       return true;
@@ -1837,7 +1838,7 @@ export function createDecorTool(deps) {
   async function commitMove(p, r) {
     const was = p.editing;
     if (whyNotHere(p)) return false;   // HOME-YARD: off the lot; SEAT-HALL: out of the Charter Room - the bar says why
-    const price = decorEditPrice(p.radius, was, p.piece.scale);
+    const price = r?.free ? { pay: 0, refund: 0, paid: 0 } : decorEditPrice(p.radius, was, p.piece.scale);   // BUNNYFALL CAMPS: free
     const batching = stages(r);
     if (price.pay > (deps.wallet?.().gold ?? 0) + (batching ? draftGoldNow() : 0)) return false;   // the bar says why
     p.busy = true;
@@ -2352,7 +2353,7 @@ export function createDecorTool(deps) {
       renderer?.writeDecalSlot?.(p.decal, 0, decorMountFloats(quad));
     }
     const price = p.door && p.piece ? p.piece.paid : p.placer ? p.placer.price() : null;   // HOME-DOORS: a door's price is its fit's
-    const edit = p.editing && p.placer ? decorEditPrice(p.radius, p.editing, p.door && p.piece ? p.piece.scale : p.placer.state().scale) : null;
+    const edit = p.editing && p.placer && !deps.room?.()?.free ? decorEditPrice(p.radius, p.editing, p.door && p.piece ? p.piece.scale : p.placer.state().scale) : null;
     bar?.show({
       name: p.editing ? `Moving ${p.entry.name}` : p.entry.name, price, priceText: edit ? decorEditText(edit) : p.free ? 'free' : null,
       count: pool.size(), cap: capHere(deps.room?.()),
@@ -2439,7 +2440,7 @@ export function createDecorTool(deps) {
     const lotWhy = whyNotHere(p) ?? null;   // HOME-YARD: the lot; SEAT-HALL: the Charter Room
     if (lotWhy) return lotWhy;
     if (p.editing) {   // a move is never refused for the room's count; a resize may be for the gold
-      const { pay } = decorEditPrice(p.radius, p.editing, p.door ? p.piece.scale : p.placer.state().scale);
+      const { pay } = deps.room?.()?.free ? { pay: 0 } : decorEditPrice(p.radius, p.editing, p.door ? p.piece.scale : p.placer.state().scale);
       const gold = deps.wallet?.().gold ?? 0;
       if (pay > gold) return `You need ${pay - gold} more gold.`;
       return !deps.touch && !deps.locked?.() ? 'Click to look around again.' : null;

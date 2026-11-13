@@ -342,7 +342,8 @@ const withChapterTitles = async (/** @type {any} */ ctx, /** @type {any} */ play
   ? { ...player, chapterTitles: [...new Set((await chapterTitlesOfAccount(ctx.db, player.id, ctx.nowS, seasonZeroOf(env.SEASON_ZERO_WEEK))).map((t) => t.title))] } : player);
 import { huntState, huntClear, withMasteryMarks, HUNT_STATUS } from './hunts.js';   // HUNTERS-MARK: the hunt's ledger; MARKS-OF-MASTERY: the titles read off it
 import { decorOf, placeDecor, moveDecor, removeDecor, hideDecorBase, yardsKept, forgetYards, settleYards } from './decor.js';   // YARD-SHED: a town's yards kept   // DECOR1: an online home's decor; BASE-HIDE: what its owner took out
-import { commitDecorBatch } from './decorBatch.js';   // DECOR-BATCH: one Confirm for a home's draft
+import { commitDecorBatch } from './decorBatch.js';
+import { campRoute } from './camps.js';   // BUNNYFALL CAMPS: a player's camp in the open world   // DECOR-BATCH: one Confirm for a home's draft
 import { decorUse } from './decorAccess.js';   // DECOR-ACCESS: who may use a container or a station
 import { DECOR_BATCH_BYTES } from '../../src/net/decorLaw.js';
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
@@ -1780,11 +1781,19 @@ const service = {
           const r = await decorOf(ctx, who.player, body);
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }
+        if (path === '/v1/camps/near') {   // BUNNYFALL CAMPS: the camps round a pixel, every session's to read
+          const r = await campRoute(ctx, who.player, path, body);
+          return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
+        }
         if (path === '/v1/homes/rooms') {   // HOME-RENT: a home's rooms, read by anyone at its door
           const r = await roomsOf(ctx, who.player, body);
           return 'error' in r ? no(r.error, r.error === 'no-home' ? 404 : 400, origin) : json(r, 200, origin);
         }
         if (accountKind(who.player) !== 'linked') return no('homes-need-account', 403, origin);
+        if (path.startsWith('/v1/camps/')) {   // BUNNYFALL CAMPS: pitched, struck, renamed and furnished - a linked account's
+          const r = await campRoute(ctx, who.player, path, body);
+          return 'error' in r ? no(r.error, r.error === 'no-camp' || r.error === 'no-decor' ? 404 : r.error === 'rate-limited' ? 429 : 400, origin) : json(r, 200, origin);
+        }
         // REALM P2.2b: a realm character's record is in R2, and moves with the act; a sequence refused says the service's own
         const hctx = { ...ctx, bucket: env.SAVES };
         const realmNo = (r) => (r.error === 'seq' ? json({ error: 'seq', seq: r.seq }, 409, origin) : r.error === 'lease' || r.error === 'realm-gold' ? no(r.error, 409, origin) : null);

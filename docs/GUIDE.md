@@ -92,6 +92,7 @@ authors to `src/ui/credits.js`.
 
 | Feature | Files |
 |---|---|
+| Camps: a camping kit's tent kept as a camp and decorated (100 pieces, free, until packed) | `src/net/campLaw.js`, `server-account/src/camps.js` (migration 0207), stood and furnished through `src/scenes/homeYards.js` |
 | Seven new guilds and their halls (online only) | `src/net/bunnyGuildLaw.js`, `src/systems/guild/bunny*.js`, `src/scenes/bunnyHallBanners.js`, `src/ui/town/hallAutomap.js` |
 | Guild hall interiors (house stripped, each guild's trade furnished about the clerk) | `src/scenes/bunnyHallFurnish.js`, wired in `src/scenes/interiorContext.js` |
 | Raid camps, waves gathering and marching in, smoke over camps and burning houses | `src/systems/raidMuster.js`, `src/scenes/raidMusterHost.js`, wired in `src/systems/raidingParties.js` and `world.js` |
