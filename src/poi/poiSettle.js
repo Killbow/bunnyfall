@@ -104,11 +104,4 @@ export function giveGoods(save, records, gold) {
   save.goldPieces = goldOf(save) + gold;
 }
 
-/**
- * Builds the claim names under which the account service tracks POI limits (while poiDmCore.js and poiDmRuntime.js
- * still build local claim names inline). An event uses `event/<event>` and a recipe uses `<trade>/<recipe>`, except
- * that a recipe in a trade keyed `event` uses `trade/event/<recipe>`. Because keys contain no slash, a recipe claim
- * never collides with an event claim, and all other claim names stay unchanged.
- */
-export const eventClaim = (/** @type {string} */ event) => `event/${event}`;
-export const recipeClaim = (/** @type {string} */ trade, /** @type {string} */ recipe) => (trade === 'event' ? `trade/event/${recipe}` : `${trade}/${recipe}`);
+export { eventClaim, recipeClaim } from './poiDmCore.js';

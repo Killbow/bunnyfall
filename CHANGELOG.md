@@ -15,7 +15,7 @@ the last release (scripts/changelogNotes.mjs).
 
 - Fixed: The in-game POI editor draws routes as wide bands that rise over hills, with slow arrows that show which way people walk.
 - Fixed: The in-game POI editor's move, turn, and size handles brighten and grow under the cursor, with size boxes on the selection's faces and corners.
-- Fixed: Online, a recipe in a POI trade named Event no longer shares its limit with a POI event that has the recipe's name.
+- Fixed: A recipe in a POI trade named Event no longer shares its limit with a POI event that has the recipe's name, online or offline.
 - Fixed: A POI that asks for a Glass Bottle now counts and takes only empty bottles, never one of your potions.
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.
 - A staff event's monsters now stand near its pillar, so players can find them there. The Forbidden One lets out an evil cackle when she appears. (The voices are the game's existing clips for now.)

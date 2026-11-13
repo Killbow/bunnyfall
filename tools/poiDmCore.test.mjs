@@ -118,6 +118,18 @@ test('limits: where each mode counts, and cooldown and daily reset', () => {
   assert.equal(recipeBlock(day, 'nyra', 'brew'), null);
 });
 
+test('the Sandbox counts a recipe in a trade keyed event separately from the event with the same key', () => {
+  const d = doc();
+  d.trades[0].key = 'event';
+  d.trades[0].recipes[0].limitMode = 'once_per_char';
+  const dm = createDm(d, { items: [{ template: 16, count: 50 }, { template: 42, count: 20 }] });
+  dm.claims['event/brew|char:sandbox'] = { n: 1, last: 0 };
+  assert.equal(recipeBlock(dm, 'event', 'brew'), null, 'an event claim named event/brew does not limit the recipe');
+  assert.equal(runRecipe(dm, 'event', 'brew').ok, true);
+  assert.deepEqual(dm.claims['trade/event/brew|char:sandbox'], { n: 1, last: 0 });
+  assert.equal(recipeBlock(dm, 'event', 'brew'), 'limit');
+});
+
 test('a stock runs out for everyone', () => {
   const d = doc();
   d.trades[0].recipes[0].limitMode = 'global_stock';

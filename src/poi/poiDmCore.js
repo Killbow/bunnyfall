@@ -75,6 +75,10 @@ export function claimRule(recipe, { char, player, nowS }) {
   return rules;
 }
 
+/** The service saves claims under these names; `trade/event/` keeps a trade `event` recipe apart from `event/<key>`. */
+export const eventClaim = (/** @type {string} */ event) => `event/${event}`;
+export const recipeClaim = (/** @type {string} */ trade, /** @type {string} */ recipe) => (trade === 'event' ? `trade/event/${recipe}` : `${trade}/${recipe}`);
+
 /** An event that gives and takes nothing back is claimed once per character; one that takes something is an exchange. */
 export function eventRule(/** @type {any[]} */ actions, /** @type {string} */ char) {
   const gives = actions.some((a) => a.k === 'give_item' || a.k === 'give_gold');
@@ -447,7 +451,7 @@ export function choose(dm, i, { run = true } = {}) {
 export function recipeBlock(dm, tradeKey, recipeKey) {
   const r = byKey(byKey(dm.doc.trades, tradeKey)?.recipes, recipeKey);
   if (!r) return 'missing';
-  return recipeWhy(r, { char: dm.char, player: dm.player, nowS: dm.now }, ctxOf(dm), claimOfDm(dm, `${tradeKey}/${recipeKey}`));
+  return recipeWhy(r, { char: dm.char, player: dm.player, nowS: dm.now }, ctxOf(dm), claimOfDm(dm, recipeClaim(tradeKey, recipeKey)));
 }
 
 /** Run a recipe on the model, as the service would settle it. Answers `{ ok: true }` or `{ ok: false, why }`. @param {Dm} dm @param {string} tradeKey @param {string} recipeKey */
@@ -459,7 +463,7 @@ export function runRecipe(dm, tradeKey, recipeKey) {
   dm.gold -= r.requireGold ?? 0;
   for (const s of r.rewardItems ?? []) giveStack(dm, s);
   dm.gold += r.rewardGold ?? 0;
-  bump(dm, `${tradeKey}/${recipeKey}`, claimRule(r, { char: dm.char, player: dm.player, nowS: dm.now }));
+  bump(dm, recipeClaim(tradeKey, recipeKey), claimRule(r, { char: dm.char, player: dm.player, nowS: dm.now }));
   note(dm, { k: 'trade', trade: tradeKey, recipe: recipeKey, name: r.name, took: { items: r.requireItems ?? [], gold: r.requireGold ?? 0 }, gave: { items: r.rewardItems ?? [], gold: r.rewardGold ?? 0 } });
   if (r.onSuccessEvent) runEvent(dm, r.onSuccessEvent);
   return { ok: true };

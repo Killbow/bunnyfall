@@ -37,6 +37,9 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   It takes the larger count, so it never allows an extra claim. A limit that the old code in the gap and the new code
   both counted can still end up over by one. The gap also includes the deploy's wait for the relay, not only the Worker
   upload.
+- Offline, the game counts under the same names. When a POI loads, claims saved on the device under the old names are
+  copied the same way (larger count, later time). The game saves claims with `names: 2` and skips the copy for a store
+  that has it.
 - The in-game editor edits `groups` and the `visible` and `locked` marks in its outliner. `visible: false` hides a row in
   the editor only; the game still stands it. A locked row cannot be picked, moved, or deleted in the editor.
 

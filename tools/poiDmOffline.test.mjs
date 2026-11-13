@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
-import { createPoiDm, mintStack } from '../src/poi/poiDmRuntime.js';
+import { createPoiDm, mintStack, deviceClaims } from '../src/poi/poiDmRuntime.js';
 import { createWeapon } from '../src/combat/enemyEquipment.js';
 import { ARROW_TEMPLATE } from '../src/systems/inventory.js';
 import { GOLD_INT_MAX } from '../src/systems/item/itemLaw.js';
@@ -227,4 +227,48 @@ test('offline, a trade whose goods are worn is refused in the service\'s words',
   assert.equal(w.player.goldPieces, 0);
   assert.equal(w.count(71), 10);
   assert.ok(w.said.includes('You are missing items.'), w.said.join(' | '));
+});
+
+const eventTrade = (d) => {
+  d.trades.find((t) => t.key === 'supplies').key = 'event';
+  for (const e of d.events) for (const a of e.then) if (a.trade === 'supplies') a.trade = 'event';
+  for (const o of d.dialogues[0].nodes[0].options) if (o.then.trade === 'supplies') o.then.trade = 'event';
+};
+const deliveryGift = [{ key: 'delivery', name: 'Delivery gift', trigger: ZONE, then: [{ k: 'give_gold', amount: 25 }] }];
+const supplies = [{ template: 71, count: 10 }, { template: 72, count: 5 }];
+
+test('offline, a recipe in a trade keyed event and an event with the recipe\'s key count their limits separately', async () => {
+  const w = setup(deliveryGift, { items: supplies, edit: eventTrade });
+  await w.visit();
+  assert.equal(w.player.goldPieces, 25, 'the gift event gives once');
+  await w.buy('delivery');
+  assert.equal(w.player.goldPieces, 275, 'the once-per-character recipe still runs after the event');
+  const claims = w.rt.modelOf(w.doc.id).claims;
+  assert.deepEqual(Object.keys(claims).sort(), ['event/delivery|char:local', 'trade/event/delivery|char:local']);
+  const back = setup(deliveryGift, { items: supplies, edit: eventTrade });
+  await back.buy('delivery');
+  await back.visit();
+  assert.equal(back.player.goldPieces, 275, 'the event still gives after the recipe');
+});
+
+test('offline, a claim saved on the device under the old name still limits the recipe, and is carried over only once', async () => {
+  const key = `bunnyfall.poi.${poiV2Example().id}.local.claims`;
+  const old = setup([], { items: supplies, edit: eventTrade, store: new Map([[key, { 'event/delivery|char:local': { n: 1, last: 0 } }]]) });
+  await old.buy('delivery');
+  assert.deepEqual([old.player.goldPieces, old.count(71)], [0, 10], 'the recipe used before the change stays used');
+  assert.ok(old.said.some((l) => /already done/.test(l)), old.said.join(' | '));
+  const now = setup([], { items: supplies, edit: eventTrade, store: new Map([[key, { names: 2, 'event/delivery|char:local': { n: 1, last: 0 } }]]) });
+  await now.buy('delivery');
+  assert.equal(now.player.goldPieces, 250, 'an event claim saved after the change does not limit the recipe');
+  assert.equal(now.store.get(key).names, 2, 'the store is saved with its naming version');
+  assert.equal(now.store.get(key)['trade/event/delivery|char:local'].n, 1);
+});
+
+test('device claims carry an old name over with the larger count and the later time, never a sum', () => {
+  const got = deviceClaims({ 'event/a|global': { n: 2, last: 5 }, 'trade/event/a|global': { n: 1, last: 9 }, 'event/b|cool:local': { n: 1, last: 7 }, 'x/y|char:local': { n: 1, last: 1 } });
+  assert.deepEqual(got['trade/event/a|global'], { n: 2, last: 9 });
+  assert.deepEqual(got['event/a|global'], { n: 2, last: 5 }, 'the old row stays for the event');
+  assert.deepEqual(got['trade/event/b|cool:local'], { n: 1, last: 7 });
+  assert.equal(got['trade/x/y|char:local'], undefined, 'other names are not copied');
+  assert.deepEqual(Object.keys(deviceClaims({ names: 2, 'event/a|global': { n: 2, last: 5 } })), ['event/a|global'], 'a store saved after the change is read as it is');
 });

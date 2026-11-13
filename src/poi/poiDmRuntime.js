@@ -11,7 +11,7 @@ import {
   createDm, fire, advance, runEvent, completeEncounter, openDialogue, dialogueNow, choose, recipeBlock, claimRule,
   createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
 } from './poiDmCore.js';
-import { takeStacks, takeGold, countOf, goldOf } from './poiSettle.js';
+import { takeStacks, takeGold, countOf, goldOf, eventClaim, recipeClaim } from './poiSettle.js';
 import { xform } from './poiRuntime.js';
 import { setItemFields, mintCondition } from '../systems/item/itemTemplates.js';
 import { lawTemplate, templateGroups, itemFindings, GOLD_INT_MAX } from '../systems/item/itemLaw.js';
@@ -68,12 +68,28 @@ const NO_MOVE = Object.freeze([0, 0, 0]);
  */
 export const keptClaim = (k) => /\|(char:|acct:|day:|cool:|global$)/.test(k);
 
+const CLAIM_NAMES = 2;
 /**
- * Mints a plain item stack offline the way `mintGift` does on the server (no enchantments and no realm ledger ID). An
- * arrow comes from `createWeapon`'s arrow branch, as on the server, so its `material` is ignored and the stack holds
- * `s.count` arrows.
- * @param {{ template: number, group?: string, material?: number, count: number }} s
+ * Before `names: 2`, a trade `event` recipe used `event/<key>`: copy the row, never sum, as migration 0209 does.
+ * @param {any} saved
  */
+export function deviceClaims(saved) {
+  /** @type {Record<string, { n: number, last: number }>} */
+  const out = {};
+  if (!saved || typeof saved !== 'object') return out;
+  for (const [k, c] of Object.entries(saved)) if (keptClaim(k) && Number.isSafeInteger(c?.n) && c.n > 0) out[k] = { n: c.n, last: Number(c.last) || 0 };
+  if (saved.names === CLAIM_NAMES) return out;
+  for (const [k, c] of Object.entries(out)) {
+    const m = /^event\/([^/|]+)(\|.*)$/.exec(k);
+    if (!m) continue;
+    const to = `${recipeClaim('event', m[1])}${m[2]}`;
+    const was = out[to];
+    out[to] = was ? { n: Math.max(was.n, c.n), last: Math.max(was.last, c.last) } : { ...c };
+  }
+  return out;
+}
+
+/** @param {{ template: number, group?: string, material?: number, count: number }} s */
 export function mintStack(s) {
   if (!lawTemplate(s.template)) return null;
   const group = s.group ?? templateGroups(s.template)[0];
@@ -96,13 +112,7 @@ const MATERIALS = Object.freeze({
   Armor: new Set(Object.entries(ARMOR_MATERIAL).filter(([k, v]) => v >= 0 && k !== 'Chain2').map(([, v]) => v)),
 });
 
-/**
- * Mints the reward stacks for an event or trade offline, or returns null if the server would reject any stack (`mint`
- * in `server-account/src/poiTrade.js`): an unknown template, a group not valid for that template, a material not valid
- * for that group, a count above 1 for a non-stackable item, an item that fails `itemFindings`, or more than `GIVE_MAX`
- * records in total.
- * @param {{ template: number, group?: string, material?: number, count: number }[]} stacks
- */
+/** @param {{ template: number, group?: string, material?: number, count: number }[]} stacks */
 function mintEvent(stacks) {
   /** @type {any[]} */
   const out = [];
@@ -129,13 +139,7 @@ const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p
  *  the only scopes the server evaluates. @param {any} doc @param {any} c */
 const readsOnlyKept = (doc, c) => [...varsRead(c)].every((k) => persists(byKey(doc.variables, k)));
 
-/**
- * The outdoor enemy pool as the runtime uses it: a POI's enemy stands as a placed, unsaved enemy, counts as down once
- * it is a corpse, and is removed with no corpse when its encounter resets or its POI is taken down. A passive
- * encounter's enemy (`hostile: false`) spawns non-hostile like a non-hostile quest enemy: it stays peaceful until the
- * player attacks any non-hostile enemy in the area, which turns the area's peaceful enemies hostile.
- * @param {any} pool scenes/exteriorFoes.js createExteriorFoes
- */
+/** @param {any} pool scenes/exteriorFoes.js createExteriorFoes */
 export function poolFoes(pool) {
   return {
     spawnFoe: (/** @type {number} */ foe, /** @type {number[]} */ at, /** @type {any} */ o) => pool.spawnFoe(foe, at, { level: o.level ?? null, allied: false, placed: true, transient: true, groundAlign: { hitDist: null } })
@@ -225,8 +229,7 @@ export function createPoiDm(deps) {
       // and a recipe's counts, days, and cooldowns also last across visits (keptClaim). Every offline character uses ID
       // `local`, so each limit applies to the device as a whole, not to each character. In preview mode, claims live in
       // `claimsKept` for the duration of the test. Entries without a positive integer count `n` are ignored.
-      const claimed = preview ? null : store?.get(claimsKey(r));
-      if (claimed && typeof claimed === 'object') for (const [k, c] of Object.entries(claimed)) if (keptClaim(k) && Number.isSafeInteger(c?.n) && c.n > 0) r.dm.claims[k] = { n: c.n, last: Number(c.last) || 0 };
+      if (!preview) Object.assign(r.dm.claims, deviceClaims(store?.get(claimsKey(r))));
     }
     r.loaded = true;
   }
@@ -285,7 +288,7 @@ export function createPoiDm(deps) {
       }
       const rules = claimRule(rec, { char: r.dm.char, player: r.dm.player, nowS: r.dm.now });
       for (const c of rules) {
-        const k = `${trade}/${recipe}|${c.scope}`;
+        const k = `${recipeClaim(trade, recipe)}|${c.scope}`;
         r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now };
       }
       if (rules.length && !act && !preview) saveClaims(r);
@@ -323,7 +326,7 @@ export function createPoiDm(deps) {
         const branch = evalWhen(ev.when, r.dm.read()) ? 'then' : 'else';
         const actions = ev[branch] ?? [];
         const rules = eventRule(actions, r.dm.char);
-        if (rules.some((c) => (r.dm.claims[`event/${key}|${c.scope}`]?.n ?? 0) >= c.max)) { refuse('limit', ''); return; }
+        if (rules.some((c) => (r.dm.claims[`${eventClaim(key)}|${c.scope}`]?.n ?? 0) >= c.max)) { refuse('limit', ''); return; }
         const p = pack();
         const takes = actions.filter((/** @type {any} */ x) => x.k === 'take_item').map((/** @type {any} */ x) => x.item);
         const gold = actions.filter((/** @type {any} */ x) => x.k === 'take_gold').reduce((/** @type {number} */ n, /** @type {any} */ x) => n + x.amount, 0);
@@ -336,7 +339,7 @@ export function createPoiDm(deps) {
         takeStacks(p, takes); takeGold(p, gold);
         give(records, giveGold);
         deps.changed?.();
-        for (const c of rules) { const k = `event/${key}|${c.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
+        for (const c of rules) { const k = `${eventClaim(key)}|${c.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
         if (rules.length && !preview) saveClaims(r);
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
@@ -347,12 +350,11 @@ export function createPoiDm(deps) {
       if (runs.get(r.id) === r && (r.dm.dialogue || r.dm.trade)) show(r);
     }
   }
-  /** Saves this device's claims to device storage when offline (keptClaim), dropping daily claims of past days.
-   *  @param {any} r */
+  /** @param {any} r */
   function saveClaims(r) {
     if (!store) return;
-    /** @type {Record<string, { n: number, last: number }>} */
-    const out = {};
+    /** @type {Record<string, any>} */
+    const out = { names: CLAIM_NAMES };
     const today = Math.floor(r.dm.now / DAY_S);
     for (const [k, c] of Object.entries(r.dm.claims)) {
       const day = /\|day:[^|]*:(\d+)$/.exec(k);
