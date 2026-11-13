@@ -430,6 +430,11 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
           : btn(t('poi.dm.needsKey', 'Needs a key item'), () => put([...p, 'keyItem'], { template: 71, count: 1 }))) : null,
         select(t('poi.dm.stateVar', 'State saved in'), [...p, 'stateVar'], o.stateVar, kept.map((/** @type {any} */ v) => /** @type {[string, string]} */ ([v.key, v.name ?? v.key])), { none: t('poi.dm.stateVarNone', 'not saved (each visit starts as set above)') }),
         note(t('poi.dm.stateVarHint', 'A persistent text variable carries the object\'s state from visit to visit. An event sets it to a state\'s name, such as open or locked, and the object takes it. For a switch, it holds inactive (off) or active (on).')),
+        // The law takes only a persistent text variable here. Say why when the POI has a persistent true-or-false or
+        // number variable, and offer to make a text one for the object while it has none.
+        (d.variables ?? []).some((/** @type {any} */ v) => v.type !== 'string' && (v.scope === 'character' || v.scope === 'poi_global'))
+          ? note(t('poi.dm.stateVarOnlyText', 'True-or-false and number variables are not offered: a state is a word, so only a text variable holds it. To open this when something is true, set a text variable to a state in the same event.')) : null,
+        o.stateVar ? null : btn(t('poi.dm.stateVarMake', 'Make persistent text variable'), () => run((dd) => DM.addStateVariable(dd, o.key))),
         note(o.kind === 'trigger' ? t('poi.dm.zoneHint', 'A zone starts events when a player walks in. Make an event that starts when a player walks into a zone.') : t('poi.dm.objectHint', 'Events can start when a player uses this object.')),
       ] : [note(t('poi.dm.pickObject', 'Pick an object or add one.'))];
       const kind = /** @type {HTMLSelectElement} */ (el('select'));

@@ -110,6 +110,20 @@ export function addVariable(doc, name, type = 'boolean', scope = 'poi_global', w
 }
 /** Change a variable's type: its starting value goes back to the type's own. */
 export function setVariableType(doc, key, type) { const v = doc.variables?.find((x) => x.key === key); if (!v) return false; v.type = type; v.initial = /** @type {any} */ (INITIAL)[type]; return true; }
+/**
+ * Creates a per-character persistent text variable starting at the object's initial state, and sets the object to take
+ * its state from that variable. An object's state is a word (open, locked, active), so only a text variable holds one.
+ * @param {any} doc @param {string} objectKey
+ */
+export function addStateVariable(doc, objectKey) {
+  const o = doc.interactives?.find((x) => x.key === objectKey);
+  if (!o) return refuse(t('poi.dm.edit.noSuchRow', 'There is no such row.'));
+  const r = addVariable(doc, t('poi.dm.edit.stateOf', '{name} state', { name: o.name }), 'string', 'character', `${o.key}-state`);
+  if (r.refused) return r;
+  r.row.initial = o.state;
+  o.stateVar = r.row.key;
+  return r;
+}
 
 // ── routes ──
 export function addRoute(doc, name, at = [0, 0, 0]) {
