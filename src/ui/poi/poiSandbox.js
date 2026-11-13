@@ -62,7 +62,12 @@ export function logText(doc, l) {
       took: [st(l.took.items), l.took.gold ? t('poi.sandbox.log.gold', '{n, number} gold', { n: l.took.gold }) : ''].filter(Boolean).join(', ') || t('poi.sandbox.log.nothing', 'nothing'),
       gave: [st(l.gave.items), l.gave.gold ? t('poi.sandbox.log.gold', '{n, number} gold', { n: l.gave.gold }) : ''].filter(Boolean).join(', ') || t('poi.sandbox.log.nothing', 'nothing'),
     });
-    case 'trade_refused': return t('poi.sandbox.log.tradeRefused', 'Trade {name} is refused: {why}.', { name: nameIn(doc, 'trades', l.trade), why: why(l.why) });
+    case 'trade_refused': {
+      // Show both the recipe name and the trade name when a recipe is given, or the trade name alone otherwise.
+      const rec = (doc.trades ?? []).find((/** @type {any} */ x) => x.key === l.trade)?.recipes?.find((/** @type {any} */ x) => x.key === l.recipe);
+      if (l.recipe) return t('poi.sandbox.log.recipeRefused', '{recipe} ({trade}) is refused: {why}.', { recipe: rec?.name ?? l.recipe, trade: nameIn(doc, 'trades', l.trade), why: why(l.why) });
+      return t('poi.sandbox.log.tradeRefused', 'Trade {name} is refused: {why}.', { name: nameIn(doc, 'trades', l.trade), why: why(l.why) });
+    }
     case 'start_route': return t('poi.sandbox.log.startRoute', '  {npc} starts walking {route}.', { npc: nameIn(doc, 'npcs', l.npc), route: nameIn(doc, 'routes', l.route) });
     case 'stop_route': return t('poi.sandbox.log.stopRoute', '  {npc} stops walking.', { npc: nameIn(doc, 'npcs', l.npc) });
     case 'spawn_npc': return t('poi.sandbox.log.spawnNpc', '  {npc} appears.', { npc: nameIn(doc, 'npcs', l.npc) });

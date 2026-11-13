@@ -34,6 +34,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor's Test log now names waypoints and refused recipes by their names, and lists an object's use before what it changed.
 - Fixed: The in-game POI editor's enemy picker names the added enemies, such as the Goblin and the Archer Rider, instead of Enemy and a number.
 - Fixed: The in-game POI editor draws a route as the straight lines a person walks between its waypoints.
 - Fixed: The in-game POI editor now says why only a persistent text variable can hold an object's state, and can make one for it.

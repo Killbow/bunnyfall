@@ -254,7 +254,8 @@ export function createPoiDm(deps) {
     const rec = byKey(byKey(r.doc.trades, trade)?.recipes, recipe);
     if (!rec) return;
     const why = recipeBlock(r.dm, trade, recipe);
-    if (why && why !== 'limit' && why !== 'cooldown' && why !== 'stock') { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, why }); return; }   // the service keeps the counts; the pack's own lacks are said here
+    // Limits, cooldowns, and stock wait for the service or the offline check below; other refusals are reported here.
+    if (why && why !== 'limit' && why !== 'cooldown' && why !== 'stock') { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, recipe, why }); return; }
     busy = true;
     try {
       if (act) {
@@ -262,12 +263,12 @@ export function createPoiDm(deps) {
         if (!a?.ok) { say(whyText(refusalOf(a))); return; }
         applyLocal(a.data?.took ?? { items: rec.requireItems ?? [], gold: rec.requireGold ?? 0 }, a.data?.gave ?? { items: [], gold: 0 });
       } else {
-        if (why) { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, why }); return; }
+        if (why) { say(whyText(why)); logSettle(r, { k: 'trade_refused', trade, recipe, why }); return; }
         // Offline and in preview, validate all server trade rules (`tradePoi` in `poiTrade.js`) against the local
         // inventory before mutating anything: the condition may read only persistent variables, required items and gold
         // must be available, all reward items must be valid to mint, and the resulting gold must not exceed
         // `GOLD_INT_MAX`.
-        const refuse = (/** @type {string} */ w, /** @type {string} */ word) => { say(whyText(word)); logSettle(r, { k: 'trade_refused', trade, why: w }); };
+        const refuse = (/** @type {string} */ w, /** @type {string} */ word) => { say(whyText(word)); logSettle(r, { k: 'trade_refused', trade, recipe, why: w }); };
         if (!readsOnlyKept(r.doc, rec.when)) { refuse('scope', 'poi-var-scope'); return; }
         const p = pack();
         if (!p) return;
