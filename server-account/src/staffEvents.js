@@ -46,7 +46,7 @@ export function mintEventId(rand) {
 const extrasOf = (ev) => {
   /** @type {Record<string, any>} */
   const o = {};
-  for (const k of ['an', 'tx', 'bl', 'el', 'lb', 'bn', 'rk', 'gd', 'sv']) if (ev[k] !== undefined && ev[k] !== null && ev[k] !== '') o[k] = ev[k];
+  for (const k of ['an', 'tx', 'bl', 'el', 'lb', 'bn', 'rk', 'gd', 'sv', 'mb', 'wv']) if (ev[k] !== undefined && ev[k] !== null && ev[k] !== '') o[k] = ev[k];
   return o;
 };
 

@@ -103,7 +103,7 @@ const WORDS = {
 };
 const why = (/** @type {any} */ j) => {
   const e = String(j?.error ?? '');
-  if (e.startsWith('event-bad-')) return `The event's ${({ paykills: 'kills needed', bossname: 'boss name', words: 'text', label: 'map label', announce: 'announce switch' })[e.slice(10)] ?? e.slice(10)} is not right.`;
+  if (e.startsWith('event-bad-')) return `The event's ${({ paykills: 'kills needed', bossname: 'boss name', words: 'text', label: 'map label', announce: 'announce switch', mids: 'mid bosses', wave: 'wave' })[e.slice(10)] ?? e.slice(10)} is not right.`;
   return `${WORDS[/** @type {keyof typeof WORDS} */ (e)] ?? e}${j?.message ? ` (${j.message})` : ''}`;
 };
 let toastTimer = 0;
@@ -651,10 +651,13 @@ async function startEventDialog() {
   const lb = txt('Map label, e.g. The siege of Daggerfall', 40), bn = txt('Boss name, e.g. Sifrit the Forbidden One', 32);
   const rk = h('input', { type: 'number', value: '3', min: '3', max: '500' });
   const gd = h('input', { type: 'number', value: '0', min: '0', max: '100000' }), sv = h('input', { type: 'number', value: '0', min: '0', max: '100' });
+  const mb = h('input', { type: 'number', value: '0', min: '0', max: '5' }), wv = h('input', { type: 'number', value: '0', min: '0', max: '20' });   // MID-BOSSES, WAVES
   const extras = h('details', null, h('summary', { class: 'dim' }, 'Announcements, map label, boss name and rewards (optional)'),
     h('div', { class: 'fields' }, field('Tell everyone online', h('label', null, announce, ' say it when it starts and ends')), field('Map label', lb)),
     field('Start line', tx), h('div', { class: 'fields' }, field('Boss line', bl), field('End line', el)),
     field('Boss name', bn),
+    h('div', { class: 'dim' }, 'Mid bosses are smaller bosses the meter calls on the way up (spread evenly before the big one). A wave is extra monsters that stand with the boss.'),
+    h('div', { class: 'fields' }, field('Mid bosses (0-5)', mb), field('Wave with the boss (0-20)', wv)),
     h('div', { class: 'dim' }, 'Pay for the players who fought: every one with enough kills gets it when the event ends (Argents go to the account, gold to the character, on top of the usual loot).'),
     h('div', { class: 'fields' }, field('Kills needed (3+)', rk), field('Gold each', gd), field('Imperial Argents each (max 100)', sv)));
   dialog('Start an event', 'Monsters keep coming at the place until enough fall, then the boss shows up.', [
@@ -674,7 +677,8 @@ async function startEventDialog() {
       const ev = { rg: place.rg, loc: place.loc ?? -1, px: place.px, py: place.py, nm: name.value.trim(), ct: place.loc >= 0 && place.kind === 'town' ? 1 : 0, mt: picked, n, m,
         b: Number(boss.value), bs: Number(size.value), bh: Number(health.value), mins: Number(mins.value), eb: endAtBoss.checked ? 1 : 0,
         an: announce.checked ? 1 : 0, tx: tx.value.trim(), bl: bl.value.trim(), el: el.value.trim(), lb: lb.value.trim(), bn: bn.value.trim(),
-        rk: Number(rk.value) || 3, gd: Math.floor(Number(gd.value)) || 0, sv: Math.floor(Number(sv.value)) || 0 };
+        rk: Number(rk.value) || 3, gd: Math.floor(Number(gd.value)) || 0, sv: Math.floor(Number(sv.value)) || 0,
+        mb: Math.max(0, Math.min(5, Math.floor(Number(mb.value)) || 0)), wv: Math.max(0, Math.min(20, Math.floor(Number(wv.value)) || 0)) };
       const j = await call('/v1/staff/event', { op: 'start', ev });
       if (j.error) return why(j);
       toast(`${ev.nm} has begun.`);

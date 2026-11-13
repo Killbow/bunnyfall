@@ -239,3 +239,10 @@ tells the cell the event with its `end`), the receipt carrying the kills (`h`) a
 its spoils, and carries the receipt to `/v1/event/claim` (`staffEventPay.js`, migration 0208 `event_pay`, marks kind `sevent`,
 outside the day's combat cap) for the silver, read off the event's own stored row. Deploy the relay first, then the service
 (migration 0208).
+
+## MID-BOSSES and WAVES (2026-11-13)
+
+Two optional fields on an event: `mb` (0-5) and `wv` (0-20).
+
+- **Mid bosses**: the meter calls the i-th of `mb` at i/(mb+1) of its fill (`staffMidsDue`). The ledger keeps `md` (called) and `mu` (stood); a player's word carries `mu`. The first client to see a call stands it (one of the event's kinds, a quarter of the boss's health, three fifths its size) and says so. Their fall is an ordinary kill. An older relay never sends `md`, so no mid boss shows there.
+- **Waves**: when a client stands the boss it also stands `wv` of the event's monsters about it, one a step, past the pack cap.
