@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 - The Bench now works at every crafting station in a room, so a home with a forge and a jeweller's bench lets you craft at both.
 - The crafting minigame scrolls into view when it starts, and the page scrolls back to the Craft buttons when it ends. What you just made shows by the buttons.
 - A flux, lining or other fitting now starts at one you actually hold, so the list no longer says "Missing 1 Tin" when another flux would do.
+- Staff events can now announce themselves to everyone online when they start and end (with a line of staff's own words if they like), show a label and the time left on the map while they run, name the mini boss, and pay the players who fought: gold to the character and Imperial Argents to the account, once the event ends, to everyone with enough kills. An event that ends without its boss falling now pays too.
 
 ## 2026-11-12
 

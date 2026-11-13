@@ -102,7 +102,7 @@ async function endEvent(room, id, why) {
   await saveBook(room);
   fanAll(room, JSON.stringify({ t: 'sev', k: 'end', id, why }));
   fanAll(room, bookFrame(room._sevBook));
-  await tellCell(room, e, { id, op: 'end' });
+  await tellCell(room, e, { id, op: 'end', ev: e });   // EVENT-EXTRAS: the event with it, so the cell can pay the earners of an event that ended with no boss fallen
   return true;
 }
 /** The events past the end they were set to, ended. @param {any} room @param {number} now */
@@ -130,6 +130,7 @@ export async function takeStaffEventOrder(room, c, now) {
       room._sevBook = [...room._sevBook, e];
       await saveBook(room);
       fanAll(room, bookFrame(room._sevBook));
+      if (e.an) fanAll(room, JSON.stringify({ t: 'sev', k: 'an', id: e.id }));   // EVENT-EXTRAS: its start, said to everyone online (the words are the book's)
     }
     return { ok: true, l: lookOf(room) };
   }
@@ -226,16 +227,22 @@ async function ledgerOf(room, e, now) {
 const rand32 = () => crypto.getRandomValues(new Uint32Array(1))[0];
 /** THE REWARD, paid once at the first boss's fall: the earners' receipts and the board kept on the ledger (said after,
  *  by `keep`). @param {any} room @param {any} led @param {number} now */
-async function payReward(room, led, now) {
+async function payReward(room, led, e, now) {
   led.rw = 1;
   led.rc = {};
   const key = await room._receiptKeyOf?.() ?? null;
   const nowS = Math.floor(now / 1000);
-  for (const { acct, rank } of staffEventEarned(led)) {
-    try { led.rc[acct] = await mintStaffReceipt({ v: led.id, s: acct, c: rand32(), r: rank }, key, { subtle: crypto.subtle, nowS }); }
+  for (const { acct, rec, rank } of staffEventEarned(led, e.rk)) {   // EVENT-EXTRAS: the kills staff asked for; the receipt carries the kills and the gold
+    try { led.rc[acct] = await mintStaffReceipt({ v: led.id, s: acct, c: rand32(), r: rank, h: Math.min(rec.h ?? 0, 9999), g: e.gd ?? 0 }, key, { subtle: crypto.subtle, nowS }); }
     catch (err) { console.warn('[sev] receipt refused', /** @type {any} */ (err)?.message ?? err); }
   }
-  led.top = staffEventBoard(led);
+  led.top = staffEventBoard(led, e.rk);
+}
+/** The board said to the place and each earner's receipt handed over - once, where a reward was just paid. @param {any} room @param {any} led */
+function sayReward(room, led) {
+  const bd = JSON.stringify({ t: 'sev', k: 'bd', id: led.id, top: led.top ?? [] });
+  for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, bd);
+  handReceipts(room, led);
 }
 /** Each earner's receipt to its account's newest socket here (one tab an account, the raid's AUDIT WBX S4). @param {any} room @param {any} led */
 function handReceipts(room, led) {
@@ -250,17 +257,13 @@ function handReceipts(room, led) {
 /** The ledger kept, said to the place, and told to the hub (at once when its boss moved or it is done). THE REWARD: at
  *  the first boss's fall, paid before a word of it is said. @param {any} room @param {any} led @param {any} e @param {number} now @param {boolean} urgent */
 async function keep(room, led, e, now, urgent) {
-  const paying = led.bk === 1 && !led.rw;
-  if (paying) await payReward(room, led, now);
+  const done = staffEventDone(led, e);
+  const paying = (led.bk === 1 || !!done) && !led.rw;   // EVENT-EXTRAS: and when the event is done with no boss fallen (every monster down)
+  if (paying) await payReward(room, led, e, now);
   try { await room.state.storage.put(STAFF_LEDGER_PREFIX + led.id, led); } catch (err) { console.warn('[sev] ledger', /** @type {any} */ (err)?.message ?? err); }
   const s = JSON.stringify({ t: 'sev', ...staffLedgerState(led) });
   for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, s);
-  if (paying) {
-    const bd = JSON.stringify({ t: 'sev', k: 'bd', id: led.id, top: led.top ?? [] });
-    for (const [ws, b] of [...room._all()]) if (b.id) room._send(ws, bd);
-    handReceipts(room, led);
-  }
-  const done = staffEventDone(led, e);
+  if (paying) sayReward(room, led);
   if (done) led.ended = 1;
   room._sevToldAt ??= new Map();
   if (!urgent && !done && now - (room._sevToldAt.get(led.id) ?? 0) < STAFF_EVENT_TELL_MS) return;
@@ -301,6 +304,10 @@ export async function staffCallInternal(room, request) {
   const now = Date.now();
   if (body.op === 'end') {
     const led = room._sevLed?.get(body.id);
+    const e = validStaffEvent(body.ev);
+    if (led && e && e.id === body.id && !led.rw && !led.ended) {   // EVENT-EXTRAS: ended by staff or its clock before any pay - the fighters earned it all the same
+      try { await payReward(room, led, e, now); if (led.top?.length || Object.keys(led.rc ?? {}).length) sayReward(room, led); } catch (err) { console.warn('[sev] end pay', /** @type {any} */ (err)?.message ?? err); }
+    }
     if (led) led.ended = 1;
     room._sevCopy = null;
     try { await room.state.storage.delete(STAFF_LEDGER_PREFIX + body.id); } catch { /* gone */ }

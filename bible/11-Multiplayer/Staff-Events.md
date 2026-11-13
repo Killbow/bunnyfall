@@ -226,3 +226,16 @@ Dagon's way, without Dagon's gear. At the FIRST fall of an event's mini boss the
   moving it a fifth either way) and one Magic-or-better piece; the board: one more Rare-or-better; first place: one
   more, Legendary a tenth of the time, else Rare or better. None of Dagon's: no Sigil Stone, no Regalia, no Dragonfire
   Oath, nothing gilded.
+
+
+## EVENT-EXTRAS (2026-11-13, mob: "announcements from the start and a waypoint text on the map while events are running, participating players can be awarded currencies")
+
+Optional fields on the start form (law: `staffEventLaw.js`, all absent on an old event and read as before): `an` tell everyone
+online at the start (the hub's `{t:'sev', k:'an'}` frame) and at the end (default yes), `tx` / `bl` / `el` staff's own start,
+boss and end lines, `lb` the label on the held map (`staffMapMarks`: the place, the time left, the boss once it stands - never
+the meter), `bn` the mini boss's name (replaces "Mighty KIND"), and the pay: `rk` kills needed (3 and up), `gd` gold, `sv` silver.
+Pay: the cell mints each earner's `e1` receipt at the boss's fall OR when the event is done or ended with none paid (the hub
+tells the cell the event with its `end`), the receipt carrying the kills (`h`) and the gold (`g`); the game grants the gold with
+its spoils, and carries the receipt to `/v1/event/claim` (`staffEventPay.js`, migration 0208 `event_pay`, marks kind `sevent`,
+outside the day's combat cap) for the silver, read off the event's own stored row. Deploy the relay first, then the service
+(migration 0208).

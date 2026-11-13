@@ -42,6 +42,14 @@ export function mintEventId(rand) {
   return id;
 }
 
+/** EVENT-EXTRAS: the fields staff may add (the law's an, tx, bl, el, lb, bn, rk, gd, sv), as staged - absent ones left absent so the law's defaults hold. @param {any} ev */
+const extrasOf = (ev) => {
+  /** @type {Record<string, any>} */
+  const o = {};
+  for (const k of ['an', 'tx', 'bl', 'el', 'lb', 'bn', 'rk', 'gd', 'sv']) if (ev[k] !== undefined && ev[k] !== null && ev[k] !== '') o[k] = ev[k];
+  return o;
+};
+
 /**
  * The event as an Admin staged it, checked by the law: the panel's fields, and the service's own - its id, its start,
  * its end by `mins`, and who staged it. null for one the law refuses.
@@ -52,7 +60,7 @@ export function stagedEvent(ev, id, nowS, by) {
   const mins = ev.mins ?? 0;
   if (!Number.isSafeInteger(mins) || mins < 0 || mins > STAFF_EVENT_MINUTES_MAX) return null;
   const at = nowS * 1000;
-  return validStaffEvent({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, hp: ev.hp ?? 0, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by });
+  return validStaffEvent({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, hp: ev.hp ?? 0, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by, ...extrasOf(ev) });
 }
 
 /** EVENT-FAULT: the field a staging is refused for (the law's name, or 'runs' for its minutes). @param {any} ev @param {string} id @param {number} nowS @param {string} by */
@@ -61,7 +69,7 @@ export function stagedFault(ev, id, nowS, by) {
   const mins = ev.mins ?? 0;
   if (!Number.isSafeInteger(mins) || mins < 0 || mins > STAFF_EVENT_MINUTES_MAX) return 'runs';
   const at = nowS * 1000;
-  return staffEventFault({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, hp: ev.hp ?? 0, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by });
+  return staffEventFault({ id, rg: ev.rg, loc: ev.loc, px: ev.px, py: ev.py, nm: ev.nm, ct: ev.ct ? 1 : 0, mt: ev.mt, n: ev.n, m: ev.m, b: ev.b, bs: ev.bs, bh: ev.bh, hp: ev.hp ?? 0, at, ue: mins ? at + mins * 60000 : 0, eb: ev.eb ? 1 : 0, fb: 0, by, ...extrasOf(ev) });
 }
 
 /** A row's kept board. @param {unknown} s */
@@ -141,7 +149,7 @@ export async function staffEvents(ctx, env, path, body, who, audit) {
     const id = mintEventId(rand);
     const ev = stagedEvent(body.ev, id, nowS, displayName(me));
     if (!ev) return { error: `event-bad-${stagedFault(body.ev, id, nowS, displayName(me)) ?? 'event'}` };   // EVENT-FAULT: the field it is refused for, in its word (a 400, STAFF_STATUS's default)
-    const detail = { id, place: ev.nm, rg: ev.rg, loc: ev.loc, kinds: ev.mt, n: ev.n, m: ev.m, boss: ev.b, size: ev.bs, health: ev.bh, hp: ev.hp };
+    const detail = { id, place: ev.nm, rg: ev.rg, loc: ev.loc, kinds: ev.mt, n: ev.n, m: ev.m, boss: ev.b, size: ev.bs, health: ev.bh, hp: ev.hp, announce: ev.an, gold: ev.gd, silver: ev.sv, payKills: ev.rk };
     await db.batch([
       db.prepare("INSERT INTO staff_events (id, at, staff_id, staff_name, ev, state, kills, boss) VALUES (?1, ?2, ?3, ?4, ?5, 'starting', 0, 'none')")
         .bind(id, nowS, me.id, displayName(me), JSON.stringify(ev)),

@@ -193,6 +193,24 @@ export function starStrikeStatement(ctx, player, env, key, nonce) {
   if (!strikesFor(player, env) || typeof key !== 'string' || typeof nonce !== 'string') return null;
   return combatStrikeStatement(ctx, player, 'star', starStrikeRid(key), [key, nonce]);
 }
+/** EVENT-EXTRAS: a staff event's pay line id - its event, under the service's own `:`. */
+export const eventStrikeRid = (id) => `sevent:${id}`;
+/**
+ * EVENT-EXTRAS: a staff event's silver (staff set it, 1 to STAFF_EVENT_SILVER_MAX) paid to one earner - OUTSIDE the day's
+ * combat cap (staff chose the sum, and each account takes one an event), never past MARKS_MAX, in the claim's own batch
+ * and only while the event_pay row this claim stamped with `nonce` stands. Null where Marks are not this account's.
+ */
+export function eventStrikeStatement({ db, nowS }, player, env, id, nonce, amount) {
+  if (!strikesFor(player, env) || typeof id !== 'string' || typeof nonce !== 'string' || !Number.isSafeInteger(amount) || amount < 1) return null;
+  return db.prepare(`${INSERT_LINE}
+    SELECT 'mint', NULL, 'account', ?1, 'sevent', ?2, ?3, ?4, ?1, NULL, ?5
+    WHERE COALESCE((SELECT balance FROM marks WHERE account = ?1), 0) + ?2 <= ?6
+      AND NOT EXISTS (SELECT 1 FROM marks_ledger WHERE actor = ?1 AND rid = ?5)
+      AND EXISTS (SELECT 1 FROM event_pay WHERE event = ?7 AND account = ?1 AND nonce = ?8)`)
+    .bind(player.id, amount, utcDay(nowS), nowS, eventStrikeRid(id), MARKS_MAX, id, nonce);
+}
+/** EVENT-EXTRAS: what the claim's line says it paid, or null. */
+export const eventStrikeLine = (db, player, id) => lineOf(db, player.id, eventStrikeRid(id));
 /** SERPENT-SET: a serpent's line id - its day, under the service's own `:`. */
 export const serpentStrikeRid = (day) => `serpent:${day}`;
 /** SERPENT-SET: a serpent's receipt, counted - 40 silver (a ship that stood, half: serpentStrikeOf) under the day's combat

@@ -149,5 +149,30 @@ export function staffBossToSay(r) {
   return led.fc;
 }
 
+/** EVENT-EXTRAS: the name staff gave the mini boss of the event whose raid key is `key` (a puppet's `_pupRaid`), or ''. @param {string|null|undefined} key */
+export const staffBossNameOf = (key) => (typeof key === 'string' ? (staffRaidOfKey(key)?.staff.bn ?? '') : '');
+
+/**
+ * EVENT-EXTRAS (mob 2026-11-13: "a waypoint text on the map while events are running"): THE MAP'S MARK for each event live,
+ * the shape ui/eventMapMarks.js reads: its place's pixel, staff's label (else "Place - under attack") and a card - the
+ * place, who staged it, the time it has left (when staff set one) and its boss once it stands. NEVER the meter: players are
+ * not told it. Pure over the book and the cell's last ledger; `nowMs` the relay's clock as the machine has it.
+ * @param {number} nowMs @param {(region: number) => string} [regionName]
+ */
+export function staffMapMarks(nowMs, regionName = () => '') {
+  const out = [];
+  for (const r of staffRaids()) {
+    const e = r.staff;
+    const place = r.locationName || regionName(r.regionIndex) || 'An area';
+    const led = _ledgers.get(e.id);
+    const lines = [regionName(r.regionIndex) && regionName(r.regionIndex) !== place ? `${place}, ${regionName(r.regionIndex)}` : place];
+    if (e.tx) lines.push(e.tx.slice(0, 90));
+    if (led?.bu && !led.bk) lines.push(`${e.bn || 'A mighty foe'} stands`);
+    if (e.ue > 0) { const m = Math.max(0, Math.ceil((e.ue - nowMs) / 60000)); lines.push(m >= 60 ? `Ends in about ${Math.round(m / 60)} h` : m > 0 ? `Ends in ${m} min` : 'Ending now'); }
+    out.push({ key: r.key, px: r.px, py: r.py, label: e.lb || `${place} · under attack`, tip: { title: 'Event', lines } });
+  }
+  return out;
+}
+
 /** Test seam. */
 export function _resetStaffEvents() { _raids = new Map(); _ledgers = new Map(); _ended = new Set(); }

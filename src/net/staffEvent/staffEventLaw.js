@@ -51,6 +51,17 @@ export const STAFF_BOSS_HEALTH_DEFAULT = 10;
 /** BOSS-HP (mob 2026-10-25 02:47Z: "need be able to eneter a exact amount of healt for mini bosses"): the mini boss's
  *  health as a number staff type (`hp`), in place of the times-its-kind's above; 0 is the times. */
 export const STAFF_BOSS_HP_MAX = 1000000;
+/** EVENT-EXTRAS (2026-11-13, mob: "announcements from the start and a waypoint text on the map while events are running,
+ *  participating players can be awarded currencies etc"): the words staff may set, and the pay. Every one optional - an
+ *  event staged before them reads as it always did (announced to all, no words of its own, pay none). */
+export const STAFF_EVENT_TEXT_MAX = 140;
+export const STAFF_EVENT_LABEL_MAX = 40;
+export const STAFF_BOSS_NAME_MAX = 32;
+/** The kills an account needs on the board to be paid: STAFF_EVENT_EARN_KILLS (3) up to the meter's own bound. */
+export const STAFF_EVENT_PAY_KILLS_MAX = 500;
+/** What an earner is paid in gold (to the character, in the pack with its spoils) and in silver (the account's Marks). */
+export const STAFF_EVENT_GOLD_MAX = 100000;
+export const STAFF_EVENT_SILVER_MAX = 100;
 /** The longest an event may be set to run, ms (a day; "only when I end it" is 0). */
 export const STAFF_EVENT_LONGEST_MS = 24 * 60 * 60 * 1000;
 /** A staff member's name as the book carries it. */
@@ -91,11 +102,15 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
 
 /**
  * @typedef {{ id: string, rg: number, loc: number, px: number, py: number, nm: string, ct: 0|1, mt: number[], n: number, m: number,
- *   b: number, bs: number, bh: number, hp: number, at: number, ue: number, eb: 0|1, fb: number, by: string }} StaffEvent
+ *   b: number, bs: number, bh: number, hp: number, at: number, ue: number, eb: 0|1, fb: number, by: string,
+ *   an: 0|1, tx: string, bl: string, el: string, lb: string, bn: string, rk: number, gd: number, sv: number }} StaffEvent
  *   `loc` -1 for an area (the pixel alone); `ct` 1 when the place is a city (a town on the game's own map - the panel's
  *   pick), never for an area, so its lines say a city or an area; `ue` the end it was set to (ms, 0 none); `eb` 1 ends it at the boss's fall;
  *   `bh` the mini boss's health, times its kind's; `hp` BOSS-HP's exact health, which wins over `bh` (0 none);
  *   `fb` how many times staff called the boss by hand (Spawn mini boss now) - each call is one more boss.
+ *   EVENT-EXTRAS: `an` 1 says its start and end to everyone online (0 to its region's alone), `tx` its start line, `bl` the line
+ *   its mini boss comes with, `el` its end line (each a custom text; '' the game's own), `lb` its label on the map, `bn` the
+ *   mini boss's name (''  "Mighty KIND"), `rk` the kills an earner needs to be paid, `gd` its gold and `sv` its silver.
  */
 
 /**
@@ -105,7 +120,9 @@ export const staffEventKindOk = (t) => intIn(t, 0, STAFF_EVENT_KIND_MAX) && !STA
 export function validStaffEvent(e) {
   if (staffEventFault(e)) return null;
   const mt = [...new Set(/** @type {number[]} */ (e.mt))];
-  return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, hp: e.hp ?? 0, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX) };
+  return { id: e.id, rg: e.rg, loc: e.loc, px: e.px, py: e.py, nm: clean(e.nm, STAFF_EVENT_PLACE_MAX), ct: e.loc >= 0 ? bit(e.ct) : 0, mt, n: e.n, m: e.m, b: e.b, bs: e.bs, bh: e.bh ?? STAFF_BOSS_HEALTH_DEFAULT, hp: e.hp ?? 0, at: e.at, ue: e.ue, eb: bit(e.eb), fb: e.fb ?? 0, by: clean(e.by, STAFF_EVENT_BY_MAX),
+    an: e.an === 0 ? 0 : 1, tx: clean(e.tx, STAFF_EVENT_TEXT_MAX), bl: clean(e.bl, STAFF_EVENT_TEXT_MAX), el: clean(e.el, STAFF_EVENT_TEXT_MAX),
+    lb: clean(e.lb, STAFF_EVENT_LABEL_MAX), bn: clean(e.bn, STAFF_BOSS_NAME_MAX), rk: e.rk ?? STAFF_EVENT_EARN_KILLS, gd: e.gd ?? 0, sv: e.sv ?? 0 };
 }
 /**
  * EVENT-FAULT (mob 2026-10-25: "service refused", "toop of event menu says the refusal"): the first field validStaffEvent
@@ -127,6 +144,11 @@ export function staffEventFault(e) {
   if (!Number.isSafeInteger(e.at) || e.at <= 0) return 'start';
   if (!(e.ue === 0 || (Number.isSafeInteger(e.ue) && e.ue > e.at && e.ue - e.at <= STAFF_EVENT_LONGEST_MS))) return 'runs';
   if (!intIn(e.fb ?? 0, 0, 99)) return 'calls';
+  if (e.an !== undefined && e.an !== 0 && e.an !== 1) return 'announce';
+  for (const k of ['tx', 'bl', 'el', 'lb', 'bn']) if (e[k] !== undefined && typeof e[k] !== 'string') return k === 'bn' ? 'bossname' : k === 'lb' ? 'label' : 'words';
+  if (!intIn(e.rk ?? STAFF_EVENT_EARN_KILLS, STAFF_EVENT_EARN_KILLS, STAFF_EVENT_PAY_KILLS_MAX)) return 'paykills';
+  if (!intIn(e.gd ?? 0, 0, STAFF_EVENT_GOLD_MAX)) return 'gold';
+  if (!intIn(e.sv ?? 0, 0, STAFF_EVENT_SILVER_MAX)) return 'silver';
   return null;
 }
 /** Is the event over by its own clock at `nowMs`? @param {StaffEvent} e @param {number} nowMs */
@@ -155,7 +177,7 @@ export function validStaffEventIn(m) {
 /** The bound on a receipt's length on the wire (staffEventReceipt.js STAFF_RECEIPT_MAX - this file imports nothing). */
 export const STAFF_RECEIPT_WIRE_MAX = 512;
 /** The kinds a relay's staff event frame says. */
-export const STAFF_EVENT_OUT_KINDS = Object.freeze(['ev', 'end', 'st', 'bd', 'rc']);
+export const STAFF_EVENT_OUT_KINDS = Object.freeze(['ev', 'end', 'st', 'bd', 'rc', 'an']);
 
 /**
  * A relay's staff event frame, projected for the game: the hub's BOOK (`ev`: the events live, each validStaffEvent's
@@ -175,6 +197,7 @@ export function validStaffEventOut(m) {
     return { k: 'ev', l };
   }
   if (typeof m.id !== 'string' || !STAFF_EVENT_ID_RE.test(m.id)) return null;
+  if (m.k === 'an') return { k: 'an', id: m.id };   // EVENT-EXTRAS: an event just begun, said to everyone online (its words are the book's)
   if (m.k === 'end') return { k: 'end', id: m.id, why: ['staff', 'boss', 'time', 'done'].includes(m.why) ? m.why : 'staff' };
   if (m.k === 'bd') { const top = validStaffBoard(m.top); return top ? { k: 'bd', id: m.id, top } : null; }   // THE REWARD: the board, at the fall
   if (m.k === 'rc') return typeof m.r === 'string' && m.r.length <= STAFF_RECEIPT_WIRE_MAX ? { k: 'rc', id: m.id, r: m.r } : null;   // and my receipt
@@ -271,16 +294,16 @@ export function staffEventDone(led, e) {
  * count, then the longest stand. Each with its RANK on the board (1 to STAFF_EVENT_BOARD_MAX, 0 past it).
  * @param {StaffEventLedger} led @returns {{ acct: string, rec: StaffEventAccount, rank: number }[]}
  */
-export function staffEventEarned(led) {
+export function staffEventEarned(led, minKills = STAFF_EVENT_EARN_KILLS) {
   const fell = led.fellAt ?? led.first;
   const half = Math.max(0, fell - led.first) / 2;
   const rows = Object.entries(led.a)
-    .filter(([acct, r]) => !acct.startsWith('id:') && (r.h ?? 0) >= STAFF_EVENT_EARN_KILLS)   // REWARD-KILLS (mob 2026-10-25: "im getting drops even tho i barlky particpate"; card "Kills only (3+)"): a stand alone earns nothing
+    .filter(([acct, r]) => !acct.startsWith('id:') && (r.h ?? 0) >= Math.max(STAFF_EVENT_EARN_KILLS, minKills))   // REWARD-KILLS (mob 2026-10-25: "im getting drops even tho i barlky particpate"; card "Kills only (3+)"): a stand alone earns nothing
     .sort(([a, x], [b, y]) => (y.h ?? 0) - (x.h ?? 0) || Number(b === led.kb) - Number(a === led.kb) || (y.t ?? 0) - (x.t ?? 0) || (a < b ? -1 : 1));
   return rows.map(([acct, rec], i) => ({ acct, rec, rank: i < STAFF_EVENT_BOARD_MAX ? i + 1 : 0 }));
 }
 /** The board: the earners' top STAFF_EVENT_BOARD_MAX as `[name, kills, killer]`. @param {StaffEventLedger} led @returns {StaffBoardRow[]} */
-export const staffEventBoard = (led) => staffEventEarned(led).filter((x) => x.rank > 0).map((x) => [x.rec.nm || '', Math.min(x.rec.h ?? 0, STAFF_EVENT_WORD_KILLS_MAX), x.acct === led.kb ? 1 : 0]);   // a nameless row the reader's own word (raidingParties.js staffBoardLine)
+export const staffEventBoard = (led, minKills = STAFF_EVENT_EARN_KILLS) => staffEventEarned(led, minKills).filter((x) => x.rank > 0).map((x) => [x.rec.nm || '', Math.min(x.rec.h ?? 0, STAFF_EVENT_WORD_KILLS_MAX), x.acct === led.kb ? 1 : 0]);   // a nameless row the reader's own word (raidingParties.js staffBoardLine)
 /** A board, projected (a frame's, a tell's). @param {unknown} top @returns {StaffBoardRow[] | null} */
 export function validStaffBoard(top) {
   if (!Array.isArray(top) || top.length > STAFF_EVENT_BOARD_MAX) return null;

@@ -554,6 +554,7 @@ export const ROUTES = new Set([
   '/v1/raid/claim',
   '/v1/serpent/claim',   // SERPENT1: a sea serpent's receipt
   '/v1/star/claim',   // STAR7: a fallen star's receipt
+  '/v1/event/claim',   // EVENT-EXTRAS: a staff event's receipt, its silver paid once
   '/v1/sd/claim',   // SD9b: a Brass Remnant's receipt - an Hour broken, and its grants on the first write
   '/v1/ketch/claim',   // KETCH: a Tonal Warden's receipt - the Ketchmaster's hold, once a voyage an account
   '/v1/eg/keys',   // EG-PLAY: the Weir Keys held, the live breach, the day's Rehearsal
