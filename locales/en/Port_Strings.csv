@@ -5599,6 +5599,7 @@ poi.dm.lookDoor,"It is used where that part stands. Open, the part is not drawn 
 poi.dm.lookNone,"Nothing (used at its spot)"
 poi.dm.lookPart,"It is used where that part stands."
 poi.dm.looksLike,"Looks like"
+poi.dm.loopTwice,"A loop walks back to the first waypoint on its own, so a last waypoint on that spot makes the person stop there twice. Remove it to stop once."
 poi.dm.material.adamantium,"Adamantium"
 poi.dm.material.chain,"Chain"
 poi.dm.material.daedric,"Daedric"

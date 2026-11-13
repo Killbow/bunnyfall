@@ -149,6 +149,17 @@ export function shiftWaypoint(route, key, dir) {
   [route.waypoints[i], route.waypoints[j]] = [route.waypoints[j], route.waypoints[i]];
   return true;
 }
+/**
+ * Returns whether a loop route's last waypoint sits within the first waypoint's reach. Because a loop returns to the
+ * first waypoint on its own, placing the last waypoint on that spot makes the walker arrive and wait there twice in a
+ * row (poiDmCore.js stepWalker).
+ */
+export function loopStopsTwice(route) {
+  const w = route?.waypoints ?? [];
+  if (route?.mode !== 'loop' || w.length < 3) return false;
+  const a = w[0].t, b = w.at(-1).t;
+  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= Math.max(0.05, w[0].radius ?? 0.5);
+}
 /** Wait the same time at every waypoint. */
 export function setWaitAll(route, waitS) { for (const w of route.waypoints) w.waitS = Math.max(0, Math.min(3600, Math.round(waitS))); return route.waypoints.length; }
 

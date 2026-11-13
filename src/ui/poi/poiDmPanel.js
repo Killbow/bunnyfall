@@ -356,6 +356,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
         section(r.name), text(t('poi.dm.name', 'Name'), [...p, 'name'], r.name), select(t('poi.dm.walk', 'Walk'), [...p, 'mode'], r.mode, words(POI_ROUTE_MODES)),
         row(t('poi.dm.waitAll', 'Wait at every stop (s)'), input('number', '', (raw) => { const v = Number(raw); if (Number.isFinite(v)) run((dd) => { DM.setWaitAll(get(dd, p), v); }); })),
         note(t('poi.dm.waypointsOf', '{n, number} of {max, number} waypoints. The path is drawn in the world.', { n: r.waypoints.length, max: LIM.waypoints })),
+        DM.loopStopsTwice(r) ? note(t('poi.dm.loopTwice', 'A loop walks back to the first waypoint on its own, so a last waypoint on that spot makes the person stop there twice. Remove it to stop once.')) : null,
         ...r.waypoints.map((/** @type {any} */ wp, /** @type {number} */ i) => {
           const wpp = [...p, 'waypoints', { key: wp.key }];
           const card = el('div', 'dfpoi-card');
