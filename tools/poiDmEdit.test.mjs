@@ -42,6 +42,47 @@ test('the item picker offers the game\'s items by group, without the currency, a
   assert.deepEqual(DM.materialChoices('MetalIngredients'), []);
 });
 
+test('the item picker offers the twenty potions by name, and no empty Glass Bottle or Potion Recipe sheet', () => {
+  const items = DM.itemChoices();
+  const potions = items.filter((x) => x.recipe !== undefined);
+  assert.equal(potions.length, 20);
+  assert.ok(potions.every((x) => x.template === 83 && x.group === 'Potions' && /^Potion of /.test(x.name)));
+  assert.ok(potions.some((x) => x.recipe === 'healTrue' && x.name === 'Potion of Heal True'));
+  assert.ok(!items.some((x) => x.recipe === undefined && (x.template === 83 || x.template === 278)), 'no empty bottle and no recipe sheet');
+  assert.equal(DM.groupWord('Potions'), 'Potions');
+  for (const x of items) assert.deepEqual(DM.choiceItem(DM.choiceValue(x)), x.recipe === undefined ? { template: x.template } : { template: x.template, recipe: x.recipe });
+  assert.equal(new Set(items.map(DM.choiceValue)).size, items.length, 'every row has its own value');
+});
+
+test('picking a potion sets its recipe, picking another item drops it, and the law accepts each', () => {
+  const d = blank();
+  DM.addTrade(d, 'Apothecary');
+  const s = d.trades[0].recipes[0].rewardItems[0];
+  DM.setStackItem(s, DM.choiceItem('83:healTrue'));
+  assert.deepEqual(s, { template: 83, recipe: 'healTrue', count: 1 });
+  assert.equal(DM.itemName(null, s), '1 x Potion of Heal True');
+  assert.deepEqual(problems(d), []);
+  DM.setStackItem(s, DM.choiceItem('83:healing'));
+  assert.equal(s.recipe, 'healing');
+  DM.setStackItem(s, DM.choiceItem('71'));
+  assert.deepEqual(s, { template: 71, count: 1 });
+  assert.deepEqual(problems(d), []);
+});
+
+test('a POI that already names an empty Glass Bottle or a Potion Recipe sheet keeps them and their names', () => {
+  const d = blank();
+  DM.addTrade(d, 'Old shop');
+  const rec = d.trades[0].recipes[0];
+  rec.requireItems = [{ template: 83, count: 2 }];
+  rec.rewardItems = [{ template: 278, count: 1 }];
+  const before = structuredClone(d);
+  assert.deepEqual(problems(d), []);
+  assert.equal(DM.itemName(null, rec.requireItems[0]), '2 x Glass Bottle');
+  assert.equal(DM.itemName(null, rec.rewardItems[0]), '1 x Potion Recipe');
+  DM.setStackItem(rec.requireItems[0], { group: 'UselessItems1' });
+  assert.deepEqual(d, before, 'setting the group changes nothing');
+});
+
 test('a stack includes a material only when its item takes one, and the law accepts what is left', () => {
   const d = blank();
   DM.addTrade(d, 'Smith');

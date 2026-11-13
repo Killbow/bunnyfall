@@ -7,7 +7,7 @@
 // character, stock) start empty each time the sandbox starts again.
 
 import { t } from '../../systems/textManager.js';
-import { itemName, itemChoices, stateWord, groupWord, waypointName } from '../../poi/poiDmEdit.js';
+import { itemName, itemChoices, choiceValue, choiceItem, stateWord, groupWord, waypointName } from '../../poi/poiDmEdit.js';
 import {
   createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance,
   enterEncounter, useInteractive, followKeptStates,
@@ -106,7 +106,7 @@ export function createPoiSandbox({ doc, getDoc, el, btn, redraw }) {
     let group = null, og = null;
     for (const it of itemChoices()) {
       if (it.group !== group) { group = it.group; og = el('optgroup'); og.label = groupWord(group); pick.append(og); }
-      const op = el('option', '', it.name); op.value = String(it.template); og.append(op);
+      const op = el('option', '', it.name); op.value = choiceValue(it); og.append(op);
     }
     pick.value = '71';
     const count = el('input');
@@ -123,8 +123,8 @@ export function createPoiSandbox({ doc, getDoc, el, btn, redraw }) {
     return section(t('poi.sandbox.startsWith', 'The visitor starts with'),
       row(el('label', '', t('poi.sandbox.gold', 'Gold')), gold),
       held.length ? row(...held) : null,
-      row(el('label', '', t('poi.sandbox.addItem', 'Add an item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
-        start.items.push({ template: Number(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
+      row(el('label', '', t('poi.sandbox.addItem', 'Add item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
+        start.items.push({ ...choiceItem(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
       })),
       ...vars,
       row(btn(dm ? t('poi.sandbox.restart', 'Start again') : t('poi.sandbox.start', 'Start the sandbox'), () => { restart(); redraw(); }), dm ? btn(t('poi.sandbox.stop', 'Stop'), () => { dm = null; redraw(); }) : null));

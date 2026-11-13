@@ -1,9 +1,6 @@
 #!/usr/bin/env node
-// Writes src/poi/poiItemChoices.js with the items the POI editors offer in their item pickers, computed from the item
-// law as the account service loads it. Because the browser registers extra templates (such as Humanoid Corpse) that
-// the service does not know, the list is generated here and verified by tools/poiItemChoices.test.mjs. An item is
-// included when staffGive.js mintGift mints it without findings, poiTradeProblems accepts it, and it has a name and a
-// non-Currency item group (leaving out bound items and gold).
+// Writes src/poi/poiItemChoices.js from the item law as the service loads it, since the browser registers templates the
+// service does not know. It leaves out the Glass Bottle and Potion Recipe; poiDmEdit.js offers potions by name instead.
 //   node tools/poiItemChoices.mjs           write the file
 //   node tools/poiItemChoices.mjs --check   exit 1 when the file differs from what the law gives now
 import { writeFileSync, readFileSync } from 'node:fs';
@@ -18,8 +15,11 @@ export async function lawItemChoices() {
   const { POI_V2_PINS } = await import('../src/poi/poiLawV2.js');
   const { mintGift } = await import('../server-account/src/staffGive.js');
   const { poiTradeProblems } = await import('../src/poi/poiTradeLaw.js');
+  const { GLASS_BOTTLE_TEMPLATE } = await import('../src/systems/inventory.js');
+  const { POTION_RECIPE_TEMPLATE_INDEX } = await import('../src/systems/loot/loot.js');
   const rows = [];
   for (let i = 0; i <= POI_V2_PINS.decorTemplateMax; i++) {
+    if (i === GLASS_BOTTLE_TEMPLATE || i === POTION_RECIPE_TEMPLATE_INDEX) continue;
     const row = lawTemplate(i);
     const name = ITEM_TEMPLATES[i]?.name ?? row?.name;
     if (!row || row.bound || !name) continue;

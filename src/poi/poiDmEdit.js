@@ -13,6 +13,8 @@ import { POI_ITEM_CHOICES } from './poiItemChoices.js';
 import { ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
 import { dexEnemyNameText } from '../systems/enemyExpansion/dexNames.js';
 import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
+import { POTION_RECIPES } from '../systems/potionRecipes.js';
+import { GLASS_BOTTLE_TEMPLATE } from '../systems/inventory.js';
 import { templateGroups } from '../systems/item/itemLaw.js';
 import { WEAPON_MATERIALS } from '../characters/weapons.js';
 import { ARMOR_MATERIAL } from '../systems/armorMaterials.js';
@@ -49,26 +51,36 @@ function room(doc, name, wanted) {
 }
 
 // ── items ──
-/** @type {{ template: number, name: string, group: string }[] | null} */
+/** @type {{ template: number, name: string, group: string, recipe?: string }[] | null} */
 let itemRows = null;
-/**
- * Returns the items a POI may name in a trade stack, key item, condition, or gift: the classic items and the game's
- * added items that the account service can give from a POI, each in its first group, sorted by group, then name. The
- * list comes from poiItemChoices.js, which tools/poiItemChoices.mjs generates with the service's own rules, because the
- * browser registers templates that the service does not know. It leaves out gold (given as an amount), templates with
- * no item group, bound items, items with no name on the service, and potions, which are bottles that carry a recipe.
- */
+/** @param {string} recipe */
+export const potionName = (recipe) => {
+  const r = POTION_RECIPES.find((x) => x.name === recipe);
+  return r ? t('poi.dm.potionOf', 'Potion of {name}', { name: r.displayName }) : null;
+};
 export function itemChoices() {
-  itemRows ??= POI_ITEM_CHOICES.map(([template, group, name]) => ({ template, name, group }));
+  itemRows ??= [
+    ...POI_ITEM_CHOICES.map(([template, group, name]) => ({ template, name, group })),
+    ...POTION_RECIPES.map((r) => ({ template: GLASS_BOTTLE_TEMPLATE, recipe: r.name, name: /** @type {string} */ (potionName(r.name)), group: 'Potions' })),
+  ].sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
   return itemRows;
 }
+/** @param {{ template: number, recipe?: string }} s */
+export const choiceValue = (s) => (s.recipe === undefined ? String(s.template) : `${s.template}:${s.recipe}`);
+/** @param {string} v */
+export const choiceItem = (v) => {
+  const [template, recipe] = String(v).split(':');
+  return recipe === undefined ? { template: Number(template) } : { template: Number(template), recipe };
+};
 /** Returns an item's name from the picker list, or from the classic item table. @param {number} template */
 const itemNameOf = (template) => {
-  itemNames ??= new Map(itemChoices().map((r) => [r.template, r.name]));
+  itemNames ??= new Map(itemChoices().filter((r) => r.recipe === undefined).map((r) => [r.template, r.name]));
   return itemNames.get(template) ?? ITEM_TEMPLATES[template]?.name ?? null;
 };
 /** @type {Map<number, string> | null} */
 let itemNames = null;
+/** @param {{ template: number, recipe?: string }} s */
+export const stackItemName = (s) => (s.recipe !== undefined ? potionName(s.recipe) : itemNameOf(s.template));
 /** The groups an item may be made in (a few templates are minted in more than one). @param {number} template */
 export const itemGroups = (template) => templateGroups(template).filter((g) => g !== 'Currency');
 /** @type {Record<string, () => string>} */
@@ -79,7 +91,7 @@ const GROUP_WORD = {
   Gems: () => t('poi.dm.g.gems', 'Gems'), PlantIngredients1: () => t('poi.dm.g.plants1', 'Plant ingredients'), PlantIngredients2: () => t('poi.dm.g.plants2', 'More plant ingredients'),
   CreatureIngredients1: () => t('poi.dm.g.creature1', 'Creature ingredients'), CreatureIngredients2: () => t('poi.dm.g.creature2', 'More creature ingredients'), CreatureIngredients3: () => t('poi.dm.g.creature3', 'Rare creature ingredients'),
   MiscellaneousIngredients1: () => t('poi.dm.g.misc1', 'Other ingredients'), MetalIngredients: () => t('poi.dm.g.metal', 'Metals'), MiscellaneousIngredients2: () => t('poi.dm.g.misc2', 'More ingredients'),
-  Transportation: () => t('poi.dm.g.transport', 'Transport'), Deeds: () => t('poi.dm.g.deeds', 'Deeds'), Jewellery: () => t('poi.dm.g.jewelry', 'Jewelry'), MiscItems: () => t('poi.dm.g.misc', 'Other items'), QuestItems: () => t('poi.dm.g.quest', 'Quest items'),
+  Potions: () => t('poi.dm.g.potions', 'Potions'), Transportation: () => t('poi.dm.g.transport', 'Transport'), Deeds: () => t('poi.dm.g.deeds', 'Deeds'), Jewellery: () => t('poi.dm.g.jewelry', 'Jewelry'), MiscItems: () => t('poi.dm.g.misc', 'Other items'), QuestItems: () => t('poi.dm.g.quest', 'Quest items'),
 };
 /** An item group's name as the builder reads it. @param {string} g */
 export const groupWord = (g) => GROUP_WORD[g]?.() ?? g;
@@ -408,9 +420,15 @@ export function addStack(rec, side, template, count = 1) {
   rows.push(s);
   return { row: s };
 }
-/** @param {any} s @param {{ template?: number, group?: string | null, material?: number | null }} to */
+/**
+ * @param {any} s @param {{ template?: number, recipe?: string, group?: string | null, material?: number | null }} to
+ */
 export function setStackItem(s, to) {
-  if (to.template !== undefined) s.template = to.template;
+  if (to.template !== undefined) {
+    s.template = to.template;
+    if (to.recipe === undefined) delete s.recipe; else s.recipe = to.recipe;
+  }
+  if (s.template !== GLASS_BOTTLE_TEMPLATE) delete s.recipe;
   const groups = itemGroups(s.template);
   const group = to.group !== undefined ? to.group : s.group;
   if (group && groups.length > 1 && groups.includes(group)) s.group = group; else delete s.group;
@@ -573,7 +591,7 @@ export const waypointName = (doc, route, key) => (doc.routes ?? []).find((r) => 
  * @param {any} names @param {any} s
  */
 export const itemName = (names, s) => {
-  const known = names ? names.assets?.find((a) => a.namespace === 'paperdoll-item' && a.template === s.template)?.name : itemNameOf(s.template);
+  const known = names && s.recipe === undefined ? names.assets?.find((a) => a.namespace === 'paperdoll-item' && a.template === s.template)?.name : stackItemName(s);
   return t('poi.dm.text.stack', '{count, number} x {item}', { count: s.count ?? 1, item: known ?? t('poi.dm.text.itemN', 'item {n}', { n: s.template }) });
 };
 const OP_WORD = { eq: () => t('poi.dm.op.eq', 'is'), ne: () => t('poi.dm.op.ne', 'is not'), gt: () => '>', ge: () => '>=', lt: () => '<', le: () => '<=' };

@@ -4,7 +4,7 @@
 // values, and a log of what fired in the Sandbox's words. Drawn in the editor's right dock while a test runs.
 
 import { t } from '../../systems/textManager.js';
-import { itemChoices, groupWord, stateWord } from '../../poi/poiDmEdit.js';
+import { itemChoices, choiceValue, choiceItem, groupWord, stateWord } from '../../poi/poiDmEdit.js';
 import { itemLongName } from '../../systems/item/itemInfo.js';
 import { logText } from './poiSandbox.js';
 
@@ -34,6 +34,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
   let pickAt = '71', countAt = '1';
   const section = (/** @type {string} */ title, /** @type {any[]} */ ...kids) => { const s = el('div', 'dfpoi-card'); s.append(el('div', 'dfpoi-h', title), ...kids.filter(Boolean)); return s; };
   const row = (/** @type {any[]} */ ...kids) => { const r = el('div', 'dfpoi-row'); r.append(...kids.filter(Boolean)); return r; };
+  const wrap = (/** @type {any} */ r) => { r.classList.add('dfpoi-wrap'); return r; };
   const none = () => t('poi.sandbox.none', 'none');
 
   /** The banner line said in the bar and over the panel. */
@@ -53,7 +54,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
     let group = null, og = null;
     for (const it of itemChoices()) {
       if (it.group !== group) { group = it.group; og = el('optgroup'); og.label = groupWord(group); pick.append(og); }
-      const op = el('option', '', it.name); op.value = String(it.template); og.append(op);
+      const op = el('option', '', it.name); op.value = choiceValue(it); og.append(op);
     }
     pick.value = pickAt;
     pick.addEventListener('change', () => { pickAt = pick.value; });
@@ -67,9 +68,9 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
       el('div', '', t('poi.test.gained', 'Gained: {list}', { list: moreIn(first, now) || none() })),
       el('div', '', t('poi.test.givenUp', 'Given up: {list}', { list: moreIn(now, first) || none() })),
       el('div', 'dfpoi-sub', t('poi.test.carrying', 'Carrying {n, plural, one {# item} other {# items}}.', { n: carried })),
-      row(el('label', '', t('poi.sandbox.addItem', 'Add an item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
-        test.addStack({ template: Number(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
-      })));
+      wrap(row(el('label', '', t('poi.sandbox.addItem', 'Add item')), pick, count, btn(t('poi.sandbox.add', 'Add'), () => {
+        test.addStack({ ...choiceItem(pick.value), count: Math.max(1, Math.floor(Number(count.value)) || 1) }); redraw();
+      }))));
   }
 
   function state() {

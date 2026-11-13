@@ -211,19 +211,20 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   const itemPick = (/** @type {any} */ stack, /** @type {any[]} */ path, /** @type {string} */ label, { counted = true } = {}) => {
     const s = /** @type {HTMLSelectElement} */ (el('select'));
     let group = null, og = null;
+    const now = DM.choiceValue(stack);
     for (const it of DM.itemChoices()) {
       if (it.group !== group) { group = it.group; og = /** @type {HTMLOptGroupElement} */ (el('optgroup')); og.label = DM.groupWord(group); s.append(og); }
-      const op = /** @type {HTMLOptionElement} */ (el('option', '', it.name)); op.value = String(it.template); if (it.template === stack.template) op.selected = true; og?.append(op);
+      const op = /** @type {HTMLOptionElement} */ (el('option', '', it.name)); op.value = DM.choiceValue(it); if (op.value === now) op.selected = true; og?.append(op);
     }
-    if (!DM.itemChoices().some((it) => it.template === stack.template)) { const op = /** @type {HTMLOptionElement} */ (el('option', '', t('poi.dm.itemUnknown', 'item {n} (not known)', { n: stack.template }))); op.value = String(stack.template); op.selected = true; s.append(op); }
-    // Explain in the picker why potions and gold are not offered (see DM.itemChoices).
     const off = /** @type {HTMLOptGroupElement} */ (el('optgroup')); off.label = t('poi.dm.notOffered', 'Not offered');
-    for (const tx of [t('poi.dm.noPotion', 'Potions: a potion is a bottle with a recipe, and a recipe cannot be set here'), t('poi.dm.noGold', 'Gold: give or take it as an amount')]) {
-      const op = /** @type {HTMLOptionElement} */ (el('option', '', tx)); op.disabled = true; op.value = ''; off.append(op);
+    if (!DM.itemChoices().some((it) => DM.choiceValue(it) === now)) {
+      const name = DM.stackItemName(stack);
+      const op = /** @type {HTMLOptionElement} */ (el('option', '', name ?? t('poi.dm.itemUnknown', 'Unknown item {n}', { n: stack.template }))); op.value = now; op.selected = true; off.append(op);
     }
+    const gold = /** @type {HTMLOptionElement} */ (el('option', '', t('poi.dm.noGold', 'Gold: give or take it as an amount'))); gold.disabled = true; gold.value = ''; off.append(gold);
     s.append(off);
     const change = (/** @type {any} */ to) => run((d) => { const x = get(d, path); if (x) DM.setStackItem(x, to); });
-    s.addEventListener('change', () => change({ template: Number(s.value) }));
+    s.addEventListener('change', () => change(DM.choiceItem(s.value)));
     const r = row(label, s);
     const groups = DM.itemGroups(stack.template);
     if (groups.length > 1) {

@@ -105,6 +105,8 @@ body:has(> .dfpoi[data-on="1"] > .dfpoi-dm:not([hidden])) #bf-tutorial-ask { top
 .dfpoi-row { display: flex; gap: 4px; align-items: center; margin: 2px 0; }
 .dfpoi-row > label { flex: 0 0 82px; color: #b9b2a3; }
 .dfpoi-row > .dfpoi-grow { flex: 1 1 auto; min-width: 0; }
+.dfpoi-row.dfpoi-wrap { flex-wrap: wrap; }
+.dfpoi-wrap > select { flex: 1 1 160px; }
 .dfpoi input, .dfpoi select, .dfpoi textarea { font: inherit; color: inherit; background: #1d1b18; border: 1px solid #4b3c27; border-radius: 3px; padding: 2px 4px; min-width: 0; }
 .dfpoi input[type="number"] { width: 64px; }
 .dfpoi textarea { width: 100%; min-height: 48px; resize: vertical; }

@@ -13,6 +13,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: The in-game POI editor's item picker now offers the game's potions by name, in place of the empty Glass Bottle and a Potion Recipe sheet that teaches nothing.
 - Fixed: The in-game POI editor can now set an encounter so that language skills and spells cannot pacify its enemies.
 - Fixed: The in-game POI editor draws routes as wide bands that rise over hills, with slow arrows that show which way people walk.
 - Fixed: The in-game POI editor's move, turn, and size handles brighten and grow under the cursor, with size boxes on the selection's faces and corners.
@@ -46,7 +47,7 @@ the last release (scripts/changelogNotes.mjs).
 - Fixed: The in-game POI editor draws a route as the straight lines a person walks between its waypoints.
 - Fixed: The in-game POI editor now says why only a persistent text variable can hold an object's state, and can make one for it.
 - Fixed: An encounter set to never start again can now stay won across visits, set up with one button in the in-game POI editor.
-- Fixed: The in-game POI editor's item picker now offers the game's added items, such as foods, gems, and the crossbow, and says why potions are not offered.
+- Fixed: The in-game POI editor's item picker now offers the game's added items, such as foods, gems, and the crossbow.
 - Fixed: Offline, a POI trade's once-per-character, limited-stock, daily, and cooldown limits now last after a reload, on each device.
 - Fixed: A POI dialogue now drops an answer as soon as the event it started is done, instead of showing it until the next talk.
 - Fixed: Bodies of enemies killed in the in-game POI editor's Test no longer stay behind to be looted after the test ends.
