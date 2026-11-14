@@ -1,11 +1,12 @@
 // @ts-check
-// BUNNYFALL WORKSTATION MODAL: the Bench and the Provisioning pot or cauldron as a window of their own, so neither depends on
-// the pause book's UI scale. The window is a fixed 1280x800 stage scaled to fit the screen (letterboxed), so its layout is the
-// same at any scale; each pane scrolls on its own and nothing else does. It hosts the pages as they are (craftWindow.js
-// drawBench, provisioning/provPage.js drawProvPage): every number and call is theirs, only the room they stand in is new.
+// The Bench and the Provisioning pot or cauldron open in this window of their own. It is a fixed 1280x800 stage scaled
+// to fit the screen (letterboxed), so its layout does not depend on the UI scale. Each list scrolls on its own, and the
+// Craft and Cook buttons stay in view. The pages draw their own content (craftWindow.js drawBench,
+// provisioning/provPage.js drawProvPage), and this file restyles and frames them.
 import { drawBench } from '../professions/craftWindow.js';
-import { drawProvPage } from '../provisioning/provPage.js';
+import { drawProvPage, setDownProv } from '../provisioning/provPage.js';
 import { profProvider, stationHere, stationsHere } from '../professions/profPages.js';
+import { overlayAction } from '../input.js';
 
 const ID = 'bf-workstation';
 const W = 1280, H = 800;
@@ -17,18 +18,24 @@ const CSS = `
 #${ID} .wsm-title { font-size: 24px; letter-spacing: .12em; text-transform: uppercase; color: rgb(243,239,44); text-shadow: 1px 1px 0 rgb(93,77,12); }
 #${ID} .wsm-sub { color: #b9ab93; font-size: 15px; }
 #${ID} .wsm-x { margin: 0 0 0 auto; }
-/* one scroll for the whole window: the body scrolls, no list or card inside it does */
-#${ID} .wsm-body { flex: 1 1 auto; min-height: 0; padding: 12px 16px 16px; overflow-y: auto; overflow-x: hidden; }
-#${ID} .wsm-body .cw, #${ID} .wsm-body .pv { display: flex; flex-direction: column; gap: 10px; }
-#${ID} .wsm-body .cw-body, #${ID} .wsm-body .pv-body { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: 14px; }
-#${ID} .wsm-body .cw-list, #${ID} .wsm-body .pv-book, #${ID} .wsm-body .pv-ings { max-height: none; overflow: visible; padding: 0; }
+#${ID} .wsm-body { flex: 1 1 auto; min-height: 0; padding: 12px 16px 16px; display: flex; flex-direction: column; overflow: hidden; }
+#${ID} .wsm-body > .cw, #${ID} .wsm-body > .pv { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10px; }
+#${ID} .wsm-body > .cw { overflow-x: hidden; overflow-y: auto; }
+#${ID} .wsm-body .cw-body, #${ID} .wsm-body .pv-body { flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: nowrap; align-items: stretch; gap: 14px; }
+#${ID} .wsm-body .cw-body { min-height: 320px; }
 #${ID} .wsm-body .cw-list, #${ID} .wsm-body .pv-book { flex: 0 0 250px; }
 #${ID} .wsm-body .pv-ings { flex: 0 0 300px; }
-#${ID} .wsm-body .cw-body > .cw-card, #${ID} .wsm-body .pv-mid { flex: 1 1 0; min-width: 0; overflow: visible; }
-#${ID} .wsm-body .cw-card.cw-ws { display: grid; grid-template-columns: 1.3fr 1fr; align-content: start; gap: 12px 16px; }
+#${ID} .wsm-body .cw-body > .cw-card, #${ID} .wsm-body .pv-mid { flex: 1 1 0; min-width: 0; }
+#${ID} .wsm-body .cw-list, #${ID} .wsm-body .wsm-card-scroll, #${ID} .wsm-body .pv-book, #${ID} .wsm-body .pv-mid, #${ID} .wsm-body .pv-ings { min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto; }
+#${ID} .wsm-body .cw-list, #${ID} .wsm-body .pv-book, #${ID} .wsm-body .pv-mid, #${ID} .wsm-body .pv-ings { padding: 0 6px 0 0; }
+#${ID} .wsm-body .pv-sum { flex: none; }
+#${ID} .wsm-body .cw-body > .cw-card { display: flex; flex-flow: column nowrap; align-items: stretch; overflow: hidden; }
+#${ID} .wsm-body .wsm-card-scroll { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; }
+#${ID} .wsm-body .cw-card.cw-ws > .wsm-card-scroll { display: grid; grid-template-columns: 1.3fr 1fr; align-content: start; gap: 12px 16px; }
 #${ID} .wsm-body .cw-ws-sum { grid-column: 1 / -1; }
+#${ID} .wsm-body .cw-body > .cw-card > .cw-actions { flex: none; justify-content: flex-end; padding-top: 10px; border-top: 2px solid #6b5228; }
 #${ID} .wsm-body .cw-help-btn { align-self: flex-start; }
-#${ID} .wsm-body .cw-help { max-height: none; overflow: visible; }
+#${ID} .wsm-body > .cw-help { flex: none; max-height: 240px; overflow-y: auto; }
 #${ID} .wsm-body .prof-family, #${ID} .wsm-body .act { font-size: 15px; }
 #${ID} .wsm-body .prof-family { padding: 5px 11px; }
 #${ID} .wsm-body .prof-search { font-size: 15px; padding: 6px 10px; }
@@ -49,6 +56,7 @@ export const workstationOpen = () => !!_open;
 
 export function closeWorkstation() {
   if (!_open) return;
+  setDownProv();
   _open.root.remove();
   _open = null;
   _keyOff?.(); _keyOff = null;
@@ -69,9 +77,19 @@ export function openWorkstation(/** @type {'bench'|'prov'} */ kind) {
   root.innerHTML = `<div class="wsm-stage px-win px-sys"><div class="wsm-top"><span class="wsm-title"></span><span class="wsm-sub"></span><button type="button" class="act wsm-x">Close (Esc)</button></div><div class="wsm-body"></div></div>`;
   root.addEventListener('mousedown', (e) => { if (e.target === root) closeWorkstation(); });
   /** @type {HTMLElement} */ (root.querySelector('.wsm-x')).onclick = closeWorkstation;
-  // the game's keys stay out of the window (the search boxes), Esc closes it
-  const stop = (/** @type {KeyboardEvent} */ e) => { if (e.type === 'keydown' && e.key === 'Escape') { e.preventDefault(); closeWorkstation(); } e.stopPropagation(); };
+  const stop = (/** @type {KeyboardEvent} */ e) => e.stopPropagation();
   for (const type of ['keydown', 'keyup', 'keypress']) root.addEventListener(type, stop);
+  // A running Bench minigame handles Escape itself, on the document after this listener. The pause menu's window
+  // listener can be added after this one (a station key opens both), so stopImmediatePropagation keeps it from also
+  // resuming the game.
+  const onKey = (/** @type {KeyboardEvent} */ e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || overlayAction(e) !== 'back' || root.querySelector('.cw-act')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (!e.repeat && !setDownProv()) closeWorkstation();
+  };
+  globalThis.addEventListener('keydown', onKey, { capture: true });
+  _keyOff = () => globalThis.removeEventListener('keydown', onKey, { capture: true });
   doc.body.append(root);
   _open = { root, host: /** @type {HTMLElement} */ (root.querySelector('.wsm-body')), kind };
   globalThis.addEventListener?.('resize', fit);
@@ -84,13 +102,23 @@ function dress(/** @type {HTMLElement} */ host) {
   for (const e of host.querySelectorAll('.cw-btn, .cw-tab, .pv-btn')) { e.classList.add('act'); if (e.classList.contains('cw-primary') || e.classList.contains('primary') || e.classList.contains('cw-on')) e.classList.add('primary'); }
   for (const e of host.querySelectorAll('.cw-chip, .pv-chip:not(input), .cw-look-chip')) { e.classList.add('prof-family'); if (e.classList.contains('cw-on') || e.classList.contains('on')) e.classList.add('on'); }
   for (const e of host.querySelectorAll('input.cw-search, input.pv-chip')) e.classList.add('prof-search');
+  const card = host.querySelector('.cw-body > .cw-card');
+  if (card) {
+    const bar = [...card.children].find((e) => e.classList?.contains('cw-actions')) ?? card.querySelector('.cw-ws-sum > .cw-actions');
+    const scroll = globalThis.document.createElement('div');
+    scroll.className = 'wsm-card-scroll';
+    scroll.append(...[...card.children].filter((e) => e !== bar));
+    card.replaceChildren(scroll, ...(bar ? [bar] : []));
+  }
 }
+
+const PANES = ['.cw', '.cw-body > .cw-list', '.wsm-card-scroll', '.pv-book', '.pv-mid', '.pv-ings'];
 
 function draw() {
   if (!_open) return;
   const p = profProvider();
   const { host, root, kind } = _open;
-  const top = host.scrollTop;
+  const tops = PANES.map((s) => host.querySelector(s)?.scrollTop ?? 0);
   host.replaceChildren();
   const rerender = () => draw();
   /** @type {HTMLElement} */ (root.querySelector('.wsm-title')).textContent = kind === 'bench' ? 'The Bench' : 'Provisioning';
@@ -98,5 +126,5 @@ function draw() {
   if (kind === 'bench') drawBench(host, rerender, p, stationHere(), () => closeWorkstation(), stationsHere());
   else drawProvPage(host, rerender, p, stationHere(), { go: () => closeWorkstation() });
   dress(host);
-  host.scrollTop = top;
+  PANES.forEach((s, i) => { const e = host.querySelector(s); if (e) e.scrollTop = tops[i]; });
 }

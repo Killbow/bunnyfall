@@ -9,6 +9,7 @@ import { potionById } from '../net/alchemyLaw.js';
 import { setItemFields, mintCondition } from './item/itemTemplates.js';
 import { PROF_ITEM_GROUP } from './professions/profTemplates.js';
 import { FOOD_TRAITS, dishTemplateOf } from '../net/provision/provisionLaw.js';
+import { freshFoodName } from './survival/food.js';
 
 /** The pieces a make's answer mints (`data.prov`, the service's): its potions or its dishes. */
 export function provItems(data) {
@@ -57,7 +58,7 @@ export function provDishDef(/** @type {any} */ it) {
   const stats = {};
   for (const t of it.prov.t) { const s = /** @type {any} */ (FOOD_TRAITS)[t]?.stat; if (s) /** @type {any} */ (stats)[s] = it.prov.m; }
   return {
-    id: 'prov', name: String(it.name ?? 'Dish'),
+    id: 'prov', name: freshFoodName(it.name ?? 'Dish'),
     effect: { ...(Object.keys(stats).length ? { stats } : {}), ...(it.prov.t.includes('restful') ? { stamina: 20 } : {}), minutes: it.prov.min, ...(it.prov.party ? { party: true } : {}) },
   };
 }

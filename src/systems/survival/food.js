@@ -65,15 +65,21 @@ export function registerFoods(rows) {
 export const isFood = (item) => !!item && (FOOD[item.templateIndex] ?? MORE_FOOD.get(item.templateIndex)) != null && (item.group == null || item.group === SURVIVAL_GROUP);
 export const foodOf = (item) => (item ? FOOD[item.templateIndex] ?? MORE_FOOD.get(item.templateIndex) ?? null : null);
 export const foodStage = (item) => Math.min(FOOD_STAGE.Putrid, Math.max(0, item?.foodStage ?? 0));
+const STAGE_PREFIX = new RegExp(`^(?:${[...new Set([...STAGE_WORDS.filter(Boolean), ...Object.values(FOOD).map((f) => f.stale).filter(Boolean)])].join('|')}) `);
+/**
+ * Spoiling writes a pot dish's stage word into its own name, so it is taken off before the current one is put back.
+ * A Provisioning dish name must never start with one of these words.
+ */
+export const freshFoodName = (/** @type {string} */ name) => String(name).replace(STAGE_PREFIX, '');
 /** The name with its stage: "Soft Apple", "Mouldy Bread", "Putrid Meat". */
 export function foodName(item) {
-  if (item?.prov && typeof item.name === 'string') return item.name;   // BUNNYFALL PROVISIONING: a pot's dish is called what it is
+  const own = item?.prov && typeof item.name === 'string' ? freshFoodName(item.name) : null;
   const f = foodOf(item);
-  if (!f) return item?.name ?? '';
+  if (!f) return own ?? item?.name ?? '';
   const s = foodStage(item);
-  if (s === 0) return f.name;
+  if (s === 0) return own ?? f.name;
   const word = s === FOOD_STAGE.Stale ? (f.stale ?? 'Stale') : STAGE_WORDS[s];
-  return `${word} ${f.name}`;
+  return `${word} ${own ?? f.name}`;
 }
 /** What the meal is worth at its stage. */
 export const foodSatiety = (item) => Math.trunc((foodOf(item)?.satiety ?? 0) / (foodStage(item) + 1));

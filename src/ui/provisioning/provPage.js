@@ -18,7 +18,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 /** What a refused answer says: its own words, else the service's word for its error. */
 const refusal = (/** @type {any} */ r, /** @type {string} */ fallback) => r?.text ?? (r?.error ? `${accountRefusalText(r.error)} Nothing was spent.` : fallback);
 
-const _pv = { kind: /** @type {'pot'|'cauldron'} */ ('pot'), keys: /** @type {string[]} */ ([]), base: /** @type {string|null} */ (null), q: '', word: '', busy: false, act: /** @type {any} */ (null), asked: false, followed: /** @type {string|null} */ (null) };
+const _pv = { kind: /** @type {'pot'|'cauldron'} */ ('pot'), keys: /** @type {string[]} */ ([]), base: /** @type {string|null} */ (null), q: '', qFocus: false, word: '', busy: false, act: /** @type {any} */ (null), asked: false, followed: /** @type {string|null} */ (null) };
 
 const doc = () => globalThis.document;
 function h(tag, cls = null, text = null) { const e = doc().createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; }
@@ -205,8 +205,9 @@ export function drawProvPage(detail, rerender, p, here, kit) {
   ings.append(h('div', 'pv-title', kind === 'pot' ? 'Food, herbs and spices' : 'Plants, parts and metals'));
   const search = h('input', 'pv-chip');
   search.type = 'search'; search.placeholder = 'Search'; search.value = _pv.q; search.setAttribute('aria-label', 'Search the ingredients');
-  search.oninput = () => { _pv.q = search.value; rerender(); };
+  search.oninput = () => { _pv.q = search.value; _pv.qFocus = true; rerender(); };
   ings.append(search);
+  if (_pv.qFocus) { _pv.qFocus = false; globalThis.queueMicrotask?.(() => { search.focus?.(); search.setSelectionRange?.(search.value.length, search.value.length); }); }
   const q = _pv.q.trim().toLowerCase();
   const pool = (kind === 'pot' ? POT_KEYS : CAULDRON_KEYS)
     .map((k) => ({ k, n: held(k), label: name(k) }))
@@ -335,7 +336,14 @@ function mountSimmer(rank, done, rerender) {
     globalThis.requestAnimationFrame?.(frame);
   };
   globalThis.requestAnimationFrame?.(frame);
-  return { el };
+  return { el, cancel: () => act.cancel() };
+}
+
+/** Cancels a running Simmer without spending anything. Returns false when none is running. */
+export function setDownProv() {
+  if (!_pv.act) return false;
+  _pv.act.cancel();
+  return true;
 }
 
 /** A trait's words, for the tooltips and the help. */

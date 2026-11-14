@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Escape now closes the Bench and Provisioning window, and each list scrolls on its own, so the Craft and Cook buttons stay in view. Closing the window during The Simmer no longer cooks the dish anyway, the ingredient search keeps the cursor, and pot dishes now show when they spoil.
 - Fixed: You can now do the daily chore at your Company's farm from its farmhouse door.
 - The map now shows garrisons on the march: a dashed arrow in the Company's colours runs from its town straight to the point on Rodney's blight edge where its soldiers push, thicker the more soldiers march.
 

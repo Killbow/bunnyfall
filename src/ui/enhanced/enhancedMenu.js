@@ -203,6 +203,7 @@ import { hdGlyphSvg, hdGlyphName } from '../padGlyphsHD.js';   // PADPLUS1: the 
 import { padFamily as livePadFamily } from '../padGlyphs.js';   // PADPLUS1
 import { openPlusPadBinds, plusPadLegend } from '../plus/plusPadBinds.js';   // PADPLUS10: the controller bindings window
 import { plusBindsOpen, resetPlusDpad } from '../plus/plusPad.js';
+import { workstationOpen } from '../workstation/workstationModal.js';
 import { peerBindBusy } from '../peerMenuBindCard.js';   // PEERMENU1   // PADPLUS10: the window over this one answers its own keys
 import { modKeyRows } from '../../systems/controlsConfig.js';   // UXB1-F: a mod's keys, read-only on its tile
 import { MOD_SETTINGS, modSetting, setModSetting, onlineModSetting, isIntKey, isFloatKey, isChoiceKey, isTextKey, isTupleKey } from '../../systems/modSettings.js';   // REALM P0.2: onlineModSetting, the room's value for a key it owns (whole mods included)
@@ -6261,6 +6262,7 @@ function onKey(e) {
   if (textKeyCapture) return;
   if (peerBindBusy()) return;   // PEERMENU1: the player-menu bind is waiting for a key (or swallowing a pad B's Back)
   if (plusBindsOpen()) return;   // PADPLUS10: the Controller bindings window is over the menu - its Escape is its own
+  if (workstationOpen()) return;
   const t = e.target;
   // PRIVATE-REPORT (AUDIT PRIVATE-REPORT UI-2): a field's keys are the field's - but Escape in the mailbox's window leaves it,
   // as the notice and arena windows let it (noticeWindow.js): `/bug` lands the focus in the report form, and its Escape
