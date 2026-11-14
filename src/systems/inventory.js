@@ -663,6 +663,10 @@ export const weightInGPUnits = (kg) => Math.round(kg * 400);
  *  proceeds would push the player past MaxEncumbrance. */
 export const GOLD_PIECE_WEIGHT_KG = 0.0025;
 
+/** @param {any} entity */
+export const carryFactor = (entity) =>
+  ((entity?.activeEffects ?? []).some((a) => a.kind === 'featherweight' && !a.ended) ? FEATHERWEIGHT_FACTOR : 1);
+
 /** PlayerEntity.CarriedWeight (:184), verbatim:
  *  `Items.GetWeight() + (goldPieces * DaggerfallBankManager
  *  .goldPieceWeightInKg)`. E4: with gold off the item list this is the
@@ -672,9 +676,8 @@ export const GOLD_PIECE_WEIGHT_KG = 0.0025;
  *  (:852-855, which the CanCarryAmount gate reads), the bank's
  *  withdrawal weight test (DaggerfallBankManager.cs:370) and
  *  LevitateMotor's over-encumbered walk (:83). */
-export const carriedWeight = (entity) =>
-  (totalWeight(entity?.items ?? []) + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG)
-  * ((entity?.activeEffects ?? []).some((a) => a.kind === 'featherweight' && !a.ended) ? FEATHERWEIGHT_FACTOR : 1);   // BUNNY-SPELLS: Featherweight
+export const carriedWeight = (entity, items = entity?.items ?? []) =>
+  (totalWeight(items) + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG) * carryFactor(entity);
 
 /** ComputeCanHoldAmount (DaggerfallInventoryWindow.cs:1444-1455,
  *  L-slice AUDIT 23 items-9): how many units of an item fit under a
@@ -690,4 +693,10 @@ export function canHoldAmount(unitsAvailable, unitWeightKg, capacityKg, loadKg) 
     canHold = Math.min(canHold, Math.trunc((weightInGPUnits(capacityKg) - weightInGPUnits(loadKg)) / roundUnitWeight));
   }
   return canHold;
+}
+
+// Featherweight scales the capacity, not each unit, so GP-unit rounding still sees true weights.
+export function packCanHoldAmount(entity, unitsAvailable, unitWeightKg, capacityKg, items = entity?.items ?? []) {
+  const f = carryFactor(entity);
+  return canHoldAmount(unitsAvailable, unitWeightKg, capacityKg / f, carriedWeight(entity, items) / f);
 }
