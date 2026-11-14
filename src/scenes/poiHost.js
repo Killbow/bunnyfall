@@ -428,6 +428,7 @@ export function createPoiHost({
     const asked = s.missing;
     // a revision that comes meanwhile fills it again (the frame's same-build path)
     s.missing = [];
+    s.missingAt = now();
     try {
       const still = [];
       for (const i of asked) {
@@ -652,6 +653,7 @@ export function createPoiHost({
       // the hold begins: no live dialogue or trade stays on screen to be answered
       if (held && !wasHeld) dmRt?.close?.();
       wasHeld = held;
+      if (!held) dmRt?.tick?.();
       want.forEach(standWanted);
       stepWork();
       npcs.frame();   // BUNNYFALL: the people near the player, for the world's flats and its Talk key
@@ -771,7 +773,9 @@ export function createPoiHost({
     standDown() {
       const col = collider();
       flats.hideAll();
+      dmRt?.close?.();
       for (const s of stood) {
+        if (s.draft) dmTest?.(s.id)?.close?.();
         s.visible = false;
         for (const p of s.parts) if (p.stood) { col?.removeBucket?.(p.bucket); p.stood = false; p.carry = false; }
       }

@@ -92,7 +92,7 @@ export function createPoiTestPanel({ test, el, btn, redraw, onStop }) {
   function view() {
     const box = el('div', 'dfpoi-test');
     box.append(el('div', 'dfpoi-warn', banner()));
-    box.append(row(btn(t('poi.test.stop', 'Stop test'), () => onStop()), btn(t('poi.test.reset', 'Start again'), () => { test.reset().then(() => redraw()); })));
+    box.append(row(btn(t('poi.test.stop', 'Stop test'), () => onStop()), btn(t('poi.test.reset', 'Start again'), () => { test.reset(); redraw(); })));
     box.append(el('div', 'dfpoi-sub', t('poi.test.resetHint', 'Start again copies your gold and items again and sets every value, object, and encounter back to how it is authored.')));
     const p = purse(), s = state();
     if (p) box.append(p);

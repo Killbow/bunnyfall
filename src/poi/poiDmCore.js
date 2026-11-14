@@ -485,6 +485,11 @@ export function runRecipe(dm, tradeKey, recipeKey) {
 
 /** Walking speed along a route, metres a second - a person's stroll. */
 export const WALK_MPS = 1.4;
+/** @param {any} wp */
+export const reachOf = (wp) => Math.max(0, wp?.radius ?? 0.5);
+export const WALK_NEAR = 1e-6;
+/** A Wait-0 leg that walks less than this is short. */
+const RINGS_MEET_M = 0.1;
 
 /**
  * A walker along a route: where it is, which waypoint it heads for, how long it still waits there. `mode`: loop, pingpong, once.
@@ -492,7 +497,7 @@ export const WALK_MPS = 1.4;
  */
 export function createWalker(route) {
   const first = route.waypoints?.[0]?.t ?? [0, 0, 0];
-  return { route, at: 0, dir: 1, pos: /** @type {number[]} */ ([...first]), wait: route.waypoints?.[0]?.waitS ?? 0, done: false, arrived: /** @type {string[]} */ ([]) };
+  return { route, at: 0, dir: 1, pos: /** @type {number[]} */ ([...first]), wait: route.waypoints?.[0]?.waitS ?? 0, done: false, legM: 0, shortLegs: 0 };
 }
 
 /**
@@ -503,26 +508,38 @@ export function stepWalker(w, dt, speed = WALK_MPS) {
   /** @type {string[]} */
   const reached = [];
   const wps = w.route.waypoints ?? [];
+  const cycle = w.route.mode === 'pingpong' ? 2 * (wps.length - 1) : wps.length;
   let left = dt;
-  while (left > 0 && !w.done && wps.length > 1) {
-    if (w.wait > 0) { const s = Math.min(w.wait, left); w.wait -= s; left -= s; continue; }
+  while (left > 0 && !w.done && wps.length > 1 && reached.length <= 2 * wps.length) {
+    if (w.wait > 0) { const s = Math.min(w.wait, left); w.wait -= s; left -= s; w.shortLegs = 0; continue; }
     const next = w.at + w.dir;
     if (next < 0 || next >= wps.length) {
       if (w.route.mode === 'loop') { w.at = -1; w.dir = 1; continue; }
       if (w.route.mode === 'pingpong') { w.dir = -w.dir; continue; }
       w.done = true; break;
     }
-    const target = wps[next].t;
+    const target = wps[next].t, reach = reachOf(wps[next]);
     const d = Math.hypot(target[0] - w.pos[0], target[1] - w.pos[1], target[2] - w.pos[2]);
-    const reach = Math.max(0.05, wps[next].radius ?? 0.5);
-    if (d <= reach) {
-      w.at = next; w.pos = [...target]; w.wait = wps[next].waitS ?? 0;
-      reached.push(wps[next].key);
-      continue;
+    const go = d - reach;
+    if (go > WALK_NEAR) {
+      if (go > speed * left) {
+        const step = speed * left;
+        for (let i = 0; i < 3; i++) w.pos[i] += (target[i] - w.pos[i]) * (step / d);
+        w.legM += step;
+        break;
+      }
+      for (let i = 0; i < 3; i++) w.pos[i] = target[i] + (w.pos[i] - target[i]) * (reach / d);
+      left -= go / speed;
+      w.legM += go;
     }
-    const go = Math.min(d, speed * left);
-    for (let i = 0; i < 3; i++) w.pos[i] += (target[i] - w.pos[i]) * (go / d);
-    left -= go / speed;
+    const walked = w.legM;
+    w.legM = 0;
+    w.at = next; w.wait = wps[next].waitS ?? 0;
+    reached.push(wps[next].key);
+    // a full cycle of short legs ends the walk: such legs can take less than a frame and would fire arrivals every
+    // frame; a leg starts on or inside the ring it leaves, so one whose rings are RINGS_MEET_M or more apart is long
+    if (w.wait > 0 || walked >= RINGS_MEET_M - 1e-9) w.shortLegs = 0;
+    else if (w.route.mode !== 'once' && ++w.shortLegs >= cycle) { w.done = true; break; }
   }
   return reached;
 }

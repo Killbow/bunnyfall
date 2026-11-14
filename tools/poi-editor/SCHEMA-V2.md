@@ -22,10 +22,15 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
   gives, once), and persistent variables and claims are not stored. The service still refuses a draft's trade or event claim
   with `poi-not-live`.
 - A document with a stack's `recipe` or an encounter's `pacifiable` is refused by an older law. Deploy the account service
-  before the site; an older game skips such a POI until it updates.
+  before the site; an older game skips such a POI until it updates. An older service still settles a POI that is
+  already live, but ignores `recipe`: a take accepts any Glass Bottle and a reward gives an empty one. Before rolling
+  the service back, retire or roll back every live POI whose revision names a `recipe`.
 - The service's trade and event-claim routes take `hand`, the records a player hands over, and take exactly those. An
-  older service ignores `hand` and chooses the records itself, so deploy the account service before the site. During
-  the rollout only, the service still chooses the records when a request has no `hand`; a later update refuses that.
+  older service reads these routes' bodies only up to 4 KiB, so it refuses a larger hand with `body` (about 20 plain
+  records, fewer for named or enchanted ones); it ignores a smaller `hand` and chooses the records itself. Deploy the
+  account service before the site.
+  During the rollout only, the service still chooses the records when a request has no `hand`; a later update refuses
+  that.
 - Migration 0209 copies every `event/<key>` claim row to `trade/event/<key>`, the name a recipe in a trade keyed `event`
   now counts under. Production's deploy applies migrations before the Worker deploy, so in the minutes between, the old
   code can still count such a recipe under the old name. Before the deploy, list the live POIs that have a trade keyed
@@ -37,9 +42,11 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 
   If it lists none, the gap has no effect. If it lists any, run the migration once more right after the Worker deploy
   (`npx wrangler d1 execute daggerfall-accounts --remote --file server-account/migrations/0209_poi_claim_names.sql`).
-  It takes the larger count, so it never allows an extra claim. A limit that the old code in the gap and the new code
-  both counted can still end up over by one. The gap also includes the deploy's wait for the relay, not only the Worker
-  upload.
+  It takes the larger count, never a sum, so a claim the old code made in the gap and one the new code made before the
+  re-run count once. A per-character or per-account limit can end up over by one. A `global_stock` recipe can oversell
+  by the smaller of the old and new code's sales in that time, so if a listed POI's trade keyed `event` has one, have an
+  approver retire that POI before the deploy and roll it back to its revision after the re-run. The gap also includes
+  the deploy's wait for the relay, not only the Worker upload.
 - Offline, the game counts under the same names. When a POI loads, claims saved on the device under the old names are
   copied the same way (larger count, later time). The game saves claims with `names: 2` and skips the copy for a store
   that has it.
@@ -62,6 +69,9 @@ A v2 document is a v1 document plus the keys below. The law is `src/poi/poiLaw.j
 | `trades` | 32, 8 recipes each | Required and rewarded item stacks, gold, a limit mode, cooldown and success event. |
 | `variables` | 64 | Boolean, number, or string. Scope is `event` (starts again from `initial` at each event run that nothing else started), `instance`, `character`, or `poi_global`. |
 | `events` | 64 | A trigger, an optional condition tree, then and else action lists. |
+
+A person on a route stops on a waypoint's reach ring (its `radius`, 0.5 m when unset) and walks the next leg from there,
+so they can be up to that reach beside the drawn band.
 
 Flat pictures follow `decorLaw.js`. A `billboard` has `flat: [archive 0..99999, record 0..511]` and no item. A `mount` is a
 weapon (not arrows), a piece of armour or a trophy. A `paperdoll` is any other item shown as its picture. A person's flat

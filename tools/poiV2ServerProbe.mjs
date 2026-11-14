@@ -94,11 +94,12 @@ const healTrueIn = (save) => save.items.filter((r) => r.templateIndex === 83 && 
 function doc(id = 'poi-0123456789ab') {
   const d = poiV2Example();
   d.id = id;
-  d.variables.push({ key: 'visits', name: 'Visits', type: 'number', scope: 'poi_global', initial: 0 });
+  d.variables.push({ key: 'visits', name: 'Visits', type: 'number', scope: 'poi_global', initial: 0 }, { key: 'firsts', name: 'Firsts', type: 'number', scope: 'poi_global', initial: 0 });
   d.interactives.push({ key: 'altar', name: 'Altar', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 5], yaw: 0, radius: 2, state: 'inactive' });
   d.events.push(
     { key: 'gift', name: 'A gift', trigger: { k: 'interact', interactive: 'altar' }, then: [{ k: 'give_gold', amount: 15 }, { k: 'set_var', var: 'visits', add: 1 }] },
     { key: 'toll', name: 'A toll', trigger: { k: 'interact', interactive: 'gate' }, then: [{ k: 'take_gold', amount: 20 }, { k: 'give_item', item: { template: 16, count: 2 } }], else: [{ k: 'say', text: 'No.' }] },
+    { key: 'first', name: 'First visitor', trigger: { k: 'interact', interactive: 'altar' }, when: { k: 'var', var: 'firsts', op: 'lt', value: 1 }, then: [{ k: 'give_gold', amount: 1 }, { k: 'set_var', var: 'firsts', add: 1 }], else: [{ k: 'say', text: 'Too late.' }] },
     { key: 'proof', name: 'Proof', trigger: { k: 'interact', interactive: 'altar' }, when: { k: 'var', var: 'supplies_delivered', op: 'eq', value: true }, then: [{ k: 'say', text: 'Yes.' }, { k: 'set_var', var: 'supplies_delivered', to: false }] },
   );
   d.trades.push({ key: 'stock', name: 'Last pieces', recipes: [{ key: 'one', name: 'One of two', requireItems: [], requireGold: 5, rewardItems: [{ template: 62, count: 1 }], rewardGold: 0, limitMode: 'global_stock', maxStock: 2 }] });
@@ -380,7 +381,8 @@ function handDoc() {
   d.id = 'poi-0123456789ad';
   d.interactives.push({ key: 'rack', name: 'Rack', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 7], yaw: 0, radius: 2, state: 'inactive' });
   const sword = { template: 120, group: 'Weapons', count: 1 };
-  d.trades.push({ key: 'smith', name: 'Smith', recipes: [{ key: 'sword', name: 'Sell a sword', requireItems: [sword], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' }] });
+  d.trades.push({ key: 'smith', name: 'Smith', recipes: [{ key: 'sword', name: 'Sell a sword', requireItems: [sword], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' },
+    { key: 'bulk', name: 'Sell twenty', requireItems: [{ template: 16, count: 20 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' }] });
   d.events.push({ key: 'offer', name: 'Offer a sword', trigger: { k: 'interact', interactive: 'rack' }, when: { k: 'has_item', item: sword },
     then: [{ k: 'take_item', item: sword }, { k: 'give_gold', amount: 3 }], else: [{ k: 'say', text: 'Bring a sword.' }] });
   return d;
@@ -490,4 +492,22 @@ test('hand-over: the two routes read a body of whole records up to 32 KiB, and r
   const r = await trade(t, poi, c, ['smith', 'sword'], { hand: [Array.from({ length: 10 }, () => big(3600))] });
   assert.equal(r.status, 400);
   assert.equal(r.json.error, 'body');
+});
+
+test('hand-over: twenty separate records handed over for one stack of twenty are all taken', async () => {
+  const t = await account('ProbeLoose'), poi = state.hand;
+  const c = await character(t, 'Loose', Array.from({ length: 20 }, () => items([16, 1])[0]), 0);
+  const s = await saveOf(t, c.id);
+  const a = await trade(t, poi, c, ['smith', 'bulk'], { hand: [s.items.map((_, at) => pickOf(s, at))] });
+  assert.equal(a.status, 200, a.text);
+  assert.equal(countIn(await saveOf(t, c.id), 16), 0);
+});
+
+test('of four characters claiming a first-visitor prize at once, only one gets it', async () => {
+  const racers = [];
+  for (let i = 0; i < 4; i++) { const t = await account(`ProbeFirst${i}`); racers.push({ t, c: await character(t, `First${i}`, [], 0) }); }
+  const got = await Promise.all(racers.map(({ t, c }) => claim(t, state.poi, c, 'first')));
+  for (const g of got) assert.equal(g.status, 200, g.text);
+  assert.deepEqual(got.map((g) => g.json.gave?.gold ?? 0).sort(), [0, 0, 0, 1], got.map((g) => g.text).join(' | '));
+  assert.equal((await claim(racers[0].t, state.poi, { ...racers[0].c, seq: got[0].json.seq })).json.vars.firsts, 1);
 });

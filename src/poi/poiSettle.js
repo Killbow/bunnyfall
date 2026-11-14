@@ -101,6 +101,8 @@ export function takeStacks(save, stacks) {
 /** @param {Map<number, number>} gives */
 const picksOf = (gives) => [...gives].sort((a, b) => a[0] - b[0]).map(([at, n]) => ({ at, n }));
 
+export const HAND_MAX = 32;
+
 /** @param {any} rec */
 export function handRecord(rec) {
   const out = JSON.parse(JSON.stringify(rec));

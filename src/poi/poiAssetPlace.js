@@ -42,6 +42,6 @@ export function poiAssetWhyNot(asset) {
 /** Places an asset entry and returns true if it was placed, or false if placement is blocked or the placer reports
  *  no placement. */
 export async function placePoiAsset(/** @type {import('./poiAssetCatalogue.js').PoiAsset} */ asset, /** @type {PoiPlaceContext} */ ctx) {
-  if (poiAssetWhyNot(asset)) return false;
+  if (poiAssetWhyNot(asset) || ctx.editor?.active?.() === false) return false;
   return (await /** @type {PoiAssetPlacer} */ (placers.get(asset.placing)).place(asset, ctx)) !== false;
 }

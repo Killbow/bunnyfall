@@ -10,6 +10,7 @@
 
 import { POI_V2_LIMITS as L, POI_INTERACTIVE_STATES, POI_FOE_RANGES } from './poiLawV2.js';
 import { POI_ITEM_CHOICES } from './poiItemChoices.js';
+import { reachOf, WALK_NEAR } from './poiDmCore.js';
 import { ENEMY_NAMES } from '../characters/enemy/enemyBasics.js';
 import { dexEnemyNameText } from '../systems/enemyExpansion/dexNames.js';
 import { ITEM_TEMPLATES } from '../systems/item/itemTemplates.js';
@@ -182,16 +183,17 @@ export function shiftWaypoint(route, key, dir) {
   [route.waypoints[i], route.waypoints[j]] = [route.waypoints[j], route.waypoints[i]];
   return true;
 }
-/**
- * Returns whether a loop route's last waypoint sits within the first waypoint's reach. Because a loop returns to the
- * first waypoint on its own, placing the last waypoint on that spot makes the walker arrive and wait there twice in a
- * row (poiDmCore.js stepWalker).
- */
 export function loopStopsTwice(route) {
   const w = route?.waypoints ?? [];
   if (route?.mode !== 'loop' || w.length < 3) return false;
-  const a = w[0].t, b = w.at(-1).t;
-  return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= Math.max(0.05, w[0].radius ?? 0.5);
+  let p = w[0].t;
+  for (let k = 1; k <= 2 * w.length; k++) {
+    const q = w[k % w.length].t, r = reachOf(w[k % w.length]);
+    const d = Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]);
+    if (d - r > WALK_NEAR) p = q.map((x, i) => x + (p[i] - x) * (r / d));
+    else if (k % w.length === 0) return true;
+  }
+  return false;
 }
 /** Wait the same time at every waypoint. */
 export function setWaitAll(route, waitS) { for (const w of route.waypoints) w.waitS = Math.max(0, Math.min(3600, Math.round(waitS))); return route.waypoints.length; }

@@ -15,7 +15,7 @@ const SWORD = { template: 120, group: 'Weapons', count: 1 };
 const iron = () => mintStack(SWORD);
 const enchanted = () => ({ ...mintStack(SWORD), enchantments: [{ type: 1, param: 2 }] });
 
-function setup(events, { items = [], gold = 0, act = null, edit = () => {} } = {}) {
+function setup(events, { items = [], gold = 0, act = null, edit = () => {}, ownPanel = false, cursor = undefined } = {}) {
   const doc = poiV2Example();
   doc.events = doc.events.filter((e) => e.key !== 'ambush-start').concat(events);
   edit(doc);
@@ -27,7 +27,7 @@ function setup(events, { items = [], gold = 0, act = null, edit = () => {} } = {
     hand: (name, line, view, on) => { hands.push({ name, line, view, on }); },
   };
   const rt = createPoiDm({
-    act, say: (l) => said.push(l), now: () => clock, character: () => null, panel,
+    act, say: (l) => said.push(l), now: () => clock, character: () => null, panel: ownPanel ? undefined : panel, cursor,
     pack: () => player, give: (recs, g) => { player.items.push(...recs); player.goldPieces += g; }, feet: () => feet,
     store: { get: () => null, set: () => {} },
   });
@@ -37,6 +37,19 @@ function setup(events, { items = [], gold = 0, act = null, edit = () => {} } = {
   const walkOut = async () => { feet = [500, 0, 500]; await step(); };
   const last = () => hands.at(-1);
   return { doc, rt, s, player, said, hands, last, step, walkIn, walkOut, buy: (/** @type {string} */ k) => { rt.talk(doc.id, 'supplier'); trade?.(k); }, closed: () => closed, dialogues: () => dialogues };
+}
+
+function fakeDoc() {
+  const node = (tag) => ({
+    tag, style: {}, kids: [], attrs: {}, listeners: {}, textContent: '', disabled: false,
+    setAttribute(k, v) { this.attrs[k] = String(v); }, removeAttribute(k) { delete this.attrs[k]; }, hasAttribute(k) { return k in this.attrs; },
+    appendChild(c) { this.kids.push(c); return c; }, append(...c) { this.kids.push(...c); }, replaceChildren(...c) { this.kids = c; },
+    remove() { const i = body.kids.indexOf(this); if (i >= 0) body.kids.splice(i, 1); }, addEventListener(type, fn) { this.listeners[type] = fn; },
+  });
+  const body = node('body');
+  const find = (n, attr) => (n.attrs[attr] !== undefined ? n : n.kids.map((k) => find(k, attr)).find(Boolean));
+  const byText = (n, text) => (n.tag === 'button' && n.textContent === text ? n : n.kids.map((k) => byText(k, text)).find(Boolean));
+  return { createElement: node, body, find: (attr) => find(body, attr), button: (text) => byText(body, text), click: (n) => n.listeners.click({ stopPropagation() {} }) };
 }
 
 /** @param {any} h */
@@ -232,4 +245,161 @@ test('another POI\'s talk opened during a hand-over is drawn once the hand-over 
   w.last().on.cancel();
   await both(); await both();
   assert.equal(w.dialogues() > drawn[0], true, 'and it is drawn after the hand-over');
+});
+
+test('online, a shared variable another player changed is read again after a refusal, and the event runs its other branch', async () => {
+  const forge = [{ key: 'forge', name: 'Forge', trigger: ZONE, when: { k: 'var', var: 'forge_level', op: 'lt', value: 3 },
+    then: [{ k: 'take_item', item: SWORD }, { k: 'set_var', var: 'forge_level', add: 1 }], else: [{ k: 'say', text: 'The forge is finished.' }] }];
+  let level = 2;
+  const sent = [];
+  const act = async (path, body, o) => {
+    if (o?.read) return { ok: true, data: { vars: { forge_level: level } } };
+    sent.push(body);
+    const branch = level < 3 ? 'then' : 'else';
+    if (body.branch !== branch) return { ok: false, error: 'poi-hand' };
+    return { ok: true, data: { branch, took: { items: [], gold: 0, picks: [] }, gave: { items: [], gold: 0 }, vars: { forge_level: level } } };
+  };
+  const w = setup(forge, { items: [iron()], act, edit: (d) => d.variables.push({ key: 'forge_level', name: 'Forge level', type: 'number', scope: 'poi_global', initial: 0 }) });
+  await w.step(); await w.step();
+  level = 3;
+  await w.walkIn();
+  w.last().on.give();
+  for (let i = 0; i < 4; i++) await w.step();
+  assert.deepEqual(sent.map((b) => b.branch), ['then', 'else'], 'the second try names the branch the service reads');
+  assert.ok(w.said.includes('The forge is finished.'));
+  assert.ok(!w.said.includes('Your items changed. Nothing was handed over.'));
+  assert.equal(w.player.items.length, 1, 'the sword stays');
+});
+
+test('online, a hand-over of more separate records than the service accepts asks for larger stacks and sends nothing', async () => {
+  const ORE = { template: 71, count: 40 };
+  const sent = [];
+  const act = async (path, body, o) => (o?.read ? { ok: true, data: { vars: {} } } : (sent.push(body), { ok: false, error: 'poi-items' }));
+  const w = setup([{ key: 'ore', name: 'Ore', trigger: ZONE, then: [{ k: 'take_item', item: ORE }] }], { items: Array.from({ length: 40 }, () => mintStack({ template: 71, count: 1 })), act });
+  await w.step(); await w.step();
+  await w.walkIn();
+  assert.equal(w.last().view.ready, true);
+  w.last().on.give();
+  await w.step();
+  assert.equal(w.last().view.note, 'Too many separate items. Choose larger stacks.');
+  assert.deepEqual(sent, []);
+  assert.equal(w.player.items.length, 40);
+});
+
+test('online, an event the service refuses because others changed a shared value at the same moment says so', async () => {
+  const act = async (path, body, o) => (o?.read ? { ok: true, data: { vars: {} } } : { ok: false, error: 'poi-raced' });
+  const w = setup([{ key: 'gift', name: 'Gift', trigger: ZONE, then: [{ k: 'give_gold', amount: 7 }] }], { act });
+  await w.step(); await w.step();
+  await w.walkIn(); await w.step();
+  assert.ok(w.said.includes('Someone else is doing this right now. Try again.'), w.said.join(' | '));
+  assert.equal(w.player.goldPieces, 0);
+});
+
+test('the hand-over frees the mouse while it is up and gives it back when it closes', async () => {
+  const was = globalThis.document;
+  const doc = fakeDoc();
+  globalThis.document = doc;
+  try {
+    let held = 0, released = 0;
+    const w = setup(toll, { items: [iron()], ownPanel: true, cursor: () => { held++; return () => { released++; }; } });
+    await w.walkIn();
+    assert.ok(doc.find('data-poi-hand'), 'the hand-over is drawn');
+    assert.deepEqual([held, released], [1, 0]);
+    doc.click(doc.find('data-hand-cancel'));
+    await w.step();
+    assert.deepEqual([held, released], [1, 1], 'Cancel gives the mouse back');
+    await w.walkOut(); await w.walkIn();
+    assert.deepEqual([held, released], [2, 1]);
+    await w.step(HAND_IDLE_S);
+    assert.equal(doc.find('data-poi-dm'), undefined, 'the timeout closes it');
+    assert.deepEqual([held, released], [2, 2]);
+  } finally { globalThis.document = was; }
+});
+
+test('a click on Hand over in the first half second after the hand-over appears does nothing (the second click of a double click)', async () => {
+  const was = globalThis.document;
+  const doc = fakeDoc();
+  globalThis.document = doc;
+  try {
+    const w = setup(toll, { items: [iron()], ownPanel: true });
+    await w.walkIn();
+    const give = doc.find('data-hand-give');
+    assert.equal(give.disabled, false, 'the only matching item is chosen already');
+    doc.click(give);
+    await w.step();
+    assert.equal(w.player.items.length, 1, 'nothing handed over yet');
+    await new Promise((r) => setTimeout(r, 550));
+    doc.click(doc.find('data-hand-give'));
+    await w.step();
+    assert.equal(w.player.items.length, 0, 'handed over once the button is armed');
+    assert.deepEqual(w.said, ['Before.', 'After.']);
+  } finally { globalThis.document = was; }
+});
+
+test('a dialogue an event opens leaves the mouse to the player; a talk the player starts frees it until Leave', async () => {
+  const was = globalThis.document;
+  const doc = fakeDoc();
+  globalThis.document = doc;
+  try {
+    let held = 0, released = 0;
+    const greet = { key: 'greet', name: 'Greet', trigger: ZONE, then: [{ k: 'open_dialogue', dialogue: 'captain' }] };
+    const w = setup([greet], { ownPanel: true, cursor: () => { held++; return () => { released++; }; }, edit: (d) => { d.npcs.find((n) => n.key === 'supplier').dialogue = 'captain'; } });
+    await w.walkIn();
+    assert.ok(doc.find('data-poi-dm'), 'the event opened the dialogue');
+    assert.deepEqual([held, released], [0, 0], 'no hold for a dialogue the player did not start');
+    doc.click(doc.button('Leave'));
+    assert.equal(w.rt.talk(w.doc.id, 'supplier'), true);
+    assert.ok(doc.find('data-poi-dm'));
+    assert.deepEqual([held, released], [1, 0], 'Talk frees the mouse');
+    doc.click(doc.button('Leave'));
+    assert.deepEqual([held, released], [1, 1], 'Leave gives it back');
+  } finally { globalThis.document = was; }
+});
+
+test('a dialogue the player opens by using a switch frees the mouse until Leave', async () => {
+  const was = globalThis.document;
+  const doc = fakeDoc();
+  globalThis.document = doc;
+  try {
+    let held = 0, released = 0;
+    const bell = { key: 'ring', name: 'Ring', trigger: { k: 'interact', interactive: 'bell' }, then: [{ k: 'open_dialogue', dialogue: 'captain' }] };
+    const w = setup([bell], { ownPanel: true, cursor: () => { held++; return () => { released++; }; }, edit: (d) => {
+      d.interactives.push({ key: 'bell', name: 'Bell', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 0], yaw: 0, radius: 3, state: 'inactive' });
+    } });
+    await w.step();
+    w.rt.extras(w.doc.id).find((x) => x.key.endsWith(':bell')).activate();
+    assert.ok(doc.find('data-poi-dm'), 'the switch opened the dialogue');
+    assert.deepEqual([held, released], [1, 0], 'Use frees the mouse');
+    doc.click(doc.button('Leave'));
+    assert.deepEqual([held, released], [1, 1], 'Leave gives it back');
+    w.rt.extras(w.doc.id).find((x) => x.key.endsWith(':bell')).activate();
+    await w.step();
+    assert.deepEqual([held, released], [2, 1], 'used again: the dialogue opens again and holds again');
+  } finally { globalThis.document = was; }
+});
+
+test('a Use at one POI that opens nothing there leaves another POI\'s dialogue and its mouse hold as they are', async () => {
+  const was = globalThis.document;
+  const doc = fakeDoc();
+  globalThis.document = doc;
+  try {
+    let held = 0, released = 0;
+    const w = setup([], { ownPanel: true, cursor: () => { held++; return () => { released++; }; }, edit: (d) => { d.npcs.find((n) => n.key === 'supplier').dialogue = 'captain'; } });
+    const other = structuredClone(w.doc);
+    other.id = `${w.doc.id}b`;
+    other.events = [];
+    other.interactives.push({ key: 'shed', name: 'Shed door', kind: 'door', appearance: { k: 'none' }, t: [0, 0, 0], yaw: 0, radius: 3, state: 'closed' });
+    const s2 = { ...w.s, id: other.id, doc: other };
+    w.rt.frame(s2, [0, 0, 0], []);
+    await w.step();
+    assert.equal(w.rt.talk(w.doc.id, 'supplier'), true);
+    assert.deepEqual([held, released], [1, 0]);
+    w.rt.extras(other.id).find((x) => x.key.endsWith(':shed')).activate();
+    await w.step();
+    w.rt.frame(s2, [0, 0, 0], []);
+    assert.ok(doc.find('data-poi-dm'), 'the first POI\'s dialogue is still up');
+    assert.deepEqual([held, released], [1, 0], 'and the mouse stays free');
+    doc.click(doc.button('Leave'));
+    assert.deepEqual([held, released], [1, 1]);
+  } finally { globalThis.document = was; }
 });

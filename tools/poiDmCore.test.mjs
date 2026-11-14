@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { poiV2Example } from './poiV2Examples.mjs';
 import { createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance, claimRule, eventRule, evalWhen, ctxOf, createWalker, stepWalker, needsService, valueOf } from '../src/poi/poiDmCore.js';
 import { takeStacks, takeGold, giveGoods, countOf } from '../src/poi/poiSettle.js';
+import { loopStopsTwice } from '../src/poi/poiDmEdit.js';
 
 const doc = () => poiV2Example();
 
@@ -175,6 +176,81 @@ test('a patrol walks its loop, waits at each stop and reports the stops it reach
   const p = [];
   for (let i = 0; i < 400; i++) p.push(...stepWalker(ping, 0.5));
   assert.deepEqual(p.slice(0, 4), ['b', 'c', 'b', 'a']);
+});
+
+test('a patrol whose waypoints are within reach of each other ends its walk instead of looping forever', async () => {
+  const { Worker } = await import('node:worker_threads');
+  const core = new URL('../src/poi/poiDmCore.js', import.meta.url).href;
+  const run = (route) => new Promise((done, fail) => {
+    const wk = new Worker(`import { createWalker, stepWalker } from ${JSON.stringify(core)}; import { parentPort, workerData } from 'node:worker_threads';
+      const w = createWalker(workerData); const seen = [], moved = [];
+      for (let i = 0; i < 120; i++) { const was = [...w.pos]; seen.push(stepWalker(w, 1 / 60).length); moved.push(Math.hypot(w.pos[0] - was[0], w.pos[1] - was[1], w.pos[2] - was[2])); }
+      parentPort.postMessage({ seen, moved, done: w.done });`, { eval: true, workerData: route });
+    const timer = setTimeout(() => { wk.terminate(); fail(new Error('stepWalker did not return')); }, 3000);
+    wk.on('message', (m) => { clearTimeout(timer); wk.terminate(); done(m); });
+    wk.on('error', (e) => { clearTimeout(timer); fail(e); });
+  });
+  const wp = (key, x, radius = 1.5) => ({ key, t: [x, 0, 0], radius, waitS: 0 });
+  for (const mode of ['loop', 'pingpong']) {
+    for (const [what, b] of [['1 m apart', 1], ['on one spot', 0]]) {
+      const near = await run({ key: 'r', mode, waypoints: [wp('a', 0), wp('b', b)] });
+      assert.equal(near.done, true, `${mode}, ${what}: the walk ends`);
+      assert.ok(near.seen.reduce((x, y) => x + y, 0) <= 2, `${mode}, ${what}: each stop reported once`);
+    }
+    const far = await run({ key: 'r', mode, waypoints: [wp('a', 0, 0.5), wp('b', 3, 0.5)] });
+    assert.ok(far.moved.every((m) => m > 0 && m <= 1.4 / 60 + 1e-9), `${mode}: walks every frame at walking speed, never pauses or jumps`);
+    assert.equal(far.seen.reduce((x, y) => x + y, 0), 1, `${mode}: one stop in 2 s, 2.5 m from the start`);
+  }
+});
+
+test('a short patrol keeps walking unless a full cycle of its legs walks under 10 cm each', () => {
+  const wp = (key, t, radius = 0.5) => ({ key, t, radius, waitS: 0 });
+  for (const gap of [0.001, 0.05]) {
+    const w = createWalker({ key: 'r', mode: 'pingpong', waypoints: [wp('a', [0, 0, 0], 1.5), wp('b', [3 + gap, 0, 0], 1.5)] });
+    let n = 0;
+    for (let i = 0; i < 600; i++) n += stepWalker(w, 1 / 60).length;
+    assert.equal(w.done, true, `rings ${gap * 100} cm apart: the walk ends`);
+    assert.ok(n <= 6, `rings ${gap * 100} cm apart: ${n} stops, not one every frame`);
+  }
+  for (const [what, route] of [
+    ['loop, posts 1.5 m apart', { key: 'r', mode: 'loop', waypoints: [wp('a', [0, 0, 0]), wp('b', [1.5, 0, 0])] }],
+    ['ping-pong, posts 1.5 m apart', { key: 'r', mode: 'pingpong', waypoints: [wp('a', [0, 0, 0]), wp('b', [1.5, 0, 0])] }],
+    ['loop, a 1.2 m triangle', { key: 'r', mode: 'loop', waypoints: [wp('a', [0, 0, 0]), wp('b', [1.2, 0, 0]), wp('c', [0.6, 0, 1.04])] }],
+    ['ping-pong, rings 12 cm apart', { key: 'r', mode: 'pingpong', waypoints: [wp('a', [0, 0, 0], 1.5), wp('b', [3.12, 0, 0], 1.5)] }],
+    ['ping-pong, a middle post whose ring overlaps both ends', { key: 'r', mode: 'pingpong', waypoints: [wp('a', [0, 0, 0]), wp('b', [1, 0, 0], 0.6), wp('c', [2, 0, 0])] }]]) {
+    const w = createWalker(route);
+    let n = 0;
+    for (let i = 0; i < 600; i++) n += stepWalker(w, 1 / 60).length;
+    assert.equal(w.done, false, `${what}: the walk goes on`);
+    assert.ok(n >= 20, `${what}: ${n} stops in 10 s`);
+  }
+});
+
+test('a long patrol whose legs all walk under 10 cm ends its walk instead of firing arrivals every frame', () => {
+  const route = { key: 'r', mode: 'loop', waypoints: Array.from({ length: 72 }, (_, i) => ({ key: `w${i}`, t: [i % 2 ? 1.021 : 0, 0, 0], radius: 0.5, waitS: 0 })) };
+  const w = createWalker(route);
+  let busy = 0;
+  for (let i = 0; i < 600; i++) if (stepWalker(w, 1 / 60).length) busy++;
+  assert.equal(w.done, true, 'the walk ends');
+  assert.ok(busy < 200, `${busy} of 600 frames report a stop`);
+});
+
+test('a walker reaches a waypoint as it comes within the waypoint\'s reach, and stops there', () => {
+  for (const radius of [0.5, 5]) {
+    const w = createWalker({ key: 'r', mode: 'pingpong', waypoints: [{ key: 'a', t: [0, 0, 0], radius, waitS: 0 }, { key: 'b', t: [10, 0, 0], radius, waitS: 1 }] });
+    let t = 1 / 60;
+    while (!stepWalker(w, 1 / 60).length) t += 1 / 60;
+    assert.ok(Math.abs(t - (10 - radius) / 1.4) < 1 / 30, `reach ${radius}: reached after ${t.toFixed(2)} s, not ${((10 - radius) / 1.4).toFixed(2)} s`);
+    assert.ok(Math.abs(10 - w.pos[0] - radius) < 1e-9, `reach ${radius}: stopped ${(10 - w.pos[0]).toFixed(3)} m short, not on the ring`);
+  }
+});
+
+test('the editor\'s "stops twice" note follows where a loop\'s walker stops', () => {
+  const loop = (last, r2) => ({ key: 'r', mode: 'loop', waypoints: [
+    { key: 'a', t: [0, 0, 0], radius: 5, waitS: 0 }, { key: 'b', t: [10, 0, 0], radius: 0.5, waitS: 0 }, { key: 'c', t: last, radius: r2, waitS: 0 }] });
+  assert.equal(loopStopsTwice(loop([0, 0, 4], 0.5)), true, 'last waypoint within the first one\'s reach');
+  assert.equal(loopStopsTwice(loop([0, 0, 5.3], 1)), true, 'outside it, but the person stops for it 1 m sooner, inside it');
+  assert.equal(loopStopsTwice(loop([0, 0, 8], 0.5)), false, 'the person stops for it outside the first one\'s reach');
 });
 
 test('settling on a save: items leave from records that may leave, the smallest stack first, and a short stack changes nothing', () => {

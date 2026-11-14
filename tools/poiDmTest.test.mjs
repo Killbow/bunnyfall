@@ -9,6 +9,7 @@ import { createPoiDm, mintStack } from '../src/poi/poiDmRuntime.js';
 import { createPoiTest, purseOf, testable } from '../src/poi/poiDmTest.js';
 import { npcsOf } from '../src/poi/poiRuntime.js';
 import { groundRefusalOf } from '../src/systems/inventorySession.js';
+import { createPoiTestPanel } from '../src/ui/poi/poiTestPanel.js';
 
 const I = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -261,5 +262,24 @@ test('while a test runs, putting an item in a chest or a body that is not the pl
   assert.match(groundRefusalOf(hooks, {}) ?? '', /container/);
   assert.match(groundRefusalOf({ ...hooks, loot: { playerOwned: true } }, {}) ?? '', /cannot drop/, 'the ground (or a pile of the player\'s) as before');
   assert.equal(groundRefusalOf(hooks, { usingWagon: true }), null, 'the wagon is the player\'s own');
+  session.stop();
+});
+
+test('the Test panel\'s Start again restarts the test and redraws without throwing', async () => {
+  const doc = poiV2Example();
+  const session = createPoiTest({ pack: () => ({ items: [], goldPieces: 5 }), say: () => {}, feet: () => null, panel: panelRec().panel });
+  await session.prepare();
+  session.start(doc.id, doc);
+  const buttons = new Map();
+  const el = (tag, cls = '', text = null) => ({ tag, cls, text, kids: [], classList: { add() {} }, append(...k) { this.kids.push(...k); }, addEventListener() {} });
+  const btn = (text, fn) => { buttons.set(text, fn); return el('button', '', text); };
+  let redrawn = 0;
+  createPoiTestPanel({ test: session, el, btn, redraw: () => { redrawn++; }, onStop: () => {} }).view();
+  session.setGold(99);
+  assert.doesNotThrow(() => buttons.get('Start again')());
+  await tick();
+  assert.equal(redrawn, 1);
+  assert.equal(session.active(), true);
+  assert.equal(session.purse().now.goldPieces, 5, 'the purse is copied again');
   session.stop();
 });

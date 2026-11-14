@@ -11,7 +11,7 @@ import { REALM_ID_RE, LEASE_RE, realmSaveTextOf, dropObjects, dropIfUnnamed, mus
 import { mintGift } from './staffGive.js';
 import { POI_ID_RE } from '../../src/poi/poiLaw.js';
 import { evalWhen, varsRead, persists, claimRule, eventRule, recipeWhy, takesOf, gateCtx } from '../../src/poi/poiDmCore.js';
-import { takeStacks, takeChosen, takeGold, giveGoods, countOf, takeableOf, goldOf, eventClaim, recipeClaim } from '../../src/poi/poiSettle.js';
+import { takeStacks, takeChosen, takeGold, giveGoods, countOf, takeableOf, goldOf, eventClaim, recipeClaim, HAND_MAX } from '../../src/poi/poiSettle.js';
 import { GOLD_INT_MAX } from '../../src/systems/item/itemLaw.js';
 
 /** How long a settled act's answer is kept for a client asking again (cron.js poi-txn-log). */
@@ -22,7 +22,6 @@ export const POI_TXN_RE = /^[A-Za-z0-9_-]{8,64}$/;
 const GIVE_MAX = 40;
 export const POI_ACT_BODY_MAX = 32 * 1024;
 export const poiActPath = (/** @type {string} */ path) => path === '/v1/poi/trade' || path === '/v1/poi/event-claim';
-const HAND_LIST_MAX = 16, HAND_MAX = 32;
 
 const parsed = (/** @type {any} */ text) => { try { return typeof text === 'string' ? JSON.parse(text) : null; } catch { return null; } };
 const byKey = (/** @type {any} */ rows, /** @type {string} */ key) => (Array.isArray(rows) ? rows.find((r) => r?.key === key) : undefined);
@@ -42,7 +41,7 @@ function handOf(hand) {
   if (!Array.isArray(hand) || hand.length > HAND_MAX || hand.flat().length > HAND_MAX) return false;
   const pick = (/** @type {any} */ p) => !!p && typeof p === 'object' && Number.isSafeInteger(p.at) && p.at >= 0 && Number.isSafeInteger(p.n) && p.n >= 1
     && !!p.rec && typeof p.rec === 'object' && !Array.isArray(p.rec) && Number.isSafeInteger(p.rec.templateIndex);
-  return hand.every((l) => Array.isArray(l) && l.length >= 1 && l.length <= HAND_LIST_MAX && l.every(pick)) ? /** @type {{ at: number, n: number, rec: any }[][]} */ (hand) : false;
+  return hand.every((l) => Array.isArray(l) && l.length >= 1 && l.every(pick)) ? /** @type {{ at: number, n: number, rec: any }[][]} */ (hand) : false;
 }
 
 /** The document that is live at `rev`, or the refusal. @param {any} db @param {string} poi @param {number} rev */
@@ -62,12 +61,14 @@ async function replayOf(db, txnId, player) {
   return { ...parsed(row.result), replayed: true };
 }
 
-/** The kept values of a POI's variables for a character: `char:<id>` (character scope) and `poi` (poi_global). @param {any} db @param {string} poi @param {string} char */
-async function keptVars(db, poi, char) {
+/**
+ * @param {any} db @param {string} poi @param {string} char @param {Map<string, string>} [texts] filled with each value as stored
+ */
+async function keptVars(db, poi, char, texts = new Map()) {
   const rows = (await db.prepare('SELECT scope_id, var, value FROM poi_state_vars WHERE poi_id = ? AND scope_id IN (?, ?)').bind(poi, `char:${char}`, 'poi').all())?.results ?? [];
   /** @type {Record<string, any>} */
   const out = {};
-  for (const r of rows) out[r.var] = parsed(r.value);
+  for (const r of rows) { out[r.var] = parsed(r.value); texts.set(r.var, r.value); }
   return out;
 }
 
@@ -113,17 +114,14 @@ async function limitWord(db, poi, limits, nowS) {
 }
 
 /**
- * The shared settle: the record changed by `change(save)`, the act's own statements beside it, one batch. `change`
- * answers null or a refusal's word; `after` is what the act writes (`steps`), answers (`result`), and counts against
- * (`limits`, the claim and its rules), built when the change is done.
  * @param {any} ctx @param {string} player @param {{ poi: string, rev: number, id: string, lease: string, seq: number, txnId: string }} a @param {'trade' | 'event'} kind
- * @param {(save: any) => string | null} change @param {() => { steps: any[], result: any, limits: { claim: string, rules: any[] } }} after
+ * @param {(save: any) => string | null} change @param {() => { steps: any[], result: any, limits: { claim: string, rules: any[] }, raced?: () => Promise<boolean> }} after
  */
 async function settle(ctx, player, a, kind, change, after) {
   const { db, bucket, nowS } = ctx;
   const prep = await prepareRealmRecord(ctx, player, { id: a.id, lease: a.lease, seq: a.seq }, change, { outbound: true, escrow: false });
   if ('error' in prep) return prep;
-  const { steps, result, limits } = after();
+  const { steps, result, limits, raced } = after();
   const answer = { ok: true, seq: prep.seq, realm: { seq: prep.seq }, ...result };   // `realm.seq`: where the record stands now, as every realm act answers it (systems/realmSaves.js realmGoldAct)
   try {
     await db.batch([
@@ -133,10 +131,6 @@ async function settle(ctx, player, a, kind, change, after) {
         .bind(a.txnId, player, a.id, a.poi, a.rev, kind, JSON.stringify(answer), nowS),
     ]);
   } catch (e) {
-    // the record moved under the settle, a limit had no room left, it all landed and the answer was lost, or the database
-    // failed: the record's own object goes only if no row names it (realm.js dropIfUnnamed), a logged txn is answered as it
-    // was, a limit with no room by its own word, and a database failure is thrown to the service's one answer to a fault
-    // (index.js thrown), which the client asks again with the same txn
     await dropIfUnnamed(db, bucket, player, a.id, prep.key);
     const again = await replayOf(db, a.txnId, player);
     if (again) return again;
@@ -144,6 +138,7 @@ async function settle(ctx, player, a, kind, change, after) {
     if (moved) return moved;
     const word = await limitWord(db, a.poi, limits, nowS);
     if (word) return { error: word };
+    if (await raced?.()) return { raced: true };
     throw e;
   }
   await dropObjects(bucket, [prep.prev]);
@@ -232,8 +227,10 @@ export async function tradePoi(ctx, player, body) {
   }));
 }
 
-/** ONE EVENT'S ITEMS, GOLD AND KEPT VARIABLES. @param {any} ctx @param {string} player @param {any} body */
-export async function eventClaimPoi(ctx, player, body) {
+const POI_RACE_TRIES = 8;
+
+/** ONE EVENT'S ITEMS, GOLD AND KEPT VARIABLES. @param {any} ctx @param {string} player @param {any} body @param {number} [tries] */
+export async function eventClaimPoi(ctx, player, body, tries = POI_RACE_TRIES) {
   if (!ctx.bucket) return { error: 'no-storage' };
   const a = actOf(body);
   const hand = handOf(body?.hand);
@@ -247,7 +244,9 @@ export async function eventClaimPoi(ctx, player, body) {
   const doc = live.doc;
   const row = await db.prepare('SELECT seq, lease, obj FROM realm_characters WHERE id = ? AND player = ?').bind(a.id, player).first();
   if (!row) return { error: 'no-realm-character' };
-  const kept = await keptVars(db, a.poi, a.id);
+  /** @type {Map<string, string>} */
+  const texts = new Map();
+  const kept = await keptVars(db, a.poi, a.id, texts);
   if (body.event === undefined) return { ok: true, vars: kept, seq: row.seq };
   const ev = byKey(doc.events, body.event);
   if (!ev) return { error: 'poi-no-event' };
@@ -308,9 +307,13 @@ export async function eventClaimPoi(ctx, player, body) {
     if (!save) return { error: 'no-data' };
     return { ok: true, seq: row.seq, branch: evalWhen(ev.when, ctxOfSave(save, doc, kept)) ? 'then' : 'else', nothing: true };
   }
-  return settle(ctx, player, a, 'event', change, () => {
+  const shared = [...varsRead(ev.when)].filter((k) => byKey(doc.variables, k)?.scope === 'poi_global');
+  const out = await settle(ctx, player, a, 'event', change, () => {
     const steps = [
       ...claimSteps(db, a.poi, claimName, value?.rules ?? [], nowS),
+      // Fails the batch if a shared variable the condition reads has changed, so two characters cannot both pass.
+      ...shared.map((k) => db.prepare(`INSERT INTO realm_tx_guard (moved, expected) SELECT 0, 1
+        WHERE (SELECT value FROM poi_state_vars WHERE poi_id = ?1 AND scope_id = 'poi' AND var = ?2) IS NOT ?3`).bind(a.poi, k, texts.get(k) ?? null)),
     ];
     for (const [key, w] of writes) {
       const v = byKey(doc.variables, key);
@@ -330,6 +333,9 @@ export async function eventClaimPoi(ctx, player, body) {
       steps,
       limits: { claim: claimName, rules: value?.rules ?? [] },
       result: { branch, took: { items: value?.takeStacks ?? [], gold: value?.takeAmount ?? 0, picks }, gave: { items: given, gold: value?.giveAmount ?? 0 }, vars: now },
+      raced: async () => { const t = new Map(); await keptVars(db, a.poi, char, t); return shared.some((k) => t.get(k) !== texts.get(k)); },
     };
   });
+  if (!('raced' in out)) return out;
+  return tries > 1 ? eventClaimPoi(ctx, player, body, tries - 1) : { error: 'poi-raced' };
 }

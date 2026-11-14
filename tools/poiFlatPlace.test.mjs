@@ -96,3 +96,15 @@ test('every picture and item of the game\'s catalog has a placer', () => {
     assert.equal(later.length, 0);
   } finally { r.off(); }
 });
+
+test('while the editor is closed (a Test runs), nothing from the asset browser is placed or armed', async () => {
+  const r = rig();
+  try {
+    const candle = { id: 'flat:210.2', name: 'Candle', kind: 'flat', placing: 'billboard', flat: [210, 2], category: 'lights', tags: [], source: 'TEXTURE.210' };
+    r.ctx.editor.active = () => false;
+    assert.equal(await placePoiAsset(/** @type {any} */ (candle), { ...r.ctx, at: null }), false);
+    assert.equal(r.armedNow(), null, 'no placement waits for the editor to open again');
+    assert.equal(r.said.length, 0);
+    assert.equal(r.edit.docOf(r.doc.id).flats?.length ?? 0, 0);
+  } finally { r.off(); }
+});

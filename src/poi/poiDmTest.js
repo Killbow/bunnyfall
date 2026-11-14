@@ -39,15 +39,11 @@ export function spotScene(k, translation) {
 }
 
 /**
- * The test session. `pack()` the character; `save` the save module's snapshotPlayer and restorePlayer (the seal), with
- * `minutes()` the clock that stands and `spells()` the spell table (or `seal`/`unseal` given whole); `deathHook` the
- * avoid-death hook's setter and `onSpared` the world's Stop test; `pool` the outdoor enemy pool; `gone()` 'load', 'away'
- * (a building, a dungeon, or a travel), or null, read each frame in every mode; `onEnd`; `onChange`; `load` the runtime.
  * @param {{ pack: () => any, say: (line: string) => void, feet: () => (number[] | null), pool?: any, gone?: () => (string | null), save?: any, minutes?: () => number, spells?: () => any, seal?: () => any,
- *   unseal?: (snap: any) => void, deathHook?: ((fn: any) => any) | null, onSpared?: () => void, onEnd?: (why: string) => void, onChange?: () => void, load?: () => Promise<any>, panel?: any, now?: () => number }} deps
+ *   unseal?: (snap: any) => void, deathHook?: ((fn: any) => any) | null, onSpared?: () => void, onEnd?: (why: string) => void, onChange?: () => void, load?: () => Promise<any>, panel?: any, cursor?: any, now?: () => number }} deps
  */
 export function createPoiTest({ pack, say, feet, pool = null, gone = () => null, save = null, minutes = () => 0, spells = () => null, seal: sealGiven = null, unseal: unsealGiven = null,
-  deathHook = null, onSpared = () => {}, onEnd = () => {}, onChange = () => {}, load = () => import('./poiDmRuntime.js'), panel, now }) {
+  deathHook = null, onSpared = () => {}, onEnd = () => {}, onChange = () => {}, load = () => import('./poiDmRuntime.js'), panel, cursor, now }) {
   // the save's own in-memory snapshot of the character, put back on the clock that stands, counted as no load
   const seal = sealGiven ?? (() => (save ? save.snapshotPlayer(pack(), { classicMinutes: minutes() }) : null));
   const unseal = unsealGiven ?? ((/** @type {any} */ snap) => { save?.restorePlayer(pack(), { ...snap, classicMinutes: minutes() }, spells(), { load: false }); });
@@ -96,7 +92,7 @@ export function createPoiTest({ pack, say, feet, pool = null, gone = () => null,
     purse = purseOf(pack());
     first = purseOf(purse);
     rt = mod.createPoiDm({
-      preview: true, say, feet, now, panel,
+      preview: true, say, feet, now, panel, cursor,
       pack: () => purse,
       give: (/** @type {any[]} */ records, /** @type {number} */ gold) => { if (purse) giveGoods(purse, records, gold); },
       character: () => 'test',

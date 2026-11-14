@@ -8,7 +8,7 @@ import {
   createWalker, stepWalker, persists, evalWhen, enterEncounter, useInteractive, followKeptStates, eventRule, varsRead, DAY_S,
   takesOf, branchOf,
 } from './poiDmCore.js';
-import { takeStacks, takeChosen, handRecord, recordAccepts, leavesOf, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim } from './poiSettle.js';
+import { takeStacks, takeChosen, handRecord, recordAccepts, leavesOf, takeGold, countOf, takeableOf, goldOf, potionKeyOf, eventClaim, recipeClaim, HAND_MAX } from './poiSettle.js';
 import { tradeableRecord, recordIsOffered, recordCount, boundRecord, loadedWagonOf } from '../net/realm/realmTradeLaw.js';
 import { itemLongName, conditionWord } from '../systems/item/itemInfo.js';
 import { stampItemIds } from '../systems/item/itemIds.js';
@@ -50,6 +50,7 @@ const WHY_TEXT = Object.freeze({
   lease: () => tr('poi.dm.refusal.lease', 'This character is now being played in another tab or on another device.'),
   unknown: () => tr('poi.dm.refusal.unknown', 'The realm did not answer, so this may or may not have gone through.'),
   'poi-hand': () => tr('poi.dm.hand.changed', 'Your items changed. Nothing was handed over.'),
+  'poi-raced': () => tr('poi.dm.refusal.raced', 'Someone else is doing this right now. Try again.'),
 });
 const whyText = (/** @type {string} */ w) => WHY_TEXT[w]?.() ?? tr('poi.dm.refusal.other', 'That cannot be done now.');
 /** A refused act's words: an answer that never came (`unknown`) is not said as nothing traded. @param {any} a */
@@ -142,6 +143,8 @@ function mintEvent(stacks) {
 const takesHeld = (p, stacks) => takeStacks({ items: Array.isArray(p?.items) ? p.items.map((/** @type {any} */ it) => ({ ...it })) : p?.items, wagonItems: p?.wagonItems, lightSourceIndex: p?.lightSourceIndex }, stacks).ok;
 
 export const HAND_IDLE_S = 60;
+const VARS_RETRY_S = 10;
+const LOG_KEEP = 200;
 const goldTaken = (/** @type {any[]} */ actions) => actions.filter((a) => a.k === 'take_gold').reduce((n, a) => n + a.amount, 0);
 const goldGiven = (/** @type {any[]} */ actions) => actions.filter((a) => a.k === 'give_gold').reduce((n, a) => n + a.amount, 0);
 /** @param {any} rec @param {any} loaded the save's loaded wagon (loadedWagonOf) */
@@ -212,13 +215,17 @@ export function createPoiDm(deps) {
   const claimsKept = new Map();
   /** A settle's line in the run's log, in preview alone (the Test panel reads it). @param {any} r @param {any} line */
   const logSettle = (r, line) => { if (preview) r.dm.log.push(line); };
-  const panel = deps.panel ?? createPoiDmPanel();
+  const panel = deps.panel ?? createPoiDmPanel({ cursor: deps.cursor });
   const txn = deps.txn ?? (() => `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);
   /** @type {Map<string, any>} id -> the run of one standing POI */
   const runs = new Map();
   /** A point worked out and read at once (a trigger zone's, an encounter's center). */
   const spot = [0, 0, 0];
   let busy = false;
+  /** @type {any} */
+  let onPanel = null;
+  /** @type {Set<any>} */
+  const owed = new Set();
 
   /** The pack, as the conditions read it. @param {any} dm */
   const reader = (dm) => () => {
@@ -258,12 +265,20 @@ export function createPoiDm(deps) {
     runs.delete(r.id);
   }
 
+  /** @param {any} r */
+  async function readVars(r) {
+    const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, txnId: txn() }, { read: true }).catch(() => null);
+    const vars = a?.ok ? a.data?.vars : null;
+    if (vars) for (const [k, v] of Object.entries(vars)) if (k in r.dm.vars) r.dm.vars[k] = v;
+    return a;
+  }
   /** The kept variables: the service's for a realm character, this device's offline. @param {any} r */
   async function loadVars(r) {
     if (act) {
-      const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, txnId: txn() }, { read: true }).catch(() => null);
-      const vars = a?.ok ? a.data?.vars : null;
-      if (vars) for (const [k, v] of Object.entries(vars)) if (k in r.dm.vars) r.dm.vars[k] = v;
+      r.loading = true;
+      const a = await readVars(r);
+      r.loading = false;
+      if (!a || a.error === 'offline' || a.error === 'busy') { r.retryAt = now() + VARS_RETRY_S; return; }
     } else {
       const was = store?.get(storeKey(r));
       if (was && typeof was === 'object') for (const [k, v] of Object.entries(was)) if (k in r.dm.vars) r.dm.vars[k] = v;
@@ -365,6 +380,11 @@ export function createPoiDm(deps) {
       drawHand();
       return;
     }
+    if (act && picks.flat().length > HAND_MAX) {
+      Object.assign(a, { note: tr('poi.dm.hand.many', 'Too many separate items. Choose larger stacks.'), at: now() });
+      drawHand();
+      return;
+    }
     endHand({ picks });
   }
   function setHand(/** @type {number} */ k, /** @type {number} */ g, /** @type {number} */ n) {
@@ -456,7 +476,7 @@ export function createPoiDm(deps) {
 
   /** A recipe, settled. @param {any} r @param {string} trade @param {string} recipe */
   async function runTrade(r, trade, recipe) {
-    if (busy) return;
+    if (busy) { say(whyText('busy')); return; }
     const t = byKey(r.doc.trades, trade);
     const rec = byKey(t?.recipes, recipe);
     if (!rec) return;
@@ -500,7 +520,12 @@ export function createPoiDm(deps) {
       }
       if (rules.length && !act && !preview) saveClaims(r);
       say(tr('poi.dm.done', '{name}: done.', { name: rec.name }));
-      if (rec.onSuccessEvent) runEvent(r.dm, rec.onSuccessEvent);
+      if (rec.onSuccessEvent) {
+        const live = runs.get(r.id);
+        const to = live?.rev === r.rev ? live : r;
+        runEvent(to.dm, rec.onSuccessEvent);
+        if (to !== live) owed.add(to);
+      }
       saveVars(r);
     } finally { busy = false; }
   }
@@ -526,8 +551,9 @@ export function createPoiDm(deps) {
       const actions = ev[branch] ?? [];
       const takes = takesOf(actions), gold = goldTaken(actions);
       const rules = eventRule(actions, r.dm.char);
+      const claim = () => { for (const x of rules) { const k = `${eventClaim(key)}|${x.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; } };
+      if (rules.some((c) => (r.dm.claims[`${eventClaim(key)}|${c.scope}`]?.n ?? 0) >= c.max)) { refuse('limit', ''); return; }
       const check = () => {
-        if (rules.some((c) => (r.dm.claims[`${eventClaim(key)}|${c.scope}`]?.n ?? 0) >= c.max)) return { why: 'limit', word: '' };
         const p = pack();
         if (!p || !takesHeld(p, takes)) return { why: 'items', word: 'poi-items' };
         if (goldOf(p) < gold) return { why: 'gold', word: 'poi-gold' };
@@ -539,6 +565,7 @@ export function createPoiDm(deps) {
       if (!act) { const c = check(); if (!c.p) { refuse(c.why, c.word); return; } }
       let chosen = null;
       if (takes.length || gold) {
+        if (owed.has(r)) { refuse('gone', ''); return; }
         if (act && (!takesHeld(pack(), takes) || goldOf(pack()) < gold)) { say(whyText(!takesHeld(pack(), takes) ? 'poi-items' : 'poi-gold')); return; }
         chosen = await askHand(r, eventTitle(r, ev), ev.name ?? key, takes, gold, () => branchOf(ev, r.dm) === branch);
         for (let i; (i = r.dm.pending.indexOf(key)) >= 0;) r.dm.pending.splice(i, 1);
@@ -549,12 +576,20 @@ export function createPoiDm(deps) {
         // Send the branch and a hand (even empty) when either branch takes, so the service never picks for itself.
         const asks = ['then', 'else'].some((b) => (ev[b] ?? []).some((/** @type {any} */ x) => x.k === 'take_item' || x.k === 'take_gold'));
         const a = await act('/v1/poi/event-claim', { poi: r.id, rev: r.rev, event: key, txnId: txn(), ...(asks ? { branch, hand: chosen ? handOf(chosen.picks) : [] } : {}) }, held ? { reserve: held.reserve } : {});
+        if (a?.ok ? (a.data?.branch ?? 'then') === branch : a?.error === 'poi-limit') claim();
+        const again = r.reread === key;
+        r.reread = null;
+        if (a?.error === 'poi-hand' && !again) {
+          // `poi-hand` can also mean another player changed a shared variable, so the service read the other branch.
+          await readVars(r);
+          if (runs.get(r.id) === r && branchOf(ev, r.dm) !== branch) { r.reread = key; r.dm.pending.unshift(key); return; }
+        }
         // an event already claimed is passed over in silence
         if (!a?.ok) { if (a?.error !== 'poi-limit') say(whyText(refusalOf(a))); return; }
         const d = a.data ?? {};
         if (!d.nothing) applyLocal(d.took ?? { items: [], gold: 0 }, d.gave ?? { items: [], gold: 0 }, held);
-        for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
         runEvent(r.dm, key, { branch: d.branch ?? 'then', settled: !d.nothing });
+        for (const [k, v] of Object.entries(d.vars ?? {})) if (k in r.dm.vars) r.dm.vars[k] = v;
       } else {
         const c = check();
         if (!c.p) { refuse(c.why, c.word); return; }
@@ -562,7 +597,7 @@ export function createPoiDm(deps) {
         takeGold(c.p, gold);
         give(c.records, goldGiven(actions));
         deps.changed?.();
-        for (const x of rules) { const k = `${eventClaim(key)}|${x.scope}`; r.dm.claims[k] = { n: (r.dm.claims[k]?.n ?? 0) + 1, last: r.dm.now }; }
+        claim();
         if (rules.length && !preview) saveClaims(r);
         runEvent(r.dm, key, { branch, settled: true });
         saveVars(r);
@@ -594,17 +629,21 @@ export function createPoiDm(deps) {
     if (!r) return false;
     const n = byKey(r.doc.npcs, npcKey);
     if (!n) return false;
+    if (r.talkKey !== npcKey) { r.dm.dialogue = null; r.dm.trade = null; }
+    r.talkKey = npcKey;
     const heard = fire(r.dm, { k: 'npc_talk', npc: npcKey }).length > 0;
     if (!r.dm.dialogue && n.dialogue) openDialogue(r.dm, n.dialogue);
     if (!r.dm.dialogue && !r.dm.trade && n.trade) r.dm.trade = n.trade;
     r.talkingTo = n.name ?? npcKey;
     show(r);
+    panel.hold?.();
     return heard || !!n.dialogue || !!n.trade;
   }
 
   /** The panel as the run stands: a dialogue, a trade, or nothing. @param {any} r */
   function show(r) {
     if (asking) return;
+    onPanel = r;
     // what is on the screen, so the frame does not show it again
     r.opened = r.dm.dialogue ?? r.dm.trade;
     sayLog(r);
@@ -613,7 +652,7 @@ export function createPoiDm(deps) {
       if (!d) { r.dm.dialogue = null; panel.close(); return; }
       panel.dialogue(r.talkingTo ?? '', d.say, d.options, (i) => {
         const th = choose(r.dm, i, { run: false });
-        if (th?.k === 'run_trade_recipe') runTrade(r, th.trade, th.recipe).then(() => show(r));
+        if (th?.k === 'run_trade_recipe') runTrade(r, th.trade, th.recipe).then(() => showLive(r));
         else if (th?.k === 'trigger_event') runEvent(r.dm, th.event);
         show(r);
       }, () => { r.dm.dialogue = null; r.dm.trade = null; panel.close(); });
@@ -626,11 +665,14 @@ export function createPoiDm(deps) {
         const why = recipeBlock(r.dm, t.key, x.key);
         return { key: x.key, text: x.name, why: why && why !== 'limit' && why !== 'cooldown' && why !== 'stock' ? whyText(why) : null };
       });
-      panel.trade(t.name, rows, (k) => { runTrade(r, t.key, k).then(() => show(r)); }, () => { r.dm.trade = null; panel.close(); });
+      panel.trade(t.name, rows, (k) => { runTrade(r, t.key, k).then(() => showLive(r)); }, () => { r.dm.trade = null; panel.close(); });
       return;
     }
     panel.close();
   }
+
+  /** @param {any} r */
+  const showLive = (r) => { if (runs.get(r.id) === r) show(r); };
 
   /** The lines the run's events said, said once. @param {any} r */
   function sayLog(r) {
@@ -639,6 +681,7 @@ export function createPoiDm(deps) {
       const l = r.dm.log[r.said];
       if (l.k === 'say') say(l.text);
     }
+    if (!preview && r.said >= 2 * LOG_KEEP) { r.dm.log.splice(0, LOG_KEEP); r.said -= LOG_KEEP; }
   }
 
   // ── the frame ──────────────────────────────────────────────────
@@ -650,7 +693,10 @@ export function createPoiDm(deps) {
    */
   function frame(s, t, people) {
     const r = runOf(s);
-    if (!r.loaded) return people;
+    if (!r.loaded) {
+      if (!r.loading && now() >= (r.retryAt ?? Infinity)) loadVars(r);
+      return people;
+    }
     if (asking?.r === r) {
       if (deps.alive?.() === false) endHand(null);
       else if (now() - asking.at >= HAND_IDLE_S) declineHand();
@@ -712,7 +758,6 @@ export function createPoiDm(deps) {
       list.push(p);
     }
     tickEncounters(r, s, t, dt);
-    // a dialogue or trade an event opened (a zone, a waypoint, a timer, an encounter) is shown, once, as Talk's is
     const opened = r.dm.dialogue ?? r.dm.trade;
     // Leave r.opened unchanged while asking, so a dialogue or trade opened during the hand-over is drawn afterward.
     if (!asking) {
@@ -727,9 +772,12 @@ export function createPoiDm(deps) {
   /** Use an object: a door or chest opens (with its key item when it is locked), a door shuts, or a switch flips,
    *  then its `interact` events run, by poiDmCore.js useInteractive. @param {any} r @param {any} o */
   function useObject(r, o) {
+    const was = r.dm.dialogue ?? r.dm.trade;
     const u = useInteractive(r.dm, o.key);
     if (u.locked && !u.ran.length) say(tr('poi.dm.locked', '{name} is locked.', { name: o.name }));
-    show(r);
+    // a use that leaves its POI nothing to show must not close another POI's panel
+    if (was || r.dm.dialogue || r.dm.trade) show(r); else if (!asking) sayLog(r);
+    if ((r.dm.dialogue ?? r.dm.trade) && (r.dm.dialogue ?? r.dm.trade) !== was) panel.hold?.();
   }
 
   /**
@@ -788,7 +836,9 @@ export function createPoiDm(deps) {
         continue;
       }
       const c = e.complete ?? { rule: 'all_dead' };
-      const down = (/** @type {any} */ f) => deps.isDown?.(f) ?? false;
+      // Checked for every enemy every frame, so one killed and then raised or removed still counts as dead.
+      for (const f of have) f.poiDown ||= deps.isDown?.(f) ?? false;
+      const down = (/** @type {any} */ f) => f.poiDown;
       let done = false;
       if (c.rule === 'timer_survived') {
         const held = (r.timers.get(e.key) ?? 0) + (inArea(s, t, e) ? dt : 0);
@@ -817,6 +867,7 @@ export function createPoiDm(deps) {
     hasDm,
     frame,
     talk,
+    tick() { for (const o of owed) { sayLog(o); if (o.dm.pending.length) drain(o); else if (!busy) owed.delete(o); } },
     /** The objects a POI offers to use this frame (scenes/poiNpcs.js setExtras). @param {string} id */
     extras: (id) => runs.get(id)?.extras ?? null,
     /** The keys of a POI's parts that are not drawn and do not block this frame: the looks of its open doors. @param {string} id */
@@ -824,7 +875,13 @@ export function createPoiDm(deps) {
     /** Every run's dialogue and trade closed and the panel put away (the editor's Test holding the live POIs). */
     close() { endHand(null, false); for (const r of runs.values()) { r.dm.dialogue = null; r.dm.trade = null; r.opened = null; } panel.close(); },
     /** A POI taken down: its run, its foes and its panel go. @param {string} id */
-    drop(id) { const r = runs.get(id); if (r) { dropRun(r); panel.close(); } },
+    drop(id) {
+      const r = runs.get(id);
+      if (!r) return;
+      const mine = asking ? asking.r === r : onPanel === r;
+      dropRun(r);
+      if (mine) panel.close();
+    },
     /** For tests: a POI's model. @param {string} id */
     modelOf: (id) => runs.get(id)?.dm ?? null,
   };

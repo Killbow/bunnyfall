@@ -4738,7 +4738,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // over it on the other. The capsule keeps its floor; what is PLACED
   // asks this.
   const _stT = [0, 0, 0];
-  // Counts terrain detail rebuilds, and with built.changes (pixels built or evicted) forms the POI editor's epoch.
   let groundEpoch = 0;
   const surfaceAt = (x, z) => {
     const c = state.compensation;
@@ -25725,6 +25724,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let poiLive = null;   // the World Builder's live view (scenes/poiLive.js), `?live` alone
   poiFeed = createPoiFeed({ base: () => serviceBase(appStorage()), cache: browserPoiCache() });
   poiFeed.start().catch((e) => console.warn('[poi] the kept feed', e?.message ?? e));
+  const poiDmCursor = () => { if (controllerLook()) return null; const off = holdCursor(); return () => { if (off() && !cursorActive() && !gamePaused() && !pointerSurfaces.size && !(modes?.modalWindowUp?.() ?? false) && !overlayOpen() && !travelView?.active && !poiEditor?.active()) requestLook(canvas); }; };
   poiHost = createPoiHost({
     renderer, feed: poiFeed, decodeImage: decodePoiImageSteps,   // AUDIT POI R8, R9: its readback a band a step, under the host's budget
     pixels: () => (_mode() === 'exterior' ? built.values() : []),
@@ -25754,7 +25754,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ...m.poolFoes(exteriorFoes),
       act: realmSession ? (path, body, o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), read: !!o?.read, needsAnswer: true, reserve: o?.reserve ?? null,
         call: (at) => accountCall(realmIoNow(), path, { ...body, id: at.id, lease: at.lease, seq: at.seq }) }) : null,
-      alive: () => playerEntity.health > 0,
+      alive: () => playerEntity.health > 0, cursor: poiDmCursor,
       character: () => params.get('realm') ?? null,
       store: { get: (k) => { try { return JSON.parse(appStorage().getItem(k) ?? 'null'); } catch { return null; } }, set: (k, v) => { try { appStorage().setItem(k, JSON.stringify(v)); } catch { /* full */ } } },
     })),
@@ -25806,7 +25806,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         const m = collider.raycastHit(o, d, Math.min(g.dist, POI_PICK_REACH));
         return m && m.dist < g.dist ? { point: [o[0] + d[0] * m.dist, o[1] + d[1] * m.dist, o[2] + d[2] * m.dist], dist: m.dist } : g;
       },
-      surfaceAt: (x, z) => surfaceAt(x, z), groundEpoch: () => groundEpoch + built.changes, snowRise: () => renderer._snowRise,
+      surfaceAt: (x, z) => surfaceAt(x, z), groundEpoch: () => groundEpoch + built.changes + (deepWaters?.floorChanges ?? 0), snowRise: () => renderer._snowRise,
       onChange: () => panel?.refresh(),
       pass: new PoiGizmoPass(renderer.gl),
       actionOf: (e) => actionOf(e, keys),   // the eye flies by the registry's actions - the builder's own bindings
@@ -25911,7 +25911,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
     poiTest = createPoiTest({
       pack: () => playerEntity, say: (line) => townTalk.say(line), feet: () => (walkMode && playerSpawned ? player.feetAt() : null), pool: exteriorFoes,
-      save: { snapshotPlayer, restorePlayer }, minutes: () => Math.floor(playerTicker.ownMinutes), spells: () => spellsByIndex, deathHook: setAvoidDeathHook, onSpared: () => test(null),
+      save: { snapshotPlayer, restorePlayer }, minutes: () => Math.floor(playerTicker.ownMinutes), spells: () => spellsByIndex, deathHook: setAvoidDeathHook, onSpared: () => test(null), cursor: poiDmCursor,
       gone: () => (restoresSoFar() !== testBack?.restores ? 'load' : _mode() !== 'exterior' || _traveling || !!travelView?.active ? 'away' : null),
       onEnd: () => { const back = testBack; testBack = null; panel.setOn(false); setCursorActive(back?.cursorWas ?? false); panel.refresh(); }, onChange: () => panel?.refresh(),
     });

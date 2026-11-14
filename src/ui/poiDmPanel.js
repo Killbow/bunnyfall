@@ -4,10 +4,15 @@
 
 import { t } from '../systems/textManager.js';
 
-/** @param {{ parent?: HTMLElement, doc?: Document }} [o] */
-export function createPoiDmPanel({ parent = undefined, doc = globalThis.document } = {}) {
+const HAND_ARM_MS = 500;
+
+/** @param {{ parent?: HTMLElement, doc?: Document, cursor?: (() => (() => void) | null) | null }} [o] */
+export function createPoiDmPanel({ parent = undefined, doc = globalThis.document, cursor = null } = {}) {
   /** @type {HTMLElement | null} */
   let box = null;
+  /** @type {(() => void) | null} */
+  let release = null;
+  let handAt = 0;
   const make = () => {
     if (box || !doc) return box;
     box = doc.createElement('div');
@@ -19,6 +24,7 @@ export function createPoiDmPanel({ parent = undefined, doc = globalThis.document
     (parent ?? doc.body).appendChild(box);
     return box;
   };
+  const hold = () => { if (box && !release) release = cursor?.() ?? null; };
   const button = (/** @type {string} */ text, /** @type {() => void} */ onClick, /** @type {boolean} */ on = true) => {
     const b = /** @type {HTMLButtonElement} */ (doc.createElement('button'));
     b.textContent = text;
@@ -49,6 +55,8 @@ export function createPoiDmPanel({ parent = undefined, doc = globalThis.document
     },
     hand(/** @type {string} */ name, /** @type {string} */ line, /** @type {any} */ view, /** @type {{ set: (k: number, g: number, n: number) => void, give: () => void, cancel: () => void }} */ on) {
       const b = make(); if (!b) return;
+      hold();
+      if (!b.hasAttribute('data-poi-hand')) handAt = performance.now();
       b.replaceChildren(head(name));
       b.setAttribute('data-poi-hand', '');
       const text = (/** @type {string} */ s, /** @type {Record<string, string>} */ st = {}) => { const d = doc.createElement('div'); d.textContent = s; Object.assign(d.style, st); return d; };
@@ -85,13 +93,14 @@ export function createPoiDmPanel({ parent = undefined, doc = globalThis.document
       });
       if (view.gold) b.appendChild(text(t('poi.dm.hand.gold', '{n, number} gold', { n: view.gold }), { marginTop: '0.3rem', fontWeight: 'bold' }));
       if (view.note) b.appendChild(text(view.note, { marginTop: '0.3rem', color: '#e0a060' }));
-      const give = button(t('poi.dm.hand.give', 'Hand over'), on.give, view.ready);
+      const give = button(t('poi.dm.hand.give', 'Hand over'), () => { if (performance.now() - handAt >= HAND_ARM_MS) on.give(); }, view.ready);
       give.setAttribute('data-hand-give', '');
       const cancel = button(t('poi.dm.hand.cancel', 'Cancel'), on.cancel);
       cancel.setAttribute('data-hand-cancel', '');
       b.append(give, cancel);
     },
-    close() { box?.remove(); box = null; },
+    hold,
+    close() { box?.remove(); box = null; release?.(); release = null; },
     open: () => !!box,
   };
 }

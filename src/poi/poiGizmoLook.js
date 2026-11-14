@@ -1,8 +1,7 @@
 // @ts-check
-// Builds the in-game editor's handle geometry and screen-space hit-testing (poiGizmo.js and poiGizmoBox.js compute
-// drag results). Sizes are in arms (`L` m = `GIZMO_ARM_PX` CSS px), widths and pick gaps are in CSS px (`F` is CSS px
-// per meter at 1 m depth), and line/ring hit-testing matches render/poiGizmoPass.js. Face boxes within `FACE_MIN` arms
-// of the pivot are hidden (or pushed out on thin selections); `gizmoParts` and `gizmoDraw` reuse their return objects.
+// Handle geometry and screen-space hit-testing for the in-game editor; poiGizmo.js and poiGizmoBox.js compute drags,
+// and line and ring hit-tests match render/poiGizmoPass.js. Sizes are in arms (`L` m = `GIZMO_ARM_PX` CSS px), and `F`
+// is CSS px per meter at 1 m. Boxes near the pivot are hidden; `gizmoParts` and `gizmoDraw` reuse their return objects.
 
 import { END_ON, EDGE_ON, POI_GIZMO_PICK_PX } from './poiGizmo.js';
 
@@ -13,7 +12,7 @@ export const GIZMO_REACH = Object.freeze({ arrow: 0.62, box: 0.62, plane: [0.4, 
 export const GIZMO_GROW = Object.freeze({ move: 1.3, turn: 1.05, size: 1.2 });
 export const GIZMO_GROW_HALF_LIFE = 0.07;
 export const GIZMO_BOX_PX = 10;
-const FACE_MIN = 0.3;
+export const FACE_MIN = 0.3;
 
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -217,9 +216,10 @@ function fillSizeBox(set, q) {
       at[0] += axes[j][0] * s; at[1] += axes[j][1] * s; at[2] += axes[j][2] * s;
       if (j === i) along = s;
     }
-    const ai = face ? axes[i] : null;
-    p.hidden = !!ai && (Math.abs(ai[0] * viewDir[0] + ai[1] * viewDir[1] + ai[2] * viewDir[2]) > END_ON || Math.abs(along) < F);
-    const depth = eye ? Math.max(1e-6, (at[0] - eye[0]) * viewDir[0] + (at[1] - eye[1]) * viewDir[1] + (at[2] - eye[2]) * viewDir[2]) / dc : 1;
+    const ai = face ? axes[i] : null, wx = at[0] - c[0], wy = at[1] - c[1], wz = at[2] - c[2];
+    const wv = wx * viewDir[0] + wy * viewDir[1] + wz * viewDir[2], rx = wx - viewDir[0] * wv, ry = wy - viewDir[1] * wv, rz = wz - viewDir[2] * wv;
+    const zt = eye ? (at[0] - eye[0]) * viewDir[0] + (at[1] - eye[1]) * viewDir[1] + (at[2] - eye[2]) * viewDir[2] : dc, depth = eye ? Math.max(1e-6, zt) / dc : 1;
+    p.hidden = ai ? Math.abs(ai[0] * viewDir[0] + ai[1] * viewDir[1] + ai[2] * viewDir[2]) > END_ON || Math.abs(along) < F : zt <= 1e-6 || rx * rx + ry * ry + rz * rz < F * F * depth * depth;
     ARG[0] = half * depth * GROW[GI[p.key]];
     fillBox(p, at, axes);
   }
@@ -327,13 +327,15 @@ export function createGizmoEase() {
 }
 
 export function rayTriangle(o, d, t) {
-  const e1 = sub(t[1], t[0]), e2 = sub(t[2], t[0]), p = cross(d, e2), det = dot(e1, p);
+  const a = t[0], b = t[1], c = t[2];
+  const e1x = b[0] - a[0], e1y = b[1] - a[1], e1z = b[2] - a[2], e2x = c[0] - a[0], e2y = c[1] - a[1], e2z = c[2] - a[2];
+  const px = d[1] * e2z - d[2] * e2y, py = d[2] * e2x - d[0] * e2z, pz = d[0] * e2y - d[1] * e2x, det = e1x * px + e1y * py + e1z * pz;
   if (Math.abs(det) < 1e-12) return null;
-  const s = sub(o, t[0]), u = dot(s, p) / det;
+  const sx = o[0] - a[0], sy = o[1] - a[1], sz = o[2] - a[2], u = (sx * px + sy * py + sz * pz) / det;
   if (u < 0 || u > 1) return null;
-  const q = cross(s, e1), v = dot(d, q) / det;
+  const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x, v = (d[0] * qx + d[1] * qy + d[2] * qz) / det;
   if (v < 0 || u + v > 1) return null;
-  const k = dot(e2, q) / det;
+  const k = (e2x * qx + e2y * qy + e2z * qz) / det;
   return k >= 0 ? k : null;
 }
 
@@ -341,73 +343,95 @@ function onScreen(p, eye, fwd, F) {
   const q = sub(p, eye), z = dot(q, fwd);
   return z > 1e-6 ? mul(sub(mul(q, 1 / z), fwd), F) : null;
 }
-function nearSeg(s, a, b) {
-  const u = sub(b, a), l2 = dot(u, u), k = l2 > 1e-18 ? Math.min(1, Math.max(0, dot(sub(s, a), u) / l2)) : 0;
-  return { dist: len(sub(s, add(a, mul(u, k)))), k };
+function onScreenInto(p, eye, fwd, F, out) {
+  const qx = p[0] - eye[0], qy = p[1] - eye[1], qz = p[2] - eye[2], z = qx * fwd[0] + qy * fwd[1] + qz * fwd[2];
+  if (!(z > 1e-6)) return false;
+  const iz = 1 / z;
+  out[0] = (qx * iz - fwd[0]) * F; out[1] = (qy * iz - fwd[1]) * F; out[2] = (qz * iz - fwd[2]) * F;
+  return true;
 }
-
 export function rayLine(o, d, a, b, w, eye, fwd, F) {
   const m = lineMeasure(o, d, a, b, w, eye, fwd, F);
   return m && m.out === 0 ? m.t : null;
 }
-function lineMeasure(o, d, a, b, w, eye, fwd, F, pa = null, nb = null) {
-  const sa = onScreen(a, eye, fwd, F), sb = onScreen(b, eye, fwd, F), sc = onScreen(add(o, d), eye, fwd, F);
-  if (!sa || !sb || !sc || dot(d, fwd) <= 1e-9) return null;
-  const u = sub(sb, sa), l = len(u), q = sub(sc, sa), h = w / 2;
-  const along = l > 1e-9 ? dot(q, u) / l : 0;
-  const across = l > 1e-9 ? len(sub(q, mul(u, along / l))) : len(q);
+// lineMeasure mutates and returns the shared MEASURE object; read its fields before calling lineMeasure again.
+const MEASURE = { out: 0, center: 0, t: 0 }, L_A = v3(), L_B = v3(), L_P = v3(), L_N = v3(), QUAD = new Float64Array(10);
+const QUAD_SIDE = [-1, 1, 1, -1], QUAD_FAR = [0, 0, 1, 1], Q_R = v3(), Q_U = v3();
+const flatX = (v) => v[0] * Q_R[0] + v[1] * Q_R[1] + v[2] * Q_R[2], flatY = (v) => v[0] * Q_U[0] + v[1] * Q_U[1] + v[2] * Q_U[2];
+function lineMeasure(o, d, a, b, w, eye, fwd, F, pa = null, nb = null, scIn = undefined) {
+  const sc = scIn === undefined ? onScreen(add(o, d), eye, fwd, F) : scIn, sa = L_A, sb = L_B;
+  if (!onScreenInto(a, eye, fwd, F, sa) || !onScreenInto(b, eye, fwd, F, sb) || !sc || dot(d, fwd) <= 1e-9) return null;
+  const ux = sb[0] - sa[0], uy = sb[1] - sa[1], uz = sb[2] - sa[2], l = Math.hypot(ux, uy, uz);
+  const qx = sc[0] - sa[0], qy = sc[1] - sa[1], qz = sc[2] - sa[2], h = w / 2;
+  const along = l > 1e-9 ? (qx * ux + qy * uy + qz * uz) / l : 0;
+  let across;
+  if (l > 1e-9) { const f = along / l; across = Math.hypot(qx - ux * f, qy - uy * f, qz - uz * f); } else across = Math.hypot(qx, qy, qz);
   const dx = Math.max(0, -h - along, along - l - h), dy = Math.max(0, across - h);
   const k = l > 1e-9 ? Math.min(1, Math.max(0, along / l)) : 0;
-  let quad = null;
+  let out;
   if (pa && nb && l > 1e-9) {
-    const r = norm(Math.abs(fwd[1]) < 0.99 ? cross(fwd, [0, 1, 0]) : cross(fwd, [1, 0, 0])), up = cross(r, fwd);
-    const flat = (v) => (v ? [dot(v, r), dot(v, up), 0] : null);
-    quad = chordQuad(flat(onScreen(pa, eye, fwd, F)), flat(sa), flat(sb), flat(onScreen(nb, eye, fwd, F)), h);
-    quad.push(flat(sc));
-  }
-  return { out: quad ? outOfQuad(quad.slice(0, 4), quad[4]) : Math.hypot(dx, dy), center: nearSeg(sc, sa, sb).dist, t: Math.max(0, dot(sub(add(a, mul(sub(b, a), k)), o), d)) };
-}
-function chordQuad(sp, sa, sb, sn, h) {
-  const L = len(sub(sb, sa)), dd = mul(sub(sb, sa), 1 / L), n = [-dd[1], dd[0], 0], out = [];
-  for (const [side, far] of [[-1, 0], [1, 0], [1, 1], [-1, 1]]) {
-    let off = mul(add(mul(n, side), mul(dd, far ? 1 : -1)), h);
-    const so = far ? sn : sp, dn = so ? (far ? sub(so, sb) : sub(sa, so)) : null, ln = dn ? len(dn) : 0;
-    if (dn && ln > 1e-4) {
-      const tt = add(dd, mul(dn, 1 / ln)), tl = len(tt);
-      if (tl * tl > 1e-6) { const tn = mul(tt, 1 / tl), m = [-tn[1], tn[0], 0]; off = mul(m, (side * h) / Math.max(dot(m, n), 0.25)); }
+    const f0 = fwd[0], f1 = fwd[1], f2 = fwd[2], side = Math.abs(f1) < 0.99;
+    const cx = side ? f1 * 0 - f2 * 1 : f1 * 0 - f2 * 0, cy = side ? f2 * 0 - f0 * 0 : f2 * 1 - f0 * 0, cz = side ? f0 * 1 - f1 * 0 : f0 * 0 - f1 * 1;
+    const cl = Math.hypot(cx, cy, cz), ci = cl > 0 ? 1 / cl : 0, rx = cl > 0 ? cx * ci : 0, ry = cl > 0 ? cy * ci : 0, rz = cl > 0 ? cz * ci : 0;
+    Q_R[0] = rx; Q_R[1] = ry; Q_R[2] = rz; Q_U[0] = ry * f2 - rz * f1; Q_U[1] = rz * f0 - rx * f2; Q_U[2] = rx * f1 - ry * f0;
+    const Q = QUAD, hasP = onScreenInto(pa, eye, fwd, F, L_P), hasN = onScreenInto(nb, eye, fwd, F, L_N), fx = flatX, fy = flatY;
+    const ax = fx(sa), ay = fy(sa), bx = fx(sb), by = fy(sb), px = hasP ? fx(L_P) : 0, py = hasP ? fy(L_P) : 0, nx2 = hasN ? fx(L_N) : 0, ny2 = hasN ? fy(L_N) : 0;
+    const ex = bx - ax, ey = by - ay, L = Math.hypot(ex, ey, 0), iL = 1 / L, ddx = ex * iL, ddy = ey * iL, nx = -ddy, ny = ddx;
+    for (let c = 0; c < 4; c++) {
+      const sd = QUAD_SIDE[c], far = QUAD_FAR[c], fs = far ? 1 : -1;
+      let ox = (nx * sd + ddx * fs) * h, oy = (ny * sd + ddy * fs) * h;
+      if (far ? hasN : hasP) {
+        const dnx = far ? nx2 - bx : ax - px, dny = far ? ny2 - by : ay - py, ln = Math.hypot(dnx, dny, 0);
+        if (ln > 1e-4) {
+          const il = 1 / ln, ttx = ddx + dnx * il, tty = ddy + dny * il, tl = Math.hypot(ttx, tty, 0);
+          if (tl * tl > 1e-6) { const it = 1 / tl, mx = -(tty * it), my = ttx * it, m = (sd * h) / Math.max(mx * nx + my * ny + 0 * 0, 0.25); ox = mx * m; oy = my * m; }
+        }
+      }
+      Q[2 * c] = (far ? bx : ax) + ox; Q[2 * c + 1] = (far ? by : ay) + oy;
     }
-    out.push(add(far ? sb : sa, off));
-  }
-  return out;
+    Q[8] = fx(sc); Q[9] = fy(sc);
+    out = outOfQuad(Q);
+  } else out = Math.hypot(dx, dy);
+  const l2 = ux * ux + uy * uy + uz * uz, kc = l2 > 1e-18 ? Math.min(1, Math.max(0, ((sc[0] - sa[0]) * ux + (sc[1] - sa[1]) * uy + (sc[2] - sa[2]) * uz) / l2)) : 0;
+  MEASURE.out = out;
+  MEASURE.center = Math.hypot(sc[0] - (sa[0] + ux * kc), sc[1] - (sa[1] + uy * kc), sc[2] - (sa[2] + uz * kc));
+  MEASURE.t = Math.max(0, (a[0] + (b[0] - a[0]) * k - o[0]) * d[0] + (a[1] + (b[1] - a[1]) * k - o[1]) * d[1] + (a[2] + (b[2] - a[2]) * k - o[2]) * d[2]);
+  return MEASURE;
 }
-function outOfQuad(qd, s) {
+function outOfQuad(Q) {
+  const sx = Q[8], sy = Q[9];
   let inside = true, sign = 0, best = Infinity;
   for (let i = 0; i < 4; i++) {
-    const a = qd[i], b = qd[(i + 1) % 4], c = (b[0] - a[0]) * (s[1] - a[1]) - (b[1] - a[1]) * (s[0] - a[0]);
+    const j = (i + 1) % 4, ax = Q[2 * i], ay = Q[2 * i + 1], bx = Q[2 * j], by = Q[2 * j + 1], c = (bx - ax) * (sy - ay) - (by - ay) * (sx - ax);
     if (Math.abs(c) > 1e-12) { const sg = Math.sign(c); if (sign && sg !== sign) inside = false; sign = sign || sg; }
-    best = Math.min(best, nearSeg(s, a, b).dist);
+    const ux = bx - ax, uy = by - ay, l2 = ux * ux + uy * uy + 0 * 0, k = l2 > 1e-18 ? Math.min(1, Math.max(0, ((sx - ax) * ux + (sy - ay) * uy + 0 * 0) / l2)) : 0;
+    best = Math.min(best, Math.hypot(sx - (ax + ux * k), sy - (ay + uy * k), 0 - (0 + 0 * k)));
   }
   return inside ? 0 : Math.max(best, 1e-9);
 }
 
+const TRI_PX = [v3(), v3(), v3()];
 /** @param {GizmoPart} p */
 export function grabOf(p, o, d, eye, fwd, F, tol = POI_GIZMO_PICK_PX) {
   let gap = Infinity, t = Infinity, reach = false;
+  const sc = onScreen(add(o, d), eye, fwd, F);
   for (const tri of p.tris) {
     const k = rayTriangle(o, d, tri);
     if (k !== null) { if (gap > 0 || k < t) t = k; gap = 0; reach = true; continue; }
     if (gap === 0) continue;
-    const s = tri.map((q) => onScreen(q, eye, fwd, F)), sc = onScreen(add(o, d), eye, fwd, F);
-    if (!sc || s.some((q) => !q)) continue;
+    if (!sc || !onScreenInto(tri[0], eye, fwd, F, TRI_PX[0]) || !onScreenInto(tri[1], eye, fwd, F, TRI_PX[1]) || !onScreenInto(tri[2], eye, fwd, F, TRI_PX[2])) continue;
     for (let e = 0; e < 3; e++) {
-      const m = nearSeg(sc, s[e], s[(e + 1) % 3]);
-      if (m.dist <= tol && m.dist < gap) { gap = m.dist; t = Math.max(0, dot(sub(add(tri[e], mul(sub(tri[(e + 1) % 3], tri[e]), m.k)), o), d)); reach = true; }
+      const A = TRI_PX[e], B = TRI_PX[(e + 1) % 3];
+      const ux = B[0] - A[0], uy = B[1] - A[1], uz = B[2] - A[2], l2 = ux * ux + uy * uy + uz * uz;
+      const k = l2 > 1e-18 ? Math.min(1, Math.max(0, ((sc[0] - A[0]) * ux + (sc[1] - A[1]) * uy + (sc[2] - A[2]) * uz) / l2)) : 0;
+      const dist = Math.hypot(sc[0] - (A[0] + ux * k), sc[1] - (A[1] + uy * k), sc[2] - (A[2] + uz * k));
+      if (dist <= tol && dist < gap) { gap = dist; t = Math.max(0, dot(sub(add(tri[e], mul(sub(tri[(e + 1) % 3], tri[e]), k)), o), d)); reach = true; }
     }
   }
   const n = p.segs.length;
   for (let i = 0; i < n; i++) {
     const [a, b] = p.segs[i];
-    const m = p.ring ? lineMeasure(o, d, a, b, p.w, eye, fwd, F, p.segs[(i + n - 1) % n][0], p.segs[(i + 1) % n][1]) : lineMeasure(o, d, a, b, p.w, eye, fwd, F);
+    const m = p.ring ? lineMeasure(o, d, a, b, p.w, eye, fwd, F, p.segs[(i + n - 1) % n][0], p.segs[(i + 1) % n][1], sc) : lineMeasure(o, d, a, b, p.w, eye, fwd, F, null, null, sc);
     if (!m || (m.out > 0 && m.center > tol)) continue;
     reach = true;
     if (m.out < gap || (m.out === gap && m.t < t)) { gap = m.out; t = m.t; }

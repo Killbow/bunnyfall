@@ -354,7 +354,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // the runtime's module first: the body is moved only once the test can start
     if (!test.ready()) { test.prepare().then(() => startTest(), () => say(t('poi.test.loadFailed', 'The test could not start. Try again.'), 'bad')); return; }
     const dmOn = dm.isOn();
-    dialogsClosed(); dm.close();
+    dialogsClosed(); dm.close(); assets?.close();
     if (onTest(sel.id)) { dmWasOn = dmOn; say(t('poi.test.started', 'Testing. Walk, talk, and use things as a player would. Stop test to go back to editing.')); }
     else if (dmOn) dm.toggle();
     schedule();
@@ -462,6 +462,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       }), el('div', 'dfpoi-sub', t('poi.test.paused', 'Editing is paused while a test runs.')));
       return;
     }
+    // Return before the scene rows are rebuilt while the search is typed in, or the search filters rows not on screen.
+    if (typingIn(left)) { const old = left.querySelector?.('.dfpoi-listbox'); if (old) renderList(old); return; }
     const sel = edit.selection();
     const out = [el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing'))];
     const ids = edit.ids();
@@ -490,9 +492,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     out.push(findRow, btn(t('poi.editor.refresh', 'Refresh the list'), () => refreshList()));
     renderList(listBox);
     out.push(listBox);
-    // the search being typed in keeps its field: only the list under it is drawn again
-    if (!typingIn(left)) left.replaceChildren(...out);
-    else { const old = left.querySelector?.('.dfpoi-listbox'); if (old) renderList(old); }
+    left.replaceChildren(...out);
   }
   function renderList(box) {
     if (!list) { box.replaceChildren(el('div', 'dfpoi-sub', t('poi.editor.listUnasked', 'Press Refresh to see the store\'s POIs.'))); return; }

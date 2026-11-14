@@ -72,10 +72,10 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dm
   const asset = feed.asset;
   feed.asset = (sha, o) => { wanted.set(sha, (wanted.get(sha) ?? 0) + 1); return asset(sha, o); };
   if (drafts.length) feed.setOverlay(new Map(drafts.map((d) => [d.id, { doc: d, rev: 0 }])));
-  const people = {}, dmFrames = {}, dmCloses = { n: 0 };
+  const people = {}, dmFrames = {}, dmCloses = { n: 0 }, dmTicks = { n: 0 };
   const dm = () => Promise.resolve({
     frame: (s, t, shown) => { dmFrames[s.id] = (dmFrames[s.id] ?? 0) + 1; return shown; },
-    extras: () => [], talk: () => false, drop: () => {}, close: () => { dmCloses.n++; },
+    extras: () => [], talk: () => false, drop: () => {}, close: () => { dmCloses.n++; }, tick: () => { dmTicks.n++; },
   });
   let clock = 1_000_000;
   const renderer = new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : () => ({})) });
@@ -113,7 +113,7 @@ async function rig({ docs = [], drafts = [], roof = () => new Response(ROOF), dm
   const of = (id) => host.standing().find((s) => s.id === id);
   /** A new revision of the live set: `change` applied to each document, the feed asked again. */
   const revise = async (change) => { live.docs = live.docs.map((d) => change(structuredClone(d))); live.rev++; await feed.refresh(); };
-  return { host, feed, asked, wanted, warnings, translucent: () => translucentDrawn, people, dmFrames, dmCloses, frames, of, revise, later: (ms) => { clock += ms; } };
+  return { host, feed, asked, wanted, warnings, translucent: () => translucentDrawn, people, dmFrames, dmCloses, dmTicks, frames, of, revise, later: (ms) => { clock += ms; } };
 }
 
 test('the fixtures are lawful POIs', () => {
@@ -248,6 +248,20 @@ test('a part the store does not have is asked again at once by a new revision of
   assert.equal(r.of(d.id).parts, 2, 'no wait: the skip did not survive the revision');
 });
 
+test('after a new revision, a part the store still does not have waits again before the next ask', async () => {
+  const d = withPart(v1Poi('poi-aaaaaaaaaaad', 511), 'roof', ROOF_SHA);
+  const r = await rig({ docs: [d], roof: () => new Response('', { status: 404 }) });
+  await r.frames();
+  assert.equal(r.asked.get(ROOF_SHA), 1);
+  await r.revise((x) => ({ ...x, name: 'Renamed, roof still missing' }));
+  await r.frames();
+  assert.equal(r.asked.get(ROOF_SHA), 2, 'asked once right after the revision, and not again until the wait ends');
+  r.later(POI_RETRY_MS);
+  await r.frames();
+  assert.equal(r.asked.get(ROOF_SHA), 3);
+  assert.equal(r.of(d.id).parts, 1);
+});
+
 test('a revision that comes while a missing part is being asked for again still asks for it at once', async () => {
   const d = withPart(v1Poi('poi-aaaaaaaaaaac', 510), 'roof', ROOF_SHA);
   let release = null;
@@ -320,6 +334,19 @@ test('while a Test runs a live POI stands with no DM runtime, and its people\'s 
   assert.ok(r.dmFrames[live.id] > 0, 'after the Test the live runtime runs again');
 });
 
+test('leaving the street closes the live and Test runtimes\' panels, since no frame runs indoors to time out a hand-over', async () => {
+  const live = mixedPoi('poi-bbbbbbbbbbb3', 514);
+  const draft = mixedPoi('poi-bbbbbbbbbbb4', 515);
+  let testCloses = 0;
+  const testRt = { frame: (s, t, shown) => shown, extras: () => [], talk: () => false, drop: () => {}, close: () => { testCloses++; } };
+  const r = await rig({ docs: [live], drafts: [draft], dmTest: (id) => (id === draft.id ? testRt : null) });
+  await r.frames(10);
+  assert.equal(r.dmCloses.n, 0);
+  r.host.standDown();
+  assert.equal(r.dmCloses.n, 1);
+  assert.equal(testCloses, 1);
+});
+
 test('as a Test\'s hold begins, the live runtime\'s open dialogue or trade is closed, once', async () => {
   const live = mixedPoi('poi-bbbbbbbbbbb2', 513);
   let held = false;
@@ -331,4 +358,19 @@ test('as a Test\'s hold begins, the live runtime\'s open dialogue or trade is cl
   assert.equal(r.dmCloses.n, 1, 'closed when the hold begins');
   held = false; await r.frames(3); held = true; await r.frames(3);
   assert.equal(r.dmCloses.n, 2, 'and again at the next test');
+});
+
+test('the live runtime settles what gone runs owe on every frame, but not while a Test holds it', async () => {
+  const live = mixedPoi('poi-bbbbbbbbbbb3', 514);
+  let held = false;
+  const r = await rig({ docs: [live], dmTest: () => null, dmHeld: () => held });
+  await r.frames(10);
+  assert.ok(r.dmTicks.n > 0, 'ticked while no Test holds it');
+  held = true;
+  const before = r.dmTicks.n;
+  await r.frames(5);
+  assert.equal(r.dmTicks.n, before, 'no tick under a Test hold');
+  held = false;
+  await r.frames(3);
+  assert.ok(r.dmTicks.n > before, 'ticked again after the Test');
 });

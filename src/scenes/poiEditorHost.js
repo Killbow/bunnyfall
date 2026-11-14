@@ -43,7 +43,8 @@ import { placeFlatAt } from '../poi/poiFlatRows.js';
 import { boxPick, editorView, liftOf, npcLine, pickNpc, rectLines, spotOf } from './poiEditorSelect.js';
 import { gizmoSize, POI_SNAP_DEFAULT } from '../poi/poiGizmo.js';
 import { pickGizmo, gizmoDraw, viewForward, createGizmoEase, GIZMO_DIM, GIZMO_ARM_PX } from '../poi/poiGizmoLook.js';
-import { beginHandleDrag, handleDragResult, boxAlong, cornersOf } from '../poi/poiGizmoBox.js';
+import { beginHandleDrag, handleDragResult, cornersOf } from '../poi/poiGizmoBox.js';
+import { createSelectionBoxes, createSizeBox, pointUnder } from '../poi/poiEditorFrame.js';
 import { quatRotate } from '../world/quat.js';
 import { lookDir } from './decor/decorTool.js';
 import { rayDirFromScreen } from '../player/tapRay.js';
@@ -118,6 +119,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let placeAt = null;   // where the placing mark stands (scene frame)
   let overlayGen = -1;
   const told = () => { try { onChange(); } catch (e) { console.warn('[poi] editor listener', e); } };
+  const boxesOf = createSelectionBoxes({ edit, host, boxLines, colors: POI_BOX_COLOR }), sizeBoxOf = createSizeBox({ edit, host });
 
   /** The cursor's ray through the frame the world drew: `{ o, d }` or null (off the world strip). */
   function rayAt(clientX, clientY) {
@@ -192,7 +194,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     const viewDir = mul(vd, 1 / l);
     const L = gizmoSize(v.eye, viewDir, tg.c, v.fovY, v.h, GIZMO_ARM_PX);
     const F = (v.proj[5] * v.h * (v.rect?.h ?? 1)) / 2;
-    const box = mode === 'size' ? boxAlong(tg.c, tg.axes, boxPoints(tg)) : null;
+    const box = mode === 'size' ? sizeBoxOf(tg, boxPoints) : null;
     return { mode, c: tg.c, axes: tg.axes, L, viewDir, pxWorld: L / GIZMO_ARM_PX, tg, eye: v.eye, fwd: viewForward(v.view, viewDir), F, box, grow: ease.grow };
   }
   function boxPoints(tg) {
@@ -268,8 +270,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   function groundUnder(clientX, clientY) {
     const ray = rayAt(clientX, clientY);
     if (!ray) return null;
-    const g = groundHit(ray.o, ray.d);
-    return g?.point ?? null;
+    return pointUnder(ray, groundHit, surfaceAt, placing?.kind === 'spot' ? snowRise() : 0);
   }
 
   function place(at) {
@@ -511,17 +512,17 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       if (e.button !== 0) return false;
       if (e.altKey) { eye.orbit = true; return true; }
       if (placing) { const at = groundUnder(e.clientX, e.clientY); if (at) place(at); return true; }
-      const g = gizmo();
-      if (g && hover) {
-        const ray = rayAt(e.clientX, e.clientY);
-        const state = ray ? beginHandleDrag(g, hover, ray.o, ray.d) : null;
+      const g = gizmo(), ray = g ? rayAt(e.clientX, e.clientY) : null, h = g && ray ? pickGizmo(g, ray.o, ray.d) : null;
+      if (h !== hover) { hover = h; told(); }
+      if (g && ray && h) {
+        const state = beginHandleDrag(g, h, ray.o, ray.d);
         const sel = edit.selection();
         if (state && edit.begin(sel.id, mode === 'move' ? 'move' : mode === 'turn' ? 'turn' : 'size')) {
           // AUDIT POI E7: the scene frame the drag is measured in, by its POI's pixel's translation - a floating-origin
           // recentre mid-drag (the wheel's dolly across a pixel's edge, 500 m of height) moves the eye and every pixel by
           // its offset, and the next ray, read in the new frame against the grab in the old, carried the POI ~819 m off
           const { px, py } = g.tg.doc.place;
-          drag = { handle: hover, state, id: sel.id, part: sel.part ?? null, light: sel.light ?? null, start: null, px, py, frame: translation(px, py, [0, 0, 0]), now: [0, 0, 0], multi: g.tg.multi ? { ...g.tg.multi, axes: g.axes } : null, last: null };
+          drag = { handle: h, state, id: sel.id, part: sel.part ?? null, light: sel.light ?? null, start: null, px, py, frame: translation(px, py, [0, 0, 0]), now: [0, 0, 0], multi: g.tg.multi ? { ...g.tg.multi, axes: g.axes } : null, last: null };
           told();
           return true;
         }
@@ -634,23 +635,15 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     collideDrafts: () => !drag,
 
     lineSets() {
-      const inWorld = [], onTop = [];
-      if (!on) return { inWorld, onTop, dm: null };
+      if (!on) return { inWorld: [], onTop: [], dm: null };
       const sel = edit.selection();
       const items = selItems(sel);
       // what is selected, a group standing for what is in it (every part of the POI when the POI itself is)
       const doc = sel ? edit.docOf(sel.id) : null;
-      const picked = new Set(doc ? movable(doc, items) : []);
-      const marks = doc ? marksOf(doc) : new Map();
+      const { picked, marks, inWorld: boxIn, onTop: boxTop } = boxesOf(sel, doc, items);
       let dm = null;
       // draws bounding boxes for parts and for flat pictures whose textures have loaded
-      const boxed = [...(doc?.parts ?? []).map((p) => [`part:${p.key}`, host.partOf(sel.id, p.key)?.box]), ...(doc?.flats ?? []).map((f) => [`flat:${f?.key}`, host.flatBox?.(sel.id, f?.key)])];
-      for (const [id, box] of boxed) {
-        if (!box || marks.get(id)?.hidden) continue;
-        const on2 = picked.has(id) || items.includes(id);
-        const color = marks.get(id)?.frozen ? POI_BOX_COLOR.locked : on2 ? POI_BOX_COLOR.part : POI_BOX_COLOR.poi;
-        if (!items.length || on2) { inWorld.push(...boxLines(box, color)); onTop.push(...boxLines(box, [color[0], color[1], color[2], 0.22])); }
-      }
+      const inWorld = boxIn.slice(), onTop = boxTop.slice();
       // the selected POI's lights, each a small star where it shines from, and its people, each an upright line - the
       // selected ones lit; hidden ones not drawn
       const origin = doc ? originOfDoc(doc) : null;

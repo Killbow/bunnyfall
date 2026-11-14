@@ -235,3 +235,21 @@ test('a won encounter leaves its living enemies; when it stands again they go fi
   assert.equal(w.foes.length, 10);
   assert.deepEqual(w.removed, first, 'the last group goes before the next stands');
 });
+
+test('online, an event that adds to a saved number ends on the realm\'s value, not twice the addition', async () => {
+  let stored = 0;
+  const act = async (path, body, o) => {
+    if (o?.read) return { ok: true, data: { vars: { visits: stored } } };
+    stored += 1;
+    return { ok: true, data: { branch: 'then', took: { items: [], gold: 0, picks: [] }, gave: { items: [], gold: 0 }, vars: { visits: stored } } };
+  };
+  const w = setup((d) => {
+    d.variables.push({ key: 'visits', name: 'Visits', type: 'number', scope: 'character', initial: 0 });
+    d.events.push({ key: 'count', name: 'Count', trigger: { k: 'enter_area', interactive: 'ambush-zone' }, then: [{ k: 'set_var', var: 'visits', add: 1 }] });
+  }, { act });
+  await w.step(); await w.step();
+  w.at([30, 0, 0]);
+  for (let i = 0; i < 4; i++) await w.step();
+  assert.equal(stored, 1);
+  assert.equal(w.rt.modelOf(w.doc.id).vars.visits, 1);
+});
