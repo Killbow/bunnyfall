@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Gravity Well no longer freezes enemies in their hit animation. They keep fighting while it pulls them toward its center, about as fast as they walk, and it no longer pulls your allies.
 - The map now shows garrisons on the march: a dashed arrow in the Company's colours runs from its town straight to the point on Rodney's blight edge where its soldiers push, thicker the more soldiers march.
 
 ## 2026-11-13
