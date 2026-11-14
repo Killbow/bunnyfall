@@ -631,7 +631,7 @@ export function raidFrame(dt = 0) {
   staffPuppetKills(puppets, now);
   tallyDeaths(now);
   muster.step(dt);   // BUNNYFALL: the waves gather, march and are let loose
-  if (state.raids.some((r) => r.staff)) rallyStep(_live.map((e) => e.foe), (h.peerFeetInTown?.() ?? []).map((x) => x[1]));   // BUNNYFALL: a rallying monster fights once a player is near or it has come to the pillar
+  if (state.raids.some((r) => r.staff)) rallyStep(_live.map((e) => e.foe), (h.peerFeetInTown?.() ?? []).map((x) => x[1]), dt);   // BUNNYFALL: a rallying monster fights once a player is near or it has come to the pillar
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }

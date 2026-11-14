@@ -18,9 +18,15 @@ export function rallyFoe(/** @type {any} */ foe, /** @type {() => number[] | nul
   return true;
 }
 
-/** One look: each rallying foe is let go when it is dead, has come to the pillar, or a player stands within RALLY_NEAR_M.
+/** A monster that gains no RALLY_GAIN_M on the pillar in RALLY_STUCK_S is stuck on a wall: it gives up the rally and
+ *  wanders as any foe does. The whole rally lasts at most RALLY_MAX_S. */
+export const RALLY_STUCK_S = 4;
+export const RALLY_GAIN_M = 3;
+export const RALLY_MAX_S = 40;
+
+/** One look (`dt` seconds since the last): each rallying foe is let go when it is dead, has come to the pillar, or a player stands within RALLY_NEAR_M.
  *  `players`: their feet, [x, y, z] each. Answers how many it let go. */
-export function rallyStep(/** @type {Iterable<any>} */ foes, /** @type {number[][]} */ players) {
+export function rallyStep(/** @type {Iterable<any>} */ foes, /** @type {number[][]} */ players, /** @type {number} */ dt = 0) {
   let n = 0;
   for (const f of foes) {
     const fl = f?.ai?.follow;
@@ -28,7 +34,12 @@ export function rallyStep(/** @type {Iterable<any>} */ foes, /** @type {number[]
     const at = f.ai.feet, goal = fl.feet?.();
     const near = Array.isArray(at) && (players ?? []).some((p) => Array.isArray(p) && Math.hypot(p[0] - at[0], p[2] - at[2]) <= RALLY_NEAR_M);
     const arrived = Array.isArray(at) && Array.isArray(goal) && Math.hypot(goal[0] - at[0], goal[2] - at[2]) <= RALLY_STOP_M + 2;
-    if (f.dead || near || arrived) { f.ai.follow = null; n++; }
+    const d = Array.isArray(at) && Array.isArray(goal) ? Math.hypot(goal[0] - at[0], goal[2] - at[2]) : 0;
+    const w = fl.watch ??= { best: d, still: 0, total: 0 };
+    w.total += dt; w.still += dt;
+    if (d < w.best - RALLY_GAIN_M) { w.best = d; w.still = 0; }
+    const stuck = w.still >= RALLY_STUCK_S || w.total >= RALLY_MAX_S;
+    if (f.dead || near || arrived || stuck) { f.ai.follow = null; n++; }
   }
   return n;
 }

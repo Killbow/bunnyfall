@@ -10,6 +10,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-13
 
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.
+- A staff event's monsters that get stuck on a wall on the way to the pillar give up after a few seconds and move as normal.
 - A staff event's monsters now walk to the pillar first, so players can find them, and fight as soon as someone gets near. The Forbidden One lets out an evil cackle when she appears. (The voices are the game's existing clips for now.)
 - A staff event now shows a column of purple light rising from its town, seen from a few map pixels away, so players can find it.
 - Camps work again: a pitched tent is kept as a camp and can be decorated (the server was not routing camp requests). Needs a server update.
