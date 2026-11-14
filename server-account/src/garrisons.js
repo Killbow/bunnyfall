@@ -137,7 +137,7 @@ export async function garrisonsRead({ db, nowS }, player, { character } = {}) {
     if (!o) continue;
     const arms = heraldryOfRow(o.heraldry);
     const orders = ordersOf(parse(r.orders));
-    all.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes });
+    all.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes, march: orders.march, sector: Number.isSafeInteger(r.sector) ? r.sector : null });   // MARCH-ARROWS: how many march and on which slice, for the map's arrows
   }
   let mine = null;
   if (typeof character === 'string' && character) {

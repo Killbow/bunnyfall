@@ -104,7 +104,7 @@ import { getDaggerfallDistance, MatchesCutOff } from '../systems/editDistance.js
 import { checkLocationDiscovered, flipTravelMapFilter, travelMapDotColors } from './travel/travelMapWindow.js';   // MAP-KEY: the classic's filter flip and its dots' colours
 import { readGateMark, gateMarkKey, GATE_RING_CSS, GATE_LEGEND_TEXT } from './gate/gateMapMark.js';   // WB1: the Oblivion Gate's ring, read as the party is (SERPENT1: and the serpent's, by the same reader)
 import { SERPENT_RING_MAP_CSS, SERPENT_LEGEND_TEXT } from './serpentMapMark.js';
-import { paintTerritories, paintBlight } from './territoryMapInk.js';   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
+import { paintTerritories, paintBlight, paintMarches } from './territoryMapInk.js';   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
 import { SD_RING_MAP_CSS, SD_LEGEND_TEXT } from './superDungeon/sdMapMark.js';   // SD2c: the Super dungeon's ring once it is found, in its omen's brass
 import { EG_ARCH_RING_CSS, EG_ARCH_LEGEND_TEXT } from './eliteGates/egArchMapMark.js';   // EG-F: my company's Elite arch, in its gold
 import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall
@@ -1333,6 +1333,7 @@ export class HeldMapWindow {
           underMarks: (c) => {
             // BUNNYFALL COMPANIES: the Companies' territories, washed in their arms under every mark (not on the zone map)
             if (!this._zoneMap) paintBlight(c, env.view, this.deps.blight?.() ?? null, { paperW: env.paperW, paperH: env.paperH });   // the war against Rodney: the blight and its front
+            if (!this._zoneMap) paintMarches(c, env.view, this.deps.marches?.() ?? [], { paperW: env.paperW, paperH: env.paperH });   // the garrisons marching to the front, from their towns to the blight's edge
             if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', charters: this.deps.charters?.() ?? [], farms: this.deps.farms?.() ?? [] });
             const ink = this._wildInk();
             if (!ink) return;
