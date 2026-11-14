@@ -383,8 +383,19 @@ export function createCromwarkHost(deps) {
     return true;
   }
 
+  /** CAMP-POST: the camp's map point, for the map's own post beside the courts' (a waypoint is the player's to remove; this stays). Found once. */
+  let _campPt = null;
+  function campPoint() {
+    if (_campPt) return _campPt;
+    const sp = site ?? findSite();
+    if (sp) _campPt = { x: sp.px + sp.nyx[0] / PIXEL_M, y: sp.py + 1 - sp.nyx[1] / PIXEL_M };
+    return _campPt;
+  }
+
   return {
     frame, fog, command,
+    /** The Guild camp's post `[{ court: { css, name }, x, y }]` for the held map (empty until its pixel is known). */
+    campPosts: () => { try { const p = campPoint(); return p ? [{ court: { css: '#9b4dff', name: t('nyx.campMark', 'Guild Camp (Nyx)') }, x: p.x, y: p.y }] : []; } catch { return []; } },
     /** The cannon alone, for a game with no online frame to carry it (it stands offline too; only its build and its gifts need the service). */
     cannonFrame() { try { cannon.frame(); } catch (e) { console.warn('[cannon]', e?.message ?? e); } },
     /** The cannon's shot, its flash and smoke, for the particle pass (null with none). */
