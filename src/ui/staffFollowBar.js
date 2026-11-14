@@ -19,7 +19,7 @@ const UNLOCK_CSS = `${BUTTON_CSS}background:rgba(224,80,60,0.35);border-color:${
 export function createStaffFollowBar({ doc = globalThis.document, onUnlock, onHide = () => {} }) {
   if (!doc?.createElement || !doc.body) return { show() {}, hide() {}, dispose() {} };
   let bar = /** @type {any} */ (null), words = /** @type {any} */ (null), hideBtn = /** @type {any} */ (null), unlock = /** @type {any} */ (null);
-  let shown = false, hiddenNow = false;
+  let shown = false, hiddenNow = false, dismissed = false;   // DISMISS: the x puts the bar away until the page is loaded again (a follow's lock brings it back - its Unlock lives here)
   /** @type {Record<string, any>} */
   const said = {};
   const put = (/** @type {string} */ k, /** @type {any} */ v, /** @type {(v: any) => void} */ write) => { if (said[k] !== v) { said[k] = v; write(v); } };
@@ -44,7 +44,10 @@ export function createStaffFollowBar({ doc = globalThis.document, onUnlock, onHi
     hideBtn = button(BUTTON_CSS, 'data-staff-hide', () => onHide(!hiddenNow));
     unlock = button(UNLOCK_CSS, 'data-staff-unlock', onUnlock);
     unlock.textContent = t('net.staffFollow.unlock', 'Unlock');
-    bar.append(words, hideBtn, unlock);
+    const close = button(BUTTON_CSS, 'data-staff-close', () => { dismissed = true; if (bar) { shown = false; bar.style.display = 'none'; } });
+    close.textContent = '\u00d7';
+    close.title = t('net.staffFollow.close', 'Close');
+    bar.append(words, hideBtn, unlock, close);
     doc.body.append(bar);
   }
   return {
@@ -53,6 +56,7 @@ export function createStaffFollowBar({ doc = globalThis.document, onUnlock, onHi
      *  follow has found the target yet (FOLLOW-GROUND-HINT: locked and not yet seen says so, never a silent camera).
      *  @param {{ following?: boolean, name?: string, hidden?: boolean, asking?: boolean, seeing?: boolean }} [s] */
     show({ following = false, name = '', hidden = false, asking = false, seeing = true } = {}) {
+      if (dismissed && !following) { if (bar && shown) { shown = false; bar.style.display = 'none'; } return; }
       if (!bar) make();
       hiddenNow = hidden;
       const line = following && !seeing ? t('net.staffFollow.finding', 'Following. Finding them…')
