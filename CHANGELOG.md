@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Bench crafts with swapped parts, such as Lodestone as flux, now use your bag or pack instead of saying "Your Stores do not hold that many".
 - Fixed: The Overworld now causes fewer brief stutters while stopped on slower computers.
 - Fixed: Starting a game no longer downloads about 2 MB of unused model files, so the first load after an update is faster.
 - Fixed: Boulders that rested on rocks cleared off a road no longer float in the air, such as outside the east gate of Knightsmore.
