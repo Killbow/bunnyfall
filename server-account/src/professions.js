@@ -1716,18 +1716,8 @@ async function temperAnswer(db, player, row, nowS, extra = {}) {
 }
 
 /**
- * A TEMPER (CRAFT4, Professions-Arc 41.2 and 41.7): `{ character, recipe, quality, provenance?, rid }` - a piece of the
- * smith's (a weapon, plate, a shield, chain) or the tailor's (leather armour, a garment) made a quality step better, from
- * `quality` (Crude, Standard or Fine - temperLaw temperFrom; a found piece is Standard) to the next, up to Superior. The
- * service cannot see the pack (as it cannot see the anvil, PROF0 23): `recipe` is the piece's, which the client reads off
- * its template and material (temperLaw temperRecipeOf), and the save's piece is the save's word, as its condition is - the
- * Stores' spend is the bound (41.2). It asks the recipe's rank of its craft's track (`prof-rank`), and spends half the
- * recipe's main input of its material, rounded up (temperCost - never gold's units); it pays the craft's XP at the
- * recipe's tier, no first (temperXp), under the crafter's limit. A MADE piece names its `provenance`: this account's,
- * of the recipe asked, at the quality asked, on no listing, no road and in no home - or refused (`prof-no-piece`,
- * `prof-not-yours`, `prof-temper`, `prof-temper-stale`, `prof-piece-busy`) - and its record is re-signed at its new
- * quality in the temper's own batch (41.2: "so the market sees what it is"). Refused: a recipe no temper takes
- * (`prof-temper`), a quality with no step (`prof-temper-top`), the input short (`stores-short`, `stores-gold`).
+ * Raises a smithing or outfitting piece by one quality step up to temperCap, spending half the main input.
+ * Re-signs crafted provenance records at the new quality.
  */
 export async function temperPiece(ctx, player, env, { character, recipe: id, quality, provenance = null, rid } = {}) {
   const { db, nowS, rand, subtle } = ctx;
@@ -1747,7 +1737,8 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
   const craft = trackOf(r.profession);   // Smithing's or Outfitting's
   const rank = ranks[craft] ?? 0;
   if (rank < r.rank) return { error: 'prof-rank' };
-  if (quality + 1 > temperCap(r, rank)) return { error: 'prof-temper-rank' };   // BUNNYFALL: the rank caps the quality reached
+  const spec100 = specsAt(tracks.find((t) => t.profession === craft), nowS)[100];
+  if (quality + 1 > temperCap(r, rank, spec100)) return { error: 'prof-temper-rank' };
   let record = null;
   if (provenance !== null) {
     const p = await db.prepare('SELECT * FROM products WHERE provenance = ?1').bind(provenance).first();

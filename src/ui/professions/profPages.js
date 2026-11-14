@@ -2589,11 +2589,12 @@ function drawTemper(detail, rerender, { el, divider }, where) {
     const r = recipeById(pc.recipe);
     if (!temperableRecipe(r)) continue;
     const cost = temperCost(r, pc.quality);   // BUNNYFALL: by the quality reached, capped by the rank
-    const open = rank >= r.rank && pc.quality + 1 <= temperCap(r, rank), have = workOf(book, cost.key) >= cost.n;
+    const cap = temperCap(r, rank, book.track(craft)?.specs?.[100]), open = rank >= r.rank && pc.quality + 1 <= cap;
+    const have = workOf(book, cost.key) >= cost.n;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[pc.quality + 1]} - ${cost.n} ${p.name(cost.key)}, +${paidXp(temperXp(r, rank), pay)} ${professionName(craft)} XP`));
     if (open && !have) row.append(el('span', 'prof-short', `Needs ${cost.n} ${p.name(cost.key)}.`));
-    const b = el('button', 'act', _temper.busy === pc.item ? 'Tempering...' : open ? 'Temper' : `${professionName(craft)} ${r.rank}`);
+    const b = el('button', 'act', _temper.busy === pc.item ? 'Tempering...' : open ? 'Temper' : rank >= r.rank ? `Capped at ${QUALITY_NAMES[cap]}` : `${professionName(craft)} ${r.rank}`);
     b.type = 'button';
     b.disabled = !!_temper.busy || !!short || !open || !have || !!handsAt(null);
     b.onclick = async () => {

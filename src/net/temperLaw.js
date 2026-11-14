@@ -58,10 +58,10 @@
 // one: a static roll is its record's to the last number.
 // ═══════════════════════════════════════════════════════════════════
 
-import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN, qualityOdds } from './recipeLaw.js';
+import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN, qualityOdds, masterworkSpec } from './recipeLaw.js';
 import { REFORGES_MAX } from '../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the most reforges a piece counts - the ladder's one bound (the service loads the ladder already, through the item law)
 
-/** The highest quality a temper reaches: Superior (QUALITY_NAMES[3]). */
+/** The highest quality a temper can reach (Masterwork). temperCap may set a lower limit. */
 export const TEMPER_TOP = 4;   // BUNNYFALL: a temper reaches Masterwork (was Superior)
 /** The recipes' kinds a temper takes: the smith's weapons and metal armour, the tailor's leather and cloth. */
 export const TEMPER_KINDS = Object.freeze(['weapon', 'plate', 'shield', 'chain', 'leather', 'garment']);
@@ -107,8 +107,8 @@ export const temperGold = (from) => TEMPER_GOLD[from + 1] ?? 0;
 /** BUNNYFALL: a station's fee with a temper's gold laid on it (null where there is no station). */
 export const withTemperGold = (f, from) => (f ? { ...f, fee: (f.fee > 0 ? f.fee : 0) + temperGold(from) } : null);
 /** BUNNYFALL: the highest quality a crafter's rank reaches on a recipe - the best its craft could roll at that margin. */
-export function temperCap(r, rank) {
-  const odds = qualityOdds((Number(rank) || 0) - (r?.rank ?? 0));
+export function temperCap(r, rank, spec100 = null) {
+  const odds = qualityOdds((Number(rank) || 0) - (r?.rank ?? 0), { masterwright: masterworkSpec(spec100, r) });
   let top = 0;
   for (let q = 0; q < odds.length; q++) if (odds[q] > 0) top = q;
   return top;
@@ -116,7 +116,7 @@ export function temperCap(r, rank) {
 /** A temper's XP: the craft's, at the recipe's tier (a quarter more than two tiers below the rank's top), no first.
  *  @param {any} r @param {number} rank */
 export const temperXp = (r, rank) => craftXp(r.tier, rank);
-/** Whether `q` is a quality a temper may raise: Crude, Standard or Fine (the service's door). */
+/** Returns true when a temper can raise quality `q` (Crude to Superior). */
 export const temperFrom = (q) => Number.isInteger(q) && q >= 0 && q < TEMPER_TOP;
 
 /**
