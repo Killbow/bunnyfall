@@ -63,7 +63,7 @@ export function staffPageUrl(loc = globalThis.location, embed = true) {
 export function createStaffDock({ io, ready = () => true, win = globalThis.window, now = () => Date.now() }) {
   /** null unknown, true staff, false a player */
   let staff = /** @type {boolean|null} */ (null);
-  let askedAt = -Infinity, asking = false, lastIo = /** @type {any} */ (null);
+  let askedAt = -Infinity, asking = false, lastSecret = /** @type {string|null} */ (null);
   let frame = /** @type {HTMLIFrameElement|null} */ (null), box = /** @type {HTMLElement|null} */ (null), tab = /** @type {HTMLElement|null} */ (null);
   let open = false;
   const origin = win?.location?.origin;
@@ -160,10 +160,11 @@ export function createStaffDock({ io, ready = () => true, win = globalThis.windo
     /** Each world frame: who is staff (asked again on a new sign-in), the button, and the window kept for staff only. */
     frame() {
       const door = io();
-      if (door !== lastIo) { lastIo = door; staff = door ? staff : null; if (!door) askedAt = -Infinity; }
-      if (staff !== true && door && now() - askedAt > ASK_EVERY_MS) ask();
+      const secret = door?.secret ?? null;
+      if (secret !== lastSecret) { lastSecret = secret; staff = null; askedAt = -Infinity; }
+      if (staff === null && door && now() - askedAt > ASK_EVERY_MS) ask();
       if (staff === true) makeWindow();
-      else if (box && staff === false) { box.remove(); box = null; frame = null; open = false; }
+      else if (box) { box.remove(); box = null; frame = null; open = false; }
       drawTab(staff === true && (ready() ?? true) && !pauseFlowShowing() && !loadingHeld());
     },
     /** Open or shut the window (a chat command may). */
