@@ -118,7 +118,6 @@ import { t } from './textManager.js';   // STAFF-EVENT: its lines in the player'
 import { createRaidMuster, musterSides, MUSTER_GATHER_STEP_S } from './raidMuster.js';
 import { RAID_STREETLESS } from './raidStreetless.js';   // BUNNYFALL: the towns struck off the raid table   // BUNNYFALL: the raid's camps, its waves gathering there and marching in
 import { SIFRIT_ID } from './sifrit/sifritLaw.js';
-import { rallyFoe, rallyStep } from './staffRally.js';   // BUNNYFALL: a staff event's monsters walk to its pillar first
 
 export const RAIDING_PARTIES_VENDOR = 'world-events-raiding-parties';
 export const raidingPartiesOn = () => modSetting(RAIDING_PARTIES_VENDOR, 'Enabled') === true;
@@ -578,6 +577,10 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
     if (!m) { if (kind === 'leader') _nextSpawnIn = 1; return; }
     o = m;
   }
+  if (raid.staff && (kind === 'raider' || kind === 'boss' || kind === 'mid') && !o?.at) {   // BUNNYFALL: a staff event's monsters stand near its pillar, so the players find them there
+    const foot = h.eventFoot?.(raid);
+    if (Array.isArray(foot)) o = { min: 8, max: 45, los: false, ...(o ?? {}), near: foot };
+  }
   const p = { key: raidKey(raid), age: 0, cancelled: false, boss: kind === 'boss' ? raid : null };
   _pending = p;
   const threats = () => liveRaiders(p.key).map((e) => e.foe);
@@ -595,9 +598,7 @@ function spawn(raid, kind, mobileType, o = undefined, pack = null) {
     if (kind === 'bearer' || kind === 'refugee') foe.raidGoal = p.key;   // AUDIT WORLD-EVENTS L6-5: its raiders' quarry first (enemyTargets.js), whatever infighting reads
     if (kind === 'bearer' && foe.entity && objOf(raid).share < 1) foe.entity.health = Math.max(1, Math.round(foe.entity.maxHealth * objOf(raid).share));   // AUDIT WORLD-EVENTS L4-6: raised again as he was let go - never a whole standard for a walk-off
     if (kind === 'leader') { promoteRaidLeader(foe.entity, { name: raidLeaderNameOf(foe.mobileType ?? mobileType) }); foe.entity.bossTraits = undefined; foe.entity.bossWard = undefined; giveBossTraits(foe.entity, rollBossTraits(RAID_LEADER_TRAITS, rnd())); }   // RAID5: the party's leader - an elite with two traits (AUDIT WORLD-EVENTS L2-6: its two in place of any its stand drew as an elite)
-    if (raid.staff && (kind === 'raider' || boss || mid)) {   // BUNNYFALL: a staff event's monsters head for its pillar first, so the players can find them; the Forbidden One laughs as she stands
-      const foot = () => h.eventFoot?.(raid) ?? null;
-      rallyFoe(foe, foot);
+    if (raid.staff && (kind === 'raider' || boss || mid)) {   // BUNNYFALL: the Forbidden One laughs as she stands
       if ((boss || mid) && (foe.mobileType ?? mobileType) === SIFRIT_ID) h.cry?.('cackle', raid);
     }
     const fights = boss || mid || kind === 'leader' || kind === 'raider';
@@ -631,7 +632,6 @@ export function raidFrame(dt = 0) {
   staffPuppetKills(puppets, now);
   tallyDeaths(now);
   muster.step(dt);   // BUNNYFALL: the waves gather, march and are let loose
-  if (state.raids.some((r) => r.staff)) rallyStep(_live.map((e) => e.foe), (h.peerFeetInTown?.() ?? []).map((x) => x[1]), dt);   // BUNNYFALL: a rallying monster fights once a player is near or it has come to the pillar
   const relay = raidRelayOn();
   for (const r of state.raids) if (!relay && raidActive(r, now) && raidKillTotal(r) >= r.attackAmount) cleanse(r);   // RAID2: the owners' shares summed; RAID3: at a raid relay, its cleanse alone
   if (_sweepIn <= 0) { _sweepIn = ACTOR_SWEEP_S; sweep(); }
