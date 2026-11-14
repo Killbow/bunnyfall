@@ -1001,6 +1001,7 @@ import { sectorAngle as blightSectorAngle } from '../net/blightLaw.js';   // MAR
 import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL COMPANIES: garrisons
 import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
 import { createFarmBook } from '../systems/farmBook.js';   // BUNNYFALL COMPANIES: farms
+import { createFarmDoor } from '../systems/farmDoor.js';
 import { HERALDRY_COLOURS as _FARM_COLOURS } from '../net/heraldryLaw.js';
 const heraldryHexOf = (key) => _FARM_COLOURS.find((c) => c.key === key)?.hex ?? null;   // BUNNYFALL COMPANIES: a farm's mark in its Company's colour
 import { stacksWith } from '../systems/inventory.js';
@@ -30395,6 +30396,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     portTargets: () => portHost?.targets() ?? [],   // SHIPYARDS: the shipyards' people, boards and hulls, the lighthouses' keeper, door, hatch and lamp, in the street's one ray
     activatePort: (key, mode, verb) => portHost?.activate(key, mode, verb) ?? false,   // SHIPYARDS: the shipmaster's window on its page, the crew hall's, the tower's stair
     witches,   // WITCH1: a Wyrd Sister's press and the Hearth Offerings', in the street's one ray (scenes/witchesHost.js)
+    farmDoor: createFarmDoor({ farms: () => farmBook, say: (s) => townTalk.say(s), show: (w) => townTalk.showOverlay(w) }),
     boardTargets: () => {
       const out = [];
       for (const p of built.values()) {

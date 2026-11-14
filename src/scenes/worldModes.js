@@ -7592,7 +7592,7 @@ export function createWorldModes(host) {
       const home = homeOf(bd);
       // HOME-PLAQUE: the door's verbs first - a nameless house with verbs to list is named "Residence", so its plaque
       // stands and lists them (it drew none, and the click fell through to HOME-OFFER's box at every house)
-      const houseVerbs = homeDoorVerbs(bd, home);
+      const houseVerbs = host.farmDoor ? host.farmDoor.rows(bd, homeDoorVerbs(bd, home), getInteractionMode(), homeDoorFor(bd, home) === 'locked') : homeDoorVerbs(bd, home);
       _doorText = staticDoorName('building', {
         displayName: home ? homeDoorTitle(home, questSiteHere(bd) && db.isOverrideName ? db.displayName : null) : homeDoorName(shownBuildingName(db, bd.name), !!houseVerbs),   // EMPIRE-BANK: a bank's name now; QUEST-RESIDENCE: a quest's home its name
         locationName: currentLocationName(),
@@ -7679,9 +7679,10 @@ export function createWorldModes(host) {
   /** The buy armed by a first press: `{ id, at }` - a second press on the same house within HOME_BUY_ARM_MS buys. */
   let _homeArm = null;
   const homeArmed = (bd) => !!_homeArm && _homeArm.id === homeIdOf(bd) && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS;
-  /** What the door's cached text depends on beyond the door: whether verbs are listed at all (Steal lists none) and the
-   *  arm that is live - its lapse repaints the row back to "Buy it". */
-  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}`;
+  /** The door's cached text also depends on state outside the door, so all of it goes into this key. It covers whether
+   *  verbs are listed (Steal lists none), the decoration-hide version, and the live buy arm, whose lapse repaints the
+   *  row back to "Buy it". It also covers the farm chore row (the farm book and the player's map pixel). */
+  const homeVerbsSig = () => `${host.onlineHomes && getInteractionMode() !== 'steal' ? 'v' : ''}|${homeHideVersion()}|${_homeArm && performance.now() - _homeArm.at <= HOME_BUY_ARM_MS ? _homeArm.id : ''}|${host.farmDoor?.sig() ?? ''}`;
   /** The door's verbs, or null: my own home's, or a house's I could buy (homeOfferPrice), in any mode but Steal. */
   function homeDoorVerbs(bd, home) {
     if (!host.onlineHomes || getInteractionMode() === 'steal') return null;
@@ -7704,7 +7705,7 @@ export function createWorldModes(host) {
    *  law). `text` the door's word so far (null: none), `verbs` its rows (homeDoorVerbs). */
   function homeVoteDoorText(text, bd, home, verbs) {
     if (!text || !home) return text;
-    const voteOnly = isHomeVoteVerb(verbs?.[0]?.id) || verbs?.[0]?.id === HOME_HIDE_VERB || isGuestbookVerb(verbs?.[0]?.id);   // DECOR-HIDE: a plain click never hides
+    const voteOnly = isHomeVoteVerb(verbs?.[0]?.id) || verbs?.[0]?.id === HOME_HIDE_VERB || isGuestbookVerb(verbs?.[0]?.id) || verbs?.[0]?.id === host.farmDoor?.verb;   // DECOR-HIDE: a plain click never hides
     const lines = [...(voteOnly && homeDoorFor(bd, home) === 'locked' ? ['Locked'] : []), ...homeVoteLines(home)];
     const said = lines.length ? { ...text, subs: [...(text.subs ?? []), ...lines] } : text;
     return voteOnly ? { ...said, actionsUnlit: true } : said;
@@ -7946,13 +7947,15 @@ export function createWorldModes(host) {
       // player where DFU always has BuildingSummary.
       if (bd && bd.buildingType != null) {
         if (locId) discoverBuilding(locId, bd, null, questBuildingSource);   // AUDIT 63 F49: PlayerEnterExit.cs:1032's call takes the quest name-override arm (PlayerGPS.cs:945-959)
-        // HOME1: A PLAYER'S HOME ANSWERS FIRST. Online, a building the account service names as a player's home opens
-        // for its owner at any hour and for whoever else its owner lets in (Mac: "Owner chooses") - and for nobody
-        // else, by no pick, no bash and no spell: its lock is its owner's word, not a mechanism. In Info mode my own
-        // door is my menu, and a house I could buy asks its offer in any mode but Steal ("At its front door"; HOME2's
-        // plaque lists the verbs where it can, HOME-OFFER's prompt asks where it cannot); `homeAsked` is the press that
-        // comes back from either, going on to the door. A building the service does not name - or a town not heard
-        // from yet, `waitFor`'s bound - falls through to Daggerfall's ladder below, untouched.
+        if (!isBash && host.farmDoor?.press(bd, verb, { asked: homeAsked, listed, mode: getInteractionMode(), onward: () => activateStaticDoor(hit, entries, false, { listed }) })) return true;
+        // After the farm chore check above, a player's home is handled before Daggerfall's lock ladder. Online, a
+        // building the account service names as a player's home opens at any hour for its owner and for whoever the
+        // owner lets in. A player whose active quest is set in it may enter too, and no lockpick, bash, or spell lets
+        // anyone else in. In Info mode, a click on your own home opens its menu, and a house for sale asks whether to
+        // buy it in any mode but Steal. The door's plaque lists these rows where it can, and a prompt asks where it
+        // cannot. `homeAsked` marks a click that one of these prompts passes on, so the door does not ask again. A
+        // building the service does not name, or a town that has not answered within `waitFor`'s limit, falls through
+        // to the ladder.
         let home = null;
         let homeOpen = false;
         if (host.onlineHomes && homeCandidate(bd)) {

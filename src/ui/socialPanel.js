@@ -75,6 +75,7 @@ import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the
 import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
 import { TERRITORY_YIELD_PCT } from '../net/territoryLaw.js';
 import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText } from '../net/garrisonLaw.js';
+import { farmChoreDoneText } from '../systems/farmDoor.js';
 import { CROPS, CHORE_BONUS, farmWordText, cropOf } from '../net/farmLaw.js';   // BUNNYFALL COMPANIES: farms   // BUNNYFALL COMPANIES: garrisons
 import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
@@ -793,6 +794,8 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   /** AUDIT 31 H2: the character the Guild tab was painted for - its guild Stores are that character's own (its deposit,
    *  its Stores), so another character is a repaint whether or not the guild's view moved. */
   let paintedWho = '';
+  let paintedHere = '';
+  const farmsHere = () => (guildUi.page === 'farms' ? farms?.()?.hereKey?.() ?? '' : '');
   const guildWho = () => { try { return String(guild?.profStores?.character?.() ?? ''); } catch { return ''; } };
   let paintedJourney = '';   // PARTY-UI: the journey the body was painted with (journeyKey)
   let paintedLead = false;   // PARTY-LEAD: whether the hub knew party.lead when the body was painted
@@ -1710,14 +1713,14 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const mine = F.mine();
     if (!mine) return [el('div', 'dfsocial-empty', 'Reading the farms...')];
     const out = [el('div', 'dfsocial-sec', `Your farms, ${mine.farms.length} of ${mine.max}`)];
-    out.push(el('div', 'dfsocial-note', `Each farm puts its crop into the Company Stores at the end of every day. Every member who does the day's chore there, standing at the farm, adds half again (${Math.round(CHORE_BONUS * 100)}% each). A farm your territory stops reaching is lost.`));
+    out.push(el('div', 'dfsocial-note', `Each farm puts its crop into the Company Stores at the end of every day. Every member who does the day's chore at the farmhouse door adds ${Math.round(CHORE_BONUS * 100)}% more crop that day. A farm your territory stops reaching is lost.`));
     for (const f of mine.farms) {
       const crop = cropOf(f.crop);
       const lastGot = f.last?.got ? Object.values(f.last.got).reduce((a, n) => a + n, 0) : 0;
       const r = personRow({ name: `${f.name}: ${crop?.name ?? f.crop}`, sub: `${f.today} units today${f.chores.length ? `, chores by ${f.chores.join(', ')}` : ', no chores yet'}.${lastGot ? ` Last harvest: ${lastGot} into the Stores.` : ''}` });
       const acts = rowActs(r);
       const at = F.atFarm(f.mapId);
-      acts.append(btn(f.choreDone ? 'Chore done' : 'Do today\'s chore', { enabled: !g.busy && !f.choreDone && at, why: f.choreDone ? 'done for today' : at ? 'a moment' : 'stand at the farm', run: () => guildDo(F.chore(f.mapId), `You did today's chore at ${f.name}.`) }));
+      acts.append(btn(f.choreDone ? 'Chore done' : 'Do today\'s chore', { enabled: !g.busy && !f.choreDone && at, why: f.choreDone ? 'done for today' : at ? 'a moment' : 'stand at the farm', run: () => guildDo(F.chore(f.mapId), farmChoreDoneText(f.name)) }));
       if (mine.command) {
         acts.append(selectOf(`Crop at ${f.name}`, CROPS.map((c) => [c.key, c.name]), f.crop, (k) => { if (k !== f.crop) guildDo(F.crop(f.mapId, k), `${f.name} grows ${cropOf(k)?.name ?? k} from tomorrow.`); }));
         acts.append(armed(`farm-release:${f.mapId}`)
@@ -2339,7 +2342,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
   /** The whole body, and the tab badges over it. */
   const repaint = () => {
     hideCard();   // GUILD-UX: a vault row's card never outlives the row it was for
-    painted = social.version; paintedUi = ui; paintedMail = mail?.version ?? 0; paintedGuild = guild?.version ?? 0; paintedWho = guildWho();
+    painted = social.version; paintedUi = ui; paintedMail = mail?.version ?? 0; paintedGuild = guild?.version ?? 0; paintedWho = guildWho(); paintedHere = farmsHere();
     paintedJourney = journeyKey();   // PARTY-UI
     paintedLead = !!canLead();   // PARTY-LEAD
     ticking = []; liveSubs = []; liveBtns = []; liveDots = [];
@@ -2602,7 +2605,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         // MAIL1: the Letters tab is drawn from the BOX, not the social picture - and the form from neither, so a presence
         // frame or a poll landing while a player types rebuilds nothing under their caret
         // GUILD1b: the Guild tab from the BOOK, as Letters is from the box
-        const moved = tab === 'guild' ? (guild?.version ?? 0) !== paintedGuild || guildWho() !== paintedWho
+        const moved = tab === 'guild' ? (guild?.version ?? 0) !== paintedGuild || guildWho() !== paintedWho || farmsHere() !== paintedHere
           : tab !== 'letters' ? social.version !== painted : letters.mode !== 'write' && (mail?.version ?? 0) !== paintedMail;
         if (moved || ui !== paintedUi) repaint();
         // a countdown that just hit zero raises the panel's version from inside `paintLive`, and the row it belongs

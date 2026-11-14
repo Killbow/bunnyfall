@@ -80,6 +80,7 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     if (r?.ok) { asking = null; await refresh(true); }
     return r?.ok ? { ok: true, ...(r.data ?? {}) } : r;
   }
+  const atFarm = (mapId) => { const p = place(mapId), me = here?.(); return !!p && !!me && Math.abs(me.x - p.px) <= 0 && Math.abs(me.y - p.py) <= 0; };
 
   return {
     refresh,
@@ -98,7 +99,15 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
         .slice(0, FARM_OFFERS_MAX);
     },
     /** Whether the player stands at a farm (its map pixel). */
-    atFarm: (mapId) => { const p = place(mapId), me = here?.(); return !!p && !!me && Math.abs(me.x - p.px) <= 0 && Math.abs(me.y - p.py) <= 0; },
+    atFarm,
+    mineHere: (mapId) => {
+      // Every building door calls this, so check for a farm before refresh() can read from the account service.
+      if (!place(mapId)) return null;
+      refresh();
+      const f = mine?.farms?.find((x) => (x.mapId >>> 0) === (mapId >>> 0));
+      return f && atFarm(mapId) ? f : null;
+    },
+    hereKey: () => { const me = here?.(); return me ? `${me.x},${me.y}` : ''; },
     placeOf: place,
     buy: (p, crop) => act(farmBuy, { mapId: p.mapId >>> 0, name: String(p.name).slice(0, 48), climate: climateAt(p.px, p.py), region: p.region, crop }),
     crop: (mapId, crop) => act(farmCrop, { mapId, crop }),
