@@ -249,7 +249,7 @@ export function rollRandomAudioClip(clips, last, random) {
 
 /** The browser road: the Vite-served URL, fetched to bytes. Tests hand
  *  their own. */
-async function defaultFetchClip(name) {
+export async function defaultFetchClip(name) {
   const url = clipUrl(name);
   if (!url) return null;
   const res = await fetch(url);

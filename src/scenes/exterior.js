@@ -349,6 +349,7 @@ import { raceDisplayName } from '../systems/talk/talkSession.js';   // MACRO-ONE
 import { localizedText, getLocalizedLocationName, getLocalizedRegionName, getLocalizedFactionName } from '../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the place names shown
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
 import { autorunCancel } from '../player/autorunCancel.js';
+import { registerPlace } from '../systems/placeClimate.js';
 
 export async function bootExterior(canvas, renderer, params, status) {
   const regionName = params.get('region') || 'Daggerfall';
@@ -447,6 +448,7 @@ export async function bootExterior(canvas, renderer, params, status) {
   // FS-slice: the location's raw CLIMATE.PAK index (the snow gate reads it)
   const _locPixel = longitudeLatitudeToMapPixel(dfLocation.mapTableData.longitude, dfLocation.mapTableData.latitude);
   const locClimateIndex = maps.getClimateIndex(_locPixel.x, _locPixel.y);
+  registerPlace(() => ({ climateIndex: locClimateIndex, season, underground: false }));
   const footsteps = new FootstepMachine();
   let _townFootstepKind = 0;   // HORSE-VOICE: the stride's kind (the set's own ctx, below), the hooves' ground - world.js's PEER-FS1 cache, here
   const groundArchive = getTerrainGroundArchive(dfLocation.climate, season);   // the TERRAIN member, Desert winter-guarded (TerrainMaterialProvider.cs:126-133)

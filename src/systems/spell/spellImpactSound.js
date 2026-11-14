@@ -23,9 +23,16 @@ import { SAMPLE_RATE as SND_RATE } from '../../formats/sndFile.js';
 import { APP_ROOT } from '../appRoot.js';   // HEAL-FILE: where public/sfx is served from
 import { addVoice, noise, lowpass } from '../arena/arenaSound.js';   // ONE HOME: the made sounds' mixer, noise and one-pole low-pass (ARENA2)
 import { seededRng } from '../wind/wind.js';   // the port's one seeded die (mulberry32) - one home
+import { loadEarthWallSounds } from './earthWallSounds.js';
+import { loadMeteorSounds } from './meteorSounds.js';
+import { BAKED_RATE } from '../soundRemix.js';
 
 export const IMPACT_SOUND_RATE = SND_RATE;
 export const IMPACT_SOUND_KEYS = Object.freeze({ fire: 'spellfx:fire', frost: 'spellfx:frost', poison: 'spellfx:poison', shock: 'spellfx:shock', magic: 'spellfx:magic', heal: 'spellfx:heal' });
+const REMIXED = Object.freeze({
+  earthRise: { set: 'earth', level: 0.85 }, earthSettle: { set: 'earth', level: 1 }, earthSlide: { set: 'earth', level: 1 },
+  meteorFall: { set: 'meteor', level: 1, ref: 12 }, meteorImpact: { set: 'meteor', level: 1, ref: 10 },
+});
 /** DAGGER.SND record INDEXES (systems/soundClips.js, ambientEffects.js, footsteps.js). */
 export const IMPACT_CLIPS = Object.freeze({ ignite: 16, splashSmallLow: 334, splashLarge: 342, lightningShort: 348, burning: 420 });
 /** The element cast clips, by sound ID (systems/enemySpells.js SPELL_CAST_SOUND) - resolved to an index at build. */
@@ -253,13 +260,22 @@ export function impactVoices(audio, kind) {
 
 /**
  * THE DRIVER - one per cast engine. `play(kind, pos, { volume, heard })` plays the look's sound from `pos` (scene
- * frame), heard out to `heard` metres; the sounds are built on the first play that finds an archive and a running
- * context, and a play before that is simply silent, as any clip is before the context runs.
+ * frame), heard out to `heard` meters; the sounds are built on the first play that finds an archive and a running
+ * context, and a play before that is simply silent, as any clip is before the context runs. The Wall of Earth and
+ * Meteor sounds start building once the archive is in and stay silent until they are built.
  */
-export function createSpellImpactSounds(audio, { now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), fetchBytes = null } = {}) {
+export function createSpellImpactSounds(audio, { now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), fetchBytes = null, earthWall = loadEarthWallSounds, meteor = loadMeteorSounds } = {}) {
   const built = new Map();   // kind -> samples (pure, kept even while the context is not yet up)
   const registered = new Set();
   const last = new Map();
+  const builders = { earth: earthWall, meteor };
+  const sets = {};
+  function buildSet(name) {
+    if (sets[name] || !builders[name] || !audio?.samplesOf || audio.snd == null) return;
+    sets[name] = 'building';
+    Promise.resolve().then(() => builders[name]({ samplesOf: (i) => audio.samplesOf(i) })).then((s) => { sets[name] = s ?? 'failed'; }, () => { sets[name] = 'failed'; });
+  }
+  for (const name of Object.keys(builders)) { try { buildSet(name); } catch {} }
   // HEAL-FILE: the heal's clip, fetched once as the engine is made (a browser's; a test hands `fetchBytes`), so it is in
   // hand by the first heal. 'pending' while it comes, the parsed clip once in, 'failed' if it never will.
   /** @type {'pending' | 'failed' | { samples: Float32Array, rate: number }} */
@@ -298,7 +314,7 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
   }
   return {
     play(kind, pos, { volume = 1, heard = 40 } = {}) {
-      const k = IMPACT_SOUND_KEYS[kind] ? kind : 'magic';
+      const k = IMPACT_SOUND_KEYS[kind] || REMIXED[kind] ? kind : 'magic';
       if (!Array.isArray(pos) || !pos.every(Number.isFinite)) return false;
       const t = now();
       if (t - (last.get(k) ?? -Infinity) < IMPACT_GAP_MS) return false;
@@ -310,6 +326,17 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
           if (!key) return false;
           const file = key === IMPACT_SOUND_KEYS.heal;
           audio.play3d(key, pos, volume * (file ? IMPACT_SOUND_LEVEL.heal : HEAL_SYNTH_LEVEL), { refDistance: 2.5, maxDistance: heard, pitch: 1 + (Math.random() * 2 - 1) * HEAL_PITCH_SPREAD });
+          return true;
+        }
+        const rx = REMIXED[k];
+        if (rx) {
+          buildSet(rx.set);
+          const key = `spellfx:${k}`, s = sets[rx.set]?.[k];
+          if (!registered.has(key)) {
+            if (!(s instanceof Float32Array) || !audio.registerSamples(key, s, BAKED_RATE)) return false;
+            registered.add(key);
+          }
+          audio.play3d(key, pos, volume * rx.level, { refDistance: rx.ref ?? 2.5, maxDistance: heard, pitch: 0.94 + Math.random() * 0.12 });
           return true;
         }
         if (!ensure(k)) return false;
