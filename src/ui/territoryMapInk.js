@@ -148,3 +148,43 @@ export function paintBlight(ctx, view, shape, { paperW, paperH }) {
   });
   ctx.restore();
 }
+
+// ═══ THE MARCHES (2026-11-13, mob: "visible trade routes on the map so garrisons can be visibly tracked from their origin guilds like arrows pointing straight at where they hit the influence") ══
+/**
+ * THE MARCH ARROWS on the held map: from each marching garrison's town, a straight line in its owner's colours to the
+ * point on the blight's edge its slice faces, an arrowhead there, thicker the more soldiers march. Over the blight, under
+ * the territories and marks.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ ox: number, oy: number, scale: number }} view
+ * @param {{ x0: number, y0: number, x1: number, y1: number, n: number, fill?: string|null, ring?: string|null }[]} arrows map pixels
+ * @param {{ paperW: number, paperH: number }} opts
+ */
+export function paintMarches(ctx, view, arrows, { paperW, paperH }) {
+  if (!arrows?.length || !view) return;
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const a of arrows) {
+    const [x0, y0] = paper(view, a.x0, a.y0), [x1, y1] = paper(view, a.x1, a.y1);
+    if (Math.max(x0, x1) < 0 || Math.max(y0, y1) < 0 || Math.min(x0, x1) > paperW || Math.min(y0, y1) > paperH) continue;
+    const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+    if (len < 4) continue;
+    const ux = dx / len, uy = dy / len, w = 1.6 + Math.min(3, a.n / 10);
+    const head = 7 + w * 1.6;
+    // a dark under-stroke, then the owner's colour dashed along it: it reads on parchment and on the purple alike
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 0.5; ctx.strokeStyle = '#1b0f08'; ctx.lineWidth = w + 2.4;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * head * 0.6, y1 - uy * head * 0.6); ctx.stroke();
+    ctx.globalAlpha = 0.95; ctx.strokeStyle = a.fill ?? '#d9b45a'; ctx.lineWidth = w;
+    ctx.setLineDash([w * 3.2, w * 2]);
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1 - ux * head * 0.6, y1 - uy * head * 0.6); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - ux * head - uy * head * 0.55, y1 - uy * head + ux * head * 0.55);
+    ctx.lineTo(x1 - ux * head + uy * head * 0.55, y1 - uy * head - ux * head * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = a.fill ?? '#d9b45a'; ctx.strokeStyle = a.ring ?? '#1b0f08'; ctx.lineWidth = 1.4;
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}

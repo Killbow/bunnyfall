@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-14
+
+- The map now shows garrisons on the march: a dashed arrow in the Company's colours runs from its town straight to the point on Rodney's blight edge where its soldiers push, thicker the more soldiers march.
+
 ## 2026-11-13
 
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.

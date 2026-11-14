@@ -997,6 +997,7 @@ import { WILD_REMAINS_MS, WDUN_SALT, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_HERE_MS, sp
 import { validLootList, setLootGoldMult } from '../systems/loot/loot.js';   // BUNNYFALL COMPANIES: loot gold inside one's territory
 import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BUNNYFALL COMPANIES: every Company's territory
 import { createRodneyBlight } from '../systems/rodneyBlight.js';   // BUNNYFALL COMPANIES: Rodney's blight
+import { sectorAngle as blightSectorAngle } from '../net/blightLaw.js';   // MARCH-ARROWS: where a slice faces
 import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL COMPANIES: garrisons
 import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
 import { createFarmBook } from '../systems/farmBook.js';   // BUNNYFALL COMPANIES: farms
@@ -16938,7 +16939,20 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       territories: () => companyTerritory?.marks() ?? [],   // BUNNYFALL COMPANIES: the Companies' territories (ui/territoryMapInk.js)
       charters: () => companyTerritory?.charterMarks() ?? [],   // BUNNYFALL COMPANIES: the City Charters round their capitals
       blight: () => rodneyBlight?.shape() ?? null,   // the war against Rodney: the blight and its front (ui/territoryMapInk.js paintBlight)
-      blightSig: () => { rodneyBlight?.refresh(); return rodneyBlight?.sig() ?? ''; },
+      blightSig: () => { rodneyBlight?.refresh(); return `${rodneyBlight?.sig() ?? ''}|${isOnlinePage() && garrisonBook ? (garrisonBook.all(), garrisonBook.sig()) : ''}`; },   // and the garrisons' marches drawn with it
+      marches: () => {   // MARCH-ARROWS: each garrison with soldiers marching, from its town straight to where its slice meets the blight's edge
+        const sh = rodneyBlight?.shape();
+        if (!sh || !isOnlinePage() || !garrisonBook) return [];
+        const out = [];
+        for (const g of garrisonBook.all()) {
+          if (!(g.march > 0) || !Number.isSafeInteger(g.sector) || !sh.edge[g.sector]) continue;
+          const tw = _townOfMapId.get(g.mapId >>> 0);
+          if (!tw) continue;
+          const a = blightSectorAngle(g.sector), r = sh.edge[g.sector].r;
+          out.push({ x0: tw.px + 0.5, y0: tw.py + 0.5, x1: sh.centre.x + Math.cos(a) * r, y1: sh.centre.y + Math.sin(a) * r, n: g.march, fill: _FARM_COLOURS.find((c) => c.key === g.field)?.hex ?? null, ring: _FARM_COLOURS.find((c) => c.key === g.border)?.hex ?? null });
+        }
+        return out;
+      },
       territorySig: () => { companyTerritory?.refresh(); farmBook?.refresh(); return `${companyTerritory?.sig() ?? ''}|${farmBook?.sig() ?? ''}`; },
       farms: () => (farmBook?.marks() ?? []).map((f) => ({ ...f, fill: heraldryHexOf(f.field) ?? heraldryHexOf(f.border) })),   // BUNNYFALL COMPANIES: the Companies' farms
       wildDungeons: () => wildActiveNow(),
