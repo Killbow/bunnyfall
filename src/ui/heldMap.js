@@ -1389,7 +1389,7 @@ export class HeldMapWindow {
         // WILD1: my remains in the open zone, where they lie and for how long (net/wild/wildRemains.js, the host's word)
         const remains = this.deps.wildRemains?.() ?? [];
         if (remains.length) paintWildRemains(ctx, env.view, remains, { pulse: env.pulse, label: WILD_TEXT.mine });
-        { const cm = this.deps.wildMask?.(); const posts = cm ? courtPosts(cm) : []; if (posts.length) paintCourtPosts(ctx, env.view, posts, { paperW: env.paperW, paperH: env.paperH }); }   // BUNNYFALL: the courts' posts
+        { const cm = this.deps.wildMask?.(); const posts = [...(cm ? courtPosts(cm) : []), ...(this.deps.campPosts?.() ?? [])]; if (posts.length) paintCourtPosts(ctx, env.view, posts, { paperW: env.paperW, paperH: env.paperH }); }   // BUNNYFALL: the courts' posts
         // PVPDUNGEONS: crows circling every hall a body lies in (the hub's word - everyone's deaths), over the hall's own mark;
         // and the zone's border alight while the pointer is on it - on the world map alone, never the zone's own
         const crows = this.deps.wildCrows?.();

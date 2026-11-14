@@ -16938,6 +16938,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       wildMask: () => wildMapMask(),   // WILD1: the open zone's fog and red line (ui/wild/wildMapInk.js)
       territories: () => companyTerritory?.marks() ?? [],   // BUNNYFALL COMPANIES: the Companies' territories (ui/territoryMapInk.js)
       charters: () => companyTerritory?.charterMarks() ?? [],   // BUNNYFALL COMPANIES: the City Charters round their capitals
+      campPosts: () => cromwark?.campPosts?.() ?? [],   // CAMP-POST: the Guild camp's post beside the courts' (scenes/cromwarkHost.js)
       blight: () => rodneyBlight?.shape() ?? null,   // the war against Rodney: the blight and its front (ui/territoryMapInk.js paintBlight)
       blightSig: () => { rodneyBlight?.refresh(); return `${rodneyBlight?.sig() ?? ''}|${isOnlinePage() && garrisonBook ? (garrisonBook.all(), garrisonBook.sig()) : ''}`; },   // and the garrisons' marches drawn with it
       marches: () => {   // MARCH-ARROWS: each garrison with soldiers marching, from its town straight to where its slice meets the blight's edge
