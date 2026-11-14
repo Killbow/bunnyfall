@@ -4,9 +4,10 @@
 //
 //   METEOR        an Area at Range spell carrying it starts in the sky over the spot aimed at (`meteorStart`), and its
 //                 burst (`burst`) throws the foes in it back.
-//   GRAVITY WELL  where an area spell carrying it bursts, a well stands for its rounds: each frame the foes about it are
-//                 pulled toward its centre, through the motor's own knockback (characters/enemy/enemyMotor.js), so the
-//                 floor and the walls hold them as a blow's push does.
+//   GRAVITY WELL  where an area spell carrying it bursts, a well pulls the enemies near it toward its center for its
+//                 rounds, through their own collider. Allies, companions, and staff event bosses are skipped, and an
+//                 enemy inside overlapping wells is pulled only by the strongest. The pull must not use the motor's
+//                 knockback: renewed every frame, it holds an enemy in its Hurt state.
 //   WALL OF EARTH a box of earth rises where the caster looks (`cast`), a collider bucket of its own: the player and
 //                 every foe are stopped by it. It stands while the caster's buff does.
 //   DECOY         a double stands where the caster looks while the buff does; the caster is lost to the foes as one
@@ -25,6 +26,7 @@ import {
 import { hasActiveEffect, rollDuration } from '../systems/effects.js';
 import { t } from '../systems/textManager.js';
 import { necroCast, isNecroSpell } from '../systems/necromancy/necromancy.js';   // CHEB'S NECROMANCY: the summons and the recall
+import { sweepHeight } from '../characters/foeSpacing.js';
 
 /** How often a standing shape shimmers, seconds. */
 const SHIMMER_S = 0.45;
@@ -51,6 +53,7 @@ export function createBunnySpellEngine(deps) {
   let decoy = null;
   /** @type {Array<{ at: number[], left: number }>} */
   const wells = [];
+  const pulls = new Map();
   let shimmer = 0, wallSeq = 0;
 
   const unit = (d) => { const l = Math.hypot(d[0], d[1], d[2]) || 1; return [d[0] / l, d[1] / l, d[2] / l]; };
@@ -227,15 +230,21 @@ export function createBunnySpellEngine(deps) {
       if (w.left <= 0) { wells.splice(i, 1); continue; }
       if (glow) glowFx('magic', [w.at[0], w.at[1] + 0.5, w.at[2]], { scale: 0.8, power: 0.4, area: WELL_RADIUS_M * 0.4 });
       for (const f of foes()) {
-        const p = f?.ai?.feet;
-        if (!p || f.dead || f.puppet) continue;
+        const ai = f?.ai, p = ai?.feet;
+        if (!p || f.dead || f.puppet || f.entity?.staffBoss || !ai.collider?.move) continue;
+        if (f.companion != null || f.entity?.team === 'PlayerAlly') continue;
         const d = [w.at[0] - p[0], 0, w.at[2] - p[2]];
         const dist = Math.hypot(d[0], d[2]);
         if (dist > WELL_RADIUS_M || dist < 0.8) continue;
-        f.ai.knockbackSpeed = Math.max(f.ai.knockbackSpeed ?? 0, KB(WELL_PULL));
-        f.ai.knockbackDir = [d[0] / dist, 0, d[2] / dist];
+        const step = Math.min(WELL_PULL * dt, dist - 0.8);
+        if (step > (pulls.get(f)?.step ?? 0)) pulls.set(f, { step, x: d[0] / dist, z: d[2] / dist });
       }
     }
+    for (const [f, q] of pulls) {
+      const ai = f.ai;
+      ai.collider.move(ai.feet, q.x * q.step, 0, q.z * q.step, sweepHeight(ai), !(ai.flies || ai.swims || ai.levitating));
+    }
+    pulls.clear();
   }
 
   /** A floating origin's shift: every place this engine keeps moves with the scene. */

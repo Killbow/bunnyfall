@@ -29,7 +29,8 @@ export const WALL_SIZE = Object.freeze({ w: 5, h: 3, d: 0.6 });
 /** Decoy: how far ahead it may stand, and how far about it the foes are drawn to it, metres. */
 export const DECOY_REACH_M = 15;
 export const DECOY_LURE_M = 25;
-/** Gravity Well: how far it reaches, metres, and how hard it pulls (knockback units a frame, toward its centre). */
+/** Gravity Well: its reach in meters, and its pull in meters a second. The pull is the walk speed of a Speed 70 enemy
+ *  (enemyMotor.js enemyMoveSpeed), the most common monster Speed. */
 export const WELL_RADIUS_M = 9;
-export const WELL_PULL = 6;
+export const WELL_PULL = 5.5;
 
