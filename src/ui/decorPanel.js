@@ -213,6 +213,7 @@ body .dfdecor-tabs .dfdecor-chip[aria-pressed="true"] { color: #f2c46b; box-shad
 .dfdecor-bar-btns { display: flex; flex-wrap: wrap; gap: 4px; }
 .dfdecor-bar-sep { flex: none; width: 1px; align-self: stretch; margin: 2px 4px; background: rgba(154, 148, 134, .35); }
 .dfdecor-bar .dfdecor-chip, .dfdecor-bar .dfdecor-btn { pointer-events: auto; }
+.dfdecor-bar button[hidden] { display: none !important; }   /* CAMP-CONFIRM: a press hidden by the attribute stays hidden - .dfdecor-btn's display: inline-flex outweighed it, so a camp (no draft to confirm) showed a Confirm that did nothing */
 .dfdecor-bar.touch .dfdecor-chip, .dfdecor-bar.touch .dfdecor-btn { min-height: 44px; min-width: 44px; touch-action: none; }
 .dfdecor-bar.touch { bottom: auto; top: calc(8px + env(safe-area-inset-top, 0px)); max-width: calc(100vw - 272px); }
 /* MENU-ORDER: a portrait phone's bar. Clear of the touch layer's top-left presses beside it, a 390px screen gave it 118px -
