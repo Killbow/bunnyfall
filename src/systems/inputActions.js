@@ -1072,7 +1072,14 @@ export function addRemovedSecondaryAction(store, action) {
 /** GetBinding (:641-671). One-arg walks the primary dict ("first
  *  non-None KeyCode"); pass primary=false for the secondary dict. */
 export function getBinding(store, action, primary = true) {
-  for (const [code, a] of dictEntries(store, primary)) if (a === action) return code;   // UXB1-S: a shared key is the action's key too
+  const dict = primary ? store.primary : store.secondary;
+  const shared = primary ? store.sharedPrimary : store.sharedSecondary;
+  // Walks as dictEntries does (owner, then sharers) with no garbage. HUD labels ask every frame.
+  for (const code of dict.keys()) {
+    if (dict.get(code) === action) return code;
+    const sharers = shared?.get(code);
+    if (sharers) for (let i = 0; i < sharers.length; i++) if (sharers[i] === action) return code;
+  }
   return null;
 }
 
@@ -1109,7 +1116,8 @@ export function actionForCode(store, code) {
 export function codeForAction(store, action) {
   for (const primary of [true, false]) {
     if (!(primary ? store?.primary : store?.secondary)) continue;
-    for (const [code, act] of dictEntries(store, primary)) if (act === action) return code;
+    const code = getBinding(store, action, primary);
+    if (code != null) return code;
   }
   return null;
 }
