@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: In the POI editor, Color swatches on lights and models now open the color picker, and dropdowns open and keep your choice.
 - Fixed: In the POI editor, Place now adds to the last selected POI after a click on empty ground or Esc, instead of making a new POI.
 - Fixed: In the POI editor, Paste now places the copy exactly on the original, as Duplicate does, instead of beside it and farther off with each paste.
 - Fixed: A POI event limited by a shared count, such as a prize for the first ten visitors, no longer lets two players through at the same moment.

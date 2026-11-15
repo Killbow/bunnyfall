@@ -748,6 +748,7 @@ export const POI_EDITOR_EVENTS = Object.freeze(['pointerdown', 'pointermove', 'p
  *   window whose blur is the page's focus gone
  */
 export function createPoiEditorRouter({ editor, canvas, cam, acts, owns, overlayUp, textEntry, win = globalThis }) {
+  const pickerOpen = (/** @type {any} */ t) => { try { return (t?.tagName === 'SELECT' || t?.type === 'color') && t.matches(':open'); } catch { return false; } };
   function onEvent(e) {
     if (!editor.active() || editor.worldGone()) return;
     if (e.type === 'lostpointercapture' || e.type === 'blur') { if (e.type === 'lostpointercapture' || e.target === win) editor.letGo(); return; }
@@ -771,6 +772,8 @@ export function createPoiEditorRouter({ editor, canvas, cam, acts, owns, overlay
     if (!editor.active() || overlayUp()) return;   // a window over the world (the map the bar opened) has its keys
     e.stopPropagation?.();   // AUDIT POI E2: nothing below the panel - the world, the mode machine - hears a key typed at it
     if (textEntry(e.target)) return;   // a typed field keeps its key
+    // Escape at an open color picker or list is the browser's: it closes the picker and deselects nothing.
+    if (e.code === 'Escape' && pickerOpen(e.target)) return;
     if (e.type === 'keydown' ? editor.keyDown(e, cam, acts()) : editor.keyUp(e)) e.preventDefault?.();
   }
   return { onEvent, onPanelKey };
