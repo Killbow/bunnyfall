@@ -5,6 +5,7 @@
 //
 // The capital is the client's word: the service knows no map, so a Charter is founded at the map id its founder's client
 // names as its hall region's hub, one a region. A friends' server takes it.
+import { keptWorld, dropWorld } from './worldCache.js';
 import { guildActorOf } from './guilds.js';
 import { GUILD_RANK_MASTER, guildTagOf } from '../../src/net/guild/guildLaw.js';
 import { CHARTER_COMPANIES_MAX, CHARTER_INVITE_TTL_S, charterNameOf } from '../../src/net/charterLaw.js';
@@ -53,6 +54,7 @@ export async function foundCharter({ db, nowS }, player, { character, mapId, reg
       db.prepare('DELETE FROM city_charter_invites WHERE guild_id = ?').bind(c.guildId),
     ]);
   } catch { return { error: 'charter-region-held' }; }   // a founding that raced another: the unique keys refuse it
+  dropWorld(db, 'charters', 'garrisons');
   return { ok: true, mapId };
 }
 
@@ -76,6 +78,7 @@ export async function inviteToCharter({ db, nowS }, player, { character, tag } =
   if ((await seatsTaken(db, ch.map_id, nowS)) >= CHARTER_COMPANIES_MAX) return { error: 'charter-full' };
   await db.prepare(`INSERT INTO city_charter_invites (map_id, guild_id, by_name, at) VALUES (?, ?, ?, ?)
     ON CONFLICT (map_id, guild_id) DO UPDATE SET by_name = excluded.by_name, at = excluded.at`).bind(ch.map_id, them.id, c.name, nowS).run();
+  dropWorld(db, 'charters');
   return { ok: true };
 }
 
@@ -93,6 +96,7 @@ export async function answerCharter({ db, nowS }, player, { character, mapId, ac
   if (!inv) return { error: 'charter-no-invite' };
   if (accept !== true) {
     await db.prepare('DELETE FROM city_charter_invites WHERE map_id = ? AND guild_id = ?').bind(mapId, c.guildId).run();
+    dropWorld(db, 'charters');
     return { ok: true, declined: true };
   }
   if (await charterOfGuild(db, c.guildId)) return { error: 'charter-already' };
@@ -105,6 +109,7 @@ export async function answerCharter({ db, nowS }, player, { character, mapId, ac
       db.prepare('DELETE FROM city_charter_invites WHERE guild_id = ?').bind(c.guildId),
     ]);
   } catch { return { error: 'charter-already' }; }
+  dropWorld(db, 'charters', 'garrisons');
   return { ok: true, joined: true };
 }
 
@@ -122,6 +127,7 @@ export async function leaveCharter({ db }, player, { character } = {}) {
     db.prepare('DELETE FROM city_charter_invites WHERE map_id = ?1 AND NOT EXISTS (SELECT 1 FROM city_charter_members WHERE map_id = ?1)').bind(ch.map_id),
     db.prepare('DELETE FROM city_charters WHERE map_id = ?1 AND NOT EXISTS (SELECT 1 FROM city_charter_members WHERE map_id = ?1)').bind(ch.map_id),
   ]);
+  dropWorld(db, 'charters', 'garrisons');
   return { ok: true };
 }
 
@@ -130,7 +136,11 @@ export async function leaveCharter({ db }, player, { character } = {}) {
  * Companies invited (with who invited them), the standing invitations alone.
  * @param {{ db: any, nowS: number }} ctx
  */
-export async function chartersRead({ db, nowS }) {
+export function chartersRead({ db, nowS }) {
+  return keptWorld(db, 'charters', () => readCharters(db, nowS));
+}
+
+async function readCharters(db, nowS) {
   const [charters, members, invites] = await db.batch([
     db.prepare('SELECT map_id, region, name, founded_at FROM city_charters'),
     db.prepare('SELECT guild_id, map_id FROM city_charter_members ORDER BY joined_at'),

@@ -3,6 +3,7 @@
 // its crop, the chores done there, and each finished day's yield put into the Company Stores on the first read after it.
 // The law both ends read is src/net/farmLaw.js. The farm's place (inside the territory, the player standing at it for a
 // chore) is the client's word: the service knows no map - a friends' server.
+import { keptWorld, dropWorld } from './worldCache.js';
 import { guildActorOf } from './guilds.js';
 import { displayName } from './accounts.js';
 import { mustChange } from './realm.js';
@@ -57,16 +58,28 @@ async function actorOf(db, player, character) {
  * @param {{ db: any, nowS: number }} ctx
  */
 export async function farmsRead({ db, nowS }, player, { character } = {}) {
-  const { results } = await db.prepare('SELECT f.*, g.tag, g.heraldry FROM company_farms f JOIN guilds g ON g.id = f.guild_id').all();
-  const farms = [];
-  for (const f of results ?? []) farms.push(await reap(db, f, nowS));
-  const all = farms.map((f) => { const arms = heraldryOfRow(f.heraldry); return { mapId: Number(f.map_id), guildId: f.guild_id, tag: f.tag, field: arms?.field ?? null, border: arms?.border ?? null, crop: f.crop }; });
+  const farmRows = 'SELECT f.*, g.tag, g.heraldry FROM company_farms f JOIN guilds g ON g.id = f.guild_id';
+  /** null when another request loaded the list */
+  let read = /** @type {any[]|null} */ (null);
+  const all = await keptWorld(db, 'farms', async () => {
+    const { results } = await db.prepare(farmRows).all();
+    const farms = [];
+    for (const f of results ?? []) farms.push(await reap(db, f, nowS));
+    read = farms;
+    return farms.map((f) => { const arms = heraldryOfRow(f.heraldry); return { mapId: Number(f.map_id), guildId: f.guild_id, tag: f.tag, field: arms?.field ?? null, border: arms?.border ?? null, crop: f.crop }; });
+  });
   let mine = null;
   if (typeof character === 'string' && character) {
     const a = await actorOf(db, player, character).catch(() => null);
     if (a && !('error' in a)) {
       const today = todayOf(nowS);
-      const own = farms.filter((f) => f.guild_id === a.gid);
+      let own;
+      if (read) own = read.filter((f) => f.guild_id === a.gid);
+      else {
+        const { results: held } = await db.prepare(`${farmRows} WHERE f.guild_id = ?`).bind(a.gid).all();
+        own = [];
+        for (const f of held ?? []) own.push(await reap(db, f, nowS));
+      }
       const { results: done } = own.length ? await db.prepare(`SELECT map_id, account, name FROM company_farm_chores WHERE day = ? AND map_id IN (${own.map(() => '?').join(',')})`).bind(today, ...own.map((f) => f.map_id)).all() : { results: [] };
       mine = {
         command: a.rank <= GUILD_RANK_OFFICER, max: FARMS_MAX, price: FARM_PRICE,
@@ -109,6 +122,7 @@ export async function farmBuy({ db, nowS }, player, { character, mapId, name, cl
     if (await db.prepare('SELECT 1 FROM company_farms WHERE map_id = ?').bind(mapId).first()) return { error: 'farm-taken' };
     return { error: 'farm-gold' };
   }
+  dropWorld(db, 'farms');
   return { ok: true };
 }
 
@@ -132,6 +146,7 @@ export async function farmCrop({ db, nowS }, player, { character, mapId, crop } 
   const o = await ownFarm(db, player, character, mapId, nowS);
   if ('error' in o) return o;
   await db.prepare('UPDATE company_farms SET crop = ?2 WHERE map_id = ?1').bind(mapId, crop).run();
+  dropWorld(db, 'farms');
   return { ok: true };
 }
 
@@ -147,6 +162,7 @@ export async function farmRelease({ db, nowS }, player, { character, mapId, laps
     db.prepare('DELETE FROM company_farms WHERE map_id = ?').bind(mapId),
     db.prepare('DELETE FROM company_farm_chores WHERE map_id = ?').bind(mapId),
   ]);
+  dropWorld(db, 'farms');
   return { ok: true };
 }
 
