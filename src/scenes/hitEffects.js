@@ -302,7 +302,7 @@ export function createHitEffects({
      *  at the point the widget worked out. The CLANG's emissive material
      *  (`_EMISSION` on the billboard) has no twin in this renderer's
      *  flat batches and is not carried. */
-    showMissEffect: (kind, pos, { archive = BLOOD_ARCHIVE, record = 2, fps = 20, scale = 2 } = {}) => spawn(record, pos, null, { archive, fps, scale }),
+    showMissEffect: (kind, pos, { archive = BLOOD_ARCHIVE, record = 2, fps = 20, scale = 2, conceal = null } = {}) => spawn(record, pos, null, { archive, fps, scale, conceal }),
     /**
      * FIELD-GUN14 (Mac: "The projectile that shoots out should be an
      * orb, not an arrow") - A FLAT THAT FLIES.

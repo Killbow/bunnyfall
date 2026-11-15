@@ -11,8 +11,9 @@ export const BUNNY_EFFECT_KEYS = Object.freeze([47, 48, 49, 50, 51, 52, 53, 54].
 /** Whether a spell carries an effect of `type`. */
 export const spellHas = (/** @type {any} */ sp, /** @type {number} */ type) => (sp?.effects ?? []).some((e) => e && e.type === type);
 
-/** Meteor: how high above the spot it falls from, metres, and how hard its burst throws a foe (classic knockback units). */
-export const METEOR_HEIGHT_M = 28;
+/** Meteor: how high above the spot it starts outdoors, meters, and how hard its burst throws an enemy, in classic
+ *  knockback units. */
+export const METEOR_HEIGHT_M = 60;
 export const METEOR_KNOCKBACK = 40;
 /** Slow: the share of its speed a slowed foe keeps. */
 export const SLOW_FACTOR = 0.5;
@@ -29,7 +30,8 @@ export const WALL_SIZE = Object.freeze({ w: 5, h: 3, d: 0.6 });
 /** Decoy: how far ahead it may stand, and how far about it the foes are drawn to it, metres. */
 export const DECOY_REACH_M = 15;
 export const DECOY_LURE_M = 25;
-/** Gravity Well: how far it reaches, metres, and how hard it pulls (knockback units a frame, toward its centre). */
+/** Gravity Well: its reach in meters, and its pull in meters a second. The pull is the walk speed of a Speed 70 enemy
+ *  (enemyMotor.js enemyMoveSpeed), the most common monster Speed. */
 export const WELL_RADIUS_M = 9;
-export const WELL_PULL = 6;
+export const WELL_PULL = 5.5;
 

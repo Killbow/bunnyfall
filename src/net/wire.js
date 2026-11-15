@@ -226,6 +226,7 @@ import { egStampOk } from './eliteGates/egShape.js';   // EG-FULL: a Spire blow'
 import { KT_WATCH_WAVES } from './ketch/ketchLaw.js';   // AUDIT KETCH II L2-2: the Watch's waves, one number for the `wave` and the `st` words (the `st`'s stood at three) - ketchLaw.js imports instanceRoom.js alone, which the relay walks already
 import { validWireAppearance } from './appearanceLaw.js';   // APPEARANCES: a worn piece's look on a look's item - appearanceLaw.js imports systems/armorMaterials.js alone, a leaf, so the worker's graph stays flat
 import { skinIdOk } from './skinLaw.js';   // CUSTOM-SKIN: the id a look names - skinLaw.js imports nothing
+import { conjuredOf, conjuredChanged } from './conjuredLaw.js';
 export { validRollSpec, validRoll, rollDice, ROLL_DICE_MAX, ROLL_SIDES_MAX, ROLL_MOD_MAX };
 export { validHoldemIn, validHoldemOut };
 export { validIliacIn, validIliacOut };
@@ -1702,7 +1703,9 @@ export const KEEPALIVE_FAN_MS = HEARTBEAT_MS / 2;
  *  is deployed by CI and the relay by hand, so a skew between them is the ordinary state of a release day, and until
  *  now nothing on either end could see it. */
 // Integrated Arena spectator visibility with staff teleport, stable boat identity and private ownership; deploy relay before clients.
-export const RELAY_VERSION = 'world275';   // world275: BUNNYFALL copy pass (staff help and herald words); world274: the relay strips its /relay path prefix
+export const RELAY_VERSION = 'world276';
+// world276: the pose carries Meteor and Wall of Earth (`mt`, `ew`)
+// world275: BUNNYFALL copy pass (staff help and herald words); world274: the relay strips its /relay path prefix
 // world273: APPEARANCES and HUNTERS-MARK, one release (2026-10-27; bible/04-Characters/Wardrobe.md section 6, bible/06-Systems/Bounty-Boards.md section 12; NOT YET DEPLOYED - world270, world271, then world272, on the branch, renumbered past main's CHAT-POST world270, MASTER-THREE world271 and FIELD BUGS 2026-10-26r world272 at the merges): a look item may carry `ap` - [t, m, v], the look a worn piece wears - kept only when it is a look there is and of the same kind as the piece (validLookItem, through net/appearanceLaw.js validWireAppearance); appearanceLaw.js and systems/armorMaterials.js join the bundle. Either side may deploy first: a relay before it drops `ap`, and the piece is seen in its own look; and net/identityToken.js's TITLES gains the hunt's four, the ten Marks of Mastery and the sea's two, last - the relay reads a token's title as every badge; the bundle's files unchanged; and APPEARANCES-II's sworn revenant's kit carries its look (validFoeRecord's `la`, each of its piece's kind - an older relay drops it and the piece is drawn in its own); and AUDIT HORIZONTAL B7's LOOT-DOOR: a loot room's hello (a world room or a cell - lootRoom) says the loot its build reads (`ll`, LOOT_HELLO_LAW), and while the setting `lootDoor` is on (net/relayCfg.js - off unset, and off until the site serves this build, since the relay deploys first) a hello there that says less or none is refused (LOOT_OLD_REASON, GROUND-GATE's words)
 // world272: FIELD BUGS 2026-10-26r (RPT1026, the private reports of 10-18 to 10-26; world270, then world271, on its branch, renumbered past CHAT-POST's world270 and MASTER-THREE's world271 at the merges; bible/01-Overview/bugs/Field-Bugs-2026-10-26r.md; NOT YET DEPLOYED): RETIRED-BLOW (a blow from a fighter whose share was retired brings the share back at the boss's fraction first - the Remnant, its Echoes and Hearts, the gate's Warden, the Tonal Warden and its forks - and a Hour or Ketch blow from a pose past SD_POSE_FRESH_MS is dropped), BLOCK STAMP (the trade and page frames carry the sender's account, `sub`, through Room _directedFrame), ORRERY-HANDS (a stone's last turner named, the wrong turner held for the Hollow), and PROGRESS's masterSkills.js in the bundle; the trade and page frames the relay routes gain the sender's `sub`, which an older client ignores (AUDIT RPT1026 M7); and AUDIT RPT1026 I1 (sdBrain.js orreryWaited): a turner refused behind turners all over the Orrery's limit has the snap free it; and AUDIT RPT1026 F1 (masterSkills.js): the switch off notes the tough-foe practice it gives back on
 // world271: MASTER-THREE (FIELD BUGS 2026-10-26d, world269, then world270, on its branch, renumbered past BOW-TOPS' world269 and CHAT-POST's world270 at the merges; Discord #feature-feedback "Let us master all three primary skills"; bible/01-Overview/bugs/Field-Bugs-2026-10-26d.md; NOT YET DEPLOYED) - systems/masterSkills.js, which the bundle reaches, holds MASTERY_SLOTS 3/2/1 (it was 2/2/1) and its boxes' words say 3; no relay code reads the slots, so nothing the relay does moved, but the bytes it ships did.
@@ -1920,7 +1923,8 @@ export function poseChanged(a, b, eps = 0.01) {
     || (a.ck | 0) !== (b.ck | 0) || (a.cy | 0) !== (b.cy | 0)   // CLIMB6: a move of another kind, or on another lip, is another move - at once
     || (a.st | 0) !== (b.st | 0)   // CARDS2b: sitting down or standing up goes out at once, as a mount does
     || (a.tq | 0) !== (b.tq | 0) || (a.bp | 0) !== (b.bp | 0) || (a.tn | 0) !== (b.tn | 0)   // TAVERN-SOCIAL: a round, a song begun or ended, a tip - at once
-    || (a.ga | 0) !== (b.ga | 0) || (a.gb | 0) !== (b.gb | 0) || (a.gm | 0) !== (b.gm | 0);   // PEER-ACTS: an act begun, a beat, the net thrown - at once, as a swing
+    || (a.ga | 0) !== (b.ga | 0) || (a.gb | 0) !== (b.gb | 0) || (a.gm | 0) !== (b.gm | 0)   // PEER-ACTS: an act begun, a beat, the net thrown - at once, as a swing
+    || conjuredChanged(a, b);
 }
 
 /** SCALE5b (2026-10-10, Mac: "lets now tackle the bigger work ... really future proof our archetecture while also
@@ -2000,7 +2004,7 @@ export const poseHandsOf = (usingRightHand, strikeHand) => ({ ...(usingRightHand
 /** A pose the room will relay, or null. */
 export function validPose(p) {
   if (!p || typeof p !== 'object') return null;
-  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef, tq, bp, tt, tn, tg } = p;
+  const { x, y, z, yaw, pitch, mv, wd, an, as, am, sr, cn, cr, ce, ar, fk, rd, rv, rc, hs, lh, ah, wb, dd, hl, lt, lc, hk, hp, hb, hq, hu, uq, cv, cl, cw, ck, cy, cd, st, ga, gb, gm, ts, pl, ab, ef, tq, bp, tt, tn, tg, mt, ew } = p;
   if (![x, y, z, yaw, pitch].every(finite)) return null;
   if (Math.abs(x) > POSE_BOUND || Math.abs(z) > POSE_BOUND || Math.abs(y) > POSE_Y_BOUND) return null;
   // ONCRASH1 (2026-09-15, Mac: "reports of player browser crashing when
@@ -2100,6 +2104,7 @@ export function validPose(p) {
     // at 0 (validLook's `class` law): a player who never gathered keeps the bytes it had.
     ...gatherOf(ga, gb, gm),
     ...tavernOf(tq, bp, tt, tn, tg),   // TAVERN-SOCIAL: a round bought, a bard playing, a tip to one - absent at none
+    ...conjuredOf(mt, ew, POSE_BOUND, POSE_Y_BOUND),
     // SCALE2b: the send time - an integer inside POSE_TS_MOD, or nothing (never clamped: a clamped time would order
     // every later pose behind it). OMITTED when absent (validLook's `class` law).
     ...(Number.isInteger(ts) && ts >= 0 && ts < POSE_TS_MOD ? { ts } : {}),
