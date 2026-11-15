@@ -330,6 +330,7 @@ import { isPortTown, isPortTownType, portKeeper, portPlaceName, PORT_SITE_ORDER 
 import { townSeaOf, seaBearing, seaField, portSitesOn, portPlaceRows, sceneToLocationXZ, openSeaOf, seaBears, portTownOnSea, boardPortAt } from '../world/portSites.js';   // SHIPYARDS: where a port town's shipyard and lighthouse stand - its seaward ground; FIELD BUGS 2026-10-14 INLAND-PORTS: and which towns the open sea bears on
 import { SHIPYARD as SHIPYARD_LAYOUT } from '../world/shipyardModel.js';   // SHIPYARDS: the crew hall's table, for the talk directory's row
 import { createHarbourBook, HARBOUR_TOWN_ORDER, harbourOf } from '../systems/naval/harbourBook.js';   // HARBOUR-BOOK: the harbours near the player, the quays' and the sea's; RPT1026-WORLD FAR-QUAY: every port near, out to the ring, its ground known
+import { createCabinHarbours } from './naval/cabinHarbours.js';
 import { withdrawIntoPack, materialLabel, materialCountLabel } from '../systems/professions/profItems.js';   // PROF1: a Stores material as DFU's own item
 import { oreMapTip } from '../ui/oreMapTip.js';   // ORE-MAP: the held map's word on a pixel's ore
 import { heldOf as bagHeldOf, heldKeysOf as bagHeldKeysOf, roomFor as bagRoomFor, mintCarried, takeCarried, giveCarried, bagTakesOf, bagWeight, hasBag, emptyBagIntoPack } from '../systems/materialsBag.js';   // BAG1: the Materials Bag and the pack, the book's hands; UNCOUNTED: every material they hold
@@ -8156,7 +8157,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     feet: () => [...player.pos], yaw: () => cam.yaw,
     toNative: (p) => { const w = state.worldCoords(p); return [w.x, p[1] - state.compensation[1], w.z]; },
     fromNative: (p) => { const [x, z] = state.localFromWorld(p[0], p[2]); return [x, p[1] + state.compensation[1], z]; },
-    enterInterior: (cabin) => modes?.enterSailingCabin(cabin), say: (line) => townTalk.say(line), log: (e) => console.error('[sailing cabin]', e),
+    enterInterior: async (cabin) => { cabinHarbours.enter(cabin.uid); try { return (await modes?.enterSailingCabin(cabin)) || (cabinHarbours.cancel(), false); } catch (e) { cabinHarbours.cancel(); throw e; } },
+    say: (line) => townTalk.say(line), log: (e) => console.error('[sailing cabin]', e),
   });
   /** WAGONS1: my parked caravan's room (scenes/caravanRoom.js) - the cabin's door law, the caravan's pose its anchor. */
   const caravanRooms = createCaravanAccess({
@@ -9850,7 +9852,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   /** The sea emptied: a transition, a teleport, the arc switched off - its window with it. */
   const navalClear = () => { naval?.clear(); navalFlames.clear(); navalCrew.clear(); closeNavalPlunder(); closeShipyard(); closeNavalYard(); closeEtherChart(); drawNavalHud(null); drawNavalTags([]); drawCrewBars([]); drawCrewLines([]); lowerGlass(); };   // AUDIT CAPTAIN'S SEA S1: and the glass; X15: and the Ether; SHIPYARDS: and the shipmaster's window
-  const navalTransition = () => { harbourBook.clear(); navalClear(); withdrawCrossing(); };   // HARBOUR-BOOK: the harbours forgotten with the sea, found again where the world is next; AUDIT CAPTAIN'S SEA X2: and the crossing's question taken back
+  const cabinHarbours = createCabinHarbours({ clear: () => harbourBook.clear(), place: (uid) => ({ pixel: [state.current.x, state.current.y],
+    origin: [state.mapOrigin.x, state.mapOrigin.y, ...state.compensation], boat: csaRuntime?.AllBoats?.find((b) => b.uid === uid)?.GameObject.position ?? null }) });
+  const navalTransition = (door = null) => { cabinHarbours.transition(door); navalClear(); withdrawCrossing(); };
   /** KEEP-PLUNDER: before a transition or a jump empties the sea, my crew stows what I left on it (navalHost
    *  stowPlunder) - ahead of Come Sail Away's own transition, while my boats still stand. Never on a load: the loaded
    *  save's hold is the one that stands. */
@@ -29689,8 +29693,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     csaDrawWindWidget: () => csaDrawWindWidget(),   // CSA-E: the wind widget over a mode's HUD
     csaOnPlayerDeath: () => { if (csaRuntime) csaCall(() => csaRuntime.OnPlayerDeath()); },   // CSA-J (the audit): PlayerEntity.OnDeath and OnExhausted reach ComeSailAway.OnPlayerDeath in every mode (Start 1059-1060)
     csaFrame: (dt, axes) => { _csaAxes = axes; csaFrame(dt); },   // CSA-C: a MonoBehaviour's Update and LateUpdate indoors too - a boat placed on a dungeon's water is baked, lit and drawn there; CSA-J (the audit): from the modes' frame, after its motor, on its axes
-    onTransitionInterior: () => { navalStow(); csaOnTransition(); navalTransition(); },   // CSA-C: PlayerEnterExit.OnTransitionInterior; NAV-H: a building has no sea
-    onTransitionExterior: () => { navalStow(); csaOnTransition(); navalTransition(); },   // CSA-C: PlayerEnterExit.OnTransitionExterior; NAV-H: a fresh sea at the door
+    onTransitionInterior: () => { navalStow(); csaOnTransition(); navalTransition('in'); },   // CSA-C: PlayerEnterExit.OnTransitionInterior; NAV-H: a building has no sea
+    onTransitionExterior: () => { navalStow(); csaOnTransition(); navalTransition('out'); },   // CSA-C: PlayerEnterExit.OnTransitionExterior; NAV-H: a fresh sea at the door
     raidLate: (quest, f) => raidAshore.late(quest, f),   // RAID-WON (AUDIT FB1019 D1): a raid's wave landing below deck after its raid ended, withdrawn (scenes/raidAshore.js)
     gateCourtLights: () => gateCourt?.lights() ?? [],   // WB4: the glow on him, in the court's light channel
     gateBoss: () => gateCourt?.target() ?? null,   // WB4b: him as a body my blows meet
