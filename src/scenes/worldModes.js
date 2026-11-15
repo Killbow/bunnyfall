@@ -85,6 +85,7 @@ import { advanceMachinery, mountMachineryChild, machineryChildPos, MILL_SOUND } 
 import { buildDungeonContext } from './dungeonContext.js';
 import { ambushNight } from '../systems/rest/restAct.js';   // AUDIT REST II P3: a quest's CreateFoe reaches the act's night, window or none
 import { holdStreet } from './streetHold.js';
+import { createRoomPrebuild } from './roomPrebuild.js';
 import { createTransitionGate } from './transitionGate.js';   // AUDIT 68 X3-transition-build-race: the door builds, serial and cancellable
 import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
 import { DOOR_TYPE } from '../world/meshReader.js';
@@ -8152,6 +8153,7 @@ export function createWorldModes(host) {
             // handler and painted CRASH over a game still running. The
             // catch is the one the two host call sites already put on
             // the non-deferred arm.
+            interiorTransition(hit, entries, null, () => false, roomPrebuild.ask(hit)).catch(() => {});
             townTalk.showOverlay(new ChoiceWindow({ lines }), () => { enterBuildingDoor(hit, entries).catch((e) => console.error(e)); });   // ONLINE-PUBLIC: the door opens once the greeting closes
             return true;
           }
@@ -8564,16 +8566,21 @@ export function createWorldModes(host) {
     if (!host.sailingCabin?.canRestore(cabin, sailingBoat)) return false;
     return enterSailingCabin(cabin, pos);
   }
-  async function interiorTransition(hit, entries, restore, live) {
+  const roomPrebuild = createRoomPrebuild({ free: abandonContext });
+  /**
+   * @param {any} hit @param {any} entries @param {any} restore @param {() => boolean} live
+   * @param {((plan: string, build: () => Promise<any>) => any) | null} [pre]
+   */
+  async function interiorTransition(hit, entries, restore, live, pre = null) {
     // TR5: TransportManager.HandleTransition (:196-202) - a BUILDING
     // interior puts you back on foot. The law shipped in TR1 with no
     // caller; this is it.
-    let _hccLanded = (markInteriorLoad(true), false);   // HCC: OnTransitionInterior fired, else OnFailedTransition on the way out. The comma raises the load ring as the door starts; the flag stays false.
-    host.onPreTransition?.();   // AUDIT PSCALE1 NET-3: my foes to the players outside, before the door takes me
-    host.horseCart?.()?.handlePreTransition({ type: 'ToBuildingInterior', door: hccDoorOf(hit) });   // HCC: OnPreTransition [IL_98f0] - the wagon's parking pose and the door's distance, BEFORE the dismount reads the mode
-    unleveledLootPreTransition();   // UL1: OnPreTransition (TransitionInterior) - a listener beside TransportManager's HandleTransition, the raise itself is one
-    dismountPlayer('ToBuildingInterior');
-    transitioning = true;
+    let _hccLanded = (!pre && markInteriorLoad(true), false);   // HCC: OnTransitionInterior fired, else OnFailedTransition on the way out. The comma raises the load ring as the door starts; the flag stays false.
+    if (!pre) host.onPreTransition?.();   // AUDIT PSCALE1 NET-3: my foes to the players outside, before the door takes me
+    if (!pre) host.horseCart?.()?.handlePreTransition({ type: 'ToBuildingInterior', door: hccDoorOf(hit) });   // HCC: OnPreTransition [IL_98f0] - the wagon's parking pose and the door's distance, BEFORE the dismount reads the mode
+    if (!pre) unleveledLootPreTransition();   // UL1: OnPreTransition (TransitionInterior) - a listener beside TransportManager's HandleTransition, the raise itself is one
+    if (!pre) dismountPlayer('ToBuildingInterior');
+    if (!pre) transitioning = true;
     try {
       // AUDIT 66 F4: DestroyLightSources_OnTransition fires with the
       // TRANSITION (the mod's Awake subscribes it to
@@ -8584,9 +8591,9 @@ export function createWorldModes(host) {
       // neither walking out and back in nor a save and load, while the
       // sibling pile pool (interiorDropped) restored correctly beside
       // it. The sweep belongs here, where the transition is.
-      interiorTorches.destroyAll();   // HT1: DestroyLightSources_OnTransition
-      interiorDecor.destroyAll(); _decorVisit++; decorTool.close(); decorators.left();   // DECOR1c: and the placed pieces go with the room
-      interiorCamps.destroyAll(); interiorHearths.length = 0;   // HEARTH1: and the room's own fires - one building's hearth is not the next one's
+      if (!pre) interiorTorches.destroyAll();   // HT1: DestroyLightSources_OnTransition
+      if (!pre) { interiorDecor.destroyAll(); _decorVisit++; decorTool.close(); decorators.left(); }   // DECOR1c: and the placed pieces go with the room
+      if (!pre) { interiorCamps.destroyAll(); interiorHearths.length = 0; }   // HEARTH1: and the room's own fires - one building's hearth is not the next one's
       // E2/P1: the building's identity, resolved BEFORE the interior
       // stands. DFU's transition does the same three things in this
       // order (PlayerActivate.cs:1119-1121): take the discovered
@@ -8670,7 +8677,7 @@ export function createWorldModes(host) {
       }
       const _dict = townTalk?.factionDict ?? null;
       const _desolate = !!cromwarkDoor(null, hit.dfLocation, hit.dfBlock?.index, hit.recordIndex);   // BUNNYFALL (Cromwark): a looted room stands nobody
-      if (_desolate && !restore) townTalk?.say?.(cromwarkTownText('looted'));
+      if (_desolate && !restore && !pre) townTalk?.say?.(cromwarkTownText('looted'));
       const peopleVisible = (restore?.privateRoom || hit.sailingCabin || _desolate) ? false : !building ? true : peopleAreVisible(building, {
         hour: _hour,
         insideOpenShop,
@@ -8696,7 +8703,7 @@ export function createWorldModes(host) {
       // (verbatim ownerPosition + buildingMatrix) - context coordinates
       // come back world-frame, landings run in one frame, and the walk
       // through the door is coordinate-seamless.
-      const buildingHold = placeHoldOf('interior', `${hit.dfBlock?.name ?? ''}:${hit.recordIndex}`); serveRoomModels(buildingHold, hit.roomModels, renderer, cpuModels); const ctx = await buildInteriorContext(   // FIELD BUGS 2026-10-04d PLACE-LRU: the building is a place
+      const buildRoom = () => { const buildingHold = placeHoldOf('interior', `${hit.dfBlock?.name ?? ''}:${hit.recordIndex}`); serveRoomModels(buildingHold, hit.roomModels, renderer, cpuModels); return buildInteriorContext(   // FIELD BUGS 2026-10-04d PLACE-LRU: the building is a place
         { renderer, getGpuMesh: buildingHold.getGpuMesh, cpuModels, getTexture, uploadRecord: buildingHold.uploadRecord, uploadRecordFrame: buildingHold.uploadRecordFrame, palette, getMachineryParts, placeHold: buildingHold },
         // DaggerfallInterior.IsBadInteriorModel (:530-548) keys the
         // 31000-overlap repair on EntryDoor.blockIndex, which
@@ -8737,7 +8744,10 @@ export function createWorldModes(host) {
           // building ever enters that dictionary (systems/automap/automap.js).
           dungeonEntranceDiscovered: !!getDungeonAutomap(
             automapDungeonKey(hit.dfLocation?.regionIndex ?? -1, hit.dfLocation?.name ?? ''))?.entranceDiscovered,
-        }).catch((e) => { buildingHold.release(); if (live()) say(NOTHING_OF_VALUE_TEXT); throw e; });   // PLACE-LRU: a build that throws hands no context back to release it; FIELD BUGS 2026-10-04d VOID-ENTRY: TransitionInterior's catch (PlayerEnterExit.cs:719-730) - a room that will not lay out says DFU's old chestnut; the player stays in the street (the hosts log the throw)
+        }).catch((e) => { buildingHold.release(); if (live()) say(NOTHING_OF_VALUE_TEXT); throw e; }); };   // PLACE-LRU: a build that throws hands no context back to release it; FIELD BUGS 2026-10-04d VOID-ENTRY: TransitionInterior's catch (PlayerEnterExit.cs:719-730) - a room that will not lay out says DFU's old chestnut; the player stays in the street (the hosts log the throw)
+      const roomPlan = [_hour, cardDay(), peopleVisible, houseOwned, baseEditable, !!home, host.onlineHomes?.version?.() ?? 0, building?.buildingKey ?? null].join();
+      if (pre) return pre(roomPlan, buildRoom);
+      const ctx = (await roomPrebuild.take(hit, roomPlan)) ?? await buildRoom();
       if (!live()) { abandonContext(ctx); return false; }   // AUDIT 68 X3-transition-build-race: the world moved under the build (a load, a teleport) - nothing is published
       const siblings = entries.filter((e) =>
         e.dfBlock === hit.dfBlock && e.recordIndex === hit.recordIndex);
@@ -8866,8 +8876,8 @@ export function createWorldModes(host) {
       betterAmbience.onTransition({ building: true });   // BA1: OnTransitionInterior - the fog off, the 2D rain source   // AUDIT 62 F16/F28: the lock never outlives a mode change - the foe pool and the coordinate frame both change here, and lockOn breaks only on death, a null chest or 32 m, none of which fire for a street foe you walked away from through a door (the interior is parented at the building's world matrix, so it stays metres away).
       console.log(`interior: ${ctx.drawList.length} draws, ${ctx.doors.length} doors, ${ctx.lights.length} lights, ${ctx.people.length} people`);
     } finally {
-      transitioning = markInteriorLoad(false);   // the ring goes with the door, landed or not
-      if (!_hccLanded) host.horseCart?.()?.handleFailedTransition({ type: 'ToBuildingInterior' });   // HCC: OnFailedTransition [IL_9c0c] - the pending deployment is undone, the team is back with the player
+      if (!pre) transitioning = markInteriorLoad(false);   // the ring goes with the door, landed or not
+      if (!_hccLanded && !pre) host.horseCart?.()?.handleFailedTransition({ type: 'ToBuildingInterior' });   // HCC: OnFailedTransition [IL_9c0c] - the pending deployment is undone, the team is back with the player
     }
     return true;
   }
@@ -13740,6 +13750,7 @@ export function createWorldModes(host) {
      *  OnDestroy, so the resource side never decoupled. */
     forceExitToExterior({ cacheScene = true, load = false } = {}) {
       transitionGate.abort();   // AUDIT 68 X3-transition-build-race: a door build still in flight is abandoned, never published over this exit
+      roomPrebuild.drop();
       const wasInside = mode !== 'exterior';
       // JAN1: the pair the live rig holds, read before either teardown (a load overwrites it a moment later with the save's own)
       const pose = mode === 'dungeon' ? dungeonPose() : mode === 'interior' ? weaponPoseOf(interiorWeapon.playerWeapon) : null;
