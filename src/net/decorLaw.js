@@ -339,18 +339,18 @@ export function mintDecorId(rand = Math.random) {
 //
 // Mac: "Remove bought houses decor - the base game decor isnt easy to
 // decorate around when u want more in depth house". What Daggerfall
-// furnished a room with - each prop model and each flat its interior
-// lays - may be TAKEN OUT by the room's owner, and put back, free. A
+// furnished a room with - each furniture model and each flat in its
+// interior - may be taken out by the room's owner, and put back, free. A
 // piece is named by the layout itself: `m<placement>:<model>` for the
-// interior's prop placement at that index, `f<flat>:<archive>.<record>`
-// for its flat at that index (world/interior/interiorLayout.js's two lists, in
-// the block's own order - the same room names the same pieces on every
-// visit and every client, as the automap's `int:<pi>` does), the model
-// or the picture riding in the name so a key can never name another
-// piece of another layout. A room keeps the list of what is taken out:
-// the offline house's and ship's in the save, an online home's on the
-// account service (server-account/src/decor.js), so every visitor walks
-// into the room its owner cleared. Pure, as the rest of this file is.
+// interior's model placement at that index, `f<flat>:<archive>.<record>`
+// for its flat at that index. The indices follow
+// world/interior/interiorLayout.js's two lists in block order, so the same room
+// names the same pieces on every visit and client, as the automap's `int:<pi>`
+// does. The key also carries the model or picture, so another layout matches it
+// only with the same model or picture at the same index. A room keeps the list
+// of what is taken out: an offline house or ship in the save, an online home on
+// the account service (server-account/src/decor.js). Every visitor sees the
+// room as its owner cleared it. Pure, as the rest of this file is.
 
 /** One built-in piece's name - `m<placement>:<model>` or `f<flat>:<archive>.<record>`, every number canonical. WD3: a
  *  flat's archive runs to five digits - the town mods' interiors (Beautiful Villages, Beautiful Cities) and Detailed
@@ -358,8 +358,8 @@ export function mintDecorId(rand = Math.random) {
  *  classic archive's three digits could not name them: online the room's whole list was refused, offline the piece came
  *  back at the next load. */
 export const DECOR_BASE_KEY_RE = /^(?:m(?:0|[1-9]\d{0,3}):(?:0|[1-9]\d{0,5})|f(?:0|[1-9]\d{0,3}):(?:0|[1-9]\d{0,4})\.(?:0|[1-9]\d{0,2}))$/;
-/** How many built-in pieces one room may keep taken out - more than any interior lays, and a whole list at its widest
- *  (eighteen bytes a name) still one write under the service's 4 KiB body (service.js MAX_BODY_BYTES). */
+/** How many built-in pieces one room may keep taken out: more than any home has, though the large ship's cabin has 350.
+ *  A whole list at its widest (eighteen bytes a name) is still one write under service.js MAX_BODY_BYTES (4 KiB). */
 export const DECOR_HIDDEN_CAP = 200;
 export const decorBaseModelKey = (placement, model) => `m${placement}:${model}`;
 export const decorBaseFlatKey = (flat, archive, record) => `f${flat}:${archive}.${record}`;
