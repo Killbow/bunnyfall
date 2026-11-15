@@ -652,6 +652,7 @@ import { questActionsExtensionTemplates } from '../systems/quest/questActionsExt
 import { entityMaxEncumbrance } from '../combat/formulas.js';   // FORAGE1: PlayerEntity.MaxEncumbrance, for Foraging's last check
 import { packCapacityKg } from '../systems/naval/crewCompanions.js';   // COMPANION-WEIGHT: what his pack carries
 import { createComeSailAwayPool, CULL_DETAIL_PX, FADE_FLATS as CSA_FADE_FLATS } from './comeSailAway/comeSailAwayPool.js';   // CSA-B: Come Sail Away's boats, drawn
+import { createCsaParticleLists } from './comeSailAway/csaParticleLists.js';
 import { createShipPortraits } from './shipPortraits.js';   // MENU-ORDER: a ship's own picture on the shipmaster's card
 import { createComeSailAwayPeers } from './comeSailAway/comeSailAwayPeers.js';   // CSA-J: another player's boats, seen
 import { peerHullSweep, hullsStood, hullPassesMyDeck } from './comeSailAway/peerHulls.js';   // HULL-PASS: another player's hull meets my helm only in a PvP zone - and passes my deck where it passes my helm (AUDIT FB1026d D1/D2)
@@ -715,7 +716,7 @@ import { createNavalPlunderOverlay, closeNavalPlunder, createNavalYardOverlay, c
 import { installNavalSounds } from '../systems/naval/navalSounds.js';   // NAV-E: the guns' own sounds
 import { navalRecordKey } from '../systems/naval/navalWire.js';   // NAV-G: my sea's word, said when it changed
 import { CROWNS as NAVAL_CROWNS, crownOf as navalCrownOf } from '../systems/naval/navalShips.js';   // NAV-C: the three crowns, whose capitals name the waters; AUDIT NAV1 (B2): a raid at sea parsed in theirs
-import { particleMeshRotation as csaParticleMeshRotation, RENDER_MODE as CSA_RENDER_MODE } from '../world/unityParticles.js';   // CSA-F
+import { particleMeshRotation as csaParticleMeshRotation } from '../world/unityParticles.js';   // CSA-F
 import { quatRotate as csaQuatRotate, quatMultiply as csaQuatMultiply, quatAngleAxis as csaQuatAngleAxis } from '../world/quat.js';   // CSA-F: the effects probe's flag forward; CSA-K: the helm's turn a frame ahead
 import { classicRecordRgba } from '../formats/derivedTexture.js';   // CSA-F: the snow the waves' paints key
 import { toScreenOrder as csaToScreenOrder } from '../formats/color32Order.js';   // CSA-E: a screen quad's PNG keeps its rows
@@ -8848,24 +8849,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       csaRender.setParticleTexture('Default-Particle', csaSoftParticleTexture(), { linear: true });
     })().catch((e) => console.warn('[come-sail-away] the particles\' pictures did not load', e));
   }
-  /** CSA-F: every boat's living particles, by the material their renderer wears. */
-  function csaParticleLists() {
-    const lists = { wake: [], flags: [], drops: [] };
-    for (const boat of naval?.enabled ? [...csaRuntime.AllBoats, ...naval.boats()] : csaRuntime.AllBoats) {   // NAV-H: and the sea's ships'
-      if ((boat.fade ?? 1) < CSA_FADE_FLATS) continue;   // AUDIT BAY A14: a ship half faded flies no flag and lays no foam - her flats' law
-      for (const ps of boat.particleSystems ?? []) {
-        if (!ps.particleCount || !ps.renderer?.m_Enabled) continue;
-        const material = ps.renderer.m_Materials?.[0]?.material;
-        const mode = ps.renderer.m_RenderMode;
-        const list = mode === CSA_RENDER_MODE.Mesh ? lists.flags : material === 'Default-Particle' ? lists.drops : material === 'WakeMaterial' ? lists.wake : null;
-        if (!list) continue;
-        const maxSize = ps.renderer.m_MaxParticleSize ?? 0.5;
-        if (list === lists.flags && shipFlags.flies(boat)) continue;   // SHIP-COLOURS: her captain's flag flies in her pennant's place
-        for (const q of ps.renderList()) list.push(list === lists.flags && boat.flagColor ? { ...q, maxSize, color: boat.flagColor } : { ...q, maxSize });   // NAV-B: a sea ship flies her faction's colours
-      }
-    }
-    return lists;
-  }
+  const csaParticleLists = createCsaParticleLists({ boats: () => csaRuntime.AllBoats, seaBoats: () => (naval?.enabled ? naval.boats() : null),
+    fadeFlats: CSA_FADE_FLATS, flies: (boat) => shipFlags.flies(boat) });
   let _csaParticleFrame = null;
   /** CSA-F: the wake's and the splashes' cut-out quads and the flags' cubes, with the waves. */
   function csaDrawParticlesOpaque() {
