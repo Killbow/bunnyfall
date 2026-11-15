@@ -764,7 +764,12 @@ export async function decodePng(bytes) {
  *  down. DFU imports an icon when GetItemImage asks for it and never
  *  earlier; `preloadTextureRecord` below is that ask, and the icon doors
  *  make it per record. */
-export const PRELOAD_CONCURRENCY = 8;
+export const PRELOAD_CONCURRENCY = 16;
+export const PRELOAD_LANES = 32;
+let _preloadFree = PRELOAD_LANES;
+const _preloadQueue = [];
+const preloadTurn = () => (_preloadFree > 0 ? (_preloadFree--, Promise.resolve()) : new Promise((go) => { _preloadQueue.push(go); }));
+const preloadTurnDone = () => { const next = _preloadQueue.shift(); if (next) next(); else _preloadFree++; };
 export async function preloadTextureArchive(archive, { decode = decodePng, concurrency = PRELOAD_CONCURRENCY } = {}) {
   let done = 0;
   const a = Number(archive);
@@ -789,7 +794,13 @@ export async function preloadTextureArchive(archive, { decode = decodePng, concu
     }
   };
   let next = 0;
-  const lane = async () => { while (next < todo.length) await one(todo[next++]); };
+  const lane = async () => {
+    while (next < todo.length) {
+      const item = todo[next++];
+      await preloadTurn();
+      try { await one(item); } finally { preloadTurnDone(); }
+    }
+  };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, todo.length)) }, lane));
   return done;
 }

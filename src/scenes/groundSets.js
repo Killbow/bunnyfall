@@ -49,8 +49,11 @@ export function createGroundSets({ renderer, getTexture, labGrass, breathe, gras
   const _loading = new Map();
   /** A set's layers made and uploaded (its twin's, `winter`, with it), its grass means kept - once a key. */
   const makeSet = async (key, groundArchive, groundTex, winter) => {
+    // The winter set is made beside the summer one, so their downloads overlap.
+    const twin = winter == null ? null : getTexture(winter).then((tex) => groundLayersOf(winter, tex));
+    twin?.catch(() => {});
     const own = await groundLayersOf(groundArchive, groundTex);
-    const layers = winter == null ? own.layers : twinLayers(own.layers, (await groundLayersOf(winter, await getTexture(winter))).layers);
+    const layers = twin == null ? own.layers : twinLayers(own.layers, (await twin).layers);
     await stepsBreathing(renderer.uploadTileArraySteps(key, layers), breathe);   // OW-HITCH: a few layers a breath
     // AUDIT GRASS-LIT2 B2: the grass's colours off THESE layers - the ones drawn - and not a second ask of the mod
     // door, whose cache a mod indexed mid-session empties (another decode, maybe another mod's tiles than these)

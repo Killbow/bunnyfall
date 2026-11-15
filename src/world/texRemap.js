@@ -65,6 +65,14 @@ export async function remapSubMeshes(subMeshes, texRemap, remapArchive, { getTex
     if (!asked) recipe.set(lawKey, (asked = new Set()));
     asked.add(subMeshes);
   }
+  // Every archive this mesh still needs is asked at once, so their downloads overlap. The loop below keeps its order.
+  const asked = new Set();
+  for (const sm of subMeshes ?? []) {
+    const swapped = remapArchive(sm.textureArchive, sm.textureRecord);
+    if (swapped === sm.textureArchive || texRemap.has(`${sm.textureArchive}_${sm.textureRecord}`) || asked.has(swapped)) continue;
+    asked.add(swapped);
+    getTexture(swapped).catch(() => {});
+  }
   for (const sm of subMeshes ?? []) {
     const swapped = remapArchive(sm.textureArchive, sm.textureRecord);
     if (swapped === sm.textureArchive) continue;
