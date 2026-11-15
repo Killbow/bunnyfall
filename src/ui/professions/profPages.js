@@ -2420,8 +2420,7 @@ export const ENCHANT_AWAY_LINE = formatMessage(ENCHANT_AWAY, { fee: ENCHANT_FEE 
 const enchantAwayLine = () => t('prof.page.enchant.away', ENCHANT_AWAY, { fee: ENCHANT_FEE });
 /** Tests: the station's state. */
 export const _enchantForTests = () => _enchant;
-/** AUDIT PROF-541 B8: a piece whose Essence the Stores have no room for. */
-export const ENCHANT_FULL_LINE = (room) => t('prof.page.enchant.full', 'Your Stores have room for {n} more Arcane Essence, not enough for this piece.', { n: Math.max(0, room) });
+export const ENCHANT_FULL_LINE = (room) => t('prof.page.enchant.full', '{n, plural, =0 {Your Stores have no room for more Arcane Essence. This piece\'s Essence will be lost.} other {Your Stores have room for # more Arcane Essence. The rest will be lost.}}', { n: Math.max(0, room) });
 /** DISENCHANT-SAID: a piece whose points make no Essence - listed, greyed, and why (alchemyLaw ESSENCE_POINTS). */
 export const ENCHANT_UNDER_LINE = (points) => t('prof.page.enchant.under', '{points, number} points. One Arcane Essence needs {per, number}.', { points, per: ESSENCE_POINTS });
 /**
@@ -2513,9 +2512,8 @@ function drawEnchantingStation(detail, rerender, kit) {
     const armed = _enchant.armed === pc.provenance;
     const b = el('button', 'act', _enchant.busy && armed ? t('prof.page.enchant.busy', 'Taking it apart...') : armed ? t('prof.page.enchant.armed', 'Press again to destroy it') : t('prof.page.enchant.go', 'Disenchant'));
     b.type = 'button';
-    const full = pc.essence > room;   // AUDIT PROF-541 B8: the service would refuse it (stores-full) - said, never pressed
-    if (full) row.append(el('span', 'prof-short', ENCHANT_FULL_LINE(room)));
-    b.disabled = _enchant.busy || !!short || full;
+    if (pc.essence > room) row.append(el('span', 'prof-short', ENCHANT_FULL_LINE(room)));
+    b.disabled = _enchant.busy || !!short;
     b.onclick = async () => {
       if (_enchant.busy) return;
       if (!armed) { _enchant.armed = pc.provenance; rerender(); return; }

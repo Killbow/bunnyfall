@@ -178,16 +178,9 @@ async function disenchantAnswer(db, player, row, nowS, extra = {}) {
  * ENCHANTMENT POINTS IT CARRIED (alchemyLaw piecePoints - its DFU template's budget, a jewel's own, read from the service's
  * own record of it, never the client's word), a Disenchanter's twice (3.3), into the Stores, and is gone: its `products`
  * row deleted in the same batch, so it lists, auctions and answers a commission no more. Refused: no such piece
- * (`prof-no-piece`), another's (`prof-not-yours`), one listed, on the road or standing in a home (`prof-piece-busy`), one
- * whose points make no Essence or of a family the market lists not (`prof-no-essence` - AUDIT PROF-541 R2-S6: arrows, a
- * quiver's stack with no provenance in the pack), a full Stores (`stores-full`). The Essence's origin: OWN where this
- * character made it and nobody bought it (PROF0 7: "Essence from an own provenance item (one this character made, never
- * sold)"), GOLD where it was bought with gold (GOLD-MARKET's wall), LOOSE where its gold wall is the goods it was made or
- * raised with (FB1020h ESSENCE-LOOSE: products.loose - AUDIT BAG-CRAFT A1's wall, never a purchase; a station's, as a
- * smelt's products of loose goods are), else BOUGHT. Enchanting XP: alchemyLaw disenchantXp (5
- * x the PIECE's recipe's tier an Essence before the doubling, quartered more than two tiers below the rank's top, none for a
- * counter-made piece). The client takes the piece out of its pack
- * on the answer.
+ * (`prof-no-piece`), another's (`prof-not-yours`), one listed, on the road, or in a home (`prof-piece-busy`), or one
+ * that gives no Essence (`prof-no-essence`). Essence past the Stores' cap is lost.
+ * The client takes the piece out of its pack on the answer.
  * AUDIT PROF-541 B2: A REALM CHARACTER'S PIECE LEAVES ITS RECORD IN THE SAME ACT - `realm` where its record stands, asked
  * before any other word (realm.js realmActFirst), and the piece taken out of that record by its provenance (realmTradeLaw
  * takeTradeGoods, as MARKET-ANY's listGood takes one) in the disenchant's own batch, guarded (mustChange - no disenchant,
@@ -236,36 +229,39 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
   if (prep?.error) return prep;
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_disenchants WHERE player = ?1 AND rid = ?2 AND n = ?3)';
+  const heldStep = db.prepare('SELECT COALESCE(SUM(qty), 0) AS held FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?3')
+    .bind(player.id, character, ARCANE_ESSENCE.key);
   const batch = [
     ...(prep ? prep.steps : []),
-    // THE DECISION: the piece this account's, on no listing, no road and in no home, the Essence's room - and the XP what
-    // the track can take
     db.prepare(`INSERT OR IGNORE INTO prof_disenchants (player, rid, char_id, provenance, recipe, points, essence, origin, xp, at, n)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8,
         MAX(0, MIN(${focusXpSql('?1', '?2', 'enchanting', '?9', halfXp(xp))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = 'enchanting'), 0))),
         ?10, ?11
       WHERE EXISTS (SELECT 1 FROM products WHERE provenance = ?4 AND owner = ?1 AND listed = 0)
         AND NOT EXISTS (SELECT 1 FROM market_deliveries WHERE provenance = ?4 AND collected = 0)
-        AND NOT EXISTS (SELECT 1 FROM home_decor WHERE json_extract(item, '$.pv') = ?4)
-        AND COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?12), 0) + ?7 <= ?13`)
-      .bind(player.id, character, rid, provenance, p.recipe, points, essence, origin, xp, nowS, nonce, ARCANE_ESSENCE.key, STORES_MAX),
+        AND NOT EXISTS (SELECT 1 FROM home_decor WHERE json_extract(item, '$.pv') = ?4)`)
+      .bind(player.id, character, rid, provenance, p.recipe, points, essence, origin, xp, nowS, nonce),
     ...(prep ? [mustChange(db)] : []),   // AUDIT PROF-541 B2: no disenchant, no piece out of the record - the record's step rolls back with it
     // the piece gone
     db.prepare(`DELETE FROM products WHERE provenance = ?4 AND ${decided}`).bind(player.id, rid, nonce, provenance),
-    // the Essence in, of its origin
+    heldStep,
+    // The Essence goes in under its origin, up to the room the Stores have.
     db.prepare(`INSERT INTO prof_stores (player, char_id, material, origin, qty)
-      SELECT player, char_id, ?4, origin, essence FROM prof_disenchants WHERE player = ?1 AND rid = ?2 AND n = ?3
-      ON CONFLICT (player, char_id, material, origin) DO UPDATE SET qty = prof_stores.qty + excluded.qty`).bind(player.id, rid, nonce, ARCANE_ESSENCE.key),
+      SELECT player, char_id, ?4, origin, kept FROM (SELECT d.player, d.char_id, d.origin, MIN(d.essence, ?5 - COALESCE((SELECT SUM(qty)
+        FROM prof_stores s WHERE s.player = d.player AND s.char_id = d.char_id AND s.material = ?4), 0)) AS kept
+        FROM prof_disenchants d WHERE d.player = ?1 AND d.rid = ?2 AND d.n = ?3) WHERE kept > 0
+      ON CONFLICT (player, char_id, material, origin) DO UPDATE SET qty = prof_stores.qty + excluded.qty`).bind(player.id, rid, nonce, ARCANE_ESSENCE.key, STORES_MAX),
     // the XP the decision credited
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, 'enchanting', MIN(${cap}, xp), ?4 FROM prof_disenchants WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
       .bind(player.id, character, rid, nowS, nonce),
   ];
-  if (!prep) await db.batch(batch);
+  let res = null;
+  if (!prep) res = await db.batch(batch);
   else {
     try {
-      await db.batch(batch);
+      res = await db.batch(batch);
       await dropObjects(bucket, [prep.prev]);
     } catch {
       await dropIfUnnamed(db, bucket, player.id, side.at.id, prep.key);   // AUDIT REALM2 S3: a batch that landed keeps its save
@@ -274,13 +270,16 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
     }
   }
   const made = await db.prepare('SELECT * FROM prof_disenchants WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
-  if (made?.n === nonce) return disenchantAnswer(db, player, made, nowS, prep ? { realm: { seq: prep.seq } } : {});
+  if (made?.n === nonce) {
+    const held = Number(res?.[batch.indexOf(heldStep)]?.results?.[0]?.held ?? NaN);
+    const answer = await disenchantAnswer(db, player, made, nowS, prep ? { realm: { seq: prep.seq } } : {});
+    // The answer reports the Essence the Stores took. The row records the whole yield.
+    return Number.isFinite(held) ? { ...answer, essence: Math.max(0, Math.min(essence, STORES_MAX - held)) } : answer;
+  }
   if (made) return disenchantAnswer(db, player, made, nowS, { repeat: true });
   const now = await db.prepare('SELECT owner, listed FROM products WHERE provenance = ?1').bind(provenance).first();
   if (!now) return { error: 'prof-no-piece' };   // another request took it first
   if (now.owner !== player.id) return { error: 'prof-not-yours' };
-  const room = await storeOf(db, player.id, character, ARCANE_ESSENCE.key);
-  if (workHeld(room) + (room.gold ?? 0) + essence > STORES_MAX) return { error: 'stores-full', material: ARCANE_ESSENCE.key };   // FB1020h ESSENCE-LOOSE: every origin, the decision's SUM
   return { error: 'prof-piece-busy' };
 }
 
