@@ -11,9 +11,10 @@
 // grids and the town watch.
 // scenes/exterior.js - FLAGGED: the fixed-city bench runs no raid; the streaming host is where its towns are raided.
 // scenes/worldModes.js and scenes/dungeonContext.js - FLAGGED: a raid is the street's, and stands nothing indoors (RAID1).
-import { musterBigTown } from '../systems/raidMuster.js';   // BUNNYFALL: a big town musters at two camps
+import { musterBigTown, MUSTER_CAMP_R } from '../systems/raidMuster.js';   // BUNNYFALL: a big town musters at two camps
 import { NAV_CELL } from '../world/city/cityNavigation.js';
 import { findTownPath, pathLine } from '../systems/livingWorld/townPaths.js';
+import { gatePassage, carveNav, componentsOf, edgePieces } from '../systems/travel/townWalk.js';
 import { streetNet } from '../systems/livingWorld/places.js';   // AUDIT WORLD-EVENTS L4-3/L4-8: the town's street net, where its living town has no places
 import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
 import { RAID_BEARER_HEALTH_X, RAID_BEARER_LEASH_M, RAID_REFUGEE_HEALTH_X } from '../systems/raidKinds.js';
@@ -28,6 +29,52 @@ export const RAID_STREETS_MIN = 400;
 const SIDE_NAMES = Object.freeze(['n', 'e', 's', 'w']);
 /** The refugee's kind - a temple's healer, a townsperson the street's pool can stand. */
 export const RAID_REFUGEE_KIND = MOBILE_TYPES.Healer;
+export const RAID_CAMP_MARGIN_M = 3;
+
+/** @param {any} p */
+export const pixelGates = (p) => (p?.locOrigin ? (p.cityGates ?? []).map((g) => [g.local[12] - p.locOrigin[0], g.local[14] - p.locOrigin[2]]) : []);
+/** @param {any[]} raids */
+export const raidGatesHeld = (raids) => new Set((raids ?? []).map((r) => `${r.px},${r.py}`));
+
+/**
+ * Returns a camp cell in the fields outside the gate whose passage opens nearest `inner`, with open ground around it.
+ * `walled` is false when the streets reach the grid edge or no gate leads out; `camp` is null when no cell fits.
+ * @param {{ width: number, height: number, weightAt: (gx: number, gy: number) => number }} nav
+ * @param {number[][]} gates @param {number[]} inner
+ * @returns {{ walled: boolean, camp: number[]|null, passage: number[][]|null }}
+ */
+export function gateCamp(nav, gates, inner) {
+  const label = componentsOf(nav), { edge } = edgePieces(nav), W = nav.width, H = nav.height;
+  const piece = (x, y) => (x >= 0 && y >= 0 && x < W && y < H ? label[y * W + x] : 0);
+  const none = { walled: false, camp: null, passage: null };
+  if (!gates?.length || edge.has(piece(inner[0], inner[1]))) return none;
+  let best = null;
+  for (const g of gates) {
+    const passage = gatePassage(nav, g);
+    if (!passage) continue;
+    const a = passage[0], z = passage[passage.length - 1];
+    for (const [ux, uy] of a[0] !== z[0] ? [[Math.sign(z[0] - a[0]), 0]] : a[1] !== z[1] ? [[0, Math.sign(z[1] - a[1])]] : [[1, 0], [0, 1]]) {
+      const lo = [a[0] - ux, a[1] - uy], hi = [z[0] + ux, z[1] + uy];
+      const loOut = edge.has(piece(lo[0], lo[1])), hiOut = edge.has(piece(hi[0], hi[1]));
+      if (loOut === hiOut || !piece(lo[0], lo[1]) || !piece(hi[0], hi[1])) continue;
+      const [out, into, dir] = loOut ? [lo, hi, [-ux, -uy]] : [hi, lo, [ux, uy]];
+      const far = (into[0] - inner[0]) ** 2 + (into[1] - inner[1]) ** 2;
+      if (!best || far < best.far) best = { far, passage, out, dir };
+    }
+  }
+  if (!best) return none;
+  const R = Math.ceil((MUSTER_CAMP_R + RAID_CAMP_MARGIN_M) / NAV_CELL), id = piece(best.out[0], best.out[1]);
+  const clear = (x, y) => {
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) if (dx * dx + dy * dy <= R * R && piece(x + dx, y + dy) !== id) return false;
+    return true;
+  };
+  const [ox, oy] = best.out, [ux, uy] = best.dir;
+  for (let s = 0; s < Math.max(W, H); s++) for (let l = 0; l <= 2 * R; l++) for (const k of l ? [1, -1] : [1]) {
+    const x = ox + ux * s - uy * l * k, y = oy + uy * s + ux * l * k;
+    if (clear(x, y)) return { walled: true, camp: [x, y], passage: best.passage };
+  }
+  return { walled: true, camp: null, passage: best.passage };
+}
 
 /**
  * AUDIT WORLD-EVENTS L4-8: THE TOWN'S STREETS off its grid alone (a classic town - its people the TownPopulation's,
@@ -79,7 +126,7 @@ export function streetEdgeCell(nav, label, id, side) {
  *   townAt: (x: number, z: number) => ({ town: number, nav: any, places?: any, local: number[], toScene: (u: number, v: number) => number[] }|null|undefined),
  *   townAtPixel?: (px: number, py: number) => ({ town: number, nav: any, places?: any, toScene: (u: number, v: number) => number[] }|null),
  *   feet: () => (number[]|null), groundAt: (x: number, z: number) => number,
- *   standGuard: (pos: number[], yaw: number) => Promise<any>,
+ *   gatesAt?: (px: number, py: number) => number[][], standGuard: (pos: number[], yaw: number) => Promise<any>,
  *   spawnFoe: (mobileType: number, pos: number[], o: any) => Promise<any>,
  * }} deps  `townAt` the scene's point in a built town (scenes/wagon/wagonWardenHost.js wardenTownIn); `townAtPixel` the
  *   built town on a map pixel (wardenTownOfPixel - AUDIT WORLD-EVENTS L4-4: the raid's own, wherever about it the player
@@ -87,7 +134,7 @@ export function streetEdgeCell(nav, label, id, side) {
  *   (cityGuards.standBearer); `spawnFoe` the street's pool's own (exteriorFoes.spawnFoe - a refugee is its `allied`,
  *   loose and transient)
  */
-export function createRaidSites({ townAt, townAtPixel = () => null, feet, groundAt, standGuard, spawnFoe }) {
+export function createRaidSites({ townAt, townAtPixel = () => null, feet, groundAt, gatesAt = () => [], standGuard, spawnFoe }) {
   /** AUDIT WORLD-EVENTS L4-4: the raid's own town - its map pixel's, built - else the one about the player's feet (the
    *  feet alone read null across the block the town's rect is widened by, and the raid kept the null). */
   const townOf = (raid) => (raid && Number.isInteger(raid.px) && Number.isInteger(raid.py) ? townAtPixel(raid.px, raid.py) : null) ?? (() => { const f = feet(); return f ? townAt(f[0], f[2]) ?? null : null; })();
@@ -116,9 +163,8 @@ export function createRaidSites({ townAt, townAtPixel = () => null, feet, ground
       return s ? sceneOf(t, s.square) : null;
     },
     /**
-     * The refugees' way: from the town's edge on the side `side` names (0 north, 1 east, 2 south, 3 west - the raid's own
-     * draw) to its square, along its streets - [x, y, z] points, or null. AUDIT WORLD-EVENTS L4-3: its start on the
-     * square's own streets (a walled city's edge cells are the fields outside its wall - no way was ever found in a city).
+     * Returns [x, y, z] points from the camp for `side` (0 north, 1 east, 2 south, 3 west) to the square, or null.
+     * In a walled town the camp sits outside a city gate, and the way passes through that gate.
      * @param {number} side @param {any} [raid]
      */
     way(side, raid = null) {
@@ -128,7 +174,13 @@ export function createRaidSites({ townAt, townAtPixel = () => null, feet, ground
       const k = ((side | 0) % 4 + 4) % 4;
       const start = s.exits?.find((e) => e.side === SIDE_NAMES[k])?.cell ?? streetEdgeCell(t.nav, s.label, s.id, k);
       if (!start) return null;
-      const cells = findTownPath(t.nav, start, s.square, { maxExpansions: RAID_WAY_EXPANSIONS });
+      const gates = Number.isInteger(raid?.px) && Number.isInteger(raid?.py) ? gatesAt(raid.px, raid.py) ?? [] : [];
+      const gc = gateCamp(t.nav, gates.map((g) => t.nav.worldToNav(g[0], g[1])), start);
+      if (gc.walled && !gc.camp) return null;
+      // Two searches: one search from the camp to the square would expand through the fields around the wall first.
+      const gate = gc.camp ? findTownPath(carveNav(t.nav, [gc.passage]), gc.camp, start, { maxExpansions: RAID_WAY_EXPANSIONS }) : [start];
+      const town = gate ? findTownPath(t.nav, start, s.square, { maxExpansions: RAID_WAY_EXPANSIONS }) : null;
+      const cells = town ? [...gate.slice(0, -1), ...town] : null;
       if (!cells || cells.length < 2) return null;
       return pathLine(cells).pts.map((p) => { const s = t.toScene(p[0], p[1]); return [s[0], groundAt(s[0], s[1]), s[1]]; });
     },
