@@ -9,7 +9,7 @@
 import { createEffectVfxHost } from './effectVfxHost.js';
 import { effectVfxBits } from '../systems/effectVisuals.js';
 import { DecisionBoxWindow } from '../ui/decisionBox.js';   // REST-WARN2: the Plus decision box
-import { wildGiantsAt, WILD_GIANT_STAND_M, WILD_GIANT_RESPAWN_MS, giantGroundBlocked } from '../systems/wild/wildGiants.js';   // ZONE-GIANTS   // GOTHWAY-BOARDS: at the north entrance
+import { wildGiantsAt, WILD_GIANT_STAND_M, WILD_GIANT_FIELD_M, WILD_GIANT_RESPAWN_MS, giantGroundBlocked } from '../systems/wild/wildGiants.js';   // ZONE-GIANTS   // GOTHWAY-BOARDS: at the north entrance
 import { pixelKeyText } from '../world/pixelKeys.js';   // PIXEL-KEYS: a built pixel's key text made once   // GOTHWAY-NORTH: the walk grid's cell
 import { resetPlayerGpsState } from '../world/playerGps.js';   // AUDIT DEX C1: PlayerGPS.ResetState, the jump core's
 import { restAilmentLines } from '../systems/rest/restWarning.js';   // REST-WARN
@@ -22727,7 +22727,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  one standing higher than the ring round it marked down (a crest). Null when no spot is flat enough. */
   const giantFieldSpot = (at) => {
     let best = null, bestScore = Infinity;
-    for (let r = 0; r <= 160; r += 20) {
+    for (let r = 0; r <= WILD_GIANT_FIELD_M; r += 20) {
       const n = r === 0 ? 1 : Math.max(6, Math.round(r / 10));
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2, x = at[0] + Math.cos(a) * r, z = at[2] + Math.sin(a) * r;
