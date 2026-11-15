@@ -16,11 +16,11 @@
 //
 // A piece is named by the layout (net/decorLaw.js DECOR_BASE_KEY_RE):
 // `m<placement>:<model>`, `f<flat>:<archive>.<record>`. Taking one out
-// takes all of it - its draw, its collider (nothing to walk into), its
-// light, and, a cupboard, a shelf or a bed, its place among the room's
-// targets (the host's own lists are keyed by index, so the entry stays
-// and says `hidden`). A piece that HOLDS anything is never taken out:
-// what it holds would go with it, out of reach.
+// removes its draw, its collider, and its light. A piece the player can
+// use, such as a cupboard, a bed, or a chair, also leaves the room's
+// targets. The host lists are keyed by index, so its entry stays, marked
+// `hidden`. hide() refuses a piece that holds anything, so the caller
+// empties it into the owner's pack first.
 // ═══════════════════════════════════════════════════════════════════
 
 import { DECOR_BASE_KEY_RE, DECOR_HIDDEN_CAP, decorHiddenOf } from '../../net/decorLaw.js';
