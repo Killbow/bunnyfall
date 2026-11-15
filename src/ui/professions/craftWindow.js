@@ -852,12 +852,17 @@ function drawUpgrade(root, p, station, run) {
       const r = RECIPES.find((x) => x.id === pc.recipe);
       if (!r) continue;
       const cost = temperCost(r, pc.quality), gold = temperGold(pc.quality) + valueFee(itemFeeValue(pc.item), fee);
-      const cap = temperCap(r, rank);
+      const spec100 = specsOf(book, S.temper === 'loom' ? 'outfitting' : 'smithing')?.[100];
+      const cap = temperCap(r, rank, spec100), top = temperCap(r, PROF_RANK_MAX, spec100), next = pc.quality + 1;
+      const lifts = S.temper === 'anvil' && next <= temperCap(r, PROF_RANK_MAX, 'masterwright');
       const have = workOf(book, cost.key);
       const line = h('div', 'cw-line');
       const main = h('div', 'cw-line-main');
-      main.append(h('b', null, pc.name), h('span', 'cw-state', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[pc.quality + 1]}: ${cost.n} ${p.name(cost.key)} (have ${have}) and ${gold} gold`));
-      if (pc.quality + 1 > cap) main.append(h('span', 'cw-state', `Your rank reaches ${QUALITY_NAMES[cap]} on this piece.`));
+      main.append(h('b', null, pc.name));
+      if (next > top && lifts) main.append(h('span', 'cw-state', `Upgrades stop at ${QUALITY_NAMES[top]} on this piece. The Masterwright perk raises the limit to Masterwork.`));
+      else if (next > top) main.append(h('span', 'cw-state', `Upgrades stop at ${QUALITY_NAMES[top]} on this piece, even at rank ${PROF_RANK_MAX}.`));
+      else main.append(h('span', 'cw-state', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[next]}: ${cost.n} ${p.name(cost.key)} (have ${have}) and ${gold} gold`));
+      if (next > cap && next <= top) main.append(h('span', 'cw-state', `Your rank reaches ${QUALITY_NAMES[cap]} on this piece.`));
       line.append(main, button('cw-btn cw-primary', 'Raise', () => run(() => p.temper(pc)), _cw.busy || have < cost.n || purse < gold || pc.quality + 1 > cap || rank < r.rank));
       root.append(line);
     }
