@@ -70,6 +70,7 @@ import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
 import { worldDataDoor } from './worldData/worldDataDoor.js';   // RR3b: WorldDataReplacement's three asks (MapsFile.cs:984, :999, :1027)
 import { PakFile } from './pakFile.js';
 import { readBuildingData, BUILDING_DATA_SIZE } from './blocksFile.js';
+import { HeldRecords } from './heldRecords.js';
 // PROF1: the three FALL.EXE / MapsFile tables and the map's bounds the account service reads too, in a module that reads no file (mapsTables.js) -
 // one home, re-exported here so every importer stands where it stood.
 import { REGION_NAMES, REGION_RACES, CLIMATES, MAX_MAP_PIXEL_X, MAX_MAP_PIXEL_Y } from './mapsTables.js';
@@ -287,12 +288,15 @@ export function getWorldClimateSettings(worldClimate) {
   return s;
 }
 
+export const REGIONS_HELD_MAX = 64;
+
 export class MapsFile {
   constructor() {
     this._bsa = null;
     this._regions = null;
     this.autoDiscard = true;
     this._lastRegion = -1;
+    this._held = new HeldRecords(REGIONS_HELD_MAX, (region) => { this._regions[region] = null; });
     this.climatePak = new PakFile();
     this.politicPak = new PakFile();
     this._isReady = false;
@@ -349,17 +353,21 @@ export class MapsFile {
     if (region < 0 || region >= this.regionCount) return false;
     // DEPARTURE (measured): C# LoadRegion has NO cache check - every call
     // discards lastRegion and re-reads the four BSA records, rebuilding
-    // DFRegion (MapsFile.cs:653-680). Memoized here. The decoded region is
-    // identical either way, and autoDiscard's "at most one region resident"
-    // invariant survives, because the only call that skips the discard is a
-    // repeat of the region that is already the resident one.
-    if (this._regions[region] !== null) return true;
+    // DFRegion (MapsFile.cs:653-680). Memoized here, the most recent
+    // REGIONS_HELD_MAX regions held: the decoded region is identical either way.
+    const held = this._regions[region];
+    if (held !== null) {
+      const door = worldDataDoor();
+      if (held.door === door) {
+        // The world-data door tracks what it already added per region, so a repeat call adds only new locations.
+        door?.getDFRegionAdditionalLocationData(region, held.dfRegion);
+        if (this.autoDiscard) this._held.hold(region);
+        return true;
+      }
+      this.discardRegion(region);
+    }
 
-    if (this.autoDiscard && this._lastRegion !== -1) this.discardRegion(this._lastRegion);
-
-    // Four consecutive records per region. REGION-VIEWS: read where MAPS.BSA holds them - the readers below only ever
-    // read them, and with one region resident (autoDiscard) every walk over the regions copied all four again - 357 KB
-    // a region on the mean, 2.3 MB the Wrothgarian Mountains' and 2.1 MB Daggerfall's: 364 regions read by a boot's 40th frame.
+    // Four consecutive records per region, read in place from MAPS.BSA; the readers below never write them.
     const record = region * 4;
     const rec = {
       name: REGION_NAMES[region],
@@ -368,6 +376,7 @@ export class MapsFile {
       mapTable: this._bsa.getRecordView(record + 2),
       mapNames: this._bsa.getRecordView(record + 3),
       dfRegion: null,
+      door: worldDataDoor(),
     };
     if (
       rec.mapNames.length === 0 || rec.mapTable.length === 0 ||
@@ -383,9 +392,10 @@ export class MapsFile {
     }
 
     // Add any additional replacement location data to the region, assigning locationIndex (MapsFile.cs:984 - RR3b: the world-data door)
-    worldDataDoor()?.getDFRegionAdditionalLocationData(region, rec.dfRegion);
+    rec.door?.getDFRegionAdditionalLocationData(region, rec.dfRegion);
 
     this._lastRegion = region;
+    if (this.autoDiscard) this._held.hold(region);
     return true;
   }
 
@@ -393,6 +403,7 @@ export class MapsFile {
   discardRegion(region) {
     if (region < 0 || region >= this.regionCount) return;
     this._regions[region] = null;
+    this._held.forget(region);
   }
 
   /** DFRegion by index (null on failure). */
