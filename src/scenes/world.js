@@ -35546,7 +35546,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // Dodging tally, the poison seam and the recoverable arrow all
     // ride the hit.
     meterFor(renderer.gl)?.markCpu('arrows');   // PERF-ZONE2: the missiles' flight and their draw
-    arrows.update(foeDt, {   // AUDIT (pre-merge) P6: QUEST-POPUP-PAUSE's hold - offline, an arrow already loosed waits under the quest's box with its archer
+    arrows.tick(foeDt, () => ({   // AUDIT (pre-merge) P6: QUEST-POPUP-PAUSE's hold - offline, an arrow already loosed waits under the quest's box with its archer
       // enemy arrows hunt only a SPAWNED, WALKING player - fly/orbit
       // camera modes have no capsule to hit
       playerFeet: walkMode && playerSpawned ? player.pos : null,
@@ -35611,7 +35611,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           ? cityGuards.handleAttackFromPlayer(f, player.pos)
           : exteriorFoes.attackFromPlayer(f, player.pos, 'arrow')),   // AUDIT WORLD6b-iii(e) A2: the shaft's kind on the zero blow; AUDIT WORLD6b-ii B4: the one door - a PUPPET's is its owner's (a zero blow diverted, a damaging one already was), no area of mine wakes
       })),
-    });
+    }));
     arrows.draw(renderer);
     // UNDER-LOOK and UNDER-RAYS (FIELD BUGS 2026-10-01 #4, #5): under the sea, the water body and the sun's shafts over
     // every pixel the world drew - after the last world pass, before the weapon and the HUD (world/underwater/underwaterLook.js)
@@ -35830,7 +35830,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
             // above raceActivation - a live foe and a walking
             // townsperson. Without them the plaque named the shopfront
             // behind whoever was standing in front of it.
-            foe: ((ft) => peacefulFoePass(pickActivatableHit(cam.pos, _hd, ft, collider), ft, modes.exteriorActivationDistance(cam.pos, _hd), getInteractionMode()))([...exteriorFoes.liveTargets(), ...cityGuards.liveTargets()]),   // TACT3d: a peaceful guard in front of a door is no hit
+            foe: ((ft) => peacefulFoePass(pickActivatableHit(cam.pos, _hd, ft, collider), ft, () => modes.exteriorActivationDistance(cam.pos, _hd), getInteractionMode()))([...exteriorFoes.liveTargets(), ...cityGuards.liveTargets()]),   // TACT3d: a peaceful guard in front of a door is no hit
             person: _hoverPersonPick(cam.pos, _hd),
             peer: _hoverPeerPick(cam.pos, _hd),   // PEER-PLAQUE1: another player, raced as the F key picks them
           })),

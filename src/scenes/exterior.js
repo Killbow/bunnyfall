@@ -6024,7 +6024,7 @@ export async function bootExterior(canvas, renderer, params, status) {
     // host mounts no bow-armed pool", which stopped being true with the
     // encounter mount above, and an archer's shaft would have flown
     // through the player for ever. world.js:"DW-D: UnderwaterPresentationEffects.SuppressPlayerIndirectLight" is the shape.
-    arrows.update(dt, {
+    arrows.tick(dt, () => ({
       // enemy arrows hunt only a WALKING player - the fly camera has no
       // capsule to hit
       playerFeet: walkMode ? player.pos : null,
@@ -6079,7 +6079,7 @@ export async function bootExterior(canvas, renderer, params, status) {
           ? cityGuards.handleAttackFromPlayer(f, player.pos)
           : exteriorFoes.attackFromPlayer(f, player.pos, 'arrow')),   // AUDIT WORLD6b-iii(e) A2: the pool's one door, the shaft's kind on it
       }),
-    });
+    }));
     arrows.draw(renderer, texRemap);
     // GROUND-LAST: THE GROUND, after every opaque mesh of the town, so a
     // ground fragment under a building fails the depth test before its
@@ -6423,7 +6423,7 @@ export async function bootExterior(canvas, renderer, params, status) {
             // above raceActivation - a live foe and a walking
             // townsperson. Without them the plaque named the shopfront
             // behind whoever was standing in front of it.
-            foe: ((ft) => peacefulFoePass(pickActivatableHit(cam.pos, _hd, ft, collider), ft, modes.exteriorActivationDistance(cam.pos, _hd), getInteractionMode()))([...exteriorFoes.liveTargets(), ...cityGuards.liveTargets()]),   // AUDIT TACT C7: the plaque names the door the press opens
+            foe: ((ft) => peacefulFoePass(pickActivatableHit(cam.pos, _hd, ft, collider), ft, () => modes.exteriorActivationDistance(cam.pos, _hd), getInteractionMode()))([...exteriorFoes.liveTargets(), ...cityGuards.liveTargets()]),   // AUDIT TACT C7: the plaque names the door the press opens
             person: _hoverPersonPick(cam.pos, _hd),
           }),
           name: (key) => modes.exteriorHoverName(key, { eye: cam.pos, dir: _hd, names: _hoverNamers, modNames: _hoverModNamers }),

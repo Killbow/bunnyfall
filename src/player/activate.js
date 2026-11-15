@@ -332,8 +332,9 @@ export function doorDistanceOf(eye, dir, targets, collider) {
  *  answers behind him, as the press's `allyYields` does, in every mode. */
 export function peacefulFoePass(foeHit, targets, doorBehind, mode = null) {
   if (foeHit && targets.find((t) => t.key === foeHit.key)?.ally === true) return { ...foeHit, ally: true };   // FB1012d ALLY-YIELDS
-  if (!foeHit || mode === 'steal' || !(Number.isFinite(doorBehind) && doorBehind <= DOOR_ACTIVATION_DISTANCE)) return foeHit;   // AUDIT TACT C5: a pickpocket is asked of him
-  return targets.find((t) => t.key === foeHit.key)?.peaceful ? null : foeHit;
+  if (!foeHit || mode === 'steal' || !targets.find((t) => t.key === foeHit.key)?.peaceful) return foeHit;   // AUDIT TACT C5: a pickpocket is asked of him
+  const door = typeof doorBehind === 'function' ? doorBehind() : doorBehind;
+  return Number.isFinite(door) && door <= DOOR_ACTIVATION_DISTANCE ? null : foeHit;
 }
 
 /** WHICH live foe a key names - `corpseEntryFor`'s twin, over the same
