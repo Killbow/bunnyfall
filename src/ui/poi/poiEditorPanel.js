@@ -320,6 +320,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
 
   const say = (text, kind = 'ok') => { status.textContent = text; status.dataset.kind = kind; };
   const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'That did not go through.'));
+  editor.placeRefused = (/** @type {string} */ why, /** @type {string} */ id) => {
+    const name = edit.docOf(id)?.name ?? '';
+    say(why === 'full' ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats })
+      : why === 'shown' ? t('poi.editor.placeShown', '{name} is open in Approvals right now, so nothing can be added to it. Select another POI.', { name })
+        : t('poi.editor.placeAway', '{name} has not loaded here yet. Fly closer to it, or select another POI.', { name }), 'bad');
+  };
   // POI-4b: the library's dialogs, laid in the panel, through its own door to the store
   const library = createPoiLibrary({ doc, host: root, io, feed, me, act: (fn) => act(fn), say, refusal, editor, decodeImage, rand, exportGlb: (model) => exportGlb(model) });
   // the asset browser: its code is fetched the first time Assets is pressed, so a player who never opens it never loads
@@ -1232,7 +1238,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const before = partCount();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
       if (spot && editor.standOn(spot)) return true;
-      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      if (!(spot && editor.refusedLast?.())) say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
       return placedFrom(editor.placing(), before);
     }
     const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);
