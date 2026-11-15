@@ -493,6 +493,7 @@ import { regionPriceAdjustment, worldPriceTiltOf, TRANSPORT_HORSE, TRANSPORT_SMA
 import { getNameBankOfRegion, getRandomFullName } from '../characters/nameHelper.js';   // AUDIT 23 (characters-5); AUDIT 58: MacroHelper.GetRandomFullName, one home
 import { createHitEffects, setSplashObserver } from './hitEffects.js';
 import { noteMyBlow, noteMyHurt, isHurtClip, poseFx, createPeerFxPlayer } from '../net/peer/peerFx.js';   // PEERFX1: the others see and hear my blows, and hear me struck
+import { createPeerConjured } from '../net/peer/peerConjured.js';
 import { hitFlashStrength, setBatchHitFlash, HIT_FLASH_S } from '../systems/hitFlash.js';   // HITFLASH1: a struck body's red - the peers' curve is the foes'
 import { setOneShotObserver } from '../systems/audio.js';   // PEERFX1
 import { createTownScratch, createPersonTextureKeys } from './townScratch.js';   // PERF-TOWN1: the town loop's per-frame seats, and the memoised texture key
@@ -1240,6 +1241,7 @@ import { createVendorHost } from './vendorHost.js';   // HOST-SPLIT
 import { createWildSeizeHost } from './wildSeizeHost.js';   // HOST-SPLIT
 import { createWildRejoin } from '../systems/wild/wildRejoin.js';   // WILD-REJOIN: a fall that outlives its page
 import { windowHoldsDungeon } from './windowWorld.js';   // RPT1026-FIGHTS (WINDOW-ONLINE): a dungeon's window holds its foes offline alone
+import { registerPlace } from '../systems/placeClimate.js';
 
 /** Internal_Strings_en 654 / 655, the two guild map-reveal notes
  *  (ThievesGuild.cs:115, DarkBrotherhood.cs:108). %map is the
@@ -28767,6 +28769,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       if (age > PEER_FLINCH_S && age > HIT_FLASH_S) peerHurtAt.delete(id);
     }
   };
+  const peerConjured = createPeerConjured({ engine: () => (modes?.mode === 'dungeon' ? modes?.dungeonCtx?.conjured : null) ?? magic.conjured, toWire: (q) => sceneToOnline(q), toScene: (p) => onlineToScene(p), me: () => ({ feet: player.pos, radius: CAPSULE_RADIUS, height: player.height }), moveTo: (p) => player.spawn(p[0], p[1], p[2]) });
   const peerFxPlayer = createPeerFxPlayer({
     toScene: (p) => onlineToScene(p),
     play: {
@@ -29152,6 +29155,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       lt: torchPoseByte(playerEntity),   // PEERLIGHT1: my lit torch/lantern/candle, so it lights the others' world around me - absent while nothing burns
       ...(gatherHost?.poseAct() ?? {}),   // PEER-ACTS: my gathering act and its beats (scenes/gatherHost.js poseAct), so the others see me swing, kneel and throw and hear each beat - absent until I gather
       ...climbPoseOf(player),   // CLIMB5: my climb and the way my body faces on it, so the others turn me to the wall, pose me off the ground and hear me climb - absent off the wall
+      ...peerConjured.out(),
     };   // the wire's move bit: 1 walking, 2 running (the peers' bodies pick the clip off it)
     if (seated) arm.st = seated.st;   // CARDS2b: seated, and the table's top above the feet - absent standing, the wire's omission law
     staffCommands?.tick(Date.now(), (line) => chatNotice(line));   // BUNNYFALL: a staff member's /greed for me, taken
@@ -29241,6 +29245,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (hccOn()) hcc.driverGlue(drawable, { toWire: campToWire });   // WAGONS3: a driver on their bench, drawn seated there - after the map's poses, where `peerAnchor` reads the puller their wagon hangs from
     const ranged = peerRange.cut(cabin ? drawable : drawable.filter((d) => !csaPeers.isBelowDeck(d.id)), { on: !travelView?.active, me: player.pos, at: (d) => onlineToScene(d.shown), range: peerRangeOf(getPref('peerRange')), mate: (id) => !!social?.isPartyPeer(id) || id === duelMgr.opponent || online?.peers?.get?.(id)?.shown?.bp === 1 });   // BUNNYFALL: a bard performing is never cut by distance; PEER-RANGE (2026-10-10, the owner: "the rendering of players far out is contributing to poor performance"): past the distance on the Other players card a player stands nowhere on this screen - GATE-CROWD's cut by distance (net/peer/peerRange.js): my party and the one I duel always, nobody cut under the travel view (OW-PEERS grows them to be seen from overhead); their map marks, above, are kept
     const visiblePeers = gateCrowd.cut(ranged, { on: modes?.gateArenaDay?.() != null || !(travelView?.active || (wildHere() && !cromwarkPeace(wildZoneKind())) || siegeSession?.active() || royalSession?.active() || modes?.roomIdentity?.()?.kind === 'arena'), me: player.pos, at: (d) => onlineToScene(d.shown), max: gateCrowdMax(getPref('gateCrowd')), mate: crowdKept(social?.partyPeers?.(), [duelMgr.opponent, tradeMgr.session?.peer], wagonRiders?.ridingWithMe(), csaAboard.shipmates(), _duelRings.keys()) });   // GATE-CROWD (2026-10-07, Mac: "some type of filter when there are too many people"): past the count on the Other players card only the nearest are drawn, my party always (net/gate/gateCrowd.js) - the rest stand nowhere on this screen this frame: no body, sprite, name, light, cast or step (their map marks, above, are kept); CROWD-WIDE (2026-10-23, the owner: "implement the player toggle we have for the oblivion gate into the entire game"): everywhere, not the court alone - but never where a stranger can fight me (the open zone, a battle, an arena's room) nor under the travel view; AUDIT CROWD-WIDE A2: never cut, those I fight, trade, ride or sail with and a duel's two fighters (net/gate/gateCrowd.js crowdKept)
+    peerConjured.frame(drawable, dt);
     peerCastVisuals(visiblePeers);   // SPELLFX1: a peer's new cast, drawn once
     if (modes?.gateArenaDay?.() != null) gateCourt?.stepsIn(drawable, (d) => (d?.shown ? onlineToScene(d.shown) : null));   // AUDIT GATE-FBX C3: a player stepping out of the court's way in opens it - every one in the room, the crowd's cut or not (the fire is the court's, not a body this screen draws)
     _veilT += dt > 0 ? dt : 0;
@@ -30479,6 +30484,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       return { ...d, regionIndex: dfLoc.regionIndex, townMapId: (dfLoc.mapTableData?.mapId ?? 0) >>> 0, townBlocks: homeTownBlocks(dfLoc), name: townTalk.directory.find((e) => e.buildingKey === d.buildingKey)?.name ?? '' };   // HOME1: the town the DOOR is in keys its home, not the one under the player; HOME-PRICE: and its size prices it
     },
   });
+  registerPlace((at) => ({ climateIndex: maps.getClimateIndex(state.current.x, state.current.y), underground: modes.mode === 'dungeon',
+    season: modes.mode === 'interior' ? INTERIOR_SEASON : snowCover.footSeason(at, season),
+    dungeonWall: modes.mode === 'dungeon' ? modes.dungeonCtx?.wallTexture?.(at) ?? null : null }));
   wireOwnerClock([exteriorFoes, cityGuards], modes, () => online?.status === 'open' && online.othersHere > 0);   // OWNER-CLOCK (scenes/ownerCatchUp.js): while anyone else is in my room (on the street the 16-pixel cell, wider than the 3 pixels my foes frames are fanned across) the street's foes take my clamped frame in FOE-CATCHUP's steps - my player's pace, never past it - and every step of mine is marked on the clock my foes frames carry; HOST-CLOCK: the watch with them (its brains already ran on the street's clock), the mode machine's frames the catch-up's, and a building's and a dungeon's foes through the same page's catch-up from their own hosts
   // AT2: AMBIENT TEXT CLAIMS ITS HOST. The mod is one GameObject made
   // at load and never destroyed (systems/ambientText.js), so the slot

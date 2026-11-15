@@ -52,6 +52,7 @@ import { tellSpellLanded } from '../systems/spell/spellPower.js';   // SCHOOLS3:
 import '../systems/arcanePowers.js';   // AUDIT SCHOOLS L2 F8: what the paths DO, registered with THE ONE CAST ENGINE every page builds - the standalone dungeon page (scenes/dungeon.js) had their price and potency and none of their powers
 import '../systems/firmamentPowers.js';   // FIRM1: what the Firmament DOES, registered with the one cast engine every page builds, as the paths' are
 import { createBunnySpellEngine } from './bunnySpellEngine.js';   // BUNNY-SPELLS: Bunnyfall's own effects in the scene
+import { peerHeard } from '../net/peer/peerFx.js';
 import { RESCUE_TYPE, spellHas } from '../systems/spell/bunnySpellLaw.js';   // BUNNY-SPELLS
 import { setClairvoyanceProbe } from '../systems/spell/clairvoyance.js';   // BUNNY-SPELLS: Clairvoyance's probe
 import { applySpell, spellReflectedText, hasActiveEffect, looksBlending, isSoulTrapEffect, spellSways } from '../systems/effects.js';   // WBX7: a soul trap meets the court's boss too; BLENDING: read a foe's live Chameleon to show "Blending!" over its head
@@ -675,6 +676,11 @@ export function createPlayerMagic({
     collider, foes: () => foes(), playerEntity, say, companions: () => { try { return companionBodies?.() ?? []; } catch { return []; } },
     burstFx: (kind, pos, o) => { landFx(kind, pos, o); }, glowFx: (kind, pos, o) => { try { fx.burst(kind, pos, { ground: impactGround(collider, pos), body: AREA_FX_BODY, ...o }); } catch { /* feel */ } },
     rescueTarget, rescuePeer, casterLevel: () => effectiveLevel(playerEntity),
+    getTexture,
+    thud: (pos, { sound, heard, shake = 0, peer = false }) => { try { (peer ? peerHeard : (run) => run())(() => impactSounds.play(sound, pos, { heard })); kickFrom(pos, peer ? shake * peerKickShare({ visual: true, casterId: 0 }) : shake); } catch {} },
+    now,
+    peerMissileGone: (id) => { for (let i = missiles.length - 1; i >= 0; i--) { const m = missiles[i]; if (m.visual && m.casterId === id && m.spell?.rangeType === 4 && m.age < 1.5) { retireMissile(m); missiles.splice(i, 1); } } },
+    flats: { fly: (archive, pos, o) => impacts.showFlyingFlat(archive, pos, o), puff: (archive, record, pos, { alpha, ...o } = {}) => impacts.showMissEffect('spell', pos, { archive, record, ...o, conceal: alpha ? allyConceal({ alpha }) : null }) },
   });
   setClairvoyanceProbe(() => hasActiveEffect(playerEntity, 'clairvoyance'));
   let fxPass = null, fxBroken = false;
@@ -717,14 +723,16 @@ export function createPlayerMagic({
       const gy = Number.isFinite(ground) ? ground : impactGround(collider, pos);
       fx.burst(kind, pos, { ground: gy, back, scale, power, radius, minR, area, areaFrom, body: AREA_FX_BODY, normal, surfaceAt });   // AOE-SIZE / AOE-REACH: an area's burst is drawn to what its sweep catches
       impactSounds.play(kind, kind === 'heal' ? [pos[0], gy + 1, pos[2]] : pos, { heard, volume: kind === 'heal' ? 0.8 : Math.min(1, 0.75 + 0.2 * power) });   // HEAL-SOFT: a big heal is no louder
-      const f = _doorFeet;
-      if (shake > 0 && kind !== 'heal' && f) {
-        const d = Math.hypot(pos[0] - f[0], pos[1] - f[1], pos[2] - f[2]);
-        const k = Math.max(0, 1 - d / 14) * shake;
-        if (k > 0.15) betterAmbience.weaponKick(k);
-      }
+      if (kind !== 'heal') kickFrom(pos, shake);
       return gy;
     } catch { return null; }   // feel is never worth a crash
+  }
+  function kickFrom(pos, shake) {
+    const f = _doorFeet;
+    if (!(shake > 0) || !f) return;
+    const d = Math.hypot(pos[0] - f[0], pos[1] - f[1], pos[2] - f[2]);
+    const k = Math.max(0, 1 - d / 14) * shake;
+    if (k > 0.15) betterAmbience.weaponKick(k);
   }
   /** RPT1026-CLIENT (a private report: at Dagon's Breach the shakes of many casts ran together without a pause): the share of its
    *  kick a landing missile gives - ANOTHER player's drawn one (SPELLFX1's `visual`, its caster named) the player's own
@@ -748,7 +756,7 @@ export function createPlayerMagic({
    *  missile's own element archive, one-shot at 15fps, gated on
    *  `elementType != None && targetType != ByTouch` (rangeType 1). */
   function showImpactFlash(m, pos) {
-    if (!m.spell || m.spell.element == null || m.spell.rangeType === 1) return;
+    if (!m.spell || m.spell.element == null || m.spell.rangeType === 1 || m.unseen) return;
     // EG-ZG (Elite-Gates.md section 25.4 - THE QUIET COMPANY): an ally's missile in a Spire trial lands as its classic flash
     // alone, at the quiet share - no bloom, no chunks, no burst in light of its own, no kick
     if (m.quiet) { impacts.showImpactFlash(missileArchive(m.spell.element), pos, m.scale ?? 1, allyConceal(m.quiet)); return; }
@@ -776,9 +784,9 @@ export function createPlayerMagic({
       const blast = m.spell.rangeType === 4;
       // AOE-SIZE: an Area at Range blast is drawn to the sphere explodeAt sweeps (EXPLOSION_RADIUS about the impact); a
       // single-target bolt keeps its own smaller burst
-      landFx(kind, kind === 'heal' ? [pos[0], ground, pos[2]] : pos, { back, ground, scale: sc, power: blast ? 1.25 : 1, radius: 0.8,
+      (m.visual && m.casterId != null ? peerHeard : (run) => run())(() => landFx(kind, kind === 'heal' ? [pos[0], ground, pos[2]] : pos, { back, ground, scale: sc, power: blast ? 1.25 : 1, radius: 0.8,
         area: blast ? EXPLOSION_RADIUS : 0, areaFrom: blast ? pos : null, heard: m.sky ? SKY_FIRE_HEARD_M : 40, shake: (blast ? 4.5 : 3) * peerKickShare(m),
-        normal: kind === 'heal' ? null : normal, surfaceAt });   // WALL-RING: the shockwave lies on what it struck
+        normal: kind === 'heal' ? null : normal, surfaceAt }));   // WALL-RING: the shockwave lies on what it struck
     } catch { /* feel is never worth a crash */ }
     // SUNBABY2: and a sky fireball is HEARD where it lands - its element's cast clip (DFU has no impact clip; the
     // missile's sound is its cast's), from the impact, as far as SKY_FIRE_HEARD_M
@@ -1305,9 +1313,9 @@ export function createPlayerMagic({
     lastCastCost = cost;
     tallyCastSkills(sp);
     surfacePlayer();
-    const meteor = bunny.meteorStart(sp, eye, dir);   // BUNNY-SPELLS: a Meteor falls from the sky on the spot aimed at
-    missiles.push({ spell: sp, cast, pos: meteor ? meteor.pos : [eye[0], eye[1], eye[2]], dir: meteor ? meteor.dir : [...dir], age: 0, batch: null, fromPlayer: true, ally: !readiedFree && allyCastable(sp), duel: !!duelSpellOf(sp), boss: !!duelSpellOf(sp) || (sp.effects ?? []).some((e) => e && isSoulTrapEffect(e)) || spellSways(sp) });
-    withBolt(missiles[missiles.length - 1]);   // MW-SPELLFX1: and its bolt   // AID1 onto ALLY-CAST: may be given to a party mate it strikes (never a free ready's); DUEL1: may strike my duel opponent; AUDIT WBX F5: may meet the court's boss - a harmful spell, or a Soul Trap (at range or bursting, as by touch)
+    const meteor = bunny.meteorStart(sp, eye, dir);   // BUNNY-SPELLS: a Meteor falls on the spot aimed at
+    missiles.push({ spell: sp, cast, pos: meteor ? meteor.pos : [eye[0], eye[1], eye[2]], dir: meteor ? meteor.dir : [...dir], unseen: !!meteor, age: 0, batch: null, fromPlayer: true, ally: !readiedFree && allyCastable(sp), duel: !!duelSpellOf(sp), boss: !!duelSpellOf(sp) || (sp.effects ?? []).some((e) => e && isSoulTrapEffect(e)) || spellSways(sp) });
+    if (!meteor) withBolt(missiles[missiles.length - 1]);   // MW-SPELLFX1: and its bolt   // AID1 onto ALLY-CAST: may be given to a party mate it strikes (never a free ready's); DUEL1: may strike my duel opponent; AUDIT WBX F5: may meet the court's boss - a harmful spell, or a Soul Trap (at range or bursting, as by touch)
     if (sp.rangeType === 4) giveAreaToCaster(sp, cast);   // AREA-CASTER: an Area at Range spell of gifts lands on me too, wherever it bursts
     return done(true);
   }
@@ -1477,7 +1485,7 @@ export function createPlayerMagic({
   }
 
   async function ensureMissileBatch(m) {
-    if (m.batch !== null) return;
+    if (m.batch !== null || m.unseen) return;
     if (m.mwBolt && ['pending', 'live'].includes(m.mwBolt.state())) return;   // MW-SPELLFX1: the bolt is its look; the classic flat stands in where it draws nothing - nothing to draw it with, or the effects switched off in flight
     m.batch = false;   // in-flight guard
     const archive = missileArchive(m.spell.element);
@@ -1526,7 +1534,7 @@ export function createPlayerMagic({
     setPlayerDoor(_door);
     stepSparks(dt);   // IMPACTFEEL (after the door: SET2 publishes it first thing each frame): the chunks' flight
     fx.step(dt);      // IMPACTFX: the light's
-    bunny.update(dt);   // BUNNY-SPELLS: the wall, the decoy and the wells
+    bunny.update(dt);   // BUNNY-SPELLS: the walls, the decoy, the wells, the meteors, and the stones
     mwFx.update(dt);  // MW-SPELLFX1: Morrowind's spell effects - their clocks, their places, their streams
     for (const m of missiles) if (!m.dead && m.spell && !m._artNoted) { m._artNoted = true; noteElementArt(m.spell.element); }   // ART-COLOUR: sampled while it flies, so its landing wears it
     // FA1: the missile flats' clock rides the module's OWN update, not
@@ -1914,6 +1922,7 @@ export function createPlayerMagic({
     /** IMPACTFX: THE BURSTS' PASS - the hosts call this right after this engine's billboards, in their world pass,
      *  under the renderer's own camera and fog. Answers whether it drew (it marks the foreign pass itself). */
     drawFx() {
+      try { bunny.draw(renderer); } catch (e) { console.warn('[spells] Failed to draw conjured spell effects', e?.message ?? e); }
       const mw = mwFx.draw();   // MW-SPELLFX1: Morrowind's spell effects, through the renderer's own particle path
       if (!fx.live || fxBroken || !renderer?.gl || !renderer._proj || !renderer._view) return mw;
       const n = fx.build();
@@ -1974,7 +1983,7 @@ export function createPlayerMagic({
       // at release (tallyCastSkills, PlayCastSound) - a missile of this engine carries no sound of its own after
       // that, its whoosh IS the cast sound. A peer's cast plays that same clip from the peer's own position, on
       // the enemy casters' 3D door and distance (EnemyCastReadySpell's play3dId, maxDistance 16).
-      try { audio.play3dId?.(SPELL_CAST_SOUND[el] ?? SPELL_CAST_SOUND[4], from, 1, { maxDistance: 16 }); } catch { /* a sound never costs the visual */ }
+      try { peerHeard(() => audio.play3dId?.(SPELL_CAST_SOUND[el] ?? SPELL_CAST_SOUND[4], from, 1, { maxDistance: 16 })); } catch { /* a sound never costs the visual */ }
       // MW-SPELLFX1: their casting effects at their feet - the body this scene stands for them, or a standing eye's
       const look = { element: el, rangeType };
       const q = casterId != null ? (peerBodies?.() ?? []).find((b) => b && b.id === casterId && Array.isArray(b.feet)) : null;
@@ -1985,6 +1994,8 @@ export function createPlayerMagic({
       mwFx.cast(look, feet, quiet ? { alpha: quiet.alpha } : undefined);
       if (rangeType === 2 || rangeType === 4) {
         if (!Array.isArray(dir) || dir.length !== 3 || !dir.every(Number.isFinite)) return false;
+        // Another player's Meteor comes from their pose (net/peer/peerConjured.js), so skip its ordinary missile.
+        if (rangeType === 4 && bunny.conjured.peerMeteorJust(casterId)) return true;
         missiles.push(withBolt({ spell: look, pos: [...from], dir: [...dir], age: 0, batch: null, fromPlayer: null, visual: true, casterId, quiet }));   // MW-SPELLFX1: its bolt; EG-ZG: and its quiet share
         return true;
       }
@@ -2023,5 +2034,6 @@ export function createPlayerMagic({
     },
     /** MW-SPELLFX1: the Morrowind spell effects layer, for the console and a pin. */
     mwFx,
+    conjured: bunny.conjured,
   };
 }

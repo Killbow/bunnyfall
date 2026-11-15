@@ -95,6 +95,7 @@ import { createSwimMovement } from './deepWater/deepWatersSwimMove.js';   // DW-
 import { deepWatersOn, deepWatersSwimSettings } from './deepWater/deepWatersHost.js';
 import { loadGraceActive as dwLoadGraceActive } from '../world/deepWater/deepWaterRuntime.js';
 import { autorunCancel } from '../player/autorunCancel.js';
+import { registerPlace } from '../systems/placeClimate.js';
 
 // Water surface: the classic water tile (R11), drawn by the context's
 // own frame function since WATER-D1 - its colour (DUNGEON_WATER_COLOR)
@@ -131,6 +132,7 @@ export async function bootDungeon(canvas, renderer, params, status) {
 
   const dfLocation = maps.getLocationByName(regionName, dungeonName);
   if (!dfLocation) throw new Error(`location not found: ${regionName}/${dungeonName}`);
+  registerPlace((at) => ({ climateIndex: dfLocation.climate?.worldClimate ?? null, underground: true, dungeonWall: ctx?.wallTexture?.(at) ?? null }));
 
   status(`laying out ${dungeonName}`);
   const pipeline = createDataPipeline({ renderer, arch, palette });

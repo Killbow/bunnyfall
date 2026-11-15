@@ -44,6 +44,7 @@ import { createUseMagicItemWindow, noItemToActivateText } from '../ui/useMagicIt
 import { cannotChangeIndoorsText } from '../ui/transportWindow.js';   // TR5: the indoors refusal
 import { smallerDungeonsStamp, needsStartWarp } from '../world/smallerDungeons.js';   // AUDIT 28 W4 / FT1: the save-time stamp and the load-time warp, one home
 import { remapSubMeshes } from '../world/texRemap.js';   // WM3: the one climate/dungeon remap seam
+import { dungeonWallPicture } from '../world/dungeonWallPicture.js';
 import { collectDungeonLights, dungeonAmbientFor, DUNGEON_AMBIENT, SPECIAL_AREA_BLOCK } from '../world/dungeon/dungeonLights.js';   // AUDIT 26 F183: the castle / special-area ambients
 import { isHearthFlat } from '../systems/survival/hearth.js';   // HEARTH1: a bowl of fire down a corridor is a fire you can cook on
 import { CityLightAnimator, MINUTES_PER_DAY } from '../world/worldClock.js';
@@ -8899,6 +8900,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     get retypedTo() { return rec.retypedTo; },
   });
   const api = {
+    wallTexture: (at) => dungeonWallPicture(blockAtXZ(at[0], at[2]), at, (id) => cpuModels.get(id), resolveTexKey),
     // WARDEN-STRIKE (FB 2026-09-29g): the court's boss's spell door, for the OUTER host's enchant ctx - hosted, this
     // context mounts none (`enchantCtx: false`), so its own `bossSpell` never ran and a Cast When Strikes spell on the
     // Warden went nowhere in the real game. Outside a court, nobody: false.
@@ -9419,6 +9421,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // foe-cast and missile-impact sites call).
     applySpellToPlayer: magic.applySpellToPlayer,
     spellVisual: magic.spellVisual,   // SPELLFX1: a peer's cast, drawn in this dungeon's own engine
+    conjured: magic.conjured,
     peerCandles: (list, dt) => magic.peerCandles(list, dt),   // PEERLIGHT2: the others' Light spells, in this dungeon's own engine
     /** SPELLFX1: a peer's arrow, drawn: this pool's own shaft, flagged visual - it stops on a wall or a body and lands nothing. */
     visualArrow: (from, dir) => { missiles.push({ arrow: true, visual: true, flatArchive: null, weapon: null, fromPlayer: false, shooterFoe: null, aimFoe: null, pos: [...from], dir: [...dir], age: 0, batch: null, draw: null }); return true; },

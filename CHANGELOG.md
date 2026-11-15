@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Meteor, Wall of Earth, and Decoy now land where the crosshair points, even on open ground and in third person. Wall of Earth rises as a mound, Meteor falls as a rock wrapped in its element and leaves a crater, and other players see both and bump into the wall.
 - Fixed: Gravity Well no longer freezes enemies in their hit animation. They keep fighting while it pulls them toward its center, about as fast as they walk, and it no longer pulls your allies.
 - Fixed: You can now do the daily chore at your Company's farm from its farmhouse door.
 - The map now shows garrisons on the march: a dashed arrow in the Company's colours runs from its town straight to the point on Rodney's blight edge where its soldiers push, thicker the more soldiers march.
