@@ -5,6 +5,14 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- The game loads faster, especially on slow connections, because textures now download in parallel instead of one set at a time or twice.
+- The initial game download is much smaller, so a first visit starts sooner.
+- Shops and houses start loading while their greeting is open, revisited rooms open faster, and entering a dungeon takes less time.
+- Startup is faster because ground snow history is saved between sessions instead of recalculated from scratch.
+- Returning to nearby towns and opening the travel or handheld map are now faster.
+- Leaving a ship's cabin no longer causes a brief stall.
+- Fixed: Weapon, shield, face, and item graphics that fail to download now retry automatically instead of staying missing until you reload.
+- Fixed: A failed fast travel or teleport no longer leaves the screen black, and the professions buttons no longer stay disabled after a network error.
 - Return visits load faster because your browser now caches game files and art.
 - Fixed: Removing an effect in the item enchanter no longer removes matching effects from a bound soul.
 - Fixed: The desktop launcher now shows release patch notes again, and updates that finish downloading after a temporary stall install before play instead of staying on "Could not download".
