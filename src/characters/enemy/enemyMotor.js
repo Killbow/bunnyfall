@@ -377,6 +377,7 @@ export const DETOUR_SWEEP_MAX_TRIES = 7;        // `if (count > 7) break`
 export const DETOUR_REACH = 2;                  // detourDestination = position + testMove * 2
 export const DETOUR_TIMER = 0.75;               // avoidObstaclesTimer
 export const DETOUR_ARRIVAL = 0.3;              // UpdateTimers zeroes the timer inside this
+export const DETOUR_BOXED_WAIT = 4 * CLASSIC_UPDATE_INTERVAL;
 
 /**
  * Per-foe classic AI: senses on the system timer, decisions on the
@@ -495,6 +496,7 @@ export class EnemyAI {
     this.checkingClockwiseTimer = 0;
     this.didClockwiseCheck = false;
     this.lastTimeWasStuck = -Infinity;
+    this._boxedUntil = -Infinity;
     this._clock = 0;   // Time.time, accumulated on the fixed step
     // EnemySenses' target-position memory (wave 35). null stands in for
     // DFU's ResetPlayerPos sentinel (float.MaxValue on all three axes),
@@ -1154,9 +1156,15 @@ export class EnemyAI {
    *      whether it is clear or not.
    * The destination is two units along whatever came out, and the foe
    * is committed to walking at it for 0.75s (which UpdateTimers cuts
-   * short on arrival).
+   * short on arrival). A sweep that finds every way blocked is not run
+   * again for four classic ticks.
    */
   _findDetour(dir2d, rolls = this.rolls) {
+    if (this._clock < this._boxedUntil) {
+      if (this.avoidObstaclesTimer <= 0) this.avoidObstaclesTimer = DETOUR_TIMER;
+      this.lastTimeWasStuck = this._clock;
+      return;
+    }
     let testMove = [0, 0, 0];
     let foundUpDown = false;
     if (this.flies || this.swims || this.levitating) {
@@ -1226,6 +1234,7 @@ export class EnemyAI {
         count++;
         if (count > DETOUR_SWEEP_MAX_TRIES) break;
       } while (this.obstacleDetected || this.fallDetected);
+      if (this.obstacleDetected || this.fallDetected) this._boxedUntil = this._clock + DETOUR_BOXED_WAIT;
     }
     // REVIEW 2026-09-05: `transform.position + testMove * reach`, kept
     // in FEET-space like every other destination on this class (the
@@ -2293,7 +2302,7 @@ export class EnemyAI {
     this.lastGroundedY = this.feet[1]; this._airborne = false; this.velY = 0; this.landedFall = 0;
     this.destination = [this.feet[0], this.feet[1], this.feet[2]]; this.detourDestination = [this.feet[0], this.feet[1], this.feet[2]];
     this.obstacleDetected = false; this.fallDetected = false; this.foundUpwardSlope = false; this.foundDoor = false;
-    this.avoidObstaclesTimer = 0; this.checkingClockwiseTimer = 0; this.didClockwiseCheck = false; this.lastTimeWasStuck = -Infinity;
+    this.avoidObstaclesTimer = 0; this.checkingClockwiseTimer = 0; this.didClockwiseCheck = false; this.lastTimeWasStuck = -Infinity; this._boxedUntil = -Infinity;
     this._acc = 0; this.knockbackSpeed = 0; this.hurtKnock = false; this.moving = false;
     this._restGrounded = false;   // AUDIT WORLD2 B12: a foe that takes the seat standing still re-grounds on its first step, not its first move
     this._crumb = null; this._trailMode = null; this._trailT = 0;   // COMPANION-TRAIL: stood afresh, it looks afresh
