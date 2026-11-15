@@ -72,6 +72,7 @@ import { MINUTES_PER_DAY, playerWeaponHitEntity, playerWeaponKillReported, world
 import { FOES_MS } from '../net/online.js';   // AUDIT ALL B2: the watchman moved since the frame the striker swung at
 import { applyChampion, rollStreetChampion, championIndex, championName, properName } from '../systems/champions.js';   // LOOT7: the street's champions
 import { wildHere, wildRing, wildZoneKind, applyWildFoe, wildLootOpts, wildGiantSize, WILD_GIANT, WILD_GIANT_HEALTH_MULT, WILD_GIANT_DAMAGE_MULT } from '../systems/wild/wildZone.js';   // WILD1: the open zone's foes
+import { WILD_GIANT_CULL_M } from '../systems/wild/wildGiants.js';
 import { lootCrown } from './lootLines.js';   // LOOT11: a body's line of light
 import { allySpellHit } from './allySpellHit.js';
 import { validFoeRecord, LIVING_ID_RE, REVENANT_NAME_MAX, CELL_PUPPETS_MAX, CELL_WATCH_PUPPETS_MAX, CELL_FRAME_RECORDS_MAX, FOE_SEQ_MAX, POSE_BOUND, POSE_Y_BOUND, tokenGate, FOE_HEALTH_MAX, hitPoisonOf, hitSpellOf, hitSpellFields, HIT_ARROWS_MAX, hitClassField, hitClassOf, wallMsForClassicMinutes } from '../net/wire.js';   // STRIKE-SHARED: a strike spell rides the hit
@@ -1767,7 +1768,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // a foe (before the cull, which spares a foe that detects me)
       if (_playerDist > ROUT.DISTANCE && revenantRoutable(f)) { routFoe(f); continue; }
       const _relentless = f.entity?.revenant?.edge?.relentless === true && f.ai.isHostile;   // RVN2: a Relentless revenant hunting me is never culled (a load or a sweep ends its stand)
-      const _cullAt = f.campId != null ? CAMP_CULL_DISTANCE : ENCOUNTER_CULL_DISTANCE;
+      const _cullAt = f.entity?.zoneGiant != null ? WILD_GIANT_CULL_M : f.campId != null ? CAMP_CULL_DISTANCE : ENCOUNTER_CULL_DISTANCE;
       if (!f.placed && !f.managed && !f.refugee && _playerDist > _cullAt && !(f.ai.detected && f.ai.targetIsLocalPlayer !== false) && !(_qTag(f) && partyNearFoe(f, _cullAt)) && !_relentless) {   // DROPS-AUDIT CAMP-CULL; AUDIT (pre-merge) Q4: a shared quest's foe stands while a party member is near it
         releaseFoeBatch(f);   // AUDIT WORLD-EVENTS L4-2: never a raid's refugee, above (its raid stands it and lets it go - culled at 120 m, every one was counted lost)
         f.dead = true;
