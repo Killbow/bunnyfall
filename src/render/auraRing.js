@@ -1104,7 +1104,7 @@ vec3 wardGround(vec2 p) {
   float cu = (a - uTime * TAU ${hzGlsl(WARD_HZ.runes)}) / TAU * ${WARD_RUNES.toFixed(1)};
   float k = mod(floor(cu), ${WARD_RUNES.toFixed(1)});
   vec2 q = vec2((fract(cu) - 0.5) * TAU / ${WARD_RUNES.toFixed(1)} * r, r - ${WARD_RUNE_R.toFixed(3)});
-  float written = 0.45 + 0.55 * pow(0.5 + 0.5 * cos(uTime * TAU ${hzGlsl(WARD_HZ.write)} - k / ${WARD_RUNES.toFixed(1)} * TAU), 3.0);
+  float written = 0.45 + 0.55 * pow(max(0.5 + 0.5 * cos(uTime * TAU ${hzGlsl(WARD_HZ.write)} - k / ${WARD_RUNES.toFixed(1)} * TAU), 0.0), 3.0);
   col += inked(runeD(q, WARD_SCRIPT[int(k)]), 0.011) * written;
   // THE CLAWS at the diagonals, hung from the ring
   float su = a / TAU * ${WARD_SIGILS.toFixed(1)};   // a claw at each cell's middle: the diagonals
@@ -1161,7 +1161,7 @@ vec3 radianceGround(vec2 p) {
   float dr = r - R;
   col += RAD_GOLD * exp(-dr * dr / 0.0016) * 0.55 * breath + RAD_HEART * exp(-dr * dr / 0.00018) * 0.7;
   // THE RAYS out from the ring across the pool, turning slowly - a whole number round, so no seam behind the wearer
-  float ray = pow(0.5 + 0.5 * cos(${RADIANCE_RAYS.toFixed(1)} * (a - uTime * TAU ${hzGlsl(RADIANCE_HZ.rays)})), 8.0);
+  float ray = pow(max(0.5 + 0.5 * cos(${RADIANCE_RAYS.toFixed(1)} * (a - uTime * TAU ${hzGlsl(RADIANCE_HZ.rays)})), 0.0), 8.0);
   col += RAD_GOLD * ray * 0.3 * breath * smoothstep(R * 0.9, R + 0.08, r) * (1.0 - smoothstep(R + 0.15, ${RADIANCE_POOL_R.toFixed(3)}, r));
   return col * (1.0 - smoothstep(uGroundR - 0.2, uGroundR, r));
 }
@@ -1172,7 +1172,7 @@ vec3 radianceWall(vec2 q) {
   float an = u * TAU;
   vec2 e = uCamPos.xz - vWorld.xz;
   float facing = dot(e, e) > 1e-8 ? abs(dot(vec2(cos(an), sin(an)), normalize(e))) : 1.0;
-  float rim = 0.14 + 0.86 * pow(1.0 - facing, 2.0);
+  float rim = 0.14 + 0.86 * pow(max(1.0 - facing, 0.0), 2.0);
   // the shafts climbing it, and the column fading toward its top
   float shaft = vnoiseP(vec2(u * ${RADIANCE_ROUND.toFixed(1)}, v * 2.5 - uTime * ${RADIANCE_FLOW.shafts.toFixed(3)}), vec2(${RADIANCE_ROUND.toFixed(1)}, ${(RADIANCE_FLOW.shafts * AURA_CLOCK_PERIOD).toFixed(1)}));
   float rise = (1.0 - smoothstep(0.4, 1.0, v)) * (0.7 + 0.3 * (1.0 - v));   // whole to the chest, gone past the crown
@@ -2147,7 +2147,7 @@ vec4 sageGround(vec2 p) {
     float k = mod(floor(cu), ${g1(SAGE_RUNES)});
     vec2 q = vec2((fract(cu) - 0.5) * TAU / ${g1(SAGE_RUNES)} * r, r - uRingR);
     float d = runeD(q / ${g3(SAGE_RUNE_SCALE)}, SAGE_SCRIPT[int(k)]) * ${g3(SAGE_RUNE_SCALE)};
-    float lit = 0.45 + 0.55 * pow(0.5 + 0.5 * cos(uTime * TAU ${hzGlsl(SAGE_HZ.pulse)} - k / ${g1(SAGE_RUNES)} * TAU), 3.0);
+    float lit = 0.45 + 0.55 * pow(max(0.5 + 0.5 * cos(uTime * TAU ${hzGlsl(SAGE_HZ.pulse)} - k / ${g1(SAGE_RUNES)} * TAU), 0.0), 3.0);
     light += sageInked(d, 0.009) * lit * breath;
     // drawn round from behind the wearer as it kindles, as the ward is
     light *= wardDrawn(fract(a / TAU + 0.5));
@@ -2161,7 +2161,7 @@ vec4 sageWall(vec2 q) {
   float an = u * TAU;
   vec2 e = uCamPos.xz - vWorld.xz;
   float facing = dot(e, e) > 1e-8 ? abs(dot(vec2(cos(an), sin(an)), normalize(e))) : 1.0;
-  float rim = 0.3 + 0.7 * pow(1.0 - facing, 2.0);
+  float rim = 0.3 + 0.7 * pow(max(1.0 - facing, 0.0), 2.0);
   // THE LOW SMOKE rolling round the feet and up off the runes, covering - the runes' green on its foot, the smoke's grey
   // above, gone by the knee
   float n = fbmP(vec2(u * 24.0, v * 2.0 - uTime * ${g3(SAGE_FLOW.rise)}), vec2(24.0, ${g1(SAGE_FLOW.rise * AURA_CLOCK_PERIOD)}));
@@ -2239,7 +2239,7 @@ vec4 warrenGround(vec2 p) {
     for (int m = 0; m < ${WARREN_TWINKLES}; m++) {
       float fm = float(m);
       vec2 tq = vec2(warrenTurn(a, (fm + 0.5) / ${WARREN_TWINKLES.toFixed(1)} * TAU) * r, r - (mod(fm, 2.0) < 0.5 ? uRingR + 0.14 : ringR - 0.1));
-      float tw = pow(0.5 + 0.5 * sin(TAU * (uTime ${hzGlsl(WARREN_HZ.twinkle)} + fm * 0.37)), 6.0);
+      float tw = pow(max(0.5 + 0.5 * sin(TAU * (uTime ${hzGlsl(WARREN_HZ.twinkle)} + fm * 0.37)), 0.0), 6.0);
       c.rgb += mix(WR_BLUSH, WR_FRILL, 0.5) * warrenStar(tq, 0.05) * tw * 0.45;
     }
     // THE RING: a crisp line of the lilac, covering
@@ -2538,7 +2538,7 @@ ${WARD_GLSL}${RADIANCE_GLSL}${RESONANCE_GLSL}${TURNING_GLSL}${MAELSTROM_GLSL}${S
 vec3 haloRing(vec2 q) {
   float x = q.y - 0.5;
   float core = exp(-x * x / 0.012), glow = exp(-x * x / 0.09) * 0.45;
-  float glint = pow(0.5 + 0.5 * sin(6.283185307179586 * (q.x * 2.0 - uTime * ${HALO_HZ.glint.toFixed(3)})), 10.0);
+  float glint = pow(max(0.5 + 0.5 * sin(6.283185307179586 * (q.x * 2.0 - uTime * ${HALO_HZ.glint.toFixed(3)})), 0.0), 10.0);
   float breath = 0.85 + 0.15 * sin(6.283185307179586 * ${HALO_HZ.breath.toFixed(3)} * uTime);
   return (vec3(1.0, 0.8, 0.38) * (core * 1.5 + glow) * breath + vec3(1.0, 0.97, 0.85) * glint * core * 0.8) * uKindle;
 }

@@ -88,10 +88,12 @@ void main() {
   float lines = lineOf(vUV.x * ${DUEL_WALL_LINES}.0, 0.035);
   float bands = lineOf(h * ${DUEL_WALL_BANDS}.0 - uTime * ${DUEL_WALL_CLIMB_HZ.toFixed(2)}, 0.06);
   float s = fract(uTime * ${DUEL_WALL_SWEEP_HZ.toFixed(2)}) * 1.2 - 0.1;
-  float sweep = exp(-pow((h - s) * 14.0, 2.0));
+  float ds = (h - s) * 14.0;
+  float sweep = exp(-ds * ds);
   float shimmer = 0.85 + 0.15 * sin(uTime * 6.283185307179586 * ${DUEL_WALL_SHIMMER_HZ.toFixed(2)} + vUV.x * 6.283185307179586 * ${DUEL_WALL_SHIMMER_WAVES}.0);
   // brightest where it meets the ground, gone toward the top
-  float foot = 1.0 + 0.8 * exp(-pow((h - uBelow) * 18.0, 2.0));
+  float df = (h - uBelow) * 18.0;
+  float foot = 1.0 + 0.8 * exp(-df * df);
   float top = 1.0 - smoothstep(0.5, 1.0, h);
   float light = (0.07 + 0.45 * lines + 0.22 * bands + 0.55 * sweep) * foot * top * shimmer;
   o = vec4(dwWaterFogAdd(uColor * light * uAlpha * fogFactorAt(vWorld), vWorld), 1.0);   // DW-C: an added glow's share of the carved sea's distance fog
