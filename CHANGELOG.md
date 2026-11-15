@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: When decorating a yard, home, or caravan, Place now says how much more gold you need once your unconfirmed pieces use it up.
 - Fixed: Decorating a camp no longer asks for gold or says a piece has left your pack, and a full camp is no longer called your yard.
 - Fixed: Placing a fifth tent or fire now asks first when it would pack up your oldest camp and its decorations.
 - Fixed: Camps and their decorations are no longer deleted when you load a save made before the tent was pitched.
