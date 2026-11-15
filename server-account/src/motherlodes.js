@@ -59,6 +59,9 @@ const rowView = (r) => ({
   material: r.material, opensAt: Number(r.opens_at), closesAt: Number(r.closes_at),
 });
 
+const markStmt = (/** @type {any} */ db, /** @type {number} */ day) => db.prepare('SELECT 1 FROM motherlode_days WHERE day = ?1').bind(day);
+const keptStmt = (/** @type {any} */ db, /** @type {number} */ day) => db.prepare('SELECT * FROM motherlodes WHERE day = ?1 ORDER BY k').bind(day);
+
 /**
  * THE DAY'S MOTHERLODES - kept, or picked and kept on the day's first read: the pixels confirmed before the day began
  * (their reports before it - three accounts' word, as nodeLaw witnessedFact reads it), in motherlodeSites' one order.
@@ -78,8 +81,8 @@ const rowView = (r) => ({
  * @param {{ db: any, primary?: any, rand?: () => number }} ctx
  */
 export async function motherlodesOf({ db: read, primary = read, rand }, day) {
-  const keptOf = async (/** @type {any} */ db) => ((await db.prepare('SELECT * FROM motherlodes WHERE day = ?1 ORDER BY k').bind(day).all())?.results ?? []).map(rowView);
-  const marked = async (/** @type {any} */ db) => !!(await db.prepare('SELECT 1 FROM motherlode_days WHERE day = ?1').bind(day).first());
+  const keptOf = async (/** @type {any} */ db) => ((await keptStmt(db, day).all())?.results ?? []).map(rowView);
+  const marked = async (/** @type {any} */ db) => !!(await markStmt(db, day).first());
   if (await marked(read)) return keptOf(read);
   const db = primary;
   if (db !== read && await marked(db)) return keptOf(db);
@@ -117,14 +120,19 @@ export async function motherlodesRead(ctx, player, env, { character } = {}) {
   const refused = profAsks(player, { character, needRid: false }) ?? profShut(player, env);
   if (refused) return refused;
   const day = utcDay(nowS);
-  const lodes = await motherlodesOf(ctx, day);
-  const { results: counts = [] } = await db.prepare('SELECT k, COUNT(*) AS n FROM motherlode_strikes WHERE day = ?1 GROUP BY k').bind(day).all();
-  const struck = new Map(counts.map((c) => [Number(c.k), Number(c.n)]));
-  const found = await db.prepare('SELECT k FROM motherlode_strikes WHERE day = ?1 AND player = ?2').bind(day, player.id).first();
+  const [mark, kept, counts, found] = await db.batch([
+    markStmt(db, day),
+    keptStmt(db, day),
+    db.prepare('SELECT k, COUNT(*) AS n FROM motherlode_strikes WHERE day = ?1 GROUP BY k').bind(day),
+    db.prepare('SELECT k FROM motherlode_strikes WHERE day = ?1 AND player = ?2').bind(day, player.id),
+  ]);
+  const lodes = mark.results?.length ? (kept.results ?? []).map(rowView) : await motherlodesOf(ctx, day);
+  const struck = new Map((counts.results ?? []).map((c) => [Number(c.k), Number(c.n)]));
+  const mine = found.results?.[0];
   return {
     day, now: nowS, strikers: MOTHERLODE_STRIKERS, rank: MOTHERLODE_RANK, silver: MOTHERLODE_SILVER,
     lodes: lodes.map((l) => ({ ...l, struck: struck.get(l.k) ?? 0 })),
-    found: found ? motherlodeKey(day, Number(found.k)) : null,
+    found: mine ? motherlodeKey(day, Number(mine.k)) : null,
   };
 }
 

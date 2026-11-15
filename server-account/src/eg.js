@@ -61,9 +61,9 @@ import { verifyEgReceipt, EG_RECEIPT_TTL_S } from '../../src/net/eliteGates/egRe
 import { POST_SENDER } from '../../src/net/postLaw.js';   // EG-ZM: the post's sender, as the box shows it
 import { mintEgOrder } from '../../src/net/identityToken.js';
 import { utcDay } from '../../src/net/marksLaw.js';
-import { egHonourStatements, egHonoursAnswer, egRecordOf } from './egHonours.js';   // EG-E2: the feats, the Annals, the honours
+import { egHonourStatements, egHonoursAnswer, egRecordStmts, egRecordFrom } from './egHonours.js';   // EG-E2: the feats, the Annals, the honours
 import { egStandingOf, egFirstPost, egBoardsMoved } from './egHonours.js';   // EG-ZF: the recap's board line; First of the Spire's letter; AUDIT EG III: the boards' kept rankings forgotten at a claim
-import { egRedoubtPay, egReliquariesOf, egSinkOf } from './egEconomy.js';   // EG-E1: what a Redoubt pays, the sink
+import { egRedoubtPay, egReliquariesOf, egSinkStmt, egSinkFrom } from './egEconomy.js';   // EG-E1: what a Redoubt pays, the sink
 import { arenaWeekOf } from '../../src/net/arena/arenaLaw.js';   // EG-E3: the week a find's keys are capped by, the arena's
 import { egMayStart, egWagerOf } from '../../src/net/eliteGates/egStartLaw.js';   // EG-F: the start Redoubt and the Wager, held at the open and every admission
 import { egStartsFor } from './egStarts.js';
@@ -157,12 +157,14 @@ const hex = (b) => [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
 const liveOf = (row, nowS) => (row?.eg_live_b && int(row.eg_live_until) > nowS ? { b: row.eg_live_b, until: int(row.eg_live_until) } : null);
 /** May the account stake a key at all: a Dagon's Breach closed (a recorded kill, never the rite alone) or a Redoubt
  *  taken (section 5 - a fresh account cannot farm or open). The Rehearsal asks neither. */
+const provenStmt = (db, id) => db.prepare("SELECT (EXISTS (SELECT 1 FROM gate_kills WHERE account = ?1 AND earned != 'rite') OR EXISTS (SELECT 1 FROM eg_redoubts WHERE account = ?1)) AS ok").bind(id);
+const provenFrom = (r) => int(r?.ok) === 1;
 async function proven(db, id) {
-  const r = await db.prepare("SELECT (EXISTS (SELECT 1 FROM gate_kills WHERE account = ?1 AND earned != 'rite') OR EXISTS (SELECT 1 FROM eg_redoubts WHERE account = ?1)) AS ok").bind(id).first();
-  return int(r?.ok) === 1;
+  return provenFrom(await provenStmt(db, id).first());
 }
+const playerRowStmt = (db, id) => db.prepare('SELECT eg_keys, eg_key_miss, eg_live_b, eg_live_until, eg_rh_day, eg_mercy, eg_first FROM players WHERE id = ?1').bind(id);
 async function playerRow(db, id) {
-  return db.prepare('SELECT eg_keys, eg_key_miss, eg_live_b, eg_live_until, eg_rh_day, eg_mercy, eg_first FROM players WHERE id = ?1').bind(id).first();
+  return playerRowStmt(db, id).first();
 }
 
 /**
@@ -175,10 +177,21 @@ async function playerRow(db, id) {
  * @param {{ db: any, nowS: number }} ctx @param {{ id: string, handle?: string|null }} player @param {any} [env]
  */
 export async function egKeysOf({ db, nowS }, player, env = null) {
-  const row = await playerRow(db, player.id);
-  const rd = await db.prepare('SELECT COUNT(*) AS n FROM eg_redoubts WHERE account = ?1').bind(player.id).first();
+  const id = player.id;
+  const [row, rd, prv, sink, annals, feats] = await db.batch([
+    playerRowStmt(db, id),
+    db.prepare('SELECT COUNT(*) AS n FROM eg_redoubts WHERE account = ?1').bind(id),
+    provenStmt(db, id),
+    egSinkStmt(db, nowS, id),
+    ...egRecordStmts(db, id),
+  ]);
+  const r0 = row.results?.[0];
   await egFirstPost(db, player, env, nowS);
-  return { keys: int(row?.eg_keys), live: liveOf(row, nowS), rehearsal: int(row?.eg_rh_day) !== utcDay(nowS), proven: await proven(db, player.id), redoubts: int(rd?.n), sink: await egSinkOf({ db, nowS }, player), ...(await egRecordOf(db, player.id)), first: int(row?.eg_first) };
+  return {
+    keys: int(r0?.eg_keys), live: liveOf(r0, nowS), rehearsal: int(r0?.eg_rh_day) !== utcDay(nowS), proven: provenFrom(prv.results?.[0]),
+    redoubts: int(rd.results?.[0]?.n), sink: egSinkFrom(nowS, sink.results?.[0]),
+    ...egRecordFrom(annals.results?.[0], feats.results), first: int(r0?.eg_first),
+  };
 }
 /**
  * EG-ZF (section 27.7): THE FIRST-TIME LINES SHOWN (`{ bits }`, a bit a line - the client's lines in force), OR'ed onto

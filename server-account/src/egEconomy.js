@@ -189,10 +189,10 @@ export async function egReliquariesOf({ db, nowS }, player, c) {
  * @param {{ db: any, nowS: number }} ctx @param {{ id: string }} player
  */
 export async function egSinkOf({ db, nowS }, player) {
-  const week = arenaWeekOf(nowS);
-  const r = await db.prepare('SELECT piece FROM eg_sink WHERE account = ?1 AND wk = ?2').bind(player.id, week).first();
-  return { week, piece: typeof r?.piece === 'string' ? r.piece : null };
+  return egSinkFrom(nowS, await egSinkStmt(db, nowS, player.id).first());
 }
+export const egSinkStmt = (/** @type {any} */ db, /** @type {number} */ nowS, /** @type {string} */ id) => db.prepare('SELECT piece FROM eg_sink WHERE account = ?1 AND wk = ?2').bind(id, arenaWeekOf(nowS));
+export const egSinkFrom = (/** @type {number} */ nowS, /** @type {any} */ r) => ({ week: arenaWeekOf(nowS), piece: typeof r?.piece === 'string' ? r.piece : null });
 
 /**
  * THE BROKER'S PANOPLY SINK - one piece of the buyer's choosing (`body.piece`, one of EG_PANOPLY_IDS), once an account an
