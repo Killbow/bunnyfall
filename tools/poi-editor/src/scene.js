@@ -6,10 +6,10 @@
 // so each one is a single undo step.
 
 import { POI_V2_LIMITS } from '../../../src/poi/poiLawV2.js';
+import { freshKey } from '../../../src/poi/poiDmEdit.js';
 
 /** The collections a scene node can live in, by node kind. */
 export const KINDS = Object.freeze({ part: 'parts', flat: 'flats', light: 'lights', npc: 'npcs' });
-const KEY_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/;
 
 /** A node's id: `kind:key`, or `light:index` (lights have no key). */
 export const nodeId = (kind, doc, i) => `${kind}:${kind === 'light' ? i : doc[KINDS[kind]][i].key}`;
@@ -30,12 +30,8 @@ export function find(doc, id) {
   return list[i] ? { kind, index: i, row: list[i] } : null;
 }
 
-/** A key from a wanted word, unique among `taken`. */
-export function freshKey(wanted, taken) {
-  let base = String(wanted ?? '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9_-]+/g, '-').replace(/^[^a-z0-9]+/, '').replace(/-+$/, '').slice(0, 26) || 'item';
-  if (!taken.has(base) && KEY_RE.test(base)) return base;
-  for (let n = 2; ; n++) { const k = `${base}-${n}`; if (!taken.has(k)) return k; }
-}
+/** A key from a wanted word, unique among `taken` (the game's DM module makes them the same way). */
+export { freshKey };
 
 /**
  * The tree for the hierarchy panel. Every node: `{ id, kind, name, children, visible, locked, hidden, frozen }`.

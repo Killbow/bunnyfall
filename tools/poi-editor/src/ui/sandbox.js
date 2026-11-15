@@ -7,7 +7,7 @@
 // counts (once per character, stock) start empty each time the sandbox restarts.
 
 import { h, clear } from './dom.js';
-import { itemName } from '../dm.js';
+import { itemName } from '../../../../src/poi/poiDmEdit.js';
 import {
   createDm, fire, runEvent, runRecipe, recipeBlock, completeEncounter, openDialogue, dialogueNow, choose, advance,
 } from '../../../../src/poi/poiDmCore.js';

@@ -4,28 +4,30 @@
 //
 // Mac: "POI Tool (General Map Editor) - Realtime editor ... I want this to be a tool my developers can use without having
 // to access the codebase ... No short cuts or band aids" (bible/06-Systems/POI-Editor-Arc.md). The editor's model, pure
-// (no DOM, no GL, no network) so the World Builder (tools/poi-editor) and the tests read it the same way:
+// (no DOM, no GL, no network) so the in-game editor, the World Builder (tools/poi-editor), and the tests read it alike:
 //
-//   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law keeps it (poi/poiLaw.js) -
+//   - THE WORKING SET (`open`, `create`): each POI being edited is its document as the law defines it (poi/poiLaw.js) -
 //     opened from the live set or a draft, or made new - beside the document as it was last SAVED, so "unsaved" is a
 //     comparison, never a flag someone forgot to clear.
 //   - EVERY CHANGE IS ONE STEP (`edit`): the document before and after, as text, on one undo stack across the whole
 //     set (the order the builder made them, whichever POI each touched), with the selection each step left. A step that
 //     changes nothing is no step. A drag (`begin` / `preview` / `commit`) is ONE step however many frames it moved: each
 //     preview is applied to the document as the drag found it - absolute from its start, so a long drag gathers no error
-//     - and `cancel` puts it back. The stack holds POI_UNDO_DEPTH steps; the oldest go first.
-//   - THE TRANSFORMS (`movePlace`, `rotatePlace`, `movePart`, ...): a POI stands in its PIXEL's frame (east x, north z,
-//     metres from the south-west corner - scenes/poiHost.js), so a move is made in map metres and the place renormalised:
+//     - and `cancel` restores it. The stack holds POI_UNDO_DEPTH steps; the oldest go first.
+//   - THE TRANSFORMS (`movePlace`, `rotatePlace`, `movePart`, ...): a POI sits in its PIXEL's frame (east x, north z,
+//     meters from the southwest corner - scenes/poiHost.js), so a move is made in map meters and the place renormalized:
 //     a POI dragged over a pixel's edge belongs to the next pixel, its numbers in that one's frame. A part's transform is
 //     in its POI's frame (after the place's turn and size), so a world move or turn is carried into it.
-//   - UNITY'S EULER ANGLES (`eulerOfQuat`, `quatOfEuler`): the inspector's three numbers, in the engine's own order - Z,
-//     then X, then Y (Transform.eulerAngles) - over the quaternion the document keeps.
+//   - UNITY'S EULER ANGLES (`eulerOfQuat`, `quatOfEuler`): the inspector's three numbers, in the engine's own order -
+//     Z, then X, then Y (Transform.eulerAngles) - over the quaternion the document stores.
 //
 // Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { POI_DOC_VERSION, POI_PIXEL_M, POI_MAP, POI_PART_KEY_RE, POI_LIMITS, DEFAULT_MATERIAL, mintPoiId } from './poiLaw.js';
+import { POI_DOC_VERSION, POI_PIXEL_M, POI_MAP, POI_PART_KEY_RE, POI_LIMITS, DEFAULT_MATERIAL, mintPoiId, poiDocBytesOf } from './poiLaw.js';
+import { POI_V2_DOC_KEYS } from './poiLawV2.js';
 import { quatMultiply, quatAngleAxis, quatRotate } from '../world/quat.js';
+import { find as findNode, parseId } from './poiScene.js';
 
 /** The steps the undo stack keeps before the oldest is let go. */
 export const POI_UNDO_DEPTH = 200;
@@ -207,12 +209,65 @@ export function newPoiDoc({ id, px, py, x, z, y = 0, name }) {
   return { v: POI_DOC_VERSION, id, name: lawName(name), place, parts: [], lights: [], marker: { show: false } };
 }
 
+// ── VERSIONS AND WHAT A DOCUMENT HOLDS ────────────────────────────
+/** Upgrades a modified v1 document to v2 (which holds all v1 fields unchanged). A document that was not v1 before
+ *  the edit retains its version, and a change whose result matches `saved` (the last saved JSON) stays v1 and clean.
+ *  @param {any} doc @param {any} wasV @param {string | null} [saved] */
+export function upgradeChanged(doc, wasV, saved = null) {
+  if (wasV === 1 && doc && doc.v === 1 && JSON.stringify(doc) !== saved) doc.v = POI_DOC_VERSION;
+  return doc;
+}
+/** A document's size as JSON and the most its version may weigh (poiLaw.js poiDocBytesOf). @param {any} doc */
+export function poiDocSizeOf(doc) {
+  const bytes = new TextEncoder().encode(JSON.stringify(doc)).byteLength;
+  return { bytes, max: poiDocBytesOf(doc?.v === 2 ? 2 : 1) };
+}
+/** People's v2 links: a route, a dialogue, a trade, a reach, or a condition (poiLawV2.js POI_V2_NPC_KEYS less the layout). */
+const NPC_LINKS = ['route', 'dialogue', 'trade', 'radius', 'showWhen'];
+/**
+ * Returns a summary of v2 document content outside the outliner's scope: each v2 collection's count (excluding groups
+ * and flat pictures, which the outliner and flat-picture UI edit), whether the POI has an interior, and how many NPCs
+ * have DM links. The DM panel filters out the fields it edits (ui/poi/poiDmPanel.js heldNotEditable) so the inspector
+ * can list the remaining read-only content. `flats` counts the flat pictures, which the editor places and edits itself
+ * (ui/poi/poiFlatUi.js), so the read-only lines leave them out.
+ * @param {any} doc
+ */
+export function poiHeldOf(doc) {
+  /** @type {Record<string, number>} */
+  const kinds = {};
+  for (const k of POI_V2_DOC_KEYS) if (!['interior', 'groups', 'flats'].includes(k) && Array.isArray(doc?.[k]) && doc[k].length) kinds[k] = doc[k].length;
+  return {
+    kinds, interior: !!doc?.interior, flats: Array.isArray(doc?.flats) ? doc.flats.length : 0,
+    linked: (doc?.npcs ?? []).filter((n) => n && NPC_LINKS.some((k) => n[k] !== undefined)).length,
+  };
+}
+
 // ── THE WORKING SET AND ITS UNDO ──────────────────────────────────
 const text = (d) => (d == null ? null : JSON.stringify(d));
 const sameSel = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**
- * @typedef {{ id: string, part?: string | null, light?: number | null } | null} PoiSelection
+ * A selection: the POI `id` and the things selected in it, `items`, as scene ids (poiScene.js: `part:key`, `flat:key`,
+ * `light:i`, `npc:key`, `group:key`), the last one the primary. No items: the POI itself. `part` and `light` name the
+ * primary when it is a part or a light (else null), so a caller that reads one selected thing reads it as before.
+ * @param {string} id @param {string[]} items
+ */
+export function selectionOf(id, items = []) {
+  const list = [...new Set(items.map(String))];
+  const last = list.length ? parseId(list[list.length - 1]) : null;
+  return { id, items: list, part: last?.kind === 'part' ? last.key : null, light: last?.kind === 'light' ? Number(last.key) : null };
+}
+/** The items a selection names, read from `items`, else from the one `part` or `light` it was given. @param {any} s */
+export function selItems(s) {
+  if (!s) return [];
+  if (Array.isArray(s.items)) return s.items;
+  if (s.part != null) return [`part:${s.part}`];
+  if (s.light != null) return [`light:${s.light}`];
+  return [];
+}
+
+/**
+ * @typedef {{ id: string, items?: string[], part?: string | null, light?: number | null } | null} PoiSelection
  * @typedef {{ doc: any, saved: string | null, base: number | null, rev: number | null, state: string }} PoiEntry
  *   `saved` the document as last saved (null: never - a new POI); `base` the live revision it was made from; `rev` its
  *   own draft's revision once saved; `state` the service's word for that revision ('new' until it has one)
@@ -249,14 +304,13 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
     if (undo.length > depth) undo.splice(0, undo.length - depth);
     redo = [];
   };
-  /** A selection that still names something (an undo may take away the part it named). */
+  /** Normalizes a selection and drops any item whose row no longer exists in the document (for example, after an
+   *  undo removes a part). Accepts `{ id, part }` or `{ id, light }` as a single-item selection. */
   const validSel = (s) => {
     if (!s) return null;
     const e = docs.get(s.id);
     if (!e) return null;
-    if (s.part != null && !e.doc.parts.some((p) => p.key === s.part)) return { id: s.id, part: null, light: null };
-    if (s.light != null && !(s.light < (e.doc.lights?.length ?? 0))) return { id: s.id, part: null, light: null };
-    return { id: s.id, part: s.part ?? null, light: s.light ?? null };
+    return selectionOf(s.id, selItems(s).filter((i) => !!findNode(e.doc, i)));
   };
 
   const api = {
@@ -307,7 +361,7 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       fill?.(doc);
       const selBefore = sel;
       setDoc(id, text(doc));
-      sel = validSel((typeof select === 'function' ? select(id) : select) ?? { id, part: null, light: null });
+      sel = validSel((typeof select === 'function' ? select(id) : select) ?? { id, items: [] });
       push({ id, label: 'create', before: null, after: text(doc), selBefore, selAfter: sel, entryAfter: { saved: null, base: null, rev: null, state: 'new' } });
       changed();
       return id;
@@ -328,9 +382,10 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
     },
 
     /**
-     * One step: `fn` changes the working document (a copy - the step is kept only if it changed something). `select`
-     * the selection the step leaves (else the one it found). Answers whether anything changed.
-     * @param {string} id @param {string} label @param {(doc: any) => void} fn @param {PoiSelection} [select]
+     * Applies one undoable edit step: `fn` mutates a copy of the working document, and the step is recorded on the undo
+     * stack only if the document changed. `select` sets the resulting selection (defaulting to the prior selection) or
+     * computes it after `fn` runs (for example, to select newly pasted rows). Returns whether anything changed.
+     * @param {string} id @param {string} label @param {(doc: any) => void} fn @param {PoiSelection | ((doc: any) => PoiSelection)} [select]
      */
     edit(id, label, fn, select = undefined) {
       if (drag) api.commit();
@@ -338,10 +393,14 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       if (!e || shown.has(id)) return false;   // AUDIT POI E17: shown as another (showAs), its working copy is not what is seen - not changed unseen
       const before = text(e.doc);
       const doc = JSON.parse(before);
+      const wasV = doc.v;
       fn(doc);
-      const after = text(doc);
-      const selBefore = sel;
+      if (typeof select === 'function') select = select(doc);
+      let after = text(doc);
       if (after === before) { if (select !== undefined) api.select(select); return false; }
+      const v = doc.v;
+      if (upgradeChanged(doc, wasV, e.saved).v !== v) after = text(doc);
+      const selBefore = sel;
       e.doc = doc;
       sel = validSel(select === undefined ? sel : select);
       push({ id, label, before, after, selBefore, selAfter: sel });
@@ -363,8 +422,10 @@ export function createPoiEdit({ rand = (b) => { globalThis.crypto.getRandomValue
       const e = docs.get(drag.id);
       if (!e) { drag = null; return false; }
       const doc = JSON.parse(drag.start);
+      const wasV = doc.v;
       fn(doc);
-      e.doc = doc;
+      // a v1 document is written as v2 once the drag has moved it (a drag that has not moved it yet changes nothing)
+      e.doc = wasV === 1 && text(doc) !== drag.start ? upgradeChanged(doc, wasV, e.saved) : doc;
       changed();
       return true;
     },

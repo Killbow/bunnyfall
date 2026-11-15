@@ -5,6 +5,8 @@
 // `createDm` models one visit (items, gold, variables, object states, people, encounters, trade counts); events change
 // it and write what they did to `log`.
 
+import { POI_INTERACTIVE_STATES } from './poiLawV2.js';
+
 /** How deep events may start events with no delay in one go; the law refuses a cycle, this stops a mistake the law cannot see. */
 export const EVENT_DEPTH_MAX = 16;
 export const DAY_S = 86400;
@@ -73,6 +75,10 @@ export function claimRule(recipe, { char, player, nowS }) {
   return rules;
 }
 
+/** The service saves claims under these names; `trade/event/` keeps a trade `event` recipe apart from `event/<key>`. */
+export const eventClaim = (/** @type {string} */ event) => `event/${event}`;
+export const recipeClaim = (/** @type {string} */ trade, /** @type {string} */ recipe) => (trade === 'event' ? `trade/event/${recipe}` : `${trade}/${recipe}`);
+
 /** An event that gives and takes nothing back is claimed once per character; one that takes something is an exchange. */
 export function eventRule(/** @type {any[]} */ actions, /** @type {string} */ char) {
   const gives = actions.some((a) => a.k === 'give_item' || a.k === 'give_gold');
@@ -81,14 +87,13 @@ export function eventRule(/** @type {any[]} */ actions, /** @type {string} */ ch
 }
 
 /**
- * Why a recipe cannot run now, or null: 'when', 'items', 'gold', 'limit', 'cooldown', 'stock'.
- * `claimOf(scope)` is the `{ n, last }` kept for a scope, or null.
  * @param {any} recipe @param {{ char: string, player: string, nowS: number }} who
- * @param {{ count: (s: any) => number, gold: number, getVar: (k: string) => any }} ctx @param {(scope: string) => ({ n: number, last: number } | null)} claimOf
+ * @param {{ count: (s: any) => number, takeable?: (s: any) => number, gold: number, getVar: (k: string) => any }} ctx @param {(scope: string) => ({ n: number, last: number } | null)} claimOf
  */
 export function recipeWhy(recipe, who, ctx, claimOf) {
-  if (!evalWhen(recipe.when, ctx)) return 'when';
-  for (const s of recipe.requireItems ?? []) if (ctx.count(s) < s.count) return 'items';
+  if (!evalWhen(recipe.when, gateCtx(ctx, recipe.requireItems ?? []))) return 'when';
+  const held = ctx.takeable ?? ctx.count;
+  for (const s of recipe.requireItems ?? []) if (held(s) < s.count) return 'items';
   if (ctx.gold < (recipe.requireGold ?? 0)) return 'gold';
   for (const r of claimRule(recipe, who)) {
     const c = claimOf(r.scope);
@@ -101,14 +106,12 @@ export function recipeWhy(recipe, who, ctx, claimOf) {
 // ── the model of one visit ──────────────────────────────────────
 
 /**
- * @typedef {{ template: number, group?: string, material?: number, count: number }} Stack
+ * @typedef {{ template: number, group?: string, material?: number, recipe?: string, count: number }} Stack
  * @typedef {ReturnType<typeof createDm>} Dm
  */
 
 /**
- * A visit's model over a document. `start`: `items` (stacks), `gold`, `vars` (values that replace a variable's own start),
- * and who is playing (`char`, `player`) for the limits.
- * @param {any} doc @param {{ items?: Stack[], gold?: number, vars?: Record<string, any>, char?: string, player?: string, now?: number }} [start]
+ * @param {any} doc @param {{ items?: Stack[], gold?: number, vars?: Record<string, any>, char?: string, player?: string, now?: number, keeps?: boolean }} [start]
  */
 export function createDm(doc, start = {}) {
   /** @type {Record<string, any>} */
@@ -131,20 +134,34 @@ export function createDm(doc, start = {}) {
     /** @type {{ at: number, event: string }[]} */ queue: [],
     /** @type {any[]} */ log: [],
     /** @type {Set<string>} */ dirty: new Set(),
-    /** The game sets this: an event whose branch moves items, gold or a kept variable is not run here but handed to `pending`, for the service to settle. */
+    /** True in the game runtime: events that move items, gold, or persistent variables wait in `pending` to be settled
+     *  by the server's rules (by the server online, against the inventory offline, and against the test purse in Test). */
     service: false,
     /** The game sets this: what a condition reads of the live pack (`{ count, gold, getVar }`). */
-    /** @type {null | (() => { count: (s: any) => number, gold: number, getVar: (k: string) => any })} */ read: null,
+    /** @type {null | (() => { count: (s: any) => number, takeable?: (s: any) => number, gold: number, getVar: (k: string) => any })} */ read: null,
     /** @type {string[]} */ pending: [],
     /** @type {{ dialogue: string, node: string } | null} */ dialogue: null,
     /** @type {string | null} */ trade: null,
+    /** @type {Record<string, any>} the kept variable each object with a `stateVar` last followed, by object key */ keptSeen: {},
     now: start.now ?? 0,
     char: start.char ?? 'sandbox', player: start.player ?? 'sandbox',
+    keeps: !!start.keeps,
   };
 }
 
-/** Is a held stack the item another names? A group or material counts only where both give one. @param {any} it @param {any} s */
-const itemIs = (it, s) => it.template === s.template && (s.group === undefined || it.group === undefined || it.group === s.group) && (s.material === undefined || it.material === s.material);
+/** @param {any} it @param {any} s */
+const itemIs = (it, s) => it.template === s.template && (s.group === undefined || it.group === undefined || it.group === s.group) && (s.material === undefined || it.material === s.material)
+  && it.recipe === s.recipe;
+
+/**
+ * A check on an item the take also takes counts only records it may spend, so worn or quest items fail it.
+ * @param {any} ctx @param {any[]} takes
+ */
+export function gateCtx(ctx, takes) {
+  if (!ctx.takeable || !takes.length) return ctx;
+  const held = ctx.takeable;
+  return { ...ctx, count: (/** @type {any} */ s) => (takes.some((x) => itemIs(x, s)) ? held(s) : ctx.count(s)) };
+}
 
 /** What a model's items and gold look like to a condition. @param {Dm} dm */
 export function ctxOf(dm) {
@@ -167,7 +184,7 @@ const bump = (/** @type {Dm} */ dm, /** @type {string} */ claim, /** @type {{ sc
 
 /** Add a stack to the model's items, merging a plain one. @param {Dm} dm @param {Stack} s */
 export function giveStack(dm, s) {
-  const same = dm.items.find((it) => it.template === s.template && it.group === s.group && it.material === s.material);
+  const same = dm.items.find((it) => it.template === s.template && it.group === s.group && it.material === s.material && it.recipe === s.recipe);
   if (same) same.count += s.count; else dm.items.push({ ...s });
 }
 /** Take a stack from the model's items; false, and nothing taken, when it holds fewer. @param {Dm} dm @param {Stack} s */
@@ -187,13 +204,16 @@ export function takeStack(dm, s) {
 // ── events ──────────────────────────────────────────────────────
 
 /** The actions of the branch an event takes, given what the model holds now. @param {any} ev @param {Dm} dm */
-export function branchOf(ev, dm) { return evalWhen(ev.when, ctxOf(dm)) ? 'then' : 'else'; }
+export function branchOf(ev, dm) { return evalWhen(ev.when, gateCtx(ctxOf(dm), takesOf(ev.then ?? []))) ? 'then' : 'else'; }
 
 /** Whether an event's branch moves the player's items or gold, or a variable the service keeps: those are settled on the service. @param {any} doc @param {any[]} actions */
 export function needsService(doc, actions) {
   return actions.some((a) => a.k === 'give_item' || a.k === 'take_item' || a.k === 'give_gold' || a.k === 'take_gold'
     || (a.k === 'set_var' && persists(byKey(doc.variables, a.var))));
 }
+
+/** @param {any[]} actions */
+export const takesOf = (actions) => actions.filter((a) => a.k === 'take_item').map((a) => a.item);
 
 /** The totals an action list takes and gives. @param {any[]} actions */
 export function valueOf(actions) {
@@ -242,14 +262,16 @@ function act(dm, a, depth, settled) {
 }
 
 /**
- * Run an event. `branch` forces the branch (the service decided it), `settled` says the items and gold of the branch were
- * moved already. Answers `{ ran, branch }` or `{ ran: false, why }` ('missing', 'depth', 'items', 'gold', 'service': handed to the service).
  * @param {Dm} dm @param {string} key @param {{ branch?: 'then' | 'else', settled?: boolean, depth?: number }} [opts]
  */
 export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
   const ev = byKey(dm.doc.events, key);
   if (!ev) return { ran: false, why: 'missing' };
   if (depth > EVENT_DEPTH_MAX) { note(dm, { k: 'refused', event: key, why: 'depth' }); return { ran: false, why: 'depth' }; }
+  // a run that nothing else started (a trigger, a waypoint, a delay come due, an answer, a trade, walking into or
+  // winning an encounter, or the service's settling) starts the `event` variables from their own values; an event that
+  // another runs at once shares its run's
+  if (depth === 0) for (const v of dm.doc.variables ?? []) if (v.scope === 'event') dm.vars[v.key] = v.initial;
   const taken = branch ?? branchOf(ev, dm);
   const actions = (taken === 'then' ? ev.then : ev.else) ?? [];
   if (!settled && dm.service && needsService(dm.doc, actions)) {
@@ -262,6 +284,7 @@ export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
     if (v.takeGold > dm.gold) { note(dm, { k: 'refused', event: key, why: 'gold' }); return { ran: false, why: 'gold' }; }
     const c = ctxOf(dm);
     for (const s of v.takeItems) if (c.count(s) < s.count) { note(dm, { k: 'refused', event: key, why: 'items' }); return { ran: false, why: 'items' }; }
+    if (dm.keeps && (v.takeItems.length || v.takeGold)) { note(dm, { k: 'refused', event: key, why: 'declined' }); return { ran: false, why: 'declined' }; }
   }
   note(dm, { k: 'event', event: key, name: ev.name ?? key, branch: taken });
   for (const a of actions) act(dm, a, depth, settled);
@@ -270,9 +293,14 @@ export function runEvent(dm, key, { branch, settled = false, depth = 0 } = {}) {
 
 /** Fire a trigger - `{ k: 'interact', interactive }`, `{ k: 'enter_area', interactive }`, `{ k: 'npc_talk', npc }`, `{ k: 'waypoint_reached', route, waypoint }` - and run each event listening to it. Answers the keys run. @param {Dm} dm @param {any} trigger */
 export function fire(dm, trigger) {
+  note(dm, { k: 'trigger', trigger });
+  return runTrigger(dm, trigger);
+}
+/** Runs each event listening to a trigger without logging the trigger itself, and returns the keys that ran.
+ *  @param {Dm} dm @param {any} trigger */
+function runTrigger(dm, trigger) {
   /** @type {string[]} */
   const ran = [];
-  note(dm, { k: 'trigger', trigger });
   for (const ev of dm.doc.events ?? []) {
     const t = ev.trigger;
     if (!t || t.k !== trigger.k) continue;
@@ -307,6 +335,19 @@ function startEncounter(dm, key, depth) {
   if (e.onStart) runEvent(dm, e.onStart, { depth: depth + 1 });
 }
 
+/**
+ * The player walks into an encounter's area (its `center` and `radius`): an idle encounter starts. One that is active, or
+ * done for good (`respawn: 'never'` once won), does not. Answers whether it started.
+ * @param {Dm} dm @param {string} key
+ */
+export function enterEncounter(dm, key) {
+  if (dm.encounters[key] !== 'idle' || !byKey(dm.doc.encounters, key)) return false;
+  note(dm, { k: 'enter_encounter', encounter: key });
+  // a walk-in start is a run of its own: its start event runs at the top, as a trigger's does
+  startEncounter(dm, key, -1);
+  return true;
+}
+
 /** The encounter's rule is met (the game saw it; a sandbox presses the button): it ends and its completion event runs. @param {Dm} dm @param {string} key */
 export function completeEncounter(dm, key) {
   const e = byKey(dm.doc.encounters, key);
@@ -315,6 +356,60 @@ export function completeEncounter(dm, key) {
   note(dm, { k: 'encounter_done', encounter: key });
   if (e.onComplete) runEvent(dm, e.onComplete);
   return true;
+}
+
+// ── objects ─────────────────────────────────────────────────────
+
+/** Whether the visitor holds an object's key item. @param {Dm} dm @param {any} o */
+const holdsKey = (dm, o) => !!o.keyItem && ctxOf(dm).count(o.keyItem) >= (o.keyItem.count ?? 1);
+
+/**
+ * A player uses an object. A locked door or chest with a key item opens when the visitor holds the key and stays shut
+ * otherwise (no events run); one locked with no key item runs its events, which may unlock it. A closed door or chest
+ * opens, an open door shuts, and a switch flips between off (`inactive`) and on (`active`). An inactive quest object, or
+ * a keyed switch or quest object used without the key, does nothing. Then the `interact` events run. Answers
+ * `{ locked, ran }`: `locked` when it is still locked, or needs a key the visitor lacks. @param {Dm} dm @param {string} key
+ */
+export function useInteractive(dm, key) {
+  const o = byKey(dm.doc.interactives, key);
+  if (!o) return { locked: false, ran: /** @type {string[]} */ ([]) };
+  const door = o.kind === 'door', chest = o.kind === 'chest';
+  const was = dm.states[key];
+  // Log the use before what it changes, then run the interact events, as fire() does.
+  const trigger = { k: 'interact', interactive: key };
+  note(dm, { k: 'trigger', trigger });
+  if (!door && !chest) {
+    if (o.kind === 'quest_object' && was === 'inactive') { note(dm, { k: 'inactive', interactive: key }); return { locked: false, ran: [] }; }
+    if (o.keyItem && !holdsKey(dm, o)) { note(dm, { k: 'locked', interactive: key }); return { locked: true, ran: [] }; }
+    if (o.kind === 'switch') setState(dm, key, was === 'active' ? 'inactive' : 'active');
+  } else if (was === 'locked' && o.keyItem) {
+    if (!holdsKey(dm, o)) { note(dm, { k: 'locked', interactive: key }); return { locked: true, ran: [] }; }
+    if (door || chest) setState(dm, key, 'open');
+  } else if (was === 'closed' && (door || chest)) setState(dm, key, 'open');
+  else if (was === 'open' && door) setState(dm, key, 'closed');
+  const ran = runTrigger(dm, trigger);
+  const locked = dm.states[key] === 'locked';
+  if (locked) note(dm, { k: 'locked', interactive: key });
+  return { locked, ran };
+}
+/** @param {Dm} dm @param {string} key @param {string} state */
+function setState(dm, key, state) { dm.states[key] = state; note(dm, { k: 'set_state', interactive: key, state }); }
+
+/**
+ * Updates the interactive objects that take their state from a variable (`stateVar`): each takes the variable's value
+ * when it names one of the object's states and has changed since the object last checked (including on the first check
+ * of a visit). A persistent variable set by an event carries the object's state across visits without undoing uses in
+ * between.
+ * @param {Dm} dm
+ */
+export function followKeptStates(dm) {
+  for (const o of dm.doc.interactives ?? []) {
+    if (typeof o.stateVar !== 'string') continue;
+    const v = dm.vars[o.stateVar];
+    if (o.key in dm.keptSeen && dm.keptSeen[o.key] === v) continue;
+    dm.keptSeen[o.key] = v;
+    if (/** @type {Record<string, readonly string[]>} */ (POI_INTERACTIVE_STATES)[o.kind]?.includes(v) && dm.states[o.key] !== v) setState(dm, o.key, v);
+  }
 }
 
 // ── dialogues ───────────────────────────────────────────────────
@@ -354,7 +449,8 @@ export function choose(dm, i, { run = true } = {}) {
   const th = o.then;
   if (th.k === 'goto') { dm.dialogue.node = th.node; note(dm, { k: 'dialogue', dialogue: dm.dialogue.dialogue, node: th.node }); }
   else if (th.k === 'close') dm.dialogue = null;
-  else if (th.k === 'open_trade') { dm.trade = th.trade; note(dm, { k: 'open_trade', trade: th.trade }); }
+  // the talk ends, so the trade is what shows
+  else if (th.k === 'open_trade') { dm.dialogue = null; dm.trade = th.trade; note(dm, { k: 'open_trade', trade: th.trade }); }
   else if (run && th.k === 'run_trade_recipe') runRecipe(dm, th.trade, th.recipe);
   else if (run && th.k === 'trigger_event') runEvent(dm, th.event);
   return th;
@@ -366,7 +462,7 @@ export function choose(dm, i, { run = true } = {}) {
 export function recipeBlock(dm, tradeKey, recipeKey) {
   const r = byKey(byKey(dm.doc.trades, tradeKey)?.recipes, recipeKey);
   if (!r) return 'missing';
-  return recipeWhy(r, { char: dm.char, player: dm.player, nowS: dm.now }, ctxOf(dm), claimOfDm(dm, `${tradeKey}/${recipeKey}`));
+  return recipeWhy(r, { char: dm.char, player: dm.player, nowS: dm.now }, ctxOf(dm), claimOfDm(dm, recipeClaim(tradeKey, recipeKey)));
 }
 
 /** Run a recipe on the model, as the service would settle it. Answers `{ ok: true }` or `{ ok: false, why }`. @param {Dm} dm @param {string} tradeKey @param {string} recipeKey */
@@ -374,11 +470,12 @@ export function runRecipe(dm, tradeKey, recipeKey) {
   const why = recipeBlock(dm, tradeKey, recipeKey);
   if (why) { note(dm, { k: 'trade_refused', trade: tradeKey, recipe: recipeKey, why }); return { ok: false, why }; }
   const r = byKey(byKey(dm.doc.trades, tradeKey)?.recipes, recipeKey);
+  if (dm.keeps && (r.requireItems?.length || r.requireGold)) { note(dm, { k: 'trade_refused', trade: tradeKey, recipe: recipeKey, why: 'declined' }); return { ok: false, why: 'declined' }; }
   for (const s of r.requireItems ?? []) takeStack(dm, s);
   dm.gold -= r.requireGold ?? 0;
   for (const s of r.rewardItems ?? []) giveStack(dm, s);
   dm.gold += r.rewardGold ?? 0;
-  bump(dm, `${tradeKey}/${recipeKey}`, claimRule(r, { char: dm.char, player: dm.player, nowS: dm.now }));
+  bump(dm, recipeClaim(tradeKey, recipeKey), claimRule(r, { char: dm.char, player: dm.player, nowS: dm.now }));
   note(dm, { k: 'trade', trade: tradeKey, recipe: recipeKey, name: r.name, took: { items: r.requireItems ?? [], gold: r.requireGold ?? 0 }, gave: { items: r.rewardItems ?? [], gold: r.rewardGold ?? 0 } });
   if (r.onSuccessEvent) runEvent(dm, r.onSuccessEvent);
   return { ok: true };
@@ -388,6 +485,11 @@ export function runRecipe(dm, tradeKey, recipeKey) {
 
 /** Walking speed along a route, metres a second - a person's stroll. */
 export const WALK_MPS = 1.4;
+/** @param {any} wp */
+export const reachOf = (wp) => Math.max(0, wp?.radius ?? 0.5);
+export const WALK_NEAR = 1e-6;
+/** A Wait-0 leg that walks less than this is short. */
+const RINGS_MEET_M = 0.1;
 
 /**
  * A walker along a route: where it is, which waypoint it heads for, how long it still waits there. `mode`: loop, pingpong, once.
@@ -395,7 +497,7 @@ export const WALK_MPS = 1.4;
  */
 export function createWalker(route) {
   const first = route.waypoints?.[0]?.t ?? [0, 0, 0];
-  return { route, at: 0, dir: 1, pos: /** @type {number[]} */ ([...first]), wait: route.waypoints?.[0]?.waitS ?? 0, done: false, arrived: /** @type {string[]} */ ([]) };
+  return { route, at: 0, dir: 1, pos: /** @type {number[]} */ ([...first]), wait: route.waypoints?.[0]?.waitS ?? 0, done: false, legM: 0, shortLegs: 0 };
 }
 
 /**
@@ -406,26 +508,38 @@ export function stepWalker(w, dt, speed = WALK_MPS) {
   /** @type {string[]} */
   const reached = [];
   const wps = w.route.waypoints ?? [];
+  const cycle = w.route.mode === 'pingpong' ? 2 * (wps.length - 1) : wps.length;
   let left = dt;
-  while (left > 0 && !w.done && wps.length > 1) {
-    if (w.wait > 0) { const s = Math.min(w.wait, left); w.wait -= s; left -= s; continue; }
+  while (left > 0 && !w.done && wps.length > 1 && reached.length <= 2 * wps.length) {
+    if (w.wait > 0) { const s = Math.min(w.wait, left); w.wait -= s; left -= s; w.shortLegs = 0; continue; }
     const next = w.at + w.dir;
     if (next < 0 || next >= wps.length) {
       if (w.route.mode === 'loop') { w.at = -1; w.dir = 1; continue; }
       if (w.route.mode === 'pingpong') { w.dir = -w.dir; continue; }
       w.done = true; break;
     }
-    const target = wps[next].t;
+    const target = wps[next].t, reach = reachOf(wps[next]);
     const d = Math.hypot(target[0] - w.pos[0], target[1] - w.pos[1], target[2] - w.pos[2]);
-    const reach = Math.max(0.05, wps[next].radius ?? 0.5);
-    if (d <= reach) {
-      w.at = next; w.pos = [...target]; w.wait = wps[next].waitS ?? 0;
-      reached.push(wps[next].key);
-      continue;
+    const go = d - reach;
+    if (go > WALK_NEAR) {
+      if (go > speed * left) {
+        const step = speed * left;
+        for (let i = 0; i < 3; i++) w.pos[i] += (target[i] - w.pos[i]) * (step / d);
+        w.legM += step;
+        break;
+      }
+      for (let i = 0; i < 3; i++) w.pos[i] = target[i] + (w.pos[i] - target[i]) * (reach / d);
+      left -= go / speed;
+      w.legM += go;
     }
-    const go = Math.min(d, speed * left);
-    for (let i = 0; i < 3; i++) w.pos[i] += (target[i] - w.pos[i]) * (go / d);
-    left -= go / speed;
+    const walked = w.legM;
+    w.legM = 0;
+    w.at = next; w.wait = wps[next].waitS ?? 0;
+    reached.push(wps[next].key);
+    // a full cycle of short legs ends the walk: such legs can take less than a frame and would fire arrivals every
+    // frame; a leg starts on or inside the ring it leaves, so one whose rings are RINGS_MEET_M or more apart is long
+    if (w.wait > 0 || walked >= RINGS_MEET_M - 1e-9) w.shortLegs = 0;
+    else if (w.route.mode !== 'once' && ++w.shortLegs >= cycle) { w.done = true; break; }
   }
   return reached;
 }

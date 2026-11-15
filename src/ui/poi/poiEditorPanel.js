@@ -6,30 +6,30 @@
 // POI-Editor-Arc.md POI-3). The editor's screen over the world (scenes/poiEditorHost.js draws the handles in it):
 //
 //   - THE BAR (top): the tools (select, move, turn, size - Q W E R), the space (world or the thing's own - X), snap and
-//     its steps, undo and redo with what they would undo, the eye's speed, a new POI, an import, the map, and the way
-//     out (back to where the body stands, or down to the ground under the eye).
+//     its steps, undo and redo with what they would undo, the camera speed, a new POI, an import, the map, and the way
+//     out (back to where the body is, or down to the ground under the eye).
 //   - THE OUTLINER (left): the POIs being edited - each its state (new, a draft, sent for approval, live, changed) and
-//     its parts and lights to select - and every POI the store holds, searched, to open.
+//     its groups, parts, flat pictures, lights, and people (ui/poi/poiScenePanel.js) - and every POI the store holds, searched, to open.
 //   - THE INSPECTOR (right): the selection's every field, each change one step of the undo: a POI's name, words, tags,
 //     place (its height above the ground or fixed, its turn as Unity's three angles, its size), its mark on the map and
 //     its lights; a part's name, offset, turn, size, solidity, shadow and materials. Then what is wrong with it - the
 //     law's every problem in the builder's language, each said where it is (poi/poiText.js) - and the store's acts:
-//     save the draft, send it for approval, take it back, ask for a live POI's retirement, put back what was saved.
+//     save the draft, send it for approval, take it back, ask for a live POI's retirement, restore what was saved.
 //   - THE IMPORT (a dialog): a .glb, or a .gltf with its files; its parts, what was left out and why, what is past a
-//     limit; uploaded once each by name (poi/poiImport.js) and placed where the next click is - and kept in the library
-//     too, unless the builder says not (POI-4b).
-//   - THE LIBRARY (POI-4b, ui/poi/poiLibraryPanel.js): the bar's Library - every model the builders keep, to place again; a
-//     POI or a part kept in it from its inspector.
+//     limit; uploaded once each by name (poi/poiImport.js) and placed where the next click is - and saved to the
+//     library too, unless the builder says not (POI-4b).
+//   - THE LIBRARY (POI-4b, ui/poi/poiLibraryPanel.js): the bar's Library - every model the builders save there, to
+//     place again; a POI or a part saved to it from its inspector.
 //   - APPROVALS AND HISTORY (POI-6, ui/poi/poiReviewPanel.js): an approver's queue - what each submission changes, the
-//     law's report, before and after where it stands, approve or send back with a word; a POI's every revision, to open
-//     again or (an approver) put back in the world.
+//     law's report, before and after where it sits, approve or send back with a word; a POI's every revision, to open
+//     again or (an approver) restore in the world.
 //   - OUT AND BACK IN (POI-6, poi/poiTransfer.js): a POI's model - or a library entry's - written as a .glb for the
-//     builder's own modelling tool; the POIs open in the editor written as a PACK (a .zip with every asset they name),
+//     builder's own modeling tool; the POIs open in the editor written as a PACK (a .zip with every asset they name),
 //     and a pack read back - checked whole, its assets uploaded, its POIs opened as changes to what the store holds.
 //
 // A REFUSAL IS A SENTENCE: the store's word through the account client's own table (accountRefusalText); a problem
 // through the law's. TEXT, NEVER MARKUP: every name a builder typed is written with `textContent`. The panel takes no
-// press it does not use - everything else falls through to the editor's world - and its fields keep the keyboard
+// press it does not use - everything else falls through to the editor's world - and its fields hold the keyboard focus
 // while they have it (the editor's keys are not heard while one is focused: ui/input.js isTextEntryTarget).
 //
 // Not a DFU member. Ledger A (POI).
@@ -38,11 +38,17 @@
 import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
 import { accountRefusalText } from '../../net/accountClient.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI U1: a dock held while a field in it is typed in, and then alone
-import { poiDocProblems, poiAssetProblems, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
-import { eulerOfQuat, quatOfEuler, lawName, newLight } from '../../poi/poiEdit.js';
-import { problemText, problemWhere, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText } from '../../poi/poiText.js';
+import { poiDocProblems, poiAssetProblems, POI_SHA_RE, POI_LIMITS, POI_ALPHA, POI_WRAP, POI_FILTER } from '../../poi/poiLaw.js';
+import { eulerOfQuat, quatOfEuler, lawName, newLight, poiDocSizeOf, poiHeldOf, selItems } from '../../poi/poiEdit.js';
+import { marksOf } from '../../poi/poiScene.js';
+// copy, paste, groups, marks, and arranging a selection
+import { createPoiSceneActs, lockedIn } from './poiSceneActs.js';
+// the outliner's scene rows and the selection's inspector
+import { createPoiScenePanel } from './poiScenePanel.js';
+import { problemText, problemWhere, assetsUncheckedText, uncheckedRows, gltfErrorText, gltfWarningText, meshErrorText, imageErrorText, packErrorText, heldLines, docSizeText, flatCountText } from '../../poi/poiText.js';
 import { poiSaveDraft, poiSubmit, poiWithdraw, poiRetire, poiList, poiHistory, poiPutAsset, poiShelve, poiShelfEntry } from '../../poi/poiService.js';
 import { decodePoiMesh, encodePoiMesh, poiMeshFacts } from '../../poi/poiMesh.js';
+import { poiPayProblems } from '../../poi/poiTradeLaw.js';
 import { createPoiUvPanel } from './poiUvPanel.js';   // POI-5: the UV editor
 import { createPoiLibrary } from './poiLibraryPanel.js';   // POI-4b: the library's shelf
 import { createPoiReview } from './poiReviewPanel.js';   // POI-6: the approver's queue, a POI's history
@@ -52,11 +58,24 @@ import { poiImageMetaOf } from '../../poi/poiImage.js';
 import { readGltf, bakeGltf } from '../../poi/gltfImport.js';
 import { prepareImport, uploadImport } from '../../poi/poiImport.js';
 import { dfModelAsImport, dfModelCatalog } from '../../poi/dfModelImport.js';   // BUNNYFALL: Daggerfall's own models
-import { renderThumb, encodePng } from '../../poi/poiThumb.js';
+import { renderThumbShown, encodePng } from '../../poi/poiThumb.js';
 import { pictureAsImport, PICTURE_HEIGHT_M } from '../../poi/pictureImport.js';   // BUNNYFALL: a picture as a standing plane
 import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI stands
+// flat pictures: the picker, inspector rows, and 2D view
+import { createPoiFlatUi } from './poiFlatUi.js';
+import { POI_V2_LIMITS } from '../../poi/poiLawV2.js';
+// the DM content, in a wide dock
+import { createPoiDmPanel, heldNotEditable, dmHeldLines } from './poiDmPanel.js';
+// the Test: a draft played with its DM content
+import { createPoiTestPanel } from './poiTestPanel.js';
+import { testable } from '../../poi/poiDmTest.js';
 import { liveSeasonPin, setLiveSeasonPin } from '../../world/seasonView.js';   // BUNNYFALL: the editor's season
 import { SEASON } from '../../world/climateSwaps.js';
+// the game's catalog, browsed and placed (the browser itself, ui/poi/poiAssetBrowser.js, loads on its first open)
+import { setPoiAssetPlacer, placePoiAsset } from '../../poi/poiAssetPlace.js';
+// the panel splitters, and the saved panel sizes, snap steps, and camera speed
+import { createPoiLayout, createPoiPrefs } from './poiLayout.js';
+import { duplicatePoiDoc, duplicateName } from '../../poi/poiDuplicate.js';
 
 export const POI_PANEL_STYLE_ID = 'dfpoi-style';
 export const POI_PANEL_CSS = `
@@ -65,8 +84,16 @@ export const POI_PANEL_CSS = `
 .dfpoi * { box-sizing: border-box; }
 .dfpoi-dock { pointer-events: auto; position: absolute; background: rgba(14, 16, 19, .93); border: 1px solid #6b5230; border-radius: 6px; overflow: auto; }
 .dfpoi-bar { top: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; align-items: center; padding: 4px 6px; flex-wrap: wrap; max-width: calc(100vw - 16px); }
-.dfpoi-left { top: 56px; left: 8px; width: 250px; bottom: 40px; padding: 6px; }
-.dfpoi-right { top: 56px; right: 8px; width: 300px; bottom: 40px; padding: 6px; }
+.dfpoi-left { top: var(--dfpoi-left-top, 56px); left: 8px; width: var(--dfpoi-left-w, 250px); bottom: 40px; padding: 6px; }
+.dfpoi-right { top: var(--dfpoi-right-top, 56px); right: 8px; width: var(--dfpoi-right-w, 300px); bottom: 40px; padding: 6px; }
+/* the game's notices (ui/enhanced/enhancedStyle.js .notice-stack, below the docks' layer) and its tips button
+   (ui/tutorialPopup.js #bf-tutorial-ask, above the docks' layer) sit left of the right dock, offset by its width
+   (ui/poi/poiLayout.js), while the editor is open, so the dock does not hide the notices and the tips button does
+   not cover the dock or intercept its clicks */
+body:has(> .dfpoi[data-on="1"]) .notice-stack { right: calc(16px + var(--dfpoi-right-w, 300px)); }
+body:has(> .dfpoi[data-on="1"]) #bf-tutorial-ask { right: calc(30px + var(--dfpoi-right-w, 300px)); }
+/* and above the DM panel while it is open (poiLayout.js caps the DM panel height to leave room for it) */
+body:has(> .dfpoi[data-on="1"] > .dfpoi-dm:not([hidden])) #bf-tutorial-ask { top: min(38%, max(56px, calc(100vh - 92px - var(--dfpoi-dm-h, min(56vh, 600px))))); }
 .dfpoi-status { bottom: 8px; left: 50%; transform: translateX(-50%); padding: 4px 10px; max-width: calc(100vw - 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dfpoi-status[data-kind="bad"] { border-color: #b4483c; color: #f2b7ae; }
 .dfpoi-btn { font: inherit; color: inherit; background: #2a2620; border: 1px solid #6b5230; border-radius: 4px; padding: 3px 7px; cursor: pointer; }
@@ -78,6 +105,8 @@ export const POI_PANEL_CSS = `
 .dfpoi-row { display: flex; gap: 4px; align-items: center; margin: 2px 0; }
 .dfpoi-row > label { flex: 0 0 82px; color: #b9b2a3; }
 .dfpoi-row > .dfpoi-grow { flex: 1 1 auto; min-width: 0; }
+.dfpoi-row.dfpoi-wrap { flex-wrap: wrap; }
+.dfpoi-wrap > select { flex: 1 1 160px; }
 .dfpoi input, .dfpoi select, .dfpoi textarea { font: inherit; color: inherit; background: #1d1b18; border: 1px solid #4b3c27; border-radius: 3px; padding: 2px 4px; min-width: 0; }
 .dfpoi input[type="number"] { width: 64px; }
 .dfpoi textarea { width: 100%; min-height: 48px; resize: vertical; }
@@ -95,6 +124,8 @@ export const POI_PANEL_CSS = `
 .dfpoi[data-on="0"] .dfpoi-dock, .dfpoi[data-on="0"] .dfpoi-dialog, .dfpoi[data-on="0"] .dfpoi-uv { display: none; }
 .dfpoi-launch { pointer-events: auto; position: absolute; left: 8px; bottom: 8px; display: none; }
 .dfpoi[data-on="0"] .dfpoi-launch { display: block; }
+.dfpoi-testing { color: #e8cf8a; font-weight: 600; max-width: 520px; }
+.dfpoi[data-test="1"] .dfpoi-left .dfpoi-item { cursor: default; }
 `;
 
 /** The sheet, once. */
@@ -120,10 +151,22 @@ export function stepText(label) {
     case 'revert': return t('poi.editor.step.revert', 'put back as saved');
     case 'light': return t('poi.editor.step.light', 'light');
     case 'add person': return t('poi.npc.step.add', 'add person');
+    case 'add flat': return t('poi.flat.step.add', 'add flat picture');
+    case 'flat': return t('poi.flat.step.edit', 'flat picture');
     case 'person': return t('poi.npc.step.edit', 'person');
     case 'remove person': return t('poi.npc.step.remove', 'remove person');
     case 'material': return t('poi.editor.step.material', 'material');
     case 'uv': return t('poi.editor.step.uv', 'UVs');
+    case 'paste': return t('poi.editor.step.paste', 'paste');
+    case 'delete': return t('poi.editor.step.delete', 'delete');
+    case 'group': return t('poi.editor.step.group', 'group');
+    case 'ungroup': return t('poi.editor.step.ungroup', 'ungroup');
+    case 'regroup': return t('poi.editor.step.regroup', 'move to a group');
+    case 'reorder': return t('poi.editor.step.reorder', 'reorder');
+    case 'visibility': return t('poi.editor.step.visibility', 'hide or show');
+    case 'lock': return t('poi.editor.step.lock', 'lock or unlock');
+    case 'arrange': return t('poi.editor.step.arrange', 'arrange');
+    case 'rename': return t('poi.editor.step.rename', 'rename');
     default: return t('poi.editor.step.edit', 'edit');
   }
 }
@@ -138,21 +181,51 @@ export function stateText(entry, dirty) {
   return dirty && entry.state !== 'new' ? t('poi.editor.state.changed', '{state}, changed', { state: base }) : base;
 }
 
+/** Whether a part stands an uploaded model of its own (a mesh and its materials). A World Builder part that stands a
+ *  Daggerfall model (`arch3d`) has neither. @param {any} part */
+export const hasOwnModel = (part) => typeof part?.mesh === 'string' && Array.isArray(part.materials);
+
+/** The waits before a model or picture whose fetch may pass (no answer, 408, 429, 5xx) is asked again, in
+ *  milliseconds: the first try's, then each next one's (the last repeats). */
+export const POI_ASSET_RETRY_MS = [2000, 5000, 15000, 30000, 60000];
+
+/** The uploaded assets a document names, each with where it is named (`parts[2].mesh`, `parts[2].materials[0].texture`,
+ *  `thumb`). A name that is not a sha256 is the law's problem, not fetched. @param {any} d */
+function assetRefs(d) {
+  const out = [];
+  const add = (sha, path) => { if (typeof sha === 'string' && POI_SHA_RE.test(sha)) out.push({ sha, path }); };
+  add(d?.thumb, 'thumb');
+  (d?.parts ?? []).forEach((part, i) => {
+    // a v2 arch3d part has no mesh
+    add(part?.mesh, `parts[${i}].mesh`);
+    (part?.materials ?? []).forEach((m, k) => { add(m?.texture, `parts[${i}].materials[${k}].texture`); add(m?.emissive, `parts[${i}].materials[${k}].emissive`); });
+  });
+  return out;
+}
+
 /**
  * The facts the law's asset check reads, by sha256 (`{ kind: 'mesh', submeshes }` / `{ kind: 'texture', w, h }`, null
  * for one the store does not have) - known from an import's upload, else fetched and read once. Undefined while a
- * fetch is out: a problem is never said about an asset not yet heard of.
- * @param {(sha: string) => Promise<Uint8Array>} fetchAsset
+ * fetch is out: a problem is never said about an asset not yet heard of. Any failure other than a 404 or 410 ends its
+ * check for now: one that may pass (no answer, 408, 429, 5xx) is asked again by itself after POI_ASSET_RETRY_MS.
+ * @param {(sha: string) => Promise<Uint8Array>} fetchAsset @param {() => void} [onLearned]
+ * @param {{ timer?: { setTimeout: (fn: () => void, ms: number) => any, clearTimeout: (id: any) => void } }} [o]
  */
-export function createAssetFacts(fetchAsset, onLearned = () => {}) {
+export function createAssetFacts(fetchAsset, onLearned = () => {}, { timer = globalThis } = {}) {
   const facts = new Map();
-  return {
-    put(sha, meta) { facts.set(sha, meta); },
-    /** The fact, or undefined while it is being learnt. */
+  /** sha -> `{ passes, wait }`: the assets whose fetch failed, and the timer that asks again for one that may pass */
+  const failed = new Map();
+  /** sha -> how many fetches in a row failed (the next wait) */
+  const tries = new Map();
+  const forget = (sha) => { const f = failed.get(sha); if (f?.wait != null) timer.clearTimeout(f.wait); failed.delete(sha); };
+  const api = {
+    put(sha, meta) { forget(sha); tries.delete(sha); facts.set(sha, meta); },
+    /** The fact, or undefined while it is being learned (or its fetch failed). */
     of(sha) {
-      if (facts.has(sha)) return facts.get(sha);
+      if (facts.has(sha) || failed.has(sha)) return facts.get(sha);
       facts.set(sha, undefined);
       fetchAsset(sha).then((bytes) => {
+        tries.delete(sha);
         // AUDIT POI (the lead's; lane A's S6): the facts the store's law reads, its budgets' too - a model's counts, box
         // and bytes, a picture's size and bytes - so the editor says a POI is over a budget before the store refuses it
         const m = decodePoiMesh(bytes);
@@ -160,13 +233,50 @@ export function createAssetFacts(fetchAsset, onLearned = () => {}) {
         else { const im = poiImageMetaOf(bytes); facts.set(sha, 'error' in im ? null : { kind: 'texture', w: im.w, h: im.h, bytes: bytes.byteLength }); }
         onLearned();
       }, (e) => {
-        // a 404 is an asset the store does not have; anything else (offline) is not known - asked again next time
-        if (/: 404$/.test(String(e?.message ?? ''))) { facts.set(sha, null); onLearned(); } else facts.delete(sha);
+        const status = Number(/: (\d{3})$/.exec(String(e?.message ?? ''))?.[1] ?? 0);
+        facts.delete(sha);
+        // a 404 or 410 is an asset the store does not have: the law says so
+        if (status === 404 || status === 410) facts.set(sha, null);
+        else {
+          const n = (tries.get(sha) ?? 0) + 1;
+          tries.set(sha, n);
+          const f = { passes: !status || status === 408 || status === 429 || status >= 500, wait: null };
+          if (f.passes) f.wait = timer.setTimeout(() => { if (failed.get(sha) === f) { failed.delete(sha); onLearned(); } }, POI_ASSET_RETRY_MS[Math.min(n, POI_ASSET_RETRY_MS.length) - 1]);
+          failed.set(sha, f);
+        }
+        onLearned();
       });
       return undefined;
     },
     known: (sha) => facts.get(sha) !== undefined,
+    /**
+     * A document's problems: `own` (the law's), then its assets' once every asset it names is known. `checking` while a
+     * fetch is out; `unloaded` lists the assets whose fetch failed, where each is named, and whether it is asked again
+     * by itself (`passes`); while any asset is unloaded, `list` holds `own` alone.
+     * @param {any} d @param {any[]} own
+     */
+    check(d, own) {
+      let checking = false;
+      /** @type {{ path: string, passes: boolean }[]} */
+      const unloaded = [];
+      for (const { sha, path } of assetRefs(d)) {
+        const f = failed.get(sha);
+        if (f) unloaded.push({ path, passes: f.passes });
+        else if (api.of(sha) === undefined) checking = true;
+      }
+      const unchecked = unloaded.length > 0;
+      return { list: checking || unchecked ? own : [...own, ...poiAssetProblems(d, (sha) => facts.get(sha))], checking, unchecked, unloaded };
+    },
+    /** Every failed fetch asked again now: Check again, which a failure that will not pass by itself waits for. */
+    retry() {
+      if (!failed.size) return;
+      for (const sha of [...failed.keys()]) forget(sha);
+      onLearned();
+    },
+    /** The timers let go (the panel gone). */
+    stop() { for (const sha of [...failed.keys()]) forget(sha); },
   };
+  return api;
 }
 
 /**
@@ -175,13 +285,13 @@ export function createAssetFacts(fetchAsset, onLearned = () => {}) {
  *   io: () => (import('../../poi/poiService.js').PoiIo | null), me: { handle: string | null, builder: boolean, approver: boolean },
  *   onExit: (how: 'back' | 'here') => void, onEnter?: () => void, onJump?: () => void, readFile?: (f: any) => Promise<Uint8Array>,
  *   decodeImage?: ((bytes: Uint8Array) => Promise<{ width: number, height: number, data: Uint8Array | Uint8ClampedArray }>) | null,
- *   rand?: (b: Uint8Array) => Uint8Array, goTo?: (place: any) => void, download?: (name: string, bytes: Uint8Array, type: string) => void,
+ *   rand?: (b: Uint8Array) => Uint8Array, goTo?: (place: any) => void, download?: (name: string, bytes: Uint8Array, type: string) => void, test?: any, onTest?: (id: string | null) => boolean,
  * }} deps `onEnter` the launcher's press (the editor opened again after an exit); `decodeImage` a picture decoded (the UV
  *   editor draws the material's under its UVs, the library a model's picture - poi/poiImageDecode.js); `rand` fills bytes
  *   (a library entry's id); `goTo` takes the eye to a document's place (the approver's look); `download` hands the
- *   builder a file
+ *   builder a file; `test` the Test (poi/poiDmTest.js), `onTest(id)` the world's door into it (`null` stops it)
  */
-export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, dfModels = null, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc) }) {
+export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, me, dfModels = null, onExit, onEnter = () => {}, onJump = () => {}, readFile = async (f) => new Uint8Array(await f.arrayBuffer()), decodeImage = null, rand = (b) => { globalThis.crypto.getRandomValues(/** @type {any} */ (b)); return b; }, goTo = () => {}, download = downloadIn(doc), test = null, onTest = () => false }) {
   injectPoiPanelStyle(doc);
   const el = (tag, cls = '', text = null) => { const n = doc.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   const btn = (text, onClick, cls = 'dfpoi-btn') => { const b = el('button', cls, text); b.type = 'button'; b.addEventListener('click', (e) => { e.stopPropagation?.(); onClick(); }); return b; };
@@ -194,6 +304,9 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   // closed, the editor is one button in the corner: the world plays, the drafts still stand on this screen
   const launch = btn(t('poi.editor.open', 'POI editor'), () => onEnter(), 'dfpoi-btn dfpoi-launch');
   root.append(bar, left, right, status, launch);
+  const layout = createPoiLayout({ doc, root });
+  root.append(...layout.splitters);
+  const prefs = createPoiPrefs();
   /** @type {any} */
   let dialog = null;
   let list = null;           // the store's POIs (poiList), once asked
@@ -209,9 +322,43 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'That did not go through.'));
   // POI-4b: the library's dialogs, laid in the panel, through its own door to the store
   const library = createPoiLibrary({ doc, host: root, io, feed, me, act: (fn) => act(fn), say, refusal, editor, decodeImage, rand, exportGlb: (model) => exportGlb(model) });
+  // the asset browser: its code is fetched the first time Assets is pressed, so a player who never opens it never loads
+  // it; a Daggerfall model is placed through the model dialog below, uploaded as a mesh
+  /** @type {any} */
+  let assets = null;
+  /** @type {Promise<any> | null} */
+  let assetsLoading = null;
+  function assetBrowser() {
+    assetsLoading ??= import('./poiAssetBrowser.js').then(({ createPoiAssetBrowser }) => {
+      if (gone) return null;
+      assets = createPoiAssetBrowser({ doc, host: root, getTexture: dfModels?.getTexture ?? null, dfModels, storage: (() => { try { return globalThis.localStorage ?? null; } catch { return null; } })(),
+        place: (a, at) => placePoiAsset(a, { editor, edit, at, say }), onToggle: () => schedule() });
+      return assets;
+    }, () => { assetsLoading = null; say(t('poi.assets.codeFailed', 'The asset browser could not be loaded.'), 'bad'); return null; });
+    return assetsLoading;
+  }
+  const offUpload = dfModels ? setPoiAssetPlacer('upload', { place: (a, ctx) => openDfModel(a.model ?? 0, ctx.at ? editor.spotAt(ctx.at.x, ctx.at.y) : null) }) : () => {};
   // POI-6: the approver's queue and a POI's history, laid in the panel the same way (the feed asked again after a verdict)
   review = createPoiReview({ doc, host: root, me, act: (fn) => act(fn), say, refusal, edit, facts, goTo, feed });
   const dialogsClosed = () => { closeDialog(); library.close(); review.close(); };
+  const dm = createPoiDmPanel({ doc, root, edit, editor, say });
+  // the Test: editing is paused while it runs, the bar says what is tested, and the right dock is its panel
+  const testing = () => !!test?.active();
+  // whether the DM dock was open when the test started, so Stop test opens it again
+  let dmWasOn = false;
+  const stopTest = () => { onTest(null); if (dmWasOn && !testing() && !dm.isOn()) dm.toggle(); dmWasOn = false; schedule(); };
+  const testPanel = test ? createPoiTestPanel({ test, el, btn, redraw: () => schedule(), onStop: stopTest }) : null;
+  function startTest() {
+    const sel = edit.selection();
+    if (!sel || !testable(edit.docOf(sel.id))) { say(t('poi.test.nothing', 'Select a POI that has DM content to test it.'), 'bad'); return; }
+    // the runtime's module first: the body is moved only once the test can start
+    if (!test.ready()) { test.prepare().then(() => startTest(), () => say(t('poi.test.loadFailed', 'The test could not start. Try again.'), 'bad')); return; }
+    const dmOn = dm.isOn();
+    dialogsClosed(); dm.close(); assets?.close();
+    if (onTest(sel.id)) { dmWasOn = dmOn; say(t('poi.test.started', 'Testing. Walk, talk, and use things as a player would. Stop test to go back to editing.')); }
+    else if (dmOn) dm.toggle();
+    schedule();
+  }
 
   // ── RENDERING ────────────────────────────────────────────────────
   let queued = false;
@@ -247,10 +394,19 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     renderLeft();
     // a field being typed in keeps its text: the inspector is drawn again once it lets go of the keyboard
     if (!typingIn(right)) renderRight();
+    layout.setDm(dm.isOn() && !testing());
+    prefs.note(editor);
   }
   for (const d of [bar, left, right]) d.addEventListener('focusout', () => schedule());
 
   function renderBar() {
+    root.dataset.test = testing() ? '1' : '0';
+    if (testing()) {
+      bar.replaceChildren(el('span', 'dfpoi-testing', testPanel?.banner() ?? ''), el('span', 'dfpoi-sep'),
+        btn(t('poi.test.stop', 'Stop test'), stopTest),
+        btn(t('poi.editor.exitBack', 'Exit to where I stood'), () => { onTest(null); onExit('back'); }));
+      return;
+    }
     const tool = (m, text, key) => { const b = btn(`${text} (${key})`, () => editor.setMode(m)); b.setAttribute('aria-pressed', String(editor.mode() === m)); return b; };
     const undo = btn(t('poi.editor.undo', 'Undo'), () => { edit.undo(); });
     undo.disabled = !edit.canUndo();
@@ -278,9 +434,14 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       btn(t('poi.editor.newPoi', 'New POI'), () => { editor.placeNew(t('poi.editor.newName', 'New place')); say(t('poi.editor.placeHint', 'Click the ground where it stands. Esc to stop.')); }),
       btn(t('poi.editor.import', 'Import model'), () => openImport()),
       ...(dfModels ? [btn(t('poi.editor.dfModel', 'Daggerfall model'), () => openDfModel())] : []),
+      (() => { const b = btn(t('poi.assets.button', 'Assets'), () => { void assetBrowser().then((a) => a?.toggle()); }); b.setAttribute('aria-pressed', String(!!assets?.isOpen())); b.title = t('poi.assets.buttonHint', 'Browse the game\'s models, pictures, items, and creatures.'); return b; })(),
       btn(t('poi.editor.addPicture', 'Picture'), () => openPicture()),
       ...(dfModels ? [btn(t('poi.npc.button', 'Person'), () => people().openPerson())] : []),   // BUNNYFALL: a standing person, the sprite picker in it   // BUNNYFALL: a PNG as a standing plane
+      // places a game picture or item as a flat decoration
+      ...(dfModels ? [btn(t('poi.flat.button', 'Flat picture'), () => flatUi().openFlat())] : []),
       seasonPicker(),   // BUNNYFALL: the world's season in this browser
+      (() => { const b = btn(t('poi.dm.button', 'DM tools'), () => { dm.toggle(); schedule(); }); b.setAttribute('aria-pressed', String(dm.isOn())); b.title = t('poi.dm.buttonHint', 'The selected POI\'s people, routes, encounters, objects, dialogues, trades, events, variables, and Sandbox.'); return b; })(),
+      ...(test ? [(() => { const b = btn(t('poi.test.button', 'Test'), () => startTest()); b.title = t('poi.test.buttonHint', 'Play the selected POI in the world with its DM content, on a test copy of your gold and items.'); return b; })()] : []),
       btn(t('poi.library.title', 'Library'), () => { dialogsClosed(); library.open(); }),
       btn(t('poi.pack.export', 'Export pack'), () => exportOpenPack()),
       btn(t('poi.pack.import', 'Import pack...'), () => choosePack()),
@@ -291,29 +452,35 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   }
 
   function renderLeft() {
+    if (testing()) {
+      // the open POIs, read-only: the one under test says so
+      const on = test.testing();
+      left.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing')), ...edit.ids().map((id) => {
+        const row = el('div', 'dfpoi-item');
+        row.append(el('span', '', edit.docOf(id).name || id), el('span', 'dfpoi-chip', id === on?.id ? t('poi.editor.state.testing', 'testing') : stateText(edit.entryOf(id), edit.dirty(id))));
+        return row;
+      }), el('div', 'dfpoi-sub', t('poi.test.paused', 'Editing is paused while a test runs.')));
+      return;
+    }
+    // Return before the scene rows are rebuilt while the search is typed in, or the search filters rows not on screen.
+    if (typingIn(left)) { const old = left.querySelector?.('.dfpoi-listbox'); if (old) renderList(old); return; }
     const sel = edit.selection();
     const out = [el('div', 'dfpoi-h', t('poi.editor.editing', 'Editing'))];
     const ids = edit.ids();
     if (!ids.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.editingNone', 'Nothing open. Open a POI below, or make a new one.')));
+    else out.push(scene().searchRow());
     for (const id of ids) {
       const d = edit.docOf(id), e = edit.entryOf(id);
       const row = el('div', 'dfpoi-item');
-      row.setAttribute('aria-selected', String(sel?.id === id && sel.part == null && sel.light == null));
+      row.setAttribute('aria-selected', String(sel?.id === id && !selItems(sel).length));
       row.append(el('span', '', d.name || id), el('span', 'dfpoi-chip', stateText(e, edit.dirty(id))));
-      row.addEventListener('click', () => edit.select({ id, part: null }));
+      row.addEventListener('click', () => edit.select({ id, items: [] }));
+      // a row dropped on the POI's own row leaves every group
+      row.addEventListener('dragover', (ev) => ev.preventDefault());
+      row.addEventListener('drop', (ev) => { ev.preventDefault(); let got = null; try { got = JSON.parse(ev.dataTransfer?.getData('text/x-bunnyfall-poi-rows') ?? 'null'); } catch { got = null; } if (got?.id === id) sceneActs.regroup(id, got.ids, null); });
       out.push(row);
-      for (const part of d.parts) {
-        const pr = el('div', 'dfpoi-item dfpoi-sub', part.name || part.key);
-        pr.setAttribute('aria-selected', String(sel?.id === id && sel.part === part.key));
-        pr.addEventListener('click', () => edit.select({ id, part: part.key }));
-        out.push(pr);
-      }
-      (d.lights ?? []).forEach((_, i) => {
-        const lr = el('div', 'dfpoi-item dfpoi-sub', t('poi.where.light', 'Light {n}', { n: i + 1 }));
-        lr.setAttribute('aria-selected', String(sel?.id === id && sel.light === i));
-        lr.addEventListener('click', () => edit.select({ id, part: null, light: i }));
-        out.push(lr);
-      });
+      // its groups, parts, flat pictures, lights, and people
+      out.push(...scene().rows(id, d));
     }
     out.push(el('div', 'dfpoi-h', t('poi.editor.all', 'All POIs')));
     const listBox = el('div', 'dfpoi-listbox');
@@ -325,9 +492,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     out.push(findRow, btn(t('poi.editor.refresh', 'Refresh the list'), () => refreshList()));
     renderList(listBox);
     out.push(listBox);
-    // the search being typed in keeps its field: only the list under it is drawn again
-    if (!typingIn(left)) left.replaceChildren(...out);
-    else { const old = left.querySelector?.('.dfpoi-listbox'); if (old) renderList(old); }
+    left.replaceChildren(...out);
   }
   function renderList(box) {
     if (!list) { box.replaceChildren(el('div', 'dfpoi-sub', t('poi.editor.listUnasked', 'Press Refresh to see the store\'s POIs.'))); return; }
@@ -369,17 +534,31 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b,
   }));
 
+  // flat-picture UI (ui/poi/poiFlatUi.js), created lazily or immediately when game files are available so its asset
+  // placers can be registered below
+  let flatUiMade = null;
+  const flatUi = () => (flatUiMade ??= createPoiFlatUi({ doc, el, btn, field, numberInput, text, select, check, swallow, root, say, edit, editor, getTexture: dfModels?.getTexture ?? null, dialogsClosed, closeDialog, setDialog: (b) => { dialog = b; }, dialogIs: (b) => dialog === b }));
+  // the asset browser's game pictures and items, placed as flat pictures (poi/poiAssetPlace.js)
+  const offFlats = dfModels ? Object.entries(flatUi().placers()).map(([placing, p]) => setPoiAssetPlacer(placing, p)) : [];
+  // the scene tools: the outliner's rows and the inspector for several things, a group, a person, or a flat picture
+  let scenePanel = null;
+  const scene = () => (scenePanel ??= createPoiScenePanel({ doc, el, btn, field, numberInput, text, check, edit, acts: sceneActs, redraw: () => schedule(), flatFields: (d, sel, one) => flatUi().fields(d, sel, one) }));
+
   function renderRight() {
+    if (testing() && testPanel) { right.replaceChildren(testPanel.view()); return; }
     const sel = edit.selection();
     if (!sel) { right.replaceChildren(el('div', 'dfpoi-h', t('poi.editor.nothingSelected', 'Nothing selected')), el('div', '', t('poi.editor.selectHint', 'Click a POI in the world or the list. Click once to select the POI, and again to select a part.'))); return; }
     const d = edit.docOf(sel.id), entry = edit.entryOf(sel.id);
     const change = (label, fn) => edit.edit(sel.id, label, fn);
     const out = [];
-    if (sel.part != null) out.push(...partFields(d, sel, change));
-    else if (sel.light != null) out.push(...lightFields(d, sel, change));
+    const many = scene().inspector(d, sel);
+    if (many) out.push(...many);
+    else if (sel.part != null) out.push(...partFields(d, sel, change), ...scene().extras(d, sel));
+    else if (sel.light != null) out.push(...lightFields(d, sel, change), ...scene().extras(d, sel));
     else out.push(...poiFields(d, change));
     out.push(...problemRows(d, sel.id));
     out.push(...actRows(sel.id, d, entry));
+    out.push(...refusedRows(d, sel.id));
     right.replaceChildren(...out);
   }
 
@@ -411,13 +590,26 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const lightsDrawn = d.lights?.length ?? 0;
     out.push(btn(t('poi.editor.addLight', 'Add a light'), () => { if ((edit.docOf(d.id)?.lights?.length ?? 0) === lightsDrawn) edit.edit(d.id, 'light', (x) => { x.lights = [...(x.lights ?? []), newLight()]; }, { id: d.id, part: null, light: lightsDrawn }); }));
     out.push(...people().peopleRows(d, change));   // BUNNYFALL
-    // POI-4b: its parts and lights kept in the library, from the POI's own origin
-    if (d.parts.length) out.push(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), btn(t('poi.library.keepPoi', 'Keep it in the library...'), () => { closeDialog(); library.keep({ name: d.name, parts: structuredClone(d.parts), lights: structuredClone(d.lights ?? []) }); }));
+    // Its parts and lights kept in the library, from the POI's own origin. Only parts with an uploaded model of their
+    // own go to the library and the .glb; a Daggerfall model part from the World Builder is left out, with a note
+    // saying so.
+    const ownParts = d.parts.filter(hasOwnModel);
+    if (ownParts.length) out.push(el('div', 'dfpoi-h', t('poi.library.title', 'Library')), btn(t('poi.library.keepPoi', 'Save to library...'), () => { closeDialog(); library.keep({ name: d.name, parts: structuredClone(ownParts), lights: structuredClone(d.lights ?? []) }); }));
     // POI-6: its revisions (once the store has it), and its model out as a .glb
     const more = el('div', 'dfpoi-row');
     if (edit.entryOf(d.id)?.state !== 'new' || edit.entryOf(d.id)?.saved) more.append(btn(t('poi.review.history', 'History...'), () => { dialogsClosed(); review.openHistory(d.id); }));
-    if (d.parts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: d.parts, lights: d.lights ?? [] })));
+    more.append(btn(t('poi.editor.duplicatePoi', 'Duplicate this POI'), () => duplicatePoi(d.id)));
+    if (ownParts.length) more.append(btn(t('poi.export.glb', 'Export model (.glb)'), () => exportGlb({ name: d.name, parts: ownParts, lights: d.lights ?? [] })));
     out.push(more);
+    if (ownParts.length < d.parts.length) out.push(el('div', 'dfpoi-sub', t('poi.editor.dfModelsLeftOut', 'Its Daggerfall models are not saved to the library or exported.')));
+    const flats = Array.isArray(d.flats) ? d.flats.length : 0;
+    if (flats) out.push(el('div', 'dfpoi-sub', t('poi.editor.flatsLeftOut', 'Its {n, plural, one {flat picture is} other {# flat pictures are}} not saved to the library or exported.', { n: flats })));
+    // what a v2 POI holds that this editor cannot change yet (an interior, the DM fields the DM panel leaves out, and a
+    // flat picture's picture and size), read-only, and its size against its version's limit
+    const held = heldLines(heldNotEditable(poiHeldOf(d)), dmHeldLines(d));
+    if (held.length) out.push(el('div', 'dfpoi-h', t('poi.held.title', 'Not editable here yet')), ...held.map((l) => el('div', 'dfpoi-sub', l)));
+    out.push(el('div', 'dfpoi-sub', docSizeText(poiDocSizeOf(d), d.v)));
+    if (flats) out.push(el('div', 'dfpoi-sub', flatCountText(flats, POI_V2_LIMITS.flats)));
     return out;
   }
 
@@ -428,13 +620,20 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const out = [el('div', 'dfpoi-h', t('poi.editor.part', 'Part'))];
     out.push(field(t('poi.editor.name', 'Name'), text(part.name ?? '', (v) => change('rename', at((p) => { const n = lawName(v); if (n) p.name = n; else delete p.name; })), POI_LIMITS.name)));
     out.push(field(t('poi.editor.key', 'Key'), el('span', '', part.key)));
-    out.push(field(t('poi.editor.offset', 'Offset (m)'), ...vec(part.t, (v) => change('move', at((p) => { p.t = v; })), { step: 0.05, min: -2000, max: 2000 })));
-    out.push(field(t('poi.editor.turn', 'Turn (degrees)'), ...vec(eulerOfQuat(part.r), (e) => change('turn', at((p) => { p.r = quatOfEuler(e); })), { step: 1 })));
-    out.push(field(t('poi.editor.scale', 'Scale'), ...vec(part.s, (v) => change('size', at((p) => { p.s = v.map((c) => (Math.abs(c) < 0.001 ? 0.001 : c)); })), { step: 0.05, min: -1000, max: 1000 })));
+    const placed = [field(t('poi.editor.offset', 'Offset (m)'), ...vec(part.t, (v) => change('move', at((p) => { p.t = v; })), { step: 0.05, min: -2000, max: 2000 })),
+      field(t('poi.editor.turn', 'Turn (degrees)'), ...vec(eulerOfQuat(part.r), (e) => change('turn', at((p) => { p.r = quatOfEuler(e); })), { step: 1 })),
+      field(t('poi.editor.scale', 'Scale'), ...vec(part.s, (v) => change('size', at((p) => { p.s = v.map((c) => (Math.abs(c) < 0.001 ? 0.001 : c)); })), { step: 0.05, min: -1000, max: 1000 }))];
+    out.push(...lockedRows(d, `part:${part.key}`, placed));
     out.push(field(t('poi.editor.solid', 'Solid'), check(part.collide === 'mesh', (v) => change('solid', at((p) => { p.collide = v ? 'mesh' : 'none'; })))));
     out.push(field(t('poi.editor.shadow', 'Casts a shadow'), check(part.shadow, (v) => change('shadow', at((p) => { p.shadow = v; })))));
-    out.push(el('div', 'dfpoi-h', t('poi.editor.materials', 'Materials')));
-    part.materials.forEach((m, k) => {
+    // a part with no uploaded model of its own (a World Builder part that stands a Daggerfall model) has no materials,
+    // UVs, or library entry to edit here: it says what it is instead
+    if (!hasOwnModel(part)) {
+      out.push(el('div', 'dfpoi-sub', part.arch3d !== undefined
+        ? t('poi.editor.dfModelPart', 'A Daggerfall model ({id}) from the World Builder. Its look cannot be changed here.', { id: String(part.arch3d) })
+        : t('poi.editor.noModelPart', 'It has no model of its own, so its look cannot be changed here.')));
+    } else out.push(el('div', 'dfpoi-h', t('poi.editor.materials', 'Materials')));
+    if (hasOwnModel(part)) part.materials.forEach((m, k) => {
       const mat = (fn) => at((p) => fn(p.materials[k]));
       out.push(el('div', 'dfpoi-sub', t('poi.where.material', 'material {n}', { n: k + 1 })));
       const colour = el('input');
@@ -473,7 +672,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       out.push(btn(t('poi.editor.editUvs', 'Edit UVs...'), () => openUv(sel.id, part.key, k)));
     });
     // POI-4b: the part alone kept in the library - its own turn and size, standing at the entry's origin
-    out.push(btn(t('poi.library.keepPart', 'Keep this part in the library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
+    if (hasOwnModel(part)) out.push(btn(t('poi.library.keepPart', 'Save this part to library...'), () => { closeDialog(); library.keep({ name: part.name || part.key, parts: [{ ...structuredClone(part), t: [0, 0, 0] }], lights: [] }); }));
     // AUDIT POI U1: the part it was drawn for - it read the selection, and the second press of a double one, the part gone
     // and its POI selected, took the whole new POI
     out.push(btn(t('poi.editor.copyPart', 'Copy this part (Ctrl+C)'), () => copySelection(false)));
@@ -487,7 +686,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (!l) return [];
     const at = (fn) => (x) => { const q = x.lights[sel.light]; if (q) fn(q); };
     const out = [el('div', 'dfpoi-h', t('poi.where.light', 'Light {n}', { n: sel.light + 1 }))];
-    out.push(field(t('poi.editor.offset', 'Offset (m)'), ...vec(l.t, (v) => change('light', at((q) => { q.t = v; })), { step: 0.1, min: -2000, max: 2000 })));
+    out.push(...lockedRows(d, `light:${sel.light}`, [field(t('poi.editor.offset', 'Offset (m)'), ...vec(l.t, (v) => change('light', at((q) => { q.t = v; })), { step: 0.1, min: -2000, max: 2000 }))]));
     const colour = el('input');
     colour.type = 'color';
     colour.value = `#${l.color.map((c) => Math.round(c * 255).toString(16).padStart(2, '0')).join('')}`;
@@ -499,22 +698,24 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // AUDIT POI U1: the light it was drawn for - by its place in the list, the lights as they were: pressed twice it took
     // the next light too, by then at that place
     const drawn = JSON.stringify(d.lights);
-    out.push(btn(t('poi.editor.removeLight', 'Remove this light'), () => { if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
+    out.push(btn(t('poi.editor.removeLight', 'Remove this light'), () => { if (lockedIn(d, [`light:${sel.light}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return; } if (JSON.stringify(edit.docOf(d.id)?.lights) === drawn) edit.edit(d.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: d.id, part: null, light: null }); }));
     return out;
   }
 
-  /** The document's problems: the law's, then its assets' once every asset is known. */
-  function problemsOf(d) {
-    const law = poiDocProblems(d);
-    const shas = [];
-    for (const part of d.parts ?? []) { shas.push(part.mesh); for (const m of part.materials ?? []) { if (m.texture) shas.push(m.texture); if (m.emissive) shas.push(m.emissive); } }
-    const known = shas.every((s) => facts.of(s) !== undefined);
-    return { list: known ? [...law, ...poiAssetProblems(d, (s) => facts.of(s))] : law, checking: !known };
+  /** A row's place fields, read-only while it is locked (by its own mark or a group's), with a line that says why. */
+  function lockedRows(d, rowId, rows) {
+    if (!marksOf(d).get(rowId)?.frozen) return rows;
+    for (const r of rows) for (const i of r.querySelectorAll?.('input') ?? []) i.disabled = true;
+    return [el('div', 'dfpoi-sub', t('poi.scene.lockedNote', 'Locked: unlock it in the list to move it.')), ...rows];
   }
+
+  /** The document's problems: the law's, then its assets' once every asset is known. */
+  const problemsOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function problemRows(d, id) {
-    const { list: ps, checking } = problemsOf(d);
+    const { list: ps, checking, unchecked, unloaded } = problemsOf(d);
     const out = [el('div', 'dfpoi-h', t('poi.editor.problems', 'What is wrong'))];
-    if (!ps.length) out.push(el('div', checking ? '' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.editor.noProblems', 'Nothing. It can be saved.')));
+    if (unchecked) out.push(...uncheckedRows(d, unloaded, el, btn, () => facts.retry()));
+    else if (!ps.length) out.push(el('div', checking ? '' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.editor.noProblems', 'Nothing. It can be saved.')));
     for (const p of ps.slice(0, 40)) {
       const row = el('div', 'dfpoi-problem');
       const where = problemWhere(p.path, d);
@@ -522,20 +723,40 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       row.append(problemText(p));
       const pi = /^parts\[(\d+)\]/.exec(p.path);
       if (pi) row.addEventListener('click', () => edit.select({ id, part: d.parts[Number(pi[1])]?.key ?? null }));
+      // a DM row's problem opens it in the DM panel
+      else row.addEventListener('click', () => { if (dm.jumpTo(p.path)) schedule(); });
       out.push(row);
+    }
+    return out;
+  }
+
+  /** The problems the store answered a save or a submission with, by POI, until its next save or submission. */
+  const refused = new Map();
+  /** @param {string} id @param {any} r the store's answer */
+  function refusedFor(id, r) {
+    if (!r.ok && r.problems?.length) refused.set(id, r.problems); else refused.delete(id);
+    schedule();
+  }
+  function refusedRows(d, id) {
+    const ps = refused.get(id);
+    if (!ps) return [];
+    const out = [el('div', 'dfpoi-h', t('poi.editor.refused', 'Why the store refused it'))];
+    for (const p of ps.slice(0, 12)) {
+      const where = problemWhere(p.path, d);
+      out.push(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p)));
     }
     return out;
   }
 
   function actRows(id, d, entry) {
     const dirty = edit.dirty(id);
-    const { list: ps, checking } = problemsOf(d);
+    const { list: ps, checking, unchecked } = problemsOf(d);
     const save = btn(t('poi.editor.save', 'Save draft (Ctrl+S)'), () => saveDraft(id));
-    save.disabled = busy > 0 || !dirty || ps.length > 0 || checking;
+    save.disabled = busy > 0 || !dirty || ps.length > 0 || checking || unchecked;
     // AUDIT POI U3: a submission is not saved over - the store would make a draft BESIDE it, the submission left waiting
     if (entry.state === 'submitted') save.disabled = true;
     const submit = btn(t('poi.editor.submit', 'Send for approval'), () => submitPoi(id));
-    submit.disabled = busy > 0 || ps.length > 0 || checking || entry.state === 'submitted' || entry.state === 'live' && !dirty;
+    submit.disabled = busy > 0 || ps.length > 0 || checking || unchecked || entry.state === 'submitted' || entry.state === 'live' && !dirty;
     const out = [el('div', 'dfpoi-h', t('poi.editor.acts', 'Draft')), el('div', 'dfpoi-row')];
     out[1].append(save, submit);
     if (entry.state === 'submitted' && dirty) out.push(el('div', 'dfpoi-warn', withdrawFirstText()));
@@ -582,13 +803,15 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // AUDIT POI U3: the store saves over a DRAFT of the builder's alone - a submission saved over is a second revision
     // beside it, and the submission left waiting to be approved as it was
     if (e.state === 'submitted') { say(withdrawFirstText(), 'bad'); return false; }
-    const { list: ps, checking } = problemsOf(d);
+    const { list: ps, checking, unchecked } = problemsOf(d);
     if (ps.length) { say(t('poi.editor.fixFirst', 'Fix what is wrong before saving ({n}).', { n: ps.length }), 'bad'); return false; }
+    if (unchecked) { say(assetsUncheckedText(false), 'bad'); return false; }
     // AUDIT POI U5: an asset not yet heard of is not checked - the button waits for it, and so does the key
     if (checking) { say(t('poi.editor.stillChecking', 'Its models and pictures are still being checked: save it once that is done.'), 'bad'); return false; }
     const sent = structuredClone(d);
     const r = await act((i) => poiSaveDraft(i, sent, e.base));
     if (!r) return false;
+    refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return false; }
     edit.markSaved(id, { rev: r.data.rev, state: 'draft', doc: sent });
     say(t('poi.editor.saved', 'Saved: draft {rev}.', { rev: r.data.rev }));
@@ -605,6 +828,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const rev = e.rev, held = heldDoc(e);
     const r = await act((i) => poiSubmit(i, id, rev));
     if (!r) return;
+    refusedFor(id, r);
     if (!r.ok) { say(refusal(r), 'bad'); return; }
     edit.markSaved(id, { rev, state: 'submitted', doc: held });
     say(t('poi.editor.submitted', 'Sent for approval. An approver will look at it.'));
@@ -666,6 +890,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     edit.open(id, { doc: pick.doc, ...(others ? { saved: null } : {}), base: mine ? (mine.base ?? null) : sentBack ? (pick.base ?? null) : (h.liveRev ?? null), rev: mine ? mine.rev : null, state: mine ? mine.state : live ? 'live' : sentBack ? 'rejected' : 'draft' });
     edit.select({ id, part: null });
     say(t('poi.editor.opened', 'Opened {name}.', { name: pick.doc.name }));
+  }
+  /** Duplicates open POI `id` (including any unsaved edits) as a new draft beside the original in one undo step, and
+   *  selects the copy. */
+  function duplicatePoi(id) {
+    const d = edit.docOf(id);
+    if (!d) return null;
+    const name = duplicateName(d.name, (base) => t('poi.editor.copyName', '{name} (copy)', { name: base }));
+    const { px, py, x, z, y } = d.place;
+    const made = edit.create({ px, py, x, z, y, name }, (doc) => { const c = duplicatePoiDoc(d, { id: doc.id, name }); for (const k of Object.keys(doc)) delete doc[k]; Object.assign(doc, c); });
+    say(t('poi.editor.duplicated', 'Created {name} as a new draft. Save it to keep it.', { name }));
+    return made;
   }
   /** A picture from a file: read by its header (refused in words), uploaded by its name, handed to `use`. */
   async function takePicture(bytes, use) {
@@ -734,79 +969,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   /** AUDIT POI U1: a part taken out by its key - once; gone, the press does nothing. */
   function removePart(id, key) {
     if (!edit.docOf(id)?.parts.some((p) => p.key === key)) return false;
+    if (lockedIn(edit.docOf(id), [`part:${key}`])) { say(t('poi.scene.deleteLocked', 'Locked things cannot be deleted. Unlock them first.'), 'bad'); return false; }
     return edit.edit(id, 'remove part', (x) => { x.parts = x.parts.filter((p) => p.key !== key); }, { id, part: null });
   }
-  function removeSelection() {
-    const sel = edit.selection();
-    if (!sel) return;
-    if (sel.part != null) removePart(sel.id, sel.part);
-    else if (sel.light != null) edit.edit(sel.id, 'light', (x) => { x.lights.splice(sel.light, 1); }, { id: sel.id, part: null, light: null });
-    else if (edit.entryOf(sel.id)?.state === 'new' && !edit.entryOf(sel.id)?.saved) edit.remove(sel.id);
-    else say(t('poi.editor.deleteSaved', 'To take a saved POI out of the world, ask to retire it.'), 'bad');
-  }
-  // COPY AND PASTE: a part, a light, or a whole POI's parts and lights, kept as they stood and stood again in the selected POI
-  // (the same one: stepped a metre east and north each paste; another: at the same spot from its origin). The clipboard is
-  // this page's: it survives opening other POIs, not a reload.
-  /** @type {{ from: string, parts: any[], lights: any[], n: number } | null} */
-  let clip = null;
-  function copySelection(cut = false) {
-    const sel = edit.selection();
-    const d = sel ? edit.docOf(sel.id) : null;
-    if (!sel || !d) { say(t('poi.editor.copyNone', 'Select a part or a POI first.'), 'bad'); return false; }
-    if (sel.part != null) {
-      const p = d.parts.find((q) => q.key === sel.part);
-      if (!p) return false;
-      clip = { from: sel.id, parts: [structuredClone(p)], lights: [], n: 0 };
-    } else if (sel.light != null) {
-      const l = d.lights?.[sel.light];
-      if (!l) return false;
-      clip = { from: sel.id, parts: [], lights: [structuredClone(l)], n: 0 };
-    } else clip = { from: sel.id, parts: structuredClone(d.parts), lights: structuredClone(d.lights ?? []), n: 0 };
-    say(t('poi.editor.copied', 'Copied {n, plural, one {# thing} other {# things}}. Ctrl+V pastes them into the selected POI.', { n: clip.parts.length + clip.lights.length }));
-    if (cut && (sel.part != null || sel.light != null)) removeSelection();
-    return true;
-  }
-  function pasteSelection() {
-    const sel = edit.selection();
-    const d = sel ? edit.docOf(sel.id) : null;
-    if (!clip || !(clip.parts.length + clip.lights.length)) { say(t('poi.editor.pasteNone', 'Nothing copied yet. Select a part and press Ctrl+C.'), 'bad'); return false; }
-    if (!sel || !d) { say(t('poi.editor.pasteWhere', 'Select the POI to paste into first.'), 'bad'); return false; }
-    clip.n += 1;
-    const step = clip.from === sel.id ? clip.n : 0;
-    const at = (v) => [v[0] + step, v[1], v[2] + step].map((c) => Math.round(c * 1000) / 1000);
-    let lastKey = null, skipped = 0;
-    edit.edit(sel.id, 'paste', (x) => {
-      const taken = new Set(x.parts.map((q) => q.key));
-      for (const src of clip.parts) {
-        if (x.parts.length >= POI_LIMITS.parts) { skipped++; continue; }
-        const copy = structuredClone(src);
-        let key = copy.key, n = 2;
-        while (taken.has(key)) key = `${copy.key}-${n++}`.slice(0, 32);
-        copy.key = key; taken.add(key); copy.t = at(copy.t ?? [0, 0, 0]);
-        x.parts.push(copy); lastKey = key;
-      }
-      x.lights ??= [];
-      for (const src of clip.lights) {
-        if (x.lights.length >= POI_LIMITS.lights) { skipped++; continue; }
-        const copy = structuredClone(src); copy.t = at(copy.t ?? [0, 2, 0]); x.lights.push(copy);
-      }
-    }, { id: sel.id, part: lastKey });
-    if (skipped) say(t('poi.editor.pasteFull', 'The POI is full: {n, plural, one {# thing was} other {# things were}} left out.', { n: skipped }), 'bad');
-    return true;
-  }
-  function duplicateSelection() {
-    const sel = edit.selection();
-    if (!sel || sel.part == null) return;
-    edit.edit(sel.id, 'duplicate', (x) => {
-      const p = x.parts.find((q) => q.key === sel.part);
-      if (!p) return;
-      const copy = structuredClone(p);
-      const taken = new Set(x.parts.map((q) => q.key));
-      let n = 2; while (taken.has(`${p.key}-${n}`.slice(0, 32))) n++;
-      copy.key = `${p.key}-${n}`.slice(0, 32);
-      x.parts.push(copy);
-    });
-  }
+  // COPY, CUT, PASTE, DUPLICATE, AND DELETE of the whole selection (ui/poi/poiSceneActs.js): the copy is saved in this
+  // browser's localStorage (so it survives a reload and is shared across tabs) and written to the system clipboard when
+  // permitted
+  const sceneActs = createPoiSceneActs({ edit, say, facts, editor });
+  const removeSelection = () => sceneActs.remove();
+  const copySelection = (cut = false) => sceneActs.copy(cut);
+  const pasteSelection = () => sceneActs.paste();
+  const duplicateSelection = () => sceneActs.duplicate();
 
   // ── OUT AND BACK IN (POI-6) ──────────────────────────────────────
   const fetchAsset = (sha) => feed.asset(sha, { auth: io()?.secret ?? null });
@@ -906,7 +1079,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     }
     closeDialog();
     if (r.open[0] && edit.has(r.open[0].id)) edit.select({ id: r.open[0].id, part: null });
-    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}} and kept {entries, plural, one {# library entry} other {# library entries}}. Save each as a draft to send it.', { n: opened, entries: r.shelved })
+    say(t('poi.pack.opened', 'Opened {n, plural, one {# POI} other {# POIs}}; {entries, plural, one {# library entry is} other {# library entries are}} now in the library. Save each POI as a draft to send it.', { n: opened, entries: r.shelved })
       + (kept ? ` ${t('poi.pack.keptOpen', '{n, plural, one {# POI was} other {# POIs were}} left as you had them (unsaved changes).', { n: kept })}` : ''));
     return true;
   }
@@ -933,7 +1106,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     // POI-4b: kept in the library as it is placed, unless the builder says not
     const keepToo = check(true, () => {});
     box.append(el('div', 'dfpoi-h', t('poi.editor.importTitle', 'Import a model (glTF 2.0)')), el('div', '', t('poi.editor.importHint', 'Choose a .glb, or a .gltf with its .bin and pictures.')), files, field(t('poi.editor.split', 'Make'), splitSel),
-      field(t('poi.library.keepImport', 'Keep it in the library too'), keepToo), body, acts);
+      field(t('poi.library.keepImport', 'Save to library too'), keepToo), body, acts);
     files.addEventListener('change', async () => {
       const list = [...(files.files ?? [])];
       const main = list.find((f) => /\.(glb|gltf)$/i.test(f.name));
@@ -999,10 +1172,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     dialog = box;
     root.append(box);
   }
-  // BUNNYFALL: A DAGGERFALL MODEL - the game's own buildings and pieces, by the kind of town block that stands them
-  // (poi/dfModelImport.js), or any model by its number; seen in a picture, then uploaded and placed as an import is
+  // BUNNYFALL: A DAGGERFALL MODEL - imports a classic Daggerfall building or piece by the kind of town block that uses
+  // it (`poi/dfModelImport.js`) or by model ID, previews it, and uploads and places it like an imported mesh. When
+  // called from the asset browser with `first`, it loads and uploads that model immediately, places it at `spot` if
+  // `editor.spotAt` captured a drop position, and returns a promise resolving to whether the model was placed.
   let dfCatalog = null;
-  function openDfModel() {
+  function openDfModel(first = 0, /** @type {any} */ spot = null) {
     dialogsClosed();
     const box = el('div', 'dfpoi-dialog');
     for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) box.addEventListener(ty, swallow);
@@ -1026,10 +1201,15 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       if (uploading || !(id > 0)) return;
       chosen = id; drawList(); prep = null; place.disabled = true;
       info.textContent = t('poi.editor.dfModelReading', 'Reading model {id}...', { id });
-      const got = await dfModelAsImport(id, dfModels).catch(() => null);
+      // read through poiModelImportPipe (poi/poiModelThumbs.js) so previewing a model does not upload or retain it on
+      // the GPU, falling back to dfModels if arch is missing or the module fails to load
+      const pipe = dfModels.arch ? await import('../../poi/poiModelThumbs.js').then((m) => m.poiModelImportPipe(dfModels), () => dfModels) : dfModels;
+      const got = await dfModelAsImport(id, pipe).catch(() => null);
+      pipe.done?.();
       if (chosen !== id || dialog !== box) return;
       if (!got) { info.textContent = t('poi.editor.dfModelNone', 'The game has no model {id}.', { id }); pic.removeAttribute('src'); return; }
-      try { const img = renderThumb(got.thumb, { size: 192 }); pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); } catch { pic.removeAttribute('src'); }
+      // a model that renders nothing even two-sided shows no picture; the line below it still describes the model
+      try { const img = renderThumbShown(got.thumb, { size: 192 }); if (img) pic.src = URL.createObjectURL(new Blob([encodePng(img)], { type: 'image/png' })); else pic.removeAttribute('src'); } catch { pic.removeAttribute('src'); }
       prep = prepareImport(got.model, got.baked);
       const p = prep.parts[0];
       info.textContent = p ? t('poi.editor.dfModelInfo', 'Model {id}: {v} vertices, {tri} triangles, {pics} pictures', { id, v: p.vertices, tri: p.triangles, pics: got.model.images.length })
@@ -1039,18 +1219,21 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     const go = btn(t('poi.editor.dfModelShow', 'Show'), () => choose(Math.trunc(Number(idIn.value))));
     async function upload() {
       const parts = prep;
-      if (!parts?.parts.length || uploading) return;
+      if (!parts?.parts.length || uploading) return false;
       uploading = true; place.disabled = true;
       const mine = () => dialog === box;
       const r = await act((i) => uploadImport(parts, whileOpen(box, (bytes, k) => poiPutAsset(i, bytes, k)), (n, of) => { if (mine()) say(t('poi.editor.uploading', 'Uploading {n} of {of}...', { n, of })); }));
       uploading = false;
-      if (!mine()) return;
-      if (!r) { place.disabled = false; return; }
-      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return; }
+      if (!mine()) return false;
+      if (!r) { place.disabled = false; return false; }
+      if (!r.ok) { say(refusal(r), 'bad'); place.disabled = false; return false; }
       for (const [sha, meta] of r.metas) facts.put(sha, meta);
       closeDialog();
+      const before = partCount();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
+      if (spot && editor.standOn(spot)) return true;
       say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      return placedFrom(editor.placing(), before);
     }
     const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);
     box.append(el('div', 'dfpoi-h', t('poi.editor.dfModelTitle', 'A Daggerfall model')),
@@ -1059,6 +1242,17 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     drawList();
     dialog = box;
     root.append(box);
+    if (first > 0) { idIn.value = String(first); return choose(first).then(() => (prep?.parts.length ? upload() : false)); }
+    return Promise.resolve(false);
+  }
+  // Counts total parts across open POIs and resolves once the placement state `armed` ends, returning true if a ground
+  // click added a part or false if placement was canceled by Esc, another tool, or closing the panel.
+  const partCount = () => edit.ids().reduce((n, id) => n + (edit.docOf(id)?.parts?.length ?? 0), 0);
+  function placedFrom(/** @type {any} */ armed, /** @type {number} */ before) {
+    return new Promise((done) => {
+      const look = () => { if (gone) done(false); else if (editor.placing() !== armed) done(partCount() > before); else setTimeout(look, 200); };
+      look();
+    });
   }
   // BUNNYFALL: THE SEASON, for working on the ground without the winter's snow (world/seasonView.js - this browser's view only)
   function seasonPicker() {
@@ -1139,6 +1333,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   function closeDialog() { dialog?.remove?.(); dialog = null; }
 
   const offEdit = edit.onChange(() => schedule());
+  // restores the saved snap steps and camera speed from browser storage
+  prefs.restore(editor);
   render();
   return {
     root,
@@ -1148,14 +1344,19 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       if (on) { schedule(); return; }
       // AUDIT POI U8: leaving the editor lets go of what was open over it - the UV editor (it stood on over the game), the
       // library, the approver's queue and its look (the screen shows the world as it stands again), the panel's own dialog
-      dialogsClosed(); uvDialog?.close(); closing = null;
+      dialogsClosed(); uvDialog?.close(); closing = null; dm.close();
     },
     /** The editor's own change (a tool, the hover, the selection made in the world). */
     refresh: () => schedule(),
     say,
     /** The keyboard's acts the editor hands back (Ctrl+S, Delete, Ctrl+D). */
-    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection(), copy: () => copySelection(false), cut: () => copySelection(true), paste: () => pasteSelection() },
+    acts: { save: () => { const s = edit.selection(); if (s) saveDraft(s.id); }, del: () => removeSelection(), duplicate: () => duplicateSelection(), copy: () => copySelection(false), cut: () => copySelection(true), paste: () => pasteSelection(), group: () => sceneActs.group(), ungroup: () => sceneActs.ungroup() },
+    /** The scene acts (groups, marks, and arranging), for the panel's buttons and tests. */
+    scene: sceneActs,
     open: (id) => openPoi(id),
+    /** Duplicates POI `id` (used by the inspector's "Duplicate this POI" button and by tests), returning the new
+     *  draft's ID or null. */
+    duplicatePoi: (id) => duplicatePoi(id),
     /** POI-5: the UV editor over a part's material, and a picture taken from bytes - the panel's own buttons' doors, a
      *  test's too. */
     openUv: (id, key, k) => openUv(id, key, k),
@@ -1171,7 +1372,11 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     openPack: (bytes) => openPack(bytes),
     /** Whether a press landed on the panel (the world leaves it alone). */
     owns: (target) => !!target && typeof root.contains === 'function' && root.contains(target),
-    destroy() { gone = true; offEdit(); dialogsClosed(); uvDialog?.close(); root.remove?.(); },
+    destroy() { gone = true; offEdit(); offUpload(); for (const off of offFlats) off(); assets?.destroy(); facts.stop(); dialogsClosed(); uvDialog?.close(); dm.destroy(); layout.destroy(); root.remove?.(); },
+    /** The DM panel (its tabs, the Sandbox). */
+    dm,
+    /** The Test button's press, a test's door too. */
+    startTest: () => startTest(),
   };
 }
 

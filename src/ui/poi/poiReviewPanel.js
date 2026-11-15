@@ -20,11 +20,13 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { t } from '../../systems/textManager.js';   // L10N4: the words through the text core
-import { POI_LIMITS, poiDocProblems, poiAssetProblems } from '../../poi/poiLaw.js';
+import { POI_LIMITS, poiDocProblems } from '../../poi/poiLaw.js';
 import { poiDiff } from '../../poi/poiDiff.js';
-import { diffText, problemText, problemWhere } from '../../poi/poiText.js';
+import { comparableRevs, compareRevisions, defaultPair } from '../../poi/poiRevCompare.js';
+import { diffText, problemText, problemWhere, uncheckedRows } from '../../poi/poiText.js';
 import { poiQueue, poiReview, poiHistory, poiRollback } from '../../poi/poiService.js';
 import { agoText } from '../saveTile.js';   // the port's one "how long ago"
+import { poiPayProblems } from '../../poi/poiTradeLaw.js';
 import { isTextEntryTarget } from '../input.js';   // AUDIT POI T8: a word being typed keeps its field
 
 /** A revision's state as the history says it. @param {string} state */
@@ -40,7 +42,7 @@ export const revStateText = (state) => (state === 'draft' ? t('poi.editor.state.
  * @param {{
  *   doc?: Document, host: any, me: { handle: string | null, builder: boolean, approver: boolean },
  *   act: (fn: (io: any) => Promise<any>) => Promise<any>, say: (text: string, kind?: string) => void, refusal: (r: any) => string,
- *   edit: any, facts: { of: (sha: string) => any }, goTo: (place: any) => void, feed?: { refresh?: () => any } | null,
+ *   edit: any, facts: { check: (d: any, own: any[]) => { list: any[], checking: boolean, unchecked: boolean, unloaded: { path: string, passes: boolean }[] }, retry: () => void }, goTo: (place: any) => void, feed?: { refresh?: () => any } | null,
  *   now?: () => number,
  * }} deps `goTo` takes the eye to a document's place; `facts` the panel's asset facts (the law's asset check); `feed` the
  *   game's feed, asked again once the world changed (a verdict, a put-back)
@@ -56,7 +58,8 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
   let queue = null;
   let looking = null;        // the submission being looked at: `{ id, rev, before, after }`
   let showing = 'after';
-  let history = null;        // `{ id, h }`
+  // the open history, `{ id, h, pair }`, where `pair` holds the two revisions being compared (`{ from, to }`)
+  let history = null;
   let puttingBack = null;    // the revision whose putting back asks again
   let rolling = false;       // AUDIT POI U12: a put-back out - the put-back buttons held until it answers
   let more = false;          // AUDIT POI C3: more submissions wait than the store sent
@@ -87,13 +90,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     drawQueue();
   }
   /** The law's report on a submission: its own problems, then its assets' once every one is known. */
-  function lawOf(d) {
-    const own = poiDocProblems(d);
-    const shas = [];
-    for (const part of d.parts ?? []) { shas.push(part.mesh); for (const m of part.materials ?? []) { if (m.texture) shas.push(m.texture); if (m.emissive) shas.push(m.emissive); } }
-    const known = shas.every((s) => facts.of(s) !== undefined);
-    return { list: known ? [...own, ...poiAssetProblems(d, (s) => facts.of(s))] : own, checking: !known };
-  }
+  const lawOf = (d) => facts.check(d, poiPayProblems(d, poiDocProblems(d)));
   function drawQueue() {
     if (!dialog || dialog.dataset.kind !== 'queue') return;
     const rows = [el('div', 'dfpoi-h', t('poi.review.title', 'Approvals')), el('div', 'dfpoi-sub', t('poi.review.hint', 'Look at each one in the world, then approve it or send it back with a note.'))];
@@ -121,9 +118,10 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     r.append(el('div', 'dfpoi-h', t('poi.review.changes', 'What it changes')), list);
     // the law's report
     if (item.doc) {
-      const { list: ps, checking } = lawOf(item.doc);
+      const { list: ps, checking, unchecked, unloaded } = lawOf(item.doc);
       r.append(el('div', 'dfpoi-h', t('poi.review.law', 'Checks')));
-      if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.review.lawOk', 'Nothing wrong.')));
+      if (unchecked) r.append(...uncheckedRows(item.doc, unloaded, el, btn, () => facts.retry()));
+      else if (!ps.length) r.append(el('div', checking ? 'dfpoi-sub' : 'dfpoi-ok', checking ? t('poi.editor.checking', 'Checking its models and pictures...') : t('poi.review.lawOk', 'Nothing wrong.')));
       for (const p of ps.slice(0, 12)) { const where = problemWhere(p.path, item.doc); r.append(el('div', 'dfpoi-problem', where ? `${where}: ${problemText(p)}` : problemText(p))); }
     }
     // looking, then the word
@@ -213,7 +211,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     dialog = box();
     dialog.dataset.kind = 'history';
     host.append(dialog);
-    history = { id, h: null };
+    history = { id, h: null, pair: null };
     drawHistory();
     await loadHistory(id);
   }
@@ -222,7 +220,7 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const r = await act((i) => poiHistory(i, id));
     if (!r) return;
     if (!r.ok) { say(refusal(r), 'bad'); return; }
-    if (history?.id === id) { history.h = r.data; drawHistory(); }
+    if (history?.id === id) { history.h = r.data; history.pair = keptPair(r.data, history.pair); drawHistory(); }
   }
   function drawHistory() {
     if (!dialog || dialog.dataset.kind !== 'history' || !history) return;
@@ -230,8 +228,41 @@ export function createPoiReview({ doc = document, host, me, act, say, refusal, e
     const named = h?.revs?.slice().reverse().find((x) => x.doc)?.doc?.name ?? history.id;
     const rows = [el('div', 'dfpoi-h', t('poi.review.historyTitle', 'History: {name}', { name: named })), btn(t('poi.review.close', 'Close'), () => close())];
     if (!h) rows.push(el('div', 'dfpoi-sub', t('poi.library.loading', 'Asking the store...')));
-    else for (const rev of [...h.revs].reverse()) rows.push(historyRow(h, rev));
+    else { rows.push(...compareRows(h)); for (const rev of [...h.revs].reverse()) rows.push(historyRow(h, rev)); }
     dialog.replaceChildren(...rows);
+  }
+  /** Preserves the previously selected revision pair across a history reload if both revisions are still in
+   *  `comparableRevs(h)`; otherwise falls back to `defaultPair(h)`. */
+  function keptPair(h, pair) {
+    const revs = new Set(comparableRevs(h).map((x) => x.rev));
+    return pair && revs.has(pair.from) && revs.has(pair.to) ? pair : defaultPair(h);
+  }
+  /** Builds the revision-comparison controls and diff list (poi/poiRevCompare.js) for the history dialog, or returns
+   *  an empty array when fewer than two revisions can be compared. */
+  function compareRows(h) {
+    const pair = history?.pair;
+    if (!pair) return [];
+    // labels rollback and retirement revisions by their action, matching their history rows
+    const options = comparableRevs(h).map((x) => [x.rev, x.kind === 'retire' || x.kind === 'rollback' ? t('poi.review.rev', 'Revision {rev}: {what}', { rev: x.rev, what: x.kind === 'retire' ? t('poi.review.kindRetire', 'take out of the world') : t('poi.review.kindRollback', 'put revision {rev} back in the world', { rev: x.base }) })
+      : t('poi.review.compareRev', 'Revision {rev} ({state})', { rev: x.rev, state: revStateText(x.state) })]);
+    const pick = (side) => {
+      const s = el('select');
+      s.dataset.side = side;
+      for (const [rev, text] of options) { const o = el('option', '', text); o.value = String(rev); if (rev === pair[side]) o.selected = true; s.append(o); }
+      s.value = String(pair[side]);
+      s.addEventListener('change', () => { if (history) { history.pair = { ...history.pair, [side]: Number(s.value) }; drawHistory(); } });
+      // keeps key presses in the dropdown, such as the arrow keys, from reaching the editor's own key handling
+      for (const ty of ['keydown', 'keyup']) s.addEventListener(ty, swallow);
+      return s;
+    };
+    const head = el('div', 'dfpoi-row');
+    head.append(el('span', '', t('poi.review.compareFrom', 'From')), pick('from'), el('span', '', t('poi.review.compareTo', 'to')), pick('to'));
+    const changes = compareRevisions(h, pair.from, pair.to) ?? [];
+    const list = el('div', 'dfpoi-sub dfpoi-compare');
+    if (pair.from === pair.to) list.append(el('div', '', t('poi.review.compareSame', 'Pick two different revisions.')));
+    else if (!changes.length) list.append(el('div', '', t('poi.review.compareNone', 'Nothing differs between these two.')));
+    for (const c of changes) list.append(el('div', '', diffText(c)));
+    return [el('div', 'dfpoi-h', t('poi.review.compare', 'Compare two revisions')), head, list];
   }
   function historyRow(h, rev) {
     const r = el('div', 'dfpoi-review');

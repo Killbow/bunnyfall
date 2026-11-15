@@ -61,6 +61,8 @@ export const poiFoeIdOk = (/** @type {any} */ id) => Number.isInteger(id) && POI
 export const POI_FLAT_KINDS = Object.freeze(['billboard', 'mount', 'paperdoll']);
 export const POI_ROUTE_MODES = Object.freeze(['loop', 'pingpong', 'once']);
 export const POI_AGGRESSION = Object.freeze(['hostile', 'passive']);
+/** Returns whether language skills can pacify an encounter's enemies (true unless `pacifiable` is false). */
+export const encounterPacifiable = (/** @type {any} */ e) => e?.pacifiable !== false;
 export const POI_RESPAWN = Object.freeze(['never', 'on_reentry']);
 export const POI_COMPLETE_RULES = Object.freeze(['all_dead', 'leader_dead', 'timer_survived']);
 export const POI_INTERACTIVE_KINDS = Object.freeze(['chest', 'door', 'switch', 'quest_object', 'trigger']);
@@ -91,10 +93,10 @@ const KEYS = Object.freeze({
   flatLight: set('color', 'radius', 'intensity', 'flicker'),
   route: set('key', 'name', 'mode', 'waypoints'),
   waypoint: set('key', 'name', 't', 'radius', 'waitS', 'onArriveEvent'),
-  encounter: set('key', 'name', 'center', 'radius', 'aggression', 'spawns', 'respawn', 'complete', 'onStart', 'onComplete'),
+  encounter: set('key', 'name', 'center', 'radius', 'aggression', 'pacifiable', 'spawns', 'respawn', 'complete', 'onStart', 'onComplete'),
   spawn: set('key', 'foe', 'count', 'level', 'at', 'spread', 'route'),
   complete: set('rule', 'leader', 'seconds'),
-  interactive: set('key', 'name', 'kind', 'appearance', 't', 'yaw', 'radius', 'state', 'keyItem', 'group', 'visible', 'locked'),
+  interactive: set('key', 'name', 'kind', 'appearance', 't', 'yaw', 'radius', 'state', 'keyItem', 'stateVar', 'group', 'visible', 'locked'),
   appearance: set('k', 'key', 'flat'),
   dialogue: set('key', 'name', 'start', 'nodes'),
   node: set('key', 'say', 'options'),
@@ -102,7 +104,7 @@ const KEYS = Object.freeze({
   variable: set('key', 'name', 'type', 'scope', 'initial'),
   trade: set('key', 'name', 'recipes'),
   recipe: set('key', 'name', 'requireItems', 'requireGold', 'when', 'rewardItems', 'rewardGold', 'limitMode', 'maxStock', 'cooldownS', 'onSuccessEvent'),
-  stack: set('template', 'group', 'material', 'count'),
+  stack: set('template', 'group', 'material', 'count', 'recipe'),
   event: set('key', 'name', 'trigger', 'when', 'then', 'else'),
 });
 /** Keys v2 adds to v1 parts, lights and people. poiLaw.js reads these. */
@@ -175,7 +177,9 @@ export function poiV2Problems(raw, kit) {
   const valueOk = (/** @type {any} */ v, /** @type {string} */ type) => (type === 'boolean' ? typeof v === 'boolean'
     : type === 'number' ? finite(v) && Math.abs(v) <= 1e9 : type === 'string' ? textOk(v, 64) : false);
 
-  /** an item stack: the game's own numbers, as the server mints them */
+  // Checks an item stack against the game's own numbers, as the server mints them. A potion's `recipe` and an
+  // encounter's `pacifiable` are only known keys here: poiTradeLaw.js checks their values at save, submission, and
+  // approval, so this law, which the game runs over every live POI, refuses nothing new.
   const stack = (/** @type {any} */ s, /** @type {string} */ at) => {
     if (!isObj(s)) { say(at, 'not-object'); return; }
     if (!int(s.template, 0, P.decorTemplateMax)) say(`${at}.template`, 'template', { max: P.decorTemplateMax });
@@ -413,6 +417,12 @@ export function poiV2Problems(raw, kit) {
       if (!finite(o.yaw) || Math.abs(o.yaw) > 720) say(`${at}.yaw`, 'size', { max: 720 });
       if (!finite(o.radius) || o.radius < 0.5 || o.radius > 200) say(`${at}.radius`, 'radius', { min: 0.5, max: 200 });
       if (o.keyItem !== undefined) stack(o.keyItem, `${at}.keyItem`);
+      // the persistent text variable the object takes its state from (poiDmCore.js followKeptStates)
+      if (o.stateVar !== undefined) {
+        ref(o.stateVar, /** @type {any} */ (ctx.vars), `${at}.stateVar`);
+        const v = ctx.vars.get(o.stateVar);
+        if (v && (v.type !== 'string' || !(v.scope === 'character' || v.scope === 'poi_global'))) say(`${at}.stateVar`, 'state-var');
+      }
       layout(o, at);
       unknown(o, KEYS.interactive, at);
     });

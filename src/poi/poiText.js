@@ -43,7 +43,7 @@ const PROBLEM = {
   'mesh-ref': () => t('poi.problem.meshRef', 'A part names no model.'),
   offset: (a) => t('poi.problem.offset', 'It is too far from the POI\'s origin (at most {max} m).', a),
   scale: (a) => t('poi.problem.scale', 'Each side\'s scale is between {min} and {max}.', a),
-  // v2: what the standalone builder adds
+  // v2: the problems the v2 law adds
   'ref-missing': (a) => t('poi.problem.refMissing', 'It names {key}, which does not exist in this POI.', a),
   model: (a) => t('poi.problem.model', 'The model number must be between 1 and {max}.', a),
   groups: (a) => t('poi.problem.groups', 'At most {max} groups.', a),
@@ -57,11 +57,13 @@ const PROBLEM = {
   foe: () => t('poi.problem.foe', 'This is not a creature the game has.'),
   'foes-many': (a) => t('poi.problem.foesMany', 'One encounter may spawn at most {max} creatures in all.', a),
   aggression: () => t('poi.problem.aggression', 'Choose whether the creatures are hostile or passive.'),
+  pacifiable: () => t('poi.problem.pacifiable', 'Choose whether language skills can pacify these enemies.'),
   respawn: () => t('poi.problem.respawn', 'Choose when the creatures return.'),
   'complete-rule': () => t('poi.problem.completeRule', 'Choose how the encounter ends.'),
   interactives: (a) => t('poi.problem.interactives', 'At most {max} interactive objects.', a),
   'interactive-kind': () => t('poi.problem.interactiveKind', 'This kind of object does not exist.'),
   state: () => t('poi.problem.state', 'This state does not suit this kind of object.'),
+  'state-var': () => t('poi.problem.stateVar', 'An object can take its state only from a persistent text variable, for everyone or for each character.'),
   'wrong-kind': () => t('poi.problem.wrongKind', 'This kind of object cannot be used here.'),
   dialogues: (a) => t('poi.problem.dialogues', 'At most {max} dialogues.', a),
   nodes: (a) => t('poi.problem.nodes', 'A dialogue needs between 1 and {max} lines of speech.', a),
@@ -78,6 +80,8 @@ const PROBLEM = {
   'item-group': () => t('poi.problem.itemGroup', 'This item does not come in that group.'),
   'item-material': () => t('poi.problem.itemMaterial', 'This item cannot be made of that material.'),
   'item-stack': () => t('poi.problem.itemStack', 'This kind of item cannot be given in a stack.'),
+  'item-recipe': () => t('poi.problem.itemRecipe', 'Choose one of the game\'s potions.'),
+  'settle-var': (a) => t('poi.problem.settleVar', 'The realm decides this, so its condition can only read persistent variables (for a character or the whole POI), not {key}.', a),
   'item-ref': () => t('poi.problem.itemRef', 'This picture needs an item.'),
   'no-reward': () => t('poi.problem.noReward', 'A recipe must give something: an item or gold.'),
   'free-unlimited': () => t('poi.problem.freeUnlimited', 'A recipe that asks for nothing must have a limit.'),
@@ -222,7 +226,7 @@ const DIFF = {
   'part-removed': (a) => t('poi.diff.partRemoved', 'Part taken away: {name}.', a),
   // AUDIT POI U13: what changed listed as the reader's language lists it, not with an English comma
   'part-changed': (a) => t('poi.diff.partChanged', 'Part {name}: {what}.', { name: a.name, what: listText(a.what.map((w) => PART_WHAT[w]?.() ?? w)) }),
-  upgraded: (a) => t('poi.diff.upgraded', 'Moved from version {from} to version {to} of the format.', a),
+  upgraded: (a) => t('poi.diff.upgraded', 'Now saved in format version {to} (it was version {from}). That alone changes nothing in the game.', a),
   interior: () => t('poi.diff.interior', 'Its interior changed.'),
   collection: (a) => t('poi.diff.collection', 'Holds {count, plural, one {# {kind}} other {# {kind}}}.', { count: a.count, kind: KIND_WORD[a.kind]?.(a.count) ?? a.kind }),
   'item-added': (a) => t('poi.diff.itemAdded', '{kind} added: {name}.', { kind: KIND_ONE[a.kind]?.() ?? a.kind, name: a.name }),
@@ -237,6 +241,13 @@ const DIFF = {
  *  comma where the runtime has none. @param {string[]} words */
 function listText(words) {
   try { return new Intl.ListFormat(intlLocale(), { type: 'unit', style: 'short' }).format(words); } catch { return words.join(', '); }
+}
+/** Things as one list joined with "and", the reader's language's way (Intl.ListFormat's conjunction, ui/credits.js's
+ *  way); "a, b, and c" where the runtime has none. @param {string[]} words */
+function andList(words) {
+  try { return new Intl.ListFormat(intlLocale(), { type: 'conjunction' }).format(words); } catch {
+    return words.length < 3 ? words.join(' and ') : `${words.slice(0, -1).join(', ')}, and ${words[words.length - 1]}`;
+  }
 }
 /** The v2 collections, one thing and many, for the diff's lines. */
 const KIND_ONE = {
@@ -296,10 +307,47 @@ const MESH_MAX = { 'too-many-vertices': POI_MESH_LIMITS.vertices, 'too-many-indi
 export const meshErrorText = (code) => said(MESH, () => t('poi.mesh.malformed', 'A part\'s model is malformed.'))(code, { max: MESH_MAX[code] });
 /** POI-6: a change a submission makes, as the approver reads it. @param {{ code: string, [k: string]: any }} c */
 export const diffText = (c) => said(DIFF, unknownCode)(c.code, c);
+/**
+ * Formats the read-only summary lines for v2 POI fields that the in-game editor preserves but cannot edit yet
+ * (poiEdit.js poiHeldOf), followed by any caller-supplied `more` lines and the read-only notice; returns an empty array
+ * when none are present. Flat pictures are editable in the editor and formatted separately by flatCountText.
+ * @param {ReturnType<typeof import('./poiEdit.js').poiHeldOf>} h @param {string[]} [more]
+ */
+export function heldLines(h, more = []) {
+  const word = (k, n) => KIND_WORD[k]?.(n) ?? k;
+  const things = Object.entries(h.kinds).map(([k, n]) => t('poi.held.count', '{n, number} {kind}', { n, kind: word(k, n) }));
+  if (h.interior) things.push(t('poi.held.interior', 'an interior'));
+  const out = [];
+  if (things.length) out.push(t('poi.held.kinds', 'It holds {list}.', { list: andList(things) }));
+  if (h.linked) out.push(t('poi.held.linked', '{n, plural, one {# person has} other {# people have}} a route, dialogue, trade, reach, or condition.', { n: h.linked }));
+  out.push(...more);
+  if (out.length) out.push(t('poi.held.kept', 'This editor cannot change these yet. They are left as is when you save.'));
+  return out;
+}
+/** Formats a POI's flat-picture count against the schema limit `max`. @param {number} n @param {number} max */
+export const flatCountText = (n, max) => t('poi.flat.countOf', 'Flat pictures: {n, number} of {max, number}.', { n, max });
+/** A document's size against its version's limit (poiEdit.js poiDocSizeOf). @param {{ bytes: number, max: number }} s @param {number} v */
+export const docSizeText = (s, v) => t('poi.editor.docSize', 'Size: {kib, number} of {max, number} KiB (format version {v}).', { kib: Math.ceil(s.bytes / 102.4) / 10, max: Math.round(s.max / 1024), v });
+
 /** POI-6: a pack's refusal. @param {{ code: string, [k: string]: any }} r */
 export const packErrorText = (r) => said(PACK, unknownCode)(r.code, r);
 /** A picture's refusal (poiImage.js poiImageMetaOf's). @param {string} code */
 export const imageErrorText = (code) => said(IMAGE, unknownCode)(code, { max: POI_IMAGE_LIMITS.side });
+/** A model or picture that would not load, so the asset check could not finish: `passes` when it is tried again by
+ *  itself (offline, the store busy or failing), else the builder asks again. @param {boolean} passes */
+export const assetsUncheckedText = (passes) => (passes
+  ? t('poi.editor.uncheckedRetry', 'Its model or picture would not load, so it could not be checked yet. Trying again shortly.')
+  : t('poi.editor.unchecked', 'Its model or picture would not load, so it could not be checked.'));
+
+/** The rows that say which models and pictures would not load: where each is, whether it is tried again by itself, and
+ *  Check again when one is not. @param {any} d @param {{ path: string, passes: boolean }[]} unloaded
+ *  @param {(tag: string, cls?: string, text?: string | null) => any} el @param {(text: string, fn: () => void) => any} btn
+ *  @param {() => void} retry */
+export function uncheckedRows(d, unloaded, el, btn, retry) {
+  const out = unloaded.slice(0, 6).map(({ path, passes }) => el('div', 'dfpoi-warn', `${problemWhere(path, d)}: ${assetsUncheckedText(passes)}`));
+  if (unloaded.some((u) => !u.passes)) out.push(btn(t('poi.editor.checkAgain', 'Check again'), retry));
+  return out;
+}
 
 /**
  * Where a problem is, as the builder sees it - "Part Roof · material 2", "Light 3" - or '' for the POI itself.

@@ -1,7 +1,7 @@
-// The four worked examples from the World Builder spec as one v2 document, built on the game's real ids.
-// The tests use it, and the editor probe can load it later. Template numbers come from itemTemplates.js (Red Berries 16,
-// Troll's Blood 42, Iron 71, Copper 72, Elixir Vitae 62); foes are class enemies 136 (Rogue), 141 (Archer), 143 (Barbarian).
-// Arch3d model 1 stands for any model the catalogue holds: the law only checks the number's range.
+// The four worked examples from the World Builder spec as one v2 document on the game's real ids, for the tests. Items
+// are Red Berries 16, Troll's Blood 42, Iron 71, Copper 72, and a Heal True potion (Glass Bottle 83 with its recipe).
+// Enemies use classes 136 (Rogue), 141 (Archer), and 143 (Barbarian). Arch3d model 1 is a placeholder: the law checks
+// only the number's range.
 
 const part = (key, name, extra = {}) => ({ key, name, arch3d: 1, t: [0, 0, 0], r: [0, 0, 0, 1], s: [1, 1, 1], collide: 'mesh', shadow: true, ...extra });
 const npc = (key, name, t, extra = {}) => ({ key, name, t, yaw: 0, h: 1.8, look: { k: 'df', a: 182, r: 0 }, lines: [], ...extra });
@@ -50,9 +50,9 @@ export function poiV2Example() {
     }],
     trades: [
       { key: 'nyra', name: 'Nyra\'s brew', recipes: [{
-        key: 'brew', name: 'Brew an elixir',
+        key: 'brew', name: 'Brew a Heal True potion',
         requireItems: [{ template: 16, count: 5 }, { template: 42, count: 2 }], requireGold: 0,
-        rewardItems: [{ template: 62, count: 1 }], rewardGold: 0, limitMode: 'unlimited',
+        rewardItems: [{ template: 83, recipe: 'healTrue', count: 1 }], rewardGold: 0, limitMode: 'unlimited',
       }] },
       { key: 'supplies', name: 'Supply delivery', recipes: [{
         key: 'delivery', name: 'Deliver the supplies',

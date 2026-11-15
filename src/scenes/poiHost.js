@@ -47,11 +47,14 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { decodePoiMeshSteps } from '../poi/poiMesh.js';
+import { POI_SHA_RE } from '../poi/poiLaw.js';
 import {
   POI_TEXTURE_ARCHIVE, materialLook, samplerOf, emits, createTextureBook, bakeAlbedoSteps, bakeEmissionSteps, poiPartModelSteps,
   placeMatrix, partMatrix, boxThrough, lightsOf, npcsOf,
 } from '../poi/poiRuntime.js';
 import { createPoiNpcs } from './poiNpcs.js';   // BUNNYFALL
+// Renders a v2 POI's flat pictures through a house-decor room.
+import { createPoiFlats } from './poiFlats.js';
 import { samplerKey } from '../render/meshAlpha.js';
 import { drawSeen, DECOR_DRAW } from './decor/decorRoom.js';
 import { invert4 } from '../player/tapRay.js';
@@ -112,6 +115,28 @@ export function rayTriangles(o, d, pos, idx, max) {
   }
   return best;
 }
+/** Why a part can never stand as an uploaded model - no sha256 mesh (a World Builder part that names a Daggerfall
+ *  model, `arch3d`), no materials - or '' when it may. Pure. @param {any} part */
+export function poiPartUnloadable(part) {
+  if (part?.arch3d !== undefined) return 'a Daggerfall model (not stood by the game yet)';
+  if (typeof part?.mesh !== 'string' || !POI_SHA_RE.test(part.mesh)) return 'no uploaded model';
+  if (!Array.isArray(part.materials)) return 'no materials';
+  return '';
+}
+/** An error marked as a model or picture whose bytes will not read: the same bytes never will. @param {any} e */
+const unreadable = (e) => { const err = e instanceof Error ? e : new Error(String(e)); /** @type {any} */ (err).poiUnreadable = true; return err; };
+/**
+ * What a part's load failure means for its POI. Pure. 'unreadable': its model or a picture will not read (bytes named by
+ * their hash never will), the part is left out for the revision. 'missing': the store has no such asset (404, 410), the
+ * POI stands without the part, asked again after POI_RETRY_MS. 'retry': anything else (no answer however the browser
+ * words it, 401, 403, 408, 429, 5xx, bytes that did not match their name), the whole POI fails and is stood again then.
+ * @param {any} e @returns {'unreadable' | 'missing' | 'retry'}
+ */
+export function poiLoadFailure(e) {
+  if (e?.poiUnreadable) return 'unreadable';
+  const status = /: (\d{3})$/.exec(String(e?.message ?? ''));
+  return status && (status[1] === '404' || status[1] === '410') ? 'missing' : 'retry';
+}
 const xformPoint = (m, p) => [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]];
 const xformDir = (m, p) => [m[0] * p[0] + m[4] * p[1] + m[8] * p[2], m[1] * p[0] + m[5] * p[1] + m[9] * p[2], m[2] * p[0] + m[6] * p[1] + m[10] * p[2]];
 const _inv = new Float32Array(16);
@@ -139,28 +164,39 @@ export function sameStand(a, b) {
  *   groundAt: (x: number, z: number) => number,
  *   collider?: () => any, riding?: (px: number, py: number) => any,
  *   feet?: () => (number[] | null), auth?: () => (string | null), collideDrafts?: () => boolean,
- *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any,
- * }} deps `decodeImage` a picture's bytes to its raster (`{ width, height, data }`, top row first) - a promise of it, or
- *   its decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
- *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating
- *   translation provider for the collider; `auth` a builder's bearer (the editor's drafts' assets); `collideDrafts`
- *   false while the editor drags (a draft moved every frame would file its collider every frame - it is stood once the
- *   drag ends); `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's; `keepDecodedBytes`
- *   the decoded pictures' keep (POI_DECODED_KEEP_BYTES)
+ *   now?: () => number, clock?: () => number, keepDecodedBytes?: number, log?: any, dmTest?: ((id: string) => any) |
+ * null, dmHeld?: () => boolean, uploadRecord?: any, flatAnims?: ((px: number, py: number) => any) | null, }} deps
+ *   `decodeImage` a picture's bytes to its raster (`{ width, height, data }`, top row first) - a promise of it, or its
+ *   decoder's steps (poi/poiImageDecode.js decodePoiImageSteps), run under the frame's budget with the host's own;
+ *   `pixels` the streamer's built pixels; `translation` its pixelTranslation; `riding` a pixel's floating translation
+ *   provider for the collider; `auth` a builder's bearer (the editor's drafts' assets); `collideDrafts` false while the
+ *   editor drags (a draft moved every frame would file its collider every frame - it is registered once the drag ends);
+ *   `now` the wall clock (a retry's wait, a flicker's step), `clock` the frame budget's; `keepDecodedBytes` the decoded pictures' keep (POI_DECODED_KEEP_BYTES)
  */
 export function createPoiHost({
   renderer, feed, decodeImage, pixels, translation, groundAt, collider = () => null, riding = () => null, collideDrafts = () => true,
   feet = () => null, auth = () => null, now = () => Date.now(), clock = () => performance.now(), keepDecodedBytes = POI_DECODED_KEEP_BYTES, log = console,
   getTexture = null, uploadRecordFrame = null, say = null,   // BUNNYFALL: the people's sprites and lines
+  // texture uploader and per-map-square flat animator for POI flat pictures (scenes/poiFlats.js)
+  uploadRecord = null, flatAnims = null,
   dm = null,   // POI v2: `() => Promise<runtime>` (poi/poiDmRuntime.js createPoiDm), asked the first time a POI with DM content stands
+  // the editor's Test (poi/poiDmTest.js): `(id) => runtime | null`, the preview runtime of the one draft under test
+  dmTest = null,
+  // while the editor's Test runs: live POIs stand without their DM content (nothing of theirs runs or is stored); a
+  // dialogue or trade of theirs open as the hold begins is closed
+  dmHeld = () => false,
 }) {
   /** BUNNYFALL: the people the POIs stand (scenes/poiNpcs.js) */
-  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, talk: (id, key) => dmRt?.talk(id, key) ?? false });
+  const npcs = createPoiNpcs({ renderer, getTexture, uploadRecordFrame, asset: (sha, o) => feed.asset(sha, o), auth, say, feet, groundAt, talk: (id, key) => (dmTest?.(id) ?? (dmHeld() ? null : dmRt))?.talk(id, key) ?? false });
+  /** POI v2: flat pictures (scenes/poiFlats.js), with one decor room per POI that has flats */
+  const flats = createPoiFlats({ renderer, getTexture, uploadRecord, uploadRecordFrame, flatAnims, now });
   /** POI v2: the DM runtime, loaded once a POI that needs it stands (kept out of the world's bundle until then) */
-  let dmRt = null, dmAsked = false;
-  const dmContent = (doc) => doc?.v === 2 && ['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length);
+  let dmRt = null, dmAsked = false, wasHeld = false;
+  const dmContent = (doc) => doc?.v === 2 && (['events', 'dialogues', 'trades', 'routes', 'encounters', 'interactives'].some((k) => doc[k]?.length) || doc.npcs?.some((n) => n?.showWhen));
+  /** The runtime a stand runs on: a live POI the game's (none while a Test runs), a draft only while the editor tests it (its preview runtime). */
   function dmOf(s) {
-    if (!dm || s.draft || !dmContent(s.doc)) return null;
+    if (s.draft) return dmContent(s.doc) ? dmTest?.(s.id) ?? null : null;
+    if (!dm || dmHeld() || !dmContent(s.doc)) return null;
     if (!dmRt && !dmAsked) { dmAsked = true; dm().then((rt) => { dmRt = rt; }, (e) => { if (log) console.warn('[poi] the DM runtime', e?.message ?? e); }); }
     return dmRt;
   }
@@ -178,6 +214,8 @@ export function createPoiHost({
   const decoded = new Map();
   let decodedBytes = 0;
   let frameN = 0;
+  /** the parts already warned about as left out, by POI, revision, and key (one warning per revision, not per retry) */
+  const skipsSaid = new Set();
 
   // ── THE STAND WORK (AUDIT POI R8) ───────────────────────────────────
   /** The jobs that can step, in the order they came (the first stepped until it waits or ends). */
@@ -250,9 +288,11 @@ export function createPoiHost({
   }
   function* decodeSteps(sha) {
     const bytes = yield feed.asset(sha, { auth: auth() });
-    const r = decodeImage(bytes);
-    if (r && typeof r.next === 'function') return yield* r;   // the decoder's own steps, under this budget
-    return r && typeof r.then === 'function' ? yield r : r;
+    try {
+      const r = decodeImage(bytes);
+      if (r && typeof r.next === 'function') return yield* r;   // the decoder's own steps, under this budget
+      return r && typeof r.then === 'function' ? yield r : r;
+    } catch (e) { throw unreadable(e); }
   }
 
   /** A look's textures uploaded once, kept while any standing part wears it. */
@@ -302,37 +342,71 @@ export function createPoiHost({
     };
   }
 
-  /** Load a POI: every part's mesh, its looks, its GPU models - as stand work. */
+  /** A part this stand leaves out, said once for its POI's revision. */
+  function skipPart(s, part, why) {
+    const said = `${s.id} r${s.rev} ${part.key}`;
+    if (skipsSaid.has(said)) return;
+    skipsSaid.add(said);
+    if (log) console.warn(`[poi] ${s.id} r${s.rev} stands without part ${part.key}`, why);
+  }
+
+  /** One part's model, its looks, and its GPU models, as stand work: answers its record, ready to place. Throws when
+   *  it will not load (poiLoadFailure says what that means); the looks it held are released first. */
+  function* partSteps(s, i) {
+    const part = s.doc.parts[i];
+    const held = [];
+    let d;
+    try {
+      const bytes = yield feed.asset(part.mesh, { auth: auth() });
+      // yield between read steps so a model near the size limit does not block a frame for tens of milliseconds
+      try { d = yield* decodePoiMeshSteps(bytes); } catch (e) { throw unreadable(e); }
+      if ('error' in d) throw unreadable(new Error(`part ${part.key}: ${d.error}`));
+      for (const m of part.materials) { const l = holdLook(m); held.push(l); s.held.push(l); }
+      yield Promise.all(held.map((l) => l.ready));
+    } catch (e) {
+      for (const l of held) { dropLook(l); s.held.splice(s.held.indexOf(l), 1); }
+      throw e;
+    }
+    const remap = new Map();
+    for (const m of part.materials) {
+      const rec = recordOf(m);
+      remap.set(`${POI_TEXTURE_ARCHIVE}_${rec}`, `${POI_TEXTURE_ARCHIVE}_${rec}${samplerKey(samplerOf(m))}`);
+    }
+    const scale = part.s.slice();
+    // the GPU models are made in the last step, with no wait after it, so a job given up before then makes none
+    const models = yield* modelSteps(d.mesh, part.materials, scale);
+    return {
+      index: i, key: part.key, part, remap, mesh: d.mesh, opaque: models.opaque, translucent: models.translucent,
+      baked: scale, wound: true, remodel: null,   // AUDIT POI R5: the scale its models carry, and whether its hand is the part's
+      positions: d.mesh.positions, indices: d.mesh.indices, min: d.mesh.boundsMin, max: d.mesh.boundsMax,
+      collide: part.collide === 'mesh', shadow: part.shadow, local: null, localBox: null, scene: new Float32Array(16), drawn: new Float32Array(16), box: null,
+      bucket: `poi:${s.id}:${i}`, stood: false, carry: false,
+    };
+  }
+
+  /** Load a POI: every part's mesh, its looks, and its GPU models, as stand work. A part that can never load (no
+   *  uploaded model, or a model or picture that will not read) is left out, and one the store does not have (404,
+   *  410) is left out and asked again after POI_RETRY_MS; the rest stands, with its people and DM content. Any other
+   *  failure (offline, or the store failing or refusing the session) fails the POI, which is tried again after
+   *  POI_RETRY_MS. */
   function* loadSteps(s) {
     const parts = [];
     let made = false;
     try {
       for (let i = 0; i < s.doc.parts.length; i++) {
         const part = s.doc.parts[i];
-        // AUDIT POI R8 (the lead's): read in steps too - a model at the law's bounds was one task of tens of milliseconds
-        const d = yield* decodePoiMeshSteps(yield feed.asset(part.mesh, { auth: auth() }));
-        if ('error' in d) throw new Error(`part ${part.key}: ${d.error}`);
-        const held = part.materials.map((m) => holdLook(m));
-        s.held.push(...held);
-        yield Promise.all(held.map((l) => l.ready));
-        const remap = new Map();
-        for (const m of part.materials) {
-          const rec = recordOf(m);
-          remap.set(`${POI_TEXTURE_ARCHIVE}_${rec}`, `${POI_TEXTURE_ARCHIVE}_${rec}${samplerKey(samplerOf(m))}`);
+        const without = poiPartUnloadable(part);
+        if (without) { skipPart(s, part, without); continue; }
+        try { parts.push(yield* partSteps(s, i)); } catch (e) {
+          const how = poiLoadFailure(e);
+          if (how === 'retry') throw e;
+          skipPart(s, part, e?.message ?? e);
+          s.skipped.push(i);
+          if (how === 'missing') s.missing.push(i);
         }
-        const p = {
-          index: i, key: part.key, part, remap, mesh: d.mesh, opaque: null, translucent: null,
-          baked: [1, 1, 1], wound: true, remodel: null,   // AUDIT POI R5: the scale its models carry, and whether its hand is the part's
-          positions: d.mesh.positions, indices: d.mesh.indices, min: d.mesh.boundsMin, max: d.mesh.boundsMax,
-          collide: part.collide === 'mesh', shadow: part.shadow, local: null, localBox: null, scene: new Float32Array(16), drawn: new Float32Array(16), box: null,
-          bucket: `poi:${s.id}:${i}`, stood: false, carry: false,
-        };
-        parts.push(p);
-        const scale = part.s.slice();
-        const models = yield* modelSteps(d.mesh, part.materials, scale);
-        p.opaque = models.opaque; p.translucent = models.translucent; p.baked = scale;
       }
       s.parts = parts;
+      s.missingAt = now();
       s.status = 'ready';
       made = true;
     } catch (e) {
@@ -344,6 +418,34 @@ export function createPoiHost({
       // frees the GPU models its parts had made (a failing POI retried each minute leaked them each time)
       if (!made) for (const p of parts) freePart(p);
       s.job = null;
+    }
+  }
+  /** The parts a standing POI was stood without because they failed to load, asked again: each that loads now joins
+   *  it (placed again with the rest), each still missing waits another POI_RETRY_MS, and one that will not read
+   *  stays out. */
+  function* missingSteps(s) {
+    const got = [];
+    const asked = s.missing;
+    // a revision that comes meanwhile fills it again (the frame's same-build path)
+    s.missing = [];
+    s.missingAt = now();
+    try {
+      const still = [];
+      for (const i of asked) {
+        try { got.push(yield* partSteps(s, i)); } catch (e) { if (poiLoadFailure(e) !== 'unreadable') still.push(i); }
+      }
+      const joined = new Set(got.map((p) => p.index));
+      s.missing = [...new Set([...still, ...s.missing])].filter((i) => !joined.has(i));
+      s.skipped = s.skipped.filter((i) => !joined.has(i));
+      // a revision that arrives meanwhile keeps its ask at once
+      if (s.missingAt !== -Infinity) s.missingAt = now();
+      // the parts join at the next place(), placed there with the rest before anything draws or picks them
+      s.joining.push(...got);
+      got.length = 0;
+    } finally {
+      // the parts given up before they joined are freed
+      for (const p of got) freePart(p);
+      s.partJob = null;
     }
   }
 
@@ -378,11 +480,18 @@ export function createPoiHost({
     s.gone = true;
     cancel(s.job);
     const col = collider();
+    cancel(s.partJob);
     for (const p of s.parts) { cancel(p.remodel); if (p.stood) col?.removeBucket?.(p.bucket); freePart(p); }
+    for (const p of s.joining) freePart(p);
+    s.joining = [];
     for (const l of s.held) dropLook(l);
     s.parts = []; s.held = [];
     npcs.drop(s.id);   // BUNNYFALL: and its people
+    // its flat pictures
+    flats.drop(s.id);
     npcs.setExtras(s.id, null); dmRt?.drop(s.id);   // POI v2: and its run
+    // a draft under test: its preview run and its enemies
+    if (s.draft) dmTest?.(s.id)?.drop(s.id);
     standing.delete(s.id);
     const i = stood.indexOf(s);
     if (i >= 0) stood.splice(i, 1);
@@ -390,7 +499,7 @@ export function createPoiHost({
 
   function stand(e) {
     const s = { id: e.id, rev: e.rev, doc: e.doc, draft: !!e.draft, px: e.doc.place.px, py: e.doc.place.py, status: 'loading', failedAt: 0, gone: false,
-      parts: [], held: [], y: NaN, groundRead: [NaN, NaN, -Infinity, NaN], t: [0, 0, 0], place: null, lights: [], rows: [], job: null, visible: false };
+      parts: [], held: [], skipped: [], missing: [], missingAt: 0, partJob: null, joining: [], y: NaN, groundRead: [NaN, NaN, -Infinity, NaN], t: [0, 0, 0], place: null, lights: [], rows: [], job: null, visible: false };
     standing.set(e.id, s);
     stood.push(s);
     s.job = spawn(loadSteps(s));
@@ -422,6 +531,14 @@ export function createPoiHost({
   /** Inside a part's box (`b` in its pixel's frame, `t` the pixel's translation), the capsule's half a pace about it? */
   const inside = (b, f, t) => !!f && !!b && f[0] > b[0] + t[0] - 0.5 && f[0] < b[3] + t[0] + 0.5 && f[2] > b[2] + t[2] - 0.5 && f[2] < b[5] + t[2] + 0.5 && f[1] + 1.8 > b[1] + t[1] && f[1] < b[4] + t[1];
 
+  /** A part's matrix and box in its pixel's frame, from its POI's place matrix. */
+  function placeLocal(s, p) {
+    p.local = partMatrix(s.place, p.part);
+    const b = boxThrough(p.local, p.min, p.max);
+    const lb = p.localBox ??= [0, 0, 0, 0, 0, 0];
+    lb[0] = b.min[0]; lb[1] = b.min[1]; lb[2] = b.min[2]; lb[3] = b.max[0]; lb[4] = b.max[1]; lb[5] = b.max[2];
+  }
+
   /** One standing, ready POI this frame: its height, matrices, boxes, collider and lights. */
   function place(s) {
     const t = translation(s.px, s.py, s.t);
@@ -440,29 +557,40 @@ export function createPoiHost({
         // the part moves: a collider standing round the body is carried (AUDIT POI R1 - filed again at once, below);
         // one standing clear of it is stood again when its turn comes
         if (p.stood) { p.carry = inside(p.localBox, f, t); col?.removeBucket?.(p.bucket); p.stood = false; }
-        p.local = partMatrix(s.place, p.part);
-        const b = boxThrough(p.local, p.min, p.max);
-        const lb = p.localBox ??= [0, 0, 0, 0, 0, 0];
-        lb[0] = b.min[0]; lb[1] = b.min[1]; lb[2] = b.min[2]; lb[3] = b.max[0]; lb[4] = b.max[1]; lb[5] = b.max[2];
+        placeLocal(s, p);
       }
     }
+    // parts that loaded since (missingSteps) join here, placed like the rest, so the loop below gives them their drawn
+    // matrix and box before any draw or pick sees them
+    if (s.joining.length) {
+      for (const p of s.joining) { p.part = s.doc.parts[p.index]; placeLocal(s, p); }
+      s.parts = [...s.parts, ...s.joining].sort((a, b) => a.index - b.index);
+      s.joining = [];
+    }
     s.visible = true;
+    // sync its flat pictures when its position or document changes
+    flats.sync(s, t);
     const rt = dmOf(s);   // POI v2: its patrols, triggers, objects and encounters (poi/poiDmRuntime.js)
     const people = s.doc.npcs?.length ? (s.npcs ??= npcsOf(s.doc, s.place)) : null;
     const shown = rt ? rt.frame(s, t, people) : people;
-    if (rt) npcs.setExtras(s.id, rt.extras(s.id));
+    // no runtime (a test stopped): no objects to use
+    npcs.setExtras(s.id, rt ? rt.extras(s.id) : null);
+    // the parts that are open doors' looks: not drawn and not blocking
+    const off = rt?.off?.(s.id) ?? null;
     if (shown?.length || people?.length) { npcs.sync(s.id, shown ?? [], t); s.hadNpcs = true; }   // BUNNYFALL: the people, with the pixel's live translation
     else if (s.hadNpcs) { npcs.drop(s.id); s.hadNpcs = false; }
     const parts = s.parts;
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
+      p.off = !!off?.size && off.has(p.part.key);
+      if (p.off && p.stood) { col?.removeBucket?.(p.bucket); p.stood = false; }
       p.scene.set(p.local);
       p.scene[12] += t[0]; p.scene[13] += t[1]; p.scene[14] += t[2];
       drawnOf(p);
       const sk = p.baked;
       const lb = p.localBox, bx = p.box ??= [0, 0, 0, 0, 0, 0];   // AUDIT POI R12: refilled, never made again a frame
       bx[0] = lb[0] + t[0]; bx[1] = lb[1] + t[1]; bx[2] = lb[2] + t[2]; bx[3] = lb[3] + t[0]; bx[4] = lb[4] + t[1]; bx[5] = lb[5] + t[2];
-      if (p.collide && !p.stood && col?.addMesh && (p.carry || !inside(p.localBox, f, t)) && (!s.draft || collideDrafts())) {
+      if (p.collide && !p.stood && !p.off && col?.addMesh && (p.carry || !inside(p.localBox, f, t)) && (!s.draft || collideDrafts())) {
         // AUDIT POI R8: a first filing waits its turn in the frame's budget; one carried round the body never waits
         if (p.carry || turn()) {
           col.addMesh(p.bucket, p.positions, p.indices, p.local, riding(s.px, s.py));
@@ -479,7 +607,10 @@ export function createPoiHost({
     let s = standing.get(id);
     if (!s) s = stand(e);
     if (s.status === 'failed' && now() - s.failedAt >= POI_RETRY_MS) { takeDown(s); s = stand(e); }
-    if (s.status === 'ready') place(s);
+    if (s.status === 'ready') {
+      if (s.missing.length && !s.partJob && now() - s.missingAt >= POI_RETRY_MS) s.partJob = spawn(missingSteps(s));
+      place(s);
+    }
   }
 
   /** The translucent parts this frame, the farthest first (AUDIT POI R12: entries kept between frames). */
@@ -491,6 +622,7 @@ export function createPoiHost({
     frame() {
       frameN++;
       until = clock() + POI_STAND_BUDGET_MS; units = 0;
+      flats.frame();
       feed.tick?.();
       want.clear();
       for (const px of pixels()) {
@@ -508,11 +640,20 @@ export function createPoiHost({
           // AUDIT POI R1: the same place too (any approval re-reads every document: a new object, the same POI) - the
           // document replaced and nothing else; the colliders where they stand
           if (!sameStand(s.doc, e.doc)) s.place = null;
+          // a new revision asks again at once for every part whose load failed (a part that can never load, such as a
+          // Daggerfall model, is not asked)
+          if (e.rev !== s.rev && s.skipped.length) { s.missing = [...s.skipped]; s.missingAt = -Infinity; }
           s.doc = e.doc; s.rev = e.rev; s.npcs = null;
-          for (let i = 0; i < s.parts.length; i++) s.parts[i].part = e.doc.parts[i];
+          // each stood part takes its new part by its own index, so a part left out leaves a gap
+          for (let i = 0; i < s.parts.length; i++) s.parts[i].part = e.doc.parts[s.parts[i].index];
           if (e.doc.place.px !== s.px || e.doc.place.py !== s.py) { unstand(s); s.px = e.doc.place.px; s.py = e.doc.place.py; s.ground = NaN; s.place = null; }
         } else takeDown(s);
       }
+      const held = dmHeld();
+      // the hold begins: no live dialogue or trade stays on screen to be answered
+      if (held && !wasHeld) dmRt?.close?.();
+      wasHeld = held;
+      if (!held) dmRt?.tick?.();
       want.forEach(standWanted);
       stepWork();
       npcs.frame();   // BUNNYFALL: the people near the player, for the world's flats and its Talk key
@@ -526,7 +667,7 @@ export function createPoiHost({
         if (s.status !== 'ready' || !s.visible) continue;
         for (let i = 0; i < s.parts.length; i++) {
           const p = s.parts[i];
-          if (p.opaque && p.wound) drawSeen(r, cull, p.box, p.opaque, p.drawn, p.remap, p.shadow ? undefined : NO_SHADOW);
+          if (p.opaque && p.wound && !p.off) drawSeen(r, cull, p.box, p.opaque, p.drawn, p.remap, p.shadow ? undefined : NO_SHADOW);
         }
       }
     },
@@ -540,7 +681,7 @@ export function createPoiHost({
         if (s.status !== 'ready' || !s.visible) continue;
         for (let i = 0; i < s.parts.length; i++) {
           const p = s.parts[i];
-          if (!p.translucent || !p.wound || (cull && cull(p.box) !== DECOR_DRAW)) continue;
+          if (!p.translucent || !p.wound || p.off || (cull && cull(p.box) !== DECOR_DRAW)) continue;
           const b = p.box, e = _far[n] ?? (_far[n] = { p: null, d: 0 });
           n++;
           e.p = p;
@@ -571,8 +712,14 @@ export function createPoiHost({
           out.push(row);
         }
       }
+      // and their flat pictures' lights
+      flats.lights(out);
       return out;
     },
+    /** Returns the flat picture batches for the world's billboard pass (reusing one array each frame). */
+    batches: () => flats.batches(),
+    /** Returns the mounted flat pictures for the world's decal pass. */
+    drawMounts: (r) => flats.drawMounts(r),
     /** Every standing POI's mark for the maps (`{ px, py, label, id }`) - built pixel or not: the map shows the realm. */
     marks() {
       const out = [];
@@ -585,16 +732,20 @@ export function createPoiHost({
     /** What stands, for the editor's outliner and a test: `[{ id, rev, status, visible, parts }]`. */
     standing() { return [...standing.values()].map((s) => ({ id: s.id, rev: s.rev, status: s.status, visible: !!s.visible, draft: s.draft, parts: s.parts.length })); },
     /**
-     * POI-3: THE PART UNDER A RAY - the nearest standing part whose triangles the ray (scene frame: `o` the eye, `d` a
-     * direction) meets within `max` metres, its box asked first: `{ id, key, dist, draft }`, or null. Exact, over the
-     * part's own triangles through the inverse of its drawn matrix (a model with no collider is picked as one with).
+     * POI-3: THE PART UNDER A RAY - the nearest loaded part whose triangles the ray (scene frame: `o` the origin, `d`
+     * the direction) hits within `max` meters, checking its bounding box first: `{ id, key, dist, draft }`, or null.
+     * Tests the part's exact triangles through the inverse of its drawn matrix (whether or not the part has a
+     * collider). If a flat picture's bounding box is closer than any part, returns that hit instead with `kind: 'flat'`
+     * (scenes/poiFlats.js pick). Rows for which `skip(id, key, kind)` returns true (the editor's hidden or locked
+     * parts, `kind` undefined, and flats, `'flat'`) are passed over, so what is behind them can be picked.
      */
-    pick(o, d, max = 6000) {
+    pick(o, d, max = 6000, skip = null) {
       let best = null;
       for (const s of standing.values()) {
         if (s.status !== 'ready' || !s.visible) continue;
         for (const p of s.parts) {
           if (!p.box || !rayBox(o, d, p.box, best ? best.dist : max)) continue;
+          if (skip?.(s.id, p.key)) continue;
           const inv = invert4(p.scene, _inv);
           if (!inv) continue;
           const lo = xformPoint(inv, o), ld = xformDir(inv, d);
@@ -602,10 +753,16 @@ export function createPoiHost({
           if (t !== null) best = { id: s.id, key: p.key, dist: t, draft: s.draft };   // nearer than any before: its reach was theirs
         }
       }
+      // a flat picture nearer than any part
+      const f = flats.pick(o, d, best ? best.dist : max, skip);
+      if (f) best = { ...f, draft: !!standing.get(f.id)?.draft };
       return best;
     },
     /** A part's drawn matrix and box (the editor's gizmo and pick). */
-    partOf(id, key) { const s = standing.get(id); const p = s?.parts.find((x) => x.key === key); return p ? { scene: p.scene, box: p.box, local: p.local } : null; },
+    partOf(id, key) { const s = standing.get(id); const p = s?.parts.find((x) => x.key === key); return p ? { scene: p.scene, box: p.box, local: p.local, min: p.min, max: p.max } : null; },
+    /** Returns a flat picture's bounding box in the scene once its texture has loaded (used for editor selection
+     *  boxes and picking). */
+    flatBox: (id, key) => flats.boxOf(id, key),
     /** Everything down - a re-anchor, a load; the next frame stands what is still wanted. */
     destroyAll() { for (const s of [...standing.values()]) takeDown(s); },
     /**
@@ -615,7 +772,10 @@ export function createPoiHost({
      */
     standDown() {
       const col = collider();
+      flats.hideAll();
+      dmRt?.close?.();
       for (const s of stood) {
+        if (s.draft) dmTest?.(s.id)?.close?.();
         s.visible = false;
         for (const p of s.parts) if (p.stood) { col?.removeBucket?.(p.bucket); p.stood = false; p.carry = false; }
       }

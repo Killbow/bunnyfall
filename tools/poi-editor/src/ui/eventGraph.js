@@ -9,7 +9,7 @@ const el = (tag, attrs = {}, text) => { const e = document.createElementNS(NS, t
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}...` : s);
 
 /**
- * @param {ReturnType<typeof import('../dm.js').eventGraph>} graph
+ * @param {ReturnType<typeof import('../../../../src/poi/poiDmEdit.js').eventGraph>} graph
  * @param {string | null} selected a node id
  * @param {(id: string) => void} onPick
  */

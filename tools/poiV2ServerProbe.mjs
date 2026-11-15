@@ -1,11 +1,6 @@
-// The account service's half of POI v2, tried on an isolated local stack: draft, submit and approve; a trade and an event
-// settled once on a synthetic realm character; the save's schema untouched; a lost answer answered the same; two settles
-// at one sequence, one wins; nothing settles on a POI that is not live; a checkpoint of the settled record is clean through
-// the judge (the stack runs with it ON). Never a real player's save: the data directory is a temp one and both accounts and
-// the character are made here.
-//
+// Probes the account service's POI v2 routes on an isolated local stack whose data directory is temporary, never a
+// real save: draft, submit, and approve; trade and event settlement, retries, races, limits, potions, and hand-overs.
 //   node --test tools/poiV2ServerProbe.mjs
-//
 // Needs `npm --prefix server ci` once (wrangler and miniflare), and takes a minute to bundle the two Workers.
 
 import test, { before, after } from 'node:test';
@@ -19,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { poiV2Example } from './poiV2Examples.mjs';
 import { mintGift } from '../server-account/src/staffGive.js';
 import { itemFindings } from '../src/systems/item/itemLaw.js';
+import { handRecord } from '../src/poi/poiSettle.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const freePort = () => new Promise((ok) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = /** @type {any} */ (s.address()); s.close(() => ok(port)); }); });
@@ -91,16 +87,19 @@ const tx = () => `probe-txn-${Date.now().toString(36)}-${++txn}`;
 const trade = (token, poi, c, recipe, extra = {}) => call('/v1/poi/trade', { method: 'POST', token, body: { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), trade: recipe[0], recipe: recipe[1], ...extra } });
 const claim = (token, poi, c, event, extra = {}) => call('/v1/poi/event-claim', { method: 'POST', token, body: { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), ...(event ? { event } : {}), ...extra } });
 const countIn = (save, template) => save.items.filter((r) => r.templateIndex === template).reduce((n, r) => n + (r.stackCount ?? 1), 0);
+const HEAL_TRUE = mintGift({ template: 83, recipe: 'healTrue' }).item.potionRecipeKey;
+const healTrueIn = (save) => save.items.filter((r) => r.templateIndex === 83 && r.potionRecipeKey === HEAL_TRUE && !r.potent).reduce((n, r) => n + (r.stackCount ?? 1), 0);
 
 /** The probe's POI: the example's four scenarios, plus a gift, a toll, a stock and a counter. */
 function doc(id = 'poi-0123456789ab') {
   const d = poiV2Example();
   d.id = id;
-  d.variables.push({ key: 'visits', name: 'Visits', type: 'number', scope: 'poi_global', initial: 0 });
+  d.variables.push({ key: 'visits', name: 'Visits', type: 'number', scope: 'poi_global', initial: 0 }, { key: 'firsts', name: 'Firsts', type: 'number', scope: 'poi_global', initial: 0 });
   d.interactives.push({ key: 'altar', name: 'Altar', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 5], yaw: 0, radius: 2, state: 'inactive' });
   d.events.push(
     { key: 'gift', name: 'A gift', trigger: { k: 'interact', interactive: 'altar' }, then: [{ k: 'give_gold', amount: 15 }, { k: 'set_var', var: 'visits', add: 1 }] },
     { key: 'toll', name: 'A toll', trigger: { k: 'interact', interactive: 'gate' }, then: [{ k: 'take_gold', amount: 20 }, { k: 'give_item', item: { template: 16, count: 2 } }], else: [{ k: 'say', text: 'No.' }] },
+    { key: 'first', name: 'First visitor', trigger: { k: 'interact', interactive: 'altar' }, when: { k: 'var', var: 'firsts', op: 'lt', value: 1 }, then: [{ k: 'give_gold', amount: 1 }, { k: 'set_var', var: 'firsts', add: 1 }], else: [{ k: 'say', text: 'Too late.' }] },
     { key: 'proof', name: 'Proof', trigger: { k: 'interact', interactive: 'altar' }, when: { k: 'var', var: 'supplies_delivered', op: 'eq', value: true }, then: [{ k: 'say', text: 'Yes.' }, { k: 'set_var', var: 'supplies_delivered', to: false }] },
   );
   d.trades.push({ key: 'stock', name: 'Last pieces', recipes: [{ key: 'one', name: 'One of two', requireItems: [], requireGold: 5, rewardItems: [{ template: 62, count: 1 }], rewardGold: 0, limitMode: 'global_stock', maxStock: 2 }] });
@@ -146,7 +145,7 @@ test('a trade settles once: its items leave, its reward arrives, the save keeps 
   const after1 = await saveOf(state.player, c.id);
   assert.equal(countIn(after1, 16), 1, 'five berries left');
   assert.equal(countIn(after1, 42), 0, 'both blood left');
-  assert.equal(countIn(after1, 62), 1, 'the elixir arrived');
+  assert.equal(healTrueIn(after1), 1, 'the Heal True potion arrived');
   assert.equal(after1.goldPieces, before.goldPieces);
   assert.deepEqual(Object.keys(after1).sort(), Object.keys(before).sort(), 'no new save field');
   for (const r of after1.items) assert.deepEqual(itemFindings(r), []);
@@ -155,7 +154,7 @@ test('a trade settles once: its items leave, its reward arrives, the save keeps 
   assert.equal(again.json.replayed, true);
   assert.equal(again.json.seq, a.json.seq);
   assert.deepEqual(again.json.gave, a.json.gave);
-  assert.equal(countIn(await saveOf(state.player, c.id), 62), 1);
+  assert.equal(healTrueIn(await saveOf(state.player, c.id)), 1);
   // another account cannot use the txn
   const other = await account('ProbeOther');
   assert.equal((await call('/v1/poi/trade', { method: 'POST', token: other, body })).json.error, 'txn-spent');
@@ -223,7 +222,7 @@ test('a record moved under an act refuses it: a stale sequence, another lease, a
   assert.ok(lost.json.error === 'seq' || lost.json.error === 'poi-limit' || lost.json.error === 'lease', lost.text);
   const now = await saveOf(racer, c.id);
   assert.equal(countIn(now, 16), 15, 'taken once');
-  assert.equal(countIn(now, 62), 1, 'given once');
+  assert.equal(healTrueIn(now), 1, 'given once');
   assert.equal((await trade(racer, state.poi, { ...c, seq: c.seq }, ['nyra', 'brew'])).json.error, 'seq', 'the sequence is the record\'s own');
   assert.equal((await trade(racer, state.poi, { ...c, lease: '0'.repeat(32), seq: wins[0].json.seq }, ['nyra', 'brew'])).json.error, 'lease');
   assert.equal((await trade(state.player, state.poi, { ...c, seq: wins[0].json.seq }, ['nyra', 'brew'])).json.error, 'no-realm-character');
@@ -282,4 +281,233 @@ test('a rollback is a revision of its own, and only the revision live now settle
   assert.ok(JSON.stringify(revs).includes('rollback'), 'the rollback is on record as its own revision');
   const back = await trade(state.player, { id: state.poi.id, rev: state.poi.rev }, c, ['supplies', 'delivery']);
   assert.notEqual(back.json.error, 'poi-not-live', 'revision 1 is live again');
+});
+
+/** Builds a test POI with a potion trade, a potion condition, an empty-bottle take, and a trade keyed `event`. */
+function potionDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ac';
+  d.interactives.push({ key: 'shrine', name: 'Shrine', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 6], yaw: 0, radius: 2, state: 'inactive' });
+  d.trades.push(
+    { key: 'potions', name: 'Healer', recipes: [
+      { key: 'heal', name: 'Heal True', requireItems: [], requireGold: 10, rewardItems: [{ template: 83, recipe: 'healTrue', count: 1 }], rewardGold: 0, limitMode: 'unlimited' },
+      { key: 'bottle', name: 'Return a bottle', requireItems: [{ template: 83, count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
+      { key: 'spend', name: 'Spend a Heal True', requireItems: [{ template: 83, recipe: 'healTrue', count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' },
+    ] },
+    { key: 'event', name: 'Event', recipes: [{ key: 'blessing', name: 'Blessing', requireItems: [], requireGold: 1, rewardItems: [], rewardGold: 2, limitMode: 'once_per_char' }] },
+  );
+  d.events.push(
+    { key: 'healed', name: 'Healed', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 1 } },
+      then: [{ k: 'give_gold', amount: 5 }], else: [{ k: 'say', text: 'Bring a potion.' }] },
+    { key: 'pair', name: 'Two potions', trigger: { k: 'interact', interactive: 'shrine' }, when: { k: 'has_item', item: { template: 83, recipe: 'healTrue', count: 2 } },
+      then: [{ k: 'give_gold', amount: 4 }], else: [{ k: 'say', text: 'Bring two.' }] },
+    { key: 'blessing', name: 'Blessing', trigger: { k: 'interact', interactive: 'shrine' }, then: [{ k: 'give_gold', amount: 3 }] },
+  );
+  return d;
+}
+
+test('potions: a trade gives a Heal True potion, a has_item on it settles, and a bottle take leaves the potions', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: potionDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = state.potions = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = state.healer = await account('ProbeHealer');
+  const purification = mintGift({ template: 83, recipe: 'purification' }).item;
+  const c = state.hc = await character(t, 'Healer', [mintGift({ template: 83, count: 2 }).item, purification], 100);
+  const before = await claim(t, poi, c, 'healed');
+  assert.equal(before.json.branch, 'else', 'no Heal True held yet');
+  c.seq = before.json.seq;
+  const a = await trade(t, poi, c, ['potions', 'heal']);
+  assert.equal(a.status, 200, a.text);
+  c.seq = a.json.seq;
+  const got = a.json.gave.items[0];
+  assert.equal(got.templateIndex, 83);
+  assert.equal(got.value, 100);
+  assert.equal(got.potionRecipeKey, mintGift({ template: 83, recipe: 'healTrue' }).item.potionRecipeKey);
+  assert.deepEqual(itemFindings(got), []);
+  const h = await claim(t, poi, c, 'healed');
+  assert.equal(h.status, 200, h.text);
+  assert.equal(h.json.branch, 'then');
+  assert.equal(h.json.gave.gold, 5);
+  c.seq = h.json.seq;
+  const b = await trade(t, poi, c, ['potions', 'bottle']);
+  assert.equal(b.status, 200, b.text);
+  c.seq = b.json.seq;
+  const now = await saveOf(t, c.id);
+  const keys = now.items.filter((r) => r.templateIndex === 83).map((r) => [r.potionRecipeKey ?? 0, r.stackCount ?? 1]).sort((x, y) => x[0] - y[0]);
+  assert.deepEqual(keys, [[0, 1], [got.potionRecipeKey, 1], [purification.potionRecipeKey, 1]].sort((x, y) => x[0] - y[0]), 'one empty bottle taken, both potions left');
+  const put = await checkpoint(t, c, now);
+  assert.equal(put.status, 200, put.text);
+  assert.ok(!put.json.tradeHeld, `the potions pass the judge: ${put.text}`);
+  c.seq = put.json.seq;
+});
+
+test('potions: a Potent potion of the recipe counts for has_item, and a take spends it only when no plain one is left', async () => {
+  const t = await account('ProbePotent');
+  const plain = mintGift({ template: 83, recipe: 'healTrue' }).item;
+  const c = await character(t, 'Potent', [{ ...plain, potent: 40 }, { ...plain }], 100);
+  const has = await claim(t, state.potions, c, 'pair');
+  assert.equal(has.status, 200, has.text);
+  assert.equal(has.json.branch, 'then', 'the plain and the Potent one make two');
+  c.seq = has.json.seq;
+  const potentLeft = (save) => save.items.filter((r) => r.templateIndex === 83 && r.potionRecipeKey === plain.potionRecipeKey).map((r) => r.potent ?? 0);
+  const one = await trade(t, state.potions, c, ['potions', 'spend']);
+  assert.equal(one.status, 200, one.text);
+  c.seq = one.json.seq;
+  assert.deepEqual(potentLeft(await saveOf(t, c.id)), [40], 'the plain one is taken first');
+  const two = await trade(t, state.potions, c, ['potions', 'spend']);
+  assert.equal(two.status, 200, two.text);
+  c.seq = two.json.seq;
+  assert.deepEqual(potentLeft(await saveOf(t, c.id)), [], 'then the Potent one');
+  assert.equal((await trade(t, state.potions, c, ['potions', 'spend'])).json.error, 'poi-items');
+});
+
+test('an event and a recipe of a trade keyed `event` count their limits apart', async () => {
+  const t = state.healer, c = state.hc, poi = state.potions;
+  const g = await claim(t, poi, c, 'blessing');
+  assert.equal(g.status, 200, g.text);
+  c.seq = g.json.seq;
+  const r = await trade(t, poi, c, ['event', 'blessing']);
+  assert.equal(r.status, 200, `the event's claim does not spend the recipe's: ${r.text}`);
+  c.seq = r.json.seq;
+  assert.equal((await trade(t, poi, c, ['event', 'blessing'])).json.error, 'poi-limit');
+  assert.equal((await claim(t, poi, c, 'blessing')).json.error, 'poi-limit');
+});
+
+function handDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ad';
+  d.interactives.push({ key: 'rack', name: 'Rack', kind: 'switch', appearance: { k: 'none' }, t: [0, 0, 7], yaw: 0, radius: 2, state: 'inactive' });
+  const sword = { template: 120, group: 'Weapons', count: 1 };
+  d.trades.push({ key: 'smith', name: 'Smith', recipes: [{ key: 'sword', name: 'Sell a sword', requireItems: [sword], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' },
+    { key: 'bulk', name: 'Sell twenty', requireItems: [{ template: 16, count: 20 }], requireGold: 0, rewardItems: [], rewardGold: 1, limitMode: 'unlimited' }] });
+  d.events.push({ key: 'offer', name: 'Offer a sword', trigger: { k: 'interact', interactive: 'rack' }, when: { k: 'has_item', item: sword },
+    then: [{ k: 'take_item', item: sword }, { k: 'give_gold', amount: 3 }], else: [{ k: 'say', text: 'Bring a sword.' }] });
+  return d;
+}
+function cartDoc() {
+  const d = poiV2Example();
+  d.id = 'poi-0123456789ae';
+  d.trades.push({ key: 'carts', name: 'Cart buyer', recipes: [{ key: 'cart', name: 'Sell a cart', requireItems: [{ template: 93, group: 'Transportation', count: 1 }], requireGold: 0, rewardItems: [], rewardGold: 5, limitMode: 'unlimited' }] });
+  return d;
+}
+const longsword = (/** @type {any} */ extra = {}) => ({ ...mintGift({ template: 120, group: 'Weapons', material: 0, count: 1 }).item, ...extra });
+const pickOf = (save, at, n = 1) => ({ at, n, rec: handRecord(save.items[at]) });
+const conditions = (save) => save.items.filter((r) => r.templateIndex === 120).map((r) => r.currentCondition).sort((a, b) => a - b);
+
+test('hand-over: a trade and an event take exactly the record handed over, and refuse one that may not leave or is not held', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: handDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = state.hand = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = state.hander = await account('ProbeHander');
+  const c = state.hdc = await character(t, 'Hander', [longsword(), longsword({ currentCondition: 800 }), longsword({ currentCondition: 1200, equipSlot: 1 }), longsword({ currentCondition: 400 })], 0);
+  let s = await saveOf(t, c.id);
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 2)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[{ ...pickOf(s, 1), rec: { ...pickOf(s, 1).rec, currentCondition: 799 } }]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 0), pickOf(s, 1)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[pickOf(s, 0)], [pickOf(s, 1)]] })).json.error, 'poi-hand');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [[{ at: -1, n: 1, rec: {} }]] })).json.error, 'body');
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 800, 1200, 1600]);
+  const body = { poi: poi.id, rev: poi.rev, id: c.id, lease: c.lease, seq: c.seq, txnId: tx(), trade: 'smith', recipe: 'sword', hand: [[pickOf(s, 1)]] };
+  const a = await call('/v1/poi/trade', { method: 'POST', token: t, body });
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(a.json.took.picks, [{ at: 1, n: 1 }]);
+  assert.equal(a.json.gave.gold, 5);
+  c.seq = a.json.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 1200, 1600]);
+  const again = await call('/v1/poi/trade', { method: 'POST', token: t, body });
+  assert.equal(again.json.replayed, true);
+  assert.deepEqual(again.json.took, a.json.took);
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [400, 1200, 1600]);
+  s = await saveOf(t, c.id);
+  const at400 = s.items.findIndex((r) => r.currentCondition === 400);
+  assert.equal((await claim(t, poi, c, 'offer', { branch: 'else', hand: [] })).json.error, 'poi-hand');
+  assert.equal((await claim(t, poi, c, 'offer', { hand: [[pickOf(s, at400)]] })).json.error, 'body', 'a hand without its branch is refused');
+  const e = await claim(t, poi, c, 'offer', { branch: 'then', hand: [[pickOf(s, at400)]] });
+  assert.equal(e.status, 200, e.text);
+  assert.equal(e.json.branch, 'then');
+  assert.deepEqual(e.json.took.picks, [{ at: at400, n: 1 }]);
+  c.seq = e.json.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [1200, 1600]);
+  assert.equal((await saveOf(t, c.id)).goldPieces, 8);
+});
+
+test('hand-over: for a client that sends no hand, the service chooses the records, and the answer names them', async () => {
+  const t = state.hander, c = state.hdc, poi = state.hand;
+  const a = await trade(t, poi, c, ['smith', 'sword']);
+  assert.equal(a.status, 200, a.text);
+  const s = await saveOf(t, c.id);
+  assert.deepEqual(a.json.took.picks.length, 1);
+  c.seq = a.json.seq;
+  assert.deepEqual(conditions(s), [1200], 'the loose one went, the worn one stays');
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'])).json.error, 'poi-items', 'a worn record does not count for a requirement');
+  const e = await claim(t, poi, c, 'offer');
+  assert.equal(e.status, 200, e.text);
+  assert.equal(e.json.branch, 'else', 'nor for the condition of an event that takes it');
+  c.seq = e.json.seq ?? c.seq;
+  assert.deepEqual(conditions(await saveOf(t, c.id)), [1200], 'nothing moves');
+});
+
+test('hand-over: the wagon a character drives while it holds goods is not taken, with a hand or without; an empty one is', async () => {
+  const saved = await call('/v1/poi/draft', { method: 'PUT', token: state.builder, body: { doc: cartDoc(), base: null } });
+  assert.equal(saved.status, 200, saved.text);
+  const poi = { id: saved.json.id, rev: saved.json.rev };
+  await call('/v1/poi/submit', { method: 'POST', token: state.builder, body: poi });
+  const entry = (await call('/v1/poi/queue', { token: state.builder })).json.queue.find((q) => q.id === poi.id);
+  assert.equal((await call('/v1/poi/review', { method: 'POST', token: state.builder, body: { ...poi, verdict: 'approve', docSha: entry.docSha } })).json.state, 'approved');
+  const t = await account('ProbeCarter');
+  const cart = mintGift({ template: 93, group: 'Transportation', count: 1 }).item;
+  const made = await call('/v1/realm/create', { method: 'POST', token: t, body: { name: 'Carter' } });
+  assert.equal(made.status, 200, made.text);
+  const c = { id: made.json.id, lease: made.json.lease, seq: 0 };
+  const put = await checkpoint(t, c, { level: 1, name: 'Carter', goldPieces: 0, items: [cart], wagonItems: items([71, 40]), lightSourceIndex: -1 });
+  assert.equal(put.status, 200, put.text);
+  c.seq = put.json.seq;
+  const s = await saveOf(t, c.id);
+  const before = JSON.stringify(s);
+  assert.equal((await trade(t, poi, c, ['carts', 'cart'], { hand: [[pickOf(s, 0)]] })).json.error, 'poi-items', 'with a hand');
+  assert.equal((await trade(t, poi, c, ['carts', 'cart'])).json.error, 'poi-items', 'and with none (an old client)');
+  assert.equal(JSON.stringify(await saveOf(t, c.id)), before, 'the cart and its load stay');
+  const put2 = await checkpoint(t, c, { ...s, wagonItems: [] });
+  assert.equal(put2.status, 200, put2.text);
+  c.seq = put2.json.seq;
+  const a = await trade(t, poi, c, ['carts', 'cart'], { hand: [[pickOf(await saveOf(t, c.id), 0)]] });
+  assert.equal(a.status, 200, a.text);
+  assert.equal(countIn(await saveOf(t, c.id), 93), 0, 'an empty cart may go');
+});
+
+test('hand-over: the two routes read a body of whole records up to 32 KiB, and refuse a larger one', async () => {
+  const t = await account('ProbeBig'), poi = state.hand;
+  const c = await character(t, 'Big', [longsword()], 0);
+  const big = (/** @type {number} */ chars) => ({ at: 0, n: 1, rec: { templateIndex: 120, group: 'Weapons', name: 'x'.repeat(chars) } });
+  const eight = Array.from({ length: 8 }, () => big(3600));
+  assert.ok(JSON.stringify(eight).length > 28 * 1024);
+  assert.equal((await trade(t, poi, c, ['smith', 'sword'], { hand: [eight] })).json.error, 'poi-hand', 'read in full, then refused because the save holds no such record');
+  assert.equal((await claim(t, poi, c, 'offer', { branch: 'then', hand: [eight] })).json.error, 'poi-hand');
+  const r = await trade(t, poi, c, ['smith', 'sword'], { hand: [Array.from({ length: 10 }, () => big(3600))] });
+  assert.equal(r.status, 400);
+  assert.equal(r.json.error, 'body');
+});
+
+test('hand-over: twenty separate records handed over for one stack of twenty are all taken', async () => {
+  const t = await account('ProbeLoose'), poi = state.hand;
+  const c = await character(t, 'Loose', Array.from({ length: 20 }, () => items([16, 1])[0]), 0);
+  const s = await saveOf(t, c.id);
+  const a = await trade(t, poi, c, ['smith', 'bulk'], { hand: [s.items.map((_, at) => pickOf(s, at))] });
+  assert.equal(a.status, 200, a.text);
+  assert.equal(countIn(await saveOf(t, c.id), 16), 0);
+});
+
+test('of four characters claiming a first-visitor prize at once, only one gets it', async () => {
+  const racers = [];
+  for (let i = 0; i < 4; i++) { const t = await account(`ProbeFirst${i}`); racers.push({ t, c: await character(t, `First${i}`, [], 0) }); }
+  const got = await Promise.all(racers.map(({ t, c }) => claim(t, state.poi, c, 'first')));
+  for (const g of got) assert.equal(g.status, 200, g.text);
+  assert.deepEqual(got.map((g) => g.json.gave?.gold ?? 0).sort(), [0, 0, 0, 1], got.map((g) => g.text).join(' | '));
+  assert.equal((await claim(racers[0].t, state.poi, { ...racers[0].c, seq: got[0].json.seq })).json.vars.firsts, 1);
 });

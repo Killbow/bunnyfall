@@ -27,8 +27,11 @@
 
 import { POI_V2_LIMITS, POI_V2_PART_KEYS, POI_V2_LIGHT_KEYS, POI_V2_NPC_KEYS, POI_V2_DOC_KEYS, poiV2Problems, poiArch3dOk } from './poiLawV2.js';
 
-/** The version the legacy editor still writes. A v2 document is what the standalone builder writes. */
-export const POI_DOC_VERSION = 1;
+/** The version both editors write for a POI. A v1 POI becomes v2 when the World Builder opens it from the store
+ *  (tools/poi-editor/src/main.js), and otherwise at its first change (poiEdit.js upgradeChanged). */
+export const POI_DOC_VERSION = 2;
+/** The version a library shelf entry is, always. */
+export const POI_SHELF_VERSION = 1;
 /** Every version the law reads. A stored v1 document stays valid as it is. */
 export const POI_DOC_VERSIONS = Object.freeze([1, 2]);
 /** The most a document of each version may weigh as JSON. */
@@ -126,7 +129,7 @@ export function poiDocProblems(raw, { shelf = false } = {}) {
   const v2 = !shelf && raw.v === 2;
   const maxBytes = poiDocBytesOf(v2 ? 2 : 1);
   if (bytes > maxBytes) say('doc', 'too-large', { bytes, max: maxBytes });
-  if (!(shelf ? [POI_DOC_VERSION] : POI_DOC_VERSIONS).includes(raw.v)) say('v', 'version', { want: shelf ? POI_DOC_VERSION : POI_DOC_VERSIONS[POI_DOC_VERSIONS.length - 1] });
+  if (!(shelf ? [POI_SHELF_VERSION] : POI_DOC_VERSIONS).includes(raw.v)) say('v', 'version', { want: shelf ? POI_SHELF_VERSION : POI_DOC_VERSIONS[POI_DOC_VERSIONS.length - 1] });
   if (typeof raw.id !== 'string' || !(shelf ? POI_SHELF_ID_RE : POI_ID_RE).test(raw.id)) say('id', 'id');
   if (!textOk(raw.name, POI_LIMITS.name, 1)) say('name', 'name', { max: POI_LIMITS.name });
   // the one field written as prose: lines allowed, nothing else UNSAID_RE refuses (AUDIT POI S13)

@@ -799,12 +799,14 @@ export function repairItemLists(repairLists) {
  *  rather than each branch of each load. */
 let _restores = 0;
 export const restoresSoFar = () => _restores;
-export function restorePlayer(entity, snap, spellsByIndex = null) {
+export function restorePlayer(entity, snap, spellsByIndex = null, { load = true } = {}) {
   if (!snap || snap.v !== SAVE_VERSION) {
     console.warn(`[save] version mismatch (got ${snap?.v}, want ${SAVE_VERSION}); refusing`);
     return null;
   }
-  _restores++;   // PORTAL1: a load that lands - the world host ends its portals on the count's move
+  // PORTAL1: a load that lands - the world host ends its portals on the count's move; the POI editor's Test putting its
+  // character back (`load: false`) is not a load
+  if (load) _restores++;
   // AUDIT LIVED1b F3 (S4): THE ENVELOPE'S CLOCKS ARE READ ONCE, HERE. A clock is an unsigned minute count (DFU's
   // ToClassicDaggerfallTime answers a uint), and nothing legitimate writes another - but a tampered or corrupted one
   // reached every reader raw: at 2^53 the calendar loop's `i++` stands still and the page froze for good, a

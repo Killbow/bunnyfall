@@ -1,12 +1,16 @@
 // Checks for the v2 POI law, run with: node --test tools/poiLaw.test.mjs
 // They cover v1 compatibility, the v2 shape rules, strict unknown-key handling, references between keys, event cycles,
-// the trade law, and that the numbers poiLawV2.js copies still match the laws they come from.
+// the trade law, the service's settle law, and that the numbers poiLawV2.js copies still match the laws they come from.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, POI_DOC_VERSIONS, POI_LIMITS, poiDocBytesOf } from '../src/poi/poiLaw.js';
-import { POI_V2_LIMITS, POI_V2_PINS, POI_FOE_RANGES, poiFoeIdOk } from '../src/poi/poiLawV2.js';
-import { poiTradeProblems } from '../src/poi/poiTradeLaw.js';
+import { POI_V2_LIMITS, POI_V2_PINS, POI_FOE_RANGES, poiFoeIdOk, encounterPacifiable } from '../src/poi/poiLawV2.js';
+import * as tradeLaw from '../src/poi/poiTradeLaw.js';
 import { poiV2Example } from './poiV2Examples.mjs';
+
+const { poiTradeProblems } = tradeLaw;
+const poiSettleProblems = (/** @type {any} */ doc) => tradeLaw.poiSettleProblems(doc);
+const poiPayProblems = (/** @type {any} */ doc, /** @type {any[]} */ own) => tradeLaw.poiPayProblems(doc, own);
 
 const codes = (doc) => poiDocProblems(doc).map((p) => `${p.path}:${p.code}`);
 const v1 = () => ({
@@ -305,4 +309,70 @@ test('events may give and take items and gold, checked like trades', () => {
   const d = poiV2Example();
   d.events[2].then.push({ k: 'give_item', item: { template: 9000, count: 1 } });
   assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[2].then[2].item.template:item-template']);
+});
+
+test('a recipe or a service-settled event whose condition reads a one-visit variable is refused; kept variables pass', () => {
+  const d = poiV2Example();
+  assert.deepEqual(poiSettleProblems(d), [], 'the example reads only kept variables where the service settles');
+  d.variables.push({ key: 'seen', name: 'Seen', type: 'boolean', scope: 'instance', initial: false }, { key: 'kept', name: 'Kept', type: 'boolean', scope: 'character', initial: false });
+  d.trades[0].recipes[0].when = { k: 'var', var: 'seen', op: 'eq', value: true };
+  d.events.push(
+    { key: 'paid', name: 'Paid', trigger: { k: 'chained' }, when: { k: 'all', of: [{ k: 'var', var: 'kept', op: 'eq', value: true }, { k: 'var', var: 'seen', op: 'eq', value: true }] }, then: [{ k: 'give_gold', amount: 5 }] },
+    { key: 'talk', name: 'Talk', trigger: { k: 'chained' }, when: { k: 'var', var: 'seen', op: 'eq', value: true }, then: [{ k: 'say', text: 'Hello.' }] },
+  );
+  const at = poiSettleProblems(d).map((p) => `${p.path}:${p.code}:${p.key}`);
+  assert.deepEqual(at, ['trades[0].recipes[0].when:settle-var:seen', `events[${d.events.length - 2}].when:settle-var:seen`], 'a branch the game runs alone may read any variable');
+});
+
+test('the law a save is refused for: the shape law first, else the item and settle law, as the service and the editor say it', () => {
+  const d = poiV2Example();
+  assert.deepEqual(poiPayProblems(d, poiDocProblems(d)), []);
+  d.trades[0].recipes[0].rewardItems = [{ template: 9000, count: 1 }];
+  assert.deepEqual(poiPayProblems(d, poiDocProblems(d)).map((p) => p.code), ['item-template']);
+  const shape = [{ path: 'name', code: 'text' }];
+  assert.deepEqual(poiPayProblems(d, shape), shape, 'a shape problem is said alone, as the service says it');
+});
+
+test('a stack may name a potion\'s recipe on the Glass Bottle; the trade law refuses an unknown name or another item', () => {
+  const pay = (fn) => { const d = poiV2Example(); fn(d.trades[0].recipes[0]); return poiPayProblems(d, poiDocProblems(d)).map((p) => `${p.path}:${p.code}`); };
+  const at = 'trades[0].recipes[0].rewardItems[0]';
+  assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'healTrue', count: 2 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, group: 'UselessItems1', recipe: 'healing', count: 1 }]; }), []);
+  // the shape law only knows the key, so the game's re-check of live POIs refuses nothing new
+  assert.deepEqual(edit((d) => { d.trades[0].recipes[0].rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), []);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 'greaterHealing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 83, recipe: 3, count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  assert.deepEqual(pay((r) => { r.rewardItems = [{ template: 71, recipe: 'healing', count: 1 }]; }), [`${at}.recipe:item-recipe`]);
+  // the same stack works wherever stacks go: a requirement, a condition, an event's give and take
+  const d = poiV2Example();
+  d.trades[0].recipes[0].requireItems = [{ template: 83, recipe: 'healing', count: 1 }];
+  d.events[0].when = { k: 'has_item', item: { template: 83, recipe: 'nonsense', count: 1 } };
+  assert.deepEqual(codes(d), []);
+  assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[0].when.item.recipe:item-recipe']);
+});
+
+test('an encounter may say whether its enemies can be pacified; left out, they can, as before', () => {
+  const pay = (fn) => { const d = poiV2Example(); fn(d.encounters[0]); return poiPayProblems(d, poiDocProblems(d)).map((p) => `${p.path}:${p.code}`); };
+  assert.equal(poiV2Example().encounters[0].pacifiable, undefined);
+  assert.equal(encounterPacifiable(poiV2Example().encounters[0]), true);
+  assert.equal(encounterPacifiable({ pacifiable: true }), true);
+  assert.equal(encounterPacifiable({ pacifiable: false }), false);
+  assert.deepEqual(pay((e) => { e.pacifiable = false; }), []);
+  assert.deepEqual(pay((e) => { e.pacifiable = true; }), []);
+  assert.deepEqual(edit((d) => { d.encounters[0].pacifiable = 'no'; }), [], 'the shape law only knows the key');
+  assert.deepEqual(pay((e) => { e.pacifiable = 'no'; }), ['encounters[0].pacifiable:pacifiable']);
+});
+
+test('the new problem codes have sentences of their own', async () => {
+  const { problemText } = await import('../src/poi/poiText.js');
+  for (const code of ['item-recipe', 'pacifiable']) assert.ok(!problemText({ path: 'x', code }).startsWith('Something is wrong'), code);
+});
+
+test('the trade law names a problem in an event\'s condition or a person\'s showWhen at its own path', () => {
+  const d = poiV2Example();
+  d.events[3].when.of[1].item.template = 9000;
+  d.npcs[0].showWhen = { k: 'has_item', item: { template: 9000, count: 1 } };
+  assert.deepEqual(codes(d), []);
+  assert.deepEqual(poiTradeProblems(d).map((p) => `${p.path}:${p.code}`), ['events[3].when.of[1].item.template:item-template', 'npcs[0].showWhen.item.template:item-template']);
 });

@@ -31,6 +31,7 @@
 import { poiDocProblems, poiShelfProblems, poiAssetProblems, poiAssetsOf, poiDocBytesOf, POI_ID_RE, POI_SHELF_ID_RE, POI_SHA_RE, POI_LIMITS } from '../../src/poi/poiLaw.js';
 import { decodePoiMesh, poiMeshFacts, POI_MESH_LIMITS } from '../../src/poi/poiMesh.js';
 import { poiImageMetaOf, POI_IMAGE_LIMITS, POI_IMAGE_TYPES } from '../../src/poi/poiImage.js';
+import { poiPayProblems } from '../../src/poi/poiTradeLaw.js';
 import { developerHandles } from './titles.js';
 
 /** A handle list from the config, as titles.js reads its own - trimmed, case-folded, empty ones dropped. */
@@ -183,13 +184,23 @@ async function docProblems(db, doc) {
 }
 
 /**
+ * A document's problems as a save, a submission, or an approval sees them: its own and its assets', then what
+ * settlement would refuse (an item the game cannot make, or a condition the service cannot judge). Kept out of
+ * poiDocProblems, which the game also runs over every live POI, so a POI already live keeps standing.
+ * @param {any} db @param {any} doc
+ */
+async function saveProblems(db, doc) {
+  return poiPayProblems(doc, await docProblems(db, doc));
+}
+
+/**
  * A builder saves a draft of `doc` (its id the POI's - a new id founds the POI). Saved over the author's own open draft
  * of this POI, else a new revision (`base` the revision the editor started from). `{ id, rev, state }` or `{ error, problems? }`.
  * @param {any} ctx @param {any} player @param {any} env @param {{ doc: any, base?: any }} body
  */
 export async function savePoiDraft(ctx, player, env, { doc, base = null }) {
   if (!poiRolesOf(player, env).builder) return { error: 'poi-not-builder' };
-  const problems = await docProblems(ctx.db, doc);
+  const problems = await saveProblems(ctx.db, doc);
   if (problems.length) return { error: 'poi-doc', problems };
   const id = doc.id;
   if (base !== null && !(Number.isSafeInteger(base) && base > 0)) return { error: 'body' };
@@ -232,7 +243,7 @@ export async function submitPoi(ctx, player, env, { id, rev }) {
   if (!row) return { error: 'not-found' };
   if (row.author !== player.id) return { error: 'poi-not-author' };
   if (row.state !== 'draft') return { error: 'poi-state', state: row.state };
-  const problems = await docProblems(ctx.db, parsed(row.doc));
+  const problems = await saveProblems(ctx.db, parsed(row.doc));
   if (problems.length) return { error: 'poi-doc', problems };
   // AUDIT POI S1: the document checked is the document submitted - a save over the draft between the two is not sent
   const r = await ctx.db.prepare("UPDATE poi_revs SET state = 'submitted', submitted_at = ? WHERE poi_id = ? AND rev = ? AND state = 'draft' AND doc_sha = ?").bind(ctx.nowS, id, rev, row.doc_sha).run();
@@ -315,8 +326,9 @@ export async function reviewPoi(ctx, player, env, { id, rev, verdict, note = nul
   const state = verdict === 'approve' ? 'approved' : 'rejected';
   const doc = parsed(row.doc);
   if (verdict === 'approve' && row.kind === 'doc') {
-    // checked once more at the moment it goes live: an asset the document names must be stored, and of its kind
-    const problems = await docProblems(ctx.db, doc);
+    // checked once more at the moment it goes live: an asset the document names must be stored, and of its kind, and its
+    // items and conditions must be ones settlement can pay out
+    const problems = await saveProblems(ctx.db, doc);
     if (problems.length) return { error: 'poi-doc', problems };
   }
   const mark = decisionMark(ctx);

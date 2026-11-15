@@ -19,12 +19,20 @@
 // handed. Not a DFU member. Ledger A (POI).
 // ═══════════════════════════════════════════════════════════════════
 
-import { poiShelfProblems, POI_DOC_VERSION, POI_LIMITS } from './poiLaw.js';
+import { poiShelfProblems, POI_SHELF_VERSION, POI_LIMITS } from './poiLaw.js';
+import { POI_V2_LIGHT_KEYS } from './poiLawV2.js';
 import { newPart, lawName } from './poiEdit.js';
 import { renderThumb, encodePng } from './poiThumb.js';
 
+/** Returns a copy of light `l` as a library shelf entry stores it: v1 fields only, leaving out any v2 group,
+ *  visibility, and lock fields. */
+const shelfLight = (l) => { const c = structuredClone(l); for (const k of POI_V2_LIGHT_KEYS) delete c[k]; return c; };
+/** How many of a model's parts and lights carry a group, visibility, or lock that a shelf entry leaves out. */
+export const shelfDropsOf = ({ parts = [], lights = [] }) => [...parts, ...lights].filter((o) => o && (o.group !== undefined || o.visible !== undefined || o.locked !== undefined)).length;
+
 /**
- * An entry from parts as an import (poi/poiImport.js uploadImport's `asset.parts`) or a POI holds them.
+ * An entry from parts as an import (poi/poiImport.js uploadImport's `asset.parts`) or a POI holds them. Entries are v1:
+ * each part is made afresh (newPart) and each light loses its v2 fields.
  * @param {{ id: string, name: string, about?: string, tags?: string[], parts: any[], lights?: any[] }} o
  */
 export function shelfEntryOf({ id, name, about = '', tags = [], parts, lights = [] }) {
@@ -38,8 +46,8 @@ export function shelfEntryOf({ id, name, about = '', tags = [], parts, lights = 
   const words = String(about ?? '').trim();
   const tagList = [...new Set(tags.map((tg) => lawName(tg, POI_LIMITS.tag)).filter(Boolean))].slice(0, POI_LIMITS.tags);
   return {
-    v: POI_DOC_VERSION, id, name: lawName(name), ...(words ? { about: words.slice(0, POI_LIMITS.about) } : {}), ...(tagList.length ? { tags: tagList } : {}),
-    parts: scratch.parts, lights: lights.map((l) => structuredClone(l)), thumb: null,
+    v: POI_SHELF_VERSION, id, name: lawName(name), ...(words ? { about: words.slice(0, POI_LIMITS.about) } : {}), ...(tagList.length ? { tags: tagList } : {}),
+    parts: scratch.parts, lights: lights.map(shelfLight), thumb: null,
   };
 }
 

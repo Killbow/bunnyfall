@@ -31,6 +31,8 @@ import { WEAPON_MATERIALS } from '../../src/characters/weapons.js';
 import { ARMOR_MATERIAL } from '../../src/systems/armorMaterials.js';
 import { isStackable, LETTER_OF_CREDIT_TEMPLATE } from '../../src/systems/inventory.js';
 import { valuablePiece, mintItemId } from '../../src/systems/item/itemIds.js';
+import { createPotion, POTION_TEMPLATE_INDEX } from '../../src/systems/loot/loot.js';
+import { potionById } from '../../src/net/alchemyLaw.js';
 
 /** Why staff give: a reward a bug ate, an event's prize, amends for a staff mistake, a test, or another (said in the note). */
 export const GIVE_REASONS = Object.freeze(['bug-refund', 'event-prize', 'compensation', 'testing', 'other']);
@@ -67,12 +69,11 @@ export function giveCatalogue() {
 }
 
 /**
- * ONE GIFT, MINTED: `{ template, group?, material?, count?, gold?, enchant?: [{ key, param }] }` made by the game's
- * producers - `gold` a letter of credit's worth (its `value`, what the bank wrote on it), and no other kind's.
- * Answers `{ item, findings, cost, power }` - `findings` the item law's, `cost` the chosen enchantments' against the
- * item's `power` - or `{ error }`: 'staff-item-template' (no such template, a group it does not stand in, a material its
- * kind does not take, a count it cannot hold), 'staff-item-enchant' (a setting the catalogue does not cost, or too many).
- * The ledger id is the caller's to mint (`uid`).
+ * ONE GIFT, MINTED: makes `{ template, group?, material?, count?, gold?, recipe?, enchant?: [{ key, param }] }` with
+ * the game's producers. `gold` is a letter of credit's `value`, and `recipe` is a potion's recipe name. Returns
+ * `{ item, findings, cost, power }`, with the item law's `findings` and the enchantments' `cost` against `power`, or
+ * `{ error }`: 'staff-item-template' (no such template, or a group, material, count, or recipe it does not take) or
+ * 'staff-item-enchant' (an enchantment with no catalog cost, or too many). The caller mints the ledger id (`uid`).
  * @param {any} spec @param {((b: Uint8Array<ArrayBuffer>) => Uint8Array) | undefined} [rand]
  */
 export function mintGift(spec, rand = undefined) {
@@ -87,11 +88,16 @@ export function mintGift(spec, rand = undefined) {
   const material = mats ? (spec.material === undefined ? mats[0][0] : spec.material) : undefined;
   if (mats && !mats.some(([v]) => v === material)) return { error: 'staff-item-template' };
   if (!mats && spec.material !== undefined) return { error: 'staff-item-template' };
+  // a potion is the Glass Bottle with its recipe's key, priced and drawn by the game's own maker; the name is checked
+  // here because the item law accepts a bottle with any key
+  const potion = spec.recipe === undefined ? null : potionById(spec.recipe);
+  if (spec.recipe !== undefined && (!potion || group !== 'UselessItems1' || i !== POTION_TEMPLATE_INDEX)) return { error: 'staff-item-template' };
   /** @type {any} */
   let item;
   if (group === 'Weapons' && i === ARROW_TEMPLATE) item = { ...createWeapon(ARROW_TEMPLATE, 0, () => 0), stackCount: count };   // CreateWeapon's arrow arm: its stack the count asked
   else if (group === 'Weapons') item = weaponOfMaterial(i, material);
   else if (group === 'Armor') item = armorOfMaterial(i, material);
+  else if (potion) item = createPotion(potion.key);
   else item = mintCondition(setItemFields({ group, templateIndex: i }));
   if (spec.gold !== undefined) {
     if (i !== LETTER_OF_CREDIT_TEMPLATE || !Number.isSafeInteger(spec.gold) || spec.gold < 1 || spec.gold > GOLD_INT_MAX) return { error: 'staff-item-template' };

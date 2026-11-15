@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: A POI event limited by a shared count, such as a prize for the first ten visitors, no longer lets two players through at the same moment.
+- Fixed: Online, a POI event that adds to a saved number no longer counts the addition twice in your game.
 - Fixed: Masterwright now lets you upgrade Daedric pieces to Masterwork; without it, the Upgrade tab says so instead of offering the step.
 - Fixed: Escape now closes the Bench and Provisioning window, and each list scrolls on its own, so the Craft and Cook buttons stay in view. Closing the window during The Simmer no longer cooks the dish anyway, the ingredient search keeps the cursor, and pot dishes now show when they spoil.
 - Fixed: Meteor, Wall of Earth, and Decoy now land where the crosshair points, even on open ground and in third person. Wall of Earth rises as a mound, Meteor falls as a rock wrapped in its element and leaves a crater, and other players see both and bump into the wall.
@@ -14,6 +16,18 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-13
 
+- Fixed: The in-game POI editor now says when a waypoint, a delay, or an encounter starts an event that takes items or gold, since the player is asked for them wherever they are.
+- Fixed: The in-game POI editor no longer offers the Materials Bag or a boat's parts or deed as items a POI takes, since no player can hand them over.
+- Fixed: The in-game POI editor's Sandbox can now play a visitor who cancels every hand-over.
+- Fixed: A POI trade or event that takes items or gold now asks before it takes anything, and takes only the items you choose.
+- Fixed: A POI trade now shows items you are wearing and quest items as missing, instead of offering the trade and then refusing it.
+- Fixed: A trade recipe's form in the in-game POI editor no longer shows the word null under How often.
+- Fixed: The in-game POI editor's item picker now offers the game's potions by name, in place of the empty Glass Bottle and a Potion Recipe sheet that teaches nothing.
+- Fixed: The in-game POI editor can now set an encounter so that language skills and spells cannot pacify its enemies.
+- Fixed: The in-game POI editor draws routes as wide bands that rise over hills, with slow arrows that show which way people walk.
+- Fixed: The in-game POI editor's move, turn, and size handles brighten and grow under the cursor, with size boxes on the selection's faces and corners.
+- Fixed: A recipe in a POI trade named Event no longer shares its limit with a POI event that has the recipe's name, online or offline.
+- Fixed: A POI that asks for a Glass Bottle now counts and takes only empty bottles, never one of your potions.
 - Staff events grow their atmosphere: smoke columns spread over the event's town, the sky turns dark purple within 120 metres of the pillar, and the scared screams of the townsfolk ring out when the event starts.
 - A staff event's monsters now stand near its pillar, so players can find them there. The Forbidden One lets out an evil cackle when she appears. (The voices are the game's existing clips for now.)
 - A staff event now shows a column of purple light rising from its town, seen from a few map pixels away, so players can find it.
@@ -35,6 +49,53 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-12
 
+- Fixed: The in-game POI editor can now change a variable's or a spawn point's key, and every place in the POI that uses it changes with it.
+- Fixed: The in-game POI editor now says when a looping route's last waypoint makes the person stop twice at its first spot.
+- Fixed: The in-game POI editor's Test log now names waypoints and refused recipes by their names, and lists an object's use before what it changed.
+- Fixed: The in-game POI editor's enemy picker names the added enemies, such as the Goblin and the Archer Rider, instead of Enemy and a number.
+- Fixed: The in-game POI editor draws a route as the straight lines a person walks between its waypoints.
+- Fixed: The in-game POI editor now says why only a persistent text variable can hold an object's state, and can make one for it.
+- Fixed: An encounter set to never start again can now stay won across visits, set up with one button in the in-game POI editor.
+- Fixed: The in-game POI editor's item picker now offers the game's added items, such as foods, gems, and the crossbow.
+- Fixed: Offline, a POI trade's once-per-character, limited-stock, daily, and cooldown limits now last after a reload, on each device.
+- Fixed: A POI dialogue now drops an answer as soon as the event it started is done, instead of showing it until the next talk.
+- Fixed: Bodies of enemies killed in the in-game POI editor's Test no longer stay behind to be looted after the test ends.
+- Fixed: A POI's person walking a route over sloping ground no longer sinks into the ground.
+- Fixed: Looking at Daggerfall models in the in-game POI editor's Assets browser or its Daggerfall model window no longer leaves each one in graphics memory for the rest of the session.
+- Fixed: Ceiling pieces and other models whose faces point away from the camera no longer show a blank preview in the in-game POI editor's Daggerfall model window.
+- Fixed: Model cards in the in-game POI editor's Assets browser now show a picture of the model instead of its number.
+- Fixed: The in-game POI editor's history panel can now compare two revisions of a POI and show what changed between them.
+- Fixed: The in-game POI editor can now duplicate an entire POI, including its groups, parts, pictures, people, lights, and DM content, as a new draft beside the original.
+- Fixed: The in-game POI editor's side panels and DM tools can now be resized by dragging their edges, and the editor saves their sizes, snap steps, and camera speed between sessions.
+- Fixed: The game's tips button no longer covers the in-game POI editor's right panel or its DM tools; while the editor is open, it sits beside the right panel, and above the DM tools when they are open.
+- Fixed: The in-game POI editor's Assets browser can now place pictures, items, and mounted weapons and armor in the world by clicking Place or dragging a card.
+- Fixed: The in-game POI editor can now place, move, turn, size, mirror, and light flat pictures, items, and mounted weapons and armor, and show each picture in a 2D view.
+- Fixed: A POI's flat pictures, placed items, and mounted weapons and armor now show in the game with their lights.
+- Fixed: The in-game POI editor has an Assets browser that lists the game's models, pictures, items, and creatures, with search, filters, favorites, recent picks, and a preview.
+- Fixed: A Daggerfall model can be placed from the in-game POI editor's Assets browser with Place or by dragging its card onto the world.
+- Fixed: Offline, a POI's rewards and costs now reach your character: its events give and take your real gold and items, and a gift is given only once on each device.
+- Fixed: The in-game POI editor's Test plays the selected POI's DM content in the world: people walk their routes, zones and objects work, dialogues and trades open, events run, and encounters spawn real enemies that leave when the test stops, while other POIs run none of theirs.
+- Fixed: Trades and events in the in-game POI editor's Test use a test copy of your gold and items, with a log in the Test panel. The game does not save during a test, and your character is restored when it ends, though a quest step completed in the test stays done.
+- Fixed: Copy and paste in the in-game POI editor now take a whole selection with its groups and people, save the copy so it is still there after a reload and in other tabs, use the system clipboard where the browser allows it, and name anything left out because its model or picture is missing.
+- Fixed: The in-game POI editor can now group and ungroup what is selected, align and spread it, reset its turn and size, move it by an amount, and drop it to the ground.
+- Fixed: The in-game POI editor's list now shows groups and people, with hide and lock buttons on each row and group, a search inside the open POIs, and dragging to regroup or reorder.
+- Fixed: The in-game POI editor no longer draws things marked hidden, lets you pick hidden or locked things in the world, or lets you move locked things; the game still shows hidden things.
+- Fixed: The in-game POI editor can now select several things at once with Shift+click or by dragging a box, move, turn, and size them together with the gizmo, and pick and move people in the world.
+- Fixed: A POI dialogue answer that opens a trade now shows the trade instead of leaving the talk on screen.
+- Fixed: The in-game POI editor has a Sandbox that plays a POI's people, dialogues, trades, and events on a test visitor, with a log, and never touches your character.
+- Fixed: The in-game POI editor draws a POI's routes, waypoints, encounter areas, zones, and objects in the world while its DM tools are open, and a spot can be picked with a click on the ground.
+- Fixed: The in-game POI editor's DM tools can now make a POI's routes, encounters, objects, dialogues, trades, events, and variables, link its people to them, and show where each has a problem.
+- Fixed: A dialogue or trade that a POI event opens from a zone, a waypoint, an encounter, or a delay now shows on the screen.
+- Fixed: A POI variable that lasts for one event run now resets to its starting value at each run, and a persistent variable that an event sets while playing offline is now saved.
+- Fixed: A POI object that looks like one of the POI's models is now used where that model sits, can be used from as far as its reach, and can take its state from a persistent variable that lasts from visit to visit.
+- Fixed: POI doors and chests now open when used, a locked one opens with its key item, and an open door's model no longer blocks the way.
+- Fixed: A POI switch now flips on or off each time it is used, an inactive POI quest object can no longer be used, and a switch or quest object that needs a key item now works only for a player who holds it.
+- Fixed: A POI person's talk range and their "shown only when" condition now work in the game.
+- Fixed: A POI encounter now starts when you walk into its area, and one set to come back starts again the next time you walk in.
+- Fixed: Saving a whole World Builder POI to the library from the in-game POI editor no longer fails when its lights are in a group, hidden, or locked; the library saves its parts and lights, and the dialog says what it leaves out.
+- Fixed: The in-game POI editor now says when a POI's flat pictures are left out of its .glb export and the library, as it already did for Daggerfall models.
+- Fixed: A part copied from one POI and pasted into another in the in-game POI editor no longer names a group the other POI lacks, which stopped that POI from being saved.
+- Fixed: The in-game POI editor now lists what a POI from the World Builder holds that it cannot change yet, such as an interior, and shows each POI's size against its limit.
 - Fixed: After the crafting rank reset, the Firmament could show 0 Stars, give nothing for new Renown levels, and refuse your changes with "Not enough points." It now shows how many stars you are over and keeps Accept off until they fit, and every character gets one free respec.
 - Staff: the AI chat reviewer is gone, and so are the automatic spawn-check cases. Reports now only hold what players report, and the open automatic cases have been closed. A Monster watch flag now leaves a staff note on the player instead of opening a case.
 - Staff: Open reports are readable now. Each case says what kind it is and why it has its level, and opens in place to the reported chat or spawn findings and the reporters' notes. From there you can Dismiss, Mute, Ban or open the player. Ticked cases, or every automatic spawn check nobody reported, can be dismissed in one go.
@@ -76,6 +137,17 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-11
 
+- Fixed: A trade or reward at a place that the server could not complete is no longer reported as already done; the game retries when the server does not answer and asks you to rejoin the realm if it cannot tell whether it went through.
+- Fixed: A POI whose trades or events name an item the game cannot make, or check a variable that lasts only one visit, is now refused with a list of problems when saved, submitted, or approved instead of failing when a player tries it.
+- Fixed: An encounter you win by surviving for a time now counts only the time you spend in its area, so it no longer ends while you are far away.
+- Fixed: An encounter that ends when all its enemies are dead now finishes even if some enemies failed to appear, and resets to start again if none appeared.
+- Fixed: Enemies from an encounter set to passive no longer attack on sight; they fight back once you attack them.
+- Fixed: An encounter's enemies now leave when the place calls the encounter off or resets it, or when the place is taken out of the world, and an encounter that starts again no longer adds a second group to enemies left from last time.
+- Fixed: With the in-game POI editor open, game messages such as a new quest show beside its right panel instead of sliding in under it.
+- Fixed: A POI with a part the game cannot load, such as a Daggerfall model placed in the World Builder, now appears without that part, with its people and events, instead of not appearing at all.
+- Fixed: The in-game POI editor no longer breaks on a World Builder POI that holds a Daggerfall model: selecting that part shows what it is, and the model check finishes, so the POI can be saved and sent for approval.
+- Fixed: In the in-game POI editor, pasting or duplicating a part with a long key no longer freezes the page, and a paste now selects what it pasted.
+- Fixed: Opening the in-game POI editor with no character yet no longer puts the editor over character creation; it waits until you stand in the world, after the name picker and the opening message.
 - Choosing a Focus craft now asks you to confirm first. Dropping a Focus craft costs 100 silver, with no weekly wait. Pledging into a free place stays free.
 - Crafting has its own tab in the pause menu, next to Growth. Professions, the Bench, the Stations and your Stores are on its rail, and they no longer sit under Stats and Holdings. The Bench lists every station's items, so you can plan a craft anywhere and make it when you stand at the station.
 - Crafting is reworked: you now pick the item and the materials for each part (blade, flux, grip, lining), and the materials decide the best quality the piece can reach. Pledge up to two crafts as your Focus for full experience and Masterwork; other crafts earn half and top out at Superior. All five crafting ranks start again; items you already own stay as they are.

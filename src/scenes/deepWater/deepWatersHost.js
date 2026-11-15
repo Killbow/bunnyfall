@@ -225,6 +225,7 @@ export function createDeepWatersHost({ woods, woodsBytes = null, locations = [],
   let geometry = deepWatersGeometrySettings();
   let snapshot = deepWatersSettingsSnapshot();
   let floorBuildVersion = 0;   // DeepWaterFloorMesh.BuildVersion's counter, one per floor built
+  let floorChanges = 0;
   let promoteMs = 0;           // DeepWaterPromoteTiming: this frame's promote work
   // PumpDeferredBuilds' work is the one kind the decorations' budget sees: the mod
   // flushes the timing at the head of its Update, so a build made inside
@@ -296,6 +297,7 @@ export function createDeepWatersHost({ woods, woodsBytes = null, locations = [],
     if (s.gpu) gpu?.destroy?.(s.gpu);
     if (s.bucket) { collider?.removeBucket(s.bucket); wallBuckets.delete(s.bucket); }
     entry.deepWaters = null;
+    floorChanges++;
   }
 
   /** Stand one result on its (still current) entry, replacing what stood there - a deferred promote's timed as promote work. */
@@ -326,6 +328,7 @@ export function createDeepWatersHost({ woods, woodsBytes = null, locations = [],
     standWalls(entry, state);
     if (gpu && (result.floor || result.surface)) state.gpu = gpu.create(entry, result);
     entry.deepWaters = state;
+    floorChanges++;
   }
 
   /** RefreshLoadedTiles(force): every standing pixel, deferred nearest-first. */
@@ -343,6 +346,7 @@ export function createDeepWatersHost({ woods, woodsBytes = null, locations = [],
     get ready() { return dw.ready; },
     get bake() { return bake; },
     get pendingCount() { return deferred.size + (inFlight ? 1 : 0); },
+    get floorChanges() { return floorChanges; },
 
     /**
      * HandlePromote's synchronous arm: a pixel within one of the player's,
@@ -463,6 +467,7 @@ export function createDeepWatersHost({ woods, woodsBytes = null, locations = [],
       heightGridFromPositions(s.floor.positions, s.floor.vertexLocalY);
       standWalls(entry, s);
       if (s.gpu) gpu?.updateFloor?.(s.gpu, s.floor);
+      floorChanges++;
       return true;
     },
 
