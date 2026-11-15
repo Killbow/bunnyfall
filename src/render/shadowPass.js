@@ -66,6 +66,7 @@ import { pageParam } from '../systems/pageQuery.js';   // PERF-URL: the page's q
 import { BAYER_GLSL, DISSOLVE_GLSL } from './orderedDither.js';   // AUDIT BAY A12: a fading ship's shadow dissolves with her
 import { windfallLawOn, swayShare, windfallLeanMax, windfallAnchorAfterShift } from './windfallSway.js';   // WINDFALL1: the flora's lean while Windfall's law stands
 import { SKIN_PALETTE_UNIT } from './skinPalette.js';   // MWNPC16: a skinned body's palette, read where the lit draw reads it
+import { meterFor } from './perfMeter.js';
 import { NO_LIGHT_ID } from './lightId.js';   // LIGHT-ID: a light's identity, its producer's (renderer.js lifts it off the frame's list)
 
 /** The sun map: two cascades of this size, as a depth texture array. */
@@ -1802,6 +1803,7 @@ export class ShadowPass {
         // EL8: the far cascade every other frame (its map keeps its matrix until it is drawn again); a cascade never drawn is drawn now
         if (c === last && this._sunDrawn[c] && !SHADOW_TUNING.steady && this.frameNo % SHADOW_FAR_CASCADE_EVERY !== 0) continue;
         this.sunVP[c].set(this._sunVPNew[c]);
+        meterFor(gl)?.mark(`shadow.sun${c}`);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.sunFbos[c]);
         gl.viewport(0, 0, SHADOW_SUN_SIZE, SHADOW_SUN_SIZE);
         gl.clear(gl.DEPTH_BUFFER_BIT);
@@ -1815,6 +1817,7 @@ export class ShadowPass {
     // EL5: THE LANTERNS CAST TOO, sun or no sun - the nearest SHADOW_POINT_CASTERS
     // of them, each into its six layers; the replays are culled to the
     // lantern's range and the face's frustum, so a caster costs what it lights
+    meterFor(gl)?.mark('shadow.lamps');
     const selfAt = f.pointLights?.length ? this._selfCardAt(this._selfAt) : null;   // DISC29-E: the player's own card's place, or null (none drawn)
     const selfLamps = Math.max(0, Math.min(SHADOW_POINT_CASTERS, SHADOW_TUNING.selfLamps ?? SHADOW_SELF_LAMPS));   // STEADY-BALANCE
     const casters = reserveSelfCasters(pickShadowCasters(f.pointLights, f.eye, SHADOW_POINT_CASTERS, f.carried, this._heldCasters, this._heldCasterN),   // MAC-T1; LIGHT-NEAR1; DISC6: last frame's casters keep their maps on a tie
