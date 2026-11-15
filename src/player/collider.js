@@ -201,7 +201,7 @@ const SPHERE_NEAR = [];   // the sphere walks' (never nested in a ray's walk, no
 /** Where a bucket is filed (`bucket.lvl`): nothing yet, the fine cells, the coarse cells, `always`, `posed` (SEA-DROPS: a
  *  posed mover's, filed there at its birth and never elsewhere). A bucket's box only grows, so its level only rises - and
  *  at a level, the cells it covers only gain. */
-const FILED_NONE = 0, FILED_FINE = 1, FILED_COARSE = 2, FILED_ALWAYS = 3, FILED_POSED = 4;
+const FILED_NONE = 0, FILED_FINE = 1, FILED_COARSE = 2, FILED_ALWAYS = 3, FILED_POSED = 4, FILED_REPOSED = 5;
 /** File `bucket` under every cell of `size` its XZ box (moved by ox, oz) covers, in `into` - or answer false when that is
  *  over `spanMax` cells (or not finite) and nothing was filed. PERF-COL2 (AUDIT): a bucket filed at this level before
  *  (`bucket.lvl`, its cells then `bucket.bx0`..`bz1`) is filed under the cells its grown box gained alone; one filed at
@@ -232,6 +232,7 @@ function fileBox(bucket, ox, oz, size, spanMax, into, lvl) {
  *  both. A bucket filed before keeps the cells it had (a cell a grown box left behind at a finer level only hands a
  *  query one more box to test, which answers no). */
 function fileBucket(broad, bucket) {
+  if (bucket.reposed) { fileReposed(broad, bucket); return; }
   let ox = 0, oz = 0;
   if (bucket.moves) {
     if (bucket.posed) { filePosed(broad, bucket); return; }   // SEA-DROPS
@@ -268,13 +269,30 @@ function filePosed(broad, bucket) {
   a.splice(at, 0, bucket);
   bucket.lvl = FILED_POSED;
 }
+function fileReposed(broad, bucket) {
+  reposedCells(bucket);
+  if (bucket.lvl === FILED_REPOSED) return;
+  const a = broad.reposed;
+  let at = a.length;
+  while (at > 0 && a[at - 1].ord > bucket.ord) at--;
+  a.splice(at, 0, bucket);
+  bucket.lvl = FILED_REPOSED;
+}
+function reposedCells(b) {
+  const mn = b.min, mx = b.max;
+  b.rnone = !(mn[0] <= mx[0] && mn[1] <= mx[1] && mn[2] <= mx[2]);
+  b.bx0 = Math.floor((mn[0] - BOX_SKIN) / BROAD_CELL); b.bx1 = Math.floor((mx[0] + BOX_SKIN) / BROAD_CELL);
+  b.bz0 = Math.floor((mn[2] - BOX_SKIN) / BROAD_CELL); b.bz1 = Math.floor((mx[2] + BOX_SKIN) / BROAD_CELL);
+  b.rwide = !((b.bx1 - b.bx0 + 1) * (b.bz1 - b.bz0 + 1) <= BROAD_SPAN_MAX);
+}
+const reposedReaches = (b, cx0, cx1, cz0, cz1) => !b.rnone && (b.rwide || (b.bx1 >= cx0 && b.bx0 <= cx1 && b.bz1 >= cz0 && b.bz0 <= cz1));
 /** File the collider's buckets: `all` in Map order (each bucket's `ord` its place in it), `always` the buckets every
  *  query asks, `cells` the standing ones by broad cell, `coarseCells` (PERF-COL2) the ones too wide for those by coarse cell,
  *  and `frames` (PERF-COL2) one sentinel a floating frame - a bucket riding it, and where it stood when filed. SEA-DROPS:
  *  `posed` the posed movers, `poseSeen` the collider's pose count their boxes (`wbox`) and their union (`poseUnion`) were
  *  made at (-1: none yet). */
 function buildBroad(buckets) {
-  const broad = { all: [], always: [], cells: new Map(), coarseCells: new Map(), frames: [], posed: [], poseSeen: -1, poseUnion: new Float64Array(4) };
+  const broad = { all: [], always: [], cells: new Map(), coarseCells: new Map(), frames: [], posed: [], poseSeen: -1, poseUnion: new Float64Array(4), reposed: [] };
   for (const bucket of buckets.values()) {
     bucket.ord = broad.all.length;
     broad.all.push(bucket);
@@ -760,6 +778,7 @@ export class Collider {
     this._memo = null;
     this._memoRing = Array.from({ length: NEAR_MEMO }, () => ({ x0: 0, x1: 0, z0: 0, z1: 0, after: 0, list: null }));
     this._memoAt = 0;
+    this._reposedKeys = new Set();
   }
 
   /** SEA-DROPS: THE POSED MOVERS MAY STAND ELSEWHERE NOW - every bucket laid with addMesh's `posed` has its world box made
@@ -819,6 +838,14 @@ export class Collider {
           out.push(b);
         }
       }
+    }
+    const reposed = broad.reposed;
+    for (let i = 0; i < reposed.length; i++) {
+      const b = reposed[i];
+      if (b.ord <= afterOrd || !reposedReaches(b, cx0, cx1, cz0, cz1)) continue;
+      b._broadStamp = stamp;
+      if (out.length && out[out.length - 1].ord > b.ord) sorted = false;
+      out.push(b);
     }
     for (let gx = cx0; gx <= cx1; gx++) {
       for (let gz = cz0; gz <= cz1; gz++) {
@@ -934,7 +961,7 @@ export class Collider {
       // OWN space (the translation is applied to the RAY, as the DDA
       // already does), kept as the triangles go in - one compare per
       // vertex, paid once at load, against a walk paid per ray.
-      bucket = { key: bucketKey, moves: !!(translation || rotation), frame: FRAME_OF.get(translation) ?? null, ord: -1, _broadStamp: 0, lvl: FILED_NONE, bx0: 0, bx1: -1, bz0: 0, bz1: -1, tris: [], yLo: [], yHi: [], part: [], parts: 0, sight: null, rayMark: null, posed: !!posed && !!(translation || rotation), wbox: null, grid: new Map(), runs: null, wide: [], wideTree: null, t: translation || (() => ZERO3), r: rotation, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };   // AUDIT BRANCH (WoD) B1; OW-WOD-LAG: the wide triangles, and their tree (built when first asked); FB0930-FRAME: its key, whether it moves, its place in the walk
+      bucket = { key: bucketKey, moves: !!(translation || rotation), frame: FRAME_OF.get(translation) ?? null, ord: -1, _broadStamp: 0, lvl: FILED_NONE, bx0: 0, bx1: -1, bz0: 0, bz1: -1, tris: [], yLo: [], yHi: [], part: [], parts: 0, sight: null, rayMark: null, posed: !!posed && !!(translation || rotation), reposed: !translation && !rotation && this._reposedKeys.has(bucketKey), rnone: true, rwide: false, wbox: null, grid: new Map(), runs: null, wide: [], wideTree: null, t: translation || (() => ZERO3), r: rotation, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };   // AUDIT BRANCH (WoD) B1; OW-WOD-LAG: the wide triangles, and their tree (built when first asked); FB0930-FRAME: its key, whether it moves, its place in the walk
       this._buckets.set(bucketKey, bucket);
     }
     const m = matrix;
@@ -1010,8 +1037,45 @@ export class Collider {
     if (bucket && bucket.wide.length) wideTree(bucket);
   }
 
+  /** Rebakes one static bucket in place; moving, multi-mesh, or sight-marked buckets fall back to removeBucket
+   *  and addMesh. */
+  poseBucket(bucketKey, positions, indices, matrix) {
+    const bucket = this._buckets.get(bucketKey);
+    if (!bucket || bucket.moves || bucket.parts > 1 || bucket.sight !== null) {
+      this.removeBucket(bucketKey);
+      this._reposedKeys.add(bucketKey);
+      if (matrix) this.addMesh(bucketKey, positions, indices, matrix);
+      return;
+    }
+    this._reposedKeys.add(bucketKey);
+    this.cover?.remove(bucketKey);
+    this.late?.forget(bucketKey);
+    this._buckets.delete(bucketKey);
+    this._buckets.set(bucketKey, bucket);
+    bucket.runs = null;
+    if (!matrix || !rebake(bucket, positions, indices, matrix)) {
+      bucket.tris = []; bucket.yLo = []; bucket.yHi = []; bucket.part = []; bucket.parts = 0;
+      bucket.grid = new Map(); bucket.wide = []; bucket.wideTree = null;
+      bucket.min = [Infinity, Infinity, Infinity]; bucket.max = [-Infinity, -Infinity, -Infinity];
+      if (matrix) this.addMesh(bucketKey, positions, indices, matrix);
+    }
+    const broad = this._broad;
+    if (broad === null) return;
+    if (bucket.lvl !== FILED_REPOSED || framesMoved(broad)) { bucket.reposed = true; this._broad = null; return; }
+    const all = broad.all, rp = broad.reposed;
+    if (all[bucket.ord] !== bucket) { this._broad = null; return; }
+    reposedCells(bucket);
+    all.splice(bucket.ord, 1);
+    for (let i = bucket.ord; i < all.length; i++) all[i].ord = i;
+    bucket.ord = all.length;
+    all.push(bucket);
+    rp.splice(rp.indexOf(bucket), 1);
+    rp.push(bucket);
+  }
+
   removeBucket(bucketKey) {
     if (this._buckets.delete(bucketKey)) this._broad = null;   // FB0930-FRAME: the filing is dropped with it
+    this._reposedKeys.delete(bucketKey);
     this.cover?.remove(bucketKey);   // TACT1: a bucket's cover leaves with it
     this.late?.forget(bucketKey);   // ROCK-CLEAR: and its parts held back from the body - a pixel streamed out stands none of them later
   }
@@ -2511,6 +2575,48 @@ export class Collider {
 }
 
 const ZERO3 = [0, 0, 0];
+function rebake(bucket, positions, indices, m) {
+  const n = indices.length / 3, tris = bucket.tris, grid = bucket.grid, mn = bucket.min, mx = bucket.max;
+  if (bucket.parts !== 1 || tris.length !== n || bucket.wide.length) return false;
+  for (const cell of grid.values()) cell.length = 0;
+  mn[0] = mn[1] = mn[2] = Infinity; mx[0] = mx[1] = mx[2] = -Infinity;
+  const mirrored = m[0] * (m[5] * m[10] - m[6] * m[9]) - m[4] * (m[1] * m[10] - m[2] * m[9]) + m[8] * (m[1] * m[6] - m[2] * m[5]) < 0;
+  let filled = 0;
+  for (let idx = 0; idx < n; idx++) {
+    const tri = tris[idx], i = idx * 3;
+    for (let j = 0; j < 3; j++) {
+      const v = tri[j], at = indices[j === 0 ? i : (j === 1) !== mirrored ? i + 1 : i + 2] * 3;
+      const x = positions[at], y = positions[at + 1], z = positions[at + 2];
+      v[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
+      v[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
+      v[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
+    }
+    const a = tri[0], b = tri[1], c = tri[2];
+    bucket.yLo[idx] = Math.min(a[1], b[1], c[1]);
+    bucket.yHi[idx] = Math.max(a[1], b[1], c[1]);
+    for (let j = 0; j < 3; j++) {
+      const v = tri[j];
+      for (let k = 0; k < 3; k++) {
+        if (v[k] < mn[k]) mn[k] = v[k];
+        if (v[k] > mx[k]) mx[k] = v[k];
+      }
+    }
+    const minX = Math.floor(Math.min(a[0], b[0], c[0]) / CELL), maxX = Math.floor(Math.max(a[0], b[0], c[0]) / CELL);
+    const minZ = Math.floor(Math.min(a[2], b[2], c[2]) / CELL), maxZ = Math.floor(Math.max(a[2], b[2], c[2]) / CELL);
+    if ((maxX - minX + 1) * (maxZ - minZ + 1) > FINE_CELLS_MAX) return false;
+    for (let gx = minX; gx <= maxX; gx++) {
+      for (let gz = minZ; gz <= maxZ; gz++) {
+        const k = cellKey(gx, gz);
+        let cell = grid.get(k);
+        if (!cell) { cell = []; grid.set(k, cell); }
+        if (!cell.length) filled++;
+        cell.push(idx);
+      }
+    }
+  }
+  if (grid.size > 2 * filled + 64) for (const [k, cell] of grid) if (!cell.length) grid.delete(k);
+  return true;
+}
 /** FIELD BUGS 2026-10-02 ROCK-FREE: `partsHolding`'s line, straight up, and how near two of its crossings are one (a
  *  shared edge, a vertex - the skin crossed once); hullSweepAll's scratch - the parts holding her centre, each part's
  *  first contact, the sweep's answer - and partsHolding's, each part's crossings. */
