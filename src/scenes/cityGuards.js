@@ -379,7 +379,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
       if (defender) {
         entity.team = 'PlayerAlly'; entity.mobileTeam = 'PlayerAlly';
         if (threat?.ai) ai.makeEnemyHostileToAttacker(threat, threat.ai.feet, 600);
-      } else ai.makeHostileToPlayer(600, attackerFeet);   // wave 36: MakeEnemyHostileToAttacker seeds the remembered position too
+      } else ai.makeEnemyHostileToAttacker(PLAYER_TARGET, attackerFeet, 600);
       const attack = new EnemyAttack({ liveSpeed: () => liveStat(entity, 'speed'), playerLevel: () => effectiveLevel(playerEntity), reflexes: playerEntity.reflexes });   // AUDIT 39: EnemyAttack.cs:69-72, ditto
       // EnemyMotor.cs:131-137 computes hasBowAttack from the MobileEnemy
       // FLAGS, and EnemyBasics.cs:2197-2212 gives Knight_CityWatch
@@ -1872,7 +1872,7 @@ export function createCityGuards({ renderer, collider, fetchBytes, getTexture, u
         if (sg.fatigue != null) g.entity.fatigue = sg.fatigue;
         if (sg.items) g.entity.items = sg.items.map((it) => ({ ...it }));
         if (sg.activeEffects) g.entity.activeEffects = sg.activeEffects.map((a) => ({ ...a }));
-        // spawnGuardAt seeds the crime pursuit (makeHostileToPlayer);
+        // spawnGuardAt seeds the crime pursuit (makeEnemyHostileToAttacker);
         // a restored PEACEFUL guard stands down.
         if (sg.hostile === false) g.ai.isHostile = false;
         if (typeof sg.living === 'string') g.livingFrom = { id: sg.living, res: null, town: null };   // WATCH-FIX: whom he stands for - the town and the resident found by the id (livingWatch.js)
