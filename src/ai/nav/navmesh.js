@@ -1145,16 +1145,39 @@ function navOverlay(chf) {
 }
 
 
+// Binary heap over poly ids ordered by f, then by first entry, so ties pop in insertion order.
+function openHeap(N, f) {
+  const heap = new Int32Array(N), at = new Int32Array(N).fill(-1), seq = new Int32Array(N);
+  let size = 0, next = 0;
+  const less = (a, b) => f[a] < f[b] || (f[a] === f[b] && seq[a] < seq[b]);
+  const put = (i, p) => { heap[i] = p; at[p] = i; };
+  const up = (i) => { const p = heap[i]; while (i > 0) { const k = (i - 1) >> 1; if (!less(p, heap[k])) break; put(i, heap[k]); i = k; } put(i, p); };
+  const down = (i) => {
+    const p = heap[i];
+    for (;;) {
+      let c = 2 * i + 1; if (c >= size) break;
+      if (c + 1 < size && less(heap[c + 1], heap[c])) c++;
+      if (!less(heap[c], p)) break;
+      put(i, heap[c]); i = c;
+    }
+    put(i, p);
+  };
+  return {
+    get size() { return size; },
+    push(p) { if (at[p] >= 0) { up(at[p]); return; } seq[p] = next++; put(size, p); up(size++); },
+    pop() { const p = heap[0]; at[p] = -1; if (--size > 0) { put(0, heap[size]); down(0); } return p; },
+  };
+}
+
 // distance; heuristic = straight line from a poly's centroid to the goal poly's centroid (admissible AND
 // consistent: the straight line can only be shorter than the remaining centroid hops, which terminate at that
 // same centroid - measuring to the goal point instead could overestimate). Returns the corridor [polys], or null.
 function polyAStar(mesh, cen, startPi, goalPi, ov, ignore) { // ov (Slice 9): the { polyBlocked, polyCostMul, polyBlockId } overlay, or null (no obstacles - the original arithmetic byte-identical); ignore = an obstacle's numeric tag whose blocks this query walks through (the boss pathing over its own footprint)
   const N = mesh.polys.length, g = new Float64Array(N).fill(Infinity), f = new Float64Array(N).fill(Infinity);
   const came = new Int32Array(N).fill(-1), closed = new Uint8Array(N), h = (pi) => Math.hypot(cen[pi].x - cen[goalPi].x, cen[pi].z - cen[goalPi].z);
-  g[startPi] = 0; f[startPi] = h(startPi); const open = [startPi];
-  while (open.length) {
-    let bi = 0; for (let i = 1; i < open.length; i++) if (f[open[i]] < f[open[bi]]) bi = i;
-    const cur = open.splice(bi, 1)[0];
+  g[startPi] = 0; f[startPi] = h(startPi); const open = openHeap(N, f); open.push(startPi);
+  while (open.size) {
+    const cur = open.pop();
     if (cur === goalPi) break;
     if (closed[cur]) continue; closed[cur] = 1;
     const nb = mesh.polys[cur].neis;
