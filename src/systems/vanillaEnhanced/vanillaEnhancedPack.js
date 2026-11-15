@@ -63,6 +63,7 @@ export function _setVePackIoForTests({ fetch = null, decode = null, worker = nul
   _fetch = fetch ?? fetchBytes; _decode = decode ?? decodePng;
   _makeWorker = worker ?? (fetch || decode ? null : defaultWorker);
   _workers = null;
+  _shared.clear(); _sharedBytes = 0;
 }
 
 // ---- AUDIT VE P1: THE DECODE, OFF THE MAIN THREAD -------------------------------------------------------------------
@@ -81,7 +82,7 @@ function decodeWorkers() {
         if (!p) return;
         lane.pending.delete(m.id);
         if (m.error) p.reject(Object.assign(new Error(m.error), { unsupported: m.unsupported === true }));
-        else p.resolve({ width: m.width, height: m.height, data: m.data });
+        else p.resolve({ img: { width: m.width, height: m.height, data: m.data }, native: m.native ?? [m.width, m.height] });
       };
       // a worker that will not load (no module workers here, its script refused) is dead: what it holds is answered as
       // unsupported, and nothing is sent to it again - an ask after the error must not wait on it for ever
@@ -103,10 +104,43 @@ const askWorker = (lanes, url, maxSize) => new Promise((resolve, reject) => {
   lane.pending.set(id, { resolve, reject });
   try { lane.w.postMessage({ id, url, maxSize }); } catch (e) { lane.pending.delete(id); reject(Object.assign(e, { unsupported: true })); }
 });
+// An archive's preload and the ground set made from the same files ask for the same pictures. The asks share one fetch
+// and decode while it runs and for SHARED_MS after, up to SHARED_BYTES of pictures (the oldest go first). A picture
+// fitted to one texture detail answers another ask only when the file fits both the same way.
+const SHARED_BYTES = 32 * 1024 * 1024;
+const SHARED_MS = 10000;
+const _shared = new Map();
+let _sharedBytes = 0;
+const dropShared = (url, e) => { if (_shared.get(url) !== e) return; _shared.delete(url); _sharedBytes -= e.bytes; };
+function shareDecode(url, maxSize) {
+  const was = _shared.get(url);
+  if (was) dropShared(url, was);
+  const e = { decoded: null, bytes: 0 };
+  e.decoded = decodeShippedNow(url, maxSize).then((d) => {
+    if (_shared.get(url) !== e) return d;
+    e.bytes = d.img?.data?.byteLength ?? 0; _sharedBytes += e.bytes;
+    setTimeout(() => dropShared(url, e), SHARED_MS)?.unref?.();
+    for (const [k, o] of _shared) { if (_sharedBytes <= SHARED_BYTES) break; if (o.bytes) dropShared(k, o); }
+    return d;
+  }, (err) => { dropShared(url, e); throw err; });
+  _shared.set(url, e);
+  return e.decoded;
+}
+const fitsAs = ({ img, native }, maxSize) => { const [w, h] = mipFitSize(native[0], native[1], maxSize); return w === img.width && h === img.height; };
 /** One shipped file as top-down RGBA, fitted to `maxSize` as a mip chain would be: a worker's decode where the page has
  *  one, else this thread's - and this thread's for good once a worker says it cannot. ALIKR1: `root` is the pack's. */
 async function decodeShipped(path, maxSize = Infinity, root = pack.Root) {
   const url = vePackUrl(path, undefined, root);
+  const hit = _shared.get(url);
+  if (hit) {
+    _shared.delete(url); _shared.set(url, hit);
+    const d = await hit.decoded.catch(() => null);
+    if (d && fitsAs(d, maxSize)) return d.img;
+  }
+  return (await shareDecode(url, maxSize)).img;
+}
+/** @returns {Promise<{ img: { width: number, height: number, data: Uint8Array }, native: number[] }>} */
+async function decodeShippedNow(url, maxSize) {
   const lanes = decodeWorkers();
   if (lanes) {
     try { return await askWorker(lanes, url, maxSize); } catch (e) {
@@ -117,7 +151,7 @@ async function decodeShipped(path, maxSize = Infinity, root = pack.Root) {
   }
   const img = await _decode(await _fetch(url));
   const [w, h] = mipFitSize(img.width, img.height, maxSize);
-  return w === img.width && h === img.height ? img : resampleRgba(img, w, h);
+  return { img: w === img.width && h === img.height ? img : resampleRgba(img, w, h), native: [img.width, img.height] };
 }
 
 /** The served URL of a file under the pack's root (`base/302_0-0.png`). ALIKR1: `packRoot` - another shipped pack's
