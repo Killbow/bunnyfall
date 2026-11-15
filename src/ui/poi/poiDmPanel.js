@@ -34,6 +34,12 @@ export const POI_DM_CSS = `
 `;
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
+/** @param {Element} n */
+export function pickerOpenIn(n) {
+  const all = [...n.querySelectorAll('select'), ...n.querySelectorAll('input')];
+  try { return all.some((/** @type {any} */ c) => (c.tagName === 'SELECT' || c.type === 'color') && c.matches(':open')); } catch { return false; }
+}
+
 /** @type {Record<string, () => string>} */
 const TAB = {
   npcs: () => t('poi.dm.tab.people', 'People'), routes: () => t('poi.dm.tab.routes', 'Routes'), encounters: () => t('poi.dm.tab.encounters', 'Encounters'),
@@ -117,14 +123,16 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) dock.addEventListener(ty, swallow);
   dock.hidden = true;
   root.append(dock);
-  const ui = { on: false, tab: 'routes', key: /** @type {string | null} */ (null) };
+  const ui = { on: false, tab: 'routes', key: /** @type {string | null} */ (null), kind: POI_INTERACTIVE_KINDS[0] };
   const sandbox = createPoiSandbox({ doc, getDoc: () => getDoc(), el, btn, redraw: () => schedule() });
 
   const id = () => edit.selection()?.id ?? null;
   const getDoc = () => { const i = id(); return i ? edit.docOf(i) : null; };
 
-  // ── drawing again: after a change, never while a field is typed in, never under a press ──
+  // ── redraw after a change, held during a press, typing, or an open list or color picker ──
   let queued = false, pressAt = -Infinity, gone = false;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let waitTimer = null;
   dock.addEventListener('pointerdown', () => { pressAt = Date.now(); }, true);
   dock.addEventListener('pointerup', () => { setTimeout(() => { pressAt = -Infinity; schedule(); }, 0); }, true);
   dock.addEventListener('focusout', () => schedule());
@@ -135,7 +143,8 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     Promise.resolve().then(() => {
       queued = false;
       if (!ui.on || gone) return;
-      if (Date.now() - pressAt < 1500 || typing()) { setTimeout(schedule, 120); return; }
+      // The browser closes an open list or color picker when the panel redraws it.
+      if (Date.now() - pressAt < 1500 || typing() || pickerOpenIn(dock)) { waitTimer ??= setTimeout(() => { waitTimer = null; schedule(); }, 120); return; }
       render();
     });
   }
@@ -452,6 +461,8 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       ] : [note(t('poi.dm.pickObject', 'Pick an object or add one.'))];
       const kind = /** @type {HTMLSelectElement} */ (el('select'));
       for (const k of POI_INTERACTIVE_KINDS) { const op = /** @type {HTMLOptionElement} */ (el('option', '', w(k))); op.value = k; kind.append(op); }
+      kind.value = ui.kind;
+      kind.addEventListener('change', () => { ui.kind = kind.value; });
       return listPane('interactives', kids, { add: () => { const r = run((dd) => DM.addInteractive(dd, kind.value, w(kind.value), here0())); if (r?.row) { ui.key = r.row.key; render(); } }, extra: kind });
     },
     dialogues() {

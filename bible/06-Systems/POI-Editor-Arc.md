@@ -316,12 +316,15 @@ button opens it again after an exit.
 - **THE IMPORT** (`src/poi/poiImport.js`, the panel's dialog): a .glb, or a .gltf with its .bin and pictures; one part,
   or a part for each object (refused in words past a POI's 128 parts - AUDIT POI L6); its parts listed (vertices,
   triangles, materials) and its lights, placed and kept with it (L7), what was left out and why, what is past a limit
-  (refused by its code, never uploaded - a part past the mesh law never built: G3); each picture read by its header (one
-  the store would refuse set aside, its materials plain), each picture and mesh uploaded once by its name (`existed` for
-  bytes the store has; Make and the files held while they go up - U10), the materials' images their pictures' names, and
-  the model placed - every part at once, one step, each where it stands from the model's origin in its POI's frame -
-  where the next click meets the ground (or a model on it); no POI held, a new one stands round it in the same step
-  (E11). Cancel stops it: nothing more uploaded, nothing placed (U9).
+  (refused by its code, never uploaded - a part past the mesh law never built: G3).
+
+  Each picture is read by its header (one the store would refuse set aside, its materials plain), each picture and mesh
+  uploaded once by its name (`existed` for bytes the store has; Make and the files held while they go up - U10), the
+  materials' images their pictures' names, and the model placed as one step where the next click meets the ground (or a
+  model on it), every part positioned from the model origin in the POI frame. With no POI selected, the model goes into
+  the last selected POI while that POI is open, or else into a new POI around it in the same step (E11). A target POI
+  that has not loaded or is open in Approvals takes nothing; placement stays armed and the editor says why. Cancel stops
+  it: nothing more uploaded, nothing placed (U9).
 
 Pinned by `test/poi/poi3b_panel.test.js` (6) - the panel headless over the shared fake document (test/chargenDom.mjs), the
 import, and the world's wiring by source; `tools/mutants/poi3b.json` 12, all dead. AUDIT POI:

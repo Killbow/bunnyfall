@@ -39,7 +39,7 @@ import {
 } from '../poi/poiEdit.js';
 import { find, marksOf, movable, parseId } from '../poi/poiScene.js';
 import { applyMulti, pivotOf, singleItem } from '../poi/poiMulti.js';
-import { placeFlatAt } from '../poi/poiFlatRows.js';
+import { flatRoom, placeFlatAt } from '../poi/poiFlatRows.js';
 import { boxPick, editorView, liftOf, npcLine, pickNpc, rectLines, spotOf } from './poiEditorSelect.js';
 import { gizmoSize, POI_SNAP_DEFAULT } from '../poi/poiGizmo.js';
 import { pickGizmo, gizmoDraw, viewForward, createGizmoEase, GIZMO_DIM, GIZMO_ARM_PX } from '../poi/poiGizmoLook.js';
@@ -118,6 +118,14 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   /** @type {number[] | null} */
   let placeAt = null;   // where the placing mark stands (scene frame)
   let overlayGen = -1;
+  // With nothing selected, Place adds to the last selected POI until it is closed or deleted.
+  /** @type {string | null} */
+  let lastPoi = null;
+  /** @type {'away' | 'shown' | 'full' | null} */
+  let refusedLast = null;
+  edit.onChange(() => { const s = edit.selection(); if (s) lastPoi = s.id; else if (lastPoi && !edit.has(lastPoi)) lastPoi = null; });
+  const placeInto = () => edit.selection() ?? (lastPoi && edit.has(lastPoi) ? { id: lastPoi, items: [] } : null);
+  const refusalOf = (/** @type {string} */ id) => (edit.shownAs?.(id) !== undefined ? 'shown' : !originOfDoc(edit.docOf(id)) ? 'away' : null);
   const told = () => { try { onChange(); } catch (e) { console.warn('[poi] editor listener', e); } };
   const boxesOf = createSelectionBoxes({ edit, host, boxLines, colors: POI_BOX_COLOR }), sizeBoxOf = createSizeBox({ edit, host });
 
@@ -287,12 +295,15 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     // a model's spot is on the ground (or on what it was dropped on): a snap POI's height its lift above the ground
     const ground = surfaceAt(at[0], at[2]);
     const lift = Number.isFinite(ground) ? Math.max(0, at[1] - ground) : 0;
+    // A refused target leaves placement armed, so the builder can pick another POI.
+    const sel = placing.kind === 'poi' ? null : placeInto();
+    const refused = !sel ? null : refusalOf(sel.id) ?? (placing.kind === 'flat' && !flatRoom(edit.docOf(sel.id)) ? 'full' : null);
+    refusedLast = refused;
+    if (refused) { api.placeRefused?.(refused, sel.id); return; }
     if (placing.kind === 'poi') {
       edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: placing.name });
     } else if (placing.kind === 'npc') {
-      // BUNNYFALL: a person stands where the click landed, in the held POI (or in a new one round them)
-      const sel = edit.selection();
-      if (sel ? !originOfDoc(edit.docOf(sel.id)) : !Number.isFinite(ground)) return;
+      if (!sel && !Number.isFinite(ground)) return;
       const who = placing.npc;
       const fill = (doc) => {
         const o = originOfDoc(doc);
@@ -303,12 +314,10 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
       if (!sel) edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: who.name || placing.fallbackName || '' }, fill, held);
       else edit.edit(sel.id, 'add person', fill);
     } else if (placing.kind === 'flat') {
-      // place the flat picture at the clicked point in the selected POI (or in a new POI around it) and select it
-      if (!placeFlatAt({ edit, originOf: originOfDoc, at, spot: px, lift, ground, want: placing.flat, fallbackName: placing.fallbackName })) return;
+      if (!placeFlatAt({ edit, originOf: originOfDoc, at, spot: px, lift, ground, want: placing.flat, fallbackName: placing.fallbackName, sel })) return;
     } else {
       const asset = placing.asset;
-      const sel = edit.selection();
-      if (sel ? !originOfDoc(edit.docOf(sel.id)) : !Number.isFinite(ground)) return;   // its ground not built yet: nothing to stand it from
+      if (!sel && !Number.isFinite(ground)) return;
       // every part of the model at once - one step - each where it stands from the model's origin, in the POI's own frame
       // (the model turns and sizes with its POI, as one thing); a library entry's parts keep their own turn, size,
       // solidity and shadow, and its lights come with it (POI-4b)
@@ -336,8 +345,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
         for (const l of asset.lights ?? []) doc.lights.push({ ...structuredClone(l), t: newLight([local[0] + l.t[0], local[1] + l.t[1], local[2] + l.t[2]]).t });
       };
       const held = (id) => ({ id, part: pieces.length > 1 ? null : key });
-      // no POI held: a new one stands round the model, named for it (or as the UI names a new one) - AUDIT POI E11: the
-      // POI and its model ONE step, as POI-4b says (it was two: the create, then the parts)
+      // The new POI and the model are one undo step.
       if (!sel) edit.create({ px: px.px, py: px.py, x: px.x, z: px.z, y: lift, name: asset.name || placing.fallbackName || '' }, fill, held);
       else if (edit.edit(sel.id, pieces.length > 1 ? 'add parts' : 'add part', fill) && key) edit.select(held(sel.id));
     }
@@ -380,6 +388,8 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     },
     /** @type {((id: string) => void) | null} the UI's word when a live POI is clicked (open it for editing?) */
     wantsOpen: null,
+    /** @type {((why: 'away' | 'shown' | 'full', id: string) => void) | null} */
+    placeRefused: null,
 
     mode: () => mode,
     setMode(/** @type {'select' | 'move' | 'turn' | 'size'} */ m) { mode = m; hover = null; told(); },
@@ -399,15 +409,18 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     placing: () => placing,
     /** Stand a new POI where the next click is (its name the UI's, in the builder's language). */
     placeNew(/** @type {string} */ name) { placing = { kind: 'poi', name }; told(); },
-    /** Stand a library asset - a model's parts (`{ name, parts }`) or one part - in the selected POI where the next click
-     *  is (none selected: a new POI round it, `fallbackName` its name when the model has none). */
     /** BUNNYFALL: a person (name, look, height, lines) follows the cursor on the ground; a click stands them. */
     placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
+    /** Arms a library asset (a model's parts `{ name, parts }`, or one part) for the next click. */
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
-    /** Arms placement for a flat picture (`{ kind, flat, item, name, light }`, passed to poiFlatRows.js newFlat) so
-     *  it follows the ground cursor; a click places it in the selected POI, or, with none selected, in a new POI
-     *  named after the picture or `fallbackName`. */
+    /** Arms a flat picture (`{ kind, flat, item, name, light }`, as newFlat takes) for the next click. */
     placeFlat(flat, fallbackName = '') { placing = { kind: 'flat', flat, fallbackName }; told(); },
+    /** Returns the target POI for Place and Paste (`{ id, items }`), or null when Place makes a new POI. */
+    placeInto,
+    /** @returns {'away' | 'shown' | 'full' | null} */
+    refusedLast: () => refusedLast,
+    /** @type {(id: string) => ('away' | 'shown' | null)} */
+    refusalOf,
     cancelPlacing() { placing = null; placeAt = null; told(); },
     /** Places whatever is armed for placing on the ground under client point `(x, y)`, as a click there would (used
      *  when an asset is dropped from the browser), and returns whether it was placed. */
@@ -733,6 +746,7 @@ export const POI_EDITOR_EVENTS = Object.freeze(['pointerdown', 'pointermove', 'p
  *   window whose blur is the page's focus gone
  */
 export function createPoiEditorRouter({ editor, canvas, cam, acts, owns, overlayUp, textEntry, win = globalThis }) {
+  const pickerOpen = (/** @type {any} */ t) => { try { return (t?.tagName === 'SELECT' || t?.type === 'color') && t.matches(':open'); } catch { return false; } };
   function onEvent(e) {
     if (!editor.active() || editor.worldGone()) return;
     if (e.type === 'lostpointercapture' || e.type === 'blur') { if (e.type === 'lostpointercapture' || e.target === win) editor.letGo(); return; }
@@ -756,6 +770,8 @@ export function createPoiEditorRouter({ editor, canvas, cam, acts, owns, overlay
     if (!editor.active() || overlayUp()) return;   // a window over the world (the map the bar opened) has its keys
     e.stopPropagation?.();   // AUDIT POI E2: nothing below the panel - the world, the mode machine - hears a key typed at it
     if (textEntry(e.target)) return;   // a typed field keeps its key
+    // Escape at an open color picker or list only closes the picker, so the editor skips it.
+    if (e.code === 'Escape' && pickerOpen(e.target)) return;
     if (e.type === 'keydown' ? editor.keyDown(e, cam, acts()) : editor.keyUp(e)) e.preventDefault?.();
   }
   return { onEvent, onPanelKey };

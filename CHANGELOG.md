@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: In the POI editor and DM tools, color pickers and dropdowns actually open up.
+- Fixed: In the POI editor, Place and Paste with nothing selected now go to the last selected POI instead of making a new POI or asking you to select one.
+- Fixed: In the POI editor, a paste into the same POI now rezzes in the same position as the original.
 - Fixed: A new character no longer gets two copies of the main quest, and a save that already has two copies now loads with one.
 - Fixed: The zone warning no longer flickers, and it no longer fills the journal's Messages with copies of itself.
 - Fixed: The Giant tag on the Overworld no longer flickers, and the giant stays in the world until you move well away from it.

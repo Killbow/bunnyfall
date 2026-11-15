@@ -65,7 +65,7 @@ import { createPoiNpcUi } from './poiNpcUi.js';   // BUNNYFALL: the people a POI
 import { createPoiFlatUi } from './poiFlatUi.js';
 import { POI_V2_LIMITS } from '../../poi/poiLawV2.js';
 // the DM content, in a wide dock
-import { createPoiDmPanel, heldNotEditable, dmHeldLines } from './poiDmPanel.js';
+import { createPoiDmPanel, heldNotEditable, dmHeldLines, pickerOpenIn } from './poiDmPanel.js';
 // the Test: a draft played with its DM content
 import { createPoiTestPanel } from './poiTestPanel.js';
 import { testable } from '../../poi/poiDmTest.js';
@@ -320,6 +320,12 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
 
   const say = (text, kind = 'ok') => { status.textContent = text; status.dataset.kind = kind; };
   const refusal = (r) => (r?.error ? accountRefusalText(r.error) : t('poi.editor.failed', 'That did not go through.'));
+  editor.placeRefused = (/** @type {string} */ why, /** @type {string} */ id) => {
+    const name = edit.docOf(id)?.name ?? '';
+    say(why === 'full' ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats })
+      : why === 'shown' ? t('poi.editor.placeShown', '{name} is open in Approvals, so nothing can be added to it. Select another POI.', { name })
+        : t('poi.editor.placeAway', '{name} has not loaded yet. Fly closer to it, or select another POI.', { name }), 'bad');
+  };
   // POI-4b: the library's dialogs, laid in the panel, through its own door to the store
   const library = createPoiLibrary({ doc, host: root, io, feed, me, act: (fn) => act(fn), say, refusal, editor, decodeImage, rand, exportGlb: (model) => exportGlb(model) });
   // the asset browser: its code is fetched the first time Assets is pressed, so a player who never opens it never loads
@@ -367,11 +373,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     queued = true;
     Promise.resolve().then(() => { queued = false; render(); });
   }
-  // AUDIT POI U1: a dock is held while a field in it is being TYPED in (ui/input.js isTextEntryTarget, less the inputs
-  // nothing is typed into) - and for nothing else. A browser leaves the focus on the button, box or list that was
-  // pressed, and a dock held while ANYTHING in it had the focus went on showing itself as it was before the press:
-  // "Close" never asked again (its second press threw the work away), Save stayed pressable through its own save, the
-  // inspector kept a POI's fields with its new light selected.
+  // A dock defers redraws while a field in it is typed in, not whenever it has the focus.
+  // The browser leaves the focus on a pressed control, so deferring on focus would show stale state.
   const UNTYPED = new Set(['checkbox', 'radio', 'color', 'file', 'range', 'button', 'submit', 'reset']);
   const typingIn = (n) => { const a = /** @type {any} */ (doc.activeElement); return isTextEntryTarget(a) && !UNTYPED.has(a.type) && typeof n.contains === 'function' && n.contains(a); };
   // AUDIT POI (the lead's; lane D's note): A PRESS HOLDS THE REDRAW UNTIL IT ENDS. A field typed in, then a button pressed:
@@ -382,6 +385,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
   // freeze it.
   let pressAt = -Infinity;
   let gone = false;   // destroyed: a hold's timer, or a draw queued before, draws nothing more
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let pickerWait = null;
   root.addEventListener('pointerdown', () => { pressAt = Date.now(); }, true);
   const released = () => { setTimeout(() => { pressAt = -Infinity; schedule(); }, 0); };
   root.addEventListener('pointerup', released, true);
@@ -390,6 +395,8 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
     if (gone) return;
     const pressed = Date.now() - pressAt;
     if (pressed < PRESS_HOLD_MS) { setTimeout(() => schedule(), PRESS_HOLD_MS - pressed + 1); return; }
+    // The browser closes an open list or color picker when the panel redraws it.
+    if (root.dataset.on === '1' && [bar, left, right].some(pickerOpenIn)) { pickerWait ??= setTimeout(() => { pickerWait = null; schedule(); }, 120); return; }
     if (!typingIn(bar)) renderBar();
     renderLeft();
     // a field being typed in keeps its text: the inspector is drawn again once it lets go of the keyboard
@@ -1232,7 +1239,7 @@ export function createPoiEditorPanel({ doc = document, edit, editor, feed, io, m
       const before = partCount();
       editor.placeAsset(r.asset, t('poi.editor.newName', 'New place'));
       if (spot && editor.standOn(spot)) return true;
-      say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
+      if (!(spot && editor.refusedLast?.())) say(t('poi.editor.placeModel', 'Click where it stands. Esc to stop.'));
       return placedFrom(editor.placing(), before);
     }
     const pick = el('div', 'dfpoi-row'); pick.append(idIn, go);

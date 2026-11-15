@@ -75,6 +75,12 @@ export function createPoiFlatUi(c) {
     return cv;
   };
 
+  /** @returns {string | null} */
+  const full = () => {
+    const s = c.editor.placeInto?.() ?? c.edit.selection();
+    return s && !flatRoom(c.edit.docOf(s.id)) ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats }) : null;
+  };
+
   /**
    * Opens the flat-picture picker dialog. When `change` (`{ id, key }`) is given, replaces that billboard row's
    * picture; otherwise arms placement for the next click on the ground.
@@ -82,8 +88,8 @@ export function createPoiFlatUi(c) {
    */
   function openFlat({ change = null } = {}) {
     c.dialogsClosed();
-    const sel = c.edit.selection();
-    if (!change && sel && !flatRoom(c.edit.docOf(sel.id))) { c.say(t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats }), 'bad'); return; }
+    const why = change ? null : full();
+    if (why) { c.say(why, 'bad'); return; }
     const box = el('div', 'dfpoi-dialog');
     swallowAll(box);
     const mine = () => c.dialogIs(box);
@@ -403,7 +409,6 @@ export function createPoiFlatUi(c) {
    * Esc, starting another placement, or closing the editor).
    */
   function placers() {
-    const full = () => { const s = c.edit.selection(); return s && !flatRoom(c.edit.docOf(s.id)) ? t('poi.flat.full', 'This POI already holds {max} flat pictures.', { max: POI_V2_LIMITS.flats }) : null; };
     const itemOf = (a) => (Number.isInteger(a?.template) ? { t: a.template, ...(Number.isInteger(a.group) && a.group >= 0 ? { g: a.group } : {}) } : null);
     const stand = (want, ctx) => new Promise((resolve) => {
       let placed = false;
@@ -411,7 +416,7 @@ export function createPoiFlatUi(c) {
       c.dialogsClosed();
       c.editor.placeFlat(armed, want.name || t('poi.flat.defaultPoi', 'New place'));
       if (ctx.at && c.editor.standAt?.(ctx.at.x, ctx.at.y) && placed) { resolve(true); return; }
-      ctx.say(t('poi.flat.placeHint', 'Click the ground to place it. Press Esc to cancel.'));
+      if (!(ctx.at && c.editor.refusedLast?.())) ctx.say(t('poi.flat.placeHint', 'Click the ground to place it. Press Esc to cancel.'));
       // polls until this placement finishes, either because a ground click placed it or because placement was canceled
       const wait = () => { if (c.editor.active?.() !== false && c.editor.placing?.()?.flat === armed) setTimeout(wait, 100); else resolve(placed); };
       setTimeout(wait, 100);
