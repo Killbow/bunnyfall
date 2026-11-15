@@ -9,7 +9,7 @@
 // defaults without a DOM.
 
 import { appStorage } from './appStorage.js';   // the one storage seam - localStorage lives there alone
-import { onlineForcedModSetting, onlineWholeModKey } from './online/onlineLane.js';   // MODS-ONLINE-2: online, the room's ground is forced and every other switch is the player's; REALM P0.2: and the balance mods whole
+import { onlineForcedModSetting, onlineWholeModKey, isOnlinePage, rollingAsTheRoom } from './online/onlineLane.js';   // MODS-ONLINE-2: online, the room's ground is forced and every other switch is the player's; REALM P0.2: and the balance mods whole
 import { FOOT_SKIN_COUNT, CLASS_SKINS, classSkinLabel } from '../player/classSkins.js';   // SKIN2: the class skins past the mod's sixteen
 import { t, localizedText } from './textManager.js';   // L10N4: every setting's description and option names in the player's language, read when they are read; DFU's own key where it has the same word
 import { EDITOR_MODS } from './editorMods.js';   // BUNNYFALL: the mods the Dungeon Editor made, each one switch
@@ -1920,7 +1920,20 @@ export function onlineModSetting(vendor, key, search) {
   return def && onlineWholeModKey(vendor, key, search) ? def.default : undefined;
 }
 
+const _reads = new Map();
+let _readsGen = -1, _readsOnline = false;
 export function modSetting(vendor, key) {
+  if (rollingAsTheRoom()) return readModSetting(vendor, key);
+  const online = isOnlinePage();
+  if (_readsGen !== _generation || _readsOnline !== online) { _reads.clear(); _readsGen = _generation; _readsOnline = online; }
+  let held = _reads.get(vendor);
+  if (held?.has(key)) return held.get(key);
+  const v = readModSetting(vendor, key);
+  if (!held) _reads.set(vendor, held = new Map());
+  held.set(key, v);
+  return v;
+}
+function readModSetting(vendor, key) {
   const def = declaredKey(vendor, key);
   if (!def) throw new Error(`modSetting: ${vendor}/${key} is not a declared switch`);
   const forced = onlineModSetting(vendor, key);   // MODS-ONLINE-2: online, a key the room's ground depends on reads the room's value and the store is not written; REALM P0.2: and a balance mod's every key its shipped default
@@ -1949,11 +1962,16 @@ export function storedModSetting(vendor, key) {
   return load()[vendor]?.[key];
 }
 
+const _settingsOf = new Map();
 export function modSettingsOf(vendor) {
   const keys = MOD_SETTINGS[vendor]?.keys;
   if (!keys) throw new Error(`modSettingsOf: ${vendor} is not a vendored mod with switches`);
+  const rolling = rollingAsTheRoom(), online = isOnlinePage();
+  const held = rolling ? null : _settingsOf.get(vendor);
+  if (held && held.gen === _generation && held.online === online) return { ...held.out };
   const out = {};
   for (const k of Object.keys(keys)) out[k] = modSetting(vendor, k);
+  if (!rolling) _settingsOf.set(vendor, { gen: _generation, online, out: { ...out } });
   return out;
 }
 
