@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Your Company no longer loses all its farms when you open the map or a farmhouse door before opening the Company tab.
 - Fixed: A party member who fails a quest no longer gets the choice of reward gear when another member completes it.
 - Fixed: The sea at night is no longer black. It now reflects the night sky and sunset, shows a path of moonlight, and catches the light of quay lamps and ship lanterns.
 - The game loads faster, especially on slow connections, because textures now download in parallel instead of one set at a time or twice.
