@@ -74,6 +74,7 @@ export class MidScreenText {
     // :51 - a FIELD, not a constant: SetMidScreenText's `delay`
     // parameter overwrites it per message.
     this.delay = MID_SCREEN_TEXT_DEFAULT_DELAY;
+    this.realTime = false;
     // :176 - Position (0, midScreenTextDefaultY), recomputed inside
     // set() when the large HUD is on (:355-365) and NOT per frame.
     this.y = MID_SCREEN_TEXT_DEFAULT_Y;
@@ -114,7 +115,7 @@ export class MidScreenText {
    * Then :367-370: the text REPLACES, the timer re-arms at 0 and the
    * delay is overwritten. Nothing stacks and nothing queues.
    */
-  set(message, delayInSeconds = MID_SCREEN_TEXT_DEFAULT_DELAY) {
+  set(message, delayInSeconds = MID_SCREEN_TEXT_DEFAULT_DELAY, { realTime = false } = {}) {
     if (this._largeHudHeight !== null) {
       const offset = this._screenHeight - this._largeHudHeight;
       const localY = (offset / this._scale) - MID_SCREEN_TEXT_LARGE_HUD_MARGIN;
@@ -123,19 +124,17 @@ export class MidScreenText {
     this.text = message;
     this.timer = 0;
     this.delay = delayInSeconds;
+    this.realTime = realTime;
     this.onMessage?.(message);
   }
 
   /** The Update tail (:259-267): the sentinel gates the tick, and a
-   *  crossing blanks the label and re-arms the sentinel. CSA-G: `+=
-   *  Time.deltaTime` (:262) is GAME time - the time scale scales it - so
-   *  the frame's real dt is taken at `Time.timeScale` here: at a Travel
-   *  Options journey's scale or the boat's helm's, a message holds for
-   *  its delay of game seconds (Come Sail Away's "Time scale set to 30."
-   *  asks 3 x 30 of them: three real seconds), as DFU holds it. */
+   *  crossing blanks the label and re-arms the sentinel. The delay counts
+   *  game seconds, as DFU's Time.deltaTime (:262) does, or real seconds
+   *  for a line set with `realTime`. */
   tick(dt) {
     if (this.timer === -1) return;
-    this.timer += dt * timeScale();
+    this.timer += this.realTime ? dt : dt * timeScale();
     if (this.timer > this.delay) {
       this.timer = -1;
       this.text = '';
@@ -172,6 +171,7 @@ export class MidScreenText {
     this.text = '';
     this.timer = -1;
     this.delay = MID_SCREEN_TEXT_DEFAULT_DELAY;
+    this.realTime = false;
     this.y = MID_SCREEN_TEXT_DEFAULT_Y;
     this._screenHeight = 0;
     this._scale = 1;
@@ -184,6 +184,6 @@ export const midScreenText = new MidScreenText();
 
 /** DaggerfallUI.cs:783-789's static funnel, which is how every caller
  *  in the reference reaches the label. */
-export function setMidScreenText(message, delayInSeconds = MID_SCREEN_TEXT_DEFAULT_DELAY) {
-  midScreenText.set(message, delayInSeconds);
+export function setMidScreenText(message, delayInSeconds = MID_SCREEN_TEXT_DEFAULT_DELAY, opts = undefined) {
+  midScreenText.set(message, delayInSeconds, opts);
 }

@@ -28,6 +28,10 @@ export const WILD_GIANT_ROAM_PX = 5;
 export const WILD_GIANT_RESPAWN_MS = 30 * 60_000;
 /** A giant is stood in the world (out of its path, onto the ground) once the player is this near its place (metres). */
 export const WILD_GIANT_STAND_M = 320;
+/** Radius around a giant's place searched for flat ground to spawn it on (meters). */
+export const WILD_GIANT_FIELD_M = 160;
+/** Zone giant removal distance (meters). It must exceed the farthest spawn distance, or giants respawn in a loop. */
+export const WILD_GIANT_CULL_M = WILD_GIANT_STAND_M + WILD_GIANT_FIELD_M + 40;
 /**
  * RPT1026-MISC GIANT-ROCK (a private report, the second sighting: giants of the open zone standing inside rocks): THE GROUND A GIANT
  * IS STOOD ON IS CLEAR OF SOLIDS. GIANT-FIELDS chose its spot by the height map alone - flat, no crest, no water, inside

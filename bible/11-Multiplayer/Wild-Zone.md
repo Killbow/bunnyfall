@@ -435,9 +435,8 @@ with the minutes left.
   the enhanced skin and on the classic row (`hudActiveSpells.js`), and the crossing is said mid-screen.
 - WILD-LINE-HOLD (2026-10-08, the owner: "the warning message for the zone doesnt stay long enough right now only a
   part of a second"): the mid-screen label counts GAME seconds and the zone is crossed at a journey's pace - at x20
-  its 1.5 s were 75 ms. A crossing's line (and a ring's, and CROW-NEWS's) is held `WILD_LINE_HOLD_MS` (7 s,
-  `world.js:"const WILD_LINE_HOLD_MS"`) of REAL time: put back whenever the label has gone blank, so a later message
-  of its own still shows.
+  its 1.5 s were 75 ms. A crossing's line (and a ring's, and CROW-NEWS's) is set with `realTime`, so it holds
+  `WILD_LINE_HOLD_S` (7 s, `world.js:"const WILD_LINE_HOLD_S"`) of REAL time; a later message replaces it for good.
 - The body's window is the pack in choose-one - the reward tray both skins already draw (Enhanced Plus, and the
   classic window GrimoireUI re-dresses) - titled with the fallen's name.
 - The death screen says the killer's claim, what was left behind and the wait, on both faces.
