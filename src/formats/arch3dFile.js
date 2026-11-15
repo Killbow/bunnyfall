@@ -24,6 +24,7 @@
 import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
 import { computeFaceUVCoordinates } from './faceUVTool.js';
 import { ARCH3D_PATCH } from './arch3dPatch.js';
+import { HeldRecords } from './heldRecords.js';
 
 // Buffer lengths used during decomposition.
 const CORNER_BUFFER_LENGTH = 16;
@@ -122,6 +123,8 @@ function indexPatch(bsa) {
   return byRecord;
 }
 
+export const MODELS_HELD_MAX = 256;
+
 export class Arch3dFile {
   constructor() {
     this._bsa = null;
@@ -130,6 +133,7 @@ export class Arch3dFile {
     this._recordIndexLookup = new Map();
     this.autoDiscard = true;
     this._lastRecord = -1;
+    this._held = new HeldRecords(MODELS_HELD_MAX, (record) => { this._records[record] = null; });
 
     // Scratch buffers reused across records, as in DFU.
     this._cornerPointBuffer = new Array(CORNER_BUFFER_LENGTH);
@@ -188,10 +192,10 @@ export class Arch3dFile {
     if (record < 0 || record >= this.count) return false;
 
     // Exit if already loaded.
-    if (this._records[record] !== null && this._records[record].pureMesh !== null) return true;
-
-    // Auto discard previous record.
-    if (this.autoDiscard && this._lastRecord !== -1) this.discardRecord(this._lastRecord);
+    if (this._records[record] !== null) {
+      if (this.autoDiscard) this._held.hold(record);
+      return true;
+    }
 
     // A byte past a truncated record's end drops, as it did past the file's.
     const bytes = this._bsa.getRecordBytes(record);
@@ -218,6 +222,7 @@ export class Arch3dFile {
     }
 
     this._lastRecord = record;
+    if (this.autoDiscard) this._held.hold(record);
     return true;
   }
 
@@ -225,6 +230,7 @@ export class Arch3dFile {
   discardRecord(record) {
     if (record < 0 || record >= this.count) return;
     this._records[record] = null;
+    this._held.forget(record);
   }
 
   /** DFMesh representation of a record (empty mesh on failure). */
@@ -455,6 +461,10 @@ export class Arch3dFile {
     dfMesh.size = rec.pureMesh.size;
     dfMesh.centre = rec.pureMesh.centre;
     rec.dfMesh = dfMesh;
+    // Held records keep only the built mesh; the raw planes and bytes are dropped.
+    rec.pureMesh = null;
+    rec.bytes = null;
+    rec.view = null;
     return true;
   }
 

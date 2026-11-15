@@ -112,11 +112,10 @@
 //    recorded departure (Ledger A): DFU's is the third-party
 //    UnityConsole addon's Unity uGUI prefab, not DFU source.
 //
-// THE COPY LAW: getBlockAutoMap's removeGroundFlats mutates the
-// CACHED block array in place, and cityNavigation carves the navgrid
-// from that same array - so this window never touches it: bytes are
-// read straight from the retained autoMapData and 0xfb is dropped
-// per-pixel during the paint.
+// This window never writes to the block's autoMapData, which
+// cityNavigation carves the navgrid from. Bytes are read straight from
+// the retained autoMapData, and 0xfb is dropped per pixel during the
+// paint.
 
 import { drawText, measureText } from './text.js';
 import { getBool, getInt, getString } from '../systems/settings/settings.js';

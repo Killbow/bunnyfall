@@ -17,6 +17,7 @@
 import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
 import { worldDataDoor } from './worldData/worldDataDoor.js';   // RR3b: WorldDataReplacement's four asks (BlocksFile.cs:214, :273, :385, :850)
 import { dryPuddles } from '../world/puddleDry.js';   // PUDDLE-DRY: a town's puddles are dry ground, served so to every reader
+import { HeldRecords } from './heldRecords.js';
 
 export const BLOCK_TYPES = Object.freeze({
   Unknown: 0,
@@ -123,6 +124,8 @@ export function readBuildingData(view, pos) {
  *  keeps BLOCKS.BSA's bytes. */
 const dryBlock = (dfBlock) => { dryPuddles(dfBlock?.rmbBlock?.fldHeader?.groundData?.groundTiles); return dfBlock; };
 
+export const BLOCKS_HELD_MAX = 64;
+
 export class BlocksFile {
   constructor() {
     this._bsa = null;
@@ -130,6 +133,7 @@ export class BlocksFile {
     this._blockNameLookup = new Map();
     this.autoDiscard = true;
     this._lastBlock = -1;
+    this._held = new HeldRecords(BLOCKS_HELD_MAX, (block) => { this._blocks[block] = null; });
   }
 
   static get filename() {
@@ -199,9 +203,11 @@ export class BlocksFile {
   /** Load a block into memory and decompose it for use. */
   loadBlock(block) {
     if (block < 0 || block >= this.count) return false;
-    if (this._blocks[block] !== null && this._blocks[block].bytes !== null) return true;   // AUDIT-RR F38: a replacement stored in the slot (GetBlock) has no MemoryFile - LoadBlock reads the record again (BlocksFile.cs:303)
-
-    if (this.autoDiscard && this._lastBlock !== -1) this.discardBlock(this._lastBlock);
+    const held = this._blocks[block];
+    if (held !== null && held.bytes !== null) {   // AUDIT-RR F38: a replacement stored in the slot (GetBlock) has no MemoryFile - LoadBlock reads the record again (BlocksFile.cs:303)
+      if (this._stillServed(held)) { if (this.autoDiscard) this._held.hold(block); return true; }
+      this.discardBlock(block);
+    }
 
     const bytes = this._bsa.getRecordBytes(block);
     const name = this._bsa.getRecordName(block);
@@ -209,6 +215,8 @@ export class BlocksFile {
       name,
       bytes,
       view: new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+      door: worldDataDoor(),
+      served: [],
       dfBlock: {
         position: this._bsa.getRecordPosition(block),
         index: block,
@@ -228,6 +236,21 @@ export class BlocksFile {
 
     if (!this._blockNameLookup.has(name)) this._blockNameLookup.set(name, block);
     this._lastBlock = block;
+    if (this.autoDiscard) this._held.hold(block);
+    return true;
+  }
+
+  /** @returns {boolean} */
+  _stillServed(rec) {
+    const door = worldDataDoor();
+    if (rec.door !== door) return false;
+    const rmb = rec.dfBlock.rmbBlock;
+    if (!rmb) return true;
+    // A reader that appended a subrecord (rmbLayout.js attachWindmillRecord) forces a fresh parse.
+    if (rmb.subRecords?.length !== rec.served.length) return false;
+    for (let i = 0; i < rec.served.length; i++) {
+      if ((door?.getBuildingReplacementData(rec.name, rec.dfBlock.index, i) ?? null) !== rec.served[i]) return false;
+    }
     return true;
   }
 
@@ -259,6 +282,7 @@ export class BlocksFile {
   discardBlock(block) {
     if (block < 0 || block >= this.count) return;
     this._blocks[block] = null;
+    this._held.forget(block);
   }
 
   /** DFBlock representation of a record (null on failure, matching empty DFBlock). */
@@ -285,7 +309,8 @@ export class BlocksFile {
 
   /** Block AutoMap as a 64x64 indexed bitmap. */
   static getBlockAutoMap(block, removeGroundFlats) {
-    const data = block.rmbBlock.fldHeader.autoMapData;
+    // Copy before removing flats: the parsed block is shared with every reader.
+    const data = removeGroundFlats ? block.rmbBlock.fldHeader.autoMapData.slice() : block.rmbBlock.fldHeader.autoMapData;
     if (removeGroundFlats) {
       for (let i = 0; i < data.length; i++) {
         if (data[i] === 0xfb) data[i] = 0x00;
@@ -493,10 +518,12 @@ export class BlocksFile {
     const subRecords = new Array(recordCount);
     let position = r.pos;
     const door = rec.classic ? null : worldDataDoor();   // WD1: readClassicBlock reads past the door
+    rec.served = new Array(recordCount).fill(null);
     for (let i = 0; i < recordCount; i++) {
       // Check for replacement building data and use it, if found (BlocksFile.cs:848-861 - RR3b: the world-data door)
       const replacement = door?.getBuildingReplacementData(rec.name, rec.dfBlock.index, i);
       if (replacement) {
+        rec.served[i] = replacement;
         subRecords[i] = { ...replacement.rmbSubRecord };
         if (replacement.factionId > 0) h.buildingDataList[i].factionId = replacement.factionId;
         h.buildingDataList[i].buildingType = replacement.buildingType;

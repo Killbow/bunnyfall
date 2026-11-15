@@ -21,10 +21,10 @@
 // whatever is on (the offer asks the switch), and one that stands only
 // after the scan measured it measured then (`remeasure`), so priced.
 //
-// THREE PHASES. 'blocks': a few town blocks a step (the file keeps one
-// parsed block at a time - BlocksFile's autoDiscard - so a step never
-// holds more than it reads), counted into one Map; when the last block
-// is read the catalogue stands, named and ordered, and the panel can
+// THREE PHASES. 'blocks': a few town blocks a step, each read on its
+// own and let go, so a step never holds more than it reads. They are
+// counted into one Map, and when the last block is read the catalog
+// is complete, named and ordered, and the panel can
 // list it. 'models': each model's radius (the ARCH3D header's, as the
 // bank's house price reads it - worldModes.js houseMeshRadius), a few a
 // step. 'flats': each flat's billboard, sized as the room stands it
