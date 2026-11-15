@@ -168,6 +168,7 @@ import { peaceShare } from './peaceWay.js';   // PEACE-WAY: her way out of a fig
 import { createBoatLives } from '../../scenes/comeSailAway/farLife.js';   // BOAT-OWN: her Animators and particle systems by her range, the far law
 import { deckPressed } from '../../scenes/comeSailAway/peerHulls.js';   // AUDIT FB1026d II E2: the deck a ladder set me on
 import { windStaleOutdoors } from './csaLoadWind.js';   // SAIL-WIND: a load outdoors never keeps the indoors' none
+import { downRayNearHull } from './hullRayReach.js';
 
 export const COME_SAIL_AWAY_VENDOR = 'come-sail-away';
 /**
@@ -1826,9 +1827,13 @@ export function createComeSailAwayRuntime(deps) {
       // a destroyed enemy is no child of anything: the port's foes are handles, dropped when the host stops naming them
       const live = new Set(enemies.map((e) => e.key));
       for (const k of [...state.parentedObjects.keys()]) if (!live.has(k)) state.parentedObjects.delete(k);
+      const ctx = { models: deps.pool?.models };
+      const hulls = state.AllBoats.map((b) => (ctx.models && b.MeshObject && b.MeshCollider ? colliderBounds(ctx, b.MeshObject, b.MeshCollider) : null));
       for (const enemy of enemies) {
         if (!enemy.hasController) continue;
-        const hit = deps.raycast(enemy.position(), [0, -1, 0], f(enemy.height), { triggers: true });
+        const at = enemy.position(), reach = f(enemy.height);
+        // A ray that meets no hull box cannot return a boat hull.
+        const hit = downRayNearHull(hulls, at, reach) ? deps.raycast(at, [0, -1, 0], reach, { triggers: true }) : null;
         const parent = state.parentedObjects.get(enemy.key)?.boat ?? null;
         if (hit) {
           let boat = null;
