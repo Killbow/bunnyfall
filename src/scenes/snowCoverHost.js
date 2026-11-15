@@ -36,6 +36,7 @@ import { TERRAIN_SIZE as PIXEL_M } from '../world/terrain/terrainSampler.js';
 import { getTerrainGroundArchive, groundIsSnowy, SEASON } from '../world/climateSwaps.js';
 import { ecoOrigin } from '../world/ecotone.js';
 import { snowCoverAt, SNOW_TILE_ROW0 } from '../render/snowCoverGlsl.js';
+import { snowpackStore } from '../systems/weather/snowpackStore.js';
 
 /**
  * THE HOST'S NUMBERS. `spacing` the lattice's (map pixels: 1.6 km - the snowline's field is smooth over that, its fall's
@@ -45,7 +46,7 @@ import { snowCoverAt, SNOW_TILE_ROW0 } from '../render/snowCoverGlsl.js';
  * again for the frames (game minutes - the cover moves over hours); `ease` the seconds a shown line takes to reach a new
  * one (the line walks with the weather, never jumps; a point first read shows its own); `winter` the cover a pixel's
  * buildings wear winter from. SNOW-BUDGET: `frameMs` - the asks within that much of the clock of the first of them are
- * one frame's, and share its budget (createSnowCoverHost's `budgetFor`).
+ * one frame's, and share its budget (createSnowCoverHost's `budgetFor`). `saveMs`: how often a moved window is saved.
  */
 export const SNOW_COVER = Object.freeze({
   spacing: 2,
@@ -56,6 +57,7 @@ export const SNOW_COVER = Object.freeze({
   ease: 0.6,
   winter: 0.5,
   frameMs: 12,
+  saveMs: 60000,
 });
 /** The PLACE-LRU key of a ground set's twin (renderer.js uploadTileArray: its summer records, then its winter ones). */
 export const twinKey = (summer) => `twin:${summer}`;
@@ -90,7 +92,7 @@ export function twinLayers(summer, winter) {
  * @param {{ renderer: any, climateAt: (px: number, py: number) => number, mapHeight: number, stateOf: () => any,
  *   builtOf: () => Map<string, any>, owns: () => boolean,
  *   markReskin: (key: string) => void, markRebuild: (key: string) => void, now: () => number, place?: () => { px: number, py: number }, arriving?: () => boolean,
- *   clock?: () => number }} deps
+ *   clock?: () => number, store?: { load(): Promise<any[]>, save(records: any[], keepEarlier?: boolean): Promise<any> } | null }} deps
  *   `climateAt` the map's climate index; `stateOf()` the stream's state and `builtOf()` its pixels (asked, never held);
  *   `owns()` whether the snow lane runs (weatherSim.js precipLawOn - the enhanced
  *   lane's law, with a host that handed the air its map); `markReskin(key)` the snow's re-skin of one pixel in place (world.js
@@ -99,10 +101,17 @@ export function twinLayers(summer, winter) {
  *   that asks before the first frame (`settle`); `arriving()` whether the world is still standing up (no ground under the
  *   player) - a build's wait then takes the arrival's budget (SNOW_COVER.arriveMs); `clock()` the frames' budget's clock
  *   (performance.now's - SNOW-BUDGET). OW-HITCH's `normalOf` (the drawn ground's normal, for the slope's shed) went with
- *   SNOW-FACE's slope: the snow reads no normal and no height.
+ *   SNOW-FACE's slope: the snow reads no normal and no height. `store` saves the packs between sessions, or null.
  */
-export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, builtOf, owns, markReskin, markRebuild, now, place = null, arriving = null, clock = () => performance.now() }) {
+export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, builtOf, owns, markReskin, markRebuild, now, place = null, arriving = null, clock = () => performance.now(), store = snowpackStore() }) {
   const lattice = new SnowpackLattice({ climateAt, spacing: SNOW_COVER.spacing });
+  const seeded = store ? store.load().then((records) => lattice.seed(records), () => {}) : null;
+  let savedAt = -Infinity, savedWindow = '', settledOnce = false;
+  const windowName = () => `${centre?.[0]},${centre?.[1]},${window[0]?.origin}`;
+  const saveWindow = (keepEarlier) => {
+    savedAt = clock(); savedWindow = windowName();
+    if (store) store.save(lattice.records(window), keepEarlier).catch(() => {});
+  };
   const S = SNOW_COVER.spacing, R = SNOW_COVER.radius, SIDE = 2 * R + 1, STEP = SNOWPACK.stepMinutes;
   /** each window point's snowlines: `target` the pack now's, `shown` eased toward it (the frames'), `build` the pack's at
    *  the last step of the grid (the builds'); by lattice key, for the window's points alone (AUDIT PRECIP PACK-5: a point
@@ -301,6 +310,7 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
       }
       if (moved) gen++;
       if (ready && buildGen !== sweptGen) { sweptGen = buildGen; beginSweep(); }
+      if (ready && clock() - savedAt >= SNOW_COVER.saveMs && windowName() !== savedWindow) saveWindow(true);
       if (ready && sweepKeys) {
         const w0 = clock();
         sweepUntil(w0 + budgetFor(arriving ? SNOW_COVER.arriveMs : SNOW_COVER.budgetMs));
@@ -319,6 +329,7 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
       if (!lane() || !place) return;
       const { px, py } = place();
       if (!Number.isFinite(now())) return;
+      if (seeded) await seeded;
       // AUDIT PRECIP DOC-7: while the world stands up (`arriving` - no ground under the player: the boot, an arrival) the
       // snow takes the arrival's budget, as the frame's own tick does - a year's history and the summer before it at a
       // mountain's window is two seconds of work, and the boot's breath of a frame made it seven
@@ -326,6 +337,9 @@ export function createSnowCoverHost({ renderer, climateAt, mapHeight, stateOf, b
       // window to it between passes, and a minute held from the first pass across the snow year's turn (its midsummer)
       // asked another year's lattice than the tick: the two reset each other's points and the build waited for good
       while (!at(px, py, now(), arriving?.() ? Math.max(SNOW_COVER.arriveMs, breather.left()) : breather.left(), true)) await breather.breathe();
+      // Overwrite the saved window at boot: every later save this session is newer.
+      if (!settledOnce) saveWindow(false);
+      settledOnce = true;
     },
     lineAt,
     coverAt,
