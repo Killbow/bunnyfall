@@ -236,7 +236,9 @@ function reduce(state, ev) {
       }
       break;
     case 'downloaded':
-      if (u.status === 'downloading' && u.kind !== 'game') {
+      // Cancelling a stalled download does not stop it, so a failed download can still finish.
+      if (u.kind !== 'game'
+        && (u.status === 'downloading' || (u.status === 'failed' && !s.launch && ev.version === u.version))) {
         u.percent = 100;
         // a version whose install already failed is not tried before play again - the player is not locked out
         const failed = parseVersion(s.installFailedFor), v = parseVersion(u.version);
