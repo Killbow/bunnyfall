@@ -21120,6 +21120,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     beat: () => heartbeat.beat(),
     visible: () => globalThis.document?.visibilityState !== 'hidden',
   });
+  heartbeat.add('festivals', playerFestivals.heartbeatPart());
   // the town's board, read where and while the street frame finds the player in a town (the frame stamps it each second)
   if (noticeBook) heartbeat.add('board', noticeBook.heartbeatPart(() => (_noticeTown && performance.now() - _noticeTown.at < FRAME_LIVE_MS ? _noticeTown.mapId : null)));
   /** QUEST-PARTY (2026-09-26, Mac: "Party shares them"): THE PARTY'S LAW FOR A POOL'S QUEST FOES - one home for the
@@ -25668,6 +25669,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     entity: () => playerEntity,
     saved: () => surfacePlayer(),
   });
+  heartbeat.add('greed', staffCommands.heartbeatPart());
   staffDock = createStaffDock({ io: () => (isOnlinePage() ? insigniaIo() : null), ready: () => walkMode && playerSpawned });
   // LEFAY1: THE MONUMENT TO JULIAN LEFAY (scenes/lefayMonumentHost.js) - outside Privateer's Hold (HOLD-MONUMENT), where its
   // pixel's build found open ground (`p.lefay`, the location frame), carried by the live floating-origin translation;

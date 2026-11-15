@@ -69,7 +69,7 @@ export const whileLive = (/** @type {HeartbeatPart} */ part, /** @type {() => bo
 /** A part's answer, out of the heartbeat's: the route's own body, or its refusal word. */
 export const partAnswer = (/** @type {any} */ v) => (v && typeof v === 'object'
   ? (typeof v.error === 'string' ? { ok: false, error: v.error } : { ok: true, data: v })
-  : { ok: false, error: 'server' });
+  : { ok: false, error: 'server', ...(v === undefined ? { missing: true } : {}) });
 
 /**
  * THE HEARTBEAT: `add(name, part)` its clocks (`mail`, `board`), `beat()` the play clock's knock, and its own tick every
