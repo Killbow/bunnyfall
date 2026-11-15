@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Boarding a ship, or being boarded by pirates, as you cross into the next map square no longer flings the ship far away or drops you in open sea.
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
 - Fixed: The decorator's Built in tab now removes a cupboard, chest, or shelf that holds things, and puts what it holds in your pack.
 - The game does less work each frame in towns, dungeons, and at sea, including enemy pathfinding, which helps slower computers.
