@@ -84,6 +84,7 @@ import { INTERIOR_SHELL_BUCKET } from './decor/decorBase.js';   // HOME-DOORS: a
 import { advanceMachinery, mountMachineryChild, machineryChildPos, MILL_SOUND } from '../world/windmills.js';   // WM4b: the machinery's moving parts; WM4c: its hum
 import { buildDungeonContext } from './dungeonContext.js';
 import { ambushNight } from '../systems/rest/restAct.js';   // AUDIT REST II P3: a quest's CreateFoe reaches the act's night, window or none
+import { holdStreet } from './streetHold.js';
 import { createTransitionGate } from './transitionGate.js';   // AUDIT 68 X3-transition-build-race: the door builds, serial and cancellable
 import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
 import { DOOR_TYPE } from '../world/meshReader.js';
@@ -9674,7 +9675,7 @@ export function createWorldModes(host) {
     host.horseCart?.()?.handlePreTransition({ type: 'ToDungeonInterior', door: hccDoorOf(hit) });   // HCC: OnPreTransition [IL_98f0], before the dismount
     dismountPlayer('ToDungeonInterior');   // TR5: the other half of :196-202
     unleveledLootPreTransition();   // UL1: OnPreTransition (TransitionDungeonInterior)
-    transitioning = true;
+    transitioning = holdStreet(true);
     try {
       // Classic water tile: the location climate's ground archive,
       // record 0 (R11) - uploaded below since the exterior ground path
@@ -10171,7 +10172,7 @@ export function createWorldModes(host) {
       console.log(`dungeon: ${ctx.drawList.length} draws, ${ctx.exitDoors.length} exit doors, ` +
         `${ctx.lights.length} lights, ${ctx.waterQuads.length} water, ${ctx.colliderTris} tris, ${ctx.enemies.length} enemies`);
     } finally {
-      transitioning = false;
+      transitioning = holdStreet(false);
       layingOutLoc = null;   // OH-E: a build that threw lays nothing out
       if (!_hccLanded) host.horseCart?.()?.handleFailedTransition({ type: 'ToDungeonInterior' });   // HCC: OnFailedTransition [IL_9c0c]
     }

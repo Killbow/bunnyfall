@@ -151,6 +151,7 @@ import { goldStack } from '../systems/inventory.js';   // LW6b: ...and their pur
 import { livingRemainsLay } from './livingWorld/remainsGoods.js'; import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
 import { createLivingIndoors } from './livingWorld/livingIndoors.js';   // LW8: the residents inside the building the player is in
 import { warmDungeonModulesWhenIdle } from './dungeonWarm.js';
+import { streetHeld } from './streetHold.js';
 import { createTravellerSprites, classLookOf } from '../world/travellerSprites.js';   // LW3: their bodies, and the armed walk's sprite
 import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
@@ -33019,7 +33020,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       requestAnimationFrame(frame);
       return;
     }
-
+    if (streetHeld()) { meterFor(renderer.gl)?.stopCpu(); frameEnd(); requestAnimationFrame(frame); return; }
     // Q4-v: the quest machine's EXTERIOR tick (the modal arms tick
     // inside modes.frame). REAL seconds - QuestMachine.Update
     // accumulates Time.deltaTime, and DFU's TimeScale setting scales
