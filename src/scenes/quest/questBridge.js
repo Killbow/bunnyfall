@@ -71,6 +71,7 @@ import { isOnlinePage } from '../../systems/online/onlineLane.js';   // AUDIT DE
 import { isShelved } from '../../systems/quest/quest.js';   // QUEST-SHELF: a quest set aside
 import { WA_RAID_QUESTS } from '../../systems/warmAshesShips.js';   // QUEST-SHELF: a raid the world runs is never set aside
 import { QuestListsManager } from '../../systems/quest/questLists.js';
+import { questHeld } from '../../systems/quest/mainSpine.js';
 import { QuestOfferFlow, ACTIVE_QUESTOR } from '../../systems/quest/offerFlow.js';   // QUESTOR-SAID: a close that says why
 import { localizedQuestDisplayName } from '../../systems/quest/localizedQuest.js';   // L10N3c: the pickers' localized labels
 import { PlayerNotebook } from '../../systems/notebook.js';
@@ -1021,7 +1022,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
      *  LaunchQuest arm between them has no port-side setter and is
      *  recorded rather than invented. */
     initAtGameStart() {
-      for (const name of GAME_START_QUESTS) machine.startQuestByName(name);
+      for (const name of GAME_START_QUESTS) if (!questHeld(machine, name)) machine.startQuestByName(name);
       questLists.initAtGameStartQuests((q) => machine.startQuestImmediate(q));
     },
 

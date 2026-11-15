@@ -54,6 +54,9 @@ export const SPINE_CHECK_TICKS = 30;
 
 const named = (q, name) => String(q?.questName ?? '').toUpperCase() === name;
 
+/** @param {{ quests: Map<any, any>, questsToInvoke: any[] }} m @param {string} name */
+export const questHeld = (m, name) => [...m.quests.values()].some((q) => named(q, name)) || m.questsToInvoke.some((q) => named(q, name));
+
 /** Whether the opener has run its backbone start: its StartQuest of S0000999 done. @param {any} quest */
 function openerStartedSpine(quest) {
   for (const task of quest?.tasks?.values?.() ?? []) {
@@ -86,7 +89,7 @@ export function spineRecord(saved, names) {
  */
 export function openersOwed(m) {
   const out = [];
-  const held = (n) => [...m.quests.values()].some((q) => named(q, n)) || m.questsToInvoke.some((q) => named(q, n));
+  const held = (n) => questHeld(m, n);
   const classic = [...(m.globalVars?.values() ?? [])].some(Boolean);
   if (contentOn('mainQuest') && !m.spine.opened && !m.spine.ran && m.storyStarted.size === 0 && !classic && !held(SPINE_OPENER) && !held(SPINE)) out.push(SPINE_OPENER);
   if (contentOn('curseOfDaggerfall') && !m.spine.cursed && !held(SPINE_CURSE)) out.push(SPINE_CURSE);
