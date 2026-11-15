@@ -1219,9 +1219,11 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
    * a handful of distinct authors, and `nameColor` walks the party's
    * seats on every call.
    */
+  const namesAsked = new Map(), badgesAsked = new Map();
   const paintNames = () => {
     if (nameColor) {
-      const asked = new Map();
+      const asked = namesAsked;
+      asked.clear();
       const of = (id) => { if (!asked.has(id)) asked.set(id, nameColor(id) || ''); return asked.get(id); };
       const pass = (rows) => { for (const r of rows) { if (!r.nameEl) continue; const css = of(r.id); if (r.css === css) continue; r.css = css; r.nameEl.style.color = css; } };
       pass(listNodes); pass(peekNodes); pass(whoNames);
@@ -1233,8 +1235,9 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
    *  now, which for most lines is nothing and costs one replaceChildren). Without `badgeOf` no line wears one. */
   const paintBadges = () => {
     if (!badgeOf) return;
-    const asked = new Map();
-    const of = (id) => { if (!asked.has(id)) asked.set(id, badgeOf(id) ?? null); return asked.get(id); };
+    const asked = badgesAsked;
+    asked.clear();
+    const of = (id) => { let a = asked.get(id); if (!a) { const b = badgeOf(id) ?? null; a = { b, key: badgeKeyOf(b) }; asked.set(id, a); } return a; };
     // CHAT-SCROLL: a badge laid into an OPEN list's line can wrap it, and the growth pushes the newest line out of
     // view under a reader who was reading it - so the reader's place is measured before the first such re-lay and
     // the bottom is kept after the pass. Measured once, and only when a list line is actually re-laid.
@@ -1242,7 +1245,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
     const pass = (rows, inList) => {
       for (const r of rows) {
         if (!r.nameEl) continue;
-        const b = of(r.id), key = badgeKeyOf(b);
+        const { b, key } = of(r.id);
         if (r.badgeKey === key) continue;
         if (inList && keep === null) keep = log.open && unseen === 0 && atNewest();
         r.badgeKey = key;
