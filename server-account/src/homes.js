@@ -458,8 +458,7 @@ function offerFor(h) {
   return out;
 }
 
-export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, player, { mapId, character = null } = {}, { seats = false } = {}) {
-  if (!homeMapIdOk(mapId)) return { error: 'bad-home' };
+function townRead(db, nowS, player, mapId, character, seats) {
   // HOME-RENT: each home's rooms still free to rent (how many, and the cheapest a day), and - for the character the
   // caller names - the end of its own tenancy there, which opens the door to it
   const me = typeof character === 'string' && CHAR_ID_RE.test(character) ? character : '';
@@ -484,7 +483,8 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
   // reader the seats are open to); each owner's own choice is kept, and its own view shows it. HOMES-SHED (2026-10-13,
   // the database overloaded from 14:11 UTC; this route the service's busiest, 88,079 asks in its hour): its read rides
   // the homes read's one request - a batch - where it was a round trip of its own before it on every ask
-  const [{ results = [] }, gates] = seats ? await db.batch([homesRead, openGatesRead(db, nowS, mapId)]) : [await homesRead.all(), null];
+  const reads = seats ? [homesRead, openGatesRead(db, nowS, mapId)] : [homesRead];
+  const answer = ([{ results = [] }, gates = null]) => {
   const open = !!gates?.results?.length;
   // HOME-VOTE (homeVotes.js): each home's score - its votes summed, kept on its row (AUDIT A2) - and the caller's own vote,
   // said where there is one
@@ -540,6 +540,24 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
       };
     }),
   };
+  };
+  return { reads, answer };
+}
+
+export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, player, { mapId, character = null } = {}, { seats = false } = {}) {
+  if (!homeMapIdOk(mapId)) return { error: 'bad-home' };
+  const { reads, answer } = townRead(db, nowS, player, mapId, character, seats);
+  return answer(seats ? await db.batch(reads) : [await reads[0].all()]);
+}
+
+export const HOMES_TOWNS_MAX = 40;
+export async function homesInTowns({ db, nowS = Math.floor(Date.now() / 1000) }, player, { mapIds, character = null } = {}, { seats = false } = {}) {
+  if (!Array.isArray(mapIds) || !mapIds.length || mapIds.length > HOMES_TOWNS_MAX || !mapIds.every((m) => homeMapIdOk(m))) return { error: 'bad-home' };
+  const ids = [...new Set(mapIds)];
+  const reads = ids.map((id) => townRead(db, nowS, player, id, character, seats));
+  const outs = await db.batch(reads.flatMap((r) => r.reads));
+  let at = 0;
+  return { towns: ids.map((id, i) => { const n = reads[i].reads.length; const a = reads[i].answer(outs.slice(at, at + n)); at += n; return a; }) };
 }
 
 /**

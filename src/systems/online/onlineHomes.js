@@ -62,6 +62,7 @@ import {
 import { takeSceneOwn, removePermanentScene } from '../sceneCache.js';   // ACCOUNT-HOMES: a home the account holds no more, let go
 import { ownBackLines } from '../decor/decorFurnish.js';   // ACCOUNT-HOMES: what is said of one's own things come back
 import { t } from '../textManager.js';   // ACCOUNT-HOMES, GUILD-HALL-SALE: their words in the player's language
+import { createTownBatch } from './homeTownBatch.js';
 
 /** How long a town's answer is believed before a door asks again. */
 export const HOME_TOWN_TTL_MS = 60_000;
@@ -483,6 +484,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
   const writesTo = (id) => writes.get(id) ?? 0;
   /** @type {Set<number>} FB1001 (LOOK-STALE, HOMES-FORCE): the towns whose ask in flight was itself a forced one */
   const forcedFlight = new Set();
+  const askTown = createTownBatch({ api });
   let version = 0;
   const idOf = (mapId) => (Number.isFinite(Number(mapId)) ? Number(mapId) >>> 0 : 0);
 
@@ -504,7 +506,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
     if (!force && f && now() - f.at < homeRetryMs(f.n)) return Promise.resolve(!!had);
     const gen = writesTo(id);
     const p = Promise.resolve()
-      .then(() => api.town(id, as === undefined ? character() : as))   // HOME-RENT: the playing character's own tenancies ride the answer
+      .then(() => (force ? api.town(id, as === undefined ? character() : as) : askTown(id, as === undefined ? character() : as)))   // HOME-RENT: the playing character's own tenancies ride the answer
       .then((r) => {
         const list = r?.ok ? r.data?.homes : null;
         // unanswered: what was known stands, nothing new is believed, and the next ask waits a little

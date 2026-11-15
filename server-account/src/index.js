@@ -310,7 +310,7 @@ import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES }
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Dusk Tokens counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
-import { claimHome, releaseHome, setHomeEntry, homesInTown, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
+import { claimHome, releaseHome, setHomeEntry, homesInTown, homesInTowns, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from './rent.js';   // HOME-RENT: a home's rooms, rented
 import {
@@ -1781,6 +1781,10 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         if (path === '/v1/homes/town') {
           const r = await homesInTown(ctx, who.player, body, { seats: seatsOpenFor(who.player, env) });   // SEAT1d: Open Gates
+          return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
+        }
+        if (path === '/v1/homes/towns') {
+          const r = await homesInTowns(ctx, who.player, body, { seats: seatsOpenFor(who.player, env) });
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }
         if (path === '/v1/homes/mine') return json(await homesOf(ctx, who.player), 200, origin);

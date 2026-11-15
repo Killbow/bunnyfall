@@ -1041,6 +1041,7 @@ export const D1_BOOKMARK_READS = new Map([
   ['/v1/prof/motherlodes', 'POST'],
   // DISPLAY-REPLICA (2026-10-13; server-account/src/service.js REPLICA_ROUTES): and the display reads
   ['/v1/homes/town', 'POST'],
+  ['/v1/homes/towns', 'POST'],
   ['/v1/homes/mine', 'POST'],
   ['/v1/homes/rooms', 'POST'],
   ['/v1/homes/decor', 'POST'],
@@ -2160,6 +2161,7 @@ function sessionPost({ fetch, storage }) {
 export function accountHomes({ fetch, storage }) {
   const post = sessionPost({ fetch, storage });
   return {
+    towns: (mapIds, character = null) => post('/v1/homes/towns', { mapIds, ...(character ? { character } : {}) }),
     town: (mapId, character = null) => post('/v1/homes/town', { mapId, ...(character ? { character } : {}) }),   // HOME-RENT: the playing character's own tenancies
     mine: () => post('/v1/homes/mine', {}),
     claim: ({ mapId, buildingKey, region, character, price, realm = null, layout = null }) => post('/v1/homes/claim', { mapId, buildingKey, region, character, price, ...(realm ? { realm } : {}), layout: layout || null }),   // REALM P2.2b: a realm character's record pays; WD3: the layout the town stands in, always said (null: Daggerfall's - AUDIT WD3 B2)
