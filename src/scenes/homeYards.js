@@ -206,6 +206,9 @@ export const YARD_SYNC_S = 0.5;
 /** BUNNYFALL CAMPS: how often the camps round the player are read; how often my kit's tents and my camps are brought in
  *  line, how near me (metres) a tent or a camp must stand for that, and how long a refused tent waits to be asked again. */
 export const CAMP_READ_MS = 15_000;
+export const CAMP_READ_CALM_MS = 60_000;
+export const campReadWait = (/** @type {boolean} */ calm) => (calm ? CAMP_READ_CALM_MS : CAMP_READ_MS);
+export const campSigOf = (/** @type {any[]} */ list) => list.map((x) => `${x?.id}:${x?.pieces?.length ?? 0}`).sort().join(',');
 export const CAMP_LINE_S = 3;
 export const CAMP_LINE_M = 60;
 export const CAMP_REFUSED_MS = 5 * 60_000;
@@ -612,7 +615,7 @@ export function createHomeYards(deps) {
   // whose tent was packed struck.
   /** @type {Map<string, any>} */
   const campsById = new Map();
-  let campRead = { key: '', at: -Infinity, asking: false, ready: false };
+  let campRead = { key: '', at: -Infinity, asking: false, ready: false, sig: '', calm: false };
   let campLineIn = 0;
   const campAsking = new Set(), campStriking = new Set();
   /** @type {Map<string, number>} a kit's record the service refused a camp for, and when - asked again after CAMP_REFUSED_MS */
@@ -640,7 +643,8 @@ export function createHomeYards(deps) {
     const here = campPixelOf(deps.feet?.() ?? null);
     if (!here) return;
     const key = `${here.px},${here.py}`;
-    if (!force && key === campRead.key && now() - campRead.at < CAMP_READ_MS) return;
+    if (!force && key === campRead.key && now() - campRead.at < campReadWait(campRead.calm)) return;
+    const before = campRead;
     campRead = { ...campRead, key, at: now(), asking: true };
     Promise.resolve(deps.api.campsNear(here.px, here.py)).then((r) => {
       const list = r?.ok ? r.data?.camps : null;
@@ -651,6 +655,9 @@ export function createHomeYards(deps) {
         if ((inWindow || Math.abs(c.px - here.px) > 2 || Math.abs(c.py - here.py) > 2) && !held(id)) campsById.delete(id);
       }
       for (const raw of list) { const c = campOf(raw); if (c && !held(c.id)) campsById.set(c.id, c); }
+      const sig = campSigOf(list);
+      campRead.calm = before.key === key && before.sig === sig;
+      campRead.sig = sig;
       campRead.ready = true;
     }, () => {}).finally(() => { campRead.asking = false; });
   }
