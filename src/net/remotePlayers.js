@@ -607,6 +607,7 @@ export class RemotePlayers {
     this._batches = new Map();   // peer id -> { batch, key, doll, peer } (doll kind) | { batch, kind: 'mobile', mobileType, gender, mobileUnit, archive, tex, height, lastAn, lastCn, peer } (mobile kind)
     this._shown = [];            // the last sync's drawable peers with their head heights - the name pass reads it
     this._wanted = new Set();    // SLAM7: the look keys the last sync ASKED FOR - composed or composing, drawn or not
+    this._live = new Set(); this._seen = new Set(); this._inRoom = new Set();
     this._queue = Promise.resolve();
     this._mobiles = new Map();   // 2026-09-17: peer id -> a ready MobileUnit bundle | Promise building | { failedUntil } - see _mobileFor
     this._corpses = [];          // PCORPSE1: { pose, room, until, batch | null, building } - the fallen, in wire space
@@ -952,18 +953,20 @@ export class RemotePlayers {
    * @param {{bodyHeight?: (id: any) => number, dt?: number, eye?: number[]|null, poseAgeMs?: ((peer: any) => number)|null, conceal?: (id: any) => object|null, hidden?: (id: any) => boolean, grow?: ((feet: number[]) => number)|null, room?: Iterable<any>|null}} [opts]  PEER-FS1: `eye` is the listener, for the falloff; INVIS-LOOK: `conceal` a concealed peer's draw (ECV1's visual) or null; AUDIT PEER-RANGE A L1/L6: `room` every peer the room draws before a screen's cut (the draw distance's, the court's) - a resurrection is seen in it, and a peer in it keeps its class sprite's bundle while it is cut (`peers` when absent)
    */
   sync(peers, toScene = (p) => [p.x, p.y, p.z], { bodyHeight = () => 0, dt = 0, eye = null, poseAgeMs = null, conceal = () => null, hidden = () => false, grow = null, room = null } = {}) {
-    const live = new Set();
+    const live = this._live;
+    live.clear();
     this._grow = grow;   // OW-PEERS (FIELD BUGS 2026-10-01 #11): under the Overworld, feet -> how many times its size a sprite is drawn
     // PCORPSE1: the fallen lie on whatever the living do - placed, aged out, drawn
     if (eye && eye.length === 3) this._lastEye = [eye[0], eye[1], eye[2]];
     this._lastToScene = toScene;
     this._syncCorpses(toScene);
-    this._shown = [];   // every drawable peer, doll, mobile or body, for the name pass
-    this._wanted = new Set();   // SLAM7: rebuilt every frame - a look nobody is standing in any more stops being needed at once
+    this._shown.length = 0;   // every drawable peer, doll, mobile or body, for the name pass
+    this._wanted.clear();   // SLAM7: rebuilt every frame - a look nobody is standing in any more stops being needed at once
     // 2026-09-17: read once a sync, not once a peer - the pref does not change mid-frame, and a card's toggle takes
     // effect on the very next sync either way (this loop runs every frame; there is nothing to miss by not reading it fresher).
     const spritesOn = getPref('peerClassSprites');
-    const seen = new Set();   // AUDIT DROPS E4: EVERY peer this sync met, body peers included - the two sound maps are swept against it, not against `live` (which a body peer never joins)
+    const seen = this._seen;   // AUDIT DROPS E4: EVERY peer this sync met, body peers included - the two sound maps are swept against it, not against `live` (which a body peer never joins)
+    seen.clear();
     for (const peer of peers) {
       if (!peer?.shown) continue;
       seen.add(peer.id);
@@ -1045,18 +1048,18 @@ export class RemotePlayers {
       }
     }
     for (const id of this._footsteps.keys()) if (!seen.has(id)) this._footsteps.delete(id);
-    for (const id of [...this._climbSounds.peers.keys()]) if (!seen.has(id)) this._climbSounds.forget(id);   // CLIMB5: a peer gone - their next climb seen is a first
-    for (const id of [...this._gatherSounds.peers.keys()]) if (!seen.has(id)) this._gatherSounds.forget(id);   // PEER-ACTS: and their next act - its blows in the air with them
+    for (const id of this._climbSounds.peers.keys()) if (!seen.has(id)) this._climbSounds.forget(id);   // CLIMB5: a peer gone - their next climb seen is a first
+    for (const id of this._gatherSounds.peers.keys()) if (!seen.has(id)) this._gatherSounds.forget(id);   // PEER-ACTS: and their next act - its blows in the air with them
     for (const id of this._attackAn.keys()) if (!seen.has(id)) this._attackAn.delete(id);
-    for (const id of [...this._riding.keys()]) if (!seen.has(id)) this._stopRidingSound(id);   // RIDE-SOUND: a peer gone (or every peer, on the dead's empty sync) takes their hooves with them
-    for (const id of [...this._onFoot]) if (!seen.has(id)) this._onFoot.delete(id);   // AUDIT DISC7 B4: and what they were last seen on
+    for (const id of this._riding.keys()) if (!seen.has(id)) this._stopRidingSound(id);   // RIDE-SOUND: a peer gone (or every peer, on the dead's empty sync) takes their hooves with them
+    for (const id of this._onFoot) if (!seen.has(id)) this._onFoot.delete(id);   // AUDIT DISC7 B4: and what they were last seen on
     // 2026-09-17: a departed peer's mobile bundle (or its in-flight build) goes with it. AUDIT 68
     // S14-remoteplayers-mobiles-unswept: swept against `live`, not inside the batch sweep - a peer gone before its build
     // landed held no batch, and the build then stored a whole bundle for nobody (`_mobileFor`'s own race check drops it now)
     // AUDIT PEER-RANGE A L6: but a peer the screen's cut leaves undrawn who is still in the room keeps its bundle - one walking
     // back inside the draw distance stood on the doll path a frame, and composed a paperdoll for it, at every crossing
     let inRoom = null;
-    if (room) { inRoom = new Set(); for (const peer of room) if (peer?.id) inRoom.add(peer.id); }
+    if (room) { inRoom = this._inRoom; inRoom.clear(); for (const peer of room) if (peer?.id) inRoom.add(peer.id); }
     for (const id of this._mobiles.keys()) if (!live.has(id) && !inRoom?.has(id)) this._mobiles.delete(id);
   }
 
