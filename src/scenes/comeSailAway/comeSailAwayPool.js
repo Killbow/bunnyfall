@@ -38,6 +38,7 @@
 
 import { loadComeSailAwayModels, rendererModel, rendererModelKey, bundleSlots, PORT_SHIPS } from '../../systems/comeSailAway/comeSailAwayModels.js';
 import { createLiveryPaint } from './shipLiveryPaint.js';   // SHIP-LIVERY: a boat's paint, painted once and drawn by a remap
+import { afterFirstFrame } from '../../systems/afterFirstFrame.js';
 import { warmLiveryArt } from '../../world/ships/shipLiveryArt.js';   // AUDIT 2: the painter's base pictures, while the world loads
 import { fitBoats } from './deckFittingsHost.js';   // DECK-PROPS: her fittings, stood in her tree
 import { liveryCode } from '../../systems/naval/shipLivery.js';
@@ -1120,7 +1121,8 @@ export function createComeSailAwayPool({ renderer = null, pipeline = null, fetch
 
   return {
     hullSurface,   // SHIP-PLAQUE
-    ensureModels, spawn, spawnNow, preload, ready: () => preloaded, remove, setVariant, frame, batches, people, draw, lights, offsetAll, destroyAll,
+    ensureModels, spawn, spawnNow, preload, ready: () => preloaded,
+    preloadSoon: () => afterFirstFrame(() => { void preload(); }), remove, setVariant, frame, batches, people, draw, lights, offsetAll, destroyAll,
     deckOf,   // DECK-WALK
     hullRig,   // OWS2
     portrait,   // MENU-ORDER: a hull's picture for the shipmaster's card

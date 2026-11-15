@@ -26,6 +26,7 @@ import { seededRng } from '../wind/wind.js';   // the port's one seeded die (mul
 import { loadEarthWallSounds } from './earthWallSounds.js';
 import { loadMeteorSounds } from './meteorSounds.js';
 import { BAKED_RATE } from '../soundRemix.js';
+import { afterFirstFrame } from '../afterFirstFrame.js';
 
 export const IMPACT_SOUND_RATE = SND_RATE;
 export const IMPACT_SOUND_KEYS = Object.freeze({ fire: 'spellfx:fire', frost: 'spellfx:frost', poison: 'spellfx:poison', shock: 'spellfx:shock', magic: 'spellfx:magic', heal: 'spellfx:heal' });
@@ -262,7 +263,7 @@ export function impactVoices(audio, kind) {
  * THE DRIVER - one per cast engine. `play(kind, pos, { volume, heard })` plays the look's sound from `pos` (scene
  * frame), heard out to `heard` meters; the sounds are built on the first play that finds an archive and a running
  * context, and a play before that is simply silent, as any clip is before the context runs. The Wall of Earth and
- * Meteor sounds start building once the archive is in and stay silent until they are built.
+ * Meteor sounds start building once the archive is in and the world has drawn a frame, and stay silent until built.
  */
 export function createSpellImpactSounds(audio, { now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now()), fetchBytes = null, earthWall = loadEarthWallSounds, meteor = loadMeteorSounds } = {}) {
   const built = new Map();   // kind -> samples (pure, kept even while the context is not yet up)
@@ -273,7 +274,7 @@ export function createSpellImpactSounds(audio, { now = () => (typeof performance
   function buildSet(name) {
     if (sets[name] || !builders[name] || !audio?.samplesOf || audio.snd == null) return;
     sets[name] = 'building';
-    Promise.resolve().then(() => builders[name]({ samplesOf: (i) => audio.samplesOf(i) })).then((s) => { sets[name] = s ?? 'failed'; }, () => { sets[name] = 'failed'; });
+    new Promise((go) => afterFirstFrame(() => go(null))).then(() => builders[name]({ samplesOf: (i) => audio.samplesOf(i) })).then((s) => { sets[name] = s ?? 'failed'; }, () => { sets[name] = 'failed'; });
   }
   for (const name of Object.keys(builders)) { try { buildSet(name); } catch {} }
   // HEAL-FILE: the heal's clip, fetched once as the engine is made (a browser's; a test hands `fetchBytes`), so it is in

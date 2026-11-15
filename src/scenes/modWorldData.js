@@ -18,6 +18,7 @@ import { installArena } from '../world/arena/arenaCity.js';   // ARENA1: the Are
 import { loadEditorModels } from '../world/editorModels.js';   // BUNNYFALL: the Dungeon Editor's own models
 import { installImmersiveTravelGates } from '../world/immersiveTravelGates.js';   // IT1: the carriages, on whichever gate is served
 import { IMMERSIVE_TRAVEL_VENDOR, immersiveTravelLoaded } from '../systems/immersiveTravel.js';   // AUDIT IT1 G3: the mod loaded for the game
+import { afterFirstFrame } from '../systems/afterFirstFrame.js';
 
 // The glob sits INSIDE the loader (Vite rewrites it wherever it stands),
 // so a node test that imports a host reaching this module does not trip
@@ -143,10 +144,10 @@ async function loadPackFrom(vendor, url, isOn) {
 }
 
 /**
- * WD3: the rebuild checked against the author's file, in the background - WD1's check at load, for a pack of
- * thousands: one block in every 8 the first time it is served and one location in every 64, hashed off the frame, and one
- * line said for the pack however many differ (a BLOCKS.BSA or MAPS.BSA that is not the one the mod was made
- * against: the author's edit on the player's own data is still what the mod does, and is served).
+ * WD3: the rebuild checked against the author's file in the background, as WD1 checks at load. For a pack of thousands,
+ * one block in 8 and one location in 64 are hashed the first time each is served, once the world has drawn a frame.
+ * One line is logged per pack however many differ. A file that differs is still served: on another BLOCKS.BSA or
+ * MAPS.BSA, the author's edit applied to the player's own data is what the mod does.
  */
 function spotCheck(vendor) {
   const queue = [];
@@ -166,7 +167,7 @@ function spotCheck(vendor) {
     if (name.startsWith('location-') && (locations++ % 64) !== 0) return;
     if (!name.startsWith('location-') && (blocks++ % 8) !== 0) return;   // AUDIT WD3 B4: one block in eight - each hash a hitch on a phone
     queue.push([name, json, want]);
-    if (!running) pump();
+    if (!running) { running = true; afterFirstFrame(pump); }
   };
 }
 

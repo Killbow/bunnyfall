@@ -8567,7 +8567,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // and Unity's Collider.bounds over the boat's nodes, which only the models answer
   setEotbComeSailAway(csaRuntime ? { send: csaRuntime.MessageReceiver, colliderBounds: (go) => csaColliderBoundsInChildren({ models: csa.models }, go) } : null);
   if (csaRuntime) {
-    csa.preload();
+    // A load waits for the ship models before it restores the save, so a boot that loads one starts them at once.
+    if (bootLoadPick) void csa.preload(); else csa.preloadSoon();
     registerModSaveData(COME_SAIL_AWAY_VENDOR, csaRuntime);   // IHasModSaveData: ComeSailAwaySaveData
     // Start's five boat commands (1081-1085), giveboat first (CSA-H: it makes a deed)
     for (const k of ['giveboat', 'placeboat', 'printboats', 'identifyboat', 'purgeboat']) registerCommand(CSA_CONSOLE[k].name, CSA_CONSOLE[k].description, CSA_CONSOLE[k].usage, (args) => csaRuntime.console[k](args ?? []));
