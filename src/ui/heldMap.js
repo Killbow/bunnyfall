@@ -201,6 +201,7 @@ import { TRAVEL_VIEW_BUTTON } from '../scenes/travelView.js';   // TV1: the Over
 import { STAR_VIOLET_CSS } from './starfall/starMapMark.js';   // STAR6: a fallen star's violet
 import { STAR_CARD_TEXT } from '../systems/starfall/starWords.js';   // STAR6: its legend's word
 import { capturePointer } from './pointerCapture.js';   // RPT1026-CLIENT: a pad's synthetic pointer is refused a capture, never thrown
+import { openHeldSheet, keepHeldSheet, closeHeldSheet, showHeldSheet } from './heldMapSheet.js';
 
 export const HELD_MAP_URL = new URL('art/held-map.png', APP_ROOT ?? globalThis.document?.baseURI ?? 'https://invalid.invalid/').href;
 /** Its own pixels, and the stage's aspect. */
@@ -3377,9 +3378,19 @@ export class HeldMapWindow {
     // the <img> stays as the loader and never enters the document.
     const sheet = el('canvas', 'hmsprite');
     stage.append(sheet, ink, hands);
-    // the handler BEFORE the source, so a cached picture cannot land first
-    sprite.onload = () => { this._paintSheet(sprite, sheet); this._keyHands(sprite, hands); };
-    sprite.src = HELD_MAP_URL;
+    const prepared = openHeldSheet();
+    this._sheetOpen = true;
+    if (prepared) {
+      showHeldSheet(prepared, sheet, hands);
+      this._thumbBoxes = prepared.thumbBoxes;
+    } else {
+      // the handler BEFORE the source, so a cached picture cannot land first
+      sprite.onload = () => {
+        const painted = this._paintSheet(sprite, sheet), zones = this._keyHands(sprite, hands);
+        if (painted && zones) keepHeldSheet({ sheet: painted, zones, thumbBoxes: this._thumbBoxes });
+      };
+      sprite.src = HELD_MAP_URL;
+    }
 
     const top = el('div', 'hmtop');
     const label = el('div', 'hmlabel', '');
@@ -3754,6 +3765,7 @@ export class HeldMapWindow {
   }
 
   _unmountChrome() {
+    if (this._sheetOpen) { this._sheetOpen = false; closeHeldSheet(); }
     this._chrome?.root?.remove();
     this._chrome = null;
   }
@@ -3777,14 +3789,16 @@ export class HeldMapWindow {
     try {
       const w = sprite.naturalWidth || SPRITE.w, h = sprite.naturalHeight || SPRITE.h;
       const ctx = sheet.getContext?.('2d', { willReadFrequently: true });   // FIELD 2026-09-27: read back (textureReplacement.decodePng's note)
-      if (!ctx) return;
+      if (!ctx) return null;
       sheet.width = w; sheet.height = h;
       ctx.drawImage(sprite, 0, 0, w, h);
       const img = ctx.getImageData(0, 0, w, h);
       extendCuffs(img.data, w, h);   // MAP-FIELD2: the arms run off the bottom edge instead of ending above it
       ctx.putImageData(img, 0, 0);
+      return img;
     } catch (e) {
       console.warn('[heldmap] the sheet would not paint', e);
+      return null;
     }
   }
 
@@ -3795,23 +3809,27 @@ export class HeldMapWindow {
       off.width = w; off.height = h;
       const octx = off.getContext?.('2d', { willReadFrequently: true });   // FIELD 2026-09-27: a readback per thumb zone
       const hctx = hands.getContext?.('2d');
-      if (!octx || !hctx) return;
+      if (!octx || !hctx) return null;
       hands.width = w; hands.height = h;
       octx.drawImage(sprite, 0, 0, w, h);
+      const zones = [];
       this._thumbBoxes = THUMB_ZONES.map((z) => {
         const x0 = Math.floor(z.x0 * w), y0 = Math.floor(z.y0 * h);
         const zw = Math.ceil((z.x1 - z.x0) * w), zh = Math.ceil((z.y1 - z.y0) * h);
         const img = octx.getImageData(x0, y0, zw, zh);
         keyThumbPixels(img.data, zw, zh, z.side);
         hctx.putImageData(img, x0, y0);
+        zones.push({ img, x0, y0 });
         return thumbBox(img.data, zw, zh, x0, y0, w, h);
       });
       // DISC25-A: the kept ink was laid out against the zones before the sprite loaded - lay it again against the
       // thumbs the key found (the static key does not carry the hands)
       this._staticKey = '';
       this._dirty = true;
+      return zones;
     } catch (e) {
       console.warn('[heldmap] the hands would not key', e);
+      return null;
     }
   }
 
