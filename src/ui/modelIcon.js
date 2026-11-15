@@ -37,6 +37,7 @@
 
 import { color32Canvas } from './bitmapCanvas.js';
 import { WAGON_KINDS } from '../systems/wagon/wagonKinds.js';
+import { cachedLoad } from '../assets/loadCache.js';
 
 /** WAGONS1: THE PORT'S OWN MODELS. Mac's wagons (world/wagonModels.js) are no ARCH3D record, so their pictures are
  *  drawn off the port's own build - an id of systems/wagon/wagonKinds.js WAGON_KINDS `icon` answers there, every other id
@@ -171,7 +172,7 @@ let _source = null;
  *  submesh's TEXTURE archive through textureCanvas's reader, a user replacement of a record first (M-TEX - the
  *  world's wagon wears it, so its picture does). Answers `{model, texels}` or null. */
 function arena2Source() {
-  let arch = null;
+  const arch = new Map();
   return async (id) => {
     if (PORT_ICON_KINDS.has(id)) return portSource(id);   // WAGONS1
     const [{ getBytes }, { Arch3dFile }, { dfMeshToModel }, { textureArchive }, repl] = await Promise.all([
@@ -181,8 +182,7 @@ function arena2Source() {
       import('./textureCanvas.js'),
       import('../systems/textureReplacement.js'),
     ]);
-    arch ??= getBytes('ARCH3D.BSA').then((bytes) => { const a = new Arch3dFile(); return a.load(bytes) ? a : null; });
-    const a = await arch;
+    const a = await cachedLoad(arch, 'ARCH3D.BSA', () => getBytes('ARCH3D.BSA').then((bytes) => { const a = new Arch3dFile(); return a.load(bytes) ? a : null; }));
     const index = a ? a.getRecordIndex(id) : -1;
     if (index < 0) return null;
     const dfMesh = a.getMesh(index);

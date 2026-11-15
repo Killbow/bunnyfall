@@ -43,6 +43,7 @@
 import { toScreenOrder } from '../formats/color32Order.js';
 import { decodePng } from '../systems/textureReplacement.js';
 import { SHIELD_TEXTURE_COUNT, shieldTextureName } from './shieldWidget.js';
+import { cachedLoad } from '../assets/loadCache.js';
 
 export const SHIELD_WIDGET_MOD = Object.freeze({
   guid: 'e59d8114-e9a2-4e8e-84e8-4666475dbb9f',
@@ -102,22 +103,17 @@ const _images = new Map();   // flat index -> Promise<image | null>
  *  stay as the PNG has them: this is a SCREEN quad, so it takes
  *  `toScreenOrder` and not `toColor32`'s flip (HT3's law, and WW3's
  *  crash is why the SHAPE is named here too). Cached per index, misses
- *  included. */
+ *  included for a while. */
 export function shieldWidgetImage(index) {
   if (!(index >= 0 && index < SHIELD_TEXTURE_COUNT)) return Promise.resolve(null);
-  if (!_images.has(index)) {
-    _images.set(index, (async () => {
-      try {
-        const res = await fetch(shieldSpriteUrl(index));
-        if (!res.ok) return null;
-        return toScreenOrder(await decodePng(new Uint8Array(await res.arrayBuffer())));
-      } catch (e) {
-        console.warn(`[shield widget] ${shieldTextureFileName(index)} would not load:`, e?.message ?? e);
-        return null;
-      }
-    })());
-  }
-  return _images.get(index);
+  return cachedLoad(_images, index, async () => {
+    const res = await fetch(shieldSpriteUrl(index));
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return toScreenOrder(await decodePng(new Uint8Array(await res.arrayBuffer())));
+  }).catch((e) => {
+    console.warn(`[shield widget] ${shieldTextureFileName(index)} would not load:`, e?.message ?? e);
+    return null;
+  });
 }
 
 /** The widget's `textures` dep. */

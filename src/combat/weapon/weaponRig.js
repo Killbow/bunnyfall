@@ -79,6 +79,7 @@ import { atlasFileName } from '../diverseWeapons/diverseWeapons.js';   // DW1: t
 // weapon is not in.
 import { createShieldWidget } from '../shieldWidget.js';
 import { shieldWidgetTextures, shieldWidgetImage } from '../shieldWidgetAssets.js';
+import { forgetLater } from '../../assets/loadCache.js';
 import { setAttackOnPlayerHook } from '../formulas.js';   // SW1: PCAAO's onAttackDamageCalculated, for the Recoil module
 import { conditionPercentage } from '../../systems/item/itemInfo.js';   // SW1: the condition tier
 import { isShieldTemplate } from '../../systems/armorMaterials.js';   // SW1: GetShieldProtectedBodyParts' own test
@@ -673,9 +674,9 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
     if (!_shieldTex.has(index)) {
       _shieldTex.set(index, null);
       shieldWidgetImage(index).then((img) => {
-        if (!img) return;
+        if (!img) { forgetLater(_shieldTex, index, null); return; }
         _shieldTex.set(index, renderer.uploadTexture('img', `sw:${index}`, img));
-      }).catch((e) => console.warn('[shield widget] texture load failed', index, e));
+      }).catch((e) => { console.warn('[shield widget] texture load failed', index, e); forgetLater(_shieldTex, index, null); });
     }
     return _shieldTex.get(index);
   }
@@ -962,7 +963,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
         ? loadCrossbowArt(renderer)
         : loadFpsWeaponArt(fetchBytes, palette, renderer, type, item?.material ?? 0, item, { plain }))
         .then((art) => cache.set(key, art))
-        .catch((e) => console.warn('[weaponRig] art load failed', key, e));
+        .catch((e) => { console.warn('[weaponRig] art load failed', key, e); forgetLater(cache, key, null); });
     }
     return cache.get(key);
   }
@@ -984,7 +985,7 @@ export function createWeaponRig({ renderer, canvas, fetchBytes, palette, audio, 
       spellCache.set(element, null);
       loadSpellCastArt(fetchBytes, palette, renderer, element)
         .then((art) => spellCache.set(element, art))
-        .catch((e) => console.warn('[weaponRig] spell anim load failed', element, e));
+        .catch((e) => { console.warn('[weaponRig] spell anim load failed', element, e); forgetLater(spellCache, element, null); });
     }
     return spellCache.get(element);
   }
