@@ -108,6 +108,7 @@ export function createCamps({
   // entry with no owner is this player's - placed here or restored from their own save - and every camp a peer's
   // word stands carries its sender (applyOwner, below).
   const mine = (c) => c.owner == null;
+  let keeper = null;
 
   function ensureFire() {
     if (_fire || _fireLoading || !getTexture) return;
@@ -755,6 +756,7 @@ export function createCamps({
     let n = 0;
     for (let i = camps.length - 1; i >= 0; i--) if (mine(camps[i])) { drop(camps[i]); n++; }
     _bedroll = null;   // AUDIT REST F10
+    keeper?.loaded?.();
     if (n) onChanged?.();   // AUDIT REST II H1: the room hears they went, as packOwnFires' walk out says it - never a peer's ghost fire
   }
   /** AUDIT REST F1: leaving a scene that keeps nothing of mine (a dungeon): my own Campfires back into the pack with the
@@ -833,6 +835,7 @@ export function createCamps({
     restPointAt, bedrollNear, packOwnFires,   // REST6; AUDIT REST F1
     destroyAll, dropOwn, collectPixel, offsetAll, groundMoved, snapshot, restore, wireRecords, applyOwner, sweepOwners, sweepColdAbsent,
     get camps() { return camps; }, own,
+    keepCamps: (k) => { keeper = k; },
     usable,   // AUDIT DECOR-USE D6: whether the world's fires answer here - a placed one too (systems/decor/decorUse.js)
   };
 }

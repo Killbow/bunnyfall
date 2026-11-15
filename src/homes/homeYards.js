@@ -621,6 +621,8 @@ export function createHomeYards(deps) {
   const campAsking = new Set(), campStriking = new Set();
   /** @type {Map<string, number>} a kit's record the service refused a camp for, and when - asked again after CAMP_REFUSED_MS */
   const campRefused = new Map();
+  // Strike a camp only once its tent was seen since the last load; loading an older save leaves it alone.
+  const seenRecs = new Set();
   /** The map pixel a scene point stands in, and its place in it (pixel-local metres) - of the pixels built, or null. */
   function campPixelOf(pos) {
     if (!Array.isArray(pos)) return null;
@@ -672,6 +674,7 @@ export function createHomeYards(deps) {
     if (!pool?.own || !char || !feet || !campRead.ready || !deps.api?.campPitch || !deps.outside?.()) return;
     const tents = pool.own().filter((r) => r?.kind === CAMP_KIND.Tent && !r.deck && Array.isArray(r.pos) && typeof r.id === 'string');
     const recs = new Set(tents.map((r) => r.id));
+    for (const id of recs) seenRecs.add(id);
     const mine = [...campsById.values()].filter((c) => c.mine && c.char === char);
     for (const r of tents) {
       if (Math.hypot(r.pos[0] - feet[0], r.pos[2] - feet[2]) > CAMP_LINE_M || mine.some((c) => c.rec === r.id) || campAsking.has(r.id)) continue;
@@ -699,14 +702,21 @@ export function createHomeYards(deps) {
       if (!c.rec || recs.has(c.rec) || campStriking.has(c.id)) continue;
       const o = campOriginOf(c);
       if (!o || Math.hypot(o[0] - feet[0], o[2] - feet[2]) > CAMP_LINE_M) continue;
-      campStriking.add(c.id);
-      Promise.resolve(deps.api.campStrike(c.id)).then((res) => {
-        if (!res?.ok && res?.error !== 'no-camp') return;
-        campsById.delete(c.id);
-        if (c.pieces.length) deps.say?.('Your camp is packed up, and its decorations with it.');
-      }, () => {}).finally(() => { campStriking.delete(c.id); });
+      if (seenRecs.has(c.rec)) strikeKept(c.id, c.pieces.length);
     }
   }
+  function strikeKept(id, pieces) {
+    if (campStriking.has(id)) return;
+    campStriking.add(id);
+    Promise.resolve(deps.api.campStrike(id)).then((res) => {
+      if (!res?.ok && res?.error !== 'no-camp') return;
+      campsById.delete(id);
+      if (pieces) deps.say?.('Your camp is packed up, and its decorations with it.');
+    }, () => {}).finally(() => { campStriking.delete(id); });
+  }
+  deps.campPool?.()?.keepCamps?.({
+    loaded: () => seenRecs.clear(),
+  });
   /** The pieces a camp stands: its own, and the kit's tent and fire while nobody's live record of them stands. */
   const campPiecesOf = (c) => (!c.mine && !kitStands(c.rec) ? [...c.pieces, ...campKitPieces(c.yaw)] : c.pieces);
 
