@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: In the POI editor, Paste now places the copy exactly on the original, as Duplicate does, instead of beside it and farther off with each paste.
 - Fixed: A POI event limited by a shared count, such as a prize for the first ten visitors, no longer lets two players through at the same moment.
 - Fixed: Online, a POI event that adds to a saved number no longer counts the addition twice in your game.
 - Fixed: Masterwright now lets you upgrade Daedric pieces to Masterwork; without it, the Upgrade tab says so instead of offering the step.
