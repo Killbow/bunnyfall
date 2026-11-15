@@ -1281,6 +1281,7 @@ export class AirPass {
   constructor(gl, opts) {
     this.gl = gl;
     this.meter = null;
+    this._glowPlanes = new Float32Array(24);
     const u = (p, n) => gl.getUniformLocation(p, n);
     const P = (vs, fs, names) => { const p = opts.build(vs, fs); const o = { p }; for (const n of names) o[n] = u(p, n); return o; };
     this.programs = {
@@ -1836,7 +1837,7 @@ export class AirPass {
   _volumetrics(f, sp, quad, depthOn) {
     const gl = this.gl, P = this.programs, T = this.targets;
     const L = f.pointLights, n = L ? L.length >> 2 : 0;
-    const on = !!P.vol && this.volOn && n > 0 && f.scatter > 0 && !!sp;
+    const on = !!P.vol && this.volOn && n > 0 && f.scatter > 0 && !!sp && this._glowInView(L, n);
     this.stats.vol = on;
     if (!on) { quad(P.box, T.volOut); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); gl.clearColor(f.clearColor[0], f.clearColor[1], f.clearColor[2], f.clearColor[3]); return; }   // shut: the image the resolve reads, black
     quad(P.vol, T.vol);
@@ -1870,6 +1871,24 @@ export class AirPass {
     gl.uniform1f(P.volTone.uScatter, f.scatter);
     gl.uniform1f(P.volTone.uExposure, f.exposure ?? 1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // Skip the glow unless a light's range reaches the view: a ray that misses every light renders black.
+  /** @param {ArrayLike<number>} L @param {number} n */
+  _glowInView(L, n) {
+    const P = this.f?.proj;
+    // The march's rays start where the side planes meet only under a perspective projection.
+    if (!P || P[11] !== -1 || P[15] !== 0) return true;
+    const p = spherePlanes(this._vp, this._glowPlanes);
+    for (let i = 0; i < n; i++) {
+      const x = L[i * 4], y = L[i * 4 + 1], z = L[i * 4 + 2], r = L[i * 4 + 3];
+      let out = false;
+      // Only the four side planes: they meet at the eye, where every ray starts, and a near plane would drop a light
+      // between the eye and it.
+      for (let k = 0; k < 4 && !out; k++) out = p[k * 4] * x + p[k * 4 + 1] * y + p[k * 4 + 2] * z + p[k * 4 + 3] < -r - 0.01;
+      if (!out) return true;
+    }
+    return false;
   }
 
   _replayEmission(f, sp, vp, depthOn) {
