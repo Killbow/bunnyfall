@@ -23001,9 +23001,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const hall = wildHallAt(wildActiveNow(), x, y);
     const name = locationIndex.get(h)?.name ?? 'an elite hall';
     const line = sea ?? `Crows gather over ${name}${hall ? ` in ${wildRingName(hall.ring)}` : ''}. Someone has fallen there.`;
-    setMidScreenText(line, 5);
+    setMidScreenText(line, WILD_LINE_HOLD_S, { realTime: true });
     townTalk.say(line);
-    _wildLineHold = { line, until: Date.now() + WILD_LINE_HOLD_MS };   // WILD-LINE-HOLD: real seconds, whatever the journey's pace
   };
   /** Each frame: the hub's word wired to the social link (a new link, or the old one back, says hello again), the
    *  heartbeat while I stand in a hall, and the halls of a day gone taken off the map. */
@@ -23489,8 +23488,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // ── THE ZONE'S FRAME ──
   let _wildWas = false;
   let _wildRingWas = 0;   // WILD2: the ring last said
-  const WILD_LINE_HOLD_MS = 7000;
-  let _wildLineHold = null;   // WILD-LINE-HOLD: { line, until }
+  const WILD_LINE_HOLD_S = 7;
   /** Every frame (onlineFrame, the dead's too): the zone under my feet and its crossing said, the fights' clocks, my
    *  victims' bodies, the room's remains in this host's pool, my remains' time. */
   const wildFrame = () => {
@@ -23511,24 +23509,14 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         _wildRingWas = ring;
         const line = here ? `${zoneWord('enter')} ${zoneWord('ring')(ring)}` : zoneWord(left === ETHER_KIND && !etherInPeace(playerTravelPixel()?.x, playerTravelPixel()?.y) ? 'quiet' : 'leave', left || undefined);   // AUDIT SEA VENTURES C7: "Veilhaven's peace" only where it is
         if (here) noteFirstUse('wild-zone');   // TUT1: the first step into the open zone
-        setMidScreenText(line);
+        setMidScreenText(line, WILD_LINE_HOLD_S, { realTime: true });
         townTalk.say(line);
-        _wildLineHold = { line, until: Date.now() + WILD_LINE_HOLD_MS };   // WILD-LINE-HOLD
       } else if (here && ring !== _wildRingWas) {
         const deeper = ring > _wildRingWas;
         _wildRingWas = ring;
-        setMidScreenText(zoneWord('ringCross')(ring, deeper));
+        setMidScreenText(zoneWord('ringCross')(ring, deeper), WILD_LINE_HOLD_S, { realTime: true });
         townTalk.say(zoneWord('ringCross')(ring, deeper));
-        _wildLineHold = { line: zoneWord('ringCross')(ring, deeper), until: Date.now() + WILD_LINE_HOLD_MS };
       }
-    }
-    // WILD-LINE-HOLD (2026-10-08, the owner: "the warning message for the zone doesnt stay long enough right now only a
-    // part of a second"): the label counts GAME seconds (ui/midScreenText.js tick, at the time scale), and the zone is
-    // crossed at a journey's pace - at 20x its 1.5 s were 75 ms. The crossing's line is held for WILD_LINE_HOLD_MS of REAL
-    // time: put back whenever the label has gone blank (a later message of its own still shows, and the line after it).
-    if (_wildLineHold) {
-      if (Date.now() > _wildLineHold.until) _wildLineHold = null;
-      else if (!_wildMidText.text) setMidScreenText(_wildLineHold.line);
     }
     setPaceZoneCap(wildHere() && wildZoneKind() !== ETHER_KIND ? WILD_PACE_CAP : null);   // WILD3: "max 20x in the wilds and 40x on the roads" - ETHER-WILD: never at sea, whose leagues are its own price
     wildStrangersFrame();
