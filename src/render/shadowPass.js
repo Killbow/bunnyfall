@@ -1178,6 +1178,7 @@ export class ShadowPass {
     this._candOf = new Array(SHADOW_POINT_CASTERS).fill(null);
     this._candLim = new Float64Array(5 * SHADOW_POINT_CASTERS);
     this._candOpen = new Int32Array(SHADOW_POINT_CASTERS);
+    this._candFill = new Int32Array(SHADOW_POINT_CASTERS);
     this._candQuads = new Uint8Array(SHADOW_POINT_CASTERS);
     this._candWalked = false;   // AUDIT 637 B3: this frame's walk made (render clears it; _candFor makes it on the first ask)
     // PERF-SUN3: each sun cascade's candidates this frame (_sunCandidates) - the lanterns' shape - with the planes they
@@ -2147,7 +2148,7 @@ export class ShadowPass {
    */
   _casterCandidates(L, casters, farOf) {
     this._candWalked = true;
-    const out = this._candOf, lim = this._candLim, open = this._candOpen, quads = this._candQuads;
+    const out = this._candOf, lim = this._candLim, open = this._candOpen, fill = this._candFill, quads = this._candQuads;
     const nC = casters.length;
     let live = 0;
     for (let k = 0; k < nC; k++) {
@@ -2183,10 +2184,11 @@ export class ShadowPass {
           if (!out[k] || (c && !cubeKeeps(lim, k, c[0], c[1], c[2], c[3]))) continue;
           if (b._place) quads[k] = 1;   // its quads asked if this lantern draws (_candidateQuads)
           let j = open[k];
-          if (j < 0) { j = add(k, i); open[k] = j; const bb = out[k].bb; if (bb[j]) bb[j].length = 0; else bb[j] = []; }
-          out[k].bb[j].push(b);
+          if (j < 0) { j = add(k, i); open[k] = j; fill[k] = 0; out[k].bb[j] ??= []; }
+          out[k].bb[j][fill[k]++] = b;
         }
       }
+      for (let k = 0; k < nC; k++) if (open[k] >= 0) out[k].bb[open[k]].length = fill[k];
     }
     for (let k = 0; k < nC; k++) { const c = out[k]; if (c && c.n > c.hw) c.hw = c.n; }   // AUDIT 637 B4: as far as discard() must empty
     return out;
@@ -2372,35 +2374,37 @@ export class ShadowPass {
       if (L.n === L.rec.length) { const g = new Int32Array(L.rec.length * 2); g.set(L.rec); L.rec = g; }
       L.rec[L.n] = i;
       const j = L.n++;
-      if (L.bb[j]) L.bb[j].length = 0; else L.bb[j] = [];
+      L.bb[j] ??= [];
       return j;
     };
     // the far cascade: every record, every flat
     const P = planes[last];
     for (let i = 0; i < this.count; i++) {
       const r = this.records[i];
-      if (r.kind !== REC_BB) { if (recordVisible(P, r)) add(last, i); continue; }
-      let j = -1;
+      if (r.kind !== REC_BB) { if (recordVisible(P, r)) out[last].bb[add(last, i)].length = 0; continue; }
+      let list = null, m = 0;
       for (const b of r.batches) {
         if (!b || !batchVisible(P, b)) continue;   // the replay's first question drops a null one too
-        if (j < 0) j = add(last, i);
-        out[last].bb[j].push(b);
+        list ??= out[last].bb[add(last, i)];
+        list[m++] = b;
       }
+      if (list) list.length = m;
     }
     // each nearer cascade: the next one out's list, by its own planes
     for (let c = last - 1; c >= 0; c--) {
       const from = out[c + 1], Q = planes[c];
       for (let t = 0; t < from.n; t++) {
         const i = from.rec[t], r = this.records[i];
-        if (r.kind !== REC_BB) { if (recordVisible(Q, r)) add(c, i); continue; }
+        if (r.kind !== REC_BB) { if (recordVisible(Q, r)) out[c].bb[add(c, i)].length = 0; continue; }
         const list = from.bb[t];
-        let j = -1;
+        let to = null, m = 0;
         for (let u = 0; u < list.length; u++) {
           const b = list[u];
           if (!batchVisible(Q, b)) continue;
-          if (j < 0) j = add(c, i);
-          out[c].bb[j].push(b);
+          to ??= out[c].bb[add(c, i)];
+          to[m++] = b;
         }
+        if (to) to.length = m;
       }
     }
     for (let c = 0; c <= last; c++) if (out[c].n > out[c].hw) out[c].hw = out[c].n;   // AUDIT 637 B4's law: as far as discard() must empty
