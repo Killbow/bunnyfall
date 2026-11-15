@@ -483,6 +483,7 @@ import { saveSlot, loadSlot, quickLoadSlot, mostRecentRestorable, QUICK_SAVE_NAM
 import { frameBegin, frameEnd, frameAbort } from '../systems/frameClock.js';   // PERF1: the frame's script time; AUDIT-WH2 L1-F4: and the door an early return takes
 import { frameCapSkip } from '../systems/frameCap.js';   // FPS-CAP1: DFU's TargetFrameRate - a held frame re-arms before the clock and the input frame
 import { frameInterval, lastBusy, lendFrame, framesBegun } from '../systems/frameClock.js';   // PERF-EXT24: the frame's period and its own script, and the stream's slices lent back - those no frame ran inside
+import { createCanvasFrameSize } from '../render/canvasFrameSize.js';
 import { arrivalClampMinutes, playerTravelPosition, travelDays, setSeaTide } from '../systems/travel/travel.js';   // F-slice; F114: the ship-aware travel origin; SHIP-SAIL: the passage's days, as the map counts them
 import { TIDE_EFFECTS } from '../net/tideLaw.js';   // SEASON1 part two: a Storm Season's sea (Seats-Arc 9.3)
 import { hallOfRecordsWindow } from '../ui/hallOfRecords.js';   // SEASON1 part three: a seat's Chronicle as a book (Seats-Arc 9.2)
@@ -1327,6 +1328,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // browser's own idle answer, swallows every failure (MENU1's notice is
   // the door's to show), and boots nothing if the player never opens one.
   void import('../ui/enhanced/enhancedChunk.js').then((m) => m.warmEnhancedChunks()).catch(() => {});
+  const _canvasSize = createCanvasFrameSize(canvas);
   // LOAD1 (2026-10-05, ui/loadingScreen.js): THE BOOT'S FACE. From the menu's choice to the first frame the player saw
   // a bare canvas, the boot's steps named only on the window's title. Every step `status` names is the loading screen's
   // line too, from here - the realm's join, the data, the first pixel's people, the save - until the boot hands the
@@ -10054,7 +10056,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     spyglass.lens = easeLens(spyglass.lens, spyglass.up ? spyglass.zoom : 1, dt);
     const fovY = glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens);
     // AUDIT CAPTAIN'S SEA S19: the glass holds no ship outside its own circle - the tube's radius, at the lens drawn
-    const field = Math.atan(Math.tan(fovY / 2) * GLASS_FIELD * Math.min(1, largeHudWorldAspect(canvas.clientWidth, canvas.clientHeight) || 1));
+    const field = Math.atan(Math.tan(fovY / 2) * GLASS_FIELD * Math.min(1, largeHudWorldAspect(_canvasSize().w, _canvasSize().h) || 1));
     // GLASS-CLEAR (the owner: "the ship blocks your view most of the time when using your spyglass"): the glass's focus -
     // just past the ship I stand aboard as its lens comes on (the frame's lens below takes it: her own masts, sails and
     // hands out of the view, every ship beyond her in it), never so far that the sea at the view's foot is cut
@@ -10065,7 +10067,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       eyeOverSea: glassEyeOverSea({ eyeX: cam.pos[0], eyeZ: cam.pos[2], yaw: cam.yaw, eyeY: cam.pos[1], seaY: tvSeaY(), fovY, pitch, groundAt: heightAt }) }) : GLASS_NEAR_MIN;
     const card = navalOn() && naval ? naval.glass(dt, { up: spyglass.up, zoom: spyglass.zoom, field, near: spyglass.near }) : null;   // GLASS-CLEAR: and none it is not focused on
     const padHand = controllerLook() ? padFamily() : null;   // the pad in hand: its button named, not the key
-    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const { w, h } = _canvasSize();
     drawSpyglass(spyglass.up ? { card, zoom: spyglass.zoom } : null, {
       keys: { glass: padHand ? glassPadWords(padHand) : navalKeyName('Spyglass'), zoom: padHand ? hdGlyphName(padHand, GLASS_PAD_ZOOM) : null },
       scale: enhancedHudScale(), touch: !!touch, pad: !!padHand, covered: !!townTalk.hudHidden,
@@ -10109,7 +10111,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   function navalTags(proj, view, eye) {
     if (!navalOn() || typeof document === 'undefined') return;
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || _mode() !== 'exterior' || !!travelView?.active;
-    const w = canvas.clientWidth, h = canvas.clientHeight, rect = worldViewportRect(w, h);
+    const { w, h } = _canvasSize(), rect = worldViewportRect(w, h);
     const points = [];
     for (const t of covered ? [] : naval.tags()) {
       const at = projectToScreen(t.point, w, h, proj, view, rect);
@@ -10133,7 +10135,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || !!travelView?.active;
     const points = [];
     if (!covered) {
-      const w = canvas.clientWidth, h = canvas.clientHeight, rect = worldViewportRect(w, h);
+      const { w, h } = _canvasSize(), rect = worldViewportRect(w, h);
       // CREW-COMPANIONS: indoors and underground, my companions' (the street's pool holds them outdoors, with the rest)
       for (const f of _mode() === 'exterior' ? exteriorFoes.foes : _insidePool()) {   // AUDIT CC-A10: indoors and underground the place's own list - a peer's companions too   // mine on a deck, and a room's crew its owner names (exteriorFoes.js `cw`)
         const feet = f.ai?.feet;
@@ -10252,7 +10254,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || _mode() !== 'exterior' || !!travelView?.active;
     const points = [];
     if (!covered) {
-      const w = canvas.clientWidth, h = canvas.clientHeight, rect = worldViewportRect(w, h);
+      const { w, h } = _canvasSize(), rect = worldViewportRect(w, h);
       for (const l of navalCrew.speech()) {
         const d = Math.hypot(l.head[0] - eye[0], l.head[1] - eye[1], l.head[2] - eye[2]);
         if (d > CREW_SAY_RANGE) continue;
@@ -10330,7 +10332,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (!_cardBarks.length && !_cardBarksShown) return;
     _cardBarksShown = _cardBarks.length > 0;
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || _mode() !== 'interior';
-    const w = canvas.clientWidth, h = canvas.clientHeight;
+    const { w, h } = _canvasSize();
     drawCrewLines(covered ? [] : cardBarkPoints(proj, view, eye, w, h, worldViewportRect(w, h)), { covered, dt: gamePaused() ? 0 : dt, scale: enhancedHudScale() });
   }
   /** LW8b (bible/06-Systems/Living-World.md "LW8b"): THE ROOM'S TALK - the lines of the residents in the building the
@@ -10343,7 +10345,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || _mode() !== 'interior';
     const points = [];
     if (!covered) {
-      const w = canvas.clientWidth, h = canvas.clientHeight, rect = worldViewportRect(w, h);
+      const { w, h } = _canvasSize(), rect = worldViewportRect(w, h);
       points.push(...cardBarkPoints(proj, view, eye, w, h, rect));   // CARDS4b: the regulars' play over their seated heads, with the room's talk
       for (const l of livingIndoors.speech(eye)) {
         const id = l.person.living?.id;
@@ -10372,7 +10374,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const covered = townTalk.overlayActive || gamePaused() || !!townTalk.hudHidden || _mode() !== 'exterior' || !!travelView?.active;
     const points = [];
     if (!covered) {
-      const w = canvas.clientWidth, h = canvas.clientHeight, rect = worldViewportRect(w, h), t = performance.now() / 1000;
+      const { w, h } = _canvasSize(), rect = worldViewportRect(w, h), t = performance.now() / 1000;
       for (const f of exteriorFoes.foes) {
         if (f.dead || !f.ai?.feet || !foeAlerted(f)) { _wildMarkAt.delete(f); continue; }
         if (!_wildMarkAt.has(f)) _wildMarkAt.set(f, t);
@@ -29486,9 +29488,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // measured in them), the drawing buffer's for the bitmap pass, which pays hudScale for the difference.
     remotePlayers.nameFrame({
       proj, view, eye, toScene: onlineToScene, covered: namesOff,
-      w: nameLayer ? canvas.clientWidth : canvas.width,
-      h: nameLayer ? canvas.clientHeight : canvas.height,
-      rect: worldViewportRect(canvas.clientWidth, canvas.clientHeight),
+      w: nameLayer ? _canvasSize().w : canvas.width,
+      h: nameLayer ? _canvasSize().h : canvas.height,
+      rect: worldViewportRect(_canvasSize().w, _canvasSize().h),
       layer: nameLayer, log: chatLog, colorOf: (id) => social?.colorOf(id) ?? null, blocked,
       renderer, font: townTalk.font, scale, hudScale: enhancedHudScale(),
       extra: noticeCountPoints,   // NOTICE1: "3 new" over a Notice Board, in the names' own face and law
@@ -29979,7 +29981,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     reportFrame: (proj, view) => {
       _lastProj = proj; _lastView = view;
       if (touch) {
-        const _dp = _lockChest ? projectToScreen(_lockChest, canvas.clientWidth, canvas.clientHeight, proj, view, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null;
+        const _dp = _lockChest ? projectToScreen(_lockChest, _canvasSize().w, _canvasSize().h, proj, view, worldViewportRect(_canvasSize().w, _canvasSize().h)) : null;
         touch.setLockDot(_dp && _dp.front ? _dp.x : null, _dp?.y);
       }
     },
@@ -32687,7 +32689,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // after this one rebuilds the node on its first painted frame.
     if (!frameAlive(_frameToken)) { destroyWorldPlaque(); return; }   // P0: a later boot or an unwind killed this loop (TV1: the travel view goes on its own heartbeat - scenes/travelView.js)
     if (frameCapSkip(now)) { requestAnimationFrame(frame); return; }   // FPS-CAP1: held back to the Frame Rate Cap - no stamp, no input frame, `last` kept
-    frameBegin(now);   // PERF1: the script time (systems/frameClock.js)
+    frameBegin(now); _canvasSize();   // PERF1: the script time (systems/frameClock.js)
     beginInputFrame(latch.edge); csaInputFrame();   // MWCROUCH; CSA-I: the position reading's window keys, rotated with the host's
     // AUDIT 39 (#160): a full-screen video owns the canvas for its
     // lifetime (DFU pauses the game for it). The loop WAITS - it
@@ -32764,7 +32766,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // the activation on that release. The frame after clears the ray.
     _tapClick = _tapArmed === 1 && !!_tapPoint && !_tapLockOnly;   // AUDIT PRE-MERGE 0928 U2: this frame lifts a finger's press (the gate's fire) - never the stick's lock-only tap (TS1) nor a quick-loot key's arm, which have no finger behind them
     if (_tapArmed > 0 && --_tapArmed === 0) {
-      _tapDir = (_tapPoint && _lastProj) ? rayDirFromScreen(_tapPoint[0], _tapPoint[1], canvas.clientWidth, canvas.clientHeight, _lastProj, _lastView, cam.pos, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null;
+      _tapDir = (_tapPoint && _lastProj) ? rayDirFromScreen(_tapPoint[0], _tapPoint[1], _canvasSize().w, _canvasSize().h, _lastProj, _lastView, cam.pos, worldViewportRect(_canvasSize().w, _canvasSize().h)) : null;
     } else if (_tapArmed === 0 && _tapPoint) { _tapPoint = null; _tapDir = null; _tapLockOnly = false; }
     // AUDIT 28 W9: CameraRecoiler.Update - the reel from a hit, on the
     // detector's loss from the vitals rig, same paused gate (:50-51).
@@ -34086,7 +34088,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // camera's aspect from its viewport - so the lens takes the bar's
     // height out of its denominator here, and the sky, which draws
     // into the same rect, takes the same number.
-    const worldAspect = largeHudWorldAspect(canvas.clientWidth, canvas.clientHeight);
+    const worldAspect = largeHudWorldAspect(_canvasSize().w, _canvasSize().h);
     spyglassStep(dt);   // SPYGLASS: the glass raised or lowered, its lens eased - before the lens is taken
     // MW-D25: the eye goes through the Morrowind camera machine - in
     // first person it comes back untouched (camera.cpp:165-169), in
@@ -34162,7 +34164,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     hcc.faceTeams(mwv.eye);   // WAGONS3: the team's billboards turned to the eye that draws them (the bench's, the third person's, the travel view's)
     travelView?.drawHud();   // TV1: the readout over the view, through this frame's own matrices
     if (touch) {   // TI1: the lock-on dot over the foe's chest, hidden behind the camera
-      const _dp = _lockChest ? projectToScreen(_lockChest, canvas.clientWidth, canvas.clientHeight, proj, view, worldViewportRect(canvas.clientWidth, canvas.clientHeight)) : null;
+      const _dp = _lockChest ? projectToScreen(_lockChest, _canvasSize().w, _canvasSize().h, proj, view, worldViewportRect(_canvasSize().w, _canvasSize().h)) : null;
       touch.setLockDot(_dp && _dp.front ? _dp.x : null, _dp?.y);
     }
     holdNpcBodies(!!tvf);   // AUDIT MW-NPC II H2: UNDER THE OVERWORLD NO NPC BODY STANDS (C3's law, every lane's) - a figure a few pixels tall, drawn upright under the flats' lean
@@ -34499,7 +34501,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     revenantAshoreTick();   // REVENANT-COMPANION: and the sworn
     renderer.setClearColor(SKY_CLEAR);   // INCIDENT 2026-09-04 / REVIEW 2026-09-05: this frame is the EXTERIOR's (the mode frames returned above and clear black in worldModes) - CameraClearManager.cs:51-57
     renderer.setFlashLight(sky.lightningLight() ?? boltFrame.flash ?? starfall?.flash() ?? null);   // STAR4: else a star's landing   // DS1: Dynamic Skies' LightningFlash, composed first on the point-light channel just stored; BOLT: else a near ground strike's own light, from where it struck
-    renderer.setWorldViewport(worldViewportRect(canvas.clientWidth, canvas.clientHeight));   // E5: ViewportChanger.Update, every frame
+    renderer.setWorldViewport(worldViewportRect(_canvasSize().w, _canvasSize().h));   // E5: ViewportChanger.Update, every frame
     meterFor(renderer.gl)?.markCpu('begin');   // PERF-SIM1: the renderer's frame open
     renderer.beginFrame(proj, view, sunDirection(minute), WORLD_FRAME);   // AUDIT-EL F5: a WORLD frame - the lane replays its records for this one
     meterFor(renderer.gl)?.markCpu('bodies');   // PERF-ZONE2: the Morrowind bodies - the player's, every peer's - the wagon and the camps, which the renderer's own 'world' mark used to swallow
