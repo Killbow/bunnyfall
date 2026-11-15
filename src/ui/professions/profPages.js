@@ -295,6 +295,10 @@ function utcMoment(ms) {
 let _armedFree = false;
 /** The Professions page's last refusal, said under the cards. */
 let _profWord = null;
+/** @template T @param {() => T | Promise<T>} ask @returns {Promise<T | null>} */
+async function settle(ask) {
+  try { return await ask(); } catch (e) { console.warn('[prof] the ask failed', e?.message ?? e); return null; }
+}
 /** The Stores page's filter, search, sort, the material chosen and the quantity to withdraw. */
 const _stores = { family: null, query: '', sort: 'tier', picked: null, qty: 1, word: null, busy: false, settledAt: -Infinity, awayPick: null };   // MENU-ORDER: the away station whose words are shown
 /** BAG1: the Stores page's own words for a carrying book. */
@@ -763,7 +767,7 @@ function craftTimes(box, el, state, rerender, { ready, most, once }) {
     state.crafting = true; rerender();
     let last = null;
     for (let i = 0; i < want; i++) {
-      const res = await once();
+      const res = await settle(once);
       last = res;
       if (!res?.ok) break;
       state.repeat = { done: i + 1, of: want }; rerender();
@@ -1132,7 +1136,7 @@ export function drawStoresPage(detail, rerender, kit) {
     go.onclick = async () => {
       if (_stores.busy) return;
       _stores.busy = true; rerender();
-      const res = await p.withdraw(pick.material, Math.max(1, Math.min(_stores.qty, pick.total, WITHDRAW_MAX)));
+      const res = await settle(() => p.withdraw(pick.material, Math.max(1, Math.min(_stores.qty, pick.total, WITHDRAW_MAX))));
       _stores.busy = false;
       _stores.word = res?.text ?? null;
       rerender();
@@ -1315,7 +1319,7 @@ function drawCarryStores(detail, rerender, kit) {
           }
         }
       }
-      const answers = plan.length ? await p.deposit(plan) : [];
+      const answers = plan.length ? (await settle(() => p.deposit(plan))) ?? [] : [];
       let moved = 0, stop = null;
       const said = new Set();
       for (const [i, res] of answers.entries()) {
@@ -1355,7 +1359,7 @@ function drawCarryStores(detail, rerender, kit) {
     const run = (fn) => async () => {
       if (_stores.busy) return;
       _stores.busy = true; rerender();
-      const res = await fn();
+      const res = await settle(fn);
       _stores.busy = false;
       _stores.word = res?.text ?? null;
       rerender();
@@ -1460,7 +1464,7 @@ function workRows(detail, rerender, el, recipes, state, verb, busyVerb, go, shor
     b.onclick = async () => {
       if (state.busy || hold) return;
       state.busy = true; _workingOn = r.id; rerender();
-      const res = await go(r.id, Math.max(1, Math.min(state.counts[r.id] ?? 1, smeltable(r, held, book.embers?.() ?? null))));
+      const res = await settle(() => go(r.id, Math.max(1, Math.min(state.counts[r.id] ?? 1, smeltable(r, held, book.embers?.() ?? null)))));
       state.busy = false; _workingOn = null;
       state.word = res?.text ?? null;
       rerender();
@@ -1489,7 +1493,7 @@ function counterBuy(line, { el, p, state, rerender, key, need, sale, who, counte
   buy.onclick = async () => {
     if (state.busy) return;
     state.busy = true; rerender();
-    const res = await (counter ? p.stock(key, Math.min(STOCK_MAX, need), counter) : p.stock(key, Math.min(STOCK_MAX, need)));
+    const res = await settle(() => (counter ? p.stock(key, Math.min(STOCK_MAX, need), counter) : p.stock(key, Math.min(STOCK_MAX, need))));
     state.busy = false; state.word = res?.text ?? null; rerender();
   };
   line.append(buy);
@@ -1914,12 +1918,12 @@ function drawMasonBench(detail, rerender, kit) {
     const c = clean === true && getPref('gentleActs') !== true;
     if (what.kind === 'work') {
       _mason.busy = true; _workingOn = what.id; rerender();
-      const res = await p.smelt(what.id, what.count, { clean: c });
+      const res = await settle(() => p.smelt(what.id, what.count, { clean: c }));
       _mason.busy = false; _workingOn = null; _mason.word = res?.text ?? null; rerender();
       return;
     }
     _mason.crafting = true; rerender();
-    const res = p.craft ? await p.craft(what.id, { clean: c }) : null;
+    const res = p.craft ? await settle(() => p.craft(what.id, { clean: c })) : null;
     _mason.crafting = false; _mason.word = res?.text ?? null; rerender();
   };
   /** @returns {any} a work's (MASON_RECIPES) or a carving's (MASONRY_RECIPES) recipe */
@@ -2153,7 +2157,7 @@ function drawCookFire(detail, rerender, kit) {
   // WHAT THE PAN'S END ASKS (AUDIT 30 A3's law: the dish it began on)
   const finishFor = (id) => async (clean) => {
     _cook.crafting = true; rerender();
-    const res = await p.craft(id, { clean: clean === true && getPref('gentleActs') !== true });
+    const res = await settle(() => p.craft(id, { clean: clean === true && getPref('gentleActs') !== true }));
     _cook.crafting = false; _cook.word = res?.text ?? null; rerender();
   };
   if (_cook.act && _cook.actRecipe) {
@@ -2394,7 +2398,7 @@ function drawAlchemyStation(detail, rerender, kit) {
     go.onclick = async () => {
       if (go.disabled || _alchemy.crafting) return;
       _alchemy.crafting = true; rerender();
-      const res = await p.brew(potion.id, keys);
+      const res = await settle(() => p.brew(potion.id, keys));
       _alchemy.crafting = false; _alchemy.word = res?.text ?? null; rerender();
     };
     box.append(go);
@@ -2516,7 +2520,7 @@ function drawEnchantingStation(detail, rerender, kit) {
       if (_enchant.busy) return;
       if (!armed) { _enchant.armed = pc.provenance; rerender(); return; }
       _enchant.busy = true; rerender();
-      const res = await /** @type {any} */ (p.disenchant)(pc.provenance);
+      const res = await settle(() => /** @type {any} */ (p.disenchant)(pc.provenance));
       _enchant.busy = false; _enchant.armed = null; _enchant.word = res?.text ?? null; rerender();
     };
     row.append(b);

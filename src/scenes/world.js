@@ -14552,6 +14552,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // is awaited, which is the same instant.
       hudFade.fadeHUDFromBlack();
       townTalk.say(`You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`);   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
+    } catch (e) {
+      hudFade.clearFade();
+      throw e;
     } finally {
       _teleporting = false;
     }
@@ -15295,6 +15298,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       townTalk.say(partyLanding.arrivalLine(pick, partyArrival, beside, `You arrive at ${getLocalizedLocationName(pick.mapId, pick.name)}.`));   // L10N3e: the place as shown, by its MapId - the pick keeps the canonical name the journey is keyed by
       if (warmAshesOn()) warmAshesPostTravel();   // WA1: RaiseOnPostFastTravelEvent (:383) - Warm Ashes' CheckforEncounters arms its 0.05s coroutine
       if (csaRuntime) csaCall(() => csaRuntime.OnPostFastTravel());   // CSA-J (the audit): ComeSailAway.OnPostFastTravel, the same event's - ResetTimeScale(false)
+    } catch (e) {
+      hudFade.clearFade();
+      throw e;
     } finally {
       try { if (hccPostDue) hccRuntimeOn()?.handlePostFastTravel(); }
       finally {
