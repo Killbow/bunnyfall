@@ -159,6 +159,8 @@ import { worldMinutes, skyMinutes, trustedWorldMinutes, worldSpanRealWords, ownM
 import { BUILD_TAG, UPDATE } from '../../buildTag.js';
 import { injectEnhancedStyle, injectEnhancedFonts } from './enhancedStyle.js';
 import { repaintKeepingScroll } from '../domRepaint.js';
+import { patchInPlace, UNIT_INPUTS } from '../domPatch.js';
+import { NAV_MARK } from '../menuNav.js';
 import { drawPixelGround } from '../pixelGround.js';
 // PX3: the pause window's Stats tab reads the shared player entity
 // through the char sheet's own model - one law, not a restatement.
@@ -232,7 +234,7 @@ import { plusTheme, setPlusTheme } from './enhancedPlusStyle.js';
 import { plusCursorOn, setPlusCursor } from '../plus/plusCursor.js';   // OVH1: the three looks
 import { CHAT_LANGS } from '../../net/wire.js';   // CHAT-LANG: the language channels, for the Chat rows
 import { TEXT_FONTS, textFont, textFontSystem, setTextFont, setTextFontSystem, cleanFamily, canListFonts, installedFamilies, fontMatches } from '../textFont.js';   // TEXT-FONT: the words' face
-import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, GRIMOIRE_TEXTS, GRIMOIRE_COMPASSES, grimoireText, grimoireCompass, setGrimoireText, setGrimoireCompass, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
+import { GRIMOIRE_PAGES, GRIMOIRE_BACKDROPS, GRIMOIRE_VITALS, GRIMOIRE_SPELLBOOKS, GRIMOIRE_DIALS, GRIMOIRE_TEXTS, GRIMOIRE_COMPASSES, grimoireText, grimoireCompass, setGrimoireText, setGrimoireCompass, grimoirePages, grimoireBackdrop, grimoireVitals, grimoireSpellbook, grimoireDial, setGrimoirePages, setGrimoireBackdrop, setGrimoireVitals, setGrimoireSpellbook, setGrimoireDial, isDressMark } from '../grimoireDress.js';   // GRIM1: Bunnyfall Grimoire's own rows; GRIM3: and its spellbook
 import { UI_PACKS, packUrl } from '../../systems/uiPack.js';   // OVH2: a pack's own picture on its card
 import { FEATURES, KINDS, KIND_ORDER, featureForControl, resolveControl, modModules, modDials, featureSearchText } from '../../systems/features.js';   // FT14: each mod's curated keys (ORG2: the map places the rows, ui/settings/settingsMap.js)
 import '../../world/landView.js';   // RF4: the land-view lane registers itself with the registry
@@ -475,6 +477,8 @@ const el = (t, cls, txt) => {
   if (txt != null) n.textContent = txt;
   return n;
 };
+/** @param {any} n @param {string} inputs */
+const unitOf = (n, inputs) => { n[UNIT_INPUTS] = inputs; return n; };
 
 // ── THE SAVE, READ FOR REAL ──────────────────────────────────────
 // mostRecentRestorable is the slot store's own reader AND version
@@ -1920,7 +1924,7 @@ function sectionHead(tab, s, n, { path = false } = {}) {
   t.append(el('h3', null, path ? `${tab.title} \u203a ${s.title}` : s.title));
   if (n) t.append(el('span', 'count', String(n)));
   head.append(t);
-  return head;
+  return unitOf(head, '');
 }
 
 /** ORG2: a node that is an option - a row or a Features row - and not the screen's own door (the Overhauls link), a
@@ -2044,7 +2048,7 @@ function optionsToolbar(body, { pause = false } = {}) {
     b.setAttribute('aria-pressed', String(optFilter === id));
     if (id === 'changed') b.append(el('span', 'n', String(changed)));
     b.onclick = () => { discardControlsStaging(); optFilter = id; pickedKey = null; pickedFeature = null; render(); };   // FIX-F: a filter hides the bindings
-    chips.append(b);
+    chips.append(unitOf(b, id));
   }
   bar.append(chips);
   // FT18 + FEATURES-DEFAULTS (issue #399): the switches' All off and its Restore, and one reset of everything
@@ -2124,14 +2128,15 @@ function paneSettings(pane, { pause = false } = {}) {
       render();
     };
     if (on) b.append(el('span', 'more-dot'));
-    rail.append(b);
+    rail.append(unitOf(b, `${cat.id}=${on}`));
   }
 
   const list = el('div', 'list');
   const body = el('div', 'opt-body');
   const tools = optionsToolbar(body, { pause });
   list.append(tools, body);
-  stickUnderToolbar(list, tools);   // UNSAVED-MARK: the bindings' sticky head stands under this sticky bar, never behind it
+  // The bindings' sticky head sits under this sticky bar, never behind it.
+  toolsObserver = stickUnderToolbar(list, tools);
   paintOptionsBody(body, { pause });
   if (optScrollTo) {
     const id = optScrollTo;
@@ -2142,9 +2147,9 @@ function paneSettings(pane, { pause = false } = {}) {
   const detail = el('div', 'detail');
   const close = el('button', 'sheet-close', t('menu.sheet.close', 'Close'));
   close.onclick = () => { sheetOpen = false; confirming = null; render(); };
-  detail.append(close);
+  detail.append(unitOf(close, ''));
   const f = pickedFeature ? FEATURES.find((x) => x.id === pickedFeature) : null;
-  detail.append(confirming ? confirmCard() : (pickedKey ? helpCard(pickedKey) : f ? featureCard(f) : categoryCard({ pool, pause })));
+  detail.append(unitOf(confirming ? confirmCard() : (pickedKey ? helpCard(pickedKey) : f ? featureCard(f) : categoryCard({ pool, pause })), `${category}|${pickedKey}|${pickedFeature}`));
   if (sheetOpen) detail.classList.add('open');
 
   panes.append(rail, list, detail);
@@ -2222,7 +2227,7 @@ export function graphicsPresetRow() {   // AUDIT MEM-AUDIT G3: exported for the 
   if (!now) { const c = el('span', 'ft-segb custom', PRESET_WORDS.custom()); c.setAttribute('aria-current', 'true'); seg.append(c); }
   ctl.append(seg);
   row.append(ctl);
-  return row;
+  return unitOf(row, `preset=${now?.id ?? ''}`);
 }
 /** ORG2: a preset, written - each of its rows to its value through the row's own states (tileStates). */
 export function applyGraphicsPreset(p) {
@@ -2409,7 +2414,7 @@ function settingRow(key, { compact = false, home = false } = {}) {
 
   if (!compact) ctl.append(el('span', `tier ${tier}`));
   row.append(ctl);
-  return row;
+  return unitOf(row, `${key}=${raw}`);
 }
 
 /** FT1: the settings row of a key that lives on the Features home -
@@ -2553,7 +2558,7 @@ function prefRow(key, name, note, { onChange = null, home = false } = {}) {
   if (onlineForcedPref(key) !== undefined) lockOnline(b, main);   // OL1
   ctl.append(b, el('span', 'tier live'));
   row.append(ctl);
-  return row;
+  return unitOf(row, `${key}=${on}`);
 }
 
 
@@ -2595,7 +2600,7 @@ function choiceRow(key, name, note, tiers, { home = false, read = null, write = 
   if (onlineForcedPref(key) !== undefined) { lockOnline(b, main); b.textContent = t('menu.online.lockedTier', '{tier} (online)', { tier: tiers[at][1] }); }   // OL1: the outdoors row reads the lane's forced answer and names its tier under the lock
   ctl.append(b, el('span', 'tier live'));
   row.append(ctl);
-  return row;
+  return unitOf(row, `${key}=${at}`);
 }
 
 /** A stepped number row over a uiPrefs key (TI2's shape). */
@@ -2620,7 +2625,7 @@ function stepRow(key, name, note, { min, max, step: inc, fmt }) {
   };
   ctl.append(step(-inc, '\u2039'), val, step(inc, '\u203a'));
   row.append(ctl);
-  return row;
+  return unitOf(row, key);
 }
 
 /** L10N1b: THE LANGUAGE ROW. Every language the build holds text for, by its own name and its English one, switched
@@ -3795,7 +3800,8 @@ export function featureTile(f) {
     tile.append(b);
     if (open) tile.append(featurePartsDrawer(parts));
   }
-  return tile;
+  // Rows in an open drawer, or in place of the bar, hold state of their own, so only a tile with a closed bar is kept.
+  return st && featureOpen !== f.id ? unitOf(tile, `${f.id}|${st.at}|${st.locked}`) : tile;
 }
 
 /** UXB1-F (2026-09-25, the UX backlog: "Show keybinds for game features, even if they cannot be changed there (Drop
@@ -4114,7 +4120,7 @@ function overhaulPanel(p) {
     const pic = el('div', 'look-pic');
     pic.append(el('div', 'look-emptyline', p.empty));
     card.append(el('h2', 'look-title', p.title), pic);
-    return card;
+    return unitOf(card, p.id);
   }
   const cur = currentOption(p);
   const n = p.options.length;
@@ -4266,7 +4272,7 @@ function overhaulPanel(p) {
   if (!cur) card.append(el('p', 'look-note', p.custom ?? t('menu.ovh.custom', 'Custom: your own mix from Settings. Picking a look sets every switch it covers.')));
   const forced = isOnlinePage() && p.online ? p.online : null;
   card.append(el('p', 'look-note', forced ? `${p.effect} ${forced}` : p.effect));
-  return card;
+  return unitOf(card, `${p.id}|${at}|${n}|${p.options.indexOf(cur)}`);
 }
 /** PADPLUS1: THE CONTROLLER ON THE PLUS CARD - the crossbar switch, run as a toggle or a hold, the layout at a glance
  *  in the pad's own glyphs, and the button that puts every row of it back. PADPLUS10: the legend reads the LIVE
@@ -6079,13 +6085,36 @@ function render() {
   // nulls `app`). A screen that is gone has nothing to paint; the repaint after it was the crash, on every exit
   // through the confirm.
   if (!app) return;
-  repaintKeepingScroll(app, () => renderInto(), { focus: true });   // AUDIT 32 P3: the focus and the caret too
+  repaintKeepingScroll(app, () => { const fresh = repaintInPlace(); if (fresh !== true) renderInto(fresh); }, { focus: true });   // AUDIT 32 P3: the focus and the caret too
+}
+
+/** The units a pick can change: settings rows and tiles, tabs, filter chips, the help pane's card, and the looks. */
+const PATCH_LISTS = '.subrail, .opt-filters, .opt-body, .detail, .look-grid';
+const wholeMenu = () => `${currentLocale()}|${getPref('dfmodTextureDetail')}|${getPref('hudScale')}|${getPref('mapScale')}|${getPref('textScale')}`;
+let paintedWhole = '';
+/** @type {ResizeObserver | null} */
+let toolsObserver = null;
+/** @returns {true | HTMLElement | null} */
+function repaintInPlace() {
+  if (section !== 'settings' && section !== 'overhauls') return null;
+  const live = [...app.children].find((n) => n.classList?.contains('shell'));
+  if (!live || wholeMenu() !== paintedWhole) return null;
+  toolsObserver = null;
+  const fresh = buildShell();
+  // The key bindings hold their armed key and their prompt by node, so they always repaint in full.
+  if (live.querySelector('.opt-bindings') || fresh.querySelector('.opt-bindings')) return fresh;
+  if (!patchInPlace(live, fresh, PATCH_LISTS, { skip: isDressMark, drop: [NAV_MARK] })) return fresh;
+  // The toolbar built for the patch never reaches the page, so its observer stops here, not when the bar leaves.
+  toolsObserver?.disconnect();
+  toolsObserver = null;
+  return true;
 }
 
 /** The rebuild. Wrapped for the reason the wizard's is: the settings
  *  list carries the same steppers, and a repaint that forgets the
  *  scroll throws the player back to the top of 66 Video rows. */
-function renderInto() {
+function renderInto(built = null) {
+  paintedWhole = wholeMenu();
   if (groundTimer) { clearInterval(groundTimer); groundTimer = null; }
   if (questTimer) { clearInterval(questTimer); questTimer = null; }
   stopTimers();   // TIMERS1: a rebuild builds the window again, with its own tick
@@ -6116,6 +6145,10 @@ function renderInto() {
     }
     app.append(ground, el('div', 'px-vignette'));
   }
+  app.append(built ?? buildShell());
+}
+
+function buildShell() {
   const shell = el('div', 'shell');
 
   const side = el('aside', 'side');
@@ -6185,7 +6218,7 @@ function renderInto() {
   }
 
   shell.append(side, pane);
-  app.append(shell);
+  return shell;
 }
 
 // ── THE KEYBOARD, AND WHAT IT IS NOT ─────────────────────────────
