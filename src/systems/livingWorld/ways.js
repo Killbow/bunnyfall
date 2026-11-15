@@ -44,6 +44,8 @@ export const WAYS_MAX_PER_FRAME = 32;
 export function createWayBook({ roads, ground, plan = planRoute, now = () => performance.now() }) {
   /** @type {Map<string, WayPlan|null>} */
   const book = new Map();
+  /** @type {Map<string, WayPlan>} */
+  const back = new Map();
   let budget = WAYS_PER_FRAME;
   let asked = 0, spent = 0, spendMs = WAYS_MS_PER_FRAME;   // PERF-WAYS1: the frame's asking so far (pairs, ms), and how long it may run past the floor
   let net = null, generation = 0;
@@ -57,7 +59,7 @@ export function createWayBook({ roads, ground, plan = planRoute, now = () => per
     wayOf(a, b) {
       const raw = roads();
       if (!raw) return undefined;
-      if (raw.roads !== net) { if (net !== null) { book.clear(); generation++; } net = raw.roads; }
+      if (raw.roads !== net) { if (net !== null) { book.clear(); back.clear(); generation++; } net = raw.roads; }
       const flip = a.mapId > b.mapId;
       const p = flip ? b : a, q = flip ? a : b;
       const key = `${p.mapId}>${q.mapId}`;
@@ -71,7 +73,9 @@ export function createWayBook({ roads, ground, plan = planRoute, now = () => per
         book.set(key, way);
       }
       if (!way || !flip) return way;
-      return { pixels: [...way.pixels].reverse(), kinds: [...(way.kinds ?? [])].reverse() };
+      let rev = back.get(key);
+      if (!rev) { rev = { pixels: [...way.pixels].reverse(), kinds: [...(way.kinds ?? [])].reverse() }; back.set(key, rev); }
+      return rev;
     },
     /** A new frame: the asking renewed - `n` pairs at the least, and more while it has taken under `ms` (PERF-WAYS1). */
     frame(n = WAYS_PER_FRAME, ms = WAYS_MS_PER_FRAME) { budget = n; asked = 0; spent = 0; spendMs = ms; },
