@@ -70,7 +70,7 @@ import { t, getLocalizedFactionName, textRevision } from '../../systems/textMana
 import { isOnlinePage } from '../../systems/online/onlineLane.js';   // AUDIT DELVE E1: online, every dungeon is whole
 import { isShelved } from '../../systems/quest/quest.js';   // QUEST-SHELF: a quest set aside
 import { WA_RAID_QUESTS } from '../../systems/warmAshesShips.js';   // QUEST-SHELF: a raid the world runs is never set aside
-import { QuestListsManager } from '../../systems/quest/questLists.js';
+import { QuestListsManager, isMainQuestName } from '../../systems/quest/questLists.js';
 import { questHeld } from '../../systems/quest/mainSpine.js';
 import { QuestOfferFlow, ACTIVE_QUESTOR } from '../../systems/quest/offerFlow.js';   // QUESTOR-SAID: a close that says why
 import { localizedQuestDisplayName } from '../../systems/quest/localizedQuest.js';   // L10N3c: the pickers' localized labels
@@ -223,6 +223,36 @@ export function retireDfuTutorial(machine) {
   // AUDIT TUT1: a start that throws (StartQuestImmediate propagates) costs the curse, never the load around it
   if (!held && contentOn('curseOfDaggerfall')) { try { started = !!machine.startQuestByName(RETIRED_TUTORIAL_STARTS); } catch (e) { console.warn('[quest] the curse did not start in the retired tutorial\'s place', e); } }
   return { retired: live.length, started };
+}
+
+export function dropDoubledMainQuest(machine) {
+  if (!machine?.quests) return 0;
+  const scheduled = new Set(machine.questsToInvoke ?? []);
+  const copies = new Map();
+  for (const q of [...machine.quests.values(), ...scheduled]) {
+    const n = String(q?.questName ?? '').toUpperCase();
+    // S00005xx quests carry the main-quest prefix but belong to the guilds.
+    if (q.questComplete || q.questTombstoned || !isMainQuestName(n) || /^S00005/.test(n)) continue;
+    copies.set(n, [...(copies.get(n) ?? []), q]);
+  }
+  const set = (q) => [...q.tasks.values()].filter((t) => t.triggered).length;
+  const reached = (q) => [...q.resources.values()].filter((r) => r.isPlace && r.siteDetails?.reached).length;
+  const step = (q) => Math.max(-1, ...q.activeLogMessages.keys());
+  const ahead = (a, b) => Number(scheduled.has(a)) - Number(scheduled.has(b)) || set(b) - set(a) || reached(b) - reached(a)
+    || step(b) - step(a) || a.uid - b.uid;
+  let dropped = 0;
+  for (const [n, list] of copies) {
+    if (list.length < 2) continue;
+    for (const q of list.sort(ahead).slice(1)) {
+      if (scheduled.has(q)) machine.questsToInvoke.splice(machine.questsToInvoke.indexOf(q), 1);
+      else machine.removeQuest(q);
+      dropped++;
+    }
+    // removeQuest records a main-story step as ended, but the kept copy still runs it.
+    if (!scheduled.has(list[0])) machine.storyEnded?.delete(n);
+  }
+  if (dropped) console.warn(`[quest] ${dropped} doubled main-quest copies removed at load`);
+  return dropped;
 }
 
 /**
@@ -1055,6 +1085,7 @@ export function createQuestBridge(ctx, { label = 'host' } = {}) {
       // has its markers enumerated again where its dungeon's layout moved (questRepair.js relayMovedLayouts) - online and off
       relayMovedLayouts(machine, { carriesQuestItem: (item) => ctx.carriesQuestItem?.(item) ?? false });
       retireDfuTutorial(machine);   // TUT1: a save still in DFU's tutorial leaves it, as its No would have
+      dropDoubledMainQuest(machine);
       // AUDIT 26 F102: DFU restores the notebook only when the save
       // CARRIES one (`if (!string.IsNullOrEmpty(notebookDataJson))`,
       // SaveLoadManager.cs:1451-1456) - the empty-block substitute
