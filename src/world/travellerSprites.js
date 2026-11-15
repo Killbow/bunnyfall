@@ -214,6 +214,8 @@ export function createTravellerSprites({ renderer, getTexture, uploadRecordFrame
     persons: () => seats,
     /** The body standing for a resident's id, if drawn. @param {string} key */
     bodyOf: (key) => bodies.get(key) ?? null,
+    /** @param {(body: any) => boolean} test */
+    someBody(test) { for (const b of bodies.values()) if (test(b)) return true; return false; },
     /** Every body freed (the host's teardown; the open world left). */
     clear() { for (const key of [...bodies.keys()]) drop(key); drawn.length = 0; seats.length = 0; shown.length = 0; bodiesLane.destroy(); },   // MWNPC10c: and their bodies
     get size() { return bodies.size; },
