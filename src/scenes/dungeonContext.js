@@ -400,7 +400,7 @@ export const REST_ASK_BAND_MAX = 64;
 /** AUDIT III E1: how far a joiner's spot may sit off what the placement could have found - the ask's 0.01 rounding of
  *  the feet and the spot, and a ray's grazing, never a room's worth. */
 export const REST_ASK_SPOT_SLACK = 0.05;
-/** REST-SYNC: the most shared encounters one frame carries (the standing first) - a rest spawns one; past any honest room. */
+/** Shared encounters one frame carries before old bodies are dropped; every living one is always sent. */
 export const SHARED_FOES_MAX = 32;
 /** REST-SYNC's `xf` on a full frame: every shared foe listed (XF_WHOLE), or - RPT1026-ITEMS BODY-CAP - every standing one,
  *  the cap having shed bodies past SHARED_FOES_MAX (XF_STANDING). An older build reads only XF_WHOLE. */
@@ -5137,7 +5137,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const shared = [];
     for (const [id, f] of _sharedById) if ((f.dead && !f.corpse && !f.corpseDestroyed) || !foes.includes(f)) _sharedById.delete(id);   // Destroy()ed or gone: the room forgets it, and a full frame takes every puppet of it down (AUDIT RPT1026 G1: a capped one, XF_STANDING, a standing puppet alone - a body forgotten past the cap lies on a joiner until a whole frame)
     for (const f of [..._sharedById.values()].sort((a, b) => (a.dead ? 1 : 0) - (b.dead ? 1 : 0) || (a.dead ? (b._diedAt ?? 0) - (a._diedAt ?? 0) : 0))) {   // the standing before the bodies - AUDIT RPT1026 G1: and the newest dead first, so the cap sheds an old body a joiner holds, never a death no frame has told (spawnCorpse's stamp)
-      if (shared.length >= SHARED_FOES_MAX) break;
+      if (f.dead && shared.length >= SHARED_FOES_MAX) break;
       const r = roomRecord(f, f._encId, full, true);
       if (r) shared.push(r);
     }
@@ -5383,8 +5383,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   function applySharedRecords(list, full) {
     if (_authority) return;
     const seen = new Set();
-    for (const raw of list.slice(0, SHARED_FOES_MAX)) {
-      const r = validFoeRecord(raw);
+    for (const [k, raw] of list.entries()) {
+      const r = k >= SHARED_FOES_MAX && raw?.d === 1 ? null : validFoeRecord(raw);
       if (!r || r.i < 1) continue;
       seen.add(r.i);
       if (r.i > _sharedSeq) _sharedSeq = r.i;
