@@ -320,11 +320,11 @@ button opens it again after an exit.
 
   Each picture is read by its header (one the store would refuse set aside, its materials plain), each picture and mesh
   uploaded once by its name (`existed` for bytes the store has; Make and the files held while they go up - U10), the
-  materials' images their pictures' names, and the model placed - every part at once, one step, each where it stands
-  from the model's origin in its POI's frame - where the next click meets the ground (or a model on it); with no POI
-  selected, it goes into the last selected POI while that POI is open, else into a new POI around it in the same step; a
-  target POI that has not loaded or is open in Approvals takes nothing, and Place stays armed (E11). Cancel stops it:
-  nothing more uploaded, nothing placed (U9).
+  materials' images their pictures' names, and the model placed as one step where the next click meets the ground (or a
+  model on it), every part positioned from the model origin in the POI frame. With no POI selected, the model goes into
+  the last selected POI while that POI is open, or else into a new POI around it in the same step (E11). A target POI
+  that has not loaded or is open in Approvals takes nothing; placement stays armed and the editor says why. Cancel stops
+  it: nothing more uploaded, nothing placed (U9).
 
 Pinned by `test/poi/poi3b_panel.test.js` (6) - the panel headless over the shared fake document (test/chargenDom.mjs), the
 import, and the world's wiring by source; `tools/mutants/poi3b.json` 12, all dead. AUDIT POI:

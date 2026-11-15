@@ -123,10 +123,7 @@ export function setFlatMirrored(place, row, on) {
 }
 
 /**
- * Places a pending flat picture (`want`, passed to `newFlat`) at scene position `at` on editor click
- * (scenes/poiEditorHost.js). Adds and selects the row in POI `sel` (default: the selected POI) as a single undo step.
- * When `sel` is null, it creates a new POI around `spot` and `lift`, named after the flat or `fallbackName`. It then
- * passes the new key to `want.onPlaced`. Returns false while the target POI's origin or ground height is not built.
+ * A null `sel` makes a new POI; leaving it out uses the selected POI.
  * @param {{ edit: any, originOf: (doc: any) => (number[] | null), at: number[], spot: { px: number, py: number, x: number, z: number },
  *   lift: number, ground: number, want: any, fallbackName?: string, sel?: { id: string } | null }} o
  */

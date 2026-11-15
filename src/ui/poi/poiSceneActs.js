@@ -52,8 +52,8 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
       if (cut && c.items.length) acts.remove();
       return true;
     },
-    /** Paste the copy into the selected POI, what was pasted selected. Answers whether it pasted (a promise when it must
-     *  ask the system clipboard first). */
+    /** Pastes into the selected or last selected POI and selects the result. Returns whether it pasted (a promise
+     *  when it must read the system clipboard first). */
     paste() {
       const clip = stored() ?? held;
       if (clip) return pasteInto(clip);
@@ -184,11 +184,14 @@ export function createPoiSceneActs({ edit, say, facts = null, editor = null, sto
   function has(/** @type {string} */ sha) { return !(facts?.known?.(sha) && facts.of(sha) === null); }
 
   function pasteInto(clip) {
-    const c = current();
-    if (!c) { say(t('poi.editor.pasteWhere', 'Select the POI to paste into first.'), 'bad'); return false; }
+    const s = editor?.placeInto?.() ?? edit.selection();
+    if (!s || !edit.docOf(s.id)) { say(t('poi.editor.pasteWhere', 'Select the POI to paste into first.'), 'bad'); return false; }
     if (!clipRows(clip)) { say(t('poi.editor.pasteNone', 'Nothing copied yet. Select something and press Ctrl+C.'), 'bad'); return false; }
+    const why = editor?.refusalOf?.(s.id);
+    // A selected POI takes a paste before its ground loads; a remembered one must have loaded.
+    if (why && (why === 'shown' || !edit.selection())) { editor.placeRefused?.(why, s.id); return false; }
     let out = null;
-    edit.edit(c.s.id, 'paste', (x) => { out = pasteClip(x, clip, { has }); }, () => made(c.s.id, out));
+    edit.edit(s.id, 'paste', (x) => { out = pasteClip(x, clip, { has }); }, () => made(s.id, out));
     return told(out);
   }
   /** The selection a paste or duplicate leaves: what it made (undefined: as it was, when nothing was made). */

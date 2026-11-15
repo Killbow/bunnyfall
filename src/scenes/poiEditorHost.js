@@ -125,6 +125,7 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
   let refusedLast = null;
   edit.onChange(() => { const s = edit.selection(); if (s) lastPoi = s.id; else if (lastPoi && !edit.has(lastPoi)) lastPoi = null; });
   const placeInto = () => edit.selection() ?? (lastPoi && edit.has(lastPoi) ? { id: lastPoi, items: [] } : null);
+  const refusalOf = (/** @type {string} */ id) => (edit.shownAs?.(id) !== undefined ? 'shown' : !originOfDoc(edit.docOf(id)) ? 'away' : null);
   const told = () => { try { onChange(); } catch (e) { console.warn('[poi] editor listener', e); } };
   const boxesOf = createSelectionBoxes({ edit, host, boxLines, colors: POI_BOX_COLOR }), sizeBoxOf = createSizeBox({ edit, host });
 
@@ -294,10 +295,9 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     // a model's spot is on the ground (or on what it was dropped on): a snap POI's height its lift above the ground
     const ground = surfaceAt(at[0], at[2]);
     const lift = Number.isFinite(ground) ? Math.max(0, at[1] - ground) : 0;
-    // Place stays armed when the target POI has not loaded, is open in Approvals, or (for a flat picture) is full.
+    // A refused target leaves placement armed, so the builder can pick another POI.
     const sel = placing.kind === 'poi' ? null : placeInto();
-    const doc = sel ? edit.docOf(sel.id) : null;
-    const refused = !sel ? null : edit.shownAs?.(sel.id) !== undefined ? 'shown' : !originOfDoc(doc) ? 'away' : placing.kind === 'flat' && !flatRoom(doc) ? 'full' : null;
+    const refused = !sel ? null : refusalOf(sel.id) ?? (placing.kind === 'flat' && !flatRoom(edit.docOf(sel.id)) ? 'full' : null);
     refusedLast = refused;
     if (refused) { api.placeRefused?.(refused, sel.id); return; }
     if (placing.kind === 'poi') {
@@ -411,18 +411,16 @@ export function createPoiEditorHost({ edit, feed, host, view, translation, scene
     placeNew(/** @type {string} */ name) { placing = { kind: 'poi', name }; told(); },
     /** BUNNYFALL: a person (name, look, height, lines) follows the cursor on the ground; a click stands them. */
     placeNpc(npc, fallbackName = '') { placing = { kind: 'npc', npc, fallbackName }; told(); },
-    /** Places a library asset (a model's parts `{ name, parts }`, or one part) where the next click is. It goes in the
-     *  selected POI, else in the last selected POI while it is open, else in a new POI named after the model or
-     *  `fallbackName`. */
+    /** Arms a library asset (a model's parts `{ name, parts }`, or one part) for the next click. */
     placeAsset(asset, fallbackName = '') { placing = { kind: 'part', asset, fallbackName }; told(); },
-    /** Arms placement for a flat picture (`{ kind, flat, item, name, light }`, passed to poiFlatRows.js newFlat) so
-     *  it follows the ground cursor. A click places it in the selected POI, else in the last selected POI while it is
-     *  open, else in a new POI named after the picture or `fallbackName`. */
+    /** Arms a flat picture (`{ kind, flat, item, name, light }`, as newFlat takes) for the next click. */
     placeFlat(flat, fallbackName = '') { placing = { kind: 'flat', flat, fallbackName }; told(); },
-    /** The POI Place adds to (`{ id, items }`), or null when Place makes a new POI. */
+    /** Returns the target POI for Place and Paste (`{ id, items }`), or null when Place makes a new POI. */
     placeInto,
     /** @returns {'away' | 'shown' | 'full' | null} */
     refusedLast: () => refusedLast,
+    /** @type {(id: string) => ('away' | 'shown' | null)} */
+    refusalOf,
     cancelPlacing() { placing = null; placeAt = null; told(); },
     /** Places whatever is armed for placing on the ground under client point `(x, y)`, as a click there would (used
      *  when an asset is dropped from the browser), and returns whether it was placed. */
@@ -772,7 +770,7 @@ export function createPoiEditorRouter({ editor, canvas, cam, acts, owns, overlay
     if (!editor.active() || overlayUp()) return;   // a window over the world (the map the bar opened) has its keys
     e.stopPropagation?.();   // AUDIT POI E2: nothing below the panel - the world, the mode machine - hears a key typed at it
     if (textEntry(e.target)) return;   // a typed field keeps its key
-    // Escape at an open color picker or list is the browser's: it closes the picker and deselects nothing.
+    // Escape at an open color picker or list only closes the picker, so the editor skips it.
     if (e.code === 'Escape' && pickerOpen(e.target)) return;
     if (e.type === 'keydown' ? editor.keyDown(e, cam, acts()) : editor.keyUp(e)) e.preventDefault?.();
   }

@@ -129,7 +129,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   const id = () => edit.selection()?.id ?? null;
   const getDoc = () => { const i = id(); return i ? edit.docOf(i) : null; };
 
-  // ── drawing again: after a change; held under a press, a typed field, or an open list or color picker ──
+  // ── redraw after a change, held during a press, typing, or an open list or color picker ──
   let queued = false, pressAt = -Infinity, gone = false;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let waitTimer = null;
@@ -143,7 +143,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     Promise.resolve().then(() => {
       queued = false;
       if (!ui.on || gone) return;
-      // A browser closes an open list or color picker when its element is drawn again.
+      // The browser closes an open list or color picker when the panel redraws it.
       if (Date.now() - pressAt < 1500 || typing() || pickerOpenIn(dock)) { waitTimer ??= setTimeout(() => { waitTimer = null; schedule(); }, 120); return; }
       render();
     });
