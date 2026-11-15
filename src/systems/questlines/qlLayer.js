@@ -11,7 +11,7 @@
 // the character's from the moment they are rolled, until one is taken - the gold a running quest has paid (REWARD-3: its
 // end settles it), and the questlines begun (QL12-QL16: its line runner's records, qlLineRunner.js - QL-OFFERED: each one
 // the player took).
-import { startStamp, isStamped, observe, readObjectives, outcomeOf, outcomeNow, fallbackOutcome, questTierOf } from './qlLaw.js';
+import { startStamp, isStamped, observe, readObjectives, outcomeOf, outcomeNow, fallbackOutcome, questTierOf, holds, isCatchAll } from './qlLaw.js';
 import { sheetFor } from './qlSheets.js';
 import { scaleGold, goldFactor, goldStillOwed, rewardTier, payProfileOf, rollRewardChoice, rewardSeed, standingMovesOf } from './qlRewards.js';
 import { isGoldPieces } from '../inventory.js';
@@ -213,6 +213,8 @@ export function createQuestlines({ machine, questLists = null, ctx = {}, service
       if (!isStamped(quest) || quest.ql.moved) return null;
       const sheet = sheetFor(quest.questName);
       if (!sheet) return null;
+      // An outcome already latched came from a copy shared by a party member or from a script outcome line.
+      const merged = !!quest.ql.outcome;
       observe(quest, sheet, probe, { settle: true, ending: true });
       quest.ql.moved = true;
       const outcome = outcomeOf(quest, sheet);
@@ -233,6 +235,8 @@ export function createQuestlines({ machine, questLists = null, ctx = {}, service
         quest.hooks?.addHUDText?.(t('ql.reward.goldSettled', 'You receive {gold} more gold pieces for how it ended.', { gold: owed }));
       }
       if (!payProfileOf(outcome).gear || outcome.failure || !(quest.ql.paid || quest.questSuccess)) return null;
+      // No gear for a latched success while a non-catch-all failure outcome holds on this copy.
+      if (merged && sheet.outcomes.some((o) => o.failure && !isCatchAll(o) && holds(quest, o.on, probe))) return null;
       const tier = rewardTier(quest.ql.tier, outcome);
       // QL3 (section 5.2): a questline's ending NAMES one piece - the card of its kind, made from the base its sheet names,
       // by the same producer as its two companions, so the item law reads it as any piece; once a character. AUDIT
