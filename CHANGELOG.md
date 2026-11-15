@@ -5,6 +5,11 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- The game does less work each frame in towns, dungeons, and at sea, including enemy pathfinding, which helps slower computers.
+- The settings menu responds faster when you pick an option.
+- Enemies now check whether they can see or hear you sixteen times a second, so they may notice you (or lose sight of you) a moment later.
+- Fixed: Keys and mouse buttons are released when the game window loses focus, so you no longer keep walking or swinging after switching windows.
+- Fixed: Auras and the duel wall no longer risk broken pixels on some graphics cards.
 - Fixed: In the POI editor and DM tools, color pickers and dropdowns actually open up.
 - Fixed: In the POI editor, Place and Paste with nothing selected now go to the last selected POI instead of making a new POI or asking you to select one.
 - Fixed: In the POI editor, a paste into the same POI now rezzes in the same position as the original.
