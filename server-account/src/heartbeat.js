@@ -46,7 +46,7 @@ export async function heartbeat(ctx, player, env, body, sessionId = null) {
   // heartbeat's 2.6 primary statements, at seven heartbeats a second. None of them reads what the beat writes (the
   // played seconds and the Renown credit), so they go first, on the session's replica, and the beat after them.
   if (body?.mail === true) await part('mail', async () => (accountKind(player) !== 'linked' ? { error: 'mail-needs-account' } : inboxOf(ctx, player, env)));
-  if (body?.board !== undefined) await part('board', () => readBoard(ctx, player, env, body.board));
+  if (body?.board !== undefined) await part('board', () => readBoard(ctx, player, env, body.board, { lean: body.boardLean === true }));
   // SERVER-POST: the server's post (/v1/post/box's `postBoxOf`, refused `post-needs-account` to a guest as its door refuses one)
   if (body?.post === true) await part('post', async () => (accountKind(player) !== 'linked' ? { error: 'post-needs-account' } : postBoxOf(ctx, player, env)));   // PRIVATE-REPORT: env, a reader's count
   if (body?.beat === true) await part('beat', () => creditPlay(ctx, player.id, sessionId));   // SESSION-SIGN E3: under its session
