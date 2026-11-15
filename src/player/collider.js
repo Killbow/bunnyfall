@@ -114,6 +114,8 @@ let MARK_EPOCH = 0;
 const CAP_SPOKES = [0, 0, 1, 0, -1, 0, 0, 1, 0, -1, 1, 1, 1, -1, -1, 1, -1, -1];
 const CAP_ORIGIN = [0, 0, 0];
 const CAP_HIT = { dist: Infinity, key: null, normal: [0, 0, 0], back: false };
+const CAST_NEAR = [];
+const CAST_SLACK = 1e-2;
 function rayMarks(bucket) {
   let m = bucket.rayMark;
   if (!m || m.length < bucket.tris.length) {
@@ -194,6 +196,7 @@ export function onFloatingFrame(frame, translation) {
   return translation;
 }
 const RAY_NEAR = [];      // raycastHit's candidates
+const NEAR_MEMO = 8;
 const SPHERE_NEAR = [];   // the sphere walks' (never nested in a ray's walk, nor a ray in theirs)
 /** Where a bucket is filed (`bucket.lvl`): nothing yet, the fine cells, the coarse cells, `always`, `posed` (SEA-DROPS: a
  *  posed mover's, filed there at its birth and never elsewhere). A bucket's box only grows, so its level only rises - and
@@ -488,6 +491,64 @@ function nearCells(bucket, lx, ly, lz, r) {
   return NEAR;
 }
 
+const RUNS_MAX = 1024;
+function cellRun(bucket, lx, lz) {
+  const gx = Math.floor(lx / CELL), gz = Math.floor(lz / CELL), k = cellKey(gx, gz);
+  let runs = bucket.runs;
+  if (runs === null || runs.size >= RUNS_MAX) runs = bucket.runs = new Map();
+  let run = runs.get(k);
+  if (run !== undefined) return run;
+  const marks = rayMarks(bucket), stamp = RAY_STAMP, list = [];
+  for (let ox = -1; ox <= 1; ox++) {
+    for (let oz = -1; oz <= 1; oz++) {
+      const cell = bucket.grid.get(cellKey(gx + ox, gz + oz));
+      if (!cell) continue;
+      for (let ci = 0; ci < cell.length; ci++) {
+        const ti = cell[ci];
+        if (marks[ti] !== stamp) { marks[ti] = stamp; list.push(ti); }
+      }
+    }
+  }
+  const n = list.length, xz = new Float64Array(n * 4), tris = bucket.tris;
+  for (let i = 0; i < n; i++) {
+    const t = tris[list[i]], a = t[0], b = t[1], c = t[2];
+    xz[i * 4] = Math.min(a[0], b[0], c[0]); xz[i * 4 + 1] = Math.max(a[0], b[0], c[0]);
+    xz[i * 4 + 2] = Math.min(a[2], b[2], c[2]); xz[i * 4 + 3] = Math.max(a[2], b[2], c[2]);
+  }
+  run = { idx: Int32Array.from(list), xz };
+  runs.set(k, run);
+  return run;
+}
+const NO_WIDE = new Int32Array(0);
+const wideRun = (bucket, lx, ly, lz, r) => (bucket.wide.length ? wideNear(bucket, lx, ly, lz, r + WIDE_MARGIN) : NO_WIDE);
+
+/** How far a column's spans are widened past the contact's reach - the rounding of the resolve's own arithmetic. */
+const COLUMN_SLACK = 1e-3;
+const COLUMN_NEAR = [];
+function wideInColumn(bucket, x0, x1, z0, z1, out) {
+  const T = wideTree(bucket), box = T.box;
+  let sp = 0;
+  WIDE_STACK[sp++] = 0;
+  while (sp) {
+    const node = WIDE_STACK[--sp], o = node * 6;
+    if (x1 < box[o] - BOX_SKIN || x0 > box[o + 3] + BOX_SKIN || z1 < box[o + 2] - BOX_SKIN || z0 > box[o + 5] + BOX_SKIN) continue;
+    const l = T.left[node];
+    if (l < 0) { for (let k = T.start[node], e = k + T.count[node]; k < e; k++) out.push(T.order[k]); continue; }
+    WIDE_STACK[sp++] = l; WIDE_STACK[sp++] = l + 1;
+  }
+  return out;
+}
+const COLUMN_WIDE = [];
+const COLUMN_SPANS = [];
+/** Whether a capsule of `height` with its feet at `y` meets none of the column's spans. Then no sphere of its chain is
+ *  within contact reach of a triangle, and its resolve pushes nothing and reports nothing. */
+function columnClear(spans, y, height) {
+  const axis = Math.max(0, height - 2 * CAPSULE_RADIUS);
+  const lo = y - SKIN - COLUMN_SLACK, hi = y + 2 * CAPSULE_RADIUS + axis + SKIN + COLUMN_SLACK;
+  for (let i = 0; i < spans.length; i += 2) if (!(spans[i + 1] < lo || spans[i] > hi)) return false;
+  return true;
+}
+
 export function segmentHitsBox(ox, oy, oz, dir, min, max, limit) {
   if (!(limit >= 0)) return false;
   let tMin = 0, tMax = limit;
@@ -696,6 +757,9 @@ export class Collider {
     this._walk = 0;   // FIELD BUGS 2026-10-25i RAIL-HANG: a walking step's body height while its passes resolve (_moveStep), 0 for none
     this._walkRefused = false;   // RAIL-HANG: a sphere's resolve made again with no walking floor taken (_resolveSphere)
     this._onGround = false;   // RAIL-HANG (AUDIT FB1025i G6): the move's body stood on the ground when it began (move's `onGround`)
+    this._memo = null;
+    this._memoRing = Array.from({ length: NEAR_MEMO }, () => ({ x0: 0, x1: 0, z0: 0, z1: 0, after: 0, list: null }));
+    this._memoAt = 0;
   }
 
   /** SEA-DROPS: THE POSED MOVERS MAY STAND ELSEWHERE NOW - every bucket laid with addMesh's `posed` has its world box made
@@ -714,6 +778,20 @@ export class Collider {
    *  it stands now, reaches the query's (moverReaches); a posed mover where the box kept since its host last moved it
    *  does - and none of them where their union's does not. */
   _near(x0, x1, z0, z1, out, afterOrd = -1) {
+    const memo = this._memo;
+    if (memo === null) return this._gather(x0, x1, z0, z1, out, afterOrd);
+    for (let i = 0; i < NEAR_MEMO; i++) {
+      const e = memo[i];
+      if (e.list !== null && e.x0 === x0 && e.x1 === x1 && e.z0 === z0 && e.z1 === z1 && e.after === afterOrd) return e.list;
+    }
+    const list = this._gather(x0, x1, z0, z1, out, afterOrd);
+    const e = memo[this._memoAt];
+    this._memoAt = (this._memoAt + 1) % NEAR_MEMO;
+    e.x0 = x0; e.x1 = x1; e.z0 = z0; e.z1 = z1; e.after = afterOrd; e.list = list.slice();
+    return list;
+  }
+
+  _gather(x0, x1, z0, z1, out, afterOrd) {
     let broad = this._broad;
     if (broad !== null && framesMoved(broad)) broad = null;   // PERF-COL2: a floating frame that moved since the filing - its buckets filed again where they stand
     if (broad === null) broad = this._broad = buildBroad(this._buckets);
@@ -856,7 +934,7 @@ export class Collider {
       // OWN space (the translation is applied to the RAY, as the DDA
       // already does), kept as the triangles go in - one compare per
       // vertex, paid once at load, against a walk paid per ray.
-      bucket = { key: bucketKey, moves: !!(translation || rotation), frame: FRAME_OF.get(translation) ?? null, ord: -1, _broadStamp: 0, lvl: FILED_NONE, bx0: 0, bx1: -1, bz0: 0, bz1: -1, tris: [], yLo: [], yHi: [], part: [], parts: 0, sight: null, rayMark: null, posed: !!posed && !!(translation || rotation), wbox: null, grid: new Map(), wide: [], wideTree: null, t: translation || (() => ZERO3), r: rotation, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };   // AUDIT BRANCH (WoD) B1; OW-WOD-LAG: the wide triangles, and their tree (built when first asked); FB0930-FRAME: its key, whether it moves, its place in the walk
+      bucket = { key: bucketKey, moves: !!(translation || rotation), frame: FRAME_OF.get(translation) ?? null, ord: -1, _broadStamp: 0, lvl: FILED_NONE, bx0: 0, bx1: -1, bz0: 0, bz1: -1, tris: [], yLo: [], yHi: [], part: [], parts: 0, sight: null, rayMark: null, posed: !!posed && !!(translation || rotation), wbox: null, grid: new Map(), runs: null, wide: [], wideTree: null, t: translation || (() => ZERO3), r: rotation, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] };   // AUDIT BRANCH (WoD) B1; OW-WOD-LAG: the wide triangles, and their tree (built when first asked); FB0930-FRAME: its key, whether it moves, its place in the walk
       this._buckets.set(bucketKey, bucket);
     }
     const m = matrix;
@@ -870,6 +948,7 @@ export class Collider {
         m[2] * x + m[6] * y + m[10] * z + m[14],
       ];
     };
+    bucket.runs = null;
     const part = bucket.parts++;   // FIELD BUGS 2026-10-02 ROCK-FREE: each call one collider of the bucket's
     if (sight && !bucket.sight) bucket.sight = new Array(bucket.tris.length).fill(0);   // SIGN-PASS: a bucket's marks, one a triangle once any is marked
     // AUDIT REST III E2: A MIRRORED PLACEMENT'S WINDING, AS THE WORLD PASS WINDS IT - a negative determinant turns every
@@ -1006,6 +1085,13 @@ export class Collider {
    * all of them. Without it the answer is the one it always was.
    */
   raycastHit(origin, dirW, maxDist, filter = null, out = null) {
+    const ex = origin[0] + dirW[0] * maxDist, ez = origin[2] + dirW[2] * maxDist;
+    const near = this._near(Math.min(origin[0], ex) - BOX_SKIN, Math.max(origin[0], ex) + BOX_SKIN,
+      Math.min(origin[2], ez) - BOX_SKIN, Math.max(origin[2], ez) + BOX_SKIN, RAY_NEAR);
+    return this._rayHit(origin, dirW, maxDist, filter, out, near);
+  }
+
+  _rayHit(origin, dirW, maxDist, filter, out, near) {
     let best = Infinity;
     let bestKey = null;
     let bestTri = null;   // M3 climbing: the hit surface's normal rides the result
@@ -1013,10 +1099,6 @@ export class Collider {
     const only = filter?.only ? new Set(filter.only) : null;
     const skip = filter?.skip ? new Set(filter.skip) : null;
     const bodies = !!filter?.bodies;   // SIGN-PASS (AUDIT FB1025i G5): a body's own ray (BODY_RAY) - it passes a ray's triangle as the body does
-    // FB0930-FRAME: the buckets the ray's own world box reaches, in the walk's order - the rest would fail the box below
-    const ex = origin[0] + dirW[0] * maxDist, ez = origin[2] + dirW[2] * maxDist;
-    const near = this._near(Math.min(origin[0], ex) - BOX_SKIN, Math.max(origin[0], ex) + BOX_SKIN,
-      Math.min(origin[2], ez) - BOX_SKIN, Math.max(origin[2], ez) + BOX_SKIN, RAY_NEAR);
     for (let bi = 0; bi < near.length; bi++) {
       const bucket = near[bi], bkey = bucket.key;
       if (only && !only.has(bkey)) continue;
@@ -1231,13 +1313,11 @@ export class Collider {
         lz = center[2] - t[2];
       }
       if (!sphereTouchesBox(lx, ly, lz, radius, bucket.min, bucket.max)) continue;   // PERF-COL1: the same broad phase (the test below is `< r2`, no skin)
-      const marks = rayMarks(bucket), stamp = RAY_STAMP;   // FB0930-FRAME: the walk's stamp, not a Set
       const yLoOf = bucket.yLo, yHiOf = bucket.yHi, yReach = radius + SPHERE_Y_SLACK, sightOf = bucket.sight;
-      for (const cell of nearCells(bucket, lx, ly, lz, radius)) {   // AUDIT BRANCH (WoD) B1: the fine 3x3, then any wide triangles
+      for (let pass = 0; pass < 2; pass++) {   // AUDIT BRANCH (WoD) B1: the fine 3x3, then any wide triangles
+        const cell = pass === 0 ? cellRun(bucket, lx, lz).idx : wideRun(bucket, lx, ly, lz, radius);
         for (let ci = 0; ci < cell.length; ci++) {
           const ti = cell[ci];
-          if (marks[ti] === stamp) continue;
-          marks[ti] = stamp;
           if (sightOf !== null && sightOf[ti]) continue;   // SIGN-PASS (AUDIT FB1025i G5): room for a body is room a ray's triangle never takes
           if (yHiOf[ti] < ly - yReach || yLoOf[ti] > ly + yReach) continue;   // FB0930-FRAME: out of reach above or below
           const tri = bucket.tris[ti];
@@ -1285,13 +1365,11 @@ export class Collider {
         let ly = feet[1] + CAPSULE_RADIUS + (axis * i) / (n - 1) - t[1];
         if (R) { intoBucket(feet[0], feet[1] + CAPSULE_RADIUS + (axis * i) / (n - 1), feet[2], t, R, LOCAL); lx = LOCAL[0]; ly = LOCAL[1]; lz = LOCAL[2]; }
         if (!sphereTouchesBox(lx, ly, lz, lim, bucket.min, bucket.max)) continue;
-        const marks = rayMarks(bucket), stamp = RAY_STAMP;   // FB0930-FRAME: the walk's stamp, not a Set
         const yLoOf = bucket.yLo, yHiOf = bucket.yHi, yReach = lim + SPHERE_Y_SLACK, sightOf = bucket.sight;
-        for (const cell of nearCells(bucket, lx, ly, lz, lim)) {
+        for (let pass = 0; pass < 2; pass++) {
+          const cell = pass === 0 ? cellRun(bucket, lx, lz).idx : wideRun(bucket, lx, ly, lz, lim);
           for (let ci = 0; ci < cell.length; ci++) {
             const ti = cell[ci];
-            if (marks[ti] === stamp) continue;
-            marks[ti] = stamp;
             if (sightOf !== null && sightOf[ti]) continue;   // SIGN-PASS (AUDIT FB1025i G5): a body touches no ray's triangle
             if (yHiOf[ti] < ly - yReach || yLoOf[ti] > ly + yReach) continue;   // FB0930-FRAME: out of reach above or below
             const tri = bucket.tris[ti];
@@ -1520,6 +1598,9 @@ export class Collider {
     // FB0930-FRAME: an axis of no length (the clear-path probe casts from the centre to the centre) samples one point
     // however many are asked for - the others are the same nine rays again, which can never beat the first nine's hit
     const n = ax === 0 && ay === 0 && az === 0 ? 1 : Math.max(1, axisSamples);
+    const g = radius * (1 + Math.hypot(dir[0], dir[1], dir[2])) + CAST_SLACK, rx = dir[0] * reach, rz = dir[2] * reach;
+    const near = this._near(Math.min(p1[0], p2[0], p1[0] + rx, p2[0] + rx) - g, Math.max(p1[0], p2[0], p1[0] + rx, p2[0] + rx) + g,
+      Math.min(p1[2], p2[2], p1[2] + rz, p2[2] + rz) - g, Math.max(p1[2], p2[2], p1[2] + rz, p2[2] + rz) + g, CAST_NEAR);
     for (let i = 0; i < n; i++) {
       const t = n === 1 ? 0 : i / (n - 1);
       const bx = p1[0] + ax * t, by = p1[1] + ay * t, bz = p1[2] + az * t;
@@ -1536,7 +1617,7 @@ export class Collider {
       for (let sp = 0; sp < 9; sp++) {
         const su = CAP_SPOKES[sp * 2], sv = CAP_SPOKES[sp * 2 + 1], k = sp >= 5 ? h : radius;
         CAP_ORIGIN[0] = bx + (su * ux + sv * vx) * k; CAP_ORIGIN[1] = by + (su * uy + sv * vy) * k; CAP_ORIGIN[2] = bz + (su * uz + sv * vz) * k;
-        const hit = this.raycastHit(CAP_ORIGIN, dir, Math.min(reach, best), filter, CAP_HIT);   // HCC: the same bucket filter the rays take (a horse stepping past its own parked wagon)
+        const hit = this._rayHit(CAP_ORIGIN, dir, Math.min(reach, best), filter, CAP_HIT, near);   // HCC: the same bucket filter the rays take (a horse stepping past its own parked wagon)
         if (hit.dist < best) { best = hit.dist; bestKey = hit.key; }
       }
     }
@@ -1628,21 +1709,24 @@ export class Collider {
       if (R) intoBucket(center[0], center[1], center[2], t, R, LOCAL);
       const bx = R ? LOCAL[0] : center[0] - t[0], by = R ? LOCAL[1] : center[1] - t[1], bz = R ? LOCAL[2] : center[2] - t[2];   // the centre in the bucket, as it stands at the bucket's turn
       if (!sphereTouchesBox(bx, by, bz, radius + SKIN, bucket.min, bucket.max)) continue;
-      const marks = rayMarks(bucket), stamp = RAY_STAMP;   // FB0930-FRAME: the walk's stamp, not a Set
       const yLoOf = bucket.yLo, yHiOf = bucket.yHi, yReach = reach + SPHERE_Y_SLACK, sightOf = bucket.sight;
-      for (const cell of nearCells(bucket, bx, by, bz, radius + SKIN)) {   // AUDIT BRANCH (WoD) B1: the fine 3x3, then any wide triangles
+      // Recomputed whenever the center has moved, so later triangles see pushes from earlier ones.
+      let wx = NaN, wy = NaN, wz = NaN, lx = 0, ly = 0, lz = 0;
+      const xzReach = reach + SPHERE_Y_SLACK;
+      for (let pass = 0; pass < 2; pass++) {   // AUDIT BRANCH (WoD) B1: the fine 3x3, then any wide triangles
+        const run = pass === 0 ? cellRun(bucket, bx, bz) : null;
+        const cell = run !== null ? run.idx : wideRun(bucket, bx, by, bz, radius + SKIN), xz = run !== null ? run.xz : null;
         for (let ci = 0; ci < cell.length; ci++) {
           const ti = cell[ci];
-          if (marks[ti] === stamp) continue;
-          marks[ti] = stamp;
           if (sightOf !== null && sightOf[ti]) continue;   // SIGN-PASS (AUDIT FB1025i G5): a ray's triangle, never a body's (addMesh's `sight`)
-          // Live local point: pushes from earlier triangles must be
-          // seen by later ones (a stale snapshot compounded pushes).
-          let lx = center[0] - t[0];
-          let ly = center[1] - t[1];
-          let lz = center[2] - t[2];
-          if (R) { intoBucket(center[0], center[1], center[2], t, R, LOCAL); lx = LOCAL[0]; ly = LOCAL[1]; lz = LOCAL[2]; }
+          if (center[0] !== wx || center[1] !== wy || center[2] !== wz) {
+            wx = center[0]; wy = center[1]; wz = center[2];
+            lx = wx - t[0]; ly = wy - t[1]; lz = wz - t[2];
+            if (R) { intoBucket(wx, wy, wz, t, R, LOCAL); lx = LOCAL[0]; ly = LOCAL[1]; lz = LOCAL[2]; }
+          }
           if (yHiOf[ti] < ly - yReach || yLoOf[ti] > ly + yReach) continue;   // FB0930-FRAME: out of the contact's reach above or below, at the live point
+          if (xz !== null && (xz[ci * 4 + 1] < lx - xzReach || xz[ci * 4] > lx + xzReach
+            || xz[ci * 4 + 3] < lz - xzReach || xz[ci * 4 + 2] > lz + xzReach)) continue;
           const tri = bucket.tris[ti];
           if (!triNear(tri, lx, ly, lz, radius + SKIN)) continue;   // OW-WOD-LAG: the contact's own reach (contactR, below), the live point
           closestPointOnTriangle(lx, ly, lz, tri[0], tri[1], tri[2], TMP);
@@ -1825,7 +1909,7 @@ export class Collider {
     if (groundKey != null && (out.groundKey == null || groundKey !== 'dungeon')) out.groundKey = groundKey;
   }
 
-  _resolveCapsule(feet, out, height = CAPSULE_HEIGHT, standCeil = Infinity, straddle = false) {
+  _resolveCapsule(feet, out, height = CAPSULE_HEIGHT, standCeil = Infinity, straddle = false, clear = false) {
     // Two spheres: lower centered radius above the feet, upper below
     // the top. height varies with the player's stance (P12 crouch:
     // the PlayerHeightChanger controller heights) - passed per call
@@ -1840,8 +1924,8 @@ export class Collider {
     // clear of the clamp and is unaffected to the bit.
     const entryY = feet[1];
     const axis = Math.max(0, height - 2 * CAPSULE_RADIUS);
-    const low = [feet[0], feet[1] + CAPSULE_RADIUS, feet[2]];
-    const high = [feet[0], feet[1] + CAPSULE_RADIUS + axis, feet[2]];
+    const low = at3(CAP_LOW, feet[0], feet[1] + CAPSULE_RADIUS, feet[2]);
+    const high = at3(CAP_HIGH, feet[0], feet[1] + CAPSULE_RADIUS + axis, feet[2]);
     // COL1 (2026-09-15, Mac: "3d Geometry has no collison. For example,
     // in the first dungeon the table legs do have collison but the table
     // top doesnt"): THE BODY WAS SAMPLED AT TWO POINTS AND HAD A HOLE.
@@ -1912,7 +1996,7 @@ export class Collider {
     let lowFloor = -Infinity;
     for (let iter = 0; iter < 3; iter++) {
       const sx = low[0], sy = low[1], sz = low[2];   // PERF-CLIMB: where the pass began
-      if (tall) {
+      if (!clear && tall) {
         const lo = LOW_OUT;
         lo.grounded = false; lo.hitCeiling = false; lo.pushedDown = false; lo.groundKey = null; lo.groundY = undefined;
         this._resolveSphere(low, CAPSULE_RADIUS, lo, standCeil, lowOneWay);
@@ -1922,13 +2006,13 @@ export class Collider {
         out.pushedDown = out.pushedDown || lo.pushedDown;
         if (lo.grounded) out.groundY = Math.max(out.groundY ?? -Infinity, lo.groundY);
         if (lo.groundKey != null && (out.groundKey == null || lo.groundKey !== 'dungeon')) out.groundKey = lo.groundKey;
-      } else this._resolveSphere(low, CAPSULE_RADIUS, out, standCeil, lowOneWay);   // PH1: the lower sphere's floor is one-way
+      } else if (!clear) this._resolveSphere(low, CAPSULE_RADIUS, out, standCeil, lowOneWay);   // PH1: the lower sphere's floor is one-way
       for (let i = 0; i < middles; i++) {
         const m2 = mid[i];
         m2[0] = low[0];
         m2[2] = low[2];
         m2[1] = low[1] + (axis * (i + 1)) / (middles + 1);
-        this._resolveSphere(m2, CAPSULE_RADIUS, out, standCeil, false, true);   // COL1: a mid-body contact is a wall, never a floor (AUDIT COL1 F8: enforced, not narrated)
+        if (!clear) this._resolveSphere(m2, CAPSULE_RADIUS, out, standCeil, false, true);   // COL1: a mid-body contact is a wall, never a floor (AUDIT COL1 F8: enforced, not narrated)
         low[0] = m2[0];
         low[2] = m2[2];
         low[1] = m2[1] - (axis * (i + 1)) / (middles + 1);
@@ -1951,7 +2035,7 @@ export class Collider {
       // leaned up past the slope limit - the body stood on its head on the edge, grounded in mid-air, and each jump off
       // it landed back on it (measured: an eave 1.6 m up, a body held at 0.43 by its head, Jump held hopping forever).
       // The swim stance's one sphere is the lower's, and keeps its floor.
-      this._resolveSphere(high, CAPSULE_RADIUS, out, standCeil, axis === 0 ? lowOneWay : false, axis !== 0);
+      if (!clear) this._resolveSphere(high, CAPSULE_RADIUS, out, standCeil, axis === 0 ? lowOneWay : false, axis !== 0);
       low[0] = high[0];
       low[2] = high[2];
       low[1] = high[1] - axis;
@@ -1988,12 +2072,12 @@ export class Collider {
     // at the same centres the loop used, and any one of them still being
     // driven down is the too-tight answer the clamp exists for.
     if (out.hitCeiling && feet[1] > entryY) {
-      const probeOut = { grounded: false, hitCeiling: false, pushedDown: false };
+      const probeOut = blank(OUT_TIGHT);
       // from the first MIDDLE up to the head - the lower sphere owns the
       // floor, and a floor pushing it up is not what a ceiling clamps
       for (let i = 1; i <= middles + 1; i++) {
         const y = feet[1] + CAPSULE_RADIUS + (axis * i) / (middles + 1);   // A6: the clamped axis, the same centres the loop used
-        const probe = [feet[0], y, feet[2]];
+        const probe = at3(P_TIGHT, feet[0], y, feet[2]);
         this._resolveSphere(probe, CAPSULE_RADIUS, probeOut);
         if (probe[1] < y - 1e-4) { feet[1] = Math.max(entryY, floorFeet); break; }   // still being pushed DOWN out of a ceiling -> too tight, revert (SQUEEZE1: never under a tall body's floor)
       }
@@ -2031,11 +2115,15 @@ export class Collider {
    *  (EnemyMotor's walk, whose every step carries gravity's fall): its step is a WALKING one, as a step with no fall in
    *  it is (_moveStep's `_walk`). */
   move(feet, dx, dy, dz, height = CAPSULE_HEIGHT, snap = true, keepFloor = false, noStep = false, onGround = false) {
-    const was = this._keepFloor, stepped = this._noStep, stood = this._onGround, walked = this._walk;
+    const was = this._keepFloor, stepped = this._noStep, stood = this._onGround, walked = this._walk, memo = this._memo;
     this._keepFloor = !!keepFloor;
     this._noStep = !!noStep;
     this._onGround = !!onGround;
-    try { return this._move(feet, dx, dy, dz, height, snap); } finally { this._keepFloor = was; this._noStep = stepped; this._onGround = stood; this._walk = walked; }   // RAIL-HANG (AUDIT FB1025i G8): a throw leaves no walking pass behind it
+    if (memo === null) {
+      for (const e of this._memoRing) e.list = null;
+      this._memo = this._memoRing;
+    }
+    try { return this._move(feet, dx, dy, dz, height, snap); } finally { this._keepFloor = was; this._noStep = stepped; this._onGround = stood; this._walk = walked; this._memo = memo; }   // RAIL-HANG (AUDIT FB1025i G8): a throw leaves no walking pass behind it
   }
   _move(feet, dx, dy, dz, height = CAPSULE_HEIGHT, snap = true) {
     const maxComp = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
@@ -2096,6 +2184,42 @@ export class Collider {
     return true;
   }
 
+  _column(x, z) {
+    const c = CAPSULE_RADIUS + SKIN + COLUMN_SLACK, spans = COLUMN_SPANS;
+    spans.length = 0;
+    const near = this._near(x - c - BOX_SKIN, x + c + BOX_SKIN, z - c - BOX_SKIN, z + c + BOX_SKIN, COLUMN_NEAR);
+    for (let bi = 0; bi < near.length; bi++) {
+      const b = near[bi], mn = b.min, mx = b.max;
+      if (!(mn[0] <= mx[0] && mn[1] <= mx[1] && mn[2] <= mx[2])) continue;
+      const t = b.t(), R = b.r ? b.r() : null;
+      if (R) {
+        const w = moverBox(b, MOVER_BOX);
+        if (!(x + c < w[0] || x - c > w[1] || z + c < w[2] || z - c > w[3])) spans.push(-Infinity, Infinity);
+        continue;
+      }
+      const lx = x - t[0], lz = z - t[2];
+      if (lx + c < mn[0] - BOX_SKIN || lx - c > mx[0] + BOX_SKIN || lz + c < mn[2] - BOX_SKIN || lz - c > mx[2] + BOX_SKIN) continue;
+      const tris = b.tris, yLo = b.yLo, yHi = b.yHi, ty = t[1];
+      const x0 = lx - c, x1 = lx + c, z0 = lz - c, z1 = lz + c;
+      for (let gx = Math.floor(x0 / CELL), gx1 = Math.floor(x1 / CELL); gx <= gx1; gx++) {
+        for (let gz = Math.floor(z0 / CELL), gz1 = Math.floor(z1 / CELL); gz <= gz1; gz++) {
+          const cell = b.grid.get(cellKey(gx, gz));
+          if (!cell) continue;
+          for (let ci = 0; ci < cell.length; ci++) {
+            const ti = cell[ci], tri = tris[ti], p = tri[0], q = tri[1], r = tri[2];
+            if (Math.max(p[0], q[0], r[0]) < x0 || Math.min(p[0], q[0], r[0]) > x1 || Math.max(p[2], q[2], r[2]) < z0 || Math.min(p[2], q[2], r[2]) > z1) continue;
+            spans.push(yLo[ti] + ty, yHi[ti] + ty);
+          }
+        }
+      }
+      if (b.wide.length) {
+        COLUMN_WIDE.length = 0;
+        for (const ti of wideInColumn(b, x0, x1, z0, z1, COLUMN_WIDE)) spans.push(yLo[ti] + ty, yHi[ti] + ty);
+      }
+    }
+    return spans;
+  }
+
   /**
    * Unstick: from feet, step UP until the capsule is in clear space
    * (penetration below a threshold) AND there is floor within a short
@@ -2140,7 +2264,7 @@ export class Collider {
     const standCeil = entryY + STEP_OFFSET;
     feet[0] += dx;
     feet[2] += dz;
-    const hOut = { grounded: false, hitCeiling: false, pushedDown: false };
+    const hOut = blank(OUT_SIDE);
     // FIELD BUGS 2026-10-25i RAIL-HANG: and a WALKING body - no fall in its step (velY is 0 on the player's ground), or
     // one its motor says began on the ground (EnemyMotor's walk carries gravity's fall every step, as DFU's does: AUDIT
     // FB1025i G6) - is set by none of its step's passes (the sideways pass, the ladder, the vertical pass and its snap) on
@@ -2184,16 +2308,16 @@ export class Collider {
       // where the plane pushes it back down, never skipped beyond.
       let prevResolvedY = feet[1];
       for (const lift of [0.125, 0.25, 0.375, STEP_OFFSET]) {
-        const raisedStart = [beforeX, feet[1] + lift, beforeZ];
-        const startOut = { grounded: false, hitCeiling: false, pushedDown: false };
+        const raisedStart = at3(P_RAISED, beforeX, feet[1] + lift, beforeZ);
+        const startOut = blank(OUT_RAISED);
         this._resolveCapsule(raisedStart, startOut, height, standCeil);
         if (raisedStart[1] <= prevResolvedY + 1e-4) break;   // no headroom gained - the ladder tops out
         if (startOut.refused) break;   // WW-LID: a rung the resolve refused (the head has no room there) is no headroom either - it read as the raised height itself
         prevResolvedY = raisedStart[1];
         // Forward from the RESOLVED (possibly ceiling-capped) height,
         // full intent.
-        const retry = [beforeX + dx, raisedStart[1], beforeZ + dz];
-        const retryOut = { grounded: false, hitCeiling: false, pushedDown: false };
+        const retry = at3(P_RETRY, beforeX + dx, raisedStart[1], beforeZ + dz);
+        const retryOut = blank(OUT_RETRY);
         this._resolveCapsule(retry, retryOut, height, standCeil);
         const retrySq = (retry[0] - beforeX) ** 2 + (retry[2] - beforeZ) ** 2;
         // The raised path must be GENUINELY clear (the same blocked
@@ -2222,8 +2346,8 @@ export class Collider {
         let landed = null;
         for (let y = retry[1]; ; y -= STEP_OFFSET / 8) {
           const probeY = Math.max(y, entryY);
-          const probe = [retry[0], probeY, retry[2]];
-          const probeOut = { grounded: false, hitCeiling: false, pushedDown: false };
+          const probe = at3(P_LAND, retry[0], probeY, retry[2]);
+          const probeOut = blank(OUT_LAND);
           this._resolveCapsule(probe, probeOut, height, standCeil);
           const slidSq = (probe[0] - retry[0]) ** 2 + (probe[2] - retry[2]) ** 2;
           if (probeOut.grounded && !probeOut.pushedDown && slidSq < 1e-8
@@ -2245,7 +2369,8 @@ export class Collider {
     // Vertical - the frame's TRUTH for grounded/ceiling.
     const vx0 = feet[0], vy0 = feet[1], vz0 = feet[2];
     feet[1] += dy;
-    this._resolveCapsule(feet, out, height, Infinity, dy > 0);   // DISC28-G: a rising pass meets ceilings, never floors over the head
+    let column = hOut.grounded ? null : this._column(feet[0], feet[2]);
+    this._resolveCapsule(feet, out, height, Infinity, dy > 0, column !== null && columnClear(column, feet[1], height));   // DISC28-G: a rising pass meets ceilings, never floors over the head
     // THE DOWN PASS IS COLLIDE-AND-STOP. PhysX's CCT (Unity's
     // CharacterController) sweeps the downward component alone with
     // maxIterDown = 1 (CctCharacterController.cpp moveCharacter, under
@@ -2269,13 +2394,13 @@ export class Collider {
       let lo = 0, hi = -dy;   // lo: a descent known clear; hi: one known to penetrate
       for (let i = 0; i < 10; i++) {
         const mid = (lo + hi) / 2;
-        const probe = [vx0, vy0 - mid, vz0];
-        const pOut = { grounded: false, hitCeiling: false, pushedDown: false };
+        const probe = at3(P_BISECT, vx0, vy0 - mid, vz0);
+        const pOut = blank(OUT_BISECT);
         this._resolveCapsule(probe, pOut, height);
         if ((probe[0] - vx0) ** 2 + (probe[1] - (vy0 - mid)) ** 2 + (probe[2] - vz0) ** 2 < 1e-12) lo = mid; else hi = mid;
       }
-      const stop = [vx0, vy0 - lo, vz0];
-      const sOut = { grounded: false, hitCeiling: false, pushedDown: false };
+      const stop = at3(P_STOP, vx0, vy0 - lo, vz0);
+      const sOut = blank(OUT_STOP);
       this._resolveCapsule(stop, sOut, height);   // at rest in the skin shell: the flags, no push
       if (sOut.grounded) {
         feet[0] = stop[0]; feet[1] = stop[1]; feet[2] = stop[2];
@@ -2304,9 +2429,11 @@ export class Collider {
     // the capsule STANDS - grounded, not pushed down, not slid - and
     // stops there. A tread is met from just above it, never from inside.
     if (snap && dy <= 0 && !out.grounded) {
+      if (column === null || feet[0] !== vx0 || feet[2] !== vz0) column = this._column(feet[0], feet[2]);
       for (let y = feet[1] - STEP_OFFSET / 8; y >= feet[1] - STEP_OFFSET - 1e-9; y -= STEP_OFFSET / 8) {
-        const probe = [feet[0], y, feet[2]];
-        const probeOut = { grounded: false, hitCeiling: false, pushedDown: false };
+        if (columnClear(column, y, height)) continue;
+        const probe = at3(P_SNAP, feet[0], y, feet[2]);
+        const probeOut = blank(OUT_SNAP);
         this._resolveCapsule(probe, probeOut, height);
         const slidSq = (probe[0] - feet[0]) ** 2 + (probe[2] - feet[2]) ** 2;
         // A down-pushed probe tunneled under geometry (a step top's
@@ -2322,8 +2449,8 @@ export class Collider {
           // first stands may hover a hair above the tread: settle it a
           // skin further, where the resolve places the feet ON the
           // contact (the old whole-drop probe landed exact; so does this).
-          const settle = [probe[0], probe[1] - SKIN, probe[2]];
-          const settleOut = { grounded: false, hitCeiling: false, pushedDown: false };
+          const settle = at3(P_SETTLE, probe[0], probe[1] - SKIN, probe[2]);
+          const settleOut = blank(OUT_SETTLE);
           this._resolveCapsule(settle, settleOut, height);
           const settled = settleOut.grounded && !settleOut.pushedDown && settle[1] <= probe[1] + 1e-6
             && (settle[0] - probe[0]) ** 2 + (settle[2] - probe[2]) ** 2 <= (STEP_OFFSET / 8) ** 2;
@@ -2363,9 +2490,9 @@ export class Collider {
       // ...but never against the step-up LADDER above: a capsule lifted
       // in front of a riser is off the floor on purpose, and the floor
       // takes it only where the mesh leaves the capsule alone there.
-      const probe = [feet[0], floor, feet[2]];
-      const probeOut = { grounded: false, hitCeiling: false, pushedDown: false };
-      this._resolveCapsule(probe, probeOut, height);
+      const probe = at3(P_FLOOR, feet[0], floor, feet[2]);
+      const probeOut = blank(OUT_FLOOR);
+      if (column === null || !columnClear(column, floor, height)) this._resolveCapsule(probe, probeOut, height);
       if (!probeOut.hitCeiling && Math.abs(probe[0] - feet[0]) < 1e-6 && Math.abs(probe[2] - feet[2]) < 1e-6 && Math.abs(probe[1] - floor) < 1e-6) {
         feet[1] = floor;
         out.grounded = true;
@@ -2526,6 +2653,13 @@ const minmod = (a, b) => (a * b <= 0 ? 0 : Math.abs(a) < Math.abs(b) ? a : b);
 const MID_SCRATCH = [];
 /** SQUEEZE1: the lower sphere's own answer, for a body taller than the player's stances (merged into the pass's as _resolveSphere merges). */
 const LOW_OUT = { grounded: false, hitCeiling: false, pushedDown: false, groundKey: null, groundY: undefined };
+const at3 = (a, x, y, z) => { a[0] = x; a[1] = y; a[2] = z; return a; };
+const blank = (o) => { o.grounded = false; o.hitCeiling = false; o.pushedDown = false; o.groundKey = undefined; o.groundY = undefined; o.refused = undefined; return o; };
+const newOut = () => blank({});
+const CAP_LOW = [0, 0, 0], CAP_HIGH = [0, 0, 0], P_TIGHT = [0, 0, 0], P_RAISED = [0, 0, 0], P_RETRY = [0, 0, 0], P_LAND = [0, 0, 0];
+const P_BISECT = [0, 0, 0], P_STOP = [0, 0, 0], P_SNAP = [0, 0, 0], P_SETTLE = [0, 0, 0], P_FLOOR = [0, 0, 0];
+const OUT_TIGHT = newOut(), OUT_SIDE = newOut(), OUT_RAISED = newOut(), OUT_RETRY = newOut(), OUT_LAND = newOut();
+const OUT_BISECT = newOut(), OUT_STOP = newOut(), OUT_SNAP = newOut(), OUT_SETTLE = newOut(), OUT_FLOOR = newOut();
 // AUDIT COL1 F12: the fraction of a DIAMETER that consecutive bead
 // centres may be apart. 1 is tangency - a join with no bite at all.
 const BEAD_OVERLAP = 0.95;
