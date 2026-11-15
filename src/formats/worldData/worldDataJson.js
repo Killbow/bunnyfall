@@ -441,8 +441,11 @@ const clone = (v) => {
  *  block's JSON (the patch never carries what it can point at).
  *  WD-OWNED (2026-10-20, bible/07-Rendering/Performance-Priority.md WD-OWNED): `owned` - the base is the caller's
  *  own, a plain JSON tree made for this patch and held nowhere else - is laid on in place: its copy would be itself
- *  (a JSON round trip changes no plain tree), and a pack's 7,727 town files each copied one at the boot. */
-export function patchJson(base, ops, resolve = null, { owned = false } = {}) {
+ *  (a JSON round trip changes no plain tree), and a pack's 7,727 town files each copied one at the boot.
+ *  `shared` copies on write: only the containers an op passes through are copied. The answer shares everything else
+ *  with `base` and the laid values, so nothing may write to it. */
+export function patchJson(base, ops, resolve = null, { owned = false, shared = false } = {}) {
+  if (shared) return patchShared(base, ops);
   let root = owned ? base : clone(base);
   for (let op of ops) {
     if (op[0] === 'ci' || op[0] === 'cs') {
@@ -472,6 +475,49 @@ export function patchJson(base, ops, resolve = null, { owned = false } = {}) {
     } else if (kind === 'i') {
       if (!Array.isArray(parent) || key < 0 || key > parent.length) throw new Error(`world-data patch: insert outside the array at ${JSON.stringify(path)}`);
       parent.splice(key, 0, clone(op[2]));
+    } else if (kind === 'r') {
+      if (!Array.isArray(parent) || key < 0 || key >= parent.length) throw new Error(`world-data patch: remove outside the array at ${JSON.stringify(path)}`);
+      parent.splice(key, 1);
+    } else throw new Error(`world-data patch: unknown op '${kind}'`);
+  }
+  return root;
+}
+
+function patchShared(base, ops) {
+  const mine = new Set();
+  const own = (v) => {
+    if (mine.has(v)) return v;
+    const c = Array.isArray(v) ? v.slice() : { ...v };
+    mine.add(c);
+    return c;
+  };
+  let root = base;
+  for (const op of ops) {
+    const [kind, path] = op;
+    if (kind === 'ci' || kind === 'cs') throw new Error('world-data patch: a copy op and no resolver');
+    if (path.length === 0) {
+      if (kind !== 's') throw new Error(`world-data patch: '${kind}' at the root`);
+      root = op[2];
+      continue;
+    }
+    if (root === null || typeof root !== 'object') throw new Error(`world-data patch: ${JSON.stringify(path)} does not reach a container`);
+    root = own(root);
+    let parent = root;
+    for (let i = 0; i < path.length - 1; i++) {
+      const next = parent[path[i]];
+      if (next === null || typeof next !== 'object') throw new Error(`world-data patch: ${JSON.stringify(path)} does not reach a container`);
+      parent = parent[path[i]] = own(next);
+    }
+    const key = path[path.length - 1];
+    if (kind === 's') {
+      if (Array.isArray(parent) && !(key >= 0 && key < parent.length)) throw new Error(`world-data patch: set past the end at ${JSON.stringify(path)}`);
+      parent[key] = op[2];
+    } else if (kind === 'd') {
+      if (!isObj(parent) || !(key in parent)) throw new Error(`world-data patch: no key at ${JSON.stringify(path)}`);
+      delete parent[key];
+    } else if (kind === 'i') {
+      if (!Array.isArray(parent) || key < 0 || key > parent.length) throw new Error(`world-data patch: insert outside the array at ${JSON.stringify(path)}`);
+      parent.splice(key, 0, op[2]);
     } else if (kind === 'r') {
       if (!Array.isArray(parent) || key < 0 || key >= parent.length) throw new Error(`world-data patch: remove outside the array at ${JSON.stringify(path)}`);
       parent.splice(key, 1);
