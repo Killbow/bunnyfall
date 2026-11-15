@@ -400,7 +400,7 @@ export const REST_ASK_BAND_MAX = 64;
 /** AUDIT III E1: how far a joiner's spot may sit off what the placement could have found - the ask's 0.01 rounding of
  *  the feet and the spot, and a ray's grazing, never a room's worth. */
 export const REST_ASK_SPOT_SLACK = 0.05;
-/** Shared encounters one frame carries before old bodies are dropped; every living one is always sent. */
+/** Bodies fill a frame's shared encounters up to this count, newest first; living ones are never capped. */
 export const SHARED_FOES_MAX = 32;
 /** REST-SYNC's `xf` on a full frame: every shared foe listed (XF_WHOLE), or - RPT1026-ITEMS BODY-CAP - every standing one,
  *  the cap having shed bodies past SHARED_FOES_MAX (XF_STANDING). An older build reads only XF_WHOLE. */
