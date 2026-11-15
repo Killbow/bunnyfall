@@ -142,6 +142,7 @@ export const CLASSIC_BOOK_COUNT = BOOK_IDS.length;
 // worse lie than a shelf of dear ones.
 const _bookPrices = new Map();
 let _warnedNoPrices = false;
+const _bookFilesRead = new Set();
 
 /** The registry's write side - the host's book boot calls it per id. */
 export function setBookPrice(id, price) {
@@ -150,7 +151,7 @@ export function setBookPrice(id, price) {
 /** How many book files the host has priced (0 = never warmed). */
 export const bookPriceCount = () => _bookPrices.size;
 /** Test seam: the registry is module state, so it needs an unwind. */
-export function clearBookPrices() { _bookPrices.clear(); _unreadable.clear(); _warnedNoPrices = false; }
+export function clearBookPrices() { _bookPrices.clear(); _unreadable.clear(); _bookFilesRead.clear(); _warnedNoPrices = false; }
 
 /** BookFile.Price for a book id, or null when the registry has no
  *  entry for it (no ARENA2 warmed, or a file that would not open -
@@ -230,12 +231,17 @@ export async function loadBookPrices(fetchBytes) {
   if (typeof fetchBytes !== 'function') return _bookPrices.size;
   await Promise.all(BOOK_IDS.map(async (id) => {
     const name = bookFileNameQuiet(id);
-    if (!name) return;
+    if (!name || _bookFilesRead.has(name)) return;
+    _bookFilesRead.add(name);
     try {
       const bf = new BookFile();
       bf.load(await fetchBytes(name), name);
       setBookPrice(id, bf.price);
-    } catch { _unreadable.add(id); }
+    } catch (e) {
+      // A dropped download (fetch's TypeError) is read again; any other failure leaves the book out of random draws.
+      if (e instanceof TypeError) _bookFilesRead.delete(name);
+      else _unreadable.add(id);
+    }
   }));
   return _bookPrices.size;
 }

@@ -150,6 +150,7 @@ import { lwSeed } from '../systems/livingWorld/seed.js';   // LW9: the halt's wo
 import { goldStack } from '../systems/inventory.js';   // LW6b: ...and their purse
 import { livingRemainsLay } from './livingWorld/remainsGoods.js'; import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
 import { createLivingIndoors } from './livingWorld/livingIndoors.js';   // LW8: the residents inside the building the player is in
+import { warmDungeonModulesWhenIdle } from './dungeonWarm.js';
 import { createTravellerSprites, classLookOf } from '../world/travellerSprites.js';   // LW3: their bodies, and the armed walk's sprite
 import { GUARD_TEXTURE, PERSON_TEXTURES, PERSON_MOVE_SPEED, walkerRace } from '../characters/mobile/mobilePerson.js';
 import { bowDamageArrow } from '../combat/enemyEquipment.js';   // MAC-N1: the recovered shaft is CreateWeapon's arrow, value and all
@@ -35976,5 +35977,5 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     frameEnd();   // PERF1
     requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  requestAnimationFrame(frame); warmDungeonModulesWhenIdle();
 }
