@@ -18,7 +18,7 @@ import { firmamentStats } from '../../systems/firmamentLive.js';
 import { workWidth } from '../../systems/workAct.js';   // the Bench's work: an arc's width
 import { FORMS } from '../../net/craft/forms.js';   // BUNNYFALL CRAFTING REWORK: the item once, its materials a choice
 import { statsOf } from '../../net/craft/materialStats.js';
-import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, FOCUS_CHANGE_MARKS, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct } from '../../net/craft/craftLaw.js';
+import { planOf, inputsOf, potentialOfPlan, qualityCap, craftValueXp, craftOdds, craftModRange, MOD_KINDS, FOCUS_MAX, FOCUS_CHANGE_MARKS, CRAFTWORK_SWING, CRAFT_SWING, CRAFTWORK_TRACKS, craftworkPct, FOCUS_HALF_RANK } from '../../net/craft/craftLaw.js';
 import { PROF_RANK_MAX } from '../../net/professionLaw.js';   // CRAFTWORK: entered at the top rank
 import { mintPiece } from '../../systems/smithItems.js';   // the card's "You will make": the name the mint gives
 import { rriEnabled } from '../../systems/roleplayRealismItems/rriItems.js';   // the mod's pieces only while the mod is on
@@ -50,7 +50,7 @@ const familyWord = (f) => FAMILY_WORDS[f] ?? `${String(f)[0].toUpperCase()}${Str
 const groupWord = (r) => (r.group === 'MensClothing' ? "men's" : r.group === 'WomensClothing' ? "women's" : null);
 
 /** The window's own memory: its tab, the pattern picked, its variant, a minigame under way, the last word said. */
-const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, toActions: false, busy: false, word: null, count: 1, query: '', commit: null };
+const _cw = { station: null, form: null, focusAsk: null, cwAsk: null, look: null, q: '', qFocus: false, tab: 'craft', family: null, pick: null, variant: null, picks: {}, heartwood: false, dye: null, act: null, toActions: false, busy: false, word: null, count: 1, query: '' };
 export function resetCraftWindow() { Object.assign(_cw, { station: null, tab: 'craft', family: null, pick: null, variant: null, picks: {}, act: null, busy: false, word: null, count: 1, query: '' }); }
 
 const STYLE_ID = 'bf-craft-window-style';
@@ -462,7 +462,7 @@ export function drawFocus(root, rerender, p, showWord = false) {
   const f = book.focus();
   const word = (c) => `${c[0].toUpperCase()}${c.slice(1)}`;
   const box = h('div', 'cw-focus');
-  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience and top out at Superior. Dropping one costs ${f.cost} Imperial Argents.`));
+  box.append(h('div', 'cw-label', `Focus (${f.crafts.length} of ${FOCUS_MAX}): a Focus craft levels at full speed and can reach Masterwork. Other crafts earn half experience from rank 50 and top out at Superior. Dropping one costs ${f.cost} Imperial Argents.`));
   const ask = _cw.focusAsk;
   const chips = h('div', 'cw-chips');
   for (const c of ['smithing', 'building', 'outfitting', 'enchanting']) {   // Provisioning is its own system (docs/PROVISIONING.md)
@@ -788,7 +788,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   }
   const fee = valueFee(recipeValue(r.id), feeOf(p, station));
   const cw = typeof book.isCraftwork === 'function' && book.isCraftwork(S.prof);
-  sum.append(h('p', 'cw-note', `+${scaleXp(craftValueXp(plan, inputs, rank, focus), craftworkPct(xpPct(firmamentStats(), S.prof), cw))} ${S.prof} experience${focus ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
+  sum.append(h('p', 'cw-note', `+${scaleXp(craftValueXp(plan, inputs, rank, focus), craftworkPct(xpPct(firmamentStats(), S.prof), cw))} ${S.prof} experience${focus || rank < FOCUS_HALF_RANK ? '' : ' (half, off Focus)'}${fee ? ` · fee ${fee} gold` : ''}`));
   if (st.s === 'locked') sum.append(h('p', 'cw-note', `Needs ${S.prof} rank ${r.rank}.`));
   const purseOk = !fee || (p.purse?.() ?? Infinity) >= fee;
   if (!purseOk) sum.append(h('p', 'cw-note', `You need ${fee} gold for the fee.`));
@@ -852,14 +852,16 @@ function drawUpgrade(root, p, station, run) {
       const r = RECIPES.find((x) => x.id === pc.recipe);
       if (!r) continue;
       const cost = temperCost(r, pc.quality), gold = temperGold(pc.quality) + valueFee(itemFeeValue(pc.item), fee);
-      const spec100 = specsOf(book, S.temper === 'loom' ? 'outfitting' : 'smithing')?.[100];
-      const cap = temperCap(r, rank, spec100), top = temperCap(r, PROF_RANK_MAX, spec100), next = pc.quality + 1;
+      const craft = S.temper === 'loom' ? 'outfitting' : 'smithing', spec100 = specsOf(book, craft)?.[100];
+      const focus = book?.isFocus?.(craft) !== false;
+      const cap = temperCap(r, rank, spec100, focus), top = temperCap(r, PROF_RANK_MAX, spec100, focus), next = pc.quality + 1;
       const lifts = S.temper === 'anvil' && next <= temperCap(r, PROF_RANK_MAX, 'masterwright');
       const have = workOf(book, cost.key);
       const line = h('div', 'cw-line');
       const main = h('div', 'cw-line-main');
       main.append(h('b', null, pc.name));
-      if (next > top && lifts) main.append(h('span', 'cw-state', `Upgrades stop at ${QUALITY_NAMES[top]} on this piece. The Masterwright perk raises the limit to Masterwork.`));
+      if (next > top && !focus && (lifts || next <= temperCap(r, PROF_RANK_MAX, spec100))) main.append(h('span', 'cw-state', `Outside your Focus, upgrades stop at ${QUALITY_NAMES[top]}.`));
+      else if (next > top && lifts) main.append(h('span', 'cw-state', `Upgrades stop at ${QUALITY_NAMES[top]} on this piece. The Masterwright perk raises the limit to Masterwork.`));
       else if (next > top) main.append(h('span', 'cw-state', `Upgrades stop at ${QUALITY_NAMES[top]} on this piece, even at rank ${PROF_RANK_MAX}.`));
       else main.append(h('span', 'cw-state', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[next]}: ${cost.n} ${p.name(cost.key)} (have ${have}) and ${gold} gold`));
       if (next > cap && next <= top) main.append(h('span', 'cw-state', `Your rank reaches ${QUALITY_NAMES[cap]} on this piece.`));
@@ -886,38 +888,19 @@ function drawUpgrade(root, p, station, run) {
 function drawSalvage(root, p, run) {
   if (typeof p.salvageable !== 'function') { root.append(h('div', 'cw-empty', 'Salvage is not open here.')); return; }
   const pieces = p.salvageable();
-  // BUNNYFALL SPEC-SAFE: a salvage that would carry a craft past Journeyman (one of the two a character may raise) is asked
-  // about first, and nothing is broken until the player says yes
-  const salvage = (items) => run(async () => {
-    _cw.commit = null;
-    const r = await p.salvage(items);
-    if (r?.needsCommit) _cw.commit = { items, needs: r.needsCommit };
-    return r;
-  });
-  if (_cw.commit) {
-    const box = h('div', 'cw-line');
-    const names = _cw.commit.needs.map((n) => n.name).join(' and ');
-    const main = h('div', 'cw-line-main');
-    main.append(h('b', null, `Raise ${names} past Journeyman?`), h('span', 'cw-state', 'You can raise only two crafts past rank 50. The others stay at 50 for good. Nothing has been broken yet.'));
-    const { items, needs } = _cw.commit;
-    box.append(main,
-      button('cw-btn', 'Yes, salvage', () => { _cw.commit = null; run(() => p.salvage(items, { commit: needs.map((n) => n.track) })); }, _cw.busy),
-      button('cw-btn', 'No', () => { _cw.commit = null; run(async () => ({ text: 'Nothing was salvaged.' })); }, _cw.busy));
-    root.append(box);
-  }
   root.append(h('p', 'cw-note', 'Found gear breaks into about 40% of the materials it is made of, straight into your Stores. Magic pieces also give Welkynd Shards.'));
   if (!pieces.length) { root.append(h('div', 'cw-empty', 'Nothing in your pack to salvage.')); return; }
   const plain = pieces.filter((x) => x.materials && (!x.item.rarity || x.item.rarity === 'common'));
   if (plain.length) {
     const all = h('div', 'cw-actions');
-    all.append(button('cw-btn', `Salvage all plain gear (${plain.length}): ${materialsText(plain.map((x) => x.item))}`, () => salvage(plain.map((x) => x.item)), _cw.busy));
+    all.append(button('cw-btn', `Salvage all plain gear (${plain.length}): ${materialsText(plain.map((x) => x.item))}`, () => run(() => p.salvage(plain.map((x) => x.item))), _cw.busy));
     root.append(all);
   }
   for (const x of pieces) {
     const line = h('div', 'cw-line');
     const main = h('div', 'cw-line-main');
     main.append(h('b', null, x.name), h('span', 'cw-state', x.materials ? materialsText([x.item]) : 'Welkynd Shards only'));
-    line.append(main, button('cw-btn', 'Salvage', () => salvage([x.item]), _cw.busy));
+    line.append(main, button('cw-btn', 'Salvage', () => run(() => p.salvage([x.item])), _cw.busy));
     root.append(line);
   }
 }
@@ -975,7 +958,7 @@ const BENCH_HELP = Object.freeze([
   ['The Bench', 'Every piece is made here. Pick a station at the top, then an item from the list. You can read any list anywhere, but you craft at the matching station: a shop (it takes a fee), your home, your company hall or a caravan. Materials come from your Stores, your Materials Bag and your pack.'],
   ['Materials', 'The main material makes the piece (Steel makes a Steel Dagger). Fittings such as a flux, a grip or a lining are your choice: any one you hold works. Each item says what it wants, for example hardness and lightness. Materials that suit it better give it a higher Potential.'],
   ['Potential and quality', 'Potential is the best quality the materials can give. Your rank over the item\'s rank rolls the quality, and it never goes above Potential. Your perk at rank 50 adds a step, and so does a Company hall in a town your guild holds. The odds bar shows your chances before you craft.'],
-  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, on the Professions page of this tab or at the top of the list here. Only a Focus craft can reach Masterwork and earns full experience. Anything else stops at Superior and earns half. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} Imperial Argents.`],
+  [`Focus (${FOCUS_MAX} crafts)`, `Pick up to ${FOCUS_MAX} crafting professions as your Focus, here or on the Professions page. Only a Focus craft reaches Masterwork; other crafts stop at Superior and earn half experience from rank 50. Dropping a Focus craft costs ${FOCUS_CHANGE_MARKS} Imperial Argents.`],
   ['The Work (the minigame)', 'Craft (minigame) plays The Work. A clean run raises your quality odds, and every true strike pushes the material effects toward their best. Craft, skip the game makes the piece at your plain odds.'],
   ['Material effects', `Each material leans a piece four ways. H is damage or armour, T is condition, L is weight and A is enchantment power, each up to ${CRAFT_SWING}% better or worse. The card shows the range before you craft.`],
   ['Craftwork', `At rank 100 a Focus craft (${CRAFTWORK_TRACKS.map((x) => x[0].toUpperCase() + x.slice(1)).join(', ')}) can enter Craftwork once. Its rank goes back to 0 and it keeps its perks. It earns half experience, and its material effects reach up to ${CRAFTWORK_SWING}%.`],

@@ -3861,7 +3861,7 @@ function askSalvage(item) {
       notice = 'Salvaging...'; render();
       salvageForMaterials([item], { items: deps.items?.() ?? [] }, deps.entity?.name).then((m) => {
         if (picked === item && m.ok) picked = null;
-        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name, m.needsCommit ? `It would take ${m.needsCommit.map((n) => n.name).join(' and ')} past Journeyman, and you can raise only two crafts that far. Salvage it at a crafting station, where you can choose.` : m.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(m.error));   // BUNNYFALL: the service's own reason, said
+        notice = m.ok ? SALVAGED_MATS_LINE(name, yieldsText(m.data), m.shards) : SALVAGE_FAILED(name, m.error === 'offline' ? 'Salvage into materials needs the server.' : accountRefusalText(m.error));   // BUNNYFALL: the service's own reason, said
         refresh(); render();
       });
       return;

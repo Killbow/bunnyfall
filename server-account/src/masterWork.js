@@ -9,8 +9,9 @@ import { dice } from './unitRoll.js';
 import { signingKey } from './signing.js';
 import {
   profAsks, profShut, trackRow, trackView, storeOf, workableSql, spendableSql, workStatements, spendStatements, silverClothOut,
-  provenanceId, workHeld,
+  provenanceId, workHeld, focusOf,
 } from './professions.js';
+import { FOCUS_TRACKS } from '../../src/net/craft/craftLaw.js';
 import { rankOfXp, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { recipeById, recipeOpen, makerMark, dyeOk, MASTERWORK, JUDGED_CLOTH } from '../../src/net/recipeLaw.js';
 import { mintProductRecord, MINT_V_MASTER } from '../../src/net/productRecord.js';
@@ -77,6 +78,9 @@ export async function masterWork(ctx, player, env, { character, recipe: id, line
   const track = await trackRow(db, player.id, character, craft);
   const rank = rankOfXp(Number(track?.xp ?? 0));
   if (rank < MASTER_RANK || !recipeOpen(r, rank)) return { error: 'prof-rank' };
+  // Only a Focus craft makes Masterwork. The decision checks the Focus again.
+  const focused = FOCUS_TRACKS.includes(craft);
+  if (focused && !(await focusOf(db, player.id, character)).crafts.includes(craft)) return { error: 'prof-focus' };
   const day = masterDayOf(nowS);
   const maker = makerMark(name);
   const seed = Math.floor(dice(rand) * 4294967296);
@@ -108,7 +112,7 @@ export async function masterWork(ctx, player, env, { character, recipe: id, line
   await db.batch([
     // THE DECISION: one a character a day (the row's UNIQUE day), every good and catalyst held as it is spent
     db.prepare(`INSERT OR IGNORE INTO prof_masters (player, rid, char_id, day, recipe, provenance, lines, seed, at, n)
-      SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9, ?10 WHERE ${held.join(' AND ')}`).bind(...binds),
+      SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9, ?10 WHERE ${held.join(' AND ')}${focused ? ` AND EXISTS (SELECT 1 FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = '${craft}')` : ''}`).bind(...binds),
     // the piece: its provenance, this account's, its signed record and its mark
     db.prepare(`INSERT INTO products (provenance, owner, char_id, maker, recipe, template, material, quality, seed, record, made_at, marked, dye, hand, bought_with, loose)
       SELECT ?5, ?1, ?2, ?6, ?7, ?8, ?9, ?10, seed, ?11, at, ?12, ?13, NULL,
@@ -125,6 +129,7 @@ export async function masterWork(ctx, player, env, { character, recipe: id, line
   const made = await db.prepare('SELECT * FROM prof_masters WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (made?.n === nonce) return masterAnswer(db, player, made, nowS);
   if (made) return masterAnswer(db, player, made, nowS, { repeat: true });
+  if (focused && !(await focusOf(db, player.id, character)).crafts.includes(craft)) return { error: 'prof-focus' };
   if (await db.prepare('SELECT 1 FROM prof_masters WHERE player = ?1 AND char_id = ?2 AND day = ?3').bind(player.id, character, day).first()) return { error: 'prof-master-day' };
   for (const s of spends) {
     const st = await storeOf(db, player.id, character, s.key);

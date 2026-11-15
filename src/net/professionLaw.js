@@ -134,8 +134,6 @@ export function harvestXp(tier, rank, clean) {
 export const herbXpTier = (rank) => topTierOf(rank);
 /** A writ's XP: twice its Mark value - its pay (PROF0 3.2), to the profession its material is gathered by. */
 export const writXp = (pay) => 2 * pay;
-/** The crafter's limit (PROF0 3.2): two crafts above Journeyman. The crafts come with PROF3; the tab says it now. */
-export const CRAFTS_ABOVE_JOURNEYMAN = 2;
 export const JOURNEYMAN_RANK = 50;
 
 // ─── SPECIALISATIONS (PROF0 3.3) ─────────────────────────────────────
@@ -1195,40 +1193,11 @@ export function smeltOrigin(r, count, bought) {
   b = Math.min(count, b);
   return { own: count - b, bought: b };
 }
-/** BUNNYFALL PROVISIONING: its own system, outside the crafter's limit - the pot and the cauldron, the old potion maker
- *  and its writs all raise it to Master, and it holds no other craft at 50. */
-export const LIMIT_FREE = 'provisioning';
-/** THE CRAFTER'S LIMIT (PROF0 3.2): a character raises at most two crafts past Journeyman. A craft that is not one of
- *  them while two others are stops at rank 50 - the XP one short of rank 51. `ranks` every crafting track's rank.
- *  CRAFT3 (41.2: "the crafter's limit stays two above Journeyman - of five, a real choice"): the five crafts' tracks; a
- *  discipline asked is its craft's. */
-export function craftXpCap(profession, ranks) {
-  const own = trackOf(profession);
-  if (own === LIMIT_FREE) return PROF_XP_MAX;
-  const past = Object.entries(ranks ?? {}).filter(([p, r]) => p !== own && p !== LIMIT_FREE && BY_ID.get(p)?.kind === 'crafting' && r > JOURNEYMAN_RANK).length;
-  return past >= CRAFTS_ABOVE_JOURNEYMAN ? xpForRank(JOURNEYMAN_RANK + 1) - 1 : PROF_XP_MAX;
-}
-/** CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f; the Discord, "Smithing stuck at 50": "it is literally 1xp off of levelling
- *  up but everything I craft gives me 0xp"): THE LIMIT AS IT STANDS OVER ONE CRAFT'S TRACK, for the words that say it -
- *  `cap` the most it may hold (craftXpCap's, which the service's decisions bind), `room` what the track at `xp` can still
- *  take under it (none at the cap, as none at Master), and `by` the crafts past Journeyman that hold it there, in the
- *  Professions tab's order - empty where the limit does not hold it. `ranks` every track's rank, as craftXpCap's. A
- *  gathering track is never held (3.2: "Gathering is unlimited" - no decision of the service caps one).
- *  AUDIT FB1018f L5-2: and `rank` THE RANK IT IS HELD AT - the cap's (Journeyman's 50 under the limit, Master's where none
- *  holds it), or the track's own where it stands past its cap: a third craft that crossed with another before AUDIT
- *  FB1018f L5-1 made the limit one decision (nothing lowers a track) is held at its 60, never "at rank 50". */
-export function craftLimit(profession, ranks, xp) {
-  const own = trackOf(profession), cap = BY_ID.get(own)?.kind === 'crafting' ? craftXpCap(profession, ranks) : PROF_XP_MAX;
-  const by = cap < PROF_XP_MAX ? PROFESSIONS.filter((p) => p.kind === 'crafting' && p.id !== own && (ranks?.[p.id] ?? 0) > JOURNEYMAN_RANK).map((p) => p.id) : [];
-  return { cap, room: Math.max(0, cap - (Number(xp) || 0)), by, rank: rankOfXp(Math.max(cap, Number(xp) || 0)) };
-}
-/** CRAFT-LIMIT-SAID: craftLimit read off a character's track views as the service answers them (its state's `tracks`,
- *  an act's `track` - `{ profession, xp }`), each rank the service's own (rankOfXp of its XP) - the client's way to the
- *  very limit the service's decision binds. A discipline asked is its craft's. */
+/** The XP a track can still take below Master, from the track views the service sends (`{ profession, xp }`). `cap` is
+ *  the most it may hold and `room` what is left. A discipline reads the track of its craft. */
 export function craftLimitOf(tracks, profession) {
-  const list = [...(tracks ?? [])].filter((v) => v && typeof v.profession === 'string');
-  const own = list.find((v) => v.profession === trackOf(profession));
-  return craftLimit(profession, Object.fromEntries(list.map((v) => [v.profession, rankOfXp(Number(v.xp))])), own?.xp ?? 0);
+  const own = [...(tracks ?? [])].find((v) => v?.profession === trackOf(profession));
+  return { cap: PROF_XP_MAX, room: Math.max(0, PROF_XP_MAX - (Number(own?.xp) || 0)) };
 }
 /** CRAFT-LIMIT-SAID: WHAT AN ACT CREDITS - the XP it earns, never past the `room` its track has left, never below none:
  *  the account service's decision, `MAX(0, MIN(earned, cap - held))`, in the craft's, the smelt's, the temper's, the brew's

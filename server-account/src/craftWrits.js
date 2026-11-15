@@ -9,25 +9,20 @@
 //                    posted on the first read of the day by any of its realm characters (AUDIT CRAFT-WRITS E1), each with
 //                    what the reading character holds toward it - a potion writ its brews not yet given to a
 //                    writ, a dish or kit writ the pieces of its own make that may go
-//   deliverCraftWrit /v1/writs/craft { character, id, rid, realm, pieces? }: the writ filled whole, in ONE batch - the
-//                    goods out of the realm record (prepareRealmRecord, guarded), the decision (the writ open and the
-//                    account's, today's, the account under its three, the balance with room, the goods its own), the
-//                    pieces' rows gone, the pay struck (`craft-writ`, a mint), the XP to the craft's track under the
-//                    crafter's limit, the Renown to the character, and the guild's standing on its Roll (a hall writ's
-//                    statements, CHAP2a) while the Chapters are the account's
 //   sweepCraftWrits  the hour's clock (cron.js): an unfilled writ the day after its own - a filled one stays, the brews it
 //                    took counted by it
 // ═══════════════════════════════════════════════════════════════════
 
 import { mintId, overRate } from './accounts.js';
-import { asks, shut, trackView, trackRow, craftCapSql, renownAnswer } from './professions.js';
+import { asks, shut, trackView, trackRow, renownAnswer, focusXpSql } from './professions.js';
 import { marksOpenFor, balanceOf } from './marks.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed } from './realm.js';
 import { chaptersOpenFor } from './npcRoll.js';
 import { renownHeldSql } from './renownTracks.js';
 import { utcDay, MARKS_MAX } from '../../src/net/marksLaw.js';
 import { RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
-import { PROF_OPS_MAX, PROF_OPS_WINDOW_S, rankOfXp } from '../../src/net/professionLaw.js';
+import { PROF_OPS_MAX, PROF_OPS_WINDOW_S, PROF_XP_MAX, rankOfXp } from '../../src/net/professionLaw.js';
+import { halfXp } from '../../src/net/craft/craftLaw.js';
 import { HALL_WRIT_REP } from '../../src/net/npcChapterLaw.js';
 import { MAX_REPUTATION } from '../../src/systems/guild/guildFactions.js';
 import { COOKING_RECIPES, DISHES } from '../../src/net/recipeLaw.js';
@@ -199,7 +194,7 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
   const prep = await prepareRealmRecord(ctx, player.id, side.at, (save) => (takeCraftGoods(save, { product: w.product, qty }, goods) ? null : 'craft-goods-gone'), { outbound: true });
   if (prep.error) return prep;
   const nonce = mintId(rand);
-  const cap = craftCapSql('?1', '?2', w.track);
+  const cap = PROF_XP_MAX;
   const filled = 'EXISTS (SELECT 1 FROM craft_writs WHERE id = ?5 AND n = ?6)';
   // the goods its own: a potion writ's count in the character's brews not yet given (?11 its product, bound - S1); a
   // piece writ's every piece its own (?11 the answering recipes)
@@ -210,10 +205,9 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
   const batch = [
     ...prep.steps,
     // THE DECISION: the writ open and the account's, today's; the account under its three; the balance with room for
-    // the pay; the goods its own - and the XP what the craft's track can take under the crafter's limit; its filler
-    // this character
+    // the pay; the goods its own. The XP is what the craft's track can take, half off Focus from rank 50.
     db.prepare(`UPDATE craft_writs SET filled_at = ?3, filled_char = ?2, rid = ?4, n = ?6, goods = ?12,
-        xp_given = MAX(0, MIN(xp, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = craft_writs.track), 0)))
+        xp_given = MAX(0, MIN(${focusXpSql('?1', '?2', w.track, 'xp', halfXp(Number(w.xp) || 0))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = craft_writs.track), 0)))
       WHERE id = ?5 AND player = ?1 AND filled_at IS NULL AND day = ?7 AND expires_at > ?3
         AND NOT EXISTS (SELECT 1 FROM craft_writs WHERE player = ?1 AND rid = ?4)
         AND (SELECT COUNT(*) FROM craft_writs WHERE player = ?1 AND day = ?7 AND filled_at IS NOT NULL) < ?8
@@ -228,7 +222,7 @@ export async function deliverCraftWrit(ctx, player, env, { character, id, rid, r
     db.prepare(`INSERT OR IGNORE INTO marks_ledger (src_kind, src_id, dst_kind, dst_id, kind, amount, day, at, actor, who, rid)
       SELECT 'mint', NULL, 'account', ?1, 'craft-writ', pay, day, ?2, ?1, product, 'craft:' || id FROM craft_writs WHERE id = ?3 AND n = ?4`)
       .bind(player.id, nowS, id, nonce),
-    // the XP the decision credited, to the craft's track, under the crafter's limit
+    // the XP the decision credited, to the craft's track
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, track, MIN(${cap}, xp_given), ?3 FROM craft_writs WHERE id = ?4 AND n = ?5 AND xp_given > 0
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)

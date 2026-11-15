@@ -6,12 +6,12 @@
 // piece (upgradeRecipeOf). The service cannot see the pack, so the piece is the save's word, as a temper's found piece is
 // (professions.js temperPiece); the Stores' spend is the bound. It asks the new recipe's rank of Smithing, spends 80% of
 // the new metal's main input, and pays the craft's XP at its tier.
-import { craftworkPct } from '../../src/net/craft/craftLaw.js';   // CRAFTWORK: half its XP
+import { craftworkPct, halfXp } from '../../src/net/craft/craftLaw.js';
 import { inCraftwork } from './professions.js';
 import { mintId, overRate } from './accounts.js';
-import { asks, shut, storeOf, trackRow, trackView, craftCapSql, workableSql, workStatements, workHeld } from './professions.js';
+import { asks, shut, storeOf, trackRow, trackView, workableSql, workStatements, workHeld, focusXpSql } from './professions.js';
 import { firmStatsOf } from './firmament.js';
-import { rankOfXp, trackOf, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
+import { rankOfXp, trackOf, PROF_XP_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
 import { scaleXp, xpPct } from '../../src/net/firmament/firmamentLaw.js';
 import { upgradeTarget, metalUpgradeCost, upgradeXp } from '../../src/net/upgradeLaw.js';
 
@@ -40,7 +40,7 @@ export async function upgradeMaterial(ctx, player, env, { character, recipe: id,
   const rank = rankOfXp(Number(track?.xp ?? 0));
   if (rank < r.rank) return { error: 'prof-rank' };
   const cost = metalUpgradeCost(r);
-  const cap = craftCapSql('?1', '?2', craft);
+  const cap = PROF_XP_MAX;
   const xp = scaleXp(upgradeXp(r, rank), craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));   // CRAFTWORK: half
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_upgrades WHERE player = ?1 AND rid = ?5 AND n = ?6)';
@@ -48,7 +48,7 @@ export async function upgradeMaterial(ctx, player, env, { character, recipe: id,
     // THE DECISION: the input held at a station (never gold's units) - and the XP what the track can take
     db.prepare(`INSERT OR IGNORE INTO prof_upgrades (player, rid, char_id, recipe, material, qty, xp, at, n)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6,
-        MAX(0, MIN(?7, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?10), 0))), ?8, ?9
+        MAX(0, MIN(${focusXpSql('?1', '?2', craft, '?7', halfXp(xp))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?10), 0))), ?8, ?9
       WHERE ${workableSql('?1', '?2', '?5')} >= ?6`)
       .bind(player.id, character, rid, r.id, cost.key, cost.n, xp, nowS, nonce, craft),
     ...workStatements(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: decided, binds: [cost.key, cost.n, rid, nonce] }),
