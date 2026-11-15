@@ -54,7 +54,7 @@ import { EG_KIT_RECORDS } from './egKit.js';   // EG-LOOK: the kit's records, pa
 import { egKitInto, egDiscFloor, egPassage, egRingArcade, egTierBenches, egLongWalls, egChokeArch, egDoorway, egVignette } from './egGround.js';   // EG-LOOK (Elite-Gates-Look.md section 2): THE GROUND, the academy's dress
 import { egAtmosOf } from './egAtmos.js';   // EG-LOOK (Elite-Gates-Look.md section 7): each band's air and light
 import { FIRE_WALLS_ARCHIVE } from '../emissiveTextures.js';   // EG-ZH: the Caverns' fire falls wear Daggerfall's own fire
-import { egHeroFragInto, egHeroFragCollider, EG_HERO_FRAG_MESHES } from './egHeroFragModel.js';   // EG-HERO-LAY: a hall's hero, drawn and collided
+import { egHeroFragInto, egHeroFragCollider, egHeroFragRegistry } from './egHeroFragModel.js';   // EG-HERO-LAY: a hall's hero, drawn and collided
 import { egRoomModelInto, egRoomColliderInto, egClimbZones, egClimbKeep } from './egRoomModel.js';   // THE ASCENT (spec law 9): the rooms built, the climbs' clamp
 import { GATE_PART } from '../gate/gateModel.js';
 import { egPolyIn, segDist } from '../../net/eliteGates/egShape.js';   // EG-HERO-LAY: the hero's clamp
@@ -374,13 +374,13 @@ function decoModel(f, spec, d, occ = whole, band = spec.band ?? 0) {
   } else if (d.t === 'hall') egLongWalls(spec, d, band, piece);
 }
 // ── EG-HERO-LAY (2026-10-13, spec law 7): THE HERO DRAWN ─────────────────────────────────────────────────────────────────
-/** The hero meshes the circle draws from (egHeroMeshSeam): world/eliteGates/egHeroFragModel.js EG_HERO_FRAG_MESHES unless a test said
- *  otherwise. */
+/** The hero meshes the circle draws from (egHeroMeshSeam): world/eliteGates/egHeroFragModel.js egHeroFragRegistry
+ *  unless a test said otherwise. */
 let _heroMeshes = /** @type {Readonly<Record<string, any>>|null} */ (null);
 /** THE SEAM: the hero mesh registry the circle draws and collides from (world/eliteGates/egHeroFragModel.js egHeroFragMeshes's shape) -
- *  null for EG_HERO_FRAG_MESHES. Answers the one it replaced. For a test, and nothing that stands a breach. */
+ *  null for egHeroFragRegistry. Answers the one it replaced. For a test, and nothing that stands a breach. */
 export function egHeroMeshSeam(meshes = null) { const was = _heroMeshes; _heroMeshes = meshes; return was; }
-const heroMeshes = () => _heroMeshes ?? EG_HERO_FRAG_MESHES;
+const heroMeshes = () => _heroMeshes ?? egHeroFragRegistry();
 /** A hand (m): a hero's triangle whose top stands within it of a height its law lays ground at is its ground. */
 export const EG_HERO_GROUND_HAND_M = 0.2;
 /** The heights (m, from hero `q`'s origin - net/eliteGates/egLaw.js `heroes`) its law lays ground at: its floors' and its stairs' corners'. */

@@ -215,6 +215,8 @@ import { t } from '../../systems/textManager.js';   // AUDIT EG V (c): the words
 import { REFUSALS, accountRefusalText } from '../../net/accountClient.js';   // AUDIT EG V (c, L7-11): the catalog's refusals, never a second copy
 import { EG_PING_MS } from '../../net/eliteGates/egBrain.js';   // AUDIT EG V (c, L7-7): a ping's cooldown, the room's own
 import { egFirstKey } from '../../ui/eliteGates/egBeats.js';   // AUDIT EG V (c, L7-23): the device's first-time bits, an account's own
+import { loadEgHeroFragMeshes, egHeroFragIdsOf } from '../../world/eliteGates/egHeroFragModel.js';
+import { egCircleSpecs } from '../../net/eliteGates/egLaw.js';
 
 /** Where the receipts wait on the device, how many at most, how often a kept one is asked again (ms). */
 export const EG_CLAIMS_KEY = 'eg.claims';
@@ -586,6 +588,11 @@ export function createEgClient({ modes, online, hub, account, now: hostNow, enti
   let portalSet = null;
   const portals = () => (portalSet ??= renderer?.createBillboardBatch ? createPortalSet({ renderer, audio }) : null);
   const inSpire = () => modes()?.egHallBreach?.() != null;
+  /** A circle entered once its halls' hero meshes are here; a step whose meshes would not load is refused. */
+  const enterHall = async (r) => {
+    try { await loadEgHeroFragMeshes(egHeroFragIdsOf(egCircleSpecs(r.seed, r.c, r.geo ?? 0))); } catch (e) { console.warn('[eg] the hall meshes would not load', e?.message ?? e); return false; }
+    return modes()?.enterEgHall?.(r);
+  };
   // EG-ZG (Elite-Gates.md section 25.4): THE QUIET COMPANY's allies - another player's spell effects at 60% with no light of
   // their own during a trial, read by the spell engine every host shares (scenes/hostMagic.js through ui/eliteGates/egAccess.js)
   egAllyLookSet(() => { if (!inSpire()) return null; const q = egQuietCompany(link.state()?.sg); return { alpha: q.allyAlpha, glow: q.allyGlow }; });
@@ -878,7 +885,7 @@ export function createEgClient({ modes, online, hub, account, now: hostNow, enti
     answeredFor = c.b;
     const landing = c.os === me() ? arches?.landing?.(c.b) ?? null : null;
     const step = egStairStep(egStartHall(c.ew ?? 0), stillNow());   // EG-ZE: THE STAIR into the breach's first hall - Hall 1's (and a Brink start's) the full fall
-    const went = await modes()?.stepThroughFire?.(() => modes()?.enterEgHall?.({ b: c.b, seed: c.seed, c: (c.ew ?? 0) + 1, geo: E.geo ?? 0, site: site(), ...(landing ? { landing } : {}) }), step.look, step.opts);
+    const went = await modes()?.stepThroughFire?.(() => enterHall({ b: c.b, seed: c.seed, c: (c.ew ?? 0) + 1, geo: E.geo ?? 0, site: site(), ...(landing ? { landing } : {}) }), step.look, step.opts);
     if (!went) { answeredFor = ''; say(EG_TEXT.shut); }
     else {
       // EG-ZD (section 22): THE WAY BACK kept from the first step - the room's count of me, my hall and my last island follow
@@ -911,7 +918,7 @@ export function createEgClient({ modes, online, hub, account, now: hostNow, enti
           if (!heard.st) return false;
           backFrame(heard.st, egMemberOf(heard.st, me()));   // the record kept as the room says it (its seed, its opening, its geometry, its hall) - the circle stood from it
         }
-        return M?.enterEgHall?.({ b: R.b, seed: R.seed, c: R.h > 0 ? egCircleOfHall(R.h) : R.ew + 1, geo: R.geo, site: site() });
+        return enterHall({ b: R.b, seed: R.seed, c: R.h > 0 ? egCircleOfHall(R.h) : R.ew + 1, geo: R.geo, site: site() });
       }, step.look, step.opts);
       if (!went) {
         returning = null; answeredFor = '';
@@ -1195,7 +1202,7 @@ export function createEgClient({ modes, online, hub, account, now: hostNow, enti
         if (built === 'ready' && modes()?.egSwapCircle?.(r)) { if (!witness && placeOn(E.h, E, false)) placedH = E.h; return true; }   // EG-H3: THE SWAP - the built level stood in place, my feet on its first plate (a witness's body stays held)
         modes()?.forceExitToExterior?.();
         if (back) landAt(back);
-        return modes()?.enterEgHall?.({ b: E.b, seed: E.seed, c, geo: E.geo ?? 0, site: site() });
+        return enterHall({ b: E.b, seed: E.seed, c, geo: E.geo ?? 0, site: site() });
       }, step.look, step.opts);
       if (modes()?.egHallCircle?.() === c) circleSeed = E.seed >>> 0;   // EG-ZD: the circle standing is the breach's own now
     } finally { swapping = false; }

@@ -63,6 +63,7 @@ import { EG_LIGHT_KIND, EG_DOOR_BEAM } from '../world/eliteGates/egLights.js';  
 import { INTERIOR_LIGHT_DIR } from '../world/interior/interiorLights.js';
 import { perspective, lookAt, identity, mirrorProjectionX, ortho, multiply } from '../world/mat4.js';
 import { egMapDraw, egRoomViews } from './spireMap.js';   // THE ASCENT: the map's route, the rooms' views
+import { loadEgHeroFragMeshes, egHeroFragIdsOf } from '../world/eliteGates/egHeroFragModel.js';
 
 const params = new URLSearchParams(location.search);
 const canvas = document.getElementById('c');
@@ -89,6 +90,7 @@ for (const [rec, art] of realmArt()) { renderer.uploadTexture(SD_REALM_ARCHIVE, 
 for (const [rec, art] of egBandArt(BAND)) { renderer.uploadTexture(egBandArchive(BAND), rec, art.albedo, art.cutout ? { cutout: true } : {}); renderer.uploadEmissionTexture?.(egBandArchive(BAND), rec, art.emission, { white: true }); }   // EG-LOOK: a cutout picture's holes asked (the host's way)
 // THE RUIN: a Brink circle's band above too (world/eliteGates/egRuin.js egRuinBands - its first halls' ruin wears it), the host's way
 for (const b of egRuinBands(C)) if (b !== BAND) for (const [rec, art] of egBandArt(b)) { renderer.uploadTexture(egBandArchive(b), rec, art.albedo, art.cutout ? { cutout: true } : {}); renderer.uploadEmissionTexture?.(egBandArchive(b), rec, art.emission, { white: true }); }
+await loadEgHeroFragMeshes(egHeroFragIdsOf(SPECS));
 const circleMesh = renderer.createMesh(buildEgCircleModel(SEED, C, 0));
 const lookModel = buildEgLookModel(SEED, C, 0), lookMesh = lookModel ? renderer.createMesh(lookModel) : null;
 const lamps = egCircleLights(SEED, C, 0);

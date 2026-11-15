@@ -68,7 +68,10 @@ import { gustAt } from '../src/world/superDungeon/sdSteps.js';
 import { identity } from '../src/world/mat4.js';
 import { egPolyIn } from '../src/net/eliteGates/egShape.js';   // EG-HERO-LAY: a hero's floors, crossed as still ground
 import { isMain } from './lib/isMain.mjs';
+import { loadEgHeroFragMeshes } from '../src/world/eliteGates/egHeroFragModel.js';
 import { madeLevelRule } from '../src/systems/madeLevel.js';   // EG-PERFECT: the Spire's running leap refused, as the game refuses it
+
+await loadEgHeroFragMeshes();
 
 /** THE SPAN BUILD on the motor (section 10.2 - SD7b's: Speed 10, Running 0), and its skills for the parkour (a riser). */
 export const SWEEP_BUILD = Object.freeze({ speed: 10, running: 0, swimming: 30 });
