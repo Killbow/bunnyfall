@@ -19,15 +19,18 @@ import { creditPlay, accountKind } from './accounts.js';
 import { inboxOf } from './letters.js';
 import { readBoard } from './board.js';
 import { postBoxOf } from './post.js';   // SERVER-POST
+import { greedMine } from './staffCommands.js';
+import { listFestivals } from './playerFestival.js';
 
 /** The parts a heartbeat may carry - the body's own keys. */
-export const HEARTBEAT_PARTS = Object.freeze(['beat', 'mail', 'board', 'post']);   // SERVER-POST: the server's post, on the letterbox's clock
+export const HEARTBEAT_PARTS = Object.freeze(['beat', 'mail', 'board', 'post', 'greed', 'festivals']);   // SERVER-POST: the server's post, on the letterbox's clock
 
 /**
  * ONE HEARTBEAT: `beat: true` - a knock (/v1/account/played's `creditPlay`, the gap by this service's clock); `mail:
  * true` - a look at the box (/v1/mail/inbox's `inboxOf`, refused `mail-needs-account` to a guest as that route's door
  * refuses one); `board: <map>` - a town's Notice Board (/v1/board/read's `readBoard`, its refusals its own). A part the
  * body does not name is not answered; none reads another's, so the reads are asked first and the beat, the one write, last (BEAT-LAST).
+ * `greed`/`festivals: true` - /v1/greed/mine and /v1/festivals/list.
  * @param {{ db: any, nowS: number }} ctx @param {any} player @param {any} env @param {any} body
  * @param {string|null} [sessionId] the session the beat came under (SESSION-SIGN: a beat asks it still stands)
  */
@@ -46,9 +49,11 @@ export async function heartbeat(ctx, player, env, body, sessionId = null) {
   // heartbeat's 2.6 primary statements, at seven heartbeats a second. None of them reads what the beat writes (the
   // played seconds and the Renown credit), so they go first, on the session's replica, and the beat after them.
   if (body?.mail === true) await part('mail', async () => (accountKind(player) !== 'linked' ? { error: 'mail-needs-account' } : inboxOf(ctx, player, env)));
-  if (body?.board !== undefined) await part('board', () => readBoard(ctx, player, env, body.board));
+  if (body?.board !== undefined) await part('board', () => readBoard(ctx, player, env, body.board, { lean: body.boardLean === true }));
   // SERVER-POST: the server's post (/v1/post/box's `postBoxOf`, refused `post-needs-account` to a guest as its door refuses one)
   if (body?.post === true) await part('post', async () => (accountKind(player) !== 'linked' ? { error: 'post-needs-account' } : postBoxOf(ctx, player, env)));   // PRIVATE-REPORT: env, a reader's count
+  if (body?.greed === true) await part('greed', () => greedMine(ctx, player));
+  if (body?.festivals === true) await part('festivals', () => listFestivals(ctx, player));
   if (body?.beat === true) await part('beat', () => creditPlay(ctx, player.id, sessionId));   // SESSION-SIGN E3: under its session
   return out;
 }

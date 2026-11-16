@@ -193,6 +193,7 @@ export const REPLICA_ROUTES = new Map([
   // replica is a prefix of the primary and a version only rises, so a board read on a replica is kept at its version or
   // not at all. Neither keeps anything an isolate shares.
   ['/v1/homes/town', 'POST'],
+  ['/v1/homes/towns', 'POST'],
   ['/v1/homes/mine', 'POST'],
   ['/v1/homes/rooms', 'POST'],
   ['/v1/homes/decor', 'POST'],
@@ -484,7 +485,7 @@ export const ROUTES = new Set([
   // HOME1: the online homes - one owner a building (homes.js). A town's
   // homes are read by every session, a guest's too (the doors say whose
   // a home is to everyone); the three that change one are an account's.
-  '/v1/homes/town', '/v1/homes/mine', '/v1/homes/claim', '/v1/homes/release', '/v1/homes/transfer', '/v1/homes/entry',
+  '/v1/homes/town', '/v1/homes/towns', '/v1/homes/mine', '/v1/homes/claim', '/v1/homes/release', '/v1/homes/transfer', '/v1/homes/entry',
   // DECOR1: an online home's decor (decor.js). Its pieces are read by every session (the room is the same room to
   // every visitor); the three that change one are its owner's.
   '/v1/homes/decor', '/v1/homes/decor/place', '/v1/homes/decor/move', '/v1/homes/decor/remove', '/v1/homes/decor/batch', '/v1/homes/decor/use',

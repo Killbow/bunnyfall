@@ -11,6 +11,7 @@ import { heraldryOfRow } from './halls.js';
 import { blightNudge } from './blight.js';
 import { GUILD_RANK_OFFICER } from '../../src/net/guild/guildLaw.js';
 import { BLIGHT_SECTORS } from '../../src/net/blightLaw.js';
+import { keptWorld, dropWorld } from './worldCache.js';
 import {
   GARRISON_MAX, RECRUIT_MAX, GARRISON_DAYS_MAX, troopOf, troopsOf, troopTotal, ordersOf, orderedTotal, ordersFit,
   garrisonDay, supplyOf, upkeepOf, supplyDays, marchPushPx,
@@ -121,33 +122,43 @@ async function viewOf(db, row, place, kind) {
  * @param {{ db: any, nowS: number }} ctx
  */
 export async function garrisonsRead({ db, nowS }, player, { character } = {}) {
-  const { results } = await db.prepare('SELECT * FROM garrisons').all();
-  const rows = [];
-  for (const r of results ?? []) rows.push(await reckon(db, r, nowS));
-  // the owners still standing: a Company with its hall, a Charter still held - and their colours
-  const [halls, charters] = await db.batch([
-    db.prepare('SELECT h.guild_id, h.map_id, g.tag, g.heraldry FROM homes h JOIN guilds g ON g.id = h.guild_id WHERE h.guild_id IS NOT NULL'),
-    db.prepare('SELECT c.map_id, c.name, g.tag, g.heraldry FROM city_charters c LEFT JOIN guilds g ON g.id = c.founded_by'),
-  ]);
-  const hallOf = new Map((halls?.results ?? []).map((h) => [`g:${h.guild_id}`, h]));
-  const charterOf = new Map((charters?.results ?? []).map((c) => [`c:${Number(c.map_id)}`, c]));
-  const all = [];
-  for (const r of rows) {
-    const o = hallOf.get(r.owner) ?? charterOf.get(r.owner);
-    if (!o) continue;
-    const arms = heraldryOfRow(o.heraldry);
-    const orders = ordersOf(parse(r.orders));
-    all.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes, march: orders.march, sector: Number.isSafeInteger(r.sector) ? r.sector : null });   // MARCH-ARROWS: how many march and on which slice, for the map's arrows
-  }
+  /** null when another request loaded the list */
+  let read = /** @type {Map<string, any>|null} */ (null);
+  const all = await keptWorld(db, 'garrisons', async () => {
+    const { results } = await db.prepare('SELECT * FROM garrisons').all();
+    const rows = [];
+    for (const r of results ?? []) rows.push(await reckon(db, r, nowS));
+    // the owners still standing: a Company with its hall, a Charter still held - and their colours
+    const [halls, charters] = await db.batch([
+      db.prepare('SELECT h.guild_id, h.map_id, g.tag, g.heraldry FROM homes h JOIN guilds g ON g.id = h.guild_id WHERE h.guild_id IS NOT NULL'),
+      db.prepare('SELECT c.map_id, c.name, g.tag, g.heraldry FROM city_charters c LEFT JOIN guilds g ON g.id = c.founded_by'),
+    ]);
+    const hallOf = new Map((halls?.results ?? []).map((h) => [`g:${h.guild_id}`, h]));
+    const charterOf = new Map((charters?.results ?? []).map((c) => [`c:${Number(c.map_id)}`, c]));
+    const list = [];
+    for (const r of rows) {
+      const o = hallOf.get(r.owner) ?? charterOf.get(r.owner);
+      if (!o) continue;
+      const arms = heraldryOfRow(o.heraldry);
+      const orders = ordersOf(parse(r.orders));
+      list.push({ owner: r.owner, kind: kindOf(r.owner), mapId: Number(o.map_id), tag: o.tag ?? null, name: o.name ?? null, field: arms?.field ?? null, border: arms?.border ?? null, routes: orders.routes, march: orders.march, sector: Number.isSafeInteger(r.sector) ? r.sector : null });   // MARCH-ARROWS: how many march and on which slice, for the map's arrows
+    }
+    read = new Map(rows.map((r) => [r.owner, r]));
+    return list;
+  });
+  const rowOf = async (/** @type {string} */ owner) => {
+    if (read) return read.get(owner) ?? null;
+    const r = await db.prepare('SELECT * FROM garrisons WHERE owner = ?').bind(owner).first();
+    return r ? reckon(db, r, nowS) : null;
+  };
   let mine = null;
   if (typeof character === 'string' && character) {
     const p = await placesOf(db, player, character).catch(() => null);
     if (p && !('error' in p)) {
-      const byOwner = new Map(rows.map((r) => [r.owner, r]));
       mine = {
         command: p.rank <= GUILD_RANK_OFFICER,
-        company: p.company ? await viewOf(db, byOwner.get(p.company.owner) ?? null, p.company, 'company') : null,
-        charter: p.charter ? await viewOf(db, byOwner.get(p.charter.owner) ?? null, p.charter, 'charter') : null,
+        company: p.company ? await viewOf(db, await rowOf(p.company.owner), p.company, 'company') : null,
+        charter: p.charter ? await viewOf(db, await rowOf(p.charter.owner), p.charter, 'charter') : null,
       };
     }
   }
@@ -191,6 +202,7 @@ export async function garrisonRecruit({ db, nowS }, player, { character, which, 
         .bind(c.place.owner, c.place.mapId, c.place.region, row ? Number(row.day) : todayOf(nowS), JSON.stringify(troops), row?.orders ?? JSON.stringify(ordersOf({}))),
     ]);
   } catch { return { error: 'garrison-gold' }; }
+  dropWorld(db, 'garrisons');
   return { ok: true, cost };
 }
 
@@ -210,6 +222,7 @@ export async function garrisonOrders({ db, nowS }, player, { character, which, r
   const sec = Number.isSafeInteger(sector) && sector >= 0 && sector < BLIGHT_SECTORS ? sector : row.sector ?? null;
   if (o.march > 0 && sec == null) return { error: 'garrison-no-front' };
   await db.prepare('UPDATE garrisons SET orders = ?2, sector = ?3 WHERE owner = ?1').bind(c.place.owner, JSON.stringify(o), sec).run();
+  dropWorld(db, 'garrisons');
   return { ok: true };
 }
 

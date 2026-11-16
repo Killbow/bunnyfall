@@ -47,6 +47,23 @@
 	@builder path /builder /builder/
 	redir @builder /builder/editor.html 302
 
+	# Hashed build files never change under their names. Only files that exist get the header, so a 404 is not cached.
+	@hashed {
+		path /assets/*
+		file {
+			root /srv
+		}
+	}
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	# Art keeps its file names when it changes: cache 10 minutes, then revalidate against the ETag.
+	@art {
+		path /art/*
+		file {
+			root /srv
+		}
+	}
+	header @art Cache-Control "public, max-age=600, must-revalidate"
+
 	handle {
 		root * /srv
 		file_server

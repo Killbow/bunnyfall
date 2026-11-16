@@ -107,7 +107,7 @@ function noteView(n, row, env, nowS, { mine = false, mod = false, reports = 0 } 
  * @param {any} env
  * @param {unknown} map the town's map id
  */
-export async function readBoard({ db, nowS, primary = db }, reader, env, map) {   // SCALE4g: `primary` the binding - the honours below store a #1
+export async function readBoard({ db, nowS, primary = db }, reader, env, map, { lean = false } = {}) {   // SCALE4g: `primary` the binding - the honours below store a #1
   if (!boardOpenFor(reader, env)) return { error: 'board-closed' };
   const mapId = Number(map);
   if (!boardKeyOk(mapId)) return { error: 'bad-board' };
@@ -125,7 +125,7 @@ export async function readBoard({ db, nowS, primary = db }, reader, env, map) { 
     .bind(mapId, nowS, mod ? 1 : 0, reader.id, BOARD_NOTES_SHOWN).all();
   const { results: notices = [] } = await db.prepare('SELECT * FROM board_notices WHERE expires_at > ? ORDER BY at DESC, id DESC LIMIT ?')
     .bind(nowS, BOARD_NOTICES_SHOWN).all();
-  const authors = [...new Set(notes.map((n) => n.author))];
+  const authors = lean ? [] : [...new Set(notes.map((n) => n.author))];
   const rows = new Map();
   if (authors.length) {
     const { results: found = [] } = await db.prepare(`SELECT * FROM players WHERE id IN (${authors.map(() => '?').join(', ')})`).bind(...authors).all();
@@ -139,6 +139,7 @@ export async function readBoard({ db, nowS, primary = db }, reader, env, map) { 
   const live = await liveCount(db, reader.id, nowS);
   return {
     map: mapId,
+    ...(lean ? { lean: true } : {}),
     notices: notices.map((x) => ({ id: x.id, from: x.author_name, subject: maskText(x.subject), body: maskText(x.body), at: x.at, expiresAt: x.expires_at })),   // TEXT-F1
     notes: notes.map((n) => noteView(n, rows.get(n.author), env, nowS, { mine: n.author === reader.id, mod, reports: Number(n.reports ?? 0) })),
     me: {

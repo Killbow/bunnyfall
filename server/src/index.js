@@ -5049,7 +5049,8 @@ export class Room {
       //   NOT IN A CHANNEL OR THE HUB. No client carries one there (a channel draws no level), and the world channel
       //   is two thousand sockets.
       //   THE ROOM'S OWN BUDGET (RENOWN_ROOM_HZ_MAX): the per-socket gate bounds a socket, not the room it fans to.
-      //   Over it a rise is dropped unanswered, and the carrier, which has not heard its echo, sends it again.
+      //   Over it a rise is refused as a non-rise is: its carrier hears what this room holds, and nobody else hears a
+      //   thing. The carrier has not heard its own level back, so it sends the order again.
       const now = Date.now();
       if (!this._spend(ws, now, renownGate, 'rnbucket', 'rndrops', 'too many renown orders')) return;
       const at = this._attach(ws);
@@ -5060,12 +5061,10 @@ export class Room {
       if (!r.ok) return;   // silently, as the mute arm refuses
       const cur = this._attach(ws);   // read again after the awaits: the socket may have gone
       if (!cur?.id || !cur.sub || r.claims.s !== cur.sub) return;
-      if (!(r.claims.lv > (cur.lv ?? 0))) {   // not a rise: its carrier hears what this room holds, and nobody else hears a thing
-        if (renownIssuable(cur.lv)) this._send(ws, JSON.stringify({ t: 'renown', id: cur.id, lv: cur.lv }));
-        return;
-      }
+      const held = () => { if (renownIssuable(cur.lv)) this._send(ws, JSON.stringify({ t: 'renown', id: cur.id, lv: cur.lv })); };
+      if (!(r.claims.lv > (cur.lv ?? 0))) { held(); return; }   // not a rise: its carrier hears what this room holds, and nobody else hears a thing
       const budget = renownRoomGate(this._roomRenown, now);
-      if (!budget.pass) return;
+      if (!budget.pass) { held(); return; }
       this._roomRenown = budget.bucket;
       if (!this._setAttach(ws, { ...cur, lv: r.claims.lv })) return;
       const said = JSON.stringify({ t: 'renown', id: cur.id, lv: r.claims.lv });

@@ -444,8 +444,8 @@ export const RENOWN_HZ_MAX = 1;
 /** AUDIT RENOWN1 (SEC-2/WIRE-1): the ROOM's renown fans a second, every carrier together. A rise is a frame to everyone
  *  in the room, and RENOWN_HZ_MAX bounds a socket, not the room it fans to - forty sockets of one account made a room
  *  of a hundred send 5,600 frames a second. Four: a room of honest players rises a few times an hour, so this is only a
- *  ceiling on what many sockets can make one room say. Over it a rise is dropped unanswered, and its carrier sends it
- *  again (RENOWN_RESEND_MS) because it has not heard its echo. */
+ *  ceiling on what many sockets can make one room say. Over it a rise is refused with the level the room holds, and its
+ *  carrier sends it again (RENOWN_RESEND_MS) because it has not heard its own level back. */
 export const RENOWN_ROOM_HZ_MAX = 4;
 /** AUDIT RENOWN1 WIRE-2: how long after an order the client sends it again down a socket whose room has not answered
  *  with the level - the relay's echo of the rise, or its word that the room already holds it. */

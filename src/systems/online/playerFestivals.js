@@ -12,6 +12,7 @@ import { assignModBundle } from '../effects.js';
 import { DISH_ICON } from '../../net/recipeLaw.js';
 import { addGoldPieces, goldPiecesOf } from '../inventory.js';
 import { t } from '../textManager.js';
+import { createRide } from '../../net/heartbeatRide.js';
 import {
   FEST_NAME_MAX, FEST_TEXT_MAX, FEST_COST_GOLD, FEST_HOURS, FEST_BUFF_NAME, FEST_BUFF_STAT, FEST_BUFF_AMOUNT, FEST_BUFF_ROUNDS,
   festStanding, festMinutesLeft,
@@ -63,6 +64,7 @@ export function createPlayerFestivals(deps) {
   let nextPoll = 0;
   let nextLook = 0;
   let busy = false;
+  const ride = createRide({ every: FEST_POLL_MS, wanted: () => !!deps.api && deps.on(), accept: take });
 
   const standing = () => list.filter((f) => festStanding(f, nowS()));
   const text = (/** @type {unknown} */ v, /** @type {number} */ max) => String(v ?? '').slice(0, max);
@@ -70,20 +72,23 @@ export function createPlayerFestivals(deps) {
   /** Reads the registry, and says each festival not yet said. */
   function poll(force = false) {
     const now = performance.now();
-    if (!deps.api || busy || (!force && now < nextPoll) || !deps.on()) return;
+    if (!deps.api || busy || (!force && (now < nextPoll || ride.active())) || !deps.on()) return;
     busy = true;
-    Promise.resolve(deps.api.festivalList()).then((/** @type {any} */ r) => {
-      if (!r?.ok || !Array.isArray(r.festivals)) return;
-      list = r.festivals.filter((/** @type {any} */ f) => Number.isSafeInteger(f?.id) && Number.isSafeInteger(f?.mapId) && Number.isFinite(f?.endsAt)).map((/** @type {any} */ f) => ({
-        id: f.id, host: text(f.host, 40), mapId: f.mapId, town: text(f.town, 60), name: text(f.name, FEST_NAME_MAX), text: text(f.text, FEST_TEXT_MAX),
-        startsAt: Number(f.startsAt) || 0, endsAt: Number(f.endsAt), mine: f.mine === true,
-      }));
-      for (const f of standing()) {
-        if (told.has(f.id)) continue;
-        told.add(f.id);
-        if (!f.mine) { deps.say(festivalWords.begun(f.host, f.town, f.name)); if (f.text) deps.say(f.text); }
-      }
-    }).catch(() => {}).finally(() => { busy = false; nextPoll = performance.now() + FEST_POLL_MS; });
+    ride.asked();
+    Promise.resolve(deps.api.festivalList()).then(take).catch(() => {}).finally(() => { busy = false; nextPoll = performance.now() + FEST_POLL_MS; });
+  }
+
+  function take(/** @type {any} */ r) {
+    if (!r?.ok || !Array.isArray(r.festivals)) return;
+    list = r.festivals.filter((/** @type {any} */ f) => Number.isSafeInteger(f?.id) && Number.isSafeInteger(f?.mapId) && Number.isFinite(f?.endsAt)).map((/** @type {any} */ f) => ({
+      id: f.id, host: text(f.host, 40), mapId: f.mapId, town: text(f.town, 60), name: text(f.name, FEST_NAME_MAX), text: text(f.text, FEST_TEXT_MAX),
+      startsAt: Number(f.startsAt) || 0, endsAt: Number(f.endsAt), mine: f.mine === true,
+    }));
+    for (const f of standing()) {
+      if (told.has(f.id)) continue;
+      told.add(f.id);
+      if (!f.mine) { deps.say(festivalWords.begun(f.host, f.town, f.name)); if (f.text) deps.say(f.text); }
+    }
   }
 
   /** Lays Festival Cheer on the entity, renewed once it has run out. */
@@ -134,6 +139,7 @@ export function createPlayerFestivals(deps) {
     /** The innkeeper's row. */
     rowLabel: () => festivalWords.host(FEST_COST_GOLD),
     startHosting,
+    heartbeatPart: () => ride.attach(),
     /** Each frame: the registry read when due, and the buff laid on whoever stands in a festival's town. */
     frame() {
       if (!deps.api || !deps.on()) return;

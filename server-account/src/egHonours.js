@@ -169,10 +169,14 @@ export async function egHonoursAnswer(db, player, c) {
  *  page) and each lord's feats (lord key to its bits).
  *  @param {any} db @param {string} id */
 export async function egRecordOf(db, id) {
-  const row = await db.prepare('SELECT eg_annals AS a FROM players WHERE id = ?1').bind(id).first();
-  const feats = (await db.prepare('SELECT lord, bits FROM eg_feats WHERE account = ?1 ORDER BY lord').bind(id).all()).results ?? [];
-  return { annals: int(row?.a), feats: Object.fromEntries(feats.map((f) => [f.lord, int(f.bits)])) };
+  const [annals, feats] = egRecordStmts(db, id);
+  return egRecordFrom(await annals.first(), (await feats.all()).results);
 }
+export const egRecordStmts = (/** @type {any} */ db, /** @type {string} */ id) => [
+  db.prepare('SELECT eg_annals AS a FROM players WHERE id = ?1').bind(id),
+  db.prepare('SELECT lord, bits FROM eg_feats WHERE account = ?1 ORDER BY lord').bind(id),
+];
+export const egRecordFrom = (/** @type {any} */ row, /** @type {any[]|undefined} */ feats) => ({ annals: int(row?.a), feats: Object.fromEntries((feats ?? []).map((f) => [f.lord, int(f.bits)])) });
 
 // ── THE BOARDS ───────────────────────────────────────────────────────────────────────────────────────────────────
 

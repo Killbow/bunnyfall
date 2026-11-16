@@ -72,6 +72,11 @@ export const GUILD_BOARD_WORDS = Object.freeze({
 });
 const guildRefusal = (e) => GUILD_BOARD_WORDS[e] ?? accountRefusalText(e);
 
+function withKnownBadges(lean, prev) {
+  const known = new Map((prev?.notes ?? []).map((n) => [n.id, n]));
+  return { ...lean, notes: (lean.notes ?? []).map((n) => { const k = known.get(n.id); return k ? { ...n, title: k.title ?? null, glyphs: k.glyphs ?? [] } : n; }) };
+}
+
 /** A request id: `n` and fifteen of base 36, from the handed-in randomness (crypto's by default). */
 export function mintNoticeRid(rand = (b) => globalThis.crypto.getRandomValues(b)) {
   const b = new Uint8Array(15);
@@ -134,14 +139,14 @@ export function createNoticeBook({ door, storage = null, nowMs = () => Date.now(
     if (!boardKeyOk(map)) return Promise.resolve({ board: null, error: 'bad-board', stale: false });
     const e = boards.get(map) ?? { board: null, at: -Infinity, error: null, pending: null };
     boards.set(map, e);
-    if (!force && nowMs() - e.at < BOARD_CACHE_MS) return Promise.resolve({ board: e.board, error: e.error, stale: !!(e.error && e.board) });
+    if (!force && !e.lean && nowMs() - e.at < BOARD_CACHE_MS) return Promise.resolve({ board: e.board, error: e.error, stale: !!(e.error && e.board) });
     // AUDIT 28 N10: a FORCED read (after a write) never takes one that set out before the write - it waits it out and asks
-    if (e.pending) return force ? e.pending.then(() => read(map, { force: true })) : e.pending;
+    if (e.pending) return force ? e.pending.then(() => read(map, { force: true })) : e.pending.then((v) => (e.lean && !v?.error ? read(map) : v));
     e.pending = (async () => {
       const r = await ask(() => door.read(map));
       e.pending = null;
       if (r?.ok) {
-        open = true; e.board = r.data; e.at = nowMs(); e.error = null;
+        open = true; e.board = r.data; e.lean = false; e.at = nowMs(); e.error = null;
         return { board: e.board, error: null, stale: false };
       }
       if (SHUT.includes(r?.error)) { open = false; e.board = null; }   // AUDIT 28 N11: not this account's now - DFU's box
@@ -178,6 +183,7 @@ export function createNoticeBook({ door, storage = null, nowMs = () => Date.now(
       due: (t) => ready(t, 0),
       soon: (t, early) => ready(t, early),
       every: BOARD_CACHE_MS,
+      extra: () => ({ boardLean: true }),
       body: () => {
         const map = townMap();
         if (!boardKeyOk(map)) return undefined;
@@ -196,7 +202,7 @@ export function createNoticeBook({ door, storage = null, nowMs = () => Date.now(
         const { e } = a;
         e.pending = null;
         if (r?.ok) {
-          open = true; e.board = r.data; e.at = a.at; e.error = null;
+          open = true; e.lean = r.data?.lean === true; e.board = e.lean ? withKnownBadges(r.data, e.board) : r.data; e.at = a.at; e.error = null;
           a.settle({ board: e.board, error: null, stale: false });
           return;
         }

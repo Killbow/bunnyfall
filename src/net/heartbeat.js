@@ -55,7 +55,7 @@ const RETRY = Object.freeze(['offline', 'server']);
  * `early` ms; `body()` - what the request carries for it (undefined: nothing this time, and it is not sent); `take(r)` -
  * its answer, in net/accountClient.js call's shape (`{ ok, data }` or `{ ok: false, error }`); `every` - how long after it
  * is sent it falls due again, ms (its clock's own period; none - another part never rides early on its account).
- * @typedef {{ due: (t: number) => boolean, soon: (t: number, early: number) => boolean, body: () => any, take: (r: any) => void, every?: number }} HeartbeatPart
+ * @typedef {{ due: (t: number) => boolean, soon: (t: number, early: number) => boolean, body: () => any, take: (r: any) => void, every?: number, extra?: () => Record<string, any> }} HeartbeatPart
  */
 
 /** A part asked only while `live()` - the host's frames that used to ask it are running (a page hidden, a lane gone
@@ -69,7 +69,7 @@ export const whileLive = (/** @type {HeartbeatPart} */ part, /** @type {() => bo
 /** A part's answer, out of the heartbeat's: the route's own body, or its refusal word. */
 export const partAnswer = (/** @type {any} */ v) => (v && typeof v === 'object'
   ? (typeof v.error === 'string' ? { ok: false, error: v.error } : { ok: true, data: v })
-  : { ok: false, error: 'server' });
+  : { ok: false, error: 'server', ...(v === undefined ? { missing: true } : {}) });
 
 /**
  * THE HEARTBEAT: `add(name, part)` its clocks (`mail`, `board`), `beat()` the play clock's knock, and its own tick every
@@ -119,6 +119,7 @@ export function createHeartbeat({
       try { b = p.body(); } catch (e) { console.warn(`[heartbeat] the ${name} part's body threw`, e); continue; }
       if (b === undefined) continue;
       body[name] = b;
+      if (p.extra) Object.assign(body, p.extra());
       sent.push([name, p]);
     }
     const waiters = withBeat ? beatWaiters : [];

@@ -21,6 +21,7 @@ import { MOBILE_TYPES } from '../characters/mobile/mobileTypes.js';
 import { SIFRIT_ID } from '../systems/sifrit/sifritLaw.js';   // SIFRIT: she is no DFU monster - staff's list adds her
 import { addGoldPieces } from '../systems/inventory.js';
 import { giveNyxCoins, nyxCoinsText } from '../systems/wild/nyxShop.js';
+import { createRide } from '../net/heartbeatRide.js';
 
 export const SPAWN_MAX = 10;
 export const GIFT_POLL_MS = 60_000;
@@ -49,6 +50,8 @@ export function monsterOf(raw) {
  */
 export function createStaffCommands({ io, relink, spawn, entity, saved }) {
   let lastPoll = 0, polling = false;
+  let brought = null;
+  const ride = createRide({ every: GIFT_POLL_MS, wanted: () => !!io(), accept: (r) => { brought = r; } });
 
   const words = {
     vanish: /^\/vanish\s*$/i,
@@ -98,12 +101,12 @@ export function createStaffCommands({ io, relink, spawn, entity, saved }) {
   }
 
   /** The gifts waiting for this account, taken: gold to the purse, coins to the pack, each said. */
-  async function takeGifts(say) {
+  async function takeGifts(say, mine = null) {
     const door = io();
     if (!door || polling) return;
     polling = true;
     try {
-      const r = await greedMine(door);
+      const r = mine ?? await greedMine(door);
       for (const g of r?.ok ? r.data.gifts ?? [] : []) {
         const c = await greedClaim(door, g.id);
         if (!c?.ok) continue;
@@ -129,10 +132,14 @@ export function createStaffCommands({ io, relink, spawn, entity, saved }) {
       if (gr) { void greed(gr[1], say); return true; }
       return false;
     },
+    heartbeatPart: () => ride.attach(),
     /** Each frame: now and then, the gifts waiting for this account taken. */
     tick(nowMs, say) {
+      if (brought) { const mine = brought; brought = null; void takeGifts(say, mine).catch(() => {}); }
+      if (ride.active() && lastPoll !== 0) return;
       if (nowMs - lastPoll < GIFT_POLL_MS) return;
       lastPoll = nowMs;
+      ride.asked();
       void takeGifts(say).catch(() => {});
     },
   };
