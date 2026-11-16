@@ -56,7 +56,8 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
     asking = territoriesRead(door).then((r) => {
       if (r?.ok && Array.isArray(r.data?.territories)) {
         rows = r.data.territories;
-        charters = Array.isArray(r.data.charters) ? r.data.charters : [];
+        // The service sends null for Charters it could not read; keep the last list.
+        if (Array.isArray(r.data.charters)) charters = r.data.charters;
         placed = null;
         placedCharters = null;
         version++;
@@ -77,7 +78,7 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
         const town = townOf(Number(t.mapId) >>> 0);
         if (!town || !Number.isFinite(town.px) || !Number.isFinite(town.py)) continue;
         placed.push({
-          id: t.id, tag: t.tag, name: t.name, x: town.px + 0.5, y: town.py + 0.5, r: territoryRadius(t.strength), strength: t.strength,
+          id: t.id, mapId: Number(t.mapId) >>> 0, tag: t.tag, name: t.name, x: town.px + 0.5, y: town.py + 0.5, r: territoryRadius(t.strength), strength: t.strength,
           weeks: Array.isArray(t.weeks) ? t.weeks.map((n) => Math.max(0, Number(n) || 0)) : null,
           fill: hexOf(t.field) ?? DEFAULT_COLOUR, ring: hexOf(t.border) ?? hexOf(t.field) ?? DEFAULT_COLOUR,
         });

@@ -31,6 +31,8 @@ import { TITLES, AURAS } from './identityToken.js';
  * fifty - a piece of Ruhn's Regalia in the day's stock is twelve.
  */
 export const INSIGNIA = Object.freeze([
+  Object.freeze({ id: 'title:barmaster', kind: 'title', key: 'barmaster', price: 100, currency: 'favor' }),
+  Object.freeze({ id: 'title:legendarybartender', kind: 'title', key: 'legendarybartender', price: 500, currency: 'favor' }),
   Object.freeze({ id: 'title:gatebreaker', kind: 'title', key: 'gatebreaker', price: 30 }),
   Object.freeze({ id: 'aura:dagonfire', kind: 'aura', key: 'dagonfire', price: 50 }),
   // BUNNYFALL (Cromwark): NYX'S TWO - sold by Nyx at the Adventurers' Guild camp for Dusk Tokens (`currency`), the service's

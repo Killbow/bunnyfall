@@ -597,7 +597,7 @@ export async function insigniaPurse({ db }, player) {
  */
 export async function buyInsignia({ db, nowS }, player, env, id, rid = null) {
   const offer = insigniaById(id);
-  if (!offer) return { error: 'no-insignia' };
+  if (!offer || offer.currency === 'favor') return { error: 'no-insignia' }; // Favor purchases debit a realm character through tavernFavorBuy.
   if (!player?.handle) return { error: 'guest' };
   // AUDIT FB1024 (BROKER-RID, brokerSales.js): a press with a request id - a fenced id writes nothing, the same press asked
   // again answers its sale (before `owned`, which its own sale made true)

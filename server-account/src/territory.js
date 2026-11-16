@@ -6,7 +6,8 @@
 // A friends' server: the XP credited is what the Renown report already credited (index.js, /v1/renown/xp), so it is
 // bounded as Renown is and no more.
 import { seatWeekOf } from '../../src/net/townSeatLaw.js';
-import { TERRITORY_WEEK_WEIGHTS, TERRITORY_XP_REPORT_MAX, territoryStrength } from '../../src/net/territoryLaw.js';
+import { TERRITORY_WEEK_WEIGHTS, TERRITORY_XP_REPORT_MAX, territoryStrength, territoryRadius, inTerritory } from '../../src/net/territoryLaw.js';
+import { charterRadius } from '../../src/net/charterLaw.js';
 import { heraldryOfRow } from './halls.js';
 import { chartersRead } from './charters.js';
 
@@ -26,6 +27,37 @@ export async function creditTerritory({ db, nowS }, player, { character, region,
       ON CONFLICT (week, guild_id, region) DO UPDATE SET xp = xp + excluded.xp`)
     .bind(week, region, n, player.id, character).run();
   return { credited: r?.meta?.changes ? n : 0 };
+}
+
+/**
+ * Returns true when a lapsed release must keep the farm. A farm with pixels is kept inside the circle of the recorded
+ * hall or Charter. A farm without pixels, or a reported farm outside both, is kept while the Company holds the recorded
+ * hall town or Charter. Throws on a failed read.
+ */
+export async function farmInReach(db, gid, mapId, nowS) {
+  const now = seatWeekOf(nowS * 1000);
+  const [own, mates, rows, reach] = await db.batch([
+    db.prepare('SELECT map_id FROM homes WHERE guild_id = ?1').bind(gid),
+    db.prepare(`SELECT me.map_id, h.guild_id FROM city_charter_members me JOIN city_charters c ON c.map_id = me.map_id
+      LEFT JOIN city_charter_members m ON m.map_id = c.map_id LEFT JOIN homes h ON h.guild_id = m.guild_id AND h.region = c.region
+      WHERE me.guild_id = ?1`).bind(gid),
+    db.prepare(`SELECT t.guild_id, t.week, t.xp FROM company_territory t JOIN homes h ON h.guild_id = t.guild_id AND h.region = t.region
+      WHERE t.week >= ?1 AND t.week <= ?2 AND (t.guild_id = ?3 OR t.guild_id IN (SELECT m.guild_id FROM city_charter_members m
+        JOIN city_charter_members me ON me.map_id = m.map_id WHERE me.guild_id = ?3))`).bind(now - TERRITORY_WEEK_WEIGHTS.length + 1, now, gid),
+    db.prepare('SELECT * FROM company_farm_reach WHERE map_id = ?1').bind(mapId),
+  ]);
+  const xp = rows?.results ?? [];
+  const strength = (id) => territoryStrength(TERRITORY_WEEK_WEIGHTS.map((_, ago) => xp
+    .reduce((n, r) => n + (r.guild_id === id && Number(r.week) === now - ago ? Number(r.xp) || 0 : 0), 0)));
+  const hall = own?.results?.[0], ch = mates?.results ?? [], ids = ch.map((r) => r.guild_id).filter(Boolean);
+  const f = reach?.results?.[0] ?? { hall_map: hall?.map_id ?? null, cap_map: ch[0]?.map_id ?? null };
+  if (f.px != null && f.py != null) {
+    const inside = (x, y, r) => x != null && y != null && inTerritory(f.px + 0.5, f.py + 0.5, { x: x + 0.5, y: y + 0.5, r });
+    const exact = (!!hall && hall.map_id === f.hall_map && inside(f.hall_px, f.hall_py, territoryRadius(strength(gid))))
+      || (ch.length > 0 && ch[0].map_id === f.cap_map && inside(f.cap_px, f.cap_py, charterRadius(ids.map(strength))));
+    if (exact || !f.reported) return exact;
+  }
+  return (!!hall && hall.map_id === f.hall_map) || (ch.length > 0 && ch[0].map_id === f.cap_map);
 }
 
 /**
@@ -60,7 +92,8 @@ export async function territoriesRead({ db, nowS }) {
       weeks: weeks.get(h.id) ?? TERRITORY_WEEK_WEIGHTS.map(() => 0),
     };
   });
-  // BUNNYFALL COMPANIES (City Charters): and every Charter, which the maps draw round its capital (charters.js)
-  const charters = await chartersRead({ db, nowS }).catch(() => []);   // none before migration 0198
+  // BUNNYFALL COMPANIES (City Charters): every Charter, which the maps draw around its capital (charters.js).
+  // A failed Charter read returns null, and the client keeps the last Charters it received.
+  const charters = await chartersRead({ db, nowS }).catch(() => null);
   return { ok: true, week, territories, charters };
 }

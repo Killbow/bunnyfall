@@ -209,6 +209,8 @@ export const WARDROBE = Object.freeze({
     ilovelamp: E('world', 'open', () => t('coll.how.ilovelamp', 'Speak with a shopkeeper who is a lamp.')),
     grandmaster: E('ranked', 'ranked', () => t('coll.how.grandmaster', 'Stand first on The King’s Gambit’s ranked board this season, with at least {games} ranked games against {foes} different opponents.', TABLE_CHAMPION_FLOOR.grandmaster)),
     coilbreaker: E('serpent', 'chance', serpent('coilbreaker')),
+    barmaster: E('world', 'open', () => t('coll.how.barmaster', 'Buy from the Bards’ Guild for 100 Favor Tokens.')),
+    legendarybartender: E('world', 'open', () => t('coll.how.legendarybartender', 'Buy from the Bards’ Guild for 500 Favor Tokens.')),
     spirewalker: E('spire', 'open', redoubt('spirewalker')),
     beaconlighter: E('spire', 'open', redoubt('beaconlighter')),
     kynbane: E('spire', 'open', redoubt('kynbane'), { with: ['aura:beaconlight'] }),

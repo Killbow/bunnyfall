@@ -14,7 +14,7 @@ import { BLIGHT_SECTORS } from '../../src/net/blightLaw.js';
 import { keptWorld, dropWorld } from './worldCache.js';
 import {
   GARRISON_MAX, RECRUIT_MAX, GARRISON_DAYS_MAX, troopOf, troopsOf, troopTotal, ordersOf, orderedTotal, ordersFit,
-  garrisonDay, supplyOf, upkeepOf, supplyDays, marchPushPx,
+  garrisonDay, supplyOf, upkeepOf, supplyDays, marchPushPx, dismissFit,
 } from '../../src/net/garrisonLaw.js';
 
 const DAY_S = 86400;
@@ -204,6 +204,24 @@ export async function garrisonRecruit({ db, nowS }, player, { character, which, 
   } catch { return { error: 'garrison-gold' }; }
   dropWorld(db, 'garrisons');
   return { ok: true, cost };
+}
+
+/** @param {{ db: any, nowS: number }} ctx */
+export async function garrisonDismiss({ db, nowS }, player, { character, which, type, n } = {}) {
+  const t = troopOf(type);
+  if (!t || !Number.isSafeInteger(n) || n < 1) return { error: 'garrison-bad' };
+  const c = await commandOf(db, player, character, which);
+  if ('error' in c) return c;
+  let row = await db.prepare('SELECT * FROM garrisons WHERE owner = ?').bind(c.place.owner).first();
+  if (!row) return { error: 'garrison-empty' };
+  row = await reckon(db, row, nowS);
+  const d = dismissFit(troopsOf(parse(row.troops)), ordersOf(parse(row.orders)), t.key, n);
+  if (!d) return { error: 'garrison-few' };
+  const done = await db.prepare('UPDATE garrisons SET troops = ?2, orders = ?3 WHERE owner = ?1 AND troops = ?4 AND orders = ?5')
+    .bind(c.place.owner, JSON.stringify(d.troops), JSON.stringify(d.orders), row.troops, row.orders).run();
+  if (!done?.meta?.changes) return { error: 'garrison-changed' };
+  dropWorld(db, 'garrisons');
+  return { ok: true, recalled: d.recalled };
 }
 
 /**

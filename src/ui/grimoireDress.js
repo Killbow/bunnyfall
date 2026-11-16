@@ -1426,6 +1426,13 @@ ${G} .dfchat-badge.ping { background: ${PING_COLOURS.bar.dark} !important; }
 ${G} .dfsocial :is(.dfsocial-name, .dfsocial-subject)[style*="color"] { filter: brightness(0.3) saturate(1.6); text-shadow: none !important; }   /* (a party's and a friend's names: their own deepened colour, NAME-INK above) */
 ${G} .dfsocial :is(.dfsocial-name, .dfsocial-subject, .dfsocial-lettertext):not([style*="color"]) { color: ${T.ink} !important; text-shadow: none !important; }
 ${G} .dfsocial .dfsocial-letter.read .dfsocial-name { color: ${T.inkSoft} !important; }
+/* The Company window keeps its dark background (socialPanel.js), so its text uses light tones here */
+${G} body .dfsocial[data-mode="guild"][data-open] :is(.dfsocial-subject, .dfsocial-name, .dfguild-statvalue, .dfguild-navlabel, .dfsocial-btn, .dfguild-said, .dfsocial-ranks) { color: ${T.cream} !important; }
+${G} body .dfsocial[data-mode="guild"][data-open] :is(.dfguild-statlabel, .dfguild-navsub, .dfguild-navcount, .dfsocial-sub, .dfsocial-empty, .dfsocial-why, .dfsocial-label, .dfsocial-back) { color: #cdb98f !important; }
+${G} body .dfsocial[data-mode="guild"][data-open] :is(.dfsocial-title, .dfsocial-sec) { color: ${T.goldLeaf} !important; }
+${G} body .dfsocial[data-mode="guild"][data-open] .dfsocial-note { color: #e6d3ad !important; }
+${G} body .dfsocial[data-mode="guild"][data-open] .dfsocial-err { color: #f08a6a !important; }
+${G} body .dfsocial[data-mode="guild"][data-open] .dfguild-statsub { color: #7fd27f !important; }
 ${G} .dfchat-box :is(.dfchat-time, .dfchat-tag, .dfchat-whohead, .dfchat-who-more, .dfchat-who-tag) { color: ${T.inkSoft} !important; text-shadow: none !important; }
 ${G} .dfchat-box .dfchat-line.system .dfchat-text { color: #163a6a !important; text-shadow: none !important; }   /* CHAT-COLOURS: 5:1 on the cream page's darkest (the herald's #1f4f8e stood at 3.6) */
 ${G} .dfchat-box :is(.dfchat-time, .dfchat-tag) { color: #4f3218 !important; }   /* ...and a line's time and tag 5:1 too, on the mention's wash as well */

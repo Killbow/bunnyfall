@@ -3,6 +3,19 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-16
+
+- Tavern shifts now have three clickable bottle points for pouring doses, a cup progress display, and an illustrated, paged innkeeper's recipe book.
+- Captains and Officers can now dismiss soldiers from the Company's Garrison page, with no gold returned. If too few soldiers remain for their orders, soldiers are recalled from the front first, then from patrol routes.
+- Fixed: The Great Cannon map mark is now gold, so it no longer looks like the orange Sentinel's warriors mark. An existing orange cannon mark also turns gold.
+- Fixed: Farms inside your Company's territory or Charter are no longer lost when a member's game wrongly decides they are out of reach.
+- Fixed: On the Stone look, gray labels in the Social and Company windows are now lighter and easier to read.
+- Fixed: Open game tabs now say when a new version of the game is out, so you know to save and reload.
+- Fixed: In Bunnyfall Grimoire, the Company window no longer shows dark text on its dark background.
+- Fixed: The desktop app now says in chat when a new version of the game is out.
+- Fixed: Holy Word now dispels the undead in its area, and Banish Daedra now dispels the daedra it touches.
+- Fixed: At some town gates, such as Chesterwark's west gate, the carriage and its driver no longer appear wedged against or inside a building.
+
 ## 2026-11-14
 
 - The Company Overview now has a Territory section explaining the weekly shrink at each Turning and the Renown XP needed to keep its start-of-week size.

@@ -1,3 +1,4 @@
+import { tavernProgressOf } from '../../net/tavernFavorLaw.js';
 // @ts-check
 // BUNNY-GUILDS (Phase 0d): WHO BELONGS TO BUNNYFALL'S GUILDS, AND AT WHAT RANK.
 //
@@ -33,7 +34,7 @@ let book = {};
 /** Phase 2: what the guilds' own work remembers - the taverns played (`${town}:${building}` -> the day), and how many
  *  places the character had found at its last survey sold. Kept in the same record, under `_marks`, which the book's
  *  check skips (no guild has that key). */
-let marks = { performed: /** @type {Record<string, number>} */ ({}), surveyed: 0 };
+let marks = { performed: /** @type {Record<string, number>} */ ({}), surveyed: 0, tavern: tavernProgressOf(null) };
 
 /** The marks as the save keeps them, checked. */
 function marksOf(/** @type {any} */ rec) {
@@ -42,7 +43,7 @@ function marksOf(/** @type {any} */ rec) {
   if (m?.performed && typeof m.performed === 'object') {
     for (const [k, d] of Object.entries(m.performed)) if (typeof k === 'string' && k.length < 40 && Number.isSafeInteger(d)) /** @type {any} */ (performed)[k] = d;
   }
-  return { performed, surveyed: Number.isSafeInteger(m?.surveyed) && m.surveyed >= 0 ? m.surveyed : 0 };
+  return { performed, tavern: tavernProgressOf(m?.tavern), surveyed: Number.isSafeInteger(m?.surveyed) && m.surveyed >= 0 ? m.surveyed : 0 };
 }
 
 /** The book as the save keeps it, each line checked: a known guild, a whole rank 0..9, a time. */
@@ -63,7 +64,7 @@ export function registerBunnyMembership(search = undefined) {
   if (!bunnyGuildsOn(search)) return;
   registerModSaveData(BUNNY_GUILDS_VENDOR, {
     newSaveData: () => ({}),
-    getSaveData: () => ({ ...book, _marks: { performed: { ...marks.performed }, surveyed: marks.surveyed } }),
+    getSaveData: () => ({ ...book, _marks: { performed: { ...marks.performed }, surveyed: marks.surveyed, tavern: marks.tavern } }),
     restoreSaveData: (rec) => { book = bunnyBookOf(rec); marks = marksOf(rec); },
   });
 }
@@ -129,3 +130,6 @@ export function noteSurveyed(/** @type {number} */ n) { marks.surveyed = Math.ma
 
 /** For tests: set the book. */
 export function _setBunnyBook(/** @type {unknown} */ rec) { book = bunnyBookOf(rec); marks = marksOf(rec); }
+
+export const tavernProgress = () => marks.tavern;
+export function restoreTavernProgress(raw) { marks.tavern = tavernProgressOf(raw); }

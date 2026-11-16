@@ -156,6 +156,7 @@ import { tallySkill, skillValue, SKILLS, permanentSkillValue } from '../systems/
 import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice, makeEnemiesHostile, isBowWeapon, aimedBlowInfo, playerBlowFrame } from './hostCombat.js';   // AUDIT 21 hosts F8: the swing law, shared with the dungeon and the guards; IF: the pain cry   // ROAD-B: GameManager.MakeEnemiesHostile
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
+import { createTavernFavorShop } from './tavernFavorShop.js';
 import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
 import { createCityGuards } from './cityGuards.js';   // ROAD-B: SpawnCityGuards' INDOOR arm needs a watch pool in the building
@@ -2626,15 +2627,20 @@ export function createWorldModes(host) {
    *  stays npcDisplayName's, the canonical name the topic tree compares
    *  with a quest Person's. */
   const npcShownName = (npcData) => questBridge?.machine?.movedQuestorName?.(npcData) ?? staticNpcShownName(npcData, npcNameDeps());   // QUESTOR-MOVED: the moved questor's one name, shown as the partner's
+  const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null,
+    city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
+    choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
   const tavernService = createTavernServiceHost({
     entity: () => playerEntity, act: host.tavernAct ?? null, online: isOnlinePage,
     people: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? interiorCtx?.people ?? [] : [],
     where: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? `${questSceneCtx?.()?.mapId ?? 0}:${interiorBuilding.buildingKey}` : null,
     buildingKey: () => interiorBuilding?.buildingKey,
+    region: () => interiorBuilding?.regionIndex ?? host.currentRegionIndex?.() ?? -1,
+    city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     npcId: (pn) => `npc:${staticNpcData(pn, staticNpcSceneCtx(pn)).nameSeed}:${pn.factionID}`,
     name: (pn) => npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn))),
     patron: (pn) => !pn.questBehaviour && !pn.bunnyClerk && !pn.arenaRole && !isChildNPCData(staticNpcData(pn, staticNpcSceneCtx(pn))) && staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict, building: interiorBuilding }).kind === 'talk',
-    plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)),
+    plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), showWindow: (view) => townTalk?.showOverlay?.(view),
     talk: (pn) => openStaticNpc(pn), say: (line) => say(line), saveSoon: () => host.saveSoon?.(),
   });
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
@@ -4423,7 +4429,7 @@ export function createWorldModes(host) {
     // ARENA-FIX 4: THE FIGHTERS' HALL - the Pit Master offers the training pit, the Keeper of the Hall reads its wall
     if (!info && pn?.bunnyClerk) {   // BUNNY-GUILDS: the hall's clerk, and the guild's services (systems/guild/bunnyServices.js)
       openBunnyHall(pn.bunnyClerk, playerEntity, (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), bunnyHallServices({
-        entity: playerEntity, openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
+        entity: playerEntity, openFavor: () => favorShop.open(), openCompany: host.openCompany ?? null, openBoard: host.openHallBoard ?? null, openBounties: host.openBounties ?? null,
         revealLocation: host.revealLocation ? () => host.revealLocation('readMap') : null,
       }));
       return;
@@ -5882,9 +5888,9 @@ export function createWorldModes(host) {
       onTalk: () => openStaticNpc(pn, { forceTalk: true }),
       // BUNNYFALL: the house's own rows (perform, a round, a tip, a festival) beside the window's four - one menu
       house: () => [...bunnyTavernRows({
-        entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
+        entity: playerEntity, region: b?.regionIndex ?? host.currentRegionIndex?.() ?? -1, city: String(b?.townMapId ?? questSceneCtx?.()?.mapId ?? 0), where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
         perform: (onDone, hooks) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, performer: playerEntity.name, stage: host.bardStage ?? null, ...hooks })),   // BARDS' COLLEGE: a rhythm game over a MIDI the bard picks, heard by the tavern (scenes/bardStage.js)
-        tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
+        roomShare: () => tavernService.musicShare(), tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
       }), ...tavernService.innRows(pn)],
       sceneCache: () => sceneCache(),   // P1: renting HOLDS the room's interior
       // The U24 identity guard: a window that dispatches to another

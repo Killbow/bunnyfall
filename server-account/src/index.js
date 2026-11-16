@@ -303,13 +303,14 @@ import { nyxFound, nyxTotal } from './nyx.js';
 import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
 import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
-import { garrisonsRead, garrisonRecruit, garrisonOrders } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
+import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
 import { vanishSet, greedGive, greedMine, greedClaim } from './staffCommands.js';   // BUNNYFALL: /vanish and /greed
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Dusk Tokens counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
+import { tavernFavorBuy } from './tavernFavor.js';
 import { tavernServiceAct } from './tavernService.js';
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesInTowns, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
@@ -1783,6 +1784,12 @@ const service = {
       // same wall as the letters' and the saves', with its own word (a
       // guest is a device, and a home held by one a cleared browser loses
       // is a building gone from the world). homes.js holds the bounds.
+      if (path === '/v1/tavern/favor') {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = await tavernFavorBuy({ ...ctx, bucket: env.SAVES }, who.player, body);
+        if (r.error === 'seq') return json(r, 409, origin);
+        return r.error ? no(r.error, 400, origin) : json(r, 200, origin);
+      }
       if (path === '/v1/tavern/service') {
         if (request.method !== 'POST') return no('method', 405, origin);
         const r = await tavernServiceAct({ ...ctx, bucket: env.SAVES }, who.player.id, body);
@@ -2372,9 +2379,10 @@ const service = {
         const r = await act(ctx, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
-      if (path === '/v1/garrisons' || path === '/v1/garrisons/recruit' || path === '/v1/garrisons/orders') {   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
+      if (path === '/v1/garrisons' || path === '/v1/garrisons/recruit' || path === '/v1/garrisons/orders' || path === '/v1/garrisons/dismiss') {   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
         if (request.method !== 'POST') return no('method', 405, origin);
-        const r = path === '/v1/garrisons' ? await garrisonsRead(ctx, who.player, body ?? {}) : path.endsWith('/recruit') ? await garrisonRecruit(ctx, who.player, body ?? {}) : await garrisonOrders(ctx, who.player, body ?? {});
+        const act = { '/v1/garrisons': garrisonsRead, '/v1/garrisons/recruit': garrisonRecruit, '/v1/garrisons/orders': garrisonOrders, '/v1/garrisons/dismiss': garrisonDismiss }[path];
+        const r = await act(ctx, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/blight' || path === '/v1/blight/push') {   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)

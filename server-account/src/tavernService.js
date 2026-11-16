@@ -3,6 +3,7 @@
 // checkpoint, as with other services; this is not an independent server simulation of the room's NPCs.
 import { createTavernShift, stepTavernShift, TAVERN_BARDS_FACTION, TAVERN_SHIFT_MAX_S } from '../../src/net/tavernServiceLaw.js';
 import { realmAtOf, recordMovedOf, prepareRealmRecord, dropIfUnnamed, dropObjects, realmSaveTextOf, mustChange } from './realm.js';
+import { tavernProgressOf, tavernReputation } from '../../src/net/tavernFavorLaw.js';
 import { creditSave } from '../../src/net/realm/realmGoldLaw.js';
 
 const keyOk = (s) => typeof s === 'string' && /^[A-Za-z0-9:._-]{1,100}$/.test(s);
@@ -51,9 +52,16 @@ export async function tavernServiceAct(ctx, player, body) {
     if ('error' in result) return result;
   }
   let prep = null;
-  if (result.gold || result.rep) {
+  if (result.gold || result.rep || result.favor || result.localRep) {
     prep = await prepareRealmRecord(ctx, player, at, (record) => {
       creditSave(record, result.gold);
+      if (result.favor || result.localRep) {
+        record.modData ??= {}; record.modData.BunnyGuilds ??= {}; record.modData.BunnyGuilds._marks ??= {};
+        const marks = record.modData.BunnyGuilds._marks;
+        marks.tavern = tavernProgressOf(marks.tavern);
+        marks.tavern.favor += result.favor ?? 0;
+        tavernReputation(record, marks.tavern, b.regionIndex, String(b.townMapId ?? body.where.split(':')[0]), result.localRep ?? 0);
+      }
       if (result.rep) {
         const reps = record.factionRep;
         const i = reps?.ids?.indexOf(TAVERN_BARDS_FACTION) ?? -1;
