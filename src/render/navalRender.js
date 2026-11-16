@@ -264,15 +264,15 @@ export function viewAxes(view) {
   return { right: [view[0], view[4], view[8]], up: [view[1], view[5], view[9]] };
 }
 
-/** A particle's two half-axes: facing the eye (turned by its roll) or, `flat`, lying on the sea - AUDIT NAV1 (#15):
- *  `aspect` times as long as it is wide along its first (a plank). */
+/** A particle's two half-axes: facing the eye (turned by its roll) or, `flat`, lying on the sea; `aspect` scales the
+ *  first (a plank's length, a lamp streak's width). */
 export function particleAxes(p, axes) {
   const h = p.size * 0.5, c = Math.cos(p.rot ?? 0), s = Math.sin(p.rot ?? 0);
   const hl = h * (p.aspect ?? 1);
   if (p.flat) return { ax: [c * hl, 0, s * hl], ay: [-s * h, 0, c * h] };
   const { right: R, up: U } = axes;
   return {
-    ax: [(R[0] * c + U[0] * s) * h, (R[1] * c + U[1] * s) * h, (R[2] * c + U[2] * s) * h],
+    ax: [(R[0] * c + U[0] * s) * hl, (R[1] * c + U[1] * s) * hl, (R[2] * c + U[2] * s) * hl],
     ay: [(-R[0] * s + U[0] * c) * h, (-R[1] * s + U[1] * c) * h, (-R[2] * s + U[2] * c) * h],
   };
 }

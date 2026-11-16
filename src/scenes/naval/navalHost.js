@@ -97,7 +97,7 @@ import { enlistPlan, releasePlan, CREW_HALL_TEXT } from '../../systems/crewHall.
 import { createBoarding, boardableState, musterOf, crewTeamOf, handsOf, repelPartyOf, raidQuestOf, raidQuestWon, raidQuestRetreated, boardingWon, BOARD_RANGE, ABANDON_RANGE, HAND, SURRENDER_SHARE, CREW_PER_HAND } from '../../systems/naval/navalBoarding.js';   // BOARD-MAGNET: struck, the one way aboard
 import { navalWireRecord, validNavalRecord, navalHitData, validNavalHit, NAVAL_SHARE_RADIUS, NAVAL_VOLLEY_KEEP_MS, NAVAL_GEN_MAX, NAVAL_WIRE_VOLLEYS, NAVAL_WIRE_SPENT, TRAFFIC_DEFAULT } from '../../systems/naval/navalWire.js';
 import { Boat, boatAnimators, boatParticleSystems, animatorOf, setLights, meshLocalBounds, HULL_NAMES } from '../../systems/comeSailAway/comeSailAwayBoat.js';
-import { runsDark, nightSight, lampSize, lampAlpha, lampPoints, LAMP_NEAR_M, LAMP_COLOR } from '../../systems/naval/shipWatch.js';   // SHIP-WATCH: the sea by night, and my lookout
+import { runsDark, nightSight, lampSize, lampAlpha, lampPoints, createLampStreaks, LAMP_NEAR_M, LAMP_COLOR, STREAK_NEAR_M } from '../../systems/naval/shipWatch.js';   // SHIP-WATCH: the sea by night, and my lookout
 import { stowSail, vSignedAngle } from '../../systems/comeSailAway/comeSailAway.js';   // AUDIT GN2-RG6: sailWind's angle
 import { quatEuler } from '../../world/unityAnimator.js';
 import { quatRotate, quatLookRotation, quatAngleAxis, mat4FromQuatPos } from '../../world/quat.js';
@@ -5056,16 +5056,18 @@ export function createNavalHost(deps) {
     lampsInto(particles);   // SHIP-WATCH: the far ships' lanterns, points of light on the night sea
     return { particles, balls: shots.balls(), floaters: shots.floaters().map((f) => (isSalvage(f.lot) ? { ...f, wreck: true } : f)), aim: aimDraw, time: clock };   // AUDIT NAV1 (#4): the arcs' dash marches on the sea's clock
   }
+  const lampStreaks = createLampStreaks();
   /**
    * SHIP-WATCH: a lit ship's lanterns past LAMP_NEAR_M of the eye, as points of light (an added glow, shipWatch.js
    * lampSize/lampAlpha - a few pixels at any range) - her own lantern flats are a pixel there and the light list holds
    * the nearest eight, so a ship at night was her dark hull alone. LAMP_MAX of each ship's lanterns, spread along her;
-   * the sea's ships and mine.
+   * the sea's ships and mine. From STREAK_NEAR_M, their reflections on the sea too.
    * @param {any[]} out
    */
   function lampsInto(out) {
     if (!where().cityLights) return;
     const eye = deps.look?.()?.origin ?? deps.feet();
+    lampStreaks.begin(eye, deps.seaY(), clock);
     const boats = [];
     for (const e of sea.values()) if (e.boat?.LightOn && (e.fade ?? 1) >= FADE_FLATS) boats.push(e.boat);   // AUDIT BAY A13: gone with her lantern flats as she fades
     for (const b of myBoats()) if (b.LightOn) boats.push(b);
@@ -5074,8 +5076,9 @@ export function createNavalHost(deps) {
       const lit = (b.Lights ?? []).filter((l) => l.node?.activeInHierarchy !== false);
       for (const l of lampPoints(lit)) {
         const p = l.node.position, d = Math.hypot(p[0] - eye[0], p[1] - eye[1], p[2] - eye[2]);
-        if (d <= LAMP_NEAR_M) continue;
-        out.push({ pos: p, size: lampSize(d), color: [LAMP_COLOR[0], LAMP_COLOR[1], LAMP_COLOR[2], lampAlpha(d)], rot: 0, blend: 'add', flat: false, solid: false, kind: 'lamp', aspect: 1 });
+        if (d <= STREAK_NEAR_M) continue;
+        if (d > LAMP_NEAR_M) out.push({ pos: p, size: lampSize(d), color: [LAMP_COLOR[0], LAMP_COLOR[1], LAMP_COLOR[2], lampAlpha(d)], rot: 0, blend: 'add', flat: false, solid: false, kind: 'lamp', aspect: 1 });
+        lampStreaks.into(out, p, d);
       }
     }
   }

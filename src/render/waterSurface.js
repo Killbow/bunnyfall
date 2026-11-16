@@ -114,6 +114,8 @@ export const DEFAULT_SKY_ZENITH = Object.freeze([0.17, 0.35, 0.72]);
 export const DEFAULT_SKY_HORIZON = Object.freeze([0.66, 0.78, 0.92]);
 const NO_GLOW = Object.freeze([0, 0, 0]);
 const NO_GLOW_DIR = Object.freeze([0, 1]);
+/** A lamp's reflection on the waves shows up to this many times its light's range from it. */
+const LAMP_PATH_REACH = 8.0;
 
 /** WATER-AUDIT: does a sub-rectangle of a `dim`-wide tilemap carry any
  *  water? The fixed city pads its square tilemap with zeros past the
@@ -546,9 +548,9 @@ void main() {
   float mdiff = max(dot(n, uMoonDir), 0.0);
   vec3 lit = body * seaLight(uAmbient, uSunColor, uSunScale * diff, uMoonColor, uMoonScale * mdiff);
   vec3 pointAcc = vec3(0.0), pointSpec = vec3(0.0);
-  // the waves break a reflected path into flecks; only the moon's path reads them
+  // the waves break a reflected path into flecks; only a lamp's or the moon's path reads them
   float fleck = 0.0;
-  if (uMoonScale > 0.03)
+  if (uPointCount > 0 || uMoonScale > 0.03)
     fleck = smoothstep(0.35, 0.8, vnoise(vWorldPos.xz * 1.3 + uWindDir * uTime * 1.5) * 0.6 + vnoise(vWorldPos.xz * 3.1 - uTime * 0.7) * 0.4);
   for (int i = 0; i < 16; i++) {
     if (i >= uPointCount) break;
@@ -557,10 +559,12 @@ void main() {
     float att = clamp(1.0 - d / uPointLights[i].w, 0.0, 1.0);
     vec3 Ld = L / max(d, 1e-4);
     pointAcc += att * att * max(dot(n, Ld), 0.0) * uPointColors[i];
-    // WATER-LIT1: water sends back little light diffusely and a lot as a glint - a lamp is a highlight on the waves
-    pointSpec += att * pow(max(dot(n, normalize(Ld + V)), 0.0), 90.0) * uPointColors[i];
+    // WATER-LIT1: water sends back little light diffusely and a lot as a glint - a lamp is a highlight on the waves,
+    // and its path down the waves toward the eye shows well past the light's own reach
+    float reach = clamp(1.0 - d / (uPointLights[i].w * ${LAMP_PATH_REACH.toFixed(1)}), 0.0, 1.0);
+    pointSpec += (att * pow(max(dot(n, normalize(Ld + V)), 0.0), 90.0) + reach * reach * 1.6 * (0.3 + 0.7 * fleck) * seaPath(R, Ld, 1500.0, 3.0)) * uPointColors[i];
   }
-  lit += body * pointAcc * 0.25;
+  lit += body * pointAcc * 0.25 + pointAcc * 0.012;
   vec3 iL = uIndirect.xyz - vWorldPos;
   float iD = length(iL);
   float iAtt = clamp(1.0 - iD / max(uIndirect.w, 1e-4), 0.0, 1.0);
@@ -608,7 +612,7 @@ void main() {
   // a lace, never a rim: the noise cuts the band into threads, thicker the shallower the water and the harder the wind
   float l = lace(vWorldPos.xz, uTime);
   float foam = max(shore * shore * smoothstep(0.62 - 0.25 * shore * uWindStrength, 0.82, l), crest * smoothstep(0.6, 0.85, l)) * 0.75 * exp(-dist * 0.004);
-  vec3 foamLit = vec3(0.92, 0.95, 0.96) * (uAmbient + uSunColor * (uSunScale * shadow * max(n.y, 0.0)) + uMoonColor * (uMoonScale * 0.5));
+  vec3 foamLit = vec3(0.92, 0.95, 0.96) * (uAmbient + uSunColor * (uSunScale * shadow * max(n.y, 0.0)) + uMoonColor * (uMoonScale * 0.5) + pointAcc * 0.8);
   float k = foam * 0.9;   // foam is not glass: where it lies it hides what is under it
   own = mix(own, foamLit, k); trans *= 1.0 - k; cover = mix(cover, 1.0, k);
   edge = max(edge, foam * smoothstep(0.0, 0.2, edge));

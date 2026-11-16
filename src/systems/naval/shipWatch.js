@@ -73,3 +73,41 @@ export function lampPoints(points) {
   for (let k = 0; k < LAMP_MAX; k++) out.push(points[Math.round(k * (points.length - 1) / (LAMP_MAX - 1))]);
   return out;
 }
+
+/** A far lamp's reflection runs LAMP_STREAK (radians of the view) below it; it shows from STREAK_NEAR_M (m) of the
+ *  eye and is whole at twice that. Nearer, the water's own lights draw it. */
+export const LAMP_STREAK = 0.06;
+export const STREAK_NEAR_M = 20;
+
+/**
+ * Far lamps' reflections on the sea, one reused particle record each (render/navalRender.js). Each streak is an upright
+ * quad part of the way from the eye to its lamp, rising from the sea. It covers the band of the screen a streak on the
+ * water would, and it never sinks below the sea's surface. It flickers on the swell.
+ */
+export function createLampStreaks() {
+  /** @type {any[]} */
+  const recs = [];
+  let n = 0, seaY = 0, t = 0;
+  /** @type {ArrayLike<number>} */
+  let eye = [0, 0, 0];
+  return {
+    /** @param {ArrayLike<number>} eyeAt @param {number} sea @param {number} clock */
+    begin(eyeAt, sea, clock) { n = 0; eye = eyeAt; seaY = sea; t = clock; },
+    /** @param {any[]} out @param {ArrayLike<number>} p @param {number} d */
+    into(out, p, d) {
+      const he = eye[1] - seaY;
+      if (he <= 0.5) return;
+      const m = Math.min(12, (LAMP_STREAK * d) / he), k = 1 / (1 + m), tall = he * m * k * 1.15, wide = LAMP_ANGLE * 2.2 * d * k;
+      const flick = 0.75 + 0.25 * Math.sin(t * 3.1 + p[0] * 0.7 + p[2] * 0.3);
+      const r = (recs[n++] ??= { pos: [0, 0, 0], size: 0, rot: 0, color: [LAMP_COLOR[0], LAMP_COLOR[1] * 0.9, LAMP_COLOR[2] * 0.8, 0],
+        blend: 'add', flat: false, solid: false, kind: 'lamp', aspect: 1 });
+      r.pos[0] = eye[0] + (p[0] - eye[0]) * k;
+      r.pos[1] = seaY + tall * 0.47;
+      r.pos[2] = eye[2] + (p[2] - eye[2]) * k;
+      r.size = tall;
+      r.aspect = Math.min(1, wide / tall);
+      r.color[3] = Math.min(1, (d - STREAK_NEAR_M) / STREAK_NEAR_M) * 0.9 * flick;
+      out.push(r);
+    },
+  };
+}
