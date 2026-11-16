@@ -5,6 +5,8 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: In the POI editor's DM tools, editing a dialogue, event, trade, or other entry no longer scrolls the panel back to the top.
+- Fixed: A POI event that opens a trade while a talk is open, such as one run by a dialogue answer, now shows the trade.
 - Fixed: In the POI editor and DM tools, color pickers and dropdowns actually open up.
 - Fixed: In the POI editor, Place and Paste with nothing selected now go to the last selected POI instead of making a new POI or asking you to select one.
 - Fixed: In the POI editor, a paste into the same POI now rezzes in the same position as the original.
