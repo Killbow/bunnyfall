@@ -1039,7 +1039,7 @@ import { PageOffers, pageOfferText, pageShownText, pageTooFarText, keptPageToken
 import { quickslotTag, quickslotHand, tagText, actionKeyWord } from '../ui/quickslotTags.js';   // JOURNAL1: the F-menu's own key, named off the live bindings
 import { isTouchDevice } from '../ui/touch/touchDevice.js';   // JOURNAL1: ...or a tap, where a finger points
 import { composeCard, createCardAnswerGate, CARD_WAIT_MS } from '../net/profileCard.js';   // INSPECT1: my card when asked, and how often one asker is answered
-import { relayVersionSeen, buildUpdateSeen, fetchLiveBuildTag, relayRestartText, buildUpdateText, BUILD_POLL_MS } from '../net/updateNotice.js';   // SRV-N: the relay moved, or the build did
+import { relayVersionSeen, buildUpdateSeen, liveBuildTag, relayRestartText, buildUpdateText, BUILD_POLL_MS } from '../net/updateNotice.js';   // SRV-N: the relay moved, or the build did
 import { BUILD_TAG } from '../buildTag.js';   // SRV-N: which build this tab is actually running
 import { morrowindDataCount, morrowindDataGeneration, getBytes } from './dataSource.js';   // MWBODY1: the bodies' gate - Morrowind data attached - and its generation
 // Q4-v: THE QUEST BRIDGE - the machine goes live in this host.
@@ -12166,9 +12166,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the one that can hold undead or daedra above ground; guards are
     // class enemies and carry no group bit at all, so they are exempt
     // by the same table that exempts them from Pacify Humanoid.
-    onDispel: ({ group, chance }) => {
+    onDispel: ({ group, chance, targets = null }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => (!targets || targets.includes(f)) && !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) exteriorFoes.removeFoe(f);
       if (gone.length) townTalk.say(`${gone.length} dispelled.`);
     },
@@ -28255,9 +28255,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (now - _buildPolledAt < BUILD_POLL_MS) return;
     _buildPolledAt = now;
     const href = globalThis.location?.href ?? '';
-    fetchLiveBuildTag(href).then((tag) => {
+    liveBuildTag(href).then((tag) => {
       if (buildUpdateSeen(tag, BUILD_TAG) === 'changed') chatNotice(buildUpdateText());
-    }, () => {});   // `fetchLiveBuildTag` swallows its own throws; this is the belt for a rejection it cannot see
+    }, () => {});   // `liveBuildTag` swallows its own throws; this is the belt for a rejection it cannot see
   };
   // ═══ CHAT-CHAN — THE FOUR CHANNELS, AT THE HOST ═══════════════════
   //
