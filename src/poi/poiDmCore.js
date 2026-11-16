@@ -247,7 +247,7 @@ function act(dm, a, depth, settled) {
     case 'stop_route': if (dm.npcs[a.npc]) dm.npcs[a.npc].route = null; note(dm, { k: 'stop_route', npc: a.npc }); break;
     case 'spawn_npc': case 'despawn_npc': if (dm.npcs[a.npc]) dm.npcs[a.npc].on = a.k === 'spawn_npc'; note(dm, { k: a.k, npc: a.npc }); break;
     case 'open_dialogue': openDialogue(dm, a.dialogue); break;
-    case 'open_trade': dm.trade = a.trade; note(dm, { k: 'open_trade', trade: a.trade }); break;
+    case 'open_trade': dm.dialogue = null; dm.trade = a.trade; note(dm, { k: 'open_trade', trade: a.trade }); break;
     case 'give_item': if (!settled) giveStack(dm, a.item); note(dm, { k: 'give_item', item: a.item, text: stackName(a.item) }); break;
     case 'take_item': if (!settled) takeStack(dm, a.item); note(dm, { k: 'take_item', item: a.item, text: stackName(a.item) }); break;
     case 'give_gold': if (!settled) dm.gold += a.amount; note(dm, { k: 'give_gold', amount: a.amount }); break;
