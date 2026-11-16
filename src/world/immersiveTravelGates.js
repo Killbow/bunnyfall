@@ -13,9 +13,6 @@
 // onto whichever of those files the door serves, in the block's own coordinates, under the same header counts the
 // editor leaves (DFU lays a block out by its arrays). Where the mod's own patch is what is served it already carries
 // them, and the layer stands aside.
-//
-// NOT SEEN: how the carriages sit among Beautiful Cities' own gate furniture - this container has no ARENA2 to lay a
-// town out in. The bible's page names it for the owner's eyes.
 
 import { registerWorldDataLayer } from '../formats/worldData/worldDataReplacement.js';
 
@@ -44,14 +41,23 @@ export function gateAppends(patch, counts = null) {
   return out;
 }
 
+// Four Beautiful Cities composites put a building on the gate spot; each [XPos, ZPos] block-unit shift clears it.
+export const GATE_SHIFTS = Object.freeze({
+  'WALLAA08.TVRNAS00.RMB.json': [160, 550],
+  'WALLAA08.TVRNBS01.RMB.json': [840, 80],
+  'WALLAA09.TVRNBS01.RMB.json': [100, 540],
+  'WALLAA11.TVRNAS01.RMB.json': [-100, -760],
+});
+
 /** The served file with the mod's records appended - a new document; the served one is untouched. */
-export function layGateRecords(json, appends) {
+export function layGateRecords(json, appends, [dx, dz] = [0, 0]) {
   const rmb = json?.RmbBlock;
   if (!rmb) return json;
   const next = { ...rmb };
   for (const k of ARRAYS) {
     if (!appends[k]?.length) continue;
-    next[k] = [...(Array.isArray(rmb[k]) ? rmb[k] : []), ...appends[k].map((r) => ({ ...r }))];
+    const laid = appends[k].map((r) => ({ ...r, XPos: r.XPos + dx, ZPos: r.ZPos + dz }));
+    next[k] = [...(Array.isArray(rmb[k]) ? rmb[k] : []), ...laid];
   }
   return { ...json, RmbBlock: next };
 }
@@ -75,6 +81,9 @@ export function installImmersiveTravelGates(patches, own, isOn) {
     isOn: typeof isOn === 'function' ? isOn : () => true,
     match: (fileName) => byGate.has(IT_GATE_FILE.exec(fileName)?.[1]),
     owns: (json) => mine.has(json),
-    apply: (json, fileName) => layGateRecords(json, byGate.get(IT_GATE_FILE.exec(fileName)?.[1])),
+    apply: (json, fileName) => {
+      const appends = byGate.get(IT_GATE_FILE.exec(fileName)?.[1]);
+      return layGateRecords(json, appends, GATE_SHIFTS[fileName]);
+    },
   });
 }
