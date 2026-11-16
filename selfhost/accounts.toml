@@ -13,7 +13,7 @@ crons = ["* * * * *", "41 * * * *"]
 [vars]
 # BUNNYFALL: no anti-cheat on a friends' server - saves are stored, never judged (server-account/src/bunnyfall.js)
 JUDGE_OFF = "on"
-ACCOUNT_VERSION = "acct204"
+ACCOUNT_VERSION = "acct205"
 ALLOWED_ORIGIN = "*"
 DEVELOPER_HANDLES = "Killbunny,codering,sovot,DaCookie,GreyVixen"
 OWNER_HANDLES = "Killbunny"
