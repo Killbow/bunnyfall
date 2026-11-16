@@ -5,6 +5,12 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Removing an effect in the item enchanter no longer removes matching effects from a bound soul.
+- Fixed: The desktop launcher now shows release patch notes again, and updates that finish downloading after a temporary stall install before play instead of staying on "Could not download".
+- Fixed: Sailing no longer hiccups each time your guns finish reloading or a shot hits your ship or your target.
+- Fixed: The pack now shows your custom paperdoll the first time you open it, instead of your ordinary doll.
+- Fixed: Skeleton, zombie, and atronach revenants no longer yip, whine, snarl, or howl.
+- Fixed: While a town loads, such as right after a fast travel, the carriage horses and other nearby town animals no longer repeat their sounds in quick succession.
 - Fixed: Shops, bookshelves, and loot no longer offer books whose pages are missing from the game files.
 - Fixed: Raiders attacking a walled town no longer get stuck in its gatehouses. They camp outside and march in through a gate, which stays open during the raid, even at night.
 - Fixed: The Stores page now lists materials bought at a shop counter and says that they can't go into your Stores but crafting stations can still use them.

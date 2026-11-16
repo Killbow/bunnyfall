@@ -412,8 +412,9 @@ export function pickEnchantment(type, param, { powers = [], sideEffects = [] } =
  *  child is never removed on its own - the window's click handler
  *  only fires on panels whose ParentEnchantment == 0
  *  (EnchantmentListPicker.cs:266-271). */
-export function removeEnchantment(list, key) {
-  return list.filter((e) => e.key !== key && e.parentEnchantment !== key);
+export function removeEnchantment(list, entry) {
+  // Match the row, not its key: a forced soul row can have the same key as a chosen row.
+  return list.filter((e) => e !== entry && e.parentEnchantment !== entry.key);
 }
 
 // ── the two pickers' filters (DaggerfallItemMakerWindow:614-700,
