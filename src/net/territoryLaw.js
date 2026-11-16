@@ -34,6 +34,14 @@ export function territoryStrength(xpByAgo) {
   return Math.floor(s);
 }
 
+/** This week's XP that keeps the strength after the next reset at its level when the week began. */
+export function territoryKeepXp(xpByAgo) {
+  const W = TERRITORY_WEEK_WEIGHTS;
+  let need = 0;
+  for (let i = 1; i < W.length; i++) { const n = Number(xpByAgo?.[i]); if (Number.isFinite(n) && n > 0) need += (n * (W[i] - (W[i + 1] ?? 0))) / W[1]; }
+  return Math.ceil(need);
+}
+
 /** How full a territory is, 0 to 1 - the square root, so the first weeks of play show. */
 export const territoryFill = (strength) => Math.sqrt(Math.max(0, Math.min(1, (Number(strength) || 0) / TERRITORY_FULL_XP)));
 

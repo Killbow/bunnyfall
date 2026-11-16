@@ -6,9 +6,6 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-16
 
 - Tavern shifts now have three clickable bottle points for pouring doses, a cup progress display, and an illustrated, paged innkeeper's recipe book.
-
-## 2026-11-14
-
 - Captains and Officers can now dismiss soldiers from the Company's Garrison page, with no gold returned. If too few soldiers remain for their orders, soldiers are recalled from the front first, then from patrol routes.
 - Fixed: The Great Cannon map mark is now gold, so it no longer looks like the orange Sentinel's warriors mark. An existing orange cannon mark also turns gold.
 - Fixed: Farms inside your Company's territory or Charter are no longer lost when a member's game wrongly decides they are out of reach.
@@ -18,6 +15,10 @@ the last release (scripts/changelogNotes.mjs).
 - Fixed: The desktop app now says in chat when a new version of the game is out.
 - Fixed: Holy Word now dispels the undead in its area, and Banish Daedra now dispels the daedra it touches.
 - Fixed: At some town gates, such as Chesterwark's west gate, the carriage and its driver no longer appear wedged against or inside a building.
+
+## 2026-11-14
+
+- The Company Overview now has a Territory section explaining the weekly shrink at each Turning and the Renown XP needed to keep its start-of-week size.
 - Fixed: Entering a building or dungeon for the first time is faster because its art sets now load in parallel.
 - Fixed: A stuck Shift key is now released on the next key press or click, so a ship under oars turns instead of sliding sideways.
 - Fixed: Your Company no longer loses all its farms when you open the map or a farmhouse door before opening the Company tab.

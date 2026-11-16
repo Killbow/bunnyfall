@@ -68,8 +68,8 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
     return asking;
   }
 
-  /** Every territory placed on the map: `{ id, tag, name, x, y, r, fill, ring, strength, mine }`, biggest first so the
-   *  small ones paint over them. A hall whose town this client cannot find is left out. */
+  /** Every territory placed on the map: `{ id, tag, name, x, y, r, fill, ring, strength, weeks, mine }`, biggest first
+   *  so the small ones paint over them. A hall whose town this client cannot find is left out. */
   function marks() {
     refresh();
     if (!placed) {
@@ -79,6 +79,7 @@ export function createCompanyTerritory({ io, townOf, capitalOf = () => null, myG
         if (!town || !Number.isFinite(town.px) || !Number.isFinite(town.py)) continue;
         placed.push({
           id: t.id, mapId: Number(t.mapId) >>> 0, tag: t.tag, name: t.name, x: town.px + 0.5, y: town.py + 0.5, r: territoryRadius(t.strength), strength: t.strength,
+          weeks: Array.isArray(t.weeks) ? t.weeks.map((n) => Math.max(0, Number(n) || 0)) : null,
           fill: hexOf(t.field) ?? DEFAULT_COLOUR, ring: hexOf(t.border) ?? hexOf(t.field) ?? DEFAULT_COLOUR,
         });
       }

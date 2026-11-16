@@ -868,6 +868,8 @@ ${at(R.panel)} { background: ${SCROLL}; color: ${T.ink};
   box-shadow: inset 0 0 14px rgba(96,54,16,0.32), 1px 2px 0 rgba(48,26,10,0.28); outline: none; }
 ${G}[data-grim-pages="scroll"] :is(${list(R.panel)}) { background: ${PAGE}; }
 ${at(R.panelAccent)} { border-left-color: ${T.red}; }
+/* A brass fill disappears on the tan page, so the territory bar fills in red */
+${G} .dfguild-keepbar > div { background: ${T.red}; }
 
 /* RAILS - the left-hand page of the talk window: the same page, ruled off from the right-hand one */
 ${at([...R.railRight, '.shell > .side', 'aside.side'])} { background: linear-gradient(rgba(120,70,20,0.07), rgba(120,70,20,0.07)), ${PAGE}; border-right-color: rgba(60,34,14,0.75); color: ${T.ink}; }
