@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Home owners can now name up to four players to decorate their home, yard, or caravan. Decorators send templates for free, and the owner previews each one in place before paying to accept or declining it.
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
 - Fixed: The decorator's Built in tab now removes a cupboard, chest, or shelf that holds things, and puts what it holds in your pack.
 - The game does less work each frame in towns, dungeons, and at sea, including enemy pathfinding, which helps slower computers.
