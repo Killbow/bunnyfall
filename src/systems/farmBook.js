@@ -44,7 +44,14 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     return T ? [T.mine(), T.myCharter()].filter(Boolean) : [];
   }
   const inside = (p, ps) => ps.some((t) => inTerritory(p.px + 0.5, p.py + 0.5, t));
-  const patchesOf = (T, gid) => [T.marks().find((m) => m.id === gid), T.charterMarks().find((c) => c.members.some((m) => m.id === gid))].filter(Boolean);
+  const patchesOf = (T, gid) => [T.marks().find((m) => m.id === gid), T.charterMarks().find((c) => c.members.some((m) => m.id === gid))];
+  const pixelOf = (m) => (m ? [Math.floor(m.x), Math.floor(m.y)] : null);
+  const placesOf = (p, t, c) => ({ at: [p.px, p.py], hall: pixelOf(t), hallMap: t ? Number(t.mapId) : null, capital: pixelOf(c), capMap: c ? Number(c.mapId) : null });
+  /** Farms saved without pixels, reported once per session on the next read while this client sees them in reach. */
+  const reported = new Set();
+  let reports = [];
+  /** Lapsed releases the service refused, by map id, with the territory read they were judged against. */
+  const refused = new Map();
 
   /** Let go of the Company's farms the territory no longer reaches - once the territories are heard. */
   function lapse() {
@@ -53,8 +60,15 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     // The owner comes from the farms read: the guild book may be unread or another character's.
     const owner = new Map(all.map((f) => [f.mapId >>> 0, f.guildId]));
     for (const f of mine.farms) {
-      const p = place(f.mapId), gid = owner.get(f.mapId >>> 0);
-      if (p && gid && !inside(p, patchesOf(T, gid))) act(farmRelease, { mapId: f.mapId, lapsed: true }).catch(() => {});
+      const p = place(f.mapId), gid = owner.get(f.mapId >>> 0), ps = p && gid ? patchesOf(T, gid) : null;
+      if (!ps) continue;
+      const id = f.mapId >>> 0, sig = T.sig?.();
+      if (!inside(p, ps)) {
+        if (refused.get(id) !== sig) act(farmRelease, { mapId: f.mapId, lapsed: true }).then((r) => { if (r?.error === 'farm-in-reach') refused.set(id, sig); }).catch(() => {});
+      } else if (f.placed === false && !reported.has(id)) {
+        reported.add(id);
+        reports.push({ mapId: id, ...placesOf(p, ps[0], ps[1]) });
+      }
     }
   }
 
@@ -66,11 +80,13 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     if (!force && t < nextAt) return Promise.resolve(null);
     const door = io?.();
     if (!door) { nextAt = t + FARM_RETRY_MS; return Promise.resolve(null); }
-    asking = farmsRead(door, ch).then((r) => {
+    const sent = reports;
+    reports = [];
+    asking = farmsRead(door, ch, sent).then((r) => {
       if (r?.ok && Array.isArray(r.data?.all)) { all = r.data.all; mine = r.data.mine ?? null; version++; nextAt = nowMs() + FARM_REFRESH_MS; lapse(); }
-      else nextAt = nowMs() + FARM_RETRY_MS;
+      else { nextAt = nowMs() + FARM_RETRY_MS; reports.push(...sent); }
       return r;
-    }, () => { nextAt = nowMs() + FARM_RETRY_MS; return null; }).finally(() => { asking = null; });
+    }, () => { nextAt = nowMs() + FARM_RETRY_MS; reports.push(...sent); return null; }).finally(() => { asking = null; });
     return asking;
   }
 
@@ -111,7 +127,10 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     },
     hereKey: () => { const me = here?.(); return me ? `${me.x},${me.y}` : ''; },
     placeOf: place,
-    buy: (p, crop) => act(farmBuy, { mapId: p.mapId >>> 0, name: String(p.name).slice(0, 48), climate: climateAt(p.px, p.py), region: p.region, crop }),
+    buy: (p, crop) => {
+      const T = territory?.();
+      return act(farmBuy, { mapId: p.mapId >>> 0, name: String(p.name).slice(0, 48), climate: climateAt(p.px, p.py), region: p.region, crop, ...placesOf(p, T?.mine(), T?.myCharter()) });
+    },
     crop: (mapId, crop) => act(farmCrop, { mapId, crop }),
     release: (mapId) => act(farmRelease, { mapId }),
     chore: (mapId) => act(farmChore, { mapId }),

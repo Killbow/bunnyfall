@@ -8,6 +8,7 @@ import { guildActorOf } from './guilds.js';
 import { displayName } from './accounts.js';
 import { mustChange } from './realm.js';
 import { heraldryOfRow } from './halls.js';
+import { farmInReach } from './territory.js';
 import { GUILD_RANK_OFFICER } from '../../src/net/guild/guildLaw.js';
 import { FARMS_MAX, FARM_PRICE, FARM_DAYS_MAX, CROP_KEYS, cropMaterial, dayYield } from '../../src/net/farmLaw.js';
 
@@ -16,6 +17,14 @@ const todayOf = (nowS) => Math.floor(nowS / DAY_S);
 const STORES_ROW_MAX = 50000;
 const mapIdOk = (m) => Number.isSafeInteger(m) && m >= 0 && m <= 0xffffffff;
 const nameOk = (n) => typeof n === 'string' && n.length >= 1 && n.length <= 48 && /^[\x20-\x7e]+$/.test(n);
+const pixelOf = (p) => (Array.isArray(p) && Number.isSafeInteger(p[0]) && Number.isSafeInteger(p[1]) && p[0] >= 0 && p[0] < 1000 && p[1] >= 0 && p[1] < 500 ? [p[0], p[1]] : [null, null]);
+const reachIds = (db, gid) => db.prepare('SELECT (SELECT map_id FROM homes WHERE guild_id = ?1) AS hall, (SELECT map_id FROM city_charter_members WHERE guild_id = ?1) AS cap').bind(gid).first();
+/** Returns six nulls unless the client measured from the same hall and Charter capital the service holds now. */
+function pixelsOf(ids, { at, hall, hallMap = null, capital, capMap = null } = {}) {
+  const [px, py] = pixelOf(at), [hx, hy] = pixelOf(hall), [cx, cy] = pixelOf(capital);
+  const ok = px != null && (hx == null ? null : hallMap) === (ids?.hall ?? null) && (cx == null ? null : capMap) === (ids?.cap ?? null);
+  return ok ? [px, py, hx, hy, cx, cy] : Array(6).fill(null);
+}
 
 /**
  * REAP A FARM to today: each finished day since it was last reaped (FARM_DAYS_MAX at most) its yield - more for each
@@ -57,8 +66,8 @@ async function actorOf(db, player, character) {
  * member their Company's farms in full (`mine`: crop, today's chores, the last harvest).
  * @param {{ db: any, nowS: number }} ctx
  */
-export async function farmsRead({ db, nowS }, player, { character } = {}) {
-  const farmRows = 'SELECT f.*, g.tag, g.heraldry FROM company_farms f JOIN guilds g ON g.id = f.guild_id';
+export async function farmsRead({ db, nowS }, player, { character, places } = {}) {
+  const farmRows = 'SELECT f.*, g.tag, g.heraldry, r.px IS NOT NULL AS placed FROM company_farms f JOIN guilds g ON g.id = f.guild_id LEFT JOIN company_farm_reach r ON r.map_id = f.map_id';
   /** null when another request loaded the list */
   let read = /** @type {any[]|null} */ (null);
   const all = await keptWorld(db, 'farms', async () => {
@@ -72,6 +81,18 @@ export async function farmsRead({ db, nowS }, player, { character } = {}) {
   if (typeof character === 'string' && character) {
     const a = await actorOf(db, player, character).catch(() => null);
     if (a && !('error' in a)) {
+      // Members report pixels for Company farms saved without them; only the first report is stored.
+      const sent = Array.isArray(places) ? places.slice(0, FARMS_MAX).filter((p) => mapIdOk(p?.mapId)) : [];
+      try {
+        const ids = sent.length ? await reachIds(db, a.gid) : null;
+        for (const p of sent) {
+          const row = pixelsOf(ids, p);
+          if (row[0] == null) continue;
+          await db.prepare(`UPDATE company_farm_reach SET px = ?2, py = ?3, hall_px = ?4, hall_py = ?5, cap_px = ?6, cap_py = ?7, reported = 1
+            WHERE map_id = ?1 AND px IS NULL AND hall_map IS ?8 AND cap_map IS ?9 AND map_id IN (SELECT map_id FROM company_farms WHERE guild_id = ?10)`)
+            .bind(p.mapId, ...row, ids.hall, ids.cap, a.gid).run();
+        }
+      } catch { /* a report never breaks the read */ }
       const today = todayOf(nowS);
       let own;
       if (read) own = read.filter((f) => f.guild_id === a.gid);
@@ -87,7 +108,7 @@ export async function farmsRead({ db, nowS }, player, { character } = {}) {
           const chores = (done ?? []).filter((c) => Number(c.map_id) === Number(f.map_id));
           let last = null;
           try { last = f.last ? JSON.parse(f.last) : null; } catch { last = null; }
-          return { mapId: Number(f.map_id), name: f.name, crop: f.crop, region: Number(f.region), chores: chores.map((c) => c.name), choreDone: chores.some((c) => c.account === player.id), today: dayYield(f.crop, chores.length), last };
+          return { mapId: Number(f.map_id), name: f.name, crop: f.crop, region: Number(f.region), chores: chores.map((c) => c.name), choreDone: chores.some((c) => c.account === player.id), today: dayYield(f.crop, chores.length), last, placed: !!f.placed };
         }),
       };
     }
@@ -100,7 +121,7 @@ export async function farmsRead({ db, nowS }, player, { character } = {}) {
  * treasury gold, growing `crop`.
  * @param {{ db: any, nowS: number }} ctx
  */
-export async function farmBuy({ db, nowS }, player, { character, mapId, name, climate, region, crop = 'food' } = {}) {
+export async function farmBuy({ db, nowS }, player, { character, mapId, name, climate, region, crop = 'food', ...placed } = {}) {
   if (!mapIdOk(mapId) || !nameOk(name) || !Number.isSafeInteger(climate) || !Number.isSafeInteger(region) || region < 0 || region > 61 || !CROP_KEYS.includes(crop)) return { error: 'farm-bad' };
   const a = await actorOf(db, player, character);
   if ('error' in a) return a;
@@ -109,6 +130,7 @@ export async function farmBuy({ db, nowS }, player, { character, mapId, name, cl
   const n = await db.prepare('SELECT COUNT(*) AS n FROM company_farms WHERE guild_id = ?').bind(a.gid).first();
   if (Number(n?.n ?? 0) >= FARMS_MAX) return { error: 'farm-full' };
   try {
+    const ids = await reachIds(db, a.gid);
     await db.batch([
       db.prepare(`UPDATE guilds SET treasury = treasury - ?1, realm_gold = MIN(realm_gold, treasury - ?1), moved_by = ?2, moved_at = ?3, moved_kind = 'farm'
         WHERE id = ?4 AND treasury >= ?1`).bind(FARM_PRICE, displayName(player), nowS, a.gid),
@@ -117,6 +139,8 @@ export async function farmBuy({ db, nowS }, player, { character, mapId, name, cl
         SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 WHERE (SELECT COUNT(*) FROM company_farms WHERE guild_id = ?2) < ?9`)
         .bind(mapId, a.gid, name, crop, climate, region, todayOf(nowS), nowS, FARMS_MAX),
       mustChange(db),
+      db.prepare(`INSERT OR REPLACE INTO company_farm_reach (map_id, px, py, hall_px, hall_py, cap_px, cap_py, hall_map, cap_map)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`).bind(mapId, ...pixelsOf(ids, placed), ids?.hall ?? null, ids?.cap ?? null),
     ]);
   } catch {
     if (await db.prepare('SELECT 1 FROM company_farms WHERE map_id = ?').bind(mapId).first()) return { error: 'farm-taken' };
@@ -152,15 +176,18 @@ export async function farmCrop({ db, nowS }, player, { character, mapId, crop } 
 
 /**
  * LET A FARM GO (no gold back) - a Captain's or an Officer's choice, or (`lapsed`) any member's client finding that the
- * territory no longer reaches it.
+ * territory no longer reaches it. A lapsed release is refused while the farm is still in reach (territory.js
+ * farmInReach) or when the check fails.
  * @param {{ db: any, nowS: number }} ctx
  */
 export async function farmRelease({ db, nowS }, player, { character, mapId, lapsed = false } = {}) {
   const o = await ownFarm(db, player, character, mapId, nowS, lapsed !== true);
   if ('error' in o) return o;
+  if (lapsed === true && await farmInReach(db, o.a.gid, mapId, nowS).catch(() => true)) return { error: 'farm-in-reach' };
   await db.batch([
     db.prepare('DELETE FROM company_farms WHERE map_id = ?').bind(mapId),
     db.prepare('DELETE FROM company_farm_chores WHERE map_id = ?').bind(mapId),
+    db.prepare('DELETE FROM company_farm_reach WHERE map_id = ?').bind(mapId),
   ]);
   dropWorld(db, 'farms');
   return { ok: true };
