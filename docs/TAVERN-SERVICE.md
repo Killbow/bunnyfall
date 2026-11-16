@@ -17,6 +17,12 @@ there is no new room, population, table UI or mouse-look mode. Orders are person
 5. Activate the customer again to **Collect the empty cup**, then return it to the innkeeper to receive payment.
    The next order starts immediately. After six orders the shift ends. **End this shift** keeps payments already earned.
 
+All new player-facing strings, recipe names and PR text are English. Text remains registered through the game's normal
+localization system. The inn screen uses `tavernDoor`, the book/actions use `ChoiceWindow`, and both select the active
+UI skin. The service readout uses the shared `wplaque` skin and active Enhanced Plus theme; Classic draws the same
+model with the game's native bitmap font and standard shadow. No service-specific font or panel palette is injected.
+Changing skin during a shift switches the readout on the next frame. The cup is drawn in the game's native viewport.
+
 Touch/classic clients get the same explicit action chooser when the world plaque is unavailable. Inn services and
 normal conversation remain available. NPC activation uses the existing distance and occlusion checks, so the player
 cannot serve a customer through a wall. The carried cup is a first-person HUD graphic; the NPC art is unchanged.
@@ -73,6 +79,7 @@ are required. Use the normal self-host update process; do not edit the live data
 
 ```
 node --test tools/tavernService*.test.mjs
+node tools/tavernServiceUiProbe.mjs
 node tools/routesCheck.mjs
 node tools/l10nExtract.mjs
 npx eslint src/net/tavernServiceLaw.js src/scenes/tavernServiceHost.js src/ui/tavernServiceHud.js src/systems/tavern/tavernServiceWords.js src/scenes/worldModes.js src/scenes/world.js server-account/src/tavernService.js server-account/src/index.js server-account/src/service.js tools/tavernService*.mjs

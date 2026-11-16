@@ -11628,6 +11628,7 @@ export function createWorldModes(host) {
     // stepped back out, where the street's frame popped it two seconds
     // late attached to nothing.
     townTalk?.hudFrame?.(dt, _shopFont);
+    tavernService.draw(renderer, canvas, _shopFont);
     // E2: the shop browse overlay draws above everything; font-less
     // never traps the motor (the townTalk law).
     if (interiorOverlay) {

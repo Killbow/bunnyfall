@@ -138,5 +138,6 @@ export function createTavernServiceHost(deps) {
       if (live() && !blocked) hud.frame(state, name, busy); else hud.hide();
     },
     dispose() { hud.dispose(); },
+    draw: (renderer, canvas, font) => hud.draw(renderer, canvas, font),
   };
 }
