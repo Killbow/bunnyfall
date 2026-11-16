@@ -527,6 +527,30 @@ function edgeAction(ring, keys, action) {
 export function pressed(edges, keys, action) { return edgeAction(edges?.downFrame, keys, action); }
 /** ...and GetKeyUp's, over the up ring - SwitchHand's ActionComplete edge. */
 export function released(edges, keys, action) { return edgeAction(edges?.upFrame, keys, action); }
+
+const MODIFIER_UP = Object.freeze({
+  ShiftLeft: (e) => !e.shiftKey, ShiftRight: (e) => !e.shiftKey,
+  ControlLeft: (e) => !e.ctrlKey, ControlRight: (e) => !e.ctrlKey,
+  AltLeft: (e) => !e.altKey, AltRight: (e) => !e.altKey && !e.getModifierState?.('AltGraph'),
+  MetaLeft: (e) => !e.metaKey, MetaRight: (e) => !e.metaKey,
+});
+// A modifier key-up can be lost even while the page has focus; the next key or click shows it is up.
+/** @param {Set<string>} keys @param {ReturnType<typeof keyEdges>} edges */
+export function watchModifierKeys(keys, edges, win = globalThis) {
+  // Synthetic key events, such as from the pad and touch layers, carry no modifier flags.
+  const real = new Set();
+  const reconcile = (e) => {
+    if (e.code in MODIFIER_UP) {
+      if (e.type === 'keydown' && e.isTrusted) real.add(e.code); else real.delete(e.code);
+    }
+    if (!e.isTrusted) return;
+    for (const code of real) {
+      if (code === e.code || !MODIFIER_UP[code](e)) continue;
+      real.delete(code); keys.delete(code); edges.own.delete(code);
+    }
+  };
+  for (const type of ['keydown', 'keyup', 'mousedown', 'mouseup']) win.addEventListener(type, reconcile, true);
+}
 // KB1: `pressedCode` - the raw E beside Mouse0 - is gone. E is the Interact action now (systems/inputActions.js), read
 // with `pressed` like every other key, so a rebind moves it and nothing else is ever read off a bare code.
 
