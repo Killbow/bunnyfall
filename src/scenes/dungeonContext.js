@@ -3630,7 +3630,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     },
     onDispel: ({ group, chance }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !foeDeps?.inBout?.(f)), () => Math.floor(Math.random() * 100) < chance);   // AUDIT ARENA-LADDER A2: a fighter on the sand is its bout's
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !foeDeps?.inBout?.(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) questPoolOps.removeFoe(f);
       if (gone.length) hudText.add(`${gone.length} dispelled.`);
     },

@@ -1104,6 +1104,7 @@ import { isStandFlat, standFlatId, standFlatRecord } from '../world/standFlats.j
 import { DECOR_DRAW, decorCullVerdict, offerDecorFigures } from './decor/decorRoom.js';   // PERF-YARD: a placed piece's verdict, from the host's view test; MWNPC18: a yard's figures in their bodies
 import { createHomeYards, yardLampRows } from './homeYards.js';   // HOME-YARD: the town's yards, and the owner's decorator outside; YARD-LIGHT: a yard's lamps as the night's scene lights
 import { modelFootRects } from './homeYards.js';   // FB1009 HOME-FOOT: a building's ground, its models' faces seen from above
+import { createDecoratorHome } from '../systems/decor/decoratorHome.js';
 import { homeYardWallet } from './homeYards.js';   // INSTANCES' HOST-SPLIT: the yard's wallet, out of bootWorld (it reads only the player)
 import { loadIcon } from '../ui/textureCanvas.js';   // HOME-YARD: the decorator's pictures
 import { decorScanDeps } from '../systems/decor/decorScan.js';   // HOME-YARD: the catalogue's scan (DECOR-DUNGEON: one constructor for both hosts)
@@ -12159,7 +12160,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // by the same table that exempts them from Pacify Humanoid.
     onDispel: ({ group, chance }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f)), () => Math.floor(Math.random() * 100) < chance);   // AUDIT ARENA-LADDER A2: an exhibition's fighter is its bout's
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) exteriorFoes.removeFoe(f);
       if (gone.length) townTalk.say(`${gone.length} dispelled.`);
     },
@@ -12592,8 +12593,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     all.length = BANNERS_MAX;
     return all;
   };
+  const yardHere = () => yards?.decoratorHere() ?? null;
+  const yardDecorators = homeDecor && onlineHomes ? createDecoratorHome({
+    yard: true, homes: () => homesApi, decor: () => homeDecor, poolNow: () => yardHere()?.pool ?? null, scan: () => decorScanDeps({ blocks, arch, getTexture }),
+    doc: typeof document !== 'undefined' ? document : null, character: () => characterIdOf(playerEntity), wallet: () => homeYardWallet(playerEntity, yardHere()?.region ?? 0),
+    realm: () => (realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null),
+    say: (l) => townTalk.say(l), refusal: (w) => accountRefusalText(w), visit: () => { const h = yardHere(); return h ? `${h.mapId}:${h.buildingKey}` : null; },
+    here: () => yardHere(), show: (o) => townTalk.showOverlay(o), kept: (rev) => yards?.keepDraft(rev),
+  }) : null;
   const yards = homeDecor && onlineHomes ? createHomeYards({
-    api: homeDecor, homes: onlineHomes, built: () => built, translation: (px, py) => state.pixelTranslation(px, py),
+    api: homeDecor, homes: onlineHomes, built: () => built, translation: (px, py) => state.pixelTranslation(px, py), decorators: yardDecorators,
     feet: () => (walkMode && playerSpawned ? player.feetAt() : null),
     outside: () => _mode() === 'exterior' && playerSpawned && !player.riding,
     eye: () => cam.pos,
@@ -30166,6 +30175,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     decorCharacter: () => characterIdOf(playerEntity),   // DECOR1d: the character an online home's placements are written as
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
+    tavernAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, read: body.op === 'read', call: (at) => accountCall(realmIoNow(), '/v1/tavern/service', { ...body, ...at }) }) : null,
     partyNames: () => (social?.others?.() ?? []).map((m) => m.name).filter((n) => typeof n === 'string' && n.length > 0),
     npcSession,   // TK-iv: the questor door on a static-NPC click
     // B4: the dungeon context quicksaves through the same composer
