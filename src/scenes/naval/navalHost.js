@@ -3383,7 +3383,7 @@ export function createNavalHost(deps) {
     // AUDIT NAV1 (online #3): a ship another stands is taken over at the grapple - the haul, the fight, the prize and
     // her fate in one world, mine (the boarder's copy was hauled 23 m from her stander's, and slid back from under him)
     adopt(entry);
-    boarding = createBoarding({ kind, shipId: entry.id, from, to: { pos: to.pos, yaw: to.yaw }, hull: entry.ship.hull });
+    boarding = createBoarding({ kind, shipId: entry.id, from, to: { pos: [...to.pos], yaw: to.yaw }, hull: entry.ship.hull });
     boarding.boat = boat;
     boarding.peerOrigin = deps.aboardPeer?.() ?? null;
     if (!boat) boarding.t = Infinity;   // on foot: no haul - over the rail at once
@@ -5119,7 +5119,7 @@ export function createNavalHost(deps) {
     for (const w of [...wireVolleys, ...wireBarrels]) { w.pos[0] += o[0]; w.pos[1] += o[1]; w.pos[2] += o[2]; }
     for (const c of claims.values()) { c.point[0] += o[0]; c.point[1] += o[1]; c.point[2] += o[2]; }
     for (const g of gunfire) { g.pos[0] += o[0]; g.pos[1] += o[1]; g.pos[2] += o[2]; }   // AUDIT NAV2 F8: the guns heard are the world's - a navy steered for a report an origin's move away
-    if (boarding) for (const p of [boarding.from, boarding.to]) { p.pos[0] += o[0]; p.pos[2] += o[2]; }
+    if (boarding) boarding.offset(o);
     shots.offsetAll(o);
     effects.offsetAll(o);
     if (ownBook) harbours.offsetAll(o);   // SHIP-LIFE: the harbours with the world (HARBOUR-BOOK: the world's moves its own) - and the grids made again in it

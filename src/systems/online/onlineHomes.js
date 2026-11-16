@@ -272,7 +272,7 @@ export const homeShortLine = (price) => `You need ${gold(price)} gold, in your p
  * screen, World Tooltips off) the click itself offers, once a house a session (worldModes.js).
  */
 export const HOME_BUY_ARM_MS = 5_000;
-export const HOME_VERB = Object.freeze({ enter: 'home-enter', buy: 'home-buy', entry: 'home-entry', sell: 'home-sell', give: 'home-give', take: 'home-take', refuse: 'home-refuse', rent: RENT_VERB });   // HOME-RENT: a room rented at the door; a house offered to one account
+export const HOME_VERB = Object.freeze({ enter: 'home-enter', buy: 'home-buy', entry: 'home-entry', sell: 'home-sell', give: 'home-give', take: 'home-take', refuse: 'home-refuse', rent: RENT_VERB, decorators: 'home-decorators' });   // HOME-RENT: a room rented at the door; a house offered to one account
 /** HOME-VOTE: the town's word on another's home - the vote's own verbs beside a home's, as a hall's are. AUDIT B3: taking
  *  one's vote back is a verb of its own, so a press sends what the row it pressed says - two quick presses on Vote up are
  *  two votes up, never a vote and its taking back. */
@@ -292,6 +292,7 @@ export const homeOwnerRows = (entry) => [
   { id: HOME_VERB.entry, label: `Who may enter: ${HOME_ENTRY_WORDS[entry] ?? HOME_ENTRY_WORDS[HOME_ENTRY_DEFAULT]}` },
   { id: HOME_VERB.sell, label: 'Sell it' },
   { id: HOME_VERB.give, label: t('housing.door.transfer', 'Transfer Ownership') },
+  { id: HOME_VERB.decorators, label: t('decor.decorators.row', 'Decorators') },
 ];
 /**
  * HOME-RENT: THE ROWS OVER SOMEONE ELSE'S HOME, where they say more than "Locked": a tenant's (go in, and their own room
@@ -541,6 +542,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
             giving: typeof h.giving === 'string' ? h.giving : null,
             score: homeScoreOf(h.score), myVote: homeMyVoteOf(h.vote),   // HOME-VOTE: its votes summed, and this account's own
             insider: h.insider === true,   // AUDIT HOME-VOTE A5: a hall of a guild this account has any character in
+            decorator: h.decorator === true,
           });
         }
         towns.set(id, { at: now(), homes });

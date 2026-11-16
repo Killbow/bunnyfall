@@ -256,5 +256,6 @@ export function createBoarding({ kind, shipId, from, to, hull = 0 }) {
     win() { if (b.phase === 'fight') { b.phase = 'prize'; b.outcome = 'won'; } },
     abandon() { if (b.phase === 'fight' || b.phase === 'grapple') { b.phase = 'done'; b.outcome = 'abandoned'; } },
     done() { b.phase = 'done'; b.outcome ??= 'done'; },
+    offset(o) { for (const p of [b.from, b.to, b.at]) for (let i = 0; i < 3; i++) p.pos[i] += o[i]; },
   });
 }

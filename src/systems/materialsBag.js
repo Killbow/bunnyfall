@@ -29,7 +29,7 @@ import { BAG_KG_LIMIT, BAG_WORDS, CARRIED_MAX, hasBag, isBagItem, depositOrderOk
 import { PLANT_GROUP_TEMPLATES, FOOD_KEYS, PANTRY_KEYS, MINED_KEYS, LOOSE_ONLY_KEYS, withdrawable } from '../net/professionLaw.js';   // CLOTH-GEMS: and the loose door's graded gems
 import { material } from '../net/nodeLaw.js';
 import { mintMaterialItem, withdrawIntoPack } from './professions/profItems.js';
-import { addItem, totalWeight, effectiveUnitWeightInKg, canHoldAmount, carriedWeight, isSummoned, isEnchanted } from './inventory.js';
+import { addItem, totalWeight, effectiveUnitWeightInKg, canHoldAmount, packCanHoldAmount, isSummoned, isEnchanted } from './inventory.js';
 import { entityMaxEncumbrance } from '../combat/formulas.js';
 import { PATRON_COUNTER_MARK } from '../net/patronLaw.js';   // AUDIT TOWN-ECON 2 PRICE-2: a counter's piece is no service unit
 
@@ -119,7 +119,7 @@ export const bagWeight = (entity) => totalWeight(entity?.bagItems ?? []);
 export function roomFor(entity, key) {
   const kg = unitKgOf(key);
   const inBag = hasBag(entity?.items) ? Math.max(0, canHoldAmount(CARRIED_MAX, kg, BAG_KG_LIMIT, bagWeight(entity))) : 0;
-  const inPack = Math.max(0, canHoldAmount(CARRIED_MAX, kg, entityMaxEncumbrance(entity), carriedWeight(entity)));
+  const inPack = Math.max(0, packCanHoldAmount(entity, CARRIED_MAX, kg, entityMaxEncumbrance(entity)));
   return Math.min(CARRIED_MAX, inBag + inPack);
 }
 
@@ -145,7 +145,7 @@ export function mintCarried(entity, key, n, { cc, slowRot = false, noRot = false
     if (slowRot === true) item.slowRot = true;
     if (noRot === true && key.startsWith('food:')) item.noRot = true;
     if (hasBag(entity.items) && canHoldAmount(1, kg, BAG_KG_LIMIT, bagWeight(entity)) >= 1) { addItem(bagItemsOf(entity), item, 'back'); out.bag++; continue; }
-    if (canHoldAmount(1, kg, entityMaxEncumbrance(entity), carriedWeight(entity)) >= 1) { addItem(entity.items, item, 'back'); out.pack++; continue; }
+    if (packCanHoldAmount(entity, 1, kg, entityMaxEncumbrance(entity)) >= 1) { addItem(entity.items, item, 'back'); out.pack++; continue; }
     out.left++;
   }
   return out;
@@ -243,7 +243,7 @@ export function emptyBagIntoPack(entity) {
   for (const it of order) {
     const count = it.stackCount ?? 1;
     const kg = effectiveUnitWeightInKg(it);
-    const fit = kg > 0 ? Math.max(0, Math.min(count, canHoldAmount(count, kg, entityMaxEncumbrance(entity), carriedWeight(entity)))) : count;
+    const fit = kg > 0 ? Math.max(0, Math.min(count, packCanHoldAmount(entity, count, kg, entityMaxEncumbrance(entity)))) : count;
     if (fit >= count) {
       bag.splice(bag.indexOf(it), 1);
       addItem(entity.items, it, 'back');

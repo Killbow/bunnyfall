@@ -1190,7 +1190,7 @@ function tauntParts(r, playerName, rolls) {
 function voiceParts(r, event, playerName, rolls = Math.random, vars = {}) {   // RVN12a: `vars` the moment's words ({ how, item, move, ally })
   const personality = isPersonality(r.personality) ? r.personality : personalityFor(r.id, r.mobileType);
   if (!revenantSpeaks(r.mobileType)) {
-    const body = beastBody(personality, event);
+    const body = beastBody(personality, event, r.mobileType);
     return { speech: null, body, line: `${r.name} ${body.charAt(0).toLowerCase()}${body.slice(1)}` };
   }
   const speech = voiceLine(personality, event, { p: firstWord(playerName), rolls, ...vars });

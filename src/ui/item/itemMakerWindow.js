@@ -412,8 +412,8 @@ export class ItemMakerWindow {
    *  its forced children out of BOTH lists with it. */
   _removeRow(entry) {
     audio.playOneShot(SOUND.ButtonClick, 1);
-    this.powers = removeEnchantment(this.powers, entry.key);
-    this.sideEffects = removeEnchantment(this.sideEffects, entry.key);
+    this.powers = removeEnchantment(this.powers, entry);
+    this.sideEffects = removeEnchantment(this.sideEffects, entry);
   }
 
   /** EnchantButton_OnMouseClick (:705-770). */

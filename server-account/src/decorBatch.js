@@ -57,7 +57,7 @@ function sameWhat(was, now) {
   return was.model === now.model && (was.flat?.[0] ?? null) === (now.flat?.[0] ?? null) && (was.flat?.[1] ?? null) === (now.flat?.[1] ?? null);
 }
 
-async function chargeOps(db, nowS, playerId, n) {
+export async function chargeOps(db, nowS, playerId, n) {
   const start = Math.floor(nowS / DECOR_OPS_WINDOW_S) * DECOR_OPS_WINDOW_S;
   const row = await db.prepare(`INSERT INTO rate_limits (key, window_start, count) VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET

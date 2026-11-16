@@ -149,6 +149,17 @@ export function createCrewAshore(deps) {
   }
   /** The motor's follow handle: the leader's live feet, and how near this one keeps. */
   const followOf = (i) => ({ feet: () => deps.leader()?.feet ?? null, stop: HEEL_M + i * HEEL_STEP_M, trail: () => trail });   // COMPANION-TRAIL
+  // A recenter moves the feet and not the hold spot, so a jump past TRAIL_JUMP_M shifts it.
+  /** @type {WeakMap<object, { at: number[], was: number[] }>} */
+  const holds = new WeakMap();
+  function holdOf(s) {
+    if (!s.c.waiting) { holds.delete(s); return null; }
+    const f = s.rec.ai.feet, h = holds.get(s);
+    if (!h) { const at = [f[0], f[1], f[2]]; holds.set(s, { at, was: [f[0], f[1], f[2]] }); return at; }
+    if (Math.hypot(f[0] - h.was[0], f[1] - h.was[1], f[2] - h.was[2]) > TRAIL_JUMP_M) for (let k = 0; k < 3; k++) h.at[k] += f[k] - h.was[k];
+    h.was = [f[0], f[1], f[2]];
+    return h.at;
+  }
 
   /** One frame: the place read, the bodies there kept to the party, the missing stood. */
   function frame() {
@@ -157,6 +168,8 @@ export function createCrewAshore(deps) {
     party?.wake(now);
     const place = party && (party.party.length || stood.size) ? deps.place() : null;   // COMPANION-PORTAL: the last one sent away still leaves through its portal (no party: everyone out)
     const key = place ? place.key : undefined;
+    const behind = [];
+    if (key !== placeKey) for (const s of stood.values()) if (party?.party.includes(s.c) && s.c.waiting) behind.push(s.c);
     if (key !== placeKey) { liftAll(); placeKey = key; epoch++; trail.length = 0; leaderWas = null; }   // COMPANION-TRAIL: a new place, a new trail
     if (!party) return;
     const L = deps.leader();
@@ -171,9 +184,9 @@ export function createCrewAshore(deps) {
         if (party.knock(s.c.boat, s.c.name, now)) deps.onKnocked?.(s.c, rec._knockedBy ?? null);   // RVN10 (Feud-Arc.md 21.1): and the foe whose blow it was
         continue;
       }
-      // the place swept it - a cull, a remove, or (AUDIT CC-A1) a clear that empties the list and marks nobody (the
-      // street's clearLive: a fast travel, a Recall, a passage, a respawn): it stands again below
-      if (rec.dead || !rec.ai || (s.has && !s.has(rec))) { carry(s); stood.delete(k); continue; }   // AUDIT WK-M3: with his spells
+      // The place swept it with a cull, a remove, or a clear that marks nobody (a fast travel, Recall, passage, or
+      // respawn). It stands again below unless it is waiting.
+      if (rec.dead || !rec.ai || (s.has && !s.has(rec))) { carry(s); stood.delete(k); if (s.c.waiting && i >= 0) behind.push(s.c); continue; }   // AUDIT WK-M3: with his spells
       if (i < 0) { stood.delete(k); leave(s); continue; }   // sent back aboard - COMPANION-PORTAL: through a portal
       if (rec.entity) {
         party.hurt(s.c.boat, s.c.name, rec.entity.health, rec.entity.maxHealth);
@@ -181,13 +194,14 @@ export function createCrewAshore(deps) {
         rec.entity.team = 'PlayerAlly'; rec.entity.mobileTeam = 'PlayerAlly';
       }
       rec.shipmate = true;
-      rec.ai.follow = followOf(i);
-      rec.ai.seat = deps.seat ? seatOf(i, list.length) : null;   // WAGONS1
-      rec.ai.seatDraw = deps.seatDraw ? seatDrawOf(i, list.length) : null;   // WAGONS2: drawn in the grown wagon
+      rec.ai.seat = deps.seat && !s.c.waiting ? seatOf(i, list.length) : null;   // WAGONS1
+      rec.ai.seatDraw = deps.seatDraw && !s.c.waiting ? seatDrawOf(i, list.length) : null;   // WAGONS2: drawn in the grown wagon
       const seat = rec.ai.seat?.() ?? null;
       if (seat) s.sat = { feet: [seat.feet[0], seat.feet[1], seat.feet[2]], yaw: seat.yaw };   // WAGON-ALIGHT: where it sits, kept for its getting down
       else if (s.sat) getDown(s, place);
-      if (place && L && !seat) {
+      const hold = holdOf(s);
+      rec.ai.follow = hold ? { feet: () => hold, stop: HEEL_M, trail: () => null } : followOf(i);
+      if (place && L && !seat && !hold) {
         const f = rec.ai.feet;
         // AUDIT CC-A3: a floor away counts only while the leader stands on one - levitating, swimming or in the air, the
         // body stood at his height would only fall and be stood up there again
@@ -205,11 +219,12 @@ export function createCrewAshore(deps) {
         }
       }
     }
+    if (behind.length) /** @type {any} */ (deps).onLeftBehind?.(behind);
     if (!place || !L) return;
     // the party not standing here: stood behind the leader
     list.forEach((c, i) => {
       const k = companionKeyOf(c);
-      if (stood.has(k) || pending.has(k)) return;
+      if (stood.has(k) || pending.has(k) || /** @type {any} */ (c).waiting) return;
       pending.add(k);
       const at = slotFeet(place, L, i, list.length), was = epoch;
       Promise.resolve(place.spawn(c.mobile, at, { yaw: L.yaw, gender: c.gender })).then((rec) => {

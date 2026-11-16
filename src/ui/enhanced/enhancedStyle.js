@@ -5630,6 +5630,9 @@ ${paceControlsCss('tview')}
   font-variant-ligatures: none; font-feature-settings: 'liga' 0, 'clig' 0;
   text-shadow: 2px 2px 0 rgba(0,0,0,0.85); }
 .wplaque.on { display: block; }
+/* Tavern service borrows the active plaque/theme; placement only. */
+.wplaque.tavern-service-hud { left: 14px; top: 15%; transform: none; min-width: 0; max-width: min(245px, 42vw); }
+.tavern-service-hud .wplaque-title, .tavern-service-hud .wplaque-sub { text-align: left; overflow-wrap: anywhere; }
 .wplaque-title { font-size: 15px; line-height: 1.4; text-align: center; color: #d8cfae; }
 .wplaque-titleline { display: block; }
 /* RENOWN1 - a player's Renown on the plaque: the number in the box it wears over their head (ui/nameLayer.js

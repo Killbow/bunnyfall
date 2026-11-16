@@ -385,6 +385,19 @@ const REFUSAL_WORDS = {
   'offer-open': () => t('account.refusal.offerOpen', 'An offer for this house is already out.'),
   'offer-closed': () => t('account.refusal.offerClosed', 'That offer is no longer open.'),
   'offer-stale': () => t('account.refusal.offerStale', 'The room changed. Make the offer again.'),
+  // A home's or a caravan's decorators (server-account/src/decorators.js, decoratorDrafts.js, caravanTemplates.js)
+  'decor-revoked': () => t('account.refusal.decorRevoked', 'You can no longer decorate this home.'),
+  'decorator-piece': () => t('account.refusal.decoratorPiece', 'Decorators cannot place items, containers, stations, or named pieces.'),
+  'home-decorators': () => t('account.refusal.homeDecorators', 'Remove this home\'s decorators first.'),
+  'decorators-full': () => t('account.refusal.decoratorsFull', 'You already have four decorators.'),
+  'decorator-offer': () => t('account.refusal.decoratorOffer', 'Withdraw the transfer offer for this home before you add a decorator.'),
+  'decorator-self': () => t('account.refusal.decoratorSelf', 'You cannot name yourself as a decorator.'),
+  'decorator-hall': () => t('account.refusal.decoratorHall', 'Guild halls, palaces, and deeds cannot have decorators.'),
+  'draft-changed': () => t('account.refusal.draftChanged', 'The template changed. Look at it again.'),
+  'draft-unsent': () => t('account.refusal.draftUnsent', 'This template has not been sent yet.'),
+  'draft-empty': () => t('account.refusal.draftEmpty', 'Place something before you send the template.'),
+  'template-none': () => t('account.refusal.templateNone', 'There is no open template with that player.'),
+  'template-rate': () => t('account.refusal.templateRate', 'Too many templates sent. Try again later.'),
   // GUILD1: the guilds (server-account/src/guilds.js)
   'guilds-need-account': () => t('account.refusal.guildsNeedAccount', 'Companies need a username and a password. Give this account one and you can found or join one.'),
   'guild-character': () => t('account.refusal.guildCharacter', 'The account service could not tell which character that is.'),
@@ -2198,6 +2211,10 @@ export function accountHomes({ fetch, storage }) {
     // PERMADEATH-HOUSES: a fallen member's home (`from`, their tombstoned realm character) taken up by the living realm
     // character of their line who carries it on (`character`) - server-account/src/homes.js inheritHome
     inherit: ({ mapId, buildingKey, character, from }) => post('/v1/homes/inherit', { mapId, buildingKey, character, from }),
+    // A home's decorators and their templates (`op`), and a caravan's
+    decorators: (body) => post('/v1/homes/decorators', body),
+    caravanDecorators: (body) => post('/v1/homes/caravan/decorators', body),
+    caravanTemplates: (body) => post('/v1/homes/caravan/templates', body),
   };
 }
 
@@ -2223,6 +2240,9 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
     remove: ({ mapId, buildingKey, character, id, realm = null, seat = false }) => post('/v1/homes/decor/remove', { mapId, buildingKey, character, id, ...(realm ? { realm } : {}), ...(seat ? { seat: true } : {}) }),
     batch: ({ mapId, buildingKey, character, rev, txn, put, drop, realm = null, yard = false }) => post('/v1/homes/decor/batch', { mapId, buildingKey, character, rev, txn, put, drop, ...(realm ? { realm } : {}), ...(yard ? { yard: true } : {}) }),   // DECOR-BATCH: a home's Confirm
     use: (body) => post('/v1/homes/decor/use', body),   // DECOR-ACCESS
+    // A decorator's draft saved, and a sent template accepted by the owner, who pays for it
+    draft: ({ mapId, buildingKey, character, draftRev, put, drop, yard = false }) => post('/v1/homes/decor/draft', { mapId, buildingKey, character, draftRev, put, drop, ...(yard ? { yard: true } : {}) }),
+    accept: ({ mapId, buildingKey, character, name, draftRev, txn, paid, realm = null }) => post('/v1/homes/decor/accept', { mapId, buildingKey, character, name, draftRev, txn, paid, ...(realm ? { realm } : {}) }),
     // BASE-HIDE: the room's own furniture taken out - the whole list, written by the owner
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
     // BUNNYFALL CAMPS (server-account/src/camps.js): the camps round a pixel, a kit's camp pitched and struck, its pieces
