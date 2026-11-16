@@ -295,17 +295,21 @@ export function phaseLitFraction(phase) {
   return p <= 4 ? p / 4 : (8 - p) / 4;
 }
 
+// The moonlight follows the daylight curve, so it rises and fades smoothly with the clock.
+// A state without the curve uses the night flag.
+const moonNightness = (state) => (state.daylight == null ? (state.night ? 1 : 0) : clamp01(1 - state.daylight / MOONLIGHT.dayFade));
+/** Masser's light scale, moonlightTerm's `scale` (0 where moonlightTerm returns null), with no allocation. */
+export const masserKey = (state, nightness = moonNightness(state)) =>
+  MOONLIGHT.masser * phaseLitFraction(state.masser.phase) * state.masser.vis * nightness;
+
 /** The world light's moon term for one frame, from skyState's own
  *  output: null when the sky is not night's, or when neither moon
  *  contributes. `dir`/`scale`/`color` drive the second directional
  *  term (the masser); `ambient` is secunda's additive floor lift. */
 export function moonlightTerm(state) {
-  // CLK3 review: the day's hand on the moonlight is the DAYLIGHT CURVE
-  // the rig's key rides - continuous on the clock - and not the hour's
-  // boolean (a state without the curve keeps the boolean: the tests')
-  const nightness = state.daylight == null ? (state.night ? 1 : 0) : clamp01(1 - state.daylight / MOONLIGHT.dayFade);
+  const nightness = moonNightness(state);
   if (nightness <= 0) return null;
-  const key = MOONLIGHT.masser * phaseLitFraction(state.masser.phase) * state.masser.vis * nightness;
+  const key = masserKey(state, nightness);
   const lift = MOONLIGHT.secunda * phaseLitFraction(state.secunda.phase) * state.secunda.vis * nightness;
   if (key <= 0 && lift <= 0) return null;
   const sc = state.secunda.color;

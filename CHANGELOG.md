@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: The sea at night is no longer black. It now reflects the night sky and sunset, shows a path of moonlight, and catches the light of quay lamps and ship lanterns.
 - The game loads faster, especially on slow connections, because textures now download in parallel instead of one set at a time or twice.
 - The initial game download is much smaller, so a first visit starts sooner.
 - Shops and houses start loading while their greeting is open, revisited rooms open faster, and entering a dungeon takes less time.

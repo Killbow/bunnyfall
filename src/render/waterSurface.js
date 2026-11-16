@@ -40,6 +40,8 @@ import { getPref } from '../systems/uiPrefs.js';   // FT6: the switch, read here
 import { isEnhanced } from '../systems/uiSkin.js';
 import { FOG_GLSL } from './fogGlsl.js';   // AUDIT 68 S17-fog-glsl-dup: the fog every world pass takes, one home
 import { SEA_LOOK_GLSL, SEA_HAZE_BAND } from './horizonHaze.js';   // FAR-SEA1: the sea takes the far ring's haze; AUDIT FAR-SEA1 C12: and the open sea's light is one text with the ring's sea
+import { AIR_ADAPT_GLSL } from './airPass.js';
+import { EL_TONEMAP_GLSL, EL_CODEC_GLSL } from './enhancedLighting.js';
 import { pageParam } from '../systems/pageQuery.js';
 import { RIPPLE_CELLS, RIPPLE_SCALE } from '../world/water/waterRipples.js';
 import { NO_BED_DEPTH, SHELF_SHEET_DEPTH } from '../world/water/waterCorners.js';   // AUDIT WATER-NEXT H2: its one home, the water's leaf (the kernel's worker writes it)   // WATER-NEXT 4: the ripple field the shader reads   // PERF-URL: the page's query, parsed once a search
@@ -110,6 +112,10 @@ export const WATER_SCROLL_TILES_PER_SEC = 0.05;
  *  lab without a dome): a plain day. */
 export const DEFAULT_SKY_ZENITH = Object.freeze([0.17, 0.35, 0.72]);
 export const DEFAULT_SKY_HORIZON = Object.freeze([0.66, 0.78, 0.92]);
+const NO_GLOW = Object.freeze([0, 0, 0]);
+const NO_GLOW_DIR = Object.freeze([0, 1]);
+/** A lamp's reflection on the waves shows up to this many times its light's range from it. */
+const LAMP_PATH_REACH = 8.0;
 
 /** WATER-AUDIT: does a sub-rectangle of a `dim`-wide tilemap carry any
  *  water? The fixed city pads its square tilemap with zeros past the
@@ -187,6 +193,9 @@ export function waterUniforms({ seconds = 0, wind = null, rain = 0, sky = null, 
     rain: Math.min(1, Math.max(0, rain || 0)),
     zenith: sky?.zenith ?? DEFAULT_SKY_ZENITH,
     horizon: sky?.horizon ?? DEFAULT_SKY_HORIZON,
+    glow: sky?.glow ?? NO_GLOW,
+    glowDir: sky?.glowDir ?? NO_GLOW_DIR,
+    night: sky?.night ?? 0,
     // AUDIT WATER-NEXT m6: no `scroll` and no `opacity` - WATER-NEXT 2's sheet scrolls no texel and has no one opacity
     // (the body swallows light by its depth; MAC2's "darker and not as see through" is the deep water's now), and
     // WATER_OPACITY, forwarded here and pinned as the surface's floor, was a law nothing drew
@@ -389,6 +398,10 @@ uniform vec4 uIndirect;
 uniform vec3 uIndirectColor;
 uniform vec3 uSkyZenith;
 uniform vec3 uSkyHorizon;
+uniform vec3 uSkyGlow;
+uniform vec2 uSkyGlowDir;
+uniform float uSeaNight;       // 0 by day, 1 at night: the share of the sea's own light that takes the lane's exposure
+uniform float uSeaExposure;
 uniform vec3 uTint;
 uniform float uF0;
 uniform float uShoreSoft;
@@ -413,6 +426,9 @@ out vec4 outColor;
 ${FOG_GLSL}
 ${SEA_LOOK_GLSL}
 ${SWELL_GLSL}
+${AIR_ADAPT_GLSL}
+${EL_TONEMAP_GLSL}
+${EL_CODEC_GLSL}
 uint waterCorners(uint data) {
   // the component by comparison, not by a dynamic index: a dynamic
   // component index on a uvec4 answered zero on ANGLE/SwiftShader (the
@@ -524,7 +540,7 @@ void main() {
   float NdV = clamp(dot(n, V), 0.0, 1.0);   // WATER-AUDIT (M1): two near-unit vectors can dot past one; pow of a negative is NaN
   float F = seaFresnel(NdV, uF0);   // AUDIT FAR-SEA1 C12: the open sea's light, one text with the far ring's sea (render/horizonHaze.js)
   vec3 R = reflect(-V, n);
-  vec3 skyRefl = seaSkyRefl(R.y, uSkyZenith, uSkyHorizon);
+  vec3 skyRefl = seaSkyRefl(R.y, uSkyZenith, uSkyHorizon) + seaSkyGlow(R, uSkyGlow, uSkyGlowDir);
   // PERF-SUN2: the shadow read only while the sun is up - a uniform branch
   float shadow = uSunScale > 0.0 ? cloudShadowAt(vWorldPos)${shadowGlsl ? ' * sunShadowAt(vWorldPos, n)' : ''} : 0.0;   // EL7: a quay's shadow lies on the water under the lane
   // the body lit as water is lit: the sky's light into it, the sun's and the moon's through it, softly
@@ -532,6 +548,10 @@ void main() {
   float mdiff = max(dot(n, uMoonDir), 0.0);
   vec3 lit = body * seaLight(uAmbient, uSunColor, uSunScale * diff, uMoonColor, uMoonScale * mdiff);
   vec3 pointAcc = vec3(0.0), pointSpec = vec3(0.0);
+  // the waves break a reflected path into flecks; only a lamp's or the moon's path reads them
+  float fleck = 0.0;
+  if (uPointCount > 0 || uMoonScale > 0.03)
+    fleck = smoothstep(0.35, 0.8, vnoise(vWorldPos.xz * 1.3 + uWindDir * uTime * 1.5) * 0.6 + vnoise(vWorldPos.xz * 3.1 - uTime * 0.7) * 0.4);
   for (int i = 0; i < 16; i++) {
     if (i >= uPointCount) break;
     vec3 L = uPointLights[i].xyz - vWorldPos;
@@ -539,10 +559,12 @@ void main() {
     float att = clamp(1.0 - d / uPointLights[i].w, 0.0, 1.0);
     vec3 Ld = L / max(d, 1e-4);
     pointAcc += att * att * max(dot(n, Ld), 0.0) * uPointColors[i];
-    // WATER-LIT1: water sends back little light diffusely and a lot as a glint - a lamp is a highlight on the waves
-    pointSpec += att * pow(max(dot(n, normalize(Ld + V)), 0.0), 90.0) * uPointColors[i];
+    // WATER-LIT1: water sends back little light diffusely and a lot as a glint - a lamp is a highlight on the waves,
+    // and its path down the waves toward the eye shows well past the light's own reach
+    float reach = clamp(1.0 - d / (uPointLights[i].w * ${LAMP_PATH_REACH.toFixed(1)}), 0.0, 1.0);
+    pointSpec += (att * pow(max(dot(n, normalize(Ld + V)), 0.0), 90.0) + reach * reach * 1.6 * (0.3 + 0.7 * fleck) * seaPath(R, Ld, 1500.0, 3.0)) * uPointColors[i];
   }
-  lit += body * pointAcc * 0.25;
+  lit += body * pointAcc * 0.25 + pointAcc * 0.012;
   vec3 iL = uIndirect.xyz - vWorldPos;
   float iD = length(iL);
   float iAtt = clamp(1.0 - iD / max(uIndirect.w, 1e-4), 0.0, 1.0);
@@ -590,7 +612,7 @@ void main() {
   // a lace, never a rim: the noise cuts the band into threads, thicker the shallower the water and the harder the wind
   float l = lace(vWorldPos.xz, uTime);
   float foam = max(shore * shore * smoothstep(0.62 - 0.25 * shore * uWindStrength, 0.82, l), crest * smoothstep(0.6, 0.85, l)) * 0.75 * exp(-dist * 0.004);
-  vec3 foamLit = vec3(0.92, 0.95, 0.96) * (uAmbient + uSunColor * (uSunScale * shadow * max(n.y, 0.0)) + uMoonColor * (uMoonScale * 0.5));
+  vec3 foamLit = vec3(0.92, 0.95, 0.96) * (uAmbient + uSunColor * (uSunScale * shadow * max(n.y, 0.0)) + uMoonColor * (uMoonScale * 0.5) + pointAcc * 0.8);
   float k = foam * 0.9;   // foam is not glass: where it lies it hides what is under it
   own = mix(own, foamLit, k); trans *= 1.0 - k; cover = mix(cover, 1.0, k);
   edge = max(edge, foam * smoothstep(0.0, 0.2, edge));
@@ -598,7 +620,14 @@ void main() {
   float spec = seaSunLobe(dot(n, H)) * uSunScale * shadow * (1.0 - foam);
   vec3 Hm = normalize(uMoonDir + V);
   float mspec = seaMoonLobe(dot(n, Hm)) * uMoonScale;
-  own += seaGlints(uSunColor, spec, uMoonColor, mspec) + pointSpec * 1.2;   // WATER-LIT1: the lamps' and the torch's glints
+  float mpath = seaMoonPath(R, uMoonDir, uMoonScale) * (1.0 - foam) * (0.35 + 0.9 * fleck);
+  own += seaGlints(uSunColor, spec, uMoonColor, mspec) + uMoonColor * (uMoonScale * mpath) + pointSpec * 1.2;   // WATER-LIT1: the lamps' and the torch's glints
+  // at night the sea's own light takes the exposure and the eye's adaptation the lane's ground takes
+  if (uSeaNight > 0.0) {
+    vec3 share = uSceneOn == 1 ? max(vec3(1.0) - trans, vec3(1e-3)) : vec3(max(cover, 1e-3));
+    vec3 exposed = elEncode(elTonemapRGB(elDecode(own / share) * (uSeaExposure * elAdapt()))) * share;
+    own = mix(own, exposed, uSeaNight);
+  }
   // the fogs over the water's own light at its share - the air's, then DW-C's sea fog - as a premultiplied colour takes
   // them (an affine fog of x is x * m + c; at a share s, x * m + c * s): the copy's share is left as it was drawn
   vec3 ownShare = uSceneOn == 1 ? vec3(1.0) - trans : vec3(cover);
