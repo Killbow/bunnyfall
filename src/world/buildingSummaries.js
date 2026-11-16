@@ -39,6 +39,7 @@ import { hasInteriorModels } from './interior/interiorLayout.js';   // AUDIT FB1
 // BlocksFile.RotationDivisor already live with the format that defines
 // them - this module reads them, it does not redeclare them.
 import { RMB_DIMENSION, ROTATION_DIVISOR } from '../formats/blocksFile.js';
+import { getSeed, setSeed } from '../formats/dfRandom.js';
 
 /**
  * BuildingSummary.Position for ONE subrecord (RMBLayout.cs:570).
@@ -71,6 +72,8 @@ export const buildingRotationY = (sub) => -(sub?.yRotation ?? 0) / ROTATION_DIVI
 export function buildingSummaries(exteriorBuildings, blocks, nameOpts = {}) {
   const merged = mergeNamedBuildings(exteriorBuildings ?? [], blocks ?? [], { locationIndex: nameOpts.locationIndex ?? 0 });   // RR3b: the replacement seed varies by location
   const out = [];
+  // Building names reseed the shared random numbers; restore the seed so later rolls are unchanged.
+  const seed = getSeed();
   for (const b of blocks ?? []) {
     const list = merged.get(b) ?? [];
     const subs = b.dfBlock?.rmbBlock?.subRecords ?? [];
@@ -96,5 +99,6 @@ export function buildingSummaries(exteriorBuildings, blocks, nameOpts = {}) {
       });
     }
   }
+  setSeed(seed);
   return out;
 }
