@@ -43,6 +43,9 @@ async function accountByName(db, name) {
   return row?.handle ? row : null;
 }
 
+/** A transfer offer for the home that is still open. Binds (map, key, now). */
+const OFFER_OPEN = "SELECT 1 AS y FROM home_offers WHERE map_id = ? AND building_key = ? AND state = 'open' AND until > ?";
+
 const ownsHome = async (db, mapId, buildingKey, player, character) =>
   !!(await db.prepare(`SELECT ${HOME_OWNER} AS y`).bind(mapId, buildingKey, player.id, character, player.id).first())?.y;
 
@@ -148,11 +151,14 @@ export async function decoratorsRoute(ctx, player, body = {}) {
     if (!who) return { error: 'no-reader' };
     if (who.id === player.id) return { error: 'decorator-self' };
     const r = await db.prepare(`INSERT INTO home_decorators (map_id, building_key, player, granted_at) SELECT ?, ?, ?, ?
-      WHERE ${HOME_OWNER} AND (SELECT COUNT(*) FROM home_decorators WHERE map_id = ? AND building_key = ?) < ? ON CONFLICT DO NOTHING`)
-      .bind(mapId, buildingKey, who.id, nowS, mapId, buildingKey, player.id, character, player.id, mapId, buildingKey, DECORATORS_MAX).run();
+      WHERE ${HOME_OWNER} AND (SELECT COUNT(*) FROM home_decorators WHERE map_id = ? AND building_key = ?) < ?
+      AND NOT EXISTS (${OFFER_OPEN}) ON CONFLICT DO NOTHING`)
+      .bind(mapId, buildingKey, who.id, nowS, mapId, buildingKey, player.id, character, player.id, mapId, buildingKey, DECORATORS_MAX,
+        mapId, buildingKey, nowS).run();
     if (r?.meta?.changes) return { ok: true, name: who.handle };
     const had = await db.prepare('SELECT 1 AS y FROM home_decorators WHERE map_id = ? AND building_key = ? AND player = ?').bind(mapId, buildingKey, who.id).first();
-    return had ? { ok: true, name: who.handle, repeat: true } : { error: 'decorators-full' };
+    if (had) return { ok: true, name: who.handle, repeat: true };
+    return (await db.prepare(OFFER_OPEN).bind(mapId, buildingKey, nowS).first()) ? { error: 'decorator-offer' } : { error: 'decorators-full' };
   }
   if (!who) return { error: 'no-reader' };
   if (op === 'revoke') {

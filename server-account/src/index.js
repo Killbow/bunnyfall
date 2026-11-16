@@ -469,7 +469,7 @@ const JUDGE_STATUS = Object.freeze({ 'trade-held': 409, 'record-unjudged': 409, 
 const WILD_STATUS = Object.freeze({ 'no-gate-key': 503, 'no-signing-key': 503, 'not-yours': 403, grace: 409, 'fallen-frozen': 409, nonce: 400, 'no-escrow': 404, 'escrow-wait': 409, 'escrow-late': 409, 'escrow-moved': 409, 'escrow-collected': 409, 'escrow-returned': 409, 'sea-prize-moved': 409, 'sea-prize-realm': 403 });   // MAC (2026-10-14): the escrow's; SHIP-PVP: a prize's
 /** The decorators' and templates' refusals that are not a bad request (400, the default). */
 const DECORATOR_STATUS = Object.freeze({
-  'decor-revoked': 403, 'decorator-hall': 403, 'decorator-self': 409, 'decorators-full': 409, 'no-reader': 404, 'no-home': 404,
+  'decor-revoked': 403, 'decorator-hall': 403, 'decorator-self': 409, 'decorators-full': 409, 'decorator-offer': 409, 'no-reader': 404, 'no-home': 404,
   'draft-changed': 409, 'draft-unsent': 409, 'draft-empty': 409, 'decor-taken': 409, 'decor-cap': 409, 'yard-cap': 409,
   'yard-town-full': 409, 'decor-rev': 409, 'template-none': 404, 'template-rate': 429, 'decor-rate': 429, 'homes-need-account': 403,
 });
@@ -1919,11 +1919,11 @@ const service = {
           if (!('error' in r)) return json(r, 200, origin);
           const said = realmNo(r);
           if (said) return said;
-          const conflict = r.error === 'home-cap' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'offer-open' || r.error === 'offer-closed' || r.error === 'offer-stale' || r.error === 'home-deed';
+          const conflict = r.error === 'home-decorators' || r.error === 'home-cap' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'offer-open' || r.error === 'offer-closed' || r.error === 'offer-stale' || r.error === 'home-deed';
           return no(r.error, r.error === 'home-rate' ? 429 : conflict ? 409 : r.error === 'no-home' ? 404 : 400, origin);
         }
         const r = path === '/v1/homes/release' ? await releaseHome(hctx, who.player, body) : await setHomeEntry(hctx, who.player, body, env);   // AUDIT LW-II-2 S4: a door leaving public reckons its patrons, by the service's secret
-        if ('error' in r) return realmNo(r) ?? no(r.error, r.error === 'bad-entry' || r.error === 'realm-needed' ? 400 : r.error === 'home-crossed' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' ? 409 : 404, origin);   // HOME-CROSSED; HOME-RENT: a sale waits for its tenants; HOME-VENDOR: and its stocked trader; a shared chest still holding goods
+        if ('error' in r) return realmNo(r) ?? no(r.error, r.error === 'bad-entry' || r.error === 'realm-needed' ? 400 : r.error === 'home-crossed' || r.error === 'home-tenants' || r.error === 'home-vendor-stocked' || r.error === 'home-holds' || r.error === 'home-decorators' ? 409 : 404, origin);   // HOME-CROSSED; HOME-RENT: a sale waits for its tenants; HOME-VENDOR: and its stocked trader; a shared chest still holding goods
         return json(await homeOrdersOf(r, who.player.id, env, subtle, nowS), 200, origin);   // QUEST-HOME: a sale - a house again to every page online
       }
 
