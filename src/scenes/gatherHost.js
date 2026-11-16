@@ -71,6 +71,7 @@ import { wearForagingTool } from '../systems/foraging/foragingInstall.js';
 import { materialCountLabel } from '../systems/professions/profItems.js';
 import { accountRefusalText } from '../net/accountClient.js';
 import { DEFAULT_ACTIVATION_DISTANCE } from '../player/activate.js';
+import { focusHalfLine } from '../ui/craftXpWords.js';
 import { harvestHauls } from '../ui/haulCards.js';   // HAUL-CARDS: a harvest's goods and XP as one card, on the enhanced skin
 import { BAG_WORDS, goodsWhere } from '../net/bagLaw.js';   // BAG1: where the goods went
 import { nodeMarkCss } from '../ui/nodeMarks.js';   // GATHER-OW: a group's glyph in its profession's compass colour
@@ -316,6 +317,7 @@ export function aimAt(eyePos, at, view) {
  */
 export function createGatherHost(deps) {
   const { book, hud, kinds } = deps;
+  book?.onHalfRank?.((/** @type {string} */ p, /** @type {number} */ rank) => hud.toast(focusHalfLine(professionName(p), rank), { keep: true }));
   // BUNNYFALL USE-KEYS: E and the activation's click both work every act, so the words name both ("E / LMB")
   const keyLabel = (a) => {
     if (a !== 'Interact') return deps.keyLabel(a);

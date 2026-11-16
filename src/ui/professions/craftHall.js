@@ -10,6 +10,7 @@ import {
   RECIPES, recipeOpen, craftXp, cookXp, masonXp, firstMakesOf, firstMakesSpent, firstCraftKey, FIRST_MAKE_SHARE, CRAFT_XP_PER_TIER,
 } from '../../net/recipeLaw.js';
 import { POTIONS, brewXp, DISENCHANT_XP } from '../../net/alchemyLaw.js';
+import { halfXp, FOCUS_TRACKS, FOCUS_XP, FOCUS_HALF_RANK } from '../../net/craft/craftLaw.js';
 import { material, VEIN_TABLES, dungeonVeinTable, regionSignature, WOOD_TABLES, RARE_WOODS, PINE_WOOD } from '../../net/nodeLaw.js';
 import { MOTHERLODE_TIER } from '../../net/motherlodeLaw.js';
 import { CLIMATES, REGION_NAMES } from '../../formats/mapsTables.js';
@@ -38,24 +39,21 @@ export const GATHER_TOPS = Object.freeze({
  *  stop at 5, the workbench's at 6. */
 export const benchTop = (/** @type {string[]} */ professions, /** @type {number} */ rank) => Math.max(1, ...RECIPES.filter((r) => professions.includes(r.profession) && recipeOpen(r, rank)).map((r) => r.tier));
 
-/** Whether the bar is full: at Master, or held at its rank by the crafter's limit (the service pays nothing past it). */
-const barFull = (track, limit) => track.rank >= PROF_RANK_MAX || !!(limit?.by?.length && track.rank >= limit.rank);
-
 /** A track's bar, `{ now, max }`, from its rank's floor to the next rank. */
-export function trackBar(track, limit = null) {
-  if (barFull(track, limit)) return { now: 1, max: 1 };
+export function trackBar(track) {
+  if (track.rank >= PROF_RANK_MAX) return { now: 1, max: 1 };
   const floor = xpForRank(track.rank), next = xpForRank(track.rank + 1);
   return { now: Math.max(0, track.xp - floor), max: Math.max(1, next - floor) };
 }
 /** "350 XP to rank 35", or '' when the bar is full. */
-export function toNextWords(track, limit = null) {
-  if (barFull(track, limit)) return '';
+export function toNextWords(track) {
+  if (track.rank >= PROF_RANK_MAX) return '';
   return t('prof.hall.toNext', '{xp, number} XP to rank {rank}', { xp: Math.max(0, xpForRank(track.rank + 1) - track.xp), rank: track.rank + 1 });
 }
 
 /**
- * AUDIT HORIZONTAL A2: the made set as the pages read it - the book's, with `closed` the crafts that take no more XP (the
- * crafter's limit holds them, or Master). The service lays a first on as MIN(xp + share, room) and spends it whatever it
+ * The made set as the pages read it - the book's, with `closed` the crafts that take no more XP
+ * (at Master). The service lays a first on as MIN(xp + share, room) and spends it whatever it
  * credited, so a closed craft's first-time bonuses pay nothing and are offered nowhere. Null while nothing is known.
  * @param {any} made the book's `made` @param {Iterable<any>} tracks the book's tracks
  */
@@ -115,21 +113,25 @@ export function owedOpenFirsts(made, track, rank, specs = null, nameOf = (k) => 
 
 /**
  * What raises a track at a rank, as `[act, figure]` rows. Every figure comes from the law the service pays by, at the
- * best grade the rank works. `pct` is the Firmament's bonus, which never applies to first-time bonuses.
- * @param {string} track @param {number} rank @param {{ pct?: number }} [opts]
+ * best grade the rank works, halved for a craft outside the Focus from rank 50. `pct` is the Firmament's bonus, which
+ * never applies to first-time bonuses.
+ * @param {string} track @param {number} rank @param {{ pct?: number, focus?: boolean }} [opts]
  * @returns {Array<[string, string]>}
  */
-export function xpSources(track, rank, { pct = 0 } = {}) {
+export function xpSources(track, rank, { pct = 0, focus = true } = {}) {
   const id = trackOf(track), top = topTierOf(rank);
-  const at = (/** @type {number} */ xp, /** @type {number} */ tier) => t('prof.hall.src.atGrade', '{xp, number} XP at grade {tier}', { xp, tier });
-  const clean = (/** @type {number} */ xp, /** @type {number} */ more, /** @type {number} */ tier) => t('prof.hall.src.atGradeClean', '{xp, number} XP at grade {tier}, {more, number} for clean work', { xp, more, tier });
+  const half = !focus && FOCUS_TRACKS.includes(id) && rank >= FOCUS_HALF_RANK;
+  const pay = (/** @type {number} */ xp) => (half ? halfXp(xp) : xp);
+  const at = (/** @type {number} */ xp, /** @type {number} */ tier) => t('prof.hall.src.atGrade', '{xp, number} XP at grade {tier}', { xp: pay(xp), tier });
+  const clean = (/** @type {number} */ xp, /** @type {number} */ more, /** @type {number} */ tier) => t('prof.hall.src.atGradeClean', '{xp, number} XP at grade {tier}, {more, number} for clean work', { xp: pay(xp), more: pay(more), tier });
   const harvest = (/** @type {number} */ tier) => clean(harvestXp(tier, rank, false), harvestXp(tier, rank, true), tier);
   const gathered = (/** @type {number} */ most) => harvest(Math.min(top, most));
   const piece = (/** @type {string[]} */ professions) => { const g = benchTop(professions, rank); return at(craftXp(g, rank), g); };
   const share = /** @type {Record<string, number>} */ (FIRST_MAKE_SHARE)[id] ?? 0;
-  const first = () => t('prof.hall.src.firstShare', '+{xp, number} XP, once each', { xp: share });
-  // Court writs (writXp) and guild crafting writs (craftWritXp) both pay twice their pay; the test holds them equal
-  const twice = () => t('prof.hall.src.writ', 'Twice its pay');
+  const first = () => t('prof.hall.src.firstShare', '+{xp, number} XP, once each', { xp: pay(share) });
+  // Court writs (writXp) and guild crafting writs (craftWritXp) both pay twice their pay; the test holds them equal.
+  // A guild writ for a craft outside the Focus pays half that from rank 50.
+  const twice = () => (half ? t('prof.hall.src.writHalf', 'Equal to its pay') : t('prof.hall.src.writ', 'Twice its pay'));
   const none = () => t('prof.hall.src.none', 'No XP');
   /** @type {Array<[string, string]>} */
   const rows = [];
@@ -162,7 +164,7 @@ export function xpSources(track, rank, { pct = 0 } = {}) {
       break;
     case 'building':
       rows.push([t('prof.hall.src.bench', 'A piece at the workbench'), piece(['carpentry'])]);
-      rows.push([t('prof.hall.src.mason', 'A cut or mix at the mason\'s bench'), t('prof.hall.src.masonXp', '{xp, number} XP each, {more, number} for clean work', { xp: masonXp(1, rank), more: masonXp(1, rank, { clean: true }) })]);
+      rows.push([t('prof.hall.src.mason', 'A cut or mix at the mason\'s bench'), t('prof.hall.src.masonXp', '{xp, number} XP each, {more, number} for clean work', { xp: pay(masonXp(1, rank)), more: pay(masonXp(1, rank, { clean: true })) })]);
       rows.push([t('prof.hall.src.firstBuild', 'Your first piece at each grade, first cut and first mix'), first()]);
       rows.push([t('prof.hall.src.saw', 'Sawing planks'), none()]);
       break;
@@ -181,7 +183,7 @@ export function xpSources(track, rank, { pct = 0 } = {}) {
       break;
     }
     case 'enchanting':
-      rows.push([t('prof.hall.src.disenchant', 'Disenchanting a crafted piece'), t('prof.hall.src.disenchantXp', '{per, number} XP per Essence per grade ({xp, number} at grade {tier})', { per: DISENCHANT_XP, xp: DISENCHANT_XP * top, tier: top })]);
+      rows.push([t('prof.hall.src.disenchant', 'Disenchanting a crafted piece'), t('prof.hall.src.disenchantXp', '{per, number} XP per Essence per grade ({xp, number} at grade {tier})', { per: half ? DISENCHANT_XP * FOCUS_XP.other : DISENCHANT_XP, xp: pay(DISENCHANT_XP * top), tier: top })]);
       rows.push([t('prof.hall.src.noFirst', 'First-time bonuses'), t('prof.hall.src.noFirstXp', 'None')]);
       break;
     default:

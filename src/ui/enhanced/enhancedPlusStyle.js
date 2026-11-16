@@ -1713,8 +1713,8 @@ export const PROF_CSS = `/* ── PROF1: THE PROFESSIONS ── */
 .prof-pane { min-width: 0; }
 .prof-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .prof-title h3 { margin: 0; font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; color: #efe0b8; }
-.prof-rankline, .prof-xp, .prof-today, .prof-limit { font-size: 12px; color: #b9ab93; }
-.prof-xp, .prof-today, .prof-limit { margin: 4px 0; }
+.prof-rankline, .prof-xp, .prof-today { font-size: 12px; color: #b9ab93; }
+.prof-xp, .prof-today { margin: 4px 0; }
 .prof-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .prof-spec { display: flex; flex-direction: column; gap: 4px; padding: 8px; text-align: left; font: inherit; font-size: 12px; color: #d9cfbd;
   background: rgba(10,8,6,0.6); border: 1px solid rgba(192,138,62,0.3); cursor: pointer; }

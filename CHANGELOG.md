@@ -10,6 +10,7 @@ the last release (scripts/changelogNotes.mjs).
 - Enemies now check whether they can see or hear you sixteen times a second, so they may notice you (or lose sight of you) a moment later.
 - Fixed: Keys and mouse buttons are released when the game window loses focus, so you no longer keep walking or swinging after switching windows.
 - Fixed: Auras and the duel wall no longer risk broken pixels on some graphics cards.
+- Fixed: Crafts no longer stop gaining experience once two others pass level 50. Outside your Focus, Smithing, Building, Outfitting, and Enchanting earn half experience from level 50, and you are told when one gets there.
 - Fixed: In the POI editor's DM tools, editing a dialogue, event, trade, or other entry no longer scrolls the panel back to the top.
 - Fixed: A POI event that opens a trade while a talk is open, such as one run by a dialogue answer, now shows the trade.
 - Fixed: In the POI editor and DM tools, color pickers and dropdowns actually open up.
