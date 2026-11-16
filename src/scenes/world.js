@@ -12166,9 +12166,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // the one that can hold undead or daedra above ground; guards are
     // class enemies and carry no group bit at all, so they are exempt
     // by the same table that exempts them from Pacify Humanoid.
-    onDispel: ({ group, chance }) => {
+    onDispel: ({ group, chance, targets = null }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => (!targets || targets.includes(f)) && !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) exteriorFoes.removeFoe(f);
       if (gone.length) townTalk.say(`${gone.length} dispelled.`);
     },
