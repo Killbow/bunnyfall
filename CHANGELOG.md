@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Necromancy minions now have their own section on the Companions page, where you can tell one to wait, call it back, or release it to free its slot.
 - Fixed: The desktop launcher now shows release patch notes again, and updates that finish downloading after a temporary stall install before play instead of staying on "Could not download".
 - Fixed: Sailing no longer hiccups each time your guns finish reloading or a shot hits your ship or your target.
 - Fixed: The pack now shows your custom paperdoll the first time you open it, instead of your ordinary doll.
