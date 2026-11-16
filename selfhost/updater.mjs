@@ -7,6 +7,9 @@ import { createServer } from 'node:http';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+// The desktop app's page origin, set by app/main.cjs; the website calls same-origin.
+const APP_ORIGIN = 'dagger://game';
+
 function ownerHandles(accountToml) {
   const m = readFileSync(accountToml, 'utf8').match(/^OWNER_HANDLES\s*=\s*"([^"]*)"/m);
   return new Set((m?.[1] ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean));
@@ -40,6 +43,16 @@ export function startUpdater({ port, bind, accountBase, accountToml, dir }) {
 
   const server = createServer(async (req, res) => {
     const path = new URL(req.url, 'http://x').pathname;
+    const fromApp = req.headers.origin === APP_ORIGIN;
+    if (fromApp) res.setHeader('access-control-allow-origin', APP_ORIGIN);
+    if (fromApp && req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'access-control-allow-methods': 'GET, POST',
+        'access-control-allow-headers': 'authorization',
+        'access-control-max-age': '86400',
+      });
+      return res.end();
+    }
     if (req.method === 'GET' && path === '/status') {
       if (!(await isOwner(req))) return send(res, 200, { owner: false });
       return send(res, 200, { owner: true, pending: existsSync(requestFile), last: lastLines(logFile, 4) });

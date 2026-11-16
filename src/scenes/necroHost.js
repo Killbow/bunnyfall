@@ -11,10 +11,11 @@
 //     stood afresh there as the layer's own catch-up does.
 // The host wires one (world.js) beside its sworn: its frame, its clear, its bodies.
 import { createCrewAshore } from './crewAshore.js';
-import { necroParty, takeRecall, setNecroSay, setGraveRobber, isMinionKey } from '../systems/necromancy/necromancy.js';
+import { necroParty, takeRecall, takePartings, setNecroSay, setGraveRobber, isMinionKey } from '../systems/necromancy/necromancy.js';
 import { companionSlot } from '../systems/naval/crewCompanions.js';
 import { mintCondition, setItemFields } from '../systems/item/itemTemplates.js';
 import { equipTableOf, EQUIP_SLOTS } from '../systems/equip.js';
+import { t } from '../systems/textManager.js';
 
 const MACE = 124;
 
@@ -31,6 +32,7 @@ export function createNecroHost(deps) {
     place: deps.place,
     leader: deps.leader,
     now: deps.now,
+    onLeftBehind: (cs) => deps.say(t('necro.waitBehind', '{n, plural, one {Your {name} stays behind. Call it from the Companions page.} other {Your # minions stay behind. Call them from the Companions page.}}', { n: cs.length, name: String(cs[0].title ?? '').toLowerCase() })),
     onStood: (c, rec) => {
       const m = c.minion, e = rec.entity;
       rec.necroMinion = m?.id ?? null;
@@ -74,6 +76,7 @@ export function createNecroHost(deps) {
     tick() {
       try { ashore.frame(); } catch (e) { console.warn('[necromancy] the minions', e?.message ?? e); }
       if (takeRecall()) recall();
+      for (const line of takePartings()) deps.say(line);
     },
     clear: () => ashore.clear(),
     bodies: () => ashore.bodies(),
