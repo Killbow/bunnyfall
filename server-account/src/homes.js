@@ -478,7 +478,8 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
       (h.guild_id IS NOT NULL AND EXISTS (SELECT 1 FROM guild_members k WHERE k.guild_id = h.guild_id AND k.player = ?2)) AS kin,
       (SELECT o.id || ':' || o.price || ':' || o.keep_decor || ':' || o.keep_items FROM home_offers o
         WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.buyer = ?2 AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS offer_for,
-      (SELECT o.id FROM home_offers o WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.seller = ?2 AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS giving
+      (SELECT o.id FROM home_offers o WHERE o.map_id = h.map_id AND o.building_key = h.building_key AND o.seller = ?2 AND o.state = 'open' AND o.until > ?1 LIMIT 1) AS giving,
+      EXISTS (SELECT 1 FROM home_decorators d WHERE d.map_id = h.map_id AND d.building_key = h.building_key AND d.player = ?2) AS decorates
     FROM homes h LEFT JOIN guilds g ON g.id = h.guild_id WHERE h.map_id = ?4 ORDER BY h.building_key LIMIT ?5`).bind(nowS, player.id, me, mapId, HOME_TOWN_MAX);
   // SEAT1d (Seats-Arc 7.6): OPEN GATES - while the town's holder proclaims it, every home there stands open to all (a
   // reader the seats are open to); each owner's own choice is kept, and its own view shows it. HOMES-SHED (2026-10-13,
@@ -537,6 +538,7 @@ export async function homesInTown({ db, nowS = Math.floor(Date.now() / 1000) }, 
         ...(h.deed === 1 ? { deed: true } : {}),   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held, never bought
         ...offerFor(h),
         ...votesOf(h),   // HOME-VOTE
+        ...(h.decorates === 1 && !mine && !deedRow ? { decorator: true } : {}),
       };
     }),
   };

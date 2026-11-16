@@ -347,6 +347,8 @@ import { commitDecorBatch } from './decorBatch.js';
 import { campRoute } from './camps.js';   // BUNNYFALL CAMPS: a player's camp in the open world   // DECOR-BATCH: one Confirm for a home's draft
 import { decorUse } from './decorAccess.js';   // DECOR-ACCESS: who may use a container or a station
 import { DECOR_BATCH_BYTES } from '../../src/net/decorLaw.js';
+import { decoratorsRoute } from './decorators.js';
+import { saveDraft, acceptDraft } from './decoratorDrafts.js';
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
@@ -465,6 +467,12 @@ const JUDGE_STATUS = Object.freeze({ 'trade-held': 409, 'record-unjudged': 409, 
 /** INT9: a death's drop's refusals - no key to verify or sign with 503, a receipt not the caller's 403, the fallen's own
  *  grace or the room's falls 409; the record's own (REALM_STATUS) after them, a bad shape 400 (the default). */
 const WILD_STATUS = Object.freeze({ 'no-gate-key': 503, 'no-signing-key': 503, 'not-yours': 403, grace: 409, 'fallen-frozen': 409, nonce: 400, 'no-escrow': 404, 'escrow-wait': 409, 'escrow-late': 409, 'escrow-moved': 409, 'escrow-collected': 409, 'escrow-returned': 409, 'sea-prize-moved': 409, 'sea-prize-realm': 403 });   // MAC (2026-10-14): the escrow's; SHIP-PVP: a prize's
+/** The decorators' and templates' refusals that are not a bad request (400, the default). */
+const DECORATOR_STATUS = Object.freeze({
+  'decor-revoked': 403, 'decorator-hall': 403, 'decorator-self': 409, 'decorators-full': 409, 'no-reader': 404, 'no-home': 404,
+  'draft-changed': 409, 'draft-unsent': 409, 'draft-empty': 409, 'decor-taken': 409, 'decor-cap': 409, 'yard-cap': 409,
+  'yard-town-full': 409, 'decor-rev': 409, 'template-none': 404, 'template-rate': 429, 'decor-rate': 429, 'homes-need-account': 403,
+});
 /** HOME-RENT: a room's refusals - a bad shape 400 (the default). */
 const RENT_STATUS = Object.freeze({
   ...JUDGE_STATUS,
@@ -1043,9 +1051,10 @@ const service = {
       // PRIVATE-REPORT: and a report's words, to theirs (reportLaw.js REPORT_BODY_BYTES). LOST-SPOILS: and a floor's leftovers,
       // to theirs (lostLaw.js LOST_BODY_MAX - the largest spoils send past 4 KiB)
       const body = request.method === 'POST'
-        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : poiActPath(path) ? POI_ACT_BODY_MAX : path === '/v1/homes/decor/batch' ? DECOR_BATCH_BYTES : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : path === '/v1/post/lost' ? LOST_BODY_MAX : path === '/v1/skins/upload' ? SKIN_BODY_MAX : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines; DECOR-BATCH: a home's Confirm; LOST-SPOILS
+        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : poiActPath(path) ? POI_ACT_BODY_MAX : path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept' ? DECOR_BATCH_BYTES : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : path === '/v1/post/lost' ? LOST_BODY_MAX : path === '/v1/skins/upload' ? SKIN_BODY_MAX : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines; DECOR-BATCH: a home's Confirm; LOST-SPOILS
       if (body === undefined && path === '/v1/realm/lineage') return no('lineage-too-large', 413, origin);
-      if (body === undefined && path === '/v1/homes/decor/batch') return no('too-large', 413, origin);   // DECOR-BATCH: past 128 KiB, before a session is read
+      // A body past its route's cap is refused before a session is read.
+      if (body === undefined && (path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept')) return no('too-large', 413, origin);
       if (!body) return no('body', 400, origin);
       // YARD-SHED (2026-10-06, the service down - "D1 DB is overloaded. Requests queued for too long."): A TOWN'S YARDS NEED
       // NO SESSION. Its answer is every caller's alike, any guest's to read (decor.js yardsKept), and the two reads a
@@ -1799,6 +1808,10 @@ const service = {
           return 'error' in r ? no(r.error, r.error === 'no-home' ? 404 : 400, origin) : json(r, 200, origin);
         }
         if (accountKind(who.player) !== 'linked') return no('homes-need-account', 403, origin);
+        if (path === '/v1/homes/decorators') {
+          const r = await decoratorsRoute(ctx, who.player, body);
+          return 'error' in r ? no(r.error, DECORATOR_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
+        }
         if (path.startsWith('/v1/camps/')) {   // BUNNYFALL CAMPS: pitched, struck, renamed and furnished - a linked account's
           const r = await campRoute(ctx, who.player, path, body);
           return 'error' in r ? no(r.error, r.error === 'no-camp' || r.error === 'no-decor' ? 404 : r.error === 'rate-limited' ? 429 : 400, origin) : json(r, 200, origin);
@@ -1812,19 +1825,22 @@ const service = {
             : path === '/v1/homes/decor/move' ? await moveDecor(hctx, who.player, body)
               : path === '/v1/homes/decor/hidden' ? await hideDecorBase(hctx, who.player, body)   // BASE-HIDE
                 : path === '/v1/homes/decor/batch' ? await commitDecorBatch(hctx, who.player, body)   // DECOR-BATCH
+                  : path === '/v1/homes/decor/draft' ? await saveDraft(hctx, who.player, body)
+                  : path === '/v1/homes/decor/accept' ? await acceptDraft(hctx, who.player, body)
                   : path === '/v1/homes/decor/use' ? await decorUse(hctx, who.player, body)   // DECOR-ACCESS
                     : await removeDecor(hctx, who.player, body);
-          if (path !== '/v1/homes/decor/use') {   // a chest's list, settle or release moves no yard
+          // a chest's use or a decorator's draft moves no yard
+          if (path !== '/v1/homes/decor/use' && path !== '/v1/homes/decor/draft') {
             forgetYards(body?.mapId);   // YARD-SHED: the town's kept yards let go, whatever the write did
             await settleYards(ctx.db, body?.mapId).catch((e) => console.warn('[yards] the town not built', e?.message ?? e));   // YARD-SNAP: and built again (the clock builds one this misses)
           }
           if (!('error' in r)) return json(r, 200, origin);
           const said = realmNo(r);
           if (said) return said;
-          const status = r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' || r.error === 'decor-rev' || r.error === 'decor-holds' || r.error === 'decor-shut' || r.error === 'decor-held' || r.error === 'decor-busy' || r.error === 'decor-lapsed' ? 409   // RPT1026-CHESTGOLD: a hold run out; GUILD1d: a hall piece's half back, into a full treasury; HOME-VENDOR: a stocked trader stays; DECOR-BATCH: a stale revision, or a chest that still holds goods; DECOR-ACCESS: shut, held, or open to someone else
+          const status = (path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept' ? DECORATOR_STATUS[r.error] : null) ?? (r.error === 'decor-cap' || r.error === 'yard-cap' || r.error === 'decor-taken' || r.error === 'guild-treasury-full' || r.error === 'vendor-stocked' || r.error === 'decor-rev' || r.error === 'decor-holds' || r.error === 'decor-shut' || r.error === 'decor-held' || r.error === 'decor-busy' || r.error === 'decor-lapsed' ? 409   // RPT1026-CHESTGOLD: a hold run out; GUILD1d: a hall piece's half back, into a full treasury; HOME-VENDOR: a stocked trader stays; DECOR-BATCH: a stale revision, or a chest that still holds goods; DECOR-ACCESS: shut, held, or open to someone else
             : r.error === 'decor-rate' ? 429
               : r.error === 'no-home' || r.error === 'no-decor' ? 404
-                : r.error === 'no-storage' || r.error === 'server' ? 503 : 400;
+                : r.error === 'no-storage' || r.error === 'server' ? 503 : 400);
           return no(r.error, status, origin);
         }
         if (path.startsWith('/v1/homes/rooms/')) {
