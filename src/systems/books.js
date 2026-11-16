@@ -43,22 +43,27 @@ export function getBookFileName(id) {
   return name;
 }
 
-/** GetRandomBookID (ItemHelper.cs:618-641) over the classic mapping:
- *  up to six draws, a book with a -LOC file in the current language
- *  taken only when it meets its conditions ("Localized book conditions
- *  have overriding priority", :628-634) and every other book at once -
- *  a classic book has no replacement entry, so BookMeetsConditions
- *  holds (:636-637). Six misses answer the mapping's first id (:640). */
+// Books whose file failed to load at startup (loadBookPrices) are left out of every random draw.
+const _unreadable = new Set();
+const drawable = (ids) => {
+  if (!_unreadable.size) return ids;
+  const ok = ids.filter((id) => !_unreadable.has(id));
+  return ok.length ? ok : ids;
+};
+
+/** Draws up to six mapped book ids, checking conditions on localized books and taking classic books directly.
+ *  Six misses return the first drawable id. */
 export function getRandomBookID(roll = Math.random) {
+  const ids = drawable(BOOK_IDS);
   for (let i = 0; i < 6; i++) {
-    const id = BOOK_IDS[Math.floor(roll() * BOOK_IDS.length)];
+    const id = ids[Math.floor(roll() * ids.length)];
     if (localizedBookExists(bookFileNameQuiet(id))) {
       if (localizedBookMeetsConditions(id)) return id;
       continue;
     }
     return id;
   }
-  return BOOK_IDS[0];
+  return ids[0];
 }
 
 /** L10N3f - PlayerEntity.GlobalVars.GetGlobalVar for the draw above:
@@ -90,7 +95,8 @@ export function localizedBookMeetsConditions(id) {
 
 /** WB12c: the shelf's draw - GetRandomBookID's, over the classic books and the port's own. */
 export function getShelfBookID(roll = Math.random) {
-  return SHELF_BOOK_IDS[Math.floor(roll() * SHELF_BOOK_IDS.length)];
+  const ids = drawable(SHELF_BOOK_IDS);
+  return ids[Math.floor(roll() * ids.length)];
 }
 
 /** GetBookTitle (ItemHelper.cs:567-586): the current language's -LOC
@@ -144,7 +150,7 @@ export function setBookPrice(id, price) {
 /** How many book files the host has priced (0 = never warmed). */
 export const bookPriceCount = () => _bookPrices.size;
 /** Test seam: the registry is module state, so it needs an unwind. */
-export function clearBookPrices() { _bookPrices.clear(); _warnedNoPrices = false; }
+export function clearBookPrices() { _bookPrices.clear(); _unreadable.clear(); _warnedNoPrices = false; }
 
 /** BookFile.Price for a book id, or null when the registry has no
  *  entry for it (no ARENA2 warmed, or a file that would not open -
@@ -229,7 +235,7 @@ export async function loadBookPrices(fetchBytes) {
       const bf = new BookFile();
       bf.load(await fetchBytes(name), name);
       setBookPrice(id, bf.price);
-    } catch { /* a missing or truncated book keeps the template price */ }
+    } catch { _unreadable.add(id); }
   }));
   return _bookPrices.size;
 }
