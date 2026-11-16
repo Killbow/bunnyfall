@@ -154,6 +154,7 @@ import { tallySkill, skillValue, SKILLS, permanentSkillValue } from '../systems/
 import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice, makeEnemiesHostile, isBowWeapon, aimedBlowInfo, playerBlowFrame } from './hostCombat.js';   // AUDIT 21 hosts F8: the swing law, shared with the dungeon and the guards; IF: the pain cry   // ROAD-B: GameManager.MakeEnemiesHostile
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
+import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
 import { createCityGuards } from './cityGuards.js';   // ROAD-B: SpawnCityGuards' INDOOR arm needs a watch pool in the building
 import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';
@@ -2623,6 +2624,17 @@ export function createWorldModes(host) {
    *  stays npcDisplayName's, the canonical name the topic tree compares
    *  with a quest Person's. */
   const npcShownName = (npcData) => questBridge?.machine?.movedQuestorName?.(npcData) ?? staticNpcShownName(npcData, npcNameDeps());   // QUESTOR-MOVED: the moved questor's one name, shown as the partner's
+  const tavernService = createTavernServiceHost({
+    entity: () => playerEntity, act: host.tavernAct ?? null, online: isOnlinePage,
+    people: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? interiorCtx?.people ?? [] : [],
+    where: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? `${questSceneCtx?.()?.mapId ?? 0}:${interiorBuilding.buildingKey}` : null,
+    buildingKey: () => interiorBuilding?.buildingKey,
+    npcId: (pn) => `npc:${staticNpcData(pn, staticNpcSceneCtx(pn)).nameSeed}:${pn.factionID}`,
+    name: (pn) => npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn))),
+    patron: (pn) => !pn.questBehaviour && !pn.bunnyClerk && !pn.arenaRole && !isChildNPCData(staticNpcData(pn, staticNpcSceneCtx(pn))) && staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict, building: interiorBuilding }).kind === 'talk',
+    plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)),
+    talk: (pn) => openStaticNpc(pn), say: (line) => say(line), saveSoon: () => host.saveSoon?.(),
+  });
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
    *  the plaque, the Info click and the talk door ask it before StaticNPC.DisplayName, so the three never disagree. */
@@ -3476,6 +3488,7 @@ export function createWorldModes(host) {
   const ownsThisInterior = (b = interiorBuilding) => !privateVisitRoom && ((!!interiorCabin && b === interiorBuilding) || (b?.buildingType === BUILDING_TYPES.Ship && ownsShip(playerEntity))
     || (interiorHome && b === interiorBuilding ? interiorHome.own : houseOwnedAt(b, b?.buildingKey)));   // HOME1: my online home's cupboards are my storage, and another's are not
   const interiorHoverName = composeNamer([
+    (key) => tavernService.hoverName(key),
     (key) => host.profHoverName?.(key) ?? null,   // INDOOR-SKIN (PROF-MENU): a profession node's acts first (a body's knife and search), as underground
     (key) => interiorCabin && typeof key === 'string' && key.startsWith('exit:') ? { title: isCaravanRoom(interiorCabin) ? CARAVAN_TEXT.exit : 'Return to deck' } : null,   // WAGONS1: the caravan's door
     (key) => {
@@ -4388,6 +4401,7 @@ export function createWorldModes(host) {
    *  scenes/townTalk.js's header records. */
   function activateStaticNpc(pn) {
     if (!pn) return;
+    if (mode === 'interior' && getInteractionMode() !== 'info' && getInteractionMode() !== 'steal' && tavernService.activate(pn, plaqueActionFor(`person:${interiorCtx?.people?.indexOf(pn)}`))) return;
     // ASYNC NEVER DROPS: FACTION.TXT may still be loading on the first
     // click of a session. ensureFactions coalesces, so the click lands
     // when the file does rather than being swallowed. Info needs the
@@ -5865,11 +5879,11 @@ export function createWorldModes(host) {
       endurance: () => liveStat(playerEntity, 'endurance'),
       onTalk: () => openStaticNpc(pn, { forceTalk: true }),
       // BUNNYFALL: the house's own rows (perform, a round, a tip, a festival) beside the window's four - one menu
-      house: () => bunnyTavernRows({
+      house: () => [...bunnyTavernRows({
         entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
         perform: (onDone, hooks) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, performer: playerEntity.name, stage: host.bardStage ?? null, ...hooks })),   // BARDS' COLLEGE: a rhythm game over a MIDI the bard picks, heard by the tavern (scenes/bardStage.js)
         tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
-      }),
+      }), ...tavernService.innRows(pn)],
       sceneCache: () => sceneCache(),   // P1: renting HOLDS the room's interior
       // The U24 identity guard: a window that dispatches to another
       // must not be nulled by its OWN onClose.
@@ -7253,7 +7267,7 @@ export function createWorldModes(host) {
    * the next line - so the sixth mode turns the suite red rather than
    * leaking a street.
    */
-  const setMode = (next) => { dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ if (next !== 'interior') { _arrowsCtx = null; interiorArrows.clear(); cardLookedCtx = null; cardStandsDue.clear(); gambitStandsDue.clear(); } if (next !== 'dungeon') { _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; }   /* MEM-AUDIT (2026-10-23): THE PLACE LEFT IS LET GO - each latches the context it was made in and is read only against the live one, so it stood unread to the next place of its kind, holding the whole torn-down room or castle (its collider, its batch's arrays, its foes: 11-16 MB for Daggerfall's or Wayrest's castle) */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } };
+  const setMode = (next) => { tavernService.frame(false, false); dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ if (next !== 'interior') { _arrowsCtx = null; interiorArrows.clear(); cardLookedCtx = null; cardStandsDue.clear(); gambitStandsDue.clear(); } if (next !== 'dungeon') { _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; }   /* MEM-AUDIT (2026-10-23): THE PLACE LEFT IS LET GO - each latches the context it was made in and is read only against the live one, so it stood unread to the next place of its kind, holding the whole torn-down room or castle (its collider, its batch's arrays, its foes: 11-16 MB for Daggerfall's or Wayrest's castle) */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } };
   function exteriorDoorTargets() {
     const gen = doorGeneration?.();
     if (gen !== undefined && _doorCache && _doorCache.gen === gen) return _doorCache;
@@ -10567,6 +10581,7 @@ export function createWorldModes(host) {
     const overlayHeld = !!host.staffTeleportHeld?.() || !!townTalk?.overlayActive ||
       (mode === 'interior' && interiorPaused()) ||
       (mode === 'dungeon' && !!dungeonCtx?.uiOverlayActive);
+    tavernService.frame(mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern, overlayHeld);
     // QUEST-POPUP-PAUSE (2026-09-26, Mac: "Pause them offline"): the interior pools keep WINFOE1's clock under a
     // window - except, offline, under a quest box on top (the host's own read, world.js _questBoxHoldsFoes).
     const foeDt = host.questBoxHoldsFoes?.() ? 0 : dt;
@@ -11628,6 +11643,7 @@ export function createWorldModes(host) {
     // stepped back out, where the street's frame popped it two seconds
     // late attached to nothing.
     townTalk?.hudFrame?.(dt, _shopFont);
+    tavernService.draw(renderer, canvas, _shopFont);
     // E2: the shop browse overlay draws above everything; font-less
     // never traps the motor (the townTalk law).
     if (interiorOverlay) {

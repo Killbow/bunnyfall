@@ -6,6 +6,13 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-14
 
 - Home owners can now name up to four players to decorate their home, yard, or caravan. Decorators send templates for free, and the owner previews each one in place before paying to accept or declining it.
+- Fixed: Your own Dispel Undead no longer destroys your companions, such as necromancy minions.
+- Necromancy minions now have their own section on the Companions page, where you can tell one to wait, call it back, or release it to free its slot.
+- Fixed: The desktop launcher now shows release patch notes again, and updates that finish downloading after a temporary stall install before play instead of staying on "Could not download".
+- Fixed: Sailing no longer hiccups each time your guns finish reloading or a shot hits your ship or your target.
+- Fixed: The pack now shows your custom paperdoll the first time you open it, instead of your ordinary doll.
+- Fixed: Skeleton, zombie, and atronach revenants no longer yip, whine, snarl, or howl.
+- Fixed: While a town loads, such as right after a fast travel, the carriage horses and other nearby town animals no longer repeat their sounds in quick succession.
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
 - Fixed: The decorator's Built in tab now removes a cupboard, chest, or shelf that holds things, and puts what it holds in your pack.
 - The game does less work each frame in towns, dungeons, and at sea, including enemy pathfinding, which helps slower computers.
