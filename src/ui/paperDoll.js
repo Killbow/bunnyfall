@@ -203,6 +203,9 @@ export function paperdollItemImage(worn, { gender = 'male', race = 'Breton' } = 
 let _art = null;      // indexed bitmaps + palette
 let _live = null;     // { tex } - the current composite
 let _pixels = null;   // U59: the same composite as RGBA, for the DOM
+/** @type {Set<() => void>} */
+const _onComposed = new Set();
+export const onPaperDollComposed = (/** @type {() => void} */ f) => { _onComposed.add(f); return () => { _onComposed.delete(f); }; };
 /** DFMOD1-E (Enhanced Plus: "the paperdoll doesn't get the texture update") - WHICH ATTACHED-MOD SET THE COMPOSITE
  *  WAS MADE FROM. The art set (backdrop, body, head) was loaded once at the host's boot, which runs BEFORE the
  *  mods' registration lands, and nothing asked again unless the identity drifted: the doll kept the classic art for
@@ -732,6 +735,7 @@ export async function refreshPaperDoll(entity) {
     // equip click, unbounded across a session).
     if (prevKey) _deps.renderer.releaseTexture?.('img', prevKey);
     _layout = layout;
+    for (const f of _onComposed) f();
   } finally {
     _refreshing = false;
     if (_pending) { const next = _pending; _pending = null; await refreshPaperDoll(next); }
