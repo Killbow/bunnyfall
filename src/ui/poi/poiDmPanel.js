@@ -16,6 +16,7 @@ import * as DM from '../../poi/poiDmEdit.js';
 import { dmLines } from '../../poi/poiDmLines.js';
 import { createPoiSandbox } from './poiSandbox.js';
 import { repaintKeepingScroll } from '../domRepaint.js';
+import { dialogueMapView, mapState, DIALOGUE_MAP_CSS } from './poiDialogueMapView.js';
 
 export const POI_DM_STYLE_ID = 'dfpoi-dm-style';
 export const POI_DM_CSS = `
@@ -108,7 +109,7 @@ export function dmHeldLines(doc) {
 function injectStyle(doc) {
   if (doc.getElementById?.(POI_DM_STYLE_ID)) return;
   const s = doc.createElement('style');
-  s.id = POI_DM_STYLE_ID; s.textContent = POI_DM_CSS;
+  s.id = POI_DM_STYLE_ID; s.textContent = POI_DM_CSS + DIALOGUE_MAP_CSS;
   (doc.head ?? doc.body).append(s);
 }
 
@@ -124,7 +125,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   for (const ty of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'wheel', 'contextmenu', 'touchstart']) dock.addEventListener(ty, swallow);
   dock.hidden = true;
   root.append(dock);
-  const ui = { on: false, tab: 'routes', key: /** @type {string | null} */ (null), kind: POI_INTERACTIVE_KINDS[0] };
+  const ui = { on: false, tab: 'routes', key: /** @type {string | null} */ (null), kind: POI_INTERACTIVE_KINDS[0], maps: /** @type {Record<string, import('./poiDialogueMapView.js').MapState>} */ ({}), mapView: /** @type {'list' | 'map'} */ ('list') };
   const sandbox = createPoiSandbox({ doc, getDoc: () => getDoc(), el, btn, redraw: () => schedule() });
 
   const id = () => edit.selection()?.id ?? null;
@@ -319,7 +320,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   }
 
   // ── lists ──
-  function listPane(/** @type {string} */ coll, /** @type {any[]} */ kids, /** @type {{ add?: (() => void) | null, extra?: any }} */ { add = null, extra = null } = {}) {
+  function listPane(/** @type {string} */ coll, /** @type {any[]} */ kids, /** @type {{ add?: (() => void) | null, extra?: any, problems?: boolean }} */ { add = null, extra = null, problems = true } = {}) {
     const d = getDoc(), rows = d?.[coll] ?? [];
     const left = el('div', 'dfpoi-dm-list');
     const limit = /** @type {any} */ (DM.DM_COLLECTIONS)[coll];
@@ -339,7 +340,7 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     const form = el('div', 'dfpoi-dm-form');
     form.setAttribute('data-scroll-key', String(ui.key));
     const index = rows.findIndex((/** @type {any} */ r) => r.key === ui.key);
-    form.append(...kids.filter(Boolean), ...(index >= 0 ? rowProblems(coll, index) : []));
+    form.append(...kids.filter(Boolean), ...(index >= 0 && problems ? rowProblems(coll, index) : []));
     const body = el('div', 'dfpoi-dm-body');
     body.setAttribute('data-scroll-key', coll);
     body.append(left, form);
@@ -471,39 +472,45 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     },
     dialogues() {
       const d = getDoc(), dl = d.dialogues?.find((/** @type {any} */ x) => x.key === ui.key) ?? null, p = ['dialogues', { key: ui.key }];
-      const kids = dl ? [
-        section(dl.name), text(t('poi.dm.name', 'Name'), [...p, 'name'], dl.name),
-        select(t('poi.dm.startsAt', 'Starts at'), [...p, 'start'], dl.start, dl.nodes.map((/** @type {any} */ n) => /** @type {[string, string]} */ ([n.key, n.key]))),
-        ...dl.nodes.map((/** @type {any} */ n) => {
-          const np = [...p, 'nodes', { key: n.key }];
-          const card = el('div', 'dfpoi-card');
-          const head = el('div', 'dfpoi-row');
-          const del = btn(t('poi.dm.deleteLine', 'Delete line'), () => tryRun((dd) => DM.removeNode(get(dd, p), n.key))); del.disabled = dl.nodes.length < 2;
-          head.append(el('b', '', n.key), del);
-          card.append(head, para(t('poi.dm.theySay', 'They say'), [...np, 'say'], n.say));
-          n.options.forEach((/** @type {any} */ o, /** @type {number} */ i) => {
-            const op = [...np, 'options', i], th = o.then;
-            const nest = el('div', 'dfpoi-nest');
-            const ans = input('text', o.text, (v) => { if (v.trim()) put([...op, 'text'], v.trim().slice(0, LIM.text)); });
-            ans.className = 'dfpoi-grow'; ans.maxLength = LIM.text;
-            const x = btn('x', () => run((dd) => { get(dd, [...np, 'options']).splice(i, 1); })); x.disabled = n.options.length < 2;
-            nest.append(row(t('poi.dm.answer', 'Answer {n}', { n: i + 1 }), ans, x),
-              select(t('poi.dm.then', 'Then'), null, th.k, POI_OPTION_KINDS.map((k) => /** @type {[string, string]} */ ([k, OPTION_WORD[k]()])), { onPick: (v) => put([...op, 'then'], DM.thenOf(getDoc(), dl, v)) }));
-            if (th.k === 'goto') nest.append(select(t('poi.dm.goTo', 'Go to'), [...op, 'then', 'node'], th.node, dl.nodes.map((/** @type {any} */ x2) => /** @type {[string, string]} */ ([x2.key, x2.key]))));
-            if (th.k === 'open_trade' || th.k === 'run_trade_recipe') nest.append(ref(t('poi.dm.trade', 'Trade'), [...op, 'then', 'trade'], th.trade, 'trades'));
-            if (th.k === 'run_trade_recipe') nest.append(select(t('poi.dm.recipe', 'Recipe'), [...op, 'then', 'recipe'], th.recipe, (d.trades?.find((/** @type {any} */ x2) => x2.key === th.trade)?.recipes ?? []).map((/** @type {any} */ r) => /** @type {[string, string]} */ ([r.key, r.name]))));
-            if (th.k === 'trigger_event') nest.append(ref(t('poi.dm.event', 'Event'), [...op, 'then', 'event'], th.event, 'events'));
-            nest.append(cond(t('poi.dm.shownWhenAnswer', 'Offered only when'), [...op, 'when'], o.when), num(t('poi.dm.cooldown', 'Cooldown (s)'), [...op, 'cooldownS'], o.cooldownS, { min: 0, max: 86400, none: true }));
-            card.append(nest);
-          });
-          const add = btn(t('poi.dm.addAnswer', 'Add an answer'), () => run((dd) => DM.addOption(get(dd, np)))); add.disabled = n.options.length >= LIM.options;
-          card.append(add);
-          return card;
-        }),
-        (() => { const b = btn(t('poi.dm.addLine', 'Add a line'), () => run((dd) => DM.addNode(get(dd, p)))); b.disabled = dl.nodes.length >= LIM.nodes; return b; })(),
-        note(t('poi.dm.lineHint', 'A line nobody can reach from the start is a problem. Link each new line from an answer.')),
-      ] : [note(t('poi.dm.pickDialogue', 'Pick a dialogue or add one.'))];
-      return listPane('dialogues', kids, { add: adder((dd, name) => DM.addDialogue(dd, name), t('poi.dm.newDialogue', 'Dialogue')) });
+      const add = adder((dd, name) => DM.addDialogue(dd, name), t('poi.dm.newDialogue', 'Dialogue'));
+      if (!dl) return listPane('dialogues', [note(t('poi.dm.pickDialogue', 'Pick a dialogue or add one.'))], { add });
+      const st = (ui.maps[`${d.id}/${dl.key}`] ??= { ...mapState(), view: ui.mapView });
+      const views = el('div', 'dfpoi-row');
+      for (const [v, label] of /** @type {const} */ ([['list', t('poi.dm.map.list', 'List')], ['map', t('poi.dm.map.map', 'Map')]])) {
+        const b = btn(label, () => { st.view = ui.mapView = v; st.scrollTo = st.sel; render(); });
+        b.setAttribute('aria-pressed', String(st.view === v));
+        views.append(b);
+      }
+      const head = el('div', 'dfpoi-row');
+      head.append(section(dl.name), el('span', 'dfpoi-sep'), views);
+      const fields = [text(t('poi.dm.name', 'Name'), [...p, 'name'], dl.name),
+        select(t('poi.dm.startsAt', 'Starts at'), [...p, 'start'], dl.start, dl.nodes.map((/** @type {any} */ n) => /** @type {[string, string]} */ ([n.key, n.key])))];
+      const addLine = btn(t('poi.dm.addLine', 'Add a line'), () => { const r = run((dd) => DM.addNode(get(dd, p))); if (r?.row) { st.sel = r.row.key; st.scrollTo = r.row.key; render(); } });
+      addLine.disabled = dl.nodes.length >= LIM.nodes;
+      const hint = note(t('poi.dm.lineHint', 'A line nobody can reach from the start is a problem. Link each new line from an answer.'));
+      if (st.view === 'map') {
+        const pick = dl.nodes.find((/** @type {any} */ n) => n.key === st.sel) ?? dl.nodes.find((/** @type {any} */ n) => n.key === dl.start) ?? dl.nodes[0];
+        const side = el('div', 'dfpoi-map-side');
+        side.setAttribute('data-scroll-key', `side:${pick?.key}`);
+        side.append(...fields, ...(pick ? [lineCard(dl, pick, p, st)] : []), addLine, hint, ...rowProblems('dialogues', d.dialogues.indexOf(dl)));
+        const split = el('div', 'dfpoi-map-split');
+        split.append(dialogueMapView({
+          doc, poi: d, key: dl.key, state: st, optionWord: (k) => OPTION_WORD[k]?.() ?? k,
+          onPick: (k) => { st.sel = k; render(); },
+          onSource: (kind, k) => { ui.tab = kind === 'npc' ? 'npcs' : 'events'; ui.key = k; render(); },
+          onOpen: () => /** @type {HTMLElement | null} */ (side.querySelector('textarea, input, select'))?.focus(),
+        }), side);
+        const pane = listPane('dialogues', [head, split], { add, problems: false });
+        const form = /** @type {HTMLElement} */ (pane.querySelector('.dfpoi-dm-form'));
+        form.classList.add('dfpoi-map-form');
+        return pane;
+      }
+      if (st.scrollTo) {
+        const k = st.scrollTo;
+        st.scrollTo = null;
+        Promise.resolve().then(() => [...dock.querySelectorAll('[data-node]')].find((c) => /** @type {HTMLElement} */ (c).dataset.node === k)?.scrollIntoView({ block: 'nearest' }));
+      }
+      return listPane('dialogues', [head, ...fields, ...dl.nodes.map((/** @type {any} */ n) => lineCard(dl, n, p, st)), addLine, hint], { add });
     },
     trades() {
       const d = getDoc(), tr = d.trades?.find((/** @type {any} */ x) => x.key === ui.key) ?? null, p = ['trades', { key: ui.key }];
@@ -579,6 +586,38 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       ] : [note(t('poi.dm.pickVariable', 'Pick a variable or add one.'))], { add: adder((dd, name) => DM.addVariable(dd, name, 'boolean', 'poi_global'), t('poi.dm.newVariable', 'Variable')) });
     },
   };
+
+  /** @param {any} dl @param {any} n @param {any[]} p @param {import('./poiDialogueMapView.js').MapState} st */
+  function lineCard(dl, n, p, st) {
+    const np = [...p, 'nodes', { key: n.key }];
+    const card = el('div', 'dfpoi-card');
+    card.dataset.node = n.key;
+    const head = el('div', 'dfpoi-row');
+    const del = btn(t('poi.dm.deleteLine', 'Delete line'), () => tryRun((dd) => DM.removeNode(get(dd, p), n.key))); del.disabled = dl.nodes.length < 2;
+    head.append(el('b', '', n.key), del);
+    card.append(head, para(t('poi.dm.theySay', 'They say'), [...np, 'say'], n.say));
+    n.options.forEach((/** @type {any} */ o, /** @type {number} */ i) => {
+      const op = [...np, 'options', i], th = o.then;
+      const nest = el('div', 'dfpoi-nest');
+      const ans = input('text', o.text, (v) => { if (v.trim()) put([...op, 'text'], v.trim().slice(0, LIM.text)); });
+      ans.className = 'dfpoi-grow'; ans.maxLength = LIM.text;
+      const x = btn('x', () => run((dd) => { get(dd, [...np, 'options']).splice(i, 1); })); x.disabled = n.options.length < 2;
+      const lead = btn(t('poi.dm.leadNew', 'Lead to a new line'), () => { const r = run((dd) => DM.addNodeFrom(get(dd, p), n.key, i)); if (r?.row) { st.sel = r.row.key; st.scrollTo = r.row.key; render(); } });
+      lead.disabled = dl.nodes.length >= LIM.nodes;
+      lead.title = t('poi.dm.leadNewHint', 'Add a line and make this answer go to it.');
+      const then = select(t('poi.dm.then', 'Then'), null, th.k, POI_OPTION_KINDS.map((k) => /** @type {[string, string]} */ ([k, OPTION_WORD[k]()])), { onPick: (v) => put([...op, 'then'], DM.thenOf(getDoc(), dl, v)) });
+      nest.append(row(t('poi.dm.answer', 'Answer {n}', { n: i + 1 }), ans, x), then, row('', lead));
+      if (th.k === 'goto') nest.append(select(t('poi.dm.goTo', 'Go to'), [...op, 'then', 'node'], th.node, dl.nodes.map((/** @type {any} */ x2) => /** @type {[string, string]} */ ([x2.key, x2.key]))));
+      if (th.k === 'open_trade' || th.k === 'run_trade_recipe') nest.append(ref(t('poi.dm.trade', 'Trade'), [...op, 'then', 'trade'], th.trade, 'trades'));
+      if (th.k === 'run_trade_recipe') nest.append(select(t('poi.dm.recipe', 'Recipe'), [...op, 'then', 'recipe'], th.recipe, (getDoc().trades?.find((/** @type {any} */ x2) => x2.key === th.trade)?.recipes ?? []).map((/** @type {any} */ r) => /** @type {[string, string]} */ ([r.key, r.name]))));
+      if (th.k === 'trigger_event') nest.append(ref(t('poi.dm.event', 'Event'), [...op, 'then', 'event'], th.event, 'events'));
+      nest.append(cond(t('poi.dm.shownWhenAnswer', 'Offered only when'), [...op, 'when'], o.when), num(t('poi.dm.cooldown', 'Cooldown (s)'), [...op, 'cooldownS'], o.cooldownS, { min: 0, max: 86400, none: true }));
+      card.append(nest);
+    });
+    const add = btn(t('poi.dm.addAnswer', 'Add an answer'), () => run((dd) => DM.addOption(get(dd, np)))); add.disabled = n.options.length >= LIM.options;
+    card.append(add);
+    return card;
+  }
 
   /**
    * Builds the encounter form's rows for keeping a win across visits. For Never, they say whether a persistent variable
