@@ -196,7 +196,7 @@ export function createPlayerMagic({
   foes, foeSinks, absorbCtx,
   onTeleport = null,   // TP-slice: the Teleport effect's prompt seam (the host owns the box)
   onIdentify = null,   // X7: the Identify effect's window seam ({chance, refund}) - same shape as onTeleport
-  onDispel = null,     // X9: the creature-dispel sweep seam ({group, chance}) - the host owns the scan and the pool
+  onDispel = null,
   onDispelMagic = null,// X10: the bundle-picker seam ({chance}) - the host owns the window
   onCreateItem = null, // X11b: the conjured-item picker seam ({rounds}) - the host owns the window
   now = null,          // V2a: the classic-minutes clock MorphSelf's once-a-day gate reads
@@ -966,10 +966,8 @@ export function createPlayerMagic({
     // refund - the player is not charged for a window that never
     // opened, which is the same shape as DFU refunding first and
     // opening second.
-    // X9: DISPEL UNDEAD / DAEDRA. Self-targeted, so it lands here on
-    // the caster and sweeps the area around them. The host owns both
-    // the nearby scan and the foe pool the destroy acts on, so the
-    // whole sweep goes out through one seam.
+    // A self-cast creature dispel sweeps the area around the caster; area and touch casts pass the enemies they hit.
+    // The host owns the nearby scan and the enemy pool the dispel acts on, so the whole sweep goes through one seam.
     if (r.dispel) onDispel?.(r.dispel);
     // X10: DISPEL MAGIC opens a picker over the player's own live
     // bundles. No refund here, unlike Identify - DFU charges the cast
@@ -1277,7 +1275,7 @@ export function createPlayerMagic({
       else if (t?.companion) giveToCompanion(t, sp);   // COMPANION-KIT: the touch met my companion
       else if (t?.duel) giveToDuel(t, sp);   // DUEL1: the touch met my duel opponent
       else if (t?.boss) giveToBoss(t, sp, playerCaster(cast));   // WB4b: the touch met the court's boss
-      else if (t) applySpellToFoe(sp, effectiveLevel(playerEntity), t, playerCaster(cast));
+      else if (t) { const r = applySpellToFoe(sp, effectiveLevel(playerEntity), t, playerCaster(cast)); if (r?.dispel) onDispel?.({ ...r.dispel, targets: [t] }); }
       // IMPACTFX: the touch, seen where it met - a heal rising at whoever took it, the element's small spray on a foe
       if (t) {
         const mid = bodyMid(t) ?? alongAim(eye, dir, 1.5), kind = fxKindOf(sp);
@@ -1292,9 +1290,12 @@ export function createPlayerMagic({
       tallyCastSkills(sp);
       surfacePlayer();
       const areaCaster = playerCaster(cast);   // AUDIT SCHOOLS: one cast, however many it sweeps
+      let dispel = null;
       for (const t of sweepFoes(eye, EXPLOSION_RADIUS, playerTargets())) {   // DISC19-F (AUDIT DISC19): nor my area
-        applySpellToFoe(sp, effectiveLevel(playerEntity), t, areaCaster);
+        const r = applySpellToFoe(sp, effectiveLevel(playerEntity), t, areaCaster);
+        if (r?.dispel) dispel = { ...r.dispel, targets: [...(dispel?.targets ?? []), t] };
       }
+      if (dispel) onDispel?.(dispel);
       giveToAllies(sweepFoes(eye, EXPLOSION_RADIUS, allyMarksFor(sp)), sp);   // AID1 onto ALLY-CAST: the mates around me - SPELL-GIFT: one line for all of them
       giveToCompanions(sweepFoes(eye, EXPLOSION_RADIUS, companionMarksFor(sp)), sp);   // COMPANION-KIT: and my companions
       for (const t of sweepFoes(eye, EXPLOSION_RADIUS, duelMarksFor(sp))) giveToDuel(t, sp);   // DUEL1: and my duel opponent, if they stand in it

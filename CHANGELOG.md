@@ -6,6 +6,9 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-14
 
 - Fixed: In Bunnyfall Grimoire, the Company window no longer shows dark text on its dark background.
+- Fixed: The desktop app now says in chat when a new version of the game is out.
+- Fixed: Holy Word now dispels the undead in its area, and Banish Daedra now dispels the daedra it touches.
+- Fixed: At some town gates, such as Chesterwark's west gate, the carriage and its driver no longer appear wedged against or inside a building.
 - Fixed: Entering a building or dungeon for the first time is faster because its art sets now load in parallel.
 - Fixed: A stuck Shift key is now released on the next key press or click, so a ship under oars turns instead of sliding sideways.
 - Fixed: Your Company no longer loses all its farms when you open the map or a farmhouse door before opening the Company tab.
