@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Open game tabs now say when a new version of the game is out, so you know to save and reload.
 - Fixed: In Bunnyfall Grimoire, the Company window no longer shows dark text on its dark background.
 - Fixed: The desktop app now says in chat when a new version of the game is out.
 - Fixed: Holy Word now dispels the undead in its area, and Banish Daedra now dispels the daedra it touches.
