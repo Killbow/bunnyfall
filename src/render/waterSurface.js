@@ -546,6 +546,10 @@ void main() {
   float mdiff = max(dot(n, uMoonDir), 0.0);
   vec3 lit = body * seaLight(uAmbient, uSunColor, uSunScale * diff, uMoonColor, uMoonScale * mdiff);
   vec3 pointAcc = vec3(0.0), pointSpec = vec3(0.0);
+  // the waves break a reflected path into flecks; only the moon's path reads them
+  float fleck = 0.0;
+  if (uMoonScale > 0.03)
+    fleck = smoothstep(0.35, 0.8, vnoise(vWorldPos.xz * 1.3 + uWindDir * uTime * 1.5) * 0.6 + vnoise(vWorldPos.xz * 3.1 - uTime * 0.7) * 0.4);
   for (int i = 0; i < 16; i++) {
     if (i >= uPointCount) break;
     vec3 L = uPointLights[i].xyz - vWorldPos;
@@ -612,7 +616,8 @@ void main() {
   float spec = seaSunLobe(dot(n, H)) * uSunScale * shadow * (1.0 - foam);
   vec3 Hm = normalize(uMoonDir + V);
   float mspec = seaMoonLobe(dot(n, Hm)) * uMoonScale;
-  own += seaGlints(uSunColor, spec, uMoonColor, mspec) + pointSpec * 1.2;   // WATER-LIT1: the lamps' and the torch's glints
+  float mpath = seaMoonPath(R, uMoonDir, uMoonScale) * (1.0 - foam) * (0.35 + 0.9 * fleck);
+  own += seaGlints(uSunColor, spec, uMoonColor, mspec) + uMoonColor * (uMoonScale * mpath) + pointSpec * 1.2;   // WATER-LIT1: the lamps' and the torch's glints
   // at night the sea's own light takes the exposure and the eye's adaptation the lane's ground takes
   if (uSeaNight > 0.0) {
     vec3 share = uSceneOn == 1 ? max(vec3(1.0) - trans, vec3(1e-3)) : vec3(max(cover, 1e-3));

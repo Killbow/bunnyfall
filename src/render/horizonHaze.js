@@ -28,6 +28,9 @@
 // A leaf with no imports, as fogGlsl.js is: the water's module graph takes this file alone.
 // ═══════════════════════════════════════════════════════════════════
 
+/** The moon's path on the sea, over its light scale (MOONLIGHT.masser at a full Masser overhead). */
+const MOON_PATH_GAIN = 1.6;
+
 /** The open sea's own light - the water surface's (render/waterSurface.js) and the far ring's sea (render/farRing.js),
  *  one text:
  *  seaFresnel(ndv, f0): Schlick's reflectance at a facing ndv (the eye's direction dotted with the normal), capped
@@ -46,7 +49,16 @@ vec3 seaLight(vec3 ambient, vec3 sunColor, float sunDiff, vec3 moonColor, float 
   return ambient + sunColor * (sunDiff * 0.6) + moonColor * moonDiff;
 }
 float seaSunLobe(float nh) { return pow(max(nh, 0.0), 180.0); }
-float seaMoonLobe(float nh) { return pow(max(nh, 0.0), 220.0); }
+float seaMoonLobe(float nh) { float c = max(nh, 0.0); return pow(c, 220.0) + 0.16 * pow(c, 40.0); }
+// A light's path down the sea toward the eye, along the reflected ray R. The moon's grows with its light.
+float seaPath(vec3 R, vec3 L, float across, float along) {
+  float c = dot(normalize(R.xz + vec2(1e-5, 0.0)), normalize(L.xz + vec2(1e-5, 0.0)));
+  float dy = R.y - L.y;
+  return exp((c - 1.0) * across) * exp(-dy * dy * along);
+}
+float seaMoonPath(vec3 R, vec3 moonDir, float moonScale) {
+  return seaPath(R, moonDir, 350.0, 7.0) * ${MOON_PATH_GAIN.toFixed(2)} * smoothstep(0.03, 0.2, moonScale);
+}
 // The sunset's glow low on the sun's side, as a reflected ray sees it.
 vec3 seaSkyGlow(vec3 R, vec3 glow, vec2 dir) {
   if (glow.r + glow.g + glow.b <= 0.0) return vec3(0.0);
@@ -96,5 +108,7 @@ vec3 ringSea(vec3 ambient, vec3 sunColor, vec3 moonColor, float sunScale) {
   vec3 lit = vSeaBody * seaLight(ambient, sunColor, sunScale * max(uLightDir.y, 0.0), moonColor, uMoonScale * max(uMoonDir.y, 0.0));
   vec3 H = normalize(uLightDir + V);
   vec3 Hm = normalize(uMoonDir + V);
-  return seaSky(lit, V.y, uSkyZenith, uSkyHorizon, uSeaF0) + seaGlints(sunColor, seaSunLobe(H.y) * sunScale, moonColor, seaMoonLobe(Hm.y) * uMoonScale);
+  vec3 R = vec3(-V.x, V.y, -V.z);
+  return seaSky(lit, V.y, uSkyZenith, uSkyHorizon, uSeaF0) + seaGlints(sunColor, seaSunLobe(H.y) * sunScale, moonColor, seaMoonLobe(Hm.y) * uMoonScale)
+    + moonColor * (uMoonScale * seaMoonPath(R, uMoonDir, uMoonScale));
 }`;
