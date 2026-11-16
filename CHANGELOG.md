@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: The pack now shows your custom paperdoll the first time you open it, instead of your ordinary doll.
 - Fixed: Skeleton, zombie, and atronach revenants no longer yip, whine, snarl, or howl.
 - Fixed: While a town loads, such as right after a fast travel, the carriage horses and other nearby town animals no longer repeat their sounds in quick succession.
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
