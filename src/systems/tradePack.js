@@ -17,7 +17,7 @@ import { activeWagonItem } from './wagon/wagonKinds.js';   // WAGONS2 (AUDIT)
 import { validLootList } from './loot/loot.js';
 import { itemLongName } from './item/itemInfo.js';   // MARKET-ANY: a pack piece named as the pack names it
 import { goodRefusal, GOOD_REFUSAL_WORDS } from '../net/marketLaw.js';   // MARKET-ANY: what may list from the pack
-import { splitStack, addItem, itemWeight, totalWeight, carriedWeight, isSummoned, isGoldPieces, addGoldPieces, goldPiecesOf, GOLD_PIECE_WEIGHT_KG } from './inventory.js';
+import { splitStack, addItem, itemWeight, totalWeight, carriedWeight, carryFactor, isSummoned, isGoldPieces, addGoldPieces, goldPiecesOf, GOLD_PIECE_WEIGHT_KG } from './inventory.js';
 import { isEquipped } from './equip.js';
 import { clearLightSourceOnLeave } from './item/itemTransfer.js';
 import { entityMaxEncumbrance } from '../combat/formulas.js';
@@ -163,7 +163,7 @@ export function createTradePack(entity, { stampIds = null } = {}) {
     /** Could this pack carry the peer's lot once my own offer has left it? (The lock's check; a receive never refuses.) */
     fits(theirItems, theirGold, mineEntries = [], mineGold = 0) {
       const incoming = totalWeight(theirItems) + theirGold * GOLD_PIECE_WEIGHT_KG;
-      const after = carriedWeight(entity) - offerWeight(mineEntries, mineGold) + incoming;
+      const after = carriedWeight(entity) + (incoming - offerWeight(mineEntries, mineGold)) * carryFactor(entity);
       return after <= entityMaxEncumbrance(entity);
     },
 

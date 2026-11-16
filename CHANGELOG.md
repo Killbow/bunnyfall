@@ -6,6 +6,8 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-14
 
 - Fixed: Raiders attacking a walled town no longer get stuck in its gatehouses. They camp outside and march in through a gate, which stays open during the raid, even at night.
+- Fixed: The Stores page now lists materials bought at a shop counter and says that they can't go into your Stores but crafting stations can still use them.
+- Fixed: Featherweight now lets you pick up, buy, and trade for more, and the Enhanced inventory and both trade windows show the lighter load.
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
 - Fixed: The decorator's Built in tab now removes a cupboard, chest, or shelf that holds things, and puts what it holds in your pack.
 - The game does less work each frame in towns, dungeons, and at sea, including enemy pathfinding, which helps slower computers.

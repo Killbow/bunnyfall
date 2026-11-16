@@ -59,6 +59,9 @@ registerEnemyLootExtra('CHEBS-CORPSE', ({ items, mobileType }) => {
 let _minions = [];
 let _seq = 0;
 let _recall = false;
+const _waiting = new Set();
+/** @type {string[]} */
+const _partings = [];
 /** @type {((text: string) => void) | null} */
 let _say = null;
 /** The host's mouth for the party's words (a minion fallen, the slots full on a load). */
@@ -81,19 +84,27 @@ function memberOf(m) {
   c.health = m.health;
   c.maxHealth = m.maxHealth;
   c.minion = m;
+  c.waiting = _waiting.has(m.id);
   return c;
 }
+function dropMinion(id) {
+  const i = _minions.findIndex((m) => m.id === id);
+  if (i < 0) return null;
+  const [m] = _minions.splice(i, 1);
+  _members.delete(id);
+  _waiting.delete(id);
+  return m;
+}
+const crumbleText = (m) => `Your ${MINIONS[m.type]?.name.toLowerCase() ?? 'minion'} crumbles back into the dead.`;
 /** The minions' party, the companion layer's (systems/naval/crewCompanions.js's shape). */
 export function necroParty() {
   return {
     get party() { return _minions.map(memberOf); },
     wake() { /* a minion never rests */ },
     knock(boat, id) {
-      const i = _minions.findIndex((m) => m.id === id);
-      if (i < 0) return false;
-      const [m] = _minions.splice(i, 1);
-      _members.delete(id);
-      say(`Your ${MINIONS[m.type]?.name.toLowerCase() ?? 'minion'} crumbles back into the dead.`);
+      const m = dropMinion(id);
+      if (!m) return false;
+      say(crumbleText(m));
       return true;
     },
     hurt(boat, id, health, maxHealth) {
@@ -109,14 +120,30 @@ registerCompanionCount('minions', () => _minions.length);
 registerCompanionRoster('minions', () => _minions.map((m) => ({ name: MINIONS[m.type]?.name ?? 'Minion', role: 'Minion' })));
 /** Recall Minions asked: the host reads it once (takeRecall) and brings every one to the caster's side. */
 export const takeRecall = () => { const r = _recall; _recall = false; return r; };
+export const minionRows = () => _minions.map((m) => ({ id: m.id, name: MINIONS[m.type]?.name ?? 'Minion', health: m.health, maxHealth: m.maxHealth, waiting: _waiting.has(m.id) }));
+/** @param {string} id @param {boolean} on */
+export function setMinionWaiting(id, on) {
+  if (!_minions.some((m) => m.id === id)) return false;
+  if (on) _waiting.add(id); else _waiting.delete(id);
+  return true;
+}
+/** @param {string} id */
+export function releaseMinion(id) {
+  const m = dropMinion(id);
+  if (m) _partings.push(crumbleText(m));
+  return !!m;
+}
+export const takePartings = () => _partings.splice(0);
 /** Tests and a new game: none raised. */
-export function forgetMinions() { _minions = []; _members.clear(); _recall = false; }
+export function forgetMinions() { _minions = []; _members.clear(); _recall = false; _waiting.clear(); _partings.length = 0; }
 
 registerModSaveData(NECRO_SAVE_VENDOR, {
   newSaveData: () => ({ minions: [] }),
   getSaveData: () => ({ minions: _minions.map((m) => ({ ...m })) }),
   restoreSaveData: (r) => {
     _members.clear();
+    _waiting.clear();
+    _partings.length = 0;
     _minions = (Array.isArray(r?.minions) ? r.minions : [])
       .filter((m) => m && typeof m.id === 'string' && MINIONS[m.type])
       .map((m) => ({ id: m.id.slice(0, 24), type: m.type, magnitude: Math.max(1, m.magnitude | 0), health: Number.isFinite(m.health) ? m.health : null, maxHealth: Number.isFinite(m.maxHealth) ? m.maxHealth : null, mace: Number.isInteger(m.mace) ? m.mace : null }))
@@ -181,6 +208,7 @@ export function necroCast(sp, { entity, level, say: speak, rolls = Math.random }
       if (!_minions.length) { speak('You have no minions to recall.'); continue; }
       if (d100(rolls) > chance) { speak('The recall fails.'); continue; }
       _recall = true;
+      _waiting.clear();
       continue;
     }
     if (!companionSlotFree()) { speak(COMPANION_SLOTS_FULL); continue; }

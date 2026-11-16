@@ -360,6 +360,15 @@ const LINES = deepFreeze({
   },
 });
 
+// Mute kinds that are not animals (skeletons, zombies, and atronachs) must never get an animal sound as their manner.
+const UNDEAD_MANNER = Object.freeze({
+  brutal: 'with a savage lurch',
+  humorous: 'with an oddly jaunty clatter',
+  unhinged: 'with a frenzied shudder',
+  craven: 'with a hollow tremble',
+  weary: 'with a tired, grinding creak',
+});
+
 /** A beast's moment, as the narrator tells it - `{manner}` its temperament's. */
 /** @type {Readonly<Record<VoiceEvent, string>>} */
 const BEAST = deepFreeze({
@@ -461,7 +470,8 @@ export function voiceLine(personality, event, { p = 'stranger', rolls = Math.ran
   return fill(pool[Math.min(pool.length - 1, Math.floor(rolls() * pool.length))], vars);
 }
 /** What a beast does at a moment, in its temperament - the narrator's sentence. */
-export function beastBody(personality, event) {
-  const manner = PERSONALITIES[isPersonality(personality) ? personality : 'brutal'].manner;
+export function beastBody(personality, event, mobileType = 0) {
+  const p = isPersonality(personality) ? personality : 'brutal';
+  const manner = (!BEASTS.has(mobileType | 0) && UNDEAD_MANNER[p]) || PERSONALITIES[p].manner;
   return (BEAST[event] ?? 'Watches you {manner}.').replace('{manner}', manner);
 }
