@@ -6,11 +6,11 @@ import { createTavernShift, stepTavernShift, TAVERN_RECIPES, tavernOrder, TAVERN
 test('NPC plaque actions complete service and apply a server payment before the next checkpoint', async () => {
   const keeper = { key: 'keeper' }, patron = { key: 'guest' };
   const people = [keeper, patron], entity = { goldPieces: 0 }, said = [];
-  let state, version = 0, nowS = 100, checkpointGold = null;
+  let state, version = 0, nowS = 100, checkpointGold = null, choiceView = null;
   const service = createTavernServiceHost({
     entity: () => entity, online: () => true, where: () => '17:42', buildingKey: () => 42,
     people: () => people, npcId: (pn) => pn.key, name: (pn) => pn.key, patron: (pn) => pn === patron,
-    now: () => nowS, plaque: () => true, say: (s) => said.push(s), choose: () => {}, saveSoon: () => {},
+    now: () => nowS, plaque: () => true, say: (s) => said.push(s), choose: (view) => { choiceView = view; }, saveSoon: () => {},
     act: async (body, apply) => {
       let result;
       if (body.op === 'start') result = { state: createTavernShift({ ...body, member: true, rank: 3, seed: 1, nowS }) };
@@ -31,9 +31,14 @@ test('NPC plaque actions complete service and apply a server payment before the 
   }
   service.activate(keeper, 'tservice:carry'); await flush(); nowS += 21;
   service.activate(patron, 'tservice:serve'); await flush();
+  assert.ok(service.hoverName('person:1').actions.some((a) => a.id === 'tservice:room'));
+  service.activate(patron, 'tservice:room');
+  assert.equal(choiceView.options.length, 4);
+  assert.ok(choiceView.lines.some((s) => s.includes('Warmth')));
+  choiceView.options.find((o) => o.code === 'Escape').action();
   service.activate(patron, 'tservice:collect'); await flush();
   service.activate(keeper, 'tservice:return'); await flush();
-  assert.equal(entity.goldPieces, 24); assert.equal(checkpointGold, 24);
+  assert.equal(entity.goldPieces, 36); assert.equal(checkpointGold, 36);
   assert.equal(state.index, 1); assert.ok(said.length);
   assert.equal(service.activate(keeper, 'tservice:talk'), false);
   service.dispose();

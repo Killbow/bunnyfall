@@ -1,3 +1,5 @@
+import { tavernRoomEvent } from '../src/net/tavernRoomLaw.js';
+import { tavernFavorBuy } from '../server-account/src/tavernFavor.js';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
@@ -6,7 +8,7 @@ import { tavernServiceAct } from '../server-account/src/tavernService.js';
 import { TAVERN_RECIPES, TAVERN_INGREDIENTS, tavernOrder } from '../src/net/tavernServiceLaw.js';
 
 // Real SQLite constraints/rollback, the actual service handler and actual realm record mutation.
-function fixture() {
+export function fixture() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(`CREATE TABLE realm_characters (id TEXT PRIMARY KEY, player TEXT, seq INTEGER, lease TEXT, obj TEXT, prev TEXT, held TEXT,
     judged_seq INTEGER, clean_obj TEXT, clean_seq INTEGER, bytes INTEGER, updated_at INTEGER, witnessed INTEGER DEFAULT 0, svc_seq INTEGER);
@@ -49,12 +51,12 @@ function fixture() {
 test('service pays into the realm record exactly once even when the return acknowledgement is replayed', async () => {
   const f = fixture(); await f.prepare();
   const { r, body } = await f.call('return');
-  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.gold, 24); assert.equal(r.realm.seq, 2);
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.gold, 36); assert.equal(r.realm.seq, 2);
   const replay = await tavernServiceAct(f.ctx, f.player, body);
   assert.equal(replay.replayed, true); assert.equal(replay.version, r.version);
   const row = f.sql.prepare('SELECT seq, obj FROM realm_characters').get();
   const save = JSON.parse(f.blobs.get(row.obj));
-  assert.equal(row.seq, 2); assert.equal(save.goldPieces, 24);
+  assert.equal(row.seq, 2); assert.equal(save.goldPieces, 36);
   assert.equal((await f.call('return')).r.error, 'tavern-action');
 });
 test('the character lease, action revision and saved room are enforced', async () => {
@@ -74,7 +76,7 @@ test('concurrent returns with different request ids cannot double-pay', async ()
   const results = await Promise.allSettled(['parallel_1', 'parallel_2'].map((txn) => tavernServiceAct(f.ctx, f.player, { ...body, txn })));
   assert.equal(results.filter((r) => r.status === 'fulfilled' && r.value.ok).length, 1, JSON.stringify(results));
   const row = f.sql.prepare('SELECT seq, obj FROM realm_characters').get();
-  assert.equal(row.seq, 2); assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 24);
+  assert.equal(row.seq, 2); assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 36);
 });
 test('a complete shift writes the Bards reputation into the same realm save as the final payment', async () => {
   const f = fixture(); let rep = 0;
@@ -82,11 +84,70 @@ test('a complete shift writes the Bards reputation into the same realm save as t
   assert.equal(rep, 2); assert.equal(f.state.phase, 'done');
   const row = f.sql.prepare('SELECT seq, obj FROM realm_characters').get();
   const save = JSON.parse(f.blobs.get(row.obj));
-  assert.equal(row.seq, 7); assert.equal(save.goldPieces, 144); assert.equal(save.factionRep.rep[0], 2);
+  assert.equal(row.seq, 7); assert.equal(save.goldPieces, 327); assert.equal(save.factionRep.rep[0], 2);
+  assert.equal(save.modData.BunnyGuilds._marks.tavern.favor, 1);
+  assert.equal(save.modData.BunnyGuilds._marks.tavern.cities['17'], 1);
+  assert.equal(save.legalRep['17'], 1);
 });
 test('replaying a paid receipt after a later checkpoint never moves the realm sequence backwards', async () => {
   const f = fixture(); await f.prepare(); const { body } = await f.call('return');
   f.sql.prepare('UPDATE realm_characters SET seq = 3').run();
   const replay = await tavernServiceAct(f.ctx, f.player, { ...body, seq: 3 });
   assert.equal(replay.replayed, true); assert.equal(replay.realm.seq, 3);
+});
+
+function favorFixture(favor = 25) {
+  const f = fixture();
+  f.sql.exec("CREATE TABLE players (id TEXT PRIMARY KEY, insignia TEXT); INSERT INTO players VALUES ('player', '')");
+  const save = JSON.parse(f.blobs.get('save'));
+  save.modData.BunnyGuilds._marks = { tavern: { favor, cities: {} } };
+  f.blobs.set('save', JSON.stringify(save));
+  const body = { id: f.id, lease: f.lease, seq: 1, txn: 'favor_purchase_1', offer: 'legendary' };
+  return { f, body, player: { id: f.player, handle: 'Bard' } };
+}
+test('Favor legendary purchase debits and delivers once, including lost-acknowledgement retries', async () => {
+  const { f, body, player } = favorFixture();
+  const result = await tavernFavorBuy(f.ctx, player, body);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.item.rarity, 'legendary'); assert.equal(result.progress.favor, 0);
+  const again = await tavernFavorBuy(f.ctx, player, body);
+  assert.equal(again.replayed, true); assert.deepEqual(again.item, result.item);
+  const row = f.sql.prepare('SELECT obj, seq FROM realm_characters').get();
+  const save = JSON.parse(f.blobs.get(row.obj));
+  assert.equal(save.items.length, 1); assert.equal(save.modData.BunnyGuilds._marks.tavern.favor, 0);
+  f.sql.prepare('UPDATE realm_characters SET seq = seq + 1').run();
+  const later = await tavernFavorBuy(f.ctx, player, { ...body, seq: row.seq + 1 });
+  assert.equal(later.realm.seq, row.seq + 1);
+});
+test('Favor title prices are 100 and 500, account ownership blocks duplicate purchases', async () => {
+  for (const [offer, price] of [['barmaster', 100], ['legendarybartender', 500]]) {
+    const { f, body, player } = favorFixture(price + 10); body.offer = offer;
+    const result = await tavernFavorBuy(f.ctx, player, body);
+    assert.equal(result.ok, true, JSON.stringify(result)); assert.equal(result.progress.favor, 10);
+    assert.equal(f.sql.prepare('SELECT insignia FROM players').get().insignia, 'title:' + offer);
+    const duplicate = await tavernFavorBuy(f.ctx, player, { ...body, seq: result.realm.seq, txn: 'second_purchase' });
+    assert.equal(duplicate.error, 'owned');
+  }
+});
+test('Favor shop refuses insufficient funds, nonmembers, guests and another character lease', async () => {
+  const { f, body, player } = favorFixture(24);
+  assert.equal((await tavernFavorBuy(f.ctx, player, body)).error, 'favor-short');
+  assert.equal((await tavernFavorBuy(f.ctx, { ...player, handle: null }, body)).error, 'tavern-bad');
+  assert.equal((await tavernFavorBuy(f.ctx, player, { ...body, lease: 'c'.repeat(32) })).error, 'lease');
+  const save = JSON.parse(f.blobs.get('save')); delete save.modData.BunnyGuilds.bards;
+  f.blobs.set('save', JSON.stringify(save));
+  assert.equal((await tavernFavorBuy(f.ctx, player, body)).error, 'tavern-membership');
+});
+
+test('room choices persist and replay without granting extra money or repeating their effects', async () => {
+  const f = fixture(); await f.prepare();
+  const choice = tavernRoomEvent(f.state).choices[0].id;
+  const { r, body } = await f.call('room', { target: 'guest', choice });
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.gold, 0); assert.equal(r.roomResult.choice, choice);
+  const replay = await tavernServiceAct(f.ctx, f.player, body);
+  assert.equal(replay.replayed, true); assert.deepEqual(replay.state.room, r.state.room);
+  assert.equal((await f.call('room', { target: 'guest', choice })).r.error, 'tavern-action');
+  const saved = JSON.parse(f.sql.prepare('SELECT state FROM tavern_service').get().state);
+  assert.deepEqual(saved.room, r.state.room); assert.equal(saved.orders[saved.index].roomChoice, choice);
+  const result = await f.call('return'); assert.equal(result.r.ok, true);
 });

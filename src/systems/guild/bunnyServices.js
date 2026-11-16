@@ -16,6 +16,8 @@
 // The halls are online only (bunnyGuilds.js), so all of this is too. The host hands in its doors (`doors`); every
 // door may be missing, and the option it would need is then left out.
 
+import { BARD_RANK_SHARE, bardGoldMultiplier, songFavor, tavernReputation } from '../../net/tavernFavorLaw.js';
+import { tavernProgress } from './bunnyMembership.js';
 import { addGoldPieces, goldPiecesOf } from '../inventory.js';
 import { changeReputation } from '../faction/factionRep.js';
 import { bunnyGuildOfKey } from './bunnyGuilds.js';
@@ -35,7 +37,7 @@ export const BARD_BASE_GOLD = 16;
 export const BARD_NIGHT_GOLD = 24;
 export const BARD_STRUCK_GOLD = 0.5;
 export const BARD_GOOD_SHARE = 0.6;
-export const BARD_RANK_SHARE = 0.15;
+export { BARD_RANK_SHARE };
 /** A map's price, and the share off it for each rank a member holds. */
 export const MAP_PRICE = 200;
 export const MAP_RANK_OFF = 0.08;
@@ -53,10 +55,10 @@ const gainRep = (/** @type {any} */ entity, /** @type {string} */ key, /** @type
 
 /** A performance's pay, for `hits` notes struck at `rank` (-1 for none). */
 export const bardPay = (/** @type {number} */ hits, /** @type {number} */ rank) =>
-  Math.round((BARD_BASE_GOLD + BARD_NOTE_GOLD * hits) * (1 + BARD_RANK_SHARE * Math.max(0, rank)));
+  Math.round((BARD_BASE_GOLD + BARD_NOTE_GOLD * hits) * bardGoldMultiplier(rank));
 /** BUNNYFALL: what a performance pays by its struck notes (`perfect`, `good`) and the bard's rank. */
 export const bardSongPay = (/** @type {number} */ perfect, /** @type {number} */ good, /** @type {number} */ rank) =>
-  Math.round((BARD_NIGHT_GOLD + BARD_STRUCK_GOLD * (Math.max(0, perfect | 0) + BARD_GOOD_SHARE * Math.max(0, good | 0))) * (1 + BARD_RANK_SHARE * Math.max(0, rank)));
+  Math.round((BARD_NIGHT_GOLD + BARD_STRUCK_GOLD * (Math.max(0, perfect | 0) + BARD_GOOD_SHARE * Math.max(0, good | 0))) * bardGoldMultiplier(rank));
 /** A performance's reputation: one for a good night, two for a perfect one. */
 export const bardRep = (/** @type {number} */ hits, /** @type {number} */ notes) => (hits >= notes ? 2 : hits >= Math.ceil(notes * 0.66) ? 1 : 0);
 /** A map's price for a visitor (`rank` -1) or a member. */
@@ -77,7 +79,7 @@ export function bunnyQuestEnded(/** @type {any} */ quest, /** @type {any} */ ent
  * `openBoard(focus)` this town's Notice Board as the hall's desk opens it (`{ tab, hall, sift?, crafts? }`), `openBounties()`
  * the town's bounty notices.
  * @param {{ entity: any, openCompany?: (() => boolean) | null, openBoard?: ((focus: any) => boolean) | null, openBounties?: (() => boolean) | null,
- *   revealLocation?: (() => { shown: string } | null) | null }} doors
+ *   revealLocation?: (() => { shown: string } | null) | null, openFavor?: (() => void) | null }} doors
  */
 export function bunnyHallServices(doors) {
   return (/** @type {string} */ key, /** @type {{ member: { rank: number } | null, again: (note?: string) => void }} */ { member, again }) => {
@@ -125,6 +127,7 @@ export function bunnyHallServices(doors) {
       out.push({ code: 'KeyW', label: t('bguild.art.writs', 'W - Crafting writs and commissions'), action: () => { doors.openBoard?.({ tab: 'work', hall: key, crafts: ['kit'], sift: { kind: 'commission' } }); } });
     }
     if (key === 'bards') {
+      if (doors.openFavor) out.push({ code: 'KeyF', label: t('tavern.favor.shop', 'F - Favor Token shop'), action: doors.openFavor });
       out.push({ code: 'KeyP', label: t('bguild.bards.how', 'P - How to perform'), action: () => {
         again(member
           ? t('bguild.bards.howMember', 'Speak to any innkeeper and ask to play. Each tavern will have you once a day.')
@@ -142,11 +145,11 @@ export function bunnyHallServices(doors) {
  * own, and runs `action()` once it has closed itself (a performance and a prompt open their own windows). Answers [] when
  * there is nothing to offer. `where` names the tavern (`${town}:${building}`), `day` the game's day, `perform(onDone)` the
  * performance window, `say` the chat line. Called again at each repaint, so a price or a bard coming near is current.
- * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number, song?: { perfect: number, good: number, total: number } | null) => string[], hooks?: { keepAlive: () => void, onCancel: () => void }) => void, notes: number,
- *   tavern?: any, say?: (s: string) => void, festival?: any }} o
+ * @param {{ entity: any, where: string, day: number, perform: (onDone: (hits: number, song?: { perfect: number, good: number, total: number, seconds?: number } | null) => string[], hooks?: { keepAlive: () => void, onCancel: () => void }) => void, notes: number,
+ *   tavern?: any, say?: (s: string) => void, festival?: any, region?: number, city?: string, roomShare?: (() => number) | null }} o
  * @returns {Array<{ code: string, label: string, action: () => void }>}
  */
-export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = null, say = () => {}, festival = null }) {
+export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = null, say = () => {}, festival = null, region = -1, city = where.split(':')[0], roomShare = null }) {
   const m = bunnyMembershipOf('bards');
   const social = tavern?.on?.() ? tavern : null;
   const fest = festival?.on?.() ? festival : null;   // PLAYER-FESTIVALS: hosted from the innkeeper
@@ -162,13 +165,17 @@ export function bunnyTavernRows({ entity, where, day, perform, notes, tavern = n
         perform((hits, song = null) => {
           notePerformed(where, day);
           const crowd = social?.stopPlaying?.() ?? { share: 1, lines: [] };   // TAVERN-SOCIAL: the bards beside me, the crowd
-          const gold = Math.round((song ? bardSongPay(song.perfect, song.good, m.rank) : bardPay(hits, m.rank)) * crowd.share);   // BUNNYFALL: by the notes struck
+          const gold = Math.round((song ? bardSongPay(song.perfect, song.good, m.rank) : bardPay(hits, m.rank)) * crowd.share * (roomShare?.() ?? 1));   // BUNNYFALL: by the notes struck
           const rep = bardRep(hits, notes);
           addGoldPieces(entity, gold);
           gainRep(entity, 'bards', rep);
+          const favor = songFavor(song?.seconds ?? 0);
+          tavernProgress().favor += favor;
+          if (hits > 0) tavernReputation(entity, tavernProgress(), region, city);
           return [
             song ? t('bguild.bards.resultSong', 'You struck {hits} of {notes} notes.', { hits: song.perfect + song.good, notes: song.total }) : t('bguild.bards.result', 'You struck {hits} of {notes} notes.', { hits, notes }),
             ...crowd.lines,
+            t('tavern.favor.songPaid', 'Favor Tokens: +{favor}. City and regional reputation: +{rep}.', { favor, rep: hits > 0 ? 1 : 0 }),
             t('bguild.bards.paid', 'The house pays you {gold} gold.', { gold }),
             ...(rep ? [t('bguild.bards.rep', 'Word of your playing reaches the College.')] : []),
           ];

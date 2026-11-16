@@ -59,6 +59,7 @@ import { lwSeed, textSeed } from './seed.js';
 import { placeKeyOf } from './lives.js';
 import { NEWS_DAYS } from './trips.js';
 import { patronVisits, patronOf, PATRON_DELAY_DAYS } from './patrons.js';   // LW15: a patron's errand to a player's trader
+import { tavernProgress } from '../guild/bunnyMembership.js';
 import { carriedNews, reputeOf, reputeKind, regardWithRepute, heardOf } from './carried.js';   // LW16: the word carried, the character's repute
 
 /** AUDIT LEGACY II B2: whose household a resident is of - their own `household` when they live here beyond the census
@@ -1671,7 +1672,9 @@ export class LivingTown {
   /** LW16: THE TOWN'S REPUTE of the character at minute `t` - its strangers' regard and the deeds it knows of (carried.js
    *  reputeOf over the road's news, its deeds and the word carried in). @param {number} [t] */
   reputeAt(t = this._now) {
-    return reputeOf([...this._roadNewsAt(t), ...this.deedNews(t), ...this.carriedAt(t)]);
+    const repute = reputeOf([...this._roadNewsAt(t), ...this.deedNews(t), ...this.carriedAt(t)]);
+    repute.regard = Math.min(100, repute.regard + Number(tavernProgress().cities[String(this.o.town.mapId)] ?? 0));
+    return repute;
   }
 
   /** LW15 / AUDIT LW-II B12: the buyer a sale names (the Vendor page's) - the one holding the household's place the sale

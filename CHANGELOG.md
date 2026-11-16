@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-16
+
+- Tavern shifts now have three clickable bottle points for pouring doses, a cup progress display, and an illustrated, paged innkeeper's recipe book.
+
 ## 2026-11-14
 
 - Captains and Officers can now dismiss soldiers from the Company's Garrison page, with no gold returned. If too few soldiers remain for their orders, soldiers are recalled from the front first, then from patrol routes.

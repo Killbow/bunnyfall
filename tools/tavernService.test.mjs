@@ -59,7 +59,7 @@ test('minimum time and empty-cup return gate the payment', () => {
   assert.equal(r.gold, 0); a = r.state;
   assert.equal(stepTavernShift(a, { op: 'return', target: 'keeper' }, 200).error, 'tavern-action');
   a = step(a, 'collect', { target: tavernOrder(a).patron }).state;
-  r = step(a, 'return'); assert.equal(r.gold, 24); assert.equal(r.state.index, 1);
+  r = step(a, 'return'); assert.equal(r.gold, 29); assert.equal(r.state.index, 1);
   assert.equal(stepTavernShift(r.state, { op: 'return', target: 'keeper' }, 200).error, 'tavern-action');
 });
 test('reputation is earned once at shift completion, with a smaller award after mistakes', () => {
@@ -71,7 +71,7 @@ test('reputation is earned once at shift completion, with a smaller award after 
       a = step(a, 'collect', { target: tavernOrder(a).patron }, time).state;
       const r = step(a, 'return', {}, time); a = r.state; totalRep += r.rep;
     }
-    assert.equal(a.phase, 'done'); assert.equal(a.earned, 144); assert.equal(totalRep, mistakes ? 1 : 2);
+    assert.equal(a.phase, 'done'); assert.equal(a.earned, 174); assert.equal(totalRep, mistakes ? 1 : 2);
     assert.equal(stepTavernShift(a, { op: 'return', target: 'keeper' }, 999).error, 'tavern-no-shift');
   }
 });
@@ -79,4 +79,36 @@ test('nonmembers can work, stopping keeps earned gold, expiry refuses further ac
   const a = fresh(false); const stopped = step(a, 'stop');
   assert.equal(stopped.rep, 0); assert.equal(stopped.state.earned, 0);
   assert.equal(stepTavernShift(a, { op: 'pour', target: 'keeper', ingredient: 'wine' }, 4000).error, 'tavern-expired');
+});
+
+test('patience and clean service build tips; late service and mistakes reset the streak', () => {
+  let st = fresh();
+  function serveAt(at) {
+    st = fill(st);
+    st = step(st, 'serve', { target: tavernOrder(st).patron }, at).state;
+    st = step(st, 'collect', { target: tavernOrder(st).patron }, at).state;
+    const result = step(st, 'return', {}, at); st = result.state; return result;
+  }
+  assert.equal(serveAt(130).tip, 7);
+  assert.equal(serveAt(160).tip, 15);
+  assert.equal(serveAt(260).tip, 0);
+  assert.equal(st.streak, 0);
+  assert.equal(serveAt(290).tip, 7);
+  st = step(st, 'pour', { ingredient: 'wine' }, 300).state;
+  st = step(st, 'discard', {}, 300).state;
+  assert.equal(serveAt(320).tip, 0);
+  assert.equal(st.bestStreak, 2);
+});
+test('abandoning a shift never awards Favor or city reputation', () => {
+  const r = step(fresh(), 'stop'); assert.equal(r.favor, 0); assert.equal(r.localRep, 0);
+});
+
+test('Bard rank scales wages and streak tips through Archbard; nonmembers receive base pay', () => {
+  for (const [member, rank, wage, tip] of [[true, 0, 20, 5], [true, 3, 29, 7], [true, 7, 41, 10], [true, 8, 44, 11], [true, 9, 47, 12], [false, 9, 20, 5]]) {
+    let st = fill(fresh(member, rank));
+    st = step(st, 'serve', { target: tavernOrder(st).patron }, 130).state;
+    st = step(st, 'collect', { target: tavernOrder(st).patron }, 130).state;
+    const result = step(st, 'return', {}, 130);
+    assert.equal(result.tip, tip); assert.equal(result.gold, wage + tip);
+  }
 });

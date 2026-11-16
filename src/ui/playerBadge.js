@@ -113,6 +113,8 @@ export const TITLE_TEXT = Object.freeze({
   coilbreaker: 'Coilbreaker',     // SERPENT5 (2026-10-15, Sea-Serpent.md section 17): one dealing ship's serpent kill in twenty grants it
   // EG-E2 (2026-10-12, bible/11-Multiplayer/Elite-Gates.md section 19, THE HONOURS): the Spire's thirteen, in the table's
   // order - earned in the Elite Breach (server-account/src/egHonours.js), never bought
+  barmaster: 'Bar Master',
+  legendarybartender: 'Legendary Bartender',
   spirewalker: 'Spirewalker',
   beaconlighter: 'Beacon-Lighter',
   kynbane: 'Kynbane',
@@ -390,6 +392,8 @@ export const TITLE_RGBA = Object.freeze({
   // blood, an unbroken ivory, a lone cold star, the Imperial Battlemages' blue, the Wellhead's ember; each band's Master
   // its own ground's (the Galleries' old gilt, the Cairn's soul-gems, the Shade's night, the Wellhead's forge); the
   // Champion's jade, and the first dawn for the first company
+  barmaster: Object.freeze([1, .7, .3, 1]),
+  legendarybartender: Object.freeze([.8, .5, 1, 1]),
   spirewalker: Object.freeze([0.62, 0.659, 0.8, 1]),        // #9ea8cc
   beaconlighter: SPIRE_BEACON,
   kynbane: SPIRE_KYN,
