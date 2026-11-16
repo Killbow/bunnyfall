@@ -56,7 +56,7 @@
 // the pins drive it without a network.
 // ═══════════════════════════════════════════════════════════════════
 import { metalUpgradeCost } from './upgradeLaw.js';   // BUNNYFALL: the material upgrade's spend
-import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';   // PROF7: the day's rare hides (CAP-OFF: no day's cap); BAG1: a work's inputs; CRAFT-LIMIT-SAID: the crafter's limit over a track; DAEDRIC-SMELT: a work's embers
+import { HARVEST_LATE_S, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, smeltRecipe, trackOf, craftLimitOf, specTrialShown, workEmbers } from './professionLaw.js';
 import { CARRIED_MAX, DEPOSIT_MAX, LOOSE_ORIGIN, carriedUsable, carriedWorkable, carriedTotal, clampCarried } from './bagLaw.js';   // BAG1: what a character carries, counted
 import { recipeById, recipeInputs, recipeOpen, counterMade } from './recipeLaw.js';   // BAG1: a craft's inputs, moved in from the bag first; AUDIT CRAFT1: whether the rank opens it
 import { potionById, brewSpends } from './alchemyLaw.js';   // BAG1: a brew's
@@ -70,7 +70,7 @@ import { t } from '../systems/textManager.js';   // L10N4: the Stores' words in 
 import { noteAct } from '../systems/questlines/qlActs.js';   // QL11: the features' acts, heard by the running quests
 import { turnedDayOf } from './dayTurn.js';   // DAY-TURN: a page's day turns at its own moment past midnight
 import { PREPARES } from './provision/provisionLaw.js';   // BUNNYFALL PROVISIONING: milling and setting, moved in from the pack first
-import { planOf, inputsOf } from './craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
+import { planOf, inputsOf, FOCUS_TRACKS, FOCUS_HALF_RANK } from './craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks
 
 /** Where this device keeps the acts whose answers did not come: { [account|character]: { harvests, withdrawals } }. */
 export const PROF_KEPT_KEY = 'prof1.kept';
@@ -280,7 +280,16 @@ export function createProfBook({ door, storage = null, character = () => null, n
   /** AUDIT HORIZONTAL A: moved on by every answer laid on the state, so a state read begun before one is read again - a
    *  read answered before a craft and heard after it put back the goods it spent, its XP and its first (writGen's way). */
   let stateGen = 0;
-  const applyTrack = (t) => { if (t && typeof t.profession === 'string') { stateGen++; state.tracks.set(t.profession, t); } };
+  /** @type {((profession: string, rank: number) => void)|null} */
+  let halfRankHeard = null;
+  // A state read starts from an empty map, so only an act's answer can cross FOCUS_HALF_RANK here.
+  const applyTrack = (t) => {
+    if (!t || typeof t.profession !== 'string') return;
+    const was = state.tracks.get(t.profession)?.rank;
+    stateGen++;
+    state.tracks.set(t.profession, t);
+    if (was < FOCUS_HALF_RANK && t.rank >= FOCUS_HALF_RANK && FOCUS_TRACKS.includes(t.profession) && !state.focus.crafts.includes(t.profession)) halfRankHeard?.(t.profession, t.rank);
+  };
   // GOLD-MARKET: and what gold bought, where there is any - to the pack or back on the market for gold, nowhere else.
   // AUDIT BAG-CRAFT A1: and what a station's put-in brought loose from the pack - to a station or back to the pack
   const applyStore = (s) => {
@@ -469,6 +478,8 @@ export function createProfBook({ door, storage = null, character = () => null, n
     /** BUNNYFALL CRAFTING REWORK: the crafts pledged as Focus, and when a drop is free again (seconds, or null). */
     focus() { return { crafts: [...state.focus.crafts], cost: state.focus.cost }; },
     isFocus(profession) { return state.focus.crafts.includes(trackOf(profession)); },
+    /** Calls `fn` with the craft when an act's answer takes a craft outside the Focus to FOCUS_HALF_RANK or above. */
+    onHalfRank(fn) { halfRankHeard = typeof fn === 'function' ? fn : null; },
     // ─── BUNNYFALL PROVISIONING (docs/PROVISIONING.md) ───
     /** The character's Provisioning as the service last said it: `{ learnt: Set, book: [] }`, or null before it is read. */
     provState() { return state.prov; },
@@ -559,9 +570,6 @@ export function createProfBook({ door, storage = null, character = () => null, n
       }
       return t;
     },
-    /** CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f): the crafter's limit over a craft's track as the service last said the
-     *  character's tracks (professionLaw craftLimitOf - `{ cap, room, by, rank }`, the law the service's decisions bind;
-     *  AUDIT FB1018f L5-2: `rank` the rank it is held at) - a discipline its craft's. */
     limit(profession) { return craftLimitOf(state.tracks.values(), profession); },
     /** One material's count in the Stores, own and bought (GOLD-MARKET: and `gold`, bought with gold, where held). */
     store(material) { return state.stores.get(material) ?? { material, own: 0, bought: 0 }; },

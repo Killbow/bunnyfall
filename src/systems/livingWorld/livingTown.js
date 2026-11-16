@@ -1555,6 +1555,7 @@ export class LivingTown {
    */
   speech(eye, range = LINE_RANGE) {
     const out = [];
+    if (!this.pool.some((row) => row.visible && row.res && !row.flee && !(Math.hypot(row.person.pos[0] - eye[0], row.person.pos[2] - eye[2]) > range))) return out;
     const rate = this._baseRate();
     const lineMin = lineMinutes(rate);
     const ctx = this.lineCtx(this._now);

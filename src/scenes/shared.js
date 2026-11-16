@@ -2789,3 +2789,15 @@ export function enchantFoeHost(foe, dungeonCtx, insidePool) {
   if (insidePool?.()?.includes(foe)) return 'inside';
   return 'exterior';
 }
+
+/** The entries of `list` that `keep` admits, as one array while they stay the same (each read checks). A non-empty
+ *  `extra` is appended in a new array. Readers must not change the array. */
+export function liveCandidates(list, keep) {
+  let held = [];
+  return (extra = null) => {
+    let n = 0, same = true;
+    for (const f of list) if (keep(f)) { if (held[n] !== f) same = false; n++; }
+    if (!same || n !== held.length) held = list.filter(keep);
+    return extra?.length ? [...held, ...extra] : held;
+  };
+}

@@ -28,6 +28,13 @@
 // same key keeps its offset, another misses. A pane with no key is kept
 // by its place alone, as before.
 
+/** @param {any} n */
+function indexOf(n) {
+  let i = 0;
+  for (let s = n.previousElementSibling; s; s = s.previousElementSibling) i++;
+  return i;
+}
+
 /** The path from the host to one element: each step is a tag plus the
  *  element's index among its siblings, and its `data-scroll-key` where
  *  it carries one. Cheap, and stable for a tree that is rebuilt the
@@ -41,7 +48,7 @@ function pathOf(host, el) {
     const parent = n.parentNode;
     if (!parent) break;
     const key = n.getAttribute?.('data-scroll-key');
-    const i = [...parent.children].indexOf(n);
+    const i = indexOf(n);
     parts.push(`${n.tagName}.${n.className || ''}${key != null ? `#${key}` : ''}:${i}`);
     at.push(i);
     n = parent;
@@ -82,14 +89,15 @@ export function repaintKeepingScroll(host, rebuild, { focus = false } = {}) {
   if (host) {
     for (const el of host.querySelectorAll('*')) {
       if (el.scrollTop > 0 || el.scrollLeft > 0) {
-        saved.push([pathOf(host, el), el.scrollTop, el.scrollLeft]);
+        saved.push([el, pathOf(host, el), el.scrollTop, el.scrollLeft]);
       }
     }
   }
   rebuild();
-  if (kept) giveFocus(host, kept);
+  if (kept && (host.ownerDocument ?? globalThis.document)?.activeElement !== kept.el) giveFocus(host, kept);
   if (!saved.length || !host) return;
-  for (const [path, top, left] of saved) {
+  for (const [was, path, top, left] of saved) {
+    if (was.isConnected && host.contains(was) && was.scrollTop === top && was.scrollLeft === left) continue;
     const el = findPath(host, path);   // AUDIT FB1018f L2-4: the one element that can be it, never the whole tree mapped
     if (!el) continue;   // the tree changed shape - the new element starts fresh
     if (top) el.scrollTop = top;
@@ -110,22 +118,32 @@ function focusOf(host) {
   if (!host || !a || a === host || !host.contains?.(a)) return null;
   let at = null;
   try { if (typeof a.selectionStart === 'number') at = [a.selectionStart, a.selectionEnd]; } catch { /* a number field has none */ }
-  return { key: a.getAttribute?.('data-focus') ?? null, place: placeOf(host, a), tag: a.tagName, words: a.tagName === 'BUTTON' ? a.textContent : null, at };
+  return { el: a, key: a.getAttribute?.('data-focus') ?? null, place: placeOf(host, a), tag: a.tagName, words: a.tagName === 'BUTTON' ? a.textContent : null, at };
 }
 /** A control's place for the focus: tag and sibling index alone - a picked button's class changes (`on`) as the same
  *  button is drawn again. */
 function placeOf(host, el) {
   const parts = [];
-  for (let n = el; n && n !== host && n.parentNode; n = n.parentNode) parts.push(`${n.tagName}:${[...n.parentNode.children].indexOf(n)}`);
+  for (let n = el; n && n !== host && n.parentNode; n = n.parentNode) parts.push(`${n.tagName}:${indexOf(n)}`);
   return parts.reverse().join('>');
+}
+/** @param {any} host @param {string} place @param {string} tag */
+function atPlace(host, place, tag) {
+  let n = host;
+  for (const step of place.split('>')) {
+    const at = step.lastIndexOf(':');
+    n = n.children?.[Number(step.slice(at + 1))];
+    if (!n || n.tagName !== step.slice(0, at)) return null;
+  }
+  return n !== host && n.tagName === tag ? n : null;
 }
 /** @param {any} host @param {any} k */
 function giveFocus(host, k) {
-  let n = k.key ? [...host.querySelectorAll('*')].find((x) => x.getAttribute?.('data-focus') === k.key) ?? null : null;
+  let n = k.key ? (globalThis.CSS?.escape ? host.querySelector(`[data-focus="${globalThis.CSS.escape(k.key)}"]`) : [...host.querySelectorAll('*')].find((x) => x.getAttribute?.('data-focus') === k.key) ?? null) : null;
   // AUDIT LEGACY II U6: a control found by its KEY is it, whatever it says now - an armed act's words change ("Play as"
   // becomes "Yes - play as"), and the words' check below threw the keyed button away and dropped the focus to the page
   if (!n) {
-    n = [...host.querySelectorAll(k.tag)].find((x) => placeOf(host, x) === k.place) ?? null;
+    n = atPlace(host, k.place, k.tag);
     // a button is its words: at its place, or - the page's shape moved - the one that says them
     if (k.words != null && (!n || n.textContent !== k.words)) n = [...host.querySelectorAll(k.tag)].find((x) => x.textContent === k.words) ?? null;
   }

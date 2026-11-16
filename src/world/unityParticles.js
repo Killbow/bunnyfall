@@ -152,6 +152,7 @@ function createParticleSystem(node, component, rendererComponent, { random = Mat
     _accDistance: 0,
     _delay: 0,
     /** @type {number[] | null} */ _lastPosition: null,
+    /** @type {any} */ _em: null,
     get particleCount() { return this.particles.length; },
     get isPlaying() { return this.playing; },
     get isEmitting() { return this.emitting; },
@@ -171,6 +172,7 @@ function createParticleSystem(node, component, rendererComponent, { random = Mat
     step(dt) { stepSystem(this, dt, random); },
     /** Every living particle in the world: its centre, its size per axis and its rotation (radians, Z or 3D). */
     renderList() { return renderList(this); },
+    renderInto(out, take) { renderInto(this, out, take); },
     _firedBursts: new Set(),
     _sim: {
       duration: c.lengthInSec ?? 5, looping: !!c.looping, space: c.moveWithTransform ?? SPACE.Local, scaling: c.scalingMode ?? SCALING.Local,
@@ -211,8 +213,8 @@ export function linkParticleSystem(ps) {
   }
 }
 
-/** The emitter's frame: its world position and rotation, and the scale its scaling mode takes. */
 function emitterMatrix(ps) {
+  if (ps._em) return ps._em;
   const n = ps.node;
   if (ps._sim.scaling === SCALING.Hierarchy) return n.worldMatrix();
   return trs(n.rotation, n.position, ps._sim.scaling === SCALING.Local ? n.localScale : [1, 1, 1]);
@@ -348,12 +350,17 @@ function fireSubEmitters(ps, type, point, random) {
 }
 
 function stepSystem(ps, dt, random) {
-  const sim = ps._sim;
   // AUDIT NAV1 (the presentation, #17): AN IDLE SYSTEM - stopped, nothing alive - has nothing to step: it returned
   // below, after walking up its node's parents to ask whether it was active (a war galley carries 224 systems, one
   // of them live, and walked the rest every frame - 0.45 ms of a far galley's). Returned first, the same no-op.
   if (!ps.playing && !ps.particles.length) return;
   if (!ps.node.activeInHierarchy || dt <= 0) return;
+  ps._em = emitterMatrix(ps);
+  try { stepLive(ps, dt, random); } finally { ps._em = null; }
+}
+
+function stepLive(ps, dt, random) {
+  const sim = ps._sim;
   // the living: lived on, dead dropped, collided
   const kept = [];
   for (const part of ps.particles) {
@@ -429,11 +436,29 @@ function renderList(ps) {
   if (!ps.node.activeInHierarchy) return out;
   const s = ps._sim.scaling === SCALING.Local ? ps.node.localScale : ps._sim.scaling === SCALING.Hierarchy ? ps.node.lossyScale : [1, 1, 1];
   const rot = ps.node.rotation;
-  for (const part of ps.particles) {
-    const sz = sizeOf(ps, part);
-    out.push({ position: worldPosition(ps, part), size: [sz[0] * s[0], sz[1] * s[1], sz[2] * s[2]], rotation: part.rotation, systemRotation: rot });
-  }
+  ps._em = ps.particles.length && ps._sim.space !== SPACE.World ? emitterMatrix(ps) : null;
+  try {
+    for (const part of ps.particles) {
+      const sz = sizeOf(ps, part);
+      out.push({ position: worldPosition(ps, part), size: [sz[0] * s[0], sz[1] * s[1], sz[2] * s[2]], rotation: part.rotation, systemRotation: rot });
+    }
+  } finally { ps._em = null; }
   return out;
+}
+
+function renderInto(ps, out, take) {
+  if (!ps.node.activeInHierarchy || !ps.particles.length) return;
+  const s = ps._sim.scaling === SCALING.Local ? ps.node.localScale : ps._sim.scaling === SCALING.Hierarchy ? ps.node.lossyScale : [1, 1, 1];
+  const rot = ps.node.rotation;
+  const m = ps._sim.space === SPACE.World ? null : emitterMatrix(ps);
+  for (const part of ps.particles) {
+    const sz = sizeOf(ps, part), r = take(), p = part.position, o = r.position;
+    if (m) { o[0] = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12]; o[1] = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13]; o[2] = m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]; }
+    else { o[0] = p[0]; o[1] = p[1]; o[2] = p[2]; }
+    r.size[0] = sz[0] * s[0]; r.size[1] = sz[1] * s[1]; r.size[2] = sz[2] * s[2];
+    r.rotation = part.rotation; r.systemRotation = rot;
+    out.push(r);
+  }
 }
 
 /** Every ParticleSystem under an instance's root made and linked - an instance's systems are each other's sub-emitters. */

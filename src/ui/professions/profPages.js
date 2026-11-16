@@ -11,13 +11,6 @@
 // (`setProfessionsPages`), and a page with nothing behind it is never
 // drawn (PX14's drawn door).
 //
-//   THE PROFESSIONS PAGE - the thirteen in two groups, Gathering and
-//   Crafting, each a row with its rank, its rank's name and a thin bar;
-//   the chosen one below: the XP to the next rank, today's harvests, the
-//   specialisation cards at 50 and 100 (choose one - a change of mind
-//   is free for a day after a choice, then costs 1,000 Marks and locks
-//   the next for a week - PERK-TRIAL - and is pressed twice), the unlocks by
-//   rank, and the crafter's limit.
 //   THE STORES PAGE - the materials with their counts, own and bought;
 //   the families to filter by, a search, the sort; a material's action:
 //   Withdraw to pack, a quantity. (Delivering to a writ is the Notice
@@ -50,8 +43,8 @@
 // ═══════════════════════════════════════════════════════════════════
 import { clampCarried, carriedTotal, DEPOSIT_MAX, BAG_WORDS } from '../../net/bagLaw.js';   // BAG1: what a character carries
 import {
-  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, CRAFTS_ABOVE_JOURNEYMAN, specTrialShown,   // PERK-TRIAL
-  JOURNEYMAN_RANK, MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
+  PROFESSIONS, SPECIALISATIONS, SPEC_RANKS, RESPEC, xpForRank, rankName, PROF_RANK_MAX, TIER_RANKS, specTrialShown,   // PERK-TRIAL
+  MATERIAL_FAMILIES, HIGH_HIDES_PER_DAY, WITHDRAW_MAX, professionName, SMELT_RECIPES, SMELT_MAX, FORGE_FEE,
   withdrawable, stockOf, STOCK_MAX, BURN_RECIPES, SAW_RECIPES, WORKBENCH_FEE, WOODS, workPer, workSpecRank, CURE_RECIPES,
   WEAVE_RECIPES, SPIN_RECIPES, LINEN, LOOM_FEE, WEAVERS_STOCK, STANDARD_SILK,   // CLOTH-GEMS: the loom's Linen and Wool
   gemGradeOfKey,   // CLOTH-GEMS: a gem's grade at the jeweller's bench
@@ -62,12 +55,12 @@ import {
   smeltRecipe,   // CRAFT1: a chain's works said
   trackOf, disciplinesOf, disciplineName, specDiscipline,   // CRAFT3: five crafts of eight disciplines
   SURVEYOR, specOf,   // MINE-PERKS: Mining 100's Surveyor, whose own word witnesses the ground; its name, the card's
-  craftLimitOf,   // CRAFT-LIMIT-SAID: the crafter's limit over a track, as the service's decisions bind it
+  craftLimitOf,
 } from '../../net/professionLaw.js';
 import { xpPct } from '../../net/firmament/firmamentLaw.js';   // CRAFT-LIMIT-SAID: the Firmament's hand on a craft's XP, as the service applies it
 import { GEM_GRADES } from '../../systems/loot/gemGrades.js';   // CLOTH-GEMS: the grades the jeweller's bench lists, poorest first
 import { firmamentStats } from '../../systems/firmamentLive.js';
-import { craftworkPct } from '../../net/craft/craftLaw.js';   // CRAFTWORK: half its XP   // CRAFT-LIMIT-SAID: the stars in force
+import { craftworkPct, FOCUS_TRACKS } from '../../net/craft/craftLaw.js';   // CRAFTWORK: half its XP
 import {
   POTIONS, brewKeys, brewSpends, brewCount, potentChance, potentPct, potentLasts, potentAble, brewXp, brewFirstXp, ingredientKeys, DISTILLER, POTENT,   // FIRST-BUDGET: a brew's first, Provisioning's first-make share
   enchantDiscountPct, DISENCHANTER, disenchantXp, essenceOf,
@@ -83,7 +76,7 @@ import {
   counterMade,   // CLOTH-GEMS: the recipes AUDIT 32 S1 judges by their units
   patternsOf,   // CRAFT2: a station lists its patterns, the material chosen from what is held
 } from '../../net/recipeLaw.js';
-import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp, limitRuleLine } from '../craftXpWords.js';   // CRAFT-FIRST-SHOWN: what a craft pays, and its first, said in its box; CRAFT-LIMIT-SAID: as the service credits it
+import { craftXpLine, dishFirstLine, masonWorksFirstLine, capLine, paidXp } from '../craftXpWords.js';
 import {
   STATION_TRACKS, CRAFT_TRACKS, trackBar, toNextWords, firstStanding, firstsLine, firstBadge, recipeFirstOwed, workFirstOwed, brewFirstOwed,
   owedOpenFirsts, owedName, xpSources, gradeNote, madeShown,
@@ -688,15 +681,9 @@ export function enchantGoldPct() {
 /** A craft practised in part - what raises it now (none since PROF4: Smithing's is whole). */
 const PARTLY = Object.freeze({});
 
-/** The line a track's XP makes: "11,900 / 12,250 XP" to the next rank, or the Master's total. CRAFT-LIMIT-SAID (FIELD
- *  BUGS 2026-10-18f): a craft the crafter's limit holds (`limit`, professionLaw craftLimitOf) its ceiling - "26,009 /
- *  26,009 XP - the crafter's limit holds it at rank 50" - where "26,009 / 26,010 XP" read as one XP from rank 51. AUDIT
- *  FB1018f L5-3: only at the rank it is held at (the limit's `rank`) - a third craft at 10 keeps its next rank's figure,
- *  "1,005 / 1,210 XP", where it read "1,005 / 26,009 XP - the crafter's limit holds it at rank 50"; L5-2: and one past its
- *  cap its own XP and rank, "36,000 / 36,000 XP - ... at rank 60", never "36,000 / 26,009 XP - ... at rank 50". */
-export function xpLine(track, limit = null) {
+/** The line a track's XP makes: "11,900 / 12,250 XP" to the next rank, or the Master's total. */
+export function xpLine(track) {
   if (track.rank >= PROF_RANK_MAX) return t('prof.page.xpMaster', '{xp, number} XP · Master', { xp: track.xp });
-  if (limit?.by?.length && track.rank >= limit.rank) return t('prof.page.xpHeld', '{xp, number} / {cap, number} XP. The crafter’s limit holds it at rank {rank}', { xp: track.xp, cap: Math.max(limit.cap, track.xp), rank: limit.rank });
   return t('prof.page.xp', '{xp, number} / {next, number} XP', { xp: track.xp, next: xpForRank(track.rank + 1) });
 }
 /**
@@ -708,16 +695,15 @@ export function xpLine(track, limit = null) {
 export function trackHeader(kit, book, track, { onOpen = null } = {}) {
   const { el, meter } = kit;
   const tr = book.track(track);
-  const limit = craftLimitOf(book.state?.tracks?.values?.() ?? [], track);
   const head = el(onOpen ? 'button' : 'div', 'prof-track');
   if (onOpen) { head.type = 'button'; head.onclick = onOpen; }
   const top = el('div', 'prof-track-top');
   top.append(el('b', null, professionName(track)), el('span', 'prof-rank', tr.rank >= PROF_RANK_MAX ? t('prof.page.master', 'Master 100') : t('prof.page.rankOf', '{rankName} {rank}', { rankName: rankName(tr.rank), rank: tr.rank })));
   head.append(top);
-  const bar = trackBar(tr, limit);
+  const bar = trackBar(tr);
   if (meter) head.append(meter(bar.now, bar.max, ''));
-  const next = toNextWords(tr, limit);
-  head.append(el('span', 'prof-track-xp', next ? `${xpLine(tr, limit)} · ${next}` : xpLine(tr, limit)));
+  const next = toNextWords(tr);
+  head.append(el('span', 'prof-track-xp', next ? `${xpLine(tr)} · ${next}` : xpLine(tr)));
   const firsts = firstsLine(firstStanding(madeOf(book), track));
   if (firsts && PROFESSIONS.find((x) => x.id === trackOf(track))?.kind === 'crafting') head.append(el('span', 'prof-track-firsts', firsts));
   return head;
@@ -786,15 +772,9 @@ function craftTimes(box, el, state, rerender, { ready, most, once }) {
   box.append(row);
 }
 
-/** CRAFT-LIMIT-SAID: the crafts that stand above Journeyman, in the tab's order. */
-export const craftsPastJourneyman = (tracks) => PROFESSIONS.filter((p) => p.kind === 'crafting' && (tracks.get(p.id)?.rank ?? 0) > JOURNEYMAN_RANK).map((p) => p.id);
-/** How many crafts stand above Journeyman (PROF0 3.2's limit). */
-export const craftsAboveJourneyman = (tracks) => craftsPastJourneyman(tracks).length;
-/** CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f): WHAT A STATION'S ACTS ARE PAID UNDER, read as the service pays them - the
- *  crafter's limit over the craft's track, off the book's tracks (professionLaw craftLimitOf; the service's decisions bind
- *  craftXpCap of the same ranks), and the Firmament's percent on its XP (FIRM1: the stars in force; the service scales by
- *  its own firmStatsOf). ui/craftXpWords.js says them. @param {any} book @param {string} id a craft or a discipline */
-export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: craftworkPct(xpPct(firmamentStats(), trackOf(id)), !!book?.isCraftwork?.(id)) });   // CRAFTWORK: half
+/** @param {any} book @param {string} id a craft or a discipline */
+export const craftPayOf = (book, id) => ({ limit: craftLimitOf(book?.state?.tracks?.values?.() ?? [], id), pct: craftworkPct(xpPct(firmamentStats(), trackOf(id)), !!book?.isCraftwork?.(id)),   // CRAFTWORK: half
+  focus: !FOCUS_TRACKS.includes(trackOf(id)) || !!book?.isFocus?.(id), rank: book?.track?.(id)?.rank ?? 0 });
 /** CLOTH-GEMS (AUDIT 32 S1 - bible/06-Systems/Professions-Arc.md 50): WHAT KEEPS A CRAFT OF `r` FROM ITS FIRST, as the book
  *  reads it - WOVEN-PAYS (AUDIT WOVEN-PAYS): the silver count of its cloth (net/profBook.js silver - the bolts bought with
  *  silver its stations have not used since; the most of its inputs'), 0 where none stands, whatever the units' origins.
@@ -831,7 +811,7 @@ export function drawProfessionsPage(detail, rerender, kit) {
       const row = el('button', `prof-row${prof.id === _sel ? ' on' : ''}`);
       row.type = 'button';
       row.append(el('span', 'prof-name', prof.name), el('span', 'prof-rank', t('prof.page.rankOf', '{rankName} {rank}', { rankName: rankName(tr.rank), rank: tr.rank })));
-      const bar = trackBar(tr, craftLimitOf(book.state?.tracks?.values?.() ?? [], prof.id));   // AUDIT HORIZONTAL A2: full where the limit holds it, as its header's
+      const bar = trackBar(tr);
       row.append(meter(bar.now, bar.max, ''));
       row.onclick = () => { _sel = prof.id; _armed = null; rerender(); };
       list.append(row);
@@ -842,13 +822,12 @@ export function drawProfessionsPage(detail, rerender, kit) {
   const title = el('div', 'prof-title');
   title.append(el('h3', null, professionName(_sel)), el('span', 'prof-rankline', tr.rank >= PROF_RANK_MAX ? t('prof.page.master', 'Master 100')
     : t('prof.page.rankNext', '{rankName}  {rank} -> {next}', { rankName: rankName(tr.rank), rank: tr.rank, next: tr.rank + 1 })));
-  const held = craftLimitOf(book.state?.tracks?.values?.() ?? [], _sel);
   pane.append(title);
   // CRAFT-HALL: the bar from section 21's mockup
-  const bar = trackBar(tr, held);
+  const bar = trackBar(tr);
   if (meter) pane.append(meter(bar.now, bar.max, ''));
-  const next = toNextWords(tr, held);
-  pane.append(el('p', 'prof-xp', next ? `${xpLine(tr, held)} · ${next}` : xpLine(tr, held)));   // CRAFT-LIMIT-SAID: a held craft its ceiling
+  const next = toNextWords(tr);
+  pane.append(el('p', 'prof-xp', next ? `${xpLine(tr)} · ${next}` : xpLine(tr)));
   const practised = PRACTISED.includes(_sel);
   if (!practised) pane.append(el('p', 'px-note', PARTLY[_sel] ?? t('prof.page.notPractised', 'This profession is not practiced in the Bay yet.')));
   if (_sel === 'hunting') {
@@ -936,10 +915,6 @@ export function drawProfessionsPage(detail, rerender, kit) {
       pane.append(r);
     }
   }
-  pane.append(el('p', 'prof-limit', t('prof.page.limit', 'Crafts above Journeyman: {n} of {max}', { n: craftsAboveJourneyman(book.state.tracks), max: CRAFTS_ABOVE_JOURNEYMAN })));
-  // CRAFT-LIMIT-SAID (FIELD BUGS 2026-10-18f): what the count does - which two, that the others stop at 50, and for good; the
-  // count's own line, never a pane's how-to note (FB1018D CRAFT-HOWTO reads those)
-  pane.append(el('p', 'prof-limit prof-rule', limitRuleLine(craftsPastJourneyman(book.state.tracks))));
   // GENTLE ACTS (PROF0 5.1): the accessibility choice, beside the acts it changes
   const gentle = el('label', 'prof-gentle');
   const box = el('input');
@@ -962,7 +937,7 @@ export const OWED_SHOWN = 8;
  */
 function drawRaises(pane, kit, book, id, tr) {
   const { el, divider } = kit;
-  const rows = xpSources(id, tr.rank, { pct: xpPct(firmamentStats(), trackOf(id)) });
+  const rows = xpSources(id, tr.rank, { pct: xpPct(firmamentStats(), trackOf(id)), focus: craftPayOf(book, id).focus });
   if (!rows.length) return;
   pane.append(divider(t('prof.page.raises', 'What raises {profession}', { profession: professionName(id) })));
   for (const [act, xp] of rows) {
@@ -2504,7 +2479,7 @@ function drawEnchantingStation(detail, rerender, kit) {
   // (alchemyLaw disenchantXp's `own`, the piece's bought_with on the service) - the station cannot see that, so it says the
   // figure such a piece gives and, once, the rule
   const ownXp = (/** @type {any} */ pc) => disenchantXp(recipeById(pc.recipe), rank, essenceOf(pc.points), true);
-  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct }))));
+  const capped = capLine(professionName('enchanting'), pay, Math.max(0, ...pieces.map((pc) => paidXp(ownXp(pc), { pct: pay.pct, focus: pay.focus, rank: pay.rank }))));
   if (capped) detail.append(el('p', 'px-note', capped));
   if (pieces.some((pc) => pc.essence >= 1 && counterMade(recipeById(pc.recipe)))) detail.append(el('p', 'px-note', t('prof.page.enchant.cloth', 'A piece made only of cloth gives Enchanting experience only if nothing bought or looted went into it and it was never sold.')));
   for (const pc of pieces) {
@@ -2583,18 +2558,20 @@ function drawTemper(detail, rerender, { el, divider }, where) {
   // track has left), and the limit's line once where it holds one of them under what it earns
   const pay = craftPayOf(book, craft);
   const tempered = pieces.map((pc) => recipeById(pc.recipe)).filter((r) => temperableRecipe(r));
-  const held = capLine(professionName(craft), pay, Math.max(0, ...tempered.map((r) => paidXp(temperXp(r, rank), { pct: pay.pct }))));
+  const held = capLine(professionName(craft), pay, Math.max(0, ...tempered.map((r) => paidXp(temperXp(r, rank), { pct: pay.pct, focus: pay.focus, rank: pay.rank }))));
   if (held) detail.append(el('p', 'px-note', held));
   for (const pc of pieces) {
     const r = recipeById(pc.recipe);
     if (!temperableRecipe(r)) continue;
     const cost = temperCost(r, pc.quality);   // BUNNYFALL: by the quality reached, capped by the rank
-    const cap = temperCap(r, rank, book.track(craft)?.specs?.[100]), open = rank >= r.rank && pc.quality + 1 <= cap;
+    const spec100 = book.track(craft)?.specs?.[100];
+    const cap = temperCap(r, rank, spec100, pay.focus), open = rank >= r.rank && pc.quality + 1 <= cap;
     const have = workOf(book, cost.key) >= cost.n;
     const row = el('div', 'prof-smelt');
     row.append(el('b', null, pc.name), el('span', 'prof-split', `${QUALITY_NAMES[pc.quality]} to ${QUALITY_NAMES[pc.quality + 1]} - ${cost.n} ${p.name(cost.key)}, +${paidXp(temperXp(r, rank), pay)} ${professionName(craft)} XP`));
     if (open && !have) row.append(el('span', 'prof-short', `Needs ${cost.n} ${p.name(cost.key)}.`));
-    const b = el('button', 'act', _temper.busy === pc.item ? 'Tempering...' : open ? 'Temper' : rank >= r.rank ? `Capped at ${QUALITY_NAMES[cap]}` : `${professionName(craft)} ${r.rank}`);
+    const stop = pc.quality + 1 <= temperCap(r, rank, spec100) ? t('prof.page.temper.focusOnly', 'Focus only') : `Capped at ${QUALITY_NAMES[cap]}`;
+    const b = el('button', 'act', _temper.busy === pc.item ? 'Tempering...' : open ? 'Temper' : rank >= r.rank ? stop : `${professionName(craft)} ${r.rank}`);
     b.type = 'button';
     b.disabled = !!_temper.busy || !!short || !open || !have || !!handsAt(null);
     b.onclick = async () => {

@@ -377,6 +377,7 @@ export const DETOUR_SWEEP_MAX_TRIES = 7;        // `if (count > 7) break`
 export const DETOUR_REACH = 2;                  // detourDestination = position + testMove * 2
 export const DETOUR_TIMER = 0.75;               // avoidObstaclesTimer
 export const DETOUR_ARRIVAL = 0.3;              // UpdateTimers zeroes the timer inside this
+export const DETOUR_BOXED_WAIT = 4 * CLASSIC_UPDATE_INTERVAL;
 
 /**
  * Per-foe classic AI: senses on the system timer, decisions on the
@@ -495,7 +496,11 @@ export class EnemyAI {
     this.checkingClockwiseTimer = 0;
     this.didClockwiseCheck = false;
     this.lastTimeWasStuck = -Infinity;
+    this._boxedUntil = -Infinity;
     this._clock = 0;   // Time.time, accumulated on the fixed step
+    this._steps = 0;
+    this._sightBlocker = { key: null };
+    this._rayAt = -1; this._rayTarget = null; this._raySeen = false; this._rayDoor = null; this._rayHeard = null;
     // EnemySenses' target-position memory (wave 35). null stands in for
     // DFU's ResetPlayerPos sentinel (float.MaxValue on all three axes),
     // which HandleNoAction (:359) reads as "never seen, take no action".
@@ -596,13 +601,13 @@ export class EnemyAI {
     return e?.farSpeed > 0 && this._dist > e.farAt ? e.farSpeed : 0;
   }
 
-  /** CH4 (the senses verify pass): the CLASSIC-gated senses halves.
+  /** The classic-gated halves of the senses.
    *  DFU's FixedUpdate runs the spawn-band recompute (:260-310) and
    *  the illusion roll (:444-449, the per-classic re-roll that makes
    *  chameleon matter - the source's own comment) only on
    *  GameManager.ClassicUpdate frames; sight/hearing/detection
    *  resolve every FixedUpdate (see _senses). This half runs per
-   *  classic tick. */
+   *  classic tick, and _senses reuses its sight and hearing rays between those ticks. */
   _classicSenses(playerFeet, senses = null) {
     // MT-i (the adversarial re-read): the LOS-timer decrement used to
     // live HERE, at the top of the classic tick. It is NOT there in
@@ -667,16 +672,16 @@ export class EnemyAI {
     this._blocked = blockedByIllusionEffect(this.seesThroughInvisibility, flags, senses.rolls ?? Math.random);
   }
 
-  /** EnemySenses' detection resolution. CH4: runs EVERY fixed step -
-   *  DFU resolves sight (:421/:428), the hearing gate (:433-436) and
-   *  detection (:451-470) every FixedUpdate, with the illusion block
-   *  standing between classic re-rolls (_classicSenses). senses
+  /** EnemySenses' detection resolution. Detection (:451-470)
+   *  resolves every fixed step, with the illusion block
+   *  held between classic re-rolls (_classicSenses). With `rays`
+   *  false the sight and hearing rays are not cast again. senses
    *  (optional, P13) = { gameMinutes, playerStealth,
    *  movingLessThanHalfSpeed, playerBlending, playerInvisible,
    *  playerShade, sharedStealth: { minute }, tallyStealth(), rolls }.
    *  Without it (headless/test callers) the pre-P13 sight+proximity
    *  shape applies. */
-  _senses(playerFeet, senses = null) {
+  _senses(playerFeet, senses = null, rays = true) {
     const dx = playerFeet[0] - this.feet[0], dz = playerFeet[2] - this.feet[2];
     // REVIEW 2026-09-05: EnemySenses.cs:425-426 `target.transform.position
     // - transform.position` - TRANSFORM to transform, which the stop test,
@@ -695,7 +700,6 @@ export class EnemyAI {
     // C-slice: EnemySenses clears actionDoor at every CanSeeTarget
     // (:879) and records the ray's blocking door; the host resolves
     // the key against its action registry for OpenDoors.
-    const _blocker = { key: null };
     // MT-i (the adversarial re-read): the destination eye is the
     // TARGET's own controller height (:896-898), not a constant. It
     // was the default capsule height here, which is exactly right for
@@ -711,8 +715,16 @@ export class EnemyAI {
     // WORLD3 left unpatched, so the ray to a PEER was aimed at the LOCAL player's live capsule (0.9 crouched) planted
     // on the peer's feet, while _dist beside it already measured the peer's own.
     const _targetHeight = this._targetHeight();
-    this.inSight = canSeeTarget(this.collider, this.feet, this.yaw, this.height, playerFeet, _targetHeight, _blocker, this._dist, this.sightRadius);   // CAMP-SIGHT: undefined = SIGHT_RADIUS   // the sight-radius gate (:881) reads distanceToTarget
-    this.doorKey = _blocker.key;
+    if (rays) {
+      this._sightBlocker.key = null;
+      this._raySeen = canSeeTarget(this.collider, this.feet, this.yaw, this.height, playerFeet, _targetHeight, this._sightBlocker, this._dist, this.sightRadius);   // CAMP-SIGHT: undefined = SIGHT_RADIUS   // the sight-radius gate (:881) reads distanceToTarget
+      this._rayDoor = this._sightBlocker.key;
+      this._rayHeard = null;
+      this._rayTarget = this._targetCandidate;
+    }
+    this._rayAt = this._steps;
+    this.inSight = this._raySeen;
+    this.doorKey = this._rayDoor;
     // AUDIT 24 (the re-read): DFU's NON-HOSTILE MODE is a TARGET drop,
     // not an action skip. EnemySenses.Update:321-327 nulls `target`
     // (and secondaryTarget) whenever `NoTargetMode || !motor.IsHostile`
@@ -749,9 +761,10 @@ export class EnemyAI {
     }
     // hearing only once the target is already detected and unseen -
     // "classic stealth mechanics would be interfered with by hearing"
-    const inEarshot = (this.detected && !this.inSight)
-      ? canHearTarget(this.collider, this.feet, this.height, playerFeet, this._dist, this.centreOffset, this._targetCentreOffset())
-      : false;
+    if (this.detected && !this.inSight && this._rayHeard === null) {
+      this._rayHeard = canHearTarget(this.collider, this.feet, this.height, playerFeet, this._dist, this.centreOffset, this._targetCentreOffset());
+    }
+    const inEarshot = this.detected && !this.inSight && this._rayHeard === true;
     // AUDIT 24 (wave 35): the TARGET-POSITION MEMORY, which the port did
     // not have at all - EnemySenses.cs:451-495. Sight or earshot writes
     // the live position and refills lastHadLOSTimer; a bare STEALTH
@@ -1154,9 +1167,15 @@ export class EnemyAI {
    *      whether it is clear or not.
    * The destination is two units along whatever came out, and the foe
    * is committed to walking at it for 0.75s (which UpdateTimers cuts
-   * short on arrival).
+   * short on arrival). A sweep that finds every way blocked is not run
+   * again for four classic ticks.
    */
   _findDetour(dir2d, rolls = this.rolls) {
+    if (this._clock < this._boxedUntil) {
+      if (this.avoidObstaclesTimer <= 0) this.avoidObstaclesTimer = DETOUR_TIMER;
+      this.lastTimeWasStuck = this._clock;
+      return;
+    }
     let testMove = [0, 0, 0];
     let foundUpDown = false;
     if (this.flies || this.swims || this.levitating) {
@@ -1226,6 +1245,7 @@ export class EnemyAI {
         count++;
         if (count > DETOUR_SWEEP_MAX_TRIES) break;
       } while (this.obstacleDetected || this.fallDetected);
+      if (this.obstacleDetected || this.fallDetected) this._boxedUntil = this._clock + DETOUR_BOXED_WAIT;
     }
     // REVIEW 2026-09-05: `transform.position + testMove * reach`, kept
     // in FEET-space like every other destination on this class (the
@@ -1919,18 +1939,11 @@ export class EnemyAI {
   }
 
   _step(dt, playerFeet, senses, paralyzed = false, paused = false) {
+    this._steps++;
     if (this.fleeLeft > 0) { this._fleeStep(dt, paralyzed); return; }   // WERE-FRIGHT: a frightened foe only runs
     if (this.walkGoal) { this._walkGoalStep(dt, paralyzed); return; }   // ARENA-FIX 8: a fighter walking to its mark
-    // CH4 (the senses verify pass): DFU's cadence split, exactly -
-    // sight/hearing/detection resolve EVERY FixedUpdate (the fixed
-    // step here); the spawn-band recompute and the illusion re-roll
-    // gate on ClassicUpdate (_classicSenses per classic tick); only
-    // classic TARGET SWITCHING rides the 5-unit system timer
-    // (single-target here, so that timer has nothing to switch -
-    // constants stay exported for E3 multi-target). Decisions stay
-    // on the classic update, reading the freshly resolved senses
-    // (DFU's senses-then-motor component order). senses = the P13
-    // stealth context (see _senses).
+    // Sight and hearing rays are cast on a classic tick, a new target, or after a skipped step, and reused between.
+    // Spawn-band and illusion re-rolls run per classic tick; decisions read the senses resolved just before.
     // C15: knockback is CanAct=false - decisions skip, senses run.
     // ROAD-U: ...unless a pausing one-shot is playing, because
     // KnockbackMovement's FIRST line is `if (mobile.EnemyState ==
@@ -2040,7 +2053,7 @@ export class EnemyAI {
       this.inSight = false;
       this.detected = false;
     } else {
-      this._senses(targetFeet, senses);
+      this._senses(targetFeet, senses, classicTicks > 0 || this._rayAt !== this._steps - 1 || this._rayTarget !== this._targetCandidate);
     }
     // AUDIT 26 F014 (UpdateTimers, UNCONDITIONAL - EnemyMotor.cs runs
     // it every FixedUpdate at :170, after the CanAct writers and
@@ -2293,7 +2306,8 @@ export class EnemyAI {
     this.lastGroundedY = this.feet[1]; this._airborne = false; this.velY = 0; this.landedFall = 0;
     this.destination = [this.feet[0], this.feet[1], this.feet[2]]; this.detourDestination = [this.feet[0], this.feet[1], this.feet[2]];
     this.obstacleDetected = false; this.fallDetected = false; this.foundUpwardSlope = false; this.foundDoor = false;
-    this.avoidObstaclesTimer = 0; this.checkingClockwiseTimer = 0; this.didClockwiseCheck = false; this.lastTimeWasStuck = -Infinity;
+    this.avoidObstaclesTimer = 0; this.checkingClockwiseTimer = 0; this.didClockwiseCheck = false; this.lastTimeWasStuck = -Infinity; this._boxedUntil = -Infinity;
+    this._rayAt = -1;
     this._acc = 0; this.knockbackSpeed = 0; this.hurtKnock = false; this.moving = false;
     this._restGrounded = false;   // AUDIT WORLD2 B12: a foe that takes the seat standing still re-grounds on its first step, not its first move
     this._crumb = null; this._trailMode = null; this._trailT = 0;   // COMPANION-TRAIL: stood afresh, it looks afresh
@@ -2314,7 +2328,7 @@ export class EnemyAI {
    *  (and held the encounter cap), `inSight` kept its melee deciding, either one or `wouldBeSpawned` refused the
    *  player's rest (areEnemiesNearby). The first step after the hold senses afresh. */
   holdFrame() {
-    this.inSight = false; this.detected = false; this.wouldBeSpawned = false;
+    this.inSight = false; this.detected = false; this.wouldBeSpawned = false; this._rayAt = -1;
   }
 
   /** AUDIT 68 S20-offset-ai-memory: the floating-origin recenter moves every WORLD position the motor holds, not the

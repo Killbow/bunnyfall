@@ -11539,7 +11539,7 @@ export function createWorldModes(host) {
           const liveFoes = liveFoeTargets(interiorFoePool(), 'mobileFoe');
           const ray = raceWinner({
             ground,
-            foe: peacefulFoePass(pickActivatableHit(mwv.eye, d, liveFoes, interiorCtx.collider), liveFoes, doorDistanceOf(mwv.eye, d, interiorActivationTargets(), interiorCtx.collider), getInteractionMode()),   // TACT3d: a peaceful watchman in front of a door is no hit
+            foe: peacefulFoePass(pickActivatableHit(mwv.eye, d, liveFoes, interiorCtx.collider), liveFoes, () => doorDistanceOf(mwv.eye, d, interiorActivationTargets(), interiorCtx.collider), getInteractionMode()),   // TACT3d: a peaceful watchman in front of a door is no hit
             peer: host.peerHoverPick?.() ?? null,   // PEER-PLAQUE1: another player in the room, raced as the F key picks them - off the key's own ray (AUDIT DROPS E3)
           });
           return host.profHoverPick?.(ray) ?? ray;   // INDOOR-SKIN (PROF-MENU): a body the press would take, over the race's winner - the dungeon's own line

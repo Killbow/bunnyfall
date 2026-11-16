@@ -137,12 +137,12 @@ export const coverSwitchOn = () => getPref('enhancedAI') === true;
  * @param {{ enabled?: () => boolean }} [opts] `enabled` - is cover read at all (by default the Enhanced AI switch)
  */
 export function createCoverIndex({ enabled = coverSwitchOn } = {}) {
-  /** @type {Map<any, { items: any[], t: () => number[], grid: Map<number, any[]>, wide: Map<number, any[]>, wideR: number, min: number[], max: number[], bodies: Map<number, any[]>, bodyN: number }>} */
+  /** @type {Map<any, { items: any[], t: () => number[], grid: Map<number, any[]>, wide: Map<number, any[]>, wideR: number, min: number[], max: number[], bodies: Map<number, any[]>, bodyN: number, bodyMin: number[], bodyMax: number[] }>} */
   const sets = new Map();
   let stamp = 0;
 
   /** A set of no proxies yet, `t` its frame's translation - in the index once placed (add, place). */
-  const fresh = (t) => ({ items: [], t: t || (() => ZERO3), grid: new Map(), wide: new Map(), wideR: 0, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity], bodies: new Map(), bodyN: 0 });
+  const fresh = (t) => ({ items: [], t: t || (() => ZERO3), grid: new Map(), wide: new Map(), wideR: 0, min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity], bodies: new Map(), bodyN: 0, bodyMin: [Infinity, Infinity], bodyMax: [-Infinity, -Infinity] });
   /** Add proxies to the set `key` (appended to what it holds); `t` its frame's translation. */
   function add(key, items, t = null) {
     let set = sets.get(key);
@@ -177,6 +177,8 @@ export function createCoverIndex({ enabled = coverSwitchOn } = {}) {
   function fileBody(set, it) {
     const [x, , z] = it.c;
     set.bodyN += 1;
+    set.bodyMin[0] = Math.min(set.bodyMin[0], x - it.r); set.bodyMax[0] = Math.max(set.bodyMax[0], x + it.r);
+    set.bodyMin[1] = Math.min(set.bodyMin[1], z - it.r); set.bodyMax[1] = Math.max(set.bodyMax[1], z + it.r);
     for (let gx = Math.floor((x - it.r) / COVER_CELL); gx <= Math.floor((x + it.r) / COVER_CELL); gx++) {
       for (let gz = Math.floor((z - it.r) / COVER_CELL); gz <= Math.floor((z + it.r) / COVER_CELL); gz++) fileIn(set.bodies, cellKey(gx, gz), it);
     }
@@ -189,6 +191,7 @@ export function createCoverIndex({ enabled = coverSwitchOn } = {}) {
       if (!set.bodyN) continue;
       const t = set.t(), x = p[0] - t[0], z = p[2] - t[2];
       stamp += 1;
+      if (x + reach < set.bodyMin[0] || x - reach > set.bodyMax[0] || z + reach < set.bodyMin[1] || z - reach > set.bodyMax[1]) continue;
       for (let gx = Math.floor((x - reach) / COVER_CELL); gx <= Math.floor((x + reach) / COVER_CELL); gx++) {
         for (let gz = Math.floor((z - reach) / COVER_CELL); gz <= Math.floor((z + reach) / COVER_CELL); gz++) {
           const cell = set.bodies.get(cellKey(gx, gz));

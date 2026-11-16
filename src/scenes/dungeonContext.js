@@ -181,7 +181,7 @@ import { spendPoolLowest } from '../systems/chargen.js';
 import { doorSpellFor, consumeDoorSpell } from './shared.js';
 import { dungeonRespawnMs, dungeonRespawnDue } from '../systems/dungeon/dungeonRespawn.js';   // DUNGEON-RESPAWN: 20 minutes, an elite's 40   // PVPFIX: the armed Open spell on a crate's lock
 import { triggerOpen, DOOR_SPELL_TEXT } from '../systems/mysticism.js';
-import { fetchBytes, ensureAudio, loadMagicRegistries, wireInfectionVideos, endRunToTitleMenu, exitToTitleMenu, sensesContext, wireDoorSpells, createDetectFeed, foeNearbyRecord, nearbyLootRecords, restFullyHealed, createRestDeps, fatigueLossMultiplierFor, realmSaveSink, playerFallDamage} from './shared.js';
+import { fetchBytes, ensureAudio, loadMagicRegistries, wireInfectionVideos, endRunToTitleMenu, exitToTitleMenu, sensesContext, wireDoorSpells, createDetectFeed, foeNearbyRecord, nearbyLootRecords, restFullyHealed, createRestDeps, fatigueLossMultiplierFor, realmSaveSink, playerFallDamage, liveCandidates} from './shared.js';
 import { sayRealmSave } from '../systems/realmSaves.js';   // REALM P1.3: a save online lands in the realm; AUDIT REALM2 C2: said once it has
 import { getNearbyObjects } from '../systems/nearbyObjects.js';   // X9: the dispel sweep filters the same scan
 import { preloadBookArt } from '../ui/bookReader.js'; import { makeOpenBookHook } from '../ui/bookDoor.js';   // B1; EB1: the reader's ONE door
@@ -1218,6 +1218,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
   // morphologies are authored (E4, rewrite/ bench). Flag off = C3
   // verbatim, untouched.
   const foes = [];
+  const liveFoeList = liveCandidates(foes, (f) => !f.dead && f.ai);
   // OH-E: GameManager.OnEnemySpawn for the foes stood after the layout (the layout's own are the build's, and There's a
   // Hole in the Bottom of the Ocean - the one listener - reads those at OnSetDungeon), and their LoadID:
   // DaggerfallUnity.NextUID's, here the context's own count (a layout foe's is its block position + marker's)
@@ -7515,7 +7516,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         if (!d) return null;
         const ray = raceWinner({
           ground: pickActivatableHit(eye, d, api.dungeonActivationTargets(), collider),
-          foe: ((ft) => peacefulFoePass(pickActivatableHit(eye, d, ft, collider), ft, doorDistanceOf(eye, d, api.dungeonActivationTargets(), collider), getInteractionMode()))(liveFoeTargets(foes, 'mobileFoe')),   // AUDIT TACT C7: the plaque names the door the press opens
+          foe: ((ft) => peacefulFoePass(pickActivatableHit(eye, d, ft, collider), ft, () => doorDistanceOf(eye, d, api.dungeonActivationTargets(), collider), getInteractionMode()))(liveFoeTargets(foes, 'mobileFoe')),   // AUDIT TACT C7: the plaque names the door the press opens
           peer: opts.peerHoverPick?.() ?? null,   // PEER-PLAQUE1: another player underground, raced as the F key picks them - off the key's own ray (AUDIT DROPS E3)
         });
         return opts.profHoverPick?.(ray) ?? ray;   // PROF-MENU: a vein or a body the press would take, over the race's winner
@@ -7607,7 +7608,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       // WORLD3: the peers in the room ride the list - but only for a foe the STREAM carries (AUDIT WORLD3 D1: a quest
       // spawn, a summon or an encounter past the layout's run is nobody's puppet, so a peer it picked was fought by
       // no one: the host took nothing and the peer never learned it existed)
-      candidates: foeDeps ? (streamed = false, rec = null) => [...foes.filter((f) => !f.dead && f.ai), ...((_authority && streamed) || ownLoose(rec) ? peerCandidates() : (ownQuestTag(rec) ? peerCandidates().filter((c) => ownShare()?.peerMayHit?.(c.id, rec)) : []))] : null,   // QUEST-PARTY phase 3c: my shared quest foe hunts the party it rides to; SUMMON-SYNC: my loose stand, the room it rides to
+      candidates: foeDeps ? (streamed = false, rec = null) => liveFoeList((_authority && streamed) || ownLoose(rec) ? peerCandidates() : (ownQuestTag(rec) ? peerCandidates().filter((c) => ownShare()?.peerMayHit?.(c.id, rec)) : null)) : null,   // QUEST-PARTY phase 3c: my shared quest foe hunts the party it rides to; SUMMON-SYNC: my loose stand, the room it rides to
       // ROAD-B: EnemySenses.StealthCheck's first statement (:619-621).
       // This is the ONE host that can answer it true, off the same
       // block read the music and the ambient take.

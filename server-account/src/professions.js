@@ -48,12 +48,11 @@ import { CHAR_ID_RE, readAll } from './service.js';   // GATHER-SPEED: a harvest
 import { MARKS_MAX, utcDay, gatherFindOf } from '../../src/net/marksLaw.js';
 import { renownForXp, RENOWN_XP_MAX, RENOWN_TRACKS_MAX } from '../../src/net/renown.js';
 import {
-  PROFESSIONS, isProfession, rankOfXp, tierOpen, harvestXp, writXp, specOk, specsAt, SPEC_RANKS, RESPEC, trackOf,   // CRAFT3: a discipline's track its craft's
+  PROFESSIONS, isProfession, rankOfXp, xpForRank, tierOpen, harvestXp, writXp, specOk, specsAt, SPEC_RANKS, RESPEC, trackOf,   // CRAFT3: a discipline's track its craft's
   SPEC_TRIAL_S, specTrialUntil, respecLockUntil,   // PERK-TRIAL: a choice's day of trial, and the lock after a paid change
   STORES_MAX, WITHDRAW_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, HARVEST_LATE_S, HARVEST_EARLY_S,
   PROF_RID_RE, PROF_XP_MAX, profSwitchOf, basketStep, herbKey, professionOfFamily, courtWritCount, COURT_WRITS_PER_DAY,
   glintsMax, smeltRecipe, SMELT_MAX, smeltXp, DEEP_UNCONFIRMED_PER_DAY,   // CAP-OFF: no day's cap to import
-  xpForRank, JOURNEYMAN_RANK, CRAFTS_ABOVE_JOURNEYMAN, LIMIT_FREE,   // AUDIT FB1018f L5-1: the crafter's limit read in the decision (craftCapSql)
   stockOf, STOCK_MAX, withdrawable, cutsMax, workPer, workSpecRank, hideOfFoe, HIGH_HIDES_PER_DAY, HIGH_HIDE_TIER,
   HAUL_YIELD, FISH_KEY, haulTier,   // PROF8
   herbXpTier,   // HERB-XP
@@ -79,7 +78,7 @@ import { temperableRecipe, temperFrom, temperCost, temperXp, temperCap } from '.
 import { signingKey } from './signing.js';
 import { lookOk } from '../../src/net/productRecord.js';   // BUNNYFALL: the look a piece is made in
 import { craftModsOf, inspirationOf, workPartsOf, MOD_KINDS, CRAFTWORK_SWING, CRAFTWORK_TRACKS, CRAFT_SWING, craftworkPct } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL: the materials' effects
-import { planOf, inputsOf, craftedQuality, craftValueXp, focusOk, FOCUS_CHANGE_MARKS } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks, the Focus
+import { planOf, inputsOf, craftedQuality, craftValueXp, focusOk, FOCUS_CHANGE_MARKS, FOCUS_TRACKS, FOCUS_HALF_RANK, halfXp, NON_FOCUS_QUALITY_MAX } from '../../src/net/craft/craftLaw.js';   // BUNNYFALL CRAFTING REWORK: a craft by form and picks, the Focus
 import {
   parseNodeKey, nodeCount, herbPatch, herbSeasonMult, daySeason, HERB_TABLES, HERB_YIELD, FOOD_YIELD, herbYield, foodYield,
   basketFood, isMarch, regionOk, pixelOk, pixelKey, pixelReport, witnessedFact, factConfirmed, groundConfirmed, groundWitnessed, climateOk, WITNESS, material,
@@ -251,20 +250,6 @@ export const spendableSql = (p, c, m) => `COALESCE((SELECT SUM(qty) FROM prof_st
 /** AUDIT BAG-CRAFT A1: THE UNITS A STATION MAY SPEND - a craft, a smelt, a brew, a temper: own, bought and loose, never
  *  gold's (bagLaw.js STATION_ORIGINS); spent by `workStatements`, loose first. */
 export const workableSql = (p, c, m) => `COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ${p} AND char_id = ${c} AND material = ${m} AND origin IN (${originsSql(STATION_ORIGINS)})), 0)`;
-/** AUDIT FB1018f L5-1 (the crafter's limit was not one decision): THE CRAFTER'S LIMIT IN SQL - professionLaw craftXpCap's
- *  ceiling over `profession`'s track (a discipline its craft's), read off the character's tracks as they stand when the
- *  statement runs: one XP short of rank 51 where CRAFTS_ABOVE_JOURNEYMAN of its other crafts hold rank 51's XP, else
- *  Master's. Every act's decision and its track's write read it in the act's own batch (a D1 batch is one transaction):
- *  the cap was craftXpCap of a SELECT several awaits before the batch, bound in as a literal, so two acts at once on two
- *  tracks at 50 with one other craft past each read one past, each bound Master's 100,000 and both crossed - three past,
- *  and every craft of the three then held at 26,009 for good (nothing lowers a track). `p` and `c` the player's and the
- *  character's SQL. Pinned to craftXpCap over every craft and every standing of the others (fb1018f_craftlimit.test.js). */
-export function craftCapSql(p, c, profession) {
-  const own = trackOf(profession), past = xpForRank(JOURNEYMAN_RANK + 1);
-  if (own === LIMIT_FREE) return String(PROF_XP_MAX);   // BUNNYFALL PROVISIONING: outside the limit
-  const others = PROFESSIONS.filter((x) => x.kind === 'crafting' && x.id !== own && x.id !== LIMIT_FREE).map((x) => `'${x.id}'`).join(', ');
-  return `(CASE WHEN (SELECT COUNT(*) FROM prof_tracks WHERE player = ${p} AND char_id = ${c} AND profession IN (${others}) AND xp >= ${past}) >= ${CRAFTS_ABOVE_JOURNEYMAN} THEN ${past - 1} ELSE ${PROF_XP_MAX} END)`;
-}
 /** A character's harvests today, by profession. */
 async function todayOf(db, player, character, day) {
   return todayFrom((await todayStatement(db, player, character, day).all()).results ?? []);
@@ -1210,8 +1195,8 @@ export async function depositStores(ctx, player, env, { character, material: key
  * the forge or the workbench (as it cannot see the board): the inputs are the Stores' and their units are the bound.
  * Decided by the smelt's own INSERT: every input held, room in the Stores for the product, the products' origin read in
  * the same statement (an ingot is own only when every unit that made it was - bought units are spent first). Then the
- * inputs out, the products in, and the recipe's XP - Smithing's 10 x the product's tier a unit for a smelt, under the
- * crafter's limit (PROF0 3.2); none for a log's (PROF0 25).
+ * inputs out, the products in, and the recipe's XP - Smithing's 10 x the product's tier a unit for a smelt; none
+ * for a log's (PROF0 25).
  *
  * PROF11 (PROF0 3.2, 4.5, 9.3, 9.4): AND THE MASON'S BENCH's - Rough Stone cut to Cut Stone (a Quarryman's 1 : 1, a
  * choice at 50) and Mortar mixed ten at a time (professionLaw MASON_RECIPES): a work with a CRAFT's law. Its rank is
@@ -1257,7 +1242,6 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   if (!Number.isSafeInteger(count) || count < 1 || count > SMELT_MAX) return { error: 'bad-qty' };
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   const out = material(r.out);
-  // the crafter's limit, read from the character's crafts as they stand
   const { results: tracks = [] } = await db.prepare('SELECT * FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character).all();
   const ranks = Object.fromEntries(tracks.map((t) => [t.profession, rankOfXp(Number(t.xp))]));
   // PROF3 (FOUND): a Quartermaster's ingots are two a unit (PROF0 3.3) - the choice was offered and the doubling unbuilt;
@@ -1273,8 +1257,8 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   // PROF11: a mason's work's XP is a craft's (recipeLaw masonXp: the rank's tier a unit, a clean chisel's half again) and
   // its first time's - Building's first-make share (?11, recipeLaw workFirstXp) laid on in the decision; every other work's the smelt's
   const act = r.act ? clean === true : false;
-  // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself (craftCapSql); a work that pays none, none
-  const cap = r.xp ? craftCapSql('?1', '?2', r.xp) : '0';
+  const cap = r.xp ? String(PROF_XP_MAX) : '0';
+  const fx = (/** @type {string} */ full, /** @type {number} */ n) => focusXpSql('?1', '?2', r.xp ?? 'smithing', full, halfXp(n));
   const xp = scaleXp(r.act ? masonXp(count, rank, { clean: act }) : r.xp ? smeltXp(out.tier, count, rank) : 0,   // AUDIT 29 A7: the record's quarter, at the smith's rank
     r.xp ? craftworkPct(xpPct(await firmStatsOf(db, player, env, character), trackOf(r.xp)), await inCraftwork(db, player.id, character, trackOf(r.xp))) : 0);   // FIRM1: the Firmament's hand on the craft's XP; CRAFTWORK: half
   const nonce = mintId(rand);
@@ -1305,11 +1289,11 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
   }
   await db.batch([
     // THE DECISION: every input held, the product's room - and its origin, read before a unit moves; the XP what the
-    // track can take under the crafter's limit (AUDIT 29 A14: the answer says what was credited); PROF11: a mason's
-    // first of a work Building's first-make share laid on (FIRST-BUDGET, ?11; `f`, kept), and its chisel kept
+    // track can take, which the answer reports. A mason's first work of each kind adds Building's first-make share
+    // (?11, `f`).
     db.prepare(`INSERT OR IGNORE INTO prof_smelts (player, rid, char_id, recipe, count, own, bought, loose, xp, at, n, first, clean)
       SELECT ?1, ?3, ?2, ?4, ?5, ${per} * (?5 - MIN(?5, ${bought})), ${per} * (MIN(?5, ${bought}) - MIN(?5, ${loose})), ${per} * MIN(?5, ${loose}),
-        MAX(0, MIN(?8 + f * ?11, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf(r.xp ?? 'smithing')}'), 0))), ?9, ?10, f, ?12
+        MAX(0, MIN(${fx('?8', xp)} + f * ${fx('?11', workFirstXp(r))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf(r.xp ?? 'smithing')}'), 0))), ?9, ?10, f, ?12
       FROM (SELECT CASE WHEN ?11 > 0 AND NOT EXISTS (SELECT 1 FROM prof_smelts WHERE player = ?1 AND char_id = ?2 AND recipe = ?4) THEN 1 ELSE 0 END AS f)
       WHERE ${held.join(' AND ')}
         AND COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = ?6), 0) + ${per} * ?5 <= ?7`).bind(...binds),
@@ -1325,7 +1309,7 @@ export async function smeltAtForge(ctx, player, env, { character, recipe: id, co
     ...['own', 'bought', LOOSE_ORIGIN].map((origin) => db.prepare(`INSERT INTO prof_stores (player, char_id, material, origin, qty)
       SELECT ?1, ?2, ?4, '${origin}', ${origin} FROM prof_smelts WHERE player = ?1 AND rid = ?3 AND n = ?5 AND ${origin} > 0
       ON CONFLICT (player, char_id, material, origin) DO UPDATE SET qty = prof_stores.qty + excluded.qty`).bind(player.id, character, rid, r.out, nonce)),
-    // the XP the decision credited, under the crafter's limit - a smelt's Smithing; a log's none (PROF0 25)
+    // the XP the decision credited - a smelt's Smithing; a log's none (PROF0 25)
     ...(r.xp ? [db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, ?6, MIN(${cap}, xp), ?4 FROM prof_smelts WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
@@ -1358,13 +1342,21 @@ export function provenanceId(rand) {
 }
 // ─── BUNNYFALL CRAFTING REWORK: THE FOCUS ────────────────────────────
 
-/** The five crafting tracks - the crafts a Focus is chosen from. */
-const CRAFT_TRACKS = PROFESSIONS.filter((p) => p.kind === 'crafting' && p.id !== 'provisioning').map((p) => p.id);   // BUNNYFALL PROVISIONING: its own system, out of the Focus
+const CRAFT_TRACKS = FOCUS_TRACKS;
 /** A character's Focus as its rows say it: the crafts pledged, and what dropping one costs. */
 const focusFrom = (/** @type {any[]} */ rows) => ({ crafts: (rows ?? []).map((r) => r.profession), cost: FOCUS_CHANGE_MARKS });
 export async function focusOf(db, player, character) {
   const { results = [] } = await db.prepare('SELECT profession FROM prof_focus WHERE player = ?1 AND char_id = ?2 ORDER BY profession').bind(player, character).all();
   return focusFrom(results);
+}
+/** SQL for the XP of an act on `track`, with the Focus and the track's XP read in the same statement. It is `full`
+ *  (SQL) in the Focus or below FOCUS_HALF_RANK, else `half` (a number). Other tracks always get `full`. */
+export function focusXpSql(p, c, track, full, half) {
+  const own = trackOf(track);
+  if (!CRAFT_TRACKS.includes(own)) return full;
+  return `(CASE WHEN EXISTS (SELECT 1 FROM prof_focus WHERE player = ${p} AND char_id = ${c} AND profession = '${own}')
+    OR COALESCE((SELECT xp FROM prof_tracks WHERE player = ${p} AND char_id = ${c} AND profession = '${own}'), 0) < ${xpForRank(FOCUS_HALF_RANK)}
+    THEN ${full} ELSE ${Math.trunc(half)} END)`;
 }
 // ─── CRAFTWORK ──────────────────────────────────────────────────────
 
@@ -1415,7 +1407,7 @@ function picksView(/** @type {unknown} */ text) {
   try { const j = JSON.parse(text); return j && typeof j.f === 'string' && j.p && typeof j.p === 'object' ? { form: j.f, picks: j.p } : {}; } catch { return {}; }
 }
 /**
- * CHOOSE THE FOCUS: `{ character, crafts, rid }` - the crafts to pledge, at most two of the five (craftLaw focusOk).
+ * Choose the Focus: `{ character, crafts, rid }` - the crafts to pledge, at most two of the four (craftLaw focusOk).
  * Pledging into a free place costs nothing; dropping a pledged craft costs FOCUS_CHANGE_MARKS silver, once for the whole
  * change. The Marks held and the pledges dropped are read in the decision itself, so a change is paid once. Asking for
  * the Focus already held answers as it stands; the same `rid` asked again answers the change made.
@@ -1501,10 +1493,10 @@ async function craftAnswer(db, player, row, nowS, extra = {}) {
  * them); a Masterwright's points; nothing past Masterwork - a Repair Kit and arrows take none, and a Quartermaster's kit
  * is two. A Heartwood asked stands in for one plank (PROF0 25); a Joiner's furniture takes half the planks. Decided by
  * the craft's own INSERT: every input held. Then the inputs out, bought first; the pieces written, each its provenance
- * id, its signed record (net/productRecord.js) and whether its name carries the maker's mark (a Masterwork's, a Master
- * Joiner's furniture); and the XP - 20 x the recipe's tier, and the character's first of its pattern at its tier its
- * track's first-make share (FIRST-BUDGET, recipeLaw firstCraftXp - none for a recipe made wholly of goods only a
- * counter sells, AUDIT 32 S1), under the crafter's limit (3.2), answered as credited.
+ * id and its signed record (net/productRecord.js). Its name carries the maker's mark if it is a Masterwork or a Master
+ * Joiner's furniture. The XP is 20 x the recipe's tier, half off Focus from rank 50, answered as credited. The first of
+ * a pattern at a tier adds the track's first-make share (recipeLaw firstCraftXp), halved alike. A cloth recipe pays it
+ * only while no bolt it uses counts as bought with silver.
  * PROF11: or the mason's bench's carvings - the Sculptor's stone decor (recipeLaw MASONRY_RECIPES), the chisel its act,
  * furniture among the home's things; a character not standing as a Sculptor at 100 is refused (`prof-sculptor`).
  * PROF9: or the fire's dishes (recipeLaw COOKING_RECIPES) - no quality (-1), each serving its own piece (a Cook's two:
@@ -1535,9 +1527,9 @@ export const craftAtAnvil = (ctx, player, env, body = {}) => craftCore(ctx, play
 /**
  * BUNNYFALL CRAFTING REWORK, PHASE 2: A CRAFT BY FORM AND PICKS - `{ character, form, picks, clean, name, dye, rid, seat,
  * cracked, mint }` (net/craft/craftLaw.js planOf). It is the craft above with a PLAN: the form and picks resolve to the old
- * recipe the piece is made, signed and sold under; the opened slots charge the Stores what was picked; Potential caps the
- * quality and a craft that is not a Focus cannot reach Masterwork; the XP is the value spent (halved off Focus); no
- * first-make bonus and no crafter's limit. A refusal is `{ error, slot? }`.
+ * recipe the piece is made, signed and sold under. The opened slots charge the Stores what was picked. Potential caps
+ * the quality, and a craft that is not a Focus cannot reach Masterwork. The XP is the value spent (halved off Focus
+ * from rank 50), with no first-make bonus. A refusal is `{ error, slot? }`.
  */
 export async function makeAtBench(ctx, player, env, body = {}) {
   const plan = planOf(body?.form, body?.picks);
@@ -1571,9 +1563,8 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   const crack = cracked === true;   // PROF10: a Siege-cracked Gem set as the piece's gem - a Lapidary's (3.3), in a piece that sets one
   if (crack && !(takesCracked(r) && specs[100] === LAPIDARY)) return { error: 'prof-lapidary' };
   if (!recipeOpen(r, rank, specs)) return { error: 'prof-rank' };
-  // BUNNYFALL CRAFTING REWORK: a craft by plan has no crafter's limit - only a Focus craft makes Masterwork and levels at full speed
   const focus = plan ? (await focusOf(db, player.id, character)).crafts.includes(craft) : true;
-  const cap = plan ? String(PROF_XP_MAX) : craftCapSql('?1', '?2', craft);   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
+  const cap = String(PROF_XP_MAX);
   const wood = !plan && heartwood === true && takesHeartwood(r);
   const inputs = plan ? inputsOf(plan, { joiner: specs[50] === 'joiner', cracked: crack }) : recipeInputs(r, { heartwood: wood, joiner: specs[50] === 'joiner', cracked: crack });
   // SEAT2b part two: the seat's crafting halls' steps, where the crafter's guild holds the town it crafts in (seatStepsFor)
@@ -1606,8 +1597,11 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   // first craft's ?13 (AUDIT 32 S1: CLOTH-GEMS - laid on a recipe wholly of the counter's goods only where its units are
   // own, `p` in the decision) ?11 now ?12 nonce ?14 the profession ?15 heartwood ?16 the dye; the inputs ?17 on, two a one
   // PROF9: a dish's XP follows the rank, a clean pan's half again (cookXp); every other craft's its tier's (craftXp)
-  const xp = scaleXp(r.kind === 'dish' ? cookXp(rank, { clean: clean === true, steps: halls }) : plan ? craftValueXp(plan, inputs, rank, focus) : craftXp(r.tier, rank),   // PROF12: the Apothecary's steps
-    craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));   // FIRM1: the Firmament's hand on the craft's XP; CRAFTWORK: half
+  const pct = craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft));   // FIRM1: the Firmament's hand on the craft's XP; CRAFTWORK: half
+  const xp = scaleXp(r.kind === 'dish' ? cookXp(rank, { clean: clean === true, steps: halls }) : plan ? craftValueXp(plan, inputs, rank, true) : craftXp(r.tier, rank), pct);   // PROF12: the Apothecary's steps
+  const half = plan ? scaleXp(halfXp(craftValueXp(plan, inputs, rank, true)), pct) : halfXp(xp);
+  // Only a Focus craft makes Masterwork. The decision checks the Focus again.
+  const focusOnly = quality > NON_FOCUS_QUALITY_MAX && FOCUS_TRACKS.includes(craft);
   const binds = [player.id, character, rid, r.id, quality, count, provs[0], provs[1] ?? null, seed, xp, nowS, nonce, plan ? 0 : firstCraftXp(r, true), craft, wood ? 1 : 0, u];   // FIRST-BUDGET: ?13 its track's first-make share (recipeLaw firstCraftXp, asked as own) - CLOTH-GEMS' `p` says whether the units pay it
   const held = [];
   inputs.forEach((inp, i) => {
@@ -1655,15 +1649,15 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   const pays = counterMade(r) ? `CASE WHEN ${silverHeld} THEN 0 ELSE 1 END` : '1';
   if (siege) held.push(`COALESCE((SELECT SUM(qty) FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND material = '${RAM_KIT.key}'), 0) + ?6 <= ${STORES_MAX}`);   // SEAT2b part two: the kit's room
   await db.batch([
-    // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first craft's
-    // share (FIRST-BUDGET, ?13) laid on when the character has made none of the recipe's pattern at its tier and its units pay it (`p` - AUDIT
-    // 32 S1, judged by the units: CLOTH-GEMS; WOVEN-PAYS: `patternMade`, and whether it laid it on, `first_paid`)
+    // The decision: every input held, and the XP the track can take. The first craft's share (?13) is laid on when the
+    // character has made none of the recipe's pattern at its tier (`patternMade`) and its units pay it (`p`).
+    // `first_paid` says whether it laid it on.
     db.prepare(`INSERT OR IGNORE INTO prof_crafts (player, rid, char_id, recipe, quality, count, provenance, provenance2, seed, xp, first, at, n, heartwood, dye, first_paid)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9,
-        MAX(0, MIN(?10 + f * p * ?13, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?14), 0))),
+        MAX(0, MIN(${focusXpSql('?1', '?2', craft, '?10', half)} + f * p * ${focusXpSql('?1', '?2', craft, '?13', halfXp(plan ? 0 : firstCraftXp(r, true)))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?14), 0))),
         f, ?11, ?12, ?15, ?16, f * p
       FROM (SELECT CASE WHEN EXISTS (SELECT 1 FROM prof_crafts WHERE player = ?1 AND char_id = ?2 AND ${patternMade}) THEN 0 ELSE 1 END AS f, ${pays} AS p)
-      WHERE ${held.join(' AND ')}`).bind(...binds),
+      WHERE ${held.join(' AND ')}${focusOnly ? ' AND EXISTS (SELECT 1 FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = ?14)' : ''}`).bind(...binds),
     // the pieces, each its provenance id, its owner (this account), its signed record, its mark and (PROF7) its dye -
     // AUDIT PROF-541 B7: and bought where its inputs were, minted BEFORE the inputs go (their bought units read as they stand) -
     // SEAT2b part two: a siege work's kits into the Stores instead
@@ -1684,7 +1678,7 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
     ...inputs.filter((inp) => JUDGED_CLOTH.includes(inp.key)).flatMap((inp) => silverClothOut(db, {
       player: player.id, character, materialSql: '?3', qtySql: '?4', guard: decided, binds: [inp.key, inp.n, rid, nonce],
     })),
-    // the XP the decision credited, under the crafter's limit - the recipe's profession's
+    // the XP the decision credited, to the recipe's track
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, ?6, MIN(${cap}, xp), ?4 FROM prof_crafts WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
@@ -1693,6 +1687,7 @@ async function craftCore(ctx, player, env, { character, recipe: id, clean, name,
   const made = await db.prepare('SELECT * FROM prof_crafts WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (made?.n === nonce) return craftAnswer(db, player, made, nowS);
   if (made) return craftAnswer(db, player, made, nowS, { repeat: true });
+  if (focusOnly && !(await focusOf(db, player.id, character)).crafts.includes(craft)) return { error: 'prof-focus' };
   for (const inp of inputs) {
     const st = await storeOf(db, player.id, character, inp.key);
     if (workHeld(st) < inp.n) return { error: workHeld(st) + (st.gold ?? 0) >= inp.n ? 'stores-gold' : 'stores-short', material: inp.key };   // GOLD-MARKET
@@ -1739,6 +1734,8 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
   if (rank < r.rank) return { error: 'prof-rank' };
   const spec100 = specsAt(tracks.find((t) => t.profession === craft), nowS)[100];
   if (quality + 1 > temperCap(r, rank, spec100)) return { error: 'prof-temper-rank' };
+  const offFocusTop = quality + 1 > temperCap(r, rank, spec100, false);
+  if (offFocusTop && !(await focusOf(db, player.id, character)).crafts.includes(craft)) return { error: 'prof-focus' };
   let record = null;
   if (provenance !== null) {
     const p = await db.prepare('SELECT * FROM products WHERE provenance = ?1').bind(provenance).first();
@@ -1751,7 +1748,7 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
     record = await mintProductRecord({ p: c.p, s: c.s, h: c.h, r: c.r, q: quality + 1, m: c.m, c: c.c, a: c.a === 1, u: c.u ?? null, f: c.f ?? null, v: c.v ?? null }, await signingKey(env, subtle), { subtle, nowS });   // CRAFT-PROCS: the craft's mint version kept - a piece made before mints as it was
   }
   const cost = temperCost(r, quality);   // BUNNYFALL: by the quality reached
-  const cap = craftCapSql('?1', '?2', craft);   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
+  const cap = String(PROF_XP_MAX);
   const xp = scaleXp(temperXp(r, rank), craftworkPct(xpPct(await firmStatsOf(db, player, env, character), craft), await inCraftwork(db, player.id, character, craft)));   // CRAFTWORK: half   // AUDIT UICALM-FIRM1 L2 L3: the Firmament's hand on a temper's XP, as on the anvil's
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_tempers WHERE player = ?1 AND rid = ?2 AND n = ?3)';
@@ -1764,8 +1761,8 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
     // THE DECISION: the input held (never gold's units), a made piece as asked - and the XP what the track can take
     db.prepare(`INSERT OR IGNORE INTO prof_tempers (player, rid, char_id, recipe, provenance, quality, material, qty, xp, at, n)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8,
-        MAX(0, MIN(?9, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?12), 0))), ?10, ?11
-      WHERE ${workableSql('?1', '?2', '?7')} >= ?8 AND ${piece}`)   // AUDIT BAG-CRAFT A1: a station's loose units too
+        MAX(0, MIN(${focusXpSql('?1', '?2', craft, '?9', halfXp(xp))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = ?12), 0))), ?10, ?11
+      WHERE ${workableSql('?1', '?2', '?7')} >= ?8 AND ${piece}${offFocusTop ? ' AND EXISTS (SELECT 1 FROM prof_focus WHERE player = ?1 AND char_id = ?2 AND profession = ?12)' : ''}`)   // AUDIT BAG-CRAFT A1: a station's loose units too
       .bind(player.id, character, rid, r.id, provenance, quality + 1, cost.key, cost.n, xp, nowS, nonce, craft),
     // a made piece's row at its new quality, its record re-signed - AUDIT BAG-CRAFT A1: walled to gold where the input held a
     // loose unit (spent first), read before the spend - a piece raised with goods the service never handed out lists as a
@@ -1779,7 +1776,7 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
     ...workStatements(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: 'EXISTS (SELECT 1 FROM prof_tempers WHERE player = ?1 AND rid = ?5 AND n = ?6)', binds: [cost.key, cost.n, rid, nonce] }),
     // WOVEN-PAYS: a garment's cloth used, off its silver count
     ...(JUDGED_CLOTH.includes(cost.key) ? silverClothOut(db, { player: player.id, character, materialSql: '?3', qtySql: '?4', guard: 'EXISTS (SELECT 1 FROM prof_tempers WHERE player = ?1 AND rid = ?5 AND n = ?6)', binds: [cost.key, cost.n, rid, nonce] }) : []),
-    // the XP the decision credited, under the crafter's limit - the craft's
+    // the XP the decision credited - the craft's
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, ?6, MIN(${cap}, xp), ?4 FROM prof_tempers WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
@@ -1788,6 +1785,7 @@ export async function temperPiece(ctx, player, env, { character, recipe: id, qua
   const made = await db.prepare('SELECT * FROM prof_tempers WHERE player = ?1 AND rid = ?2').bind(player.id, rid).first();
   if (made?.n === nonce) return temperAnswer(db, player, made, nowS);
   if (made) return temperAnswer(db, player, made, nowS, { repeat: true });
+  if (offFocusTop && !(await focusOf(db, player.id, character)).crafts.includes(craft)) return { error: 'prof-focus' };
   if (provenance !== null) {
     const p = await db.prepare('SELECT quality, listed FROM products WHERE provenance = ?1 AND owner = ?2').bind(provenance, player.id).first();
     if (!p) return { error: 'prof-no-piece' };

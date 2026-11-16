@@ -40,8 +40,8 @@
 // a reagent bought was silver in, more silver out), over the units one make gives a Novice (a brew 2 - CRAFT-PAYS - a dish
 // 1, a kit 1); never less than CRAFT_PAY_FLOOR a tier (a rank's skill is paid for, not only its herbs - the floor is what
 // most writs pay), never more than CRAFT_WRIT_PAY_MAX (the count is lowered first). Its XP twice its pay to the craft's track (the Court writ's own law, writXp), under the
-// crafter's limit; its Renown twice its pay at the rate (renownRate - the Court writ's ratio); and HALL_WRIT_REP standing
-// with its guild on the character's Roll, where the Roll keeps the guild (a hall writ's law, CHAP2a).
+// Master cap, and half that off Focus from rank 50. Its Renown is twice its pay at the rate (renownRate), and it adds
+// HALL_WRIT_REP standing with its guild on the character's Roll where the Roll has the guild (CHAP2a).
 //
 // Pure: no clock, no DOM, no network. Not a DFU member: Daggerfall has no writs. Ledger A (CRAFT-WRITS).
 // ═══════════════════════════════════════════════════════════════════

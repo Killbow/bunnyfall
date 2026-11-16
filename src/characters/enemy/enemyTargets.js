@@ -543,7 +543,7 @@ export function runTargetMachine(self, candidates, playerFeet, classicDt, {
   // :377-383 - out of the classic area, still check direct LOS to the
   // player so enemies who see the player will try to attack.
   let playerInSight = false;
-  if (!ai.wouldBeSpawned && playerFeet) {
+  if (!ai.wouldBeSpawned && playerFeet && ai.classicTargetUpdateTimer > SENSES_INTERVAL_UNITS) {
     playerInSight = canSeeTarget(ai.collider, ai.feet, ai.yaw, ai.height, playerFeet, playerHeight, null, null, ai.sightRadius);   // CAMP-SIGHT
     // WORLD3: a PEER in sight is a player in sight - the area DFU draws around the one player is drawn around
     // every player in the room, so a foe far from the host and beside a joiner still takes its targets

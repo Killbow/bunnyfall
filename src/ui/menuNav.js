@@ -18,6 +18,7 @@ const STYLE_ID = 'bf-menunav-style';
 /** The controls pressed from the keyboard, newest last: where the focus goes back to when their window shuts. */
 const presses = [];
 const AT = 'kbnav-at';
+export const NAV_MARK = AT;
 
 /** @param {Element} n */
 const disabled = (n) => /** @type {any} */ (n).disabled === true || n.getAttribute('aria-disabled') === 'true';

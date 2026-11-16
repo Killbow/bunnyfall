@@ -8,11 +8,10 @@
 //   - the opened slots (grip, lining, flux, haft, binder, arrowhead) replace the legacy recipe's fixed input with the
 //     player's pick, so the Stores are charged what the player chose;
 //   - POTENTIAL (suitability of the picks) caps the quality, and a craft that is not a FOCUS cannot reach Masterwork;
-//   - the XP is the VALUE of what was spent, halved off Focus.
 //
 // All numbers here are drafts to tune (docs/CRAFTING.md). No clock, no DOM, no network.
 import { RECIPES, recipeInputs, rollQuality, qualityOdds, qualitySteps, craftQuality, masterworkSpec } from '../recipeLaw.js';
-import { materialOf, topTierOf } from '../professionLaw.js';
+import { materialOf, topTierOf, PROFESSIONS } from '../professionLaw.js';
 import { formById, buildSuitability, potentialOf, slotMix } from './forms.js';
 import { statsOf, statBudget, STAT_IDS } from './materialStats.js';   // the materials' effects on the piece
 
@@ -25,8 +24,16 @@ import { statsOf, statBudget, STAT_IDS } from './materialStats.js';   // the mat
 export const FOCUS_MAX = 2;
 /** What dropping a Focus craft costs, in silver (Marks). Pledging into a free place costs nothing. */
 export const FOCUS_CHANGE_MARKS = 100;
-/** What a Focus craft's XP is multiplied by, and what any other craft's is. */
+/** The XP multiplier for a Focus craft, and for any other craft from FOCUS_HALF_RANK. */
 export const FOCUS_XP = Object.freeze({ focus: 1, other: 0.5 });
+/** The rank from which a craft outside the Focus earns its FOCUS_XP.other share. */
+export const FOCUS_HALF_RANK = 50;
+/** The crafts a Focus is chosen from: every crafting track but Provisioning. */
+export const FOCUS_TRACKS = Object.freeze(PROFESSIONS.filter((p) => p.kind === 'crafting' && p.id !== 'provisioning').map((p) => p.id));
+/** The FOCUS_XP.other share of `xp`, rounded up. */
+export const halfXp = (/** @type {number} */ xp) => Math.ceil(xp * FOCUS_XP.other);
+/** XP on a craft at `rank`, its rank before this XP: whole in the Focus or below FOCUS_HALF_RANK, else halfXp. */
+export const focusXp = (/** @type {number} */ xp, /** @type {boolean} */ focus, /** @type {number} */ rank) => (focus || rank < FOCUS_HALF_RANK ? xp : halfXp(xp));
 /** The highest quality a craft that is not a Focus can reach (Superior; Masterwork is Focus alone). */
 export const NON_FOCUS_QUALITY_MAX = 3;
 
@@ -156,13 +163,13 @@ export const inputsValue = (/** @type {{ key: string, n: number }[]} */ inputs) 
 
 /**
  * A CRAFT'S XP: XP_PER_TIER x the material's tier plus the value spent, a quarter for work more than two tiers under
- * the rank's top (the old rule), halved off Focus. No first-make bonus: progress comes from what is made.
+ * the rank's top, halved off Focus from rank 50. No first-make bonus: progress comes from what is made.
  */
 export function craftValueXp(/** @type {Plan} */ plan, /** @type {{ key: string, n: number }[]} */ inputs, /** @type {number} */ rank, /** @type {boolean} */ focus) {
   const tier = plan.legacy.tier;
   let xp = XP_PER_TIER * tier + Math.round(inputsValue(inputs) * XP_PER_VALUE);
   if (tier < topTierOf(rank) - 2) xp = Math.floor(xp / 4);
-  return focus ? xp : Math.ceil(xp * FOCUS_XP.other);
+  return focusXp(xp, focus, rank);
 }
 
 
