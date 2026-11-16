@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: The Great Cannon map mark is now gold, so it no longer looks like the orange Sentinel's warriors mark. An existing orange cannon mark also turns gold.
 - Fixed: Farms inside your Company's territory or Charter are no longer lost when a member's game wrongly decides they are out of reach.
 - Fixed: On the Stone look, gray labels in the Social and Company windows are now lighter and easier to read.
 - Fixed: Open game tabs now say when a new version of the game is out, so you know to save and reload.

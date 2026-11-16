@@ -20,7 +20,7 @@ import { pathsDataPoint } from '../world/road/pathData.js';
 import { ARMS } from '../world/road/roadBand.js';
 import { RAY_DISTANCE, STATIC_NPC_ACTIVATION_DISTANCE } from '../player/activate.js';
 import { toColor32 } from '../formats/color32Order.js';
-import { addWaypoint } from '../systems/map/mapWaypoints.js';
+import { addWaypoint, listWaypoints, recolorWaypoint } from '../systems/map/mapWaypoints.js';
 import { trs } from '../world/mat4.js';
 import { t } from '../systems/textManager.js';
 
@@ -32,7 +32,7 @@ const POLL_S = 60, SEEN_M = 1500;
 /** A shot older than this when first heard of is history, not news (s). */
 const NEWS_S = 15 * 60;
 const KEY = 'cannon:wayrest';
-const MARK_KEY = 'bunnyfall.cannon.mark', SEEN_KEY = 'bunnyfall.cannon.seenFired';
+const MARK_KEY = 'bunnyfall.cannon.mark', SEEN_KEY = 'bunnyfall.cannon.seenFired', GOLD_KEY = 'bunnyfall.cannon.markGold';
 const store = {
   get(k) { try { return globalThis.localStorage?.getItem(k) ?? null; } catch { return null; } },
   set(k, v) { try { globalThis.localStorage?.setItem(k, v); } catch { /* a private window keeps nothing */ } },
@@ -74,11 +74,17 @@ export function createCannonHost(deps) {
     return { px: best.px, py: best.py, at: [c + ux * OFF_M, c + uz * OFF_M], yaw };
   }
   function markSite(sp) {
-    if (store.get(MARK_KEY) === '1') return;
-    try {
-      const r = addWaypoint({ kind: 'personal', mx: sp.px + sp.at[0] / PIXEL_M, my: sp.py + 1 - sp.at[1] / PIXEL_M, name: t('cannon.mark', 'The Great Cannon (Wayrest)'), color: 'orange' });
-      if (r?.waypoint) store.set(MARK_KEY, '1');
-    } catch (e) { console.warn('[cannon] the map mark', e?.message ?? e); }
+    const name = t('cannon.mark', 'The Great Cannon (Wayrest)');
+    if (store.get(MARK_KEY) !== '1') {
+      try {
+        const r = addWaypoint({ kind: 'personal', mx: sp.px + sp.at[0] / PIXEL_M, my: sp.py + 1 - sp.at[1] / PIXEL_M, name, color: 'gold' });
+        if (r?.waypoint) { store.set(MARK_KEY, '1'); store.set(GOLD_KEY, '1'); }
+      } catch (e) { console.warn('[cannon] the map mark', e?.message ?? e); }
+      return;
+    }
+    if (store.get(GOLD_KEY) === '1') return;
+    for (const w of listWaypoints()) if (w.kind === 'personal' && w.mine && w.color === 'orange' && w.name === name) recolorWaypoint(w.id, 'gold');
+    store.set(GOLD_KEY, '1');
   }
 
   // ── THE BUILD, AS THE SERVICE KEEPS IT ───────────────────────────────────────
