@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: On the Stone look, gray labels in the Social and Company windows are now lighter and easier to read.
 - Fixed: Open game tabs now say when a new version of the game is out, so you know to save and reload.
 - Fixed: In Bunnyfall Grimoire, the Company window no longer shows dark text on its dark background.
 - Fixed: The desktop app now says in chat when a new version of the game is out.

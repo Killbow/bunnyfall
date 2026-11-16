@@ -2575,8 +2575,11 @@ body .arena-hint { color: ${FRAME_TONES.brassHi}; }
    decorator's amber reasons and its red price are lifted to 4.5:1 or better, each over a hard black drop. */
 :root[data-plus-theme="stone"] body .dfdecor-card, :root[data-plus-theme="stone"] body .dfpage-card,
 :root[data-plus-theme="stone"] body .dfpeer-card, :root[data-plus-theme="stone"] body .dfsocial-toast,
-:root[data-plus-theme="stone"] body .dfduel-toast, :root[data-plus-theme="stone"] body .dfdecor-bar {
+:root[data-plus-theme="stone"] body .dfduel-toast, :root[data-plus-theme="stone"] body .dfdecor-bar,
+:root[data-plus-theme="stone"] body .dfsocial {
   --dim: ${STONE_DIM}; text-shadow: 1px 1px 0 rgba(5,6,8,0.85); }
+:root[data-plus-theme="stone"] body .dfsocial .dfsocial-err { color: ${STONE_RED}; }
+:root[data-plus-theme="stone"] body .dfsocial .dfsocial-note { color: ${STONE_AMBER}; }
 :root[data-plus-theme="stone"] body .dfpeer-why, :root[data-plus-theme="stone"] body .dfpeer-btn[disabled]:hover .dfpeer-why,
 :root[data-plus-theme="stone"] body .dfpage-note, :root[data-plus-theme="stone"] body .dfduel-sub { color: ${STONE_WORD}; }
 :root[data-plus-theme="stone"] body .dfdecor-pick-why, :root[data-plus-theme="stone"] body .dfdecor-bar-why { color: ${STONE_AMBER}; }
