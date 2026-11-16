@@ -458,10 +458,9 @@ export function placePixelOf(maps, regionName, name) {
   return longitudeLatitudeToMapPixel(row.longitude, row.latitude);
 }
 
-/** AUDIT GUIDE O3: placePixelOf, kept per place for a session. MapsFile holds ONE region in memory (autoDiscard), so
- *  a question asked every tick about places in two regions re-read and re-parsed a region twenty times a second; a
- *  place's pixel never moves, so each is read once, a miss included. The discovered test (the other half) stays live:
- *  a place found by asking directions is on the map at the next ask. */
+/** placePixelOf, cached per place for a session. A place's pixel never moves, so each is read once, a
+ *  miss included. The discovered test (the other half) stays live: a place found by asking directions is on the map at
+ *  the next ask. */
 export function placePixelMemo() {
   const memo = new Map();
   return (maps, regionName, name) => {

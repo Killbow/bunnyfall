@@ -42,6 +42,8 @@
 // canvas rather than cloning an empty one.
 // ═══════════════════════════════════════════════════════════════════
 
+import { forgetLater } from '../assets/loadCache.js';
+
 /** race|gender -> { pending?: Promise, canvases: HTMLCanvasElement[] } */
 const cache = new Map();
 /** The ART palette, loaded once - every CIF here reads through it. */
@@ -146,9 +148,11 @@ async function classicFaceCanvases(raceKey, gender, { scale = 2 } = {}) {
     return set;
   }).catch((e) => {
     console.warn('[face] the FACE CIF would not load', e?.message ?? e);
-    // REMEMBERED AS EMPTY, not forgotten: a player whose copy has no
-    // CIF must not have the whole list re-ask for it on every repaint.
-    cache.set(key, { canvases: [] });
+    // Remembered as empty for a while: a player whose copy has no CIF
+    // must not have the whole list re-ask for it on every repaint.
+    const empty = { canvases: [] };
+    cache.set(key, empty);
+    forgetLater(cache, key, empty);
     return [];
   });
   cache.set(key, { pending });

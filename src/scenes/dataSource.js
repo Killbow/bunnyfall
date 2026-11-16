@@ -1196,13 +1196,24 @@ export const textureStoreRegistered = () => _textureStore ?? registerTextureStor
 /** AUDIT VE R2: the page's latest registration of the store has landed - a card that reads the registered mods waits. */
 export const textureStoreSettled = () => _textureStoreSettled;
 async function registerTextureStoreNow({ warm }) {
-  const { setTextureReplacements } = await import('../systems/textureReplacement.js');
-  const { setSeasonsSources } = await import('../systems/seasonsIliacBayAssets.js');
-  const { setWeaponWidgetSources } = await import('../combat/weapon/weaponWidgetAssets.js');   // WW1
-  const { setDiverseWeaponsSources } = await import('../combat/diverseWeapons/diverseWeaponsAssets.js');   // DW1
-  const { setDfmodSources, setDfmodDetailSource } = await import('../systems/dfmodTextures.js');   // DFMOD1
-  const { installVanillaEnhancedPack } = await import('../systems/vanillaEnhanced/vanillaEnhancedPack.js');   // VE4
-  const { getPref } = await import('../systems/uiPrefs.js');
+  // Asked together: on a cold load each module is a download, and nothing registers before the last one lands.
+  const [
+    { setTextureReplacements },
+    { setSeasonsSources },
+    { setWeaponWidgetSources },
+    { setDiverseWeaponsSources },
+    { setDfmodSources, setDfmodDetailSource },
+    { installVanillaEnhancedPack },
+    { getPref },
+  ] = await Promise.all([
+    import('../systems/textureReplacement.js'),
+    import('../systems/seasonsIliacBayAssets.js'),
+    import('../combat/weapon/weaponWidgetAssets.js'),
+    import('../combat/diverseWeapons/diverseWeaponsAssets.js'),
+    import('../systems/dfmodTextures.js'),
+    import('../systems/vanillaEnhanced/vanillaEnhancedPack.js'),
+    import('../systems/uiPrefs.js'),
+  ]);
   setDfmodDetailSource(() => getPref('dfmodTextureDetail'));   // DFMOD2: the packs card's detail choice
   installVanillaEnhancedPack();   // VE4: the shipped mods, in one load order with the attached
   const names = await storedTextureNames();

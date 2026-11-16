@@ -313,11 +313,11 @@ export function setLocationTiles(dfLocation, mapsFile, blocksFile, tilemapData) 
 }
 
 /**
- * BOOT-RECTS (2026-10-20, bible/07-Rendering/Performance-Priority.md BOOT-RECTS): SetLocationTiles' RECT FOR MANY
- * LOCATIONS IN ONE WALK - the boot's two: the Eltheric isles' templates (etherWatersBake.js etherPlaceRects, 7,538 of
- * them) and the Bay's coastal towns for Deep Waters (deepWatersClient.js deepWatersLocationRects). BlocksFile keeps ONE
- * parsed block (autoDiscard, as BlocksFile.cs:32), so a walk parsed a block again - and dried its puddles again
- * (puddleDry.js) - every time its name came round: the isles' templates name 384 blocks. The walk keeps each block's
+ * SetLocationTiles' rect for many locations in one walk. The boot runs two: the Eltheric isles' templates
+ * (etherWatersBake.js etherPlaceRects, 7,538 of them) and the Bay's coastal towns for Deep Waters
+ * (deepWatersClient.js deepWatersLocationRects). BlocksFile holds only the BLOCKS_HELD_MAX most recent parsed blocks,
+ * and the isles' templates name 384 blocks. Without a copy of its own, a walk would parse a block again, and dry its
+ * puddles again (puddleDry.js), each time its name came round. The walk keeps each block's
  * ground tiles, the one thing SetLocationTiles reads of it, for itself. A block reads alike at every location the
  * world-data door reads it at, save where a layout pin stands (worldDataReplacement.js pinnedHere): a location with one,
  * or one the door cannot place (no integer indices - its blocks read in the last place's context), reads through as it

@@ -200,23 +200,17 @@ export function layoutRmbBlock(dfBlock, { enhanced = false, windmills = true } =
  * windmillsFor above, and a subrecord carrying them as well would
  * stand every one of them twice. What it exists for is the interior.
  *
- * Idempotent, and AUDIT 39 (#20) corrected why. The old reason - that
- * BlocksFile hands back the same parsed object every time - is false:
- * blocksFile.js's autoDiscard is true and nothing ever clears it, so
- * loadBlock discards the previous block on every request and an A,B,A
- * sequence re-parses A into a NEW object (DFU is the same,
- * BlocksFile.cs:32, which is exactly why RMBLayout.cs:45-47 keeps its
- * own locationCache). The guard therefore covers the case that DOES
- * arise: one parse handed to this function more than once - and it must
- * stay, because a second append would grow the array and move the
- * recordIndex a live door refers to.
+ * Idempotent: one parse can be handed to this function more than once,
+ * and a second append would grow the array and move the recordIndex a
+ * live door refers to. BlocksFile holds recent parses but parses a block
+ * again once a reader has grown its subrecords, so the next reader of
+ * the block never sees the mill's subrecord.
  *
- * The port's stand-in for that locationCache is locationLayout, which
- * retains the parse each grid cell was laid out from. That is NOT one
- * object per cell (AUDIT 68 S22): consecutive cells naming one block,
- * and every repeat of a world-data-replaced block, share a parse - so
- * dfBlock identity names the BLOCK, and the cell is told apart by
- * position (talkTopics' blockInstanceOf).
+ * In place of RMBLayout.cs:45-47's locationCache, locationLayout
+ * retains the parse each grid cell was laid out from. Cells naming one
+ * block can share a parse, as can repeats of a world-data-replaced
+ * block. So dfBlock identity names the block, and the cell is told apart
+ * by position (talkTopics' blockInstanceOf).
  *
  * ENHANCED SKIN ONLY - see the call site: this widens subRecords, and
  * subRecords.length is the building count three subsystems bound on.

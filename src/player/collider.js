@@ -1094,6 +1094,18 @@ export class Collider {
     return { t: [t[0], t[1], t[2]], r: r ? Array.from(r) : null };
   }
 
+  /** @returns {string} */
+  shapeKey() {
+    const r = (/** @type {number} */ v) => Math.round(v * 1000);
+    const rows = [];
+    for (const b of this._buckets.values()) {
+      const t = b.moves ? b.t() : ZERO3;
+      const turn = b.r ? Array.from(b.r(), r).join(',') : '';
+      rows.push(`${b.key}:${b.tris.length}:${b.min.map(r)}:${b.max.map(r)}:${r(t[0])},${r(t[1])},${r(t[2])}:${turn}`);
+    }
+    return rows.sort().join(';');
+  }
+
   /** DECOR-ROOMS: the box every bucket's triangles stand in, in world space (each bucket's own bounds moved by its
    *  translation) - `{ min, max }`, or null for a collider that holds no triangle. */
   bounds() {

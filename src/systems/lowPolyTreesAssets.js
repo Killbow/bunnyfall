@@ -162,7 +162,10 @@ export function createLowPolyTrees({ renderer, getTexture = async () => null, se
       const spec = lpt.atlases[entry.name];
       const archives = new Set([...spec.blits.map((b) => b[0]), ...(spec.fills ?? []).map((f) => f[1])]);
       const textures = new Map();
-      for (const a of archives) textures.set(a, await getTexture(a));
+      // Asked together, so their downloads overlap.
+      const asks = [...archives].map((a) => [a, getTexture(a)]);
+      for (const [, ask] of asks) ask.catch(() => {});
+      for (const [a, ask] of asks) textures.set(a, await ask);
       const pic = await stepped(paintAtlas(spec, recordRgba(textures, entry.source), lpt.atlasesBin));
       entry.missing = pic.missing;
       entry.pic = pic; entry.picAt = now();

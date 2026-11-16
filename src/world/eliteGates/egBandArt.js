@@ -65,7 +65,7 @@ import { SD_REALM_ARCHIVE } from '../superDungeon/sdRealm.js';
 import { beatArt, SD_STEPS_RECORD, SD_BEAT_EMBER_FRAME, SD_STEPS_ATLAS, SD_STEP_BEVEL } from '../superDungeon/sdStepsArt.js';   // EG-ZL: the Beat's warning, the place's white
 import { SD_BEAT_DISSOLVE } from '../superDungeon/sdStepsModel.js';
 import { SD_BEAT_SIZE } from '../superDungeon/sdSteps.js';
-import { EG_DANGER_PALETTE_KEYS, egPaletteOf } from '../../ui/eliteGates/egAccess.js';
+import { EG_DANGER_PALETTE_KEYS, egPaletteOf } from './egDangerPalettes.js';
 import { EG_KIT_RECORD, EG_KIT_RECORDS } from './egKit.js';   // EG-LOOK (Elite-Gates-Look.md section 8): the kit's records
 import { EG_ATMOS } from './egAtmos.js';   // EG-LOOK: the haze the foundations fade to is the band's own fog
 

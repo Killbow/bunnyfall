@@ -7,8 +7,8 @@
 // decodes it, fits it to the detail as a mip chain would (mipFitSize), and hands the pixels back without a copy. The
 // pixels are decodePng's and resampleRgba's, the same as the page's own fallback draws.
 //
-// Protocol: in `{ id, url, maxSize }`; out `{ id, width, height, data }` (data transferred) or `{ id, error, unsupported }`
-// - `unsupported` when this browser has no OffscreenCanvas in a worker, and the page decodes on its own thread instead.
+// Protocol: in `{ id, url, maxSize }`; out `{ id, width, height, data, native }` or `{ id, error, unsupported }`.
+// `native` is the file's size. `unsupported`: no OffscreenCanvas in a worker, so the page decodes on its own thread.
 import { resampleRgba, mipFitSize } from '../../formats/resample.js';
 
 globalThis.onmessage = async (ev) => {
@@ -26,12 +26,13 @@ globalThis.onmessage = async (ev) => {
     const img = ctx.getImageData(0, 0, bmp.width, bmp.height);
     bmp.close?.();
     let out = { width: img.width, height: img.height, data: new Uint8Array(img.data.buffer) };
+    const native = [img.width, img.height];
     const [w, h] = mipFitSize(out.width, out.height, maxSize);
     if (w !== out.width || h !== out.height) {
       const s = resampleRgba(out, w, h);
       out = { width: s.width, height: s.height, data: new Uint8Array(s.data.buffer) };
     }
-    globalThis.postMessage({ id, width: out.width, height: out.height, data: out.data }, [out.data.buffer]);
+    globalThis.postMessage({ id, width: out.width, height: out.height, data: out.data, native }, [out.data.buffer]);
   } catch (e) {
     globalThis.postMessage({ id, error: String(e?.message ?? e), unsupported: false });
   }

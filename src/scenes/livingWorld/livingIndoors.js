@@ -125,6 +125,19 @@ export const BED_DROP_M = 1;
 export const INDOOR_STIR_S = Object.freeze([30, 90]);
 export const INDOOR_WALK_M = 7;
 export const INDOOR_WALK_SPEED = 1.2;
+export const ROOMS_KEPT = 32;
+
+// Every input of a room's layout belongs in this key, or a changed room reuses its old layout.
+/**
+ * @param {number} key @param {readonly number[]} origin @param {any} collider @param {readonly number[][]} staticFeet
+ * @param {readonly number[][]} beds @param {readonly number[][]} waysIn
+ * @returns {string|null}
+ */
+export function roomKeyOf(key, origin, collider, staticFeet, beds, waysIn) {
+  if (typeof collider?.shapeKey !== 'function') return null;
+  const at = (/** @type {readonly number[]} */ p) => p.map((v) => Math.round(v * 1000)).join(',');
+  return [key, at(origin), staticFeet.map(at).join(';'), beds.map(at).join(';'), waysIn.map(at).join(';'), collider.shapeKey()].join('|');
+}
 
 /**
  * Sound a room: LW-ROOMS - its floor walked out from `origin` (the way in), cell by cell by the steps of a lattice of
@@ -438,6 +451,8 @@ export function createLivingIndoors(deps) {
   const words = new Map();
   /** @type {Map<string, { t: number, said: boolean }>} */
   const greeted = new Map();
+  /** @type {Map<string, { spots: number[][], groups: number[][], tableOf: number[], face: number[][], beds: { feet: number[], yaw: number }[] }>} */
+  const rooms = new Map();
   let realNow = 0;
   /** LW-TALK: the player's feet at the last frame (standing still before one: a stop) @type {number[]|null} */
   let lastFeet = null;
@@ -519,7 +534,15 @@ export function createLivingIndoors(deps) {
           const face = spots.map((_, i) => faceOf(spots, groups[tableOf[i]], i, collider));
           return { spots, groups, tableOf, face, beds };
         };
-        const { spots, groups, tableOf, face, beds } = collider && deps.doorsShut ? deps.doorsShut(lay) : lay();
+        const cached = () => {
+          const sig = roomKeyOf(b.key, origin, collider, deps.staticFeet(), deps.beds?.() ?? [], deps.waysIn?.() ?? []);
+          const was = sig === null ? undefined : rooms.get(sig);
+          if (sig !== null && was) { rooms.delete(sig); rooms.set(sig, was); return was; }
+          const made = lay();
+          if (sig !== null) { rooms.set(sig, made); if (rooms.size > ROOMS_KEPT) rooms.delete(rooms.keys().next().value); }
+          return made;
+        };
+        const { spots, groups, tableOf, face, beds } = collider && deps.doorsShut ? deps.doorsShut(cached) : cached();
         // LW-ROOMS: what its floor holds - one to every INDOOR_FLOOR_M2 of it (its places, a lattice cell each); AUDIT
         // LW-ROOMS: a household at the least (a house of nine places held two of its family of three)
         const holds = Math.max(INDOOR_HOLD_MIN, Math.ceil((spots.length * INDOOR_APART_M ** 2) / INDOOR_FLOOR_M2));

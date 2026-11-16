@@ -149,6 +149,7 @@ async function build(spec, samplesOf, fetchClip, decodeClip, pause) {
     if (!raw?.length) return null;
     const g = recordGain(raw);
     src[name] = resample(raw, BAKED_RATE, SR).map((v) => v * g);
+    if (pause) await pause();
   }
   const names = Object.keys(spec.clips);
   const clips = await Promise.all(names.map(async (name) => {

@@ -281,6 +281,26 @@ export class SnowpackLattice {
     this._partial = null;
     /** OW-HITCH: the points due at a step (advance's), one list for every step */
     this._due = [];
+    /** @type {Map<number, any>} saved packs by lattice key (`seed`) */
+    this._seeds = new Map();
+  }
+  /**
+   * Packs saved by an earlier session (`records`). A point made later starts from its record when the record has the
+   * same year, air, and highest ground, and the clock is not behind it. Each point's history is its own, so it goes on
+   * from the record exactly as it would from the start of the year.
+   * @param {Iterable<any>} records
+   */
+  seed(records) {
+    for (const r of records ?? []) if (r && Number.isFinite(r.key)) this._seeds.set(r.key, r);
+  }
+  /** @param {Iterable<any>} pts */
+  records(pts) {
+    const out = [];
+    for (const pt of pts) {
+      if (pt.spin) continue;
+      out.push({ key: latticeKey(pt.i, pt.j), origin: pt.origin, step: pt.step, n: pt.n, ceil: pt.ceil, p: { ...pt.p }, swe: Float32Array.from(pt.swe), prev: Float32Array.from(pt.prev), empty: pt.empty });
+    }
+    return out;
   }
   /** The lattice index of the point nearest map pixel (px, py)'s middle. */
   indexOf(px, py) { return [Math.round((px + 0.5) / this.spacing), Math.round((py + 0.5) / this.spacing)]; }
@@ -299,8 +319,13 @@ export class SnowpackLattice {
     const ceil = pt?.ceil ?? this.topOf(i, j);
     const top = levelIndexAbove(ceil), n = top + 1;
     pt = { i, j, x, z, p, ceil, top, n, swe: new Float32Array(n), prev: new Float32Array(n), step: origin, origin, empty: true, spin: null };
-    const before = yearOriginOf(origin - 1);
-    if (!this.meltsOut(pt, before, origin)) pt.spin = { step: before, swe: new Float32Array(n), empty: true };
+    const seed = this._seeds.get(key);
+    if (seed && seed.origin === origin && seed.n === n && seed.ceil === ceil && !(t < seed.step - S) && sameAir(seed.p, p) && seed.swe?.length === n && seed.prev?.length === n) {
+      pt.swe.set(seed.swe); pt.prev.set(seed.prev); pt.step = seed.step; pt.empty = !!seed.empty;
+    } else {
+      const before = yearOriginOf(origin - 1);
+      if (!this.meltsOut(pt, before, origin)) pt.spin = { step: before, swe: new Float32Array(n), empty: true };
+    }
     this.points.set(key, pt);
     return pt;
   }
@@ -489,6 +514,11 @@ export class SnowpackLattice {
   reset() { this.points.clear(); this._systems.clear(); this._job = null; this._span = null; }
 }
 const _air = { base: 0, day: 0, th0: 0, th1: 0 };
+function sameAir(a, b) {
+  if (!a || typeof a !== 'object') return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length && kb.every((k) => Object.is(a[k], b[k]));
+}
 const _fall = { intensity: 0, rain: 0, thunder: 0, snow: 0, cover: 0 };   // OW-HITCH: a point's fall at a step, read at once
 /** A lattice point's key - an integer (AUDIT PRECIP HOST-9: a template string a read, in the grass's own loop), for the
  *  whole frame the world streams (indices within 8192 of the map's origin either way). */

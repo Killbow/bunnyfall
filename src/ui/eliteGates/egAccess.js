@@ -21,26 +21,15 @@
 //
 // Not a DFU member. Ledger A (ELITE-GATES).
 import { getPref } from '../../systems/uiPrefs.js';
-import { t } from '../../systems/textManager.js';   // AUDIT EG V (c, L7-10): a palette's name in the player's language, read when it is shown
+import { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS, egPaletteOf } from '../../world/eliteGates/egDangerPalettes.js';
 
-/** The danger palettes (section 25.7): each its danger edge, its safety gold, its place's hazard, and whether the
- *  Spire stage's double keyline (`keyline` 2) and 45-degree hatch are asked (world/eliteGates/egLook.js egPaletteBits - EG16's
- *  style bit). Standard is the five lights' own (section 25.2): TELEGRAPH_EDGE_DAGON's crimson, the way's gold, the
- *  hazard's white. */
-export const EG_DANGER_PALETTES = Object.freeze({
-  standard: Object.freeze({ key: 'standard', get name() { return t('menu.spire.palette.standard', 'Standard'); }, danger: Object.freeze([1.0, 0.24, 0.28]), safety: Object.freeze([1.0, 0.82, 0.38]), hazard: Object.freeze([0.95, 0.95, 1.0]), keyline: 1, hatch: 0 }),
-  contrast: Object.freeze({ key: 'contrast', get name() { return t('menu.spire.palette.contrast', 'High contrast'); }, danger: Object.freeze([1.0, 0.15, 0.75]), safety: Object.freeze([1.0, 0.95, 0.7]), hazard: Object.freeze([0.2, 0.95, 1.0]), keyline: 2, hatch: 1 }),
-  deutan: Object.freeze({ key: 'deutan', get name() { return t('menu.spire.palette.deutan', 'Deutan-Protan'); }, danger: Object.freeze([0.62, 0.32, 1.0]), safety: Object.freeze([1.0, 0.86, 0.2]), hazard: Object.freeze([1.0, 1.0, 1.0]), keyline: 1, hatch: 0 }),
-  tritan: Object.freeze({ key: 'tritan', get name() { return t('menu.spire.palette.tritan', 'Tritan'); }, danger: Object.freeze([1.0, 0.12, 0.2]), safety: Object.freeze([0.25, 0.9, 0.85]), hazard: Object.freeze([1.0, 1.0, 1.0]), keyline: 1, hatch: 0 }),
-});
-export const EG_DANGER_PALETTE_KEYS = Object.freeze(Object.keys(EG_DANGER_PALETTES));
+export { EG_DANGER_PALETTES, EG_DANGER_PALETTE_KEYS, egPaletteOf };
+
 /** A danger fill's light at least, at most (section 25.7: 50-100%). */
 export const EG_FILL_MIN = 0.5;
 export const EG_FILL_MAX = 1;
 /** The shelf's keys (systems/uiPrefs.js PREF_DEFAULTS). */
 export const EG_ACCESS_PREFS = Object.freeze({ palette: 'dangerPalette', fill: 'telegraphFill', motion: 'reducedMotion' });
-/** The palette a key names (Standard for anything else). */
-export const egPaletteOf = (key) => EG_DANGER_PALETTES[key] ?? EG_DANGER_PALETTES.standard;
 /** A fill's light, clamped to 50-100% (100% for anything not a number). */
 export const egFillOf = (v) => { const n = Number(v); return Number.isFinite(n) ? Math.min(EG_FILL_MAX, Math.max(EG_FILL_MIN, n)) : EG_FILL_MAX; };
 /** Whether the screen should stand still: the row, or the system's setting (`win` a window-like - its query asked once

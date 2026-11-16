@@ -138,8 +138,8 @@ export function routeGround(climateAt, heightAt, waterByte, width = MAP_W, heigh
     const n = width * height, out = new Uint8Array(n), entered = new Uint8Array(n), root = new Int32Array(n);
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        for (const [bit, dx, dy] of DIR_DELTA) {
-          const bx = x + dx, by = y + dy;
+        for (let d = 0; d < 8; d++) {
+          const bit = STEP_BIT[d], bx = x + STEP_DX[d], by = y + STEP_DY[d];
           if (bx < 0 || by < 0 || bx >= width || by >= height) continue;
           if (stepKind(x, y, bx, by, bit, width, height, roads, tracks, isWater, openBlocked, 0, false) < 0) continue;
           out[y * width + x] |= bit;
@@ -152,8 +152,8 @@ export function routeGround(climateAt, heightAt, waterByte, width = MAP_W, heigh
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const a = y * width + x;
-        for (const [bit, dx, dy] of HALF_COMPASS) {
-          const bx = x + dx, by = y + dy;
+        for (let d = 0; d < HALF_BIT.length; d++) {
+          const bit = HALF_BIT[d], bx = x + HALF_DX[d], by = y + HALF_DY[d];
           if (bx < 0 || by < 0 || bx >= width || by >= height) continue;
           const b = by * width + bx;
           if (!((entered[a] && (out[a] & bit)) || (entered[b] && (out[b] & BACK_BIT[bit])))) continue;
@@ -215,6 +215,7 @@ for (const [bit, back] of Object.entries(OPPOSITE_BIT)) BACK_BIT[Number(bit)] = 
 /** The compass unpacked for the hot loop (roadNetwork's DIR_DELTA, one table), and its half: each pair of neighbours once. */
 const STEP_BIT = DIR_DELTA.map(([bit]) => bit), STEP_DX = DIR_DELTA.map(([, dx]) => dx), STEP_DY = DIR_DELTA.map(([, , dy]) => dy);
 const HALF_COMPASS = DIR_DELTA.filter(([, dx, dy]) => dy > 0 || (dy === 0 && dx > 0));
+const HALF_BIT = HALF_COMPASS.map(([bit]) => bit), HALF_DX = HALF_COMPASS.map(([, dx]) => dx), HALF_DY = HALF_COMPASS.map(([, , dy]) => dy);
 const KIND_NAMES = ['road', 'track', 'open'];
 /** THE MERGE (OW4 x OWS2): a state's step kinds - the land's three (stepKind's), then the crossing's. */
 const STEP_NAMES = ['road', 'track', 'open', 'sea', 'embark', 'landfall'];
@@ -280,6 +281,7 @@ function stepKind(ax, ay, bx, by, bit, width, height, roads, tracks, isWater, op
 class Heap {
   constructor() { this.p = []; this.v = []; }
   get size() { return this.p.length; }
+  clear() { this.p.length = 0; this.v.length = 0; }
   push(pri, val) {
     const p = this.p, v = this.v;
     let i = p.length;
@@ -371,16 +373,39 @@ export function planRoute(from, to, { roads = null, tracks = null, isWater = () 
   return best;
 }
 
-function search(from, to, { roads, tracks, isWater, width, height, bounds, margin, maxExpansions, openBlocked, goalExempt, peakAt, sea }) {
+// A search whose box holds more states than the shared scratch, or one nested in another, gets arrays of its own.
+const ROUTE_SCRATCH_STATES = 1 << 16;
+let scratch = null, scratchBusy = false;
+function searchArrays(states) {
+  if (scratchBusy || states > ROUTE_SCRATCH_STATES) {
+    return { g: new Float64Array(states).fill(Infinity), came: new Int32Array(states), via: new Uint8Array(states), closed: new Uint8Array(states), open: new Heap() };
+  }
+  const n = ROUTE_SCRATCH_STATES;
+  scratch ??= { g: new Float64Array(n), came: new Int32Array(n), via: new Uint8Array(n), closed: new Uint8Array(n), open: new Heap() };
+  scratch.g.fill(Infinity, 0, states);
+  scratch.closed.fill(0, 0, states);
+  scratch.open.clear();
+  scratchBusy = true;
+  return scratch;
+}
+
+function search(from, to, opts) {
+  const held = scratchBusy;
+  try {
+    return searchBox(from, to, opts);
+  } finally {
+    if (!held) scratchBusy = false;
+  }
+}
+
+function searchBox(from, to, { roads, tracks, isWater, width, height, bounds, margin, maxExpansions, openBlocked, goalExempt, peakAt, sea }) {
   const x0 = Math.max(bounds.x0, Math.min(from.x, to.x) - margin), x1 = Math.min(bounds.x1, Math.max(from.x, to.x) + margin);
   const y0 = Math.max(bounds.y0, Math.min(from.y, to.y) - margin), y1 = Math.min(bounds.y1, Math.max(from.y, to.y) + margin);
   const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
   const local = (x, y) => (y - y0) * bw + (x - x0);
   const cells = bw * bh, layers = sea ? 3 : 1;   // OWS2: a state is a cell in a layer
-  const g = new Float64Array(cells * layers).fill(Infinity);
-  const came = new Int32Array(cells * layers).fill(-1);
-  const via = new Uint8Array(cells * layers);   // the kind of step the state was reached by: an index into STEP_NAMES
-  const closed = new Uint8Array(cells * layers);
+  // `came` and `via` (an index into STEP_NAMES) are read only along the found path, so they are never reset
+  const { g, came, via, closed, open } = searchArrays(cells * layers);
   const h = (x, y) => { const dx = Math.abs(x - to.x), dy = Math.abs(y - to.y); return (Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy)) * ROUTE_COST.road; };
   const goal = local(to.x, to.y), startCell = local(from.x, from.y);
   const startLayer = !sea ? 0 : sea.start === 'sea' ? AFLOAT : ASHORE;
@@ -409,7 +434,7 @@ function search(from, to, { roads, tracks, isWater, width, height, bounds, margi
   }
   const start = startLayer * cells + startCell;
   g[start] = 0;
-  const open = new Heap();
+  came[start] = -1;
   open.push(h(from.x, from.y), start);
   let expanded = 0, reached = -1;
   while (open.size) {

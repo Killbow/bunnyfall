@@ -124,6 +124,9 @@ export function runLength(a) {
 
 /** AUDIT WD3 B4: how many decoded nodes a pack keeps - the most recently read; the rest are read again when asked. */
 export const DECODED_NODES_MAX = 1024;
+/** How many rebuilt block files a pack keeps, the oldest made dropped first; the boot's location walks ask some
+ *  twice. */
+export const REBUILT_FILES_MAX = 512;
 
 /** The `$` key of a reference object, or null. */
 function refKey(v) {
@@ -152,6 +155,8 @@ export function openWorldDataPack(pack, env) {
   const classicJson = new Map();   // block index -> the block's DFU JSON, as the editor would write it
   const classicNames = pack.classicNames ?? null;   // AUDIT WD3 P5: block index -> the name the pack was built against
   const keptFiles = new Map();     // a file another file is based on, rebuilt once
+  // Rebuilt block files share their nodes, so nothing may write to them.
+  const rebuiltFiles = new Map();
   const baseTargets = new Set(pack.bases ?? []);
   if (!pack.bases) for (const name of Object.keys(rawFiles)) { const base = fileEntry(name)?.[1]; if (base?.[0] === 'f') baseTargets.add(base[1]); }
   const onRebuilt = typeof env.onRebuilt === 'function' ? env.onRebuilt : null;
@@ -170,7 +175,7 @@ export function openWorldDataPack(pack, env) {
     return j;
   }
 
-  /** A value with every reference expanded. Shared pieces are returned shared - patchJson copies what it lays. */
+  /** A value with every reference expanded. Shared pieces are returned shared, and nothing here writes to them. */
   function expand(v) {
     if (Array.isArray(v)) {
       let out = null;
@@ -212,7 +217,7 @@ export function openWorldDataPack(pack, env) {
       const dec = ROW_CODECS[k];
       node = v[k].map((row) => (Array.isArray(row) || typeof row === 'number' ? dec(row) : expand(row)));
     } else throw new Error(`world-data pack: ${pack.vendor}: unknown reference ${k}`);
-    return v.$o ? patchJson(node, expandOps(v.$o)) : node;
+    return v.$o ? patchJson(node, expandOps(v.$o), null, { shared: true }) : node;
   }
 
   function nodeAt(id) {
@@ -259,14 +264,19 @@ export function openWorldDataPack(pack, env) {
   /** The mod's file, rebuilt: the DFU JSON the author shipped. Throws when the file is not in the pack, a base does
    *  not read as named, or an op does not land. */
   function rebuild(name, maps = null) {
-    const kept = keptFiles.get(name);
+    const kept = keptFiles.get(name) ?? rebuiltFiles.get(name);
     if (kept) return kept;
     if (!Object.hasOwn(rawFiles, name)) throw new Error(`world-data pack: ${pack.vendor} has no ${name}`);
     const [sha, base, ops] = fileEntry(name);
-    // WD-OWNED: a location's base is made here for this file alone (locationToDfuJson over a fresh read of the town), so
-    // the edits are laid on it; a block's (classicJson) and a file's (keptFiles) are kept for the next, so laid on a copy
-    const json = patchJson(baseOf(name, base, maps), expandOps(ops), null, { owned: base?.[0] === 'l' });
+    // A location base is a fresh read made for this file alone, so the edits are laid on it in place.
+    // Block and file bases are kept for the next file, so the edits copy them on write.
+    const owned = base?.[0] === 'l';
+    const json = patchJson(baseOf(name, base, maps), expandOps(ops), null, owned ? { owned } : { shared: true });
     if (baseTargets.has(name)) keptFiles.set(name, json);
+    else if (!owned) {
+      rebuiltFiles.set(name, json);
+      if (rebuiltFiles.size > REBUILT_FILES_MAX) rebuiltFiles.delete(rebuiltFiles.keys().next().value);
+    }
     onRebuilt?.(name, json, sha);
     return json;
   }
@@ -280,7 +290,7 @@ export function openWorldDataPack(pack, env) {
     baseOf: (name) => (Object.hasOwn(rawFiles, name) ? fileEntry(name)[1] : null),
     rebuild,
     /** Let go of what was decoded (a world host's teardown). */
-    release() { decodedNodes.clear(); classicJson.clear(); keptFiles.clear(); },
+    release() { decodedNodes.clear(); classicJson.clear(); keptFiles.clear(); rebuiltFiles.clear(); },
   });
 }
 

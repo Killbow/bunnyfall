@@ -137,6 +137,8 @@ export function createPixelBuild(host) {
    */
   async function standFlatGroups(g, { batches, forestGroups, coverItems, lptHandles, lptGroups }) {
     let lptPathMask = null;   // LPT-FIT: the pixel's path tiles, made at its first fitted tree
+    // Every group's archive is asked at once, so their downloads overlap. The loops below keep their order.
+    for (const a of new Set([...g.groups.keys()].map((k) => Number(k.split('_')[0])))) getTexture(a).catch(() => {});
     // FB1020c TRUNK-FIT: THE PIXEL'S SOLID THINGS, measured before any tree is stood - a fountain, a well, a crate, a statue:
     // PROP-BODIES' own bodies (world/propBodies.js flatBody, each foot off its own picture) of every flat of no nature
     // archive (rmbFlats.js isNatureArchive - a block's own tree is no solid thing, nor a rock of its scenery). Asked first
