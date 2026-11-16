@@ -71,18 +71,19 @@ async function expireDrafts(db, mapId, buildingKey, nowS) {
 }
 
 /**
- * A letter from the decorator to the owner that a template arrived. It is skipped, never refused, when the owner
- * blocked the decorator or the decorator is muted. It is also skipped when the hourly letters or the box are full.
- * @param {{ db: any, rand: any, nowS: number }} ctx @param {any} sender @param {string} ownerId @param {string} body
+ * A letter about a template, from the decorator to the owner or back. It is skipped, never refused, when the reader
+ * blocked the sender or the sender is muted. It is also skipped when the hourly letters or the box are full.
+ * @param {{ db: any, rand: any, nowS: number }} ctx @param {any} sender @param {string} toId @param {string} body
+ * @param {string} [subject]
  */
-export async function templateLetter(ctx, sender, ownerId, body) {
+export async function templateLetter(ctx, sender, toId, body, subject = TEMPLATE_LETTER_SUBJECT) {
   const { db, rand, nowS } = ctx;
-  if (isMuted(sender, nowS) || ownerId === sender.id) return false;
-  if (await db.prepare('SELECT 1 AS y FROM blocks WHERE player = ?1 AND blocked = ?2').bind(ownerId, sender.id).first()) return false;
-  if (await overRate({ db, nowS }, `mail:${sender.id}>${ownerId}`, LETTERS_PAIR_MAX, LETTERS_SENT_WINDOW_S)) return false;
+  if (isMuted(sender, nowS) || toId === sender.id) return false;
+  if (await db.prepare('SELECT 1 AS y FROM blocks WHERE player = ?1 AND blocked = ?2').bind(toId, sender.id).first()) return false;
+  if (await overRate({ db, nowS }, `mail:${sender.id}>${toId}`, LETTERS_PAIR_MAX, LETTERS_SENT_WINDOW_S)) return false;
   const r = await db.prepare(`INSERT INTO letters (id, to_id, from_id, from_name, subject, body, sent_at)
     SELECT ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM letters WHERE to_id = ?) < ?`)
-    .bind(mintId(rand), ownerId, sender.id, displayName(sender), TEMPLATE_LETTER_SUBJECT, body, nowS, ownerId, LETTERS_INBOX_MAX).run();
+    .bind(mintId(rand), toId, sender.id, displayName(sender), subject, body, nowS, toId, LETTERS_INBOX_MAX).run();
   return !!r?.meta?.changes;
 }
 export const TEMPLATE_LETTER_SUBJECT = 'A decorating template for you';

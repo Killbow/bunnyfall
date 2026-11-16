@@ -488,8 +488,8 @@ export const ROUTES = new Set([
   '/v1/homes/decor', '/v1/homes/decor/place', '/v1/homes/decor/move', '/v1/homes/decor/remove', '/v1/homes/decor/batch', '/v1/homes/decor/use',
   // BASE-HIDE: what the owner took out of the room's own furniture - read with the pieces, written by the owner
   '/v1/homes/decor/hidden',
-  // An owner's decorators and their templates (decorators.js, decoratorDrafts.js)
-  '/v1/homes/decorators', '/v1/homes/decor/draft', '/v1/homes/decor/accept',
+  // An owner's decorators and their templates (decorators.js, decoratorDrafts.js, caravanTemplates.js)
+  '/v1/homes/decorators', '/v1/homes/decor/draft', '/v1/homes/decor/accept', '/v1/homes/caravan/decorators', '/v1/homes/caravan/templates',
   // BUNNYFALL CAMPS (camps.js): a player's camp in the open world - read by every session, the rest its owner's
   '/v1/camps/near', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove',
   // HOME-RENT: a home's rooms (rent.js) - read by every session at its door; offered and withdrawn by its owner, rented by

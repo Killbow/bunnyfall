@@ -349,6 +349,8 @@ import { decorUse } from './decorAccess.js';   // DECOR-ACCESS: who may use a co
 import { DECOR_BATCH_BYTES } from '../../src/net/decorLaw.js';
 import { decoratorsRoute } from './decorators.js';
 import { saveDraft, acceptDraft } from './decoratorDrafts.js';
+import { caravanRoute } from './caravanTemplates.js';
+import { TEMPLATE_BODY_BYTES } from '../../src/net/decoratorLaw.js';
 import { gateStrikeStatement, gateStrikeAnswer, raidStrikeStatement, combatStrikeAnswer, raidStrikeRid, deedStatements, deedAnswer, deedEvent, marksOf, marksCardOf, exchangeMarks, depositGuildMarks, withdrawGuildMarks, marksReport, serpentStrikeStatement, serpentStrikeAnswer, findMarks, starStrikeStatement, starStrikeRid } from './marks.js';   // MARKS1: the server's currency; SILVER-WAYS: a raid's silver and a guild's deeds
 import { readBoard, pinNote, takeDownNote, reportNote, moderateNote, postNotice, removeNotice } from './board.js';   // NOTICE1: the Notice Board
 import { craftWritBoard, deliverCraftWrit } from './craftWrits.js';   // CRAFT-WRITS: the guilds' asks of a crafter
@@ -1051,10 +1053,10 @@ const service = {
       // PRIVATE-REPORT: and a report's words, to theirs (reportLaw.js REPORT_BODY_BYTES). LOST-SPOILS: and a floor's leftovers,
       // to theirs (lostLaw.js LOST_BODY_MAX - the largest spoils send past 4 KiB)
       const body = request.method === 'POST'
-        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : poiActPath(path) ? POI_ACT_BODY_MAX : path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept' ? DECOR_BATCH_BYTES : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : path === '/v1/post/lost' ? LOST_BODY_MAX : path === '/v1/skins/upload' ? SKIN_BODY_MAX : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines; DECOR-BATCH: a home's Confirm; LOST-SPOILS
+        ? await readBody(request, path === '/v1/realm/lineage' ? LINEAGE_BODY_MAX : path === '/v1/realm/trade' ? REALM_TRADE_BODY_MAX : poiActPath(path) ? POI_ACT_BODY_MAX : path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept' ? DECOR_BATCH_BYTES : path === '/v1/homes/caravan/templates' ? TEMPLATE_BODY_BYTES : path === '/v1/safety/report' ? REPORT_BODY_MAX : path === '/v1/report/send' ? REPORT_BODY_BYTES : path === '/v1/post/lost' ? LOST_BODY_MAX : path === '/v1/skins/upload' ? SKIN_BODY_MAX : MAX_BODY_BYTES) : {};   // SAFE3: a report's stamped lines; DECOR-BATCH: a home's Confirm; LOST-SPOILS
       if (body === undefined && path === '/v1/realm/lineage') return no('lineage-too-large', 413, origin);
       // A body past its route's cap is refused before a session is read.
-      if (body === undefined && (path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept')) return no('too-large', 413, origin);
+      if (body === undefined && (path === '/v1/homes/decor/batch' || path === '/v1/homes/decor/draft' || path === '/v1/homes/decor/accept' || path === '/v1/homes/caravan/templates')) return no('too-large', 413, origin);
       if (!body) return no('body', 400, origin);
       // YARD-SHED (2026-10-06, the service down - "D1 DB is overloaded. Requests queued for too long."): A TOWN'S YARDS NEED
       // NO SESSION. Its answer is every caller's alike, any guest's to read (decor.js yardsKept), and the two reads a
@@ -1808,8 +1810,8 @@ const service = {
           return 'error' in r ? no(r.error, r.error === 'no-home' ? 404 : 400, origin) : json(r, 200, origin);
         }
         if (accountKind(who.player) !== 'linked') return no('homes-need-account', 403, origin);
-        if (path === '/v1/homes/decorators') {
-          const r = await decoratorsRoute(ctx, who.player, body);
+        if (path === '/v1/homes/decorators' || path.startsWith('/v1/homes/caravan/')) {
+          const r = path === '/v1/homes/decorators' ? await decoratorsRoute(ctx, who.player, body) : await caravanRoute(ctx, who.player, path, body);
           return 'error' in r ? no(r.error, DECORATOR_STATUS[r.error] ?? 400, origin) : json(r, 200, origin);
         }
         if (path.startsWith('/v1/camps/')) {   // BUNNYFALL CAMPS: pitched, struck, renamed and furnished - a linked account's
