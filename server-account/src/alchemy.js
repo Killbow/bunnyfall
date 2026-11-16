@@ -14,17 +14,17 @@
 // The professions' own laws stand (professions.js): a registered
 // account's character, the switch, one statement deciding each act
 // against the rows as they stand with a fresh nonce, a request asked twice
-// answered from its row (`repeat`), bought units spent first, the
-// crafter's limit on the XP, every clock an argument.
+// answered from its row (`repeat`), bought units spent first,
+// every clock an argument.
 // ═══════════════════════════════════════════════════════════════════
 import { mintId, overRate } from './accounts.js';
 import {
-  asks, shut, trackView, trackRow, storeOf, seatStepsFor, workableSql, workStatements, workHeld,   // FB1020h ESSENCE-LOOSE: the Reforge a station's spend
-  craftCapSql,   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
+  asks, shut, trackView, trackRow, storeOf, seatStepsFor, workableSql, workStatements, workHeld, focusXpSql,   // FB1020h ESSENCE-LOOSE: the Reforge a station's spend
 } from './professions.js';
 import { dice } from './unitRoll.js';   // SILVER-FINDS: the service's dice moved below professions.js and marks.js
-import { rankOfXp, specsAt, STORES_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, ARCANE_ESSENCE, trackOf } from '../../src/net/professionLaw.js';
+import { rankOfXp, specsAt, STORES_MAX, PROF_XP_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S, ARCANE_ESSENCE, trackOf } from '../../src/net/professionLaw.js';
 import { recipeById, PROVENANCE_RE } from '../../src/net/recipeLaw.js';
+import { halfXp } from '../../src/net/craft/craftLaw.js';
 import {
   potionById, brewSpends, brewCount, potentChance, potentPct, potentAble, brewXp, brewFirstXp, DISTILLER,
   piecePoints, essenceOf, disenchantXp, DISENCHANTER,
@@ -72,7 +72,7 @@ async function brewAnswer(db, player, row, nowS, extra = {}) {
  * (prof_unbruised, its units reckoned against the OWN units spent - bought ones are spent first), a Distiller's +10, the
  * hall's; its share +25, a Master Alchemist's +40. The potions a brew makes: brewCount (2 - CRAFT-PAYS's, it was 1; 2 at Journeyman, a Brewer's 3;
  * 3 at Master - AUDIT PROF-541 R2-S1: one whatever the rank for a potion wholly of the Apothecaries' goods). XP 20 x the potion's tier, and the character's first of it Provisioning's first-make share (FIRST-BUDGET,
- * recipeLaw brewFirstXp - none for one made wholly of the Apothecaries' goods, brewFirstPays), under the crafter's limit. Decided by the brew's own INSERT: every input held (never gold's).
+ * recipeLaw brewFirstXp, none for Apothecaries' goods alone). Decided in its INSERT: every input held, never gold's.
  * Then the unbruised count down by what it reckoned, the inputs out (bought first - the count clamped to the own units
  * left, AUDIT PROF12 A1), the XP in. The potions are the
  * client's to mint on the answer (DFU's own potion, potions.js's key; a Potent one carries its share).
@@ -92,7 +92,7 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
   if (await overRate(ctx, `prof:${player.id}`, PROF_OPS_MAX, PROF_OPS_WINDOW_S)) return { error: 'prof-rate' };
   const { rank, specs } = await tracksOf(db, player.id, character, 'alchemy', nowS);
   if (rank < potion.rank) return { error: 'prof-rank' };
-  const cap = craftCapSql('?1', '?2', 'alchemy');   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
+  const cap = PROF_XP_MAX;
   const steps = await seatStepsFor(db, player.id, character, seat, 'alchemy', nowS);
   // THE UNBRUISED HERBS (4.3): each herb's own units this brew spends (bought ones go first - AUDIT BAG-CRAFT A1: and loose
   // ones before them, never picked by this character), at most what was picked unbruised
@@ -127,9 +127,8 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
   // every brew of the character's fills one
   const loose = `EXISTS (SELECT 1 FROM prof_stores WHERE player = ?1 AND char_id = ?2 AND origin = '${LOOSE_ORIGIN}' AND qty > 0 AND material IN (${inputs.map((_, i) => `?${14 + 2 * i}`).join(', ')}))`;
   await db.batch([
-    // THE DECISION: every input held - and the XP what the track can take under the crafter's limit, the first brew's -
-    // Provisioning's first-make share (FIRST-BUDGET, ?11)
-    // laid on when the character has brewed none of the potion
+    // The decision: every input held, and the XP the track can take. A first brew of the potion adds Provisioning's
+    // first-make share (?11).
     db.prepare(`INSERT OR IGNORE INTO prof_brews (player, rid, char_id, potion, keys, count, potent, unbruised, steps, xp, first, at, n, witnessed)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8, ?9,
         MAX(0, MIN(?10 + f * ?11, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = '${trackOf('alchemy')}'), 0))),
@@ -145,7 +144,7 @@ export async function brewAtStation(ctx, player, env, { character, potion: id, k
     ...inputs.flatMap((inp) => workStatements(db, {   // AUDIT BAG-CRAFT A1: its loose units before the bought
       player: player.id, character, materialSql: '?3', qtySql: '?4', guard: decided, binds: [inp.key, inp.n, rid, nonce],
     })),
-    // the XP the decision credited, under the crafter's limit
+    // the XP the decision credited
     db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
       SELECT ?1, ?2, '${trackOf('alchemy')}', MIN(${cap}, xp), ?4 FROM prof_brews WHERE player = ?1 AND rid = ?3 AND n = ?5
       ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
@@ -187,7 +186,7 @@ async function disenchantAnswer(db, player, row, nowS, extra = {}) {
  * raised with (FB1020h ESSENCE-LOOSE: products.loose - AUDIT BAG-CRAFT A1's wall, never a purchase; a station's, as a
  * smelt's products of loose goods are), else BOUGHT. Enchanting XP: alchemyLaw disenchantXp (5
  * x the PIECE's recipe's tier an Essence before the doubling, quartered more than two tiers below the rank's top, none for a
- * piece made wholly of the counter's goods - AUDIT PROF12 E2), under the crafter's limit. The client takes the piece out of its pack
+ * counter-made piece). The client takes the piece out of its pack
  * on the answer.
  * AUDIT PROF-541 B2: A REALM CHARACTER'S PIECE LEAVES ITS RECORD IN THE SAME ACT - `realm` where its record stands, asked
  * before any other word (realm.js realmActFirst), and the piece taken out of that record by its provenance (realmTradeLaw
@@ -226,7 +225,7 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
   const essence = essenceOf(points, specs[50] === DISENCHANTER);
   if (essence < 1) return { error: 'prof-no-essence' };
   const origin = p.bought_with === 'gold' ? (Number(p.loose) === 1 ? LOOSE_ORIGIN : 'gold') : p.char_id === character && p.bought_with == null ? 'own' : 'bought';   // FB1020h ESSENCE-LOOSE
-  const cap = craftCapSql('?1', '?2', 'enchanting');   // AUDIT FB1018f L5-1: the crafter's limit read in the decision itself
+  const cap = PROF_XP_MAX;
   const xp = scaleXp(disenchantXp(r, rank, base, p.bought_with == null), xpPct(await firmStatsOf(db, player, env, character), 'enchanting'));   // AUDIT PROF12 E2: the piece's recipe's tier, quartered; none for the counter's goods alone - CLOTH-GEMS: but for a piece of them made of own units (S1 judged by the units: never bought) - FIRM1: the Firmament's hand on it
   // AUDIT PROF-541 B2: THE RECORD'S OWN PIECE - a realm character's, out of the record its tab last checkpointed
   const prep = side.at ? await prepareRealmRecord(ctx, player.id, side.at, (save) => {
@@ -240,10 +239,10 @@ export async function disenchantPiece(ctx, player, env, { character, provenance,
   const batch = [
     ...(prep ? prep.steps : []),
     // THE DECISION: the piece this account's, on no listing, no road and in no home, the Essence's room - and the XP what
-    // the track can take under the crafter's limit
+    // the track can take
     db.prepare(`INSERT OR IGNORE INTO prof_disenchants (player, rid, char_id, provenance, recipe, points, essence, origin, xp, at, n)
       SELECT ?1, ?3, ?2, ?4, ?5, ?6, ?7, ?8,
-        MAX(0, MIN(?9, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = 'enchanting'), 0))),
+        MAX(0, MIN(${focusXpSql('?1', '?2', 'enchanting', '?9', halfXp(xp))}, ${cap} - COALESCE((SELECT xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2 AND profession = 'enchanting'), 0))),
         ?10, ?11
       WHERE EXISTS (SELECT 1 FROM products WHERE provenance = ?4 AND owner = ?1 AND listed = 0)
         AND NOT EXISTS (SELECT 1 FROM market_deliveries WHERE provenance = ?4 AND collected = 0)

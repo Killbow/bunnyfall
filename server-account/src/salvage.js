@@ -7,9 +7,10 @@
 // are the save's word (the service cannot see the pack); the client drops them only on an answer.
 import { mintId, overRate } from './accounts.js';
 import { dice } from './unitRoll.js';
-import { asks, shut, storeOf, trackRow, trackView, craftCapSql } from './professions.js';
-import { STORES_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
-import { rollSalvage, descriptorOk, salvageCommits, salvageRecipeOf, salvageDescriptor, SALVAGE_BATCH_MAX } from '../../src/net/salvageLaw.js';
+import { asks, shut, storeOf, trackRow, trackView, focusXpSql } from './professions.js';
+import { halfXp } from '../../src/net/craft/craftLaw.js';
+import { STORES_MAX, PROF_XP_MAX, PROF_OPS_MAX, PROF_OPS_WINDOW_S } from '../../src/net/professionLaw.js';
+import { rollSalvage, descriptorOk, salvageRecipeOf, salvageDescriptor, SALVAGE_BATCH_MAX } from '../../src/net/salvageLaw.js';
 import { prepareRealmRecord, realmActFirst, recordMovedOf, mustChange, dropObjects, dropIfUnnamed } from './realm.js';
 import { tradeableRecord, realmTradePickOf } from '../../src/net/realm/realmTradeLaw.js';
 
@@ -47,7 +48,7 @@ async function salvageAnswer(db, player, row, nowS, extra = {}) {
 }
 
 /** A salvage: the pieces' materials into the Stores, the XP onto their crafts' tracks, all in one batch. */
-export async function salvagePieces(ctx, player, env, { character, rid, pieces, commit = [], realm = null, picks = null } = {}) {
+export async function salvagePieces(ctx, player, env, { character, rid, pieces, realm = null, picks = null } = {}) {
   const { db, nowS, rand } = ctx;
   const refused = asks(player, { character, rid });
   if (refused) return refused;
@@ -62,12 +63,6 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces, 
   if (side.at && realmTradePickOf(picks, pieces.length) == null) return { error: 'bad-piece' };
   const roll = rollSalvage(pieces, () => dice(rand));
   if (roll.broken < 1) return { error: 'prof-no-salvage' };
-  // BUNNYFALL SPEC-SAFE: a salvage that would carry a craft past Journeyman - one of the two a character may raise - is
-  // done only with the player's word for that craft (`commit`). Nothing has been written yet, so a refusal costs nothing.
-  const { results: heldRows = [] } = await db.prepare('SELECT profession, xp FROM prof_tracks WHERE player = ?1 AND char_id = ?2').bind(player.id, character).all();
-  const crossing = salvageCommits(roll.xp, Object.fromEntries(heldRows.map((r) => [r.profession, Number(r.xp)])));
-  const agreed = Array.isArray(commit) ? commit : [];
-  if (crossing.some((t) => !agreed.includes(t))) return { error: 'prof-salvage-commit', tracks: crossing };
   // the Stores' room: a material past it keeps only what fits
   const yields = [];
   for (const y of roll.yields) {
@@ -80,18 +75,19 @@ export async function salvagePieces(ctx, player, env, { character, rid, pieces, 
   if (prep?.error) return prep;
   const nonce = mintId(rand);
   const decided = 'EXISTS (SELECT 1 FROM prof_salvages WHERE player = ?1 AND rid = ?2 AND n = ?3)';
+  const xpJson = `json_object(${Object.entries(roll.xp).map(([t, x]) => `'${t}', ${focusXpSql('?1', '?3', t, String(x), halfXp(x))}`).join(', ')})`;
   const batch = [
     ...(prep ? prep.steps : []),
-    db.prepare(`INSERT OR IGNORE INTO prof_salvages (player, rid, char_id, pieces, yields, xp, at, n) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
-      .bind(player.id, rid, character, roll.broken, JSON.stringify(yields), JSON.stringify(roll.xp), nowS, nonce),
+    db.prepare(`INSERT OR IGNORE INTO prof_salvages (player, rid, char_id, pieces, yields, xp, at, n) VALUES (?1, ?2, ?3, ?4, ?5, ${xpJson}, ?6, ?7)`)
+      .bind(player.id, rid, character, roll.broken, JSON.stringify(yields), nowS, nonce),
     ...yields.map((y) => db.prepare(`INSERT INTO prof_stores (player, char_id, material, origin, qty)
       SELECT ?1, ?4, ?5, 'own', ?6 WHERE ${decided}
       ON CONFLICT (player, char_id, material, origin) DO UPDATE SET qty = MIN(${STORES_MAX}, prof_stores.qty + excluded.qty)`)
       .bind(player.id, rid, nonce, character, y.key, y.n)),
     ...Object.entries(roll.xp).map(([track, xp]) => {
-      const cap = craftCapSql('?1', '?4', track);
+      const cap = PROF_XP_MAX;
       return db.prepare(`INSERT INTO prof_tracks (player, char_id, profession, xp, updated_at)
-        SELECT ?1, ?4, ?5, MIN(${cap}, ?6), ?7 WHERE ${decided}
+        SELECT ?1, ?4, ?5, MIN(${cap}, ${focusXpSql('?1', '?4', track, '?6', halfXp(xp))}), ?7 WHERE ${decided}
         ON CONFLICT (player, char_id, profession) DO UPDATE SET xp = MAX(prof_tracks.xp, MIN(${cap}, prof_tracks.xp + excluded.xp)), updated_at = excluded.updated_at`)
         .bind(player.id, rid, nonce, character, track, xp, nowS);
     }),

@@ -60,6 +60,7 @@
 
 import { RECIPES, recipeById, QUALITY_EFFECTS, MASTERWORK, craftXp, ARMOR_LEATHER, ARMOR_CHAIN, qualityOdds, masterworkSpec } from './recipeLaw.js';
 import { REFORGES_MAX } from '../systems/loot/lootRarity.js';   // REFORGE-REPLACE: the most reforges a piece counts - the ladder's one bound (the service loads the ladder already, through the item law)
+import { NON_FOCUS_QUALITY_MAX } from './craft/craftLaw.js';
 
 /** The highest quality a temper can reach (Masterwork). temperCap may set a lower limit. */
 export const TEMPER_TOP = 4;   // BUNNYFALL: a temper reaches Masterwork (was Superior)
@@ -106,12 +107,13 @@ export const TEMPER_GOLD = Object.freeze([0, 100, 100, 300, 1000]);
 export const temperGold = (from) => TEMPER_GOLD[from + 1] ?? 0;
 /** BUNNYFALL: a station's fee with a temper's gold laid on it (null where there is no station). */
 export const withTemperGold = (f, from) => (f ? { ...f, fee: (f.fee > 0 ? f.fee : 0) + temperGold(from) } : null);
-/** BUNNYFALL: the highest quality a crafter's rank reaches on a recipe - the best its craft could roll at that margin. */
-export function temperCap(r, rank, spec100 = null) {
+/** BUNNYFALL: the highest quality a crafter's rank reaches on a recipe - the best its craft could roll at that margin.
+ *  Off Focus it stops at Superior, as the Bench does. */
+export function temperCap(r, rank, spec100 = null, focus = true) {
   const odds = qualityOdds((Number(rank) || 0) - (r?.rank ?? 0), { masterwright: masterworkSpec(spec100, r) });
   let top = 0;
   for (let q = 0; q < odds.length; q++) if (odds[q] > 0) top = q;
-  return top;
+  return focus ? top : Math.min(top, NON_FOCUS_QUALITY_MAX);
 }
 /** A temper's XP: the craft's, at the recipe's tier (a quarter more than two tiers below the rank's top), no first.
  *  @param {any} r @param {number} rank */
