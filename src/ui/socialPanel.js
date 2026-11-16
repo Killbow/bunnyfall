@@ -73,7 +73,7 @@ import { GUILD_HALL_PRICE_MULT, GUILD_HALL_ENTRIES, GUILD_HALL_ENTRY_WORDS, hall
 import { homeSaleRefund } from '../net/homeLaw.js';   // GUILD1d: what the hall sells back for
 import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the hall stands
 import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
-import { TERRITORY_YIELD_PCT } from '../net/territoryLaw.js';
+import { TERRITORY_YIELD_PCT, territoryKeepXp } from '../net/territoryLaw.js';
 import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText } from '../net/garrisonLaw.js';
 import { farmChoreDoneText } from '../systems/farmDoor.js';
 import { CROPS, CHORE_BONUS, farmWordText, cropOf } from '../net/farmLaw.js';   // BUNNYFALL COMPANIES: farms   // BUNNYFALL COMPANIES: garrisons
@@ -546,6 +546,8 @@ textarea.dfsocial-field { resize: vertical; min-height: 120px; line-height: 1.4;
 .dfguild-navsub { font-size: 11px; line-height: 1.35; color: var(--dim, #9a9486); }
 /* the page: its column, its cards, and a reading size for everything in them */
 .dfguild-main { flex: 1; min-width: 0; overflow-y: auto; padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 12px; }
+.dfguild-keepbar { flex: none; height: 6px; margin: 2px 0 6px; background: rgba(0, 0, 0, .35); border: 1px solid var(--iron, #2b323b); border-radius: 3px; overflow: hidden; }
+.dfguild-keepbar > div { height: 100%; background: var(--brass, #c08a3e); }
 .dfguild-card { flex: none; display: flex; flex-direction: column; padding: 6px 14px 12px; background: rgba(255, 255, 255, .025);
   border: 1px solid var(--iron, #2b323b); border-radius: 6px; }
 .dfguild-alone { align-items: center; }
@@ -1755,12 +1757,33 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     return out;
   };
 
+  const guildTerritoryNodes = (v) => {
+    const mine = v.hall ? territory?.()?.mine?.() : null;
+    if (!mine) return [];
+    const region = REGION_NAMES[v.hall.region] ?? t('social.guild.stat.bay', 'Iliac Bay');
+    const out = [el('div', 'dfsocial-sec', t('social.guild.territory.head', 'Territory'))];
+    out.push(el('div', 'dfsocial-note dfguild-decay', t('social.guild.territory.decay', 'Your territory grows as members earn Renown in {region}. At each Turning (Sunday 18:00 UTC), past weeks count half as much and the oldest drops out, so the circle shrinks unless members keep earning.', { region })));
+    if (!Array.isArray(mine.weeks)) return out;
+    const now = mine.weeks[0] ?? 0, need = territoryKeepXp(mine.weeks);
+    if (need <= 0) return out;
+    out.push(el('div', 'dfsocial-note dfguild-keep', now >= need
+      ? t('social.guild.territory.keepMet', 'This week: {now, number} Renown XP, enough to keep the circle at least as large as it was when this week began.', { now })
+      : t('social.guild.territory.keepShort', 'This week: {now, number} of {need, number} Renown XP. Members need {left, number} more before the Turning to keep the circle at least as large as it was when this week began.', { now, need, left: need - now })));
+    const bar = el('div', 'dfguild-keepbar');
+    const fill = el('div', null);
+    fill.style.width = `${Math.min(100, (now / need) * 100)}%`;
+    bar.append(fill);
+    out.push(bar);
+    return out;
+  };
+
   /** OVERVIEW: the arms in words, the hall, and where the reader stands at the vault. */
   const guildOverviewNodes = (g, v, me) => {
     const out = [el('div', 'dfsocial-sec', 'The company')];
     out.push(el('div', 'dfsocial-note', v.heraldry ? heraldryText(v.heraldry) : GUILD_HERALDRY_NONE_TEXT));
     if (v.vault?.me) out.push(el('div', 'dfsocial-note', `At the vault: ${vaultStandingText(v.vault.me)}.`));
     out.push(...guildHallNodes(g, v, me));
+    out.push(...guildTerritoryNodes(v));
     out.push(...guildCharterNodes(g, v, me));   // BUNNYFALL COMPANIES: the City Charter
     out.push(el('div', 'dfsocial-sec', 'Elsewhere'), el('div', 'dfsocial-empty', GUILD_ELSEWHERE_TEXT));   // GUILD3c: where the rest is run
     return out;

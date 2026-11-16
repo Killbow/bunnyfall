@@ -29,9 +29,9 @@ export async function creditTerritory({ db, nowS }, player, { character, region,
 }
 
 /**
- * EVERY COMPANY'S TERRITORY: each Company that holds a hall - its id, tag, name, heraldry, the hall's town (`mapId`)
- * and region, and its strength (territoryLaw.js territoryStrength over its hall region's last weeks). The client
- * places it on the map by the town and sizes it by the strength.
+ * Returns each Company that holds a hall, with its id, tag, name, heraldry, hall town (`mapId`) and region.
+ * Each also carries its strength (territoryLaw.js territoryStrength over the region's last weeks) and those weeks' XP.
+ * The client places it on the map by the town and sizes it by the strength.
  * @param {{ db: any, nowS: number }} ctx
  */
 export async function territoriesRead({ db, nowS }) {
@@ -57,6 +57,7 @@ export async function territoriesRead({ db, nowS }) {
       id: h.id, tag: h.tag, name: h.name, mapId: Number(h.map_id), region: Number(h.region),
       field: arms?.field ?? null, border: arms?.border ?? null,
       strength: territoryStrength(weeks.get(h.id) ?? []),
+      weeks: weeks.get(h.id) ?? TERRITORY_WEEK_WEIGHTS.map(() => 0),
     };
   });
   // BUNNYFALL COMPANIES (City Charters): and every Charter, which the maps draw round its capital (charters.js)
