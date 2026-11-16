@@ -361,18 +361,12 @@ body:has(.hud-foe.on.blade) .dfnaval-hud { --nc-top: ${NAVAL_CARD_TOP_BLADE}; }
 .dfnaval-gun.active { background: #2c2413; box-shadow: 0 0 0 1px #050608, 0 0 8px rgba(243,207,134,0.45); }
 .dfnaval-gun.active .dfnaval-gun-side { color: ${T.gold}; text-shadow: 1px 1px 0 rgb(93,77,12); }
 .dfnaval-gun.gun-empty { opacity: 0.5; }   /* HUD-CLASS (AUDIT 2026-10-05): its own word - as the bare 'empty' it took the enhanced sheet's .empty component, 16px under the plate (its row 36 -> 52px) */
-.dfnaval-gun.fresh { animation: dfnaval-ready ${READY_FLASH_S}s steps(7, end); }
 /* HULL-BLOW (COMBAT-FEEL): the side she was struck from - its battery's frame and that side of her little ship red a moment */
 .dfnaval-gun.struck { border-color: #ff8a76 #5a130f #3d0d0a #b83a2e; box-shadow: 0 0 0 1px #050608, 0 0 10px rgba(224,88,74,0.75); }
 .dfnaval-rose.blow-bow .dfnaval-ship { background: linear-gradient(180deg, #ff8a76 0 34%, ${T.stoneLit} 34%, ${T.stoneMid}); }   /* her shape is clipped (clip-path): the side is painted inside it */
 .dfnaval-rose.blow-stern .dfnaval-ship { background: linear-gradient(180deg, ${T.stoneLit}, ${T.stoneMid} 70%, #e0584a 70%); }
 .dfnaval-rose.blow-port .dfnaval-ship { background: linear-gradient(90deg, #e0584a 0 45%, transparent 45%), linear-gradient(180deg, ${T.stoneLit}, ${T.stoneMid}); }
 .dfnaval-rose.blow-starboard .dfnaval-ship { background: linear-gradient(270deg, #e0584a 0 45%, transparent 45%), linear-gradient(180deg, ${T.stoneLit}, ${T.stoneMid}); }
-.dfnaval-track.hull.hit-a { animation: dfnaval-bar-hit-a ${CARD_HIT_S * 1000}ms steps(3, end); }
-.dfnaval-track.hull.hit-b { animation: dfnaval-bar-hit-b ${CARD_HIT_S * 1000}ms steps(3, end); }
-@keyframes dfnaval-bar-hit-a { 0% { box-shadow: 0 0 10px rgba(255,138,118,0.85); } 100% { box-shadow: none; } }
-@keyframes dfnaval-bar-hit-b { 0% { box-shadow: 0 0 10px rgba(255,138,118,0.85); } 100% { box-shadow: none; } }
-@keyframes dfnaval-ready { 0% { box-shadow: 0 0 0 1px #050608, 0 0 12px 2px rgba(243,207,134,0.95); } 100% { box-shadow: 0 0 0 1px #050608, 0 0 0 0 rgba(243,207,134,0); } }
 .dfnaval-hint { margin: 7px 6px 0; font-size: 11px; letter-spacing: 0.05em; color: #b3a684; text-align: center; text-shadow: 1px 1px 0 #050608; }
 .dfnaval-brace { position: absolute; right: calc(18px + var(--nc-plate-w, ${NAVAL_PLATE_W}px) + 8px + env(safe-area-inset-right, 0px));
   bottom: calc(var(--nc-foot, ${NAVAL_PLATE_TOUCH_BOTTOM}px) + env(safe-area-inset-bottom, 0px)); box-sizing: border-box; width: ${NAVAL_BRACE_W}px;
@@ -419,19 +413,7 @@ body:has(.hud-foe.on.blade) .dfnaval-hud { --nc-top: ${NAVAL_CARD_TOP_BLADE}; }
   background: linear-gradient(180deg, #fff6e4 0 2px, #d8685a 2px calc(100% - 3px), #8a2820 calc(100% - 3px)); box-shadow: 0 0 0 1px #050608; }
 .dfnaval-chunk::before { left: 0; width: 55%; }
 .dfnaval-chunk::after { left: 55%; right: 0; }
-.dfnaval-chunk.fa::before { animation: dfnaval-chunk-l 560ms steps(8, end) forwards; }
-.dfnaval-chunk.fa::after { animation: dfnaval-chunk-r 640ms steps(8, end) forwards; }
-.dfnaval-chunk.fb::before { animation: dfnaval-chunk-l2 560ms steps(8, end) forwards; }
-.dfnaval-chunk.fb::after { animation: dfnaval-chunk-r2 640ms steps(8, end) forwards; }
-@keyframes dfnaval-chunk-l { 0% { opacity: 1; transform: translate(0, 0); } 25% { opacity: 1; transform: translate(-1px, 3px); } 100% { opacity: 0; transform: translate(-4px, 22px); } }
-@keyframes dfnaval-chunk-l2 { 0% { opacity: 1; transform: translate(0, 0); } 25% { opacity: 1; transform: translate(-1px, 3px); } 100% { opacity: 0; transform: translate(-4px, 22px); } }
-@keyframes dfnaval-chunk-r { 0% { opacity: 1; transform: translate(0, 0); } 35% { opacity: 1; transform: translate(2px, 5px); } 100% { opacity: 0; transform: translate(5px, 28px); } }
-@keyframes dfnaval-chunk-r2 { 0% { opacity: 1; transform: translate(0, 0); } 35% { opacity: 1; transform: translate(2px, 5px); } 100% { opacity: 0; transform: translate(5px, 28px); } }
-.dfnaval-card.hit-a { animation: dfnaval-hit-a ${CARD_HIT_S * 1000}ms steps(3, end); }
-.dfnaval-card.hit-b { animation: dfnaval-hit-b ${CARD_HIT_S * 1000}ms steps(3, end); }
-@keyframes dfnaval-hit-a { 0% { border-color: #fff6e4; box-shadow: 0 0 10px rgba(255,138,118,0.85); } 100% { border-color: ${T.stoneLit}; box-shadow: none; } }
-@keyframes dfnaval-hit-b { 0% { border-color: #fff6e4; box-shadow: 0 0 10px rgba(255,138,118,0.85); } 100% { border-color: ${T.stoneLit}; box-shadow: none; } }
-@media (prefers-reduced-motion: reduce) { .dfnaval-chunk { display: none !important; } .dfnaval-card.hit-a, .dfnaval-card.hit-b, .dfnaval-gun.fresh, .dfnaval-track.hull.hit-a, .dfnaval-track.hull.hit-b { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dfnaval-chunk { display: none !important; } }
 .dfnaval-card-state { min-height: 14px; margin-top: 4px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: ${T.brassHi}; text-shadow: ${OUTLINED};
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* AUDIT BAY A10: one line, cut at the card's edge - the aside card's state ("friendly - patrolling off Copperhold
@@ -724,7 +706,6 @@ function build(doc) {
   const cardSub = el(doc, 'div', 'dfnaval-card-sub');
   const cardHull = el(doc, 'div', 'dfnaval-track hull'); const cardHullFill = el(doc, 'i', 'dfnaval-fill');
   const cardGhost = el(doc, 'i', 'dfnaval-ghost'), cardChunks = [el(doc, 'i', 'dfnaval-chunk'), el(doc, 'i', 'dfnaval-chunk')];
-  for (const c of cardChunks) c.addEventListener?.('animationend', (e) => { if (String(e.animationName ?? '').startsWith('dfnaval-chunk-r')) stowChunk(c); });
   cardHull.append(cardGhost, cardHullFill, ...cardChunks);
   const cardSail = el(doc, 'div', 'dfnaval-track sail'); const cardSailFill = el(doc, 'i', 'dfnaval-fill'); cardSail.append(cardSailFill);
   const cardState = el(doc, 'div', 'dfnaval-card-state');
@@ -758,7 +739,6 @@ function build(doc) {
   const hull = bar(doc, 'hull', 'Hull'), sail = bar(doc, 'sail', 'Sails'), crew = bar(doc, 'crew', 'Crew');
   // HULL-BLOW (COMBAT-FEEL): her own hull bar's loss, read as the card's is - its ghost and the pieces broken off
   const plateGhost = el(doc, 'i', 'dfnaval-ghost'), plateChunks = [el(doc, 'i', 'dfnaval-chunk'), el(doc, 'i', 'dfnaval-chunk')];
-  for (const c of plateChunks) c.addEventListener?.('animationend', (e) => { if (String(e.animationName ?? '').startsWith('dfnaval-chunk-r')) stowChunk(c); });
   hull.track.prepend(plateGhost);
   hull.track.append(...plateChunks);
   const chips = el(doc, 'div', 'dfnaval-chips');
@@ -791,24 +771,41 @@ function build(doc) {
   touchBrace = false; touchGlass = 0;
 }
 
-/** AUDIT NAV1 (the presentation): the draws' own clock (the `dt`s summed), and her hull bar's loss readout - whose card,
- *  its ghost (ui/barLoss.js), the pieces broken off and the flash's end. */
 let hudClock = 0;
 const cardBar = { s: null };
 /** HULL-BLOW (COMBAT-FEEL): her own hull bar's loss readout - the card's law on the plate's bar, by the boat behind it. */
 const plateBar = { s: null };
-/** A fallen piece put away (FRAME1c's law: an animation left parked on its last frame replays when its node comes back). */
-function stowChunk(c) { if (c && c.className !== 'dfnaval-chunk') c.className = 'dfnaval-chunk'; }
-/** One draw of a hull bar's loss - `bar` its readout (`s`: null, none yet), `id` whose bar it shows (another's starts
- *  whole at her bar: a new card, and AUDIT 2026-10-17 a boat of mine taken at the helm - a helm changed from a whole boat
- *  to a battered one read as a bite), `pct` her bar, `key`/`ghost`/`chunks` the bar's ghost and pieces: a bite of
- *  CARD_CHUNK_MIN_LOSS breaks a piece off over the span it took and flashes the bar. Answers the bar's flash class. The
- *  card's and (HULL-BLOW) the plate's alike - one law. */
-function barLoss(bar, id, pct, dt, key, ghost, chunks) {
+function stowChunk(c) { stopFlash(c); if (c && c.className !== 'dfnaval-chunk') c.className = 'dfnaval-chunk'; }
+// Flashes start from script: a class that starts a CSS animation restyles the whole page.
+const running = new WeakMap();
+const stillMotion = () => !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+function stopFlash(node) { for (const a of running.get(node) ?? []) a.cancel(); running.delete(node); }
+/**
+ * @param {any} node
+ * @param {Keyframe[]} frames
+ * @param {number} ms
+ * @param {{ pseudo?: string, fill?: FillMode, then?: () => void, settle?: boolean }} [o]
+ */
+function flash(node, frames, ms, { pseudo, fill, then, settle } = {}) {
+  if (!node?.animate || stillMotion()) return;
+  // Flush style first: a class change plus a new animation in one pass forces a full restyle.
+  if (settle) void node.ownerDocument?.defaultView?.getComputedStyle?.(node)?.boxShadow;
+  const a = node.animate(frames, { duration: ms, ...(pseudo ? { pseudoElement: pseudo } : {}), ...(fill ? { fill } : {}) });
+  if (then) a.onfinish = then;
+  running.set(node, [...(running.get(node) ?? []), a]);
+}
+const READY_FLASH = [{ boxShadow: '0 0 0 1px #050608, 0 0 12px 2px rgba(243,207,134,0.95)', easing: 'steps(7, end)' }, { boxShadow: '0 0 0 1px #050608, 0 0 0 0 rgba(243,207,134,0)' }];
+const BAR_HIT = [{ boxShadow: '0 0 10px rgba(255,138,118,0.85)', easing: 'steps(3, end)' }, { boxShadow: 'none' }];
+const CARD_HIT = [{ borderColor: '#fff6e4', boxShadow: '0 0 10px rgba(255,138,118,0.85)', easing: 'steps(3, end)' }, { borderColor: T.stoneLit, boxShadow: 'none' }];
+const CHUNK_L = [{ opacity: 1, transform: 'translate(0, 0)', easing: 'steps(8, end)' }, { offset: 0.25, opacity: 1, transform: 'translate(-1px, 3px)', easing: 'steps(8, end)' }, { opacity: 0, transform: 'translate(-4px, 22px)' }];
+const CHUNK_R = [{ opacity: 1, transform: 'translate(0, 0)', easing: 'steps(8, end)' }, { offset: 0.35, opacity: 1, transform: 'translate(2px, 5px)', easing: 'steps(8, end)' }, { opacity: 0, transform: 'translate(5px, 28px)' }];
+/** A new id starts with no loss shown, so switching ships never reads as damage. */
+function barLoss(bar, id, pct, dt, key, ghost, chunks, hit, hitFrames) {
   let state = bar.s;
   if (!state || state.id !== id) {
     for (const c of chunks) stowChunk(c);
-    state = bar.s = { id, g: stepGhost(null, pct, 0), n: -1, hits: 0, until: -1 };
+    stopFlash(hit);
+    state = bar.s = { id, g: stepGhost(null, pct, 0), n: -1 };
   }
   const prev = state.g;
   const g = stepGhost(prev, pct, dt);
@@ -820,10 +817,12 @@ function barLoss(bar, id, pct, dt, key, ghost, chunks) {
     c.style.left = `${g.pct.toFixed(1)}%`;
     c.style.width = `${(prev.pct - g.pct).toFixed(1)}%`;
     c.className = `dfnaval-chunk ${frame}`;
-    state.hits++;
-    state.until = hudClock + CARD_HIT_S;
+    stopFlash(c);
+    flash(c, CHUNK_L, 560, { pseudo: '::before', fill: 'forwards' });
+    flash(c, CHUNK_R, 640, { pseudo: '::after', fill: 'forwards', then: () => stowChunk(c) });
+    stopFlash(hit);
+    flash(hit, hitFrames, CARD_HIT_S * 1000);
   }
-  return hudClock < state.until ? (state.hits % 2 ? ' hit-a' : ' hit-b') : '';
 }
 const put = (key, node, text) => { if (shown[key] !== text) { shown[key] = text; node.textContent = text; } };
 const cls = (key, node, name) => { if (shown[key] !== name) { shown[key] = name; node.className = name; } };
@@ -935,8 +934,8 @@ export function drawNavalHud(model, { covered = false, doc = globalThis.document
     put('waters', parts.watersWord, p.waters);
     for (let i = 0; i < 4; i++) cls(`anchor${i}`, parts.anchors[i], i < p.anchors ? 'dfnaval-anchor on' : 'dfnaval-anchor');
     width('hull', parts.hull.fill, p.hull);
-    const blown = barLoss(plateBar, p.id, p.hull, dt, 'plateg', parts.plateGhost, parts.plateChunks);   // HULL-BLOW: her bar's loss, as the card's
-    cls('hullLow', parts.hull.track, (p.hull <= 25 ? 'dfnaval-track hull low' : 'dfnaval-track hull') + blown);
+    barLoss(plateBar, p.id, p.hull, dt, 'plateg', parts.plateGhost, parts.plateChunks, parts.hull.track, BAR_HIT);
+    cls('hullLow', parts.hull.track, p.hull <= 25 ? 'dfnaval-track hull low' : 'dfnaval-track hull');
     cls('rosec', parts.rose, `dfnaval-rose${p.blow ? ` blow-${p.blow}` : ''}`);   // HULL-BLOW: the side she was struck from
     show('sailRow', parts.sail.row, p.sail != null);
     if (p.sail != null) width('sail', parts.sail.fill, p.sail);
@@ -953,7 +952,8 @@ export function drawNavalHud(model, { covered = false, doc = globalThis.document
       const b = p.batteries.find((x) => x.side === side);
       show(`gun-${side}`, g.g, !!b);
       if (!b) continue;
-      cls(`gunc-${side}`, g.g, `dfnaval-gun ${side}${b.ready ? ' ready' : ''}${b.fresh ? ' fresh' : ''}${b.active ? ' active' : ''}${b.empty ? ' gun-empty' : ''}${p.blow === side ? ' struck' : ''}`);
+      cls(`gunc-${side}`, g.g, `dfnaval-gun ${side}${b.ready ? ' ready' : ''}${b.active ? ' active' : ''}${b.empty ? ' gun-empty' : ''}${p.blow === side ? ' struck' : ''}`);
+      if (shown[`gunfr-${side}`] !== b.fresh) { shown[`gunfr-${side}`] = b.fresh; if (b.fresh) { stopFlash(g.g); flash(g.g, READY_FLASH, READY_FLASH_S * 1000, { settle: true }); } }
       put(`gunn-${side}`, g.count, b.count);
       put(`gunl-${side}`, g.load, b.secs ? `${b.load}${b.load ? ' ' : ''}${b.secs}` : b.load);   // RELOAD-SECS: and the seconds it still loads
       cls(`gunlc-${side}`, g.load, `dfnaval-gun-load${b.shot ? ` shot-${b.shot}` : ''}`);
@@ -990,9 +990,9 @@ export function drawNavalHud(model, { covered = false, doc = globalThis.document
     if (shown.cardLeft !== left) { shown.cardLeft = left; parts.card.style.left = left; }
     setVar('--nc-card-scale', aside ? '' : String(Math.round(kc * 1000) / 1000));
     const bars = t.card?.hull != null;   // AUDIT CAPTAIN'S SEA S24: an unknown hull's card has no bars
-    const hit = bars ? barLoss(cardBar, t.card.id, t.card.hull, dt, 'cardg', parts.cardGhost, parts.cardChunks) : '';
-    if (!bars) { for (const x of parts.cardChunks) stowChunk(x); cardBar.s = null; }
-    cls('cardc', parts.card, t.card ? `dfnaval-card ${t.card.faction}${t.card.hostile ? ' hostile' : ''}${t.card.friendly ? ' friendly' : ''}${hit}` : 'dfnaval-card fight');
+    if (bars) barLoss(cardBar, t.card.id, t.card.hull, dt, 'cardg', parts.cardGhost, parts.cardChunks, parts.card, CARD_HIT);
+    if (!bars) { for (const x of parts.cardChunks) stowChunk(x); stopFlash(parts.card); cardBar.s = null; }
+    cls('cardc', parts.card, t.card ? `dfnaval-card ${t.card.faction}${t.card.hostile ? ' hostile' : ''}${t.card.friendly ? ' friendly' : ''}` : 'dfnaval-card fight');
     put('cardn', parts.cardName, c.name);
     put('cards', parts.cardSub, c.sub);
     show('cardhull', parts.cardHull, bars);
