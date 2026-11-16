@@ -6,6 +6,8 @@ import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedSty
 import { nativeMetrics, shadowText, drawRect } from './native/nativePanel.js';
 import { wrapText } from './talkWindow.js';
 import { tavernRecipeName, tavernIngredientName } from '../systems/tavern/tavernServiceWords.js';
+import { tavernRoomAvailable, tavernPatienceSeconds } from '../net/tavernRoomLaw.js';
+import { tavernRoomMood } from '../systems/tavern/tavernRoomWords.js';
 import { tavernOrder, tavernDoseCount } from '../net/tavernServiceLaw.js';
 
 /** Shared model; inject only the skin predicate/document for UI tests. @param {any} [options] */
@@ -43,6 +45,10 @@ export function createTavernServiceHud(options = {}) {
         name(order.patron), tavernRecipeName(order.recipe),
         state.phase === 'mix' || state.phase === 'carry' ? t('tavern.service.contents', '{n}/3 doses: {mix}', { n: tavernDoseCount(state.mix), mix: Object.entries(state.mix).filter(([, n]) => n).map(([k, n]) => `${tavernIngredientName(k)} ${n}`).join(', ') || '-' }) : t('tavern.service.returnEmpty', 'Collect the empty cup and return it to the innkeeper.'),
         busy ? t('tavern.service.confirming', 'Confirming with the innkeeper...') : t('tavern.service.earned', 'Earned: {gold} gold', { gold: state.earned })];
+      if (state.room) lines.push(tavernRoomMood(state.room));
+      if (tavernRoomAvailable(state)) lines.push(t('tavern.room.available', 'This customer has an opening: Work the room.'));
+      lines.push(t('tavern.service.streak', 'Perfect service streak: {n}', { n: state.streak ?? 0 }));
+      if (state.phase === 'mix' || state.phase === 'carry') lines.push(t('tavern.service.patience', 'Customer patience: {s}s', { s: Math.max(0, Math.ceil(tavernPatienceSeconds(state.room) - (Date.now() / 1000 - state.orderAt))) }));
       paintEnhanced();
     },
     /** Classic uses the loaded bitmap font and standard shadow. Cup materials are world art, not UI chrome. */

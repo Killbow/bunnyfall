@@ -310,6 +310,7 @@ import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES }
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Dusk Tokens counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
+import { tavernFavorBuy } from './tavernFavor.js';
 import { tavernServiceAct } from './tavernService.js';
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesInTowns, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
@@ -1783,6 +1784,12 @@ const service = {
       // same wall as the letters' and the saves', with its own word (a
       // guest is a device, and a home held by one a cleared browser loses
       // is a building gone from the world). homes.js holds the bounds.
+      if (path === '/v1/tavern/favor') {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = await tavernFavorBuy({ ...ctx, bucket: env.SAVES }, who.player, body);
+        if (r.error === 'seq') return json(r, 409, origin);
+        return r.error ? no(r.error, 400, origin) : json(r, 200, origin);
+      }
       if (path === '/v1/tavern/service') {
         if (request.method !== 'POST') return no('method', 405, origin);
         const r = await tavernServiceAct({ ...ctx, bucket: env.SAVES }, who.player.id, body);

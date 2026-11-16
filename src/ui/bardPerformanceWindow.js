@@ -72,7 +72,7 @@ export function pickMidiFile() {
 
 export class BardPerformanceWindow {
   /**
-   * @param {{ title: string, onDone: (hits: number, song?: { perfect: number, good: number, total: number }) => string[], words?: any, performer?: string,
+   * @param {{ title: string, onDone: (hits: number, song?: { perfect: number, good: number, total: number, seconds?: number }) => string[], words?: any, performer?: string,
    *   stage?: { play: (tune: any) => boolean, stop: () => void, applause?: (warmth: number) => void } | null,
    *   keepAlive?: () => void, onCancel?: () => void, now?: () => number, pick?: () => Promise<any> }} o
    *   `onDone` pays and answers the lines said after; `stage` plays and sends the tune; `keepAlive` says "still playing" to the tavern
@@ -181,7 +181,7 @@ export class BardPerformanceWindow {
     this.after = [
       t('bguild.bards.summary', '"{title}": {perfect} perfect, {good} good, {miss} missed.', { title: this.tune?.title ?? '', perfect: this.perfect, good: this.good, miss: this.miss }),
       crowdWord(accuracy),
-      ...this.onDone(hits, { perfect: this.perfect, good: this.good, total }),
+      ...this.onDone(hits, { perfect: this.perfect, good: this.good, total, seconds: this.tuneEnd / 1000 }),
     ];
   }
 
