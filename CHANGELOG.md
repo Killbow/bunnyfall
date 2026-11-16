@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: A stuck Shift key is now released on the next key press or click, so a ship under oars turns instead of sliding sideways.
 - Fixed: Your Company no longer loses all its farms when you open the map or a farmhouse door before opening the Company tab.
 - Fixed: Disenchanting now gives Enchanting experience even when your Stores cannot hold all the Arcane Essence (anything past 5,000 is lost). The Stores note now says to sell Essence at a Merchants' League hall.
 - The Dialogues tab in the in-game POI editor now has a Map view that shows the conversation as a flowchart beside the selected line. Every answer also has a button to create and link a new line.
