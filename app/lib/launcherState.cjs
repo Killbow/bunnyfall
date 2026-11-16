@@ -236,7 +236,9 @@ function reduce(state, ev) {
       }
       break;
     case 'downloaded':
-      if (u.status === 'downloading' && u.kind !== 'game') {
+      // Cancelling a stalled download does not stop it, so a failed download can still finish.
+      if (u.kind !== 'game'
+        && (u.status === 'downloading' || (u.status === 'failed' && !s.launch && ev.version === u.version))) {
         u.percent = 100;
         // a version whose install already failed is not tried before play again - the player is not locked out
         const failed = parseVersion(s.installFailedFor), v = parseVersion(u.version);
@@ -577,7 +579,7 @@ function viewOf(s) {
     statusActions: [],
     play: { enabled: canPlay(s), label: 'Play' },
     // the saved folder being looked at shows the front door - on a healthy disk the answer is back before the first paint
-    panel: SETUP_DONE.has(st.status) || st.status === 'checking' ? 'none' : 'setup',   // BUNNYFALL: no patch notes panel
+    panel: SETUP_DONE.has(st.status) || st.status === 'checking' ? 'news' : 'setup',
     setup: null,
     news: newsView(s),
     options: {
