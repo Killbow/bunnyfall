@@ -76,8 +76,11 @@ export const relayRestartText = () => t('net.update.relayRestart', RELAY_RESTART
  *  mid-dungeon costs whatever is not saved, and that is the player's
  *  call to make, not ours. It says what to do first. */
 export const BUILD_UPDATE_TEXT = 'A new version of the game has been released. Save your game, then reload the page to pick it up.';
-/** L10N4: BUILD_UPDATE_TEXT as the player reads it. */
-export const buildUpdateText = () => t('net.update.build', BUILD_UPDATE_TEXT);
+/** The desktop app's line: a reload there plays the copy the app already has. */
+export const DESKTOP_UPDATE_TEXT = 'A new version of the game is out. Save your game, then use Restart to Update or Download in the File menu when it appears.';
+/** The line as the player reads it, with the desktop app's line inside the app shell. */
+export const buildUpdateText = (shell = globalThis.daggerShell) => (shell
+  ? t('net.update.buildDesktop', DESKTOP_UPDATE_TEXT) : t('net.update.build', BUILD_UPDATE_TEXT));
 
 /** The most deploy names the page remembers, and the least time between
  *  two restart notices (AUDIT-SRVN F2/F3).
@@ -232,6 +235,17 @@ export async function fetchLiveBuildTag(url, fetchImpl = null, timeoutMs = BUILD
     if (!res?.ok) return null;
     return buildTagOf(await res.text());
   } catch { return null; }
+}
+
+/**
+ * The desktop app's own page is its bundled copy, so it asks the app shell for the live site page.
+ * @param {string} url
+ * @param {any} [shell]
+ * @returns {Promise<string|null>}
+ */
+export async function liveBuildTag(url, shell = globalThis.daggerShell) {
+  if (typeof shell?.sitePage !== 'function') return fetchLiveBuildTag(url);
+  try { return buildTagOf(await shell.sitePage()); } catch { return null; }
 }
 
 /** The tests drive a fresh page per case. */

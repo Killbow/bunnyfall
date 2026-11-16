@@ -503,6 +503,7 @@ const gpuGone = createGpuGoneWait({ write: (details, at) => logGone('gpu', detai
 app.on('child-process-gone', (_e, details) => { if (details?.type === 'GPU') gpuGone.gone(details, Date.now()); });
 app.on('will-quit', () => gpuGone.flush());
 const { RELEASES_URL, latestDownloadUrl, releaseAssetUrl, manualDownloadFile } = require('./lib/downloads.cjs');
+const { fetchSitePage } = require('./lib/sitePage.cjs');
 const {
   CHECK_TIMEOUT_MS, RECHECK_MS, INSTALL_NOTICE_MS, INSTALL_GIVEUP_MS, DOWNLOAD_STALL_MS, DETECT_DEADLINE_MS, JUDGE_DEADLINE_MS, PICK_DEADLINE_MS,
   initialState, reduce, nextStep, viewOf, newsFrom, cachedNews, notArena2Detail, installAttemptFor, directPlay,
@@ -1881,6 +1882,8 @@ ipcMain.on('dagger:gpu-trail', (e, trail) => {
   gpuTrail = trailFrom(trail);
   gpuGone.heard(gpuTrail);   // GPU-TRAIL-LOST: the lost sample landed - a GPU entry held for it is written now
 });
+ipcMain.handle('dagger:site-page', (e) => (gameWindow && !gameWindow.isDestroyed() && e.sender === gameWindow.webContents && updateChecksEnabled()
+  ? fetchSitePage(LAUNCHER_LINKS.site, net.fetch) : null));
 
 // The preload asks for its storage root synchronously at page boot -
 // storage must exist before the first module reads a setting.
