@@ -74,7 +74,7 @@ import { homeSaleRefund } from '../net/homeLaw.js';   // GUILD1d: what the hall 
 import { REGION_NAMES } from '../formats/mapsTables.js';   // GUILD1d: where the hall stands
 import { CHARTER_COMPANIES_MAX, charterNameOf, charterWordText } from '../net/charterLaw.js';   // BUNNYFALL COMPANIES: City Charters
 import { TERRITORY_YIELD_PCT } from '../net/territoryLaw.js';
-import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText } from '../net/garrisonLaw.js';
+import { TROOPS, ROUTES, SUPPLIES, ROUTE_KEYS, garrisonWordText, troopOf, dismissFit, orderedTotal } from '../net/garrisonLaw.js';
 import { farmChoreDoneText } from '../systems/farmDoor.js';
 import { CROPS, CHORE_BONUS, farmWordText, cropOf } from '../net/farmLaw.js';   // BUNNYFALL COMPANIES: farms   // BUNNYFALL COMPANIES: garrisons
 import { wagonItemName } from '../systems/wagon/wagonKinds.js';   // WAGONS2 (FINAL AUDIT): a marked wagon by its kind's name
@@ -1641,6 +1641,49 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const out = [];
     const d = guildUi.draft;
     const townName = (mapId) => territory?.()?.townName?.(mapId) ?? 'the town';
+    const dismissNodes = (which, gv) => {
+      const key = `garrison-dismiss:${which}`;
+      const held = TROOPS.filter((tr) => gv.troops[tr.key] > 0);
+      const dd = (d[key] ??= { type: held[0].key, n: 1, sure: false });
+      if (!gv.troops[dd.type]) Object.assign(dd, { type: held[0].key, n: 1, sure: false });
+      const tr = troopOf(dd.type);
+      const max = gv.troops[tr.key];
+      dd.n = Math.min(Math.max(1, dd.n), max);
+      const plan = dismissFit(gv.troops, gv.orders, tr.key, dd.n);
+      const recalled = plan ? orderedTotal(plan.recalled) : 0;
+      const redo = (fn) => { fn(); dd.sure = false; ui++; if (open) repaint(); };
+      out.push(el('div', 'dfsocial-label', t('social.garrison.dismiss.title', 'Dismiss soldiers')));
+      const pick = el('div', 'dfsocial-acts');
+      pick.append(selectOf(t('social.garrison.dismiss.type', 'Soldier type'), held.map((h) => [h.key, `${h.name} (${gv.troops[h.key]})`]), dd.type, (k) => redo(() => { dd.type = k; dd.n = 1; })));
+      out.push(pick);
+      const r = personRow({ name: t('social.garrison.dismiss.count', 'How many: {n, number} of {max, number}', { n: dd.n, max }) });
+      rowActs(r).append(
+        btn('-', { enabled: dd.n > 1, why: t('social.garrison.dismiss.whyOne', 'at least one'), run: () => redo(() => { dd.n--; }) }),
+        btn('+', { enabled: dd.n < max, why: t('social.garrison.dismiss.whyAll', 'all selected'), run: () => redo(() => { dd.n++; }) }),
+        btn(t('social.garrison.dismiss.all', 'All'), { enabled: dd.n < max, why: t('social.garrison.dismiss.whyAll', 'all selected'), run: () => redo(() => { dd.n = max; }) }));
+      out.push(r);
+      const idle = Math.max(0, gv.total - orderedTotal(gv.orders));
+      out.push(el('div', 'dfsocial-note', t('social.garrison.dismiss.idle', 'In the barracks: {idle, number} of {total, number} soldiers.', { idle, total: gv.total })));
+      if (recalled) {
+        const from = [];
+        if (plan.recalled.march) from.push(t('social.garrison.dismiss.fromFront', '{n, number} from the front', { n: plan.recalled.march }));
+        for (const rt of ROUTES) if (plan.recalled.routes[rt.key]) from.push(t('social.garrison.dismiss.fromRoute', '{n, number} from {route}', { n: plan.recalled.routes[rt.key], route: rt.name }));
+        out.push(el('div', 'dfsocial-note', t('social.garrison.dismiss.recall', 'Too few soldiers would remain for their orders, so {recalled, plural, one {# is} other {# are}} recalled first: {from}.', { recalled, from: from.join(', ') })));
+      }
+      const type = dd.n === 1 ? tr.one : tr.name;
+      const go = el('div', 'dfsocial-acts');
+      if (!dd.sure) go.append(btn(t('social.garrison.dismiss.go', 'Dismiss'), { enabled: !g.busy, why: t('social.garrison.dismiss.whyBusy', 'a moment'), run: () => { dd.sure = true; ui++; if (open) repaint(); } }));
+      else {
+        out.push(el('div', 'dfsocial-note', recalled
+          ? t('social.garrison.dismiss.sureRecall', 'Dismiss {n, number} {type}? {recalled, plural, one {# soldier on orders is} other {# soldiers on orders are}} recalled first. This cannot be undone, and no gold is returned.', { n: dd.n, type, recalled })
+          : t('social.garrison.dismiss.sure', 'Dismiss {n, number} {type}? This cannot be undone, and no gold is returned.', { n: dd.n, type })));
+        go.append(
+          btn(t('social.garrison.dismiss.confirm', 'Confirm dismissal'), { warn: true, enabled: !g.busy, why: t('social.garrison.dismiss.whyBusy', 'a moment'),
+            run: () => guildDo(B.dismiss(which, tr.key, dd.n), t('social.garrison.dismissed', '{n, number} {type} dismissed.', { n: dd.n, type }), () => { delete d[key]; delete d[`garrison:${which}`]; }) }),
+          btn(t('social.garrison.dismiss.cancel', 'Cancel'), { run: () => redo(() => {}) }));
+      }
+      out.push(go);
+    };
     const one = (which, gv) => {
       const title = which === 'charter' ? 'Charter garrison' : 'Company guard';
       out.push(el('div', 'dfsocial-sec', title));
@@ -1661,6 +1704,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
         }
         out.push(r);
       }
+      if (mine.command && gv.total > 0) dismissNodes(which, gv);
       // the supplies
       out.push(el('div', 'dfsocial-label', 'Supplies in the Company Stores'));
       out.push(el('div', 'dfsocial-note', SUPPLIES.map((sp) => `${sp.name} ${Number(gv.have?.[sp.key] ?? 0).toLocaleString('en-US')}${gv.upkeep?.[sp.key] ? ` (${gv.upkeep[sp.key]} a day)` : ''}`).join(' · ')));
@@ -1698,7 +1742,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     };
     one('company', mine.company);
     one('charter', mine.charter);
-    if (!mine.command) out.push(el('div', 'dfsocial-note', 'Only the Captain and the Officers recruit and give orders.'));
+    if (!mine.command) out.push(el('div', 'dfsocial-note', garrisonWordText('garrison-rank')));
     return out;
   };
 

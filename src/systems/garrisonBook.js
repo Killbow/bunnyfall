@@ -4,7 +4,7 @@
 // character's own Company guard and Charter garrison in full (`mine` - the Garrison page of the Company window,
 // ui/socialPanel.js). The account service keeps and reckons them (server-account/src/garrisons.js); the law is
 // net/garrisonLaw.js. Online only.
-import { garrisonsRead, garrisonRecruit, garrisonOrders } from '../net/accountClient.js';
+import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from '../net/accountClient.js';
 
 export const GARRISON_REFRESH_MS = 2 * 60_000;
 export const GARRISON_RETRY_MS = 30_000;
@@ -62,6 +62,7 @@ export function createGarrisonBook({ io, character, sectorOf = () => null, nowMs
     /** `{ command, company, charter }` - the character's own, or null. */
     mine: () => { refresh(); return mine; },
     recruit: (which, type, n) => act(garrisonRecruit, { which, type, n }),
+    dismiss: (which, type, n) => act(garrisonDismiss, { which, type, n }),
     /** `orders` `{ routes, march }`; a march takes the blight's slice the garrison's town faces. */
     orders: (which, orders) => {
       const g = mine?.[which];

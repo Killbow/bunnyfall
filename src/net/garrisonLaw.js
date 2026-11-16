@@ -115,6 +115,16 @@ export function ordersFit(orders, total) {
   return o;
 }
 
+export function dismissFit(troops, orders, key, n) {
+  const t = troopsOf(troops);
+  if (!troopOf(key) || !Number.isSafeInteger(n) || n < 1 || n > t[key]) return null;
+  t[key] -= n;
+  const was = ordersOf(orders);
+  const o = ordersFit(was, troopTotal(t));
+  const recalled = { routes: Object.fromEntries(ROUTE_KEYS.map((k) => [k, was.routes[k] - o.routes[k]])), march: was.march - o.march };
+  return { troops: t, orders: o, recalled };
+}
+
 /** How many days the supplies `have` last these troops - the shortest of what they eat (Infinity for none). */
 export function supplyDays(troops, have) {
   const need = upkeepOf(troops);
@@ -125,7 +135,7 @@ export function supplyDays(troops, have) {
 
 /** What a refusal says, by its error. */
 export const GARRISON_WORDS = Object.freeze({
-  'garrison-rank': 'Only the Captain and the Officers recruit and give orders.',
+  'garrison-rank': 'Only the Captain and the Officers recruit, dismiss, and give orders.',
   'garrison-no-hall': 'Your Company needs a hall to keep a guard.',
   'garrison-no-charter': 'Your Company is in no City Charter.',
   'garrison-full': 'The garrison has no room for that many.',
@@ -133,6 +143,8 @@ export const GARRISON_WORDS = Object.freeze({
   'garrison-empty': 'The garrison has no soldiers yet.',
   'garrison-too-many': 'There are not that many soldiers to give orders to.',
   'garrison-no-front': 'Rodney\'s blight could not be found from here. Try again in a moment.',
+  'garrison-few': 'The garrison does not have that many of those soldiers.',
+  'garrison-changed': 'The garrison just changed. Check it and try again.',
   'garrison-bad': 'That garrison request was not understood.',
 });
 export const garrisonWordText = (error) => GARRISON_WORDS[error] ?? 'The garrison could not be changed just now.';
