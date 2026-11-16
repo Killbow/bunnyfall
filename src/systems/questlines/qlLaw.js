@@ -44,7 +44,7 @@ export const isStamped = (quest) => quest?.ql?.stamp === QL_STAMP;
 export const isEnding = (quest) => !!quest?.questComplete || (quest?.ticksToEnd ?? 0) > 0;
 
 /** An outcome bound to the end alone - a sheet's "ended any other way" row. */
-const isCatchAll = (o) => !!o?.on && Object.keys(o.on).length === 1 && o.on.ended === true;
+export const isCatchAll = (o) => !!o?.on && Object.keys(o.on).length === 1 && o.on.ended === true;
 
 export const BINDING_KINDS = Object.freeze(['started', 'ended', 'success', 'task', 'item', 'clock', 'clockDone', 'step', 'global', 'foeDead', 'act', 'choice', 'all', 'any', 'not']);
 
