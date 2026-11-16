@@ -1355,7 +1355,7 @@ export const garrisonsRead = (io, character) => call(io, '/v1/garrisons', { char
 export const garrisonRecruit = (io, body) => call(io, '/v1/garrisons/recruit', body);
 export const garrisonOrders = (io, body) => call(io, '/v1/garrisons/orders', body);
 /** BUNNYFALL COMPANIES: farms (server-account/src/farms.js) - read, buy, crop, release, chore. */
-export const farmsRead = (io, character) => call(io, '/v1/farms', { character });
+export const farmsRead = (io, character, places = []) => call(io, '/v1/farms', places.length ? { character, places } : { character });
 export const farmBuy = (io, body) => call(io, '/v1/farms/buy', body);
 export const farmCrop = (io, body) => call(io, '/v1/farms/crop', body);
 export const farmRelease = (io, body) => call(io, '/v1/farms/release', body);
