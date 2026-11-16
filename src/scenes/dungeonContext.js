@@ -39,7 +39,7 @@ import { signalAutomapReset } from '../ui/automap/automapWindow.js';   // A1: th
 // EM3: the skin fork. The classic skin keeps DFU's 3D panel whole; the
 // enhanced one gets the held sheet with the dungeon's plan inked on it.
 import { createAutomapWindow, preloadAutomapArt, automapDoorReady } from '../ui/automap/automapDoor.js';
-import { applyTextureTable } from '../world/dungeon/dungeonTextures.js';
+import { levelRemap } from '../world/dungeon/dungeonArchives.js';
 import { createUseMagicItemWindow, noItemToActivateText } from '../ui/useMagicItemWindow.js';   // UI1: the U key's window
 import { cannotChangeIndoorsText } from '../ui/transportWindow.js';   // TR5: the indoors refusal
 import { smallerDungeonsStamp, needsStartWarp } from '../world/smallerDungeons.js';   // AUDIT 28 W4 / FT1: the save-time stamp and the load-time warp, one home
@@ -500,7 +500,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (mine.length) b.layout = { ...b.layout, flats: [...b.layout.flats, ...mine] };
     }
   }
-  const remap = (archive) => applyTextureTable(archive, dungeon.textureTable, climateBaseType);
+  const remap = levelRemap(dungeon, climateBaseType, getModelPre, getTexture);
 
   // SPAWNED-DUNGEONS-TTL: told once, the moment this context is built for a dungeon this client's own
   // hash synthesized (world/spawnedDungeons.js's `spawned: true` - never true for any real location).

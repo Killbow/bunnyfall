@@ -260,6 +260,12 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const resolveTexKey = keyResolver(texRemap);   // PERF6: drawMesh's own remap resolution (every model is remapped above, before the list is built)
   markRemapLaw(texRemap, `climate:${climateBase}.${season}`);   // AUDIT MENU-ORDER C3: the table named by the law it is built in
   const climateArchive = (archive, record) => applyClimate(archive, record, climateBase, season);
+  // The loop below loads one model at a time, so start every archive the room needs here at once.
+  const archives = new Set([210, ...interior.flats.map((f) => f.archive)]);
+  for (const id of pending.keys()) {
+    for (const sm of cpuModels.get(id)?.subMeshes ?? []) archives.add(climateArchive(sm.textureArchive, sm.textureRecord));
+  }
+  for (const archive of archives) getTexture(archive).catch(() => {});
   for (const id of pending.keys()) {
     // The undefined submesh list is the seam's to survive, not this
     // loop's: an id whose model is absent lands in `pending` as
