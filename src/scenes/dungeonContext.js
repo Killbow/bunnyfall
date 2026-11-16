@@ -3628,9 +3628,9 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
         onCancel: () => { activeOverlay = null; },
       });
     },
-    onDispel: ({ group, chance }) => {
+    onDispel: ({ group, chance, targets = null }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !foeDeps?.inBout?.(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => (!targets || targets.includes(f)) && !foeDeps?.inBout?.(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) questPoolOps.removeFoe(f);
       if (gone.length) hudText.add(`${gone.length} dispelled.`);
     },
