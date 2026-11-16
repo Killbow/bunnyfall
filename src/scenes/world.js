@@ -12159,7 +12159,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // by the same table that exempts them from Pacify Humanoid.
     onDispel: ({ group, chance }) => {
       const list = getNearbyObjects(detectFeed.scanNow(), group) ?? [];
-      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f)), () => Math.floor(Math.random() * 100) < chance);   // AUDIT ARENA-LADDER A2: an exhibition's fighter is its bout's
+      const gone = dispelNearby(list.map((no) => no.ref).filter((f) => !inBout(f) && !sparedByPlayer(f)), () => Math.floor(Math.random() * 100) < chance);
       for (const f of gone) exteriorFoes.removeFoe(f);
       if (gone.length) townTalk.say(`${gone.length} dispelled.`);
     },
