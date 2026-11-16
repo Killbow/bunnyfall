@@ -154,6 +154,7 @@ import { tallySkill, skillValue, SKILLS, permanentSkillValue } from '../systems/
 import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice, makeEnemiesHostile, isBowWeapon, aimedBlowInfo, playerBlowFrame } from './hostCombat.js';   // AUDIT 21 hosts F8: the swing law, shared with the dungeon and the guards; IF: the pain cry   // ROAD-B: GameManager.MakeEnemiesHostile
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
+import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
 import { createCityGuards } from './cityGuards.js';   // ROAD-B: SpawnCityGuards' INDOOR arm needs a watch pool in the building
 import { createDroppedLoot, droppedLootHooks, containerDropPos } from './droppedLoot.js';
@@ -415,6 +416,7 @@ const DECOR_STATION_REFUSED = 'You cannot use the station right now.';
 import { createDecorRoom, decorIdOfKey, askDecorList, offerDecorFigures, primeDecorList, primedDecorList, decorListKey } from './decor/decorRoom.js';   // MWNPC18: a placed figure in its body; the door's list starts when the player goes in
 // DECOR1d: the decorator itself - the button, the panel, the free camera - and what its catalogue scan reads
 import { createDecorTool } from './decor/decorTool.js';
+import { createDecoratorHome } from '../systems/decor/decoratorHome.js';
 import { decorScanDeps } from '../systems/decor/decorScan.js';   // DECOR-DUNGEON: the scan's deps, one constructor for both hosts
 import { GLOBAL_SCALE } from '../world/meshReader.js';
 import { loadIcon } from '../ui/textureCanvas.js';
@@ -1871,8 +1873,18 @@ export function createWorldModes(host) {
     for (const q of questFlats ?? []) if (!q.dead && near(q.x, q.z)) return SEAT_HALL_TEXT.clear;
     return null;
   }
+  const caravanTurn = (pieces, turn) => turnCaravanScene({ decor: pieces }, turn).decor;
+  const decorators = createDecoratorHome({
+    homes: () => host.homesApi ?? null, decor: () => host.homeDecor ?? null, pool: interiorDecor, scan: () => decorScanDepsHere(), doc: typeof document !== 'undefined' ? document : null,
+    character: () => host.decorCharacter?.() ?? null, realm: () => host.realmAct ?? null, wallet: () => decorWallet(), say, refusal: (w) => accountRefusalText(w), visit: () => _decorVisit,
+    here: () => (mode === 'interior' && interiorBuilding ? { home: interiorHome, mapId: homeTownOf(interiorBuilding), buildingKey: interiorBuilding.buildingKey, caravan: isCaravanRoom(interiorCabin) && !privateVisitRoom } : null),
+    show: (o) => { interiorOverlay = o; }, hide: (o) => { if (interiorOverlay === o) interiorOverlay = null; }, kept: (rev) => decorTool.keepDraft(rev),
+    caravan: () => (mode === 'interior' && isCaravanRoom(interiorCabin) && !privateVisitRoom ? readCaravanDecor(caravanDecorDoc(caravanTurn(interiorDecor.list(), interiorCabin.turn))) : null),
+    caravanSet: (pieces) => interiorDecor.set(caravanTurn(pieces, -interiorCabin.turn)), caravanSaved: (pieces) => caravanTurn(pieces, interiorCabin.turn), caravanTurned: (pieces) => caravanTurn(pieces, -interiorCabin.turn),
+  });
   const decorTool = createDecorTool({
     doc: typeof document !== 'undefined' ? document : null, win: typeof window !== 'undefined' ? window : null,
+    template: decorators, decorators: () => decorators.openerHere(),
     canvas, touch: isTouchDevice(), renderer, pool: interiorDecor, names: decorNames,
     room: () => decorRoomHere(), scanDeps: () => decorScanDepsHere(),
     look: () => caravanPaintDoor(),   // WAGONS2: the decorator's painter, in my caravan's room
@@ -2612,6 +2624,17 @@ export function createWorldModes(host) {
    *  stays npcDisplayName's, the canonical name the topic tree compares
    *  with a quest Person's. */
   const npcShownName = (npcData) => questBridge?.machine?.movedQuestorName?.(npcData) ?? staticNpcShownName(npcData, npcNameDeps());   // QUESTOR-MOVED: the moved questor's one name, shown as the partner's
+  const tavernService = createTavernServiceHost({
+    entity: () => playerEntity, act: host.tavernAct ?? null, online: isOnlinePage,
+    people: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? interiorCtx?.people ?? [] : [],
+    where: () => mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern ? `${questSceneCtx?.()?.mapId ?? 0}:${interiorBuilding.buildingKey}` : null,
+    buildingKey: () => interiorBuilding?.buildingKey,
+    npcId: (pn) => `npc:${staticNpcData(pn, staticNpcSceneCtx(pn)).nameSeed}:${pn.factionID}`,
+    name: (pn) => npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn))),
+    patron: (pn) => !pn.questBehaviour && !pn.bunnyClerk && !pn.arenaRole && !isChildNPCData(staticNpcData(pn, staticNpcSceneCtx(pn))) && staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict, building: interiorBuilding }).kind === 'talk',
+    plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)),
+    talk: (pn) => openStaticNpc(pn), say: (line) => say(line), saveSoon: () => host.saveSoon?.(),
+  });
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
    *  the plaque, the Info click and the talk door ask it before StaticNPC.DisplayName, so the three never disagree. */
@@ -3465,6 +3488,7 @@ export function createWorldModes(host) {
   const ownsThisInterior = (b = interiorBuilding) => !privateVisitRoom && ((!!interiorCabin && b === interiorBuilding) || (b?.buildingType === BUILDING_TYPES.Ship && ownsShip(playerEntity))
     || (interiorHome && b === interiorBuilding ? interiorHome.own : houseOwnedAt(b, b?.buildingKey)));   // HOME1: my online home's cupboards are my storage, and another's are not
   const interiorHoverName = composeNamer([
+    (key) => tavernService.hoverName(key),
     (key) => host.profHoverName?.(key) ?? null,   // INDOOR-SKIN (PROF-MENU): a profession node's acts first (a body's knife and search), as underground
     (key) => interiorCabin && typeof key === 'string' && key.startsWith('exit:') ? { title: isCaravanRoom(interiorCabin) ? CARAVAN_TEXT.exit : 'Return to deck' } : null,   // WAGONS1: the caravan's door
     (key) => {
@@ -3524,14 +3548,14 @@ export function createWorldModes(host) {
         const row = key.startsWith('base:') ? (interiorCtx.base?.row?.(key.slice(5)) ?? null) : null;
         const piece = row ? null : interiorDecor.pieceOf(decorIdOfKey(key));
         const kept = piece?.item ? interiorDecor.ownOf(piece.id) : null;
-        if (row) return decorPlaque(null, decorTool.flying() && !decorTool.ghost() ? { key: row.key, kind: 'base', mayEdit: true, name: decorNames.get(decorKey(row)) ?? 'Piece', holds: row.holds } : null);
+        if (row) return decorPlaque(null, decorTool.flying() && !decorTool.ghost() ? { key: row.key, kind: 'base', mayEdit: decorTool.mayEdit(null), name: decorNames.get(decorKey(row)) ?? 'Piece', holds: row.holds } : null);
         return decorPlaque(indoorDecorHover(piece, {
           itemTitle: piece?.item ? ((kept ? itemLongName(kept) : null) || decorItemName(piece.item)) : null,
           boardTitle: piece && isHallBoard(piece) && hallMemberHere() ? HALL_BOARD_TITLE : null,
           catalogueName: piece ? (piece.name || (decorNames.get(decorKey(piece)) ?? null)) : null,
           containerName: piece?.model != null ? houseContainerName(piece.model) : null,
           stationName: piece?.station ? (DECOR_STATION_NAMES[piece.station] ?? null) : null,
-        }), decorTool.flying() && !decorTool.ghost() ? { piece, holds: !!interiorDecor.holdsAny?.(piece.id), mayEdit: true, name: piece ? (piece.name || (decorNames.get(decorKey(piece)) ?? null)) : null, use: piece ? decorTool.useLabel(piece.id) : null } : null);
+        }), decorTool.flying() && !decorTool.ghost() ? { piece, holds: !!interiorDecor.holdsAny?.(piece.id), mayEdit: decorTool.mayEdit(piece), name: piece ? (piece.name || (decorNames.get(decorKey(piece)) ?? null)) : null, use: piece ? decorTool.useLabel(piece.id) : null } : null);
       }
       // .cs:304-312 - a LIVE entity is `Entity.Name`, and only when
       // its motor says it is not hostile.
@@ -3545,7 +3569,7 @@ export function createWorldModes(host) {
         const o = interiorCtx.actions.objects.get(key) ?? null;
         if (!o) return null;
         const placed = key.startsWith('act:decor:') ? interiorDecor.pieceOf(key.slice(10)) : null;
-        return decorPlaque(actionObjectName(o, { hideInteract: hide }), decorTool.flying() && !decorTool.ghost() ? (o.roomDoor ? { piece: o, mayEdit: true, name: 'Door' } : (placed ? { piece: placed, holds: !!interiorDecor.holdsAny?.(placed.id), mayEdit: true, name: placed.name || (decorNames.get(decorKey(placed)) ?? 'Door'), use: decorTool.useLabel(placed.id) } : null)) : null);   // .cs:400-471 then .cs:641-650 - SENSE1: the mod's order, and a special door is no DaggerfallActionDoor. Decorating adds Remove on a swing door, and the full list on a placed one.
+        return decorPlaque(actionObjectName(o, { hideInteract: hide }), decorTool.flying() && !decorTool.ghost() ? (o.roomDoor ? { piece: o, mayEdit: decorTool.mayEdit(null), name: 'Door' } : (placed ? { piece: placed, holds: !!interiorDecor.holdsAny?.(placed.id), mayEdit: decorTool.mayEdit(placed), name: placed.name || (decorNames.get(decorKey(placed)) ?? 'Door'), use: decorTool.useLabel(placed.id) } : null)) : null);   // .cs:400-471 then .cs:641-650 - SENSE1: the mod's order, and a special door is no DaggerfallActionDoor. Decorating adds Remove on a swing door, and the full list on a placed one.
       }
       // .cs:325-393, through the port's own StaticNPC.DisplayName -
       // the same member the Info click speaks through, so the plaque
@@ -4377,6 +4401,7 @@ export function createWorldModes(host) {
    *  scenes/townTalk.js's header records. */
   function activateStaticNpc(pn) {
     if (!pn) return;
+    if (mode === 'interior' && getInteractionMode() !== 'info' && getInteractionMode() !== 'steal' && tavernService.activate(pn, plaqueActionFor(`person:${interiorCtx?.people?.indexOf(pn)}`))) return;
     // ASYNC NEVER DROPS: FACTION.TXT may still be loading on the first
     // click of a session. ensureFactions coalesces, so the click lands
     // when the file does rather than being swallowed. Info needs the
@@ -5359,6 +5384,8 @@ export function createWorldModes(host) {
    *  guild's hall its keeper stands in. */
   function decorRoomHere() {
     const b = interiorBuilding;
+    const tpl = mode !== 'interior' || !b ? undefined : caravanGuestHere() ? decorators.caravanRoomHere() : decorators.roomHere(interiorHome, homeTownOf(b), b.buildingKey, _decorListed === _decorVisit);
+    if (tpl !== undefined) return tpl;
     if (mode !== 'interior' || !b || !(decorOwnerHere() || decorKeeperHere())) return null;
     // DECOR-SHELL: an online home is decorated once its list has stood - the list stands the room WHOLE
     // (interiorDecor.set), so a piece placed before it landed was taken down again, its item sent back to the pack;
@@ -5500,6 +5527,7 @@ export function createWorldModes(host) {
         const shown = homeDecorSeenByMe(interiorHome, Number(homeTownOf(b)) >>> 0, b.buildingKey, homeDecorShown(interiorHome));   // DECOR-HIDE: nor one I hid
         const pieces = r.data.pieces.map(decorPieceOf).filter((p) => p && (shown || decorStaysShunned(p)));   // AUDIT B2: its trader stands
         interiorDecor.set(pieces);
+        decorators.stood(interiorHome, homeTownOf(b), b.buildingKey);
         if (interiorHome?.own) decorReturnStrays(pieces);   // DECOR2a: the owner's own things the room no longer stands
         if (interiorHome?.own && !_sceneHeldForLayout) decorSetDownHeld(r.data.pieces);   // HOLD-KEPT: and what a piece the service no longer has held
         if (!shown) { interiorCtx?.base?.setHidden([]); return; }   // HOME-VOTE: the room as Daggerfall furnished it
@@ -5851,11 +5879,11 @@ export function createWorldModes(host) {
       endurance: () => liveStat(playerEntity, 'endurance'),
       onTalk: () => openStaticNpc(pn, { forceTalk: true }),
       // BUNNYFALL: the house's own rows (perform, a round, a tip, a festival) beside the window's four - one menu
-      house: () => bunnyTavernRows({
+      house: () => [...bunnyTavernRows({
         entity: playerEntity, where: `${questSceneCtx?.()?.mapId ?? 0}:${b?.buildingKey ?? 0}`, day: Math.floor(worldMinutes() / MINUTES_PER_DAY), notes: BARD_NOTES,
         perform: (onDone, hooks) => townTalk?.showOverlay?.(new BardPerformanceWindow({ title: bardPerformanceTitle(), onDone, performer: playerEntity.name, stage: host.bardStage ?? null, ...hooks })),   // BARDS' COLLEGE: a rhythm game over a MIDI the bard picks, heard by the tavern (scenes/bardStage.js)
         tavern: host.tavernSocial ?? null, say: (l) => townTalk?.say?.(l), festival: host.playerFestivals ?? null,
-      }),
+      }), ...tavernService.innRows(pn)],
       sceneCache: () => sceneCache(),   // P1: renting HOLDS the room's interior
       // The U24 identity guard: a window that dispatches to another
       // must not be nulled by its OWN onClose.
@@ -7239,7 +7267,7 @@ export function createWorldModes(host) {
    * the next line - so the sixth mode turns the suite red rather than
    * leaking a street.
    */
-  const setMode = (next) => { dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ if (next !== 'interior') { _arrowsCtx = null; interiorArrows.clear(); cardLookedCtx = null; cardStandsDue.clear(); gambitStandsDue.clear(); } if (next !== 'dungeon') { _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; }   /* MEM-AUDIT (2026-10-23): THE PLACE LEFT IS LET GO - each latches the context it was made in and is read only against the live one, so it stood unread to the next place of its kind, holding the whole torn-down room or castle (its collider, its batch's arrays, its foes: 11-16 MB for Daggerfall's or Wayrest's castle) */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } };
+  const setMode = (next) => { tavernService.frame(false, false); dropDoorCache(); if (next !== mode) interiorWeapon.silenceTorch();   /* DISC6: the building's rig leaves the frame - its torch loop with it */ if (next !== 'interior') closeCardWatches();   /* CARDS5: the watched tables' cloths go with the interior */ if (next !== 'interior') closeGambitWatches();   /* KG5: and the watched boards */ if (next !== 'interior') { _arrowsCtx = null; interiorArrows.clear(); cardLookedCtx = null; cardStandsDue.clear(); gambitStandsDue.clear(); } if (next !== 'dungeon') { _crownTried = null; arenaWall = null; _arenaStage = _arenaStageCtx = null; _pitStage = _pitStageCtx = null; }   /* MEM-AUDIT (2026-10-23): THE PLACE LEFT IS LET GO - each latches the context it was made in and is read only against the live one, so it stood unread to the next place of its kind, holding the whole torn-down room or castle (its collider, its batch's arrays, its foes: 11-16 MB for Daggerfall's or Wayrest's castle) */ mode = next; if (next !== 'interior') { privateVisitRoom = null; privateVisitOwner = null; } };
   function exteriorDoorTargets() {
     const gen = doorGeneration?.();
     if (gen !== undefined && _doorCache && _doorCache.gen === gen) return _doorCache;
@@ -7984,6 +8012,7 @@ export function createWorldModes(host) {
             if (verb === HOME_VERB.buy && price) { pressHomeBuy(bd, price); return true; }
             if (verb === HOME_VERB.entry && door === 'own') { turnHomeEntry(bd, home); return true; }
             if (verb === HOME_VERB.sell && door === 'own') { openHomeSale(bd); return true; }
+            if (verb === HOME_VERB.decorators && door === 'own') { decorators.openPanel({ mapId: homeTownOf(bd), buildingKey: bd.buildingKey, inside: false, show: (w) => townTalk?.showOverlay?.(w) }); return true; }
             if (verb === HOME_VERB.give && door === 'own') { openHomeTransfer(Number(homeTownOf(bd)) >>> 0, bd.buildingKey, host, (t) => townTalk?.say?.(t), accountRefusalText, home?.giving, (w) => townTalk?.showOverlay?.(w)); return true; }
             if (verb === HALL_VERB.buy && price) { pressHallBuy(bd, price); return true; }   // GUILD1d: the house bought as the guild's hall
             if (verb === HALL_VERB.entry && hallEntryTurnable(home)) { turnHallEntry(bd, home); return true; }   // GUILD1d: who may walk into the hall; AUDIT PROF-541 G2: as the service lets set it (R2-H1: the row's own gate)
@@ -8555,7 +8584,7 @@ export function createWorldModes(host) {
       // sibling pile pool (interiorDropped) restored correctly beside
       // it. The sweep belongs here, where the transition is.
       interiorTorches.destroyAll();   // HT1: DestroyLightSources_OnTransition
-      interiorDecor.destroyAll(); _decorVisit++; decorTool.close();   // DECOR1c: and the placed pieces go with the room
+      interiorDecor.destroyAll(); _decorVisit++; decorTool.close(); decorators.left();   // DECOR1c: and the placed pieces go with the room
       interiorCamps.destroyAll(); interiorHearths.length = 0;   // HEARTH1: and the room's own fires - one building's hearth is not the next one's
       // E2/P1: the building's identity, resolved BEFORE the interior
       // stands. DFU's transition does the same three things in this
@@ -9279,7 +9308,7 @@ export function createWorldModes(host) {
     betterAmbience.onTransition(null);   // BA1: OnTransitionExterior
     host.onTransitionExterior?.();   // CSA-C: Come Sail Away's OnTransition (PlayerEnterExit.OnTransitionExterior)
     interiorTorches.destroyAll();   // HT1: DestroyLightSources_OnTransition
-    interiorDecor.destroyAll(); _decorVisit++; decorTool.close();   // DECOR1c: and the placed pieces go with the room
+    interiorDecor.destroyAll(); _decorVisit++; decorTool.close(); decorators.left();   // DECOR1c: and the placed pieces go with the room
     questBridge?.onExteriorTransition();   // Q4-v: CreateFoe's pending-wave invalidation
     npcSession?.onWorldChanged();          // TK-v: OnTransitionToExterior (:3599-3603)
     unleveledLootExteriorTransition();     // UL1: OnTransitionExterior - the BUILDING exit alone clears the mod's dungeon
@@ -10552,6 +10581,7 @@ export function createWorldModes(host) {
     const overlayHeld = !!host.staffTeleportHeld?.() || !!townTalk?.overlayActive ||
       (mode === 'interior' && interiorPaused()) ||
       (mode === 'dungeon' && !!dungeonCtx?.uiOverlayActive);
+    tavernService.frame(mode === 'interior' && interiorBuilding?.buildingType === BUILDING_TYPES.Tavern, overlayHeld);
     // QUEST-POPUP-PAUSE (2026-09-26, Mac: "Pause them offline"): the interior pools keep WINFOE1's clock under a
     // window - except, offline, under a quest box on top (the host's own read, world.js _questBoxHoldsFoes).
     const foeDt = host.questBoxHoldsFoes?.() ? 0 : dt;
@@ -11613,6 +11643,7 @@ export function createWorldModes(host) {
     // stepped back out, where the street's frame popped it two seconds
     // late attached to nothing.
     townTalk?.hudFrame?.(dt, _shopFont);
+    tavernService.draw(renderer, canvas, _shopFont);
     // E2: the shop browse overlay draws above everything; font-less
     // never traps the motor (the townTalk law).
     if (interiorOverlay) {
@@ -13153,6 +13184,7 @@ export function createWorldModes(host) {
     applyCaravanDecor(room, doc) {
       if (!caravanGuestHere() || !interiorCtx || room !== privateVisitRoom) return false;
       interiorDecor.set(turnCaravanScene({ decor: readCaravanDecor(doc) ?? [] }, -interiorCabin.turn).decor);
+      decorators.caravanStood(_caravanVisit?.cabinOwner ?? '', doc, readCaravanDecor(doc) ?? []);
       interiorCtx.base?.setHidden(readCaravanHidden(doc));   // WAGONS2-BASE: the room's own pieces its owner took out (the lantern and its light) are out for its guest too
       return true;
     },
@@ -13752,7 +13784,7 @@ export function createWorldModes(host) {
         interiorTorches.destroyAll();   // AUDIT 66 F6: HT1's pool was the one that never joined this list - a quest teleport or a load out of a building left the room's torches lit, batched and burning in the ear
         interiorHitEffects.clear();   // HE1: the same
         interiorBloodMarks.clear();   // BLOOD1a (HARD1): and the same for the ring
-        interiorDecor.destroyAll(); _decorVisit++; decorTool.close();   // DECOR1c: the placed pieces too, on the quest-teleport / load arm
+        interiorDecor.destroyAll(); _decorVisit++; decorTool.close(); decorators.left();   // DECOR1c: the placed pieces too, on the quest-teleport / load arm
         interiorCamps.destroyAll(); interiorHearths.length = 0;   // HEARTH1: the same list, for the same reason
         // ...and the OnPop the comment above is about, on every window
         // the stack holds (ROAD-B B1).

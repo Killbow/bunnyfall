@@ -2,8 +2,8 @@
 # release. Installed copies update themselves from the newest release: the game's changed files alone when only the
 # game changed (app/lib/gameStore.cjs), the whole installer when the app itself did (electron-updater).
 # Adapted from upstream's workflow (selfhost/upstream-ci/workflows/release-desktop.yml): no test gate, no macOS, notes
-# from the commit messages. A manual run (Actions > Release desktop > Run workflow) with an app-v<x>.<y>.<z> tag cuts
-# that release; with no tag it only builds installers to download from the run.
+# from CHANGELOG.md (scripts/changelogNotes.mjs). A manual run (Actions > Release desktop > Run workflow) with an
+# app-v<x>.<y>.<z> tag cuts that release; with no tag it only builds installers to download from the run.
 name: Release desktop
 
 on:
@@ -232,7 +232,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: read   # REL6: the notes are the merged pull requests' own
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:

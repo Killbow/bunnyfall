@@ -117,7 +117,7 @@ const sameName = (a, b) => typeof a === 'string' && typeof b === 'string' && a.l
  * holds the owner - `partyNames` are the handles the relay signed over the party's heads. HOME-RENT: and a tenant
  * (`tenant`, when the playing character's tenancy there still runs), whoever else may. GUILD1d: when guild, a player
  * whose character is in the owner's character's guild (`guildmate`); a hall (`hall`), its members and, when public,
- * anyone.
+ * anyone. A decorator of the home may always enter.
  */
 export function homeMayEnter(home, { partyNames = [], nowS = Math.floor(Date.now() / 1000) } = {}) {
   if (!home) return true;
@@ -125,6 +125,7 @@ export function homeMayEnter(home, { partyNames = [], nowS = Math.floor(Date.now
   // one, `member`), and anyone when its guild opened it; never by an account's other character, nor a party
   if (home.hall) return home.member === true || home.entry === 'public';
   if (home.mine) return true;
+  if (home.decorator === true) return true;
   if (rentDaysLeft(home.tenant, nowS) > 0) return true;   // HOME-RENT: a room rented in it, still running - the tenant walks in whoever else may (AUDIT: until its end, not until the town is read again)
   if (home.entry === 'public') return true;
   if (home.entry === 'party') return (partyNames ?? []).some((n) => sameName(n, home.owner));

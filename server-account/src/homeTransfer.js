@@ -50,6 +50,7 @@ async function blocked(db, mapId, buildingKey, nowS) {
   const stock = await db.prepare(`SELECT COUNT(*) AS n FROM market_listings l JOIN home_decor d ON d.map_id = l.vendor_map AND d.id = l.vendor_id
     WHERE l.state = 'open' AND d.map_id = ? AND d.building_key = ?`).bind(mapId, buildingKey).first();
   if (Number(stock?.n) > 0) return 'home-vendor-stocked';
+  if (await db.prepare('SELECT 1 AS y FROM home_decorators WHERE map_id = ? AND building_key = ? LIMIT 1').bind(mapId, buildingKey).first()) return 'home-decorators';
   return null;
 }
 
@@ -188,7 +189,8 @@ async function acceptHome(ctx, player, body) {
     ...(buyerPrep?.steps ?? []),
     db.prepare(`UPDATE homes SET player = ?1, char_id = ?2, owner_name = ?3
       WHERE map_id = ?4 AND building_key = ?5 AND player = ?6 AND char_id = ?7 AND guild_id IS NULL AND (deed IS NULL OR deed = 0)
-      AND (SELECT COUNT(*) FROM homes WHERE player = ?1 AND char_id = ?2 AND guild_id IS NULL) < ?8`)
+      AND (SELECT COUNT(*) FROM homes WHERE player = ?1 AND char_id = ?2 AND guild_id IS NULL) < ?8
+      AND NOT EXISTS (SELECT 1 FROM home_decorators WHERE map_id = ?4 AND building_key = ?5)`)
       .bind(player.id, character, displayName(player), offer.map_id, offer.building_key, offer.seller, offer.seller_char, HOME_CAP),
     mustChange(db),
     db.prepare('DELETE FROM decor_access WHERE map_id = ? AND building_key = ?').bind(offer.map_id, offer.building_key),
@@ -220,6 +222,8 @@ async function acceptHome(ctx, player, body) {
     if (nowRev !== rev) return { error: 'offer-stale' };
     const still = await houseOf(db, offer.map_id, offer.building_key, offer.seller);
     if (!still) return { error: 'no-home' };
+    const why = await blocked(db, offer.map_id, offer.building_key, nowS);
+    if (why) return { error: why };
     const after = Number((await db.prepare('SELECT COUNT(*) AS n FROM homes WHERE player = ? AND char_id = ? AND guild_id IS NULL').bind(player.id, character).first())?.n) || 0;
     if (after >= HOME_CAP) return { error: 'home-cap' };
     return { error: 'offer-closed' };
