@@ -44,15 +44,17 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     return T ? [T.mine(), T.myCharter()].filter(Boolean) : [];
   }
   const inside = (p, ps) => ps.some((t) => inTerritory(p.px + 0.5, p.py + 0.5, t));
+  const patchesOf = (T, gid) => [T.marks().find((m) => m.id === gid), T.charterMarks().find((c) => c.members.some((m) => m.id === gid))].filter(Boolean);
 
   /** Let go of the Company's farms the territory no longer reaches - once the territories are heard. */
   function lapse() {
     const T = territory?.();
     if (!mine?.farms?.length || !T?.loaded?.()) return;
-    const ps = patches();
+    // The owner comes from the farms read: the guild book may be unread or another character's.
+    const owner = new Map(all.map((f) => [f.mapId >>> 0, f.guildId]));
     for (const f of mine.farms) {
-      const p = place(f.mapId);
-      if (p && !inside(p, ps)) act(farmRelease, { mapId: f.mapId, lapsed: true }).catch(() => {});
+      const p = place(f.mapId), gid = owner.get(f.mapId >>> 0);
+      if (p && gid && !inside(p, patchesOf(T, gid))) act(farmRelease, { mapId: f.mapId, lapsed: true }).catch(() => {});
     }
   }
 

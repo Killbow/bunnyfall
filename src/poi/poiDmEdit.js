@@ -371,6 +371,14 @@ export function addNode(dlg, say = t('poi.dm.edit.goOn', 'Go on.')) {
   dlg.nodes.push(n);
   return { row: n };
 }
+export function addNodeFrom(dlg, nodeKey, i) {
+  const o = dlg.nodes.find((n) => n.key === nodeKey)?.options?.[i];
+  if (!o) return refuse(t('poi.dm.edit.noSuchAnswer', 'There is no such answer.'));
+  const r = addNode(dlg);
+  if (r.refused) return r;
+  o.then = { k: 'goto', node: r.row.key };
+  return r;
+}
 export function addOption(node, text = t('poi.dm.edit.tellMore', 'Tell me more.'), then = { k: 'close' }) {
   if (node.options.length >= L.options) return refuse(t('poi.dm.edit.maxOptions', 'A line holds at most {max, number} answers.', { max: L.options }));
   const o = { text, then };
