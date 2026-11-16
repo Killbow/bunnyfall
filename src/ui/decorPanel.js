@@ -494,12 +494,12 @@ export function createDecorButton({ onPress, touch = false, doc = document }) {
  *   thumbOf?: (entry: any) => Promise<string|null>|null, onMove?: (piece: any) => void, onDuplicate?: (piece: any) => void, onRemove?: (piece: any) => void,
  *   onToggle?: (piece: any, what: string) => void, onTurn?: (piece: any, dir: number) => void, onRename?: (piece: any) => void, onAccess?: (piece: any) => void, onPlaceLook?: (furniture: any, look: any) => void,
  *   onBase?: (keys: string[], out: boolean) => void, onRoom?: (id: number) => void, onRent?: (what: string, row: any, price: number|null) => void,
- *   onPaint?: (what: string, look: any) => void, onHot?: (key: string) => void, useLabel?: (piece: any) => string, doc?: any, win?: any, thumbKeyOf?: (entry: any) => string }} opts
+ *   onPaint?: (what: string, look: any) => void, onHot?: (key: string) => void, useLabel?: (piece: any) => string, doc?: any, win?: any, thumbKeyOf?: (entry: any) => string, onDecorators?: () => void }} opts
  */
 export function createDecorPanel({
   onPlace, onClose = () => {}, onPoint = () => {}, thumbOf = () => null, onMove = () => {}, onDuplicate = () => {}, onRemove = () => {}, onToggle = () => {},
   onTurn = () => {}, onRename = () => {}, onAccess = () => {}, useLabel = () => t('decor.panel.useMe', 'Who may use: Me'), onPlaceLook = () => {}, onBase = () => {}, onRoom = () => {}, onRent = () => {}, onPaint = () => {}, onHot = () => {}, doc = document, win = globalThis,
-  thumbKeyOf = (e) => e.key,
+  thumbKeyOf = (e) => e.key, onDecorators = () => {},
 }) {
   injectStyle(doc);
   const el = maker(doc);
@@ -821,7 +821,8 @@ export function createDecorPanel({
     if (card.dataset.yard !== (view?.yard ? '1' : '0')) card.dataset.yard = view?.yard ? '1' : '0';
     if (view?.yard) {   // HOME-YARD: the catalogue, the yard's pieces, and (HOME-LOOK) the house outside
       tabs.replaceChildren(chip('Catalog', mode === 'catalogue', () => setMode('catalogue'), 'all'), chip(`In this yard (${(view.placed ?? []).length})`, mode === 'room', () => setMode('room'), 'nature'),
-        ...(view.paint ? [chip('Exterior', mode === 'paint', () => setMode('paint'), 'paint')] : []));   // MENU-ORDER: each view's tab its picture
+        ...(view.paint ? [chip('Exterior', mode === 'paint', () => setMode('paint'), 'paint')] : []),   // MENU-ORDER: each view's tab its picture
+        ...(view.decorators ? [chip(view.decorators, false, () => onDecorators(), 'list')] : []));
       roomsBar.replaceChildren();
       return;
     }
@@ -829,10 +830,11 @@ export function createDecorPanel({
     const m = view?.own?.length ?? 0;
     const k = roomed(view?.base ?? []).length;
     tabs.replaceChildren(chip('Catalog', mode === 'catalogue', () => setMode('catalogue'), 'all'), chip(`In this room (${n})`, mode === 'room', () => setMode('room'), 'room'),
-      chip(`Your things (${m})`, mode === 'own' || mode === 'look', () => setMode('own'), 'own'),   // DECOR2b: a look is chosen within them
-      chip(`Built in (${k})`, mode === 'base', () => setMode('base'), 'furniture'),   // BASE-HIDE: the room's own furniture
+      ...(view?.template ? [] : [chip(`Your things (${m})`, mode === 'own' || mode === 'look', () => setMode('own'), 'own'),   // DECOR2b: a look is chosen within them
+        chip(`Built in (${k})`, mode === 'base', () => setMode('base'), 'furniture')]),   // BASE-HIDE: the room's own furniture
       ...(view?.rent ? [chip(`Rooms to rent (${(view.rent.rows ?? []).filter((r) => r.offer).length})`, mode === 'rent', () => setMode('rent'), 'rent')] : []),   // HOME-RENT
-      ...(view?.paint?.caravan ? [chip('Paint', mode === 'paint', () => setMode('paint'), 'paint')] : []));   // WAGONS2: a caravan's inside, painted; MENU-ORDER: each tab its picture
+      ...(view?.paint?.caravan ? [chip('Paint', mode === 'paint', () => setMode('paint'), 'paint')] : []),   // WAGONS2: a caravan's inside, painted; MENU-ORDER: each tab its picture
+      ...(view?.decorators ? [chip(view.decorators, false, () => onDecorators(), 'list')] : []));
     roomsBar.replaceChildren(...roomChips());   // DECOR-ROOMS; MENU-ORDER: a row of their own
   }
   /** DECOR-ROOMS: THE ROOM TABS - one a room, the chosen one pressed, each saying how many pieces stand in it. Choosing
@@ -1034,7 +1036,7 @@ export function createDecorPanel({
     r.dataset.key = e.key;
     r.setAttribute('aria-selected', e.key === (look ? lookKey : selectedKey) ? 'true' : 'false');
     const price = look ? 0 : priceOf(e);
-    if (price != null && view && price > view.gold) r.className = 'dfdecor-row dim';
+    if (price != null && view && !view.template && price > view.gold) r.className = 'dfdecor-row dim';
     const thumb = el('span', 'dfdecor-thumb');
     if (e.flat) {
       const img = el('img', '');
@@ -1249,7 +1251,7 @@ export function createDecorPanel({
     } else if (mode === 'base') {
       paintBaseSide();
     } else {
-      const free = sel?.kind === 'own' || mode === 'look';   // DECOR2a: one's own costs nothing (DECOR2b: nor its look)
+      const free = sel?.kind === 'own' || mode === 'look' || !!view?.template;   // DECOR2a: one's own costs nothing (DECOR2b: nor its look)
       const why = sel ? decorWhyNot({ price: free ? 0 : priceOf(sel), ready: free || !!view?.ready, gold: view?.gold ?? 0, count: view?.count ?? 0, cap: view?.cap ?? 0, yard: !!view?.yard, hall: !!view?.hall }) : null;
       pickWhy.textContent = why ?? '';
       place.disabled = !sel || why !== null;
@@ -1513,8 +1515,10 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   catalog.hidden = true;
   const confirm = b('Confirm', 'confirm', 'dfdecor-btn');
   const discard = b('Discard', 'discard');
+  const send = b(t('decor.template.send', 'Send to owner'), 'send', 'dfdecor-btn');
   confirm.hidden = true;
   discard.hidden = true;
+  send.hidden = true;
   // DECOR1e: THE FINGER'S UP AND DOWN - held, as Jump and Crouch are on a keyboard; let go when the finger lifts, is
   // taken, or the bar goes (a window over the flight)
   let flyDir = 0;
@@ -1547,14 +1551,14 @@ export function createDecorBar({ on, touch = false, doc = document }) {
   keysChip.dataset.dficon = 'list';
   keysChip.setAttribute('aria-pressed', 'false');
   keysChip.addEventListener('click', () => { const on = root.dataset.keys !== '1'; root.dataset.keys = on ? '1' : '0'; keysChip.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-  btns.append(sep(), catalog, confirm, discard, b('Back', 'back'), keysChip);
+  btns.append(sep(), catalog, confirm, discard, send, b('Back', 'back'), keysChip);
   root.append(what, tally, why, btns, keys);   // MENU-ORDER: the presses first, the legend under them when asked
   swallowPresses(root);
   doc.body?.append(root);
   let alive = true;
   return {
     root,
-    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false, browse = false, draft = false, count = null, cap = null }) {
+    show({ name, price, priceText = null, why: whyText = null, snap = false, sized = true, preview: frozen = false, browse = false, draft = false, count = null, cap = null, send: sendable = false }) {
       if (!alive) return;
       const tail = priceText != null ? priceText : decorPriceText(price);
       const w = tail ? `${name} - ${tail}` : String(name ?? '');
@@ -1566,6 +1570,7 @@ export function createDecorBar({ on, touch = false, doc = document }) {
       catalog.hidden = !browse;
       confirm.hidden = !draft;
       discard.hidden = !draft;
+      send.hidden = !(browse && sendable);
       for (const n of flightBtns) n.hidden = browse ? true : n.hidden;
       if (!browse) for (const n of [place, turnLeft, turnRight, raise, lower, grid, preview]) n.hidden = false;
       for (const s of seps) s.hidden = !!browse;
