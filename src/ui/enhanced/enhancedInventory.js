@@ -108,7 +108,7 @@ import { statFlip } from '../statsCard.js';   // STATS-CARD: the paperdoll's fli
 import { temperaturePlaque, temperatureCompareBlock } from '../temperatureCard.js';   // TEMP-UI: the felt temperature on the figure and on a wearable's card
 import {
   itemWeight, isEnchanted, totalWeight, addItem, goldStack,
-  goldPiecesOf, GOLD_PIECE_WEIGHT_KG,   // E4: the counter and its per-coin weight
+  goldPiecesOf, carriedWeight,
 } from '../../systems/inventory.js';
 import { goldAmount, deductGold } from '../../systems/court.js';
 import { noticeHold, noticeRelease } from './enhancedNotice.js';   // ENH-NOTICE3: this window's own click-anywhere boxes, as the enhanced panel
@@ -264,13 +264,7 @@ export function packModel(deps = {}) {
   for (const [slot, item] of Object.entries(slots ?? {})) {
     if (item) worn.set(Number(slot), item);
   }
-  // E4: PlayerEntity.CarriedWeight (:184) - the item list PLUS the
-  // gold counter's own weight. `deps.items()` and `entity.items` are
-  // the same collection in every host, but the pane is handed the
-  // list rather than the entity, so the total is composed from both
-  // halves the same member does.
-  const carried = items.reduce((kg, it) => kg + itemWeight(it), 0)
-    + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG;
+  const carried = carriedWeight(entity, items);
   // WALLET1: WHAT THE WALLET HOLDS LEAVES THE PAGES for its sheet, while the pack holds one (systems/walletItem.js) - the
   // letters of credit, the embers and the shards. Every piece stays in `items`, where every spender reads it; the pages
   // and the wallet together are still a partition of what the pack holds unworn.

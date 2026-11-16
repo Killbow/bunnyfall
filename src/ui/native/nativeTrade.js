@@ -972,7 +972,9 @@ export class NativeTradeWindow {
    *  + basketItems.GetWeight()` - what the player walks out with, not
    *  what is in the pack right now. */
   _carriedWeight() {
-    return carriedWeight(this.hooks.entity ?? {}) + totalWeight(this.basket.filter((x) => !isFurnishing(x)));   // DECOR2b: delivered, not carried
+    // Furnishings are delivered, not carried, so they never count toward the load.
+    const e = this.hooks.entity ?? {};
+    return carriedWeight(e, [...(e.items ?? []), ...this.basket.filter((x) => !isFurnishing(x))]);
   }
   /** UpdateLocalTargetIcon override (:635-647): the wagon's picture
    *  and its 750kg line while UsingWagon, else the base window's

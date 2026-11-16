@@ -39,8 +39,8 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import {
-  addItem, canHoldAmount, effectiveUnitWeightInKg, totalWeight, isSummoned,
-  splitStack, GOLD_PIECE_WEIGHT_KG, goldPiecesOf, addGoldPieces, isGoldPieces, tellTaken,
+  addItem, canHoldAmount, packCanHoldAmount, effectiveUnitWeightInKg, totalWeight, isSummoned,
+  splitStack, GOLD_PIECE_WEIGHT_KG, addGoldPieces, isGoldPieces, tellTaken,
   findExistingStack, goldStack,
 } from '../inventory.js';
 import { LOOT_STACK_MAX } from '../loot/loot.js';   // GOLD-WIRE: the most one stack rides the room's word in
@@ -434,21 +434,9 @@ export function planTake(item, {
     return { ok: false, refusal: REFUSAL.questItem };
   }
   const stack = item.stackCount ?? 1;
-  // CanCarryAmount (:1414-1422, AUDIT 23 items-9). AUDIT 26: :1417
-  // reads playerEntity.MaxEncumbrance, which is the formula PLUS the
-  // enchantment weight allowance - not the bare strength formula.
-  //
-  // E4: and its load is GetCarriedWeight() (:852-855), which is
-  // PlayerEntity.CarriedWeight - Items.GetWeight() PLUS the gold
-  // COUNTER's own weight (PlayerEntity.cs:184). `bag` is the caller's
-  // reading of the collection (the trade window's override :630-633
-  // adds the basket to it); the coin term is the entity's and is
-  // added here, so a purse of 400,000 pieces weighs its thousand
-  // kilograms against the gate exactly as the old bag stack did.
+  // The load uses `bag`, not entity.items, because the trade window passes the pack plus its basket as `bag`.
   const canCarry = entity
-    ? canHoldAmount(stack, effectiveUnitWeightInKg(item),
-      entityMaxEncumbrance(entity),
-      totalWeight(bag) + goldPiecesOf(entity) * GOLD_PIECE_WEIGHT_KG)
+    ? packCanHoldAmount(entity, stack, effectiveUnitWeightInKg(item), entityMaxEncumbrance(entity), bag)
     : stack;
   // The window's own gate went silent when it had no entity to read
   // and spoke when it did; there is one answer here, because the only
