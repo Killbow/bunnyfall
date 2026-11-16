@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: Boarding a ship, or being boarded by pirates, as you cross into the next map square no longer flings the ship far away or drops you in open sea.
 - Home owners can now name up to four players to decorate their home, yard, or caravan. Decorators send templates for free, and the owner previews each one in place before paying to accept or declining it.
 - Fixed: Your own Dispel Undead no longer destroys your companions, such as necromancy minions.
 - Necromancy minions now have their own section on the Companions page, where you can tell one to wait, call it back, or release it to free its slot.
