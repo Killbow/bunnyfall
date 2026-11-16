@@ -96,6 +96,7 @@ import { modelIconUrl as modelIconUrlOf } from '../item/itemIconUrl.js';   // MW
 // than re-deriving PaperDollRenderer's layer order for a second time.
 import {
   refreshPaperDoll, paperDollPixels, slotAtPaperDoll, PAPERDOLL_W, PAPERDOLL_H, paperDollStale,   // DFMOD1-E
+  onPaperDollComposed,
 } from '../paperDoll.js';
 import {
   equipItem, unequipSlot, equipTableOf, isEquipped,
@@ -827,15 +828,12 @@ function dropLists(container = null) {
 }
 const syncLists = (opts) => { for (const v of _lists) v.sync(opts); };
 
-/** U59: recompose the avatar and repaint when it lands. The
- *  compositor coalesces overlapping requests itself (AUDIT 17e F16),
- *  so an equip during a compose is not dropped - which is why this can
- *  be fired at every change without a guard of its own. A build with
- *  no doll art returns immediately and the panel keeps the schematic. */
+/** Recompose the avatar; the pack's compose listener repaints when it lands. The compositor
+ *  coalesces overlapping requests, so this can fire on every change. A build with no doll art
+ *  returns at once and the panel keeps the schematic. */
 let _dollWarned = false;
 function refreshFigure() {
   Promise.resolve(refreshPaperDoll(deps.entity))
-    .then(() => { if (host) render(); })
     .catch((e) => {
       // PX19c: the schematic fallback is the honest DISPLAY, but a
       // SILENT failure reads as "the doll was never integrated" - it
@@ -2007,6 +2005,7 @@ let _figureYaw = 0;
 let _figureCache = { key: null, img: null };   // MF1: the pixels (ImageData), not a PNG
 let _figureRaf = 0;   // MF1: the one pending drag repaint
 let _unsubscribeFigure = null;
+let _unsubscribeDoll = null;
 /** The built third-person body's pixels at the current yaw, or null
  *  when no body stands. Cached per (yaw, build) so a re-render of the
  *  window does not re-read the GPU.
@@ -2244,8 +2243,7 @@ function equippedList() {
   // exactly as before; the classic skin never sees any of this.
   // MF1: the model is a CANVAS of its pixels; the classic doll stays
   // the data-URL `<img>` it was (one composite per equip, cached).
-  // DFMOD1-E: the avatar recomposes only when this window asks - so it asks when the attached texture mods changed
-  // since the composite was made (a boot whose mods registered after the doll's first compose, an add or a remove).
+  // The window asks for a recompose when the attached texture mods changed since the composite was made.
   // The refresh repaints once when it lands, and the fresh composite is no longer stale, so this cannot loop.
   const showPaperdoll = true;   // BUNNYFALL PAPERDOLL-SETTINGS: the inventory's figure is always shown
   if (showPaperdoll && paperDollStale()) refreshFigure();
@@ -4145,7 +4143,7 @@ function openInfo(item) {
  * sheet first shows, and the pack redrawn with the answer WHATEVER IS PICKED as it lands: a model kept back while a
  * piece was picked was the sheet's for the rest of the mount (the way back draws, it does not refresh), its silver
  * "kept online" though the answer had come. A repaint landing after a press is the pack's own contract
- * (refreshFigure's, the fpArm's), and after the unmount none (JAN2).
+ * (the doll subscription's, the fpArm's), and after the unmount none (JAN2).
  */
 function walletSheet(w) {
   noteFirstUse('wallet');   // TUT1: the wallet's sheet read
@@ -4251,12 +4249,8 @@ function detailCol() {
 
 function render() {
   hidePlusFloaters();   // PLUS7: the floating card and menu belong to the rows being replaced
-  // JAN2: UNMOUNTED - nothing to paint into. `unmount` nulls `host`,
-  // and the repaints that can land after it are not all async: the
-  // book reader's failure report renders after `onExit` by design
-  // (the `open(act.item, ...)` arm), and the two async ones
-  // (refreshFigure, the fpArm subscription) already guarded. A repaint
-  // after the pane is gone is a no-op, not a crash.
+  // `unmount` nulls `host`, and some repaints land after it: the book reader's failure report
+  // after `onExit`, and the doll and fpArm subscriptions. A repaint then is a no-op, not a crash.
   if (!host) return;
   repaints++;
   if (salvageSel) pruneSalvage(deps.items?.() ?? []);   // AUDIT BATCH C4: before the rows are drawn - a piece locked or worn since keeps no tick
@@ -4715,6 +4709,8 @@ export function mountEnhancedInventory(hostEl, d = {}) {
     _unsubscribeFigure?.();
     _unsubscribeFigure = d.fpArm.subscribe(() => { _figureCache = { key: null, img: null }; if (host) render(); });
   }
+  _unsubscribeDoll?.();
+  _unsubscribeDoll = onPaperDollComposed(() => { if (host) render(); });
   onExit = d.onExit ?? (() => {});
   tab = PAGE_IDS[0];
   picked = null;
@@ -4823,6 +4819,7 @@ export function mountEnhancedInventory(hostEl, d = {}) {
       resizeHandler = null;
       // MW-D36: the figure's subscription has an owner too.
       _unsubscribeFigure?.(); _unsubscribeFigure = null;
+      _unsubscribeDoll?.(); _unsubscribeDoll = null;
       // AUDIT INV2 A-F4: and so does a drag in flight. The ghost is the
       // BODY's child, so emptying the host below cannot reach it - the
       // pack closed mid-drag and left an item icon glued over the world,
