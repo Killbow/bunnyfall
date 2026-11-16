@@ -803,8 +803,9 @@ export function createHomeYards(deps) {
         // HOME-VOTE: a home the town voted below zero stands no yard but for its insiders (net/homeVoteLaw.js) - its
         // pieces taken down where they stood, and stood again the moment its votes climb
         const pieces = homeDecorSeenByMe(home, p.homeTown, bk, homeDecorShown(home)) ? town?.byKey.get(bk) ?? null : null;   // DECOR-HIDE: nor one I hid
-        if (!home || (!pieces?.length && !homeOutsideKept(home))) continue;   // a yard stands for a home with pieces, or for its owner (GUILD-YARD: a hall's keeper)
-        if (!homeOutsideKept(home) && range() === 0) continue;   // YARD-RANGE: none of a stranger's - taken down where it stood
+        // A yard stands for a home with pieces, or for the home's owner, a hall's keeper, or a decorator.
+        if (!home || (!pieces?.length && !homeOutsideKept(home) && !home.decorator)) continue;
+        if (!homeOutsideKept(home) && !home.decorator && range() === 0) continue;   // YARD-RANGE: none of a stranger's - taken down where it stood
         const key = `${pk}:${bk}`;
         live.add(key);
         const y = yards.get(key) ?? makeYard(key, p, bk, frame);
@@ -834,7 +835,8 @@ export function createHomeYards(deps) {
           y.skin = p._skinGen ?? 0;
           if (!holding) y.sig = sig;
           y.pool.set(holding ? y.pool.list() : pieces ?? y.pool.list());
-        }
+          deps.decorators?.stood(home, y.mapId, y.bk, y.pool);
+        } else if (home.decorator) deps.decorators?.stood(home, y.mapId, y.bk, y.pool, false);
       }
     }
     // BUNNYFALL CAMPS: each camp read stood in its pixel, as a home's yard is
@@ -881,7 +883,8 @@ export function createHomeYards(deps) {
     let best = null, bestRank = Infinity;
     for (const y of yards.values()) {
       const home = deps.homes?.homeAt?.(y.mapId, y.bk) ?? null;
-      if (!homeOutsideKept(home)) continue;   // GUILD-YARD: its owner's, or a keeper's of the guild whose hall it is
+      // The yard of a home the player owns or decorates, or of a hall the player keeps.
+      if (!homeOutsideKept(home) && !home?.decorator) continue;
       const o = originOf(y);
       if (!yardHolds(y.lot, o, feet, YARD_NEAR)) continue;
       const x = feet[0] - o[0], z = feet[2] - o[2], h = y.lot.house;
@@ -907,7 +910,7 @@ export function createHomeYards(deps) {
         if (holds) lines.push(g);
       }
     }
-    return { yard: y, others, lines, roads: yardRoadsOf(p, y.frame.at, y.lot), hall: !!home.hall };   // FB1001 ROAD-LOT: the road under the lot; GUILD-YARD: a hall's
+    return { yard: y, others, lines, roads: yardRoadsOf(p, y.frame.at, y.lot), hall: !!home.hall, home };   // FB1001 ROAD-LOT: the road under the lot; GUILD-YARD: a hall's
   }
 
   /** BUNNYFALL CAMPS: the camp of mine the player stands in (within its marked ground), or null. */
@@ -974,6 +977,7 @@ export function createHomeYards(deps) {
     // GUILD-YARD: a hall's yard is `hall` - a piece's half goes to the guild's treasury, never the purse (decorTool.js)
     // DECOR-OUTDOOR: `natureBase` - its climate's nature set, the one its catalogue offers trees and plants of
     room: () => (cur?.camp ? { kind: 'home', yard: true, free: true, cap: CAMP_CAP, where: cur.camp.name, mapId: 0, buildingKey: 0, camp: cur.camp.id, natureBase: entryOf(cur.yard)?.forest?.base ?? null }   // BUNNYFALL CAMPS
+      : cur?.home?.decorator && !cur.home.own ? deps.decorators?.roomHere(cur.home, cur.yard.mapId, cur.yard.bk, true) ?? null
       : cur ? { kind: 'home', yard: true, ...(cur.hall ? { hall: true } : {}), where: homeYardWhere(cur), mapId: cur.yard.mapId, buildingKey: cur.yard.bk, natureBase: entryOf(cur.yard)?.forest?.base ?? null } : null),
     // DECOR-OUTDOOR: and the picture a nature piece is - in the ghost and the lists - in the yard's season
     flatAs: (flat) => (cur && isNatureArchive(flat?.[0]) ? yardNatureFlat(flat, entryOf(cur.yard)?.season ?? 0) : flat),
@@ -1005,6 +1009,7 @@ export function createHomeYards(deps) {
       return lotMarks.quads;
     },   // FB1001 ROAD-LOT: the edge along the road's side
     yardCap: DECOR_YARD_CAP,
+    template: deps.decorators ?? null, decorators: () => (cur && !cur.camp ? deps.decorators?.openerHere() ?? null : null),
     // HOME-LOOK: the house's outside, painted from the yard's panel
     look: () => (cur && !cur.camp && deps.look ? lookDoor(cur.yard) : null),   // BUNNYFALL CAMPS: a camp has no house to paint
   });
@@ -1112,6 +1117,9 @@ export function createHomeYards(deps) {
   return {
     frame,
     rebase,
+    keepDraft: (rev) => tool.keepDraft(rev),
+    /** The yard the decorator works on now - its home, town, building, and pieces - or null. */
+    decoratorHere: () => (cur && !cur.camp && cur.home ? { home: cur.home, mapId: cur.yard.mapId, buildingKey: cur.yard.bk, pool: cur.yard.pool, region: deps.regionOf?.(cur.yard) ?? 0 } : null),
     /** The yards' models and the piece being placed, in the world's mesh pass. */
     /** AUDIT: with their pixel's climate swaps, as the town's own copies of the same models are drawn - and only the
      *  yards within YARD_DRAW_M of the eye (a town of full yards is thousands of pieces). */

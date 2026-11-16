@@ -1174,6 +1174,7 @@ export function mountEnhancedTrade(hostEl, hooks = {}) {
 /** GetCarriedWeight override, re-exported for a host that wants it
  *  (parity with nativeTrade.js's own `_carriedWeight`). */
 export function tradeCarriedWeight(entity) {
-  return carriedWeight(entity ?? {}) + totalWeight(basket.filter((x) => !isFurnishing(x)));   // DECOR2b: delivered, not carried
+  // Furnishings are delivered, not carried, so they never count toward the load.
+  return carriedWeight(entity ?? {}, [...(entity?.items ?? []), ...basket.filter((x) => !isFurnishing(x))]);
 }
 export function tradeMaxEncumbrance(entity) { return entityMaxEncumbrance(entity ?? {}); }

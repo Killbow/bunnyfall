@@ -64,7 +64,7 @@ export const homeShunned = (score) => homeScoreOf(score) <= HOME_SHUN_AT;
  */
 export function homeDecorShown(home) {
   if (!home) return true;
-  if (home.mine === true || home.member === true || home.insider === true) return true;
+  if (home.mine === true || home.member === true || home.insider === true || home.decorator === true) return true;
   return !homeShunned(home.score);
 }
 

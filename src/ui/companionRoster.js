@@ -45,6 +45,7 @@ import { artWords } from '../systems/revenant/revenantArts.js';   // RVN-ARTS: i
 import { itemLongName } from '../systems/item/itemInfo.js';
 import { itemValueOf } from '../systems/item/itemTemplates.js';
 import { rarityOf, RARITIES } from '../systems/loot/lootRarity.js';
+import { minionRows, setMinionWaiting, releaseMinion } from '../systems/necromancy/necromancy.js';
 
 /** The rail's row, its word read when it is read (AUDIT RVN-STARS S23: a level reached names "the Companions page" in the
  *  player's language - the rail said it in English). */
@@ -165,7 +166,7 @@ export function loyaltyRow(el, r, meter) {
   return [lb];
 }
 
-let _confirm = null;   // the sworn one whose release is being asked (its id)
+let _confirm = null;   // the row whose release is being asked (a sworn one's id or a minion key)
 let _notice = null;    // the last refusal, said under its row ({ id, text })
 let _sheet = null;     // RVN-GEAR / RVN-ERRAND: the sheet open under a row ({ id, kind: 'gear'|'errand' })
 let _venture = 'plunder';   // RVN-ERRAND: the venture the mission sheet would send it on
@@ -382,6 +383,43 @@ function row(el, r, { now, rerender, meter, here, kindName, stars }) {
   return item;
 }
 
+function minionRow(el, m, { rerender, meter }) {
+  const key = `nx:${m.id}`;
+  const item = el('div', 'cmp-row');
+  const f = el('div', 'cmp-face');
+  f.setAttribute('aria-hidden', 'true');
+  f.append(el('span', 'cmp-glyph', '✦'));
+  const text = el('div', 'cmp-text');
+  const head = el('div', 'cmp-head');
+  head.append(el('span', 'cmp-name', m.name), el('span', `cmp-state${m.waiting ? ' is-away' : ''}`, m.waiting ? t('necro.roster.waiting', 'Waiting') : t('necro.roster.with', 'At your side')));
+  text.append(head);
+  const hm = m.maxHealth ?? 0, h = Math.max(0, Math.round(m.health ?? hm));
+  if (hm > 0 && typeof meter === 'function') {
+    const hp = el('div', 'cmp-hp');
+    hp.append(meter(h, Math.round(hm), 'verdigris'), el('span', 'cmp-hpn', `${h} / ${Math.round(hm)}`));
+    text.append(hp);
+  }
+  const acts = el('div', 'cmp-acts');
+  if (_confirm === key) {
+    text.append(el('span', 'cmp-confirm', t('necro.roster.releaseAsk', 'Release your {name}? It crumbles back into the dead and frees its slot.', { name: m.name.toLowerCase() })));
+    const yes = keyed(el('button', 'act warn', t('necro.roster.release', 'Release')), `cmp-${key}-release-yes`);
+    yes.onclick = () => { _confirm = null; releaseMinion(m.id); rerender(); };
+    const no = keyed(el('button', 'act', t('necro.roster.keep', 'Keep')), `cmp-${key}-release-no`);
+    no.onclick = () => { _confirm = null; rerender(); };
+    acts.append(yes, no);
+  } else {
+    const b = keyed(el('button', `act${m.waiting ? ' primary' : ''}`, m.waiting ? t('necro.roster.call', 'Call') : t('necro.roster.wait', 'Wait')), `cmp-${key}-wait`);
+    b.title = m.waiting ? t('necro.roster.callTip', 'It comes back to your side') : t('necro.roster.waitTip', 'It holds this spot. Leave the area and it stays behind until you call it');
+    b.onclick = () => { setMinionWaiting(m.id, !m.waiting); rerender(); };
+    const rel = keyed(el('button', 'act', t('necro.roster.release', 'Release')), `cmp-${key}-release`);
+    rel.onclick = () => { _confirm = key; _notice = null; rerender(); };
+    acts.append(b, rel);
+  }
+  text.append(acts);
+  item.append(f, text);
+  return item;
+}
+
 /**
  * THE PAGE: `detail` the rail's detail pane; `kit` the menu's makers ({ el, divider, meter }), and `here(id)` - the
  * body a sworn one stands in now (its live health), if any; `stars(id)` (RVN-STARS) the door's - a sworn one's sky over the
@@ -407,9 +445,10 @@ export function drawCompanionsPage(detail, rerender, { el, divider, meter = null
     else { const w = el('div', 'cmp-slot is-open'); w.append(el('span', 'cmp-glyph', '+')); w.title = 'An open slot'; strip.append(w); }
   }
   detail.append(strip);
-  detail.append(el('p', 'cmp-slotline', crew.length
-    ? `Your crew ashore take ${crew.length === 1 ? 'a slot' : `${crew.length} slots`} too: ${crew.map((c) => c.name).join(', ')}.`
-    : used >= COMPANION_SLOTS ? 'Every slot is taken. Send one away to call another.' : 'Call a sworn companion to fill an open slot.'));
+  const hands = crew.filter((c) => c.kind !== 'minions');
+  detail.append(el('p', 'cmp-slotline', hands.length
+    ? `Your crew ashore take ${hands.length === 1 ? 'a slot' : `${hands.length} slots`} too: ${hands.map((c) => c.name).join(', ')}.`
+    : used >= COMPANION_SLOTS ? t('rvn.roster.slotsFull', 'Every slot is taken. Send a revenant away or release a minion to free a slot.') : 'Call a sworn companion to fill an open slot.'));
   // AT YOUR SIDE
   if (withYou.length) {
     detail.append(divider('At your side'));
@@ -422,6 +461,13 @@ export function drawCompanionsPage(detail, rerender, { el, divider, meter = null
     detail.append(divider('Away'));
     const list = el('div', 'cmp-list');
     for (const r of away) list.append(row(el, r, { now, rerender, meter, here, kindName, stars }));
+    detail.append(list);
+  }
+  const raised = minionRows();
+  if (raised.length) {
+    detail.append(divider(t('necro.roster.minions', 'Minions')));
+    const list = el('div', 'cmp-list');
+    for (const m of raised) list.append(minionRow(el, m, { rerender, meter }));
     detail.append(list);
   }
   if (!withYou.length && !away.length) {
