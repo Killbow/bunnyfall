@@ -1191,7 +1191,7 @@ import { OceanHolesRenderer } from '../render/oceanHolesRender.js';   // OH-C: i
 import { createMiasma, miasmaReach } from '../world/oceanHolesMiasma.js';
 import { SURFACE_INNER_COLOR, FLOOR_INNER_COLOR, placementFraction, OCEAN_HOLES_VENDOR } from '../world/oceanHoles.js';
 import { ohLootUpgrades } from './ohLootHost.js';   // OH-E: the abyss's loot upgrades (HOST-SPLIT: out of the host whole)
-import { createRaidSites } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
+import { createRaidSites, pixelGates, raidGatesHeld } from './raidSitesHost.js';   // RAID5: a raided town's square, its way, its bearer and its refugees
 import { performingTag } from './tavernSocial.js';   // BUNNYFALL: a bard's name says they perform
 import { createRaidSmoke } from './raidMusterHost.js'; import { raidsBurning, raidKey as raidKeyOf } from '../systems/raidingParties.js';   // BUNNYFALL: the smoke over a raid's camps and the houses by them
 import { createOceanHolesAbyss } from './oceanHolesAbyss.js';   // OH-D: the abyss - the pit's way down, its dungeon, its way back up
@@ -4676,10 +4676,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
   }
   const tickCityGates = (minute) => {
-    const night = isNight(minute);
-    for (const p of built.values()) {
+    const night = isNight(minute), held = raidGatesHeld(raidsBurning());
+    for (const [key, p] of built) {
       for (const g of p.cityGates ?? []) {
-        if (!updateCityGate(g.gate, night)) continue;
+        if (!updateCityGate(g.gate, night, held.has(key) ? { online: true } : undefined)) continue;
         const m = g.meshes.get(g.gate.modelId);
         if (!m) continue;
         g.entry.gpu = m.gpu;
@@ -26066,7 +26066,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const _wardenT = [0, 0, 0];
   /** WARDEN1: the scene's x, z in a built town a watch keeps (wagonWardenHost.js wardenTownIn, over the built pixels). */
   const wardenTownAt = (x, z) => wardenTownIn(built.values(), (px, py) => state.pixelTranslation(px, py, _wardenT), TERRAIN_SIZE, x, z);
-  const raidSites = createRaidSites({ townAt: wardenTownAt, townAtPixel: (px, py) => wardenTownOfPixel(built.values(), (x, y) => state.pixelTranslation(x, y, _wardenT), px, py), feet: enchantFeet, groundAt: surfaceAt, standGuard: cityGuards.standBearer, spawnFoe: exteriorFoes.spawnFoe });   // RAID5: the town's square and way off its walk grid (the warden's own read)
+  const raidSites = createRaidSites({ townAt: wardenTownAt, townAtPixel: (px, py) => wardenTownOfPixel(built.values(), (x, y) => state.pixelTranslation(x, y, _wardenT), px, py), feet: enchantFeet, groundAt: surfaceAt, gatesAt: (px, py) => pixelGates(built.get(`${px},${py}`)), standGuard: cityGuards.standBearer, spawnFoe: exteriorFoes.spawnFoe });   // RAID5: the town's square and way off its walk grid (the warden's own read)
   const raidSmoke = createRaidSmoke({ gl: renderer.gl, raids: raidsBurning, keyOf: raidKeyOf, sites: () => raidSites, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), now: () => performance.now() / 1000 });   // BUNNYFALL: seen on every machine
   const eventPillar = createEventPillar({ gl: renderer.gl, events: staffEventRaids, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), pixel: () => playerTravelPixel(), now: () => performance.now() / 1000 });   // BUNNYFALL: a staff event's purple pillar (scenes/eventPillarHost.js)
   const WARDEN_CLIPS = { heave: SOUND.AnimalHorse, throw: SOUND.SwingHighPitch, land: SOUND.BodyFall };
