@@ -10,8 +10,10 @@ RUN npm ci --no-audit --no-fund && npm ci --prefix server --no-audit --no-fund
 COPY . .
 
 FROM base AS build
-# vite directly: the npm "build" script stamps the git commit, and the image has no .git
-RUN npx vite build
+# vite directly: the npm "build" script runs git, and the image has no .git. The build tag is the commit update.sh
+# passes, or the build time when none is passed, so the game's update check sees each new build.
+ARG BUNNYFALL_BUILD_TAG
+RUN BUNNYFALL_BUILD_TAG="${BUNNYFALL_BUILD_TAG:-bf$(date -u +%Y%m%d%H%M%S)}" node scripts/buildTag.mjs && npx vite build
 # the World Builder (tools/poi-editor/) is its own app, served at /builder/ next to the game
 RUN npx vite build --config tools/poi-editor/vite.config.js
 

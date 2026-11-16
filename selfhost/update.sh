@@ -45,7 +45,7 @@ echo "$LOG_TAG updated $(git rev-parse --short "$LOCAL") -> $(git rev-parse --sh
 git log --oneline "$LOCAL..HEAD" | head -20
 
 # Build first while the old server keeps running, then swap. Players reconnect on their own.
-docker compose build
+docker compose build --build-arg BUNNYFALL_BUILD_TAG="$(git rev-parse --short=12 HEAD)"
 docker compose up -d
 docker image prune -f >/dev/null
 # BUNNYFALL: every build leaves layers in the build cache (it reached 70 GB); keep the last three days so rebuilds stay quick
