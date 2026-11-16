@@ -635,6 +635,7 @@ export function createLivingRoads(deps) {
     greetings = greetings.filter((g) => g.until > realNow);
     const out = [];
     const near = (person) => person?.pos && Math.hypot(person.pos[0] - eye[0], person.pos[2] - eye[2]) <= range;
+    if (!deps.sprites.someBody((b) => near(b.person))) return out;
     for (const g of greetings) {
       const b = deps.sprites.bodyOf(g.id);
       if (b && near(b.person)) out.push({ person: b.person, text: g.text, kind: /** @type {'talk'} */ ('talk') });

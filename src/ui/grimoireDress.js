@@ -307,6 +307,8 @@ const list = (sels, suffix = '') => sels.map((s) => `${s}${suffix}`).join(', ');
  *  (`data-grim="ink"` on a page, `"wood"` on a wooden piece - markGrimoireSurfaces below), not as the selector lists
  *  themselves: spelled into every re-said rule, the lists made the ink thirty megabytes. */
 export const INK_MARK = '[data-grim="ink"]', WOOD_MARK = '[data-grim="wood"]';
+/** @param {string} name */
+export const isDressMark = (name) => name.startsWith('data-grim');
 const IN_INK = `:is(${INK_MARK}, ${INK_MARK} *)`;
 const NOT_WOOD = `:not(${WOOD_MARK}, ${WOOD_MARK} *)`;
 const IN_WOOD = `:is(${WOOD_MARK}, ${WOOD_MARK} *)`;

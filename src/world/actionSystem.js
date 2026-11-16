@@ -1110,10 +1110,7 @@ constructor(collider, { damagePlayer = null, drainMagicka = null, castSpell = nu
       o.t = o.state === 'end' ? 1 : 0;
       if (o.kind === 'moveFlat') { this._applyFlat(o); return; }
       this._applyMatrix(o);
-      if (o.kind === 'action') {
-        this.collider.removeBucket(o.key);
-        this.collider.addMesh(o.key, o.cpu.positions, o.cpu.indices, o.matrix);
-      }
+      if (o.kind === 'action') this.collider.poseBucket(o.key, o.cpu.positions, o.cpu.indices, o.matrix);
       return;
     }
     if (o.state === 'start') o.state = 'forward';
@@ -1532,8 +1529,8 @@ constructor(collider, { damagePlayer = null, drainMagicka = null, castSpell = nu
    *  (MakeTrigger); its bucket must sit at the LIVE matrix, since a
    *  Move record can carry the closed door away from its base. */
   _settleDoorBucket(o) {
-    this.collider.removeBucket(o.key);
-    if (o.state === 'start') this.collider.addMesh(o.key, o.cpu.positions, o.cpu.indices, o.matrix);
+    if (o.state === 'start') this.collider.poseBucket(o.key, o.cpu.positions, o.cpu.indices, o.matrix);
+    else this.collider.removeBucket(o.key);
   }
 
   _applyMatrix(o) {
@@ -1596,7 +1593,7 @@ constructor(collider, { damagePlayer = null, drainMagicka = null, castSpell = nu
    *  between the mover and the world - HOLDS the mover at the last pose that closed on nobody, its `t` with it: the
    *  tween waits there, and plays on when the body is clear (DaggerfallAction's tween never stops - Port-Ledger A). */
   _standMover(o, t0, m0, body) {
-    const place = (m) => { this.collider.removeBucket(o.key); if (m) this.collider.addMesh(o.key, o.cpu.positions, o.cpu.indices, m); };
+    const place = (m) => this.collider.poseBucket(o.key, o.cpu.positions, o.cpu.indices, m);
     place(o.matrix);
     if (!body) return;
     const t1 = o.t, m1 = o.matrix, n = moverSteps(this.collider, o.key, m0, m1, body);

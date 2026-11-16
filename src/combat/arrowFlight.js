@@ -238,6 +238,11 @@ export class ArrowFlight {
     this.arrows.push({ pos: origin, dir: [...dir], age: 0, gpu: null, dead: false, orb, orbFlat: null, ...meta });   // ROAD-H H1c: a PLAYER shaft leaves the BOW HAND - GetAimPosition (DaggerfallMissile.cs:540-550) offsets the camera position 0.11 DOWN the camera's own up and 0.15 to the hand (the other way under FPSWeapon.FlipHorizontal), and it runs INSIDE the missile in DFU (:471), so it runs here rather than at each host's loose; an ENEMY shaft arrives with its own origin already applied (enemyTargets.enemyArrowOrigin)
   }
 
+  tick(dt, ctxOf) {
+    if (this.arrows.length) this.update(dt, ctxOf());
+    else if (this._loot) pruneStuckArrows(this._loot);
+  }
+
   update(dt, { playerFeet = null, playerHeight = CAPSULE_HEIGHT, onPlayerHit = null, foeTargets = null, onFoeHit = null,
     onPlayerArrowHitFoe = null, boxTargets = null, onPlayerArrowHitBox = null } = {}) {
     let live = 0;
