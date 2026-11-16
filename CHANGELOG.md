@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-14
 
+- Fixed: The desktop launcher now shows release patch notes again, and updates that finish downloading after a temporary stall install before play instead of staying on "Could not download".
 - Fixed: Sailing no longer hiccups each time your guns finish reloading or a shot hits your ship or your target.
 - Fixed: The pack now shows your custom paperdoll the first time you open it, instead of your ordinary doll.
 - Fixed: Skeleton, zombie, and atronach revenants no longer yip, whine, snarl, or howl.
