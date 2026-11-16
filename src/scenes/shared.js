@@ -19,7 +19,7 @@ import { skyFrameForTime, isNight, setLightCurve, daylightScale } from '../world
 import { createWindModel } from '../systems/wind/wind.js';   // WIND1; WEATHER2b: the lead is the front's own (leadMinutes)
 import { systemWordOf } from '../systems/weather/weatherSim.js';   // AUDIT PRECIP FALL-2: a weather is its system on the precipitation law's lane
 import { releaseUnloadGuard } from '../systems/unloadGuard.js';   // MAC-L3: a door the game opened is not a door to warn about
-import { EnhancedSkyRenderer, skyState, easeWeather, weatherRow, CLOUD_SHADOW, moonlightTerm, WEATHER_EASE_MINUTES, WIND_SECONDS_PER_MINUTE } from '../render/enhancedSky.js';   // ES1: the enhanced sky, behind the skin; EV5: its moons light the world
+import { EnhancedSkyRenderer, skyState, easeWeather, weatherRow, CLOUD_SHADOW, moonlightTerm, masserKey, WEATHER_EASE_MINUTES, WIND_SECONDS_PER_MINUTE } from '../render/enhancedSky.js';   // ES1: the enhanced sky, behind the skin; EV5: its moons light the world
 import { meterFor } from '../render/perfMeter.js';   // VC6d: `?perf=zones` - the sky's own span
 import { dreadGrade, DREAD_SKY_WORD } from '../world/dreadSky.js';   // EVENT1: the live event's grade and the sky it wears
 import { sunbabyHaze, sunbabyWaterSky } from '../world/sunbabySky.js';   // SUNBABY1: the sun baby's haze and the sky the water mirrors under it
@@ -28,6 +28,7 @@ import { SunbabySkyRenderer } from '../render/sunbabySkyRenderer.js';   // SUNBA
 import { VolumetricClouds, QUALITY as CLOUD_QUALITY } from '../render/volumetricClouds.js';   // VC3: the clouds over the dome
 import { cloudsStateUnderMod, dynamicMoonState, dynamicMoonlight } from '../render/dynamicSkiesBridge.js';   // DS1/DS2: the mod's state in the port's shapes - the moons, the clouds, and the moons' own term (AUDIT 65 MC-3: the bridge's third export had no caller and this file carried its body inline)
 import { isEnhanced } from '../systems/uiSkin.js';
+import { createSeaNightSky } from '../render/seaNight.js';
 import { getPref } from '../systems/uiPrefs.js';   // RA1: the Enhanced pane's sky switch
 import { pageParam } from '../systems/pageQuery.js';   // CLIMB1: `?parkour=off`, the enhanced climb's kill door
 import { isOnlinePage, onlineForcedPref } from '../systems/online/onlineLane.js';   // CLIMB1: online the skin is not asked, and the row is the lane's
@@ -305,6 +306,7 @@ export function createSkyController(gl, params) {
   /** AUDIT SD III (V8): and the water's sky brass as the sky over it is. */
   const brassed = (ws) => (brassW > 0 ? { ...ws, zenith: sdBrassGrade(ws.zenith, brassW), horizon: sdBrassGrade(ws.horizon, brassW) } : ws);
   const dreaded = (ws) => brassed(sunbabyWaterSky(dreadW > 0 ? { zenith: dreadGrade(ws.zenith, dreadW), horizon: dreadGrade(ws.horizon, dreadW) } : ws, sunbabyW, sunbabyEvil));   // SUNBABY2: the wrath's sky
+  const seaNightSky = createSeaNightSky();
   setLightCurve(dynamic ? dynamic.lightCurve : null);
   if (dynamicSky) {
     // the presets' textures land as they decode; a slot shows the
@@ -487,20 +489,16 @@ export function createSkyController(gl, params) {
     setInside(inside) { dynamic?.setInside(inside); },
     /** DS1: the LightningFlash point light this frame, or null. */
     lightningLight() { return dynamic?.lightningLight ?? null; },
-    /** WATER1: the sky the water reflects - the dome's zenith and
-     *  horizon this frame ({zenith, horizon}, 0..1 rgb), from the SAME
-     *  state the dome is drawn from; under the mod, the mod's fog colour
-     *  at the horizon and its dome fill above; null under the classic
-     *  sky, which draws no water surface. */
+    /** The sky the water reflects this frame ({zenith, horizon}, 0..1 rgb), from the SAME state the dome is
+     *  drawn from. Under the mod it is the fog color with a night floor and the sunset's glow (render/seaNight.js).
+     *  Null under the classic sky, which draws no water surface. */
     waterSky() {
       if (enhancedSky?.state) return dreaded({ zenith: enhancedSky.state.zenith, horizon: enhancedSky.state.horizon });
       if (dynamicSky) {
-        // WATER-AUDIT (L3): the mod publishes ONE colour (its fog colour is
-        // its clear colour is its fill), so a zenith is DERIVED from it -
-        // darker and bluer, the way any day sky deepens overhead - rather
-        // than a second copy of the horizon that made the reflection flat
         const h = dynamic?.fogColor ?? dynamicSky.clearColor;
-        return dreaded({ zenith: [h[0] * 0.55, h[1] * 0.65, h[2] * 0.85], horizon: h });   // EVENT1: graded under the dread on this lane too
+        const sea = seaNightSky(h, dynamic?._sunDir, dynamicMoons ? masserKey(dynamicMoons) : 0, weatherRowNow?.cover ?? 0);
+        const ws = dreaded(sea);   // EVENT1: graded under the dread on this lane too
+        return ws === sea ? sea : { ...ws, glow: sea.glow, glowDir: sea.glowDir, night: sea.night };
       }
       return null;
     },

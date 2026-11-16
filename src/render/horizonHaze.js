@@ -47,6 +47,12 @@ vec3 seaLight(vec3 ambient, vec3 sunColor, float sunDiff, vec3 moonColor, float 
 }
 float seaSunLobe(float nh) { return pow(max(nh, 0.0), 180.0); }
 float seaMoonLobe(float nh) { return pow(max(nh, 0.0), 220.0); }
+// The sunset's glow low on the sun's side, as a reflected ray sees it.
+vec3 seaSkyGlow(vec3 R, vec3 glow, vec2 dir) {
+  if (glow.r + glow.g + glow.b <= 0.0) return vec3(0.0);
+  float c = max(dot(normalize(R.xz + vec2(1e-5, 0.0)), dir), 0.0);
+  return glow * (c * c * c * c * (1.0 - smoothstep(0.0, 0.45, R.y)));
+}
 vec3 seaGlints(vec3 sunColor, float sun, vec3 moonColor, float moon) { return sunColor * (1.6 * sun) + moonColor * (0.7 * moon); }
 vec3 seaSky(vec3 lit, float ndv, vec3 zenith, vec3 horizon, float f0) {
   float F = seaFresnel(ndv, f0);

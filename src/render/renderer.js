@@ -7982,6 +7982,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
       moonDir: u('uMoonDir'), moonScale: u('uMoonScale'), moonColor: u('uMoonColor'),
       zenith: u('uSkyZenith'), horizon: u('uSkyHorizon'), tint: u('uTint'), f0: u('uF0'), shoreSoft: u('uShoreSoft'),
       swell: u('uSwell'), absorb: u('uAbsorb'), open: u('uOpen'), openColor: u('uOpenColor'),   // WATER-NEXT 2
+      glow: u('uSkyGlow'), glowDir: u('uSkyGlowDir'), seaNight: u('uSeaNight'), seaExposure: u('uSeaExposure'), adapt: u('uAdapt'),
       sceneOn: u('uSceneOn'), scene: u('uScene'), sceneDepth: u('uSceneDepth'), sceneSize: u('uSceneSize'),
       rippleOn: u('uRippleOn'), ripple: u('uRipple'), rippleRect: u('uRippleRect'),   // WATER-NEXT 4
       fog: { fogColor: u('uFogColor'), fogMode: u('uFogMode'), fogDensity: u('uFogDensity'), fogRange: u('uFogRange'), camPos: u('uCamPos'), focus: u('uFocus'), dwFog: u('uDwFog'), haze: u('uJungleHaze') },   // DW-C: and the sea's; TV1: the focus; BANTHA1: the jungle's haze
@@ -8074,6 +8075,12 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
     gl.uniform1f(L.rain, u.rain);
     gl.uniform3fv(L.zenith, u.zenith);
     gl.uniform3fv(L.horizon, u.horizon);
+    gl.uniform3fv(L.glow, u.glow);
+    gl.uniform2fv(L.glowDir, u.glowDir);
+    // The night's share of the lane's exposure on the sea. The classic set has none.
+    gl.uniform1f(L.seaNight, this._lane ? u.night : 0);
+    gl.uniform1f(L.seaExposure, this._exposure);
+    this._uploadAdapt(L);
     gl.uniform3fv(L.tint, u.tint);
     gl.uniform1f(L.f0, u.f0);
     gl.uniform1f(L.shoreSoft, u.shoreSoft);
