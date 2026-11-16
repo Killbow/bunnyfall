@@ -1019,7 +1019,7 @@ export function createDecorTool(deps) {
   /** BASE-HIDE: THE ROOM'S OWN FURNITURE TAKEN OUT (`out`) OR PUT BACK - free. An online home writes the room's whole list
    *  first (the account service is the room's truth, and every visitor's) and stands it once the service has it; the
    *  house and the ship stand it at once (the room's scene carries the list into the save). A piece that holds anything
-   *  is never taken out: what it holds would go with it. */
+   *  is emptied into the owner's pack before it is taken out. */
   function setRoomDoor(key, out) {
     const i = interiorDoorIndex(key);
     const doors = deps.base?.()?.roomDoors;

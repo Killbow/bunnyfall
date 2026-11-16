@@ -4,28 +4,45 @@
 //
 // Mac: "Remove bought houses decor - the base game decor isnt easy to
 // decorate around when u want more in depth house". What Daggerfall
-// furnished a room with is its interior's prop models and flats, which a
-// room is built from in one merge (one static batch, one collider
+// furnished a room with is its furniture models and flats. A room is
+// normally built from them in one merge (one static batch, one collider
 // bucket, the flats grouped by picture - scenes/interiorContext.js). A
-// room its owner may furnish is built PIECE BY PIECE instead - each prop
-// model its own draw and its own collider bucket (`base:<key>`), each
-// flat its own batch and its own light - and handed in here, so the
-// owner can take a piece out of the room and put it back while standing
-// in it, and every visit and every visitor stands the room the same way
-// (the list of what is out: the save's, or the account service's).
+// room its owner may furnish is built piece by piece instead. Each
+// furniture model gets its own draw and collider bucket (`base:<key>`),
+// and each flat its own batch and light. The pieces are handed in here,
+// so the owner can take one out and put it back while in the room.
+// Every visit and every visitor builds the room the same way, from the
+// list of what is out (the save's, or the account service's).
 //
 // A piece is named by the layout (net/decorLaw.js DECOR_BASE_KEY_RE):
 // `m<placement>:<model>`, `f<flat>:<archive>.<record>`. Taking one out
-// takes all of it - its draw, its collider (nothing to walk into), its
-// light, and, a cupboard, a shelf or a bed, its place among the room's
-// targets (the host's own lists are keyed by index, so the entry stays
-// and says `hidden`). A piece that HOLDS anything is never taken out:
-// what it holds would go with it, out of reach.
+// removes its draw, its collider, and its light. A piece the player can
+// use, such as a cupboard, a bed, or a chair, also leaves the room's
+// targets. The host lists are keyed by index, so its entry stays, marked
+// `hidden`. hide() refuses a piece that holds anything, so the caller
+// empties it into the owner's pack first.
 // ═══════════════════════════════════════════════════════════════════
 
 import { DECOR_BASE_KEY_RE, DECOR_HIDDEN_CAP, decorHiddenOf } from '../../net/decorLaw.js';
 import { lateSolidsOf } from '../../player/lateSolid.js';   // DECOR-CLEAR: a piece put back round the body is withheld until it is clear
 import { DEFAULT_ACTIVATION_DISTANCE, RAY_DISTANCE } from '../../player/activate.js';
+import { LADDER_MODEL_ID } from '../../player/enterExit.js';
+import { PROP_MODEL_TYPE } from '../../world/interior/interiorLayout.js';
+import { MACHINERY_MODEL_ID } from '../../world/windmillMesh.js';
+import { classicModelIdOf } from '../../world/customModels.js';
+import { TOWN_PAINTINGS } from '../../world/townStandIns.js';
+import { BUILDING_TYPES } from '../../world/buildingNames.js';
+
+// Town packs place much of their furniture (classic ids 41000-43999) and paintings as scenery, not props.
+// Ship cabins build decks and walls from the same models, so scenery is furniture only in a house.
+export function isBasePieceModel(/** @type {{ objectType: number, modelIdNum: number }} */ p, /** @type {number} */ buildingType) {
+  if (p.modelIdNum === LADDER_MODEL_ID || p.modelIdNum === MACHINERY_MODEL_ID) return false;
+  if (p.objectType === PROP_MODEL_TYPE) return true;
+  const house = buildingType === BUILDING_TYPES.HouseForSale || (buildingType >= BUILDING_TYPES.House1 && buildingType <= BUILDING_TYPES.House6);
+  if (!house) return false;
+  const id = classicModelIdOf(p.modelIdNum);
+  return (id >= 41000 && id <= 43999 && id !== LADDER_MODEL_ID && id !== MACHINERY_MODEL_ID) || Object.hasOwn(TOWN_PAINTINGS, p.modelIdNum);
+}
 
 /** A built-in model's collider bucket - its own, so a piece taken out is nothing to walk into. */
 export const baseBucketOf = (key) => `base:${key}`;
@@ -77,7 +94,7 @@ export function createBaseRoom({ drawList, batches, lights, collider }) {
   }
 
   return {
-    /** A prop model as the build stood it: its draw entry (never the merge), its geometry, where it stands. */
+    /** A model as the build placed it: its draw entry (never the merge), its geometry, where it is. */
     addModel(key, { model, draw, cpu, matrix, at, aabb = null }) {
       const bounds = aabb?.min && aabb?.max ? { min: aabb.min.slice(), max: aabb.max.slice() } : null;
       pieces.set(key, { key, model, flat: null, at, bounds, hidden: false, draw, cpu, matrix, furniture: null, batch: null, light: null });

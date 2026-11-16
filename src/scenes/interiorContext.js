@@ -41,7 +41,7 @@ import { holdemGoldTable } from '../net/holdemTable.js';   // TAVERN-TABLES: whi
 import { classicModelIdOf } from '../world/customModels.js';   // WD3: an alias is its classic model to the beds' test
 import { LADDER_MODEL_ID, doorWorldPosition } from '../player/enterExit.js';   // TAVERN-TABLE: a static door's place, for the card table to keep clear of
 import { MACHINERY_MODEL_ID } from '../world/windmillMesh.js';   // WM4b: the mill's machinery and its moving parts
-import { createBaseRoom, baseBucketOf } from './decor/decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
+import { createBaseRoom, baseBucketOf, isBasePieceModel } from './decor/decorBase.js';   // BASE-HIDE: a furnishable room's own pieces, one at a time
 import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   // a room door taken out, its opening left
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
@@ -353,12 +353,10 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   const seenFloorMaterials = new Set();
   const collider = new Collider(() => -Infinity);
   collider.cover = createCoverIndex();   // TACT1: the room's solid flats are cover, with the switch on
-  // BASE-HIDE (2026-09-26, Mac: "Remove bought houses decor"): A ROOM ITS OWNER MAY FURNISH (`opts.baseEditable` - an
-  // online home, anyone's, or the player's own house or ship) STANDS ITS OWN FURNITURE PIECE BY PIECE - each prop model
-  // its own draw (never the merge) and collider bucket, each flat its own batch and light - so a piece can be taken out
-  // and put back while the room stands (scenes/decor/decorBase.js). Every other room is built as it always was. The ladder and
-  // the mill's machinery are the building's workings, not its furniture.
+  // In a furnishable room (`opts.baseEditable`), each furniture model gets its own draw and collider bucket, and each
+  // flat its own batch and light. Each piece can be taken out and put back (scenes/decor/decorBase.js).
   const base = opts.baseEditable ? createBaseRoom({ drawList, batches: () => billboardBatches, lights: () => lights, collider }) : null;
+  const roomType = dfBlock.rmbBlock.fldHeader?.buildingDataList?.[recordIndex]?.buildingType ?? BUILDING_TYPES.None;
   const iilFireplaces = [];   // IIL1: the fireplace models' centres (Improved Interior Lighting)
   for (const [pi, p] of interior.placements.entries()) {
     if (opts.bunnyHall && isHouseFurniture(p)) continue;   // BUNNY-GUILDS: a hall stands none of the house's furniture (its index is kept: `int:${pi}`)
@@ -393,8 +391,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     const aabb = worldAabb(cpu.positions, matrix);
     // IIL1: ImproveFireplaces.cs finds its hearths by mesh id - the port keeps where they stand
     const key = `int:${pi}`;
-    const baseKey = base && p.objectType === PROP_MODEL_TYPE && p.modelIdNum !== LADDER_MODEL_ID && p.modelIdNum !== MACHINERY_MODEL_ID
-      ? decorBaseModelKey(pi, p.modelIdNum) : null;   // BASE-HIDE: a piece its owner may take out
+    const baseKey = base && isBasePieceModel(p, roomType) ? decorBaseModelKey(pi, p.modelIdNum) : null;
     if (IIL_FIREPLACE_MODELS.has(p.modelIdNum)) iilFireplaces.push({ x: (aabb.min[0] + aabb.max[0]) / 2, y: (aabb.min[1] + aabb.max[1]) / 2, z: (aabb.min[2] + aabb.max[2]) / 2, foot: aabb.min[1], w: Math.max(aabb.max[0] - aabb.min[0], aabb.max[2] - aabb.min[2]), h: aabb.max[1] - aabb.min[1], baseKey });   // BUNNYFALL: and its box, for a cooking fire
     drawList.push({ mesh: gpu, matrix, key, aabb });
     // PERF6: the entry stays in drawList for the automap; the main view draws the merge
@@ -461,7 +458,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       if (baseKey) base.furnish(baseKey, chair);
     }
     if (p.objectType !== PROP_MODEL_TYPE) {
-      if (isBedModel(classicModelIdOf(p.modelIdNum))) beds.push({ cpu, matrix });
+      if (isBedModel(classicModelIdOf(p.modelIdNum))) { beds.push({ cpu, matrix }); if (baseKey) base.furnish(baseKey, beds.at(-1)); }
       continue;
     }
     const had = [containers.length, shelves.length, beds.length];   // BASE-HIDE: which list this piece lands in, if any

@@ -629,7 +629,7 @@ export function createDecorPanel({
   const baseActions = el('div', 'dfdecor-base-actions');
   const baseBtn = act('Take out', () => { const it = baseSelected(); if (it && !baseBtn.disabled) onBase([it.key], !it.hidden); });
   // DECOR-ROOMS: "all" is the chosen room's all, where the house has rooms to choose between
-  const allOutBtn = act('Take all out', () => { const ks = roomed(view?.base ?? []).filter((it) => !it.hidden && !it.holds && !it.door).map((it) => it.key); if (ks.length) onBase(ks, true); });
+  const allOutBtn = act('Take all out', () => { const ks = roomed(view?.base ?? []).filter((it) => !it.hidden && !it.door).map((it) => it.key); if (ks.length) onBase(ks, true); });
   const allBackBtn = act('Put all back', () => { const ks = roomed(view?.base ?? []).filter((it) => it.hidden && !it.door).map((it) => it.key); if (ks.length) onBase(ks, false); });
   baseActions.append(actGroup(DECOR_ACT_GROUPS.piece, [baseBtn]), actGroup(DECOR_ACT_GROUPS.whole, [allOutBtn, allBackBtn]));
   // HOME-RENT: the chosen room's price moved, offered or withdrawn - and the rent held, collected
@@ -1319,20 +1319,18 @@ export function createDecorPanel({
     pickWhy.textContent = rent && !rent.loaded ? 'Asking the account service about your rooms...' : it?.offer?.taken ? 'A price changed now is what the next tenant pays.' : '';
   }
 
-  /** BASE-HIDE: the chosen built-in piece - its line, free, out or back; and the whole room's two buttons. A piece that
-   *  holds anything is never taken out from under what it holds. */
   function paintBaseSide() {
     const it = baseSelected();
     const rows = roomed(view?.base ?? []);   // DECOR-ROOMS
     pickName.textContent = it ? it.name : rows.length ? 'Choose a piece of this room\'s own furniture' : DECOR_BASE_EMPTY;
     pickLine.textContent = it ? decorBaseSub(it) : '';
     pickPrice.textContent = it || rows.length ? 'Free to take out or put back' : '';
-    baseBtn.textContent = it?.hidden ? 'Put back' : 'Take out';
+    baseBtn.textContent = it?.hidden ? 'Put back' : it?.holds ? t('decor.look.takeOutHolds', 'Take out (its contents to your pack)') : 'Take out';
     baseBtn.dataset.dficon = it?.hidden ? 'put-back' : 'take-out';   // MENU-ORDER
-    baseBtn.disabled = !it || (!it.hidden && it.holds);
-    allOutBtn.disabled = !rows.some((r) => !r.hidden && !r.holds && !r.door);
+    baseBtn.disabled = !it;
+    allOutBtn.disabled = !rows.some((r) => !r.hidden && !r.door);
     allBackBtn.disabled = !rows.some((r) => r.hidden && !r.door);
-    pickWhy.textContent = it && !it.hidden && it.holds ? DECOR_HOLDS_LINE : '';
+    pickWhy.textContent = '';
   }
 
   function paintFoot() {
