@@ -52,17 +52,18 @@ export async function homeScore(db, mapId, buildingKey) {
 }
 
 /**
- * AUDIT HOME-VOTE A3: WHETHER A HOME'S DECOR IS SHOWN TO THE ACCOUNT `playerId` - by the service, so a build from
- * before HOME-VOTE (a desktop release not yet updated) or a client that ignores the law shows a shunned home's decor
- * no more than the law does (net/homeVoteLaw.js homeDecorShown): to its insiders always, to anyone else unless its votes
- * run down to HOME_SHUN_AT (HOME-SHUN). A building that is no home shows what stands.
+ * Whether the account `playerId` sees a home's decor. The service decides it, so an old build or a client that ignores
+ * the rule shows no more than net/homeVoteLaw.js homeDecorShown allows. Insiders and decorators always see it; anyone
+ * else sees it unless its votes run down to HOME_SHUN_AT. A building with no home row is always shown.
  */
 export async function homeShownTo(db, mapId, buildingKey, playerId) {
   return homeShownOf(await homeShownRead(db, mapId, buildingKey, playerId).first());
 }
 /** DECOR-BATCH: homeShownTo's one read, as a statement a caller's batch carries - its answer is homeShownOf's. */
-export const homeShownRead = (db, mapId, buildingKey, playerId) => db.prepare(`SELECT h.score AS score, ${INSIDER} AS insider FROM homes h WHERE h.map_id = ? AND h.building_key = ?`)
-  .bind(playerId ?? '', playerId ?? '', mapId, buildingKey);
+export const homeShownRead = (db, mapId, buildingKey, playerId) => db.prepare(`SELECT h.score AS score, (${INSIDER}
+    OR EXISTS (SELECT 1 FROM home_decorators d WHERE d.map_id = h.map_id AND d.building_key = h.building_key AND d.player = ?)) AS insider
+  FROM homes h WHERE h.map_id = ? AND h.building_key = ?`)
+  .bind(playerId ?? '', playerId ?? '', playerId ?? '', mapId, buildingKey);
 /** DECOR-BATCH: homeShownTo's answer off its row (null: no home stands there - what stands is shown). */
 export const homeShownOf = (r) => !r || r.insider === 1 || !homeShunned(Number(r.score));
 

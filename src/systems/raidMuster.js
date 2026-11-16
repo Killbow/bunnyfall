@@ -4,16 +4,16 @@
 // MUSTER. A raid's raiders no longer stand one by one just out of the player's view: they come out of the raid's CAMPS
 // at the town's edge, gather there into a WAVE, and march in on the town together.
 //
-//   THE CAMPS: one, or two for a big town, each at the edge of the town's streets on a side the raid's own tuple draws
-//     (musterSides - no new draw, so every machine names the same camps), where the refugees' way starts
-//     (scenes/raidSitesHost.js way): the way from there to the square is the wave's road in.
+//   THE CAMPS: one, or two for a big town, each on a side drawn from the raid's own tuple (musterSides), so every
+//     machine names the same camps. A camp is where the refugees' way starts (scenes/raidSitesHost.js way): at the
+//     edge of the town's streets, or outside the city gate in a walled town. That way is the wave's road in.
 //   GATHERING: a raider stood at a camp is held there (a follower of the camp, leashed: it fights what comes at it)
 //     until its wave is whole - MUSTER_WAVE_MIN to MUSTER_WAVE_MAX of them, or a kind's own pack - or MUSTER_GATHER_MAX_S
 //     has gone by.
-//   THE MARCH: the wave follows a guide walking the road at a marching pace, waiting for its stragglers, the column
-//     leashed to it (it fights what it meets on the way); at the square the guide turns for the nearest player in the
-//     town, and within MUSTER_ENGAGE_M of one (or MUSTER_MARCH_MAX_S on) the wave is let loose. The next wave gathers
-//     while this one fights.
+//   THE MARCH: the wave follows a guide walking the road at a marching pace, leashed to it and keeping to the road
+//     behind it, and fights what it meets. The guide waits for stragglers until MUSTER_MARCH_MAX_S has passed, and at
+//     the square it turns for the nearest player in the town. The wave is let loose once the guide is within
+//     MUSTER_ENGAGE_M of a player, or once a late guide reaches the end of the road. The next wave gathers meanwhile.
 //   THE SMOKE: a column over each camp and over the houses nearest it, on every machine (scenes/raidMusterHost.js).
 // A town with no streets or way for it keeps the mod's raid (one by one, just out of view): the muster answers null.
 //
@@ -77,7 +77,8 @@ export function createRaidMuster({ camps, players = () => [], release = () => {}
   let clock = 0;
   /** key -> { camps, at } - each raid's camps, asked once and kept (a null asked again MUSTER_SITE_AGAIN_S on). */
   const sites = new Map();
-  /** The waves: { key, raid, camp, target, asked, members: any[], since, phase: 'gather'|'march', guide, leg, marched }. */
+  /** The waves: { key, raid, camp, target, asked, members: any[], since, phase: 'gather'|'march', guide, leg, trail,
+   *  marched }. */
   let waves = [];
   let made = 0;
   const alive = (w) => w.members.filter((f) => !f.dead && (f.entity?.health ?? 1) > 0);
@@ -92,6 +93,8 @@ export function createRaidMuster({ camps, players = () => [], release = () => {}
     return s.camps;
   };
   const forming = (key) => waves.find((w) => w.key === key && w.phase === 'gather' && w.asked < w.target) ?? null;
+  /** Raiders with no clear line to the guide walk the road it has covered so far. */
+  const marchFollow = (w) => ({ feet: () => w.guide, stop: MUSTER_MARCH_STOP_M, leash: MUSTER_MARCH_LEASH_M, trail: () => w.trail, muster: w });
   const loose = (w) => { for (const f of w.members) if (f.ai?.follow?.muster === w) { f.ai.follow = null; if (!f.dead) release(w.raid, f); } };
   return {
     /** Where the raid's next raider stands - a placement for the host's standRaider (`at` its camp's heart), or null
@@ -103,7 +106,7 @@ export function createRaidMuster({ camps, players = () => [], release = () => {}
       let w = forming(key);
       if (!w) {
         const target = size > 0 ? size : MUSTER_WAVE_MIN + Math.floor(random() * (MUSTER_WAVE_MAX - MUSTER_WAVE_MIN + 1));
-        w = { key, raid, camp: c[made++ % c.length], target, asked: 0, members: [], since: clock, phase: 'gather', guide: null, leg: 0, marched: 0 };
+        w = { key, raid, camp: c[made++ % c.length], target, asked: 0, members: [], since: clock, phase: 'gather', guide: null, leg: 0, trail: null, marched: 0 };
         waves.push(w);
       }
       w.asked++;
@@ -120,7 +123,7 @@ export function createRaidMuster({ camps, players = () => [], release = () => {}
       w.members.push(foe);
       if (foe.ai) foe.ai.follow = w.phase === 'gather'
         ? { feet: () => w.camp.pts[0], stop: MUSTER_HOLD_STOP_M, leash: MUSTER_HOLD_LEASH_M, muster: w }
-        : { feet: () => w.guide, stop: MUSTER_MARCH_STOP_M, leash: MUSTER_MARCH_LEASH_M, muster: w };
+        : marchFollow(w);
       return true;
     },
     /** One frame: waves whole (or tired of waiting) march, the marching walk on, a wave at a player is let loose. */
@@ -133,22 +136,23 @@ export function createRaidMuster({ camps, players = () => [], release = () => {}
           const whole = w.asked >= w.target && live.length >= w.target;
           if (!whole && !(clock - w.since >= MUSTER_GATHER_MAX_S && live.length)) continue;
           w.phase = 'march'; w.asked = w.target;   // no more join it
-          w.guide = [...w.camp.pts[0]]; w.leg = 1;
-          for (const f of live) if (f.ai) f.ai.follow = { feet: () => w.guide, stop: MUSTER_MARCH_STOP_M, leash: MUSTER_MARCH_LEASH_M, muster: w };
+          w.guide = [...w.camp.pts[0]]; w.leg = 1; w.trail = [w.guide];
+          for (const f of live) if (f.ai) f.ai.follow = marchFollow(w);
           continue;
         }
         w.marched += dt;
         if (!live.length) { w.done = true; continue; }
         const near = players().reduce((b, p) => { const d = Math.hypot(p[0] - w.guide[0], p[2] - w.guide[2]); return d < b.d ? { p, d } : b; }, { p: null, d: Infinity });
-        if (near.d <= MUSTER_ENGAGE_M || w.marched >= MUSTER_MARCH_MAX_S) { loose(w); w.done = true; continue; }
+        const late = w.marched >= MUSTER_MARCH_MAX_S;
+        if (near.d <= MUSTER_ENGAGE_M || (late && w.leg >= w.camp.pts.length)) { loose(w); w.done = true; continue; }
         // the column keeps together: the guide waits while it is strung out
         const spread = live.reduce((s, f) => s + (f.ai?.feet ? Math.hypot(f.ai.feet[0] - w.guide[0], f.ai.feet[2] - w.guide[2]) : 0), 0) / live.length;
-        if (spread > MUSTER_STRAGGLE_M) continue;
+        if (spread > MUSTER_STRAGGLE_M && !late) continue;
         // its road in, then the nearest player
         const goal = w.leg < w.camp.pts.length ? w.camp.pts[w.leg] : near.p;
         if (!goal) continue;
         const dx = goal[0] - w.guide[0], dz = goal[2] - w.guide[2], d = Math.hypot(dx, dz), stepM = MUSTER_MARCH_MPS * dt;
-        if (d <= stepM) { w.guide[0] = goal[0]; w.guide[1] = goal[1]; w.guide[2] = goal[2]; if (w.leg < w.camp.pts.length) w.leg++; }
+        if (d <= stepM) { w.guide[0] = goal[0]; w.guide[1] = goal[1]; w.guide[2] = goal[2]; if (w.leg < w.camp.pts.length) { w.leg++; w.trail = [...w.camp.pts.slice(0, w.leg), w.guide]; } }
         else { w.guide[0] += (dx / d) * stepM; w.guide[2] += (dz / d) * stepM; w.guide[1] += ((goal[1] - w.guide[1]) * stepM) / d; }
       }
       waves = waves.filter((w) => !w.done && !(w.phase === 'gather' && w.asked >= w.target && !alive(w).length && clock - w.since > MUSTER_GATHER_MAX_S));
