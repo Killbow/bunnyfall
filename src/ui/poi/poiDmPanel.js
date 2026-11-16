@@ -15,6 +15,7 @@ import { problemText, problemWhere } from '../../poi/poiText.js';
 import * as DM from '../../poi/poiDmEdit.js';
 import { dmLines } from '../../poi/poiDmLines.js';
 import { createPoiSandbox } from './poiSandbox.js';
+import { repaintKeepingScroll } from '../domRepaint.js';
 
 export const POI_DM_STYLE_ID = 'dfpoi-dm-style';
 export const POI_DM_CSS = `
@@ -130,12 +131,13 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
   const getDoc = () => { const i = id(); return i ? edit.docOf(i) : null; };
 
   // ── redraw after a change, held during a press, typing, or an open list or color picker ──
-  let queued = false, pressAt = -Infinity, gone = false;
+  let queued = false, pressAt = -Infinity, gone = false, painting = false;
   /** @type {ReturnType<typeof setTimeout> | null} */
   let waitTimer = null;
   dock.addEventListener('pointerdown', () => { pressAt = Date.now(); }, true);
   dock.addEventListener('pointerup', () => { setTimeout(() => { pressAt = -Infinity; schedule(); }, 0); }, true);
-  dock.addEventListener('focusout', () => schedule());
+  // A redraw that removes the focused control can fire focusout, which must not queue a redraw.
+  dock.addEventListener('focusout', () => { if (!painting) schedule(); });
   const typing = () => { const a = /** @type {any} */ (doc.activeElement); return !!a && dock.contains(a) && (a.tagName === 'TEXTAREA' || (a.tagName === 'INPUT' && !['checkbox', 'button'].includes(a.type))); };
   function schedule() {
     if (queued || gone) return;
@@ -335,9 +337,11 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
     if (extra) bar.append(extra);
     left.append(bar);
     const form = el('div', 'dfpoi-dm-form');
+    form.setAttribute('data-scroll-key', String(ui.key));
     const index = rows.findIndex((/** @type {any} */ r) => r.key === ui.key);
     form.append(...kids.filter(Boolean), ...(index >= 0 ? rowProblems(coll, index) : []));
     const body = el('div', 'dfpoi-dm-body');
+    body.setAttribute('data-scroll-key', coll);
     body.append(left, form);
     return body;
   }
@@ -669,7 +673,8 @@ export function createPoiDmPanel({ doc = document, root, edit, editor, say }) {
       if (ui.tab === 'npcs' && !ui.key) ui.key = d.npcs?.[0]?.key ?? null;
       out.push(tabs[ui.tab]());
     }
-    dock.replaceChildren(...out);
+    painting = true;
+    try { repaintKeepingScroll(dock, () => dock.replaceChildren(...out), { focus: true }); } finally { painting = false; }
   }
 
   const api = {

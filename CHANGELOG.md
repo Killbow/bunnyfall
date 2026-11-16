@@ -7,6 +7,8 @@ the last release (scripts/changelogNotes.mjs).
 
 - Fixed: In homes in the new town layouts (Beautiful Cities and Beautiful Villages), all furniture and framed paintings can now be taken out while decorating.
 - Fixed: The decorator's Built in tab now removes a cupboard, chest, or shelf that holds things, and puts what it holds in your pack.
+- Fixed: In the POI editor's DM tools, editing a dialogue, event, trade, or other entry no longer scrolls the panel back to the top.
+- Fixed: A POI event that opens a trade while a talk is open, such as one run by a dialogue answer, now shows the trade.
 - Fixed: In the POI editor and DM tools, color pickers and dropdowns actually open up.
 - Fixed: In the POI editor, Place and Paste with nothing selected now go to the last selected POI instead of making a new POI or asking you to select one.
 - Fixed: In the POI editor, a paste into the same POI now rezzes in the same position as the original.
