@@ -433,6 +433,8 @@ export function aurasHeld(player, env) {
   // registered account's alone; Firstlight with First of the Spire, by name
   if (typeof player?.handle === 'string' && player.handle) for (const [t, a] of Object.entries(EG_HONOUR_AURA)) if ((Number(player?.eg_honours) & EG_HONOUR[t]) && !held.includes(a)) held.push(a);
   if (isSpireFirst(player, env) && !held.includes(EG_FIRST_AURA)) held.push(EG_FIRST_AURA);
+  // The Heart’s Fire follows ownership of Legendary Bartender, including earlier purchases.
+  if (player?.handle && insigniaKeys(player.insignia, 'title').includes('legendarybartender') && !held.includes('beaconlight')) held.push('beaconlight');
   for (const a of insigniaKeys(player?.insignia, 'aura')) if (!held.includes(a)) held.push(a);
   // SERPENT5: THE MAELSTROM - the Old Coil's second grant, laid on the row as Coilbreaker is, held for good
   if (typeof player?.handle === 'string' && player.handle && (Number(player?.serpent_honours) & SERPENT_HONOUR_AURA)) held.push('maelstrom');

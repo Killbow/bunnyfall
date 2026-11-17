@@ -9036,3 +9036,7 @@ tavern.room.action,"Work the room"
 tavern.room.available,"This customer has an opening: Work the room."
 tavern.room.mood,"Warmth {warmth}/6 · Energy {energy}/6 · Tension {tension}/6"
 tavern.room.backfire,"The room is too tense for that much excitement. Your attempt draws irritated replies."
+
+coll.how.heartsfire,"Included with Legendary Bartender, bought from the Bards’ Guild for 500 Favor Tokens."
+tavern.favor.auraBundle," + aura"
+tavern.favor.heartsFire,"Legendary Bartender includes the Heart's Fire aura."

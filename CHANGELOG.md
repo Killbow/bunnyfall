@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-17
+
+- Legendary Bartender now also unlocks the Heart's Fire aura (formerly Beaconlight), including for players who already own the title.
+
 ## 2026-11-16
 
 - Tavern shifts now have three clickable bottle points for pouring doses, a cup progress display, and an illustrated, paged innkeeper's recipe book.
