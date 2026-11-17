@@ -102,7 +102,8 @@ import { wodRockUvs } from '../world/worldOfDaggerfall/wodRockUv.js';
 import { WodSpawner } from '../world/worldOfDaggerfall/wodSpawner.js';
 import { lateSolidsOf } from '../player/lateSolid.js';   // ROCK-CLEAR: a pixel's statics built round a body already standing are withheld until it is clear
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';
-import { wasteRing, burnTilemap, treeStandsDead, deadTreeOf, wasteScorch } from '../systems/wild/cromwarkWaste.js';   // BUNNYFALL (Cromwark): the reach's burnt ground and dead trees   // BUNNYFALL (Cromwark): the reach's desolate towns
+import { buildingRuinPlan, ruinBuildingMesh } from '../systems/wild/cromwarkRuins.js';
+import { wasteRing, burnTilemap, treeStandsDead, deadTreeOf, wasteScorch, wasteGroundCoverStands, DEAD_TREE_RECORDS } from '../systems/wild/cromwarkWaste.js';   // BUNNYFALL (Cromwark): the reach's burnt ground and dead trees   // BUNNYFALL (Cromwark): the reach's desolate towns
 import { sightMarksOf } from '../world/signSolid.js';   // FIELD BUGS 2026-10-25i SIGN-PASS: a shop's sign stops a body where it stands, never where it hangs
 
 /** @param {any} host */
@@ -403,12 +404,34 @@ export function createPixelBuild(host) {
     const light210 = await getTexture(LIGHTS_ARCHIVE);
     const lightSize = (record) =>
       billboardSize(light210, record);
-    const addFlat = (archive, record, x, y, z, skin = null) => { flatLog.push({ archive, record, c: [x, y, z], ...skin }); };
+    const borderNature = new Map();
+    const wasteTreeAt = (x, z) => treeStandsDead(wasteR, px * TERRAIN_SIZE + x, (499 - py) * TERRAIN_SIZE + z);
+    const addFlat = (archive, record, x, y, z, skin = null) => {
+      if (wasteR && isNatureArchive(archive)) {
+        const base = archive >= 505 && (archive & 1) ? archive - 1 : archive;
+        if (!isTreeRecord(base, record) && !wasteGroundCoverStands(wasteR, px, py, x, z)) return;
+        if ((base !== 508 || !DEAD_TREE_RECORDS.includes(record)) && isTreeRecord(base, record) && wasteTreeAt(x, z)) {
+          const dead = deadTreeOf(px * TERRAIN_SIZE + x, (499 - py) * TERRAIN_SIZE + z);
+          archive = getNatureArchive(dead.base, pixelSeason); record = dead.record;
+          borderNature.set(archive, dead.base);
+          skin = { ...skin, block: undefined, n: undefined, wild: dead.base, ...(skin?.tree ? { tree: { ...skin.tree, base: dead.base, archive } } : {}) };
+        }
+      }
+      flatLog.push({ archive, record, c: [x, y, z], ...skin });
+    };
     // WOD2: a flat the mod SCALES (LoadObject's `localScale *= scale`,
     // LocationHelper.cs:1243) is a batch of its own at its own size; the
     // shipped layouts scale four records, always uniformly.
     const scaledGroups = new Map();
     const addScaledFlat = (archive, record, scale, x, y, z) => {
+      if (wasteR && isNatureArchive(archive)) {
+        const base = archive >= 505 && (archive & 1) ? archive - 1 : archive;
+        if (!isTreeRecord(base, record) && !wasteGroundCoverStands(wasteR, px, py, x, z)) return;
+        if ((base !== 508 || !DEAD_TREE_RECORDS.includes(record)) && isTreeRecord(base, record) && wasteTreeAt(x, z)) {
+          const dead = deadTreeOf(px * TERRAIN_SIZE + x, (499 - py) * TERRAIN_SIZE + z);
+          archive = getNatureArchive(dead.base, pixelSeason); record = dead.record;
+        }
+      }
       const k = `${archive}_${record}_${scale.x}_${scale.y}`;
       if (!scaledGroups.has(k)) scaledGroups.set(k, { archive, record, scale, centers: [] });
       scaledGroups.get(k).centers.push([x, y, z]);
@@ -418,6 +441,8 @@ export function createPixelBuild(host) {
     // from the original (the SetDungeonTextures pattern; verbatim
     // MaterialReader.ChangeClimate semantics).
     const texRemap = markRemapLaw(new Map(), `climate:${townClimateBase}.${pixelSeason}`);   // AUDIT MENU-ORDER C3: named by the law it is built in (townClimateArchive's)
+    const cromwarkDamage = { roofless: 0, breached: 0, collapsed: 0 };
+    const pixelRuinKeys = new Set();
     const models = []; // { gpu, local } - local precomposed pixel-local matrix
     // PERF4: the pixel's static models, merged as they arrive (the
     // transform rides the build's own awaits) into one mesh per pixel,
@@ -522,7 +547,7 @@ export function createPixelBuild(host) {
             models.push({ gpu: parts.body, local, _box: box, _order: -1, _mill: true });   // EV6: the mills group together; AUDIT PRECIP HOST-7: a body a re-skin dresses
             late.add(key, BODY.positions, BODY.indices, local,
               { translation: onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0])) });   // BLOOD1 AUDIT 3: one array a bucket, not one a call - every ray asks every bucket; PERF-COL2: riding the floating origin, filed by place
-            windmills.push({ local, state: { angle: rotorPhase(px + local[12], py + local[14]) } });
+            if (!wasteR) windmills.push({ local, state: { angle: rotorPhase(px + local[12], py + local[14]) } });
           }
         }
         for (const placed of b.layout.models) {
@@ -536,19 +561,25 @@ export function createPixelBuild(host) {
           if (!climateFree) await remapSubMeshes(gpu.subMeshes, texRemap, townClimateArchive, pipeline, townClimateBase);   // AUDIT PRECIP HOST-7: kept in the table's recipe under its climate
           const local = multiply(originMatrix, placed.matrix);
           if (WATER_SOURCE_MODELS.includes(placed.modelIdNum)) pixelSprings.push({ pos: [local[12], local[13], local[14]], dry: false });   // SURV3: a trough is a water source
-          const cpu = cpuModels.get(placed.modelIdNum);
-          const box = transformedAabb(archAabb(placed.modelIdNum, cpu.positions), local);
+          const originalCpu = cpuModels.get(placed.modelIdNum);
+          const ruinPlan = wasteR && placed.recordIndex != null && !isCityGate(placed.modelIdNum)
+            ? buildingRuinPlan(wasteR, homeTown, b.x, b.y, placed.recordIndex) : null;
+          const ruined = ruinPlan ? ruinBuildingMesh(originalCpu, ruinPlan) : null;
+          const cpu = ruined ?? originalCpu;
+          if (ruined) cromwarkDamage[ruined.ruin]++;
+          const box = transformedAabb(ruined ? localAabb(cpu.positions) : archAabb(placed.modelIdNum, cpu.positions), local);
           unionBox(box);
-          const entry = { gpu, local, _box: box, _order: placed.modelIdNum };   // EV6: sort key
+          const entry = { gpu, local, _box: box, _order: placed.modelIdNum, _ruin: ruined?.ruin ?? null };   // EV6: sort key
           if (climateFree) entry.texRemap = NO_CLIMATE_REMAP;   // ARENA1: drawn by its own table (an empty one - never the pixel's)
           // HOME-LOOK / HOME-YARD
           const homeKey = Number.isSafeInteger(placed.recordIndex) ? makeBuildingKey(b.x, b.y, placed.recordIndex) : null;
           if (homeKey != null) {
+            if (ruinPlan) pixelRuinKeys.add(homeKey);
             pixelBuildingKeys.add(homeKey);
             // its own place (rmbLayout.js recordAt) and the box round its models: its yard's frame and footprint
             const at = Array.isArray(placed.recordAt) ? [locLocal[0] + b.originX + placed.recordAt[0], locLocal[1] + placed.recordAt[1], locLocal[2] + b.originZ + placed.recordAt[2]] : null;
             const bd = b.dfBlock?.rmbBlock?.fldHeader?.buildingDataList?.[placed.recordIndex] ?? null;   // YARD-LINE: whether it could hold a lot of its own
-            const rects = footRectsAt(modelFeetOf(placed.modelIdNum, cpu), local);   // FB1009 HOME-FOOT: the ground its faces cover, never its box
+            const rects = footRectsAt(modelFeetOf(placed.modelIdNum, originalCpu), local);   // FB1009 HOME-FOOT: the ground its faces cover, never its box
             const f = pixelHomeFrames.get(homeKey);
             if (!f && at) pixelHomeFrames.set(homeKey, { at, box: [...box], rects, type: bd?.buildingType ?? null, faction: bd?.factionId ?? 0, parts: [[cpu, local]] });   // AUDIT RPT1026 J2: its models (hallBanners.js wallBehind)
             else if (f) { for (let i = 0; i < 3; i++) { f.box[i] = Math.min(f.box[i], box[i]); f.box[i + 3] = Math.max(f.box[i + 3], box[i + 3]); } f.rects.push(...rects); f.parts?.push([cpu, local]); }
@@ -557,7 +588,7 @@ export function createPixelBuild(host) {
           const homeLook = homeRow ? lookOfHome(homeTown, homeKey, homeRow) : null;
           // AUDIT: a painted home, or this account's, leaves the merge (PERF4 for every other); unpainted, the pixel's table
           // GUILD-YARD: and a guild's hall this character keeps - its painter tries a look on it as an owner's does
-          if (homeRow && (homeLook || homeRow.mine || homeRow.keeper)) {
+          if (!ruinPlan && homeRow && (homeLook || homeRow.mine || homeRow.keeper)) {
             entry._home = { bk: homeKey, sig: homeLookSig(homeLook), seq: 0 };
             entry.texRemap = homeLook ? await homeLookRemap(gpu.subMeshes, texRemap, homeLook, pixelSeason, pipeline) : null;
             pixelHomeKeys.add(homeKey);
@@ -585,7 +616,7 @@ export function createPixelBuild(host) {
           }
           const gateKey = isCityGate(placed.modelIdNum) ? `${key}:gate:${pixelGates.length}` : key;
           late.add(gateKey, cpu.positions, cpu.indices, local,
-            { translation: onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0])), sight: sightMarksOf(placed.modelIdNum, cpu) });   // BLOOD1 AUDIT 3: the same; PERF-COL2: riding the floating origin; SIGN-PASS: a sign's board met by every ray, by no body
+            { translation: onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0])), sight: ruined ? undefined : sightMarksOf(placed.modelIdNum, cpu) });   // BLOOD1 AUDIT 3: the same; PERF-COL2: riding the floating origin; SIGN-PASS: a sign's board met by every ray, by no body
           // THE BULLETIN BOARDS. RMBLayout stands model 41739
           // STANDALONE rather than combining it (:857, :935) for the
           // sole purpose of hanging DaggerfallBulletinBoard off it
@@ -680,6 +711,7 @@ export function createPixelBuild(host) {
           });
         }
         for (const [n, flat] of blockFlats.entries()) {
+          if (desolate && (isStandFlat(flat.archive, flat.record) || flat.archive === ANIMALS_ARCHIVE || flat.archive === LIGHTS_ARCHIVE || flat.archive === 301)) continue;
           // A4: every archive-201 town animal is an audio source
           // (AddAnimalAudioSource on RMB flats, verbatim). It runs
           // BEFORE DFU's faction test (:363-377), so it is not part of
@@ -726,7 +758,7 @@ export function createPixelBuild(host) {
           const lift = flat.archive === natureArchive ? groundOffPlane(samples, avg, fx, fz) : 0;
           addFlat(flat.archive, flat.record, fx, locLocal[1] + (hillSeat && isNatureArchive(flat.archive) ? seatNatureFlat(hillSeat, flat.x, flat.z, NATURE_FLATS_Y + groundOffPlane(samples, avg, fx, fz)) : flat.y + lift), fz, { block, n });
         }
-        for (const light of collectCityLights(b.dfBlock, lightSize)) {
+        for (const light of desolate ? [] : collectCityLights(b.dfBlock, lightSize)) {
           const lp = [
             locLocal[0] + b.originX + light.x,
             locLocal[1] + light.y,
@@ -968,6 +1000,7 @@ export function createPixelBuild(host) {
         await breather.breathe();
       }
       for (const f of place.flats) {
+        if (wasteR && (isStandFlat(f.archive, f.record) || f.archive === ANIMALS_ARCHIVE || f.archive === LIGHTS_ARCHIVE || f.archive === 301)) continue;
         if (pointNearPath(_roadsNow, px, py, f.base[0] * UNITS_PER_METRE, f.base[2] * UNITS_PER_METRE, WOD_PIECE_ROAD_CLEAR)) { _wodOffRoad++; continue; }   // ROADS-CLEAR: and a flat on one
         // VERGE1: and under clear roadsides, nor one whose picture reaches the road - its half width (its own scale on
         // DFU's record size) past the pieces' margin, the wild's flats' disc
@@ -981,7 +1014,7 @@ export function createPixelBuild(host) {
       // AddLight: DaggerfallUnity's interior light prefab under the flat,
       // lifted and coloured by the mod's own two switches. A Unity Light
       // burns at every hour, so these are not the lanterns' night list.
-      for (const f of place.lights) {
+      for (const f of wasteR ? [] : place.lights) {
         const pos = wodLightPosition(f.base, f.record, lightSize(f.record), f.scale.y);
         const light = wodLightProperties(f.record);
         pixelWodLights.push({
@@ -991,7 +1024,7 @@ export function createPixelBuild(host) {
       }
       // AddAnimalAudioSource: RMBLayout's table (LocationHelper.cs:1481-1515),
       // so the town animals' own list carries them.
-      for (const f of place.animals) {
+      for (const f of wasteR ? [] : place.animals) {
         const sound = ANIMAL_SOUND_BY_RECORD[f.record];
         if (sound != null) pixelAnimals.push({ pos: [f.base[0], f.base[1], f.base[2]], sound });
       }
@@ -1025,7 +1058,6 @@ export function createPixelBuild(host) {
     // species and a scale each), by species: the owner's tree where its door has loaded, else the Tree record it carries
     const jungleGroups = new Map();
     const jungleOk = !!jungle && nature.some((f) => f.jungle != null) && !!(await jungle.door.load());
-    const borderNature = new Map();   // ECOTONE1: a neighbour climate's nature archive the border stood here -> its summer archive
     for (const f of nature) {
       // GATE-CLEAR (AUDIT FOREST1 F5): the day's Oblivion Gate keeps its clearing of nature as it keeps it of World of
       // Daggerfall's flats - a tree no longer stands through the gate's stone or the Sigil Broker (the sweep builds the
@@ -1041,7 +1073,7 @@ export function createPixelBuild(host) {
       // trees a road keeps are the layout's alone - every peer's the same
       const jungleTree = jungleOk && f.jungle != null;
       if (vergeNet && !vergeClear(vergeNet, px, py, f.x, f.z, f.jungle != null ? JUNGLE_MEASURES[f.jungle].foot * f.js : natureReach(vergeHalf.get(base)[f.record] ?? 0, base, f.record, px, py, f.x, f.z))) { vergeOff++; continue; }
-      if (jungleTree) {
+      if (jungleTree && !wasteTreeAt(f.x, f.z)) {
         // AUDIT BANTHA1 PERF-5: a species' young trees a group of their own (`J<species>y`) - the understorey, which the far
         // rings stand as they stand the floor (below)
         const young = f.js <= JUNGLE.underScale[1], gk = young ? `J${f.jungle}y` : `J${f.jungle}`;
@@ -1056,7 +1088,7 @@ export function createPixelBuild(host) {
       const fSeason = snowRec ? snowRec.flat(f.x, f.z, f.y - SEA_LEVEL_M, pixelSeason) : pixelSeason;
       // BUNNYFALL (Cromwark, systems/wild/cromwarkWaste.js): a tree of the reach may stand DEAD - a Haunted Woodlands tree in its
       // place, more of them toward the heart
-      const dead = wasteR && isTreeRecord(base, f.record) && treeStandsDead(wasteR, f.x, f.z) ? deadTreeOf(f.x, f.z) : null;
+      const dead = wasteR && isTreeRecord(base, f.record) && wasteTreeAt(f.x, f.z) ? deadTreeOf(px * TERRAIN_SIZE + f.x, (499 - py) * TERRAIN_SIZE + f.z) : null;
       const wBase = dead ? dead.base : base, wRecord = dead ? dead.record : f.record;
       const archive = getNatureArchive(wBase, fSeason);   // worn in its season's set
       if (archive !== natureArchive) borderNature.set(archive, wBase);
@@ -1070,7 +1102,13 @@ export function createPixelBuild(host) {
     // as every flat above, or not at all (their feet are off the roads by their law: no verge asks them); never in
     // pixelTrees, whatever the jungle's door did (AUDIT JUNGLE-ROADSIDE GAME-2). The door not loaded, each tree stands
     // as the Tree record it carries, at its own ground, as the jungle's trees stand then
-    const pairs = keptPairs(roadside, (x, z) => !pointNearGate(gateClear, px, py, x, z, WOD_FLAT_GATE_CLEAR_M) && !insideRocks(pixelRocks, x, z));
+    const allPairs = keptPairs(roadside, (x, z) => !pointNearGate(gateClear, px, py, x, z, WOD_FLAT_GATE_CLEAR_M) && !insideRocks(pixelRocks, x, z));
+    const pairs = allPairs.filter((p) => !wasteR || !p.trees.some((t) => wasteTreeAt(t.x, t.z)));
+    for (const p of allPairs) if (!pairs.includes(p)) for (const t of p.trees) {
+      const archive = getNatureArchive(JUNGLE_ARCHIVE, pixelSeason);
+      if (archive !== natureArchive) borderNature.set(archive, JUNGLE_ARCHIVE);
+      addFlat(archive, t.record, t.x, surfaceHeightAt(samples, t.x, t.z), t.z, { wild: JUNGLE_ARCHIVE });
+    }
     if (!jungleOk) {
       for (const t of pairs.flatMap((p) => p.trees)) {
         const archive = getNatureArchive(JUNGLE_ARCHIVE, pixelSeason);
@@ -1145,7 +1183,7 @@ export function createPixelBuild(host) {
     // way and a Wyrd Sister at each tavern's door (world/witchesDecor.js) - its flats logged with the block's (they batch,
     // light, stand solid and keep through a re-skin as those do), a fire among them a hearth, the Sisters stood with the
     // street's people below; each spot clear of the walls the pixel's bucket now holds and of what the town stands
-    const witchDress = witchFloor != null && locBlocks ? await witchesDressingBreathing({
+    const witchDress = !wasteR && witchFloor != null && locBlocks ? await witchesDressingBreathing({
       frames: pixelHomeFrames, taverns: buildingKeysOfType(locBlocks, makeBuildingKey, TALK_BUILDING_TYPES.Tavern), temples: buildingKeysOfType(locBlocks, makeBuildingKey, TALK_BUILDING_TYPES.Temple),
       mapId: dfLocation?.mapTableData?.mapId ?? 0, climateIndex: maps.getClimateIndex(px, py), region: dfLocation?.regionIndex ?? null, floorY: witchFloor,
       blocked: colliderBlocked(collider, host.state, px, py), ground: dryGround(locBlocks, locOrigin), taken: [...flatLog.map((f) => f.c), ...[...pixelNpcFlats, ...pixelStandFlats].map((n) => [n.x, n.y, n.z])],
@@ -1344,7 +1382,7 @@ export function createPixelBuild(host) {
     }) : null;
     // FESTIVAL-STAGE (Seats-Arc 7.6): a Festival's more banners - its taverns' doors, the bounty boards - and a lantern
     // before every banner the town flies, measured here; hung and lit while a Festival rules (scenes/seatFestival.js)
-    const festivalAnchors = pixelBoardSplit ? festivalBannerAnchors({ frames: pixelHomeFrames, tavernKeys: buildingKeysOfType(locBlocks, makeBuildingKey, TALK_BUILDING_TYPES.Tavern), boards: pixelBoards, bounty: pixelBoardSplit }) : null;
+    const festivalAnchors = !wasteR && pixelBoardSplit ? festivalBannerAnchors({ frames: pixelHomeFrames, tavernKeys: buildingKeysOfType(locBlocks, makeBuildingKey, TALK_BUILDING_TYPES.Tavern), boards: pixelBoards, bounty: pixelBoardSplit }) : null;
     const festivalLanterns = festivalAnchors ? festivalLanternsOf([...(seatAnchors ?? []), ...festivalAnchors]) : null;
     // CHAP7b (Chapters-Arc 8): the town's guild halls and temples, by their guild - a chapter's patron's banners hang at them.
     // AUDIT CHAP5 C5: online alone (the sheet's) - offline no banner hangs, and the buildings' names are drawn for nothing
@@ -1381,7 +1419,7 @@ export function createPixelBuild(host) {
       chapterHalls: pixelChapterHalls,   // CHAP7b (above)
       bunnyHalls: bunnyHallsOf(dfLocation, locBlocks),   // BUNNY-GUILDS: the town's guild halls, their banners (scenes/bunnyHallBanners.js)
       beach: beach ?? null,   // AUDIT LANDFORMS II H2: DFU's own blend in a location's pixel with the row on - where a gathering node asks the beach line
-      px, py, terrain, water, tilemapTex, tilemap, groundArchive, models, windmills, batches, flatAnims, texRemap, lights: pixelLights, hearths: pixelHearths, animals: pixelAnimals, springs: pixelSprings, skyBase: climate.skyBase, samples, natureCount: nature.length,
+      ruinKeys: pixelRuinKeys, cromwarkDamage, wasteR, px, py, terrain, water, tilemapTex, tilemap, groundArchive, models, windmills, batches, flatAnims, texRemap, lights: pixelLights, hearths: pixelHearths, animals: pixelAnimals, springs: pixelSprings, skyBase: climate.skyBase, samples, natureCount: nature.length,
       tilemapBytes, season: pixelSeason,   // GR1: the placer reads the tiles and the season (PRECIP4: the pixel's)
       _snow: snowSeen,   // PRECIP4: the snow it was built under, every season it took (the sweep's - AUDIT PRECIP HOST-6)
       // AUDIT PRECIP HOST-7: what a re-skin reads (reskinPixelNow), on the snow lane alone - its flats as logged, its blocks'

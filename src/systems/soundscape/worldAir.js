@@ -127,10 +127,11 @@ export const TOWN_WILD_FAR = 1.6;
  * off and TOWN_WILD_GAP times
  * further between. Each voice's gap as it now stands, and its `id` (the time of day and its place in the row - the
  * clock the driver keeps for it). Pure.
- * @param {number} climate @param {{ night: boolean, weather: string, winter: boolean, inTown: boolean }} now
+ * @param {number} climate @param {{ night: boolean, weather: string, winter: boolean, inTown: boolean, desolate?: boolean }} now
  * @returns {WildVoice[]}
  */
-export function wildVoicesFor(climate, { night, weather, winter, inTown }) {
+export function wildVoicesFor(climate, { night, weather, winter, inTown, desolate = false }) {
+  if (desolate) return [];
   const row = /** @type {Record<number, { day: WildVoice[], night: WildVoice[] }>} */ (WILD)[climate];
   if (!row) return [];
   const out = [];
@@ -209,7 +210,7 @@ export function ensureTownBeds(engine, opts) {
 // ── the driver ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {{ ear: number[], climate: number, night: boolean, hour: number, weather: string, wind: number, winter: boolean,
+ * @typedef {{ ear: number[], climate: number, night: boolean, hour: number, weather: string, wind: number, winter: boolean, desolate?: boolean,
  *   inTown: boolean, townBlocks: number, shore: { dist: number, dir: number[] | null, at?: number[] } | null, smithies: number[][],
  *   taverns: number[][], paused: boolean }} WorldFrame
  */
@@ -288,7 +289,7 @@ export function createWorldAir({ engine = defaultAudio, rand = Math.random } = {
         if (ensureBed(engine, LAP.bed)) bed(LAP.name, LAP.bed, lapGain(dist, state));
       } else { bed(SURF.name, SURF.bed, 0); bed3d(SURF.name, SURF.bed, null, 0, 1, 1); bed(LAP.name, LAP.bed, 0); }
       // THE WILD
-      const now = { night: !!w.night, weather: w.weather, winter: !!w.winter, inTown: !!w.inTown };
+      const now = { night: !!w.night, weather: w.weather, winter: !!w.winter, inTown: !!w.inTown, desolate: !!w.desolate };
       const voices = wildVoicesFor(w.climate, now);
       const keep = new Map();
       for (const v of voices) {
@@ -310,7 +311,7 @@ export function createWorldAir({ engine = defaultAudio, rand = Math.random } = {
         keep.set(id, left);
       }
       wildIn = keep;
-      const marsh = marshGain(w.climate, now);
+      const marsh = w.desolate ? 0 : marshGain(w.climate, now);
       if (marsh > 0 ? ensureBed(engine, MARSH.bed) : true) bed(MARSH.name, MARSH.bed, marsh);
       // THE TOWN
       const towned = !!w.inTown && ensureTownBeds(engine);

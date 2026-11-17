@@ -21,6 +21,7 @@
 // same mapTable this module searches) - no new teleport machinery,
 // just a different, distance-based pick of where to land, and three
 // kinds to choose among instead of one.
+import { cromwarkSettlementRemoved } from './wild/cromwarkSettlements.js';
 import { LOCATION_TYPES, DUNGEON_TYPES, longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
 import { cureAllOfKind } from './effects.js';   // DEATHLOOP1
 import { maxFatigue, liveStat, STAT_KEYS_ORDER } from './statMods.js';   // AUDIT DISC19: the revival's fatigue floor; DISC24-D: its stat floor
@@ -53,7 +54,7 @@ export function nearestSafeLocation(mapTable, mapPixelXY, accept = null) {   // 
   let bestDist = Infinity;
   for (let i = 0; i < (mapTable?.length ?? 0); i++) {
     const e = mapTable[i];
-    if (!e) continue;
+    if (!e || cromwarkSettlementRemoved(e.mapId)) continue;
     const found = SAFE_KINDS.find((t) => t.match(e));
     if (!found) continue;
     const px = longitudeLatitudeToMapPixel(e.longitude, e.latitude);

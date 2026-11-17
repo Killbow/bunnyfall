@@ -22,7 +22,7 @@
 // ═══════════════════════════════════════════════════════════════════
 import { t } from '../textManager.js';
 import { isLetterOfCredit } from '../peerWord.js';   // BURNT-SAID: the letters a death took, by their worth
-import { cromwarkPeace, nyxCoinChance } from './cromwark.js';   // BUNNYFALL: the mountains are Cromwark's reach - no PvP, no loot ladder
+import { cromwarkPeace, nyxCoinChance, setCromwarkCombatHere } from './cromwark.js';   // BUNNYFALL: the mountains are Cromwark's reach - no PvP, no loot ladder
 
 /** The Wrothgarian Mountains - MapsFile's region index (mapsTables.js REGION_NAMES[16]). */
 export const WILD_REGION = 16;
@@ -130,6 +130,7 @@ let _kind = null;
  *  which ground (ETHER-WILD, 2026-10-21: `kind` - 'wroth' the Wrothgarian Mountains, 'ether' the Eltheric Ocean past
  *  Veilhaven's peace, systems/wild/etherWild.js). Every law of the zone reads the flag alike; only its words read the kind. */
 export function setWildHere(on, ring = 0, kind = WILD_KIND) {
+  setCromwarkCombatHere(!!on && cromwarkPeace(kind));
   _here = !!on; _ring = _here ? Math.max(1, Math.min(WILD_RINGS, ring | 0 || WILD_RINGS)) : 0; _kind = _here ? (kind || WILD_KIND) : null;
 }
 /** Does the player stand in the zone now? (The foe pools ask at a spawn, the loot rolls at a death.) */
@@ -584,6 +585,7 @@ export function applyWildFoe(entity, { own = true, ring = WILD_RINGS } = {}) {
   entity.wildRing = Math.max(1, Math.min(WILD_RINGS, ring | 0 || WILD_RINGS));   // WILD2: its loot's ring
   // PVPDUNGEONS (the owner: "With the tier, enemies also get stronger on top of what they are in the zone based on the tier
   // percentage"): the ring's own share - +25% in the foothills to +100% in the heart - over the zone's four times
+  if (cromwarkPeace(_kind)) { entity.wildTierMult = 1; return true; }
   const tier = wildRingTier(entity.wildRing);   // BUNNYFALL: the strength's share, never the loot's (Cromwark has none)
   entity.wildTierMult = tier;
   if (own) {

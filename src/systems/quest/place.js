@@ -31,6 +31,7 @@ import { localizedText, getLocalizedLocationName, getLocalizedRegionName } from 
 import { RDB_RESOURCE_TYPES } from '../../formats/blocksFile.js';
 import { stampLayout, layoutStampOfMapId, recordStands, recordHeldBack, CLASSIC_LAYOUT } from '../layoutPins.js';   // WD3: a building site keeps its town's layout
 import { curatedMarkerSpot, curateSiteMarkers } from './markerCuration.js';   // FIELD BUGS 2026-10-04d QUEST-MARKERS: the town packs' unreachable markers, on the floor
+import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
 import { questReachOn, questReachPixels, nearbyIndices, indicesWithin, mapTablePixel, mapPixelDistance } from './questReach.js';   // NEARBY-QUESTS
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 import { stringHash } from '../../formats/netRuntime.js';   // QUEST-AUDIT II SHARED-SEAT: a shared copy's re-seat, seeded (a leaf)
@@ -595,6 +596,7 @@ export class Place extends QuestResource {
       const regionData = world.maps.getRegion?.(r);
       for (let i = 0; i < (regionData?.locationCount ?? 0); i++) {
         const entry = regionData.mapTable[i];
+        if (cromwarkQuestSiteBlocked(entry?.mapId)) continue;
         if (!entry || entry.mapId === mapId || this._isDungeonType(entry.locationType)) continue;
         const px = mapTablePixel(entry);
         if (px) towns.push([r, i, mapPixelDistance(px, origin)]);
@@ -712,7 +714,7 @@ export class Place extends QuestResource {
     if (reach) {
       const towns = [];
       for (let i = 0; i < regionData.locationCount; i++) {
-        if (i !== playerLocationIndex && !this._isDungeonType(regionData.mapTable[i].locationType)) towns.push(i);
+        if (i !== playerLocationIndex && !cromwarkQuestSiteBlocked(regionData.mapTable[i].mapId) && !this._isDungeonType(regionData.mapTable[i].locationType)) towns.push(i);
       }
       // QUEST-AUDIT III HOUSE-HOUSE: the house of its kind at both reaches first, and only then any house
       const pools = [reach.pixels, reach.pixels * 2].map((r) => indicesWithin(regionData, towns, reach.origin, r));
@@ -738,7 +740,7 @@ export class Place extends QuestResource {
         break;
       }
       const locationIndex = this._range(regionData.locationCount);
-      if (locationIndex === playerLocationIndex) continue;
+      if (locationIndex === playerLocationIndex || cromwarkQuestSiteBlocked(regionData.mapTable[locationIndex].mapId)) continue;
       if (this._isDungeonType(regionData.mapTable[locationIndex].locationType)) continue;
       found = this._tryTownLocation(world, regionIndex, locationIndex, requiredBuildingType);
     }
@@ -770,6 +772,7 @@ export class Place extends QuestResource {
         const region = world.maps.getRegion(r);
         for (let i = 0; i < (region?.locationCount ?? 0); i++) {
           const entry = region.mapTable[i];
+          if (cromwarkQuestSiteBlocked(entry?.mapId)) continue;
           if (!entry || this._isDungeonType(entry.locationType) || (r === regionIndex && i === playerLocationIndex)) continue;
           const px = mapTablePixel(entry);
           if (px) towns.push([r, i, mapPixelDistance(px, origin)]);
@@ -806,6 +809,7 @@ export class Place extends QuestResource {
     const towns = [];
     for (let i = 0; i < region.locationCount; i++) {
       const entry = region.mapTable[i];
+      if (cromwarkQuestSiteBlocked(entry?.mapId)) continue;
       if (entry && i !== playerLocationIndex && !this._isDungeonType(entry.locationType)) towns.push(i);
     }
     let own = 0;
@@ -923,7 +927,7 @@ export class Place extends QuestResource {
     if (!regionData || regionData.locationCount === 0) return false;
     let foundIndices = [];
     for (let i = 0; i < regionData.locationCount; i++) {
-      if (locationTypeIndex === -1 || regionData.mapTable[i].locationType === locationTypeIndex) foundIndices.push(i);
+      if (!cromwarkQuestSiteBlocked(regionData.mapTable[i].mapId) && (locationTypeIndex === -1 || regionData.mapTable[i].locationType === locationTypeIndex)) foundIndices.push(i);
     }
     if (!foundIndices.length) return false;
     const reach = this._questReach(world);   // NEARBY-QUESTS
