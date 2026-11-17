@@ -1,6 +1,7 @@
 // @ts-check
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
-export const FARM_BEDS = 16;
+// A sparse address space: farms allocate as many beds as their actual fields contain.
+export const FARM_BEDS = 65536;
 export const FARM_BED_SPACING = 2;
 export const FARM_BED_SIZE = 1.65;
 export const FARM_WORK_REACH = 3.5;
@@ -11,7 +12,7 @@ export const FARM_SEEDS = Object.freeze([
   Object.freeze({ id: 'herbs', seconds: 18 * 3600, material: null, yield: 2 }),
 ]);
 export const farmSeed = (id) => FARM_SEEDS.find((s) => s.id === id) ?? null;
-export const emptyGarden = () => ({ beds: Array.from({ length: FARM_BEDS }, () => null) });
+export const emptyGarden = () => ({ beds: {} });
 export function gardenGrowth(bed, nowS) {
   if (!bed?.crop) return 0;
   return Math.max(0, (bed.grown ?? 0) + Math.max(0, Math.min(nowS, bed.wetUntil ?? 0) - (bed.tick ?? nowS)));
@@ -24,14 +25,14 @@ export function gardenStage(bed, nowS) {
   return progress >= 1 ? 'ripe' : progress >= .5 ? 'growing' : 'seedling';
 }
 export function validGarden(value) {
-  return !!value && Array.isArray(value.beds) && value.beds.length === FARM_BEDS && value.beds.every((b) => b === null ||
+  return !!value && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
-      ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0)));
+      ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0))));
 }
 /** One immutable operation; awards are returned separately for an atomic server commit. */
 export function stepFarmGarden(garden, { op, bed: index, crop = 'grain' }, nowS) {
   if (!validGarden(garden) || !Number.isFinite(nowS) || nowS < 0 || !Number.isInteger(index) || index < 0 || index >= FARM_BEDS) return { error: 'farm-bed-bad' };
-  const next = structuredClone(garden), bed = next.beds[index];
+  const next = { beds: structuredClone({ ...garden.beds }) }, bed = next.beds[index] ?? null;
   if (op === 'hoe' && bed === null) next.beds[index] = { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
   else if (op === 'plant' && bed && !bed.crop && farmSeed(crop)) Object.assign(bed, { crop, grown: 0, tick: nowS, wetUntil: 0 });
   else if (op === 'water' && bed?.crop && gardenStage(bed, nowS) !== 'ripe' && bed.wetUntil <= nowS + FARM_WATER_S - 60) {
