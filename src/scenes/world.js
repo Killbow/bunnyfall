@@ -1012,6 +1012,7 @@ import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL 
 import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
 import { createFarmBook } from '../systems/farmBook.js';   // BUNNYFALL COMPANIES: farms
 import { createFarmDoor } from '../systems/farmDoor.js';
+import { createFarmingMode } from './farmingMode.js';
 import { HERALDRY_COLOURS as _FARM_COLOURS } from '../net/heraldryLaw.js';
 const heraldryHexOf = (key) => _FARM_COLOURS.find((c) => c.key === key)?.hex ?? null;   // BUNNYFALL COMPANIES: a farm's mark in its Company's colour
 import { stacksWith } from '../systems/inventory.js';
@@ -18292,6 +18293,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // Shot-mode hooks: __move displaces the camera; __streamIdle reports
   // whether the build queue has drained.
   if (shotMode) {
+    window.__farming = () => ({ mode: farmingMode, book: farmBook, here: locationIndex.get(`${state.current.x},${state.current.y}`)?.mapTableData?.mapId });
     window.__move = (dx, dy, dz) => {
       cam.pos[0] += dx; cam.pos[1] += dy; cam.pos[2] += dz;
     };
@@ -20374,6 +20376,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let garrisonBook = null;   // BUNNYFALL COMPANIES: the garrisons (systems/garrisonBook.js)
   let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
   let farmBook = null;   // BUNNYFALL COMPANIES: the Company farms (systems/farmBook.js)
+  let farmingMode = null;
   let staffCommands = null;   // BUNNYFALL: /vanish, /spawn and /greed (scenes/staffCommandsHost.js), made beside Cromwark's host
   let staffDock = null;   // BUNNYFALL: the staff panel's button and window (ui/staffDock.js)
   const socialLink = () => { const tab = chatLog?.tabs.find((t) => t.room === SOCIAL_ROOM); return tab ? (chatLinks?.get(tab.id) ?? null) : null; };
@@ -25664,6 +25667,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     climateAt: (px, py) => maps.getClimateIndex(px, py),
     here: () => playerTravelPixel(),
   });
+  farmingMode = createFarmingMode({ renderer, canvas, collider, built, getTexture, uploadRecord, state: () => state, farms: () => farmBook,
+    cam, feet: () => player.feetAt(), heightAt: (x, z) => heightAt(x, z), say: (s) => townTalk.say(s), alive: () => frameAlive(_frameToken),
+    available: () => walkMode && playerSpawned && _mode() === 'exterior' && playerEntity.health > 0 && !player.riding && !travelView?.active && !spyglass.up,
+    blocked: () => townTalk.overlayActive || gamePaused() || !!modes?.hudCovered });
   garrisonPatrols = createGarrisonPatrols({
     built: () => built.values(),
     garrisons: () => (isOnlinePage() ? garrisonBook.all() : []),
@@ -30474,7 +30481,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     portTargets: () => portHost?.targets() ?? [],   // SHIPYARDS: the shipyards' people, boards and hulls, the lighthouses' keeper, door, hatch and lamp, in the street's one ray
     activatePort: (key, mode, verb) => portHost?.activate(key, mode, verb) ?? false,   // SHIPYARDS: the shipmaster's window on its page, the crew hall's, the tower's stair
     witches,   // WITCH1: a Wyrd Sister's press and the Hearth Offerings', in the street's one ray (scenes/witchesHost.js)
-    farmDoor: createFarmDoor({ farms: () => farmBook, say: (s) => townTalk.say(s), show: (w) => townTalk.showOverlay(w) }),
+    farmDoor: createFarmDoor({ farms: () => farmBook, say: (s) => townTalk.say(s), show: (w) => townTalk.showOverlay(w), begin: (f) => farmingMode.enter(f) }),
     boardTargets: () => {
       const out = [];
       for (const p of built.values()) {
@@ -30929,6 +30936,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   // weather is read and the rain falls where they stand - with the input it owns while up and every way out
   // (scenes/travelView.js). This host alone: THE FOUR HOSTS RULE's record is that file's header.
   const travelViewAllowed = () => {
+    if (farmingMode?.active) return { ok: false, why: t('farm.mode.finishFirst', 'Leave Farming Mode before opening the travel view.') };
     if (!isEnhanced()) return { ok: false, why: TRAVEL_VIEW_TEXT.enhancedOnly };
     if (params.has('fly') || !walkMode || !playerSpawned) return { ok: false };
     if ((modes?.mode ?? 'exterior') !== 'exterior') return { ok: false, why: TRAVEL_VIEW_TEXT.indoors };
@@ -32702,7 +32710,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // shipped; the HOSTS that drive it never did, and `world.js`
     // imported the door without ever calling it. A host that boots
     // after this one rebuilds the node on its first painted frame.
-    if (!frameAlive(_frameToken)) { destroyWorldPlaque(); return; }   // P0: a later boot or an unwind killed this loop (TV1: the travel view goes on its own heartbeat - scenes/travelView.js)
+    if (!frameAlive(_frameToken)) { farmingMode?.dispose(); destroyWorldPlaque(); return; }   // P0: a later boot or an unwind killed this loop (TV1: the travel view goes on its own heartbeat - scenes/travelView.js)
     if (frameCapSkip(now)) { requestAnimationFrame(frame); return; }   // FPS-CAP1: held back to the Frame Rate Cap - no stamp, no input frame, `last` kept
     frameBegin(now); _canvasSize();   // PERF1: the script time (systems/frameClock.js)
     beginInputFrame(latch.edge); csaInputFrame();   // MWCROUCH; CSA-I: the position reading's window keys, rotated with the host's
@@ -32718,6 +32726,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
     const dt = Math.min(0.1, (now - last) / 1000);
+    farmingMode?.frame();
     // AUDIT 28 W7 + F-C1/F-C2 (self-audit 3): PlayerMouseLook.Update's
     // three answers - paused (:241-244) returns before ApplyLook and the
     // owed look WAITS; a held swing (:248-253, WeaponSwingMode 0, not a
@@ -33966,6 +33975,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       _dwSwimSound.rebase(r.offset);   // DW-D: the swim's odometer too - a recentre is not a stroke
       if (_partyRestVoteOrigin) { _partyRestVoteOrigin[0] += r.offset[0]; _partyRestVoteOrigin[1] += r.offset[1]; _partyRestVoteOrigin[2] += r.offset[2]; }   // AUDIT PARTY-REST: PARTY-REST16's origin is a scene point too - unshifted, a crossing read as a 819-unit walk and cancelled the vote
       mwViewRebase(r.offset);   // EOTB-IL: FloatingOrigin.OnPositionUpdate - the sprite camera's smoothing follows the origin
+      farmingMode?.rebase(r.offset);
       travelView?.rebase(r.offset);   // AUDIT DEEP2 D2: the Overworld's camera and its eye follow the origin - no lurch at a crossing
       if (_lastPlayerPos) { _lastPlayerPos[0] += r.offset[0]; _lastPlayerPos[1] += r.offset[1]; _lastPlayerPos[2] += r.offset[2]; }
       if (_dwLootVel.last) for (let i = 0; i < 3; i++) _dwLootVel.last[i] += r.offset[i];   // DW-E5: FloatingOrigin moves the player by transform - no velocity
@@ -34130,7 +34140,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const csaHelm = csaOn() && csaRuntime?.isSailing() ? csaRuntime.state.CurrentBoat : null;
     const camFilter = csaHelm ? csaCameraFilter(csaHelm) : null;
     const mwv0 = mwViewFrame({
-      eyeOverride: travelView?.eye ?? null,
+      eyeOverride: travelView?.eye ?? farmingMode?.eye ?? null,
       fpEye: cam.pos, feet: player.feetAt(), yaw: cam.yaw, pitch: cam.pitch,
       dt, riding: !!player.riding && !_driverSeat && !(player.transportMode === TRANSPORT_MODES.Cart && hcc.benchKind()),   // AUDIT-EOTB F3/F4: the host's own clock, and the one state only it has; WAGONS3: the bench is no saddle (AUDIT WAGONS3 B2: on a frame with no seat either)
       horse: player.transportMode === TRANSPORT_MODES.Horse ? { look: riddenHorseLook(playerEntity.items ?? []), slow: player.slowRide } : null,   // COATS3D: on a horse (never the cart), the Morrowind body sits a 3D horse in this look; HORSE-WALK: held under the gallop on a slow ride
@@ -34154,7 +34164,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const tvHeadEye = mwViewHoldChanged() ? cam.pos : (mwv0.ownEye ?? mwv0.eye);
     const tvf = travelView?.frame(dt, { eye: tvHeadEye, fwd }) ?? null;
     const mwv = tvf ? { ...mwv0, eye: tvf.eye } : mwv0.ownEye ? { ...mwv0, eye: tvHeadEye } : mwv0;   // AUDIT TV B6: the frame the view came down in draws from the head, never from last frame's sky
-    const viewFwd = tvf ? tvf.fwd : fwd;
+    farmingMode?.camera(mwv, dt, fwd);
+    const viewFwd = tvf ? tvf.fwd : farmingMode?.look ?? fwd;
     const proj = horizonProj(glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens), worldAspect, spyglass.near, tvf);   // HANDEDNESS (mat4's law)   // CLIMB4: a leap's kick   // SPYGLASS: the glass's lens   // GLASS-CLEAR: and its focus (GLASS_NEAR_MIN, the eye's own 0.2, while it is down)   // OW-HORIZON: under the travel view the planes hold the whole grid from the raised eye (scenes/travelHorizon.js) - after the view's frame, which says how far up it stands
     // WAGONS3: MY BODY ON MY BENCH - drawn on it as the wagon is drawn (grown with the rig under the Overworld), facing the
     // way it is driven, at the rig's grow (player/motor.js drawFeet / drawYaw / drawGrow - WAGONS2's seat in another's
@@ -34525,7 +34536,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     const frameBodies = () => {   // PERF-V8
     try {
       renderer.setCloudShadow(sky?.cloudShadow ?? null);   // VC4: the frame's deck, for the body and everything before the pixel loop
-      mwViewDrawBody(canvas, { proj, view, eye: mwv.eye, feet: player.bodyFeetAt(), yaw: player.bodyYawFor(cam.yaw), viewYaw: cam.yaw, face: tvFace });   // DISC18: the body at the capsule's own feet, not the camera's smoothed ones
+      mwViewDrawBody(canvas, { proj, view, eye: mwv.eye, feet: player.bodyFeetAt(), yaw: player.bodyYawFor(cam.yaw), viewYaw: cam.yaw, face: tvFace ?? farmingMode?.face });   // DISC18: the body at the capsule's own feet, not the camera's smoothed ones
       drawPeerBodies(proj, view, mwv.eye, tvf ? tvFace : null);   // MWBODY1: the others' bodies, the same pass; OW-PEERS: grown under the Overworld
       // COATS3D: the 3D horses (the Morrowind lane's) - Horse Cart and Cargo's, mine and the peers', and the road's teams
       hcc.draw3d(canvas, { eye: mwv.eye, proj, view, up: tvFace?.up ?? null });
@@ -34845,7 +34856,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // gl_FragDepth, which ran its shader before the test for every pixel
     // the streamed world covered). Same picture, a third to a half fewer
     // sky fragments on an open road.
-    sky.draw(tvf ? tvf.yaw : cam.yaw, tvf ? tvf.pitch : cam.pitch + climbFeel.pitch(), glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens), worldAspect, renderer.worldViewportPx ?? [0, 0, renderer.gl.drawingBufferWidth, renderer.gl.drawingBufferHeight]);   // VC3: the clouds' map restores this rect
+    sky.draw(tvf ? tvf.yaw : cam.yaw, tvf ? tvf.pitch : (farmingMode?.pitch ?? cam.pitch) + climbFeel.pitch(), glassFov(fieldOfView() + climbFeel.fovRad(), spyglass.lens), worldAspect, renderer.worldViewportPx ?? [0, 0, renderer.gl.drawingBufferWidth, renderer.gl.drawingBufferHeight]);   // VC3: the clouds' map restores this rect
     meterFor(renderer.gl)?.markCpu('ring');   // PERF-ZONE2: the far province ring (its rebuild and its hole) and the water, after the sky hands the frame back
     // EV8: the far province ring - the horizon's actual mountains,
     // drawn while the depth buffer is still the sky's (the streamed
@@ -34924,6 +34935,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     frameWater();
     meterFor(renderer.gl)?.markCpu('flats');   // PERF-CPU: submitting the billboards - the draws themselves, from JS. ABOVE setFlatWind, not between it and the draw: WIND3 pins the two as ADJACENT, and the wind is part of this phase anyway.
     yards?.drawDecals(renderer);   // HOME-YARD: the lot's marked edge while a piece is placed
+    farmingMode?.draw(proj, view, camRight, bbUp);
     renderer.drawFoeTelegraphs?.(drawableBlows(tacticsNow(), walkMode && playerSpawned ? player.pos : cam.pos));   // TACT4: a foe's wind-up on the ground, under the bodies
     renderer.drawFoeTelegraphs?.(techniqueMarksNow());   // TECH1: and the player's own marks, after the foes' (bible/05-Combat/Weapon-Techniques.md)
     bloodMarks.draw(camRight, UP_Y);   // BLOOD1a: the marks go down BEFORE the billboards, so a body standing in its own blood is over it and not under it. ABOVE setFlatWind for the reason its own neighbour gives: WIND3 pins the wind and the draw as ADJACENT.
@@ -35790,7 +35802,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // weapons draw OVER the mount. OnGUI puts the horse at GUI.depth 2, "behind other HUD elements & weapons"
       // (TransportManager's own comment, and EnhancedRiding.cs:234-235's), and the rig drew first, so the horse's
       // head covered the hand and the blade's root. Drawn here, after the mount and before drawHud.
-      if (!poiEditor?.active()) { if (walkMode && playerSpawned && !tvf) weaponRig.draw({ paralyzed }); }   // TV1: no hand on a camera 450 m up; POI-3: nor on the editor's eye
+      if (!poiEditor?.active()) { if (walkMode && playerSpawned && !tvf && !farmingMode?.active) weaponRig.draw({ paralyzed }); }   // TV1: no hand on a camera 450 m up; POI-3: nor on the editor's eye
       drawPeerNames(proj, view, mwv.eye);   // ONLINE1: the names over the heads
       navalTags(proj, view, mwv.eye);   // AUDIT NAV1 (#14): the ships' tags
       navalCrewBars(proj, view, mwv.eye);   // SHIPMATES: the crew's green bars

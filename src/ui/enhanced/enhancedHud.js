@@ -119,7 +119,7 @@ import { statusTip, madeRulesTile } from '../hud/statusTips.js';
 import { madeLevelHere } from '../../systems/madeLevel.js';   // EVENT-RULES: the made level under the player - its rules' tile
 import { regenPausedMs } from '../../systems/courtRules.js';
 import { bindAdvanceTiles, drawAdvanceTiles } from '../hud/hudAdvance.js';   // SKILL-READY / FIRM-STARS: the two tiles beside the Renown bar   // STATUS-TIPS: what a tile says under the pointer   // HUD-MOVE: the movable pieces, the lock and the reset
-import { mountHotbarDock, drawEnhancedHotbar, detachHotbarDock, hotbarMode } from './enhancedHotbar.js';   // HB1: the hotbar, the diamond's alternative (one or the other)
+import { mountHotbarDock, drawEnhancedHotbar, detachHotbarDock, hotbarMode, hotbarHeld } from './enhancedHotbar.js';   // HB1: the hotbar, the diamond's alternative (one or the other)
 import { setEnhancedMidTextScale } from './enhancedHudText.js';   // AUDIT FONT F2: the mid-screen label is a layer beside this one, not inside it (the popup column it once scaled too is a toast in the notice stack since ENH-NOTICE3)
 import { QUEST_MARK_CSS } from '../quest/questMarks.js'; import { nodeMarkCss } from '../nodeMarks.js';   // GUIDE5: the tracker's quest on the compass, in the marks' one gold; NODE-MARKS: a profession's nodes in its own colour
 import { WAY_MARK_CSS, WAY_BODY_CSS } from '../../systems/wayOut.js';   // WAYOUT1: the way out's mark
@@ -1682,6 +1682,7 @@ function measureStatBand(opts) {
  * once to a block of twenty nodes rather than twenty times over.
  */
 function drawQuickslots(vitals, opts) {
+  parts.quick.style.display = hotbarHeld() ? 'none' : '';
   liveOpts = opts;
   liveEntity = vitals ?? null;
   const view = quickslotView(vitals, { weapon: opts.weapon ?? null, sheathed: opts.weaponSheathed ?? false,
@@ -1712,7 +1713,7 @@ function drawQuickslots(vitals, opts) {
   // diamond and its tags, and nothing else - the caption keeps the mode
   // word, the keys keep working, the tooltip keeps filling slots. A
   // player who turned the picture off did not ask to lose the presses.
-  const off = getPref('quickslots') === false;
+  const off = getPref('quickslots') === false || hotbarHeld();
   if (last.qoff !== off) {
     last.qoff = off;
     parts.quick.classList.toggle('nodiamond', off);

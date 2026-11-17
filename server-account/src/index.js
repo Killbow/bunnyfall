@@ -305,6 +305,7 @@ import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './ch
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
+import { farmGarden } from './farmGardens.js';
 import { vanishSet, greedGive, greedMine, greedClaim } from './staffCommands.js';   // BUNNYFALL: /vanish and /greed
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
@@ -2373,9 +2374,9 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
       }
-      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore') {   // BUNNYFALL COMPANIES: farms (farms.js)
+      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore' || path === '/v1/farms/garden') {   // BUNNYFALL COMPANIES: farms (farms.js)
         if (request.method !== 'POST') return no('method', 405, origin);
-        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore }[path];
+        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore, '/v1/farms/garden': farmGarden }[path];
         const r = await act(ctx, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }

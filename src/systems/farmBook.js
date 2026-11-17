@@ -5,7 +5,7 @@
 // net/farmLaw.js. This side knows the map: which farms stand inside the Company's (or its Charter's) territory - the ones
 // it may buy - and whether the player stands at one (a chore). A farm the territory no longer reaches is let go here, as
 // soon as the territories are heard. Online only.
-import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from '../net/accountClient.js';
+import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore, farmGardenAct } from '../net/accountClient.js';
 import { inTerritory } from '../net/territoryLaw.js';
 
 export const FARM_REFRESH_MS = 2 * 60_000;
@@ -134,6 +134,10 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     crop: (mapId, crop) => act(farmCrop, { mapId, crop }),
     release: (mapId) => act(farmRelease, { mapId }),
     chore: (mapId) => act(farmChore, { mapId }),
+    garden: (mapId, action = {}) => {
+      const door = io?.(), ch = character?.();
+      return door && ch ? farmGardenAct(door, { ...action, mapId, character: ch }) : Promise.resolve({ ok: false, error: 'offline' });
+    },
     sig: () => `${version}|${whose}`,
   };
 }

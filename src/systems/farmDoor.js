@@ -12,15 +12,16 @@ export const FARM_CHORE_VERB = 'farm-chore';
 export const farmChoreDoneText = (name) => t('farm.chore.done', 'You did today\'s chore at {farm}.', { farm: name });
 
 /**
- * @param {{ farms: () => any, say: (s: string) => void, show: (w: any) => void }} deps
+ * @param {{ farms: () => any, say: (s: string) => void, show: (w: any) => void, begin?: (farm: any) => any }} deps
  */
-export function createFarmDoor({ farms, say, show }) {
+export function createFarmDoor({ farms, say, show, begin }) {
   let busy = false;
   const declined = new Set();
   const farmOf = (/** @type {any} */ bd) => (bd?.townMapId ? farms()?.mineHere(bd.townMapId) ?? null : null);
-  const open = (/** @type {any} */ bd) => { const f = farmOf(bd); return f && !f.choreDone ? f : null; };
+  const open = (/** @type {any} */ bd) => { const f = farmOf(bd); return f && (begin || !f.choreDone) ? f : null; };
 
   function run(/** @type {any} */ f) {
+    if (begin) { begin(f); return; }
     const F = farms();
     if (busy || !F) { say(F ? accountRefusalText('busy') : farmWordText('offline')); return; }
     busy = true;
@@ -35,7 +36,7 @@ export function createFarmDoor({ farms, say, show }) {
     rows(/** @type {any} */ bd, /** @type {any[]|null} */ verbs, /** @type {string} */ mode, locked = false) {
       if (mode === 'steal' || !open(bd)) return verbs;
       const enter = locked ? [] : [{ id: HOME_VERB.enter, label: t('farm.door.goIn', 'Go in') }];
-      return [...(verbs ?? enter), { id: FARM_CHORE_VERB, label: t('farm.door.chore', 'Do today\'s chore') }];
+      return [...(verbs ?? enter), { id: FARM_CHORE_VERB, label: begin ? t('farm.mode.enter', 'Enter Farming Mode') : t('farm.door.chore', 'Do today\'s chore') }];
     },
     /**
      * @param {any} bd
@@ -45,7 +46,8 @@ export function createFarmDoor({ farms, say, show }) {
     press(bd, verb, { asked, listed, mode, onward }) {
       if (verb === FARM_CHORE_VERB) {
         const f = farmOf(bd);
-        if (f?.choreDone) say(farmWordText('farm-chore-done'));
+        if (f && begin) run(f);
+        else if (f?.choreDone) say(farmWordText('farm-chore-done'));
         else if (f) run(f);
         else say(farmWordText('farm-not-ours'));
         return true;
@@ -53,6 +55,7 @@ export function createFarmDoor({ farms, say, show }) {
       if (verb != null || listed || asked || mode === 'steal') return false;
       const f = open(bd);
       if (!f || declined.has(f.mapId)) return false;
+      if (begin) { run(f); return true; }
       show(new ChoiceWindow({
         lines: [t('farm.door.ask', 'Today\'s chore at {farm} is not done yet.', { farm: f.name })],
         options: [
