@@ -47,6 +47,7 @@ import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // B
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
 import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from './bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
+import { markGuildClerkArt, standGuildClerkArt } from '../systems/guild/guildClerkArt.js';
 import { ensureBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
 import { drawnFlat } from '../characters/nudeFlats.js';   // NUDE-FLATS: Show Nudity off draws a nude figure's clothed stand-in
 import { trs } from '../world/mat4.js';
@@ -617,6 +618,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // (its name, its shop) and stands as the lamp; no Morrowind body is read for it (MWNPC8a's look, null)
   for (const pn of people) if (opts.lampPerson?.(pn)) Object.assign(pn, { lamp: true, _mwLook: null });
   if (opts.bunnyHall) ensureBunnyClerk(people, opts.bunnyHall, interior.spawnPoints.map(([x, y, z]) => parentPt(x, y, z)));   // BUNNY-GUILDS: a converted house's clerk speaks for its guild, and is always there
+  markGuildClerkArt(people, opts.guildClerkArt);
   // AUDIT 24 (wave 20): AddPeople's LAST act on every person it stands
   // is `QuestMachine.Instance.SetupIndividualStaticNPC(go, obj.FactionID)`
   // (DaggerfallInterior.cs:1224) - inline, at the GameObject, BEFORE
@@ -679,7 +681,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
     if (pn.stood) return null;
     pn.stood = true;
     if (pn.lamp) return standLamp(pn);   // LAMP-KEEPER II: the lamp, whatever body the room's people wear
-    if (_rigFor) {
+    if (_rigFor && !pn.guildClerkArt) {
       const rg = _rigFor(raceOfArchive(pn.textureArchive));
       // AUDIT 39 (#76): the person's FLOOR position rides with the draw
       // - the matrix is re-seated every frame, off the live foot.
@@ -687,6 +689,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       charDraws.push(pn.standDraw);
     }
     return (async () => {
+      if (await standGuildClerkArt(pn, renderer, billboardBatches, () => peopleBuilt)) return;
       const t = await getTexture(pn.drawArchive ?? pn.textureArchive);   // RR2: the re-materialised billboard, where a mod set one
       if (!t || (pn.drawRecord ?? pn.textureRecord) >= t.recordCount) return;
       // LAMP-KEEPER (2026-09-26, Mac: "Shop keepers are lamp posts"): the mod's picture is registered LAZY (RR2 -
@@ -701,7 +704,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
       // Flipped back or torn down (AUDIT 68 S21-late-stand-after-destroy:
       // destroy() ends `peopleBuilt`) while the archive was loading, or
       // drawn as a voxel body already: no billboard.
-      if (!peopleBuilt || _rigFor || !pn.stood || pn.standBatch) return;
+      if (!peopleBuilt || (_rigFor && !pn.guildClerkArt) || !pn.stood || pn.standBatch) return;
       uploadRecord(pn.drawArchive ?? pn.textureArchive, pn.drawRecord ?? pn.textureRecord);   // RR2: the re-materialised billboard   // REVIEW 2026-09-05: a FLAT - alphaIndex 0 (DaggerfallBillboard.cs:289-293), the cutout key drawBillboards reads; PR #55 had sent it through the mesh door and the person never drew
       pn.standBatch = renderer.createBillboardBatch(pn.drawArchive ?? pn.textureArchive, pn.drawRecord ?? pn.textureRecord, size, [[pn.x, pn.y, pn.z]]);
       armFlatAnim(pn.standBatch, t, pn.drawArchive ?? pn.textureArchive, pn.drawRecord ?? pn.textureRecord, flatAnims, uploadRecordFrame);
