@@ -131,6 +131,7 @@ import { codeMeans } from '../../systems/inputActions.js';   // UXB1-S: its own 
 import { ImgFile } from '../../formats/imgFile.js';
 import { DFPalette } from '../../formats/dfPalette.js';
 import { TextRsc } from '../../formats/textRsc.js';
+import { cromwarkSettlementRemoved } from '../../systems/wild/cromwarkSettlements.js';
 import { REGION_NAMES, LOCATION_TYPES, longitudeLatitudeToMapPixel, getPixelFromPixelID, patchRegionIndex } from '../../formats/mapsFile.js';
 import { locationSummaryAt } from '../../systems/map/mapDirectory.js';
 import { getDaggerfallDistance, MatchesCutOff } from '../../systems/editDistance.js';
@@ -1312,6 +1313,7 @@ export class TravelMapWindow {
     const lookup = new Map();
     const mapNames = region?.mapNames ?? [];
     for (let l = 0; l < mapNames.length; l++) {
+      if (cromwarkSettlementRemoved(region.mapTable?.[l]?.mapId)) continue;
       const name = getLocalizedLocationName(region.mapTable?.[l]?.mapId, mapNames[l]);
       if (lookup.has(name)) continue;
       lookup.set(name, l);

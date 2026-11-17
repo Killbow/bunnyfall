@@ -13,7 +13,10 @@
 // stays false so the C-slice fallback makes them close), and the
 // 13 fixed-list casters do not cast up here yet.
 
-import { cromwarkFoeTint, blightFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
+import { cromwarkProfile, cromwarkSpecies, makeCromwarkEntity } from '../systems/wild/cromwarkRoster.js';
+import { createCromwarkCombat } from '../systems/wild/cromwarkCombat.js';
+import { cromwarkPeace } from '../systems/wild/cromwark.js';
+import { blightFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
 import { ENEMY_BASICS, enemyEntityType, isClassEnemyId } from '../characters/enemy/enemyBasics.js';
 import { setupFoeLook } from '../characters/enemy/foeLook.js';   // DEX2: SetupDemoEnemy.cs:129-151, the mobile's renderer
 import { KNIGHT_CITY_WATCH } from '../characters/mobile/mobileTypes.js';   // HALT-ONE: a peer's watchman, silent in the living watch's lane
@@ -134,7 +137,7 @@ export const MAX_ACTIVE_ENCOUNTER_FOES = 8;
 /** PVPDUNGEONS (the owner: "4x more enemies per pack that can attack you on the world map"): in the open zone a pack is
  *  four times as many, and the pool makes room for them. */
 export const WILD_PACK_MULT = 4;
-export const encounterCap = () => (wildHere() ? MAX_ACTIVE_ENCOUNTER_FOES * WILD_PACK_MULT : MAX_ACTIVE_ENCOUNTER_FOES);
+export const encounterCap = () => (wildHere() && !cromwarkPeace(wildZoneKind()) ? MAX_ACTIVE_ENCOUNTER_FOES * WILD_PACK_MULT : MAX_ACTIVE_ENCOUNTER_FOES);
 /** DEEP-SHARE (2026-09-26, Mac: "Yes" - one player standing the sea's creatures for everyone near): THE DEEP HAS ITS
  *  OWN ALLOWANCE. Iliac Puddle No More's foes are LOOSE stands, outside the owner's encounter cap; a reader stood at
  *  most CELL_PUPPETS_MAX (twelve) of an owner's foes, the deep's among them, and the rest of its sea was never seen.
@@ -252,7 +255,7 @@ export function carrySiteFoe(from, to) {
 }
 
 export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture, uploadRecordFrame,
-  playerEntity, audio, onPlayerHurt, currentMinute, say = null, rolls = Math.random,
+  playerEntity, audio, onPlayerHurt, onCromwarkImpact = null, currentMinute, say = null, rolls = Math.random,
   // MWNPC5c: the foes' Morrowind bodies - whether the lane is wanted (every host's gate, npcBodiesOn) and how one is
   // made (the hosts' own lane); a test hands its own
   wantNpcBodies = npcBodiesOn, makeNpcBodies = null,
@@ -328,6 +331,16 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
   // on a foe walks the routes (EnhancedEnemyAI), as a dungeon's does. The street's pools hand none: the classic motor.
   nav = null }) {
   const foes = [];        // { mobile, ai, attack, entity, batch, tex, archive, mobileType, dead, _encounter: true }
+  const cromCombat = createCromwarkCombat({ collider, renderer, getTexture, uploadRecordFrame, impact: onCromwarkImpact,
+    clock: () => performance.now() / 1000, // Shared patterns must keep their rhythm at different rendering frame rates.
+    hurt: (share, f) => {
+      if (f.puppet && !blowAllowed(f)) return false;
+      const hp = playerEntity.health;
+      const dmg = Math.max(1, Math.min(32, Math.ceil((playerEntity.maxHealth || 100) * share)));
+      onPlayerHurt?.(dmg, null); flashPlayerDamage(dmg);
+      return playerEntity.health < hp;
+    },
+  });
   const corpseBatches = [];
   // AUDIT 39 / THE FOUR HOSTS RULE: an IN-FLIGHT spawn's feet. spawnFoe
   // crosses two real awaits (the career file, a cold texture archive)
@@ -448,7 +461,9 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // its grant - its caller's kind, else its own shape's (net/grantLaw.js grantKindOf; marks its caller decided, `kept`);
     // every stand of a kind this turn is one ask (scenes/grantHost.js memberFor), so it is asked here, before this build's
     // first await. A placed foe with no site never rides (foesFrame), so it asks nothing
+    if (cromwarkPeace(wildZoneKind()) && zoneGiant != null) return null;
     const grantAsk = !puppet && !(placed && !site) && _net?.grants ? _net.grants.memberFor(grantKind ?? grantKindOf({ allied, questBehaviour, zoneGiant, revenant, kept: eliteFoe === true || Number.isInteger(champion), replacing, managed, site, placed, loose })) : null;
+    if (wildHere() && cromwarkPeace(wildZoneKind()) && capped && !allied && !team && !revenant && !managed && !site && grantKind === 'enc') mobileType = cromwarkSpecies(mobileType, wildRing());
     let basics = ENEMY_BASICS[mobileType];
     if (!basics || !basics.maleTexture) return null;
     const pending = { feet: [pos[0], pos[1] + (feetGiven || groundAlign || transformY ? 0 : 0.1), pos[2]] };   // AUDIT 39: shifted by offsetAll until the record lands. REVIEW 2026-09-05: a restore hands back the exact saved feet (SerializableEnemy.cs:196) - a flyer never grounds, so the walker's lift would climb 0.1 per load
@@ -483,7 +498,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (eliteFoe === true && !allied) promoteEliteFoe(entity);   // a saved foe's classification, restored before its HP/items overlay - never re-rolled
       else if (eliteFoe === undefined && !puppet && !allied && !questBehaviour && !replacing && !team && !inLocation() && elitesAllowed({ onlinePage: isOnlinePage(), inRoom: _net != null })
         && (revenant ? revenant.elite : rollOverworldElite(Math.random))) promoteEliteFoe(entity);   // REVENANT: a returning revenant stands as what it was - an elite's glow where elites stand, never a fresh roll   // BAL4: online, and offline under the loot ladder
-      if (entity.eliteFoe && !puppet && !entity.raidLeader && !bossTraitsOf(entity).length) eliteTraits(entity);   // BOSS-TRAITS: an elite of my own carries a trait, mine to draw (its record carries it - `bt`)
+      if (!cromwarkProfile(mobileType) && entity.eliteFoe && !puppet && !entity.raidLeader && !bossTraitsOf(entity).length) eliteTraits(entity);   // BOSS-TRAITS: an elite of my own carries a trait, mine to draw (its record carries it - `bt`)
       // SOFTCAP5: THE WILDS ARE AN AREA TOO - the dungeons' law, with the wilderness's share (22% by day, 44% at night):
       // my own foes only (a puppet is its owner's build), never an ally, never on a location's ground
       if (!allied && !inLocation()) {
@@ -515,6 +530,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         entity.healthMult = (entity.healthMult ?? 1) * WILD_GIANT_HEALTH_MULT;
         entity.damageScale = (Number.isFinite(entity.damageScale) && entity.damageScale > 0 ? entity.damageScale : 1) * WILD_GIANT_DAMAGE_MULT;
       }   // WILD3: a giant of the open country stands four times its size (a dungeon's never: this is the street's pool)
+      makeCromwarkEntity(entity, mobileType, !puppet);
       if (mobileType === SIFRIT_ID) makeSifrit(entity, { own: !puppet });   // SIFRIT: an elite mini boss of staff's own kind, her name, her health (four fighters' worth), her outline purple - before her loot, an elite's
       // AUDIT WORLD6b B14: a PUPPET carries no loot of this player's (its body is its owner's - WORLD6b-iii(c): taken under the owner's grant), wears no
       // kit of its own and casts nothing, so its stand rolls no table and draws nothing off the injectable roll or
@@ -549,7 +565,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // is its sprite CENTRE (FinalizeFoe's +1.5 lifts the transform,
       // CreateFoe.cs:341-359; CreateEnemy skips the ground align for
       // Flying, GameObjectHelper.cs:1227) - the motor keeps FEET.
-      const idleH = idleSpriteHeight(tex);
+      const idleH = idleSpriteHeight(tex) * (cromwarkProfile(mobileType)?.scale ?? 1);
       // REVIEW 2026-09-05: a DELTA on the live pending array (offsetAll may have recentred it during the awaits), taking
       // the walker's +0.1 lift back with it; `feetGiven` is the restore's word that `pos` already IS feet (SerializableEnemy
       // restores the position it wrote - no FinalizeFoe, no drop).
@@ -570,7 +586,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       const facing = yaw ?? rolls() * Math.PI * 2;
       const ai = new (nav && getPref('enhancedAI') ? EnhancedEnemyAI : EnemyAI)(collider, pending.feet, facing, {   // INDOOR-WATCH: the switch chooses the motor where the room has a mesh; the bake is read per step
         nav: nav?.chf, navWorld: nav?.world, navGoal: nav?.goal, navSeed: (facing * 1000) | 0,   // the dungeon's three, its seed off the spawn's facing as its own; the room's goal for a player off its mesh (AUDIT W1)
-        liveSpeed: () => liveStat(entity, 'speed'),   // AUDIT 39: EnemyMotor.cs:432 re-reads LiveSpeed per FixedUpdate
+        liveSpeed: () => cromwarkProfile(mobileType)?.speed ?? liveStat(entity, 'speed'),   // AUDIT 39: EnemyMotor.cs:432 re-reads LiveSpeed per FixedUpdate
         seesThroughInvisibility: basics.seesThroughInvisibility ?? false,
         behaviour, mobileId: mobileType,
         waterSurfaceY: waterLevelY ? () => waterLevelY() : null,   // DW-E4: blockWaterLevel, one level for the scene
@@ -1273,6 +1289,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
    *  yaw cone, Dodging tallied, the roll, the riders, the hurt and the flash, the whiff and the voice. One home for
    *  my own foe's blow and, since WORLD6b-ii, a puppet's whose owner's foe is striking me. */
   function resolveFoeMeleeVsPlayer(f, playerFeet) {
+    if (cromwarkProfile(f.mobileType)) return;
     const hdx = playerFeet[0] - f.ai.feet[0], hdz = playerFeet[2] - f.ai.feet[2];
     const wpn = chooseEnemyWeapon(f.entity.weapon, ENEMY_BASICS[f.mobileType]);
     const mid = [f.ai.feet[0], f.ai.feet[1] + 0.9, f.ai.feet[2]];
@@ -1590,6 +1607,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     _leftDone.length = 0;
   }
   function update(dt, playerFeet, eye, senses = {}) {
+    cromCombat.begin(dt, foes);
     _net?.grants?.tick();   // GRANT4: my grants' clock every frame, alone or not - renewed, carried, the tally handed on
     _ecvT += dt; _lastPlayerHeight = senses.playerHeight ?? CAPSULE_HEIGHT;   // ROAD-H H2: the live capsule this tick, for the AoC blast the cast seam fires
     if (eye) _eye = eye;
@@ -1609,6 +1627,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       f.questBehaviour?.update();
       if (f._keptTag || f.questBehaviour) keptKillTick(f);   // KEPT-KILL: and a foe kept on a partner's word says its fall; DESYNC-ZERO: and my quest's own
       if (f.dead) continue;
+      const cromHold = cromCombat.frame(f, dt, playerFeet, senses.playerHeight ?? CAPSULE_HEIGHT,
+        entityIsParalyzed(f.entity) || f.yielded || f.executing || f.sparing || f.leaving || (f.ai.staggerUntil > tacticsNow()), playerEntity.health > 0, _targetFeet(f, playerFeet));
       if (!f.puppet && f.entity.bossWrathFrom != null && bossTraitsTick(f.entity, _bossS) === 'wrath') say?.(bossWrathLine(foeTitle(f.entity, enemyDisplayName(f.mobileType)) ?? ''));   // AUDIT WORLD-EVENTS L2-5: a wrath come due turns on its own clock, struck or not
       // WORLD6b: a PUPPET - posed by its owner's stream (the feet eased toward the streamed feet, a far jump snapped, the
       // yaw set), the walk while the streamed feet move, the hurt one-shot after a health drop, the strike edge once
@@ -1690,7 +1710,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // action at all (EnemyMotor.cs:464-466 + :267-269,
       // EnemyAttack.cs:59-61), not merely no anim intent.
       const _fPaused = !!(f.mobile?.isPlayingOneShot() && f.mobile.oneShotPauseActionsWhilePlaying());
-      if (groundStands && !groundStands(f.ai.feet[0], f.ai.feet[2])) f.ai.holdFrame(); else f.ai.update(foeFrameDt(dt), playerFeet, _armed(f, senses), _fParalyzed, _fPaused);   // FALL-HOLD: no ground built under it - held, not stepped; FOE-CATCHUP: three steps a frame at most
+      if (groundStands && !groundStands(f.ai.feet[0], f.ai.feet[2])) f.ai.holdFrame(); else f.ai.update(foeFrameDt(dt), playerFeet, _armed(f, senses), _fParalyzed, _fPaused || cromHold);   // FALL-HOLD: no ground built under it - held, not stepped; FOE-CATCHUP: three steps a frame at most
       // REVENANT (systems/revenant/revenant.js revenantFleeStep - one law for every pool): a special foe of mine on me, under a fifth
       // of its health for the first time, may RUN - and running it strikes and casts nothing, its walk still drawn (and no
       // cull); out of reach it has ESCAPED (no corpse, no kill, a revenant made of it); run down, it is CORNERED and turns
@@ -1783,7 +1803,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // actively targeting player will continue to raise alert").
       if (isLocalPlayerTarget(f.ai.target) && f.ai.inSight && f.ai.detected) setEnemyAlert(playerEntity, true, currentMinute());   // WORLD6b-ii: mine, not a peer's
       f.mobile.frameSpeedDivisor = Math.max(1, Math.trunc((f.entity.stats?.speed ?? 50) / Math.max(8, liveStat(f.entity, 'speed'))));
-      if (!_fParalyzed && _tgt) f.attack.update(foeFrameDt(dt), f.ai, _tgt, _fPaused);   // MT-ii: at the SELECTED target (:199-209)   // AUDIT (pre-merge) P5: FOE-CATCHUP's step - the motor's clock, not the frame's (a 1 s hitch no longer swings at once)
+      if (!cromwarkProfile(f.mobileType) && !_fParalyzed && _tgt) f.attack.update(foeFrameDt(dt), f.ai, _tgt, _fPaused);   // MT-ii: at the SELECTED target (:199-209)   // AUDIT (pre-merge) P5: FOE-CATCHUP's step - the motor's clock, not the frame's (a 1 s hitch no longer swings at once)
       // X3-slice: the S16 casting decision rides beside the attack
       // machine, the dungeon's exact shape - the decision casts
       // INSTANTLY through the ONE shared executor.
@@ -1799,7 +1819,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // ROAD-U: DoRangedAttack's spell branch and DoTouchSpell both sit
       // BELOW TakeAction's pause return (EnemyMotor.cs:466), so a
       // transforming Seducer casts nothing either.
-      if (_tgt && f.caster && !_fParalyzed && !_fPaused && f.ai.isHostile) {
+      if (!cromwarkProfile(f.mobileType) && _tgt && f.caster && !_fParalyzed && !_fPaused && f.ai.isHostile) {
         // WORLD6b-iii: the cast at a PEER - the decision runs as at me (AUDIT WORLD6b-ii A1: never gated off, or the pick
         // latches and the stand-off band roots the foe), the missile leaves toward the peer, and the cast rides the
         // stream (c the count, s the spell) so the peer's puppet casts the spell itself at the peer
@@ -1848,7 +1868,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       // MELEE FIRST, arrow as the ELSE-IF: EnemyAttack.Update is
       // `if (DoMeleeDamage) {...} else if (ShootArrow) {...}` (:97-105).
       // (Found by the wave-35 re-read.)
-      if (!_fParalyzed && f.mobile.doMeleeDamage && _tgt) {
+      if (!cromwarkProfile(f.mobileType) && !_fParalyzed && f.mobile.doMeleeDamage && _tgt) {
         f.mobile.doMeleeDamage = false;
         // MT-ii: MeleeDamage's TWO-ARM SPLIT (EnemyAttack.cs:199-209)
         // - `if (Target == PlayerEntityBehaviour) ApplyDamageToPlayer
@@ -2135,7 +2155,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       setBatchHitFlash(f.batch, foeHitFlash(f, performance.now() / 1000));   // HITFLASH1: a foe struck flashes red - any blow, mine, a peer's, or its owner's stream
       setBatchGlint(f.batch, foeGlint(f.ai, undefined, prefersReducedMotion()) ?? lastStandGlint(f.entity));   // TELL2: a wind-up's glint on the body; RVN4: else phase two's ember rim
       setBatchEliteGlow(f.batch, eliteGlow(f.entity, performance.now() / 1000, (f.seq * 1.7) % 6.28), performance.now() / 1000);   // ELITE FOES: the pulse
-      { const tn = cromwarkFoeTint(f.entity, wildZoneKind()) ?? blightFoeTint(f.companion == null && f.entity?.team !== 'PlayerAlly' && f.ai?.isHostile !== false); if (tn || f.batch.tint === CROMWARK_FOE_TINT) f.batch.tint = tn ?? undefined; }   // and Rodney's blight's   // BUNNYFALL (Cromwark): the mountains' monsters in purple
+      { const tn = blightFoeTint(!cromwarkPeace(wildZoneKind()) && f.companion == null && f.entity?.team !== 'PlayerAlly' && f.ai?.isHostile !== false); if (tn || f.batch.tint === CROMWARK_FOE_TINT) f.batch.tint = tn ?? undefined; }   // and Rodney's blight's   // BUNNYFALL (Cromwark): the mountains' monsters in purple
       const _dv = f.executing || f.sparing || f.portalFx ? fateDissolve(f, Date.now()) : f._pupExec ? fateDissolve({ executing: { at: f._pupExec } }, Date.now()) : f._pupSpare ? fateDissolve({ sparing: { at: f._pupSpare } }, Date.now()) : null;   // REVENANT-FATE / COMPANION-PORTAL: burning away (its owner's too), or through a portal
       if (!_dv && f.portalFx && f.portalFx.dir === 'in') f.portalFx = null;   // through: whole
       setBatchDissolve(f.batch, _dv ? _dv[0] : 0, _dv ? _dv.slice(1) : undefined);
@@ -2145,7 +2165,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (!renderer.textures.has(`${f.archive}_${rkey}`)) uploadRecordFrame(f.archive, o.record, o.frame);
       const sz0 = mobileBillboardSize(f.tex, o.record);   // AUDIT MM1: a mobile unit's record cache carries the xml scale
       const szE = eliteSize(f.entity) * lastStandSize(f.entity);   // ELITE FOES: a quarter larger (onto locals - the cache's object is shared); RVN4: phase two a tenth
-      const szG = szE * wildGiantSize(f.entity);   // WILD3: a giant of the open zone, four times over
+      const szG = szE * wildGiantSize(f.entity) * (cromwarkProfile(f.mobileType)?.scale ?? 1);   // Cromwark's hulks have their own silhouettes.
       const sz = szG === 1 ? sz0 : { w: sz0.w * szG, h: sz0.h * szG };
       f.batch.record = rkey;
       // WAGONS2: a companion seated in my wagon's back is DRAWN where the wagon is drawn - grown with it under the
@@ -2175,7 +2195,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // MWNPC5c: the dead from the kill until the corpse is collected, the corpse flat casting alone under the body
     for (const c of corpseBatches) c.batch.castOnly = false;
     if (npcLane) for (const f of foes) if (f.dead && f.corpse && !f.corpseDestroyed && isBodyFoe(f) && f.ai) { npcLane.stand('foe', foeActor(f, idOf(f), { scale: eliteSize(f.entity) * wildGiantSize(f.entity) }), null, 0, foeFx(f, f.corpseMarker?.batch)); _npcStood.push(f); }   // as large as its corpse (the marker's sizeScale)
-    return [...out, ...corpseBatches.map((c) => c.batch), ...portals.batches()];   // COMPANION-PORTAL: and the portals
+    return [...out, ...cromCombat.batches(), ...corpseBatches.map((c) => c.batch), ...portals.batches()];   // COMPANION-PORTAL: and the portals
   }
 
   /** CollectLooseObjects (StreamingWorld.cs:1040-1052), the corpse
@@ -2263,6 +2283,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
   function drawVeiledBodies() { _npcLane?.drawVeiled(); }
 
   function destroy() {
+    cromCombat.destroy();
     // AUDIT-39r: the epoch turns FIRST, so anything already in flight
     // (a spawn between its two awaits, a corpse marker waiting on its
     // texture) resolves into a world it can see it does not belong to.
@@ -2304,6 +2325,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
 
   /** AUDIT 17e F23: the floating-origin recenter shifts everything. */
   function offsetAll(offset) {
+    cromCombat.offset(offset);
     for (const f of foes) {
       if (!f.ai) continue;
       f.ai.offsetOrigin(offset);   // AUDIT 68 S20-offset-ai-memory: the pursuit memory and the fall anchor with the feet
@@ -2587,7 +2609,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
         f._heir = items ? h : null;
         if (f._heir) { r.e = h; r.it = items; }
       }
-      if (!f.dead && f.ai._tac && !f.ai._tac.puppet) Object.assign(r, blowWire(f.ai, tacticsNow(), (p) => _net.toWire(p)));   // TELL8 (10.1): its wind-up, its stagger, its overreach - a foe with a brain
+      if (!f.dead && cromwarkProfile(f.mobileType)) Object.assign(r, cromCombat.wire(f, (p) => _net.toWire(p)));
+      else if (!f.dead && f.ai._tac && !f.ai._tac.puppet) Object.assign(r, blowWire(f.ai, tacticsNow(), (p) => _net.toWire(p)));   // TELL8 (10.1): its wind-up, its stagger, its overreach - a foe with a brain
       // AUDIT MW-NPC II K2-K4: the look its owner stands it in - its seed, and a person's kit - on a full frame and when it
       // changed since it last went (a frame the trim below cut it from owes it again)
       const lk = foeWireLook(f);
@@ -2933,7 +2956,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (r.c !== undefined) { if (p.c != null && r.c !== p.c && Number.isInteger(r.s)) p.cast = { s: r.s, at: r.u ?? r.g ?? p.target }; p.c = r.c; }
     // TELL8 (10.1): its owner's wind-up, stagger and overreach - the puppet's synthetic state (ai/puppetBlows.js); at ME by
     // the blow's own recipient, judged on my feet at the landing (10.3)
-    if (r.d !== 1 && (r.wk !== undefined || r.ws !== undefined || f.ai._tac?.puppet)) applyBlowRecord(f.ai, r, { origin: r.wo ? _net.toScene(r.wo) : null, me: recipientIsMe(f, r.b ?? r.g ?? p.target), entity: f.entity, collider, sig: f.entity.revenant ? SIG : null });   // GRANT0 (Spawn-Grants.md section 8): a signature is a revenant's (ai/tactics.js sigBlow) - believed on a puppet that stands as one, inside FOE-FORGE's bound
+    if (cromwarkProfile(f.mobileType)) cromCombat.hear(f, r.d === 1 ? {} : r, r.wo ? _net.toScene(r.wo) : null);
+    else if (r.d !== 1 && (r.wk !== undefined || r.ws !== undefined || f.ai._tac?.puppet)) applyBlowRecord(f.ai, r, { origin: r.wo ? _net.toScene(r.wo) : null, me: recipientIsMe(f, r.b ?? r.g ?? p.target), entity: f.entity, collider, sig: f.entity.revenant ? SIG : null });   // GRANT0 (Spawn-Grants.md section 8): a signature is a revenant's (ai/tactics.js sigBlow) - believed on a puppet that stands as one, inside FOE-FORGE's bound
     if (r.d === 1 && !f.dead) {
       if (r.j !== undefined) casterSoulTrap(f, r);
       const t = p.wire ? _net.toScene(p.wire) : null; if (t) { f.ai.feet[0] = t[0]; f.ai.feet[1] = t[1]; f.ai.feet[2] = t[2]; } puppetDie(f);
@@ -3365,7 +3389,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
   /** DROPS-AUDIT CAMP-CAP: the encounter slots still free, the spawns in flight counted. */
   const encounterRoom = () => encounterCap() - activeCount() - spawning.filter((s) => s.capped).length;
 
-  return { foes, spawnFoe, damageFoe, encounterRoom, newCampId, noticedPlayer, partyHit, healFoe, pendingFeet: () => spawning.map((p) => p.feet), handleAttackFromPlayer, attackFromPlayer, update, resolvePlayerHit, poisonFoe, batches, drawBodies, drawVeiledBodies, offsetAll, activeCount, lootTargets, hoverName, hoverContents, liveTargets, liveHoverName, takeLoot, groundMoved, pileBody: (key) => { const e = corpseEntryFor(foes, key, 'foeCorpse', corpseLens); return e?.puppet ? body.pileBody(e) : pileBody(e); }, physicalCorpses: () => physicalCorpseSources(foes, 'foeCorpse', corpseLens), corpseAt: corpseLens.feetOf, corpseKeyOf: (f) => (corpseLens.isCorpse(f) && !f.corpseDisabled ? `foeCorpse:${idOf(f)}` : null), snapshotWorld, restoreWorld, destroy,   // LOOT-STACK: a body as the loot window's tab; PI1: physicalCorpses, the bodies whose items stand round them (scenes/physicalItemsLayer.js); PROF7: where a body lies, the lens's one home (Hunting's bodies); AUDIT 32 H8: its loot's key while it may be searched
+  return { cromwarkMarks: cromCombat.marks, foes, spawnFoe, damageFoe, encounterRoom, newCampId, noticedPlayer, partyHit, healFoe, pendingFeet: () => spawning.map((p) => p.feet), handleAttackFromPlayer, attackFromPlayer, update, resolvePlayerHit, poisonFoe, batches, drawBodies, drawVeiledBodies, offsetAll, activeCount, lootTargets, hoverName, hoverContents, liveTargets, liveHoverName, takeLoot, groundMoved, pileBody: (key) => { const e = corpseEntryFor(foes, key, 'foeCorpse', corpseLens); return e?.puppet ? body.pileBody(e) : pileBody(e); }, physicalCorpses: () => physicalCorpseSources(foes, 'foeCorpse', corpseLens), corpseAt: corpseLens.feetOf, corpseKeyOf: (f) => (corpseLens.isCorpse(f) && !f.corpseDisabled ? `foeCorpse:${idOf(f)}` : null), snapshotWorld, restoreWorld, destroy,   // LOOT-STACK: a body as the loot window's tab; PI1: physicalCorpses, the bodies whose items stand round them (scenes/physicalItemsLayer.js); PROF7: where a body lies, the lens's one home (Hunting's bodies); AUDIT 32 H8: its loot's key while it may be searched
     /** AUDIT 39: CleanupUntrackedObjects' enemy half (StreamingWorld.cs
      *  :1624-1635), which a teleport reaches too through
      *  ClearStreamingWorld -> CollectLooseObjects(true) (:993-998) -

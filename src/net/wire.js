@@ -1489,7 +1489,9 @@ export function validFoeRecord(r) {
   // TELL8 (bible/12-Enhanced-AI/Feud-Arc.md 10.1): THE WIND-UP - `wk` its shape (0-6, ai/puppetBlows.js WIRE_KINDS) +8
   // iron +16 a feint (AUDIT TELL O2: +32 its landing, said after it; FEUD WIRE: +64 a revenant's signature), `wy` its yaw, `wl` ms to its landing
   // (0..FOE_WINDUP_MS - relative, each client's own clock), `wo` its origin (bounded as `f`), `wn` its serial (0-255),
-  // all five together or none; `wp` a leap's or a shot's point along `wy` (m, with them); `ws` 1 staggered, 2 overreached
+  // all five together or none; `wp` a leap's or a shot's point along `wy` (m, with them); `ws` 1 staggered, 2 overreached.
+  // Cromwark's seven custom IDs use wk's upper bits for locked aim distance / 2,
+  // wp for elapsed pattern seconds; their own controller decodes them, not puppetBlows.
   if (r.wk !== undefined || r.wy !== undefined || r.wl !== undefined || r.wo !== undefined || r.wp !== undefined || r.wn !== undefined) {
     if (!Number.isInteger(r.wk) || r.wk < 0 || r.wk > 127 || (r.wk & 7) > 6) return null;
     if (!Number.isInteger(r.wn) || r.wn < 0 || r.wn > 255) return null;

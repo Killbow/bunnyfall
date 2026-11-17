@@ -66,6 +66,7 @@
 // exported from here, and scenes/townTalk.js calls it on every directory
 // rebuild.
 
+import { cromwarkSettlementRemoved, filterCromwarkSettlementLookups } from '../systems/wild/cromwarkSettlements.js';
 import { BsaFile, DIRECTORY_TYPES } from './bsaFile.js';
 import { worldDataDoor } from './worldData/worldDataDoor.js';   // RR3b: WorldDataReplacement's three asks (MapsFile.cs:984, :999, :1027)
 import { PakFile } from './pakFile.js';
@@ -361,6 +362,7 @@ export class MapsFile {
       if (held.door === door) {
         // The world-data door tracks what it already added per region, so a repeat call adds only new locations.
         door?.getDFRegionAdditionalLocationData(region, held.dfRegion);
+        filterCromwarkSettlementLookups(held.dfRegion, region);
         if (this.autoDiscard) this._held.hold(region);
         return true;
       }
@@ -393,6 +395,7 @@ export class MapsFile {
 
     // Add any additional replacement location data to the region, assigning locationIndex (MapsFile.cs:984 - RR3b: the world-data door)
     rec.door?.getDFRegionAdditionalLocationData(region, rec.dfRegion);
+    filterCromwarkSettlementLookups(rec.dfRegion, region);
 
     this._lastRegion = region;
     if (this.autoDiscard) this._held.hold(region);
@@ -430,6 +433,7 @@ export class MapsFile {
   getLocation(region, location) {
     if (!this.loadRegion(region)) return null;
 
+    if (cromwarkSettlementRemoved(this._regions[region].dfRegion.mapTable[location]?.mapId)) return null;
     const dfLocation = this._readLocation(region, location);
     if (!dfLocation) return null;
 
@@ -540,6 +544,7 @@ export class MapsFile {
     const rec = this._regions[region];
     // MapsFile.cs:1027-1028 - a location the world-data door added carries its id on the map table (RR3b), so the BSA is not peeked
     const entry = rec.dfRegion?.mapTable?.[location];
+    if (cromwarkSettlementRemoved(entry?.mapId)) return 0;
     if (entry?.locationId) return entry.locationId;
     const v = new DataView(rec.mapPItem.buffer, rec.mapPItem.byteOffset, rec.mapPItem.byteLength);
     const locationCount = this._readLocationCount(region);

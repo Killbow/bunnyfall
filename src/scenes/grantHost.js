@@ -42,6 +42,8 @@ import { isNight } from '../world/worldClock.js';
 import { isCellRoom, mapPixelOfWire } from '../net/wire.js';
 import { staffBossBound } from '../systems/staffEvents.js';   // BOSS-BOUND: a staff event's mini boss, past a plain elite's bound
 import { foeStatsRefusal } from '../net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have
+import { cromwarkSpecies, cromwarkProfile } from '../systems/wild/cromwarkRoster.js';
+import { CROMWARK_ON } from '../systems/wild/cromwark.js';
 import { wildHere, wildMask, wildRingAt, WILD_NEAR_PX } from '../systems/wild/wildZone.js';
 import { inEther } from '../world/ethericSea.js';   // ETHER-WILD: the open sea's foes, read from Veilhaven's peace
 import { KNIGHT_CITYWATCH_ID } from '../characters/enemy/enemyEntity.js';
@@ -87,9 +89,12 @@ const LEVELLED_KINDS = new Set(['enc', 'camp', 'band', 'encr']);
  *  level (1 where it signs none), drawn from the member's own species die (net/grantLaw.js grantDice). -1 where the place
  *  rolls none. DEX3: a roll every machine agrees on, so where a mod offers more than one table for the place the die picks
  *  one of them first (characters/encounterTableDoor.js) - never a table a machine's own events picked. Pure.
- *  @param {{ s: number, m: number, l: number }} gr @param {number} i @param {number} climate @param {boolean} inRect */
+ *  @param {{ s: number, m: number, l: number, p?: number[] }} gr @param {number} i @param {number} climate @param {boolean} inRect */
 export function grantSpecies(gr, i, climate, inRect) {
-  return chooseRandomEnemy({ climateIndex: climate, inLocationRect: inRect, isDay: !isNight(gr.m), playerLevel: gr.l > 0 ? gr.l : 1 }, grantDice(gr.s, i).species);
+  const dice = grantDice(gr.s, i).species;
+  const normal = chooseRandomEnemy({ climateIndex: climate, inLocationRect: inRect, isDay: !isNight(gr.m), playerLevel: gr.l > 0 ? gr.l : 1 }, dice);
+  const ring = CROMWARK_ON && gr.p ? wildRingAt(gr.p[0], gr.p[1], wildMask()) : 0;
+  return cromwarkSpecies(normal, ring, dice);
 }
 
 const _speciesOf = new Map();
@@ -398,7 +403,7 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (LEVELLED_KINDS.has(gr.k) && isClassEnemyId(r.t) && gr.l > 0 && Number.isInteger(r.l) && r.l > gr.l + GRANT_LEVEL_SLACK) return 'dice';
     if (ROLLED_KINDS.has(gr.k) && climateAt) {
       const set = grantSpeciesOf(climateAt(gr.p[0], gr.p[1]));
-      if (set && !set.has(r.t)) return 'dice';
+      if (set && !set.has(r.t) && !(gr.k === 'enc' && CROMWARK_ON && cromwarkProfile(r.t) && wildRingAt(gr.p[0], gr.p[1], wildMask()) > 0)) return 'dice';
     }
     return null;
   }

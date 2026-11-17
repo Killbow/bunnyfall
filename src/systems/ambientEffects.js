@@ -84,9 +84,10 @@ export const DUNGEON_AMBIENT_WAITS = Object.freeze({ minWait: 5, maxWait: 28 });
 export const EXTERIOR_AMBIENT_WAITS = Object.freeze({ minWait: 5, maxWait: 25 });
 
 /** WeatherManager.SetAmbientEffects, verbatim mapping. */
-export function presetForExterior(weather, night) {
+export function presetForExterior(weather, night, desolate = false) {
   if (weather === 'rain') return 'rain';        // IsRaining && !IsStorming
   if (weather === 'thunder') return 'storm';    // IsRaining && IsStorming
+  if (desolate) return 'none'; // Cromwark keeps weather and wind, without healthy birds/crickets.
   return night ? 'clearNight' : 'sunnyDay';     // IsDay / IsNight
 }
 

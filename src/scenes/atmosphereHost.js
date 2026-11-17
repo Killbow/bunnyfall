@@ -42,7 +42,7 @@ export function createAtmosphereHost({ gl = null, enhanced = false, heightAt = n
     frame(f) {
       if (!sim || broken) return;
       try {
-        if (!f.outside) { sim.live.petals = sim.live.fireflies = sim.live.butterflies = sim.live.shafts = sim.live.birds = 0; sim.f = null; return; }
+        if (!f.outside || f.desolate) { sim.live.petals = sim.live.fireflies = sim.live.butterflies = sim.live.shafts = sim.live.birds = 0; sim.f = null; return; }
         eyeY = f.feet[1];
         const season = pin ?? SEASON_NAME[seasonValue(dateFromClassicMinutes(Math.floor(f.minutes ?? 0)))] ?? 'summer';
         sim.step({

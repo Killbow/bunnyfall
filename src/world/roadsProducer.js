@@ -3,6 +3,7 @@
 // WOODS.WLD for the ground between them - and the reason roadNetwork.js
 // could stay pure. Nothing here is Hazelnut's; see bible/03-World/Roads.md.
 
+import { cromwarkSettlementRemoved } from '../systems/wild/cromwarkSettlements.js';
 import { longitudeLatitudeToMapPixel } from '../formats/mapsFile.js';
 import { MAP_WIDTH, MAP_HEIGHT } from '../formats/woodsFile.js';
 import { BASE_HEIGHT_SCALE, SCALED_BEACH_ELEVATION } from './terrain/terrainSampler.js';
@@ -27,13 +28,12 @@ export function settlementsOf(maps) {
   for (let r = 0; r < maps.regionCount; r++) {
     const region = maps.getRegion(r);
     if (!region || !region.mapTable) continue;
-    const regionStart = out.length;
-    for (const row of region.mapTable) {
-      if (!row) continue;
+    for (const [index, row] of region.mapTable.entries()) {
+      if (!row || cromwarkSettlementRemoved(row.mapId)) continue;
       const p = longitudeLatitudeToMapPixel(row.longitude, row.latitude);
       // ROADS 8: the name rides the row so a stranded town can be NAMED
       // in the log rather than pointed at by pixel.
-      out.push({ x: p.x, y: p.y, type: row.locationType, region: r, name: region.mapNames?.[out.length - regionStart] ?? null });
+      out.push({ x: p.x, y: p.y, type: row.locationType, region: r, name: region.mapNames?.[index] ?? null });
     }
   }
   if (before >= 0 && maps.loadRegion) maps.loadRegion(before);

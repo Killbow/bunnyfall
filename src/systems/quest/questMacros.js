@@ -31,6 +31,7 @@
 // (PENDING_HANDLERS) - the coverage-ordered doctrine, the action
 // registry's guard precedent.
 
+import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
 import { srand, randomRangeInclusive } from '../../formats/dfRandom.js';
 import { liveStat } from '../statMods.js';                       // M-X: %mad's MagicResist read
 import { permanentSkillValue, SKILL_NAMES } from '../skills.js'; // M-X: %ski
@@ -779,7 +780,7 @@ const HANDLERS = {
     for (let i = 0; i < region.mapTable.length; i++) {
       // GetLocalizedLocationName(MapId, MapNames[i]) (:583) always
       // yields a string, so a found-but-unnamed row is not a miss either.
-      if (i !== here && region.mapTable[i].locationType === TOWN_CITY_TYPE) {
+      if (i !== here && !cromwarkQuestSiteBlocked(region.mapTable[i].mapId) && region.mapTable[i].locationType === TOWN_CITY_TYPE) {
         return getLocalizedLocationName(region.mapTable[i].mapId, region.mapNames?.[i] ?? localizedText('daggerfall', CITY_NAME2_FALLBACK));
       }
     }

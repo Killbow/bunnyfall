@@ -887,7 +887,7 @@ import { setVendorPage } from '../ui/vendor/vendorPage.js';   // HOME-VENDOR: th
 import { setSigilOnline, setSigilRenown } from '../systems/sigil/sigil.js';   // SIGIL1: a weapon won online carries a sigil, woken by my Renown
 import { setSetsDueling, setsDueling, drinkWorn, setSetsWearer } from '../systems/sigil/sigilSets.js';   // SET2: the duel's word - sets sleep in one; SET4: the drink, whole; SET5: the wearer a tooltip reads
 import { martialHudChips } from '../systems/martialPowers.js';   // RPT1026-PROGRESS: a martial path's passive on the HUD
-import { lootHudChips } from '../systems/loot/lootPowers.js'; import { setSetPowersVoice, setHudChips, heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js'; import '../systems/loot/lootDrought.js'; import '../systems/loot/lootCodex.js'; import { createLootLines } from './lootLines.js'; import { createNpcMarks } from './npcMarksHost.js';   // NPC-MARKS: the marks over the street's people who do something; SET3: what the sets DO - every power registered at import; its voice is this host's; SET5: its chips; LOOT4: and lootPowers.js beside it, what a loot piece DOES (the Loot arc), every kind registered at import; LOOT8: lootDrought.js, the drought's finder and take listener, registered at import; LOOT10: lootCodex.js, the codex's take listener, round sweep and record; LOOT11: the lines of light over a find
+import { lootHudChips, powerKind } from '../systems/loot/lootPowers.js'; import { setSetPowersVoice, setHudChips, heldPlayerBlow, remarkPlayerBlow } from '../systems/sigil/sigilSetPowers.js'; import '../systems/loot/lootDrought.js'; import '../systems/loot/lootCodex.js'; import { createLootLines } from './lootLines.js'; import { createNpcMarks } from './npcMarksHost.js';   // NPC-MARKS: the marks over the street's people who do something; SET3: what the sets DO - every power registered at import; its voice is this host's; SET5: its chips; LOOT4: and lootPowers.js beside it, what a loot piece DOES (the Loot arc), every kind registered at import; LOOT8: lootDrought.js, the drought's finder and take listener, registered at import; LOOT10: lootCodex.js, the codex's take listener, round sweep and record; LOOT11: the lines of light over a find
 import { computeEntityMods, registerEntityFold, EMPTY_MODS } from '../systems/entityMods.js';   // SET3: the sets' stat fold, recomputed the moment they wake or sleep; SEAT1d: the Festive buff's
 import { createSeatEdicts, FESTIVE_FOLD, festiveMods } from '../systems/seatEdicts.js';   // SEAT1d: a held seat as this client lives it
 import { createTownEconHost } from './townEconHost.js';   // TOWN-ECON TE1: every town's economy - its counters' factor, its card; TE2: the players' share
@@ -988,7 +988,9 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 // WILD1 (2026-10-07, bible/11-Multiplayer/Wild-Zone.md): THE OPEN ZONE - the Wrothgarian Mountains: its law (a leaf), a
 // death's drop and its one piece, the fights between players, the room's remains as piles, and the HUD's two glyphs
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
+import { wasteGroundCoverStands, wasteScorch } from '../systems/wild/cromwarkWaste.js';
 import { CROMWARK_ON, cromwarkPeace, setBlightProbe } from '../systems/wild/cromwark.js';
+import { cromwarkSettlementRemoved } from '../systems/wild/cromwarkSettlements.js';
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL: the reach's desolate towns   // BUNNYFALL: the mountains are Cromwark's reach (no PvP)
 import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, wildDeathAtHand, wildDeathKill, wildFallHeard, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
 import { createPartyTruce } from '../systems/wild/wildZone.js';   // PARTY-TRUCE (FIELD BUGS 2026-10-09b)
@@ -1026,6 +1028,9 @@ import { personLook, personActor, figureLook } from '../characters/peopleBodies.
 import { houseLine } from '../net/houseLaw.js'; import { houseWord } from '../systems/legacy/houseName.js';   // LEGACY7 part three: the house a proposal comes from, on its prompt; LEGACY-NAME: a seat's house said once
 import { createDuelRecords, duelUncountedText } from '../net/duel/duelRecord.js';   // DUEL1: the Inspect card's duelling record, asked and kept
 import { createDuelPrompt } from '../ui/duelPrompt.js';   // DUEL1: the challenge, as the challenged player sees it
+import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../systems/wild/cromwarkBarrier.js';
+import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
+import { createCromwarkReachHost } from './cromwarkReachHost.js';
 import { DuelWallRenderer } from '../render/duelWall.js';   // DUEL1: the ring's holographic wall
 import { BannerRenderer, BANNER_TEX_W, BANNERS_MAX } from '../render/bannerPass.js';   // GUILD1d: a guild's banners, the cloth
 import { createHallBanners } from './hallBanners.js';
@@ -6110,6 +6115,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     p._bed = bed;
     p.terrain = renderer.createTerrainSurface(grid.bed?.positions ?? grid.positions, grid.bed?.normals ?? grid.normals,
       stride === 1 ? TERRAIN_INDICES : TERRAIN_INDICES_LOD); groundEpoch++;
+    p.terrain.scorch = wasteScorch(p.wasteR ?? 0);
     const waterIndices = waterOn ? buildWaterIndices(p._dwBytes ?? p.tilemapBytes, stride) : null;   // DW-F: the cap's TileMap, where it patched one
     p.water = waterIndices ? renderer.createWaterSheet(waterIndices, waterSheetOf(bed, p.terrain)) : null;
     p._stride = stride;
@@ -6346,7 +6352,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // for the painter's preview (AUDIT: a colour tried tore the owner's street down under the open panel)
       // HOME-VOTE: a look shown - a shunned home's stands in the merge for everyone but its insiders (never lookOfHome: the
       // painter's preview would tear the owner's street down)
-      for (const [bk, row] of homes) if (!p.homeKeys.has(bk) && p.buildingKeys.has(bk) && ((row?.look && homeDecorShown(row)) || row?.mine || row?.keeper)) merged = true;   // GUILD-YARD: a hall kept
+      for (const [bk, row] of homes) if (!p.ruinKeys?.has(bk) && !p.homeKeys.has(bk) && p.buildingKeys.has(bk) && ((row?.look && homeDecorShown(row)) || row?.mine || row?.keeper)) merged = true;   // GUILD-YARD: a hall kept
       if (merged) { _reskin.mark(key); continue; }
       for (const m of p.models) {
         if (!m._home) continue;
@@ -11014,6 +11020,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     renderer, collider, fetchBytes, getTexture, uploadRecordFrame, playerEntity, audio, hitEffects, groundStands: (x, z) => Number.isFinite(heightAt(x, z)),   // FALL-HOLD: a foe over a pixel not built is held, not stepped
     // REVENANT-FATE: this host opens a beaten revenant's choice; an executed one's pile is the street's dropped loot
     fates: true,
+    onCromwarkImpact: (hazard, dir) => {
+      if (hazard.slow) player.blowRattle(powerKind(playerEntity, 'hazewalk') ? 2 : 4, .6);
+      if (hazard.push) player.blowPush(dir[0] * hazard.push, dir[1] * hazard.push);
+    },
     dropLoot: (items, feet) => droppedLoot.dropPile(items, feet, `${playerTravelPixel().x},${playerTravelPixel().y}`),
     shake: (k) => betterAmbience.weaponKick(k),
     playerWeaponSheathed: () => !!weaponRig.playerWeapon.sheathed,   // AUDIT 24 (wave 42): pacification's drawn-weapon penalty
@@ -13115,7 +13125,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       mapId: row.mapId, discovered: row.discovered,
       name: region.mapNames[i], regionName: region.name,
     }));
-    const picked = discoverRandomLocation(rows);
+    const picked = discoverRandomLocation(rows.filter((row) => !cromwarkSettlementRemoved(row.mapId)));
     if (!picked) return null;
     const shown = getLocalizedLocationName(picked.mapId, picked.name);
     // ThievesGuild.cs:114-116 / DarkBrotherhood.cs:107-109 -
@@ -13804,6 +13814,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // can be moved by one system or another with swaying active" -
     // the sway does not ride a fast travel, a teleport or a load's
     // landing to the new place.
+    reachEvents.reset(); sealSafe = null;
     cameraRecoiler.reset();
     climbFeel.reset();   // AUDIT CLIMB-ARC F6: no climb's turn or cue rides a teleport
     // AUDIT CAPTAIN'S SEA G2/P7: a pixel this game does not stream lands where the world stands - before the helm's word
@@ -16022,6 +16033,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  its lists, the view itself, the spawns it was told of. They sat in applyPose past `if (!pose) return;`, so a save
    *  without a pose (an older envelope) loaded with the last run's chases still running, its rudder held, its "?"s. */
   function overworldLoadReset() {
+    reachEvents.reset(); sealSafe = null;
     tvRaid.chase.clear(); tvRaid.spent.clear(); tvRaid.list = []; tvRaid.at = -Infinity; tvRaid.peer.clear(); tvRaid.spentAt.length = 0;   // OWS3: no chase across a load; OW6: nor what the peers said, nor what I was saying
     csaJourneyHelm.held.clear(); csaJourneyHelm.row = false; tvSea.means = null; tvSea.phase = null; tvSea.boat = null; tvSea.wasLive = csaJourneyHelm.live = false;   // AUDIT OWS A1: nor a crossing's hand on the helm - a load into a dungeon's boat kept its rudder held
     tvPlates = { at: null, list: [] };   // AUDIT DEEP T2-4: the loaded character's discoveries - never the plates the last one knew
@@ -18307,6 +18319,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     window.__look = (yaw, pitch) => { cam.yaw = yaw; cam.pitch = pitch; lookFilter.settle(); };   // CSA-F probe: the view turned in place (the helm pins the body, not the look)
     window.__streamIdle = () => queue.length === 0 && !building && inFlight.size === 0;   // AUDIT EV: teleport builds count too - the probe told the truth only for pump's
     window.__builtCount = () => built.size;
+    window.__cromwarkEnvironment = () => [...built.values()].filter((p) => p.wasteR).map((p) => ({ px: p.px, py: p.py, damage: p.cromwarkDamage, models: p.models.length, lights: p.lights.length, animals: p.animals?.length ?? 0,
+      ruins: p.models.filter((m) => m._ruin).map((m) => { const t = state.pixelTranslation(p.px, p.py); return { kind: m._ruin, box: m._box.map((v, i) => v + t[i % 3]) }; }) }));
     window.__cromwark = () => cromwark;   // BUNNYFALL probe: the reach's host (its camp, its haze)
     window.__pixelT = (px, py) => [...state.pixelTranslation(px, py)];
     // LOAD-OWED probe surface (tools/pixelBuildSweep.mjs - the frame held by the probe, so nothing else runs): THE PUMP'S
@@ -25616,6 +25630,76 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     gone: () => closeBrokerDoor(),   // midnight took her from under her open window: it is shut, and she says so
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Dusk Tokens, the Guild camp and Nyx
+  const citySeal = cromwarkSeal(locationIndex.get('823,35')?.exterior?.exteriorData);
+  let sealPass = null, sealPending = false, sealSafe = null, sealNoticeAt = -Infinity, sealGround = null;
+  function sealInScene() {
+    if (!citySeal) return null;
+    const t = state.pixelTranslation(CROMWARK_CITY.px, CROMWARK_CITY.py);
+    const x = t[0] + citySeal.x, z = t[2] + citySeal.z;
+    const ground = built.get('823,35')?.locOrigin?.[1];
+    if (Number.isFinite(ground)) sealGround = ground;
+    if (sealGround == null && woods) {
+      // Match the location builder's mean, not an unbuilt pixel's raw centre
+      // sample. Keep it when the city streams out and add current compensation.
+      const kernel = sampleKernel(woods,823,35,HEIGHTMAP_DIMENSION,true,landformsHere());
+      let sum = 0;
+      for (let ix=0; ix<HEIGHTMAP_DIMENSION; ix++) for(let iz=0; iz<HEIGHTMAP_DIMENSION; iz++) sum += Math.fround(kernel(ix,iz));
+      sealGround = sum/(HEIGHTMAP_DIMENSION*HEIGHTMAP_DIMENSION)*worldHeight+.05;
+    }
+    return { ...citySeal, x, z, y: (sealGround ?? 0) + t[1] };
+  }
+  function enforceCitySeal() {
+    if (sealPending) return true;
+    if (!CROMWARK_ON || !citySeal || !walkMode || !playerSpawned || !_bootLoaded || _loading || modes?.transitioning || _teleporting) { sealSafe = null; return false; }
+    const seal = sealInScene(), feet = player.feetAt();
+    const old = sealSafe ? state.localFromWorld(sealSafe.x, sealSafe.z) : null;
+    const previous = old ? [old[0], feet[1], old[1]] : null;
+    const indoors = _mode() !== 'exterior';
+    const blocked = indoors ? state.current.x === 823 && state.current.y === 35 : sealCrossed(seal, previous, feet);
+    if (!blocked) { sealSafe = indoors ? null : state.worldCoords(feet); return false; }
+    if (performance.now() - sealNoticeAt > 4000) {
+      sealNoticeAt = performance.now(); setMidScreenText('Cromwark is sealed. A dark force drives you back.');
+    }
+    if (!indoors && previous && Math.hypot(previous[0]-feet[0], previous[2]-feet[2]) < 80) {
+      player.spawn(previous[0], previous[1], previous[2]); cam.pos = player.eyeAt(); return false;
+    }
+    sealPending = true; sealSafe = null;
+    Promise.resolve().then(async () => {
+      modes?.forceExitToExterior();
+      await _teleportToPixel(823, 36, null, { grounded: true }); surfacePlayer();
+    }).catch(e => console.error('[cromwark] seal relocation failed', e)).finally(() => { sealPending = false; });
+    return true;
+  }
+  const reachEvents = createCromwarkReachHost({
+    mask: wildMaskOf(maps), now: () => performance.now(), utc: () => Date.now(),
+    ready: () => CROMWARK_ON && !params.has('nofoes') && walkMode && playerSpawned && _bootLoaded && !_loading && !_teleporting && !modes?.transitioning && _mode() === 'exterior' && !gamePaused() && wildZoneKind() === 'wroth',
+    feet: () => player.feetAt(), pixel: () => playerTravelPixel(),
+    translation: (px,py) => state.pixelTranslation(px,py), ground: (x,z) => surfaceAt(x,z),
+    dry: p => p[1] > tvSeaY()+.2 && !heldInSolid(collider,p),
+    allowed: (px,py) => !locationIndex.has(`${px},${py}`),
+    foes: {
+      list: () => exteriorFoes.foes, reclaim: site => exteriorFoes.reclaimSite(site),
+      campId: () => exteriorFoes.newCampId(), drop: site => exteriorFoes.dropSiteFoes(site), remove: f => exteriorFoes.removeFoe(f),
+      spawn: (career,[x,z],o) => {
+        const y=surfaceAt(x,z); if(!Number.isFinite(y)||y<=tvSeaY()+.2||heldInSolid(collider,[x,y,z])) return Promise.resolve(null);
+        const hit=collider.surfaceHit([x,y+.2,z],_DOWN,3);
+        return exteriorFoes.spawnFoe(career,[x,y,z],{...o,placed:true,groundAlign:{hitDist:hitDistance(hit)}});
+      },
+    },
+    peerSprang: site => _wodPeerSprung.has(site), peerHeldAgo: wodPeerHeldAgo, forgetPeer: wodForgetPeer,
+    sprang: wodSprang, say: text => setMidScreenText(text), save: () => surfacePlayer(),
+    loot: {
+      items: () => generateLootItems(DUNGEON_LOOT_KEYS[WOD_LOOT_LOCATION_INDEX],{level:playerEntity.level,gender:playerEntity.gender}),
+      seed: (items,p,key) => {
+        return droppedLoot.seedPile(items,p,{archive:RANDOM_TREASURE_ARCHIVE,record:0},null,key,{unsaved:true,owner:'cromwark-reach'});
+      }, remove: p => droppedLoot.removePile(p),
+    },
+  });
+  if (params.has('shot')) {
+    globalThis.__cromwarkBarrier = () => sealInScene();
+    globalThis.__cromwarkBarrierState = () => ({walkMode,playerSpawned,boot:_bootLoaded,loading:_loading,pending:sealPending,mode:_mode(),feet:player.feetAt(),pixel:{...state.current}});
+    globalThis.__cromwarkReach = () => reachEvents.state();
+  }
   const cromwark = createCromwarkHost({
     poiNpcs: () => poiHost?.npcs ?? null,   // BUNNYFALL: the people the POIs stand, read late (the POI host is made after)
     renderer, meshes: { getGpuMesh, cpuModels }, getTexture, uploadRecordFrame, maps, roads: () => terrainGen.roads(),
@@ -30750,6 +30834,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const pf = walkMode && playerSpawned ? player.pos : cam.pos;
       return exteriorFoes.spawnFoe(type, [pf[0] + dist, pf[1] + 1, pf[2]]).then((f) => (f ? f.mobileType : null));
     };
+    // Local shot fixture only: the real pool, renderer, art and combat controller.
+    window.__cromwark = () => ({ foes: exteriorFoes.foes, player: playerEntity, motor: player,
+      spawn: (type, pos, elite = false) => exteriorFoes.spawnFoe(type, pos, { eliteFoe: elite, feetGiven: true, loose: true }),
+      marks: exteriorFoes.cromwarkMarks });
     // X2/X3 probe surface: the live exterior-combat state
     window.__x23 = () => JSON.stringify({
       hp: playerEntity.health,
@@ -32728,6 +32816,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
     const dt = Math.min(0.1, (now - last) / 1000);
+    if (enforceCitySeal()) { last = now; requestAnimationFrame(frame); return; }
     farmingMode?.frame();
     // AUDIT 28 W7 + F-C1/F-C2 (self-audit 3): PlayerMouseLook.Update's
     // three answers - paused (:241-244) returns before ApplyLook and the
@@ -32959,7 +33048,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // street's own rain is what you hear through the walls: a building at INDOOR_RAIN_GAIN of it, never louder
       // than the street, and underground at the street's own gain. Forcing gain 1 here made a light shower (the
       // front's 0.15) louder in a tavern than in the street - the Discord report itself - and a dungeon 6.7x.
-      ambience.setPreset(presetForExterior(heardWeather(), isNight(minuteNow())));   // DISC9: the word the street last heard - the one truth Better Ambience's indoor rain reads too
+      ambience.setPreset(presetForExterior(heardWeather(), isNight(minuteNow()), cromwarkDesolateAt(maps, playerTravelPixel().x, playerTravelPixel().y)));   // DISC9: the word the street last heard - the one truth Better Ambience's indoor rain reads too
       ambience.update(dt, { inside: true, underground: modes.mode === 'dungeon', indoorRainSource: betterAmbience.rainPlaying() });
       if (livingRoads) livingRoads.clear();   // LW3: indoors, underground - the road's bodies freed with the open world they stood in
       familyStreet?.clear();   // AUDIT LEGACY III W6: the line's street rigs too
@@ -33400,6 +33489,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           down: crouchHeld || held(keys, 'FloatDown'),
           crouch: crouchPress,
         }, cam.yaw, cam.pitch);
+        enforceCitySeal();
         // TRAVEL-NAV1: the travel the motor was really asked for this frame - after the ground gate, and
         // nothing on a held or paralysed frame - which the steering's grinding check weighs next frame.
         travelNavFrame.asked = _travelDrive && !_overlayHeld && !_seasonHeld && !paralyzed
@@ -34260,16 +34350,17 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // nothing down yet is a cloudy day. Classic: the word, verbatim.
     ambientWord = enhancedFront ? soundWeather(fx, weather) : weather;
     setHeardWeather(ambientWord, enhancedFront ? fx.rain ?? fx.intensity : 1, enhancedFront ? fx : null);   // DISC9/DISC11: what the street hears - word AND level - is what every indoor ear hears through the walls; AUDIT PRECIP FALL-4: the drops' level, and the whole fall at its share for the skin
-    ambience.setPreset(presetForExterior(ambientWord, isNight(minute)));
+    const _wfPx = playerTravelPixel();
+    const _desolateAir = cromwarkDesolateAt(maps, _wfPx.x, _wfPx.y);
+    ambience.setPreset(presetForExterior(ambientWord, isNight(minute), _desolateAir));
     ambience.rainGain = enhancedFront ? fx.rain ?? fx.intensity : 1;   // AUDIT PRECIP FALL-4: the drops' own level on the law's lane
     // DW-D: the water arm reads the sea's forged blockWaterLevel and isPlayerSubmerged - WaterGentle at the line, the bubbles under it
     ambience.update(dt, { playerPos: cam.pos, inside: false, underground: modes?.mode === 'dungeon', waterSurfaceY: dwPlayer?.waterLevelY ?? null, submerged: !!dwPlayer?.submerged });   // CRICKET-DUNGEON: no crickets under the ground   // AUDIT 58: `!playerEnterExit.IsPlayerInside` (:154-162), stated rather than left undefined - this tick is the exterior's
     windAudio.update(wd, dt, windSoundOn());   // WIND3: the wind loop, beside DFU's ambience and never inside it
-    const _wfPx = playerTravelPixel();
     const windfallLaw = windfall.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: true, weather, minutes: skyMinutes(), climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), mapPixel: _wfPx,
       heading: wd.on ? wd.dir : null, feet: walkMode && playerSpawned ? player.pos : cam.pos, height: player.height });   // WINDFALL1: the mod's frame - its sounds and leaves, and the law the flora lean by (one wind: WIND1's heading); AUDIT ENVIRONS W1: WindMod.Update's Time.deltaTime, held by a pause and scaled with the world
-    atmosphere.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: true, weather, minutes: skyMinutes(), dayMinute: minute, windV: [wd.windV[0] * wd.gust, wd.windV[1] * wd.gust], gust: Math.max(0, wd.gust - 0.8), feet: walkMode && playerSpawned ? player.pos : cam.pos });   // ATMO1: the air's small life, off the same wind
-    soundscape.frame(dt, { wd, weather: ambientWord, minute, climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), winter: season === SEASON.Winter, paused: gamePaused() });   // SOUNDSCAPE: beside the wind and DFU's ambience, never inside it - its ear the listener's, set above
+    atmosphere.frame({ dt: gamePaused() ? 0 : dt * worldTimeScale(), outside: true, desolate: _desolateAir, weather, minutes: skyMinutes(), dayMinute: minute, windV: [wd.windV[0] * wd.gust, wd.windV[1] * wd.gust], gust: Math.max(0, wd.gust - 0.8), feet: walkMode && playerSpawned ? player.pos : cam.pos });   // ATMO1: the air's small life, off the same wind
+    soundscape.frame(dt, { desolate: _desolateAir, wd, weather: ambientWord, minute, climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), winter: season === SEASON.Winter, paused: gamePaused() });   // SOUNDSCAPE: beside the wind and DFU's ambience, never inside it - its ear the listener's, set above
     meterFor(renderer.gl)?.markCpu('snow');   // PERF-SIM1: the snow layer's frame
     _snowPixels.clear();
     snowfall.frame({ now: now / 1000, inside: false, player: snowPlayer(), weather, seconds: worldMinutes() * 60, winter: snowCover.winterNear(season === SEASON.Winter), climate: maps.getClimateIndex(_wfPx.x, _wfPx.y), overworld: !!tvf, npcs: snowNpcs, corpses: snowBodies });   // SNOWFALL1: DynamicSnowController.Update - its tiers round the player, the tracks, the snowpack by the event clock; TV-SNOW: under the Overworld, which draws no snow, the clocks alone (snowfallHost.js)
@@ -34448,6 +34539,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (gatePool || sdHost) presenceFrame();   // SD19: the banner and the card - the gate's, else a Hollow's door's
     try { sigilBroker?.frame(dt); } catch (e) { console.warn('[broker] pool', e?.message ?? e); }   // SET7: the Broker stands where the clock stands her - BROKER-CAGE: in her cage at the faithful's circle
     try { riteHost?.frame(); } catch (e) { console.warn('[rite] host', e?.message ?? e); }   // WB12d: the faithful's circle, before the lights (its braziers light the ground)
+    reachEvents.frame();
     if (_mode() === 'exterior') starfall?.frame();   // STAR4-STAR6: the night's stars, before the lights (a stone's glow, a landing's flash) - its own catch
     try { if (_mode() === 'exterior' && !_loading) harbourBook.step(now / 1000); } catch (e) { console.warn('[harbours] book', e?.message ?? e); }   // HARBOUR-BOOK: the port near the player sounded, before its quays stand
     if (_mode() === 'exterior') camps.ride(dt);   // DECK-CAMP: the camps on a boat's deck posed off her - after she moved, before the lights (a fire's) and the world pass
@@ -34939,6 +35031,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     yards?.drawDecals(renderer);   // HOME-YARD: the lot's marked edge while a piece is placed
     farmingMode?.draw(proj, view, camRight, bbUp);
     renderer.drawFoeTelegraphs?.(drawableBlows(tacticsNow(), walkMode && playerSpawned ? player.pos : cam.pos));   // TACT4: a foe's wind-up on the ground, under the bodies
+    renderer.drawFoeTelegraphs?.(exteriorFoes.cromwarkMarks());
     renderer.drawFoeTelegraphs?.(techniqueMarksNow());   // TECH1: and the player's own marks, after the foes' (bible/05-Combat/Weapon-Techniques.md)
     bloodMarks.draw(camRight, UP_Y);   // BLOOD1a: the marks go down BEFORE the billboards, so a body standing in its own blood is over it and not under it. ABOVE setFlatWind for the reason its own neighbour gives: WIND3 pins the wind and the draw as ADJACENT.
     trees.frame(_pixelOrder, cam.pos, cullOn ? _planes : null);   // LPT1 / BANTHA1: the near 3D trees, both doors', for the flats' call below (AFTER the gibs' call above, which would spend them)
@@ -35342,6 +35435,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
         if (!hit) return null;
         const { p, t, grass } = hit;
         const lx = x - t[0]; const lz = z - t[2];
+        if (p.wasteR && !wasteGroundCoverStands(p.wasteR, p.px, p.py, lx, lz)) return null;
         const tx = Math.floor(lx / 6.4); const tz = Math.floor(lz / 6.4);
         const ti = tz * TERRAIN_TILE_DIM + tx;
         const byte = p.tilemapBytes[ti];
@@ -35518,6 +35612,14 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // DUEL1: THE RINGS' WALLS - my own duel's, rising in and dying away, and every duel the cells around me say stands
     // (each once: both duellists say it). After the grass, from the view's own eye (mwv.eye, the bolts' law), fogged as
     // the ground is; a foreign pass.
+    if (CROMWARK_ON && _mode() === 'exterior') {
+      const seal = sealInScene(), beacons = reachEvents.beacons();
+      const shapes = [...(seal ? [seal] : []), ...beacons];
+      for (const shape of shapes) if (Math.hypot(mwv.eye[0]-shape.x, mwv.eye[2]-shape.z)<shape.radius+6000) {
+        sealPass ??= new CromwarkSealRenderer(renderer.gl);
+        if (sealPass.draw(shape, proj, view, new Float32Array(mwv.eye), now/1000)) renderer.markForeignPass();
+      }
+    }
     if (duelWall) {
       const rings = duelRingsNow(dt);
       if (rings.length) {

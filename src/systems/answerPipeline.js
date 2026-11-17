@@ -68,6 +68,7 @@
 //                                  the live automap coordinates)
 //   rolls                        - Math.random-compatible
 
+import { cromwarkSettlementRemoved } from './wild/cromwarkSettlements.js';
 import {
   ANSWERS_TO_DIRECTIONS, ANSWERS_TO_NON_DIRECTIONS, KNOWLEDGE_MODIFIERS,
   CHANCE_TO_REVEAL_LOCATION_ON_MAP, DIRECTION_TEXT_ID, MAP_REVEAL_TEXT_ID,
@@ -600,11 +601,13 @@ export class AnswerPipeline {
     if (!region) return null;
     let count = 0;
     for (let i = 0; i < region.locationCount; i++) {
+      if (cromwarkSettlementRemoved(region.mapTable[i].mapId)) continue;
       count += checkLocationKeyForRegionalBuilding(region.mapTable[i].key, index, faction);
     }
     if (count <= 0) return null;
     let locationToChoose = Math.floor(this._rolls()() * count) + 1;
     for (let i = 0; i < region.locationCount; i++) {
+      if (cromwarkSettlementRemoved(region.mapTable[i].mapId)) continue;
       locationToChoose -= checkLocationKeyForRegionalBuilding(region.mapTable[i].key, index, faction);
       if (locationToChoose === 0) {
         return this.deps.getLocation?.(this.deps.currentRegionIndex?.() ?? -1, i) ?? null;
