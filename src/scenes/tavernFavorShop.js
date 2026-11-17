@@ -38,10 +38,11 @@ export function createTavernFavorShop(deps) {
     const progress = tavernProgress();
     deps.choose({ lines: [t('tavern.favor.heading', 'Bards’ Guild — Favor Shop'), note,
       t('tavern.favor.balance', 'Favor Tokens: {n}', { n: progress.favor }),
+      t('tavern.favor.heartsFire', "Legendary Bartender includes the Heart's Fire aura."),
       t('tavern.favor.rules', 'Earn 1 Favor Token per full song minute or completed shift. Songs and finished shifts raise city and regional reputation. Serve clean orders before patience runs out for streak tips (+5 base gold per step, up to +30, increased by guild rank).'),
       ...Object.entries(progress.cities).filter(([city]) => city === deps.city?.()).map(([, rep]) => t('tavern.favor.city', 'City goodwill: {n}/100', { n: rep }))],
     options: [...(pending ? [{ code: 'KeyR', label: t('tavern.favor.retryBuy', 'Retry pending purchase'), action: () => { const offer = FAVOR_OFFERS.find((x) => x.id === pending?.offer); if (offer) void buy(offer); } }] : FAVOR_OFFERS.map((offer, i) => ({
-      code: `Digit${i + 1}`, label: `${t('tavern.favor.offer.' + offer.id, offer.name)} — ${offer.price} Favor Tokens`, action: () => { void buy(offer); },
+      code: `Digit${i + 1}`, label: `${t('tavern.favor.offer.' + offer.id, offer.name)}${offer.id === 'legendarybartender' ? t('tavern.favor.auraBundle', " + aura") : ''} — ${offer.price} Favor Tokens`, action: () => { void buy(offer); },
     }))), { code: 'Escape', label: t('tavern.favor.close', 'Close shop'), action: () => {} }] });
   }
   return { open };

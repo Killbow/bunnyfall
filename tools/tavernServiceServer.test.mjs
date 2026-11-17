@@ -1,3 +1,5 @@
+import { aurasHeld, auraWorn, auraRefusal } from '../server-account/src/titles.js';
+import { EG_HONOUR } from '../server-account/src/egHonours.js';
 import { tavernRoomEvent } from '../src/net/tavernRoomLaw.js';
 import { tavernFavorBuy } from '../server-account/src/tavernFavor.js';
 import { test } from 'node:test';
@@ -124,7 +126,9 @@ test('Favor title prices are 100 and 500, account ownership blocks duplicate pur
     const { f, body, player } = favorFixture(price + 10); body.offer = offer;
     const result = await tavernFavorBuy(f.ctx, player, body);
     assert.equal(result.ok, true, JSON.stringify(result)); assert.equal(result.progress.favor, 10);
-    assert.equal(f.sql.prepare('SELECT insignia FROM players').get().insignia, 'title:' + offer);
+    const account = { ...player, ...f.sql.prepare('SELECT insignia FROM players').get() };
+    assert.equal(account.insignia, 'title:' + offer);
+    assert.equal(aurasHeld(account, {}).includes('beaconlight'), offer === 'legendarybartender');
     const duplicate = await tavernFavorBuy(f.ctx, player, { ...body, seq: result.realm.seq, txn: 'second_purchase' });
     assert.equal(duplicate.error, 'owned');
   }
@@ -150,4 +154,16 @@ test('room choices persist and replay without granting extra money or repeating 
   const saved = JSON.parse(f.sql.prepare('SELECT state FROM tavern_service').get().state);
   assert.deepEqual(saved.room, r.state.room); assert.equal(saved.orders[saved.index].roomChoice, choice);
   const result = await f.call('return'); assert.equal(result.r.ok, true);
+});
+
+test('the Heart’s Fire follows existing Legendary Bartender ownership and preserves legacy unlocks', () => {
+  const bard = { handle: 'Bard', insignia: 'title:legendarybartender', aura: 'beaconlight' };
+  assert.equal(aurasHeld(bard, {}).filter((a) => a === 'beaconlight').length, 1);
+  assert.equal(auraRefusal('beaconlight', bard, {}), null);
+  assert.equal(auraWorn(bard, {}), 'beaconlight');
+  const legacy = { handle: 'Veteran', eg_honours: EG_HONOUR.kynbane, aura: 'beaconlight' };
+  assert.equal(auraWorn(legacy, {}), 'beaconlight');
+  assert.equal(aurasHeld({ ...bard, ...legacy }, {}).filter((a) => a === 'beaconlight').length, 1);
+  assert.equal(aurasHeld({ ...bard, handle: null }, {}).includes('beaconlight'), false);
+  assert.equal(aurasHeld({ handle: 'NewBard', insignia: 'title:barmaster' }, {}).includes('beaconlight'), false);
 });

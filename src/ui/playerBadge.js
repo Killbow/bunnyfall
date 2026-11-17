@@ -175,7 +175,7 @@ export const AURA_TEXT = Object.freeze({
   turninghour: 'The Turning Hour',   // SD9c: the Brass Remnant's wheel of brass gears and gold light, one kill in eight
   firsthour: 'The First Hour',   // HOURS-FIRST: The Turning Hour in the first dawn's light, Hour's First's own, granted with the title
   maelstrom: 'The Maelstrom',   // SERPENT5: the Old Coil's whirlpool of tide and foam, one dealing ship's serpent kill in fifty
-  beaconlight: 'Beaconlight',   // EG-E2: Kynbane's gold-white motes, granted with the title
+  beaconlight: "the Heart's Fire",   // Legendary Bartender's gold-white motes; existing Beaconlight unlocks remain valid
   burningstair: 'The Burning Stair',   // EG-E2: Wellhead-Walker's falling embers, granted with the title
   firstlight: 'Firstlight',   // EG-E2: First of the Spire's dawn-white ring, granted with the title by name
   lilacwarren: 'Lilac Warren',   // WIKIMAID: the WikiMaid's rabbits hopping round the feet on a ring of lilac light, granted with the title
