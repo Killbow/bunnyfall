@@ -18,7 +18,7 @@ import { accountRefusalText } from '../../net/accountClient.js';
 /** What a refused answer says: its own words, else the service's word for its error. */
 const refusal = (/** @type {any} */ r, /** @type {string} */ fallback) => r?.text ?? (r?.error ? `${accountRefusalText(r.error)} Nothing was spent.` : fallback);
 
-const _pv = { kind: /** @type {'pot'|'cauldron'} */ ('pot'), keys: /** @type {string[]} */ ([]), base: /** @type {string|null} */ (null), q: '', qFocus: false, word: '', busy: false, act: /** @type {any} */ (null), asked: false, followed: /** @type {string|null} */ (null) };
+const _pv = { kind: /** @type {'pot'|'cauldron'} */ ('pot'), keys: /** @type {string[]} */ ([]), base: /** @type {string|null} */ (null), q: '', qFocus: false, word: '', busy: false, act: /** @type {any} */ (null), asked: false, available: true, followed: /** @type {string|null} */ (null) };
 
 const doc = () => globalThis.document;
 function h(tag, cls = null, text = null) { const e = doc().createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = String(text); return e; }
@@ -92,13 +92,14 @@ const where = (/** @type {string|null} */ here) => (here === 'fire' ? 'pot' : he
  * Draws the page into `detail`. `p` the professions' provider (profPages): `book` the professions book, `name(key)`,
  * `provision(body)` the make. `here` the station the player stands at (profPages stationHere). `kit.go` opens another page.
  */
-export function drawProvPage(detail, rerender, p, here, kit) {
+export function drawProvPage(detail, rerender, p, here, kit, options = {}) {
   ensureStyle();
   const book = p?.book;
   if (!book) { detail.append(h('p', null, 'Provisioning opens with the professions.')); return; }
   const at = where(here);
   if (at && _pv.followed !== at) { _pv.kind = at; _pv.keys = []; _pv.base = null; _pv.followed = at; }
   if (!at) _pv.followed = null;
+  if (options.kind) selectProvisioningKind(options.kind);
   const state = book.provState?.();
   if (!state && !_pv.asked) { _pv.asked = true; book.provRefresh?.().then(() => rerender()).catch(() => null); }
   const learnt = state?.learnt ?? new Set();
@@ -115,7 +116,7 @@ export function drawProvPage(detail, rerender, p, here, kit) {
   left.append(h('b', null, 'Provisioning'), doc().createTextNode(` · rank ${rank} · ${at === 'pot' ? 'at a fire' : at === 'cauldron' ? 'at an alchemy table' : 'away from a station: plan here, make at a fire or an alchemy table'}`));
   const modes = h('div', 'pv-chips');
   for (const [k, label] of [['pot', 'Pot'], ['cauldron', 'Cauldron']]) modes.append(button(`pv-chip${kind === k ? ' on' : ''}`, label, () => { if (_pv.act) return; _pv.kind = /** @type {any} */ (k); _pv.keys = []; _pv.base = null; rerender(); }));
-  head.append(left, modes);
+  head.append(left); if (!options.workshop) head.append(modes);
   root.append(head);
   if (_pv.word) root.append(h('div', 'pv-word', _pv.word));
 
@@ -208,11 +209,16 @@ export function drawProvPage(detail, rerender, p, here, kit) {
   search.oninput = () => { _pv.q = search.value; _pv.qFocus = true; rerender(); };
   ings.append(search);
   if (_pv.qFocus) { _pv.qFocus = false; globalThis.queueMicrotask?.(() => { search.focus?.(); search.setSelectionRange?.(search.value.length, search.value.length); }); }
+  if (options.workshop) {
+    const label = h('label', 'wk-available'); const toggle = h('input'); toggle.type = 'checkbox'; toggle.checked = _pv.available !== false;
+    toggle.onchange = () => { _pv.available = toggle.checked; rerender(); }; label.append(toggle, doc().createTextNode('Available ingredients only')); ings.append(label);
+  }
   const q = _pv.q.trim().toLowerCase();
   const pool = (kind === 'pot' ? POT_KEYS : CAULDRON_KEYS)
     .map((k) => ({ k, n: held(k), label: name(k) }))
-    .filter((x) => !q || x.label.toLowerCase().includes(q))
+    .filter((x) => (!options.workshop || _pv.available === false || x.n > 0 || _pv.keys.includes(x.k)) && (!q || x.label.toLowerCase().includes(q)))
     .sort((a, b) => Number(b.n > 0) - Number(a.n > 0) || a.label.localeCompare(b.label));
+  if (!pool.length) ings.append(h('p', null, 'No matching ingredients. Turn off the filter to plan with ingredients you do not own.'));
   const seenPlant = new Set();
   for (const x of pool) {
     if (/^p[12]:/.test(x.k)) { const id = `${x.label}`; if (seenPlant.has(id) && x.n === 0) continue; seenPlant.add(id); }
@@ -314,9 +320,10 @@ function mountSimmer(rank, done, rerender) {
   const key = (/** @type {any} */ e) => { if (e.code === 'Space') { e.preventDefault(); holding = e.type === 'keydown'; } };
   globalThis.addEventListener?.('keydown', key); globalThis.addEventListener?.('keyup', key);
   el.append(top, gauge, meterRow, hold, stop);
-  let last = 0, ended = false;
+  let last = 0, ended = false, attached = false;
   const frame = (/** @type {number} */ now) => {
     if (ended) return;
+    if (el.isConnected) attached = true; else if (attached) act.cancel();
     const dt = last ? (now - last) / 1000 : 0;
     last = now;
     act.tick(dt, holding);
@@ -324,6 +331,7 @@ function mountSimmer(rank, done, rerender) {
     band.style.left = `${(s.band - s.width / 2) * 100}%`; band.style.width = `${s.width * 100}%`;
     band.classList.toggle('hot', s.inBand);
     needle.style.left = `${s.heat * 100}%`;
+    el.dispatchEvent(new globalThis.CustomEvent('bf-workshop-feedback', { bubbles: true, detail: { heat: s.heat } }));
     fill.style.width = `${Math.round(s.meter * 100)}%`;
     pct.textContent = `+${Math.round(s.meter * 25)}%`;
     el.classList.toggle('over', s.over);
@@ -348,3 +356,6 @@ export function setDownProv() {
 
 /** A trait's words, for the tooltips and the help. */
 export const traitWords = (/** @type {string} */ t) => /** @type {any} */ (FOOD_TRAITS)[t]?.does ?? /** @type {any} */ (ALCHEMY_TRAITS)[t]?.name ?? t;
+
+export const provisioningBusy = () => !!(_pv.act || _pv.busy);
+export function selectProvisioningKind(kind) { if (!['pot','cauldron'].includes(kind) || provisioningBusy() || _pv.kind === kind) return; _pv.kind = kind; _pv.keys = []; _pv.base = null; _pv.q = ''; }

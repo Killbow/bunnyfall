@@ -261,6 +261,7 @@ function drawWork(doc, stage, act, theme = 'anvil') {
     }
     if (st.last && st.last.n !== seen) {
       seen = st.last.n;
+      stage.dispatchEvent(new globalThis.CustomEvent('bf-workshop-feedback', { bubbles: true, detail: { result: st.last.kind } }));
       if (st.last.kind === 'miss') pulse('cw-shake', 360);
       else if (st.last.kind === 'part') { burst('part'); pulse('cw-flash', 520); }
       else burst(st.last.kind);

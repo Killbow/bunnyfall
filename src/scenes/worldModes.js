@@ -459,7 +459,7 @@ import { setPassiveSpecialsHost, FIGHTER_TRAINERS_FACTION } from '../systems/pas
 import { DaedraSummonedWindow, REFUSAL_FOE_COUNT, COVEN_FAIL_FOE_COUNT } from '../ui/daedraSummonedWindow.js';   // G7b: the summoning's own film window
 import { orderOf } from '../systems/guild/guildVariants.js';
 import { joinedGuildOfGroup } from '../systems/guild/guilds.js';
-import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
+import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, imbuePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
 import { liftCurse } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
 import { setJunk } from '../systems/item/itemJunk.js';   // AUDIT LOOT II C5: a sold piece's mark ends at the shelf
 import { scryPlace } from '../systems/loot/lootScry.js';   // LOOT19: the guild's scryers
@@ -6278,10 +6278,11 @@ export function createWorldModes(host) {
   }
   /** LOOT9: THE REFORGE'S WINDOW over the player's own pack - its salvage and its reforge the law's (systems/reforge.js),
    *  paid from the player's shards and purse. Answers the window, or null with no page to draw it on. */
-  function openReforge() {
-    const o = createReforgeOverlay({
+  function workshopReforgeDeps() {
+    return {
       items: () => playerEntity.items ?? [], payer: () => playerEntity, gold: () => totalGoldAmount(playerEntity),
       reforge: (item, line) => reforgePiece(item, line, playerEntity),
+      imbue: (item) => imbuePiece(item, playerEntity),
       salvage: (item) => salvagePiece(item, { items: (playerEntity.items ??= []) }, playerEntity.name),
       imprint: (item, id) => imprintPiece(item, id, playerEntity),   // LOOT10: a Rare takes a found Legendary's power
       hone: (item, line) => honePiece(item, line, playerEntity),   // LOOT17: a line taken up its band
@@ -6291,7 +6292,10 @@ export function createWorldModes(host) {
       unsetGem: (item, at) => unsetGemPiece(item, playerEntity, at),   // GEM1: a socket of several
       extractGem: (item, at) => extractGemPiece(item, playerEntity, at),   // GEM1: the guild's extraction, the gem whole
       wearer: playerEntity, nameOf: (item) => itemLongName(item),
-    });
+    };
+  }
+  function openReforge() {
+    const o = createReforgeOverlay(workshopReforgeDeps());
     return o ? mountServiceWindow(o) : null;
   }
   /** LOOT16: THE TEMPLE'S LIFTING - the Reforge's window on its one page over the player's own pack, the law's
@@ -14422,6 +14426,7 @@ export function createWorldModes(host) {
       if (mode === 'interior' && hasEnemyRecord && fromNative) restoreInteriorPools(saved, fromNative, yOffset);
       return mode === 'interior';
     },
+    workshopReforgeDeps,
     enterSailingCabin,
     enterCaravanRoom,   // WAGONS1
     tryEnter,

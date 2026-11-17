@@ -272,21 +272,23 @@ function patterns(station, book) {
  * THE WINDOW. `p` the professions provider (profPages.js ProfPagesProvider and craftHost.js), `station` where the player
  * stands, `toOld` the way back to the classic pages.
  */
-export function drawCraftWindow(detail, rerender, p, station, toOld, away = false) {
+export function drawCraftWindow(detail, rerender, p, station, toOld, away = false, options = {}) {
   ensureStyle();
   if (_cw.station !== station) { resetCraftWindow(); _cw.station = station; }
+  if (options.operation) _cw.tab = options.operation;
+  if (options.operation) _cw.tab = options.operation;
   const S = CW_STATIONS[station];
   const book = p.book;
   const prof = S.prof;
   const rank = rankOf(book, prof);
-  const root = h('div', 'cw');
+  const root = h('div', options.workshop ? 'cw cw-workshop' : 'cw');
   const head = h('div', 'cw-head');
   const fee = feeOf(p, station);
   head.append(h('div', 'cw-title', S.name), h('div', 'cw-sub', `${prof[0].toUpperCase()}${prof.slice(1)} rank ${rank}${fee ? ` · fee 10% of the piece, up to ${fee} gold` : ''} · ${p.purse?.() ?? 0} gold carried`));
   root.append(head);
   const tabs = h('div', 'cw-tabs');
   // the Stores have a page of their own; away from the station only the list is read (its other acts need the station)
-  const shown = TABS.filter(([id]) => id !== 'stores' && (!away || id === 'craft')).filter(([id]) => id !== 'upgrade' || S.temper || S.upgrade).filter(([id]) => id !== 'refine' || S.refine().length);
+  const shown = TABS.filter(([id]) => id !== 'stores' && (!away || id === 'craft' || options.workshop)).filter(([id]) => id !== 'upgrade' || S.temper || S.upgrade).filter(([id]) => id !== 'refine' || S.refine().length);
   if (!shown.some(([id]) => id === _cw.tab)) _cw.tab = 'craft';
   for (const [id, word] of shown) tabs.append(button(`cw-tab${_cw.tab === id ? ' cw-on' : ''}`, word, () => { if (_cw.act) return; _cw.tab = id; _cw.word = null; rerender(); }));
   root.append(tabs);
@@ -294,18 +296,19 @@ export function drawCraftWindow(detail, rerender, p, station, toOld, away = fals
   const say = (text) => { _cw.word = text; _cw.busy = false; rerender(); };
   const run = async (fn) => { if (_cw.busy) return; _cw.busy = true; rerender(); try { const r = await fn(); say(r?.text ?? 'Done.'); } catch { say('That did not go through. Try again.'); } };
 
-  if (_cw.tab === 'craft') (S.prof === 'cooking' ? drawCraftOld : drawCraft)(root, rerender, p, station, run, away);   // Cooking keeps its recipes until its own rework
+  if (_cw.tab === 'craft') (S.prof === 'cooking' ? drawCraftOld : drawCraft)(root, rerender, p, station, run, away, options.workshop === true);   // Cooking keeps its recipes until its own rework
   else if (_cw.tab === 'upgrade') drawUpgrade(root, p, station, run);
   else if (_cw.tab === 'salvage') drawSalvage(root, p, run);
   else if (_cw.tab === 'refine') drawRefine(root, rerender, p, station, run);
 
   const foot = h('div', 'cw-foot');
+  foot.hidden = options.workshop === true;
   foot.append(button('cw-link', 'Open the classic station pages', () => toOld()));
   root.append(foot);
   detail.append(root);
 }
 
-function drawCraftOld(root, rerender, p, station, run) {
+function drawCraftOld(root, rerender, p, station, run, away = false, workshop = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const prof = S.prof;
@@ -334,12 +337,12 @@ function drawCraftOld(root, rerender, p, station, run) {
   }
   body.append(col);
   const card = h('div', 'cw-card');
-  if (pick) drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run);
+  if (pick) drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run, workshop);
   body.append(card);
   root.append(body);
 }
 
-function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
+function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run, workshop = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const v = pick.variants.find((x) => x.r.id === _cw.variant) ?? pick.best;
@@ -412,13 +415,17 @@ function drawRecipeCardOld(card, rerender, p, station, pick, rank, specs, run) {
   if (_cw.act) { card.append(_cw.act.el); return; }
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
-  actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
+  actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Make item' : workshop ? 'Begin work' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
     _cw.act = mountAct(S.act, actOptions(S.act, r, rank, p), (rep) => { _cw.act = null; if (rep) craft(rep.clean === true); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
     seeIt(_cw.act?.el);
   }, !ready));
-  if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
+  if (!gentle) {
+    const skip = button('cw-btn', 'Make at base odds', () => craft(false), !ready);
+    if (workshop) { const more = h('details'); more.append(h('summary', null, 'Make without timing'), skip); actions.append(more); }
+    else actions.append(skip);
+  }
   card.append(actions);
 }
 
@@ -526,12 +533,12 @@ export function drawFocus(root, rerender, p, showWord = false) {
   root.append(box);
 }
 
-function drawCraft(root, rerender, p, station, run, away = false) {
+function drawCraft(root, rerender, p, station, run, away = false, workshop = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   const prof = S.prof;
   const rank = rankOf(book, prof), specs = specsOf(book, prof);
-  drawFocus(root, rerender, p);
+  if (!workshop) drawFocus(root, rerender, p);
   const forms = FORMS.filter((f) => f.discipline === prof && f.kind !== 'dish' && (!RRI_FORMS.has(f.id) || rriEnabled()));
   const standingOf = (f) => {
     const top = [...f.slots[0].options].map((o) => planOf(f.id, { ...startPicks(f, book, rank, specs), [f.slots[0].id]: o })).filter((x) => x.ok).map((x) => ({ x, st: planStanding(x, book, rank, specs) }));
@@ -566,7 +573,7 @@ function drawCraft(root, rerender, p, station, run, away = false) {
   }
   body.append(col);
   const card = h('div', 'cw-card');
-  if (pick) drawFormCard(card, rerender, p, station, pick.f, rank, specs, run, away);
+  if (pick) drawFormCard(card, rerender, p, station, pick.f, rank, specs, run, away, workshop);
   body.append(card);
   root.append(body);
 }
@@ -675,7 +682,7 @@ function drawLooks(card, rerender, p, r, looks, chosen) {
   card.append(row);
 }
 
-function drawFormCard(card, rerender, p, station, form, rank, specs, run, away = false) {
+function drawFormCard(card, rerender, p, station, form, rank, specs, run, away = false, workshop = false) {
   const S = CW_STATIONS[station];
   const book = p.book;
   if (_cw.form !== form.id) { _cw.form = form.id; _cw.picks = {}; _cw.look = null; }
@@ -686,7 +693,10 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   card.classList.add('cw-ws');
   const piece = h('div', 'cw-ws-piece'), mats = h('div', 'cw-ws-mats'), sum = h('div', 'cw-ws-sum');
   const pHead = h('div'), pLooks = h('div'), pWants = h('div'), pStats = h('div');
-  piece.append(pHead, pLooks, pWants, pStats);
+  if (workshop) {
+    const more = h('details', 'wk-quality'); more.append(h('summary', null, 'HTLA, quality & effects'), pWants, pStats);
+    piece.append(pHead, pLooks, more);
+  } else piece.append(pHead, pLooks, pWants, pStats);
   card.append(piece, mats, sum);
   pHead.append(h('h3', null, form.name));
   const wl = weightLine(form.weights);
@@ -698,7 +708,7 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
     const options = slot.options;
     const cur = chosen[slot.id] ?? null;
     const nameOf = (o) => `${p.name(o)}${workOf(book, o) >= slot.n ? ' ✓' : ` (${workOf(book, o)})`}`;
-    if (options.length > 12) {
+    if (options.length > (workshop ? 3 : 12)) {
       const sel = h('select', 'cw-search');
       if (slot.optional) { const o = h('option', null, 'None'); o.value = ''; sel.append(o); }
       for (const o of options) { const e = h('option', null, nameOf(o)); e.value = o; sel.append(e); }
@@ -799,13 +809,17 @@ function drawFormCard(card, rerender, p, station, form, rank, specs, run, away =
   if (_cw.act) { piece.replaceChildren(pHead, _cw.act.el); return; }   // the work takes the piece's place while it runs
   const actions = h('div', 'cw-actions');
   const gentle = getPref('gentleActs') === true;
-  actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Craft' : 'Craft (minigame)', () => {
+  actions.append(button('cw-btn cw-primary', _cw.busy ? 'Working...' : gentle ? 'Make item' : workshop ? 'Begin work' : 'Craft (minigame)', () => {
     if (gentle) { craft(false); return; }
     _cw.act = mountAct('work', workOptions(plan, rank, p, station), (rep) => { _cw.act = null; _cw.toActions = true; if (rep) craft(rep.clean === true, rep.trues | 0); else { _cw.word = 'You let it go. Nothing was spent.'; rerender(); } });
     rerender();
     seeIt(_cw.act?.el);   // BUNNYFALL (Sits-With-Drink): the game opens at the piece's top - brought into view
   }, !ready));
-  if (!gentle) actions.append(button('cw-btn', 'Craft, skip the game', () => craft(false), !ready));
+  if (!gentle) {
+    const skip = button('cw-btn', 'Make at base odds', () => craft(false), !ready);
+    if (workshop) { const more = h('details'); more.append(h('summary', null, 'Make without timing'), skip); actions.append(more); }
+    else actions.append(skip);
+  }
   if (_cw.word) sum.append(h('div', 'cw-word', _cw.word));   // BUNNYFALL: what the last craft made, by the buttons for the next
   sum.append(actions);
   if (_cw.toActions) { _cw.toActions = false; seeIt(actions); }   // and the buttons again when it ends, for the next craft
@@ -969,3 +983,7 @@ function benchHelp() {
   for (const [title, text] of BENCH_HELP) box.append(h('div', 'cw-ws-title', title), h('p', 'cw-note cw-help-p', text));
   return box;
 }
+
+export const craftWindowBusy = () => !!(_cw.act || _cw.busy);
+export function setDownCraftWork() { const act = _cw.act; if (!act) return false; _cw.act = null; act.stop(); return true; }
+export function setCraftOperation(tab) { if (!craftWindowBusy() && TABS.some(([id]) => id === tab)) _cw.tab = tab; }
