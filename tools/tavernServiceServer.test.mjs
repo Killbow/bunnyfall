@@ -167,3 +167,17 @@ test('the Heart’s Fire follows existing Legendary Bartender ownership and pres
   assert.equal(aurasHeld({ ...bard, handle: null }, {}).includes('beaconlight'), false);
   assert.equal(aurasHeld({ handle: 'NewBard', insignia: 'title:barmaster' }, {}).includes('beaconlight'), false);
 });
+
+test('Favor supply bundles pay their listed price, deliver usable stacks and replay exactly once', async () => {
+  for (const [offer, price, count] of [['shards', 10, 5], ['stamina', 5, 3], ['magicka', 5, 3]]) {
+    const { f, body, player } = favorFixture(price); body.offer = offer;
+    const r = await tavernFavorBuy(f.ctx, player, body);
+    assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.progress.favor, 0); assert.equal(r.item.stackCount, count);
+    assert.equal(r.title, null);
+    if (offer === 'shards') assert.equal(r.item.templateIndex, 571); else assert.ok(r.item.potionRecipeKey);
+    const retry = await tavernFavorBuy(f.ctx, player, body); assert.equal(retry.replayed, true);
+    const row = f.sql.prepare('SELECT obj FROM realm_characters').get();
+    const save = JSON.parse(f.blobs.get(row.obj)); assert.equal(save.items.length, 1); assert.equal(save.items[0].stackCount, count);
+    assert.equal(f.sql.prepare('SELECT insignia FROM players').get().insignia, '');
+  }
+});

@@ -5,6 +5,14 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-17
 
+- The Bards’ Guild Favor shop now sells five Welkynd Shards for 10 Favor, and bundles of three Stamina or Restore Power potions for 5 Favor.
+- Putrid food is cleared automatically, including from older saves, and matching raw and cooked meat now stack.
+- Every Escape menu tab now uses the larger Growth tab window size.
+
+- The Bards’ Favor shop now sells five Welkynd Shards for 10 Favor and three Stamina or Restore Power potions for 5 Favor.
+- Putrid food disappears automatically, including old saved food. Matching raw and cooked meat now stack.
+- All Escape menu tabs now use the Growth tab’s larger window size.
+
 - All crop fields on each Company farm are now workable, with saved crops visible to nearby visitors outside Farming Mode. Shared field updates arrive about once per second. Existing beds keep their positions and crops.
 - Company farm doors now offer Farming Mode: work 16 shared beds with a raised camera and your visible character, planting grain, mushrooms or herbs, watering them and harvesting into Company Stores. Watered crops grow in real time; unattended crops pause instead of dying.
 - Farming uses native Daggerfall soil and vegetation textures, follows the active UI skin and theme, and replaces the ordinary hotbar with farming tools until you exit.

@@ -1,8 +1,11 @@
 // @ts-check
 export const FAVOR_OFFERS = Object.freeze([
-  { id: 'legendary', name: 'Random Legendary', price: 25 },
-  { id: 'barmaster', name: 'Bar Master', price: 100 },
-  { id: 'legendarybartender', name: 'Legendary Bartender', price: 500 },
+  { id: 'legendary', kind: 'item', name: 'Random Legendary', price: 25 },
+  { id: 'barmaster', kind: 'title', name: 'Bar Master', price: 100 },
+  { id: 'legendarybartender', kind: 'title', name: 'Legendary Bartender', price: 500 },
+  { id: 'shards', kind: 'item', name: '5 Welkynd Shards', price: 10 },
+  { id: 'stamina', kind: 'item', name: '3 Stamina Potions', price: 5 },
+  { id: 'magicka', kind: 'item', name: '3 Restore Power Potions', price: 5 },
 ]);
 /** Gold multiplier for the College's ten ranks, Busker (0) through Archbard (9). */
 export const BARD_RANK_SHARE = 0.15;
