@@ -90,6 +90,8 @@ export function readSpellsStd(bytes) {
       rec.effects[0].type = 26;
       rec.effects[0].subType = -1;
     }
+    // SPELLS.STD gives Jumping (index 38) effect 32,-1, which matches no effect; the game's Jumping is 27,255.
+    if (rec.index === 38 && rec.effects[0].type === 32 && rec.effects[0].subType === -1) rec.effects[0].type = 27;
     spells.push(rec);
   }
   return spells;
