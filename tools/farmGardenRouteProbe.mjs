@@ -5,6 +5,7 @@ import { rolldown } from 'rolldown';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
+import {emptyFarmProgress} from '../src/net/farmProgressLaw.js';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const work = resolve(process.env.BUNNYFALL_PROBE_DIR || root + '/scratch/farm-route-probe'); mkdirSync(work, { recursive: true });
 const require = createRequire(root + '/server/package.json');
@@ -19,7 +20,7 @@ const pub = Buffer.from(await crypto.subtle.exportKey('raw',kp.publicKey)).toStr
 const options = Object.fromEntries(['compatibilityDate','compatibilityFlags','bindings','r2Buckets','d1Databases','durableObjects','serviceBindings'].filter(k=>workerOptions[k]!==undefined).map(k=>[k,workerOptions[k]]));
 writeFileSync(work + '/relay.mjs', 'export default {fetch(){return new Response("{}",{headers:{"content-type":"application/json"}})}}');
 const mf = new Miniflare(convertV4MiniflareOptions({host:'127.0.0.1',port:0,workers:[
-  {...options,name:'daggerfall-accounts',modulesRoot:work,modules:[{type:'ESModule',path:work+'/accounts.mjs'}],bindings:{...options.bindings,IDENTITY_PRIVATE_KEY:priv,IDENTITY_PUBLIC_KEY:pub,GATE_PUBLIC_KEY:pub}},
+  {...options,name:'daggerfall-accounts',modulesRoot:work,modules:[{type:'ESModule',path:work+'/accounts.mjs'}],bindings:{...options.bindings,MARKS_OPEN:'on',IDENTITY_PRIVATE_KEY:priv,IDENTITY_PUBLIC_KEY:pub,GATE_PUBLIC_KEY:pub}},
   {name:'daggerfall-online',modulesRoot:work,modules:[{type:'ESModule',path:work+'/relay.mjs'}]},
 ]}));
 try {
@@ -50,8 +51,28 @@ try {
   assert.equal((await req('/v1/farms/garden',hbody)).status,409);
   assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:grain'").first()).qty,2);
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
+  // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
+  const grown=await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first(),estate=JSON.parse(grown.garden);
+  estate.progress=emptyFarmProgress();estate.progress.harvested={grain:10000,mushroom:10000,herbs:10000};estate.progress.delivered={grain:0,mushroom:1000,herbs:1000};
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(estate)).run();
+  await db.prepare("UPDATE guilds SET treasury=100000,realm_gold=100000,moved_by='Farm test',moved_at=1,moved_kind='farm' WHERE id='farmtest'").run();
+  await db.prepare("INSERT INTO guild_marks (guild_id,balance) VALUES ('farmtest',500)").run();
+  await db.prepare("UPDATE guild_prof_stores SET qty=1000 WHERE guild_id='farmtest' AND material='food:grain'").run();
+  let current=harvest.data.version;
+  const delivery=await req('/v1/farms/garden',{...body,op:'deliver',crop:'grain',version:current});assert.equal(delivery.status,200,JSON.stringify(delivery));current=delivery.data.version;
+  const upgraded=await req('/v1/farms/garden',{...body,op:'upgrade',upgrade:'tools',version:current});assert.equal(upgraded.status,200,JSON.stringify(upgraded));current=upgraded.data.version;
+  assert.equal(upgraded.data.garden.progress.upgrades.tools,1);
+  assert.equal((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury,82000);
+  assert.equal((await db.prepare("SELECT balance FROM guild_marks WHERE guild_id='farmtest'").first()).balance,485);
+  assert.equal((await req('/v1/farms/garden',{...body,op:'upgrade',upgrade:'tools',version:current-1})).status,409);
+  await db.prepare("INSERT INTO guild_prof_stores(guild_id,material,dep_player,dep_char,qty,moved_by,moved_at) VALUES('farmtest','p1:19','','',1000,'Farm',1)").run();
+  const herbs=await req('/v1/farms/garden',{...body,op:'deliver',crop:'herbs',version:current});assert.equal(herbs.status,200,JSON.stringify(herbs));current=herbs.data.version;
+  assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE material='p1:19' AND guild_id='farmtest'").first()).qty,0);
+  assert.equal((await db.prepare("SELECT balance FROM guild_marks WHERE guild_id='farmtest'").first()).balance,495);
+  const funds=await req('/v1/farms/garden',{...body,version:current,details:true});assert.equal(funds.data.mayManage,true);assert.equal(funds.data.economy.gold,84000);assert.equal(funds.data.economy.argents,495);
   const visitor=await req('/v1/auth/guest',{terms:true,privacy:true},false);secret=visitor.data.secret;
-  const seen=await req('/v1/farms/garden',{mapId:42});assert.equal(seen.status,200);assert.equal(seen.data.version,version+1);
+  const seen=await req('/v1/farms/garden',{mapId:42});assert.equal(seen.status,200);assert.equal(seen.data.version,current);
+  assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
   console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, replay rejection and read-only visitors.');

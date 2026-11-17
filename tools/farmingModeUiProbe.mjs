@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 assert.ok(process.env.ARENA2_PATH, 'Set ARENA2_PATH to local Daggerfall game files.');
-const server = await createServer({ root, server: { host: '127.0.0.1', port: 0 } }); await server.listen();
+const server = await createServer({ root, server: { host: '127.0.0.1', port: 0, hmr:false, watch:null } }); await server.listen();
 let browser;
 try {
   browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : process.platform === 'win32' ? { channel: 'chrome' } : {});
@@ -17,7 +17,8 @@ try {
   const setup = async (observer = false) => {
     const { Renderer } = await import('/src/render/renderer.js');
     const { createFarmingMode } = await import('/src/scenes/farmingMode.js');
-    const { emptyGarden, stepFarmGarden } = await import('/src/net/farmGardenLaw.js');
+    const { emptyGarden, stepFarmGardenAction } = await import('/src/net/farmGardenLaw.js');
+    const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -43,11 +44,11 @@ try {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
         if (body.op && body.op !== 'read') {
-          const step = stepFarmGarden(p.garden, body, p.now);
+          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):stepFarmGardenAction(p.garden, body, p.now);
           if (step.error) return { ok: false, error: step.error };
           p.garden = step.garden; p.version++;
         }
-        return { ok: true, data: { garden: structuredClone(p.garden), version: p.version, nowS: p.now } };
+        return { ok: true, data: { garden: structuredClone(p.garden), version: p.version, nowS: p.now,mayManage:true,economy:{gold:1000000,argents:1000,earned:0} } };
       },
     };
     p.mode = createFarmingMode({ renderer, canvas, getTexture, uploadRecord, cam: p.cam, feet: () => p.feet, farms: () => book,
@@ -121,10 +122,26 @@ try {
   await page.getByRole('button', { name: 'Crop: Grain', exact: true }).click();
   await page.evaluate(() => window.probe.render());
   assert.ok(await page.getByRole('button', { name: 'Crop: Mushrooms', exact: true }).isVisible());
+  await page.evaluate(async()=>{const {emptyFarmProgress}=await import('/src/net/farmProgressLaw.js');const p=window.probe;p.garden.progress=emptyFarmProgress();p.garden.progress.harvested={grain:7000,mushroom:6000,herbs:6000};p.garden.progress.delivered={grain:0,mushroom:6000,herbs:6000};p.version++;});
+  await page.waitForTimeout(1100);await page.evaluate(()=>window.probe.render());
+  await page.getByRole('button',{name:'Progress & orders',exact:true}).click();await page.evaluate(()=>window.probe.render());
+  await page.waitForFunction(()=>document.querySelector('.farm-progress')?.textContent.includes('Harvested here: 7000'));
+  const deliver=page.getByRole('button',{name:'Deliver 1000 Grain · earn 2000 gold + 10 Argents',exact:true});
+  await deliver.click();await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),0,'First click must only ask for confirmation');
+  await page.getByRole('button',{name:'Confirm: Deliver 1000 Grain · earn 2000 gold + 10 Argents',exact:true}).click();await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),1000);
+  await page.getByRole('button',{name:'Farm improvements',exact:true}).click();await page.evaluate(()=>window.probe.render());
+  const buy=page.getByRole('button',{name:'Buy · 20000 gold + 25 Argents',exact:true});
+  await buy.click();await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.evaluate(()=>window.probe.garden.progress.upgrades.tools),0);
+  await page.getByRole('button',{name:'Confirm: Buy · 20000 gold + 25 Argents',exact:true}).click();await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.evaluate(()=>window.probe.garden.progress.upgrades.tools),1);
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
     assert.ok(await page.evaluate(() => [...document.querySelectorAll('.farming-hud footer button')].every(b=>{ const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth; })));
+    assert.ok(await page.evaluate(()=>{const r=document.querySelector('.farm-progress').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}));
   }
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.farming-hud').count(),0);
