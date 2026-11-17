@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-17
 
+- Company farm doors now offer Farming Mode: work 16 shared beds with a raised camera and your visible character, planting grain, mushrooms or herbs, watering them and harvesting into Company Stores. Watered crops grow in real time; unattended crops pause instead of dying.
+- Farming uses native Daggerfall soil and vegetation textures, follows the active UI skin and theme, and replaces the ordinary hotbar with farming tools until you exit.
+
 - Legendary Bartender now also unlocks the Heart's Fire aura (formerly Beaconlight), including for players who already own the title.
 
 ## 2026-11-16

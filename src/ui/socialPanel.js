@@ -1759,7 +1759,7 @@ export function createSocialPanel({ social, send = null, mail = null, guild = nu
     const mine = F.mine();
     if (!mine) return [el('div', 'dfsocial-empty', 'Reading the farms...')];
     const out = [el('div', 'dfsocial-sec', `Your farms, ${mine.farms.length} of ${mine.max}`)];
-    out.push(el('div', 'dfsocial-note', `Each farm puts its crop into the Company Stores at the end of every day. Every member who does the day's chore at the farmhouse door adds ${Math.round(CHORE_BONUS * 100)}% more crop that day. A farm your territory stops reaching is lost.`));
+    out.push(el('div', 'dfsocial-note', t('farm.mode.companyHelp', 'Each farm supplies Company Stores daily. Enter Farming Mode at its farmhouse door. Working three different beds earns your daily care bonus; harvested crops also go into Company Stores. A farm your territory stops reaching is lost.')));
     for (const f of mine.farms) {
       const crop = cropOf(f.crop);
       const lastGot = f.last?.got ? Object.values(f.last.got).reduce((a, n) => a + n, 0) : 0;
