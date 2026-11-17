@@ -257,3 +257,9 @@ export function requestModelIconUrl(id, { scale = 2, onReady = null, source = nu
 
 /** Test seam: forget every picture. */
 export function _resetModelIcons() { _pictures.clear(); _waiting.clear(); _urls.clear(); _source = null; }
+
+/** Load the same textured model as inventory icons for a larger composed UI scene. */
+export async function loadModelPicture(id, {size = 256, yaw = ICON_YAW, pitch = ICON_PITCH} = {}) {
+  const got = await (_source ??= arena2Source())(id);
+  return got ? bakeModelIcon(got.model, got.texels, {size, yaw, pitch}) : null;
+}

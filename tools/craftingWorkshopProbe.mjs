@@ -19,8 +19,14 @@ try{
  setProfessionsPages(p);const host=document.querySelector('#host');const render=()=>{host.replaceChildren();mod.drawCraftTab(host,{el,divider:w=>el('h3','',w),meter:()=>el('div'),render});};window.probe={mod,p,render,calls};render();
  });
  await page.waitForTimeout(400);
- const shot=async(name)=>{if(process.env.SHOTS_DIR){await mkdir(process.env.SHOTS_DIR,{recursive:true});await page.screenshot({path:join(process.env.SHOTS_DIR,name+'.png')});}};await shot('make');
+ const shot=async(name)=>{if(process.env.SHOTS_DIR){await mkdir(process.env.SHOTS_DIR,{recursive:true});await page.screenshot({path:join(process.env.SHOTS_DIR,name+'.png')});}};if(process.env.ARENA2_PATH)await page.locator('.wk-scene[data-assets="ready"]').waitFor();await shot('make');
  await page.getByRole('button',{name:'Begin work',exact:true}).click();
+ await page.waitForTimeout(100);
+ assert.ok(await page.locator('.cw-work').evaluate(e=>e.getBoundingClientRect().width>=280),'Timing dial is too small');
+ assert.ok(await page.locator('.cw-work-caption b').textContent(),'Part label missing');
+ assert.ok(await page.locator('.cw-work').evaluate(e=>e.getBoundingClientRect().height>=280),'Timing dial is too short');
+ assert.ok(await page.locator('.cw-act-row').evaluate(e=>e.getBoundingClientRect().bottom<=document.querySelector('.wk-work-controls').getBoundingClientRect().bottom+1),'Timing controls are clipped');
+ await shot('active-work');
  assert.equal(await page.evaluate(()=>window.probe.mod.craftWorkshopBusy()),true);
  assert.ok(await page.locator('[data-workshop-page="store"]').isDisabled());
  await page.evaluate(()=>window.probe.mod.setDownCraftWorkshop());

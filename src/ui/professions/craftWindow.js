@@ -159,6 +159,7 @@ const CSS = `
 .cw-act-stage.cw-work-loom { --wk: #8fb0e0; --wk2: #dbe8ff; }
 .cw-act-stage.cw-work-mason { --wk: #b8b09a; --wk2: #f0ece0; }
 .cw-act-stage.cw-work-jeweller { --wk: #c9a0f0; --wk2: #f4e8ff; }
+.cw-work-caption { display:none; }
 .cw-work { width: 240px; height: 240px; display: block; margin: 4px auto; overflow: visible; }
 .cw-work-track { fill: #15100b; stroke: #6b5228; stroke-width: 3; }
 .cw-work-ticks line { stroke: #6b5228; stroke-width: 0.8; }
