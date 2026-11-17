@@ -8731,6 +8731,11 @@ export function createWorldModes(host) {
           // LAMP-KEEPER II (systems/lampKeeper.js): a shop's keeper standing as the lamp today - the town, the building, the
           // person and the day, one answer for every client in the room
           bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
+          guildClerkArt: (pn) => {
+            const route = staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict ?? null, building });
+            if (building?.buildingType !== BUILDING_TYPES.GuildHall || route.kind !== 'guildService') return null;
+            return route.guildGroup === GUILD_GROUPS.FightersGuild ? 'fighters' : route.guildGroup === GUILD_GROUPS.MagesGuild ? 'mages' : null;
+          },
           lampPerson: (pn) => isLampKeeper(pn, {
             buildingType: building?.buildingType ?? -1, buildingFactionId: building?.factionId ?? 0, buildingKey: building?.buildingKey ?? 0,   // AUDIT FIVE-ASKS D4: the shop's own faction
             mapId: hit.dfLocation?.mapTableData?.mapId ?? 0, day: Math.floor(worldMinutes() / MINUTES_PER_DAY),
