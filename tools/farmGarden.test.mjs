@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { emptyGarden, stepFarmGarden, gardenGrowth, gardenStage, FARM_WATER_S } from '../src/net/farmGardenLaw.js';
+import { emptyGarden, stepFarmGarden, stepFarmGardenAction, gardenGrowth, gardenStage, FARM_WATER_S } from '../src/net/farmGardenLaw.js';
+import { emptyFarmProgress, stepFarmDelivery, stepFarmUpgrade } from '../src/net/farmProgressLaw.js';
 import { farmGarden } from '../server-account/src/farmGardens.js';
 import { createFarmDoor } from '../src/systems/farmDoor.js';
 import { farmGardenField, farmGardenSite } from '../src/world/farmGardenSite.js';
@@ -32,19 +33,25 @@ test('soil preparation, seeds, water and real-time growth form a harvest loop', 
 function fixture() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(`CREATE TABLE guild_members (player TEXT, char_id TEXT, guild_id TEXT, rank INTEGER, name TEXT, joined_at INTEGER);
+    CREATE TABLE players (id TEXT PRIMARY KEY);
+    CREATE TABLE guilds (id TEXT PRIMARY KEY, treasury INTEGER, realm_gold INTEGER, moved_by TEXT, moved_at INTEGER, moved_kind TEXT);
     CREATE TABLE company_farms (map_id INTEGER PRIMARY KEY, guild_id TEXT, name TEXT, climate INTEGER, region INTEGER);
     CREATE TABLE guild_prof_stores (guild_id TEXT, material TEXT, dep_player TEXT, dep_char TEXT, qty INTEGER, moved_by TEXT, moved_at INTEGER, PRIMARY KEY(guild_id, material, dep_player, dep_char));
     CREATE TABLE realm_tx_guard (moved INTEGER, expected INTEGER, CHECK (moved = expected));
     CREATE TABLE company_farm_chores (map_id INTEGER, day INTEGER, account TEXT, name TEXT, PRIMARY KEY(map_id, day, account));
     INSERT INTO guild_members VALUES ('tester', 'char1', 'guild1', 0, 'Tester', 1);
+    INSERT INTO guilds VALUES ('guild1',1000000,1000000,NULL,0,NULL);
     INSERT INTO company_farms VALUES (42, 'guild1', 'Test farm', 223, 17);`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0212_farm_gardens.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('../server-account/migrations/0025_marks.sql', import.meta.url), 'utf8'));
+  sql.exec("INSERT INTO guild_marks VALUES ('guild1',1000)");
   const prepare = (text, args = []) => ({ bind: (...a) => prepare(text, a),
     first: async () => sql.prepare(text).get(...args) ?? null,
+    all: async () => ({ results:sql.prepare(text).all(...args) }),
     run: async () => ({ meta: { changes: Number(sql.prepare(text).run(...args).changes) } }),
   });
   const db = { prepare, async batch(steps) { sql.exec('BEGIN'); try { const r=[]; for (const s of steps) r.push(await s.run()); sql.exec('COMMIT'); return r; } catch(e) { sql.exec('ROLLBACK'); throw e; } } };
-  return { sql, db, ctx: { db, nowS: 100 }, player: { id: 'tester', handle: 'Tester' } };
+  return { sql, db, ctx: { db, nowS: 100,env:{MARKS_OPEN:'on'} }, player: { id: 'tester', handle: 'Tester' } };
 }
 test('actual handler and SQLite keep shared revisions and credit a harvest exactly once', async () => {
   const f = fixture(); let version = 0;
@@ -111,6 +118,7 @@ test('visitors can read and poll revisions, but cannot change or harvest another
   const visitor={id:'visitor',handle:'Visitor'};
   const read=await farmGarden(f.ctx,visitor,{mapId:42});
   assert.ok(read.ok);assert.deepEqual(read.garden.beds,{});
+  assert.equal((await farmGarden(f.ctx,visitor,{mapId:42,details:true})).economy,undefined,'Visitor reads cannot expose private Company balances');
   const cached=await farmGarden(f.ctx,visitor,{mapId:42,version:read.version});
   assert.equal(cached.unchanged,true);assert.equal(cached.garden,undefined);
   assert.equal((await farmGarden(f.ctx,visitor,{mapId:42,character:'visitorchar',op:'hoe',bed:100,version:0})).error,'no-guild');
@@ -143,4 +151,98 @@ test('thousands of worked beds share crop batches instead of a draw call per bed
   art.update(site,garden,100,-1);assert.equal(batches,1);
   art.update(site,garden,100,3);assert.equal(batches,1,'Hover must not rebuild all crops');
   art.dispose();
+});
+
+const estate = (quantity=0) => {
+  const garden=emptyGarden();garden.progress=emptyFarmProgress();
+  for(const crop of ['grain','mushroom','herbs'])garden.progress.harvested[crop]=quantity;
+  return garden;
+};
+test('estate milestones require every crop; improved tools, soil and irrigation change actual work',()=>{
+  let garden=estate(10000);
+  assert.equal(stepFarmUpgrade(garden,'tools').error,'farm-upgrade-goal');
+  garden.progress.delivered={grain:1000,mushroom:1000,herbs:999};
+  assert.equal(stepFarmUpgrade(garden,'tools').error,'farm-upgrade-goal');
+  garden.progress.delivered.herbs=1000;
+  garden=stepFarmUpgrade(garden,'tools').garden;
+  assert.equal(garden.progress.upgrades.tools,1);
+  assert.equal(stepFarmUpgrade(garden,'tools').error,'farm-upgrade-goal');
+  assert.ok(stepFarmGardenAction(garden,{op:'hoe',beds:[0,1,2]},100).garden);
+  assert.equal(stepFarmGardenAction(garden,{op:'hoe',beds:[0,1,2,3]},100).error,'farm-bed-bad');
+  assert.equal(stepFarmGardenAction(garden,{op:'hoe',beds:[0,0]},100).error,'farm-bed-bad');
+  garden.progress.upgrades={tools:2,irrigation:2,soil:2};
+  garden=stepFarmGarden(garden,{op:'hoe',bed:0},100).garden;
+  garden=stepFarmGarden(garden,{op:'plant',bed:0,crop:'grain'},100).garden;
+  assert.equal(garden.beds[0].wetUntil,100+FARM_WATER_S);
+  assert.equal(garden.beds[0].rate,1.25);
+  const harvest=stepFarmGarden(garden,{op:'harvest',bed:0},100+6*3600/1.25);
+  assert.equal(harvest.harvest.qty,4);
+  assert.equal(harvest.garden.beds[0].crop,'grain');
+  assert.equal(harvest.garden.beds[0].grown,0);
+  assert.ok(harvest.garden.beds[0].wetUntil>100+6*3600/1.25);
+  assert.equal(stepFarmGarden(harvest.garden,{op:'harvest',bed:0},100+6*3600/1.25).error,'farm-bed-action');
+});
+
+test('bulk orders consume stock and credit both treasuries once, even on a race or retry',async()=>{
+  const f=fixture(),garden=estate(1000);
+  f.sql.prepare('INSERT INTO company_farm_gardens VALUES (42,0,?)').run(JSON.stringify(garden));
+  f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',1000,'Farm',100)");
+  const body={character:'char1',mapId:42,op:'deliver',crop:'grain',version:0};
+  const results=await Promise.all([farmGarden(f.ctx,f.player,body),farmGarden(f.ctx,f.player,body)]);
+  assert.equal(results.filter(r=>r.ok).length,1);
+  assert.equal(f.sql.prepare('SELECT qty FROM guild_prof_stores').get().qty,0);
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1002000);
+  assert.equal(f.sql.prepare('SELECT balance FROM guild_marks').get().balance,1010);
+  assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM marks_ledger WHERE kind='farm-order'").get().n,1);
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-bed-version');
+  assert.equal((await farmGarden(f.ctx,f.player,{...body,version:1})).error,'farm-order-week');
+  const saved=JSON.parse(f.sql.prepare('SELECT garden FROM company_farm_gardens').get().garden);
+  assert.equal(saved.progress.delivered.grain,1000);
+  assert.equal(stepFarmDelivery(saved,'grain',f.ctx.nowS+7*86400).error,'farm-order-grown');
+  f.sql.close();
+});
+
+test('bought stock cannot replace farm-grown milestones; officers and the Argent switch are enforced',async()=>{
+  const f=fixture();f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',10000,'Bought',100)");
+  let body={character:'char1',mapId:42,op:'deliver',crop:'grain',version:0};
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-order-grown');
+  assert.equal(f.sql.prepare('SELECT qty FROM guild_prof_stores').get().qty,10000);
+  f.sql.exec("UPDATE guild_members SET rank=2; INSERT INTO guild_members VALUES ('captain','captainchar','guild1',0,'Captain',1)");
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-rank');
+  f.sql.exec('UPDATE guild_members SET rank=0');f.ctx.env.MARKS_OPEN='off';
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'marks-closed');
+  assert.equal(f.sql.prepare('SELECT version FROM company_farm_gardens').get().version,0);
+  f.sql.close();
+});
+
+test('upgrade costs and progress claim roll back together if currency is short',async()=>{
+  const f=fixture(),garden=estate(6000);garden.progress.delivered={grain:6000,mushroom:6000,herbs:6000};
+  f.sql.prepare('INSERT INTO company_farm_gardens VALUES (42,0,?)').run(JSON.stringify(garden));
+  const body={character:'char1',mapId:42,op:'upgrade',upgrade:'tools',version:0};
+  f.sql.exec('UPDATE guild_marks SET balance=24');
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-upgrade-funds');
+  assert.equal(f.sql.prepare('SELECT version FROM company_farm_gardens').get().version,0);
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1000000);
+  f.sql.exec('UPDATE guild_marks SET balance=1000');
+  assert.ok((await farmGarden(f.ctx,f.player,body)).ok);
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,980000);
+  assert.equal(f.sql.prepare('SELECT balance FROM guild_marks').get().balance,975);
+  assert.equal((await farmGarden(f.ctx,f.player,body)).error,'farm-bed-version');
+  assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM marks_ledger WHERE kind='farm-upgrade'").get().n,1);
+  f.sql.close();
+});
+
+test('two farms share one weekly Argent cap, guarded inside the payout transaction',async()=>{
+  const f=fixture(),garden=estate(26000);garden.progress.orders={grain:2,mushroom:2,herbs:2};
+  f.sql.exec("INSERT INTO company_farms VALUES (43,'guild1','Second farm',223,17)");
+  for(const id of [42,43])f.sql.prepare('INSERT INTO company_farm_gardens VALUES (?,0,?)').run(id,JSON.stringify(garden));
+  f.sql.exec("INSERT INTO guild_prof_stores VALUES ('guild1','food:grain','','',20000,'Farm',100);INSERT INTO guild_prof_stores VALUES ('guild1','food:mushroom','','',20000,'Farm',100)");
+  f.sql.exec("INSERT INTO marks_ledger(src_kind,dst_kind,dst_id,kind,amount,day,at,actor,rid) VALUES('mint','guild','guild1','farm-order',400,0,100,'guild1','earlier')");
+  const results=await Promise.all([farmGarden(f.ctx,f.player,{character:'char1',mapId:42,op:'deliver',crop:'grain',version:0}),farmGarden(f.ctx,f.player,{character:'char1',mapId:43,op:'deliver',crop:'mushroom',version:0})]);
+  assert.equal(results.filter(r=>r.ok).length,1);
+  assert.equal(f.sql.prepare("SELECT SUM(amount) AS total FROM marks_ledger WHERE kind='farm-order'").get().total,600);
+  assert.equal(f.sql.prepare('SELECT SUM(qty) AS total FROM guild_prof_stores').get().total,20000,'Losing order keeps all its crops');
+  assert.equal(f.sql.prepare('SELECT SUM(version) AS total FROM company_farm_gardens').get().total,1);
+  assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1060000,'A rejected Argent payout cannot leave a gold payout behind');
+  f.sql.close();
 });

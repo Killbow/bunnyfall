@@ -272,7 +272,7 @@ export function armsWhy(h) {
 /** AUDIT SILVER-WAYS A3: the day's guild deeds, as the Guild tab says them (marksLaw.js MARKS_FAUCETS.deed). */
 export const guildDeedsText = (n, max) => `Company deeds today: ${Math.max(0, Number(n) || 0)} of ${max}. When ${MARKS_FAUCETS.deed.members} members who joined at least ${Math.round(MARKS_FAUCETS.deed.tenureS / 86_400)} days ago defend the same town or close the same gate, the treasury earns ${marksText(MARKS_FAUCETS.deed.amount)}.`;
 /** GUILD1d: a treasury ledger line's verb - a deposit and a withdrawal, and the hall's own moves (0043's `moved_kind`). */
-export const GUILD_LEDGER_WORDS = Object.freeze({ garrison: 'recruited soldiers for', farm: 'bought a farm for', deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
+export const GUILD_LEDGER_WORDS = Object.freeze({ garrison: 'recruited soldiers for', farm: 'bought a farm for', 'farm-upgrade':t('farm.progress.goldUpgrade','improved a farm for'), 'farm-order':t('farm.progress.goldOrder','filled a bulk crop order for'), deposit: 'put in', withdraw: 'took out', hall: 'bought the hall for', 'hall-sale': 'sold the hall for', 'hall-piece': 'took down a hall piece, returned to the treasury:', rename: 'renamed the company for', grant: 'awarded the company' });   // AUDIT2 GUILD2: a rename's line read "put in" - a payment out said as one in; GUILD-GRANT: the operator's award (tools/grantGuildGold.mjs)
 /** AUDIT GUILD1d R5: a Drakes ledger line's verb - a heraldry changed is the treasury paying, never a deposit. */
 export const GUILD_MARKS_LEDGER_WORDS = Object.freeze({
   deposit: 'put in', withdraw: 'took out', heraldry: 'changed the company\'s arms for',   // AUDIT GUILD3 W6: the page is "Arms"
@@ -285,6 +285,7 @@ export const GUILD_MARKS_LEDGER_WORDS = Object.freeze({
  *  direction. Before it, every line the service had no word for said "put in" - a Tribute, an upkeep, a claim fee, a writ's
  *  escrow, a patron's bid: silver LEAVING the treasury read as silver coming into it. */
 export const GUILD_SILVER_LINE_WORDS = Object.freeze({
+  'farm-upgrade':t('farm.progress.argentUpgrade','paid for a farm improvement:'), 'farm-order':t('farm.progress.argentOrder','earned from a bulk crop order:'),
   'guild-deposit': 'put in', 'guild-withdraw': 'took out',
   heraldry: 'changed the company\'s arms for', 'guild-deed': 'completed a company deed:',   // AUDIT GUILD3 W6: the page is "Arms"
   'contract-escrow': 'put up a contract of', 'contract-return': 'had a contract\'s unpaid pay come home:',
@@ -304,7 +305,7 @@ export const GUILD_SILVER_LINE_WORDS = Object.freeze({
  *  npcChapters.js a patron's bid). Every other kind's `who` is the service's own label - 'A Sellsword', 'The Turning', 'The
  *  registry', a writ's material, an auction's id, a work's name - and GUILD3b made it the sentence's subject ("A Sellsword
  *  hired a Sellsword for 1,500 silver"): those lines are the guild's own. */
-export const GUILD_SILVER_MEMBER_KINDS = Object.freeze(['guild-deposit', 'guild-withdraw', 'heraldry', 'guild-deed', 'contract-escrow', 'tribute', 'patron-escrow']);
+export const GUILD_SILVER_MEMBER_KINDS = Object.freeze(['guild-deposit', 'guild-withdraw', 'heraldry', 'guild-deed', 'contract-escrow', 'tribute', 'patron-escrow', 'farm-upgrade', 'farm-order']);
 /** GUILD3b: a silver line in words - by its own kind and direction where the service sent them (`raw`, `out`); a kind with
  *  no words here said by its direction alone ("paid", "received"), never "put in" for silver that left; the member its
  *  subject where a member acted, the guild where the service did (AUDIT GUILD3 W2); an older service's line (no `raw`) by

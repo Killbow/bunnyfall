@@ -43,7 +43,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
       writeDecalQuad(values,slot*DECAL_FLOATS,{pos:[pos[0],pos[1]+.035,pos[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint:bed.wetUntil>now?[.57,.55,.5,1]:[1,1,1,1],wet:0});
       if(!bed.crop)return;
       const [archive,record]=FARM_ART[bed.crop][stage];
-      const height=bed.crop==='mushroom'?(stage==='seedling'?.14:stage==='ripe'?.38:.25):stage==='seedling'?.3:stage==='ripe'?1.2:.7;
+      const height=(bed.crop==='mushroom'?(stage==='seedling'?.14:stage==='ripe'?.38:.25):stage==='seedling'?.3:stage==='ripe'?1.2:.7)*(1+(bed.quality??0)*.1);
       const key=`${archive}_${record}_${height}`;
       if(!groups.has(key))groups.set(key,{archive,record,height,centers:[]});
       const group=groups.get(key);

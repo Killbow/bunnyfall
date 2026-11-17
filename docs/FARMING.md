@@ -1,4 +1,4 @@
-# Farming Mode — first playable version
+# Farming Mode
 
 At a farm owned by your Company, use the farmhouse door and choose **Enter Farming Mode**. A regular door click also enters the mode when no action list is shown. Completing the old daily chore does not lock you out.
 
@@ -23,9 +23,40 @@ Any authenticated visitor can see the shared soil and crops without Company memb
 
 Working three distinct beds in a UTC day earns the existing daily care bonus. Repeating actions on one bed does not count as three beds. Passive Company farm production remains in place during this first version.
 
+## Estate progression and bulk crop orders
+
+Open **Progress & orders** from the farming belt. Improvements belong to the farm and benefit all Company members. Only a captain or officer may spend Company funds or ship communal crops, with an explicit second-click confirmation. The sidebar follows the active UI skin and shows officers their current Company balances.
+
+Each crop has its own order ladder. Grain, mushrooms and herbs all need to be grown and harvested at this farm. An order consumes that many crops from communal Company Stores and credits the Company's gold and Argent treasuries together:
+
+| Order per crop | Crops shipped | Gold reward | Argent reward |
+| --- | ---: | ---: | ---: |
+| First | 1,000 | 2,000 | 10 |
+| Second | 5,000 | 12,000 | 50 |
+| Third and later | 20,000 | 60,000 | 200 |
+
+Each farm may fill one order of each crop per week, resetting Monday at 00:00 UTC. All farms in a Company share a 600-Argent weekly farm reward cap. An order that would exceed it is refused without consuming crops. Existing Argent availability settings and treasury caps still apply.
+
+Harvested-minus-delivered counters limit shipments to real manual harvests recorded by the service at this farm; bought goods and passive production alone do not create eligibility. Eligible units must also still be present in communal Company Stores. Herb orders accept the farm's mix of herb materials. Harvest history begins with this feature; old stock cannot be credited retroactively without a harvest record.
+
+| Improvement | Gold cost | Argent cost | Required deliveries of **each** crop | Effect |
+| --- | ---: | ---: | ---: | --- |
+| Tempered tools | 20,000 | 25 | 1,000 | Up to 3 nearby beds per click |
+| Masterwork tools | 100,000 | 150 | 6,000 | Up to 5 nearby beds per click |
+| Irrigation channels | 40,000 | 50 | 1,000 | New seeds receive water automatically |
+| Living irrigation | 200,000 | 300 | 26,000 | Harvest replants and waters the same crop |
+| Compost beds | 30,000 | 40 | 1,000 | Newly planted crops yield 1 extra item |
+| Rich loam | 150,000 | 200 | 6,000 | Newly planted crops yield 2 extra items and grow 25% faster |
+
+Each branch must be bought in order. Crops keep the soil quality and growth rate they had when planted; buying an upgrade does not instantly mature an old crop. Living irrigation does not harvest automatically. Larger tools keep the same range and obstruction checks, and only valid bed actions commit. Delivery, currency movement, upgrade purchases and the garden revision claim commit in one transaction, so retries and races cannot pay twice or consume stock without a reward.
+
+Progress and upgrade levels are stored in the existing garden JSON. Old saves default to no upgrades and remain compatible; no additional migration is required.
+
+Improvements belong to this farm. Releasing or losing the farm clears its garden and progression, with no upgrade refund.
+
 ## Current scope
 
-This version supplies starter tools and seeds without inventory costs. It requires a supported crop-field prefab and a ready third-person body. Tools currently change the soil and crops directly; bespoke hoe, watering-can and harvesting character animations, weather/season effects, animal husbandry, tool upgrades, paid seed supplies and farm customization remain future work.
+This version supplies starter tools and seeds without inventory costs. It requires a supported crop-field prefab and a ready third-person body. Tools currently change the soil and crops directly; bespoke hoe, watering-can and harvesting character animations, weather/season effects, animal husbandry, paid seed supplies and farm customization remain future work.
 
 Apply migration `0212_farm_gardens.sql` through the normal self-host startup/update before using the new account-service route. No production deployment is performed by adding this code.
 
