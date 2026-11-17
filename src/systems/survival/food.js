@@ -154,6 +154,15 @@ export function rotFoodDay(collections, rotDay = 0, rolls = Math.random) {
     if (item.slowRot === true) { if (kept % 2 === 1) continue; if (rotRoll(item, Math.floor(kept / 2), rolls)) n++; continue; }
     if (rotRoll(item, kept, rolls)) n++;
   }
+  for (const list of collections) removePutridFood(list);
+  return n;
+}
+
+/** Remove inedible food, including stacks that were already putrid in an old save. */
+export function removePutridFood(list) {
+  if (!Array.isArray(list)) return 0;
+  let n = 0;
+  for (let i = list.length - 1; i >= 0; i--) if (isFood(list[i]) && foodStage(list[i]) >= FOOD_STAGE.Putrid) { n += list[i].stackCount ?? 1; list.splice(i, 1); }
   return n;
 }
 

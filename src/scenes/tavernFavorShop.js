@@ -6,7 +6,7 @@ import { t } from '../systems/textManager.js';
 
 /** @param {any} deps */
 export function createTavernFavorShop(deps) {
-  let busy = false, pending = null;
+  let busy = false, pending = null, page = 0;
   const applied = new Set();
   const apply = (reply, txn) => {
     if (!reply?.ok || applied.has(txn)) return;
@@ -41,9 +41,10 @@ export function createTavernFavorShop(deps) {
       t('tavern.favor.heartsFire', "Legendary Bartender includes the Heart's Fire aura."),
       t('tavern.favor.rules', 'Earn 1 Favor Token per full song minute or completed shift. Songs and finished shifts raise city and regional reputation. Serve clean orders before patience runs out for streak tips (+5 base gold per step, up to +30, increased by guild rank).'),
       ...Object.entries(progress.cities).filter(([city]) => city === deps.city?.()).map(([, rep]) => t('tavern.favor.city', 'City goodwill: {n}/100', { n: rep }))],
-    options: [...(pending ? [{ code: 'KeyR', label: t('tavern.favor.retryBuy', 'Retry pending purchase'), action: () => { const offer = FAVOR_OFFERS.find((x) => x.id === pending?.offer); if (offer) void buy(offer); } }] : FAVOR_OFFERS.map((offer, i) => ({
+    options: [...(pending ? [{ code: 'KeyR', label: t('tavern.favor.retryBuy', 'Retry pending purchase'), action: () => { const offer = FAVOR_OFFERS.find((x) => x.id === pending?.offer); if (offer) void buy(offer); } }] : FAVOR_OFFERS.slice(page * 3, page * 3 + 3).map((offer, i) => ({
       code: `Digit${i + 1}`, label: `${t('tavern.favor.offer.' + offer.id, offer.name)}${offer.id === 'legendarybartender' ? t('tavern.favor.auraBundle', " + aura") : ''} — ${offer.price} Favor Tokens`, action: () => { void buy(offer); },
-    }))), { code: 'Escape', label: t('tavern.favor.close', 'Close shop'), action: () => {} }] });
+    }))), ...(!pending && page > 0 ? [{ code: 'ArrowLeft', label: t('tavern.favor.previous', 'Previous rewards'), action: () => { page--; open(); } }] : []),
+      ...(!pending && (page + 1) * 3 < FAVOR_OFFERS.length ? [{ code: 'ArrowRight', label: t('tavern.favor.next', 'More rewards'), action: () => { page++; open(); } }] : []), { code: 'Escape', label: t('tavern.favor.close', 'Close shop'), action: () => {} }] });
   }
   return { open };
 }

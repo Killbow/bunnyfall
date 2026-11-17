@@ -9076,3 +9076,9 @@ tavern.room.backfire,"The room is too tense for that much excitement. Your attem
 coll.how.heartsfire,"Included with Legendary Bartender, bought from the Bards’ Guild for 500 Favor Tokens."
 tavern.favor.auraBundle," + aura"
 tavern.favor.heartsFire,"Legendary Bartender includes the Heart's Fire aura."
+
+tavern.favor.offer.shards,"5 Welkynd Shards"
+tavern.favor.offer.stamina,"3 Stamina Potions"
+tavern.favor.offer.magicka,"3 Restore Power Potions"
+tavern.favor.previous,"Previous rewards"
+tavern.favor.next,"More rewards"

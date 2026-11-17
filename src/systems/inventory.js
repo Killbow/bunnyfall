@@ -29,6 +29,7 @@ import { isRriStackable } from './roleplayRealismItems/rriRealism.js';   // RRI2
 import { noteShot } from './shotTally.js';   // ARENA-ARROWS: the shots a bout loosed - a leaf, so no cycle
 import { cardWorth } from '../net/card/cardWorthLaw.js';   // AUDIT CARDS-6 A6: a card split off is worth its card (the law imports nothing of systems/)
 import { PATRON_COUNTER_MARK, COUNTER_PAID_MARK, COUNTER_VALUE_MARK } from '../net/patronLaw.js';   // AUDIT LW-II-2 S1: a stack keeps the counter's mark (the law imports nothing)
+import { isFood, foodStage } from './survival/food.js';
 import { isStolen, markStolen } from './stolenGoods.js';   // STOLEN-GOODS: a stolen piece stacks with stolen kin alone, and a split keeps the mark (a leaf)
 import { sameFoundMark, carryFoundMark } from './item/foundMark.js';   // AUDIT MEND-THIRD: a found stack keeps its mark
 
@@ -220,6 +221,7 @@ export function isStackable(item) {
  *  different potions are the same glass bottle. */
 export function stacksWith(a, b) {
   return isStackable(a) && isStackable(b) &&
+    (!isFood(a) || (foodStage(a) === foodStage(b) && (a.rotDay ?? null) === (b.rotDay ?? null) && (a.noRot === true) === (b.noRot === true) && (a.slowRot === true) === (b.slowRot === true))) &&
     a.group === b.group && a.templateIndex === b.templateIndex &&
     // ROAD-Ar R5 (fallout): an ABSENT material is material 0, which is
     // how the whole rest of the port reads the field (paperDoll :126,
