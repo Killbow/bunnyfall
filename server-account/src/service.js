@@ -398,7 +398,7 @@ export const ROUTES = new Set([
   '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore', '/v1/farms/garden',   // BUNNYFALL COMPANIES: farms (farms.js)
   '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
-  '/v1/tavern/service',
+  '/v1/tavern/favor', '/v1/tavern/service',
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id
   '/v1/account/icon',   // WITCH1: a profile icon worn, or none
