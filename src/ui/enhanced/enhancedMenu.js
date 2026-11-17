@@ -4806,7 +4806,7 @@ const pauseLabel = (id, label) => PAUSE_TEXT[id]?.() ?? label;
 // counted set (DaggerfallQuestJournalWindow.cs:658-662 via its :322).
 
 function pauseWindow() {
-  const win = el('div', 'px-win');
+  const win = el('div', 'px-win px-win-pause-wide');
   for (const c of ['tl', 'tr', 'bl', 'br']) win.append(el('span', `px-gem px-corner px-${c}`));
 
   const tabs = el('div', 'px-tabs');
