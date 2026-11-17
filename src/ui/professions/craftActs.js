@@ -227,7 +227,10 @@ function drawWork(doc, stage, act, theme = 'anvil') {
   const sub = mk('text', { y: '9', class: 'cw-work-sub' });
   const sparks = mk('g', { class: 'cw-work-sparks' });
   svg.append(track, ticks, pips, arc, truth, hub, label, sub, needle, sparks);
-  stage.append(svg);
+  const caption = doc.createElement('div'); caption.className = 'cw-work-caption';
+  caption.setAttribute('aria-live', 'polite');
+  const partName = doc.createElement('b'), partDetail = doc.createElement('span'); caption.append(partName, partDetail);
+  stage.append(svg, caption);
   let seen = 0, shownPart = -1;
   const burst = (/** @type {string} */ kind) => {
     const [x, y] = onDial(act.state.angle, 46);
@@ -257,6 +260,7 @@ function drawWork(doc, stage, act, theme = 'anvil') {
       const p = parts[Math.min(st.part, parts.length - 1)];
       label.textContent = st.part >= parts.length ? 'Done' : p.label;
       sub.textContent = st.part >= parts.length ? '' : `${p.material ? `${p.material} · ` : ''}part ${st.part + 1} of ${parts.length}`;
+      partName.textContent = label.textContent; partDetail.textContent = sub.textContent;
       pipEls.forEach((e, i) => { e.classList.toggle('cw-done', i < st.part); e.classList.toggle('cw-now', i === st.part); });
     }
     if (st.last && st.last.n !== seen) {
