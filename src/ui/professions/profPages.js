@@ -126,6 +126,7 @@ import { pricedStation, recipeValue } from '../../systems/craftFees.js';   // BU
  * @property {() => number} [heatBand]   PROF3: the heat's attribute band (recipeLaw heatBand)
  * @property {() => ({ kind: 'shop'|'home', fee: number, who?: string, yard?: boolean }|null)} [workbench]   PROF4: the workbench the player stands at; CARP-YARD: a joinery's names its carpenter (`who`) and is a yard's (`yard`)
  * @property {() => number} [planeBand]   PROF4: the plane's attribute band (recipeLaw planeBand)
+ * @property {() => any} [reforgeKit]   All existing item-work actions at an enchanting station.
  * @property {() => number} [purse]   AUDIT 30 U13: the gold the player carries - a station's fee the purse cannot meet is
  *   not offered (the heat was struck, and then the smith refused)
  * @property {() => ({ kind: 'shop'|'home', fee: number }|null)} [loom]   PROF7: the loom the player stands at
@@ -236,6 +237,7 @@ export const stationActLabel = (/** @type {string} */ kind) => (kind === 'alchem
   : kind === 'enchant' ? t('prof.page.stationAct.disenchant', '2: Disenchant (Crafting page)') : '');
 /** STATION-DOOR: the station whose section the next draw of this page scrolls to - set by a station's press, read once. */
 let _storesFocus = /** @type {string|null} */ (null);
+export function takeCraftStationFocus() { const focus = _storesFocus; _storesFocus = null; return focus; }
 export function focusStoresStation(kind) { _storesFocus = typeof kind === 'string' ? kind : null; }
 /** STATION-DOOR: a station's head on this page, named so a press can land on it - the page scrolled to it once, after the
  *  draw has put it in the window (the settings rail's own landing, enhancedMenu.js optScrollTo). */
@@ -1077,7 +1079,7 @@ const looseGoodsLine = (/** @type {string} */ m) => (withdrawable(m) ? t('prof.p
 /**
  * THE STORES PAGE.
  * @param {HTMLElement} detail @param {() => void} rerender
- * @param {{ el: Function, divider: (w: string) => HTMLElement }} kit
+ * @param {{ el: Function, divider: (w: string) => HTMLElement, go?: (page: string) => void }} kit
  */
 export function drawStoresPage(detail, rerender, kit) {
   const p = _provider;
@@ -2454,7 +2456,7 @@ export function disenchantableOf(items, { kept = () => false, book = null } = {}
  * pressed twice (the piece is gone). Only at an enchanting station: a Mages Guild hall, its fee a piece, or a home's.
  * @param {HTMLElement} detail @param {() => void} rerender @param {{ el: Function, divider: (w: string) => HTMLElement }} kit
  */
-function drawEnchantingStation(detail, rerender, kit) {
+function drawEnchantingStation(detail, rerender, kit, includeReforge = true) {
   const { el, divider } = kit;
   const p = _provider;
   if (!p?.enchanter || !p.disenchant || !p.disenchantable) return;
@@ -2525,7 +2527,7 @@ function drawEnchantingStation(detail, rerender, kit) {
     detail.append(row);
   }
   if (_enchant.word) detail.append(el('p', 'prof-word', _enchant.word));
-  drawEssenceReforge(detail, rerender, { el, divider }, rank, short);   // CRAFT4
+  if (includeReforge) drawEssenceReforge(detail, rerender, { el, divider }, rank, short);   // CRAFT4
 }
 
 // ─── CRAFT4: THE TEMPER AND THE REFORGE WITH ESSENCE (bible/06-Systems/Professions-Arc.md 41.7) ─────
@@ -2642,3 +2644,18 @@ function drawEssenceReforge(detail, rerender, { el, divider }, rank, short) {
   }
   if (_essReforge.word) detail.append(el('p', 'prof-word', _essReforge.word));
 }
+
+/** Existing station actions, embedded without a second station picker. */
+export function drawWorkshopStation(detail, rerender, kit, station, operation) {
+  const p = _provider;
+  if (station === 'enchant' && operation === 'reforge') {
+    const at = p?.enchanter?.();
+    if (!at) { detail.append(kit.el('p', 'px-note', enchantAwayLine())); return; }
+    drawEssenceReforge(detail, rerender, kit, p.book.track('enchanting')?.rank ?? 0, purseShort(at, 'enchanter'));
+  } else if (station === 'enchant') drawEnchantingStation(detail, rerender, kit, false);
+  else if (station === 'fire') drawCookFire(detail, rerender, kit);
+  else if (station === 'alchemy') drawAlchemyStation(detail, rerender, kit);
+  else if (station === 'mason') drawMasonBench(detail, rerender, kit);
+  else if (station === 'anvil') drawForge(detail, rerender, kit);
+}
+export const workshopStationBusy = () => !!(_enchant.busy || _essReforge.busy || _temper.busy || _alchemy.busy || _workingOn || profActUnderWay());

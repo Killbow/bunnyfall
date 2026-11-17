@@ -11764,6 +11764,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // salvage's batch (ui/salvageMaterials.js), the save checkpointed first
       setSalvageRealmAct(realmSession ? (o) => realmGoldAct({ ...o, session: realmSession, checkpoint: () => onlineCheckpoint() }) : null);
       setProfessionsPages({
+        reforgeKit: () => modes?.enchantHere?.() ? modes.workshopReforgeDeps() : null,
         ...createCraftHost({ player: () => playerEntity, forge: () => modes?.forgeHere?.() ?? null, book: () => profBook, saved: () => saveSoon.changed(), nameOf: (it) => itemLongName(it), worn: (it) => isEquipped(it), gold: () => totalGoldAmount(playerEntity), pay: (n) => deductGold(playerEntity, n) }),   // BUNNYFALL: the crafting window's pack-side acts
         book: profBook, name: (k) => materialLabel(k), provision: (body) => profBook.provMake({ ...body, seat: alchemyHall().seat }, profMintCraft), wearer: () => ({ gender: playerEntity.gender ?? 'male', race: artRaceOf(playerEntity) }), withdraw: (k, n) => profBook.withdraw(k, n, profMint),
         picture: (k, wake) => materialPicture(k, { onReady: wake }),   // MENU-ORDER: a material card's picture
