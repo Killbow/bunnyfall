@@ -8,16 +8,18 @@ import { cropMaterial } from '../../src/net/farmLaw.js';
 export async function farmGarden({ db, nowS }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;
   if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest'].includes(op)) return { error: 'farm-bed-bad' };
-  const actor = await guildActorOf(db, player, character);
-  if ('error' in actor) return actor;
-  const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ? AND guild_id = ?').bind(mapId, actor.me.guild_id).first();
+  // Any authenticated visitor may see a garden. Only Company members may change it.
+  const actor = op === 'read' ? null : await guildActorOf(db, player, character);
+  if (actor && 'error' in actor) return actor;
+  const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ?').bind(mapId).first();
   if (!farm) return { error: 'farm-not-ours' };
+  if (op !== 'read' && farm.guild_id !== actor.me.guild_id) return { error: 'farm-not-ours' };
   await db.prepare('INSERT OR IGNORE INTO company_farm_gardens (map_id, version, garden) VALUES (?, 0, ?)').bind(mapId, JSON.stringify(emptyGarden())).run();
   const row = await db.prepare('SELECT version, garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
   let garden;
   try { garden = JSON.parse(row.garden); } catch { return { error: 'farm-bed-bad' }; }
   if (!validGarden(garden)) return { error: 'farm-bed-bad' };
-  if (op === 'read') return { ok: true, garden, version: Number(row.version), nowS };
+  if (op === 'read') return { ok: true, ...(version === Number(row.version) ? { unchanged: true } : { garden }), version: Number(row.version), nowS };
   if (!Number.isSafeInteger(version) || version !== Number(row.version)) return { error: 'farm-bed-version' };
   const step = stepFarmGarden(garden, body, nowS);
   if ('error' in step) return step;

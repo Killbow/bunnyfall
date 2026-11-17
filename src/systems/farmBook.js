@@ -17,8 +17,8 @@ export const FARM_OFFERS_MAX = 8;
  * @param {{
  *   io: () => any,
  *   character: () => (string | null),
- *   territory: () => any,                                   the territory book (systems/companyTerritory.js)
- *   places: () => { mapId: number, px: number, py: number, name: string, region: number }[],   the map's farms
+ *   territory: () => any,
+ *   places: () => { mapId: number, px: number, py: number, name: string, region: number }[],
  *   climateAt: (px: number, py: number) => number,
  *   here: () => ({ x: number, y: number } | null),
  *   nowMs?: () => number,
@@ -126,6 +126,7 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
       return f && atFarm(mapId) ? f : null;
     },
     hereKey: () => { const me = here?.(); return me ? `${me.x},${me.y}` : ''; },
+    visibleHere: () => { const me = here?.(); return places().find((p) => p.px === me?.x && p.py === me?.y) ?? null; },
     placeOf: place,
     buy: (p, crop) => {
       const T = territory?.();
@@ -136,7 +137,7 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     chore: (mapId) => act(farmChore, { mapId }),
     garden: (mapId, action = {}) => {
       const door = io?.(), ch = character?.();
-      return door && ch ? farmGardenAct(door, { ...action, mapId, character: ch }) : Promise.resolve({ ok: false, error: 'offline' });
+      return door && (ch || !action.op || action.op === 'read') ? farmGardenAct(door, { ...action, mapId, character: ch }) : Promise.resolve({ ok: false, error: 'offline' });
     },
     sig: () => `${version}|${whose}`,
   };

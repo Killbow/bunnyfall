@@ -39,7 +39,7 @@ try {
   await db.prepare("INSERT INTO guild_members (player,char_id,guild_id,rank,name,joined_at) VALUES (?,'farmchar','farmtest',0,'Farmer',1)").bind(player.id).run();
   await db.prepare("INSERT INTO company_farms (map_id,guild_id,name,crop,climate,region,day,bought_at) VALUES (42,'farmtest','Test farm','food',223,17,1,1)").run();
   const body={character:'farmchar',mapId:42};
-  const r=await req('/v1/farms/garden',body);assert.equal(r.status,200,JSON.stringify(r));assert.equal(r.data.garden.beds.length,16);
+  const r=await req('/v1/farms/garden',body);assert.equal(r.status,200,JSON.stringify(r));assert.deepEqual(r.data.garden.beds,{});
   let version=r.data.version;
   for(const op of ['hoe','plant','water']){const step=await req('/v1/farms/garden',{...body,op,bed:0,crop:'grain',version});assert.equal(step.status,200,JSON.stringify(step));version=step.data.version;}
   const ready=await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first();
@@ -50,5 +50,9 @@ try {
   assert.equal((await req('/v1/farms/garden',hbody)).status,409);
   assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:grain'").first()).qty,2);
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
-  console.log('PASS: real Worker route, guest secret authentication, D1 migrations, shared bed operations, harvest credit and replay rejection.');
+  const visitor=await req('/v1/auth/guest',{terms:true,privacy:true},false);secret=visitor.data.secret;
+  const seen=await req('/v1/farms/garden',{mapId:42});assert.equal(seen.status,200);assert.equal(seen.data.version,version+1);
+  const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
+  assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

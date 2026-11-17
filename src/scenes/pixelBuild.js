@@ -41,7 +41,6 @@ import { getLocationTerrainTileOrigin, setLocationTiles } from '../world/terrain
 import { getNameBankOfRegion } from '../characters/nameHelper.js';
 import { getStaticDoors } from '../world/staticDoors.js';
 import { getWorldClimateSettings, LOCATION_TYPES } from '../formats/mapsFile.js';
-import { farmGardenField } from '../world/farmGardenSite.js';
 import { gothwayNorthSpots, isGothwayGarden } from '../systems/gothwayBoards.js';
 import { groundOffPlane, lowestGroundUnder, surfaceHeightAt, TERRAIN_SKIRT_DEPTH, TERRAIN_TILE_DIM } from '../world/terrain/terrainSurface.js';
 import { hasPort, maskMapId } from '../systems/travel/travelPorts.js';
@@ -221,7 +220,7 @@ export function createPixelBuild(host) {
       g.unionBox(batch._box);
       armFlatAnim(batch, t, archive, record, g.flatAnims, g.uploadRecordFrame);
       batches.push(batch);
-      if (g.natureSet.has(archive)) forestGroups.set(k, { batch, centers, size });   // PROF4: a felled tree's batch
+      if (g.natureSet.has(archive) || archive === 301) forestGroups.set(k, { batch, centers, size });   // PROF4: a felled tree's batch
       if (isCoverFlat(archive, record, size)) for (const c of centers) coverItems.push(...coverProxies(c, size, { tree: g.natureSet.has(archive) && isTreeRecord(g.natureBase(archive), record) }));   // AUDIT TACT B2: a tree's trunk and crown
     }
   }
@@ -462,7 +461,6 @@ export function createPixelBuild(host) {
       setLastLocationKeyTo(dfLocation.regionIndex, dfLocation.locationIndex ?? 0);   // AUDIT-RR F32: WorldDataVariants' last key is THIS location's before its blocks are read - DFU reads the DFLocation right before RMBLayout (MapsFile.cs:999 sets it); the boot index here read every location and left the key on the last
       const loc = layoutLocation(dfLocation, maps, blocks, { enhanced: isEnhanced(), windmills: windmillsOn() });   // WM3: the pack's own switch
       locBlocks = loc.blocks;
-      const gardenField = dfLocation.mapTableData?.locationType === LOCATION_TYPES.HomeFarms ? farmGardenField(loc.blocks) : null;
       const lefayExitDoors = [];   // HOLD-MONUMENT (AUDIT FIVE-ASKS B1): the Hold's dungeon-entrance doors as its blocks stand them - its way out
       // MERCHANT-YARDS: the town's open ground, clear of its buildings, roads and lots; SHIPYARDS: and a port town's seaward
       // ground, on what the yards left - one pass (AUDIT SHIPYARDS L3-3: the yards' and the port's each asked it whole)
@@ -663,7 +661,7 @@ export function createPixelBuild(host) {
         if (hillPatch) { addStatic(hillPatch, originMatrix, false); collider.addMesh(key, hillPatch.positions, hillPatch.indices, originMatrix, onFloatingFrame(host.state, ((o) => () => host.state.pixelTranslation(px, py, o))([0, 0, 0]))); unionBox(transformedAabb(localAabb(hillPatch.positions), originMatrix)); }
         // FIELD BUGS 2026-10-04d CROPS: a crop field's batch reads the climate (the second desert's plant is its own) and
         // keeps a metre off the block's solids - the models this build drew and collided just above (IsOverlapping)
-        const flatOpts = { garden: gardenField?.block === b ? gardenField : null, extra: memorialFlatsFor(dfLocation, b), climateIndex: maps.getClimateIndex(px, py), solid: blockSolids(b.layout.models, (m) => (m.enhancedOnly && !isEnhanced() ? null : cpuModels.get(m.modelIdNum))) };
+        const flatOpts = { extra: memorialFlatsFor(dfLocation, b), climateIndex: maps.getClimateIndex(px, py), solid: blockSolids(b.layout.models, (m) => (m.enhancedOnly && !isEnhanced() ? null : cpuModels.get(m.modelIdNum))) };
         const blockFlats = collectBlockFlats(b.dfBlock, natureArchive, flatOpts);
         const block = skinBlocks.push({ dfBlock: b.dfBlock, opts: flatOpts }) - 1;   // AUDIT PRECIP HOST-7: read again in a season (the same flats, in the same order)
         // AUDIT 26 (F019): ...and the same flats' STATIC NPCs

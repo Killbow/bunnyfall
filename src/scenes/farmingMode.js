@@ -19,9 +19,23 @@ export function createFarmingMode(deps) {
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
   let tool = 'hoe', crop = 'grain', height = 8, yaw = 0, eye = null, fwd = null, hud = null, freeCursor = null, message = '';
   let frame = null, pointer = null, attached = false, disposed = false, noticeUntil = 0, heldBody = false;
+  const observers = new Map(); let nextObservers = 0;
   const now = () => Date.now() / 1000 + serverOffset;
   const ownHere = () => deps.farms()?.mine()?.farms?.find((f) => deps.farms().atFarm(f.mapId)) ?? null;
+  function nearbyObservers() {
+    if (deps.passive || Date.now() < nextObservers) return;
+    nextObservers = Date.now()+1000;
+    const book=deps.farms(), wanted=new Set();
+    for(const f of book?.all?.() ?? []) {
+      const p=book.placeOf(f.mapId),pixel=p&&deps.built.get(`${p.px},${p.py}`);
+      if(book.atFarm(f.mapId)||!pixel?.locOrigin||!pixel.locBlocks||pixel._stride>1)continue;
+      wanted.add(f.mapId);
+      if(!observers.has(f.mapId))observers.set(f.mapId,createFarmingMode({...deps,passive:true,farms:()=>({...book,visibleHere:()=>f,atFarm:()=>false})}));
+    }
+    for(const [id,observer]of observers)if(!wanted.has(id)){observer.dispose();observers.delete(id);}
+  }
   function accept(r, token) {
+    if (token === epoch && r?.ok && r.data?.unchanged && r.data.version === version) { serverOffset = r.data.nowS - Date.now()/1000; return true; }
     if (token !== epoch || !r?.ok || !validGarden(r.data?.garden)) return false;
     const data = r.data;
     if (data.version < version) return false;
@@ -31,12 +45,12 @@ export function createFarmingMode(deps) {
     if (!farm || reading || busy) return;
     reading = true; const token = epoch, id = farm.mapId;
     try {
-      const r = await deps.farms().garden(id);
+      const r = await deps.farms().garden(id, { version });
       if (token !== epoch) return;
-      if (!accept(r, token) && ['farm-not-ours', 'no-guild', 'guilds-need-account'].includes(r?.error)) { leave(); clear(); }
+      if (!accept(r, token) && ['farm-not-ours', 'no-guild', 'guilds-need-account'].includes(r?.error)) { leave(); site?.restore(); art.dispose(); garden = emptyGarden(); version = -1; }
       else if (!r?.ok) notice(t('farm.mode.loadFailed', 'The farm could not be read. Try again in a moment.'));
     } catch { if (token === epoch) notice(t('farm.mode.loadFailed', 'The farm could not be read. Try again in a moment.')); }
-    finally { if (token === epoch) { reading = false; nextRead = Date.now() + (active ? 3000 : 15000); } }
+    finally { if (token === epoch) { reading = false; nextRead = Date.now() + (version < 0 ? 5000 : 1000); } }
   }
   function notice(text) { message = text; noticeUntil = Date.now() + 4000; }
   function leave() {
@@ -45,7 +59,7 @@ export function createFarmingMode(deps) {
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; farm = null; site = null; version = -1; reading = busy = false; art.dispose(); }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; reading = busy = false; art.dispose(); }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
@@ -101,7 +115,7 @@ export function createFarmingMode(deps) {
     });
   }
   async function work() {
-    if (!active || selected < 0 || busy || reading || version < 0) return;
+    if (!active || selected < 0 || busy || reading || version < 0 || ownHere()?.mapId !== farm.mapId) return;
     const feet = deps.feet(), bed = site.beds[selected];
     if (Math.hypot(feet[0] - bed[0], feet[2] - bed[2]) > FARM_WORK_REACH) { notice(t('farm.mode.closer', 'Walk closer to work this bed.')); return; }
     if (deps.collider.raycast([feet[0], feet[1] + .8, feet[2]], directionTo(feet, bed), Math.hypot(feet[0] - bed[0], feet[2] - bed[2])) < Math.hypot(feet[0] - bed[0], feet[2] - bed[2]) - .3) {
@@ -130,11 +144,13 @@ export function createFarmingMode(deps) {
     if (Date.now() < noticeUntil) return message;
     if (version < 0) return t('farm.mode.loading', 'Reading the shared beds...');
     if (busy) return t('farm.mode.saving', 'Saving your work...');
-    const distance = Math.round(Math.hypot(deps.feet()[0] - site.center[0], deps.feet()[2] - site.center[2]));
+    const feet=deps.feet();let nearest=Infinity;
+    for(const bed of site.beds)nearest=Math.min(nearest,(feet[0]-bed[0])**2+(feet[2]-bed[2])**2);
+    const distance=Math.round(Math.sqrt(nearest));
     return distance > 10 ? t('farm.mode.findBeds', 'Working beds: {n} m away.', { n: distance }) : t('farm.mode.hint', 'Hoe a bed, plant seeds, then water. Crops grow while you are away.');
   }
   return {
-    inspect: () => ({ active, farm: farm ? { ...farm } : null, version, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null }),
+    inspect: () => ({ active, farm: farm ? { ...farm } : null, version, fields: site?.fields ?? 0, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null, observers: [...observers.keys()] }),
     get active() { return active; }, get eye() { return eye; }, get look() { return fwd; },
     get pitch() { return active && fwd ? Math.asin(Math.max(-1, Math.min(1, fwd[1]))) : null; },
     get face() { return active ? { yaw, up: leanedUp(yaw, .8), grow: 1 } : null; },
@@ -157,9 +173,19 @@ export function createFarmingMode(deps) {
     frame() {
       if (disposed) return;
       if (!deps.alive()) { this.dispose(); return; }
-      if (!farm) return;
-      const here = ownHere();
-      if (!here || here.mapId !== farm.mapId || !deps.available()) { leave(); clear(); return; }
+      nearbyObservers();for(const observer of observers.values())observer.frame();
+      const here = deps.farms()?.visibleHere?.() ?? ownHere();
+      if (!here || !(deps.viewAvailable?.() ?? deps.available())) { if (farm) { leave(); clear(); } return; }
+      const foundPlace = deps.farms().placeOf(here.mapId);
+      const pixel = foundPlace && deps.built.get(`${foundPlace.px},${foundPlace.py}`);
+      if (farm?.mapId !== here.mapId || site?.pixel !== pixel) {
+        leave(); clear();
+        const found = farmGardenSite(here, { ...deps, farms: deps.farms() });
+        if (!found) return;
+        farm = here; site = found;
+        art.prepare().catch(() => {});
+      }
+      if (active && (!deps.available() || ownHere()?.mapId !== farm.mapId)) leave();
       if (!busy && !reading && Date.now() >= nextRead) read();
       if (active) {
         deps.cam.yaw = yaw;
@@ -180,9 +206,10 @@ export function createFarmingMode(deps) {
       fwd = distance > .01 ? to.map((v) => v / distance) : normalFwd;
     },
     draw(proj, view, right, up) {
-      if (!farm || !site || version < 0) return;
+      for(const observer of observers.values())observer.draw(proj,view,right,up);
+      if (!farm || !site || version < 0 || !art.ready) return;
       frame = { proj, view }; if (active && !deps.blocked()) pick(); else selected = -1;
-      art.update(site, garden, now(), selected); art.draw(right, up);
+      site.mask(garden,version); art.update(site, garden, now(), selected); art.draw(right, up, selected);
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
       const pos = i >= 0 ? site.beds[i] : site.center;
@@ -190,7 +217,7 @@ export function createFarmingMode(deps) {
       at.x += rect.left; at.y += rect.top;
       let label = t('farm.mode.beds', 'Working beds');
       if (i >= 0) {
-        const bed = garden.beds[i], stage = gardenStage(bed, now());
+        const bed = garden.beds[i] ?? null, stage = gardenStage(bed, now());
         const growing = bed?.crop && stage !== 'ripe';
         const info = stage === 'wild' ? t('farm.mode.untilled', 'Untilled soil') : stage === 'tilled' ? t('farm.mode.tilled', 'Tilled soil') :
           stage === 'ripe' ? t('farm.mode.ready', 'Ready to harvest') : bed.wetUntil <= now() ? t('farm.mode.thirsty', 'Needs water') :
@@ -200,8 +227,8 @@ export function createFarmingMode(deps) {
       }
       hud.target(label, at);
     },
-    rebase(delta) { if (eye) eye = eye.map((v, i) => v + delta[i]); if (site) { site.center = site.center.map((v, i) => v + delta[i]); site.beds = site.beds.map((b) => b.map((v, i) => v + delta[i])); } },
-    dispose() { leave(); clear(); disposed = true; },
+    rebase(delta) { if (eye) eye = eye.map((v, i) => v + delta[i]); site?.rebase(delta);for(const observer of observers.values())observer.rebase(delta); },
+    dispose() { leave(); clear();for(const observer of observers.values())observer.dispose();observers.clear(); disposed = true; },
     leave,
   };
 }

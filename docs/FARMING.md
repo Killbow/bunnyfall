@@ -8,7 +8,7 @@ Soil, grass and crops load through the normal ARENA2 texture pipeline (archives 
 
 ## Working the land
 
-One 4×4 working patch is reserved in the farm's first supported crop-field prefab. The remaining fields retain their decorative crops. Hover a bed to highlight it, approach within 3.5 metres, then click with the selected tool:
+Every supported crop field on the farm is divided into workable beds, following the actual field boundaries. The original 16 bed addresses retain their positions and saved crops. Untouched land keeps its native crops; working a bed replaces only the plants inside that bed. Paths and areas outside the crop fields remain unchanged. Hover a bed to highlight it, approach within 3.5 metres, then click with the selected tool:
 
 1. **Hoe** prepares empty soil.
 2. **Seeds** plants the selected crop in prepared soil. Click the Crop button to cycle grain, mushrooms and herbs.
@@ -17,7 +17,9 @@ One 4×4 working patch is reserved in the farm's first supported crop-field pref
 
 Keys 1–4 select the tools. Crops take 6, 12 and 18 real hours respectively, measured by the account service. Dry crops pause; mature crops wait for collection. Sleeping, fast travel and the client clock cannot advance the server's harvest time.
 
-Company members share the same 16 beds. Active clients refresh roughly every three seconds. Conflicting edits refresh the state rather than overwriting another gardener's work. Harvest credits and revision claims commit together; retrying a harvest cannot pay twice.
+Company members share all beds. State is sparse: only worked beds are stored, with up to 65,536 stable bed addresses per farm. Existing 16-bed saves convert on their next edit.
+
+Any authenticated visitor can see the shared soil and crops without Company membership or Farming Mode. The client also observes other fully loaded nearby farms. Observers poll roughly once per second and receive a small unchanged response when the revision matches. Only Company members may edit or harvest. Conflicting edits refresh the state rather than overwriting another gardener's work. Harvest credits and revision claims commit together; retrying a harvest cannot pay twice. This is polling, so remote changes appear after approximately one second plus network latency.
 
 Working three distinct beds in a UTC day earns the existing daily care bonus. Repeating actions on one bed does not count as three beds. Passive Company farm production remains in place during this first version.
 
@@ -29,7 +31,7 @@ Apply migration `0212_farm_gardens.sql` through the normal self-host startup/upd
 
 ## Validation
 
-- `node --test tools/farmGarden.test.mjs` — bed rules, shared revisions, atomic rewards, daily care, entry and layout.
+- `node --test tools/farmGarden.test.mjs` — bed rules, shared revisions, atomic rewards, daily care, all-field layout, legacy save conversion and visitor permissions.
 - `node tools/farmingModeUiProbe.mjs` — browser input, actual ARENA2 WebGL crop/soil draws, tools, range, themes, hotbar hold, camera and teardown, using a body-hold fixture. Requires `ARENA2_PATH`.
 - `node tools/farmGardenRouteProbe.mjs` — actual account Worker, authentication, D1 migrations, service route, store deposits and replay rejection. Uses an isolated Miniflare runtime and a relay stub; production account data is untouched. Rolldown bundles the Worker to avoid the native esbuild parent-directory restriction encountered in the Windows sandbox.
 
