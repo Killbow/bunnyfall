@@ -533,6 +533,7 @@ import { createLoadGovernor, unbuiltAround, unbuiltCount, travellerPace } from '
 import { createWildAlert, noticeRoll, WILD_MARK_S } from '../systems/wild/wildAlert.js';   // WILD-ALERT: the wilderness notices a fast traveller on a stealth check
 import { drawWildMarks, WILD_MARK_RANGE } from '../ui/wild/wildMarks.js';   // WILD-ALERT: the "!" over an alerted foe
 import { playerOnPathAt, pathsDataPoint } from '../systems/travel/travelPaths.js';   // RATE-LAW: the traveller on a road's lane or off it
+import { blockerLine, noticedFoes, loneMember } from '../systems/travel/travelBlocker.js';
 import { threatCap, foeRate } from '../systems/travel/travelThreat.js';   // OW6: the journey slows as enemies close; ENEMY-PACE's floor, fixed (RATE-LAW) - TIME-DILATION: x1 inside a hostile ship's hold
 import { farPlaces, settlementPixels, farDistanceText, PIXEL_KM, TV_FAR_RANGE } from '../systems/travel/travelFarPlaces.js';   // TV5: the far places, held at the view's edge
 import { dungeonRows, spawnedPixels, filedSpawns, nearDungeons, dungeonApproach, pixelBox, lastLegStart, dungeonToFind, dungeonFoundText, NATIVE_PER_M } from '../systems/travel/travelDungeons.js';   // TV6: the dungeons, discovered on approach; AUDIT OW3 D1/D3: off the map rows, and the spawns with them; AUDIT OW4 D4/D6: the far found spawns, the last leg's start
@@ -3996,7 +3997,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     travelFree: () => _mode() === 'exterior' && !livingTravelEnemies(),
     travelWith: (trip, until) => {
       if (params.has('online')) return false;
-      if (livingTravelEnemies()) { townTalk.say(localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT)); return false; }
+      if (livingTravelEnemies()) { townTalk.say(travelEnemiesLine()); return false; }
       if (_mode() !== 'exterior') modes?.forceExitToExterior();
       advanceOwnMinutes(Math.max(0, until - skyMinutes()));
       const at = livingPartyAt(trip, Math.min(until, trip.outT1 - 1));
@@ -12788,6 +12789,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  pool's remover - one change, two consumers, and only one of them
    *  wanted it. */
   const exteriorFoePool = () => [...cityGuards.guards, ...exteriorFoes.foes];
+  function travelEnemiesLine() { return blockerLine(localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT), exteriorFoePool(), player.feetAt()); }
   /** AUDIT PSCALE1 COUNT-3: the street's foes AND the spots a stand still crossing spawnFoe's awaits already holds - a
    *  wanderer's extras, a camp's members, placed in one synchronous loop, each saw none of the others. */
   const _placingPool = () => [...exteriorFoePool(), ...exteriorFoes.pendingFeet().map((feet) => ({ feet }))];
@@ -16232,7 +16234,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // DUEL1: and a duel opponent IS an enemy nearby (Mac: the ring "keeps them from going outside of the duel space") -
     // no travelling out of a duel by map
     if (duelEnemyNear() || areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]) || navalHostileNear()) {   // NAV-H: a hostile ship in reach too
-      townTalk.say(localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT));
+      townTalk.say(travelEnemiesLine());
       return false;
     }
     // AUDIT 58: the rung the comment above already named and the code
@@ -16655,7 +16657,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const code = action === 'TravelExit' ? sequenceString(shortcutBinding('TravelExit')) : getBinding(bindings(), action);
       return String(code ?? '').replace(/^Key/, '');
     },
-    text: (key) => (key === 'cannotTravelWithEnemiesNearby' ? localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT) : ''),
+    text: (key) => (key === 'cannotTravelWithEnemiesNearby' ? travelEnemiesLine() : ''),
     pushWindow: (ui) => { ui.show(); },
     // TRAVEL-NAV1: the way ahead - the drive turned and capped in place, a stop answered by name
     steer: (drive, worldX, worldZ, autopilot) => {
@@ -18340,7 +18342,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     };
     window.__locationPixels = () => [...locationIndex.keys()];   // the sweep's places: every location the index stands, mods' rows with the map's
     // the sweep's journey (tools/pixelBuildSweep.mjs --journey): the Overworld raised, and the clock, its hold and the stream read
-    window.__overworld = () => ({ entered: travelView?.enter() ?? false, allowed: travelViewAllowed(), danger: !!(duelEnemyNear() || areEnemiesNearby(wildSeen(exteriorFoePool()))), paused: gamePaused(), modal: modes?.modalWindowUp?.() ?? false });
+    window.__overworld = () => ({ entered: travelView?.enter() ?? false, allowed: travelViewAllowed(), danger: !!(duelEnemyNear() || areEnemiesNearby(viewSeen(exteriorFoePool()))), paused: gamePaused(), modal: modes?.modalWindowUp?.() ?? false });
     window.__journeyState = () => {
       let owed = 0;
       for (const k of state.loaded.keys()) if (!built.has(k)) owed++;
@@ -27360,7 +27362,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (poiTest?.active()) return t('poi.test.noTravel', 'Stop the POI test before you travel.');
     if ((modes?.mode ?? 'exterior') !== 'exterior') return PARTY_TRAVEL_TEXT.inside;
     if (!(playerEntity.health > 0) || worldMoveBusy()) return PARTY_TRAVEL_TEXT.off;
-    if (duelEnemyNear() || areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]) || navalHostileNear()) return localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT);   // NAV-H: a hostile ship in reach too
+    if (duelEnemyNear() || areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]) || navalHostileNear()) return travelEnemiesLine();   // NAV-H: a hostile ship in reach too
     const nowMin = Math.floor(skyMinutes());   // TIME1: the sky's sun
     const sun = (careerFastTravelBlock(playerEntity, nowMin) ?? racialFastTravelBlock(playerEntity, nowMin))?.text ?? null;   // HOOD-CAREER: the career's rung first, as the door asks it
     return sun ? withNightfall(sun) : null;   // LIVED1: the door's own words, and when the world's night falls
@@ -30238,7 +30240,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // in), and AreEnemiesNearby(false, false), the strict pool the travel map's own door asks
     openImmersiveMap,
     travelEnemiesNearby: () => duelEnemyNear() || areEnemiesNearby([...cityGuards.guards, ...exteriorFoes.foes]) || navalHostileNear(),
-    get travelEnemiesText() { return localizedText('cannotTravelWithEnemiesNearby', CANNOT_TRAVEL_ENEMIES_TEXT); },   // L10N3d: read when the box opens
+    get travelEnemiesText() { return travelEnemiesLine(); },   // L10N3d: read when the box opens
     // G6: the knightly smith's gift needs THIS host's inventory
     // window in choose-one mode - one builder, one dependency list.
     makeInventory: (extra) => (inventoryDoorReady() ? makeInventoryWindow(extra) : null),
@@ -31887,8 +31889,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   /** A foe the gate holds off me: mine (a puppet is its owner's), out in the wilderness (a town's foes keep the town's
    *  law), and not yet alerted to the fast traveller. */
   const wildGated = (f) => _wildGate && !f.puppet && !wildFoes.alerted(f) && !!f.ai?.feet && !_inAnyLocationRect(f.ai.feet);
-  /** The foes a fast traveller's stops and the view's danger count: none the gate holds. */
   const wildSeen = (foes) => (_wildGate ? foes.filter((f) => !wildGated(f)) : foes);
+  // Outside a journey, the Overworld ignores wilderness enemies that have not noticed the player.
+  const viewSeen = (foes) => (_wildGate ? wildSeen(foes) : noticedFoes(foes, _inAnyLocationRect));
   /** The gate's frame, before the pools move: each of my hostile wilderness foes in reach checked (systems/wild/wildAlert.js
    *  step - its sight its reach, my Stealth, the frame on the traveller's clock); one already on me is alerted. */
   function wildFoesFrame(dt) {
@@ -32156,6 +32159,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       if (rite && f.site === rite) members.push({ camp: `rite:${rite}`, kind: 'rite', type: f.mobileType, feet: f.ai.feet });
       else if (f.puppet) { if (f._pupCamp) members.push({ camp: `${f.puppet}:${f._pupCamp.id}`, kind: f._pupCamp.kind, type: f.mobileType, feet: f.ai.feet }); }
       else if (f.campId != null) members.push({ camp: `me:${f.campId}`, kind: f.campKind ?? 'pack', type: f.mobileType, feet: f.ai.feet });
+      else if (loneMember(f)) members.push(loneMember(f));
     }
     return groupCamps(members, enemyDisplayName).map((c) => (c.kind === 'rite' ? { ...c, label: RITE_TEXT.mark(c.n) } : c));
   }
@@ -32657,7 +32661,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     onLower: (why) => { if ((why === 'button' || why === 'escape' || why === 'key') && travelOptions?.isTravelActive && tvOwnsJourneys()) travelOptions.messages.pauseTravel(); },
     windowUp: () => gamePaused() || (modes?.modalWindowUp?.() ?? false),
     overlayUp: () => overlayOpen() || travelViewConfirmOpen() || waypointMenuOpen(),   // AUDIT DEEP2 A3: an enhanced overlay (the Tab dial) has the keys while it is up; OW-CONFIRM: and the view's own question; WAYPOINTS: and its right-click menu (Escape is the menu's own)
-    danger: () => duelEnemyNear() || (!playerEntity.staffHidden && areEnemiesNearby(wildSeen(exteriorFoePool()))) || navalHostileNear(),   // STAFF-UNSEEN: no foe is near a hidden staff member (the Overworld stays up over them); TIME-DILATION: a hostile ship too (NAV-H: an enemy nearby wherever the game asks it outdoors) - the view came up over a pirate and stayed while she fired; the travel map's own refusal, and the Travel Options journey's stop (AUDIT DEEP2 A9/B-4: a live duel too, DUEL1's); WILD-ALERT: never a foe that has not noticed a fast traveller
+    // Duels and hostile ships count, a hidden staff member meets none, and wilderness enemies count once they notice.
+    danger: () => duelEnemyNear() || (!playerEntity.staffHidden && areEnemiesNearby(viewSeen(exteriorFoePool()))) || navalHostileNear(),
     actionsOf: (e) => actionsOf(e, keys),
     movementHeld: () => TV_MOVE_ACTIONS.some((a) => held(keys, a)),
     movementAxes: () => ({ forward: (held(keys, 'MoveForwards') ? 1 : 0) - (held(keys, 'MoveBackwards') ? 1 : 0), strafe: (held(keys, 'MoveRight') ? 1 : 0) - (held(keys, 'MoveLeft') ? 1 : 0) }),   // OW-FACE: the way the keys point
@@ -32667,7 +32672,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     where: travelViewWhere,
     project: frameProject.behind,   // PERF-TV-PROJ: thousands of points a frame (the route's dots, the marks); AUDIT DEEP T1-1: behind the eye, the mirror - a traveller there is held at the edge THEIR way, not all in one corner
     hud: { show: showTravelViewHud, hide: hideTravelViewHud, update: updateTravelViewHud, pickAt: travelViewHudPickAt },   // PERF-TV: a plate's click found by position
-    say: (t) => townTalk.say(t),
+    say: (t) => townTalk.say(t === TRAVEL_VIEW_TEXT.enemies ? blockerLine(t, viewSeen(exteriorFoePool()), player.feetAt()) : t),
     touch: !!touch,
     alive: () => frameAlive(_frameToken),   // the heartbeat's question: a loop a later boot killed is left quietly
     onPick: (x, y, e) => onTravelViewPick(x, y, e),   // TV2; OW-PATH: the event, for the fine-move key
