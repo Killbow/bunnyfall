@@ -258,6 +258,7 @@ client.once(Events.ClientReady, async () => {
     const guild = await client.guilds.fetch(DISCORD_GUILD_ID);
     for (const definition of commands) await guild.commands.create(definition.toJSON());
     console.log(`Bunnyfall bot ready in ${guild.name}.`);
+    process.send?.('discord-ready');
     void poll();
   } catch (error) {
     console.error('Discord registration failed:', error.message);

@@ -19,7 +19,7 @@ function lastLines(file, n) {
   try { return readFileSync(file, 'utf8').trim().split('\n').slice(-n).join('\n'); } catch { return ''; }
 }
 
-export function startUpdater({ port, bind, accountBase, accountToml, dir }) {
+export function startUpdater({ port, bind, accountBase, accountToml, dir, discord }) {
   mkdirSync(dir, { recursive: true });
   try { chmodSync(dir, 0o777); } catch { /* not ours to change */ }   // the host's cron, a plain user, clears the request
   const requestFile = join(dir, 'update-requested');
@@ -48,10 +48,41 @@ export function startUpdater({ port, bind, accountBase, accountToml, dir }) {
     if (fromApp && req.method === 'OPTIONS') {
       res.writeHead(204, {
         'access-control-allow-methods': 'GET, POST',
-        'access-control-allow-headers': 'authorization',
+        'access-control-allow-headers': 'authorization, content-type, x-staff-session',
         'access-control-max-age': '86400',
       });
       return res.end();
+    }
+    if (path === '/discord' && discord) {
+      if (req.method !== 'POST') return send(res, 405, { error: 'method' });
+      const session = req.headers['x-staff-session'];
+      if (typeof session !== 'string' || !session || session.length > 256) {
+        return send(res, 403, { error: 'staff-owner' });
+      }
+      try {
+        const response = await fetch(`${accountBase}/v1/staff/me`, {
+          method: 'POST', headers: { 'x-staff-session': session, 'content-type': 'application/json' },
+          body: '{}', signal: AbortSignal.timeout(5000),
+        });
+        if (!response.ok || (await response.json()).owner !== true) {
+          return send(res, 403, { error: 'staff-owner' });
+        }
+        const parts = [];
+        let bytes = 0;
+        for await (const part of req.iterator({ destroyOnReturn: false })) {
+          bytes += part.length;
+          if (bytes > 1024) return send(res, 413, { error: 'body' });
+          parts.push(part);
+        }
+        let body;
+        try { body = JSON.parse(Buffer.concat(parts).toString('utf8')); }
+        catch { return send(res, 400, { error: 'body' }); }
+        if (body?.action === 'status') return send(res, 200, discord.status());
+        if (body?.action !== 'save' || !discord.configure(body)) return send(res, 400, { error: 'body' });
+        return send(res, 200, discord.status());
+      } catch {
+        return send(res, 503, { error: 'discord-setup' });
+      }
     }
     if (req.method === 'GET' && path === '/status') {
       if (!(await isOwner(req))) return send(res, 200, { owner: false });

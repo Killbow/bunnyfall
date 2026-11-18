@@ -12,6 +12,7 @@
 // small dialog that asks only what it needs), Events and Notices pages in plain fields, and the rest under More. The
 // older form-per-route page lives on as More > All tools (staffPanelActions.js).
 /* global btoa, atob, sessionStorage, confirm, crypto, Node */
+import { staffDiscord } from './staffDiscord.js';
 import { selfAccountUrl } from '../net/selfHost.js';
 import { STAFF_TABS, showAnswer, buildActs } from './staffPanelActions.js';
 import { reportsView } from './staffReports.js';   // BUNNYFALL: the open reports, readable and closable
@@ -720,10 +721,11 @@ function noticesPage(/** @type {HTMLElement} */ root) {
 const TOOLS = [
   ['reports', 'Reports', 'Every open report, claimed or not'], ['economy', 'Economy', 'Gold in and out, gains, trade holds, the market'],
   ['saves', 'Saves', 'Take a player\'s save out (search them first)'], ['db', 'Database', 'Read the database (owner)'], ['skins', 'Skins', 'Custom paperdolls waiting for review'],
+  ['discord', 'Discord bot', 'Configure the bot token and server (owner)'],
   ['audit', 'Audit log', 'Everything staff did'], ['team', 'Staff team', 'Moderators, invites, server status'], ['all', 'All tools', 'Every staff action as a raw form'],
 ];
 function morePage(/** @type {HTMLElement} */ root) {
-  root.append(h('div', { class: 'grid' }, TOOLS.map(([k, t, d]) => h('div', { class: 'card li click', style: 'border-bottom:1px solid var(--line)', onclick: () => go(`more:${k}`) },
+  root.append(h('div', { class: 'grid' }, TOOLS.filter(([k]) => k !== 'discord' || me?.owner).map(([k, t, d]) => h('div', { class: 'card li click', style: 'border-bottom:1px solid var(--line)', onclick: () => go(`more:${k}`) },
     h('span', { class: 'grow', style: 'white-space:normal' }, h('b', null, t), h('div', { class: 'dim' }, d))))));
 }
 function moreTool(/** @type {HTMLElement} */ root, /** @type {string} */ k) {
@@ -733,6 +735,7 @@ function moreTool(/** @type {HTMLElement} */ root, /** @type {string} */ k) {
   if (k === 'economy') return answerTabs(card, [['Economy (7 days)', '/v1/staff/econ/economy', { days: 7 }], ['Who got rich fast', '/v1/staff/gains', { days: 7 }], ['Trade holds', '/v1/staff/trade-holds'], ['Reported listings', '/v1/staff/market/reported'], ['Guilds', '/v1/staff/econ/guilds'], ['Item census', '/v1/staff/census']]);
   if (k === 'team') return answerTabs(card, [['Team', '/v1/staff/team'], ['Moderators', '/v1/staff/mods'], ['Server status', '/v1/staff/status'], ['My keys', '/v1/staff/keys']]);
   if (k === 'saves') { const out = h('div'); const box = charChooser(null); card.append(box.el, h('button', { class: 'primary', onclick: () => { const x = box.get(); if (x) savesOf(x.account.id, out); } }, 'Show their saves'), h('div', { class: 'section' }, out)); return; }
+  if (k === 'discord' && me?.owner) return staffDiscord(card, { h, session: () => session });
   if (k === 'db') return dbTool(card);
   if (k === 'skins') return skinsTool(card);
   if (k === 'audit') return answerTabs(card, [['Newest staff actions', '/v1/staff/audit', { limit: 200 }]]);
