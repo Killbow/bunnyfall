@@ -56,11 +56,11 @@ async function lines(db, state, after, gameOnly) {
   return { lines: rows.results, cursor: rows.results.at(-1)?.id ?? cursor };
 }
 
-async function addLine(db, channel, source, event, name, text, nowS, slowDown = false) {
-  const result = await db.prepare(`INSERT OR IGNORE INTO discord_tavern (source,event,name,text,at)
-    SELECT ?,?,?,?,? FROM discord_tavern_config WHERE id = 1 AND channel = ?
+async function addLine(db, channel, source, event, name, text, nowS, slowDown = false, discordId = null) {
+  const result = await db.prepare(`INSERT OR IGNORE INTO discord_tavern (source,event,name,text,at,discord_id)
+    SELECT ?,?,?,?,?,? FROM discord_tavern_config WHERE id = 1 AND channel = ?
     AND NOT EXISTS (SELECT 1 FROM discord_tavern WHERE source = ? AND event LIKE ? AND at > ?)`)
-    .bind(source, event, name, text, nowS, channel, source, slowDown ? event.split(':')[0] + ':%' : event, nowS - 2).run();
+    .bind(source, event, name, text, nowS, discordId, channel, source, slowDown ? event.split(':')[0] + ':%' : event, nowS - 2).run();
   return result.meta.changes > 0;
 }
 
@@ -144,7 +144,9 @@ export async function discordBotAction(ctx, env, body) {
       const state = await config(db);
       if (!state?.channel) return { channel: null, lines: [] };
       if (nowS % 300 < 3) await db.prepare('DELETE FROM discord_tavern WHERE at < ?').bind(nowS - 86400).run();
-      return { channel: state.channel, floor: state.floor, ...(await lines(db, state, state.delivered, true)) };
+      const { results: serves } = await db.prepare(`SELECT id, name, patron, drink FROM discord_tavern_serves
+        WHERE channel = ? AND message IS NULL AND at >= ? ORDER BY id LIMIT 20`).bind(state.channel, nowS - 86400).all();
+      return { channel: state.channel, floor: state.floor, serves, ...(await lines(db, state, state.delivered, true)) };
     }
     case 'ack': {
       if (!Number.isSafeInteger(body.id) || !Number.isSafeInteger(body.floor) || !snowflake(body.channel)) return failure('input');
@@ -153,10 +155,25 @@ export async function discordBotAction(ctx, env, body) {
         .bind(body.id, body.channel, body.floor, body.id).run();
       return { ok: true };
     }
+    case 'served-message': {
+      if (!Number.isSafeInteger(body.id) || !snowflake(body.channel) || !snowflake(body.message)) return failure('input');
+      await db.prepare('UPDATE discord_tavern_serves SET message = ? WHERE id = ? AND channel = ? AND message IS NULL')
+        .bind(body.message, body.id, body.channel).run();
+      return { ok: true };
+    }
+    case 'tip': {
+      if (!snowflake(body.discordId) || !snowflake(body.channel) || !snowflake(body.message)) return failure('input');
+      const result = await db.prepare(`INSERT OR IGNORE INTO discord_tavern_tips(serve, discord_id)
+        SELECT s.id, ? FROM discord_tavern_serves s JOIN discord_tavern_config c ON c.channel = s.channel
+        JOIN realm_characters r ON r.id = s.character AND r.dead_at IS NULL
+        WHERE s.channel = ? AND s.message = ? AND s.at >= ?`)
+        .bind(body.discordId, body.channel, body.message, nowS - 86400).run();
+      return { tipped: result.meta.changes > 0 };
+    }
     case 'say': {
       const name = clean(body.name, 48), text = clean(body.text, 250);
       if (!snowflake(body.channel) || !snowflake(body.event) || !name || !text) return failure('input');
-      await addLine(db, body.channel, 'discord', body.event, name, text, nowS);
+      await addLine(db, body.channel, 'discord', body.event, name, text, nowS, false, snowflake(body.discordId) ? body.discordId : null);
       return { ok: true };
     }
     default: return failure('action');

@@ -1,3 +1,4 @@
+import { discordBotAction } from '../server-account/src/discordIntegration.js';
 import { aurasHeld, auraWorn, auraRefusal } from '../server-account/src/titles.js';
 import { EG_HONOUR } from '../server-account/src/egHonours.js';
 import { tavernRoomEvent } from '../src/net/tavernRoomLaw.js';
@@ -12,10 +13,13 @@ import { TAVERN_RECIPES, TAVERN_INGREDIENTS, tavernOrder } from '../src/net/tave
 // Real SQLite constraints/rollback, the actual service handler and actual realm record mutation.
 export function fixture() {
   const sql = new DatabaseSync(':memory:');
-  sql.exec(`CREATE TABLE realm_characters (id TEXT PRIMARY KEY, player TEXT, seq INTEGER, lease TEXT, obj TEXT, prev TEXT, held TEXT,
+  sql.exec(`CREATE TABLE realm_characters (id TEXT PRIMARY KEY, player TEXT, name TEXT DEFAULT 'Bard', dead_at INTEGER, seq INTEGER, lease TEXT, obj TEXT, prev TEXT, held TEXT,
     judged_seq INTEGER, clean_obj TEXT, clean_seq INTEGER, bytes INTEGER, updated_at INTEGER, witnessed INTEGER DEFAULT 0, svc_seq INTEGER);
     CREATE TABLE realm_tx_guard (moved INTEGER, expected INTEGER, CHECK(moved = expected));`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0210_tavern_service.sql', import.meta.url), 'utf8'));
+  for (const migration of ['0213_discord_integration.sql', '0214_discord_tavern_patrons.sql']) {
+    sql.exec(readFileSync(new URL(`../server-account/migrations/${migration}`, import.meta.url), 'utf8'));
+  }
   const stmt = (text, args = []) => ({
     bind: (...values) => stmt(text, values),
     first: async () => sql.prepare(text).get(...args) ?? null,
@@ -180,4 +184,30 @@ test('Favor supply bundles pay their listed price, deliver usable stacks and rep
     const save = JSON.parse(f.blobs.get(row.obj)); assert.equal(save.items.length, 1); assert.equal(save.items[0].stackCount, count);
     assert.equal(f.sql.prepare('SELECT insignia FROM players').get().insignia, '');
   }
+});
+
+test('a served Discord patron posts once and each Discord account can tip once', async () => {
+  const f = fixture();
+  f.ctx.nowS = Math.floor(Date.now() / 1000);
+  const channel = '111111111111111111';
+  const first = '222222222222222222';
+  const second = '333333333333333333';
+  const message = '444444444444444444';
+  const bot = (action, values) => discordBotAction({ ...f.ctx, primary: f.ctx.db }, {}, { action, ...values });
+  await bot('setup', { channel });
+  await bot('say', { channel, discordId: first, event: '555555555555555555', name: 'Discord Guest', text: 'Hello!' });
+  await f.prepare();
+  const { serves } = await bot('poll');
+  assert.equal(serves.length, 1);
+  assert.equal(serves[0].patron, 'Discord Guest');
+  await bot('served-message', { id: serves[0].id, channel, message });
+  assert.equal((await bot('tip', { channel, message, discordId: first })).tipped, true);
+  assert.equal((await bot('tip', { channel, message, discordId: first })).tipped, false);
+  assert.equal((await bot('tip', { channel, message, discordId: second })).tipped, true);
+  const { r, body } = await f.call('discord-tips');
+  assert.equal(r.discordGold, 10);
+  assert.equal((await tavernServiceAct(f.ctx, f.player, body)).replayed, true);
+  assert.equal((await f.call('discord-tips')).r.discordGold, 0);
+  const row = f.sql.prepare('SELECT obj FROM realm_characters').get();
+  assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 10);
 });

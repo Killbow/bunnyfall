@@ -3585,7 +3585,7 @@ export function createWorldModes(host) {
       if (key.startsWith('person:')) {
         const pn = interiorCtx.people[Number(key.split(':')[1])];
         if (!pn) return null;
-        const display = officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
+        const display = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
         const t = npcHoverName(display, { archive: pn.archive ?? -1, record: pn.record ?? -1 });
         return t ? { title: t } : null;
       }
@@ -4467,7 +4467,7 @@ export function createWorldModes(host) {
    *  default-off state. */
   function presentNpcInfo(pn) {
     const npcSceneCtx = staticNpcSceneCtx(pn);
-    const displayName = officeName(pn) ?? npcShownName(staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
+    const displayName = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
     townTalk?.say?.(presentNpcInfoText(displayName));
   }
 
@@ -4681,7 +4681,7 @@ export function createWorldModes(host) {
       // after the session's first question opened on the follow-up
       // record. talkToNpc is TalkToNpc alone; this is the other member.
       npcSession?.startNewConversation();
-      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: officeName(pn) ?? npcShownName(npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
+      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
       return;
     }
     townTalk?.say?.(localizedText('youGetNoResponse', 'You get no response.'));

@@ -16,12 +16,14 @@ import { bunnyMembershipOf } from '../systems/guild/bunnyMembership.js';
 /** @param {any} deps */
 export function createTavernServiceHost(deps) {
   let state = null, version = 0, busy = false, pending = null, observed = null, window = null;
+  let discordNames = {};
   const hud = createTavernServiceHud();
   const now = deps.now ?? (() => Date.now() / 1000);
   const id = (pn) => deps.npcId(pn);
   const people = () => deps.people().filter((p) => p.active !== false && !p.dead);
   const person = (key) => people().find((p) => id(p) === key);
-  const name = (key) => { const p = person(key); return p ? deps.name(p) : t('tavern.service.customer', 'Customer'); };
+  const alias = (key) => live() ? state.discordAudience?.names[key] ?? null : discordNames[key] ?? null;
+  const name = (key) => { const p = person(key); return p ? alias(key) ?? deps.name(p) : t('tavern.service.customer', 'Customer'); };
   const live = () => !!state && state.where === deps.where() && state.phase !== 'done' && now() - state.started <= TAVERN_SHIFT_MAX_S;
   const txnId = () => globalThis.crypto?.randomUUID?.() ?? `ts${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
   async function send(op, extra = {}) {
@@ -38,7 +40,8 @@ export function createTavernServiceHost(deps) {
         if (r.favor) tavernProgress().favor += r.favor;
         if (r.localRep) tavernReputation(deps.entity(), tavernProgress(), deps.region?.() ?? -1, deps.city?.(), r.localRep);
         if (r.favor) deps.say(t('tavern.favor.shiftPaid', 'Shift complete: +1 Favor Token, +1 city and regional reputation.'));
-        if (r.gold) addGoldPieces(deps.entity(), r.gold);
+        if (r.gold || r.discordGold) addGoldPieces(deps.entity(), (r.gold ?? 0) + (r.discordGold ?? 0));
+        if (r.discordGold) deps.say(t('tavern.discord.tipped', 'You collected {gold} gold in Discord tips.', { gold: r.discordGold }));
         if (r.rep && deps.entity()?.factionRep) changeReputation(deps.entity().factionRep, TAVERN_BARDS_FACTION, r.rep);
         if (r.gold) deps.say(t('tavern.service.paid', 'The house pays {gold} gold. Bards\' College reputation: +{rep}.', { gold: r.gold, rep: r.rep ?? 0 }));
         deps.saveSoon?.();
@@ -65,6 +68,7 @@ export function createTavernServiceHost(deps) {
       }
       if (!r) { deps.say(tavernServiceError('offline')); return; }
       accept(r);
+      if (op === 'discord-tips' && !r.discordGold) deps.say(t('tavern.discord.empty', 'You have no Discord tips waiting.'));
       if (r.refused) deps.say(t('tavern.service.wrong', 'That is not the drink I ordered. Return to the innkeeper and discard it.'));
       if (state?.phase === 'done') deps.say(t('tavern.service.complete', 'Your service has ended. Completed orders: {n}. Earned: {gold} gold.', { n: state.index, gold: state.earned }));
     } catch { deps.say(t('tavern.service.retry', 'The answer was lost. Interact again to retry the same action.')); }
@@ -131,9 +135,11 @@ export function createTavernServiceHost(deps) {
     send('start', { keeper: id(keeper), patrons });
   }
   return {
+    patronName: (pn) => deps.where() && deps.patron(pn) ? alias(id(pn)) : null,
     musicShare: () => state?.where === deps.where() ? tavernRoomMusicShare(state.room) : 1,
     innRows: (pn) => [{ code: 'KeyS', label: t('tavern.service.start', 'S - Work a tavern shift'), action: () => { Promise.resolve().then(() => start(pn)); } },
-      { code: 'KeyR', label: t('tavern.service.recipeRow', 'R - Recipe book'), action: () => { Promise.resolve().then(() => book()); } }],
+      { code: 'KeyR', label: t('tavern.service.recipeRow', 'R - Recipe book'), action: () => { Promise.resolve().then(() => book()); } },
+      ...(deps.act ? [{ code: 'KeyD', label: t('tavern.discord.collect', 'D - Collect Discord tips'), action: () => { void send('discord-tips'); } }] : [])],
     activate(pn, selected = null) {
       if (pending && !busy) { send(pending.op); return true; }
       if (!live()) return false;
@@ -146,7 +152,7 @@ export function createTavernServiceHost(deps) {
         return true;
       }
       // Touch/classic use the same actions as an explicit chooser; no invisible wheel selection.
-      deps.choose({ lines: [deps.name(pn)], options: choices.filter((r) => !r.disabled).map((r, i) => ({ code: `Digit${i + 1}`, label: r.label, action: r.id === 'tservice:talk' ? () => deps.talk(pn) : r.run })) });
+      deps.choose({ lines: [name(id(pn))], options: choices.filter((r) => !r.disabled).map((r, i) => ({ code: `Digit${i + 1}`, label: r.label, action: r.id === 'tservice:talk' ? () => deps.talk(pn) : r.run })) });
       return true;
     },
     hoverName(key) {
@@ -156,16 +162,16 @@ export function createTavernServiceHost(deps) {
       const actions = rows(pn);
       if (!actions.length && !busy) return null;
       if (id(pn) !== state.keeper && id(pn) !== tavernOrder(state)?.patron) return null;
-      return { title: deps.name(pn), subs: [id(pn) === state.keeper ? t('tavern.service.counter', 'Tavern service counter') : tavernRecipeName(tavernOrder(state).recipe), ...(id(pn) !== state.keeper && tavernRoomAvailable(state) ? [tavernRoomCue(tavernRoomEvent(state))] : [])],
+      return { title: name(id(pn)), subs: [id(pn) === state.keeper ? t('tavern.service.counter', 'Tavern service counter') : tavernRecipeName(tavernOrder(state).recipe), ...(id(pn) !== state.keeper && tavernRoomAvailable(state) ? [tavernRoomCue(tavernRoomEvent(state))] : [])],
         actions: actions.map(({ id, label, disabled }) => ({ id, label, disabled })) };
     },
     frame(active, blocked) {
-      if (!active) { observed = null; window?.dispose(); window = null; hud.dispose(); if (!deps.act) { state = null; pending = null; } return; }
+      if (!active) { observed = null; discordNames = {}; window?.dispose(); window = null; hud.dispose(); if (!deps.act) { state = null; pending = null; } return; }
       const where = deps.where();
       if (observed !== where && !busy && deps.act) {
         observed = where; busy = true;
-        deps.act({ op: 'read', txn: txnId(), where, buildingKey: deps.buildingKey() }).then((r) => {
-          if (r?.ok && !pending) { state = r.data.state; version = r.data.version; }
+        deps.act({ op: 'read', txn: txnId(), where, buildingKey: deps.buildingKey(), patrons: people().filter(deps.patron).slice(0, 24).map(id) }).then((r) => {
+          if (r?.ok && !pending && observed === where) { state = r.data.state; version = r.data.version; discordNames = r.data.discordNames ?? {}; }
         }).catch(() => {}).finally(() => { busy = false; });
       }
       if (live() && !blocked) hud.frame(state, name, busy); else hud.hide();
