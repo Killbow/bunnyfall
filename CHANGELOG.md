@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-18
 
+- The Overworld travel view now names the places you have explored: guild halls, and every shop, tavern or temple you have entered show their name over their roof, so you can find your way without waypoints. Places you have not visited stay unnamed, and they follow the Towns switch.
 - The territory map is reworked. Company territories now lie on the land only, sharing borders with their neighbours instead of overlapping circles over the sea, and your own Company's border glows gold. Rodney's blight drifts and creeps, with a glowing front where a territory holds it. Garrison marches are curved roads with arrows streaming from town to front. Hover a territory or the blight to see whose it is.
 - Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
 - Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.

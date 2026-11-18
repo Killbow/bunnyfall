@@ -1238,6 +1238,7 @@ import { siegeBlowKind, siegeCastClamp, siegeSpellNumbers, siegeSpellBarred, SIE
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
 import { createTravelViewMarks } from './travelViewMarks.js';   // HOST-SPLIT
+import { createBuildingNameMarks } from './buildingNameMarks.js';   // BUILDING-NAMES
 import { createSearchParty } from './searchPartyHost.js';   // HOST-SPLIT
 import { createPixelBuild } from './pixelBuild.js';   // HOST-SPLIT
 import { createTownProbes } from './townProbes.js';   // HOST-SPLIT
@@ -32128,6 +32129,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     return holder._tvAt;
   }
   const owForecast = createOverworldForecast({ climateAt, ground: mapGroundHere, minuteNow: () => playerTicker.classicMinutes, here: () => state.worldCoords(player.pos), alt: () => fieldXZ()[2], tvTrip, tvTripLive, travel: () => travelOptions, shared: sharedClockOn, rateNow: worldTimeScale, held: () => sunbaby.on });   // OW-FORECAST: the weather ahead (scenes/overworldForecastHost.js)
+  const buildingNames = createBuildingNameMarks({ buildings: () => modes?.buildingBoxes?.() ?? [], identify: (b) => modes?.buildingIdentity?.(b), locationOf: (k) => locationIndex.get(k) });   // BUILDING-NAMES: the found halls and shops on the Overworld (scenes/buildingNameMarks.js)
   const { travelViewMarks } = createTravelViewMarks({   // HOST-SPLIT: src/scenes/travelViewMarks.js
     TV_PLACE_LIFT, _bandChase, _bandSpent, _hiddenPeers, _lodesSensed, _peerMapPoses, _townOfMapId, _tvBountyHold,
     _tvLodeHold, _tvPartyHold, _tvVendorHold, _tvWaypointHold, _veils, _wildStrangerIds, bandMake, bandNowMs,
@@ -32140,6 +32142,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get gatherHost() { return gatherHost; },
     get livingRoads() { return livingRoads; },
     get merchantYards() { return merchantYards; },
+    get buildingNames() { return buildingNames; },
     get naval() { return naval; },
     get navalRaidersOn() { return navalRaidersOn; },
     get online() { return online; },
