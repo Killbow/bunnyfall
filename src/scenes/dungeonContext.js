@@ -8960,7 +8960,8 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       (dfLocation?.dungeon?.recordElement?.header?.unknown2 ?? 0) & 0xffff,
       dfLocation?.regionIndex ?? 0),
     drawList,
-    get staticBatch() {   // PERF5: merged and uploaded once, on the first frame that asks
+    // Merged and uploaded once, on the first read (the door transition reads it under the load screen).
+    get staticBatch() {
       if (!staticBuilt) { staticBuilt = true; const m = staticBuilder.finish(); staticBatch = m ? renderer.createMesh(m) : null; }
       return staticBatch;
     },

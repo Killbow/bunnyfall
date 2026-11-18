@@ -8965,6 +8965,8 @@ export function createWorldModes(host) {
       immersiveFootsteps.onTransitionInterior({ buildingType: interiorBuilding?.buildingType ?? null, materials: ctx.floorMaterials });   // IF1: UpdateFootsteps_OnTransitionInterior - the combined mesh's materials, first floor archive wins
       host.onTransitionInterior?.();   // CSA-C: Come Sail Away's OnTransition (PlayerEnterExit.OnTransitionInterior)
       betterAmbience.onTransition({ building: true });   // BA1: OnTransitionInterior - the fog off, the 2D rain source   // AUDIT 62 F16/F28: the lock never outlives a mode change - the foe pool and the coordinate frame both change here, and lockOn breaks only on death, a null chest or 32 m, none of which fire for a street foe you walked away from through a door (the interior is parented at the building's world matrix, so it stays metres away).
+      // The static batch merges and uploads here, under the load screen, rather than on the first drawn frame.
+      void ctx.staticBatch;
       console.log(`interior: ${ctx.drawList.length} draws, ${ctx.doors.length} doors, ${ctx.lights.length} lights, ${ctx.people.length} people`);
     } finally {
       if (!pre) transitioning = markInteriorLoad(false);   // the ring goes with the door, landed or not
@@ -10275,6 +10277,8 @@ export function createWorldModes(host) {
       npcSession?.onEnterDungeonInterior();   // TK-v: OnTransitionToDungeonInterior (:3611-3614)
       _hccLanded = true; host.horseCart?.()?.handleSuccessfulInteriorTransition({ type: 'ToDungeonInterior', dungeonId: dfLocation?.mapTableData?.mapId ?? null });   // HCC: OnTransitionDungeonInterior [IL_99ac] - the access id is this dungeon's
       host.onTransitionDungeonInterior?.(ctx);   // OH-D: the same event (:958, :1016), raised after the quest resources are added - the mods' handlers after TalkManager's
+      // The static batch merges and uploads here, under the load screen, rather than on the first drawn frame.
+      void ctx.staticBatch;
       console.log(`dungeon: ${ctx.drawList.length} draws, ${ctx.exitDoors.length} exit doors, ` +
         `${ctx.lights.length} lights, ${ctx.waterQuads.length} water, ${ctx.colliderTris} tris, ${ctx.enemies.length} enemies`);
     } finally {

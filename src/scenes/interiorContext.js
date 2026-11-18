@@ -946,7 +946,8 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   placeHold?.settle();   // FIELD BUGS 2026-10-04d PLACE-LRU: built - the keep of this building's last visit goes
   return {
     drawList,
-    get staticBatch() {   // PERF6: merged and uploaded once, on the first frame that asks
+    // Merged and uploaded once, on the first read (the door transition reads it under the load screen).
+    get staticBatch() {
       if (!staticBuilt) { staticBuilt = true; const m = staticBuilder.finish(); staticBatch = m ? renderer.createMesh(m) : null; }
       return staticBatch;
     },
