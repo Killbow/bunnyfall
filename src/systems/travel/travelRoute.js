@@ -38,6 +38,7 @@
 // the one layer is the law above, unchanged: the sea refused.
 // ═══════════════════════════════════════════════════════════════════
 import { DIR_DELTA, MAP_W, MAP_H } from '../../world/road/roadNetwork.js';
+import { inEtherLaw } from '../../world/ethericSea.js';
 
 /** What a step costs, by what it walks on. The open ground's 3.5 makes a road worth a detour of up to three and a half
  *  times its length - Travel Options' reckless (road) and cautious (open) multipliers are 1 and 0.8 by default, so the
@@ -340,6 +341,8 @@ class Heap {
  */
 export function planRoute(from, to, { roads = null, tracks = null, isWater = () => false, width = MAP_W, height = MAP_H, margins = ROUTE_MARGINS, maxExpansions = ROUTE_MAX_EXPANSIONS, openBlocked = null, goalExempt = true, peakAt = null, apart = null, sea = null } = {}) {
   if (!from || !to) return null;
+  // Only the crossing links the Eltheric Ocean and the Bay; a search across the gap exhausts memory.
+  if (inEtherLaw(from.x, from.y) !== inEtherLaw(to.x, to.y)) return null;
   if (from.x === to.x && from.y === to.y && !(sea && (sea.start === 'sea') !== (sea.goal === 'sea'))) return { pixels: [{ x: from.x, y: from.y }], cost: 0, kinds: [] };
   // AUDIT DEEP2 B-6: A ROUTE FOUND IN A BOX IS KEPT ONLY WHEN NONE OUTSIDE IT COULD BE CHEAPER. The ladder widened only
   // when a box held no route at all, so a road just past the first box lost to open ground inside it (6.6% of real
