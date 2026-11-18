@@ -1031,8 +1031,8 @@ import { personLook, personActor, figureLook } from '../characters/peopleBodies.
 import { houseLine } from '../net/houseLaw.js'; import { houseWord } from '../systems/legacy/houseName.js';   // LEGACY7 part three: the house a proposal comes from, on its prompt; LEGACY-NAME: a seat's house said once
 import { createDuelRecords, duelUncountedText } from '../net/duel/duelRecord.js';   // DUEL1: the Inspect card's duelling record, asked and kept
 import { createDuelPrompt } from '../ui/duelPrompt.js';   // DUEL1: the challenge, as the challenged player sees it
-import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../systems/wild/cromwarkBarrier.js';
-import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
+import { createWorldAddons } from './worldAddons.js';
+import { createCromwarkSealHost } from './cromwarkSealHost.js';
 import { createCromwarkBlight } from '../systems/wild/cromwarkBlight.js';
 import { CROMWARK_WARDKEEPER, cromwarkWardRole } from '../systems/wild/cromwarkWards.js';
 import { createCromwarkReachHost } from './cromwarkReachHost.js';
@@ -13844,7 +13844,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // can be moved by one system or another with swaying active" -
     // the sway does not ride a fast travel, a teleport or a load's
     // landing to the new place.
-    reachEvents.reset(); sealSafe = null;
+    reachEvents.reset(); sealHost.clearSafe();
     cameraRecoiler.reset();
     climbFeel.reset();   // AUDIT CLIMB-ARC F6: no climb's turn or cue rides a teleport
     // AUDIT CAPTAIN'S SEA G2/P7: a pixel this game does not stream lands where the world stands - before the helm's word
@@ -16063,7 +16063,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  its lists, the view itself, the spawns it was told of. They sat in applyPose past `if (!pose) return;`, so a save
    *  without a pose (an older envelope) loaded with the last run's chases still running, its rudder held, its "?"s. */
   function overworldLoadReset() {
-    reachEvents.reset(); sealSafe = null;
+    reachEvents.reset(); sealHost.clearSafe();
     tvRaid.chase.clear(); tvRaid.spent.clear(); tvRaid.list = []; tvRaid.at = -Infinity; tvRaid.peer.clear(); tvRaid.spentAt.length = 0;   // OWS3: no chase across a load; OW6: nor what the peers said, nor what I was saying
     csaJourneyHelm.held.clear(); csaJourneyHelm.row = false; tvSea.means = null; tvSea.phase = null; tvSea.boat = null; tvSea.wasLive = csaJourneyHelm.live = false;   // AUDIT OWS A1: nor a crossing's hand on the helm - a load into a dungeon's boat kept its rudder held
     tvPlates = { at: null, list: [] };   // AUDIT DEEP T2-4: the loaded character's discoveries - never the plates the last one knew
@@ -25663,46 +25663,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     gone: () => closeBrokerDoor(),   // midnight took her from under her open window: it is shut, and she says so
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Dusk Tokens, the Guild camp and Nyx
-  const citySeal = cromwarkSeal(locationIndex.get('823,35')?.exterior?.exteriorData);
-  let sealPass = null, sealPending = false, sealSafe = null, sealNoticeAt = -Infinity, sealGround = null;
-  function sealInScene() {
-    if (!citySeal) return null;
-    const t = state.pixelTranslation(CROMWARK_CITY.px, CROMWARK_CITY.py);
-    const x = t[0] + citySeal.x, z = t[2] + citySeal.z;
-    const ground = built.get('823,35')?.locOrigin?.[1];
-    if (Number.isFinite(ground)) sealGround = ground;
-    if (sealGround == null && woods) {
-      // Match the location builder's mean, not an unbuilt pixel's raw centre
-      // sample. Keep it when the city streams out and add current compensation.
-      const kernel = sampleKernel(woods,823,35,HEIGHTMAP_DIMENSION,true,landformsHere());
-      let sum = 0;
-      for (let ix=0; ix<HEIGHTMAP_DIMENSION; ix++) for(let iz=0; iz<HEIGHTMAP_DIMENSION; iz++) sum += Math.fround(kernel(ix,iz));
-      sealGround = sum/(HEIGHTMAP_DIMENSION*HEIGHTMAP_DIMENSION)*worldHeight+.05;
-    }
-    return { ...citySeal, x, z, y: (sealGround ?? 0) + t[1] };
-  }
-  function enforceCitySeal() {
-    if (sealPending) return true;
-    if (!CROMWARK_ON || !citySeal || !walkMode || !playerSpawned || !_bootLoaded || _loading || modes?.transitioning || _teleporting) { sealSafe = null; return false; }
-    const seal = sealInScene(), feet = player.feetAt();
-    const old = sealSafe ? state.localFromWorld(sealSafe.x, sealSafe.z) : null;
-    const previous = old ? [old[0], feet[1], old[1]] : null;
-    const indoors = _mode() !== 'exterior';
-    const blocked = indoors ? state.current.x === 823 && state.current.y === 35 : sealCrossed(seal, previous, feet);
-    if (!blocked) { sealSafe = indoors ? null : state.worldCoords(feet); return false; }
-    if (performance.now() - sealNoticeAt > 4000) {
-      sealNoticeAt = performance.now(); setMidScreenText('Cromwark is sealed. A dark force drives you back.');
-    }
-    if (!indoors && previous && Math.hypot(previous[0]-feet[0], previous[2]-feet[2]) < 80) {
-      player.spawn(previous[0], previous[1], previous[2]); cam.pos = player.eyeAt(); return false;
-    }
-    sealPending = true; sealSafe = null;
-    Promise.resolve().then(async () => {
-      modes?.forceExitToExterior();
-      await _teleportToPixel(823, 36, null, { grounded: true }); surfacePlayer();
-    }).catch(e => console.error('[cromwark] seal relocation failed', e)).finally(() => { sealPending = false; });
-    return true;
-  }
+  const worldAddons = createWorldAddons();
+  const sealHost = createCromwarkSealHost({
+    exteriorData: locationIndex.get('823,35')?.exterior?.exteriorData, state, built, worldHeight, landformsHere, player, cam, walkMode, renderer,
+    woods: () => woods, playerSpawned: () => playerSpawned, bootLoaded: () => _bootLoaded, loading: () => _loading,
+    teleporting: () => _teleporting, modes: () => modes, mode: _mode, teleportToPixel: _teleportToPixel, beacons: () => reachEvents.beacons(),
+  });
+  worldAddons.register(sealHost);
   const reachEvents = createCromwarkReachHost({
     blight: reachBlight, mask: wildMaskOf(maps), now: () => performance.now(), utc: () => Date.now(),
     ready: () => CROMWARK_ON && !params.has('nofoes') && walkMode && playerSpawned && _bootLoaded && !_loading && !_teleporting && !modes?.transitioning && _mode() === 'exterior' && !gamePaused() && wildZoneKind() === 'wroth',
@@ -25747,8 +25714,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     }
   };
   if (params.has('shot')) {
-    globalThis.__cromwarkBarrier = () => sealInScene();
-    globalThis.__cromwarkBarrierState = () => ({walkMode,playerSpawned,boot:_bootLoaded,loading:_loading,pending:sealPending,mode:_mode(),feet:player.feetAt(),pixel:{...state.current}});
+    globalThis.__cromwarkBarrier = () => sealHost.sealInScene();
+    globalThis.__cromwarkBarrierState = () => ({walkMode,playerSpawned,boot:_bootLoaded,loading:_loading,pending:sealHost.pending(),mode:_mode(),feet:player.feetAt(),pixel:{...state.current}});
     globalThis.__cromwarkReach = () => reachEvents.state();
   }
   const cromwark = createCromwarkHost({
@@ -32856,7 +32823,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // shipped; the HOSTS that drive it never did, and `world.js`
     // imported the door without ever calling it. A host that boots
     // after this one rebuilds the node on its first painted frame.
-    if (!frameAlive(_frameToken)) { farmingMode?.dispose(); destroyWorldPlaque(); return; }   // P0: a later boot or an unwind killed this loop (TV1: the travel view goes on its own heartbeat - scenes/travelView.js)
+    if (!frameAlive(_frameToken)) { farmingMode?.dispose(); destroyWorldPlaque(); worldAddons.dispose(); return; }   // P0: a later boot or an unwind killed this loop (TV1: the travel view goes on its own heartbeat - scenes/travelView.js)
     if (frameCapSkip(now)) { requestAnimationFrame(frame); return; }   // FPS-CAP1: held back to the Frame Rate Cap - no stamp, no input frame, `last` kept
     frameBegin(now); _canvasSize();   // PERF1: the script time (systems/frameClock.js)
     beginInputFrame(latch.edge); csaInputFrame();   // MWCROUCH; CSA-I: the position reading's window keys, rotated with the host's
@@ -32872,7 +32839,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
     const dt = Math.min(0.1, (now - last) / 1000);
-    if (enforceCitySeal()) { last = now; requestAnimationFrame(frame); return; }
+    if (worldAddons.preModal()) { last = now; requestAnimationFrame(frame); return; }
     farmingMode?.frame();
     // AUDIT 28 W7 + F-C1/F-C2 (self-audit 3): PlayerMouseLook.Update's
     // three answers - paused (:241-244) returns before ApplyLook and the
@@ -33549,7 +33516,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           down: crouchHeld || held(keys, 'FloatDown'),
           crouch: crouchPress,
         }, cam.yaw, cam.pitch);
-        enforceCitySeal();
+        worldAddons.run('postMotor');
         // TRAVEL-NAV1: the travel the motor was really asked for this frame - after the ground gate, and
         // nothing on a held or paralysed frame - which the steering's grinding check weighs next frame.
         travelNavFrame.asked = _travelDrive && !_overlayHeld && !_seasonHeld && !paralyzed
@@ -35678,14 +35645,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // DUEL1: THE RINGS' WALLS - my own duel's, rising in and dying away, and every duel the cells around me say stands
     // (each once: both duellists say it). After the grass, from the view's own eye (mwv.eye, the bolts' law), fogged as
     // the ground is; a foreign pass.
-    if (CROMWARK_ON && _mode() === 'exterior') {
-      const seal = sealInScene(), beacons = reachEvents.beacons();
-      const shapes = [...(seal ? [seal] : []), ...beacons];
-      for (const shape of shapes) if (Math.hypot(mwv.eye[0]-shape.x, mwv.eye[2]-shape.z)<shape.radius+6000) {
-        sealPass ??= new CromwarkSealRenderer(renderer.gl);
-        if (sealPass.draw(shape, proj, view, new Float32Array(mwv.eye), now/1000)) renderer.markForeignPass();
-      }
-    }
+    worldAddons.run('translucentDraw', proj, view, mwv.eye, now);
     if (duelWall) {
       const rings = duelRingsNow(dt);
       if (rings.length) {
