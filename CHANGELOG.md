@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-24
 
+- Fixed: Damage ranges on the Combat Stats page are now rounded to at most two decimal places instead of showing long decimal tails.
 - Fixed: Bench crafts with swapped parts, such as Lodestone as flux, now use your bag or pack instead of saying "Your Stores do not hold that many".
 - Fixed: The Company window's list of what each rank may do now shows that only the Captain and the Officers buy farms and animals and order workshops and improvements.
 - Fixed: The estate ledger on a farm now says which day the drover comes with animals for sale, or that he is there today.

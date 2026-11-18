@@ -50,6 +50,7 @@ const el = (tag, cls = null, text = null) => {
 const pct = (x) => `${Math.round(x * 100)}%`;
 const signedPct = (n) => `${signed(n)}%`;
 const one = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const num = (x) => String(Math.round(x * 100) / 100);
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // ── the page ────────────────────────────────────────────────────
@@ -110,10 +111,10 @@ export function buildStatsPage(entity, repaint, opts = {}) {
 
   // the five headline tiles
   const tiles = el('div', 'sf-tiles');
-  const dmgSub = s.crit.kind === 'damage' ? t('stats.damage.subCrit', 'avg {avg} \u00b7 crit {min}\u2013{max}', { avg: one(d.avg), min: d.critMin, max: d.critMax })
+  const dmgSub = s.crit.kind === 'damage' ? t('stats.damage.subCrit', 'avg {avg} \u00b7 crit {min}\u2013{max}', { avg: one(d.avg), min: num(d.critMin), max: num(d.critMax) })
     : t('stats.damage.sub', 'average {avg}', { avg: one(d.avg) });
   tiles.append(
-    tile(t('stats.damage', 'Damage'), d.min === d.max ? String(d.min) : `${d.min}\u2013${d.max}`, dmgSub,
+    tile(t('stats.damage', 'Damage'), d.min === d.max ? num(d.min) : `${num(d.min)}\u2013${num(d.max)}`, dmgSub,
       t('stats.damage.tip', 'Damage per hit with a sideways swing, before the foe\u2019s armor. The table below shows the other swings.'), 2),
     tile(t('stats.hitChance', 'Hit chance'), pct(head.hit), t('stats.hitChance.vs', 'vs {foe}', { foe: foe.label.toLowerCase() }),
       t('stats.hitChance.tip', 'The chance a swing lands, averaged over where it hits and your chance of a critical.'), 3),
@@ -142,7 +143,7 @@ export function buildStatsPage(entity, repaint, opts = {}) {
     const tr = el('div', `sf-tr${w.key === s.headlineKey ? ' on' : ''}`);
     const mods = t('stats.swings.mods', '{dmg} dmg, {hit}% hit', { dmg: signed(w.mods.damage), hit: signed(w.mods.toHit) });
     tr.title = t('stats.swings.rowTip', '{swing}: {mods}', { swing: w.label, mods });
-    tr.append(el('span', 'sf-name', w.label), el('span', null, `${m.dmg.min}\u2013${m.dmg.max}`), el('span', null, pct(m.hit)), el('span', null, one(m.perSwing)));
+    tr.append(el('span', 'sf-name', w.label), el('span', null, `${num(m.dmg.min)}\u2013${num(m.dmg.max)}`), el('span', null, pct(m.hit)), el('span', null, one(m.perSwing)));
     tbl.append(tr);
   });
   sw.append(tbl);
