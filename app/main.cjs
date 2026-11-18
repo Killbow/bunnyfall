@@ -1299,10 +1299,6 @@ function buildMenu() {
   if (process.platform !== 'darwin' && launcher && !launcher.win.isDestroyed()) launcher.win.removeMenu();
 }
 
-/** The game's window. `onShown` is the launcher's handover (DA8): the
- *  window is built hidden and shown at its FIRST PAINT, so there is never
- *  a blank window between the launcher and the game - and a first paint
- *  that never comes still shows it, after GAME_REVEAL_MS. */
 /** BUNNYFALL START-FULLSCREEN: whether the game window opens fullscreen - a View menu choice, kept beside the other
  *  shell files in the user data folder (window.json). A file that cannot be read or written is the windowed start. */
 const windowPrefsPath = () => path.join(app.getPath('userData'), 'window.json');
@@ -1335,15 +1331,21 @@ async function createWindow({ onShown = null } = {}) {
   });
   gameWindow = win;
   if (onShown) {
-    let shown = false;
+    let shown = false, painted = false, up = false;
+    const ceiling = setTimeout(() => reveal(), GAME_REVEAL_MS);
+    ceiling.unref?.();
     const reveal = () => {
       if (shown || win.isDestroyed()) return;
       shown = true;
+      clearTimeout(ceiling);
+      ipcMain.removeListener('dagger:game-up', gameUp);
       win.show();
       onShown();
     };
-    win.once('ready-to-show', reveal);
-    setTimeout(reveal, GAME_REVEAL_MS).unref?.();
+    const gameUp = (e) => { if (win.isDestroyed() || e.sender !== win.webContents) return; up = true; if (painted) reveal(); };
+    ipcMain.on('dagger:game-up', gameUp);
+    win.once('ready-to-show', () => { painted = true; if (up) reveal(); });
+    win.once('closed', () => { clearTimeout(ceiling); ipcMain.removeListener('dagger:game-up', gameUp); });
   }
   buildMenu();
   win.webContents.on('did-start-loading', invalidateArena2Names);
@@ -1431,17 +1433,10 @@ async function createWindow({ onShown = null } = {}) {
 }
 
 // ---- the launcher (DA8, DA10) -------------------------------------
-// The shell's FIRST window (app/launcher/, drawn from
-// lib/launcherState.cjs). DA8 made it a splash: it checked for an update
-// and installed it before play where this copy can, found the player's
-// Daggerfall files on first run (DA9), and handed over by itself. DA10
-// made it the game's front door: it stays on every launch until the
-// player presses Play - the patch notes as its news, the update in its
-// status bar, the player's own doors (game files, saves, the update
-// check, a reinstall) beside them - and hands over to the game's window
-// at its first paint. It is SANDBOXED and its bridge has two words
-// (launcherPreload.cjs); every action it can ask for is named in the
-// switch below, and every link it can open is named here.
+// The launcher is the shell's first window (app/launcher/, state in lib/launcherState.cjs). It checks for updates,
+// finds the player's Daggerfall files on first run, and stays until the player presses Play.
+// It hands over to the game window when that window shows. It is sandboxed, and its bridge (launcherPreload.cjs)
+// has two calls. Every action it can ask for is named in the switch below, and every link it can open is named here.
 const LAUNCHER_LINKS = Object.freeze({
   steam: 'https://store.steampowered.com/app/1812390/',
   gog: 'https://www.gog.com/game/the_elder_scrolls_chapter_ii_daggerfall',
@@ -1653,10 +1648,9 @@ async function reinstallFromLauncher() {
   if (goesAhead(response)) shell.openExternal(ownDownloadUrl());
 }
 
-/** The handover: the game's window is built hidden, and at its first paint
- *  it shows and the launcher closes - in that order, so the app is never
- *  without a window (window-all-closed would quit it). The version is
- *  kept as the one last played: the next launch marks what came since. */
+/** The game window is built hidden and shows after its first paint and dagger:game-up, or at GAME_REVEAL_MS.
+ *  The launcher closes after that, so the app always has a window (window-all-closed would quit it).
+ *  The version is saved as the last played one, so the next launch can mark what came since. */
 function launchGame() {
   launcherDispatch({ type: 'launching' });
   saveConfig({ ...loadConfig(), lastPlayed: gameVersion() });   // DA13: the game's version, the channel's or the install's
