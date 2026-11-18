@@ -90,14 +90,14 @@ export const GRANT_CHAMPION_TRAITS = 5;
  *    star    - STAR-TUNE: a fallen star's coven (scenes/starfall/starfallHost.js stand): its law's largest wave in one
  *              grant (net/starfall/starfallLaw.js STAR_WAVE_MAX, held equal by the test); a star's waves, its master and
  *              its circle's two calls asked within the burst, a breath's ten seconds a token. The open country's alone.
- *  enc's, camp's and star's `max` are held equal to their homes by the test; the rest are bounds. */
+ *  enc's and star's maxima match their homes. Camps share a bound large enough for Cromwark. */
 export const GRANT_KINDS = Object.freeze({
   enc: Object.freeze({ max: 4, rate: 1 / 60, cap: 6, hostile: true }),
-  camp: Object.freeze({ max: 8, rate: 1 / 20, cap: 9, hostile: true }),
+  camp: Object.freeze({ max: 25, rate: 1 / 20, cap: 9, hostile: true }),
   band: Object.freeze({ max: 24, rate: 1 / 30, cap: 6, hostile: true }),
   bounty: Object.freeze({ max: 8, rate: 1 / 60, cap: 4, hostile: true }),
   loose: Object.freeze({ max: 12, rate: 1 / 10, cap: 12, hostile: true }),
-  site: Object.freeze({ max: 9, rate: 1 / 20, cap: 8, hostile: true }),
+  site: Object.freeze({ max: 25, rate: 1 / 20, cap: 8, hostile: true }),
   managed: Object.freeze({ max: 8, rate: 1 / 5, cap: 16, hostile: true }),
   giant: Object.freeze({ max: 10, rate: 1 / 120, cap: 2, hostile: true }),
   rev: Object.freeze({ max: 4, rate: 1 / 60, cap: 4, hostile: true }),

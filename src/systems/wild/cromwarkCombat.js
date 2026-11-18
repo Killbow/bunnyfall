@@ -1,6 +1,6 @@
 // @ts-check
 import { cromwarkProfile } from './cromwarkRoster.js';
-import { cromwarkPattern, inCromwarkMark, shotPosition, shotHits } from './cromwarkPatterns.js';
+import { cromwarkPattern, inCromwarkMark, shotPosition, shotHits, CROMWARK_ORB_RADIUS } from './cromwarkPatterns.js';
 import { fitBlowToGround } from '../../ai/foeBlows.js';
 
 /** One local player judges their own capsule against every owner's cast, including
@@ -132,10 +132,10 @@ export function createCromwarkCombat({ collider, hurt, impact, renderer, getText
     if (bullets.length) uploadRecordFrame(9947, 0, 0);
     // Reuse allocated batches. One small sprite per projectile; the maximum is bounded by the pressure budget.
     while (batches.length < bullets.length) {
-      const b = renderer.createBillboardBatch(9947, '0#0', { w: .44, h: .44 }, [[0, 0, 0]]);
+      const b = renderer.createBillboardBatch(9947, '0#0', { w: 2 * CROMWARK_ORB_RADIUS, h: 2 * CROMWARK_ORB_RADIUS }, [[0, 0, 0]]);
       b.noShadow = true; batches.push(b);
     }
-    for (let i = 0; i < bullets.length; i++) batches[i].origin = [bullets[i][0], bullets[i][1] - .22, bullets[i][2]];
+    for (let i = 0; i < bullets.length; i++) batches[i].origin = [bullets[i][0], bullets[i][1] - CROMWARK_ORB_RADIUS, bullets[i][2]];
     return batches.slice(0, bullets.length);
   }
   function offset(delta) {

@@ -3,6 +3,9 @@
 // Marks are both the renderer's shapes and the collision shapes, in metres/seconds.
 import { cromwarkProfile } from './cromwarkRoster.js';
 const TAU = Math.PI * 2;
+const ATTACK_TIME = .8;
+const HIT_AREA = 1.25;
+export const CROMWARK_ORB_RADIUS = .22 * HIT_AREA;
 export function cromwarkPattern(id, origin, yaw, serial = 0, elite = false, aimDistance = 6) {
   const p = cromwarkProfile(id), marks = [], shots = [];
   const point = (r, a) => [origin[0] + Math.sin(a) * r, origin[1], origin[2] + Math.cos(a) * r];
@@ -19,7 +22,7 @@ export function cromwarkPattern(id, origin, yaw, serial = 0, elite = false, aimD
       for (let wave = 0; wave < 3; wave++) for (let i = 0; i < n; i++) {
         // Even spacing and a consistent gap between each pair, including at melee range.
         const a = yaw + i * TAU / n + wave * Math.PI / n;
-        shots.push({ origin: point(1.8, a), yaw: a, start: 1.25 + wave * .75, speed: 3.2, life: 4.5, r: .22, damage: .045 });
+        shots.push({ origin: point(1.8, a), yaw: a, start: 1.25 + wave * .75, speed: 3.2, life: 4.5, r: CROMWARK_ORB_RADIUS, damage: .045 });
       }
       break;
     }
@@ -57,7 +60,20 @@ export function cromwarkPattern(id, origin, yaw, serial = 0, elite = false, aimD
       if (elite || serial % 2 === 0) disc(point(Math.max(2, aimDistance - 4), yaw), 2.8, 3, .09, { slow: true });
       break;
   }
-  for (const m of marks) { m.color = p.color; m.duration = m.dash ? .3 : .24; }
+  for (const m of marks) {
+    m.color = p.color;
+    m.start = Math.max(0, m.start * ATTACK_TIME);
+    m.land *= ATTACK_TIME;
+    m.duration = m.dash ? .3 : .24;
+    if (m.kind === 'ring') m.dim.rOut *= HIT_AREA;
+    else if (m.kind === 'slam') m.dim.r *= HIT_AREA;
+    else m.dim.halfW *= HIT_AREA;
+  }
+  for (const s of shots) {
+    s.start *= ATTACK_TIME;
+    s.speed *= 1.4;
+    s.life *= ATTACK_TIME;
+  }
   return { marks, shots, duration: Math.max(0, ...marks.map((m) => m.land + m.duration), ...shots.map((s) => s.start + s.life)) + .8 };
 }
 

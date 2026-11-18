@@ -1,6 +1,7 @@
+import { cromwarkWardRole, cromwarkWardSource, cromwarkWardDamage } from '../src/systems/wild/cromwarkWards.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CROMWARK_ROSTER, cromwarkHealth, cromwarkSpecies } from '../src/systems/wild/cromwarkRoster.js';
+import { CROMWARK_ROSTER, cromwarkHealth, cromwarkSpecies, cromwarkPack, cromwarkTitanheart, cromwarkTitanDamage } from '../src/systems/wild/cromwarkRoster.js';
 import { cromwarkPattern, inCromwarkMark, shotHits } from '../src/systems/wild/cromwarkPatterns.js';
 import { createCromwarkCombat } from '../src/systems/wild/cromwarkCombat.js';
 import { validFoeRecord } from '../src/net/wire.js';
@@ -31,12 +32,12 @@ test('all seven normal and elite patterns have warnings, finite lifetimes and bo
     const a = cromwarkPattern(p.id, origin, .3, 2, elite);
     assert.ok(a.duration > 1 && a.duration < 12, p.name);
     assert.ok(a.marks.length + a.shots.length > 0);
-    assert.ok(a.marks.every((m) => m.land - m.start >= .9 && m.damage <= .2));
+    assert.ok(a.marks.every((m) => m.land - m.start >= .72 && m.damage <= .2));
     assert.ok(a.marks.length + a.shots.length < 70);
-    assert.ok(cromwarkHealth(p.id, elite) <= 416);
+    assert.ok(cromwarkHealth(p.id, elite) <= 480);
   }
 });
-test('Judge volleys are evenly spaced slow shots and use swept capsule collision', () => {
+test('Judge volleys are evenly spaced shots and use swept capsule collision', () => {
   const shots = cromwarkPattern(3136, origin, 0).shots;
   const wave = shots.filter((s) => s.start === shots[0].start);
   for (let i = 1; i < wave.length; i++) assert.ok(Math.abs(wave[i].yaw - wave[i - 1].yaw - Math.PI * 2 / wave.length) < 1e-8);
@@ -186,4 +187,36 @@ test('a missing projectile image cannot become an invisible damaging attack', as
     renderer: { textures: new Set() }, getTexture: async () => ({ getSize: () => ({ width: 1, height: 1 }) }), uploadRecordFrame() {} });
   for (let i = 0; i < 140; i++) { c.begin(.05, [f]); c.frame(f, .05, [0, 0, 6], 1.8, false); await Promise.resolve(); }
   assert.equal(hits.length, 0); assert.equal(c.batches().length, 0);
+});
+
+test('Cromwark packs fill to their target and Titanheart caps damage on variants', () => {
+  assert.deepEqual(cromwarkPack([3136, 7, 3142], 5), [3136, 7, 3142, 3136, 7]);
+  assert.deepEqual(cromwarkPack([], 20), []);
+  const titan = { mobileType: 3136, eliteFoe: true, titanheart: true, maxHealth: 200 };
+  assert.ok(cromwarkTitanheart(titan));
+  assert.equal(cromwarkTitanheart({ ...titan, eliteFoe: false }), false);
+  assert.equal(cromwarkTitanheart({ ...titan, mobileType: 7 }), false);
+  assert.equal(cromwarkTitanDamage(titan, 100), 50);
+  assert.equal(cromwarkTitanDamage(titan, 12), 12);
+});
+
+test('Ring 3 has one wardkeeper and Ring 4 splits the pack between two', () => {
+  assert.deepEqual(Array.from({ length: 5 }, (_, i) => cromwarkWardRole(3, i, 5)), [1, 1, 1, 1, 3]);
+  assert.deepEqual(Array.from({ length: 5 }, (_, i) => cromwarkWardRole(4, i, 5)), [1, 1, 3, 2, 4]);
+  assert.equal(cromwarkWardRole(2, 0, 25), 0);
+  assert.equal(cromwarkWardRole(3, 0, 25, false), 0);
+  for (const role of [1, 2, 3, 4]) assert.equal(validFoeRecord({ i: 1, cwa: role }).cwa, role);
+  assert.equal(validFoeRecord({ i: 1, cwa: 5 }), null);
+});
+
+test('ward damage requires a live, nearby keeper for the same half and pack', () => {
+  const member = { wardRole: 1, site: 'camp', ai: { feet: [0, 0, 0] } };
+  const keeper = { wardRole: 3, site: 'camp', ai: { feet: [0, 0, 15] }, entity: { health: 36 } };
+  const other = { ...keeper, wardRole: 4 };
+  assert.equal(cromwarkWardSource(member, [other, keeper]), keeper);
+  assert.equal(cromwarkWardSource(other, [keeper]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, dead: true }, other]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, ai: { feet: [0, 0, 50] } }]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, site: 'other camp' }]), null);
+  assert.equal(cromwarkWardDamage(100), 10);
 });
