@@ -514,6 +514,7 @@ import { markFoeStruck } from '../ui/hud/hudFoeTarget.js';   // DUEL1: my duel o
 import { lowerCondition, dfuBlowWear } from '../systems/equip.js';   // DUEL1: my weapon wears on a blow that landed on my opponent; BALANCE1: on the port's wear scale
 import { reportPlayerAttack, registerAttackResolutionListener } from '../combat/formulas.js';   // DUEL1: the defender's answer, on my HUD's damage numbers
 import { worldHoverFrame, hideWorldPlaque, destroyWorldPlaque, worldPlaqueOn, reticleAnchor } from '../ui/worldPlaque.js';   // WORLD-HOVER: the one seam each host calls, its hide door for the branches that return above it, and the teardown
+import { createWorldHoverTargets } from '../ui/worldHoverTargets.js';
 import { TV_DUNGEON_MODELS_MAX } from '../systems/travel/travelDungeonModels.js';   // OW-DUNGEONS: each dungeon's own model, grown under the Overworld; TV-BURST: started one a frame
 import { keysHeading, axesToward, tvOwnGrow } from '../player/travelCamera.js';   // OW-FACE: the body faces the keys' way under the Overworld; OW-PEERS: the others grown as the traveller is
 import { createTravelView, TV_MOVE_ACTIONS, TRAVEL_VIEW_TEXT, travelViewLine, travelTripLine, travelWalkRate, shipPassageRows } from './travelView.js';   // TV1: the travel view (bible/06-Systems/Travel-View.md) - the raised eye, its input and its ways out
@@ -25732,6 +25733,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     boardReady: () => walkMode && playerSpawned && !gamePaused(),   // BUNNYFALL: the realm's notices wait for the world (ui/worldEventsBoard.js)
     audio, shake: (k) => betterAmbience.weaponKick(k),   // BUNNYFALL: the Great Cannon's boom and its shake (scenes/cannonHost.js)
   });
+  const hoverPicks = createWorldHoverTargets({
+    cityGuards, exteriorFoes, dwLootTargets, droppedTorches, hcc, camps, reachEvents, yards, springTargets, gatePool, riteHost,
+    sigilBroker, cromwark, csaActivationPick, collider, hoverPersonPick: _hoverPersonPick, hoverPeerPick: _hoverPeerPick,
+    modes: () => modes,
+  });
   // BUNNYFALL COMPANIES (systems/companyTerritory.js): every Company's territory, painted on the held map and worth
   // +10% gathering and loot gold to a member standing in their own. Online only.
   companyTerritory = createCompanyTerritory({
@@ -35972,25 +35978,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           // working; it does not keep the panel readable.
           cursorActive: gamePaused() || pointerSurfaces.size > 0 || !!tvf,   // TV1: the travel view frees the cursor - no crosshair, nothing named under it
           // PROF-MENU: the profession node the press would take, over the race's own winner (gatherHost.hoverHit)
-          pick: () => profHoverOver(modes.exteriorHoverPick(cam.pos, _hd, {
-            corpse: pickActivatableHit(cam.pos, _hd, [...cityGuards.lootTargets(), ...exteriorFoes.lootTargets()], collider),
-            pile: pickActivatableHit(cam.pos, _hd, dwLootTargets(), collider),
-            torch: pickActivatableHit(cam.pos, _hd, droppedTorches.targets(), collider),
-            wagon: pickActivatableHit(cam.pos, _hd, mwViewWagonTargets(RAY_DISTANCE), collider),
-            horseCart: pickActivatableHit(cam.pos, _hd, hcc.targets(), collider),   // HCC
-            camp: pickActivatableHit(cam.pos, _hd, [...camps.targets(), ...reachEvents.fireTargets(), ...(yards?.targets() ?? [])], collider),
-            water: pickActivatableHit(cam.pos, _hd, springTargets(), collider),
-            gate: gatePool ? pickActivatableHit(cam.pos, _hd, [...gatePool.targets(), ...(riteHost?.targets() ?? [])], collider) : null,   // WB2; WB12d: the casket
-            broker: pickActivatableHit(cam.pos, _hd, [...(sigilBroker?.targets() ?? []), ...cromwark.targets()], collider),   // SET7; BUNNYFALL: Nyx
-            boat: csaActivationPick(cam.pos, _hd),   // CSA-D
-            // WORLD-HOVER H2: the two the PRESS races in its own arms
-            // above raceActivation - a live foe and a walking
-            // townsperson. Without them the plaque named the shopfront
-            // behind whoever was standing in front of it.
-            foe: ((ft) => peacefulFoePass(pickActivatableHit(cam.pos, _hd, ft, collider), ft, () => modes.exteriorActivationDistance(cam.pos, _hd), getInteractionMode()))([...exteriorFoes.liveTargets(), ...cityGuards.liveTargets()]),   // TACT3d: a peaceful guard in front of a door is no hit
-            person: _hoverPersonPick(cam.pos, _hd),
-            peer: _hoverPeerPick(cam.pos, _hd),   // PEER-PLAQUE1: another player, raced as the F key picks them
-          })),
+          pick: () => profHoverOver(modes.exteriorHoverPick(cam.pos, _hd, hoverPicks(cam.pos, _hd))),
           name: (key) => modes.exteriorHoverName(key, { eye: cam.pos, dir: _hd, names: _hoverNamers, modNames: _hoverModNamers }),
           contents: _hoverContents,
         });
