@@ -61,3 +61,9 @@ export function eliteDungeonTipAt(list, mx, my, today) {
   }
   return null;
 }
+
+/** The travel map's rings (ui/travel/travelMapWindow.js, the bounty circle's law - ui/bounty/bountyMapMark.js): each elite
+ *  dungeon a violet circle about its pixel, as wide as its spread (never under ED_TRAVEL_RING_MIN). */
+export const ED_TRAVEL_RING_MIN = 1.6;
+export const ED_TRAVEL_RGB = Object.freeze([176, 92, 255]);
+export const eliteDungeonRings = (/** @type {any[]} */ list) => (list ?? []).map((e) => ({ cx: e.px + 0.5, cy: e.py + 0.5, r: Math.max(ED_TRAVEL_RING_MIN, e.spread || 0), label: e.name || 'Elite dungeon' }));
