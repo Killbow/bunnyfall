@@ -354,7 +354,7 @@ const REFUSAL_WORDS = {
   // HOME-LOOK: an online home's outside (server-account/src/homes.js setHomeLook)
   'bad-look': () => t('account.refusal.badLook', 'The account service could not read that look. The game may need updating.'),
   // DECOR1: an online home's decor (server-account/src/decor.js)
-  'camps-max': () => t('account.refusal.campsMax', 'You already keep {max} camps. Pack one up first.', { max: CAMPS_MAX }),   // BUNNYFALL CAMPS
+  'camps-max': () => t('account.refusal.campsMax', 'You already keep {max} camps. Pack one up first - find them under Holdings > Camps.', { max: CAMPS_MAX }),   // BUNNYFALL CAMPS
   'camp-too-near': () => t('account.refusal.campTooNear', 'Another camp is too close. Pitch further away to keep it.'),
   'camp-full': () => t('account.refusal.campFull', 'Your camp already holds {max} pieces.', { max: CAMP_CAP }),
   'no-camp': () => t('account.refusal.noCamp', 'That camp is gone.'),
@@ -2249,6 +2249,7 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
     // BUNNYFALL CAMPS (server-account/src/camps.js): the camps round a pixel, a kit's camp pitched and struck, its pieces
     campsNear: (px, py) => waited('/v1/camps/near', { px, py }),
+    campsMine: () => waited('/v1/camps/mine', {}),   // HOLDINGS: my own camps, wherever they stand
     campPitch: ({ character, rec, px, py, at, yaw }) => post('/v1/camps/pitch', { character, rec, px, py, at, yaw }),
     campStrike: (id) => post('/v1/camps/strike', { id }),
     campRename: (id, name) => post('/v1/camps/rename', { id, name }),

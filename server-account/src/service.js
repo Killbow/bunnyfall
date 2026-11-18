@@ -198,6 +198,7 @@ export const REPLICA_ROUTES = new Map([
   ['/v1/homes/rooms', 'POST'],
   ['/v1/homes/decor', 'POST'],
   ['/v1/camps/near', 'POST'],   // BUNNYFALL CAMPS: the camps round a pixel
+  ['/v1/camps/mine', 'POST'],   // BUNNYFALL CAMPS: my own camps, wherever they stand (the Holdings page)
   ['/v1/prof/pixels', 'POST'],
   ['/v1/market/vendors', 'POST'],
   ['/v1/marks/balance', 'POST'],
@@ -495,7 +496,7 @@ export const ROUTES = new Set([
   // An owner's decorators and their templates (decorators.js, decoratorDrafts.js, caravanTemplates.js)
   '/v1/homes/decorators', '/v1/homes/decor/draft', '/v1/homes/decor/accept', '/v1/homes/caravan/decorators', '/v1/homes/caravan/templates',
   // BUNNYFALL CAMPS (camps.js): a player's camp in the open world - read by every session, the rest its owner's
-  '/v1/camps/near', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove',
+  '/v1/camps/near', '/v1/camps/mine', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove',
   // HOME-RENT: a home's rooms (rent.js) - read by every session at its door; offered and withdrawn by its owner, rented by
   // another player's realm character, the rent collected by the owner
   '/v1/homes/rooms', '/v1/homes/rooms/offer', '/v1/homes/rooms/withdraw', '/v1/homes/rooms/rent', '/v1/homes/rooms/collect',

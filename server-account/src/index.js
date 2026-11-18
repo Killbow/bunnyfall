@@ -1836,7 +1836,7 @@ const service = {
           const r = await decorOf(ctx, who.player, body);
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }
-        if (path === '/v1/camps/near') {   // BUNNYFALL CAMPS: the camps round a pixel, every session's to read
+        if (path === '/v1/camps/near' || path === '/v1/camps/mine') {   // BUNNYFALL CAMPS: the camps round a pixel, every session's to read - and the asker's own, wherever they stand (HOLDINGS)
           const r = await campRoute(ctx, who.player, path, body);
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }

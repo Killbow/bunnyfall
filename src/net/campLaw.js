@@ -101,6 +101,9 @@ export function campDistance(a, b) {
   return Math.hypot(dx, dz);
 }
 
+/** A camp's fire as a point of the held map - map pixels, floats, the unit the waypoints keep (systems/map/mapWaypoints.js). */
+export const campMapPoint = (c) => ({ mx: c.px + c.at[0] / CAMP_PIXEL_M, my: c.py + 1 - c.at[2] / CAMP_PIXEL_M });
+
 /** A camp as a read answers it, projected: `{ id, name, owner, mine, px, py, at, yaw, rec, char, pieces }`, or null (`rec`
  *  and `char` - the kit's record and the character who pitched it - are said to the owner alone). */
 export function campOf(raw) {

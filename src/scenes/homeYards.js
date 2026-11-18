@@ -74,6 +74,7 @@ import { homeOutsideKept, homeYardWhere, homeCandidate } from '../systems/online
 import { homeDecorShown } from '../net/homeVoteLaw.js';
 import { homeDecorSeenByMe } from '../systems/online/homeDecorHide.js';   // DECOR-HIDE   // HOME-VOTE: a shunned home's yard stands for its insiders alone
 import { createYardNature, isNaturePiece, yardNatureFlat, yardTreeSet } from './yardNature.js';   // DECOR-OUTDOOR: a yard's trees and plants, in its town's season; DECOR-LPT: as Low Poly Trees' own
+import { campsWhereWords } from '../ui/campsPage.js';   // HOLDINGS: the limit's refusal names the camps kept
 import { CAMP_CAP, CAMP_RADIUS, CAMP_PIXEL_M, campOf, campKitPieces } from '../net/campLaw.js';   // BUNNYFALL CAMPS: a kit's camp, kept and furnished
 import { CAMP_KIND } from '../systems/survival/camp.js';
 import { remapSubMeshes } from '../world/texRemap.js';   // DECOR-OUTDOOR: a yard's models in its town's climate
@@ -687,7 +688,11 @@ export function createHomeYards(deps) {
           return;
         }
         campRefused.set(r.id, now());
-        if (res?.error && res.error !== 'homes-need-account' && res.error !== 'offline') deps.say?.(`Your tent stands, but it will not stay as a camp. ${deps.refusal?.(res.error) ?? ''}`.trim());
+        if (res?.error && res.error !== 'homes-need-account' && res.error !== 'offline') {
+          const said = (extra) => deps.say?.(`Your tent stands, but it will not stay as a camp. ${deps.refusal?.(res.error) ?? ''} ${extra}`.trim());
+          if (res.error === 'camps-max') campsWhereWords().then(said, () => said(''));   // HOLDINGS: and where the others stand
+          else said('');
+        }
       }, () => {}).finally(() => { campAsking.delete(r.id); });
     }
     for (const c of mine) {
