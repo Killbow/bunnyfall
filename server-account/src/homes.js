@@ -71,6 +71,7 @@ import { LAYOUT_MATCH_SQL, layoutMatchBinds, TOWN_LAYOUT_SQL, townLayoutRefusal 
 const homeOf = (row) => ({
   mapId: row.map_id, buildingKey: row.building_key, region: row.region, character: row.char_id,
   entry: row.entry, price: row.price, boughtAt: row.bought_at,
+  ...(row.title ? { title: String(row.title) } : {}),   // BARDS' GUILD: a home renamed with Favor (bardServices.js)
   ...(row.layout ? { layout: row.layout } : {}),   // WD3: the layout the town keeps - none where it is Daggerfall's own
   ...(row.deed === 1 ? { deed: true } : {}),   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held (holdDeed), never bought
 });
@@ -465,7 +466,7 @@ function townRead(db, nowS, player, mapId, character, seats) {
   const me = typeof character === 'string' && CHAR_ID_RE.test(character) ? character : '';
   // GUILD1d: a hall's guild (its name, tag and heraldry) and the named character's rank in it; a home whose owner opened
   // it to their guild, whether the named character is in that guild with them
-  const homesRead = db.prepare(`SELECT h.building_key, h.player, h.char_id, h.owner_name, h.entry, h.paid, h.rent_due, h.look, h.guild_id, h.deed, h.score,
+  const homesRead = db.prepare(`SELECT h.building_key, h.player, h.char_id, h.owner_name, h.entry, h.paid, h.rent_due, h.look, h.title, h.guild_id, h.deed, h.score,
       g.name AS guild_name, g.tag AS guild_tag, g.heraldry AS guild_heraldry,
       (SELECT COUNT(*) FROM home_rooms r WHERE r.map_id = h.map_id AND r.building_key = h.building_key AND r.listed = 1 AND (r.tenant IS NULL OR r.until <= ?1)) AS vacant,
       (SELECT MIN(r.price) FROM home_rooms r WHERE r.map_id = h.map_id AND r.building_key = h.building_key AND r.listed = 1 AND (r.tenant IS NULL OR r.until <= ?1)) AS rent_from,
@@ -530,7 +531,7 @@ function townRead(db, nowS, player, mapId, character, seats) {
       // them sells the account's home)
       const sale = mine && !deedRow && !crossed && Number(h.me_realm) === 1 ? { ...realmSaleOf(h), ...(Number(h.rent_due) > 0 ? { rentDue: Number(h.rent_due) } : {}) } : {};
       return {
-        buildingKey: h.building_key, owner: h.owner_name, entry: open && !mine ? 'public' : h.entry, mine, ...(mine ? { character: h.char_id } : {}), ...(crossed ? { crossed } : {}),
+        buildingKey: h.building_key, owner: h.owner_name, ...(h.title ? { title: String(h.title) } : {}), entry: open && !mine ? 'public' : h.entry, mine, ...(mine ? { character: h.char_id } : {}), ...(crossed ? { crossed } : {}),
         ...sale,
         ...(Number(h.vacant) > 0 ? { rent: { vacant: Number(h.vacant), from: Number(h.rent_from) } } : {}),
         ...(Number.isSafeInteger(h.tenancy) && h.tenancy > nowS ? { tenant: h.tenancy } : {}),
@@ -660,7 +661,7 @@ export async function homeLayoutsKept(ctx) {
 /** Every column of a home's row the move carries to the new key, beside the key itself and the hall's guild (set after
  *  the old row goes) - pinned against the table's own columns (test/net/arena4b_homes.test.js), so a column added to `homes`
  *  later is carried or the pin says why not. */
-export const HOME_MOVE_CARRIED = Object.freeze(['player', 'char_id', 'owner_name', 'region', 'entry', 'price', 'bought_at', 'paid', 'rent_due', 'look', 'layout', 'deed']);   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's hold stays one (none stands in the cell: holdDeed refuses it)
+export const HOME_MOVE_CARRIED = Object.freeze(['player', 'char_id', 'owner_name', 'region', 'entry', 'price', 'bought_at', 'paid', 'rent_due', 'look', 'title', 'layout', 'deed']);   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed's hold stays one (none stands in the cell: holdDeed refuses it)
 /** The most moves one read of a character's lists. */
 export const HOME_MOVES_MAX = 16;
 

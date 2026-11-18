@@ -90,7 +90,7 @@ import {
 } from '../../src/net/marketLaw.js';
 import { MASTERWORK, PROVENANCE_RE } from '../../src/net/recipeLaw.js';
 import { mintVersionOf, masterLinesOf } from '../../src/net/productRecord.js';   // CRAFT-PROCS: a piece's mint version, its record's; MASTER-ART: a Master's lines
-import { takeTradeGoods, giveTradeGoods } from '../../src/net/realm/realmTradeLaw.js';   // MARKET-ANY: a piece out of one record and into another, as a trade moves it
+import { takeTradeGoods, giveTradeGoods, recordCount } from '../../src/net/realm/realmTradeLaw.js';   // MARKET-ANY: a piece out of one record and into another, as a trade moves it
 import { prepareCraftedPiece, pieceComingBack } from './craftedPiece.js';   // INT19: a crafted piece out of its seller's record, and back as it
 import { vendorOf, VENDOR_STATION, VENDOR_LISTING_S, VENDOR_STOCK_SHOWN, VENDOR_STOCK_MAX, VENDOR_BOARD_SHOWN } from '../../src/net/vendorLaw.js';   // HOME-VENDOR: a home's trader
 import { tradeActStatements, patronActStatements } from './townEcon.js';   // TOWN-ECON TE2: a trader's sale and a patron's, counted at their town
@@ -205,6 +205,14 @@ const pieceOf = (p, wear) => (p ? {
  *  deleted), its disenchant's (prof_disenchants.provenance is UNIQUE: one look-up). `a` the auction, `p` its row. */
 const GONE_RECIPE_SQL = 'COALESCE(p.recipe, (SELECT recipe FROM prof_disenchants WHERE provenance = a.provenance)) AS recipe';
 /** MARKET-ANY: a piece from a pack, as its listing or its delivery carries it - its record, or null. */
+/** TRADER STACKS: whether a trader's listing sells its stack by the unit - its `own` is the count of the stack it carries
+ *  (`item.stackCount`), more than one. A listing from before (one unit, whatever the stack it holds) sells whole, as it did. */
+const stackedListing = (l) => {
+  if (l.kind !== 'item' || l.vendor_id == null) return false;   // a board's listing is one lot at its price, as it was
+  const left = Number(l.own) + Number(l.bought);
+  const it = goodOf(l.item);
+  return left > 1 && !!it && recordCount(it) === left;
+};
 const goodOf = (text) => {
   let v = null;
   try { v = typeof text === 'string' ? JSON.parse(text) : null; } catch { v = null; }
@@ -1160,6 +1168,10 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
   if (currency !== 'gold') return { error: 'market-goods-gold' };   // law 3: what a save holds never becomes Drakes
   if (!Number.isSafeInteger(pick) || pick < 0) return { error: 'bad-act' };
   if (goodRefusal(item)) return { error: 'market-not-good' };
+  // TRADER STACKS: a stack put up at a trader lists by the unit - `item.stackCount` units at `price` each (a piece alone is
+  // one). A board's listing stays one lot at its price.
+  const count = vend ? recordCount(item) : 1;
+  if (!unitsOk(count) || count * price > MARKET_WORTH_MAX) return { error: 'bad-price' };
   if (typeof item.provenance === 'string') {
     const p = await db.prepare('SELECT owner, bought_with FROM products WHERE provenance = ?1').bind(item.provenance).first();
     if (p?.owner === me) return { error: 'market-piece-route' };
@@ -1194,11 +1206,11 @@ async function listGood(ctx, player, env, { character, region, item, pick, price
       // THE DECISION: a place among the thirty, the id not spent - the record's piece on the listing, for gold
       // HOME-VENDOR: a trader's piece at its stall (`vendor_map`, `vendor_id`), its thirty days, while the stall stands
       db.prepare(`INSERT OR IGNORE INTO market_listings (id, seller, char_id, region, kind, units, own, bought, price, fee, at, expires_at, rid, n, currency, item, vendor_map, vendor_id)
-        SELECT ?3, ?1, ?2, ?4, 'item', 1, 1, 0, ?5, ?6, ?7, ?8, ?9, ?10, 'gold', ?11, ?13, ?14 WHERE ${vend ? stallSalesSql() : openSalesSql('?7')} < ?12
+        SELECT ?3, ?1, ?2, ?4, 'item', 1, ?15, 0, ?5, ?6, ?7, ?8, ?9, ?10, 'gold', ?11, ?13, ?14 WHERE ${vend ? stallSalesSql() : openSalesSql('?7')} < ?12
           AND (?14 IS NULL OR EXISTS (SELECT 1 FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
             WHERE d.map_id = ?13 AND d.id = ?14 AND d.yard = 0 AND json_extract(d.place, '$.station') = '${VENDOR_STATION}' AND h.player = ?1 AND h.guild_id IS NULL AND (h.deed = 0 OR h.char_id = ?2)))`)
         .bind(me, character, id, region, price, listingFee(price), nowS, nowS + (vend ? VENDOR_LISTING_S : MARKET_LISTING_S), rid, nonce, JSON.stringify(moved), listingsMax,
-          vend?.map ?? null, vend?.id ?? null),
+          vend?.map ?? null, vend?.id ?? null, count),
       mustChange(db),   // no listing, no piece out of the record: the record's step rolls back with it
       ...witnessStatements(db, player, nowS, [region], hubsOf(hubs), 'EXISTS (SELECT 1 FROM market_listings WHERE seller = ?6 AND rid = ?7 AND n = ?8)', [me, rid, nonce]),
     ]);
@@ -1306,7 +1318,8 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
   }
   // GOLD-MARKET: a gold listing is bought with a realm record's gold, a Drakes listing with the account's Drakes
   if ((l.currency === 'gold') !== (at != null)) return { error: at ? 'market-currency' : 'market-gold-realm' };
-  if (l.kind === 'piece' || l.kind === 'item') units = 1;   // MARKET-ANY: a piece from a pack, whole
+  const stacked = stackedListing(l);   // TRADER STACKS: a stack from a pack sells by the unit
+  if (l.kind === 'piece' || (l.kind === 'item' && !stacked)) units = 1;   // MARKET-ANY: a piece from a pack, whole
   else if (!unitsOk(units)) return { error: 'bad-units' };
   // INT1 (AUDIT INT): a piece listed before the item law read listings is read as it is bought - one no honest client
   // mints is sold to nobody (it waits for staff, and its buyer's trade is never held over it)
@@ -1323,9 +1336,9 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
     at ? null : titheAt(db, nowS, from, rowBoard(l)),
     at || from === region ? null : titheAt(db, nowS, region, boardOf(board)),
   ]);
-  const road = courierOf(hubsNow, from, region, units, courierSlow(env, nowS, region));
+  const road = courierOf(hubsNow, from, region, l.kind === 'item' ? 1 : units, courierSlow(env, nowS, region));   // a piece's courier is its own, whatever the count of its stack
   if (!road) return { error: 'market-no-road' };
-  if (at) return buyWithGold(ctx, player, { character, region, l, units, max, rid, road, own, at, answer, vend, landed: landed === true });
+  if (at) return buyWithGold(ctx, player, { character, region, l, units, max, rid, road, own, at, answer, vend, landed: landed === true, stacked });
   const total = units * Number(l.price);
   // AUDIT 30 L6: the tax of the listing's running total - what it has sold before this, units x its price
   const left = Number(l.own) + Number(l.bought);
@@ -1426,13 +1439,17 @@ export async function marketBuy(ctx, player, env, { character, region, listing: 
  * gold's, a piece's owner moved and marked bought with gold. The tax and the fee, and the courier, are burnt: gold no
  * row holds. Answers the sale and the record's new sequence (`realm.seq`).
  */
-async function buyWithGold(ctx, player, { character, region, l, units, max, rid, road, own, at, answer, vend = null, landed = false }) {
+async function buyWithGold(ctx, player, { character, region, l, units, max, rid, road, own, at, answer, vend = null, landed = false, stacked = false }) {
   const { db, bucket, nowS, rand } = ctx;
   const me = player.id;
   const courier = road.courier * MARK_WORTH_GOLD;
   const total = units * Number(l.price);
   const left = Number(l.own) + Number(l.bought);
-  const { tax, fee, tithe, gets } = goldSaleOf((Number(l.units) - left) * Number(l.price), total);
+  // TRADER STACKS: a stack's running total is what its earlier sales took in (its `units` is one); every other kind's is units x price
+  const soldBefore = l.kind === 'item'
+    ? Number((await db.prepare('SELECT COALESCE(SUM(total), 0) AS t FROM market_sales WHERE listing = ?1').bind(l.id).first())?.t ?? 0)
+    : (Number(l.units) - left) * Number(l.price);
+  const { tax, fee, tithe, gets } = goldSaleOf(soldBefore, total);
   // the exact cost the buyer's tab took out of its purse as it asked - never less, or the purse and the record part
   if (total + courier !== max) return { error: 'market-price-moved' };
   const from = Number(l.region);
@@ -1484,9 +1501,13 @@ async function buyWithGold(ctx, player, { character, region, l, units, max, rid,
       // MARKET-ANY: a piece from a pack on its way - here arrived at once, else after the courier's time - its record the
       // listing's, collected into the buyer's realm record by its own act (collectGood)
       db.prepare(`INSERT OR IGNORE INTO market_deliveries (id, player, char_id, item, why, from_region, arrives_at, at)
-        SELECT s.dn, s.buyer, s.char_id, l.item, 'bought', s.from_region, s.arrives_at, s.at
+        SELECT s.dn, s.buyer, s.char_id, CASE WHEN ?4 = 1 THEN json_set(l.item, '$.stackCount', s.units) ELSE l.item END, 'bought', s.from_region, s.arrives_at, s.at
         FROM market_sales s JOIN market_listings l ON l.id = s.listing
-        WHERE s.buyer = ?1 AND s.rid = ?2 AND s.n = ?3 AND s.kind = 'item'`).bind(me, rid, nonce),
+        WHERE s.buyer = ?1 AND s.rid = ?2 AND s.n = ?3 AND s.kind = 'item'`).bind(me, rid, nonce, stacked ? 1 : 0),
+      // TRADER STACKS: what is left of the stack on the listing, so a cancel or an expiry hands back what was not sold (after
+      // the delivery above, which reads the record as the sale found it)
+      db.prepare(`UPDATE market_listings SET item = json_set(item, '$.stackCount', own + bought)
+        WHERE id = ?4 AND state = 'open' AND own + bought > 0 AND ?5 = 1 AND EXISTS (SELECT 1 FROM market_sales WHERE buyer = ?1 AND rid = ?2 AND n = ?3)`).bind(me, rid, nonce, l.id, stacked ? 1 : 0),
       // gold's own price table
       db.prepare(`INSERT INTO market_gold_prices (day, material, price, units)
         SELECT day, material, price, units FROM market_sales WHERE buyer = ?1 AND rid = ?2 AND n = ?3 AND kind = 'material'
@@ -2401,7 +2422,7 @@ const PATRON_HELD_SQL = `EXISTS (SELECT 1 FROM realm_characters c WHERE c.id = l
  *  for it (`bkey`; none, a listing no patron sees) and whether its seller is held (`held`). AUDIT LW-II P7: a town whose
  *  traders stand all in homes no patron may enter is marked too, so its hours never wait to be paid when a door opens;
  *  AUDIT LW-II P5: and the mark is written only where one would move. */
-const PATRON_TOWN_SQL = `SELECT l.id, l.seller, l.char_id, l.kind, l.price, l.item, l.at, l.expires_at, l.patron_hour,
+const PATRON_TOWN_SQL = `SELECT l.id, l.seller, l.char_id, l.kind, l.price, l.item, l.own + l.bought AS cnt, l.at, l.expires_at, l.patron_hour,
     (SELECT h.building_key FROM home_decor d JOIN homes h ON h.map_id = d.map_id AND h.building_key = d.building_key
       WHERE d.map_id = l.vendor_map AND d.id = l.vendor_id AND ${PATRON_HOME_SQL} LIMIT 1) AS bkey, ${PATRON_HELD_SQL} AS held
   FROM market_listings l WHERE l.vendor_map = ?1 AND l.state = 'open' AND l.vendor_id IS NOT NULL AND l.currency = 'gold'`;
@@ -2509,7 +2530,7 @@ export async function reckonPatrons(ctx, { maps = null, region = null } = {}, en
         worth = item ? patronWorth(item, itemWorth) : 0;
         // AUDIT LW-II P3: the item law's re-reading, as a player's buy asks it (marketBuy: a piece listed before the law,
         // or one a later law refuses, is sold to nobody); AUDIT LW-II-2 S5: never a held seller's
-        takes = !Number(r.held) && patronTakes(item) && lawfulItem(item) && !goodRefusal(item);
+        takes = !Number(r.held) && Number(r.cnt) <= 1 && patronTakes(item) && lawfulItem(item) && !goodRefusal(item);   // TRADER STACKS: a stack's unit price is no patron's price for the lot
         key = item ? ledgerKeyOf(item) : null;   // AUDIT LW-II-2 S2: the piece the ledger follows
       } catch { worth = 0; takes = false; }
       ls.push({ id: r.id, seller: r.seller, char: r.char_id, price: Number(r.price), at: Number(r.at), expires: Number(r.expires_at), last: r.patron_hour == null ? null : Number(r.patron_hour),
