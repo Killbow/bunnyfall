@@ -114,6 +114,8 @@ authors to `src/ui/credits.js`.
 | Hiding another home's decor (only you) | `src/systems/online/homeDecorHide.js` |
 | Guestbook | see the list above |
 | Player festivals (hosted at an innkeeper, map pennant, chat line, Festival Cheer buff) | `src/net/playerFestivalLaw.js`, `server-account/src/playerFestival.js`, `src/systems/online/playerFestivals.js`, the `festivals` marks in `src/ui/heldMap.js` and `src/ui/ink/inkMap.js` |
+| Bards' Guild services paid in Favor (rename an item, cosmetic flourish on an item, rename a home) | `src/net/bardServiceLaw.js` (prices, limits, word filter), `server-account/src/bardServices.js` (route `/v1/bards/service`, migration `0212_home_titles.sql`), `src/scenes/bardServicesShop.js` (the window, opened from the Favor shop), item fields `bardName`/`bardBuff` in `src/systems/item/itemFields.js`, the name read in `itemInfo.js` |
+| Hired-trader stacks (a stack listed by the unit, bought in chosen amounts) | `server-account/src/market.js` (`stackedListing`, `buyWithGold`; a trader's listing keeps its count in `own` and `item.stackCount`), `src/ui/vendor/vendorTab.js`, `src/scenes/vendorHost.js` |
 | Tavern rounds, busking, tips | `src/systems/tavern/tavernLaw.js`, `src/scenes/tavernSocial.js`, `src/systems/guild/bunnyServices.js` (`bunnyTavernRows`: the rows the tavern window carries beside Daggerfall's own) |
 | Other players' paperdolls, seen from behind | `src/ui/paperDollBack.js`, `src/ui/paperDoll.js`, `src/net/remotePlayers.js` |
 | Your own third-person body as a paperdoll (the `Graphics.Paperdoll` setting) | `src/player/eyeOfTheBeholder/eotbDoll.js`, the draw in `eotbBody.js`, the source wired in `world.js` |

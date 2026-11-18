@@ -1239,6 +1239,7 @@ import { siegeBlowKind, siegeCastClamp, siegeSpellNumbers, siegeSpellBarred, SIE
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
 import { createTravelViewMarks } from './travelViewMarks.js';   // HOST-SPLIT
+import { createBuildingNameMarks } from './buildingNameMarks.js';   // BUILDING-NAMES
 import { createSearchParty } from './searchPartyHost.js';   // HOST-SPLIT
 import { createPixelBuild } from './pixelBuild.js';   // HOST-SPLIT
 import { createTownProbes } from './townProbes.js';   // HOST-SPLIT
@@ -30157,6 +30158,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
+    // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch
+    bardAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/bards/service', { ...body, ...at }) }) : null,
+    bardHomes: homesApi ? async () => { const r = await homesApi.mine(); return (r?.ok ? r.data?.homes ?? [] : []).filter((h) => !h.deed).map((h) => ({ mapId: h.mapId, buildingKey: h.buildingKey, title: h.title ?? '', town: _townOfMapId.get(h.mapId >>> 0)?.name ?? '' })); } : null,
     tavernAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, read: body.op === 'read', call: (at) => accountCall(realmIoNow(), '/v1/tavern/service', { ...body, ...at }) }) : null,
     partyNames: () => (social?.others?.() ?? []).map((m) => m.name).filter((n) => typeof n === 'string' && n.length > 0),
     npcSession,   // TK-iv: the questor door on a static-NPC click
@@ -32143,6 +32147,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     return holder._tvAt;
   }
   const owForecast = createOverworldForecast({ climateAt, ground: mapGroundHere, minuteNow: () => playerTicker.classicMinutes, here: () => state.worldCoords(player.pos), alt: () => fieldXZ()[2], tvTrip, tvTripLive, travel: () => travelOptions, shared: sharedClockOn, rateNow: worldTimeScale, held: () => sunbaby.on });   // OW-FORECAST: the weather ahead (scenes/overworldForecastHost.js)
+  const buildingNames = createBuildingNameMarks({ buildings: () => modes?.buildingBoxes?.() ?? [], identify: (b) => modes?.buildingIdentity?.(b), locationOf: (k) => locationIndex.get(k) });   // BUILDING-NAMES: the found halls and shops on the Overworld (scenes/buildingNameMarks.js)
   const { travelViewMarks } = createTravelViewMarks({   // HOST-SPLIT: src/scenes/travelViewMarks.js
     TV_PLACE_LIFT, _bandChase, _bandSpent, _hiddenPeers, _lodesSensed, _peerMapPoses, _townOfMapId, _tvBountyHold,
     _tvLodeHold, _tvPartyHold, _tvVendorHold, _tvWaypointHold, _veils, _wildStrangerIds, bandMake, bandNowMs,
@@ -32155,6 +32160,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get gatherHost() { return gatherHost; },
     get livingRoads() { return livingRoads; },
     get merchantYards() { return merchantYards; },
+    get buildingNames() { return buildingNames; },
     get naval() { return naval; },
     get navalRaidersOn() { return navalRaidersOn; },
     get online() { return online; },

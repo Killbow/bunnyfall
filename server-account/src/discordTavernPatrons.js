@@ -4,13 +4,19 @@ const recent = 3600;
 export async function tavernDiscordNames(db, nowS, patrons) {
   const state = await db.prepare('SELECT channel, floor FROM discord_tavern_config WHERE id = 1').first();
   if (!state?.channel || !patrons.length) return null;
-  const { results } = await db.prepare(`SELECT name FROM (
-    SELECT name, id, row_number() OVER (PARTITION BY discord_id ORDER BY id DESC) AS latest
-    FROM discord_tavern WHERE source = 'discord' AND discord_id IS NOT NULL AND id > ? AND at >= ?
+  // `skin`: the approved custom paperdoll the linked game account wears, if the Discord user linked one (a banned account's
+  // worn row is already gone, skins.js) - the room draws that patron as the paperdoll instead of only renaming them
+  const { results } = await db.prepare(`SELECT name, skin FROM (
+    SELECT t.name, t.id, row_number() OVER (PARTITION BY t.discord_id ORDER BY t.id DESC) AS latest,
+      (SELECT w.skin_id FROM discord_links l JOIN skin_worn w ON w.player = l.player
+        JOIN skins s ON s.id = w.skin_id AND s.player = l.player AND s.status = 'approved'
+        WHERE l.discord_id = t.discord_id) AS skin
+    FROM discord_tavern t WHERE t.source = 'discord' AND t.discord_id IS NOT NULL AND t.id > ? AND t.at >= ?
   ) WHERE latest = 1 ORDER BY id DESC LIMIT 24`).bind(state.floor, nowS - recent).all();
+  const chosen = [...new Set(patrons)].sort().slice(0, results.length);
   return { channel: state.channel, floor: state.floor,
-    names: Object.fromEntries([...new Set(patrons)].sort().slice(0, results.length)
-      .map((patron, index) => [patron, results[index].name])) };
+    names: Object.fromEntries(chosen.map((patron, index) => [patron, results[index].name])),
+    skins: Object.fromEntries(chosen.flatMap((patron, index) => (results[index].skin ? [[patron, results[index].skin]] : []))) };
 }
 
 export function discordServeStatement(db, audience, character, name, patron, drink, nowS) {

@@ -733,6 +733,8 @@ const saysWithheldMaterial = (item) => !item?.artifact && (itemIsIdentified(item
  *  house's name, or on the sub-line - so a filter by metal never finds a piece by a metal its card withholds. */
 export const itemSaysMaterial = (item) => !!gearMaterialText(item) && (!withholdsMaterialPrefix(item) || saysWithheldMaterial(item));
 function namePartsOf(item, { getQuest = null, differentiatePlantIngredients = true } = {}) {
+  // BARDS' GUILD: a name a bard wrote for the piece is its name, wherever it is named - starred as every player's words are
+  if (typeof item?.bardName === 'string' && item.bardName && itemIsIdentified(item)) return { name: maskedItemName(item.bardName), material: '' };
   const base = resolveItemName(item);
   if (withholdsMaterialPrefix(item)) {
     // The name stays bare. The metal still goes on the sub-line for Rare and better armour and weapons —

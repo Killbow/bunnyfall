@@ -111,7 +111,7 @@ export const VENDOR_TEXT = Object.freeze({
  * @param {any} v @param {{ busy: () => boolean, run: (start: () => Promise<any>) => Promise<void>, rerender: () => void, nowS: () => number, alive: () => boolean }} ui
  */
 export function createVendorTab(v, ui) {
-  const st = { data: /** @type {any} */ (null), error: /** @type {string|null} */ (null), loading: false, query: '', picked: /** @type {string|null} */ (null), price: 100, good: /** @type {any} */ (null),
+  const st = { data: /** @type {any} */ (null), error: /** @type {string|null} */ (null), loading: false, query: '', picked: /** @type {string|null} */ (null), price: 100, good: /** @type {any} */ (null), putQty: 1, putFor: /** @type {any} */ (null), qty: /** @type {Record<string, number>} */ ({}),
     sift: freshPackSift() };   // PACK-PICK: the put-up picker's search and menus
   const stall = v.mode === 'stall';
   const nameOf = (it) => { try { return v.nameOf?.(it) || 'a piece'; } catch { return 'a piece'; } };
@@ -162,12 +162,13 @@ export function createVendorTab(v, ui) {
     b.setAttribute('type', 'button');
     b.setAttribute('aria-expanded', st.picked === row.id ? 'true' : 'false');
     b.onclick = () => { st.picked = st.picked === row.id ? null : row.id; ui.rerender(); };
-    const name = el('b', null, nameOf(row.item));   // MENU-ORDER: the piece's picture before its name (the host's, `v.picture`)
+    const count = Number(row.units) > 1 ? Number(row.units) : 1;   // TRADER STACKS: the units on offer, said on the row
+    const name = el('b', null, count > 1 ? `${nameOf(row.item)} × ${count}` : nameOf(row.item));   // MENU-ORDER: the piece's picture before its name (the host's, `v.picture`)
     const pic = pictureNode(v.picture?.(row.item, wake) ?? null, el, 'market-pic');
     if (pic) { if (name.prepend) name.prepend(pic); else name.append(pic); }
     b.append(name,
       el('span', 'market-quality', wearText(wearOf(row.item)) ?? 'whole'),
-      el('span', 'market-price', goldText(row.price)),
+      el('span', 'market-price', count > 1 ? t('vendor.row.each', '{price} each', { price: goldText(row.price) }) : goldText(row.price)),
       el('span', 'market-where', where ? `${row.owner ?? 'someone'}'s house, ${townOf(row.map)}` : standsText(row.expiresAt, ui.nowS())));
     if (isStolen(row.item)) b.append(el('span', 'market-stolen', stolenTag()));   // RPT1026-LEDGERLAW: the theft's mark rides the listing
     if (row.mine && !stall) b.append(el('span', 'market-mine', 'yours'));   // at my own stall every piece is mine: said once, in its title
@@ -187,14 +188,29 @@ export function createVendorTab(v, ui) {
     }
     if (buy) {
       const purse = v.purse?.();
-      const short = purse != null && purse < row.price;
-      bar.append(el('span', 'market-ask', purse == null ? VENDOR_TEXT.noGold : `Buy ${nameOf(row.item)} for ${goldText(row.price)}?${short ? ' You cannot pay that.' : ''}`));
-      const go = button('primary market-buy', ui.busy() ? 'Buying...' : 'Buy', () => act(() => v.buy(row)));
+      // TRADER STACKS: a stack is bought by the unit - the buyer picks how many, and the total is said before the press
+      const want = Math.max(1, Math.min(count, st.qty[row.id] ?? 1));
+      const total = row.price * want;
+      const short = purse != null && purse < total;
+      if (count > 1) {
+        const qty = /** @type {HTMLInputElement} */ (el('input', 'notice-input market-num'));
+        qty.type = 'number'; qty.min = '1'; qty.max = String(count); qty.value = String(want);
+        qty.setAttribute('aria-label', t('vendor.buy.qty', 'How many to buy'));
+        qty.setAttribute('data-focus', 'vendor-qty');
+        qty.oninput = () => { st.qty[row.id] = intOf(qty.value, 1, count); ui.rerender(); };
+        const max = button('market-cancel', t('vendor.buy.all', 'All {n}', { n: count }), () => { st.qty[row.id] = count; ui.rerender(); });
+        bar.append(el('span', 'market-ask', t('vendor.buy.howMany', 'How many? ({n} on offer)', { n: count })), qty, max);
+      }
+      const what = want > 1 ? `${want} × ${nameOf(row.item)}` : nameOf(row.item);
+      bar.append(el('span', 'market-ask', purse == null ? VENDOR_TEXT.noGold : `Buy ${what} for ${goldText(total)}?${short ? ' You cannot pay that.' : ''}`));
+      const go = button('primary market-buy', ui.busy() ? 'Buying...' : 'Buy', () => act(() => v.buy(row, want)));
       go.disabled = ui.busy() || purse == null || short;
       bar.append(go);
     }
     if (take) {
-      bar.append(el('span', 'market-ask', `Take ${nameOf(row.item)} off sale and back into your pack?`));
+      bar.append(el('span', 'market-ask', count > 1
+        ? t('vendor.take.stack', 'Take the {n} left of {name} off sale and back into your pack?', { n: count, name: nameOf(row.item) })
+        : `Take ${nameOf(row.item)} off sale and back into your pack?`));
       const back = button('market-cancel', 'Take back', () => act(() => v.take(row)));
       back.disabled = ui.busy();
       bar.append(back);
@@ -230,20 +246,30 @@ export function createVendorTab(v, ui) {
       refusedWhat: t('vendor.put.refused', 'Stays in your pack'), redraw: () => ui.rerender() }),
     packCardNode(entries.find((e) => e.item === st.good) ?? null, { picture: v.picture ?? null, wake, look: (it) => v.stats?.(it) ?? null,
       none: t('market.list.pickPack', 'Press a piece above to look at it and set its price.') }));
+    // TRADER STACKS: a stack of the pack is put up by the unit - how many of it, and the price of each
+    const have = Math.max(1, Math.trunc(Number(st.good?.stackCount) || 1));
+    if (st.putFor !== st.good) { st.putFor = st.good; st.putQty = have; }
+    st.putQty = Math.max(1, Math.min(have, st.putQty));
+    const qtyIn = /** @type {HTMLInputElement} */ (el('input', 'notice-input market-num'));
+    qtyIn.type = 'number'; qtyIn.min = '1'; qtyIn.max = String(have); qtyIn.value = String(st.putQty);
+    qtyIn.setAttribute('aria-label', t('vendor.put.qty', 'How many to put up'));
+    qtyIn.setAttribute('data-focus', 'vendor-put-qty');
+    qtyIn.oninput = () => { st.putQty = intOf(qtyIn.value, 1, have); };
     const price = /** @type {HTMLInputElement} */ (el('input', 'notice-input market-num'));
     price.type = 'number'; price.min = '1'; price.max = String(MARKET_PRICE_MAX); price.value = String(st.price);
-    price.setAttribute('aria-label', 'Price in gold');
+    price.setAttribute('aria-label', have > 1 ? t('vendor.put.priceEach', 'Price in gold, each') : 'Price in gold');
     price.setAttribute('data-focus', 'vendor-price');
     price.oninput = () => { st.price = intOf(price.value, 1, MARKET_PRICE_MAX); };
     const chosen = st.good;
-    const go = button('primary market-post', ui.busy() ? 'Putting up...' : 'Put up for sale', () => act(() => v.put(chosen, st.price)));
+    const go = button('primary market-post', ui.busy() ? 'Putting up...' : 'Put up for sale', () => act(() => v.put(chosen, st.price, have > 1 ? st.putQty : 1)));
     go.setAttribute('data-focus', 'vendor-post');   // AUDIT PACK-PICK B2: a redraw keeps the focus on it
     go.disabled = ui.busy() || !chosen;
     // AUDIT 657 B3: its fields under their names, as the List form's (marketTab.js field) - BOARD-UI stood that form's
     // fields in a column, and this form, in its dress, stood its select and its press each the window's width
     const field = (name, input, cls = '') => { const f = el('label', `market-field${cls ? ` ${cls}` : ''}`); f.append(el('span', 'notice-label', name), input); return f; };
     const fields = el('div', 'market-fields');
-    fields.append(field('Price in gold', price), go);   // PACK-PICK: the piece is the picker's, above
+    if (have > 1) fields.append(field(t('vendor.put.qtyField', 'How many (you hold {n})', { n: have }), qtyIn));   // TRADER STACKS
+    fields.append(field(have > 1 ? t('vendor.put.priceEach', 'Price in gold, each') : 'Price in gold', price), go);   // PACK-PICK: the piece is the picker's, above
     box.append(fields, el('p', 'notice-tip', VENDOR_TEXT.stockTip));
     return box;
   }

@@ -4,9 +4,11 @@ import {
   escapeMarkdown,
 } from 'discord.js';
 import { mkdirSync } from 'node:fs';
+import os from 'node:os';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { portraitRenderer } from './portrait.mjs';
+import { buildEmbed, changelogDay, cpuPercent, memory, probeRelay } from './panel.mjs';
 
 const { DISCORD_TOKEN, DISCORD_GUILD_ID, BUNNYFALL_URL, BUNNYFALL_DISCORD_KEY, ARENA2_PATH } = process.env;
 if (!DISCORD_TOKEN || !DISCORD_GUILD_ID || !BUNNYFALL_URL || BUNNYFALL_DISCORD_KEY?.length < 32 || !BUNNYFALL_DISCORD_KEY) {
@@ -19,6 +21,13 @@ mkdirSync(dirname(stateFile), { recursive: true });
 const db = new DatabaseSync(stateFile);
 db.exec('CREATE TABLE IF NOT EXISTS lfg (id TEXT PRIMARY KEY, record TEXT NOT NULL)');
 const get = db.prepare('SELECT record FROM lfg WHERE id = ?');
+// the status panel: ONE row, the channel and message it keeps editing (survives restarts with the rest of data/)
+db.exec('CREATE TABLE IF NOT EXISTS status_panel (id INTEGER PRIMARY KEY CHECK (id = 1), channel TEXT, message TEXT, up_since INTEGER, was_up INTEGER)');
+const panelRow = () => db.prepare('SELECT * FROM status_panel WHERE id = 1').get() ?? null;
+const panelSave = db.prepare('INSERT INTO status_panel (id, channel, message, up_since, was_up) VALUES (1, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET channel = excluded.channel, message = excluded.message, up_since = excluded.up_since, was_up = excluded.was_up');
+// the relay's read-only /status door: BUNNYFALL_RELAY_URL, else beside the account service (local :8788 -> :8787) or under /relay
+const relayUrl = process.env.BUNNYFALL_RELAY_URL || (() => { const u = new URL(BUNNYFALL_URL); if (u.port === '8788') u.port = '8787'; else u.pathname = `${u.pathname.replace(/\/$/, '')}/relay`; return u.toString(); })();
+const STATUS_EVERY_MS = Math.max(15, Number(process.env.STATUS_INTERVAL_S) || 30) * 1000;
 const save = db.prepare('INSERT INTO lfg VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET record = excluded.record');
 
 const command = (name, description) => new SlashCommandBuilder().setName(name).setDescription(description);
@@ -43,6 +52,11 @@ const commands = [
         .addChannelTypes(ChannelType.GuildText).setRequired(true)))
     .addSubcommand((c) => c.setName('status').setDescription('Show the connected channel'))
     .addSubcommand((c) => c.setName('disable').setDescription('Pause both directions')),
+  command('status', 'Bunnyfall server status panel').setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .addSubcommand((c) => c.setName('setup').setDescription('Post the live status panel in a channel (moves it if one exists)')
+      .addChannelOption((o) => o.setName('channel').setDescription('Where to post it')
+        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement).setRequired(true)))
+    .addSubcommand((c) => c.setName('stop').setDescription('Stop updating the status panel and delete it')),
   command('closeissue', 'Lock and archive the current forum post').setDefaultMemberPermissions(PermissionFlagsBits.ManageThreads),
   command('link', 'Link the Bunnyfall character you are playing'),
   command('me', 'Show your linked Bunnyfall character'),
@@ -225,6 +239,19 @@ async function interaction(i) {
       tavernChannel = selected?.id ?? null;
       return i.editReply(selected ? `Tavern is connected to <#${selected.id}> in both directions.` : 'Tavern is disabled in both directions.');
     }
+    case 'status': {
+      if (!i.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) return privateReply(i, 'Manage Server permission is required.');
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
+      const old = panelRow();
+      if (old?.channel && old.message) await client.channels.fetch(old.channel).then((c) => c?.messages.delete(old.message)).catch(() => {});
+      if (i.options.getSubcommand() === 'stop') { panelSave.run(null, null, null, 0); return i.editReply('The status panel is stopped.'); }
+      const selected = i.options.getChannel('channel', true);
+      const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks];
+      if (!selected.permissionsFor(i.guild.members.me)?.has(required)) return i.editReply('The bot needs View Channel, Send Messages and Embed Links in that channel.');
+      panelSave.run(selected.id, null, old?.up_since ?? null, old?.was_up ?? 0);
+      await refreshPanel();
+      return i.editReply(`The status panel is in <#${selected.id}> and updates every ${STATUS_EVERY_MS / 1000}s.`);
+    }
     case 'lfg': return createLfg(i);
   }
 }
@@ -240,6 +267,24 @@ client.on(Events.InteractionCreate, (i) => {
     } catch { /* expired interaction */ }
   });
 });
+
+/** Draw and edit the status panel's one message; a deleted one is posted anew; an unreachable relay shows Offline. Never throws. */
+async function refreshPanel() {
+  try {
+    const row = panelRow();
+    if (!row?.channel) return;
+    const nowS = Math.floor(Date.now() / 1000);
+    const relay = await probeRelay(relayUrl);
+    const upSince = relay.up ? (row.was_up ? row.up_since : nowS) : null;   // up time counts from when the bot first saw the server up
+    const body = buildEmbed({ relay, cpu: cpuPercent(), mem: memory(), hostUptimeS: os.uptime(), upSinceS: upSince, day: changelogDay(new URL('../CHANGELOG.md', import.meta.url)), nowS, siteUrl: process.env.BUNNYFALL_SITE_URL });
+    const payload = { embeds: body.embeds, allowedMentions: mentions };
+    const channel = await client.channels.fetch(row.channel).catch(() => null);
+    if (!channel?.isSendable() || channel.guildId !== DISCORD_GUILD_ID) return;
+    let message = row.message ? await channel.messages.fetch(row.message).catch(() => null) : null;
+    if (message) await message.edit(payload); else message = await channel.send(payload);
+    panelSave.run(row.channel, message.id, upSince, relay.up ? 1 : 0);
+  } catch (error) { console.warn('Status panel:', error.message); }
+}
 
 let tavernChannel = null;
 client.on(Events.MessageCreate, (message) => {
@@ -299,6 +344,7 @@ client.once(Events.ClientReady, async () => {
     console.log(`Bunnyfall bot ready in ${guild.name}.`);
     process.send?.('discord-ready');
     void poll();
+    setInterval(() => void refreshPanel(), STATUS_EVERY_MS);
   } catch (error) {
     console.error('Discord registration failed:', error.message);
     process.exitCode = 1;

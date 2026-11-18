@@ -127,6 +127,7 @@ export function createTravelViewMarks(host) {
     // Stable and Wagon Yard standing about me, its name over its ground and its signboard's emblem (scenes/merchantYardsHost.js
     // overworldMarks) - with the towns on the Towns switch
     for (const m of host.merchantYards?.overworldMarks() ?? []) marks.push(m);
+    for (const m of host.buildingNames?.overworldMarks() ?? []) marks.push(m);   // BUILDING-NAMES: the guild halls and shops found, by name
     // SHIPYARDS-FOUND (Mac: "Everything should show on the map/overworld"): each port town's shipyard and lighthouse
     // standing about me (scenes/portHost.js overworldMarks), and its docks over the first quay laid (scenes/quayPool.js)
     for (const m of host.portHost?.overworldMarks() ?? []) marks.push(m);

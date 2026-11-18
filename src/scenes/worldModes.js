@@ -158,6 +158,7 @@ import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice,
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
+import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
 import { createCityGuards } from './cityGuards.js';   // ROAD-B: SpawnCityGuards' INDOOR arm needs a watch pool in the building
@@ -2628,7 +2629,13 @@ export function createWorldModes(host) {
    *  stays npcDisplayName's, the canonical name the topic tree compares
    *  with a quest Person's. */
   const npcShownName = (npcData) => questBridge?.machine?.movedQuestorName?.(npcData) ?? staticNpcShownName(npcData, npcNameDeps());   // QUESTOR-MOVED: the moved questor's one name, shown as the partner's
-  const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null,
+  // BARDS' GUILD services (bardServicesShop.js): the Favor shop's second counter - a name, a flourish, a home's name
+  const bardServices = createBardServices({
+    entity: () => playerEntity, act: host.bardAct ?? null, homes: host.bardHomes ?? null,
+    choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), flow: (boxes) => townTalk?.showOverlay?.(new ServiceFlowWindow(boxes)),
+    back: () => favorShop.open(),
+  });
+  const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
   const tavernService = createTavernServiceHost({
@@ -11366,6 +11373,7 @@ export function createWorldModes(host) {
     const _peopleOn = peopleBodies.frame();
     for (const pn of interiorCtx.people) {
       if (!pn.standBatch) continue;
+      if (tavernService.patronSkinOn(pn)) { pn.standBatch.castOnly = true; continue; }   // BUNNYFALL: a Discord patron with a custom paperdoll stands as it (scenes/tavernPatronSkins.js)
       const look = _peopleOn ? standingLook(pn) : null;
       if (look) peopleBodies.offer(personActor(pn, look, pn._mwFeet ??= [pn.x, pn.y, pn.z], mwv.eye, dt), pn.standBatch);
       else pn.standBatch.castOnly = false;
@@ -14076,6 +14084,8 @@ export function createWorldModes(host) {
     /** PARTY-PING: the plaque's list and its words, so a coffin, a shelf and a door are named as the plaque names them. */
     pingLook() { return mode === 'dungeon' ? { targets: dungeonCtx?.dungeonActivationTargets?.() ?? [], name: (k) => dungeonCtx?.hoverName?.(k)?.title ?? '' } : mode === 'interior' ? { targets: interiorActivationTargets(), name: (k) => interiorHoverName(k)?.title ?? '' } : mode === 'exterior' ? { targets: exteriorActivationTargets().targets, name: (k) => exteriorHoverName(k)?.title ?? '' } : null; },
     buildingBoxes() { return buildingTargets?.() ?? []; },
+    /** BUILDING-NAMES: a static building's directory record (the Overworld's name marks, scenes/buildingNameMarks.js). */
+    buildingIdentity(b) { return buildingDataForDoor?.({ dfBlock: b.dfBlock, recordIndex: b.recordIndex, pixelKey: b.pixelKey, door: { matrix: b.matrix }, pixelLocal: true }) ?? null; },
     /** OH-E: the location being laid out, or null (see `layingOutLoc`). */
     get layingOutLocation() { return layingOutLoc; },
     /** PROF2 (bible/06-Systems/Professions-Arc.md 23): THE FORGE THE PLAYER STANDS AT - a Weaponsmith's or an Armorer's

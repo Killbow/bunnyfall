@@ -29,3 +29,20 @@ When players enter a tavern or start a shift, some patrons take the display name
 ## Close a bug report
 
 Run `/closeissue` inside a Discord forum post after fixing the issue. The command locks and archives the current post. Grant **Manage Threads** to the bot in the bug report forum. The moderator running the command also needs **Manage Threads**.
+
+## Server status panel
+
+`/status setup channel:#status` (Manage Server) posts ONE embed and edits that same message every 30 s (`STATUS_INTERVAL_S`
+to change, minimum 15). `/status stop` deletes it. The channel and message id are kept in the bot's `data/lfg.sqlite`, so a
+restart keeps editing the same message; a deleted message is posted anew; an unreachable server shows as Offline (red).
+
+It shows online/offline, players online with names (first 20, then "+N more"), host CPU and RAM, how long the server has been up
+since the bot first saw it, host uptime, the newest `CHANGELOG.md` date and the relay build. Players come from the relay's
+read-only `GET /status` (public like `/health`, cached 10 s). The bot finds the relay beside `BUNNYFALL_URL` (`:8788` becomes
+`:8787`, anything else gets `/relay`); set `BUNNYFALL_RELAY_URL` to override and `BUNNYFALL_SITE_URL` to link the title.
+
+CPU and RAM are the **host's**: inside Docker Node reads `/proc`, which is not limited to the container's `mem_limit`.
+RAM counts available memory, so disk cache is not "used".
+
+To deploy: rebuild the server (`docker compose up -d --build`; it carries the relay's new `/status`) and restart the bot
+(**Save and start bot** on the staff page). The bot registers `/status` itself at start; no other step.
