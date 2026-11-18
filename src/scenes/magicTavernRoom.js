@@ -46,6 +46,12 @@ export function noteTown(mapId, locBlocks) {
 /** Whether a building of a town is its magical tavern. @param {number} mapId @param {number} buildingKey */
 export const isMagic = (mapId, buildingKey) => magicTavernsOn() && !!mapId && chosen.get(mapId >>> 0) === buildingKey;
 
+/** The town's talk directory rows, in place: the magical tavern is named for what it is (as the guild halls are, bunnyHall.js). @param {Array<{ buildingKey?: number, name?: string }>} rows @param {number} mapId */
+export function markMagicTavernRows(rows, mapId) {
+  for (const r of rows) if (r.buildingKey != null && isMagic(mapId, r.buildingKey)) r.name = t('magictavern.name', 'The Nowhere Tavern');
+  return rows;
+}
+
 /**
  * The shared hall's entry for a tavern door, or null (not the magical tavern; the feature off; no hall to be had).
  * `hit` the door's hit as the host built it; the answer is a hit of the hall: its block and record, a table with the star

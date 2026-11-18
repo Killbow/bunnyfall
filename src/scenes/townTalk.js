@@ -63,6 +63,7 @@ import { startMobileTalk, expandMacros, expandAnswerRecord, oathTextId, honorifi
 import { REGION_RACES } from '../formats/mapsFile.js';
 import { getLocalizedLocationName, getLocalizedRegionName } from '../systems/textManager.js'; import { shownFactionNames } from '../world/buildingNames.js';   // L10N3e: the place names shown, and the faction names a guild hall and a temple show
 import { ChoiceWindow } from '../ui/talkWindow.js';
+import { markMagicTavernRows } from './magicTavernRoom.js';
 import { buildBuildingDirectory, questorCandidateBuildings, TOPIC_CATEGORIES, whereIsAnswer, reactionTier012, buildingHint, toneTaste } from '../systems/talk/talkTopics.js';
 import { yardDirectoryRows } from '../systems/merchantYards.js';   // YARDS-FOUND: the town's yards in its directory
 import { markBunnyHallRows, bunnyHallsCaption } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the halls on the Where-is page
@@ -354,6 +355,7 @@ export function createTownTalk({ renderer, canvas, fetchBytes, playerEntity, reg
       // yards' are (systems/portPlaces.js portDirectoryRows)
       directory.push(...portDirectoryRows(topics.ports));
       markBunnyHallRows(directory);   // BUNNY-GUILDS: a converted house that is a guild's hall is asked after by its guild's name
+      markMagicTavernRows(directory, topics.mapId ?? 0);   // MAGIC-TAVERN: a town's blue tavern is The Nowhere Tavern
       // QP1: GetBuildingList's questor half rides the SAME rebuild -
       // C# populates npcsWithWork inside the one building walk
       // (TalkManager.cs:2807-2874). The candidates go out through the
