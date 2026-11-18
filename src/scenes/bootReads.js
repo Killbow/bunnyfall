@@ -1,9 +1,11 @@
 // Boot steps that world.js calls. Before the realm join, they start compiling the world programs and reading the game
-// data that does not need the join. They also end the boot plate on the first drawn frame. A read that fails rejects
-// only where the boot awaits it. Each startBootReads call replaces the previous boot's reads.
+// data that does not need the join. They also queue the menu code fetch for after the first frame and end the boot
+// plate on the first drawn frame. A read that fails rejects only where the boot awaits it. Each startBootReads call
+// replaces the previous boot's reads.
 import { fetchBytes } from './shared.js';
 import { loadQuestPack } from '../systems/quest/questData.js';
 import { streetHeld } from './streetHold.js';
+import { afterFirstFrame } from '../systems/afterFirstFrame.js';
 
 export { startBootPrograms } from '../render/bootPrograms.js';
 
@@ -27,4 +29,8 @@ export const bootReads = () => reads;
 /** @param {{ end: () => void }} plate */
 export function bootFrameDrawn(plate) {
   if (!streetHeld()) plate.end();
+}
+
+export function warmMenuChunks() {
+  afterFirstFrame(() => void import('../ui/enhancedChunk.js').then((m) => m.warmEnhancedChunks()).catch(() => {}));
 }
