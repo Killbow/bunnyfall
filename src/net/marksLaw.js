@@ -114,6 +114,8 @@ export const MARKS_OPS_WINDOW_S = 3600;
 
 /** Every kind of line the one ledger holds, and which way it moves Marks. */
 export const MARKS_KINDS = Object.freeze({
+  'farm-order': 'mint',       // Bulk farm exports, bounded by the Company's weekly cap.
+  'farm-upgrade': 'burn',     // Shared farm improvements, paid from the Argent treasury.
   gate: 'mint',               // the relay's receipt, counted
   exchange: 'burn',           // sold to the Bank for gold
   'guild-deposit': 'move',    // a member's balance into the guild's treasury

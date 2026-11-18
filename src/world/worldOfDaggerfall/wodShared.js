@@ -15,7 +15,7 @@
 /** A site id: `px,py:objectID` or `px,py:hold` - WB12d: or `px,py:rite.<day>`, a breach's faithful (scenes/riteHost.js),
  *  its day in it (AUDIT WB12d C14: a later breach's circle on the same pixel is a site of its own) - STAR5: or
  *  `px,py:star.<night>.<k>`, a fallen star's coven, `.m` its master and `.c` its master's circle (starSiteId). */
-export const WOD_SITE_RE = /^-?\d{1,5},-?\d{1,5}:(?:\d{1,10}(?:\.\d{1,3})?|hold|rite\.\d{1,9}|star\.\d{1,10}\.[0-2](?:\.[mc])?)$/;   // STAR5: a fallen star's coven, its master (`.m`) and its circle (`.c`)
+export const WOD_SITE_RE = /^-?\d{1,5},-?\d{1,5}:(?:\d{1,10}(?:\.\d{1,3})?|hold|reach\.\d{1,9}\.[0-2]|rite\.\d{1,9}|star\.\d{1,10}\.[0-2](?:\.[mc])?)$/;   // STAR5: a fallen star's coven, its master (`.m`) and its circle (`.c`)
 /** WB12d: the site of a day's faithful at a breach in pixel (px, py). */
 export const riteSiteId = (px, py, day) => `${px},${py}:rite.${day}`;
 /** AUDIT WB12d (C5): a breach's faithful - today's site, or one a save from before the day joined the id held. */

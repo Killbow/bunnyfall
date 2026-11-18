@@ -1,4 +1,5 @@
 // @ts-check
+import { cromwarkProfile, cromwarkHealth } from '../systems/wild/cromwarkRoster.js';
 // FOE-BOUNDS (2026-10-19, Mac: a hand-off spec, "LATTY: REJECT AND REMOVE INVALID ENEMY HANDOFFS; DO NOT RESCALE", then
 // "Spec + B + A" and "The game's own code"; bible/11-Multiplayer/Spawn-Grants.md section 19): THE MOST HEALTH A STREAMED
 // FOE CAN LEGALLY HAVE. Every stage that builds a foe's maximum rounds once and never lowers it (`Math.max(1,
@@ -131,6 +132,7 @@ function dungeonBound(r, base, wild) {
  */
 export function foeHealthBound(r, { lane = 'street', wild = true, camp = true } = {}) {
   if (!r || !Number.isInteger(r.t)) return null;
+  if (cromwarkProfile(r.t)) return cromwarkHealth(r.t, r.z === 1);
   const base = baseOf(r);
   if (base == null) return null;
   if (lane === 'dungeon') return dungeonBound(r, base, wild);

@@ -8,14 +8,24 @@ there is no new room, population, table UI or mouse-look mode. Orders are person
 
 1. Ask the innkeeper for a shift. A tavern needs at least one available adult talk-only NPC. Quest actors and service
    NPCs are excluded. The shift assigns six distinct drinks to the existing patrons.
-2. Look at the innkeeper. Use the normal world-plaque selection (mouse wheel / existing controller selection), then
-   activate **Pour one dose: Wine**, **Cream** or **Beer**. Three doses fill a cup. Each selected dose is final.
-3. Read the recipe book when needed. It has three pages, with no automatic crafting, recipe matching or highlighted
-   answer. The order shows the drink name, not its ingredients. The book is the only modal part of preparation.
-4. **Take the prepared cup**, walk to the named NPC and activate **Serve the prepared drink**. The wrong recipe stays
-   in hand. Return to the innkeeper, **Discard the mixture**, and start again. No individual-dose undo exists.
-5. Activate the customer again to **Collect the empty cup**, then return it to the innkeeper to receive payment.
-   The next order starts immediately. After six orders the shift ends. **End this shift** keeps payments already earned.
+2. Each customer calls out their order in the HUD message line. Look at the innkeeper and activate **Mix a drink**:
+   the counter window pours one dose per bottle click (or 1/2/3). Three doses fill a cup; the third lifts the cup
+   into the player's hand and the counter closes by itself. Each dose is final.
+3. Read the recipe book when needed. It has three pages and a line of lore per drink, with no automatic crafting,
+   recipe matching or highlighted answer. The order names the drink, not its ingredients.
+4. Walk to the named NPC and activate **Serve the prepared drink**. One action pays the wage, tips and one Favor
+   Token, and the customer calls the next order. A wrong recipe stays in hand: **Discard the mixture** at the
+   innkeeper and start again. No individual-dose undo exists. After six orders the shift ends. **End this shift**
+   keeps payments already earned.
+5. Served customers leave chores (`TAVERN_CHORE_PLAN`: three tables, two spills, none for the last order). Empties sit
+   on the nearest real table top beside the customer (found with the room collider), or the floor where there is none;
+   a spill lies on the floor beside them. Both use Daggerfall flats (`CHORE_ART` in `src/scenes/tavernChores.js`).
+   Activate one for a short hands-on panel low on screen: **sweep** with alternating left/right strokes (the mess
+   shrinks in the room), or **clear the table** by gathering the three empties (they leave the table) and wiping two
+   circles. Leaving the panel puts the mess back. Each chore pays 6 gold (rank-scaled) and warms the room.
+6. Work the room is offered on the customer just served while the next drink is mixed.
+
+Shifts saved under the earlier flow (separate carry, collect and return steps) still finish with those steps.
 
 All new player-facing strings, recipe names and PR text are English. Text remains registered through the game's normal
 localization system. The inn screen uses `tavernDoor`, the book/actions use `ChoiceWindow`, and both select the active
@@ -45,9 +55,11 @@ All quantities are equal doses. Ingredient order does not matter. Three doses of
 
 ## Initial balance
 
-Each returned cup pays 20 gold. Bards' College members receive an additional 5% per rank step (rank 0 gets 5%, capped
-at rank 7). Completing all six orders grants members 2 reputation for a shift without waste or incorrect deliveries,
-otherwise 1. Nonmembers can work for the base pay. Orders cannot be served earlier than 20 real seconds after they
+Each served drink pays 20 gold and one Favor Token; Bards' College members get 15% more gold per rank
+(`bardGoldMultiplier`). Members earn 1 College reputation for every clean drink (right first time and within the
+customer's patience), and when the shift ends 3 more for a perfect shift (no waste, no wrong drink, no chore left)
+or 1 otherwise: up to 9 a shift. Completing a shift also grants 1 city and regional reputation. Nonmembers can work
+for the base pay and Favor. Orders cannot be served earlier than 20 real seconds after they
 were assigned; shifts expire after one hour. These are initial values for playtesting, not an economy calibration.
 
 ## Authority and persistence

@@ -53,6 +53,13 @@ try {
   await page.waitForFunction(() => document.querySelector('.ts-point small').textContent === '1 in cup');
   await cream.click(); await beer.click();
   await page.waitForFunction(() => window.probe.state.mix.beer === 1);
+  // The third dose lifts the cup into the hand and the counter steps aside by itself.
+  assert.equal(await page.evaluate(() => window.probe.state.phase), 'carry');
+  assert.equal(await page.locator('.ts-dose-slots .ts-dose.ts-fresh').count(), 1, 'Only the newest dose drops in');
+  await page.waitForFunction(() => !document.querySelector('.ts-window'));
+  assert.equal(await page.evaluate(() => window.probe.overlayOpen()), false);
+  assert.equal(await page.evaluate(() => window.probe.requests.filter((r) => r.op === 'carry').length), 0, 'No separate carry action');
+  await page.evaluate(() => window.probe.openMix());
   assert.equal(await page.locator('.ts-point:disabled').count(), 3);
   assert.equal(await page.locator('.ts-dose-slots .ts-dose').count(), 3);
   const pourCount = await page.evaluate(() => window.probe.requests.filter((r) => r.op === 'pour').length);
@@ -60,7 +67,7 @@ try {
   assert.equal(await page.evaluate(() => window.probe.requests.filter((r) => r.op === 'pour').length), pourCount, 'Fourth dose was sent');
   await page.getByRole('button', { name: 'Discard the mixture', exact: true }).click();
   await page.waitForFunction(() => window.probe.state.mix.wine === 0);
-  assert.ok(await page.getByRole('button', { name: 'Take the prepared cup', exact: true }).isDisabled());
+  assert.equal(await page.getByRole('button', { name: 'Take the prepared cup', exact: true }).count(), 0);
   await wine.click();
   for (const [width, height] of [[360, 800], [736, 414]]) {
     await page.setViewportSize({ width, height });
@@ -84,6 +91,7 @@ try {
   for (let i = 0; i < 3; i++) {
     names.push(...await page.locator('.ts-recipe h2').allTextContents());
     assert.equal(await page.locator('.ts-recipe-doses .ts-dose').count(), 9);
+    assert.equal(await page.locator('.ts-recipe .ts-note').count(), 3);
     if (i < 2) await page.getByRole('button', { name: 'Next page', exact: true }).click();
   }
   assert.equal(new Set(names).size, 9);
@@ -108,7 +116,6 @@ try {
   await page.evaluate(() => window.probe.openMix());
   await page.keyboard.press('2'); await page.waitForFunction(() => window.probe.state.mix.cream === 1);
   await page.keyboard.press('3'); await page.waitForFunction(() => window.probe.state.mix.beer === 1);
-  await page.getByRole('button', { name: 'Take the prepared cup', exact: true }).click();
   await page.waitForFunction(() => !document.querySelector('.ts-window'));
   assert.equal(await page.evaluate(() => window.probe.state.phase), 'carry');
   assert.equal(await page.evaluate(() => window.probe.overlayOpen()), false);
@@ -120,5 +127,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.overlayOpen()), false);
   await page.evaluate(() => window.probe.host.dispose());
   assert.deepEqual(errors, []);
-  console.log('PASS: host wiring, single-dose clicks, pending/double-click guard, full cup, discard, carry, all nine recipes, paging, keyboard, focus, responsive layout and room-exit cleanup.');
+  console.log('PASS: host wiring, single-dose clicks, pending/double-click guard, full cup, discard, carry, auto-carry, all nine recipes and their notes, paging, keyboard, focus, responsive layout and room-exit cleanup.');
 } finally { await browser?.close(); await server.close(); }

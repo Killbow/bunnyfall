@@ -5,7 +5,7 @@
 // net/farmLaw.js. This side knows the map: which farms stand inside the Company's (or its Charter's) territory - the ones
 // it may buy - and whether the player stands at one (a chore). A farm the territory no longer reaches is let go here, as
 // soon as the territories are heard. Online only.
-import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from '../net/accountClient.js';
+import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore, farmGardenAct } from '../net/accountClient.js';
 import { inTerritory } from '../net/territoryLaw.js';
 
 export const FARM_REFRESH_MS = 2 * 60_000;
@@ -17,8 +17,8 @@ export const FARM_OFFERS_MAX = 8;
  * @param {{
  *   io: () => any,
  *   character: () => (string | null),
- *   territory: () => any,                                   the territory book (systems/companyTerritory.js)
- *   places: () => { mapId: number, px: number, py: number, name: string, region: number }[],   the map's farms
+ *   territory: () => any,
+ *   places: () => { mapId: number, px: number, py: number, name: string, region: number }[],
  *   climateAt: (px: number, py: number) => number,
  *   here: () => ({ x: number, y: number } | null),
  *   nowMs?: () => number,
@@ -126,6 +126,7 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
       return f && atFarm(mapId) ? f : null;
     },
     hereKey: () => { const me = here?.(); return me ? `${me.x},${me.y}` : ''; },
+    visibleHere: () => { const me = here?.(); return places().find((p) => p.px === me?.x && p.py === me?.y) ?? null; },
     placeOf: place,
     buy: (p, crop) => {
       const T = territory?.();
@@ -134,6 +135,10 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
     crop: (mapId, crop) => act(farmCrop, { mapId, crop }),
     release: (mapId) => act(farmRelease, { mapId }),
     chore: (mapId) => act(farmChore, { mapId }),
+    garden: (mapId, action = {}) => {
+      const door = io?.(), ch = character?.();
+      return door && (ch || !action.op || action.op === 'read') ? farmGardenAct(door, { ...action, mapId, character: ch }) : Promise.resolve({ ok: false, error: 'offline' });
+    },
     sig: () => `${version}|${whose}`,
   };
 }

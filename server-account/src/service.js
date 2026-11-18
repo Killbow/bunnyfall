@@ -370,6 +370,7 @@ export const SAVES_MAX = 60;
 /** Every path this service serves. Named once, so the 404 and the
  *  ladder cannot come to disagree about what exists. */
 export const ROUTES = new Set([
+  '/v1/integrations/discord', '/v1/integrations/discord/game',
   '/v1/health', '/v1/pubkey', '/v1/relaykey', '/v1/auth/guest', '/v1/auth/token', '/v1/auth/session',
   '/v1/account', '/v1/auth/logout',
   // ACC1c: username and password. `register` needs a session (it
@@ -395,10 +396,10 @@ export const ROUTES = new Set([
   '/v1/charters/found', '/v1/charters/invite', '/v1/charters/answer', '/v1/charters/leave',   // BUNNYFALL COMPANIES: City Charters (charters.js)
   '/v1/blight', '/v1/blight/push',   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
   '/v1/garrisons', '/v1/garrisons/recruit', '/v1/garrisons/orders', '/v1/garrisons/dismiss',   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
-  '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore',   // BUNNYFALL COMPANIES: farms (farms.js)
+  '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore', '/v1/farms/garden',   // BUNNYFALL COMPANIES: farms (farms.js)
   '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
-  '/v1/tavern/service',
+  '/v1/tavern/favor', '/v1/tavern/service',
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id
   '/v1/account/icon',   // WITCH1: a profile icon worn, or none

@@ -187,6 +187,8 @@ export async function farmRelease({ db, nowS }, player, { character, mapId, laps
   await db.batch([
     db.prepare('DELETE FROM company_farms WHERE map_id = ?').bind(mapId),
     db.prepare('DELETE FROM company_farm_chores WHERE map_id = ?').bind(mapId),
+    db.prepare('DELETE FROM company_farm_gardens WHERE map_id = ?').bind(mapId),
+    db.prepare('DELETE FROM company_farm_garden_work WHERE map_id = ?').bind(mapId),
     db.prepare('DELETE FROM company_farm_reach WHERE map_id = ?').bind(mapId),
   ]);
   dropWorld(db, 'farms');

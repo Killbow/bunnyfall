@@ -1,22 +1,10 @@
 // @ts-check
-// BUNNYFALL (2026-11-04, the owner's "first big world change"): THE SORCERER OF CROMWARK. The Wrothgarian Mountains stop
-// being the open PvP zone (systems/wild/wildZone.js, WILD1) and become Rodney's ruined reach: the land about the castle
-// that Nyxaratah's barrier seals, at the zone's very middle. The owner's words, asked:
-//   - "removing the pvp aspect and instead changing how it works to be less of a resource farm area and more of a
-//     dangerous place": no fights between players, no remains, no strangers, no loot bonus by ring; the rings keep their
-//     foes' strength (four times, and the ring's share on top), so the heart is the hardest.
-//   - "everyone still shares the area and dying sends you OUTSIDE of the zone".
-//   - "once you get into the deeper zones a counter in purple appears on the screen, terrain and enemies in this are all
-//     should have a purple haze, each minute the enemies deal more damage to you" - from ring II, +25% a minute, reset on
-//     leaving the deep rings.
-//   - "a 1% chance to drop a Dusk Token when killing enemies in there and the chance increases when going in the middle" -
-//     1 / 3 / 6 / 12% by ring.
-//   - "every village and settlement in the area is a desolated mess": no townsfolk, shops, guards or quest givers.
-//   - "the border should be purple to reflect the change".
-// The Eltheric Ocean's open sea (systems/wild/etherWild.js) is another ground and stays an open PvP zone: every law here
-// reads the mountains' kind alone.
-//
-// A LEAF: no imports, so wildZone.js (itself a leaf) and every host can read it.
+// CROMWARK COMBAT REWORK (2026-11-17): distinct monsters and dodgeable patterns
+// replace blanket stat inflation, purple reskins, escalating haze damage and the
+// old Greater Giants. Ordinary foes, elites and Unquiets remain supporting actors.
+// Rings still govern geography and Dusk rewards. Camp, blight campaign and peaceful
+// multiplayer remain. The Eltheric Ocean keeps its separate PvP and scaling laws.
+// A leaf, shared by world, combat and relay code.
 
 /** The switch: the mountains are Cromwark's reach (false - the old open PvP zone, every law as it was). */
 export const CROMWARK_ON = true;
@@ -28,6 +16,8 @@ export const cromwarkPeace = (/** @type {string | null | undefined} */ kind) => 
 // ── THE HAZE'S COUNTER ──────────────────────────────────────────────────────────────────────────────────────────────
 /** The ring the counter starts at (II, The Passes) - and the purple haze with it. */
 export const HAZE_RING = 2;
+/** Retired attrition counter; kept off while saved gear and camp rewards migrate. */
+const HAZE_ENABLED = false;
 /** Each whole minute on the counter, foes' blows on me grow by this much (+25%). */
 export const HAZE_STEP = 0.25;
 export const HAZE_STEP_S = 60;
@@ -44,7 +34,7 @@ export function createHazeClock() {
   let s = 0, on = false;
   return {
     frame(/** @type {number} */ ring, /** @type {number} */ dt) {
-      on = ring >= HAZE_RING;
+      on = HAZE_ENABLED && ring >= HAZE_RING;
       if (!on) { s = 0; return; }
       if (dt > 0 && dt < 5) s += dt;
     },
@@ -58,11 +48,11 @@ export function createHazeClock() {
 /** "the monsters are the game base creatures but with a purple style": the wash a foe of the mountains is drawn in (a
  *  billboard batch's `tint`, a multiply - render/renderer.js uBatchTint). */
 export const CROMWARK_FOE_TINT = Object.freeze([0.82, 0.56, 1]);
-/** The wash for this foe (`kind` the zone the player stands in), or null. */
-export const cromwarkFoeTint = (/** @type {any} */ entity, /** @type {string | null | undefined} */ kind) => (entity?.wildFoe && cromwarkPeace(kind) ? CROMWARK_FOE_TINT : null);
 /** The counter's multiplier on the blows I take now - the world host's clock sets it each frame (scenes/cromwarkHost.js),
  *  the blows' tail reads it (combat/formulas.js, systems/effects.js). 1 outside the deep rings. */
-let _hazeMult = 1;
+let _hazeMult = 1, _combatRing = 0;
+export const setCromwarkCombatHere = (on, ring = 1) => { _combatRing = on ? ring : 0; };
+export const cromwarkCombatRing = () => _combatRing;
 export const setHazeMult = (/** @type {number} */ m) => { _hazeMult = Number.isFinite(m) && m >= 1 ? m : 1; };
 export const hazeMult = () => _hazeMult;
 
@@ -81,9 +71,9 @@ export function blightHere() {
   return _blight;
 }
 /** Every multiplier on a foe's blow at the player: the haze's counter, and the blight's. */
-export const foeDamageMult = () => _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
+export const foeDamageMult = () => _combatRing ? 1 : _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
 /** A foe's wash where the blight stands: Cromwark's purple on every hostile foe while the player is in it, or null. */
-export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && blightHere() ? CROMWARK_FOE_TINT : null);
+export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && !_combatRing && blightHere() ? CROMWARK_FOE_TINT : null);
 /** The counter's words: "mm:ss" on it and the blows' share ("+75%"). */
 export const hazeClockText = (/** @type {number} */ s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 

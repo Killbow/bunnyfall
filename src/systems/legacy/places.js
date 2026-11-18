@@ -5,10 +5,11 @@
 // LocationTypes), which the boot stands the heir in through its own `?region=&loc=` start.
 //
 // Pure over a region's tables (formats/mapsFile.js dfRegion: `mapTable[i]` and `mapNames[i]`).
+import { cromwarkQuestSiteBlocked } from '../wild/cromwarkSettlements.js';
 import { LOCATION_TYPES, longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 
 const TOWN_TYPES = new Set([LOCATION_TYPES.TownCity, LOCATION_TYPES.TownHamlet, LOCATION_TYPES.TownVillage]);
-export const isTownEntry = (e) => !!e && TOWN_TYPES.has(e.locationType);
+export const isTownEntry = (e) => !!e && !cromwarkQuestSiteBlocked(e.mapId) && TOWN_TYPES.has(e.locationType);
 
 /** The town standing ON `pixel` in this region, as `{ region, loc }`, or null. */
 export function townAt(dfRegion, regionName, pixel) {

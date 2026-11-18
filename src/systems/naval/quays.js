@@ -44,6 +44,7 @@ import { hullBuild, MOD_BUILDS } from './navalShips.js';   // GALLEON-HOLDINGS: 
 import { hash32 } from '../../world/spawnedDungeons.js';
 import { mulberry32 } from '../../combat/blood/bloodArt.js';
 import { SHORE_TERRAIN_FIT_METERS } from '../../world/deepWater/deepWaterFloor.js';   // HARBOUR-BOOK: the shelf a pier crosses
+import { hullAlong, HULL_CLEAR_M } from './seaClearance.js';
 
 /** The water between her widest and the quay's face (m) - the fenders' room. */
 export const QUAY_GAP = 0.8;
@@ -384,6 +385,18 @@ export function pierOutline(plan, origin = plan.frame.origin) {
   const at = { ...plan.frame, origin };
   return [plan.quay, plan.jetty, plan.ramp].filter((r) => r && r.x1 - r.x0 > 0)
     .map((r) => [[r.x0, r.z0], [r.x1, r.z0], [r.x1, r.z1], [r.x0, r.z1]].map(([x, z]) => quayToScene(at, x, z)));
+}
+/**
+ * Meters along a flat look from `p` (`dx`, `dz` a unit direction) to the first of `piers` (pierOutline rectangles)
+ * grown by `clear`, within `far`; Infinity when none. Each pier is tested as a ship's hull (seaClearance.js hullAlong).
+ * From inside a pier's clearance, only the pier itself stops the look.
+ * @param {number[]} p @param {number} dx @param {number} dz @param {number} far @param {number[][][]} piers
+ */
+export function pierAlong(p, dx, dz, far, piers, clear = HULL_CLEAR_M) {
+  return hullAlong(p, dx, dz, far, piers.map(([a, b, , d]) => {
+    const ux = b[0] - a[0], uz = b[1] - a[1], vx = d[0] - a[0], vz = d[1] - a[1], lu = Math.hypot(ux, uz), lv = Math.hypot(vx, vz);
+    return { c: [(b[0] + d[0]) / 2, 0, (b[1] + d[1]) / 2], ax: [ux / lu, 0, uz / lu], ay: [0, 1, 0], az: [vx / lv, 0, vz / lv], h: [lu / 2, 1, lv / 2] };
+  }), clear);
 }
 /** Whether `(x, z)` lies within the convex quad `box` (its corners in order round it, either way). */
 function inBox(box, x, z) {

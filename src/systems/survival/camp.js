@@ -1,3 +1,4 @@
+import { addItem } from '../inventory.js';
 // SURV3 - THE CAMP: a tent or a fire on the ground, PURE. What the
 // mod had (Climates & Calories 1.7.1, read off the DLL: Camping.
 // SetUpCamp / DeployTent / DestroyCamp / CampfireCook, the tent as
@@ -293,13 +294,13 @@ export function cookFood(item, list, { skillet = false, into = list } = {}) {
   const f = foodOf(item);
   if (!f?.cooks) return null;
   const rawName = item.name;   // AUDIT SURV E: the line names what went on the fire
-  const cooked = createSurvivalItem(f.cooks, { foodStage: Math.max(0, foodStage(item) - 1) });
+  let cooked = createSurvivalItem(f.cooks, { foodStage: Math.max(0, foodStage(item) - 1) });
   if (!cooked) return null;
   dressFood(cooked);
   if (Array.isArray(list)) {
     if ((item.stackCount ?? 1) > 1) item.stackCount -= 1;
     else { const i = list.indexOf(item); if (i >= 0) list.splice(i, 1); }
-    (Array.isArray(into) ? into : list).push(cooked);   // FB1020c BAG-COOK: into the pack, never the bag
+    cooked = addItem(Array.isArray(into) ? into : list, cooked);   // FB1020c BAG-COOK: into the pack, never the bag
   }
   return { item: cooked, minutes: skillet ? SKILLET_COOK_MINUTES : COOK_MINUTES, text: CAMP_TEXT.cooked(rawName) };
 }

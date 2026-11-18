@@ -43,8 +43,13 @@ export const TAVERN_ROOM_EVENTS = Object.freeze([
     choice('dismiss', 'Tell them none of their versions are worth hearing.', 'The table falls silent. Nobody asks for another opinion.', -2, -1, 2),
   ] },
 ]);
-export const tavernRoomEvent = (state) => TAVERN_ROOM_EVENTS.find((e) => e.id === state?.orders?.[state.index]?.encounter) ?? null;
-export const tavernRoomAvailable = (state) => ['served', 'dirty'].includes(state?.phase) && !!tavernRoomEvent(state) && !state.orders[state.index].roomChoice;
+/** The order whose customer can be worked: the one just served (one-step service), or a legacy shift's cup round trip. */
+const roomOrderIndex = (state) => ['served', 'dirty'].includes(state?.phase) ? state.index
+  : Number.isInteger(state?.lastServed?.index) && state.phase !== 'done' ? state.lastServed.index : -1;
+const roomOrder = (state) => state?.orders?.[roomOrderIndex(state)] ?? null;
+export const tavernRoomPatron = (state) => roomOrder(state)?.patron ?? null;
+export const tavernRoomEvent = (state) => TAVERN_ROOM_EVENTS.find((e) => e.id === roomOrder(state)?.encounter) ?? null;
+export const tavernRoomAvailable = (state) => !!tavernRoomEvent(state) && !roomOrder(state).roomChoice;
 export const tavernRoomOf = (raw) => ({ warmth: raw?.warmth ?? 2, energy: raw?.energy ?? 2, tension: raw?.tension ?? 1 });
 export const tavernRoomTip = (room) => Math.max(0, Math.min(6, room.warmth + room.energy - room.tension - 3));
 export const tavernRoomMusicShare = (raw) => { const room = tavernRoomOf(raw); return Math.max(.8, Math.min(1.25, 1 + (room.warmth - 2) * .03 + (room.energy - 2) * .02 - (room.tension - 1) * .03)); };
@@ -59,6 +64,6 @@ export function resolveTavernRoom(state, id) {
   const delta = backfire ? { warmth: -1, energy: 1, tension: 1 } : picked.delta;
   for (const k of ['warmth', 'energy', 'tension']) room[k] = Math.max(0, Math.min(6, room[k] + delta[k]));
   state.room = room;
-  state.orders[state.index].roomChoice = id;
+  roomOrder(state).roomChoice = id;
   return { event: event.id, choice: id, backfire };
 }

@@ -1,4 +1,5 @@
 // @ts-check
+import { CROMWARK_ON } from './cromwark.js';
 // ═══════════════════════════════════════════════════════════════════
 // ZONE GIANTS (2026-10-08, the owner: "can you always spawn 2 giants per tier and make em show on the map where they
 // wander around? dont use the 15% anymore if this is possible")
@@ -155,7 +156,7 @@ function lineInside(mask, a, b) {
  * @param {((x:number, y:number) => number)|null} [heightAt] the height map's byte - the giants keep to the low ground
  */
 export function wildGiantsAt(mask, free, now, dead = () => false, heightAt = null) {
-  if (!mask?.depth || !mask.maxDepth) return [];
+  if (CROMWARK_ON || !mask?.depth || !mask.maxDepth) return [];
   const c = cellsOf(mask, free, heightAt);
   const out = [];
   for (let g = 0; g < WILD_GIANT_COUNT; g++) {

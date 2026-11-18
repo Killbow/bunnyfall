@@ -446,7 +446,7 @@ function paint() {
   if ((hand || arranging) && !padInHand()) { hand = null; arranging = false; handPress = -1; raiseSync(); }
   const on = hotbarMode();
   const dropping = on && dropOwners.size > 0;
-  const shown = on && (dropping || !lastHidden);
+  const shown = on && !hotbarHeld() && (dropping || !lastHidden);
   if (dropping) {
     if (!dropLayer) { dropLayer = el('div', 'hb-droplayer'); document.body.append(dropLayer); }
     if (bar.parentNode !== dropLayer) { dropLayer.append(bar); refit(); }   // UI2: out from under the HUD's scale
@@ -733,6 +733,12 @@ const slotOfActions = (acts) => acts.map((a) => HOTBAR_SLOT_ACTIONS.indexOf(a)).
 // a digit used the body's item or spell, and was stopped before the UV dialog's 1-4 ever reached it. A hold stands the
 // keys down while it stands; holds are counted and each release is its own (player/pointerLock.js holdCursor's shape).
 const keyHolds = new Set();
+const visibilityHolds = new Set();
+export const hotbarHeld = () => visibilityHolds.size > 0;
+export function holdHotbar() {
+  const hold = {}; visibilityHolds.add(hold); const releaseKeys = holdHotbarKeys(); paint();
+  return () => { visibilityHolds.delete(hold); releaseKeys(); paint(); };
+}
 /** The bar's keys stood down until the release this answers is called (once is enough; twice changes nothing). */
 export function holdHotbarKeys() {
   const hold = {};

@@ -574,6 +574,7 @@ export function buildInkModel(deps) {
   const high = highGround({ heightBytes, width, height, isLand });
   return {
     width, height,
+    isLand,   // BUNNYFALL: the territories are laid on land alone (ui/territoryLive.js)
     coast: coastChains({ heightBytes, width, height, climateAt: deps.climateAt }),
     borders: borderChains({ width, height, regionAt, isLand }),
     ...roadChains(deps.roads, width, height),

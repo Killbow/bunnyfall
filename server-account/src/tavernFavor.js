@@ -1,6 +1,7 @@
 // @ts-check
 import { FAVOR_OFFERS, tavernProgressOf } from '../../src/net/tavernFavorLaw.js';
-import { favorLegendary } from '../../src/systems/tavern/favorLegendary.js';
+import { favorReward } from '../../src/systems/tavern/favorRewards.js';
+import { addItem } from '../../src/systems/inventory.js';
 import { realmAtOf, prepareRealmRecord, dropIfUnnamed, dropObjects, mustChange, recordMovedOf } from './realm.js';
 
 /** The realm checkpoint, debit, delivered item/title and receipt commit together. */
@@ -11,7 +12,7 @@ export async function tavernFavorBuy(ctx, player, body) {
   const replay = await db.prepare('SELECT t.result, c.lease, c.seq FROM tavern_service_txns t JOIN realm_characters c ON c.id = t.character WHERE t.character = ? AND t.txn = ? AND c.player = ?')
     .bind(at.id, body.txn, player.id).first();
   if (replay) return replay.lease === at.lease ? { ...JSON.parse(replay.result), realm: { seq: replay.seq }, replayed: true } : { error: 'lease' };
-  const title = offer.id === 'legendary' ? null : `title:${offer.id}`;
+  const title = offer.kind === 'title' ? `title:${offer.id}` : null;
   const account = await db.prepare('SELECT insignia FROM players WHERE id = ?').bind(player.id).first();
   if (title && (` ${account?.insignia ?? ''} `).includes(` ${title} `)) return { error: 'owned' };
   let item = null, progress = null;
@@ -24,8 +25,9 @@ export async function tavernFavorBuy(ctx, player, body) {
     progress.favor -= offer.price;
     guild._marks.tavern = progress;
     if (!title) {
-      item = favorLegendary(() => new DataView(rand(new Uint8Array(4)).buffer).getUint32(0) / 0x100000000);
-      record.items ??= []; record.items.push(item);
+      item = favorReward(offer.id, () => new DataView(rand(new Uint8Array(4)).buffer).getUint32(0) / 0x100000000);
+      if (!item) return 'tavern-bad';
+      record.items ??= []; addItem(record.items, item);
     }
     return null;
   });

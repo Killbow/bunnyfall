@@ -18,6 +18,7 @@ RUN BUNNYFALL_BUILD_TAG="${BUNNYFALL_BUILD_TAG:-bf$(date -u +%Y%m%d%H%M%S)}" nod
 RUN npx vite build --config tools/poi-editor/vite.config.js
 
 FROM base AS server
+RUN npm ci --prefix discord-bot --omit=dev --no-audit --no-fund
 ENV BIND=0.0.0.0 BUNNYFALL_DATA=/data BUNNYFALL_UPDATES=/updates NODE_ENV=production
 VOLUME /data
 EXPOSE 8787 8788 8789

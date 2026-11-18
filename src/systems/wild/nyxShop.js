@@ -82,7 +82,7 @@ export const NYX_GEAR = Object.freeze([
     make: { kind: 'armor', templateIndex: A.Boots, material: ARMOR_MATERIAL.Daedric },
     enchantment: { type: 13, param: 1 },   // the same DFU line as the ladder's own record of the kind
     affixes: [{ id: 'armor', value: 15 }, { id: 'stat', param: 'speed', value: 12 }, { id: 'resist', param: 'magic', value: 40 }],
-    power: Object.freeze({ name: 'Haze-Walker', kind: 'hazewalk', step: 80, brief: 'The haze climbs a third slower', text: 'While you wear them, the purple haze counter climbs one step every 80 seconds instead of every minute' }),
+    power: Object.freeze({ name: 'Haze-Walker', kind: 'hazewalk', step: 80, brief: 'Frozen slows last half as long', text: 'While you wear them, slowing blasts from Frozen last two seconds instead of four' }),
     lore: 'Stitched from the hide of something that lived in the haze, and liked it.', hint: NYX_HINT }),
   Object.freeze({ id: 'guild-wardens-shield', name: 'Guild Warden\'s Shield', group: 'Armor', templates: [A.Kite_Shield], shopOnly: true, price: 150,
     make: { kind: 'armor', templateIndex: A.Kite_Shield, material: ARMOR_MATERIAL.Daedric },

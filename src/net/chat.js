@@ -73,6 +73,8 @@ export const CHAT_TABS = Object.freeze([
   // BUNNYFALL WHISPER: private lines (scenes/whisperHost.js) - on the bar once one is sent or heard; typing here answers
   // the last person
   Object.freeze({ id: 'whisper', label: 'Whispers', room: null, link: false, hint: 'Private lines. Typing here answers the last person.', hidden: true, peekAll: true }),
+  Object.freeze({ id: 'tavern', label: t('chat.tab.tavern', 'Tavern'), room: null, link: false, hidden: true,
+    hint: t('chat.tavern.hint', 'Messages in this tab are also sent to Discord.') }),
   Object.freeze({ id: 'local', label: 'Local', room: null, link: false, hint: 'Players near enough to hear you. Speak in character here, and put out-of-character remarks in (( )).' }),
 ]);
 /** STAFF-PANEL5-FREEZE: the word on a line's Copy button (a line's `copy`, ChatLog._line). */

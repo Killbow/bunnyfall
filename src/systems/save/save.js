@@ -39,6 +39,7 @@ import { isMartialPathId } from '../martialPaths.js';   // MARTIAL1: the martial
 import { seedBundleSeq, effectKindLoaded } from '../effects.js';   // X10: the live-bundle counter's restore half; AUDIT PRE-MERGE 0928 S3: a mod's effect restores only while its mod is loaded
 import { repairLostCurses } from '../curseRepair.js';   // CURSE-REPAIR1: a curse the round clock pruned, given back
 import { repairUnmintedConditions, repoolWeaponConditions } from '../conditionRepair.js';   // DISC21-A: a wearable minted with no condition, minted; WEAPON-POOL: a weapon on its row's pool, moved to the one pool
+import { tidyFoodInventory } from '../survival/foodInventory.js';
 import { restackStones, nameEmbers, PORTAL_GIFT, givePortalGift } from '../gate/gateSpoils.js';   // SS1: Sigil Stones saved before they stacked, folded into one stack; WB12a: and named Deadlands Embers
 import { WALLET_GIFT, giveWalletGift } from '../walletItem.js';   // WALLET1: a character from before the wallet is given one, once
 import { LOCKPICK_GIFT, giveLockpickGift } from '../lockpick/lockpickItem.js';   // LOCKPICK: a picking class from before the lockpick is given its picks, once
@@ -995,6 +996,7 @@ export function restorePlayer(entity, snap, spellsByIndex = null, { load = true 
     const n = restackStones(list);
     if (n) console.info(`[save] SS1: ${n} Deadlands Ember record(s) folded into their stacks`);
   }
+  for (const list of repairLists) tidyFoodInventory(list);
   givePortalGift(entity);   // PORTAL-GIFT: a character from before the gift is given its stones once - below the relinks and the fold, onto the pack's stack
   giveWalletGift(entity);   // WALLET1: and a character from before the wallet, one - at the pack's end, below the relinks (no index above it moves)
   cleanBinders(entity.items);   // AUDIT CARDS-5 C1: a binder's decks from an old, foreign or edited save made sound (the load copies a record whole)

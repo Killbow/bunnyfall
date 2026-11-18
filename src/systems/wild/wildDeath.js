@@ -94,14 +94,10 @@ export function wildSpawnSpot(centre, { bodies = [], clear = () => true, yaw = 0
   return { pos: [centre[0], centre[1], centre[2]], yaw };
 }
 
-/** THE RISE'S TOWNS in the order they are asked (world.js wildRiseSite: the first `nearestSafeLocationAnywhere` finds) -
- *  `mask` the zone's, `px` where the body fell, `inDungeon` a hall's death, `kill` a death at another player's hand.
- *  WILD1 (the owner: "when the players respawns in a town near the zone the cart comes with him"): a kill rises at the
- *  nearest town or temple OUTSIDE the zone and its band. PVPDUNGEONS (the owner: "Dying in a dungeon respawns you in city
- *  near the dungeon"): a hall's death in the zone at the town nearest the hall. AUDIT FOE-KEEPS E1 (the owner, 2026-10-24,
- *  asked: "Rise inside the zone"): since FOE-KEEPS a death to a foe drops nothing, so its rise outside made dying the
- *  zone's free way out - where fast travel out is refused and the walk out an hour and more; it rises at the nearest town
- *  or temple INSIDE the zone in the ring it fell in, else anywhere inside, else outside as a kill does.
+/** The towns a death in the zone rises at, in the order world.js wildRiseSite asks them. While Cromwark is on, every
+ *  death in the zone rises at the nearest town or temple outside the zone and its border band. With it off, a death
+ *  in a dungeon rises at the town nearest it and a death to an enemy inside the zone. A death to another player
+ *  rises outside either way.
  *  @param {any} mask @param {{ x: number, y: number }} px @param {{ inDungeon?: boolean, kill?: boolean }} [o]
  *  @returns {((hit: any) => boolean)[]} */
 export function wildRisePicks(mask, px, { inDungeon = false, kill = true } = {}) {

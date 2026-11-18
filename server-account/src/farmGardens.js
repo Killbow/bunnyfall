@@ -1,0 +1,56 @@
+// @ts-check
+// BUNNYFALL: shared gardens. Revision claims and harvest deposits commit in one batch.
+import { guildActorOf } from './guilds.js';
+import { mustChange } from './realm.js';
+import { emptyGarden, validGarden, stepFarmGardenAction } from '../../src/net/farmGardenLaw.js';
+import { cropMaterial } from '../../src/net/farmLaw.js';
+import { farmProgressStep, farmProgressRead } from './farmProgress.js';
+
+export async function farmGarden({ db, nowS, env }, player, body = {}) {
+  const { character, mapId, op = 'read', version } = body;
+  if (!Number.isSafeInteger(mapId) || mapId < 0 || mapId > 0xffffffff || !['read', 'hoe', 'plant', 'water', 'harvest', 'upgrade', 'deliver'].includes(op)) return { error: 'farm-bed-bad' };
+  const management = op === 'upgrade' || op === 'deliver';
+  // Any authenticated visitor may see a garden. Only Company members may change it.
+  const actor = op === 'read' ? null : await guildActorOf(db, player, character);
+  if (actor && 'error' in actor) return actor;
+  const farm = await db.prepare('SELECT * FROM company_farms WHERE map_id = ?').bind(mapId).first();
+  if (!farm) return { error: 'farm-not-ours' };
+  if (op !== 'read' && farm.guild_id !== actor.me.guild_id) return { error: 'farm-not-ours' };
+  if (management && Number(actor.me.rank) > 1) return { error:'farm-rank' };
+  await db.prepare('INSERT OR IGNORE INTO company_farm_gardens (map_id, version, garden) VALUES (?, 0, ?)').bind(mapId, JSON.stringify(emptyGarden())).run();
+  const row = await db.prepare('SELECT version, garden FROM company_farm_gardens WHERE map_id = ?').bind(mapId).first();
+  let garden;
+  try { garden = JSON.parse(row.garden); } catch { return { error: 'farm-bed-bad' }; }
+  if (!validGarden(garden)) return { error: 'farm-bed-bad' };
+  if (op === 'read') return { ok: true, ...(version === Number(row.version) ? { unchanged: true } : { garden }), ...await farmProgressRead(db,player,character,farm.guild_id,body.details===true,nowS), version: Number(row.version), nowS };
+  if (!Number.isSafeInteger(version) || version !== Number(row.version)) return { error: 'farm-bed-version' };
+  const step = management ? await farmProgressStep({db,nowS,env},player,farm,garden,body) : stepFarmGardenAction(garden, body, nowS);
+  if ('error' in step) return step;
+  const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
+    WHERE map_id = ?2 AND version = ?3 AND EXISTS (SELECT 1 FROM company_farms WHERE map_id = ?2 AND guild_id = ?4)
+      AND EXISTS (SELECT 1 FROM guild_members WHERE player = ?5 AND char_id = ?6 AND guild_id = ?4 AND (?7 = 0 OR rank <= 1))`)
+    .bind(JSON.stringify(step.garden), mapId, version, actor.me.guild_id, player.id, character, management?1:0), mustChange(db)];
+  if (management) statements.push(...step.statements);
+  const harvests = management ? [] : step.harvests;
+  const deposits = new Map();
+  for (const harvest of harvests) {
+    const material = harvest.material ?? cropMaterial('herbs', Math.floor(nowS / 86400), Number(farm.climate), Number(farm.region));
+    if (!material) return { error: 'farm-bed-bad' };
+    deposits.set(material,(deposits.get(material)??0)+harvest.qty);
+  }
+  for (const [material,qty] of deposits) {
+    statements.push(db.prepare(`INSERT INTO guild_prof_stores (guild_id, material, dep_player, dep_char, qty, moved_by, moved_at)
+      VALUES (?1, ?2, '', '', ?3, ?4, ?5) ON CONFLICT (guild_id, material, dep_player, dep_char)
+      DO UPDATE SET qty = MIN(50000, qty + excluded.qty), moved_by = excluded.moved_by, moved_at = excluded.moved_at`)
+      .bind(actor.me.guild_id, material, qty, `Garden: ${farm.name}`.slice(0, 64), nowS));
+  }
+  const day = Math.floor(nowS / 86400);
+  for (const bed of management ? [] : step.worked) statements.push(db.prepare('INSERT OR IGNORE INTO company_farm_garden_work (map_id, day, account, bed) VALUES (?, ?, ?, ?)').bind(mapId, day, player.id, bed));
+  statements.push(db.prepare('DELETE FROM company_farm_garden_work WHERE map_id = ? AND day < ?').bind(mapId, day - 7));
+  statements.push(db.prepare(`INSERT OR IGNORE INTO company_farm_chores (map_id, day, account, name)
+    SELECT ?1, ?2, ?3, ?4 WHERE (SELECT COUNT(*) FROM company_farm_garden_work WHERE map_id = ?1 AND day = ?2 AND account = ?3) >= 3`)
+    .bind(mapId, day, player.id, actor.me.name || player.handle || 'Farmer'));
+  let result;
+  try { result = await db.batch(statements); } catch { return { error: 'farm-bed-version' }; }
+  return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, choreAwarded: !management && !!result.at(-1)?.meta?.changes };
+}

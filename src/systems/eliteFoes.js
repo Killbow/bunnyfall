@@ -205,14 +205,14 @@ function tiered(level, tier, rolls) {
 export const tieredGear = (level, tier, rolls = Math.random) => tiered(Math.max(1, level | 0), tier, rolls);
 
 /** THE ELITE'S DROP, added to the body's loot: better loot than its kind carries (the table above). */
-export function eliteLoot(level = 1, rolls = Math.random) {
+export function eliteLoot(level = 1, rolls = Math.random, rarityMultiplier = 1) {
   const lv = Math.max(1, level | 0);
   const out = [];
   for (let i = 0; i < ELITE_FOE_LOOT.magic; i++) { const it = tiered(lv, 'magic', rolls); if (it) out.push(it); }
   for (let i = 0; i < ELITE_FOE_LOOT.common; i++) { const it = tiered(lv, 'common', rolls); if (it) out.push(it); }
   const at = rollerLevel() ?? lv;   // LOOT-GATE; AUDIT UPDATE II A3: none registered yet (a scene's first foes, before any host frame) - the level the drop is minted at, the player's at every host
-  if (rolls() < eliteRareChance(lv) * (at == null ? 1 : rareGate(at))) { const it = tiered(lv, 'rare', rolls); if (it) out.push(it); }   // ELITE-RARE: half a champion's blue at this level
-  if (rolls() < ELITE_FOE_LOOT.legendaryChance * (at == null ? 1 : legendaryGate(at))) { const it = tiered(lv, 'legendary', rolls); if (it) out.push(it); }
+  if (rolls() < rarityMultiplier * eliteRareChance(lv) * (at == null ? 1 : rareGate(at))) { const it = tiered(lv, 'rare', rolls); if (it) out.push(it); }   // ELITE-RARE: half a champion's blue at this level
+  if (rolls() < rarityMultiplier * ELITE_FOE_LOOT.legendaryChance * (at == null ? 1 : legendaryGate(at))) { const it = tiered(lv, 'legendary', rolls); if (it) out.push(it); }
   const [lo, hi] = ELITE_FOE_LOOT.goldPerLevel;
   out.push(goldStack(Math.round(lv * (lo + rolls() * (hi - lo)))));
   return out;
@@ -225,7 +225,7 @@ export function grantEliteLoot(entity, level, rolls = Math.random) {
   if (!entity?.eliteFoe || entity._eliteLoot) return;
   entity._eliteLoot = true;
   entity.items = entity.items ?? [];
-  const laid = eliteLoot(level ?? entity.level, rolls);
+  const laid = eliteLoot(level ?? entity.level, rolls, entity.cromwarkLootMultiplier ?? 1);
   _eliteLaid.set(entity, laid);
   entity.items.push(...laid);
 }

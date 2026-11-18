@@ -67,6 +67,7 @@ export function wardrobeOf(f) {
  * @param {any} pn @param {any} data @param {any} faction
  */
 export function personLook(pn, data, faction) {
+  if (pn.guildClerkArt) return (pn._mwLook = null);
   if (pn._mwLook !== undefined) return pn._mwLook;
   if (!data || isChildNPCData(data)) return (pn._mwLook = null);
   // MWNPC8b: an EDITOR flat (a marker DFU never renders, whatever faction it carries) is no one to stand a body for -

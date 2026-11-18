@@ -5,9 +5,34 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-18
 
+- The territory map is reworked. Company territories now lie on the land only, sharing borders with their neighbours instead of overlapping circles over the sea, and your own Company's border glows gold. Rodney's blight drifts and creeps, with a glowing front where a territory holds it. Garrison marches are curved roads with arrows streaming from town to front. Hover a territory or the blight to see whose it is.
+- Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
+- Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.
+- Tavern shifts feel more alive: customers call out their orders, thank you or complain, and your cup pours, fills, lifts and changes hands in front of you.
+- New tavern chores: customers leave empties on their tables and knock drinks over. Clear a table by gathering the cups and wiping it down, or sweep up a spill. Each chore pays a little and cheers up the room.
+- Bards' College members now earn much more reputation from tavern shifts: one point for every drink served right and on time, and three more for a perfect shift with nothing left dirty.
 - Click a player's name in the chat and pick Whisper: the chat field fills with the whisper command and their name, ready for your message.
 
+
 ## 2026-11-17
+
+- Fixed: Choosing a Bay waypoint or quest marker from the Eltheric Ocean no longer crashes the game.
+- Fixed: Jumping in the Mages Guild spell shop showed "<effect not found>" and did nothing when cast. It now shows its effect, costs 13 spell points, and works for copies already in your spellbook too.
+- Fixed: A booked ship leaving its berth is now towed clear of the quay and steers around piers instead of getting stuck on piers or the shore.
+- Fixed: Travel refusals now name the nearest enemy with its distance and direction, and the Overworld marks lone enemies that block travel. Wilderness enemies that have not noticed you no longer close the Overworld.
+- Fixed: Purchases in the Bards' Guild Favor Shop now go through instead of failing.
+- Company farms now have costly shared tool, irrigation and soil upgrades, unlocked through crop deliveries. Bulk orders ask for 1,000, 5,000 and then 20,000 of each crop, pay Company gold and Argents, and enforce weekly limits and farm-grown milestones.
+- The Bards’ Guild Favor shop now sells five Welkynd Shards for 10 Favor, and bundles of three Stamina or Restore Power potions for 5 Favor.
+- Putrid food is cleared automatically, including from older saves, and matching raw and cooked meat now stack.
+- Every Escape menu tab now uses the larger Growth tab window size.
+
+- The Bards’ Favor shop now sells five Welkynd Shards for 10 Favor and three Stamina or Restore Power potions for 5 Favor.
+- Putrid food disappears automatically, including old saved food. Matching raw and cooked meat now stack.
+- All Escape menu tabs now use the Growth tab’s larger window size.
+
+- All crop fields on each Company farm are now workable, with saved crops visible to nearby visitors outside Farming Mode. Shared field updates arrive about once per second. Existing beds keep their positions and crops.
+- Company farm doors now offer Farming Mode: work 16 shared beds with a raised camera and your visible character, planting grain, mushrooms or herbs, watering them and harvesting into Company Stores. Watered crops grow in real time; unattended crops pause instead of dying.
+- Farming uses native Daggerfall soil and vegetation textures, follows the active UI skin and theme, and replaces the ordinary hotbar with farming tools until you exit.
 
 - Legendary Bartender now also unlocks the Heart's Fire aura (formerly Beaconlight), including for players who already own the title.
 

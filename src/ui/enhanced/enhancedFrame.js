@@ -149,7 +149,7 @@ export const FRAME_ROLES = {
     '.px-sys .codex-whole'],   // AUDIT COLLECTIONS-II (lane 3): and a codex row opened whole - the same box, where it was a bare list
   // panels that carry a brass edge on the left as their own mark
   panelAccent: ['body .rvncard', '.notice', '.inputbox', 'body .dfsocial-toast', 'body .dfdecor-bar'],   // PLUS-DRESS: the two that wore a brass line
-  button: ['.port-host .port-btn', '.pack-shell .statflip-btn', '.inv-info .act', '.pbind .act', '.px-sys .act', '.shell .act', '.px-win .card .act', '.pack-shell .act', '.px-setwrap .act',
+  button: ['.farming-hud[data-skin="enhanced"] .farm-tool', '.port-host .port-btn', '.pack-shell .statflip-btn', '.inv-info .act', '.pbind .act', '.px-sys .act', '.shell .act', '.px-win .card .act', '.pack-shell .act', '.px-setwrap .act',
     '.px-setwrap .step', '.shell .step', '.wizard .bigbtn', '.wizard .reflexbtn', '.lv-pick .lv-arrow',
     '.lv-pick .lv-press', '.shell .look-arrow', '.cr-shell .cr-rm', '.px-winclose', '.talk-head .act', '.talk-say .act',
     '.px-qwhere .act', '.px-qentry-where .act', '.cr-shell .cr-where .act',   // GUIDE2: the journal's way there

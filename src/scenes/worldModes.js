@@ -459,7 +459,7 @@ import { setPassiveSpecialsHost, FIGHTER_TRAINERS_FACTION } from '../systems/pas
 import { DaedraSummonedWindow, REFUSAL_FOE_COUNT, COVEN_FAIL_FOE_COUNT } from '../ui/daedraSummonedWindow.js';   // G7b: the summoning's own film window
 import { orderOf } from '../systems/guild/guildVariants.js';
 import { joinedGuildOfGroup } from '../systems/guild/guilds.js';
-import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
+import { GUILD_GROUPS } from '../formats/factionFile.js'; import { lootRarityOn } from '../systems/loot/lootRarity.js'; import { reforgePiece, imbuePiece, salvagePiece, honePiece, setGemPiece, unsetGemPiece, extractGemPiece } from '../systems/reforge.js'; import { createShopRows } from './shopRows.js'; import { createReforgeOverlay } from '../ui/reforgeDoor.js'; import { imprintPiece } from '../systems/loot/lootCodex.js';   // LOOT9: the Mages Guild's Reforge; LOOT10: its imprint
 import { liftCurse } from '../systems/loot/lootCurse.js';   // LOOT16: the temple's lifting
 import { setJunk } from '../systems/item/itemJunk.js';   // AUDIT LOOT II C5: a sold piece's mark ends at the shelf
 import { scryPlace } from '../systems/loot/lootScry.js';   // LOOT19: the guild's scryers
@@ -2642,6 +2642,7 @@ export function createWorldModes(host) {
     patron: (pn) => !pn.questBehaviour && !pn.bunnyClerk && !pn.arenaRole && !isChildNPCData(staticNpcData(pn, staticNpcSceneCtx(pn))) && staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict, building: interiorBuilding }).kind === 'talk',
     plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), showWindow: (view) => townTalk?.showOverlay?.(view),
     talk: (pn) => openStaticNpc(pn), say: (line) => say(line), saveSoon: () => host.saveSoon?.(),
+    renderer, getTexture, uploadRecordFrame, collider: () => (mode === 'interior' ? interiorCtx?.collider ?? null : null),   // BUNNYFALL: the chores left in the room
   });
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
@@ -3435,6 +3436,7 @@ export function createWorldModes(host) {
     targets.push(...interiorDropped.lootTargets());   // ID1: the player's own piles, the dungeon's key vocabulary
     targets.push(...interiorTorches.targets());   // HT1: the dropped torches
     targets.push(...interiorDecor.targets(), ...(decorTool.flying() && !decorTool.ghost() ? (interiorCtx.base?.aimTargets?.() ?? []) : []));   // DECOR1c: the pieces the room's owner placed; decorating also aims the room's own furniture
+    targets.push(...tavernService.targets());   // BUNNYFALL: the empties and spills a tavern shift leaves to clear
     targets.push(...interiorCamps.targets());   // HEARTH1: the room's own fires - there is never a camp in this pool to add beside them
     // INTERIOR-BODIES (AUDIT-WH2 L2-F4, Mac: "Do it"): ...AND THE BODIES.
     //
@@ -3585,7 +3587,7 @@ export function createWorldModes(host) {
       if (key.startsWith('person:')) {
         const pn = interiorCtx.people[Number(key.split(':')[1])];
         if (!pn) return null;
-        const display = officeName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
+        const display = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, staticNpcSceneCtx(pn)));   // ARENA-FIX 2/4: an office's name where one stands; L10N3e: else as shown (StaticNPC.cs:321)
         const t = npcHoverName(display, { archive: pn.archive ?? -1, record: pn.record ?? -1 });
         return t ? { title: t } : null;
       }
@@ -4467,7 +4469,7 @@ export function createWorldModes(host) {
    *  default-off state. */
   function presentNpcInfo(pn) {
     const npcSceneCtx = staticNpcSceneCtx(pn);
-    const displayName = officeName(pn) ?? npcShownName(staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
+    const displayName = officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(staticNpcData(pn, npcSceneCtx));   // ARENA-FIX 2; L10N3e: else npc.DisplayName as shown (StaticNPC.cs:321)
     townTalk?.say?.(presentNpcInfoText(displayName));
   }
 
@@ -4681,7 +4683,7 @@ export function createWorldModes(host) {
       // after the session's first question opened on the follow-up
       // record. talkToNpc is TalkToNpc alone; this is the other member.
       npcSession?.startNewConversation();
-      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: officeName(pn) ?? npcShownName(npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
+      townTalk.openTalkWindow(talk.greeting, { npcSeed: npcData.nameSeed, npcName: officeName(pn) ?? tavernService.patronName(pn) ?? npcShownName(npcData), portrait: staticNpcPortrait(npcData) });   // the DERIVED seed (StaticNPC.Data), as the engine's own reads are; ARENA-FIX 2: an office's name where one stands; L10N3e: else the plate shows TalkManager.NameNPC, the name as shown (DaggerfallTalkWindow.cs:390) - the partner's nameNPC above stays canonical
       return;
     }
     townTalk?.say?.(localizedText('youGetNoResponse', 'You get no response.'));
@@ -6278,10 +6280,11 @@ export function createWorldModes(host) {
   }
   /** LOOT9: THE REFORGE'S WINDOW over the player's own pack - its salvage and its reforge the law's (systems/reforge.js),
    *  paid from the player's shards and purse. Answers the window, or null with no page to draw it on. */
-  function openReforge() {
-    const o = createReforgeOverlay({
+  function workshopReforgeDeps() {
+    return {
       items: () => playerEntity.items ?? [], payer: () => playerEntity, gold: () => totalGoldAmount(playerEntity),
       reforge: (item, line) => reforgePiece(item, line, playerEntity),
+      imbue: (item) => imbuePiece(item, playerEntity),
       salvage: (item) => salvagePiece(item, { items: (playerEntity.items ??= []) }, playerEntity.name),
       imprint: (item, id) => imprintPiece(item, id, playerEntity),   // LOOT10: a Rare takes a found Legendary's power
       hone: (item, line) => honePiece(item, line, playerEntity),   // LOOT17: a line taken up its band
@@ -6291,7 +6294,10 @@ export function createWorldModes(host) {
       unsetGem: (item, at) => unsetGemPiece(item, playerEntity, at),   // GEM1: a socket of several
       extractGem: (item, at) => extractGemPiece(item, playerEntity, at),   // GEM1: the guild's extraction, the gem whole
       wearer: playerEntity, nameOf: (item) => itemLongName(item),
-    });
+    };
+  }
+  function openReforge() {
+    const o = createReforgeOverlay(workshopReforgeDeps());
     return o ? mountServiceWindow(o) : null;
   }
   /** LOOT16: THE TEMPLE'S LIFTING - the Reforge's window on its one page over the player's own pack, the law's
@@ -8727,6 +8733,11 @@ export function createWorldModes(host) {
           // LAMP-KEEPER II (systems/lampKeeper.js): a shop's keeper standing as the lamp today - the town, the building, the
           // person and the day, one answer for every client in the room
           bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
+          guildClerkArt: (pn) => {
+            const route = staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict ?? null, building });
+            if (building?.buildingType !== BUILDING_TYPES.GuildHall || route.kind !== 'guildService') return null;
+            return route.guildGroup === GUILD_GROUPS.FightersGuild ? 'fighters' : route.guildGroup === GUILD_GROUPS.MagesGuild ? 'mages' : null;
+          },
           lampPerson: (pn) => isLampKeeper(pn, {
             buildingType: building?.buildingType ?? -1, buildingFactionId: building?.factionId ?? 0, buildingKey: building?.buildingKey ?? 0,   // AUDIT FIVE-ASKS D4: the shop's own faction
             mapId: hit.dfLocation?.mapTableData?.mapId ?? 0, day: Math.floor(worldMinutes() / MINUTES_PER_DAY),
@@ -9094,6 +9105,7 @@ export function createWorldModes(host) {
         openInteriorBodyLoot(key);
         return true;
       }
+      if (key.startsWith('tchore:')) { tavernService.activateChore(key); return true; }   // BUNNYFALL: sweep a spill, clear a table
       if (key.startsWith('hearth:')) { interiorCamps.activate(key, getInteractionMode(), plaqueActionFor(key)); return true; }   // HEARTH1: name it, or cook on it - AUDIT REST II H2: the plaque's lit row, as the other hosts pass it
       if (interiorDropped.physical.owns(key)) { interiorDropped.physical.pick(key, playerEntity); return true; }   // PI1: an item standing as itself is taken on the press
       if (key.startsWith('droppedLoot:')) {
@@ -11382,6 +11394,11 @@ export function createWorldModes(host) {
     {
       const _blood = interiorHitEffects.batches();
       if (_blood.length) renderer.drawBillboards(_blood, camRight, UP_Y);
+    }
+    // BUNNYFALL: a tavern shift's chores, on the same axis
+    {
+      const _chores = tavernService.batches();
+      if (_chores.length) renderer.drawBillboards(_chores, camRight, UP_Y);
     }
     // HT1: the room's dropped torches, on the same axis
     interiorTorches.tick(dt);
@@ -14422,6 +14439,7 @@ export function createWorldModes(host) {
       if (mode === 'interior' && hasEnemyRecord && fromNative) restoreInteriorPools(saved, fromNative, yOffset);
       return mode === 'interior';
     },
+    workshopReforgeDeps,
     enterSailingCabin,
     enterCaravanRoom,   // WAGONS1
     tryEnter,
