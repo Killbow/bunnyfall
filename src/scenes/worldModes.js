@@ -158,6 +158,7 @@ import { tallySwingSkills, SWING_FATIGUE_COST, playPlayerVoice, playerPainVoice,
 import { createPopulationLane } from '../characters/npcBodies.js'; import { personLook, personActor } from '../characters/peopleBodies.js';   // MWNPC8a: the building's standing people in Morrowind bodies
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
+import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
 import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
@@ -5753,7 +5754,7 @@ export function createWorldModes(host) {
           });
         // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: online, the house the realm gave is held by the account service - the hold
         // goes first and the deed sells once the service agrees (HOME1's order: credited only once it is gone), or a
-        // building sold here stayed held from every buyer; a deed it never held (`no-home`) sells as Daggerfall's
+        // building sold here stayed held from every buyer; a deed it never held (`no-home`) sells as the biggest tavern Daggerfall has in the place of the tavern's room, its people the tavern's own with Nyx at the bar. `hit` becomes the hall's
         const slot = playerEntity.houses?.[region];
         if (host.onlineHomes && owned && realmDeedAt(playerEntity.houses, region, slot?.mapId, owned.buildingKey)) {
           host.onlineHomes.releaseDeed(slot.mapId, owned.buildingKey)
@@ -8719,6 +8720,13 @@ export function createWorldModes(host) {
       // BASE-HIDE: a room its owner may furnish stands its own furniture piece by piece (scenes/decor/decorBase.js) - an online
       // home, anyone's (the room its owner cleared is the room every visitor walks into), or the player's house or ship
       const baseEditable = !!home || houseOwned || (building?.buildingType === BUILDING_TYPES.Ship && ownsShip(playerEntity));
+      // MAGIC-TAVERN (systems/magicTavern.js; the owner's idea): a town's magical tavern opens the ONE shared hall - the biggest tavern interior Daggerfall has, in the place of the tavern's own room, its people the tavern's with Nyx at the bar. `hit` becomes the hall's
+      // (the same door and building record: the exit, a save and a tavern shift all keep naming the tavern walked into); the way back
+      // out is the original's siblings (`exitHit`).
+      const exitHit = hit;
+      const magicRoom = !restore?.privateRoom && !hit.sailingCabin ? magicHallEntry({ hit, building, blocks, mapId: hit.dfLocation?.mapTableData?.mapId ?? questSceneCtx?.()?.mapId ?? 0 }) : null;
+      if (magicRoom) { await townTalk?.ensureFactions?.(); hit = magicRoom.hit; }
+      const magicKeeper = (fid) => { const r = staticNpcRouteIn({ npcFactionId: fid, dict: townTalk?.factionDict ?? null, building }); return r.kind === 'merchant' && r.service === 'tavern'; };
       // P8: parent the interior at the entered building's world matrix
       // (verbatim ownerPosition + buildingMatrix) - context coordinates
       // come back world-frame, landings run in one frame, and the walk
@@ -8740,6 +8748,7 @@ export function createWorldModes(host) {
           // RR2: Roleplay & Realism's variant keepers and residents (RoleplayRealism.cs:775-932) - the decision per person, with StaticNPC's own name seed and the location's climate
           // LAMP-KEEPER II (systems/lampKeeper.js): a shop's keeper standing as the lamp today - the town, the building, the
           // person and the day, one answer for every client in the room
+          magicTavern: magicRoom ? { folk: magicRoom.folk, isKeeper: magicKeeper } : null,   // MAGIC-TAVERN: the shared hall's people
           bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
           guildClerkArt: (pn) => {
             const route = staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict ?? null, building });
@@ -8775,7 +8784,7 @@ export function createWorldModes(host) {
       const ctx = (await roomPrebuild.take(hit, roomPlan)) ?? await buildRoom();
       if (!live()) { abandonContext(ctx); return false; }   // AUDIT 68 X3-transition-build-race: the world moved under the build (a load, a teleport) - nothing is published
       const siblings = entries.filter((e) =>
-        e.dfBlock === hit.dfBlock && e.recordIndex === hit.recordIndex);
+        e.dfBlock === exitHit.dfBlock && e.recordIndex === exitHit.recordIndex);   // MAGIC-TAVERN: the door walked in by, whichever hall is behind it
       const landing = interiorLanding(   // FIELD BUGS 2026-10-04d VOID-ENTRY: only a spot with a floor under it (enterExit.js) - the town mods' rooms keep the building's own exterior model, whose door faces OUT, and nearest the enter marker DFU's landing stood over nothing; a room with nowhere to stand is refused, its line DFU's for a room it cannot lay out
         doorWorldPosition(hit.door), ctx.enterMarkers, ctx.doors, (p) => standsOnFloor(ctx.collider, p)) ?? void say(NOTHING_OF_VALUE_TEXT);
       // NT1 (F054): the context is fully built - GPU billboard batches,
@@ -8795,6 +8804,7 @@ export function createWorldModes(host) {
       exitReturn = { siblings };
       exteriorDoor = hit.door;   // IS1: SetExteriorDoors - the save's way back in
       interiorCtx = ctx;
+      if (magicRoom) { ctx.magicTavern = true; if (!restore && !pre) say(magicHallGreeting()); }   // MAGIC-TAVERN: this visit's room is the shared hall (its relay room, its pose frame, its windows)
       interiorHallBanners = bunnyHallInterior(ctx.people, building ? bunnyGuildOfFaction(building.factionId)?.key : null, (o, d, m) => ctx.collider?.raycast?.(o, d, m) ?? Infinity);
       // AUDIT 68 S23-failed-entry-stale-building: the identity and the
       // three PlayerActivate.cs:1120-1122 latches, committed with the
@@ -8835,7 +8845,8 @@ export function createWorldModes(host) {
         // HOME1: an ONLINE home keeps its room - its owner and whoever they let in stand in it together, and its
         // cupboards are never the room's (the owner's are their storage, a visitor's are shut - the container arm).
         const owned = !!privateVisitRoom || b?.buildingType === BUILDING_TYPES.Ship || (!interiorHome && houseOwnedAt(b, b?.buildingKey));
-        _intShared = mintInteriorShared(interiorLocationKey(questSceneCtx?.()?.mapId ?? 0, b?.buildingKey ?? 0, visitLayoutNow()), { owned, home: !!interiorHome, net: { selfId: () => host.selfId?.() ?? null, seat: () => host.roomHost?.() ?? null, now: () => performance.now(), wallNow: () => (sharedClockOn() ? wallMsForClassicMinutes(worldMinutes()) : null), send: (d) => host.onActions?.(d), say: (t) => setMidScreenText(t), claimed: () => host.onLootClaimed?.(), entity: () => playerEntity, carried: () => carriedPieces(playerEntity) } });   // WD3 (AUDIT WD3 B3): the room of the building in its layout   // AUDIT WORLD6a A1: the bag from the one mint, its key spelled as the pure half reads it   // OUTDOOR-LOOT: and the host's wiring - the act path, the SHARED clock (R-3), the seat, the player's hands - for the cupboards' room law
+        const _mr = ctx.magicTavern ? magicRoomIdentity(null) : null;   // MAGIC-TAVERN: the shared hall's memory is the shared hall's relay room's
+        _intShared = mintInteriorShared(_mr ? interiorLocationKey(_mr.sharedMapId, _mr.buildingKey, null) : interiorLocationKey(questSceneCtx?.()?.mapId ?? 0, b?.buildingKey ?? 0, visitLayoutNow()), { owned, home: !!interiorHome, net: { selfId: () => host.selfId?.() ?? null, seat: () => host.roomHost?.() ?? null, now: () => performance.now(), wallNow: () => (sharedClockOn() ? wallMsForClassicMinutes(worldMinutes()) : null), send: (d) => host.onActions?.(d), say: (t) => setMidScreenText(t), claimed: () => host.onLootClaimed?.(), entity: () => playerEntity, carried: () => carriedPieces(playerEntity) } });   // WD3 (AUDIT WD3 B3): the room of the building in its layout   // AUDIT WORLD6a A1: the bag from the one mint, its key spelled as the pure half reads it   // OUTDOOR-LOOT: and the host's wiring - the act path, the SHARED clock (R-3), the seat, the player's hands - for the cupboards' room law
         interiorLootAside(ctx, _intShared);   // OUTDOOR-LOOT: a list a stranger's cupboard was built with is no one's word (again after the cache restore below)
         const key = _intShared.locationKey;
         if (key) ctx.actions.onChanged = (recs) => host.onActions?.({ k: key, a: recs });
@@ -11214,7 +11225,7 @@ export function createWorldModes(host) {
     // (host.outsideView: its lights, its pixels; PANE-CLIP keeps the room's side of the glass out) into a target of its own, before this frame's
     // lamps and its beginFrame; a bracket, so the room's light just set is put back as it was; cropped to the glass the
     // last frame met, kept while the camera is still
-    const _rwView = viewOutFrame(viewOut, { renderer, mode: realWindowsMode(), proj, view, now: performance.now(), scene: host.outsideView?.() ?? null });
+    const _rwView = viewOutFrame(viewOut, { renderer, mode: interiorCtx?.magicTavern ? 'off' : realWindowsMode(), proj, view, now: performance.now(), scene: host.outsideView?.() ?? null });
     // AUDIT 26 F001: DaggerfallInterior lays out EVERY interior mesh
     // with WindowStyle.Disabled - individual models (:473), the
     // combined static batch (:517) and action doors (:1270) - and
@@ -13309,7 +13320,7 @@ export function createWorldModes(host) {
     // location, the interior's building; null in the exterior
     // ARENA4: the floor's instance standing a relay's bout is that bout's room (`arena:b<id>`)
     roomIdentity: () => (mode === 'dungeon' ? (isGateArena(dungeonLoc) ? { kind: 'gate', day: dungeonLoc.gate } : isSdRealm(dungeonLoc) ? { kind: 'sd', s: dungeonLoc.sdRealm } : isEgHall(dungeonLoc) ? { kind: 'eg', b: dungeonLoc.egBreach } : isArenaFloor(dungeonLoc) && dungeonLoc.arenaBout ? { kind: 'arena', o: dungeonLoc.arenaBout } : isKetchShip(dungeonLoc) ? { kind: 'kt', key: dungeonLoc.ketch.key } : { kind: 'dungeon', mapId: dungeonLoc?.mapTableData?.mapId ?? null, regionIndex: dungeonLoc?.regionIndex ?? -1, name: dungeonLoc?.name ?? '', size: builtDungeonSize(dungeonLoc) })   // WB3b: the court's room is its gate's own; SD-ONLINE: a dungeon's room is its layout's (the size it was BUILT at); ONLINE-PUBLIC: no instance room
-      : mode === 'interior' ? { kind: 'interior', buildingKey: interiorBuilding?.buildingKey ?? 0, layout: _visitLayout, ...(interiorCabin ? { boatUid: interiorCabin.uid } : {}), ...(_intShared?.owned ? { private: true, privateRoom: privateVisitRoom } : {}) } : null),   // personal interiors share presence in an owner-specific room, never world memory/loot
+      : mode === 'interior' ? { kind: 'interior', buildingKey: interiorBuilding?.buildingKey ?? 0, layout: _visitLayout, ...(interiorCabin ? { boatUid: interiorCabin.uid } : {}), ...(interiorCtx?.magicTavern ? magicRoomIdentity(buildingOrigin()) : {}), ...(_intShared?.owned ? { private: true, privateRoom: privateVisitRoom } : {}) } : null),   // personal interiors share presence in an owner-specific room, never world memory/loot
     get dungeonLocation() { return dungeonLoc; },   // B2: playerInside's dungeon arm
     /** X7: the Identify SPELL's window (Identify.cs:71-76 pushes the
      *  trade window itself). The spell can be cast anywhere, but the

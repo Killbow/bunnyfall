@@ -4,9 +4,12 @@ import { toColor32 } from '../../formats/color32Order.js';
 import { isChildNPCTexture } from '../../characters/staticNpc.js';
 
 // User-supplied artwork, in the requested guild order. Dedicated texture keys never replace an ARENA2 record.
-export const GUILD_CLERK_ART = Object.freeze(Object.fromEntries([
+export const GUILD_CLERK_ART = Object.freeze({ ...Object.fromEntries([
   'fighters','mages','adventurers','bards','cartographers','merchants','hunters','apothecaries','artisans',
-].map((key,index)=>[key,Object.freeze({key,url:`./art/guild-clerks/${key}.png`,archive:38320+index})])));
+].map((key,index)=>[key,Object.freeze({key,url:`./art/guild-clerks/${key}.png`,archive:38320+index})])),
+  // MAGICAL TAVERNS: Nyx, keeping the shared hall's bar (scenes/magicTavernRoom.js); a head over the townsfolk, as at her camp
+  nyx: Object.freeze({ key: 'nyx', url: './art/bunnyfall-npcs/nyx.png', archive: 38329, h: 2.15 }),
+});
 
 /** Guild service clerks use their guild art; other residents retain their own appearance.
  * @param {any[]} people @param {(pn:any)=>string|null} [nativeKey] */
@@ -40,7 +43,7 @@ export async function standGuildClerkArt(pn, renderer, batches, canStand) {
   const picture=await loadGuildClerkArt(art.key);
   if(!canStand() || !pn.stood || pn.standBatch)return true;
   if(!picture)return false;
-  const size={w:1.8*picture.width/picture.height,h:1.8};
+  const hh=art.h??1.8,size={w:hh*picture.width/picture.height,h:hh};
   pn.width=size.w;pn.height=size.h;
   renderer.uploadTexture(art.archive,0,picture);
   pn.standBatch=renderer.createBillboardBatch(art.archive,0,size,[[pn.x,pn.y,pn.z]]);

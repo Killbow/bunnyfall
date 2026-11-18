@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-18
 
+- Magical taverns: in every town with two taverns or more, one of them has turned blue, is called The Nowhere Tavern, and its door is a shimmering portal. Every portal opens the same grand tavern hall, so players from all over the map meet in one tavern, under windows full of stars, with Nyx behind the bar. Walk out and you step back into the town you came from. Shifts, drinks and Favor work there as in any tavern.
 - Daily elite dungeons: every day eight dungeons become elite dungeons, each with a great purple crystal floating over it and a purple glow on the ground, seen from far off and marked on the world map and the travel map.
 - Inside an elite dungeon the halls are lit purple and Cromwark's creatures hold it. Fell enough of them and Sifrit the Forbidden One rises: tougher than her usual self, with extra Grave Rings, and she calls Cromwark's creatures instead of mummies.
 - Killing Sifrit cleanses the dungeon and adds 50 Dusk Tokens to the Nyx counter (once per dungeon). An elite dungeon left uncleansed for two days starts a purple corruption that spreads further every day, with tougher foes inside it, until someone cleanses it.

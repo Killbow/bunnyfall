@@ -46,6 +46,7 @@ import { createInteriorDoors } from '../systems/decor/decorInteriorDoors.js';   
 import { decorBaseModelKey, decorBaseFlatKey } from '../net/decorLaw.js';   // BASE-HIDE: the layout's names for them
 import { mountMachineryChild } from '../world/windmills.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
+import { seatMagicFolk } from './magicTavernRoom.js';   // MAGIC-TAVERN: the shared hall's people, its keeper Nyx
 import { furnishBunnyHall, isHouseFurniture, stripHallFlats } from './bunnyHallFurnish.js';   // BUNNY-GUILDS: a hall stripped of the house, and furnished for its guild
 import { markGuildClerkArt, standGuildClerkArt } from '../systems/guild/guildClerkArt.js';
 import { ensureBunnyClerk } from '../systems/guild/bunnyHall.js';   // BUNNY-GUILDS: the hall's clerk
@@ -617,6 +618,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   // LAMP-KEEPER II (systems/lampKeeper.js): the host's pick - a shop's keeper standing as the lamp today keeps its born identity
   // (its name, its shop) and stands as the lamp; no Morrowind body is read for it (MWNPC8a's look, null)
   for (const pn of people) if (opts.lampPerson?.(pn)) Object.assign(pn, { lamp: true, _mwLook: null });
+  if (opts.magicTavern) seatMagicFolk(people, opts.magicTavern.folk, interior.spawnPoints.map(([x, y, z]) => parentPt(x, y, z)), opts.magicTavern.isKeeper);   // MAGIC-TAVERN: the tavern's own people in the hall (scenes/magicTavernRoom.js)
   if (opts.bunnyHall) ensureBunnyClerk(people, opts.bunnyHall, interior.spawnPoints.map(([x, y, z]) => parentPt(x, y, z)));   // BUNNY-GUILDS: a converted house's clerk speaks for its guild, and is always there
   markGuildClerkArt(people, opts.guildClerkArt);
   // AUDIT 24 (wave 20): AddPeople's LAST act on every person it stands
