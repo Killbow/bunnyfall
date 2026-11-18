@@ -39,6 +39,9 @@ export const CONTENT = Object.freeze({
   /** BUNNYFALL (2026-11-18, the owner's idea): MAGICAL TAVERNS. On, a town with two taverns or more has one of them, picked by
    *  its map id, turned blue with a portal for a door, and every such door opens the one shared hall (systems/magicTavern.js). */
   magicTaverns: true,
+  /** BUNNYFALL (2026-11-18): the daily elite dungeons - eight picked a day, a crystal over each, the spread, Sifrit inside
+   *  and the cleanse's Dusk Tokens (net/eliteDungeonLaw.js). Off, no new ones are picked and the game shows none. */
+  eliteDungeons: true,
 });
 
 /** Whether a piece of content is on. */

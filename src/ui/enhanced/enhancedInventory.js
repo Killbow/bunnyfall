@@ -61,7 +61,8 @@ import { isRestItem } from '../../systems/rest/restItems.js';   // REST6: the se
 import { getPref, setPref } from '../../systems/uiPrefs.js';   // PLUS7: getPref, the hover card's switch; PACK-PHONE: setPref, the phone's Body
 import { USE_PENDING, powersRows, INFO_TEXT_POWERS } from '../native/nativeInventory.js';   // PLUS10: the Info box's powers record
 import { itemInfoRows, questLetterName } from '../../systems/item/itemInfo.js';   // PLUS10: the classic Info popup's own text
-import { magicPowersLines } from '../../systems/item/itemPowers.js';   // PLUS10: %mpw
+import { magicPowersLines } from '../../systems/item/itemPowers.js';
+import { bardBuffLine } from '../../net/bardServiceLaw.js';   // BARDS' GUILD: a piece's cosmetic flourish   // PLUS10: %mpw
 import { CHAT_MAX } from '../../net/wire.js';   // CHAT-POST: a posted item is one chat line
 import { itemIsIdentified } from '../../systems/tradeModes.js';   // PLUS10: MagicPowers' identified arm
 import { PACK_PAGES, PAGE_IDS, pageOf, filterByPage } from '../packPages.js';   // PX31: the pack's nine pages (the classic keeps DFU's four)
@@ -3372,6 +3373,7 @@ export function itemPowerLines(item, d = deps, { set = true, lore = true, techni
       for (const t of magicPowersLines(item, { identified: known, lines: d?.rows ?? null })) if (t && !tier.has(t)) lines.push(t);
     }
   }
+  { const flourish = bardBuffLine(item); if (flourish) lines.push(flourish); }   // BARDS' GUILD: a cosmetic flourish, words only
   return lines;
 }
 
@@ -3750,6 +3752,7 @@ export function itemInfoBoxes(item, d = deps) {
   } else if (isEnchanted(item)) {
     boxes.push(powersRows(rows(INFO_TEXT_POWERS) ?? [], magicPowersLines(item, { identified: itemIsIdentified(item), lines: rows })));
   }
+  { const flourish = bardBuffLine(item); if (flourish) boxes.push([{ text: flourish, center: true }]); }   // BARDS' GUILD: a cosmetic flourish, words only
   return boxes.filter((b) => b.length);
 }
 

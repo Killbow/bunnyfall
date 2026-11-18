@@ -937,6 +937,16 @@ export function portGlyph(g, x, y, kind, color) {
 }
 export function yardGlyph(g, x, y, kind, color) {
   if (kind === 'shipyard' || kind === 'lighthouse' || kind === 'docks') { portGlyph(g, x, y, kind, color); return; }   // SHIPYARDS-FOUND: a port's three
+  if (kind === 'hall' || kind === 'shop') {   // BUILDING-NAMES: a guild hall's pennant on its pole, a shop's small gabled house
+    const R = TV_YARD_R, fill = g.fillStyle;
+    g.beginPath();
+    if (kind === 'hall') { g.moveTo(x - 3, y - R); g.lineTo(x + R, y - R + 2.5); g.lineTo(x - 3, y - 1); g.closePath(); }
+    else { g.moveTo(x - R + 1, y + R - 1); g.lineTo(x - R + 1, y - 1); g.lineTo(x, y - R + 1); g.lineTo(x + R - 1, y - 1); g.lineTo(x + R - 1, y + R - 1); g.closePath(); }
+    g.fillStyle = color; g.lineWidth = 1; g.strokeStyle = '#000'; g.fill(); g.stroke();
+    if (kind === 'hall') { g.beginPath(); g.moveTo(x - 3, y - R); g.lineTo(x - 3, y + R); g.lineWidth = 1.5; g.stroke(); }
+    g.fillStyle = fill;
+    return;
+  }
   if (kind === 'carpenter') {   // CARP-YARD: the joinery's board's hand saw - its blade tapering to the toe, its teeth, its handle
     const R = TV_YARD_R;
     g.beginPath();
@@ -1085,7 +1095,7 @@ export function gatherGlyph(g, x, y, prof, color) {
  *  knows. */
 export const yardMarkKind = (m) => {
   const k = String(m?.kind ?? '').split(' ')[1] ?? '';
-  return k === 'transport' || k === 'carpenter' || k === 'shipyard' || k === 'lighthouse' || k === 'docks' ? k : 'stable';   // CARP-YARD: the joinery's
+  return k === 'transport' || k === 'carpenter' || k === 'shipyard' || k === 'lighthouse' || k === 'docks' || k === 'hall' || k === 'shop' ? k : 'stable';   // CARP-YARD: the joinery's; BUILDING-NAMES: a found guild hall's and shop's
 };
 /** OWS1: a mark at sea, by its kind. */
 export const isShipKind = (m) => /\bship\b/.test(m.kind ?? '');

@@ -129,6 +129,7 @@ import { gateArenaLocation, gateArenaBlocks, isGateArena, slabMatrix, courtLight
 import { isSdRealm, sdRealmLocation, sdRealmBlocks, buildRealmModel, realmColliderTris, realmLightsWith, realmLighting, SD_REALM_ARCHIVE, SD_REALM_FOG } from '../world/superDungeon/sdRealm.js';   // SD5a: the Shattered Hour, a made level as the court is
 import { realmArt } from '../world/superDungeon/sdRealmArt.js';   // SD5a: its art, made in code
 import { isEgHall, egHallLocation, egHallBlocks, egLightsWith, egHallLighting, egHallFog, egHallGrade } from '../world/eliteGates/egHall.js';   // EG-PLAY: an Elite Breach's circle, a made level as the Hour is
+import { edAtmosFrame, edLampTint } from '../systems/eliteDungeons/edAtmos.js';   // BUNNYFALL: a daily elite dungeon's purple air and light
 import { egRoomKey } from '../net/eliteGates/egLaw.js';   // EG-PLAY: its room, its halls, its words
 import { createEgCircleHost } from './eliteGates/egCircleHost.js';   // HOST-SPLIT (EG-LOOK): an Elite Breach's circle on this screen, moved out of this host
 import { createKetchDeckHost, ketchShipHit } from './ketch/ketchDeckHost.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen's dungeon host - its set, its seams, its look, its door
@@ -158,6 +159,7 @@ import { createPopulationLane } from '../characters/npcBodies.js'; import { pers
 import { createNpcMarks, staticNpcRouteIn } from './npcMarksHost.js';   // NPC-MARKS: the marks over the people who do something, and the click's route built in one place
 import { createTavernFavorShop } from './tavernFavorShop.js';
 import { magicHallEntry, magicRoomIdentity, magicHallGreeting } from './magicTavernRoom.js';   // MAGIC-TAVERN: a blue tavern's door opens the shared hall
+import { createBardServices } from './bardServicesShop.js';   // BARDS' GUILD services paid in Favor
 import { createTavernServiceHost } from './tavernServiceHost.js';
 import { createExteriorFoes } from './exteriorFoes.js'; import { INTERIOR_CLEAR } from '../render/renderer.js';   // IF: the ONE foe-pool factory - see interiorFoes below; REVIEW 2026-09-05: the mode frames clear BLACK (CameraClearManager.cs:23-25)
 import { createCityGuards } from './cityGuards.js';   // ROAD-B: SpawnCityGuards' INDOOR arm needs a watch pool in the building
@@ -2628,7 +2630,13 @@ export function createWorldModes(host) {
    *  stays npcDisplayName's, the canonical name the topic tree compares
    *  with a quest Person's. */
   const npcShownName = (npcData) => questBridge?.machine?.movedQuestorName?.(npcData) ?? staticNpcShownName(npcData, npcNameDeps());   // QUESTOR-MOVED: the moved questor's one name, shown as the partner's
-  const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null,
+  // BARDS' GUILD services (bardServicesShop.js): the Favor shop's second counter - a name, a flourish, a home's name
+  const bardServices = createBardServices({
+    entity: () => playerEntity, act: host.bardAct ?? null, homes: host.bardHomes ?? null,
+    choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), flow: (boxes) => townTalk?.showOverlay?.(new ServiceFlowWindow(boxes)),
+    back: () => favorShop.open(),
+  });
+  const favorShop = createTavernFavorShop({ entity: () => playerEntity, buy: host.favorBuy ?? null, services: () => bardServices.open(),
     city: () => String(interiorBuilding?.townMapId ?? questSceneCtx?.()?.mapId ?? 0),
     choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)) });
   const tavernService = createTavernServiceHost({
@@ -9709,6 +9717,7 @@ export function createWorldModes(host) {
     // the cache's location or floods its block records.
     const dfLocation = ownDungeonLocation(sized);
     if (host.wildDungeonElite?.(hit)) { dfLocation.elite = true; dfLocation.wildRing = host.wildHallRing?.() ?? 0; dfLocation.wildEpoch = host.wildHallEpoch?.() ?? 0; }   // PVPDUNGEONS: every open hall of the zone is an elite dungeon - its tier (its foes' strength) and its epoch (its chests) on it
+    host.eliteDungeonMark?.(dfLocation);   // BUNNYFALL: a daily elite dungeon (systems/eliteDungeons/edBook.js) - its entry on it, an elite dungeon
     let _hccLanded = false;   // HCC
     host.onPreTransition?.();   // AUDIT PSCALE1 NET-3: my foes to the players outside, before the door takes me
     host.horseCart?.()?.handlePreTransition({ type: 'ToDungeonInterior', door: hccDoorOf(hit) });   // HCC: OnPreTransition [IL_98f0], before the dismount
@@ -11079,6 +11088,7 @@ export function createWorldModes(host) {
       if (isSdRealm(dungeonLoc)) { applyFog(renderer, dungeonFog(!!renderer.lightingLane, SD_REALM_FOG, _hourFog), _hourFogColor); renderer.setSceneGrade?.(SD_HOUR_GRADE); }   // SD5a: the Hour's brass haze over the dungeon's; SD-LOOK: and its grade - the eye held down, the void black   // AUDIT SD IV (R5): into kept ones, nothing made
       if (isEgHall(dungeonLoc)) { applyFog(renderer, dungeonFog(!!renderer.lightingLane, egHallFog(dungeonLoc.egCircle), _hourFog), _hourFogColor); renderer.setSceneGrade?.(egHallGrade(dungeonLoc.egCircle)); egCircleFrame(mwv.eye); }   // EG-PLAY: the Spire's haze; EG-LOOK: its band's own haze and grade (world/eliteGates/egAtmos.js); its portcullises stood or sunk, its ruin and wreck placed about the eye (scenes/eliteGates/egCircleHost.js)
       if (isGateArena(dungeonLoc)) applyFog(renderer, dungeonFog(!!renderer.lightingLane, COURT_FOG));   // WB3b: the Deadlands' air in the court, over the dungeon's   // AUDIT-EL F6   // BA1: FoggyDungeons' linear fog is the base the water murk overrides
+      edAtmosFrame(renderer, dungeonLoc);   // BUNNYFALL: a daily elite dungeon's violet light, haze and grade over the dungeon's own (systems/eliteDungeons/edAtmos.js)
       // AUDIT DISC19: THE CANDLE BURNS WHITE UNDERGROUND TOO. One shared
       // colour lit every light down here - the dungeon's 0.8, or the lane's
       // flame - and the candle DISC19-B lit took it; MagicCandle.prefab is
@@ -11086,6 +11096,7 @@ export function createWorldModes(host) {
       // channel gives the candle its own white and every other light the
       // colour it always had.
       const _dgColor = lanternColor(!!renderer.lightingLane, new Float32Array(DUNGEON_LIGHT_COLOR));   // EL1: the lane's flame at the dungeon's intensity
+      edLampTint(dungeonLoc, _dgColor);   // BUNNYFALL: and its flames pulled toward purple
       // IIL1: Improved Interior Lighting, attached and Enhanced Lighting off - the RDB lights give way to one warm,
       // flickering light on every archive-210 billboard (ImproveDungeonLighting.cs), and the torch takes its colour
       iilSyncLane(renderer, true);   // IIL2: the mod's own shadows, on its classic-look lane, when the row asks
@@ -11373,6 +11384,7 @@ export function createWorldModes(host) {
     const _peopleOn = peopleBodies.frame();
     for (const pn of interiorCtx.people) {
       if (!pn.standBatch) continue;
+      if (tavernService.patronSkinOn(pn)) { pn.standBatch.castOnly = true; continue; }   // BUNNYFALL: a Discord patron with a custom paperdoll stands as it (scenes/tavernPatronSkins.js)
       const look = _peopleOn ? standingLook(pn) : null;
       if (look) peopleBodies.offer(personActor(pn, look, pn._mwFeet ??= [pn.x, pn.y, pn.z], mwv.eye, dt), pn.standBatch);
       else pn.standBatch.castOnly = false;
@@ -14083,6 +14095,8 @@ export function createWorldModes(host) {
     /** PARTY-PING: the plaque's list and its words, so a coffin, a shelf and a door are named as the plaque names them. */
     pingLook() { return mode === 'dungeon' ? { targets: dungeonCtx?.dungeonActivationTargets?.() ?? [], name: (k) => dungeonCtx?.hoverName?.(k)?.title ?? '' } : mode === 'interior' ? { targets: interiorActivationTargets(), name: (k) => interiorHoverName(k)?.title ?? '' } : mode === 'exterior' ? { targets: exteriorActivationTargets().targets, name: (k) => exteriorHoverName(k)?.title ?? '' } : null; },
     buildingBoxes() { return buildingTargets?.() ?? []; },
+    /** BUILDING-NAMES: a static building's directory record (the Overworld's name marks, scenes/buildingNameMarks.js). */
+    buildingIdentity(b) { return buildingDataForDoor?.({ dfBlock: b.dfBlock, recordIndex: b.recordIndex, pixelKey: b.pixelKey, door: { matrix: b.matrix }, pixelLocal: true }) ?? null; },
     /** OH-E: the location being laid out, or null (see `layingOutLoc`). */
     get layingOutLocation() { return layingOutLoc; },
     /** PROF2 (bible/06-Systems/Professions-Arc.md 23): THE FORGE THE PLAYER STANDS AT - a Weaponsmith's or an Armorer's

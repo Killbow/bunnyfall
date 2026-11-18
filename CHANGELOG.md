@@ -6,6 +6,13 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-18
 
 - Magical taverns: in every town with two taverns or more, one of them has turned blue, is called The Nowhere Tavern, and its door is a shimmering portal. Every portal opens the same grand tavern hall, so players from all over the map meet in one tavern, under windows full of stars, with Nyx behind the bar. Walk out and you step back into the town you came from. Shifts, drinks and Favor work there as in any tavern.
+- Daily elite dungeons: every day eight dungeons become elite dungeons, each with a great purple crystal floating over it and a purple glow on the ground, seen from far off and marked on the world map and the travel map.
+- Inside an elite dungeon the halls are lit purple and Cromwark's creatures hold it. Fell enough of them and Sifrit the Forbidden One rises: tougher than her usual self, with extra Grave Rings, and she calls Cromwark's creatures instead of mummies.
+- Killing Sifrit cleanses the dungeon and adds 50 Dusk Tokens to the Nyx counter (once per dungeon). An elite dungeon left uncleansed for two days starts a purple corruption that spreads further every day, with tougher foes inside it, until someone cleanses it.
+- The Overworld travel view now names the places you have explored: guild halls, and every shop, tavern or temple you have entered show their name over their roof, so you can find your way without waypoints. Places you have not visited stay unnamed, and they follow the Towns switch.
+- Bards' Guild services, paid in Favor Tokens (Favor shop, press G): give an item a name of your own (10 Favor), write a flourish on an item (30 Favor; it is words on the item's card only and changes no stat or enchantment), or rename a home you own (25 Favor). Names are filtered like other player text.
+- Hired traders now sell stacks properly: put up as many potions (or other stackable goods) as you like at a price each, the stall shows how many are on offer, and a buyer chooses how many to buy with the total shown while the rest stays on sale.
+- Discord patrons in the tavern now stand as their custom paperdoll. If a Discord user who is talking in the tavern channel has linked their character and wears an approved custom paperdoll, the customer in the room is drawn as that paperdoll instead of only taking their name.
 - The territory map is reworked. Company territories now lie on the land only, sharing borders with their neighbours instead of overlapping circles over the sea, and your own Company's border glows gold. Rodney's blight drifts and creeps, with a glowing front where a territory holds it. Garrison marches are curved roads with arrows streaming from town to front. Hover a territory or the blight to see whose it is.
 - Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
 - Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.
@@ -13,7 +20,7 @@ the last release (scripts/changelogNotes.mjs).
 - New tavern chores: customers leave empties on their tables and knock drinks over. Clear a table by gathering the cups and wiping it down, or sweep up a spill. Each chore pays a little and cheers up the room.
 - Bards' College members now earn much more reputation from tavern shifts: one point for every drink served right and on time, and three more for a perfect shift with nothing left dirty.
 - Click a player's name in the chat and pick Whisper: the chat field fills with the whisper command and their name, ready for your message.
-
+- Your camps are listed under Holdings > Camps: each one's name, region, nearest town and map square, with a button to mark it on your map. Hitting the 3-camp limit now names the camps you already keep and says where to find them.
 
 ## 2026-11-17
 

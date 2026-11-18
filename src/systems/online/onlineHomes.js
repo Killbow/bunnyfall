@@ -44,6 +44,7 @@ import {
   homeInArenaCell,   // ARENA4b: the arena's cell, the service's own law
   homeDeedOf,   // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: the deed a save holds to a building, as the service's hold reads it
 } from '../../net/homeLaw.js';
+import { maskText } from '../../net/nameFilter.js';   // BARDS' GUILD: a home's paid name, starred as any player's words
 import { homeSceneName } from '../../net/homeScene.js';   // HOME-POUR: the home's scene, one name for the client and the service
 import { ARENA_TEXT } from '../arena/arenaText.js';   // ARENA4b: the bank's letter for a home the arena displaced
 import { RENT_VERB, rentRowLabel, rentTenantLabel } from '../homeRent.js';   // HOME-RENT: the door's rows for a room to rent
@@ -220,6 +221,7 @@ export function homeDoorPrompt({ door, mode, price = 0, declined = false, asked 
  *  picked before QUEST-HOME, or one the re-pick could not move) says the quest's name first, so its door is findable. */
 export const homeDoorTitle = (home, questName = null) => {
   const title = home.hall ? (home.member ? "Your guild's hall" : `${home.hall.name}'s hall${home.hall.tag ? ` ${guildTagText(home.hall.tag) ?? ''}` : ''}`.trim())
+    : home.title ? (home.own ? `${maskText(home.title)} (your home)` : maskText(home.title))   // BARDS' GUILD: the name its owner gave it, starred as any player's words
     : home.own ? 'Your home' : `${home.owner}'s home`;
   return questName ? `${questName} (${title})` : title;
 };
@@ -521,6 +523,7 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
           if (!homeBuildingKeyOk(h?.buildingKey) || typeof h.owner !== 'string') continue;
           homes.set(h.buildingKey, {
             buildingKey: h.buildingKey, owner: h.owner,
+            title: typeof h.title === 'string' && h.title ? h.title.slice(0, 40) : null,   // BARDS' GUILD: a name its owner paid for
             entry: HOME_ENTRIES.includes(h.entry) ? h.entry : HOME_ENTRY_DEFAULT,
             mine: h.mine === true, character: typeof h.character === 'string' ? h.character : null,
             crossed: h.crossed === true,   // HOME-CROSSED: mine, carried in through customs - no sale

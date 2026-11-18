@@ -354,7 +354,7 @@ const REFUSAL_WORDS = {
   // HOME-LOOK: an online home's outside (server-account/src/homes.js setHomeLook)
   'bad-look': () => t('account.refusal.badLook', 'The account service could not read that look. The game may need updating.'),
   // DECOR1: an online home's decor (server-account/src/decor.js)
-  'camps-max': () => t('account.refusal.campsMax', 'You already keep {max} camps. Pack one up first.', { max: CAMPS_MAX }),   // BUNNYFALL CAMPS
+  'camps-max': () => t('account.refusal.campsMax', 'You already keep {max} camps. Pack one up first - find them under Holdings > Camps.', { max: CAMPS_MAX }),   // BUNNYFALL CAMPS
   'camp-too-near': () => t('account.refusal.campTooNear', 'Another camp is too close. Pitch further away to keep it.'),
   'camp-full': () => t('account.refusal.campFull', 'Your camp already holds {max} pieces.', { max: CAMP_CAP }),
   'no-camp': () => t('account.refusal.noCamp', 'That camp is gone.'),
@@ -503,6 +503,16 @@ const REFUSAL_WORDS = {
   ...readEach(ROYAL_WHY),   // CROWN1 part two: the Royal Tourney's pass and bouts
   ...readEach(FEALTY_WHY),   // CROWN2: fealty and Pacts
   ...readEach(VENDOR_REFUSAL_WORDS),   // HOME-VENDOR
+  // BARDS' GUILD services (net/bardServiceLaw.js; server-account/src/bardServices.js)
+  'bard-bad': () => t('account.refusal.bardBad', 'The Guild could not make sense of that request.'),
+  'bard-text': () => t('account.refusal.bardText', 'That text is empty or too long.'),
+  'bard-text-filtered': () => t('account.refusal.bardTextFiltered', 'The Guild will not write those words.'),
+  'bard-membership': () => t('account.refusal.bardMembership', 'Only a member of the Bards’ Guild may use its services.'),
+  'bard-favor-short': () => t('account.refusal.bardFavorShort', 'You do not have enough Favor Tokens.'),
+  'bard-item-gone': () => t('account.refusal.bardItemGone', 'That item is no longer in your pack.'),
+  'bard-item-refused': () => t('account.refusal.bardItemRefused', 'The Guild cannot write on that item.'),
+  'bard-home-gone': () => t('account.refusal.bardHomeGone', 'You do not own that home.'),
+  'bard-rate': () => t('account.refusal.bardRate', 'The Guild’s scribes are busy. Try again in a while.'),
   // NOTICE1: the Notice Board (server-account/src/board.js)
   'board-need-account': () => t('account.refusal.boardNeedAccount', 'Only registered accounts can pin notes. Add a username to pin one.'),
   'board-closed': () => t('account.refusal.boardClosed', 'The notice board is not open yet.'),
@@ -1350,6 +1360,11 @@ export const charterLeave = (io, body) => call(io, '/v1/charters/leave', body);
 /** BUNNYFALL COMPANIES: Rodney's blight (server-account/src/blight.js) - read, and a cleared raid's push. */
 export const blightRead = (io) => call(io, '/v1/blight', {});
 export const blightPush = (io, raid, sector) => call(io, '/v1/blight/push', { raid, sector });
+/** BUNNYFALL: daily elite dungeons (server-account/src/eliteDungeons.js) - the book; a felled series' summon (`{ summon }`:
+ *  this game stands her); her fall's cleanse (`{ cleansed, nyx }`). */
+export const eliteDungeonsRead = (io) => call(io, '/v1/elite-dungeons', {});
+export const eliteDungeonSummon = (io, key) => call(io, '/v1/elite-dungeons/summon', { key });
+export const eliteDungeonClear = (io, key) => call(io, '/v1/elite-dungeons/clear', { key });
 /** Garrisons and patrols (server-account/src/garrisons.js): read, recruit, orders, and dismiss. */
 export const garrisonsRead = (io, character) => call(io, '/v1/garrisons', { character });
 export const garrisonRecruit = (io, body) => call(io, '/v1/garrisons/recruit', body);
@@ -2249,6 +2264,7 @@ export function accountDecor({ fetch, storage, listWaitMs = DECOR_LIST_WAIT_MS }
     hidden: ({ mapId, buildingKey, character, keys }) => post('/v1/homes/decor/hidden', { mapId, buildingKey, character, keys }),
     // BUNNYFALL CAMPS (server-account/src/camps.js): the camps round a pixel, a kit's camp pitched and struck, its pieces
     campsNear: (px, py) => waited('/v1/camps/near', { px, py }),
+    campsMine: () => waited('/v1/camps/mine', {}),   // HOLDINGS: my own camps, wherever they stand
     campPitch: ({ character, rec, px, py, at, yaw }) => post('/v1/camps/pitch', { character, rec, px, py, at, yaw }),
     campStrike: (id) => post('/v1/camps/strike', { id }),
     campRename: (id, name) => post('/v1/camps/rename', { id, name }),

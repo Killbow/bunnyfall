@@ -44,7 +44,9 @@ export function createTavernFavorShop(deps) {
     options: [...(pending ? [{ code: 'KeyR', label: t('tavern.favor.retryBuy', 'Retry pending purchase'), action: () => { const offer = FAVOR_OFFERS.find((x) => x.id === pending?.offer); if (offer) void buy(offer); } }] : FAVOR_OFFERS.slice(page * 3, page * 3 + 3).map((offer, i) => ({
       code: `Digit${i + 1}`, label: `${t('tavern.favor.offer.' + offer.id, offer.name)}${offer.id === 'legendarybartender' ? t('tavern.favor.auraBundle', " + aura") : ''} — ${offer.price} Favor Tokens`, action: () => { void buy(offer); },
     }))), ...(!pending && page > 0 ? [{ code: 'ArrowLeft', label: t('tavern.favor.previous', 'Previous rewards'), action: () => { page--; open(); } }] : []),
-      ...(!pending && (page + 1) * 3 < FAVOR_OFFERS.length ? [{ code: 'ArrowRight', label: t('tavern.favor.next', 'More rewards'), action: () => { page++; open(); } }] : []), { code: 'Escape', label: t('tavern.favor.close', 'Close shop'), action: () => {} }] });
+      ...(!pending && (page + 1) * 3 < FAVOR_OFFERS.length ? [{ code: 'ArrowRight', label: t('tavern.favor.next', 'More rewards'), action: () => { page++; open(); } }] : []),
+      ...(deps.services && !pending ? [{ code: 'KeyG', label: t('tavern.favor.services', 'Guild services: names, flourishes, home names'), action: () => deps.services() }] : []),   // BARDS' GUILD (bardServicesShop.js)
+      { code: 'Escape', label: t('tavern.favor.close', 'Close shop'), action: () => {} }] });
   }
   return { open };
 }

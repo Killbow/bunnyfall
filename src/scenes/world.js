@@ -982,7 +982,7 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 // death's drop and its one piece, the fights between players, the room's remains as piles, and the HUD's two glyphs
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
 import { wasteGroundCoverStands, wasteScorch } from '../systems/wild/cromwarkWaste.js';
-import { CROMWARK_ON, cromwarkPeace, setBlightProbe } from '../systems/wild/cromwark.js';
+import { CROMWARK_ON, cromwarkPeace, setBlightProbe, setCorruptProbe } from '../systems/wild/cromwark.js';
 import { cromwarkPack } from '../systems/wild/cromwarkRoster.js';
 import { cromwarkSettlementRemoved } from '../systems/wild/cromwarkSettlements.js';
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL: the reach's desolate towns   // BUNNYFALL: the mountains are Cromwark's reach (no PvP)
@@ -1003,6 +1003,7 @@ import { WILD_REMAINS_MS, WDUN_SALT, WDUN_DAY_MS, WDUN_LOCK_MS, WDUN_HERE_MS, sp
 import { validLootList, setLootGoldMult } from '../systems/loot/loot.js';   // BUNNYFALL COMPANIES: loot gold inside one's territory
 import { createCompanyTerritory } from '../systems/companyTerritory.js';   // BUNNYFALL COMPANIES: every Company's territory
 import { createRodneyBlight } from '../systems/rodneyBlight.js';   // BUNNYFALL COMPANIES: Rodney's blight
+import { createEliteDungeonBook } from '../systems/eliteDungeons/edBook.js'; import { createEliteDungeonFight } from '../systems/eliteDungeons/edFight.js'; import { createEliteDungeonPresence } from './eliteDungeonHost.js';   // BUNNYFALL: the daily elite dungeons
 import { sectorAngle as blightSectorAngle } from '../net/blightLaw.js';   // MARCH-ARROWS: where a slice faces
 import { createGarrisonBook } from '../systems/garrisonBook.js';   // BUNNYFALL COMPANIES: garrisons
 import { createGarrisonPatrols } from './garrisonPatrols.js';   // BUNNYFALL COMPANIES: patrols in the streets
@@ -1238,6 +1239,7 @@ import { siegeBlowKind, siegeCastClamp, siegeSpellNumbers, siegeSpellBarred, SIE
 import { noteFirstUse } from '../systems/tutorials.js';   // TUT1: the first touch of a system pops its tutorial page
 import { startTutorialTour } from '../ui/tutorialPopup.js';   // TUT1: the welcome tour - and the popups' handler, registered by this host (the four hosts' rule)
 import { createTravelViewMarks } from './travelViewMarks.js';   // HOST-SPLIT
+import { createBuildingNameMarks } from './buildingNameMarks.js';   // BUILDING-NAMES
 import { createSearchParty } from './searchPartyHost.js';   // HOST-SPLIT
 import { createPixelBuild } from './pixelBuild.js';   // HOST-SPLIT
 import { createTownProbes } from './townProbes.js';   // HOST-SPLIT
@@ -17003,6 +17005,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       campPosts: () => cromwark?.campPosts?.() ?? [],   // CAMP-POST: the Guild camp's post beside the courts' (scenes/cromwarkHost.js)
       blight: () => rodneyBlight?.shape() ?? null,   // the war against Rodney: the blight and its front (ui/territoryMapInk.js paintBlight)
       blightSig: () => { rodneyBlight?.refresh(); return `${rodneyBlight?.sig() ?? ''}|${isOnlinePage() && garrisonBook ? (garrisonBook.all(), garrisonBook.sig()) : ''}`; },   // and the garrisons' marches drawn with it
+      eliteDungeons: () => (isOnlinePage() ? eliteDungeonBook?.list() ?? [] : []),   // BUNNYFALL: the daily elite dungeons' crystals and spread (ui/eliteDungeonMapInk.js)
       marches: () => {   // MARCH-ARROWS: each garrison with soldiers marching, from its town straight to where its slice meets the blight's edge
         const sh = rodneyBlight?.shape();
         if (!sh || !isOnlinePage() || !garrisonBook) return [];
@@ -20410,6 +20413,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   let companyTerritory = null;   // BUNNYFALL COMPANIES: every Company's territory (systems/companyTerritory.js), made beside Cromwark's host
   let rodneyBlight = null;   // BUNNYFALL COMPANIES: Rodney's blight (systems/rodneyBlight.js), made beside the territories
   let garrisonBook = null;   // BUNNYFALL COMPANIES: the garrisons (systems/garrisonBook.js)
+  let eliteDungeonBook = null, eliteDungeonFight = null;   // BUNNYFALL: the daily elite dungeons (systems/eliteDungeons/), made beside the blight
   let garrisonPatrols = null;   // BUNNYFALL COMPANIES: their patrols in the streets (scenes/garrisonPatrols.js)
   let farmBook = null;   // BUNNYFALL COMPANIES: the Company farms (systems/farmBook.js)
   let farmingMode = null;
@@ -25750,6 +25754,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   setBlightProbe(() => !!rodneyBlight?.here());
   // GARRISONS AND PATROLS (systems/garrisonBook.js, scenes/garrisonPatrols.js): the soldiers a Company keeps at its hall's
+  // BUNNYFALL: THE DAILY ELITE DUNGEONS (systems/eliteDungeons/): the book, the spread's foes outside, and the fight inside
+  eliteDungeonBook = createEliteDungeonBook({ io: () => (isOnlinePage() ? insigniaIo() : null), onCleansed: (c) => chatNotice(c.by ? t('ed.heardBy', '{name} has been cleansed by {by}.', { name: c.name, by: c.by }) : t('ed.heard', '{name} has been cleansed.', { name: c.name })) });
+  setCorruptProbe(() => { if (_mode() !== 'exterior' || !isOnlinePage()) return false; const p = playerTravelPixel(); return eliteDungeonBook.spreadDepth(p.x + 0.5, p.y + 0.5) > 0; });
+  eliteDungeonFight = createEliteDungeonFight({
+    io: () => (isOnlinePage() ? insigniaIo() : null), book: () => eliteDungeonBook,
+    loc: () => (_mode() === 'dungeon' ? modes?.dungeonLocation ?? null : null), foes: () => _dungeonPool()?.foes ?? [],
+    standNear: (mt) => _standLooseFoe(mt), standAt: (mt, at) => _dungeonPool()?.spawnLooseFoe?.(mt, at) ?? null,
+    feet: () => (walkMode && playerSpawned && playerEntity.health > 0 ? player.pos : null), say: (text) => chatNotice(text),
+    bar: (b) => drawGateBossBar(b ? sifritBarModel(b) : null, { hidden: gamePaused() || !!townTalk.hudHidden }),
+  });
   // town and a Charter at its capital, walking the town's set routes in their owner's colours
   garrisonBook = createGarrisonBook({
     io: () => (isOnlinePage() ? insigniaIo() : null),
@@ -26033,6 +26047,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const raidSmoke = createRaidSmoke({ gl: renderer.gl, raids: raidsBurning, keyOf: raidKeyOf, sites: () => raidSites, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), now: () => performance.now() / 1000 });   // BUNNYFALL: seen on every machine
   const eventPillar = createEventPillar({ gl: renderer.gl, events: staffEventRaids, built: () => built.values(), translation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), pixel: () => playerTravelPixel(), now: () => performance.now() / 1000 });   // BUNNYFALL: a staff event's purple pillar (scenes/eventPillarHost.js)
   const WARDEN_CLIPS = { heave: SOUND.AnimalHorse, throw: SOUND.SwingHighPitch, land: SOUND.BodyFall };
+  const eliteDungeonPresence = createEliteDungeonPresence({ gl: renderer.gl, book: () => (isOnlinePage() ? eliteDungeonBook : null), location: (r, l) => maps.getLocation(r, l), translation: (px, py) => state.pixelTranslation(px, py), heightAt: (x, z) => heightAt(x, z), pixel: () => playerTravelPixel(), outside: () => _mode() === 'exterior' });   // BUNNYFALL: the daily elite dungeons' crystals (scenes/eliteDungeonHost.js)
   wardenShows = createWardenShows({
     renderer, getTexture, uploadRecordFrame,
     toScene: campToScene, groundAt: (x, z) => surfaceAt(x, z),
@@ -29773,6 +29788,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     wildDungeonGate: (hit, fromLoad) => wildDungeonGate(hit, fromLoad),   // PVPDUNGEONS: only the day's halls open, an hour's lock after leaving one
     wildDungeonElite: () => wildDungeonIsOpenHere(),   // PVPDUNGEONS: every open hall is an elite dungeon
     wildHallRing: () => wildHallHere()?.ring ?? 0,   // PVPDUNGEONS: its tier
+    eliteDungeonMark: (dfLocation) => { const e = isOnlinePage() && dfLocation ? eliteDungeonBook?.at(dfLocation.regionIndex, dfLocation.locationIndex) : null; if (e) { dfLocation.eliteDungeon = e; dfLocation.elite = true; } },   // BUNNYFALL: a daily elite dungeon - its entry on it, and an elite dungeon's three foes a marker
     wildHallEpoch: () => { const h = wildHallHere(); return h ? (_wdunEpoch.get(h.key) ?? 0) : 0; },   // PVPDUNGEONS: its reset's epoch
     wildNoBank: () => { if (!wildHere()) return false; townTalk.say('There are no banks in the mountains.'); return true; },
     wildNoHouse: () => { if (!wildHere()) return false; townTalk.say('No house is for sale in the Wrothgarian Mountains.'); return true; },   // PVPDUNGEONS   // PVPDUNGEONS: no banks, so no houses either
@@ -30144,6 +30160,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
+    // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch
+    bardAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/bards/service', { ...body, ...at }) }) : null,
+    bardHomes: homesApi ? async () => { const r = await homesApi.mine(); return (r?.ok ? r.data?.homes ?? [] : []).filter((h) => !h.deed).map((h) => ({ mapId: h.mapId, buildingKey: h.buildingKey, title: h.title ?? '', town: _townOfMapId.get(h.mapId >>> 0)?.name ?? '' })); } : null,
     tavernAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, read: body.op === 'read', call: (at) => accountCall(realmIoNow(), '/v1/tavern/service', { ...body, ...at }) }) : null,
     partyNames: () => (social?.others?.() ?? []).map((m) => m.name).filter((n) => typeof n === 'string' && n.length > 0),
     npcSession,   // TK-iv: the questor door on a static-NPC click
@@ -32130,6 +32149,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     return holder._tvAt;
   }
   const owForecast = createOverworldForecast({ climateAt, ground: mapGroundHere, minuteNow: () => playerTicker.classicMinutes, here: () => state.worldCoords(player.pos), alt: () => fieldXZ()[2], tvTrip, tvTripLive, travel: () => travelOptions, shared: sharedClockOn, rateNow: worldTimeScale, held: () => sunbaby.on });   // OW-FORECAST: the weather ahead (scenes/overworldForecastHost.js)
+  const buildingNames = createBuildingNameMarks({ buildings: () => modes?.buildingBoxes?.() ?? [], identify: (b) => modes?.buildingIdentity?.(b), locationOf: (k) => locationIndex.get(k) });   // BUILDING-NAMES: the found halls and shops on the Overworld (scenes/buildingNameMarks.js)
   const { travelViewMarks } = createTravelViewMarks({   // HOST-SPLIT: src/scenes/travelViewMarks.js
     TV_PLACE_LIFT, _bandChase, _bandSpent, _hiddenPeers, _lodesSensed, _peerMapPoses, _townOfMapId, _tvBountyHold,
     _tvLodeHold, _tvPartyHold, _tvVendorHold, _tvWaypointHold, _veils, _wildStrangerIds, bandMake, bandNowMs,
@@ -32142,6 +32162,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get gatherHost() { return gatherHost; },
     get livingRoads() { return livingRoads; },
     get merchantYards() { return merchantYards; },
+    get buildingNames() { return buildingNames; },
     get naval() { return naval; },
     get navalRaidersOn() { return navalRaidersOn; },
     get online() { return online; },
@@ -32974,6 +32995,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       if (_bandChase.size) bandDrop();   // AUDIT OW4 B5: a door ends every chase, spent - the band frame never runs indoors, and a chase froze there to take up again on the way out
       caravanStep(dt);   // AUDIT LW-II C5b: the reports carried in and the escort, indoors and below too
       if (livingWorldOn()) livingCarriedStep(LIVING_CARRIED_SLICE_MS);   // AUDIT LW-II-2 H7: the word carried worked indoors and below too - a town first asked from a room (a save loaded in its tavern, a day begun abed) told none all its stay
+      try { eliteDungeonFight?.frame(); } catch (e) { console.warn('[elite dungeon] frame', e?.message ?? e); }   // BUNNYFALL: the elite dungeon's series, Sifrit and the cleanse (systems/eliteDungeons/edFight.js)
       folkStreet.destroy();   // MWNPC7: indoors, the walkers' bodies let go with the street they walked
       streetPeople.destroy();   // MWNPC8b: and the standing people's
       standingHorses.destroy();   // STAND-HORSE: and the standing horses'
@@ -35118,6 +35140,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     droppedLoot.tickFlats(dt);   // FA1 slice 3
     livePersonBatches.push(...droppedLoot.batches());   // U8e: the ground piles
     // AUDIT 24 (wave 39): the blood splashes, on the same axis. Their
+    try { eliteDungeonFight?.frame(); } catch (e) { console.warn('[elite dungeon] frame', e?.message ?? e); }   // BUNNYFALL: outside, the elite dungeon's run let go
     // clock is REAL dt like every other one-shot, and it ENDS - a
     // finished splash frees its batch inside tick().
     hitEffects.tick(dt);
@@ -35505,6 +35528,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // BUNNYFALL: a staff event's pillar of purple light over its town (scenes/eventPillarHost.js), the same eye and fog
     if (eventPillar.showing() && eventPillar.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
       { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze, light: (renderer._ambient[0] + renderer._ambient[1] + renderer._ambient[2]) / 3 + 0.6 * renderer._sunScale })) renderer.markForeignPass();
+    // BUNNYFALL: the daily elite dungeons' crystals and glow (scenes/eliteDungeonHost.js), the same eye and fog
+    if (eliteDungeonPresence.showing() && eliteDungeonPresence.draw(proj, view, new Float32Array(mwv.eye), now / 1000,
+      { mode: renderer._fogMode, density: renderer._fogDensity, range: renderer._fogRange, color: renderer._fogColor, camPos: renderer._camPos, focus: renderer._focus, haze: renderer._haze })) renderer.markForeignPass();
     // SD2c: THE HOLLOW'S OMEN - a Super dungeon's column of brass-gold light, after the gate's fire, the same eye and fog
     const sdo = sdHost ? sdOmenNow() : null;
     if (sdo && sdOmenPassOf()?.draw([sdo], proj, view, new Float32Array(mwv.eye), now / 1000,

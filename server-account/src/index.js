@@ -303,6 +303,7 @@ import { nyxFound, nyxTotal } from './nyx.js';
 import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
 import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
+import { eliteDungeonsRead, eliteDungeonSummon, eliteDungeonClear } from './eliteDungeons.js';   // BUNNYFALL: daily elite dungeons
 import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
 import { farmGarden } from './farmGardens.js';
@@ -314,6 +315,7 @@ import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the grea
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
 import { tavernFavorBuy } from './tavernFavor.js';
 import { tavernServiceAct } from './tavernService.js';
+import { bardServiceAct } from './bardServices.js';   // BARDS' GUILD services paid in Favor
 import { claimHome, releaseHome, setHomeEntry, homesInTown, homesInTowns, homesOf, setHomeLook, homeLayoutsKept, arenaMoveHome, arenaMovesOf, arenaMoveSeen, holdDeed, inheritHome } from './homes.js';   // HOME1: the online homes' routes; HOME-LOOK: its outside; WD3: the towns' layouts; ARENA4b: the homes the arena displaced, moved; FIELD BUGS 2026-10-04d KNIGHT-HOUSE: a deed held
 import { homeTransfer } from './homeTransfer.js';   // a house offered to one account, accepted as one write
 import { roomsOf, offerRoom, withdrawRoom, rentRoom, collectRent } from './rent.js';   // HOME-RENT: a home's rooms, rented
@@ -1813,6 +1815,12 @@ const service = {
         if (r.error === 'seq') return json(r, 409, origin);
         return r.error ? no(r.error, 400, origin) : json(r, 200, origin);
       }
+      if (path === '/v1/bards/service') {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = await bardServiceAct({ ...ctx, bucket: env.SAVES }, who.player, body);
+        if (r.error === 'seq') return json(r, 409, origin);
+        return r.error ? no(r.error, r.error === 'bard-rate' ? 429 : 400, origin) : json(r, 200, origin);
+      }
       if (path === '/v1/festivals/host' || path === '/v1/festivals/list') {   // PLAYER-FESTIVALS: hosted at an innkeeper, listed for the map and the chat
         if (request.method !== 'POST') return no('method', 405, origin);
         const r = path.endsWith('/host') ? await hostFestival(ctx, who.player, body) : await listFestivals(ctx, who.player);
@@ -1836,7 +1844,7 @@ const service = {
           const r = await decorOf(ctx, who.player, body);
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }
-        if (path === '/v1/camps/near') {   // BUNNYFALL CAMPS: the camps round a pixel, every session's to read
+        if (path === '/v1/camps/near' || path === '/v1/camps/mine') {   // BUNNYFALL CAMPS: the camps round a pixel, every session's to read - and the asker's own, wherever they stand (HOLDINGS)
           const r = await campRoute(ctx, who.player, path, body);
           return 'error' in r ? no(r.error, 400, origin) : json(r, 200, origin);
         }
@@ -2401,6 +2409,11 @@ const service = {
         const act = { '/v1/garrisons': garrisonsRead, '/v1/garrisons/recruit': garrisonRecruit, '/v1/garrisons/orders': garrisonOrders, '/v1/garrisons/dismiss': garrisonDismiss }[path];
         const r = await act(ctx, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
+      }
+      if (path === '/v1/elite-dungeons' || path === '/v1/elite-dungeons/summon' || path === '/v1/elite-dungeons/clear') {   // BUNNYFALL: daily elite dungeons (eliteDungeons.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path === '/v1/elite-dungeons' ? await eliteDungeonsRead(ctx) : path.endsWith('/summon') ? await eliteDungeonSummon(ctx, who.player, body ?? {}) : await eliteDungeonClear(ctx, who.player, body ?? {});
+        return 'error' in r ? no(r.error, r.error === 'ed-need-account' || r.error === 'ed-not-present' ? 403 : r.error === 'ed-unknown' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/blight' || path === '/v1/blight/push') {   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
         if (request.method !== 'POST') return no('method', 405, origin);

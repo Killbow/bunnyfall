@@ -202,9 +202,11 @@ export function createMarketGoods(entity, { kept = () => false, say = () => {} }
      *  the record - realmTradeLaw recordIsOffered), its index in the list the save writes as `items` (tradePack picks -
      *  AUDIT REALM L1-F1), and its taking - its whole stack out of the pack (tradePack take: the lit light let go) -
      *  answering its undo, or null when the pack no longer holds it where it was, or it may not go. */
-    good(/** @type {any} */ item) {
+    good(/** @type {any} */ item, /** @type {number} */ count = Infinity) {
       const pack = createTradePack(entity);
-      const entries = [{ item, count: Math.max(1, item?.stackCount ?? 1) }];
+      // TRADER STACKS: the units of a stack the seller put up - never more than it holds, at least one; none said, the lot
+      const have = Math.max(1, item?.stackCount ?? 1);
+      const entries = [{ item, count: Number.isSafeInteger(count) ? Math.max(1, Math.min(have, count)) : have }];
       const pick = pack.picks(entries)[0];
       return {
         offered: pack.wire(entries)?.[0] ?? null,
