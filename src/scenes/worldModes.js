@@ -8063,7 +8063,7 @@ export function createWorldModes(host) {
         let home = null;
         let homeOpen = false;
         if (host.onlineHomes && homeCandidate(bd)) {
-          await host.onlineHomes.waitFor(homeTownOf(bd));
+          await host.onlineHomes.waitFor(homeTownOf(bd), undefined, { direct: true, by: hit });
           home = homeOf(bd);
           const door = homeDoorFor(bd, home);
           // HOME-RENT: the rent row pressed - or, where the plaque lists none, a click on a home that shuts me out but has a
@@ -8715,7 +8715,7 @@ export function createWorldModes(host) {
       // asked, so its town is warm; a restore asks now, bounded as the door is.
       let home = null;
       if (!restore?.privateRoom && host.onlineHomes && building && homeCandidate(building)) {
-        await host.onlineHomes.waitFor(homeTownOf(building));
+        await host.onlineHomes.waitFor(homeTownOf(building), undefined, { after: restore ? null : hit });
         home = homeOf(building);
       }
       // ROAD-B B4: the OTHER TWO latches PlayerActivate.TransitionInterior

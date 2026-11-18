@@ -492,10 +492,10 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
   const idOf = (mapId) => (Number.isFinite(Number(mapId)) ? Number(mapId) >>> 0 : 0);
 
   /** Ask for a town unless its answer is fresh - one ask in flight a town. Resolves whether the town is known.
-   *  BOOT-OVERLAP: `character` asks as the one named rather than the one playing now - the boot asks its towns before the
-   *  save it restores is the one playing (a realm save's own id; undefined: the one playing).
-   *  @param {any} mapId @param {{ force?: boolean, character?: string|null }} [opts] @returns {Promise<boolean>} */
-  function ensure(mapId, { force = false, character: as = undefined } = {}) {
+   *  `character` asks as the one named, not the one playing now. The boot asks its towns before its save
+   *  is playing. It is a realm save's own id, or undefined for the one playing.
+   *  @param {any} mapId @param {{ force?: boolean, direct?: boolean, character?: string|null }} [opts] @returns {Promise<boolean>} */
+  function ensure(mapId, { force = false, direct = false, character: as = undefined } = {}) {
     const id = idOf(mapId);
     if (!homeMapIdOk(id)) return Promise.resolve(false);
     const had = towns.get(id);
@@ -508,8 +508,10 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
     const f = failed.get(id);
     if (!force && f && now() - f.at < homeRetryMs(f.n)) return Promise.resolve(!!had);
     const gen = writesTo(id);
+    // A clicked door waits on this town, so `direct` skips the batch and asks for it alone. The playing character's
+    // own tenancies ride the answer.
     const p = Promise.resolve()
-      .then(() => (force ? api.town(id, as === undefined ? character() : as) : askTown(id, as === undefined ? character() : as)))   // HOME-RENT: the playing character's own tenancies ride the answer
+      .then(() => (force || direct ? api.town(id, as === undefined ? character() : as) : askTown(id, as === undefined ? character() : as)))
       .then((r) => {
         const list = r?.ok ? r.data?.homes : null;
         // unanswered: what was known stands, nothing new is believed, and the next ask waits a little
@@ -570,13 +572,22 @@ export function createOnlineHomes({ api, character = () => null, now = () => Dat
    */
   const afterFlight = (id, flying) => flying.then(() => ensure(id, { force: true }));
 
-  /** `ensure`, but a door does not wait on it longer than `ms`: resolves whether the town is known by then. */
-  function waitFor(mapId, ms = HOME_ASK_WAIT_MS) {
+  /** The door presses that just waited on their town, and when: the room a press opens does not wait again. */
+  const pressed = new WeakMap();
+  /** `ensure`, but a door does not wait on it longer than `ms`: resolves whether the town is known by then. A door's
+   *  press asks `direct` and names itself `by`; the room it opens names the same press `after` and, within `ms` of the
+   *  press, does not wait twice. A record expired by then still waits on a fresh read.
+   *  @param {any} mapId @param {number} [ms] @param {{ direct?: boolean, by?: object|null, after?: object|null }} [o] */
+  function waitFor(mapId, ms = HOME_ASK_WAIT_MS, { direct = false, by = null, after = null } = {}) {
     const id = idOf(mapId);
+    const at = after ? pressed.get(after) : undefined;
+    if (after) pressed.delete(after);
+    const had = towns.get(id);
+    if (at !== undefined && now() - at <= ms && !(had && now() - had.at >= ttlMs)) return Promise.resolve(!!had);
     /** @type {any} */
     let timer = null;
     const late = new Promise((res) => { timer = setTimeout(() => res(towns.has(id)), ms); });
-    return Promise.race([ensure(id), late]).finally(() => clearTimeout(timer));
+    return Promise.race([ensure(id, { direct }), late]).finally(() => { clearTimeout(timer); if (by) pressed.set(by, now()); });
   }
 
   const known = (mapId) => towns.has(idOf(mapId));

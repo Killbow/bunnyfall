@@ -22,6 +22,7 @@ import { collectInteriorLights } from '../world/interiorLights.js';
 import { PROP_MODEL_TYPE } from '../world/interiorLayout.js';
 import { LADDER_MODEL_ID } from '../player/enterExit.js';
 import { MACHINERY_MODEL_ID } from '../world/windmillMesh.js';
+import { hallFrame, hallLayoutOf, hallPlanToLocal, hallPlanFromLocal, keptHallPlan, keepHallPlan } from './hallPlanCache.js';
 
 const LIGHTS_ARCHIVE = 210;
 /** Daggerfall's brazier torch. */
@@ -251,6 +252,7 @@ const FLAT_BOX = Object.freeze({ mn: [-0.3, 0, -0.15], mx: [0.3, 1, 0.15] });
  * `avoid` ([[x, y, z, r]] - doors), `way` ([[x, y, z]] - the way in), and the room's seams - `renderer`, `getTexture`,
  * `uploadRecord(archive, record)`, `billboardSize(texture, record)`, `getGpuMesh(id)`, `cpuModels`, `drawList`,
  * `billboardBatches`, `lights` (pushed to), `trs`, `worldAabb`. Everything in the room's (parent) frame.
+ * `building` and `layout` key the cached plan.
  * @param {any} env
  */
 export async function furnishBunnyHall(env) {
@@ -275,18 +277,24 @@ export async function furnishBunnyHall(env) {
   const o = env.origin;
   const norm = (x, z) => { const l = Math.hypot(x, z) || 1; return [x / l, z / l]; };
   const axes = o ? [norm(o[0], o[2]), norm(o[8], o[10])] : [[1, 0], [0, 1]];   // the room's own axes, turned with the building
-  const plan = bunnyHallPlan({
+  const frame = env.building ? hallFrame(o) : null;
+  const clerk = (env.people ?? []).find((pn) => pn?.bunnyClerk === env.key) ?? null;
+  const cacheKey = frame ? `${env.building}|${env.key}|${hallLayoutOf(frame, { stood: env.layout, clerk, avoid: env.avoid, way: env.way })}` : null;
+  const kept = cacheKey ? keptHallPlan(cacheKey) : null;
+  const plan = kept ? hallPlanFromLocal(kept, frame) : bunnyHallPlan({
     people: env.people, key: env.key, ray: (p, d, m) => env.collider.raycast(p, d, m), open: (p, r) => !env.collider.sphereOverlaps(p, r),
     axes, avoid: env.avoid, way: env.way, box,
   });
   if (!plan) return;
+  if (cacheKey && !kept) keepHallPlan(cacheKey, hallPlanToLocal(plan, frame, env.trs));
   // the flats: the braziers and the trade's small things, a batch a picture, the lights among them lighting the room
   const flats = [...plan.braziers.map((p) => ({ ...HALL_BRAZIER, ...p })), ...plan.flats];
   const groups = new Map();
   for (const f of flats) { const k = `${f.archive}_${f.record}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(f); }
-  for (const [, fs] of groups) {
+  const pictures = await Promise.all([...groups.values()].map((fs) => env.getTexture(fs[0].archive)));
+  for (const [i, fs] of [...groups.values()].entries()) {
     const { archive, record } = fs[0];
-    const t = await env.getTexture(archive);
+    const t = pictures[i];
     if (!t || record >= t.recordCount) continue;
     env.uploadRecord(archive, record);
     const size = env.billboardSize(t, record);
@@ -297,7 +305,7 @@ export async function furnishBunnyHall(env) {
     const gpu = await env.getGpuMesh(p.model);
     const cpu = env.cpuModels.get(p.model);
     if (!gpu || !cpu) continue;
-    const matrix = env.trs(p.pos[0], p.pos[1], p.pos[2], 0, p.yawDeg, 0);
+    const matrix = p.matrix ?? env.trs(p.pos[0], p.pos[1], p.pos[2], 0, p.yawDeg, 0);
     env.drawList.push({ mesh: gpu, matrix, key: `int:bunny:${p.k}`, aabb: env.worldAabb(cpu.positions, matrix) });
     env.collider.addMesh('interior', cpu.positions, cpu.indices, matrix);
   }

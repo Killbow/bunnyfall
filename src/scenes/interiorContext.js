@@ -853,7 +853,7 @@ export async function buildInteriorContext(deps, dfBlock, blockIndex, recordInde
   if (opts.bunnyHall) {   // BUNNY-GUILDS: the hall's furnishing about its clerk (scenes/bunnyHallFurnish.js), the doorways and the way in kept clear
     const enter = interior.markers.find((m) => m.type === INTERIOR_MARKER.ENTER) ?? interior.markers.find((m) => m.type === INTERIOR_MARKER.REST);
     await furnishBunnyHall({
-      key: opts.bunnyHall, people, collider, origin,
+      key: opts.bunnyHall, people, collider, origin, building: dfBlock.name ? `${dfBlock.name}:${recordIndex}` : null, layout: drawList.map((d) => d.key).join(),
       avoid: [...interior.doors.map((d) => [...doorWorldPosition(d), 1.4]).map(([x, y, z, r]) => [...parentPt(x, y, z), r]), ...interior.actionDoors.map((d) => [...parentPt(d.matrix[12], d.matrix[13], d.matrix[14]), 1.4])],
       way: enter ? [parentPt(enter.x, enter.y, enter.z)] : [],
       renderer, getTexture, uploadRecord, billboardSize, getGpuMesh, cpuModels, drawList, billboardBatches, lights, trs, worldAabb,
