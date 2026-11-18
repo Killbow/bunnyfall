@@ -834,9 +834,12 @@ export class DynamicSkiesRenderer {
     const imp = TEXTURE_IMPORTS[name] ?? { filter: 'point', mips: true, srgb: true };
     const t = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, t);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    // An ImageBitmap arrives already flipped, and WebGL ignores the flip flag for it.
+    const bitmap = typeof globalThis.ImageBitmap === 'function' && image instanceof globalThis.ImageBitmap;
+    if (!bitmap) gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, imp.srgb ? gl.SRGB8_ALPHA8 : gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    if (!bitmap) gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    else image.close();
     const linear = imp.filter === 'bilinear';
     if (imp.mips) {
       gl.generateMipmap(gl.TEXTURE_2D);
