@@ -32900,6 +32900,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     };
     frameLook();
+    let fwd, right;
+    const framePreModal = () => {   // PERF-V8
     // DEATH-KEPT (FIELD BUGS 2026-09-30b, Niwy: "If you cure a disease and die at the same time you will became
     // immortal"): A PLAYER AT ZERO IS DYING, whatever took the screen. The damage door raises a death on the blow that
     // crosses to zero and never again (the TRANSITION, AUDIT 21), so the death lives in its screen - and a window written
@@ -32990,9 +32992,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (!_moving) { _loadingDest = null; _partyWaitLine = ''; }
     meterFor(renderer.gl)?.markCpu('sim');   // PERF-CPU: everything between here and the next mark is the rest of the simulation
     lookGate(gamePaused());   // a window up frees the cursor; closing re-locks
-    const fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
+    fwd = [Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch)];
     partyPing?.frame({ eye: (travelView?.active && travelView.eye) || cam.pos, dir: (travelView?.active && travelView.fwd) || fwd });   // PARTY-PING: one look, every mode, before the modal return
-    const right = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];   // HANDEDNESS (mat4's law): screen-right = (cos, 0, -sin) under the mirrored projection - Unity's own right
+    right = [Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)];   // HANDEDNESS (mat4's law): screen-right = (cos, 0, -sin) under the mirrored projection - Unity's own right
     noteLocalPlayer(walkMode && playerSpawned ? player.pos : cam.pos, fwd);   // TACT2: where I stand and face - a foe behind me sees my back (ai/tactics.js)
     tickTactics(foeFrameDt(_questBoxHoldsFoes() || (_mode() === 'dungeon' && windowHoldsDungeon(modes?.dungeonCtx?.uiOverlayActive, playerEntity.health > 0 && !modes?.deathUp?.())) ? 0 : dt));   // AUDIT TACT D10/A3: the brain's clock is the foes' own step - held when they are; AUDIT TELL H1: a dungeon's window holds its foes, and their wind-ups with them
 
@@ -33089,7 +33091,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (_mode() !== _torchesMode) { droppedTorches.destroyAll(); weaponRig.silenceTorch();   /* DISC6: the street's rig leaves (or retakes) the frame - its torch loop falls silent, and the rig that ticks starts its own */ if (_torchesMode === 'exterior') { closeBrokerDoor(); sigilBroker?.destroyAll(); }   /* AUDIT SET W2: the street left (the gate's court entered under the veil's 1.2 s, an interior, a travel) - her window shut and her post down, never carried in */ if (_torchesMode === 'exterior') lefay?.destroyAll();   /* LEFAY1: the monument's collider down, never carried in */ if (_torchesMode === 'exterior') poiHost?.standDown();   /* POI-2: the POIs' colliders down, never carried in - AUDIT POI R8: their models kept, placed again on the way out */ portalGates.forgetSteps(); _torchesMode = _mode(); }   // HT1; PORTAL1: the step forgotten at every change of place
     // the editor's Test, in every mode: when the world changes under it, it ends
     poiTest?.frame();
-    if (modes.frame(dt, now)) {
+    };
+    framePreModal();
+    const frameModalArm = () => {   // PERF-V8
       if (_wodInside) { _wodInside = false; _wodArrival = wodArrivalOf([]); }   // WOD6: inside - the arrival's markers meet Start on the way out, from the player
       if (!skyInside) { skyInside = true; sky.setInside(true); }   // DS1: InteriorTransitionEvent
       // WM4c: the exterior parent is inactive indoors in DFU and its
@@ -33186,8 +33190,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // bails at its second statement (frameHeld, above), and this return is not that frame.
       frameEnd();
       requestAnimationFrame(frame);
-      return;
-    }
+    };
+    if (modes.frame(dt, now)) { frameModalArm(); return; }
     if (streetHeld()) { meterFor(renderer.gl)?.stopCpu(); frameEnd(); requestAnimationFrame(frame); return; }
     // Q4-v: the quest machine's EXTERIOR tick (the modal arms tick
     // inside modes.frame). REAL seconds - QuestMachine.Update
@@ -35659,6 +35663,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     }
     };
     frameHaze();
+    const frameForeignAndArrows = () => {   // PERF-V8
     renderer.drawHeld(camRight, bbUp);   // GRASS-PORTAL: the street's blended flats, over the grass behind them
     poiHost?.drawTranslucent(renderer, mwv.eye, yardCull);   // POI-2: a POI's glass and its like, after every opaque thing and the sea's top, the farthest first; AUDIT POI R4: and after the grass, the banners, the Windfall and the haze, which write depth its glass does not (RAIN-OVER-GRASS's law) - and R14: the farthest from the view's own eye
     if (poiEditor?.drawLines(proj, view)) renderer.markForeignPass();   // POI-3: the editor's boxes where the models stand, then its handles over everything (AUDIT POI R4: over the glass too, moved with it)
@@ -35809,6 +35814,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       dwRender.drawUnderwaterLook(underwaterLookUniforms({ depth: _dwFogP.oceanY - cam.pos[1], daylight: _dwFrame.daylight, toSun: sunDirection(minute), sunColor: renderer._sunColor, sunScale: renderer._sunScale }, _underLook), _dwFogP.oceanY, SHAFT_REACH_M, now / 1000);
       renderer.markForeignPass();
     }
+    };
+    frameForeignAndArrows();
     // C9: the exterior FP weapon - swings/sounds through the rig. The
     // open world still has no ACTION OBJECTS in melee reach, and that
     // is DFU's own shape above ground rather than a hole: there is no
