@@ -5,6 +5,9 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-18
 
+- Daily elite dungeons: every day eight dungeons become elite dungeons, each with a great purple crystal floating over it and a purple glow on the ground, seen from far off and marked on the world map and the travel map.
+- Inside an elite dungeon the halls are lit purple and Cromwark's creatures hold it. Fell enough of them and Sifrit the Forbidden One rises: tougher than her usual self, with extra Grave Rings, and she calls Cromwark's creatures instead of mummies.
+- Killing Sifrit cleanses the dungeon and adds 50 Dusk Tokens to the Nyx counter (once per dungeon). An elite dungeon left uncleansed for two days starts a purple corruption that spreads further every day, with tougher foes inside it, until someone cleanses it.
 - The Overworld travel view now names the places you have explored: guild halls, and every shop, tavern or temple you have entered show their name over their roof, so you can find your way without waypoints. Places you have not visited stay unnamed, and they follow the Towns switch.
 - Bards' Guild services, paid in Favor Tokens (Favor shop, press G): give an item a name of your own (10 Favor), write a flourish on an item (30 Favor; it is words on the item's card only and changes no stat or enchantment), or rename a home you own (25 Favor). Names are filtered like other player text.
 - Hired traders now sell stacks properly: put up as many potions (or other stackable goods) as you like at a price each, the stall shows how many are on offer, and a buyer chooses how many to buy with the total shown while the rest stays on sale.

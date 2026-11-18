@@ -395,6 +395,7 @@ export const ROUTES = new Set([
   '/v1/territories',   // BUNNYFALL COMPANIES: every Company's territory (territory.js)
   '/v1/charters/found', '/v1/charters/invite', '/v1/charters/answer', '/v1/charters/leave',   // BUNNYFALL COMPANIES: City Charters (charters.js)
   '/v1/blight', '/v1/blight/push',   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
+  '/v1/elite-dungeons', '/v1/elite-dungeons/summon', '/v1/elite-dungeons/clear',   // BUNNYFALL: daily elite dungeons (eliteDungeons.js)
   '/v1/garrisons', '/v1/garrisons/recruit', '/v1/garrisons/orders', '/v1/garrisons/dismiss',   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
   '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore', '/v1/farms/garden',   // BUNNYFALL COMPANIES: farms (farms.js)
   '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)

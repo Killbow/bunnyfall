@@ -256,6 +256,7 @@ import { ActionSystem } from '../world/actionSystem.js';
 import { collectDungeonEnemies, dungeonPlace, expandEliteEnemies, enemyHierarchyOrder } from '../characters/dungeonEnemies.js'; import { markDungeonChampions, applyChampion, championName } from '../systems/champions.js'; import { lootCrown } from './lootLines.js';   // LOOT7: the layout's champions; LOOT11: a find's line of light
 import { isOnlinePage } from '../systems/online/onlineLane.js';   // ELITE FOES: online play only
 import { wildHallFoes } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: a hall's high tiers
+import { edLayoutFoes, edFoeStood } from '../systems/eliteDungeons/edFoes.js';   // BUNNYFALL: a daily elite dungeon's Cromwark foes and its Sifrit
 import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
 import { wildRingAtPlace } from '../systems/wild/etherWild.js';
 import { seaPileMore } from '../systems/sea/seaSpoils.js';   // SEA-SET: the deep's Tidemail, a ruin's pile's last roll   // WILD2: a place's ring by its map pixel - ETHER-WILD: an isle's ruin of the open sea by its band
@@ -1143,6 +1144,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     const swapped = wildHallFoes(_layoutEnemies, dfLocation.wildRing, dfLocation.dungeon.recordElement.header.locationId >>> 0);
     for (let i = 0; i < swapped.length; i++) _layoutEnemies[i] = swapped[i];
   }
+  edLayoutFoes(dfLocation, _layoutEnemies);   // BUNNYFALL: a daily elite dungeon's series - Cromwark's high tiers (systems/eliteDungeons/edFoes.js)
   // PROF2: A DUNGEON VEIN'S WALL (profIdentity / veinWall below; bible/06-Systems/Professions-Arc.md 23) - over the
   // layout's own markers, before an elite copy is added: every client of the dungeon casts the same rays.
   // MINE-PERKS (Professions-Arc 43, the players' "they like to spawn halfway in the wall so its hard to see"): the vein
@@ -1553,6 +1555,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (!puppet && e.level == null) applyProgressionScalingTo(entity, basics, { ally: !!e.allied });   // SOFTCAP1: tougher high-tier foes against skills past 100 (a puppet is its owner's build); ARENA2: never a bout fighter (the ladder is a fixed mountain)
       else if (puppet && e.level == null) applyProgressionScalingTo(entity, basics, { puppet: true, ally: !!e.allied });   // AUDIT BAL: a puppet stands at this place too - its blows on me as on its owner (BAL3)
       if (_wildDungeon && !e.allied) applyWildFoe(entity, { ring: _wildRing });   // WILD1: a dungeon of the open zone - four times its health and its blows, over an elite's (every client builds the room's foes alike, so the maximum agrees)
+      edFoeStood(dfLocation, entity, e, { puppet });   // BUNNYFALL: Sifrit made hers (boosted in a daily elite dungeon), and the series' strength (systems/eliteDungeons/edFoes.js)
       applySpawnAlliance(entity, e);   // MT-ii / AUDIT OH-F C4
       entity._feudPlace = 'dungeon';   // RVN1 (Feud-Arc.md 12): where a fight with it is fought, for its ledger
       if (e.revenant && !puppet) applyRevenant(entity, e.revenant, { turned: !!e.turned });   // RVN7d (Feud-Arc.md 18.4): a revenant stood here - its name and rank, before its loot; RVN11c: a betrayer's turning is no return
@@ -1646,6 +1649,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
       if (!puppet && e.level == null) applyProgressionScalingTo(entity, basics, { ally: !!e.allied });   // SOFTCAP1: tougher high-tier foes against skills past 100 (a puppet is its owner's build); ARENA2: never a bout fighter
       else if (puppet && e.level == null) applyProgressionScalingTo(entity, basics, { puppet: true, ally: !!e.allied });   // AUDIT BAL: a puppet stands at this place too - its blows on me as on its owner (BAL3)
       if (_wildDungeon && !e.allied) applyWildFoe(entity, { ring: _wildRing });   // WILD1: a dungeon of the open zone - four times its health and its blows, over an elite's (every client builds the room's foes alike, so the maximum agrees)
+      edFoeStood(dfLocation, entity, e, { puppet });   // BUNNYFALL: Sifrit made hers (boosted in a daily elite dungeon), and the series' strength (systems/eliteDungeons/edFoes.js)
       applySpawnAlliance(entity, e);   // MT-ii / AUDIT OH-F C4
       entity._feudPlace = 'dungeon';   // RVN1 (Feud-Arc.md 12): where a fight with it is fought, for its ledger
       if (e.revenant && !puppet) applyRevenant(entity, e.revenant, { turned: !!e.turned });   // RVN7d (Feud-Arc.md 18.4): a revenant stood here - its name and rank, before its loot; RVN11c: a betrayer's turning is no return
