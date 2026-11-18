@@ -3,7 +3,7 @@
 //
 //   THE TOWN'S PICK   `noteTown` reads a town's blocks as its outside is built (scenes/pixelBuild.js) and keeps which tavern
 //                     is its magical one, by the law; `isMagic` answers for a door.
-//   THE DOOR          `magicHallEntry` turns the door's hit into the shared hall's: Daggerfall's Mages Guild hall in the place
+//   THE DOOR          `magicHallEntry` turns the door's hit into the shared hall's: the biggest tavern Daggerfall has in the place
 //                     of the tavern's own room, the door, the way back out and the building's record (so a tavern shift, a
 //                     save and an exit all still name the tavern the player walked into) left exactly as they were.
 //   THE FOLK          `seatMagicFolk` stands the tavern's own people in the hall, its keeper as Nyx.
@@ -14,7 +14,7 @@
 import { BUILDING_TYPES } from '../world/buildingNames.js';
 import { collectInteriorPeople } from '../characters/interiorPeople.js';
 import { blockBuildingCount, makeBuildingKey } from '../systems/talk/talkTopics.js';
-import { magicTavernsOn, magicTavernKeyOf, MAGIC_ROOM, MAGIC_HALL, MAGIC_KEEPER } from '../systems/magicTavern.js';
+import { magicTavernsOn, magicTavernKeyOf, MAGIC_ROOM, MAGIC_HALL_BLOCKS, MAGIC_KEEPER } from '../systems/magicTavern.js';
 import { magicGlassRestyle } from '../render/magicTavernLook.js';
 import { t } from '../systems/textManager.js';
 
@@ -52,6 +52,31 @@ export function markMagicTavernRows(rows, mapId) {
   return rows;
 }
 
+/** @type {{ name: string, record: number } | null | undefined} */
+let grandest;
+/** The biggest tavern interior in the game's files (see systems/magicTavern.js MAGIC_HALL_BLOCKS), or null: read once. @param {any} blocks */
+export function grandestTavern(blocks) {
+  if (grandest !== undefined) return grandest;
+  grandest = null;
+  try {
+    let best = -1;
+    const names = [];
+    for (let i = 0; i < (blocks?.count ?? 0); i++) { const n = blocks.getBlockName(i); if (n && MAGIC_HALL_BLOCKS.test(n)) names.push(n); }
+    for (const name of names.sort()) {
+      const rmb = blocks.getBlockByName(name)?.rmbBlock;
+      const list = rmb?.fldHeader?.buildingDataList;
+      for (let r = 0; r < (rmb?.subRecords?.length ?? 0); r++) {
+        const inside = rmb.subRecords[r]?.interior;
+        if (!inside || list?.[r]?.buildingType !== BUILDING_TYPES.Tavern) continue;
+        const size = (inside.block3dObjectRecords?.length ?? 0) + (inside.blockFlatObjectRecords?.length ?? 0);
+        if (size > best) { best = size; grandest = { name, record: r }; }
+      }
+    }
+    if (!grandest) console.warn('[magic tavern] no tavern interior found - magical taverns stay plain');
+  } catch (e) { console.warn('[magic tavern] the grandest tavern could not be found', e?.message ?? e); }
+  return grandest;
+}
+
 /**
  * The shared hall's entry for a tavern door, or null (not the magical tavern; the feature off; no hall to be had).
  * `hit` the door's hit as the host built it; the answer is a hit of the hall: its block and record, a table with the star
@@ -62,15 +87,16 @@ export function markMagicTavernRows(rows, mapId) {
 export function magicHallEntry({ hit, building, blocks, mapId }) {
   if (!building || building.buildingType !== BUILDING_TYPES.Tavern || !isMagic(mapId, building.buildingKey)) return null;
   try {
-    const dfBlock = blocks?.getBlockByName?.(MAGIC_HALL.block);
-    if (!dfBlock?.rmbBlock?.subRecords?.[MAGIC_HALL.record]?.interior) { console.warn(`[magic tavern] ${MAGIC_HALL.block} has no building ${MAGIC_HALL.record} - the tavern stays as it was`); return null; }
+    const pick = grandestTavern(blocks);
+    const dfBlock = pick ? blocks.getBlockByName(pick.name) : null;
+    if (!pick || !dfBlock?.rmbBlock?.subRecords?.[pick.record]?.interior) return null;
     const origin = hit?.dfBlock?.rmbBlock?.subRecords?.[hit.recordIndex];
     const folk = origin?.interior ? collectInteriorPeople(origin) : [];
     // The hall stands at the door's place but never turned with the building: every door of every town is a different place and
     // a different way round, and the pose can only take a place off (`magicRoomIdentity`), not a turn.
     const m = Array.from(hit.door.matrix);
     const door = { ...hit.door, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, m[12], m[13], m[14], 1] };
-    return { hit: { ...hit, door, dfBlock, recordIndex: MAGIC_HALL.record, season: 0, restyle: magicGlassRestyle(), roomModels: undefined }, folk };
+    return { hit: { ...hit, door, dfBlock, recordIndex: pick.record, season: 0, restyle: magicGlassRestyle(), roomModels: undefined }, folk };
   } catch (e) { console.warn('[magic tavern] the hall would not open', e?.message ?? e); return null; }
 }
 

@@ -5746,7 +5746,7 @@ export function createWorldModes(host) {
           });
         // FIELD BUGS 2026-10-04d KNIGHT-HOUSE: online, the house the realm gave is held by the account service - the hold
         // goes first and the deed sells once the service agrees (HOME1's order: credited only once it is gone), or a
-        // building sold here stayed held from every buyer; a deed it never held (`no-home`) sells as Daggerfall's
+        // building sold here stayed held from every buyer; a deed it never held (`no-home`) sells as the biggest tavern Daggerfall has in the place of the tavern's room, its people the tavern's own with Nyx at the bar. `hit` becomes the hall's
         const slot = playerEntity.houses?.[region];
         if (host.onlineHomes && owned && realmDeedAt(playerEntity.houses, region, slot?.mapId, owned.buildingKey)) {
           host.onlineHomes.releaseDeed(slot.mapId, owned.buildingKey)
@@ -8712,8 +8712,7 @@ export function createWorldModes(host) {
       // BASE-HIDE: a room its owner may furnish stands its own furniture piece by piece (scenes/decor/decorBase.js) - an online
       // home, anyone's (the room its owner cleared is the room every visitor walks into), or the player's house or ship
       const baseEditable = !!home || houseOwned || (building?.buildingType === BUILDING_TYPES.Ship && ownsShip(playerEntity));
-      // MAGIC-TAVERN (systems/magicTavern.js; the owner's idea): a town's magical tavern opens the ONE shared hall - Daggerfall's
-      // Mages Guild hall in the place of the tavern's room, its people the tavern's own with Nyx at the bar. `hit` becomes the hall's
+      // MAGIC-TAVERN (systems/magicTavern.js; the owner's idea): a town's magical tavern opens the ONE shared hall - the biggest tavern interior Daggerfall has, in the place of the tavern's own room, its people the tavern's with Nyx at the bar. `hit` becomes the hall's
       // (the same door and building record: the exit, a save and a tavern shift all keep naming the tavern walked into); the way back
       // out is the original's siblings (`exitHit`).
       const exitHit = hit;

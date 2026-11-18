@@ -26,9 +26,10 @@ export const magicTavernsOn = () => contentOn('magicTaverns');
 /** The shared hall's relay room, as `roomKeyFor` spells it: `interior:m4000000007.77000001`. */
 export const MAGIC_ROOM = Object.freeze({ mapId: 4_000_000_007, buildingKey: 77_000_001 });
 
-/** The hall's body: Daggerfall's own Mages Guild hall (MAGEAA00, its first building), the layout the standalone
- *  `?interior=MAGEAA00.RMB:0` route also names. Where the block cannot be read, a magical tavern is left as the plain one. */
-export const MAGIC_HALL = Object.freeze({ block: 'MAGEAA00.RMB', record: 0 });
+/** The hall's body: the BIGGEST tavern interior Daggerfall has - of every building that is a tavern in a TVRN* block, the one
+ *  with the most things in its room, the lowest block name and record winning a tie (scenes/magicTavernRoom.js `grandestTavern`).
+ *  Read off the game's own files, so every client picks the same one. Where none can be read, a magical tavern is left as the plain one. */
+export const MAGIC_HALL_BLOCKS = /^TVRN/i;
 
 /** What the room's people are: the keeper's name and the art she stands as (systems/guild/guildClerkArt.js). */
 export const MAGIC_KEEPER = Object.freeze({ name: 'Nyx', art: 'nyx' });
