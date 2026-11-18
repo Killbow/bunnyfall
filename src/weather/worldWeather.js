@@ -2,6 +2,7 @@
 // snowfall renderers, and the lab grass. It also holds the ripple field, weather changes, and the
 // season turn that re-skins the streamed ground.
 import { aabbOutside } from '../render/frustum.js';
+import { afterFirstFrame } from '../systems/afterFirstFrame.js';
 import { altitudeOfWorldY } from './airTemperature.js';
 import { authoredTiles, createSnowfallHost, settlementsIn, snowfallNetwork } from './snowfallHost.js';
 import { BOAT_STIR, BOAT_WAKE_SPEED, RIPPLE_CELLS, RIPPLE_SPAN } from '../world/waterRipples.js';
@@ -47,11 +48,11 @@ export function createWorldWeather(shared) {
   } = shared;
   const wxEye32 = new Float32Array(3);
   // The rain renderer can exist early; the precipitation mode, not the renderer, gates its draw.
-  void warmPrograms([
+  afterFirstFrame(() => void warmPrograms([
     ...renderer.warmSteps(),
     ...(renderer.lazyWarmSteps?.() ?? []),
     { start: () => startPrograms(renderer.gl, PrecipitationRenderer.PROGRAMS), run: () => { if (!shared.precip) shared.precip = new PrecipitationRenderer(renderer.gl, precipOpts); }, need: () => !shared.precip },
-  ]);
+  ]));
   const wisps = sky.enhanced ? new WindWispsRenderer(renderer.gl) : null;
   const windAudio = createWindAudio();
   const sand = sky.enhanced ? new WindWispsRenderer(renderer.gl, SAND_LOOK) : null;
