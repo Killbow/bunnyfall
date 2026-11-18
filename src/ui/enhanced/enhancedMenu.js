@@ -168,7 +168,7 @@ import { drawPixelGround } from '../pixelGround.js';
 // renders the tab, so the front door still reads no game state.
 import { sheetModel } from './enhancedCharSheet.js';
 import { resetProfPages, profActUnderWay, setDownProfAct } from '../professions/profPages.js';   // PROF1: the Professions and Stores pages, online
-import { drawCraftTab, resetCraftTab, setCraftSection, craftPageAt, craftTabShown } from '../crafting/craftTab.js';   // the Crafting tab, with the Professions, Stations and Stores pages it took
+import { drawCraftTab, resetCraftTab, setCraftSection, craftPageAt, craftTabShown, craftWorkshopBusy, setDownCraftWorkshop } from '../crafting/craftTab.js';   // the Crafting tab, with the Professions, Stations and Stores pages it took
 import { boundKeyName } from '../tutorialPopup.js';   // CRAFT-HALL: names the Professions key on the Crafting page
 import { vendorPageShown, VENDOR_PAGE_SECTIONS, drawVendorPage } from '../vendor/vendorPage.js';   // HOME-VENDOR: the Vendor page
 import { REVENANT_PAGE_SECTIONS, revenantPageShown, drawRevenantsPage } from '../revenant/revenantPage.js';
@@ -4568,7 +4568,7 @@ function renderHome() {
     // scrim - outside the window, the clock and the foot - resumes,
     // the way Escape does; the front door has no scrim and no resume.
     // PROFILE2: the mark is inside too (a press on it opens the window), and with the window open the tap is its.
-    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark, .px-seasonmark', () => { if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
+    else closeOnOutsideTap(home, '.px-win, .px-clock, .px-foot, .px-profile, .px-timersmark, .px-postmark, .px-seasonmark', () => { if (pauseTab === 'craft' && craftWorkshopBusy()) { setDownCraftWorkshop(); render(); return; } if (pauseTab === 'growth' && growthAsks()) return; onAction('resume'); });   // SERVER-POST: the envelope inside too - AUDIT GROWTH LANE3-4: a Growth face asked first (GROWTH5)
     // PX4 (Mac): NO FOOT AT PAUSE - no skin toggle, no About plaque;
     // About is a System-tab row instead, and the skin switch stays on
     // the boot face and the settings shell.
@@ -4806,7 +4806,7 @@ const pauseLabel = (id, label) => PAUSE_TEXT[id]?.() ?? label;
 // counted set (DaggerfallQuestJournalWindow.cs:658-662 via its :322).
 
 function pauseWindow() {
-  const win = el('div', 'px-win');
+  const win = el('div', 'px-win px-win-pause-wide');
   for (const c of ['tl', 'tr', 'bl', 'br']) win.append(el('span', `px-gem px-corner px-${c}`));
 
   const tabs = el('div', 'px-tabs');
@@ -4814,7 +4814,7 @@ function pauseWindow() {
   for (const [id, label] of PAUSE_TABS.filter(([id]) => pauseTabShown(id))) {
     const b = el('button', id === pauseTab ? 'on' : null);
     b.append(el('span', 'px-c', '\u25c6'), document.createTextNode(pauseLabel(id, label)), el('span', 'px-c', '\u25c6'));
-    b.onclick = () => { if (pauseTab === 'growth' && id !== 'growth' && growthAsks()) return; if (id !== 'system') discardControlsStaging(); disarmFamilyPages(); disarmCollectionsPage(); if (id !== 'growth') releaseGrowthTab(); pauseTab = id; render(); };   // AUDIT CARDS-5 D5: and the Collections page's - GROWTH3: and a face on the Growth stage
+    b.onclick = () => { if (pauseTab === 'craft' && craftWorkshopBusy()) return; if (pauseTab === 'growth' && id !== 'growth' && growthAsks()) return; if (id !== 'system') discardControlsStaging(); disarmFamilyPages(); disarmCollectionsPage(); if (id !== 'growth') releaseGrowthTab(); pauseTab = id; render(); };   // AUDIT CARDS-5 D5: and the Collections page's - GROWTH3: and a face on the Growth stage
     tabs.append(b);
   }
   win.append(tabs);
@@ -6331,6 +6331,7 @@ function onKey(e) {
     : postOpen && postView ? () => { postOpen = false; postKeep = {}; postFocusBack = true; render(); }   // SERVER-POST: the mailbox's window, as the timers'
     : seasonOpen && seasonView ? () => closeSeason()   // SEASON-BOOK: the season window, as the timers'
     // AUDIT 32 P12: an act under way on the Stores page is set down first (nothing spent, said) - never the window
+    : mode === 'pause' && pauseTab === 'craft' && craftWorkshopBusy() ? () => { setDownCraftWorkshop(); render(); }
     : profActUnderWay() ? () => { setDownProfAct(); render(); }
     : confirming ? () => { answered(); render(); }   // RPT1026-MISC CONFIRM-SHEET: and the sheet the ask raised
     : sheetOpen ? () => { sheetOpen = false; render(); }

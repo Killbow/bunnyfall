@@ -6,3 +6,8 @@ data
 selfhost/.wrangler
 .wrangler
 dist-poi-editor
+.env
+.env.*
+**/.env
+**/.env.*
+**/data

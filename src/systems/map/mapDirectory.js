@@ -24,6 +24,7 @@
 // the quest system's LocationId -> MapId link, which costs a
 // readLocationIdFast per location (~25ms in DFU's own note).
 
+import { cromwarkSettlementRemoved } from '../wild/cromwarkSettlements.js';
 import { getMapPixelID } from '../../formats/mapsFile.js';
 
 /** ContentReader.EnumerateMaps (:318-356). Returns Map<pixelId,
@@ -36,7 +37,7 @@ export function buildMapDict(maps) {
     if (!dfRegion) continue;
     for (let location = 0; location < dfRegion.locationCount; location++) {
       const mapTable = dfRegion.mapTable?.[location];
-      if (!mapTable) continue;
+      if (!mapTable || cromwarkSettlementRemoved(mapTable.mapId)) continue;
       const summary = {
         id: mapTable.mapId & 0x000fffff,
         mapID: mapTable.mapId,

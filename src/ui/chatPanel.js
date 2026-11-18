@@ -1126,6 +1126,24 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
    *  (Report, with its reasons; Block or Unblock), opened by pressing the speaker's name under the line and closed by
    *  pressing it again, by a choice, or by opening another line's. Never on my own line, nor on one nobody spoke. */
   let lineMenu = null;
+  /** Whisper entry of that menu: puts `/w <name> ` in the field (a name with a space in "quotes", as scenes/whisperHost.js
+   *  reads it), caret after it, and keeps what was already typed unless it was another command. Not on a private line's
+   *  own "To <name>" label (`mine`, never armed), a system line or a line with no speaker. */
+  const whisperRow = (line) => {
+    const name = String(line?.name ?? '').trim();
+    if (!name || line.system || line.mine || name.includes('"')) return [];
+    return [{
+      label: t('chat.whisper', 'Whisper'),
+      run: () => {
+        const prefix = `/w ${/\s/.test(name) ? `"${name}"` : name} `;
+        const old = String(input.value ?? '');
+        input.value = (old && !old.startsWith('/') ? prefix + old : prefix).slice(0, CHAT_MAX);
+        const at = Math.min(prefix.length, String(input.value).length);
+        input.setSelectionRange?.(at, at);
+        input.focus?.();
+      },
+    }];
+  };
   const armLineMenu = (n, nameEl, line) => {
     nameEl.className += ' dfchat-act';
     nameEl.addEventListener('click', (e) => {
@@ -1134,7 +1152,7 @@ export function createChatPanel({ log, onSend, roster = null, canOpen = () => tr
       lineMenu?.menu.remove?.();
       lineMenu = null;
       if (was?.line === n) return;
-      const acts = lineActions(line) ?? [];
+      const acts = [...whisperRow(line), ...(lineActions(line) ?? [])];
       if (!acts.length) return;
       const menu = el('div', 'dfchat-rowmenu dfchat-linemenu');
       // STAFF-PANEL2-CHATMENU (2026-10-22): a row with its own `menu` opens that level in place of this one (a mute's

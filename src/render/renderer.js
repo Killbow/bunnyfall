@@ -4634,9 +4634,9 @@ void main() {
    *  capacity is drawn, in slot order. */
   /** WEAPON-MOUNT (2026-09-26): a hung PICTURE on the decal pass - the decorator's mounted weapons and armour. The
    *  pass's own program with its picture switch on, so a mount's texel is its colour and not a blood film's depth. */
-  drawDecalPicture(batch, tex) {
+  drawDecalPicture(batch, tex, ranges = null) {
     this._decalPicture = true;
-    try { this.drawDecals(batch, tex); } finally { this._decalPicture = false; }
+    try { this.drawDecals(batch, tex, ranges); } finally { this._decalPicture = false; }
   }
 
   /** TACT4: the foes' telegraphed blows on the ground (render/foeTelegraph.js), under this frame's camera - each

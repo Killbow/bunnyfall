@@ -200,11 +200,13 @@ and one more stopped for no way.
 
 Left, each with its reason: the three crossings of 108 that still meet her and the one that stopped - a ship
 crossing her course: the hand looks for her where her way carries her (F4) and these legs meet her still - why each
-does is the next slice's to measure, not this audit's to guess. A quay or a pier is neither water's edge nor a hull to the hand (the terrain's water test
-reads the ground; a pier is a model) - her port's quay is her master's warp now (PASSAGE-QUAY, below); another ship's
-ram (a galley's, `checkShipRams`) can still strike a booked ship - the sea's fights are not the passage's to switch
-off; and a passenger can still lay and fire her guns while her master sails her - whether a passage takes them is the
-owner's call, not an audit's.
+does is the next slice's to measure, not this audit's to guess.
+
+The hand treats a pier as a hull (`pierAlong`, `systems/naval/quays.js`). Leaving, her crew first warp her out to her
+berth's approach (`scenes/naval/passageCastOff.js`); arriving, she is warped in (PASSAGE-QUAY, below). Also left open:
+another ship's ram (a galley's, `checkShipRams`) can still strike a booked ship - the sea's fights are not the passage's
+to switch off; and a passenger can still lay and fire her guns while her master sails her - whether a passage takes them
+is the owner's call, not an audit's.
 
 Pinned by `test/systems/auditships_sail.test.js` AUDIT FERRY-CLEAR (F1, F2, F4 on the lifted hand) and the tightened A2
 and FERRY-CLEAR pins, and `test/systems/naval/ferryclear.test.js` AUDIT FERRY-CLEAR F3/F4 (the hulls about her);

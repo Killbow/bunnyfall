@@ -13,7 +13,8 @@ export const SCORCH = Object.freeze([0.4, 0.6, 0.78, 0.92]);
 export const wasteScorch = (/** @type {number} */ ring) => (ring >= 1 ? SCORCH[Math.min(4, ring) - 1] : 0);
 /** The dead trees: the Haunted Woodlands' set (TEXTURE.508) and its tree records (world/terrain/terrainNature.js TREE_RECORDS). */
 export const DEAD_TREE_BASE = 508;
-export const DEAD_TREE_RECORDS = Object.freeze([13, 15, 16, 18, 24, 25, 30]);
+// Records 13 and 15 have healthy canopies in the original archive, despite the biome's name.
+export const DEAD_TREE_RECORDS = Object.freeze([16, 18, 24, 25, 30]);
 
 /** Share of the trees that stand dead, by ring. */
 export const DEAD_TREE_SHARE = Object.freeze([0.3, 0.62, 0.9, 1]);
@@ -42,6 +43,13 @@ function value(/** @type {number} */ x, /** @type {number} */ y) {
 /** Burn noise 0..1 at a world tile (gx, gy): wide scars with ragged edges. */
 export function burnNoise(/** @type {number} */ gx, /** @type {number} */ gy) {
   return 0.55 * value(gx / 46, gy / 46) + 0.3 * value(gx / 17 + 31, gy / 17 + 7) + 0.15 * value(gx / 6 + 11, gy / 6 + 53);
+}
+
+/** Surviving pockets of ground cover; world-tile coordinates keep scars continuous
+ * across streamed pixels. Applies to flowers/understorey and the 3D grass alike. */
+export function wasteGroundCoverStands(ring, px, py, x, z) {
+  if (!(ring > 0)) return true;
+  return burnNoise(px * 128 + x / 6.4, (py + 1) * 128 - z / 6.4) < .55 - Math.min(4, ring) * .065;
 }
 
 /** Burn the pixel's grass in place: `bytes` the pixel's 128 x 128 tilemap (record << 2 | turn). Grass (record 2) in a scar

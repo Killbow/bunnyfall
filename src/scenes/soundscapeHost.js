@@ -190,7 +190,7 @@ export function createSoundscapeHost(deps) {
      * the word the ear hears (soundWeather), `minute` the world's minute of the day, `climate` CLIMATE.PAK's under me,
      * `winter` the season's, `paused` the game's.
      * @param {number} dt
-     * @param {{ ear?: number[], fwd?: number[], wd: any, weather: string, minute: number, climate: number, winter: boolean, paused: boolean }} f
+     * @param {{ ear?: number[], fwd?: number[], wd: any, weather: string, minute: number, climate: number, winter: boolean, paused: boolean, desolate?: boolean }} f
      */
     frame(dt, f) {
       const pose = f?.ear ? null : deps.audio?.listenerPose?.() ?? null;
@@ -225,7 +225,7 @@ export function createSoundscapeHost(deps) {
       try { inTown = !!deps.inTown?.(); } catch { inTown = false; }
       world.frame(dt, {
         ear, climate: f.climate, night, hour: minute / 60, weather: f.weather, wind, winter: winterIn(f.climate, f.winter),
-        inTown, townBlocks: blocks, shore, smithies, taverns, paused: f.paused,
+        inTown: inTown && !f.desolate, townBlocks: blocks, shore, smithies: f.desolate ? [] : smithies, taverns: f.desolate ? [] : taverns, paused: f.paused, desolate: !!f.desolate,
       });
     },
     /** On every modal frame: silent, nothing left looping. */

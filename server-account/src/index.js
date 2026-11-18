@@ -305,7 +305,9 @@ import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './ch
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
 import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
+import { farmGarden } from './farmGardens.js';
 import { vanishSet, greedGive, greedMine, greedClaim } from './staffCommands.js';   // BUNNYFALL: /vanish and /greed
+import { DISCORD_BOT_ROUTE, DISCORD_GAME_ROUTE, discordBotAuthorized, discordBotAction, discordGameAction } from './discordIntegration.js';
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Dusk Tokens counted
@@ -1048,6 +1050,15 @@ const service = {
         return r.error ? no(r.error, r.error === 'rate' ? 429 : r.error === 'codes-moved' ? 409 : 401, origin) : json(r, 200, origin);   // AUDIT RECOVERY-SET A4
       }
 
+      if (path === DISCORD_BOT_ROUTE) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        if (!(await discordBotAuthorized(request, env, subtle))) return no('auth', 401, origin);
+        const input = await readBody(request, MAX_BODY_BYTES);
+        if (!input) return no('body', 400, origin);
+        const result = await discordBotAction(ctx, env, input);
+        return 'error' in result ? no(result.error, result.status, origin) : json(result, 200, origin);
+      }
+
       // EVERY ROUTE BELOW NEEDS A SECRET, and resolving it is the same
       // one indexed lookup every time.
       // REALM P2.1: a trade's half carries two offers of up to sixteen records each - a JSON route past 4 KiB. AUDIT LEGACY
@@ -1125,6 +1136,12 @@ const service = {
       const frozen = !isBanned(who.player, nowS) && freezeRefusal(path, request.method === 'GET' && !!realmSlot, who.player, nowS);
       if (frozen) return json(frozen, 403, origin);
       if (isBanned(who.player, nowS) && path !== '/v1/auth/logout') return json(bannedAnswer(who.player), 403, origin);
+      if (path === DISCORD_GAME_ROUTE) {
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const result = await discordGameAction(ctx, env, who.player, body);
+        return 'error' in result ? no(result.error, result.status, origin) : json(result, 200, origin);
+      }
+
       // SESSION-SIGN: the next pass, after the ban (a banned account pays its lookup - AUDIT PLAN-1000 E6) and off the
       // primary's own answer alone (a replica's may stand before a sign-out - E5)
       if (hot && !('pass' in who) && passMintable(db, env.DB)) held.pass = await mintPass(hot, who, secret, nowS, subtle);
@@ -2380,10 +2397,10 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
       }
-      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore') {   // BUNNYFALL COMPANIES: farms (farms.js)
+      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore' || path === '/v1/farms/garden') {   // BUNNYFALL COMPANIES: farms (farms.js)
         if (request.method !== 'POST') return no('method', 405, origin);
-        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore }[path];
-        const r = await act(ctx, who.player, body ?? {});
+        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore, '/v1/farms/garden': farmGarden }[path];
+        const r = await act({ ...ctx, env }, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/garrisons' || path === '/v1/garrisons/recruit' || path === '/v1/garrisons/orders' || path === '/v1/garrisons/dismiss') {   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)

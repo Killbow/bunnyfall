@@ -11,6 +11,8 @@ services:
     # over SSH and docker keeps answering, whatever the server does)
     mem_limit: 3g
     cpus: "2.0"
+    environment:
+      BUNNYFALL_DISCORD_KEY: ${BUNNYFALL_DISCORD_KEY:-}
     volumes:
       - ./data:/data
       - ./updates:/updates   # the owner's update button leaves its request here for the host's cron

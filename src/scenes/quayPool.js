@@ -18,7 +18,7 @@
 // again where the berth lies after a recentre (`offsetAll`, after the naval host's moved the berths).
 //
 // Not a DFU member. Ledger A (QUAYS).
-import { planQuay, lanternLights, QUAY_DECK_UP } from '../systems/naval/quays.js';
+import { planQuay, lanternLights, pierOutline, pierAlong, QUAY_DECK_UP } from '../systems/naval/quays.js';
 import { buildQuayModel, buildGangwayModel } from '../world/quayModel.js';
 import { trs } from '../world/mat4.js';
 import { portPlaceName } from '../systems/portPlaces.js';   // SHIPYARDS-FOUND: the docks' name on the Overworld
@@ -192,6 +192,12 @@ export function createQuayPool(deps) {
     return out;
   }
 
+  /** Outlines of every laid pier at the current berth positions. */
+  function piers() {
+    const out = [];
+    for (const q of quays.values()) for (const b of q.berths) if (b.stood && !b.dead) out.push(...pierOutline(b.plan, b.berth.pos));
+    return out;
+  }
   /** AUDIT HOLDINGS Q9: whether berth `index` of harbour `key` has its quay laid - mesh and collider - for the gangway. */
   const laid = (key, index) => !!quays.get(key)?.berths[index]?.stood;
   /** SHIPYARDS-FOUND (2026-10-11, Mac: "Everything should show on the map/overworld"): each harbour whose quays stand, as
@@ -208,7 +214,7 @@ export function createQuayPool(deps) {
     }
     return out;
   }
-  return { frame, draw, lights, destroyAll, offsetAll, standing, laid, overworldMarks, deckUp: QUAY_DECK_UP };
+  return { frame, draw, lights, destroyAll, offsetAll, standing, laid, overworldMarks, piers, pierAlong: (p, dx, dz, far) => pierAlong(p, dx, dz, far, piers()), deckUp: QUAY_DECK_UP };
 }
 
 /**

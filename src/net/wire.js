@@ -1380,7 +1380,9 @@ export function validFoeRecord(r) {
   if (!Number.isInteger(r.i) || r.i < 0 || r.i > FOE_SEQ_MAX) return null;
   const out = { i: r.i };
   if (r.t !== undefined) { if (!Number.isInteger(r.t) || r.t < 0 || r.t > FOE_TYPE_MAX) return null; out.t = r.t; }
-  for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
+  for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl', 'cth']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
+  if (r.cwa !== undefined) { if (!intIn(r.cwa, 1, 4)) return null; out.cwa = r.cwa; }
+  if (r.crs !== undefined) { if (!intIn(r.crs, 0, 24)) return null; out.crs = r.crs; }
   if (r.bt !== undefined) { if (!Number.isInteger(r.bt) || r.bt < 0 || r.bt > FOE_TRAITS_MAX) return null; out.bt = r.bt; }   // BOSS-TRAITS: its traits, a mask (systems/bossTraits.js)
   if (r.bv !== undefined) { if (!Number.isInteger(r.bv) || r.bv < 0 || r.bv > 100) return null; out.bv = r.bv; }   // AUDIT WORLD-EVENTS L2-7: its ward's share standing (bossTraits.js bossWardShare)
   if (r.f !== undefined) {
@@ -1489,7 +1491,9 @@ export function validFoeRecord(r) {
   // TELL8 (bible/12-Enhanced-AI/Feud-Arc.md 10.1): THE WIND-UP - `wk` its shape (0-6, ai/puppetBlows.js WIRE_KINDS) +8
   // iron +16 a feint (AUDIT TELL O2: +32 its landing, said after it; FEUD WIRE: +64 a revenant's signature), `wy` its yaw, `wl` ms to its landing
   // (0..FOE_WINDUP_MS - relative, each client's own clock), `wo` its origin (bounded as `f`), `wn` its serial (0-255),
-  // all five together or none; `wp` a leap's or a shot's point along `wy` (m, with them); `ws` 1 staggered, 2 overreached
+  // all five together or none; `wp` a leap's or a shot's point along `wy` (m, with them); `ws` 1 staggered, 2 overreached.
+  // Cromwark's seven custom IDs use wk's upper bits for locked aim distance / 2,
+  // wp for elapsed pattern seconds; their own controller decodes them, not puppetBlows.
   if (r.wk !== undefined || r.wy !== undefined || r.wl !== undefined || r.wo !== undefined || r.wp !== undefined || r.wn !== undefined) {
     if (!Number.isInteger(r.wk) || r.wk < 0 || r.wk > 127 || (r.wk & 7) > 6) return null;
     if (!Number.isInteger(r.wn) || r.wn < 0 || r.wn > 255) return null;

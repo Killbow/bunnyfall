@@ -27,6 +27,7 @@ import { lootRarityOn, DUNGEON_FAMILY, FAMILY_IDS } from './lootRarity.js';
 import { hasDiscoveredLocationId, discoverLocation } from '../discovery.js';
 import { shardsHeld, spendShards } from '../reforge.js';
 import { totalGoldAmount, deductGold } from '../court.js';
+import { cromwarkSettlementRemoved } from '../wild/cromwarkSettlements.js';
 import { longitudeLatitudeToMapPixel } from '../../formats/mapsFile.js';
 
 /** What a scrying costs. */
@@ -59,7 +60,7 @@ export function scryRows(region) {
     mapId: row.mapId, discovered: !!row.discovered, dungeonType: row.dungeonType,
     name: region.mapNames?.[i] ?? '', regionName: region.name ?? '',
     ...longitudeLatitudeToMapPixel(row.longitude, row.latitude),
-  }));
+  })).filter((row) => !cromwarkSettlementRemoved(row.mapId));
 }
 /** The nearest place of a family's kinds among `rows` from the map pixel `at` that is on no map yet - neither the
  *  table's baked Discovered flag nor the player's own store (DiscoverRandomLocation's two tests) - or null. Ties go to

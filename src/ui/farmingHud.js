@@ -1,0 +1,67 @@
+// BUNNYFALL: a tool belt over the world, never a modal menu.
+import { t } from '../systems/textManager.js';
+import { isEnhanced } from '../systems/uiSkin.js';
+import { injectEnhancedStyle, injectEnhancedFonts } from './enhanced/enhancedStyle.js';
+import { PIXEL_STACK } from './pixelifyFive.js';
+import { createFarmProgressHud } from './farmProgressHud.js';
+import { farmProgress, farmToolArea } from '../net/farmProgressLaw.js';
+
+export const farmToolName = (tool) => ({
+  hoe: t('farm.mode.hoe', 'Hoe'), plant: t('farm.mode.seeds', 'Seeds'),
+  water: t('farm.mode.water', 'Water'), harvest: t('farm.mode.harvest', 'Harvest'),
+})[tool];
+export const farmCropName = (crop) => ({
+  grain: t('farm.mode.grain', 'Grain'), mushroom: t('farm.mode.mushroom', 'Mushrooms'), herbs: t('farm.mode.herbs', 'Herbs'),
+})[crop];
+export function createFarmingHud({ tool, seed, leave, progressAct }) {
+  injectEnhancedStyle(); injectEnhancedFonts();
+  const root = document.createElement('section'); root.className = 'farming-hud';
+  root.innerHTML = `<style>
+.farming-hud{position:fixed;inset:0;z-index:12;pointer-events:none;font-family:var(--dfo-text-font,${PIXEL_STACK});font-size:16px}
+.farming-hud [hidden]{display:none!important}.farming-hud .wplaque{z-index:auto}
+.farming-hud .farm-info{position:absolute;left:24px;top:65px;transform:none;max-width:min(370px,60vw);box-sizing:border-box}
+.farming-hud h2{font-size:21px;font-weight:normal;margin:0 0 5px}.farming-hud p{margin:4px 0}
+.farming-hud .farm-belt{position:absolute;bottom:24px;top:auto;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:7px;width:max-content;min-width:0;max-width:95vw;box-sizing:border-box;padding:9px}
+.farming-hud button{pointer-events:auto;cursor:pointer;font:inherit;color:inherit;border:2px solid;padding:10px 14px;min-height:42px;border-radius:0}
+.farming-hud .farm-message{font-size:13px}.farming-hud .farm-target{position:absolute;min-width:0;transform:translate(-50%,-110%);text-align:center;max-width:280px;padding:7px 10px;font-size:14px;box-sizing:border-box}
+.farming-hud .farm-progress{position:absolute;left:24px;top:205px;bottom:125px;transform:none;width:min(440px,90vw);min-width:0;max-width:90vw;overflow:auto;pointer-events:auto;box-sizing:border-box;text-align:left;font-size:14px}.farming-hud .farm-progress h3{font-size:17px;margin:12px 0 5px}.farming-hud .farm-project{padding:8px 0;border-top:1px solid currentColor}.farming-hud .farm-progress button{max-width:100%;font-size:13px}.farming-hud .farm-progress button:disabled{opacity:.5;cursor:default}.farming-hud .farm-progress p{line-height:1.35}.farming-hud .farm-rank{font-size:12px}
+.farming-hud.farm-progress-open .farm-help{display:none}@media(max-width:600px){.farming-hud .farm-progress{left:12px;top:235px;bottom:155px}}
+.farming-hud .farm-help{position:absolute;left:auto;right:20px;top:70px;transform:none;font-size:12px;text-align:right;min-width:0;max-width:40vw}.farming-hud .farm-help button{margin-top:6px}
+.farming-hud[data-skin=classic] .wplaque{font-family:${PIXEL_STACK};color:#f3ef2c;background:#28251c;border-color:#92866c #443d30 #302c24 #766d59;text-shadow:1px 1px #5d4d0c}
+.farming-hud[data-skin=classic] button{background:#3b3528;border-color:#a3997c #4b4434 #29251c #867b61}.farming-hud[data-skin=classic] button.on{background:#5b4d2b;border-color:#f3ef2c}
+:root[data-plus-dress=grimoire] .farming-hud[data-skin=enhanced]{font-family:'DFO Alagard',Georgia,serif}
+@media(max-width:600px){.farming-hud .farm-info{left:12px;top:55px;max-width:65vw;min-width:0}.farming-hud h2{font-size:18px}.farming-hud .farm-message{font-size:12px}.farming-hud .farm-help{top:auto;bottom:165px;right:12px;max-width:65vw}.farming-hud .farm-belt{bottom:18px;gap:4px;width:95vw}.farming-hud button{padding:9px 10px;font-size:13px}}
+</style>`;
+  const head = document.createElement('header'); head.className = 'wplaque on farm-info';
+  const title = document.createElement('h2'); title.textContent = t('farm.mode.title', 'Farming Mode');
+  const name = document.createElement('p'), message = document.createElement('p'); message.className = 'farm-message'; message.setAttribute('role', 'status');
+  const rank=document.createElement('p');rank.className='farm-rank';head.append(title, name, message,rank); root.append(head);
+  const belt = document.createElement('footer'), buttons = []; belt.className = 'wplaque on farm-belt';
+  ['hoe', 'plant', 'water', 'harvest'].forEach((key, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'farm-tool'; b.textContent = `${i + 1} · ${farmToolName(key)}`;
+    b.addEventListener('click', () => tool(key)); belt.append(b); buttons.push(b);
+  });
+  const seeds = document.createElement('button'); seeds.type = 'button'; seeds.className = 'farm-tool'; seeds.addEventListener('click', seed); belt.append(seeds); root.append(belt);
+  const progress=createFarmProgressHud({root,belt,act:progressAct,cropName:farmCropName});
+  const help = document.createElement('aside'); help.className = 'wplaque on farm-help';
+  const hint = document.createElement('p'); hint.textContent = t('farm.mode.controls', 'WASD · Walk   Q/E · Orbit   Wheel · Zoom');
+  const exit = document.createElement('button'); exit.type = 'button'; exit.className = 'farm-tool'; exit.textContent = t('farm.mode.leave', 'Esc · Leave farming mode'); exit.addEventListener('click', leave);
+  help.append(hint, exit); root.append(help);
+  const target = document.createElement('div'); target.className = 'wplaque on farm-target'; target.hidden = true; root.append(target);
+  for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']) root.addEventListener(type, (e) => e.stopPropagation());
+  document.body.append(root);
+  return {
+    get progressOpen(){return progress.open;},
+    update(farm, selected, crop, status, blocked, garden, now, mayManage, busy, economy) {
+      root.hidden = blocked; name.textContent = farm.name; message.textContent = status;
+      root.dataset.skin = isEnhanced() ? 'enhanced' : 'classic';
+      buttons.forEach((b, i) => { const on = ['hoe', 'plant', 'water', 'harvest'][i] === selected; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
+      seeds.textContent = t('farm.mode.seedChoice', 'Crop: {crop}', { crop: farmCropName(crop) });
+      const upgrades=farmProgress(garden).upgrades;
+      rank.textContent=t('farm.progress.rank','Tools {tools}/2 · {area} beds/click · Irrigation {irrigation}/2 · Soil {soil}/2',{...upgrades,area:farmToolArea(garden)});
+      progress.update(garden,now,mayManage,busy,economy);
+    },
+    target(text, at) { target.hidden = !at?.front; if (!at?.front) return; target.textContent = text; target.style.left = `${at.x}px`; target.style.top = `${at.y}px`; },
+    dispose() { root.remove(); },
+  };
+}

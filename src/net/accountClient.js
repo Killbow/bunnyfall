@@ -1371,6 +1371,7 @@ export const farmBuy = (io, body) => call(io, '/v1/farms/buy', body);
 export const farmCrop = (io, body) => call(io, '/v1/farms/crop', body);
 export const farmRelease = (io, body) => call(io, '/v1/farms/release', body);
 export const farmChore = (io, body) => call(io, '/v1/farms/chore', body);
+export const farmGardenAct = (io, body) => call(io, '/v1/farms/garden', body);
 /** BUNNYFALL STAFF COMMANDS (server-account/src/staffCommands.js): /vanish's switch (and whether this account is staff),
  *  /greed's gift, and the gifts waiting for this account and their claim. */
 export const staffVanish = (io, on = undefined) => call(io, '/v1/staffcmd/vanish', typeof on === 'boolean' ? { on } : {});

@@ -176,6 +176,7 @@ function injectSkinStyle(doc = document) {
  * Mount the window in the door's host.
  * @param {HTMLElement} host
  * @param {{
+ *   embedded?: boolean,
  *   items: () => any[], payer: () => any, gold: () => number,
  *   reforge: (item: any, line: number) => { ok: boolean, reason?: string|null, line?: any },
  *   salvage: (item: any) => { ok: boolean, reason?: string|null, shards?: number },
@@ -216,9 +217,9 @@ export function mountReforgeWindow(host, deps) {
   let askingAt = null;   // GEM1: which of the asked piece's sockets the Shatter press waits on
   /** The last press's word, and whether it was done (a refusal is read in the refusal's colour). */
   let note = null;
-  const shell = el('div', 'broker-shell reforge-shell');
+  const shell = el('div', 'broker-shell reforge-shell' + (deps.embedded ? ' wk-item-work' : ''));
   shell.id = 'reforge';
-  shell.setAttribute('role', 'dialog');
+  shell.setAttribute('role', deps.embedded ? 'region' : 'dialog');
   shell.setAttribute('aria-label', titleText);
   const win = el('div', 'broker-win');
   shell.append(win);
@@ -232,7 +233,7 @@ export function mountReforgeWindow(host, deps) {
   const close = el('button', 'act broker-close', 'Close');
   close.setAttribute('type', 'button');
   close.onclick = (e) => { e.stopPropagation(); exit(); };
-  head.append(title, purse, close);
+  head.append(title, purse); if (!deps.embedded) head.append(close);
   const tabs = el('nav', 'reforge-tabs');
   tabs.setAttribute('role', 'tablist');
   const tabOf = {};
@@ -739,8 +740,8 @@ export function mountReforgeWindow(host, deps) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (overlayAction(e) === 'back') { e.preventDefault(); e.stopPropagation(); exit(); }
   };
-  globalThis.addEventListener('keydown', onKey, { capture: true });
-  const offOutside = closeOnOutsideTap(shell, '.broker-win', exit);
+  if (!deps.embedded) globalThis.addEventListener('keydown', onKey, { capture: true });
+  const offOutside = deps.embedded ? () => {} : closeOnOutsideTap(shell, '.broker-win', exit);
   return {
     repaint: () => render(),
     unmount() {
