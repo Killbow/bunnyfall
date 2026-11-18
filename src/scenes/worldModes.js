@@ -11369,6 +11369,7 @@ export function createWorldModes(host) {
     const _peopleOn = peopleBodies.frame();
     for (const pn of interiorCtx.people) {
       if (!pn.standBatch) continue;
+      if (tavernService.patronSkinOn(pn)) { pn.standBatch.castOnly = true; continue; }   // BUNNYFALL: a Discord patron with a custom paperdoll stands as it (scenes/tavernPatronSkins.js)
       const look = _peopleOn ? standingLook(pn) : null;
       if (look) peopleBodies.offer(personActor(pn, look, pn._mwFeet ??= [pn.x, pn.y, pn.z], mwv.eye, dt), pn.standBatch);
       else pn.standBatch.castOnly = false;

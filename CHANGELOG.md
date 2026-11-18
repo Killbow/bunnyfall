@@ -7,6 +7,7 @@ the last release (scripts/changelogNotes.mjs).
 
 - Bards' Guild services, paid in Favor Tokens (Favor shop, press G): give an item a name of your own (10 Favor), write a flourish on an item (30 Favor; it is words on the item's card only and changes no stat or enchantment), or rename a home you own (25 Favor). Names are filtered like other player text.
 - Hired traders now sell stacks properly: put up as many potions (or other stackable goods) as you like at a price each, the stall shows how many are on offer, and a buyer chooses how many to buy with the total shown while the rest stays on sale.
+- Discord patrons in the tavern now stand as their custom paperdoll. If a Discord user who is talking in the tavern channel has linked their character and wears an approved custom paperdoll, the customer in the room is drawn as that paperdoll instead of only taking their name.
 - The territory map is reworked. Company territories now lie on the land only, sharing borders with their neighbours instead of overlapping circles over the sea, and your own Company's border glows gold. Rodney's blight drifts and creeps, with a glowing front where a territory holds it. Garrison marches are curved roads with arrows streaming from town to front. Hover a territory or the blight to see whose it is.
 - Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
 - Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.
