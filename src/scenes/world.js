@@ -3384,9 +3384,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // `state.init` has just filled starts the new ring, and every slice
   // after the arrival's first was sized for the stream - 3 ms on a 144 Hz
   // display, the arrival up to twice as late. The boot and the teleport
-  // build through here now, and while one is in flight every slice on the
-  // one breather has the whole 6 ms, whichever build is breathing - the
-  // flat slice PERF7 gave all of them, for the moments nobody is playing.
+  // build through here now. While one is in flight, every slice on the one breather gets at least 6 ms
+  // (48 ms until the boot ends), whichever build is breathing.
   let _awaitedBuilds = 0;   // builds in flight that something waits on - this door's, and only its
   async function awaitedBuild(px, py) {
     _awaitedBuilds++;
@@ -3437,10 +3436,13 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // to the frame clock and the `?perf=cpu` meter as `build`: until now
   // neither saw the stream at all.
   let _streamSince = null;   // PERF-EXT24: when the pump's current run of builds began; null while it is idle
+  // Declared above the breather, which reads it as soon as it is created.
+  let _worldKeysLive = false;
   const breather = createBreather({   // PERF7: one slice clock for the stream; each build resets it
     budget: () => frameFitBudget({ intervalMs: frameInterval(), busyMs: lastBusy(), streamingMs: _streamSince == null ? 0 : performance.now() - _streamSince, awaited: _awaitedBuilds > 0, overworld: !!travelView?.active }),   // OW-BUILD: the Overworld's ground first
     onSlice: (ms) => { lendFrame(ms); meterFor(renderer.gl)?.addCpu('build', ms); },
     frames: framesBegun,   // PERF-EXT24 (the review): a slice a frame ran inside held a wait, and is not lent
+    booting: () => !_worldKeysLive,
   });
   const { buildPixelNow } = createPixelBuild({   // HOST-SPLIT: src/scenes/pixelBuild.js
     MILL_SAIL_PAD, TERRAIN_INDICES, TERRAIN_INDICES_LOD, _building, _dwRubble, _dwRubbleCarry, _groundBefore,
@@ -4203,7 +4205,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // declared below, so the read is deferred (the regionIndex idiom).
     otherOverlayActive: () => modes?.overlayHeld ?? false,
     otherHudCovered: () => modes?.hudCovered ?? false,   // AUDIT ENH-NOTICE3 C2: the previousWindow chain on the mode host's stack, for the toasts
-    keysLive: () => _worldKeysLive,   // MODE-WHEEL (AUDIT): KEY-BOOT's gate, for the wheel this rung opens above it - declared below, read deferred
+    keysLive: () => _worldKeysLive,
     vampireFeed: { showBox: (b) => showQuestBox(b), showWindow: (w) => mountWindow(w) },   // THE VISUAL PASS: the Blood Sight card   // BUNNYFALL VAMPIRE EXPANSION: Steal mode feeds an awakened vampire, in the quest box (declared below, read deferred)
   });
   townTalk.ensureLoaded();
@@ -8880,7 +8882,6 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  initialization" into the crash banner, which stood over the whole session. Until the boot is past its last await
    *  (where the title loses its loading step), a key fills the held ring (its keyup clears it) and acts on nothing; a
    *  window's own keys (townTalk, above the ladder) are its as ever. */
-  let _worldKeysLive = false;
   addEventListener('keydown', (e) => {
     if (peerMenuReader && !isTextEntryTarget(e.target)) peerMenuReader.down(e.code, e.repeat);   // PEERMENU1: hears the key, never eats it (a tap of E still interacts)
     // FIX-E: QUICKLOAD WORKS FROM UNDER THE DEATH SCREEN - its
