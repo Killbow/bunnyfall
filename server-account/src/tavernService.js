@@ -29,7 +29,7 @@ export async function tavernServiceAct(ctx, player, body) {
   if (body.op === 'read') {
     const patrons = Array.isArray(body.patrons) ? body.patrons.slice(0, 24).filter(keyOk) : [];
     const audience = await tavernDiscordNames(db, nowS, patrons);
-    return { ok: true, state: previous, version: row?.version ?? 0, discordNames: audience?.names ?? {} };
+    return { ok: true, state: previous, version: row?.version ?? 0, discordNames: audience?.names ?? {}, discordSkins: audience?.skins ?? {} };
   }
   const version = row?.version ?? 0;
   if (body.version !== version) return { error: 'tavern-version' };

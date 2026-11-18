@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-18
 
+- Discord patrons in the tavern now stand as their custom paperdoll. If a Discord user who is talking in the tavern channel has linked their character and wears an approved custom paperdoll, the customer in the room is drawn as that paperdoll instead of only taking their name.
 - The territory map is reworked. Company territories now lie on the land only, sharing borders with their neighbours instead of overlapping circles over the sea, and your own Company's border glows gold. Rodney's blight drifts and creeps, with a glowing front where a territory holds it. Garrison marches are curved roads with arrows streaming from town to front. Hover a territory or the blight to see whose it is.
 - Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
 - Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.
