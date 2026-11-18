@@ -25,3 +25,7 @@ Standard paperdolls use saved body and face details. Custom paperdolls use the a
 ## Tavern patrons and tips
 
 When players enter a tavern or start a shift, some patrons take the display names of people who spoke in the connected Discord channel in the past hour. A correctly served drink for one of these patrons posts an embed in that channel. Anyone can react with 🪙 to award the serving character 5 house-funded gold, once per Discord account per post, within 24 hours. Tips are paid on the next tavern service action or through **Collect Discord tips** at the innkeeper.
+
+## Close a bug report
+
+Run `/closeissue` inside a Discord forum post after fixing the issue. The command locks and archives the current post. Grant **Manage Threads** to the bot in the bug report forum. The moderator running the command also needs **Manage Threads**.
