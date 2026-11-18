@@ -696,6 +696,11 @@ void main() {
   if (gone) gl_Position = vec4(2.0, 2.0, 2.0, 1.0);   // LPT1: wholly given way - off the clip volume, no fragment
 }`;
 
+/** @param {any} src @returns {[string, string][]} */
+function worldSetPrograms(src) {
+  return [[VS, src.meshFs], [CHAR_SKIN_VS, skinFaceFs(src.charFs)], [bbVertexShader(src.bbVs), src.bbFs], [TERRAIN_VS, src.terrainFs], [DECAL_VS, src.decalFs ?? DECAL_FS]];
+}
+
 /** LA-COST3 (2026-09-27, Mac: "a deep audit on the enhanced lighting system ... performance improvements"): BB_VS
  *  WITH A LANE'S ADDITIONS - `ext.head` (declarations) before main, `ext.main` (statements) at main's end, after every
  *  line that places the vertex - or BB_VS itself with none. A lane computes a per-QUAD term where the quad is
@@ -2294,16 +2299,15 @@ export class Renderer {
   _buildWorldSet(src) {
     // BUNNYFALL AUDIT STUT-1a: every program of the set is handed to the driver BEFORE the first status read, so the compiles
     // overlap (ANGLE's worker threads) - read one at a time right after each link they were 115 ms of serial waiting at boot.
-    startPrograms(this.gl, [[VS, src.meshFs], [bbVertexShader(src.bbVs), src.bbFs], [TERRAIN_VS, src.terrainFs], [DECAL_VS, src.decalFs ?? DECAL_FS]]);
+    startPrograms(this.gl, worldSetPrograms(src));
     return {
       key: src.key,
       mesh: this._buildProgram(VS, src.meshFs),
       char: this._charSkinProgram(src.charFs),   // MWNPC1: the skin in the world's character program
       bb: this._buildProgram(bbVertexShader(src.bbVs), src.bbFs),   // LA-COST3: a lane may add to the billboard VS (its flat's sun, once a quad)
       terrain: this._buildProgram(TERRAIN_VS, src.terrainFs),
-      // FAR-CLIP1: and the terrain's CLIP variant (terrainClipFs, above), built from this set's own terrain shader the
-      // first time it is asked for (_ensureTerrainClip: the streaming host's Deep Waters mount, or the draw of a pixel
-      // the cap patched) and kept with the set - a page that never draws the carved sea never compiles it
+      // The terrain's CLIP variant (terrainClipFs, above) is built on first use and cached with the set.
+      // It is built through _ensureTerrainClip, for the Deep Waters mount or for a pixel the cap patched.
       terrainFs: src.terrainFs,
       terrainClip: null,
       terrainSnow: null,   // SNOWFALL1: and its SNOW variant (snowTerrainFs), built the first time a snow surface is drawn (_ensureTerrainSnow)
@@ -2567,6 +2571,27 @@ export class Renderer {
     this._lastProgram = null;
   }
 
+  /** @param {any} lane @param {ReadonlyArray<readonly [string, string]>} [extraPairs]
+   *  @param {{ clip?: boolean, snow?: boolean, air?: boolean }} [builds] */
+  startWorldPrograms(lane, extraPairs = [], { clip = true, snow = true, air = true } = {}) {
+    if (!parallelCompile(this.gl)) return;
+    const set = !lane ? this._classicSet : this._laneSet?.key === lane.key ? this._laneSet : null;
+    const terrainFs = set ? set.terrainFs : lane.terrainFs;
+    const pairs = set ? [] : worldSetPrograms(lane);
+    if (clip && !set?.terrainClip) pairs.push([TERRAIN_VS, terrainClipFs(terrainFs)]);
+    if (snow && !set?.terrainSnow) pairs.push([SNOW_VS, snowTerrainFs(terrainFs)]);
+    if (lane?.shadows) {
+      if (!this._shadowPass) pairs.push(...ShadowPass.bootPrograms(this._shadowVs()));
+      if (!this.waterSurfaceProgramLane) pairs.push([WATER_SURFACE_VS, waterSurfaceFs(CLOUD_SHADOW_GLSL, SHADOW_GLSL)]);
+      if (air && lane.air && !this._airPass) pairs.push(...AirPass.bootPrograms(this.gl, this._airOpts(lane, lane.maxLights)));
+    }
+    startPrograms(this.gl, [...pairs, ...extraPairs]);
+  }
+  _shadowVs() { return { mesh: VS, bb: BB_VS, terrain: TERRAIN_VS, char: CHAR_VS, charSkin: CHAR_SKIN_VS }; }
+  _airOpts(lane, maxLights) {
+    return { build: (vs, fs) => this._buildProgram(vs, fs), vs: { mesh: VS, bb: BB_VS }, glsl: { shadow: SHADOW_GLSL, tonemap: lane.tonemapGlsl, scatter: lane.scatterGlsl }, maxLights };
+  }
+
   /**
    * EL1: INSTALL A LIGHTING LANE, or the classic set with null. A lane is
    * render/enhancedLighting.js's EL_LANE shape: four fragment shaders, a
@@ -2587,7 +2612,7 @@ export class Renderer {
     this._lane = lane;
     // EL2: the shadow pass rides a lane that asks for it; built once, kept
     if (lane?.shadows) {
-      this._shadows = this._shadowPass ??= new ShadowPass(this.gl, { build: (vs, fs) => this._buildProgram(vs, fs), vs: { mesh: VS, bb: BB_VS, terrain: TERRAIN_VS, char: CHAR_VS, charSkin: CHAR_SKIN_VS } });   // MWNPC16: and a Morrowind body's skin
+      this._shadows = this._shadowPass ??= new ShadowPass(this.gl, { build: (vs, fs) => this._buildProgram(vs, fs), vs: this._shadowVs() });
       this._shadows.cacheOn = this._shadowCacheWanted !== false;   // SC1   // EL7: the rigs cast
       // EL7: the water surface receives the lane's sun shadow - its own program with the receiver block, built once
       if (lane.shadows && !this.waterSurfaceProgramLane) {
@@ -2766,7 +2791,7 @@ export class Renderer {
     const want = this._airWanted && !!this._lane?.air && !!this._shadows;   // the air pass replays the shadow pass's records
     if (want) {
       // VOL1: the glow's shader is built from the lane's own curve and integral and the shadow block, handed over - the air pass is a leaf and imports neither
-      this._air = this._airPass ??= new AirPass(this.gl, { build: (vs, fs) => this._buildProgram(vs, fs), vs: { mesh: VS, bb: BB_VS }, glsl: { shadow: SHADOW_GLSL, tonemap: this._lane.tonemapGlsl, scatter: this._lane.scatterGlsl }, maxLights: this.maxPointLights });
+      this._air = this._airPass ??= new AirPass(this.gl, this._airOpts(this._lane, this.maxPointLights));
       this._air.volOn = this._volumetricsWanted !== false;
       this._air.hazeOn = this._hazeWanted !== false;   // VC7b
     }
@@ -7599,8 +7624,7 @@ void main() { vec4 t = texture(uTex, vUV); if (t.a < 0.5) discard; outColor = ve
 
   /** FAR-CLIP1: the set's terrain CLIP program (terrainClipFs) - built
    *  from the set's own terrain shader the first time it is asked for, and
-   *  kept with the set (PERF-WARM's on-demand kind: a page that never draws
-   *  the carved sea never compiles it). */
+   *  cached with the set. The boot starts it early only with Deep Waters on (render/bootPrograms.js). */
   _ensureTerrainClip(set = this._worldSet) {
     return (set.terrainClip ??= this._buildProgram(TERRAIN_VS, terrainClipFs(set.terrainFs)));
   }

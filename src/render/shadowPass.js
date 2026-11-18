@@ -1060,6 +1060,14 @@ function _fileAll(o, shift) {
 }
 
 export class ShadowPass {
+  /** @param {{ mesh: string, bb: string, terrain: string, char?: string }} vs @returns {[string, string][]} */
+  static bootPrograms(vs) {
+    /** @type {[string, string][]} */
+    const pairs = [[vs.mesh, DEPTH_FS], [vs.terrain, DEPTH_FS], [vs.bb, DEPTH_BB_FS], [vs.mesh, DEPTH_CUT_FS], [vs.mesh, DEPTH_BB_FS], [DEPTH_COPY_VS, DEPTH_COPY_FS]];
+    if (vs.char) pairs.push([vs.char, DEPTH_FS]);
+    return pairs;
+  }
+
   constructor(gl, opts) {
     this.gl = gl;
     const u = (p, n) => gl.getUniformLocation(p, n);

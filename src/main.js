@@ -179,6 +179,7 @@ async function boot() {
     // unhandled would be a console error for a failure the real import
     // at Play reports properly through the same law.
     import('./scenes/world.js').catch(() => {});
+    import('./render/bootPrograms.js').then((m) => m.startBootPrograms(renderer, params)).catch(() => {});
     // MAC-N3: the menu DECIDES these keys, so it must not read a stale
     // set off the URL a previous session published - the Mods pane
     // would show the online lock, and uiSkin the online skin, for a

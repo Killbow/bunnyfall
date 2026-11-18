@@ -777,6 +777,9 @@ void main() {
  *  vendored files load; until one lands its slot shows the shader's own
  *  default ("black", "bump", "white"). */
 export class DynamicSkiesRenderer {
+  /** @returns {[string, string][]} */
+  static bootPrograms() { return [[VS, FS]]; }
+
   constructor(gl) {
     this.gl = gl;
     const prog = buildProgram(gl, VS, FS);

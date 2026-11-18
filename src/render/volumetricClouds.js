@@ -55,8 +55,8 @@
 // `?clouds=off` the kill switch, `?clouds=lo|hi` the quality doors.
 
 import { createRenderTarget, withTarget, frameTarget } from './renderTarget.js';
-import { CloudNoise } from './cloudNoise.js';
-import { buildProgram } from './glProgram.js';   // AUDIT 68 S17-gl-program-dup: the one compile and link
+import { CloudNoise, NOISE_VS, SHAPE_FS, DETAIL_FS, SLICE_FS } from './cloudNoise.js';
+import { buildProgram, startPrograms } from './glProgram.js';
 import { WEATHER_EASE_MINUTES, WEATHER_SKY, WIND_SECONDS_PER_MINUTE, sunSkyDirection, paletteAt } from './enhancedSky.js';   // WEATHER2c: a cell's cover and grey are its weather's row; VC7a: the sun that drives the day's convection
 import { DREAD_GLSL } from '../world/dreadSky.js';   // EVENT1: the live event's grade, the sky's last word
 import { SD_BRASS_GLSL } from '../world/sdBrassSky.js';   // AUDIT SD III (V8): the brass air's grade on the sky as on its haze
@@ -1453,10 +1453,16 @@ export const SHADOW_UNIFORMS = [...FIELD_UNIFORMS, 'uMapSize', 'uOrigin', 'uExte
 export const COMPOSITE_UNIFORMS = ['uMap', 'uYaw', 'uPitch', 'uTanHalfFov', 'uAspect', 'uFlash', 'uBolt', 'uBoltCos', 'uDread', 'uBrass', 'uHazeSky'];   // BANTHA1: the jungle's haze   // EVENT1: the live event's grade   // WEATHER3d: the distant strike
 
 export class VolumetricClouds {
+  /** @returns {[string, string][]} */
+  static bootPrograms() {
+    return [[NOISE_VS, SHAPE_FS], [NOISE_VS, DETAIL_FS], [NOISE_VS, SLICE_FS], [VS, MARCH_FS], [VS, SHADOW_FS], [VS, COMPOSITE_FS]];
+  }
+
   /** `quality` a QUALITY key; `viewport` the caller's rect to restore
    *  after the noise is generated (a draw path at construction). */
   constructor(gl, quality = 'default', viewport = [0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight]) {
     this.gl = gl;
+    startPrograms(gl, VolumetricClouds.bootPrograms());
     this.q = QUALITY[quality] ?? QUALITY.default;
     this.noise = new CloudNoise(gl, viewport);
     this.map = createRenderTarget(gl, this.q.width, this.q.height, { filter: 'LINEAR', wrapS: 'REPEAT', wrapT: 'CLAMP_TO_EDGE' });
@@ -1477,11 +1483,11 @@ export class VolumetricClouds {
     this.marchProgram = buildProgram(gl, VS, MARCH_FS);
     this.shadowProgram = buildProgram(gl, VS, SHADOW_FS);
     this.compositeProgram = buildProgram(gl, VS, COMPOSITE_FS);
-    this.viewProgram = buildProgram(gl, VS, SHADOW_VIEW_FS);
+    this.viewProgram = null;
     this.mu = {}; for (const n of MARCH_UNIFORMS) this.mu[n] = gl.getUniformLocation(this.marchProgram, n);
     this.su = {}; for (const n of SHADOW_UNIFORMS) this.su[n] = gl.getUniformLocation(this.shadowProgram, n);
     this.cu = {}; for (const n of COMPOSITE_UNIFORMS) this.cu[n] = gl.getUniformLocation(this.compositeProgram, n);
-    this.vu = { uMap: gl.getUniformLocation(this.viewProgram, 'uMap') };
+    this.vu = null;
     this.profile = null;      // the eased profile
     this.weather = null;
     this.state = null;        // the dome's skyState
@@ -1729,6 +1735,10 @@ export class VolumetricClouds {
   drawShadowView() {
     if (!this.origin) return;
     const gl = this.gl;
+    if (!this.viewProgram) {
+      this.viewProgram = buildProgram(gl, VS, SHADOW_VIEW_FS);
+      this.vu = { uMap: gl.getUniformLocation(this.viewProgram, 'uMap') };
+    }
     gl.useProgram(this.viewProgram);
     gl.disable(gl.DEPTH_TEST); gl.depthMask(false); gl.disable(gl.CULL_FACE); gl.disable(gl.BLEND);
     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.shadowMap.tex); gl.uniform1i(this.vu.uMap, 0);

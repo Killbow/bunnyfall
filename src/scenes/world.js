@@ -694,7 +694,7 @@ import { isTouchDevice } from '../ui/touchDevice.js';   // JOURNAL1: ...or a tap
 import { composeCard, createCardAnswerGate } from '../net/profileCard.js';   // INSPECT1: my card when asked, and how often one asker is answered
 import { morrowindDataCount, morrowindDataGeneration } from './dataSource.js';   // MWBODY1: the bodies' gate - Morrowind data attached - and its generation
 // Q4-v: THE QUEST BRIDGE - the machine goes live in this host.
-import { startBootReads, bootReads, bootFrameDrawn } from './bootReads.js';
+import { startBootPrograms, startBootReads, bootReads, bootFrameDrawn } from './bootReads.js';
 import { getReputation } from '../guilds/factionRep.js';
 import { changeLegalRep, legalRepOf, CRIMES, setCrimeCommitted, lowerRepForCrime } from '../justice/court.js';   // the region's LegalRep: the status box, the quest actions, the crimes (REP1 retired :498-511's levy)
 import { isEquipped, unequipItem } from '../characters/equip.js';   // HACKED-GOLD: a worn offer holds what can be worn
@@ -990,6 +990,7 @@ export const BOSS_COUNT_FELL_TEXT = 'The fight counts you fallen.';
 // streamingWorld.js). Everything is stored pixel-local; per-frame
 // placement is pixelTranslation(px, py) under the current compensation.
 export async function bootWorld(canvas, renderer, params, status) { handHeroGenderToGrammar(playerEntity);   // L10N3g: StartGameBehaviour.cs:147 - every start, a load included, hands the grammar the live hero's gender
+  startBootPrograms(renderer, params);
   // MENU1-WARM: the seven enhanced menus are lazy chunks, each fetched
   // the first time its door opens - which is mid-play, on the frame the
   // key was pressed. Asked for idly instead, so no door pays for its
