@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { discordIntegrationKey, manageDiscord } from './discordSetup.mjs';
 import { startUpdater } from './updater.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -80,6 +81,9 @@ function bundle(name, toml) {
 // Opt-in, for tests: BUNNYFALL_ACCOUNT_VARS="JUDGE_OFF=off,OTHER=x" overrides account-service vars for this run only
 // (tools/poiV2ServerProbe.mjs boots an isolated stack with the judge ON). Unset in normal running.
 const extraAccountVars = Object.fromEntries((process.env.BUNNYFALL_ACCOUNT_VARS || '').split(',').filter((p) => p.includes('=')).map((p) => [p.slice(0, p.indexOf('=')).trim(), p.slice(p.indexOf('=') + 1).trim()]));
+const discordKey = discordIntegrationKey(DATA);
+extraAccountVars.BUNNYFALL_DISCORD_KEY = discordKey;
+
 function workerFrom(toml, name, varsFile, port) {
   const { workerOptions } = wr.unstable_getMiniflareWorkerOptions(toml);
   const b = bundle(name, toml);
@@ -118,12 +122,14 @@ setInterval(async () => {
 }, 60_000);
 
 // The owner's update button (selfhost/updater.mjs): leaves a request the host's cron acts on.
-const updater = startUpdater({ port: UPDATER_PORT, bind: BIND, accountBase, accountToml, dir: UPDATES });
+const discord = manageDiscord({ dir: DATA, root, accountBase, key: discordKey });
+const updater = startUpdater({ discord, port: UPDATER_PORT, bind: BIND, accountBase, accountToml, dir: UPDATES });
 
 let stopping = false;
 function stop(code = 0) {
   if (stopping) return;
   stopping = true;
+  discord.close();
   try { updater.close(); } catch { /* gone */ }
   mf.dispose().catch(() => {});
   setTimeout(() => process.exit(code), 3000).unref();
