@@ -527,7 +527,7 @@ import { onTravelPace, setPaceGround, setPaceZoneCap, WILD_PACE_CAP } from '../s
 import { showPaceBox, hidePaceBox } from '../ui/travel/travelPaceControls.js';   // PACE-DIALS: the other skins' dials, while a journey runs
 import { markShown, travellerKin } from '../systems/travel/travelViewFilters.js';   // OW-FILTER: a hidden group's sprites hidden with its marks
 import { travelPathMode, travelPathUsesRoads, pickTakesPlace, pickNearPlaceMiddle, fineMoveHeld, TRAVEL_PATH_TEXT } from '../systems/travel/travelPathMode.js';   // OW-PATH: roads or free, and the snap to a town; OW-TOWN-ROUND: only at its middle
-import { groundHit, canvasPoint, classifyPick } from '../player/travelPick.js';   // TV2: the click's ground
+import { canvasPoint, classifyPick } from '../player/travelPick.js';   // TV2: the click's ground
 import { planRoute, routeLegs, roadShare, crossesWater, dryLine, SEA_KINDS } from '../systems/travel/travelRoute.js';   // TV2: the way by the roads; OWS2: and over the water
 import { createSeaHelm, seaHelmStep, seaHelmLook, headingOf as seaHeadingOf, squareOnly as seaSquareOnly } from '../systems/seaHelm.js';   // OWS2: the journey's hand on the helm
 import { createLoadGovernor, unbuiltAround, unbuiltCount, travellerPace } from '../systems/travel/travelGovernor.js';   // TV2: "Cap it to what loads cleanly"
@@ -830,18 +830,8 @@ import { createPoiLive } from './poiLive.js';   // the World Builder's live view
 import { discordTavern } from '../net/discordTavern.js';
 import { call as accountCall } from '../net/accountClient.js';   // POI v2: a live POI's trades and events, settled on the realm record   // POI-2: the approved POIs, standing in the streamed world
 import { createPoiFeed, browserPoiCache } from '../poi/poiFeed.js';   // POI-2: the approved set, read live and kept
-import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
+import { decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
 import { poiMapMarks } from '../ui/poi/poiMapMark.js';   // POI-2: their marks on both world maps
-import { createPoiEdit } from '../poi/poiEdit.js';   // POI-3: the editor's documents and their undo
-import { createPoiEditorHost, createPoiEditorRouter, POI_EDITOR_EVENTS, POI_PICK_REACH } from './poiEditorHost.js';   // POI-3: the editor's eye, cursor and handles; AUDIT POI E2/E14/E16: its input, routed
-// the editor opens once the player stands in the world
-import { openPoiEditorWhenStanding } from './poiEditorDoor.js';
-import { holdHotbarKeys } from '../ui/enhanced/enhancedHotbar.js';   // AUDIT POI E1: the bar's keys stood down under the editor
-import { createPoiEditorPanel } from '../ui/poi/poiEditorPanel.js';   // POI-3: its panel
-// the editor's Test: a draft's DM content played on a throwaway purse
-import { createPoiTest, keepSpot, spotScene } from '../poi/poiDmTest.js';
-import { PoiGizmoPass } from '../render/poiGizmoPass.js';   // POI-3: its lines over the world
-import { poiMe } from '../poi/poiService.js';   // POI-3: the store's word on who may build
 import { createDataPipeline } from './dataPipeline.js';
 import { createWorldModes } from './worldModes.js';
 import { setAmbientTextHost, tickAmbientText } from '../systems/ambientText.js';   // AT2: Ambient Text's one component - this host claims it and feeds it the frame
@@ -25886,180 +25876,20 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
         _teleportToPixel(p.px, p.py, [p.x, player.pos[1] + 1, p.z], { grounded: true }).catch((e) => console.warn('[poi] live view', e?.message ?? e));
       } });
   }
-  if (params.has('editor')) startPoiEditor();   // POI-3: `?editor` (refused online - systems/online/onlineLane.js): a builder's editor over this world
-  /** POI-3: THE EDITOR'S DOOR (bible/06-Systems/POI-Editor-Arc.md POI-3b) - the store asked who this account is, and only a
-   *  builder's editor is made (the store asks the role again at every write: this is the door's courtesy, not its lock). */
-  function startPoiEditor() {
-    const io = () => { const s = storedSession(appStorage()); return s ? { fetch: (u, i) => fetch(u, i), base: serviceBase(appStorage()), secret: s.secret } : null; };
-    const first = io();
-    if (!first) { townTalk.say(accountRefusalText('no-session')); return; }
-    poiMe(first).then((r) => {
-      if (!r.ok) { townTalk.say(accountRefusalText(r.error)); return; }
-      if (!r.data.builder) { townTalk.say(accountRefusalText('poi-not-builder')); return; }
-      openPoiEditorWhenStanding({ entity: () => playerEntity, standing: () => (playerSpawned || !walkMode) && !townTalk.overlayActive, open: () => mountPoiEditor(r.data, io), say: (line) => townTalk.say(line) });
-    }, (e) => console.warn('[poi] the editor\'s door', e?.message ?? e));
-  }
-  /** POI-3: THE EDITOR MADE - its documents, its eye and handles over this host's frame, its panel, its lines. The body
-   *  stands where the builder left it while the editor is open: the motor held (frameMotor), no blow lands on it (the
-   *  damage fold), the eye the world's own `cam` so the streamer and the floating origin follow it as they follow the dev
-   *  fly-cam. Leaving: back to the body (fetched by a teleport if its pixel went while the eye was away), or stood on
-   *  what is under the eye. */
-  function mountPoiEditor(me, io) {
-    const edit = createPoiEdit();
-    const S = TERRAIN_SIZE;
-    /** A scene point as its map pixel and the spot in that pixel's frame (streamingWorld.js pixelTranslation, inverted). */
-    const sceneToPixel = (p) => {
-      const t0 = state.pixelTranslation(0, 0, [0, 0, 0]);
-      const px = Math.floor((p[0] - t0[0]) / S), py = Math.ceil((t0[2] - p[2]) / S);
-      return { px, py, x: p[0] - (t0[0] + px * S), z: p[2] - (t0[2] - py * S) };
+  // `?editor` (refused online in systems/online/onlineLane.js) loads the builder's POI editor code only when asked.
+  if (params.has('editor')) {
+    const editorHost = {
+      townTalk, walkMode, state, cam, climbFeel, canvas, surfaceAt, collider, built, deepWaters, renderer, keys, _mode, latch, player, csaRuntime,
+      tvSeaY, _teleportToPixel, gamePaused, pointerSurfaces, exteriorFoes, playerTicker, poiDmCursor, buildTravelMapWindow, getGpuMesh, cpuModels,
+      getTexture, blocks, arch, palette, pipeline,
+      get poiFeed() { return poiFeed; }, get poiHost() { return poiHost; }, get _lastProj() { return _lastProj; }, get _lastView() { return _lastView; },
+      get groundEpoch() { return groundEpoch; }, get travelView() { return travelView; }, get modes() { return modes; },
+      get spellsByIndex() { return spellsByIndex; }, get _traveling() { return _traveling; },
+      get playerSpawned() { return playerSpawned; }, set playerSpawned(v) { playerSpawned = v; },
+      get poiTest() { return poiTest; }, set poiTest(v) { poiTest = v; },
+      set poiEditor(v) { poiEditor = v; }, set poiEditorLeave(v) { poiEditorLeave = v; },
     };
-    let panel = null;
-    let openedAt = restoresSoFar();   // AUDIT POI E14: the loads made when the editor last opened (save.js restoresSoFar: every load passes its one door)
-    const editor = createPoiEditorHost({
-      edit, feed: poiFeed, host: poiHost,
-      view: () => (_lastProj && _lastView ? { proj: _lastProj, view: _lastView, eye: cam.pos, fovY: fieldOfView() + climbFeel.fovRad(), w: canvas.clientWidth, h: canvas.clientHeight, rect: worldViewportRect(canvas.clientWidth, canvas.clientHeight), canvasRect: canvas.getBoundingClientRect() } : null),
-      translation: (px, py, out) => state.pixelTranslation(px, py, out),
-      sceneToPixel,
-      // the ground under a ray, or a model standing on it, whichever is nearer (a part placed on a roof stands on the roof)
-      groundHit: (o, d) => {
-        const g = groundHit(o, d, surfaceAt);
-        const m = collider.raycastHit(o, d, Math.min(g.dist, POI_PICK_REACH));
-        return m && m.dist < g.dist ? { point: [o[0] + d[0] * m.dist, o[1] + d[1] * m.dist, o[2] + d[2] * m.dist], dist: m.dist } : g;
-      },
-      surfaceAt: (x, z) => surfaceAt(x, z), groundEpoch: () => groundEpoch + built.changes + (deepWaters?.floorChanges ?? 0), snowRise: () => renderer._snowRise,
-      onChange: () => panel?.refresh(),
-      pass: new PoiGizmoPass(renderer.gl),
-      actionOf: (e) => actionOf(e, keys),   // the eye flies by the registry's actions - the builder's own bindings
-      viewport: () => renderer.worldViewportPx,   // AUDIT POI E18: the lines' pixels the world pass's own (the strip above a docked large HUD)
-      // AUDIT POI E14: THE WORLD GONE FROM UNDER IT - a mode changed (a building or a dungeon entered by any door: the
-      // editor's listener ate every key in it, the motor held on the way back out) or a game loaded: the editor left,
-      // its eye and body where the change put them
-      gone: () => _mode() !== 'exterior' || restoresSoFar() !== openedAt,
-      onGone: () => exit('away'),
-    });
-    registerPlayerDamageMod('poi-editor', () => 0);   // the editor's builder takes no blow for the whole `?editor` session (offline only): panel open or closed, edits are never lost to a fight
-    let from = null, cursorWas = false, hotbarKeysBack = null;
-    // the editor's input (scenes/poiEditorHost.js createPoiEditorRouter): the window's events in their capture phase, and a
-    // key typed at the panel's own controls (AUDIT POI E2) on the panel's root
-    const route = createPoiEditorRouter({ editor, canvas, cam, acts: () => panel.acts, owns: (target) => panel.owns(target), overlayUp: () => townTalk.overlayActive, textEntry: isTextEntryTarget, win: window });
-    const onEvent = route.onEvent;
-    /** AUDIT POI E3: the world's held keys and its key edges let go - a key held as the editor opened stayed held after it
-     *  closed (the editor ate its keyup, and only the world's own keyup empties the set): the body walked on its own. */
-    const worldKeysUp = () => { keys.clear(); for (const ring of Object.values(latch.edge)) ring.clear(); };
-    function enter() {
-      if (editor.active()) return;
-      // AUDIT POI E12: on foot alone - a bench sets the eye on itself every frame after the editor's, a saddle's rig draws
-      // over the view, and a helm is a ship's
-      if (_mode() !== 'exterior' || travelView?.active || !isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { townTalk.say(t('poi.editor.outdoorsOnly', 'The POI editor opens outdoors, on foot.')); return; }
-      from = { yaw: cam.yaw, pitch: cam.pitch };
-      openedAt = restoresSoFar();
-      cursorWas = cursorActive(); setCursorActive(true); releaseLook();
-      hotbarKeysBack = holdHotbarKeys();   // AUDIT POI E1: the bar's digits are not the body's while the editor is open
-      worldKeysUp();
-      for (const ty of POI_EDITOR_EVENTS) window.addEventListener(ty, onEvent, { capture: true, passive: false });
-      editor.enter(); panel.setOn(true);
-    }
-    /** Leaving: 'back' to the body, 'here' onto the ground under the eye, 'away' as the world changed under it (a mode, a
-     *  load - the eye and the body are where that put them). */
-    function exit(how) {
-      // leaving the editor ends a test first
-      if (poiTest?.active()) test(null);
-      if (!editor.active()) return false;
-      let landing = null;
-      if ((how === 'here' || how === 'test') && walkMode) {
-        // stood on what is under the eye - the ground, a roof, a POI's own floor
-        const below = surfaceAt(cam.pos[0], cam.pos[2]);
-        // AUDIT POI E13: over ground not yet built, refused - the landing reached 15 m, found no floor and stood the body in
-        // the air at the eye (the editor's guard against blows already down: the fall hurt)
-        if (!Number.isFinite(below)) { panel.say(t('poi.editor.hereNoGround', 'The ground here has not loaded yet. Fly on, or exit to where you were standing.'), 'bad'); return false; }
-        landing = floorLanding(collider, [cam.pos[0], cam.pos[1], cam.pos[2]], Math.max(10, cam.pos[1] - below + 5), 0);
-        // ...and the teleport's own check (UNSTUCK-OUT): a floor inside a rock is no place to stand - the nearest open ground
-        if (heldInSolid(collider, landing)) landing = openGroundNear(collider, landing[0], landing[2], { dry: (floor) => floor >= tvSeaY() }) ?? landing;
-      }
-      for (const ty of POI_EDITOR_EVENTS) window.removeEventListener(ty, onEvent, { capture: true });
-      // during a test, the panel stays open so its bar and the Test panel remain visible
-      editor.exit(); if (how !== 'test') panel.setOn(false);
-      hotbarKeysBack?.(); hotbarKeysBack = null;
-      worldKeysUp();   // AUDIT POI E3: the keys held under the editor are not the world's on the way out
-      if (landing) {
-        player.spawn(landing[0], landing[1], landing[2]); playerSpawned = true;
-      } else if (from && how !== 'away') {
-        cam.yaw = from.yaw; cam.pitch = from.pitch;
-        const at = sceneToPixel(player.pos);
-        // the body's pixel went while the eye was away: fetched back by the one door that rebuilds a place
-        if (walkMode && !built.has(`${at.px},${at.py}`)) _teleportToPixel(at.px, at.py, [at.x, player.pos[1] + 1, at.z], { grounded: true })   /* ohTeleportToWorld's way: the pixel's own spot, the frame's height, landed on what is under it */.catch((e2) => console.warn('[poi] back to the body', e2?.message ?? e2));
-      }
-      if (walkMode && how !== 'away') cam.pos = player.eyeAt();
-      // the cursor stays for the Test panel; the game's own key frees the look
-      if (how === 'test') return true;
-      setCursorActive(cursorWas);
-      if (!cursorWas && !gamePaused() && !pointerSurfaces.size && !(modes?.modalWindowUp?.() ?? false) && !overlayOpen()) requestLook(canvas);
-      return true;
-    }
-    /** The editor's Test (poi/poiDmTest.js): `id` plays the open draft from the ground under the eye; `null` stops
-     *  it, puts the character back (the session's unseal), sets the body down where it stood (outdoors alone;
-     *  `exit('back')` fetches it if its pixel unloaded), puts the eye back, and reopens the editor; inside, mounted,
-     *  or sailing, the body stays where it is. A door ends the test as it is taken, and a load or travel ends it
-     *  where the world puts the body. */
-    let testBack = null;
-    const tr = (px, py, out) => state.pixelTranslation(px, py, out);
-    function test(id) {
-      if (id) {
-        if (!editor.active() || poiTest.active() || !poiTest.ready() || !edit.docOf(id)) return false;
-        if (!isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { panel.say(t('poi.test.onFoot', 'A test starts on foot, not mounted or sailing.'), 'bad'); return false; }
-        const back = { body: keepSpot(player.pos, sceneToPixel, tr), eye: keepSpot(cam.pos, sceneToPixel, tr), yaw: cam.yaw, pitch: cam.pitch, from, cursorWas, restores: restoresSoFar() };
-        if (!exit('test')) return false;
-        testBack = back;
-        return poiTest.start(id, edit.docOf(id));
-      }
-      if (!poiTest.active()) return false;
-      poiTest.stop();
-      const back = testBack;
-      testBack = null;
-      // inside, mounted, or sailing (if the body mounts a horse in the test): it stays where it is, and the editor
-      // stays closed
-      if (_mode() !== 'exterior' || !isOnFoot(player.transportMode) || !!csaRuntime?.isSailing?.()) { panel.setOn(false); setCursorActive(back.cursorWas); return true; }
-      const body = spotScene(back.body, tr);
-      player.spawn(body[0], body[1], body[2]); playerSpawned = true;
-      cam.yaw = back.yaw; cam.pitch = back.pitch;
-      enter();
-      // the editor would not open here (on a horse, a ship): it stays closed
-      if (!editor.active()) { panel.setOn(false); return true; }
-      from = back.from; cursorWas = back.cursorWas;
-      cam.pos = spotScene(back.eye, tr);
-      return true;
-    }
-    poiTest = createPoiTest({
-      pack: () => playerEntity, say: (line) => townTalk.say(line), feet: () => (walkMode && playerSpawned ? player.feetAt() : null), pool: exteriorFoes,
-      save: { snapshotPlayer, restorePlayer }, minutes: () => Math.floor(playerTicker.ownMinutes), spells: () => spellsByIndex, deathHook: setAvoidDeathHook, onSpared: () => test(null), cursor: poiDmCursor,
-      gone: () => (restoresSoFar() !== testBack?.restores ? 'load' : _mode() !== 'exterior' || _traveling || !!travelView?.active ? 'away' : null),
-      onEnd: () => { const back = testBack; testBack = null; panel.setOn(false); setCursorActive(back?.cursorWas ?? false); panel.refresh(); }, onChange: () => panel?.refresh(),
-    });
-    function jump() {
-      // the map, armed: the body taken to the square picked (the one door that rebuilds a place far off), the eye above it
-      const win = buildTravelMapWindow({
-        onTeleport: (pick) => {
-          const p = pick?.pixel;
-          if (!p) return;
-          _teleportToPixel(p.x, p.y, null, { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 40, player.pos[2]]; cam.pitch = -0.6; }, (e2) => console.warn('[poi] the jump', e2?.message ?? e2));
-        },
-      });
-      win?.activateTeleportationTravel();
-      if (win) townTalk.showOverlay(win);
-    }
-    /** POI-6: the eye to a POI's place (the approver's look) - the body taken there by the same door as the map's jump,
-     *  the eye south of the place and above it, looking north and down at it. */
-    function goTo(place) {
-      if (!place) return;
-      _teleportToPixel(place.px, place.py, [place.x, player.pos[1] + 1, place.z], { grounded: true }).then(() => { cam.pos = [player.pos[0], player.pos[1] + 25, player.pos[2] - 35]; cam.yaw = 0; cam.pitch = -0.6; }, (e2) => console.warn('[poi] going there', e2?.message ?? e2));
-    }
-    panel = createPoiEditorPanel({ edit, editor, feed: poiFeed, io, me, dfModels: { getGpuMesh, cpuModels, getTexture, blocks, arch, palette, textureFiles: pipeline.textureFiles }, onExit: exit, onEnter: enter, onJump: jump, decodeImage: decodePoiImage, goTo, test: poiTest, onTest: test });
-    for (const ty of ['keydown', 'keyup']) panel.root.addEventListener(ty, route.onPanelKey);   // AUDIT POI E2: a key at the panel's controls
-    editor.wantsOpen = (id) => { panel.open(id).catch((e2) => console.warn('[poi] opening it', e2?.message ?? e2)); };   // AUDIT POI E15: a live POI clicked in the world is opened for editing (its own open draft, else its live revision), as the outliner opens it
-    document.body.append(panel.root);
-    poiEditor = editor;
-    poiEditorLeave = exit;
-    enter();
+    import('../poi/poiEditorMount.js').then(({ startPoiEditor }) => startPoiEditor(editorHost), (e) => console.warn('[poi] the editor did not load', e?.message ?? e));
   }
   // MERCHANT-YARDS: THE TOWNS' STABLES AND WAGON YARDS (scenes/merchantYardsHost.js) - each where its pixel's build
   // placed it (`p.merchantYards`, the location frame), carried by the live floating-origin translation; its horses Horse
