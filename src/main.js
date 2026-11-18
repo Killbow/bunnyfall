@@ -220,6 +220,8 @@ async function boot() {
   }
   if (choice !== 'begin') {
     await ensureData();
+    // The boot plate goes up after the data check, since the folder picker would sit under it.
+    const bootPlate = await import('./ui/loadingScreen.js').then((m) => m.raiseBootPlate());
     // AUDIT 19 F12's law, and it matters more here: SET on load,
     // DELETE on anything else. A URL that already carries ?load would
     // otherwise make New Game restore the save - the one action whose
@@ -293,7 +295,7 @@ async function boot() {
     // saw a Play Online session, so the skin stayed the player's
     // stored choice and a Classic player had no chat.
     publishBootParams(params);
-    return bootWorld(canvas, renderer, params, status);
+    return bootWorld(canvas, renderer, params, status).finally(() => bootPlate.end());
   }
   // FD1: BEGIN - the classic start sequence, data first.
   await ensureData();

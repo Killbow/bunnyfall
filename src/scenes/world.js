@@ -95,6 +95,7 @@ import { goldStack } from '../items/inventory.js';   // LW6b: ...and their purse
  import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
 import { GUARD_TEXTURE, PERSON_TEXTURES } from '../characters/mobilePerson.js';
 import { warmDungeonModulesWhenIdle } from './dungeonWarm.js';
+import { streetHeld } from './streetHold.js';
 import { createTownTalk, rayPersonDistance } from '../talk/townTalk.js';   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
 import { createPlayerMagic, liveCollider } from '../magic/hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { setDefaultEnchantCtx } from '../magic/enchantments.js';   // E2: the host's enchantCtx mount
@@ -998,13 +999,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // the door's to show), and boots nothing if the player never opens one.
   void import('../ui/enhancedChunk.js').then((m) => m.warmEnhancedChunks()).catch(() => {});
   const _canvasSize = createCanvasFrameSize(canvas);
-  // LOAD1 (2026-10-05, ui/loadingScreen.js): THE BOOT'S FACE. From the menu's choice to the first frame the player saw
-  // a bare canvas, the boot's steps named only on the window's title. Every step `status` names is the loading screen's
-  // line too, from here - the realm's join, the data, the first pixel's people, the save - until the boot hands the
-  // first frame its turn (`status(null)`, below). Up at once: no boot is shorter than the screen's delay.
-  const bootLoading = beginLoading({ delay: 0, line: 'Opening the world', maxMs: BOOT_HOLD_MAX_MS, why: 'the boot' });
+  // The boot hold shows each `status` step and stays up until the first world frame draws (`frame`, below), under
+  // either skin and with Off. Its delay is 0 because every boot outlasts the usual appear delay.
+  const bootLoading = beginLoading({ delay: 0, boot: true, line: 'Opening the world', maxMs: BOOT_HOLD_MAX_MS, why: 'the boot' });
   const titleStatus = status;
-  status = (msg) => { if (msg == null) bootLoading.end(); else bootLoading.line(bootLine(msg)); titleStatus(msg); };
+  status = (msg) => { if (msg != null) bootLoading.line(bootLine(msg)); titleStatus(msg); };
   // REALM P1.3 (bible/06-Systems/Realm-Arc.md section 2): AN ONLINE CHARACTER IS THE REALM'S. The Online door boots one
   // with ?realm=<id>: joined under a new lease and its save read from the service before anything below reads a save -
   // never a local slot. A join that fails says why at the door; an online boot with no realm character in it (a stale
@@ -15830,6 +15829,8 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // AUDIT DEEP X-1: and the travel view is CUT - its readout stood over the film, its listeners on the canvas, until
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
+    // The boot plate leaves on the first frame that draws. A film or a door build draws nothing.
+    if (!streetHeld()) bootLoading.end();
     const dt = Math.min(0.1, (now - last) / 1000);
     if (worldAddons.preModal()) { last = now; requestAnimationFrame(frame); return; }
     farmingMode?.frame();

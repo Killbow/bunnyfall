@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-22
 
+- Fixed: After you start or load a game from the menu, the loading screen stays up until the world appears, even with Loading screens Off or the Classic skin.
 - Fixed: Buttons inside the chat drawer's Party and Friends lists now work when clicked.
 
 ## 2026-11-21
