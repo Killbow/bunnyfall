@@ -35,6 +35,7 @@
 import { GROUP_TEMPLATE_INDICES } from './itemTemplatesData.js';
 import { validAffix, RARITY_ORDER, SOCKET_VALUES, REFORGES_MAX } from '../loot/lootRarity.js';   // REFORGE-REPLACE: the count's bound
 import { validSigil } from '../sigil/sigil.js';   // SIGIL1
+import { validBardBuffField, BARD_ITEM_NAME_MAX } from '../../net/bardServiceLaw.js';   // BARDS' GUILD: a piece's custom name and cosmetic flourish
 import { validAppearanceField } from '../../net/appearanceLaw.js';   // APPEARANCES: a worn piece's look
 
 /** The longest string a field carries; the wire's own bound (loot.js LOOT_STR_MAX reads it). */
@@ -133,6 +134,9 @@ export const ITEM_FIELDS = Object.freeze({
   sockets: list((v) => SOCKET_VALUES.includes(v)),   // GEM1 (bible/06-Systems/Gem-Sockets.md section 6): a piece's sockets in order, each 'empty' or the gem set in it, or absent - LOOT20's `socket` is still read (lootRarity.js socketsOf; validSocket: never both, never past its socketCap)
   // SIGIL1: an online win's sigil (systems/sigil/sigil.js) - its power, the fight that won it, what it has drunk
   sigil: rec(validSigil),
+  // BARDS' GUILD (net/bardServiceLaw.js, paid in Favor): the name a bard wrote for a piece, and a cosmetic flourish - words on its card, no stat
+  bardName: { kind: 'string', max: BARD_ITEM_NAME_MAX },
+  bardBuff: rec(validBardBuffField),
   // LOCK1: the player's lock (systems/item/itemLock.js) - true, or absent
   locked: bool(),
   // LOOT18 (bible/06-Systems/Loot-II-Arc.md section 10): the player's junk mark (systems/item/itemJunk.js) - true, or absent

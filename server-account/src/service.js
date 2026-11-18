@@ -399,6 +399,8 @@ export const ROUTES = new Set([
   '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
   '/v1/tavern/service',
+  '/v1/tavern/favor',   // the Favor shop's purchase (tavernFavor.js): was missing here, so the service answered not-found
+  '/v1/bards/service',   // BARDS' GUILD services paid in Favor: rename an item, write a flourish, rename a home (bardServices.js)
   '/v1/account/insignia', '/v1/account/aura',
   '/v1/broker/settle',   // AUDIT FB1024 (BROKER-RID): a Broker sale whose answer was lost, asked after by its request id
   '/v1/account/icon',   // WITCH1: a profile icon worn, or none

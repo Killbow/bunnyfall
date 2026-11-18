@@ -47,14 +47,18 @@ export function createVendorHost(host) {
     arrivals.soon();
     return false;
   };
-  /** A trader's piece BOUGHT at its stall: off the purse at its own price, its delivery collected into the pack at once. */
-  const vendorBuy = async (vendor, row) => {
+  /** A trader's piece BOUGHT at its stall: off the purse at its own price, its delivery collected into the pack at once.
+   *  TRADER STACKS: a stack (`row.units` more than one) is bought by the unit - `units` of it, at `row.price` each. */
+  const vendorBuy = async (vendor, row, units = 1) => {
     const hub = marketHubs[row.region];
-    const r = await marketBook.buy({ region: row.region, listing: row.id, units: 1, max: row.price, hubs: hub ? { [row.region]: hub } : {}, currency: 'gold', vendor }, marketMint);
+    const n = Math.max(1, Math.min(Number(row.units) > 1 ? Number(row.units) : 1, Math.trunc(Number(units)) || 1));
+    const total = row.price * n;
+    const what = n > 1 ? `${n} × ${vendorNameOf(row.item)}` : vendorNameOf(row.item);
+    const r = await marketBook.buy({ region: row.region, listing: row.id, units: n, max: total, hubs: hub ? { [row.region]: hub } : {}, currency: 'gold', vendor }, marketMint);
     if (r?.ok && r.data?.delivery?.id && !(await collectedAtPress(r.data.delivery.id))) {
-      return { ok: true, text: t('vendor.buy.onWay', 'Bought {name} for {price}. It is on its way to your pack and will reach it on its own.', { name: vendorNameOf(row.item), price: vendorGoldText(row.price) }) };
+      return { ok: true, text: t('vendor.buy.onWay', 'Bought {name} for {price}. It is on its way to your pack and will reach it on its own.', { name: what, price: vendorGoldText(total) }) };
     }
-    return vendorSaid(r, `Bought ${vendorNameOf(row.item)} for ${vendorGoldText(row.price)}.`);
+    return vendorSaid(r, t('vendor.buy.done', 'Bought {name} for {price}.', { name: what, price: vendorGoldText(total) }));
   };
   /** A piece TAKEN BACK off my trader: the listing cancelled, the piece collected back into the pack at once. */
   const vendorTake = async (row) => {
@@ -74,12 +78,15 @@ export function createVendorHost(host) {
     return vendorSaid(r, t('vendor.collect.done', 'Your takings are in your account in {region}.', { region: REGION_NAMES[region] ?? t('vendor.collect.thisRegion', 'this region') }));
   };
   /** A piece from my pack PUT UP at my trader, for gold, for the trader's thirty days. */
-  const vendorPut = async (vendor, item, price) => {
-    const g = marketGoods.good(item);
+  const vendorPut = async (vendor, item, price, count = Infinity) => {
+    const g = marketGoods.good(item, count);   // TRADER STACKS: `count` units of a stack, each at `price`
     if (!g?.offered || !(g.pick >= 0)) return { ok: false, text: accountRefusalText('market-good-gone') };
     const region = vendorRegionHere() ?? 0;
     const r = await marketBook.list({ region, kind: 'item', item: g.offered, pick: g.pick, price, hubs: {}, currency: 'gold', vendor }, null, g);
-    return vendorSaid(r, `${vendorNameOf(item)} is up for sale at ${vendorGoldText(price)}.`);
+    const units = Number(g.offered?.stackCount) > 1 ? Number(g.offered.stackCount) : 1;
+    return vendorSaid(r, units > 1
+      ? t('vendor.put.stackDone', '{n} × {name} is up for sale at {price} each.', { n: units, name: vendorNameOf(item), price: vendorGoldText(price) })
+      : t('vendor.put.done', '{name} is up for sale at {price}.', { name: vendorNameOf(item), price: vendorGoldText(price) }));
   };
   /** A row's waypoint SET on its trader's house. */
   const vendorWaypointOn = (row) => {
@@ -124,8 +131,8 @@ export function createVendorHost(host) {
         },
         nameOf: vendorNameOf, stats: vendorItemStats, purse: () => marketBook.purse(vendorRegionHere() ?? 0),
         picture: (it, wake, box) => itemPicture(it, { onReady: wake, box }),   // MENU-ORDER; PACK-PICK: at the picker's box
-        buy: (row) => vendorBuy(vendor, row), take: (row) => vendorTake(row),
-        goods: () => marketGoods.goods(), put: (item, price) => vendorPut(vendor, item, price),
+        buy: (row, units) => vendorBuy(vendor, row, units), take: (row) => vendorTake(row),
+        goods: () => marketGoods.goods(), put: (item, price, count) => vendorPut(vendor, item, price, count),
         settle: () => arrivals.sweep(),   // VENDOR-LOST: a kept buy's piece collected as the stall opens; RPT1026-MARKET ARRIVE: the road read first, so every piece arrived for this character is collected
       },
     });

@@ -30193,6 +30193,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // REALM P2.2b: a realm character's home and decor acts move its record's gold on the service, in the act's own batch
     realmAct: realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null,
     favorBuy: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/tavern/favor', { ...body, ...at }) }) : null,
+    // BARDS' GUILD services paid in Favor (scenes/bardServicesShop.js): the service charges the Favor and writes the result in one batch
+    bardAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, call: (at) => accountCall(realmIoNow(), '/v1/bards/service', { ...body, ...at }) }) : null,
+    bardHomes: homesApi ? async () => { const r = await homesApi.mine(); return (r?.ok ? r.data?.homes ?? [] : []).filter((h) => !h.deed).map((h) => ({ mapId: h.mapId, buildingKey: h.buildingKey, title: h.title ?? '', town: _townOfMapId.get(h.mapId >>> 0)?.name ?? '' })); } : null,
     tavernAct: realmSession ? (body, apply) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), needsAnswer: true, apply, read: body.op === 'read', call: (at) => accountCall(realmIoNow(), '/v1/tavern/service', { ...body, ...at }) }) : null,
     partyNames: () => (social?.others?.() ?? []).map((m) => m.name).filter((n) => typeof n === 'string' && n.length > 0),
     npcSession,   // TK-iv: the questor door on a static-NPC click

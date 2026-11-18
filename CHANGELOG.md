@@ -3,6 +3,12 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-18
+
+- Bards' Guild services, paid in Favor Tokens (Favor shop, press G): give an item a name of your own (10 Favor), write a flourish on an item (30 Favor; it is words on the item's card only and changes no stat or enchantment), or rename a home you own (25 Favor). Names are filtered like other player text.
+- Hired traders now sell stacks properly: put up as many potions (or other stackable goods) as you like at a price each, the stall shows how many are on offer, and a buyer chooses how many to buy with the total shown while the rest stays on sale.
+- Fixed the Favor shop's purchases (Random Legendary, Bar Master, Legendary Bartender), which the server was turning away.
+
 ## 2026-11-17
 
 - Legendary Bartender now also unlocks the Heart's Fire aura (formerly Beaconlight), including for players who already own the title.
