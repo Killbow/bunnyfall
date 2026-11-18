@@ -14080,6 +14080,8 @@ export function createWorldModes(host) {
     /** PARTY-PING: the plaque's list and its words, so a coffin, a shelf and a door are named as the plaque names them. */
     pingLook() { return mode === 'dungeon' ? { targets: dungeonCtx?.dungeonActivationTargets?.() ?? [], name: (k) => dungeonCtx?.hoverName?.(k)?.title ?? '' } : mode === 'interior' ? { targets: interiorActivationTargets(), name: (k) => interiorHoverName(k)?.title ?? '' } : mode === 'exterior' ? { targets: exteriorActivationTargets().targets, name: (k) => exteriorHoverName(k)?.title ?? '' } : null; },
     buildingBoxes() { return buildingTargets?.() ?? []; },
+    /** BUILDING-NAMES: a static building's directory record (the Overworld's name marks, scenes/buildingNameMarks.js). */
+    buildingIdentity(b) { return buildingDataForDoor?.({ dfBlock: b.dfBlock, recordIndex: b.recordIndex, pixelKey: b.pixelKey, door: { matrix: b.matrix }, pixelLocal: true }) ?? null; },
     /** OH-E: the location being laid out, or null (see `layingOutLoc`). */
     get layingOutLocation() { return layingOutLoc; },
     /** PROF2 (bible/06-Systems/Professions-Arc.md 23): THE FORGE THE PLAYER STANDS AT - a Weaponsmith's or an Armorer's
