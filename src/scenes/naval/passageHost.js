@@ -36,6 +36,7 @@ import { ListPickerWindow } from '../../ui/listPicker.js';
 import { YesNoBoxWindow } from '../../ui/yesNoBox.js';
 import { addItem } from '../../systems/inventory.js';
 import { hullBuild } from '../../systems/naval/navalShips.js';   // AUDIT PASSAGE A2: her hull's reach from her root
+import { createPassageCastOff } from './passageCastOff.js';
 import { playerEntity, surfacePlayer } from '../../characters/playerEntity.js';
 import { totalGoldAmount, deductGold } from '../../systems/court.js';   // the purse's own law: coins, then letters of credit
 import {
@@ -67,6 +68,7 @@ export function createPassageHost(deps) {
   const aboard = (b) => csa()?.state?.CurrentBoat === b || !!deps.standsOn?.(b) || deps.naval?.()?.boatInPlay?.() === b;
   const journeyLive = () => !!deps.travel?.()?.isTravelActive;
   const stopJourney = () => deps.travel?.()?.clearTravelDestination?.();
+  const castOff = createPassageCastOff({ harbours: () => deps.naval?.()?.harbourList?.() ?? [], isWater: (x, z, h) => !!deps.isWater?.(x, z, h) });
 
   /** Her master's ports. Answers whether the list went up. */
   function offer(ship) {
@@ -96,12 +98,14 @@ export function createPassageHost(deps) {
     if (!boat) { say(PASSAGE_TEXT.gone); return false; }
     let helm = false, sails = false;
     try {
+      castOff.begin(boat);
       r.StartSailing(boat);
       helm = r.isSailing() && r.state?.CurrentBoat === boat;
       sails = helm && deps.route(summary, { voyage: true, noWay: () => say(PASSAGE_TEXT.noWay) });   // the route says why it will not go
     } catch (err) { console.warn('[passage] her voyage would not begin', err); stopJourney(); }   // AUDIT PASSAGE A7: no journey left aimed at a boat taken back
     if (!sails) {   // refused: everything back as it was - her boat gone, the player where they stood (and riding as they rode), she at her berth
       try { if (r.isSailing()) r.StopSailing(); } catch (err) { console.warn('[passage] her helm would not be left', err); }
+      castOff.forget(boat);
       deps.player.spawn(stood[0], stood[1], stood[2]);
       if (ride != null) deps.remount?.(ride);
       remove(boat);
@@ -134,6 +138,7 @@ export function createPassageHost(deps) {
   function end(boat) {
     const name = boat.charter?.ship ?? null;
     if (!remove(boat)) return false;
+    castOff.forget(boat);
     resetClock(null, true);
     say(PASSAGE_TEXT.ended(name));
     return true;
@@ -188,5 +193,5 @@ export function createPassageHost(deps) {
     if (deps.route(summary, { voyage: true, noWay: () => {} })) { fails = 0; said = null; return; }
     if (++fails === PASSAGE_RESUMES) { said = 'stuck'; say(PASSAGE_TEXT.stuck(rec.to.name)); }   // said once a run of them
   }
-  return { offer, book, frame, end, charterBoat };
+  return { offer, book, frame, end, charterBoat, castOff: castOff.step };
 }
