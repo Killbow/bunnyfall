@@ -12,6 +12,7 @@ import { itemIsIdentified } from '../tradeModes.js';
 import { itemStatRows } from './itemInfo.js';
 import { lootRarityOn, rarityLines } from '../loot/lootRarity.js';
 import { magicPowersLines } from './itemPowers.js';
+import { bardBuffLine } from '../../net/bardServiceLaw.js';   // BARDS' GUILD: a piece's cosmetic flourish
 import { isStolen, stolenLine } from '../stolenGoods.js';   // RPT1026-LEDGERLAW: a stolen piece's look says so
 
 /**
@@ -30,5 +31,7 @@ export function itemLookRows(it) {
       for (const t of magicPowersLines(it, { identified: itemIsIdentified(it) })) if (t && !magic.includes(t)) magic.push(t);
     }
   } catch { /* a piece whose powers cannot be read says none */ }
+  const flourish = bardBuffLine(it);
+  if (flourish && !magic.includes(flourish)) magic.push(flourish);
   return { rows, magic, stolen: isStolen(it) ? stolenLine() : null };
 }

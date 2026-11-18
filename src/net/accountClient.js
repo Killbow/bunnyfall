@@ -503,6 +503,16 @@ const REFUSAL_WORDS = {
   ...readEach(ROYAL_WHY),   // CROWN1 part two: the Royal Tourney's pass and bouts
   ...readEach(FEALTY_WHY),   // CROWN2: fealty and Pacts
   ...readEach(VENDOR_REFUSAL_WORDS),   // HOME-VENDOR
+  // BARDS' GUILD services (net/bardServiceLaw.js; server-account/src/bardServices.js)
+  'bard-bad': () => t('account.refusal.bardBad', 'The Guild could not make sense of that request.'),
+  'bard-text': () => t('account.refusal.bardText', 'That text is empty or too long.'),
+  'bard-text-filtered': () => t('account.refusal.bardTextFiltered', 'The Guild will not write those words.'),
+  'bard-membership': () => t('account.refusal.bardMembership', 'Only a member of the Bards’ Guild may use its services.'),
+  'bard-favor-short': () => t('account.refusal.bardFavorShort', 'You do not have enough Favor Tokens.'),
+  'bard-item-gone': () => t('account.refusal.bardItemGone', 'That item is no longer in your pack.'),
+  'bard-item-refused': () => t('account.refusal.bardItemRefused', 'The Guild cannot write on that item.'),
+  'bard-home-gone': () => t('account.refusal.bardHomeGone', 'You do not own that home.'),
+  'bard-rate': () => t('account.refusal.bardRate', 'The Guild’s scribes are busy. Try again in a while.'),
   // NOTICE1: the Notice Board (server-account/src/board.js)
   'board-need-account': () => t('account.refusal.boardNeedAccount', 'Only registered accounts can pin notes. Add a username to pin one.'),
   'board-closed': () => t('account.refusal.boardClosed', 'The notice board is not open yet.'),

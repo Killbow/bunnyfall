@@ -8,6 +8,7 @@ import { createTavernServiceHud } from '../ui/tavernServiceHud.js';
 import { createTavernMixWindow, createTavernRecipeWindow } from '../ui/tavernServiceWindow.js';
 import { createTavernChoreWindow } from '../ui/tavernChoreWindow.js';
 import { createTavernChores } from './tavernChores.js';
+import { createTavernPatronSkins } from './tavernPatronSkins.js';
 import { t } from '../systems/textManager.js';
 import { addGoldPieces } from '../systems/inventory.js';
 import { changeReputation } from '../systems/faction/factionRep.js';
@@ -19,15 +20,19 @@ import { bunnyMembershipOf } from '../systems/guild/bunnyMembership.js';
 export function createTavernServiceHost(deps) {
   let state = null, version = 0, busy = false, pending = null, observed = null, window = null;
   let discordNames = {};
+  let discordSkins = {};
   const hud = createTavernServiceHud();
   // The mess customers leave in the room; only where the world host hands over its renderer and collider.
   const chores = deps.renderer ? createTavernChores({ renderer: deps.renderer, getTexture: deps.getTexture, uploadRecordFrame: deps.uploadRecordFrame,
     collider: () => deps.collider?.() ?? null, people: () => people(), npcId: (pn) => id(pn) }) : null;
+  // A Discord patron whose linked account wears a custom paperdoll stands as it, not only renamed (scenes/tavernPatronSkins.js)
+  const patronSkins = deps.renderer ? createTavernPatronSkins({ renderer: deps.renderer, people: () => people(), npcId: (pn) => id(pn) }) : null;
   const now = deps.now ?? (() => Date.now() / 1000);
   const id = (pn) => deps.npcId(pn);
   const people = () => deps.people().filter((p) => p.active !== false && !p.dead);
   const person = (key) => people().find((p) => id(p) === key);
   const alias = (key) => live() ? state.discordAudience?.names[key] ?? null : discordNames[key] ?? null;
+  const skinsNow = () => (live() ? state.discordAudience?.skins ?? {} : discordSkins);
   const name = (key) => { const p = person(key); return p ? alias(key) ?? deps.name(p) : t('tavern.service.customer', 'Customer'); };
   const live = () => !!state && state.where === deps.where() && state.phase !== 'done' && now() - state.started <= TAVERN_SHIFT_MAX_S;
   const txnId = () => globalThis.crypto?.randomUUID?.() ?? `ts${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
@@ -182,7 +187,9 @@ export function createTavernServiceHost(deps) {
     /** The chores' click boxes, for the room's activation ray. */
     targets: () => (live() ? chores?.targets() ?? [] : []),
     /** The chores' flats, drawn with the room's other billboards. */
-    batches: () => (live() ? chores?.batches() ?? [] : []),
+    batches: () => [...(live() ? chores?.batches() ?? [] : []), ...(patronSkins?.batches() ?? [])],
+    /** Whether this customer stands as a Discord patron's custom paperdoll (the room skips their own figure). */
+    patronSkinOn: (pn) => !!patronSkins?.has(pn),
     patronName: (pn) => deps.where() && deps.patron(pn) ? alias(id(pn)) : null,
     musicShare: () => state?.where === deps.where() ? tavernRoomMusicShare(state.room) : 1,
     innRows: (pn) => [{ code: 'KeyS', label: t('tavern.service.start', 'S - Work a tavern shift'), action: () => { Promise.resolve().then(() => start(pn)); } },
@@ -218,18 +225,19 @@ export function createTavernServiceHost(deps) {
         actions: actions.map(({ id, label, disabled }) => ({ id, label, disabled })) };
     },
     frame(active, blocked) {
-      if (!active) { observed = null; discordNames = {}; window?.dispose(); window = null; hud.dispose(); chores?.clear(); if (!deps.act) { state = null; pending = null; } return; }
+      if (!active) { observed = null; discordNames = {}; discordSkins = {}; patronSkins?.clear(); window?.dispose(); window = null; hud.dispose(); chores?.clear(); if (!deps.act) { state = null; pending = null; } return; }
       const where = deps.where();
       if (observed !== where && !busy && deps.act) {
         observed = where; busy = true;
         deps.act({ op: 'read', txn: txnId(), where, buildingKey: deps.buildingKey(), patrons: people().filter(deps.patron).slice(0, 24).map(id) }).then((r) => {
-          if (r?.ok && !pending && observed === where) { state = r.data.state; version = r.data.version; discordNames = r.data.discordNames ?? {}; }
+          if (r?.ok && !pending && observed === where) { state = r.data.state; version = r.data.version; discordNames = r.data.discordNames ?? {}; discordSkins = r.data.discordSkins ?? {}; }
         }).catch(() => {}).finally(() => { busy = false; });
       }
       if (live()) chores?.sync(state, where); else chores?.clear();
+      patronSkins?.sync(where ? skinsNow() : {});
       if (live() && !blocked) hud.frame(state, name, busy); else hud.hide();
     },
-    dispose() { window?.dispose(); window = null; hud.dispose(); chores?.clear(); },
+    dispose() { window?.dispose(); window = null; hud.dispose(); chores?.clear(); patronSkins?.clear(); },
     draw: (renderer, canvas, font) => hud.draw(renderer, canvas, font),
   };
 }

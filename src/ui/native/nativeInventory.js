@@ -119,7 +119,8 @@ import { makeFont, drawText } from '../text.js';
 import { InputMessageBoxWindow } from '../inputMessageBox.js';   // CM5: TransferItem's split popup
 import { firstHotkey } from '../../systems/dialogShortcuts.js';   // A8: the DaggerfallShortcut table
 import { expandRowValues } from '../../systems/quest/questMacros.js';   // MACROS1: a used item's record through its own context (%map)
-import { magicPowersLines } from '../../systems/item/itemPowers.js';   // MACRO-3: %mpw
+import { magicPowersLines } from '../../systems/item/itemPowers.js';
+import { bardBuffLine } from '../../net/bardServiceLaw.js';   // BARDS' GUILD: a piece's cosmetic flourish   // MACRO-3: %mpw
 import { itemIsIdentified } from '../../systems/tradeModes.js';   // MACRO-3: MagicPowers' identified arm
 import { localizedText, formatText, t } from '../../systems/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language
 import { getLocalizedItemName } from '../../systems/textManager.js';   // L10N3e: the equipping cue's template name, by its index
@@ -753,6 +754,7 @@ export class NativeInventoryWindow {
     // line per power (DaggerfallUnityItemMCP.MagicPowers), so the token's
     // row becomes that many rows, each keeping the record row's alignment.
     if (isEnchanted(it)) this.boxes.push({ rows: powersRows(rows(INFO_TEXT_POWERS) ?? [], magicPowersLines(it, { identified: itemIsIdentified(it), lines: rows })) });
+    { const flourish = bardBuffLine(it); if (flourish) this.boxes.push({ rows: [{ text: flourish }] }); }   // BARDS' GUILD: a cosmetic flourish, words only
     this.infoItem = it;
   }
 
