@@ -303,6 +303,7 @@ import { nyxFound, nyxTotal } from './nyx.js';
 import { creditTerritory, territoriesRead } from './territory.js';   // BUNNYFALL COMPANIES: territory on the maps
 import { foundCharter, inviteToCharter, answerCharter, leaveCharter } from './charters.js';   // BUNNYFALL COMPANIES: City Charters
 import { blightRead, blightPush } from './blight.js';   // BUNNYFALL COMPANIES: Rodney's blight
+import { eliteDungeonsRead, eliteDungeonSummon, eliteDungeonClear } from './eliteDungeons.js';   // BUNNYFALL: daily elite dungeons
 import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
 import { farmGarden } from './farmGardens.js';
@@ -2401,6 +2402,11 @@ const service = {
         const act = { '/v1/garrisons': garrisonsRead, '/v1/garrisons/recruit': garrisonRecruit, '/v1/garrisons/orders': garrisonOrders, '/v1/garrisons/dismiss': garrisonDismiss }[path];
         const r = await act(ctx, who.player, body ?? {});
         return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
+      }
+      if (path === '/v1/elite-dungeons' || path === '/v1/elite-dungeons/summon' || path === '/v1/elite-dungeons/clear') {   // BUNNYFALL: daily elite dungeons (eliteDungeons.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path === '/v1/elite-dungeons' ? await eliteDungeonsRead(ctx) : path.endsWith('/summon') ? await eliteDungeonSummon(ctx, who.player, body ?? {}) : await eliteDungeonClear(ctx, who.player, body ?? {});
+        return 'error' in r ? no(r.error, r.error === 'ed-need-account' || r.error === 'ed-not-present' ? 403 : r.error === 'ed-unknown' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/blight' || path === '/v1/blight/push') {   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
         if (request.method !== 'POST') return no('method', 405, origin);

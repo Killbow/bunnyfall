@@ -106,6 +106,7 @@ import { readGateMark, gateMarkKey, GATE_RING_CSS, GATE_LEGEND_TEXT } from './ga
 import { SERPENT_RING_MAP_CSS, SERPENT_LEGEND_TEXT } from './serpentMapMark.js';
 import { paintTerritories } from './territoryMapInk.js';
 import { buildInfluence, paintInfluenceFill, paintLive, liveStands, createLiveLayer, territoryTipAt, LIVE_HZ } from './territoryLive.js';   // BUNNYFALL: the living territory map   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
+import { paintEliteDungeons, eliteDungeonTipAt } from './eliteDungeonMapInk.js';   // BUNNYFALL: the daily elite dungeons' crystals and their spread
 import { SD_RING_MAP_CSS, SD_LEGEND_TEXT } from './superDungeon/sdMapMark.js';   // SD2c: the Super dungeon's ring once it is found, in its omen's brass
 import { EG_ARCH_RING_CSS, EG_ARCH_LEGEND_TEXT } from './eliteGates/egArchMapMark.js';   // EG-F: my company's Elite arch, in its gold
 import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall
@@ -1025,7 +1026,7 @@ export class HeldMapWindow {
       if (beat !== this._beat) { this._beat = beat; this._dirty = true; }
     }
     // BUNNYFALL: the territories' borders, the blight and the marches move - the overlay alone, at LIVE_HZ, while any stands
-    if (!this._zoneMap && this._model && liveStands({ infl: this._influence(), blight: this.deps.blight?.() ?? null, marches: [] })) {
+    if (!this._zoneMap && this._model && (liveStands({ infl: this._influence(), blight: this.deps.blight?.() ?? null, marches: [] }) || (this.deps.eliteDungeons?.() ?? []).length > 0)) {   // BUNNYFALL: and the elite dungeons' crystals breathe
       const lb = Math.floor(this._clock * LIVE_HZ);
       if (lb !== this._liveBeat) { this._liveBeat = lb; this._dirty = true; }
     }
@@ -1381,6 +1382,7 @@ export class HeldMapWindow {
           paintLive(ctx, env.view, { infl: this._influence(), blight: this.deps.blight?.() ?? null, marches: this.deps.marches?.() ?? [], layer: this._liveLayer },
             { paperW: env.paperW, paperH: env.paperH, dpr: env.dpr, time: this._clock, far: env.band === 'far' });
         }
+        if (!this._zoneMap) paintEliteDungeons(ctx, env.view, this.deps.eliteDungeons?.() ?? [], { paperW: env.paperW, paperH: env.paperH, dpr: env.dpr, time: this._clock });   // BUNNYFALL: the daily elite dungeons and their spread
         paintInkOverlay(ctx, env.view, {
           paperW: env.paperW, paperH: env.paperH, dpr: env.dpr, clear: false,
           player: this._player,
@@ -3932,6 +3934,7 @@ export class HeldMapWindow {
     // ORE-MAP (ui/oreMapTip.js): bare ground answers with its ore card where the host has one - online, the professions
     // open (deps.oreAt) - and the card is asked again when the ground's witnessed state arrives
     const ore = readTip(this.deps.oreAt?.(px, py, () => this._refreshTip()) ?? null)
+      ?? (this._zoneMap ? null : readTip(eliteDungeonTipAt(this.deps.eliteDungeons?.() ?? [], mx, my, Math.floor(Date.now() / 86400000))))   // BUNNYFALL: an elite dungeon answers as itself
       ?? (this._zoneMap ? null : readTip(territoryTipAt(this._influence(), this.deps.blight?.() ?? null, mx, my)));   // BUNNYFALL: the land answers - whose it is, or the blight's
     return {
       label: (region >= 0 && region < (this.deps.maps?.regionCount ?? 0)) ? (REGION_NAMES[region] ?? '') : '',

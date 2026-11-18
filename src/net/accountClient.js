@@ -1350,6 +1350,11 @@ export const charterLeave = (io, body) => call(io, '/v1/charters/leave', body);
 /** BUNNYFALL COMPANIES: Rodney's blight (server-account/src/blight.js) - read, and a cleared raid's push. */
 export const blightRead = (io) => call(io, '/v1/blight', {});
 export const blightPush = (io, raid, sector) => call(io, '/v1/blight/push', { raid, sector });
+/** BUNNYFALL: daily elite dungeons (server-account/src/eliteDungeons.js) - the book; a felled series' summon (`{ summon }`:
+ *  this game stands her); her fall's cleanse (`{ cleansed, nyx }`). */
+export const eliteDungeonsRead = (io) => call(io, '/v1/elite-dungeons', {});
+export const eliteDungeonSummon = (io, key) => call(io, '/v1/elite-dungeons/summon', { key });
+export const eliteDungeonClear = (io, key) => call(io, '/v1/elite-dungeons/clear', { key });
 /** Garrisons and patrols (server-account/src/garrisons.js): read, recruit, orders, and dismiss. */
 export const garrisonsRead = (io, character) => call(io, '/v1/garrisons', { character });
 export const garrisonRecruit = (io, body) => call(io, '/v1/garrisons/recruit', body);

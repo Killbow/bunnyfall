@@ -36,6 +36,9 @@ export const CONTENT = Object.freeze({
    *  chat line is sent as typed: no word starred (net/wire.js sanitizeChat). Names, guild names, notes and letters keep
    *  the filter. */
   chatFilter: false,
+  /** BUNNYFALL (2026-11-18): the daily elite dungeons - eight picked a day, a crystal over each, the spread, Sifrit inside
+   *  and the cleanse's Dusk Tokens (net/eliteDungeonLaw.js). Off, no new ones are picked and the game shows none. */
+  eliteDungeons: true,
 });
 
 /** Whether a piece of content is on. */

@@ -70,10 +70,26 @@ export function blightHere() {
   if (now - _blightAt >= BLIGHT_PROBE_MS) { _blightAt = now; try { _blight = _blightProbe() === true; } catch { _blight = false; } }
   return _blight;
 }
-/** Every multiplier on a foe's blow at the player: the haze's counter, and the blight's. */
-export const foeDamageMult = () => _combatRing ? 1 : _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
-/** A foe's wash where the blight stands: Cromwark's purple on every hostile foe while the player is in it, or null. */
-export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && !_combatRing && blightHere() ? CROMWARK_FOE_TINT : null);
+// ── THE ELITE DUNGEONS' SPREAD (net/eliteDungeonLaw.js, systems/eliteDungeons/edBook.js) ──────────────────────────────
+/** How much harder a foe strikes while the player stands in an elite dungeon's spread (net/eliteDungeonLaw.js
+ *  ED_CORRUPT_FOE_MULT - repeated here so this file stays a leaf). */
+export const CORRUPT_FOE_MULT = 1.15;
+let _corruptProbe = () => false, _corruptAt = -Infinity, _corrupt = false, _edInside = false;
+/** The host's word on whether the player stands in an elite dungeon's spread (asked at most every BLIGHT_PROBE_MS). */
+export const setCorruptProbe = (/** @type {() => boolean} */ fn) => { _corruptProbe = typeof fn === 'function' ? fn : () => false; _corruptAt = -Infinity; };
+/** The elite dungeon's word: the player is inside one (its foes all in Cromwark's purple). */
+export const setEliteDungeonInside = (/** @type {boolean} */ on) => { _edInside = on === true; };
+/** Whether the player stands in an elite dungeon's spread now. */
+export function corruptHere() {
+  const now = Date.now();
+  if (now - _corruptAt >= BLIGHT_PROBE_MS) { _corruptAt = now; try { _corrupt = _corruptProbe() === true; } catch { _corrupt = false; } }
+  return _corrupt;
+}
+/** Every multiplier on a foe's blow at the player: the haze's counter, the blight's and an elite dungeon's spread. */
+export const foeDamageMult = () => _combatRing ? 1 : _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1) * (corruptHere() ? CORRUPT_FOE_MULT : 1);
+/** A foe's wash where the blight or a spread stands, or inside an elite dungeon: Cromwark's purple on every hostile foe,
+ *  or null. */
+export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && !_combatRing && (_edInside || blightHere() || corruptHere()) ? CROMWARK_FOE_TINT : null);
 /** The counter's words: "mm:ss" on it and the blows' share ("+75%"). */
 export const hazeClockText = (/** @type {number} */ s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 

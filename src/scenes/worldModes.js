@@ -129,6 +129,7 @@ import { gateArenaLocation, gateArenaBlocks, isGateArena, slabMatrix, courtLight
 import { isSdRealm, sdRealmLocation, sdRealmBlocks, buildRealmModel, realmColliderTris, realmLightsWith, realmLighting, SD_REALM_ARCHIVE, SD_REALM_FOG } from '../world/superDungeon/sdRealm.js';   // SD5a: the Shattered Hour, a made level as the court is
 import { realmArt } from '../world/superDungeon/sdRealmArt.js';   // SD5a: its art, made in code
 import { isEgHall, egHallLocation, egHallBlocks, egLightsWith, egHallLighting, egHallFog, egHallGrade } from '../world/eliteGates/egHall.js';   // EG-PLAY: an Elite Breach's circle, a made level as the Hour is
+import { edAtmosFrame, edLampTint } from '../systems/eliteDungeons/edAtmos.js';   // BUNNYFALL: a daily elite dungeon's purple air and light
 import { egRoomKey } from '../net/eliteGates/egLaw.js';   // EG-PLAY: its room, its halls, its words
 import { createEgCircleHost } from './eliteGates/egCircleHost.js';   // HOST-SPLIT (EG-LOOK): an Elite Breach's circle on this screen, moved out of this host
 import { createKetchDeckHost, ketchShipHit } from './ketch/ketchDeckHost.js';   // KETCH (HOST-SPLIT): the sky-ketch on this screen's dungeon host - its set, its seams, its look, its door
@@ -9698,6 +9699,7 @@ export function createWorldModes(host) {
     // the cache's location or floods its block records.
     const dfLocation = ownDungeonLocation(sized);
     if (host.wildDungeonElite?.(hit)) { dfLocation.elite = true; dfLocation.wildRing = host.wildHallRing?.() ?? 0; dfLocation.wildEpoch = host.wildHallEpoch?.() ?? 0; }   // PVPDUNGEONS: every open hall of the zone is an elite dungeon - its tier (its foes' strength) and its epoch (its chests) on it
+    host.eliteDungeonMark?.(dfLocation);   // BUNNYFALL: a daily elite dungeon (systems/eliteDungeons/edBook.js) - its entry on it, an elite dungeon
     let _hccLanded = false;   // HCC
     host.onPreTransition?.();   // AUDIT PSCALE1 NET-3: my foes to the players outside, before the door takes me
     host.horseCart?.()?.handlePreTransition({ type: 'ToDungeonInterior', door: hccDoorOf(hit) });   // HCC: OnPreTransition [IL_98f0], before the dismount
@@ -11068,6 +11070,7 @@ export function createWorldModes(host) {
       if (isSdRealm(dungeonLoc)) { applyFog(renderer, dungeonFog(!!renderer.lightingLane, SD_REALM_FOG, _hourFog), _hourFogColor); renderer.setSceneGrade?.(SD_HOUR_GRADE); }   // SD5a: the Hour's brass haze over the dungeon's; SD-LOOK: and its grade - the eye held down, the void black   // AUDIT SD IV (R5): into kept ones, nothing made
       if (isEgHall(dungeonLoc)) { applyFog(renderer, dungeonFog(!!renderer.lightingLane, egHallFog(dungeonLoc.egCircle), _hourFog), _hourFogColor); renderer.setSceneGrade?.(egHallGrade(dungeonLoc.egCircle)); egCircleFrame(mwv.eye); }   // EG-PLAY: the Spire's haze; EG-LOOK: its band's own haze and grade (world/eliteGates/egAtmos.js); its portcullises stood or sunk, its ruin and wreck placed about the eye (scenes/eliteGates/egCircleHost.js)
       if (isGateArena(dungeonLoc)) applyFog(renderer, dungeonFog(!!renderer.lightingLane, COURT_FOG));   // WB3b: the Deadlands' air in the court, over the dungeon's   // AUDIT-EL F6   // BA1: FoggyDungeons' linear fog is the base the water murk overrides
+      edAtmosFrame(renderer, dungeonLoc);   // BUNNYFALL: a daily elite dungeon's violet light, haze and grade over the dungeon's own (systems/eliteDungeons/edAtmos.js)
       // AUDIT DISC19: THE CANDLE BURNS WHITE UNDERGROUND TOO. One shared
       // colour lit every light down here - the dungeon's 0.8, or the lane's
       // flame - and the candle DISC19-B lit took it; MagicCandle.prefab is
@@ -11075,6 +11078,7 @@ export function createWorldModes(host) {
       // channel gives the candle its own white and every other light the
       // colour it always had.
       const _dgColor = lanternColor(!!renderer.lightingLane, new Float32Array(DUNGEON_LIGHT_COLOR));   // EL1: the lane's flame at the dungeon's intensity
+      edLampTint(dungeonLoc, _dgColor);   // BUNNYFALL: and its flames pulled toward purple
       // IIL1: Improved Interior Lighting, attached and Enhanced Lighting off - the RDB lights give way to one warm,
       // flickering light on every archive-210 billboard (ImproveDungeonLighting.cs), and the torch takes its colour
       iilSyncLane(renderer, true);   // IIL2: the mod's own shadows, on its classic-look lane, when the row asks
