@@ -1034,6 +1034,7 @@ import { createDuelPrompt } from '../ui/duelPrompt.js';   // DUEL1: the challeng
 import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../systems/wild/cromwarkBarrier.js';
 import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
 import { createCromwarkBlight } from '../systems/wild/cromwarkBlight.js';
+import { CROMWARK_WARDKEEPER, cromwarkWardRole } from '../systems/wild/cromwarkWards.js';
 import { createCromwarkReachHost } from './cromwarkReachHost.js';
 import { DuelWallRenderer } from '../render/duelWall.js';   // DUEL1: the ring's holographic wall
 import { BannerRenderer, BANNER_TEX_W, BANNERS_MAX } from '../render/bannerPass.js';   // GUILD1d: a guild's banners, the cloth
@@ -12482,7 +12483,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const stands = [];   // BOUNTY1: what was stood, for a caller that counts them (the roll's own callers do not)
     // PSCALE1: a camp or a pack grows with the party it meets (OW6: never past the pool's bound) - BOUNTY1: a bounty's
     // pack (`fixed`) is the posting's own count, never grown: its purse and its tally are the notice's
-    for (const mobileType of (hit.fixed ? hit.mobileTypes : campMembers(hit.mobileTypes, hit.kind))) {
+    const members = hit.fixed ? hit.mobileTypes : campMembers(hit.mobileTypes, hit.kind);
+    const ring = !hit.fixed && wildHere() && cromwarkPeace(wildZoneKind()) ? wildRing() : 0;
+    const wardPack = ring >= 4 || (ring === 3 && Math.random() < 1 / 3);
+    for (const [slot, type] of members.entries()) {
+      const wardRole = cromwarkWardRole(ring, slot, members.length, wardPack);
+      const mobileType = wardRole >= 3 ? CROMWARK_WARDKEEPER : type;
       const memberEnv = placeFoeEnv({
         collider,
         playerFeet: [anchorFeet[0], anchorFeet[1] + 0.9, anchorFeet[2]],
@@ -12508,7 +12514,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const fly = (ENEMY_BASICS[mobileType]?.behaviour ?? 'General') === 'Flying';
       stands.push(exteriorFoes.spawnFoe(mobileType, [spot.x, fly ? spot.y + 1.5 : spot.y, spot.z], {
         yaw: Math.atan2(anchorFeet[0] - spot.x, anchorFeet[2] - spot.z),
-        ...(hit.spawnOpts ?? {}), grantKind: hit.fixed ? 'bounty' : hit.kind === 'band' ? 'band' : 'camp',   // BOUNTY1: a bounty's pack stands `loose` and `transient`; GRANT3-GRANT4: the group's grant, by what it is
+        ...(hit.spawnOpts ?? {}), wardRole, grantKind: hit.fixed ? 'bounty' : hit.kind === 'band' ? 'band' : 'camp',   // BOUNTY1: a bounty's pack stands `loose` and `transient`; GRANT3-GRANT4: the group's grant, by what it is
       }).then((f) => {
         if (f) {
           f.campId = campId; f.campAlertRadius = hit.alertRadius;

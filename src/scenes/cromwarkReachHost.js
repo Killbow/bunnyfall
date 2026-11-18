@@ -3,7 +3,8 @@ import { reachSite, reachDay, reachMemory } from '../systems/wild/cromwarkEvents
 import { CAMP_REACH } from '../systems/survival/camp.js';
 import { RAY_DISTANCE } from '../player/activate.js';
 import { t } from '../systems/textManager.js';
-import { wildInside } from '../systems/wild/wildZone.js';
+import { CROMWARK_WARDKEEPER, cromwarkWardRole } from '../systems/wild/cromwarkWards.js';
+import { wildInside, wildRingAt } from '../systems/wild/wildZone.js';
 // Shared WOD sites arbitrate competing owners. Character memory records observed
 // deaths, never a disappeared foe: leaving the area is not a victory.
 export function createCromwarkReachHost(d) {
@@ -26,9 +27,13 @@ export function createCromwarkReachHost(d) {
     if(!list.some(f=>!f.puppet&&!f.dead)) {d.foes.reclaim(s.id);d.sprang(s.id);}
     const token=serial, camp=s.camp??=d.foes.campId();
     Promise.allSettled(todo.map(async({id, slot})=>{
-      const a=slot*2.399963229728653, radius=5+Math.sqrt(slot+1)*2.7+s.placementSweep;
+      const wardRole = s.wards[slot];
+      const feet = d.feet();
+      const rear = Math.atan2(origin[0] - feet[0], origin[2] - feet[2]);
+      const a = wardRole >= 3 ? rear + (wardRole === 3 ? -.38 : .38) + s.placementSweep * .21 : slot * 2.399963229728653;
+      const radius = (wardRole >= 3 ? 14 : 5 + Math.sqrt(slot + 1) * 2.7) + s.placementSweep;
       const pos=[origin[0]+Math.sin(a)*radius,origin[2]+Math.cos(a)*radius];
-      const f=await d.foes.spawn(id,pos,{site:s.id,reachSlot:slot,yaw:a,transient:true});
+      const f=await d.foes.spawn(id,pos,{site:s.id,reachSlot:slot,wardRole,yaw:a,transient:true});
       if(!f) return;
       if(token!==serial || !sites.has(s.id)) {d.foes.remove(f);return;}
       f.reachSlot=slot; f.campId=camp; f.campAlertRadius=45;
@@ -45,7 +50,12 @@ export function createCromwarkReachHost(d) {
       if(!wildInside(d.mask,s.px,s.py) || !d.allowed(s.px,s.py) || (Math.abs(s.px-823)<=1&&Math.abs(s.py-35)<=1)) continue;
       const p=point(s), dist=Math.hypot(p[0]-feet[0],p[2]-feet[2]);
       if(dist>600 || !Number.isFinite(p[1]) || !d.dry(p)) continue;
-      if(!sites.has(s.id)) sites.set(s.id,{...s,retry:0,pending:false,placementSweep:0});
+      if (!sites.has(s.id)) {
+        const ring = d.mask?.depth ? wildRingAt(s.px, s.py, d.mask) : 0;
+        const wards = s.roster.map((_, slot) => cromwarkWardRole(ring, slot, s.roster.length, ring >= 4 || s.x % 3 === 0));
+        const roster = s.roster.map((id, slot) => wards[slot] >= 3 ? CROMWARK_WARDKEEPER : id);
+        sites.set(s.id, { ...s, roster, wards, retry: 0, pending: false, placementSweep: 0 });
+      }
     }
     for(const [id,s] of sites) {
       if(s.pile?.items) mem(s).items=s.pile.items;

@@ -1,3 +1,4 @@
+import { cromwarkWardRole, cromwarkWardSource, cromwarkWardDamage } from '../src/systems/wild/cromwarkWards.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CROMWARK_ROSTER, cromwarkHealth, cromwarkSpecies, cromwarkPack, cromwarkTitanheart, cromwarkTitanDamage } from '../src/systems/wild/cromwarkRoster.js';
@@ -197,4 +198,25 @@ test('Cromwark packs fill to their target and Titanheart caps damage on variants
   assert.equal(cromwarkTitanheart({ ...titan, mobileType: 7 }), false);
   assert.equal(cromwarkTitanDamage(titan, 100), 50);
   assert.equal(cromwarkTitanDamage(titan, 12), 12);
+});
+
+test('Ring 3 has one wardkeeper and Ring 4 splits the pack between two', () => {
+  assert.deepEqual(Array.from({ length: 5 }, (_, i) => cromwarkWardRole(3, i, 5)), [1, 1, 1, 1, 3]);
+  assert.deepEqual(Array.from({ length: 5 }, (_, i) => cromwarkWardRole(4, i, 5)), [1, 1, 3, 2, 4]);
+  assert.equal(cromwarkWardRole(2, 0, 25), 0);
+  assert.equal(cromwarkWardRole(3, 0, 25, false), 0);
+  for (const role of [1, 2, 3, 4]) assert.equal(validFoeRecord({ i: 1, cwa: role }).cwa, role);
+  assert.equal(validFoeRecord({ i: 1, cwa: 5 }), null);
+});
+
+test('ward damage requires a live, nearby keeper for the same half and pack', () => {
+  const member = { wardRole: 1, site: 'camp', ai: { feet: [0, 0, 0] } };
+  const keeper = { wardRole: 3, site: 'camp', ai: { feet: [0, 0, 15] }, entity: { health: 36 } };
+  const other = { ...keeper, wardRole: 4 };
+  assert.equal(cromwarkWardSource(member, [other, keeper]), keeper);
+  assert.equal(cromwarkWardSource(other, [keeper]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, dead: true }, other]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, ai: { feet: [0, 0, 50] } }]), null);
+  assert.equal(cromwarkWardSource(member, [{ ...keeper, site: 'other camp' }]), null);
+  assert.equal(cromwarkWardDamage(100), 10);
 });

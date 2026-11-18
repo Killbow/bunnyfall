@@ -1381,6 +1381,7 @@ export function validFoeRecord(r) {
   const out = { i: r.i };
   if (r.t !== undefined) { if (!Number.isInteger(r.t) || r.t < 0 || r.t > FOE_TYPE_MAX) return null; out.t = r.t; }
   for (const k of ['x', 'd', 'm', 'z', 'bw', 'rl', 'cth']) if (r[k] !== undefined) { if (r[k] !== 0 && r[k] !== 1) return null; out[k] = r[k]; }   // ELITE FOES: `z` an elite foe (systems/eliteFoes.js); BOSS-TRAITS: `bw` wrathful; RAID5: `rl` a raid's leader
+  if (r.cwa !== undefined) { if (!intIn(r.cwa, 1, 4)) return null; out.cwa = r.cwa; }
   if (r.crs !== undefined) { if (!intIn(r.crs, 0, 24)) return null; out.crs = r.crs; }
   if (r.bt !== undefined) { if (!Number.isInteger(r.bt) || r.bt < 0 || r.bt > FOE_TRAITS_MAX) return null; out.bt = r.bt; }   // BOSS-TRAITS: its traits, a mask (systems/bossTraits.js)
   if (r.bv !== undefined) { if (!Number.isInteger(r.bv) || r.bv < 0 || r.bv > 100) return null; out.bv = r.bv; }   // AUDIT WORLD-EVENTS L2-7: its ward's share standing (bossTraits.js bossWardShare)
