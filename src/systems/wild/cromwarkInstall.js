@@ -1,5 +1,6 @@
 // @ts-check
 import { ENEMY_BASICS, registerEnemyRows } from '../../characters/enemy/enemyBasics.js';
+import { MOBILE_TYPES } from '../../characters/mobile/mobileTypes.js';
 import { registerCustomCareerTemplate, registerCustomEnemyName } from '../../characters/enemy/customEnemies.js';
 import { loadMonsterCareer } from '../../characters/enemy/enemyEntity.js';
 import { addVendorTextures } from '../textureReplacement.js';
@@ -16,6 +17,10 @@ export function installCromwarkRoster() {
     Object.assign(row, { maleTexture: p.archive, femaleTexture: p.archive, minHealth: p.hp, maxHealth: p.hp,
       level: 8, armorValue: 6, minDamage: 5, maxDamage: 10, hasIdle: false,
       primaryAttackAnimFrames: [0, -1, 0], minMetalToHit: -1, weight: 0, mapChance: 0 });
+    if (p.boneCorpse) {
+      row.corpseTexture = { ...ENEMY_BASICS[MOBILE_TYPES.SkeletalWarrior].corpseTexture };
+      delete row.femaleCorpseTexture;
+    }
     registerEnemyRows([[p.id, row]]);
     registerCustomCareerTemplate(p.id, { name: p.name, load: (fetch) => loadMonsterCareer(7, fetch) });
     let bytes;
