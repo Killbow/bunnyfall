@@ -992,6 +992,7 @@ import { duelVitality } from '../net/duel/duelBar.js';   // DUEL-BAR: my vitalit
 import { wildHallPicks, wildHallAt, wildHallTemplateOk } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: the day's halls, picked alike on every client   // PVPDUNGEONS
 import { wasteGroundCoverStands, wasteScorch } from '../systems/wild/cromwarkWaste.js';
 import { CROMWARK_ON, cromwarkPeace, setBlightProbe } from '../systems/wild/cromwark.js';
+import { cromwarkPack } from '../systems/wild/cromwarkRoster.js';
 import { cromwarkSettlementRemoved } from '../systems/wild/cromwarkSettlements.js';
 import { cromwarkDesolateAt } from '../systems/wild/cromwarkTowns.js';   // BUNNYFALL: the reach's desolate towns   // BUNNYFALL: the mountains are Cromwark's reach (no PvP)
 import { setWildHere, wildHere, isWildRegion, wildMaskOf, wildInside, wildNear, setWildDeath, wildDeath, wildDeathAtHand, wildDeathKill, wildFallHeard, WILD_TEXT, WILD_DEATH_HOLD_S, WILD_NAME, ZONE_WATCH_SCALE } from '../systems/wild/wildZone.js';
@@ -12438,7 +12439,10 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** PSCALE1: a group's members, grown with the party it meets - OW6: never past the pool's own bound (a warband of six
    *  met by a party of eight grew to nine, and the eight-foe pool stood none of it; the widest camp, five and three, is
    *  exactly the bound, so a camp is as it was). */
-  const campMembers = (types) => partyGroupMembers(types, partySize()).slice(0, encounterCap());   // PVPDUNGEONS: the zone's packs are allowed their four times
+  const campMembers = (types) => {
+    const members = partyGroupMembers(types, partySize());
+    return (wildHere() && cromwarkPeace(wildZoneKind()) ? cromwarkPack(members) : members).slice(0, encounterCap());
+  };   // PVPDUNGEONS: the zone's packs are allowed their four times
   const _standCampEncounter = (hit, feet) => {
     // CAMP-FAR: the anchor stands a hundred to a hundred and fifty metres
     // out, just outside the view, on the TERRAIN's own floor

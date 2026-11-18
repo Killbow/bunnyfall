@@ -55,7 +55,7 @@ function fixture(kind=2) {
 }
 const settle=()=>new Promise(r=>setImmediate(r));
 test('cache requires actual corpses, mints once and retains unclaimed contents through a save',async()=>{
-  const f=fixture();f.host.frame();await settle();assert.equal(f.list.length,3);
+  const f=fixture();f.host.frame();await settle();assert.equal(f.list.length,5);
   f.advance();f.host.frame();assert.equal(f.piles.length,0);
   for(const foe of f.list){foe.dead=true;foe.corpse=true;}
   f.advance();f.host.frame();assert.equal(f.piles.length,1);
@@ -66,14 +66,14 @@ test('cache requires actual corpses, mints once and retains unclaimed contents t
   const empty=modSaveRecords();f.host.reset();restoreModSaveRecords(empty);f.advance();f.host.frame();assert.equal(f.piles.length,2);
 });
 test('missing foes do not count as victories; failed slots retry without duplicating survivors',async()=>{
-  const f=fixture();f.fail(f.site.roster[1]);f.host.frame();await settle();assert.equal(f.list.length,2);
-  f.fail(null);f.advance();f.host.frame();await settle();assert.equal(f.list.length,3);assert.equal(f.claims(),1);
+  const f=fixture();f.fail(f.site.roster[1]);f.host.frame();await settle();assert.equal(f.list.length,4);
+  f.fail(null);f.advance();f.host.frame();await settle();assert.equal(f.list.length,5);assert.equal(f.claims(),1);
   f.advance();f.host.frame();await settle();assert.equal(f.claims(),1);
-  f.list.length=0;f.advance();f.host.frame();await settle();assert.equal(f.piles.length,0);assert.equal(f.list.length,3);
+  f.list.length=0;f.advance();f.host.frame();await settle();assert.equal(f.piles.length,0);assert.equal(f.list.length,5);
 });
 test('peer owns encounter until stale; in-flight spawns cannot survive reset',async()=>{
   const f=fixture();f.peer(true);f.host.frame();await settle();assert.equal(f.list.length,0);
-  f.peer(true,11000);f.advance();f.host.frame();await settle();assert.equal(f.list.length,3);
+  f.peer(true,11000);f.advance();f.host.frame();await settle();assert.equal(f.list.length,5);
   f.host.reset();let release;f.delay(new Promise(r=>{release=r;}));f.advance();f.host.frame();f.host.reset();release();await settle();assert.equal(f.list.length,0);
 });
 test('hunts patrol through the existing motor; midnight preserves yesterday’s active progress',async()=>{

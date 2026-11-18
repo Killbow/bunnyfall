@@ -13,7 +13,7 @@
 // stays false so the C-slice fallback makes them close), and the
 // 13 fixed-list casters do not cast up here yet.
 
-import { cromwarkProfile, cromwarkSpecies, makeCromwarkEntity } from '../systems/wild/cromwarkRoster.js';
+import { cromwarkProfile, cromwarkSpecies, makeCromwarkEntity, cromwarkTitanheart, cromwarkTitanDamage, CROMWARK_TITAN_SIZE, CROMWARK_TITAN_GLOW } from '../systems/wild/cromwarkRoster.js';
 import { createCromwarkCombat } from '../systems/wild/cromwarkCombat.js';
 import { cromwarkPeace } from '../systems/wild/cromwark.js';
 import { blightFoeTint, CROMWARK_FOE_TINT } from '../systems/wild/cromwark.js';   // BUNNYFALL: the purple monsters
@@ -734,7 +734,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     feet: f.ai.feet,
     fallbackSize: billboardSize(f.tex, 0),
     stillDead: () => f.dead,
-    sizeScale: eliteSize(f.entity) * wildGiantSize(f.entity),   // ELITE FOES: the body as large as the elite was (WILD3: and a giant of the open zone its four)
+    sizeScale: (cromwarkTitanheart(f.entity) ? CROMWARK_TITAN_SIZE : eliteSize(f.entity)) * wildGiantSize(f.entity),   // ELITE FOES: the body as large as the elite was (WILD3: and a giant of the open zone its four)
   }).then((c) => {
     if (!c) return;
     if (isEliteCorpse(f.entity)) { c.elite = true; c.elitePhase = Math.random(); c.boss = isStaffBoss(f.entity) ? (f.entity.staffBoss.purple ? 'purple' : true) : false; markEliteCorpseBatch(c.batch, c.elitePhase, c.boss); }   // ELITE FOES: the blue outline stays and pulses, the embers stop
@@ -1064,7 +1064,8 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     if (fromPlayer) noteFighter(f, peer ? peerId : PARTY_ME, _now());
     // PSCALE1: a shared foe fights its fighters with more health - its damage over their toughness, here where the
     // owner applies every blow (a SetHealth(0) and a kill are no blows, and stand as they were)
-    f.entity.health -= !bypassShield && !_whole && _toughFoe(f) ? partyFoeLoses(f, healthDamage, fightN(f)) : healthDamage;
+    const loss = !bypassShield && !_whole && _toughFoe(f) ? partyFoeLoses(f, healthDamage, fightN(f)) : healthDamage;
+    f.entity.health -= !_whole && !bypassShield && cromwarkTitanheart(f.entity) ? cromwarkTitanDamage(f.entity, loss) : loss;
     if (bout && healthDamage > 0) bout.hooks?.hurt?.(f, healthDamage, { fromPlayer: fromPlayer && !peer, striker });   // ARENA2: the blow, to the bout's law
     if (f.entity.health <= 0) {
       // ARENA2: THE FOE YIELD FLOOR - nobody dies on the arena's sand. A bout fighter reaching the floor is held at the
@@ -2153,8 +2154,9 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       if (ecv.kind === 'hidden') continue;
       f.batch.conceal = ecv.kind === 'conceal' ? ecv.visual : null;
       setBatchHitFlash(f.batch, foeHitFlash(f, performance.now() / 1000));   // HITFLASH1: a foe struck flashes red - any blow, mine, a peer's, or its owner's stream
-      setBatchGlint(f.batch, foeGlint(f.ai, undefined, prefersReducedMotion()) ?? lastStandGlint(f.entity));   // TELL2: a wind-up's glint on the body; RVN4: else phase two's ember rim
-      setBatchEliteGlow(f.batch, eliteGlow(f.entity, performance.now() / 1000, (f.seq * 1.7) % 6.28), performance.now() / 1000);   // ELITE FOES: the pulse
+      const titanheart = cromwarkTitanheart(f.entity);
+      setBatchGlint(f.batch, titanheart ? CROMWARK_TITAN_GLOW : foeGlint(f.ai, undefined, prefersReducedMotion()) ?? lastStandGlint(f.entity));   // TELL2: a wind-up's glint on the body; RVN4: else phase two's ember rim
+      setBatchEliteGlow(f.batch, titanheart ? 0 : eliteGlow(f.entity, performance.now() / 1000, (f.seq * 1.7) % 6.28), performance.now() / 1000);   // ELITE FOES: the pulse
       { const tn = blightFoeTint(!cromwarkPeace(wildZoneKind()) && f.companion == null && f.entity?.team !== 'PlayerAlly' && f.ai?.isHostile !== false); if (tn || f.batch.tint === CROMWARK_FOE_TINT) f.batch.tint = tn ?? undefined; }   // and Rodney's blight's   // BUNNYFALL (Cromwark): the mountains' monsters in purple
       const _dv = f.executing || f.sparing || f.portalFx ? fateDissolve(f, Date.now()) : f._pupExec ? fateDissolve({ executing: { at: f._pupExec } }, Date.now()) : f._pupSpare ? fateDissolve({ sparing: { at: f._pupSpare } }, Date.now()) : null;   // REVENANT-FATE / COMPANION-PORTAL: burning away (its owner's too), or through a portal
       if (!_dv && f.portalFx && f.portalFx.dir === 'in') f.portalFx = null;   // through: whole
@@ -2164,7 +2166,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
       const rkey = `${o.record}#${o.frame}`;
       if (!renderer.textures.has(`${f.archive}_${rkey}`)) uploadRecordFrame(f.archive, o.record, o.frame);
       const sz0 = mobileBillboardSize(f.tex, o.record);   // AUDIT MM1: a mobile unit's record cache carries the xml scale
-      const szE = eliteSize(f.entity) * lastStandSize(f.entity);   // ELITE FOES: a quarter larger (onto locals - the cache's object is shared); RVN4: phase two a tenth
+      const szE = (titanheart ? CROMWARK_TITAN_SIZE : eliteSize(f.entity)) * lastStandSize(f.entity);   // ELITE FOES: a quarter larger (onto locals - the cache's object is shared); RVN4: phase two a tenth
       const szG = szE * wildGiantSize(f.entity) * (cromwarkProfile(f.mobileType)?.scale ?? 1);   // Cromwark's hulks have their own silhouettes.
       const sz = szG === 1 ? sz0 : { w: sz0.w * szG, h: sz0.h * szG };
       f.batch.record = rkey;

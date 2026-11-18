@@ -7,7 +7,7 @@ export function createCromwarkReachHost(d) {
   const sites=new Map(); let next=0, serial=0;
   const point=s=>{const t=d.translation(s.px,s.py);return [t[0]+s.x,d.ground(t[0]+s.x,t[2]+s.z),t[2]+s.z];};
   const mem=s=>reachMemory(s.day,s.id);
-  const complete=s=>s.roster.every(id=>mem(s).slain.includes(id));
+  const complete=s=>mem(s).said || s.roster.every(id=>mem(s).slain.includes(id));
   function spawn(s,now) {
     if(s.pending || now<s.retry || complete(s)) return;
     const list=d.foes.list().filter(f=>f.site===s.id);
@@ -23,7 +23,7 @@ export function createCromwarkReachHost(d) {
     if(!list.some(f=>!f.puppet&&!f.dead)) {d.foes.reclaim(s.id);d.sprang(s.id);}
     const token=serial, camp=s.camp??=d.foes.campId();
     Promise.allSettled(todo.map(async(id)=>{
-      const a=s.roster.indexOf(id)*2.094, pos=[origin[0]+Math.sin(a)*9,origin[2]+Math.cos(a)*9];
+      const a=s.roster.indexOf(id)*2*Math.PI/s.roster.length, pos=[origin[0]+Math.sin(a)*9,origin[2]+Math.cos(a)*9];
       const f=await d.foes.spawn(id,pos,{site:s.id,yaw:a,transient:true});
       if(!f) return;
       if(token!==serial || !sites.has(s.id)) {d.foes.remove(f);return;}

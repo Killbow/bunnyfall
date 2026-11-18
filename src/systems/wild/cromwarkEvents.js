@@ -1,9 +1,9 @@
 // @ts-check
 import { registerModSaveData } from '../modSaveData.js';
 export const REACH_EVENTS = Object.freeze([
-  { key: 'hunt', title: 'The Shard Hunt', hint: 'Track the roaming pack. Keep room to dodge its charges.', roster: [3137, 3139, 15] },
-  { key: 'ritual', title: 'The Hollow Choir', hint: 'Silence the Bishop and Pain. Their overlapping patterns leave escape lanes.', roster: [3140, 3141, 17] },
-  { key: 'cache', title: 'Forsaken Supplies', hint: 'Break the guard to recover the cache. Beware the Gazadar’s firing line.', roster: [3138, 3142, 7] },
+  { key: 'hunt', title: 'The Shard Hunt', hint: 'Track the roaming pack. Keep room to dodge its charges.', roster: [3137, 3139, 15, 3136, 3142] },
+  { key: 'ritual', title: 'The Hollow Choir', hint: 'Silence the Bishop and Pain. Their overlapping patterns leave escape lanes.', roster: [3140, 3141, 17, 3137, 3142] },
+  { key: 'cache', title: 'Forsaken Supplies', hint: 'Break the guard to recover the cache. Beware the Gazadar’s firing line.', roster: [3138, 3142, 7, 3136, 3139] },
 ].map(Object.freeze));
 export const reachDay = ms => Math.floor(ms / 86400000);
 const hash = (a,b,c) => { let n = Math.imul(a,73856093)^Math.imul(b,19349663)^Math.imul(c,83492791); n=Math.imul(n^(n>>>16),2246822507); return (n^(n>>>13))>>>0; };
@@ -31,7 +31,8 @@ registerModSaveData('bunnyfall.cromwarkReach', {
     book={day:Number.isSafeInteger(r?.day)?r.day:-1,sites:{}};
     for(const [id,m] of Object.entries(r?.sites??{}).slice(0,2048)) {
       if(!/^\d{1,4},\d{1,3}:reach\.\d{1,9}\.[0-2]$/.test(id)) continue;
-      book.sites[id]={slain:Array.isArray(m?.slain)?[...new Set(m.slain.filter(Number.isSafeInteger))].slice(0,3):[],items:Array.isArray(m?.items)?m.items.slice(0,64).filter(it=>it&&typeof it==='object'):null,opened:m?.opened===true,said:m?.said===true};
+      const roster = REACH_EVENTS[Number(id.at(-1))].roster;
+      book.sites[id]={slain:Array.isArray(m?.slain)?[...new Set(m.slain.filter(foe => roster.includes(foe)))]:[],items:Array.isArray(m?.items)?m.items.slice(0,64).filter(it=>it&&typeof it==='object'):null,opened:m?.opened===true,said:m?.said===true};
     }
   },
 });
