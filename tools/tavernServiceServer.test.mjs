@@ -46,24 +46,28 @@ export function fixture() {
     if (r.ok) { version = r.version; state = r.state; seq = r.realm?.seq ?? seq; }
     return { r, body };
   }
-  async function prepare() {
+  /** Start (or resume) the shift and pour the current order; the third dose puts the cup in hand. */
+  async function pourOrder() {
     await call('start', { keeper: 'keeper', patrons: ['guest'] });
     const recipe = TAVERN_RECIPES.find((r) => r.id === tavernOrder(state).recipe);
     for (const ingredient of TAVERN_INGREDIENTS) for (let n = 0; n < recipe[ingredient]; n++) assert.equal((await call('pour', { ingredient })).r.ok, true);
-    await call('carry'); ctx.nowS += 21; await call('serve', { target: 'guest' }); await call('collect', { target: 'guest' });
+    assert.equal(state.phase, 'carry');
+    ctx.nowS += 21;
   }
-  return { ctx, sql, call, prepare, player, id, lease, blobs, get state() { return state; } };
+  /** One whole drink: pour it, then a single serve pays for it. */
+  async function prepare() { await pourOrder(); return call('serve', { target: 'guest' }); }
+  return { ctx, sql, call, prepare, pourOrder, player, id, lease, blobs, get state() { return state; } };
 }
-test('service pays into the realm record exactly once even when the return acknowledgement is replayed', async () => {
-  const f = fixture(); await f.prepare();
-  const { r, body } = await f.call('return');
-  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.gold, 36); assert.equal(r.realm.seq, 2);
+test('serving pays into the realm record exactly once even when the acknowledgement is replayed', async () => {
+  const f = fixture();
+  const { r, body } = await f.prepare();
+  assert.equal(r.ok, true, JSON.stringify(r)); assert.equal(r.gold, 36); assert.equal(r.favor, 1); assert.equal(r.realm.seq, 2);
   const replay = await tavernServiceAct(f.ctx, f.player, body);
   assert.equal(replay.replayed, true); assert.equal(replay.version, r.version);
   const row = f.sql.prepare('SELECT seq, obj FROM realm_characters').get();
   const save = JSON.parse(f.blobs.get(row.obj));
-  assert.equal(row.seq, 2); assert.equal(save.goldPieces, 36);
-  assert.equal((await f.call('return')).r.error, 'tavern-action');
+  assert.equal(row.seq, 2); assert.equal(save.goldPieces, 36); assert.equal(save.modData.BunnyGuilds._marks.tavern.favor, 1);
+  assert.equal((await f.call('serve', { target: 'guest' })).r.error, 'tavern-target');
 });
 test('the character lease, action revision and saved room are enforced', async () => {
   const f = fixture(); const { body } = await f.call('start', { keeper: 'keeper', patrons: ['guest'] });
@@ -73,10 +77,10 @@ test('the character lease, action revision and saved room are enforced', async (
   assert.equal((await f.call('pour', { ingredient: 'wine', buildingKey: 99 })).r.error, 'tavern-place');
   assert.equal((await tavernServiceAct(f.ctx, 'other-player', req)).error, 'no-realm-character');
 });
-test('concurrent returns with different request ids cannot double-pay', async () => {
-  const f = fixture(); await f.prepare();
+test('concurrent serves with different request ids cannot double-pay', async () => {
+  const f = fixture(); await f.pourOrder();
   // Both statements may read the old version; SQLite batch guards reject one after the other commits.
-  const body = { id: f.id, lease: f.lease, seq: 1, version: 7, where: '17:42', buildingKey: 42, target: 'keeper', op: 'return' };
+  const body = { id: f.id, lease: f.lease, seq: 1, version: 7, where: '17:42', buildingKey: 42, target: 'guest', op: 'serve' };
   // Read the real revision rather than assume how many preparation acts a recipe needed.
   body.version = f.sql.prepare('SELECT version FROM tavern_service').get().version;
   const results = await Promise.allSettled(['parallel_1', 'parallel_2'].map((txn) => tavernServiceAct(f.ctx, f.player, { ...body, txn })));
@@ -86,17 +90,22 @@ test('concurrent returns with different request ids cannot double-pay', async ()
 });
 test('a complete shift writes the Bards reputation into the same realm save as the final payment', async () => {
   const f = fixture(); let rep = 0;
-  for (let n = 0; n < 6; n++) { await f.prepare(); const { r } = await f.call('return'); assert.equal(r.ok, true, JSON.stringify(r)); rep += r.rep; }
-  assert.equal(rep, 2); assert.equal(f.state.phase, 'done');
+  for (let n = 0; n < 6; n++) {
+    const { r } = await f.prepare(); assert.equal(r.ok, true, JSON.stringify(r)); rep += r.rep;
+    if (f.state.phase === 'done') break;
+    f.ctx.nowS += 5;
+    for (const c of f.state.chores.filter((c) => !c.done)) { const done = await f.call('chore', { target: c.id }); assert.equal(done.r.ok, true, JSON.stringify(done.r)); }
+  }
+  assert.equal(rep, 9, 'six clean drinks and a perfect shift'); assert.equal(f.state.phase, 'done');
   const row = f.sql.prepare('SELECT seq, obj FROM realm_characters').get();
   const save = JSON.parse(f.blobs.get(row.obj));
-  assert.equal(row.seq, 7); assert.equal(save.goldPieces, 327); assert.equal(save.factionRep.rep[0], 2);
-  assert.equal(save.modData.BunnyGuilds._marks.tavern.favor, 1);
+  assert.equal(row.seq, 12, 'six serves and five chores each write the save once'); assert.equal(save.goldPieces, f.state.earned, 'every wage, tip and chore landed once'); assert.equal(save.factionRep.rep[0], 9);
+  assert.equal(save.modData.BunnyGuilds._marks.tavern.favor, 6);
   assert.equal(save.modData.BunnyGuilds._marks.tavern.cities['17'], 1);
   assert.equal(save.legalRep['17'], 1);
 });
 test('replaying a paid receipt after a later checkpoint never moves the realm sequence backwards', async () => {
-  const f = fixture(); await f.prepare(); const { body } = await f.call('return');
+  const f = fixture(); const { body } = await f.prepare();
   f.sql.prepare('UPDATE realm_characters SET seq = 3').run();
   const replay = await tavernServiceAct(f.ctx, f.player, { ...body, seq: 3 });
   assert.equal(replay.replayed, true); assert.equal(replay.realm.seq, 3);
@@ -156,8 +165,8 @@ test('room choices persist and replay without granting extra money or repeating 
   assert.equal(replay.replayed, true); assert.deepEqual(replay.state.room, r.state.room);
   assert.equal((await f.call('room', { target: 'guest', choice })).r.error, 'tavern-action');
   const saved = JSON.parse(f.sql.prepare('SELECT state FROM tavern_service').get().state);
-  assert.deepEqual(saved.room, r.state.room); assert.equal(saved.orders[saved.index].roomChoice, choice);
-  const result = await f.call('return'); assert.equal(result.r.ok, true);
+  assert.deepEqual(saved.room, r.state.room); assert.equal(saved.orders[saved.lastServed.index].roomChoice, choice);
+  const next = await f.prepare(); assert.equal(next.r.ok, true, JSON.stringify(next.r));
 });
 
 test('the Heart’s Fire follows existing Legendary Bartender ownership and preserves legacy unlocks', () => {
@@ -209,5 +218,5 @@ test('a served Discord patron posts once and each Discord account can tip once',
   assert.equal((await tavernServiceAct(f.ctx, f.player, body)).replayed, true);
   assert.equal((await f.call('discord-tips')).r.discordGold, 0);
   const row = f.sql.prepare('SELECT obj FROM realm_characters').get();
-  assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 10);
+  assert.equal(JSON.parse(f.blobs.get(row.obj)).goldPieces, 36 + 10); // the served drink's pay, then the tips
 });

@@ -66,7 +66,7 @@ export async function tavernServiceAct(ctx, player, body) {
   const audience = previous?.discordAudience;
   const patron = audience?.names[order?.patron];
   const drink = TAVERN_RECIPES.find((entry) => entry.id === order?.recipe)?.name;
-  const served = body.op === 'serve' && result.state.phase === 'served' && patron && drink;
+  const served = body.op === 'serve' && result.served && patron && drink;
   let prep = null;
   if (discordGold || result.gold || result.rep || result.favor || result.localRep) {
     prep = await prepareRealmRecord(ctx, player, at, (record) => {

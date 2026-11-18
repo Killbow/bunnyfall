@@ -3,6 +3,14 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-18
+
+- Tavern shifts: every drink you serve now earns a Favor Token, not just a finished shift.
+- Tavern shifts are quicker: the cup goes into your hand as soon as it is full, and serving the right drink pays you on the spot. No more collecting and returning empty cups.
+- Tavern shifts feel more alive: customers call out their orders, thank you or complain, and your cup pours, fills, lifts and changes hands in front of you.
+- New tavern chores: customers leave empties on their tables and knock drinks over. Clear a table by gathering the cups and wiping it down, or sweep up a spill. Each chore pays a little and cheers up the room.
+- Bards' College members now earn much more reputation from tavern shifts: one point for every drink served right and on time, and three more for a perfect shift with nothing left dirty.
+
 ## 2026-11-17
 
 - Fixed: Choosing a Bay waypoint or quest marker from the Eltheric Ocean no longer crashes the game.

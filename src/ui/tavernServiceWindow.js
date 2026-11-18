@@ -1,20 +1,20 @@
 // BUNNYFALL: explicit mouse/touch pouring and the bound recipe book, on the normal overlay lifecycle.
 import { TAVERN_DOSES, TAVERN_INGREDIENTS, TAVERN_RECIPES, tavernDoseCount } from '../net/tavernServiceLaw.js';
-import { tavernIngredientName, tavernRecipeName } from '../systems/tavern/tavernServiceWords.js';
+import { tavernIngredientName, tavernRecipeName, tavernRecipeNote } from '../systems/tavern/tavernServiceWords.js';
 import { t } from '../systems/textManager.js';
 import { releaseLook } from '../player/pointerLock.js';
 import { registerOverlay } from './enhanced/enhancedOverlays.js';
 import { TAVERN_SERVICE_STYLE } from './tavernServiceStyle.js';
 
 const INKS = { wine: '#8e3545', cream: '#fff0cb', beer: '#d99734' };
-function el(tag, className, text, parent) {
+export function el(tag, className, text, parent) {
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   parent?.append(node);
   return node;
 }
-function bottle(parent, ingredient) {
+export function bottle(parent, ingredient) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 48 78'); svg.setAttribute('aria-hidden', 'true');
   for (const [d, fill, stroke] of [
@@ -31,7 +31,7 @@ function bottle(parent, ingredient) {
 }
 
 /** Uses townTalk's overlay slot so movement, world clicks and mouse capture stay held. */
-function windowShell(kind, title) {
+export function windowShell(kind, title, keys = ['Escape', 'Digit1', 'Digit2', 'Digit3', 'ArrowLeft', 'ArrowRight'], onClose = null) {
   if (!document.getElementById('tavern-service-style')) {
     const style = el('style'); style.id = 'tavern-service-style'; style.textContent = TAVERN_SERVICE_STYLE; document.head.append(style);
   }
@@ -42,7 +42,7 @@ function windowShell(kind, title) {
   let done = false, unregister = () => {};
   const close = () => {
     if (done) return;
-    done = true; unregister(); shell.remove(); window.removeEventListener('keydown', onKey, true);
+    done = true; onClose?.(); unregister(); shell.remove(); window.removeEventListener('keydown', onKey, true);
     if (previous?.isConnected && typeof previous.focus === 'function') previous.focus({ preventScroll: true });
   };
   const overlay = { isChoiceWindow: true, get done() { return done; }, input: (code) => { if (code === 'Escape') close(); },
@@ -52,7 +52,7 @@ function windowShell(kind, title) {
       // The game's QuickDial convention: Tab puts the current window away.
       e.preventDefault(); close();
     } else if (!e.repeat && !e.altKey && !e.ctrlKey && !e.metaKey) {
-      if (e.code === 'Escape' || ['Digit1', 'Digit2', 'Digit3', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+      if (keys.includes(e.code)) {
         e.preventDefault(); overlay.input(e.code);
       }
     }
@@ -97,16 +97,20 @@ export function createTavernMixWindow({ state, busy, act, name, openBook }) {
   const foot = el('footer', '', undefined, w.body);
   w.button(foot, t('tavern.service.readBook', 'Read the recipe book'), () => { w.close(); openBook(); });
   w.button(foot, t('tavern.service.leaveCounter', 'Leave counter'), w.close);
-  let working = false;
+  let working = false, shown = -1, order = [];
   function paint() {
     if (w.overlay.done) return;
     const s = state();
     if (!s || !['mix', 'carry'].includes(s.phase)) { w.close(); return; }
     const n = tavernDoseCount(s.mix), locked = working || busy();
     count.textContent = t('tavern.service.cupDoses', '{n} / {total} doses in your cup', { n, total: TAVERN_DOSES });
+    // Doses stay in the order they were poured, and only the newest one drops in.
+    if (n < order.length || n === 0) order = [];
+    for (const k of TAVERN_INGREDIENTS) for (let have = order.filter((x) => x === k).length; have < s.mix[k]; have++) order.push(k);
     slots.replaceChildren();
-    const contents = TAVERN_INGREDIENTS.flatMap((k) => Array(s.mix[k]).fill(k));
-    for (let i = 0; i < TAVERN_DOSES; i++) el('span', `ts-dose${contents[i] ? ` ts-${contents[i]}` : ''}`, undefined, slots);
+    for (let i = 0; i < TAVERN_DOSES; i++) el('span', `ts-dose${order[i] ? ` ts-${order[i]}` : ''}${order[i] && i >= shown && shown >= 0 ? ' ts-fresh' : ''}`, undefined, slots);
+    shown = n;
+    tray.classList.toggle('ts-full', n === TAVERN_DOSES);
     for (const { b, amount, ingredient } of pourButtons) {
       b.disabled = locked || s.phase !== 'mix' || n >= TAVERN_DOSES;
       amount.textContent = t('tavern.service.poured', '{n} in cup', { n: s.mix[ingredient] });
@@ -114,7 +118,9 @@ export function createTavernMixWindow({ state, busy, act, name, openBook }) {
     status.textContent = locked ? t('tavern.service.confirming', 'Confirming with the innkeeper...') :
       n === TAVERN_DOSES ? t('tavern.service.cupReady', 'Your cup is full. Take it to your customer, or discard it to start again.') :
         t('tavern.service.dosesLeft', '{n} doses left to pour.', { n: TAVERN_DOSES - n });
-    carry.disabled = locked || s.phase !== 'mix' || n !== TAVERN_DOSES;
+    // A full cup lifts into the server's hand by itself; the button stays for shifts saved before that.
+    carry.hidden = !(s.phase === 'mix' && n === TAVERN_DOSES);
+    carry.disabled = locked || carry.hidden;
     discard.disabled = locked || n === 0;
   }
   async function run(op, ingredient) {
@@ -122,8 +128,11 @@ export function createTavernMixWindow({ state, busy, act, name, openBook }) {
     if (!s || working || busy()) return;
     if (op === 'pour' && (s.phase !== 'mix' || tavernDoseCount(s.mix) >= TAVERN_DOSES)) return;
     working = true; paint();
-    try { await act(op, ingredient); } finally { working = false; paint(); }
-    if (op === 'carry' && state()?.phase === 'carry') w.close();
+    const point = op === 'pour' ? pourButtons.find((p) => p.ingredient === ingredient)?.b : null;
+    point?.classList.add('ts-pouring');
+    try { await act(op, ingredient); } finally { working = false; paint(); setTimeout(() => point?.classList.remove('ts-pouring'), 500); }
+    // Let the last dose land before the counter steps aside for the carried cup.
+    if (state()?.phase === 'carry') setTimeout(() => w.close(), op === 'pour' ? 650 : 0);
   }
   w.overlay.input = (code) => {
     if (code === 'Escape') w.close();
@@ -167,6 +176,7 @@ export function createTavernRecipeWindow({ onBack } = {}) {
       el('p', '', TAVERN_INGREDIENTS.filter((k) => recipe[k]).map((k) => `${recipe[k]} ${tavernIngredientName(k)}`).join(' + '), details);
       const doses = el('div', 'ts-recipe-doses', undefined, details); doses.setAttribute('aria-hidden', 'true');
       for (const k of TAVERN_INGREDIENTS) for (let n = 0; n < recipe[k]; n++) el('span', `ts-dose ts-${k}`, undefined, doses);
+      el('p', 'ts-note', tavernRecipeNote(recipe.id), details);
     });
     prev.disabled = page === 0; next.disabled = page === pages - 1;
     pagination.textContent = t('tavern.service.bookPage', 'Page {n} of {total}', { n: page + 1, total: pages });
