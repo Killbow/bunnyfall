@@ -1,9 +1,10 @@
 // @ts-check
 // BUNNYFALL: recipes, order identities, timing and pay are checked here. World presence is the character's
 // checkpoint, as with other services; this is not an independent server simulation of the room's NPCs.
-import { createTavernShift, stepTavernShift, TAVERN_BARDS_FACTION, TAVERN_SHIFT_MAX_S } from '../../src/net/tavernServiceLaw.js';
+import { createTavernShift, stepTavernShift, tavernOrder, TAVERN_RECIPES, TAVERN_BARDS_FACTION, TAVERN_SHIFT_MAX_S } from '../../src/net/tavernServiceLaw.js';
 import { realmAtOf, recordMovedOf, prepareRealmRecord, dropIfUnnamed, dropObjects, realmSaveTextOf, mustChange } from './realm.js';
 import { tavernProgressOf, tavernReputation } from '../../src/net/tavernFavorLaw.js';
+import { tavernDiscordNames, discordServeStatement, pendingDiscordTips, collectDiscordTips, TAVERN_DISCORD_TIP } from './discordTavernPatrons.js';
 import { creditSave } from '../../src/net/realm/realmGoldLaw.js';
 
 const keyOk = (s) => typeof s === 'string' && /^[A-Za-z0-9:._-]{1,100}$/.test(s);
@@ -25,10 +26,14 @@ export async function tavernServiceAct(ctx, player, body) {
   if (moved) return moved;
   const row = await db.prepare('SELECT version, state FROM tavern_service WHERE character = ? AND player = ?').bind(at.id, player).first();
   const previous = parse(row?.state ?? 'null');
-  if (body.op === 'read') return { ok: true, state: previous, version: row?.version ?? 0 };
+  if (body.op === 'read') {
+    const patrons = Array.isArray(body.patrons) ? body.patrons.slice(0, 24).filter(keyOk) : [];
+    const audience = await tavernDiscordNames(db, nowS, patrons);
+    return { ok: true, state: previous, version: row?.version ?? 0, discordNames: audience?.names ?? {} };
+  }
   const version = row?.version ?? 0;
   if (body.version !== version) return { error: 'tavern-version' };
-  const char = await db.prepare('SELECT obj FROM realm_characters WHERE id = ? AND player = ?').bind(at.id, player).first();
+  const char = await db.prepare('SELECT obj, name FROM realm_characters WHERE id = ? AND player = ?').bind(at.id, player).first();
   const save = parse(await realmSaveTextOf(await bucket?.get(char?.obj)));
   if (!save) return { error: 'no-data' };
   const b = save.interior?.building;
@@ -46,15 +51,26 @@ export async function tavernServiceAct(ctx, player, body) {
     result = { state: createTavernShift({ keeper: body.keeper, patrons: [...new Set(body.patrons)], where: body.where, member: !!m,
       rank: m?.rank ?? 0, seed, nowS }), gold: 0, rep: 0 };
     result.state.place = place;
+    result.state.discordAudience = await tavernDiscordNames(db, nowS, body.patrons);
+  } else if (body.op === 'discord-tips') {
+    result = { state: previous, gold: 0, rep: 0 };
   } else {
     if (!previous || previous.where !== body.where || previous.place !== place) return { error: 'tavern-place' };
     result = stepTavernShift(previous, body, nowS);
     if ('error' in result) return result;
   }
+  const tips = await pendingDiscordTips(db, at.id);
+  if (body.op === 'discord-tips' && !tips.n) return { ok: true, state: previous, version, discordGold: 0 };
+  const discordGold = tips.n * TAVERN_DISCORD_TIP;
+  const order = tavernOrder(previous);
+  const audience = previous?.discordAudience;
+  const patron = audience?.names[order?.patron];
+  const drink = TAVERN_RECIPES.find((entry) => entry.id === order?.recipe)?.name;
+  const served = body.op === 'serve' && result.state.phase === 'served' && patron && drink;
   let prep = null;
-  if (result.gold || result.rep || result.favor || result.localRep) {
+  if (discordGold || result.gold || result.rep || result.favor || result.localRep) {
     prep = await prepareRealmRecord(ctx, player, at, (record) => {
-      creditSave(record, result.gold);
+      creditSave(record, result.gold + discordGold);
       if (result.favor || result.localRep) {
         record.modData ??= {}; record.modData.BunnyGuilds ??= {}; record.modData.BunnyGuilds._marks ??= {};
         const marks = record.modData.BunnyGuilds._marks;
@@ -71,7 +87,7 @@ export async function tavernServiceAct(ctx, player, body) {
     });
     if ('error' in prep) return prep;
   }
-  const answer = { ok: true, ...result, version: version + 1, ...(prep ? { realm: { seq: prep.seq } } : {}) };
+  const answer = { ok: true, ...result, discordGold, version: version + 1, ...(prep ? { realm: { seq: prep.seq } } : {}) };
   const stateText = JSON.stringify(result.state);
   try {
     await db.batch([
@@ -80,6 +96,8 @@ export async function tavernServiceAct(ctx, player, body) {
         .bind(version + 1, stateText, nowS, at.id, player, version)] : [db.prepare('INSERT INTO tavern_service (character, player, version, state, updated_at) VALUES (?, ?, ?, ?, ?)')
         .bind(at.id, player, 1, stateText, nowS)]),
       mustChange(db),
+      ...(discordGold ? [collectDiscordTips(db, at.id, tips.last)] : []),
+      ...(served ? [discordServeStatement(db, audience, at.id, char.name, patron, drink, nowS)] : []),
       db.prepare('INSERT INTO tavern_service_txns (character, txn, result, at) VALUES (?, ?, ?, ?)').bind(at.id, body.txn, JSON.stringify(answer), nowS),
       db.prepare('DELETE FROM tavern_service_txns WHERE character = ? AND at < ?').bind(at.id, nowS - 30 * 86400),
     ]);

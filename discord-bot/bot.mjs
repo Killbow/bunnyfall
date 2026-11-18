@@ -1,6 +1,6 @@
 import {
   ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ChannelType, Client,
-  EmbedBuilder, Events, GatewayIntentBits, MessageFlags, PermissionFlagsBits, SlashCommandBuilder,
+  EmbedBuilder, Events, GatewayIntentBits, MessageFlags, Partials, PermissionFlagsBits, SlashCommandBuilder,
   escapeMarkdown,
 } from 'discord.js';
 import { mkdirSync } from 'node:fs';
@@ -53,7 +53,8 @@ const commands = [
     .addStringOption((o) => o.setName('start').setDescription('Start in ISO 8601, including a timezone')
       .setMaxLength(35))),
 ];
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMessageReactions],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User] });
 const mentions = { parse: [] };
 const title = (embed, text) => embed.setTitle(text).setColor(0x9458cf);
 const copy = {
@@ -198,9 +199,9 @@ async function interaction(i) {
         return i.editReply(channel ? `Tavern is connected to <#${channel}>.` : 'Tavern is disabled.');
       }
       const selected = sub === 'setup' ? i.options.getChannel('channel', true) : null;
-      const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages];
+      const required = [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AddReactions, PermissionFlagsBits.ReadMessageHistory];
       if (selected && !selected.permissionsFor(i.guild.members.me)?.has(required)) {
-        return i.editReply('The bot needs View Channel and Send Messages in that channel.');
+        return i.editReply('The bot needs View Channel, Send Messages, Embed Links, Add Reactions, and Read Message History in that channel.');
       }
       await game('setup', { channel: selected?.id ?? null });
       tavernChannel = selected?.id ?? null;
@@ -228,17 +229,37 @@ client.on(Events.MessageCreate, (message) => {
     || message.channelId !== tavernChannel || !message.cleanContent?.trim()) return;
   void game('say', {
     channel: message.channelId, event: message.id, name: message.member?.displayName ?? message.author.displayName,
-    text: message.cleanContent,
+    text: message.cleanContent, discordId: message.author.id,
   }).catch((error) => console.warn('Tavern incoming:', error.message));
+});
+
+client.on(Events.MessageReactionAdd, (reaction, user) => {
+  const { message, emoji } = reaction;
+  if (user.bot || user.id === client.user?.id || emoji.name !== '🪙'
+    || message.guildId !== DISCORD_GUILD_ID || message.channelId !== tavernChannel) return;
+  void (async () => {
+    if (user.partial && (await user.fetch()).bot) return;
+    await game('tip', { discordId: user.id, channel: message.channelId, message: message.id });
+  })().catch((error) => console.warn('Tavern tip:', error.message));
 });
 
 async function poll() {
   try {
-    const { channel, floor, lines } = await game('poll');
+    const { channel, floor, lines, serves = [] } = await game('poll');
     tavernChannel = channel;
-    if (!channel || !lines.length) return;
+    if (!channel || (!lines.length && !serves.length)) return;
     const destination = await client.channels.fetch(channel);
     if (!destination?.isSendable() || destination.guildId !== DISCORD_GUILD_ID) return;
+    for (const serve of serves) {
+      const embed = title(new EmbedBuilder(), 'A round at the Tavern')
+        .setDescription(`**${escapeMarkdown(serve.name)}** served **${escapeMarkdown(serve.patron)}** a **${escapeMarkdown(serve.drink)}**!`)
+        .setFooter({ text: 'React with 🪙 to award 5 gold · one tip per Discord account' });
+      const message = await destination.send({
+        embeds: [embed], allowedMentions: mentions, nonce: `bfserve${serve.id}`, enforceNonce: true,
+      });
+      await game('served-message', { id: serve.id, channel, message: message.id });
+      try { await message.react('🪙'); } catch { console.warn('Tavern needs Add Reactions permission.'); }
+    }
     for (const line of lines) {
       await destination.send({
         content: `**${escapeMarkdown(line.name)} [Bunnyfall]**: ${escapeMarkdown(line.text)}`,
