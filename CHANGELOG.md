@@ -14,7 +14,6 @@ the last release (scripts/changelogNotes.mjs).
 - Click a player's name in the chat and pick Whisper: the chat field fills with the whisper command and their name, ready for your message.
 - Your camps are listed under Holdings > Camps: each one's name, region, nearest town and map square, with a button to mark it on your map. Hitting the 3-camp limit now names the camps you already keep and says where to find them.
 
-
 ## 2026-11-17
 
 - Fixed: Choosing a Bay waypoint or quest marker from the Eltheric Ocean no longer crashes the game.
