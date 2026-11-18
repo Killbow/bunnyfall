@@ -104,7 +104,8 @@ import { getDaggerfallDistance, MatchesCutOff } from '../systems/editDistance.js
 import { checkLocationDiscovered, flipTravelMapFilter, travelMapDotColors } from './travel/travelMapWindow.js';   // MAP-KEY: the classic's filter flip and its dots' colours
 import { readGateMark, gateMarkKey, GATE_RING_CSS, GATE_LEGEND_TEXT } from './gate/gateMapMark.js';   // WB1: the Oblivion Gate's ring, read as the party is (SERPENT1: and the serpent's, by the same reader)
 import { SERPENT_RING_MAP_CSS, SERPENT_LEGEND_TEXT } from './serpentMapMark.js';
-import { paintTerritories, paintBlight, paintMarches } from './territoryMapInk.js';   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
+import { paintTerritories } from './territoryMapInk.js';
+import { buildInfluence, paintInfluenceFill, paintLive, liveStands, createLiveLayer, territoryTipAt, LIVE_HZ } from './territoryLive.js';   // BUNNYFALL: the living territory map   // BUNNYFALL COMPANIES: the Companies' territories   // SERPENT1: the sea serpent's ring, in the sea's colours
 import { SD_RING_MAP_CSS, SD_LEGEND_TEXT } from './superDungeon/sdMapMark.js';   // SD2c: the Super dungeon's ring once it is found, in its omen's brass
 import { EG_ARCH_RING_CSS, EG_ARCH_LEGEND_TEXT } from './eliteGates/egArchMapMark.js';   // EG-F: my company's Elite arch, in its gold
 import { KT_RING_CSS, ketchLegendText } from './ketch/ketchMapMark.js';   // KETCH: the Sky-Ketch over Daggerfall
@@ -1023,7 +1024,26 @@ export class HeldMapWindow {
       const beat = Math.floor(this._clock * PULSE_HZ);
       if (beat !== this._beat) { this._beat = beat; this._dirty = true; }
     }
+    // BUNNYFALL: the territories' borders, the blight and the marches move - the overlay alone, at LIVE_HZ, while any stands
+    if (!this._zoneMap && this._model && liveStands({ infl: this._influence(), blight: this.deps.blight?.() ?? null, marches: [] })) {
+      const lb = Math.floor(this._clock * LIVE_HZ);
+      if (lb !== this._liveBeat) { this._liveBeat = lb; this._dirty = true; }
+    }
     if (this._dirty) this._paint();
+  }
+
+  /** BUNNYFALL: the territories laid on the land (ui/territoryLive.js), kept until they or the ground change. */
+  _influence() {
+    const m = this._model;
+    if (!m?.isLand || this._zoneMap) return null;
+    const key = this.deps.territorySig?.() ?? '';
+    if (this._inflKey === key && this._inflModel === m.isLand) return this._infl;
+    const marks = this.deps.territories?.() ?? [], charters = this.deps.charters?.() ?? [];
+    this._inflKey = key; this._inflModel = m.isLand;
+    this._infl = marks.length || charters.length
+      ? buildInfluence({ width: m.width, height: m.height, isLand: m.isLand, marks, charters })
+      : null;
+    return this._infl;
   }
 
   draw() { /* DOM only: the sheet is a canvas laid over the sprite, painted from tick(); nothing here touches the renderer */ }
@@ -1333,9 +1353,9 @@ export class HeldMapWindow {
           // WILD2: and its four rings - their lines and bonuses here, filled and named on the zone map
           underMarks: (c) => {
             // BUNNYFALL COMPANIES: the Companies' territories, washed in their arms under every mark (not on the zone map)
-            if (!this._zoneMap) paintBlight(c, env.view, this.deps.blight?.() ?? null, { paperW: env.paperW, paperH: env.paperH });   // the war against Rodney: the blight and its front
-            if (!this._zoneMap) paintMarches(c, env.view, this.deps.marches?.() ?? [], { paperW: env.paperW, paperH: env.paperH });   // the garrisons marching to the front, from their towns to the blight's edge
-            if (!this._zoneMap) paintTerritories(c, env.view, this.deps.territories?.() ?? [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', charters: this.deps.charters?.() ?? [], farms: this.deps.farms?.() ?? [] });
+            // the territories' wash lies on the land, under the marks; their borders, the blight and the marches move in the overlay
+            if (!this._zoneMap) paintInfluenceFill(c, env.view, this._influence(), { paperW: env.paperW, paperH: env.paperH });
+            if (!this._zoneMap) paintTerritories(c, env.view, [], { paperW: env.paperW, paperH: env.paperH, far: env.band === 'far', farms: this.deps.farms?.() ?? [] });   // the Companies' farms
             const ink = this._wildInk();
             if (!ink) return;
             const zone = this._zoneInk();
@@ -1355,6 +1375,12 @@ export class HeldMapWindow {
         if (zone) paintZoneMapStatic(ctx, env.view, zone, { paperW: env.paperW, paperH: env.paperH, part: 'over', places: this._zoneNames === false ? [] : this._zonePlaces(), zoom: this._zoneZoom() });
       },
       paintOverlay: (ctx, env) => {
+        // BUNNYFALL: the territories' borders, the blight and the marches, alive - under the party and the rings
+        if (!this._zoneMap) {
+          this._liveLayer ??= createLiveLayer();
+          paintLive(ctx, env.view, { infl: this._influence(), blight: this.deps.blight?.() ?? null, marches: this.deps.marches?.() ?? [], layer: this._liveLayer },
+            { paperW: env.paperW, paperH: env.paperH, dpr: env.dpr, time: this._clock, far: env.band === 'far' });
+        }
         paintInkOverlay(ctx, env.view, {
           paperW: env.paperW, paperH: env.paperH, dpr: env.dpr, clear: false,
           player: this._player,
@@ -3905,7 +3931,8 @@ export class HeldMapWindow {
     const region = politic - 128;
     // ORE-MAP (ui/oreMapTip.js): bare ground answers with its ore card where the host has one - online, the professions
     // open (deps.oreAt) - and the card is asked again when the ground's witnessed state arrives
-    const ore = readTip(this.deps.oreAt?.(px, py, () => this._refreshTip()) ?? null);
+    const ore = readTip(this.deps.oreAt?.(px, py, () => this._refreshTip()) ?? null)
+      ?? (this._zoneMap ? null : readTip(territoryTipAt(this._influence(), this.deps.blight?.() ?? null, mx, my)));   // BUNNYFALL: the land answers - whose it is, or the blight's
     return {
       label: (region >= 0 && region < (this.deps.maps?.regionCount ?? 0)) ? (REGION_NAMES[region] ?? '') : '',
       cursor: '',
