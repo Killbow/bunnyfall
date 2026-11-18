@@ -1048,7 +1048,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     return realmSession.checkpoint(realmSaveWithHeld(snap, holding), realmSummaryOf(playerEntity)).then((r) => { if (r?.ok && holding?.length) _realmSaveHooks.landed(who, holding); return r; }).catch(() => ({ ok: false, error: 'server' }));   // AUDIT REALM2 C2: the outcome answered back - F9's word is the realm's answer
   });
   const {
-    bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
+    bootLoad, bootLoadPick, bootSnap, checkpointGateOpen, classicLoadBoot, exitAutosave, onlineCheckpoint,
     onlineCheckpointLanded, realmBirth, realmCreateLegacy, realmFirstSave, worldQuickLoad, worldQuickSave,
   } = createWorldSaveLoad({
     _teleportToPixel, closeWindowsForLoad, enterLinkedBankCabin, legacyRealmLine, params, playerTravelPixel,
@@ -2087,15 +2087,16 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   if (!startLoc) throw new Error(`location not found: ${regionName}/${locationName}`);
   const startPixel = longitudeLatitudeToMapPixel(
     startLoc.mapTableData.longitude, startLoc.mapTableData.latitude);
-  // BOOT-OVERLAP: THE TOWNS THE BOOT WAITS ON AS IT BUILDS THEM - the start's (the first build) and a realm save's own
-  // place (the load's arrival) - each waited on up to HOME_LOOK_BUILD_WAIT_MS at its build, one after the other (1.4 s and
-  // 0.7 s of nothing but the network). Asked now, both at once, as the realm's character the save is (`characterId`, the
-  // realm's id - the one playing once it is restored): its own tenancies ride the answer, as they would at the arrival.
+  // A load that moves the player to the saved place builds no start pixel first.
+  if (bootLoad({ locationIndex, toPixel: (mt) => longitudeLatitudeToMapPixel(mt.longitude, mt.latitude),
+    online: params.has('online') && !realmNew, startCell: { x: getInt('Startup', 'StartCellX'), y: getInt('Startup', 'StartCellY') } }).place) setLoadingPlace(bootLoad().place);
+  // Online, the boot asks for the homes in the start place and the saved place together, not at each build.
+  // A load that moves the player skips the start place, since nothing is built there.
   if (onlineHomes && realmBoot && bootSnapRead) {
     const at = bootSnapRead.locationKey === 'world' ? bootSnapRead.world?.pixel : null;
     const saved = at ? locationIndex.get(`${at.x},${at.y}`) : null;
     const as = typeof bootSnapRead.characterId === 'string' ? bootSnapRead.characterId : null;
-    for (const loc of new Set([startLoc, saved])) if (loc?.mapTableData) onlineHomes.ensure(loc.mapTableData.mapId, { character: as }).catch(() => {});
+    for (const loc of new Set(bootLoad().teleports ? [saved] : [startLoc, saved])) if (loc?.mapTableData) onlineHomes.ensure(loc.mapTableData.mapId, { character: as }).catch(() => {});
   }
 
   const CITY_LIGHT_COLOR_F32 = lanternColor(lightingOn, new Float32Array(CITY_LIGHT_COLOR));   // EL1: the lane's flame over the classic white
@@ -3801,12 +3802,12 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
 
   let _seasonHoldKey = null;
 
-  status(`building player pixel ${startPixel.x},${startPixel.y}`);
-  const first = queue.shift();
-  const playerPixel = await awaitedBuild(first.px, first.py);
+  const first = bootLoad().teleports ? null : queue.shift();
+  if (first) status(`building player pixel ${startPixel.x},${startPixel.y}`);
+  const playerPixel = first ? await awaitedBuild(first.px, first.py) : null;
 
   // Camera: at the start location's origin, or the pixel centre.
-  const cam = { pos: [TERRAIN_SIZE / 2, playerPixel.centerHeight + 40, TERRAIN_SIZE / 2], yaw: Math.PI, pitch: -0.1 };
+  const cam = { pos: [TERRAIN_SIZE / 2, (playerPixel?.centerHeight ?? 0) + 40, TERRAIN_SIZE / 2], yaw: Math.PI, pitch: -0.1 };
   const lookFilter = new LookFilter();   // AUDIT 28 W7: one filter per camera
   const moveAxes = new MoveAxes();   // AUDIT 28 W8: MovementAcceleration
   const cameraRecoiler = new CameraRecoiler(); const doorToken = createDoorToken({ minter: () => identityMinter, session: () => online, modes: () => modes, player: () => player });   // AUDIT 28 W9: CameraRecoilStrength   // DOOR-TOKEN: declared beside the recoiler `_teleportToPixel` resets, so no jump reads it before it stands (its seams are read lazily, any not yet standing answering none)
@@ -8802,7 +8803,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // gives it - and a held frame is DFU's paused InputManager, which
   // DROPS the edge rather than banking it for whenever the video ends.
   const latch = { edge: keyEdges() };   // audit 16f: jump is HELD since P14 - the latch slot was dead
-  if (playerPixel.location) {
+  if (playerPixel?.location) {
     const tilePos = getLocationTerrainTileOrigin(startLoc);
     const extentZ = startLoc.exterior.exteriorData.height * RMB_SIDE;
     // Clamp inside the start pixel - the streaming state derives the
@@ -9389,9 +9390,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     get travelView() { return travelView; },
   });
 
-  const initialCount = queue.length + 1;
+  const initialCount = queue.length + (first ? 1 : 0);
   console.log(`world: streaming from ${startPixel.x},${startPixel.y}, ${initialCount} initial pixels, ` +
-    `player pixel ${playerPixel.location || 'wilderness'}, ${playerPixel.natureCount} nature flats`);
+    `player pixel ${playerPixel ? playerPixel.location || 'wilderness' : 'skipped for the load'}, ${playerPixel?.natureCount ?? 0} nature flats`);
   status(`streaming world - ${locationName}`);
   if (!params.has('load') && !(params.has('classicload') && peekPendingClassicSave())) setLoadingPlace(startLoc?.name || locationName);   // AUDIT LOAD1 8: a stale ?classicload imports nothing - the start is the place   // LOAD1: where the boot is opening onto - a load's teleport names the save's place itself
 
