@@ -4,13 +4,15 @@
 // replaces the previous boot's reads.
 import { fetchBytes } from './shared.js';
 import { loadQuestPack } from '../systems/quest/questData.js';
+import { loadModRoads } from '../world/roadsProducer.js';
+import { modSetting } from '../mods/modSettings.js';
 import { streetHeld } from './streetHold.js';
 import { afterFirstFrame } from '../systems/afterFirstFrame.js';
 
 export { startBootPrograms } from '../render/bootPrograms.js';
 
 const CORE_FILES = ['ART_PAL.COL', 'BLOCKS.BSA', 'ARCH3D.BSA', 'MAPS.BSA', 'CLIMATE.PAK', 'POLITIC.PAK', 'WOODS.WLD'];
-const MAGIC_FILES = ['SPELLS.STD', 'MAGIC.DEF'];
+const MAGIC_FILES = ['SPELLS.STD', 'MAGIC.DEF', 'PAINT.DAT'];
 
 const awaitedLater = (/** @type {Promise<any>} */ p) => { p.catch(() => {}); return p; };
 
@@ -21,7 +23,8 @@ export function startBootReads() {
   const core = awaitedLater(Promise.all(CORE_FILES.map((n) => fetchBytes(n))));
   const magic = new Map(MAGIC_FILES.map((n) => [n, awaitedLater(fetchBytes(n))]));
   const quest = awaitedLater(loadQuestPack());
-  reads = { core, quest, fetchBytes: (/** @type {string} */ n) => magic.get(n) ?? fetchBytes(n) };
+  const roads = modSetting('roads-hazelnut', 'Enabled') ? loadModRoads() : Promise.resolve(null);
+  reads = { core, quest, roads, fetchBytes: (/** @type {string} */ n) => magic.get(n) ?? fetchBytes(n) };
 }
 
 export const bootReads = () => reads;

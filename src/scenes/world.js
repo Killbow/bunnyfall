@@ -45,7 +45,7 @@ import { DFPalette } from '../formats/dfPalette.js';
 import { MapsFile, getWorldClimateSettings, longitudeLatitudeToMapPixel, getPixelFromPixelID, REGION_RACES, LOCATION_TYPES, CLIMATES, REGION_NAMES } from '../formats/mapsFile.js';   // SPAWNED-DUNGEONS1: the ocean gate and the synthesized location's region name
 import { questTracker } from '../ui/questTracker.js';   // GUIDE5: the quest the player follows - its places, marked
 import { marksOn, questMapMarks } from '../ui/questMarks.js';    // GUIDE5: where the quests point, on the held map and the compass; BOAT-MARK: where my boats lie, on the compass
-import { settlementsOf, loadModRoads, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
+import { settlementsOf, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
 import { modSetting, modSettingsGeneration, latchModLoaded } from '../mods/modSettings.js';   // ROADS 24; HCC: the mod's eight switches; CSA-D: a mod's title for the load's failure line; AUDIT PRE-MERGE 0928 S4: the next-load mods latched at mount
 import { hasPortFor, hasPort, PORT_LOCATION_IDS, maskMapId } from '../travel/travelPorts.js';   // AUDIT-RR2 G22: Travel Options' port list for RR's ship gate; SEAT2b part two: a members' Harbour among them (hasPortFor)
 import { WoodsFile } from '../formats/woodsFile.js';
@@ -1408,7 +1408,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     queue.push(...again.sort(nearestFirstFrom(state.current)));
     console.log(`[roads] ${again.length} pixel(s) built before the network landed - rebuilt with roads`);
   }
-  (basicRoadsOn ? loadModRoads() : Promise.resolve(null)).then((his) => {
+  bootReads().roads.then((his) => {
     if (!basicRoadsOn) {
       console.log('[roads] Basic Roads off in the Mods pane - generating the port\'s own network');
       terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
