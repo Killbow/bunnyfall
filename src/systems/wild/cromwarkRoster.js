@@ -1,4 +1,5 @@
 // @ts-check
+import { cromwarkCombatRing } from './cromwark.js';
 // Cromwark's own cast. A leaf shared by spawning, grants and combat.
 export const CROMWARK_ROSTER = Object.freeze([
   { id: 3136, key: 'judge', name: 'Judge', hp: 118, speed: 35, weight: 2, cooldown: 3, color: [1, .5, .95] },
@@ -29,7 +30,7 @@ const cromwarkFoes = (ring) => RING_FOES[Math.min(3, Math.max(0, ring | 0))];
 export const cromwarkSpeciesInRing = (id, ring) => cromwarkFoes(ring).includes(id);
 
 // Three custom enemies per five slots, cycling the ring's roster before repeating.
-export function cromwarkPack(types, count, ring) {
+export function cromwarkPack(types, count, ring = cromwarkCombatRing()) {
   const pool = cromwarkFoes(ring);
   if (!types.length) return types;
   let custom = 0, support = 0;

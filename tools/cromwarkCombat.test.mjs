@@ -198,6 +198,13 @@ test('Cromwark packs fill to their target and Titanheart caps damage on variants
     assert.equal(pack.filter(id => id >= 3136).length, count * .6);
     assert.equal(new Set(pack.filter(id => id >= 3136)).size, 7);
   }
+  setWildHere(true, 4, 'wroth');
+  try {
+    assert.deepEqual(cromwarkPack([7], 20), cromwarkPack([7], 20, 4));
+  } finally {
+    setWildHere(false);
+  }
+  assert.deepEqual(cromwarkPack([7], 5), [7, 7, 7, 7, 7]);
   const titan = { mobileType: 3136, eliteFoe: true, titanheart: true, maxHealth: 200 };
   assert.ok(cromwarkTitanheart(titan));
   assert.equal(cromwarkTitanheart({ ...titan, eliteFoe: false }), false);

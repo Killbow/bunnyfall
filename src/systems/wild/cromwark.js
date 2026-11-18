@@ -50,8 +50,9 @@ export function createHazeClock() {
 export const CROMWARK_FOE_TINT = Object.freeze([0.82, 0.56, 1]);
 /** The counter's multiplier on the blows I take now - the world host's clock sets it each frame (scenes/cromwarkHost.js),
  *  the blows' tail reads it (combat/formulas.js, systems/effects.js). 1 outside the deep rings. */
-let _hazeMult = 1, _inCromwark = false;
-export const setCromwarkCombatHere = (on) => { _inCromwark = !!on; };
+let _hazeMult = 1, _combatRing = 0;
+export const setCromwarkCombatHere = (on, ring = 1) => { _combatRing = on ? ring : 0; };
+export const cromwarkCombatRing = () => _combatRing;
 export const setHazeMult = (/** @type {number} */ m) => { _hazeMult = Number.isFinite(m) && m >= 1 ? m : 1; };
 export const hazeMult = () => _hazeMult;
 
@@ -70,9 +71,9 @@ export function blightHere() {
   return _blight;
 }
 /** Every multiplier on a foe's blow at the player: the haze's counter, and the blight's. */
-export const foeDamageMult = () => _inCromwark ? 1 : _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
+export const foeDamageMult = () => _combatRing ? 1 : _hazeMult * (blightHere() ? BLIGHT_FOE_MULT : 1);
 /** A foe's wash where the blight stands: Cromwark's purple on every hostile foe while the player is in it, or null. */
-export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && !_inCromwark && blightHere() ? CROMWARK_FOE_TINT : null);
+export const blightFoeTint = (/** @type {boolean} */ hostile) => (hostile && !_combatRing && blightHere() ? CROMWARK_FOE_TINT : null);
 /** The counter's words: "mm:ss" on it and the blows' share ("+75%"). */
 export const hazeClockText = (/** @type {number} */ s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
