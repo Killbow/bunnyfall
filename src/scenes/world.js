@@ -826,6 +826,7 @@ import { Collider } from '../player/collider.js';
 import { onFloatingFrame } from '../player/collider.js';   // PERF-COL2: a streamed pixel's buckets ride the floating origin
 import { createPoiHost } from './poiHost.js';
 import { createPoiLive } from './poiLive.js';   // the World Builder's live view (`?live`)
+import { discordTavern } from '../net/discordTavern.js';
 import { call as accountCall } from '../net/accountClient.js';   // POI v2: a live POI's trades and events, settled on the realm record   // POI-2: the approved POIs, standing in the streamed world
 import { createPoiFeed, browserPoiCache } from '../poi/poiFeed.js';   // POI-2: the approved set, read live and kept
 import { decodePoiImage, decodePoiImageSteps } from '../poi/poiImageDecode.js';   // POI-2: a POI's picture, decoded by the browser (AUDIT POI R8: the host's in steps)
@@ -21554,9 +21555,11 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // "Region-wide from the start"): THE REGION'S TRAVELLERS. The region's channel (the Region tab's own link) carries
   // each player's mark; the book holds the others' (systems/travellerMarks.js), and mine goes when it is due - never
   // while I am alone in the region, never from indoors, and not at all with "Show me to travellers" off.
+  let tavernBridge = null;
   const chatStart = () => {
     if (!online.url) return;   // AUDIT CHAT A9/B1: a relay the law refused is no relay for the chat either - not the public default by the back door
     chatLog = new ChatLog();
+    tavernBridge = realmSession ? discordTavern(chatLog, realmIoNow, realmSession.id, () => !seatOut()) : null;
     chatLinks = new Map();
     redChat = (line) => { if (!chatLog) return false; chatLog.pushAll({ text: line.text, at: line.at, red: true }); return true; };   // CROWN2: the seats' red lines
     chatLog.push(chatLog.active, { text: CHAT_GREETING_TEXT, system: true }, { quiet: true });   // CHAT-HELP: every join, the player's alone, no badge
@@ -21668,6 +21671,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       // (RF-per-request: interiors and dungeons only - houses, shops,
       // temples, windmills and the like, same as any building door).
       onSend: (tabId, text, opts = {}) => {
+        if (tavernBridge?.link(text, tabId)) return true;
         // SERVER-POST (AUDIT SERVER-POST: the classic skin's pause window has no envelope, and the notice sent its players to
         // one): `/mail` - the mailbox, on either skin and wherever the player stands (the enhanced pause face with its window
         // open: ui/pauseDoor.js's door, worldModes.js openPauseAt indoors and underground). Local, never sent.
@@ -28419,6 +28423,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     if (tabId === 'guild' && guildOld()) return why(GUILD_OLD_RELAY_TEXT);   // GUILD1c
     if (tabId === 'lang' && !chatLog.tab('lang')?.room) return why(langOld() ? LANG_OLD_RELAY_TEXT : NO_LANG_TEXT);   // CHAT-LANG: no channel yet
     if ((tabId === 'trade' || tabId === 'lfg') && !chatLog.tab(tabId)?.room) return why(optWhy(tabId) ?? optWaitText(tabId));   // CHAT-TRADE: not joined, an older relay, or the channel not open yet
+    if (tabId === 'tavern') return !item && !items?.length && !me && (tavernBridge?.send(text, from) ?? false);
     // EMOTE1: an action only down a session whose relay carries one - an older one would say the words bare
     const s = tabId === 'local' ? online : tabId === 'party' || tabId === 'guild' ? socialLink() : chatLinks.get(tabId);
     if (me && s?.status === 'open' && !s.emoteOk) return why(EMOTE_OLD_RELAY_TEXT);
@@ -28565,6 +28570,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     buildPoll(performance.now());
     chatLog.setShown('party', !!social?.party);   // CHAT-P (Mac: "Party chat should only show if in a party"): the tab is on the bar while a party is
     chatLog.setShown('guild', !!myGuildTag());   // GUILD1c: and the Guild tab while the character is in a guild
+    tavernBridge?.frame(performance.now());
     chatRegionFrame(performance.now());   // CHAT-CHAN: before the rejoin - a region crossed moves the link, a rejoin takes it back to where it is
     travellerFrame(performance.now());   // TV3: and my mark in it, when due
     chatLangFrame();   // CHAT-LANG: and the language channel chosen, or left - before the rejoin too

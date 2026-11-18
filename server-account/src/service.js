@@ -370,6 +370,7 @@ export const SAVES_MAX = 60;
 /** Every path this service serves. Named once, so the 404 and the
  *  ladder cannot come to disagree about what exists. */
 export const ROUTES = new Set([
+  '/v1/integrations/discord', '/v1/integrations/discord/game',
   '/v1/health', '/v1/pubkey', '/v1/relaykey', '/v1/auth/guest', '/v1/auth/token', '/v1/auth/session',
   '/v1/account', '/v1/auth/logout',
   // ACC1c: username and password. `register` needs a session (it

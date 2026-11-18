@@ -80,6 +80,8 @@ function bundle(name, toml) {
 // Opt-in, for tests: BUNNYFALL_ACCOUNT_VARS="JUDGE_OFF=off,OTHER=x" overrides account-service vars for this run only
 // (tools/poiV2ServerProbe.mjs boots an isolated stack with the judge ON). Unset in normal running.
 const extraAccountVars = Object.fromEntries((process.env.BUNNYFALL_ACCOUNT_VARS || '').split(',').filter((p) => p.includes('=')).map((p) => [p.slice(0, p.indexOf('=')).trim(), p.slice(p.indexOf('=') + 1).trim()]));
+if (process.env.BUNNYFALL_DISCORD_KEY) extraAccountVars.BUNNYFALL_DISCORD_KEY = process.env.BUNNYFALL_DISCORD_KEY;
+
 function workerFrom(toml, name, varsFile, port) {
   const { workerOptions } = wr.unstable_getMiniflareWorkerOptions(toml);
   const b = bundle(name, toml);
