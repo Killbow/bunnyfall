@@ -8,6 +8,7 @@
 // in somebody else's camp is exactly as absent as none (`no-camp`).
 //
 //   POST /v1/camps/near   { px, py }                                  -> { camps: [{ id, name, owner, mine, px, py, at, pieces }] }
+//   POST /v1/camps/mine   {}                                          -> { camps: [{ ...camp, pieceCount, placedAt }] }   (the asker's own, anywhere)
 //   POST /v1/camps/pitch  { character, rec, px, py, at, yaw, name? } -> { camp }   (the record's camp again, if it has one)
 //   POST /v1/camps/strike { id }                                      -> { ok: true }
 //   POST /v1/camps/rename { id, name }                                -> { ok: true, name }
@@ -47,6 +48,16 @@ export async function campsNear({ db }, player, { px, py } = {}) {
   const byCamp = new Map(ids.map((id) => [id, /** @type {any[]} */ ([])]));
   for (const p of pieces) { const q = pieceOfRow(p); if (q) byCamp.get(p.camp_id)?.push(q); }
   const camps = rows.map((r) => campRow(r, player, byCamp.get(r.id))).filter(Boolean);
+  return { camps };
+}
+
+/** THE ASKER'S OWN CAMPS, wherever they stand (HOLDINGS: a player who forgot where they pitched them finds them in the pause
+ *  menu): at most CAMPS_MAX, oldest first, without their pieces - `pieceCount` and `at` (when it was pitched, epoch seconds)
+ *  say how furnished and how old. */
+export async function campsMine({ db }, player) {
+  const { results: rows = [] } = await db.prepare(`SELECT c.*, (SELECT COUNT(*) FROM camp_pieces p WHERE p.camp_id = c.id) AS n
+    FROM camps c WHERE c.player = ?1 ORDER BY c.created_at LIMIT ?2`).bind(player.id, CAMPS_MAX + 5).all();
+  const camps = rows.map((r) => { const c = campRow(r, player, []); return c ? { ...c, pieceCount: Math.max(0, Number(r.n) | 0), placedAt: Number(r.created_at) || 0 } : null; }).filter(Boolean);
   return { camps };
 }
 
@@ -152,11 +163,12 @@ export async function removeCampPiece(ctx, player, { id, pieceId } = {}) {
 }
 
 /** The routes, for index.js: the read is every session's, the writes a linked account's. */
-export const CAMP_ROUTES = Object.freeze(['/v1/camps/near', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove']);
+export const CAMP_ROUTES = Object.freeze(['/v1/camps/near', '/v1/camps/mine', '/v1/camps/pitch', '/v1/camps/strike', '/v1/camps/rename', '/v1/camps/place', '/v1/camps/move', '/v1/camps/remove']);
 /** One camp route answered. */
 export function campRoute(ctx, player, path, body) {
   switch (path) {
     case '/v1/camps/near': return campsNear(ctx, player, body);
+    case '/v1/camps/mine': return campsMine(ctx, player);
     case '/v1/camps/pitch': return pitchCamp(ctx, player, body);
     case '/v1/camps/strike': return strikeCamp(ctx, player, body);
     case '/v1/camps/rename': return renameCamp(ctx, player, body);

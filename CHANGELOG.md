@@ -19,7 +19,7 @@ the last release (scripts/changelogNotes.mjs).
 - New tavern chores: customers leave empties on their tables and knock drinks over. Clear a table by gathering the cups and wiping it down, or sweep up a spill. Each chore pays a little and cheers up the room.
 - Bards' College members now earn much more reputation from tavern shifts: one point for every drink served right and on time, and three more for a perfect shift with nothing left dirty.
 - Click a player's name in the chat and pick Whisper: the chat field fills with the whisper command and their name, ready for your message.
-
+- Your camps are listed under Holdings > Camps: each one's name, region, nearest town and map square, with a button to mark it on your map. Hitting the 3-camp limit now names the camps you already keep and says where to find them.
 
 ## 2026-11-17
 

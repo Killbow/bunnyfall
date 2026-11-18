@@ -176,6 +176,7 @@ import { COMPANION_PAGE_SECTIONS, companionPageShown, drawCompanionsPage, resetC
 import { STABLE_PAGE_SECTIONS, stablePageShown, drawStablePage, resetHoldingsPages, holdingsProvider } from '../holdingsPages.js';   // HOLDINGS: the horse and the wagon - GROWTH1: and the captain's sky's deps
 import { FAMILY_PAGE_SECTIONS, drawTreePage, drawHousePage, drawHallPage, drawGuidePage, resetFamilyPages, disarmFamilyPages, sheetHouse, familyTabShown } from '../familyPages.js';   // LEGACY3: Project Legacy's Family tab; LEGACY-SHEET: the house on the Stats page; FAMILY-TAB: drawn while the game is played with it
 import { FLEET_PAGE_SECTIONS, fleetPageShown, drawFleetPage, resetFleetPage } from '../fleetPage.js';   // HOLDINGS: the ships
+import { CAMPS_PAGE_SECTIONS, campsPageShown, drawCampsPage } from '../campsPage.js';   // BUNNYFALL CAMPS: the camps the account keeps, and where
 import { CAPTAIN_PAGE_SECTIONS, captainPageShown, drawCaptainPage } from '../captainPage.js';   // CAPT-LOG: the captain's standing and log
 import { drawGrowthTab, resetGrowthTab, releaseGrowthTab, growthBack, growthAsks, growthPageAt, setGrowthSection, growthDue } from '../growth/growthTab.js';   // GROWTH1: the Growth tab - the level, the specialisations, the skies
 import { stageLive } from '../growth/growthStage.js';   // GROWTH3: a face up in the tab - the window's Escape asks it first
@@ -4873,6 +4874,7 @@ function pauseHoldings(body) {
     // first, as the sheet's doors do (PX25/ESC-BOOK), and comes back if the door opened nothing (AUDIT 27h A4)
     fleet: (d) => drawFleetPage(d, render, { ...kit, door: (fn) => { handoff(fn); } }),   // AUDIT SEASON-BOOK S3: the handoff's one home
     captain: (d) => drawCaptainPage(d, render, { ...kit, door: (fn) => { handoff(fn); }, growth: () => { setGrowthSection('captain'); pauseTab = 'growth'; render(); } }),   // CAPT-LOG: the crowns' regard, the letter, the contracts, the log - CAPTAIN-TREE: the stars' door, the Fleet's shape
+    camps: (d) => drawCampsPage(d, render, kit),   // BUNNYFALL CAMPS
     companions: (d) => drawCompanionsPage(d, render, { ...kit, kindName: enemyDisplayName, here: swornBodyOf, stars: typeof hooks.openRevenantStars === 'function' ? hooks.openRevenantStars : null }),   // COMPANION-ROSTER - RVN-STARS: a sworn one's stars, over this window
     revenants: (d) => drawRevenantsPage(d, render, { ...kit, player: playerEntity, kindName: enemyDisplayName }),   // REVENANT-PAGE
     collections: (d) => drawCollectionsPage(d, render, { ...kit, player: playerEntity, account: newAccountFlow }),   // COLLECTIONS: the codex and the cards - COLLECTIONS-II: and the account's wardrobe, read through its own flow
@@ -5039,7 +5041,7 @@ function profGo(at) {
 const statsSections = () => [...STATS_SECTIONS, ...(vendorPageShown() ? VENDOR_PAGE_SECTIONS : [])];   // HOME-VENDOR: the Vendor page, under the Professions
 /** HOLDINGS: the Holdings rail's pages - what the player owns (the Stable, the Fleet while ships sail, the Stores
  *  online) and who follows them (the Companions, the Revenants), each while it has a thing to show. */
-const holdingsSections = () => [...(stablePageShown() ? STABLE_PAGE_SECTIONS : []), ...(fleetPageShown() ? FLEET_PAGE_SECTIONS : []), ...(captainPageShown() ? CAPTAIN_PAGE_SECTIONS : []), ...(companionPageShown() ? COMPANION_PAGE_SECTIONS : []), ...(revenantPageShown(playerEntity) ? REVENANT_PAGE_SECTIONS : []), ...(collectionsPageShown(playerEntity) ? COLLECTION_PAGE_SECTIONS : [])];   // COLLECTIONS
+const holdingsSections = () => [...(stablePageShown() ? STABLE_PAGE_SECTIONS : []), ...(fleetPageShown() ? FLEET_PAGE_SECTIONS : []), ...(captainPageShown() ? CAPTAIN_PAGE_SECTIONS : []), ...(campsPageShown() ? CAMPS_PAGE_SECTIONS : []), ...(companionPageShown() ? COMPANION_PAGE_SECTIONS : []), ...(revenantPageShown(playerEntity) ? REVENANT_PAGE_SECTIONS : []), ...(collectionsPageShown(playerEntity) ? COLLECTION_PAGE_SECTIONS : [])];   // COLLECTIONS
 
 function pauseStats(body) {
   const m = sheetModel(playerEntity);
