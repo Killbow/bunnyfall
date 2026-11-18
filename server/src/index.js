@@ -573,6 +573,25 @@ async function egLiveAsk(rooms) {
   const body = await asking;
   return body ? json(body) : json({ error: 'unavailable' }, 503);
 }
+/** BUNNYFALL: the Discord status panel's door (`/status`): { n, names, version } - how many are online and the first
+ *  names. Public like /health, read-only, and kept STATUS_KEEP_MS so a stranger polling it never loads the hub. */
+const STATUS_INTERNAL = '/internal/status';
+const STATUS_NAMES_MAX = 60;
+const STATUS_KEEP_MS = 10_000;
+/** @type {WeakMap<object, { at: number, body: any }>} */
+const statusSaid = new WeakMap();
+async function statusAsk(rooms) {
+  if (!rooms?.idFromName || !rooms?.get) return json({ error: 'unavailable' }, 503);
+  const kept = statusSaid.get(rooms);
+  if (kept && Date.now() - kept.at < STATUS_KEEP_MS) return json(kept.body);
+  try {
+    const res = await rooms.get(rooms.idFromName(SOCIAL_ROOM)).fetch(new Request(`https://relay.internal${STATUS_INTERNAL}`, { signal: AbortSignal.timeout(4000) }));
+    if (!res.ok) return json({ error: 'unavailable' }, 503);
+    const body = await res.json();
+    statusSaid.set(rooms, { at: Date.now(), body });
+    return json(body);
+  } catch { return json({ error: 'unavailable' }, 503); }
+}
 /** AUDIT EG IV (lane3 #17): the hub's live answer asked in flight, by the binding asked (an isolate's own). */
 const egLiveAsking = new WeakMap();
 /** The hub's answer to `/v1/eg/live` - its body, or null when it did not answer. */
@@ -680,6 +699,7 @@ export default {
     const url = new URL(request.url);
     url.pathname = url.pathname.replace(/^\/relay(?=\/)/, '');   // BUNNYFALL: the relay under /relay on its own domain (src/net/selfHost.js), or bare
     if (url.pathname === '/health') return json({ ok: true, service: 'daggerfall-online', version: RELAY_VERSION, t: Date.now() });
+    if (url.pathname === '/status') return statusAsk(env.ROOMS);   // BUNNYFALL: a read-only who-is-online for the Discord status panel
     if (url.pathname === EG_LIVE_PATH) return egLiveAsk(env.ROOMS);   // EG-H2: the Spire's live breaches, for the deploy's hold and drain
     if (url.pathname === SAFE_LAW_PATH) return lawDoor(request, env);   // SAFE4: a mute or ban the account service pushed, for the hub
     const key = roomOf(url.pathname);
@@ -1080,6 +1100,7 @@ export class Room {
     if (path === SEV_INTERNAL_TELL) return staffTellInternal(this, request);   // STAFF-EVENT: a cell telling the hub an event's meter
     if (path === SEV_INTERNAL_CALL) return staffCallInternal(this, request);   // STAFF-EVENT: the hub telling a cell a boss called or an event ended
     if (path === STAR_INTERNAL_HELD) return this._starHeldInternal(request);   // STAR3: a fallen star held, said to the hub
+    if (path === STATUS_INTERNAL) return json(this._statusRead());   // BUNNYFALL: who is online, for the Discord status panel
     if (path === RELAY_INTERNAL_CFG) return json(await this._relayCfgOf());   // SCALE5b: a boss's room asking the hub for the relay's settings
     if (path === HUB_INTERNAL_UP) return this._hubUpInternal(request);   // SCALE5c: a shard's hellos, frames and closes, to the bus
     if (path === HUB_INTERNAL_POLL) return this._hubPollInternal(request);   // HUB-PULL: a shard asking for its sockets' frames - the bus never calls a shard
@@ -1291,6 +1312,18 @@ export class Room {
   }
   /** AUDIT SCALE5a C1-C3: how many the room can name - hello'd, never a socket this object closed or whose leave is said
    *  (`_othersOf`'s rule, the joiner's own socket counted): the welcome's `n`, said again on a channel's every leave. */
+  /** BUNNYFALL: the Discord status panel's read - the count of players online and their names (never a hidden one's, nor a
+   *  dead socket's), the first STATUS_NAMES_MAX of them. Nothing is changed. */
+  _statusRead() {
+    const names = [];
+    let n = 0;
+    for (const [ws, b] of this._all()) {
+      if (!b.id || b.hid || this._dead.has(ws) || this._gone.has(ws)) continue;
+      n++;
+      if (names.length < STATUS_NAMES_MAX) names.push(String(b.name ?? '').slice(0, 40));
+    }
+    return { n: Math.max(n, this._vsocks?.size ? this._busCount() : 0), names, version: RELAY_VERSION };
+  }
   _namedCount() { let n = 0; for (const [ws, b] of this._all()) if (b.id && !b.hid && !this._dead.has(ws) && !this._gone.has(ws)) n++; return n; }   // STAFF-PANEL5-HIDDEN: nor any count
   /** One frame to every hello'd socket but `ws` - the index walked in place, never copied: a failed send forgets its
    *  socket mid-walk (`_closed`), which a Map's own iteration takes (the entry gone is not visited), and nothing here
