@@ -38,9 +38,9 @@ test('reach destinations are deterministic, rotate daily and use shared site val
   assert.equal(seen.size,3);assert.notDeepEqual(reachSite(270,15,20000),reachSite(270,15,20001));
   assert.equal(reachDay(86400000),1);
 });
-function fixture(kind=2) {
+function fixture(kind=2, purple=false) {
   restoreModSaveRecords({});
-  let site;for(let x=260;x<280&&!site;x++)for(let y=5;y<30;y++){const s=reachSite(x,y,20000);if(s.kind===kind){site=s;break;}}
+  let site;for(let x=260;x<280&&!site;x++)for(let y=5;y<30;y++){const s=reachSite(x,y,20000);if(s.kind===kind && (!purple || s.purpleFire)){site=s;break;}}
   let tick=1000,peer=false,age=0,fail=null,delay=null,claims=0;
   const list=[],piles=[],notices=[];
   const mask={width:1000,height:500,inside:new Uint8Array(500000).fill(1)};
@@ -107,4 +107,18 @@ test('Blight stacks once per fire, triggers Rodney, and resets on leaving the Re
   blight.frame(.1, [0, 0, 0], false, true);
   assert.equal(blight.level(), 0);
   assert.deepEqual(blight.marks(), []);
+});
+
+test('purple fires require activation, even when standing on them', async () => {
+  const f = fixture(2, true), exposed = [];
+  f.d.blight = { expose: id => exposed.push(id) };
+  f.host.frame();
+  await settle();
+  assert.deepEqual(exposed, []);
+  const [fire] = f.host.fireTargets();
+  assert.ok(fire.reach > 0);
+  assert.equal(f.host.activateFire(fire.key, 'info'), true);
+  assert.deepEqual(exposed, []);
+  assert.equal(f.host.activateFire(fire.key, 'grab'), true);
+  assert.deepEqual(exposed, [f.site.id]);
 });

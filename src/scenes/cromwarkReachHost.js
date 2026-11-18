@@ -1,5 +1,8 @@
 // @ts-check
 import { reachSite, reachDay, reachMemory } from '../systems/wild/cromwarkEvents.js';
+import { CAMP_REACH } from '../systems/survival/camp.js';
+import { RAY_DISTANCE } from '../player/activate.js';
+import { t } from '../systems/textManager.js';
 import { wildInside } from '../systems/wild/wildZone.js';
 // Shared WOD sites arbitrate competing owners. Character memory records observed
 // deaths, never a disappeared foe: leaving the area is not a victory.
@@ -50,7 +53,6 @@ export function createCromwarkReachHost(d) {
       if(dist>750 || !Number.isFinite(p[1]) || (s.day!==day&&dist>160)) {
         d.foes.drop(id); if(s.pile)d.loot.remove(s.pile); sites.delete(id); continue;
       }
-      if (s.purpleFire && dist < 6) d.blight?.expose(id);
       const m=mem(s), group=d.foes.list().filter(f=>f.site===id);
       for(const f of group) {
         if(f.dead) {
@@ -81,7 +83,29 @@ export function createCromwarkReachHost(d) {
       } else if(dist<110) spawn(s,now);
     }
   }
+  const firePrefix = 'reach-fire:';
+  const fireAt = (key) => typeof key === 'string' && key.startsWith(firePrefix)
+    ? sites.get(key.slice(firePrefix.length)) : null;
+  const fireName = () => t('cromwark.fire.name', 'Purple campfire');
+  function fireTargets() {
+    if (!d.ready()) return [];
+    return [...sites.values()].filter(s => s.purpleFire).flatMap(s => {
+      const [x, y, z] = point(s);
+      if (!Number.isFinite(y)) return [];
+      return [{ key: firePrefix + s.id, aabb: { min: [x - .8, y, z - .8], max: [x + .8, y + 1.6, z + .8] },
+        distance: RAY_DISTANCE, reach: CAMP_REACH, noSurface: true }];
+    });
+  }
+  function activateFire(key, mode) {
+    const site = fireAt(key);
+    if (!d.ready() || !site?.purpleFire) return false;
+    if (mode === 'info' || mode === 'dialogue') d.say(fireName());
+    else d.blight?.expose(site.id);
+    return true;
+  }
   return { frame, reset(){serial++;for(const s of sites.values()){d.foes.drop(s.id);if(s.pile)d.loot.remove(s.pile);}sites.clear();next=0;},
+    fireTargets, activateFire,
+    fireHover: key => fireAt(key)?.purpleFire ? { title: fireName(), actions: [{ id: 'attune', label: t('cromwark.fire.attune', 'Take on Blight') }] } : null,
     fires:()=>[...sites.values()].filter(s=>s.purpleFire).map(point),
     beacons(){return [...sites.values()].filter(s=>!complete(s)).map(s=>{const p=point(s);return {x:p[0],y:p[1],z:p[2],radius:s.kind===0?1.3:s.kind===1?8:3,height:s.kind===0?25:s.kind===1?14:5,below:.1,kind:s.kind+1};});},
     state:()=>[...sites.values()].map(s=>({id:s.id,title:s.title,point:point(s),slain:[...mem(s).slain],complete:complete(s),pending:s.pending})),
