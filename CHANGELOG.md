@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-18
+
+- Click a player's name in the chat and pick Whisper: the chat field fills with the whisper command and their name, ready for your message.
+
 ## 2026-11-17
 
 - Legendary Bartender now also unlocks the Heart's Fire aura (formerly Beaconlight), including for players who already own the title.
