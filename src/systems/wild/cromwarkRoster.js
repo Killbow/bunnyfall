@@ -1,4 +1,5 @@
 // @ts-check
+import { cromwarkCombatRing } from './cromwark.js';
 // Cromwark's own cast. A leaf shared by spawning, grants and combat.
 export const CROMWARK_ROSTER = Object.freeze([
   { id: 3136, key: 'judge', name: 'Judge', hp: 118, speed: 35, weight: 2, cooldown: 3, color: [1, .5, .95] },
@@ -19,18 +20,30 @@ export const CROMWARK_TITAN_SIZE = 1.15;
 export const CROMWARK_TITAN_GLOW = Object.freeze([1, .08, .06, .85]);
 export const cromwarkTitanDamage = (entity, damage) => Math.min(damage, Math.max(1, Math.ceil(entity.maxHealth / 4)));
 
-// Repeat the encounter composition to fill a Cromwark pack.
-export function cromwarkPack(types, count) {
-  return types.length ? Array.from({ length: count }, (_, i) => types[i % types.length]) : types;
+const RING_FOES = Object.freeze([
+  [],
+  [3136, 3137, 3139, 3142],
+  [3136, 3137, 3138, 3139, 3140, 3142],
+  CROMWARK_ROSTER.map(p => p.id),
+].map(Object.freeze));
+const cromwarkFoes = (ring) => RING_FOES[Math.min(3, Math.max(0, ring | 0))];
+export const cromwarkSpeciesInRing = (id, ring) => cromwarkFoes(ring).includes(id);
+
+// Three custom enemies per five slots, cycling the ring's roster before repeating.
+export function cromwarkPack(types, count, ring = cromwarkCombatRing()) {
+  const pool = cromwarkFoes(ring);
+  if (!types.length) return types;
+  let custom = 0, support = 0;
+  return Array.from({ length: count }, (_, i) => pool.length && i % 5 < 3
+    ? pool[custom++ % pool.length]
+    : types[support++ % types.length]);
 }
 
-// Three fifths lead actors, two fifths the original encounter table. Deeper rings
-// introduce more pattern combinations, rather than multiplying everyone's stats.
+// Deeper rings introduce more pattern combinations.
 export function cromwarkSpecies(normal, ring, die = Math.random) {
-  if (!(ring > 0) || normal < 0 || cromwarkProfile(normal)) return normal;
-  if (die() >= .6) return normal;
-  const pool = ring < 2 ? [0, 1, 3, 6] : ring < 3 ? [0, 1, 2, 3, 4, 6] : [0, 1, 2, 3, 4, 5, 6];
-  return CROMWARK_ROSTER[pool[Math.min(pool.length - 1, Math.floor(die() * pool.length))]].id;
+  const pool = cromwarkFoes(ring);
+  if (!pool.length || normal < 0 || cromwarkProfile(normal) || die() >= .6) return normal;
+  return pool[Math.min(pool.length - 1, Math.floor(die() * pool.length))];
 }
 
 export function makeCromwarkEntity(entity, id, own = true) {

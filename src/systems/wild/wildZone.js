@@ -130,8 +130,8 @@ let _kind = null;
  *  which ground (ETHER-WILD, 2026-10-21: `kind` - 'wroth' the Wrothgarian Mountains, 'ether' the Eltheric Ocean past
  *  Veilhaven's peace, systems/wild/etherWild.js). Every law of the zone reads the flag alike; only its words read the kind. */
 export function setWildHere(on, ring = 0, kind = WILD_KIND) {
-  setCromwarkCombatHere(!!on && cromwarkPeace(kind));
   _here = !!on; _ring = _here ? Math.max(1, Math.min(WILD_RINGS, ring | 0 || WILD_RINGS)) : 0; _kind = _here ? (kind || WILD_KIND) : null;
+  setCromwarkCombatHere(cromwarkPeace(_kind), _ring);
 }
 /** Does the player stand in the zone now? (The foe pools ask at a spawn, the loot rolls at a death.) */
 export const wildHere = () => _here;
