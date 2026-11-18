@@ -155,6 +155,7 @@ export function createEliteDungeonFight(deps) {
           for (const f of foes) if (f?.entity?.edSifrit) { if (!f.dead) { sifrit = f; break; } sifrit ??= f; }
           if (sifrit && !sifrit.dead) {
             r.seen = true;
+            if (!r.asked) void ask(r);   // come in on her fight: the service keeps that I was here (the claim asks it)
             if (!sifrit.puppet) hers(sifrit, t0);
           } else if (sifrit?.dead && r.seen) {
             if (r.claimTries < CLAIM_TRIES && nowMs() >= r.claimAt) void claim(r);

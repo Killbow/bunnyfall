@@ -117,6 +117,7 @@ import { readGateMark, gateRingKey, gateRingTexels, GATE_DOT_RGB } from '../gate
 import { readBountyMarks, bountyMarksKey, bountyRingTexels, BOUNTY_DOT_RGB, REVENANT_DOT_RGB, REVENANT_LEGEND_TEXT } from '../bounty/bountyMapMark.js';   // BOUNTY1: held bounties' black circles on the region page
 import { LODE_DOT_RGB, LODE_LEGEND_TEXT } from '../lodeMapMark.js';   // MINE-PERKS: a Motherlode Sense's Motherlodes, the same circle in aqua
 import { POI_DOT_RGB, POI_MARKS_MAX, poiLegendText } from '../poi/poiMapMark.js';   // POI-2: the approved POIs, the same circle in violet
+import { eliteDungeonRings, ED_TRAVEL_RGB } from '../eliteDungeonMapInk.js';   // BUNNYFALL: the daily elite dungeons, a violet circle each
 import { readVendorMark, vendorMarkKey, vendorRingTexels, VENDOR_DOT_RGB } from '../vendor/vendorMapMark.js';   // HOME-VENDOR: the trader's waypoint's gold ring
 import { MAP_WIDTH, MAP_HEIGHT } from '../../formats/woodsFile.js';
 import { layoutMessageBox, drawMessageBox, messageBoxHit, MB_BUTTONS, messageBoxArtLoaded, fitBoxRows } from '../messageBox.js';
@@ -941,6 +942,13 @@ export class TravelMapWindow {
       const poiPx = packRGBA(POI_DOT_RGB[0], POI_DOT_RGB[1], POI_DOT_RGB[2], 255);
       for (const [x, y] of bountyRingTexels(pois, originX, originY, width, height)) plot(x, y, poiPx);
     }
+    // BUNNYFALL: each daily elite dungeon - the same circle, in its crystal's violet, as wide as its spread
+    const eds = readBountyMarks(() => eliteDungeonRings(this.deps.eliteDungeons?.() ?? []), { width: MAP_WIDTH, height: MAP_HEIGHT }, 'Elite dungeon', 64);
+    this._edKey = bountyMarksKey(eds);
+    if (eds.length) {
+      const edPx = packRGBA(ED_TRAVEL_RGB[0], ED_TRAVEL_RGB[1], ED_TRAVEL_RGB[2], 255);
+      for (const [x, y] of bountyRingTexels(eds, originX, originY, width, height)) plot(x, y, edPx);
+    }
     // HOME-VENDOR: the trader's waypoint's gold ring, under the party as the bounties' are
     const vendor = readVendorMark(this.deps.vendor, { width: MAP_WIDTH, height: MAP_HEIGHT });
     this._vendorKey = vendorMarkKey(vendor);
@@ -1037,6 +1045,7 @@ export class TravelMapWindow {
       && bountyMarksKey(readBountyMarks(this.deps.bounties, { width: MAP_WIDTH, height: MAP_HEIGHT })) === (this._bountiesKey ?? '')
       && bountyMarksKey(readBountyMarks(this.deps.lodes, { width: MAP_WIDTH, height: MAP_HEIGHT }, LODE_LEGEND_TEXT)) === (this._lodesKey ?? '')   // MINE-PERKS: or a Motherlode Sense's Motherlode rose, went or was spent
       && bountyMarksKey(readBountyMarks(this.deps.pois, { width: MAP_WIDTH, height: MAP_HEIGHT }, poiLegendText(), POI_MARKS_MAX)) === (this._poisKey ?? '')   // POI-2: or a POI was approved, moved or retired
+      && bountyMarksKey(readBountyMarks(() => eliteDungeonRings(this.deps.eliteDungeons?.() ?? []), { width: MAP_WIDTH, height: MAP_HEIGHT }, 'Elite dungeon', 64)) === (this._edKey ?? '')   // BUNNYFALL: or an elite dungeon rose, spread or was cleansed
       && bountyMarksKey(readBountyMarks(this.deps.revenants, { width: MAP_WIDTH, height: MAP_HEIGHT }, REVENANT_LEGEND_TEXT)) === (this._revenantsKey ?? '')
       && vendorMarkKey(readVendorMark(this.deps.vendor, { width: MAP_WIDTH, height: MAP_HEIGHT })) === (this._vendorKey ?? '')) return false;   // WB1: or the ring came, went or moved; BOUNTY1: or a circle came or went; HOME-VENDOR: or the trader's waypoint moved
     this._updateMapLocationDotsTexture();
