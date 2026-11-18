@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-17
 
+- Fixed: Choosing a Bay waypoint or quest marker from the Eltheric Ocean no longer crashes the game.
 - Fixed: Travel refusals now name the nearest enemy with its distance and direction, and the Overworld marks lone enemies that block travel. Wilderness enemies that have not noticed you no longer close the Overworld.
 - Fixed: Purchases in the Bards' Guild Favor Shop now go through instead of failing.
 - Company farms now have costly shared tool, irrigation and soil upgrades, unlocked through crop deliveries. Bulk orders ask for 1,000, 5,000 and then 20,000 of each crop, pay Company gold and Argents, and enforce weekly limits and farm-grown milestones.
