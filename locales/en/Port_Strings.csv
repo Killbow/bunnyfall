@@ -1790,8 +1790,6 @@ chapters.standing.full,"{name}: your standing and what is owed already reach {ma
 chapters.standing.item,"{name} {delta} (now {now})"
 chapters.standing.itemOwed,"{name} {delta} (now {now}, {owed} more to come)"
 chapters.standing.line,"Standing: {list}"
-chapters.standing.others,"{n, plural, one {# other guild} other {# other guilds}}"
-chapters.standing.othersOnly,"Standing moved with {n, plural, one {# guild} other {# guilds}} you do not belong to."
 chapters.standing.paid,"{name}: {paid} of what was owed arrived (now {now})"
 chapters.standing.paidOwed,"{name}: {paid} of what was owed arrived (now {now}, {owed} more to come)"
 chargen.class.skills.major,"{m1}, {m2}, and {m3}."
