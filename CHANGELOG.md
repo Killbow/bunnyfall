@@ -6,6 +6,7 @@ the last release (scripts/changelogNotes.mjs).
 ## 2026-11-17
 
 - Fixed: Jumping in the Mages Guild spell shop showed "<effect not found>" and did nothing when cast. It now shows its effect, costs 13 spell points, and works for copies already in your spellbook too.
+- Fixed: A booked ship leaving its berth is now towed clear of the quay and steers around piers instead of getting stuck on piers or the shore.
 - Fixed: Travel refusals now name the nearest enemy with its distance and direction, and the Overworld marks lone enemies that block travel. Wilderness enemies that have not noticed you no longer close the Overworld.
 - Fixed: Purchases in the Bards' Guild Favor Shop now go through instead of failing.
 - Company farms now have costly shared tool, irrigation and soil upgrades, unlocked through crop deliveries. Bulk orders ask for 1,000, 5,000 and then 20,000 of each crop, pay Company gold and Argents, and enforce weekly limits and farm-grown milestones.

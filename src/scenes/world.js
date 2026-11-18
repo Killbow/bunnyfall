@@ -8479,7 +8479,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // PEACE-WAY (systems/comeSailAway/peaceWay.js): her way out of a fight - no enemy near (this runtime's own word, below),
     // no boarding, no broadside laid
     peaceWay() { return (this._peace ??= heldPeaceWay(() => peaceWayOf({ enemies: !!this.enemiesNearby() || !!naval?.threats?.().some((t) => t.chasing), boarding: !!naval?.boarding, aiming: !!naval?.aiming })))(); },   // held a PEACE_HOLD_S - AUDIT 2: a ship that has sighted me and comes on is a fight past HOSTILE_NEAR_M too (a raider's lookout is 1,000 m: I outran her at 1.15)
-    warp: (boat, s) => naval?.warp?.(boat, s) ?? null,   // QUAYS: her hands warping her in alongside a harbour's quay
+    warp: (boat, s) => passage.castOff(boat, s.dt) ?? naval?.warp?.(boat, s) ?? null,
     drift: (boat) => naval?.drift?.(boat) ?? null,   // SERPENT1: the sea serpent's maelstrom pulling her, a blow's throw - added to the current under her
     gale: (boat) => naval?.gale?.(boat) ?? null,   // SERPENT4: the sea serpent's gale - her canvas on her quarter on every heading, her helm quicker
     handling: () => getPref('naval-handling') ?? 'responsive',   // HELM-WAY: the Features row's Ship handling
@@ -9851,7 +9851,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // there - her boat at her berth, the Overworld's crossing at her helm (OWS2) - and the passage over when I step off her
   const passage = createPassageHost({ naval: () => naval, csa: () => (csaRuntime && csaOn() ? csaRuntime : null), ports: navalPortList, here: navalPortHere, pixel: playerTravelPixel,
     ether: (p) => !!etherSea && inEther(p.x, p.y), place: (p) => tvPlaceSummary(p.px, p.py), canGo: travelViewCanGo, route: travelViewRouteTo, travel: () => travelOptions,
-    journeyTo: () => tvTrip.plan?.summary?.pixel ?? (tvTrip.plan ? 'spot' : null), standsOn: csaStandsOn, busy: worldMoveBusy, player, remount: setTransportModeHere, talk: townTalk });
+    journeyTo: () => tvTrip.plan?.summary?.pixel ?? (tvTrip.plan ? 'spot' : null), standsOn: csaStandsOn, busy: worldMoveBusy, player, remount: setTransportModeHere, talk: townTalk, isWater: navalIsWater });
   setHoldingsProvider({
     ...stableProviderFor({ runtime: hccRuntime, on: hccOn, hasHorse: () => hasTransport(TRANSPORT_HORSE), hasCart: () => hasTransport(TRANSPORT_SMALL_CART), wagonKind: () => activeWagonKind(playerEntity.items ?? []), items: () => playerEntity.items ?? [], onPainted: () => { _hccDirty = true; },
       upkeep, pass: upkeepPass }),   // WAGONS1: the Stable names the wagon driven - WAGONS2: and paints it; STEED1/WAGONS4: and keeps them (a kit's hour a skip, as a camp meal's)
@@ -31482,12 +31482,12 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (boat) csaCall(() => csaRuntime.StartSailing(boat));   // "You control the boat!"
   }
   /** Metres along a flat direction from `p` to the first land within `far` (TV_SEA_AHEAD_M; Infinity: none seen) -
-   *  FERRY-CLEAR: with `hulls`, or the first ship's hull, if nearer (the naval host's hullAlong); AUDIT FERRY-CLEAR F1:
-   *  `hulls` 'only', the hulls alone (a landfall's line, whose land is its shore). */
+   *  with `hulls`, the nearer ship's hull or pier (hullAlong, pierAlong).
+   *  `hulls` 'only', hulls and piers alone (a landfall's line, whose land is its shore). */
   function tvSeaLandAlong(p, dx, dz, far = TV_SEA_AHEAD_M, hulls = false) {
     let d = 5;
     while (hulls !== 'only' && d <= far && tvSeaWaterAt(p[0] + dx * d, p[2] + dz * d)) d += 5;
-    return Math.min(hulls !== 'only' && d <= far ? d : Infinity, (hulls && naval?.hullAlong(p, dx, dz, far)) || Infinity);
+    return Math.min(hulls !== 'only' && d <= far ? d : Infinity, (hulls && naval?.hullAlong(p, dx, dz, far)) || Infinity, (hulls && quays?.pierAlong(p, dx, dz, far)) || Infinity);
   }
   /** The hand with more water: land along 45 degrees each side of the bow within `far`, the farther side's (-1 left,
    *  1 right). */
