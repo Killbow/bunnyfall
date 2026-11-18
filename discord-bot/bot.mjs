@@ -43,6 +43,7 @@ const commands = [
         .addChannelTypes(ChannelType.GuildText).setRequired(true)))
     .addSubcommand((c) => c.setName('status').setDescription('Show the connected channel'))
     .addSubcommand((c) => c.setName('disable').setDescription('Pause both directions')),
+  command('closeissue', 'Lock and archive the current forum post').setDefaultMemberPermissions(PermissionFlagsBits.ManageThreads),
   command('link', 'Link the Bunnyfall character you are playing'),
   command('me', 'Show your linked Bunnyfall character'),
   command('unlink', 'Remove your Bunnyfall connection'),
@@ -190,6 +191,23 @@ async function interaction(i) {
       await i.deferReply({ flags: MessageFlags.Ephemeral });
       await game('unlink', { discordId: i.user.id });
       return i.editReply('Your Bunnyfall account was unlinked.');
+    case 'closeissue': {
+      if (!i.memberPermissions?.has(PermissionFlagsBits.ManageThreads)) {
+        return privateReply(i, 'Manage Threads permission is required.');
+      }
+      await i.deferReply({ flags: MessageFlags.Ephemeral });
+      const thread = i.channel ?? await i.guild.channels.fetch(i.channelId);
+      const parent = thread?.isThread() && (thread.parent ?? await i.guild.channels.fetch(thread.parentId));
+      if (!parent || parent.type !== ChannelType.GuildForum) {
+        return i.editReply('Run /closeissue inside the forum post you want to close.');
+      }
+      if (!i.appPermissions?.has(PermissionFlagsBits.ManageThreads)) {
+        return i.editReply('The bot needs Manage Threads permission in this forum.');
+      }
+      if (thread.archived && thread.locked) return i.editReply('This post is already locked and archived.');
+      await thread.edit({ archived: true, locked: true, reason: `Closed with /closeissue by Discord user ${i.user.id}` });
+      return i.editReply('Forum post locked and archived.');
+    }
     case 'tavern': {
       if (!i.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) return privateReply(i, 'Manage Server permission is required.');
       await i.deferReply({ flags: MessageFlags.Ephemeral });
