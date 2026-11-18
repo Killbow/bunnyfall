@@ -48,6 +48,8 @@ import { HEIGHTMAP_DIMENSION, TERRAIN_SIZE } from '../world/terrain/terrainSampl
 import { HOLD_FLATS, HOLD_MODELS, holdFireLights, holdModelMatrix, PRIVATEERS_HOLD_BLOCK } from '../world/worldOfDaggerfall/wodPrivateersHold.js';
 import { HOME_LOOK_BUILD_WAIT_MS, homeLookRemap } from '../world/homeLook.js';
 import { homeLookSig } from '../net/homeLaw.js';
+import { noteTown as noteMagicTown } from './magicTavernRoom.js';   // MAGIC-TAVERN: the town's blue tavern
+import { magicOutsideRemap } from '../render/magicTavernLook.js';
 import { insideRocks, rockFootprint } from '../world/terrain/terrainNature.js';
 import { isClimateFreeModel, NO_CLIMATE_REMAP } from '../world/customModels.js';
 import { isDrySourceFlat, isWaterSourceFlat, WATER_SOURCE_MODELS } from '../systems/survival/items.js';
@@ -511,6 +513,7 @@ export function createPixelBuild(host) {
         townHomes = onlineHomes.homesIn(homeTown);
         homeLookRead = onlineHomes.version() * 1024 + host._lookPreviewGen;
       }
+      const magicTavernKey = noteMagicTown(homeTown, loc.blocks);   // MAGIC-TAVERN: the town's magical tavern, by its map id (systems/magicTavern.js)
       for (const b of loc.blocks) {
         const originMatrix = trs(
           locLocal[0] + b.originX, locLocal[1], locLocal[2] + b.originZ, 0, 0, 0);
@@ -593,8 +596,12 @@ export function createPixelBuild(host) {
             entry.texRemap = homeLook ? await homeLookRemap(gpu.subMeshes, texRemap, homeLook, pixelSeason, pipeline) : null;
             pixelHomeKeys.add(homeKey);
           }
+          if (magicTavernKey != null && homeKey === magicTavernKey && !entry._home && !ruinPlan) {   // MAGIC-TAVERN: its pictures turned blue, its door a portal - drawn on its own, out of the merge
+            entry._magic = true;
+            entry.texRemap = await magicOutsideRemap(gpu.subMeshes, texRemap, { getTexture: pipeline.getTexture, renderer });
+          }
           models.push(entry);
-          if (!entry._home && !isCityGate(placed.modelIdNum) && cpu.normals && cpu.uvs) { addStatic(cpu, local, climateFree); entry._batched = true; }   // PERF4: the remap for this model's textures is in the map by now (awaited above); HOME-LOOK: a home stays out
+          if (!entry._home && !entry._magic && !isCityGate(placed.modelIdNum) && cpu.normals && cpu.uvs) { addStatic(cpu, local, climateFree); entry._batched = true; }   // PERF4: the remap for this model's textures is in the map by now (awaited above); HOME-LOOK: a home stays out
           await breather.breathe();   // PERF7: a warm build gives the frame back every few milliseconds
           // AUDIT 64 F14: a city gate takes a collider bucket of its own
           // (the pixel's shared bucket has no per-mesh removal), keyed
@@ -1662,6 +1669,7 @@ export function createPixelBuild(host) {
           const look = onlineHomes && p.homeTown ? lookOfHome(p.homeTown, m._home.bk, onlineHomes.homesIn(p.homeTown)?.get(m._home.bk) ?? null) : null;
           homes.push([m, look ? await homeLookRemap(m.gpu.subMeshes, table, look, pixelSeason, pipeline) : null]);
         }
+        for (const m of p.models) if (m._magic) homes.push([m, await magicOutsideRemap(m.gpu.subMeshes, table, { getTexture: pipeline.getTexture, renderer })]);   // MAGIC-TAVERN: the blue pictures in the season
       }
       const mill = turns && p.models.some((m) => m._mill) ? (await getWindmillMeshes(p.townClimate, pixelSeason === SEASON.Winter)).body : null;
       // THE FLATS' SEASONS: their groups stood again by the build's own law, aside
@@ -1695,7 +1703,7 @@ export function createPixelBuild(host) {
       p._snow = rec.done(sk.usesSeason);
       p.texRemap = table;
       if (made.mesh !== undefined) { if (p.staticBatch) renderer.destroyMesh(p.staticBatch); p.staticBatch = made.mesh; }
-      for (const [m, map] of homes) { m._home.seq++; m.texRemap = map; }   // an ask of refreshHomeLooks under way is the old season's: spent
+      for (const [m, map] of homes) { if (m._home) m._home.seq++; m.texRemap = map; }   // an ask of refreshHomeLooks under way is the old season's: spent
       if (mill) for (const m of p.models) if (m._mill) m.gpu = mill;
       if (flats) {
         for (const b of sk.batches) {

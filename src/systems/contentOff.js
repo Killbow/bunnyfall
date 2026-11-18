@@ -36,6 +36,9 @@ export const CONTENT = Object.freeze({
    *  chat line is sent as typed: no word starred (net/wire.js sanitizeChat). Names, guild names, notes and letters keep
    *  the filter. */
   chatFilter: false,
+  /** BUNNYFALL (2026-11-18, the owner's idea): MAGICAL TAVERNS. On, a town with two taverns or more has one of them, picked by
+   *  its map id, turned blue with a portal for a door, and every such door opens the one shared hall (systems/magicTavern.js). */
+  magicTaverns: true,
 });
 
 /** Whether a piece of content is on. */

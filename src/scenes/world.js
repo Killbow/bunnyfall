@@ -29072,7 +29072,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       const loc = _questLoc();   // the location under the player: an interior's room is named by it
       key = ident?.private ? privateRoomHere(ident) : roomKeyFor({
         host: 'world', mode,
-        mapId: ident?.kind === 'dungeon' ? seaVaultRoomId(ident.mapId ?? null, _wdunInside?.h ?? seaVentures.vaultHere()?.key) : (loc?.mapTableData?.mapId ?? null),   // AUDIT SEA VENTURES D7, D8: a vault of the deep's room its own lane (net/wire.js seaVaultRoomId) - the vault the gate let me into, or the day's I stand in
+        mapId: ident?.kind === 'dungeon' ? seaVaultRoomId(ident.mapId ?? null, _wdunInside?.h ?? seaVentures.vaultHere()?.key) : (ident?.sharedMapId ?? loc?.mapTableData?.mapId ?? null),   // MAGIC-TAVERN: the shared hall's own map id   // AUDIT SEA VENTURES D7, D8: a vault of the deep's room its own lane (net/wire.js seaVaultRoomId) - the vault the gate let me into, or the day's I stand in
         regionIndex: ident?.kind === 'dungeon' ? ident.regionIndex : (loc?.regionIndex ?? -1),
         locationName: ident?.kind === 'dungeon' ? ident.name : (loc?.name ?? ''),
         buildingKey: ident?.buildingKey ?? 0,
@@ -29093,6 +29093,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       ? (p) => { const l = state.localFromWorld(p.x, p.z); return [l[0], p.y + state.compensation[1], l[1]]; }
       : (p) => [p.x, shedY ? p.y + state.compensation[1] : p.y, p.z];
     sceneToOnline = nativeFrame ? campToWire : (q) => [q[0], shedY ? q[1] - state.compensation[1] : q[1], q[2]];   // AUDIT MERGE-PLUS B1
+    const _hallAt = modes?.roomIdentity?.()?.sharedOrigin ?? null;   // MAGIC-TAVERN: the shared hall stands at each door's place; the wire says where in the hall, not where in which town
+    if (_hallAt) { pose.x = player.pos[0] - _hallAt[0]; pose.y = player.pos[1] - _hallAt[1]; pose.z = player.pos[2] - _hallAt[2]; onlineToScene = (p) => [p.x + _hallAt[0], p.y + _hallAt[1], p.z + _hallAt[2]]; sceneToOnline = (q) => [q[0] - _hallAt[0], q[1] - _hallAt[1], q[2] - _hallAt[2]]; }
     // CARDS2b: seated at a card table, the pose is the SEAT's - the feet and the facing the body is drawn at (the capsule
     // stands where it sat down from), in the room's frame like any point; `st` rides the arm below
     const seated = modes?.seatPose?.() ?? null;
