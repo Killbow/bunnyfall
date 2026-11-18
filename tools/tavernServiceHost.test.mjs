@@ -29,17 +29,19 @@ test('NPC plaque actions complete service and apply a server payment before the 
     assert.ok(service.hoverName('person:0').actions.some((a) => a.id === `tservice:${k}`));
     assert.equal(service.activate(keeper, `tservice:${k}`), true); await flush();
   }
-  service.activate(keeper, 'tservice:carry'); await flush(); nowS += 21;
+  assert.equal(state.phase, 'carry', 'the third dose puts the cup in hand');
+  assert.ok(!service.hoverName('person:0').actions.some((a) => a.id === 'tservice:carry'));
+  nowS += 21;
   service.activate(patron, 'tservice:serve'); await flush();
+  assert.equal(entity.goldPieces, 36); assert.equal(checkpointGold, 36);
+  assert.equal(state.index, 1);
+  assert.ok(said.some((s) => s.includes('+1 Favor Token')), said.join(' | '));
   assert.ok(service.hoverName('person:1').actions.some((a) => a.id === 'tservice:room'));
   service.activate(patron, 'tservice:room');
   assert.equal(choiceView.options.length, 4);
   assert.ok(choiceView.lines.some((s) => s.includes('Warmth')));
   choiceView.options.find((o) => o.code === 'Escape').action();
-  service.activate(patron, 'tservice:collect'); await flush();
-  service.activate(keeper, 'tservice:return'); await flush();
-  assert.equal(entity.goldPieces, 36); assert.equal(checkpointGold, 36);
-  assert.equal(state.index, 1); assert.ok(said.length);
+  assert.ok(!service.hoverName('person:1').actions.some((a) => ['tservice:collect', 'tservice:return'].includes(a.id)));
   assert.equal(service.activate(keeper, 'tservice:talk'), false);
   service.dispose();
 });

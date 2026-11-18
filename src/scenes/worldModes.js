@@ -2642,6 +2642,7 @@ export function createWorldModes(host) {
     patron: (pn) => !pn.questBehaviour && !pn.bunnyClerk && !pn.arenaRole && !isChildNPCData(staticNpcData(pn, staticNpcSceneCtx(pn))) && staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict, building: interiorBuilding }).kind === 'talk',
     plaque: worldPlaqueOn, choose: (view) => townTalk?.showOverlay?.(new ChoiceWindow(view)), showWindow: (view) => townTalk?.showOverlay?.(view),
     talk: (pn) => openStaticNpc(pn), say: (line) => say(line), saveSoon: () => host.saveSoon?.(),
+    renderer, getTexture, uploadRecordFrame, collider: () => (mode === 'interior' ? interiorCtx?.collider ?? null : null),   // BUNNYFALL: the chores left in the room
   });
   /** ARENA-FIX 2: A STOOD PERSON'S OFFICE - the arena gate's people (world/arena/arenaCity.js arenaGatePersonName: "The Herald
    *  of the Arena", "Red Banner Recruiter", ...) and the undercroft's (the Pit Master, the Keeper of the Hall), or null:
@@ -3435,6 +3436,7 @@ export function createWorldModes(host) {
     targets.push(...interiorDropped.lootTargets());   // ID1: the player's own piles, the dungeon's key vocabulary
     targets.push(...interiorTorches.targets());   // HT1: the dropped torches
     targets.push(...interiorDecor.targets(), ...(decorTool.flying() && !decorTool.ghost() ? (interiorCtx.base?.aimTargets?.() ?? []) : []));   // DECOR1c: the pieces the room's owner placed; decorating also aims the room's own furniture
+    targets.push(...tavernService.targets());   // BUNNYFALL: the empties and spills a tavern shift leaves to clear
     targets.push(...interiorCamps.targets());   // HEARTH1: the room's own fires - there is never a camp in this pool to add beside them
     // INTERIOR-BODIES (AUDIT-WH2 L2-F4, Mac: "Do it"): ...AND THE BODIES.
     //
@@ -9103,6 +9105,7 @@ export function createWorldModes(host) {
         openInteriorBodyLoot(key);
         return true;
       }
+      if (key.startsWith('tchore:')) { tavernService.activateChore(key); return true; }   // BUNNYFALL: sweep a spill, clear a table
       if (key.startsWith('hearth:')) { interiorCamps.activate(key, getInteractionMode(), plaqueActionFor(key)); return true; }   // HEARTH1: name it, or cook on it - AUDIT REST II H2: the plaque's lit row, as the other hosts pass it
       if (interiorDropped.physical.owns(key)) { interiorDropped.physical.pick(key, playerEntity); return true; }   // PI1: an item standing as itself is taken on the press
       if (key.startsWith('droppedLoot:')) {
@@ -11391,6 +11394,11 @@ export function createWorldModes(host) {
     {
       const _blood = interiorHitEffects.batches();
       if (_blood.length) renderer.drawBillboards(_blood, camRight, UP_Y);
+    }
+    // BUNNYFALL: a tavern shift's chores, on the same axis
+    {
+      const _chores = tavernService.batches();
+      if (_chores.length) renderer.drawBillboards(_chores, camRight, UP_Y);
     }
     // HT1: the room's dropped torches, on the same axis
     interiorTorches.tick(dt);

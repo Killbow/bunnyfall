@@ -24,8 +24,21 @@ test('responses are optional, validated, immutable, and resolve once per service
   assert.equal(r.gold, 0); assert.equal(r.favor, 0);
   assert.equal(respond(r.state, 'listen').error, 'tavern-action');
   assert.equal(tavernRoomAvailable(r.state), false);
-  assert.equal(respond({ ...st, phase: 'mix' }, 'listen').error, 'tavern-action');
+  assert.equal(respond({ ...st, phase: 'mix' }, 'listen').error, 'tavern-target');
   assert.equal(respond({ ...st, phase: 'dirty' }, 'listen').roomResult.choice, 'listen');
+});
+test('after a one-step serve, the customer just served can be worked while the next drink is mixed', () => {
+  const st = fresh(); st.orders[0].encounter = 'tallTales'; st.mix = { wine: 0, cream: 0, beer: 0 };
+  const recipe = st.orders[0].recipe;
+  const doses = { griffin: ['beer', 'beer', 'beer'], vigil: ['wine', 'wine', 'wine'], smuggler: ['wine', 'beer', 'beer'], midnight: ['wine', 'wine', 'beer'],
+    beggar: ['cream', 'beer', 'beer'], dibella: ['wine', 'cream', 'cream'], duchess: ['wine', 'wine', 'cream'], pilgrim: ['cream', 'cream', 'beer'], secret: ['wine', 'cream', 'beer'] }[recipe];
+  let s = st; for (const ingredient of doses) s = stepTavernShift(s, { op: 'pour', target: 'keeper', ingredient }, 110).state;
+  const served = stepTavernShift(s, { op: 'serve', target: 'guest' }, 130);
+  assert.equal(served.served, true); assert.equal(served.state.phase, 'mix');
+  assert.equal(tavernRoomAvailable(served.state), true);
+  const r = respond(served.state, 'listen');
+  assert.equal(r.roomResult.choice, 'listen'); assert.equal(r.state.orders[0].roomChoice, 'listen');
+  assert.equal(tavernRoomAvailable(r.state), false);
 });
 test('loud responses backfire in a tense room, while calming choices restore it', () => {
   const st = ready(); st.room = { warmth: 2, energy: 2, tension: 4 };
