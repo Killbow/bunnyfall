@@ -834,7 +834,7 @@ import { rayUprightCapsule } from '../world/passiveFish.js';   // DW-E3: a fish'
 import { installDeepWatersFishIcons, createFishItem, normalizeFishItems, fishPictureUrl } from '../underwater/deepWatersFishItems.js';   // DW-E3: the fish as items
 import { clearEdgeBlackPixels } from '../world/underwaterDecorations.js';   // DW-E3: a fish's picture, edge-cleaned   // DW-E2: the seafloor's decorations   // DW-D: DeepWaterRuntime's load grace
 import { carvedFloorLocalY } from '../underwater/deepWatersHost.js';   // DW-D: the shore probes see no terrain over a carved cell
-import { etherPlaceRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
+import { slicedEtherRects } from '../world/etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's places' rects, for its own bake
 import { setWaterBreathingRule } from '../underwater/breath.js';   // DW-D: the dungeon's breath law, on the open sea; ApplyArgonianInfiniteBreath
 import { RACES } from '../characters/races.js';   // DW-D: ArgonianInfiniteBreath
 import { localizedStrings, localizedText, getLocalizedLocationName, t } from '../ui/textManager.js';   // L10N3d: DFU's Internal_Strings, read in the player's language; L10N3e: and the names shown
@@ -2957,7 +2957,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     // - its places' rects read off the isles' templates once, as the Bay's are off its locations: a template's rect is
     // its blocks' alone, read as a clone reads them (the isles' region and an isle's own index - WD3 names the town
     // whose blocks come next, and no variant names a clone)
-    ether: etherSea ? etherPlaceRects(_etherTemplates, locationRectReader(maps, blocks, { regionIndex: ETHER_REGION, locationIndex: -1000 })) : null,   // AUDIT ETHER-OW C1-4: one tilemap for the walk; BOOT-RECTS: and each block parsed once (terrainTiles.js locationRectReader)
+    ether: etherSea ? slicedEtherRects(_etherTemplates, locationRectReader(maps, blocks, { regionIndex: ETHER_REGION, locationIndex: -1000 })) : null,   // AUDIT ETHER-OW C1-4: one tilemap for the walk; BOOT-RECTS: and each block parsed once (terrainTiles.js locationRectReader)
   }) : null;
   /** OH-B: THERE'S A HOLE IN THE BOTTOM OF THE OCEAN 1.1.0 (jet082, vendor/ocean-holes/) - made below, after the decorations its
    *  pits keep out; the sea's floor builds are late-bound to it (a promote lands only after the world is up). */

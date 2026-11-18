@@ -23,8 +23,9 @@ import { buildGlobalSteps, classifyPixel, PIXEL_MIXED, DeepWatersBake } from './
 import { bakeCacheKey, bakeStore, cachedBake, fnv1a, rectsFingerprint, rectsLookup } from './deepWatersBakeCache.js';
 import { locationRectReader } from './terrainTiles.js';   // BOOT-RECTS: the walk's blocks parsed once
 import { buildDeepWatersPixel } from './deepWatersPixel.js';
-import { worldBakes } from './etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's bake beside the Bay's
+import { worldBakes, waterFrameOf, ETHER_FRAME } from './etherWatersBake.js';   // ETHER-DEEP: the Eltheric Ocean's bake beside the Bay's
 import { etherWoods } from './ethericSea.js';
+import { afterFirstFrame } from '../systems/afterFirstFrame.js';
 
 function defaultWorkerFactory() {
   return new Worker(new URL('./deepWatersWorker.js', import.meta.url), { type: 'module' });
@@ -77,8 +78,7 @@ async function buildHere(woods, rows, { store = bakeStore(), sliceMs = 8, woodsB
  * Open Deep Waters for one world: the bake starts building at once.
  * @param {object} deps
  * @param {object} deps.woods - the main thread's boot-smoothed WoodsFile.
- * @param {?object|boolean} [deps.ether] - ETHER-DEEP: the Eltheric Ocean stands - its places' rects (etherWatersBake.js
- *   etherPlaceRects), or true for none known; its bake is built beside the Bay's on both threads.
+ * @param {?object|Function|boolean} [deps.ether]
  * @param {?Uint8Array} deps.woodsBytes - its raw bytes, synced (a COPY crosses).
  * @param {Array<number[]>} deps.rects - deepWatersLocationRects' rows.
  * @param {?Function} [deps.workerFactory] - test seam; null forces the same-thread path.
@@ -96,6 +96,12 @@ export function openDeepWaters({ woods, woodsBytes = null, rects = [], ether = n
   let warned = false;
   const pending = new Map();   // id -> {resolve, job}
   let nextId = 1;
+  const etherRects = typeof ether?.ready === 'function' ? ether.ready : async () => (typeof ether === 'function' ? ether() : ether === true ? null : ether);
+  let etherGate = null;
+  const sendEther = async () => {
+    const rects = await etherRects();
+    try { worker?.postMessage({ t: 'ether', rects }); } catch { dropWorker(); }
+  };
 
   const here = (job) => {
     if (!bake || disposed) return null;
@@ -136,7 +142,7 @@ export function openDeepWaters({ woods, woodsBytes = null, rects = [], ether = n
             }
           };
           const bytes = woodsBytes.slice();
-          worker.postMessage({ t: 'build', woodsBytes: bytes, rects, ether }, [bytes.buffer]);
+          worker.postMessage({ t: 'build', woodsBytes: bytes, rects, ether: !!ether }, [bytes.buffer]);
         } catch (e) {
           console.warn('[deep waters] worker unavailable; building on the main thread', e);
           resolve(null);
@@ -146,6 +152,7 @@ export function openDeepWaters({ woods, woodsBytes = null, rects = [], ether = n
     }
     if (!record && !disposed) record = await buildHere(woods, rects, { woodsBytes, ...(store !== undefined ? { store } : {}) });
     if (!record || disposed) return null;
+    if (ether) afterFirstFrame(() => { if (!disposed) void etherRects(); });
     bake = worldBakes(new DeepWatersBake({ woods, global: record, locationRectAt: rectsLookup(rects) }), { woods: ether ? etherGround(woods) : woods, ether });
     return bake;
   })();
@@ -154,8 +161,10 @@ export function openDeepWaters({ woods, woodsBytes = null, rects = [], ether = n
     ready,
     /** One pixel's promote: the worker's answer, or this thread's; null once disposed or with no bake. */
     buildPixel(job, centre = null) {
-      return ready.then((b) => {
+      return ready.then(async (b) => {
         if (!b || disposed) return null;
+        if (ether && waterFrameOf(job.px, job.py, true) === ETHER_FRAME) await (etherGate ??= sendEther());
+        if (disposed) return null;
         if (!worker) return adopt(here(job));
         return new Promise((resolve) => {
           const id = nextId++;
