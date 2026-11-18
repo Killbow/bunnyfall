@@ -1294,6 +1294,8 @@ async function prepareClothingColours(resolve, parts, archives, gen) {
 
 /** MW-D38: the icon cache, per data generation / record / size / dye. */
 const ITEM_ICON_CACHE = new Map();
+/** Wall mount pictures still loading, by cache key. */
+const MOUNT_ASKS = new Map();
 
 /** AUDIT 68 S08-fparm-gen-cache-leak: THE MEMOS HOLD ONE GENERATION - the
  *  store's current one. Every memo above keys on `${gen}:`, and nothing
@@ -4054,10 +4056,10 @@ export function createFpArm() {
     }
   }
 
-  /** MW-D38: one ground mesh, textured, rendered to an icon-sized image. */
+  /** One ground mesh (NIF bytes or already-flattened pieces), textured, rendered to an icon-sized image. */
   function renderGroundMesh(nifBytes, archives, gen, size, { face = false } = {}) {   // MW-MOUNT: `face` - a displayed item's picture, framed face-on at its own size
     let batches;
-    try { batches = flattenNif(parseNif(nifBytes)); } catch { return null; }
+    try { batches = Array.isArray(nifBytes) ? nifBytes : flattenNif(parseNif(nifBytes)); } catch { return null; }
     const pieces = batches.filter((b) => b.positions && b.indices).map((b) => ({ ...b, slot: 'item', mirrored: false }));
     if (!pieces.length) return null;
     // the pass frame: NIF Z-up tipped to Y-up, in metres
@@ -7115,25 +7117,31 @@ export function createFpArm() {
       if (!rec || !rec.model) return null;
       const ckey = `mount:${cat.gen}:${rec.id}:${px | 0}`;
       if (ITEM_ICON_CACHE.has(ckey)) return ITEM_ICON_CACHE.get(ckey);
-      const path = `meshes/${rec.model}`;
-      await loadFromArchives(cat.archives, [path]);
-      const arc = cat.archives.find((a) => a.has(path));
-      if (!arc || (typeof arc.loaded === 'function' && !arc.loaded(path))) return null;
-      let pic = null;
-      try {
-        const bytes = arc.get(path).slice();
-        const pieces = flattenNif(parseNif(bytes.slice()));
-        await preloadArmTextures(pieces, cat.archives, cat.gen);   // what renderGroundMesh's collectArmTextures reads
-        if (api.mountPictureStamp() !== stamp) return null;   // the build went, or another generation landed, under the load: the host asks again (AUDIT DYE-ICON 4: by the stamp - a rebuild on the same data leaves it, and this picture, good)
-        // AUDIT DYE-ICON r3 2: a texture whose bytes never came (a read that failed) would be drawn as the warning and
-        // was kept with the picture for the generation - one blip, a magenta mount until the data changed. None now,
-        // nothing kept (the mesh's own failed load above answers so): the pack's picture hangs, the next ask loads again
-        if (texturesUnread(pieces, cat.archives, cat.gen)) return null;
-        pic = renderGroundMesh(bytes, cat.archives, cat.gen, px, { face: true });
-      } catch { pic = null; }
-      if (pic) pic.key = ckey;
-      ITEM_ICON_CACHE.set(ckey, pic);
-      return pic;
+      // A second ask for a picture still loading shares that load.
+      if (MOUNT_ASKS.has(ckey)) return MOUNT_ASKS.get(ckey);
+      const ask = (async () => {
+        const path = `meshes/${rec.model}`;
+        await loadFromArchives(cat.archives, [path]);
+        const arc = cat.archives.find((a) => a.has(path));
+        if (!arc || (typeof arc.loaded === 'function' && !arc.loaded(path))) return null;
+        let pic = null;
+        try {
+          const pieces = flattenNif(parseNif(arc.get(path).slice()));
+          // Loads the textures renderGroundMesh reads. If the build or the data generation changed during the load,
+          // the host asks again by the stamp. A rebuild on the same data leaves the stamp and this picture valid.
+          await preloadArmTextures(pieces, cat.archives, cat.gen);
+          if (api.mountPictureStamp() !== stamp) return null;
+          // A texture whose bytes never came would be drawn as the warning color for the whole generation, so nothing
+          // is cached: the next ask loads again.
+          if (texturesUnread(pieces, cat.archives, cat.gen)) return null;
+          pic = renderGroundMesh(pieces, cat.archives, cat.gen, px, { face: true });
+        } catch { pic = null; }
+        if (pic) pic.key = ckey;
+        ITEM_ICON_CACHE.set(ckey, pic);
+        return pic;
+      })().finally(() => MOUNT_ASKS.delete(ckey));
+      MOUNT_ASKS.set(ckey, ask);
+      return ask;
     },
 
     /** MW-MOUNT: the stamp a displayed item's picture is good for - the

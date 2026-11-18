@@ -141,6 +141,15 @@ export const paintFelt = (rgb = FELT_RGB) => painted((x, y) => {
   return rgb.map((c) => Math.round(c * k));
 });
 
+/** Puts the table's wood (unless `wood` is false) and its felt on the renderer, painting only what it does not hold.
+ *  Both go up opaque with a mip chain, as a model texture does. */
+export function uploadCardTableArt(renderer, felt, rgb, { wood = true } = {}) {
+  const art = /** @type {const} */ ([[WOOD_RECORD, wood, paintWood], [felt, true, () => paintFelt(rgb)]]);
+  for (const [record, want, paint] of art) {
+    if (want && !renderer.heldTexture?.(CARD_TABLE_ARCHIVE, record, { mips: true, opaque: true })) renderer.uploadTexture(CARD_TABLE_ARCHIVE, record, paint(), { mips: true, opaque: true });
+  }
+}
+
 /** The wood: its brown in grain running along u (the texture's x), each row's shade its own and a texel's a little. */
 export const paintWood = () => painted((x, y) => {
   const k = 0.8 + 0.25 * texelNoise(0, y, 2) + 0.06 * texelNoise(x, y, 3);

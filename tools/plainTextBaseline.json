@@ -1436,7 +1436,7 @@
   "src/render/precipitation.js": 78,
   "src/render/rainCurtains.js": 34,
   "src/render/realWindows.js": 22,
-  "src/render/renderer.js": 680,
+  "src/render/renderer.js": 678,
   "src/render/renderScale.js": 29,
   "src/render/renderTarget.js": 15,
   "src/render/retroMode.js": 71,
