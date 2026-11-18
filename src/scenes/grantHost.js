@@ -43,7 +43,7 @@ import { isCellRoom, mapPixelOfWire } from '../net/wire.js';
 import { staffBossBound } from '../systems/staffEvents.js';   // BOSS-BOUND: a staff event's mini boss, past a plain elite's bound
 import { foeStatsRefusal } from '../net/foeBounds.js';   // FOE-BOUNDS: the most health a streamed foe can legally have
 import { CROMWARK_WARDKEEPER } from '../systems/wild/cromwarkWards.js';
-import { cromwarkSpecies, cromwarkProfile } from '../systems/wild/cromwarkRoster.js';
+import { cromwarkSpecies, cromwarkSpeciesInRing } from '../systems/wild/cromwarkRoster.js';
 import { CROMWARK_ON } from '../systems/wild/cromwark.js';
 import { wildHere, wildMask, wildRingAt, WILD_NEAR_PX } from '../systems/wild/wildZone.js';
 import { inEther } from '../world/ethericSea.js';   // ETHER-WILD: the open sea's foes, read from Veilhaven's peace
@@ -404,9 +404,11 @@ export function createGrantHost({ session, climateAt = null, now = () => Date.no
     if (LEVELLED_KINDS.has(gr.k) && isClassEnemyId(r.t) && gr.l > 0 && Number.isInteger(r.l) && r.l > gr.l + GRANT_LEVEL_SLACK) return 'dice';
     if (ROLLED_KINDS.has(gr.k) && climateAt) {
       const set = grantSpeciesOf(climateAt(gr.p[0], gr.p[1]));
-      const wardkeeper = CROMWARK_ON && (gr.k === 'camp' || gr.k === 'band') && r.cwa >= 3
-        && r.t === CROMWARK_WARDKEEPER && wildRingAt(gr.p[0], gr.p[1], wildMask()) >= 3;
-      if (set && !set.has(r.t) && !wardkeeper && !(gr.k === 'enc' && CROMWARK_ON && cromwarkProfile(r.t) && wildRingAt(gr.p[0], gr.p[1], wildMask()) > 0)) return 'dice';
+      const ring = CROMWARK_ON ? wildRingAt(gr.p[0], gr.p[1], wildMask()) : 0;
+      const pack = gr.k === 'camp' || gr.k === 'band';
+      const wardkeeper = pack && ring >= 3 && r.cwa >= 3 && r.t === CROMWARK_WARDKEEPER;
+      const custom = (pack || gr.k === 'enc') && cromwarkSpeciesInRing(r.t, ring);
+      if (set && !set.has(r.t) && !wardkeeper && !custom) return 'dice';
     }
     return null;
   }

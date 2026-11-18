@@ -12459,7 +12459,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
    *  exactly the bound, so a camp is as it was). */
   const campMembers = (types, kind = 'camp') => {
     const members = partyGroupMembers(types, partySize());
-    return (wildHere() && cromwarkPeace(wildZoneKind()) ? cromwarkPack(members, kind === 'band' ? 20 : 25) : members).slice(0, encounterCap());
+    return (wildHere() && cromwarkPeace(wildZoneKind()) ? cromwarkPack(members, kind === 'band' ? 20 : 25, wildRing()) : members).slice(0, encounterCap());
   };   // PVPDUNGEONS: the zone's packs are allowed their four times
   const _standCampEncounter = (hit, feet) => {
     // CAMP-FAR: the anchor stands a hundred to a hundred and fifty metres

@@ -190,8 +190,14 @@ test('a missing projectile image cannot become an invisible damaging attack', as
 });
 
 test('Cromwark packs fill to their target and Titanheart caps damage on variants', () => {
-  assert.deepEqual(cromwarkPack([3136, 7, 3142], 5), [3136, 7, 3142, 3136, 7]);
-  assert.deepEqual(cromwarkPack([], 20), []);
+  assert.deepEqual(cromwarkPack([7, 15], 5, 1), [3136, 3137, 3139, 7, 15]);
+  assert.deepEqual(cromwarkPack([], 20, 4), []);
+  for (const count of [20, 25]) {
+    const pack = cromwarkPack([7, 15], count, 4);
+    assert.equal(pack.length, count);
+    assert.equal(pack.filter(id => id >= 3136).length, count * .6);
+    assert.equal(new Set(pack.filter(id => id >= 3136)).size, 7);
+  }
   const titan = { mobileType: 3136, eliteFoe: true, titanheart: true, maxHealth: 200 };
   assert.ok(cromwarkTitanheart(titan));
   assert.equal(cromwarkTitanheart({ ...titan, eliteFoe: false }), false);
