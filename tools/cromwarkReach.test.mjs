@@ -1,3 +1,4 @@
+import { createCromwarkBlight, cromwarkBlightEliteChance, cromwarkBlightLoot } from '../src/systems/wild/cromwarkBlight.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -30,7 +31,7 @@ test('reach destinations are deterministic, rotate daily and use shared site val
   const seen=new Set();
   for(let x=255;x<280;x++)for(let y=0;y<30;y++){
     const a=reachSite(x,y,20000),b=reachSite(x,y,20000);
-    assert.deepEqual(a,b);assert.ok(a.px>=x*3&&a.px<x*3+3);assert.ok(a.py>=y*3&&a.py<y*3+3);
+    assert.deepEqual(a,b);assert.equal(a.roster.length,a.kind===0?20:25);assert.ok(a.px>=x*3&&a.px<x*3+3);assert.ok(a.py>=y*3&&a.py<y*3+3);
     assert.equal(validSites([[a.id,0]]).length,1);assert.equal(validSiteTags([[0,a.id]]).get(0),a.id);
     seen.add(a.kind);
   }
@@ -48,14 +49,14 @@ function fixture(kind=2) {
     translation:(x,y)=>[(x-site.px)*819.2,0,(site.py-y)*819.2],ground:()=>20,dry:()=>true,allowed:(x,y)=>x===site.px&&y===site.py,
     peerSprang:()=>peer,peerHeldAgo:()=>age,forgetPeer:()=>{peer=false;},sprang:()=>{claims++;},say:t=>notices.push(t),save:()=>{},
     foes:{list:()=>list,reclaim:()=>{},campId:()=>1,drop:id=>{for(let i=list.length-1;i>=0;i--)if(list[i].site===id&&!list[i].puppet)list.splice(i,1);},remove:f=>{const i=list.indexOf(f);if(i>=0)list.splice(i,1);},
-      spawn:async(id,pos,o)=>{if(delay)await delay;if(id===fail)return null;const f={mobileType:id,site:o.site,dead:false,ai:{},entity:{}};list.push(f);return f;}},
+      spawn:async(id,pos,o)=>{if(delay)await delay;if(id===fail && o.reachSlot===1)return null;const f={mobileType:id,site:o.site,dead:false,ai:{},entity:{}};list.push(f);return f;}},
     loot:{items:()=>[{group:'test',templateIndex:1,stackCount:3}],seed:(items,p)=>{const pile={items,pos:p};piles.push(pile);return pile;},remove:p=>{p.dead=true;}}};
   const host=createCromwarkReachHost(d);
   return {host,d,site,list,piles,notices,feet,claims:()=>claims,advance:()=>{tick+=6000;},peer:(v,a=0)=>{peer=v;age=a;},fail:id=>{fail=id;},delay:p=>{delay=p;}};
 }
 const settle=()=>new Promise(r=>setImmediate(r));
 test('cache requires actual corpses, mints once and retains unclaimed contents through a save',async()=>{
-  const f=fixture();f.host.frame();await settle();assert.equal(f.list.length,5);
+  const f=fixture();f.host.frame();await settle();assert.equal(f.list.length,25);
   f.advance();f.host.frame();assert.equal(f.piles.length,0);
   for(const foe of f.list){foe.dead=true;foe.corpse=true;}
   f.advance();f.host.frame();assert.equal(f.piles.length,1);
@@ -66,14 +67,14 @@ test('cache requires actual corpses, mints once and retains unclaimed contents t
   const empty=modSaveRecords();f.host.reset();restoreModSaveRecords(empty);f.advance();f.host.frame();assert.equal(f.piles.length,2);
 });
 test('missing foes do not count as victories; failed slots retry without duplicating survivors',async()=>{
-  const f=fixture();f.fail(f.site.roster[1]);f.host.frame();await settle();assert.equal(f.list.length,4);
-  f.fail(null);f.advance();f.host.frame();await settle();assert.equal(f.list.length,5);assert.equal(f.claims(),1);
+  const f=fixture();f.fail(f.site.roster[1]);f.host.frame();await settle();assert.equal(f.list.length,24);
+  f.fail(null);f.advance();f.host.frame();await settle();assert.equal(f.list.length,25);assert.equal(f.claims(),1);
   f.advance();f.host.frame();await settle();assert.equal(f.claims(),1);
-  f.list.length=0;f.advance();f.host.frame();await settle();assert.equal(f.piles.length,0);assert.equal(f.list.length,5);
+  f.list.length=0;f.advance();f.host.frame();await settle();assert.equal(f.piles.length,0);assert.equal(f.list.length,25);
 });
 test('peer owns encounter until stale; in-flight spawns cannot survive reset',async()=>{
   const f=fixture();f.peer(true);f.host.frame();await settle();assert.equal(f.list.length,0);
-  f.peer(true,11000);f.advance();f.host.frame();await settle();assert.equal(f.list.length,5);
+  f.peer(true,11000);f.advance();f.host.frame();await settle();assert.equal(f.list.length,25);
   f.host.reset();let release;f.delay(new Promise(r=>{release=r;}));f.advance();f.host.frame();f.host.reset();release();await settle();assert.equal(f.list.length,0);
 });
 test('hunts patrol through the existing motor; midnight preserves yesterday’s active progress',async()=>{
@@ -88,4 +89,22 @@ test('sealed city remains renderable but cannot be rolled as a new quest or birt
   assert.equal(cromwarkQuestSiteBlocked(0),false);
   const region={mapNames:['Sealed city','Open town'],mapTable:[{mapId:505449455,locationType:0,longitude:128,latitude:498*128},{mapId:123456,locationType:0,longitude:256,latitude:498*128}],locationCount:2};
   assert.equal(nearestTown(region,'Wrothgarian Mountains',{x:1,y:1}).loc,'Open town');
+});
+
+test('Blight stacks once per fire, triggers Rodney, and resets on leaving the Reach', () => {
+  const hits = [], warnings = [];
+  const blight = createCromwarkBlight({ roll: () => 0, toward: () => 0,
+    hurt: (share) => hits.push(share), warn: () => warnings.push(true) });
+  blight.expose('fire-a'); blight.expose('fire-a'); blight.expose('fire-b');
+  assert.equal(blight.level(), 2);
+  assert.equal(cromwarkBlightLoot(2), 1.15);
+  assert.ok(cromwarkBlightEliteChance(2) > cromwarkBlightEliteChance(0));
+  blight.frame(24, [0, 0, 0], true, true);
+  assert.equal(warnings.length, 1);
+  assert.ok(blight.marks().length);
+  for (let i = 0; i < 5; i++) blight.frame(.25, [0, 0, 0], true, true);
+  assert.deepEqual(hits, [.4]);
+  blight.frame(.1, [0, 0, 0], false, true);
+  assert.equal(blight.level(), 0);
+  assert.deepEqual(blight.marks(), []);
 });

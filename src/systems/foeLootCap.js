@@ -276,6 +276,7 @@ function rollKitPieces(entity, { rolls = Math.random, luck = 50, quarters = unde
   if (!lootRarityOn() || !entity || !Array.isArray(entity.items) || entity.revenant) return [];
   const source = { ...corpseSource(ENEMY_BASICS[entity.mobileType] ?? null, entity.level, entity.mobileType), boss: false, weights: plainFoeRarityWeights(quarters) };   // RENOWN-LOOT: the death's roller's Renown; AUDIT 625 L3: the plain ladder for every foe
   const find = findIn ?? legendaryFindMult();
+  source.qualityMult = (source.qualityMult ?? 1) * (entity.cromwarkLootMultiplier ?? 1);
   const minted = [];
   entity.items.forEach((it, i) => {
     if (isGarment(it)) return;   // LOOT14: the kit's garments roll after all of this (rollKitGarments)
@@ -297,6 +298,7 @@ function rollKitGarments(entity, { rolls = Math.random, luck = 50, quarters = un
   const kit = corpseSource(ENEMY_BASICS[entity.mobileType] ?? null, entity.level, entity.mobileType);
   kit.boss = false;
   kit.weights = plainFoeRarityWeights(quarters);
+  kit.qualityMult = (kit.qualityMult ?? 1) * (entity.cromwarkLootMultiplier ?? 1);
   const find = findIn ?? legendaryFindMult();
   const dressed = [];
   entity.items.forEach((g, i) => {

@@ -7,12 +7,12 @@ export function createCromwarkReachHost(d) {
   const sites=new Map(); let next=0, serial=0;
   const point=s=>{const t=d.translation(s.px,s.py);return [t[0]+s.x,d.ground(t[0]+s.x,t[2]+s.z),t[2]+s.z];};
   const mem=s=>reachMemory(s.day,s.id);
-  const complete=s=>mem(s).said || s.roster.every(id=>mem(s).slain.includes(id));
+  const complete=s=>mem(s).said || mem(s).slots.length >= s.roster.length;
   function spawn(s,now) {
     if(s.pending || now<s.retry || complete(s)) return;
     const list=d.foes.list().filter(f=>f.site===s.id);
     if(list.some(f=>f.puppet&&!f.dead)) return;
-    const todo=s.roster.filter(id=>!mem(s).slain.includes(id) && !list.some(f=>f.mobileType===id));
+    const todo=s.roster.map((id, slot) => ({ id, slot })).filter(({slot}) => !mem(s).slots.includes(slot) && !list.some(f=>f.reachSlot===slot));
     if(!todo.length) return;
     if(d.peerSprang(s.id) && !list.some(f=>!f.puppet&&!f.dead)) {
       if(d.peerHeldAgo(s.id)<10000) return;
@@ -22,14 +22,15 @@ export function createCromwarkReachHost(d) {
     s.retry=now+5000; s.pending=true;
     if(!list.some(f=>!f.puppet&&!f.dead)) {d.foes.reclaim(s.id);d.sprang(s.id);}
     const token=serial, camp=s.camp??=d.foes.campId();
-    Promise.allSettled(todo.map(async(id)=>{
-      const a=s.roster.indexOf(id)*2*Math.PI/s.roster.length, pos=[origin[0]+Math.sin(a)*9,origin[2]+Math.cos(a)*9];
-      const f=await d.foes.spawn(id,pos,{site:s.id,yaw:a,transient:true});
+    Promise.allSettled(todo.map(async({id, slot})=>{
+      const a=slot*2.399963229728653, radius=5+Math.sqrt(slot+1)*2.7+s.placementSweep;
+      const pos=[origin[0]+Math.sin(a)*radius,origin[2]+Math.cos(a)*radius];
+      const f=await d.foes.spawn(id,pos,{site:s.id,reachSlot:slot,yaw:a,transient:true});
       if(!f) return;
       if(token!==serial || !sites.has(s.id)) {d.foes.remove(f);return;}
-      f.campId=camp; f.campAlertRadius=45;
+      f.reachSlot=slot; f.campId=camp; f.campAlertRadius=45;
       if(f.entity) f.entity.campId=camp;
-    })).finally(()=>{s.pending=false;});
+    })).finally(()=>{s.pending=false; s.placementSweep=(s.placementSweep+1)%5;});
   }
   function frame() {
     if(!d.ready()) return;
@@ -41,7 +42,7 @@ export function createCromwarkReachHost(d) {
       if(!wildInside(d.mask,s.px,s.py) || !d.allowed(s.px,s.py) || (Math.abs(s.px-823)<=1&&Math.abs(s.py-35)<=1)) continue;
       const p=point(s), dist=Math.hypot(p[0]-feet[0],p[2]-feet[2]);
       if(dist>600 || !Number.isFinite(p[1]) || !d.dry(p)) continue;
-      if(!sites.has(s.id)) sites.set(s.id,{...s,retry:0,pending:false});
+      if(!sites.has(s.id)) sites.set(s.id,{...s,retry:0,pending:false,placementSweep:0});
     }
     for(const [id,s] of sites) {
       if(s.pile?.items) mem(s).items=s.pile.items;
@@ -49,14 +50,22 @@ export function createCromwarkReachHost(d) {
       if(dist>750 || !Number.isFinite(p[1]) || (s.day!==day&&dist>160)) {
         d.foes.drop(id); if(s.pile)d.loot.remove(s.pile); sites.delete(id); continue;
       }
+      if (s.purpleFire && dist < 6) d.blight?.expose(id);
       const m=mem(s), group=d.foes.list().filter(f=>f.site===id);
       for(const f of group) {
-        if(f.dead) {if(f.corpse&&!m.slain.includes(f.mobileType)) m.slain.push(f.mobileType);continue;}
+        if(f.dead) {
+          const slot=f.reachSlot;
+          if(f.corpse && s.roster[slot] === f.mobileType && !m.slots.includes(slot)) {
+            m.slots.push(slot);
+            if(!m.slain.includes(f.mobileType)) m.slain.push(f.mobileType);
+          }
+          continue;
+        }
         if(f.puppet || !f.ai) continue;
         // The hunt physically patrols with the existing collision-aware motor.
         // Its trail moves in map space, so a floating-origin shift moves it too.
         if(s.kind===0) f.ai.follow={feet:()=>{
-          const q=point(s), a=d.utc()/1000*.025+s.roster.indexOf(f.mobileType)*.3;
+          const q=point(s), a=d.utc()/1000*.025+(f.reachSlot ?? 0)*2*Math.PI/s.roster.length;
           return [q[0]+Math.sin(a)*35,q[1],q[2]+Math.cos(a)*35];
         },stop:2,leash:130};
       }
@@ -73,6 +82,7 @@ export function createCromwarkReachHost(d) {
     }
   }
   return { frame, reset(){serial++;for(const s of sites.values()){d.foes.drop(s.id);if(s.pile)d.loot.remove(s.pile);}sites.clear();next=0;},
+    fires:()=>[...sites.values()].filter(s=>s.purpleFire).map(point),
     beacons(){return [...sites.values()].filter(s=>!complete(s)).map(s=>{const p=point(s);return {x:p[0],y:p[1],z:p[2],radius:s.kind===0?1.3:s.kind===1?8:3,height:s.kind===0?25:s.kind===1?14:5,below:.1,kind:s.kind+1};});},
     state:()=>[...sites.values()].map(s=>({id:s.id,title:s.title,point:point(s),slain:[...mem(s).slain],complete:complete(s),pending:s.pending})),
   };

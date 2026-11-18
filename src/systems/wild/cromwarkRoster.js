@@ -14,14 +14,14 @@ export const cromwarkProfile = (id) => CROMWARK_ROSTER.find((p) => p.id === id) 
 export const cromwarkHealth = (id, elite = false) => Math.round((cromwarkProfile(id)?.hp ?? 1) * (elite ? 1.6 : 1));
 
 // The elite bit already follows the foe through saves, grants and handoffs.
-export const cromwarkTitanheart = (entity) => !!entity?.eliteFoe && !!cromwarkProfile(entity.mobileType);
+export const cromwarkTitanheart = (entity) => !!entity?.eliteFoe && entity.titanheart === true && !!cromwarkProfile(entity.mobileType);
 export const CROMWARK_TITAN_SIZE = 1.15;
 export const CROMWARK_TITAN_GLOW = Object.freeze([1, .08, .06, .85]);
 export const cromwarkTitanDamage = (entity, damage) => Math.min(damage, Math.max(1, Math.ceil(entity.maxHealth / 4)));
 
-// Camps and roaming packs can add two members inside Cromwark, subject to the caller's encounter cap.
-export function cromwarkPack(types) {
-  return types.length ? [...types, types[0], types[1] ?? types[0]] : types;
+// Repeat the encounter composition to fill a Cromwark pack.
+export function cromwarkPack(types, count) {
+  return types.length ? Array.from({ length: count }, (_, i) => types[i % types.length]) : types;
 }
 
 // Three fifths lead actors, two fifths the original encounter table. Deeper rings

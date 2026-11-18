@@ -1033,6 +1033,7 @@ import { createDuelRecords, duelUncountedText } from '../net/duel/duelRecord.js'
 import { createDuelPrompt } from '../ui/duelPrompt.js';   // DUEL1: the challenge, as the challenged player sees it
 import { cromwarkSeal, sealCrossed, CROMWARK_CITY } from '../systems/wild/cromwarkBarrier.js';
 import { CromwarkSealRenderer } from '../render/cromwarkSeal.js';
+import { createCromwarkBlight } from '../systems/wild/cromwarkBlight.js';
 import { createCromwarkReachHost } from './cromwarkReachHost.js';
 import { DuelWallRenderer } from '../render/duelWall.js';   // DUEL1: the ring's holographic wall
 import { BannerRenderer, BANNER_TEX_W, BANNERS_MAX } from '../render/bannerPass.js';   // GUILD1d: a guild's banners, the cloth
@@ -11016,6 +11017,21 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   // X-slice: the encounter-foe pool - S32's above-ground arms go
   // LIVE. Same damage door shape as the guards; no crime machinery.
+  const reachBlight = createCromwarkBlight({
+    collider,
+    onBlight: level => setMidScreenText(`Cromwark Blight: ${level}/3`),
+    toward: (feet) => {
+      const [x, , z] = state.pixelTranslation(823, 35);
+      return Math.atan2(feet[0] - (x + 409.6), feet[2] - (z + 409.6));
+    },
+    hurt: share => {
+      const damage = Math.ceil(playerEntity.maxHealth * share);
+      hurtPlayer(playerEntity, damage);
+      flashPlayerDamage(damage);
+      surfacePlayer();
+    },
+    warn: () => setMidScreenText('Rodney strikes from Cromwark!'),
+  });
   const exteriorFoes = createExteriorFoes({
     oneVoice: () => livingWorldOn(),   // HALT-ONE: a peer's watchman calls on his owner's client, not here
     inLocation: () => _musicInLocationRect(),   // SOFTCAP5: only the wilderness scales its foes (towns and cities never)
@@ -11023,6 +11039,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     renderer, collider, fetchBytes, getTexture, uploadRecordFrame, playerEntity, audio, hitEffects, groundStands: (x, z) => Number.isFinite(heightAt(x, z)),   // FALL-HOLD: a foe over a pixel not built is held, not stepped
     // REVENANT-FATE: this host opens a beaten revenant's choice; an executed one's pile is the street's dropped loot
     fates: true,
+    cromwarkBlight: reachBlight.level,
     onCromwarkImpact: (hazard, dir) => {
       if (hazard.slow) player.blowRattle(powerKind(playerEntity, 'hazewalk') ? 2 : 4, .6);
       if (hazard.push) player.blowPush(dir[0] * hazard.push, dir[1] * hazard.push);
@@ -12439,9 +12456,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   /** PSCALE1: a group's members, grown with the party it meets - OW6: never past the pool's own bound (a warband of six
    *  met by a party of eight grew to nine, and the eight-foe pool stood none of it; the widest camp, five and three, is
    *  exactly the bound, so a camp is as it was). */
-  const campMembers = (types) => {
+  const campMembers = (types, kind = 'camp') => {
     const members = partyGroupMembers(types, partySize());
-    return (wildHere() && cromwarkPeace(wildZoneKind()) ? cromwarkPack(members) : members).slice(0, encounterCap());
+    return (wildHere() && cromwarkPeace(wildZoneKind()) ? cromwarkPack(members, kind === 'band' ? 20 : 25) : members).slice(0, encounterCap());
   };   // PVPDUNGEONS: the zone's packs are allowed their four times
   const _standCampEncounter = (hit, feet) => {
     // CAMP-FAR: the anchor stands a hundred to a hundred and fifty metres
@@ -12465,7 +12482,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     const stands = [];   // BOUNTY1: what was stood, for a caller that counts them (the roll's own callers do not)
     // PSCALE1: a camp or a pack grows with the party it meets (OW6: never past the pool's bound) - BOUNTY1: a bounty's
     // pack (`fixed`) is the posting's own count, never grown: its purse and its tally are the notice's
-    for (const mobileType of (hit.fixed ? hit.mobileTypes : campMembers(hit.mobileTypes))) {
+    for (const mobileType of (hit.fixed ? hit.mobileTypes : campMembers(hit.mobileTypes, hit.kind))) {
       const memberEnv = placeFoeEnv({
         collider,
         playerFeet: [anchorFeet[0], anchorFeet[1] + 0.9, anchorFeet[2]],
@@ -25681,7 +25698,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     return true;
   }
   const reachEvents = createCromwarkReachHost({
-    mask: wildMaskOf(maps), now: () => performance.now(), utc: () => Date.now(),
+    blight: reachBlight, mask: wildMaskOf(maps), now: () => performance.now(), utc: () => Date.now(),
     ready: () => CROMWARK_ON && !params.has('nofoes') && walkMode && playerSpawned && _bootLoaded && !_loading && !_teleporting && !modes?.transitioning && _mode() === 'exterior' && !gamePaused() && wildZoneKind() === 'wroth',
     feet: () => player.feetAt(), pixel: () => playerTravelPixel(),
     translation: (px,py) => state.pixelTranslation(px,py), ground: (x,z) => surfaceAt(x,z),
@@ -25705,6 +25722,24 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
       }, remove: p => droppedLoot.removePile(p),
     },
   });
+  let reachFireArt = null;
+  const reachFireBatches = [];
+  const drawReachFires = (batches) => {
+    const points = wildZoneKind() === 'wroth' ? reachEvents.fires() : [];
+    if (points.length && !reachFireArt) {
+      reachFireArt = getTexture(210).then(tex => { if (tex) uploadRecordFrame(210, 1, 0); }).catch(() => { reachFireArt = null; });
+    }
+    if (!renderer.textures.has('210_1#0')) return;
+    while (reachFireBatches.length > points.length) renderer.destroyBatch(reachFireBatches.pop());
+    for (let i = 0; i < points.length; i++) {
+      const fire = reachFireBatches[i] ??= renderer.createBillboardBatch(210, '1#0', { w: 1.6, h: 1.6 }, [[0, 0, 0]]);
+      fire.origin = points[i];
+      fire.tint = [.55, .14, 1];
+      fire.glint = [.8, .2, 1, .85];
+      fire.noShadow = true;
+      batches.push(fire);
+    }
+  };
   if (params.has('shot')) {
     globalThis.__cromwarkBarrier = () => sealInScene();
     globalThis.__cromwarkBarrierState = () => ({walkMode,playerSpawned,boot:_bootLoaded,loading:_loading,pending:sealPending,mode:_mode(),feet:player.feetAt(),pixel:{...state.current}});
@@ -32092,7 +32127,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   }
   /** AUDIT OW5b E1: the encounter pool has room for the band's members, grown by the party it meets - a band it cannot
    *  stand is neither stood nor MET (no journey is stopped for a band that never comes; it tries again). */
-  function bandRoom(mk) { return campMembers(mk.mobileTypes).length <= (exteriorFoes.encounterRoom?.() ?? Infinity); }
+  function bandRoom(mk) { return campMembers(mk.mobileTypes, 'band').length <= (exteriorFoes.encounterRoom?.() ?? Infinity); }
   /** Contact: the band stands as its foes, on its own bearing from the traveller - or, where the road or a town refuses
    *  that bearing (a chase down a road ends on it), a quarter turn either way, then behind (AUDIT OW3 T7-1). Whether it
    *  stood. */
@@ -34038,7 +34073,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
       // follow the origin too, or it strands 819.2 units behind.
       doorGeneration += 1;   // WORLD-HOVER: the floating origin moved, so every door's WORLD matrix did
       cityGuards.offsetAll(r.offset);
-      exteriorFoes.offsetAll(r.offset); raidOffsetAll(r.offset);   // X-slice; AUDIT WORLD-EVENTS L4-7: and a raid's square, its refugees' way and its pack's place, on the land
+      exteriorFoes.offsetAll(r.offset); reachBlight.offset(r.offset); raidOffsetAll(r.offset);   // X-slice; AUDIT WORLD-EVENTS L4-7: and a raid's square, its refugees' way and its pack's place, on the land
       labGrassField?.shiftOrigin(r.offset);   // PERF-EXT21: the field keeps its own origin and follows this one - every cell stays where it grew (AUDIT 49 F2 / GR5 threw it away here and regrew it for three seconds)
       offsetTactics(r.offset);   // AUDIT TACT D3: the noted player and every live wind-up move with the world
       offsetTechniques(r.offset);   // TECH1: and the player's own - an aim, a leap's landing, a Volley's falling shafts
@@ -34189,7 +34224,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
           for (const h of chunkCampHits) {
             // PSCALE1 x CAMP-CAP: the group as it will STAND - _standCampEncounter grows it by the party it meets
             // (campMembers, OW6: the one home), so the room is asked for the grown count, or a party's third group was cut short
-            const size = campMembers(h.mobileTypes).length;
+            const size = campMembers(h.mobileTypes, h.kind).length;
             if (size > room) continue;
             room -= size;
             _standCampEncounter(h, player.feetAt());
@@ -34554,6 +34589,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (gatePool || sdHost) presenceFrame();   // SD19: the banner and the card - the gate's, else a Hollow's door's
     try { sigilBroker?.frame(dt); } catch (e) { console.warn('[broker] pool', e?.message ?? e); }   // SET7: the Broker stands where the clock stands her - BROKER-CAGE: in her cage at the faithful's circle
     try { riteHost?.frame(); } catch (e) { console.warn('[rite] host', e?.message ?? e); }   // WB12d: the faithful's circle, before the lights (its braziers light the ground)
+    const inReach = CROMWARK_ON && wildZoneKind() === 'wroth';
+    reachBlight.frame(dt, playerSpawned ? player.feetAt() : null, inReach,
+      !params.has('nofoes') && !_loading && !_teleporting && _mode() === 'exterior' && !gamePaused() && playerEntity.health > 0);
     reachEvents.frame();
     if (_mode() === 'exterior') starfall?.frame();   // STAR4-STAR6: the night's stars, before the lights (a stone's glow, a landing's flash) - its own catch
     try { if (_mode() === 'exterior' && !_loading) harbourBook.step(now / 1000); } catch (e) { console.warn('[harbours] book', e?.message ?? e); }   // HARBOUR-BOOK: the port near the player sounded, before its quays stand
@@ -34697,6 +34735,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     if (cullOn) spherePlanes(multiply(proj, view, _pv), _planes);   // EV3 (GHOST1: normalised - the sphere test shares these)
     meterFor(renderer.gl)?.markCpu('batches');   // PERF-CPU: the pixel walk that fills allBatches, culling as it goes
     const allBatches = [];
+    if (_mode() === 'exterior') drawReachFires(allBatches);
     // SHADOW-REACH (2026-09-23, Mac: "Can you tackle the 2 limitations"): THE CASTERS THE VIEW CULL REJECTS. Every
     // gate below (the pixel's, a model's, a flat batch's, a townsman's) asks the renderer whether what it just
     // rejected would cast into this frame's shadow maps - a sun cascade's frustum, which reaches 600 units
@@ -35047,6 +35086,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     farmingMode?.draw(proj, view, camRight, bbUp);
     renderer.drawFoeTelegraphs?.(drawableBlows(tacticsNow(), walkMode && playerSpawned ? player.pos : cam.pos));   // TACT4: a foe's wind-up on the ground, under the bodies
     renderer.drawFoeTelegraphs?.(exteriorFoes.cromwarkMarks());
+    if (_mode() === 'exterior') renderer.drawFoeTelegraphs?.(reachBlight.marks());
     renderer.drawFoeTelegraphs?.(techniqueMarksNow());   // TECH1: and the player's own marks, after the foes' (bible/05-Combat/Weapon-Techniques.md)
     bloodMarks.draw(camRight, UP_Y);   // BLOOD1a: the marks go down BEFORE the billboards, so a body standing in its own blood is over it and not under it. ABOVE setFlatWind for the reason its own neighbour gives: WIND3 pins the wind and the draw as ADJACENT.
     trees.frame(_pixelOrder, cam.pos, cullOn ? _planes : null);   // LPT1 / BANTHA1: the near 3D trees, both doors', for the flats' call below (AFTER the gibs' call above, which would spend them)
