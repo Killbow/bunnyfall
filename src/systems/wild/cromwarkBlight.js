@@ -41,7 +41,10 @@ export function createCromwarkBlight({ roll = Math.random, toward, hurt, warn, c
       if (fires.has(id)) return;
       fires.add(id);
       if (!level) remaining = 24 + roll() * 20;
-      if (level < 3) onBlight?.(++level);
+      if (level < 3) {
+        level++;
+        onBlight?.(level);
+      }
     },
     frame(dt, feet, inside, active) {
       if (!inside) { reset(); return; }
