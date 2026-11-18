@@ -95,7 +95,6 @@ import { goldStack } from '../items/inventory.js';   // LW6b: ...and their purse
  import { lwRng, textSeed } from '../systems/livingWorld/seed.js';   // LW6c: ...and their keepsake, carried home; AUDIT-C5: their goods their key's own (on this line, so no cite below it moves)
 import { GUARD_TEXTURE, PERSON_TEXTURES } from '../characters/mobilePerson.js';
 import { warmDungeonModulesWhenIdle } from './dungeonWarm.js';
-import { streetHeld } from './streetHold.js';
 import { createTownTalk, rayPersonDistance } from '../talk/townTalk.js';   // AUDIT 63 F33 (review): the townsfolk's own pick distance, the enemy arm's rival
 import { createPlayerMagic, liveCollider } from '../magic/hostMagic.js';   // M2: spellcasting above ground; GROUND-BOLT: its collider, the ground with it
 import { setDefaultEnchantCtx } from '../magic/enchantments.js';   // E2: the host's enchantCtx mount
@@ -576,7 +575,7 @@ import { SPELL_CAST_SOUND } from '../characters/enemySpells.js';   // SET3: the 
 import { itemLongName } from '../items/itemInfo.js';   // SIGIL1: the weapon's name as its tooltip reads it
 import { trivialOnRoad, roadCompany, wandererCount } from '../characters/roadEncounters.js';   // WILD-ROAD: the road's wanderers - a rat passed by, a patrol now and then
 import { partyExtraFoes } from '../party/partyScale.js';   // PSCALE1: a fight weighs the party - its count, and the foes more an outdoor encounter stands
-import { realmIo, openRealmBoot, placeRestored, createRealmSession, realmSummaryOf, setRealmNotice, realmBootSearch, realmRefusalText, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList } from '../saves/realmSaves.js';   // REALM P1.3: an online character is the realm's - joined, loaded and checkpointed through the service
+import { realmIo, openRealmBoot, placeRestored, createRealmSession, realmSummaryOf, setRealmNotice, realmBootSearch, realmRefusalText, REALM_OFFLINE_TEXT, REALM_EXIT_WAIT_MS, whenPageHides, whenPageGoes, realmTradeEscrow, realmGoldAct, REALM_RESTORED_TEXT, realmStrandedText, realmSaveWithHeld, realmList, REALM_BOOT_WAIT_MS } from '../saves/realmSaves.js';   // REALM P1.3: an online character is the realm's - joined, loaded and checkpointed through the service
 import { createRealmLine } from '../systems/legacy/realmLine.js';   // LEGACY7: online, Project Legacy's lines are the realm's
 import { reclaimFromDevice, reclaimLines, crossLeveling, LEVELING_CROSS_LINE } from '../saves/realmCustoms.js';   // RESTORE: what customs once kept back, given back at the boot; LEVEL-ONLINE-3: the realm's one leveling
 import { appStorage } from '../platform/appStorage.js';   // ACC1d: where that session lives - the app's store, not the tab's (a second tab is the same player)
@@ -695,7 +694,7 @@ import { isTouchDevice } from '../ui/touchDevice.js';   // JOURNAL1: ...or a tap
 import { composeCard, createCardAnswerGate } from '../net/profileCard.js';   // INSPECT1: my card when asked, and how often one asker is answered
 import { morrowindDataCount, morrowindDataGeneration } from './dataSource.js';   // MWBODY1: the bodies' gate - Morrowind data attached - and its generation
 // Q4-v: THE QUEST BRIDGE - the machine goes live in this host.
-import { loadQuestPack } from '../systems/quest/questData.js';
+import { startBootReads, bootReads, bootFrameDrawn } from './bootReads.js';
 import { getReputation } from '../guilds/factionRep.js';
 import { changeLegalRep, legalRepOf, CRIMES, setCrimeCommitted, lowerRepForCrime } from '../justice/court.js';   // the region's LegalRep: the status box, the quest actions, the crimes (REP1 retired :498-511's levy)
 import { isEquipped, unequipItem } from '../characters/equip.js';   // HACKED-GOLD: a worn offer holds what can be worn
@@ -1011,6 +1010,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // lane for its chargen and no relay until the realm holds it (realmBirth).
   const realmNew = params.has('online') && params.has('realmnew');
   const realmIoNow = () => realmIo({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() });
+  startBootReads();
   const realmBoot = params.has('online') && params.has('realm') && params.has('load') ? await openRealmBoot({ io: realmIoNow(), id: params.get('realm') }) : null;
   if (realmBoot && !realmBoot.ok) { setRealmNotice(globalThis.sessionStorage, realmRefusalText(realmBoot.error)); exitToTitleMenu(); return; }
   const realmRefused = params.has('online') && !realmBoot && !realmNew;
@@ -1034,8 +1034,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // further down), which waits for them where it is made - still before any save is restored.
   let legacyRealmHeard = !legacyRealmLine;
   const legacyRealmRead = legacyRealmLine ? Promise.all([
-    legacyRealmLine.pull().catch((e) => console.warn('[legacy] the realm\'s lines were not read', e)),
-    realmList(realmIoNow()).catch(() => null).then((listed) => { if (listed?.ok) legacyRealmRoster = new Set(listed.characters.map((c) => String(c.id))); }),
+    legacyRealmLine.pull({ waitMs: REALM_BOOT_WAIT_MS }).catch((e) => console.warn('[legacy] the realm\'s lines were not read', e)),
+    realmList(realmIoNow(), { waitMs: REALM_BOOT_WAIT_MS }).catch(() => null).then((listed) => { if (listed?.ok) legacyRealmRoster = new Set(listed.characters.map((c) => String(c.id))); }),
   ]).then(() => { legacyRealmHeard = true; }) : null;
   // REALM P1.3: a realm checkpoint that LANDS is a save that lands - the gate's spoils it was composed holding are then
   // safe on the service, and their device record goes (scenes/spoilsPool.js saved, as onSlotSaved tells it for a slot).
@@ -1282,16 +1282,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   const homesApi = params.has('online') ? accountHomes({ fetch: (u, i) => globalThis.fetch(u, i), storage: appStorage() }) : null;
   const bootHomeLayoutsAsk = homesApi ? homesApi.layouts().catch(() => null) : null;
   status('loading data');
-  const [palBytes, blocksBytes, archBytes, mapsBytes, climateBytes, politicBytes, woodsBytes] =
-    await Promise.all([
-      fetchBytes('ART_PAL.COL'),
-      fetchBytes('BLOCKS.BSA'),
-      fetchBytes('ARCH3D.BSA'),
-      fetchBytes('MAPS.BSA'),
-      fetchBytes('CLIMATE.PAK'),
-      fetchBytes('POLITIC.PAK'),
-      fetchBytes('WOODS.WLD'),
-    ]);
+  const [palBytes, blocksBytes, archBytes, mapsBytes, climateBytes, politicBytes, woodsBytes] = await bootReads().core;
   const palette = new DFPalette();
   palette.load(palBytes, 'ART_PAL.COL');
   const blocks = new BlocksFile();
@@ -4372,7 +4363,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // written back out by the next save. "Something causes spells to
   // disappear from the spellbook" (bigdaddywetwet, 2026-09-16) is that
   // race. A load waits for the table it needs to READ the save.
-  const _magicRegistries = loadMagicRegistries(fetchBytes).then((r) => {
+  const _magicRegistries = loadMagicRegistries(bootReads().fetchBytes).then((r) => {
     spellsByIndex = spellsByIndex ?? r.spellsByIndex;
     // AUDIT-MACL F1: ...AND THE HELD SPELLS COME BACK HERE. MAC-L4 wrote
     // `resolvePendingSpells` and then called it from NOWHERE but its own
@@ -9232,7 +9223,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // method - `modes.pointerdown?.(e)` - which reads like a guard and is
   // not one.
   // A click during the one await in that window
-  // (`await loadQuestPack()`) threw
+  // (the quest pack's await) threw
   //     TypeError: can't access property "pointerdown", it is undefined
   // and took the whole scene down. Reported from the deployed build.
   // test/scenes/audit24_wave37.test.js holds both halves of the cure: `modes?.`
@@ -9881,7 +9872,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // ABSENT and the law modules idle loudly - the headless charter.
   // Port-Ledger Q4-v records the pending list (talk seams, videos,
   // faces, the disease seams, dungeon-mode popups, quest foes).
-  const questPack = await loadQuestPack();
+  const questPack = await bootReads().quest;
   console.log(`[quest] pack loaded: ${questPack.questCount} quests`);
   // OH-D: ...under There's a Hole in the Bottom of the Ocean's RenameGpsLocation while it holds for this pixel - the GPS's
   // copy of the location renamed (Name, MapTableData.MapId), the location itself untouched
@@ -9896,10 +9887,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // is -1 across the whole wilderness. That -1 fell through
   // getNameBankOfRegion to Breton, so every quest humanoid named
   // outdoors was a Breton whatever province he stood in.
-  // FIELD 2026-09-27 (a player's console: "[town] FACTION.TXT unavailable: Cannot access 'Ut' before initialization"):
-  // A DECLARATION, not a const. townTalk's load (built far above) resumes after its FACTION.TXT fetch and reads
-  // the region through this - and bootWorld is suspended at `await loadQuestPack()` just above, before a const
-  // here would exist, so the read threw and the region's people never loaded. Everything the body reads
+  // This is a function declaration, not a const. The townTalk load (built far above) resumes after its FACTION.TXT
+  // fetch and reads the region through this while bootWorld waits for the quest pack just above. A const here would
+  // not exist yet, so the read would throw and the region's people would not load. Everything the body reads
   // (playerTravelPixel, maps, state, cam, player, walkMode, modes) is declared before townTalk is built.
   function _questRegionIndex() {
     if (_questRegionPin != null) return _questRegionPin;   // AUDIT NAV1 (B2): only for the length of a raid's parse
@@ -15830,7 +15820,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     // its heartbeat noticed the frames had stopped
     if (frameHeld()) { frameAbort(); hideWorldPlaque(); last = now; requestAnimationFrame(frame); drawGateBanner(null); drawGateMarksCard(null); drawGateDamageChart(null); drawGateGround(null); travelView?.exit('video', true); if (spyglass.up) lowerGlass(); return; }   // AUDIT CAPTAIN'S SEA S15: the glass's DOM never frozen over the video
     // The boot plate leaves on the first frame that draws. A film or a door build draws nothing.
-    if (!streetHeld()) bootLoading.end();
+    bootFrameDrawn(bootLoading);
     const dt = Math.min(0.1, (now - last) / 1000);
     if (worldAddons.preModal()) { last = now; requestAnimationFrame(frame); return; }
     farmingMode?.frame();

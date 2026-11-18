@@ -53,8 +53,8 @@ export function createRealmLine({ io, storage, list = realmLineages, put = realm
   let lastError = null;
 
   /** Every line the account holds, into the device's store. Answers `{ ok, ids }` or the service's refusal. */
-  async function pull() {
-    const r = await list(io());
+  async function pull({ waitMs = 0 } = {}) {
+    const r = await list(io(), { waitMs });
     if (!r.ok) return r;
     const ids = [];
     for (const row of r.lineages) {

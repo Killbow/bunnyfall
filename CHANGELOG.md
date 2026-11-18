@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-22
 
+- Fixed: Online characters load faster and no longer hang on the loading screen when the account service stops answering. If joining a character gets no answer after 30 seconds, you return to the menu and the Online page explains why.
 - Fixed: After you start or load a game from the menu, the loading screen stays up until the world appears, even with Loading screens Off or the Classic skin.
 - Fixed: Buttons inside the chat drawer's Party and Friends lists now work when clicked.
 
