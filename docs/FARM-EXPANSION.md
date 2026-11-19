@@ -14,6 +14,11 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
   suits.
 - **It lives on the farm, not in menus** (the owner, mid-design: "avoid making this all menus, I want this to live on
   the farm diegetically"). This is the first rule below and it overrides convenience everywhere.
+- **Rewards:** three titles earned by grinding the farm (Furrowhand, Harvestwarden, Sovereign of the Sheaf) at
+  3,000 / 15,000 / 45,000 farm work, and the Elite Breach's **First Light** aura with the last one (section 10).
+- **Work in Farming Mode only.** The farm is *seen* by everyone in the normal view; its stations are *used* from the
+  Farming Mode camera.
+- **Raids strike only while a Company member is at the farm.** Nobody loses goods while everyone is away.
 
 ---
 
@@ -28,9 +33,11 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
      money must never move on a stray click;
    - a minigame's **in-world gauge** (drawn on or above the object, like a meter on the churn), never a modal window.
    The current **Progress & orders** sidebar (`src/ui/farmProgressHud.js`) is replaced by things on the farm (section 3).
-2. **The farm is alive in the normal view.** Fixtures, animals, sworn beasts, weeds, crows and fairs are drawn for
-   anyone near the farm, as crops already are (the observer path in `farmingMode.js`). Farming Mode stays as the *work
-   camera*, the better view for bed work; it is never needed to *see* the farm.
+2. **Seen in the normal view, worked in Farming Mode.** Fixtures, animals, sworn beasts, weeds, crows and fairs are
+   drawn for anyone near the farm, as crops already are (the observer path in `farmingMode.js`). **Using** any of it
+   (a post, a pen, a workshop, a beast post, a judging table) happens from the Farming Mode camera, entered at the
+   farmhouse door as today. In the normal view, hovering a station gives its line and a hint ("Enter Farming Mode at
+   the farmhouse to work here.").
 3. **Care, not clicks.** Better farming raises **quality**, **variety** and **new goods**, not the number of clicks.
    Every minigame has a daily cap; skipping one is always allowed and only costs the bonus.
 4. **Crops pause, never die.** Today's promise holds: neglect, blight, storms and raids cost *quality* or *a share* of a
@@ -395,6 +402,9 @@ for every player. Farms join the roll as targets:
 
 - A Company farm in a raided region can be struck (bandits, or orcs in orc country), at most **once a week per farm**,
   with the raid's hours shown in advance on the **order post** ("Bandits seen on the Wayrest road").
+- **Only while a member is there** (the owner's choice). The raid's window is a threat, not a clock: it begins when a
+  member of the Company is at the farm during the window, and passes harmlessly if nobody comes. Nobody loses anything
+  while everyone is away.
 - While the raid runs, raiders spawn at the farm's edge and go for the **sacks, the workshop shelves and the animals**.
 - Members who are there defend; **stationed beasts fight** (wolves, tigers, hounds). The raid ends when enough raiders fall
   or after its two hours.
@@ -436,6 +446,9 @@ whose Company opts in at the order post. It stands for **three real days**:
 - Anyone can walk in, members of any Company or none. Its location is cried in towns and marked on the map (the bounty
   and lode map marks' pattern).
 - **Entering** is placing your entry on the right **judging table**, a physical table per contest.
+- **Visitors at the fair.** Farming Mode is for the farm's own Company, but while a fair stands its **gate** lets
+  anyone enter Farming Mode **for the fair ground alone**: the judging tables, the show ring and the match strips. The
+  beds, pens, workshops and posts stay the members' own.
 - At the close, a **judge** (an NPC flat) walks along the tables, and ribbons appear on the winners' entries.
 
 ### 9.2 The contests
@@ -501,11 +514,11 @@ needs a migration to award:
 
 | Title | Key | Farm work | About (at the daily cap) |
 | --- | --- | ---: | --- |
-| **Furrowhand** | `furrowhand` | 6,000 | 2 to 3 weeks of steady play |
-| **Harvestwarden** | `harvestwarden` | 30,000 | 2 to 3 months |
-| **Sovereign of the Sheaf** | `sheafsovereign` | 90,000 | 7 to 8 months |
+| **Furrowhand** | `furrowhand` | 3,000 | about 1 to 2 weeks of steady play |
+| **Harvestwarden** | `harvestwarden` | 15,000 | about 1.5 months |
+| **Sovereign of the Sheaf** | `sheafsovereign` | 45,000 | about 4 months |
 
-The numbers are first guesses for a small group and can be tuned.
+The owner chose these (half the first draft's) for a small group. They are tunable in the law file.
 
 **Diegetic, as everything else:** the farm acknowledges a title where it happens. When you cross a threshold, the
 factor (or the foreman, if the factor is away) says it in the HUD's message line ("They're calling you Harvestwarden in
@@ -524,7 +537,7 @@ off, these auras can't be earned:
 | **Dagon's Fire** `dagonfire` | a ring of fire, flames licking up | Dagon's Breaches: Sigil Broker, for Sigil Stones | **No** (no gates, no stones) |
 | Beaconlight `beaconlight` | beacons at the feet | Elite Breach: Kynbane; **also** the Legendary Bartender | yes, by the bar |
 
-**Recommendation: First Light**, a dawn's ring, which fits the farmer's day. The owner picks one (section 14).
+**Chosen: First Light** (the owner, 2026-11-19), a dawn's ring, which fits the farmer's day.
 
 - The aura is held while the account holds `sheafsovereign`: one line in `server-account/src/titles.js`'s held auras,
   beside the existing `EG_HONOUR_AURA` and bartender lines. It is not stored on its own.
@@ -629,18 +642,11 @@ Each phase ships on its own, behind its `contentOff` flag, with a `CHANGELOG.md`
 
 ## 14. Open questions for the owner
 
-1. **Where can you work the farm?** Everything here is *visible* in the normal view. Should the stations also be
-   *usable* in the normal first-person view, or only in Farming Mode? (Recommendation: usable in both; Farming Mode is
-   the bed-work camera.)
-2. **Personal or Company?** Animals and workshop goods go to the Company Stores like crops. Should a member be able to
+1. **Personal or Company?** Animals and workshop goods go to the Company Stores like crops. Should a member be able to
    own a personal animal on the Company farm (their own cow, their own produce)?
-3. **Offline play.** Farms are online only today. Should anything here work offline (a sworn beast at a "home plot")?
-4. **Raids:** should a raid on a farm happen only while a member is near (so nobody loses goods while away), or anytime
-   with the limited losses above?
-5. **Fair schedule:** one fair per season on one farm, or a smaller weekly market day on every farm?
-6. **Hauling sacks:** is carrying sacks to the wagon fun or a chore for your group? It is optional by design, but it is a
+2. **Offline play.** Farms are online only today. Should anything here work offline (a sworn beast at a "home plot")?
+3. **Fair schedule:** one fair per season on one farm, or a smaller weekly market day on every farm?
+4. **Hauling sacks:** is carrying sacks to the wagon fun or a chore for your group? It is optional by design, but it is a
    central diegetic loop.
-7. **The aura:** First Light (recommended), The Burning Stair, or Dagon's Fire for Sovereign of the Sheaf (10.3)?
-   And are the title names and thresholds right for your group?
-8. **Art checks:** before Phase 1, I'd read the ARENA2 archives (201, 205, 211-214, 254, 301) and list the exact records
+5. **Art checks:** before Phase 1, I'd read the ARENA2 archives (201, 205, 211-214, 254, 301) and list the exact records
    for animals, birds, hives, fences, tools and the lectern. Anything missing is dropped or replaced by a mod's asset.
