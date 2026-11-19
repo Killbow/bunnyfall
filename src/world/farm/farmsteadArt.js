@@ -4,6 +4,7 @@
 // rebuilt only when the layout or the farm's upgrades change (a part with `min` appears with its upgrade). Drawn for
 // anyone near the farm, in the normal view as in Farming Mode: the farm is a place, not a menu.
 import { FIXTURE_ARCHIVES, fixtureParts } from './farmstead.js';
+import { setFarmSway } from '../farmGardenArt.js';   // PHASE 4.0: wind over the haystack's shocks
 
 /**
  * @param {any} renderer
@@ -33,19 +34,19 @@ export function createFarmsteadArt(renderer, assets = {}) {
     const sig = JSON.stringify([stead.fixtures.map((f) => [f.id, f.pos.map((v) => Math.round(v * 100))]), upgrades, stead.seeds]);
     if (sig === signature) return;
     clear(); signature = sig;
-    /** @type {Map<string, { a: number, r: number, h?: number, w?: number, centers: number[][] }>} */
+    /** @type {Map<string, { a: number, r: number, h?: number, w?: number, sway?: boolean, centers: number[][] }>} */
     const groups = new Map();
     for (const f of stead.fixtures) for (const p of fixtureParts(f, upgrades, stead.seeds)) {
-      const key = `${p.a}_${p.r}_${p.h ?? 'w' + p.w}`;
-      if (!groups.has(key)) groups.set(key, { a: p.a, r: p.r, h: p.h, w: p.w, centers: [] });
+      const key = `${p.a}_${p.r}_${p.h ?? 'w' + p.w}${p.sway ? 's' : ''}`;
+      if (!groups.has(key)) groups.set(key, { a: p.a, r: p.r, h: p.h, w: p.w, sway: !!p.sway, centers: [] });
       groups.get(key).centers.push([f.pos[0] + (p.dx ?? 0), f.pos[1] + (p.dy ?? 0) + .02, f.pos[2] + (p.dz ?? 0)]);
     }
-    for (const { a, r, h, w, centers } of groups.values()) {
+    for (const { a, r, h, w, sway, centers } of groups.values()) {
       const file = files.get(a), size = file?.getSize?.(r);
       if (!size?.width || !size?.height) continue;
       assets.uploadRecord(a, r);
       const dims = h != null ? { w: h * size.width / size.height, h } : { w, h: w * size.height / size.width };
-      batches.push(renderer.createBillboardBatch(a, r, dims, centers));
+      batches.push(setFarmSway(renderer.createBillboardBatch(a, r, dims, centers), sway));   // PHASE 4.0: a shock leans, a fixture stands
     }
   }
   return {

@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). Phases 4 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). **The wind (4.0) is built**: crops, weeds and hay shocks lean with the world's wind (`setFarmSway`; no shader change was needed, the renderer already had a per-batch flora sway). **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). Phases 4 to 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -179,7 +179,9 @@ ships:
 - **Wind field.** One shared wind value per farm (direction, strength and moving gusts) read by every crop, weed, hay
   flat and banner. Plants lean by their height; gusts travel across the field as a wave. A per-vertex offset in the
   billboard pass (*check whether `createBillboardBatch` can take one, as the grass sway does*), otherwise a per-batch
-  lean updated each frame.
+  lean updated each frame. *As built:* the renderer's existing flora sway (`batch.sway`, WIND3) does it: the farm's batches
+  take a share of 3, the world's one wind drives them (no separate per-farm wind), the haystack's shocks included; banners
+  are not built yet.
 - **Particles** (one pooled emitter module, `world/farm/farmParticles.js`): soil clods from the hoe, a spray from the
   watering can, chaff from the scythe, dust behind the plough and the wagon, flies over the dung heap, smoke from the
   smokehouse and the cooking fire, flour from the mill's door, sparks from a stationed dragonling, fireflies at night.
