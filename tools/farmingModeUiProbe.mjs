@@ -54,7 +54,7 @@ try {
     p.mode = createFarmingMode({ renderer, canvas, getTexture, uploadRecord, cam: p.cam, feet: () => p.feet, farms: () => book,
       built: new Map([['1,2',{ locOrigin: [0,0,0], locBlocks: [{ originX: 0, originZ: 0, layout: { models: [{ modelIdNum: 999102, matrix }] } }] }]]),
       state: () => ({ pixelTranslation: () => [0,0,0] }), heightAt: () => 0, collider: { raycast: () => Infinity },
-      available: () => p.available, blocked: () => p.blocked, alive: () => true, say: (s) => { p.notice = s; }, holdThird: (b) => { p.held = b; return true; } });
+      available: () => p.available, blocked: () => p.blocked, alive: () => true, say: (s) => { p.notice = s; }, show: (w) => { p.asked = w; }, holdThird: (b) => { p.held = b; return true; } });
     p.render = () => {
       p.mode.frame();
       const out = { eye: p.cam.pos }; p.mode.camera(out, .1, [0,0,1]);
@@ -66,6 +66,10 @@ try {
       p.glError = renderer.gl.getError(); p.proj = proj; p.view = view; p.eye = eye;
     };
     p.bedPoint = (i) => projectToScreen([(i%4+.5)*2,0,(Math.floor(i/4)+.5)*2],canvas.clientWidth,canvas.clientHeight,p.proj,p.view,renderer.worldViewportRect);
+    // FARM EXPANSION PHASE 1: the farmyard's fixtures, where they stand on screen; walk to one before using it
+    p.fixture = (id) => p.mode.inspect().fixtures.find((f) => f.id === id);
+    p.fixturePoint = (id) => { const f = p.fixture(id); return projectToScreen([f.pos[0], f.pos[1] + f.h * .5, f.pos[2]], canvas.clientWidth, canvas.clientHeight, p.proj, p.view, renderer.worldViewportRect); };
+    p.walkTo = (id) => { const f = p.fixture(id); p.feet = [f.pos[0] - (f.r + 1.2), 0, f.pos[2]]; for (let i = 0; i < 30; i++) p.render(); };
     p.enter = async () => { await p.mode.enter(farm); for(let i=0;i<20;i++) p.render(); };
     if(observer)p.render();else await p.enter();
   };
@@ -119,29 +123,42 @@ try {
   await page.mouse.move(atZoom.x, atZoom.y); await page.mouse.wheel(0, 100);
   await page.evaluate(() => { for(let i=0;i<20;i++) window.probe.render(); });
   assert.ok(await page.evaluate(before => window.probe.eye[1] > before + .3, zoomBefore), 'Wheel zoom did not raise the camera');
-  await page.getByRole('button', { name: 'Crop: Grain', exact: true }).click();
-  await page.evaluate(() => window.probe.render());
-  assert.ok(await page.getByRole('button', { name: 'Crop: Mushrooms', exact: true }).isVisible());
+  // THE FARMYARD (docs/FARM-EXPANSION.md section 3): every fixture laid out, drawn without a GL error, and used in place
+  const ids = await page.evaluate(() => window.probe.mode.inspect().fixtures.map((f) => f.id));
+  for (const id of ['orderPost', 'wagon', 'ledger', 'seed:grain', 'seed:mushroom', 'seed:herbs', 'toolRack', 'well', 'compost', 'haystack', 'scarecrow']) assert.ok(ids.includes(id), `farmyard lacks ${id}`);
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'farmyard draw error');
+  async function useFixture(id) {
+    await page.evaluate(id => window.probe.walkTo(id), id);
+    const at = await page.evaluate(id => window.probe.fixturePoint(id), id);
+    await page.mouse.move(at.x, at.y); await page.evaluate(() => window.probe.render());
+    await page.mouse.click(at.x, at.y); await page.evaluate(() => window.probe.render());
+  }
+  assert.equal(await page.locator('.farm-seed').textContent(), 'Seed: Grain');
+  await useFixture('seed:mushroom');
+  assert.equal(await page.locator('.farm-seed').textContent(), 'Seed: Mushrooms', 'The seed sack must hand over its seed');
+  assert.equal(await page.getByRole('button', { name: 'Crop: Grain', exact: true }).count(), 0, 'The Crop button is gone');
   await page.evaluate(async()=>{const {emptyFarmProgress}=await import('/src/net/farmProgressLaw.js');const p=window.probe;p.garden.progress=emptyFarmProgress();p.garden.progress.harvested={grain:7000,mushroom:6000,herbs:6000};p.garden.progress.delivered={grain:0,mushroom:6000,herbs:6000};p.version++;});
   await page.waitForTimeout(1100);await page.evaluate(()=>window.probe.render());
-  await page.getByRole('button',{name:'Progress & orders',exact:true}).click();await page.evaluate(()=>window.probe.render());
-  await page.waitForFunction(()=>document.querySelector('.farm-progress')?.textContent.includes('Harvested here: 7000'));
-  const deliver=page.getByRole('button',{name:'Deliver 1000 Grain · earn 2000 gold + 10 Argents',exact:true});
-  await deliver.click();await page.evaluate(()=>window.probe.render());
-  assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),0,'First click must only ask for confirmation');
-  await page.getByRole('button',{name:'Confirm: Deliver 1000 Grain · earn 2000 gold + 10 Argents',exact:true}).click();await page.evaluate(()=>window.probe.render());
-  assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),1000);
-  await page.getByRole('button',{name:'Farm improvements',exact:true}).click();await page.evaluate(()=>window.probe.render());
-  const buy=page.getByRole('button',{name:'Buy · 20000 gold + 25 Argents',exact:true});
-  await buy.click();await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.getByRole('button',{name:'Progress & orders',exact:true}).count(),0,'The sidebar is gone');
+  await useFixture('ledger');
+  const ledgerLine = await page.locator('.farm-message').textContent();
+  assert.ok(ledgerLine.includes('19,000 crops harvested'), `The ledger reads the totals: ${ledgerLine}`);
+  await useFixture('wagon');
+  assert.ok(await page.evaluate(()=>!!window.probe.asked), 'The wagon must ask an officer first');
+  assert.equal(await page.evaluate(()=>window.probe.garden.progress.delivered.grain),0,'Asking must not ship');
+  await page.evaluate(()=>{window.probe.asked.input('KeyY');window.probe.asked=null;});
+  await page.waitForFunction(()=>window.probe.garden.progress.delivered.grain===1000);await page.evaluate(()=>window.probe.render());
+  await useFixture('toolRack');
+  assert.ok(await page.evaluate(()=>!!window.probe.asked), 'The tool rack must ask before buying');
   assert.equal(await page.evaluate(()=>window.probe.garden.progress.upgrades.tools),0);
-  await page.getByRole('button',{name:'Confirm: Buy · 20000 gold + 25 Argents',exact:true}).click();await page.evaluate(()=>window.probe.render());
-  assert.equal(await page.evaluate(()=>window.probe.garden.progress.upgrades.tools),1);
+  await page.evaluate(()=>{window.probe.asked.input('KeyY');window.probe.asked=null;});
+  await page.waitForFunction(()=>window.probe.garden.progress.upgrades.tools===1);
+  await useFixture('orderPost');
+  assert.ok((await page.locator('.farm-message').textContent()).includes('filled this week'), 'The order post shows the filled order');
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
     assert.ok(await page.evaluate(() => [...document.querySelectorAll('.farming-hud footer button')].every(b=>{ const r=b.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth; })));
-    assert.ok(await page.evaluate(()=>{const r=document.querySelector('.farm-progress').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight;}));
   }
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('.farming-hud').count(),0);
@@ -152,5 +169,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, screen-to-bed picking, hoe/plant/water, range gate, tools, seeds, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }

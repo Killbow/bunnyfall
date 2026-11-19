@@ -11,7 +11,7 @@ Soil, grass and crops load through the normal ARENA2 texture pipeline (archives 
 Every supported crop field on the farm is divided into workable beds, following the actual field boundaries. The original 16 bed addresses retain their positions and saved crops. Untouched land keeps its native crops; working a bed replaces only the plants inside that bed. Paths and areas outside the crop fields remain unchanged. Hover a bed to highlight it, approach within 3.5 metres, then click with the selected tool:
 
 1. **Hoe** prepares empty soil.
-2. **Seeds** plants the selected crop in prepared soil. Click the Crop button to cycle grain, mushrooms and herbs.
+2. **Seeds** plants the seed in hand in prepared soil. Take grain, mushroom or herb seed from the seed shelf.
 3. **Water** starts growth and supplies 24 hours of growing time.
 4. **Harvest** collects a mature crop into Company Stores and leaves prepared soil for replanting.
 
@@ -23,9 +23,22 @@ Any authenticated visitor can see the shared soil and crops without Company memb
 
 Working three distinct beds in a UTC day earns the existing daily care bonus. Repeating actions on one bed does not count as three beds. Passive Company farm production remains in place during this first version.
 
+## The farmyard
+
+Since the farm expansion's first phase (`docs/FARM-EXPANSION.md`) the farm is used where it stands, not from a menu. Each farm lays out a farmyard on the open ground by its fields (`src/world/farm/farmstead.js`): the same for every client, gathered round one spot by the first field. Everyone nearby sees it; it is used in Farming Mode by walking within reach and clicking:
+
+- **Order post** reads this week's notice for each crop in turn.
+- **The factor's wagon** ships an order. A Captain or Officer is asked Y/N before the crops leave the Stores.
+- **Estate ledger** reads the farm's totals, the week's orders and what each next improvement still needs.
+- **Seed shelf** has a sack for each seed: click one to take that seed (this replaced the Crop button).
+- **Tool rack**, **well** and **compost heap** show the tools, irrigation and soil improvements, and sell the next one to a Captain or Officer with a Y/N question.
+- The **haystack** and the **scarecrow** dress the yard.
+
+Every picture is a Daggerfall record listed in the expansion's art register. A farm too cramped for a fixture lacks it.
+
 ## Estate progression and bulk crop orders
 
-Open **Progress & orders** from the farming belt. Improvements belong to the farm and benefit all Company members. Only a captain or officer may spend Company funds or ship communal crops, with an explicit second-click confirmation. The sidebar follows the active UI skin and shows officers their current Company balances.
+Improvements belong to the farm and benefit all Company members. Only a captain or officer may spend Company funds or ship communal crops, each after a Y/N question at the fixture. Officers' Company balances are read while they use a fixture.
 
 Each crop has its own order ladder. Grain, mushrooms and herbs all need to be grown and harvested at this farm. An order consumes that many crops from communal Company Stores and credits the Company's gold and Argent treasuries together:
 

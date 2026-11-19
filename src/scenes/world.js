@@ -25782,7 +25782,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   });
   farmingMode = createFarmingMode({ renderer, canvas, collider, built, getTexture, uploadRecord, state: () => state, farms: () => farmBook,
     viewAvailable: () => playerSpawned && _mode() === 'exterior',
-    cam, feet: () => player.feetAt(), heightAt: (x, z) => heightAt(x, z), say: (s) => townTalk.say(s), alive: () => frameAlive(_frameToken),
+    cam, feet: () => player.feetAt(), heightAt: (x, z) => heightAt(x, z), say: (s) => townTalk.say(s), show: (w) => townTalk.showOverlay(w), alive: () => frameAlive(_frameToken),
     available: () => walkMode && playerSpawned && _mode() === 'exterior' && playerEntity.health > 0 && !player.riding && !travelView?.active && !spyglass.up,
     blocked: () => townTalk.overlayActive || gamePaused() || !!modes?.hudCovered });
   garrisonPatrols = createGarrisonPatrols({

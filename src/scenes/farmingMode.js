@@ -6,15 +6,21 @@ import { rayDirFromScreen, projectToScreen } from '../player/tapRay.js';
 import { farmGardenSite } from '../world/farmGardenSite.js';
 import { createFarmGardenArt } from '../world/farmGardenArt.js';
 import { createFarmingHud, farmToolName, farmCropName } from '../ui/farmingHud.js';
-import { FARM_SEEDS, FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
+import { FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
 import { t } from '../systems/textManager.js';
+import { ChoiceWindow } from '../ui/talkWindow.js';
 import { holdHotbar } from '../ui/enhanced/enhancedHotbar.js';
 import { farmToolArea } from '../net/farmProgressLaw.js';
+import { layFarmstead, farmsteadTargets, rayHitsTarget } from '../world/farm/farmstead.js';   // FARM EXPANSION PHASE 1: the farm as a place
+import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
+import { createFarmsteadActs } from './farm/farmsteadActs.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
 export function createFarmingMode(deps) {
   const holdThird = deps.holdThird ?? mwViewHoldThird;
   const art = createFarmGardenArt(deps.renderer, deps);
+  const stead = createFarmsteadArt(deps.renderer, deps);   // the fixtures, drawn for anyone near the farm
+  let fixture = null, detailsUntil = 0;   // the fixture under the pointer; officers' Company funds read while they use one
   let releaseHotbar = null, entering = false, mayManage = false, economy = null;
   let farm = null, site = null, garden = emptyGarden(), version = -1, serverOffset = 0;
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
@@ -50,7 +56,7 @@ export function createFarmingMode(deps) {
     if (!farm || reading || busy) return;
     reading = true; const token = epoch, id = farm.mapId;
     try {
-      const r = await deps.farms().garden(id, { version,details:!!hud?.progressOpen });
+      const r = await deps.farms().garden(id, { version, details: Date.now() < detailsUntil });
       if (token !== epoch) return;
       if (!accept(r, token) && ['farm-not-ours', 'no-guild', 'guilds-need-account'].includes(r?.error)) { leave(); site?.restore(); art.dispose(); garden = emptyGarden(); version = -1; }
       else if (!r?.ok) notice(t('farm.mode.loadFailed', 'The farm could not be read. Try again in a moment.'));
@@ -64,7 +70,7 @@ export function createFarmingMode(deps) {
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; art.dispose(); }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; art.dispose(); stead.dispose(); }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
@@ -88,7 +94,7 @@ export function createFarmingMode(deps) {
   function down(e) {
     if (!active || deps.blocked() || e.target !== deps.canvas) return;
     e.preventDefault(); e.stopImmediatePropagation(); pointer = [e.clientX, e.clientY]; pick();
-    if (e.button === 0) work();
+    if (e.button === 0) { if (fixture) useFixture(fixture); else work(); }
   }
   function context(e) { if (active && e.target === deps.canvas) e.preventDefault(); }
   function attach() {
@@ -103,21 +109,33 @@ export function createFarmingMode(deps) {
     window.removeEventListener('pointerdown', down, true); window.removeEventListener('wheel', wheel, true); window.removeEventListener('contextmenu', context);
   }
   function pick() {
-    selected = -1;
+    selected = -1; fixture = null;
     if (!site || !frame || !pointer) return;
     const rect = deps.canvas.getBoundingClientRect();
     const dir = rayDirFromScreen(pointer[0] - rect.left, pointer[1] - rect.top, rect.width, rect.height, frame.proj, frame.view, eye, deps.renderer.worldViewportRect);
     if (!dir) return;
-    if (Math.abs(dir[1]) < 1e-6) return;
     let nearest = Infinity;
+    // FARM EXPANSION: a fixture before a bed when it stands nearer along the ray
+    for (const target of farmsteadTargets(site.farmstead)) {
+      const distance = rayHitsTarget(eye, dir, target);
+      if (distance < nearest && deps.collider.raycast(eye, dir, distance) >= distance - .3) { nearest = distance; fixture = target; }
+    }
+    if (Math.abs(dir[1]) < 1e-6) return;
     site.beds.forEach((b, i) => {
       const distance = (b[1] - eye[1]) / dir[1];
       if (distance <= 0 || distance >= nearest) return;
       const x = eye[0] + dir[0] * distance, z = eye[2] + dir[2] * distance;
       if (Math.abs(x - b[0]) <= FARM_BED_SIZE / 2 && Math.abs(z - b[2]) <= FARM_BED_SIZE / 2 && deps.collider.raycast(eye, dir, distance) >= distance - .1) {
-        selected = i; nearest = distance;
+        selected = i; nearest = distance; fixture = null;
       }
     });
+  }
+  /** FARM EXPANSION: a fixture used where it stands - within reach, as a bed is. */
+  function useFixture(target) {
+    if (!active || version < 0 || ownHere()?.mapId !== farm.mapId) return;
+    const feet = deps.feet();
+    if (Math.hypot(feet[0] - target.pos[0], feet[2] - target.pos[2]) > FARM_WORK_REACH + target.r) { notice(t('farm.stead.closer', 'Walk closer to use it.')); return; }
+    acts.use(target.id);
   }
   async function work() {
     if (!active || selected < 0 || busy || version < 0 || ownHere()?.mapId !== farm.mapId) return;
@@ -169,10 +187,33 @@ export function createFarmingMode(deps) {
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
     }[error];
   }
+  /** Whether a fixture of radius `r` at (x, y, z) would stand in a wall: rays across its footprint at knee and head
+   *  height, and down onto it from above (a roof, a tree's crown). */
+  function steadBlocked(x, y, z, r) {
+    const c = deps.collider;
+    for (const h of [.5, 1.6]) for (const [dx, dz] of [[1, 0], [0, 1], [.7071, .7071], [.7071, -.7071]]) {
+      if (Number.isFinite(c.raycast([x - dx * r, y + h, z - dz * r], [dx, 0, dz], 2 * r))) return true;
+    }
+    return Number.isFinite(c.raycast([x, y + 3, z], [0, -1, 0], 2.8));
+  }
+  function projectTo(pos, lift, rect, proj, view) {
+    const at = projectToScreen([pos[0], pos[1] + lift, pos[2]], rect.width, rect.height, proj, view, deps.renderer.worldViewportRect);
+    at.x += rect.left; at.y += rect.top; return at;
+  }
   function directionTo(feet, bed) {
     const dx = bed[0] - feet[0], dz = bed[2] - feet[2], len = Math.hypot(dx, dz);
     return len > .001 ? [dx / len, 0, dz / len] : [0, -1, 0];
   }
+  const acts = createFarmsteadActs({
+    garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, say: notice,
+    setSeed: (id) => { crop = id; tool = 'plant'; },
+    ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
+      { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
+      { code: 'KeyN', label: t('farm.stead.no', 'N: no'), action: () => {} },
+    ] })); },
+    act: (action) => perform(action),
+    wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
+  });
   function status() {
     if (Date.now() < noticeUntil) return message;
     if (version < 0) return t('farm.mode.loading', 'Reading the shared beds...');
@@ -183,7 +224,8 @@ export function createFarmingMode(deps) {
     return distance > 10 ? t('farm.mode.findBeds', 'Working beds: {n} m away.', { n: distance }) : t('farm.mode.hint', 'Hoe a bed, plant seeds, then water. Crops grow while you are away.');
   }
   return {
-    inspect: () => ({ active, farm: farm ? { ...farm } : null, version, fields: site?.fields ?? 0, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null, observers: [...observers.keys()] }),
+    inspect: () => ({ active, farm: farm ? { ...farm } : null, version, fields: site?.fields ?? 0, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null, observers: [...observers.keys()],
+      fixtures: farmsteadTargets(site?.farmstead).map((f) => ({ id: f.id, pos: [...f.pos], r: f.r, h: f.h })) }),
     get active() { return active; }, get eye() { return eye; }, get look() { return fwd; },
     get pitch() { return active && fwd ? Math.asin(Math.max(-1, Math.min(1, fwd[1]))) : null; },
     get face() { return active ? { yaw, up: leanedUp(yaw, .8), grow: 1 } : null; },
@@ -192,7 +234,7 @@ export function createFarmingMode(deps) {
       const found = farmGardenSite(value, { ...deps, farms: deps.farms() });
       if (!found) { deps.say(t('farm.mode.noField', 'The crop fields are not ready here yet.')); return; }
       entering = true;
-      try { await art.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
+      try { await art.prepare(); await stead.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
       if (disposed || !deps.available()) return;
       if (!holdThird(true)) { holdThird(false); deps.say(t('farm.mode.noBody', 'Your third-person character must be ready before entering Farming Mode.')); return; }
       heldBody = true;
@@ -200,7 +242,7 @@ export function createFarmingMode(deps) {
       else { farm = value; site = found; }
       active = true; yaw = deps.cam.yaw; height = 8; selected = -1; freeCursor = holdCursor();
       releaseHotbar = holdHotbar();
-      hud = createFarmingHud({ tool: (v) => { tool = v; }, seed: () => { crop = FARM_SEEDS[(FARM_SEEDS.findIndex((s) => s.id === crop) + 1) % FARM_SEEDS.length].id; }, leave, progressAct:action=>perform(action) });
+      hud = createFarmingHud({ tool: (v) => { tool = v; }, leave });
       attach(); nextRead = 0; await read();
     },
     frame() {
@@ -216,13 +258,13 @@ export function createFarmingMode(deps) {
         const found = farmGardenSite(here, { ...deps, farms: deps.farms() });
         if (!found) return;
         farm = here; site = found;
-        art.prepare().catch(() => {});
+        art.prepare().catch(() => {}); stead.prepare().catch(() => {});
       }
       if (active && (!deps.available() || ownHere()?.mapId !== farm.mapId)) leave();
       if (!busy && !reading && Date.now() >= nextRead) read();
       if (active) {
         deps.cam.yaw = yaw;
-        hud.update(farm, tool, crop, status(), deps.blocked(),garden,now(),mayManage,busy,economy);
+        hud.update(farm, tool, crop, status(), deps.blocked());
       }
     },
     camera(out, dt, normalFwd) {
@@ -241,14 +283,19 @@ export function createFarmingMode(deps) {
     draw(proj, view, right, up) {
       for(const observer of observers.values())observer.draw(proj,view,right,up);
       if (!farm || !site || version < 0 || !art.ready) return;
-      frame = { proj, view }; if (active && !deps.blocked()) pick(); else selected = -1;
+      frame = { proj, view }; if (active && !deps.blocked()) pick(); else { selected = -1; fixture = null; }
       site.mask(garden,version); art.update(site, garden, now(), selected); art.draw(right, up, selected);
+      if (stead.ready) {
+        site.farmstead ??= layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
+        stead.update(site.farmstead, garden.progress?.upgrades ?? {}); stead.draw(right, up);
+      }
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
       const pos = i >= 0 ? site.beds[i] : site.center;
       const at = projectToScreen([pos[0], pos[1] + .9, pos[2]], rect.width, rect.height, proj, view, deps.renderer.worldViewportRect);
       at.x += rect.left; at.y += rect.top;
       let label = t('farm.mode.beds', 'Working beds');
+      if (fixture) { hud.target(acts.label(fixture.id), projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return; }
       if (i >= 0) {
         const bed = garden.beds[i] ?? null, stage = gardenStage(bed, now());
         const growing = bed?.crop && stage !== 'ripe';

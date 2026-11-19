@@ -1,0 +1,159 @@
+// @ts-check
+// BUNNYFALL FARM EXPANSION, PHASE 1 (docs/FARM-EXPANSION.md section 3): THE FARMSTEAD - where the farm's fixtures stand.
+//
+// A farm's crop fields are known (farmGardenSite.js `rects`); the open ground about them is not. This module finds it:
+// a 1 m grid round the fields, kept where the ground is flat, outside every field and clear of every wall the collider
+// knows, scored nearest the fields first with a jitter seeded by the farm's map id - so every client stands the same
+// farmstead. Each fixture then claims the best plot left that is far enough from the ones already claimed, in FIXTURES'
+// order; a farm too cramped for one simply lacks it. The scarecrow stands in the first field itself.
+//
+// Every picture is a record of the art register (docs/FARM-EXPANSION.md Appendix A), checked against ARENA2. A part
+// with `min` is drawn only once the farm's upgrades reach it (section 3.6: upgrades you can see).
+
+/** A part is sized by its height `h`, m - or, for a picture drawn lying (TEXTURE.214's tools are inventory pictures),
+ *  by its width `w`, so a wide picture never stretches tall. */
+/** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number> }} Part */
+/** @typedef {{ id: string, dx: number, dz: number, r: number, h: number }} Target */
+/** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean }} FixtureDef */
+
+/** @type {readonly FixtureDef[]} */
+export const FIXTURES = Object.freeze([
+  { id: 'orderPost', r: .8, h: 2.6, parts: [{ a: 212, r: 5, h: 2.6 }] },
+  { id: 'wagon', r: 2.6, h: 1.8, parts: [
+    { a: 205, r: 27, h: 1.5 }, { a: 201, r: 0, dx: -2.3, dz: .2, h: 1.75 },
+    { a: 205, r: 17, dx: .2, dz: .1, dy: .75, h: .55 }, { a: 205, r: 19, dx: .6, dz: -.1, dy: .75, h: .5 },
+  ] },
+  { id: 'ledger', r: .7, h: 1.1, parts: [{ a: 211, r: 31, h: .65 }, { a: 211, r: 1, dy: .62, h: .4 }] },
+  { id: 'seedShelf', r: 1.5, h: 1.3, parts: [
+    { a: 205, r: 24, dz: .45, h: 1.05 },
+    { a: 205, r: 17, dx: -.75, h: .6 }, { a: 205, r: 18, dx: 0, h: .55 }, { a: 205, r: 19, dx: .75, h: .6 },
+    { a: 301, r: 19, dx: -.75, dy: .5, h: .4 }, { a: 301, r: 10, dx: 0, dy: .45, h: .22 }, { a: 301, r: 13, dx: .75, dy: .5, h: .35 },
+  ], targets: [
+    { id: 'seed:grain', dx: -.75, dz: 0, r: .38, h: 1 }, { id: 'seed:mushroom', dx: 0, dz: 0, r: .38, h: .9 },
+    { id: 'seed:herbs', dx: .75, dz: 0, r: .38, h: 1 },
+  ] },
+  { id: 'toolRack', r: 1, h: 1.3, parts: [
+    { a: 205, r: 25, dz: .3, h: 1 },
+    { a: 214, r: 1, dx: -.3, dy: .55, w: .9 }, { a: 214, r: 4, dx: .25, dy: .35, w: .8 }, { a: 214, r: 7, dx: 0, dy: .1, w: .75 },
+    { a: 214, r: 0, dx: -.55, dy: .05, w: .8, min: { tools: 1 } }, { a: 214, r: 14, dx: .6, dy: .7, w: .35, min: { tools: 1 } },
+    { a: 214, r: 6, dx: .55, dy: .05, w: .8, min: { tools: 2 } }, { a: 214, r: 10, dx: -.75, h: 1.4, min: { tools: 2 } },
+  ] },
+  { id: 'well', r: 1.4, h: 2.6, parts: [
+    { a: 212, r: 0, h: 2.6 }, { a: 205, r: 29, dx: 1, dz: .2, h: .5, min: { irrigation: 1 } },
+    { a: 212, r: 8, dx: -1.2, h: 1.3, min: { irrigation: 2 } }, { a: 205, r: 30, dx: -.9, dz: .4, h: .45, min: { irrigation: 2 } },
+  ] },
+  { id: 'compost', r: 1.2, h: 1.1, parts: [
+    { a: 212, r: 7, h: .8 }, { a: 211, r: 3, dx: .85, dz: .2, h: .5, min: { soil: 1 } },
+    { a: 212, r: 7, dx: -.7, dz: -.3, h: 1.1, min: { soil: 2 } }, { a: 205, r: 10, dx: .4, dz: .7, h: .45, min: { soil: 2 } },
+  ] },
+  { id: 'haystack', r: 1.6, h: 1.9, parts: [{ a: 212, r: 1, h: 1.8 }, { a: 301, r: 0, dx: 1.5, dz: .3, h: 1.6 }, { a: 301, r: 1, dx: -1.4, dz: -.2, h: 1.5 }] },
+  { id: 'scarecrow', r: .6, h: 2.3, field: true, parts: [{ a: 211, r: 20, h: 2.3 }] },
+]);
+export const FIXTURE_ARCHIVES = Object.freeze([...new Set(FIXTURES.flatMap((f) => f.parts.map((p) => p.a)))]);
+
+/** How far beyond a field the farmstead looks for ground, m. */
+export const STEAD_REACH = 10;
+/** Kept off a field's edge, m: the crops' own margin. */
+export const STEAD_MARGIN = 1.3;
+/** The most a plot's ground may rise across it, m. */
+export const STEAD_SLOPE = .45;
+/** Room left between two fixtures, m. */
+export const STEAD_GAP = .9;
+/** How strongly the fixtures gather round the yard's hub: score per metre from it. */
+export const STEAD_PULL = .4;
+
+/** A stable 0..1 for (seed, x, z). */
+function hash01(seed, x, z) {
+  let h = (seed ^ Math.imul(x | 0, 0x27d4eb2d) ^ Math.imul(z | 0, 0x165667b1)) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b) >>> 0;
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35) >>> 0;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+/** Distance from (x, z) to a rect [x0, z0, x1, z1]: 0 inside. */
+const rectDistance = (r, x, z) => Math.hypot(Math.max(r[0] - x, 0, x - r[2]), Math.max(r[1] - z, 0, z - r[3]));
+
+/**
+ * THE FARMSTEAD of a farm's site. Pure but for the two probes it is handed.
+ * @param {{ rects: number[][], mapId: number }} site
+ * @param {{ heightAt: (x: number, z: number) => number, blocked: (x: number, y: number, z: number, r: number) => boolean }} probes
+ */
+export function layFarmstead(site, { heightAt, blocked }) {
+  const rects = site.rects ?? [];
+  if (!rects.length) return null;
+  const base = rects[0], seed = (site.mapId >>> 0) || 1;
+  const bx0 = Math.min(...rects.map((r) => r[0])) - STEAD_REACH, bz0 = Math.min(...rects.map((r) => r[1])) - STEAD_REACH;
+  const bx1 = Math.max(...rects.map((r) => r[2])) + STEAD_REACH, bz1 = Math.max(...rects.map((r) => r[3])) + STEAD_REACH;
+  /** @type {{ x: number, z: number, score: number }[]} */
+  const ground = [];
+  for (let z = Math.floor(bz0); z <= bz1; z++) for (let x = Math.floor(bx0); x <= bx1; x++) {
+    const cx = x + .5, cz = z + .5;
+    let d = Infinity;
+    for (const r of rects) d = Math.min(d, rectDistance(r, cx, cz));
+    if (d < STEAD_MARGIN || d > STEAD_REACH) continue;
+    // the jitter is read in the field's own frame, so a moved origin (rebase) never reshuffles the farm
+    ground.push({ x: cx, z: cz, score: d + hash01(seed, Math.round(cx - base[0]), Math.round(cz - base[1])) * 2.5 });
+  }
+  if (!ground.length) return null;
+  // ONE YARD, NOT A SCATTER: the fixtures gather round a hub - the best ground by the first field - each plot's score
+  // growing with its distance from it, so the farm reads as one farmstead and not things strewn round every field
+  let hub = null;
+  for (const g of ground) if (rectDistance(base, g.x, g.z) <= STEAD_REACH * .6 && (!hub || g.score < hub.score)) hub = g;
+  hub ??= ground[0];
+  for (const g of ground) g.score += Math.hypot(g.x - hub.x, g.z - hub.z) * STEAD_PULL;
+  ground.sort((a, b) => a.score - b.score);
+  const flat = (x, z, r) => {
+    const hs = [heightAt(x, z), heightAt(x - r, z), heightAt(x + r, z), heightAt(x, z - r), heightAt(x, z + r)];
+    if (!hs.every(Number.isFinite)) return null;
+    return Math.max(...hs) - Math.min(...hs) <= STEAD_SLOPE ? hs[0] : null;
+  };
+  /** @type {{ id: string, def: FixtureDef, pos: number[] }[]} */
+  const placed = [];
+  for (const def of FIXTURES) {
+    if (def.field) {
+      const r = base, x = (r[0] + r[2]) / 2 + 1, z = (r[1] + r[3]) / 2 + 1, y = heightAt(x, z);   // between the beds' rows
+      if (Number.isFinite(y)) placed.push({ id: def.id, def, pos: [x, y, z] });
+      continue;
+    }
+    for (const g of ground) {
+      if (placed.some((p) => !p.def.field && Math.hypot(p.pos[0] - g.x, p.pos[2] - g.z) < p.def.r + def.r + STEAD_GAP)) continue;
+      if (rects.some((r) => rectDistance(r, g.x, g.z) < def.r + STEAD_MARGIN)) continue;
+      const y = flat(g.x, g.z, def.r);
+      if (y == null || blocked(g.x, y, g.z, def.r)) continue;
+      placed.push({ id: def.id, def, pos: [g.x, y, g.z] });
+      break;
+    }
+  }
+  return {
+    fixtures: placed,
+    /** @param {number[]} delta */
+    rebase(delta) { for (const p of placed) p.pos = p.pos.map((v, i) => v + delta[i]); },
+  };
+}
+
+/** A fixture's parts that stand at these upgrades. */
+export const standingParts = (def, upgrades) => def.parts.filter((p) => !p.min || Object.entries(p.min).every(([k, v]) => (upgrades?.[k] ?? 0) >= v));
+
+/** Every pickable target of the farmstead: a fixture whole, or each of its own targets. */
+export function farmsteadTargets(stead) {
+  const out = [];
+  for (const f of stead?.fixtures ?? []) {
+    if (f.def.targets) for (const t of f.def.targets) out.push({ id: t.id, fixture: f.id, pos: [f.pos[0] + t.dx, f.pos[1], f.pos[2] + t.dz], r: t.r, h: t.h });
+    else out.push({ id: f.id, fixture: f.id, pos: f.pos, r: f.def.r, h: f.def.h });
+  }
+  return out;
+}
+
+/**
+ * Where a ray from `eye` along `dir` meets a target's upright cylinder, or Infinity. The ray's nearest approach to the
+ * axis in the ground plane, then the height at that point.
+ */
+export function rayHitsTarget(eye, dir, t) {
+  const dx = dir[0], dz = dir[2], ox = eye[0] - t.pos[0], oz = eye[2] - t.pos[2], a = dx * dx + dz * dz;
+  if (a < 1e-9) return Infinity;
+  const s = -(ox * dx + oz * dz) / a;
+  if (s <= 0) return Infinity;
+  const px = ox + dx * s, pz = oz + dz * s;
+  if (Math.hypot(px, pz) > t.r) return Infinity;
+  const y = eye[1] + dir[1] * s;
+  return y >= t.pos[1] - .2 && y <= t.pos[1] + t.h ? s : Infinity;
+}

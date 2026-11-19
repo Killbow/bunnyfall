@@ -97,8 +97,8 @@ finds **fixture plots** on that ground once per farm:
 | **Order post** | 1x1 | the hanging signboard 212:5, notices drawn on it as pale paper quads | Weekly orders (3.3) |
 | **Factor's wagon** | 3x5 | horse-cart-and-cargo's cart + a 201 horse, sacks 205:17 | Ships orders (3.3) |
 | **Estate ledger** | 1x1 | the quill and ink 211:1 on the wooden block 211:31, in the porch (there is no lectern flat) | Read-only farm record (3.4) |
-| **Seed shelf** | 1x2 | the shelves 211:18/19, sacks 205:17-20, baskets 205:9/10 | Picking a seed (3.5) |
-| **Tool rack** | 1x2 | the tool flats of TEXTURE.214 (shovel 0, rake 1, spade 4, pick 6, hoe 7, broom 10, pail 11, shears 14) | Upgrades made visible (3.6) |
+| **Seed shelf** | 1x2 | sacks 205:17-19 before the crate stack 205:24, each with its seedling on top | Picking a seed (3.5) |
+| **Tool rack** | 1x2 | TEXTURE.214's tools (inventory pictures, sized by width) leaning on the crates 205:25 | Upgrades made visible (3.6) |
 | **Well and trough** | 2x2 | the well 212:0, the hand pumps 212:8/9, troughs 41220-41222, buckets 205:29/30 | Water; irrigation (3.6) |
 | **Compost heap** | 2x2 | the dark heap 212:7, the dung pile with flies 211:3 | Soil; manure in (3.6) |
 | **Pens and sty** | 6x8 | posts 212:13/14 with rails drawn between them (no fence flat exists), haystack 212:1, the cart 205:27 | Livestock (5) |
@@ -740,7 +740,7 @@ draws a labelled contact sheet of each archive (it reads the game's files and wr
 | --- | --- | --- |
 | **201** animals | 0, 1 horses (4 frames); 3 cow, 4 grazing cow (4 frames); 5 pig walking (4), 6 pig rooting (3); 7 cat walking, 8 cat sitting; 9, 10 dogs; 11 seagull (crows); 2 camel (a desert drover) | every farm animal there is: no chicken, sheep or goat |
 | **205** clutter | 0 barrel; 9, 10 baskets (empty, full); 17-20 sacks; 24-26 crates and stacks; 27, 28 carts; 29, 30 buckets | sacks, the wagon's cargo, the stalls' goods |
-| **211** fixtures | 1 quill and ink; 3 dung heap with flies; 11 hanging bundle; 13, 14 tripods; 15-17 wheels and millstones; 18, 19 shelves; 20 **scarecrow**; 31 wooden block; 40 ham; 43-46 hanging cloths and meats | the ledger, the seed shelf, the smokehouse, the mill |
+| **211** fixtures | 1 quill and ink; 3 dung heap with flies; 11 hanging bundle; 13, 14 tripods; 15-17 wheels and millstones; (18, 19 are stocks, not shelves: unused); 20 **scarecrow**; 31 wooden block; 40 ham; 43-46 hanging cloths and meats | the ledger, the seed shelf, the smokehouse, the mill |
 | **212** yard | 0 well; 1 **haystack**; 4, 5 hanging signboards; 6 signpost; 7 dark heap; 8, 9 hand pumps; 10 post; 11, 12 woodpiles; 13, 14 posts | the order post, the compost, the pens' posts, the water |
 | **213** plants | 0 gourd; 1 tomato; 2-6 potted plants (the porch, the market stalls) | ripe fruit on the ground |
 | **214** tools | 0 shovel; 1 rake; 4 spade; 5 lantern on a pole; 6 pick; 7 hoe; 10 broom; 11 pail; 14 shears | the tool rack, the lanterns, the belt's tools |
