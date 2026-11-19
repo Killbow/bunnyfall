@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { emptyGarden, stepFarmGarden, stepFarmGardenAction, gardenGrowth, gardenStage, FARM_WATER_S } from '../src/net/farmGardenLaw.js';
+import { emptyGarden, stepFarmGarden, stepFarmGardenAction, gardenGrowth, gardenStage, FARM_WATER_S, validGarden as validGardenLaw } from '../src/net/farmGardenLaw.js';
 import { emptyFarmProgress, stepFarmDelivery, stepFarmUpgrade } from '../src/net/farmProgressLaw.js';
 import { farmGarden } from '../server-account/src/farmGardens.js';
 import { createFarmDoor } from '../src/systems/farmDoor.js';
@@ -401,4 +401,22 @@ test('the route: station, recall, the Company\'s cross-farm cap, the silk deposi
   assert.ok((await at(D * 21 + 99, 42, { ...mk('d', 3), version: v(42) })).ok);
   assert.deepEqual(stations().map((s) => s.revenantId), ['d'], 'the keeper who left takes no place');
   f.sql.close();
+});
+
+test('a big harvest keeps every sack: a hundred beds harvested leave a hundred sacks, and only the cap drops the oldest', async () => {
+  const { liveSacks, SACKS_MAX } = await import('../src/net/farm/haulLaw.js');
+  const T = 1_800_000_000, N = 100;
+  let g = emptyGarden();
+  for (let b = 0; b < N; b++) g.beds[b] = { crop: 'grain', grown: 9e9, tick: T, wetUntil: T, quality: 0, care: 0 };
+  for (let b = 0; b < N; b++) g = stepFarmGardenAction(g, { op: 'harvest', bed: b, mapId: 7, who: 'p' }, T + 60 + b).garden;
+  const beds = new Set(liveSacks(g, T + 200).map((s) => s.bed));
+  assert.equal(beds.size, N, 'every harvested bed has its sack');
+  assert.ok(validGardenLaw(g));
+  // past the cap the oldest go, the newest stay
+  const big = emptyGarden();
+  for (let b = 0; b < SACKS_MAX + 10; b++) big.beds[b] = { crop: 'grain', grown: 9e9, tick: T, wetUntil: T, quality: 0, care: 0 };
+  let h = big;
+  for (let b = 0; b < SACKS_MAX + 10; b++) h = stepFarmGardenAction(h, { op: 'harvest', bed: b, mapId: 7, who: 'p' }, T + 60 + b).garden;
+  const kept = liveSacks(h, T + 60 + SACKS_MAX + 10).map((s) => s.bed);   // right after the last harvest: none has expired yet
+  assert.equal(kept.length, SACKS_MAX); assert.ok(kept.includes(SACKS_MAX + 9) && !kept.includes(0), 'the oldest ten went, the newest stay');
 });
