@@ -3,6 +3,10 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-19
+
+- Sifrit the Forbidden One is now a player's size, so she no longer gets stuck in walls. She has the Titanheart's toughness: no single hit can take more than a quarter of her health, so she cannot be one-shot. Disintegrate does nothing to her ("That won't work.").
+
 ## 2026-11-18
 
 - Magical taverns: in every town with two taverns or more, one of them has turned blue, is called The Nowhere Tavern, and its door is a shimmering portal. Every portal opens the same grand tavern hall, so players from all over the map meet in one tavern, under windows full of stars, with Nyx behind the bar. Walk out and you step back into the town you came from. Shifts, drinks and Favor work there as in any tavern.

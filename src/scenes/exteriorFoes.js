@@ -125,7 +125,7 @@ import { isBodyFoe, foeActor, foeFx, foeWireLook, applyWireLook, kitWire } from 
 import { raidLeaderNameOf } from '../systems/raidKinds.js';   // RAID5: a raid's leader, by its party's word
 import { huntMarkSeen } from '../systems/hunt/namedMark.js';   // HUNTERS-MARK-II: a hunter's named mark, read off its record
 import { staffBossNameOf } from '../systems/staffEvents.js';
-import { SIFRIT_ID } from '../systems/sifrit/sifritLaw.js';   // SIFRIT: the Forbidden One's kind
+import { SIFRIT_ID, sifritTitanDamage, sifritImmuneToKill, SIFRIT_IMMUNE_TEXT } from '../systems/sifrit/sifritLaw.js';   // SIFRIT: the Forbidden One's kind
 import { makeSifrit } from '../systems/sifrit/sifritFight.js';   // SIFRIT: what makes a foe of her kind her   // EVENT-EXTRAS: staff's name for an event's mini boss
 import { elitesAllowed, promoteEliteFoe, promoteRaidLeader, rollOverworldElite, grantEliteLoot, eliteLoot, eliteGlow, setBatchEliteGlow, eliteSize, isEliteCorpse, markEliteCorpseBatch, isStaffBoss, promoteStaffBoss, STAFF_BOSS_SPELL_TAKEN, staffBossHit, STAFF_BOSS_FIGHTERS_MAX } from '../systems/eliteFoes.js';   // ELITE FOES: 5% of the wilds' foes   // HITFLASH1
 import { grantKindOf, grantElite } from '../net/grantLaw.js';   // GRANT3-GRANT4: a stand's grant - its kind, its member's elite (bible/11-Multiplayer/Spawn-Grants.md)
@@ -983,6 +983,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     // owner whole, `kind` and all, and is cut there); a whole-health one (a Disintegrate) takes a tenth of its health
     const _bossSpell = kind === 'spell' && !f.puppet && !!f.entity?.staffBoss;
     const _whole = whole || takeWholeBlow(f.entity);
+    if (fromPlayer && !peer && sifritImmuneToKill(f.entity, _whole)) { say?.(SIFRIT_IMMUNE_TEXT); return; }   // SIFRIT: a Disintegrate does nothing to her
     // BOSS-TRAITS (bible/05-Combat/Boss-Traits.md): MY blow on a foe with traits - its resistances, its thorns at me - on
     // MY machine, where the weapon and the spell are, before a puppet's goes to its owner
     if (fromPlayer && !peer) damage = strikeTraits(f.entity, damage, kind, weapon, element, _whole || bypassShield, (n) => { onPlayerHurt?.(n, null); flashPlayerDamage(n); }, say);   // AUDIT WORLD-EVENTS L2-10: a SetHealth(0) is a kill; L5-6: each trait's rule told once, at my first blow on one
@@ -1085,7 +1086,7 @@ export function createExteriorFoes({ renderer, collider, fetchBytes, getTexture,
     const ward = !_whole && !bypassShield && loss > 0 ? cromwarkWardSource(f, foes) : null;
     const afterWard = ward ? cromwarkWardDamage(loss) : loss;
     if (ward) f.wardFlashUntil = performance.now() + 360;
-    f.entity.health -= !_whole && !bypassShield && cromwarkTitanheart(f.entity) ? cromwarkTitanDamage(f.entity, afterWard) : afterWard;
+    f.entity.health -= !_whole && !bypassShield && cromwarkTitanheart(f.entity) ? cromwarkTitanDamage(f.entity, afterWard) : (!_whole && !bypassShield ? sifritTitanDamage(f.entity, afterWard) : afterWard);   // SIFRIT: titanheart's quarter-of-maximum cap on a hit
     if (bout && healthDamage > 0) bout.hooks?.hurt?.(f, healthDamage, { fromPlayer: fromPlayer && !peer, striker });   // ARENA2: the blow, to the bout's law
     if (f.entity.health <= 0) {
       // ARENA2: THE FOE YIELD FLOOR - nobody dies on the arena's sand. A bout fighter reaching the floor is held at the
