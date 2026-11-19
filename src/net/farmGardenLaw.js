@@ -5,6 +5,7 @@ import { CARE_MAX, WATER_CARE_S, clampCare, gradeOf, gradedYield, bedWeedy, bird
 import { GAMES, gameForOp, validGame, validPlays, recordPlay, careBonus } from './farm/farmGameLaw.js';   // PHASE 2: the field games
 import { validHerd, kindContent } from './farm/herdLaw.js';   // PHASE 3: the herd
 import { QUICK_SHARE, crossChance, crossRoll, addStrain, strainOf, validStrains, validBedStrain } from './farm/strainLaw.js';   // PHASE 2c: strains
+import { settleThreats, stepFarmProwl as stepProwl, validThreats, bedBlighted, rotAfter, blightYield } from './farm/threatLaw.js';   // PHASE 6: blight and prowlers
 import { laySacks, validHaul } from './farm/haulLaw.js';   // FARM EXPANSION: a harvest's sacks, for the wagon
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
 // A sparse address space: farms allocate as many beds as their actual fields contain.
@@ -39,6 +40,7 @@ export function validGarden(value) {
   if (value && !validPlays(value.plays)) return false;
   if (value && !validStrains(value, FARM_SEEDS.map((x) => x.id))) return false;
   if (value && !validHerd(value)) return false;
+  if (value && !validThreats(value)) return false;   // PHASE 6
   return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&
@@ -65,24 +67,31 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', strain,
     // CARE: watered in its last hours of moisture, before it dried
     const kept = bed.wetUntil > nowS && bed.wetUntil - nowS <= WATER_CARE_S;
     Object.assign(bed, { grown: gardenGrowth(bed, nowS), tick: nowS, wetUntil: nowS + FARM_WATER_S, ...(kept ? { care: clampCare((bed.care ?? 0) + 1) } : {}) });
+  } else if (op === 'pull' && bed?.crop && bedBlighted(bed)) {
+    // PHASE 6: the sick plants pulled - the crop is lost, the bed is tilled soil again, and what stood there is remembered
+    next.rot = { ...(garden.rot ?? {}), [index]: rotAfter(garden.rot?.[index], bed.crop) };
+    next.beds[index] = { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
   } else if (op === 'weed' && bed?.crop && bedWeedy(bed, nowS, gardenStage(bed, nowS) === 'ripe')) {
     Object.assign(bed, { weeded: nowS, care: clampCare((bed.care ?? 0) + 1 + bonus) });
   } else if (op === 'harvest' && bed?.crop && gardenStage(bed, nowS) === 'ripe') {
     const seed = farmSeed(bed.crop);
     // THE GRADE: the bed's care, the scything game's, less what unchased birds took while it grew
     const toll = birdsUnchased(mapId, garden.chased, bed.sown ?? bed.tick ?? nowS, nowS, kindContent(garden, 'dog', nowS) ? 1 : undefined);   // PHASE 3: a content dog guards the field
-    const grade = gradeOf(clampCare((bed.care ?? 0) + bonus - toll));
-    const qty = gradedYield(seed.yield, bed.quality ?? 0, grade) + (bed.traits?.includes('heavy') ? 1 : 0);
+    const grade = bedBlighted(bed) ? 0 : gradeOf(clampCare((bed.care ?? 0) + bonus - toll));
+    const sick = bedBlighted(bed);   // PHASE 6: a blighted crop comes in Common at half yield
+    const qty = sick ? blightYield(gradedYield(seed.yield, bed.quality ?? 0, 0) + (bed.traits?.includes('heavy') ? 1 : 0)) : gradedYield(seed.yield, bed.quality ?? 0, grade) + (bed.traits?.includes('heavy') ? 1 : 0);
+    next.rot = { ...(garden.rot ?? {}), [index]: rotAfter(garden.rot?.[index], seed.id) };
     next.beds[index] = irrigation === 2 ? { ...planted(seed.id), ...(bed.strain ? { strain: bed.strain, traits: [...(bed.traits ?? [])] } : {}) } : { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
     next.progress = structuredClone(progress);
     // the weekly orders count their own three crops; the climate crops' orders come with the workshops (Phase 4)
     if (FARM_CROP_TYPES.includes(seed.id)) next.progress.harvested[seed.id] = Math.min(2147483647, next.progress.harvested[seed.id] + qty);
-    return { garden: next, harvest: { crop: seed.id, material: seed.material, qty, grade, care: clampCare((bed.care ?? 0) + bonus - toll), traits: bed.traits ?? [] } };
+    return { garden: next, harvest: { crop: seed.id, material: seed.material, qty, grade, care: clampCare((bed.care ?? 0) + bonus - toll), traits: bed.traits ?? [], ...(sick ? { blight: true } : {}) } };
   } else return { error: 'farm-bed-action' };
   return { garden: next, harvest: null };
 }
 /** Upgraded tools apply one atomic revision to several eligible beds. */
 export function stepFarmGardenAction(garden, body, nowS) {
+  garden = settleGarden(garden, body.mapId ?? 0, nowS);   // PHASE 6: blight caught since the last write is stamped first
   const ids = body.beds ?? [body.bed];
   if (!Array.isArray(ids) || !ids.length || ids.length > farmToolArea(garden) || new Set(ids).size !== ids.length || ids.some(i => !Number.isInteger(i) || i < 0 || i >= FARM_BEDS)) return { error:'farm-bed-bad' };
   // A FIELD GAME (farmGameLaw.js): judged once for the action; its care bonus only while the account's day has full plays left
@@ -131,3 +140,9 @@ export function stepFarmBurn(garden, strainId) {
   next.strains = next.strains.filter((s) => s.id !== strainId);
   return { garden: next, harvests: [], worked: [] };
 }
+
+/** PHASE 6: the garden's threats settled to `nowS` (threatLaw.js): blight stamped, a prowler's fright dealt. A ripe crop is past blight. */
+export const settleGarden = (garden, mapId, nowS) => (validGarden(garden) ? settleThreats(garden, mapId, nowS, (bed, at) => gardenStage(bed, at) === 'ripe') : garden);
+
+/** PHASE 6: a prowler chased off the pens. */
+export const stepFarmProwl = (garden, { mapId = 0 }, nowS) => (validGarden(garden) ? stepProwl(garden, { mapId }, nowS, (bed, at) => gardenStage(bed, at) === 'ripe') : { error: 'farm-bed-bad' });

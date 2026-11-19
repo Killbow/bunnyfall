@@ -112,6 +112,17 @@ try {
   const chase=await req('/v1/farms/garden',{...body,op:'birds',game:{kind:'birds',score:1,ms:9000},version:v});
   if(here){assert.equal(chase.status,200,JSON.stringify(chase));assert.ok(chase.data.chased&&chase.data.garden.chased.includes(here.id));v=chase.data.version;}
   else assert.equal(chase.data?.error??chase.error,'farm-birds-none','No birds, no chase: '+JSON.stringify(chase));
+  // THREATS (Phase 6): a blighted bed is pulled with the hoe's own op, healthy ones refuse it; the prowler is chased only while there
+  await tl({op:'hoe',bed:12});await tl({op:'plant',bed:12,crop:'herbs'});
+  const healthyPull=await req('/v1/farms/garden',{...body,op:'pull',bed:12,version:v});assert.notEqual(healthyPull.status,200,'A healthy bed is not pulled');
+  const gB=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  gB.beds[12].blight=Math.floor(Date.now()/43200000);
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gB)).run();
+  const pulled=await tl({op:'pull',bed:12});assert.equal(pulled.data.garden.beds[12].crop,null,'Pulling clears the bed');assert.deepEqual(pulled.data.garden.rot[12],['herbs']);
+  const { prowlNow } = await import('../src/net/farm/threatLaw.js');
+  const prowl=await req('/v1/farms/garden',{...body,op:'prowl',version:v});
+  if(prowlNow(42,Math.floor(Date.now()/1000))){assert.equal(prowl.status,200,JSON.stringify(prowl));assert.ok(prowl.data.prowlChased);v=prowl.data.version;}
+  else assert.equal(prowl.data?.error??prowl.error,'farm-prowl-none','No prowler, no chase: '+JSON.stringify(prowl));
   // STRAINS (2c): a strain on the shelf is sown with its traits; an officer burns it
   const gS=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
   gS.strains=[{id:1,crop:'grain',name:'Golden Ear',traits:['quick','heavy']}];gS.nextStrain=2;

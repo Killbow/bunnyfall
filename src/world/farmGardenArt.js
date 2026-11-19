@@ -20,7 +20,8 @@ export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
   flax: { seedling: [301, 23], growing: [301, 19], ripe: [301, 15] },
   gourd: { seedling: [301, 23], growing: [301, 12], ripe: [301, 12], fruit: [213, 0] },
   grapes: { seedling: [301, 9], growing: [301, 8], ripe: [301, 7] },
-  weeds: [[301, 20], [301, 12]] });
+  weeds: [[301, 20], [301, 12]],
+  blight: [301, 12] });   // PHASE 6: a sick bed's drooped plants
 /** Plant heights, m: at sowing and when ripe (a crop grows between them). */
 const HEIGHT = Object.freeze({ grain: [.25, 1.2], mushroom: [.12, .38], herbs: [.2, .75],
   corn: [.3, 1.9], cabbage: [.15, .45], tomato: [.2, .6], sunflower: [.3, 1.6], berries: [.25, .9], root: [.2, .6], flax: [.2, .85], gourd: [.15, .4], grapes: [.3, 1.5] });
@@ -78,7 +79,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     const irrigation=garden.progress?.upgrades?.irrigation??0;
     const entries=Object.entries(garden.beds).filter(([id,b])=>b&&site.beds[Number(id)]);
     const weedy=(b)=>b.crop?bedWeedy(b,now,gardenStage(b,now)==='ripe'):now-b.tick>2*WEED_DRY_S;
-    const sig=JSON.stringify([entries.map(([id,b])=>[id,b.crop,b.crop?plantHeight(b,now):0,gardenStage(b,now),b.wetUntil>now?Math.ceil((b.wetUntil-now)/(FARM_WATER_S/4)):0,b.quality??0,weedy(b)]),irrigation]);
+    const sig=JSON.stringify([entries.map(([id,b])=>[id,b.crop,b.crop?plantHeight(b,now):0,gardenStage(b,now),b.wetUntil>now?Math.ceil((b.wetUntil-now)/(FARM_WATER_S/4)):0,b.quality??0,weedy(b),Number.isSafeInteger(b.blight)]),irrigation]);
     if(signature===sig&&lastSite===site.beds)return;
     signature=sig;lastSite=site.beds;
     crops.forEach(b=>renderer.destroyBillboardBatch(b));crops=[];
@@ -91,11 +92,12 @@ export function createFarmGardenArt(renderer, assets = {}) {
       const index=Number(id),pos=site.beds[index],stage=gardenStage(bed,now);
       // the soil: furrows, darker with better loam, cooler while it holds water (fading as it dries)
       const base=SOIL_TINT[bed.quality??0]??SOIL_TINT[0],left=bed.wetUntil>now?Math.min(1,(bed.wetUntil-now)/FARM_WATER_S):0;
-      const tint=[base[0]*(1-.38*left),base[1]*(1-.36*left),base[2]*(1-.26*left),1];
+      const sick=bed.crop&&Number.isSafeInteger(bed.blight);   // PHASE 6: blighted ground goes sallow
+      const tint=sick?[base[0]*(1-.2*left)*1.25,base[1]*(1-.3*left)*1.1,base[2]*.6,1]:[base[0]*(1-.38*left),base[1]*(1-.36*left),base[2]*(1-.26*left),1];
       writeDecalQuad(values,slot*DECAL_FLOATS,{pos:[pos[0],pos[1]+.035,pos[2]],right:[1,0,0],up:[0,0,-1],size:FARM_BED_SIZE,tint,wet:0});
       const plants=bedPlants(index);
       if(bed.crop){
-        const [archive,record]=FARM_ART[bed.crop][stage]??FARM_ART.grain[stage],height=plantHeight(bed,now);
+        const [archive,record]=sick?FARM_ART.blight:(FARM_ART[bed.crop][stage]??FARM_ART.grain[stage]),height=Math.round(plantHeight(bed,now)*(sick?.55:1)*20)/20;   // drooping: low plants, shorter
         put(archive,record,height,plants.map(([x,z])=>[pos[0]+x,pos[1]+.04,pos[2]+z]));
         const fruit=FARM_ART[bed.crop]?.fruit;
         if(fruit&&stage==='ripe')put(fruit[0],fruit[1],FRUIT_H,plants.slice(0,2).map(([x,z])=>[pos[0]+x*.6+.12,pos[1]+.03,pos[2]+z*.6+.1]));

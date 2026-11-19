@@ -56,6 +56,14 @@ Harvesting a ripe bed with another ripe bed of the same crop within reach (the c
 
 The herd lives in the garden (`src/net/farm/herdLaw.js`), at most 16, all the Company's: cows and horses in the pen, pigs in the sty, dogs and cats about the yard (art: TEXTURE.201). Contentment (0-100) rises 10 a day fed and watered, falls 15 a day for each lack; mucking a pen out lifts it 10 once a day. Feeding takes 2 food from the communal Stores (grain or corn for cows and horses, any food otherwise); water is free. The drover comes one UTC day a week (by the map id) with three animals; an officer buys with treasury gold (garden op `herd`, act `buy`). Content animals work: cows give 1-3 milk a day (+1 with the milking game), a mucked sty with content pigs gives manure (each sown bed takes one: +1 care), a dog caps the birds' toll at 1, a cat keeps sacks 30 minutes, a horse makes a hauled sack 3 farm work. Tending an animal is 3 farm work. Animals never die.
 
+### Threats
+Planted beds can catch **blight** (sallow soil, drooping plants); the chance rises when the same crop has stood in a bed
+three times running and halves when you rotate. It spreads through a crop across the farm (by count, not by position). The
+hoe on a sick bed pulls the plants: the crop is lost and the bed is clear. A blighted crop is harvested Common at half
+the yield; a bed is never destroyed by it. At night **prowlers** (a wolf, told in words) come toward the pens now and
+then: click the pen to drive it off, or the herd loses some contentment unless a content dog keeps the yard. Both are
+settled by `src/net/farm/threatLaw.js` before every write. Rain, hail and raids are not built (docs/FARM-EXPANSION.md).
+
 ### Sacks and the wagon
 
 A harvest still puts its crops into the Company Stores at once. It also leaves the crops' sacks at the bed corner for fifteen minutes (`src/net/farm/haulLaw.js`). Click a sack to shoulder it and the others lying near it, up to four; click the wagon to load them. The wagon's cargo for the week (Monday UTC) fills the cart as it grows and is read in the ledger. Hauling adds nothing to the Stores (the crops are there already) and counts as working the sack's bed for the day's care bonus. The garden route's `haul` op commits it with the garden revision, so a sack loads once.

@@ -247,3 +247,41 @@ test('two farms share one weekly Argent cap, guarded inside the payout transacti
   assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1060000,'A rejected Argent payout cannot leave a gold payout behind');
   f.sql.close();
 });
+
+// PHASE 6: THREATS (threatLaw.js)
+test('blight: the same dice on every end, stable once stamped, pulled for the crop, harvested Common at half yield', async () => {
+  const { settleGarden } = await import('../src/net/farmGardenLaw.js');
+  const { blightChance } = await import('../src/net/farm/threatLaw.js');
+  const T0 = 1_800_000_000, g = emptyGarden(); g.threat = { at: Math.floor(T0 / 43200), prowl: 0 };
+  for (let i = 0; i < 40; i++) g.beds[i] = { crop: 'herbs', grown: 0, tick: T0, wetUntil: 0, sown: T0, care: 0 };
+  const later = T0 + 14 * 43200, a = settleGarden(g, 12345, later);
+  assert.deepEqual(a, settleGarden(g, 12345, later), 'both ends roll alike');
+  const sick = Object.keys(a.beds).filter((i) => a.beds[i].blight !== undefined);
+  assert.ok(sick.length > 0 && sick.length < 40);
+  const b = settleGarden(a, 12345, later + 3 * 43200);
+  for (const i of sick) assert.equal(b.beds[i].blight, a.beds[i].blight, 'a stamp never moves');
+  const healthy = Object.keys(a.beds).find((i) => a.beds[i].blight === undefined);
+  assert.equal(stepFarmGardenAction(a, { op: 'pull', bed: Number(healthy), mapId: 12345 }, later).error, 'farm-bed-action');
+  const pulled = stepFarmGardenAction(a, { op: 'pull', bed: Number(sick[0]), mapId: 12345 }, later);
+  assert.equal(pulled.garden.beds[sick[0]].crop, null); assert.deepEqual(pulled.garden.rot[sick[0]], ['herbs']);
+  const ripe = structuredClone(a); ripe.beds[sick[0]].grown = 99 * 3600;
+  const h = stepFarmGardenAction(ripe, { op: 'harvest', bed: Number(sick[0]), mapId: 12345 }, later).harvests[0];
+  assert.equal(h.grade, 0); assert.ok(h.blight);
+  assert.ok(blightChance(['grain', 'grain', 'grain'], 'grain') > blightChance([], 'grain'));
+  assert.ok(blightChance(['grain'], 'corn') < blightChance([], 'corn'), 'rotation halves it');
+});
+test('prowlers: an unchased wolf frightens the herd once it has gone; a click chases it; a content dog keeps the yard', async () => {
+  const { settleGarden, stepFarmProwl } = await import('../src/net/farmGardenLaw.js');
+  const { prowlWindow, prowlHere } = await import('../src/net/farm/threatLaw.js');
+  let d = 1000, w; while (!(w = prowlWindow(7, d))) d++;
+  const cow = { id: 1, kind: 'cow', name: 'B', tick: w.from - 3600, fedUntil: w.to + 86400, wateredUntil: w.to + 86400, content: 80 };
+  const g = emptyGarden(); g.herd = [cow]; g.threat = { at: Math.floor(w.from / 43200), prowl: d - 1 };
+  assert.equal(prowlHere(g, 7, w.from + 10).id, d);
+  assert.equal(settleGarden(g, 7, w.from + 10).herd[0].content, 80, 'not while it is still there');
+  assert.ok(settleGarden(g, 7, w.to + 60).herd[0].content < 80);
+  const chased = stepFarmProwl(g, { mapId: 7 }, w.from + 10);
+  assert.ok(chased.prowlChased); assert.ok(settleGarden(chased.garden, 7, w.to + 60).herd[0].content >= 80);
+  assert.equal(stepFarmProwl(g, { mapId: 7 }, w.to + 500).error, 'farm-prowl-none');
+  const dog = structuredClone(g); dog.herd.push({ ...cow, id: 2, kind: 'dog', content: 90 });
+  assert.ok(settleGarden(dog, 7, w.to + 60).herd[0].content >= 80);
+});

@@ -6,7 +6,7 @@ import { rayDirFromScreen, projectToScreen } from '../player/tapRay.js';
 import { farmGardenSite } from '../world/farmGardenSite.js';
 import { createFarmGardenArt } from '../world/farmGardenArt.js';
 import { createFarmingHud, farmToolName, farmCropName } from '../ui/farmingHud.js';
-import { bedSeconds, FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
+import { settleGarden, bedSeconds, FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
 import { t } from '../systems/textManager.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';
 import { TITLE_TEXT } from '../ui/playerBadge.js';
@@ -18,6 +18,7 @@ import { seedsFor } from '../net/farm/cropLaw.js';   // PHASE 2: the seeds this 
 import { bedWeedy, birdsNow, GRADES, gradeOf, clampCare } from '../net/farm/careLaw.js';   // PHASE 2: care, weeds and birds
 import { createFarmGame, gameForOp } from '../net/farm/farmGameLaw.js';   // PHASE 2: the field games
 import { createFarmGameWidget } from '../ui/farmGames.js';
+import { bedBlighted, prowlHere } from '../net/farm/threatLaw.js';   // PHASE 6: blight and prowlers
 import { createBirdArt } from '../world/farm/birdArt.js';
 import { strainOf } from '../net/farm/strainLaw.js';   // PHASE 2c: strains
 import { ANIMALS, contentAt, droverHere, CONTENT_GOOD, FED_S, WATERED_S } from '../net/farm/herdLaw.js';   // PHASE 3: the herd
@@ -49,6 +50,15 @@ export function createFarmingMode(deps) {
   let frame = null, pointer = null, attached = false, disposed = false, noticeUntil = 0, heldBody = false;
   const observers = new Map(); let nextObservers = 0;
   const now = () => Date.now() / 1000 + serverOffset;
+  // PHASE 6: what the next write will find - blight caught and frights dealt since the last one - as the service settles it
+  let shownFor = null, shownAt = -1, shownGarden = null;
+  function shown() {
+    const slot = Math.floor(now() / 30);
+    if (shownFor !== garden || shownAt !== slot) { shownFor = garden; shownAt = slot; try { shownGarden = farm ? settleGarden(garden, farm.mapId, now()) : garden; } catch { shownGarden = garden; } }
+    return shownGarden;
+  }
+  const prowlerNow = () => (farm ? prowlHere(garden, farm.mapId, now()) : null);
+  let told = 0;   // the prowler's window already told in words
   const ownHere = () => deps.farms()?.mine()?.farms?.find((f) => deps.farms().atFarm(f.mapId)) ?? null;
   function nearbyObservers() {
     if (deps.passive || Date.now() < nextObservers) return;
@@ -177,6 +187,7 @@ export function createFarmingMode(deps) {
     if (target.id === 'wagon' && carried.length) { if (!busy) perform({ op: 'haul', sacks: [...carried] }); return; }
     if (target.id === 'scarecrow' && birdsHere()) { startGame('birds', { op: 'birds' }, target.pos); return; }
     if (target.animal) { tendAnimal(target.animal, target.pos); return; }
+    if ((target.id === 'pen' || target.id === 'sty') && prowlerNow()) { if (!busy) perform({ op: 'prowl' }); return; }   // PHASE 6: the wolf driven off
     if (target.id === 'pen' || target.id === 'sty') { if (!busy) perform({ op: 'herd', act: 'muck', pen: target.id }); return; }
     if (target.id === 'drover') { drover(); return; }
     acts.use(target.id);
@@ -217,7 +228,8 @@ export function createFarmingMode(deps) {
       }
     }
     // PHASE 2: the hoe on a weedy planted bed weeds it; with Careful work on, sowing, weeding and scything are played
-    const here = garden.beds[selected], op = tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
+    // PHASE 6: the hoe on a blighted bed pulls the sick plants (the crop is lost, the bed stops spreading it)
+    const here = shown().beds[selected], op = tool === 'hoe' && bedBlighted(here) ? 'pull' : tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
     const [cropId, sid] = crop.split('#'), action = { op, bed: selected, beds: ids, crop: cropId, ...(sid ? { strain: Number(sid) } : {}) }, kind = gameForOp(op);
     // PHASE 2c: a harvest names the nearest other ripe bed of the same crop as its partner, for a cross
     if (op === 'harvest' && here?.crop) {
@@ -309,10 +321,12 @@ export function createFarmingMode(deps) {
         if(r.data.strain)deps.say?.(t('farm.stead.cross','A cross seed! The farm names it {name} - {traits}. It has a sack on the seed shelf now.',{name:r.data.strain.name,traits:r.data.strain.traits.map(traitWord).join(', ')}));
         if(action.op==='herd'){notice(r.data.bought?t('farm.herd.bought','The drover hands over {name} the {kind}.',{name:r.data.bought.name,kind:kindName(r.data.bought.kind)}):r.data.milk?t('farm.herd.milked','{n} pails of milk go to the Company Stores.',{n:r.data.milk}):action.act==='muck'?t('farm.herd.mucked','You muck out the pen. The animals are glad of it.'):action.act==='feed'?t('farm.herd.fed','You fill the trough from the Company Stores.'):t('farm.herd.watered','You fill the water bucket at the well.'));return;}
         if(action.op==='burn'){notice(t('farm.stead.burnt','The seed is burnt; its place on the shelf is free.'));return;}
+        if(action.op==='prowl'){notice(t('farm.threat.prowlChased','You shout and swing a lantern. The wolf slinks back into the dark.'));return;}
+        if(action.op==='pull'){notice(t('farm.threat.pulled','You pull the sick plants. The bed is clear, and the blight goes no further from it.'));return;}
         if(action.op==='birds'){notice(r.data.chased?t('farm.game.birdsGone','The birds scatter and wheel away over the fields.'):t('farm.game.birdsStay','The birds hop back to the rows. Try again.'));return;}
         if(action.game&&r.data.played&&!r.data.played.full)notice(t('farm.game.noBonus','Done - but you have had your fill of that game today, so no bonus care.'));
         if(action.op==='haul'){carried=carried.filter(id=>!action.sacks.includes(id));notice(t('farm.stead.hauled','You load the sacks onto the wagon: {n} crops for this week\'s orders.',{n:r.data.hauled}));deps.sound?.('haul');return;}
-        notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t('farm.mode.harvestedGrade', '{n} harvested into Company Stores ({grade}).', { n: r.data.harvested, grade: gradeName(Math.max(0, ...(r.data.grades ?? [0]))) }) : t('farm.mode.worked', 'Done. Your work is saved.'));
+        notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t(r.data.blighted ? 'farm.threat.harvestedBlight' : 'farm.mode.harvestedGrade', r.data.blighted ? '{n} harvested into Company Stores. Blighted: poor and thin ({grade}).' : '{n} harvested into Company Stores ({grade}).', { n: r.data.harvested, grade: gradeName(Math.max(0, ...(r.data.grades ?? [0]))) }) : t('farm.mode.worked', 'Done. Your work is saved.'));
         deps.sound?.(tool);
       } else {
         if (action.op === 'haul' && r?.error === 'farm-haul-gone') carried = [];
@@ -334,6 +348,8 @@ export function createFarmingMode(deps) {
       'farm-order-full':t('farm.progress.full','Make room in the Company treasuries before filling the order.'),
       'farm-haul-gone':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-seed-climate':t('farm.stead.seedClimate','That seed will not take in this climate.'),
+      'farm-prowl-none':t('farm.threat.prowlNone','Whatever was prowling has gone.'),
+      'farm-prowl-gone':t('farm.threat.prowlDone','Someone has already driven it off.'),
       'farm-birds-none':t('farm.game.birdsNone','The birds have already flown.'),
       'farm-birds-gone':t('farm.game.birdsChased','Someone has already chased them off.'),
       'farm-game-bad':t('farm.game.bad','That did not take. Try it again.'),
@@ -450,7 +466,7 @@ export function createFarmingMode(deps) {
       for(const observer of observers.values())observer.draw(proj,view,right,up);
       if (!farm || !site || version < 0 || !art.ready) return;
       frame = { proj, view }; if (active && !deps.blocked()) pick(); else { selected = -1; fixture = null; }
-      site.mask(garden,version); art.update(site, garden, now(), selected); art.draw(right, up, selected);
+      site.mask(garden,version); art.update(site, shown(), now(), selected); art.draw(right, up, selected);
       if (stead.ready) {
         if (!site.farmstead) {
           site.farmstead = layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
@@ -463,8 +479,10 @@ export function createFarmingMode(deps) {
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
       sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
-      herdSpots = herdArt.update(garden.herd ?? [], homeOf, now(), performance.now() / 1000); herdArt.draw(right, up);
+      herdSpots = herdArt.update(shown().herd ?? [], homeOf, now(), performance.now() / 1000); herdArt.draw(right, up);
       birds.update(birdsHere(), Object.entries(garden.beds).filter(([, b]) => b?.crop).map(([id]) => site.beds[Number(id)]).filter(Boolean), now()); birds.draw(right, up);
+      // PHASE 6: a prowler has no sprite - it is told in words to a member at the farm, once a visit
+      if (active && prowlerNow() && told !== prowlerNow().id && ownHere()?.mapId === farm.mapId) { told = prowlerNow().id; notice(t('farm.threat.prowlSeen', 'Something is prowling toward the pens in the dark! Click the pen to drive it off.')); }
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
       if (game) { game.widget.update(projectTo(game.pos, game.engine.state.kind === 'birds' ? 2.6 : 1.1, rect, proj, view)); hud.target('', null); return; }
@@ -477,18 +495,20 @@ export function createFarmingMode(deps) {
           : fixture.id === 'wagon' && carried.length ? t('farm.stead.wagonLoad', 'The factor\'s wagon · load your sacks')
           : fixture.id === 'scarecrow' && birdsHere() ? t('farm.game.birdsLabel', 'Birds at the crop! Chase them off')
           : fixture.animal ? (animalOf(fixture.animal) ? animalLine(animalOf(fixture.animal)) : '')
+          : (fixture.id === 'pen' || fixture.id === 'sty') && prowlerNow() ? t('farm.threat.prowlLabel', 'A wolf at the pens! Drive it off')
           : fixture.id === 'pen' || fixture.id === 'sty' ? t('farm.herd.penLabel', 'The {pen} · click to muck it out', { pen: fixture.id === 'pen' ? t('farm.herd.pen', 'pen') : t('farm.herd.sty', 'sty') })
           : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : acts.label(fixture.id);
         hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
       }
       if (i >= 0) {
-        const bed = garden.beds[i] ?? null, stage = gardenStage(bed, now());
+        const bed = shown().beds[i] ?? null, stage = gardenStage(bed, now());
         const growing = bed?.crop && stage !== 'ripe';
         const info = stage === 'wild' ? t('farm.mode.untilled', 'Untilled soil') : stage === 'tilled' ? t('farm.mode.tilled', 'Tilled soil') :
           stage === 'ripe' ? t('farm.mode.ready', 'Ready to harvest') : bed.wetUntil <= now() ? t('farm.mode.thirsty', 'Needs water') :
             t('farm.mode.hours', '{n}h to harvest', { n: Math.max(1, Math.ceil((bedSeconds(bed) - gardenGrowth(bed, now())) / (3600*(bed.rate??1)))) });
         label = `${farmToolName(tool)} · ${bed?.crop ? farmCropName(bed.crop) : info}${bed?.crop ? ` · ${info}` : ''}`;
         if (bed?.crop) label += ` · ${gradeName(gradeOf(clampCare(bed.care ?? 0)))}`;   // the grade it is on course for
+        if (bedBlighted(bed)) label += ` · ${t('farm.threat.blightLabel', 'Blight! Hoe pulls the sick plants')}`;
         if (bed?.crop && bedWeedy(bed, now(), stage === 'ripe')) label += ` · ${t('farm.mode.weedy', 'Weeds! Hoe them out')}`;
         if (growing && tool === 'plant') label = t('farm.mode.alreadyPlanted', 'This bed is already planted.');
       }

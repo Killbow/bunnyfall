@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). Phases 4 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). **Phase 6 built (threats)**: blight and prowlers (weather and raids are design notes: see 8.5 and 8.2 "As built"). Phases 4, 5 and 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -483,6 +483,39 @@ for every player. Farms join the roll as targets:
 - **Loss if undefended:** up to a quarter of what is on the shelves and in uncollected sacks, and ripe beds trampled to
   Common quality. **Never** the Stores, never an animal, never a beast.
 - **Driven off:** the Raiding Parties reputation reward, and the Company's renown.
+
+### As built (Phase 6: threats)
+
+`src/net/farm/threatLaw.js`, one small simulation both ends run (`settleThreats`, wrapped as `settleGarden` in
+`farmGardenLaw.js`): the garden carries a cursor (`garden.threat`), the service settles before every write (garden ops and
+herd ops) and the client settles a copy to draw what the next write will find. Nothing is invented for a farm with no
+cursor yet; a farm left alone is simulated at most 16 half-day steps back (blight pauses with the crops).
+
+- **Blight (8.1).** Per half-day step, a planted, unripe bed catches it by the hash of (farm, bed, step): 1.2%, x3 when the
+  same crop has stood in that bed three times running (`garden.rot[bed]`, written at harvest and at pulling), x0.5 when the
+  crop differs from the bed's last. **Spread is count-based, not by neighbour** (the service has no bed positions and bed
+  numbers do not follow the rows): each other bed of the same crop already sick when the step began adds 1.2%, at most 10%.
+  It travels through a crop, not through space. `bed.blight` is the step it was caught in and never moves once stamped.
+  Hoe on a sick bed = op `pull` (crop lost, bed back to tilled soil, counts as bed work); a blighted harvest is Common
+  at half yield (at least 1). Drawn as sallow soil and drooped low plants (301:12 at .55 height). *Left out:* the blight
+  draught (a Provisioning recipe, phase 4's) and the scorpion's slowing (phase 4 beasts).
+- **Prowlers (8.4).** Each classic night (hours 21-5 of the shared calendar) has a 12% chance of a prowler in a 15-minute
+  window (`prowlWindow`, same for all). Clicking the pen or sty while it is there is op `prowl` = chased (kept in
+  `threat.chased`). When the window has passed unchased and no content dog was at the farm, the herd loses 15 contentment
+  (at most three prowls at once), applied the next time the garden is written. *No wolf sprite:* the Enemy Expansion's wolf
+  is a 3D enemy, not a billboard record, and the dog 201:9 cannot be tinted, so the prowler is told in the message line
+  to a member at the farm. A tiger or stationed wolf stopping it waits for the sworn beasts' phase.
+- **Weather (8.5): not built.** The game's weather is the day's six zone words rolled by the sim, then a cell field that
+  needs the map's climates under each point (`weatherField.js fieldAt`): derivable on a client, not on the account
+  service, which has the farm's climate but not the map. Trusting a client's rain for growth would let anyone claim free
+  watering, so rain waters nothing and hail flattens nothing. To build it: a pure `rainHours(mapId, climate, nowS)` from
+  the zone-word roll alone (the shared day roll), ignoring the cells, used by growth and by the soil's wet shine.
+- **Raids (8.2): not built.** Design note: `raidingParties.js` rolls raids per town and spawns streamed 3D raiders in the
+  exterior host; reusing it for a farm needs the farm's pixel as a target and a spawn point at the farm edge, which is a
+  host change (not allowed: new behaviour goes into a module the host wires) and a new spawner wiring. When built: a
+  weekly per-farm roll from the same day seed; the window begins when a member is at the farm; defenders' reward through
+  the existing reputation; loss on an undefended window is up to a quarter of the uncollected sacks (`garden.sacks`) and
+  ripe beds dropped to Common (care to 0); never Stores, animals or beasts.
 
 ### 8.3 Crows and pests
 
