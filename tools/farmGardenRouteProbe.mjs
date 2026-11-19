@@ -138,6 +138,30 @@ try {
   assert.equal(Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:milk'").first()).q),milkBefore+milked.data.milk,'Milk goes to the Stores');
   const again2=await req('/v1/farms/garden',{...body,op:'herd',act:'milk',animal:50,version:v});assert.notEqual(again2.status,200,'Once a day');
   const mucked=await tl({op:'herd',act:'muck',pen:'sty'});assert.equal(mucked.data.garden.manure,2,'A content pig gives manure');
+  // THE WORKSHOPS (Phase 4): the loom built from the treasury, a batch of flax from the Stores, linen collected once, one product order
+  await db.prepare("UPDATE guilds SET treasury=50000,realm_gold=50000,moved_by='Farm test',moved_at=1,moved_kind='farm' WHERE id='farmtest'").run();
+  await db.prepare("INSERT INTO guild_prof_stores (guild_id,material,dep_player,dep_char,qty,moved_by,moved_at) VALUES ('farmtest','food:flax','','',12,'t',1) ON CONFLICT (guild_id,material,dep_player,dep_char) DO UPDATE SET qty=12").run();
+  const built=await tl({op:'workshop',act:'build',workshop:'loom'});
+  assert.equal((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury,44000,'The loom is paid from the treasury');
+  const early=await req('/v1/farms/garden',{...body,op:'workshop',act:'start',workshop:'loom',recipe:'linen',version:v});assert.notEqual(early.status,200,'No batch while it is rising');
+  const gW=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  gW.built.loom=Math.floor(Date.now()/1000)-10;
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gW)).run();
+  const batch=await tl({op:'workshop',act:'start',workshop:'loom',recipe:'linen'});
+  assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:flax'").first()).qty,6,'The batch takes six flax from the Stores');
+  assert.equal(batch.data.garden.batches.loom.out,'cloth:linen');
+  const gW2=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  gW2.batches.loom.t1=Math.floor(Date.now()/1000)-1;
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gW2)).run();
+  await tl({op:'workshop',act:'collect',workshop:'loom'});
+  assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='cloth:linen'").first()).qty,2,'Two linen bolts reach the Stores');
+  const { productOrder } = await import('../src/net/farm/workshopLaw.js');
+  const po=productOrder(42,farmWeek(Math.floor(Date.now()/1000)));
+  await db.prepare("INSERT INTO guild_prof_stores (guild_id,material,dep_player,dep_char,qty,moved_by,moved_at) VALUES ('farmtest',?,'','',?,'t',1) ON CONFLICT (guild_id,material,dep_player,dep_char) DO UPDATE SET qty=excluded.qty").bind(po.key,po.qty).run();
+  const goldBefore=(await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury;
+  const ordered=await tl({op:'workshop',act:'order'});assert.ok(ordered.data.workshop.order);
+  assert.equal((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury,goldBefore+po.gold,'The product order pays gold');
+  const twice=await req('/v1/farms/garden',{...body,op:'workshop',act:'order',version:v});assert.notEqual(twice.status,200,'One product order a week');
   harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
@@ -164,5 +188,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, a workshop built, run and collected with a product order, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

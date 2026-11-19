@@ -28,6 +28,8 @@ import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
 import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
 import { createFarmsteadActs } from './farm/farmsteadActs.js';
+import { createWorkshopActs, workshopTarget, workshopErrors } from './farm/workshopActs.js';   // PHASE 4: the workshops
+import { workshopStages } from '../net/farm/workshopLaw.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
 /** The farmyard's lanterns lit at night: within this reach of me, m, and at most this many (the town's lamps keep the rest). */
@@ -179,6 +181,8 @@ export function createFarmingMode(deps) {
     if (target.animal) { tendAnimal(target.animal, target.pos); return; }
     if (target.id === 'pen' || target.id === 'sty') { if (!busy) perform({ op: 'herd', act: 'muck', pen: target.id }); return; }
     if (target.id === 'drover') { drover(); return; }
+    if (workshopTarget(target.id)) { workshops.use(target.id); return; }   // PHASE 4: a workshop's body, crate or shelf
+    if (target.id === 'orderPost' && workshops.post()) return;   // PHASE 4: every fourth click, the week's product order
     acts.use(target.id);
   }
   /** The sacks lying at their beds, placed (several at one bed side by side), less the ones on my shoulder. */
@@ -308,6 +312,7 @@ export function createFarmingMode(deps) {
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
         if(r.data.strain)deps.say?.(t('farm.stead.cross','A cross seed! The farm names it {name} - {traits}. It has a sack on the seed shelf now.',{name:r.data.strain.name,traits:r.data.strain.traits.map(traitWord).join(', ')}));
         if(action.op==='herd'){notice(r.data.bought?t('farm.herd.bought','The drover hands over {name} the {kind}.',{name:r.data.bought.name,kind:kindName(r.data.bought.kind)}):r.data.milk?t('farm.herd.milked','{n} pails of milk go to the Company Stores.',{n:r.data.milk}):action.act==='muck'?t('farm.herd.mucked','You muck out the pen. The animals are glad of it.'):action.act==='feed'?t('farm.herd.fed','You fill the trough from the Company Stores.'):t('farm.herd.watered','You fill the water bucket at the well.'));return;}
+        if(action.op==='workshop'){notice(workshops.done(action,r.data));return;}   // PHASE 4
         if(action.op==='burn'){notice(t('farm.stead.burnt','The seed is burnt; its place on the shelf is free.'));return;}
         if(action.op==='birds'){notice(r.data.chased?t('farm.game.birdsGone','The birds scatter and wheel away over the fields.'):t('farm.game.birdsStay','The birds hop back to the rows. Try again.'));return;}
         if(action.game&&r.data.played&&!r.data.played.full)notice(t('farm.game.noBonus','Done - but you have had your fill of that game today, so no bonus care.'));
@@ -347,6 +352,7 @@ export function createFarmingMode(deps) {
       'farm-herd-bad':t('farm.herd.bad','That cannot be done here.'),
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
+      ...workshopErrors(),   // PHASE 4
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
     }[error];
   }
@@ -376,6 +382,15 @@ export function createFarmingMode(deps) {
     ] })); },
     act: (action) => perform(action),
     wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
+  });
+  // PHASE 4: the workshop yard - the staked plots, the crates and the shelves
+  const workshops = createWorkshopActs({
+    garden: () => garden, now, mapId: () => farm?.mapId ?? 0, mayManage: () => mayManage, busy: () => busy, say: notice,
+    ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
+      { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
+      { code: 'KeyN', label: t('farm.stead.no', 'N: no'), action: () => {} },
+    ] })); },
+    act: (action) => perform(action), wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
   });
   function status() {
     if (Date.now() < noticeUntil) return message;
@@ -459,7 +474,7 @@ export function createFarmingMode(deps) {
         // the shelf: the farm's seeds, then its strains of them (PHASE 2c)
         if (site.farmstead?.base) { const all = [...site.farmstead.base, ...(garden.strains ?? []).filter((x) => site.farmstead.base.includes(x.crop)).map((x) => `${x.crop}#${x.id}`)]; if (all.join() !== site.farmstead.seeds?.join()) site.farmstead.seeds = all; }
         if (site.farmstead?.seeds && !site.farmstead.seeds.includes(crop)) crop = site.farmstead.seeds[0] ?? 'grain';
-        stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))), drover: droverNow() ? 1 : 0 }); stead.draw(right, up);
+        stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))), drover: droverNow() ? 1 : 0, ...workshopStages(garden, now()) }); stead.draw(right, up);
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
       sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
@@ -478,6 +493,7 @@ export function createFarmingMode(deps) {
           : fixture.id === 'scarecrow' && birdsHere() ? t('farm.game.birdsLabel', 'Birds at the crop! Chase them off')
           : fixture.animal ? (animalOf(fixture.animal) ? animalLine(animalOf(fixture.animal)) : '')
           : fixture.id === 'pen' || fixture.id === 'sty' ? t('farm.herd.penLabel', 'The {pen} · click to muck it out', { pen: fixture.id === 'pen' ? t('farm.herd.pen', 'pen') : t('farm.herd.sty', 'sty') })
+          : workshopTarget(fixture.id) ? workshops.label(fixture.id)   // PHASE 4
           : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : acts.label(fixture.id);
         hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
       }

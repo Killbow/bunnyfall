@@ -20,7 +20,7 @@ try {
     const { emptyGarden, stepFarmGardenAction } = await import('/src/net/farmGardenLaw.js');
     const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
     const { stepFarmHaul } = await import('/src/net/farm/haulLaw.js');
-    const { stepFarmHerdAction } = await import('/src/net/farm/herdLaw.js'); const { farmWeek } = await import('/src/net/farmProgressLaw.js');
+    const { stepFarmWorkshop } = await import('/src/net/farm/workshopLaw.js'); const { stepFarmHerdAction } = await import('/src/net/farm/herdLaw.js'); const { farmWeek } = await import('/src/net/farmProgressLaw.js');
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -46,7 +46,7 @@ try {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
         if (body.op && body.op !== 'read') {
-          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):body.op==='herd'?stepFarmHerdAction(p.garden,body,p.now,farmWeek):stepFarmGardenAction(p.garden, body, p.now);
+          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):body.op==='herd'?stepFarmHerdAction(p.garden,body,p.now,farmWeek):body.op==='workshop'?stepFarmWorkshop(p.garden,{act:body.act,workshop:body.workshop,recipe:body.recipe,mapId:42},p.now):stepFarmGardenAction(p.garden, body, p.now);
           if (step.error) return { ok: false, error: step.error };
           p.garden = step.garden; p.version++;
         }
@@ -160,6 +160,28 @@ try {
   await page.waitForFunction(()=>window.probe.garden.progress.upgrades.tools===1);
   await useFixture('orderPost');
   assert.ok((await page.locator('.farm-message').textContent()).includes('filled this week'), 'The order post shows the filled order');
+  // THE WORKSHOPS (Phase 4): a staked plot, ordered built with Y/N, rising, then a batch from its crate and the shelf collected
+  const shops = await page.evaluate(() => ['windmill', 'press', 'churn', 'smokehouse', 'loom', 'brewery'].filter((id) => window.probe.fixture(id)));
+  console.log('workshops placed on the probe farm:', shops.join(',') || 'none');
+  assert.ok(shops.includes('windmill') || shops.length, 'the farmstead has room for a workshop');
+  const shop = shops[0];
+  await useFixture(shop);
+  assert.ok(await page.evaluate(() => !!window.probe.asked), 'A staked plot asks an officer before building');
+  assert.equal(await page.evaluate((s) => window.probe.garden.built?.[s], shop), undefined, 'Asking must not build');
+  await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
+  await page.waitForFunction((s) => window.probe.garden.built?.[s] > window.probe.now, shop);
+  await page.evaluate(() => { for (let i = 0; i < 3; i++) window.probe.render(); });
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'scaffold draw error');
+  await page.evaluate((s) => { const p = window.probe; p.garden.built[s] = p.now - 1; p.version++; }, shop);
+  await page.waitForTimeout(1100); await page.evaluate(() => { for (let i = 0; i < 3; i++) window.probe.render(); });
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'built workshop draw error');
+  await useFixture(`${shop}:in`);
+  await page.waitForFunction((s) => window.probe.garden.batches?.[s], shop);
+  await page.evaluate((s) => { const p = window.probe; p.garden.batches[s].t1 = p.now - 1; p.version++; }, shop);
+  await page.waitForTimeout(1100); await page.evaluate(() => { for (let i = 0; i < 3; i++) window.probe.render(); });
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'shelf draw error');
+  await useFixture(`${shop}:out`);
+  await page.waitForFunction((s) => !window.probe.garden.batches?.[s], shop);
   // SACKS (section 3.3): a harvest's sack is shouldered at its bed and loaded onto the wagon
   await page.evaluate(()=>{const p=window.probe;p.garden.sacks=[{id:7,crop:'grain',qty:2,bed:0,t:p.now},{id:8,crop:'grain',qty:3,bed:0,t:p.now}];p.garden.nextSack=9;p.version++;});
   await page.waitForTimeout(1100);await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
@@ -202,5 +224,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work, a workshop built, run and collected), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }
