@@ -19,7 +19,7 @@ export const BUNNY_NPC_FLATS = Object.freeze([
 ]);
 
 /** Talk portraits replaced, by `<file>#<record>` (the talk window's own key): FACES.CIF record 43, Queen Barenziah. */
-export const BUNNY_NPC_PORTRAITS = Object.freeze({ 'FACES.CIF#43': 'barenziah-face' });
+export const BUNNY_NPC_PORTRAITS = Object.freeze({ 'FACES.CIF#43': 'barenziah-face', 'BUNNYFALL#0': 'nyx' });   // 'BUNNYFALL#0': Nyx of the Nowhere Tavern (her talk face: the top of her standing picture)
 
 let _installed = false;
 /** Register the flats once (before the archives load, as shared.js does). `fetchBytes(name)` is the test seam.
@@ -44,7 +44,13 @@ export async function bunnyPortraitImage(key) {
   try {
     const r = await fetch(bunnyNpcArtUrl(name));
     if (!r.ok) return null;
-    return await decodePng(new Uint8Array(await r.arrayBuffer()));
+    const img = await decodePng(new Uint8Array(await r.arrayBuffer()));
+    return name === 'nyx' ? topOf(img, 0.4) : img;   // her whole figure is tall: the talk face is her head and shoulders
   } catch { return null; }
+}
+/** The top `share` of a picture's rows. */
+function topOf(img, share) {
+  const h = Math.max(1, Math.round(img.height * share));
+  return { ...img, height: h, data: img.data.slice(0, img.width * h * 4) };
 }
 export const hasBunnyPortrait = (/** @type {string} */ key) => Object.prototype.hasOwnProperty.call(BUNNY_NPC_PORTRAITS, key);

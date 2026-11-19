@@ -367,7 +367,7 @@ function _loadPortraitFile(file) {
 
 /** SetNPCPortrait(FacePortraitArchive, recordId) (:360-385). */
 export function setNpcPortrait(archive, recordId, { picture = null } = {}) {
-  const file = PORTRAIT_ARCHIVE[archive] ?? (HEADS_FILE.test(String(archive)) ? String(archive) : PORTRAIT_ARCHIVE.CommonFaces);
+  const file = archive === 'BunnyfallNyx' ? 'BUNNYFALL' : PORTRAIT_ARCHIVE[archive] ?? (HEADS_FILE.test(String(archive)) ? String(archive) : PORTRAIT_ARCHIVE.CommonFaces);
   const key = `${file}#${recordId}`;
   _portraitKey = key;
   _portrait = _portraitTex.get(key) ?? null;
