@@ -5,6 +5,7 @@
 // irrigation, once the farm has it, runs as water channels along the worked rows. Every picture is in the art register.
 import { gardenStage, gardenGrowth, farmSeed, FARM_BED_SIZE, FARM_WATER_S } from '../net/farmGardenLaw.js';
 import { writeDecalQuad, DECAL_FLOATS } from '../combat/blood/bloodDecals.js';
+import { bedWeedy, WEED_DRY_S } from '../net/farm/careLaw.js';   // PHASE 2: weeds are the law's, so weeding clears them
 export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
   grain: { seedling: [301, 23], growing: [301, 21], ripe: [301, 19] },
   mushroom: { seedling: [301, 10], growing: [301, 10], ripe: [301, 10] },
@@ -25,8 +26,7 @@ const HEIGHT = Object.freeze({ grain: [.25, 1.2], mushroom: [.12, .38], herbs: [
   corn: [.3, 1.9], cabbage: [.15, .45], tomato: [.2, .6], sunflower: [.3, 1.6], berries: [.25, .9], root: [.2, .6], flax: [.2, .85], gourd: [.15, .4], grapes: [.3, 1.5] });
 /** A ripe crop's fruit on the ground, its height, m. */
 const FRUIT_H = .26;
-/** A weed shows on a bed dry this long, s. */
-export const WEED_DRY_S = 86400;
+export { WEED_DRY_S };
 const SOIL_TINT = [[1, 1, 1, 1], [.88, .84, .8, 1], [.74, .7, .66, 1]];
 
 /** A stable 0..1 stream for a bed. */
@@ -77,7 +77,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     lastGarden=garden;lastSecond=second;
     const irrigation=garden.progress?.upgrades?.irrigation??0;
     const entries=Object.entries(garden.beds).filter(([id,b])=>b&&site.beds[Number(id)]);
-    const weedy=(b)=>b.crop?gardenStage(b,now)!=='ripe'&&now-(b.wetUntil||b.tick)>WEED_DRY_S:now-b.tick>2*WEED_DRY_S;
+    const weedy=(b)=>b.crop?bedWeedy(b,now,gardenStage(b,now)==='ripe'):now-b.tick>2*WEED_DRY_S;
     const sig=JSON.stringify([entries.map(([id,b])=>[id,b.crop,b.crop?plantHeight(b,now):0,gardenStage(b,now),b.wetUntil>now?Math.ceil((b.wetUntil-now)/(FARM_WATER_S/4)):0,b.quality??0,weedy(b)]),irrigation]);
     if(signature===sig&&lastSite===site.beds)return;
     signature=sig;lastSite=site.beds;

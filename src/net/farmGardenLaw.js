@@ -1,6 +1,8 @@
 // @ts-check
 import { farmProgress, validFarmProgress, farmToolArea, FARM_CROP_TYPES } from './farmProgressLaw.js';
 import { FARM_SEEDS, farmSeed, seedGrowsIn, seasonGrowth } from './farm/cropLaw.js';   // FARM EXPANSION: the climate crops and the seasons
+import { CARE_MAX, WATER_CARE_S, clampCare, gradeOf, gradedYield, bedWeedy, birdsNow, birdsUnchased, BIRD_KEEP } from './farm/careLaw.js';   // PHASE 2: care and grades
+import { GAMES, gameForOp, validGame, validPlays, recordPlay, careBonus } from './farm/farmGameLaw.js';   // PHASE 2: the field games
 import { laySacks, validHaul } from './farm/haulLaw.js';   // FARM EXPANSION: a harvest's sacks, for the wagon
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
 // A sparse address space: farms allocate as many beds as their actual fields contain.
@@ -25,32 +27,43 @@ export function gardenStage(bed, nowS) {
   return progress >= 1 ? 'ripe' : progress >= .5 ? 'growing' : 'seedling';
 }
 export function validGarden(value) {
+  const okInt = (n, max) => Number.isSafeInteger(n) && n >= 0 && n <= max;
+  if (value && value.chased !== undefined && !(Array.isArray(value.chased) && value.chased.length <= BIRD_KEEP && value.chased.every((h) => okInt(h, 2 ** 31)))) return false;
+  if (value && !validPlays(value.plays)) return false;
   return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&
-      (b.quality === undefined || [0,1,2].includes(b.quality)) && (b.rate === undefined || [1,1.25].includes(b.rate)))));
+      (b.quality === undefined || [0,1,2].includes(b.quality)) && (b.rate === undefined || [1,1.25].includes(b.rate)) &&
+      (b.care === undefined || okInt(b.care, CARE_MAX)) && ['sown', 'weeded'].every((k) => b[k] === undefined || (Number.isFinite(b[k]) && b[k] >= 0)))));
 }
 /** One immutable operation; awards are returned separately for an atomic server commit. */
-export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', climate }, nowS) {
+export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', climate, mapId = 0, bonus = 0 }, nowS) {
   if (!validGarden(garden) || !Number.isFinite(nowS) || nowS < 0 || !Number.isInteger(index) || index < 0 || index >= FARM_BEDS) return { error: 'farm-bed-bad' };
   const next = { ...structuredClone(garden), beds: structuredClone({ ...garden.beds }) }, bed = next.beds[index] ?? null;
   const progress = farmProgress(garden), { irrigation, soil } = progress.upgrades;
-  const planted = (id) => ({ crop:id, grown:0, tick:nowS, wetUntil:irrigation ? nowS+FARM_WATER_S : 0, quality:soil, rate:soil===2?1.25:1 });
+  const planted = (id, care = 0) => ({ crop:id, grown:0, tick:nowS, wetUntil:irrigation ? nowS+FARM_WATER_S : 0, quality:soil, rate:soil===2?1.25:1, sown:nowS, care:clampCare(care) });
   if (op === 'hoe' && bed === null) next.beds[index] = { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
   else if (op === 'plant' && bed && !bed.crop && farmSeed(crop)) {
     if (!seedGrowsIn(farmSeed(crop), climate)) return { error: 'farm-seed-climate' };   // the service hands the farm's own climate
-    Object.assign(bed, planted(crop));
+    Object.assign(bed, planted(crop, bonus));   // a well-sown bed starts with care (the sowing game)
   }
   else if (op === 'water' && bed?.crop && gardenStage(bed, nowS) !== 'ripe' && bed.wetUntil <= nowS + FARM_WATER_S - 60) {
-    Object.assign(bed, { grown: gardenGrowth(bed, nowS), tick: nowS, wetUntil: nowS + FARM_WATER_S });
+    // CARE: watered in its last hours of moisture, before it dried
+    const kept = bed.wetUntil > nowS && bed.wetUntil - nowS <= WATER_CARE_S;
+    Object.assign(bed, { grown: gardenGrowth(bed, nowS), tick: nowS, wetUntil: nowS + FARM_WATER_S, ...(kept ? { care: clampCare((bed.care ?? 0) + 1) } : {}) });
+  } else if (op === 'weed' && bed?.crop && bedWeedy(bed, nowS, gardenStage(bed, nowS) === 'ripe')) {
+    Object.assign(bed, { weeded: nowS, care: clampCare((bed.care ?? 0) + 1 + bonus) });
   } else if (op === 'harvest' && bed?.crop && gardenStage(bed, nowS) === 'ripe') {
     const seed = farmSeed(bed.crop);
-    const qty = seed.yield + (bed.quality ?? 0);
+    // THE GRADE: the bed's care, the scything game's, less what unchased birds took while it grew
+    const toll = birdsUnchased(mapId, garden.chased, bed.sown ?? bed.tick ?? nowS, nowS);
+    const grade = gradeOf(clampCare((bed.care ?? 0) + bonus - toll));
+    const qty = gradedYield(seed.yield, bed.quality ?? 0, grade);
     next.beds[index] = irrigation === 2 ? planted(seed.id) : { crop: null, grown: 0, tick: nowS, wetUntil: 0 };
     next.progress = structuredClone(progress);
     // the weekly orders count their own three crops; the climate crops' orders come with the workshops (Phase 4)
     if (FARM_CROP_TYPES.includes(seed.id)) next.progress.harvested[seed.id] = Math.min(2147483647, next.progress.harvested[seed.id] + qty);
-    return { garden: next, harvest: { crop: seed.id, material: seed.material, qty } };
+    return { garden: next, harvest: { crop: seed.id, material: seed.material, qty, grade } };
   } else return { error: 'farm-bed-action' };
   return { garden: next, harvest: null };
 }
@@ -58,12 +71,33 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', climate
 export function stepFarmGardenAction(garden, body, nowS) {
   const ids = body.beds ?? [body.bed];
   if (!Array.isArray(ids) || !ids.length || ids.length > farmToolArea(garden) || new Set(ids).size !== ids.length || ids.some(i => !Number.isInteger(i) || i < 0 || i >= FARM_BEDS)) return { error:'farm-bed-bad' };
+  // A FIELD GAME (farmGameLaw.js): judged once for the action; its care bonus only while the account's day has full plays left
+  const kind = gameForOp(body.op), day = Math.floor(nowS / 86400), who = String(body.who ?? 'local');
+  if (body.game !== undefined && (!kind || !validGame(body.game, body.op))) return { error: 'farm-game-bad' };
+  const full = body.game !== undefined && ((garden.plays?.day === day ? garden.plays.by?.[who]?.[kind] ?? 0 : 0) < GAMES[kind].cap);
+  const bonus = full ? careBonus(body.game.score) : 0;
   let next = garden, climateRefused = false; const harvests = [], worked = [];
   for (const bed of ids) {
-    const step = stepFarmGarden(next, { ...body, bed }, nowS);
+    const step = stepFarmGarden(next, { ...body, bed, bonus }, nowS);
     if ('error' in step) { if (step.error === 'farm-seed-climate') climateRefused = true; continue; }
     next = step.garden; worked.push(bed); if (step.harvest) harvests.push({ ...step.harvest, bed });
   }
   if (harvests.length) { next = next === garden ? structuredClone(garden) : next; laySacks(next, harvests, nowS); }
-  return worked.length ? { garden:next, harvests, worked } : { error: climateRefused ? 'farm-seed-climate' : 'farm-bed-action' };
+  if (!worked.length) return { error: climateRefused ? 'farm-seed-climate' : 'farm-bed-action' };
+  const played = body.game !== undefined ? { kind, full: recordPlay(next, who, kind, day) } : null;
+  return { garden:next, harvests, worked, played };
+}
+
+/** THE BIRDS CHASED (careLaw.js): while birds are at the farm, a chase played well enough sends them off for this visit -
+ *  it no longer costs any bed care. The play is counted as any field game's. */
+export function stepFarmBirds(garden, { mapId = 0, who = 'local', game }, nowS) {
+  if (!validGarden(garden)) return { error: 'farm-bed-bad' };
+  const w = birdsNow(mapId, nowS);
+  if (!w) return { error: 'farm-birds-none' };
+  if ((garden.chased ?? []).includes(w.id)) return { error: 'farm-birds-gone' };
+  if (!validGame(game, 'birds')) return { error: 'farm-game-bad' };
+  const next = structuredClone(garden), day = Math.floor(nowS / 86400);
+  const played = { kind: 'birds', full: recordPlay(next, String(who), 'birds', day) }, chased = game.score >= .5;
+  if (chased) next.chased = [...(garden.chased ?? []).filter((h) => h > w.id - BIRD_KEEP), w.id].slice(-BIRD_KEEP);
+  return { garden: next, harvests: [], worked: [], played, chased };
 }

@@ -23,14 +23,17 @@ export const FARM_WORK = Object.freeze({
   bed: 1,       // a bed hoed, planted or watered by your hand
   crop: 1,      // each crop harvested by your hand
   sack: 2,      // each sack carried to the factor's wagon
+  game: 5,      // a field game played for its full bonus (farmGameLaw.js GAME_WORK)
 });
 
 /** The farm work an action earns: `op` the garden op, `worked` the beds it worked, `harvested` its crops, `sacks` the
- *  sacks it hauled. Shipping and buying (an officer spending) earn none. */
-export function farmWorkOf(op, { worked = 0, harvested = 0, sacks = 0 } = {}) {
-  if (op === 'harvest') return harvested * FARM_WORK.crop;
+ *  sacks it hauled, `game` whether a field game was played for its full bonus. Shipping and buying earn none. */
+export function farmWorkOf(op, { worked = 0, harvested = 0, sacks = 0, game = false } = {}) {
+  const played = game ? FARM_WORK.game : 0;
+  if (op === 'harvest') return harvested * FARM_WORK.crop + played;
   if (op === 'haul') return sacks * FARM_WORK.sack;
-  if (op === 'hoe' || op === 'plant' || op === 'water') return worked * FARM_WORK.bed;
+  if (op === 'hoe' || op === 'plant' || op === 'water' || op === 'weed') return worked * FARM_WORK.bed + played;
+  if (op === 'birds') return played;
   return 0;
 }
 

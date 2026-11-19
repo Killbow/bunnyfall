@@ -15,7 +15,7 @@ export const farmCropName = (crop) => ({
   sunflower: t('farm.mode.sunflower', 'Sunflowers'), berries: t('farm.mode.berries', 'Berries'), root: t('farm.mode.root', 'Desert root'),
   flax: t('farm.mode.flax', 'Flax'), gourd: t('farm.mode.gourd', 'Gourds'), grapes: t('farm.mode.grapes', 'Grapes'),
 })[crop];
-export function createFarmingHud({ tool, leave }) {
+export function createFarmingHud({ tool, leave, careful }) {
   injectEnhancedStyle(); injectEnhancedFonts();
   const root = document.createElement('section'); root.className = 'farming-hud';
   root.innerHTML = `<style>
@@ -42,16 +42,20 @@ export function createFarmingHud({ tool, leave }) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'farm-tool'; b.textContent = `${i + 1} · ${farmToolName(key)}`;
     b.addEventListener('click', () => tool(key)); belt.append(b); buttons.push(b);
   });
-  const seeds = document.createElement('span'); seeds.className = 'farm-seed'; belt.append(seeds); root.append(belt);
+  const seeds = document.createElement('span'); seeds.className = 'farm-seed'; belt.append(seeds);
+  // PHASE 2: Careful work - the field games (F)
+  const care = document.createElement('button'); care.type = 'button'; care.className = 'farm-tool farm-careful'; care.textContent = t('farm.game.careful', 'F · Careful work'); care.addEventListener('click', () => careful?.());
+  belt.append(care); root.append(belt);
   const help = document.createElement('aside'); help.className = 'wplaque on farm-help';
-  const hint = document.createElement('p'); hint.textContent = t('farm.mode.controls', 'WASD · Walk   Q/E · Orbit   Wheel · Zoom');
+  const hint = document.createElement('p'); hint.textContent = t('farm.mode.controls2', 'WASD · Walk   Q/E · Orbit   Wheel · Zoom   F · Careful work');
   const exit = document.createElement('button'); exit.type = 'button'; exit.className = 'farm-tool'; exit.textContent = t('farm.mode.leave', 'Esc · Leave farming mode'); exit.addEventListener('click', leave);
   help.append(hint, exit); root.append(help);
   const target = document.createElement('div'); target.className = 'wplaque on farm-target'; target.hidden = true; root.append(target);
   for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click']) root.addEventListener(type, (e) => e.stopPropagation());
   document.body.append(root);
   return {
-    update(farm, selected, crop, status, blocked) {
+    update(farm, selected, crop, status, blocked, carefulOn = false) {
+      care.setAttribute('aria-pressed', String(carefulOn)); care.classList.toggle('on', carefulOn);
       root.hidden = blocked; name.textContent = farm.name; message.textContent = status;
       root.dataset.skin = isEnhanced() ? 'enhanced' : 'classic';
       buttons.forEach((b, i) => { const on = ['hoe', 'plant', 'water', 'harvest'][i] === selected; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });

@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. Phase 2's quality, strains and minigames are next; phases 3 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). Strains (2c) are next; phases 3 to 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -269,6 +269,9 @@ worked out at harvest from:
 
 Quality multiplies yield (×1, ×1.25, ×1.5, ×2) and is carried on the item as provisioning ingredients carry ranks, so a
 Prize grain makes a better loaf in the pot (`docs/PROVISIONING.md`: a better ingredient raises the dish).
+*As built (2b):* the grade comes from care alone (Fine 2, Choice 3, Prize 4), as the soil keeps its own extra crops; it
+multiplies the yield. Carrying the grade on the item waits for Phase 4, when products need graded materials in the Stores.
+The birds are ARENA2's seagull (201:11): billboards cannot be tinted, so the game calls them birds.
 
 **Strains.** When two ripe beds of the same crop stand side by side, harvesting one has a small chance (rising with both
 beds' quality) to drop a **cross seed**. Planted, it grows a **named strain** ("Golden Ear", "Hollowroot") with one or two

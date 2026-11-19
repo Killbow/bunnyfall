@@ -5,6 +5,10 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
 
+- Farm crops now have grades: Common, Fine, Choice and Prize. A Fine harvest gives a quarter more, Choice half again, and Prize double. Beds earn care by being sown and scythed well, weeded, and watered before they dry out; hover a bed to see the grade it is heading for.
+- Careful work (press F, or the belt button) turns sowing, weeding and scything into a short game played right over the bed. Play well for more care; each game gives its bonus a few times a day. A game played well also counts as farm work toward the farm titles.
+- Weeds grow on planted beds left dry for a day. Hoe them out for care.
+- Birds visit every farm now and then and peck at the crops, costing them care. When they come, click the scarecrow to chase them off with a quick game.
 - Three new titles for farmers: Furrowhand, Harvestwarden and Sovereign of the Sheaf. Tending beds, harvesting and carrying sacks to the wagon on a Company farm earns farm work (at most 400 a day); the titles come at 3,000, 15,000 and 45,000. Sovereign of the Sheaf also gives the First Light aura, the dawn ring from the Elite Breach. The estate ledger tells you how far you have to go, and the factor tells you when a new title is yours.
 - New crops grow on Company farms, depending on the land: corn, cabbage, tomatoes, sunflowers, berries, flax, gourds, grapes and desert root. The seed shelf shows the seeds your farm's land can grow. The new crops grow fastest in their own season and slower in the others (slowest in winter); grain, mushrooms and herbs grow as before all year. Their harvests go to the Company Stores and can be used in cooking.
 - Company farms are now places, not menus. Every farm has a farmyard: an order post with the week's notices, the factor's wagon, an estate ledger, a seed shelf, a tool rack, the well, a compost heap, a haystack and a scarecrow in the field. Everyone nearby sees them.

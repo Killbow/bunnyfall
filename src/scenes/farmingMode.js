@@ -15,6 +15,10 @@ import { farmToolArea } from '../net/farmProgressLaw.js';
 import { layFarmstead, farmsteadTargets, rayHitsTarget, cargoLevel, farmsteadLamps, LAMP_RANGE } from '../world/farm/farmstead.js';
 import { adoptLight } from '../render/lightId.js';
 import { seedsFor } from '../net/farm/cropLaw.js';   // PHASE 2: the seeds this farm's climate grows
+import { bedWeedy, birdsNow, GRADES, gradeOf, clampCare } from '../net/farm/careLaw.js';   // PHASE 2: care, weeds and birds
+import { createFarmGame, gameForOp } from '../net/farm/farmGameLaw.js';   // PHASE 2: the field games
+import { createFarmGameWidget } from '../ui/farmGames.js';
+import { createBirdArt } from '../world/farm/birdArt.js';
 import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
 import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
@@ -28,7 +32,10 @@ export function createFarmingMode(deps) {
   const art = createFarmGardenArt(deps.renderer, deps);
   const stead = createFarmsteadArt(deps.renderer, deps);   // the fixtures, drawn for anyone near the farm
   const sacks = createSackArt(deps.renderer, deps);   // a harvest's sacks, and the ones shouldered for the wagon
-  let fixture = null, detailsUntil = 0, carried = [];   // the fixture under the pointer; officers' Company funds read while they use one
+  let fixture = null, detailsUntil = 0, carried = [];
+  // PHASE 2: Careful work turns sowing, weeding and scything into the field games; `game` the one being played
+  let careful = false, game = null;
+  const birds = createBirdArt(deps.renderer, deps);   // the fixture under the pointer; officers' Company funds read while they use one
   let releaseHotbar = null, entering = false, mayManage = false, economy = null, farmWork = null;   // farmWork: my farm work, read with the ledger
   let farm = null, site = null, garden = emptyGarden(), version = -1, serverOffset = 0;
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
@@ -74,16 +81,22 @@ export function createFarmingMode(deps) {
   }
   function notice(text) { message = text; noticeUntil = Date.now() + 4000; }
   function leave() {
+    if (game) { game.widget.dispose(); game = null; }
     active = false; selected = -1; carried = []; eye = null; fwd = null; frame = null; pointer = null;
     hud?.dispose(); hud = null; freeCursor?.(); freeCursor = null;
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); birds.dispose(); }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (game) {   // a field game holds the keys: Space plays it, Escape lays it down
+      if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) game.engine.input(game.engine.state.kind === 'scythe' ? { hold: true } : { press: true }); return; }
+      if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); endGame(false); return; }
+    }
     if (e.code === 'Escape') { leave(); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (e.code === 'KeyF') { e.preventDefault(); e.stopImmediatePropagation(); setCareful(!careful); return; }
     const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
     if (i >= 0 || ['KeyQ', 'KeyE'].includes(e.code)) {
       e.preventDefault(); e.stopImmediatePropagation();
@@ -100,21 +113,30 @@ export function createFarmingMode(deps) {
     if (!active || deps.blocked() || e.target !== deps.canvas) return;
     e.preventDefault(); e.stopImmediatePropagation(); height = Math.max(5, Math.min(14, height + Math.sign(e.deltaY) * .8));
   }
+  function keyUp(e) {
+    if (game && e.code === 'Space' && game.engine.state.kind === 'scythe') { e.preventDefault(); e.stopImmediatePropagation(); game.engine.input({ hold: false }); }
+  }
+  function up(e) { if (game && e.button === 0 && game.engine.state.kind === 'scythe') game.engine.input({ hold: false }); }
   function down(e) {
     if (!active || deps.blocked() || e.target !== deps.canvas) return;
+    if (game) {   // a click on the field plays the game; it never works a bed meanwhile
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.button === 0) game.engine.input(game.engine.state.kind === 'scythe' ? { hold: true } : { press: true });
+      return;
+    }
     e.preventDefault(); e.stopImmediatePropagation(); pointer = [e.clientX, e.clientY]; pick();
     if (e.button === 0) { if (fixture) useFixture(fixture); else work(); }
   }
   function context(e) { if (active && e.target === deps.canvas) e.preventDefault(); }
   function attach() {
     if (attached) return; attached = true;
-    window.addEventListener('keydown', key, true); window.addEventListener('pointermove', point, true);
+    window.addEventListener('keydown', key, true); window.addEventListener('keyup', keyUp, true); window.addEventListener('pointerup', up, true); window.addEventListener('pointermove', point, true);
     window.addEventListener('pointerdown', down, true); window.addEventListener('wheel', wheel, { capture: true, passive: false });
     window.addEventListener('contextmenu', context);
   }
   function detach() {
     if (!attached) return; attached = false;
-    window.removeEventListener('keydown', key, true); window.removeEventListener('pointermove', point, true);
+    window.removeEventListener('keydown', key, true); window.removeEventListener('keyup', keyUp, true); window.removeEventListener('pointerup', up, true); window.removeEventListener('pointermove', point, true);
     window.removeEventListener('pointerdown', down, true); window.removeEventListener('wheel', wheel, true); window.removeEventListener('contextmenu', context);
   }
   function pick() {
@@ -146,6 +168,7 @@ export function createFarmingMode(deps) {
     if (Math.hypot(feet[0] - target.pos[0], feet[2] - target.pos[2]) > FARM_WORK_REACH + target.r) { notice(t('farm.stead.closer', 'Walk closer to use it.')); return; }
     if (target.id.startsWith('sack:')) { shoulder(target); return; }
     if (target.id === 'wagon' && carried.length) { if (!busy) perform({ op: 'haul', sacks: [...carried] }); return; }
+    if (target.id === 'scarecrow' && birdsHere()) { startGame('birds', { op: 'birds' }, target.pos); return; }
     acts.use(target.id);
   }
   /** The sacks lying at their beds, placed (several at one bed side by side), less the ones on my shoulder. */
@@ -183,8 +206,33 @@ export function createFarmingMode(deps) {
         if(ids.length>=area)break;
       }
     }
-    await perform({op:tool,bed:selected,beds:ids,crop});
+    // PHASE 2: the hoe on a weedy planted bed weeds it; with Careful work on, sowing, weeding and scything are played
+    const here = garden.beds[selected], op = tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
+    const action = { op, bed: selected, beds: ids, crop }, kind = gameForOp(op);
+    if (careful && kind && kind !== 'birds' && readyFor(op, here)) { startGame(kind, action, bed); return; }
+    await perform(action);
   }
+  /** Whether a bed is ready for this work - a game is only started where the work itself would succeed. */
+  function readyFor(op, bed) {
+    const stage = gardenStage(bed ?? null, now());
+    return op === 'plant' ? stage === 'tilled' : op === 'harvest' ? stage === 'ripe' : op === 'weed';
+  }
+  function setCareful(on) { careful = on; notice(on ? t('farm.game.carefulOn', 'Careful work: sowing, weeding and scything become a little game, for better crops.') : t('farm.game.carefulOff', 'Careful work off.')); }
+  const birdsHere = () => { const w = farm && birdsNow(farm.mapId, now()); return w && !(garden.chased ?? []).includes(w.id) ? w : null; };
+  /** A field game begun on the thing it is played on; its report rides the work when it ends. */
+  function startGame(kind, action, pos) {
+    if (game || busy) return;
+    const engine = createFarmGame(kind);
+    game = { engine, widget: createFarmGameWidget(hudRoot(), engine), action, pos, last: performance.now() };
+  }
+  function endGame(play) {
+    if (!game) return;
+    const { engine, widget, action } = game; game = null; widget.dispose();
+    if (play) perform({ ...action, game: engine.report() });
+    else notice(t('farm.game.laidDown', 'You leave it for now.'));
+  }
+  const hudRoot = () => document.querySelector('.farming-hud') ?? document.body;
+  const gradeName = (g) => [t('farm.grade.common', 'Common'), t('farm.grade.fine', 'Fine'), t('farm.grade.choice', 'Choice'), t('farm.grade.prize', 'Prize')][g] ?? GRADES[g];
   async function perform(action) {
     if(!active||busy||version<0)return;
     const token = epoch; busy = true;
@@ -196,8 +244,10 @@ export function createFarmingMode(deps) {
         // FARM EXPANSION (10.2): a farm title earned is said where it happens, by the factor
         if (r.data.work?.title) { deps.say?.(t('farm.stead.titleEarned', 'The factor tips his hat: "They\'re calling you {title} in town now."', { title: TITLE_TEXT[r.data.work.title] ?? r.data.work.title })); deps.titleEarned?.(r.data.work.title); }
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
+        if(action.op==='birds'){notice(r.data.chased?t('farm.game.birdsGone','The birds scatter and wheel away over the fields.'):t('farm.game.birdsStay','The birds hop back to the rows. Try again.'));return;}
+        if(action.game&&r.data.played&&!r.data.played.full)notice(t('farm.game.noBonus','Done - but you have had your fill of that game today, so no bonus care.'));
         if(action.op==='haul'){carried=carried.filter(id=>!action.sacks.includes(id));notice(t('farm.stead.hauled','You load the sacks onto the wagon: {n} crops for this week\'s orders.',{n:r.data.hauled}));deps.sound?.('haul');return;}
-        notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t('farm.mode.harvested', '{n} harvested into Company Stores.', { n: r.data.harvested }) : t('farm.mode.worked', 'Done. Your work is saved.'));
+        notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t('farm.mode.harvestedGrade', '{n} harvested into Company Stores ({grade}).', { n: r.data.harvested, grade: gradeName(Math.max(0, ...(r.data.grades ?? [0]))) }) : t('farm.mode.worked', 'Done. Your work is saved.'));
         deps.sound?.(tool);
       } else {
         if (action.op === 'haul' && r?.error === 'farm-haul-gone') carried = [];
@@ -219,6 +269,9 @@ export function createFarmingMode(deps) {
       'farm-order-full':t('farm.progress.full','Make room in the Company treasuries before filling the order.'),
       'farm-haul-gone':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-seed-climate':t('farm.stead.seedClimate','That seed will not take in this climate.'),
+      'farm-birds-none':t('farm.game.birdsNone','The birds have already flown.'),
+      'farm-birds-gone':t('farm.game.birdsChased','Someone has already chased them off.'),
+      'farm-game-bad':t('farm.game.bad','That did not take. Try it again.'),
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
@@ -272,7 +325,7 @@ export function createFarmingMode(deps) {
       const found = farmGardenSite(value, { ...deps, farms: deps.farms() });
       if (!found) { deps.say(t('farm.mode.noField', 'The crop fields are not ready here yet.')); return; }
       entering = true;
-      try { await art.prepare(); await stead.prepare(); await sacks.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
+      try { await art.prepare(); await stead.prepare(); await sacks.prepare(); await birds.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
       if (disposed || !deps.available()) return;
       if (!holdThird(true)) { holdThird(false); deps.say(t('farm.mode.noBody', 'Your third-person character must be ready before entering Farming Mode.')); return; }
       heldBody = true;
@@ -280,7 +333,7 @@ export function createFarmingMode(deps) {
       else { farm = value; site = found; }
       active = true; yaw = deps.cam.yaw; height = 8; selected = -1; freeCursor = holdCursor();
       releaseHotbar = holdHotbar();
-      hud = createFarmingHud({ tool: (v) => { tool = v; }, leave });
+      hud = createFarmingHud({ tool: (v) => { tool = v; }, leave, careful: () => setCareful(!careful) });
       attach(); nextRead = 0; await read();
     },
     frame() {
@@ -296,14 +349,15 @@ export function createFarmingMode(deps) {
         const found = farmGardenSite(here, { ...deps, farms: deps.farms() });
         if (!found) return;
         farm = here; site = found;
-        art.prepare().catch(() => {}); stead.prepare().catch(() => {}); sacks.prepare().catch(() => {});
+        art.prepare().catch(() => {}); stead.prepare().catch(() => {}); sacks.prepare().catch(() => {}); birds.prepare().catch(() => {});
       }
       if (active && (!deps.available() || ownHere()?.mapId !== farm.mapId)) leave();
       if (!busy && !reading && Date.now() >= nextRead) read();
+      if (game) { const t1 = performance.now(); game.engine.tick((t1 - game.last) / 1000); game.last = t1; if (game.engine.done) endGame(true); }
       if (carried.length) { const live = new Set(liveSacks(garden, now()).map((s) => s.id)); const kept = carried.filter((id) => live.has(id)); if (kept.length < carried.length) { carried = kept; notice(t('farm.stead.sackGone', 'Those sacks have already gone to the Company Stores.')); } }
       if (active) {
         deps.cam.yaw = yaw;
-        hud.update(farm, tool, crop, status(), deps.blocked());
+        hud.update(farm, tool, crop, status(), deps.blocked(), careful);
       }
     },
     camera(out, dt, normalFwd) {
@@ -334,15 +388,18 @@ export function createFarmingMode(deps) {
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
       sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
+      birds.update(birdsHere(), Object.entries(garden.beds).filter(([, b]) => b?.crop).map(([id]) => site.beds[Number(id)]).filter(Boolean), now()); birds.draw(right, up);
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
+      if (game) { game.widget.update(projectTo(game.pos, game.engine.state.kind === 'birds' ? 2.6 : 1.1, rect, proj, view)); hud.target('', null); return; }
       const pos = i >= 0 ? site.beds[i] : site.center;
       const at = projectToScreen([pos[0], pos[1] + .9, pos[2]], rect.width, rect.height, proj, view, deps.renderer.worldViewportRect);
       at.x += rect.left; at.y += rect.top;
       let label = t('farm.mode.beds', 'Working beds');
       if (fixture) {
         const text = fixture.sack ? t('farm.stead.sackLabel', 'Sack of {crop} · {n} · carry it to the wagon', { crop: farmCropName(fixture.sack.crop), n: fixture.sack.qty })
-          : fixture.id === 'wagon' && carried.length ? t('farm.stead.wagonLoad', 'The factor\'s wagon · load your sacks') : acts.label(fixture.id);
+          : fixture.id === 'wagon' && carried.length ? t('farm.stead.wagonLoad', 'The factor\'s wagon · load your sacks')
+          : fixture.id === 'scarecrow' && birdsHere() ? t('farm.game.birdsLabel', 'Birds at the crop! Chase them off') : acts.label(fixture.id);
         hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
       }
       if (i >= 0) {
@@ -352,6 +409,8 @@ export function createFarmingMode(deps) {
           stage === 'ripe' ? t('farm.mode.ready', 'Ready to harvest') : bed.wetUntil <= now() ? t('farm.mode.thirsty', 'Needs water') :
             t('farm.mode.hours', '{n}h to harvest', { n: Math.max(1, Math.ceil((farmSeed(bed.crop).seconds - gardenGrowth(bed, now())) / (3600*(bed.rate??1)))) });
         label = `${farmToolName(tool)} · ${bed?.crop ? farmCropName(bed.crop) : info}${bed?.crop ? ` · ${info}` : ''}`;
+        if (bed?.crop) label += ` · ${gradeName(gradeOf(clampCare(bed.care ?? 0)))}`;   // the grade it is on course for
+        if (bed?.crop && bedWeedy(bed, now(), stage === 'ripe')) label += ` · ${t('farm.mode.weedy', 'Weeds! Hoe them out')}`;
         if (growing && tool === 'plant') label = t('farm.mode.alreadyPlanted', 'This bed is already planted.');
       }
       hud.target(label, at);

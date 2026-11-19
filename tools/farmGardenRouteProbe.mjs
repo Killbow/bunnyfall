@@ -88,6 +88,31 @@ try {
   const corn=await req('/v1/farms/garden',{...body,op:'plant',bed:4,crop:'corn',version:tilled.data.version});assert.equal(corn.status,200,JSON.stringify(corn));
   assert.equal(corn.data.garden.beds[4].crop,'corn');
   harvest.data.version=corn.data.version;
+  // CARE AND GRADES (docs/FARM-EXPANSION.md 4.2-4.4): a perfect sowing and a perfect scything make a better crop
+  let v=corn.data.version;
+  const tl=async(b)=>{const r=await req('/v1/farms/garden',{...body,...b,version:v});assert.equal(r.status,200,JSON.stringify(r));v=r.data.version;return r;};
+  await tl({op:'hoe',bed:6});
+  const sowR=await tl({op:'plant',bed:6,crop:'grain',game:{kind:'sow',score:1,ms:6000}});
+  assert.equal(sowR.data.garden.beds[6].care,2,'A perfect sowing gives the bed care');assert.deepEqual(sowR.data.played,{kind:'sow',full:true});
+  const quick=await req('/v1/farms/garden',{...body,op:'hoe',bed:8,game:{kind:'sow',score:1,ms:10},version:v});assert.notEqual(quick.status,200,'An impossible play is refused');
+  const g6=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  g6.beds[6].grown=6*3600;g6.beds[6].wetUntil=g6.beds[6].tick;
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(g6)).run();
+  const reaped=await tl({op:'harvest',bed:6,game:{kind:'scythe',score:1,ms:5000}});
+  assert.ok(reaped.data.grades[0]>=1&&reaped.data.harvested>=3,'Sown and scythed with care, the crop grades Fine or better: '+JSON.stringify([reaped.data.grades,reaped.data.harvested]));
+  // weeds: a planted bed dry for two days is weeded with the hoe
+  await tl({op:'hoe',bed:7});await tl({op:'plant',bed:7,crop:'herbs'});
+  const g7=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);
+  g7.beds[7].tick-=3*86400;g7.beds[7].sown-=3*86400;
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(g7)).run();
+  const weeded=await tl({op:'weed',bed:7});assert.equal(weeded.data.garden.beds[7].care,1,'Weeding is care');
+  // birds: the law says whether they are here this hour; the service agrees
+  const { birdsNow } = await import('../src/net/farm/careLaw.js');
+  const here=birdsNow(42,Math.floor(Date.now()/1000));
+  const chase=await req('/v1/farms/garden',{...body,op:'birds',game:{kind:'birds',score:1,ms:9000},version:v});
+  if(here){assert.equal(chase.status,200,JSON.stringify(chase));assert.ok(chase.data.chased&&chase.data.garden.chased.includes(here.id));v=chase.data.version;}
+  else assert.equal(chase.data?.error??chase.error,'farm-birds-none','No birds, no chase: '+JSON.stringify(chase));
+  harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
   const grown=await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first(),estate=JSON.parse(grown.garden);
@@ -113,5 +138,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

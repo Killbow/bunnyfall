@@ -42,6 +42,12 @@ Every account counts its farm work (`src/net/farm/farmWorkLaw.js`, migration `02
 
 Grain, mushrooms and herbs grow on every farm, all year. The climate crops grow where their climate suits them (`src/net/farm/cropLaw.js`; the service checks the farm's stored climate): corn, cabbage, tomatoes, sunflowers, berries, flax, gourds, grapes and desert root. They follow the shared calendar's seasons: full pace in their own, 0.7 in the others, 0.4 in winter; growth across a season's turn is integrated exactly. Each yields a pantry food (templates 714-722, with Provisioning traits). The weekly orders stay on the first three crops.
 
+### Care, grades and the field games
+
+A planted bed gathers care (`src/net/farm/careLaw.js`, 0-6): sown or scythed with a good field game (+1 or +2), weeded (+1, more with the game), watered in its last six hours of moisture (+1). Birds visit each farm in windows its map id draws from the hour (the same for every client and the service); a visit nobody chases off costs each crop growing through it a point, at most two. At harvest the care makes the grade (Fine at 2, Choice at 3, Prize at 4) and the grade multiplies the yield (x1.25, x1.5, x2); the soil improvements keep their own extra crops. The bed's hover line shows the grade it is on course for.
+
+Careful work (F, or the belt button) turns sowing, weeding and scything into a short game pinned over the bed (`src/net/farm/farmGameLaw.js`, drawn by `src/ui/farmGames.js`); the hoe on a weedy planted bed weeds it. When birds are about, the scarecrow starts the chase. The service judges each play (the right game for the work, a score 0-1, at least its shortest honest time) and gives its care only for each account's first plays of the day (6 sowings, 10 weedings, 4 scythings, 3 chases); a full-bonus play is also 5 farm work.
+
 ### Sacks and the wagon
 
 A harvest still puts its crops into the Company Stores at once. It also leaves the crops' sacks at the bed corner for fifteen minutes (`src/net/farm/haulLaw.js`). Click a sack to shoulder it and the others lying near it, up to four; click the wagon to load them. The wagon's cargo for the week (Monday UTC) fills the cart as it grows and is read in the ledger. Hauling adds nothing to the Stores (the crops are there already) and counts as working the sack's bed for the day's care bonus. The garden route's `haul` op commits it with the garden revision, so a sack loads once.

@@ -172,6 +172,20 @@ try {
   await page.waitForFunction(()=>window.probe.garden.cargo?.grain===5);
   assert.deepEqual(await page.evaluate(()=>window.probe.mode.inspect().carried),[],'The wagon takes the sacks');
   assert.equal(await page.evaluate(()=>window.probe.glError),0,'sack draw error');
+  // CAREFUL WORK (PHASE 2): F turns sowing into the sowing game, pinned over the bed; its report rides the planting
+  await page.evaluate(()=>{const p=window.probe;p.feet=[(1%4+.5)*2-1.6,0,(Math.floor(1/4)+.5)*2];for(let i=0;i<30;i++)p.render();});
+  await page.keyboard.press('f'); await page.keyboard.press('2'); await page.evaluate(()=>window.probe.render());
+  assert.equal(await page.locator('.farm-careful').getAttribute('aria-pressed'),'true','Careful work is on');
+  const sowBefore=await page.evaluate(()=>window.probe.requests.length);
+  await clickBed(1);
+  assert.equal(await page.locator('.farm-game').count(),1,'The sowing game appears over the bed');
+  assert.equal(await page.evaluate(()=>window.probe.requests.length),sowBefore,'Nothing is sent while the game is played');
+  for(let k=0;k<5;k++){await page.waitForTimeout(700);await page.keyboard.press('Space');await page.evaluate(()=>window.probe.render());}
+  await page.waitForFunction(()=>{window.probe.render();return !document.querySelector('.farm-game');},null,{timeout:15000});
+  await page.waitForFunction(()=>window.probe.garden.beds[1]?.crop,null,{timeout:5000});
+  const sowReq=await page.evaluate(()=>window.probe.requests.at(-1));
+  assert.equal(sowReq.op,'plant');assert.equal(sowReq.game?.kind,'sow','The play rides the planting');assert.ok(sowReq.game.ms>=2500,'A real play takes its time: '+sowReq.game.ms);
+  await page.keyboard.press('f');
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
@@ -186,5 +200,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }
