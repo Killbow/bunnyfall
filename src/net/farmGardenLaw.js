@@ -6,6 +6,7 @@ import { GAMES, gameForOp, validGame, validPlays, recordPlay, careBonus } from '
 import { validHerd, kindContent } from './farm/herdLaw.js';   // PHASE 3: the herd
 import { QUICK_SHARE, crossChance, crossRoll, addStrain, strainOf, validStrains, validBedStrain } from './farm/strainLaw.js';   // PHASE 2c: strains
 import { settleThreats, stepFarmProwl as stepProwl, validThreats, bedBlighted, rotAfter, blightYield } from './farm/threatLaw.js';   // PHASE 6: blight and prowlers
+import { validWorkshops } from './farm/workshopLaw.js';   // PHASE 4: the workshops
 import { laySacks, validHaul } from './farm/haulLaw.js';   // FARM EXPANSION: a harvest's sacks, for the wagon
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
 // A sparse address space: farms allocate as many beds as their actual fields contain.
@@ -41,6 +42,7 @@ export function validGarden(value) {
   if (value && !validStrains(value, FARM_SEEDS.map((x) => x.id))) return false;
   if (value && !validHerd(value)) return false;
   if (value && !validThreats(value)) return false;   // PHASE 6
+  if (value && !validWorkshops(value)) return false;   // PHASE 4
   return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&

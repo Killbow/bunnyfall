@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). **Phase 6 built (threats)**: blight and prowlers (weather and raids are design notes: see 8.5 and 8.2 "As built"). Phases 4, 5 and 7 are designed here. It extends the Company farms
+Status (2026-11-19): **built** - Phase 1 (the farmyard, fixtures, sacks and the wagon, lanterns, field graphics), Phase 2 (farm work and the titles with First Light, climate crops and seasons, care and grades, weeds, birds, the field games, strains), Phase 3 (livestock), Phase 4 (workshops) and Phase 6 (blight and prowlers; weather and raids designed, not built). See `docs/FARMING.md` and the "As built" notes below. Phases 5 and 7 and the wind are in progress.
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -449,6 +449,8 @@ lifts a batch's quality.
   for them (`docs/CRAFTING.md`).
 - Every product can fill **orders**: the order post gets **product orders** too (barrels of ale for a tavern, cheese for
   a castle) that pay better than raw crops and rotate weekly.
+
+*As built (Phase 4):* a new `src/net/farm/workshopLaw.js` and garden op `workshop` (acts `build`, `start`, `collect`, `order`) on the existing garden route, not `/v1/farms/workshop`. Costs and times: windmill 12,000 gold / 24 h, press 8,000 / 12 h, churn 3,000 / 4 h, smokehouse 5,000 / 8 h, loom 6,000 / 6 h, brewery 9,000 / 12 h. One batch per workshop, an officer builds (Y/N), any member runs; a finished shelf waits (no one-day sweep: starting the next batch collects it). Recipes: grain to flour (2 h), corn to cornmeal, grapes to wine, sunflower seeds to oil and berries to berry wine (press, 6 h), milk to butter (4 h) or aged cheese (6 h), meat, boar, bear to smoked meat and fish to smoked fish (8 h), flax to linen bolts (3 h), grain to ale and honey to mead (12 h). Left out: apples and cider (no apples in the Stores), silk and the wool at the loom (`cloth:wool` is already a bolt), ageing, the quality minigame, the windmill mesh (millstones and sacks stand for it) and the moving parts. The new foods are PANTRY 723-732. The workshops are the last fixtures laid, so earlier plots never move; a cramped farm lacks the ones that do not fit. The product order is a fourth line on the order post (every fourth click), paying 600-900 gold, once a week per farm.
 
 New items take **existing DFU pictures** (the way `professionLaw.js` borrows TEXTURE.254 records), never new art.
 

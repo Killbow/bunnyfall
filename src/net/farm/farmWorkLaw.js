@@ -25,14 +25,16 @@ export const FARM_WORK = Object.freeze({
   sack: 2,      // each sack carried to the factor's wagon
   game: 5,      // a field game played for its full bonus (farmGameLaw.js GAME_WORK)
   animal: 3,    // an animal fed, watered, milked or mucked out (PHASE 3)
+  batch: 10,    // a workshop batch started (PHASE 4)
 });
 
 /** The farm work an action earns: `op` the garden op, `worked` the beds it worked, `harvested` its crops, `sacks` the
  *  sacks it hauled, `game` whether a field game was played for its full bonus. Shipping and buying earn none. */
-export function farmWorkOf(op, { worked = 0, harvested = 0, sacks = 0, game = false, horse = false, tended = 0 } = {}) {
+export function farmWorkOf(op, { worked = 0, harvested = 0, sacks = 0, game = false, horse = false, tended = 0, batches = 0 } = {}) {
   const played = game ? FARM_WORK.game : 0;
   if (op === 'harvest') return harvested * FARM_WORK.crop + played;
   if (op === 'haul') return sacks * (FARM_WORK.sack + (horse ? 1 : 0));   // PHASE 3: a content horse draws the wagon
+  if (op === 'workshop') return batches * FARM_WORK.batch;   // PHASE 4
   if (op === 'herd') return tended * FARM_WORK.animal + played;
   if (op === 'hoe' || op === 'plant' || op === 'water' || op === 'weed' || op === 'pull') return worked * FARM_WORK.bed + played;   // PHASE 6: pulling a blighted bed is bed work
   if (op === 'birds') return played;

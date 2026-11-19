@@ -52,6 +52,11 @@ const FOOD_OF = Object.freeze({
   'food:corn': ['hearty', 'swift'], 'food:cabbage': ['refreshing', 'fortifying'], 'food:tomato': ['refreshing', 'hearty'],
   'food:sunseed': ['keen', 'fortifying'], 'food:berries': ['refreshing', 'charming'], 'food:root': ['hearty', 'warming'],
   'food:flax': ['restful', 'clear'], 'food:gourd': ['hearty', 'fortifying', 'warming'], 'food:grapes': ['refreshing', 'swift', 'lucky'],
+  // FARM EXPANSION PHASE 4: what the workshops make
+  'food:cornmeal': ['hearty', 'swift'], 'food:butter': ['hearty', 'restful', 'warming'], 'food:cheesewheel': ['fortifying', 'clear', 'restful'],
+  'food:wine': ['charming', 'lucky', 'restful'], 'food:oil': ['keen', 'warming'], 'food:berrywine': ['charming', 'refreshing', 'lucky'],
+  'food:ale': ['hearty', 'mighty', 'restful'], 'food:mead': ['charming', 'restful', 'clear'],
+  'food:smokedmeat': ['hearty', 'mighty', 'fortifying'], 'food:smokedfish': ['swift', 'clear', 'fortifying'],
   'reagent:pure-water': ['refreshing'], 'reagent:rain-water': ['refreshing'],
 });
 /** A plant in the pot is a herb or a spice: one kitchen trait, by its DFU template. */

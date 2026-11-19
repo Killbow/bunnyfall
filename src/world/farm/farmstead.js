@@ -14,9 +14,51 @@
  *  by its width `w`, so a wide picture never stretches tall. */
 import { FARM_ART } from '../farmGardenArt.js';   // a seed sack's crop, shown on top
 
-/** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number>, lamp?: boolean }} Part */
+/** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number>, max?: Record<string, number>, lamp?: boolean }} Part */   // PHASE 4: `max` - drawn only up to that stage (the stakes of an unbuilt workshop)
 /** @typedef {{ id: string, dx: number, dz: number, r: number, h: number }} Target */
 /** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean, shelf?: boolean, pen?: string, pickR?: number }} FixtureDef */   // pickR: clicked only near its middle (a pen's trough), never as its whole ring
+
+// ─── PHASE 4: THE WORKSHOPS (net/farm/workshopLaw.js) ───
+// Each is drawn by two pseudo-upgrades the farm hands the art (workshopLaw.js workshopStages): `wk_<id>` 1 staked (posts and
+// a notice board on the plot), 2 rising (timber and the posts), 3 built; and `wo_<id>` 0 idle, 1 working, 2 shelf full.
+// Its targets: the body (build and tell), the input crate (start a batch) and the output shelf (collect).
+/** @param {string} id @param {number} r @param {number} h @param {Part[]} built @param {Part[]} working @param {Part[]} done */
+function workshop(id, r, h, built, working, done) {
+  const wk = (n, max) => ({ min: { [`wk_${id}`]: n }, ...(max ? { max: { [`wk_${id}`]: max } } : {}) });
+  /** @type {Part[]} */
+  const stakes = [[.8, .8], [-.8, .8], [.8, -.8], [-.8, -.8]].map(([dx, dz], i) => ({ a: 212, r: 13 + (i % 2), dx: dx * r * .7, dz: dz * r * .7, h: 1.1, ...wk(1, 1) }));
+  return {
+    id, r, h, targets: [{ id, dx: 0, dz: -.3, r: Math.max(.9, r - 1), h }, { id: `${id}:in`, dx: -.9, dz: r * .7 + .5, r: .5, h: .9 }, { id: `${id}:out`, dx: .9, dz: r * .7 + .5, r: .5, h: .9 }],
+    parts: [
+      ...stakes, { a: 212, r: 4, dz: -.2, h: 1.3, ...wk(1, 1) },
+      { a: 212, r: 11, dx: -.5, dz: .1, h: .55, ...wk(2, 2) }, { a: 212, r: 12, dx: .6, dz: -.3, h: .6, ...wk(2, 2) }, { a: 212, r: 13, dx: -r * .6, dz: -r * .5, h: 1.6, ...wk(2, 2) }, { a: 212, r: 14, dx: r * .6, dz: -r * .5, h: 1.6, ...wk(2, 2) }, { a: 205, r: 24, dx: -.9, dz: r * .7 + .5, h: .8, ...wk(2, 2) },
+      ...built.map((p) => ({ ...p, ...wk(3) })),
+      { a: 205, r: 24, dx: -.9, dz: r * .7 + .5, h: .8, ...wk(3) }, { a: 205, r: 25, dx: .9, dz: r * .7 + .5, h: .75, ...wk(3) },
+      ...working.map((p) => ({ ...p, min: { [`wk_${id}`]: 3, [`wo_${id}`]: 1 }, max: { [`wo_${id}`]: 1 } })),
+      ...done.map((p) => ({ ...p, min: { [`wk_${id}`]: 3, [`wo_${id}`]: 2 } })),
+    ],
+  };
+}
+export const WORKSHOP_FIXTURES = Object.freeze([
+  // the mill: the millstones and sacks stand for the vendored windmill's works (the mesh is too complex to reuse here)
+  workshop('windmill', 2.2, 2.6, [{ a: 212, r: 10, h: 2.6 }, { a: 211, r: 16, dx: -.7, dz: -.4, h: .55 }, { a: 211, r: 17, dx: .7, dz: -.5, h: .55 }, { a: 211, r: 15, dy: 1.7, h: .8 }, { a: 205, r: 17, dx: .2, dz: .9, h: .5 }, { a: 205, r: 19, dx: -.4, dz: 1.1, h: .5 }],
+    [{ a: 211, r: 15, dx: .1, dz: -.4, dy: .6, h: .45 }], [{ a: 205, r: 17, dx: .9, dz: 2.0, dy: .75, h: .45 }, { a: 205, r: 18, dx: 1.2, dz: 1.95, dy: .75, h: .4 }]),
+  // the press: barrels and buckets, the wheel as its screw
+  workshop('press', 1.6, 1.5, [{ a: 205, r: 0, dx: -.6, dz: -.2, h: .95 }, { a: 205, r: 0, dx: .55, dz: -.4, h: .95 }, { a: 211, r: 15, dy: .95, dz: -.3, h: .5 }, { a: 205, r: 29, dx: .2, dz: .6, h: .5 }],
+    [{ a: 205, r: 30, dx: 0, dz: .25, dy: 1.0, h: .4 }], [{ a: 205, r: 13, dx: .7, dz: 1.62, dy: .75, h: .45 }, { a: 205, r: 7, dx: 1.1, dz: 1.6, dy: .75, h: .45 }]),
+  // the dairy churn: the tall bucket, the pail beside it
+  workshop('churn', 1.3, 1.3, [{ a: 205, r: 30, dz: -.2, h: 1.1 }, { a: 205, r: 29, dx: .6, dz: .2, h: .5 }, { a: 212, r: 10, dx: -.5, dz: -.4, h: 1.0 }],
+    [{ a: 212, r: 10, dx: .05, dz: -.2, dy: .9, h: .8 }], [{ a: 205, r: 10, dx: .75, dz: 1.4, dy: .75, h: .45 }, { a: 205, r: 9, dx: 1.1, dz: 1.35, dy: .75, h: .4 }]),
+  // the smokehouse: tripods with the hanging meats and fish
+  workshop('smokehouse', 1.8, 2.4, [{ a: 211, r: 13, dx: -.8, dz: -.2, h: 2.3 }, { a: 211, r: 14, dx: .8, dz: -.2, h: 2.3 }, { a: 211, r: 40, dx: -.8, dz: -.1, dy: .9, h: .5 }, { a: 211, r: 41, dx: .8, dz: -.1, dy: 1.0, h: .35 }, { a: 205, r: 25, dz: -.9, h: .7 }],
+    [{ a: 211, r: 42, dx: 0, dz: -.2, dy: 1.2, h: .35 }, { a: 211, r: 11, dx: 0, dz: -.3, dy: 1.6, h: .6 }], [{ a: 211, r: 40, dx: .9, dz: 1.5, dy: .75, h: .4 }, { a: 211, r: 9, dx: 1.25, dz: 1.5, dy: .75, h: .3 }]),
+  // the loom: a frame of posts and the hanging cloths
+  workshop('loom', 1.5, 1.9, [{ a: 212, r: 10, dx: -1, h: 1.9 }, { a: 212, r: 10, dx: 1, h: 1.9 }, { a: 211, r: 43, dx: -.4, dz: -.1, dy: .1, h: 1.6 }, { a: 211, r: 44, dx: .1, dz: -.1, dy: .1, h: 1.6 }, { a: 205, r: 17, dx: .1, dz: .9, h: .5 }],
+    [{ a: 211, r: 45, dx: .6, dz: -.1, dy: .1, h: 1.5 }], [{ a: 211, r: 46, dx: .85, dz: 1.45, dy: .75, h: .5 }, { a: 205, r: 18, dx: 1.2, dz: 1.5, dy: .75, h: .35 }]),
+  // the brewery: barrels, buckets and a jug
+  workshop('brewery', 1.7, 1.4, [{ a: 205, r: 0, dx: -.7, dz: -.3, h: 1.0 }, { a: 205, r: 0, dx: .1, dz: -.5, h: 1.0 }, { a: 205, r: 0, dx: .8, dz: -.2, h: 1.0 }, { a: 205, r: 29, dx: -.3, dz: .5, h: .5 }, { a: 205, r: 41, dx: .5, dz: .5, h: .4 }],
+    [{ a: 205, r: 30, dx: .4, dz: .1, dy: 1.0, h: .35 }], [{ a: 205, r: 0, dx: .8, dz: 1.7, dy: .75, h: .5 }, { a: 205, r: 5, dx: 1.2, dz: 1.65, dy: .75, h: .4 }]),
+]);
 
 /** @type {readonly FixtureDef[]} */
 export const FIXTURES = Object.freeze([
@@ -50,6 +92,8 @@ export const FIXTURES = Object.freeze([
   { id: 'sty', r: 2.4, pickR: .9, h: 1, pen: 'sty', parts: [{ a: 212, r: 13, dx: 2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: 0.00, dz: 2.10, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: -2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 13, dx: -0.00, dz: -2.10, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 7, dx: .6, dz: .5, h: .6 }, { a: 205, r: 30, dx: -1, dz: .9, h: .42 }] },
   { id: 'drover', r: 2.6, h: 1.8, parts: [{ a: 205, r: 28, h: 1.5, min: { drover: 1 } }, { a: 201, r: 1, dx: -2.3, dz: .3, h: 1.8, min: { drover: 1 } }] },
   { id: 'scarecrow', r: .6, h: 2.3, field: true, parts: [{ a: 211, r: 20, h: 2.3 }] },
+  // PHASE 4 (section 7): the workshop yard, last so no earlier fixture's plot moves. Staked, then rising, then built
+  ...WORKSHOP_FIXTURES,
 ]);
 export const FIXTURE_ARCHIVES = Object.freeze([...new Set(FIXTURES.flatMap((f) => f.parts.map((p) => p.a)))]);
 
@@ -144,7 +188,7 @@ export function farmsteadLamps(stead) {
 /** How full the wagon looks for a week's hauled crops: 0 empty, then 1-4. */
 export const cargoLevel = (crops) => (crops <= 0 ? 0 : crops < 20 ? 1 : crops < 100 ? 2 : crops < 400 ? 3 : 4);
 /** A fixture's parts that stand at these upgrades. */
-export const standingParts = (def, upgrades) => def.parts.filter((p) => !p.min || Object.entries(p.min).every(([k, v]) => (upgrades?.[k] ?? 0) >= v));
+export const standingParts = (def, upgrades) => def.parts.filter((p) => (!p.min || Object.entries(p.min).every(([k, v]) => (upgrades?.[k] ?? 0) >= v)) && (!p.max || Object.entries(p.max).every(([k, v]) => (upgrades?.[k] ?? 0) <= v)));   // PHASE 4: `max`
 
 /** THE SEED SHELF: a sack for each of the farm's seeds, rows of SHELF_ROW, each with its crop's ripe picture on top
  *  (farmGardenArt.js FARM_ART) - its parts and its targets, one target a sack. */
