@@ -34,6 +34,13 @@ Since the farm expansion's first phase (`docs/FARM-EXPANSION.md`) the farm is us
 - **Tool rack**, **well** and **compost heap** show the tools, irrigation and soil improvements, and sell the next one to a Captain or Officer with a Y/N question.
 - The **haystack** and the **scarecrow** dress the yard; lanterns by the order post, the ledger and the well light at night.
 
+### Wind over the crops
+Crops, weeds (not mushrooms, not the fruit lying on the ground) and the haystack's two shocks lean with the world's wind:
+the renderer's own flora sway (`batch.sway`, set by `setFarmSway` in `world/farmGardenArt.js`, share `FARM_SWAY` 3 where a
+tree is 1; under the Windfall mod's law `batch.windfall` .6). The top corners move by a fraction of the flat's height, so
+taller plants lean more and the root stays planted, and the gust is the one travelling wave the trees and grass use. It
+follows the player's "floraSway" option and the sky's wind. A batch that is not marked draws exactly as before.
+
 ### Farm work and the farm titles
 
 Every account counts its farm work (`src/net/farm/farmWorkLaw.js`, migration `0217_farm_work.sql`): 1 for each bed hoed, planted or watered, 1 for each crop harvested by hand, 2 for each sack carried to the wagon. At most 400 counts a UTC day. The service raises it in the same batch as the work. The titles Furrowhand (3,000), Harvestwarden (15,000) and Sovereign of the Sheaf (45,000) and First Light with the last are derived from it in `server-account/src/titles.js`. The ledger reads your total; the factor says when a title is earned.

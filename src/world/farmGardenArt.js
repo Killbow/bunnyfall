@@ -28,6 +28,16 @@ const HEIGHT = Object.freeze({ grain: [.25, 1.2], mushroom: [.12, .38], herbs: [
 /** A ripe crop's fruit on the ground, its height, m. */
 const FRUIT_H = .26;
 export { WEED_DRY_S };
+/** PHASE 4.0 WIND OVER THE CROPS: the lean a farm's plants take from the world's one wind - the renderer's own flora sway
+ *  (WIND3: `batch.sway`, the top corners offset by a gust that travels down the wind; the root stands, the lean grows
+ *  with the flat's height), at a larger share than a tree's 1 because a field is lower and must show it. WINDFALL's
+ *  mask (`batch.windfall`) is the same lean under that mod's law. A batch left alone stands still. Mushrooms stay put. */
+export const FARM_SWAY = 6, FARM_WINDFALL = .6;
+/** Mark a billboard batch (or null) as leaning with the wind, or not (`on` false); returns the batch. */
+export function setFarmSway(batch, on = true) {
+  if (batch && on) { batch.sway = FARM_SWAY; batch.windfall = FARM_WINDFALL; }
+  return batch;
+}
 const SOIL_TINT = [[1, 1, 1, 1], [.88, .84, .8, 1], [.74, .7, .66, 1]];
 
 /** A stable 0..1 stream for a bed. */
@@ -87,7 +97,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     if(!entries.length){if(decals)renderer.destroyDecalBatch(decals);decals=null;capacity=0;return;}
     if(capacity!==entries.length){if(decals)renderer.destroyDecalBatch(decals);capacity=entries.length;decals=renderer.createDecalBatch(capacity);}
     const values=new Float32Array(entries.length*DECAL_FLOATS),groups=new Map();
-    const put=(archive,record,height,centers)=>{const key=`${archive}_${record}_${height}`;if(!groups.has(key))groups.set(key,{archive,record,height,centers:[]});groups.get(key).centers.push(...centers);};
+    const put=(archive,record,height,centers,sway=true)=>{const key=`${archive}_${record}_${height}${sway?'s':''}`;if(!groups.has(key))groups.set(key,{archive,record,height,sway,centers:[]});groups.get(key).centers.push(...centers);};
     entries.forEach(([id,bed],slot)=>{
       const index=Number(id),pos=site.beds[index],stage=gardenStage(bed,now);
       // the soil: furrows, darker with better loam, cooler while it holds water (fading as it dries)
@@ -98,9 +108,9 @@ export function createFarmGardenArt(renderer, assets = {}) {
       const plants=bedPlants(index);
       if(bed.crop){
         const [archive,record]=sick?FARM_ART.blight:(FARM_ART[bed.crop][stage]??FARM_ART.grain[stage]),height=Math.round(plantHeight(bed,now)*(sick?.55:1)*20)/20;   // drooping: low plants, shorter
-        put(archive,record,height,plants.map(([x,z])=>[pos[0]+x,pos[1]+.04,pos[2]+z]));
+        put(archive,record,height,plants.map(([x,z])=>[pos[0]+x,pos[1]+.04,pos[2]+z]),bed.crop!=='mushroom'&&!sick);   // WIND: crops lean; mushrooms and drooping sick plants stay still
         const fruit=FARM_ART[bed.crop]?.fruit;
-        if(fruit&&stage==='ripe')put(fruit[0],fruit[1],FRUIT_H,plants.slice(0,2).map(([x,z])=>[pos[0]+x*.6+.12,pos[1]+.03,pos[2]+z*.6+.1]));
+        if(fruit&&stage==='ripe')put(fruit[0],fruit[1],FRUIT_H,plants.slice(0,2).map(([x,z])=>[pos[0]+x*.6+.12,pos[1]+.03,pos[2]+z*.6+.1]),false);
       }
       if(weedy(bed)){
         const [archive,record]=FARM_ART.weeds[index%FARM_ART.weeds.length],[x,z]=plants[0];
@@ -115,9 +125,9 @@ export function createFarmGardenArt(renderer, assets = {}) {
       entries.forEach(([id],slot)=>{const pos=site.beds[Number(id)];writeDecalQuad(strips,slot*DECAL_FLOATS,{pos:[pos[0],pos[1]+.04,pos[2]+FARM_BED_SIZE/2+.12],right:[1,0,0],up:[0,0,-1],size:.24,stretch:(FARM_BED_SIZE+.36)/.24,tint,wet:0});});
       renderer.writeDecalSlot(channels,0,strips);
     }
-    for(const {archive,record,height,centers}of groups.values()){
+    for(const {archive,record,height,sway,centers}of groups.values()){
       assets.uploadRecord(archive,record);const size=files.get(archive).getSize(record);
-      crops.push(renderer.createBillboardBatch(archive,record,{w:height*size.width/size.height,h:height},centers,{dynamic:true}));
+      crops.push(setFarmSway(renderer.createBillboardBatch(archive,record,{w:height*size.width/size.height,h:height},centers,{dynamic:true}),sway));
     }
   }
   return{prepare,update,get ready(){return ready;},
