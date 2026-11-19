@@ -12,9 +12,11 @@
 
 /** A part is sized by its height `h`, m - or, for a picture drawn lying (TEXTURE.214's tools are inventory pictures),
  *  by its width `w`, so a wide picture never stretches tall. */
+import { FARM_ART } from '../farmGardenArt.js';   // a seed sack's crop, shown on top
+
 /** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number>, lamp?: boolean }} Part */
 /** @typedef {{ id: string, dx: number, dz: number, r: number, h: number }} Target */
-/** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean }} FixtureDef */
+/** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean, shelf?: boolean }} FixtureDef */
 
 /** @type {readonly FixtureDef[]} */
 export const FIXTURES = Object.freeze([
@@ -26,14 +28,8 @@ export const FIXTURES = Object.freeze([
     { a: 205, r: 18, dx: -.2, dz: -.1, dy: .78, h: .5, min: { cargo: 3 } }, { a: 205, r: 26, dx: .35, dz: .15, dy: 1.05, h: .45, min: { cargo: 4 } },
   ] },
   { id: 'ledger', r: .7, h: 1.1, parts: [{ a: 211, r: 31, h: .65 }, { a: 211, r: 1, dy: .62, h: .4 }, { a: 214, r: 5, dx: -.5, h: 1.9, lamp: true }] },
-  { id: 'seedShelf', r: 1.5, h: 1.3, parts: [
-    { a: 205, r: 24, dz: .45, h: 1.05 },
-    { a: 205, r: 17, dx: -.75, h: .6 }, { a: 205, r: 18, dx: 0, h: .55 }, { a: 205, r: 19, dx: .75, h: .6 },
-    { a: 301, r: 19, dx: -.75, dy: .5, h: .4 }, { a: 301, r: 10, dx: 0, dy: .45, h: .22 }, { a: 301, r: 13, dx: .75, dy: .5, h: .35 },
-  ], targets: [
-    { id: 'seed:grain', dx: -.75, dz: 0, r: .38, h: 1 }, { id: 'seed:mushroom', dx: 0, dz: 0, r: .38, h: .9 },
-    { id: 'seed:herbs', dx: .75, dz: 0, r: .38, h: 1 },
-  ] },
+  // the seed shelf's sacks are the farm's own seeds (its climate's: net/farm/cropLaw.js seedsFor), laid out by shelfOf
+  { id: 'seedShelf', r: 1.7, h: 1.3, shelf: true, parts: [{ a: 205, r: 24, dz: .7, h: 1.05 }] },
   { id: 'toolRack', r: 1, h: 1.3, parts: [
     { a: 205, r: 25, dz: .3, h: 1 },
     { a: 214, r: 1, dx: -.3, dy: .55, w: .9 }, { a: 214, r: 4, dx: .25, dy: .35, w: .8 }, { a: 214, r: 7, dx: 0, dy: .1, w: .75 },
@@ -146,11 +142,29 @@ export const cargoLevel = (crops) => (crops <= 0 ? 0 : crops < 20 ? 1 : crops < 
 /** A fixture's parts that stand at these upgrades. */
 export const standingParts = (def, upgrades) => def.parts.filter((p) => !p.min || Object.entries(p.min).every(([k, v]) => (upgrades?.[k] ?? 0) >= v));
 
+/** THE SEED SHELF: a sack for each of the farm's seeds, rows of SHELF_ROW, each with its crop's ripe picture on top
+ *  (farmGardenArt.js FARM_ART) - its parts and its targets, one target a sack. */
+export const SHELF_ROW = 5, SHELF_STEP = .55;
+export function shelfOf(seeds) {
+  const parts = [], targets = [];
+  (seeds ?? []).forEach((id, i) => {
+    const row = Math.floor(i / SHELF_ROW), inRow = Math.min(SHELF_ROW, seeds.length - row * SHELF_ROW);
+    const dx = ((i % SHELF_ROW) - (inRow - 1) / 2) * SHELF_STEP, dz = -row * .55;
+    const crop = FARM_ART[id]?.ripe ?? FARM_ART.grain.ripe;
+    parts.push({ a: 205, r: 17 + (i % 3), dx, dz, h: .5 }, { a: crop[0], r: crop[1], dx, dz, dy: .42, h: id === 'mushroom' ? .18 : .3 });
+    targets.push({ id: `seed:${id}`, dx, dz, r: .27, h: .85 });
+  });
+  return { parts, targets };
+}
+/** A placed fixture's parts: the shelf's sacks for the farm's seeds, and every part its upgrades raise. */
+export const fixtureParts = (f, upgrades, seeds) => (f.def.shelf ? [...standingParts(f.def, upgrades), ...shelfOf(seeds).parts] : standingParts(f.def, upgrades));
+
 /** Every pickable target of the farmstead: a fixture whole, or each of its own targets. */
 export function farmsteadTargets(stead) {
   const out = [];
   for (const f of stead?.fixtures ?? []) {
-    if (f.def.targets) for (const t of f.def.targets) out.push({ id: t.id, fixture: f.id, pos: [f.pos[0] + t.dx, f.pos[1], f.pos[2] + t.dz], r: t.r, h: t.h });
+    const own = f.def.shelf ? shelfOf(stead.seeds).targets : f.def.targets;
+    if (own) for (const t of own) out.push({ id: t.id, fixture: f.id, pos: [f.pos[0] + t.dx, f.pos[1], f.pos[2] + t.dz], r: t.r, h: t.h });
     else out.push({ id: f.id, fixture: f.id, pos: f.pos, r: f.def.r, h: f.def.h });
   }
   return out;

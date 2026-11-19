@@ -11,6 +11,9 @@ export const farmToolName = (tool) => ({
 })[tool];
 export const farmCropName = (crop) => ({
   grain: t('farm.mode.grain', 'Grain'), mushroom: t('farm.mode.mushroom', 'Mushrooms'), herbs: t('farm.mode.herbs', 'Herbs'),
+  corn: t('farm.mode.corn', 'Corn'), cabbage: t('farm.mode.cabbage', 'Cabbage'), tomato: t('farm.mode.tomato', 'Tomatoes'),
+  sunflower: t('farm.mode.sunflower', 'Sunflowers'), berries: t('farm.mode.berries', 'Berries'), root: t('farm.mode.root', 'Desert root'),
+  flax: t('farm.mode.flax', 'Flax'), gourd: t('farm.mode.gourd', 'Gourds'), grapes: t('farm.mode.grapes', 'Grapes'),
 })[crop];
 export function createFarmingHud({ tool, leave }) {
   injectEnhancedStyle(); injectEnhancedFonts();

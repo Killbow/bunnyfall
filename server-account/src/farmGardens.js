@@ -6,6 +6,7 @@ import { emptyGarden, validGarden, stepFarmGardenAction } from '../../src/net/fa
 import { cropMaterial } from '../../src/net/farmLaw.js';
 import { farmProgressStep, farmProgressRead } from './farmProgress.js';
 import { stepFarmHaul } from '../../src/net/farm/haulLaw.js';   // FARM EXPANSION: sacks carried to the wagon
+import { farmWorkOf, farmWorkStep, farmTitleCrossed, FARM_WORK_DAY_CAP } from '../../src/net/farm/farmWorkLaw.js';   // FARM EXPANSION: farm work and its titles
 
 export async function farmGarden({ db, nowS, env }, player, body = {}) {
   const { character, mapId, op = 'read', version } = body;
@@ -25,7 +26,7 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
   if (!validGarden(garden)) return { error: 'farm-bed-bad' };
   if (op === 'read') return { ok: true, ...(version === Number(row.version) ? { unchanged: true } : { garden }), ...await farmProgressRead(db,player,character,farm.guild_id,body.details===true,nowS), version: Number(row.version), nowS };
   if (!Number.isSafeInteger(version) || version !== Number(row.version)) return { error: 'farm-bed-version' };
-  const step = management ? await farmProgressStep({db,nowS,env},player,farm,garden,body) : op === 'haul' ? stepFarmHaul(garden, body.sacks, nowS) : stepFarmGardenAction(garden, body, nowS);
+  const step = management ? await farmProgressStep({db,nowS,env},player,farm,garden,body) : op === 'haul' ? stepFarmHaul(garden, body.sacks, nowS) : stepFarmGardenAction(garden, { ...body, climate: Number(farm.climate) }, nowS);   // the farm's own climate, never the client's
   if ('error' in step) return step;
   const statements = [db.prepare(`UPDATE company_farm_gardens SET garden = ?1, version = version + 1
     WHERE map_id = ?2 AND version = ?3 AND EXISTS (SELECT 1 FROM company_farms WHERE map_id = ?2 AND guild_id = ?4)
@@ -46,6 +47,21 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
       .bind(actor.me.guild_id, material, qty, `Garden: ${farm.name}`.slice(0, 64), nowS));
   }
   const day = Math.floor(nowS / 86400);
+  // FARM WORK (docs/FARM-EXPANSION.md 10.1): the work this action did, raised in this batch, never past the day's cap
+  const points = management ? 0 : farmWorkOf(op, { worked: step.worked?.length ?? 0, harvested: harvests.reduce((n, h) => n + h.qty, 0), sacks: op === 'haul' ? (body.sacks?.length ?? 0) : 0 });
+  let work = null;
+  if (points > 0) {
+    const was = await db.prepare('SELECT farm_work, farm_work_day, farm_work_today FROM players WHERE id = ?').bind(player.id).first();
+    if (was) {
+      const next = farmWorkStep(Number(was.farm_work_day), Number(was.farm_work_today), day, points), total = Number(was.farm_work) + next.gained;
+      work = { total, today: next.today, title: farmTitleCrossed(Number(was.farm_work), total) };
+      statements.push(db.prepare(`UPDATE players SET
+          farm_work = farm_work + MAX(0, CASE WHEN farm_work_day = ?2 THEN MIN(?3, farm_work_today + ?4) - farm_work_today ELSE MIN(?3, ?4) END),
+          farm_work_today = CASE WHEN farm_work_day = ?2 THEN MAX(farm_work_today, MIN(?3, farm_work_today + ?4)) ELSE MIN(?3, ?4) END,
+          farm_work_day = ?2
+        WHERE id = ?1`).bind(player.id, day, FARM_WORK_DAY_CAP, points));
+    }
+  }
   for (const bed of management ? [] : step.worked) statements.push(db.prepare('INSERT OR IGNORE INTO company_farm_garden_work (map_id, day, account, bed) VALUES (?, ?, ?, ?)').bind(mapId, day, player.id, bed));
   statements.push(db.prepare('DELETE FROM company_farm_garden_work WHERE map_id = ? AND day < ?').bind(mapId, day - 7));
   statements.push(db.prepare(`INSERT OR IGNORE INTO company_farm_chores (map_id, day, account, name)
@@ -53,5 +69,5 @@ export async function farmGarden({ db, nowS, env }, player, body = {}) {
     .bind(mapId, day, player.id, actor.me.name || player.handle || 'Farmer'));
   let result;
   try { result = await db.batch(statements); } catch { return { error: 'farm-bed-version' }; }
-  return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, hauled:step.hauled, choreAwarded: !management && !!result.at(-1)?.meta?.changes };
+  return { ok: true, garden: step.garden, version: version + 1, nowS, mayManage:Number(actor.me.rank)<=1, harvested:harvests.reduce((n,h)=>n+h.qty,0), reward:step.reward, upgraded:step.upgraded, hauled:step.hauled, work, choreAwarded: !management && !!result.at(-1)?.meta?.changes };
 }

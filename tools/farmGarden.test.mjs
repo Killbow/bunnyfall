@@ -43,6 +43,7 @@ function fixture() {
     INSERT INTO guilds VALUES ('guild1',1000000,1000000,NULL,0,NULL);
     INSERT INTO company_farms VALUES (42, 'guild1', 'Test farm', 223, 17);`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0212_farm_gardens.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('../server-account/migrations/0217_farm_work.sql', import.meta.url), 'utf8'));   // FARM EXPANSION: farm work
   sql.exec(readFileSync(new URL('../server-account/migrations/0025_marks.sql', import.meta.url), 'utf8'));
   sql.exec("INSERT INTO guild_marks VALUES ('guild1',1000)");
   const prepare = (text, args = []) => ({ bind: (...a) => prepare(text, a),

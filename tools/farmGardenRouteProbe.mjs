@@ -58,6 +58,36 @@ try {
   const again=await req('/v1/farms/garden',{...body,op:'haul',sacks:[sack],version:haul.data.version});assert.notEqual(again.status,200,'A sack hauls once');
   assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:grain'").first()).qty,2,'Hauling must not add to the Stores');
   harvest.data.version=haul.data.version;
+  // FARM WORK (docs/FARM-EXPANSION.md 10): hoe, plant and water a bed (3), harvest 2 crops (2), haul a sack (2)
+  const fw=async()=>await db.prepare('SELECT farm_work,farm_work_day,farm_work_today FROM players WHERE id=?').bind(player.id).first();
+  assert.equal((await fw()).farm_work,7,'Farm work counts every kind of work: '+JSON.stringify(await fw()));
+  assert.equal(haul.data.work.total,7);
+  // the day's cap: at 399 today, one more bed counts 1; past it, nothing
+  const today=(await fw()).farm_work_day;
+  await db.prepare('UPDATE players SET farm_work=2999, farm_work_today=399 WHERE id=?').bind(player.id).run();
+  const capped=await req('/v1/farms/garden',{...body,op:'hoe',bed:1,version:harvest.data.version});assert.equal(capped.status,200,JSON.stringify(capped));
+  assert.deepEqual(await fw(),{farm_work:3000,farm_work_day:today,farm_work_today:400},'The cap holds at 400 a day');
+  assert.equal(capped.data.work.title,'furrowhand','Crossing 3,000 earns Furrowhand');
+  const over=await req('/v1/farms/garden',{...body,op:'hoe',bed:2,version:capped.data.version});assert.equal(over.status,200);
+  assert.equal((await fw()).farm_work,3000,'Nothing past the cap');
+  // a new day counts again; the titles and First Light follow the count
+  await db.prepare('UPDATE players SET farm_work=44999, farm_work_day=farm_work_day-1 WHERE id=?').bind(player.id).run();
+  const sovereign=await req('/v1/farms/garden',{...body,op:'hoe',bed:3,version:over.data.version});assert.equal(sovereign.status,200);
+  assert.equal(sovereign.data.work.title,'sheafsovereign');
+  const row=await db.prepare('SELECT * FROM players WHERE id=?').bind(player.id).first();
+  const { titlesHeld, aurasHeld } = await import('../server-account/src/titles.js');
+  for (const t of ['furrowhand','harvestwarden','sheafsovereign']) assert.ok(titlesHeld(row,{}).includes(t),'holds '+t);
+  assert.ok(aurasHeld(row,{}).includes('firstlight'),'Sovereign of the Sheaf carries First Light');
+  const ledger=await req('/v1/farms/garden',{...body,details:true});assert.equal(ledger.data.work.total,45000,'The ledger reads my farm work');
+  harvest.data.version=sovereign.data.version;
+  // CLIMATE CROPS (docs/FARM-EXPANSION.md 4.2): the farm's own climate decides, never the client's word
+  const tilled=await req('/v1/farms/garden',{...body,op:'hoe',bed:4,version:harvest.data.version});assert.equal(tilled.status,200);
+  const refused=await req('/v1/farms/garden',{...body,op:'plant',bed:4,crop:'corn',climate:231,version:tilled.data.version});
+  assert.equal(refused.data?.error??refused.error,'farm-seed-climate','Corn will not take on an ocean farm, whatever the client says: '+JSON.stringify(refused));
+  await db.prepare('UPDATE company_farms SET climate=231 WHERE map_id=42').run();
+  const corn=await req('/v1/farms/garden',{...body,op:'plant',bed:4,crop:'corn',version:tilled.data.version});assert.equal(corn.status,200,JSON.stringify(corn));
+  assert.equal(corn.data.garden.beds[4].crop,'corn');
+  harvest.data.version=corn.data.version;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
   const grown=await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first(),estate=JSON.parse(grown.garden);
@@ -83,5 +113,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

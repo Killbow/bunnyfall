@@ -389,7 +389,9 @@ export const FOOD_KEYS = Object.freeze(['food:apple', 'food:orange', 'food:mushr
 /** Foraging's food code (BASKET_BLOCKS: 2 fruit, 3 Mushroom, 4 Egg) and the block's fruit, as a material key. */
 // ─── BUNNYFALL PROVISIONING: THE PANTRY (docs/PROVISIONING.md) - the new foods, Stores rows on templates 705-713 ───
 
-/** `icon` names the template whose picture it borrows (survival/food.js TEMPLATE, a DFU ingredient's index). */
+/** `icon` names the template whose picture it borrows (survival/food.js TEMPLATE, a DFU ingredient's index); `art`, an
+ *  ARENA2 picture of its own (the farm's climate crops).
+ * @type {ReadonlyArray<{ key: string, name: string, templateIndex: number, value: number, icon?: number, art?: readonly number[] }>} */
 export const PANTRY = Object.freeze([
   Object.freeze({ key: 'food:grain', name: 'Grain', templateIndex: 705, value: 2, icon: 534 }),
   Object.freeze({ key: 'food:flour', name: 'Flour', templateIndex: 706, value: 3, icon: 534 }),
@@ -400,6 +402,17 @@ export const PANTRY = Object.freeze([
   Object.freeze({ key: 'food:boar', name: 'Boar Meat', templateIndex: 711, value: 4, icon: 538 }),
   Object.freeze({ key: 'food:bear', name: 'Bear Meat', templateIndex: 712, value: 5, icon: 538 }),
   Object.freeze({ key: 'food:crab', name: 'Crab Meat', templateIndex: 713, value: 3, icon: 535 }),
+  // FARM EXPANSION PHASE 2 (docs/FARM-EXPANSION.md 4.2): the climate crops, grown on Company farms (net/farm/cropLaw.js);
+  // `art` is the ARENA2 picture the item wears (the art register), where no DFU template has one
+  Object.freeze({ key: 'food:corn', name: 'Corn', templateIndex: 714, value: 2, art: [301, 2] }),
+  Object.freeze({ key: 'food:cabbage', name: 'Cabbage', templateIndex: 715, value: 2, art: [254, 24] }),
+  Object.freeze({ key: 'food:tomato', name: 'Tomato', templateIndex: 716, value: 2, art: [213, 1] }),
+  Object.freeze({ key: 'food:sunseed', name: 'Sunflower Seeds', templateIndex: 717, value: 3, art: [254, 12] }),
+  Object.freeze({ key: 'food:berries', name: 'Berries', templateIndex: 718, value: 3, art: [254, 17] }),
+  Object.freeze({ key: 'food:root', name: 'Desert Root', templateIndex: 719, value: 3, art: [254, 57] }),
+  Object.freeze({ key: 'food:flax', name: 'Flax', templateIndex: 720, value: 3, art: [254, 15] }),
+  Object.freeze({ key: 'food:gourd', name: 'Gourd', templateIndex: 721, value: 4, art: [213, 0] }),
+  Object.freeze({ key: 'food:grapes', name: 'Grapes', templateIndex: 722, value: 4, art: [254, 16] }),
 ]);
 export const PANTRY_KEYS = Object.freeze(PANTRY.map((p) => p.key));
 export const pantryOf = (/** @type {string} */ key) => PANTRY.find((p) => p.key === key) ?? null;

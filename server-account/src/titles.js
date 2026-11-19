@@ -101,6 +101,7 @@ import { insigniaHeld, insigniaKeys } from '../../src/net/insignia.js';   // WB9
 import { patreonTitlesOf } from './patreon.js';   // PATREON-LINK: a Patreon tier's title, held by the pledge
 import { SD_HONOUR_TITLE, SD_HONOUR_AURA } from './sds.js';   // SD9b: the Hour's grants on the row
 import { SERPENT_HONOUR_TITLE, SERPENT_HONOUR_AURA } from './serpents.js';   // SERPENT5: the Old Coil's grants on the row
+import { farmTitlesFor, FARM_TITLE_AURA } from '../../src/net/farm/farmWorkLaw.js';   // FARM EXPANSION: the farm's titles and First Light
 import { EG_HONOUR, EG_HONOUR_TITLES, EG_HONOUR_AURA, EG_CHAMPION_TITLE, EG_FIRST_TITLE, EG_FIRST_AURA } from './egHonours.js';   // EG-E2: the Spire's honours on the row
 import { LAMP_TITLE } from './lamp.js';   // LAMP-KEEPER II: I Love Lamp on the row
 import { QL_TITLES, qlTitleBit } from '../../src/net/questlineClaims.js';   // QL12: the questlines' titles on the row
@@ -405,6 +406,8 @@ export function titlesHeld(player, env) {
     // HUNTERS-MARK, MARKS-OF-MASTERY: derived from the account's rows (hunts.js masteryMarksRead) - its board clears, a
     // living Master of a profession, the serpents it helped slay - laid on the row as `masteryMarks` for this request alone
     if (Array.isArray(player?.masteryMarks)) for (const t of MASTERY_MARKS) if (player.masteryMarks.includes(t) && !held.includes(t)) held.push(t);
+    // FARM EXPANSION (docs/FARM-EXPANSION.md 10.2): the farm's three, by the account's farm work (`farm_work`), held for good
+    for (const t of farmTitlesFor(player?.farm_work)) if (!held.includes(t)) held.push(t);
   }
   return held;
 }
@@ -439,6 +442,8 @@ export function aurasHeld(player, env) {
   // SERPENT5: THE MAELSTROM - the Old Coil's second grant, laid on the row as Coilbreaker is, held for good
   if (typeof player?.handle === 'string' && player.handle && (Number(player?.serpent_honours) & SERPENT_HONOUR_AURA)) held.push('maelstrom');
   if (typeof player?.handle === 'string' && player.handle) for (const a of festivalKeys(player, 'aura')) if (!held.includes(a)) held.push(a);   // WITCH1: Witchfire, bought
+  // FARM EXPANSION (10.3): First Light with Sovereign of the Sheaf - the breach's dawn ring, given to the farm while the breach is shut
+  if (typeof player?.handle === 'string' && player.handle) for (const t of farmTitlesFor(player?.farm_work)) { const a = FARM_TITLE_AURA[t]; if (a && !held.includes(a)) held.push(a); }
   return held;
 }
 

@@ -161,6 +161,10 @@ export const TITLE_TEXT = Object.freeze({
   masterenchanting: 'Master Enchanter',
   serpenthunter: 'Serpent Hunter',
   deepbane: 'Bane of the Deep',
+  // FARM EXPANSION (docs/FARM-EXPANSION.md 10.2): the farm's three, by an account's farm work
+  furrowhand: 'Furrowhand',
+  harvestwarden: 'Harvestwarden',
+  sheafsovereign: 'Sovereign of the Sheaf',
 });
 
 /** WB9g (2026-09-30, Mac: "an animated burning ground aura that circles the ground where your character stands"): AN
@@ -446,6 +450,10 @@ export const TITLE_RGBA = Object.freeze({
   masterenchanting: Object.freeze([0.435, 0.459, 0.882, 1]),    // #6f75e1
   serpenthunter: Object.freeze([0.2, 0.835, 0.706, 1]),         // #33d5b4
   deepbane: Object.freeze([0.118, 0.353, 0.553, 1]),            // #1e5a8d
+  // FARM EXPANSION: turned soil, ripe wheat, pale straw - each at least 42 from every other title
+  furrowhand: Object.freeze([0.376, 0.353, 0.188, 1]),          // #605a30
+  harvestwarden: Object.freeze([0.871, 0.8, 0.165, 1]),         // #decc2a
+  sheafsovereign: Object.freeze([0.918, 0.918, 0.4, 1]),        // #eaea66
 });
 
 /** SHADOW-FANG: A TITLE DRAWN AS A GRADIENT - its stops, RGBA 0..1, left

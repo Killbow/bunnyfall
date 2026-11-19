@@ -239,7 +239,7 @@ registerCustomTemplates([TROPHY_ROW]);
 // The new foods (net/professionLaw.js PANTRY), each on the picture of the template it names: Bread's, a Waterskin's,
 // Nectar's, Rations', Raw Meat's, Raw Fish's. Food, stacking, light.
 const pantryIcon = (t) => { const r = templateByIndex(t); return [r?.worldTextureArchive ?? 211, r?.worldTextureRecord ?? 31]; };
-export const PANTRY_TEMPLATE_ROWS = Object.freeze(PANTRY.map((m) => { const [a, r] = pantryIcon(m.icon); return Object.freeze({
+export const PANTRY_TEMPLATE_ROWS = Object.freeze(PANTRY.map((m) => { const [a, r] = m.art ?? pantryIcon(m.icon); return Object.freeze({   // FARM EXPANSION: a climate crop wears its own ARENA2 picture
   index: m.templateIndex, name: m.name, baseWeight: 0.25, hitPoints: 60, capacityOrTarget: 0, basePrice: m.value * 4,
   enchantmentPoints: 0, rarity: 5, variants: 0, drawOrderOrEffect: 0, isBluntWeapon: false, isLiquid: false,
   isOneHanded: false, isIngredient: false, worldTextureArchive: a, worldTextureRecord: r,

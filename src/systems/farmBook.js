@@ -139,6 +139,8 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
       const door = io?.(), ch = character?.();
       return door && (ch || !action.op || action.op === 'read') ? farmGardenAct(door, { ...action, mapId, character: ch }) : Promise.resolve({ ok: false, error: 'offline' });
     },
+    /** FARM EXPANSION: a farm's climate (MAPS.BSA's), for the seeds its fields grow - the service checks its own. */
+    climateOf: (mapId) => { const p = place(mapId); return p ? climateAt(p.px, p.py) : null; },
     sig: () => `${version}|${whose}`,
   };
 }

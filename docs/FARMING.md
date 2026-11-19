@@ -34,6 +34,14 @@ Since the farm expansion's first phase (`docs/FARM-EXPANSION.md`) the farm is us
 - **Tool rack**, **well** and **compost heap** show the tools, irrigation and soil improvements, and sell the next one to a Captain or Officer with a Y/N question.
 - The **haystack** and the **scarecrow** dress the yard; lanterns by the order post, the ledger and the well light at night.
 
+### Farm work and the farm titles
+
+Every account counts its farm work (`src/net/farm/farmWorkLaw.js`, migration `0217_farm_work.sql`): 1 for each bed hoed, planted or watered, 1 for each crop harvested by hand, 2 for each sack carried to the wagon. At most 400 counts a UTC day. The service raises it in the same batch as the work. The titles Furrowhand (3,000), Harvestwarden (15,000) and Sovereign of the Sheaf (45,000) and First Light with the last are derived from it in `server-account/src/titles.js`. The ledger reads your total; the factor says when a title is earned.
+
+### The crops of the land
+
+Grain, mushrooms and herbs grow on every farm, all year. The climate crops grow where their climate suits them (`src/net/farm/cropLaw.js`; the service checks the farm's stored climate): corn, cabbage, tomatoes, sunflowers, berries, flax, gourds, grapes and desert root. They follow the shared calendar's seasons: full pace in their own, 0.7 in the others, 0.4 in winter; growth across a season's turn is integrated exactly. Each yields a pantry food (templates 714-722, with Provisioning traits). The weekly orders stay on the first three crops.
+
 ### Sacks and the wagon
 
 A harvest still puts its crops into the Company Stores at once. It also leaves the crops' sacks at the bed corner for fifteen minutes (`src/net/farm/haulLaw.js`). Click a sack to shoulder it and the others lying near it, up to four; click the wagon to load them. The wagon's cargo for the week (Monday UTC) fills the cart as it grows and is read in the ledger. Hauling adds nothing to the Stores (the crops are there already) and counts as working the sack's bed for the day's care bonus. The garden route's `haul` op commits it with the garden revision, so a sack loads once.

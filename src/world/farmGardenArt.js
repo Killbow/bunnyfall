@@ -9,9 +9,22 @@ export const FARM_ART = Object.freeze({ soil: [302, 54], water: [302, 0],
   grain: { seedling: [301, 23], growing: [301, 21], ripe: [301, 19] },
   mushroom: { seedling: [301, 10], growing: [301, 10], ripe: [301, 10] },
   herbs: { seedling: [301, 23], growing: [301, 13], ripe: [301, 17] },
+  // FARM EXPANSION PHASE 2: the climate crops (the art register's TEXTURE.301; `fruit` lies on the ground when ripe)
+  corn: { seedling: [301, 23], growing: [301, 2], ripe: [301, 2] },
+  cabbage: { seedling: [301, 23], growing: [301, 18], ripe: [301, 18] },
+  tomato: { seedling: [301, 23], growing: [301, 12], ripe: [301, 12], fruit: [213, 1] },
+  sunflower: { seedling: [301, 23], growing: [301, 4], ripe: [301, 3] },
+  berries: { seedling: [301, 23], growing: [301, 22], ripe: [301, 14] },
+  root: { seedling: [301, 23], growing: [301, 20], ripe: [301, 20] },
+  flax: { seedling: [301, 23], growing: [301, 19], ripe: [301, 15] },
+  gourd: { seedling: [301, 23], growing: [301, 12], ripe: [301, 12], fruit: [213, 0] },
+  grapes: { seedling: [301, 9], growing: [301, 8], ripe: [301, 7] },
   weeds: [[301, 20], [301, 12]] });
 /** Plant heights, m: at sowing and when ripe (a crop grows between them). */
-const HEIGHT = Object.freeze({ grain: [.25, 1.2], mushroom: [.12, .38], herbs: [.2, .75] });
+const HEIGHT = Object.freeze({ grain: [.25, 1.2], mushroom: [.12, .38], herbs: [.2, .75],
+  corn: [.3, 1.9], cabbage: [.15, .45], tomato: [.2, .6], sunflower: [.3, 1.6], berries: [.25, .9], root: [.2, .6], flax: [.2, .85], gourd: [.15, .4], grapes: [.3, 1.5] });
+/** A ripe crop's fruit on the ground, its height, m. */
+const FRUIT_H = .26;
 /** A weed shows on a bed dry this long, s. */
 export const WEED_DRY_S = 86400;
 const SOIL_TINT = [[1, 1, 1, 1], [.88, .84, .8, 1], [.74, .7, .66, 1]];
@@ -44,7 +57,7 @@ export function createFarmGardenArt(renderer, assets = {}) {
     if(ready)return;if(pending)return pending;
     pending=(async()=>{
       if(!assets.getTexture||!assets.uploadRecord)throw new Error('Farming requires the texture pipeline');
-      for(const a of [301,302])files.set(a,await assets.getTexture(a));
+      for(const a of [213,301,302])files.set(a,await assets.getTexture(a));
       assets.uploadRecord(...FARM_ART.soil,{opaque:true});assets.uploadRecord(...FARM_ART.water,{opaque:true});
       soil=renderer.textures.get(`${FARM_ART.soil.join('_')}#opaque`);water=renderer.textures.get(`${FARM_ART.water.join('_')}#opaque`);
       if(!soil)throw new Error('Farm terrain textures unavailable');ready=true;
@@ -84,6 +97,8 @@ export function createFarmGardenArt(renderer, assets = {}) {
       if(bed.crop){
         const [archive,record]=FARM_ART[bed.crop][stage]??FARM_ART.grain[stage],height=plantHeight(bed,now);
         put(archive,record,height,plants.map(([x,z])=>[pos[0]+x,pos[1]+.04,pos[2]+z]));
+        const fruit=FARM_ART[bed.crop]?.fruit;
+        if(fruit&&stage==='ripe')put(fruit[0],fruit[1],FRUIT_H,plants.slice(0,2).map(([x,z])=>[pos[0]+x*.6+.12,pos[1]+.03,pos[2]+z*.6+.1]));
       }
       if(weedy(bed)){
         const [archive,record]=FARM_ART.weeds[index%FARM_ART.weeds.length],[x,z]=plants[0];

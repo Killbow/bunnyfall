@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. Phases 2 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. Phase 2's quality, strains and minigames are next; phases 3 to 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -258,7 +258,7 @@ dragonling):
 | Tomato | 12 | 301:12 low plant, the fruit 213:1 when ripe | `food:tomato` (new) | subtropical, woodland |
 | Desert root | 16 | 2/20 | `food:root` (new) | desert |
 
-**Seasons scale growth:** in season ×1.0, off season ×0.7, winter outdoors ×0.4 (never zero: crops pause, never die).
+**Seasons scale growth:** in season ×1.0, off season ×0.7, winter outdoors ×0.4 (never zero: crops pause, never die). *As built:* only the climate crops follow the seasons; grain, mushrooms and herbs keep their pace all year so the weekly orders keep their balance. Corn's item picture is its plant (301:2): ARENA2 has no ear of corn.
 
 **Quality** gains a fourth level. Today a bed has 0, 1 or 2 from soil. It becomes **Common, Fine, Choice, Prize**,
 worked out at harvest from:
@@ -575,6 +575,7 @@ gets **farm work** points, kept by the service (they are never the client's word
 
 | Earned by | Points |
 | --- | ---: |
+| *(added as built)* each bed hoed, planted or watered by your hand | 1 |
 | each crop unit harvested by your own hand | 1 |
 | each sack carried to the factor's wagon (3.3) | 2 |
 | a minigame played to its full bonus (4.4, within its daily cap) | 5 |

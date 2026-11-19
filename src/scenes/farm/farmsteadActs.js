@@ -9,6 +9,9 @@ import { farmCropName } from '../../ui/farmingHud.js';
 import { farmUpgradeName, farmUpgradeEffect } from '../../ui/farmWords.js';
 import { FARM_CROP_TYPES, FARM_UPGRADES, FARM_ARGENTS_PER_WEEK, farmProgress, farmOrder, farmWeek } from '../../net/farmProgressLaw.js';
 import { wagonCargo, cargoTotal } from '../../net/farm/haulLaw.js';
+import { nextFarmTitle, FARM_WORK_DAY_CAP } from '../../net/farm/farmWorkLaw.js';
+import { FARM_SEED_IDS, farmSeed, farmSeason, seasonPace, SEASON_OFF } from '../../net/farm/cropLaw.js';
+import { TITLE_TEXT } from '../../ui/playerBadge.js';
 
 /** Which improvement each fixture shows and sells. */
 export const FIXTURE_UPGRADE = Object.freeze({ toolRack: 'tools', well: 'irrigation', compost: 'soil' });
@@ -16,7 +19,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 
 /**
  * @param {{ garden: () => any, now: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
- *   say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
+ *   work: () => ({ total: number, today: number } | null), say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
  *   act: (action: any) => any, wantFunds: () => void }} d
  */
 export function createFarmsteadActs(d) {
@@ -35,13 +38,21 @@ export function createFarmsteadActs(d) {
 
   /** The estate ledger's lines, in turn. */
   function ledger() {
+    d.wantFunds();   // and my farm work, read while I use it
     const p = progress(), week = farmWeek(d.now()), lines = [
       t('farm.stead.ledgerTotals', 'The ledger: {harvested} crops harvested here, {delivered} shipped.', { harvested: fmt(total(p.harvested)), delivered: fmt(total(p.delivered)) }),
       t('farm.stead.ledgerShipped', 'Shipped so far: {grain} grain, {mushroom} mushrooms, {herbs} herbs.', { grain: fmt(p.delivered.grain), mushroom: fmt(p.delivered.mushroom), herbs: fmt(p.delivered.herbs) }),
       t('farm.stead.ledgerWeek', 'This week\'s orders filled: {n} of {all}.', { n: FARM_CROP_TYPES.filter((c) => p.weeks[c] === week).length, all: FARM_CROP_TYPES.length }),
     ];
+    const work = d.work?.();
+    if (work) {
+      const next = nextFarmTitle(work.total);
+      lines.unshift(next
+        ? t('farm.stead.ledgerWork', 'Your farm work: {total} ({today} of {cap} today). {left} more and they will call you {title}.', { total: fmt(work.total), today: work.today, cap: FARM_WORK_DAY_CAP, left: fmt(next.left), title: TITLE_TEXT[next.title] ?? next.title })
+        : t('farm.stead.ledgerWorkDone', 'Your farm work: {total}. There is no higher name for a farmer than the one you have.', { total: fmt(work.total) }));
+    }
     const cargo = wagonCargo(d.garden(), d.now());
-    if (cargoTotal(cargo)) lines.push(t('farm.stead.ledgerCargo', 'Hauled to the wagon this week by hand: {grain} grain, {mushroom} mushrooms, {herbs} herbs.', { grain: fmt(cargo.grain), mushroom: fmt(cargo.mushroom), herbs: fmt(cargo.herbs) }));
+    if (cargoTotal(cargo)) lines.push(t('farm.stead.ledgerCargo', 'Hauled to the wagon this week by hand: {n} crops.', { n: fmt(cargoTotal(cargo)) }));
     for (const key of Object.keys(FARM_UPGRADES)) {
       const tier = p.upgrades[key];
       if (tier >= 2) continue;
@@ -95,7 +106,11 @@ export function createFarmsteadActs(d) {
   return {
     /** The hover line over a fixture. */
     label(id) {
-      if (id.startsWith('seed:')) return t('farm.stead.seedLabel', '{crop} seed · take a handful', { crop: farmCropName(id.slice(5)) });
+      if (id.startsWith('seed:')) {
+        const seed = farmSeed(id.slice(5)), pace = seasonPace(seed, farmSeason(d.now()));
+        const when = !seed?.seasons ? '' : pace >= 1 ? t('farm.stead.seedInSeason', ' · in season') : pace >= SEASON_OFF ? t('farm.stead.seedOffSeason', ' · slow this season') : t('farm.stead.seedWinter', ' · slow in winter');
+        return t('farm.stead.seedLabel', '{crop} seed · take a handful', { crop: farmCropName(id.slice(5)) }) + when;
+      }
       const p = progress();
       if (Object.hasOwn(FIXTURE_UPGRADE, id)) {
         const key = FIXTURE_UPGRADE[id], tier = p.upgrades[key];
@@ -114,7 +129,7 @@ export function createFarmsteadActs(d) {
       if (d.busy()) return;
       if (id.startsWith('seed:')) {
         const crop = id.slice(5);
-        if (!FARM_CROP_TYPES.includes(crop)) return;
+        if (!FARM_SEED_IDS.includes(crop)) return;
         d.setSeed(crop); d.say(t('farm.stead.seedTaken', 'You take a handful of {crop} seed.', { crop: farmCropName(crop) }));
         return;
       }

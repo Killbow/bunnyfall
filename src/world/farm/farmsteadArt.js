@@ -3,7 +3,7 @@
 // register's records, farmstead.js FIXTURES), standing on the ground the layout chose. Batched by picture and height,
 // rebuilt only when the layout or the farm's upgrades change (a part with `min` appears with its upgrade). Drawn for
 // anyone near the farm, in the normal view as in Farming Mode: the farm is a place, not a menu.
-import { FIXTURE_ARCHIVES, standingParts } from './farmstead.js';
+import { FIXTURE_ARCHIVES, fixtureParts } from './farmstead.js';
 
 /**
  * @param {any} renderer
@@ -25,17 +25,17 @@ export function createFarmsteadArt(renderer, assets = {}) {
   }
   function clear() { batches.forEach((b) => renderer.destroyBillboardBatch(b)); batches = []; signature = ''; }
   /**
-   * @param {{ fixtures: { id: string, def: any, pos: number[] }[] } | null} stead
+   * @param {{ fixtures: { id: string, def: any, pos: number[] }[], seeds?: string[] } | null} stead
    * @param {Record<string, number>} upgrades
    */
   function update(stead, upgrades) {
     if (!ready || !stead) return;
-    const sig = JSON.stringify([stead.fixtures.map((f) => [f.id, f.pos.map((v) => Math.round(v * 100))]), upgrades]);
+    const sig = JSON.stringify([stead.fixtures.map((f) => [f.id, f.pos.map((v) => Math.round(v * 100))]), upgrades, stead.seeds]);
     if (sig === signature) return;
     clear(); signature = sig;
     /** @type {Map<string, { a: number, r: number, h?: number, w?: number, centers: number[][] }>} */
     const groups = new Map();
-    for (const f of stead.fixtures) for (const p of standingParts(f.def, upgrades)) {
+    for (const f of stead.fixtures) for (const p of fixtureParts(f, upgrades, stead.seeds)) {
       const key = `${p.a}_${p.r}_${p.h ?? 'w' + p.w}`;
       if (!groups.has(key)) groups.set(key, { a: p.a, r: p.r, h: p.h, w: p.w, centers: [] });
       groups.get(key).centers.push([f.pos[0] + (p.dx ?? 0), f.pos[1] + (p.dy ?? 0) + .02, f.pos[2] + (p.dz ?? 0)]);

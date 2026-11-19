@@ -9,10 +9,12 @@ import { createFarmingHud, farmToolName, farmCropName } from '../ui/farmingHud.j
 import { FARM_WORK_REACH, FARM_BED_SIZE, FARM_BED_SPACING, emptyGarden, validGarden, gardenStage, gardenGrowth, farmSeed } from '../net/farmGardenLaw.js';
 import { t } from '../systems/textManager.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';
+import { TITLE_TEXT } from '../ui/playerBadge.js';
 import { holdHotbar } from '../ui/enhanced/enhancedHotbar.js';
 import { farmToolArea } from '../net/farmProgressLaw.js';
 import { layFarmstead, farmsteadTargets, rayHitsTarget, cargoLevel, farmsteadLamps, LAMP_RANGE } from '../world/farm/farmstead.js';
 import { adoptLight } from '../render/lightId.js';
+import { seedsFor } from '../net/farm/cropLaw.js';   // PHASE 2: the seeds this farm's climate grows
 import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
 import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
@@ -27,7 +29,7 @@ export function createFarmingMode(deps) {
   const stead = createFarmsteadArt(deps.renderer, deps);   // the fixtures, drawn for anyone near the farm
   const sacks = createSackArt(deps.renderer, deps);   // a harvest's sacks, and the ones shouldered for the wagon
   let fixture = null, detailsUntil = 0, carried = [];   // the fixture under the pointer; officers' Company funds read while they use one
-  let releaseHotbar = null, entering = false, mayManage = false, economy = null;
+  let releaseHotbar = null, entering = false, mayManage = false, economy = null, farmWork = null;   // farmWork: my farm work, read with the ledger
   let farm = null, site = null, garden = emptyGarden(), version = -1, serverOffset = 0;
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
   let tool = 'hoe', crop = 'grain', height = 8, yaw = 0, eye = null, fwd = null, hud = null, freeCursor = null, message = '';
@@ -51,6 +53,7 @@ export function createFarmingMode(deps) {
     if(token!==epoch||!r?.ok||!r.data||r.data.version<version)return false;
     if(typeof r.data.mayManage==='boolean')mayManage=r.data.mayManage;
     if(r.data.economy)economy=r.data.economy;
+    if(r.data.work)farmWork={total:r.data.work.total,today:r.data.work.today};
     if(!mayManage)economy=null;
     if (token === epoch && r?.ok && r.data?.unchanged && r.data.version === version) { serverOffset = r.data.nowS - Date.now()/1000; return true; }
     if (token !== epoch || !r?.ok || !validGarden(r.data?.garden)) return false;
@@ -190,6 +193,8 @@ export function createFarmingMode(deps) {
       if (token !== epoch) return;
       if (accept(r, token)) {
         if (r.data.choreAwarded||r.data.reward||r.data.upgraded) deps.farms().refresh(true);
+        // FARM EXPANSION (10.2): a farm title earned is said where it happens, by the factor
+        if (r.data.work?.title) { deps.say?.(t('farm.stead.titleEarned', 'The factor tips his hat: "They\'re calling you {title} in town now."', { title: TITLE_TEXT[r.data.work.title] ?? r.data.work.title })); deps.titleEarned?.(r.data.work.title); }
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
         if(action.op==='haul'){carried=carried.filter(id=>!action.sacks.includes(id));notice(t('farm.stead.hauled','You load the sacks onto the wagon: {n} crops for this week\'s orders.',{n:r.data.hauled}));deps.sound?.('haul');return;}
         notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t('farm.mode.harvested', '{n} harvested into Company Stores.', { n: r.data.harvested }) : t('farm.mode.worked', 'Done. Your work is saved.'));
@@ -213,6 +218,7 @@ export function createFarmingMode(deps) {
       'farm-order-cap':t('farm.progress.cap','The Company has reached its weekly farm Argent limit.'),
       'farm-order-full':t('farm.progress.full','Make room in the Company treasuries before filling the order.'),
       'farm-haul-gone':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
+      'farm-seed-climate':t('farm.stead.seedClimate','That seed will not take in this climate.'),
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
@@ -236,7 +242,7 @@ export function createFarmingMode(deps) {
     return len > .001 ? [dx / len, 0, dz / len] : [0, -1, 0];
   }
   const acts = createFarmsteadActs({
-    garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, say: notice,
+    garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
     setSeed: (id) => { crop = id; tool = 'plant'; },
     ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
       { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
@@ -319,7 +325,11 @@ export function createFarmingMode(deps) {
       frame = { proj, view }; if (active && !deps.blocked()) pick(); else { selected = -1; fixture = null; }
       site.mask(garden,version); art.update(site, garden, now(), selected); art.draw(right, up, selected);
       if (stead.ready) {
-        site.farmstead ??= layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
+        if (!site.farmstead) {
+          site.farmstead = layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
+          if (site.farmstead) site.farmstead.seeds = seedsFor(deps.farms()?.climateOf?.(farm.mapId) ?? null).map((s) => s.id);
+        }
+        if (site.farmstead?.seeds && !site.farmstead.seeds.includes(crop)) crop = site.farmstead.seeds[0] ?? 'grain';
         stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))) }); stead.draw(right, up);
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
