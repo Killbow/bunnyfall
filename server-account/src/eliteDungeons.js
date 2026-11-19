@@ -1,6 +1,7 @@
 // @ts-check
-// BUNNYFALL (2026-11-18): WHAT THE SERVICE KEEPS OF THE DAILY ELITE DUNGEONS - each day's picks out of its pool of sites
-// (eliteDungeonSites.js, generated from MAPS.BSA), made on the first read of each UTC day (migration 0213); who asked for
+// BUNNYFALL (2026-11-18): WHAT THE SERVICE KEEPS OF THE ELITE DUNGEONS - each batch's picks (3 to 5, one every two hours:
+// 2026-11-19) out of its pool of sites (eliteDungeonSites.js, generated from MAPS.BSA), made on the first read of each
+// batch (migration 0216; a row's key is `day:slot`, a batch's picks taking five slots of their day); who asked for
 // each one's summon; its cleanse and the Dusk Tokens it paid. The law both ends read is src/net/eliteDungeonLaw.js.
 //
 // THE GUARD (the raids' spirit - a receipt, one claim an instance): a summon is asked by a game that felled the dungeon's
@@ -10,7 +11,7 @@
 // that account's Dusk Token count (players.nyx_found, the realm's Nyx counter).
 import { ED_SITES_TEXT } from './eliteDungeonSites.js';
 import {
-  ED_FIGHT_MIN_S, ED_RESUMMON_S, ED_REWARD_NYX, edKey, edKeyOf, edPickSites, edWantToday, edSpreadPx,
+  ED_FIGHT_MIN_S, ED_RESUMMON_S, ED_REWARD_NYX, ED_BATCH_MAX, edKey, edKeyOf, edPickSites, edBatchOf, edBatchSlot0, edWantBatch, edSpreadPx,
 } from '../../src/net/eliteDungeonLaw.js';
 import { contentOn } from '../../src/systems/contentOff.js';
 
@@ -42,23 +43,27 @@ async function seedOf(db) {
   return Number(row?.seed) >>> 0;
 }
 
-/** Today's picks made, where they are not yet (two readers on one morning: the rows' keys are the day's, so the second
- *  insert is ignored). Answers the standing rows. */
+/** This batch's picks made, where they are not yet (two readers in one window: the rows' keys are the batch's slots, so
+ *  the second insert is ignored). A batch the cap leaves empty is tried again on the next read, so a cleansing before its
+ *  window ends lets it rise. Answers the standing rows. */
 async function standing(db, nowS) {
-  const today = Math.floor(nowS / DAY_S);
+  const { batch, day: today, inDay } = edBatchOf(nowS);
   const open = (await db.prepare('SELECT * FROM elite_dungeons WHERE cleared_at IS NULL ORDER BY day, slot').all())?.results ?? [];
   if (!contentOn('eliteDungeons')) return { today, open };
-  if (open.some((r) => Number(r.day) === today)) return { today, open };
-  const done = await db.prepare('SELECT 1 FROM elite_dungeons WHERE day = ? LIMIT 1').bind(today).first();
-  if (done) return { today, open };   // today's picked and every one already cleansed
-  const sites = edSites();
+  const lo = edBatchSlot0(inDay), hi = lo + ED_BATCH_MAX;
+  if (open.some((r) => Number(r.day) === today && Number(r.slot) >= lo && Number(r.slot) < hi)) return { today, open };
+  const done = await db.prepare('SELECT 1 FROM elite_dungeons WHERE day = ? AND slot >= ? AND slot < ? LIMIT 1').bind(today, lo, hi).first();
+  if (done) return { today, open };   // this batch is picked and every one already cleansed
   const seed = await seedOf(db);
+  const want = edWantBatch(batch, seed, open.length);
+  if (!want) return { today, open };   // the map is full: nothing rises until something is cleansed
+  const sites = edSites();
   const taken = new Set(open.map((r) => Number(r.site)));
-  const picks = edPickSites(today, seed, sites.length, taken, edWantToday(open.length));
-  for (let slot = 0; slot < picks.length; slot++) {
-    const s = sites[picks[slot]];
+  const picks = edPickSites(batch, seed, sites.length, taken, want);
+  for (let i = 0; i < picks.length; i++) {
+    const s = sites[picks[i]];
     await db.prepare('INSERT OR IGNORE INTO elite_dungeons (key, day, slot, site, region, location, px, py, name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(edKey(today, slot), today, slot, picks[slot], s.region, s.location, s.px, s.py, s.name).run();
+      .bind(edKey(today, lo + i), today, lo + i, picks[i], s.region, s.location, s.px, s.py, s.name).run();
   }
   const again = (await db.prepare('SELECT * FROM elite_dungeons WHERE cleared_at IS NULL ORDER BY day, slot').all())?.results ?? [];
   return { today, open: again };

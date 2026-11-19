@@ -6,10 +6,15 @@
 // ... Clearing this dungeon adds 50 Nyx coins to the Nyx coins counter. The dungeon's walls and atmosphere should also
 // change to be more purple."): DAILY ELITE DUNGEONS - the law both ends read.
 //
-//   - THE PICK: on the first read of each UTC day the account service picks ED_DAILY dungeons (server-account/src/
+//   - THE PICK (2026-11-19, the owner: "instead of 8 special dungeons being picked everyday pick 3 to 5 every 2 hours";
+//     asked what becomes of the old batch: "They stay until cleansed"): a BATCH rises every ED_BATCH_S (two hours, on the
+//     even UTC hours). On the first read of each batch the account service picks ED_BATCH_MIN to ED_BATCH_MAX dungeons
+//     (the size hashed from the batch and the seed, so it is one number for everyone - edBatchSize; server-account/src/
 //     eliteDungeons.js) from its pool of sites (labyrinths, keeps and ruins of at least ED_SITE_MIN_BLOCKS blocks, never
-//     in Cromwark's region, never a main-story dungeon, never a cemetery - edSiteOk), hashed from the day and a seed the
-//     service keeps, never one already standing. While ED_ACTIVE_MAX stand uncleansed, fewer rise (none at the cap).
+//     in Cromwark's region, never a main-story dungeon, never a cemetery - edSiteOk), hashed from the batch and a seed
+//     the service keeps, never one already standing. They stand until cleansed. While ED_ACTIVE_MAX stand uncleansed,
+//     fewer rise (none at the cap, which a batch of a full map simply skips; a cleansing before its window ends lets
+//     it rise then).
 //   - THE SPREAD: one not cleansed ED_GRACE_DAYS whole days after its pick begins a purple zone about it, ED_SPREAD_START_PX
 //     map pixels across and ED_SPREAD_PX_DAY more each day, up to ED_SPREAD_MAX_PX (edSpreadPx). Inside it foes wear
 //     Cromwark's purple and strike ED_CORRUPT_FOE_MULT harder.
@@ -23,9 +28,14 @@
 //
 // Pure: no clock, no DOM, no network. Every number is balance.
 
-/** The dungeons picked each UTC day. */
-export const ED_DAILY = 8;
-/** The most standing uncleansed at once: a day picks only up to this. */
+/** THE BATCHES: one rises every ED_BATCH_S seconds, of ED_BATCH_MIN to ED_BATCH_MAX dungeons; a UTC day holds
+ *  ED_BATCHES_PER_DAY of them, and a batch's picks take ED_BATCH_MAX slots of their day (edBatchSlot0), so a key stays
+ *  `day:slot` with the slot under ED_BATCHES_PER_DAY * ED_BATCH_MAX (60). */
+export const ED_BATCH_MIN = 3;
+export const ED_BATCH_MAX = 5;
+export const ED_BATCH_S = 2 * 3600;
+export const ED_BATCHES_PER_DAY = 86400 / ED_BATCH_S;
+/** The most standing uncleansed at once: a batch picks only up to this. */
 export const ED_ACTIVE_MAX = 32;
 /** Whole days after its pick that an uncleansed dungeon begins to spread. */
 export const ED_GRACE_DAYS = 2;
@@ -106,24 +116,34 @@ export function edHash(/** @type {number} */ a, /** @type {number} */ b, /** @ty
 }
 
 /**
- * THE DAY'S PICKS: `want` site indices out of `siteCount`, hashed from `day` and `seed`, never one in `taken` (the
- * standing ones' indices) nor twice. Fewer only where the pool runs out.
- * @param {number} day @param {number} seed @param {number} siteCount @param {Set<number>} taken @param {number} [want]
+ * A BATCH'S PICKS: `want` site indices out of `siteCount`, hashed from `batch` (its index since the epoch) and `seed`,
+ * never one in `taken` (the standing ones' indices) nor twice. Fewer only where the pool runs out.
+ * @param {number} batch @param {number} seed @param {number} siteCount @param {Set<number>} taken @param {number} [want]
  */
-export function edPickSites(day, seed, siteCount, taken, want = ED_DAILY) {
+export function edPickSites(batch, seed, siteCount, taken, want = ED_BATCH_MAX) {
   const out = [];
   if (!(siteCount > 0)) return out;
   const used = new Set(taken);
   for (let slot = 0; slot < want && used.size < siteCount; slot++) {
-    let i = edHash(day, seed, slot) % siteCount;
+    let i = edHash(batch, seed, slot) % siteCount;
     while (used.has(i)) i = (i + 1) % siteCount;
     used.add(i);
     out.push(i);
   }
   return out;
 }
-/** How many a day picks while `standing` stand uncleansed. */
-export const edWantToday = (/** @type {number} */ standing) => Math.max(0, Math.min(ED_DAILY, ED_ACTIVE_MAX - Math.max(0, standing | 0)));
+/** The batch a moment falls in: its index since the epoch (the picks' hash), its UTC day, and its place in that day. */
+export function edBatchOf(/** @type {number} */ nowS) {
+  const batch = Math.floor(nowS / ED_BATCH_S);
+  return { batch, day: Math.floor(nowS / 86400), inDay: ((batch % ED_BATCHES_PER_DAY) + ED_BATCHES_PER_DAY) % ED_BATCHES_PER_DAY };
+}
+/** How many dungeons a batch means to raise: ED_BATCH_MIN to ED_BATCH_MAX, the same on every machine. */
+export const edBatchSize = (/** @type {number} */ batch, /** @type {number} */ seed) => ED_BATCH_MIN + (edHash(batch, seed, 1000) % (ED_BATCH_MAX - ED_BATCH_MIN + 1));
+/** How many a batch raises while `standing` stand uncleansed: its size, but never past ED_ACTIVE_MAX standing. */
+export const edWantBatch = (/** @type {number} */ batch, /** @type {number} */ seed, /** @type {number} */ standing) =>
+  Math.max(0, Math.min(edBatchSize(batch, seed), ED_ACTIVE_MAX - Math.max(0, standing | 0)));
+/** The first of a batch's ED_BATCH_MAX slots in its day (its picks take slot0, slot0 + 1, ...). */
+export const edBatchSlot0 = (/** @type {number} */ inDay) => inDay * ED_BATCH_MAX;
 
 /** THE SPREAD's radius (map pixels) on `today` for one picked on `pickDay` - 0 inside the grace. */
 export function edSpreadPx(/** @type {number} */ pickDay, /** @type {number} */ today) {
