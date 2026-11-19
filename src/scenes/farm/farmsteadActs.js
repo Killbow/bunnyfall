@@ -23,7 +23,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US');
 /**
  * @param {{ garden: () => any, now: () => number, mayManage: () => boolean, busy: () => boolean, economy: () => any,
  *   work: () => ({ total: number, today: number } | null), say: (s: string) => void, setSeed: (id: string) => void, ask: (lines: string[], yes: () => void) => void,
- *   act: (action: any) => any, wantFunds: () => void, held?: () => string }} d
+ *   act: (action: any) => any, wantFunds: () => void, held?: () => string, postNote?: () => (string | null) }} d
  */
 export function createFarmsteadActs(d) {
   let ledgerLine = 0, postLine = 0;
@@ -144,7 +144,10 @@ export function createFarmsteadActs(d) {
         return;
       }
       if (Object.hasOwn(FIXTURE_UPGRADE, id)) { improvement(FIXTURE_UPGRADE[id]); return; }
-      if (id === 'orderPost') { d.say(notice(FARM_CROP_TYPES[postLine++ % FARM_CROP_TYPES.length])); return; }
+      if (id === 'orderPost') {   // PHASE 7: and the market's notice, last in the turn
+        const note = d.postNote?.(), i = postLine++ % (FARM_CROP_TYPES.length + (note ? 1 : 0));
+        d.say(i < FARM_CROP_TYPES.length ? notice(FARM_CROP_TYPES[i]) : note); return;
+      }
       if (id === 'ledger') { d.say(ledger()); return; }
       if (id === 'wagon') { wagon(); return; }
       if (id === 'haystack') { d.say(t('farm.stead.hay', 'Sweet-smelling hay, stacked for the winter.')); return; }

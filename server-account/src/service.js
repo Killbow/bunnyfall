@@ -398,7 +398,7 @@ export const ROUTES = new Set([
   '/v1/blight', '/v1/blight/push',   // BUNNYFALL COMPANIES: Rodney's blight (blight.js)
   '/v1/elite-dungeons', '/v1/elite-dungeons/summon', '/v1/elite-dungeons/clear',   // BUNNYFALL: daily elite dungeons (eliteDungeons.js)
   '/v1/garrisons', '/v1/garrisons/recruit', '/v1/garrisons/orders', '/v1/garrisons/dismiss',   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
-  '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore', '/v1/farms/garden',   // BUNNYFALL COMPANIES: farms (farms.js)
+  '/v1/farms', '/v1/farms/buy', '/v1/farms/crop', '/v1/farms/release', '/v1/farms/chore', '/v1/farms/garden', '/v1/farms/market',   // BUNNYFALL COMPANIES: farms (farms.js); PHASE 7: market day (farmMarkets.js)
   '/v1/staffcmd/vanish', '/v1/staffcmd/greed', '/v1/greed/mine', '/v1/greed/claim',   // BUNNYFALL: staff /vanish and /greed (staffCommands.js)
   '/v1/festivals/host', '/v1/festivals/list', '/v1/homes/guestbook/sign', '/v1/homes/guestbook/read',
   '/v1/tavern/favor', '/v1/tavern/service',

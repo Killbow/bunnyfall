@@ -17,7 +17,8 @@ export const farmChoreDoneText = (name) => t('farm.chore.done', 'You did today\'
 export function createFarmDoor({ farms, say, show, begin }) {
   let busy = false;
   const declined = new Set();
-  const farmOf = (/** @type {any} */ bd) => (bd?.townMapId ? farms()?.mineHere(bd.townMapId) ?? null : null);
+  // PHASE 7: on a farm's market day the gate lets anyone in, for the market green alone (farmingMode.js limits what a visitor may use)
+  const farmOf = (/** @type {any} */ bd) => (bd?.townMapId ? farms()?.mineHere(bd.townMapId) ?? (begin ? farms()?.marketHere?.(bd.townMapId) ?? null : null) : null);
   const open = (/** @type {any} */ bd) => { const f = farmOf(bd); return f && (begin || !f.choreDone) ? f : null; };
 
   function run(/** @type {any} */ f) {

@@ -25779,6 +25779,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     places: () => (_farmPlaces ??= [..._townOfMapId].filter(([, tw]) => tw.type === LOCATION_TYPES.HomeFarms).map(([mapId, tw]) => ({ mapId, px: tw.px, py: tw.py, name: tw.name || 'A farm', region: tw.region }))),
     climateAt: (px, py) => maps.getClimateIndex(px, py),
     here: () => playerTravelPixel(),
+    realm: () => (realmSession ? (o) => realmGoldAct({ session: realmSession, checkpoint: () => onlineCheckpoint(), ...o }) : null), wallet: (region) => homeYardWallet(playerEntity, region),   // PHASE 7: a market's gold
   });
   farmingMode = createFarmingMode({ renderer, canvas, collider, built, getTexture, uploadRecord, uploadRecordFrame, state: () => state, farms: () => farmBook,
     viewAvailable: () => playerSpawned && _mode() === 'exterior',

@@ -97,9 +97,21 @@ export const FIXTURES = Object.freeze([
   { id: 'scarecrow', r: .6, h: 2.3, field: true, parts: [{ a: 211, r: 20, h: 2.3 }] },
   // PHASE 4 (section 7): the workshop yard, last so no earlier fixture's plot moves. Staked, then rising, then built
   ...WORKSHOP_FIXTURES,
+  // PHASE 7 (section 9): THE MARKET GREEN - four stalls and two judging tables, drawn only on the farm's market day
+  // (`min: { market: 1 }`); a stall's goods show once it is stocked (`min: { sN: 1 }`). Bunting and the tent need art the data lacks.
+  ...[0, 1, 2, 3].map((i) => ({ id: `stall${i}`, r: 1.05, h: 1.5, parts: [
+    { a: 205, r: 24, dz: .2, h: 1, min: { market: 1 } }, { a: 205, r: 0, dx: -.85, dz: .1, h: .7, min: { market: 1 } },
+    { a: 213, r: 2 + i, dx: .85, dz: .1, h: .65, min: { market: 1 } },
+    { a: 205, r: 10, dx: -.25, dz: .2, dy: .95, h: .42, min: { [`s${i}`]: 1 } }, { a: 205, r: 9, dx: .3, dz: .2, dy: .95, h: .38, min: { [`s${i}`]: 2 } },
+  ] })),
+  ...[0, 1].map((i) => ({ id: `table${i}`, r: .85, h: 1.2, parts: [
+    { a: 205, r: 25, h: .9, min: { market: 1 } }, { a: 254, r: 24 + i, dx: -.3, dy: .85, h: .3, min: { market: 1 } }, { a: 211, r: 1, dx: .3, dy: .85, h: .3, min: { market: 1 } },
+  ] })),
 ]);
 /** A beast post's index from its fixture id, or -1. */
 export const postIndexOf = (id) => (/^beastPost[0-5]$/.test(id) ? Number(id.slice(9)) : -1);
+/** The market green's fixture ids: pickable and drawn only on the farm's market day. */
+export const MARKET_FIXTURES = Object.freeze(FIXTURES.map((f) => f.id).filter((id) => /^(stall|table)\d$/.test(id)));
 export const FIXTURE_ARCHIVES = Object.freeze([...new Set(FIXTURES.flatMap((f) => f.parts.map((p) => p.a)))]);
 
 /** How far beyond a field the farmstead looks for ground, m. */
