@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **design draft for review** (2026-11-19). Nothing here is built yet. It extends the Company farms
+Status: **design, all decisions taken** (2026-11-19). Nothing here is built yet; Phase 1 is next. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -9,7 +9,7 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
 - **Art is ARENA2 and the vendored DFU mods only.** No new hand-made sprites and no new meshes beyond the ones already
   vendored (the windmill, the carts, the tent). Records this document names without a source in the repo are marked
   *(confirm)*: the data could not be read while writing it, and each must be checked against `ARENA2_PATH` before use.
-- **Four content pillars:** hands-on farm work, fairs and contests, crafting chains, farm events and threats.
+- **Four content pillars:** hands-on farm work, market days and contests, crafting chains, farm events and threats.
 - **Revenants:** only **sworn** revenants of a **beast** kind can be stationed at a farm, each doing the work its kind
   suits.
 - **It lives on the farm, not in menus** (the owner, mid-design: "avoid making this all menus, I want this to live on
@@ -19,6 +19,13 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
 - **Work in Farming Mode only.** The farm is *seen* by everyone in the normal view; its stations are *used* from the
   Farming Mode camera.
 - **Raids strike only while a Company member is at the farm.** Nobody loses goods while everyone is away.
+- **Animals belong to the Company,** like the beds: every member feeds, milks and shears them, and their goods go to the
+  Company Stores. Nobody owns a personal animal. (Sworn beasts stay their owner's: a revenant is a character's.)
+- **Online only,** as the farms are today. Nothing here works offline.
+- **A weekly market day on every farm,** not a seasonal fair on one (section 9).
+- **Carrying sacks stays,** a central loop (3.3).
+- **It must look good** (the owner: "make sure to make the farming expansion be cool also graphically"). Section 4.0
+  sets the visual bar, and every phase is judged against it.
 
 ---
 
@@ -33,7 +40,7 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
      money must never move on a stray click;
    - a minigame's **in-world gauge** (drawn on or above the object, like a meter on the churn), never a modal window.
    The current **Progress & orders** sidebar (`src/ui/farmProgressHud.js`) is replaced by things on the farm (section 3).
-2. **Seen in the normal view, worked in Farming Mode.** Fixtures, animals, sworn beasts, weeds, crows and fairs are
+2. **Seen in the normal view, worked in Farming Mode.** Fixtures, animals, sworn beasts, weeds, crows and markets are
    drawn for anyone near the farm, as crops already are (the observer path in `farmingMode.js`). **Using** any of it
    (a post, a pen, a workshop, a beast post, a judging table) happens from the Farming Mode camera, entered at the
    farmhouse door as today. In the normal view, hovering a station gives its line and a hint ("Enter Farming Mode at
@@ -47,7 +54,7 @@ Status: **design draft for review** (2026-11-19). Nothing here is built yet. It 
 6. **The hosts do not grow.** Each piece is a module `farmingMode.js` (or the world's existing farm observer) wires;
    nothing new in `bootWorld`, `bootExterior` or the other hosts (`bible/01-Overview/Host-Split.md`).
 7. **Every piece can be switched off** in `src/systems/contentOff.js` (`farmLivestock`, `farmBeasts`, `farmWorkshops`,
-   `farmThreats`, `farmFairs`, `farmMinigames`), so a phase can ship and be pulled back alone.
+   `farmThreats`, `farmMarkets`, `farmMinigames`), so a phase can ship and be pulled back alone.
 
 ---
 
@@ -97,7 +104,7 @@ finds **fixture plots** on that ground once per farm:
 | **Workshop yard** | 8x8 | mill, press, churn, smokehouse, loom (7) | Crafting chains (7) |
 | **Apiary** | 3x3 | hive flats *(confirm)*, flowers 254 | Bees (4.7) |
 | **Scarecrow** | 1x1 | a person flat on a pole *(confirm)* | Crows (8.3) |
-| **Fair ground** | a field | tent model (climates-calories), banners | Fairs (9) |
+| **Market green** | a field's edge | tent model (climates-calories), stalls, banners | Market day (9) |
 
 An **unbuilt fixture** is not hidden: its plot shows **stakes and a rope** with a **work-order board**. Click it and the
 foreman's line names the cost; an officer pays with the Y/N question. The fixture then rises over **real time** (an hour
@@ -140,6 +147,60 @@ take that seed; the belt's seed tool shows it. New strains appear as new sacks, 
 ---
 
 ## 4. Hands on the land: graphics, crops and minigames
+
+### 4.0 The visual bar
+
+The farm has to be one of the best-looking places in the game: somewhere players go to stand and watch. The limit
+"ARENA2 and the mods only" is a limit on **pictures** (sprites, textures, meshes). **Light, motion, particles, weather
+and shaders are code**, and the game already has plenty of each (the auras in `render/auraRing.js`, the dynamic skies,
+heat haze, snowfall, the blood decals' wet sheen). The farm uses all of them. Daggerfall's look is kept: pixel sprites,
+no smooth gradients on the sprites themselves, effects that sit in the world rather than on the screen.
+
+**The signature moments.** Each phase must deliver at least one of these, captured and shown to the owner before it
+ships:
+
+| Moment | What you see |
+| --- | --- |
+| **Wind over the wheat** | a gust travels across the field as a visible wave: plants lean in sequence, a lighter band rolls through the rows, chaff lifts off ripe heads |
+| **Golden hour** | at dusk the field takes a warm, low light, long sprite shadows (the blob shadow stretched away from the sun), dust motes and the first fireflies |
+| **Morning mist** | at dawn a low mist lies in the furrows and burns off as the sun climbs; dew glints on the beds for the first hour |
+| **The harvest** | scything a row throws chaff and a puff of dust, the plants fall in a sweep, sacks thump down and stack at the row's end |
+| **The wagon leaves** | the loaded wagon (its cargo stacked high, horse-cart-and-cargo's fullness) rolls down the road, the Farming Mode camera lingers on it, the factor waves |
+| **Rain on the fields** | rain darkens the soil row by row, puddles gather in the furrows, the trough fills, animals shelter by the barn |
+| **Night on the farm** | lanterns along the posts, warm windows in the farmhouse, fireflies over ripe beds, the windmill's blades dark against the stars |
+| **Market day** | bunting between the posts in the Company's colours, stalls with goods stacked on them, a crowd, smoke from a cooking fire, the show ring's fence |
+| **A title earned** | for Sovereign of the Sheaf, the dawn breaks on the farm as First Light kindles at your feet for the first time |
+
+**The toolkit**, all code over existing pictures:
+
+- **Wind field.** One shared wind value per farm (direction, strength and moving gusts) read by every crop, weed, hay
+  flat and banner. Plants lean by their height; gusts travel across the field as a wave. A per-vertex offset in the
+  billboard pass (*check whether `createBillboardBatch` can take one, as the grass sway does*), otherwise a per-batch
+  lean updated each frame.
+- **Particles** (one pooled emitter module, `world/farm/farmParticles.js`): soil clods from the hoe, a spray from the
+  watering can, chaff from the scythe, dust behind the plough and the wagon, bees about the hives, smoke from the
+  smokehouse and the cooking fire, flour from the mill's door, sparks from a stationed dragonling, fireflies at night.
+  Every particle is a tiny pixel quad or a borrowed ARENA2 sprite. The count scales with the graphics setting.
+- **Light.** The farm's lights (lanterns, windows, the smokehouse's glow) join the scene's point lights where the
+  renderer has them, with a soft flicker. At dusk the farm's sprites take the sky's warm tint (the dynamic skies'
+  colour), so the farm sits in its light rather than on top of it.
+- **Ground.** Decal layers for tilled rows, wet soil (the `wet` sheen), puddles, wheel ruts on the wagon's track,
+  hoofprints in the pens, and a trodden path that forms where members walk most (a slow decal that darkens over days).
+- **Life.** Animals are never still: they graze, turn, walk to the trough, lie down, follow the herding wolf. Birds lift
+  off a field in a flock when you walk through. A cat (201, *confirm*) sleeps on the porch.
+- **Camera beats.** Farming Mode already owns a camera. It eases in for minigames (lower and closer over the bed), pulls
+  back for the wagon's departure and a title, and rises to show a whole field after a big harvest. Every beat is short
+  and skippable with any key.
+- **Feedback with weight.** Every tool lands with a small punch in the world: the plant bends, soil kicks up, a sound
+  (the immersive-footsteps and ambience mods' sets, *confirm which have farm sounds*), and a sack's thump.
+
+**Performance.** The farm is a world scene, not a showcase. Budgets: under 2 ms of GPU at the farm on the mid setting,
+a few hundred particles at most, plants and fixtures batched by sprite. Observers (other farms in view) draw fixtures
+and a coarse field with no particles. The graphics settings get a farm detail level.
+
+**Checked by eye, on the real game.** Each phase ends with captures at Old Morgorya's Farm, as Farming Mode did: a
+Playwright run with ARENA2 at dawn, noon, dusk, night and in rain, plus a short clip of the wind and of a harvest. The
+owner signs off the look before the phase ships.
 
 ### 4.1 A field that looks like a field
 
@@ -260,8 +321,10 @@ the data really has.
 ### 5.2 Getting them
 
 The **drover** is a wandering merchant (8.5) who comes to the farm's gate once a week with two or three animals in tow.
-You walk up and buy one (a personal or Company purchase; the Company's is an officer's Y/N). Animals live in the **pens
-and coop** fixture: one pen holds 4 large animals, one coop 8 birds.
+An officer buys it with Company gold (the Y/N question). **Every animal is the Company's**, as the beds are: any member
+feeds, milks and shears it, and everything it gives goes to the Company Stores. A member who cares for it earns farm
+work (10.1). Animals live in the **pens and coop** fixture: one pen holds 4 large animals, one coop 8 birds. Members may
+**name** an animal at its pen (a short name, with the same filter as character names).
 
 ### 5.3 Care
 
@@ -429,52 +492,67 @@ eggs. A dog, tiger or wolf stationed nearby stops it. Seen early, it can be chas
 - **Hail or storm** flattens **ripe** beds left unharvested past half a day: they drop a quality level. Harvest in time.
 - **Drought** (a long dry spell in summer, desert climates) makes beds dry twice as fast unless irrigated.
 - **The drover** (5.2), the **seed peddler** (rare seeds of another climate, sometimes a strain from another farm) and
-  the **tinker** (repairs nothing, sells farm decorations for the fair ground) are NPC flats who arrive at the gate on a
+  the **tinker** (repairs nothing, sells farm decorations for the market green) are NPC flats who arrive at the gate on a
   weekly world roll, stay a day, and are walked up to and talked with (DFU's talk line, one Y/N per purchase).
 
 ---
 
-## 9. Fairs and contests
+## 9. Market day
 
-### 9.1 The Harvest Fair
+### 9.1 Every farm, once a week
 
-Once a **season** (by the world's calendar), a **fair** is pitched on one Company farm, chosen in rotation among farms
-whose Company opts in at the order post. It stands for **three real days**:
+Every Company farm holds a **market day once a week**. Each farm's weekday is set by its `mapId` and the days are spread
+out, so on most days some farm in the Bay is holding one and players can travel from market to market. It runs for that
+whole **UTC day**.
 
-- The farm's fair ground fills with **tents** (climates-calories' tent model), **banners in each Company's heraldry**,
-  stalls and wandering villagers (the town crowd's flats).
-- Anyone can walk in, members of any Company or none. Its location is cried in towns and marked on the map (the bounty
-  and lode map marks' pattern).
-- **Entering** is placing your entry on the right **judging table**, a physical table per contest.
-- **Visitors at the fair.** Farming Mode is for the farm's own Company, but while a fair stands its **gate** lets
-  anyone enter Farming Mode **for the fair ground alone**: the judging tables, the show ring and the match strips. The
-  beds, pens, workshops and posts stay the members' own.
-- At the close, a **judge** (an NPC flat) walks along the tables, and ribbons appear on the winners' entries.
+- In the morning the **market green** fills: the climates-calories tent, **stalls** with goods stacked on them (the
+  workshops' cheese wheels, sacks, barrels, bundles), **bunting in the Company's colours**, a cooking fire, a show ring
+  fenced off in the field, and a crowd of villagers (the town crowd's flats) who come up the road.
+- The farm's **order post** announces it the day before ("Market at Old Morgorya's tomorrow"). Towns within a day's
+  ride hear it from the crier, and the map marks it (the bounty and lode marks' pattern).
+- **Visitors from anywhere** walk in. Farming Mode is the Company's, but on market day the **gate** lets anyone enter it
+  for the market green alone: the stalls, the judging tables and the show ring. The beds, pens, workshops and posts stay
+  the members'.
+- At dusk the judge (an NPC flat) walks along the tables, ribbons appear, the lanterns light, and the crowd goes home
+  down the road.
 
-### 9.2 The contests
+### 9.2 What happens at the market
+
+- **The farm's stalls sell.** Members stock a stall with Company goods, carried there as sacks (the same carrying as the
+  wagon). Visitors buy at the stall, paying gold into the Company's treasury. Prices sit a little above the shops', so a
+  farm earns a modest income without a new faucet (12).
+- **Contests.** Each market holds three, drawn from the table below on the farm's seed and the week, so markets differ.
+  Visitors and the host Company's members may enter any.
 
 | Contest | Entry | Judged by |
 | --- | --- | --- |
-| **Heaviest sheaf / biggest gourd** | a harvested crop item | quality + a *showy* strain's bonus + a small random |
-| **Best in show** | an animal led into the show ring | its contentment over the last week, its quality products |
-| **The beast show** | a stationed sworn beast, led in | rank, its farm's care, its art; a crowd reacts to its kind |
+| **Heaviest sheaf** | a harvested crop item | quality, a *showy* strain's bonus, a small random |
+| **Best in show** | one of a Company's animals, led into the ring by a member | its contentment over the week, its products' quality |
+| **The beast show** | a sworn beast, led in by its owner | rank, care at its farm, its art; the crowd reacts to its kind |
 | **The pie and the pot** | a Provisioning dish | its traits' strength and the farm-quality of its ingredients |
-| **The brewers' bench** | an ale, mead, wine or cider | its quality and its age |
-| **Ploughing match** | the ploughing minigame, live, on a marked strip | straightness and time; three tries each |
-| **Scything race** | the scything minigame on a fair row | chain length and time |
+| **The brewers' bench** | an ale, mead, wine or cider | quality and age |
+| **Ploughing match** | the ploughing minigame, live, on a marked strip | straightness and time; three tries |
+| **Scything race** | the scything minigame on a market row | chain length and time |
+
+- **Entering** is placing your entry on that contest's **judging table**, or walking your animal into the ring.
 
 ### 9.3 Prizes
 
-- **Ribbons** (blue, red, white) as items that can be **hung in a home** (the decor system), named with the contest, the
-  season and the winner.
-- A Company **trophy** that stands on the winning farm until the next fair (a statue flat, 202:4).
-- Argents within the farms' **weekly cap** (no new faucet), and renown.
-- Entries go back to their owners at the close (an animal walks home; a dish returns to the pack).
+- **Ribbons** (blue, red, white) as items, hangable in a home (the decor system), naming the contest, the farm and the
+  week.
+- A ribbon's **farm work** (10.1). Ribbons count for titles at most **three a week** per account, so markets reward
+  turning up, not farming one contest.
+- **No Argents** from markets: the Company farms' weekly Argent cap stays for orders. Gold prizes are small and come
+  from the host farm's stall takings (a tenth of the day's sales goes to the prize pot).
+- The **host Company's** reward is its stalls' income, and renown for each visitor who bought something.
+- Entries go back to their owners at the close.
 
 ### 9.4 State
 
-New table `farm_fairs` (season, host farm, opens, closes) and `farm_fair_entries` (fair, contest, player, character,
-entry snapshot, score). Judging is done by the service at the close, once, with a claimed revision so it pays once.
+New tables `farm_markets` (map id, day, contests, takings, judged), `farm_market_entries` (market, contest, player,
+character, entry snapshot, score) and `farm_stalls` (market, slot, material, qty, price). The market's day comes from the
+law (the farm's seed), so the service only writes a row when something happens. Judging runs on the first read after
+the day closes, once, with a claimed revision so it pays once.
 
 ---
 
@@ -497,7 +575,7 @@ gets **farm work** points, kept by the service (they are never the client's word
 | a workshop batch started from your own goods | 10 |
 | a fixture's building paid for, or materials brought to it | 10 |
 | a raid on your farm driven off with you there | 50 |
-| a fair ribbon (blue, red, white) | 100 / 60 / 30 |
+| a market-day ribbon, blue, red, white (at most three a week) | 100 / 60 / 30 |
 
 - A **daily cap of 400 points** an account (UTC day), so the titles measure days spent on the farm, not one long session
   or a script. Points past the cap still count toward everything else (orders, quality); they just don't count for titles.
@@ -559,12 +637,12 @@ New pure laws, both ends read them (`src/net/farm/`):
 | `stationLaw.js` | who can be stationed, each kind's role and numbers |
 | `workshopLaw.js` | recipes, times, quality |
 | `threatLaw.js` | blight, raids on farms, crows, foxes, weather effects |
-| `fairLaw.js` | contests, scoring, prizes |
+| `marketLaw.js` | each farm's market day, its contests, stalls, scoring, prizes |
 | `farmGameLaw.js` | each minigame's state machine and score bounds |
 
 Service: `server-account/src/farms.js` grows by modules beside it (`farmStead.js`, `farmHerd.js`, `farmStations.js`,
-`farmWorkshops.js`, `farmFairs.js`, `farmWork.js`). Migrations: `farm_fixtures`, `farm_stations`, `farm_workshops`,
-`farm_fairs`, `farm_fair_entries`, `farm_work` (the per-account points and the day's count for the cap, 10.1). The herd
+`farmWorkshops.js`, `farmMarkets.js`, `farmWork.js`). Migrations: `farm_fixtures`, `farm_stations`, `farm_workshops`,
+`farm_markets`, `farm_market_entries`, `farm_stalls`, `farm_work` (the per-account points and the day's count for the cap, 10.1). The herd
 stays in the garden JSON unless it grows too big.
 
 ### 11.1 Every route, accounted for
@@ -586,7 +664,7 @@ the farm calls at 1374-1379).
 | `/v1/farms/workshop` | 4 | `farmWorkshops.js` | fill a workshop's crate; collect its shelf | members |
 | `/v1/farms/station` | 5 | `farmStations.js` | station a sworn beast; recall it | the beast's owner |
 | `/v1/farms/threat` | 6 | `farmStead.js` | a raid's result at its end (raiders slain, who stood) | members there |
-| `/v1/farms/fair` | 7 | `farmFairs.js` | read the fair; host it (opt in); enter and withdraw an entry | officers host, anyone enters |
+| `/v1/farms/market` | 7 | `farmMarkets.js` | read the market; stock and price a stall; buy from one; enter and withdraw a contest entry | members stock, anyone buys and enters |
 
 Farm work points (10.1) and the titles need **no route of their own**. Points are written by the routes above, inside
 their own transactions, and titles are derived by the existing titles read.
@@ -602,7 +680,8 @@ when nothing moved.
 
 Client modules, each wired by `farmingMode.js` or the farm observer, never by a host: `world/farm/farmstead.js`
 (layout), `world/farm/fixtureArt.js`, `world/farm/herdArt.js`, `world/farm/beastPosts.js`,
-`world/farm/workshopArt.js`, `world/farm/threatArt.js`, `world/farm/fairGround.js`, and `scenes/farm/farmGames.js` for
+`world/farm/workshopArt.js`, `world/farm/threatArt.js`, `world/farm/marketGreen.js`, `world/farm/farmParticles.js`,
+`world/farm/farmWind.js`, and `scenes/farm/farmGames.js` for
 minigame input and drawing.
 
 ---
@@ -610,7 +689,7 @@ minigame input and drawing.
 ## 12. Balance
 
 - **No new gold or Argent faucet beyond the caps we have.** Orders keep the 600 Argent per Company per week cap.
-  Product orders and fair prizes share it. Gold from orders is checked against the wealth budget
+  Product orders share it; markets pay no Argents. Gold from orders is checked against the wealth budget
   (`server-account/src/budget.js`).
 - **Quality and variety over volume.** The new value is in Prize goods, strains and products, which feed Provisioning
   and crafting, not in more raw grain.
@@ -636,17 +715,13 @@ Each phase ships on its own, behind its `contentOff` flag, with a `CHANGELOG.md`
    hooks.
 5. **Sworn beasts.** Beast posts, stationing, the kind roles, server stations, ploughing with a beast.
 6. **Threats.** Blight, crows and foxes, weather, raids on farms.
-7. **Fairs.** The fair ground, the contests, ribbons and trophies.
+7. **Market day.** The market green on every farm each week, stalls, contests and ribbons.
 
 ---
 
 ## 14. Open questions for the owner
 
-1. **Personal or Company?** Animals and workshop goods go to the Company Stores like crops. Should a member be able to
-   own a personal animal on the Company farm (their own cow, their own produce)?
-2. **Offline play.** Farms are online only today. Should anything here work offline (a sworn beast at a "home plot")?
-3. **Fair schedule:** one fair per season on one farm, or a smaller weekly market day on every farm?
-4. **Hauling sacks:** is carrying sacks to the wagon fun or a chore for your group? It is optional by design, but it is a
-   central diegetic loop.
-5. **Art checks:** before Phase 1, I'd read the ARENA2 archives (201, 205, 211-214, 254, 301) and list the exact records
-   for animals, birds, hives, fences, tools and the lectern. Anything missing is dropped or replaced by a mod's asset.
+All answered (2026-11-19); see *Decisions taken*. What is left is checking, not deciding: before Phase 1, the ARENA2
+archives (201, 205, 211-214, 254, 301) and the mods' sound sets are read and the exact records listed for animals, birds,
+hives, fences, tools, the lectern and farm sounds. Anything missing is dropped or replaced by a mod's asset, never drawn
+new.
