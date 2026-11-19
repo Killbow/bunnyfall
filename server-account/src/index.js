@@ -312,6 +312,7 @@ import { vanishSet, greedGive, greedMine, greedClaim } from './staffCommands.js'
 import { DISCORD_BOT_ROUTE, DISCORD_GAME_ROUTE, discordBotAuthorized, discordBotAction, discordGameAction } from './discordIntegration.js';
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
 import { SKIN_BODY_MAX } from '../../src/net/skinLaw.js';
+import { sentinelStatus, sentinelGive, sentinelBuy } from './sentinel.js';   // BUNNYFALL: the Sentinel garrison event
 import { cannonStatus, cannonGive } from './cannon.js';   // BUNNYFALL: the great cannon by Wayrest   // BUNNYFALL (Cromwark): the Dusk Tokens counted
 import { hostFestival, listFestivals } from './playerFestival.js';   // PLAYER-FESTIVALS: the festivals players host   // GUESTBOOK: the lines visitors sign at a home's door
 import { tavernFavorBuy } from './tavernFavor.js';
@@ -2385,6 +2386,12 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         const r = path.endsWith('/give') ? await cannonGive(ctx, who.player, body) : await cannonStatus(ctx, who.player);
         return 'error' in r ? no(r.error, r.error === 'busy' ? 409 : 400, origin) : json(r, 200, origin);
+      }
+
+      if (path === '/v1/sentinel' || path === '/v1/sentinel/give' || path === '/v1/sentinel/buy') {   // BUNNYFALL: the Sentinel garrison event and its shop (sentinel.js)
+        if (request.method !== 'POST') return no('method', 405, origin);
+        const r = path.endsWith('/give') ? await sentinelGive(ctx, who.player, body) : path.endsWith('/buy') ? await sentinelBuy(ctx, who.player, body) : await sentinelStatus(ctx, who.player);
+        return 'error' in r ? no(r.error, r.error === 'busy' ? 409 : r.error === 'sentinel-cap' || r.error === 'sentinel-over' || r.error === 'sentinel-short' ? 403 : 400, origin) : json(r, 200, origin);
       }
 
       if (SKIN_ROUTES.includes(path)) {   // BUNNYFALL: custom paperdolls (skins.js; src/net/skinLaw.js)

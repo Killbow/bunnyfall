@@ -85,6 +85,7 @@ export const TITLE_TEXT = Object.freeze({
   gatebreaker: 'Gatebreaker',        // WB9g (2026-09-30, Mac): the Sigil Broker's, bought
   cromwarksurvivor: 'Cromwark Survivor',   // BUNNYFALL (Cromwark): Nyx's, bought with Dusk Tokens
   heartwarden: 'Warden of the Heart',      // BUNNYFALL (Cromwark): Nyx's, after ten minutes on the haze's counter in the Heart
+  bannerbearer: "Sentinel's Bannerbearer",   // BUNNYFALL (the Sentinel event): 100 pieces of arms and armor given to the envoy
   herald: 'Herald',                  // HERALD (2026-10-01, Mac): the Patreon tier between Disciple and Hierophant
   // SEAT1c (Seats-Arc 7.4): the seats' five - each worded off its claim where this client knows the place
   // (townSeatLaw.js seatTitleText: "Warden of Anticlere"), and these words alone where it does not
@@ -185,6 +186,7 @@ export const AURA_TEXT = Object.freeze({
   lilacwarren: 'Lilac Warren',   // WIKIMAID: the WikiMaid's rabbits hopping round the feet on a ring of lilac light, granted with the title
   witchfire: 'Witchfire',   // WITCH1: a coven's green fire round the feet, tallow candles in its ring, bought from a Wyrd Sister
   nyxveil: "Nyx's Veil",   // BUNNYFALL (Cromwark): the reach's purple haze about the wearer, bought from Nyx
+  sentinelbanner: "Sentinel's Banner",   // BUNNYFALL (the Sentinel event): Dagon's Fire reworked in the garrison's crimson and gold
   sagesmoke: "Sage's Smoke",   // NIRNROOT-SAGE: smoke billowing about the Nirnroot Sage, nirnroots circling the waist, green runes round the feet, granted with the title
 });
 
@@ -344,6 +346,7 @@ export const TITLE_RGBA = Object.freeze({
   gatebreaker: GATEBREAKER_FIRE,
   cromwarksurvivor: Object.freeze([0.71, 0.42, 1, 1]),   // BUNNYFALL: the haze's purple (#b56bff)
   heartwarden: Object.freeze([0.84, 0.6, 1, 1]),          // BUNNYFALL: the barrier's lilac (#d699ff)
+  bannerbearer: Object.freeze([0.95, 0.45, 0.35, 1]),     // BUNNYFALL: the garrison's banner, crimson turning to gold (#f27359)
   // HERALD (2026-10-01, Mac: "you'll need to develop the herald title/glyph"; no colour named): AZURE, heraldry's own
   // blue - a herald wears the arms he cries. Between the Disciple's teal and the Apostle's violet on the tiers' rise,
   // and brighter and bluer-violet than the moderator's shield, which is a shield and never a trumpet. Chosen over a

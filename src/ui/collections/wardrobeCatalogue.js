@@ -19,6 +19,7 @@ import { TITLE_TEXT, AURA_TEXT } from '../playerBadge.js';
 import { ICON_TEXT } from '../profileIcons.js';
 import { GLYPH_LABEL } from '../enhanced/enhancedAccount.js';
 import { insigniaById } from '../../net/insignia.js';
+import { SENTINEL_DONOR_PIECES } from '../../net/sentinelLaw.js';   // BUNNYFALL: the Sentinel event's donor honours
 import { wareById, festivalAt, HEARTHKEEPER_GIVEN, SOULCAKE_TAKEN } from '../../net/festivalLaw.js';
 import { QL_LINES } from '../../systems/questlines/qlLines.js';
 import { QL_SERVICE_LINES } from '../../net/questlineClaims.js';
@@ -182,6 +183,7 @@ export const WARDROBE = Object.freeze({
     penitent: E('bestowed', 'bestowed', bestowed, { with: ['glyph:penitent'] }),
     gatebreaker: E('broker', 'open', broker('title:gatebreaker')),
     cromwarksurvivor: E('broker', 'open', () => t('coll.how.cromwarksurvivor', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens. Dusk Tokens drop from the monsters of the Wrothgarian Mountains.', { price: insigniaById('title:cromwarksurvivor')?.price ?? 0 })),
+    bannerbearer: E('broker', 'open', () => t('coll.how.bannerbearer', 'Give {n} pieces of arms and armor to Sentinel’s envoy at the edge of the Cromwark reach.', { n: SENTINEL_DONOR_PIECES })),
     heartwarden: E('broker', 'open', () => t('coll.how.heartwarden', 'Stand ten minutes on the purple haze’s counter in the Heart, then buy it from Nyx for {price} Dusk Tokens.', { price: insigniaById('title:heartwarden')?.price ?? 0 })),
     herald: E('patrons', 'patron', patron('herald'), { with: ['glyph:herald'] }),
     // AUDIT COLLECTIONS-II (lane 1): a seat's title is worn on the guildmaster's character (the token's mint); Crowned and
@@ -265,6 +267,7 @@ export const WARDROBE = Object.freeze({
     burningstair: E('spire', 'open', redoubt('burningstair'), { with: ['title:wellheadwalker'], look: () => t('coll.look.burningstair', 'Embers falling about you as if down a burning stair.') }),
     firstlight: E('world', 'open', () => t('coll.how.firstlightFarm', 'Comes with Sovereign of the Sheaf: 45,000 farm work on a Company farm. (Once First of the Spire’s, while the Elite Breach was open.)'), { with: ['title:sheafsovereign'], look: () => t('coll.look.firstlight', 'A dawn-white ring of light.') }),
     lilacwarren: E('bestowed', 'bestowed', bestowed, { with: ['title:wikimaid', 'glyph:wikimaid'], look: () => t('coll.look.lilacwarren', 'Rabbits hopping round your feet on a ring of lilac light.') }),
+    sentinelbanner: E('broker', 'open', () => t('coll.how.sentinelbanner', 'Comes with the Bannerbearer title: give {n} pieces of arms and armor to Sentinel’s envoy.', { n: SENTINEL_DONOR_PIECES }), { look: () => t('coll.look.sentinelbanner', 'Dagon’s fire reforged in the garrison’s crimson and gold, gold sparks circling at your feet.') }),
     nyxveil: E('broker', 'open', () => t('coll.how.nyxveil', 'Buy it from Nyx at the Adventurers’ Guild camp for {price} Dusk Tokens.', { price: insigniaById('aura:nyxveil')?.price ?? 0 }), { look: () => t('coll.look.nyxveil', 'A purple haze drifting about you, stars glinting in it.') }),
     witchfire: E('festival', 'seasonal', wyrd('aura:witchfire'), { look: () => t('coll.look.witchfire', 'A coven’s green fire round your feet, tallow candles burning in its ring.') }),
     sagesmoke: E('bestowed', 'bestowed', bestowed, { with: ['title:nirnrootsage', 'glyph:nirnrootsage'], look: () => t('coll.look.sagesmoke', 'Smoke billowing about you, nirnroots circling your waist and small green runes glowing round your feet.') }),

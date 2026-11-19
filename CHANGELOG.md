@@ -3,6 +3,11 @@
 Newest first. One line a change, in plain words, for players. The desktop app's patch notes show the lines added since
 the last release (scripts/changelogNotes.mjs).
 
+## 2026-11-20
+
+- Sentinel's warriors at the edge of the reach now have an envoy, Lord Calder Vane. Give him arms and armor (anything you carry and are not wearing) and choose a side: arm the garrison to stay, or fit it for the road home. Every gift moves a shared bar, nobody is told who gave what, and the garrison's choice at the end of the month cannot be undone. Near him the bar shows at the top of the screen, and it replaces the Purple Haze on the Notices of the Realm. In the last three days the count goes secret.
+- Giving to Sentinel's envoy now pays Garrison Tokens (2 a piece) and keeps a count. Give 100 pieces and you earn the title Sentinel's Bannerbearer and the aura Sentinel's Banner, Dagon's Fire reforged in crimson and gold. The envoy also runs a shop for the tokens: Welkynd Shards, and unique gear with imprints on swords, axes, hammers, daggers, bows, crossbows, a staff, a shield and a ring.
+
 ## 2026-11-19
 
 - Fixed: only the Mages Guild and Fighters Guild quest givers wear the new paperdoll again; the rest of the hall keep their own look.
