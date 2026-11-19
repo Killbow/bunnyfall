@@ -28,6 +28,8 @@ import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
 import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
 import { createFarmsteadActs } from './farm/farmsteadActs.js';
+import { createMarketActs } from './farm/marketActs.js';   // PHASE 7: market day
+import { marketToday } from '../net/farm/marketLaw.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
 /** The farmyard's lanterns lit at night: within this reach of me, m, and at most this many (the town's lamps keep the rest). */
@@ -50,6 +52,9 @@ export function createFarmingMode(deps) {
   const observers = new Map(); let nextObservers = 0;
   const now = () => Date.now() / 1000 + serverOffset;
   const ownHere = () => deps.farms()?.mine()?.farms?.find((f) => deps.farms().atFarm(f.mapId)) ?? null;
+  // PHASE 7: on the farm's market day anyone at the gate may enter Farming Mode, for the market green alone
+  const marketHere = () => { const f = deps.farms()?.marketHere?.(farm?.mapId ?? deps.farms()?.visibleHere?.()?.mapId); return f && marketToday(f.mapId, now()) ? f : null; };
+  const stationHere = () => ownHere() ?? marketHere();
   function nearbyObservers() {
     if (deps.passive || Date.now() < nextObservers) return;
     nextObservers = Date.now()+1000;
@@ -93,7 +98,7 @@ export function createFarmingMode(deps) {
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); birds.dispose(); herdArt.dispose(); herdSpots = []; }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); birds.dispose(); herdArt.dispose(); herdSpots = []; market?.reset(); }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
@@ -154,7 +159,7 @@ export function createFarmingMode(deps) {
     if (!dir) return;
     let nearest = Infinity;
     // FARM EXPANSION: a fixture before a bed when it stands nearer along the ray
-    for (const target of [...farmsteadTargets(site.farmstead).filter((x) => x.id !== 'drover' || droverNow()), ...sackTargets(), ...herdSpots.map((h) => ({ id: `animal:${h.id}`, animal: h.id, pos: h.pos, r: .8, h: h.h }))]) {
+    for (const target of [...farmsteadTargets(site.farmstead).filter((x) => (x.id !== 'drover' || droverNow()) && (!market.isMarketId(x.id) || market.open())), ...sackTargets(), ...herdSpots.map((h) => ({ id: `animal:${h.id}`, animal: h.id, pos: h.pos, r: .8, h: h.h }))]) {
       const distance = rayHitsTarget(eye, dir, target);
       if (distance < nearest && deps.collider.raycast(eye, dir, distance) >= distance - .3) { nearest = distance; fixture = target; }
     }
@@ -170,9 +175,12 @@ export function createFarmingMode(deps) {
   }
   /** FARM EXPANSION: a fixture used where it stands - within reach, as a bed is. */
   function useFixture(target) {
-    if (!active || version < 0 || ownHere()?.mapId !== farm.mapId) return;
+    // PHASE 7: a visitor on market day may use the market green alone
+    const mine = ownHere()?.mapId === farm?.mapId, onGreen = market.isMarketId(target.id) && stationHere()?.mapId === farm?.mapId;
+    if (!active || version < 0 || !(mine || onGreen)) return;
     const feet = deps.feet();
     if (Math.hypot(feet[0] - target.pos[0], feet[2] - target.pos[2]) > FARM_WORK_REACH + target.r) { notice(t('farm.stead.closer', 'Walk closer to use it.')); return; }
+    if (onGreen) { market.use(target.id); return; }
     if (target.id.startsWith('sack:')) { shoulder(target); return; }
     if (target.id === 'wagon' && carried.length) { if (!busy) perform({ op: 'haul', sacks: [...carried] }); return; }
     if (target.id === 'scarecrow' && birdsHere()) { startGame('birds', { op: 'birds' }, target.pos); return; }
@@ -201,7 +209,8 @@ export function createFarmingMode(deps) {
     notice(t('farm.stead.sackTaken', 'You shoulder {n} sack(s). Carry them to the factor\'s wagon.', { n: carried.length }));
   }
   async function work() {
-    if (!active || selected < 0 || busy || version < 0 || ownHere()?.mapId !== farm.mapId) return;
+    if (!active || selected < 0 || busy || version < 0) return;
+    if (ownHere()?.mapId !== farm.mapId) { notice(t('farm.market.visitor', 'The beds are the Company\'s. On market day the green is yours.')); return; }   // PHASE 7
     const feet = deps.feet(), bed = site.beds[selected];
     if (Math.hypot(feet[0] - bed[0], feet[2] - bed[2]) > FARM_WORK_REACH) { notice(t('farm.mode.closer', 'Walk closer to work this bed.')); return; }
     if (deps.collider.raycast([feet[0], feet[1] + .8, feet[2]], directionTo(feet, bed), Math.hypot(feet[0] - bed[0], feet[2] - bed[2])) < Math.hypot(feet[0] - bed[0], feet[2] - bed[2]) - .3) {
@@ -367,7 +376,10 @@ export function createFarmingMode(deps) {
     const dx = bed[0] - feet[0], dz = bed[2] - feet[2], len = Math.hypot(dx, dz);
     return len > .001 ? [dx / len, 0, dz / len] : [0, -1, 0];
   }
-  const acts = createFarmsteadActs({
+  // PHASE 7: the market green's stalls and judging tables (farm/marketActs.js)
+  const market = createMarketActs({ mapId: () => farm?.mapId ?? 0, now, garden: () => garden, mine: () => ownHere()?.mapId === farm?.mapId, say: notice,
+    ask: (lines, options) => { deps.show?.(new ChoiceWindow({ lines, options })); }, call: (body) => deps.farms().market(farm.mapId, body), busy: () => busy });
+  const acts = createFarmsteadActs({ postNote: () => market.postNote(),
     garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
     setSeed: (id) => { crop = id; tool = 'plant'; }, held: () => crop,
     ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
@@ -381,6 +393,7 @@ export function createFarmingMode(deps) {
     if (Date.now() < noticeUntil) return message;
     if (version < 0) return t('farm.mode.loading', 'Reading the shared beds...');
     if (busy) return t('farm.mode.saving', 'Saving your work...');
+    if (ownHere()?.mapId !== farm?.mapId) return t('farm.market.hint', 'Market day: click a stall to buy, a judging table to enter. The beds are the Company\'s.');   // PHASE 7
     const feet=deps.feet();let nearest=Infinity;
     for(const bed of site.beds)nearest=Math.min(nearest,(feet[0]-bed[0])**2+(feet[2]-bed[2])**2);
     const distance=Math.round(Math.sqrt(nearest));
@@ -424,8 +437,9 @@ export function createFarmingMode(deps) {
         farm = here; site = found;
         art.prepare().catch(() => {}); stead.prepare().catch(() => {}); sacks.prepare().catch(() => {}); birds.prepare().catch(() => {}); herdArt.prepare().catch(() => {});
       }
-      if (active && (!deps.available() || ownHere()?.mapId !== farm.mapId)) leave();
+      if (active && (!deps.available() || stationHere()?.mapId !== farm.mapId)) leave();
       if (!busy && !reading && Date.now() >= nextRead) read();
+      if (active && !deps.passive) market.poll();   // PHASE 7
       if (game) { const t1 = performance.now(); game.engine.tick((t1 - game.last) / 1000); game.last = t1; if (game.engine.done) endGame(true); }
       if (carried.length) { const live = new Set(liveSacks(garden, now()).map((s) => s.id)); const kept = carried.filter((id) => live.has(id)); if (kept.length < carried.length) { carried = kept; notice(t('farm.stead.sackGone', 'Those sacks have already gone to the Company Stores.')); } }
       if (active) {
@@ -459,7 +473,7 @@ export function createFarmingMode(deps) {
         // the shelf: the farm's seeds, then its strains of them (PHASE 2c)
         if (site.farmstead?.base) { const all = [...site.farmstead.base, ...(garden.strains ?? []).filter((x) => site.farmstead.base.includes(x.crop)).map((x) => `${x.crop}#${x.id}`)]; if (all.join() !== site.farmstead.seeds?.join()) site.farmstead.seeds = all; }
         if (site.farmstead?.seeds && !site.farmstead.seeds.includes(crop)) crop = site.farmstead.seeds[0] ?? 'grain';
-        stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))), drover: droverNow() ? 1 : 0 }); stead.draw(right, up);
+        stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))), drover: droverNow() ? 1 : 0, ...market.flags() }); stead.draw(right, up);
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
       sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
@@ -478,7 +492,7 @@ export function createFarmingMode(deps) {
           : fixture.id === 'scarecrow' && birdsHere() ? t('farm.game.birdsLabel', 'Birds at the crop! Chase them off')
           : fixture.animal ? (animalOf(fixture.animal) ? animalLine(animalOf(fixture.animal)) : '')
           : fixture.id === 'pen' || fixture.id === 'sty' ? t('farm.herd.penLabel', 'The {pen} · click to muck it out', { pen: fixture.id === 'pen' ? t('farm.herd.pen', 'pen') : t('farm.herd.sty', 'sty') })
-          : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : acts.label(fixture.id);
+          : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : market.isMarketId(fixture.id) ? market.label(fixture.id) : acts.label(fixture.id);
         hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
       }
       if (i >= 0) {

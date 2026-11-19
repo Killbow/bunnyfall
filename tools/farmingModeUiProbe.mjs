@@ -41,7 +41,10 @@ try {
     };
     const uploadRecord = (archive, record, opts = {}) => { const texture = textures.get(archive); renderer.uploadTexture(archive, record, texture.getColor32(texture.getDFBitmap(record,0),opts.opaque ? -1 : 0), opts); };
     const farm = { mapId: 42, name: 'Test farm', choreDone: false };
-    const book = { placeOf: () => ({ px: 1, py: 2 }), mine: () => ({ farms: observer ? [] : [farm] }), atFarm: () => true, visibleHere: () => farm, refresh() {},
+    const book = { placeOf: () => ({ px: 1, py: 2 }), mine: () => ({ farms: observer || p.visitor ? [] : [farm] }), atFarm: () => true, visibleHere: () => farm, refresh() {},
+      // PHASE 7: market day - the gate for a visitor, and the service's answers to the market's acts
+      marketHere: () => (p.visitor ? farm : null),
+      async market(id, body) { (window.__bookReqs ??= []).push(body); return { ok: true, data: body.op === 'read' ? structuredClone(p.marketData) : {} }; },
       async garden(id, body = {}) {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
@@ -188,6 +191,53 @@ try {
   const sowReq=await page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').at(-1));
   assert.equal(sowReq.op,'plant');assert.equal(sowReq.game?.kind,'sow','The play rides the planting');assert.ok(sowReq.game.ms>=2500,'A real play takes its time: '+sowReq.game.ms);
   await page.keyboard.press('f');
+  // PHASE 7: MARKET DAY - the green appears on the farm's market day, a stall is stocked and bought from, a table is entered,
+  // and a visitor may use the green and nothing else
+  await page.evaluate(async () => {
+    const m = await import('/src/net/farm/marketLaw.js'), p = window.probe;
+    let n = p.now; while (!m.marketToday(42, n)) n += 86400; p.now = n;
+    p.marketData = { ok: true, nowS: n, market: m.marketToday(42, n), member: true, contests: ['sheaf', 'show'], results: [], entries: [], prize: 0, tomorrow: false,
+      stalls: [{ slot: 0, material: 'food:grain', qty: 20, price: 5 }], stores: [{ material: 'food:corn', qty: 30 }] };
+    p.version++;
+  });
+  await page.waitForTimeout(1200); await page.evaluate(() => { for (let i = 0; i < 6; i++) window.probe.render(); });
+  const marketIds = await page.evaluate(() => window.probe.mode.inspect().fixtures.map((f) => f.id).filter((id) => /^(stall|table)\d$/.test(id)));
+  assert.ok(marketIds.includes('stall0') && marketIds.includes('table0'), `the market green is laid out: ${marketIds}`);
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'market green draw error');
+  if (process.env.MARKET_SHOT) { await page.evaluate(() => { const p = window.probe; p.walkTo('stall1'); p.cam.yaw = 0; for (let i = 0; i < 10; i++) p.render(); }); await page.screenshot({ path: process.env.MARKET_SHOT }); }
+  const marketAct = (id) => useFixture(id);
+    await page.evaluate(() => { window.probe.asked = null; });
+  await marketAct('stall0');   // a member's click on a stocked stall asks: buy one, five, stock more
+  assert.ok(await page.evaluate(() => !!window.probe.asked), 'A stall asks before money moves');
+  assert.ok(await page.evaluate(() => window.probe.asked.options.some((o) => o.code === 'KeyY') && window.probe.asked.options.some((o) => o.code === 'KeyS')));
+  await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
+  await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+  await marketAct('stall1');   // an empty stall: a member picks a lot from the Stores
+  assert.ok(await page.evaluate(() => window.probe.asked?.options.some((o) => o.code === 'Digit1')), 'An empty stall offers the Stores\' goods');
+  await page.evaluate(() => { window.probe.asked.input('Digit1'); window.probe.asked = null; });
+  await marketAct('table0');
+  assert.ok(await page.evaluate(() => !!window.probe.asked), 'A table asks before entering');
+  await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
+  await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+  const ops = await page.evaluate(() => window.__bookReqs.filter((r) => r.op !== 'read').map((r) => [r.op, r.slot ?? r.contest, r.material ?? null, r.qty ?? null]));
+  assert.deepEqual(ops, [['buy', 0, 'food:grain', 1], ['stock', 1, 'food:corn', 10], ['enter', 'sheaf', null, null]], JSON.stringify(ops));
+  // a visitor of no Company: the stall buys, the order post is not theirs
+  await page.keyboard.press('Escape');
+  await page.evaluate(async () => { const p = window.probe; p.visitor = true; p.asked = null; await p.enter(); for (let i = 0; i < 20; i++) p.render(); });
+  assert.ok(await page.evaluate(() => window.probe.mode.active), 'A visitor enters Farming Mode on market day');
+  await page.evaluate(() => { window.__bookReqs.length = 0; });
+  await useFixture('orderPost');
+  assert.equal(await page.evaluate(() => !!window.probe.asked), false);
+  await page.evaluate(() => { window.probe.notice = null; });
+  await marketAct('stall0');
+  assert.ok(await page.evaluate(() => window.probe.asked?.options.some((o) => o.code === 'KeyY') && !window.probe.asked.options.some((o) => o.code === 'KeyS')), 'A visitor may buy but not stock');
+  await page.evaluate(() => { window.probe.asked = null; });
+  await page.evaluate(() => { const p = window.probe; p.feet = [2, 0, 0]; for (let i = 0; i < 10; i++) p.render(); });
+  await clickBed(5);
+  const visitorLine = await page.locator('.farm-message').textContent();
+  assert.ok(visitorLine.includes('Company'), `The beds are the Company's: ${visitorLine}`);
+  assert.equal(await page.evaluate(() => window.__bookReqs.filter((r) => r.op && r.op !== 'read').length), 0, 'A visitor sends nothing but a market act');
+  await page.evaluate(() => { window.probe.visitor = false; });
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
@@ -202,5 +252,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work), the market green on market day with a stall stocked and bought from, a table entered and a visitor limited to the green, screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }

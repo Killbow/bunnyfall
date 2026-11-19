@@ -307,6 +307,7 @@ import { eliteDungeonsRead, eliteDungeonSummon, eliteDungeonClear } from './elit
 import { garrisonsRead, garrisonRecruit, garrisonOrders, garrisonDismiss } from './garrisons.js';   // BUNNYFALL COMPANIES: garrisons and patrols
 import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore } from './farms.js';   // BUNNYFALL COMPANIES: farms
 import { farmGarden } from './farmGardens.js';
+import { farmMarket } from './farmMarkets.js';   // PHASE 7: market day
 import { vanishSet, greedGive, greedMine, greedClaim } from './staffCommands.js';   // BUNNYFALL: /vanish and /greed
 import { DISCORD_BOT_ROUTE, DISCORD_GAME_ROUTE, discordBotAuthorized, discordBotAction, discordGameAction } from './discordIntegration.js';
 import { skinsUpload, skinsMine, skinsDelete, skinsWear, skinsGet, SKIN_ROUTES } from './skins.js';   // BUNNYFALL: custom paperdolls
@@ -2398,11 +2399,12 @@ const service = {
         if (request.method !== 'POST') return no('method', 405, origin);
         return json(await territoriesRead(ctx), 200, origin);
       }
-      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore' || path === '/v1/farms/garden') {   // BUNNYFALL COMPANIES: farms (farms.js)
+      if (path === '/v1/farms' || path === '/v1/farms/buy' || path === '/v1/farms/crop' || path === '/v1/farms/release' || path === '/v1/farms/chore' || path === '/v1/farms/garden' || path === '/v1/farms/market') {   // BUNNYFALL COMPANIES: farms (farms.js); PHASE 7: '/v1/farms/market' (farmMarkets.js)
         if (request.method !== 'POST') return no('method', 405, origin);
-        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore, '/v1/farms/garden': farmGarden }[path];
-        const r = await act({ ...ctx, env }, who.player, body ?? {});
-        return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
+        const act = { '/v1/farms': farmsRead, '/v1/farms/buy': farmBuy, '/v1/farms/crop': farmCrop, '/v1/farms/release': farmRelease, '/v1/farms/chore': farmChore, '/v1/farms/garden': farmGarden, '/v1/farms/market': farmMarket }[path];
+        const r = await act({ ...ctx, env, bucket: env.SAVES }, who.player, body ?? {});   // PHASE 7: the market's buyers pay from a realm record (the bucket)
+        if (r.error === 'seq') return json({ error: 'seq', seq: r.seq }, 409, origin);
+        return 'error' in r ? no(r.error, r.error === 'guilds-need-account' ? 403 : r.error === 'lease' || r.error === 'realm-gold' ? 409 : r.error === 'no-guild' ? 404 : 409, origin) : json(r, 200, origin);
       }
       if (path === '/v1/garrisons' || path === '/v1/garrisons/recruit' || path === '/v1/garrisons/orders' || path === '/v1/garrisons/dismiss') {   // BUNNYFALL COMPANIES: garrisons and patrols (garrisons.js)
         if (request.method !== 'POST') return no('method', 405, origin);

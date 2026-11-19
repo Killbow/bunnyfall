@@ -5,7 +5,9 @@
 // net/farmLaw.js. This side knows the map: which farms stand inside the Company's (or its Charter's) territory - the ones
 // it may buy - and whether the player stands at one (a chore). A farm the territory no longer reaches is let go here, as
 // soon as the territories are heard. Online only.
-import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore, farmGardenAct } from '../net/accountClient.js';
+import { farmsRead, farmBuy, farmCrop, farmRelease, farmChore, farmGardenAct, farmMarketAct } from '../net/accountClient.js';
+import { marketToday, saleOf } from '../net/farm/marketLaw.js';   // PHASE 7: market day
+import { walletReserve } from '../net/realm/realmGoldLaw.js';
 import { inTerritory } from '../net/territoryLaw.js';
 
 export const FARM_REFRESH_MS = 2 * 60_000;
@@ -21,10 +23,12 @@ export const FARM_OFFERS_MAX = 8;
  *   places: () => { mapId: number, px: number, py: number, name: string, region: number }[],
  *   climateAt: (px: number, py: number) => number,
  *   here: () => ({ x: number, y: number } | null),
+ *   realm?: () => (((o: any) => Promise<any>) | null),   // PHASE 7: the realm record's act (realmSaves.js realmGoldAct), for a market's gold
+ *   wallet?: (region: number) => any,   // PHASE 7: the purse (scenes/homeYards.js homeYardWallet)
  *   nowMs?: () => number,
  * }} deps
  */
-export function createFarmBook({ io, character, territory, places, climateAt, here, nowMs = Date.now }) {
+export function createFarmBook({ io, character, territory, places, climateAt, here, nowMs = Date.now, realm = null, wallet = null }) {
   /** @type {any[]} */
   let all = [];
   /** @type {any} */
@@ -124,6 +128,29 @@ export function createFarmBook({ io, character, territory, places, climateAt, he
       refresh();
       const f = mine?.farms?.find((x) => (x.mapId >>> 0) === (mapId >>> 0));
       return f && atFarm(mapId) ? f : null;
+    },
+    /** PHASE 7: the farm the player stands at, if it holds its market today - any Company's, the player's own or not: on market
+     *  day the gate lets a visitor into Farming Mode for the market green alone (the service judges every act). */
+    marketHere: (mapId) => {
+      if (!place(mapId) || !atFarm(mapId) || !marketToday(mapId >>> 0, nowMs() / 1000)) return null;
+      refresh();
+      const f = all.find((x) => (x.mapId >>> 0) === (mapId >>> 0));
+      return f ? { ...f, name: place(mapId)?.name ?? 'A farm', visitor: true } : null;
+    },
+    /** PHASE 7: an act on a farm's market (`/v1/farms/market`). A buy and a prize collected move gold on the realm record: the
+     *  purse is reserved first and given back on a refusal, as a deposit to a Company's treasury does. */
+    market: async (mapId, body = {}) => {
+      const door = io?.(), ch = character?.();
+      if (!door) return { ok: false, error: 'offline' };
+      if (body.op !== 'buy' && body.op !== 'collect') return farmMarketAct(door, { ...body, mapId, character: ch });
+      const act = realm?.(), w = wallet?.(place(mapId)?.region ?? 0);
+      if (!act || !w || !ch) return { ok: false, error: 'realm-needed' };
+      if (body.op === 'buy') {
+        const cost = saleOf(body.material, body.qty).cost, have = typeof w.gold === 'function' ? w.gold() : w.gold;
+        if (!(cost > 0) || have < cost) return { ok: false, error: 'gold' };
+        return act({ reserve: walletReserve(w, cost).reserve, call: (at) => farmMarketAct(door, { ...body, mapId, character: ch, realm: at }) });
+      }
+      return act({ apply: (r) => { if (r?.data?.gold) w.credit(r.data.gold); }, call: (at) => farmMarketAct(door, { ...body, mapId, character: ch, realm: at }) });
     },
     hereKey: () => { const me = here?.(); return me ? `${me.x},${me.y}` : ''; },
     visibleHere: () => { const me = here?.(); return places().find((p) => p.px === me?.x && p.py === me?.y) ?? null; },

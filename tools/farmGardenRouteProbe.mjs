@@ -5,7 +5,8 @@ import { rolldown } from 'rolldown';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import assert from 'node:assert/strict';
-import {emptyFarmProgress} from '../src/net/farmProgressLaw.js';
+import {emptyFarmProgress, farmWeek} from '../src/net/farmProgressLaw.js';
+import {marketToday} from '../src/net/farm/marketLaw.js';   // PHASE 7
 const root = fileURLToPath(new URL('..', import.meta.url));
 const work = resolve(process.env.BUNNYFALL_PROBE_DIR || root + '/scratch/farm-route-probe'); mkdirSync(work, { recursive: true });
 const require = createRequire(root + '/server/package.json');
@@ -164,5 +165,90 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, replay rejection and read-only visitors.');
+  // PHASE 7: MARKET DAY - stalls stocked from the Stores, bought with a realm record's gold, contests entered and judged once
+  {
+    const memberSecret=guest.data.secret, nowS=Math.floor(Date.now()/1000), today=Math.floor(nowS/86400);
+    let mk=1000;while(!marketToday(mk,nowS))mk++;
+    let off=2000;while(marketToday(off,nowS))off++;
+    for(const m of [mk,off])await db.prepare("INSERT INTO company_farms (map_id,guild_id,name,crop,climate,region,day,bought_at) VALUES (?,'farmtest','Market farm','food',223,17,1,1)").bind(m).run();
+    const asMember=(route,b)=>{secret=memberSecret;return req(route,b);};
+    const mb={character:'farmchar',mapId:mk};
+    await db.prepare("INSERT INTO guild_prof_stores (guild_id,material,dep_player,dep_char,qty,moved_by,moved_at) VALUES ('farmtest','food:grain','','',100,'t',1) ON CONFLICT (guild_id,material,dep_player,dep_char) DO UPDATE SET qty=100").run();
+    const stores=async(m)=>Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material=? AND dep_player=''").bind(m).first()).q);
+    const stall=async(slot=0)=>db.prepare('SELECT * FROM farm_stalls WHERE map_id=? AND day=? AND slot=?').bind(mk,today,slot).first();
+    const read0=await asMember('/v1/farms/market',{...mb,op:'read'});assert.equal(read0.status,200,JSON.stringify(read0));assert.equal(read0.data.market.day,today);assert.deepEqual([...read0.data.contests].sort(),['sheaf','show']);
+    assert.equal((await asMember('/v1/farms/market',{character:'farmchar',mapId:off,op:'stock',slot:0,material:'food:grain',qty:10})).status,409,'No stocking off market day');
+    const s1=await asMember('/v1/farms/market',{...mb,op:'stock',slot:0,material:'food:grain',qty:10});assert.equal(s1.status,200,JSON.stringify(s1));
+    assert.equal(await stores('food:grain'),90,'A stocked lot leaves the Stores');assert.equal((await stall()).qty,10);
+    assert.equal((await asMember('/v1/farms/market',{...mb,op:'stock',slot:0,material:'food:corn',qty:10})).data.error,'farm-market-full','A stall holds one thing');
+    assert.equal((await asMember('/v1/farms/market',{...mb,op:'stock',slot:0,material:'food:grain',qty:10})).status,200);assert.equal((await stall()).qty,20);
+    assert.equal((await asMember('/v1/farms/market',{...mb,op:'stock',slot:1,material:'food:grain',qty:11})).data.error,'farm-market-bad','A lot is ten at most');
+    // a visitor of no Company: sees the stall, buys with the record's gold, once
+    const visitor=await req('/v1/auth/guest',{terms:true,privacy:true},false);secret=visitor.data.secret;
+    const vid=(await db.prepare('SELECT id FROM players WHERE id!=? ORDER BY rowid DESC').bind(player.id).first()).id;
+    await db.prepare("UPDATE players SET handle='Visitor', handle_lc='visitor' WHERE id=?").bind(vid).run();
+    assert.equal((await req('/v1/farms/market',{mapId:mk,op:'stock',slot:2,material:'food:grain',qty:1,character:'nobody'})).data.error,'farm-not-ours','Stocking is the Company\'s');
+    const seen=await req('/v1/farms/market',{mapId:mk,op:'read'});assert.equal(seen.data.stalls[0].qty,20);assert.equal(seen.data.stalls[0].price,5);
+    const born=await req('/v1/realm/create',{name:'Visitor'});assert.ok(born.data.id,JSON.stringify(born.data));
+    const {id:rid,lease}=born.data;
+    const put=await worker.fetch(`http://localhost/v1/realm/${rid}/data`,{method:'PUT',headers:{'content-type':'application/json',authorization:'Bearer '+secret,'x-realm-lease':lease,'x-realm-seq':'1'},body:JSON.stringify({v:1,level:1,goldPieces:1000,items:[]})});assert.equal(put.status,200,await put.text());
+    const treasury=async()=>Number((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury);
+    const treasury0=await treasury();
+    const buyBody={mapId:mk,op:'buy',character:rid,slot:0,material:'food:grain',qty:3,realm:{id:rid,lease,seq:1}};
+    const bought=await req('/v1/farms/market',buyBody);assert.equal(bought.status,200,JSON.stringify(bought));assert.equal(bought.data.realm.seq,2);
+    assert.equal(await treasury(),treasury0+14,'The Company is paid, less the pot\'s tenth');
+    const sale=await db.prepare('SELECT takings,pot FROM farm_markets WHERE map_id=? AND day=?').bind(mk,today).first();assert.deepEqual({takings:Number(sale.takings),pot:Number(sale.pot)},{takings:15,pot:1});
+    assert.equal(Number((await db.prepare("SELECT qty FROM prof_stores WHERE player=? AND material='food:grain' AND origin='bought'").bind(vid).first()).qty),3,'The goods wait in the buyer\'s Stores');
+    assert.equal((await stall()).qty,17);
+    const saved=await worker.fetch(`http://localhost/v1/realm/${rid}/data`,{headers:{authorization:'Bearer '+secret}});assert.equal((await saved.json()).goldPieces,985,'The record paid 15 gold');
+    const twice=await req('/v1/farms/market',buyBody);assert.equal(twice.status,409,'A buy asked again at the old sequence pays nothing');assert.equal((await stall()).qty,17);
+    assert.equal(await treasury(),treasury0+14);
+    const more=await req('/v1/farms/market',{...buyBody,qty:10,realm:{id:rid,lease,seq:2}});assert.equal(more.status,200,JSON.stringify(more));
+    assert.equal((await req('/v1/farms/market',{...buyBody,qty:10,realm:{id:rid,lease,seq:3}})).data.error,'farm-market-sold','No more than the stall holds');
+    // contests: a visitor enters the sheaf once; the show is the Company's; a member enters from the farm
+    const sheaf1=await req('/v1/farms/market',{mapId:mk,op:'enter',contest:'sheaf',character:rid});assert.equal(sheaf1.status,200,JSON.stringify(sheaf1));
+    assert.equal((await req('/v1/farms/market',{mapId:mk,op:'enter',contest:'sheaf',character:rid})).data.error,'farm-market-entered');
+    assert.equal((await req('/v1/farms/market',{mapId:mk,op:'enter',contest:'show',character:rid})).data.error,'farm-market-members');
+    const mg=await asMember('/v1/farms/garden',{...mb,op:'read'});let mv=mg.data.version;
+    for(const op of ['hoe','plant','water']){const st=await asMember('/v1/farms/garden',{...mb,op,bed:0,crop:'grain',version:mv});assert.equal(st.status,200,JSON.stringify(st));mv=st.data.version;}
+    const gm=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=?').bind(mk).first()).garden);
+    gm.beds[0].grown=6*3600;gm.beds[0].care=5;gm.beds[0].traits=['showy'];gm.herd=[{id:1,kind:'cow',name:'Bessie',tick:nowS,fedUntil:nowS+86400,wateredUntil:nowS+86400,content:80}];
+    await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=?').bind(JSON.stringify(gm),mk).run();
+    const sheaf2=await asMember('/v1/farms/market',{...mb,op:'enter',contest:'sheaf'});assert.equal(sheaf2.status,200,JSON.stringify(sheaf2));assert.equal(sheaf2.data.entered.snapshot.care,5);
+    const show=await asMember('/v1/farms/market',{...mb,op:'enter',contest:'show',animal:1});assert.equal(show.status,200,JSON.stringify(show));assert.equal(show.data.entered.snapshot.content,80);
+    assert.equal((await asMember('/v1/farms/market',{...mb,op:'enter',contest:'show',animal:1})).data.error,'farm-market-entered');
+    // THE JUDGING, once: a past market with entries and a pot of 100; two ribbons in the sheaf, one in the show
+    const past=today-3,week=farmWeek(past*86400);
+    await db.prepare('INSERT INTO farm_markets (map_id,day,pot) VALUES (?,?,100)').bind(mk,past).run();
+    const entry=(contest,account,score)=>db.prepare("INSERT INTO farm_market_entries (map_id,day,contest,account,char_id,name,snapshot,score,at) VALUES (?,?,?,?,?,?,'{}',?,1)").bind(mk,past,contest,account,'c',account===player.id?'Farmer':'Visitor',score).run();
+    await entry('sheaf',player.id,80);await entry('sheaf',vid,60);await entry('show',vid,90);
+    await db.prepare('INSERT INTO farm_stalls (map_id,day,slot,guild_id,material,qty,price) VALUES (?,?,0,?,?,7,6)').bind(mk,past,'farmtest','food:corn').run();
+    const cornBefore=await stores('food:corn'),workBefore=Number((await fw()).farm_work);
+    assert.equal((await asMember('/v1/farms/market',{...mb,op:'read'})).status,200);
+    assert.equal(await stores('food:corn'),cornBefore+7,'Unsold stock goes back to the Company Stores');
+    const awards=(await db.prepare('SELECT contest,ribbon,account,counted,work,gold FROM farm_market_awards WHERE map_id=? AND day=? ORDER BY contest,ribbon').bind(mk,past).all()).results;
+    assert.deepEqual(awards.map((a)=>[a.contest,a.ribbon,a.account===player.id?'member':'visitor']),[['sheaf','blue','member'],['sheaf','red','visitor'],['show','blue','visitor']],JSON.stringify(awards));
+    assert.equal(Number((await fw()).farm_work),workBefore+100,'A counted blue ribbon is 100 farm work');
+    assert.equal(Number((await db.prepare('SELECT gold FROM farm_market_prizes WHERE account=?').bind(vid).first()).gold),15+25,'The pot pays by place');
+    await asMember('/v1/farms/market',{...mb,op:'read'});await req('/v1/farms/market',{mapId:mk,op:'read'});
+    assert.equal(await stores('food:corn'),cornBefore+7,'Returned once');assert.equal(Number((await fw()).farm_work),workBefore+100,'Judged once');
+    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM farm_market_awards WHERE map_id=? AND day=?').bind(mk,past).first()).n,3);
+    // the weekly three: with three counted ribbons already in the week, a fourth is no farm work
+    const past2=today-4,week2=farmWeek(past2*86400);
+    await db.prepare("INSERT INTO farm_market_awards (map_id,day,contest,ribbon,account,name,score,week,counted,work,gold) VALUES (1,?1,'x','blue',?2,'m',1,?3,1,100,0),(1,?1,'y','blue',?2,'m',1,?3,1,100,0),(1,?1,'z','blue',?2,'m',1,?3,1,100,0)").bind(past2,player.id,week2).run();
+    await db.prepare('INSERT INTO farm_markets (map_id,day,pot) VALUES (?,?,0)').bind(mk,past2).run();
+    await db.prepare("INSERT INTO farm_market_entries (map_id,day,contest,account,char_id,name,snapshot,score,at) VALUES (?,?,'sheaf',?,'c','Farmer','{}',50,1)").bind(mk,past2,player.id).run();
+    const wk=Number((await fw()).farm_work);
+    await asMember('/v1/farms/market',{...mb,op:'read'});
+    assert.equal((await db.prepare("SELECT counted FROM farm_market_awards WHERE map_id=? AND day=?").bind(mk,past2).first()).counted,0,'The fourth ribbon of a week is not counted');
+    assert.equal(Number((await fw()).farm_work),wk,'and earns no farm work');
+    // the prize collected into the record's purse, once
+    secret=visitor.data.secret;
+    const prizeBody={mapId:mk,op:'collect',character:rid,realm:{id:rid,lease,seq:3}};
+    const collected=await req('/v1/farms/market',prizeBody);assert.equal(collected.status,200,JSON.stringify(collected));assert.equal(collected.data.gold,40);
+    assert.equal((await req('/v1/farms/market',prizeBody)).status,409,'A collection asked again pays nothing');
+    assert.equal((await req('/v1/farms/market',{...prizeBody,realm:{id:rid,lease,seq:4}})).data.error,'farm-market-nothing');
+    secret=visitor.data.secret;
+  }
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, replay rejection and read-only visitors, and market day: stalls stocked from the Stores, goods bought with a realm record gold once, contests entered, judged once, the weekly three ribbons and the prize pot collected.');
 } finally {await mf.dispose();}

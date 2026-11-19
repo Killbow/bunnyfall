@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). Phases 4 to 7 are designed here. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. **Phase 2a built** the same day: farm work, the three titles with First Light, and the climate crops with the seasons. **Phase 2b built** too: care and the four grades, weeds, birds and the field games (sowing, weeding, scything, chasing birds). **Phase 2c built**: strains. **Phase 3 built**: livestock (as built: no naming, no escaped-pig game, posts without rails; there are no chickens, sheep or goats in the data). **Phase 7 built** in part: market day, stalls, visitors, two contests and ribbons as farm work (as built: see section 9). Phases 4 to 6 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -565,6 +565,8 @@ law (the farm's seed), so the service only writes a row when something happens. 
 the day closes, once, with a claimed revision so it pays once.
 
 ---
+
+**As built (Phase 7).** The day, the contests, the prices and the scoring are `src/net/farm/marketLaw.js`; the route is `/v1/farms/market` (`server-account/src/farmMarkets.js`, migration 0219: `farm_markets`, `farm_stalls`, `farm_market_entries`, plus `farm_market_awards` and `farm_market_prizes` for the ribbons and the pot's gold). Built: the market green (four stalls, two judging tables, flats only), visitors in Farming Mode limited to the green, stocking (a lot of ten from the communal Stores), buying (the buyer's realm record pays, the Company's treasury gains it less the pot's tenth, the goods go to the buyer's own Stores), unsold stock returned once, the heaviest sheaf and best in show, judging once on the first read after the day, ribbons as farm work (blue 100, red 60, white 30, three counted a week) and the pot's gold, collected at a table. **Left out:** the climates-calories tent (a 3D mesh, not a flat), bunting (new art), the villager crowd, the crier and map marks, the pie and the pot (a dish cannot yet be carried to a table), the brewers' bench (Phase 4), the ploughing and scything races, the beast show (Phase 5), ribbons as hangable decor items (they are farm work and a line at the post only), withdrawing an entry, and the judge's walk at dusk. A visitor's sheaf is a crop in their own Stores shown, not spent, and judged as plain.
 
 ## 10. Rewards: three titles and an aura
 
