@@ -1,7 +1,8 @@
 // @ts-check
 // Ordered hooks the world host runs at fixed points of its frame, so a feature registers here instead of growing it.
 // Hooks run in registration order; a throw is logged and the next hook still runs. dispose() runs when the loop ends.
-// Wired so far: preModal (before the modal arm), postMotor (after the player's motor), translucentDraw, and dispose.
+// Wired so far: preModal (before the modal arm), postMotor (after the player's motor), indoorFrame (in the modal arm),
+// translucentDraw, and dispose.
 
 export const WORLD_ADDON_HOOKS = Object.freeze(['preModal', 'postMotor', 'exteriorSim', 'exteriorDraw', 'translucentDraw',
   'indoorFrame', 'originRebase', 'modeChange', 'dispose']);

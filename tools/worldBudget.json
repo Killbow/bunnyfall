@@ -1,9 +1,9 @@
 {
   "file": "src/scenes/world.js",
   "host": "bootWorld",
-  "nonEmptyLines": 15782,
-  "staticImports": 890,
-  "hostBindings": 1155,
+  "nonEmptyLines": 15718,
+  "staticImports": 892,
+  "hostBindings": 1153,
   "frameBytecode": {
     "src/scenes/world.js": 36500,
     "src/scenes/worldModes.js": 43000,

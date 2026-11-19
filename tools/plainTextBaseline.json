@@ -1525,7 +1525,7 @@
   "src/scenes/tavernPatronSkins.js": 2,
   "src/scenes/touchFx.js": 2,
   "src/scenes/vampire/vampireFeed.js": 6,
-  "src/scenes/world.js": 1063,
+  "src/scenes/world.js": 1042,
   "src/scenes/worldModes.js": 1603,
   "src/systems/eliteDungeons/edFight.js": 4,
   "src/systems/eliteGates/egAir.js": 27,

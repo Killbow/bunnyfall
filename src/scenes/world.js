@@ -45,7 +45,7 @@ import { DFPalette } from '../formats/dfPalette.js';
 import { MapsFile, getWorldClimateSettings, longitudeLatitudeToMapPixel, getPixelFromPixelID, REGION_RACES, LOCATION_TYPES, CLIMATES, REGION_NAMES } from '../formats/mapsFile.js';   // SPAWNED-DUNGEONS1: the ocean gate and the synthesized location's region name
 import { questTracker } from '../ui/questTracker.js';   // GUIDE5: the quest the player follows - its places, marked
 import { marksOn, questMapMarks } from '../ui/questMarks.js';    // GUIDE5: where the quests point, on the held map and the compass; BOAT-MARK: where my boats lie, on the compass
-import { settlementsOf, retryModRoads, WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
+import { WATER_BYTE } from '../world/roadsProducer.js';   // ROADS 3 / AUDIT ROADS F2 / ROADS 22; WOD2: Basic Roads' getPathsPoint, the question World of Daggerfall's loader asks
 import { modSetting, modSettingsGeneration, latchModLoaded } from '../mods/modSettings.js';   // ROADS 24; HCC: the mod's eight switches; CSA-D: a mod's title for the load's failure line; AUDIT PRE-MERGE 0928 S4: the next-load mods latched at mount
 import { hasPortFor, hasPort, PORT_LOCATION_IDS, maskMapId } from '../travel/travelPorts.js';   // AUDIT-RR2 G22: Travel Options' port list for RR's ship gate; SEAT2b part two: a members' Harbour among them (hasPortFor)
 import { WoodsFile } from '../formats/woodsFile.js';
@@ -408,7 +408,7 @@ import { isEntityWaterWalking, assignModBundle, removeBundleNamed, WATER_WALKING
 import { gateClearFor, createGateClearSweep } from '../world/gateClearance.js';   // GATE-CLEAR: WoD's rock off the day's Oblivion Gate
 import { staffMapMarks } from '../worldEvents/staffEvents.js';   // EVENT-EXTRAS: the staff events' map marks
 import { raidMapMarks } from '../ui/eventMapMarks.js';   // EVENT-TIP: the towns under attack, on the held map
-import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, mapPixelToWorldCoords, SCENE_MAP_RATIO, nearestFirstFrom } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
+import { StreamingWorldState, TerrainSlots, worldCoordToMapPixel, locationWorldRect, mapPixelToWorldCoords, SCENE_MAP_RATIO } from '../world/streamingWorld.js';   // HCC: StreamingWorld.SceneMapRatio; AUDIT BRANCH (WoD) L1-3: DFU's terrain array; AUDIT 68 S22: the load list's one order
 import { createPeerRiders, createPeerWalkers, createEotbArt } from '../net/peerRiders.js';   // RIDE: another player in the saddle   // HCC: Horse Cart and Cargo's presentation - the wagon's five pieces, the horse's eight views, the peers' teams
 import { createHorseCartRuntime } from '../travel/horseCart.js';   // HCC: TrailingWagonRuntime over this host's seams
 import { registerContainerLootHandler } from '../items/containerLoot.js';   // THE MERGE: CSA-H's shelf subscriber, by its mod's name, on PlayerActivate.OnLootSpawned's one home
@@ -679,6 +679,8 @@ import { drawGateBossBar } from '../ui/gateBossBar.js';
 import { sifritBarModel } from '../ui/sifritBar.js';
 import { createWorldAddons } from './worldAddons.js';
 import { createCromwarkSealHost } from './cromwarkSealHost.js';
+import { createRoadSweep } from './roadSweep.js';
+import { createStreetRigs } from './streetRigs.js';
 import { createCromwarkBlight } from '../world/wild/cromwarkBlight.js';
 import { createCromwarkReachHost } from './cromwarkReachHost.js';
 import { DuelWallRenderer } from '../render/duelWall.js';   // DUEL1: the ring's holographic wall
@@ -1363,73 +1365,9 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   // roadless world - it is the port's own network (ROADS 3), the same
   // fallback a map his arrays cannot load already takes.
   const basicRoadsOn = modSetting('roads-hazelnut', 'Enabled');
-  // ROADS 25 (Mac: "some roads are missing even though they show on
-  // the map"): the network arrives AFTER the world has started
-  // building, so the first pixels - the ones around the spawn - were
-  // painted with no network and then kept. The map rebuilt itself on
-  // arrival; the terrain never did. Every pixel painted without a
-  // network is torn down here, and the stream rebuilds it with one.
-  // Called on BOTH arrival paths - the mod's data and our own network.
-  //
-  // FIX-C (2026-09-08, Mac: "players on first start either spawn in the
-  // ground or the sky"): THIS SWEEP WAS THE FIRST START'S BUG. It tore
-  // the pixels down and re-queued NOTHING - `destroyPixel` deletes the
-  // terrain, the collider bucket and the `built` entry, and the stream
-  // never asks for a key it still holds in `loaded` - so the start pixel
-  // could not come back until the player walked four pixels away. The
-  // boot walk is the one arrival that never re-inits the streamer (every
-  // load, travel and teleport goes through _teleportToPixel, which
-  // does), so only a NEW GAME saw it, and it saw it two ways on one
-  // race: the network landing before the first frame emptied `built`
-  // of the start key and the boot gate below never fired - the camera
-  // stood forty units up over a hole, the motor frozen (the sky); the
-  // network landing after the stand deleted the ground and the collider
-  // from under a standing player with nothing to bring them back (the
-  // ground). The season re-skin (tickSeason) is the same teardown done
-  // right: destroy, re-queue nearest-first, hold the motor on the
-  // player's own pixel until it stands again. This is that shape. And
-  // it runs on the FRAME rather than in the fetch's `.then`, for the
-  // reason the season's does: a pixel in flight must publish before its
-  // key is torn down (`building`), and the hold reads state the boot
-  // walk has not declared while the fetch can still resolve.
-  let roadsSweepDue = false;
-  function rebuildRoadless() { roadsSweepDue = true; }
-  function sweepRoadless() {
-    _dropRoadedSpawns();   // SPAWN-ROADS: before the rebuild, so a crossed pixel comes back without its ruin
-    const again = [];
-    for (const [, p] of [...built]) if (!p.withRoads) again.push({ px: p.px, py: p.py });
-    if (!again.length) return;
-    const under = `${state.current.x},${state.current.y}`;
-    if (walkMode && playerSpawned && again.some((k) => `${k.px},${k.py}` === under)) _seasonHoldKey = under;
-    for (const k of again) destroyPixel(k.px, k.py, { collectLoose: false });
-    queue.push(...again.sort(nearestFirstFrom(state.current)));
-    console.log(`[roads] ${again.length} pixel(s) built before the network landed - rebuilt with roads`);
-  }
-  bootReads().roads.then((his) => {
-    if (!basicRoadsOn) {
-      console.log('[roads] Basic Roads off in the Mods pane - generating the port\'s own network');
-      terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-      rebuildRoadless();
-      return;
-    }
-    if (his) { terrainGen.setRoadsData({ ...his, ...roadSwitches }, (st) => console.log(`[roads] Basic Roads, 1:1: ${st.roadPixels ?? '?'} road pixels (Hazelnut)${roadSwitches.water ? ', rivers and streams on' : ''}${roadSwitches.smooth ? '' : ', smoothing off'}`)); rebuildRoadless(); return; }
-    // AUDIT LANDFORMS C3: ONLINE, HIS NETWORK OR NONE YET. The room's ground is cut along his arrays (the lane forces the
-    // mod, onlineLane.js), and one failed fetch stood this client on the port's own network - other roads, no rivers: with
-    // the Landforms row a river pixel's ground a median 4.8 m off its peers'. Asked again (retryModRoads, WOD6's backoff);
-    // the pixels stand roadless meanwhile and ROADS 25 rebuilds them when the arrays land - the port's own network only
-    // once every try has failed.
-    if (params.has('online')) {
-      retryModRoads({ onTry: (n, ms) => console.warn(`[roads] Basic Roads data did not load - asking again in ${ms / 1000} s (online: the room's network)`) }).then((late) => {
-        if (late) { terrainGen.setRoadsData({ ...late, ...roadSwitches }, (st) => console.log(`[roads] Basic Roads, 1:1, landed late: ${st.roadPixels ?? '?'} road pixels (Hazelnut)`)); rebuildRoadless(); return; }
-        console.warn('[roads] Basic Roads data did not load on any try - generating our own network');
-        terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-        rebuildRoadless();
-      });
-      return;
-    }
-    console.warn('[roads] Basic Roads data did not load - generating our own network');
-    terrainGen.setRoads(settlementsOf(maps), logRoads, roadSwitches);
-    rebuildRoadless();
+  const roadSweep = createRoadSweep({
+    dropRoadedSpawns: () => _dropRoadedSpawns(), built: () => built, state: () => state, walkMode: () => walkMode, playerSpawned: () => playerSpawned,
+    holdSeason: (key) => { _seasonHoldKey = key; }, destroyPixel, queue: () => queue, basicRoadsOn, terrainGen, maps, logRoads, roadSwitches, params,
   });
   // WOD2: WORLD OF DAGGERFALL (Kamer, vendor/world-of-daggerfall/) - the
   // page's one LocationLoader, opened as the world mounts:
@@ -13300,6 +13238,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
   }) : null;
   // BUNNYFALL (Cromwark, scenes/cromwarkHost.js): the reach's haze and its counter, the Dusk Tokens, the Guild camp and Nyx
   const worldAddons = createWorldAddons();
+  worldAddons.register(createStreetRigs({ livingRoads: () => livingRoads, familyStreet: () => familyStreet, folkStreet, streetPeople, standingHorses }));
   const sealHost = createCromwarkSealHost({
     exteriorData: locationIndex.get('823,35')?.exterior?.exteriorData, state, built, worldHeight, landformsHere, player, cam, walkMode, renderer,
     woods: () => woods, playerSpawned: () => playerSpawned, bootLoaded: () => _bootLoaded, loading: () => _loading,
@@ -15489,11 +15428,11 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
   });
   const { frameIndoorsPhase, frameStreetPhase } = createIndoorsFrame({
     _bandChase, _dwSwimSound, _fr, _snowPixels, ambience, bandDrop, built, canvas, caravanStep, crewAshoreTick,
-    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying, folkStreet,
+    crewFlatDrawn, csa, dwFish, dwFishFrame, dwLoot, dwLootLetGoVelocity, dwPlayer, dwPlaying,
     foragingWait, frame, gamePaused, gateVeil, hccTick, heatHaze, legacyStep, LIVING_CARRIED_SLICE_MS,
     livingCarriedStep, livingDiversStep, livingIndoorsStep, livingMemoFresh, livingRemainsStep, livingWays, maps,
     minuteNow, modes, player, playerTravelPixel, renderer, revenantAshoreTick, sky, snowBodies, snowCover, snowfall,
-    soundscape, standingHorses, streetPeople, townTalk, windAudio, windfall, wodArrivalOf, worldMoveBusy,
+    soundscape, townTalk, windAudio, windfall, wodArrivalOf, worldAddons, worldMoveBusy,
     get _dwFishInside() { return _dwFishInside; }, set _dwFishInside(v) { _dwFishInside = v; },
     get _farmSyncT() { return _farmSyncT; }, set _farmSyncT(v) { _farmSyncT = v; },
     get _wodArrival() { return _wodArrival; }, set _wodArrival(v) { _wodArrival = v; },
@@ -15501,9 +15440,7 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get bountyFarms() { return bountyFarms; },
     get bountyHost() { return bountyHost; },
     get eliteDungeonFight() { return eliteDungeonFight; },
-    get familyStreet() { return familyStreet; },
     get gatherHost() { return gatherHost; },
-    get livingRoads() { return livingRoads; },
     get oceanHoles() { return oceanHoles; },
     get questBridge() { return questBridge; },
     get season() { return season; },
@@ -15608,9 +15545,9 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     csaSeaReach, distantStorms, dread, dreadStorm, dwPlayer, dwPlaying, egWitnessEye, etherSea, eventPillar,
     FALL_LIGHT, fieldCellsHere, fieldXZ, gamePaused, gateOmen, gateSkyTranslate, gateStorm, hcc, hccActionPressed,
     hccTick, jungle, magic, mapGroundHere, maps, minuteNow, modes, params, peerGrow, player, playerTicker,
-    playerTravelPixel, refreshHomeLooks, renderer, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
+    playerTravelPixel, refreshHomeLooks, renderer, roadSweep, sdAirNow, sdHost, seasons, seaVentures, shownWeather, sky,
     snowBodies, snowCover, snowfall, snowNpcs, snowPlayer, soundscape, spyglass, spyglassStep, state, stormLights,
-    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepRoadless, sweepSdLate, sweepWodLate, tickCityGates,
+    sunbaby, sunbabyGround, sunbabyRain, sweepGateClear, sweepSdLate, sweepWodLate, tickCityGates,
     tickSeason, tickWodSpawners, touch, townTalk, tvBandSpritesStep, tvJourneyUp, walkMode, weatherFront,
     weatherOverride, weatherStale, weatherTerms, windAudio, windfall, yards,
     get _driverBodySeat() { return _driverBodySeat; }, set _driverBodySeat(v) { _driverBodySeat = v; },
@@ -15633,7 +15570,6 @@ const _pixelOrder = [];   // NEAR-FIRST: the frame's pixel walk, nearest first -
     get naval() { return naval; },
     get playerSpawned() { return playerSpawned; },
     get poiEditor() { return poiEditor; },
-    get roadsSweepDue() { return roadsSweepDue; }, set roadsSweepDue(v) { roadsSweepDue = v; },
     get season() { return season; },
     get seasonsActive() { return seasonsActive; },
     get seenArrival() { return seenArrival; }, set seenArrival(v) { seenArrival = v; },
