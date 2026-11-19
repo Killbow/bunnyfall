@@ -21,7 +21,7 @@ import { createFarmGameWidget } from '../ui/farmGames.js';
 import { bedBlighted, prowlHere } from '../net/farm/threatLaw.js';   // PHASE 6: blight and prowlers
 import { createBirdArt } from '../world/farm/birdArt.js';
 import { strainOf } from '../net/farm/strainLaw.js';   // PHASE 2c: strains
-import { ANIMALS, contentAt, droverHere, CONTENT_GOOD, FED_S, WATERED_S } from '../net/farm/herdLaw.js';   // PHASE 3: the herd
+import { ANIMALS, contentIn, droverHere, CONTENT_GOOD, FED_S, WATERED_S } from '../net/farm/herdLaw.js';   // PHASE 3: the herd
 import { createHerdArt } from '../world/farm/herdArt.js';
 import { farmWeek } from '../net/farmProgressLaw.js';
 import { traitWord } from './farm/farmsteadActs.js';
@@ -31,6 +31,12 @@ import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
 import { createFarmsteadActs } from './farm/farmsteadActs.js';
 import { createWorkshopActs, workshopTarget, workshopErrors } from './farm/workshopActs.js';   // PHASE 4: the workshops
 import { workshopStages } from '../net/farm/workshopLaw.js';
+import { createStationActs } from './farm/stationActs.js';   // PHASE 5: sworn beasts on the farm
+import { createStationArt } from '../world/farm/stationArt.js';
+import { stationsOf, ploughReady, herdKeep, greenhouse } from '../net/farm/stationLaw.js';
+import { setStationHome } from '../systems/revenant/revenantCompanions.js';
+import { postIndexOf } from '../world/farm/farmstead.js';
+import { FARM_SEEDS } from '../net/farm/cropLaw.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
 /** The farmyard's lanterns lit at night: within this reach of me, m, and at most this many (the town's lamps keep the rest). */
@@ -45,6 +51,8 @@ export function createFarmingMode(deps) {
   let careful = false, game = null;
   const birds = createBirdArt(deps.renderer, deps);
   const herdArt = createHerdArt(deps.renderer, deps); let herdSpots = [];   // PHASE 3: where each animal was drawn this frame   // the fixture under the pointer; officers' Company funds read while they use one
+  const stationArt = createStationArt(deps.renderer, deps); let stationSpots = [], stationLast = performance.now();   // PHASE 5: where each stationed beast was drawn this frame
+  if (!deps.passive) setStationHome((mapId) => { const own = deps.farms()?.mine()?.farms; return own ? own.some((f) => f.mapId === mapId) : undefined; });   // PHASE 5: a lost farm's post lets its beast come home
   let releaseHotbar = null, entering = false, mayManage = false, economy = null, farmWork = null;   // farmWork: my farm work, read with the ledger
   let farm = null, site = null, garden = emptyGarden(), version = -1, serverOffset = 0;
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
@@ -84,7 +92,7 @@ export function createFarmingMode(deps) {
     if (token !== epoch || !r?.ok || !validGarden(r.data?.garden)) return false;
     const data = r.data;
     if (data.version < version) return false;
-    garden = data.garden; version = data.version; serverOffset = data.nowS - Date.now() / 1000; return true;
+    garden = data.garden; version = data.version; serverOffset = data.nowS - Date.now() / 1000; stationActs.sync(garden); return true;   // PHASE 5: the service's word wins for where a beast stands
   }
   async function read() {
     if (!farm || reading || busy) return;
@@ -105,12 +113,13 @@ export function createFarmingMode(deps) {
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); birds.dispose(); herdArt.dispose(); herdSpots = []; }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); birds.dispose(); herdArt.dispose(); herdSpots = []; stationArt.dispose(); stationSpots = []; }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
     if (game) {   // a field game holds the keys: Space plays it, Escape lays it down
       if (game.engine.state.kind === 'milk' && (e.code === 'KeyA' || e.code === 'KeyD')) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) game.engine.input({ key: e.code === 'KeyA' ? 'a' : 'd' }); return; }
+      if (game.engine.state.kind === 'plough' && (e.code === 'KeyA' || e.code === 'KeyD')) { e.preventDefault(); e.stopImmediatePropagation(); game.engine.input({ steer: e.code === 'KeyA' ? -1 : 1 }); return; }   // PHASE 5
       if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) game.engine.input(game.engine.state.kind === 'scythe' ? { hold: true } : { press: true }); return; }
       if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); endGame(false); return; }
     }
@@ -133,6 +142,7 @@ export function createFarmingMode(deps) {
     e.preventDefault(); e.stopImmediatePropagation(); height = Math.max(5, Math.min(14, height + Math.sign(e.deltaY) * .8));
   }
   function keyUp(e) {
+    if (game?.engine.state.kind === 'plough' && (e.code === 'KeyA' || e.code === 'KeyD')) { e.preventDefault(); e.stopImmediatePropagation(); game.engine.input({ steer: 0 }); return; }   // PHASE 5
     if (game && e.code === 'Space' && game.engine.state.kind === 'scythe') { e.preventDefault(); e.stopImmediatePropagation(); game.engine.input({ hold: false }); }
   }
   function up(e) { if (game && e.button === 0 && game.engine.state.kind === 'scythe') game.engine.input({ hold: false }); }
@@ -166,7 +176,7 @@ export function createFarmingMode(deps) {
     if (!dir) return;
     let nearest = Infinity;
     // FARM EXPANSION: a fixture before a bed when it stands nearer along the ray
-    for (const target of [...farmsteadTargets(site.farmstead).filter((x) => x.id !== 'drover' || droverNow()), ...sackTargets(), ...herdSpots.map((h) => ({ id: `animal:${h.id}`, animal: h.id, pos: h.pos, r: .8, h: h.h }))]) {
+    for (const target of [...farmsteadTargets(site.farmstead).filter((x) => x.id !== 'drover' || droverNow()).map((x) => stationActs.target(x, stationHeights)), ...sackTargets(), ...herdSpots.map((h) => ({ id: `animal:${h.id}`, animal: h.id, pos: h.pos, r: .8, h: h.h }))]) {
       const distance = rayHitsTarget(eye, dir, target);
       if (distance < nearest && deps.collider.raycast(eye, dir, distance) >= distance - .3) { nearest = distance; fixture = target; }
     }
@@ -194,6 +204,7 @@ export function createFarmingMode(deps) {
     if (target.id === 'drover') { drover(); return; }
     if (workshopTarget(target.id)) { workshops.use(target.id); return; }   // PHASE 4: a workshop's body, crate or shelf
     if (target.id === 'orderPost' && workshops.post()) return;   // PHASE 4: every fourth click, the week's product order
+    if (postIndexOf(target.id) >= 0) { stationActs.use(target); return; }   // PHASE 5: a beast post
     acts.use(target.id);
   }
   /** The sacks lying at their beds, placed (several at one bed side by side), less the ones on my shoulder. */
@@ -234,6 +245,8 @@ export function createFarmingMode(deps) {
     // PHASE 2: the hoe on a weedy planted bed weeds it; with Careful work on, sowing, weeding and scything are played
     // PHASE 6: the hoe on a blighted bed pulls the sick plants (the crop is lost, the bed stops spreading it)
     const here = shown().beds[selected], op = tool === 'hoe' && bedBlighted(here) ? 'pull' : tool === 'hoe' && here?.crop && bedWeedy(here, now(), gardenStage(here, now()) === 'ripe') ? 'weed' : tool;
+    // PHASE 5: with a grizzly stationed and Careful work on, the hoe on wild ground is the ploughing game - a whole row at once
+    if (careful && tool === 'hoe' && !here && ploughReady(garden)) { const row = stationActs.ploughRow(selected); if (row.length) { startGame('plough', { op: 'plough', beds: row }, bed); return; } }
     const [cropId, sid] = crop.split('#'), action = { op, bed: selected, beds: ids, crop: cropId, ...(sid ? { strain: Number(sid) } : {}) }, kind = gameForOp(op);
     // PHASE 2c: a harvest names the nearest other ripe bed of the same crop as its partner, for a cross
     if (op === 'harvest' && here?.crop) {
@@ -278,7 +291,7 @@ export function createFarmingMode(deps) {
     const t0 = now();
     if (a.fedUntil <= t0 + FED_S / 2) return 'feed';
     if (a.wateredUntil <= t0 + WATERED_S / 2) return 'water';
-    if (a.kind === 'cow' && a.milked !== Math.floor(t0 / 86400) && contentAt(a, t0) >= CONTENT_GOOD / 2) return 'milk';
+    if (a.kind === 'cow' && a.milked !== Math.floor(t0 / 86400) && contentIn(garden, a, t0) >= CONTENT_GOOD / 2) return 'milk';
     return null;
   }
   function tendAnimal(id, pos) {
@@ -303,7 +316,7 @@ export function createFarmingMode(deps) {
   }
   let droverPick = 0;
   function animalLine(a) {
-    const c = contentAt(a, now()), need = needOf(a);
+    const c = contentIn(garden, a, now()), need = needOf(a);
     const mood = c >= 80 ? t('farm.herd.happy', 'Happy') : c >= CONTENT_GOOD ? t('farm.herd.contentWord', 'Content') : c >= 25 ? t('farm.herd.restless', 'Restless') : t('farm.herd.unhappy', 'Unhappy');
     const what = need === 'feed' ? t('farm.herd.hungry', 'hungry - click to feed') : need === 'water' ? t('farm.herd.thirsty', 'thirsty - click to water') : need === 'milk' ? t('farm.herd.milkReady', 'ready to milk') : '';
     return `${a.name} the ${kindName(a.kind)} · ${mood}${what ? ` · ${what}` : ''}`;
@@ -323,6 +336,8 @@ export function createFarmingMode(deps) {
         if (r.data.work?.title) { deps.say?.(t('farm.stead.titleEarned', 'The factor tips his hat: "They\'re calling you {title} in town now."', { title: TITLE_TEXT[r.data.work.title] ?? r.data.work.title })); deps.titleEarned?.(r.data.work.title); }
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
         if(r.data.strain)deps.say?.(t('farm.stead.cross','A cross seed! The farm names it {name} - {traits}. It has a sack on the seed shelf now.',{name:r.data.strain.name,traits:r.data.strain.traits.map(traitWord).join(', ')}));
+        if(action.op==='station'||action.op==='recall'){stationActs.done(action,r.data);return;}   // PHASE 5
+        if(action.op==='plough'){notice(t('farm.beast.ploughed','The plough turns a row of {n} beds.',{n:action.beds.length}));deps.sound?.('hoe');return;}
         if(action.op==='herd'){notice(r.data.bought?t('farm.herd.bought','The drover hands over {name} the {kind}.',{name:r.data.bought.name,kind:kindName(r.data.bought.kind)}):r.data.milk?t('farm.herd.milked','{n} pails of milk go to the Company Stores.',{n:r.data.milk}):action.act==='muck'?t('farm.herd.mucked','You muck out the pen. The animals are glad of it.'):action.act==='feed'?t('farm.herd.fed','You fill the trough from the Company Stores.'):t('farm.herd.watered','You fill the water bucket at the well.'));return;}
         if(action.op==='workshop'){notice(workshops.done(action,r.data));return;}   // PHASE 4
         if(action.op==='burn'){notice(t('farm.stead.burnt','The seed is burnt; its place on the shelf is free.'));return;}
@@ -367,6 +382,13 @@ export function createFarmingMode(deps) {
       'farm-drover-sold':t('farm.herd.sold','The drover has already sold that one.'),
       'farm-herd-bad':t('farm.herd.bad','That cannot be done here.'),
       'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
+      'farm-station-full':t('farm.beast.full','Every post on this farm is taken.'),
+      'farm-station-post':t('farm.beast.postTaken','Another beast already stands at that post.'),
+      'farm-station-limit':t('farm.beast.limit','You already have two beasts stationed at the Company\'s farms.'),
+      'farm-station-none':t('farm.beast.none','That beast is not at the farm any more.'),
+      'farm-station-theirs':t('farm.beast.theirs','That beast is another\'s to call.'),
+      'farm-station-bad':t('farm.beast.bad','The farm will not take that beast.'),
+      'farm-plough-none':t('farm.beast.noPlough','No ploughing beast is stationed here.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
       ...workshopErrors(),   // PHASE 4
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
@@ -389,13 +411,15 @@ export function createFarmingMode(deps) {
     const dx = bed[0] - feet[0], dz = bed[2] - feet[2], len = Math.hypot(dx, dz);
     return len > .001 ? [dx / len, 0, dz / len] : [0, -1, 0];
   }
+  /** DFU's own Y/N question: where Company money moves, and where a sworn beast is stationed or called back. */
+  const askYN = (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
+      { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
+      { code: 'KeyN', label: t('farm.stead.no', 'N: no'), action: () => {} },
+    ] })); };
   const acts = createFarmsteadActs({
     garden: () => garden, now, mayManage: () => mayManage, busy: () => busy, economy: () => economy, work: () => farmWork, say: notice,
     setSeed: (id) => { crop = id; tool = 'plant'; }, held: () => crop,
-    ask: (lines, yes) => { if (!deps.show) return; deps.show(new ChoiceWindow({ lines, options: [
-      { code: 'KeyY', label: t('farm.stead.yes', 'Y: yes'), action: yes },
-      { code: 'KeyN', label: t('farm.stead.no', 'N: no'), action: () => {} },
-    ] })); },
+    ask: askYN,
     act: (action) => perform(action),
     wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
   });
@@ -408,6 +432,9 @@ export function createFarmingMode(deps) {
     ] })); },
     act: (action) => perform(action), wantFunds: () => { detailsUntil = Date.now() + 60000; nextRead = 0; },
   });
+  // PHASE 5: sworn beasts on the farm - the posts, the Y/N, the ploughing row; their drawing is stationArt's
+  const stationHeights = new Map();
+  const stationActs = createStationActs({ garden: () => garden, farm: () => farm, now, say: notice, busy: () => busy, ask: askYN, act: (a) => perform(a), passive: !!deps.passive, beds: () => site?.beds ?? [] });
   function status() {
     if (Date.now() < noticeUntil) return message;
     if (version < 0) return t('farm.mode.loading', 'Reading the shared beds...');
@@ -420,7 +447,7 @@ export function createFarmingMode(deps) {
   return {
     inspect: () => ({ active, farm: farm ? { ...farm } : null, version, fields: site?.fields ?? 0, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null, observers: [...observers.keys()],
       fixtures: farmsteadTargets(site?.farmstead).map((f) => ({ id: f.id, pos: [...f.pos], r: f.r, h: f.h })),
-      sacks: lyingSacks().map((x) => ({ id: x.id, crop: x.crop, pos: [...x.pos] })), carried: [...carried], animals: herdSpots.map((h) => ({ id: h.id, pos: [...h.pos], h: h.h })) }),
+      sacks: lyingSacks().map((x) => ({ id: x.id, crop: x.crop, pos: [...x.pos] })), carried: [...carried], animals: herdSpots.map((h) => ({ id: h.id, pos: [...h.pos], h: h.h })), stations: stationSpots.map((h) => ({ id: h.id, pos: [...h.pos], h: h.h })), stationEntries: stationsOf(garden).map((e) => ({ ...e })) }),
     get active() { return active; }, get eye() { return eye; }, get look() { return fwd; },
     get pitch() { return active && fwd ? Math.asin(Math.max(-1, Math.min(1, fwd[1]))) : null; },
     get face() { return active ? { yaw, up: leanedUp(yaw, .8), grow: 1 } : null; },
@@ -485,8 +512,10 @@ export function createFarmingMode(deps) {
       if (stead.ready) {
         if (!site.farmstead) {
           site.farmstead = layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
-          if (site.farmstead) site.farmstead.base = seedsFor(deps.farms()?.climateOf?.(farm.mapId) ?? null).map((s) => s.id);
+          if (site.farmstead) site.farmstead.climateBase = seedsFor(deps.farms()?.climateOf?.(farm.mapId) ?? null).map((s) => s.id);
         }
+        // PHASE 5: a stationed dragonling's greenhouse puts every seed on the shelf (a few beds under glass take them)
+        if (site.farmstead?.climateBase) { const base = greenhouse(garden) ? FARM_SEEDS.map((x) => x.id) : site.farmstead.climateBase; if (base.join() !== site.farmstead.base?.join()) site.farmstead.base = base; }
         // the shelf: the farm's seeds, then its strains of them (PHASE 2c)
         if (site.farmstead?.base) { const all = [...site.farmstead.base, ...(garden.strains ?? []).filter((x) => site.farmstead.base.includes(x.crop)).map((x) => `${x.crop}#${x.id}`)]; if (all.join() !== site.farmstead.seeds?.join()) site.farmstead.seeds = all; }
         if (site.farmstead?.seeds && !site.farmstead.seeds.includes(crop)) crop = site.farmstead.seeds[0] ?? 'grain';
@@ -494,7 +523,11 @@ export function createFarmingMode(deps) {
       }
       const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
       sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
-      herdSpots = herdArt.update(shown().herd ?? [], homeOf, now(), performance.now() / 1000); herdArt.draw(right, up);
+      herdSpots = herdArt.update(shown().herd ?? [], homeOf, now(), performance.now() / 1000, herdKeep(garden)); herdArt.draw(right, up);
+      // PHASE 5: each stationed beast at its post, as its own kind's foe sprite
+      const posts = new Map((site.farmstead?.fixtures ?? []).map((f) => [postIndexOf(f.id), f.pos]));
+      stationSpots = stationArt.update(stationsOf(garden).filter((e) => posts.has(e.post)).map((e) => ({ id: e.revenantId, mobileType: e.kind, pos: posts.get(e.post), post: e.post })), { dt: Math.min(.1, (performance.now() - stationLast) / 1000), eye }); stationLast = performance.now(); stationArt.draw(right, up);
+      stationHeights.clear(); for (const sp of stationSpots) stationHeights.set(sp.id, sp.h);
       birds.update(birdsHere(), Object.entries(garden.beds).filter(([, b]) => b?.crop).map(([id]) => site.beds[Number(id)]).filter(Boolean), now()); birds.draw(right, up);
       // PHASE 6: a prowler has no sprite - it is told in words to a member at the farm, once a visit
       if (active && prowlerNow() && told !== prowlerNow().id && ownHere()?.mapId === farm.mapId) { told = prowlerNow().id; notice(t('farm.threat.prowlSeen', 'Something is prowling toward the pens in the dark! Click the pen to drive it off.')); }
@@ -513,7 +546,7 @@ export function createFarmingMode(deps) {
           : (fixture.id === 'pen' || fixture.id === 'sty') && prowlerNow() ? t('farm.threat.prowlLabel', 'A wolf at the pens! Drive it off')
           : fixture.id === 'pen' || fixture.id === 'sty' ? t('farm.herd.penLabel', 'The {pen} · click to muck it out', { pen: fixture.id === 'pen' ? t('farm.herd.pen', 'pen') : t('farm.herd.sty', 'sty') })
           : workshopTarget(fixture.id) ? workshops.label(fixture.id)   // PHASE 4
-          : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : acts.label(fixture.id);
+          : fixture.id === 'drover' ? t('farm.herd.droverLabel', 'The drover, with animals for sale') : postIndexOf(fixture.id) >= 0 ? stationActs.label(fixture.id) : acts.label(fixture.id);
         hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
       }
       if (i >= 0) {

@@ -17,6 +17,7 @@ export const GAMES = Object.freeze({
   scythe: Object.freeze({ op: 'harvest', cap: 4, minMs: 3000 }),   // five wind-ups, ~4 s
   birds: Object.freeze({ op: 'birds', cap: 3, minMs: 5000 }),
   milk: Object.freeze({ op: 'milk', cap: 4, minMs: 3000 }),   // PHASE 3: ten strokes, ~3.5 s
+  plough: Object.freeze({ op: 'plough', cap: 3, minMs: 6000 }),   // PHASE 5: a grizzly's plough, held to the furrow's line
 });
 /** The longest a reported play may take, ms (a report older than this is a stale one). */
 export const GAME_MAX_MS = 120000;
@@ -66,15 +67,20 @@ export const WEED = Object.freeze({ cells: 9, spawn: .75, life: 1.05, count: 10,
 export const BIRDS = Object.freeze({ cells: 6, spawn: .8, life: 1.15, count: 12, decoy: 0 });
 /** Milking: A and D in turn, in the cow's rhythm - not too quick (she kicks the pail), not too slow. Ten strokes. */
 export const MILK = Object.freeze({ strokes: 10, fast: .22, slow: .75, seconds: 15 });
+/** Ploughing (PHASE 5): the furrow's line wanders across the field; A and D steer the plough, which drifts a little of itself.
+ *  The score is the share of the time the share is on the line (within `tol` of it, the field's width being 2). */
+export const PLOUGH = Object.freeze({ seconds: 12, speed: 1.5, drift: .35, tol: .24 });
+/** The furrow's line at `t` seconds, -.8..+.8. */
+export const ploughLine = (t) => .55 * Math.sin(t * .9) + .25 * Math.sin(t * 2.1 + 1);
 
 /**
  * A game of `kind`. `input` takes { press: true } (sow), { hold: boolean } (scythe) or { cell: n } (weed, birds).
- * @param {'sow'|'weed'|'scythe'|'birds'|'milk'} kind
+ * @param {'sow'|'weed'|'scythe'|'birds'|'milk'|'plough'} kind
  * @param {() => number} [rand]
  */
 export function createFarmGame(kind, rand = Math.random) {
   const s = { kind, t: 0, done: false, hits: 0, misses: 0, marks: /** @type {number[]} */ ([]),
-    hand: 0, power: 0, holding: false, lastPress: -1, lastKey: '', swings: 0, spawned: 0, next: .4,
+    hand: 0, power: 0, holding: false, pos: 0, steer: 0, onLine: 0, lastPress: -1, lastKey: '', swings: 0, spawned: 0, next: .4,
     /** @type {{ cell: number, born: number, decoy: boolean }[]} */ items: [] };
   const pop = kind === 'birds' ? BIRDS : WEED;
   function finish() { s.done = true; }
@@ -85,6 +91,11 @@ export function createFarmGame(kind, rand = Math.random) {
       if (s.done) return;
       const d = Math.max(0, Math.min(.1, dt)); s.t += d;
       if (kind === 'milk') { if (s.t >= MILK.seconds) finish(); }
+      else if (kind === 'plough') {
+        s.pos = Math.max(-1, Math.min(1, s.pos + (s.steer * PLOUGH.speed + PLOUGH.drift * Math.sin(s.t * 1.7 + 2)) * d));
+        if (Math.abs(s.pos - ploughLine(s.t)) <= PLOUGH.tol) s.onLine += d;
+        if (s.t >= PLOUGH.seconds) finish();
+      }
       else if (kind === 'sow') {
         const ph = (s.t % SOW.period) / SOW.period; s.hand = ph < .5 ? ph * 2 : 2 - ph * 2;
         if (s.t >= SOW.seconds) finish();
@@ -105,9 +116,10 @@ export function createFarmGame(kind, rand = Math.random) {
         if (s.spawned >= pop.count && !s.items.some((it) => !it.decoy)) finish();
       }
     },
-    /** @param {{ press?: boolean, hold?: boolean, cell?: number, key?: string }} e */
+    /** @param {{ press?: boolean, hold?: boolean, cell?: number, key?: string, steer?: number }} e */
     input(e) {
       if (s.done) return;
+      if (kind === 'plough') { if (typeof e.steer === 'number') s.steer = Math.max(-1, Math.min(1, e.steer)); return; }
       if (kind === 'milk' && (e.key === 'a' || e.key === 'd')) {
         const gap = s.t - (s.lastPress ?? -1), turn = e.key !== s.lastKey;
         if (s.lastKey && turn && gap >= MILK.fast && gap <= MILK.slow) s.hits++; else if (s.lastKey) s.misses++;
@@ -139,6 +151,7 @@ export function createFarmGame(kind, rand = Math.random) {
     report() {
       let score = 0;
       if (kind === 'milk') score = s.hits / MILK.strokes;
+      else if (kind === 'plough') score = s.onLine / PLOUGH.seconds;
       else if (kind === 'sow') score = s.marks.length ? s.marks.reduce((a, b) => a + b, 0) / SOW.throws : 0;
       else if (kind === 'scythe') score = s.hits / SCYTHE.swings;
       else score = Math.max(0, s.hits - Math.max(0, s.misses - (pop.count - s.hits))) / pop.count;

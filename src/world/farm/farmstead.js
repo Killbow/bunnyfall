@@ -91,10 +91,15 @@ export const FIXTURES = Object.freeze([
   { id: 'pen', r: 3.4, pickR: 1.1, h: 1.1, pen: 'pen', parts: [{ a: 212, r: 13, dx: 3.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: 2.51, dz: 1.82, h: 1.1 }, { a: 212, r: 13, dx: 0.96, dz: 2.95, h: 1.1 }, { a: 212, r: 14, dx: -0.96, dz: 2.95, h: 1.1 }, { a: 212, r: 13, dx: -2.51, dz: 1.82, h: 1.1 }, { a: 212, r: 14, dx: -3.10, dz: 0.00, h: 1.1 }, { a: 212, r: 13, dx: -2.51, dz: -1.82, h: 1.1 }, { a: 212, r: 14, dx: -0.96, dz: -2.95, h: 1.1 }, { a: 212, r: 13, dx: 0.96, dz: -2.95, h: 1.1 }, { a: 212, r: 14, dx: 2.51, dz: -1.82, h: 1.1 }, { a: 212, r: 1, dx: -1.6, dz: -1.4, h: 1.1 }, { a: 205, r: 29, dx: 1.5, dz: 1.3, h: .45 }] },
   { id: 'sty', r: 2.4, pickR: .9, h: 1, pen: 'sty', parts: [{ a: 212, r: 13, dx: 2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: 0.00, dz: 2.10, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: -2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 13, dx: -0.00, dz: -2.10, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 7, dx: .6, dz: .5, h: .6 }, { a: 205, r: 30, dx: -1, dz: .9, h: .42 }] },
   { id: 'drover', r: 2.6, h: 1.8, parts: [{ a: 205, r: 28, h: 1.5, min: { drover: 1 } }, { a: 201, r: 1, dx: -2.3, dz: .3, h: 1.8, min: { drover: 1 } }] },
+  // PHASE 5 (section 6.3): the beast posts - a stake (TEXTURE.212's post, 13) and a little straw (212's haystack, 1) - up to STATION_POSTS
+  // of them, laid after every other fixture so no older farm's layout moves; a cramped farm simply has fewer
+  ...Array.from({ length: 6 }, (_, i) => ({ id: `beastPost${i}`, r: .6, pickR: .6, h: 1.1, parts: [{ a: 212, r: 13, h: 1.1 }, { a: 212, r: 1, dx: .5, dz: .2, h: .5 }] })),
   { id: 'scarecrow', r: .6, h: 2.3, field: true, parts: [{ a: 211, r: 20, h: 2.3 }] },
   // PHASE 4 (section 7): the workshop yard, last so no earlier fixture's plot moves. Staked, then rising, then built
   ...WORKSHOP_FIXTURES,
 ]);
+/** A beast post's index from its fixture id, or -1. */
+export const postIndexOf = (id) => (/^beastPost[0-5]$/.test(id) ? Number(id.slice(9)) : -1);
 export const FIXTURE_ARCHIVES = Object.freeze([...new Set(FIXTURES.flatMap((f) => f.parts.map((p) => p.a)))]);
 
 /** How far beyond a field the farmstead looks for ground, m. */

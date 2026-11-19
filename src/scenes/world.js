@@ -25780,7 +25780,7 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     climateAt: (px, py) => maps.getClimateIndex(px, py),
     here: () => playerTravelPixel(),
   });
-  farmingMode = createFarmingMode({ renderer, canvas, collider, built, getTexture, uploadRecord, state: () => state, farms: () => farmBook,
+  farmingMode = createFarmingMode({ renderer, canvas, collider, built, getTexture, uploadRecord, uploadRecordFrame, state: () => state, farms: () => farmBook,
     viewAvailable: () => playerSpawned && _mode() === 'exterior',
     cam, feet: () => player.feetAt(), heightAt: (x, z) => heightAt(x, z), say: (s) => townTalk.say(s), show: (w) => townTalk.showOverlay(w), alive: () => frameAlive(_frameToken),
     available: () => walkMode && playerSpawned && _mode() === 'exterior' && playerEntity.health > 0 && !player.riding && !travelView?.active && !spyglass.up,

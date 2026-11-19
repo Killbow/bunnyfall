@@ -57,6 +57,7 @@ const FOOD_OF = Object.freeze({
   'food:wine': ['charming', 'lucky', 'restful'], 'food:oil': ['keen', 'warming'], 'food:berrywine': ['charming', 'refreshing', 'lucky'],
   'food:ale': ['hearty', 'mighty', 'restful'], 'food:mead': ['charming', 'restful', 'clear'],
   'food:smokedmeat': ['hearty', 'mighty', 'fortifying'], 'food:smokedfish': ['swift', 'clear', 'fortifying'],
+  'food:truffle': ['keen', 'lucky', 'charming'],   // PHASE 5
   'reagent:pure-water': ['refreshing'], 'reagent:rain-water': ['refreshing'],
 });
 /** A plant in the pot is a herb or a spice: one kitchen trait, by its DFU template. */

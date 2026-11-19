@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status (2026-11-19): **built** - Phase 1 (the farmyard, fixtures, sacks and the wagon, lanterns, field graphics), Phase 2 (farm work and the titles with First Light, climate crops and seasons, care and grades, weeds, birds, the field games, strains), Phase 3 (livestock), Phase 4 (workshops) and Phase 6 (blight and prowlers; weather and raids designed, not built). See `docs/FARMING.md` and the "As built" notes below. The wind over the crops is built (4.0). Phases 5 and 7 are in progress.
+Status (2026-11-19): **built** - Phase 1 (the farmyard, fixtures, sacks and the wagon, lanterns, field graphics), Phase 2 (farm work and the titles with First Light, climate crops and seasons, care and grades, weeds, birds, the field games, strains), Phase 3 (livestock), Phase 4 (workshops), Phase 5 (sworn beasts) and Phase 6 (blight and prowlers; weather and raids designed, not built). See `docs/FARMING.md` and the "As built" notes below. The wind over the crops is built (4.0). Phase 7 is in progress.
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -424,6 +424,8 @@ their part:
   the character's next load ("Grushnak has come home from the farm.").
 - If the save and the row disagree (an older save loaded), the **server row wins** for where it is; the record's
   revision (`revenant.js`'s merge) wins for everything about the beast itself.
+
+*As built (Phase 5):* the stations live in the garden JSON (`garden.stations`, validated in `validGarden`), not in a `farm_stations` table, so no migration was needed (0220 is unused); the 2-a-character cap across farms is counted over the Company's gardens by the service. Each entry also carries its `post` (0-5). Ops `station`, `recall` and `plough` are on the existing garden route. The law is `src/net/farm/stationLaw.js`; the beasts are `STATION_KINDS` (by mobile id, Enemy Expansion's wolf, snow wolf, hell hound, boar and bat by their ids 262-264, 278, 260). The record side is `companion.state 'station'` + `companion.station` (`revenant.js` sanitize; `revenantCompanions.js` `stationRevenant`, `recallStationed`, `reconcileStations`). Work built: wolf/snow wolf/hell hound/werewolf herd (contentment +5 a day, birds' toll nothing; the werewolf is a wolf by day and night alike), grizzly ploughing game, boar/wereboar truffles, spider silk (`hide:spider`, the existing thread: no new pantry entry; 741-742 stay free), bat guano care, rat manure, dragonling greenhouse. Left for Phase 6: the sabertooth's prowler ward and the scorpion's blight warden stand and do nothing yet; the hell hound does not yet light the lanterns or lessen raids. Not built: the boar tilling wild beds on its own, the grizzly hauling the wagon faster, the rat's stray coin, the slaughterfish's pond, arts and personalities colouring the work (the `art` is carried in the row for them), loyalty and renown paid back on load.
 
 ---
 

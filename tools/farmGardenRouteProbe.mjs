@@ -173,6 +173,24 @@ try {
   const ordered=await tl({op:'workshop',act:'order'});assert.ok(ordered.data.workshop.order);
   assert.equal((await db.prepare("SELECT treasury FROM guilds WHERE id='farmtest'").first()).treasury,goldBefore+po.gold,'The product order pays gold');
   const twice=await req('/v1/farms/garden',{...body,op:'workshop',act:'order',version:v});assert.notEqual(twice.status,200,'One product order a week');
+  // SWORN BEASTS (Phase 5): a boar and a grizzly stationed (two a character), a truffle among the mushrooms, a row ploughed, both recalled
+  const stBoar=await tl({op:'station',revenantId:'rv-boar',kind:278,name:'Tusk',rank:5,art:null,post:0});assert.equal(stBoar.data.station.revenantId,'rv-boar');
+  await tl({op:'station',revenantId:'rv-bear',kind:4,name:'Bruin',rank:3,art:'warcry',post:1});
+  const third=await req('/v1/farms/garden',{...body,op:'station',revenantId:'rv-wolf',kind:262,name:'Fang',rank:1,art:null,post:2,version:v});assert.equal(third.data?.error??third.error,'farm-station-limit','Two beasts a character: '+JSON.stringify(third));
+  const orc=await req('/v1/farms/garden',{...body,op:'recall',revenantId:'nobody',version:v});assert.equal(orc.data?.error??orc.error,'farm-station-none');
+  const truffles=async()=>Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:truffle'").first()).q);
+  for(let b=20;b<60&&!await truffles();b++){
+    await tl({op:'hoe',bed:b});await tl({op:'plant',bed:b,crop:'mushroom'});
+    const gm=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden);gm.beds[b].grown=12*3600;gm.beds[b].wetUntil=gm.beds[b].tick;
+    await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gm)).run();
+    await tl({op:'harvest',bed:b});
+  }
+  assert.ok(await truffles()>=1,'A stationed boar turns up a truffle among the mushrooms');
+  const ploughed=await tl({op:'plough',beds:[100,101,102,103,104,105],game:{kind:'plough',score:.95,ms:12000}});
+  assert.ok([100,101,102,103,104,105].every((i)=>ploughed.data.garden.beds[i]?.crop===null&&ploughed.data.garden.beds[i].care===3),'A stationed grizzly ploughs a whole row with care');
+  await tl({op:'recall',revenantId:'rv-bear'});
+  const plain=await req('/v1/farms/garden',{...body,op:'plough',beds:[120],game:{kind:'plough',score:.9,ms:12000},version:v});assert.equal(plain.data?.error??plain.error,'farm-plough-none','No grizzly, no plough');
+  const recalled=await tl({op:'recall',revenantId:'rv-boar'});assert.equal(recalled.data.garden.stations,undefined);
   harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
@@ -199,5 +217,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, a workshop built, run and collected with a product order, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, a workshop built, run and collected with a product order, stations, a truffle and a ploughed row, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

@@ -36,7 +36,7 @@ export function farmWorkOf(op, { worked = 0, harvested = 0, sacks = 0, game = fa
   if (op === 'haul') return sacks * (FARM_WORK.sack + (horse ? 1 : 0));   // PHASE 3: a content horse draws the wagon
   if (op === 'workshop') return batches * FARM_WORK.batch;   // PHASE 4
   if (op === 'herd') return tended * FARM_WORK.animal + played;
-  if (op === 'hoe' || op === 'plant' || op === 'water' || op === 'weed' || op === 'pull') return worked * FARM_WORK.bed + played;   // PHASE 6: pulling a blighted bed is bed work
+  if (op === 'hoe' || op === 'plough' || op === 'plant' || op === 'water' || op === 'weed' || op === 'pull') return worked * FARM_WORK.bed + played;   // PHASE 6: pulling a blighted bed is bed work - PHASE 5: a ploughed row
   if (op === 'birds') return played;
   return 0;
 }

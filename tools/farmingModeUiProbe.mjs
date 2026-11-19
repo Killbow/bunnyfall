@@ -21,6 +21,7 @@ try {
     const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
     const { stepFarmHaul } = await import('/src/net/farm/haulLaw.js');
     const { stepFarmWorkshop } = await import('/src/net/farm/workshopLaw.js'); const { stepFarmHerdAction } = await import('/src/net/farm/herdLaw.js'); const { farmWeek } = await import('/src/net/farmProgressLaw.js');
+    const { stepFarmPlough } = await import('/src/net/farmGardenLaw.js'); const { stepFarmStation } = await import('/src/net/farm/stationLaw.js');   // PHASE 5
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -46,14 +47,14 @@ try {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
         if (body.op && body.op !== 'read') {
-          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):body.op==='herd'?stepFarmHerdAction(p.garden,body,p.now,farmWeek):body.op==='workshop'?stepFarmWorkshop(p.garden,{act:body.act,workshop:body.workshop,recipe:body.recipe,mapId:42},p.now):stepFarmGardenAction(p.garden, body, p.now);
+          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):body.op==='herd'?stepFarmHerdAction(p.garden,body,p.now,farmWeek):body.op==='workshop'?stepFarmWorkshop(p.garden,{act:body.act,workshop:body.workshop,recipe:body.recipe,mapId:42},p.now):body.op==='plough'?stepFarmPlough(p.garden,{beds:body.beds,game:body.game,who:'tester'},p.now):body.op==='station'||body.op==='recall'?stepFarmStation(p.garden,{...body,act:body.op,who:'tester',character:'char1'},p.now):stepFarmGardenAction(p.garden, body, p.now);
           if (step.error) return { ok: false, error: step.error };
           p.garden = step.garden; p.version++;
         }
         return { ok: true, data: { garden: structuredClone(p.garden), version: p.version, nowS: p.now,mayManage:true,economy:{gold:1000000,argents:1000,earned:0} } };
       },
     };
-    p.mode = createFarmingMode({ renderer, canvas, getTexture, uploadRecord, cam: p.cam, feet: () => p.feet, farms: () => book,
+    p.mode = createFarmingMode({ renderer, canvas, getTexture, uploadRecord, uploadRecordFrame: () => {}, cam: p.cam, feet: () => p.feet, farms: () => book,
       built: new Map([['1,2',{ locOrigin: [0,0,0], locBlocks: [{ originX: 0, originZ: 0, layout: { models: [{ modelIdNum: 999102, matrix }] } }] }]]),
       state: () => ({ pixelTranslation: () => [0,0,0] }), heightAt: () => 0, collider: { raycast: () => Infinity },
       available: () => p.available, blocked: () => p.blocked, alive: () => true, say: (s) => { p.notice = s; }, show: (w) => { p.asked = w; }, holdThird: (b) => { p.held = b; return true; } });
@@ -210,6 +211,48 @@ try {
   const sowReq=await page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').at(-1));
   assert.equal(sowReq.op,'plant');assert.equal(sowReq.game?.kind,'sow','The play rides the planting');assert.ok(sowReq.game.ms>=2500,'A real play takes its time: '+sowReq.game.ms);
   await page.keyboard.press('f');
+  // SWORN BEASTS (PHASE 5): beast posts on the farmstead; a sworn wolf walked to one is stationed with Y, drawn and held by the farm, called back with Y
+  assert.ok(await page.evaluate(() => window.probe.mode.inspect().fixtures.some((f) => f.id === 'beastPost0')), 'The farmstead has beast posts');
+  await useFixture('beastPost0');
+  assert.ok((await page.locator('.farm-message').textContent()).includes('sworn beast'), 'With no beast at my side the post says so');
+  await page.evaluate(async () => {
+    const R = await import('/src/systems/revenant/revenant.js'), C = await import('/src/systems/revenant/revenantCompanions.js');
+    const player = { characterId: 'probe-char', name: 'Tester', items: [] }; window.probe.sworn = { R, C, player };
+    const rec = (id, mobileType) => ({ id, rev: 1, mobileType, gender: 'male', given: id === 'w1' ? 'Fang' : 'Bruin', epithet: 'the Scarred', name: `${id === 'w1' ? 'Fang' : 'Bruin'} the Scarred`, rank: 3, born: 1, sworn: true, fate: 'sworn', swornAt: 5, companion: { state: 'with', loyalty: 90 }, history: [] });
+    localStorage.setItem('dagger.revenant.probe-char', JSON.stringify({ v: 1, lastDay: 3, list: [rec('w1', 262), rec('b1', 4)] }));
+    C.setRetinuePlayer(player); R.revenantsFor(player);
+  });
+  await useFixture('beastPost0');
+  assert.ok(await page.evaluate(() => !!window.probe.asked), 'The post asks before it takes a beast');
+  assert.equal(await page.evaluate(() => window.probe.garden.stations?.length ?? 0), 0, 'Asking stations nothing');
+  await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
+  await page.waitForFunction(() => window.probe.garden.stations?.length === 1);
+  const stationed = await page.evaluate(() => { const p = window.probe; return { rec: p.sworn.R.revenantRecord(p.sworn.player, 'w1').companion, entry: p.garden.stations[0], with: p.sworn.C.revenantsWithYou().length, notice: document.querySelector('.farm-message')?.textContent }; });
+  assert.equal(stationed.rec.state, 'station'); assert.equal(stationed.rec.station.mapId, 42); assert.equal(stationed.entry.kind, 262); assert.equal(stationed.with, 1, 'a station frees a companion slot');
+  await page.evaluate(() => { for (let i = 0; i < 10; i++) window.probe.render(); });
+  assert.equal(await page.evaluate(() => window.probe.glError), 0, 'the stationed beast draws without a GL error');
+  const label = await page.evaluate(() => { const p = window.probe, f = p.fixture('beastPost0'); p.walkTo('beastPost0'); const at = p.fixturePoint('beastPost0'); return { at, stations: p.mode.inspect().stationEntries.length, f: !!f }; });
+  assert.equal(label.stations, 1);
+  await useFixture('beastPost0');
+  assert.ok(await page.evaluate(() => !!window.probe.asked), 'Clicking it at its post asks to call it back');
+  await page.evaluate(() => { window.probe.asked.input('KeyY'); window.probe.asked = null; });
+  await page.waitForFunction(() => !window.probe.garden.stations?.length);
+  assert.equal(await page.evaluate(() => { const p = window.probe; return p.sworn.R.revenantRecord(p.sworn.player, 'w1').companion.state; }), 'with', 'called back, it walks at my heel again');
+  // the ploughing game: a stationed grizzly and Careful work make the hoe on wild ground a row-ploughing game
+  await page.evaluate(() => { const p = window.probe, g = p.garden; g.stations = [{ player: 'tester', character: 'char1', revenantId: 'b1', kind: 4, name: 'Bruin the Scarred', rank: 3, art: null, post: 1, since: 1 }]; g.stationDay = Math.floor(p.now / 86400); p.version++; });
+  await page.waitForTimeout(1100); await page.evaluate(() => window.probe.render());
+  await page.evaluate(() => { const p = window.probe; p.feet = [(9 % 4 + .5) * 2 - 1.6, 0, (Math.floor(9 / 4) + .5) * 2]; for (let i = 0; i < 30; i++) p.render(); });
+  await page.keyboard.press('f'); await page.keyboard.press('1'); await page.evaluate(() => window.probe.render());
+  assert.equal(await page.locator('.farm-careful').getAttribute('aria-pressed'), 'true');
+  await clickBed(9);
+  assert.equal(await page.locator('.farm-game[data-kind=plough]').count(), 1, 'The ploughing game appears over the bed');
+  for (let k = 0; k < 40; k++) { await page.keyboard.down(k % 2 ? 'a' : 'd'); await page.waitForTimeout(150); await page.keyboard.up(k % 2 ? 'a' : 'd'); await page.evaluate(() => window.probe.render()); }
+  await page.waitForFunction(() => { window.probe.render(); return !document.querySelector('.farm-game'); }, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.probe.garden.beds[9] === null || window.probe.garden.beds[9]?.crop === null, null, { timeout: 5000 });
+  const ploughReq = await page.evaluate(() => window.probe.requests.filter((r) => r.op === 'plough').at(-1));
+  assert.ok(ploughReq && ploughReq.beds.includes(9) && ploughReq.game.kind === 'plough' && ploughReq.game.ms >= 6000, 'The play rides the ploughing: ' + JSON.stringify(ploughReq));
+  assert.ok(await page.evaluate(() => Object.values(window.probe.garden.beds).filter((b) => b && b.crop === null && b.care >= 1).length) >= 1, 'The plough turned wild beds with care');
+  await page.keyboard.press('f');
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
@@ -224,5 +267,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work, a workshop built, run and collected), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS (with sworn beasts stationed and the plough played): real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon, the sowing game with Careful work, a workshop built, run and collected), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }
