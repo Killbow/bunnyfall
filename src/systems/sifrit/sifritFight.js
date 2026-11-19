@@ -18,6 +18,7 @@ export function makeSifrit(entity, { own = true } = {}) {
   if (!entity) return false;
   promoteStaffBoss(entity, { own, sizePct: SIFRIT_SIZE_PCT, hp: own ? SIFRIT_HP : 0, name: SIFRIT_NAME, purple: true });
   entity.sifrit = true;
+  if (entity.staffBoss) entity.staffBoss.size = SIFRIT_SIZE_PCT / 100;   // a player's size (promoteStaffBoss floors it at 1.5)
   return true;
 }
 

@@ -256,6 +256,7 @@ import { ActionSystem } from '../world/actionSystem.js';
 import { collectDungeonEnemies, dungeonPlace, expandEliteEnemies, enemyHierarchyOrder } from '../characters/dungeonEnemies.js'; import { markDungeonChampions, applyChampion, championName } from '../systems/champions.js'; import { lootCrown } from './lootLines.js';   // LOOT7: the layout's champions; LOOT11: a find's line of light
 import { isOnlinePage } from '../systems/online/onlineLane.js';   // ELITE FOES: online play only
 import { wildHallFoes } from '../systems/wild/wildDungeons.js';   // PVPDUNGEONS: a hall's high tiers
+import { sifritTitanDamage, sifritImmuneToKill, SIFRIT_IMMUNE_TEXT } from '../systems/sifrit/sifritLaw.js';   // SIFRIT: her titanheart cap and her Disintegrate immunity
 import { edLayoutFoes, edFoeStood } from '../systems/eliteDungeons/edFoes.js';   // BUNNYFALL: a daily elite dungeon's Cromwark foes and its Sifrit
 import { isWildRegion, applyWildFoe, wildLootOpts, wildPileMore, wildMask, WILD_RINGS } from '../systems/wild/wildZone.js';   // WILD1: the open zone's dungeons (WILD2: by their ring)
 import { wildRingAtPlace } from '../systems/wild/etherWild.js';
@@ -6820,6 +6821,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     // AUDIT PSCALE1 DOORS-1: a KILL is not a blow - a Disintegrate, a stat drained to zero (the sinks' `whole`), the
     // Razor's whole-health strike (its mark on the foe) - and no fighters' toughness divides it, here or at the host
     const _whole = whole || takeWholeBlow(foe.entity);
+    if (fromPlayer && !peer && sifritImmuneToKill(foe.entity, _whole)) { hudText.add(SIFRIT_IMMUNE_TEXT); return; }   // SIFRIT: a Disintegrate does nothing to her
     if (fromPlayer && !peer) damage = strikeTraits(foe.entity, damage, kind, weapon, element, _whole || bypassShield, (n) => hurtPlayer(n), (l) => hudText.add(l));   // AUDIT WORLD-EVENTS L2-10: a SetHealth(0) a kill; L5-6: each trait's rule told once   // BOSS-TRAITS: MY blow - resisted, its thorns at me - before a puppet's goes to the host
     // TELL8 (10.4): MY blow on a puppet winding up rides to its owner with its class - its K, my feet against its facing;
     // AUDIT FEUD: a blow of its weakness rides winding up or not (RVN13: the host's reveal)
@@ -6952,7 +6954,7 @@ export async function buildDungeonContext(deps, dfLocation, blocks, climateBaseT
     if (fromPlayer) noteFighter(foe, peer ? peerId : PARTY_ME, performance.now());
     // PSCALE1: a shared foe fights its fighters with more health - its damage over their toughness, here where the
     // host applies every blow (a SetHealth(0) and a kill are no blows, and stand as they were)
-    foe.entity.health -= !bypassShield && !_whole && _sharedFoe(foe) ? partyFoeLoses(foe, healthDamage, fightN(foe)) : healthDamage;
+    foe.entity.health -= sifritTitanDamage(foe.entity, !bypassShield && !_whole && _sharedFoe(foe) ? partyFoeLoses(foe, healthDamage, fightN(foe)) : healthDamage);   // SIFRIT: titanheart's quarter-of-maximum cap on a hit
     if (bout && healthDamage > 0) bout.hooks?.hurt?.(foe, healthDamage, { fromPlayer: fromPlayer && !peer, striker });   // ARENA2: the blow, to the bout's law
     if (foe.entity.health <= 0) {
       // ARENA2: THE FOE YIELD FLOOR (exteriorFoes' twin) - a bout fighter at the floor is held at 1 and is out of the bout:

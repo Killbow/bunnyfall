@@ -28,8 +28,18 @@ export const SIFRIT_MUMMY = 19;
 export const SIFRIT_FIGHTERS = 4;
 export const SIFRIT_REF_LEVEL = 30;
 export const SIFRIT_HP = SIFRIT_FIGHTERS * 600 * (5 + SIFRIT_REF_LEVEL);
-/** Her size, percent of her sprite's (promoteStaffBoss clamps 150-300). */
-export const SIFRIT_SIZE_PCT = 170;
+/** Her size, percent of her sprite's: a player's own (she was 170 and stuck in the walls; makeSifrit sets it past
+ *  promoteStaffBoss's 150-300 clamp). */
+export const SIFRIT_SIZE_PCT = 100;
+
+/** TITANHEART (the Cromwark titan's rule, cromwarkRoster.js): no one hit takes more than a quarter of her maximum health,
+ *  so she is never one-shot. @param {any} entity @param {number} damage */
+export const sifritTitanDamage = (entity, damage) => entity?.sifrit && entity.maxHealth > 0 ? Math.min(damage, Math.max(1, Math.ceil(entity.maxHealth / 4))) : damage;
+
+/** A kill that is no blow (a Disintegrate, a drained stat: the doors' `whole`) does nothing to her; this is what is said. */
+export const SIFRIT_IMMUNE_TEXT = "That won't work.";
+/** Does a player's whole-health kill on `entity` fail? @param {any} entity @param {boolean} whole */
+export const sifritImmuneToKill = (entity, whole) => !!whole && !!entity?.sifrit;
 
 /** The purple of her blows, her outline and her mummies' rising (RGB 0-1). */
 export const SIFRIT_PURPLE = Object.freeze([0.66, 0.22, 0.98]);
