@@ -16,7 +16,7 @@ import { FARM_ART } from '../farmGardenArt.js';   // a seed sack's crop, shown o
 
 /** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number>, lamp?: boolean }} Part */
 /** @typedef {{ id: string, dx: number, dz: number, r: number, h: number }} Target */
-/** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean, shelf?: boolean }} FixtureDef */
+/** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean, shelf?: boolean, pen?: string, pickR?: number }} FixtureDef */   // pickR: clicked only near its middle (a pen's trough), never as its whole ring
 
 /** @type {readonly FixtureDef[]} */
 export const FIXTURES = Object.freeze([
@@ -45,6 +45,10 @@ export const FIXTURES = Object.freeze([
     { a: 212, r: 7, dx: -.7, dz: -.3, h: 1.1, min: { soil: 2 } }, { a: 205, r: 10, dx: .4, dz: .7, h: .45, min: { soil: 2 } },
   ] },
   { id: 'haystack', r: 1.6, h: 1.9, parts: [{ a: 212, r: 1, h: 1.8 }, { a: 301, r: 0, dx: 1.5, dz: .3, h: 1.6 }, { a: 301, r: 1, dx: -1.4, dz: -.2, h: 1.5 }] },
+  // PHASE 3 (section 5): the pen (cows, horses) and the sty (pigs), ringed with posts; the drover's cart on his day
+  { id: 'pen', r: 3.4, pickR: 1.1, h: 1.1, pen: 'pen', parts: [{ a: 212, r: 13, dx: 3.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: 2.51, dz: 1.82, h: 1.1 }, { a: 212, r: 13, dx: 0.96, dz: 2.95, h: 1.1 }, { a: 212, r: 14, dx: -0.96, dz: 2.95, h: 1.1 }, { a: 212, r: 13, dx: -2.51, dz: 1.82, h: 1.1 }, { a: 212, r: 14, dx: -3.10, dz: 0.00, h: 1.1 }, { a: 212, r: 13, dx: -2.51, dz: -1.82, h: 1.1 }, { a: 212, r: 14, dx: -0.96, dz: -2.95, h: 1.1 }, { a: 212, r: 13, dx: 0.96, dz: -2.95, h: 1.1 }, { a: 212, r: 14, dx: 2.51, dz: -1.82, h: 1.1 }, { a: 212, r: 1, dx: -1.6, dz: -1.4, h: 1.1 }, { a: 205, r: 29, dx: 1.5, dz: 1.3, h: .45 }] },
+  { id: 'sty', r: 2.4, pickR: .9, h: 1, pen: 'sty', parts: [{ a: 212, r: 13, dx: 2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: 0.00, dz: 2.10, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: 1.48, h: 1.1 }, { a: 212, r: 13, dx: -2.10, dz: 0.00, h: 1.1 }, { a: 212, r: 14, dx: -1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 13, dx: -0.00, dz: -2.10, h: 1.1 }, { a: 212, r: 14, dx: 1.48, dz: -1.48, h: 1.1 }, { a: 212, r: 7, dx: .6, dz: .5, h: .6 }, { a: 205, r: 30, dx: -1, dz: .9, h: .42 }] },
+  { id: 'drover', r: 2.6, h: 1.8, parts: [{ a: 205, r: 28, h: 1.5, min: { drover: 1 } }, { a: 201, r: 1, dx: -2.3, dz: .3, h: 1.8, min: { drover: 1 } }] },
   { id: 'scarecrow', r: .6, h: 2.3, field: true, parts: [{ a: 211, r: 20, h: 2.3 }] },
 ]);
 export const FIXTURE_ARCHIVES = Object.freeze([...new Set(FIXTURES.flatMap((f) => f.parts.map((p) => p.a)))]);
@@ -165,7 +169,7 @@ export function farmsteadTargets(stead) {
   for (const f of stead?.fixtures ?? []) {
     const own = f.def.shelf ? shelfOf(stead.seeds).targets : f.def.targets;
     if (own) for (const t of own) out.push({ id: t.id, fixture: f.id, pos: [f.pos[0] + t.dx, f.pos[1], f.pos[2] + t.dz], r: t.r, h: t.h });
-    else out.push({ id: f.id, fixture: f.id, pos: f.pos, r: f.def.r, h: f.def.h });
+    else out.push({ id: f.id, fixture: f.id, pos: f.pos, r: f.def.pickR ?? f.def.r, h: f.def.h });
   }
   return out;
 }

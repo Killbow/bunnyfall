@@ -120,6 +120,24 @@ try {
   const sownS=await tl({op:'plant',bed:10,crop:'grain',strain:1});assert.deepEqual(sownS.data.garden.beds[10].traits,['quick','heavy']);
   const wrongS=await req('/v1/farms/garden',{...body,op:'plant',bed:10,crop:'grain',strain:9,version:v});assert.notEqual(wrongS.status,200,'An unknown strain is refused');
   const burnt=await tl({op:'burn',strain:1});assert.equal(burnt.data.garden.strains.length,0,'An officer burns a strain');
+  // THE HERD (Phase 3): the drover by his day; a cow fed from the Stores, watered, milked; the sty mucked for manure
+  const { droverHere } = await import('../src/net/farm/herdLaw.js'); const { farmWeek } = await import('../src/net/farmProgressLaw.js');
+  const dr=droverHere({},42,Math.floor(Date.now()/1000),farmWeek);
+  const buy=await req('/v1/farms/garden',{...body,op:'herd',act:'buy',offer:0,version:v});
+  if(dr){assert.equal(buy.status,200,JSON.stringify(buy));v=buy.data.version;}else assert.equal(buy.data?.error??buy.error,'farm-drover-away');
+  const gH=JSON.parse((await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first()).garden), tN=Math.floor(Date.now()/1000);
+  gH.herd=[...(gH.herd??[]),{id:50,kind:'cow',name:'Bessie',tick:tN,fedUntil:tN,wateredUntil:tN,content:70},{id:51,kind:'pig',name:'Snout',tick:tN,fedUntil:tN,wateredUntil:tN,content:70}];
+  await db.prepare('UPDATE company_farm_gardens SET garden=? WHERE map_id=42').bind(JSON.stringify(gH)).run();
+  await db.prepare("INSERT INTO guild_prof_stores (guild_id,material,dep_player,dep_char,qty,moved_by,moved_at) VALUES ('farmtest','food:corn','','',10,'t',1) ON CONFLICT (guild_id,material,dep_player,dep_char) DO UPDATE SET qty=10").run();
+  await tl({op:'herd',act:'feed',animal:50});
+  assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:corn'").first()).qty,8,'Feeding takes two corn from the Stores');
+  await tl({op:'herd',act:'water',animal:50});
+  const milkBefore=Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:milk'").first()).q);
+  const milked=await tl({op:'herd',act:'milk',animal:50,game:{kind:'milk',score:1,ms:4000}});
+  assert.ok(milked.data.milk>=3,'A good milking: '+milked.data.milk);
+  assert.equal(Number((await db.prepare("SELECT COALESCE(SUM(qty),0) AS q FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:milk'").first()).q),milkBefore+milked.data.milk,'Milk goes to the Stores');
+  const again2=await req('/v1/farms/garden',{...body,op:'herd',act:'milk',animal:50,version:v});assert.notEqual(again2.status,200,'Once a day');
+  const mucked=await tl({op:'herd',act:'muck',pen:'sty'});assert.equal(mucked.data.garden.manure,2,'A content pig gives manure');
   harvest.data.version=v;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
@@ -146,5 +164,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, farm work with its daily cap, the farm titles and First Light, climate crops by the farm climate, care and grades from the field games, weeding and the birds, strains sown and burnt, the herd fed, watered, milked and mucked out, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

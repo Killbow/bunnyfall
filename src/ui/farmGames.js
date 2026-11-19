@@ -4,17 +4,18 @@
 // net/farm/farmGameLaw.js; this draws its state and turns the pointer and the keys into its input. Styled by the farming
 // HUD's skin (classic or enhanced), as the tool belt is.
 import { t } from '../systems/textManager.js';
-import { SOW, SCYTHE, WEED, BIRDS } from '../net/farm/farmGameLaw.js';
+import { SOW, SCYTHE, WEED, BIRDS, MILK } from '../net/farm/farmGameLaw.js';
 
 const HINT = {
   sow: () => t('farm.game.sowHint', 'Space or click as the hand passes the mark'),
   scythe: () => t('farm.game.scytheHint', 'Hold Space or the mouse; let go in the bright band'),
   weed: () => t('farm.game.weedHint', 'Click the weeds. Leave the sprouts!'),
   birds: () => t('farm.game.birdsHint', 'Click the birds before they peck'),
+  milk: () => t('farm.game.milkHint', 'A, D, A, D - in her rhythm, not too quick'),
 };
 const TITLE = {
   sow: () => t('farm.game.sow', 'Sowing'), scythe: () => t('farm.game.scythe', 'Scything'),
-  weed: () => t('farm.game.weed', 'Weeding'), birds: () => t('farm.game.birds', 'Chasing the birds'),
+  weed: () => t('farm.game.weed', 'Weeding'), birds: () => t('farm.game.birds', 'Chasing the birds'), milk: () => t('farm.game.milk', 'Milking'),
 };
 
 /**
@@ -43,7 +44,11 @@ export function createFarmGameWidget(host, game) {
   box.append(title);
   /** @type {HTMLElement|null} */ let moving = null;
   /** @type {HTMLButtonElement[]} */ const cells = [];
-  if (kind === 'sow' || kind === 'scythe') {
+  if (kind === 'milk') {
+    const keys = document.createElement('div'); keys.className = 'cells'; keys.style.gridTemplateColumns = 'repeat(2, 1fr)';
+    for (const k of ['a', 'd']) { const b = document.createElement('button'); b.type = 'button'; b.className = 'cell'; b.textContent = k.toUpperCase(); b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); game.input({ key: k }); }); keys.append(b); cells.push(b); }
+    box.append(keys);
+  } else if (kind === 'sow' || kind === 'scythe') {
     const bar = document.createElement('div'); bar.className = 'bar';
     if (kind === 'sow') { const mark = document.createElement('i'); mark.className = 'mark'; moving = document.createElement('i'); moving.className = 'hand'; bar.append(mark, moving); }
     else { const band = document.createElement('i'); band.className = 'band'; band.style.left = `${SCYTHE.band[0] * 100}%`; band.style.width = `${(SCYTHE.band[1] - SCYTHE.band[0]) * 100}%`; moving = document.createElement('i'); moving.className = 'fill'; moving.style.left = '0'; bar.append(band, moving); }
@@ -66,7 +71,8 @@ export function createFarmGameWidget(host, game) {
     update(at) {
       box.hidden = !at?.front;
       if (at?.front) { box.style.left = `${at.x}px`; box.style.top = `${at.y}px`; }
-      if (kind === 'sow') { moving.style.left = `calc(${s.hand * 100}% - 5px)`; tally.textContent = t('farm.game.throws', 'Throws: {n} of {all}', { n: s.marks.length, all: SOW.throws }); }
+      if (kind === 'milk') { cells.forEach((c, i) => c.classList.toggle('weed', s.lastKey === (i ? 'a' : 'd'))); tally.textContent = t('farm.game.strokes', 'Strokes: {n} of {all} · good: {hits}', { n: Math.max(0, s.swings - 1), all: MILK.strokes, hits: s.hits }); }
+      else if (kind === 'sow') { moving.style.left = `calc(${s.hand * 100}% - 5px)`; tally.textContent = t('farm.game.throws', 'Throws: {n} of {all}', { n: s.marks.length, all: SOW.throws }); }
       else if (kind === 'scythe') { moving.style.width = `${Math.min(1, s.power) * 100}%`; tally.textContent = t('farm.game.swings', 'Swings: {n} of {all} · clean: {hits}', { n: s.swings, all: SCYTHE.swings, hits: s.hits }); }
       else {
         cells.forEach((c, i) => { const it = s.items.find((x) => x.cell === i); c.className = `cell${it ? (kind === 'birds' ? ' bird' : it.decoy ? ' sprout' : ' weed') : ''}`; c.textContent = it ? (kind === 'birds' ? '\u{1F426}' : it.decoy ? '\u{1F331}' : '☘') : ''; });

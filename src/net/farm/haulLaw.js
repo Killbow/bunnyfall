@@ -7,6 +7,7 @@
 // Pure: both ends read it; the service commits it with the garden's revision (server-account/src/farmGardens.js).
 import { farmWeek } from '../farmProgressLaw.js';
 import { FARM_SEED_IDS } from './cropLaw.js';   // every crop's sacks, the climate crops' too
+import { sackLifeOf } from './herdLaw.js';   // PHASE 3: a content cat keeps them longer
 
 /** How long a sack waits at its bed, s. */
 export const SACK_LIFE_S = 15 * 60;
@@ -18,7 +19,7 @@ export const CARRY_MAX = 4;
 export const SACK_GATHER_M = 2.2;
 
 /** The sacks still lying at their beds at `nowS`. */
-export const liveSacks = (garden, nowS) => (garden?.sacks ?? []).filter((s) => nowS - s.t < SACK_LIFE_S);
+export const liveSacks = (garden, nowS) => { const life = sackLifeOf(garden, nowS, SACK_LIFE_S); return (garden?.sacks ?? []).filter((s) => nowS - s.t < life); };
 
 /** This week's cargo on the wagon: { week, grain, mushroom, herbs }, zero in a new week. */
 export function wagonCargo(garden, nowS) {

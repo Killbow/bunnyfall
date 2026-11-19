@@ -3,6 +3,7 @@ import { farmProgress, validFarmProgress, farmToolArea, FARM_CROP_TYPES } from '
 import { FARM_SEEDS, farmSeed, seedGrowsIn, seasonGrowth } from './farm/cropLaw.js';   // FARM EXPANSION: the climate crops and the seasons
 import { CARE_MAX, WATER_CARE_S, clampCare, gradeOf, gradedYield, bedWeedy, birdsNow, birdsUnchased, BIRD_KEEP } from './farm/careLaw.js';   // PHASE 2: care and grades
 import { GAMES, gameForOp, validGame, validPlays, recordPlay, careBonus } from './farm/farmGameLaw.js';   // PHASE 2: the field games
+import { validHerd, kindContent } from './farm/herdLaw.js';   // PHASE 3: the herd
 import { QUICK_SHARE, crossChance, crossRoll, addStrain, strainOf, validStrains, validBedStrain } from './farm/strainLaw.js';   // PHASE 2c: strains
 import { laySacks, validHaul } from './farm/haulLaw.js';   // FARM EXPANSION: a harvest's sacks, for the wagon
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
@@ -37,6 +38,7 @@ export function validGarden(value) {
   if (value && value.chased !== undefined && !(Array.isArray(value.chased) && value.chased.length <= BIRD_KEEP && value.chased.every((h) => okInt(h, 2 ** 31)))) return false;
   if (value && !validPlays(value.plays)) return false;
   if (value && !validStrains(value, FARM_SEEDS.map((x) => x.id))) return false;
+  if (value && !validHerd(value)) return false;
   return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&
@@ -54,7 +56,10 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', strain,
     if (!seedGrowsIn(farmSeed(crop), climate)) return { error: 'farm-seed-climate' };   // the service hands the farm's own climate
     const st = strain === undefined ? null : strainOf(garden, strain);
     if (strain !== undefined && (!st || st.crop !== crop)) return { error: 'farm-strain-bad' };
-    Object.assign(bed, planted(crop, bonus), st ? { strain: st.id, traits: [...st.traits] } : {});   // a well-sown bed starts with care (the sowing game)
+    // PHASE 3: the sty's manure - a sown bed takes one, +1 care
+    const manured = (next.manure ?? 0) > 0;
+    if (manured) next.manure -= 1;
+    Object.assign(bed, planted(crop, bonus + (manured ? 1 : 0)), st ? { strain: st.id, traits: [...st.traits] } : {});   // a well-sown bed starts with care (the sowing game)
   }
   else if (op === 'water' && bed?.crop && gardenStage(bed, nowS) !== 'ripe' && bed.wetUntil <= nowS + FARM_WATER_S - 60) {
     // CARE: watered in its last hours of moisture, before it dried
@@ -65,7 +70,7 @@ export function stepFarmGarden(garden, { op, bed: index, crop = 'grain', strain,
   } else if (op === 'harvest' && bed?.crop && gardenStage(bed, nowS) === 'ripe') {
     const seed = farmSeed(bed.crop);
     // THE GRADE: the bed's care, the scything game's, less what unchased birds took while it grew
-    const toll = birdsUnchased(mapId, garden.chased, bed.sown ?? bed.tick ?? nowS, nowS);
+    const toll = birdsUnchased(mapId, garden.chased, bed.sown ?? bed.tick ?? nowS, nowS, kindContent(garden, 'dog', nowS) ? 1 : undefined);   // PHASE 3: a content dog guards the field
     const grade = gradeOf(clampCare((bed.care ?? 0) + bonus - toll));
     const qty = gradedYield(seed.yield, bed.quality ?? 0, grade) + (bed.traits?.includes('heavy') ? 1 : 0);
     next.beds[index] = irrigation === 2 ? { ...planted(seed.id), ...(bed.strain ? { strain: bed.strain, traits: [...(bed.traits ?? [])] } : {}) } : { crop: null, grown: 0, tick: nowS, wetUntil: 0 };

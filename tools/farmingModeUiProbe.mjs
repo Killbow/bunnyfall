@@ -20,6 +20,7 @@ try {
     const { emptyGarden, stepFarmGardenAction } = await import('/src/net/farmGardenLaw.js');
     const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
     const { stepFarmHaul } = await import('/src/net/farm/haulLaw.js');
+    const { stepFarmHerdAction } = await import('/src/net/farm/herdLaw.js'); const { farmWeek } = await import('/src/net/farmProgressLaw.js');
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -45,7 +46,7 @@ try {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
         if (body.op && body.op !== 'read') {
-          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):stepFarmGardenAction(p.garden, body, p.now);
+          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):body.op==='herd'?stepFarmHerdAction(p.garden,body,p.now,farmWeek):stepFarmGardenAction(p.garden, body, p.now);
           if (step.error) return { ok: false, error: step.error };
           p.garden = step.garden; p.version++;
         }
@@ -176,14 +177,15 @@ try {
   await page.evaluate(()=>{const p=window.probe;p.feet=[(1%4+.5)*2-1.6,0,(Math.floor(1/4)+.5)*2];for(let i=0;i<30;i++)p.render();});
   await page.keyboard.press('f'); await page.keyboard.press('2'); await page.evaluate(()=>window.probe.render());
   assert.equal(await page.locator('.farm-careful').getAttribute('aria-pressed'),'true','Careful work is on');
-  const sowBefore=await page.evaluate(()=>window.probe.requests.length);
+  const acts=()=>page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').length);   // the once-a-second reads are not actions
+  const sowBefore=await acts();
   await clickBed(1);
   assert.equal(await page.locator('.farm-game').count(),1,'The sowing game appears over the bed');
-  assert.equal(await page.evaluate(()=>window.probe.requests.length),sowBefore,'Nothing is sent while the game is played');
+  assert.equal(await acts(),sowBefore,'Nothing is sent while the game is played');
   for(let k=0;k<5;k++){await page.waitForTimeout(700);await page.keyboard.press('Space');await page.evaluate(()=>window.probe.render());}
   await page.waitForFunction(()=>{window.probe.render();return !document.querySelector('.farm-game');},null,{timeout:15000});
   await page.waitForFunction(()=>window.probe.garden.beds[1]?.crop,null,{timeout:5000});
-  const sowReq=await page.evaluate(()=>window.probe.requests.at(-1));
+  const sowReq=await page.evaluate(()=>window.probe.requests.filter((r)=>r.op&&r.op!=='read').at(-1));
   assert.equal(sowReq.op,'plant');assert.equal(sowReq.game?.kind,'sow','The play rides the planting');assert.ok(sowReq.game.ms>=2500,'A real play takes its time: '+sowReq.game.ms);
   await page.keyboard.press('f');
   for (const width of [360,736]) {
