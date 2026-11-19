@@ -1,5 +1,6 @@
 // @ts-check
 import { decodePng } from '../textureReplacement.js';
+import { APP_ROOT } from '../appRoot.js';   // the page is /play/: a bare ./art/ path asks the wrong folder (appRoot.js)
 import { toColor32 } from '../../formats/color32Order.js';
 import { isChildNPCTexture } from '../../characters/staticNpc.js';
 
@@ -33,7 +34,7 @@ export function clerkRaster(image) {
 const pictures=new Map();
 export function loadGuildClerkArt(key) {
   const art=GUILD_CLERK_ART[key];if(!art)return Promise.resolve(null);
-  if(!pictures.has(key))pictures.set(key,(async()=>{try{const response=await fetch(art.url);if(!response.ok)return null;return clerkRaster(await decodePng(new Uint8Array(await response.arrayBuffer())));}catch(error){console.warn('[guild clerk] artwork unavailable',key,error);return null;}})());
+  if(!pictures.has(key))pictures.set(key,(async()=>{try{const response=await fetch(new URL(art.url,APP_ROOT??globalThis.document?.baseURI??'http://localhost/').href);if(!response.ok)return null;return clerkRaster(await decodePng(new Uint8Array(await response.arrayBuffer())));}catch(error){console.warn('[guild clerk] artwork unavailable',key,error);return null;}})());
   return pictures.get(key);
 }
 
