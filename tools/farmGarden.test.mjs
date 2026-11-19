@@ -23,7 +23,7 @@ test('soil preparation, seeds, water and real-time growth form a harvest loop', 
   const ripe = 100 + 6 * 3600;
   assert.equal(gardenStage(garden.beds[0], ripe), 'ripe');
   const harvest = stepFarmGarden(garden, { op: 'harvest', bed: 0 }, ripe);
-  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2 });
+  assert.deepEqual(harvest.harvest, { crop: 'grain', material: 'food:grain', qty: 2, grade: 0, care: 0, traits: [] });   // PHASE 2: a Common crop, no strain
   assert.equal(gardenStage(harvest.garden.beds[0], ripe), 'tilled');
   assert.ok(stepFarmGarden(harvest.garden, { op: 'harvest', bed: 0 }, ripe).error);
   assert.ok(stepFarmGarden(garden, { op: 'hoe', bed: 65536 }, ripe).error);
@@ -43,6 +43,7 @@ function fixture() {
     INSERT INTO guilds VALUES ('guild1',1000000,1000000,NULL,0,NULL);
     INSERT INTO company_farms VALUES (42, 'guild1', 'Test farm', 223, 17);`);
   sql.exec(readFileSync(new URL('../server-account/migrations/0212_farm_gardens.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('../server-account/migrations/0217_farm_work.sql', import.meta.url), 'utf8'));   // FARM EXPANSION: farm work
   sql.exec(readFileSync(new URL('../server-account/migrations/0025_marks.sql', import.meta.url), 'utf8'));
   sql.exec("INSERT INTO guild_marks VALUES ('guild1',1000)");
   const prepare = (text, args = []) => ({ bind: (...a) => prepare(text, a),
@@ -143,7 +144,7 @@ test('native crop masking only replaces worked beds and survives rebase and rest
 
 test('thousands of worked beds share crop batches instead of a draw call per bed',async()=>{
   let batches=0;
-  const renderer={textures:new Map([['302_1#opaque',{}]]),createDecalBatch:()=>({}),destroyDecalBatch(){},writeDecalSlot(){},destroyBillboardBatch(){},createBillboardBatch(a,r,size,centers){batches++;return{count:centers.length};}};
+  const renderer={textures:new Map([['302_54#opaque',{}]]),createDecalBatch:()=>({}),destroyDecalBatch(){},writeDecalSlot(){},destroyBillboardBatch(){},createBillboardBatch(a,r,size,centers){batches++;return{count:centers.length};}};
   const art=createFarmGardenArt(renderer,{getTexture:async()=>({getSize:()=>({width:32,height:32})}),uploadRecord(){}});
   await art.prepare();
   const site={beds:Array.from({length:5000},(_,i)=>[i%100*2,0,Math.floor(i/100)*2])},garden=emptyGarden();
@@ -244,5 +245,160 @@ test('two farms share one weekly Argent cap, guarded inside the payout transacti
   assert.equal(f.sql.prepare('SELECT SUM(qty) AS total FROM guild_prof_stores').get().total,20000,'Losing order keeps all its crops');
   assert.equal(f.sql.prepare('SELECT SUM(version) AS total FROM company_farm_gardens').get().total,1);
   assert.equal(f.sql.prepare('SELECT treasury FROM guilds').get().treasury,1060000,'A rejected Argent payout cannot leave a gold payout behind');
+  f.sql.close();
+});
+
+// PHASE 6: THREATS (threatLaw.js)
+test('blight: the same dice on every end, stable once stamped, pulled for the crop, harvested Common at half yield', async () => {
+  const { settleGarden } = await import('../src/net/farmGardenLaw.js');
+  const { blightChance } = await import('../src/net/farm/threatLaw.js');
+  const T0 = 1_800_000_000, g = emptyGarden(); g.threat = { at: Math.floor(T0 / 43200), prowl: 0 };
+  for (let i = 0; i < 40; i++) g.beds[i] = { crop: 'herbs', grown: 0, tick: T0, wetUntil: 0, sown: T0, care: 0 };
+  const later = T0 + 14 * 43200, a = settleGarden(g, 12345, later);
+  assert.deepEqual(a, settleGarden(g, 12345, later), 'both ends roll alike');
+  const sick = Object.keys(a.beds).filter((i) => a.beds[i].blight !== undefined);
+  assert.ok(sick.length > 0 && sick.length < 40);
+  const b = settleGarden(a, 12345, later + 3 * 43200);
+  for (const i of sick) assert.equal(b.beds[i].blight, a.beds[i].blight, 'a stamp never moves');
+  const healthy = Object.keys(a.beds).find((i) => a.beds[i].blight === undefined);
+  assert.equal(stepFarmGardenAction(a, { op: 'pull', bed: Number(healthy), mapId: 12345 }, later).error, 'farm-bed-action');
+  const pulled = stepFarmGardenAction(a, { op: 'pull', bed: Number(sick[0]), mapId: 12345 }, later);
+  assert.equal(pulled.garden.beds[sick[0]].crop, null); assert.deepEqual(pulled.garden.rot[sick[0]], ['herbs']);
+  const ripe = structuredClone(a); ripe.beds[sick[0]].grown = 99 * 3600;
+  const h = stepFarmGardenAction(ripe, { op: 'harvest', bed: Number(sick[0]), mapId: 12345 }, later).harvests[0];
+  assert.equal(h.grade, 0); assert.ok(h.blight);
+  assert.ok(blightChance(['grain', 'grain', 'grain'], 'grain') > blightChance([], 'grain'));
+  assert.ok(blightChance(['grain'], 'corn') < blightChance([], 'corn'), 'rotation halves it');
+});
+test('prowlers: an unchased wolf frightens the herd once it has gone; a click chases it; a content dog keeps the yard', async () => {
+  const { settleGarden, stepFarmProwl } = await import('../src/net/farmGardenLaw.js');
+  const { prowlWindow, prowlHere } = await import('../src/net/farm/threatLaw.js');
+  let d = 1000, w; while (!(w = prowlWindow(7, d))) d++;
+  const cow = { id: 1, kind: 'cow', name: 'B', tick: w.from - 3600, fedUntil: w.to + 86400, wateredUntil: w.to + 86400, content: 80 };
+  const g = emptyGarden(); g.herd = [cow]; g.threat = { at: Math.floor(w.from / 43200), prowl: d - 1 };
+  assert.equal(prowlHere(g, 7, w.from + 10).id, d);
+  assert.equal(settleGarden(g, 7, w.from + 10).herd[0].content, 80, 'not while it is still there');
+  assert.ok(settleGarden(g, 7, w.to + 60).herd[0].content < 80);
+  const chased = stepFarmProwl(g, { mapId: 7 }, w.from + 10);
+  assert.ok(chased.prowlChased); assert.ok(settleGarden(chased.garden, 7, w.to + 60).herd[0].content >= 80);
+  assert.equal(stepFarmProwl(g, { mapId: 7 }, w.to + 500).error, 'farm-prowl-none');
+  const dog = structuredClone(g); dog.herd.push({ ...cow, id: 2, kind: 'dog', content: 90 });
+  assert.ok(settleGarden(dog, 7, w.to + 60).herd[0].content >= 80);
+});
+
+// ─── PHASE 5: sworn beasts on the farm ───
+import { stepFarmStation, validStations, stationDaily, herdKeep, birdsWarded, truffleChance, harvestExtras, guanoCare, rankScale, pruneStations } from '../src/net/farm/stationLaw.js';
+import { stepFarmPlough, validGarden } from '../src/net/farmGardenLaw.js';
+import { createFarmGame, ploughLine } from '../src/net/farm/farmGameLaw.js';
+import { contentAt, kindContent } from '../src/net/farm/herdLaw.js';
+import { MOBILE_TYPES as MT } from '../src/characters/mobile/mobileTypes.js';
+
+const WOLF = 262, BOAR = 278, DEXBAT = 260;
+const beast = (kind, over = {}) => ({ player: 'tester', character: 'char1', revenantId: `r${kind}`, kind, name: 'Grushnak the Scarred', rank: 3, art: null, post: 0, since: 50, ...over });
+const withBeasts = (...list) => ({ ...emptyGarden(), stations: list });
+
+test('stationing: bounded to real beast kinds, six a farm, two a character, posts unique, recalled by the owner only', () => {
+  let g = emptyGarden();
+  const base = { act: 'station', who: 'tester', character: 'char1', revenantId: 'a', kind: MT.GrizzlyBear, name: 'Bruin', rank: 2, art: 'warcry', post: 0 };
+  assert.equal(stepFarmStation(g, { ...base, kind: MT.Orc }, 100).error, 'farm-station-bad', 'an orc is never stationed');
+  assert.equal(stepFarmStation(g, { ...base, rank: 9 }, 100).error, 'farm-station-bad');
+  assert.equal(stepFarmStation(g, { ...base, post: 6 }, 100).error, 'farm-station-bad');
+  const one = stepFarmStation(g, base, 100); assert.ok(one.garden && validGarden(one.garden)); g = one.garden;
+  assert.equal(g.stations.length, 1);
+  assert.equal(stepFarmStation(g, { ...base, post: 1 }, 100).error, 'farm-station-bad', 'one beast, one post');
+  assert.equal(stepFarmStation(g, { ...base, revenantId: 'b', post: 0 }, 100).error, 'farm-station-post');
+  g = stepFarmStation(g, { ...base, revenantId: 'b', kind: MT.Spider, post: 1 }, 100).garden;
+  assert.equal(stepFarmStation(g, { ...base, revenantId: 'c', post: 2 }, 100).error, 'farm-station-limit', 'two a character');
+  assert.ok(stepFarmStation(g, { ...base, revenantId: 'c', post: 2, character: 'other', who: 'p2' }, 100).garden, 'another character may');
+  assert.equal(stepFarmStation(emptyGarden(), { ...base, elsewhere: 2 }, 100).error, 'farm-station-limit', 'across the Company\'s farms');
+  assert.equal(stepFarmStation(g, { act: 'recall', who: 'p2', character: 'char1', revenantId: 'a' }, 100).error, 'farm-station-theirs');
+  assert.equal(stepFarmStation(g, { act: 'recall', who: 'tester', character: 'char1', revenantId: 'zz' }, 100).error, 'farm-station-none');
+  assert.equal(stepFarmStation(g, { act: 'recall', who: 'tester', character: 'char1', revenantId: 'a' }, 100).garden.stations.length, 1);
+  assert.equal(validStations({ stations: Array.from({ length: 7 }, (_, i) => beast(MT.Spider, { revenantId: `x${i}`, post: i % 6 })) }), false);
+  assert.equal(validStations({ stations: [beast(MT.Orc)] }), false);
+  assert.equal(pruneStations(g, (p, c) => c === 'char1' && p === 'tester').stations.length, 2);
+  assert.equal(pruneStations(g, () => false).stations, undefined, 'a keeper who left takes no place');
+});
+
+test('wolves keep the herd content and the birds off; rank scales', () => {
+  const g = withBeasts(beast(WOLF));
+  assert.ok(herdKeep(g) > 0 && birdsWarded(g)); assert.equal(herdKeep(emptyGarden()), 0);
+  assert.ok(herdKeep(withBeasts(beast(WOLF, { rank: 5 }))) > herdKeep(withBeasts(beast(WOLF, { rank: 1 }))));
+  const a = { id: 1, kind: 'dog', name: 'Rex', tick: 0, fedUntil: 0, wateredUntil: 0, content: 40 };   // tended by no one for a day
+  assert.ok(contentAt(a, 86400, herdKeep(g)) > contentAt(a, 86400), 'the wolf lifts what neglect lowers');
+  const tended = { ...g, herd: [{ ...a, fedUntil: 86400, wateredUntil: 86400, content: 55 }] };
+  assert.equal(kindContent(tended, 'dog', 86400), true);
+  assert.ok(validGarden(tended));
+});
+
+test('boars find truffles in mushroom beds only; bats add guano care; spiders and rats pay by the day, once', () => {
+  const boar = withBeasts(beast(BOAR)); assert.ok(truffleChance(boar) > 0);
+  let found = 0; for (let b = 0; b < 400; b++) found += harvestExtras(boar, { crop: 'mushroom' }, 42, b, 1000).length;
+  assert.ok(found > 40 && found < 160, `about a fifth of mushroom harvests: ${found}`);
+  assert.deepEqual(harvestExtras(boar, { crop: 'grain' }, 42, 1, 1000), []);
+  assert.equal(guanoCare(withBeasts(beast(MT.GiantBat))), 1); assert.equal(guanoCare(withBeasts(beast(DEXBAT, { rank: 4 }))), 2); assert.equal(guanoCare(emptyGarden()), 0);
+  let g = withBeasts(beast(MT.GiantBat)); g = stepFarmGarden(stepFarmGarden(g, { op: 'hoe', bed: 0 }, 100).garden, { op: 'plant', bed: 0, crop: 'grain' }, 100).garden;
+  assert.equal(g.beds[0].care, 1, 'sown under a roosting bat: +1 care');
+  const sp = { ...withBeasts(beast(MT.Spider, { rank: 5 }), beast(MT.Rat, { revenantId: 'rat', post: 1 })), stationDay: 10 };
+  const d1 = stationDaily(sp, 12 * 86400 + 5);
+  assert.deepEqual(d1.deposit, [{ material: 'hide:spider', qty: Math.round(2 * rankScale(5)) }]);
+  assert.equal(d1.garden.manure, Math.round(2 * rankScale(3)), 'the rat turns a heap a day');
+  assert.equal(d1.garden.stationDay, 12); assert.deepEqual(stationDaily(d1.garden, 12 * 86400 + 900).deposit, [], 'paid once a day');
+  assert.equal(stationDaily({ ...sp, stationDay: 1 }, 100 * 86400).deposit[0].qty, Math.round(3 * rankScale(5)), 'at most three days are banked');
+  assert.equal(stationDaily(emptyGarden(), 99999).deposit.length, 0);
+});
+
+test('a dragonling\'s greenhouse lets four beds grow out of climate, at full pace in winter; without it the climate refuses', () => {
+  let g = withBeasts(beast(MT.Dragonling));
+  for (let i = 0; i < 5; i++) g = stepFarmGarden(g, { op: 'hoe', bed: i }, 100).garden;
+  const away = { op: 'plant', crop: 'grapes', climate: 226 };   // a mountain farm: grapes grow in none
+  for (let i = 0; i < 4; i++) g = stepFarmGarden(g, { ...away, bed: i }, 100).garden;
+  assert.equal(g.beds[0].glass, 1);
+  assert.equal(stepFarmGarden(g, { ...away, bed: 4 }, 100).error, 'farm-seed-climate', 'only four beds under glass');
+  assert.equal(stepFarmGarden(stepFarmGarden(emptyGarden(), { op: 'hoe', bed: 0 }, 100).garden, { ...away, bed: 0 }, 100).error, 'farm-seed-climate', 'no dragonling, no greenhouse');
+  assert.equal(gardenGrowth({ ...g.beds[0], wetUntil: 100 + 10 * FARM_WATER_S }, 100 + 7200), 7200, 'full pace');
+  assert.ok(validGarden(g));
+});
+
+test('the plough: a stationed grizzly, a played game, a whole row of wild beds at once with care that the sowing keeps', () => {
+  const play = (score) => ({ kind: 'plough', score, ms: 12000 });
+  const g = withBeasts(beast(MT.GrizzlyBear));
+  assert.equal(stepFarmPlough(emptyGarden(), { beds: [0, 1], game: play(1) }, 100).error, 'farm-plough-none');
+  assert.equal(stepFarmPlough(g, { beds: [0, 1], game: { ...play(1), ms: 100 } }, 100).error, 'farm-game-bad', 'a play too short to be honest');
+  assert.equal(stepFarmPlough(g, { beds: [0, 1, 2, 3, 4, 5, 6], game: play(1) }, 100).error, 'farm-bed-bad', 'six at most');
+  const done = stepFarmPlough(g, { beds: [0, 1, 2, 3, 4, 5], game: play(.95), who: 'a' }, 100);
+  assert.deepEqual(done.worked, [0, 1, 2, 3, 4, 5]); assert.equal(done.garden.beds[3].care, 3); assert.equal(done.played.full, true);
+  assert.equal(stepFarmPlough(done.garden, { beds: [0, 1], game: play(1) }, 100).error, 'farm-bed-action', 'already tilled');
+  const sown = stepFarmGarden(done.garden, { op: 'plant', bed: 2, crop: 'grain' }, 100).garden;
+  assert.equal(sown.beds[2].care, 3, 'the furrow\'s care is kept by the sowing');
+  assert.equal(stepFarmPlough(g, { beds: [0], game: play(.2), who: 'b' }, 100).garden.beds[0].care, 1);
+  // the game itself: untouched it wanders off the line; steered it holds it
+  const idle = createFarmGame('plough'); for (let i = 0; i < 130; i++) idle.tick(.1);
+  const steered = createFarmGame('plough'); for (let i = 0; i < 130; i++) { steered.input({ steer: Math.sign(ploughLine(steered.state.t + .2) - steered.state.pos) }); steered.tick(.1); }
+  assert.ok(steered.report().score > .8 && idle.report().score < steered.report().score);
+});
+
+test('the route: station, recall, the Company\'s cross-farm cap, the silk deposit, and a keeper who left', async () => {
+  const f = fixture();
+  f.sql.exec("INSERT INTO company_farms VALUES (43,'guild1','Second farm',223,17)");
+  for (const id of [42, 43]) f.sql.prepare('INSERT INTO company_farm_gardens VALUES (?,0,?)').run(id, JSON.stringify(emptyGarden()));
+  const at = async (nowS, mapId, body) => farmGarden({ ...f.ctx, nowS }, f.player, { character: 'char1', mapId, ...body });
+  const mk = (revenantId, post, kind = MT.Spider) => ({ op: 'station', revenantId, kind, name: 'Webster', rank: 5, art: null, post });
+  const v = (n) => f.sql.prepare('SELECT version FROM company_farm_gardens WHERE map_id = ?').get(n).version;
+  const stations = () => JSON.parse(f.sql.prepare('SELECT garden FROM company_farm_gardens WHERE map_id = 42').get().garden).stations;
+  const D = 86400;
+  assert.equal((await at(D * 20, 42, { ...mk('a', 0), version: v(42) })).station.revenantId, 'a');
+  assert.ok((await at(D * 20, 43, { ...mk('b', 0, MT.Rat), version: v(43) })).ok);
+  assert.equal((await at(D * 20, 42, { ...mk('c', 1), version: v(42) })).error, 'farm-station-limit', 'two a character across both farms');
+  assert.equal((await at(D * 20, 42, { op: 'read' })).garden.stations.length, 1);
+  assert.ok((await at(D * 21, 42, { op: 'hoe', bed: 0, version: v(42) })).ok);
+  const silk = () => f.sql.prepare("SELECT qty FROM guild_prof_stores WHERE material = 'hide:spider'").get()?.qty;
+  assert.equal(silk(), 2, 'a day on, the spider\'s silk is in the Stores');
+  assert.ok((await at(D * 21 + 60, 42, { op: 'hoe', bed: 1, version: v(42) })).ok); assert.equal(silk(), 2, 'paid once a day');
+  assert.equal((await at(D * 21 + 90, 42, { op: 'recall', revenantId: 'a', version: v(42) })).recalled.revenantId, 'a');
+  assert.equal(stations(), undefined);
+  f.sql.exec("UPDATE company_farm_gardens SET garden = json_set(garden, '$.stations', json('[{\"player\":\"ghost\",\"character\":\"gone\",\"revenantId\":\"g\",\"kind\":6,\"name\":\"Old\",\"rank\":1,\"art\":null,\"post\":2,\"since\":1}]')) WHERE map_id = 42");
+  assert.ok((await at(D * 21 + 99, 42, { ...mk('d', 3), version: v(42) })).ok);
+  assert.deepEqual(stations().map((s) => s.revenantId), ['d'], 'the keeper who left takes no place');
   f.sql.close();
 });

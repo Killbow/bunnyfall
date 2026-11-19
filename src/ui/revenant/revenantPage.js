@@ -290,7 +290,7 @@ function row(el, r, now, kindName) {
   if (P) text.append(el('span', 'rvn-blurb', P.blurb));
   if (r.sworn) {   // REVENANT-COMPANION: it walks with the player now - the Companions page keeps it
     const st = r.companion?.state ?? 'with';
-    text.append(el('span', 'rvn-come', st === 'with' ? 'Sworn to you, at your side.' : st === 'resting' ? 'Sworn to you, recovering from a fall.' : 'Sworn to you, away until you call it.'));
+    text.append(el('span', 'rvn-come', st === 'with' ? 'Sworn to you, at your side.' : st === 'resting' ? 'Sworn to you, recovering from a fall.' : st === 'station' ? 'Sworn to you, stationed at a farm.' : 'Sworn to you, away until you call it.'));
     const loy = swornLoyaltyWords(r);   // RVN12b (24.1): for the sworn, its loyalty
     if (loy) text.append(el('span', 'rvn-will', loy));
     item.append(face(el, r), text);

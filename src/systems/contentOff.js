@@ -42,6 +42,8 @@ export const CONTENT = Object.freeze({
   /** BUNNYFALL (2026-11-18): the daily elite dungeons - eight picked a day, a crystal over each, the spread, Sifrit inside
    *  and the cleanse's Dusk Tokens (net/eliteDungeonLaw.js). Off, no new ones are picked and the game shows none. */
   eliteDungeons: true,
+  /** FARM EXPANSION, PHASE 7: market day on every Company farm (net/farm/marketLaw.js marketToday). Off, no farm holds a market. */
+  farmMarkets: true,
 });
 
 /** Whether a piece of content is on. */

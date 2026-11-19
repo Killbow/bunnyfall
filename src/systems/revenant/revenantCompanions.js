@@ -45,6 +45,7 @@ import { PAID_KEEP } from './revenant.js';   // AUDIT RVN-STARS S4: the errands'
 import { t } from '../textManager.js';   // L10N4: RVN-GEAR's and RVN-ERRAND's words through the text core
 import { popupMessage } from '../notify.js';   // RVN-ERRAND: an errand's words where the card is not drawn (the line every skin draws)
 import { equipTableOf } from '../equip.js';   // RVN-GEAR: never a piece the player wears
+import { isStationBeast } from '../../net/farm/stationLaw.js';   // FARM EXPANSION PHASE 5: which kinds may stand at a farm's post
 
 /** How many revenants may be sworn to the player at once - with it and away. */
 export const REVENANT_RETINUE_MAX = 6;
@@ -144,6 +145,7 @@ export function forgetSwornMember(id = null) { if (id == null) { _members.clear(
 export function callRefusal(r, now) {
   if (!r?.sworn) return 'It is no longer sworn to you.';
   if (stateOf(r) === 'with') return null;
+  if (stateOf(r) === 'station' && !stationLost(r)) return t('rvn.station.callAtPost', 'It stands at a farm\'s beast post. Call it back there, in Farming Mode.');   // FARM EXPANSION PHASE 5
   if (stateOf(r) === 'resting' && now < restUntil(r, now)) return 'Still recovering.';
   if (stateOf(r) === 'errand') return t('rvn.errand.callAbroad', 'Abroad, {left}.', { left: errandLeftWords(errandUntil(r.companion.errand, now), now, sharedClockOn()) });   // RVN-ERRAND
   if (wildHere() && revenantsWithYou().length >= WILD_REVENANTS_MAX) return zoneWord('revenantOne');   // PVPDUNGEONS - AUDIT SEA VENTURES C7: the ground's own words
@@ -158,7 +160,7 @@ export function callRevenant(id, now) {
   const why = callRefusal(r, now);
   if (why) return why;
   revenantCompanionUpdate(_player, id, (c) => {
-    c.state = 'with'; c.until = null;
+    c.state = 'with'; c.until = null; c.station = null;   // PHASE 5: a post left behind (a farm lost) is no post
     if (c.rested) { c.rested = false; c.loyalty = movedLoyalty(c.loyalty, Math.round(LOYALTY.CALLED * (1 - rvnStatsOf(r).rest))); }
   });
   tell('arrive', r);
@@ -186,6 +188,7 @@ export function releaseRevenant(id) {
   const r = revenantRecord(_player, id);
   if (!r?.sworn) return null;
   if (stateOf(r) === 'errand') return null;   // RVN-ERRAND: abroad - recalled first, its oath given back to its face
+  if (stateOf(r) === 'station' && !stationLost(r)) return null;   // PHASE 5: at a farm's post - called back first
   // AUDIT (2026-10-02): ITS PACK IS HANDED BACK - the release closed the record with whatever the player had stored in
   // it, gone for good. Into the player's own pack, every item (the crew's hand-off stows a pack in the hold the same way)
   const items = [...(r.companion?.items ?? []), ...gearItems(r.companion?.gear)];   // RVN-GEAR: and its kit
@@ -224,6 +227,7 @@ export const revenantsAbroad = () => swornRevenants().filter((r) => stateOf(r) =
 export function errandRefusal(r, now) {
   if (!r?.sworn) return t('rvn.sworn.gone', 'It is no longer sworn to you.');
   if (stateOf(r) === 'errand') return t('rvn.errand.no.abroad', 'It is already abroad.');
+  if (stateOf(r) === 'station') return t('rvn.station.no.errand', 'It is stationed at a farm. Call it back from its post first.');   // PHASE 5
   if (stateOf(r) === 'resting' && now < restUntil(r, now)) return t('rvn.errand.no.resting', 'Still recovering.');
   if (revenantsAbroad().length >= ERRAND.MAX) return t('rvn.errand.no.most', '{n} of your sworn are abroad already, the most allowed at once.', { n: ERRAND.MAX });
   return leaveRefusal(r);   // COMPANION-DROP: never from my side inside the open zone
@@ -322,6 +326,64 @@ export function chargeErrands(now, { own = ownMinutes(), raised = raisedMinutes(
 }
 /** Where one abroad is, in the page's words. */
 export const abroadWords = (r, now) => (stateOf(r) === 'errand' ? errandWords(r.companion.errand, now, sharedClockOn()) : null);   // AUDIT FB1021 L3-5: online in real time
+
+// ── FARM EXPANSION PHASE 5 (docs/FARM-EXPANSION.md section 6): a sworn beast stationed at a Company farm ──────────────
+// A fourth state beside with, away and errand: `companion.state` 'station', `companion.station` { mapId, sinceS }. It frees a
+// companion slot (revenantsWithYou counts the 'with' alone) yet still counts toward REVENANT_RETINUE_MAX (swornRevenants);
+// it never deserts (revenant.js's day) and goes on no errand. The farm's side - the garden's `stations`, and the work - is
+// net/farm/stationLaw.js; the scene's (scenes/farm/stationActs.js) asks the service first and then writes this record.
+/** @type {((mapId: number) => boolean) | null} */
+let _stationHome = null;
+/** The host's answer to "does the Company still hold this farm" (false once it is lost, or the keeper has left): a post that
+ *  is gone lets its beast come home from the roster. Unknown (not set, or not loaded) holds the beast where it stands. */
+export function setStationHome(fn) { _stationHome = typeof fn === 'function' ? fn : null; }
+const stationLost = (r) => { try { return _stationHome ? _stationHome(r.companion?.station?.mapId) === false : false; } catch { return false; } };
+/** The sworn stationed at farms. */
+export const revenantsStationed = () => swornRevenants().filter((r) => stateOf(r) === 'station');
+/** Why it may not be stationed now - words - or null: it is sworn, walks with me, and is a beast. */
+export function stationRefusal(r) {
+  if (!r?.sworn) return t('rvn.sworn.gone', 'It is no longer sworn to you.');
+  if (!isStationBeast(r.mobileType)) return t('rvn.station.no.kind', 'Only a beast will stand at a farm\'s post.');
+  if (stateOf(r) !== 'with') return t('rvn.station.no.with', 'It must walk at your side to be stationed.');
+  return leaveRefusal(r);
+}
+/** STATIONED at the farm `mapId` (the service has said yes): it leaves my side through its portal and stands at the post.
+ *  Answers the refusal's words, or null. */
+export function stationRevenant(id, mapId, sinceS = 0) {
+  const r = revenantRecord(_player, id);
+  const why = stationRefusal(r);
+  if (why) return why;
+  revenantCompanionUpdate(_player, id, (c) => { c.state = 'station'; c.station = { mapId, sinceS }; c.until = null; c.rested = false; });
+  forgetSwornMember(id);
+  tell('dismiss', r);
+  return null;
+}
+/** CALLED BACK from its post (the service has said yes): at my heel, or away when my slots are full. Answers where it went
+ *  ('with' | 'away'), or null if it was not stationed. */
+export function recallStationed(id) {
+  const r = revenantRecord(_player, id);
+  if (!r?.sworn || stateOf(r) !== 'station') return null;
+  const place = swornPlace();
+  revenantCompanionUpdate(_player, id, (c) => { c.state = place; c.station = null; c.until = null; });
+  if (place === 'with') tell('arrive', r);
+  return place;
+}
+/** THE SERVICE'S WORD WINS for where a beast is (the record's revision wins for all else): the farm `mapId`'s `ids` are the
+ *  beasts it holds; a sworn one of mine marked as standing there that it does not hold comes home, and one it holds that my
+ *  record has not marked (the answer was lost) is marked. Answers the names that came home, and the names marked. */
+export function reconcileStations(mapId, ids) {
+  const held = new Set(ids), home = [], marked = [];
+  for (const r of swornRevenants()) {
+    const here = stateOf(r) === 'station' && r.companion.station?.mapId === mapId;
+    if (here && !held.has(r.id)) { if (recallStationed(r.id)) home.push(r.name); }
+    else if (!here && held.has(r.id) && isStationBeast(r.mobileType) && stateOf(r) !== 'errand') {
+      if (stateOf(r) === 'with') forgetSwornMember(r.id);
+      revenantCompanionUpdate(_player, r.id, (c) => { c.state = 'station'; c.station = { mapId, sinceS: 0 }; c.until = null; c.rested = false; });
+      marked.push(r.name);
+    }
+  }
+  return { home, marked };
+}
 
 // ── RVN-GEAR (bible/06-Systems/Revenants.md section 40): its kit, from the player's pack and back ──────────────
 /** The player's pieces a sworn one might wear (the page's list): in the pack, unworn by the player, of a slot it has. */

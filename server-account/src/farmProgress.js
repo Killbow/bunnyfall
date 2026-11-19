@@ -55,11 +55,14 @@ export async function farmProgressStep({ db, nowS, env }, player, farm, garden, 
 export const farmProgressRead = async (db,player,character,gid,details=false,nowS=0) => {
   const me=typeof character==='string'?await db.prepare('SELECT rank FROM guild_members WHERE player=? AND char_id=? AND guild_id=?').bind(player.id,character,gid).first():null;
   const mayManage=!!me&&Number(me.rank)<=1;
-  if(!mayManage||!details)return{mayManage};
+  // FARM EXPANSION: a member reading the ledger reads their own farm work (farmWorkLaw.js) - details are asked for only then
+  const work=me&&details?await db.prepare('SELECT farm_work, farm_work_day, farm_work_today FROM players WHERE id=?').bind(player.id).first():null;
+  const mine=work?{work:{total:Number(work.farm_work),today:Number(work.farm_work_day)===Math.floor(nowS/86400)?Number(work.farm_work_today):0}}:{};
+  if(!mayManage||!details)return{mayManage,...mine};
   const from=farmWeek(nowS)*7-3;
   const row=await db.prepare(`SELECT treasury,
     COALESCE((SELECT balance FROM guild_marks WHERE guild_id=?1),0) AS argents,
     COALESCE((SELECT SUM(amount) FROM marks_ledger WHERE dst_kind='guild' AND dst_id=?1 AND kind='farm-order' AND day>=?2 AND day<?2+7),0) AS earned
     FROM guilds WHERE id=?1`).bind(gid,from).first();
-  return{mayManage,economy:row?{gold:Number(row.treasury),argents:Number(row.argents),earned:Number(row.earned)}:null};
+  return{mayManage,...mine,economy:row?{gold:Number(row.treasury),argents:Number(row.argents),earned:Number(row.earned)}:null};
 };

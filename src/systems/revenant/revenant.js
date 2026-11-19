@@ -226,7 +226,7 @@ export const REVENANT_EPITHETS = Object.freeze({
  *  and `sentDay` (the day it was last sent away). RVN-GEAR: `gear`, its kit (systems/revenant/revenantGear.js - a slot's
  *  key -> the item it wears). RVN-ERRAND: `errand` while its state is 'errand' - abroad (systems/revenant/revenantErrands.js). RVN-STARS:
  *  `xp` its level's, earned at my side, and `stars` its sky (systems/revenant/revenantStars.js).
- *  @typedef {{ state: 'with'|'away'|'resting'|'errand', health: number|null, maxHealth: number|null, until: number|null, items: any[], loyalty: number, rested: boolean, sentDay: number|null, gear: Record<string, any>, errand: any, worn: boolean, paid: number[], xp: number, stars: string[], lossCarry: number }} RevenantCompanion */
+ *  @typedef {{ state: 'with'|'away'|'resting'|'errand'|'station', station: { mapId: number, sinceS: number }|null, health: number|null, maxHealth: number|null, until: number|null, items: any[], loyalty: number, rested: boolean, sentDay: number|null, gear: Record<string, any>, errand: any, worn: boolean, paid: number[], xp: number, stars: string[], lossCarry: number }} RevenantCompanion */
 /** @typedef {{ id: string, rev: number, mobileType: number, gender: 'male'|'female', given: string, epithet: string,
  *   name: string, rank: number, kills: number, escapes: number, returns: number, trait: string|null, elite: boolean,
  *   born: number, dueAt: number, out: boolean, outAt: number, defeated: boolean, defeatedAt: number|null,
@@ -340,7 +340,9 @@ const FATES = new Set(['executed', 'sworn', 'released']);
 /** REVENANT-COMPANION: a sworn one's place read back - the shape checked; anything odd walks with the player whole. */
 function sanitizeCompanion(c, personality = null, rank = 1) {
   const errand = c?.state === 'errand' ? sanitizeErrand(c?.errand) : null;   // RVN-ERRAND: abroad only with an errand it can come back from
-  const state = c?.state === 'away' || c?.state === 'resting' ? c.state : errand ? 'errand' : c?.state === 'errand' ? 'away' : 'with';
+  // FARM EXPANSION PHASE 5: STATIONED at a Company farm's beast post - only with the farm it stands at (and, of a beast kind, by the law that stationed it)
+  const station = c?.state === 'station' && Number.isSafeInteger(c?.station?.mapId) && c.station.mapId >= 0 ? { mapId: c.station.mapId, sinceS: Number.isFinite(c.station.sinceS) ? Math.max(0, c.station.sinceS) : 0 } : null;
+  const state = station ? 'station' : c?.state === 'away' || c?.state === 'resting' ? c.state : errand ? 'errand' : c?.state === 'errand' ? 'away' : 'with';
   const hp = Number(c?.health), max = Number(c?.maxHealth);
   return {
     state, health: c?.health != null && Number.isFinite(hp) && hp > 0 ? hp : null, maxHealth: c?.maxHealth != null && Number.isFinite(max) && max > 0 ? max : null,
@@ -351,6 +353,7 @@ function sanitizeCompanion(c, personality = null, rank = 1) {
     sentDay: Number.isInteger(c?.sentDay) && c.sentDay >= 0 ? c.sentDay : null,   // RVN11 (22.1): the day it was last sent away
     gear: sanitizeGear(c?.gear),   // RVN-GEAR: its kit, the known slots alone
     errand,   // RVN-ERRAND: where it is, and when it is back
+    station,   // FARM EXPANSION PHASE 5: the farm it stands at, and since when (null: not stationed)
     worn: state === 'resting' && c?.worn === true,   // AUDIT RVN F6: resting from a road (a hard errand, a recall) - no call bonus after it
     paid: paidOf(c?.paid),   // AUDIT RVN F7, AUDIT RVN-STARS S4: the seeds of the last PAID_KEEP errands its loyalty and XP were paid for
     xp: rvnXpOf(c?.xp),   // RVN-STARS: its level, earned at my side (AUDIT RVN-STARS S12: whole, to the top level's)
@@ -1527,7 +1530,7 @@ export function revenantFester(player, { now = nowMinutes(), rolls = Math.random
     // RVN11b (22.2): DESERTION - under DESERT.AT, once a day (a resting one too), one time in DESERT.CHANCE. AUDIT RVN F9:
     // never abroad - an errand is no way to lose a companion (its loyalty stands while it is gone; the roll waits for it)
     for (const r of swornRevenants()) {
-      if (r.companion?.state === 'errand') continue;
+      if (r.companion?.state === 'errand' || r.companion?.state === 'station') continue;   // FARM EXPANSION PHASE 5: nor from a farm's post - it never deserts while stationed
       if (r.companion?.loyalty < DESERT.AT && rolls() < DESERT.CHANCE) revenantDeserts(player, r, { now: d * MINUTES_PER_DAY, rolls });
     }
   }

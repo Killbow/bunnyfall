@@ -48,6 +48,16 @@ const FOOD_OF = Object.freeze({
   'food:grain': ['hearty', 'restful'], 'food:flour': ['hearty', 'fortifying'], 'food:milk': ['refreshing', 'restful', 'fortifying'],
   'food:cheese': ['hearty', 'fortifying', 'clear'], 'food:honey': ['restful', 'charming', 'clear'], 'food:salt': ['warming', 'lucky'],
   'food:boar': ['hearty', 'mighty', 'warming'], 'food:bear': ['mighty', 'fortifying', 'warming'], 'food:crab': ['swift', 'cooling'],
+  // FARM EXPANSION PHASE 2: the climate crops
+  'food:corn': ['hearty', 'swift'], 'food:cabbage': ['refreshing', 'fortifying'], 'food:tomato': ['refreshing', 'hearty'],
+  'food:sunseed': ['keen', 'fortifying'], 'food:berries': ['refreshing', 'charming'], 'food:root': ['hearty', 'warming'],
+  'food:flax': ['restful', 'clear'], 'food:gourd': ['hearty', 'fortifying', 'warming'], 'food:grapes': ['refreshing', 'swift', 'lucky'],
+  // FARM EXPANSION PHASE 4: what the workshops make
+  'food:cornmeal': ['hearty', 'swift'], 'food:butter': ['hearty', 'restful', 'warming'], 'food:cheesewheel': ['fortifying', 'clear', 'restful'],
+  'food:wine': ['charming', 'lucky', 'restful'], 'food:oil': ['keen', 'warming'], 'food:berrywine': ['charming', 'refreshing', 'lucky'],
+  'food:ale': ['hearty', 'mighty', 'restful'], 'food:mead': ['charming', 'restful', 'clear'],
+  'food:smokedmeat': ['hearty', 'mighty', 'fortifying'], 'food:smokedfish': ['swift', 'clear', 'fortifying'],
+  'food:truffle': ['keen', 'lucky', 'charming'],   // PHASE 5
   'reagent:pure-water': ['refreshing'], 'reagent:rain-water': ['refreshing'],
 });
 /** A plant in the pot is a herb or a spice: one kitchen trait, by its DFU template. */

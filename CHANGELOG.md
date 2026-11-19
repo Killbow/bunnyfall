@@ -5,6 +5,21 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
 
+- The farm expansion: Company farms are now real places with a farmyard, animals, workshops, a market and much more. Everything is done on the farm itself in Farming Mode (enter at the farmhouse door) by walking up to things and clicking them; the old Progress & orders panel and the Crop button are gone.
+- The farmyard: an order post with the week's orders, the factor's wagon, an estate ledger, a seed shelf, a tool rack, a well, a compost heap, a haystack, lanterns that light up at night, and a scarecrow in the field. Everyone passing by sees them.
+- Take seed from the sacks on the seed shelf. The order post and the ledger tell you what the farm needs. Captains and Officers ship orders at the wagon and buy improvements at the tool rack, the well and the compost heap, each after a Y/N question. Improvements now show on the farm: more tools, a pump at the well, water channels along the rows.
+- Fields look much better: ploughed furrows, soil that darkens when watered, three to six plants a bed that grow little by little and sway in the wind, and weeds on beds left dry.
+- Harvests leave sacks by the bed. The crops are already in the Company Stores; carry the sacks (up to four) to the factor's wagon to load the week's cargo.
+- New crops, depending on the land: corn, cabbage, tomatoes, sunflowers, berries, flax, gourds, grapes and desert root. They grow fastest in their own season. Grain, mushrooms and herbs grow as before.
+- Crops now have grades: Common, Fine, Choice and Prize (up to double the harvest). Beds earn care by being sown and scythed well, weeded, and watered before they dry out; hover a bed to see where it is heading.
+- Careful work (press F): sowing, weeding, scything, milking and ploughing become short games played right over the bed or animal, for better crops. Each gives its bonus a few times a day.
+- Trouble on the farm: weeds, birds that peck at the crops (chase them off at the scarecrow), blight that spreads through a crop (pull the sick plants with the hoe, and change crops to keep it away), and wolves prowling the pens at night (click the pen to drive them off).
+- Strains: two ripe beds of the same crop side by side can give a cross seed. The farm names it, and it can grow quicker, hardier or heavier. Up to twelve a farm.
+- Livestock: a weekly drover sells cows, horses, pigs, dogs and cats. Feed them from the Company Stores, water them and muck out their pens. Content animals work: cows give milk, pigs give manure for the beds, a dog guards the crops, a cat keeps sacks waiting longer, a horse helps haul. Animals never die.
+- Workshops: an officer pays to build a windmill, press, dairy churn, smokehouse, loom or brewery, which rises over real time. Turn the farm's goods into flour, butter, cheese, wine, oil, ale, mead, smoked meat and fish, and linen. A weekly product order pays the Company in gold.
+- Sworn beasts on the farm: station a sworn beast revenant at a post on your farm (it frees a companion slot and never deserts there). Each kind works: wolves guard, a bear pulls the plough, boars find truffles, spiders spin silk, bats and rats help the soil, a dragonling warms a small greenhouse where any crop grows.
+- Market day: every farm holds a market one day a week. Members stock the stalls from the Company Stores and anyone, from any Company or none, can come and buy. Enter your best crop or animal in the contests to win ribbons.
+- Three new titles for farmers: Furrowhand, Harvestwarden and Sovereign of the Sheaf, earned with farm work (at most 400 a day). Sovereign of the Sheaf also gives the First Light aura. The ledger shows how far you have to go.
 - Sifrit the Forbidden One is now a player's size, so she no longer gets stuck in walls. She has the Titanheart's toughness: no single hit can take more than a quarter of her health, so she cannot be one-shot. Disintegrate does nothing to her ("That won't work.").
 
 ## 2026-11-18
