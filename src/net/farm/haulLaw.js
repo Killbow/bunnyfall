@@ -11,8 +11,9 @@ import { sackLifeOf } from './herdLaw.js';   // PHASE 3: a content cat keeps the
 
 /** How long a sack waits at its bed, s. */
 export const SACK_LIFE_S = 15 * 60;
-/** The most sacks a farm keeps lying about; the oldest go first. */
-export const SACKS_MAX = 64;
+/** The most sacks a farm keeps lying about; the oldest go first. A big field's harvest is hundreds of sacks (one a bed), so
+ *  this is only a guard on the garden's size: it was 64, and a field of a hundred beds lost its first thirty-six. */
+export const SACKS_MAX = 500;
 /** The most sacks one member carries at once. */
 export const CARRY_MAX = 4;
 /** How near a sack is picked up with the one clicked, m. */
