@@ -5945,6 +5945,7 @@ export function createWorldModes(host) {
    *  that broke - silently, because the `?.` below never traps. The
    *  hosts spread the whole pipeline now. */
   function staticNpcPortrait(npcData) {
+    if (npcData && talkedTo.get(npcData)?.magicKeeper) return { archive: 'BunnyfallNyx', record: 0 };   // MAGIC-TAVERN: Nyx's own face, not a bartender's
     const portrait = portraitIndexFromStaticNPCBillboard(npcData, {
       factionData: townTalk?.factionDict?.get(npcData?.factionID ?? 0) ?? null,
       flatFaceIndex: pipeline.flatFaceIndex,

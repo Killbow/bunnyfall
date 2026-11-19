@@ -101,6 +101,38 @@ export function starGlass(base, mask, seed) {
   return { albedo, emission };
 }
 
+/** A picture's red cloth (a carpet, a drape: red well above its green and blue, which brown wood and stone never are) turned
+ *  to a dark blue that leans purple, its lightness kept so the weave stays. A new array, or null where nothing in it is red.
+ *  @param {Uint8ClampedArray} colors */
+export function redToNightBlue(colors) {
+  const out = new Uint8ClampedArray(colors);
+  let n = 0;
+  for (let i = 0; i < colors.length; i += 4) {
+    const r = colors[i], g = colors[i + 1], b = colors[i + 2];
+    if (colors[i + 3] === 0 || r < 60 || r < 1.8 * Math.max(g, b)) continue;
+    const l = r / 255;   // the cloth's own light
+    out[i] = clamp8(34 * l + 6); out[i + 1] = clamp8(18 * l + 4); out[i + 2] = clamp8(120 * l + 14);
+    n++;
+  }
+  return n * 25 > colors.length / 4 ? out : null;   // under a twenty-fifth of the picture: not a cloth
+}
+
+/** One picture of the shared hall: if it is red cloth, a night-blue one goes up in its place. */
+async function dyeRedCloth(archive, record, key, own, texRemap, { renderer, getTexture }) {
+  try {
+    const t = await getTexture(archive);
+    if (!t || t.vendor || !(record < t.recordCount)) return;
+    const bm = t.getDFBitmap(record, 0);
+    if (!bm?.width) return;
+    const pic = t.getColor32(bm, -1);
+    const dyed = redToNightBlue(pic.colors);
+    if (!dyed) return;
+    const rec = recordOf(`c|${key}`);
+    renderer.uploadTexture(MAGIC_STARS_ARCHIVE, rec, { width: pic.width, height: pic.height, colors: dyed });
+    texRemap.set(own, `${MAGIC_STARS_ARCHIVE}_${rec}`);
+  } catch (e) { console.warn('[magic tavern] a cloth would not take the dye', key, e?.message ?? e); }
+}
+
 /** The records handed out under each pseudo-archive, by source key (a source picture is made once). */
 const _records = new Map();
 const recordOf = (/** @type {string} */ k) => { let r = _records.get(k); if (r == null) { r = _records.size; _records.set(k, r); } return r; };
@@ -160,7 +192,7 @@ export function magicGlassRestyle() {
       seen.add(own);
       const key = texRemap.get(own) ?? own;
       const [archive, record] = key.split('_').map(Number);
-      if (!isExteriorWindow(archive, record)) continue;
+      if (!isExteriorWindow(archive, record)) { await dyeRedCloth(archive, record, key, own, texRemap, { renderer, getTexture }); continue; }
       try {
         const t = await getTexture(archive);
         if (!t || t.vendor || !(record < t.recordCount)) continue;
