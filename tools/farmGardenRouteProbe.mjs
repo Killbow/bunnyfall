@@ -50,6 +50,14 @@ try {
   const harvest=await req('/v1/farms/garden',hbody);assert.equal(harvest.status,200,JSON.stringify(harvest));
   assert.equal((await req('/v1/farms/garden',hbody)).status,409);
   assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:grain'").first()).qty,2);
+  // FARM EXPANSION: the harvest left its sack; a member carries it to the wagon once, and only once
+  assert.equal(harvest.data.garden.sacks?.length,1,'A harvest must leave its sack');
+  const sack=harvest.data.garden.sacks[0].id;
+  const haul=await req('/v1/farms/garden',{...body,op:'haul',sacks:[sack],version:harvest.data.version});assert.equal(haul.status,200,JSON.stringify(haul));
+  assert.equal(haul.data.hauled,2);assert.equal(haul.data.garden.cargo.grain,2);assert.equal(haul.data.garden.sacks.length,0);
+  const again=await req('/v1/farms/garden',{...body,op:'haul',sacks:[sack],version:haul.data.version});assert.notEqual(again.status,200,'A sack hauls once');
+  assert.equal((await db.prepare("SELECT qty FROM guild_prof_stores WHERE guild_id='farmtest' AND material='food:grain'").first()).qty,2,'Hauling must not add to the Stores');
+  harvest.data.version=haul.data.version;
   assert.equal((await req('/v1/farms/garden',body,false)).status,401);
   // Seed an earned estate milestone after the real harvest path above, then exercise the real economy route.
   const grown=await db.prepare('SELECT garden FROM company_farm_gardens WHERE map_id=42').first(),estate=JSON.parse(grown.garden);
@@ -75,5 +83,5 @@ try {
   assert.equal((await req('/v1/farms/garden',{mapId:42,details:true})).data.economy,undefined);
   const unchanged=await req('/v1/farms/garden',{mapId:42,version:seen.data.version});assert.equal(unchanged.data.unchanged,true);assert.equal(unchanged.data.garden,undefined);
   assert.notEqual((await req('/v1/farms/garden',{mapId:42,character:'visitor',op:'hoe',bed:100,version:seen.data.version})).status,200);
-  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, replay rejection and read-only visitors.');
+  console.log('PASS: real Worker route, guest authentication, D1 migrations, shared bed operations, harvest credit, sacks hauled once to the wagon, replay rejection and read-only visitors.');
 } finally {await mf.dispose();}

@@ -19,6 +19,7 @@ try {
     const { createFarmingMode } = await import('/src/scenes/farmingMode.js');
     const { emptyGarden, stepFarmGardenAction } = await import('/src/net/farmGardenLaw.js');
     const {stepFarmUpgrade,stepFarmDelivery}=await import('/src/net/farmProgressLaw.js');
+    const { stepFarmHaul } = await import('/src/net/farm/haulLaw.js');
     const { registerFlatField } = await import('/src/world/flatFields.js');
     const { perspective, mirrorProjectionX, lookAt } = await import('/src/world/mat4.js');
     const { projectToScreen } = await import('/src/player/tapRay.js');
@@ -44,7 +45,7 @@ try {
         p.requests.push(body);
         if(observer)return window.remoteFarmRead(body);
         if (body.op && body.op !== 'read') {
-          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):stepFarmGardenAction(p.garden, body, p.now);
+          const step = body.op==='upgrade'?stepFarmUpgrade(p.garden,body.upgrade):body.op==='deliver'?stepFarmDelivery(p.garden,body.crop,p.now):body.op==='haul'?stepFarmHaul(p.garden,body.sacks,p.now):stepFarmGardenAction(p.garden, body, p.now);
           if (step.error) return { ok: false, error: step.error };
           p.garden = step.garden; p.version++;
         }
@@ -67,6 +68,7 @@ try {
     };
     p.bedPoint = (i) => projectToScreen([(i%4+.5)*2,0,(Math.floor(i/4)+.5)*2],canvas.clientWidth,canvas.clientHeight,p.proj,p.view,renderer.worldViewportRect);
     // FARM EXPANSION PHASE 1: the farmyard's fixtures, where they stand on screen; walk to one before using it
+    p.project = (at) => projectToScreen(at, canvas.clientWidth, canvas.clientHeight, p.proj, p.view, renderer.worldViewportRect);
     p.fixture = (id) => p.mode.inspect().fixtures.find((f) => f.id === id);
     p.fixturePoint = (id) => { const f = p.fixture(id); return projectToScreen([f.pos[0], f.pos[1] + f.h * .5, f.pos[2]], canvas.clientWidth, canvas.clientHeight, p.proj, p.view, renderer.worldViewportRect); };
     p.walkTo = (id) => { const f = p.fixture(id); p.feet = [f.pos[0] - (f.r + 1.2), 0, f.pos[2]]; for (let i = 0; i < 30; i++) p.render(); };
@@ -127,6 +129,8 @@ try {
   const ids = await page.evaluate(() => window.probe.mode.inspect().fixtures.map((f) => f.id));
   for (const id of ['orderPost', 'wagon', 'ledger', 'seed:grain', 'seed:mushroom', 'seed:herbs', 'toolRack', 'well', 'compost', 'haystack', 'scarecrow']) assert.ok(ids.includes(id), `farmyard lacks ${id}`);
   assert.equal(await page.evaluate(() => window.probe.glError), 0, 'farmyard draw error');
+  const lamps = await page.evaluate(() => { window.probe.walkTo('ledger'); return window.probe.mode.lights(); });
+  assert.ok(lamps.length >= 1 && lamps.length <= 3 && lamps.every((l) => Number.isFinite(l.x) && l.range > 0), 'The farmyard lanterns light the night');
   async function useFixture(id) {
     await page.evaluate(id => window.probe.walkTo(id), id);
     const at = await page.evaluate(id => window.probe.fixturePoint(id), id);
@@ -155,6 +159,19 @@ try {
   await page.waitForFunction(()=>window.probe.garden.progress.upgrades.tools===1);
   await useFixture('orderPost');
   assert.ok((await page.locator('.farm-message').textContent()).includes('filled this week'), 'The order post shows the filled order');
+  // SACKS (section 3.3): a harvest's sack is shouldered at its bed and loaded onto the wagon
+  await page.evaluate(()=>{const p=window.probe;p.garden.sacks=[{id:7,crop:'grain',qty:2,bed:0,t:p.now},{id:8,crop:'grain',qty:3,bed:0,t:p.now}];p.garden.nextSack=9;p.version++;});
+  await page.waitForTimeout(1100);await page.evaluate(()=>{for(let i=0;i<3;i++)window.probe.render();});
+  assert.equal(await page.evaluate(()=>window.probe.mode.inspect().sacks.length),2,'The sacks lie at their bed');
+  await page.evaluate(()=>{const p=window.probe;const s=p.mode.inspect().sacks[0];p.feet=[s.pos[0]-1.6,0,s.pos[2]];for(let i=0;i<30;i++)p.render();});
+  const sackAt=await page.evaluate(()=>{const p=window.probe,s=p.mode.inspect().sacks[0];return p.project([s.pos[0],s.pos[1]+.3,s.pos[2]]);});
+  await page.mouse.move(sackAt.x,sackAt.y);await page.evaluate(()=>window.probe.render());await page.mouse.click(sackAt.x,sackAt.y);await page.evaluate(()=>window.probe.render());
+  assert.deepEqual((await page.evaluate(()=>window.probe.mode.inspect().carried)).sort(),[7,8],'Both sacks at the bed are shouldered');
+  assert.equal(await page.evaluate(()=>window.probe.mode.inspect().sacks.length),0,'Shouldered sacks leave the ground');
+  await useFixture('wagon');
+  await page.waitForFunction(()=>window.probe.garden.cargo?.grain===5);
+  assert.deepEqual(await page.evaluate(()=>window.probe.mode.inspect().carried),[],'The wagon takes the sacks');
+  assert.equal(await page.evaluate(()=>window.probe.glError),0,'sack draw error');
   for (const width of [360,736]) {
     await page.setViewportSize({width,height:800}); await page.evaluate(() => window.probe.render());
     assert.ok(await page.getByRole('button', { name: '1 · Hoe', exact: true }).isVisible());
@@ -169,5 +186,5 @@ try {
   assert.equal(await page.evaluate(() => window.probe.held),false);
   await page.evaluate(() => window.probe.mode.dispose());
   assert.deepEqual(errors,[]);
-  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
+  console.log('PASS: real WebGL soil/crop rendering, the farmyard drawn and used (seed sacks, ledger, wagon, tool rack, order post, sacks carried to the wagon), screen-to-bed picking, hoe/plant/water, range gate, tools, orbit, responsive belt and camera/body cleanup.');
 } finally { await browser?.close(); await server.close(); }

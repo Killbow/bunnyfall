@@ -143,7 +143,7 @@ test('native crop masking only replaces worked beds and survives rebase and rest
 
 test('thousands of worked beds share crop batches instead of a draw call per bed',async()=>{
   let batches=0;
-  const renderer={textures:new Map([['302_1#opaque',{}]]),createDecalBatch:()=>({}),destroyDecalBatch(){},writeDecalSlot(){},destroyBillboardBatch(){},createBillboardBatch(a,r,size,centers){batches++;return{count:centers.length};}};
+  const renderer={textures:new Map([['302_54#opaque',{}]]),createDecalBatch:()=>({}),destroyDecalBatch(){},writeDecalSlot(){},destroyBillboardBatch(){},createBillboardBatch(a,r,size,centers){batches++;return{count:centers.length};}};
   const art=createFarmGardenArt(renderer,{getTexture:async()=>({getSize:()=>({width:32,height:32})}),uploadRecord(){}});
   await art.prepare();
   const site={beds:Array.from({length:5000},(_,i)=>[i%100*2,0,Math.floor(i/100)*2])},garden=emptyGarden();

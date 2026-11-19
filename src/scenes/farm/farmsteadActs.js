@@ -8,6 +8,7 @@ import { t } from '../../systems/textManager.js';
 import { farmCropName } from '../../ui/farmingHud.js';
 import { farmUpgradeName, farmUpgradeEffect } from '../../ui/farmWords.js';
 import { FARM_CROP_TYPES, FARM_UPGRADES, FARM_ARGENTS_PER_WEEK, farmProgress, farmOrder, farmWeek } from '../../net/farmProgressLaw.js';
+import { wagonCargo, cargoTotal } from '../../net/farm/haulLaw.js';
 
 /** Which improvement each fixture shows and sells. */
 export const FIXTURE_UPGRADE = Object.freeze({ toolRack: 'tools', well: 'irrigation', compost: 'soil' });
@@ -39,6 +40,8 @@ export function createFarmsteadActs(d) {
       t('farm.stead.ledgerShipped', 'Shipped so far: {grain} grain, {mushroom} mushrooms, {herbs} herbs.', { grain: fmt(p.delivered.grain), mushroom: fmt(p.delivered.mushroom), herbs: fmt(p.delivered.herbs) }),
       t('farm.stead.ledgerWeek', 'This week\'s orders filled: {n} of {all}.', { n: FARM_CROP_TYPES.filter((c) => p.weeks[c] === week).length, all: FARM_CROP_TYPES.length }),
     ];
+    const cargo = wagonCargo(d.garden(), d.now());
+    if (cargoTotal(cargo)) lines.push(t('farm.stead.ledgerCargo', 'Hauled to the wagon this week by hand: {grain} grain, {mushroom} mushrooms, {herbs} herbs.', { grain: fmt(cargo.grain), mushroom: fmt(cargo.mushroom), herbs: fmt(cargo.herbs) }));
     for (const key of Object.keys(FARM_UPGRADES)) {
       const tier = p.upgrades[key];
       if (tier >= 2) continue;

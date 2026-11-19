@@ -11,16 +11,22 @@ import { t } from '../systems/textManager.js';
 import { ChoiceWindow } from '../ui/talkWindow.js';
 import { holdHotbar } from '../ui/enhanced/enhancedHotbar.js';
 import { farmToolArea } from '../net/farmProgressLaw.js';
-import { layFarmstead, farmsteadTargets, rayHitsTarget } from '../world/farm/farmstead.js';   // FARM EXPANSION PHASE 1: the farm as a place
+import { layFarmstead, farmsteadTargets, rayHitsTarget, cargoLevel, farmsteadLamps, LAMP_RANGE } from '../world/farm/farmstead.js';
+import { adoptLight } from '../render/lightId.js';
+import { createSackArt, sackSpot, SACK_H } from '../world/farm/sackArt.js';
+import { liveSacks, wagonCargo, cargoTotal, CARRY_MAX, SACK_GATHER_M } from '../net/farm/haulLaw.js';   // FARM EXPANSION PHASE 1: the farm as a place
 import { createFarmsteadArt } from '../world/farm/farmsteadArt.js';
 import { createFarmsteadActs } from './farm/farmsteadActs.js';
 
 const TOOLS = ['hoe', 'plant', 'water', 'harvest'];
+/** The farmyard's lanterns lit at night: within this reach of me, m, and at most this many (the town's lamps keep the rest). */
+const FARM_LAMP_REACH = 60, FARM_LAMPS_MAX = 3;
 export function createFarmingMode(deps) {
   const holdThird = deps.holdThird ?? mwViewHoldThird;
   const art = createFarmGardenArt(deps.renderer, deps);
   const stead = createFarmsteadArt(deps.renderer, deps);   // the fixtures, drawn for anyone near the farm
-  let fixture = null, detailsUntil = 0;   // the fixture under the pointer; officers' Company funds read while they use one
+  const sacks = createSackArt(deps.renderer, deps);   // a harvest's sacks, and the ones shouldered for the wagon
+  let fixture = null, detailsUntil = 0, carried = [];   // the fixture under the pointer; officers' Company funds read while they use one
   let releaseHotbar = null, entering = false, mayManage = false, economy = null;
   let farm = null, site = null, garden = emptyGarden(), version = -1, serverOffset = 0;
   let active = false, busy = false, reading = false, epoch = 0, nextRead = 0, selected = -1;
@@ -65,12 +71,12 @@ export function createFarmingMode(deps) {
   }
   function notice(text) { message = text; noticeUntil = Date.now() + 4000; }
   function leave() {
-    active = false; selected = -1; eye = null; fwd = null; frame = null; pointer = null;
+    active = false; selected = -1; carried = []; eye = null; fwd = null; frame = null; pointer = null;
     hud?.dispose(); hud = null; freeCursor?.(); freeCursor = null;
     releaseHotbar?.(); releaseHotbar = null;
     if (heldBody) holdThird(false); heldBody = false; detach();
   }
-  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; art.dispose(); stead.dispose(); }
+  function clear() { epoch++; site?.restore(); farm = null; site = null; version = -1; economy=null; reading = busy = mayManage = false; fixture = null; carried = []; art.dispose(); stead.dispose(); sacks.dispose(); }
   function key(e) {
     if (!active || deps.blocked()) return;
     if (e.target?.matches?.('input,textarea,[contenteditable=true]') || e.ctrlKey || e.altKey || e.metaKey) return;
@@ -116,7 +122,7 @@ export function createFarmingMode(deps) {
     if (!dir) return;
     let nearest = Infinity;
     // FARM EXPANSION: a fixture before a bed when it stands nearer along the ray
-    for (const target of farmsteadTargets(site.farmstead)) {
+    for (const target of [...farmsteadTargets(site.farmstead), ...sackTargets()]) {
       const distance = rayHitsTarget(eye, dir, target);
       if (distance < nearest && deps.collider.raycast(eye, dir, distance) >= distance - .3) { nearest = distance; fixture = target; }
     }
@@ -135,7 +141,28 @@ export function createFarmingMode(deps) {
     if (!active || version < 0 || ownHere()?.mapId !== farm.mapId) return;
     const feet = deps.feet();
     if (Math.hypot(feet[0] - target.pos[0], feet[2] - target.pos[2]) > FARM_WORK_REACH + target.r) { notice(t('farm.stead.closer', 'Walk closer to use it.')); return; }
+    if (target.id.startsWith('sack:')) { shoulder(target); return; }
+    if (target.id === 'wagon' && carried.length) { if (!busy) perform({ op: 'haul', sacks: [...carried] }); return; }
     acts.use(target.id);
+  }
+  /** The sacks lying at their beds, placed (several at one bed side by side), less the ones on my shoulder. */
+  function lyingSacks() {
+    if (!site) return [];
+    const at = new Map();
+    return liveSacks(garden, now()).filter((s) => !carried.includes(s.id) && site.beds[s.bed]).map((s) => {
+      const n = at.get(s.bed) ?? 0; at.set(s.bed, n + 1);
+      return { id: s.id, crop: s.crop, qty: s.qty, pos: sackSpot(site.beds[s.bed], n) };
+    });
+  }
+  const sackTargets = () => (active ? lyingSacks().map((s) => ({ id: `sack:${s.id}`, sack: s, pos: s.pos, r: .4, h: SACK_H + .1 })) : []);
+  /** A sack clicked: shoulder it and the ones lying near it, up to CARRY_MAX. */
+  function shoulder(target) {
+    const room = CARRY_MAX - carried.length;
+    if (room <= 0) { notice(t('farm.stead.sackFull', 'Your arms are full. Carry these to the wagon first.')); return; }
+    const near = lyingSacks().filter((s) => Math.hypot(s.pos[0] - target.pos[0], s.pos[2] - target.pos[2]) <= SACK_GATHER_M)
+      .sort((a, b) => (a.id === target.sack.id ? -1 : b.id === target.sack.id ? 1 : Math.hypot(a.pos[0] - target.pos[0], a.pos[2] - target.pos[2]) - Math.hypot(b.pos[0] - target.pos[0], b.pos[2] - target.pos[2]))).slice(0, room);
+    carried.push(...near.map((s) => s.id));
+    notice(t('farm.stead.sackTaken', 'You shoulder {n} sack(s). Carry them to the factor\'s wagon.', { n: carried.length }));
   }
   async function work() {
     if (!active || selected < 0 || busy || version < 0 || ownHere()?.mapId !== farm.mapId) return;
@@ -164,9 +191,11 @@ export function createFarmingMode(deps) {
       if (accept(r, token)) {
         if (r.data.choreAwarded||r.data.reward||r.data.upgraded) deps.farms().refresh(true);
         if(action.op==='upgrade'||action.op==='deliver')nextRead=0;
+        if(action.op==='haul'){carried=carried.filter(id=>!action.sacks.includes(id));notice(t('farm.stead.hauled','You load the sacks onto the wagon: {n} crops for this week\'s orders.',{n:r.data.hauled}));deps.sound?.('haul');return;}
         notice(r.data.reward?t('farm.progress.reward','Order filled. Company treasury: +{gold} gold, +{argents} Argents.',r.data.reward):r.data.upgraded?t('farm.progress.installed','Farm improvement installed for everyone.'):r.data.harvested ? t('farm.mode.harvested', '{n} harvested into Company Stores.', { n: r.data.harvested }) : t('farm.mode.worked', 'Done. Your work is saved.'));
         deps.sound?.(tool);
       } else {
+        if (action.op === 'haul' && r?.error === 'farm-haul-gone') carried = [];
         notice(progressError(r?.error) ?? (r?.error === 'farm-bed-version' ? t('farm.mode.changed', 'A friend changed the bed. Refreshing the farm...') : t('farm.mode.wrongTool', 'This bed is not ready for that action.')));
         nextRead = 0;
       }
@@ -183,6 +212,8 @@ export function createFarmingMode(deps) {
       'farm-order-week':t('farm.progress.weekDone','This crop order is already filled this week.'),
       'farm-order-cap':t('farm.progress.cap','The Company has reached its weekly farm Argent limit.'),
       'farm-order-full':t('farm.progress.full','Make room in the Company treasuries before filling the order.'),
+      'farm-haul-gone':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
+      'farm-haul-bad':t('farm.stead.sackGone','Those sacks have already gone to the Company Stores.'),
       'farm-rank':t('farm.progress.rankNeeded','Only Company officers may spend farm funds or fill bulk orders.'),
       'marks-closed':t('farm.progress.closed','Argent orders and upgrades are unavailable on this server.'),
     }[error];
@@ -225,7 +256,8 @@ export function createFarmingMode(deps) {
   }
   return {
     inspect: () => ({ active, farm: farm ? { ...farm } : null, version, fields: site?.fields ?? 0, beds: site?.beds.map((b) => [...b]) ?? [], center: site ? [...site.center] : null, observers: [...observers.keys()],
-      fixtures: farmsteadTargets(site?.farmstead).map((f) => ({ id: f.id, pos: [...f.pos], r: f.r, h: f.h })) }),
+      fixtures: farmsteadTargets(site?.farmstead).map((f) => ({ id: f.id, pos: [...f.pos], r: f.r, h: f.h })),
+      sacks: lyingSacks().map((x) => ({ id: x.id, crop: x.crop, pos: [...x.pos] })), carried: [...carried] }),
     get active() { return active; }, get eye() { return eye; }, get look() { return fwd; },
     get pitch() { return active && fwd ? Math.asin(Math.max(-1, Math.min(1, fwd[1]))) : null; },
     get face() { return active ? { yaw, up: leanedUp(yaw, .8), grow: 1 } : null; },
@@ -234,7 +266,7 @@ export function createFarmingMode(deps) {
       const found = farmGardenSite(value, { ...deps, farms: deps.farms() });
       if (!found) { deps.say(t('farm.mode.noField', 'The crop fields are not ready here yet.')); return; }
       entering = true;
-      try { await art.prepare(); await stead.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
+      try { await art.prepare(); await stead.prepare(); await sacks.prepare(); } catch { deps.say(t('farm.mode.noTextures', 'The farm textures could not be loaded. Please try again.')); return; } finally { entering = false; }
       if (disposed || !deps.available()) return;
       if (!holdThird(true)) { holdThird(false); deps.say(t('farm.mode.noBody', 'Your third-person character must be ready before entering Farming Mode.')); return; }
       heldBody = true;
@@ -258,10 +290,11 @@ export function createFarmingMode(deps) {
         const found = farmGardenSite(here, { ...deps, farms: deps.farms() });
         if (!found) return;
         farm = here; site = found;
-        art.prepare().catch(() => {}); stead.prepare().catch(() => {});
+        art.prepare().catch(() => {}); stead.prepare().catch(() => {}); sacks.prepare().catch(() => {});
       }
       if (active && (!deps.available() || ownHere()?.mapId !== farm.mapId)) leave();
       if (!busy && !reading && Date.now() >= nextRead) read();
+      if (carried.length) { const live = new Set(liveSacks(garden, now()).map((s) => s.id)); const kept = carried.filter((id) => live.has(id)); if (kept.length < carried.length) { carried = kept; notice(t('farm.stead.sackGone', 'Those sacks have already gone to the Company Stores.')); } }
       if (active) {
         deps.cam.yaw = yaw;
         hud.update(farm, tool, crop, status(), deps.blocked());
@@ -287,15 +320,21 @@ export function createFarmingMode(deps) {
       site.mask(garden,version); art.update(site, garden, now(), selected); art.draw(right, up, selected);
       if (stead.ready) {
         site.farmstead ??= layFarmstead(site, { heightAt: deps.heightAt, blocked: steadBlocked });
-        stead.update(site.farmstead, garden.progress?.upgrades ?? {}); stead.draw(right, up);
+        stead.update(site.farmstead, { ...(garden.progress?.upgrades ?? {}), cargo: cargoLevel(cargoTotal(wagonCargo(garden, now()))) }); stead.draw(right, up);
       }
+      const bySack = new Map(liveSacks(garden, now()).map((s) => [s.id, s]));
+      sacks.update(lyingSacks(), carried.map((id) => bySack.get(id)).filter(Boolean), deps.feet(), right); sacks.draw(right, up);
       if (!active || !hud) return;
       const rect = deps.canvas.getBoundingClientRect(), i = selected;
       const pos = i >= 0 ? site.beds[i] : site.center;
       const at = projectToScreen([pos[0], pos[1] + .9, pos[2]], rect.width, rect.height, proj, view, deps.renderer.worldViewportRect);
       at.x += rect.left; at.y += rect.top;
       let label = t('farm.mode.beds', 'Working beds');
-      if (fixture) { hud.target(acts.label(fixture.id), projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return; }
+      if (fixture) {
+        const text = fixture.sack ? t('farm.stead.sackLabel', 'Sack of {crop} · {n} · carry it to the wagon', { crop: farmCropName(fixture.sack.crop), n: fixture.sack.qty })
+          : fixture.id === 'wagon' && carried.length ? t('farm.stead.wagonLoad', 'The factor\'s wagon · load your sacks') : acts.label(fixture.id);
+        hud.target(text, projectTo(fixture.pos, fixture.h + .3, rect, proj, view)); return;
+      }
       if (i >= 0) {
         const bed = garden.beds[i] ?? null, stage = gardenStage(bed, now());
         const growing = bed?.crop && stage !== 'ripe';
@@ -306,6 +345,13 @@ export function createFarmingMode(deps) {
         if (growing && tool === 'plant') label = t('farm.mode.alreadyPlanted', 'This bed is already planted.');
       }
       hud.target(label, at);
+    },
+    /** FARM EXPANSION: the farmyard's lanterns, for the host's night lights - the nearest few within reach of me. */
+    lights() {
+      if (!site?.farmstead) return [];
+      const feet = deps.feet();
+      return farmsteadLamps(site.farmstead).map((l) => [l, Math.hypot(l.pos[0] - feet[0], l.pos[2] - feet[2])]).filter(([, d]) => d <= FARM_LAMP_REACH)
+        .sort((a, b) => a[1] - b[1]).slice(0, FARM_LAMPS_MAX).map(([l]) => adoptLight({ x: l.pos[0], y: l.pos[1], z: l.pos[2], range: LAMP_RANGE }, l.key));
     },
     rebase(delta) { if (eye) eye = eye.map((v, i) => v + delta[i]); site?.rebase(delta);for(const observer of observers.values())observer.rebase(delta); },
     dispose() { leave(); clear();for(const observer of observers.values())observer.dispose();observers.clear(); disposed = true; },

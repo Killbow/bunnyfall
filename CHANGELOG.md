@@ -8,6 +8,8 @@ the last release (scripts/changelogNotes.mjs).
 - Company farms are now places, not menus. Every farm has a farmyard: an order post with the week's notices, the factor's wagon, an estate ledger, a seed shelf, a tool rack, the well, a compost heap, a haystack and a scarecrow in the field. Everyone nearby sees them.
 - In Farming Mode, walk up to a fixture and click it. Take seed from the sacks on the seed shelf (the Crop button is gone), read the notices and the ledger, and Captains and Officers ship orders at the wagon and order improvements at the tool rack, the well and the compost heap, each with a Y/N question. The Progress & orders panel is gone.
 - Improvements now show on the farm: more tools on the rack, buckets and a pump at the well, a bigger compost heap, and water channels running along the worked rows.
+- Harvests now leave sacks at the bed. The crops are already in the Company Stores; carry the sacks (up to four at a time) to the factor's wagon to load this week's cargo, which fills the cart. A sack nobody carries goes away after fifteen minutes. Hauling counts toward the day's farm chore like working a bed.
+- The farmyard has lanterns that light up at night.
 - Fields look better: worked beds show ploughed furrows, turn darker with better soil and while watered, hold three to six plants that grow little by little, and sprout weeds when left dry for a day.
 - Sifrit the Forbidden One is now a player's size, so she no longer gets stuck in walls. She has the Titanheart's toughness: no single hit can take more than a quarter of her health, so she cannot be one-shot. Disintegrate does nothing to her ("That won't work.").
 

@@ -12,18 +12,20 @@
 
 /** A part is sized by its height `h`, m - or, for a picture drawn lying (TEXTURE.214's tools are inventory pictures),
  *  by its width `w`, so a wide picture never stretches tall. */
-/** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number> }} Part */
+/** @typedef {{ a: number, r: number, dx?: number, dz?: number, dy?: number, h?: number, w?: number, min?: Record<string, number>, lamp?: boolean }} Part */
 /** @typedef {{ id: string, dx: number, dz: number, r: number, h: number }} Target */
 /** @typedef {{ id: string, r: number, h: number, parts: Part[], targets?: Target[], field?: boolean }} FixtureDef */
 
 /** @type {readonly FixtureDef[]} */
 export const FIXTURES = Object.freeze([
-  { id: 'orderPost', r: .8, h: 2.6, parts: [{ a: 212, r: 5, h: 2.6 }] },
+  { id: 'orderPost', r: .8, h: 2.6, parts: [{ a: 212, r: 5, h: 2.6 }, { a: 214, r: 5, dx: .55, h: 1.9, lamp: true }] },
   { id: 'wagon', r: 2.6, h: 1.8, parts: [
     { a: 205, r: 27, h: 1.5 }, { a: 201, r: 0, dx: -2.3, dz: .2, h: 1.75 },
-    { a: 205, r: 17, dx: .2, dz: .1, dy: .75, h: .55 }, { a: 205, r: 19, dx: .6, dz: -.1, dy: .75, h: .5 },
+    // the week's cargo, loaded by hauled sacks (haulLaw.js wagonCargo; cargoLevel below)
+    { a: 205, r: 17, dx: .2, dz: .1, dy: .75, h: .55, min: { cargo: 1 } }, { a: 205, r: 19, dx: .6, dz: -.1, dy: .75, h: .5, min: { cargo: 2 } },
+    { a: 205, r: 18, dx: -.2, dz: -.1, dy: .78, h: .5, min: { cargo: 3 } }, { a: 205, r: 26, dx: .35, dz: .15, dy: 1.05, h: .45, min: { cargo: 4 } },
   ] },
-  { id: 'ledger', r: .7, h: 1.1, parts: [{ a: 211, r: 31, h: .65 }, { a: 211, r: 1, dy: .62, h: .4 }] },
+  { id: 'ledger', r: .7, h: 1.1, parts: [{ a: 211, r: 31, h: .65 }, { a: 211, r: 1, dy: .62, h: .4 }, { a: 214, r: 5, dx: -.5, h: 1.9, lamp: true }] },
   { id: 'seedShelf', r: 1.5, h: 1.3, parts: [
     { a: 205, r: 24, dz: .45, h: 1.05 },
     { a: 205, r: 17, dx: -.75, h: .6 }, { a: 205, r: 18, dx: 0, h: .55 }, { a: 205, r: 19, dx: .75, h: .6 },
@@ -39,7 +41,7 @@ export const FIXTURES = Object.freeze([
     { a: 214, r: 6, dx: .55, dy: .05, w: .8, min: { tools: 2 } }, { a: 214, r: 10, dx: -.75, h: 1.4, min: { tools: 2 } },
   ] },
   { id: 'well', r: 1.4, h: 2.6, parts: [
-    { a: 212, r: 0, h: 2.6 }, { a: 205, r: 29, dx: 1, dz: .2, h: .5, min: { irrigation: 1 } },
+    { a: 212, r: 0, h: 2.6 }, { a: 214, r: 5, dx: .2, dz: -1.1, h: 1.9, lamp: true }, { a: 205, r: 29, dx: 1, dz: .2, h: .5, min: { irrigation: 1 } },
     { a: 212, r: 8, dx: -1.2, h: 1.3, min: { irrigation: 2 } }, { a: 205, r: 30, dx: -.9, dz: .4, h: .45, min: { irrigation: 2 } },
   ] },
   { id: 'compost', r: 1.2, h: 1.1, parts: [
@@ -130,6 +132,17 @@ export function layFarmstead(site, { heightAt, blocked }) {
   };
 }
 
+/** A lantern's light: its height on the pole, m, and its reach. */
+export const LAMP_UP = 1.75, LAMP_RANGE = 8;
+/** The farmstead's lanterns, as light positions: one a lantern part (TEXTURE.214's lantern on its pole). */
+export function farmsteadLamps(stead) {
+  const out = [];
+  for (const f of stead?.fixtures ?? []) for (const p of f.def.parts) if (p.lamp) out.push({ key: f, pos: [f.pos[0] + (p.dx ?? 0), f.pos[1] + LAMP_UP, f.pos[2] + (p.dz ?? 0)] });
+  return out;
+}
+
+/** How full the wagon looks for a week's hauled crops: 0 empty, then 1-4. */
+export const cargoLevel = (crops) => (crops <= 0 ? 0 : crops < 20 ? 1 : crops < 100 ? 2 : crops < 400 ? 3 : 4);
 /** A fixture's parts that stand at these upgrades. */
 export const standingParts = (def, upgrades) => def.parts.filter((p) => !p.min || Object.entries(p.min).every(([k, v]) => (upgrades?.[k] ?? 0) >= v));
 

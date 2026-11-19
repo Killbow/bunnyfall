@@ -1,5 +1,6 @@
 // @ts-check
 import { farmProgress, validFarmProgress, farmToolArea } from './farmProgressLaw.js';
+import { laySacks, validHaul } from './farm/haulLaw.js';   // FARM EXPANSION: a harvest's sacks, for the wagon
 // BUNNYFALL: persistent, shared beds. Real server time grows watered crops; neglected crops pause, never die.
 // A sparse address space: farms allocate as many beds as their actual fields contain.
 export const FARM_BEDS = 65536;
@@ -26,7 +27,7 @@ export function gardenStage(bed, nowS) {
   return progress >= 1 ? 'ripe' : progress >= .5 ? 'growing' : 'seedling';
 }
 export function validGarden(value) {
-  return !!value && validFarmProgress(value.progress) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
+  return !!value && validFarmProgress(value.progress) && validHaul(value) && value.beds && typeof value.beds === 'object' && (!Array.isArray(value.beds) || value.beds.length === 16) && Object.entries(value.beds).length <= FARM_BEDS && Object.entries(value.beds).every(([id,b]) => /^(0|[1-9]\d*)$/.test(id) && Number(id) < FARM_BEDS && (b === null ||
     (b && typeof b === 'object' && (b.crop === null || !!farmSeed(b.crop)) &&
       ['grown', 'tick', 'wetUntil'].every((k) => Number.isFinite(b[k]) && b[k] >= 0) &&
       (b.quality === undefined || [0,1,2].includes(b.quality)) && (b.rate === undefined || [1,1.25].includes(b.rate)))));
@@ -59,7 +60,8 @@ export function stepFarmGardenAction(garden, body, nowS) {
   for (const bed of ids) {
     const step = stepFarmGarden(next, { ...body, bed }, nowS);
     if ('error' in step) continue;
-    next = step.garden; worked.push(bed); if (step.harvest) harvests.push(step.harvest);
+    next = step.garden; worked.push(bed); if (step.harvest) harvests.push({ ...step.harvest, bed });
   }
+  if (harvests.length) { next = next === garden ? structuredClone(garden) : next; laySacks(next, harvests, nowS); }
   return worked.length ? { garden:next, harvests, worked } : { error:'farm-bed-action' };
 }

@@ -32,7 +32,11 @@ Since the farm expansion's first phase (`docs/FARM-EXPANSION.md`) the farm is us
 - **Estate ledger** reads the farm's totals, the week's orders and what each next improvement still needs.
 - **Seed shelf** has a sack for each seed: click one to take that seed (this replaced the Crop button).
 - **Tool rack**, **well** and **compost heap** show the tools, irrigation and soil improvements, and sell the next one to a Captain or Officer with a Y/N question.
-- The **haystack** and the **scarecrow** dress the yard.
+- The **haystack** and the **scarecrow** dress the yard; lanterns by the order post, the ledger and the well light at night.
+
+### Sacks and the wagon
+
+A harvest still puts its crops into the Company Stores at once. It also leaves the crops' sacks at the bed corner for fifteen minutes (`src/net/farm/haulLaw.js`). Click a sack to shoulder it and the others lying near it, up to four; click the wagon to load them. The wagon's cargo for the week (Monday UTC) fills the cart as it grows and is read in the ledger. Hauling adds nothing to the Stores (the crops are there already) and counts as working the sack's bed for the day's care bonus. The garden route's `haul` op commits it with the garden revision, so a sack loads once.
 
 Every picture is a Daggerfall record listed in the expansion's art register. A farm too cramped for a fixture lacks it.
 

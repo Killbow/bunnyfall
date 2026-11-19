@@ -1,6 +1,6 @@
 # The Farm Expansion
 
-Status: **design, all decisions taken** (2026-11-19). Nothing here is built yet; Phase 1 is next. It extends the Company farms
+Status: **Phase 1 built** (2026-11-19): the farmyard, the fixtures, sacks and the wagon, lanterns, and the field graphics pass (`docs/FARMING.md`). The wind (4.0) waits on a billboard-shader change. Phases 2 to 7 are designed here. It extends the Company farms
 (`docs/FARMING.md`, `src/net/farmLaw.js`) and Farming Mode (`src/scenes/farmingMode.js`).
 
 ## Decisions taken
@@ -119,7 +119,9 @@ you can see from the road.
 - Harvested goods no longer vanish straight into the Stores. A harvest drops **sacks** on the bed's edge (205:17,
   a few per stack). They go to the Stores on their own after a minute, so nobody loses anything. A member who **carries
   them to the factor's wagon** (pick up, walk, drop on the cart; the cart's cargo visibly fills, as horse-cart-and-cargo
-  already draws fullness) credits them to an open order with a small **haulage bonus** in Company renown.
+  already draws fullness) loads them as the week's cargo. *As built:* the harvest still banks the crops in the Stores
+  at once, so hauling pays no extra goods; it counts as care work for the day's chore, and from Phase 2 earns farm work
+  points (10.1).
 - When an order is full, the factor arrives (an NPC flat with the horse and cart) on the next hour mark, an officer
   confirms (Y/N), and the wagon **drives off along the road**. The rewards land as today.
 - A full shipment uses Stores stock exactly as today; hand-carried sacks are a bonus path, never required.
@@ -664,7 +666,7 @@ the farm calls at 1374-1379).
 | `/v1/farms/buy`, `/crop`, `/release`, `/chore` | (exist) | `farms.js` | as today | officers / members |
 | `/v1/farms/garden` | (exists, grows) | `farmGardens.js` | the one farm read (11, "One read") and bed ops; new ops `weed`, `scythe`, `sow-row`, `plough`, `pull-blight`, `crow`, each with an optional minigame `score` | members to act, anyone to read |
 | `/v1/farms/build` | 1 | `farmStead.js` | pay for a fixture; bring materials to it | officers pay, members bring |
-| `/v1/farms/ship` | 1 | `farmStead.js` | carry sacks to the wagon; dispatch a full order (replaces the garden's `deliver` op, which stays a while for old clients) | members carry, officers dispatch |
+| `/v1/farms/garden` op `haul` | 1 (built) | `farmGardens.js` with `src/net/farm/haulLaw.js` | sacks carried to the wagon. *As built,* a new op on the existing garden route, not a new route, so it shares the garden's one revision; shipping stays the `deliver` op, asked at the wagon | members |
 | `/v1/farms/herd` | 3 | `farmHerd.js` | buy from the drover; feed, water, milk, muck out, herd a pig back | members (officers for Company gold) |
 | `/v1/farms/workshop` | 4 | `farmWorkshops.js` | fill a workshop's crate; collect its shelf | members |
 | `/v1/farms/station` | 5 | `farmStations.js` | station a sworn beast; recall it | the beast's owner |
