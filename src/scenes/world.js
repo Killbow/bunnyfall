@@ -13427,6 +13427,8 @@ export async function bootWorld(canvas, renderer, params, status) { handHeroGend
     _mode, _teleportToPixel, arch, blocks, buildTravelMapWindow, built, cam, canvas, climbFeel, collider, cpuModels,
     csaRuntime, deepWaters, exteriorFoes, gamePaused, getGpuMesh, getTexture, keys, latch, palette, pipeline, player,
     playerTicker, pointerSurfaces, renderer, state, surfaceAt, townTalk, tvSeaY, walkMode,
+    // Before this boot claims the frame loop its token is not set (a TDZ throw), and nothing can have taken the loop.
+    alive: () => { try { return frameAlive(_frameToken); } catch { return true; } },
     get _lastProj() { return _lastProj; },
     get _lastView() { return _lastView; },
     get _traveling() { return _traveling; },
