@@ -4,7 +4,7 @@ Newest first. One line a change, in plain words, for players. The desktop app's 
 the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
-
+- Fixed: only the Mages Guild and Fighters Guild quest givers wear the new paperdoll again; the rest of the hall keep their own look.
 
 - Fixed: Nyx at the Nowhere Tavern (and the guild clerks) now show their own pictures; the game was looking for them in the wrong folder.
 - The Nowhere Tavern: Nyx now shows her own face when you talk to her instead of a generic bartender, and the hall's red carpet and drapes are dyed a dark purple-blue.
