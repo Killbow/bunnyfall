@@ -8753,7 +8753,7 @@ export function createWorldModes(host) {
           bunnyHall: bunnyGuildOfFaction(building?.factionId)?.key ?? null,   // BUNNY-GUILDS: a converted house that is a guild's hall stands its clerk
           guildClerkArt: (pn) => {
             const route = staticNpcRouteIn({ npcFactionId: pn.factionID, dict: townTalk?.factionDict ?? null, building });
-            if (building?.buildingType !== BUILDING_TYPES.GuildHall || route.kind !== 'guildService') return null;
+            if (building?.buildingType !== BUILDING_TYPES.GuildHall || route.kind !== 'guildService' || npcServiceKind(pn.factionID) !== 'Quests') return null;   // only the quest giver wears the supplied paperdoll, not the hall's trainers, healers and members
             return route.guildGroup === GUILD_GROUPS.FightersGuild ? 'fighters' : route.guildGroup === GUILD_GROUPS.MagesGuild ? 'mages' : null;
           },
           lampPerson: (pn) => isLampKeeper(pn, {

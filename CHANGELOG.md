@@ -5,6 +5,7 @@ the last release (scripts/changelogNotes.mjs).
 
 ## 2026-11-19
 
+- Fixed: only the Mages Guild and Fighters Guild quest givers wear the new paperdoll again; the rest of the hall keep their own look.
 - Fixed: Nyx at the Nowhere Tavern (and the guild clerks) now show their own pictures; the game was looking for them in the wrong folder.
 - The Nowhere Tavern: Nyx now shows her own face when you talk to her instead of a generic bartender, and the hall's red carpet and drapes are dyed a dark purple-blue.
 - Fixed: harvesting a big field no longer makes the sacks by the first beds vanish. A farm now keeps up to 500 sacks lying about (it kept 64), still for fifteen minutes each.
